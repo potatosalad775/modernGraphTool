@@ -1,0 +1,89 @@
+/* Color Theme Schemes */
+:root {
+  /* Font */
+  --gt-typescale-title-large: 700 1.5rem/1.4 'Interop', sans-serif;
+  --gt-typescale-title-medium: 700 1.2rem/1.4 'Interop', sans-serif;
+  --gt-typescale-title-small: 700 0.9rem/1.4 'Interop', sans-serif;
+  --gt-typescale-body-large: 400 1rem/1.4 'Interop', sans-serif;
+  --gt-typescale-body-medium: 400 0.8rem/1.4 'Interop', sans-serif;
+  --gt-typescale-body-small: 400 0.6rem/1.4 'Interop', sans-serif;
+  
+  /* Elevation */
+  --gt-elevation-level1: 0 2px 6px 0 rgba(0,0,0,0.24);
+  --gt-elevation-level2: 0 4px 8px 0 rgba(0,0,0,0.48);
+  --gt-shadow: rgba(0,0,0,0.08);
+  --gt-hover-filter: brightness(0.92);
+
+  /* Light Theme */
+  --gt-color-primary: rgb(137 74 103);
+  --gt-color-on-primary: rgb(255 255 255);
+  --gt-color-primary-container: rgb(255 216 230);
+  --gt-color-on-primary-container: rgb(57 7 34);
+  --gt-color-secondary: rgb(115 87 97);
+  --gt-color-on-secondary: rgb(255 255 255);
+  --gt-color-secondary-container: rgb(254 217 230);
+  --gt-color-on-secondary-container: rgb(42 21 30);
+  --gt-color-tertiary: rgb(126 85 56);
+  --gt-color-on-tertiary: rgb(255 255 255);
+  --gt-color-tertiary-container: rgb(255 220 198);
+  --gt-color-on-tertiary-container: rgb(48 20 1);
+  --gt-color-error: rgb(186 26 26);
+  --gt-color-on-error: rgb(255 255 255);
+  --gt-color-error-container: rgb(255 218 214);
+  --gt-color-on-error-container: rgb(65 0 2);
+  --gt-color-background: rgb(255 248 248);
+  --gt-color-on-background: rgb(33 25 28);
+  --gt-color-surface: rgb(255 248 248);
+  --gt-color-on-surface: rgb(33 25 28);
+  --gt-color-surface-variant: rgb(241 222 227);
+  --gt-color-on-surface-variant: rgb(80 67 72);
+  --gt-color-outline: rgb(131 115 120);
+  --gt-color-outline-variant: rgb(212 194 199);
+  --gt-color-surface-container-lowest: rgb(255 255 255);
+  --gt-color-surface-container-low: rgb(255 240 243);
+  --gt-color-surface-container: rgb(250 234 238);
+  --gt-color-surface-container-high: rgb(244 228 232);
+  --gt-color-surface-container-highest: rgb(238 223 226);
+
+  /* Graph Line */
+  --gt-graph-grid-major: rgb(204 204 204);
+  --gt-graph-grid-minor: rgb(238 238 238);
+  --gt-graph-grid-text: rgb(72 72 72);
+}
+
+:root[data-theme='dark'] {
+  --gt-color-primary: rgb(255 176 208);
+  --gt-color-on-primary: rgb(83 29 56);
+  --gt-color-primary-container: rgb(110 51 79);
+  --gt-color-on-primary-container: rgb(255 216 230);
+  --gt-color-secondary: rgb(225 189 202);
+  --gt-color-on-secondary: rgb(65 42 51);
+  --gt-color-secondary-container: rgb(89 63 74);
+  --gt-color-on-secondary-container: rgb(254 217 230);
+  --gt-color-tertiary: rgb(241 187 152);
+  --gt-color-on-tertiary: rgb(73 40 15);
+  --gt-color-tertiary-container: rgb(99 62 35);
+  --gt-color-on-tertiary-container: rgb(255 220 198);
+  --gt-color-error: rgb(255 180 171);
+  --gt-color-on-error: rgb(105 0 5);
+  --gt-color-error-container: rgb(147 0 10);
+  --gt-color-on-error-container: rgb(255 218 214);
+  --gt-color-background: rgb(25 17 20);
+  --gt-color-on-background: rgb(238 223 226);
+  --gt-color-surface: rgb(25 17 20);
+  --gt-color-on-surface: rgb(238 223 226);
+  --gt-color-surface-variant: rgb(80 67 72);
+  --gt-color-on-surface-variant: rgb(212 194 199);
+  --gt-color-outline: rgb(157 140 146);
+  --gt-color-outline-variant: rgb(80 67 72);
+  --gt-color-surface-container-lowest: rgb(19 12 15);
+  --gt-color-surface-container-low: rgb(33 25 28);
+  --gt-color-surface-container: rgb(37 29 32);
+  --gt-color-surface-container-high: rgb(48 40 43);
+  --gt-color-surface-container-highest: rgb(59 50 53);
+
+  /* Graph Line */
+  --gt-graph-grid-major: rgb(82 82 82);
+  --gt-graph-grid-minor: rgb(38 38 38);
+  --gt-graph-grid-text: rgb(204 204 204);
+}

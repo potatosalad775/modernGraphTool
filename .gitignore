@@ -1,0 +1,6 @@
+# Modules
+node_modules
+# Source Map
+dist/core.min.js.map
+#
+.DS_Store

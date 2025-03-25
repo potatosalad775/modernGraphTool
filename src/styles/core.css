@@ -1,0 +1,110 @@
+/* Core styles */
+html {
+  min-width: 340px;
+  width: 100dvw;
+  height: 100dvh;
+
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+
+  font-family: 'Interop', sans-serif;
+  font: var(--gt-typescale-body-medium);
+  color: var(--gt-color-on-surface);
+  background: var(--gt-color-surface);
+
+  h1 { font: var(--gt-typescale-title-large); }
+  h2 { font: var(--gt-typescale-title-medium); }
+  h3 { font: var(--gt-typescale-title-small); }
+  input { font: var(--gt-typescale-body-medium); }
+}
+
+* {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              fill 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0.5rem;
+  border: 1px solid var(--gt-color-outline);
+  padding-left: 0.6rem;
+  font: var(--gt-typescale-body-medium);
+  color: var(--gt-color-on-surface);
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-color: var(--gt-color-surface-container-lowest);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
+  outline: none;
+  cursor: pointer;
+}
+
+div::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+div::-webkit-scrollbar-thumb {
+  border-radius: 0.5rem;
+  background-color: rgba(0,0,0,0.2);
+}
+
+@layer aria-busy {
+  *[aria-busy="true"] {
+    pointer-events: none;
+    position: relative;
+    filter: blur(1px);
+    opacity: 0.8 !important;
+    transition: filter 0.5s ease-out;
+  }
+    
+  *[aria-busy="true"]::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    animation: shimmer 1.5s infinite;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0,0,0,0.5) 50%,
+      transparent 100%
+    );
+    opacity: 0.7;
+    transition: opacity 0.3s ease-out;
+  }
+
+  /* Explicitly remove ::after when aria-busy is false/removed */
+  *[aria-busy="false"]::after,
+  *:not([aria-busy])::after {
+    content: none;
+    opacity: 0;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0.4;
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "menu-label": "이퀄라이저",
+  "phone-select": {
+    "option-source": "EQ 적용 기기 선택",
+    "option-target": "AutoEQ 목표 선택"
+  },
+  "filter-list": {
+    "preamp": "프리앰프",
+    "import": "불러오기",
+    "export": "내보내기",
+    "export-graphic-eq": "그래픽 EQ로 내보내기 (Wavelet)",
+    "peak": "피크",
+    "lowshelf": "로우쉘프",
+    "highshelf": "하이쉘프",
+    "freq": "주파수 (Hz)",
+    "q": "Q",
+    "gain": "게인 (dB)",
+    "no-filter-export-alert": "내보내기 할 필터가 존재하지 않습니다."
+  },
+  "autoeq": {
+    "freq-range": "주파수 범위",
+    "q-range": "Q 범위",
+    "gain-range": "게인 범위",
+    "description": "AutoEQ는 현재 추가되어 있는 모든 필터를 활용합니다.",
+    "run-button": "AutoEQ 실행"
+  },
+  "player": {
+    "option-init": "음원 선택",
+    "option-white": "화이트 노이즈",
+    "option-pink": "핑크 노이즈",
+    "option-tone": "톤 제너레이터",
+    "option-file": "음원 업로드",
+    "tone-freq-label": "주파수: "
+  }
+}

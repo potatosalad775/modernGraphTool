@@ -1,0 +1,42 @@
+{
+  "top-nav-bar": {
+    "sidebar-link-title": "링크"
+  },
+  "phone-selector": {
+    "header-brand-btn": "브랜드",
+    "header-device-btn": "기기",
+    "header-search-bar-placeholder": "검색",
+    "item-review": "리뷰",
+    "item-shop": "구매"
+  },
+  "selection-list": {
+    "channel-left": "L",
+    "channel-right": "R",
+    "channel-left-and-right": "L + R",
+    "channel-average": "평균"
+  },
+  "menu": {
+    "item-phone-label": "기기",
+    "item-graph-label": "그래프",
+    "item-list-label": "목록",
+    "item-misc-label": "기타"
+  },
+  "normalizer-input": {
+    "label": "정규화",
+    "hz-btn": "Hz",
+    "avg-btn": "평균"
+  },
+  "smoothing-button": {
+    "label": "스무딩"
+  },
+  "screenshot-button": {
+    "label": "스크린샷"
+  },
+  "y-axis-scale-button": {
+    "label": "Y축 스케일"
+  },
+  "share-button": {
+    "label": "공유",
+    "on-click": "복사 완료!"
+  }
+}

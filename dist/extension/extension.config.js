@@ -1,7 +1,7 @@
 /**
  * Extension Configuration
  */
-const EXTENSION_CONFIG = [
+export const EXTENSION_CONFIG = [
   {
     // name: (text) - Must be identical with folder name
     NAME: "template",
@@ -29,5 +29,3 @@ const EXTENSION_CONFIG = [
     },
   },
 ];
-
-window.EXTENSION_CONFIG = EXTENSION_CONFIG;

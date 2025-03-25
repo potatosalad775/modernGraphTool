@@ -1,13 +1,13 @@
 import { StringLoader } from "../../../core.min.js";
 import { Equalizer } from "../util/equalizer.js";
 import { equalizerIcon } from "../equalizer.styles.js";
-import { EQUALIZER_CONFIG } from "../main.js";
 
 class EQFilterList extends HTMLElement {
   constructor() {
     super();
-    this.eqBands = parseInt(EQUALIZER_CONFIG?.INITIAL_EQ_BANDS) || 10;
-    this.extraEQBandsMax = parseInt(EQUALIZER_CONFIG?.MAXIMUM_EQ_BANDS) || 20;
+    this.config = {};
+    this.eqBands = 10; // Default Value
+    this.extraEQBandsMax = 20; // Default Value
 
     this.innerHTML = `
     <div class="eq-filter-header">
@@ -39,9 +39,14 @@ class EQFilterList extends HTMLElement {
       </gt-button>
     </div>
     `;
-
-    this._setupFilterElements();
   };
+
+  setConfig(config) {
+    this.config = config;
+    this.eqBands = parseInt(config?.INITIAL_EQ_BANDS) || this.eqBands;
+    this.extraEQBandsMax = parseInt(config?.MAXIMUM_EQ_BANDS) || this.extraEQBandsMax;
+    this._setupFilterElements(true);
+  }
 
   connectedCallback() {
     this._setupEventListener();

@@ -8,11 +8,12 @@ import { equalizerStyles } from "./equalizer.styles.js";
 // equalizer:select-changed - detail:type / uuid
 // equalizer:select-removed
 
-class EqualizerExtension extends HTMLElement {
-  constructor() {
+export default class EqualizerExtension extends HTMLElement {
+  constructor(config = {}) {
     super();
-    const shadow = this.attachShadow({ mode: 'open' });
+    this.attachShadow({ mode: 'open' });
     
+    this.config = config;
     this.currentFilters = {
       filters: [],
       preamp: null,
@@ -23,12 +24,28 @@ class EqualizerExtension extends HTMLElement {
     }
     this.currentSourceUUID = null;
 
-    import('./components/eq-filter-list.js');
-    import('./components/eq-phone-select.js');
-    import('./components/eq-audio-player.js');
-    import('./components/eq-autoeq.js');
+    (async () => {
+      await this._initializeComponents();
+      this._initializeStyles();
+      this._setupEventListeners();
+      
+      // Get audio player after components are initialized
+      this.audioPlayer = this.shadowRoot.querySelector('eq-audio-player');
+    })();
+  }
+
+  async _initializeComponents() {
+    // Import components
+    const components = [
+      './components/eq-filter-list.js',
+      './components/eq-phone-select.js',
+      './components/eq-audio-player.js',
+      './components/eq-autoeq.js'
+    ];
+
+    await Promise.all(components.map(path => import(path)));
     
-    shadow.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <div class="equalizer-container">
         <div class="eq-controls">
           <eq-filter-list></eq-filter-list>
@@ -41,11 +58,16 @@ class EqualizerExtension extends HTMLElement {
       </div>
     `;
 
-    this.equalizer = new Equalizer();
-    this.audioPlayer = this.shadowRoot.querySelector('eq-audio-player');
+    // Pass configuration to components
+    const filterList = this.shadowRoot.querySelector('eq-filter-list');
+    const autoEq = this.shadowRoot.querySelector('eq-autoeq');
 
-    this._initializeStyles();
-    this._setupEventListeners();
+    // Set configuration for each component
+    [filterList, autoEq].forEach(component => {
+      if (component) {
+        component.setConfig?.(this.config);
+      }
+    });
   }
 
   _initializeStyles() {
@@ -95,9 +117,10 @@ class EqualizerExtension extends HTMLElement {
     // Apply Equalizer Filters for each Channel Data
     channelKeys.forEach(channel => {
       if (selectedPhone.channels[channel]) {
+        const equalizer = new Equalizer();
         const frequencies = [...selectedPhone.channels[channel].data.map(point => point[0])];
         const baselineValues = [...selectedPhone.channels[channel].data.map(point => point[1])];
-        const eqGains = this.equalizer.calculateGainsFromFilter(frequencies, filters);
+        const eqGains = equalizer.calculateGainsFromFilter(frequencies, filters);
         
         // Combine baseline with EQ
         const combinedData = frequencies.map((f, i) => [f, baselineValues[i] + eqGains[i]]);
@@ -144,10 +167,5 @@ class EqualizerExtension extends HTMLElement {
 }
 
 customElements.define('equalizer-extension', EqualizerExtension);
-
 // Add 'EQUALIZER' Menu to the bottom menu carousel
 MenuState.addExtensionMenu('equalizer', 'EQUALIZER', '<equalizer-extension></equalizer-extension>');
-
-// Expose EQUALIZER CONFIG from EXTENSION CONFIG
-const EQUALIZER_CONFIG = window.EXTENSION_CONFIG.filter(e => e.NAME === 'equalizer')[0].CONFIG;
-export { EQUALIZER_CONFIG };

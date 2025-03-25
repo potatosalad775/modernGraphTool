@@ -1,9 +1,8 @@
 import { StringLoader } from "../../core.min.js";
-const FREQUENCY_TUTORIAL_CONFIG = window.EXTENSION_CONFIG.filter(e => e.NAME === 'frequency-tutorial')[0].CONFIG;
 
-class FrequencyTutorial {
-  constructor() {
-    this.config = FREQUENCY_TUTORIAL_CONFIG;
+export default class FrequencyTutorial {
+  constructor(config = {}) {
+    this.config = config;
     this.enContent = null;
     this.currentRange = null;
 
@@ -162,5 +161,3 @@ class FrequencyTutorial {
     });
   }
 }
-
-export default new FrequencyTutorial();

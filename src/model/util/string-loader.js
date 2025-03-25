@@ -8,6 +8,7 @@ class StringLoader {
     this._observers = new Set();
     this._fallbackChain = ['en'];
     this._boundObservers = new WeakMap();
+    this._activeExtensionList = [];
 
     if(window.GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_I18N) {
       if(window.GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_SYSTEM_LANG_DETECTION) {
@@ -127,13 +128,13 @@ class StringLoader {
   }
 
   async loadExtensionStrings() {
-    this.activeExtensionList = window.EXTENSION_CONFIG.filter((extension) => extension.I18N_ENABLED);
+    this._activeExtensionList = await this.updateActiveExtensionList();
     
     // Use Promise.all to wait for all extensions to load
     await Promise.all(
-      this.activeExtensionList.map(async (extension) => {
+      this._activeExtensionList.map(async (extension) => {
         try {
-          const response = await fetch(import.meta.resolve(`./extension/${extension.NAME}/strings/${this._currentLang}.json`));
+          const response = await fetch(`./extension/${extension.NAME}/strings/${this._currentLang}.json`);
           if (!response.ok) throw new Error();
           
           const strings = await response.json();
@@ -144,6 +145,16 @@ class StringLoader {
         }
       })
     );
+  }
+
+  async updateActiveExtensionList() {
+    try {
+      const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extension/extension.config.js'));
+      return EXTENSION_CONFIG.filter((extension) => extension.I18N_ENABLED);
+    } catch (error) {
+      console.error('modernGraphTool: Failed to load extension configuration -', error);
+      return [];
+    }
   }
 }
 

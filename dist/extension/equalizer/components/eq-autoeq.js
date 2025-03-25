@@ -1,16 +1,16 @@
 import { DataProvider, StringLoader } from "../../../core.min.js";
 import { Equalizer } from "../util/equalizer.js";
-import { EQUALIZER_CONFIG } from "../main.js";
 
 class EQAutoEQ extends HTMLElement {
   constructor() {
     super();
+    this.config = {};
 
     this.currentDeviceUUID = {
       source: null,
       target: null,
     };
-    this.currentEQBands = parseInt(EQUALIZER_CONFIG?.INITIAL_EQ_BANDS) || 10;
+    this.currentEQBands = 10; // Default Value
 
     this.innerHTML = `
       <div class="auto-eq-container">
@@ -40,6 +40,11 @@ class EQAutoEQ extends HTMLElement {
   connectedCallback() {
     this._setupEventListeners();
     StringLoader.addObserver(this._updateLanguage.bind(this));
+  }
+
+  setConfig(config) {
+    this.config = config;
+    this.currentEQBands = parseInt(config?.INITIAL_EQ_BANDS) || this.currentEQBands;
   }
 
   _setupEventListeners() {

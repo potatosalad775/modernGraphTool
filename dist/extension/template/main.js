@@ -1,8 +1,10 @@
 import { MenuState, DataProvider, MetadataParser } from "../../core.min.js";
 
-class TemplateElement extends HTMLElement {
-  constructor() {
+export default class TemplateElement extends HTMLElement {
+  constructor(config = {}) {
     super();
+    // Receive Extension Config
+    this.config = config;
     // Attach a shadow DOM to the element
     const shadow = this.attachShadow({ mode: 'open' });
     // Create a container element
@@ -45,7 +47,3 @@ class TemplateElement extends HTMLElement {
 // https://developer.mozilla.org/docs/Web/API/Web_components/Using_custom_elements
 customElements.define('template-element', TemplateElement);
 MenuState.addExtensionMenu('template', 'TEMPLATE', '<template-element></template-element>');
-
-// Expose TEMPLATE CONFIG from EXTENSION CONFIG
-const TEMPLATE_CONFIG = window.EXTENSION_CONFIG.filter(e => e.NAME === 'template')[0].CONFIG;
-export { TEMPLATE_CONFIG };

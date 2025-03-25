@@ -10,7 +10,8 @@ https://silicagel.squig.link/alpha
 
 modernGraphTool draws its inspiration from [CrinGraph][CRINGRAPH], a widely-used tool developed by mlochbaum in 2019 for visualizing frequency response graphs. 
 
-Over time, as users began creating their own measurement databases, customized versions of CrinGraph with unique features started to appear. However, its design was optimized for its original purpose, which made adding new features more challenging over time. 
+Over time, as users began creating their own measurement databases, customized versions of CrinGraph with unique features started to appear.
+However, its design was optimized for its original purpose, which made adding new features and maintaining codebase more challenging over time.
 
 This project seeks to build upon CrinGraph's core functionality while introducing a more adaptable and expandable foundation.
 
@@ -54,9 +55,34 @@ You cannot open the `index.html` file directly, as many browsers do not allow lo
 
 The easiest way to try out modernGraphTool in local is to use the [VSCode][VSCODE] + [Live Preview extension][VSCODE_LIVE_PREVIEW].
 
+```
+dist/
+├── assets/                     # Static assets (Image, Strings..)
+├── data/                       # Frequency Response data
+│   ├── phones                  # 
+│   │   ├── phone L.txt         # Phone FR Left Channel Data
+│   │   └── phone R.txt         # Phone FR Right Channel Data
+│   ├── target                  # 
+│   │   └── DF Target.txt       # Target FR Data
+│   └── phone_book.json         # phone_book.json (same as CrinGraph)
+├── extension/                  # 
+│   ├── equalizer               # Extension Module Folder
+│   └── extension.config.js     # Extension user config
+├── core.min.js                 # modernGraphTool Core Module (Bundled)
+├── config.js                   # User config
+├── theme.css                   # User theme
+└── index.html                  # HTML
+```
+
 ### Configuring modernGraphTool
 
-You can customize modernGraphTool via `config.js` and `/extension/extension.config.js`.
+You can customize modernGraphTool via `index.html`, `config.js` and `/extension/extension.config.js`.
+
+### Migrating from CrinGraph
+
+modernGraphTool is designed to be based on the same file structure used in CrinGraph, so you can utilize many of the same elements without changing anything. 
+
+Specifically, the features related to Frequency Response data are designed to utilize the data you were using in CrinGraph. You can simply copy over your data folder, and it should work just fine.
 
 ## Developer Guide
 
@@ -74,6 +100,13 @@ npm run build
 # Start
 npm run start
 ```
+
+## Coming Soon
+
+- UI optimization for mobile devices
+- squig.link integration plugin (extension)
+- Tilted target extension
+- Over-engineered color wheel extension
 
 ## License
 

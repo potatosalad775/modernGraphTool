@@ -17,24 +17,26 @@ This project seeks to build upon CrinGraph's core functionality while introducin
 ## Features
 
 ### Frequency Response Graph Visualization
-- Normalization Options - (dB / Midrange Average (300Hz~3kHz))
-- Smoothing Options - (1/48oct ~ 1/3oct)
+- Normalization options - (Hz / Midrange Average (300Hz~3kHz))
+- Smoothing options - (1/48oct ~ 1/3oct)
 
 ### Headphone / Target Selector
-- Search Headphones by Name or Brand
-- Use Headphone / Target as Baseline
+- Search headphones by name or brand
+- Use headphone / target as baseline
+- Compatible with CrinGraph file structure (phone_book & target_manifest)
 
 ### Graph Tools
 - Share with URL (+ Base62 encoding support)
-- Save FR Graph Screenshot
+- Save Frequency Response graph screenshot
 
 ### User Interface & Customization
-- Multi-Language & Dark Mode Support
-- User-Configurable Elements (Color Palette, Link, Watermark..)
+- Multi-Language & Dark Mode support
+- User configurable elements (Link, Watermark..)
+- Based on 'Material Design 3' color palette
 
 ### Expandability
-- API-based Extension System
-- User-Configurable Extension
+- API-based extension system
+- User configurable extension
 
 ## Extension
 

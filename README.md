@@ -80,9 +80,11 @@ You can customize modernGraphTool via `index.html`, `config.js` and `/extension/
 
 ### Migrating from CrinGraph
 
-modernGraphTool is designed to be based on the same file structure used in CrinGraph, so you can utilize many of the same elements without changing anything. 
+modernGraphTool is designed to work with the same file structure as CrinGraph. 
 
-Specifically, the features related to Frequency Response data are designed to utilize the data you were using in CrinGraph. You can simply copy over your data folder, and it should work just fine.
+Specifically, the features related to Frequency Response data are designed to use the same data you used in CrinGraph, so you can simply copy over your data folder, and it should work just fine.
+
+This repository is preloaded with the same sample data that can be found at ['Squig.link Lab' (fork of CrinGraph)][SQUIGLINK_LAB].
 
 ## Developer Guide
 
@@ -116,3 +118,4 @@ modernGraphTool is open source software licensed under MIT License.
 [VSCODE]: https://code.visualstudio.com/
 [VSCODE_LIVE_PREVIEW]: https://marketplace.visualstudio.com/items?itemName=ms-vscode.live-server
 [ROLLUP]: https://rollupjs.org/
+[SQUIGLINK_LAB]: https://github.com/squiglink/lab

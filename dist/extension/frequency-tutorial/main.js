@@ -137,6 +137,11 @@ export default class FrequencyTutorial {
       highlight.style('display', 'none');
       this.currentRange = null;
     } else {
+      // Untoggle all other buttons silently
+      this.container.querySelectorAll('.frequency-buttons > gt-button').forEach((btn, i) => {
+        if (i !== index) btn.toggle(false, true);
+      });
+      
       description.textContent = range.description;
       description.classList.add('visible');
       

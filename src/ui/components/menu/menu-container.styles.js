@@ -27,8 +27,8 @@ export const menuContainerStyles = `
     width: 100%;
     height: 100%;
     overflow-x: hidden;
-    overflow-y: scroll;
-    padding: 0.9rem 0.4rem 0 0.9rem;
+    overflow-y: auto;
+    padding: 0.9rem 0.9rem 0 0.9rem;
     opacity: 0;
     transform: translateX(30%);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

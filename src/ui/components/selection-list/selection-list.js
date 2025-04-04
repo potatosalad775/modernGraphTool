@@ -136,6 +136,8 @@ class SelectionList extends HTMLElement {
     // Color Button
     this.querySelectorAll('.sl-color-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
         const uuid = e.target.closest('.selection-list-item').dataset.uuid;
         const type = e.target.closest('.selection-list-item').dataset.type;
         const newColor = DataProvider._getColorWithType(type);
@@ -149,6 +151,8 @@ class SelectionList extends HTMLElement {
     // Variant Select Menu Button
     this.querySelectorAll('.sl-variant-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+
         const button = e.currentTarget;
         const variantMenu = e.target.closest('.selection-list-item').querySelector('.sl-variant-menu');
         
@@ -172,6 +176,8 @@ class SelectionList extends HTMLElement {
     this.querySelectorAll('.sl-variant-item').forEach(selector => {
       // Switch to Variant
       selector.addEventListener('click', async (e) => {
+        e.preventDefault();
+
         const variantMenu = e.target.closest('.sl-variant-menu');
         variantMenu.setAttribute('aria-busy', 'true');
 
@@ -185,6 +191,7 @@ class SelectionList extends HTMLElement {
 
       // Add Variant Button
       selector.querySelector('.sl-button.add-variant').addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation(); // Prevent event from bubbling up to parent (Switch Variant)
         
         const uuid = e.target.closest('.selection-list-item').dataset.uuid;
@@ -291,6 +298,8 @@ class SelectionList extends HTMLElement {
     // Baseline Button
     this.querySelectorAll('.sl-button.baseline').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+
         const button = e.currentTarget;
         const uuid = e.target.closest('.selection-list-item').dataset.uuid;
         const isActive = button.classList.contains('active');
@@ -320,6 +329,8 @@ class SelectionList extends HTMLElement {
     // Visibility Button
     this.querySelectorAll('.sl-button.visibility').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+
         const button = e.currentTarget;
         const uuid = button.closest('.selection-list-item').dataset.uuid;
         const dataObj = DataProvider.getFRData(uuid);
@@ -352,6 +363,8 @@ class SelectionList extends HTMLElement {
     // Delete Button
     this.querySelectorAll('.sl-button.delete').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
         const uuid = e.target.closest('.selection-list-item').dataset.uuid;
         const type = e.target.closest('.selection-list-item').dataset.type;
         DataProvider.removeFRDataWithUUID(type, uuid);

@@ -40,14 +40,14 @@ const CoreEvent = {
   // Core Event Handler
   _bindCoreInit() {
     window.addEventListener("DOMContentLoaded", async () => {
+      // Switch to Mobile UI if applicable
+      this._setupUI({ updateTheme: true });
       // Initialize URL Provider
       this.coreAPI.URLProvider.init(this);
       // Fetch Phone Book Data
       await this.coreAPI.MetadataParser.init(this);
       // Initialize Data Provider
       this.coreAPI.DataProvider.init(this);
-      // Switch to Mobile UI if applicable
-      this._setupUI({ updateTheme: true });
     });
   },
 

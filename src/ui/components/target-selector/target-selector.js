@@ -98,7 +98,9 @@ class TargetSelector extends HTMLElement {
 
         // Attach event listener
         const btnElement = targetGroupItem.querySelector(".target-list > gt-button:last-child");
-        btnElement.addEventListener('gt-button-toggle', async () => {
+        btnElement.addEventListener('gt-button-toggle', async (e) => {
+          e.preventDefault();
+          
           btnElement.disabled = true;
           btnElement.setAttribute('aria-busy', 'true');
 

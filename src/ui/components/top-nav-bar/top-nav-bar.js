@@ -7,7 +7,7 @@ class TopNavBar extends HTMLElement {
   constructor() {
     super();
 
-    this.isMobile = document.documentElement.hasAttribute('data-mobile');
+    this.isMobile = document.documentElement.hasAttribute('data-mobile') || window.innerWidth < 1000;
     this.linkList = ConfigGetter.get('TOPBAR.LINK_LIST') || [];
     this.render();
     this.setupEventListeners();
@@ -40,8 +40,12 @@ class TopNavBar extends HTMLElement {
           <div class="mobile-sidebar">
             <div class="mobile-sidebar-overlay"></div>
             <div class="mobile-sidebar-content">
-              <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
-              <gt-divider horizontal style="margin: 0.5rem 0;"></gt-divider>
+              <div class="mobile-sidebar-header">
+                <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
+                <button class="mobile-sidebar-close">
+                  ${IconProvider.Icon('close', 'width: 1.5rem; height: 1.5rem;')}
+                </button>
+              </div>
               ${this.linkList.map((link) => `
                 <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
               `).join("")}
@@ -67,6 +71,7 @@ class TopNavBar extends HTMLElement {
       const menuButton = this.querySelector('.mobile-menu-button');
       const sidebar = this.querySelector('.mobile-sidebar');
       const overlay = this.querySelector('.mobile-sidebar-overlay');
+      const closeButton = this.querySelector('.mobile-sidebar-close');
 
       menuButton?.addEventListener('click', () => {
         sidebar.classList.add('visible');
@@ -74,6 +79,11 @@ class TopNavBar extends HTMLElement {
       });
 
       overlay?.addEventListener('click', () => {
+        sidebar.classList.remove('visible');
+        document.body.style.overflow = '';
+      });
+      
+      closeButton?.addEventListener('click', () => {
         sidebar.classList.remove('visible');
         document.body.style.overflow = '';
       });

@@ -2,7 +2,8 @@ const GraphHandle = (svg, renderEngine) => {
   // Initialize shift state
   var yShift = 0;
   const maxShift = 20;
-  const handleRadius = 10;
+  const isMobile = document.documentElement.hasAttribute('data-mobile') || window.innerWidth < 1000;
+  const handleRadius = isMobile ? 20 : 10;
 
   // Create handle group
   const handleGroup = svg.append('g')
@@ -86,8 +87,25 @@ const GraphHandle = (svg, renderEngine) => {
     updateGraphPosition();
   };
 
-  // Add double-click to reset
-  handle.on('dblclick', resetHandle);
+  // Add double-click and double touch to reset
+  handle.on('dblclick touchstart', (event) => {
+    // Prevent double touch from triggering zoom
+    if (event.type === 'touchstart') {
+      let lastTouch = handle.property('lastTouch') || 0;
+      const currentTime = new Date().getTime();
+      
+      // Reset lastTouch if it's a double touch within 300ms
+      if (currentTime - lastTouch <= 300) {
+        event.preventDefault();
+        resetHandle();
+        handle.property('lastTouch', 0);
+      } else {
+        handle.property('lastTouch', currentTime);
+      }
+    } else {
+      resetHandle();
+    }
+  });
 
   // Initialize drag behavior
   handle.call(drag);

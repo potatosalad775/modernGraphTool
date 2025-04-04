@@ -43,8 +43,6 @@ export default class FrequencyTutorial {
         .frequency-tutorial-container {
           display: flex;
           flex-direction: column;
-          gap: 0.2rem;
-          padding: 0 0 0.4rem 0;
         }
         .frequency-buttons {
           display: flex;
@@ -52,6 +50,8 @@ export default class FrequencyTutorial {
           justify-content: safe center;
           gap: 0.5rem;
           overflow-x: scroll;
+          padding-bottom: 0.3rem;
+          margin-bottom: 0.4rem;
 
           gt-button {
             min-width: fit-content;
@@ -68,21 +68,17 @@ export default class FrequencyTutorial {
         }
         .frequency-description.visible {
           display: block;
-          margin-bottom: 0.6rem;
+          margin-bottom: 1rem;
         }
         .frequency-buttons::-webkit-scrollbar {
-          height: 0.5rem;
+          height: 0.2rem;
         }
         .frequency-buttons::-webkit-scrollbar-track {
           background: rgba(0,0,0,0);
-          background-clip: padding-box;
-          border-top: 0.4rem solid transparent;
         }
         .frequency-buttons::-webkit-scrollbar-thumb {
           background: rgba(0,0,0,0.2);
           border-radius: 1rem;
-          background-clip: padding-box;
-          border-top: 0.4rem solid transparent;
         }
 
       </style>
@@ -97,7 +93,7 @@ export default class FrequencyTutorial {
       button.setAttribute('variant', 'filled-tertiary');
       button.setAttribute('toggleable', '');
       button.textContent = range.name;
-      button.addEventListener('gt-button-toggle', () => this.showRange(index));
+      button.addEventListener('gt-button-toggle', (e) => this.showRange(e, index));
       buttonContainer.appendChild(button);
     });
 
@@ -125,7 +121,9 @@ export default class FrequencyTutorial {
     }, { passive: true });
   }
 
-  showRange(index) {
+  showRange(e, index) {
+    e.preventDefault();
+    
     const range = this.content[index];
     const description = document.querySelector('.frequency-description');
     const highlight = d3.select('.frequency-highlight');

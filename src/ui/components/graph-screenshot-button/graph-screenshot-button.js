@@ -16,7 +16,7 @@ class GraphScreenshotButton extends HTMLElement {
     this._boundApplyComputedStyles = this._applyComputedStyles.bind(this);
 
     this._button = this.querySelector('gt-button');
-    this._button.addEventListener('click', () => this._boundCapture('graph'));
+    this._button.addEventListener('click', (e) => this._boundCapture(e, 'graph'));
   }
 
   connectedCallback() {
@@ -31,7 +31,9 @@ class GraphScreenshotButton extends HTMLElement {
    * Captures the FR graph and downloads it as a PNG file
    * @param {string} filename - Name of the downloaded file (without extension)
    */
-  capture(filename = 'fr-graph') {
+  capture(e, filename = 'fr-graph') {
+    e.preventDefault();
+    
     const svg = document.getElementById('fr-graph');
     if (!svg) {
       console.error('FR Graph not found');

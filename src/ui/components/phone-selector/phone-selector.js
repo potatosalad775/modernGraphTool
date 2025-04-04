@@ -38,8 +38,8 @@ class PhoneSelector extends HTMLElement {
       this._filterPhoneList(e.target.value);
     });
     // Mobile UI Nav Button Event Listener
-    this.querySelector('.ps-header-nav-brand').addEventListener('click', () => this._switchListPanel('brand'));
-    this.querySelector('.ps-header-nav-phone').addEventListener('click', () => this._switchListPanel('phone'));
+    this.querySelector('.ps-header-nav-brand').addEventListener('click', (e) => this._switchListPanel(e, 'brand'));
+    this.querySelector('.ps-header-nav-phone').addEventListener('click', (e) => this._switchListPanel(e, 'phone'));
 
     this._init();
   }
@@ -134,6 +134,8 @@ class PhoneSelector extends HTMLElement {
   _addBrandEventListeners() {
     this.querySelectorAll(".ps-brand-item input").forEach((input) => {
       input.addEventListener("change", (e) => {
+        e.preventDefault();
+        
         const brand = e.target.dataset.identifier;
         const checkedInputs = Array.from(this.querySelectorAll(".ps-brand-item input:checked"));
         
@@ -173,6 +175,8 @@ class PhoneSelector extends HTMLElement {
   _addPhoneEventListeners() {
     this.querySelectorAll(".ps-phone-item input").forEach((input) => {
       input.addEventListener("change", async (e) => {
+        e.preventDefault();
+
         const phoneItem = e.target.closest('.ps-phone-item');
         phoneItem.setAttribute('aria-busy', 'true');
         input.disabled = true;
@@ -242,7 +246,8 @@ class PhoneSelector extends HTMLElement {
     }, 100); // 100ms Delay before Changing Button status to prevent flickering
   }
 
-  _switchListPanel(type) {
+  _switchListPanel(e, type) {
+    e.preventDefault();
     this.querySelector('.ps-brand-list').classList.toggle('mobile-visible');
     this.querySelector('.ps-phone-list').classList.toggle('mobile-visible');
     this.querySelector(`.ps-header-nav-${type === 'phone' ? 'brand' : 'phone'}`).style.display = '';

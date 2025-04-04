@@ -48,7 +48,7 @@ export const phoneSelectorStyles = `
   display: block;
   overflow-y: auto;
   margin-right: 0.5rem;
-  padding: 0 0.5rem 0 1rem;
+  padding: 0 1rem 0 1rem;
   box-sizing: border-box;
   min-width: 7rem;
 }

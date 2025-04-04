@@ -63,21 +63,6 @@ export const equalizerStyles = `
       display: flex;
       flex-direction: row;
       gap: 0.2rem;
-
-      button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        background: none;
-        width: 2rem;
-        height: 2rem;
-        cursor: pointer;
-      }
-      button:hover {
-        background: var(--gt-color-surface-container);
-        border-radius: 2rem;
-      }
     }
   }
 
@@ -130,9 +115,6 @@ export const equalizerStyles = `
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
-
-    gt-button {
-    }
   }
 
   eq-select {
@@ -256,22 +238,6 @@ export const equalizerStyles = `
       flex-direction: row;
       align-items: center;
       gap: 0.2rem;
-
-      button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        background: none;
-        cursor: pointer;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 1.5rem;
-        color: var(--gt-color-on-surface);
-      }
-      button:hover {
-        background: var(--gt-color-surface-container-low);
-      }
     }
     
     .ap-volume-control {
@@ -333,6 +299,23 @@ export const equalizerStyles = `
     margin-top: -4px;
     background: var(--gt-color-primary);
     cursor: pointer;
+  }
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    width: 2rem;
+    height: 2rem;
+    cursor: pointer;
+    border-radius: 2rem;
+    color: var(--gt-color-on-surface);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:hover {
+    background: var(--gt-color-surface-container-low);
   }
 
   @layer aria-busy {

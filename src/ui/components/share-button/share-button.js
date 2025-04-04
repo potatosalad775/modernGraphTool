@@ -27,6 +27,8 @@ class ShareButton extends HTMLElement {
   }
 
   _copyURL = async (e) => {
+    e.preventDefault();
+    
     await navigator.clipboard.writeText(urlProvider.getCurrentURL());
     
     this._button.innerHTML = `

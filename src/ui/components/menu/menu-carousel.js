@@ -111,6 +111,7 @@ class MenuCarousel extends HTMLElement {
     
     this._buttons.forEach((button, index) => {
       const handleTouchStart = (e) => {
+        e.preventDefault();
         this._touchStartX = e.touches[0].clientX;
         this._touchStartTime = Date.now();
       };

@@ -6,7 +6,7 @@ export const topNavBarStyles = `
     justify-content: space-between;
     height: 2rem;
     padding: 0.5rem 1rem;
-    background: var(--gt-color-surface);
+    background: var(--gt-color-surface-container);
     border-bottom: 1px solid var(--gt-color-outline-variant);
   }
 
@@ -89,23 +89,33 @@ export const topNavBarStyles = `
 
   .mobile-sidebar-content {
     position: relative;
-    width: 80vw;
-    max-width: 20rem;
-    background: var(--gt-color-surface);
-    padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    width: 70vw;
+    max-width: 20rem;
+    height: 100%;
+    background: var(--gt-color-surface);
     transform: translateX(100%);
     transition: transform 0.3s ease;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+    border-radius: 1rem 0 0 1rem;
   }
 
   .mobile-sidebar.visible .mobile-sidebar-content {
     transform: translateX(0);
   }
 
-  .mobile-sidebar-content h2 {
-    margin: 0.5rem;
+  .mobile-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 1.5rem;
+    margin-bottom: 1rem;
+
+    h2 {
+      margin: 0;
+    }
   }
 
   .mobile-sidebar-content a {
@@ -113,6 +123,7 @@ export const topNavBarStyles = `
     color: var(--gt-color-on-surface-variant);
     font: var(--gt-typescale-body-large);
     padding: 0.5rem;
+    margin: 0.5rem 1rem;
     border-radius: 0.5rem;
   }
 

@@ -27,7 +27,9 @@ class SmoothingButton extends HTMLElement {
     StringLoader.removeObserver(this._updateLabel.bind(this));
   }
 
-  _cycleOption() {
+  _cycleOption(e) {
+    e.preventDefault();
+    
     this._currentIndex = (this._currentIndex + 1) % this._options.length;
     this._button.innerHTML = `
       ${StringLoader.getString('smoothing-button.label', 'Smoothing')}

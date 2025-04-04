@@ -106,24 +106,78 @@ class MenuCarousel extends HTMLElement {
 
   _setupButtonListeners() {
     this._buttonHandlers = new Map();
+    this._touchStartX = 0;
+    this._touchStartTime = 0;
     
     this._buttons.forEach((button, index) => {
-      const handler = (e) => {
+      const handleTouchStart = (e) => {
+        this._touchStartX = e.touches[0].clientX;
+        this._touchStartTime = Date.now();
+      };
+
+      const handleClick = (e) => {
+        // Check if this was a swipe (movement > 10px or time < 200ms)
+        const touchEndX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+        const isSwipe = Math.abs(touchEndX - this._touchStartX) > 10 || 
+                       (Date.now() - this._touchStartTime) > 200;
+        
+        if (isSwipe) return;
+
+        e.preventDefault();
         const target = e.currentTarget.dataset.target;
-        if (!this.isDragging && target) {
-          this._snap(index);
-          CoreEvent.dispatchEvent('menu-switched', {target});
+        if (!isSwipe && target) {
+          const direction = index - this.currentIndex;
+          this._animateToIndex(index, direction);
         }
       };
-      this._buttonHandlers.set(button, handler);
-      button.addEventListener('click', handler);
+
+      const handleTouchEnd = (e) => {
+        e.preventDefault();
+        button.blur();
+      };
+
+      this._buttonHandlers.set(button, { handleClick, handleTouchStart, handleTouchEnd });
+      
+      button.addEventListener('touchstart', handleTouchStart, { passive: false });
+      button.addEventListener('touchend', handleClick, { passive: false });
+      button.addEventListener('click', handleClick);
     });
+  }
+
+  _animateToIndex(targetIndex, direction) {
+    if (this.isSnapping || targetIndex === this.currentIndex) return;
+    
+    this.isSnapping = true;
+    const steps = Math.abs(direction);
+    let currentStep = 0;
+    
+    const animate = () => {
+      currentStep++;
+      const nextIndex = this.currentIndex + Math.sign(direction);
+      this.currentIndex = nextIndex;
+      this._updateCarousel(true);
+      
+      if (currentStep < steps) {
+        requestAnimationFrame(animate);
+      } else {
+        setTimeout(() => {
+          this.isSnapping = false;
+        }, this.snapDebounceTime);
+        
+        const target = this._buttons[targetIndex].dataset.target;
+        CoreEvent.dispatchEvent('menu-switched', {target});
+      }
+    };
+    
+    requestAnimationFrame(animate);
   }
 
   _removeButtonListeners() {
     if (this._buttonHandlers) {
-      this._buttonHandlers.forEach((handler, button) => {
-        button.removeEventListener('click', handler);
+      this._buttonHandlers.forEach((handlers, button) => {
+        button.removeEventListener('click', handlers.handleClick);
+        button.removeEventListener('touchstart', handlers.handleTouchStart);
+        button.removeEventListener('touchend', handlers.handleClick);
       });
       this._buttonHandlers.clear();
     }

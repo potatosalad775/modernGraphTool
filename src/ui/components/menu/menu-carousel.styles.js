@@ -34,6 +34,7 @@ export const menuCarouselStyles = `
     opacity: 0.5;
     scale: 0.8;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .menu-bar-item:hover {

@@ -51,7 +51,6 @@ export const menuCarouselStyles = `
 
   @media (hover: hover) and (pointer: fine) {
     .menu-bar-item:hover {
-      background: var(--gt-shadow);
       filter: var(--gt-hover-filter);
     }
   }

@@ -5,6 +5,7 @@ export const menuContainerStyles = `
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  background: var(--gt-color-surface);
 }
 
 .menu-slider {

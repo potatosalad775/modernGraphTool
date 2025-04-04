@@ -36,10 +36,6 @@ export const topNavBarStyles = `
     font: var(--gt-typescale-body-large);
   }
 
-  .top-nav-bar-trailing a:hover {
-    color: var(--gt-color-on-surface);
-  }
-
   /* Mobile styles */
   .mobile-menu-button {
     display: flex;
@@ -55,10 +51,6 @@ export const topNavBarStyles = `
 
   .mobile-menu-button svg {
     color: var(--gt-color-on-surface-variant);
-  }
-
-  .mobile-menu-button svg:hover {
-    color: var(--gt-color-on-surface);
   }
 
   .mobile-sidebar {
@@ -127,8 +119,18 @@ export const topNavBarStyles = `
     border-radius: 0.5rem;
   }
 
-  .mobile-sidebar-content a:hover {
-    background: var(--gt-color-surface-variant);
-    color: var(--gt-color-on-surface);
+  @media (hover: hover) and (pointer: fine) {
+    .top-nav-bar-trailing a:hover {
+      color: var(--gt-color-on-surface);
+    }
+
+    .mobile-menu-button svg:hover {
+      color: var(--gt-color-on-surface);
+    }
+      
+    .mobile-sidebar-content a:hover {
+      background: var(--gt-color-surface-variant);
+      color: var(--gt-color-on-surface);
+    }
   }
 `;

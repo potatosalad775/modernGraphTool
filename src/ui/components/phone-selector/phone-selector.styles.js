@@ -85,9 +85,6 @@ export const phoneSelectorStyles = `
 .ps-brand-item:first-child {
   margin-top: 0;
 }
-.ps-brand-item:hover {
-  filter: var(--gt-hover-filter);
-}
 .ps-brand-item:has(input:checked) {
   background: var(--gt-color-secondary);
   color: var(--gt-color-on-secondary);
@@ -127,11 +124,6 @@ export const phoneSelectorStyles = `
     display: none;
   }
 }
-.ps-phone-item:hover {
-  -webkit-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
-  -moz-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
-  box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
-}
 .ps-phone-item:has(input:checked) {
   background: var(--gt-color-primary);
   color: var(--gt-color-on-primary);
@@ -142,9 +134,6 @@ export const phoneSelectorStyles = `
   }
   .ps-link-group a {
     color: var(--gt-color-primary-container);
-  }
-  .ps-link-group a:hover {
-    color: var(--gt-color-teritary-container);
   }
 }
 .ps-phone-item:first-child {
@@ -199,14 +188,53 @@ export const phoneSelectorStyles = `
     align-items: stretch;
     color: var(--gt-color-primary);
   }
-  a:hover {
-    color: var(--gt-color-teritary);
-  }
 
   svg {
     width: 1rem;
     height: 1rem;
   }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ps-brand-item:hover {
+    filter: var(--gt-hover-filter);
+  }
+
+  .ps-phone-item:hover {
+    -webkit-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+    -moz-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+    box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+  }
+
+  .ps-link-group a:hover {
+    color: var(--gt-color-teritary-container);
+  }
+
+  .ps-link-group a:hover {
+    color: var(--gt-color-teritary);
+  }
+}
+
+.ps-brand-item:active {
+  filter: var(--gt-hover-filter);
+  transition: filter 0s;
+}
+
+.ps-phone-item:active {
+  -webkit-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+  -moz-box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+  box-shadow: inset 0 0 0.4rem var(--gt-color-primary);
+  transition: box-shadow 0s;
+}
+
+.ps-link-group a:active {
+  color: var(--gt-color-teritary-container);
+  transition: color 0s;
+}
+
+.ps-link-group a:active {
+  color: var(--gt-color-teritary);
+  transition: color 0s;
 }
 
 /* responsive layout */

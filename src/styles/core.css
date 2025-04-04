@@ -68,8 +68,14 @@ button {
   color: var(--gt-color-on-surface);
   cursor: pointer;
 }
-button:hover {
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    background: var(--gt-shadow);
+  }
+}
+button:active {
   background: var(--gt-shadow);
+  transition: background 0s;
 }
 
 div::-webkit-scrollbar {

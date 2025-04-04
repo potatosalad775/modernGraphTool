@@ -314,8 +314,10 @@ export const equalizerStyles = `
     color: var(--gt-color-on-surface);
     -webkit-tap-highlight-color: transparent;
   }
-  button:hover {
-    background: var(--gt-color-surface-container-low);
+  @media (hover: hover) and (pointer: fine) {
+    button:hover {
+      background: var(--gt-color-surface-container-low);
+    }
   }
 
   @layer aria-busy {

@@ -140,9 +140,6 @@ export const selectionListStyles = `
       height: 1rem;
     }
   }
-  .sl-y-offset-dec:hover, .sl-y-offset-inc:hover {
-    filter: var(--gt-hover-filter);
-  }
 
   .sl-channels-select {
     width: 5rem;
@@ -175,9 +172,6 @@ export const selectionListStyles = `
       width: 1.25rem;
       height: 1.25rem;
     }
-  }
-  .sl-button:hover {
-    background: var(--gt-shadow);
   }
 
   .sl-variant-menu {
@@ -217,18 +211,49 @@ export const selectionListStyles = `
   .sl-variant-item:last-child {
     border-bottom: none;
   }
-  .sl-variant-item:hover {
-    background: var(--gt-shadow);
-  }
-  .sl-variant-item:has(.sl-button:hover) {
-    background: none;
-  }
   .sl-variant-item-name {
     font-weight: 500;
   }
-  .sl-button.add-variant:hover {
+
+  @media (hover: hover) and (pointer: fine) {
+    .sl-y-offset-dec:hover, .sl-y-offset-inc:hover {
+      filter: var(--gt-hover-filter);
+    }
+    .sl-button:hover {
+      background: var(--gt-shadow);
+    }
+    .sl-variant-item:hover {
+      background: var(--gt-shadow);
+    }
+    .sl-variant-item:has(.sl-button:hover) {
+      background: none;
+    }
+    .sl-button.add-variant:hover {
+      background: var(--gt-color-primary);
+      color: var(--gt-color-on-primary);
+    }
+  }
+
+  .sl-y-offset-dec:active, .sl-y-offset-inc:active {
+    filter: var(--gt-hover-filter);
+    transition: filter 0s;
+  }
+  .sl-button:active {
+    background: var(--gt-shadow);
+    transition: background 0s;
+  }
+  .sl-variant-item:active {
+    background: var(--gt-shadow);
+    transition: background 0s;
+  }
+  .sl-variant-item:has(.sl-button:active) {
+    background: none;
+    transition: background 0s;
+  }
+  .sl-button.add-variant:active {
     background: var(--gt-color-primary);
     color: var(--gt-color-on-primary);
+    transition: background 0s, color 0s;
   }
 
   @container selection-list (max-width: 700px) {

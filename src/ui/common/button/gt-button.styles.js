@@ -40,17 +40,11 @@ export const gtButtonStyles = `
     color: var(--gt-color-on-primary);
     border: none;
   }
-  .filled:hover {
-    filter: var(--gt-hover-filter);
-  }
 
   .filled-tonal {
     background: var(--gt-color-secondary-container);
     color: var(--gt-color-on-secondary-container);
     border: none;
-  }
-  .filled-tonal:hover {
-    filter: var(--gt-hover-filter);
   }
 
   .filled-tertiary {
@@ -58,17 +52,11 @@ export const gtButtonStyles = `
     color: var(--gt-color-on-tertiary-container);
     border: none;
   }
-  .filled-tertiary:hover {
-    filter: var(--gt-hover-filter);
-  }
 
   .outlined {
     background: transparent;
     border: 1px solid var(--gt-color-outline);
     color: var(--gt-color-primary);
-  }
-  .outlined:hover {
-    background: var(--gt-shadow);
   }
 
   /* Style for Toggle Button */
@@ -95,5 +83,38 @@ export const gtButtonStyles = `
     border: 1px solid var(--gt-color-primary);
     color: var(--gt-color-on-primary);
     background: var(--gt-color-primary);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .filled:hover {
+      filter: var(--gt-hover-filter);
+    }
+    .filled-tonal:hover {
+      filter: var(--gt-hover-filter);
+    }
+    .filled-tertiary:hover {
+      filter: var(--gt-hover-filter);
+    }
+    .outlined:hover {
+      background: var(--gt-shadow);
+    }
+  }
+
+  /* Touch feedback styles */
+  .filled:active {
+    filter: var(--gt-hover-filter);
+    transition: filter 0s;
+  }
+  .filled-tonal:active {
+    filter: var(--gt-hover-filter);
+    transition: filter 0s;
+  }
+  .filled-tertiary:active {
+    filter: var(--gt-hover-filter);
+    transition: filter 0s;
+  }
+  .outlined:active {
+    background: var(--gt-shadow);
+    transition: background 0s;
   }
 `;

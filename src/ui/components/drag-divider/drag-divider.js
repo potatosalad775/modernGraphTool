@@ -12,7 +12,6 @@ class DragDivider extends HTMLElement {
           cursor: col-resize;
           transition: background 0.2s;
         }
-        :host(:hover),
         :host(.dragging) {
           background: var(--gt-color-primary);
         }

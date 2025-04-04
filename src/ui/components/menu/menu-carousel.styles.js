@@ -37,11 +37,6 @@ export const menuCarouselStyles = `
     -webkit-tap-highlight-color: transparent;
   }
 
-  .menu-bar-item:hover {
-    background: var(--gt-shadow);
-    filter: var(--gt-hover-filter);
-  }
-
   .menu-bar-item.active {
     background: var(--gt-color-primary);
     color: var(--gt-color-on-primary);
@@ -52,5 +47,12 @@ export const menuCarouselStyles = `
   .menu-bar-item.nearby {
     opacity: 0.8;
     scale: 0.9;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .menu-bar-item:hover {
+      background: var(--gt-shadow);
+      filter: var(--gt-hover-filter);
+    }
   }
 `;

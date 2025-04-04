@@ -97,22 +97,23 @@ const CONFIG = {
       TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
     },
     // 'LINK_LIST' also supports i18n like 'TARGET_MANIFEST'.
+    // You MUST add 'http(s)://' to the URL Website PATH.
     LINK_LIST: {
       default: [
-        { TITLE: "Google", URL: "www.google.com" },
-        { TITLE: "Github", URL: "www.github.com" },
+        { TITLE: "Google", URL: "https://www.google.com" }, 
+        { TITLE: "Github", URL: "https://www.github.com" },
       ],
       i18n: {
         ko: [
-          { TITLE: "구글", URL: "www.google.com" },
-          { TITLE: "깃허브", URL: "www.github.com" },
+          { TITLE: "구글", URL: "https://www.google.com" },
+          { TITLE: "깃허브", URL: "https://www.github.com" },
         ]
       }
     },
     // .. You can skip localization options like below.
     //  LINK_LIST: [
-    //    { TITLE: "Google", URL: "www.google.com" },
-    //    { TITLE: "Github", URL: "www.github.com" },
+    //    { TITLE: "Google", URL: "https://www.google.com" },
+    //    { TITLE: "Github", URL: "https://www.github.com" },
     //  ],
   },
 };

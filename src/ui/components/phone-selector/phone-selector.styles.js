@@ -48,9 +48,10 @@ export const phoneSelectorStyles = `
   display: block;
   overflow-y: auto;
   margin-right: 0.5rem;
-  padding: 0 1rem 0 1rem;
+  padding: 0 0.5rem;
   box-sizing: border-box;
   min-width: 7rem;
+  scrollbar-gutter: stable both-edges;
 }
 
 .ps-brand-item {
@@ -95,10 +96,10 @@ export const phoneSelectorStyles = `
 .ps-phone-list {
   flex: 2;
   display: block;
-  padding-right: 0.5rem;
   transition: all 0.2s ease;
+  padding: 0 0.5rem;
   overflow-y: scroll;
-  box-sizing: border-box;
+  scrollbar-gutter: stable both-edges;
 }
 
 .ps-phone-item {
@@ -236,7 +237,6 @@ export const phoneSelectorStyles = `
     height: 100%;
     transition: transform 0.3s ease-in-out;
     transform: translateX(0);
-    padding-left: 1rem;
     box-sizing: border-box;
   }
   .ps-phone-list.mobile-visible {

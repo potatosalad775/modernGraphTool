@@ -28,12 +28,13 @@ export const menuContainerStyles = `
     height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 0.9rem 0.9rem 0 0.9rem;
+    padding: 0.9rem 0.5rem 0 0.5rem;
     opacity: 0;
     transform: translateX(30%);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
     box-sizing: border-box;
+    scrollbar-gutter: stable both-edges;
 }
 
 .menu-panel.active {

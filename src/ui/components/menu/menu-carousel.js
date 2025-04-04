@@ -116,7 +116,7 @@ class MenuCarousel extends HTMLElement {
         this._touchStartTime = Date.now();
       };
 
-      const handleClick = (e) => {
+      const handleTouchEnd = (e) => {
         // Check if this was a swipe (movement > 10px or time < 200ms)
         const touchEndX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
         const isSwipe = Math.abs(touchEndX - this._touchStartX) > 10 || 
@@ -132,15 +132,19 @@ class MenuCarousel extends HTMLElement {
         }
       };
 
-      const handleTouchEnd = (e) => {
+      const handleClick = (e) => {
         e.preventDefault();
-        button.blur();
+        const target = e.currentTarget.dataset.target;
+        if (target) {
+          const direction = index - this.currentIndex;
+          this._animateToIndex(index, direction);
+        }
       };
 
       this._buttonHandlers.set(button, { handleClick, handleTouchStart, handleTouchEnd });
       
       button.addEventListener('touchstart', handleTouchStart, { passive: false });
-      button.addEventListener('touchend', handleClick, { passive: false });
+      button.addEventListener('touchend', handleTouchEnd, { passive: false });
       button.addEventListener('click', handleClick);
     });
   }
@@ -178,7 +182,7 @@ class MenuCarousel extends HTMLElement {
       this._buttonHandlers.forEach((handlers, button) => {
         button.removeEventListener('click', handlers.handleClick);
         button.removeEventListener('touchstart', handlers.handleTouchStart);
-        button.removeEventListener('touchend', handlers.handleClick);
+        button.removeEventListener('touchend', handlers.handleTouchEnd);
       });
       this._buttonHandlers.clear();
     }

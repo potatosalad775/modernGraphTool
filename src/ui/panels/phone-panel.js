@@ -10,6 +10,7 @@ class PhonePanel extends HTMLElement {
       #phone-panel {
         padding: 1rem 0 0 0;
         overflow-y: hidden;
+        scrollbar-gutter: auto;
       }
     </style>
     `;

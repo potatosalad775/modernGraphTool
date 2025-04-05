@@ -73,7 +73,8 @@ const CONFIG = {
       { type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
       { type:"Neutral",     files:["KEMAR DF (KB006x)","ISO 11904-2 DF","IEF Neutral 2023"] },
       { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
-      { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
+      { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] },
+      { type:"Δ",           files:["Universal ∆"] }
     ],
     // And add more languages as you want.
     i18n: {

@@ -10,7 +10,8 @@ https://silicagel.squig.link/alpha
 
 modernGraphTool draws its inspiration from [CrinGraph][CRINGRAPH], a widely-used tool developed by mlochbaum in 2019 for visualizing frequency response graphs. 
 
-Over time, as users began creating their own measurement databases, customized versions of CrinGraph with unique features started to appear.
+Over time, as users began creating their own measurement databases, numerous customized versions of CrinGraph with unique features started to appear.
+
 However, its design was optimized for its original purpose, which made adding new features and maintaining codebase more challenging over time.
 
 This project seeks to build upon CrinGraph's core functionality while introducing a more adaptable and expandable foundation.
@@ -43,9 +44,12 @@ This project seeks to build upon CrinGraph's core functionality while introducin
 
 modernGraphTool is designed to be extensible. You can safely add / remove / modify features without affecting its core.
 
-This project is providing ['Equalizer Extension with AutoEQ'](./dist/extension/equalizer/) and ['Frequency Tutorial Extension'](./dist/extension/frequency-tutorial/) as examples.
+This project is providing several extensions by default:
+- ['Equalizer Extension with AutoEQ'](./dist/extension/equalizer/)
+- ['Frequency Tutorial Extension'](./dist/extension/frequency-tutorial/)
+- ['Squig.link Integration Extension'](./dist/extension/squiglink-integration/)
 
-Documentation will be available later.
+Documentation for developers will be available later.
 
 ## User Guide
 
@@ -64,7 +68,7 @@ dist/
 │   │   └── phone R.txt         # Phone FR Right Channel Data
 │   ├── target                  # 
 │   │   └── DF Target.txt       # Target FR Data
-│   └── phone_book.json         # phone_book.json (same as CrinGraph)
+│   └── phone_book.json         # phone_book.json
 ├── extension/                  # 
 │   ├── equalizer               # Extension Module Folder
 │   └── extension.config.js     # Extension user config
@@ -80,11 +84,11 @@ You can customize modernGraphTool via `index.html`, `config.js` and `/extension/
 
 ### Migrating from CrinGraph
 
-modernGraphTool is designed to work with the same file structure as CrinGraph. 
+modernGraphTool is designed to be as compatible as possible with CrinGraph.
 
 Specifically, the features related to Frequency Response data are designed to use the same data you used in CrinGraph, so you can simply copy over your data folder, and it should work just fine.
 
-This repository is preloaded with the same sample data that can be found at ['Squig.link Lab' (fork of CrinGraph)][SQUIGLINK_LAB].
+This repository is pre-loaded with the same sample data that can be found at ['Squig.link Lab' (fork of CrinGraph)][SQUIGLINK_LAB].
 
 ## Developer Guide
 
@@ -105,10 +109,10 @@ npm run start
 
 ## Coming Soon
 
-- UI optimization for mobile devices
-- squig.link integration plugin (extension)
-- Tilted target extension
-- Over-engineered color wheel extension
+- ~~UI optimization for mobile devices~~
+- ~~squig.link integration plugin (extension)~~
+- Over-engineered color wheel (extension)
+- Tilted target (extension)
 
 ## License
 

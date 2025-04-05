@@ -28,4 +28,16 @@ export const EXTENSION_CONFIG = [
       USE_ENGLISH_ONLY: false,
     },
   },
+  {
+    NAME: "squiglink-integration",
+    DESCRIPTION: `squig.link integration for modernGraphTool`,
+    ENABLED: false,
+    CONFIG: {
+      // Set these variables to your own GTM ID and site name
+      ANALYTICS_SITE: "",       // Site name for attributing analytics events to your site
+      ANALYTICS_GTM_ID: "",     // GTM ID used for analytics. If you don't already have one, you'll need to create a Google Tag Manager account
+      LOG_ANALYTICS: true,      // If true, events are logged in console
+      ENABLE_ANALYTICS: true,   // If true, analytic features are enabled
+    },
+  },
 ];

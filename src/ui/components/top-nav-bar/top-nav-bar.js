@@ -27,38 +27,42 @@ class TopNavBar extends HTMLElement {
     const titleContent = window.GRAPHTOOL_CONFIG?.TOPBAR?.TITLE?.CONTENT || "modernGraphTool";
 
     this.innerHTML = `
-      <nav class="top-nav-bar">
-        <a class="top-nav-bar-leading" href=".">
-          ${titleType === "HTML" ? titleContent : ""}
-          ${titleType === "TEXT" ? "<h2>" + titleContent + "</h2>" : ""}
-          ${titleType === "IMAGE" ? "<img src='" + titleContent + "' alt='topbar title'/>" : ""}
-        </a>
-        ${this.isMobile ? `
-          <button class="mobile-menu-button">
-            ${IconProvider.Icon('menu', 'width: 1.5rem; height: 1.5rem;')}
-          </button>
-          <div class="mobile-sidebar">
-            <div class="mobile-sidebar-overlay"></div>
-            <div class="mobile-sidebar-content">
-              <div class="mobile-sidebar-header">
-                <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
-                <button class="mobile-sidebar-close">
-                  ${IconProvider.Icon('close', 'width: 1.5rem; height: 1.5rem;')}
-                </button>
+      <header class="header">
+        <nav class="top-nav-bar">
+          <div class="top-nav-bar-leading">
+            <a class="top-nav-bar-leading-title" href=".">
+              ${titleType === "HTML" ? titleContent : ""}
+              ${titleType === "TEXT" ? "<h2>" + titleContent + "</h2>" : ""}
+              ${titleType === "IMAGE" ? "<img src='" + titleContent + "' alt='topbar title'/>" : ""}
+            </a>
+          </div>
+          ${this.isMobile ? `
+            <button class="mobile-menu-button">
+              ${IconProvider.Icon('menu', 'width: 1.5rem; height: 1.5rem;')}
+            </button>
+            <div class="mobile-sidebar">
+              <div class="mobile-sidebar-overlay"></div>
+              <div class="mobile-sidebar-content">
+                <div class="mobile-sidebar-header">
+                  <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
+                  <button class="mobile-sidebar-close">
+                    ${IconProvider.Icon('close', 'width: 1.5rem; height: 1.5rem;')}
+                  </button>
+                </div>
+                ${this.linkList.map((link) => `
+                  <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
+                `).join("")}
               </div>
+            </div>
+          ` : `
+            <div class="top-nav-bar-trailing">
               ${this.linkList.map((link) => `
                 <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
               `).join("")}
             </div>
-          </div>
-        ` : `
-          <div class="top-nav-bar-trailing">
-            ${this.linkList.map((link) => `
-              <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
-            `).join("")}
-          </div>
-        `}
-      </nav>
+          `}
+        </nav>
+      </header>
     `;
 
     const style = document.createElement("style");

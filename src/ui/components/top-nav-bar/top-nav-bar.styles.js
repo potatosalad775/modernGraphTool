@@ -11,6 +11,17 @@ export const topNavBarStyles = `
   }
 
   .top-nav-bar-leading {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .top-nav-bar-leading-title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
     text-decoration: none;
     color: var(--gt-color-on-surface);
   }

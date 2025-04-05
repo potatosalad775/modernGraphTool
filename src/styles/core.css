@@ -116,8 +116,7 @@ div::-webkit-scrollbar-thumb {
   }
 
   /* Explicitly remove ::after when aria-busy is false/removed */
-  *[aria-busy="false"]::after,
-  *:not([aria-busy])::after {
+  *[aria-busy="false"]::after {
     content: none;
     opacity: 0;
   }

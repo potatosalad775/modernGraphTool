@@ -1,5 +1,5 @@
 export const equalizerStyles = `
-  :host {
+  equalizer-extension {
     display: block;
     container-type: inline-size;
     container-name: equalizer-host;
@@ -258,114 +258,78 @@ export const equalizerStyles = `
     }
   }
 
-  select, input[type="number"] {
-    width: 100%;
-    padding: 0.2rem;
-    border: 1px solid var(--gt-color-outline);
-    border-radius: 0.4rem;
-    color: var(--gt-color-on-surface);
-    background: var(--gt-color-surface-container-lowest);
-    font: var(--gt-typescale-body-medium);
-  }
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding-left: 0.3rem;
-    border: 1px solid var(--gt-color-outline);
-    background-repeat: no-repeat;
-    background-position: right center;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
-    outline: none;
-    cursor: pointer;
-  }
-
-  input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  input[type="range"]::-webkit-slider-runnable-track {
-    -webkit-appearance: none;
-    appearance: none;
-    background: rgba(0,0,0,0.3);
-    border-radius: 0.5rem;
-    height: 0.5rem;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 1rem;
-    height: 1rem;
-    border-radius: 1rem;
-    margin-top: -4px;
-    background: var(--gt-color-primary);
-    cursor: pointer;
-  }
-
-  button {
+  .eq-uploader {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: none;
-    width: 2rem;
-    height: 2rem;
-    cursor: pointer;
-    border-radius: 2rem;
-    color: var(--gt-color-on-surface);
-    -webkit-tap-highlight-color: transparent;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    button:hover {
-      background: var(--gt-color-surface-container-low);
+    flex-direction: row;
+    gap: 0.5rem;
+
+    gt-button {
+      flex: 1;
+      height: 2rem;
     }
   }
 
-  @layer aria-busy {
-  *[aria-busy="true"] {
-    pointer-events: none;
-    position: relative;
-    filter: blur(1px);
-    opacity: 0.8 !important;
-    transition: filter 0.5s ease-out;
-  }
-    
-  *[aria-busy="true"]::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    animation: shimmer 1.5s infinite;
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      rgba(0,0,0,0.5) 50%,
-      transparent 100%
-    );
-    opacity: 0.7;
-    transition: opacity 0.3s ease-out;
-  }
-
-  /* Explicitly remove ::after when aria-busy is false/removed */
-  *[aria-busy="false"]::after,
-  *:not([aria-busy])::after {
-    content: none;
-    opacity: 0;
-  }
-
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-      opacity: 0.4;
+  equalizer-extension {
+    select, input[type="number"] {
+      width: 100%;
+      padding: 0.2rem;
+      border: 1px solid var(--gt-color-outline);
+      border-radius: 0.4rem;
+      color: var(--gt-color-on-surface);
+      background: var(--gt-color-surface-container-lowest);
+      font: var(--gt-typescale-body-medium);
     }
-    50% {
-      opacity: 0.7;
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-left: 0.3rem;
+      border: 1px solid var(--gt-color-outline);
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
+      outline: none;
+      cursor: pointer;
     }
-    100% {
-      transform: translateX(100%);
-      opacity: 0.4;
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(0,0,0,0.3);
+      border-radius: 0.5rem;
+      height: 0.5rem;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 1rem;
+      margin-top: -4px;
+      background: var(--gt-color-primary);
+      cursor: pointer;
+    }
+
+    button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      width: 2rem;
+      height: 2rem;
+      cursor: pointer;
+      border-radius: 2rem;
+      color: var(--gt-color-on-surface);
+      -webkit-tap-highlight-color: transparent;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      button:hover {
+        background: var(--gt-color-surface-container-low);
+      }
     }
   }
 }

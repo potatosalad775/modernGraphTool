@@ -11,7 +11,7 @@ import { equalizerStyles } from "./equalizer.styles.js";
 export default class EqualizerExtension extends HTMLElement {
   constructor(config = {}) {
     super();
-    this.attachShadow({ mode: 'open' });
+    //this.attachShadow({ mode: 'open' });
     
     this.config = config;
     this.currentFilters = {
@@ -30,7 +30,7 @@ export default class EqualizerExtension extends HTMLElement {
       this._setupEventListeners();
       
       // Get audio player after components are initialized
-      this.audioPlayer = this.shadowRoot.querySelector('eq-audio-player');
+      this.audioPlayer = this.querySelector('eq-audio-player');
     })();
   }
 
@@ -40,12 +40,13 @@ export default class EqualizerExtension extends HTMLElement {
       './components/eq-filter-list.js',
       './components/eq-phone-select.js',
       './components/eq-audio-player.js',
-      './components/eq-autoeq.js'
+      './components/eq-autoeq.js',
+      './components/eq-uploader.js',
     ];
 
     await Promise.all(components.map(path => import(path)));
     
-    this.shadowRoot.innerHTML = `
+    this.innerHTML = `
       <div class="equalizer-container">
         <div class="eq-controls">
           <eq-filter-list></eq-filter-list>
@@ -54,13 +55,14 @@ export default class EqualizerExtension extends HTMLElement {
           <eq-select></eq-select>
           <eq-autoeq></eq-autoeq>
           <eq-audio-player></eq-audio-player>
+          <eq-uploader></eq-uploader>
         </div>
       </div>
     `;
 
     // Pass configuration to components
-    const filterList = this.shadowRoot.querySelector('eq-filter-list');
-    const autoEq = this.shadowRoot.querySelector('eq-autoeq');
+    const filterList = this.querySelector('eq-filter-list');
+    const autoEq = this.querySelector('eq-autoeq');
 
     // Set configuration for each component
     [filterList, autoEq].forEach(component => {
@@ -74,7 +76,7 @@ export default class EqualizerExtension extends HTMLElement {
     const style = document.createElement('style');
     style.textContent = equalizerStyles;
 
-    this.shadowRoot.appendChild(style);
+    this.appendChild(style);
   }
 
   _setupEventListeners() {

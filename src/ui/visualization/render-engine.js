@@ -380,7 +380,8 @@ class RenderEngine {
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
-        .attr("stroke-width", 1.5)
+        .attr("stroke-width", obj.type === 'inserted-target' ? 1 : 1.5)
+        .attr("stroke-dasharray", obj.type === 'inserted-target' ? "4 2" : null)
         .attr("d", lineGenerator);
     });
   };

@@ -5,6 +5,7 @@ import MenuState from './model/menu-state.js';
 import RenderEngine from './ui/visualization/render-engine.js';
 import MetadataParser from './model/util/metadata-parser.js';
 import StringLoader from './model/util/string-loader.js';
+import FRParser from './model/util/fr-parser.js';
 import URLProvider from "./model/url-provider.js";
 
 // Create namespace object
@@ -16,6 +17,7 @@ const CoreAPI = {
   RenderEngine,
   MetadataParser,
   StringLoader,
+  FRParser,
   URLProvider,
 };
 
@@ -28,6 +30,7 @@ export {
   RenderEngine,
   MetadataParser,
   StringLoader,
+  FRParser,
   URLProvider,
 };
 

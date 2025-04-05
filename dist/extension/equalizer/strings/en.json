@@ -31,5 +31,9 @@
     "option-tone": "Tone Generator",
     "option-file": "Upload Audio File",
     "tone-freq-label": "Frequency: "
+  },
+  "upload": {
+    "fr": "Upload FR",
+    "target": "Upload Target"
   }
 }

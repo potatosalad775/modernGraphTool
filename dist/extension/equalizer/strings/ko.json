@@ -31,5 +31,9 @@
     "option-tone": "톤 제너레이터",
     "option-file": "음원 업로드",
     "tone-freq-label": "주파수: "
+  },
+  "upload": {
+    "fr": "FR 업로드",
+    "target": "타겟 업로드"
   }
 }

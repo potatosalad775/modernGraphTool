@@ -1,0 +1,39 @@
+{
+  "menu-label": "EQUALIZER",
+  "phone-select": {
+    "option-source": "Select Device to EQ",
+    "option-target": "Select target for AutoEQ"
+  },
+  "filter-list": {
+    "preamp": "Preamp",
+    "import": "Import",
+    "export": "Export",
+    "export-graphic-eq": "Export as Graphic EQ (Wavelet)",
+    "peak": "Peak",
+    "lowshelf": "Low Shelf",
+    "highshelf": "High Shelf",
+    "freq": "Frequency (Hz)",
+    "q": "Q",
+    "gain": "Gain (dB)",
+    "no-filter-export-alert": "Please add at least one filter before exporting."
+  },
+  "autoeq": {
+    "freq-range": "Frequency Range",
+    "q-range": "Q Range",
+    "gain-range": "Gain Range",
+    "description": "AutoEQ will use as many filters as available.",
+    "run-button": "Run AutoEQ"
+  },
+  "player": {
+    "option-init": "Select Audio Source",
+    "option-white": "White Noise",
+    "option-pink": "Pink Noise",
+    "option-tone": "Tone Generator",
+    "option-file": "Upload Audio File",
+    "tone-freq-label": "Frequency: "
+  },
+  "upload": {
+    "fr": "Upload FR",
+    "target": "Upload Target"
+  }
+}

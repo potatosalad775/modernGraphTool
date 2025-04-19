@@ -1,10 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import css from 'rollup-plugin-import-css';
-import rollupReplace from '@rollup/plugin-replace';
-import { fromRollup } from '@web/dev-server-rollup';
-
-const replace = fromRollup(rollupReplace);
 
 export default {
   input: 'src/core-ui.js',
@@ -35,7 +31,7 @@ export default {
   // Preserve modules that should be loaded dynamically
   external: (id) => {
     // Keep these paths as external modules
-    return id.includes('/extension/') ||
+    return id.includes('/extensions/') ||
            id.includes('/assets/') ||
            id.includes('/data/') ||
            id.includes('config.js') ||

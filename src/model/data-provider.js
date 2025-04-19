@@ -323,7 +323,6 @@ class DataProvider {
       const normalizedData = FRNormalizer.getNormalizedData(rawData);
       // Apply Smoothing
       const smoothedData = FRSmoother.smooth(normalizedData);
-      console.log(smoothedData);
 
       this.frDataMap.set(uuid, {
         ...originalPhoneData,
@@ -341,8 +340,6 @@ class DataProvider {
         ...(dispSuffix !== null && { dispSuffix }),
         ...(meta !== null && { meta }),
       });
-
-      console.log(this.frDataMap);
 
       // Update Target Graph
       RenderEngine.drawFRCurve(uuid);

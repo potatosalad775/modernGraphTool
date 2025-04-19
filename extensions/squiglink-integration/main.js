@@ -180,7 +180,7 @@ export default class SquiglinkIntegration {
   async _loadDependencies() {
     // Load graphAnalytics and squigsites from local reference
     await Promise.all([
-      this._injectScript('./extension/squiglink-integration/graphAnalytics.js'),
+      this._injectScript('./extensions/squiglink-integration/graphAnalytics.js'),
       this._injectScript('https://squig.link/squigsites.js')
     ]);
     

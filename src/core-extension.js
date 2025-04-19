@@ -25,7 +25,7 @@ const CoreExtension = {
       }
 
       // Load and initialize the extension
-      const module = await import(`./extension/${extension.NAME}/main.js`);
+      const module = await import(`./extensions/${extension.NAME}/main.js`);
       const instance = new module.default(extension.CONFIG);
       
       // Store the instance
@@ -58,7 +58,7 @@ const CoreExtension = {
 
   async loadConfiguration() {
     try {
-      const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extension/extension.config.js'));
+      const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extensions/extensions.config.js'));
       return EXTENSION_CONFIG;
     } catch (error) {
       console.error('modernGraphTool: Failed to load extension configuration -', error);

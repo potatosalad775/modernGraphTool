@@ -36,15 +36,11 @@ export default class EqualizerExtension extends HTMLElement {
 
   async _initializeComponents() {
     // Import components
-    const components = [
-      './components/eq-filter-list.js',
-      './components/eq-phone-select.js',
-      './components/eq-audio-player.js',
-      './components/eq-autoeq.js',
-      './components/eq-uploader.js',
-    ];
-
-    await Promise.all(components.map(path => import(path)));
+    await import('./components/eq-filter-list.js');
+    await import('./components/eq-phone-select.js');
+    await import('./components/eq-audio-player.js');
+    await import('./components/eq-autoeq.js');
+    await import('./components/eq-uploader.js');
     
     this.innerHTML = `
       <div class="equalizer-container">

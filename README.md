@@ -45,9 +45,9 @@ This project seeks to build upon CrinGraph's core functionality while introducin
 modernGraphTool is designed to be extensible. You can safely add / remove / modify features without affecting its core.
 
 This project is providing several extensions by default:
-- ['Equalizer Extension with AutoEQ'](./dist/extension/equalizer/)
-- ['Frequency Tutorial Extension'](./dist/extension/frequency-tutorial/)
-- ['Squig.link Integration Extension'](./dist/extension/squiglink-integration/)
+- ['Equalizer Extension with AutoEQ'](./extensions/equalizer/)
+- ['Frequency Tutorial Extension'](./extensions/frequency-tutorial/)
+- ['Squig.link Integration Extension'](./extensions/squiglink-integration/)
 
 Documentation for developers will be available later.
 
@@ -69,9 +69,9 @@ dist/
 │   ├── target                  # 
 │   │   └── DF Target.txt       # Target FR Data
 │   └── phone_book.json         # phone_book.json
-├── extension/                  # 
+├── extensions/                  # 
 │   ├── equalizer               # Extension Module Folder
-│   └── extension.config.js     # Extension user config
+│   └── extensions.config.js     # Extension user config
 ├── core.min.js                 # modernGraphTool Core Module (Bundled)
 ├── config.js                   # User config
 ├── theme.css                   # User theme
@@ -80,7 +80,7 @@ dist/
 
 ### Configuring modernGraphTool
 
-You can customize modernGraphTool via `index.html`, `config.js` and `/extension/extension.config.js`.
+You can customize modernGraphTool via `index.html`, `config.js` and `/extensions/extensions.config.js`.
 
 ### Migrating from CrinGraph
 
@@ -100,11 +100,12 @@ To build modernGraphTool, you need to have Node.js installed. Then, run the foll
 # Setup Dependencies
 npm install
 
+# Start Local Server
+npm run dev
+npm run start
+
 # Build
 npm run build
-
-# Start
-npm run start
 ```
 
 ## Coming Soon

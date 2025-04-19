@@ -134,7 +134,7 @@ class StringLoader {
     await Promise.all(
       this._activeExtensionList.map(async (extension) => {
         try {
-          const response = await fetch(`./extension/${extension.NAME}/strings/${this._currentLang}.json`);
+          const response = await fetch(`./extensions/${extension.NAME}/strings/${this._currentLang}.json`);
           if (!response.ok) throw new Error();
           
           const strings = await response.json();
@@ -149,7 +149,7 @@ class StringLoader {
 
   async updateActiveExtensionList() {
     try {
-      const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extension/extension.config.js'));
+      const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extensions/extensions.config.js'));
       return EXTENSION_CONFIG.filter((extension) => extension.I18N_ENABLED);
     } catch (error) {
       console.error('modernGraphTool: Failed to load extension configuration -', error);

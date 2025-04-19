@@ -4,33 +4,19 @@ import rollupReplace from '@rollup/plugin-replace';
 const replace = fromRollup(rollupReplace);
 
 export default {
-  rootDir: 'dist',
-  appIndex: 'dist/index.html',
-  nodeResolve: true,
+  nodeResolve: true, // Keep this for module resolution
   preserveSymlinks: true,
+
+  // Plugins can remain if needed, like environment replacement
   plugins: [
     replace({
-      include: ['src/**/*.js'],
-      __environment__: '"development"'
+      // Ensure this include path is correct relative to the project root
+      // when web-dev-server runs
+      include: ['**/src/**/*.js', '**/extensions/**/*.js'], // Adjusted to potentially catch extension files too
+      preventAssignment: true, 
+      values: { // Use 'values' property for replacements
+        __environment__: '"development"'
+      }
     })
   ],
-  middleware: [
-    function rewriteIndex(context, next) {
-      if (context.url === '/') {
-        context.url = '/dist/';
-      }
-      return next();
-    }
-  ],
-  watch: true,
-  open: true,
-  // Handle source maps
-  middleware: [
-    function rewriteSourceMap(context, next) {
-      if (context.url.endsWith('.map')) {
-        context.url = `/src${context.url}`;
-      }
-      return next();
-    }
-  ]
 };

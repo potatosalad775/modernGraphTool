@@ -51,14 +51,10 @@ class TargetSelector extends HTMLElement {
     // Horizontal Scroll Event Listener
     if(!window.GRAPHTOOL_CONFIG?.INTERFACE?.TARGET?.ALLOW_MULTIPLE_LINE_PER_TYPE) {
       this.classList.add("tsc-single-row");
-      this.addEventListener('wheel', (event) => {
-        event.currentTarget.scrollLeft += event.deltaY
-      }, { passive: true });
+      this._addDragScroll(this);
     } else {
       this.querySelectorAll('.target-group-item').forEach((group) => {
-        group.addEventListener('wheel', (event) => {
-          event.currentTarget.scrollLeft += event.deltaY
-        }, { passive: true });
+        this._addDragScroll(group);
       });
     }
 
@@ -126,6 +122,47 @@ class TargetSelector extends HTMLElement {
     const button = this.querySelector(`.target-list-item[identifier="${e.detail.identifier}"]`);
     if (button) { button.toggle(false, true); }
   }
+
+  _addDragScroll(element) {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    element.addEventListener('mousedown', (e) => {
+      // Prevent default drag behavior (like text selection)
+      e.preventDefault();
+      isDown = true;
+      element.style.cursor = 'grabbing'; // Change cursor to indicate dragging
+      element.style.userSelect = 'none'; // Prevent text selection during drag
+      startX = e.pageX - element.offsetLeft;
+      scrollLeft = element.scrollLeft;
+    });
+
+    element.addEventListener('mouseleave', () => {
+      if (!isDown) return;
+      isDown = false;
+      element.style.cursor = 'default'; // Reset cursor
+      element.style.userSelect = ''; // Re-enable text selection
+    });
+
+    element.addEventListener('mouseup', () => {
+      if (!isDown) return;
+      isDown = false;
+      element.style.cursor = 'default'; // Reset cursor
+      element.style.userSelect = ''; // Re-enable text selection
+    });
+
+    element.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - element.offsetLeft;
+      const walk = (x - startX) * 1.5; // Multiplier for scroll speed adjustment
+      element.scrollLeft = scrollLeft - walk;
+    });
+
+    // Set initial cursor style
+    element.style.cursor = 'default';
+  };
 }
 
 customElements.define("target-selector", TargetSelector);

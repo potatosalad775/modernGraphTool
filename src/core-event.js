@@ -5,6 +5,7 @@ const CoreEvent = {
     "target-ui-ready": false,
     "url-loaded": false,
   },
+  isMobile: window.innerWidth < 1000,
 
   init(coreAPI) {
     this.coreAPI = coreAPI;
@@ -14,9 +15,7 @@ const CoreEvent = {
     this._bindInterfaceInit();
 
     // Screen Resize Event Handler
-    window.addEventListener("resize", () => {
-      this._setupUI();
-    });
+    window.addEventListener("resize", this._updateUI.bind(this));
   },
 
   dispatchInitEvent(type) {
@@ -41,7 +40,9 @@ const CoreEvent = {
   _bindCoreInit() {
     window.addEventListener("DOMContentLoaded", async () => {
       // Switch to Mobile UI if applicable
-      this._setupUI({ updateTheme: true });
+      document.documentElement.setAttribute("data-mobile", this.isMobile);
+      // Update Theme 
+      this._updateTheme();
       // Initialize URL Provider
       this.coreAPI.URLProvider.init(this);
       // Fetch Phone Book Data
@@ -67,22 +68,27 @@ const CoreEvent = {
     });
   },
 
-  _setupUI(updateTheme = false) {
-    const isMobile = window.innerWidth < 1000;
-    document.documentElement.toggleAttribute("data-mobile", isMobile);
-
-    if (updateTheme) {
-      var darkmode =
-        window.GRAPHTOOL_CONFIG?.INTERFACE?.PREFERRED_DARK_MODE_THEME?.toLowerCase() ||
-        "system";
-      if (darkmode === "system") {
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? (darkmode = "dark")
-          : (darkmode = "light");
-      }
-      document.documentElement.setAttribute("data-theme", darkmode);
+  _updateUI() {
+    // Update UI Mode (Mobile / Desktop)
+    if(this.isMobile !== (window.innerWidth < 1000)) {
+      this.isMobile = !this.isMobile;
+      document.documentElement.toggleAttribute("data-mobile",this.isMobile);
+      // Dispatch UI Mode Change Event
+      this.dispatchEvent("ui-mode-change", {isMobile: this.isMobile});
     }
+  },
+
+  _updateTheme() {
+    var darkmode =
+      window.GRAPHTOOL_CONFIG?.INTERFACE?.PREFERRED_DARK_MODE_THEME?.toLowerCase() ||
+      "system";
+    if (darkmode === "system") {
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? (darkmode = "dark")
+        : (darkmode = "light");
+    }
+    document.documentElement.setAttribute("data-theme", darkmode);
   },
 
   _addInitialData() {

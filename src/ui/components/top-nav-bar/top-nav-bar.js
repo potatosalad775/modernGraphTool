@@ -14,11 +14,11 @@ class TopNavBar extends HTMLElement {
   }
 
   connectedCallback() {
-    window.addEventListener('resize', this._handleScreenResize.bind(this));
+    window.addEventListener('core:ui-mode-change', this._handleScreenResize.bind(this));
     StringLoader.addObserver(this._handleLanguageChange.bind(this));
   }
   disconnectedCallback() {
-    window.removeEventListener('resize', this._handleScreenResize.bind(this));
+    window.removeEventListener('core:ui-mode-change', this._handleScreenResize.bind(this));
     StringLoader.removeObserver(this._handleLanguageChange.bind(this));
   }
 
@@ -36,31 +36,29 @@ class TopNavBar extends HTMLElement {
               ${titleType === "IMAGE" ? "<img src='" + titleContent + "' alt='topbar title'/>" : ""}
             </a>
           </div>
-          ${this.isMobile ? `
-            <button class="mobile-menu-button">
-              ${IconProvider.Icon('menu', 'width: 1.5rem; height: 1.5rem;')}
-            </button>
-            <div class="mobile-sidebar">
-              <div class="mobile-sidebar-overlay"></div>
-              <div class="mobile-sidebar-content">
-                <div class="mobile-sidebar-header">
-                  <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
-                  <button class="mobile-sidebar-close">
-                    ${IconProvider.Icon('close', 'width: 1.5rem; height: 1.5rem;')}
-                  </button>
-                </div>
-                ${this.linkList.map((link) => `
-                  <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
-                `).join("")}
+          <!-- Trailing Button -->
+          <button class="mobile-menu-button" style="display: ${this.isMobile ? 'block' : 'none'}">
+            ${IconProvider.Icon('menu', 'width: 1.5rem; height: 1.5rem;')}
+          </button>
+          <div class="mobile-sidebar" style="display: ${this.isMobile ? 'block' : 'none'}">
+            <div class="mobile-sidebar-overlay"></div>
+            <div class="mobile-sidebar-content">
+              <div class="mobile-sidebar-header">
+                <h2>${StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS')}</h2>
+                <button class="mobile-sidebar-close">
+                  ${IconProvider.Icon('close', 'width: 1.5rem; height: 1.5rem;')}
+                </button>
               </div>
-            </div>
-          ` : `
-            <div class="top-nav-bar-trailing">
               ${this.linkList.map((link) => `
                 <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
               `).join("")}
             </div>
-          `}
+          </div>
+          <div class="top-nav-bar-trailing" style="display: ${this.isMobile ? 'none' : 'flex'}">
+            ${this.linkList.map((link) => `
+              <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
+            `).join("")}
+          </div>
         </nav>
       </header>
     `;
@@ -94,10 +92,20 @@ class TopNavBar extends HTMLElement {
     }
   }
 
-  _handleScreenResize() {
-    this.isMobile = document.documentElement.hasAttribute('data-mobile');
-    this.render();
-    this.setupEventListeners();
+  _handleScreenResize(e = null) {
+    if (e && this.isMobile !== e?.detail.isMobile) {
+      this.isMobile = e.detail.isMobile; // Update the stored state
+    }
+    // Update UI element
+    if (this.isMobile) {
+      this.querySelector('.top-nav-bar-trailing').style.display = 'none';
+      this.querySelector('.mobile-menu-button').style.display = 'block';
+      this.querySelector('.mobile-sidebar').style.display = 'block';
+    } else {
+      this.querySelector('.top-nav-bar-trailing').style.display = 'flex';
+      this.querySelector('.mobile-menu-button').style.display = 'none';
+      this.querySelector('.mobile-sidebar').style.display = 'none';
+    }
   }
 
   _handleLanguageChange() {

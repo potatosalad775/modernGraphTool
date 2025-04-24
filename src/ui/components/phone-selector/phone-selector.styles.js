@@ -94,7 +94,7 @@ export const phoneSelectorStyles = `
   flex: 2;
   display: block;
   transition: all 0.2s ease;
-  padding: 0 0.5rem;
+  padding: 0 0.5rem 0 0;
   overflow-y: scroll;
   scrollbar-gutter: stable both-edges;
 }
@@ -263,6 +263,7 @@ export const phoneSelectorStyles = `
     right: -100%;
     width: 100%;
     height: 100%;
+    padding: 0 0.5rem;
     transition: transform 0.3s ease-in-out;
     transform: translateX(0);
     box-sizing: border-box;

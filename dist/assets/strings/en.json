@@ -38,5 +38,22 @@
   "share-button": {
     "label": "Share",
     "on-click": "Copied!"
+  },
+  "tutorial-modal": {
+    "btn-prev": "Previous",
+    "btn-next": "Next",
+    "btn-done": "Done",
+    "btn-skip": "Skip",
+    "intro-title": "Welcome to modernGraphTool",
+    "intro-content": "A completely re-engineered, graph-sniffing experience.",
+    "intro-close-btn": "Next",
+    "menu-content": "You can slide the menu to the left or right to access the variety of tools.",
+    "graph-handle-content": "You can drag this handle to shift graph vertically. Double click to reset position.",
+    "divider-content": "You can drag this divider to change the size of the graph.",
+    "pwa-title": "Use as App (PWA)",
+    "pwa-content": "modernGraphTool is built as a progressive web app (PWA). You can install it to your device for full-app experience.",
+    "pwa-inst-ios": "On Safari: Tap the Share button, then select 'Add to Home Screen'.",
+    "pwa-inst-android": "On Chrome: Tap the menu button (three dots), then select 'Install app' or 'Add to Home screen'.",
+    "pwa-close-btn": "Got it!"
   }
 }

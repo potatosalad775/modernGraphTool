@@ -25,6 +25,7 @@ class CoreUI extends HTMLElement {
           <menu-carousel></menu-carousel>
         </section>
       </section>
+      <tutorial-modal></tutorial-modal>
 
       <!-- Styles -->
       <style>

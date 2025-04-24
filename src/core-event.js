@@ -40,7 +40,7 @@ const CoreEvent = {
   _bindCoreInit() {
     window.addEventListener("DOMContentLoaded", async () => {
       // Switch to Mobile UI if applicable
-      document.documentElement.setAttribute("data-mobile", this.isMobile);
+      document.documentElement.toggleAttribute("data-mobile", this.isMobile);
       // Update Theme 
       this._updateTheme();
       // Initialize URL Provider

@@ -19,6 +19,7 @@ import('./components/graph-scale-button/graph-scale-button.js');
 import('./components/graph-screenshot-button/graph-screenshot-button.js');
 import('./components/share-button/share-button.js');
 import('./components/language-selector/language-selector.js');
+import('./components/tutorial-modal/tutorial-modal.js');
 
 // Common UI Components
 import('./common/button/gt-button.js');

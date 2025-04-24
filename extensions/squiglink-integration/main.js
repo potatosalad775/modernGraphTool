@@ -130,15 +130,13 @@ export default class SquiglinkIntegration {
     headerLink.className = 'header-links';
     headerLink.style = `
       list-style-type: none;
-      margin: 0;
+      margin: 0 1rem 0 0.5rem;
       padding: 0;
-      padding-left: 1rem;
-      margin-left: 1rem;
       overflow: hidden;
     `
     headerLink.innerHTML = `
       <style>
-        .squig-select-li { padding: 0 !important; }
+        .squig-select-li { padding: 0 !important; margin: 0 !important; }
         .squig-select {
           background-color: var(--gt-color-surface-container-lowest) !important;
           color: var(--gt-color-on-surface) !important;
@@ -160,6 +158,7 @@ export default class SquiglinkIntegration {
         }
         .shop-link-container { padding: 0 !important; }
         .shop-link-container span { color: var(--gt-color-on-surface) !important; }
+        .welcome-sponsor-launcher { padding: 0 !important; }
       </style>`
     const graphPanel = document.querySelector('#graph-panel');
     const divider = graphPanel?.querySelector('gt-divider');
@@ -170,6 +169,7 @@ export default class SquiglinkIntegration {
     document.querySelector('.eq-uploader')?.classList.add('extra-upload');
     const extraUploadStyle = document.createElement('style');
     extraUploadStyle.textContent = `
+      .welcome-eq-launcher-container { position: static !important }
       .welcome-eq-launcher {
         color: var(--gt-color-on-secondary) !important;
         background-color: var(--gt-color-secondary) !important;

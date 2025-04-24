@@ -99,16 +99,8 @@ export default class SquiglinkIntegration {
     // Replace Target Group Name with Div for Squiglink Delta integration
     document.querySelectorAll('.target-list-container')?.forEach((container) => {
       container.classList.add('targetClass');
-      const h4Element = container.querySelector('h4.target-group-name');
-      if (h4Element) {
-        const divElement = document.createElement('div');
-        const spanElement = document.createElement('span');
-        spanElement.textContent = h4Element.textContent;
-        spanElement.style = `color: var(--gt-color-primary); font-weight: 600;`;
-        divElement.className = 'targetLabel';
-        divElement.appendChild(spanElement);
-        h4Element.parentNode.replaceChild(divElement, h4Element);
-      }
+      const divElement = container.querySelector('.target-group-name');
+      if (divElement) { divElement.classList.add('targetLabel'); }
     });
     const targetClassStyle = document.createElement('style');
     targetClassStyle.textContent = `

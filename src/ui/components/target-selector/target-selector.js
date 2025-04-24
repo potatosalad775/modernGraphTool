@@ -20,12 +20,7 @@ class TargetSelector extends HTMLElement {
     this.appendChild(this.targetSelectorGroup);
 
     // Add language change observer
-    StringLoader.addObserver(() => {
-      this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
-      this._clearAndRender();
-    });
-
-    this._init();
+    StringLoader.addObserver(this._updateGroupName.bind(this));
   }
 
   connectedCallback() {
@@ -39,13 +34,14 @@ class TargetSelector extends HTMLElement {
     window.removeEventListener('core:fr-target-removed', (e) => this._untickTargetButton(e));
     window.removeEventListener('core:metadata-loaded', () => this._init());
     // Remove language observer
-    StringLoader.removeObserver(this._clearAndRender);
+    StringLoader.removeObserver(this._updateGroupName.bind(this));
   }
 
-  _clearAndRender() {
-    // Clear existing content
-    this.targetSelectorGroup.innerHTML = '';
-    this._render();
+  _updateGroupName() {
+    this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
+    this.querySelectorAll('.target-group-name > span').forEach((span, index) => {
+      span.textContent = this.targets[index]?.type;
+    })
   }
 
   _init() {
@@ -76,7 +72,7 @@ class TargetSelector extends HTMLElement {
       targetGroupItem.className = "target-group-item";
       targetGroupItem.innerHTML = `
         <div class="target-list-container">
-          <h4 class="target-group-name">${targetGroup.type}</h4>
+          <div class="target-group-name"><span>${targetGroup.type}</span></div>
           <div class="target-list"></div>
         </div>
       `;

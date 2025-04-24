@@ -43,8 +43,9 @@ export const targetSelectorStyles = `
     }
   }
 
-  .target-group-name {
+  .target-group-name span {
     color: var(--gt-color-primary);
+    font-weight: 600;
     min-width: min-content;
     margin: 0;
   }

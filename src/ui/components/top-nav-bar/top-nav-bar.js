@@ -69,27 +69,25 @@ class TopNavBar extends HTMLElement {
   }
 
   setupEventListeners() {
-    if (this.isMobile) {
-      const menuButton = this.querySelector('.mobile-menu-button');
-      const sidebar = this.querySelector('.mobile-sidebar');
-      const overlay = this.querySelector('.mobile-sidebar-overlay');
-      const closeButton = this.querySelector('.mobile-sidebar-close');
+    const menuButton = this.querySelector('.mobile-menu-button');
+    const sidebar = this.querySelector('.mobile-sidebar');
+    const overlay = this.querySelector('.mobile-sidebar-overlay');
+    const closeButton = this.querySelector('.mobile-sidebar-close');
 
-      menuButton?.addEventListener('click', () => {
-        sidebar.classList.add('visible');
-        document.body.style.overflow = 'hidden';
-      });
+    menuButton?.addEventListener('click', () => {
+      sidebar.classList.add('visible');
+      document.body.style.overflow = 'hidden';
+    });
 
-      overlay?.addEventListener('click', () => {
-        sidebar.classList.remove('visible');
-        document.body.style.overflow = '';
-      });
-      
-      closeButton?.addEventListener('click', () => {
-        sidebar.classList.remove('visible');
-        document.body.style.overflow = '';
-      });
-    }
+    overlay?.addEventListener('click', () => {
+      sidebar.classList.remove('visible');
+      document.body.style.overflow = '';
+    });
+    
+    closeButton?.addEventListener('click', () => {
+      sidebar.classList.remove('visible');
+      document.body.style.overflow = '';
+    });
   }
 
   _handleScreenResize(e = null) {
@@ -110,8 +108,34 @@ class TopNavBar extends HTMLElement {
 
   _handleLanguageChange() {
     this.linkList = ConfigGetter.get('TOPBAR.LINK_LIST') || [];
-    this.render();
-    this.setupEventListeners();
+
+    // Update desktop links
+    const trailingContainer = this.querySelector('.top-nav-bar-trailing');
+    if (trailingContainer) {
+      trailingContainer.innerHTML = this.linkList.map((link) => `
+        <a href="${link.URL}" target="_blank" rel="noopener">${link.TITLE}</a>
+      `).join("");
+    }
+
+    // Update mobile sidebar links and header
+    const sidebarContent = this.querySelector('.mobile-sidebar-content');
+    if (sidebarContent) {
+      const sidebarHeader = sidebarContent.querySelector('.mobile-sidebar-header h2');
+      if (sidebarHeader) {
+        sidebarHeader.textContent = StringLoader.getString('top-nav-bar.sidebar-link-title', 'LINKS');
+      }
+      // Remove existing links before adding new ones
+      sidebarContent.querySelectorAll('a').forEach(a => a.remove());
+      // Add new links
+      this.linkList.forEach(link => {
+        const linkElement = document.createElement('a');
+        linkElement.href = link.URL;
+        linkElement.target = '_blank';
+        linkElement.rel = 'noopener';
+        linkElement.textContent = link.TITLE;
+        sidebarContent.appendChild(linkElement);
+      });
+    }
   }
 }
 

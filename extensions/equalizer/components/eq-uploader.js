@@ -29,6 +29,7 @@ class EQUploader extends HTMLElement {
     this.querySelector('.eu-upload-target-btn').addEventListener('click', () => {
       this._handleUpload('target');
     });
+    StringLoader.addObserver(this._handleLanguageChange.bind(this));
   }
 
   _createFileInput(type) {
@@ -78,6 +79,11 @@ class EQUploader extends HTMLElement {
     } finally {
       event.target.value = ''; // Reset input
     }
+  }
+
+  _handleLanguageChange() {
+    this.querySelector('.eu-upload-fr-btn').textContent = StringLoader.getString('extension.equalizer.upload.fr', 'Upload FR');
+    this.querySelector('.eu-upload-target-btn').textContent = StringLoader.getString('extension.equalizer.upload.target', 'Upload Target');
   }
 }
 

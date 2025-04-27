@@ -12,7 +12,7 @@ const MetadataParser = {
     }
     // Fetch Target Data
     if (!this.targetMetadata) {
-      this.targetMetadata = ConfigGetter.getDefault('TARGET_MANIFEST') || [];
+      this.targetMetadata = this._fetchTargetObject();
     }
     // Dispatch Event
     this.coreEvent.dispatchEvent('metadata-loaded');
@@ -174,6 +174,21 @@ const MetadataParser = {
         })
       };
     });
+  },
+
+  /**
+   * Fetch target_manifest metadata from (config.js).
+   * @returns {Array}
+   */
+  _fetchTargetObject() {
+    return ConfigGetter.getDefault('TARGET_MANIFEST').map((obj) => {
+      return {
+        type: obj.type,
+        files: obj.files.map((identifier) => {
+          return identifier.includes(' Target') ? identifier : `${identifier} Target`
+        })
+      }
+    }) || [];
   },
 
   _getSuffix(phone, index = null) {

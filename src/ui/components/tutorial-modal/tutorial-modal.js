@@ -10,8 +10,6 @@ class TutorialModal extends HTMLElement {
     this.currentStep = 0;
     this.tutorialSteps = [];
     this.tutorialShownKey = "modernGraphToolTutorialShown";
-
-    StringLoader.addObserver(this.updateLanguage.bind(this));
   }
 
   connectedCallback() {
@@ -20,6 +18,7 @@ class TutorialModal extends HTMLElement {
     if (!tutorialShown) {
       this.updateTutorialSteps();
       this.render();
+      StringLoader.addObserver(this.updateLanguage.bind(this));
       // Delay showing the first step slightly to ensure the target element is rendered
       requestAnimationFrame(() => {
         // Double check target element exists before showing
@@ -315,7 +314,6 @@ class TutorialModal extends HTMLElement {
   }
 
   updateLanguage() {
-    console.log("Language Update");
     // Update Tutorial Steps
     this.updateTutorialSteps();
     // Update Button innerText

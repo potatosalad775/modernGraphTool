@@ -2,6 +2,7 @@ import RenderEvent from "./render-event.js";
 import FRSmoother from "../../model/util/fr-smoother.js";
 import GraphWatermark from "./graph-watermark.js";
 import GraphHandle from "./graph-handle.js";
+import ConfigGetter from "../../model/util/config-getter.js";
 
 class RenderEngine {
   constructor() {
@@ -19,6 +20,7 @@ class RenderEngine {
     };
     this.baselineUUID = null;
     this.transitionDuration = 300;
+    this.traceStyling = ConfigGetter.get('TRACE_STYLING');
   }
 
   init(coreEvent, dataProvider) {
@@ -335,7 +337,7 @@ class RenderEngine {
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
-        .attr("stroke-width", 1.5)
+        .attr("stroke-width", this.traceStyling.PHONE_TRACE_THICKNESS || 2)
         .attr("d", lineGenerator);
     });
   };
@@ -356,8 +358,10 @@ class RenderEngine {
       .attr("brand", obj.brand)
       .attr("identifier", obj.identifier)
       .attr("stroke", `${obj.colors['AVG']}`)
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "4 2")
+      .attr("stroke-width", this.traceStyling.TARGET_TRACE_THICKNESS || 1)
+      .attr("stroke-dasharray", this.traceStyling.TARGET_TRACE_DASH?.find(o => (
+        o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
+      )?.dash || "4 4")
       .attr("d", lineGenerator);
   };
 
@@ -380,8 +384,14 @@ class RenderEngine {
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
-        .attr("stroke-width", obj.type === 'inserted-target' ? 1 : 1.5)
-        .attr("stroke-dasharray", obj.type === 'inserted-target' ? "4 2" : null)
+        .attr("stroke-width", obj.type === 'inserted-target' 
+          ? (this.traceStyling.TARGET_TRACE_THICKNESS || 1) 
+          : (this.traceStyling.PHONE_TRACE_THICKNESS || 2))
+        .attr("stroke-dasharray", obj.type === 'inserted-target' 
+          ? this.traceStyling.TARGET_TRACE_DASH?.find(o => (
+              o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
+            )?.dash || "4 4"
+          : null)
         .attr("d", lineGenerator);
     });
   };

@@ -89,7 +89,16 @@ const CONFIG = {
   //    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
   //    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
   //  ],
-
+  // Graph Trace Styling
+  TRACE_STYLING: {
+    PHONE_TRACE_THICKNESS: 2,
+    TARGET_TRACE_THICKNESS: 1,
+    // For more information about 'stroke-dasharray' attribute, please refer to:
+    // https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray
+    // ... If you want to hide target graph trace, please set 'dash' to '0 1'.
+    // ... Or, you can set 'dash' to 'null' to make it look like a solid line.
+    TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
+  },
   // Topbar Link List
   TOPBAR: {
     TITLE: {

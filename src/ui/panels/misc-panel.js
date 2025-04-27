@@ -1,10 +1,11 @@
+import ConfigGetter from "../../model/util/config-getter.js";
 import { IconProvider } from "../../styles/icon-provider.js";
 
 class MiscPanel extends HTMLElement {
   constructor() {
     super();
 
-    const displayLangSelector = window.GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_I18N;
+    const displayLangSelector = ConfigGetter.get('LANGUAGE.ENABLE_I18N');
 
     this.innerHTML = `
     <div class="menu-panel" id="misc-panel" data-target="misc-panel">

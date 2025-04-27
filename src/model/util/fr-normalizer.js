@@ -1,10 +1,11 @@
 import CoreEvent from "../../core-event.js";
+import ConfigGetter from "./config-getter.js";
 
 class FRNormalizer {
   constructor() {
     this.typeList = ["Hz", "Avg"];
-    this.type = window.GRAPHTOOL_CONFIG?.NORMALIZATION?.TYPE || "Hz";
-    this.Hzvalue = window.GRAPHTOOL_CONFIG?.NORMALIZATION?.HZ_VALUE || 500;
+    this.type = ConfigGetter.get('NORMALIZATION.TYPE') || "Hz";
+    this.Hzvalue = ConfigGetter.get('NORMALIZATION.HZ_VALUE') || 500;
   }
 
   init(dataProvider) {

@@ -49,7 +49,7 @@ class TargetSelector extends HTMLElement {
     this._render();
 
     // Horizontal Scroll Event Listener
-    if(!window.GRAPHTOOL_CONFIG?.INTERFACE?.TARGET?.ALLOW_MULTIPLE_LINE_PER_TYPE) {
+    if(!ConfigGetter.get('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE')) {
       this.classList.add("tsc-single-row");
       this._addDragScroll(this);
     } else {
@@ -78,7 +78,7 @@ class TargetSelector extends HTMLElement {
 
         const targetItem = `
           <gt-button toggleable variant='outlined' identifier='${identifier}' class='target-list-item'>
-            ${window.GRAPHTOOL_CONFIG?.INTERFACE?.TARGET?.OMIT_TARGET_SUFFIX 
+            ${ConfigGetter.get('INTERFACE.TARGET.OMIT_TARGET_SUFFIX') 
               ? `<span class="targetname">${identifier.replace(' Target', '')}</span>`
               : `<span class="targetname">${identifier}</span>`
             }

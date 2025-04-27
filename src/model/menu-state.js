@@ -1,8 +1,9 @@
 import StringLoader from "./util/string-loader.js";
+import ConfigGetter from "./util/config-getter.js";
 
 class MenuState {
   constructor() {
-    this.currentMenu = window.GRAPHTOOL_CONFIG?.INITIAL_PANEL || 'phone';
+    this.currentMenu = ConfigGetter.get('INITIAL_PANEL') || 'phone';
     this.coreMenuList = ['phone', 'graph', 'list', 'misc'];
     this.coreMenuBarName = ['DEVICES', 'GRAPH', 'LIST', 'MISC'];
     this.extensionMenuList = [];

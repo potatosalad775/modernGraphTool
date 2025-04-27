@@ -1,6 +1,7 @@
 import CoreEvent from "../../../core-event.js";
 import DataProvider from "../../../model/data-provider.js";
 import StringLoader from "../../../model/util/string-loader.js";
+import ConfigGetter from "../../../model/util/config-getter.js";
 import MetadataParser from "../../../model/util/metadata-parser.js";
 import { IconProvider } from "../../../styles/icon-provider.js";
 import { phoneSelectorStyles } from "./phone-selector.styles.js";
@@ -195,7 +196,7 @@ class PhoneSelector extends HTMLElement {
         }
 
         // Block removing Phone once it's selected
-        if (!window.GRAPHTOOL_CONFIG.INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR && input.checked) {
+        if (!ConfigGetter.get('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') && input.checked) {
           input.disabled = true;
         }
       });
@@ -229,7 +230,7 @@ class PhoneSelector extends HTMLElement {
         const input = this.querySelector(`.ps-phone-item input[data-identifier="${e.detail.identifier}"]`);
         if (input) {
           input.checked = true;
-          if (!window.GRAPHTOOL_CONFIG.INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR) {
+          if (!ConfigGetter.get('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR')) {
             input.disabled = true;
           }
         }

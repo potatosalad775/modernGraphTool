@@ -124,7 +124,7 @@ const MetadataParser = {
    */
   async _fetchBookObject() {
     const rawData = await fetch(
-      window.GRAPHTOOL_CONFIG.PATH.PHONE_BOOK || '../../../data/phone_book.json'
+      ConfigGetter.get('PATH.PHONE_BOOK') || '../../../data/phone_book.json'
     ).then(r => r.json());
 
     return rawData.map(brand => { 

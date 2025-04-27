@@ -1,10 +1,11 @@
 import StringLoader from '../../../model/util/string-loader.js';
+import ConfigGetter from '../../../model/util/config-getter.js';
 
 class LanguageSelector extends HTMLElement {
   constructor() {
     super();
 
-    this._langList = window.GRAPHTOOL_CONFIG?.LANGUAGE?.LANGUAGE_LIST || ["en", "English"], ["ko", "한국어"];
+    this._langList = ConfigGetter.get('LANGUAGE.LANGUAGE_LIST') || ["en", "English"], ["ko", "한국어"];
 
     // Generate options HTML from language list
     const optionsHTML = this._langList

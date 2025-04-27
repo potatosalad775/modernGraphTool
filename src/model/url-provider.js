@@ -1,5 +1,6 @@
 import Base62 from "./util/base62.js";
 import DataProvider from "./data-provider.js";
+import ConfigGetter from "./util/config-getter.js";
 
 class URLProvider {
   constructor() {
@@ -10,8 +11,8 @@ class URLProvider {
         ? page_description
         : "View and compare frequency response graphs";
     this.baseURL = window.location.href.split("?")[0];
-    this.autoUpdateURL = window.GRAPHTOOL_CONFIG?.URL?.AUTO_UPDATE_URL || true;
-    this.useBase62 = window.GRAPHTOOL_CONFIG?.URL?.COMPRESS_URL || false; // Toggle for URL shortening
+    this.autoUpdateURL = ConfigGetter.get('URL.AUTO_UPDATE_URL') || true;
+    this.useBase62 = ConfigGetter.get('URL.COMPRESS_URL') || false; // Toggle for URL shortening
     this.currentURL = "";
     this.initPhoneDataFromURL = null;
 

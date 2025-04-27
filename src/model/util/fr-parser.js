@@ -1,3 +1,5 @@
+import ConfigGetter from "./config-getter.js";
+
 const FRParser = {
   _standardFrequencies: (function() {
     const frequencies = [20];
@@ -146,11 +148,11 @@ const FRParser = {
   async _fetchFRTextData(sourceType, fileName) {
     const basePath =
       sourceType === "phone"
-        ? `${window.GRAPHTOOL_CONFIG.PATH.PHONE_MEASUREMENT}` +
-          `${window.GRAPHTOOL_CONFIG.PATH.PHONE_MEASUREMENT.endsWith('/') ? '' : '/'}` +
+        ? `${ConfigGetter.get('PATH.PHONE_MEASUREMENT')}` +
+          `${ConfigGetter.get('PATH.PHONE_MEASUREMENT').endsWith('/') ? '' : '/'}` +
           `${fileName}`
-        : `${window.GRAPHTOOL_CONFIG.PATH.TARGET_MEASUREMENT}` +
-          `${window.GRAPHTOOL_CONFIG.PATH.TARGET_MEASUREMENT.endsWith('/') ? '' : '/'}` +
+        : `${ConfigGetter.get('PATH.TARGET_MEASUREMENT')}` +
+          `${ConfigGetter.get('PATH.TARGET_MEASUREMENT').endsWith('/') ? '' : '/'}` +
           `${fileName}`;
 
     try {

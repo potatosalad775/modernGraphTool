@@ -23,8 +23,8 @@ class TopNavBar extends HTMLElement {
   }
 
   render() {
-    const titleType = window.GRAPHTOOL_CONFIG?.TOPBAR?.TITLE?.TYPE || "TEXT";
-    const titleContent = window.GRAPHTOOL_CONFIG?.TOPBAR?.TITLE?.CONTENT || "modernGraphTool";
+    const titleType = ConfigGetter.get('TOPBAR.TITLE.TYPE') || "TEXT";
+    const titleContent = ConfigGetter.get('TOPBAR.TITLE.CONTENT') || "modernGraphTool";
 
     this.innerHTML = `
       <header class="header">

@@ -1,10 +1,11 @@
 import RenderEngine from "../../visualization/render-engine.js";
 import StringLoader from "../../../model/util/string-loader.js";
+import ConfigGetter from "../../../model/util/config-getter.js";
 
 class GraphScaleButton extends HTMLElement {
   constructor() {
     super();
-    const defaultScaleValue = parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.DEFAULT_Y_SCALE);
+    const defaultScaleValue = parseInt(ConfigGetter.get('VISUALIZATION.DEFAULT_Y_SCALE')) || 60;
     this._options = [40, 60, 80, 100];
     this._currentIndex = this._options.indexOf(defaultScaleValue) || 1; // Defaults to 60
     

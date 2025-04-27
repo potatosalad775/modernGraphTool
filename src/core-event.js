@@ -1,3 +1,5 @@
+import ConfigGetter from "./model/util/config-getter.js";
+
 const CoreEvent = {
   initEventList: {
     "graph-ui-ready": false,
@@ -80,7 +82,7 @@ const CoreEvent = {
 
   _updateTheme() {
     var darkmode =
-      window.GRAPHTOOL_CONFIG?.INTERFACE?.PREFERRED_DARK_MODE_THEME?.toLowerCase() ||
+      ConfigGetter.get('INTERFACE.PREFERRED_DARK_MODE_THEME')?.toLowerCase() ||
       "system";
     if (darkmode === "system") {
       window.matchMedia &&
@@ -110,7 +112,7 @@ const CoreEvent = {
       });
     } else {
       // Add Initial Phones
-      const initialPhones = GRAPHTOOL_CONFIG.INITIAL_PHONES;
+      const initialPhones = ConfigGetter.get('INITIAL_PHONES') || [];
       initialPhones.forEach(async (phone) => {
         const matchingPhone = this.coreAPI.MetadataParser.searchFRInfoWithFullName(phone);
         await this.coreAPI.DataProvider.addFRData("phone", matchingPhone.identifier, {
@@ -118,7 +120,7 @@ const CoreEvent = {
         });
       });
       // Add Initial Targets
-      const initialTargets = window.GRAPHTOOL_CONFIG.INITIAL_TARGETS;
+      const initialTargets = ConfigGetter.get('INITIAL_TARGETS') || [];
       initialTargets.forEach(async (target) => {
         if (this.coreAPI.MetadataParser.isTargetAvailable(target)) {
           await this.coreAPI.DataProvider.addFRData("target", target);

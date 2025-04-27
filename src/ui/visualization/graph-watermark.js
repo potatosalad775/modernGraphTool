@@ -1,3 +1,5 @@
+import ConfigGetter from "../../model/util/config-getter.js";
+
 const GraphWatermark = (svg) => {
   const watermarkPositionData = {
     BOTTOM_LEFT: { x: 50, y: 400, anchor: "start", },
@@ -8,7 +10,7 @@ const GraphWatermark = (svg) => {
   };
 
   // Display Rig Description
-  const rigDescription = window.GRAPHTOOL_CONFIG.VISUALIZATION.RIG_DESCRIPTION;
+  const rigDescription = ConfigGetter.get('VISUALIZATION.RIG_DESCRIPTION') || 'Measured with IEC 60318-4 (711)';
   if (rigDescription) {
     const rigDescriptionText = svg.append('text')
     .attr('class', 'rig-description')
@@ -24,7 +26,7 @@ const GraphWatermark = (svg) => {
   }
 
   // Draw Custom Watermark
-  const watermarkData = window.GRAPHTOOL_CONFIG.WATERMARK || [];
+  const watermarkData = ConfigGetter.get('WATERMARK') || [];
 
   const watermarkGroup = svg.append('g')
     .attr('class', 'watermark-group')

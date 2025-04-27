@@ -29,7 +29,7 @@ class RenderEngine {
     
     // Initialize Render Event
     RenderEvent.init(this);
-    this.yScaleValue = parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.DEFAULT_Y_SCALE) || 60;
+    this.yScaleValue = parseInt(ConfigGetter.get('VISUALIZATION.DEFAULT_Y_SCALE')) || 60;
 
     // Setup Graph
     this.svg = d3
@@ -107,14 +107,14 @@ class RenderEngine {
     // 100ms delay before executing
     this._updateLabelTimeout = setTimeout(() => {
       var labelCounter = 0;
-      const labelLocation = window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.LOCATION || "BOTTOM_LEFT";
+      const labelLocation = ConfigGetter.get('VISUALIZATION.LABEL.LOCATION') || "BOTTOM_LEFT";
       const startX = this.labelPosition[labelLocation].x 
-        + parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.POSITION?.RIGHT)
-        - parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.POSITION?.LEFT);
+        + parseInt(ConfigGetter.get('VISUALIZATION.LABEL.POSITION.RIGHT') || 0)
+        - parseInt(ConfigGetter.get('VISUALIZATION.LABEL.POSITION.LEFT') || 0);
       const startY = this.labelPosition[labelLocation].y
-        + parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.POSITION?.DOWN)
-        - parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.POSITION?.UP);
-      const lineHeight = parseInt(window.GRAPHTOOL_CONFIG?.VISUALIZATION?.LABEL?.TEXT_SIZE) + 8 || 25;
+        + parseInt(ConfigGetter.get('VISUALIZATION.LABEL.POSITION.DOWN') || 0)
+        - parseInt(ConfigGetter.get('VISUALIZATION.LABEL.POSITION.UP') || 0);
+      const lineHeight = parseInt(ConfigGetter.get('VISUALIZATION.LABEL.TEXT_SIZE') || 17) + 8;
 
       // Create new label background group
       if (this.labelBgGroup) {
@@ -167,8 +167,8 @@ class RenderEngine {
           .attr("fill", obj.colors[channel])
           .attr("style", this.labelPosition[labelLocation].style)
           .attr("text-anchor", this.labelPosition[labelLocation].anchor)
-          .attr("font-size", window.GRAPHTOOL_CONFIG.VISUALIZATION.LABEL.TEXT_SIZE || "20px")
-          .attr("font-weight", window.GRAPHTOOL_CONFIG.VISUALIZATION.LABEL.TEXT_WEIGHT || 600)
+          .attr("font-size", ConfigGetter.get('VISUALIZATION.LABEL.TEXT_SIZE') || "20px")
+          .attr("font-weight", ConfigGetter.get('VISUALIZATION.LABEL.TEXT_WEIGHT') || 600)
           .text(textContent);
 
           // Increment LabelCounter

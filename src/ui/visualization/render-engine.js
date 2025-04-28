@@ -266,6 +266,10 @@ class RenderEngine {
 
       this.coreEvent.dispatchEvent('fr-baseline-updated', { baselineUUID: this.baselineData.uuid });
   }
+
+  getBaselineData() {
+    return this.baselineData;
+  }
   
   orderOverlayLayers() {
     this.svg.selectAll('.fr-graph-x-axis, .fr-graph-y-axis').lower(); // Grid lines

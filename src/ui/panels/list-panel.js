@@ -3,9 +3,14 @@ class ListPanel extends HTMLElement {
     super();
     this.innerHTML = `
     <div class="menu-panel" id="list-panel" data-target="list-panel">
-      <selection-list></selection-list>
+      <!-- selection-list should be positioned here -->
     </div>
     `;
+  }
+
+  // a method to get the container where the list should go
+  get contentContainer() {
+    return this.querySelector('#list-panel');
   }
 }
 

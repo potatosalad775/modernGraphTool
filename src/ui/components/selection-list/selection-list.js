@@ -10,100 +10,172 @@ class SelectionList extends HTMLElement {
     super();
     //this.attachShadow({ mode: 'open' });
     this._boundUpdateList = this._updateList.bind(this);
+    this._boundHandleItemAdded = this._handleItemAdded.bind(this);
+    this._boundHandleItemRemoved = this._handleItemRemoved.bind(this);
+    this._boundHandleItemUpdated = this._handleItemUpdated.bind(this);
+    this._boundUpdateLanguage = this._updateLanguage.bind(this);
   }
 
   connectedCallback() {
-    window.addEventListener('core:fr-phone-added', this._boundUpdateList);
-    window.addEventListener('core:fr-phone-removed', this._boundUpdateList);
-    window.addEventListener('core:fr-target-added', this._boundUpdateList);
-    window.addEventListener('core:fr-target-removed', this._boundUpdateList);
-    window.addEventListener('core:fr-unknown-inserted', this._boundUpdateList);
-    window.addEventListener('core:fr-unknown-removed', this._boundUpdateList);
-    window.addEventListener('core:fr-variant-updated', this._boundUpdateList);
-    StringLoader.addObserver(this._updateLanguage.bind(this));
-    this._updateList();
+    this._updateList(); // Initial Run
+    window.addEventListener('core:fr-phone-added', this._boundHandleItemAdded);
+    window.addEventListener('core:fr-target-added', this._boundHandleItemAdded);
+    window.addEventListener('core:fr-unknown-inserted', this._boundHandleItemAdded); 
+    window.addEventListener('core:fr-phone-removed', this._boundHandleItemRemoved);
+    window.addEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
+    window.addEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
+    window.addEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    StringLoader.addObserver(this._boundUpdateLanguage);
   }
 
   disconnectedCallback() {
-    window.removeEventListener('core:fr-phone-added', this._boundUpdateList);
-    window.removeEventListener('core:fr-phone-removed', this._boundUpdateList);
-    window.removeEventListener('core:fr-target-added', this._boundUpdateList);
-    window.removeEventListener('core:fr-target-removed', this._boundUpdateList);
-    window.removeEventListener('core:fr-unknown-inserted', this._boundUpdateList);
-    window.removeEventListener('core:fr-unknown-removed', this._boundUpdateList);
-    window.removeEventListener('core:fr-variant-updated', this._boundUpdateList);
-    StringLoader.removeObserver(this._updateLanguage.bind(this));
+    window.removeEventListener('core:fr-phone-added', this._boundHandleItemAdded);
+    window.removeEventListener('core:fr-target-added', this._boundHandleItemAdded);
+    window.removeEventListener('core:fr-unknown-inserted', this._boundHandleItemAdded);
+    window.removeEventListener('core:fr-phone-removed', this._boundHandleItemRemoved);
+    window.removeEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
+    window.removeEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
+    window.removeEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    StringLoader.removeObserver(this._boundUpdateLanguage);
   }
 
+  // Initial list population and full refresh (if ever needed)
   _updateList() {
-    const newState = Array.from(DataProvider.frDataMap);
-    if (JSON.stringify(this._lastState) === JSON.stringify(newState)) return;
-
-    // Only update DOM if data actually changed
-    this._lastState = newState;
-
+    // Initial structure
     this.innerHTML = `
       <style>${selectionListStyles}</style>
-      <section class="selection-list">
-        ${Array.from(DataProvider.frDataMap)
-          .sort(([, a], [, b]) => a.type === 'target' ? -1 : b.type === 'target' ? 1 : 0)
-          .map(([uuid, frData]) => {
-            return `
-            <div class="selection-list-item" data-uuid="${uuid}" data-type="${frData.type}">
-              <div class="sl-item-content">
-                <div class="sl-item-heading">
-                  <button class="sl-color-btn" style="background: ${frData.colors.L || frData.colors}"></button>
-                  <div class="sl-name">
-                    <span class="sl-identifier">${frData.identifier}</span>
-                    ${frData.type === 'phone' && frData.meta.files.length > 1 ? `
-                      <button class="sl-variant-btn" title="Show Variants">${IconProvider.Icon('plus')}</button>
-                      `
-                    : ''}
-                    <span class="sl-variant-name">${frData.dispSuffix}</span>
-                  </div>
-                </div>
-                <div class="sl-item-leading">
-                  ${frData.type !== 'target' 
-                  ? `<div class="sl-channels">
-                      <select class="sl-channels-select" title="Graph Channel">
-                        ${this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel)}
-                      </select>
-                    </div>` 
-                  : ''}
-                  <div class="sl-y-offset">
-                    <button class="sl-y-offset-dec">${IconProvider.Icon('arrowDown')}</button>
-                    <input type="number" class="sl-y-offset-input" title="Move Graph Vertically" value="0" step="1">
-                    <button class="sl-y-offset-inc">${IconProvider.Icon('arrowUp')}</button>
-                  </div>
-                  <div class="sl-button-row">
-                    <div class="sl-baseline">
-                      <button class="sl-button baseline" title="Set Baseline">${IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;')}</button>
-                    </div>
-                    <div class="sl-visibility">
-                      <button class="sl-button visibility" title="Hide Graph">${IconProvider.Icon('eyeOn', 'width: 1.5rem; height: 1.5rem;')}</button>
-                    </div>
-                    <div class="sl-actions">
-                      <button class="sl-button delete" title="Delete Graph">${IconProvider.Icon('delete', 'width: 1.5rem; height: 1.5rem;')}</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              ${['phone', 'target'].includes(frData.type) && frData.meta.files.length > 1 ? `
-              <div class="sl-variant-menu">
-                ${frData.meta.files.map((file, i) => (file.suffix !== frData.dispSuffix) 
-                  ? `<div class="sl-variant-item" data-uuid="${uuid}" data-index="${i}">
-                      <span class="sl-variant-item-name">${frData.identifier} ${file.suffix}</span>
-                      <button class="sl-button add-variant">${IconProvider.Icon('plus')}</button>
-                    </div>`
-                  : ''
-                ).join('')}
-              </div>
-              ` : ''}
-            </div>`;
-          }).join('')}
-      </section>
+      <section class="selection-list"></section>
     `;
-    this._attachEventListeners();
+    this.listSection = this.querySelector('.selection-list');
+
+    this.listSection.innerHTML = ''; // Clear existing items
+    const sortedData = Array.from(DataProvider.frDataMap)
+      .sort(([, a], [, b]) => a.type === 'target' ? -1 : b.type === 'target' ? 1 : 0);
+
+    sortedData.forEach(([uuid, frData]) => {
+      const itemElement = this._createListItemElement(uuid, frData);
+      this.listSection.appendChild(itemElement);
+      this._attachEventListenersToItem(itemElement);
+    });
+  }
+
+  // Creates the DOM element for a single list item
+  _createListItemElement(uuid, frData) {
+    console.log('Creating item:', uuid);
+    const itemElement = document.createElement('div');
+    itemElement.className = 'selection-list-item';
+    itemElement.dataset.uuid = uuid;
+    itemElement.dataset.type = frData.type;
+
+    itemElement.innerHTML = `
+      <div class="sl-item-content">
+        <div class="sl-item-heading">
+          <button class="sl-color-btn" style="background: ${frData.colors.L || frData.colors}"></button>
+          <div class="sl-name">
+            <span class="sl-identifier">${frData.identifier}</span>
+            ${frData.type === 'phone' && frData.meta.files.length > 1 ? `
+              <button class="sl-variant-btn" title="Show Variants">${IconProvider.Icon('plus')}</button>
+              `
+            : ''}
+            <span class="sl-variant-name">${frData.dispSuffix}</span>
+          </div>
+        </div>
+        <div class="sl-item-leading">
+          ${frData.type !== 'target'
+          ? `<div class="sl-channels">
+              <select class="sl-channels-select" title="Graph Channel">
+                ${this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel)}
+              </select>
+            </div>`
+          : ''}
+          <div class="sl-y-offset">
+            <button class="sl-y-offset-dec">${IconProvider.Icon('arrowDown')}</button>
+            <input type="number" class="sl-y-offset-input" title="Move Graph Vertically" value="0" step="1">
+            <button class="sl-y-offset-inc">${IconProvider.Icon('arrowUp')}</button>
+          </div>
+          <div class="sl-button-row">
+            <div class="sl-baseline">
+              <button class="sl-button baseline" title="Set Baseline">${IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;')}</button>
+            </div>
+            <div class="sl-visibility">
+              <button class="sl-button visibility ${frData.hidden ? 'hidden' : ''}" title="${frData.hidden ? 'Show' : 'Hide'} Graph">
+                ${IconProvider.Icon(frData.hidden ? 'eyeOff' : 'eyeOn', 'width: 1.5rem; height: 1.5rem;')}
+              </button>
+            </div>
+            <div class="sl-actions">
+              <button class="sl-button delete" title="Delete Graph">${IconProvider.Icon('delete', 'width: 1.5rem; height: 1.5rem;')}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      ${['phone', 'target'].includes(frData.type) && frData.meta.files.length > 1 ? `
+      <div class="sl-variant-menu">
+        ${frData.meta.files.map((file, i) => (file.suffix !== frData.dispSuffix)
+          ? `<div class="sl-variant-item" data-uuid="${uuid}" data-index="${i}">
+              <span class="sl-variant-item-name">${frData.identifier} ${file.suffix}</span>
+              <button class="sl-button add-variant">${IconProvider.Icon('plus')}</button>
+            </div>`
+          : ''
+        ).join('')}
+      </div>
+      ` : ''}
+    `;
+    return itemElement;
+  }
+
+  // Handles adding a new item
+  _handleItemAdded(event) {
+    const { uuid } = event.detail;
+    const frData = DataProvider.getFRData(uuid);
+    if (!frData) return; // Should not happen
+    console.log(uuid);
+
+    const newItemElement = this._createListItemElement(uuid, frData);
+
+    // --- Insertion Logic (Maintain Sort Order) ---
+    const items = Array.from(this.listSection.children);
+    let inserted = false;
+    // If it's a target, insert before the first non-target
+    if (frData.type === 'target') {
+      const firstNonTarget = items.find(item => item.dataset.type !== 'target');
+      if (firstNonTarget) {
+        this.listSection.insertBefore(newItemElement, firstNonTarget);
+        inserted = true;
+      }
+    }
+    // If it's not a target, append after the last target (or at the end if no targets)
+    if (!inserted) {
+      this.listSection.appendChild(newItemElement); // Simple append for now, refine sorting later if needed for non-targets
+    }
+    // --- End Insertion Logic ---
+
+    this._attachEventListenersToItem(newItemElement);
+  }
+
+  // Handles removing an item
+  _handleItemRemoved(event) {
+    const { uuid } = event.detail;
+    const itemToRemove = this.listSection.querySelector(`.selection-list-item[data-uuid="${uuid}"]`);
+    if (itemToRemove) {
+      itemToRemove.remove();
+    }
+  }
+
+  // Handles updating an existing item (e.g., variant change)
+  _handleItemUpdated(event) {
+    const { uuid } = event.detail;
+    const frData = DataProvider.getFRData(uuid);
+    if (!frData) return; // Data might have been removed concurrently
+
+    const existingItem = this.listSection.querySelector(`.selection-list-item[data-uuid="${uuid}"]`);
+    if (existingItem) {
+      // Create a new element with updated data
+      const updatedItemElement = this._createListItemElement(uuid, frData);
+      // Replace the old item with the new one
+      this.listSection.replaceChild(updatedItemElement, existingItem);
+      // Re-attach listeners to the new element
+      this._attachEventListenersToItem(updatedItemElement);
+    }
   }
 
   _getChannelOptions(availableChannel, dispChannel = []) {
@@ -132,33 +204,29 @@ class SelectionList extends HTMLElement {
     return innerHTML;
   }
 
-  _attachEventListeners() {
-    // Color Button
-    this.querySelectorAll('.sl-color-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+  // Attaches event listeners to a single item element
+  _attachEventListenersToItem(itemElement) {
+    // --- Color Button ---
+    const colorBtn = itemElement.querySelector('.sl-color-btn');
+    if (colorBtn) {
+      colorBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const type = e.target.closest('.selection-list-item').dataset.type;
+        const uuid = itemElement.dataset.uuid;
+        const type = itemElement.dataset.type;
         const newColor = DataProvider._getColorWithType(type);
-
-        // Change target with random color
         DataProvider.updateMetadata('uuid', uuid, 'colors', newColor);
-        btn.style.background = newColor.L || newColor;
+        e.target.style.background = newColor.L || newColor;
       });
-    });
+    }
 
-    // Variant Select Menu Button
-    this.querySelectorAll('.sl-variant-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // --- Variant Select Menu Button ---
+    const variantBtn = itemElement.querySelector('.sl-variant-btn');
+    if (variantBtn) {
+      variantBtn.addEventListener('click', (e) => {
         e.preventDefault();
-
         const button = e.currentTarget;
-        const variantMenu = e.target.closest('.selection-list-item').querySelector('.sl-variant-menu');
-        
-        // Toggle visibility state
+        const variantMenu = itemElement.querySelector('.sl-variant-menu');
         const shouldHide = button.classList.contains('active');
-
         if (shouldHide) {
           button.setAttribute('title', 'Show Variants');
           button.innerHTML = IconProvider.Icon('plus');
@@ -166,223 +234,188 @@ class SelectionList extends HTMLElement {
           button.setAttribute('title', 'Hide Variants');
           button.innerHTML = IconProvider.Icon('subtract');
         }
-
         variantMenu.classList.toggle('active', !shouldHide);
         button.classList.toggle('active', !shouldHide);
       });
-    });
+    }
 
-    // Variant Item Button
-    this.querySelectorAll('.sl-variant-item').forEach(selector => {
+    // --- Variant Item Buttons ---
+    itemElement.querySelectorAll('.sl-variant-item').forEach(selector => {
       // Switch to Variant
       selector.addEventListener('click', async (e) => {
+        if (e.target.closest('.add-variant')) return; // Don't trigger if add button clicked
         e.preventDefault();
-
-        const variantMenu = e.target.closest('.sl-variant-menu');
+        const variantMenu = selector.closest('.sl-variant-menu');
         variantMenu.setAttribute('aria-busy', 'true');
-
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const index = e.target.closest('.sl-variant-item').dataset.index;
+        const uuid = itemElement.dataset.uuid;
+        const index = selector.dataset.index;
         const dataMap = DataProvider.getFRData(uuid);
-
-        DataProvider.updateVariant(uuid, dataMap.meta.files[parseInt(index)].suffix);
-        variantMenu.setAttribute('aria-busy', 'false');
+        await DataProvider.updateVariant(uuid, dataMap.meta.files[parseInt(index)].suffix);
+        // No need to set aria-busy false, as _handleItemUpdated will replace the element
       });
 
       // Add Variant Button
-      selector.querySelector('.sl-button.add-variant').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // Prevent event from bubbling up to parent (Switch Variant)
-        
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const index = e.target.closest('.sl-variant-item').dataset.index;
-        const dataMap = DataProvider.getFRData(uuid);
-
-        DataProvider.addFRData('phone', dataMap.identifier, {
-          dispSuffix: dataMap.meta.files[parseInt(index)].suffix
+      const addVariantBtn = selector.querySelector('.sl-button.add-variant');
+      if (addVariantBtn) {
+        addVariantBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const uuid = itemElement.dataset.uuid;
+          const index = selector.dataset.index;
+          const dataMap = DataProvider.getFRData(uuid);
+          DataProvider.addFRData('phone', dataMap.identifier, {
+            dispSuffix: dataMap.meta.files[parseInt(index)].suffix
+          });
         });
-      });
+      }
     });
 
-    // Channel Select Menu
-    this.querySelectorAll('.sl-channels').forEach(selector => {
-      selector.addEventListener('change', (e) => {
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const channel = { "L": ["L"], "R": ["R"], "L+R": ["L", "R"], "AVG": ["AVG"] }
-
-        DataProvider.updateMetadata('uuid', uuid, 'dispChannel', channel[e.target.value]);
+    // --- Channel Select Menu ---
+    const channelSelect = itemElement.querySelector('.sl-channels-select');
+    if (channelSelect) {
+      channelSelect.addEventListener('change', (e) => {
+        const uuid = itemElement.dataset.uuid;
+        const channelMap = { "L": ["L"], "R": ["R"], "L+R": ["L", "R"], "AVG": ["AVG"] };
+        DataProvider.updateMetadata('uuid', uuid, 'dispChannel', channelMap[e.target.value]);
       });
-    });
+    }
 
-    // Y-Offset Input
-    this.querySelectorAll('.sl-y-offset').forEach(input => {
-      input.addEventListener('input', (e) => {
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const offset = parseFloat(e.target.value) || 0;
-        const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
+    // --- Y-Offset Input & Buttons ---
+    const yOffsetContainer = itemElement.querySelector('.sl-y-offset');
+    if (yOffsetContainer) {
+        const yOffsetInput = yOffsetContainer.querySelector('.sl-y-offset-input');
+        const yOffsetDec = yOffsetContainer.querySelector('.sl-y-offset-dec');
+        const yOffsetInc = yOffsetContainer.querySelector('.sl-y-offset-inc');
 
-        curves.forEach(curve => {
-          curve.setAttribute('transform', `translate(0,${0 - offset})`);
+        yOffsetInput.addEventListener('input', (e) => {
+            const uuid = itemElement.dataset.uuid;
+            const offset = parseFloat(e.target.value) || 0;
+            const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
+            curves.forEach(curve => {
+                curve.setAttribute('transform', `translate(0,${0 - offset})`);
+            });
         });
-      });
-    });
 
-    // Y-offset Decrement Button with long press support
-    this.querySelectorAll('.sl-y-offset-dec').forEach(decBtn => {
-      let pressTimer;
-      let isPressed = false;
+        const setupLongPress = (button, action) => {
+            let pressTimer;
+            let isPressed = false;
+            const performAction = () => {
+                const input = yOffsetContainer.querySelector('.sl-y-offset-input');
+                const currentValue = parseInt(input.value) || 0;
+                input.value = action === 'inc' ? currentValue + 1 : currentValue - 1;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+            button.addEventListener('mousedown', () => {
+                isPressed = true;
+                performAction();
+                pressTimer = setInterval(() => { if (isPressed) performAction(); }, 150);
+            });
+            const stopAction = () => {
+                isPressed = false;
+                clearInterval(pressTimer);
+            };
+            button.addEventListener('mouseup', stopAction);
+            button.addEventListener('mouseleave', stopAction);
+        };
 
-      const decrementValue = (parentDiv) => {
-        const input = parentDiv.querySelector('.sl-y-offset-input');
-        input.value = parseInt(input.value) - 1;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      };
+        setupLongPress(yOffsetDec, 'dec');
+        setupLongPress(yOffsetInc, 'inc');
+    }
 
-      decBtn.addEventListener('mousedown', (e) => {
-        const parentDiv = e.currentTarget.closest('.sl-y-offset');
-        isPressed = true;
-        decrementValue(parentDiv);
-        
-        pressTimer = setInterval(() => {
-          if (isPressed) {
-            decrementValue(parentDiv);
-          }
-        }, 150);
-      });
 
-      decBtn.addEventListener('mouseup', () => {
-        isPressed = false;
-        clearInterval(pressTimer);
-      });
-
-      decBtn.addEventListener('mouseleave', () => {
-        isPressed = false;
-        clearInterval(pressTimer);
-      });
-    });
-
-    // Y-offset Increment Button with long press support
-    this.querySelectorAll('.sl-y-offset-inc').forEach(incBtn => {
-      let pressTimer;
-      let isPressed = false;
-
-      const incrementValue = (parentDiv) => {
-        const input = parentDiv.querySelector('.sl-y-offset-input');
-        input.value = parseInt(input.value) + 1;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      };
-
-      incBtn.addEventListener('mousedown', (e) => {
-        const parentDiv = e.currentTarget.closest('.sl-y-offset');
-        isPressed = true;
-        incrementValue(parentDiv);
-        
-        pressTimer = setInterval(() => {
-          if (isPressed) {
-            incrementValue(parentDiv);
-          }
-        }, 150);
-      });
-
-      incBtn.addEventListener('mouseup', () => {
-        isPressed = false;
-        clearInterval(pressTimer);
-      });
-
-      incBtn.addEventListener('mouseleave', () => {
-        isPressed = false;
-        clearInterval(pressTimer);
-      });
-    });
-
-    // Baseline Button
-    this.querySelectorAll('.sl-button.baseline').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // --- Baseline Button ---
+    const baselineBtn = itemElement.querySelector('.sl-button.baseline');
+    if (baselineBtn) {
+      baselineBtn.addEventListener('click', (e) => {
         e.preventDefault();
-
         const button = e.currentTarget;
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
+        const uuid = itemElement.dataset.uuid;
         const isActive = button.classList.contains('active');
-        
-        // Toggle visibility state
-        RenderEngine.updateBaselineData(!isActive, {uuid: uuid});
 
-        if (!isActive) {
-          button.setAttribute('title', 'Reset Baseline');
-          button.innerHTML = IconProvider.Icon('flatline', 'width: 1.5rem; height: 1.5rem;');
-          // Reset Baseline for all other buttons
-          this.querySelectorAll('.sl-button.baseline').forEach(button => {
-            if (button !== e.currentTarget) {
-              button.classList.remove('active');
-              button.setAttribute('title', 'Set Baseline');
-              button.innerHTML = IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;');
+        RenderEngine.updateBaselineData(!isActive, { uuid: uuid });
+
+        // Update *all* baseline buttons in the list
+        this.querySelectorAll('.sl-button.baseline').forEach(btn => {
+          if (btn === button) { // Current button
+            if (!isActive) {
+              btn.setAttribute('title', 'Reset Baseline');
+              btn.innerHTML = IconProvider.Icon('flatline', 'width: 1.5rem; height: 1.5rem;');
+              btn.classList.add('active');
+            } else {
+              btn.setAttribute('title', 'Set Baseline');
+              btn.innerHTML = IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;');
+              btn.classList.remove('active');
             }
-          });
-        } else {
-          button.setAttribute('title', 'Set Baseline');
-          button.innerHTML = IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;');
-        }
-        button.classList.toggle('active', !isActive);
+          } else { // Other buttons
+             if (!isActive) { // If we just activated one, deactivate others
+                btn.classList.remove('active');
+                btn.setAttribute('title', 'Set Baseline');
+                btn.innerHTML = IconProvider.Icon('wave', 'width: 1.5rem; height: 1.5rem;');
+             }
+          }
+        });
       });
-    });
+      // Set initial state if it's the current baseline
+      const currentBaseline = RenderEngine.getBaselineData();
+      if (currentBaseline && currentBaseline.uuid === itemElement.dataset.uuid) {
+        baselineBtn.classList.add('active');
+        baselineBtn.setAttribute('title', 'Reset Baseline');
+        baselineBtn.innerHTML = IconProvider.Icon('flatline', 'width: 1.5rem; height: 1.5rem;');
+      }
+    }
 
-    // Visibility Button
-    this.querySelectorAll('.sl-button.visibility').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // --- Visibility Button ---
+    const visibilityBtn = itemElement.querySelector('.sl-button.visibility');
+    if (visibilityBtn) {
+      visibilityBtn.addEventListener('click', (e) => {
         e.preventDefault();
-
         const button = e.currentTarget;
-        const uuid = button.closest('.selection-list-item').dataset.uuid;
+        const uuid = itemElement.dataset.uuid;
         const dataObj = DataProvider.getFRData(uuid);
+        if (!dataObj) return; // Might have been removed
+
         const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
-        
-        // Toggle visibility state
         const shouldHide = !button.classList.contains('hidden');
-        dataObj.hidden = shouldHide;
-        
+        dataObj.hidden = shouldHide; // Update data model state
+
         if (shouldHide) {
-          curves.forEach(curve => {
-            curve.style.display = 'none';
-          });
+          curves.forEach(curve => { curve.style.display = 'none'; });
           button.setAttribute('title', 'Show Graph');
           button.innerHTML = IconProvider.Icon('eyeOff', 'width: 1.5rem; height: 1.5rem;');
         } else {
-          curves.forEach(curve => {
-            curve.style.display = '';
-          });
+          curves.forEach(curve => { curve.style.display = ''; });
           button.setAttribute('title', 'Hide Graph');
           button.innerHTML = IconProvider.Icon('eyeOn', 'width: 1.5rem; height: 1.5rem;');
         }
-
         button.classList.toggle('hidden', shouldHide);
-
         CoreEvent.dispatchEvent('fr-visibility-updated');
       });
-    });
+    }
 
-    // Delete Button
-    this.querySelectorAll('.sl-button.delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // --- Delete Button ---
+    const deleteBtn = itemElement.querySelector('.sl-button.delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        
-        const uuid = e.target.closest('.selection-list-item').dataset.uuid;
-        const type = e.target.closest('.selection-list-item').dataset.type;
+        const uuid = itemElement.dataset.uuid;
+        const type = itemElement.dataset.type;
         DataProvider.removeFRDataWithUUID(type, uuid);
       });
-    });
+    }
   }
 
   _updateLanguage() {
     // Update Channel Options
-    Array.from(DataProvider.frDataMap)
-      .sort(([, a], [, b]) => a.type === 'target' ? -1 : b.type === 'target' ? 1 : 0)
-      .map(([uuid, frData]) => {
-        const item = this.querySelector(`.selection-list-item[data-uuid="${uuid}"]`);
-        const select = item.querySelector('.sl-channels-select') || null;
-        if(select) {
-          select.innerHTML = this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel);
-        }
-      });
+    this.querySelectorAll('.selection-list-item').forEach(item => {
+      const uuid = item.dataset.uuid;
+      const frData = DataProvider.getFRData(uuid);
+      if (!frData) return;
+
+      const select = item.querySelector('.sl-channels-select');
+      if (select) {
+        select.innerHTML = this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel);
+      }
+    });
   }
 }
 

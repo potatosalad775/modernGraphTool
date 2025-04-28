@@ -16,7 +16,7 @@ class CoreUI extends HTMLElement {
         <section class="main-graph">
           <graph-container></graph-container>
           <div class="main-graph-list">
-            <selection-list></selection-list>
+            <!-- selection-list should be positioned here -->
           </div>
         </section>
         <drag-divider></drag-divider>
@@ -127,7 +127,7 @@ class CoreUI extends HTMLElement {
 
   // Disable iOS Text Field Zoom
   // This code adds 'maximum-scale=1.0' to the viewport meta tag if it's iOS
-  // It will the text field from zooming in and out on iOS
+  // It will prevent the text field from zooming in and out on iOS
   // ... while maintaining the ability to zoom in and out with pinch gesture.
   _disableIOSTextFieldZoom = () => {
     if (!this._isIOS()) { return }

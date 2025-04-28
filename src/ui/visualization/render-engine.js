@@ -20,7 +20,6 @@ class RenderEngine {
     };
     this.baselineUUID = null;
     this.transitionDuration = 300;
-    this.traceStyling = ConfigGetter.get('TRACE_STYLING');
   }
 
   init(coreEvent, dataProvider) {
@@ -337,7 +336,7 @@ class RenderEngine {
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
-        .attr("stroke-width", this.traceStyling.PHONE_TRACE_THICKNESS || 2)
+        .attr("stroke-width", ConfigGetter.get('TRACE_STYLING.PHONE_TRACE_THICKNESS') || 2)
         .attr("d", lineGenerator);
     });
   };
@@ -358,8 +357,8 @@ class RenderEngine {
       .attr("brand", obj.brand)
       .attr("identifier", obj.identifier)
       .attr("stroke", `${obj.colors['AVG']}`)
-      .attr("stroke-width", this.traceStyling.TARGET_TRACE_THICKNESS || 1)
-      .attr("stroke-dasharray", this.traceStyling.TARGET_TRACE_DASH?.find(o => (
+      .attr("stroke-width", ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_THICKNESS') || 1)
+      .attr("stroke-dasharray", ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
         o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
       )?.dash || "4 4")
       .attr("d", lineGenerator);
@@ -385,10 +384,10 @@ class RenderEngine {
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
         .attr("stroke-width", obj.type === 'inserted-target' 
-          ? (this.traceStyling.TARGET_TRACE_THICKNESS || 1) 
-          : (this.traceStyling.PHONE_TRACE_THICKNESS || 2))
+          ? (ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_THICKNESS') || 1) 
+          : (ConfigGetter.get('TRACE_STYLING.PHONE_TRACE_THICKNESS') || 2))
         .attr("stroke-dasharray", obj.type === 'inserted-target' 
-          ? this.traceStyling.TARGET_TRACE_DASH?.find(o => (
+          ? ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
               o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
             )?.dash || "4 4"
           : null)

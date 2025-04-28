@@ -276,4 +276,5 @@ export const phoneSelectorStyles = `
     display: block;
     height: 2.5rem;
   }
+}
 `;

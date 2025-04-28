@@ -41,8 +41,6 @@ class PhoneSelector extends HTMLElement {
     // Mobile UI Nav Button Event Listener
     this.querySelector('.ps-header-nav-brand').addEventListener('click', (e) => this._switchListPanel(e, 'brand'));
     this.querySelector('.ps-header-nav-phone').addEventListener('click', (e) => this._switchListPanel(e, 'phone'));
-
-    this._init();
   }
 
   connectedCallback() {
@@ -50,6 +48,13 @@ class PhoneSelector extends HTMLElement {
     window.addEventListener('core:fr-phone-removed', (e) => this._changePhoneItemBtnStatus(e, false));
     window.addEventListener('core:metadata-loaded', () => this._init());
     StringLoader.addObserver(this._updateLanguage.bind(this));
+
+    // I really hate this approach, but it's the only way to avoid flexbox bug in Android Chromium
+    if (/Android/.test(navigator.userAgent)) {
+      window.addEventListener('core:init-ready', () => { 
+        this.style.display = 'none'; setTimeout(() => { this.style.display = 'flex' }, "1000");
+      });
+    }
   }
 
   disconnectedCallback() {

@@ -305,7 +305,7 @@ class SelectionList extends HTMLElement {
         const isActive = button.classList.contains('active');
         
         // Toggle visibility state
-        RenderEngine.updateBaseline(uuid, true);
+        RenderEngine.updateBaselineData(!isActive, {uuid: uuid});
 
         if (!isActive) {
           button.setAttribute('title', 'Reset Baseline');

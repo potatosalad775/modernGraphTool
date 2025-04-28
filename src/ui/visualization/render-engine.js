@@ -19,6 +19,11 @@ class RenderEngine {
       TOP_RIGHT: { x: 740, y: 60, anchor: "end", growUp: false },
     };
     this.baselineUUID = null;
+    this.baselineData = {
+      uuid: null,
+      identifier: null,
+      channelData: null,
+    }
     this.transitionDuration = 300;
   }
 
@@ -184,28 +189,42 @@ class RenderEngine {
     }, 0); 
   };
 
-  updateBaseline(uuid = null, toggleBaseline = false) {
-    if(toggleBaseline) {
-      this.baselineUUID = this.baselineUUID === uuid ? null : uuid;
+  updateBaselineData(enable, { uuid = null, channelData = null }) {
+    // Update baseline data (on Toggle)
+    if(!enable) {
+      // Remove Baseline Data
+      this.baselineData = {
+        uuid: null,
+        identifier: null,
+        channelData: null,
+      }
+    } else {
+      if(uuid === null) { console.error("Baseline UUID is not defined"); return; }
+      const baselineMetaData = this.dataProvider.getFRData(uuid);
+      this.baselineData = {
+        uuid: uuid,
+        identifier: baselineMetaData.identifier,
+        channelData: channelData !== null
+          ? channelData
+          : baselineMetaData.type === 'phone' 
+            ? baselineMetaData.channels[
+                baselineMetaData.dispChannel.includes("L") && baselineMetaData.dispChannel.includes("R") 
+                ? "AVG" 
+                : baselineMetaData.dispChannel[0]
+              ]?.data
+            : baselineMetaData.channels['AVG'].data,
+      }
     }
-        
-    // Get current baseline data
-    const baselineMetaData = this.dataProvider.getFRData(this.baselineUUID) || {};
-    const baselineData = !this.baselineUUID 
-      ? null
-      : baselineMetaData.type === 'phone' 
-        ? baselineMetaData.channels[
-            baselineMetaData.dispChannel.includes("L") && baselineMetaData.dispChannel.includes("R") 
-            ? "AVG" 
-            : baselineMetaData.dispChannel[0]
-          ]?.data
-        : baselineMetaData.channels['AVG'].data;
+    // Update Baseline on Graph
+    this.updateBaseline(true);
+  };
 
+  updateBaseline(animate = false) {
     // Transition all curves
     const self = this;
     this.mainGroup.selectAll("*")
       .transition()
-      .duration(toggleBaseline ? this.transitionDuration : 0)
+      .duration(animate ? this.transitionDuration : 0)
       .attrTween("d", function(d) { 
         const path = d3.select(this); 
         const originalData = d;
@@ -217,12 +236,12 @@ class RenderEngine {
         const lineGenerator = d3.line()
           .x(d => self.xScale(d[0]))
           .y(d => {
-            if (!baselineData) return self.yScale(d[1]);
+            if (!self.baselineData.channelData) return self.yScale(d[1]);
             
             // Find closest frequency in baseline data
-            const i = bisect(baselineData, d[0], 0);
-            const a = baselineData[i - 1];
-            const b = baselineData[i];
+            const i = bisect(self.baselineData.channelData, d[0], 0);
+            const a = self.baselineData.channelData[i - 1];
+            const b = self.baselineData.channelData[i];
             
             let baselineY = 0;
             if (a && b) {
@@ -245,8 +264,8 @@ class RenderEngine {
         return t => d3.interpolateString(oldPath, newPath)(t);
       });
 
-      this.coreEvent.dispatchEvent('fr-baseline-updated', { baselineUUID: this.baselineUUID });
-  };
+      this.coreEvent.dispatchEvent('fr-baseline-updated', { baselineUUID: this.baselineData.uuid });
+  }
   
   orderOverlayLayers() {
     this.svg.selectAll('.fr-graph-x-axis, .fr-graph-y-axis').lower(); // Grid lines

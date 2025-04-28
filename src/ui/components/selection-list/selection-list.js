@@ -186,7 +186,7 @@ class SelectionList extends HTMLElement {
         const dataMap = DataProvider.getFRData(uuid);
 
         DataProvider.updateVariant(uuid, dataMap.meta.files[parseInt(index)].suffix);
-        variantMenu.removeAttribute('aria-busy');
+        variantMenu.setAttribute('aria-busy', 'false');
       });
 
       // Add Variant Button

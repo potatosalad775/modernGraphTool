@@ -104,7 +104,7 @@ class TargetSelector extends HTMLElement {
             console.error('Operation failed:', e);
           } finally {
             btnElement.disabled = false;
-            btnElement.removeAttribute('aria-busy');
+            btnElement.setAttribute('aria-busy', 'false');
           }
         });
       });

@@ -69,7 +69,7 @@ class EQAutoEQ extends HTMLElement {
     this.querySelector('.ae-generate-eq').addEventListener('click', async () => {
       this.setAttribute('aria-busy', 'true');
       await this._generateEQ();
-      this.removeAttribute('aria-busy');
+      this.setAttribute('aria-busy', 'false');
     });
   }
 

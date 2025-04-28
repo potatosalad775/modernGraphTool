@@ -192,7 +192,7 @@ class PhoneSelector extends HTMLElement {
           console.error('Failed to toggle phone data:', e);
         } finally {
           input.disabled = false;
-          phoneItem.removeAttribute('aria-busy');
+          phoneItem.setAttribute('aria-busy', 'false');
         }
 
         // Block removing Phone once it's selected

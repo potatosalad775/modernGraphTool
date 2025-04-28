@@ -102,6 +102,8 @@ class CoreUI extends HTMLElement {
   connectedCallback() {
     // Initialize Core System
     CoreAPI.CoreEvent.init(CoreAPI);
+    // Disable iOS Text Field Zoom
+    this._disableIOSTextFieldZoom();
     // Draggable Divider event listener
     this.addEventListener('drag-divider-moved', this._handleDividerMove);
   }
@@ -122,6 +124,29 @@ class CoreUI extends HTMLElement {
       minmax(340px, 1fr)
     `;
   };
+
+  // Disable iOS Text Field Zoom
+  // This code adds 'maximum-scale=1.0' to the viewport meta tag if it's iOS
+  // It will the text field from zooming in and out on iOS
+  // ... while maintaining the ability to zoom in and out with pinch gesture.
+  _disableIOSTextFieldZoom = () => {
+    if (!this._isIOS()) { return }
+    const element = document.querySelector('meta[name=viewport]')
+    if (element !== null) {
+      let content = element.getAttribute('content')
+      let scalePattern = /maximum\-scale=[0-9\.]+/g
+      if (scalePattern.test(content)) {
+        content = content.replace(scalePattern, 'maximum-scale=1.0')
+      } else {
+        content = [content, 'maximum-scale=1.0'].join(', ')
+      }
+      element.setAttribute('content', content)
+    }
+  }
+
+  _isIOS = () => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
 }
 
 customElements.define('core-ui', CoreUI);

@@ -34,9 +34,6 @@ class MenuCarousel extends HTMLElement {
 
   connectedCallback() {
     // Store bound methods
-    this._handleResize = () => {
-      this._updateCarousel();
-    };
     this._handleExtensionAdded = () => {
       this._updateCarousel();
       // Update Button Listeners
@@ -59,7 +56,7 @@ class MenuCarousel extends HTMLElement {
     this._handleDragEnd = this._stopDragging.bind(this);
 
     // Add event listeners
-    window.addEventListener("resize", this._handleResize);
+    window.addEventListener("core:ui-mode-change", this._handleUIModeChange.bind(this));
     window.addEventListener("core:extension-menu-added", this._handleExtensionAdded);
     
     // Initialize wheel event listeners
@@ -86,7 +83,7 @@ class MenuCarousel extends HTMLElement {
 
   disconnectedCallback() {
     // Remove all event listeners
-    window.removeEventListener("resize", this._handleResize);
+    window.removeEventListener("core:ui-mode-change", this._handleUIModeChange.bind(this));
     window.removeEventListener("core:extension-menu-added", this._handleExtensionAdded);
     this.removeEventListener('wheel', this._handleWheel);
 
@@ -303,6 +300,17 @@ class MenuCarousel extends HTMLElement {
       button.classList.toggle('nearby', distance === 1);
       button.classList.toggle('active', index === this.currentIndex);
     });
+  }
+
+  _handleUIModeChange(e) {
+    // Escape 'list' menu when switching to desktop mode
+    if(!e.detail.isMobile && MenuState.coreMenuList[this.currentIndex] === 'list') {
+      this._animateToIndex(MenuState.coreMenuList.indexOf('graph'), -1);
+    }
+    // Update carousel
+    this._updateCarousel();
+    this._removeButtonListeners();
+    this._setupButtonListeners();
   }
 }
 

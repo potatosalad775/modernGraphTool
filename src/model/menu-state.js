@@ -19,6 +19,10 @@ class MenuState {
     // Update Menu Bar Item to Initial Value
     document.querySelector(`.menu-bar-item[data-target="${this.currentMenu}-panel"]`)
     ?.classList.add('active');
+    // Update Current Menu
+    window.addEventListener('core:menu-change', (e) => {
+      this.currentMenu = e.detail.target.replace('-panel', '');
+    });
   };
 
   getMenuList() {

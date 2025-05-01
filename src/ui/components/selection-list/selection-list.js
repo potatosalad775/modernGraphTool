@@ -5,19 +5,43 @@ import StringLoader from "../../../model/util/string-loader.js";
 import { selectionListStyles } from "./selection-list.styles.js";
 import { IconProvider } from "../../../styles/icon-provider.js";
 
-class SelectionList extends HTMLElement {
+class SelectionList {
   constructor() {
-    super();
-    //this.attachShadow({ mode: 'open' });
-    this._boundUpdateList = this._updateList.bind(this);
+    // Bind methods
     this._boundHandleItemAdded = this._handleItemAdded.bind(this);
     this._boundHandleItemRemoved = this._handleItemRemoved.bind(this);
     this._boundHandleItemUpdated = this._handleItemUpdated.bind(this);
     this._boundUpdateLanguage = this._updateLanguage.bind(this);
+
+    this.isMobile = window.innerWidth < 1000;
+    this.listSection = null; // Will hold the main <section> element
+    this.styleElement = null; // Will hold the <style> element
+    this.parentElement = null; // Will hold the container it's attached to
+    this.init();
   }
 
-  connectedCallback() {
-    this._updateList(); // Initial Run
+  init() {
+    this.desktopContainer = document.querySelector('.main-graph-list');
+    const mobilePanel = document.querySelector('list-panel');
+    this.mobileContainer = mobilePanel?.contentContainer;
+
+    this.parentElement = this.isMobile ? this.mobileContainer : this.desktopContainer;
+
+    // Create and append style
+    this.styleElement = document.createElement('style');
+    this.styleElement.textContent = selectionListStyles;
+    this.parentElement.appendChild(this.styleElement); // Append style to the container
+
+    // Create and append the main list section
+    this.listSection = document.createElement('section');
+    this.listSection.className = 'selection-list';
+    this.parentElement.appendChild(this.listSection);
+
+    // Initial Population
+    this._updateList(); 
+    this._appendSelectionList();
+
+    // Add global event listeners
     window.addEventListener('core:fr-phone-added', this._boundHandleItemAdded);
     window.addEventListener('core:fr-target-added', this._boundHandleItemAdded);
     window.addEventListener('core:fr-unknown-inserted', this._boundHandleItemAdded); 
@@ -25,10 +49,12 @@ class SelectionList extends HTMLElement {
     window.addEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    window.addEventListener('core:ui-mode-change', this._appendSelectionList.bind(this));
     StringLoader.addObserver(this._boundUpdateLanguage);
   }
 
-  disconnectedCallback() {
+  destroy() {
+    // Remove global event listeners
     window.removeEventListener('core:fr-phone-added', this._boundHandleItemAdded);
     window.removeEventListener('core:fr-target-added', this._boundHandleItemAdded);
     window.removeEventListener('core:fr-unknown-inserted', this._boundHandleItemAdded);
@@ -36,17 +62,13 @@ class SelectionList extends HTMLElement {
     window.removeEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    window.removeEventListener('core:ui-mode-change', this._appendSelectionList.bind(this));
     StringLoader.removeObserver(this._boundUpdateLanguage);
   }
 
   // Initial list population and full refresh (if ever needed)
   _updateList() {
-    // Initial structure
-    this.innerHTML = `
-      <style>${selectionListStyles}</style>
-      <section class="selection-list"></section>
-    `;
-    this.listSection = this.querySelector('.selection-list');
+    if (!this.listSection) return; // Guard against calls before init
 
     this.listSection.innerHTML = ''; // Clear existing items
     const sortedData = Array.from(DataProvider.frDataMap)
@@ -61,7 +83,6 @@ class SelectionList extends HTMLElement {
 
   // Creates the DOM element for a single list item
   _createListItemElement(uuid, frData) {
-    console.log('Creating item:', uuid);
     const itemElement = document.createElement('div');
     itemElement.className = 'selection-list-item';
     itemElement.dataset.uuid = uuid;
@@ -123,12 +144,33 @@ class SelectionList extends HTMLElement {
     return itemElement;
   }
 
+  _appendSelectionList(e = null) {
+    if(this.isMobile === e?.detail?.isMobile) return;
+    if(e) this.isMobile = e.detail.isMobile;
+
+    if (this.isMobile) {
+      // Move to mobile container (inside list-panel)
+      if (this.mobileContainer) {
+        this.mobileContainer.appendChild(this.listSection);
+        this.desktopContainer.style.display = 'none'; // Hide the desktop container
+      } else {
+        console.warn('Mobile container (list-panel) not found for selection list.');
+        // Fallback or error handling: maybe append somewhere else or hide it
+        this.desktopContainer.style.display = 'none';
+      }
+    } else {
+      // Move to desktop container
+      this.desktopContainer.style.display = 'block'; // Ensure desktop container is visible
+      this.desktopContainer.appendChild(this.listSection);
+      // Optionally hide or clear the mobile container if needed
+    }
+  }
+
   // Handles adding a new item
   _handleItemAdded(event) {
     const { uuid } = event.detail;
     const frData = DataProvider.getFRData(uuid);
     if (!frData) return; // Should not happen
-    console.log(uuid);
 
     const newItemElement = this._createListItemElement(uuid, frData);
 
@@ -283,43 +325,43 @@ class SelectionList extends HTMLElement {
     // --- Y-Offset Input & Buttons ---
     const yOffsetContainer = itemElement.querySelector('.sl-y-offset');
     if (yOffsetContainer) {
-        const yOffsetInput = yOffsetContainer.querySelector('.sl-y-offset-input');
-        const yOffsetDec = yOffsetContainer.querySelector('.sl-y-offset-dec');
-        const yOffsetInc = yOffsetContainer.querySelector('.sl-y-offset-inc');
+      const yOffsetInput = yOffsetContainer.querySelector('.sl-y-offset-input');
+      const yOffsetDec = yOffsetContainer.querySelector('.sl-y-offset-dec');
+      const yOffsetInc = yOffsetContainer.querySelector('.sl-y-offset-inc');
 
-        yOffsetInput.addEventListener('input', (e) => {
-            const uuid = itemElement.dataset.uuid;
-            const offset = parseFloat(e.target.value) || 0;
-            const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
-            curves.forEach(curve => {
-                curve.setAttribute('transform', `translate(0,${0 - offset})`);
-            });
+      yOffsetInput.addEventListener('input', (e) => {
+        const uuid = itemElement.dataset.uuid;
+        const offset = parseFloat(e.target.value) || 0;
+        const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
+        curves.forEach(curve => {
+            curve.setAttribute('transform', `translate(0,${0 - offset})`);
         });
+      });
 
-        const setupLongPress = (button, action) => {
-            let pressTimer;
-            let isPressed = false;
-            const performAction = () => {
-                const input = yOffsetContainer.querySelector('.sl-y-offset-input');
-                const currentValue = parseInt(input.value) || 0;
-                input.value = action === 'inc' ? currentValue + 1 : currentValue - 1;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            };
-            button.addEventListener('mousedown', () => {
-                isPressed = true;
-                performAction();
-                pressTimer = setInterval(() => { if (isPressed) performAction(); }, 150);
-            });
-            const stopAction = () => {
-                isPressed = false;
-                clearInterval(pressTimer);
-            };
-            button.addEventListener('mouseup', stopAction);
-            button.addEventListener('mouseleave', stopAction);
+      const setupLongPress = (button, action) => {
+        let pressTimer;
+        let isPressed = false;
+        const performAction = () => {
+          const input = yOffsetContainer.querySelector('.sl-y-offset-input');
+          const currentValue = parseInt(input.value) || 0;
+          input.value = action === 'inc' ? currentValue + 1 : currentValue - 1;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
         };
+        button.addEventListener('mousedown', () => {
+          isPressed = true;
+          performAction();
+          pressTimer = setInterval(() => { if (isPressed) performAction(); }, 150);
+        });
+        const stopAction = () => {
+          isPressed = false;
+          clearInterval(pressTimer);
+        };
+        button.addEventListener('mouseup', stopAction);
+        button.addEventListener('mouseleave', stopAction);
+      };
 
-        setupLongPress(yOffsetDec, 'dec');
-        setupLongPress(yOffsetInc, 'inc');
+      setupLongPress(yOffsetDec, 'dec');
+      setupLongPress(yOffsetInc, 'inc');
     }
 
 
@@ -335,7 +377,7 @@ class SelectionList extends HTMLElement {
         RenderEngine.updateBaselineData(!isActive, { uuid: uuid });
 
         // Update *all* baseline buttons in the list
-        this.querySelectorAll('.sl-button.baseline').forEach(btn => {
+        this.listSection.querySelectorAll('.sl-button.baseline').forEach(btn => {
           if (btn === button) { // Current button
             if (!isActive) {
               btn.setAttribute('title', 'Reset Baseline');
@@ -406,7 +448,7 @@ class SelectionList extends HTMLElement {
 
   _updateLanguage() {
     // Update Channel Options
-    this.querySelectorAll('.selection-list-item').forEach(item => {
+    this.listSection.querySelectorAll('.selection-list-item').forEach(item => {
       const uuid = item.dataset.uuid;
       const frData = DataProvider.getFRData(uuid);
       if (!frData) return;
@@ -417,6 +459,14 @@ class SelectionList extends HTMLElement {
       }
     });
   }
+
+  // Return the main list element for moving
+  static getElement() {
+    if(!SelectionList.element) {
+      SelectionList.element = new SelectionList();
+    }
+    return SelectionList.element;
+  };
 }
 
-customElements.define('selection-list', SelectionList);
+export default SelectionList.getElement();

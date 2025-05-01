@@ -14,6 +14,12 @@ export const selectionListStyles = `
   .selection-list-item {
     display: flex;
     flex-direction: column;
+    border-radius: 0.4rem;
+    color: var(--gt-color-on-surface);
+    background: var(--gt-color-surface);
+  }
+  .selection-list-item:has(.sl-variant-btn.active) {
+    background: none;
   }
 
   .sl-item-content {
@@ -21,12 +27,11 @@ export const selectionListStyles = `
     flex-direction: row;
     align-items: center;
     padding: 0.8rem 0.7rem 0.8rem 0.9rem;
-    border-radius: 0.4rem;
-    color: var(--gt-color-on-surface);
-    background: var(--gt-color-surface);
   }
   .sl-item-content:has(.sl-variant-btn.active) {
-    outline: 1px solid var(--gt-color-primary);
+    background: var(--gt-color-surface);
+    border: 1px solid var(--gt-color-outline);
+    border-radius: 0.4rem;
   }
 
   .sl-item-heading {
@@ -61,7 +66,7 @@ export const selectionListStyles = `
     flex-wrap: wrap;
     flex-direction: row;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.7rem;
   }
 
   .sl-color-btn {
@@ -103,7 +108,7 @@ export const selectionListStyles = `
     flex-direction: row;
     align-items: center;
     gap: 0.2rem;
-    padding-right: 0.25rem;
+    padding-left: 0.2rem;
 
     svg {
       width: 1rem;
@@ -177,9 +182,9 @@ export const selectionListStyles = `
   .sl-variant-menu {
     display: flex;
     flex-direction: column;
-    margin: 0 0.5rem;
     border-radius: 0 0 0.5rem 0.5rem;
-    border: none; 
+    padding: 0 0.5rem;
+    background: var(--gt-color-surface-container-highest);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     max-height: 0;
@@ -188,11 +193,7 @@ export const selectionListStyles = `
   }
 
   .sl-variant-menu.active {
-    border: 1px solid var(--gt-color-outline); 
-    border-top: none;
-    margin-top: 1px;
-    margin-bottom: 0.5rem;
-    background: var(--gt-color-surface-container);
+    padding-bottom: 0.5rem;
     max-height: 1000px;
     visibility: visible;
     opacity: 1;
@@ -206,10 +207,12 @@ export const selectionListStyles = `
     cursor: pointer;
     justify-content: space-between;
     padding: 0.5rem 0.8rem;
-    border-bottom: 1px solid var(--gt-color-outline);
+    background: var(--gt-color-surface-container);
+    border: 1px solid var(--gt-color-outline); 
+    border-top: none;
   }
   .sl-variant-item:last-child {
-    border-bottom: none;
+    border-radius: 0 0 0.5rem 0.5rem;
   }
   .sl-variant-item-name {
     font-weight: 500;
@@ -217,6 +220,7 @@ export const selectionListStyles = `
 
   @media (hover: hover) and (pointer: fine) {
     .sl-y-offset-dec:hover, .sl-y-offset-inc:hover {
+      background: var(--gt-color-primary);
       filter: var(--gt-hover-filter);
     }
     .sl-button:hover {

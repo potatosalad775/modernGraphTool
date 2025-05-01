@@ -47,6 +47,7 @@ modernGraphTool is designed to be extensible. You can safely add / remove / modi
 This project is providing several extensions by default:
 - ['Equalizer Extension with AutoEQ'](./extensions/equalizer/)
 - ['Frequency Tutorial Extension'](./extensions/frequency-tutorial/)
+- ['Target Customizer Extension'](./extensions/target-customizer/)
 - ['Squig.link Integration Extension'](./extensions/squiglink-integration/)
 
 Documentation for developers will be available later.
@@ -112,8 +113,8 @@ npm run build
 
 - ~~UI optimization for mobile devices~~
 - ~~squig.link integration plugin (extension)~~
+- ~~Tilted target (extension)~~
 - Over-engineered color wheel (extension)
-- Tilted target (extension)
 
 ## License
 

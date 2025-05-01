@@ -227,44 +227,45 @@ class RenderEngine {
       .duration(animate ? this.transitionDuration : 0)
       .attrTween("d", function(d) { 
         const path = d3.select(this); 
-        const originalData = d;
-
-        // Create bisector for frequency lookup
-        const bisect = d3.bisector(d => d[0]).left;
-
-        // Create new path generator
-        const lineGenerator = d3.line()
-          .x(d => self.xScale(d[0]))
-          .y(d => {
-            if (!self.baselineData.channelData) return self.yScale(d[1]);
-            
-            // Find closest frequency in baseline data
-            const i = bisect(self.baselineData.channelData, d[0], 0);
-            const a = self.baselineData.channelData[i - 1];
-            const b = self.baselineData.channelData[i];
-            
-            let baselineY = 0;
-            if (a && b) {
-              // interpolate between nearest points
-              const t = (d[0] - a[0]) / (b[0] - a[0]);
-              baselineY = a[1] + t * (b[1] - a[1]);
-            } else if (a) {
-              baselineY = a[1];
-            } else if (b) {
-              baselineY = b[1];
-            }
-
-            return self.yScale(d[1] - baselineY);
-          })
-          .curve(d3.curveNatural);
-
         const oldPath = path.attr("d");
-        const newPath = lineGenerator(originalData);
-
+        const newPath = self._getCompensatedPath(d);
         return t => d3.interpolateString(oldPath, newPath)(t);
       });
 
       this.coreEvent.dispatchEvent('fr-baseline-updated', { baselineUUID: this.baselineData.uuid });
+  }
+
+  _getCompensatedPath(originalData) {
+    // Create bisector for frequency lookup
+    const bisect = d3.bisector(d => d[0]).left;
+
+    // Create new path generator
+    const lineGenerator = d3.line()
+      .x(d => this.xScale(d[0]))
+      .y(d => {
+        if (!this.baselineData.channelData) return this.yScale(d[1]);
+        
+        // Find closest frequency in baseline data
+        const i = bisect(this.baselineData.channelData, d[0], 0);
+        const a = this.baselineData.channelData[i - 1];
+        const b = this.baselineData.channelData[i];
+        
+        let baselineY = 0;
+        if (a && b) {
+          // interpolate between nearest points
+          const t = (d[0] - a[0]) / (b[0] - a[0]);
+          baselineY = a[1] + t * (b[1] - a[1]);
+        } else if (a) {
+          baselineY = a[1];
+        } else if (b) {
+          baselineY = b[1];
+        }
+
+        return this.yScale(d[1] - baselineY);
+      })
+      .curve(d3.curveNatural);
+
+    return lineGenerator(originalData);
   }
 
   getBaselineData() {
@@ -360,7 +361,7 @@ class RenderEngine {
         .attr("identifier", obj.identifier)
         .attr("stroke", `${obj.colors[channel]}`)
         .attr("stroke-width", ConfigGetter.get('TRACE_STYLING.PHONE_TRACE_THICKNESS') || 2)
-        .attr("d", lineGenerator);
+        .attr("d", d => this._getCompensatedPath(d));
     });
   };
 
@@ -384,7 +385,7 @@ class RenderEngine {
       .attr("stroke-dasharray", ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
         o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
       )?.dash || "4 4")
-      .attr("d", lineGenerator);
+      .attr("d", d => this._getCompensatedPath(d));
   };
 
   _drawUnknownCurve(obj) {
@@ -414,7 +415,7 @@ class RenderEngine {
               o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
             )?.dash || "4 4"
           : null)
-        .attr("d", lineGenerator);
+        .attr("d", d => this._getCompensatedPath(d));
     });
   };
 

@@ -51,6 +51,12 @@ export const EXTENSION_CONFIG = [
     }
   },
   {
+    NAME: "graph-color-wheel",
+    DESCRIPTION: `Graph customizer for modernGraphTool with color wheel and dash customizer`,
+    ENABLED: true,
+    I18N_ENABLED: true,
+  },
+  {
     NAME: "squiglink-integration",
     DESCRIPTION: `squig.link integration for modernGraphTool`,
     ENABLED: false,

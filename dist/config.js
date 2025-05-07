@@ -110,13 +110,13 @@ const CONFIG = {
     // You MUST add 'http(s)://' to the URL Website PATH.
     LINK_LIST: {
       default: [
-        { TITLE: "Google", URL: "https://www.google.com" }, 
         { TITLE: "Github", URL: "https://www.github.com" },
+        { TITLE: "Docs", URL: "https://potatosalad775.github.io/modernGraphTool/docs" }, 
       ],
       i18n: {
         ko: [
-          { TITLE: "구글", URL: "https://www.google.com" },
           { TITLE: "깃허브", URL: "https://www.github.com" },
+          { TITLE: "가이드", URL: "https://potatosalad775.github.io/modernGraphTool/docs" }, 
         ]
       }
     },

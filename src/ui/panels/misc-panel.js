@@ -40,6 +40,16 @@ class MiscPanel extends HTMLElement {
           >
             ${IconProvider.Icon('github', "width: 1.5rem; height: 1.5rem")}
           </button>
+          <button name="github-button" title="Go to Documentation page"
+            onclick="window.open('https://potatosalad775.github.io/modernGraphTool/docs', '_blank')"
+          >
+            ${IconProvider.Icon('book', "width: 1.5rem; height: 1.5rem")}
+          </button>
+          <button name="github-button" title="Go to Donation page"
+            onclick="window.open('https://ko-fi.com/potatosalad775', '_blank')"
+          >
+            ${IconProvider.Icon('donation', "width: 1.5rem; height: 1.5rem")}
+          </button>
         </div>
       </div>
     </div>
@@ -71,9 +81,10 @@ class MiscPanel extends HTMLElement {
       }
       .misc-info-button-row {
         display: flex;
+        gap: 0.25rem;
         button {
-          padding: 0;
-          border-radius: 2rem;
+          padding: 0.25rem;
+          border-radius: 0.5rem;
         }
       }
     </style>

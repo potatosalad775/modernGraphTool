@@ -1,0 +1,15 @@
+{
+  "tc-label": {
+    "tilt": "Tilt (dB/oct)",
+    "bass": "Bass (dB)",
+    "treble": "Treble (dB)",
+    "eargain": "Ear Gain (dB)"
+  },
+  "tc-profile": {
+    "placeholder": "Select filter profile"
+  },
+  "tc-button": {
+    "reset": "Reset",
+    "view": "Pref. Adjustment"
+  }
+}

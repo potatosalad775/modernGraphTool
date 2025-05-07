@@ -1,0 +1,15 @@
+{
+  "tc-label": {
+    "tilt": "틸트 (dB/oct)",
+    "bass": "저음 (dB)",
+    "treble": "고음 (dB)",
+    "eargain": "이어 게인 (dB)"
+  },
+  "tc-profile": {
+    "placeholder": "필터 프로파일 선택"
+  },
+  "tc-button": {
+    "reset": "초기화",
+    "view": "선호도 조정"
+  }
+}

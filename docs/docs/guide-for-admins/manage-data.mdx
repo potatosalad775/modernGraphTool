@@ -1,0 +1,187 @@
+---
+sidebar_position: 4
+---
+
+# Managing Data
+
+This guide explains how to manage the measurement data (Phone) and target curves (Target) displayed in modernGraphTool.
+
+The data list is managed by the `data/phone_book.json` file. If the paths are not modified separately, measurement data files are stored in `data/phones`, and target curve data files are stored in the `data/target` folder.
+
+:::tip[Tip]
+modernGraphTool is designed to use the same data structure as CrinGraph. Therefore, users familiar with CrinGraph can skip this section.
+:::
+
+## Data Folder Structure
+
+The `dist/data` folder has the following structure:
+
+```
+data/
+├── phones/         # Storage location for measurement data files (.txt)
+│   ├── PhoneA L.txt
+│   ├── PhoneA R.txt
+│   └── PhoneB.txt
+├── target/         # Storage location for target curve data files (.txt)
+│   ├── X Target.txt
+│   └── Y Target.txt
+└── phone_book.json # Definition file for measurement device list and related data
+```
+
+- **`phones` folder**: Stores the frequency response measurement data files (.txt) for each Phone. File names can be freely assigned, but the correct file name must be entered when creating `phone_book.json`. If left/right channel data are in separate files, distinguish them by adding a space and `L` or `R` at the end of the file name.
+- **`target` folder**: Stores target curve data files (.txt). The correct file names must be entered when modifying the `INITIAL_TARGETS` and `TARGET_MANIFEST` settings in `config.js`.
+- **`phone_book.json`**: A file that defines the product names to be displayed in the measurement device list and various additional information (review links, prices, etc.) in JSON format.
+
+## JSON Syntax Basics
+
+JSON (JavaScript Object Notation) is a text format for structuring data. You can easily understand and modify it by knowing a few basic rules.
+
+- Data consists of **name** (Key) and **value** (Value) pairs. The name is always a string (enclosed in quotes).
+- Values can be **strings** (quotes), **numbers** (no quotes), **booleans** (true/false, no quotes), **arrays** (enclosed in `[` and `]` and separated by commas), or other **objects** (enclosed in `{` and `}`).
+- Each key-value pair within an object is separated by a comma (`,`). No comma is added after the last pair.
+- Each element within an array is also separated by a comma (`,`). No comma is added after the last element.
+
+## `phone_book.json` Structure
+
+The `phone_book.json` file starts and ends with one large array (`[]`). The array contains multiple **brand** objects (`{}`).
+
+Each brand object has a `brand` key (e.g., "Sennheiser", "Sony") and a `phones` key. 
+
+The value of the `phones` key is an array containing phone definitions for each model of that brand. Phone definitions can be simple strings or more detailed objects.
+
+```json
+[
+  {
+    "brand": "Brand A",
+    "suffix": "(Audio)", // Optional: Suffix for the brand name
+    "phones": [
+      "ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
+      {
+        "name": "Model Y",
+        "file": "BrandA ModelY", // File name (without L/R and .txt)
+        "suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
+        "reviewLink": "https://example.com/review/modely", // Optional: Review link
+        "price": "$199", // Optional: Price (string)
+        "notes": "Some notes about Model Y" // Optional: Additional notes
+      },
+      // ... more models for Brand A
+    ]
+  },
+  {
+    "brand": "Brand B",
+    "phones": [
+      // ... models for Brand B
+    ]
+  }
+  // ... more brands
+]
+```
+
+### Brand Object Keys
+- `brand` (String, Required): The name of the brand.- 
+- `suffix` (String, Optional): An optional suffix that will be appended to the brand name in the UI.
+- `phones` (Array, Required): An array of phone definitions. Each element can be a string (for simple cases) or a phone object (for detailed configuration or variations).
+
+### Phone Definition Types
+The phones array can contain:
+
+#### Simple String Definition
+If a phone entry is a simple string (e.g., "ModelX"), it's assumed that the display name is "ModelX" and the data files are ModelX L.txt and ModelX R.txt.
+```json
+{
+  "brand": "BrandSimple",
+  "phones": [
+    "ModelS1",  // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
+    "ModelS2"   // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
+  ]
+}
+```
+
+#### Detailed Phone Object Definition
+For more control, a phone can be defined as an object with the following keys:
+
+- `name` (String, Required): The model name of the phone to be displayed in the list.
+- `file` (String, Required): The base file name of the measurement data file (without L / R suffix and .txt extension). For example, if the files are MyPhone L.txt and MyPhone R.txt , file should be "MyPhone".
+- `suffix` (String, Optional): An optional suffix to append to the name in the selection list (e.g., "Rev.2", "(Foam Tip)"). The actual data file should reflect this suffix if it's part of the filename (e.g., MyPhone (Foam Tip) L.txt ).
+- `reviewScore` (String, Optional): A review score, e.g., "A+" or "3" (number between 0 to 5).
+- `reviewLink` (String, Optional): A URL link to a review of the phone.
+- `shopLink` (String, Optional): A URL to a shop or purchase page.
+- `price` (String, Optional): The price of the phone (e.g., "$299", "€250"). Using a string allows for currency symbols and various formats.
+
+```json
+{
+  "brand": "BrandDetailed",
+  "phones": [
+    {
+      "name": "Model D1",
+      "file": "ModelD1_Data",
+      "suffix": "Rev.2",
+      "reviewScore": "A+",
+      "reviewLink": "https://example.com/review/d1",
+      "shopLink": "https://example.com/shop/d1",
+      "price": "$299"
+    }
+  ]
+}
+```
+
+#### Variations (Grouping Multiple Data Files under One Phone Name)
+You can group multiple measurement versions (e.g., different eartips, EQ settings) under a single conceptual phone model.
+
+```json
+{
+  "brand": "BrandVariations",
+  "phones": [
+    {
+      "name": "Model V1", // Base name for variations
+      "file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
+      "suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
+      "price": "$150" // Applies to all V1 variations
+    }
+  ]
+}
+```
+
+- Using name , file , and suffix arrays :
+  - `name` (Array of Strings, Required): An array containing a single string, which will be the base name for all variations.
+  - `file` (Array of Strings, Required): An array of base file names for each variation.
+  - `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand_name + name + suffix[i] .
+  - This will create entries like "BrandVariations Model V1 (Foam Tip)", "BrandVariations Model V1 (Silicone Tip)", etc.
+  - The lengths of file and suffix arrays must be the same. Other optional keys like reviewLink , price , etc., can be added and will apply to all variations.
+
+```json
+{
+  "brand": "BrandPrefix",
+  "phones": [
+    {
+      "name": "Model P1", // Base display name
+      "file": [
+        "BrandP ModelP1 (Foam Tip)", 
+        "BrandP ModelP1 (Silicone Tip)"
+      ], // Actual files would be: BrandP_ModelP1 (Foam Tip) L.txt, BrandP_ModelP1 (Silicone Tip) L.txt, etc.
+      "prefix": "BrandP ModelP1", // Common file prefix
+      "notes": "Uses different eartips"
+    }
+  ]
+}
+```
+
+- Using prefix for common file prefixes :
+If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
+  - `name` (Array of Strings, Required): An array containing a single string, the base display name.
+  - `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
+  - `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file[i] .
+  - The display name will be brand_name + name + file[i]. (e.g, "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
+  - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
+
+## How to Add/Modify Measurement Data
+
+1.  Copy the new Phone measurement data file(s) (.txt) to the `data/phones` folder.
+2.  Open the `data/phone_book.json` file with a text editor.
+3.  Add new Phone information or modify existing information according to the JSON syntax and structure described above.
+4.  Save the `phone_book.json` file.
+5.  Refresh the web page in your browser to see if the changes have been applied correctly.
+
+:::warning[Caution]
+When editing the `phone_book.json` file, ensure you strictly follow JSON syntax rules (quotes, commas, brackets, etc.). Errors in the JSON structure can prevent the page from loading correctly or displaying data. Using a text editor with JSON validation (like VS Code, which highlights errors) is highly recommended.
+:::

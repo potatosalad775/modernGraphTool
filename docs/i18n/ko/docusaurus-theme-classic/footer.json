@@ -1,0 +1,26 @@
+{
+  "link.title.Docs": {
+    "message": "가이드",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.title.More": {
+    "message": "더 보기",
+    "description": "The title of the footer links column with title=More in the footer"
+  },
+  "link.item.label.Introduction": {
+    "message": "소개",
+    "description": "The label of footer link with label=Introduction linking to /docs/intro"
+  },
+  "link.item.label.Demonstration Page": {
+    "message": "직접 사용해보기",
+    "description": "The label of footer link with label=Demonstration Page linking to https://potatosalad775.github.io/modernGraphTool"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/potatosalad775/modernGraphTool"
+  },
+  "copyright": {
+    "message": "Copyright © 2025 modernGraphTool Docs. Built with Docusaurus.",
+    "description": "The footer copyright"
+  }
+}

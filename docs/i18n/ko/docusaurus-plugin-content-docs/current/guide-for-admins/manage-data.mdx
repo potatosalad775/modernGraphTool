@@ -1,0 +1,187 @@
+---
+sidebar_position: 4
+---
+
+# 데이터 관리하기
+
+modernGraphTool에 표시될 측정 데이터(Phone)와 타겟 커브(Target)를 관리하는 방법을 안내합니다. 
+
+데이터 목록은 `data/phone_book.json` 파일로 관리하며, 별도로 경로를 수정하지 않은 경우 측정 데이터 파일은 `data/phones`에, 그리고 타겟 커브 데이터 파일은 `data/target` 폴더에 저장됩니다.
+
+:::tip[팁]
+modernGraphTool은 CrinGraph와 동일한 데이터 구조를 사용하도록 설계되었습니다. 따라서 기존 CrinGraph를 사용하는데 익숙하신 사용자라면 해당 내용을 건너뛰어도 무방합니다.
+:::
+
+## 데이터 폴더 구조
+
+`dist/data` 폴더는 다음과 같은 구조를 가집니다.
+
+```
+data/
+├── phones/         # 측정 데이터 파일 (.txt) 저장 위치
+│   ├── PhoneA L.txt
+│   ├── PhoneA R.txt
+│   └── PhoneB.txt
+├── target/         # 타겟 커브 데이터 파일 (.txt) 저장 위치
+│   ├── X Target.txt
+│   └── Y Target.txt
+└── phone_book.json # 측정 기기 목록 및 관련 데이터 정의 파일
+```
+
+*   **`phones` 폴더**: 각 Phone의 주파수 응답 측정 데이터 파일(.txt)을 저장합니다. 파일 이름은 자유롭게 지정할 수 있으나, `phone_book.json`을 작성할 때 정확한 파일 이름을 기재해야 합니다. 좌/우 채널 데이터가 별도 파일로 있는 경우, 파일 이름 끝에 빈 칸을 하나 두고 `L`, `R` 을 붙여 구분합니다.
+*   **`target` 폴더**: 타겟 커브 데이터 파일(.txt)을 저장합니다. `config.js`의 `INITIAL_TARGETS` 및 `TARGET_MANIFEST` 설정 항목을 수정할 때 정확한 파일 이름을 기재해야 합니다.
+*   **`phone_book.json`**: 측정 기기 목록에 표시될 제품 이름과 여러 추가 정보(리뷰 링크, 가격 등)을 JSON 형식으로 정의하는 파일입니다.
+
+## JSON 문법 기초
+
+JSON(JavaScript Object Notation)은 데이터를 구조적으로 표현하는 텍스트 형식입니다. 몇 가지 기본 규칙만 알면 쉽게 이해하고 수정할 수 있습니다.
+
+*   데이터는 **이름**(Key)과 **값**(Value)의 쌍으로 이루어집니다. 이름은 항상 문자열(따옴표로 감쌈)입니다.
+*   값은 **문자열**(따옴표), **숫자**(따옴표 없음), **불리언**(true/false, 따옴표 없음), **배열**( `[`와 `]`로 감싸고 쉼표로 구분), 또는 다른 **객체**( `{`와 `}`로 감쌈)가 될 수 있습니다.
+*   객체 내의 각 키-값 쌍은 쉼표(`,`)로 구분합니다. 마지막 쌍 뒤에는 쉼표를 붙이지 않습니다.
+*   배열 내의 각 요소도 쉼표(`,`)로 구분합니다. 마지막 요소 뒤에는 쉼표를 붙이지 않습니다.
+   
+## `phone_book.json` 구조
+
+`phone_book.json` 파일은 전체적으로 하나의 큰 배열(`[]`)로 시작하고 끝납니다. 배열 안에는 여러 개의 **브랜드** 객체(`{}`)가 포함됩니다.
+
+각 브랜드 객체는 `brand` 키 (예 - "Sennheiser", "Sony") 와 `phones` 키로 이루어집니다.
+
+`phones` 키 안에는 각 브랜드에 해당하는 모델(Phone)의 정보들이 포함될 수 있습니다. 모델(Phone) 정보는 문자열 또는 객체로 정의할 수 있습니다.
+
+```json
+[
+  {
+    "brand": "Brand A",
+    "suffix": "(Audio)", // Optional: Suffix for the brand name
+    "phones": [
+      "ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
+      {
+        "name": "Model Y",
+        "file": "BrandA ModelY", // File name (without L/R and .txt)
+        "suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
+        "reviewLink": "https://example.com/review/modely", // Optional: Review link
+        "price": "$199", // Optional: Price (string)
+        "notes": "Some notes about Model Y" // Optional: Additional notes
+      },
+      // ... more models for Brand A
+    ]
+  },
+  {
+    "brand": "Brand B",
+    "phones": [
+      // ... models for Brand B
+    ]
+  }
+  // ... more brands
+]
+```
+
+### Brand 객체 키
+- **`brand` (문자열, 필수)**: 브랜드 이름을 나타냅니다.
+- **`suffix` (문자열, 선택 사항)**: 브랜드 이름 뒤에 붙는 접미사로, UI 상에 표시됩니다.
+- **`phones` (배열, 필수)**: 각 브랜드의 모든 Phone 정보를 포함하는 배열입니다. 각 모델은 간단하게 문자열 또는 상세한 객체로 정의할 수 있습니다.
+
+### Phone 정의 타입
+phones 배열에는 다음과 같은 데이터가 포함될 수 있습니다:
+
+#### 단순 문자열 정의
+단순 문자열(예 - "ModelX")이 입력된 경우, 화면 상으로 표시될 이름은 "ModelX"이고, 데이터 파일의 이름은 ModelX L.txt, ModelX R.txt라고 가정합니다.
+```json
+{
+  "brand": "BrandSimple",
+  "phones": [
+    "ModelS1",  // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
+    "ModelS2"   // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
+  ]
+}
+```
+
+#### 상세 객체 정의
+더욱 자세한 설정을 원하는 경우, Phone은 다음과 같은 키를 가진 객체로 정의할 수 있습니다:
+
+- `name` (문자열, 필수): 화면에 표시될 Phone 모델 이름입니다.
+- `file` (문자열, 필수): 측정 데이터가 담긴 실제 파일의 이름입니다. (L/R 접미사와 .txt 확장자는 제외합니다.) 예로, 파일의 이름이 MyPhone L.txt, MyPhone R.txt인 경우, file은 "MyPhone"으로 설정해야 합니다.
+- `suffix` (문자열, 선택 사항): 선택 리스트에 표시될 이름 뒤에 붙는 접미사입니다. 실제 데이터 파일 이름에도 해당 접미사가 포함되어야 합니다. (예: MyPhone (Foam Tip) L.txt ).
+- `reviewScore` (문자열, 선택 사항): 리뷰 점수입니다. "A+" 또는 0 ~ 5 사이의 숫자, "3" 등으로 표시할 수 있습니다.
+- `reviewLink` (문자열, 선택 사항): Phone 리뷰의 URL 링크입니다.
+- `shopLink` (문자열, 선택 사항): Shop 또는 구매 페이지의 URL입니다.
+- `price` (문자열, 선택 사항): Phone의 가격입니다. (예: "$299", "€250"). 문자열을 사용하여 다양한 형식의 통화 기호를 허용합니다.
+
+```json
+{
+  "brand": "BrandDetailed",
+  "phones": [
+    {
+      "name": "Model D1",
+      "file": "ModelD1_Data",
+      "suffix": "Rev.2",
+      "reviewScore": "A+",
+      "reviewLink": "https://example.com/review/d1",
+      "shopLink": "https://example.com/shop/d1",
+      "price": "$299"
+    }
+  ]
+}
+```
+
+#### Variations (다양한 데이터 파일을 하나의 이름으로 묶기)
+(EQ 설정 또는 이어팁에 따른) 다양한 버전의 측정치가 존재하는 경우, 이를 하나의 이름으로 묶어서 UI 상에 표시할 수 있습니다.
+
+```json
+{
+  "brand": "BrandVariations",
+  "phones": [
+    {
+      "name": "Model V1", // Base name for variations
+      "file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
+      "suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
+      "price": "$150" // Applies to all V1 variations
+    }
+  ]
+}
+```
+
+- name , file , suffix 배열을 사용하는 경우 :
+  - `name` (문자열 배열, 필수): 여러 개의 단일 문자열로 이루어진 배열로, 모든 Variation들에 대한 기본 이름이 됩니다.
+  - `file` (문자열 배열, 필수): 각 Variation에 대한 기본 파일 이름이 들어있는 배열입니다.
+  - `suffix` (문자열 배열, 필수): 각 파일에 대응하는 접미사가 들어있는 배열입니다. UI 상에서 표시되는 이름은 brand_name + name + suffix[i] 형태로 표시됩니다.
+  - 이렇게 생성된 항목은 "BrandVariations Model V1 (Foam Tip)", "BrandVariations Model V1 (Silicone Tip)", 등과 같이 표시됩니다.
+  - file과 suffix 배열의 길이는 가급적 같아야 합니다. 다른 선택 사항 키들 (예: reviewLink, price 등)도 추가할 수 있으며, 모든 Variation에 동일하게 적용됩니다.
+
+```json
+{
+  "brand": "BrandPrefix",
+  "phones": [
+    {
+      "name": "Model P1", // Base display name
+      "file": [
+        "BrandP ModelP1 (Foam Tip)", 
+        "BrandP ModelP1 (Silicone Tip)"
+      ], // Actual files would be: BrandP_ModelP1 (Foam Tip) L.txt, BrandP_ModelP1 (Silicone Tip) L.txt, etc.
+      "prefix": "BrandP ModelP1", // Common file prefix
+      "notes": "Uses different eartips"
+    }
+  ]
+}
+```
+
+- prefix를 사용하여 공통 파일 접두사 사용하기 :
+만약 Variation을 구성하는 파일들이 동일한 접두사를 가지면서도, 분명하게 구분되는 부분이 있다면, prefix를 사용할 수 있습니다.
+  - `name` (문자열 배열, 필수): 여러 개의 단일 문자열로 이루어진 배열로, 모든 Variation들에 대한 기본 이름이 됩니다.
+  - `file` (문자열 배열, 필수): 각 Variation에 대한 기본 파일 이름이 들어있는 배열입니다.
+  - `prefix` (문자열, 필수): 모든 파일에 공통으로 사용되는 접두사입니다.
+  - UI 상에서 표시되는 이름은 brand_name + name + suffix[i] 형태로 표시됩니다. (예 -  "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
+  - 여러 이어팁 / 이어패드를 조합하거나, 다양한 착용 위치 별로 측정한 데이터를 표시할 때 기기 별로 이들을 한데 묶을 수 있어 편리합니다.
+
+## 측정 데이터 추가/수정 절차:
+
+1. 새로운 Phone 측정 데이터 파일(.txt)을 data/phones 폴더에 복사합니다.
+2. 텍스트 에디터로 `phone_book.json` 파일을 엽니다.
+3. 새로운 Phone 정보를 JSON 문법에 맞게 추가하거나 기존 정보를 수정합니다.
+4. `phone_book.json` 파일을 저장합니다.
+5. 웹 페이지를 새로고침하여 변경 사항이 올바르게 적용되었는지 확인합니다.
+
+:::warning[주의]
+주의: `phone_book.json` 파일 수정 시 JSON 문법(따옴표, 쉼표 등)을 정확히 지켜야 합니다. 오류가 있으면 페이지가 정상적으로 로드되지 않을 수 있습니다. VS Code에서 빨간색 / 주황색으로 표시해주는 오류 경고 기능 등을 활용하여 문법 오류를 미리 확인하는 것이 좋습니다.
+:::

@@ -1,0 +1,8 @@
+{
+  "label": "Guide for Users",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn how to use modernGraphTool in 5 minutes."
+  }
+}

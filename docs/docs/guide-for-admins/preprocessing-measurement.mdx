@@ -1,0 +1,71 @@
+---
+sidebar_position: 3
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Preprocessing Measurement Data
+
+To visualize frequency response data using modernGraphTool, it's necessary to preprocess the data appropriately.
+
+This chapter explains how to preprocess measurement data so that modernGraphTool can understand it correctly.
+
+:::tip[Tip]
+modernGraphTool is designed to use the same data structure as CrinGraph. Therefore, users familiar with CrinGraph can skip this section.
+:::
+
+## Data Format
+
+modernGraphTool supports measurement data saved in txt file format.
+
+```
+Freq (Hz)   SPL (dB)
+--------------------
+20          100
+40          101
+...
+```
+
+The txt file contains multiple rows, and each row includes two values. The first value is the frequency, and the second value is the SPL (Sound Pressure Level) corresponding to that frequency.
+
+Depending on the export settings, a third value might exist in each row, which is the Phase value, indicating the direction of change for the SPL value at each frequency. This data is not used by modernGraphTool, regardless of its presence.
+
+Most measurement software provides a feature to export data in txt file format. While there can be various ways to export data, it is recommended to preprocess the data as described below.
+
+## Exporting Data
+
+<Tabs>
+  <TabItem value="REW" label="REW" default>
+    Here's how to export data measured with REW (Room EQ Wizard) software:
+
+    1. With the measurement data to be exported selected, choose `File` - `Export` - `Export measurement as Text`.
+    2. Then, select the data export method as follows:
+
+      | Item                    | Value              |
+      |------------------------|----------------|
+      | Use custom range       | 20 to 20000 Hz |
+      | Use custom resolution  | 96 PPO         |
+      | Use custom smoothing   | 1/48 smoothing |
+      | Use REW export format  | Selected            |
+      | Export units           | SPL            |
+      | Export text delimiter  | Tab            |
+
+    3. Click the `Ok` button to export the data.
+
+    Data exported this way can be processed normally by modernGraphTool.
+
+    :::tip[Tip]
+    modernGraphTool can also process non-smoothed original data that has not had Custom resolution / Custom smoothing settings applied.
+
+    However, modernGraphTool is designed to internally apply 1/48 smoothing to ensure adequate processing performance. Therefore, using data with a resolution higher than 1/48 oct will not display a smoother graph.
+    :::
+  </TabItem>
+  <TabItem value="ARTA" label="ARTA">
+    Here's how to export data measured with ARTA software:
+
+    1. With the measurement data to be exported selected, choose `File` - `Export` - `CSV file`.
+    2. Run REW (Room EQ Wizard), and import the CSV data exported from ARTA via `File` - `Import` - `Import frequency response`.
+    3. Then, export the data using REW (Room EQ Wizard) as described in the `REW` tab.
+  </TabItem>
+</Tabs>

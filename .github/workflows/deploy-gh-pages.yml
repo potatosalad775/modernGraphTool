@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' 
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Prepare deployment artifact directory
+        run: mkdir -p gh-pages-artifact
+
+      - name: Prepare main app artifact
+        run: |
+          echo "Copying main app from /dist to gh-pages-artifact..."
+          cp -r dist/* gh-pages-artifact/
+          touch gh-pages-artifact/.nojekyll
+          echo "Main app prepared:"
+          ls -A gh-pages-artifact
+
+      - name: Build Docusaurus site
+        working-directory: ./docs
+        run: |
+          echo "Installing Docusaurus dependencies..."
+          npm ci
+          echo "Building Docusaurus site..."
+          npm run build # Output will be in docs/build
+          echo "Docusaurus site built in docs/build:"
+          ls -A build
+
+      - name: Prepare docs artifact
+        run: |
+          echo "Copying Docusaurus build from docs/build to gh-pages-artifact/docs..."
+          mkdir -p gh-pages-artifact/docs
+          cp -r docs/build/* gh-pages-artifact/docs/
+          echo "Docs app prepared in gh-pages-artifact/docs:"
+          ls -A gh-pages-artifact/docs
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-artifact
+          # The publish_branch defaults to 'gh-pages'
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy: Build and deploy site to GitHub Pages'

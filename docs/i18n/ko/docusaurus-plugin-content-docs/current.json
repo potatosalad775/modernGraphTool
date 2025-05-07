@@ -1,0 +1,34 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Guide for Users": {
+    "message": "사용자 가이드",
+    "description": "The label for category Guide for Users in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Guide for Users.link.generated-index.description": {
+    "message": "5분 안에 modernGraphTool 사용법을 배워보세요.",
+    "description": "The generated-index page description for category Guide for Users in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Tool Guide": {
+    "message": "도구 가이드",
+    "description": "The label for category Tool Guide in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Tool Guide.link.generated-index.description": {
+    "message": "modernGraphTool을 구성하는 각종 도구의 사용법을 배워보세요.",
+    "description": "The generated-index page description for category Tool Guide in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Guide for Admins": {
+    "message": "관리자 가이드",
+    "description": "The label for category Guide for Admins in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Guide for Admins.link.generated-index.description": {
+    "message": "modernGraphTool을 사용하여 나만의 FR 데이터베이스를 구축하는 방법을 배워보세요.",
+    "description": "The generated-index page description for category Guide for Admins in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Guide for Developers": {
+    "message": "개발자 가이드",
+    "description": "The label for category Guide for Developers in sidebar tutorialSidebar"
+  }
+}

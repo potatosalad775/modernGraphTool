@@ -1,0 +1,361 @@
+---
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# 페이지 커스터마이징하기
+modernGraphTool 페이지의 초기 표시 내용, 디자인 테마 등을 사용자의 필요에 맞게 변경할 수 있습니다. 
+
+주로 `dist` 폴더 내의 `config.js`, `index.html`, 그리고 `theme.css` 파일을 수정하여 페이지를 개인화하게 됩니다.
+
+## 기본 설정 변경하기 (`config.js`)
+`config.js` 파일은 modernGraphTool의 동작과 관련된 다양한 설정을 담고 있습니다. 텍스트 에디터로 이 파일을 열어 필요한 부분을 수정할 수 있습니다.
+
+:::warning[주의]
+`config.js` 파일은 JavaScript 문법을 따릅니다. 문자열은 따옴표(`"` 또는 `'`)로 감싸고, 각 설정 항목 끝에는 쉼표(`,`)를 붙여야 합니다 (단, 마지막 항목 제외). 수정 후 문법 오류가 없는지 확인해야 합니다.
+:::
+
+### `INITIAL_PHONES`
+```JavaScript
+// Brand : Sennheiser
+// Model : IE200
+// Suffix : (Foam Tip)
+INITIAL_PHONES: ["Sennheiser IE200 (Foam Tip)"],
+
+// You can add multiple phones to the list.
+INITIAL_PHONES: ["Sennheiser IE200", "Sony IER-Z1R"],
+```
+페이지 로드 시 기본으로 표시할 Phone(측정 데이터)의 이름을 배열 형태로 지정합니다. 
+- `phone_book.json` 에 정의된 브랜드 + 기기 이름을 사용해야 합니다.
+  - 표시할 기기 이름에는 suffix가 포함될 수 있습니다. suffix를 지정하지 않은 경우 첫 번째 파일이 기본으로 표시됩니다.
+- 여러 개의 Phone(측정 데이터)를 표시하도록 선택할 수 있습니다.
+
+### `INITIAL_TARGETS`
+```JavaScript
+INITIAL_TARGETS: ["Harman IE 2019v2 Target"],
+
+// You can add multiple targets to the list.
+INITIAL_PHONES: ["Harman IE 2019v2 Target", "KEMAR DF Target"],
+```
+페이지 로드 시 기본으로 표시할 Target(타겟 커브)의 이름을 배열 형태로 지정합니다. 
+- `data/target` 폴더 내의 파일 이름 (확장자 제외)을 사용합니다.
+
+### `INITIAL_PANEL`
+```JavaScript
+INITIAL_PANEL: "graph",
+```
+페이지 로드 시 기본으로 표시될 패널을 지정합니다. 
+- `phone`, `graph`, `misc` 중 하나를 선택할 수 있습니다.
+
+### `NORMALIZATION`
+```JavaScript
+NORMALIZATION: {
+  TYPE: "Hz",
+  HZ_VALUE: 500,
+},
+```
+그래프 정규화(Normalization) 기본 설정을 지정합니다.
+  #### `TYPE`
+  정규화 방식을 설정합니다.
+  - `Hz (특정 주파수 기준)` 또는 `Avg (300~3000Hz 평균 기준)` 중 하나를 선택할 수 있습니다.
+  #### `HZ_VALUE`
+  `TYPE`이 'Hz'으로 설정된 경우, 입력된 숫자가 기본 주파수로 사용됩니다.
+
+### `VISUALIZATION`
+```JavaScript
+VISUALIZATION: {
+  DEFAULT_Y_SCALE: 60,
+  LABEL: {
+    LOCATION: "BOTTOM_RIGHT",
+    POSITION: {
+      LEFT: 0, RIGHT: 0, TOP: 0, BOTTOM: 0,
+    },
+    TEXT_SIZE: "20px",
+    TEXT_WEIGHT: "600",
+  },
+  RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)",
+}
+```
+그래프 시각화 관련 설정을 지정합니다.
+  #### `DEFAULT_Y_SCALE`
+  Y축(dB)의 기본 표시 범위를 설정합니다.
+  - 40, 60, 80, 100 중 하나를 선택할 수 있습니다.
+  #### `LABEL`
+  그래프 위에 표시될 Phone/Target 이름 라벨의 위치, 크기, 굵기 등을 설정합니다.
+  - `LOCATION` : 이름 라벨 위치 
+    - 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'TOP_LEFT', 'TOP_RIGHT' 중 하나 선택
+  - `POSITION` : 이름 라벨 위치 세부 조정값 
+    - 'LEFT', 'RIGHT', 'TOP', 'BOTTOM' 항목 별 조정값 입력 가능 (숫자)
+  - `TEXT_SIZE` : 이름 라벨 크기 (px 단위)
+  - `TEXT_WEIGHT` : 이름 라벨 굵기 (100 ~ 900 중 백 단위 숫자 선택)
+  #### `RIG_DESCRIPTION`
+  그래프 우측 상단에 표시될 측정 장비 설명을 입력합니다.
+
+### `INTERFACE`
+```JavaScript
+INTERFACE: {
+  PREFERRED_DARK_MODE_THEME: "light",
+  ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
+  TARGET: {
+    ALLOW_MULTIPLE_LINE_PER_TYPE: true,
+    OMIT_TARGET_SUFFIX: true,
+  }
+},
+```
+사용자 인터페이스 관련 설정을 지정합니다.
+  #### `PREFERRED_DARK_MODE_THEME`
+  다크 모드 설정을 지정합니다. 
+  - `light`, `dark`, `system` 중 선택
+  #### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
+  Phone(측정 데이터) 선택기에서 이미 추가된 항목을 다시 선택했을 때 그래프에서 제거할지 여부를 설정합니다.
+  - `true`, `false` 중 선택
+  #### `TARGET`
+  Target 선택기 관련 설정을 지정합니다. 
+    ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+    타입 별로 Target 목록을 여러 줄로 표시할지 여부를 설정합니다.
+    - `true`, `false` 중 선택
+    ##### `OMIT_TARGET_SUFFIX`
+    각 타겟 항목마다 'Target' 접두어를 생략할지 여부를 설정합니다.
+    - `true`, `false` 중 선택
+
+### `URL`
+```JavaScript
+URL: {
+  AUTO_UPDATE_URL: true,
+  COMPRESS_URL: true,
+},
+```
+- `AUTO_UPDATE_URL`: 선택된 기기 및 타겟에 따라 URL을 자동으로 업데이트할지 여부를 설정합니다.
+  - `true`, `false` 중 선택
+- `COMPRESS_URL`: URL을 압축할지 여부를 설정합니다.
+  - 활성화 시 base62 알고리즘을 활용해 URL을 압축합니다.
+  - `true`, `false` 중 선택
+
+### `LANGUAGE`
+```JavaScript
+LANGUAGE: {
+  LANGUAGE_LIST: [ 
+    ["en", "English"], ["ko", "한국어"]
+  ],                        
+  ENABLE_I18N: true,
+  ENABLE_SYSTEM_LANG_DETECTION: true,
+},
+```
+- `LANGUAGE_LIST`: 사용 가능한 언어 목록을 설정합니다.
+  - 각 언어마다 `["언어코드", "언어이름"]` 형태로 추가
+- `ENABLE_I18N`: 다국어 지원을 활성화할지 여부를 설정합니다.
+  - 비활성화 시 언어 선택 UI가 제거되고, 오로지 영어로만 표시됩니다.
+  - `true`, `false` 중 선택
+
+### `PATH`
+```JavaScript
+PATH: {
+  PHONE_MEASUREMENT: "./data/phones",
+  TARGET_MEASUREMENT: "./data/target",
+  PHONE_BOOK: "./data/phone_book.json",
+},
+```
+- `PHONE_MEASUREMENT`: Phone(측정 데이터) 파일이 저장된 폴더 경로를 설정합니다.
+- `TARGET_MEASUREMENT`: Target(타겟 커브) 파일이 저장된 폴더 경로를 설정합니다.
+- `PHONE_BOOK`: Phone(측정 데이터) 정보가 기록된 `phone_book.json` 파일 경로를 설정합니다.
+
+:::warning[주의]
+특별한 경우가 아니라면 데이터 파일 경로는 **수정하지 않는 것**을 권장합니다. 특히 `phone_book.json` 파일의 경로를 수정하는 경우, squig.link를 비롯한 서비스와의 호환성에 문제가 발생할 수 있습니다.
+:::
+
+### `WATERMARK`
+```JavaScript
+WATERMARK: [
+  { 
+    TYPE: "TEXT", 
+    CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
+    SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
+  },
+  // You can even put multiple TEXT or IMAGE in Array. 
+  // Randomly picked content will be rendered on every load.
+  { 
+    TYPE: "IMAGE", 
+    SIZE: "50px", LOCATION: "TOP_LEFT", POSITION: {UP: "20", DOWN: "0", LEFT: "0", RIGHT: "10"}, OPACITY: "0.2",
+    CONTENT: [
+      "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
+    ] 
+  }
+],
+```
+그래프에 표시될 워터마크를 설정합니다.
+- 여러 개의 워터마크를 동시에 표시할 수 있습니다. 각 워터마크는 `{}` 객체로 구분됩니다.
+- modernGraphTool이 지원하는 워터마크는 `TEXT`와 `IMAGE` 두 가지가 있습니다.
+  - 객체 내부에 `TYPE` 필드로 워터마크 타입을 지정합니다.
+
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 위치해있어도 상관은 없으나, `/assets/images` 폴더에 위치시키는 것을 권장합니다.
+:::
+
+<Tabs>
+  <TabItem value="TEXT" label="TEXT (텍스트)">
+    - `TYPE` : 워터마크 타입을 지정합니다. 
+      - `TEXT`로 설정.
+    - `CONTENT` : 워터마크에 표시될 텍스트를 설정합니다.
+      - 여러 개의 문자열을 배열 형태로 입력할 수 있습니다. (`[]`로 감쌈)
+      - 2개 이상의 문자열이 지정된 경우, 첫 로드 시 무작위로 선정된 문자열이 표시됩니다.
+    - `LOCATION` : 워터마크의 위치를 설정합니다. 
+      - `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT` 중 선택.
+    - `SIZE` : 워터마크의 크기를 설정합니다. (px 단위)
+    - `FONT_FAMILY` : 워터마크의 폰트를 설정합니다.
+    - `FONT_WEIGHT` : 워터마크의 폰트 굵기를 설정합니다. (100 ~ 900 중 백 단위 숫자)
+    - `COLOR` : 워터마크의 색상을 설정합니다. (HEX 코드)
+    - `OPACITY` : 워터마크의 투명도를 설정합니다. (0 ~ 1)
+  </TabItem>
+  <TabItem value="IMAGE" label="IMAGE (이미지)">
+    - `TYPE` : 워터마크 타입을 지정합니다.
+      - `IMAGE`로 설정.
+    - `CONTENT` : 워터마크에 표시될 이미지 파일 경로를 설정합니다.
+      - 여러 개의 이미지 파일 경로를 배열 형태로 입력할 수 있습니다. (`[]`로 감쌈)
+      - 2개 이상의 이미지 경로가 지정된 경우, 첫 로드 시 무작위로 선정된 이미지가 표시됩니다.
+    - `LOCATION` : 워터마크의 위치를 설정합니다.
+      - `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT` 중 선택.
+    - `SIZE` : 워터마크의 크기를 설정합니다. (px 단위)
+    - `POSITION` : 워터마크의 위치를 세부 조정합니다.
+      - `UP`, `DOWN`, `LEFT`, `RIGHT` 필드로 워터마크의 상하좌우 위치를 설정합니다. (px 단위)
+    - `OPACITY` : 워터마크의 투명도를 설정합니다. (0 ~ 1)
+  </TabItem>
+</Tabs>
+
+### `TARGET_MANIFEST`
+```JavaScript
+{ type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
+{ type:"Neutral",     files:["KEMAR DF (KB006x)","ISO 11904-2 DF","IEF Neutral 2023"] },
+{ type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
+{ type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] },
+{ type:"Δ",           files:["Universal ∆"] }
+```
+Target 선택기에 표시될 타겟들을 그룹화하고 정렬하는 방식을 정의합니다.
+- `type` 필드는 타겟 그룹의 이름을 정의합니다.
+- `files` 필드는 해당 그룹에 속하는 타겟들의 파일 이름을 배열 형태로 지정합니다.
+
+### `TRACE_STYLING`
+```JavaScript
+TRACE_STYLING: {
+  PHONE_TRACE_THICKNESS: 2,
+  TARGET_TRACE_THICKNESS: 1,
+  TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
+},
+```
+그래프 선의 굵기, 점선 스타일 등을 설정합니다. 특정 타겟의 선 스타일을 다르게 지정할 수도 있습니다.
+- `PHONE_TRACE_THICKNESS` : Phone(측정 데이터) 그래프 선의 굵기를 설정합니다. (px 단위)
+- `TARGET_TRACE_THICKNESS` : Target(타겟 커브) 그래프 선의 굵기를 설정합니다. (px 단위)
+- `TARGET_TRACE_DASH` : 특정 타겟의 선 스타일을 설정합니다.
+  - `name` 필드는 타겟의 이름을 지정합니다.
+  - `dash` 필드는 타겟의 선 스타일을 설정합니다.
+    - 'stroke-dasharray' 속성에 따른 값을 입력받습니다. 자세한 설명이 필요하다면 [MDN 문서](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray)를 참고하세요.
+    - `0 1`로 설정하면 선이 표시되지 않습니다.
+    - `null`로 설정하면 선이 실선으로 표시됩니다.
+
+### `TOPBAR`
+```JavaScript
+TITLE: {
+  //TYPE: "TEXT", CONTENT: "modernGraphTool",
+  //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
+  TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+},
+LINK_LIST: [
+  { TITLE: "Home", URL: "/" },
+  { TITLE: "Blog", URL: "https://~~~" },
+]
+```
+페이지 상단 바 막대의 제목과 링크 목록을 설정합니다.
+- `TITLE` : 페이지 상단 바 막대의 제목을 설정합니다.
+  - `TYPE` : 제목의 타입을 지정합니다.
+    - `TEXT`로 설정하면 텍스트 형식의 제목이 표시됩니다.
+    - `IMAGE`로 설정하면 이미지 형식의 제목이 표시됩니다.
+    - `HTML`로 설정하면 HTML 형식의 제목이 표시됩니다.
+  - `CONTENT` : 제목의 내용을 설정합니다.
+    - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 제목을 설정합니다.
+    - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
+    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다.
+- `LINK_LIST` : 페이지 상단 바 막대의 링크 목록을 설정합니다.
+  - `TITLE` 필드는 링크의 제목을 지정합니다.
+  - `URL` 필드는 링크의 URL을 지정합니다.
+
+## 다국어 지원 (`config.js`)
+
+`config.js` 내 일부 항목들은 영어가 아닌 다양한 언어로 작성될 수 있습니다.
+- 다국어 지원을 활성화하기 위해서는 `config.js` 파일 내 `LANGUAGE` 항목을 수정해야 합니다.
+- 다른 언어로 구성된 객체를 지원하는 항목은 다음과 같습니다. 
+  - `TARGET_MANIFEST`
+  - `TOPBAR - LINK_LIST`
+
+```JavaScript
+TOPBAR: {
+  LINK_LIST: {
+    default: [
+      { TITLE: "Google", URL: "https://www.google.com" }, 
+      { TITLE: "Github", URL: "https://www.github.com" },
+    ],
+    i18n: {
+      ko: [
+        { TITLE: "구글", URL: "https://www.google.com" },
+        { TITLE: "깃허브", URL: "https://www.github.com" },
+      ]
+    }
+  },
+}
+```
+
+다국어 지원 항목에 한하여, 기본 언어 (영어)로 작성된 객체는 `default` 필드에, 다른 언어로 작성된 객체는 `i18n` 필드에 작성해야 합니다.
+- `i18n` 필드에는 `LANGUAGE` 항목 내 `LANGUAGE_LIST` 항목에 등록된 언어 코드와 일치하는 객체가 있어야 합니다.
+
+## 표시 내용 변경하기 (`index.html`)
+`index.html` 파일은 modernGraphTool의 기본 HTML 구조를 정의합니다. 텍스트 에디터로 이 파일을 열어 필요한 부분을 수정할 수 있습니다.
+
+:::warning[주의]
+`index.html` 파일은 HTML 문법을 따릅니다. 수정 후 문법 오류가 없는지 확인해야 합니다.
+:::
+
+### `TITLE`
+```html
+<title>modernGraphTool</title>
+<meta name="title" content="modernGraphTool" />
+<meta property="og:title" content="modernGraphTool" />
+```
+페이지의 제목을 설정합니다.
+
+### `DESCRIPTION`
+```html
+<meta name="description" content="View and compare frequency response graphs for earphones/headphones."/>
+<meta property="og:description" content="View and compare frequency response graphs for earphones/headphones."/>
+```
+페이지의 설명을 설정합니다.
+
+### `KEYWORDS`
+페이지의 키워드를 설정합니다. (검색 엔진 최적화에 사용됩니다.)
+```html
+<meta name="keywords" content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"/>
+```
+
+### `URL` / `LINK`
+페이지의 URL과 링크를 설정합니다.
+```html
+<meta property="og:url" content="/?"/>
+<link rel="canonical" href="/?">
+```
+
+### `IMAGE`
+페이지의 미리보기 이미지를 설정합니다.
+```html
+<meta property="og:image" content="/preview.png"/>
+```
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 위치해있어도 상관은 없으나, `/assets/images` 폴더에 위치시키는 것을 권장합니다.
+:::
+
+### `FAVICON`
+페이지의 파비콘(탭 아이콘)을 설정합니다.
+```html
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+```
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 위치해있어도 상관은 없으나, `/assets/images` 폴더에 위치시키는 것을 권장합니다.
+:::

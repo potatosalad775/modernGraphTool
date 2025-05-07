@@ -1,0 +1,18 @@
+{
+  "title": {
+    "message": "modernGraphTool",
+    "description": "The title in the navbar"
+  },
+  "item.label.Docs": {
+    "message": "가이드",
+    "description": "Navbar item with label Docs"
+  },
+  "item.label.Demo": {
+    "message": "데모",
+    "description": "Navbar item with label Demo"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}

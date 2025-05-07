@@ -1,0 +1,86 @@
+---
+sidebar_position: 5
+---
+
+# Using Extensions
+
+modernGraphTool is designed to allow easier and safer addition and management of supplementary features through its Extension functionality.
+
+Features like the equalizer panel, frequency tutorial, and target customizer are provided by default in the form of Extension modules.
+
+## Extension Folder Structure
+
+Extension-related files are located in the `/extensions` folder.
+
+```
+extensions/
+├── equalizer/            # Equalizer Extension folder
+│   ├── main.js
+│   └── ...
+├── frequency-tutorial/   # Frequency Tutorial Extension folder
+│   └── ...
+├── target-customizer/    # Target Customizer Extension folder
+│   └── ...
+├── template/             # Template folder for Extension development
+│   └── ...
+└── extensions.config.js  # Extension activation and configuration file
+```
+
+*   Each Extension has a folder with a unique name (e.g., `equalizer`, `target-customizer`).
+*   Each Extension folder may contain the core JavaScript file (`main.js`) that constitutes the Extension's functionality and other resource files.
+*   The `extensions.config.js` file is an important file that defines which Extensions to activate and how to configure the detailed settings for each Extension.
+
+## How to Activate and Configure Extensions (`extensions.config.js`)
+
+You can open the `extensions.config.js` file with a text editor to change whether to use an Extension and its settings.
+
+This file is structured as a JavaScript array, and each array element is an object representing a single Extension's configuration.
+
+```javascript
+export const EXTENSION_CONFIG = [
+  {
+    // name: Extension name (must be the same as the folder name)
+    NAME: "equalizer",
+    // description: Extension description (does not affect functionality)
+    DESCRIPTION: `equalizer panel for modernGraphTool`,
+    // enabled: Extension activation status (true: enabled, false: disabled)
+    ENABLED: true,
+    // I18N_ENABLED: Multilingual support activation status (true/false)
+    // - Some Extensions may not provide this feature
+    I18N_ENABLED: true,
+    // CONFIG: Detailed configuration object for the Extension
+    CONFIG: {
+      INITIAL_EQ_BANDS: 5,  // Initial number of EQ bands
+      MAXIMUM_EQ_BANDS: 20, // Maximum number of EQ bands
+    },
+  },
+  // ... other Extension configurations
+];
+```
+
+### Key Configuration Items
+
+- **NAME** (Required): The name of the Extension. It **must be identical** to the Extension folder name within the `/extensions` folder.
+- **ENABLED** (Required): Determines whether to use the Extension. Set to `true` to enable, `false` to disable.
+- **I18N_ENABLED** (Optional): Sets whether the Extension will use modernGraphTool's multilingual features. This item may not exist if the extension does not support multilingual features.
+- **CONFIG** (Optional): An object for detailed settings specific to the Extension. The configurable items vary for each Extension. You can change the settings by referring to the comments within each Extension's `CONFIG` object or related documentation.
+
+### How to Enable/Disable Extensions
+
+1. Open the `extensions.config.js` file in a text editor.
+2. Find the configuration object for the Extension you want to enable or disable (identified by the `NAME` key).
+3. Modify the `ENABLED` value of that object to `true` (enable) or `false` (disable).
+4. If necessary, change the detailed settings within the `CONFIG` object.
+5. Save the file and refresh the web page to see if the changes have been applied.
+
+### How to Add Extensions
+
+1. Move the newly downloaded Extension folder into the `/extensions` folder.
+2. Add the configuration items written by the developer to the `extensions.config.js` file.
+3. Set the `ENABLED` value to `true` to activate the Extension.
+4. If necessary, configure the detailed settings within the `CONFIG` object.
+5. Save the file and refresh the web page to see if the changes have been applied.
+
+:::warning[Caution]
+The `extensions.config.js` file follows JavaScript syntax. Be careful to avoid syntax errors when modifying it.
+:::

@@ -1,0 +1,361 @@
+---
+sidebar_position: 2
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Customizing the Page
+You can change the initial display content, design theme, etc., of the modernGraphTool page to suit your needs. 
+
+You will primarily personalize the page by modifying the `config.js`, `index.html`, and `theme.css` files within the `dist` folder.
+
+## Changing Basic Settings (`config.js`)
+The `config.js` file contains various settings related to the operation of modernGraphTool. You can open this file with a text editor and modify the necessary parts.
+
+:::warning[Caution]
+The `config.js` file follows JavaScript syntax. Strings must be enclosed in quotes (`"` or `'`), and a comma (`,`) must be appended to the end of each setting item (except for the last item). You must check for syntax errors after modification.
+:::
+
+### `INITIAL_PHONES`
+```JavaScript
+// Brand : Sennheiser
+// Model : IE200
+// Suffix : (Foam Tip)
+INITIAL_PHONES: ["Sennheiser IE200 (Foam Tip)"],
+
+// You can add multiple phones to the list.
+INITIAL_PHONES: ["Sennheiser IE200", "Sony IER-Z1R"],
+```
+Specifies the names of the Phone (measurement data) to be displayed by default when the page loads, in array format. 
+- You must use the brand + device name defined in `phone_book.json`.
+  - The device name to be displayed can include a suffix. If no suffix is specified, the first file will be displayed by default.
+- You can choose to display multiple Phones (measurement data).
+
+### `INITIAL_TARGETS`
+```JavaScript
+INITIAL_TARGETS: ["Harman IE 2019v2 Target"],
+
+// You can add multiple targets to the list.
+INITIAL_PHONES: ["Harman IE 2019v2 Target", "KEMAR DF Target"],
+```
+Specifies the names of the Target (target curve) to be displayed by default when the page loads, in array format. 
+- Use the file names (excluding extension) in the `data/target` folder.
+
+### `INITIAL_PANEL`
+```JavaScript
+INITIAL_PANEL: "graph",
+```
+Specifies the panel to be displayed by default when the page loads. 
+- You can choose from `phone`, `graph`, or `misc`.
+
+### `NORMALIZATION`
+```JavaScript
+NORMALIZATION: {
+  TYPE: "Hz",
+  HZ_VALUE: 500,
+},
+```
+Specifies the default settings for graph normalization.
+  #### `TYPE`
+  Sets the normalization method.
+  - You can choose between `Hz (based on a specific frequency)` or `Avg (based on the average of 300~3000Hz)`.
+  #### `HZ_VALUE`
+  If `TYPE` is set to 'Hz', the entered number will be used as the default frequency.
+
+### `VISUALIZATION`
+```JavaScript
+VISUALIZATION: {
+  DEFAULT_Y_SCALE: 60,
+  LABEL: {
+    LOCATION: "BOTTOM_RIGHT",
+    POSITION: {
+      LEFT: 0, RIGHT: 0, TOP: 0, BOTTOM: 0,
+    },
+    TEXT_SIZE: "20px",
+    TEXT_WEIGHT: "600",
+  },
+  RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)",
+}
+```
+Specifies settings related to graph visualization.
+  #### `DEFAULT_Y_SCALE`
+  Sets the default display range for the Y-axis (dB).
+  - You can choose from 40, 60, 80, or 100.
+  #### `LABEL`
+  Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph.
+  - `LOCATION` : Name label position 
+    - Choose from 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'TOP_LEFT', 'TOP_RIGHT'.
+  - `POSITION` : Fine-tune name label position 
+    - Adjustable values for 'LEFT', 'RIGHT', 'TOP', 'BOTTOM' items (numbers).
+  - `TEXT_SIZE` : Name label size (in px).
+  - `TEXT_WEIGHT` : Name label weight (choose a multiple of 100 from 100 to 900).
+  #### `RIG_DESCRIPTION`
+  Enter the description of the measurement equipment to be displayed in the upper right corner of the graph.
+
+### `INTERFACE`
+```JavaScript
+INTERFACE: {
+  PREFERRED_DARK_MODE_THEME: "light",
+  ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
+  TARGET: {
+    ALLOW_MULTIPLE_LINE_PER_TYPE: true,
+    OMIT_TARGET_SUFFIX: true,
+  }
+},
+```
+Specifies settings related to the user interface.
+  #### `PREFERRED_DARK_MODE_THEME`
+  Specifies the dark mode setting. 
+  - Choose from `light`, `dark`, `system`.
+  #### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
+  Sets whether to remove an already added item from the graph when reselected in the Phone (measurement data) selector.
+  - Choose `true` or `false`.
+  #### `TARGET`
+  Specifies settings related to the Target selector. 
+    ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+    Sets whether to display the Target list in multiple lines per type.
+    - Choose `true` or `false`.
+    ##### `OMIT_TARGET_SUFFIX`
+    Sets whether to omit the 'Target' prefix for each target item.
+    - Choose `true` or `false`.
+
+### `URL`
+```JavaScript
+URL: {
+  AUTO_UPDATE_URL: true,
+  COMPRESS_URL: true,
+},
+```
+- `AUTO_UPDATE_URL`: Sets whether to automatically update the URL according to the selected device and target.
+  - Choose `true` or `false`.
+- `COMPRESS_URL`: Sets whether to compress the URL.
+  - When activated, the URL is compressed using the base62 algorithm.
+  - Choose `true` or `false`.
+
+### `LANGUAGE`
+```JavaScript
+LANGUAGE: {
+  LANGUAGE_LIST: [ 
+    ["en", "English"], ["ko", "한국어"]
+  ],                        
+  ENABLE_I18N: true,
+  ENABLE_SYSTEM_LANG_DETECTION: true,
+},
+```
+- `LANGUAGE_LIST`: Sets the list of available languages.
+  - Add each language in the format `["language_code", "language_name"]`.
+- `ENABLE_I18N`: Sets whether to enable multilingual support.
+  - If disabled, the language selection UI is removed, and only English is displayed.
+  - Choose `true` or `false`.
+
+### `PATH`
+```JavaScript
+PATH: {
+  PHONE_MEASUREMENT: "./data/phones",
+  TARGET_MEASUREMENT: "./data/target",
+  PHONE_BOOK: "./data/phone_book.json",
+},
+```
+- `PHONE_MEASUREMENT`: Sets the folder path where Phone (measurement data) files are stored.
+- `TARGET_MEASUREMENT`: Sets the folder path where Target (target curve) files are stored.
+- `PHONE_BOOK`: Sets the file path for `phone_book.json`, which records Phone (measurement data) information.
+
+:::warning[Caution]
+It is recommended **not to modify** the data file paths unless absolutely necessary. Modifying the path of the `phone_book.json` file, in particular, may cause compatibility issues with services like squig.link.
+:::
+
+### `WATERMARK`
+```JavaScript
+WATERMARK: [
+  { 
+    TYPE: "TEXT", 
+    CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
+    SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
+  },
+  // You can even put multiple TEXT or IMAGE in Array. 
+  // Randomly picked content will be rendered on every load.
+  { 
+    TYPE: "IMAGE", 
+    SIZE: "50px", LOCATION: "TOP_LEFT", POSITION: {UP: "20", DOWN: "0", LEFT: "0", RIGHT: "10"}, OPACITY: "0.2",
+    CONTENT: [
+      "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
+    ] 
+  }
+],
+```
+Sets the watermark to be displayed on the graph.
+- Multiple watermarks can be displayed simultaneously. Each watermark is distinguished by a `{}` object.
+- modernGraphTool supports two types of watermarks: `TEXT` and `IMAGE`.
+  - Specify the watermark type with the `TYPE` field within the object.
+
+:::tip[Tip]
+Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `/assets/images` folder.
+:::
+
+<Tabs>
+  <TabItem value="TEXT" label="TEXT">
+    - `TYPE` : Specifies the watermark type. 
+      - Set to `TEXT`.
+    - `CONTENT` : Sets the text to be displayed in the watermark.
+      - Multiple strings can be entered in array format (enclosed in `[]`).
+      - If 2 or more strings are specified, a randomly selected string will be displayed on initial load.
+    - `LOCATION` : Sets the watermark position. 
+      - Choose from `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`.
+    - `SIZE` : Sets the watermark size (in px).
+    - `FONT_FAMILY` : Sets the watermark font.
+    - `FONT_WEIGHT` : Sets the watermark font weight (a multiple of 100 from 100 to 900).
+    - `COLOR` : Sets the watermark color (HEX code).
+    - `OPACITY` : Sets the watermark opacity (0 to 1).
+  </TabItem>
+  <TabItem value="IMAGE" label="IMAGE">
+    - `TYPE` : Specifies the watermark type.
+      - Set to `IMAGE`.
+    - `CONTENT` : Sets the image file path to be displayed in the watermark.
+      - Multiple image file paths can be entered in array format (enclosed in `[]`).
+      - If 2 or more image paths are specified, a randomly selected image will be displayed on initial load.
+    - `LOCATION` : Sets the watermark position.
+      - Choose from `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`.
+    - `SIZE` : Sets the watermark size (in px).
+    - `POSITION` : Fine-tunes the watermark position.
+      - Set the top, bottom, left, and right positions of the watermark with the `UP`, `DOWN`, `LEFT`, `RIGHT` fields (in px).
+    - `OPACITY` : Sets the watermark opacity (0 to 1).
+  </TabItem>
+</Tabs>
+
+### `TARGET_MANIFEST`
+```JavaScript
+{ type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
+{ type:"Neutral",     files:["KEMAR DF (KB006x)","ISO 11904-2 DF","IEF Neutral 2023"] },
+{ type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
+{ type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] },
+{ type:"Δ",           files:["Universal ∆"] }
+```
+Defines how targets displayed in the Target selector are grouped and sorted.
+- The `type` field defines the name of the target group.
+- The `files` field specifies the file names of the targets belonging to that group in array format.
+
+### `TRACE_STYLING`
+```JavaScript
+TRACE_STYLING: {
+  PHONE_TRACE_THICKNESS: 2,
+  TARGET_TRACE_THICKNESS: 1,
+  TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
+},
+```
+Sets the thickness, dash style, etc., of graph lines. You can also specify different line styles for specific targets.
+- `PHONE_TRACE_THICKNESS` : Sets the thickness of Phone (measurement data) graph lines (in px).
+- `TARGET_TRACE_THICKNESS` : Sets the thickness of Target (target curve) graph lines (in px).
+- `TARGET_TRACE_DASH` : Sets the line style for a specific target.
+  - The `name` field specifies the target's name.
+  - The `dash` field sets the target's line style.
+    - Accepts values according to the 'stroke-dasharray' attribute. For a detailed explanation, refer to the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray).
+    - Setting to `0 1` will not display the line.
+    - Setting to `null` will display the line as solid.
+
+### `TOPBAR`
+```JavaScript
+TITLE: {
+  //TYPE: "TEXT", CONTENT: "modernGraphTool",
+  //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
+  TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+},
+LINK_LIST: [
+  { TITLE: "Home", URL: "/" },
+  { TITLE: "Blog", URL: "https://~~~" },
+]
+```
+Sets the title and link list for the page's top bar.
+- `TITLE` : Sets the title for the page's top bar.
+  - `TYPE` : Specifies the title type.
+    - Set to `TEXT` to display a text-formatted title.
+    - Set to `IMAGE` to display an image-formatted title.
+    - Set to `HTML` to display an HTML-formatted title.
+  - `CONTENT` : Sets the title content.
+    - If `TYPE` is `TEXT`, sets a text-formatted title.
+    - If `TYPE` is `IMAGE`, sets an image file path.
+    - If `TYPE` is `HTML`, sets an HTML-formatted title.
+- `LINK_LIST` : Sets the link list for the page's top bar.
+  - The `TITLE` field specifies the link's title.
+  - The `URL` field specifies the link's URL.
+
+## Multilingual Support (`config.js`)
+
+Some items in `config.js` can be written in languages other than English.
+- To enable multilingual support, you need to modify the `LANGUAGE` item in the `config.js` file.
+- The items that support objects configured in other languages are as follows: 
+  - `TARGET_MANIFEST`
+  - `TOPBAR - LINK_LIST`
+
+```JavaScript
+TOPBAR: {
+  LINK_LIST: {
+    default: [
+      { TITLE: "Google", URL: "https://www.google.com" }, 
+      { TITLE: "Github", URL: "https://www.github.com" },
+    ],
+    i18n: {
+      ko: [
+        { TITLE: "구글", URL: "https://www.google.com" },
+        { TITLE: "깃허브", URL: "https://www.github.com" },
+      ]
+    }
+  },
+}
+```
+
+For multilingual support items, objects written in the default language (English) should be in the `default` field, and objects written in other languages should be in the `i18n` field.
+- The `i18n` field must have an object that matches the language code registered in the `LANGUAGE_LIST` item within the `LANGUAGE` item.
+
+## Changing Display Content (`index.html`)
+`index.html` file defines the basic HTML structure of modernGraphTool. You can open this file with a text editor and modify the necessary parts.
+
+:::warning[Caution]
+The `index.html` file follows HTML syntax. You must check for syntax errors after modification.
+:::
+
+### `TITLE`
+```html
+<title>modernGraphTool</title>
+<meta name="title" content="modernGraphTool" />
+<meta property="og:title" content="modernGraphTool" />
+```
+Sets the page title.
+
+### `DESCRIPTION`
+```html
+<meta name="description" content="View and compare frequency response graphs for earphones/headphones."/>
+<meta property="og:description" content="View and compare frequency response graphs for earphones/headphones."/>
+```
+Sets the page description.
+
+### `KEYWORDS`
+Sets the page keywords (used for search engine optimization).
+```html
+<meta name="keywords" content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"/>
+```
+
+### `URL` / `LINK`
+Sets the page URL and link.
+```html
+<meta property="og:url" content="/?"/>
+<link rel="canonical" href="/?">
+```
+
+### `IMAGE`
+Sets the page preview image.
+```html
+<meta property="og:image" content="/preview.png"/>
+```
+:::tip[Tip]
+Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `/assets/images` folder.
+:::
+
+### `FAVICON`
+Sets the page favicon (tab icon).
+```html
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+```
+:::tip[Tip]
+Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `/assets/images` folder.
+:::

@@ -1,0 +1,38 @@
+---
+sidebar_position: 1
+---
+
+# 환경 구성하기
+
+modernGraphTool을 사용하고 관리하기 위한 기본적인 환경 설정 방법을 안내합니다.
+
+## 준비물
+
+1.  **modernGraphTool 프로젝트 파일**: 주파수 응답 데이터를 시각화하고 분석하기 위한 핵심 기능들이 포함된 소스 코드입니다.
+2.  **텍스트 에디터**: 각종 설정 파일 (`.js`, `.css`, `.json`)을 수정하기 위한 프로그램입니다.
+
+## 프로젝트 파일 준비
+
+1.  [modernGraphTool의 Github 저장소](https://github.com/potatosalad775/modernGraphTool)에서 [최신 소스 코드 zip 파일](https://github.com/potatosalad775/modernGraphTool/archive/refs/heads/main.zip)을 다운로드합니다.
+2.  다운로드한 zip 파일의 압축을 해제합니다.
+3.  압축 해제된 폴더 내에서 `dist` 폴더를 찾습니다. 웹사이트 운영에 필요한 파일은 오로지 dist 폴더 안에만 존재하므로, **실제 웹 서버에는 `dist` 폴더 안의 내용물만 업로드하면 됩니다.**
+
+## 텍스트 에디터 설치 (VS Code 추천)
+
+다양한 텍스트 에디터가 있지만, 코드 하이라이팅, 자동 완성 등 편리한 기능을 제공하는 [Visual Studio Code (VS Code)](https://code.visualstudio.com/) 사용을 권장합니다. 
+
+VS Code는 누구나 무료로 다운로드 받아 사용할 수 있으며, Windows, macOS, Linux를 모두 지원합니다.
+
+1.  [VS Code 웹사이트](https://code.visualstudio.com/)에 접속하여 자신의 운영체제에 맞는 설치 파일을 다운로드하고 설치합니다.
+2.  VS Code 실행 후, 왼쪽 메뉴에서 확장 프로그램(Extensions) 아이콘 (네모 블록 모양)을 클릭합니다.
+3.  검색창에 아래 이름을 직접 검색하거나, 링크를 클릭하여 두 가지 확장 프로그램을 설치합니다.
+    1.  [`Live Server`](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) : 데이터베이스 웹사이트에 반영되는 변경 사항을 실시간으로 미리 볼 수 있어 편리합니다.
+    2.  [`Error Lens`](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens) : 코드 편집에 익숙하지 않은 사용자가 쉽고 빠르게 오류를 발견할 수 있도록 도와줍니다.
+
+이제 modernGraphTool 설정을 변경하고 데이터를 관리할 준비가 되었습니다.
+
+## 페이지 열어보기
+
+1.  VS Code에서 modernGraphTool 프로젝트 폴더를 열어줍니다.
+2.  `index.html` 파일을 더블 클릭하여 VS Code에서 열어줍니다.
+3.  오른쪽 하단의 `Go Live` 버튼을 클릭하여 modernGraphTool을 실행합니다.

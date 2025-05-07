@@ -1,0 +1,86 @@
+---
+sidebar_position: 5
+---
+
+# Extension 사용하기
+
+modernGraphTool은 Extension 기능을 통해, 좀 더 쉽고 안전하게 부가 기능들을 추가하고 관리할 수 있게 설계되어 있습니다.
+
+이퀄라이저 패널, 주파수 도움말, 타겟 커스터마이저 등의 기능이 Extension 모듈의 형태로 기본 제공되고 있습니다.
+
+## Extension 폴더 구조
+
+Extension 관련 파일은 `/extensions` 폴더 안에 위치합니다.
+
+```
+extensions/
+├── equalizer/            # Equalizer Extension 폴더
+│   ├── main.js
+│   └── ...
+├── frequency-tutorial/   # Frequency Tutorial Extension 폴더
+│   └── ...
+├── target-customizer/    # Target Customizer Extension 폴더
+│   └── ...
+├── template/             # Extension 개발용 템플릿 폴더
+│   └── ...
+└── extensions.config.js  # Extension 활성화 및 설정 파일
+```
+
+*   각 Extension은 고유한 이름의 폴더를 가집니다 (예: `equalizer`, `target-customizer`).
+*   각 Extension 폴더 안에는 해당 Extension의 기능을 구성하는 핵심 JavaScript 파일(`main.js`) 및 기타 리소스 파일이 포함될 수 있습니다.
+*   `extensions.config.js` 파일은 어떤 Extension을 활성화할지, 그리고 각 Extension의 세부 설정을 어떻게 할지 정의하는 중요한 파일입니다.
+
+## Extension 활성화 및 설정 방법 (`extensions.config.js`)
+
+`extensions.config.js` 파일을 텍스트 에디터로 열어 Extension 사용 여부 및 설정을 변경할 수 있습니다.
+
+이 파일은 JavaScript 배열 형태로 구성되어 있으며, 각 배열 요소는 하나의 Extension 설정을 나타내는 객체입니다.
+
+```javascript
+export const EXTENSION_CONFIG = [
+  {
+    // name: Extension 이름 (폴더 이름과 동일해야 함)
+    NAME: "equalizer",
+    // description: Extension 설명 (기능에는 영향 없음)
+    DESCRIPTION: `equalizer panel for modernGraphTool`,
+    // enabled: Extension 활성화 여부 (true: 활성화, false: 비활성화)
+    ENABLED: true,
+    // I18N_ENABLED: 다국어 지원 활성화 여부 (true/false) 
+    // - 관련 기능을 제공하지 않는 Extension도 존재할 수 있음
+    I18N_ENABLED: true,
+    // CONFIG: Extension별 세부 설정 객체
+    CONFIG: {
+      INITIAL_EQ_BANDS: 5,  // 초기 EQ 밴드 수
+      MAXIMUM_EQ_BANDS: 20, // 최대 EQ 밴드 수
+    },
+  },
+  // ... 다른 Extension 설정들
+];
+```
+
+### 주요 설정 항목
+
+- **NAME** (필수): Extension의 이름입니다. `/extensions` 폴더 안의 해당 Extension 폴더 이름과 **반드시 동일**해야 합니다.
+- **ENABLED** (필수): 해당 Extension을 사용할지 여부를 결정합니다. `true` 로 설정하면 활성화되고, `false` 로 설정하면 비활성화됩니다.
+- **I18N_ENABLED** (선택): Extension이 modernGraphTool의 다국어 기능을 사용할지 여부를 설정합니다. 확장 프로그램이 다국어를 지원하지 않는 경우 해당 항목이 존재하지 않을 수 있습니다.
+- **CONFIG** (선택): Extension 별 세부 설정을 위한 객체입니다. 각 Extension마다 설정 가능한 항목이 다릅니다. 각 Extension의 `CONFIG` 객체 내 주석이나 관련 문서를 참고하여 설정값을 변경할 수 있습니다.
+
+### Extension 활성화/비활성화 방법
+
+1. `extensions.config.js` 파일을 텍스트 에디터로 엽니다.
+2. 활성화 또는 비활성화하려는 Extension 설정 객체를 찾습니다 (`NAME` 키로 구분).
+3. 해당 객체의 `ENABLED` 값을 `true` (활성화) 또는 `false` (비활성화)로 수정합니다.
+4. 필요한 경우 `CONFIG` 객체 내의 세부 설정값을 변경합니다.
+5. 파일 저장 후, 웹 페이지를 새로고침하여 변경 사항이 적용되었는지 확인합니다.
+
+### Extension 추가 방법
+
+1. `/extensions` 폴더 안에 새롭게 내려받은 Extension 폴더를 옮겨 넣습니다.
+2. `extensions.config.js` 파일에 개발자가 작성한 설정 항목을 추가합니다.
+3. `ENABLED` 값을 `true` 로 설정하여 Extension을 활성화합니다.
+4. 필요한 경우 `CONFIG` 객체 내의 세부 설정값을 설정합니다.
+5. 파일 저장 후, 웹 페이지를 새로고침하여 변경 사항이 적용되었는지 확인합니다.
+
+:::warning[주의]
+`extensions.config.js` 파일은 JavaScript 문법을 따릅니다. 수정 시 문법 오류가 발생하지 않도록 주의해야 합니다.
+:::

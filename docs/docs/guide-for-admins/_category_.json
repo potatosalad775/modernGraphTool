@@ -1,0 +1,8 @@
+{
+  "label": "Guide for Admins",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Learn how to build your own FR database using modernGraphTool."
+  }
+}

@@ -168,7 +168,7 @@ class RenderEngine {
           .append("text")
           .attr("class", "fr-graph-label-text")
           .attr("y", `${labelCounter * lineHeight}`)
-          .attr("fill", obj.colors[channel])
+          .attr("fill", obj.colors[channel] || obj.colors?.AVG)
           .attr("style", this.labelPosition[labelLocation].style)
           .attr("text-anchor", this.labelPosition[labelLocation].anchor)
           .attr("font-size", ConfigGetter.get('VISUALIZATION.LABEL.TEXT_SIZE') || "20px")
@@ -359,8 +359,9 @@ class RenderEngine {
         .attr("brand", obj.brand)
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
-        .attr("stroke", `${obj.colors[channel]}`)
+        .attr("stroke", `${obj.colors[channel] || obj.colors['AVG']}`)
         .attr("stroke-width", ConfigGetter.get('TRACE_STYLING.PHONE_TRACE_THICKNESS') || 2)
+        .attr("stroke-dasharray", obj.dash || "1 0")
         .attr("d", d => this._getCompensatedPath(d));
     });
   };
@@ -380,11 +381,9 @@ class RenderEngine {
       .attr("type", obj.type)
       .attr("brand", obj.brand)
       .attr("identifier", obj.identifier)
-      .attr("stroke", `${obj.colors['AVG']}`)
+      .attr("stroke", `${obj.colors['AVG'] || '#666'}`)
       .attr("stroke-width", ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_THICKNESS') || 1)
-      .attr("stroke-dasharray", ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
-        o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
-      )?.dash || "4 4")
+      .attr("stroke-dasharray", obj.dash || "4 4")
       .attr("d", d => this._getCompensatedPath(d));
   };
 
@@ -406,15 +405,11 @@ class RenderEngine {
         .attr("type", obj.type)
         .attr("channel", channel)
         .attr("identifier", obj.identifier)
-        .attr("stroke", `${obj.colors[channel]}`)
+        .attr("stroke", `${obj.colors[channel] || obj.colors['AVG']}`)
         .attr("stroke-width", obj.type === 'inserted-target' 
           ? (ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_THICKNESS') || 1) 
           : (ConfigGetter.get('TRACE_STYLING.PHONE_TRACE_THICKNESS') || 2))
-        .attr("stroke-dasharray", obj.type === 'inserted-target' 
-          ? ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
-              o.name.endsWith(' Target') ? o.name : o.name + ' Target') === obj.identifier
-            )?.dash || "4 4"
-          : null)
+        .attr("stroke-dasharray", obj.dash || "1 0")
         .attr("d", d => this._getCompensatedPath(d));
     });
   };

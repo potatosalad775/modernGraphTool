@@ -46,6 +46,10 @@ const RenderEvent = {
       this.renderEngine.drawFRCurve(e.detail.uuid);
       this.renderEngine.updateLabels();
     });
+    window.addEventListener('core:fr-dash-updated', (e) => {
+      this.renderEngine.drawFRCurve(e.detail.uuid);
+      this.renderEngine.updateLabels();
+    });
     window.addEventListener('core:fr-variant-updated', (e) => {
       this.renderEngine.drawFRCurve(e.detail.uuid);
       this.renderEngine.updateLabels();

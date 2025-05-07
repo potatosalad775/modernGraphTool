@@ -3,6 +3,7 @@ import RenderEngine from "../ui/visualization/render-engine.js";
 import MetadataParser from "./util/metadata-parser.js";
 import FRNormalizer from "./util/fr-normalizer.js";
 import FRSmoother from "./util/fr-smoother.js";
+import ConfigGetter from "./util/config-getter.js";
 
 class DataProvider {
   constructor() {
@@ -63,6 +64,7 @@ class DataProvider {
             : metaData.files[0]?.suffix
           : "",
       colors: this._getColorWithType(sourceType),
+      dash: this._getDashWithType(sourceType, metaData?.identifier),
       meta: metaData,
     };
 
@@ -138,6 +140,7 @@ class DataProvider {
           ? inputMetadata?.dispSuffix
           : "(Inserted)",
         colors: this._getColorWithType(sourceType),
+        dash: this._getDashWithType(sourceType, identifier),
         //meta: inputMetadata,
       };
 
@@ -360,7 +363,7 @@ class DataProvider {
     if (!["uuid", "identifier"].includes(keyType)) {
       throw new Error("Wrong keyType was given");
     }
-    if (!["dispChannel", "colors"].includes(inputType)) {
+    if (!["dispChannel", "colors", "dash"].includes(inputType)) {
       throw new Error("Wrong inputType was given");
     }
 
@@ -396,17 +399,17 @@ class DataProvider {
         type: dataObj.type,
       });
     } else if (inputType === "colors") {
-      if (dataObj.type === "phone") {
-        dataObj.colors.L = inputValue.L || "#000";
-        dataObj.colors.R = inputValue.R || "#000";
-        dataObj.colors.AVG = inputValue.AVG || "#000";
-        this.frDataMap.set(keyValue, dataObj);
-      } else if (dataObj.type === "target") {
-        dataObj.colors = inputValue;
-        this.frDataMap.set(keyValue, dataObj);
-      }
+      dataObj.colors.L = inputValue.L || "";
+      dataObj.colors.R = inputValue.R || "";
+      dataObj.colors.AVG = inputValue.AVG || "";
+      this.frDataMap.set(keyValue, dataObj);
       // Fire Event
       this.coreEvent.dispatchEvent("fr-color-updated", { uuid: keyValue });
+    } else if (inputType === "dash") {
+      dataObj.dash = inputValue;
+      this.frDataMap.set(keyValue, dataObj);
+      // Fire Event
+      this.coreEvent.dispatchEvent("fr-dash-updated", { uuid: keyValue });
     }
   };
 
@@ -447,17 +450,31 @@ class DataProvider {
   };
 
   _getColorWithType(sourceType) {
-    const baseHue = Math.random() * 360;
+    const baseHue = parseInt((Math.random() * 360).toFixed(0));
+    const baseSaturation = parseInt((Math.random() * 50).toFixed(0));
+    const baseLightness = parseInt((Math.random() * 30).toFixed(0));
     if (sourceType === "target") {
-      return { AVG: "#666" };
+      return { AVG: `hsl(${baseHue}, 0%, 30%)` };
     } else {
       return {
-        L: `hsl(${baseHue % 360}, 70%, 50%)`,
-        R: `hsl(${(baseHue + 20) % 360}, 70%, 50%)`,
-        AVG: `hsl(${(baseHue + 10) % 360}, 70%, 50%)`
+        L: `hsl(${(baseHue - 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
+        R: `hsl(${(baseHue + 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
+        AVG: `hsl(${baseHue}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`
       };
     }
   };
+
+  _getDashWithType(sourceType, identifier = null) {
+    if (sourceType === "target") {
+      if(identifier === null) return "4 4";
+      // If identifier is given, search for the custom dash style from config
+      return ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
+        o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
+      )?.dash || "4 4";
+    } else {
+      return "1 0";
+    }
+  }
 
   static getInstance() {
     if(!DataProvider.instance) {

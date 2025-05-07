@@ -1,0 +1,9 @@
+{
+  "label": {
+    "hue": "색상(H)",
+    "saturation": "채도(S)",
+    "lightness": "명도(L)",
+    "tick": "실선",
+    "space": "간격"
+  }
+}

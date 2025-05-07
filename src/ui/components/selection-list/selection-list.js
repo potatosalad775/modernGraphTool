@@ -91,7 +91,7 @@ class SelectionList {
     itemElement.innerHTML = `
       <div class="sl-item-content">
         <div class="sl-item-heading">
-          <button class="sl-color-btn" style="background: ${frData.colors.L || frData.colors}"></button>
+          <button class="sl-color-btn" style="background: ${frData.colors.AVG || frData.colors}"></button>
           <div class="sl-name">
             <span class="sl-identifier">${frData.identifier}</span>
             ${frData.type === 'phone' && frData.meta.files.length > 1 ? `
@@ -257,7 +257,7 @@ class SelectionList {
         const type = itemElement.dataset.type;
         const newColor = DataProvider._getColorWithType(type);
         DataProvider.updateMetadata('uuid', uuid, 'colors', newColor);
-        e.target.style.background = newColor.L || newColor;
+        e.target.style.background = newColor.AVG || newColor;
       });
     }
 

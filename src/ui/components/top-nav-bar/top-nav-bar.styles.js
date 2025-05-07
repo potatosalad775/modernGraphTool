@@ -37,7 +37,7 @@ export const topNavBarStyles = `
 
   .top-nav-bar-trailing {
     display: flex;
-    gap: 1rem;
+    gap: 0.25rem;
     align-items: center;
   }
 
@@ -45,6 +45,8 @@ export const topNavBarStyles = `
     text-decoration: none;
     color: var(--gt-color-on-surface-variant);
     font: var(--gt-typescale-body-large);
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
   }
 
   /* Mobile styles */
@@ -58,6 +60,7 @@ export const topNavBarStyles = `
     border: none;
     background: none;
     cursor: pointer;
+    border-radius: 0.5rem;
   }
 
   .mobile-menu-button svg {
@@ -114,7 +117,7 @@ export const topNavBarStyles = `
     align-items: center;
     justify-content: space-between;
     margin: 1.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 
     h2 {
       margin: 0;
@@ -126,13 +129,24 @@ export const topNavBarStyles = `
     color: var(--gt-color-on-surface-variant);
     font: var(--gt-typescale-body-large);
     padding: 0.5rem;
-    margin: 0.5rem 1rem;
+    margin: 0.25rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .mobile-sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
     border-radius: 0.5rem;
   }
 
   @media (hover: hover) and (pointer: fine) {
     .top-nav-bar-trailing a:hover {
-      color: var(--gt-color-on-surface);
+      color: var(--gt-color-primary);
+      background: var(--gt-color-surface-container);
+      filter: var(--gt-hover-filter);
     }
 
     .mobile-menu-button svg:hover {

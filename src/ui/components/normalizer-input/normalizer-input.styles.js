@@ -56,7 +56,6 @@ export const normalizerInputStyles = `
       outline: 0;
       border: 0;
       padding: 0;
-      border-radius: 2rem;
       color: var(--gt-color-primary);
       background: transparent;
       font-weight: bold;

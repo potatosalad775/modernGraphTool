@@ -454,7 +454,7 @@ class DataProvider {
     const baseSaturation = parseInt((Math.random() * 50).toFixed(0));
     const baseLightness = parseInt((Math.random() * 30).toFixed(0));
     if (sourceType === "target") {
-      return { AVG: `hsl(${baseHue}, 0%, 30%)` };
+      return { AVG: `hsl(${baseHue}, 0%, 45%)` };
     } else {
       return {
         L: `hsl(${(baseHue - 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,

@@ -247,8 +247,8 @@ export default class GraphColorWheel {
       if(this.activeType.includes('target')) {
         hslHueInput.value = baseHue;
         hslSatInput.value = 0;
-        hslLightInput.value = 30;
-        colorPicker.colorWheel.hsl = [baseHue, 0, 30];
+        hslLightInput.value = 45;
+        colorPicker.colorWheel.hsl = [baseHue, 0, 45];
       } else {
         hslHueInput.value = baseHue;
         hslSatInput.value = 50 + baseSaturation;

@@ -9,8 +9,8 @@ export const graphColorWheelStyle = `
     padding: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 500;
-    width: 50dvw;
-    max-width: 30rem;
+    min-width: 256px;
+    max-width: 320px;
     gap: 1rem;
     color: var(--gt-color-on-surface);
   }

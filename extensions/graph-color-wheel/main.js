@@ -22,6 +22,13 @@ export default class GraphColorWheel {
     window.addEventListener("core:fr-phone-added", this._replaceOldButtonWithUUID.bind(this));
     window.addEventListener("core:fr-target-added", this._replaceOldButtonWithUUID.bind(this));
     window.addEventListener("core:fr-unknown-inserted", this._replaceOldButtonWithUUID.bind(this));
+    window.addEventListener("core:menu-switched", (e) => {
+      if(e.detail.target !== 'list' && this.activePopup) {
+        // Close color picker if menu is switched
+        this.activePopup.remove();
+        this.activePopup = null;
+      }
+    })
     
     // Add StringLoader Observer
     StringLoader.addObserver(this._updateLanguage.bind(this));
@@ -172,8 +179,13 @@ export default class GraphColorWheel {
   _positionPopup(targetButton) {
     const rect = targetButton.getBoundingClientRect();
     this.activePopup.style.position = "absolute";
-    this.activePopup.style.top = `${rect.top + window.scrollY - 141}px`;
-    this.activePopup.style.left = `${rect.right + window.scrollX + 10}px`;
+    if(window.innerWidth < 1000) {
+      this.activePopup.style.top = `${rect.top + window.scrollY - 170}px`;
+      this.activePopup.style.left = `${rect.right + window.scrollX - 24}px`;
+    } else {
+      this.activePopup.style.top = `${rect.top + window.scrollY - 170}px`;
+      this.activePopup.style.left = `${rect.right + window.scrollX - 24}px`;
+    }
   }
 
   _addPopupEventListeners() {
@@ -302,15 +314,18 @@ export default class GraphColorWheel {
   }
 
   _updateLanguage() {
-    this.activePopup.querySelector('label[for="gcw-hsl-hue"').innerHTML = StringLoader.getString(
-      "extension.graph-color-wheel.label.hue", "H");
-    this.activePopup.querySelector('label[for="gcw-hsl-sat"').innerHTML = StringLoader.getString(
-      "extension.graph-color-wheel.label.saturation", "S");
-    this.activePopup.querySelector('label[for="gcw-hsl-light"').innerHTML = StringLoader.getString(
-      "extension.graph-color-wheel.label.lightness", "L");
-    this.activePopup.querySelector('label[for="gcw-tick-length"').innerHTML = StringLoader.getString(
-      "extension.graph-color-wheel.label.tick", "Tick");
-    this.activePopup.querySelector('label[for="gcw-space-length"').innerHTML = StringLoader.getString(
-      "extension.graph-color-wheel.label.space", "Space");
+    if(!this.activePopup) return;
+
+    const hueLabel = this.activePopup.querySelector('label[for="gcw-hsl-hue"');
+    const satLabel = this.activePopup.querySelector('label[for="gcw-hsl-sat"');
+    const lightLabel = this.activePopup.querySelector('label[for="gcw-hsl-light"');
+    const tickLabel = this.activePopup.querySelector('label[for="gcw-tick-length"');
+    const spaceLabel = this.activePopup.querySelector('label[for="gcw-space-length"');
+
+    if(hueLabel) hueLabel.innerHTML = StringLoader.getString("extension.graph-color-wheel.label.hue", "H");
+    if(satLabel) satLabel.innerHTML = StringLoader.getString("extension.graph-color-wheel.label.saturation", "S");
+    if(lightLabel) lightLabel.innerHTML = StringLoader.getString("extension.graph-color-wheel.label.lightness", "L");
+    if(tickLabel) tickLabel.innerHTML = StringLoader.getString("extension.graph-color-wheel.label.tick", "Tick");
+    if(spaceLabel) spaceLabel.innerHTML = StringLoader.getString("extension.graph-color-wheel.label.space", "Space");
   }
 }

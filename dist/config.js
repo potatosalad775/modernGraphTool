@@ -23,6 +23,14 @@ const CONFIG = {
       TEXT_SIZE: "20px", 
       TEXT_WEIGHT: "600",                               // (100 ~ 900)
     },
+    BASELINE_LABEL: {
+      LOCATION: "TOP_LEFT",
+      POSITION: {
+        LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
+      },
+      TEXT_SIZE: "15px",
+      TEXT_WEIGHT: "500",                               // (100 ~ 900)
+    },
     RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)", // Please don't leave this line empty, pretty please?
   },
   // User Interface Settings
@@ -59,7 +67,7 @@ const CONFIG = {
       SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
     },
     // You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
-    { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_LEFT", POSITION: {UP: "20", DOWN: "0", LEFT: "0", RIGHT: "10"}, OPACITY: "0.2",
+    { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "15", LEFT: "46", RIGHT: "0"}, OPACITY: "0.2",
       CONTENT: [
         "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
       ] 

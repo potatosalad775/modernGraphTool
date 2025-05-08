@@ -43,7 +43,7 @@ class RenderEngine {
     this._setupScales();
     this._drawAxis();
     this._drawFadeGradient();
-    this._createMainGroup();
+    this._createCurveGroup();
 
     // Setup Graph Watermark
     GraphWatermark(this.svg);
@@ -89,7 +89,7 @@ class RenderEngine {
     //this.updateYAxis(oldYScale);
     this.updateYAxis();
     // Transition Phone Graph
-    this.mainGroup.selectAll("*")
+    this.curveGroup.selectAll("*")
       .transition()
       .duration(this.transitionDuration)
       .attr("d", d => {
@@ -196,7 +196,7 @@ class RenderEngine {
         uuid: null,
         identifier: null,
         channelData: null,
-      }
+      };
     } else {
       if(uuid === null) { console.error("Baseline UUID is not defined"); return; }
       const baselineMetaData = this.dataProvider.getFRData(uuid);
@@ -212,16 +212,17 @@ class RenderEngine {
                 : baselineMetaData.dispChannel[0]
               ]?.data
             : baselineMetaData.channels['AVG'].data,
-      }
-    }
+      };
+    };
     // Update Baseline on Graph
     this.updateBaseline(true);
+    this.updateBaselineLabel();
   };
 
   updateBaseline(animate = false) {
     // Transition all curves
     const self = this;
-    this.mainGroup.selectAll("*")
+    this.curveGroup.selectAll("*")
       .transition()
       .duration(animate ? this.transitionDuration : 0)
       .attrTween("d", function(d) { 
@@ -230,19 +231,60 @@ class RenderEngine {
         const newPath = self._getCompensatedPath(d);
         return t => d3.interpolateString(oldPath, newPath)(t);
       });
+    
+    // Fire Event
+    this.coreEvent.dispatchEvent('fr-baseline-updated', { 
+      baselineUUID: this.baselineData.uuid,
+      baselineIdentifier: this.baselineData.identifier,
+    });
+  }
 
-      this.coreEvent.dispatchEvent('fr-baseline-updated', { baselineUUID: this.baselineData.uuid });
+  updateBaselineLabel() {
+    const uuid = this.baselineData.uuid;
+    const identifier = this.baselineData.identifier;
+    // Add compensation description label
+    if(uuid === null) {
+      this.svg.selectAll(".fr-graph-baseline-text").remove();
+    } else {
+      // Only add new label if it doesn't exist
+      if(!this.svg.selectAll(`.fr-graph-baseline-text[data-uuid='${uuid}']`).size()) {
+        const labelLocation = ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.LOCATION') || "BOTTOM_LEFT";
+        const labelX = this.labelPosition[labelLocation].x 
+          + parseInt(ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') || 0)
+          - parseInt(ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') || 0);
+        const labelY = this.labelPosition[labelLocation].y
+          + parseInt(ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') || 0)
+          - parseInt(ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.POSITION.UP') || 0);
+        // Add baseline description label
+        this.svg
+          .append("text")
+          .attr("class", "fr-graph-baseline-text")
+          .attr("data-uuid", uuid)
+          .attr("x", labelX)
+          .attr("y", labelY - 8)
+          .attr("text-anchor", this.labelPosition[labelLocation].anchor)
+          .attr("fill", "#000000")
+          .attr("opacity", "0.3")
+          .attr("font-size", ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') || "15px")
+          .attr("font-weight", ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') || "500")
+          .text(`${identifier} Compensated`);
+      }
+    }
   }
 
   _getCompensatedPath(originalData) {
     // Create bisector for frequency lookup
-    const bisect = d3.bisector(d => d[0]).left;
+    const bisect = d3.bisector(point => point[0]).left;
+    const isBaselineValid = Array.isArray(this.baselineData.channelData) 
+      && this.baselineData.channelData.length > 0;
 
     // Create new path generator
     const lineGenerator = d3.line()
       .x(d => this.xScale(d[0]))
       .y(d => {
-        if (!this.baselineData.channelData) return this.yScale(d[1]);
+        if (!isBaselineValid) {
+          return this.yScale(d[1]);
+        }
         
         // Find closest frequency in baseline data
         const i = bisect(this.baselineData.channelData, d[0], 0);
@@ -313,9 +355,9 @@ class RenderEngine {
     this.updateYAxis();
   };
 
-  _createMainGroup() {
+  _createCurveGroup() {
     if(this.svg.select(".fr-graph-curve-container").empty())   {
-      this.mainGroup = this.svg
+      this.curveGroup = this.svg
      .append("g")
      .attr("class", "fr-graph-curve-container")
      .attr("transform", "translate(0,0)")
@@ -353,7 +395,7 @@ class RenderEngine {
         .y((d) => this.yScale(d[1]))
         .curve(d3.curveNatural);
 
-      this.mainGroup
+      this.curveGroup
         .append("path")
         .datum(() => FRSmoother.getSmoothDataForPath(obj.channels[channel].data))
         .attr("class", `fr-graph-phone-curve`)
@@ -376,7 +418,7 @@ class RenderEngine {
       .y((d) => this.yScale(d[1]))
       .curve(d3.curveNatural);
 
-    this.mainGroup
+    this.curveGroup
       .append("path")
       .datum(obj.channels['AVG'].data)
       .attr("class", "fr-graph-target-curve")
@@ -400,7 +442,7 @@ class RenderEngine {
         .y((d) => this.yScale(d[1]))
         .curve(d3.curveNatural);
 
-      this.mainGroup
+      this.curveGroup
         .append("path")
         .datum(() => FRSmoother.getSmoothDataForPath(obj.channels[channel].data))
         .attr("class", `fr-graph-${obj.type}-curve`)
@@ -422,7 +464,7 @@ class RenderEngine {
    * @param {string} uuid - UUID of frDataMap Object
    */
   eraseFRCurve(uuid) {
-    this.mainGroup
+    this.curveGroup
      .selectAll(`*[uuid="${uuid}"]`)
      .remove();
   };
@@ -622,7 +664,7 @@ class RenderEngine {
 
   channelUpdateRunner(uuid, type) {
     // Remove Current Paths
-    this.mainGroup.selectAll(`.fr-graph-${type}-curve[uuid="${uuid}"]`).remove();
+    this.curveGroup.selectAll(`.fr-graph-${type}-curve[uuid="${uuid}"]`).remove();
     // Draw Phone Curve
     if(type === 'phone') {
       this._drawPhoneCurve(this.dataProvider.getFRData(uuid));

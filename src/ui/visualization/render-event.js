@@ -10,7 +10,6 @@ const RenderEvent = {
   _bindRenderEvent() {
     window.addEventListener("core:fr-phone-added", (e) => {
       this.renderEngine.drawFRCurve(e.detail.uuid);
-      this.renderEngine.updateBaseline();
       this.renderEngine.updateLabels();
     });
     window.addEventListener("core:fr-phone-removed", (e) => {
@@ -19,7 +18,6 @@ const RenderEvent = {
     });
     window.addEventListener("core:fr-target-added", (e) => {
       this.renderEngine.drawFRCurve(e.detail.uuid);
-      this.renderEngine.updateBaseline();
       this.renderEngine.updateLabels();
     });
     window.addEventListener("core:fr-target-removed", (e) => {
@@ -28,7 +26,6 @@ const RenderEvent = {
     });
     window.addEventListener("core:fr-unknown-inserted", (e) => {
       this.renderEngine.drawFRCurve(e.detail.uuid);
-      this.renderEngine.updateBaseline();
       this.renderEngine.updateLabels();
     });
     window.addEventListener("core:fr-unknown-removed", (e) => {

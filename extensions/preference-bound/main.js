@@ -5,6 +5,7 @@
  * The bounds are read from 'Bounds U.txt' and 'Bounds D.txt'.
  */
 import { RenderEngine, StringLoader, FRParser, FRNormalizer } from "../../core.min.js";
+import { interpolatePath } from "./d3-interpolate-path.js";
 
 export default class PreferenceBoundExtension {
   constructor(config = {}) {
@@ -18,6 +19,7 @@ export default class PreferenceBoundExtension {
       raw: null,
       comp: null,
     }
+    this.previousBaselineUUID = null;
     this.buttonId = 'ext-preference-bound-toggle';
   }
 
@@ -230,42 +232,29 @@ export default class PreferenceBoundExtension {
     if(!this.boundsVisible) return;
 
     const self = this;
-    
-    if (RenderEngine.baselineData.uuid !== null) {
+
+    if (RenderEngine.baselineData.uuid !== null && this.previousBaselineUUID === null) {
       // Something is selected as baseline, use comp path
       this.preferenceBoundArea
-        .attr("fill", "none") // Temporarily remove fill
-        .attr("stroke", "none") // Temporarily remove fill
         .transition()
         .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
           const oldPath = self.pathData.raw;
           const newPath = self.pathData.comp;
-          return t => d3.interpolateString(oldPath, newPath)(t);
-        })
-        .on("end", function() {
-          // Restore original fill after transition
-          d3.select(this).attr("fill", self.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)');
-          d3.select(this).attr('stroke', self.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)');
+          return interpolatePath(oldPath, newPath);
         });
-    } else {
+    } else if (RenderEngine.baselineData.uuid === null && this.previousBaselineUUID !== null) {
       // No baseline, use raw path
       this.preferenceBoundArea
-        .attr("fill", "none") // Temporarily remove fill
-        .attr("stroke", "none") // Temporarily remove fill
         .transition()
         .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
           const oldPath = self.pathData.comp;
           const newPath = self.pathData.raw;
-          return t => d3.interpolateString(oldPath, newPath)(t);
-        })
-        .on("end", function() {
-          // Restore original fill after transition
-          d3.select(this).attr('fill', self.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)');
-          d3.select(this).attr('stroke', self.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)');
+          return interpolatePath(oldPath, newPath);
         });
     }
+    this.previousBaselineUUID = RenderEngine.baselineData.uuid;
   }
 
   updateYScale(e) {

@@ -14,7 +14,7 @@ class URLProvider {
     this.autoUpdateURL = ConfigGetter.get('URL.AUTO_UPDATE_URL') || true;
     this.useBase62 = ConfigGetter.get('URL.COMPRESS_URL') || false; // Toggle for URL shortening
     this.currentURL = "";
-    this.initPhoneDataFromURL = null;
+    this.phoneDataFromURL = null;
 
     // Bind methods
     this._handlePhoneChange = this._handlePhoneChange.bind(this);
@@ -126,7 +126,7 @@ class URLProvider {
 
   // Public method to get phone data from URL
   getPhoneDataFromURL() {
-    return this.initPhoneDataFromURL;
+    return this.phoneDataFromURL;
   }
 
   // Public method to get URL with current data

@@ -256,6 +256,9 @@ export default class PreferenceBoundExtension {
   }
 
   updatePath(e) {
+    // No need to update path if bounds are not visible
+    if(!this.boundsVisible) return;
+
     const self = this;
     const originalFill = this.preferenceBoundArea.attr("fill");
     
@@ -293,11 +296,17 @@ export default class PreferenceBoundExtension {
   }
 
   updateYScale(e) {
+    // No need to update if bounds are not visible
+    if(!this.boundsVisible) return;
+
     this.updatePathData();
     this.updatePath(e);
   }
 
   updateNormalization(e) {
+    // No need to update if bounds are not visible
+    if(!this.boundsVisible) return;
+    
     // Update Normalization
     const normalizedData = FRNormalizer.normalize(this.baseDFTargetData);
     this.baseDFTargetData = normalizedData;

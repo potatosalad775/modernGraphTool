@@ -60,13 +60,12 @@ class NormalizerInput extends HTMLElement {
 
     // Handle number input changes
     this.querySelector('input[type="number"]').addEventListener('input', (e) => {
-        const type = e.target.closest('.dB') ? 'dB' : 'Hz';
-        const value = parseFloat(e.target.value);
+      const type = e.target.closest('.dB') ? 'dB' : 'Hz';
+      const value = parseFloat(e.target.value);
 
-        FRNormalizer.updateNormalizationValue(type, value);
-        FRNormalizer.updateNormalization();
-      }
-    );
+      FRNormalizer.updateNormalizationValue(type, value);
+      FRNormalizer.updateNormalization();
+    });
   }
 
   _updateLabel() {

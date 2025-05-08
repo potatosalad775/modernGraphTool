@@ -44,7 +44,7 @@ export const topNavBarStyles = `
   .top-nav-bar-trailing a {
     text-decoration: none;
     color: var(--gt-color-on-surface-variant);
-    font: var(--gt-typescale-body-large);
+    font-size: 0.9rem;
     padding: 0.25rem 0.75rem;
     border-radius: 0.5rem;
   }

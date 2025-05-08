@@ -4,12 +4,8 @@ import ConfigGetter from "./util/config-getter.js";
 
 class URLProvider {
   constructor() {
-    this.baseTitle =
-      typeof page_title !== "undefined" ? page_title : "modernGraphTool";
-    this.baseDescription =
-      typeof page_description !== "undefined"
-        ? page_description
-        : "View and compare frequency response graphs";
+    this.baseTitle = document.querySelector('title')?.textContent || "modernGraphTool";
+    this.baseDescription = document.querySelector('meta[name="description"]')?.getAttribute('content') || "View and compare frequency response graphs";
     this.baseURL = window.location.href.split("?")[0];
     this.autoUpdateURL = ConfigGetter.get('URL.AUTO_UPDATE_URL') || true;
     this.useBase62 = ConfigGetter.get('URL.COMPRESS_URL') || false; // Toggle for URL shortening

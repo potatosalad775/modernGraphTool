@@ -43,10 +43,9 @@ export const EXTENSION_CONFIG = [
         { name: 'Harman 2018', filter: { tilt: 0, bass: 4.8, treble: -4.4, ear: 0 }},
       ],
       // Applies custom filter to the specified target on initial load
-      // These targets must be included as INITIAL_TARGETS in config.js to take effect.
       INITIAL_TARGET_FILTERS: [
-        { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 0, treble: 0, ear: 0 }},
-        { name: "ISO 11904-2 DF", filter: { tilt: -0.8, bass: 0, treble: 0, ear: 0 }},
+        { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6, treble: 0, ear: 0 }},
+        { name: "ISO 11904-2 DF", filter: { tilt: -0.8, bass: 6, treble: 0, ear: 0 }},
       ]
     }
   },

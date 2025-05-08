@@ -5,7 +5,7 @@ const CONFIG = {
   // Phone & Targets to display on initial load.
   // Note that this will be overridden by URL if it's present.
   INITIAL_PHONES: ["Demo Variations var2"],
-  INITIAL_TARGETS: ["Harman IE 2019v2 Target"],
+  INITIAL_TARGETS: ["KEMAR DF (KB006x)"],
   INITIAL_PANEL: "graph",                               // (phone, graph, misc)
   // Default Normalization Type and Value.
   NORMALIZATION: {

@@ -10,11 +10,7 @@ class MiscPanel extends HTMLElement {
     this.innerHTML = `
     <div class="menu-panel" id="misc-panel" data-target="misc-panel">
       <div class="misc-row">
-        <gt-button class="dark-mode-toggle" title="Toggle dark mode" 
-          onclick="document.documentElement.setAttribute(
-            'data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
-          )"
-        >
+        <gt-button class="dark-mode-toggle" title="Toggle dark mode">
           ${document.documentElement.getAttribute('data-theme') === 'dark' 
             ? IconProvider.Icon('moon', "width: 1.25rem; height: 1.25rem") 
             : IconProvider.Icon('sun', "width: 1.25rem; height: 1.25rem")}
@@ -89,6 +85,21 @@ class MiscPanel extends HTMLElement {
       }
     </style>
     `;
+
+    const darkModeToggle = this.querySelector(".dark-mode-toggle");
+    if(darkModeToggle) {
+      darkModeToggle.addEventListener("click", (e) => {
+        const isDarkMode = document.documentElement.getAttribute("data-theme") === "dark";
+        // Update Icon
+        e.target.innerHTML = isDarkMode
+          ? IconProvider.Icon('sun', "width: 1.25rem; height: 1.25rem")
+          : IconProvider.Icon('moon', "width: 1.25rem; height: 1.25rem");
+        // Change Theme
+        document.documentElement.setAttribute(
+          "data-theme", isDarkMode ? "light" : "dark"
+        );
+      });
+    }
   }
 }
 

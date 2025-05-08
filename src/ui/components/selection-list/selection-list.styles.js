@@ -149,7 +149,7 @@ export const selectionListStyles = `
   .sl-channels-select {
     width: 5rem;
     height: 1.7rem;
-    margin-right: 0.6rem;
+    margin-right: 0.1rem;
     border-radius: 0.5rem;
     color: var(--gt-color-on-surface);
     background-color: var(--gt-color-surface-container-lowest);

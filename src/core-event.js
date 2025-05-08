@@ -122,8 +122,9 @@ const CoreEvent = {
       // Add Initial Targets
       const initialTargets = ConfigGetter.get('INITIAL_TARGETS') || [];
       initialTargets.forEach(async (target) => {
-        if (this.coreAPI.MetadataParser.isTargetAvailable(target)) {
-          await this.coreAPI.DataProvider.addFRData("target", target);
+        const targetName = target.includes(" Target") ? target : target + " Target";
+        if (this.coreAPI.MetadataParser.isTargetAvailable(targetName)) {
+          await this.coreAPI.DataProvider.addFRData("target", targetName);
         }
       });
     }

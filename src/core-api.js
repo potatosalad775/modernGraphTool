@@ -6,6 +6,7 @@ import RenderEngine from './ui/visualization/render-engine.js';
 import MetadataParser from './model/util/metadata-parser.js';
 import StringLoader from './model/util/string-loader.js';
 import FRParser from './model/util/fr-parser.js';
+import FRNormalizer from './model/util/fr-normalizer.js';
 import URLProvider from "./model/url-provider.js";
 
 // Create namespace object
@@ -18,6 +19,7 @@ const CoreAPI = {
   MetadataParser,
   StringLoader,
   FRParser,
+  FRNormalizer,
   URLProvider,
 };
 
@@ -31,6 +33,7 @@ export {
   MetadataParser,
   StringLoader,
   FRParser,
+  FRNormalizer,
   URLProvider,
 };
 

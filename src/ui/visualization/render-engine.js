@@ -18,7 +18,6 @@ class RenderEngine {
       TOP_LEFT: { x: 60, y: 60, anchor: "start", growUp: false },
       TOP_RIGHT: { x: 740, y: 60, anchor: "end", growUp: false },
     };
-    this.baselineUUID = null;
     this.baselineData = {
       uuid: null,
       identifier: null,
@@ -287,6 +286,10 @@ class RenderEngine {
       .domain([-(this.yScaleValue / 2), (this.yScaleValue / 2)])
       .range([this.graphGeometry.yBottom, this.graphGeometry.yTop]);
   };
+
+  getScales() {
+    return { xScale: this.xScale, yScale: this.yScale };
+  }
 
   _drawAxis() {
     // Draw x-axis if it doesn't exist

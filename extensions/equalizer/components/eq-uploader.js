@@ -57,7 +57,7 @@ class EQUploader extends HTMLElement {
       const rawData = await file.text();
       
       // Parse the FR data using FRParser
-      const parsedData = await FRParser._parseFRData(rawData);
+      const parsedData = await FRParser.parseFRData(rawData);
       
       // Structure the data based on sourceType
       const channelData = { AVG: parsedData }; // Single channel

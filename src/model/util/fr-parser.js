@@ -32,7 +32,7 @@ const FRParser = {
             filename,
           );
           if(rawData) {
-            parsedChannels[channel] = await this._parseFRData(rawData);
+            parsedChannels[channel] = await this.parseFRData(rawData);
           }
         } catch (error) {
           console.error(`Failed to process ${filename} ${channel} channel:`, error);
@@ -87,7 +87,7 @@ const FRParser = {
    * @param {string} rawData - Raw content from FR measurement file
    * @returns {Promise<Object>} Structured FR data with metadata
    */
-  async _parseFRData(rawData) {
+  async parseFRData(rawData) {
     const lines = rawData
       .split("\n")
       .map((line) => line.trim())

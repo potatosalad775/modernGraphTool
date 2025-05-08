@@ -48,8 +48,8 @@ export default class SquiglinkIntegration {
     this.scriptsLoaded = false;
 
     // Analytic Parameter
-    window.ANALYTICS_SITE = window.ANALYTICS_SITE || "";
-    window.ANALYTICS_GTM_ID = window.ANALYTICS_GTM_ID || "";
+    window.ANALYTICS_SITE = this.config.ANALYTICS_SITE || "";
+    window.ANALYTICS_GTM_ID = this.config.ANALYTICS_GTM_ID || "";
     window.LOG_ANALYTICS = this.config.LOG_ANALYTICS || true;
   }
 

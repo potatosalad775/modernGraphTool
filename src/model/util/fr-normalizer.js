@@ -24,7 +24,6 @@ class FRNormalizer {
     }
 
     const normalized = this._deepCopy(frData);
-    console.log(this.Hzvalue);
 
     try {
       return this.type === "Hz"

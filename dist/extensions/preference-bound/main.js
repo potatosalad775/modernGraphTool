@@ -32,7 +32,7 @@ export default class PreferenceBoundExtension {
       // Initially draw bound if config says so
       this.togglePreferenceBounds(this.config.ENABLE_BOUND_ON_INITIAL_LOAD || false); 
       // Add event listeners for baseline change
-      window.addEventListener('core:fr-baseline-updated', this.updatePath.bind(this));
+      window.addEventListener('core:fr-baseline-updated', this.updatePath.bind(this, true));
       window.addEventListener('core:fr-normalized', this.updateNormalization.bind(this));
       const yScaleButton = document.querySelector('graph-scale-button gt-button');
       if (yScaleButton) {
@@ -215,36 +215,6 @@ export default class PreferenceBoundExtension {
       })
       .curve(d3.curveNatural);
 
-    /*
-    const rawLineGeneratorWithInterpolation = d3.line()
-      .x(d => xScale(d[0]))
-      .y(d => {
-        if (!this.baseDFTargetData.data) return yScale(d[1]);
-
-        // Create bisector for frequency lookup
-        const bisect = d3.bisector(d => d[0]).left;
-        
-        // Find closest frequency in baseline data
-        const i = bisect(this.baseDFTargetData.data, d[0], 0);
-        const a = this.baseDFTargetData.data[i - 1];
-        const b = this.baseDFTargetData.data[i];
-        
-        let baselineY = 0;
-        if (a && b) {
-          // interpolate between nearest points
-          const t = (d[0] - a[0]) / (b[0] - a[0]);
-          baselineY = a[1] + t * (b[1] - a[1]);
-        } else if (a) {
-          baselineY = a[1];
-        } else if (b) {
-          baselineY = b[1];
-        }
-
-        return yScale(baselineY + d[1]);
-      })
-      .curve(d3.curveNatural);
-    */
-
     this.pathData = {
       raw:  rawLineGenerator(this.boundDataU.data) + 
             rawLineGenerator(this.boundDataD.data.slice().reverse()).replace(/^M/, 'L') + 
@@ -255,19 +225,19 @@ export default class PreferenceBoundExtension {
     }
   }
 
-  updatePath(e) {
+  updatePath(animate = false) {
     // No need to update path if bounds are not visible
     if(!this.boundsVisible) return;
 
     const self = this;
-    const originalFill = this.preferenceBoundArea.attr("fill");
     
     if (RenderEngine.baselineData.uuid !== null) {
       // Something is selected as baseline, use comp path
       this.preferenceBoundArea
         .attr("fill", "none") // Temporarily remove fill
+        .attr("stroke", "none") // Temporarily remove fill
         .transition()
-        .duration(300)
+        .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
           const oldPath = self.pathData.raw;
           const newPath = self.pathData.comp;
@@ -275,14 +245,16 @@ export default class PreferenceBoundExtension {
         })
         .on("end", function() {
           // Restore original fill after transition
-          d3.select(this).attr("fill", originalFill);
+          d3.select(this).attr("fill", self.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)');
+          d3.select(this).attr('stroke', self.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)');
         });
     } else {
       // No baseline, use raw path
       this.preferenceBoundArea
         .attr("fill", "none") // Temporarily remove fill
+        .attr("stroke", "none") // Temporarily remove fill
         .transition()
-        .duration(300)
+        .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
           const oldPath = self.pathData.comp;
           const newPath = self.pathData.raw;
@@ -290,7 +262,8 @@ export default class PreferenceBoundExtension {
         })
         .on("end", function() {
           // Restore original fill after transition
-          d3.select(this).attr("fill", originalFill);
+          d3.select(this).attr('fill', self.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)');
+          d3.select(this).attr('stroke', self.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)');
         });
     }
   }
@@ -300,7 +273,7 @@ export default class PreferenceBoundExtension {
     if(!this.boundsVisible) return;
 
     this.updatePathData();
-    this.updatePath(e);
+    this.updatePath(true);
   }
 
   updateNormalization(e) {
@@ -313,7 +286,7 @@ export default class PreferenceBoundExtension {
 
     // Update Path
     this.updatePathData();
-    this.updatePath(e);
+    this.updatePath(false);
   }
 
   updateLanguage() {

@@ -48,8 +48,8 @@ export default class SquiglinkIntegration {
     this.scriptsLoaded = false;
 
     // Analytic Parameter
-    window.ANALYTICS_SITE = window.ANALYTICS_SITE || "";
-    window.ANALYTICS_GTM_ID = window.ANALYTICS_GTM_ID || "";
+    window.ANALYTICS_SITE = this.config.ANALYTICS_SITE || "";
+    window.ANALYTICS_GTM_ID = this.config.ANALYTICS_GTM_ID || "";
     window.LOG_ANALYTICS = this.config.LOG_ANALYTICS || true;
   }
 
@@ -134,6 +134,7 @@ export default class SquiglinkIntegration {
           color: var(--gt-color-on-surface) !important;
           border: 1px solid var(--gt-color-outline) !important;
           border-radius: 0.5rem !important;
+          max-width: 10rem !important;
         }
       </style>`
     document.querySelector('.top-nav-bar-leading')?.appendChild(headerLink);

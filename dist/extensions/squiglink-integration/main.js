@@ -1,5 +1,7 @@
 import { DataProvider } from "../../core.min.js";
 window.activePhones = []; // Expose activePhones List Globally
+window.baseline = { p:null, l:null, fn:l=>l }; // Expose baseline Object Globally
+window.targetWindow = null; // Expose targetWindow Object Globally
 
 // Function to update the active phones
 function updateActivePhones() {
@@ -42,6 +44,31 @@ function updateActivePhones() {
 }
 updateActivePhones();
 
+// Function to update targetWindow Object for fauxnItem (Search Results)
+function updateTargetWindow() {
+  // See if iframe gets CORS error when interacting with window.top
+  try {
+    let emb = window.location.href.includes('embed');
+    targetWindow = emb ? window : window.top;
+  } catch {
+    targetWindow = window;
+  }
+}
+updateTargetWindow();
+
+// Function to add Baseline Event Listener for fauxnItem (Search Results)
+function addBaselineUpdater() {
+  window.addEventListener('core:fr-baseline-updated', (e) => {
+    window.baseline = {
+      ...window.baseline,
+      p: {
+        fileName: e.detail.baselineIdentifier
+      },
+    }
+  })
+}
+addBaselineUpdater();
+
 export default class SquiglinkIntegration {
   constructor(config = {}) {
     this.config = config;
@@ -65,7 +92,10 @@ export default class SquiglinkIntegration {
     document.querySelector('.menu-bar-item[data-target="equalizer-panel"]')?.classList.add('extra');
     // Add IDs and Classes to Phone List for Squiglink Search integration
     const phoneList = document.querySelector('.ps-phone-list');
-    if (phoneList) { phoneList.id = 'phones'; }
+    if (phoneList) { 
+      phoneList.id = 'phones'; 
+      phoneList.classList.add('scroll');
+    }
     phoneList.querySelectorAll('.ps-phone-item')?.forEach((item) => {
       item.classList.add('phone-item');
     });

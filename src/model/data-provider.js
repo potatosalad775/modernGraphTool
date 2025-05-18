@@ -8,6 +8,7 @@ import ConfigGetter from "./util/config-getter.js";
 class DataProvider {
   constructor() {
     this.frDataMap = new Map();
+    this.baseHue = null; // base Hue value for color generation
   };
   
   init(coreEvent) {
@@ -450,30 +451,61 @@ class DataProvider {
   };
 
   _getColorWithType(sourceType) {
-    const baseHue = parseInt((Math.random() * 360).toFixed(0));
+    if(this.baseHue === null) {
+      // Generate random base color hue
+      this.baseHue = parseInt((Math.random() * 360).toFixed(0));
+    } else {
+      // Increment base color hue for subsequent phones
+      this.baseHue = (this.baseHue + 100) % 360;
+    }
     const baseSaturation = parseInt((Math.random() * 50).toFixed(0));
-    const baseLightness = parseInt((Math.random() * 30).toFixed(0));
+    const baseLightness = parseInt((Math.random() * 20).toFixed(0));
     if (sourceType === "target") {
-      return { AVG: `hsl(${baseHue}, 0%, 45%)` };
+      return { AVG: `hsl(${this.baseHue}, 0%, 45%)` };
     } else {
       return {
-        L: `hsl(${(baseHue - 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
-        R: `hsl(${(baseHue + 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
-        AVG: `hsl(${baseHue}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`
+        L: `hsl(${(this.baseHue - 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
+        R: `hsl(${(this.baseHue + 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
+        AVG: `hsl(${this.baseHue}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`
       };
     }
   };
 
   _getDashWithType(sourceType, identifier = null) {
     if (sourceType === "target") {
-      if(identifier === null) return "4 4";
+      if (identifier === null) {
+        return this._getRandomDashForTarget();
+      }
+
       // If identifier is given, search for the custom dash style from config
       return ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
         o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
-      )?.dash || "4 4";
+      )?.dash || this._getRandomDashForTarget();
     } else {
       return "1 0";
     }
+  }
+
+  _getRandomDashForTarget() {
+    // Generate 1-3 dash-space pairs randomly
+    const numPairs = 1 + Math.floor(Math.random() * 3);
+    const pairs = [];
+    
+    // Generate space length between 2-4
+    const spaceLength = 5 + Math.floor(Math.random() * 3);
+
+    // Generate random dash length between 2-6
+    for (let i = 0; i < numPairs; i++) {
+      // Alternate long dash and short dash for distinctive variation
+      if(i % 2 === 0) {
+        const dashLength = 5 + Math.floor(Math.random() * 5);
+        pairs.push(`${dashLength} ${spaceLength}`);
+      } else {
+        pairs.push(`2 ${spaceLength}`);
+      }
+    }
+
+    return pairs.join(' ');
   }
 
   static getInstance() {

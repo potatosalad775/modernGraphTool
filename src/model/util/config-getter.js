@@ -56,6 +56,14 @@ class ConfigGetter {
         return { ...baseValue, ...langValue };
       }
 
+      if (typeof baseValue === 'string') {
+        if (baseValue.toLowerCase() === 'true') {
+          return true;
+        } else if (baseValue.toLowerCase() === 'false') {
+          return false;
+        }
+      }
+
       return langValue;
     }
 

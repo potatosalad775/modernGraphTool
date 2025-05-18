@@ -138,6 +138,8 @@ class PhoneSelector extends HTMLElement {
   }
 
   _addBrandEventListeners() {
+    this.shouldSwitchPanelOnClick = ConfigGetter.get('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') || true;
+
     this.querySelectorAll(".ps-brand-item input").forEach((input) => {
       input.addEventListener("change", (e) => {
         e.preventDefault();
@@ -169,6 +171,11 @@ class PhoneSelector extends HTMLElement {
               phone => phone.brand !== brand
             );
           }
+        }
+        
+        // Switch to Phone List Panel
+        if(this.shouldSwitchPanelOnClick) {
+          this._switchListPanel(null, 'phone');
         }
         
         // Re-render Phone List and Re-attach Event Listeners
@@ -253,7 +260,7 @@ class PhoneSelector extends HTMLElement {
   }
 
   _switchListPanel(e, type) {
-    e.preventDefault();
+    if(e !== null) { e.preventDefault(); }
     this.querySelector('.ps-brand-list').classList.toggle('mobile-visible');
     this.querySelector('.ps-phone-list').classList.toggle('mobile-visible');
     this.querySelector(`.ps-header-nav-${type === 'phone' ? 'brand' : 'phone'}`).style.display = '';

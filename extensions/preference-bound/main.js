@@ -256,7 +256,7 @@ export default class PreferenceBoundExtension {
           const newPath = self.pathData.comp;
           return interpolatePath(oldPath, newPath);
         });
-    } else if (RenderEngine.baselineData.uuid === null && this.previousBaselineUUID !== null) {
+    } else {
       // No baseline, use raw path
       this.preferenceBoundArea
         .transition()
@@ -283,12 +283,35 @@ export default class PreferenceBoundExtension {
     if(!this.boundsVisible) return;
     
     // Update Normalization
+    const oldData = this.pathData;
     const normalizedData = FRNormalizer.normalize(this.baseDFTargetData);
     this.baseDFTargetData = normalizedData;
 
     // Update Path
     this.updatePathData();
-    this.updatePath(false);
+
+    const self = this;
+    if (RenderEngine.baselineData.uuid !== null && this.previousBaselineUUID === null) {
+      // Something is selected as baseline, use comp path
+      this.preferenceBoundArea
+        .transition()
+        .duration(0)
+        .attrTween("d", (d) => {  
+          const oldPath = oldData.comp;
+          const newPath = self.pathData.comp;
+          return interpolatePath(oldPath, newPath);
+        });
+    } else {
+      // No baseline, use raw path
+      this.preferenceBoundArea
+        .transition()
+        .duration(0)
+        .attrTween("d", (d) => {  
+          const oldPath = oldData.raw;
+          const newPath = self.pathData.raw;
+          return interpolatePath(oldPath, newPath);
+        });
+    }
   }
 
   updateLanguage() {

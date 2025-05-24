@@ -48,7 +48,7 @@ class RenderEngine {
     // Setup Graph Watermark
     GraphWatermark(this.svg);
     // Setup Graph Vertical Scaler Handle
-    this.resetGraphHandle = GraphHandle(this.svg, this);
+    this.graphHandle = new GraphHandle(this.svg, this);
   };
 
   /**
@@ -84,7 +84,7 @@ class RenderEngine {
     this.yScaleValue = parseInt(scale);
     this._setupScales();
     // Reset Vertical Scaler Handle
-    this.resetGraphHandle();
+    this.graphHandle.resetHandle();
     // Re-draw Y Axis
     //this.updateYAxis(oldYScale);
     this.updateYAxis();

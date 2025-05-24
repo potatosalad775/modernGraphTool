@@ -1,117 +1,131 @@
-const GraphHandle = (svg, renderEngine) => {
-  // Initialize shift state
-  var yShift = 0;
-  const maxShift = 20;
-  const isMobile = document.documentElement.hasAttribute('data-mobile') || window.innerWidth < 1000;
-  const handleRadius = isMobile ? 20 : 10;
+class GraphHandle {
+  constructor(svg, renderEngine) {
+    this.svg = svg;
+    this.renderEngine = renderEngine;
+    this.yShift = 0;
+    this.maxShift = 20;
+    this.isMobile = document.documentElement.hasAttribute('data-mobile') || window.innerWidth < 1000;
+    this.handleRadius = this.isMobile ? 20 : 10;
 
-  // Create handle group
-  const handleGroup = svg.append('g')
-    .attr('class', 'y-scaler-handle')
-    .attr('transform', `translate(${renderEngine.graphGeometry.xEnd},0)`);
+    this._initHandle();
+    this._setupDragBehavior();
+    this._attachEventListeners();
+  }
 
-  // Add track line
-  /*
-  handleGroup.append('line')
-    .attr('y1', renderEngine.graphGeometry.yTop)
-    .attr('y2', renderEngine.graphGeometry.yBottom)
-    .attr('stroke', 'var(--gt-color-outline)')
-    .attr('stroke-width', 1);
-  */
+  _initHandle() {
+    // Create handle group
+    this.handleGroup = this.svg.append('g')
+      .attr('class', 'y-scaler-handle')
+      .attr('transform', `translate(${this.renderEngine.graphGeometry.xEnd},0)`);
 
-  // Add handle circle
-  const handle = handleGroup.append('circle')
-    .attr('r', handleRadius)
-    .attr('stroke', 'var(--gt-color-primary)')
-    .attr('stroke-width', 2)
-    .attr('fill', 'var(--gt-color-surface-container-highest)')
-    .attr('opacity', '0.4')
-    .attr('cursor', 'pointer')
-    .attr('cy', (renderEngine.graphGeometry.yTop + renderEngine.graphGeometry.yBottom) / 2);
+    // Add handle circle
+    this.handle = this.handleGroup.append('circle')
+      .attr('r', this.handleRadius)
+      .attr('stroke', 'var(--gt-color-primary)')
+      .attr('stroke-width', 2)
+      .attr('fill', 'var(--gt-color-surface-container-highest)')
+      .attr('opacity', '0.4')
+      .attr('cursor', 'pointer')
+      .attr('cy', (this.renderEngine.graphGeometry.yTop + this.renderEngine.graphGeometry.yBottom) / 2);
 
-  // Calculate constraints for handle movement
-  const minY = renderEngine.graphGeometry.yTop + handleRadius;
-  const maxY = renderEngine.graphGeometry.yBottom - handleRadius;
-  const centerY = (minY + maxY) / 2;
+    // Calculate constraints for handle movement
+    this.minY = this.renderEngine.graphGeometry.yTop + this.handleRadius;
+    this.maxY = this.renderEngine.graphGeometry.yBottom - this.handleRadius;
+    this.centerY = (this.minY + this.maxY) / 2;
+  }
 
-  // Setup drag behavior
-  const drag = d3.drag()
-    .on('start', () => {
-      handle.attr('opacity', '1');
-    })
-    .on('drag', (event) => {
-      // Constrain vertical movement
-      const newY = Math.max(minY, Math.min(maxY, event.y));
-      handle.attr('cy', newY);
+  _setupDragBehavior() {
+    const drag = d3.drag()
+      .on('start', () => {
+        this.handle.attr('opacity', '1');
+      })
+      .on('drag', (event) => {
+        // Constrain vertical movement
+        const newY = Math.max(this.minY, Math.min(this.maxY, event.y));
+        this.handle.attr('cy', newY);
 
-      // Calculate shift based on handle position
-      const normalizedPosition = (newY - centerY) / (maxY - centerY);
-      yShift = maxShift * normalizedPosition;
+        // Calculate shift based on handle position
+        const normalizedPosition = (newY - this.centerY) / (this.maxY - this.centerY);
+        this.yShift = this.maxShift * normalizedPosition;
 
-      // Update graph without transitions for smooth movement
-      updateGraphPosition();
-    })
-    .on('end', () => {
-      handle.attr('opacity', '0.4');
-    });
+        // Update graph without transitions for smooth movement
+        this._updateGraphPosition();
+      })
+      .on('end', () => {
+        this.handle.attr('opacity', '0.4');
+      });
 
-  // Function to update graph position
-  const updateGraphPosition = () => {
+    // Initialize drag behavior
+    this.handle.call(drag);
+  }
+
+  _updateGraphPosition() {
     // Update y-axis scale with shift
-    renderEngine.yScale = d3.scaleLinear()
-      .domain([-(renderEngine.yScaleValue / 2) + yShift, 
-               (renderEngine.yScaleValue / 2) + yShift])
-      .range([renderEngine.graphGeometry.yBottom, renderEngine.graphGeometry.yTop]);
+    this.renderEngine.yScale = d3.scaleLinear()
+      .domain([-(this.renderEngine.yScaleValue / 2) + this.yShift,
+               (this.renderEngine.yScaleValue / 2) + this.yShift])
+      .range([this.renderEngine.graphGeometry.yBottom, this.renderEngine.graphGeometry.yTop]);
 
     // Update axis without animation
-    renderEngine.updateYAxis(null, false);
+    this.renderEngine.updateYAxis(null, false);
 
     // Update curves without animation
-    renderEngine.mainGroup.selectAll(".fr-graph-phone-curve, .fr-graph-target-curve")
+    this.renderEngine.mainGroup.selectAll(".fr-graph-phone-curve, .fr-graph-target-curve")
       .attr("d", d => {
         const lineGenerator = d3.line()
-          .x(d => renderEngine.xScale(d[0]))
-          .y(d => renderEngine.yScale(d[1]))
+          .x(d => this.renderEngine.xScale(d[0]))
+          .y(d => this.renderEngine.yScale(d[1]))
           .curve(d3.curveNatural);
         return lineGenerator(d);
       });
-  };
+  }
 
-  // Reset handle position
-  const resetHandle = () => {
-    handle
+  resetHandle() {
+    this.handle
       .transition()
       .duration(0)
-      .attr('cy', centerY);
-    yShift = 0;
-    updateGraphPosition();
-  };
+      .attr('cy', this.centerY);
+    this.yShift = 0;
+    this._updateGraphPosition();
+  }
 
-  // Add double-click and double touch to reset
-  handle.on('dblclick touchstart', (event) => {
-    // Prevent double touch from triggering zoom
-    if (event.type === 'touchstart') {
-      let lastTouch = handle.property('lastTouch') || 0;
-      const currentTime = new Date().getTime();
-      
-      // Reset lastTouch if it's a double touch within 300ms
-      if (currentTime - lastTouch <= 300) {
-        event.preventDefault();
-        resetHandle();
-        handle.property('lastTouch', 0);
+  _attachEventListeners() {
+    // Add double-click and double touch to reset
+    this.handle.on('dblclick touchstart', (event) => {
+      // Prevent double touch from triggering zoom
+      if (event.type === 'touchstart') {
+        let lastTouch = this.handle.property('lastTouch') || 0;
+        const currentTime = new Date().getTime();
+
+        // Reset lastTouch if it's a double touch within 300ms
+        if (currentTime - lastTouch <= 300) {
+          event.preventDefault();
+          this.resetHandle();
+          this.handle.property('lastTouch', 0);
+        } else {
+          this.handle.property('lastTouch', currentTime);
+        }
       } else {
-        handle.property('lastTouch', currentTime);
+        this.resetHandle();
       }
-    } else {
-      resetHandle();
-    }
-  });
+    });
 
-  // Initialize drag behavior
-  handle.call(drag);
-
-  // Return reset function for external use
-  return resetHandle;
-};
+    // Add event listener for ui mode change
+    window.addEventListener('core:ui-mode-change', (e) => {
+      this.isMobile = e.detail.isMobile;
+      this.handleRadius = this.isMobile ? 20 : 10;
+      this.handle.attr('r', this.handleRadius);
+      // Recalculate constraints as radius changes
+      this.minY = this.renderEngine.graphGeometry.yTop + this.handleRadius;
+      this.maxY = this.renderEngine.graphGeometry.yBottom - this.handleRadius;
+      this.centerY = (this.minY + this.maxY) / 2;
+      // If the handle is currently at the center, keep it there, otherwise, it might jump
+      // if not actively being dragged. This check might need refinement based on desired behavior.
+      if (this.yShift === 0) {
+        this.handle.attr('cy', this.centerY);
+      }
+    });
+  }
+}
 
 export default GraphHandle;

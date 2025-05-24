@@ -86,9 +86,6 @@ class CoreUI extends HTMLElement {
             border-radius: 0.5rem 0.5rem 0 0;
             border-top: 1px solid var(--gt-color-outline);
           }
-          .menu-bar-item[data-target="list-panel"] {
-            display: none;
-          }
         }
       </style>
     `;

@@ -4,8 +4,8 @@ import ConfigGetter from "./util/config-getter.js";
 class MenuState {
   constructor() {
     this.currentMenu = ConfigGetter.get('INITIAL_PANEL') || 'phone';
-    this.coreMenuList = ['phone', 'graph', 'list', 'misc'];
-    this.coreMenuBarName = ['DEVICES', 'GRAPH', 'LIST', 'MISC'];
+    this.coreMenuList = ['phone', 'graph', 'misc'];
+    this.coreMenuBarName = ['DEVICES', 'GRAPH', 'MISC'];
     this.extensionMenuList = [];
   }
 

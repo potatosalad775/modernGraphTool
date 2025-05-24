@@ -13,7 +13,7 @@ export const targetSelectorStyles = `
     min-height: 0.5rem;
     overflow: hidden;
     border-radius: 0.3rem 0.3rem 0.3rem 0;
-    background: var(--gt-color-surface-container);
+    background: var(--gt-color-surface-container-high);
     max-height: 1000px;
     opacity: 1;
     visibility: visible;

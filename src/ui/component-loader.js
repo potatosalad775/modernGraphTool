@@ -1,7 +1,6 @@
 // Core UI Panels
 import('./panels/phone-panel.js');
 import('./panels/graph-panel.js');
-import('./panels/list-panel.js');
 import('./panels/misc-panel.js');
 
 // Core UI Components

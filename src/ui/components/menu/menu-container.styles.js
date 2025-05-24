@@ -49,18 +49,4 @@ export const menuContainerStyles = `
     transform: translateX(-30%);
     transition-delay: 0s;
 }
-
-.menu-panel-row {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-
-    h3 {
-        margin: 0;
-        color: var(--gt-color-on-surface);
-    }
-}
 `;

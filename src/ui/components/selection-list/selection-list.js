@@ -5,41 +5,33 @@ import StringLoader from "../../../model/util/string-loader.js";
 import { selectionListStyles } from "./selection-list.styles.js";
 import { IconProvider } from "../../../styles/icon-provider.js";
 
-class SelectionList {
+class SelectionList extends HTMLElement {
   constructor() {
+    super();
     // Bind methods
     this._boundHandleItemAdded = this._handleItemAdded.bind(this);
     this._boundHandleItemRemoved = this._handleItemRemoved.bind(this);
     this._boundHandleItemUpdated = this._handleItemUpdated.bind(this);
     this._boundUpdateLanguage = this._updateLanguage.bind(this);
 
-    this.isMobile = window.innerWidth < 1000;
     this.listSection = null; // Will hold the main <section> element
     this.styleElement = null; // Will hold the <style> element
-    this.parentElement = null; // Will hold the container it's attached to
     this.init();
   }
 
   init() {
-    this.desktopContainer = document.querySelector('.main-graph-list');
-    const mobilePanel = document.querySelector('list-panel');
-    this.mobileContainer = mobilePanel?.contentContainer;
-
-    this.parentElement = this.isMobile ? this.mobileContainer : this.desktopContainer;
-
     // Create and append style
     this.styleElement = document.createElement('style');
     this.styleElement.textContent = selectionListStyles;
-    this.parentElement.appendChild(this.styleElement); // Append style to the container
+    this.appendChild(this.styleElement); // Append style to the container
 
     // Create and append the main list section
     this.listSection = document.createElement('section');
     this.listSection.className = 'selection-list';
-    this.parentElement.appendChild(this.listSection);
+    this.appendChild(this.listSection);
 
     // Initial Population
     this._updateList(); 
-    this._appendSelectionList();
 
     // Add global event listeners
     window.addEventListener('core:fr-phone-added', this._boundHandleItemAdded);
@@ -49,7 +41,6 @@ class SelectionList {
     window.addEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
-    window.addEventListener('core:ui-mode-change', this._appendSelectionList.bind(this));
     StringLoader.addObserver(this._boundUpdateLanguage);
   }
 
@@ -62,7 +53,6 @@ class SelectionList {
     window.removeEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
-    window.removeEventListener('core:ui-mode-change', this._appendSelectionList.bind(this));
     StringLoader.removeObserver(this._boundUpdateLanguage);
   }
 
@@ -142,28 +132,6 @@ class SelectionList {
       ` : ''}
     `;
     return itemElement;
-  }
-
-  _appendSelectionList(e = null) {
-    if(this.isMobile === e?.detail?.isMobile) return;
-    if(e) this.isMobile = e.detail.isMobile;
-
-    if (this.isMobile) {
-      // Move to mobile container (inside list-panel)
-      if (this.mobileContainer) {
-        this.mobileContainer.appendChild(this.listSection);
-        this.desktopContainer.style.display = 'none'; // Hide the desktop container
-      } else {
-        console.warn('Mobile container (list-panel) not found for selection list.');
-        // Fallback or error handling: maybe append somewhere else or hide it
-        this.desktopContainer.style.display = 'none';
-      }
-    } else {
-      // Move to desktop container
-      this.desktopContainer.style.display = 'block'; // Ensure desktop container is visible
-      this.desktopContainer.appendChild(this.listSection);
-      // Optionally hide or clear the mobile container if needed
-    }
   }
 
   // Handles adding a new item
@@ -469,4 +437,5 @@ class SelectionList {
   };
 }
 
-export default SelectionList.getElement();
+//export default SelectionList.getElement();
+customElements.define('selection-list', SelectionList);

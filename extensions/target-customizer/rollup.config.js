@@ -23,6 +23,10 @@ export default {
         {
           src: 'extensions/target-customizer/strings/*.json',
           dest: 'dist/extensions/target-customizer/strings',
+        },
+        {
+          src: 'extensions/target-customizer/README.md',
+          dest: 'dist/extensions/target-customizer',
         }
       ],
       hook: 'writeBundle'

@@ -18,7 +18,7 @@ This made code maintenance extremely difficult and made it almost impossible for
 
 modernGraphTool aims to solve these problems, inheriting the core features of CrinGraph while introducing modern techniques and a modular design to significantly enhance stability and extensibility.
 
-## Core Features
+## Core Principles
 
 ### Expandable Design
 
@@ -44,3 +44,28 @@ modernGraphTool focuses on user interface (UI) and user experience (UX) design t
 modernGraphTool fully supports the folder structure and file format of FR data used in the existing CrinGraph.
 
 Therefore, you can load the data from your existing CrinGraph directly into modernGraphTool, and compatibility with `squig.link` is also ensured through Extensions.
+
+## Features
+
+### Frequency Response Graph Visualization
+- Normalization options - (Hz / Midrange Average (300Hz~3kHz))
+- Smoothing options - (1/48oct ~ 1/3oct)
+- Custom HRTF Target support via extension (with Tilt & Preference Adjustment)
+
+### Headphone / Target Selector
+- Search headphones by name or brand
+- Headphone / target compensation (set as baseline)
+- Compatible with CrinGraph file structure (phone_book & target_manifest)
+
+### Graph Tools
+- Share with URL (+ Base62 encoding support)
+- Save Frequency Response graph screenshot
+
+### User Interface & Customization
+- Multi-Language & Dark Mode support
+- User configurable elements (Link, Watermark..)
+- Based on 'Material Design 3' color palette
+
+### Expandability
+- API-based extension system
+- User configurable extension

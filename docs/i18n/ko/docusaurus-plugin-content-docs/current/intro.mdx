@@ -18,7 +18,7 @@ modernGraphTool은 지난 2019년에 등장하여 오랫동안 주파수 응답 
 
 modernGraphTool은 바로 이러한 문제들을 해결하고, CrinGraph의 핵심적인 장점은 계승하면서도 최신 프로그래밍 기법과 모듈화된 설계를 도입하여 안정성과 확장성을 크게 높이는 것을 목표로 합니다.
 
-## 핵심 특징
+## 핵심 원칙
 
 ### 확장 기능 중심의 설계
 
@@ -45,4 +45,27 @@ modernGraphTool은 기존 CrinGraph에서 사용하던 FR 데이터의 폴더 �
 
 따라서 기존에 사용하던 CrinGraph의 데이터를 그대로 modernGraphTool에 불러와서 사용할 수 있으며, Extension을 통해 `squig.link`와의 호환성도 보장됩니다.
 
+## 특징
 
+### 주파수 응답 그래프 시각화
+- 정규화 기능 - (Hz / Midrange Average (300Hz~3kHz))
+- 스무딩 기능 - (1/48oct ~ 1/3oct)
+- Extension을 통한 커스텀 HRTF 타겟 지원 (틸트 & 선호도 조정 기능 포함)
+
+### 헤드폰 / 타겟 선택 도구
+- 이름 및 브랜드를 통한 검색 기능
+- 헤드폰 및 타겟 보정 기능
+- CrinGraph 파일 구조와 호환 (phone_book & target_manifest)
+
+### 그래프 도구
+- URL 공유 기능 (+ Base62 인코딩 지원)
+- 주파수 응답 그래프 스크린샷 기능
+
+### 사용자 인터페이스 & 커스터마이즈 기능
+- 다국어 지원 & 다크 모드 지원
+- 사용자 설정 가능한 요소 (링크, 워터마크 등)
+- 'Material Design 3' 컬러 팔레트 기반
+
+### 확장성
+- API 기반의 Extension 시스템
+- Extension 설정 기능

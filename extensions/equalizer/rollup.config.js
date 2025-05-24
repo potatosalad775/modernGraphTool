@@ -23,7 +23,11 @@ export default {
         {
           src: 'extensions/equalizer/strings/*.json',
           dest: 'dist/extensions/equalizer/strings',
-        }
+        },
+        {
+          src: 'extensions/equalizer/README.md',
+          dest: 'dist/extensions/equalizer',
+        },
       ],
       hook: 'writeBundle'
     })

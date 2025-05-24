@@ -28,6 +28,10 @@ export default {
           src: 'extensions/preference-bound/data/*.txt',
           dest: 'dist/extensions/preference-bound/data',
         },
+        {
+          src: 'extensions/preference-bound/README.md',
+          dest: 'dist/extensions/preference-bound',
+        }
       ],
       hook: 'writeBundle'
     })

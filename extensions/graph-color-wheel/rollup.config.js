@@ -23,6 +23,10 @@ export default {
         {
           src: 'extensions/graph-color-wheel/strings/*.json',
           dest: 'dist/extensions/graph-color-wheel/strings',
+        },
+        {
+          src: 'extensions/graph-color-wheel/README.md',
+          dest: 'dist/extensions/graph-color-wheel',
         }
       ],
       hook: 'writeBundle'

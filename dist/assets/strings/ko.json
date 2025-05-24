@@ -7,7 +7,8 @@
     "header-device-btn": "기기",
     "header-search-bar-placeholder": "검색",
     "item-review": "리뷰",
-    "item-shop": "구매"
+    "item-shop": "구매",
+    "clear-brands-btn": "브랜드 선택 해제"
   },
   "selection-list": {
     "channel-left": "L",

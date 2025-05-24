@@ -34,6 +34,20 @@ class PhoneSelector extends HTMLElement {
     style.textContent = phoneSelectorStyles;
     this.appendChild(style);
 
+    // Cache list elements
+    this.brandListElement = this.querySelector('.ps-brand-list');
+    this.phoneListElement = this.querySelector('.ps-phone-list');
+
+    // Create Clear Brands Button
+    this.clearBrandsButton = document.createElement('button');
+    this.clearBrandsButton.className = 'ps-clear-brands-btn';
+    this.clearBrandsButton.innerHTML = `
+      ${IconProvider.Icon('close', 'width: 1.25rem; height: 1.25rem; margin-right: 0.25rem')}
+      ${StringLoader.getString('phone-selector.clear-brands-btn', 'Unselect Brands')}
+    `;
+    this.querySelector('.ps-lists').appendChild(this.clearBrandsButton);
+    this.clearBrandsButton.addEventListener('click', this._clearBrandSelection.bind(this));
+
     // Search Box Event Listener
     this.querySelector('.ps-header-search').addEventListener('input', (e) => {
       this._filterPhoneList(e.target.value);
@@ -82,12 +96,14 @@ class PhoneSelector extends HTMLElement {
     this._renderPhoneList();
     this._addBrandEventListeners();
     this._addPhoneEventListeners();
+    this._updateClearBrandsButtonVisibility();
 
     // Dispatch Event
     CoreEvent.dispatchInitEvent("phone-ui-ready");
   }
 
   _renderBrandList() {
+    this.brandListElement.innerHTML = ''; // Clear existing brand list before rendering
     this.brandListData.forEach((brand) => {
       const brandItem = document.createElement("label");
       brandItem.className = "ps-brand-item";
@@ -95,13 +111,13 @@ class PhoneSelector extends HTMLElement {
         <input type="checkbox" data-identifier="${brand}">
         <span>${brand}</span>
       `;
-      this.querySelector(".ps-brand-list").appendChild(brandItem);
+      this.brandListElement.appendChild(brandItem);
     });
   }
 
   _renderPhoneList() {
     // Clear existing phone list
-    this.querySelector(".ps-phone-list").innerHTML = '';
+    this.phoneListElement.innerHTML = '';
     // Render new phone list
     this.phoneListData.forEach((phone) => {
       const phoneItem = document.createElement("div");
@@ -133,7 +149,7 @@ class PhoneSelector extends HTMLElement {
             : ""}
         </label>
       `;
-      this.querySelector(".ps-phone-list").appendChild(phoneItem);
+      this.phoneListElement.appendChild(phoneItem);
     });
   }
 
@@ -181,6 +197,7 @@ class PhoneSelector extends HTMLElement {
         // Re-render Phone List and Re-attach Event Listeners
         this._renderPhoneList();
         this._addPhoneEventListeners();
+        this._updateClearBrandsButtonVisibility(); // Update button visibility
       });
     });
   }
@@ -259,6 +276,29 @@ class PhoneSelector extends HTMLElement {
     }, 100); // 100ms Delay before Changing Button status to prevent flickering
   }
 
+  _clearBrandSelection() {
+    this.querySelectorAll(".ps-brand-item input:checked").forEach(input => {
+      input.checked = false;
+    });
+    this.phoneListData = [...this.fullPhoneListData];
+    this._renderPhoneList();
+    this._addPhoneEventListeners();
+    this._updateClearBrandsButtonVisibility();
+  }
+
+  _updateClearBrandsButtonVisibility() {
+    const checkedInputs = this.querySelectorAll(".ps-brand-item input:checked");
+    if (checkedInputs.length > 0) {
+      this.clearBrandsButton.classList.add('visible');
+      this.querySelector('.ps-brand-item:last-child').style.marginBottom = '4rem';
+      this.querySelector('.ps-phone-item:last-child').style.marginBottom = '4rem';
+    } else {
+      this.clearBrandsButton.classList.remove('visible');
+      this.querySelector('.ps-brand-item:last-child').style.marginBottom = '0.75rem';
+      this.querySelector('.ps-phone-item:last-child').style.marginBottom = '0.75rem';
+    }
+  }
+
   _switchListPanel(e, type) {
     if(e !== null) { e.preventDefault(); }
     this.querySelector('.ps-brand-list').classList.toggle('mobile-visible');
@@ -303,6 +343,13 @@ class PhoneSelector extends HTMLElement {
     this.querySelectorAll('.ps-link-shop').forEach(e =>
       e.innerHTML = `${IconProvider.Icon('externalLink')} ${StringLoader.getString('phone-selector.item-shop', 'Shop')}`
     )
+    // Update Clear Brands Button
+    if (this.clearBrandsButton) {
+      this.clearBrandsButton.innerHTML = `
+        ${IconProvider.Icon('close', 'width: 1.25rem; height: 1.25rem; margin-right: 0.25rem')}
+        ${StringLoader.getString('phone-selector.clear-brands-btn', 'Unselect Brands')}
+      `;    
+    }
   }
 }
 

@@ -106,17 +106,13 @@ export const targetSelectorStyles = `
     padding: 0.2rem 1rem 0.2rem 0.6rem;
     height: 2.5rem;
     width: fit-content;
+    font-weight: 500;
     border-radius: 0 0 0.3rem 0.3rem;
+    color: var(--gt-color-on-surface);
     background: var(--gt-color-surface-container-high);
     border: 1px solid var(--gt-color-surface-container-highest);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
     transition: transform 0.3s ease;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--gt-color-on-surface);
   }
   
   .tsc-collapse-button span {

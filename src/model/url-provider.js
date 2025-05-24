@@ -42,7 +42,7 @@ class URLProvider {
     let phoneList = null;
 
     if (shareParam) {
-      if (this.useBase62 && shareParam.startsWith("b62_")) {
+      if (shareParam.startsWith("b62_")) {
         // Decode Base62 string
         const encoded = shareParam.replace("b62_", "");
         phoneList = Base62.decode(encoded).split(",");

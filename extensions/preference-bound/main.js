@@ -29,7 +29,7 @@ export default class PreferenceBoundExtension {
       // Load data
       await this.loadBoundData();
       await this.loadBaseDFTargetData();
-      // Create toggle button after data is loaded to ensure it's in the documen
+      // Create toggle button
       this.createToggleButton();
       // Initially draw bound if config says so
       this.togglePreferenceBounds(this.config.ENABLE_BOUND_ON_INITIAL_LOAD || false); 
@@ -40,6 +40,7 @@ export default class PreferenceBoundExtension {
       if (yScaleButton) {
         yScaleButton.addEventListener('click', this.updateYScale.bind(this));
       }
+      // Add observer for language change
       StringLoader.addObserver(this.updateLanguage.bind(this));
       //console.log('Preference Bound Extension: Initialized successfully.');
     } catch (error) {
@@ -101,29 +102,41 @@ export default class PreferenceBoundExtension {
     }
   }
 
-  createToggleButton() {
-    const graphControls = document.querySelector('#graph-panel .menu-panel-row'); 
-    
-    if (graphControls) {
-      // Append styles
-      const styleElement = document.createElement('style');
-      styleElement.innerHTML = prefBoundButtonStyles;
-      graphControls.parentNode.appendChild(styleElement);
+  async createToggleButton() {
+    // Try to find graph controls element multiple times
+    let attempts = 0;
+    const maxAttempts = 5;
+    const retryDelay = 100; // 500ms between attempts
 
-      // Append the toggle button
-      const button = document.createElement('button');
-      button.id = this.buttonId;
-      button.innerHTML = `
-        ${StringLoader.getString('extension.preference-bound.button.toggle', 'Preference Bound')}
-      `;
-      button.title = 'Toggle Preference Bounds';
-      button.addEventListener('click', () => this.togglePreferenceBounds());
-      graphControls.insertBefore(button, graphControls.firstChild);
+    while (attempts < maxAttempts) {
+      const graphControls = document.querySelector('.graph-button-container');
+      
+      if (graphControls) {
+        // Append styles
+        const styleElement = document.createElement('style');
+        styleElement.innerHTML = prefBoundButtonStyles;
+        graphControls.parentNode.appendChild(styleElement);
 
-      //console.log('Preference Bound Extension: Toggle button added to #graph-controls.');
-    } else {
-      console.warn('Preference Bound Extension: Could not find a suitable place to add the toggle button. componentManager.addButton or #graph-controls or .graph-toolbar-secondary not found.');
+        // Append the toggle button
+        const button = document.createElement('button');
+        button.id = this.buttonId;
+        button.innerHTML = `
+          ${StringLoader.getString('extension.preference-bound.button.toggle', 'Preference Bound')}
+        `;
+        button.title = 'Toggle Preference Bounds';
+        button.addEventListener('click', () => this.togglePreferenceBounds());
+        graphControls.insertBefore(button, graphControls.firstChild);
+
+        //console.log('Preference Bound Extension: Toggle button added to #graph-controls.');
+        return;
+      }
+
+      // Wait before next attempt
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      attempts++;
     }
+
+    console.warn('Preference Bound Extension: Could not find a suitable place to add the toggle button after multiple attempts. componentManager.addButton or #graph-controls or .graph-toolbar-secondary not found.');
   }
 
   togglePreferenceBounds(forceState) {

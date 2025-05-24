@@ -118,7 +118,7 @@ export default class PreferenceBoundExtension {
       `;
       button.title = 'Toggle Preference Bounds';
       button.addEventListener('click', () => this.togglePreferenceBounds());
-      graphControls.appendChild(button);
+      graphControls.insertBefore(button, graphControls.firstChild);
 
       //console.log('Preference Bound Extension: Toggle button added to #graph-controls.');
     } else {
@@ -312,22 +312,23 @@ const prefBoundButtonStyles = `
     font-weight: 500;
     transition: all 0.2s ease;
     gap: 0.5rem;
-    background: inherit;
-    color: var(--gt-color-primary);
-    border: 1px solid var(--gt-color-primary);
+    background: var(--gt-color-primary-container);
+    color: var(--gt-color-on-primary-container);
+    border: none;
   }
 
   #ext-preference-bound-toggle.active {
     background: var(--gt-color-primary);
     color: var(--gt-color-on-primary);
-    border-color: var(--gt-color-primary);
   }
-  
-  #ext-preference-bound-toggle:not(.active):hover {
-    background: var(--gt-shadow);
-  }
-  
-  #ext-preference-bound-toggle.active:hover {
-    filter: var(--gt-hover-filter);
+
+  @media (hover: hover) and (pointer: fine) {
+    #ext-preference-bound-toggle:not(.active):hover {
+      filter: var(--gt-hover-filter);
+    }
+    
+    #ext-preference-bound-toggle.active:hover {
+      filter: var(--gt-hover-filter);
+    }
   }
 `;

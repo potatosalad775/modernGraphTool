@@ -7,11 +7,11 @@ class GraphPanel extends HTMLElement {
       <target-selector></target-selector>
       <gt-divider horizontal style="margin: 1rem 0;"></gt-divider>
       <div class="menu-panel-row" style="padding-bottom: 1rem">
-        <share-button></share-button>
-        <smoothing-button></smoothing-button>
         <normalizer-input></normalizer-input>
+        <smoothing-button></smoothing-button>
         <graph-scale-button></graph-scale-button>
         <graph-screenshot-button></graph-screenshot-button>
+        <share-button></share-button>
       </div>
     </div>
     `;

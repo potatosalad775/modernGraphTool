@@ -127,6 +127,11 @@ class TargetSelector extends HTMLElement {
       this.buttonGroup.appendChild(this.collapseButton);
       this.appendChild(this.buttonGroup);
     }
+
+    // Collapse Target List on Initial Load
+    if(ConfigGetter.get('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL')) {
+      this._toggleCollapse();
+    }
   }
 
   _tickTargetButton(e) {

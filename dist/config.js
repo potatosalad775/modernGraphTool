@@ -39,8 +39,9 @@ const CONFIG = {
     ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,           // Setting it to false will prevent user from removing phone from selector.
     SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,            // Switch to phone list when brand button is clicked (in mobile UI)
     TARGET: {
-      ALLOW_MULTIPLE_LINE_PER_TYPE: true,               // This will display targets in multiple line by 'type's.
+      ALLOW_MULTIPLE_LINE_PER_TYPE: true,               // This will display targets in multiple line by 'type's. Enabling this option adds collapse button to hide/show target lists.
       OMIT_TARGET_SUFFIX: true,                         // This option will omit 'target' suffix to save some space.
+      COLLAPSE_TARGET_LIST_ON_INITIAL: true,            // This option determines whether target list is collapsed on initial load or not.
     }
   },
   // URL Settings

@@ -13,6 +13,8 @@ export default class FrequencyTutorial {
   async _init() {
     await this._getString();
     this._render();
+
+    window.addEventListener('core:ui-mode-change', this._updateUI.bind(this));
   }
 
   async _getString() {
@@ -51,7 +53,7 @@ export default class FrequencyTutorial {
           gap: 0.5rem;
           overflow-x: scroll;
           padding-bottom: 0.3rem;
-          margin-bottom: 0.4rem;
+          margin-bottom: 0.3rem;
 
           gt-button {
             min-width: fit-content;
@@ -71,7 +73,7 @@ export default class FrequencyTutorial {
           margin-bottom: 1rem;
         }
         .frequency-buttons::-webkit-scrollbar {
-          height: 0.2rem;
+          height: 0.4rem;
         }
         .frequency-buttons::-webkit-scrollbar-track {
           background: rgba(0,0,0,0);
@@ -97,9 +99,8 @@ export default class FrequencyTutorial {
       buttonContainer.appendChild(button);
     });
 
-    // Insert container after the graph
-    const targetSelectorGroup = document.querySelector('.target-selector-container');
-    targetSelectorGroup.parentNode.insertBefore(this.container, targetSelectorGroup);
+    // Insert tutorial container
+    this._updateUI();
 
     // Create highlight rectangle in SVG
     const svg = d3.select('#fr-graph');
@@ -193,6 +194,47 @@ export default class FrequencyTutorial {
     // Set initial cursor style
     element.style.cursor = 'default';
   };
+
+  _updateUI(e = null) {
+    if (!e) {
+      this.isMobile = window.innerWidth < 1000;
+    } else {
+      this.isMobile = e.detail.isMobile;
+    }
+
+    // Remove container from current location if it exists in DOM
+    if (this.container.parentNode) {
+      // Remove divider if it exists in DOM
+      const divider = this.container.parentNode.querySelector('.freq-tut-divider');
+      if (divider) {
+        this.container.parentNode.removeChild(divider);
+      }
+      // Remove tutorial container
+      this.container.parentNode.removeChild(this.container);
+    }
+
+    if (this.isMobile) {
+      // Insert Tutorial in Graph Panel
+      const graphPanel = document.querySelector('#graph-panel');
+      if (graphPanel && !graphPanel.querySelector('.frequency-tutorial-container')) {
+        graphPanel.insertBefore(this.container, graphPanel.firstChild);
+      }
+    } else {
+      // Insert Tutorial in Main Graph List
+      const graphList = document.querySelector('.main-graph-list');
+      if (graphList && !graphList.querySelector('.frequency-tutorial-container')) {
+        graphList.insertBefore(this.container, graphList.firstChild);
+        
+        // Insert divider after container
+        const divider = document.createElement('div');
+        divider.className = 'freq-tut-divider';
+        divider.innerHTML = `
+          <gt-divider horizontal style="margin-bottom: 1rem"></gt-divider>
+        `;
+        graphList.insertBefore(divider, this.container.nextSibling);
+      }
+    }
+  }
 
   async _updateLanguage() {
     // Update String

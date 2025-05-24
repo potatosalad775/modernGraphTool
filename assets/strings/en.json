@@ -7,7 +7,8 @@
     "header-device-btn": "Devices",
     "header-search-bar-placeholder": "Search",
     "item-review": "Review",
-    "item-shop": "Shop"
+    "item-shop": "Shop",
+    "clear-brands-btn": "Unselect Brands"
   },
   "selection-list": {
     "channel-left": "L",
@@ -20,6 +21,9 @@
     "item-graph-label": "GRAPH",
     "item-list-label": "LIST",
     "item-misc-label": "MISC"
+  },
+  "target-selector": {
+    "label": "Target"
   },
   "normalizer-input": {
     "label": "Normalization",

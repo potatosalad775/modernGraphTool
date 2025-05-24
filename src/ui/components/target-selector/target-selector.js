@@ -3,6 +3,7 @@ import CoreEvent from "../../../core-event.js";
 import StringLoader from "../../../model/util/string-loader.js";
 import ConfigGetter from "../../../model/util/config-getter.js";
 import { targetSelectorStyles } from "./target-selector.styles.js";
+import { IconProvider } from "../../../styles/icon-provider.js";
 
 class TargetSelector extends HTMLElement {
   constructor() {
@@ -10,6 +11,7 @@ class TargetSelector extends HTMLElement {
     //this.attachShadow({ mode: 'open' });
     this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
     this.className = "target-selector-container";
+    this.isCollapsed = false;
 
     const style = document.createElement('style');
     style.textContent = targetSelectorStyles;
@@ -20,7 +22,7 @@ class TargetSelector extends HTMLElement {
     this.appendChild(this.targetSelectorGroup);
 
     // Add language change observer
-    StringLoader.addObserver(this._updateGroupName.bind(this));
+    StringLoader.addObserver(this._updateLanguage.bind(this));
   }
 
   connectedCallback() {
@@ -34,14 +36,7 @@ class TargetSelector extends HTMLElement {
     window.removeEventListener('core:fr-target-removed', (e) => this._untickTargetButton(e));
     window.removeEventListener('core:metadata-loaded', () => this._init());
     // Remove language observer
-    StringLoader.removeObserver(this._updateGroupName.bind(this));
-  }
-
-  _updateGroupName() {
-    this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
-    this.querySelectorAll('.target-group-name > span').forEach((span, index) => {
-      span.textContent = this.targets[index]?.type;
-    })
+    StringLoader.removeObserver(this._updateLanguage.bind(this));
   }
 
   _init() {
@@ -63,6 +58,7 @@ class TargetSelector extends HTMLElement {
   }
 
   _render() {
+    // Add List of Target Groups
     this.targets.forEach((targetGroup) => {
       const targetGroupItem = document.createElement("div");
       targetGroupItem.className = "target-group-item";
@@ -111,6 +107,26 @@ class TargetSelector extends HTMLElement {
       // Append Target Group Component
       this.targetSelectorGroup.appendChild(targetGroupItem);
     });
+
+    // Add Collapse Button if target is displayed in multiple lines
+    if(ConfigGetter.get('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE')) {
+      // Add Button Group
+      this.buttonGroup = document.createElement("div");
+      this.buttonGroup.className = "tsc-collapse-button-group";
+
+      // Add Collapse Button
+      this.collapseButton = document.createElement("button");
+      this.collapseButton.className = "tsc-collapse-button";
+      this.collapseButton.innerHTML = `
+        ${IconProvider.Icon('shortArrowUp', 'width: 1.25rem; height: 1.25rem;')}
+        <span>${StringLoader.getString('target-selector.label', 'Target')}</span>
+      `;
+      this.collapseButton.addEventListener('click', this._toggleCollapse.bind(this));
+
+      // Append Collapse Button & Button Group
+      this.buttonGroup.appendChild(this.collapseButton);
+      this.appendChild(this.buttonGroup);
+    }
   }
 
   _tickTargetButton(e) {
@@ -163,6 +179,31 @@ class TargetSelector extends HTMLElement {
     // Set initial cursor style
     element.style.cursor = 'default';
   };
+
+  _toggleCollapse() {
+    this.isCollapsed = !this.isCollapsed;
+    
+    if (this.isCollapsed) {
+      // Apply collapsed state
+      this.targetSelectorGroup.classList.add('collapsed');
+      this.collapseButton.classList.add('collapsed');
+    } else {
+      // Remove collapsed state
+      this.targetSelectorGroup.classList.remove('collapsed');
+      this.collapseButton.classList.remove('collapsed');
+    }
+  }
+
+  _updateLanguage() {
+    this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
+    this.querySelectorAll('.target-group-name > span').forEach((span, index) => {
+      span.textContent = this.targets[index]?.type;
+    });
+    this.collapseButton.innerHTML = `
+      ${IconProvider.Icon('shortArrowUp', 'width: 1.25rem; height: 1.25rem;')}
+      <span>${StringLoader.getString('target-selector.label', 'Target')}</span>
+    `;
+  }
 }
 
 customElements.define("target-selector", TargetSelector);

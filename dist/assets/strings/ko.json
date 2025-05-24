@@ -21,6 +21,9 @@
     "item-list-label": "목록",
     "item-misc-label": "기타"
   },
+  "target-selector": {
+    "label": "타겟"
+  },
   "normalizer-input": {
     "label": "정규화",
     "hz-btn": "Hz",

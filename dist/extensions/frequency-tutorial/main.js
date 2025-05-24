@@ -51,7 +51,7 @@ export default class FrequencyTutorial {
           gap: 0.5rem;
           overflow-x: scroll;
           padding-bottom: 0.3rem;
-          margin-bottom: 0.4rem;
+          margin-bottom: 0.3rem;
 
           gt-button {
             min-width: fit-content;
@@ -71,7 +71,7 @@ export default class FrequencyTutorial {
           margin-bottom: 1rem;
         }
         .frequency-buttons::-webkit-scrollbar {
-          height: 0.2rem;
+          height: 0.4rem;
         }
         .frequency-buttons::-webkit-scrollbar-track {
           background: rgba(0,0,0,0);

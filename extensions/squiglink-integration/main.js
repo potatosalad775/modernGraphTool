@@ -173,20 +173,28 @@ export default class SquiglinkIntegration {
     introRow.classList.add('tools', 'menu-panel-row');
     introRow.innerHTML = `
       <style>
-        .tools { padding: 1rem 0.1rem 0 0.1rem; }
+        .tools { width: 100%; padding: 1rem 0 0.1rem 0; }
         .welcome-launcher-container { padding: 0 !important; }
         .welcome-launcher { 
           color: var(--gt-color-on-secondary) !important;
           background-color: var(--gt-color-secondary) !important;
         }
-        .shop-link-container { padding: 0 !important; }
+        .shop-link-container { padding: 0 0 0 0.1rem !important; }
         .shop-link-container span { color: var(--gt-color-on-surface) !important; }
         .welcome-sponsor-launcher { padding: 0 !important; }
       </style>`
-    const graphPanel = document.querySelector('#graph-panel');
-    const divider = graphPanel?.querySelector('gt-divider');
-    if (graphPanel) {
-      graphPanel.insertBefore(introRow, divider);
+    // Add Intro Row to Target Selector
+    const targetSelectorButtonGroup = document.querySelector('.tsc-collapse-button-group');
+    if(targetSelectorButtonGroup) {
+      // (Collapse) Button Group is only available when targetSelector is in multiple rows
+      targetSelectorButtonGroup.appendChild(introRow);
+    } else {
+      // Single Row Target Selector, add to Graph Panel before Divider for better spacing
+      const graphPanel = document.querySelector('#graph-panel');
+      const divider = graphPanel?.querySelector('gt-divider');
+      if (graphPanel) {
+        graphPanel.insertBefore(introRow, divider);
+      }
     }
     // Add Helper Row to Graph Panel for Squiglink Intro
     document.querySelector('.eq-uploader')?.classList.add('extra-upload');

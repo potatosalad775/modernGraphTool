@@ -21,6 +21,9 @@
     "item-list-label": "LIST",
     "item-misc-label": "MISC"
   },
+  "target-selector": {
+    "label": "Target"
+  },
   "normalizer-input": {
     "label": "Normalization",
     "hz-btn": "Hz",

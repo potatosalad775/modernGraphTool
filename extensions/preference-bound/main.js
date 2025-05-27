@@ -20,6 +20,7 @@ export default class PreferenceBoundExtension {
       comp: null,
     }
     this.previousBaselineUUID = null;
+    this.previousPathData = null;
     this.buttonId = 'ext-preference-bound-toggle';
   }
 
@@ -33,12 +34,12 @@ export default class PreferenceBoundExtension {
       this.createToggleButton();
       // Initially draw bound if config says so
       this.togglePreferenceBounds(this.config.ENABLE_BOUND_ON_INITIAL_LOAD || false); 
-      // Add event listeners for baseline change
-      window.addEventListener('core:fr-baseline-updated', this.updatePath.bind(this, true));
-      window.addEventListener('core:fr-normalized', this.updateNormalization.bind(this));
+      // Add event listeners
+      window.addEventListener('core:fr-baseline-updated', this.handleBaselineChange.bind(this, true));
+      window.addEventListener('core:fr-normalized', this.handleNormalizationUpdate.bind(this));
       const yScaleButton = document.querySelector('graph-scale-button gt-button');
       if (yScaleButton) {
-        yScaleButton.addEventListener('click', this.updateYScale.bind(this));
+        yScaleButton.addEventListener('click', this.handleYScaleUpdate.bind(this));
       }
       // Add observer for language change
       StringLoader.addObserver(this.updateLanguage.bind(this));
@@ -199,7 +200,49 @@ export default class PreferenceBoundExtension {
     
     const compLineGenerator = d3.line()
       .x(d => xScale(d[0]))
-      .y(d => yScale(d[1]))
+      .y(d => {
+        // Get Baseline Data
+        const baselineData = RenderEngine.getBaselineData();
+        if (baselineData.uuid === null) return yScale(d[1]); // No baseline, use raw data (It shouldn't supposed to happen tho)
+
+        // Create bisector for frequency lookup
+        const bisect = d3.bisector(d => d[0]).left;
+        
+        // Find closest frequency in base DF target data
+        const i1 = bisect(this.baseDFTargetData.data, d[0], 0);
+        const a1 = this.baseDFTargetData.data[i1 - 1];
+        const b1 = this.baseDFTargetData.data[i1];
+
+        // Find closest frequency in baseline data
+        const i2 = bisect(baselineData.channelData, d[0], 0);
+        const a2 = baselineData.channelData[i2 - 1];
+        const b2 = baselineData.channelData[i2];
+
+        // Calculate interpolated values
+        let baseDFY = 0;
+        let baselineY = 0;
+
+        if (a1 && b1) {
+          const t1 = (d[0] - a1[0]) / (b1[0] - a1[0]);
+          baseDFY = a1[1] + t1 * (b1[1] - a1[1]);
+        } else if (a1) {
+          baseDFY = a1[1];
+        } else if (b1) {
+          baseDFY = b1[1];
+        }
+
+        if (a2 && b2) {
+          const t2 = (d[0] - a2[0]) / (b2[0] - a2[0]);
+          baselineY = a2[1] + t2 * (b2[1] - a2[1]);
+        } else if (a2) {
+          baselineY = a2[1];
+        } else if (b2) {
+          baselineY = b2[1];
+        }
+
+        // Add raw data and subtract baseline compensation
+        return yScale(baseDFY + d[1] - baselineY);
+      })
       .curve(d3.curveLinear);
 
     const rawLineGenerator = d3.line()
@@ -246,31 +289,33 @@ export default class PreferenceBoundExtension {
 
     const self = this;
 
-    if (RenderEngine.baselineData.uuid !== null && this.previousBaselineUUID === null) {
+    if (RenderEngine.baselineData.uuid !== null) {
       // Something is selected as baseline, use comp path
       this.preferenceBoundArea
         .transition()
         .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
-          const oldPath = self.pathData.raw;
+          const oldPath = self.previousPathData;
           const newPath = self.pathData.comp;
           return interpolatePath(oldPath, newPath);
         });
+      this.previousPathData = this.pathData.comp; // Save for next event
     } else {
       // No baseline, use raw path
       this.preferenceBoundArea
         .transition()
         .duration(animate ? 300 : 0)
         .attrTween("d", (d) => {  
-          const oldPath = self.pathData.comp;
+          const oldPath = self.previousPathData;
           const newPath = self.pathData.raw;
           return interpolatePath(oldPath, newPath);
         });
+      this.previousPathData = this.pathData.raw; // Save for next event
     }
     this.previousBaselineUUID = RenderEngine.baselineData.uuid;
   }
 
-  updateYScale(e) {
+  handleYScaleUpdate(e) {
     // No need to update if bounds are not visible
     if(!this.boundsVisible) return;
 
@@ -278,40 +323,33 @@ export default class PreferenceBoundExtension {
     this.updatePath(true);
   }
 
-  updateNormalization(e) {
+  handleBaselineChange(e) {
+    // No need to update if bounds are not visible
+    if(!this.boundsVisible) return;
+    // Update path data if baseline is set
+    if(RenderEngine.baselineData.uuid!== null) this.updatePathData();
+    // Update path
+    this.updatePath(true);
+  }
+
+  handleNormalizationUpdate(e) {
     // No need to update if bounds are not visible
     if(!this.boundsVisible) return;
     
+    // Save current path
+    if(RenderEngine.baselineData.uuid !== null) {
+      this.previousPathData = this.pathData.comp;
+    } else {
+      this.previousPathData = this.pathData.raw;
+    }
+
     // Update Normalization
-    const oldData = this.pathData;
     const normalizedData = FRNormalizer.normalize(this.baseDFTargetData);
     this.baseDFTargetData = normalizedData;
 
     // Update Path
     this.updatePathData();
-
-    const self = this;
-    if (RenderEngine.baselineData.uuid !== null && this.previousBaselineUUID === null) {
-      // Something is selected as baseline, use comp path
-      this.preferenceBoundArea
-        .transition()
-        .duration(0)
-        .attrTween("d", (d) => {  
-          const oldPath = oldData.comp;
-          const newPath = self.pathData.comp;
-          return interpolatePath(oldPath, newPath);
-        });
-    } else {
-      // No baseline, use raw path
-      this.preferenceBoundArea
-        .transition()
-        .duration(0)
-        .attrTween("d", (d) => {  
-          const oldPath = oldData.raw;
-          const newPath = self.pathData.raw;
-          return interpolatePath(oldPath, newPath);
-        });
-    }
+    this.updatePath(true);
   }
 
   updateLanguage() {

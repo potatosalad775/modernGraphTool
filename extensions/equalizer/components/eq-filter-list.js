@@ -6,7 +6,7 @@ class EQFilterList extends HTMLElement {
   constructor() {
     super();
     this.config = {};
-    this.eqBands = 10; // Default Value
+    this.eqBands = 5; // Default Value
     this.extraEQBandsMax = 20; // Default Value
 
     this.innerHTML = `

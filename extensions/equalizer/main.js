@@ -166,4 +166,4 @@ export default class EqualizerExtension extends HTMLElement {
 
 customElements.define('equalizer-extension', EqualizerExtension);
 // Add 'EQUALIZER' Menu to the bottom menu carousel
-MenuState.addExtensionMenu('equalizer', 'EQUALIZER', '<equalizer-extension></equalizer-extension>');
+MenuState.addExtensionMenu('equalizer', 'EQUALIZER', 'equalizer-extension');

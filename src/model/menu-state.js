@@ -1,5 +1,6 @@
 import StringLoader from "./util/string-loader.js";
 import ConfigGetter from "./util/config-getter.js";
+import CoreExtension from "../core-extension.js";
 
 class MenuState {
   constructor() {
@@ -53,9 +54,9 @@ class MenuState {
    * Add Extension Menu to Menu Panel and Menu Bar
    * @param {string} menuName 
    * @param {string} menuBarTitle 
-   * @param {string} inputHTML 
+   * @param {string} elementName 
    */
-  addExtensionMenu(menuName, menuBarTitle, inputHTML) {
+  addExtensionMenu(menuName, menuBarTitle, elementName) {
     const trimmedName = menuName.trim();
     
     // Add to extension lists
@@ -66,7 +67,33 @@ class MenuState {
     newPanel.id = `${trimmedName}-panel`;
     newPanel.className = "menu-panel extension-panel";
     newPanel.setAttribute("data-target", `${trimmedName}-panel`);
-    newPanel.innerHTML = inputHTML;
+    
+    // Get the existing extension instance with retries
+    let extensionInstance = null;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 100; // 100ms delay between retries
+
+    const getExtensionWithRetry = async () => {
+      while (retryCount < maxRetries) {
+        extensionInstance = CoreExtension.getExtension(menuName);
+        if (extensionInstance) {
+          // Append the existing instance to the panel
+          newPanel.appendChild(extensionInstance);
+          return;
+        }
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+      // Fallback to original behavior if instance not found after all retries
+      console.warn(`modernGraphTool: Extension instance for '${trimmedName}' not found. This shouldn't happen but creating new one anyway.`);
+      newPanel.innerHTML = `<${elementName}></${elementName}>`;
+    };
+
+    getExtensionWithRetry();
+
     document.querySelector('.menu-panels').insertBefore(
       newPanel, 
       document.querySelector('misc-panel')

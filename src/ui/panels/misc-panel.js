@@ -1,4 +1,5 @@
 import ConfigGetter from "../../model/util/config-getter.js";
+import StringLoader from "../../model/util/string-loader.js";
 import { IconProvider } from "../../styles/icon-provider.js";
 
 class MiscPanel extends HTMLElement {
@@ -20,6 +21,8 @@ class MiscPanel extends HTMLElement {
             ${IconProvider.Icon('globe', "width: 1.5rem; height: 1.5rem")}
             <language-selector></language-selector>` 
           : ""}
+      </div>
+      <div class="misc-description" id="db-description">
       </div>
       <gt-divider horizontal style="margin: 1rem 0 0.8rem 0;"></gt-divider>
       <div class="misc-info">
@@ -83,9 +86,28 @@ class MiscPanel extends HTMLElement {
           border-radius: 0.5rem;
         }
       }
+      .misc-description {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.5rem 0 0 0;
+        h1, h2, h3, h4, h5, h6, p {
+          margin: 0;
+        }
+      }
     </style>
     `;
 
+    // Update Description
+    this.appendDescription();
+
+    // Attach Event Listeners
+    this.attachDarkModeToggleListener();
+    StringLoader.addObserver(this.updateLanguage.bind(this));
+  }
+
+  attachDarkModeToggleListener() {
     const darkModeToggle = this.querySelector(".dark-mode-toggle");
     if(darkModeToggle) {
       darkModeToggle.addEventListener("click", (e) => {
@@ -100,6 +122,57 @@ class MiscPanel extends HTMLElement {
         );
       });
     }
+  }
+
+  appendDescription() {
+    const description = ConfigGetter.get('DESCRIPTION');
+
+    if(!description || description.length === 0) return;
+    if(description.length > 0) {
+      const divider = document.createElement('span');
+      divider.style.width = '100%';
+      divider.innerHTML = '<gt-divider horizontal style="margin: 0.5rem 0;"></gt-divider>';
+      this.querySelector('.misc-description').appendChild(divider);
+    }
+
+    description.forEach((desc, index) => {
+      if(desc.TYPE.toLowerCase() === 'text') {
+        const descElement = document.createElement('p');
+        descElement.textContent = desc.CONTENT;
+        descElement.setAttribute('desc-index', index);
+        this.querySelector('.misc-description').appendChild(descElement);
+      } else if(desc.TYPE.toLowerCase() === 'image') {
+        const descElement = document.createElement('img');
+        descElement.src = desc.CONTENT;
+        descElement.setAttribute('desc-index', index);
+        this.querySelector('.misc-description').appendChild(descElement);
+      } else if(desc.TYPE.toLowerCase() === 'html') {
+        const descElement = document.createElement('div');
+        descElement.innerHTML = desc.CONTENT;
+        descElement.setAttribute('desc-index', index);
+        this.querySelector('.misc-description').appendChild(descElement);
+      } else {
+        console.error(`Unknown misc panel description type: ${desc.TYPE}`);
+      }
+    });
+  }
+
+  updateLanguage() {
+    const description = ConfigGetter.get('DESCRIPTION');
+    const descContainer = this.querySelector('.misc-description');
+    
+    description.forEach((desc, index) => {
+      const descElement = descContainer.querySelector(`[desc-index="${index}"]`);
+      if(descElement) {
+        if(desc.TYPE.toLowerCase() === 'text') {
+          descElement.textContent = desc.CONTENT;
+        } else if(desc.TYPE.toLowerCase() === 'image') {
+          descElement.src = desc.CONTENT;
+        } else if(desc.TYPE.toLowerCase() === 'html') {
+          descElement.innerHTML = desc.CONTENT;
+        }
+      }
+    })
   }
 }
 

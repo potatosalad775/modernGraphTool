@@ -30,10 +30,13 @@ export default class PreferenceBoundExtension {
       // Load data
       await this.loadBoundData();
       await this.loadBaseDFTargetData();
+
       // Create toggle button
       this.createToggleButton();
+
       // Initially draw bound if config says so
       this.togglePreferenceBounds(this.config.ENABLE_BOUND_ON_INITIAL_LOAD || false); 
+
       // Add event listeners
       window.addEventListener('core:fr-baseline-updated', this.handleBaselineChange.bind(this, true));
       window.addEventListener('core:fr-normalized', this.handleNormalizationUpdate.bind(this));
@@ -41,6 +44,10 @@ export default class PreferenceBoundExtension {
       if (yScaleButton) {
         yScaleButton.addEventListener('click', this.handleYScaleUpdate.bind(this));
       }
+
+      // Update Pref-bound description
+      this.updatePrefBoundDescription();
+
       // Add observer for language change
       StringLoader.addObserver(this.updateLanguage.bind(this));
       //console.log('Preference Bound Extension: Initialized successfully.');
@@ -138,6 +145,28 @@ export default class PreferenceBoundExtension {
     }
 
     console.warn('Preference Bound Extension: Could not find a suitable place to add the toggle button after multiple attempts. componentManager.addButton or #graph-controls or .graph-toolbar-secondary not found.');
+  }
+
+  updatePrefBoundDescription() {
+    const targetText = this.config.BASE_DF_TARGET_FILE.endsWith(' Target')
+      ? this.config.BASE_DF_TARGET_FILE
+      : this.config.BASE_DF_TARGET_FILE + ' Target';
+
+    const descriptionText = StringLoader.getString(
+      'extension.preference-bound.description', 
+      'Preference Bound in this database is based on ${TARGET}.'
+    ).replace('${TARGET}', targetText);
+
+    if(document.querySelector('.preference-bound-description')) {
+      document.querySelector('.preference-bound-description').textContent = descriptionText;
+    } else {
+      const descriptionContainer = document.getElementById('db-description');
+      const descriptionElement = document.createElement('p');
+
+      descriptionElement.className = 'preference-bound-description';
+      descriptionElement.textContent = descriptionText;
+      descriptionContainer.appendChild(descriptionElement);
+    }
   }
 
   togglePreferenceBounds(forceState) {
@@ -359,6 +388,8 @@ export default class PreferenceBoundExtension {
         ${StringLoader.getString('extension.preference-bound.button.toggle', 'Preference Bound')}
       `;
     }
+    // Update Pref-bound description
+    this.updatePrefBoundDescription();
   }
 
   // Method to be called if the extension is disabled or removed

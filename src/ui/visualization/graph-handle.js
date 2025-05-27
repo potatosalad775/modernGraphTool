@@ -70,7 +70,7 @@ class GraphHandle {
     this.renderEngine.updateYAxis(null, false);
 
     // Update curves without animation
-    this.renderEngine.mainGroup.selectAll(".fr-graph-phone-curve, .fr-graph-target-curve")
+    this.renderEngine.curveGroup.selectAll(".fr-graph-phone-curve, .fr-graph-target-curve")
       .attr("d", d => {
         const lineGenerator = d3.line()
           .x(d => this.renderEngine.xScale(d[0]))

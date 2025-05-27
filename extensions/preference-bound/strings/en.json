@@ -1,5 +1,6 @@
 {
   "button": {
     "toggle": "Preference Bound"
-  }
+  },
+  "description": "Preference Bound in this database is based on ${TARGET}."
 }

@@ -46,4 +46,4 @@ export default class TemplateElement extends HTMLElement {
 // You need to add dashes(-) when defining custom elements
 // https://developer.mozilla.org/docs/Web/API/Web_components/Using_custom_elements
 customElements.define('template-element', TemplateElement);
-MenuState.addExtensionMenu('template', 'TEMPLATE', '<template-element></template-element>');
+MenuState.addExtensionMenu('template', 'TEMPLATE', 'template-element');

@@ -1,5 +1,6 @@
 {
   "button": {
     "toggle": "선호도 경계"
-  }
+  },
+  "description": "본 데이터베이스의 선호도 경계는 ${TARGET}에 기반하고 있습니다."
 }

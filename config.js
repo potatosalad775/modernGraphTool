@@ -136,6 +136,21 @@ const CONFIG = {
     //    { TITLE: "Github", URL: "https://www.github.com" },
     //  ],
   },
+  // Misc Panel Description
+  // You can add some useful information about your database over here.
+  // 'TEXT', 'HTML', 'IMAGE' types are supported.
+  DESCRIPTION: {
+    default: [
+      //{ TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
+      { TYPE: "HTML", CONTENT: "<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>" },
+    ],
+    i18n: {
+      ko: [
+        //{ TYPE: "TEXT", CONTENT: "모든 데이터는 IEC 60318-4 (711) 이어 시뮬레이터를 활용해 측정되었습니다." },
+        { TYPE: "HTML", CONTENT: "<p>모든 데이터는 IEC 60318-4 (711) 이어 시뮬레이터를 활용해 측정되었습니다.</p>" },
+      ]
+    }
+  }
 };
 
 window.GRAPHTOOL_CONFIG = CONFIG;

@@ -330,5 +330,20 @@
   "theme.tags.tagsPageTitle": {
     "message": "태그",
     "description": "The title of the tag list page"
+  },
+  "Source Color": {
+    "message": "Source 컬러"
+  },
+  "Random": {
+    "message": "랜덤"
+  },
+  "Contrast": {
+    "message": "Contrast"
+  },
+  "Core Colors": {
+    "message": "핵심 컬러"
+  },
+  "Export Theme.css": {
+    "message": "Theme.css 내보내기"
   }
 }

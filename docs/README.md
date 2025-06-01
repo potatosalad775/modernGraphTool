@@ -21,6 +21,11 @@ This command starts a local development server and opens up a browser window. Mo
 $ npm run start -- --locale ko
 ```
 
+## Generate Translate data
+```
+$ npm run write-translations -- --locale ko
+```
+
 ## Build
 
 ```

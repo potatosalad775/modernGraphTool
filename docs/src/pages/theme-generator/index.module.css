@@ -1,0 +1,147 @@
+.tgContainer {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  flex-wrap: wrap; /* Allow wrapping for smaller screens */
+}
+
+.tgTools {
+  flex: 1;
+  min-width: 300px; /* Minimum width for the tools panel */
+  padding: 15px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  background-color: var(--ifm-background-color);
+}
+
+.tgTools h4 {
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  padding-bottom: 5px;
+}
+
+.tgSourceColorSection {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100%;
+  gap: 10px;
+}
+
+.tgSourceColorRandomizerButton {
+  padding: 8px 12px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  background-color: var(--ifm-color-emphasis-100);
+  color: var(--ifm-font-color-base);
+  cursor: pointer;
+  margin-bottom: 15px;
+  min-height: 38px;
+}
+
+.tgPreview {
+  flex: 2;
+  min-width: 400px; /* Minimum width for the preview panel */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tgSourceContrastInputRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.tgSourceContrastInputRow input:first-child {
+  width: 100%;
+}
+
+.tgSourceContrastInputRow input:last-child {
+  padding: 8px 12px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  background-color: var(--ifm-color-emphasis-100);
+  color: var(--ifm-font-color-base);
+}
+
+.tgSourceContrastSection {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tgColorPickerWrapper {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.tgSourceContrastSection label, .tgColorPickerWrapper label {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+/* Ensure chrome picker fits well */
+.tgColorButton {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  text-align: left;
+  font-family: var(--ifm-font-family-monospace);
+  cursor: pointer;
+  min-height: 38px; /* Ensure consistent height */
+  box-sizing: border-box;
+  color: var(--ifm-font-color-base); /* Ensure text is visible on varied backgrounds */
+  text-shadow: 0 0 2px var(--ifm-background-color), 0 0 2px var(--ifm-background-color), 0 0 2px var(--ifm-background-color); /* Basic text stroke for visibility */
+}
+
+.tgPickerPopover {
+  position: absolute;
+  z-index: 2;
+  /* Position it nicely relative to the button if needed, or center it */
+}
+
+.tgPickerCover {
+  position: fixed;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  z-index: 1;
+}
+
+.tgExportButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ifm-color-primary-darkest);
+  background-color: var(--ifm-color-primary-dark);
+  color: var(--ifm-color-white);
+  border-radius: 4px;
+  width: 100%;
+  height: 38px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.tgExportButton:hover {
+  background-color: var(--ifm-color-primary-darkest);
+}
+
+.tgPickerElement {
+  position: fixed;
+  z-index: 3;
+}
+
+.tgPickerPopover > div {
+  box-shadow: var(--ifm-global-shadow-lw) !important;
+  background: rgba(0, 0, 0, 0);
+}

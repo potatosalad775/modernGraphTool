@@ -1,0 +1,123 @@
+.dgpContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  cursor: default;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dgpHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  font-size: 12px;
+
+  h3 {
+    margin: 0;
+  }
+  span {
+    font-size: 16px;
+  }
+}
+
+.dgpContent {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+}
+
+.dgpGraph {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+
+.dgpDivider {
+  width: 6px;
+}
+
+.dgpTools {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 300px;
+}
+
+.dgpToolsContent {
+  padding: 12px;
+}
+
+.dgpTargetSelector {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-radius: 8px;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 500;
+  padding: 4px 0;
+
+
+  span {
+    margin-left: 16px;
+    margin-right: 8px;
+  }
+  div {
+    border-radius: 32px;
+    padding: 2px 8px;
+  }
+}
+
+.dgpPhoneSelector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.dgpPhoneSelectorObject {
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.dgpButtonContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+
+  div {
+    padding: 4px 16px;
+    border-radius: 16px;
+  }
+}
+
+.dgpMenuCarousel {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0;
+
+  div {
+    padding: 6px 16px;
+    border-radius: 32px;
+  }
+}

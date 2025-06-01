@@ -112,6 +112,27 @@ const config: Config = {
               label: 'Introduction',
               to: '/intro',
             },
+            {
+              label: 'Guide for Users',
+              to: '/category/guide-for-users',
+            },
+            {
+              label: 'Guide for Admins',
+              to: '/category/guide-for-admins',
+            },
+            {
+              label: 'Guide for Developers',
+              to: '/category/guide-for-developers',
+            },
+          ],
+        },
+        {
+          title: 'Useful Links',
+          items: [
+            {
+              label: 'Theme Generator',
+              href: '/theme-generator',
+            },
           ],
         },
         {

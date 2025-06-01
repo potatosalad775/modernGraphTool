@@ -1,6 +1,6 @@
 {
   "version.label": {
-    "message": "Next",
+    "message": "다음",
     "description": "The label for version current"
   },
   "sidebar.tutorialSidebar.category.Guide for Users": {
@@ -30,5 +30,9 @@
   "sidebar.tutorialSidebar.category.Guide for Developers": {
     "message": "개발자 가이드",
     "description": "The label for category Guide for Developers in sidebar tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.link.Theme Generator": {
+    "message": "테마 생성기",
+    "description": "The label for link Theme Generator in sidebar tutorialSidebar, linking to /theme-generator"
   }
 }

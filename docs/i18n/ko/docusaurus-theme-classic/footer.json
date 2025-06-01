@@ -9,7 +9,7 @@
   },
   "link.item.label.Introduction": {
     "message": "소개",
-    "description": "The label of footer link with label=Introduction linking to /docs/intro"
+    "description": "The label of footer link with label=Introduction linking to /intro"
   },
   "link.item.label.Demonstration Page": {
     "message": "직접 사용해보기",
@@ -22,5 +22,25 @@
   "copyright": {
     "message": "Copyright © 2025 modernGraphTool Docs. Built with Docusaurus.",
     "description": "The footer copyright"
+  },
+  "link.title.Useful Links": {
+    "message": "유용한 링크",
+    "description": "The title of the footer links column with title=Useful Links in the footer"
+  },
+  "link.item.label.Guide for Users": {
+    "message": "사용자 가이드",
+    "description": "The label of footer link with label=Guide for Users linking to /category/guide-for-users"
+  },
+  "link.item.label.Guide for Admins": {
+    "message": "관리자 가이드",
+    "description": "The label of footer link with label=Guide for Admins linking to /category/guide-for-admins"
+  },
+  "link.item.label.Guide for Developers": {
+    "message": "개발자 가이드",
+    "description": "The label of footer link with label=Guide for Developers linking to /category/guide-for-developers"
+  },
+  "link.item.label.Theme Generator": {
+    "message": "테마 생성기",
+    "description": "The label of footer link with label=Theme Generator linking to /theme-generator"
   }
 }

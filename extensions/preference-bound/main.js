@@ -4,7 +4,13 @@
  * This extension adds a toggleable preference bound area to the graph.
  * The bounds are read from 'Bounds U.txt' and 'Bounds D.txt'.
  */
-import { RenderEngine, StringLoader, FRParser, FRNormalizer } from "../../core.min.js";
+import { 
+  RenderEngine, 
+  StringLoader, 
+  FRParser, 
+  FRSmoother, 
+  FRNormalizer 
+} from "../../core.min.js";
 import { interpolatePath } from "./d3-interpolate-path.js";
 
 export default class PreferenceBoundExtension {
@@ -63,14 +69,22 @@ export default class PreferenceBoundExtension {
       );
       if (!responseU.ok) throw new Error(`Failed to load Bounds U.txt: ${responseU.statusText}`);
       const textU = await responseU.text();
-      this.boundDataU = await FRParser.parseFRData(textU);
+      const parsedDataU = await FRParser.parseFRData(textU);
+      this.boundDataU = {
+        ...parsedDataU,
+        data: FRSmoother.smooth(parsedDataU.data)
+      };
 
       const responseD = await fetch(
         import.meta.resolve(`./data/${this.config.BOUND_DATA_FILE || 'Bounds'} D.txt`)
       );
       if (!responseD.ok) throw new Error(`Failed to load Bounds D.txt: ${responseD.statusText}`);
       const textD = await responseD.text();
-      this.boundDataD = await FRParser.parseFRData(textD);
+      const parsedDataD = await FRParser.parseFRData(textD);
+      this.boundDataD = {
+        ...parsedDataD,
+        data: FRSmoother.smooth(parsedDataD.data)
+      };
       
       //console.log('Preference Bound Extension: Bound data loaded.');
     } catch (error) {
@@ -96,11 +110,15 @@ export default class PreferenceBoundExtension {
       // Load text data
       const responseDF = await fetch(import.meta.resolve(`./data/${fileName}`));
       if (!responseDF.ok) throw new Error(`Failed to load Bounds U.txt: ${responseDF.statusText}`);
-      const textU = await responseDF.text();
+      const textDF = await responseDF.text();
 
       // Parse and normalize data
-      const parsedDF = await FRParser.parseFRData(textU);
-      this.baseDFTargetData = FRNormalizer.normalize(parsedDF); 
+      const parsedDF = await FRParser.parseFRData(textDF);
+      const smoothedDF = {
+        ...parsedDF,
+        data: FRSmoother.smooth(parsedDF.data)
+      };
+      this.baseDFTargetData = FRNormalizer.normalize(smoothedDF); 
       
       //console.log('Preference Bound Extension: Bound data loaded.');
     } catch (error) {

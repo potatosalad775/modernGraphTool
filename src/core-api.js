@@ -7,6 +7,7 @@ import MetadataParser from './model/util/metadata-parser.js';
 import StringLoader from './model/util/string-loader.js';
 import FRParser from './model/util/fr-parser.js';
 import FRNormalizer from './model/util/fr-normalizer.js';
+import FRSmoother from './model/util/fr-smoother.js';
 import URLProvider from "./model/url-provider.js";
 
 // Create namespace object
@@ -20,6 +21,7 @@ const CoreAPI = {
   StringLoader,
   FRParser,
   FRNormalizer,
+  FRSmoother,
   URLProvider,
 };
 
@@ -34,6 +36,7 @@ export {
   StringLoader,
   FRParser,
   FRNormalizer,
+  FRSmoother,
   URLProvider,
 };
 

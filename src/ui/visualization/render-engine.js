@@ -248,6 +248,10 @@ class RenderEngine {
     } else {
       // Only add new label if it doesn't exist
       if(!this.svg.selectAll(`.fr-graph-baseline-text[data-uuid='${uuid}']`).size()) {
+        // Remove existing label if it exist (Possibly label with other uuid)
+        const existingLabel = this.svg.selectAll('.fr-graph-baseline-text');
+        if(existingLabel) { existingLabel.remove(); }
+        // Get label position
         const labelLocation = ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.LOCATION') || "BOTTOM_LEFT";
         const labelX = this.labelPosition[labelLocation].x 
           + parseInt(ConfigGetter.get('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') || 0)
@@ -261,7 +265,7 @@ class RenderEngine {
           .attr("class", "fr-graph-baseline-text")
           .attr("data-uuid", uuid)
           .attr("x", labelX)
-          .attr("y", labelY - 8)
+          .attr("y", labelY)
           .attr("text-anchor", this.labelPosition[labelLocation].anchor)
           .attr("fill", "#000000")
           .attr("opacity", "0.3")

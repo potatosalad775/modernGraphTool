@@ -242,7 +242,7 @@ export default class GraphColorWheel {
     randomColorButton.addEventListener("click", () => {
       const baseHue = parseInt((Math.random() * 360).toFixed(0));
       const baseSaturation = parseInt((Math.random() * 50).toFixed(0));
-      const baseLightness = parseInt((Math.random() * 30).toFixed(0));
+      const baseLightness = parseInt((Math.random() * 20).toFixed(0));
 
       if(this.activeType.includes('target')) {
         hslHueInput.value = baseHue;
@@ -252,8 +252,8 @@ export default class GraphColorWheel {
       } else {
         hslHueInput.value = baseHue;
         hslSatInput.value = 50 + baseSaturation;
-        hslLightInput.value = 40 + baseLightness;
-        colorPicker.colorWheel.hsl = [baseHue, 50 + baseSaturation, 40 + baseLightness];
+        hslLightInput.value = 30 + baseLightness;
+        colorPicker.colorWheel.hsl = [baseHue, 50 + baseSaturation, 30 + baseLightness];
       }
     });
   }
@@ -267,8 +267,8 @@ export default class GraphColorWheel {
     this._updateColorTimeout = setTimeout(() => {
       // Update color
       DataProvider.updateMetadata("uuid", this.activeUUID, "colors", {
-        L: `hsl(${(h - 5) % 360}, ${s}%, ${l}%)`, // Overwrite L, R, AVG with the new custom color for simplicity for now
-        R: `hsl(${(h + 5) % 360}, ${s}%, ${l}%)`,
+        L: `hsl(${(h - 10) % 360}, ${s}%, ${l}%)`, // Overwrite L, R, AVG with the new custom color for simplicity for now
+        R: `hsl(${(h + 10) % 360}, ${s}%, ${l}%)`,
         AVG: `hsl(${h}, ${s}%, ${l}%)`,
       });
 

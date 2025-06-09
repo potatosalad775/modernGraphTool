@@ -464,9 +464,9 @@ class DataProvider {
       return { AVG: `hsl(${this.baseHue}, 0%, 45%)` };
     } else {
       return {
-        L: `hsl(${(this.baseHue - 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
-        R: `hsl(${(this.baseHue + 5) % 360}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`,
-        AVG: `hsl(${this.baseHue}, ${50 + baseSaturation}%, ${40 + baseLightness}%)`
+        L: `hsl(${(this.baseHue - 10) % 360}, ${50 + baseSaturation}%, ${30 + baseLightness}%)`,
+        R: `hsl(${(this.baseHue + 10) % 360}, ${50 + baseSaturation}%, ${30 + baseLightness}%)`,
+        AVG: `hsl(${this.baseHue}, ${50 + baseSaturation}%, ${30 + baseLightness}%)`
       };
     }
   };

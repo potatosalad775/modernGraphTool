@@ -28,6 +28,11 @@ npm run start
 npm run build
 ```
 
+## Contributing
+Contributions are always welcome, no matter how small or large!
+
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+
 ## License
 
 modernGraphTool is open source software licensed under MIT License.

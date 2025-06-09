@@ -108,12 +108,18 @@ class EQSelect extends HTMLElement {
   }
 
   _updateLanguage() {
-    this.sourceSelect.querySelector('option[value=""]').innerHTML = StringLoader.getString(
-      'extension.equalizer.phone-select.option-source', 'Select device to EQ'
-    );
-    this.targetSelect.querySelector('option[value=""]').innerHTML = StringLoader.getString(
-      'extension.equalizer.phone-select.option-target', 'Select target for AutoEQ'
-    );
+    const deviceBtnLabel = this.sourceSelect.querySelector('option[value=""]');
+    if (deviceBtnLabel) {
+      deviceBtnLabel.innerHTML = StringLoader.getString(
+        'extension.equalizer.phone-select.option-source', 'Select device to EQ'
+      );
+    }
+    const targetBtnLabel = this.targetSelect.querySelector('option[value=""]');
+    if (targetBtnLabel) {
+      targetBtnLabel.innerHTML = StringLoader.getString(
+        'extension.equalizer.phone-select.option-target', 'Select target for AutoEQ'
+      );
+    }
   }
 
   _dispatchSelectEvent(type, uuid) {

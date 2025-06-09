@@ -289,16 +289,46 @@ class EQFilterList extends HTMLElement {
   };
   
   _updateLanguage() {
-    this.querySelector('.preamp-row > label').innerHTML = `${StringLoader.getString('extension.equalizer.filter-list.preamp', 'Preamp')}:`;
-    this.querySelector('.import-filters > span').innerHTML = `${StringLoader.getString('extension.equalizer.filter-list.import', 'Import')}`;
-    this.querySelector('.export-filters > span').innerHTML = `${StringLoader.getString('extension.equalizer.filter-list.export', 'Export')}`;
-    this.querySelector('.export-graphic > span').innerHTML = `${StringLoader.getString('extension.equalizer.filter-list.export-graphic-eq', 'Export as Graphic EQ (Wavelet)')}`;
-    this.querySelectorAll('.filter-type > option[value="PK"]').forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.peak', 'Peak'));
-    this.querySelectorAll('.filter-type > option[value="LSQ"]').forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.lowshelf', 'Low Shelf'));
-    this.querySelectorAll('.filter-type > option[value="HSQ"]').forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.highshelf', 'High Shelf'));
-    this.querySelectorAll('.filter-freq').forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.freq', 'Frequency (Hz)'));
-    this.querySelectorAll('.filter-q').forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.q', 'Q'));
-    this.querySelectorAll('.filter-gain').forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.gain', 'Gain (dB)'));
+    const preampLabel = this.querySelector('.preamp-row > label');
+    if(preampLabel) {
+      preampLabel.innerHTML = StringLoader.getString('extension.equalizer.filter-list.preamp', 'Preamp') + ':';
+    }
+    const importLabel = this.querySelector('.import-filters > span');
+    if(importLabel) {
+      importLabel.innerHTML = StringLoader.getString('extension.equalizer.filter-list.import', 'Import');
+    }
+    const exportLabel = this.querySelector('.export-filters > span');
+    if(exportLabel) {
+      exportLabel.innerHTML = StringLoader.getString('extension.equalizer.filter-list.export', 'Export');
+    }
+    const exportGraphicLabel = this.querySelector('.export-graphic > span');
+    if(exportGraphicLabel) {
+      exportGraphicLabel.innerHTML = StringLoader.getString('extension.equalizer.filter-list.export-graphic-eq', 'Export as Graphic EQ (Wavelet)');
+    }
+    const pkFilterLabels = this.querySelectorAll('.filter-type > option[value="PK"]');
+    if(pkFilterLabels) {
+      pkFilterLabels.forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.peak', 'Peak'));
+    }
+    const lsFilterLabels = this.querySelectorAll('.filter-type > option[value="LSQ"]');
+    if(lsFilterLabels) {
+      lsFilterLabels.forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.lowshelf', 'Low Shelf'));
+    }
+    const hsFilterLabels = this.querySelectorAll('.filter-type > option[value="HSQ"]');
+    if(hsFilterLabels) {
+      hsFilterLabels.forEach(e => e.innerHTML = StringLoader.getString('extension.equalizer.filter-list.highshelf', 'High Shelf'));
+    }
+    const filterFreqLabel = this.querySelectorAll('.filter-freq');
+    if(filterFreqLabel) {
+      filterFreqLabel.forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.freq', 'Frequency (Hz)'));
+    }
+    const filterQLabel = this.querySelectorAll('.filter-q');
+    if(filterQLabel) {
+      filterQLabel.forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.q', 'Q'));
+    }
+    const filterGainLabel = this.querySelectorAll('.filter-gain');
+    if(filterGainLabel) {
+      filterGainLabel.forEach(e => e.placeholder = StringLoader.getString('extension.equalizer.filter-list.gain', 'Gain (dB)'));
+    }
   };
 
   _dispatchFilterUpdateEvent() {

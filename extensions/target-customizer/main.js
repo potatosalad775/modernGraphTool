@@ -616,37 +616,42 @@ export default class TargetCustomizer {
   }
 
   _updateLanguage() {
+    // Update View Toggle Button Label
     const viewToggleBtn = this.selectionList.querySelectorAll(".tc-view-toggle-btn");
-    viewToggleBtn.forEach((btn) => {
-      btn.innerHTML = `
-        <span>${StringLoader.getString('extension.target-customizer.tc-button.view', 'Pref. Adjustment')}</span>
-      `;
-    });
-
-    const targetCtrlComponent = this.selectionList.querySelectorAll(".target-control-component");
-    targetCtrlComponent.forEach((component) => {
-      // Update Input Labels
-      const inputLabels = component.querySelectorAll(".tc-input-group label");
-      inputLabels.forEach((input, index) => {
-        if (index === 0) {
-          input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.tilt', 'Tilt (dB/oct)');
-        } else if (index === 1) {
-          input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.bass', 'Bass (dB)');
-        } else if (index === 2) {
-          input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.treble', 'Treble (dB)');
-        } else if (index === 3) {
-          input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.ear', 'Ear Gain (dB)');
-        } 
+    if(viewToggleBtn) {
+      viewToggleBtn.forEach((btn) => {
+        btn.innerHTML = `
+          <span>${StringLoader.getString('extension.target-customizer.tc-button.view', 'Pref. Adjustment')}</span>
+        `;
       });
+    }
+    // Update Target Control Component
+    const targetCtrlComponent = this.selectionList.querySelectorAll(".target-control-component");
+    if(targetCtrlComponent) {
+      targetCtrlComponent.forEach((component) => {
+        // Update Input Labels
+        const inputLabels = component.querySelectorAll(".tc-input-group label");
+        inputLabels.forEach((input, index) => {
+          if (index === 0) {
+            input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.tilt', 'Tilt (dB/oct)');
+          } else if (index === 1) {
+            input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.bass', 'Bass (dB)');
+          } else if (index === 2) {
+            input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.treble', 'Treble (dB)');
+          } else if (index === 3) {
+            input.innerHTML = StringLoader.getString('extension.target-customizer.tc-label.ear', 'Ear Gain (dB)');
+          } 
+        });
 
-      // Update Profile Select Placeholder Text
-      const profilePlaceholder = component.querySelector(".tc-profile-select > option[value='']");
-      profilePlaceholder.innerHTML = StringLoader.getString('extension.target-customizer.tc-profile.placeholder', 'Select filter profile');
+        // Update Profile Select Placeholder Text
+        const profilePlaceholder = component.querySelector(".tc-profile-select > option[value='']");
+        profilePlaceholder.innerHTML = StringLoader.getString('extension.target-customizer.tc-profile.placeholder', 'Select filter profile');
 
-      // Update Reset Button Text
-      const resetBtn = component.querySelector(".tc-filter-reset-btn");
-      resetBtn.innerHTML = StringLoader.getString('extension.target-customizer.tc-button.reset', 'Reset');
-    });
+        // Update Reset Button Text
+        const resetBtn = component.querySelector(".tc-filter-reset-btn");
+        resetBtn.innerHTML = StringLoader.getString('extension.target-customizer.tc-button.reset', 'Reset');
+      });
+    }
   }
 
   _getCustomizableTargetList() {

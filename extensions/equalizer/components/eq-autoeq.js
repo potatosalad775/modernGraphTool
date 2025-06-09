@@ -122,11 +122,26 @@ class EQAutoEQ extends HTMLElement {
   }
 
   _updateLanguage() {
-    this.querySelector('.ae-freq-label').innerHTML = StringLoader.getString('extension.equalizer.autoeq.freq-range', 'Frequency Range');
-    this.querySelector('.ae-q-label').innerHTML = StringLoader.getString('extension.equalizer.autoeq.q-range', 'Q Range');
-    this.querySelector('.ae-gain-label').innerHTML = StringLoader.getString('extension.equalizer.autoeq.gain-range', 'Gain Range');
-    this.querySelector('.ae-description').innerHTML = StringLoader.getString('extension.equalizer.autoeq.description', 'AutoEQ will use as many filters as available.');
-    this.querySelector('.ae-generate-eq').innerHTML = StringLoader.getString('extension.equalizer.autoeq.run-button', 'Run AutoEQ');
+    const freqLabel = this.querySelector('.ae-freq-label');
+    if(freqLabel) {
+      freqLabel.innerHTML = StringLoader.getString('extension.equalizer.autoeq.freq-range', 'Frequency Range');
+    }
+    const qLabel = this.querySelector('.ae-q-label');
+    if(qLabel) {
+      qLabel.innerHTML = StringLoader.getString('extension.equalizer.autoeq.q-range', 'Q Range');
+    }
+    const gainLabel = this.querySelector('.ae-gain-label');
+    if(gainLabel) {
+      gainLabel.innerHTML = StringLoader.getString('extension.equalizer.autoeq.gain-range', 'Gain Range');
+    }
+    const description = this.querySelector('.ae-description');
+    if(description) {
+      description.innerHTML = StringLoader.getString('extension.equalizer.autoeq.description', 'AutoEQ will use as many filters as available.');
+    }
+    const generateEQButton = this.querySelector('.ae-generate-eq');
+    if(generateEQButton) {
+      generateEQButton.innerHTML = StringLoader.getString('extension.equalizer.autoeq.run-button', 'Run AutoEQ');
+    }
   }
 }
 

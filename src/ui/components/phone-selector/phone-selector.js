@@ -330,19 +330,31 @@ class PhoneSelector extends HTMLElement {
 
   _updateLanguage() {
     // Update Selector Header
-    this.querySelector('.ps-header-nav-brand').innerHTML =
-      '< ' + StringLoader.getString('phone-selector.header-brand-btn', 'Brands');
-    this.querySelector('.ps-header-search').placeholder =
-      StringLoader.getString('phone-selector.header-search-bar-placeholder', 'Search');
-    this.querySelector('.ps-header-nav-phone').innerHTML =
-      StringLoader.getString('phone-selector.header-device-btn', 'Devices') + ' >';
+    const headerBtnBrand = this.querySelector('.ps-header-nav-brand');
+    if(headerBtnBrand) {
+      headerBtnBrand.innerHTML = '< '+ StringLoader.getString('phone-selector.header-brand-btn', 'Brands');
+    }
+    const headerBtnDevice = this.querySelector('.ps-header-nav-phone');
+    if(headerBtnDevice) {
+      headerBtnDevice.innerHTML = StringLoader.getString('phone-selector.header-device-btn', 'Devices') +' >';
+    }
+    const headerSearchBar = this.querySelector('.ps-header-search');
+    if(headerSearchBar) {
+      headerSearchBar.placeholder = StringLoader.getString('phone-selector.header-search-bar-placeholder', 'Search');
+    }
     // Update Phone List
-    this.querySelectorAll('.ps-link-review').forEach(e =>
-      e.innerHTML = `${IconProvider.Icon('externalLink')} ${StringLoader.getString('phone-selector.item-review', 'Review')}`
-    )
-    this.querySelectorAll('.ps-link-shop').forEach(e =>
-      e.innerHTML = `${IconProvider.Icon('externalLink')} ${StringLoader.getString('phone-selector.item-shop', 'Shop')}`
-    )
+    const phoneItemReviewLabel = this.querySelectorAll('.ps-link-review');
+    if(phoneItemReviewLabel) {
+      phoneItemReviewLabel.forEach(e =>
+        e.innerHTML = `${IconProvider.Icon('externalLink')} ${StringLoader.getString('phone-selector.item-review', 'Review')}`
+      );
+    }
+    const phoneItemShopLabel = this.querySelectorAll('.ps-link-shop');
+    if(phoneItemShopLabel) {
+      phoneItemShopLabel.forEach(e =>
+        e.innerHTML = `${IconProvider.Icon('externalLink')} ${StringLoader.getString('phone-selector.item-shop', 'Shop')}`
+      );
+    }
     // Update Clear Brands Button
     if (this.clearBrandsButton) {
       this.clearBrandsButton.innerHTML = `

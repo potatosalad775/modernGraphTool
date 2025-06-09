@@ -240,8 +240,11 @@ export default class FrequencyTutorial {
     // Update String
     await this._getString();
     // Update Button Name
-    this.container.querySelectorAll('.frequency-buttons > gt-button').forEach((btn, index) => {
-      btn.textContent = this.content[index].name;
-    });
+    const freqTutBtnGroup = this.container.querySelectorAll('.frequency-buttons > gt-button');
+    if(freqTutBtnGroup) {
+      freqTutBtnGroup.forEach((btn, index) => {
+        btn.textContent = this.content[index].name;
+      });
+    }
   }
 }

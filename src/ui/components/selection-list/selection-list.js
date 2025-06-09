@@ -416,16 +416,19 @@ class SelectionList extends HTMLElement {
 
   _updateLanguage() {
     // Update Channel Options
-    this.listSection.querySelectorAll('.selection-list-item').forEach(item => {
-      const uuid = item.dataset.uuid;
-      const frData = DataProvider.getFRData(uuid);
-      if (!frData) return;
+    const listItems = this.listSection.querySelectorAll('.selection-list-item');
+    if(listItems) {
+      listItems.forEach(item => {
+        const uuid = item.dataset.uuid;
+        const frData = DataProvider.getFRData(uuid);
+        if (!frData) return;
 
-      const select = item.querySelector('.sl-channels-select');
-      if (select) {
-        select.innerHTML = this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel);
-      }
-    });
+        const select = item.querySelector('.sl-channels-select');
+        if (select) {
+          select.innerHTML = this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel);
+        }
+      });
+    }
   }
 
   // Return the main list element for moving

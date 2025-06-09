@@ -440,12 +440,28 @@ class EQAudioPlayer extends HTMLElement {
   }
 
   _updateLanguage() {
-    this.querySelector('.ap-audio-source > option[value=""]').innerHTML = StringLoader.getString('extension.equalizer.player.option-init', 'Select Audio Source')
-    this.querySelector('.ap-audio-source > option[value="white"]').innerHTML = StringLoader.getString('extension.equalizer.player.option-white', 'White Noise')
-    this.querySelector('.ap-audio-source > option[value="pink"]').innerHTML = StringLoader.getString('extension.equalizer.player.option-pink', 'Pink Noise')
-    this.querySelector('.ap-audio-source > option[value="tone"]').innerHTML = StringLoader.getString('extension.equalizer.player.option-tone', 'Tone Generator')
-    this.querySelector('.ap-audio-source > option[value="file"]').innerHTML = StringLoader.getString('extension.equalizer.player.option-file', 'Upload Audio File')
-    this.querySelector('.ap-tone-freq-label').innerHTML = StringLoader.getString('extension.equalizer.player.tone-freq-label', 'Frequency: ');
+    const audioSourceSelect = this.querySelector('.ap-audio-source');
+    if (audioSourceSelect) {
+      const optionMappings = {
+        '': ['extension.equalizer.player.option-init', 'Select Audio Source'],
+        'white': ['extension.equalizer.player.option-white', 'White Noise'],
+        'pink': ['extension.equalizer.player.option-pink', 'Pink Noise'], 
+        'tone': ['extension.equalizer.player.option-tone', 'Tone Generator'],
+        'file': ['extension.equalizer.player.option-file', 'Upload Audio File']
+      };
+
+      Object.entries(optionMappings).forEach(([value, [key, fallback]]) => {
+        const option = audioSourceSelect.querySelector(`option[value="${value}"]`);
+        if (option) {
+          option.textContent = StringLoader.getString(key, fallback);
+        }
+      });
+    }
+
+    const freqLabel = this.querySelector('.ap-tone-freq-label');
+    if (freqLabel) {
+      freqLabel.textContent = StringLoader.getString('extension.equalizer.player.tone-freq-label', 'Frequency: ');
+    }
   }
 }
 

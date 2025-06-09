@@ -200,14 +200,21 @@ class TargetSelector extends HTMLElement {
   }
 
   _updateLanguage() {
-    this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
-    this.querySelectorAll('.target-group-name > span').forEach((span, index) => {
-      span.textContent = this.targets[index]?.type;
-    });
-    this.collapseButton.innerHTML = `
-      ${IconProvider.Icon('shortArrowUp', 'width: 1.25rem; height: 1.25rem;')}
-      <span>${StringLoader.getString('target-selector.label', 'Target')}</span>
-    `;
+    // Update Target Group Label
+    const targetGroupLabel = this.querySelectorAll('.target-group-name > span');
+    if(targetGroupLabel) {
+      this.targets = ConfigGetter.get('TARGET_MANIFEST') || [];
+      targetGroupLabel.forEach((span, index) => {
+        span.textContent = this.targets[index]?.type;
+      });
+    }
+    // Update Collapse Button Label
+    if(this.collapseButton) {
+      this.collapseButton.innerHTML = `
+        ${IconProvider.Icon('shortArrowUp', 'width: 1.25rem; height: 1.25rem;')}
+        <span>${StringLoader.getString('target-selector.label', 'Target')}</span>
+      `;
+    }
   }
 }
 

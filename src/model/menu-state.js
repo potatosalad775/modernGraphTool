@@ -133,6 +133,7 @@ class MenuState {
   };
 
   _updateCoreLanguage() {
+    if(!this.coreMenuBarName) return;
     this.coreMenuBarName.forEach((menuBarName, index) => {
       const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${this.coreMenuList[index]}-panel"]`);
       if (menuBarItem) {
@@ -142,6 +143,7 @@ class MenuState {
   };
 
   _updateExtensionLanguage() {
+    if(!this.extensionMenuList) return;
     this.extensionMenuList.forEach((menu, index) => {
       const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${menu}-panel"]`);
       if(menuBarItem) {

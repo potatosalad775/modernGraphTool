@@ -317,10 +317,10 @@ class TutorialModal extends HTMLElement {
     // Update Tutorial Steps
     this.updateTutorialSteps();
     // Update Button innerText
-    this.prevBtn.innerText = StringLoader.getString("tutorial-modal.btn-prev", "Previous");
-    this.nextBtn.innerText = StringLoader.getString("tutorial-modal.btn-next", "Next");
-    this.skipBtn.innerText = StringLoader.getString("tutorial-modal.btn-skip", "Skip");
-    this.pageCloseBtn.innerText = StringLoader.getString("tutorial-modal.intro-close-btn", "Next");
+    if(this.prevBtn) this.prevBtn.innerText = StringLoader.getString("tutorial-modal.btn-prev", "Previous");
+    if(this.nextBtn) this.nextBtn.innerText = StringLoader.getString("tutorial-modal.btn-next", "Next");
+    if(this.skipBtn) this.skipBtn.innerText = StringLoader.getString("tutorial-modal.btn-skip", "Skip");
+    if(this.pageCloseBtn) this.pageCloseBtn.innerText = StringLoader.getString("tutorial-modal.intro-close-btn", "Next");
   }
 
   detectOS() {

@@ -42,7 +42,8 @@ const CONFIG = {
       ALLOW_MULTIPLE_LINE_PER_TYPE: true,               // This will display targets in multiple line by 'type's. Enabling this option adds collapse button to hide/show target lists.
       OMIT_TARGET_SUFFIX: true,                         // This option will omit 'target' suffix to save some space.
       COLLAPSE_TARGET_LIST_ON_INITIAL: true,            // This option determines whether target list is collapsed on initial load or not.
-    }
+    },
+    HIDE_DEV_DONATE_BUTTON: false,                      // This option determines whether to hide "Donate" button on Misc Panel or not.
   },
   // URL Settings
   URL: {

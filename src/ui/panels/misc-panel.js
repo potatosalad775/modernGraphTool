@@ -7,6 +7,7 @@ class MiscPanel extends HTMLElement {
     super();
 
     const displayLangSelector = ConfigGetter.get('LANGUAGE.ENABLE_I18N');
+    const isDonateHidden = ConfigGetter.get('INTERFACE.HIDE_DEV_DONATE_BUTTON') || false;
 
     this.innerHTML = `
     <div class="menu-panel" id="misc-panel" data-target="misc-panel">
@@ -44,11 +45,13 @@ class MiscPanel extends HTMLElement {
           >
             ${IconProvider.Icon('book', "width: 1.5rem; height: 1.5rem")}
           </button>
-          <button name="github-button" title="Go to Donation page"
-            onclick="window.open('https://ko-fi.com/potatosalad775', '_blank')"
-          >
-            ${IconProvider.Icon('donation', "width: 1.5rem; height: 1.5rem")}
-          </button>
+          ${!isDonateHidden ? `
+            <button name="github-button" title="Go to Donation page"
+              onclick="window.open('https://ko-fi.com/potatosalad775', '_blank')"
+            >
+              ${IconProvider.Icon('donation', "width: 1.5rem; height: 1.5rem")}
+            </button>` : ''
+          }
         </div>
       </div>
     </div>

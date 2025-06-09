@@ -101,7 +101,8 @@ INTERFACE: {
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
-  }
+  },
+  HIDE_DEV_DONATE_BUTTON: false,
 },
 ```
 사용자 인터페이스 관련 설정을 지정합니다.
@@ -119,6 +120,9 @@ INTERFACE: {
     ##### `OMIT_TARGET_SUFFIX`
     각 타겟 항목마다 'Target' 접두어를 생략할지 여부를 설정합니다.
     - `true`, `false` 중 선택
+  #### `HIDE_DEV_DONATE_BUTTON`
+  '기부' 버튼을 숨길지 여부를 설정합니다.
+  - `true`, `false` 중 선택
 
 ### `URL`
 ```JavaScript
@@ -279,6 +283,25 @@ LINK_LIST: [
   - `TITLE` 필드는 링크의 제목을 지정합니다.
   - `URL` 필드는 링크의 URL을 지정합니다.
 
+### `DESCRIPTION`
+```JavaScript
+DESCRIPTION: [
+  // { TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
+  // { TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg" },
+  { TYPE: "HTML", CONTENT: "<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>" },
+],
+```
+기타 패널의 '설명' 영역에 표시할 텍스트 / 이미지 / HTML 요소를 추가할 수 있습니다.
+여러 개의 설명을 동시에 추가할 수 있습니다. 각 설명은 `{}` 객체로 구분됩니다.
+- `TYPE` : 설명의 타입을 지정합니다.
+  - `TEXT`로 설정하면 텍스트 형식의 설명이 표시됩니다.
+  - `IMAGE`로 설정하면 이미지 형식의 설명이 표시됩니다.
+  - `HTML`로 설정하면 HTML 형식의 설명이 표시됩니다.
+- `CONTENT` : 설명의 내용을 설정합니다.
+  - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 설명을 설정합니다.
+  - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
+  - `TYPE`이 `HTML`인 경우, HTML 형식의 설명을 설정합니다.
+
 ## 다국어 지원 (`config.js`)
 
 `config.js` 내 일부 항목들은 영어가 아닌 다양한 언어로 작성될 수 있습니다.
@@ -286,6 +309,7 @@ LINK_LIST: [
 - 다른 언어로 구성된 객체를 지원하는 항목은 다음과 같습니다. 
   - `TARGET_MANIFEST`
   - `TOPBAR - LINK_LIST`
+  - `DESCRIPTION`
 
 ```JavaScript
 TOPBAR: {

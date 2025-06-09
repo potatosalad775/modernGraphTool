@@ -101,7 +101,8 @@ INTERFACE: {
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
-  }
+  },
+  HIDE_DEV_DONATE_BUTTON: false,
 },
 ```
 Specifies settings related to the user interface.
@@ -119,6 +120,9 @@ Specifies settings related to the user interface.
     ##### `OMIT_TARGET_SUFFIX`
     Sets whether to omit the 'Target' prefix for each target item.
     - Choose `true` or `false`.
+  #### `HIDE_DEV_DONATE_BUTTON`
+  Sets whether to hide the 'Donate' button.
+  - Choose `true` or `false`.
 
 ### `URL`
 ```JavaScript
@@ -279,6 +283,25 @@ Sets the title and link list for the page's top bar.
   - The `TITLE` field specifies the link's title.
   - The `URL` field specifies the link's URL.
 
+### `DESCRIPTION`
+```JavaScript
+DESCRIPTION: [
+  // { TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
+  // { TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg" },
+  { TYPE: "HTML", CONTENT: "<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>" },
+],
+```
+Adds the text / image / HTML element to the 'description' area of misc panel.
+Multiple descriptions can be added simultaneously. Each description is distinguished by a `{}` object.
+- `TYPE` : Specifies the title type.
+  - Set to `TEXT` to display a text-formatted title.
+  - Set to `IMAGE` to display an image-formatted title.
+  - Set to `HTML` to display an HTML-formatted title.
+- `CONTENT` : Sets the title content.
+  - If `TYPE` is `TEXT`, sets a text-formatted title.
+  - If `TYPE` is `IMAGE`, sets an image file path.
+  - If `TYPE` is `HTML`, sets an HTML-formatted title.
+
 ## Multilingual Support (`config.js`)
 
 Some items in `config.js` can be written in languages other than English.
@@ -286,6 +309,7 @@ Some items in `config.js` can be written in languages other than English.
 - The items that support objects configured in other languages are as follows: 
   - `TARGET_MANIFEST`
   - `TOPBAR - LINK_LIST`
+  - `DESCRIPTION`
 
 ```JavaScript
 TOPBAR: {

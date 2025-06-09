@@ -47,7 +47,7 @@ class FRNormalizer {
       entries.map(async ([uuid, frObject]) => {
         try {
           // Use current data instead of fresh file data
-          const normalizedData = this.getNormalizedData(frObject.channels);
+          const normalizedData = this.normalizeChannels(frObject.channels);
 
           return [
             uuid,
@@ -87,7 +87,7 @@ class FRNormalizer {
    * @param {Object} rawData - Parsed FR data from FRParser
    * @returns
    */
-  getNormalizedData(rawData) {
+  normalizeChannels(rawData) {
     // Process each channel
     const normalizedData = {};
     for (const channel of ["L", "R", "AVG"]) {

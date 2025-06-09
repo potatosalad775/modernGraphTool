@@ -37,10 +37,10 @@ class DataProvider {
       metaData,
       inputMetadata?.dispSuffix
     );
-    // Normalize each channel
-    const normalizedData = FRNormalizer.getNormalizedData(rawData);
     // Apply Smoothing
-    const smoothedData = FRSmoother.smooth(normalizedData);
+    const smoothedData = FRSmoother.smoothChannels(rawData);
+    // Normalize each channel
+    const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
     // Create FR Object
     const frObject = {
@@ -50,14 +50,14 @@ class DataProvider {
       channels:
         sourceType === "phone"
           ? {
-              ...(smoothedData["L"] && { L: smoothedData["L"] }),
-              ...(smoothedData["R"] && { R: smoothedData["R"] }),
-              ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+              ...(normalizedData["L"] && { L: normalizedData["L"] }),
+              ...(normalizedData["R"] && { R: normalizedData["R"] }),
+              ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
             }
           : {
-              ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+              ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
             },
-      dispChannel: this._getChannelValue(sourceType, Object.keys(smoothedData)),
+      dispChannel: this._getChannelValue(sourceType, Object.keys(normalizedData)),
       dispSuffix:
         metaData.files.length > 1
           ? inputMetadata?.dispSuffix
@@ -114,10 +114,10 @@ class DataProvider {
    */
   async insertRawFRData(sourceType, identifier, rawData, inputMetadata = {}) {
     try {
-      // Normalize each channel from rawData
-      const normalizedData = FRNormalizer.getNormalizedData(rawData);
       // Apply Smoothing
-      const smoothedData = FRSmoother.smooth(normalizedData);
+      const smoothedData = FRSmoother.smoothChannels(rawData);
+      // Normalize each channel from rawData
+      const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
       // Create FR Object
       const frObject = {
@@ -125,18 +125,18 @@ class DataProvider {
         type: `inserted-${sourceType}`,
         identifier: identifier,
         channels:
-          Object.keys(smoothedData).length > 1
+          Object.keys(normalizedData).length > 1
             ? {
-                ...(smoothedData["L"] && { L: smoothedData["L"] }),
-                ...(smoothedData["R"] && { R: smoothedData["R"] }),
-                ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+                ...(normalizedData["L"] && { L: normalizedData["L"] }),
+                ...(normalizedData["R"] && { R: normalizedData["R"] }),
+                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
               }
             : {
-                ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
               },
         dispChannel: inputMetadata?.dispChannel
           ? inputMetadata?.dispChannel
-          : this._getChannelValue(sourceType, Object.keys(smoothedData)),
+          : this._getChannelValue(sourceType, Object.keys(normalizedData)),
         dispSuffix: inputMetadata?.dispSuffix
           ? inputMetadata?.dispSuffix
           : "(Inserted)",
@@ -280,22 +280,22 @@ class DataProvider {
     try {
       // Get FR Data in structured format
       const rawData = await FRParser.getFRDataFromMetadata('phone', phoneData.meta, dispSuffix);
-      // Normalize each channel from rawData
-      const normalizedData = FRNormalizer.getNormalizedData(rawData);
       // Apply Smoothing
-      const smoothedData = FRSmoother.smooth(normalizedData);
+      const smoothedData = FRSmoother.smoothChannels(rawData);
+      // Normalize each channel from rawData
+      const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
       this.frDataMap.set(uuid, {
         ...phoneData,
         channels: {
-          ...(smoothedData["L"] && { L: smoothedData["L"] }),
-          ...(smoothedData["R"] && { R: smoothedData["R"] }),
-          ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+          ...(normalizedData["L"] && { L: normalizedData["L"] }),
+          ...(normalizedData["R"] && { R: normalizedData["R"] }),
+          ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
         },
         dispSuffix: dispSuffix,
-        dispChannel: phoneData.dispChannel.every(channel => Object.keys(smoothedData).includes(channel)) 
+        dispChannel: phoneData.dispChannel.every(channel => Object.keys(normalizedData).includes(channel)) 
           ? phoneData.dispChannel 
-          : [Object.keys(smoothedData)[0]] // Replace dispChannel if the new variant does not have current channels.
+          : [Object.keys(normalizedData)[0]] // Replace dispChannel if the new variant does not have current channels.
       });
 
       // Dispatch 'Variant Updated' Event
@@ -323,22 +323,22 @@ class DataProvider {
     const originalPhoneData = this.getFRData(uuid);
 
     try {
-      // Normalize each channel from rawData
-      const normalizedData = FRNormalizer.getNormalizedData(rawData);
       // Apply Smoothing
-      const smoothedData = FRSmoother.smooth(normalizedData);
+      const smoothedData = FRSmoother.smoothChannels(rawData);
+      // Normalize each channel from rawData
+      const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
       this.frDataMap.set(uuid, {
         ...originalPhoneData,
         channels:
           originalPhoneData.type === "target"
             ? {
-                ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
               }
             : {
-                ...(smoothedData["L"] && { L: smoothedData["L"] }),
-                ...(smoothedData["R"] && { R: smoothedData["R"] }),
-                ...(smoothedData["AVG"] && { AVG: smoothedData["AVG"] }),
+                ...(normalizedData["L"] && { L: normalizedData["L"] }),
+                ...(normalizedData["R"] && { R: normalizedData["R"] }),
+                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
               },
         ...(identifier !== null && { identifier }),
         ...(dispSuffix !== null && { dispSuffix }),

@@ -401,7 +401,7 @@ class RenderEngine {
 
       this.curveGroup
         .append("path")
-        .datum(() => FRSmoother.getSmoothDataForPath(obj.channels[channel].data))
+        .datum(() => FRSmoother.smooth(obj.channels[channel].data))
         .attr("class", `fr-graph-phone-curve`)
         .attr("uuid", obj.uuid)
         .attr("type", obj.type)
@@ -448,7 +448,7 @@ class RenderEngine {
 
       this.curveGroup
         .append("path")
-        .datum(() => FRSmoother.getSmoothDataForPath(obj.channels[channel].data))
+        .datum(() => FRSmoother.smooth(obj.channels[channel].data))
         .attr("class", `fr-graph-${obj.type}-curve`)
         .attr("uuid", obj.uuid)
         .attr("type", obj.type)

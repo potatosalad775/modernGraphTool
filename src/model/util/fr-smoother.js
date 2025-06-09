@@ -11,12 +11,12 @@ const FRSmoother = {
   currentSmoothValue: '1/48',
 
   // New method to get smoothed data for d3 path
-  getSmoothDataForPath(data) {
+  smooth(data) {
     if (!this.OCTAVE_BANDS[this.currentSmoothValue] || !data) return data;
     return this._smoothChannel(data, this.currentSmoothValue);
   },
 
-  smooth(data) {
+  smoothChannels(data) {
     if (!this.OCTAVE_BANDS[this.currentSmoothValue]) return data;
     
     // Process each channel

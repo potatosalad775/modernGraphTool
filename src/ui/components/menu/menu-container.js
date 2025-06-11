@@ -5,13 +5,13 @@ class MenuContainer extends HTMLElement {
   constructor() {
     super();
 
-    const _coreMenuPanelHTML = MenuState.getCoreMenuPanels();
-
     this.className = "menu-container";
     this.innerHTML = `
       <div class="menu-slider">
         <div class="menu-panels">
-          ${_coreMenuPanelHTML}
+          ${MenuState.getCoreMenuList().map((menu) => `
+            <${menu.id}-panel></${menu.id}-panel>
+          `).join('')}  
         </div>
       </div>
       <style>

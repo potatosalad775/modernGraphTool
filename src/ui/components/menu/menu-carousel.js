@@ -1,12 +1,13 @@
 import MenuState from "../../../model/menu-state.js";
 import CoreEvent from "../../../core-event.js";
+import StringLoader from "../../../model/util/string-loader.js";
 import { menuCarouselStyles } from "./menu-carousel.styles.js";
 
 class MenuCarousel extends HTMLElement {
   constructor() {
     super();
 
-    this.currentIndex = MenuState.coreMenuList.indexOf(MenuState.currentMenu);
+    this.currentIndex = MenuState.getCurrentIndex();
     this.isDragging = false;
     this.startX = 0;
     this.currentX = 0;
@@ -15,12 +16,14 @@ class MenuCarousel extends HTMLElement {
     this.isSnapping = false;
     this.snapDebounceTime = 100; // ms
 
-    const _coreMenuBarItems = MenuState.getCoreMenuBarItem();
-
     this.innerHTML = `
       <nav class="menu-carousel-group">
         <div class="menu-carousel">
-          ${_coreMenuBarItems}
+          ${MenuState.getCoreMenuList().map((menu) => `
+            <button type="button" class="menu-bar-item" data-target="${menu.id}-panel">
+              ${StringLoader.getString(`menu.item-${menu.id}-label`, menu.name || '?')}
+            </button>
+          `).join('')} 
         </div>
       </nav>
     `;

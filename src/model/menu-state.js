@@ -5,15 +5,16 @@ import CoreExtension from "../core-extension.js";
 class MenuState {
   constructor() {
     this.currentMenu = ConfigGetter.get('INITIAL_PANEL') || 'phone';
-    this.coreMenuList = ['phone', 'graph', 'misc'];
-    this.coreMenuBarName = ['DEVICES', 'GRAPH', 'MISC'];
+    this.coreMenuList = [
+      { id: 'phone', name: 'DEVICES' },
+      { id: 'graph', name: 'GRAPH' },
+      { id: 'misc', name: 'MISC' },
+    ];
     this.extensionMenuList = [];
   }
 
   init(coreEvent) {
     this.coreEvent = coreEvent;
-    // Add StringLoader Observer
-    StringLoader.addObserver(this._updateLanguage.bind(this));
     // Update Menu Panel to Initial Value
     document.querySelector(`.menu-panel[data-target="${this.currentMenu}-panel"]`)
     ?.classList.add('active');
@@ -24,31 +25,22 @@ class MenuState {
     window.addEventListener('core:menu-change', (e) => {
       this.currentMenu = e.detail.target.replace('-panel', '');
     });
+    // Add StringLoader Observer
+    StringLoader.addObserver(this._updateLanguage.bind(this));
   };
 
   getMenuList() {
     return [...this.coreMenuList, ...this.extensionMenuList];
   };
-  
-  getCoreMenuPanels() {
-    var htmlString = '';
-    this.coreMenuList.forEach((menu) => {
-      htmlString += `<${menu}-panel></${menu}-panel>`;
-    });
-    return htmlString;
-  };
 
-  getCoreMenuBarItem() {
-    var htmlString = '';
-    this.coreMenuList.forEach((menu, index) => {
-      htmlString += `
-      <button type="button" class="menu-bar-item" data-target="${menu}-panel">
-        ${StringLoader.getString(`menu.item-${menu}-label`, this.coreMenuBarName[index] || '?')}
-      </button>
-      `;
-    })
-    return htmlString;
-  };
+  getCoreMenuList() {
+    return [...this.coreMenuList];
+  }
+
+  getCurrentIndex() {
+    const menuList = this.getMenuList();
+    return menuList.findIndex(menu => menu.id === this.currentMenu);
+  }
 
   /**
    * Add Extension Menu to Menu Panel and Menu Bar
@@ -60,7 +52,7 @@ class MenuState {
     const trimmedName = menuName.trim();
     
     // Add to extension lists
-    this.extensionMenuList.push(trimmedName);
+    this.extensionMenuList.push({ id: trimmedName, name: menuBarTitle });
 
     // Create and add panel
     const newPanel = document.createElement("div");
@@ -133,11 +125,11 @@ class MenuState {
   };
 
   _updateCoreLanguage() {
-    if(!this.coreMenuBarName) return;
-    this.coreMenuBarName.forEach((menuBarName, index) => {
-      const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${this.coreMenuList[index]}-panel"]`);
+    if(!this.coreMenuList) return;
+    this.coreMenuList.forEach((menu, index) => {
+      const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${menu.id}-panel"]`);
       if (menuBarItem) {
-        menuBarItem.textContent = StringLoader.getString(`menu.item-${this.coreMenuList[index]}-label`, menuBarName);
+        menuBarItem.textContent = StringLoader.getString(`menu.item-${menu.id}-label`, menu.name.toUpperCase());
       }
     })
   };
@@ -145,9 +137,9 @@ class MenuState {
   _updateExtensionLanguage() {
     if(!this.extensionMenuList) return;
     this.extensionMenuList.forEach((menu, index) => {
-      const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${menu}-panel"]`);
+      const menuBarItem = document.querySelector(`.menu-bar-item[data-target="${menu.id}-panel"]`);
       if(menuBarItem) {
-        menuBarItem.textContent = StringLoader.getString(`extension.${menu}.menu-label`, menu.toUpperCase());
+        menuBarItem.textContent = StringLoader.getString(`extension.${menu.id}.menu-label`, menu.name.toUpperCase());
       }
     })
   };

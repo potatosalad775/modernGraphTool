@@ -21,6 +21,15 @@ export const EXTENSION_CONFIG = [
     },
   },
   {
+    NAME: "device-peq",
+    DESCRIPTION: `modernGraphTool-compatible wrapper for devicePEQ project by jeromeof (tested with v0.8)`,
+    ENABLED: true,
+    CONFIG: {
+      ADVANCED: false, // Allow users to manipulate advanced dialogs (might be dangerous)
+      SHOW_LOGS: false, // Show logs in console
+    }
+  },
+  {
     NAME: "frequency-tutorial",
     DESCRIPTION: `frequency tutorial for modernGraphTool`,
     ENABLED: true,

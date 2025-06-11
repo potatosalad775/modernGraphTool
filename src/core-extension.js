@@ -56,6 +56,10 @@ const CoreExtension = {
     return this.extensionInstances.get(extensionName);
   },
 
+  getExtensionList() {
+    return this.activeExtensionList;
+  },
+
   async loadConfiguration() {
     try {
       const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extensions/extensions.config.js'));

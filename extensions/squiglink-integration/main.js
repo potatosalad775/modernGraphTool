@@ -173,7 +173,7 @@ export default class SquiglinkIntegration {
     introRow.classList.add('tools', 'menu-panel-row');
     introRow.innerHTML = `
       <style>
-        .tools { width: 100%; padding: 1rem 0 0.1rem 0; }
+        .tools { display: flex; flex-direction: row; width: 100%; padding: 1rem 0 0.1rem 0; }
         .welcome-launcher-container { padding: 0 !important; }
         .welcome-launcher { 
           color: var(--gt-color-on-secondary) !important;

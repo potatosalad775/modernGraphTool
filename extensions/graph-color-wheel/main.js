@@ -22,6 +22,7 @@ export default class GraphColorWheel {
     window.addEventListener("core:fr-phone-added", this._replaceOldButtonWithUUID.bind(this));
     window.addEventListener("core:fr-target-added", this._replaceOldButtonWithUUID.bind(this));
     window.addEventListener("core:fr-unknown-inserted", this._replaceOldButtonWithUUID.bind(this));
+    window.addEventListener("core:fr-variant-updated", this._replaceOldButtonWithUUID.bind(this));
     window.addEventListener("core:menu-switched", (e) => {
       if(e.detail.target !== 'list' && this.activePopup) {
         // Close color picker if menu is switched

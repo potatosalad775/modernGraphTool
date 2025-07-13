@@ -177,6 +177,15 @@ export const targetCustomizerStyle = `
     font: var(--gt-typescale-body-small);
     cursor: pointer;
     transition: all 0.2s ease;
+    
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-left: 0.3rem;
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
+    outline: none;
   }
 
   .tc-add-filter-select:focus {
@@ -216,6 +225,15 @@ export const targetCustomizerStyle = `
       font: var(--gt-typescale-body-small);
       transition: all 0.2s ease;
       cursor: pointer;
+    
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-left: 0.3rem;
+      background-repeat: no-repeat;
+      background-position: right center;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
+      outline: none;
     }
 
     select:focus {

@@ -45,11 +45,10 @@ class URLProvider {
       if (shareParam.startsWith("b62_")) {
         // Decode Base62 string
         const encoded = shareParam.replace("b62_", "");
-        phoneList = Base62.decode(encoded).split(",");
+        phoneList = this._smartSplit(Base62.decode(encoded));
       } else {
-        phoneList = decodeURI(shareParam)
-          .split(",")
-          .map((name) => name.replace(/_/g, " "));
+        const decodedParam = decodeURI(shareParam).replace(/_/g, " ");
+        phoneList = this._smartSplit(decodedParam);
       }
     };
 
@@ -60,6 +59,39 @@ class URLProvider {
     if(this.coreEvent) {
       this.coreEvent.dispatchInitEvent("url-loaded");
     }
+  }
+
+  _smartSplit(input) {
+    const result = [];
+    let current = "";
+    let parenDepth = 0;
+
+    for (let i = 0; i < input.length; i++) {
+      const char = input[i];
+      
+      if (char === '(' || char === '[' || char === '{') {
+        parenDepth++;
+        current += char;
+      } else if (char === ')' || char === ']' || char === '}') {
+        parenDepth--;
+        current += char;
+      } else if (char === ',' && parenDepth === 0) {
+        // Split here - comma is outside parentheses
+        if (current.trim()) {
+          result.push(current.trim());
+        }
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    // Add the last part
+    if (current.trim()) {
+      result.push(current.trim());
+    }
+
+    return result;
   }
 
   updateURL(changeURL = true) {

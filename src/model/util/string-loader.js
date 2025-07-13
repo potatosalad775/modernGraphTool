@@ -63,7 +63,7 @@ class StringLoader {
       // Wait for extension strings
       await this.loadExtensionStrings(); 
 
-      // Notify observers
+      // Notify observers after all strings are loaded
       this._notifyObservers();
       
       return true;
@@ -145,6 +145,12 @@ class StringLoader {
         }
       })
     );
+
+    // Add a small delay and notify observers again after extension strings are fully loaded
+    // This ensures components get updated with extension strings
+    setTimeout(() => {
+      this._notifyObservers();
+    }, 100);
   }
 
   async updateActiveExtensionList() {

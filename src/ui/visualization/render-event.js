@@ -54,8 +54,8 @@ const RenderEvent = {
     window.addEventListener('core:fr-smoothing-updated', () => {
       FRNormalizer.updateNormalization();
     });
-    window.addEventListener('core:fr-visibility-updated', () => {
-      this.renderEngine.updateLabels();
+    window.addEventListener('core:fr-visibility-updated', (e) => {
+      this.renderEngine.updateVisibility(e.detail.uuid, e.detail.visible);
     });
   }
 }

@@ -156,6 +156,7 @@ class RenderEngine {
             .attr("y", `${(labelCounter - 0.75) * lineHeight}`)
             .attr("rx", 4)
             .attr("ry", 4)
+            .attr("uuid", obj.uuid)
             .attr("width", textContent.length * lineHeight * 0.35)
             .attr("height", lineHeight)
             .attr("fill", "var(--gt-color-surface-container-lowest)")
@@ -172,6 +173,7 @@ class RenderEngine {
           .attr("text-anchor", this.labelPosition[labelLocation].anchor)
           .attr("font-size", ConfigGetter.get('VISUALIZATION.LABEL.TEXT_SIZE') || "20px")
           .attr("font-weight", ConfigGetter.get('VISUALIZATION.LABEL.TEXT_WEIGHT') || 600)
+          .attr("uuid", obj.uuid)
           .text(textContent);
 
           // Increment LabelCounter
@@ -274,6 +276,15 @@ class RenderEngine {
           .text(`${identifier} Compensated`);
       }
     }
+  }
+
+  updateVisibility(uuid, visible) {
+    // Update visibility of curves
+    this.svg.selectAll(`.fr-graph-curve-container *[uuid="${uuid}"]`)
+      .attr("visibility", visible ? "visible" : "hidden");
+    
+    // Update visibility of labels
+    this.updateLabels();
   }
 
   _getCompensatedPath(originalData) {
@@ -393,12 +404,6 @@ class RenderEngine {
     const channels = [...obj.dispChannel];
     
     channels.forEach((channel) => {
-      const lineGenerator = d3
-        .line()
-        .x((d) => this.xScale(d[0]))
-        .y((d) => this.yScale(d[1]))
-        .curve(d3.curveNatural);
-
       this.curveGroup
         .append("path")
         .datum(() => FRSmoother.smooth(obj.channels[channel].data))
@@ -416,12 +421,6 @@ class RenderEngine {
   };
 
   _drawTargetCurve(obj) {
-    const lineGenerator = d3
-      .line()
-      .x((d) => this.xScale(d[0]))
-      .y((d) => this.yScale(d[1]))
-      .curve(d3.curveNatural);
-
     this.curveGroup
       .append("path")
       .datum(obj.channels['AVG'].data)

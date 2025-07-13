@@ -402,21 +402,19 @@ class SelectionList extends HTMLElement {
         const dataObj = DataProvider.getFRData(uuid);
         if (!dataObj) return; // Might have been removed
 
-        const curves = document.querySelectorAll(`.fr-graph-curve-container path[uuid='${uuid}']`);
         const shouldHide = !button.classList.contains('hidden');
-        dataObj.hidden = shouldHide; // Update data model state
-
+        dataObj.hidden = shouldHide;
+        DataProvider.frDataMap.set(uuid, dataObj);
+        
         if (shouldHide) {
-          curves.forEach(curve => { curve.style.display = 'none'; });
           button.setAttribute('title', 'Show Graph');
           button.innerHTML = IconProvider.Icon('eyeOff', 'width: 1.5rem; height: 1.5rem;');
         } else {
-          curves.forEach(curve => { curve.style.display = ''; });
           button.setAttribute('title', 'Hide Graph');
           button.innerHTML = IconProvider.Icon('eyeOn', 'width: 1.5rem; height: 1.5rem;');
         }
         button.classList.toggle('hidden', shouldHide);
-        CoreEvent.dispatchEvent('fr-visibility-updated');
+        CoreEvent.dispatchEvent('fr-visibility-updated', { uuid, visible: !shouldHide });
       });
     }
 

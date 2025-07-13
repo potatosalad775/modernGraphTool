@@ -129,7 +129,7 @@ class EQFilterList extends HTMLElement {
     });
   };
 
-  _getFiltersFromElements() {
+  _getFiltersFromElements(includesDisabled = false) {
     const filters = [];
     const filterElements = this.querySelectorAll('.eq-filter-band');
 
@@ -140,11 +140,10 @@ class EQFilterList extends HTMLElement {
       const q = parseFloat(elem.querySelector('.filter-q').value);
       const gain = parseFloat(elem.querySelector('.filter-gain').value);
 
-      if (freq && q && gain) {
+      if (freq && q && gain && (enabled || includesDisabled)) {
         filters.push({ enabled, type, freq, q, gain });
       }
     });
-
     return filters;
   };
 

@@ -1,7 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
-import copy from 'rollup-plugin-copy'; // Assuming you still want to copy strings
-import path from 'path';
+import copy from 'rollup-plugin-copy';
 
 export default {
   input: 'extensions/equalizer/main.js',

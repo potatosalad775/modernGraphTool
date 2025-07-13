@@ -103,7 +103,7 @@ export default class EqualizerExtension extends HTMLElement {
     if (this.currentSourceUUID === null) return;
 
     const filters = this.currentFilters.filters;
-    if (!filters.length) return;
+    //if (!filters.length) return; // Even if no filters, it should still update the preview
 
     const selectedPhone = DataProvider.getFRData(this.currentSourceUUID);
     if (!selectedPhone) return;
@@ -130,7 +130,7 @@ export default class EqualizerExtension extends HTMLElement {
       }
     });
 
-    // Remove previous EQ curve if exists
+    // Check if EQ curve already exists
     let matchingEQGraphUUID;
     const isEqualizerGraphIncluded = Array.from(DataProvider.frDataMap).some(([uuid, obj]) => {
       if (obj.type === 'inserted-eq' && 

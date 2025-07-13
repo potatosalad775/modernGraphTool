@@ -3,13 +3,27 @@
     "tilt": "Tilt (dB/oct)",
     "bass": "Bass (dB)",
     "treble": "Treble (dB)",
-    "eargain": "Ear Gain (dB)"
+    "ear": "Ear (dB)",
+    "pssr": "PSSR (dB)"
+  },
+  "tc-description": {
+    "tilt": "Filter for adjusting the overall tonal balance",
+    "bass": "Filter for adjusting low frequencies",
+    "treble": "Filter for adjusting high frequencies",
+    "ear": "Filter for adjusting ear gain",
+    "pssr": "Predicted Steady State Response"
   },
   "tc-profile": {
+    "title": "Filter Profiles",
     "placeholder": "Select filter profile"
   },
   "tc-button": {
     "reset": "Reset",
     "view": "Pref. Adjustment"
+  },
+  "tc-filter": {
+    "add-placeholder": "Add a filter...",
+    "active": "Active Filters",
+    "no-filters": "No filters active"
   }
 }

@@ -16,16 +16,18 @@ modernGraphTool is bundled with [Rollup.js][ROLLUP] for better performance.
 
 To build modernGraphTool, you need to have Node.js installed. Then, run the following commands:
 
-```
+```bash
 # Setup Dependencies
 npm install
 
-# Start Local Server
+# Development (starts watchers + dev server)
 npm run dev
-npm run start
 
-# Build
+# Build for production (./dist)
 npm run build
+
+# Preview production build
+npm run preview
 ```
 
 ## Contributing

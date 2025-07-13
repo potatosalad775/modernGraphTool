@@ -48,25 +48,43 @@ scripts['copy:extensions'] = `cpx 'extensions/!(${exclusions})/**/{*,.*}' dist/e
 const buildExtCommands = extensionsWithRollup.map(ext => `npm run build:ext:${ext}`).join(' && ');
 scripts['build'] = `npm run clean && npm run build:core && ${buildExtCommands} && npm run copy:extensions`;
 
-// Add dev scripts
-scripts['dev:core'] = packageJson.scripts['dev:core'];
+// Add watch scripts for new structure
+scripts['watch:core'] = packageJson.scripts['watch:core'] || `rollup -c rollup.config.js -w`;
 
-// Add dev:ext scripts
+// Add watch:ext scripts
 extensionsWithRollup.forEach(extension => {
-  scripts[`dev:ext:${extension}`] = `rollup -c extensions/${extension}/rollup.config.js -w`;
+  scripts[`watch:ext:${extension}`] = `rollup -c extensions/${extension}/rollup.config.js -w`;
 });
 
 // Generate watch scripts
 scripts['watch:extensions'] = `cpx 'extensions/!(${exclusions})/**/{*,.*}' dist/extensions --include-empty-dirs --watch`;
-scripts['watch:ext-config'] = packageJson.scripts['watch:ext-config'];
+scripts['watch:ext-config'] = packageJson.scripts['watch:ext-config'] || `cpx 'extensions/extensions.config.js' dist/extensions --watch`;
 
-// Generate dev script
-const devExtCommands = extensionsWithRollup.map(ext => `dev:ext:${ext}`).join(' ');
-scripts['dev'] = `npm run clean && npm-run-all --parallel dev:core ${devExtCommands} watch:extensions watch:ext-config`;
+// Generate concurrently commands
+const watchExtNames = extensionsWithRollup.map(ext => ext.replace('-', '')); // Remove hyphens for concurrently names
+const watchExtCommands = extensionsWithRollup.map(ext => `npm:watch:ext:${ext}`);
+const allWatchCommands = ['npm:watch:core', ...watchExtCommands, 'npm:watch:extensions', 'npm:watch:ext-config'];
+const allWatchNames = ['core', ...watchExtNames, 'extensions', 'config'];
 
-// Keep the remaining script
-scripts['start'] = packageJson.scripts.start;
-scripts['update-scripts'] = "node scripts/update-scripts.js"
+scripts['watch:all'] = `npm run clean && concurrently --prefix-colors "cyan,magenta,green,yellow,blue,red,gray" --prefix "[{name}]" --names "${allWatchNames.join(',')}" ${allWatchCommands.map(cmd => `"${cmd}"`).join(' ')}`;
+
+// Development scripts
+scripts['serve'] = packageJson.scripts.serve || `web-dev-server --node-resolve --open --watch --root-dir dist --app-index dist/index.html`;
+scripts['dev:simple'] = `concurrently --prefix-colors "cyan,white" --prefix "[{name}]" --names "build,server" "npm:watch:all" "npm:serve"`;
+scripts['dev:build'] = `npm run watch:all`;
+scripts['start'] = `npm run serve`;
+scripts['preview'] = `npm run build && npm run serve`;
+
+// Keep the utility script
+scripts['update-scripts'] = "node scripts/update-scripts.js";
+
+// Preserve any custom scripts that don't conflict with generated ones
+const preservedScripts = ['dev', 'dev:simple'];
+preservedScripts.forEach(scriptName => {
+  if (packageJson.scripts[scriptName]) {
+    scripts[scriptName] = packageJson.scripts[scriptName];
+  }
+});
 
 // Update package.json
 packageJson.scripts = scripts;

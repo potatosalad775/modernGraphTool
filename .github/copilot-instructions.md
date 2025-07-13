@@ -13,7 +13,7 @@ modernGraphTool is a web-based frequency response visualization tool for audio d
 
 ### Build System
 - **Rollup**: Main bundler that creates `dist/core.min.js` from `src/core-ui.js`
-- **Development**: Use `npm run dev` (watch mode) + `npm run start` (dev server on port 8000)
+- **Development**: Use `npm run dev` (starts watchers + dev server in one command)
 - **Extensions**: Each extension with rollup config builds separately to `dist/extensions/`
 - **Critical**: Extensions import from `"../../core.min.js"` - this is the bundled core API
 
@@ -70,9 +70,10 @@ extensions/my-extension/
 
 ### Local Development
 ```bash
-npm install                    # Setup dependencies
-npm run dev                   # Start build watchers (core + extensions)
-npm run start                 # Start dev server (separate terminal)
+npm install           # Setup dependencies
+npm run dev          # Start development (watchers + dev server)
+npm run dev:build    # Watch-only mode (no server)
+npm run preview      # Build + serve (test production build)
 ```
 
 ### Extension Development

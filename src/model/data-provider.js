@@ -14,7 +14,15 @@ class DataProvider {
   init(coreEvent) {
     this.coreEvent = coreEvent;
     FRNormalizer.init(this);
+
+    this.addEventListeners();
   };
+
+  addEventListeners() {
+    window.addEventListener("core:fr-phone-added", this.updateChannels.bind(this));
+    window.addEventListener("core:fr-target-added", this.updateChannels.bind(this));
+    window.addEventListener("core:fr-unknown-inserted", this.updateChannels.bind(this));
+  }
 
   /**
    * Add Frequency Response Data Object to frDataMap
@@ -414,6 +422,52 @@ class DataProvider {
     }
   };
 
+  /**
+   * Update channel display for all phones based on current selection
+   * @returns {void}
+   */
+  updateChannels() {
+    const numberOfSelections = this.frDataMap.size;
+    console.log(`Updating Channels for ${numberOfSelections} selections...`);
+    if (numberOfSelections > 1) {
+      // If multiple phones are selected, use AVG channel for all if possible
+      this.frDataMap.forEach((dataObj) => {
+        if (dataObj.type === "phone") {
+          if (Object.keys(dataObj.channels).includes("AVG")) {
+            dataObj.dispChannel = ["AVG"];
+          } else {
+            dataObj.dispChannel = Object.keys(dataObj.channels)[0];
+          }
+          this.frDataMap.set(dataObj.uuid, dataObj);
+          // Fire Event
+          this.coreEvent.dispatchEvent("fr-channel-updated", {
+            uuid: dataObj.uuid,
+            type: dataObj.type,
+          });
+        }
+      });
+    } else if (numberOfSelections === 1) {
+      // If only one phone is selected, use Left and Right channels if available
+      const singlePhone = Array.from(this.frDataMap.values())[0];
+      if (singlePhone.type === "phone") {
+        if (Object.keys(singlePhone.channels).includes("L") && 
+            Object.keys(singlePhone.channels).includes("R")) {
+          singlePhone.dispChannel = ["L", "R"];
+        } else if (Object.keys(singlePhone.channels).includes("AVG")) {
+          singlePhone.dispChannel = ["AVG"];
+        } else {
+          singlePhone.dispChannel = [Object.keys(singlePhone.channels)[0]];
+        }
+        this.frDataMap.set(singlePhone.uuid, singlePhone);
+        // Fire Event
+        this.coreEvent.dispatchEvent("fr-channel-updated", {
+          uuid: singlePhone.uuid,
+          type: singlePhone.type,
+        });
+      }
+    }
+  }
+
   _getChannelValue(sourceType, availableChannels) {
     const phoneEntries = Array.from(this.frDataMap.values()).filter(
       (e) => e.type === "phone"
@@ -423,21 +477,6 @@ class DataProvider {
         // First phone: return L+R
         return availableChannels.filter((channel) => channel !== "AVG");
       } else {
-        // Subsequent phones: Update existing phones to AVG and return AVG
-        phoneEntries.forEach((existing) => {
-          // Skip if it's already displaying AVG graph
-          if(existing.dispChannel[0] === 'AVG') return;
-
-          if (Object.keys(existing.channels).includes("AVG")) {
-            existing.dispChannel = ["AVG"];
-          } else {
-            existing.dispChannel = Object.keys(existing.channels)[0];
-          }
-          this.coreEvent.dispatchEvent("fr-channel-updated", {
-            uuid: existing.uuid,
-            type: existing.type,
-          });
-        });
         // Return AVG if it exists
         if (availableChannels.includes("AVG")) {
           return ["AVG"];

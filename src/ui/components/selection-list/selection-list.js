@@ -12,6 +12,7 @@ class SelectionList extends HTMLElement {
     this._boundHandleItemAdded = this._handleItemAdded.bind(this);
     this._boundHandleItemRemoved = this._handleItemRemoved.bind(this);
     this._boundHandleItemUpdated = this._handleItemUpdated.bind(this);
+    this._boundHandleChannelUpdated = this._handleChannelUpdated.bind(this);
     this._boundUpdateLanguage = this._updateLanguage.bind(this);
 
     this.listSection = null; // Will hold the main <section> element
@@ -40,6 +41,7 @@ class SelectionList extends HTMLElement {
     window.addEventListener('core:fr-phone-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
+    window.addEventListener('core:fr-channel-updated', this._boundHandleChannelUpdated);
     window.addEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
     StringLoader.addObserver(this._boundUpdateLanguage);
   }
@@ -52,6 +54,7 @@ class SelectionList extends HTMLElement {
     window.removeEventListener('core:fr-phone-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-target-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
+    window.removeEventListener('core:fr-channel-updated', this._boundHandleChannelUpdated);
     window.removeEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
     StringLoader.removeObserver(this._boundUpdateLanguage);
   }
@@ -185,6 +188,21 @@ class SelectionList extends HTMLElement {
       this.listSection.replaceChild(updatedItemElement, existingItem);
       // Re-attach listeners to the new element
       this._attachEventListenersToItem(updatedItemElement);
+    }
+  }
+
+  // Handles channel update event
+  _handleChannelUpdated(event) {
+    const { uuid } = event.detail;
+    const itemElement = this.listSection.querySelector(`.selection-list-item[data-uuid="${uuid}"]`);
+    if (itemElement) {
+      const frData = DataProvider.getFRData(uuid);
+      if (frData) {
+        const channelSelect = itemElement.querySelector('.sl-channels-select');
+        if (channelSelect) {
+          channelSelect.innerHTML = this._getChannelOptions(Object.keys(frData.channels), frData.dispChannel);
+        }
+      }
     }
   }
 

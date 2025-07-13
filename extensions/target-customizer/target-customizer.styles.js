@@ -18,27 +18,95 @@ export const targetCustomizerStyle = `
   }
 
   .tc-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-
-    span {
-      font: var(--gt-typescale-title-small);
-    }
-  }
-
-  .tc-input-group {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
-    padding: 0.5rem 0.4rem 0.5rem 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .tc-filters-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem;
     border-radius: 0.5rem;
     background: var(--gt-color-tertiary-container);
+    border: 1px solid var(--gt-color-outline-variant);
+  }
 
-    label {
-      margin-left: 0.1rem;
-    }
+  .tc-section-title {
+    font: var(--gt-typescale-label-large);
+    color: var(--gt-color-on-surface);
+    margin: 0;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .tc-section-title::before {
+    content: '';
+    width: 2px;
+    height: 0.875rem;
+    background: var(--gt-color-primary);
+    border-radius: 1px;
+  }
+
+  .tc-active-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .tc-filter-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: var(--gt-color-surface);
+    border: 1px solid var(--gt-color-outline-variant);
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .tc-filter-control:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  .tc-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tc-filter-label {
+    font: var(--gt-typescale-body-small);
+    color: var(--gt-color-on-surface);
+    font-weight: 500;
+  }
+
+  .tc-filter-description {
+    font: var(--gt-typescale-body-small);
+    color: var(--gt-color-on-surface-variant);
+    margin-top: -0.45rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.25;
+  }
+
+  .tc-remove-filter-btn {
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    border-radius: 50%;
+    background: var(--gt-color-error-container);
+    color: var(--gt-color-on-error-container);
+    font-size: 0.75rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
   }
 
   .tc-input {
@@ -46,99 +114,246 @@ export const targetCustomizerStyle = `
     flex-direction: row;
     align-items: center;
     width: 100%;
-    gap: 0.3rem;
+    gap: 0.25rem;
 
     input {
       border: 1px solid var(--gt-color-outline);
       outline: none;
-      border-radius: 0.3rem;
-      height: 1.5rem;
-      min-width: 2rem;
+      border-radius: 0.25rem;
+      height: 1.75rem;
+      min-width: 2.5rem;
+      text-align: center;
+      font: var(--gt-typescale-body-small);
+      font-weight: 500;
+      background: var(--gt-color-surface);
+      color: var(--gt-color-on-surface);
+      transition: all 0.2s ease;
+      flex: 1;
+    }
+
+    input:focus {
+      border-color: var(--gt-color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--gt-color-primary-rgb, 98, 0, 238), 0.12);
     }
 
     button {
-      min-width: 1.5rem;
-      min-height: 1.5rem;
-      border-radius: 1.5rem;
-      background: var(--gt-color-tertiary);
-      color: var(--gt-color-on-tertiary);
+      min-width: 1.75rem;
+      min-height: 1.75rem;
+      border-radius: 0.25rem;
+      background: var(--gt-color-primary);
+      color: var(--gt-color-on-primary);
+      font-weight: 600;
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
     }
+  }
+
+  .tc-filter-management {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.375rem;
+    border-top: 1px solid var(--gt-color-outline-variant);
+  }
+
+  .tc-add-filter-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .tc-add-filter-select {
+    flex: 1;
+    min-height: 2rem;
+    padding: 0 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--gt-color-outline);
+    background: var(--gt-color-surface);
+    color: var(--gt-color-on-surface);
+    font: var(--gt-typescale-body-small);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .tc-add-filter-select:focus {
+    border-color: var(--gt-color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--gt-color-primary-rgb, 98, 0, 238), 0.12);
   }
 
   .tc-profile-container {
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.625rem;
+    border-radius: 0.5rem;
+    background: var(--gt-color-surface-variant);
+    border: 1px solid var(--gt-color-outline-variant);
+  }
+
+  .tc-profile-controls {
+    display: flex;
     flex-direction: row;
     align-items: center;
-    margin-top: 0.5rem;
     gap: 0.5rem;
-    padding: 0.5rem 0.4rem 0.5rem 0.5rem;
-    border-radius: 0.5rem;
-    background: var(--gt-color-tertiary-container);
-      
-    button {
-      min-width: 4rem;
-      min-height: 1.5rem;
-      border-radius: 1.5rem;
-      background: var(--gt-color-tertiary);
-      color: var(--gt-color-on-tertiary);
-    }
   }
 
   .tc-profile-select-container {
     flex: 1;
+    width: 100%;
 
     select {
       width: 100%;
-      min-height: 1.5rem;
+      min-height: 2rem;
+      padding: 0 0.5rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--gt-color-outline);
+      background: var(--gt-color-surface);
+      color: var(--gt-color-on-surface);
+      font: var(--gt-typescale-body-small);
+      transition: all 0.2s ease;
+      cursor: pointer;
     }
+
+    select:focus {
+      border-color: var(--gt-color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--gt-color-primary-rgb, 98, 0, 238), 0.12);
+    }
+  }
+
+  .tc-filter-reset-btn {
+    min-width: 4rem;
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--gt-color-secondary);
+    color: var(--gt-color-on-secondary);
+    font: var(--gt-typescale-body-small);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
   }
 
   .tc-view-toggle-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 1.5rem;
-    padding: 0.4rem 0.5rem;
-    border-radius: 0.5rem;
-    background: var(--gt-color-tertiary-container);
-    color: var(--gt-color-on-tertiary-container);
+    gap: 0.375rem;
+    min-height: 1.75rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.375rem;
+    background: linear-gradient(135deg, var(--gt-color-primary) 0%, var(--gt-color-secondary) 100%);
+    color: var(--gt-color-on-primary);
+    font: var(--gt-typescale-body-medium);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    overflow: hidden;
+    transform: translateY(0);
   }
+  
   .tc-view-toggle-btn.active {
-    background: var(--gt-color-tertiary);
-    color: var(--gt-color-on-tertiary);
+    background: linear-gradient(135deg, var(--gt-color-primary) 0%, var(--gt-color-secondary) 100%);
+    color: var(--gt-color-on-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+  }
+
+  .tc-view-toggle-btn .tc-btn-icon {
+    width: 1rem;
+    height: 1rem;
+    opacity: 0.9;
+    transition: transform 0.3s ease;
+  }
+
+  .tc-view-toggle-btn.active .tc-btn-icon {
+    transform: rotate(180deg);
+  }
+
+  .tc-no-filters {
+    text-align: center;
+    color: var(--gt-color-on-surface-variant);
+    font: var(--gt-typescale-body-small);
+    font-style: italic;
+    padding: 1rem 0.5rem;
+    background: var(--gt-color-surface-variant);
+    border-radius: 0.375rem;
+    border: 1px dashed var(--gt-color-outline-variant);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .tc-input button:hover, .tc-profile-container button:hover {
-      background: var(--gt-color-tertiary);
-      filter: var(--gt-hover-filter);
+    .tc-input button:hover {
+      background: var(--gt-color-primary);
+      filter: brightness(1.1);
+      transform: scale(1.05);
     }
+    
+    .tc-remove-filter-btn:hover {
+      background: var(--gt-color-error);
+      color: var(--gt-color-on-error);
+      transform: scale(1.1);
+    }
+    
+    .tc-filter-reset-btn:hover {
+      background: var(--gt-color-secondary);
+      filter: brightness(1.1);
+    }
+    
     .tc-view-toggle-btn:hover {
-      background: var(--gt-color-tertiary-container);
-      filter: var(--gt-hover-filter);
+      background: linear-gradient(135deg, var(--gt-color-primary) 0%, var(--gt-color-secondary) 100%);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transform: translateY(-1px) scale(1.01);
     }
+    
     .tc-view-toggle-btn.active:hover {
-      background: var(--gt-color-tertiary);
-      filter: var(--gt-hover-filter);
+      background: linear-gradient(135deg, var(--gt-color-primary) 0%, var(--gt-color-secondary) 100%);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transform: translateY(-1px) scale(1.01);
     }
   }
 
-  @container tc-container (max-width: 15rem) {
-    .tc-container {
+  @container tc-container (max-width: 20rem) {
+    .tc-active-filters {
       grid-template-columns: 1fr;
-      grid-template-rows: repeat(4, 1fr);
+    }
+    
+    .tc-profile-controls {
+      flex-direction: column;
+    }
+    
+    .tc-filter-reset-btn {
+      width: 100%;
     }
   }
-  @container tc-container (min-width: 15rem) and (max-width: 31rem) {
-    .tc-container {
+
+  @container tc-container (min-width: 20rem) and (max-width: 35rem) {
+    .tc-active-filters {
       grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(2, 1fr);
     }
   }
-  @container tc-container (min-width: 31rem) {
-    .tc-container {
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: 1fr;
+
+  @container tc-container (min-width: 35rem) {
+    .tc-active-filters {
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+  }
+
+  /* Animation for adding/removing filters */
+  .tc-filter-control {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 `;

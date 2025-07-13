@@ -3,13 +3,27 @@
     "tilt": "틸트 (dB/oct)",
     "bass": "저음 (dB)",
     "treble": "고음 (dB)",
-    "eargain": "이어 게인 (dB)"
+    "ear": "이어 게인 (dB)",
+    "pssr": "PSSR (dB)"
+  },
+  "tc-description": {
+    "tilt": "전체 톤 밸런스를 조정하는 필터",
+    "bass": "저주파수를 조정하는 필터",
+    "treble": "고주파수를 조정하는 필터",
+    "ear": "이어 게인을 조정하는 필터",
+    "pssr": "Predicted Steady State Response"
   },
   "tc-profile": {
+    "title": "필터 프로파일",
     "placeholder": "필터 프로파일 선택"
   },
   "tc-button": {
     "reset": "초기화",
     "view": "선호도 조정"
+  },
+  "tc-filter": {
+    "add-placeholder": "필터 추가...",
+    "active": "활성화된 필터",
+    "no-filters": "활성화된 필터가 없습니다"
   }
 }

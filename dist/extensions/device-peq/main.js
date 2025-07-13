@@ -6,6 +6,11 @@ export default class DevicePEQLoader {
     this.retryCounter = 0;
     this.equalizerInstance = null;
 
+    // Store original console.log before devicePEQ plugin overrides it
+    this.originalConsoleLog = console.log;
+    this.originalConsoleWarn = console.warn;
+    this.originalConsoleError = console.error;
+
     // Terminate if equalizer extension is not enabled
     const extensionList = CoreExtension.getExtensionList();
     if (!extensionList.some(ext => ext.NAME === 'equalizer')) {
@@ -47,14 +52,44 @@ export default class DevicePEQLoader {
         elemToFilters: this.elemToFilters.bind(this),
         calcEqDevPreamp: this.calcEqDevPreamp.bind(this),
         applyEQ: this.applyEQ.bind(this),
-        config: this.config,
+        config: {
+          showLogs: this.config.SHOW_LOGS || false, // Show logs in console
+          advanced: this.config.ADVANCED || false, // Allow advanced dialogs
+        },
       });
+      
+      // Restore original console methods after plugin loads
+      this._restoreOriginalConsole();
     } catch (e) {
       console.error('devicePEQ extension: An error occurred while loading devicePEQ plugin:', e);
     }
 
     // Modify devicePEQ element to better adapt to modernGraphTool
     this._devicePEQElementModifier();
+  }
+
+  _restoreOriginalConsole() {
+    // Restore original console methods to prevent devicePEQ from suppressing logs
+    if (this.originalConsoleLog) {
+      console.log = this.originalConsoleLog;
+    }
+    if (this.originalConsoleWarn) {
+      console.warn = this.originalConsoleWarn;
+    }
+    if (this.originalConsoleError) {
+      console.error = this.originalConsoleError;
+    }
+    
+    // Optionally, you can still keep devicePEQ's logging functionality available
+    // by storing their overridden methods in a different namespace
+    if (window.consoleLogHistory) {
+      console.devicePEQLog = function() {
+        const logString = Array.from(arguments).map(arg =>
+          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+        ).join(' ');
+        window.consoleLogHistory.push(`[LOG] ${logString}`);
+      };
+    }
   }
 
   _equalizerElementModifier() {

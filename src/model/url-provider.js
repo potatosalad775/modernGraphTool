@@ -29,6 +29,8 @@ class URLProvider {
     window.addEventListener("core:fr-phone-removed", this._handlePhoneChange);
     window.addEventListener("core:fr-target-added", this._handlePhoneChange);
     window.addEventListener("core:fr-target-removed", this._handlePhoneChange);
+    window.addEventListener("core:fr-variant-updated", this._handlePhoneChange);
+    window.addEventListener("core:fr-visibility-updated", this._handlePhoneChange);
   }
 
   _handlePhoneChange(event) {

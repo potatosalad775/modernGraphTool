@@ -80,7 +80,7 @@ const MetadataParser = {
       return {
         identifier: identifier,
         files: [{
-          fileName: `${identifier}.txt`,
+          files: `${identifier}.txt`,
         }] 
       };
     } else {
@@ -98,7 +98,8 @@ const MetadataParser = {
       for (const phone of brand.phones) {
         // Check all file variations
         for (const file of phone.files) {
-          if (file.fullName.toLowerCase() === inputStr.toLowerCase()) {
+          if (file.fullName.toLowerCase() === inputStr.toLowerCase() || 
+          file.fileName.toLowerCase() === inputStr.toLowerCase()) {
             return {
               ...phone,
               dispSuffix: file.suffix || '', // Return matching suffix as well
@@ -150,7 +151,8 @@ const MetadataParser = {
               files: [{
                 suffix: this._getSuffix(phone, 0),
                 fullName: (brandName + ' ' + phone + ' ' + this._getSuffix(phone, 0)).trim(),
-                fileName: {L: phone + ' L.txt', R: phone + ' R.txt'}
+                files: {L: phone + ' L.txt', R: phone + ' R.txt'},
+                fileName: phone
               }],
             };
           }
@@ -164,11 +166,13 @@ const MetadataParser = {
             ({
               suffix: this._getSuffix(phone, index),
               fullName: (brandName + ' ' + baseName + ' ' + this._getSuffix(phone, index)).trim(),
-              fileName: {L: `${file} L.txt`, R: `${file} R.txt`}
+              files: {L: `${file} L.txt`, R: `${file} R.txt`},
+              fileName: file
             })) : [{
               suffix: this._getSuffix(phone, 0),
               fullName: (brandName + ' ' + baseName + ' ' + this._getSuffix(phone, 0)).trim(),
-              fileName: {L: `${phone.file} L.txt`, R: `${phone.file} R.txt`}
+              files: {L: `${phone.file} L.txt`, R: `${phone.file} R.txt`},
+              fileName: phone.file
             }],
           };
         })

@@ -67,7 +67,7 @@ const FRParser = {
     try {
       // Return first variant if suffix is not specified
       if (suffix === "") {
-        return await FRParser.getFRDataFromFile(sourceType, metaData.files[0].fileName);
+        return await FRParser.getFRDataFromFile(sourceType, metaData.files[0].files);
       } 
       // Return specific variant if suffix is specified
       else {
@@ -75,7 +75,7 @@ const FRParser = {
         if (!matchingFile) {
           throw new Error(`No file found with suffix: ${suffix}`);
         }
-        return await FRParser.getFRDataFromFile(sourceType, matchingFile.fileName);
+        return await FRParser.getFRDataFromFile(sourceType, matchingFile.files);
       }
     } catch (e) {
       throw new Error("Invalid FR file type: ", e);

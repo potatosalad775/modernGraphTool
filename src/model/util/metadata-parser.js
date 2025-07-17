@@ -99,7 +99,8 @@ const MetadataParser = {
         // Check all file variations
         for (const file of phone.files) {
           if (file.fullName.toLowerCase() === inputStr.toLowerCase() || 
-          file.fileName.toLowerCase() === inputStr.toLowerCase()) {
+          file.fileName.toLowerCase() === inputStr.toLowerCase() || 
+          file.fileName.replace(' ', '_').toLowerCase() === inputStr.toLowerCase()) {
             return {
               ...phone,
               dispSuffix: file.suffix || '', // Return matching suffix as well

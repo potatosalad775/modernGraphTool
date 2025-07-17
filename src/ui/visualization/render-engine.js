@@ -142,7 +142,7 @@ class RenderEngine {
       .forEach(([_, obj]) => {
         if(obj.hidden) return; // Skip hidden items
 
-        const channels = obj.dispChannel || [''];
+        const channels = [...obj.dispChannel] || [''];
         channels.forEach((channel) => {
           const textContent = obj.type !== 'target' 
             ? `${obj.identifier} ${obj.dispSuffix} (${channel})` 

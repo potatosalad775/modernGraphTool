@@ -132,18 +132,13 @@ class DataProvider {
         uuid: crypto.randomUUID(),
         type: `inserted-${sourceType}`,
         identifier: identifier,
-        channels:
-          Object.keys(normalizedData).length > 1
-            ? {
-                ...(normalizedData["L"] && { L: normalizedData["L"] }),
-                ...(normalizedData["R"] && { R: normalizedData["R"] }),
-                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
-              }
-            : {
-                ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
-              },
+        channels: {
+          ...(normalizedData["L"] && { L: normalizedData["L"] }),
+          ...(normalizedData["R"] && { R: normalizedData["R"] }),
+          ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
+        },
         dispChannel: inputMetadata?.dispChannel
-          ? inputMetadata?.dispChannel
+          ? [...inputMetadata?.dispChannel]
           : this._getChannelValue(sourceType, Object.keys(normalizedData)),
         dispSuffix: inputMetadata?.dispSuffix
           ? inputMetadata?.dispSuffix
@@ -302,7 +297,7 @@ class DataProvider {
         },
         dispSuffix: dispSuffix,
         dispChannel: phoneData.dispChannel.every(channel => Object.keys(normalizedData).includes(channel)) 
-          ? phoneData.dispChannel 
+          ? [...phoneData.dispChannel]
           : [Object.keys(normalizedData)[0]] // Replace dispChannel if the new variant does not have current channels.
       });
 
@@ -390,7 +385,7 @@ class DataProvider {
     // Update Display channel attribute
     if (inputType === "dispChannel") {
       if (Array.isArray(inputValue)) {
-        dataObj.dispChannel = inputValue;
+        dataObj.dispChannel = [...inputValue];
         this.frDataMap.set(keyValue, dataObj);
       } else if (
         inputValue === "L" ||
@@ -436,7 +431,7 @@ class DataProvider {
           if (Object.keys(dataObj.channels).includes("AVG")) {
             dataObj.dispChannel = ["AVG"];
           } else {
-            dataObj.dispChannel = Object.keys(dataObj.channels)[0];
+            dataObj.dispChannel = [Object.keys(dataObj.channels)[0]];
           }
           this.frDataMap.set(dataObj.uuid, dataObj);
           // Fire Event

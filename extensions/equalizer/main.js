@@ -149,7 +149,7 @@ export default class EqualizerExtension extends HTMLElement {
         dispSuffix: `${selectedPhone.dispSuffix} (EQ)`,
       });
     } else {
-      const dispChannel = Object.keys(selectedPhone.channels).includes('AVG') ? 'AVG' : selectedPhone.channels[0];
+      const dispChannel = Object.keys(selectedPhone.channels).includes('AVG') ? 'AVG' : Object.keys(selectedPhone.channels)[0];
       // Insert EQ curve as a new FR object
       DataProvider.insertRawFRData(
         'eq',

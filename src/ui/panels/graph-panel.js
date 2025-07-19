@@ -31,6 +31,7 @@ class GraphPanel extends HTMLElement {
       <normalizer-input></normalizer-input>
       <smoothing-button></smoothing-button>
       <graph-scale-button></graph-scale-button>
+      <inspection-toggle></inspection-toggle>
       <graph-screenshot-button></graph-screenshot-button>
       <share-button></share-button>
     `;

@@ -15,6 +15,7 @@ import('./components/selection-list/selection-list.js');
 import('./components/drag-divider/drag-divider.js');
 import('./components/smoothing-button/smoothing-button.js');
 import('./components/graph-scale-button/graph-scale-button.js');
+import('./components/inspection-toggle/inspection-toggle.js');
 import('./components/graph-screenshot-button/graph-screenshot-button.js');
 import('./components/share-button/share-button.js');
 import('./components/language-selector/language-selector.js');

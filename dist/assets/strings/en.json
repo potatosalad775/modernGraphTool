@@ -39,6 +39,9 @@
   "y-axis-scale-button": {
     "label": "Y-Axis Scale"
   },
+  "inspection-toggle": {
+    "label": "Inspect"
+  },
   "share-button": {
     "label": "Share",
     "on-click": "Copied!"

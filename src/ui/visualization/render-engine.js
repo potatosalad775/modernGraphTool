@@ -2,6 +2,7 @@ import RenderEvent from "./render-event.js";
 import FRSmoother from "../../model/util/fr-smoother.js";
 import GraphWatermark from "./graph-watermark.js";
 import GraphHandle from "./graph-handle.js";
+import GraphInspection from "./graph-inspection.js";
 import ConfigGetter from "../../model/util/config-getter.js";
 
 class RenderEngine {
@@ -49,6 +50,8 @@ class RenderEngine {
     GraphWatermark(this.svg);
     // Setup Graph Vertical Scaler Handle
     this.graphHandle = new GraphHandle(this.svg, this);
+    // Setup Graph Inspection System
+    this.graphInspection = new GraphInspection(this);
   };
 
   /**
@@ -187,6 +190,11 @@ class RenderEngine {
         }
       });
       this._updateLabelTimeout = null;
+      
+      // Notify inspection system that labels have been updated
+      if (this.graphInspection) {
+        this.graphInspection.onLabelsUpdated();
+      }
     }, 0); 
   };
 

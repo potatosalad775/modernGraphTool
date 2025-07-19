@@ -39,6 +39,9 @@
   "y-axis-scale-button": {
     "label": "Y축 스케일"
   },
+  "inspection-toggle": {
+    "label": "조사"
+  },
   "share-button": {
     "label": "공유",
     "on-click": "복사 완료!"

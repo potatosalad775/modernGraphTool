@@ -12,7 +12,8 @@ import {
   FRNormalizer 
 } from "../../core.min.js";
 import { interpolatePath } from "./d3-interpolate-path.js";
-import * as d3 from "d3";
+// D3 is loaded globally via UMD script  
+const d3 = window.d3;
 
 // Extension metadata for version compatibility
 export const EXTENSION_METADATA = {

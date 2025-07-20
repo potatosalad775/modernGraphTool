@@ -1,4 +1,4 @@
-import * as d3 from 'd3';
+const d3 = window.d3;
 import RenderEvent from "./render-event.js";
 import FRSmoother from "../../model/util/fr-smoother.js";
 import GraphWatermark from "./graph-watermark.js";

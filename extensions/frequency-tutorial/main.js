@@ -1,5 +1,5 @@
-import { StringLoader } from "../../core.min.js";
-import * as d3 from "d3";
+import { MenuState, StringLoader, CoreEvent } from "../../core.min.js";
+const d3 = window.d3;
 
 // Extension metadata for version compatibility
 export const EXTENSION_METADATA = {

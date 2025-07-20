@@ -27,8 +27,7 @@ export default {
            id.includes('/assets/') ||
            id.includes('/data/') ||
            id.includes('config.js') ||
-           id.includes('theme.css') ||
-           id === 'd3';
+           id.includes('theme.css');
   },
   onwarn: (warning, warn) => {
     const ignoredWarnings = [{code: 'CIRCULAR_DEPENDENCY', file: 'node_modules/d3-'}];

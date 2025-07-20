@@ -41,7 +41,8 @@
     "dev:build": "npm run watch:all",
     "start": "npm run serve",
     "preview": "npm run build && npm run serve",
-    "update-scripts": "node scripts/update-scripts.js"
+    "update-scripts": "node scripts/update-scripts.js",
+    "validate-versions": "node scripts/validate-extension-versions.js"
   },
   "dependencies": {
     "@rollup/plugin-alias": "^5.1.1",

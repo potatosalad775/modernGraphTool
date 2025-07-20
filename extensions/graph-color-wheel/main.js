@@ -2,6 +2,17 @@ import { DataProvider, StringLoader } from "../../core.min.js";
 import "./reinvented-color-wheel.min.js";
 import { graphColorWheelStyle, gCWIconProvider } from "./graph-color-wheel.styles.js";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'graph-color-wheel',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Graph color picker extension using color wheel interface',
+  author: 'potatosalad775'
+};
+
 export default class GraphColorWheel {
   constructor(config = {}) {
     this.config = config;

@@ -2,6 +2,17 @@ import { DataProvider, RenderEngine, StringLoader } from "../../core.min.js";
 import { targetCustomizerStyle, IconProvider } from "./target-customizer.styles.js";
 import { Equalizer } from "./util/equalizer.js";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'target-customizer',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Target curve customization extension with filter support',
+  author: 'potatosalad775'
+};
+
 export default class TargetCustomizer {
   constructor(config = {}) {
     this.config = config;

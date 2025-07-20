@@ -13,6 +13,11 @@ import { GtToast } from './ui/common/gt-toast.js';
 
 // Create namespace object
 const CoreAPI = {
+  // Version information
+  VERSION: '1.0.0',
+  API_LEVEL: 1,
+  
+  // Core modules
   CoreEvent,
   CoreExtension,
   DataProvider,

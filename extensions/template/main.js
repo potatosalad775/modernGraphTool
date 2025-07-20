@@ -1,5 +1,16 @@
 import { MenuState, DataProvider, MetadataParser, GtToast } from "../../core.min.js";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'template',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Template extension for modernGraphTool development',
+  author: 'potatosalad775'
+};
+
 export default class TemplateElement extends HTMLElement {
   constructor(config = {}) {
     super();

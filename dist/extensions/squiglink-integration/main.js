@@ -1,4 +1,16 @@
 import { DataProvider } from "../../core.min.js";
+
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'squiglink-integration',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Squiglink integration for modernGraphTool',
+  author: 'potatosalad775'
+};
+
 window.activePhones = []; // Expose activePhones List Globally
 window.baseline = { p:null, l:null, fn:l=>l }; // Expose baseline Object Globally
 window.targetWindow = null; // Expose targetWindow Object Globally

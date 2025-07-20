@@ -14,6 +14,17 @@ import {
 import { interpolatePath } from "./d3-interpolate-path.js";
 import * as d3 from "d3";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'preference-bound',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Preference Bound extension for modernGraphTool',
+  author: 'potatosalad775'
+};
+
 export default class PreferenceBoundExtension {
   constructor(config = {}) {
     this.config = config;

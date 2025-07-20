@@ -2,6 +2,17 @@ import { MenuState, DataProvider } from "../../core.min.js";
 import { Equalizer } from "./util/equalizer.js";
 import { equalizerStyles } from "./equalizer.styles.js";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'equalizer',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Parametric equalizer extension for modernGraphTool',
+  author: 'potatosalad775'
+};
+
 // Events Used in Equalizer Extension
 // equalizer:auto-eq-generated - detail:uuid
 // equalizer:filters-changed - detail:filters

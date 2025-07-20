@@ -1,6 +1,17 @@
 import { StringLoader } from "../../core.min.js";
 import * as d3 from "d3";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'frequency-tutorial',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Frequency tutorial extension for modernGraphTool',
+  author: 'potatosalad775'
+};
+
 export default class FrequencyTutorial {
   constructor(config = {}) {
     this.config = config;

@@ -3,6 +3,9 @@ import coreStyle from './styles/core.css' with { type: "css" };
 import fontStyle from './styles/font-public.css' with { type: "css" };
 export * from './core-api.js';
 
+// Make CoreAPI globally available for extensions
+globalThis.CoreAPI = CoreAPI.default;
+
 class CoreUI extends HTMLElement {
   constructor() {
     super();

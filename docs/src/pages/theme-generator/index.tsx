@@ -2,11 +2,11 @@ import React, { useState, useEffect, ReactNode } from 'react';
 import Layout from '@theme/Layout';
 import DummyGraphPage from '@site/src/components/DummyGraphPage';
 import { SketchPicker, ColorResult } from 'react-color';
-import { argbFromHex, Hct, SchemeContent, hexFromArgb } from '@material/material-color-utilities';
+import { argbFromHex, Hct, SchemeContent, hexFromArgb, TonalPalette, CorePalette as MaterialCorePalette } from '@material/material-color-utilities';
 import Translate, {translate} from '@docusaurus/Translate';
 import styles from './index.module.css';
 
-interface CorePalette {
+interface ThemePalette {
   primary: string;
   onPrimary: string;
   primaryContainer: string;
@@ -23,6 +23,14 @@ interface CorePalette {
   onError: string;
   errorContainer: string;
   onErrorContainer: string;
+  success: string;
+  onSuccess: string;
+  successContainer: string;
+  onSuccessContainer: string;
+  warning: string;
+  onWarning: string;
+  warningContainer: string;
+  onWarningContainer: string;
   background: string;
   onBackground: string;
   surface: string;
@@ -38,32 +46,79 @@ interface CorePalette {
   surfaceContainerHighest: string;
 }
 
-const initialSourceColor = '#992139';
+interface CustomColors {
+  primary: string;
+  secondary?: string;
+  tertiary?: string;
+  success: string;
+  warning: string;
+}
+
+const initialSourceColor = '#6750A4';
+const defaultCustomColors: CustomColors = {
+  primary: '#6750A4',   // Material Purple
+  success: '#2E7D32',   // Material Green
+  warning: '#F57C00',   // Material Orange
+};
 
 const generateAndApplyTheme = (
-  sourceColorHex: string, 
+  customColors: CustomColors, 
   isDark: boolean,
-  constrastValue: number
-): CorePalette => {
-  const scheme = new SchemeContent(Hct.fromInt(argbFromHex(sourceColorHex)), isDark, constrastValue)
+  contrastValue: number
+): ThemePalette => {
+  // Create Material 3 CorePalette from primary color
+  const corePalette = MaterialCorePalette.of(argbFromHex(customColors.primary));
+  
+  // Create individual tonal palettes for semantic colors
+  const successPalette = TonalPalette.fromInt(argbFromHex(customColors.success));
+  const warningPalette = TonalPalette.fromInt(argbFromHex(customColors.warning));
+  
+  // Use Material 3 scheme for base colors (background, surface, etc.)
+  const scheme = new SchemeContent(Hct.fromInt(argbFromHex(customColors.primary)), isDark, contrastValue);
+  
+  // Define tones based on Material 3 guidelines
+  const lightTones = { main: 40, onMain: 100, container: 90, onContainer: 10 };
+  const darkTones = { main: 80, onMain: 20, container: 30, onContainer: 90 };
+  const tones = isDark ? darkTones : lightTones;
 
   return {
-    primary: hexFromArgb(scheme.primary),
-    onPrimary: hexFromArgb(scheme.onPrimary),
-    primaryContainer: hexFromArgb(scheme.primaryContainer),
-    onPrimaryContainer: hexFromArgb(scheme.onPrimaryContainer),
-    secondary: hexFromArgb(scheme.secondary),
-    onSecondary: hexFromArgb(scheme.onSecondary),
-    secondaryContainer: hexFromArgb(scheme.secondaryContainer),
-    onSecondaryContainer: hexFromArgb(scheme.onSecondaryContainer),
-    tertiary: hexFromArgb(scheme.tertiary),
-    onTertiary: hexFromArgb(scheme.onTertiary),
-    tertiaryContainer: hexFromArgb(scheme.tertiaryContainer),
-    onTertiaryContainer: hexFromArgb(scheme.onTertiaryContainer),
+    // Primary colors from Material 3 CorePalette (automatically harmonious)
+    primary: hexFromArgb(corePalette.a1.tone(tones.main)),
+    onPrimary: hexFromArgb(corePalette.a1.tone(tones.onMain)),
+    primaryContainer: hexFromArgb(corePalette.a1.tone(tones.container)),
+    onPrimaryContainer: hexFromArgb(corePalette.a1.tone(tones.onContainer)),
+    
+    // Secondary colors from Material 3 CorePalette (automatically generated to be harmonious)
+    secondary: hexFromArgb(corePalette.a2.tone(tones.main)),
+    onSecondary: hexFromArgb(corePalette.a2.tone(tones.onMain)),
+    secondaryContainer: hexFromArgb(corePalette.a2.tone(tones.container)),
+    onSecondaryContainer: hexFromArgb(corePalette.a2.tone(tones.onContainer)),
+    
+    // Tertiary colors from Material 3 CorePalette (automatically generated to be harmonious)
+    tertiary: hexFromArgb(corePalette.a3.tone(tones.main)),
+    onTertiary: hexFromArgb(corePalette.a3.tone(tones.onMain)),
+    tertiaryContainer: hexFromArgb(corePalette.a3.tone(tones.container)),
+    onTertiaryContainer: hexFromArgb(corePalette.a3.tone(tones.onContainer)),
+    
+    // Error colors from scheme (Material 3 default)
     error: hexFromArgb(scheme.error),
     onError: hexFromArgb(scheme.onError),
     errorContainer: hexFromArgb(scheme.errorContainer),
     onErrorContainer: hexFromArgb(scheme.onErrorContainer),
+    
+    // Success colors from custom palette
+    success: hexFromArgb(successPalette.tone(tones.main)),
+    onSuccess: hexFromArgb(successPalette.tone(tones.onMain)),
+    successContainer: hexFromArgb(successPalette.tone(tones.container)),
+    onSuccessContainer: hexFromArgb(successPalette.tone(tones.onContainer)),
+    
+    // Warning colors from custom palette
+    warning: hexFromArgb(warningPalette.tone(tones.main)),
+    onWarning: hexFromArgb(warningPalette.tone(tones.onMain)),
+    warningContainer: hexFromArgb(warningPalette.tone(tones.container)),
+    onWarningContainer: hexFromArgb(warningPalette.tone(tones.onContainer)),
+    
+    // Surface and background colors from scheme
     background: hexFromArgb(scheme.background),
     onBackground: hexFromArgb(scheme.onBackground),
     surface: hexFromArgb(scheme.surface),
@@ -81,9 +136,9 @@ const generateAndApplyTheme = (
 };
 
 // Define a type for the keys of colors we want to expose as pickers
-type CoreColorRole = 'primary' | 'secondary' | 'tertiary' | 'error' | 'surface'; // 'surface' will represent neutral/background for picker simplicity
+type CoreColorRole = 'primary' | 'success' | 'warning';
 
-const generateThemeCssContent = (light: CorePalette, dark: CorePalette): string => {
+const generateThemeCssContent = (light: ThemePalette, dark: ThemePalette): string => {
   return `
 /* Color Theme Schemes */
 :root {
@@ -118,6 +173,14 @@ const generateThemeCssContent = (light: CorePalette, dark: CorePalette): string 
   --gt-color-on-error: ${light.onError};
   --gt-color-error-container: ${light.errorContainer};
   --gt-color-on-error-container: ${light.onErrorContainer};
+  --gt-color-success: ${light.success};
+  --gt-color-on-success: ${light.onSuccess};
+  --gt-color-success-container: ${light.successContainer};
+  --gt-color-on-success-container: ${light.onSuccessContainer};
+  --gt-color-warning: ${light.warning};
+  --gt-color-on-warning: ${light.onWarning};
+  --gt-color-warning-container: ${light.warningContainer};
+  --gt-color-on-warning-container: ${light.onWarningContainer};
   --gt-color-background: ${light.background};
   --gt-color-on-background: ${light.onBackground};
   --gt-color-surface: ${light.surface};
@@ -155,6 +218,14 @@ const generateThemeCssContent = (light: CorePalette, dark: CorePalette): string 
   --gt-color-on-error: ${dark.onError};
   --gt-color-error-container: ${dark.errorContainer};
   --gt-color-on-error-container: ${dark.onErrorContainer};
+  --gt-color-success: ${dark.success};
+  --gt-color-on-success: ${dark.onSuccess};
+  --gt-color-success-container: ${dark.successContainer};
+  --gt-color-on-success-container: ${dark.onSuccessContainer};
+  --gt-color-warning: ${dark.warning};
+  --gt-color-on-warning: ${dark.onWarning};
+  --gt-color-warning-container: ${dark.warningContainer};
+  --gt-color-on-warning-container: ${dark.onWarningContainer};
   --gt-color-background: ${dark.background};
   --gt-color-on-background: ${dark.onBackground};
   --gt-color-surface: ${dark.surface};
@@ -178,20 +249,11 @@ const generateThemeCssContent = (light: CorePalette, dark: CorePalette): string 
 };
 
 export default function ThemeGenerator(): ReactNode {
-  const [sourceColor, setSourceColor] = useState<string>(initialSourceColor);
+  const [customColors, setCustomColors] = useState<CustomColors>(defaultCustomColors);
   const [sourceContrast, setSourceContrast] = useState<number>(0); // -1 to 1, where 0 is neutral
 
-  const [lightThemeColors, setLightThemeColors] = useState<CorePalette>(generateAndApplyTheme(initialSourceColor, false, 0));
-  const [darkThemeColors, setDarkThemeColors] = useState<CorePalette>(generateAndApplyTheme(initialSourceColor, true, 0));
-  // Store the core colors that users can manually adjust. These will primarily affect the light theme directly.
-  // Dark theme will be regenerated from sourceColor unless we add more complex logic for linked core color adjustments.
-  const [manualCoreColors, setManualCoreColors] = useState<Pick<CorePalette, CoreColorRole>>({
-    primary: lightThemeColors.primary || generateAndApplyTheme(initialSourceColor, false, 0).primary,
-    secondary: lightThemeColors.secondary || generateAndApplyTheme(initialSourceColor, false, 0).secondary,
-    tertiary: lightThemeColors.tertiary || generateAndApplyTheme(initialSourceColor, false, 0).tertiary,
-    error: lightThemeColors.error || generateAndApplyTheme(initialSourceColor, false, 0).error,
-    surface: lightThemeColors.surface || generateAndApplyTheme(initialSourceColor, false, 0).surface, // Represents neutral
-  });
+  const [lightThemeColors, setLightThemeColors] = useState<ThemePalette>(generateAndApplyTheme(defaultCustomColors, false, 0));
+  const [darkThemeColors, setDarkThemeColors] = useState<ThemePalette>(generateAndApplyTheme(defaultCustomColors, true, 0));
 
   // State to manage which picker is open, e.g., { pickerId: 'source', display: true } or null
   const [activePicker, setActivePicker] = useState<{ id: string; display: boolean } | null>(null);
@@ -200,25 +262,12 @@ export default function ThemeGenerator(): ReactNode {
     // Create a throttled function that will only execute once every 100ms
     const throttledThemeGeneration = () => {
       const timeoutId = setTimeout(() => {
-        // Regenerate both themes from the source color
-        const newLightTheme = generateAndApplyTheme(sourceColor, false, sourceContrast);
-        const newDarkTheme = generateAndApplyTheme(sourceColor, true, sourceContrast);
+        // Regenerate both themes from the custom colors
+        const newLightTheme = generateAndApplyTheme(customColors, false, sourceContrast);
+        const newDarkTheme = generateAndApplyTheme(customColors, true, sourceContrast);
         
         setLightThemeColors(newLightTheme);
         setDarkThemeColors(newDarkTheme);
-        /*
-        // Apply manual overrides to the light theme if they differ from the newly generated ones
-        // This logic can be expanded if manual changes should also try to influence dark theme generation
-        setLightThemeColors({
-          ...newLightTheme,
-          primary: manualCoreColors.primary,
-          secondary: manualCoreColors.secondary,
-          tertiary: manualCoreColors.tertiary,
-          error: manualCoreColors.error,
-          surface: manualCoreColors.surface,
-        });
-        setDarkThemeColors(newDarkTheme); // Dark theme is purely source-derived for now
-        */
       }, 50);
 
       return () => clearTimeout(timeoutId);
@@ -226,34 +275,49 @@ export default function ThemeGenerator(): ReactNode {
 
     const cleanup = throttledThemeGeneration();
     return cleanup;
-  }, [sourceColor, manualCoreColors, sourceContrast]);
+  }, [customColors, sourceContrast]);
 
-  const handleSourceColorChange = (color: ColorResult) => {
-    setSourceColor(color.hex);
-    // Also update the manualCoreColors to reflect the new source, so pickers are in sync
-    const newCore = generateAndApplyTheme(color.hex, false, sourceContrast);
-    setManualCoreColors({
-        primary: newCore.primary,
-        secondary: newCore.secondary,
-        tertiary: newCore.tertiary,
-        error: newCore.error,
-        surface: newCore.surface,
-    });
+  const handlePrimaryColorChange = (color: ColorResult) => {
+    setCustomColors(prev => ({
+      ...prev,
+      primary: color.hex
+    }));
   };
 
-  const handleSourceColorRandomChange = () => {
-    // Generate a random hex color
-    const randomHex = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-    setSourceColor(randomHex);
-    // Also update the manualCoreColors to reflect the new source, so pickers are in sync
-    const newCore = generateAndApplyTheme(randomHex, false, sourceContrast);
-    setManualCoreColors({
-      primary: newCore.primary,
-      secondary: newCore.secondary,
-      tertiary: newCore.tertiary,
-      error: newCore.error,
-      surface: newCore.surface,
-    });
+  const generateSemanticColor = (baseHue: number, saturationRange: [number, number], lightnessRange: [number, number]): string => {
+    // Add some variation to the hue while keeping it in the semantic range
+    const hueVariation = (Math.random() - 0.5) * 40; // ±20 degrees
+    const hue = Math.max(0, Math.min(360, baseHue + hueVariation));
+    
+    // Random saturation and lightness within the specified ranges
+    const saturation = saturationRange[0] + Math.random() * (saturationRange[1] - saturationRange[0]);
+    const lightness = lightnessRange[0] + Math.random() * (lightnessRange[1] - lightnessRange[0]);
+
+    function hslToHex(h, s, l) {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    }
+
+    return hslToHex(Math.round(hue), Math.round(saturation), Math.round(lightness));
+  };
+
+  const handleRandomColorChange = () => {
+    // Generate random hex colors for primary and semantic colors
+    // Secondary and tertiary will be auto-generated from the primary
+    const randomColors: CustomColors = {
+      primary: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'),
+      // Success: Green range (hue 100-160, good saturation, medium lightness)
+      success: generateSemanticColor(130, [40, 80], [25, 45]),
+      // Warning: Orange/Yellow range (hue 30-60, good saturation, medium lightness)  
+      warning: generateSemanticColor(45, [60, 90], [35, 55]),
+    };
+    setCustomColors(randomColors);
   };
 
   const handleSourceContrastChange = (value: number) => {
@@ -262,7 +326,7 @@ export default function ThemeGenerator(): ReactNode {
   };
 
   const handleCoreColorChange = (colorName: CoreColorRole) => (color: ColorResult) => {
-    setManualCoreColors(prevColors => ({
+    setCustomColors(prevColors => ({
       ...prevColors,
       [colorName]: color.hex,
     }));
@@ -289,12 +353,32 @@ export default function ThemeGenerator(): ReactNode {
     URL.revokeObjectURL(url);
   };
 
+  const renderColorDisplayButton = (
+    label: string, 
+    colorValue: string, 
+  ) => (
+    <div className={styles.tgColorPickerWrapper}>
+      <label>{label} <small>(auto-generated)</small></label>
+      <button 
+        type="button"
+        className={styles.tgColorButton}
+        style={{ 
+          backgroundColor: colorValue,
+          cursor: 'default',
+          opacity: 0.8,
+        }}
+        disabled
+      >
+        {colorValue}
+      </button>
+    </div>
+  );
+
   const renderColorPickerButton = (
     id: string, 
     label: string, 
     colorValue: string, 
     onChange: (color: ColorResult) => void,
-    enablePicker: boolean = true,
   ) => (
     <div className={styles.tgColorPickerWrapper}>
       <label>{label}</label>
@@ -303,9 +387,9 @@ export default function ThemeGenerator(): ReactNode {
         className={styles.tgColorButton}
         style={{ 
           backgroundColor: colorValue,
-          cursor: enablePicker ? 'pointer' : 'default',
+          cursor: 'pointer',
         }}
-        onClick={() => enablePicker ? togglePicker(id) : null}
+        onClick={() => togglePicker(id)}
       >
         {colorValue}
       </button>
@@ -318,6 +402,7 @@ export default function ThemeGenerator(): ReactNode {
             onChange={onChange} 
             disableAlpha={true}
             presetColors={[
+              '#6750A4', '#625B71', '#7D5260', '#2E7D32', '#F57C00',
               '#992139', '#3EE9C4', '#405820', '#C60AB5', '#AEB34D',
               '#C5613C', '#69B3F4', '#9C49F9', '#118979', '#D55924',
               '#9FA025', '#D7CC38', '#0A8615', '#F2B666', '#CF6389',
@@ -333,16 +418,19 @@ export default function ThemeGenerator(): ReactNode {
       <div className={styles.tgContainer}>
         <div className={styles.tgTools}>
           <h4>
-            <Translate>Source Color</Translate>
+            <Translate>Primary Color</Translate>
           </h4>
+          <p style={{ fontSize: '0.85rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>
+            <Translate>Secondary and tertiary colors are automatically generated from the primary color using Material 3 algorithms.</Translate>
+          </p>
           <section className={styles.tgSourceColorSection}>
-            {renderColorPickerButton('source', 'Source', sourceColor, handleSourceColorChange)}
+            {renderColorPickerButton('primary', 'Primary', customColors.primary, handlePrimaryColorChange)}
             <button
               type="button"
               className={styles.tgSourceColorRandomizerButton}
-              onClick={handleSourceColorRandomChange}
+              onClick={handleRandomColorChange}
             >
-              <Translate>Random</Translate>
+              <Translate>Random All</Translate>
             </button>
           </section>
           <section className={styles.tgSourceContrastSection}>
@@ -364,7 +452,7 @@ export default function ThemeGenerator(): ReactNode {
                 }}
               />
               <input 
-                id="sourceContrastSlider"
+                id="sourceContrastNumber"
                 type="number"
                 min="-1"
                 max="1"
@@ -380,11 +468,13 @@ export default function ThemeGenerator(): ReactNode {
           </section>
 
           <h4><Translate>Core Colors</Translate></h4>
-          {renderColorPickerButton('core-primary', 'Primary', manualCoreColors.primary, handleCoreColorChange('primary'), false)}
-          {renderColorPickerButton('core-secondary', 'Secondary', manualCoreColors.secondary, handleCoreColorChange('secondary'), false)}
-          {renderColorPickerButton('core-tertiary', 'Tertiary', manualCoreColors.tertiary, handleCoreColorChange('tertiary'), false)}
-          {renderColorPickerButton('core-error', 'Error', manualCoreColors.error, handleCoreColorChange('error'), false)}
-          {renderColorPickerButton('core-neutral', 'Neutral (Surface)', manualCoreColors.surface, handleCoreColorChange('surface'))}
+          {renderColorPickerButton('core-primary', 'Primary', customColors.primary, handleCoreColorChange('primary'))}
+          {renderColorDisplayButton('Secondary', lightThemeColors.secondary)}
+          {renderColorDisplayButton('Tertiary', lightThemeColors.tertiary)}
+          
+          <h4><Translate>Semantic Colors</Translate></h4>
+          {renderColorPickerButton('core-success', 'Success', customColors.success, handleCoreColorChange('success'))}
+          {renderColorPickerButton('core-warning', 'Warning', customColors.warning, handleCoreColorChange('warning'))}
           <button type="button" onClick={handleExportTheme} className={styles.tgExportButton}>
             <Translate>Export Theme.css</Translate>
           </button>

@@ -14,6 +14,14 @@ interface CorePalette {
   onTertiary: string;
   tertiaryContainer: string;
   onTertiaryContainer: string;
+  success: string;
+  onSuccess: string;
+  successContainer: string;
+  onSuccessContainer: string;
+  warning: string;
+  onWarning: string;
+  warningContainer: string;
+  onWarningContainer: string;
   error: string;
   onError: string;
   errorContainer: string;
@@ -56,6 +64,14 @@ export default function DummyGraphPage({
     onTertiary: "#ffffff",
     tertiaryContainer: "#924274",
     onTertiaryContainer: "#ffcae5",
+    success: "#006d3d",
+    onSuccess: "#ffffff",
+    successContainer: "#a0f9c6",
+    onSuccessContainer: "#00391a",
+    warning: "#7f4d00",
+    onWarning: "#ffffff",
+    warningContainer: "#ffdea0",
+    onWarningContainer: "#3f2a00",
     error: "#ba1a1a",
     onError: "#ffffff",
     errorContainer: "#ffdad6",
@@ -88,6 +104,14 @@ export default function DummyGraphPage({
     onTertiary: "#5a1243",
     tertiaryContainer: "#924274",
     onTertiaryContainer: "#ffcae5",
+    success: "#a0f9c6",
+    onSuccess: "#00391a",
+    successContainer: "#006d3d",
+    onSuccessContainer: "#a0f9c6",
+    warning: "#ffdea0",
+    onWarning: "#3f2a00",
+    warningContainer: "#7f4d00",
+    onWarningContainer: "#ffdea0",
     error: "#ffb4ab",
     onError: "#690005",
     errorContainer: "#93000a",
@@ -134,6 +158,24 @@ export default function DummyGraphPage({
     color: theme?.onSurface || currentDefaults.onSurface,
   };
 
+  const toastSuccessStyle = {
+    background: theme?.successContainer || currentDefaults.successContainer,
+    color: theme?.onSuccessContainer || currentDefaults.onSuccessContainer,
+    borderLeft: `4px solid ${theme?.success || currentDefaults.success}`,
+  };
+
+  const toastWarningStyle = {
+    background: theme?.warningContainer || currentDefaults.warningContainer,
+    color: theme?.onWarningContainer || currentDefaults.onWarningContainer,
+    borderLeft: `4px solid ${theme?.warning || currentDefaults.warning}`,
+  };
+
+  const toastErrorStyle = {
+    background: theme?.errorContainer || currentDefaults.errorContainer,
+    color: theme?.onErrorContainer || currentDefaults.onErrorContainer,
+    borderLeft: `4px solid ${theme?.error || currentDefaults.error}`,
+  };
+
   const dividerStyle = {
     backgroundColor: theme?.outlineVariant || currentDefaults.outlineVariant,
   };
@@ -143,59 +185,69 @@ export default function DummyGraphPage({
     color: theme?.onSurface || currentDefaults.onSurface,
   };
 
+  const tutorialButtonStyle = {
+    backgroundColor: theme?.tertiaryContainer || currentDefaults.tertiaryContainer,
+    color: theme?.onTertiaryContainer || currentDefaults.onTertiaryContainer,
+  };
+
+  const tutorialButtonSelectedStyle = {
+    backgroundColor: theme?.tertiary || currentDefaults.tertiary,
+    color: theme?.onTertiary || currentDefaults.onTertiary,
+  };
+  
   const targetSelectorStyle = {
     backgroundColor: theme?.surfaceContainerHigh || currentDefaults.surfaceContainerHigh,
     color: theme?.onSurface || currentDefaults.onSurface,
-  }
+  };
 
   const targetSelectorLabelStyle = {
     color: theme?.primary || currentDefaults.primary,
-  }
+  };
 
   const targetSelectorButtonLineStyle = {
     color: theme?.primary || currentDefaults.primary,
     border: `1px solid ${theme?.outline || currentDefaults.outline}`,
-  }
+  };
 
   const targetSelectorButtonSolidStyle = {
     color: theme?.onPrimary || currentDefaults.onPrimary,
     backgroundColor: theme?.primary || currentDefaults.primary,
     border: `1px solid ${theme?.primary || currentDefaults.primary}`,
-  }
+  };
 
   const phoneSelectorStyle = {
     backgroundColor: theme?.surfaceContainerHighest || currentDefaults.surfaceContainerHighest,
     color: theme?.onSurface || currentDefaults.onSurface,
-  }
+  };
 
   const phoneSelectorObjectStyle = {
     backgroundColor: theme?.surface || currentDefaults.surface,
     color: theme?.onSurface || currentDefaults.onSurface,
-  }
+  };
 
   const buttonObjectLinedStyle = {
     border: `1px solid ${theme?.primary || currentDefaults.primary}`,
     color: theme?.primary || currentDefaults.primary,
-  }
+  };
 
   const buttonObjectSolidStyle = {
     backgroundColor: theme?.primaryContainer || currentDefaults.primaryContainer,
     color: theme?.onPrimaryContainer || currentDefaults.onPrimaryContainer,
-  }
+  };
 
   const menuCarouselStyle = {
     backgroundColor: theme?.surfaceContainer || currentDefaults.surfaceContainer,
     color: theme?.onSurface || currentDefaults.onSurface,
-  }
+  };
 
   const menuItemStyle = {
     fontSize: "10px"
-  }
+  };
 
   const menuItemSelectedStyle = {
     color: theme?.onPrimary || currentDefaults.onPrimary,
     backgroundColor: theme?.primary || currentDefaults.primary,
-  }
+  };
 
   return (
     <section className={styles.dgpContainer} style={containerStyle}>
@@ -205,11 +257,21 @@ export default function DummyGraphPage({
       </div>
       <div className={styles.dgpContent}>
         <div className={styles.dgpGraph} style={graphStyle}>
-          Use your imagination and pretend the graph is displayed over here lol
+          <section className={styles.dgpToasts}>
+            <div className={styles.dgpToast} style={toastSuccessStyle}>Success Toast Sample</div>
+            <div className={styles.dgpToast} style={toastWarningStyle}>Warning Toast Sample</div>
+            <div className={styles.dgpToast} style={toastErrorStyle}>Error Toast Sample</div>
+          </section>
+          <span>Use your imagination and pretend the graph is displayed over here lol</span>
         </div>
         <div className={styles.dgpDivider} style={dividerStyle}></div>
         <div className={styles.dgpTools} style={toolStyle}>
           <section className={styles.dgpToolsContent}>
+            <section className={styles.dgpTutorial}>
+              <div style={tutorialButtonStyle}>Bass</div>
+              <div style={tutorialButtonSelectedStyle}>Midrange</div>
+              <div style={tutorialButtonStyle}>Treble</div>
+            </section>
             <section className={styles.dgpTargetSelector} style={targetSelectorStyle}>
               <span style={targetSelectorLabelStyle}>Target</span>
               <div style={targetSelectorButtonLineStyle}>4128 DF</div>

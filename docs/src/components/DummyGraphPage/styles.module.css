@@ -34,10 +34,25 @@
 .dgpGraph {
   flex: 4;
   display: flex;
+  position: relative;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 12px;
+}
+
+.dgpToasts {
+  position: absolute;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dgpToast {
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
 .dgpDivider {
@@ -54,6 +69,22 @@
 
 .dgpToolsContent {
   padding: 12px;
+}
+
+.dgpTutorial {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 12px;
+
+  div {
+    padding: 4px 8px;
+    border-radius: 32px;
+  }
 }
 
 .dgpTargetSelector {

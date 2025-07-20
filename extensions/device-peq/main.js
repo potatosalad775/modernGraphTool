@@ -1,5 +1,16 @@
 import { CoreExtension } from "../../core.min.js";
 
+// Extension metadata for version compatibility
+export const EXTENSION_METADATA = {
+  name: 'device-peq',
+  version: '1.0.0',
+  apiLevel: 1,
+  coreMinVersion: '1.0.0',
+  coreMaxVersion: '1.0.x',
+  description: 'Device PEQ extension for modernGraphTool',
+  author: 'potatosalad775'
+};
+
 export default class DevicePEQLoader {
   constructor(config = {}) {
     this.config = config;

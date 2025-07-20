@@ -9,12 +9,14 @@
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
+    "@types/d3": "^7.4.3",
     "@web/dev-server": "^0.4.6",
     "@web/dev-server-rollup": "^0.6.4",
     "concurrently": "^9.2.0",
     "rollup": "^4.37.0",
     "rollup-plugin-copy": "^3.5.0",
-    "rollup-plugin-import-css": "^3.5.8"
+    "rollup-plugin-import-css": "^3.5.8",
+    "typescript": "^5.8.3"
   },
   "scripts": {
     "clean": "rm -rf dist/core.min.js dist/core.min.js.map dist/extensions/*",
@@ -42,7 +44,9 @@
     "update-scripts": "node scripts/update-scripts.js"
   },
   "dependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-replace": "^6.0.2",
-    "cpx2": "^8.0.0"
+    "cpx2": "^8.0.0",
+    "d3": "^7.9.0"
   }
 }

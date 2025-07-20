@@ -38,5 +38,12 @@ export default {
   ],
   external: (id) => {
     return id.endsWith('core.min.js');
-  }
+  },
+  onwarn: (warning, warn) => {
+    const ignoredWarnings = [{code: 'CIRCULAR_DEPENDENCY', file: 'node_modules/d3-'}];
+    // Ignore warnings
+    if (!ignoredWarnings.some(w => warning.code === w.code && warning.message.includes(w.file))) {
+      warn(warning);
+    }
+  },
 };

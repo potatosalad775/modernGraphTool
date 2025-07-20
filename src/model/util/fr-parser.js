@@ -1,5 +1,20 @@
 import ConfigGetter from "./config-getter.js";
 
+/**
+ * @typedef {import('../../types/data-types.js').FRDataType} FRDataType
+ * @typedef {import('../../types/data-types.js').FRDataPoint} FRDataPoint
+ * @typedef {import('../../types/data-types.js').ChannelData} ChannelData
+ * @typedef {import('../../types/data-types.js').ParsedFRData} ParsedFRData
+ * @typedef {import('../../types/data-types.js').PhoneFileReference} PhoneFileReference
+ * @typedef {import('../../types/data-types.js').PhoneMetadata} PhoneMetadata
+ * @typedef {import('../../types/data-types.js').TargetMetadata} TargetMetadata
+ * @typedef {import('../../types/data-types.js').ValidationResult} ValidationResult
+ */
+
+/**
+ * Frequency Response Parser
+ * Handles parsing and processing of frequency response measurement files
+ */
 const FRParser = {
   _standardFrequencies: (function() {
     const frequencies = [20];
@@ -12,20 +27,28 @@ const FRParser = {
 
   /**
    * Get frequency response data in structured array format
-   * @param {string} sourceType - Type of source (phone or target)
-   * @param {string | Object} file - File name or object containing file names
-   * @returns {Promise<Array>} Structured FR data with metadata
+   * @param {FRDataType} sourceType - Type of source (phone or target)
+   * @param {PhoneFileReference|string} files - File name or object containing file names
+   * @returns {Promise<ParsedFRData>} Structured FR data with metadata
    */
   async getFRDataFromFile(sourceType, files) {
     const isPhoneData = sourceType === 'phone';
     const channels = isPhoneData ? ["L", "R"] : ["AVG"];
 
+    /** @type {ParsedFRData} */
     const parsedChannels = {};
     
     // Process each channel
     await Promise.all(
       channels.map(async (channel) => {
-        const filename = isPhoneData ? files[channel] : files;
+        let filename;
+        if (isPhoneData) {
+          const phoneFiles = /** @type {PhoneFileReference} */(files);
+          filename = channel === 'L' ? phoneFiles.L : phoneFiles.R;
+        } else {
+          filename = /** @type {string} */(files);
+        }
+        
         try {
           const rawData = await this._fetchFRTextData(
             isPhoneData ? "phone" : "target",
@@ -43,10 +66,13 @@ const FRParser = {
 
     // Add AVG channel for phone data if both L/R are available
     if (isPhoneData && parsedChannels.L && parsedChannels.R) {
+      const leftData = parsedChannels.L.data;
+      const rightData = parsedChannels.R.data;
+      
       parsedChannels.AVG = {
-        data: parsedChannels.L.data.map(([freq, lDb], index) => [
+        data: leftData.map(([freq, lDb], index) => [
           freq,
-          (lDb + parsedChannels.R.data[index][1]) / 2
+          (lDb + rightData[index][1]) / 2
         ]),
         metadata: { ...parsedChannels.L.metadata }
       };
@@ -58,34 +84,36 @@ const FRParser = {
 
   /**
    * Get frequency response data in structured array format
-   * @param {string} sourceType - Type of source (phone or target)
-   * @param {Object} metaData - metadata of FR Data
-   * @param {string} suffix - suffix of (possibly phone) FR Data
-   * @returns {Promise<Array>} Structured FR data with metadata
+   * @param {FRDataType} sourceType - Type of source (phone or target)
+   * @param {PhoneMetadata|TargetMetadata|undefined} metaData - metadata of FR Data
+   * @param {string?} suffix - suffix of (possibly phone) FR Data
+   * @returns {Promise<ParsedFRData>} Structured FR data with metadata
    */
   async getFRDataFromMetadata(sourceType, metaData, suffix = "") {
     try {
       // Return first variant if suffix is not specified
       if (suffix === "") {
-        return await FRParser.getFRDataFromFile(sourceType, metaData.files[0].files);
+        const phoneMetaData = /** @type {PhoneMetadata} */(metaData);
+        return await FRParser.getFRDataFromFile(sourceType, phoneMetaData.files[0].files);
       } 
       // Return specific variant if suffix is specified
       else {
-        const matchingFile = metaData.files.find(file => file.suffix === suffix);
+        const phoneMetaData = /** @type {PhoneMetadata} */(metaData);
+        const matchingFile = phoneMetaData.files.find(file => file.suffix === suffix);
         if (!matchingFile) {
           throw new Error(`No file found with suffix: ${suffix}`);
         }
         return await FRParser.getFRDataFromFile(sourceType, matchingFile.files);
       }
     } catch (e) {
-      throw new Error("Invalid FR file type: ", e);
+      throw new Error(`Invalid FR file type: ${e instanceof Error ? e.message : String(e)}`);
     }
   },
 
   /**
    * Convert raw frequency response text data to structured format
    * @param {string} rawData - Raw content from FR measurement file
-   * @returns {Promise<Object>} Structured FR data with metadata
+   * @returns {Promise<ChannelData>} Structured FR data with metadata
    */
   async parseFRData(rawData) {
     const lines = rawData
@@ -99,7 +127,7 @@ const FRParser = {
         const parts = line.split(/[\s,]+/).filter((p) => p !== "");
 
         // Skip lines with insufficient data or non-numeric values
-        if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) {
+        if (parts.length < 2 || isNaN(Number(parts[0])) || isNaN(Number(parts[1]))) {
           //console.warn(`Skipping invalid line ${idx + 1}: ${line}`);
           return acc;
         }
@@ -114,14 +142,14 @@ const FRParser = {
         }
         return acc;
       },
-      {
+      /** @type {ChannelData} */({
         data: [],
         metadata: {
           weights: [],
           minFreq: Infinity,
           maxFreq: -Infinity,
         },
-      }
+      })
     );
 
     if(parsed.data.length !== 0) {
@@ -141,9 +169,9 @@ const FRParser = {
 
   /**
    * Fetch raw frequency response text data from a file
-   * @param {string} sourceType - Type of source (phone or target)
+   * @param {FRDataType} sourceType - Type of source (phone or target)
    * @param {string} fileName - Name of the file
-   * @returns {Promise<string>} Raw content from FR measurement file
+   * @returns {Promise<string|null>} Raw content from FR measurement file
    */
   async _fetchFRTextData(sourceType, fileName) {
     const basePath =
@@ -168,14 +196,22 @@ const FRParser = {
     }
   },
 
-  /** Improved frequency parsing with unit detection */
+  /**
+   * Improved frequency parsing with unit detection
+   * @param {string} value - Frequency value string
+   * @returns {number} Parsed frequency in Hz
+   */
   _parseFrequency(value) {
     const num = parseFloat(value);
     if (value.toLowerCase().includes("k")) return num * 1000;
     return num;
   },
 
-  // Add interpolation helper
+  /**
+   * Add interpolation helper
+   * @param {FRDataPoint[]} rawData - Raw frequency response data
+   * @returns {FRDataPoint[]} Interpolated data points
+   */
   _interpolateToStandard(rawData) {
     return this._standardFrequencies.map(targetFreq => {
       // Find surrounding points in raw data
@@ -183,22 +219,29 @@ const FRParser = {
       
       if (index === -1) {
         // If beyond last point, return last value
-        return [targetFreq, rawData[rawData.length - 1][1]];
+        const lastPoint = rawData[rawData.length - 1];
+        return /** @type {FRDataPoint} */([targetFreq, lastPoint[1]]);
       } else if (index === 0) {
         // If before first point, return first value
-        return [targetFreq, rawData[0][1]];
+        const firstPoint = rawData[0];
+        return /** @type {FRDataPoint} */([targetFreq, firstPoint[1]]);
       } else {
         // Interpolate between points
         const [freq1, db1] = rawData[index - 1];
         const [freq2, db2] = rawData[index];
         const ratio = (targetFreq - freq1) / (freq2 - freq1);
         const interpolatedDb = db1 + (db2 - db1) * ratio;
-        return [targetFreq, interpolatedDb];
+        return /** @type {FRDataPoint} */([targetFreq, interpolatedDb]);
       }
     });
   },
 
-  /** Enhanced validation with frequency range checks */
+  /**
+   * Enhanced validation with frequency range checks
+   * @param {number} freq - Frequency value
+   * @param {number} db - Amplitude value
+   * @returns {boolean} Whether the data point is valid
+   */
   _isValidDataPoint(freq, db) {
     return (
       Number.isFinite(freq) &&

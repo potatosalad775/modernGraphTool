@@ -636,7 +636,7 @@ export default class TargetCustomizer {
         } else {
           // Suffix = Filtered, use original data from metadata
           filteredData = equalizer.applyFilters(
-            targetData.meta.ogChannels[channel].data,
+            targetData.meta?.extensionData?.ogChannels[channel].data,
             filters
           );
         }
@@ -670,16 +670,22 @@ export default class TargetCustomizer {
     });
 
     // Update current EQ curve
-    DataProvider.updateFRDataWithRawData(uuid, channelData, {
+    const updateData = {
       dispSuffix: dispSuffix !== "" ? `(${dispSuffix.trimEnd()})` : "",
-      ...(targetData.dispSuffix === "" &&
-        targetData.meta.ogChannels === undefined && {
-          meta: {
-            ...targetData.meta,
-            ogChannels: targetData.channels,
-          },
-        }),
-    });
+    };
+
+    // Only add meta if conditions are met
+    if (targetData.dispSuffix === "" && targetData.meta?.extensionData?.ogChannels === undefined) {
+      updateData.meta = {
+        ...targetData.meta,
+        extensionData: {
+          ...targetData.meta?.extensionData,
+          ogChannels: targetData.channels
+        },
+      };
+    }
+
+    DataProvider.updateFRDataWithRawData(uuid, channelData, updateData);
   }
 
   _updateBaselineButton(uuid) {
@@ -716,7 +722,7 @@ export default class TargetCustomizer {
         if (filterData.tilt !== 0) {
           // Draw tilted baseline = use unmodified data
           RenderEngine.updateBaselineData(true, { 
-            uuid: uuid, channelData: DataProvider.getFRData(uuid).meta.ogChannels['AVG'].data
+            uuid: uuid, channelData: DataProvider.getFRData(uuid).meta?.extensionData?.ogChannels['AVG'].data
           });
         } else {
           // Draw flat baseline = use modified data

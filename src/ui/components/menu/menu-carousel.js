@@ -7,7 +7,9 @@ class MenuCarousel extends HTMLElement {
   constructor() {
     super();
 
+    /** @type {number} */
     this.currentIndex = MenuState.getCurrentIndex();
+
     this.isDragging = false;
     this.startX = 0;
     this.currentX = 0;

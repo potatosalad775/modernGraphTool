@@ -12,6 +12,7 @@ import {
   FRNormalizer 
 } from "../../core.min.js";
 import { interpolatePath } from "./d3-interpolate-path.js";
+import * as d3 from "d3";
 
 export default class PreferenceBoundExtension {
   constructor(config = {}) {

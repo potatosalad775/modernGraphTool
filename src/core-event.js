@@ -97,7 +97,7 @@ const CoreEvent = {
     // List of phones fetched from URL Data
     const phones = this.coreAPI.URLProvider.getPhoneDataFromURL();
 
-    if (phones !== null) {
+    if (!phones) {
       Array.from(phones).forEach(async (phone) => {
         try {
           const matchingPhone = this.coreAPI.MetadataParser.searchFRInfoWithFullName(phone);

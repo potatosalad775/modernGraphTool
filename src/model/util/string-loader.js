@@ -1,17 +1,31 @@
+/**
+ * StringLoader class for managing language strings in the application.
+ * It supports loading strings from JSON files, caching them, and processing them for internationalization.
+ * It also supports observing language changes and loading extension strings.
+ */
 class StringLoader {
   constructor() {
+    /** @type {Map<string, string>} */
     this._strings = new Map();
+    /** @type {Map<string, Map<string, string>>} */
     this._cache = new Map();
+    /** @type {Map<string, string>} */
     this._extensionStrings = new Map();
-    this._langList = window.GRAPHTOOL_CONFIG?.LANGUAGE?.LANGUAGE_LIST || ["en", "English"], ["ko", "한국어"];
+    /** @type {Array<[string, string]>} */
+    this._langList = /** @type {any} */(window).GRAPHTOOL_CONFIG?.LANGUAGE?.LANGUAGE_LIST || [["en", "English"], ["ko", "한국어"]];
+    /** @type {string} */
     this._currentLang = 'en';
+    /** @type {Set<Function>} */
     this._observers = new Set();
+    /** @type {string[]} */
     this._fallbackChain = ['en'];
+    /** @type {WeakMap<Function, Function>} */
     this._boundObservers = new WeakMap();
+    /** @type {Array<{NAME: string, I18N_ENABLED: boolean}>} */
     this._activeExtensionList = [];
 
-    if(window.GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_I18N) {
-      if(window.GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_SYSTEM_LANG_DETECTION) {
+    if(/** @type {any} */(window).GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_I18N) {
+      if(/** @type {any} */(window).GRAPHTOOL_CONFIG?.LANGUAGE?.ENABLE_SYSTEM_LANG_DETECTION) {
         this._currentLang = this._detectLanguage();
       }
     }
@@ -19,6 +33,11 @@ class StringLoader {
     this.loadLanguage(this._currentLang);
   }
 
+  /**
+   * Detect the browser language and return it if supported
+   * @returns {string} Detected language code
+   * @private
+   */
   _detectLanguage() {
     const browserLang = navigator.language.split('-')[0];
     const langArray = this._langList.map(([lang, _]) => lang);
@@ -26,13 +45,20 @@ class StringLoader {
     return langArray.includes(browserLang) ? browserLang : 'en';
   }
 
-  static getInstance() {
-    if (!StringLoader._instance) {
-      StringLoader._instance = new StringLoader();
-    }
-    return StringLoader._instance;
+  /**
+   * Get the list of available languages
+   * @returns {Array<[string, string]>} List of language codes and names
+   */
+  getLanguageList() {
+    return this._langList;
   }
 
+  /**
+   * Load a specific language
+   * @param {string} lang - Language code to load
+   * @param {boolean} force - Whether to force reload the language
+   * @returns {Promise<boolean>} Promise resolving to true if language loaded successfully
+   */
   async loadLanguage(lang, force = false) {
     try {
       // Show loading indicator
@@ -75,7 +101,12 @@ class StringLoader {
     }
   }
 
-  // Recursively process nested strings
+  /**
+   * Recursively process nested strings
+   * @param {string} prefix - Current prefix for the key
+   * @param {object} obj - Object containing strings to process
+   * @private
+   */
   _processStrings(prefix, obj) {
     for (const [key, value] of Object.entries(obj)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
@@ -87,6 +118,12 @@ class StringLoader {
     }
   }
 
+  /**
+   * Get a string by its key, with support for language-specific values
+   * @param {string} key - Key of the string to retrieve
+   * @param {string} [defaultValue] - Default value to return if the key is not found
+   * @returns {string} The string value for the given key, or the default value if not found
+   */
   getString(key, defaultValue = key) {
     // Try current language
     let value = this._strings.get(key);
@@ -102,17 +139,28 @@ class StringLoader {
     return defaultValue;
   }
 
+  /**
+   * Get current language code
+   * @returns {string} Current language code
+   */
   getCurrentLanguage() {
     return this._currentLang;
   }
 
-  // Observer pattern for language changes
+  /**
+   * Add an observer for language changes
+   * @param {Function} callback - Callback function to be called on language change
+   */
   addObserver(callback) {
     const boundCallback = callback.bind(this);
     this._boundObservers.set(callback, boundCallback);
     this._observers.add(boundCallback);
   }
 
+  /**
+   * Remove an observer for language changes
+   * @param {Function} callback - Callback function to remove
+   */
   removeObserver(callback) {
     const boundCallback = this._boundObservers.get(callback);
     if (boundCallback) {
@@ -121,12 +169,22 @@ class StringLoader {
     }
   }
 
+  /**
+   * Notify all observers about the language change
+   * @private
+   */
   _notifyObservers() {
     for (const callback of this._observers) {
       callback(this._currentLang);
     }
   }
 
+  /**
+   * Load strings for all active extensions
+   * This method fetches strings from each extension's strings directory based on the current language.
+   * It uses Promise.all to ensure all extensions are loaded before notifying observers.
+   * @returns {Promise<void>}
+   */
   async loadExtensionStrings() {
     this._activeExtensionList = await this.updateActiveExtensionList();
     
@@ -153,15 +211,34 @@ class StringLoader {
     }, 100);
   }
 
+  /**
+   * Update the list of active extensions based on their configuration
+   * This method dynamically loads the extension configuration and filters out inactive extensions.
+   * @returns {Promise<Array<{NAME: string, I18N_ENABLED: boolean}>>} List of active extensions with I18N support
+   */
   async updateActiveExtensionList() {
     try {
       const { EXTENSION_CONFIG } = await import(import.meta.resolve('./extensions/extensions.config.js'));
-      return EXTENSION_CONFIG.filter((extension) => extension.I18N_ENABLED);
+      return EXTENSION_CONFIG.filter((/** @type any */ extension) => extension.I18N_ENABLED);
     } catch (error) {
       console.error('modernGraphTool: Failed to load extension configuration -', error);
       return [];
     }
   }
+
+  /**
+   * Get singleton instance of StringLoader
+   * @returns {StringLoader} Singleton instance
+   */
+  static getInstance() {
+    if (!StringLoader._instance) {
+      StringLoader._instance = new StringLoader();
+    }
+    return StringLoader._instance;
+  }
 }
+
+/** @type {StringLoader|null} */
+StringLoader._instance = null;
 
 export default StringLoader.getInstance();

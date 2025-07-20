@@ -1,6 +1,11 @@
+// @ts-nocheck
 import FRNormalizer from "../../model/util/fr-normalizer.js";
 
 const RenderEvent = {
+  /**
+   * Initialize the render events
+   * @param {import('./render-engine.js').default} renderEngine 
+   */
   init(renderEngine) {
     this.renderEngine = renderEngine;
     // Initialize

@@ -1,4 +1,5 @@
 import { StringLoader } from "../../core.min.js";
+import * as d3 from "d3";
 
 export default class FrequencyTutorial {
   constructor(config = {}) {

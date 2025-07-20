@@ -1,3 +1,5 @@
+import * as d3 from 'd3';
+
 class GraphInspection {
   constructor(renderEngine) {
     this.renderEngine = renderEngine;

@@ -1,3 +1,4 @@
+import * as d3 from 'd3';
 import RenderEvent from "./render-event.js";
 import FRSmoother from "../../model/util/fr-smoother.js";
 import GraphWatermark from "./graph-watermark.js";
@@ -80,7 +81,7 @@ class RenderEngine {
 
   /**
    * Update Y Scale of Graph
-   * @param {string | int} scale 
+   * @param {string} scale 
    */
   updateYScale(scale) {
     //const oldYScale = this.yScale.copy();
@@ -145,7 +146,7 @@ class RenderEngine {
       .forEach(([_, obj]) => {
         if(obj.hidden) return; // Skip hidden items
 
-        const channels = [...obj.dispChannel] || [''];
+        const channels = [...obj.dispChannel];
         channels.forEach((channel) => {
           const textContent = obj.type !== 'target' 
             ? `${obj.identifier} ${obj.dispSuffix} (${channel})` 

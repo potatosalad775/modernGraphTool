@@ -5,19 +5,49 @@ import FRNormalizer from "./util/fr-normalizer.js";
 import FRSmoother from "./util/fr-smoother.js";
 import ConfigGetter from "./util/config-getter.js";
 
+/**
+ * @typedef {import('../types/data-types.js').FRDataType} FRDataType
+ * @typedef {import('../types/data-types.js').FRDataObject} FRDataObject
+ * @typedef {import('../types/data-types.js').FRInputMetadata} FRInputMetadata
+ * @typedef {import('../types/data-types.js').FREventData} FREventData
+ * @typedef {import('../types/data-types.js').FRColors} FRColors
+ * @typedef {import('../types/data-types.js').ParsedFRData} ParsedFRData
+ * @typedef {import('../types/data-types.js').PhoneMetadata} PhoneMetadata
+ * @typedef {import('../types/data-types.js').TargetMetadata} TargetMetadata
+ */
+
+/**
+ * Data Provider for frequency response data management
+ * Handles loading, processing, and managing FR data for phones and targets
+ */
 class DataProvider {
   constructor() {
+    /** @type {Map<string, FRDataObject>} */
     this.frDataMap = new Map();
+    
+    /** @type {number|null} */
     this.baseHue = null; // base Hue value for color generation
+
+    /** @type {import('../core-event.js').default|null} */
+    this.coreEvent = null;
   };
   
+  /**
+   * Initialize data provider
+   * @param {import('../core-event.js').default} coreEvent - Core event system
+   * @returns {void}
+   */
   init(coreEvent) {
     this.coreEvent = coreEvent;
     FRNormalizer.init(this);
 
     this.addEventListeners();
-  };
+  }
 
+  /**
+   * Add event listeners for FR data changes
+   * @returns {void}
+   */
   addEventListeners() {
     window.addEventListener("core:fr-phone-added", this.updateChannels.bind(this));
     window.addEventListener("core:fr-target-added", this.updateChannels.bind(this));
@@ -26,9 +56,9 @@ class DataProvider {
 
   /**
    * Add Frequency Response Data Object to frDataMap
-   * @param {string} sourceType - Type of source (phone or target)
+   * @param {FRDataType} sourceType - Type of source (phone or target)
    * @param {string} identifier - Identifier of the source (phone or target name)
-   * @param {object?} inputMetadata - custom metadata attribute of the phone source
+   * @param {FRInputMetadata} [inputMetadata={}] - custom metadata attribute of the phone source
    * @returns {Promise<void>}
    */
   async addFRData(sourceType, identifier, inputMetadata = {}) {
@@ -49,12 +79,13 @@ class DataProvider {
     const smoothedData = FRSmoother.smoothChannels(rawData);
     // Normalize each channel
     const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
+    const normalizedChannels = /** @type {("L"|"R"|"AVG")[]} */ (Object.keys(normalizedData));
 
-    // Create FR Object
+    /** @type {FRDataObject} */
     const frObject = {
       uuid: crypto.randomUUID(),
       type: sourceType,
-      identifier: metaData?.identifier,
+      identifier: metaData?.identifier || identifier,
       channels:
         sourceType === "phone"
           ? {
@@ -65,15 +96,15 @@ class DataProvider {
           : {
               ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
             },
-      dispChannel: this._getChannelValue(sourceType, Object.keys(normalizedData)),
+      dispChannel: this._getChannelValue(sourceType, normalizedChannels),
       dispSuffix:
-        metaData.files.length > 1
+        'files' in metaData && metaData.files.length > 1
           ? inputMetadata?.dispSuffix
             ? inputMetadata?.dispSuffix
-            : metaData.files[0]?.suffix
+            : 'suffix' in metaData.files[0] ? metaData.files[0].suffix : ""
           : "",
       colors: this._getColorWithType(sourceType),
-      dash: this._getDashWithType(sourceType, metaData?.identifier),
+      dash: this._getDashWithType(sourceType, metaData?.identifier || undefined),
       meta: metaData,
     };
 
@@ -83,13 +114,13 @@ class DataProvider {
     // Dispatch 'FR Added' Event
     this.coreEvent.dispatchEvent(`fr-${sourceType}-added`, {
       uuid: frObject.uuid,
-      identifier: metaData?.identifier,
+      identifier: metaData?.identifier || identifier,
     });
   };
 
   /**
    * Remove Frequency Response Data Object from frDataMap
-   * @param {string} sourceType - Type of source (phone or target)
+   * @param {FRDataType} sourceType - Type of source (phone or target)
    * @param {string} identifier - Identifier of the phone
    * @returns {void}
    */
@@ -114,10 +145,10 @@ class DataProvider {
 
   /**
    * Insert Processed Raw Data to frDataMap
-   * @param {string} sourceType - Type of data (phone or target)
+   * @param {FRDataType} sourceType - Type of data (phone or target)
    * @param {string} identifier - Identifier of the data (phone or target name)
-   * @param {Array} rawData - processed rawData to be inserted
-   * @param {object?} inputMetadata - custom metadata attribute of the phone source
+   * @param {ParsedFRData} rawData - processed rawData to be inserted
+   * @param {FRInputMetadata} [inputMetadata={}] - custom metadata attribute of the phone source
    * @returns {Promise<void>}
    */
   async insertRawFRData(sourceType, identifier, rawData, inputMetadata = {}) {
@@ -126,11 +157,12 @@ class DataProvider {
       const smoothedData = FRSmoother.smoothChannels(rawData);
       // Normalize each channel from rawData
       const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
+      const normalizationChannels = /** @type {("L"|"R"|"AVG")[]} */ (Object.keys(normalizedData));
 
       // Create FR Object
       const frObject = {
-        uuid: crypto.randomUUID(),
-        type: `inserted-${sourceType}`,
+        uuid: /** @type {string} */ (crypto.randomUUID()),
+        type: /** @type {FRDataType} */ (`inserted-${sourceType}`),
         identifier: identifier,
         channels: {
           ...(normalizedData["L"] && { L: normalizedData["L"] }),
@@ -139,7 +171,7 @@ class DataProvider {
         },
         dispChannel: inputMetadata?.dispChannel
           ? [...inputMetadata?.dispChannel]
-          : this._getChannelValue(sourceType, Object.keys(normalizedData)),
+          : this._getChannelValue(sourceType, normalizationChannels),
         dispSuffix: inputMetadata?.dispSuffix
           ? inputMetadata?.dispSuffix
           : "(Inserted)",
@@ -163,7 +195,7 @@ class DataProvider {
 
   /**
    * Remove Frequency Response Data Object from frDataMap with UUID
-   * @param {string} sourceType - Type of source (phone or target)
+   * @param {FRDataType} sourceType - Type of source (phone or target)
    * @param {string} uuid - UUID of the phone
    * @returns {void}
    */
@@ -187,18 +219,18 @@ class DataProvider {
   /**
    * Get FR Data from frDataMap
    * @param {string} uuid - UUID of the FR data
-   * @returns {object|null} FR data object or null if not found
+   * @returns {FRDataObject|undefined} FR data object or undefined if not found
    */
   getFRData(uuid) {
     if (!this.frDataMap.has(uuid)) {
-      return null;
+      return undefined;
     }
     return structuredClone(this.frDataMap.get(uuid));
   };
 
   /**
    * Get FR Data from frDataMap
-   * @returns {object|null} FR Data Map Object
+   * @returns {Map<string, FRDataObject>|undefined} FR Data Map Object
    */
   getFRDataMap() {
     return structuredClone(this.frDataMap);
@@ -240,8 +272,8 @@ class DataProvider {
 
   /**
    * Get Array of Frequency Response Identifiers existing in frDataMap
-   * @param {string} sourceType - Type of source (phone or target)
-   * @returns {boolean}
+   * @param {FRDataType} sourceType - Type of source (phone or target)
+   * @returns {string[]}
    */
   getLoadedFRIdentifierBySource(sourceType) {
     return Array.from(this.frDataMap)
@@ -251,7 +283,7 @@ class DataProvider {
 
   /**
    * Toggle Frequency Response Data Object in frDataMap
-   * @param {string} sourceType - Type of source (phone or target)
+   * @param {FRDataType} sourceType - Type of source (phone or target)
    * @param {string} identifier - Identifier of the source (phone or target name)
    * @param {boolean} enabled - Whether to enable or disable the FR data
    * @returns {Promise<void>}
@@ -277,7 +309,7 @@ class DataProvider {
   async updateVariant(uuid, dispSuffix) {
     const phoneData = this.getFRData(uuid);
     if (!phoneData) {
-      throw new Error("No data found for UUID:", uuid);
+      throw new Error("No data found for UUID: " + uuid);
     }
 
     try {
@@ -288,6 +320,13 @@ class DataProvider {
       // Normalize each channel from rawData
       const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
+      /** @param {("L"|"R"|"AVG")[]} variantChannels */
+      const variantChannels = /** @type {("L"|"R"|"AVG")[]} */ (
+        phoneData.dispChannel.every(channel => Object.keys(normalizedData).includes(channel))
+          ? [...phoneData.dispChannel]
+          : [Object.keys(normalizedData)[0]] // Replace dispChannel if the new variant does not have current channels.
+      );
+
       this.frDataMap.set(uuid, {
         ...phoneData,
         channels: {
@@ -296,9 +335,7 @@ class DataProvider {
           ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
         },
         dispSuffix: dispSuffix,
-        dispChannel: phoneData.dispChannel.every(channel => Object.keys(normalizedData).includes(channel)) 
-          ? [...phoneData.dispChannel]
-          : [Object.keys(normalizedData)[0]] // Replace dispChannel if the new variant does not have current channels.
+        dispChannel: variantChannels
       });
 
       // Dispatch 'Variant Updated' Event
@@ -313,17 +350,21 @@ class DataProvider {
   /**
    * Toggle Frequency Response Data Object in frDataMap
    * @param {string} uuid - UUID of target (phone or target)
-   * @param {Array} rawData - processed rawData to be inserted
-   * @param {string?} identifier - New Identifier of the source (phone or target name)
-   * @param {string?} dispSuffix - New dispSuffix of the source (phone or target name)
-   * @param {object?} meta - New meta of the source (phone or target name)
+   * @param {ParsedFRData} rawData - processed rawData to be inserted
+   * @param {object} options - Options object
+   * @param {string?} options.identifier - New Identifier of the source (phone or target name)
+   * @param {string?} options.dispSuffix - New dispSuffix of the source (phone or target name)
+   * @param {PhoneMetadata|TargetMetadata|undefined} options.meta - New meta of the source (phone or target name)
    * @returns {void}
    */
-  updateFRDataWithRawData(uuid, rawData, { identifier = null, dispSuffix = null, meta = null } = {}) {
+  updateFRDataWithRawData(uuid, rawData, { identifier = null, dispSuffix = null, meta = undefined }) {
     if (!this.frDataMap.has(uuid)) {
-      throw new Error("No data found for UUID:", uuid);
+      throw new Error("No data found for UUID: " + uuid);
     }
     const originalPhoneData = this.getFRData(uuid);
+    if (!originalPhoneData) {
+      throw new Error("No data found for UUID: " + uuid);
+    }
 
     try {
       // Apply Smoothing
@@ -331,7 +372,8 @@ class DataProvider {
       // Normalize each channel from rawData
       const normalizedData = FRNormalizer.normalizeChannels(smoothedData);
 
-      this.frDataMap.set(uuid, {
+      /** @type {FRDataObject} */
+      const updatedData = {
         ...originalPhoneData,
         channels:
           originalPhoneData.type === "target"
@@ -343,10 +385,20 @@ class DataProvider {
                 ...(normalizedData["R"] && { R: normalizedData["R"] }),
                 ...(normalizedData["AVG"] && { AVG: normalizedData["AVG"] }),
               },
-        ...(identifier !== null && { identifier }),
-        ...(dispSuffix !== null && { dispSuffix }),
-        ...(meta !== null && { meta }),
-      });
+      };
+
+      // Apply optional updates only if they are not null
+      if (identifier !== null) {
+        updatedData.identifier = identifier;
+      }
+      if (dispSuffix !== null) {
+        updatedData.dispSuffix = dispSuffix;
+      }
+      if (meta !== undefined) {
+        updatedData.meta = meta;
+      }
+
+      this.frDataMap.set(uuid, updatedData);
 
       // Update Target Graph
       RenderEngine.drawFRCurve(uuid);
@@ -356,66 +408,110 @@ class DataProvider {
   };
 
   /**
-   * Update changeable Metadata of Frequency Response Data Object in frDataMap
+   * Update display channel for FR data
    * @param {string} keyType - Type of key for locating frDataMap (uuid or identifier)
    * @param {string} keyValue - Value of key for locating frDataMap (uuid or identifier)
-   * @param {string} inputType - Type of input (dispChannel {Array | string} / colors {Object | string})
-   * @param {string} inputValue - Value of input
-   * @returns {Promise<void>}
+   * @param {("L"|"R"|"AVG")[]|("L"|"R"|"AVG")} channelValue - Channel value(s) to set
+   * @returns {void}
    */
-  updateMetadata(keyType, keyValue, inputType, inputValue) {
+  updateDisplayChannel(keyType, keyValue, channelValue) {
     if (!["uuid", "identifier"].includes(keyType)) {
       throw new Error("Wrong keyType was given");
-    }
-    if (!["dispChannel", "colors", "dash"].includes(inputType)) {
-      throw new Error("Wrong inputType was given");
     }
 
     // Update keyValue as UUID with Identifier
     if (keyType !== "uuid") {
-      keyValue = DataProvider.getUUIDwithIdentifier(keyValue);
+      keyValue = this.getUUIDwithIdentifier(keyValue);
     }
 
     // Get the data object directly from the Map
     const dataObj = this.getFRData(keyValue);
     if (!dataObj) {
-      throw new Error("No data found for UUID:", keyValue);
+      throw new Error("No data found for UUID: " + keyValue);
     }
 
-    // Update Display channel attribute
-    if (inputType === "dispChannel") {
-      if (Array.isArray(inputValue)) {
-        dataObj.dispChannel = [...inputValue];
-        this.frDataMap.set(keyValue, dataObj);
-      } else if (
-        inputValue === "L" ||
-        inputValue === "R" ||
-        inputValue === "AVG"
-      ) {
-        dataObj.dispChannel = [inputValue];
-        this.frDataMap.set(keyValue, dataObj);
-      } else {
-        throw Error("Wrong Channel Data was given");
-      }
-      // Fire Event
-      this.coreEvent.dispatchEvent("fr-channel-updated", {
-        uuid: keyValue,
-        type: dataObj.type,
-      });
-    } else if (inputType === "colors") {
-      dataObj.colors.L = inputValue.L || "";
-      dataObj.colors.R = inputValue.R || "";
-      dataObj.colors.AVG = inputValue.AVG || "";
-      this.frDataMap.set(keyValue, dataObj);
-      // Fire Event
-      this.coreEvent.dispatchEvent("fr-color-updated", { uuid: keyValue });
-    } else if (inputType === "dash") {
-      dataObj.dash = inputValue;
-      this.frDataMap.set(keyValue, dataObj);
-      // Fire Event
-      this.coreEvent.dispatchEvent("fr-dash-updated", { uuid: keyValue });
+    if (Array.isArray(channelValue)) {
+      dataObj.dispChannel = [...channelValue];
+    } else if (
+      channelValue === "L" ||
+      channelValue === "R" ||
+      channelValue === "AVG"
+    ) {
+      dataObj.dispChannel = [channelValue];
+    } else {
+      throw Error("Wrong Channel Data was given");
     }
-  };
+    
+    this.frDataMap.set(keyValue, dataObj);
+    
+    // Fire Event
+    this.coreEvent.dispatchEvent("fr-channel-updated", {
+      uuid: keyValue,
+      type: dataObj.type,
+    });
+  }
+
+  /**
+   * Update colors for FR data
+   * @param {string} keyType - Type of key for locating frDataMap (uuid or identifier)
+   * @param {string} keyValue - Value of key for locating frDataMap (uuid or identifier)
+   * @param {FRColors} colors - Color object with L, R, and AVG properties
+   * @returns {void}
+   */
+  updateColors(keyType, keyValue, colors) {
+    if (!["uuid", "identifier"].includes(keyType)) {
+      throw new Error("Wrong keyType was given");
+    }
+
+    // Update keyValue as UUID with Identifier
+    if (keyType !== "uuid") {
+      keyValue = this.getUUIDwithIdentifier(keyValue);
+    }
+
+    // Get the data object directly from the Map
+    const dataObj = this.getFRData(keyValue);
+    if (!dataObj) {
+      throw new Error("No data found for UUID: " + keyValue);
+    }
+
+    dataObj.colors.L = colors.L || "";
+    dataObj.colors.R = colors.R || "";
+    dataObj.colors.AVG = colors.AVG || "";
+    this.frDataMap.set(keyValue, dataObj);
+    
+    // Fire Event
+    this.coreEvent.dispatchEvent("fr-color-updated", { uuid: keyValue });
+  }
+
+  /**
+   * Update dash pattern for FR data
+   * @param {string} keyType - Type of key for locating frDataMap (uuid or identifier)
+   * @param {string} keyValue - Value of key for locating frDataMap (uuid or identifier)
+   * @param {string} dashPattern - Dash pattern string
+   * @returns {void}
+   */
+  updateDashPattern(keyType, keyValue, dashPattern) {
+    if (!["uuid", "identifier"].includes(keyType)) {
+      throw new Error("Wrong keyType was given");
+    }
+
+    // Update keyValue as UUID with Identifier
+    if (keyType !== "uuid") {
+      keyValue = this.getUUIDwithIdentifier(keyValue);
+    }
+
+    // Get the data object directly from the Map
+    const dataObj = this.getFRData(keyValue);
+    if (!dataObj) {
+      throw new Error("No data found for UUID: " + keyValue);
+    }
+
+    dataObj.dash = dashPattern;
+    this.frDataMap.set(keyValue, dataObj);
+    
+    // Fire Event
+    this.coreEvent.dispatchEvent("fr-dash-updated", { uuid: keyValue });
+  }
 
   /**
    * Update channel display for all phones based on current selection
@@ -431,7 +527,8 @@ class DataProvider {
           if (Object.keys(dataObj.channels).includes("AVG")) {
             dataObj.dispChannel = ["AVG"];
           } else {
-            dataObj.dispChannel = [Object.keys(dataObj.channels)[0]];
+            const firstChannel = Object.keys(dataObj.channels)[0];
+            dataObj.dispChannel = /** @type {("L"|"R"|"AVG")[]} */ [/** @type {"L"|"R"|"AVG"} */ (firstChannel)];
           }
           this.frDataMap.set(dataObj.uuid, dataObj);
           // Fire Event
@@ -451,7 +548,8 @@ class DataProvider {
         } else if (Object.keys(singlePhone.channels).includes("AVG")) {
           singlePhone.dispChannel = ["AVG"];
         } else {
-          singlePhone.dispChannel = [Object.keys(singlePhone.channels)[0]];
+          const firstChannel = Object.keys(singlePhone.channels)[0];
+          singlePhone.dispChannel = /** @type {("L"|"R"|"AVG")[]} */ [/** @type {"L"|"R"|"AVG"} */ (firstChannel)];
         }
         this.frDataMap.set(singlePhone.uuid, singlePhone);
         // Fire Event
@@ -463,6 +561,13 @@ class DataProvider {
     }
   }
 
+  /**
+   * Get channel value based on source type and available channels
+   * @param {FRDataType} sourceType - Type of source (phone or target)
+   * @param {("L"|"R"|"AVG")[]} availableChannels - List of available channels
+   * @returns {("L"|"R"|"AVG")[]} Array of channel values to display
+   * @private
+   */
   _getChannelValue(sourceType, availableChannels) {
     const phoneEntries = Array.from(this.frDataMap.values()).filter(
       (e) => e.type === "phone"
@@ -484,6 +589,11 @@ class DataProvider {
     }
   };
 
+  /**
+   * Get color scheme based on source type
+   * @param {FRDataType} sourceType - Type of source (phone or target)
+   * @returns {FRColors} Color scheme object with L, R, and AVG colors
+   */
   _getColorWithType(sourceType) {
     if(this.baseHue === null) {
       // Generate random base color hue
@@ -505,6 +615,12 @@ class DataProvider {
     }
   };
 
+  /**
+   * Get dash pattern for trace styling
+   * @param {FRDataType} sourceType - Type of source
+   * @param {string?} identifier - Identifier for custom styling
+   * @returns {string} Dash pattern string
+   */
   _getDashWithType(sourceType, identifier = null) {
     if (sourceType === "target") {
       if (identifier === null) {
@@ -512,14 +628,20 @@ class DataProvider {
       }
 
       // If identifier is given, search for the custom dash style from config
-      return ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(o => (
-        o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
-      )?.dash || this._getRandomDashForTarget();
+      return ConfigGetter.get('TRACE_STYLING.TARGET_TRACE_DASH')?.find(
+        (/** @type {{name: string, dash: string}} */ o) => (
+          o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
+        )?.dash || this._getRandomDashForTarget();
     } else {
       return "1 0";
     }
   }
 
+  /**
+   * Generate a random dash pattern for target traces
+   * @returns {string} Random dash pattern string
+   * @private
+   */
   _getRandomDashForTarget() {
     // Generate 1-3 dash-space pairs randomly
     const numPairs = 1 + Math.floor(Math.random() * 3);
@@ -542,12 +664,19 @@ class DataProvider {
     return pairs.join(' ');
   }
 
+  /**
+   * Get the singleton instance of DataProvider
+   * @returns {DataProvider} Singleton instance of DataProvider
+   */
   static getInstance() {
-    if(!DataProvider.instance) {
-      DataProvider.instance = new DataProvider();
+    if(!DataProvider._instance) {
+      DataProvider._instance = new DataProvider();
     }
-    return DataProvider.instance;
+    return DataProvider._instance;
   };
 };
+
+/** @type {DataProvider|null} */
+DataProvider._instance = null;
 
 export default DataProvider.getInstance();

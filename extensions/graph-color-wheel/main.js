@@ -267,7 +267,7 @@ export default class GraphColorWheel {
 
     this._updateColorTimeout = setTimeout(() => {
       // Update color
-      DataProvider.updateMetadata("uuid", this.activeUUID, "colors", {
+      DataProvider.updateColors('uuid', this.activeUUID, {
         L: `hsl(${(h - 10) % 360}, ${s}%, ${l}%)`, // Overwrite L, R, AVG with the new custom color for simplicity for now
         R: `hsl(${(h + 10) % 360}, ${s}%, ${l}%)`,
         AVG: `hsl(${h}, ${s}%, ${l}%)`,
@@ -293,7 +293,7 @@ export default class GraphColorWheel {
 
     this._updateDashTimeout = setTimeout(() => {
       // Update Dash
-      DataProvider.updateMetadata("uuid", this.activeUUID, "dash", `${tick} ${space}`);
+      DataProvider.updateDashPattern('uuid', this.activeUUID, `${tick} ${space}`);
 
       this._updateDashTimeout = null;
     }, 10); // Throttle to max 100 updates per second

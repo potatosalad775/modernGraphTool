@@ -1,3 +1,5 @@
+import * as d3 from 'd3';
+
 class GraphHandle {
   constructor(svg, renderEngine) {
     this.svg = svg;

@@ -242,7 +242,7 @@ class SelectionList extends HTMLElement {
         const uuid = itemElement.dataset.uuid;
         const type = itemElement.dataset.type;
         const newColor = DataProvider._getColorWithType(type);
-        DataProvider.updateMetadata('uuid', uuid, 'colors', newColor);
+        DataProvider.updateColors('uuid', uuid, newColor);
         e.target.style.background = newColor.AVG || newColor;
       });
     }
@@ -304,7 +304,7 @@ class SelectionList extends HTMLElement {
       channelSelect.addEventListener('change', (e) => {
         const uuid = itemElement.dataset.uuid;
         const channelMap = { "L": ["L"], "R": ["R"], "L+R": ["L", "R"], "AVG": ["AVG"] };
-        DataProvider.updateMetadata('uuid', uuid, 'dispChannel', channelMap[e.target.value]);
+        DataProvider.updateDisplayChannel('uuid', uuid, channelMap[e.target.value]);
       });
     }
 

@@ -1,6 +1,11 @@
 const Base62 = {
   charset: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
 
+  /**
+   * Encode a string to Base62
+   * @param {string} str - String to encode
+   * @returns {string} Base62 encoded string
+   */
   encode(str) {
     const bytes = new TextEncoder().encode(str);
     let value = BigInt(0);
@@ -18,6 +23,11 @@ const Base62 = {
     return result || "0";
   },
 
+  /**
+   * Decode a Base62 string back to original string
+   * @param {string} str - Base62 encoded string
+   * @returns {string} Decoded original string
+   */
   decode(str) {
     let value = BigInt(0);
 

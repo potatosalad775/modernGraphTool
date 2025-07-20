@@ -1,29 +1,46 @@
 import CoreEvent from "../../core-event.js";
 import ConfigGetter from "./config-getter.js";
 
+/**
+ * @typedef {import('../../types/data-types.js').ChannelData} ChannelData
+ * @typedef {import('../../types/data-types.js').ParsedFRData} ParsedFRData
+ * @typedef {import('../../types/data-types.js').FRDataPoint} FRDataPoint
+ */
+
+/**
+ * Frequency Response Normalizer
+ * Handles normalization of frequency response data based on configuration settings
+ */
 class FRNormalizer {
   constructor() {
+    /** @type {string[]} */
     this.typeList = ["Hz", "Avg"];
+    /** @type {string} */
     this.type = ConfigGetter.get('NORMALIZATION.TYPE') || "Hz";
+    /** @type {number} */
     this.Hzvalue = ConfigGetter.get('NORMALIZATION.HZ_VALUE') || 500;
   }
 
+  /** Initialize FRNormalizer
+   * @param {import('../data-provider.js').default} dataProvider - Data provider instance to use for normalization
+   */
   init(dataProvider) {
     this.dataProvider = dataProvider;
   }
 
   /**
    * Normalize FR data with safety checks and error recovery
-   * @param {Object} frData - Parsed FR data from FRParser
-   * @returns {Object} Normalized copy of FR data
+   * @param {ChannelData} channelData - Parsed FR data from FRParser
+   * @returns {ChannelData} Normalized copy of FR data
    */
-  normalize(frData) {
-    if (!frData?.data?.length) {
-      console.error("Invalid FR data:", frData);
+  normalize(channelData) {
+    if (!channelData?.data?.length) {
+      console.error("Invalid FR data:", channelData);
       throw new Error("Cannot normalize - invalid data structure");
     }
 
-    const normalized = this._deepCopy(frData);
+    // Ensure channelData is a deep copy to avoid modifying original data
+    const normalized = this._deepCopyChannelData(channelData);
 
     try {
       return this.type === "Hz"
@@ -31,7 +48,7 @@ class FRNormalizer {
         : this._normalizeByAvg(normalized, 0);
     } catch (e) {
       console.error("Normalization failed:", e);
-      return frData; // Return original on failure
+      return channelData; // Return original on failure
     }
   }
 
@@ -41,10 +58,13 @@ class FRNormalizer {
    */
   async updateNormalization() {
     const newMap = new Map();
-
-    const entries = Array.from(this.dataProvider.getFRDataMap());
+    if (!this.dataProvider || !this.dataProvider.getFRDataMap) {
+      console.error("DataProvider not initialized or missing getFRDataMap method");
+      return;
+    }
+    const entries = this.dataProvider.getFRDataMap();
     const updatedEntries = await Promise.all(
-      entries.map(async ([uuid, frObject]) => {
+      Array.from(entries || []).map(async ([uuid, frObject]) => {
         try {
           // Use current data instead of fresh file data
           const normalizedData = this.normalizeChannels(frObject.channels);
@@ -84,16 +104,15 @@ class FRNormalizer {
 
   /**
    * Get normalized data based on rawData
-   * @param {Object} rawData - Parsed FR data from FRParser
-   * @returns
+   * @param {ParsedFRData} rawData - Parsed FR data from FRParser
+   * @returns {ParsedFRData} Normalized FR data with channels
    */
   normalizeChannels(rawData) {
     // Process each channel
     const normalizedData = {};
     for (const channel of ["L", "R", "AVG"]) {
-      if (rawData[channel]) {
-        const normalized = this.normalize(rawData[channel]);
-        normalizedData[channel] = normalized;
+      if (rawData[channel] && rawData[channel].data && rawData[channel].data.length) {
+        normalizedData[channel] = this.normalize(rawData[channel]);
       }
     }
     return normalizedData;
@@ -123,29 +142,17 @@ class FRNormalizer {
     if (!this.typeList.includes(type)) {
       throw Error("Wrong Type");
     }
-
-    if (type === "dB") {
-      this.dBvalue = Math.max(0, Math.min(100, value));
-    } else {
-      this.Hzvalue = Math.max(20, Math.min(20000, value));
-    }
+    this.Hzvalue = Math.max(20, Math.min(20000, Number(value)));
   }
 
-  /** Improved dB normalization with range clamping */
-  _normalizeByDB(data, targetDB) {
-    const validTarget = Math.max(-40, Math.min(120, targetDB));
-    const delta = validTarget - this._calculateAverageDB(data.data);
-
-    data.data.forEach((point) => {
-      point[1] = this._clampDB(point[1] + delta);
-    });
-    data.metadata.normalizedToDB = validTarget;
-    return data;
-  }
-
-  /** Enhanced Hz normalization with interpolation */
+  /** Hz normalization with interpolation
+   * @param {ChannelData} data - Parsed FR data
+   * @param {number} targetHz - Target frequency in Hz
+   * @return {ChannelData} Normalized FR data
+   * @private
+  */
   _normalizeByHz(data, targetHz) {
-    const targetFreq = Math.max(20, Math.min(20000, targetHz));
+    const targetFreq = Math.max(20, Math.min(20000, Number(targetHz)));
     const reference = this._findNearestFrequency(data.data, targetFreq);
 
     if (!reference) {
@@ -156,11 +163,15 @@ class FRNormalizer {
     data.data.forEach((point) => {
       point[1] = this._clampDB(point[1] + delta);
     });
-    data.metadata.normalizedToHz = targetFreq;
     return data;
   }
 
-  /* Midrange Average Normalization */
+  /** Midrange Average Normalization
+   * @param {ChannelData} data - Parsed FR data
+   * @param {number} targetDB - Target dB level for normalization
+   * @return {ChannelData} Normalized FR data
+   * @private
+   */
   _normalizeByAvg(data, targetDB) {
     const midLow = 300;
     const midHigh = 3000;
@@ -176,22 +187,32 @@ class FRNormalizer {
     data.data.forEach((point) => {
       point[1] = this._clampDB(point[1] + delta);
     });
-
-    data.metadata.normalizedToDB = targetDB;
     return data;
   }
 
-  /** Safer deep copy implementation */
-  _deepCopy(obj) {
-    return JSON.parse(JSON.stringify(obj));
+  /** Safer deep copy implementation 
+   * @param {ChannelData} channelData - Object to deep copy
+   * @returns {ChannelData} Deep copied object
+   * @private
+  */
+  _deepCopyChannelData(channelData) {
+    return JSON.parse(JSON.stringify(channelData));
   }
 
-  /** Clamp dB values to safe range */
+  /** Clamp dB values to safe range
+   * @param {number} value - dB value to clamp
+   * @returns {number} Clamped dB value
+   * @private
+  */
   _clampDB(value) {
     return Math.max(-40, Math.min(120, Number(value.toFixed(2))));
   }
 
-  /** Calculate average dB with outlier protection */
+  /** Calculate average dB with outlier protection
+   * @param {FRDataPoint[]} points - Array of data points
+   * @returns {number} Average dB value
+   * @private
+  */
   _calculateAverageDB(points) {
     const values = points.map((p) => p[1]).sort((a, b) => a - b);
     // Trim 10% from both ends to remove outliers
@@ -200,7 +221,12 @@ class FRNormalizer {
     return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
   }
 
-  /** Improved frequency search with logarithmic interpolation */
+  /** Improved frequency search with logarithmic interpolation
+   * @param {FRDataPoint[]} points - Array of data points
+   * @param {number} targetHz - Target frequency in Hz
+   * @returns {FRDataPoint} Nearest frequency point
+   * @private
+  */
   _findNearestFrequency(points, targetHz) {
     const index = points.findIndex((p) => p[0] >= targetHz);
     if (index === -1) return points[points.length - 1];
@@ -214,12 +240,19 @@ class FRNormalizer {
     return [targetHz, db0 + t * (db1 - db0)];
   }
 
+  /**
+   * Get the singleton instance of FRNormalizer
+   * @returns {FRNormalizer} Singleton instance of FRNormalizer
+   */
   static getInstance() {
-    if(!FRNormalizer.instance) {
-      FRNormalizer.instance = new FRNormalizer();
+    if(!FRNormalizer._instance) {
+      FRNormalizer._instance = new FRNormalizer();
     }
-    return FRNormalizer.instance;
+    return FRNormalizer._instance;
   }
 }
+
+/** @type {FRNormalizer|null} */
+FRNormalizer._instance = null;
 
 export default FRNormalizer.getInstance();

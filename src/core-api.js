@@ -9,6 +9,7 @@ import FRParser from './model/util/fr-parser.js';
 import FRNormalizer from './model/util/fr-normalizer.js';
 import FRSmoother from './model/util/fr-smoother.js';
 import URLProvider from "./model/url-provider.js";
+import { GtToast } from './ui/common/gt-toast.js';
 
 // Create namespace object
 const CoreAPI = {
@@ -23,6 +24,7 @@ const CoreAPI = {
   FRNormalizer,
   FRSmoother,
   URLProvider,
+  GtToast,
 };
 
 // Export both namespace and individual exports
@@ -38,6 +40,7 @@ export {
   FRNormalizer,
   FRSmoother,
   URLProvider,
+  GtToast,
 };
 
 // Export namespace as default

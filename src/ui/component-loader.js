@@ -3,6 +3,11 @@ import('./panels/phone-panel.js');
 import('./panels/graph-panel.js');
 import('./panels/misc-panel.js');
 
+// Common UI Components
+import('./common/gt-button.js');
+import('./common/gt-divider.js');
+import('./common/gt-toast.js');
+
 // Core UI Components
 import('./visualization/graph-container.js');
 import('./components/top-nav-bar/top-nav-bar.js');
@@ -20,7 +25,3 @@ import('./components/graph-screenshot-button/graph-screenshot-button.js');
 import('./components/share-button/share-button.js');
 import('./components/language-selector/language-selector.js');
 import('./components/tutorial-modal/tutorial-modal.js');
-
-// Common UI Components
-import('./common/button/gt-button.js');
-import('./common/divider/gt-divider.js');

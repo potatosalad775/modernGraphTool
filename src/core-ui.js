@@ -26,6 +26,7 @@ class CoreUI extends HTMLElement {
         </section>
       </section>
       <tutorial-modal></tutorial-modal>
+      <gt-toast></gt-toast>
 
       <!-- Styles -->
       <style>

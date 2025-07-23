@@ -1,0 +1,10 @@
+{
+  "label": "데이터베이스 설정 팁",
+  "position": 4,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다."
+  }
+}

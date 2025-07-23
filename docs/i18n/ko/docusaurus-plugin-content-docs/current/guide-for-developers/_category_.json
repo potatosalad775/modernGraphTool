@@ -1,8 +1,8 @@
 {
   "label": "개발자 가이드",
-  "position": 4,
+  "position": 3,
   "collapsible": true,
-  "collapsed": false,
+  "collapsed": true,
   "link": {
     "type": "generated-index"
   }

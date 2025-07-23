@@ -1,0 +1,147 @@
+---
+sidebar_position: 1
+---
+
+# modernGraphTool & CrinGraph 듀얼 호스팅하기
+
+코드를 살짝 바꾸는 것만으로 쉽게 modernGraphTool과 CrinGraph를 함께 호스팅할 수 있습니다!
+
+이번 챕터에서는 어떻게 2개의 그래프 도구를 하나의 도메인에서 제공할 수 있는지를 설명합니다.
+
+## 개요
+
+하나의 도메인으로 2개의 서비스를 제공하는데에는 여러 방법이 있습니다.
+
+여기서는 '폴더를 서브도메인으로 간주'하는 가장 기본적인 방식을 이용합니다.
+
+## 단계 별 가이드
+
+### 1. 프로젝트 준비
+
+- **modernGraphTool**: [다른 챕터](../category/guide-for-admins)에 자세하게 설명되어 있는 내용을 따라 modernGraphTool 데이터베이스를 준비하세요.
+- **CrinGraph**: CrinGraph 프로젝트 파일을 준비하세요. 몇 가지 추가 기능이 적용된 커스텀 버전도 괜찮습니다.
+
+### 2. 파일 경로 설정
+
+폴더 최상단에는 modernGraphTool을 위한 `index.html`이 있어야 합니다.
+
+최상단에 CrinGraph 프로젝트가 위치할 새 폴더 (예: `cringraph/`)를 생성하고, 모든 CrinGraph 프로젝트 파일을 해당 폴더로 옮겨 넣습니다.
+
+`cringraph/` 안에도 CrinGraph를 위한 `index.html` 파일이 존재하고 있어야 합니다.
+
+파일 구조 예시:
+
+```plaintext
+/project-root/
+├── data
+|   ├── phones          # 'phone' 측정 데이터 폴더
+|   ├── target          # 'target' 측정 데이터 폴더
+|   └── phone_book.json # 기기 목록 명단
+├── index.html          # modernGraphTool 접속 포인트
+├── ...기타 modernGraphTool 파일...
+└── cringraph/
+    ├── index.html      # CrinGraph 접속 포인트
+    └── ...기타 CrinGraph 파일...
+```
+
+### 3. CrinGraph 코드 수정
+
+2개의 중복된 측정치 데이터 폴더를 두면서 각 그래프 도구마다 자료를 관리하는 일은 비효율적이기 때문에, CrinGraph의 소스코드가 부모 경로로부터 데이터를 불러올 수 있도록 약간의 수정을 가해야 합니다.
+
+수정이 필요한 파일은 다음과 같습니다:
+
+- `graphtool.js`
+- `config.js` (및 `config_hp.js`)
+
+아래의 예시는 [squiglink/labs 버전](https://github.com/squiglink/lab)의 CrinGraph에 기반하고 있습니다.
+
+:::tip[팁]
+다른 버전의 CrinGraph를 이용하고 있더라도, 대체로 아래의 예시를 따라하는데 큰 문제가 발생하지 않습니다. 다만, 수정해야 될 코드가 위치한 라인 번호가 다를 수는 있습니다. 
+:::
+
+#### graphtool.js
+
+787번 라인으로 이동한 뒤, `loadFiles` 함수를 수정하세요.
+
+```js
+// 수정 전
+let l = f => d3.text(DIR+f+".txt").catch(()=>null);
+let f = p.isTarget ? [l(p.fileName)]
+      : d3.merge(LR.map(s =>
+            sampnums.map(n => l(p.fileName+" "+s+n))));
+
+// 수정 후
+// 다른 이름을 가진 폴더에 측정치 데이터를 관리하고 있을 경우, 'phones', 'target' 대신 진짜 이름을 적용해야 합니다.
+let l = f => d3.text(DIR+"phones/"+f+".txt").catch(()=>null);
+let lt = f => d3.text(DIR+"target/"+f+".txt").catch(()=>null);
+let f = p.isTarget ? [lt(p.fileName)]
+      : d3.merge(LR.map(s =>
+            sampnums.map(n => l(p.fileName+" "+s+n))));
+```
+
+#### config.js
+
+3번 라인으로 이동한 뒤, `DIR` 값을 수정하세요.
+
+```js
+// 수정 전
+DIR = "data/",
+
+// 수정 후
+// '../'는 '부모 경로'를 의미합니다.
+DIR = "../data/", 
+```
+
+만약 Haruto의 추가 기능이 적용된 CrinGraph ([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool))를 사용 중인 경우, 
+아래의 구문들도 수정해야 합니다 : 
+
+```js
+// 55번 줄 수정 전
+PHONE_BOOK = "phone_book.json", // Path to phone book JSON file
+
+// 수정 후
+PHONE_BOOK = "../data/phone_book.json", // Path to phone book JSON file
+```
+
+### 4. 네비게이션 버튼 추가하기
+
+위에서 설명한 코드 수정 작업이 끝났다면, 아래의 도메인을 통해 2개의 그래프 도구에 접근할 수 있어야 합니다.
+
+- modernGraphTool: `https://yourdomain.com/`
+- CrinGraph: `https://yourdomain.com/cringraph/` (폴더 이름)
+
+두 링크를 쉽게 오고갈 수 있도록, 각 도구마다 네비게이션 버튼을 추가할 수 있습니다.
+
+#### modernGraphTool
+
+`config.js`로 이동하여, 아래 문구를 추가하세요.
+```js
+TOPBAR: {
+  LINK_LIST: { TITLE: "Go to CrinGraph", URL: "https://yourdomain.com/cringraph" },
+  // 또는
+  LINK_LIST: { TITLE: "Go to CrinGraph", URL: "./cringraph" },
+}
+```
+
+#### CrinGraph
+
+`config.js`로 이동하여, 아래 문구를 추가하세요.
+```js
+headerLinks = [
+  {
+    name: "Head back to modernGraphTool",
+    url: "https://yourdomain.com/"
+  },
+  // 또는
+  {
+    name: "Head back to modernGraphTool",
+    url: "../"
+  },
+]
+```
+
+### 5. 배포
+
+지금까지 작업한 프로젝트를 웹 서버로 업로드하세요. 작업한 폴더 구조가 그대로 유지되었는지 확인해야 합니다.
+
+작업을 무사히 마쳤다면 위에서 설명한 내용대로 2개의 그래프 도구를 사용할 수 있게 됩니다.

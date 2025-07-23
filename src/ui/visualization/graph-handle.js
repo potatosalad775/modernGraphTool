@@ -72,14 +72,8 @@ class GraphHandle {
     this.renderEngine.updateYAxis(null, false);
 
     // Update curves without animation
-    this.renderEngine.curveGroup.selectAll(".fr-graph-phone-curve, .fr-graph-target-curve")
-      .attr("d", d => {
-        const lineGenerator = d3.line()
-          .x(d => this.renderEngine.xScale(d[0]))
-          .y(d => this.renderEngine.yScale(d[1]))
-          .curve(d3.curveNatural);
-        return lineGenerator(d);
-      });
+    this.renderEngine.curveGroup
+      .attr('transform', `translate(0, ${this.yShift * (this.renderEngine.graphGeometry.yBottom - this.renderEngine.graphGeometry.yTop) / this.renderEngine.yScaleValue})`);
   }
 
   resetHandle() {

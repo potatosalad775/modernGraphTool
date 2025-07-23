@@ -230,10 +230,9 @@ export default class PreferenceBoundExtension {
     this.updatePathData();
     
     const mainCurveContainer = svg.select('.fr-graph-curve-container');
-    const boundsGroup = svg.insert('g', '.fr-graph-curve-container')
-        .attr('class', 'preference-bound-area-group');
 
-    this.preferenceBoundArea = boundsGroup.append('path')
+    this.preferenceBoundArea = mainCurveContainer.append('path')
+      .attr('class', 'preference-bound-area')
       .attr('d', RenderEngine.baselineData.uuid === null ? this.pathData.raw : this.pathData.comp)
       .attr('fill', this.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)')
       .attr('stroke', this.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)')

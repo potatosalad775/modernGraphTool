@@ -10,6 +10,7 @@ class EQAudioPlayer extends HTMLElement {
     this.sourceNode = null;
     this.oscillatorNode = null;
     this.filterNodes = [];
+    this.filtersEnabled = true;
 
     this.isPlaying = false;
     this.isSeeking = false;
@@ -56,6 +57,14 @@ class EQAudioPlayer extends HTMLElement {
             <input type="range" class="ap-volume-slider" min="0" max="1" step="0.01" value="0.1">
           </div>
         </div>
+        <div class="ap-filter-toggle">
+          <label class="ap-filter-checkbox-label">
+            <input type="checkbox" class="ap-filter-checkbox" checked>
+            <span>
+              ${StringLoader.getString('extension.equalizer.player.filter-toggle', 'EQ Effect')}
+            </span>
+          </label>
+        </div>
       </div>
     `;
   }
@@ -70,6 +79,7 @@ class EQAudioPlayer extends HTMLElement {
     this._handlePositionSliderMouseUp = this._handlePositionSliderMouseUp.bind(this);
     this._handlePositionSliderInput = this._handlePositionSliderInput.bind(this);
     this._handleVolumeSliderInput = this._handleVolumeSliderInput.bind(this);
+    this._handleFilterToggleChange = this._handleFilterToggleChange.bind(this);
     this.querySelector('.ap-audio-source').addEventListener('change', this._handleAudioSourceChange);
     this.querySelector('.ap-file-input').addEventListener('change', this._handleFileInputChange);
     this.querySelector('.ap-prev-button').addEventListener('click', this._handlePrevBtnClick);
@@ -79,6 +89,7 @@ class EQAudioPlayer extends HTMLElement {
     this.querySelector('.ap-position-slider').addEventListener('mouseup', this._handlePositionSliderMouseUp);
     this.querySelector('.ap-position-slider').addEventListener('input', this._handlePositionSliderInput);
     this.querySelector('.ap-volume-slider').addEventListener('input', this._handleVolumeSliderInput);
+    this.querySelector('.ap-filter-checkbox').addEventListener('change', this._handleFilterToggleChange);
     StringLoader.addObserver(this._updateLanguage.bind(this));
   }
 
@@ -93,6 +104,7 @@ class EQAudioPlayer extends HTMLElement {
     this.querySelector('.ap-position-slider').removeEventListener('mouseup', this._handlePositionSliderMouseUp);
     this.querySelector('.ap-position-slider').removeEventListener('input', this._handlePositionSliderInput);
     this.querySelector('.ap-volume-slider').removeEventListener('input', this._handleVolumeSliderInput);
+    this.querySelector('.ap-filter-checkbox').removeEventListener('change', this._handleFilterToggleChange);
     StringLoader.removeObserver(this._updateLanguage.bind(this));
   }
 
@@ -173,6 +185,11 @@ class EQAudioPlayer extends HTMLElement {
     }
   }
 
+  _handleFilterToggleChange(e) {
+    this.filtersEnabled = e.target.checked;
+    this._reconnectAudioChain();
+  }
+
   _loadAudioFile(file) {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -198,7 +215,7 @@ class EQAudioPlayer extends HTMLElement {
     this.sourceNode.start(0, startFrom);
 
     // Maintain existing filter chain
-    if (this.filterNodes.length > 0) {
+    if (this.filtersEnabled && this.filterNodes.length > 0) {
       this.sourceNode.connect(this.filterNodes[0]);
     } else {
       this.sourceNode.connect(this.gainNode);
@@ -234,9 +251,9 @@ class EQAudioPlayer extends HTMLElement {
         b3 = 0.86650 * b3 + white * 0.3104856;
         b4 = 0.55000 * b4 + white * 0.5329522;
         b5 = -0.7616 * b5 - white * 0.0168980;
+        b6 = white * 0.115926;
         output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
         output[i] *= 0.11;
-        b6 = white * 0.115926;
       }
     }
 
@@ -261,20 +278,41 @@ class EQAudioPlayer extends HTMLElement {
     return oscillator;
   }
 
+  _reconnectAudioChain() {
+    // Only reconnect if we have an active audio source
+    if (!this.gainNode) return;
+    
+    let sourceNode = null;
+    if (this.sourceNode) sourceNode = this.sourceNode;
+    else if (this.oscillatorNode) sourceNode = this.oscillatorNode;
+    
+    if (!sourceNode) return;
+
+    // Disconnect source from current chain
+    sourceNode.disconnect();
+    
+    // Reconnect based on filter state
+    if (this.filtersEnabled && this.filterNodes.length > 0) {
+      sourceNode.connect(this.filterNodes[0]);
+    } else {
+      sourceNode.connect(this.gainNode);
+    }
+  }
+
   updateFilters(filters) {
     // Remove existing filters
     this.filterNodes.forEach(node => node.disconnect());
     this.filterNodes = [];
 
-    if (!this.sourceNode) return;
-
-    let lastNode = this.sourceNode;
+    // If no filters provided or filters disabled, just reconnect
+    if (!filters || !filters.filters || filters.filters.length === 0 || !filters.preamp || !this.filtersEnabled) {
+      this._reconnectAudioChain();
+      return;
+    }
 
     // Create preamp gain node
     const preampNode = this.audioContext.createGain();
     preampNode.gain.value = Math.pow(10, filters.preamp / 20); // Convert dB to linear gain
-    lastNode.connect(preampNode);
-    lastNode = preampNode;
     this.filterNodes.push(preampNode);
 
     // Create and connect new filters
@@ -297,13 +335,23 @@ class EQAudioPlayer extends HTMLElement {
       filterNode.Q.value = filter.q;
       filterNode.gain.value = filter.gain;
 
-      lastNode.connect(filterNode);
-      lastNode = filterNode;
       this.filterNodes.push(filterNode);
     });
 
-    // Connect the last node to the destination
-    lastNode.connect(this.gainNode);
+    // Connect filter chain internally
+    if (this.filterNodes.length > 1) {
+      for (let i = 0; i < this.filterNodes.length - 1; i++) {
+        this.filterNodes[i].connect(this.filterNodes[i + 1]);
+      }
+    }
+
+    // Connect last filter to gain node
+    if (this.filterNodes.length > 0) {
+      this.filterNodes[this.filterNodes.length - 1].connect(this.gainNode);
+    }
+
+    // Reconnect the audio chain
+    this._reconnectAudioChain();
   }
 
   playAudio() {
@@ -325,11 +373,21 @@ class EQAudioPlayer extends HTMLElement {
     }
 
     if (sourceType === 'white' || sourceType === 'pink') {
-      this.sourceNode = this._createNoiseNode(sourceType);
-      this.sourceNode.start();
+      try {
+        this.sourceNode = this._createNoiseNode(sourceType);
+        // Connect to filter chain or directly to gain node
+        if (this.filtersEnabled && this.filterNodes.length > 0) {
+          this.sourceNode.connect(this.filterNodes[0]);
+        } else {
+          this.sourceNode.connect(this.gainNode);
+        }
+        this.sourceNode.start();
+      } catch (error) {
+        console.error('Error starting noise node:', error);
+      }
     } else if (sourceType === 'tone') {
       this.oscillatorNode = this._createToneGenerator();
-      if (this.filterNodes.length > 0) {
+      if (this.filtersEnabled && this.filterNodes.length > 0) {
         this.oscillatorNode.connect(this.filterNodes[0]);
       } else {
         this.oscillatorNode.connect(this.gainNode);
@@ -461,6 +519,15 @@ class EQAudioPlayer extends HTMLElement {
     const freqLabel = this.querySelector('.ap-tone-freq-label');
     if (freqLabel) {
       freqLabel.textContent = StringLoader.getString('extension.equalizer.player.tone-freq-label', 'Frequency: ');
+    }
+
+    const filterToggleLabel = this.querySelector('.ap-filter-checkbox-label');
+    if (filterToggleLabel) {
+      const checkbox = filterToggleLabel.querySelector('input[type="checkbox"]');
+      const labelText = StringLoader.getString('extension.equalizer.player.filter-toggle', 'EQ Effect');
+      filterToggleLabel.innerHTML = '';
+      filterToggleLabel.appendChild(checkbox);
+      filterToggleLabel.appendChild(document.createTextNode(labelText));
     }
   }
 }

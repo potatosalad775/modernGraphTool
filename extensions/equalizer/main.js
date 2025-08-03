@@ -5,7 +5,7 @@ import { equalizerStyles } from "./equalizer.styles.js";
 // Extension metadata for version compatibility
 export const EXTENSION_METADATA = {
   name: 'equalizer',
-  version: '1.0.0',
+  version: '1.0.1',
   apiLevel: 1,
   coreMinVersion: '1.0.0',
   coreMaxVersion: '1.0.x',

@@ -242,6 +242,7 @@ export const equalizerStyles = `
     
     .ap-volume-control {
       flex: 1;
+      width: 0;
       display: flex;
       flex-direction: row;
       align-items: center;
@@ -255,6 +256,18 @@ export const equalizerStyles = `
       input {
         flex: 1;
       }
+    }
+  }
+
+  .ap-filter-toggle {
+    display: flex;
+    align-items: center;
+    margin-right: 0.2rem;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
     }
   }
 

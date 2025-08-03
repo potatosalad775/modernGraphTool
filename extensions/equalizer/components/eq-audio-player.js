@@ -26,9 +26,8 @@ class EQAudioPlayer extends HTMLElement {
           <option value="white">${StringLoader.getString('extension.equalizer.player.option-white', 'White Noise')}</option>
           <option value="pink">${StringLoader.getString('extension.equalizer.player.option-pink', 'Pink Noise')}</option>
           <option value="tone">${StringLoader.getString('extension.equalizer.player.option-tone', 'Tone Generator')}</option>
-          <option value="file">${StringLoader.getString('extension.equalizer.player.option-file', 'Upload Audio File')}</option>
+          <option value="file">${StringLoader.getString('extension.equalizer.player.option-file', 'Audio File')}</option>
         </select>
-        <input type="file" class="ap-file-input" accept="audio/*" style="display: none;">
         <div class="ap-tone-controls" style="display: none;">
           <div class="ap-tone-row">
             <label class="ap-tone-freq-label">${StringLoader.getString('extension.equalizer.player.tone-freq-label', 'Frequency: ')}</label>
@@ -36,8 +35,10 @@ class EQAudioPlayer extends HTMLElement {
           </div>
           <input type="range" class="ap-freq-slider" min="0" max="1000" step="1" value="699">
         </div>
+        <div class="ap-file-upload-section" style="display: none;">
+          <input type="file" class="ap-file-input" accept="audio/*">
+        </div>
         <div class="ap-file-info" style="display: none;">
-          <span class="ap-file-name"></span>
           <div class="ap-time-slider">
             <input type="range" class="ap-position-slider" min="0" max="100" step="0.1" value="0">
           </div>
@@ -110,12 +111,21 @@ class EQAudioPlayer extends HTMLElement {
 
   _handleAudioSourceChange(e) {
     if (this.isPlaying) this.stopAudio();
-      this.querySelector('.ap-tone-controls').style.display = 
-        e.target.value === 'tone' ? 'flex' : 'none';
+    
+    // Show/hide tone controls
+    this.querySelector('.ap-tone-controls').style.display = 
+      e.target.value === 'tone' ? 'flex' : 'none';
+    
+    // Show/hide file upload section
+    this.querySelector('.ap-file-upload-section').style.display = 
+      e.target.value === 'file' ? 'block' : 'none';
       
-      if (e.target.value === 'file') {
-        this.querySelector('.ap-file-input').click();
-      }
+    // Reset file input and hide file info when switching away from file
+    if (e.target.value !== 'file') {
+      this.querySelector('.ap-file-info').style.display = 'none';
+      this.querySelector('.ap-file-input').value = '';
+      this.audioBuffer = null;
+    }
   }
 
   _handleFileInputChange(e) {
@@ -198,7 +208,6 @@ class EQAudioPlayer extends HTMLElement {
         
         // Update UI with file info
         this.querySelector('.ap-file-info').style.display = 'flex';
-        this.querySelector('.ap-file-name').textContent = file.name;
         this.querySelector('.ap-total-time').textContent = this._formatTime(this.audioBuffer.duration);
         this.pausedAt = 0;
         this._updateTimeDisplay();
@@ -505,7 +514,7 @@ class EQAudioPlayer extends HTMLElement {
         'white': ['extension.equalizer.player.option-white', 'White Noise'],
         'pink': ['extension.equalizer.player.option-pink', 'Pink Noise'], 
         'tone': ['extension.equalizer.player.option-tone', 'Tone Generator'],
-        'file': ['extension.equalizer.player.option-file', 'Upload Audio File']
+        'file': ['extension.equalizer.player.option-file', 'Audio File']
       };
 
       Object.entries(optionMappings).forEach(([value, [key, fallback]]) => {

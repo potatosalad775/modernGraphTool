@@ -195,6 +195,10 @@ export const equalizerStyles = `
   .ap-file-info {
     gap: 0.3rem;
   }
+  .ap-file-input {
+    cursor: pointer;
+    width: 100%;
+  }
   .ap-tone-controls, .ap-file-info {
     display: flex;
     flex-direction: column;

@@ -29,7 +29,7 @@
     "option-white": "White Noise",
     "option-pink": "Pink Noise",
     "option-tone": "Tone Generator",
-    "option-file": "Upload Audio File",
+    "option-file": "Audio File",
     "tone-freq-label": "Frequency: ",
     "filter-toggle": "EQ Effect"
   },

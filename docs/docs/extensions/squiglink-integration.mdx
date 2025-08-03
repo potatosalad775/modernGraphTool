@@ -1,0 +1,61 @@
+# Squiglink Integration Extension
+
+An integration extension that connects modernGraphTool with squig.link service.
+
+## Overview
+
+The Squiglink Integration extension enhances modernGraphTool by providing seamless integration with external analytics services and tracking systems. 
+
+It enables detailed usage analytics and integration capabilities with squig.link.
+
+## Features
+
+- **Google Tag Manager Integration**: Comprehensive analytics tracking through GTM
+- **Usage Analytics**: Detailed tracking of user interactions and feature usage
+- **Event Logging**: Comprehensive logging system for debugging and analysis
+- **squig.link Integration**: Connect with squig.link
+- **Configurable Analytics**: Flexible analytics configuration for different deployment scenarios
+
+## Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| **Extension Name** | `squiglink-integration` |
+| **Latest Version** | 1.0.0 |
+| **Minimum Core API Level** | 1 |
+| **Minimum Core Version** | 1.0.0 |
+| **I18N Support** | No |
+
+## Configuration
+
+```javascript
+{
+  NAME: "squiglink-integration",
+  DESCRIPTION: "squig.link integration for modernGraphTool",
+  ENABLED: false,    // Disabled by default - requires configuration
+  CONFIG: {
+    // Analytics Configuration
+    ANALYTICS_SITE: "",             // Site name for attributing analytics events
+    ANALYTICS_GTM_ID: "",           // Google Tag Manager ID (GTM-XXXXXXX)
+    
+    // Debugging and Logging
+    LOG_ANALYTICS: true,            // Log events to console for debugging
+    ENABLE_ANALYTICS: true,         // Master switch for analytics features
+  },
+}
+```
+
+## Analytics Events
+
+### Event Categories
+
+The extension tracks various user interactions:
+
+#### Navigation Events
+- **Tool Access**: When users access different tool sections
+- **Page Views**: Track different views within the application
+
+#### Feature Usage
+- **Graph Interactions**: Zoom, pan, and other graph manipulations
+- **Extension Usage**: Track individual extension usage patterns
+- **File Operations**: Upload, download, and file management actions

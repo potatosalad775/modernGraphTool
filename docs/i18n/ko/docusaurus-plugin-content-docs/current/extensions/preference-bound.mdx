@@ -1,0 +1,112 @@
+# Preference Bound Extension
+
+주파수 응답 그래프에 선호도 경계(Preference Bound)를 표시하여, 주파수 응답 그래프의 특성을 이해할 수 있도록 돕는 Extension입니다.
+
+## 개요
+
+Preference Bound 확장 기능은 modernGraphTool에 타겟 커브 주변의 선호도 경계를 시각화하는 오버레이 기능을 추가합니다.
+
+이 경계는 연구 데이터와 청취 선호도를 기반으로, 대부분의 청취자가 만족하고 들을 수 있는 주파수 응답 데이터의 통계적 허용 범위를 나타냅니다.
+
+## 주요 기능
+
+- **선호도 경계**: 상/하단 선호도 경계 표시
+- **외관 커스터마이즈**: 색상, 투명도, 스타일 조정 가능
+- **타겟 통합**: 정확한 기준선 참조를 위한 Diffuse Field 타겟 연동 기능
+
+## 기술 사양
+
+| 속성 | 값 |
+|----------|-------|
+| **확장 이름** | `preference-bound` |
+| **버전** | 1.0.0 |
+| **최소 Core API 레벨** | 1 |
+| **최소 Core 버전** | 1.0.0 |
+| **I18N 지원** | 예 |
+
+## 설정 방법
+
+```javascript
+{
+  NAME: "preference-bound",
+  DESCRIPTION: "preference bound overlay for modernGraphTool",
+  ENABLED: true,
+  I18N_ENABLED: true,
+  CONFIG: {
+    // Boundary data file configuration
+    BOUND_DATA_FILE: "Bounds",                      // Base filename for boundary data
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target", // Base diffuse field target
+    
+    // Visual configuration
+    ENABLE_BOUND_ON_INITIAL_LOAD: true,             // Show bounds when extension loads
+    COLOR_FILL: "rgba(180, 180, 180, 0.2)",        // Fill color for boundary area
+    COLOR_BORDER: "rgba(120, 120, 120, 0.2)",      // Border color for boundary lines
+  }
+}
+```
+
+### 설정 옵션
+
+#### 데이터 파일
+- **`BOUND_DATA_FILE`**: 선호도 경계 데이터 파일 기본명
+- **`BASE_DF_TARGET_FILE`**: 기준선 계산에 사용되는 Diffuse Field 타겟 파일
+
+#### 시각 설정
+- **`ENABLE_BOUND_ON_INITIAL_LOAD`**: 첫 접속 시 선호도 경계 표시 여부
+- **`COLOR_FILL`**: 경계 내부 영역을 채울 RGBA 색상
+- **`COLOR_BORDER`**: 경계선 RGBA 색상
+
+## 데이터 파일 포맷
+
+### 경계 데이터 파일
+확장 기능은 `extensions/preference-bound/data/` 디렉터리에 3개의 데이터 파일이 필요합니다:
+
+#### 상단 경계 (`Bounds U.txt`)
+상단 선호 경계의 주파수 응답 데이터:
+```
+20.0	2.5
+25.0	2.8
+31.5	3.1
+...
+```
+
+#### 하단 경계 (`Bounds D.txt`)
+하단 선호 경계의 주파수 응답 데이터:
+```
+20.0	-2.5
+25.0	-2.8
+31.5	-3.1
+...
+```
+
+#### 기준 타겟 파일
+경계 계산의 기준선으로 사용되는 Diffuse Field 타겟 파일(예: `KEMAR DF (KB006x) Target.txt`).
+
+## 설치 방법
+
+1. `preference-bound` 폴더를 `extensions` 디렉터리에 추가
+2. 선호도 경계 데이터 파일을 `extensions/preference-bound/data/`에 배치:
+   - `Bounds U.txt` (상단 경계)
+   - `Bounds D.txt` (하단 경계)
+   - 기준 타겟 파일 (예: `KEMAR DF (KB006x) Target.txt`)
+3. 설정을 `extensions/extensions.config.js`에 추가
+4. `ENABLED: true`로 확장 기능 활성화
+5. modernGraphTool을 재시작하여 확장 기능 적용
+
+## 사용법
+
+### 기본 동작
+1. **토글 제어**: 확장 기능의 토글 버튼으로 선호도 경계 표시/숨김 전환
+2. **타겟 정렬**: 선택한 기준 타겟에 따라 선호도 경계 자동 정렬
+3. **실시간 업데이트**: 타겟 또는 측정값 변경 시 선호도 경계 실시간 갱신
+
+### 시각적 해석
+- **채워진 영역**: 상/하단 경계 사이 영역이 선호 범위
+- **타겟 기준선**: 선호도 경계는 미리 설정된 DF 타겟을 기준으로 표시
+- **측정값 오버레이**: 헤드폰 측정값과 선호도 경계 간 비교 가능
+
+## 서드파티 고지
+
+이 확장 기능은 [pbeshai의 d3-interpolate-path 라이브러리](https://github.com/pbeshai/d3-interpolate-path)를 포함하고 있습니다.
+- **저장소**: https://github.com/pbeshai/d3-interpolate-path
+- **라이선스**: BSD-3-Clause License

@@ -1,0 +1,112 @@
+# Device PEQ Extension
+
+A modernGraphTool-compatible wrapper for the devicePEQ project, enabling direct integration with hardware equalizers and audio devices.
+
+## Overview
+
+The Device PEQ extension integrates the powerful [devicePEQ plugin by jeromeof][DEVICEPEQ] into modernGraphTool, allowing users to send equalizer settings directly to compatible audio devices. 
+
+This extension provides a bridge between modernGraphTool's measurement analysis capabilities and real-world audio device control.
+
+## Features
+
+- **Hardware Integration**: Direct connection to compatible audio devices
+- **Device Management**: Connect, disconnect, and manage multiple audio devices
+- **PEQ Slot Management**: Manage parametric EQ slots on supported devices
+- **Real-time Sync**: Synchronize EQ settings between modernGraphTool and hardware
+- **Advanced Controls**: Optional advanced device manipulation features
+
+## Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| **Extension Name** | `device-peq` |
+| **Latest Version** | 1.0.1 |
+| **Minimum Core API Level** | 1 |
+| **Minimum Core Version** | 1.0.0 |
+| **I18N Support** | No |
+
+## Dependencies
+
+### Required Extensions
+- **Equalizer Extension**: This extension requires the `equalizer` extension to be installed and enabled first
+
+## Configuration
+
+```javascript
+{
+  NAME: "device-peq",
+  DESCRIPTION: "modernGraphTool-compatible wrapper for devicePEQ project by jeromeof (tested with v0.8)",
+  ENABLED: true,
+  CONFIG: {
+    ADVANCED: false,    // Allow users to manipulate advanced dialogs (might be dangerous)
+    SHOW_LOGS: false,   // Show logs in console
+  }
+}
+```
+
+### Configuration Options
+
+- **`ADVANCED`**: Enables advanced device manipulation features (use with caution)
+- **`SHOW_LOGS`**: Shows detailed logging information in the browser console
+
+## Installation
+
+1. **Prerequisites**: Ensure the `equalizer` extension is installed and enabled
+2. Add the `device-peq` folder to your `extensions` directory
+3. Add the configuration to `extensions/extensions.config.js` **after** the equalizer extension config
+4. Enable the extension by setting `ENABLED: true`
+5. Restart modernGraphTool to load the extension
+
+## Usage
+
+### Device Connection
+1. **Connect Device**: Use the connect button to establish connection with your audio device
+2. **Device Info**: View device information and capabilities
+3. **Slot Management**: Select and manage available PEQ slots on your device
+
+### EQ Transfer
+1. **Set Filters**: Configure your EQ settings in the equalizer extension
+2. **Transfer to Device**: Use the device-peq controls to send settings to hardware
+
+## Supported Devices
+
+This extension works with devices supported by the devicePEQ plugin.
+
+:::note Device Compatibility
+Device support depends on the underlying devicePEQ plugin. Check the info dialog or [devicePEQ project][DEVICEPEQ] for the latest compatibility information.
+:::
+
+## Advanced Features
+
+When `ADVANCED: true` is enabled:
+- Access to advanced device configuration dialogs
+- Extended device manipulation capabilities
+- Additional troubleshooting tools
+
+:::warning Advanced Mode
+Advanced features can potentially damage your device or cause unexpected behavior. Use only if you understand the risks and have experience with audio device configuration.
+:::
+
+## Updating devicePEQ
+
+The devicePEQ plugin files are located in `extensions/device-peq/devicePEQ/`. To update:
+
+1. Download the latest devicePEQ release
+2. Replace files in the `devicePEQ` folder
+3. Test compatibility with your devices
+4. Update configuration if needed
+
+## Browser Compatibility
+
+- **Chrome/Edge**: Full support (recommended)
+- **Firefox**: Limited support (WebUSB restrictions may apply)
+- **Safari**: Not supported (lacks WebUSB support)
+
+## Third-party Acknowledgments
+
+This extension includes and wraps the [devicePEQ plugin by jeromeof][DEVICEPEQ]. 
+- **Repository**: https://github.com/jeromeof/devicePEQ
+- **License**: 0BSD License
+
+[DEVICEPEQ]: https://github.com/jeromeof/devicePEQ

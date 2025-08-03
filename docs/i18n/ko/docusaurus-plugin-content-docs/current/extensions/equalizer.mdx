@@ -1,0 +1,79 @@
+# Equalizer Extension
+
+modernGraphTool을 위한 파라메트릭 이퀄라이저 Extension입니다.
+
+## 개요
+
+Equalizer Extension은 modernGraphTool에 파라메트릭 이퀄라이저 패널을 추가하여, 사용자가 헤드폰 측정값에 실시간 오디오 필터를 적용할 수 있도록 합니다.
+
+여러 필터 타입, 프리앰프 제어, EQ 효과가 적용된 오디오 재생 기능을 지원합니다.
+
+## 주요 기능
+
+- **파라메트릭 EQ**: 다양한 필터 타입 지원 (PEQ, LSQ, HSQ 등)
+- **실시간 오디오**: EQ 필터를 오디오 재생에 실시간 적용
+- **필터 관리**: EQ 밴드 동적 추가, 삭제, 수정
+- **헤드폰 선택**: 다양한 헤드폰 측정값 간 빠른 전환
+- **자동 EQ 생성**: 타겟 커브 기반 자동 EQ 프로필 생성
+- **가져오기/내보내기**: EQ 설정 가져오기 및 내보내기 지원
+- **파일 업로드**: 커스텀 주파수 응답 및 타겟 파일 업로드
+
+## 기술 사양
+
+| 속성 | 값 |
+|----------|-------|
+| **확장 이름** | `equalizer` |
+| **최신 버전** | 1.0.1 |
+| **최소 Core API 레벨** | 1 |
+| **최소 Core 버전** | 1.0.0 |
+| **I18N 지원** | 예 |
+
+## 설정 방법
+
+```javascript
+{
+  NAME: "equalizer",
+  DESCRIPTION: "equalizer panel for modernGraphTool",
+  ENABLED: true,
+  I18N_ENABLED: true,
+  CONFIG: {
+    INITIAL_EQ_BANDS: 5,    // Number of Equalizer Bands at start
+    MAXIMUM_EQ_BANDS: 20,   // Maximum Number of Equalizer Bands
+  },
+}
+```
+
+### 설정 옵션
+
+- **`INITIAL_EQ_BANDS`**: 확장 기능이 처음 로드될 때 사용 가능한 EQ 밴드 개수 설정
+- **`MAXIMUM_EQ_BANDS`**: 생성 가능한 최대 EQ 밴드 개수 정의
+
+## 설치 방법
+
+1. `equalizer` 폴더가 `extensions` 디렉터리에 있는지 확인
+2. 설정을 `extensions/extensions.config.js`에 추가
+3. `ENABLED: true`로 확장 기능 활성화
+4. modernGraphTool을 새로고침하여 확장 기능 적용
+
+## 사용법
+
+1. **기본 EQ**: 필터 컨트롤로 주파수, 게인, Q 값 조정
+2. **헤드폰 선택**: 헤드폰 선택기로 측정값 전환
+3. **오디오 재생**: 오디오 재생을 활성화하여 실시간 EQ 변화를 청취
+4. **자동 EQ**: 선택한 타겟 커브 기반 자동 EQ 프로필 생성
+5. **가져오기/내보내기**: 가져오기/내보내기 기능으로 EQ 설정 저장 및 불러오기
+
+## 참고 사항
+
+- 오디오 기능을 위해 Web Audio API를 지원하는 최신 브라우저가 필요합니다.
+- 실시간 오디오 처리 시 CPU 사용량이 증가할 수 있습니다.
+- 많은 EQ 밴드 사용 시 구형 기기에서 성능 저하가 발생할 수 있습니다.
+
+## 이벤트
+
+확장 기능은 여러 커스텀 이벤트를 발생시키고 수신합니다:
+
+- **`equalizer:auto-eq-generated`**: 자동 EQ 생성 시 발생 (detail: uuid)
+- **`equalizer:filters-changed`**: 필터 값 변경 시 발생 (detail: filters)
+- **`equalizer:select-changed`**: 선택 변경 시 발생 (detail: type/uuid)
+- **`equalizer:select-removed`**: 선택 해제 시 발생

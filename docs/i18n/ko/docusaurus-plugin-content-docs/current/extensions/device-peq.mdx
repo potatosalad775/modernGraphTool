@@ -1,0 +1,114 @@
+# Device PEQ Extension
+
+modernGraphTool과 호환되는 devicePEQ 확장 프로그램으로, 지원 대상 기기의 EQ값을 불러오거나 새로운 값을 적용할 수 있습니다.
+
+## 개요
+
+Device PEQ Extension은 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 modernGraphTool에 통합하여, 호환되는 오디오 장치의 이퀄라이저 설정값을 불러오거나 수정할 수 있습니다.
+
+이 확장 기능은 modernGraphTool의 측정치 분석 기능과 오디오 하드웨어 장치를 서로 연계하는 역할을 합니다.
+
+## 주요 기능
+
+- **하드웨어 통합**: 호환 오디오 장치와 연결
+- **장치 관리**: 오디오 장치 연결, 해제 및 관리
+- **PEQ 프로필 관리**: 지원 장치의 파라메트릭 EQ 프로필 관리
+- **실시간 동기화**: modernGraphTool과 하드웨어 간 EQ 설정 동기화
+- **고급 제어**: 선택적 고급 장치 조작 기능 제공
+
+## 기술 사양
+
+| 속성 | 값 |
+|----------|-------|
+| **확장 이름** | `device-peq` |
+| **최신 버전** | 1.0.1 |
+| **최소 Core API 레벨** | 1 |
+| **최소 Core 버전** | 1.0.0 |
+| **I18N 지원** | 없음 |
+
+## 의존성
+
+### 필수 확장 기능
+- **equalizer Extension**: 본 Extension은 `equalizer` Extension이 먼저 설치 및 활성화되어 있어야 합니다.
+
+## 설정 방법
+
+```javascript
+{
+  NAME: "device-peq",
+  DESCRIPTION: "modernGraphTool-compatible wrapper for devicePEQ project by jeromeof (tested with v0.8)",
+  ENABLED: true,
+  CONFIG: {
+    ADVANCED: false,    // Allow users to manipulate advanced dialogs (might be dangerous)
+    SHOW_LOGS: false,   // Show logs in console
+  }
+}
+```
+
+### 설정 옵션
+
+- **`ADVANCED`**: 고급 장치 설정 기능 활성화 (주의 필요)
+- **`SHOW_LOGS`**: 브라우저 콘솔에 상세 로그 정보 표시
+
+## 설치 방법
+
+1. **사전 준비**: `equalizer` Extension이 설치 및 활성화되어 있는지 확인
+2. `device-peq` 폴더를 `extensions` 디렉터리에 추가
+3. 설정을 `extensions/extensions.config.js`에 **equalizer 확장 설정 뒤에** 추가
+4. `ENABLED: true`로 확장 기능 활성화
+5. modernGraphTool을 새로고침하여 확장 기능 적용
+
+## 사용법
+
+### 장치 연결
+1. **장치 연결**: 연결 버튼을 사용해 오디오 장치와 연결
+2. **장치 정보**: 장치 정보 및 기능 확인
+3. **슬롯 관리**: 장치의 사용 가능한 PEQ 슬롯 선택 및 관리
+
+### EQ 전송
+1. **필터 설정**: equalizer 확장에서 EQ 설정 구성
+2. **장치로 전송**: device-peq 컨트롤을 사용해 설정을 하드웨어로 전송
+
+## 지원 장치
+
+이 확장 기능은 devicePEQ 플러그인이 지원하는 장치에서 동작합니다.
+
+:::note 장치 호환성
+장치 지원 여부는 devicePEQ 플러그인에 따라 다릅니다. 최신 호환성 정보는 info 다이얼로그 또는 [devicePEQ 프로젝트][DEVICEPEQ]를 참고하세요.
+:::
+
+## 고급 기능
+
+`ADVANCED: true`로 설정 시:
+- 고급 장치 설정 다이얼로그 접근
+- 확장된 장치 조작 기능
+- 추가 문제 해결 도구 제공
+
+:::warning 고급 모드
+고급 기능은 장치에 손상을 줄 수 있거나 예기치 않은 동작을 유발할 수 있습니다. 위험을 이해하고 오디오 장치 설정 경험이 있는 경우에만 사용하세요.
+:::
+
+## devicePEQ 업데이트
+
+devicePEQ 플러그인 파일은 `extensions/device-peq/devicePEQ/`에 위치하고 있습니다. 
+
+플러그인을 업데이트하려면 아래 지침을 따르시기 바랍니다.
+
+1. 최신 devicePEQ 릴리스를 다운로드
+2. `devicePEQ` 폴더의 파일을 교체
+3. 장치와의 호환성 테스트
+4. 필요 시 설정 업데이트
+
+## 브라우저 호환성
+
+- **Chrome/Edge**: 완벽 지원 (권장)
+- **Firefox**: 제한적 지원 (WebUSB 제한 가능성)
+- **Safari**: 미지원 (WebUSB 미지원)
+
+## 서드파티 고지
+
+이 확장 기능은 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 포함하고 있습니다.
+- **저장소**: https://github.com/jeromeof/devicePEQ
+- **라이선스**: 0BSD License
+
+[DEVICEPEQ]: https://github.com/jeromeof/devicePEQ

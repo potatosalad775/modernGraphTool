@@ -1,0 +1,179 @@
+# Template Extension
+
+A development template and reference extension that provides a starting point for creating custom extensions for modernGraphTool.
+
+## Overview
+
+The Template extension serves as a comprehensive example and starting point for developers who want to create custom extensions for modernGraphTool. 
+
+It demonstrates best practices, proper API usage, and common patterns used in extension development.
+
+## Features
+
+- **Complete Extension Structure**: Full example of extension architecture
+- **API Demonstrations**: Examples of using core modernGraphTool APIs
+- **Event Handling**: Proper event listening and dispatching patterns
+- **UI Integration**: Shadow DOM and component integration examples
+- **Configuration Handling**: Extension configuration management
+- **Development Tools**: Built-in development and debugging utilities
+
+## Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| **Extension Name** | `template` |
+| **Latest Version** | 1.0.0 |
+| **Minimum Core API Level** | 1 |
+| **Minimum Core Version** | 1.0.0 |
+| **I18N Support** | Partial (demonstrates i18n patterns) |
+
+## Configuration
+
+```javascript
+{
+  NAME: "template",
+  DESCRIPTION: "sample description",
+  ENABLED: false,    // Disabled by default as it's a development template
+}
+```
+
+:::note Development Template
+This extension is **disabled by default** as it's intended for development reference and learning purposes rather than production use.
+:::
+
+## Core API Demonstrations
+
+The template extension showcases usage of modernGraphTool's core APIs:
+
+### Data Access APIs
+- **MenuState**: Accessing and managing application menu state
+- **DataProvider**: Reading frequency response data and metadata
+- **MetadataParser**: Parsing headphone metadata information
+
+### Utility APIs
+- **GtToast**: Displaying toast notifications to users
+- **StringLoader**: Internationalization and string management (if I18N_ENABLED)
+- **CoreEvent**: Event system integration
+
+### Example API Usage
+```javascript
+// Example from template extension
+import { MenuState, DataProvider, MetadataParser, GtToast } from "../../core.min.js";
+
+// Access current frequency response data
+const frDataMap = DataProvider.getFRDataMap();
+
+// Access phone metadata
+const phoneMetadata = DataProvider.getPhoneMetadata();
+
+// Show toast notification
+GtToast.show("Template extension loaded!", "info");
+```
+
+## Extension Structure
+
+### File Organization
+```
+template/
+├── main.js                 // Main extension entry point
+└── README.md              // Extension documentation (if needed)
+```
+
+### Class Structure
+```javascript
+export default class TemplateElement extends HTMLElement {
+  constructor(config = {}) {
+    super();
+    this.config = config;           // Store extension configuration
+    this.attachShadow({ mode: 'open' });  // Create shadow DOM
+    
+    // Initialize extension
+    this._initializeExtension();
+  }
+}
+```
+
+## Development Patterns
+
+### Shadow DOM Usage
+The template demonstrates proper Shadow DOM implementation:
+```javascript
+// Create shadow DOM
+const shadow = this.attachShadow({ mode: 'open' });
+
+// Create and style container
+const container = document.createElement('div');
+container.classList.add('container');
+shadow.appendChild(container);
+```
+
+### Event Handling
+Examples of proper event management:
+```javascript
+// Event listener setup
+this._setupEventListeners();
+
+// Button click handlers
+button.addEventListener('click', (e) => {
+  this._handleButtonClick(e);
+});
+```
+
+### Configuration Management
+How to handle extension configuration:
+```javascript
+constructor(config = {}) {
+  this.config = config;
+  // Use configuration values
+  if (this.config.SOME_OPTION) {
+    // Handle configuration option
+  }
+}
+```
+
+## Using as Development Template
+
+### Step 1: Copy Template
+1. Copy the `template` folder to create your new extension
+2. Rename the folder to your extension name
+3. Update the `main.js` file with your extension logic
+
+### Step 2: Update Metadata
+```javascript
+export const EXTENSION_METADATA = {
+  name: 'your-extension-name',        // Update with your extension name
+  version: '1.0.0',                  // Your extension version
+  apiLevel: 1,                       // Keep current API level
+  coreMinVersion: '1.0.0',           // Minimum modernGraphTool version
+  coreMaxVersion: '1.0.x',           // Maximum compatible version
+  description: 'Your extension description',
+  author: 'Your Name'
+};
+```
+
+### Step 3: Customize Configuration
+```javascript
+{
+  NAME: "your-extension-name",           // Must match folder name
+  DESCRIPTION: "Your extension description",
+  ENABLED: true,                         // Enable for development
+  I18N_ENABLED: false,                   // Enable if you need i18n
+  CONFIG: {
+    // Your custom configuration options
+    YOUR_OPTION: "default_value",
+  },
+}
+```
+
+### Step 4: Implement Your Features
+Replace the template content with your extension logic:
+```javascript
+export default class YourExtensionClass extends HTMLElement {
+  constructor(config = {}) {
+    super();
+    // Your extension initialization
+  }
+  
+  // Your methods and functionality
+}
+```

@@ -1,0 +1,79 @@
+# Equalizer Extension
+
+A comprehensive parametric equalizer extension that provides real-time audio equalization capabilities for modernGraphTool.
+
+## Overview
+
+The Equalizer extension adds a full-featured parametric equalizer panel to modernGraphTool, allowing users to apply real-time audio filters to their headphone measurements. 
+
+It supports multiple filter types, preamp control, and audio playback with EQ effect applied.
+
+## Features
+
+- **Parametric EQ**: Support for multiple filter types (PEQ, LSQ, HSQ, etc.)
+- **Real-time Audio**: Toggle EQ filters to audio playback in real-time
+- **Filter Management**: Add, remove, and modify EQ bands dynamically
+- **Phone Selection**: Quick selection and switching between different headphone measurements
+- **Auto EQ Generation**: Generate automatic EQ profiles based on target curves
+- **Import/Export**: Support for importing and exporting EQ settings
+- **File Upload**: Upload custom frequency response and target files
+
+## Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| **Extension Name** | `equalizer` |
+| **Latest Version** | 1.0.1 |
+| **Minimum Core API Level** | 1 |
+| **Minimum Core Version** | 1.0.0 |
+| **I18N Support** | Yes |
+
+## Configuration
+
+```javascript
+{
+  NAME: "equalizer",
+  DESCRIPTION: "equalizer panel for modernGraphTool",
+  ENABLED: true,
+  I18N_ENABLED: true,
+  CONFIG: {
+    INITIAL_EQ_BANDS: 5,    // Number of Equalizer Bands at start
+    MAXIMUM_EQ_BANDS: 20,   // Maximum Number of Equalizer Bands
+  },
+}
+```
+
+### Configuration Options
+
+- **`INITIAL_EQ_BANDS`**: Sets the number of EQ bands available when the extension first loads
+- **`MAXIMUM_EQ_BANDS`**: Defines the maximum number of EQ bands that can be created
+
+## Installation
+
+1. Ensure the `equalizer` folder is present in your `extensions` directory
+2. Add the configuration to `extensions/extensions.config.js`
+3. Enable the extension by setting `ENABLED: true`
+4. Restart modernGraphTool to load the extension
+
+## Usage
+
+1. **Basic EQ**: Use the filter controls to adjust frequency, gain, and Q values
+2. **Phone Selection**: Use the phone selector to switch between different measurements
+3. **Audio Playback**: Enable audio playback to hear EQ changes in real-time
+4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
+5. **Import/Export**: Save and load EQ settings using the import/export functions
+
+## Notes
+
+- The extension requires a modern browser with Web Audio API support for audio features
+- Real-time audio processing may cause increased CPU usage
+- Large numbers of EQ bands may impact performance on older devices
+
+## Events
+
+The extension emits and listens to several custom events:
+
+- **`equalizer:auto-eq-generated`**: Fired when auto-EQ is generated (detail: uuid)
+- **`equalizer:filters-changed`**: Fired when filter values change (detail: filters)
+- **`equalizer:select-changed`**: Fired when selection changes (detail: type/uuid)
+- **`equalizer:select-removed`**: Fired when selection is removed

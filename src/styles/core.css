@@ -59,6 +59,13 @@ select {
   cursor: pointer;
 }
 
+input[type="checkbox"] {
+  border: 0.1rem solid var(--gt-color-outline);
+  width: 0.8rem;
+  height: 0.8rem;
+  accent-color: var(--gt-color-primary);
+}
+
 button {
   display: flex;
   align-items: center;

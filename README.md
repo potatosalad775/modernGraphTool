@@ -10,6 +10,10 @@ https://potatosalad775.github.io/modernGraphTool
 
 Also available in Squiglink : https://silicagel.squig.link
 
+## Download
+
+See [Release Page][RELEASE] for download options.
+
 ## Developer Guide
 
 modernGraphTool is bundled with [Rollup.js][ROLLUP] for better performance.
@@ -45,3 +49,4 @@ modernGraphTool is open source software licensed under MIT License.
 [ROLLUP]: https://rollupjs.org/
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DOCS]: https://potatosalad775.github.io/modernGraphTool/docs
+[RELEASE]: https://github.com/potatosalad775/modernGraphTool/releases

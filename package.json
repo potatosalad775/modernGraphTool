@@ -42,7 +42,16 @@
     "start": "npm run serve",
     "preview": "npm run build && npm run serve",
     "update-scripts": "node scripts/update-scripts.js",
-    "validate-versions": "node scripts/validate-extension-versions.js"
+    "validate-versions": "node scripts/validate-extension-versions.js",
+    "version:bump-core": "node scripts/version-manager.js bump-core",
+    "version:bump-ext": "node scripts/version-manager.js bump-extension",
+    "version:update-min-core": "node scripts/version-manager.js update-min-core",
+    "version:sync-docs": "node scripts/version-manager.js sync-docs",
+    "version:status": "node scripts/version-manager.js status",
+    "version:interactive": "node scripts/interactive-version-manager.js",
+    "install-git-hooks": "node scripts/install-git-hooks.js",
+    "release:preview": "node scripts/generate-release-notes.js preview",
+    "release:save": "node scripts/generate-release-notes.js save"
   },
   "dependencies": {
     "@rollup/plugin-alias": "^5.1.1",

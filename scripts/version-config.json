@@ -1,0 +1,34 @@
+{
+  "core": {
+    "versionSource": "package.json",
+    "files": [
+      "src/core-api.js"
+    ]
+  },
+  "extensions": {
+    "directory": "extensions",
+    "defaultVersionIncrement": "patch",
+    "exclude": []
+  },
+  "documentation": {
+    "directories": [
+      "docs/docs/extensions",
+      "docs/i18n/ko/docusaurus-plugin-content-docs/current/extensions"
+    ],
+    "patterns": {
+      "version": "\\|\\s*\\*\\*Latest Version\\*\\*\\s*\\|\\s*([^\\|\\n]+)\\s*\\|",
+      "coreVersion": "\\|\\s*\\*\\*Minimum Core Version\\*\\*\\s*\\|\\s*([^\\|\\n]+)\\s*\\|",
+      "apiLevel": "\\|\\s*\\*\\*Minimum Core API Level\\*\\*\\s*\\|\\s*([^\\|\\n]+)\\s*\\|"
+    }
+  },
+  "validation": {
+    "strictVersionFormat": true,
+    "requireMetadata": true,
+    "requiredFields": [
+      "name",
+      "version", 
+      "apiLevel",
+      "coreMinVersion"
+    ]
+  }
+}

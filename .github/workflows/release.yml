@@ -1,0 +1,242 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Additional release notes (optional)'
+        required: false
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Setup GitHub CLI
+      run: |
+        # GitHub CLI is pre-installed on GitHub Actions runners
+        gh --version
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Validate versions
+      run: npm run validate-versions
+      
+    - name: Get version information
+      id: versions
+      run: |
+        # Get core version from package.json
+        CORE_VERSION=$(node -p "require('./package.json').version")
+        echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
+        
+        # Get current date
+        RELEASE_DATE=$(date '+%Y-%m-%d')
+        echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
+        
+        # Get extension versions using a simpler approach
+        node -e "
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+          const extensionsDir = path.join(process.cwd(), 'extensions');
+          const entries = fs.readdirSync(extensionsDir, { withFileTypes: true });
+          const extensionDirs = entries
+            .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
+            .map(entry => entry.name);
+          
+          const extensions = [];
+          
+          for (const extensionName of extensionDirs) {
+            try {
+              const mainJsPath = path.join(extensionsDir, extensionName, 'main.js');
+              const content = fs.readFileSync(mainJsPath, 'utf-8');
+              
+              const versionMatch = content.match(/version:\s*['\\\`]([^'\\\`]+)['\\\`]/);
+              const minCoreMatch = content.match(/coreMinVersion:\s*['\\\`]([^'\\\`]+)['\\\`]/);
+              
+              if (versionMatch) {
+                extensions.push({
+                  name: extensionName,
+                  version: versionMatch[1],
+                  minCore: minCoreMatch ? minCoreMatch[1] : 'unknown'
+                });
+              }
+            } catch (error) {
+              console.error(\`Error reading extension \${extensionName}:\`, error.message);
+            }
+          }
+          
+          console.log(JSON.stringify(extensions));
+        } catch (error) {
+          console.error('Error generating extension info:', error);
+          console.log('[]'); // Empty array fallback
+        }
+        " > extensions.json
+        
+    - name: Clean and build project
+      run: |
+        npm run clean
+        npm run build
+        
+    - name: Create release packages
+      run: |
+        mkdir -p release-packages
+        
+        # Get core version
+        CORE_VERSION="${{ steps.versions.outputs.core_version }}"
+        
+        # 1. Full distribution package
+        cd dist
+        zip -r "../release-packages/modernGraphTool_full_${CORE_VERSION}.zip" .
+        cd ..
+        
+        # 2. Core-only package
+        cd dist
+        zip "../release-packages/modernGraphTool_core_${CORE_VERSION}.zip" core.min.js core.min.js.map
+        cd ..
+        
+        # 3. Individual extension packages
+        cd dist/extensions
+        for ext_dir in */; do
+          if [ -d "$ext_dir" ]; then
+            ext_name=$(basename "$ext_dir")
+            
+            # Skip if it's just the config file
+            if [ "$ext_name" = "extensions.config.js" ]; then
+              continue
+            fi
+            
+            # Get extension version from source directory (more reliable)
+            if [ -f "../../extensions/$ext_name/main.js" ]; then
+              ext_version=$(grep -oP "version:\s*['\"]([^'\"]+)['\"]" "../../extensions/$ext_name/main.js" | grep -oP "['\"]([^'\"]+)['\"]" | sed "s/['\"]//g" | head -1 || echo "unknown")
+            else
+              ext_version="unknown"
+            fi
+            
+            # Create extension package
+            zip -r "../../release-packages/mGT_ext_${ext_name}_${ext_version}.zip" "$ext_dir"
+          fi
+        done
+        cd ../..
+        
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        # Create release notes with version information
+        cat > release_notes.md << 'EOF'
+        ## 📦 Version Information
+        
+        ### Core System
+        
+        | Component | Version | Core API Level | Release Date |
+        |-------------|--------|----------------|--------------|
+        | **modernGraphTool Core** | v${{ steps.versions.outputs.core_version }} | 1 | ${{ steps.versions.outputs.release_date }} |
+        
+        ### Extensions
+        
+        Certain extension may require more configuration on installation or update. \
+        Please refer to Docs for more info.
+        
+        | Extension | Version | Min. Core version | Documentation |
+        |-----------|---------|--------|---------------|
+        EOF
+        
+        # Add extension information
+        node -e "
+        const extensions = require('./extensions.json');
+        const extensionOrder = [
+          'equalizer', 'device-peq', 'target-customizer', 'graph-color-wheel',
+          'preference-bound', 'frequency-tutorial', 'squiglink-integration', 'template'
+        ];
+        
+        const sortedExtensions = extensionOrder.map(name => 
+          extensions.find(ext => ext.name === name)
+        ).filter(Boolean);
+        
+        // Add any extensions not in the predefined order
+        const remainingExtensions = extensions.filter(ext => 
+          !extensionOrder.includes(ext.name)
+        );
+        
+        const allExtensions = [...sortedExtensions, ...remainingExtensions];
+        
+        allExtensions.forEach(ext => {
+          const displayName = ext.name.split('-').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ');
+          
+          console.log(\`| **\${displayName}** | v\${ext.version} | v\${ext.minCore} | [📖 Docs](https://potatosalad775.github.io/modernGraphTool/docs/extensions/\${ext.name}) |\`);
+        });
+        " >> release_notes.md
+        
+        cat >> release_notes.md << 'EOF'
+        
+        ## 📖 Documentation
+        
+        Complete documentation is available at: https://potatosalad775.github.io/modernGraphTool/docs
+        
+        - [**Admin Guide**](https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/intro)
+        - [**Extension Documentation**](https://potatosalad775.github.io/modernGraphTool/docs/extensions)
+        EOF
+        
+        # Add custom release notes if provided
+        if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+          cat >> release_notes.md << 'EOF'
+        
+        ## 📝 Additional Notes
+        
+        ${{ github.event.inputs.release_notes }}
+        EOF
+        fi
+        
+        # Output for GitHub Actions
+        echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+        cat release_notes.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: List release packages
+      run: |
+        echo "📦 Created release packages:"
+        ls -la release-packages/
+        
+    - name: Delete existing release
+      run: |
+        # Delete the release if it exists (but keep the tag)
+        gh release delete release --yes || echo "Release 'release' does not exist"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Create or update release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: release
+        name: "modernGraphTool Release (Core v${{ steps.versions.outputs.core_version }})"
+        body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+        files: release-packages/*
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Summary
+      run: |
+        echo "🎉 Release completed successfully!"
+        echo ""
+        echo "📦 Core Version: v${{ steps.versions.outputs.core_version }}"
+        echo "📅 Release Date: ${{ steps.versions.outputs.release_date }}"
+        echo ""
+        echo "📁 Packages created:"
+        ls -1 release-packages/ | sed 's/^/  - /'
+        echo ""
+        echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/release"

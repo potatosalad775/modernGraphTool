@@ -1,0 +1,18 @@
+#!/bin/sh
+# Git pre-commit hook for version validation
+# Place this file in .git/hooks/pre-commit and make it executable
+
+echo "🔍 Running version validation checks..."
+
+# Run version validation
+node scripts/pre-commit-version-check.js
+
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-commit version check failed!"
+  echo "💡 Run 'npm run version:status' to see current versions"
+  echo "💡 Run 'npm run version:sync-docs' to sync documentation"
+  exit 1
+fi
+
+echo "✅ Version validation passed!"
+exit 0

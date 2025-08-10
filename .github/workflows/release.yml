@@ -8,6 +8,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -211,13 +214,6 @@ jobs:
         echo "📦 Created release packages:"
         ls -la release-packages/
         
-    - name: Delete existing release
-      run: |
-        # Delete the release if it exists (but keep the tag)
-        gh release delete release --yes || echo "Release 'release' does not exist"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
     - name: Create or update release
       uses: softprops/action-gh-release@v2
       with:
@@ -226,6 +222,8 @@ jobs:
         body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
         files: release-packages/*
         prerelease: false
+        make_latest: true
+        generate_release_notes: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         

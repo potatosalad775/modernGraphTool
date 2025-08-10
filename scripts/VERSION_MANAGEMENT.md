@@ -93,35 +93,7 @@ npm run version:sync-docs
 scripts/
 ├── version-manager.js              # Main version management logic
 ├── interactive-version-manager.js  # Interactive CLI interface
-├── pre-commit-version-check.js     # Pre-commit validation
-└── version-config.json             # Configuration file
-
-.github/workflows/
-└── version-management.yml          # GitHub Actions workflow
-```
-
-## Configuration
-
-Edit `scripts/version-config.json` to customize:
-
-```json
-{
-  "core": {
-    "versionSource": "package.json",
-    "files": ["src/core-api.js"]
-  },
-  "extensions": {
-    "directory": "extensions",
-    "defaultVersionIncrement": "patch",
-    "exclude": []
-  },
-  "documentation": {
-    "directories": [
-      "docs/docs/extensions",
-      "docs/i18n/ko/docusaurus-plugin-content-docs/current/extensions"
-    ]
-  }
-}
+└── pre-commit-version-check.js     # Pre-commit validation
 ```
 
 ## Extension Requirements
@@ -163,11 +135,6 @@ Validates version consistency before commits:
 ```bash
 node scripts/pre-commit-version-check.js
 ```
-
-### GitHub Actions
-- Validates versions on PR/push
-- Auto-syncs documentation on main branch
-- Generates version reports
 
 ## Validation Rules
 
@@ -212,38 +179,3 @@ VERBOSE=true npm run version:status
 3. **Version Bump**: Use `npm run version:interactive`
 4. **Documentation**: Auto-synced by version manager
 5. **Commit**: Pre-commit hook validates everything
-6. **Release**: GitHub Actions handle CI/CD
-
-### Best Practices
-- Always bump versions when releasing changes
-- Use patch for bug fixes, minor for features, major for breaking changes
-- Update minimum core version when using new core APIs
-- Test extensions after bumping minimum core requirements
-
-## API Reference
-
-### VersionManager Class
-```javascript
-import { VersionManager } from './scripts/version-manager.js';
-
-const manager = new VersionManager();
-await manager.init();
-
-// Update core version
-await manager.updateCoreVersion('1.1.0');
-
-// Update extension version
-await manager.updateExtensionVersion('equalizer', '1.0.2');
-
-// Sync documentation
-await manager.updateDocumentation();
-```
-
-## Contributing
-
-When adding new features to the version management system:
-
-1. Update `version-config.json` for new configuration options
-2. Add tests for new functionality
-3. Update this README with new commands/features
-4. Ensure backward compatibility with existing extensions

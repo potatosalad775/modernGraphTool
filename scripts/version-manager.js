@@ -189,7 +189,6 @@ class VersionManager {
 
   async updateExtensionDocumentation(docPath, extensionName) {
     try {
-      const extension = this.extensions.get(extensionName);
       let content = await readFile(docPath, 'utf-8');
       
       // Extract current extension metadata
@@ -197,22 +196,22 @@ class VersionManager {
       
       // Update version in technical specifications table (English and Korean)
       content = content.replace(
-        /(\|\s*\*\*Latest Version\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+        /(\|\s*\*\*Latest Version\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
         `$1${metadata.version}$2`
       );
       content = content.replace(
-        /(\|\s*\*\*최신 버전\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+        /(\|\s*\*\*최신 버전\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
         `$1${metadata.version}$2`
       );
       
       // Update minimum core version (English and Korean)
       if (metadata.coreMinVersion) {
         content = content.replace(
-          /(\|\s*\*\*Minimum Core Version\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+          /(\|\s*\*\*Minimum Core Version\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
           `$1${metadata.coreMinVersion}$2`
         );
         content = content.replace(
-          /(\|\s*\*\*최소 Core 버전\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+          /(\|\s*\*\*최소 Core 버전\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
           `$1${metadata.coreMinVersion}$2`
         );
       }
@@ -220,11 +219,11 @@ class VersionManager {
       // Update API level (English and Korean)
       if (metadata.apiLevel) {
         content = content.replace(
-          /(\|\s*\*\*Minimum Core API Level\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+          /(\|\s*\*\*Minimum Core API Level\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
           `$1${metadata.apiLevel}$2`
         );
         content = content.replace(
-          /(\|\s*\*\*최소 Core API 레벨\*\*\s*\|\s*)[^\|\n]+(\s*\|)/,
+          /(\|\s*\*\*최소 Core API 레벨\*\*\s*\|\s*)[^\|\s]+(\s+\|)/,
           `$1${metadata.apiLevel}$2`
         );
       }

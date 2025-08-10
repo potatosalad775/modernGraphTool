@@ -3,7 +3,7 @@ import { CoreExtension } from "../../core.min.js";
 // Extension metadata for version compatibility
 export const EXTENSION_METADATA = {
   name: 'device-peq',
-  version: '1.0.1',
+  version: '1.0.2',
   apiLevel: 1,
   coreMinVersion: '1.0.0',
   coreMaxVersion: '1.0.x',
@@ -80,6 +80,11 @@ export default class DevicePEQLoader {
   }
 
   _restoreOriginalConsole() {
+    // Store devicePEQ's overridden console methods before restoring originals
+    const devicePEQConsoleLog = console.log;
+    const devicePEQConsoleWarn = console.warn;
+    const devicePEQConsoleError = console.error;
+    
     // Restore original console methods to prevent devicePEQ from suppressing logs
     if (this.originalConsoleLog) {
       console.log = this.originalConsoleLog;
@@ -91,16 +96,63 @@ export default class DevicePEQLoader {
       console.error = this.originalConsoleError;
     }
     
-    // Optionally, you can still keep devicePEQ's logging functionality available
-    // by storing their overridden methods in a different namespace
-    if (window.consoleLogHistory) {
-      console.devicePEQLog = function() {
-        const logString = Array.from(arguments).map(arg =>
-          typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-        ).join(' ');
-        window.consoleLogHistory.push(`[LOG] ${logString}`);
-      };
-    }
+    // Create a hybrid console that routes devicePEQ calls to their logging system
+    // while keeping normal console behavior for everything else
+    const hybridConsoleLog = (...args) => {
+      // Check if the call is coming from devicePEQ context
+      const stack = new Error().stack;
+      const isFromDevicePEQ = stack && (
+        stack.includes('/devicePEQ/') || 
+        stack.includes('devicePEQ') ||
+        stack.includes('plugin.js')
+      );
+      
+      if (isFromDevicePEQ) {
+        // Use devicePEQ's logging system for devicePEQ calls
+        devicePEQConsoleLog.apply(console, args);
+      } else {
+        // Use original console for all other calls
+        this.originalConsoleLog.apply(console, args);
+      }
+    };
+    
+    const hybridConsoleWarn = (...args) => {
+      const stack = new Error().stack;
+      const isFromDevicePEQ = stack && (
+        stack.includes('/devicePEQ/') || 
+        stack.includes('devicePEQ') ||
+        stack.includes('plugin.js')
+      );
+      
+      if (isFromDevicePEQ) {
+        devicePEQConsoleWarn.apply(console, args);
+      } else {
+        this.originalConsoleWarn.apply(console, args);
+      }
+    };
+    
+    const hybridConsoleError = (...args) => {
+      const stack = new Error().stack;
+      const isFromDevicePEQ = stack && (
+        stack.includes('/devicePEQ/') || 
+        stack.includes('devicePEQ') ||
+        stack.includes('plugin.js')
+      );
+      
+      if (isFromDevicePEQ) {
+        devicePEQConsoleError.apply(console, args);
+      } else {
+        this.originalConsoleError.apply(console, args);
+      }
+    };
+    
+    // Replace console methods with hybrid versions
+    console.log = hybridConsoleLog;
+    console.warn = hybridConsoleWarn;
+    console.error = hybridConsoleError;
+    
+    // Keep devicePEQ's logging functionality available as backup
+    console.devicePEQLog = devicePEQConsoleLog;
   }
 
   _equalizerElementModifier() {

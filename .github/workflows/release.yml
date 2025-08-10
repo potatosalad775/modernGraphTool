@@ -43,8 +43,13 @@ jobs:
         CORE_VERSION=$(node -p "require('./package.json').version")
         echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
         
-        # Get current date
-        RELEASE_DATE=$(date '+%Y-%m-%d')
+        # Get release date from core-api.js
+        RELEASE_DATE=$(node -e "
+          const fs = require('fs');
+          const content = fs.readFileSync('src/core-api.js', 'utf-8');
+          const match = content.match(/RELEASE_DATE:\s*['\\\`]([^'\\\`]+)['\\\`]/);
+          console.log(match ? match[1] : new Date().toISOString().split('T')[0]);
+        ")
         echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
         
         # Get extension versions using a simpler approach

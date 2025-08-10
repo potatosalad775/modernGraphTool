@@ -42,10 +42,27 @@ class VersionManager {
     const packageJson = await this.readJsonFile(join(PROJECT_ROOT, 'package.json'));
     this.coreVersion = packageJson.version;
     
+    // Load release date from core-api.js
+    this.coreReleaseDate = await this.getCoreReleaseDate();
+    
     this.log(`📦 Current core version: ${this.coreVersion}`);
+    this.log(`📅 Core release date: ${this.coreReleaseDate}`);
     
     // Scan extensions
     await this.scanExtensions();
+  }
+
+  async getCoreReleaseDate() {
+    try {
+      const coreApiPath = join(PROJECT_ROOT, 'src/core-api.js');
+      const content = await readFile(coreApiPath, 'utf-8');
+      
+      const releaseDateMatch = content.match(/RELEASE_DATE:\s*['"`]([^'"`]+)['"`]/);
+      return releaseDateMatch ? releaseDateMatch[1] : new Date().toISOString().split('T')[0];
+    } catch (error) {
+      this.log(`⚠️  Could not read release date from core-api.js: ${error.message}`);
+      return new Date().toISOString().split('T')[0];
+    }
   }
 
   async scanExtensions() {
@@ -79,6 +96,9 @@ class VersionManager {
   async updateCoreVersion(newVersion) {
     this.log(`🚀 Updating core version from ${this.coreVersion} to ${newVersion}`);
     
+    // Get current date for release
+    const releaseDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
     // Update package.json
     const packageJsonPath = join(PROJECT_ROOT, 'package.json');
     const packageJson = await this.readJsonFile(packageJsonPath);
@@ -96,11 +116,18 @@ class VersionManager {
         `VERSION: '${newVersion}'`
       );
       
+      // Replace RELEASE_DATE constant
+      content = content.replace(
+        /RELEASE_DATE:\s*['"`][^'"`]+['"`]/,
+        `RELEASE_DATE: '${releaseDate}'`
+      );
+      
       await writeFile(filePath, content, 'utf-8');
       this.log(`✅ Updated ${coreFile}`);
     }
     
     this.coreVersion = newVersion;
+    this.log(`📅 Release date set to: ${releaseDate}`);
   }
 
   async updateExtensionVersion(extensionName, newVersion, newCoreMinVersion = null) {
@@ -401,6 +428,7 @@ async function showStatus(versionManager) {
   console.log('📊 Version Status Report\n');
   
   console.log(`🏗️  Core Version: ${versionManager.coreVersion}`);
+  console.log(`📅 Core Release Date: ${versionManager.coreReleaseDate}`);
   console.log('\n🔌 Extensions:');
   
   for (const [name, info] of versionManager.extensions) {

@@ -16,6 +16,7 @@ const CoreAPI = {
   // Version information
   VERSION: '1.0.0',
   API_LEVEL: 1,
+  RELEASE_DATE: '2024-08-10',
   
   // Core modules
   CoreEvent,

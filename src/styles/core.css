@@ -20,7 +20,7 @@ body {
   touch-action: none;
   overscroll-behavior-y: none;
 
-  font-family: 'Interop', sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
   font: var(--gt-typescale-body-medium);
   color: var(--gt-color-on-surface);
   background: var(--gt-color-surface-container);
@@ -40,6 +40,16 @@ body {
               fill 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               stroke 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root {
+  /* Font */
+  --gt-typescale-title-large: 700 1.5rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  --gt-typescale-title-medium: 700 1.2rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  --gt-typescale-title-small: 700 0.9rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  --gt-typescale-body-large: 400 1rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  --gt-typescale-body-medium: 400 0.8rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
+  --gt-typescale-body-small: 400 0.7rem/1.4 "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", sans-serif;
 }
 
 select {

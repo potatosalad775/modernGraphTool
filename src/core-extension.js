@@ -12,11 +12,11 @@ const CoreExtension = {
     // Load configuration from a more appropriate location
     const config = await this.loadConfiguration();
     this.activeExtensionList = config.filter((extension) => extension.ENABLED);
-    
-    // Load all extensions sequentially
-    for (const extension of this.activeExtensionList) {
-      await this.loadExtension(extension);
-    }
+
+    // Load all extensions concurrently
+    await Promise.all(
+      this.activeExtensionList.map((extension) => this.loadExtension(extension))
+    );
   },
 
   async loadExtension(extension) {

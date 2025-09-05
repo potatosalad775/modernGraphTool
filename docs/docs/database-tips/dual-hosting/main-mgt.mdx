@@ -2,11 +2,11 @@
 sidebar_position: 1
 ---
 
-# Dual-Hosting modernGraphTool & CrinGraph
+# Use modernGraphTool as main
 
 You can host modernGraphTool and CrinGraph together with slight change of code! 
 
-This chapter showcases how to dual-host 2 graphtools in 1 domain.
+This chapter showcases how to dual-host 2 graphtools in 1 domain, using modernGraphTool as main forefront page.
 
 ## Overview
 
@@ -25,9 +25,9 @@ Here, we showcase the classic "folder as subdomain" approach, which is simple an
 
 Your root folder should contain the main `index.html` for modernGraphTool. 
 
-Create a new folder (e.g., `cringraph/`) inside the root directory, and place all CrinGraph files there. 
+Create a new folder (e.g., `cringraph`) inside the root directory, and place all CrinGraph files there. 
 
-The `cringraph/` folder should also have its own `index.html`.
+The `cringraph` folder should also have its own `index.html`.
 
 Example structure:
 
@@ -35,11 +35,14 @@ Example structure:
 /project-root/
 ├── data
 |   ├── phones          # 'phone' measurements folder
+|   |   ├── A8 L.txt      # measurement data
+|   |   └── A8 R.txt      # measurement data
 |   ├── target          # 'target' measurements folder
+|   |   └── Target.txt    # target data
 |   └── phone_book.json # List of phones
 ├── index.html          # modernGraphTool entry point
 ├── ...other modernGraphTool files...
-└── cringraph/
+└── cringraph
     ├── index.html      # CrinGraph entry point
     └── ...other CrinGraph files...
 ```
@@ -103,7 +106,7 @@ PHONE_BOOK = "phone_book.json", // Path to phone book JSON file
 PHONE_BOOK = "../data/phone_book.json", // Path to phone book JSON file
 ```
 
-### 4. Adding Navigation Buttons to Each Tool
+### 4. Add Navigation Buttons to Each Tool
 
 After finishing the code-weaving job above, you should be able to access 2 graphtools via these domains.
 
@@ -114,7 +117,7 @@ We can add little buttons so users can easily navigate between these two.
 
 #### modernGraphTool
 
-Head over to `config.js` and add these line:
+Head over to line 114 of `config.js` for `TOPBAR` object, and add these line:
 ```js
 TOPBAR: {
   LINK_LIST: { TITLE: "Go to CrinGraph", URL: "https://yourdomain.com/cringraph" },
@@ -125,7 +128,7 @@ TOPBAR: {
 
 #### CrinGraph
 
-Head over to `config.js` and add these line:
+Head over to line 250 of `config.js` for `headerLinks` array, and add these line:
 ```js
 headerLinks = [
   {
@@ -145,3 +148,12 @@ headerLinks = [
 Upload your project to your web server, ensuring the folder structure is preserved. 
 
 Both tools should now be accessible as described above.
+
+:::tip[Tip]
+If you are applying these changes to your `squig.link` database, the changes might not be shown immediately due to cached files.
+
+You can apply these changes immediately by refreshing the cache. Add `?cachebust` to the end of your database address, then reload the page.
+```plaintext
+e.g) https://example.squig.link/?cachebust
+```
+:::

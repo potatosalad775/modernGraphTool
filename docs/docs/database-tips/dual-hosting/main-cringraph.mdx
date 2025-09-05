@@ -1,0 +1,162 @@
+---
+sidebar_position: 2
+---
+
+# Use CrinGraph as main
+
+You can host modernGraphTool and CrinGraph together with slight change of code! 
+
+This chapter showcases how to dual-host 2 graphtools in 1 domain, using CrinGraph as main forefront page.
+
+## Overview
+
+There are several ways to host two services on a single domain. 
+
+Here, we showcase the classic "folder as subdomain" approach, which is simple and effective for static sites or web apps.
+
+## Step-by-Step Guide
+
+### 1. Prepare Your Projects
+
+- **modernGraphTool**: Set up the modernGraphTool database and files as described in the [other documentation chapters](../category/guide-for-admins).
+- **CrinGraph**: Prepare the CrinGraph project files. You can use any variant of CrinGraphs.
+
+### 2. Organize Your Directory Structure
+
+Your root folder should contain the main `index.html` for CrinGraph. 
+
+Create a new folder (e.g., `mGT`) inside the root directory, and place all modernGraphTool files there. 
+
+The `mGT` folder should also have its own `index.html`.
+
+:::tip[Tip]
+CrinGraph was originally designed to contain measurement and target data in the same `data` folder.
+But, we're going to separate these into a dedicated folder for each of them to make it easier to maintain.
+:::
+
+Example structure:
+
+```plaintext
+/project-root/
+├── data
+|   ├── phones          # 'phone' measurements folder
+|   |   ├── A8 L.txt      # measurement data
+|   |   └── A8 R.txt      # measurement data
+|   ├── target          # 'target' measurements folder
+|   |   └── Target.txt    # target data
+|   └── phone_book.json # List of phones
+├── index.html          # CrinGraph entry point
+├── ...other CrinGraph files...
+└── mGT
+    ├── index.html      # modernGraphTool entry point
+    └── ...other modernGraphTool files...
+```
+
+### 3. Required Changes to CrinGraph
+
+Since we are separating measurement and target data into a dedicated folder, we have to modify `graphtool.js` to properly fetch data from new directories.
+
+The following examples are based on the [squiglink/labs version](https://github.com/squiglink/lab) of CrinGraph.
+
+:::tip[Tip]
+Even if you are using a different version of CrinGraph, you should be able to follow the examples below without any problems. However, there may be slight differences in details such as line positions.
+:::
+
+#### graphtool.js
+
+Head over to line 787, and edit `loadFiles` function.
+
+```js
+// Previous
+let l = f => d3.text(DIR+f+".txt").catch(()=>null);
+let f = p.isTarget ? [l(p.fileName)]
+      : d3.merge(LR.map(s =>
+            sampnums.map(n => l(p.fileName+" "+s+n))));
+
+// After
+// If you're using custom directory for measurements, change the 'phones' and 'target' words to yours.
+let l = f => d3.text(DIR+"phones/"+f+".txt").catch(()=>null);
+let lt = f => d3.text(DIR+"target/"+f+".txt").catch(()=>null);
+let f = p.isTarget ? [lt(p.fileName)]
+      : d3.merge(LR.map(s =>
+            sampnums.map(n => l(p.fileName+" "+s+n))));
+```
+
+### 4. Required Changes to modernGraphTool
+
+Since we don't want to manage 2 data folders for each graphtool respectively, We need to update mGT's `config.js` file to correctly fetch data from parent directory.
+
+#### config.js
+
+Head over to line 62, and edit `PATH` object.
+
+```js
+// Previous
+PATH: {
+  PHONE_MEASUREMENT: "./data/phones",
+  TARGET_MEASUREMENT: "./data/target",
+  PHONE_BOOK: "./data/phone_book.json",
+},
+
+// After
+// If you're using custom directory for measurements, change the 'phones' and 'target' words to yours.
+PATH: {
+  PHONE_MEASUREMENT: "../data/phones",
+  TARGET_MEASUREMENT: "../data/target",
+  PHONE_BOOK: "../data/phone_book.json",
+},
+```
+
+Notice that the single dot has been replaced with two dots, indicating mGT to look for a parent directory.
+
+### 5. Add Navigation Buttons to Each Tool
+
+After finishing the code-weaving job above, you should be able to access 2 graphtools via these domains.
+
+- To access CrinGraph: `https://yourdomain.com/`
+- To access modernGraphTool: `https://yourdomain.com/mGT/` (Folder name as subdomain)
+
+We can add little buttons so users can easily navigate between these two.
+
+#### CrinGraph
+
+Head over to line 250 of `config.js` for `headerLinks` array, and add these line:
+```js
+headerLinks = [
+  {
+    name: "Go to modernGraphTool",
+    url: "https://yourdomain.com/mGT"
+  },
+  // or
+  {
+    name: "Go to modernGraphTool",
+    url: "./mGT"
+  },
+]
+```
+
+#### modernGraphTool
+
+Head over to line 114 of `config.js` for `TOPBAR` object, and add these line:
+```js
+TOPBAR: {
+  LINK_LIST: { TITLE: "Go back to CrinGraph", URL: "https://yourdomain.com/" },
+  // or
+  LINK_LIST: { TITLE: "Go back to CrinGraph", URL: "../" },
+}
+```
+
+### 6. Deploying
+
+Upload your project to your web server, ensuring the folder structure is preserved. 
+
+Both tools should now be accessible as described above.
+
+:::tip[Tip]
+If you are applying these changes to your `squig.link` database, the changes might not be shown immediately due to cached files.
+
+You can apply these changes immediately by refreshing the cache. Add `?cachebust` to the end of your database address, then reload the page.
+```plaintext
+e.g) https://example.squig.link/?cachebust
+```
+:::

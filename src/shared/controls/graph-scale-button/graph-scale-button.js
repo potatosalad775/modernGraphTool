@@ -1,4 +1,4 @@
-import RenderEngine from "../../visualization/render-engine.js";
+import GraphEngine from "../../../features/graph/graph-engine.js";
 import StringLoader from "../../../model/util/string-loader.js";
 import ConfigGetter from "../../../model/util/config-getter.js";
 
@@ -38,7 +38,7 @@ class GraphScaleButton extends HTMLElement {
       <gt-divider style="width: 1px"></gt-divider>
       <b>${this._options[this._currentIndex]}dB</b>
     `;
-    RenderEngine.updateYScale(this._options[this._currentIndex])
+    GraphEngine.updateYScale(this._options[this._currentIndex])
   };
 
   _updateLabel() {

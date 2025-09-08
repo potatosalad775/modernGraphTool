@@ -1,5 +1,5 @@
 import FRParser from "./util/fr-parser.js";
-import RenderEngine from "../ui/visualization/render-engine.js";
+import GraphEngine from "../features/graph/graph-engine.js";
 import MetadataParser from "./util/metadata-parser.js";
 import FRNormalizer from "./util/fr-normalizer.js";
 import FRSmoother from "./util/fr-smoother.js";
@@ -401,7 +401,7 @@ class DataProvider {
       this.frDataMap.set(uuid, updatedData);
 
       // Update Target Graph
-      RenderEngine.drawFRCurve(uuid);
+      GraphEngine.drawFRCurve(uuid);
     } catch (e) {
       console.error("Error updating EQ curve:", e);
     }

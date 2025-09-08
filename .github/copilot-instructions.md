@@ -59,7 +59,7 @@ extensions/my-extension/
 - **DataProvider**: Central frequency response data store using Map() structure
 - **MetadataParser**: Handles device metadata parsing and management  
 - **FRParser/FRNormalizer/FRSmoother**: Data processing pipeline
-- **RenderEngine**: Visualization rendering system
+- **GraphEngine**: Visualization rendering system
 
 ### Key Data Structures
 - `frDataMap`: Map of UUID -> frequency response objects

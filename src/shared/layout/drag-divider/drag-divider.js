@@ -45,11 +45,16 @@ class DragDivider extends HTMLElement {
   _handleDrag = (e) => {
     if (!this._isDragging) return;
     const deltaX = e.clientX - this._startX;
-    this.dispatchEvent(new CustomEvent('drag-divider-moved', {
-      detail: { deltaX, currentX: e.clientX },
-      bubbles: true,
-      composed: true
-    }));
+
+    const mainContent = document.querySelector('.main-content');
+    const { width: containerWidth, x: containerX } = mainContent.getBoundingClientRect();
+    const newWidthPercentage = ((e.clientX - containerX) / containerWidth) * 100;
+    
+    mainContent.style.gridTemplateColumns = `
+      clamp(400px, ${newWidthPercentage}%, calc(100% - 346px))
+      5px 
+      minmax(340px, 1fr)
+    `;
   };
 
   _stopDrag = () => {

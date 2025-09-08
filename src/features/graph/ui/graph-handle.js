@@ -1,9 +1,9 @@
 const d3 = window.d3;
 
 class GraphHandle {
-  constructor(svg, renderEngine) {
+  constructor(svg, graphEngine) {
     this.svg = svg;
-    this.renderEngine = renderEngine;
+    this.graphEngine = graphEngine;
     this.yShift = 0;
     this.maxShift = 20;
     this.isMobile = document.documentElement.hasAttribute('data-mobile') || window.innerWidth < 1000;
@@ -18,7 +18,7 @@ class GraphHandle {
     // Create handle group
     this.handleGroup = this.svg.append('g')
       .attr('class', 'y-scaler-handle')
-      .attr('transform', `translate(${this.renderEngine.graphGeometry.xEnd},0)`);
+      .attr('transform', `translate(${this.graphEngine.graphGeometry.xEnd},0)`);
 
     // Add handle circle
     this.handle = this.handleGroup.append('circle')
@@ -28,11 +28,11 @@ class GraphHandle {
       .attr('fill', 'var(--gt-color-surface-container-highest)')
       .attr('opacity', '0.4')
       .attr('cursor', 'pointer')
-      .attr('cy', (this.renderEngine.graphGeometry.yTop + this.renderEngine.graphGeometry.yBottom) / 2);
+      .attr('cy', (this.graphEngine.graphGeometry.yTop + this.graphEngine.graphGeometry.yBottom) / 2);
 
     // Calculate constraints for handle movement
-    this.minY = this.renderEngine.graphGeometry.yTop + this.handleRadius;
-    this.maxY = this.renderEngine.graphGeometry.yBottom - this.handleRadius;
+    this.minY = this.graphEngine.graphGeometry.yTop + this.handleRadius;
+    this.maxY = this.graphEngine.graphGeometry.yBottom - this.handleRadius;
     this.centerY = (this.minY + this.maxY) / 2;
   }
 
@@ -63,17 +63,17 @@ class GraphHandle {
 
   _updateGraphPosition() {
     // Update y-axis scale with shift
-    this.renderEngine.yScale = d3.scaleLinear()
-      .domain([-(this.renderEngine.yScaleValue / 2) + this.yShift,
-               (this.renderEngine.yScaleValue / 2) + this.yShift])
-      .range([this.renderEngine.graphGeometry.yBottom, this.renderEngine.graphGeometry.yTop]);
+    this.graphEngine.yScale = d3.scaleLinear()
+      .domain([-(this.graphEngine.yScaleValue / 2) + this.yShift,
+               (this.graphEngine.yScaleValue / 2) + this.yShift])
+      .range([this.graphEngine.graphGeometry.yBottom, this.graphEngine.graphGeometry.yTop]);
 
     // Update axis without animation
-    this.renderEngine.updateYAxis(null, false);
+    this.graphEngine.updateYAxis(null, false);
 
     // Update curves without animation
-    this.renderEngine.curveGroup
-      .attr('transform', `translate(0, ${this.yShift * (this.renderEngine.graphGeometry.yBottom - this.renderEngine.graphGeometry.yTop) / this.renderEngine.yScaleValue})`);
+    this.graphEngine.curveGroup
+      .attr('transform', `translate(0, ${this.yShift * (this.graphEngine.graphGeometry.yBottom - this.graphEngine.graphGeometry.yTop) / this.graphEngine.yScaleValue})`);
   }
 
   resetHandle() {
@@ -112,8 +112,8 @@ class GraphHandle {
       this.handleRadius = this.isMobile ? 20 : 10;
       this.handle.attr('r', this.handleRadius);
       // Recalculate constraints as radius changes
-      this.minY = this.renderEngine.graphGeometry.yTop + this.handleRadius;
-      this.maxY = this.renderEngine.graphGeometry.yBottom - this.handleRadius;
+      this.minY = this.graphEngine.graphGeometry.yTop + this.handleRadius;
+      this.maxY = this.graphEngine.graphGeometry.yBottom - this.handleRadius;
       this.centerY = (this.minY + this.maxY) / 2;
       // If the handle is currently at the center, keep it there, otherwise, it might jump
       // if not actively being dragged. This check might need refinement based on desired behavior.

@@ -1,5 +1,7 @@
 import * as CoreAPI from './core-api.js';
 import coreStyle from './styles/core.css' with { type: "css" };
+
+// Re-export everything from core-api.js
 export * from './core-api.js';
 
 // Make CoreAPI globally available for extensions
@@ -8,10 +10,6 @@ globalThis.CoreAPI = CoreAPI.default;
 class CoreUI extends HTMLElement {
   constructor() {
     super();
-
-    // Import Core Components
-    import('./ui/component-loader.js'); // Component Loader
-
     this.innerHTML = `
       <top-nav-bar></top-nav-bar>
       <section class="main-content">
@@ -103,26 +101,10 @@ class CoreUI extends HTMLElement {
     CoreAPI.CoreEvent.init(CoreAPI);
     // Disable iOS Text Field Zoom
     this._disableIOSTextFieldZoom();
-    // Draggable Divider event listener
-    this.addEventListener('drag-divider-moved', this._handleDividerMove);
   }
 
   disconnectedCallback() {
-    // Draggable Divider event listener
-    this.removeEventListener('drag-divider-moved', this._handleDividerMove);
   }
-
-  _handleDividerMove = (e) => {
-    const mainContent = this.querySelector('.main-content');
-    const { width: containerWidth, x: containerX } = mainContent.getBoundingClientRect();
-    const newWidthPercentage = ((e.detail.currentX - containerX) / containerWidth) * 100;
-    
-    mainContent.style.gridTemplateColumns = `
-      clamp(400px, ${newWidthPercentage}%, calc(100% - 346px))
-      5px 
-      minmax(340px, 1fr)
-    `;
-  };
 
   // Disable iOS Text Field Zoom
   // This code adds 'maximum-scale=1.0' to the viewport meta tag if it's iOS
@@ -149,3 +131,31 @@ class CoreUI extends HTMLElement {
 }
 
 customElements.define('core-ui', CoreUI);
+
+// Core UI Panels
+import('./features/device/device-panel.js');
+import('./features/graph/graph-panel.js');
+import('./features/misc/misc-panel.js');
+
+// Common UI Components
+import('./shared/atoms/gt-button.js');
+import('./shared/atoms/gt-divider.js');
+import('./shared/atoms/gt-toast.js');
+
+// Core UI Components
+import('./features/graph/ui/graph-container.js');
+import('./shared/layout/top-nav-bar/top-nav-bar.js');
+import('./shared/layout/menu-container/menu-container.js');
+import('./shared/layout/menu-carousel/menu-carousel.js');
+import('./shared/layout/tutorial-modal/tutorial-modal.js');
+import('./shared/layout/drag-divider/drag-divider.js');
+import('./shared/controls/phone-selector/phone-selector.js');
+import("./shared/controls/target-selector/target-selector.js");
+import('./shared/controls/normalizer-input/normalizer-input.js');
+import('./shared/controls/selection-list/selection-list.js');
+import('./shared/controls/smoothing-button/smoothing-button.js');
+import('./shared/controls/inspection-toggle/inspection-toggle.js');
+import('./shared/controls/graph-scale-button/graph-scale-button.js');
+import('./shared/controls/screenshot-button/screenshot-button.js');
+import('./shared/controls/share-button/share-button.js');
+import('./shared/controls/language-selector/language-selector.js');

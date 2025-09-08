@@ -12,7 +12,7 @@ class MenuState {
     this.currentMenu = ConfigGetter.get('INITIAL_PANEL') || 'phone';
     /** @type {Array<{id: string, name: string}>} */
     this.coreMenuList = [
-      { id: 'phone', name: 'DEVICES' },
+      { id: 'device', name: 'DEVICES' },
       { id: 'graph', name: 'GRAPH' },
       { id: 'misc', name: 'MISC' },
     ];

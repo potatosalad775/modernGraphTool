@@ -1,4 +1,4 @@
-import { DataProvider, RenderEngine, StringLoader } from "../../core.min.js";
+import { DataProvider, GraphEngine, StringLoader } from "../../core.min.js";
 import { targetCustomizerStyle, IconProvider } from "./target-customizer.styles.js";
 import { Equalizer } from "./util/equalizer.js";
 
@@ -102,7 +102,7 @@ export default class TargetCustomizer {
     });
 
     // Update Labels in Graph
-    RenderEngine.updateLabels();
+    GraphEngine.updateLabels();
   }
 
   _addTargetControlComponent(uuid) {
@@ -428,7 +428,7 @@ export default class TargetCustomizer {
           });
           // Update Target Data in DataProvider and redraw graph
           this._updateTargetData(uuid);
-          RenderEngine.updateLabels();
+          GraphEngine.updateLabels();
         } else {
           console.warn(`Target data for UUID ${uuid} not found during input change.`);
         }
@@ -472,7 +472,7 @@ export default class TargetCustomizer {
       // Update the UI
       this._refreshFiltersSection(uuid);
       this._updateTargetData(uuid);
-      RenderEngine.updateLabels();
+      GraphEngine.updateLabels();
     }
   }
 
@@ -489,7 +489,7 @@ export default class TargetCustomizer {
       // Update the UI
       this._refreshFiltersSection(uuid);
       this._updateTargetData(uuid);
-      RenderEngine.updateLabels();
+      GraphEngine.updateLabels();
     }
   }
 
@@ -560,7 +560,7 @@ export default class TargetCustomizer {
       
       // Update Target Data in DataProvider and redraw graph
       this._updateTargetData(uuid);
-      RenderEngine.updateLabels();
+      GraphEngine.updateLabels();
     })
   }
 
@@ -590,7 +590,7 @@ export default class TargetCustomizer {
       
       // Update Target Data in DataProvider and redraw graph
       this._updateTargetData(uuid);
-      RenderEngine.updateLabels();
+      GraphEngine.updateLabels();
     })
   }
 
@@ -732,19 +732,19 @@ export default class TargetCustomizer {
       if (btnStatus === 'disabled') {
         if (filterData.tilt !== 0) {
           // Draw tilted baseline = use unmodified data
-          RenderEngine.updateBaselineData(true, { 
+          GraphEngine.updateBaselineData(true, { 
             uuid: uuid, channelData: DataProvider.getFRData(uuid).meta?.extensionData?.ogChannels['AVG'].data
           });
         } else {
           // Draw flat baseline = use modified data
-          RenderEngine.updateBaselineData(true, { uuid: uuid });
+          GraphEngine.updateBaselineData(true, { uuid: uuid });
         }
       } else if (btnStatus === 'tilted') {
         // Use modified data = resulting flat baseline
-        RenderEngine.updateBaselineData(true, { uuid: uuid });
+        GraphEngine.updateBaselineData(true, { uuid: uuid });
       } else if (btnStatus === 'flat') {
         // Disable baseline
-        RenderEngine.updateBaselineData(false, { uuid: uuid });
+        GraphEngine.updateBaselineData(false, { uuid: uuid });
       } else {
         console.error(`Unknown button status: ${btnStatus}`);
       }

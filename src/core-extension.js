@@ -1,4 +1,4 @@
-import { GtToast } from './ui/common/gt-toast.js';
+import { GtToast } from './shared/atoms/gt-toast.js';
 
 const CoreExtension = {
   activeExtensionList: [],

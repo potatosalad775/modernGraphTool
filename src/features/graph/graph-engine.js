@@ -1,9 +1,9 @@
 const d3 = window.d3;
-import RenderEvent from "./render-event.js";
+import GraphEvent from "./graph-event.js";
 import FRSmoother from "../../model/util/fr-smoother.js";
-import GraphWatermark from "./graph-watermark.js";
-import GraphHandle from "./graph-handle.js";
-import GraphInspection from "./graph-inspection.js";
+import GraphWatermark from "./ui/graph-watermark.js";
+import GraphHandle from "./ui/graph-handle.js";
+import GraphInspection from "./ui/graph-inspection.js";
 import ConfigGetter from "../../model/util/config-getter.js";
 
 /**
@@ -12,9 +12,9 @@ import ConfigGetter from "../../model/util/config-getter.js";
  */
 
 /**
- * RenderEngine class handles the rendering of frequency response curves
+ * GraphEngine class handles the rendering of frequency response curves
  */
-class RenderEngine {
+class GraphEngine {
   constructor() {
     this.graphGeometry = {
       xStart: 15,
@@ -40,7 +40,7 @@ class RenderEngine {
   }
 
   /**
-   * Initialize RenderEngine with core event and data provider
+   * Initialize GraphEngine with core event and data provider
    * @param {import('../../core-event.js').default} coreEvent - Core event handler
    * @param {import('../../model/data-provider.js').default} dataProvider - Data provider for frequency response data
    * @return {void}
@@ -50,7 +50,7 @@ class RenderEngine {
     this.dataProvider = dataProvider;
     
     // Initialize Render Event
-    RenderEvent.init(this);
+    GraphEvent.init(this);
     this.yScaleValue = parseInt(ConfigGetter.get('VISUALIZATION.DEFAULT_Y_SCALE')) || 60;
 
     // Setup Graph
@@ -810,14 +810,14 @@ class RenderEngine {
   };
 
   static getInstance() {
-    if(!RenderEngine._instance) {
-      RenderEngine._instance = new RenderEngine();
+    if(!GraphEngine._instance) {
+      GraphEngine._instance = new GraphEngine();
     }
-    return RenderEngine._instance;
+    return GraphEngine._instance;
   };
 };
 
-/** @type {RenderEngine} */
-RenderEngine._instance = null;
+/** @type {GraphEngine} */
+GraphEngine._instance = null;
 
-export default RenderEngine.getInstance();
+export default GraphEngine.getInstance();

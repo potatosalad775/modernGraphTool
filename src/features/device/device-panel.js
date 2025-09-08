@@ -1,13 +1,13 @@
-class PhonePanel extends HTMLElement {
+class DevicePanel extends HTMLElement {
   constructor() {
     super();
     this.innerHTML = `
-    <!-- Phone panel -->
-    <div class="menu-panel" id="phone-panel" data-target="phone-panel">
+    <!-- Device panel -->
+    <div class="menu-panel" id="device-panel" data-target="device-panel">
       <phone-selector></phone-selector>
     </div>
     <style>
-      #phone-panel {
+      #device-panel {
         padding: 1rem 0 0 0;
         overflow-y: hidden;
         scrollbar-gutter: auto;
@@ -17,4 +17,4 @@ class PhonePanel extends HTMLElement {
   }
 }
 
-customElements.define("phone-panel", PhonePanel);
+customElements.define("device-panel", DevicePanel);

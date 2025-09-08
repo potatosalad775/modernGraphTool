@@ -5,7 +5,7 @@
  * The bounds are read from 'Bounds U.txt' and 'Bounds D.txt'.
  */
 import { 
-  RenderEngine, 
+  GraphEngine, 
   StringLoader, 
   FRParser, 
   FRSmoother, 
@@ -221,7 +221,7 @@ export default class PreferenceBoundExtension {
     if (!svg || !this.boundDataU || !this.boundDataD || 
       this.boundDataU.data.length === 0 || this.boundDataD.data.length === 0
     ) {
-      console.warn('Preference Bound Extension: Cannot draw bounds, missing data or renderEngine.');
+      console.warn('Preference Bound Extension: Cannot draw bounds, missing data or graphEngine.');
       return;
     }
     this.removePreferenceBounds(); // Clear existing if any
@@ -233,7 +233,7 @@ export default class PreferenceBoundExtension {
 
     this.preferenceBoundArea = mainCurveContainer.append('path')
       .attr('class', 'preference-bound-area')
-      .attr('d', RenderEngine.baselineData.uuid === null ? this.pathData.raw : this.pathData.comp)
+      .attr('d', GraphEngine.baselineData.uuid === null ? this.pathData.raw : this.pathData.comp)
       .attr('fill', this.config.COLOR_FILL || 'rgba(180, 180, 180, 0.2)')
       .attr('stroke', this.config.COLOR_BORDER || 'rgba(120, 120, 120, 0.2)')
       .attr('stroke-width', 1);
@@ -255,13 +255,13 @@ export default class PreferenceBoundExtension {
   }
 
   updatePathData() {
-    const { xScale, yScale } = RenderEngine.getScales();
+    const { xScale, yScale } = GraphEngine.getScales();
     
     const compLineGenerator = d3.line()
       .x(d => xScale(d[0]))
       .y(d => {
         // Get Baseline Data
-        const baselineData = RenderEngine.getBaselineData();
+        const baselineData = GraphEngine.getBaselineData();
         if (baselineData.uuid === null) return yScale(d[1]); // No baseline, use raw data (It shouldn't supposed to happen tho)
 
         // Create bisector for frequency lookup
@@ -348,7 +348,7 @@ export default class PreferenceBoundExtension {
 
     const self = this;
 
-    if (RenderEngine.baselineData.uuid !== null) {
+    if (GraphEngine.baselineData.uuid !== null) {
       // Something is selected as baseline, use comp path
       this.preferenceBoundArea
         .transition()
@@ -371,7 +371,7 @@ export default class PreferenceBoundExtension {
         });
       this.previousPathData = this.pathData.raw; // Save for next event
     }
-    this.previousBaselineUUID = RenderEngine.baselineData.uuid;
+    this.previousBaselineUUID = GraphEngine.baselineData.uuid;
   }
 
   handleYScaleUpdate(e) {
@@ -386,7 +386,7 @@ export default class PreferenceBoundExtension {
     // No need to update if bounds are not visible
     if(!this.boundsVisible) return;
     // Update path data if baseline is set
-    if(RenderEngine.baselineData.uuid!== null) this.updatePathData();
+    if(GraphEngine.baselineData.uuid!== null) this.updatePathData();
     // Update path
     this.updatePath(true);
   }
@@ -396,7 +396,7 @@ export default class PreferenceBoundExtension {
     if(!this.boundsVisible) return;
     
     // Save current path
-    if(RenderEngine.baselineData.uuid !== null) {
+    if(GraphEngine.baselineData.uuid !== null) {
       this.previousPathData = this.pathData.comp;
     } else {
       this.previousPathData = this.pathData.raw;

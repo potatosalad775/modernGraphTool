@@ -264,7 +264,7 @@ export default class SquiglinkIntegration {
       targetWindow = window;
     }
     // Connect screenshot analytics
-    const screenshotButton = document.querySelector('.graph-screenshot-button');
+    const screenshotButton = document.querySelector('.screenshot-button');
     if (screenshotButton && window.pushEventTag) {
       screenshotButton.addEventListener('click', () => {
         window.pushEventTag("clicked_download", targetWindow);

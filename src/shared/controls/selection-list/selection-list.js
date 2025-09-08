@@ -1,6 +1,6 @@
 import DataProvider from "../../../model/data-provider.js";
 import CoreEvent from "../../../core-event.js";
-import RenderEngine from "../../visualization/render-engine.js";
+import GraphEngine from "../../../features/graph/graph-engine.js";
 import StringLoader from "../../../model/util/string-loader.js";
 import { selectionListStyles } from "./selection-list.styles.js";
 import { IconProvider } from "../../../styles/icon-provider.js";
@@ -360,7 +360,7 @@ class SelectionList extends HTMLElement {
         const uuid = itemElement.dataset.uuid;
         const isActive = button.classList.contains('active');
 
-        RenderEngine.updateBaselineData(!isActive, { uuid: uuid });
+        GraphEngine.updateBaselineData(!isActive, { uuid: uuid });
 
         // Update *all* baseline buttons in the list
         this.listSection.querySelectorAll('.sl-button.baseline').forEach(btn => {
@@ -384,7 +384,7 @@ class SelectionList extends HTMLElement {
         });
       });
       // Set initial state if it's the current baseline
-      const currentBaseline = RenderEngine.getBaselineData();
+      const currentBaseline = GraphEngine.getBaselineData();
       if (currentBaseline && currentBaseline.uuid === itemElement.dataset.uuid) {
         baselineBtn.classList.add('active');
         baselineBtn.setAttribute('title', 'Reset Baseline');

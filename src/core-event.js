@@ -60,7 +60,7 @@ const CoreEvent = {
       // Initialize Menu Panel UI
       this.coreAPI.MenuState.init(this);
       // Initialize d3 Render Engine
-      this.coreAPI.RenderEngine.init(this, this.coreAPI.DataProvider);
+      this.coreAPI.GraphEngine.init(this, this.coreAPI.DataProvider);
       // Add Initial Data
       this._addInitialData();
       // Initialize extension

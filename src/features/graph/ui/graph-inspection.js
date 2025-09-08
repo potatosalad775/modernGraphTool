@@ -1,8 +1,8 @@
 const d3 = window.d3;
 
 class GraphInspection {
-  constructor(renderEngine) {
-    this.renderEngine = renderEngine;
+  constructor(graphEngine) {
+    this.graphEngine = graphEngine;
     this.isEnabled = false;
     this.verticalLine = null;
     this.inspectionGroup = null;
@@ -15,7 +15,7 @@ class GraphInspection {
 
   _setupInspectionElements() {
     // Create inspection group container
-    this.inspectionGroup = this.renderEngine.svg
+    this.inspectionGroup = this.graphEngine.svg
       .append("g")
       .attr("class", "fr-graph-inspection")
       .style("pointer-events", "none")
@@ -25,8 +25,8 @@ class GraphInspection {
     this.verticalLine = this.inspectionGroup
       .append("line")
       .attr("class", "inspection-line")
-      .attr("y1", this.renderEngine.graphGeometry.yTop)
-      .attr("y2", this.renderEngine.graphGeometry.yBottom)
+      .attr("y1", this.graphEngine.graphGeometry.yTop)
+      .attr("y2", this.graphEngine.graphGeometry.yBottom)
       .attr("stroke", "var(--gt-color-on-surface)")
       .attr("stroke-width", 1)
       .attr("stroke-dasharray", "2,2")
@@ -41,7 +41,7 @@ class GraphInspection {
     this.frequencyText = this.inspectionGroup
       .append("text")
       .attr("class", "inspection-frequency")
-      .attr("y", this.renderEngine.graphGeometry.yBottom - 15)
+      .attr("y", this.graphEngine.graphGeometry.yBottom - 15)
       .attr("text-anchor", "middle")
       .attr("font-size", "16px")
       .attr("font-weight", "bold")
@@ -71,13 +71,13 @@ class GraphInspection {
 
   _enableMouseTracking() {
     // Create invisible overlay for mouse tracking
-    this.mouseTracker = this.renderEngine.svg
+    this.mouseTracker = this.graphEngine.svg
       .append("rect")
       .attr("class", "mouse-tracker")
-      .attr("x", this.renderEngine.graphGeometry.xStart)
-      .attr("y", this.renderEngine.graphGeometry.yTop)
-      .attr("width", this.renderEngine.graphGeometry.xEnd - this.renderEngine.graphGeometry.xStart)
-      .attr("height", this.renderEngine.graphGeometry.yBottom - this.renderEngine.graphGeometry.yTop)
+      .attr("x", this.graphEngine.graphGeometry.xStart)
+      .attr("y", this.graphEngine.graphGeometry.yTop)
+      .attr("width", this.graphEngine.graphGeometry.xEnd - this.graphEngine.graphGeometry.xStart)
+      .attr("height", this.graphEngine.graphGeometry.yBottom - this.graphEngine.graphGeometry.yTop)
       .attr("fill", "none")
       .attr("pointer-events", "all")
       .style("cursor", "crosshair");
@@ -99,7 +99,7 @@ class GraphInspection {
     const [mouseX] = d3.pointer(event);
     
     // Convert mouse X to frequency
-    const frequency = this.renderEngine.xScale.invert(mouseX);
+    const frequency = this.graphEngine.xScale.invert(mouseX);
     
     // Update vertical line position
     this.verticalLine.attr("x1", mouseX).attr("x2", mouseX);
@@ -128,12 +128,12 @@ class GraphInspection {
     let textAnchor = "middle";
     
     // Check if text would overflow on the right
-    if (mouseX + halfTextWidth > this.renderEngine.graphGeometry.xEnd) {
+    if (mouseX + halfTextWidth > this.graphEngine.graphGeometry.xEnd) {
       textX = mouseX - 10;
       textAnchor = "end";
     }
     // Check if text would overflow on the left
-    else if (mouseX - halfTextWidth < this.renderEngine.graphGeometry.xStart) {
+    else if (mouseX - halfTextWidth < this.graphEngine.graphGeometry.xStart) {
       textX = mouseX + 10;
       textAnchor = "start";
     }
@@ -156,7 +156,7 @@ class GraphInspection {
     
     // First pass: collect all device data and calculate max width
     let maxTextWidth = 0;
-    Array.from(this.renderEngine.dataProvider.frDataMap)
+    Array.from(this.graphEngine.dataProvider.frDataMap)
       .filter(([_, obj]) => !obj.hidden) // Only visible items
       .sort(([, a], [, b]) => a.type === 'target' ? -1 : 1) // Targets first
       .forEach(([uuid, obj]) => {
@@ -194,8 +194,8 @@ class GraphInspection {
     
     // Determine positioning strategy for the device list
     const listPadding = 15;
-    const rightEdgeSpace = this.renderEngine.graphGeometry.xEnd - mouseX;
-    const leftEdgeSpace = mouseX - this.renderEngine.graphGeometry.xStart;
+    const rightEdgeSpace = this.graphEngine.graphGeometry.xEnd - mouseX;
+    const leftEdgeSpace = mouseX - this.graphEngine.graphGeometry.xStart;
     
     let listX, textAnchor;
     
@@ -225,7 +225,7 @@ class GraphInspection {
       // Create value display element
       const valueGroup = this.valueDisplay
         .append("g")
-        .attr("transform", `translate(${listX}, ${this.renderEngine.graphGeometry.yTop + 32 + item.yOffset})`);
+        .attr("transform", `translate(${listX}, ${this.graphEngine.graphGeometry.yTop + 32 + item.yOffset})`);
       
       // Calculate background rectangle position based on text anchor
       let rectX, rectWidth;
@@ -284,7 +284,7 @@ class GraphInspection {
   }
 
   _applyBaselineCompensation(splValue, frequency) {
-    const baselineData = this.renderEngine.getBaselineData();
+    const baselineData = this.graphEngine.getBaselineData();
     
     if (!baselineData.channelData || baselineData.channelData.length === 0) {
       return splValue;
@@ -298,13 +298,13 @@ class GraphInspection {
 
   _hideLabels() {
     // Hide existing labels
-    this.renderEngine.svg.selectAll('.fr-graph-label, .fr-graph-label-bg')
+    this.graphEngine.svg.selectAll('.fr-graph-label, .fr-graph-label-bg')
       .style("display", "none");
   }
 
   _showLabels() {
     // Show labels again
-    this.renderEngine.svg.selectAll('.fr-graph-label, .fr-graph-label-bg')
+    this.graphEngine.svg.selectAll('.fr-graph-label, .fr-graph-label-bg')
       .style("display", "block");
   }
 

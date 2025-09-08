@@ -32,7 +32,7 @@ class GraphPanel extends HTMLElement {
       <smoothing-button></smoothing-button>
       <graph-scale-button></graph-scale-button>
       <inspection-toggle></inspection-toggle>
-      <graph-screenshot-button></graph-screenshot-button>
+      <screenshot-button></screenshot-button>
       <share-button></share-button>
     `;
 

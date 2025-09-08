@@ -1,7 +1,7 @@
 import StringLoader from "../../../model/util/string-loader.js";
 import { IconProvider } from "../../../styles/icon-provider.js";
 
-class GraphScreenshotButton extends HTMLElement {
+class ScreenshotButton extends HTMLElement {
   constructor() {
     super();
     
@@ -183,4 +183,4 @@ class GraphScreenshotButton extends HTMLElement {
   }
 }
 
-customElements.define('graph-screenshot-button', GraphScreenshotButton);
+customElements.define('screenshot-button', ScreenshotButton);

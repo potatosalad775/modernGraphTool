@@ -1,4 +1,4 @@
-import ConfigGetter from "../../model/util/config-getter.js";
+import ConfigGetter from "../../../model/util/config-getter.js";
 
 const GraphWatermark = (svg) => {
   const watermarkPositionData = {

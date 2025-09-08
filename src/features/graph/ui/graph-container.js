@@ -1,4 +1,4 @@
-import CoreEvent from "../../core-event.js";
+import CoreEvent from "../../../core-event.js";
 import { graphStyles } from "./graph.styles.js";
 
 class GraphContainer extends HTMLElement {

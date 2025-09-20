@@ -97,16 +97,22 @@ const CoreEvent = {
     // List of phones fetched from URL Data
     const phones = this.coreAPI.URLProvider.getPhoneDataFromURL();
 
-    if (!phones) {
+    if (phones && phones.length != 0) {
       Array.from(phones).forEach(async (phone) => {
+        const identifier = phone.trim();
         try {
-          const matchingPhone = this.coreAPI.MetadataParser.searchFRInfoWithFullName(phone);
-          await this.coreAPI.DataProvider.addFRData("phone", matchingPhone.identifier, {
-            dispSuffix: matchingPhone.dispSuffix,
-          });
+          const matchingPhone = this.coreAPI.MetadataParser.searchFRInfoWithFullName(identifier);
+          if(matchingPhone) {
+            await this.coreAPI.DataProvider.addFRData("phone", matchingPhone.identifier, {
+              dispSuffix: matchingPhone.dispSuffix,
+            });
+          }
         } catch (e) {
-          if (this.coreAPI.MetadataParser.isTargetAvailable(phone)) {
-            await this.coreAPI.DataProvider.addFRData("target", phone);
+          const matchingTarget = this.coreAPI.MetadataParser.searchTargetInfoWithFullName(identifier);
+          if (matchingTarget) {
+            await this.coreAPI.DataProvider.addFRData("target", matchingTarget.identifier, {
+              dispSuffix: matchingTarget.dispSuffix,
+            });
           }
         }
       });
@@ -123,8 +129,11 @@ const CoreEvent = {
       const initialTargets = ConfigGetter.get('INITIAL_TARGETS') || [];
       initialTargets.forEach(async (target) => {
         const targetName = target.includes(" Target") ? target : target + " Target";
-        if (this.coreAPI.MetadataParser.isTargetAvailable(targetName)) {
-          await this.coreAPI.DataProvider.addFRData("target", targetName);
+        const matchingTarget = this.coreAPI.MetadataParser.searchTargetInfoWithFullName(targetName);
+        if (matchingTarget) {
+          await this.coreAPI.DataProvider.addFRData("target", matchingTarget.identifier, {
+            dispSuffix: matchingTarget.dispSuffix,
+          });
         }
       });
     }

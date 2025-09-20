@@ -17,7 +17,7 @@
     "channel-average": "평균"
   },
   "menu": {
-    "item-phone-label": "기기",
+    "item-device-label": "기기",
     "item-graph-label": "그래프",
     "item-list-label": "목록",
     "item-misc-label": "기타"

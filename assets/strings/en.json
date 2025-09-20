@@ -17,7 +17,7 @@
     "channel-average": "Average"
   },
   "menu": {
-    "item-phone-label": "DEVICES",
+    "item-device-label": "DEVICES",
     "item-graph-label": "GRAPH",
     "item-list-label": "LIST",
     "item-misc-label": "MISC"

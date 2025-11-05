@@ -4,6 +4,9 @@ A completely re-engineered graphtool, built with modern web technologies.
 
 You can discover more at the [modernGraphTool documentation page][DOCS].
 
+> *modernGraphTool_**beta** is still in the early stages of development. \
+> Frequent breaking changes and design revisions may occur.*
+
 ## Demo
 
 https://potatosalad775.github.io/modernGraphTool

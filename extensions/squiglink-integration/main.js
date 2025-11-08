@@ -194,6 +194,10 @@ export default class SquiglinkIntegration {
         .shop-link-container { padding: 0 0 0 0.1rem !important; }
         .shop-link-container span { color: var(--gt-color-on-surface) !important; }
         .welcome-sponsor-launcher { padding: 0 !important; }
+        @keyframes shoplink-out {
+          0% { opacity: 1; margin-left: 0px; }
+          100% { opacity: 0; margin-left: -200px; }
+        }
       </style>`
     // Add Intro Row to Target Selector
     const targetSelectorButtonGroup = document.querySelector('.tsc-collapse-button-group');

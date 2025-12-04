@@ -14,6 +14,7 @@ class SelectionList extends HTMLElement {
     this._boundHandleItemUpdated = this._handleItemUpdated.bind(this);
     this._boundHandleChannelUpdated = this._handleChannelUpdated.bind(this);
     this._boundUpdateLanguage = this._updateLanguage.bind(this);
+    this._boundHandleNormalizationUpdated = this._handleNormalizationUpdated.bind(this);
 
     this.listSection = null; // Will hold the main <section> element
     this.styleElement = null; // Will hold the <style> element
@@ -43,6 +44,7 @@ class SelectionList extends HTMLElement {
     window.addEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.addEventListener('core:fr-channel-updated', this._boundHandleChannelUpdated);
     window.addEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    window.addEventListener('core:fr-normalized', this._boundHandleNormalizationUpdated);
     StringLoader.addObserver(this._boundUpdateLanguage);
   }
 
@@ -56,6 +58,7 @@ class SelectionList extends HTMLElement {
     window.removeEventListener('core:fr-unknown-removed', this._boundHandleItemRemoved);
     window.removeEventListener('core:fr-channel-updated', this._boundHandleChannelUpdated);
     window.removeEventListener('core:fr-variant-updated', this._boundHandleItemUpdated);
+    window.removeEventListener('core:fr-normalized', this._boundHandleNormalizationUpdated);
     StringLoader.removeObserver(this._boundUpdateLanguage);
   }
 
@@ -189,6 +192,14 @@ class SelectionList extends HTMLElement {
       // Re-attach listeners to the new element
       this._attachEventListenersToItem(updatedItemElement);
     }
+  }
+
+  // Handles normalization event by resetting y-offsets
+  _handleNormalizationUpdated() {
+    this.listSection.querySelectorAll('.sl-y-offset-input').forEach(input => {
+      input.value = '0';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
   }
 
   // Handles channel update event
@@ -349,7 +360,6 @@ class SelectionList extends HTMLElement {
       setupLongPress(yOffsetDec, 'dec');
       setupLongPress(yOffsetInc, 'inc');
     }
-
 
     // --- Baseline Button ---
     const baselineBtn = itemElement.querySelector('.sl-button.baseline');

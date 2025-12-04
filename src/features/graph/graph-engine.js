@@ -87,8 +87,10 @@ class GraphEngine {
       // Remove Previous Graphs
       this.svg.select(".fr-graph-curve-container").selectAll("path[class*='fr-graph-'][class*='-curve']").remove();
       // Re-draw every curves
-      Array.from(this.dataProvider.getFRDataMap()).forEach(([uuid, _]) => {
-        this.drawFRCurve(uuid);
+      Array.from(this.dataProvider.getFRDataMap()).forEach(([uuid, obj]) => {
+        if (!obj.hidden) {
+          this.drawFRCurve(uuid);
+        }
       });
       // Re-order layers
       this.orderOverlayLayers();

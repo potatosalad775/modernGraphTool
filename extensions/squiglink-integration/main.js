@@ -3,7 +3,7 @@ import { DataProvider } from "../../core.min.js";
 // Extension metadata for version compatibility
 export const EXTENSION_METADATA = {
   name: 'squiglink-integration',
-  version: '1.0.0',
+  version: '1.0.1',
   apiLevel: 1,
   coreMinVersion: '1.0.0',
   coreMaxVersion: '1.0.x',
@@ -194,7 +194,27 @@ export default class SquiglinkIntegration {
         .shop-link-container { padding: 0 0 0 0.1rem !important; }
         .shop-link-container span { color: var(--gt-color-on-surface) !important; }
         .welcome-sponsor-launcher { padding: 0 !important; }
-      </style>`
+        article.shop-link-container {
+          animation: shoplink-in-custom 0.4s ease-in-out 1 forwards !important;
+        }
+        article.shop-link-container.remove {
+          animation: shoplink-out-custom 0.2s ease-in-out 1 forwards !important;
+        }
+        div.tools.shop-link-active > button.welcome-sponsor-launcher {
+          animation: shoplink-out-custom 0.2s ease-in-out 1 forwards !important;
+        }
+        button.welcome-sponsor-launcher {
+          animation: shoplink-in-custom 0.4s ease-in-out 1 forwards !important;
+        }
+        @keyframes shoplink-in-custom {
+          0% { opacity: 0; margin-left: -200px; }
+          100% { opacity: 1; margin-left: 0px; }
+        }
+        @keyframes shoplink-out-custom {
+          0% { opacity: 1; margin-left: 0px; }
+          100% { opacity: 0; margin-left: -200px; }
+        }
+      </style>`;
     // Add Intro Row to Target Selector
     const targetSelectorButtonGroup = document.querySelector('.tsc-collapse-button-group');
     if(targetSelectorButtonGroup) {

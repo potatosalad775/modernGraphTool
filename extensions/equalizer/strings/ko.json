@@ -21,6 +21,10 @@
     "freq-range": "주파수 범위",
     "q-range": "Q 범위",
     "gain-range": "게인 범위",
+    "filter-setting": "필터 설정",
+    "use-shelf-filter": "LSF / HSF 필터 사용",
+    "min": "최소",
+    "max": "최대",
     "description": "AutoEQ는 현재 추가되어 있는 모든 필터를 활용합니다.",
     "run-button": "AutoEQ 실행"
   },

@@ -98,11 +98,9 @@ class DataProvider {
             },
       dispChannel: this._getChannelValue(sourceType, normalizedChannels),
       dispSuffix:
-        'files' in metaData && metaData.files.length > 1
+        inputMetadata?.dispSuffix
           ? inputMetadata?.dispSuffix
-            ? inputMetadata?.dispSuffix
-            : 'suffix' in metaData.files[0] ? metaData.files[0].suffix : ""
-          : "",
+          : 'suffix' in metaData.files[0] ? metaData.files[0].suffix : "",
       colors: this._getColorWithType(sourceType),
       dash: this._getDashWithType(sourceType, metaData?.identifier || undefined),
       meta: metaData,

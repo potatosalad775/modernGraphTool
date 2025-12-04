@@ -29,6 +29,14 @@
          "reviewLink":"https://www.head-fi.org/forums/",
          "shopLink":"https://www.aliexpress.com/",
          "price":"$100"
+        },
+        {"name":["Variation Single"],
+         "file":["Combo Variant (A)"],
+         "suffix":["(A)"],
+         "reviewScore":"A+",
+         "reviewLink":"https://www.head-fi.org/forums/",
+         "shopLink":"https://www.aliexpress.com/",
+         "price":"$100"
         }
     ]
   },

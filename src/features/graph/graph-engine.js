@@ -112,7 +112,7 @@ class GraphEngine {
     //this.updateYAxis(oldYScale);
     this.updateYAxis();
     // Transition Phone Graph
-    this.curveGroup.selectAll("*")
+    this.curveGroup.selectAll("path[class*='fr-graph-'][class*='-curve']")
       .transition()
       .duration(this.transitionDuration)
       .attr("d", d => {

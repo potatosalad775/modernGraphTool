@@ -14,9 +14,9 @@ import { GtToast } from './shared/atoms/gt-toast.js';
 // Create namespace object
 const CoreAPI = {
   // Version information
-  VERSION: '1.0.0',
+  VERSION: '1.0.1',
   API_LEVEL: 1,
-  RELEASE_DATE: '2024-08-10',
+  RELEASE_DATE: '2025-12-04',
   
   // Core modules
   CoreEvent,
@@ -48,6 +48,9 @@ export {
   URLProvider,
   GtToast,
 };
+
+// Log Core API load
+console.log(`modernGraphTool: core loaded - v${CoreAPI.VERSION} (API Level ${CoreAPI.API_LEVEL})`);
 
 // Export namespace as default
 export default CoreAPI;

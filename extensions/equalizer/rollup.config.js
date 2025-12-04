@@ -27,6 +27,10 @@ export default {
           src: 'extensions/equalizer/README.md',
           dest: 'dist/extensions/equalizer',
         },
+        {
+          src: 'extensions/equalizer/util/equalizer.worker.js',
+          dest: 'dist/extensions/equalizer/util',
+        },
       ],
       hook: 'writeBundle'
     })

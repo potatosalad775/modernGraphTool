@@ -21,6 +21,10 @@
     "freq-range": "Frequency Range",
     "q-range": "Q Range",
     "gain-range": "Gain Range",
+    "filter-setting": "Filter Settings",
+    "use-shelf-filter": "Use LSF / HSF Filter",
+    "min": "Min",
+    "max": "Max",
     "description": "AutoEQ will use as many filters as available.",
     "run-button": "Run AutoEQ"
   },

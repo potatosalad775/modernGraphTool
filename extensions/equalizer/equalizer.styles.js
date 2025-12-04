@@ -166,14 +166,24 @@ export const equalizerStyles = `
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+
     label { 
-      flex: 3;
+      word-break: keep-all;
+      padding: 0rem 0;
     }
-    input { 
-      flex: 2;
-      height: 1rem;
+
+    legend {
+      font-weight: 600;
+      padding: 0;
+      margin-bottom: 0.2rem;
+    }
+
+    input[type="checkbox"] {
+      margin: 0;
     }
   }
 

@@ -1,8 +1,13 @@
 /**
- * Equalizer utility class for calculating filter responses and auto-EQ
- * Based on the original implementation from the old project
+ * Web Worker for AutoEQ computation
+ * This offloads the heavy autoEQ calculations to a separate thread
+ * to prevent UI freezing
  */
-export class Equalizer {
+
+// Import the Equalizer class logic inline since workers can't use ES modules easily
+// We'll include a self-contained version of the Equalizer for the worker
+
+class EqualizerWorker {
   constructor() {
     this.config = {
       DefaultSampleRate: 48000,
@@ -128,21 +133,6 @@ export class Equalizer {
     return gains;
   }
 
-  calculateGainsFromFilter(freqs, filters) {
-    const coeffs = this._filtersToCoeffs(filters);
-    return this._calculateGains(freqs, coeffs);
-  }
-
-  calculatePreamp(source, filters) {
-    const fr1 = source;
-    const fr2 = this.applyFilters(source, filters);
-    let maxGain = -Infinity;
-    for (let i = 0; i < fr1.length; ++i) {
-      maxGain = Math.max(maxGain, fr2[i][1] - fr1[i][1]);
-    }
-    return -maxGain;
-  }
-
   _calculateDistance(fr1, fr2) {
     let distance = 0;
     for (let i = 0; i < fr1.length; ++i) {
@@ -168,26 +158,19 @@ export class Equalizer {
   }
   
   _normalizeResolution(source, target) {
-    // Generate 1/48 octave frequency points
     const frequencies = [20];
-    const step = Math.pow(2, 1/48); // 1/48 octave steps
+    const step = Math.pow(2, 1/48);
     while (frequencies[frequencies.length-1] < 20000) {
       frequencies.push(frequencies[frequencies.length-1] * step);
     }
     
-    // Interpolate both source and target to the common frequency set
     const normalizedSource = this._interpolatePoints(frequencies, source);
     const normalizedTarget = this._interpolatePoints(frequencies, target);
     
-    // Normalize target to match source at 1kHz reference point
     const refFreq = 1000;
     let sourceRefIdx = frequencies.findIndex(f => f >= refFreq);
-    let targetRefIdx = sourceRefIdx;
     
-    // Calculate offset to align target with source at reference point
-    const offset = normalizedSource[sourceRefIdx][1] - normalizedTarget[targetRefIdx][1];
-    
-    // Apply offset to all target points
+    const offset = normalizedSource[sourceRefIdx][1] - normalizedTarget[sourceRefIdx][1];
     const alignedTarget = normalizedTarget.map(point => [point[0], point[1] + offset]);
     
     return {
@@ -199,24 +182,19 @@ export class Equalizer {
   _interpolatePoints(freqs, points) {
     if (!points || points.length === 0) return freqs.map(f => [f, 0]);
     
-    // Sort points by frequency
     const sortedPoints = [...points].sort((a, b) => a[0] - b[0]);
     
     return freqs.map(f => {
       let i = 0;
-      // Find the two points that surround the target frequency
       while (i < sortedPoints.length - 1 && sortedPoints[i + 1][0] < f) {
         i++;
       }
       
       if (i >= sortedPoints.length - 1) {
-        // Beyond the last point, use the last value
         return [f, sortedPoints[sortedPoints.length - 1][1]];
       } else if (i < 0 || f <= sortedPoints[0][0]) {
-        // Before the first point, use the first value
         return [f, sortedPoints[0][1]];
       } else {
-        // Interpolate between two points using logarithmic interpolation for frequency
         const [f0, v0] = sortedPoints[i];
         const [f1, v1] = sortedPoints[i + 1];
         const ratio = Math.log(f / f0) / Math.log(f1 / f0);
@@ -234,7 +212,7 @@ export class Equalizer {
   }
 
   _searchCandidates(fr, frTarget, threshold) {
-    let state = 0; // 1: peak, 0: matched, -1: dip
+    let state = 0;
     let startIndex = -1;
     let candidates = [];
     let [minFreq, maxFreq] = this.config.AutoEQRange;
@@ -277,12 +255,6 @@ export class Equalizer {
     return 1000;
   }
 
-  /**
-   * Round a number to specified decimal places to avoid floating point issues
-   * @param {number} value - The value to round
-   * @param {number} decimals - Number of decimal places (default: 1)
-   * @returns {number} - Rounded value
-   */
   _round(value, decimals = 1) {
     const factor = Math.pow(10, decimals);
     return Math.round(value * factor) / factor;
@@ -299,32 +271,6 @@ export class Equalizer {
     }));
   }
 
-  convertFilterAsGraphicEQ(filters) {
-    let rawFreq = this.config.GraphicEQRawFrequences, eqFreq = this.config.GraphicEQFrequences;
-    let coeffs = this._filtersToCoeffs(filters);
-    let gains = this._calculateGains(rawFreq, coeffs);
-    let rawFR = rawFreq.map((f, i) => [f, gains[i]]);
-    // Interpolate and smoothing with moving average
-    let i = 0;
-    let resultFR = eqFreq.map((f, j) => {
-        let freqTo = (j < eqFreq.length-1) ? Math.sqrt(f * eqFreq[j+1]) : 20000;
-        let points = [];
-        for (; i < rawFreq.length; ++i) {
-            if (rawFreq[i] < freqTo) {
-                points.push(rawFR[i][1]);
-            } else {
-                break
-            }
-        }
-        let avg = points.reduce((a, b) => a + b, 0) / points.length;
-        return [f, avg];
-    });
-    // Normalize (apply preamp)
-    let maxGain = resultFR.reduce((a, b) => a > b[1] ? a : b[1], -Infinity);
-    resultFR = resultFR.map(([f, v]) => [f, v-maxGain]);
-    return resultFR;
-  };
-
   _optimize(fr, frTarget, filters, iteration, dir = false) {
     filters = this._stripFilters(filters);
     
@@ -340,7 +286,6 @@ export class Equalizer {
       let bestFilter = f;
       let bestDistance = this._calculateDistance(this.applyFilters(fr1, [f]), frTarget);
       
-      // For shelf filters, use different optimization ranges
       const isShelfFilter = f.type === "LSQ" || f.type === "HSQ";
       const effectiveMinFreq = isShelfFilter ? (f.type === "LSQ" ? 20 : 4000) : minFreq;
       const effectiveMaxFreq = isShelfFilter ? (f.type === "LSQ" ? 400 : 16000) : maxFreq;
@@ -367,17 +312,14 @@ export class Equalizer {
         return false;
       }
 
-      // Improved search: use gradient-like approach
       let improved = true;
-      let maxIterations = 50; // Prevent infinite loops
+      let maxIterations = 50;
       let iterCount = 0;
       
       while (improved && iterCount < maxIterations) {
         improved = false;
         iterCount++;
         
-        // Try each dimension independently first (coordinate descent)
-        // Frequency
         for (let df = -maxDF; df <= maxDF && !improved; df++) {
           if (df !== 0 && testNewFilter(df, 0, 0)) {
             f = bestFilter;
@@ -385,7 +327,6 @@ export class Equalizer {
           }
         }
         
-        // Q factor
         for (let dq = -maxDQ; dq <= maxDQ && !improved; dq++) {
           if (dq !== 0 && testNewFilter(0, dq, 0)) {
             f = bestFilter;
@@ -393,7 +334,6 @@ export class Equalizer {
           }
         }
         
-        // Gain
         for (let dg = -maxDG; dg <= maxDG && !improved; dg++) {
           if (dg !== 0 && testNewFilter(0, 0, dg)) {
             f = bestFilter;
@@ -402,7 +342,6 @@ export class Equalizer {
         }
       }
       
-      // Final grid search around the current best for fine-tuning
       for (let df = -maxDF; df <= maxDF; ++df) {
         for (let dq = maxDQ; dq >= -maxDQ; --dq) {
           for (let dg = 0; dg <= maxDG; ++dg) {
@@ -418,17 +357,10 @@ export class Equalizer {
     return filters.sort((a, b) => a.freq - b.freq);
   }
 
-  /**
-   * Analyze low and high frequency regions to determine if shelf filters would be beneficial
-   * @param {Array} fr - Source frequency response
-   * @param {Array} frTarget - Target frequency response
-   * @returns {Object} - Suggested shelf filters
-   */
   _analyzeShelfOpportunities(fr, frTarget) {
     const [minFreq, maxFreq] = this.config.AutoEQRange;
     const shelfFilters = [];
     
-    // Analyze low frequency region (20-200 Hz) for low shelf
     const lowFreqPoints = fr.filter(p => p[0] >= minFreq && p[0] <= 200);
     const lowFreqTargetPoints = frTarget.filter(p => p[0] >= minFreq && p[0] <= 200);
     
@@ -441,10 +373,8 @@ export class Equalizer {
       }
       const avgDelta = totalDelta / count;
       
-      // If consistent deviation > 1.5dB, suggest low shelf
       if (Math.abs(avgDelta) > 1.5) {
-        // Find optimal frequency by looking at where deviation starts
-        let shelfFreq = 100; // Default
+        let shelfFreq = 100;
         for (let i = lowFreqPoints.length - 1; i >= 0; i--) {
           const delta = lowFreqTargetPoints[i][1] - lowFreqPoints[i][1];
           if (Math.sign(delta) === Math.sign(avgDelta) && Math.abs(delta) > 1) {
@@ -462,7 +392,6 @@ export class Equalizer {
       }
     }
     
-    // Analyze high frequency region (8000-20000 Hz) for high shelf
     const highFreqPoints = fr.filter(p => p[0] >= 8000 && p[0] <= maxFreq);
     const highFreqTargetPoints = frTarget.filter(p => p[0] >= 8000 && p[0] <= maxFreq);
     
@@ -475,10 +404,8 @@ export class Equalizer {
       }
       const avgDelta = totalDelta / count;
       
-      // If consistent deviation > 1.5dB, suggest high shelf
       if (Math.abs(avgDelta) > 1.5) {
-        // Find optimal frequency by looking at where deviation starts
-        let shelfFreq = 8000; // Default
+        let shelfFreq = 8000;
         for (let i = 0; i < highFreqPoints.length; i++) {
           const delta = highFreqTargetPoints[i][1] - highFreqPoints[i][1];
           if (Math.sign(delta) === Math.sign(avgDelta) && Math.abs(delta) > 1) {
@@ -498,32 +425,17 @@ export class Equalizer {
     return shelfFilters;
   }
 
-  /**
-   * Calculate weighted error that prioritizes larger deviations
-   * @param {Array} fr1 - First frequency response
-   * @param {Array} fr2 - Second frequency response (target)
-   * @returns {number} - Weighted error score
-   */
   _calculateWeightedError(fr1, fr2) {
     let error = 0;
     for (let i = 0; i < fr1.length; i++) {
       const diff = Math.abs(fr1[i][1] - fr2[i][1]);
-      // Square the error to penalize large deviations more
       error += diff * diff;
     }
     return Math.sqrt(error / fr1.length);
   }
 
-  /**
-   * Score candidates by their potential impact on error reduction
-   * @param {Array} fr - Current frequency response
-   * @param {Array} frTarget - Target frequency response
-   * @param {Array} candidates - Filter candidates
-   * @returns {Array} - Scored and sorted candidates
-   */
   _scoreCandidates(fr, frTarget, candidates) {
     return candidates.map(c => {
-      // Apply this single filter and measure improvement
       const newFR = this.applyFilters(fr, [c]);
       const originalError = this._calculateWeightedError(fr, frTarget);
       const newError = this._calculateWeightedError(newFR, frTarget);
@@ -532,36 +444,25 @@ export class Equalizer {
       return {
         ...c,
         score: improvement,
-        coverage: Math.abs(c.gain) / c.q // How much area this filter affects
+        coverage: Math.abs(c.gain) / c.q
       };
-    }).filter(c => c.score > 0) // Only keep candidates that improve
-      .sort((a, b) => b.score - a.score); // Sort by improvement
+    }).filter(c => c.score > 0)
+      .sort((a, b) => b.score - a.score);
   }
 
-  /**
-   * Optimize shelf filters specifically
-   * @param {Array} fr - Source frequency response
-   * @param {Array} frTarget - Target frequency response
-   * @param {Object} filter - Shelf filter to optimize
-   * @returns {Object} - Optimized shelf filter
-   */
   _optimizeShelfFilter(fr, frTarget, filter) {
     const isLowShelf = filter.type === "LSQ";
-    const freqRange = isLowShelf ? [30, 300] : [4000, 14000];
-    const qRange = [0.4, 1.5];
     const [minGain, maxGain] = this.config.OptimizeGainRange;
     
     let bestFilter = { ...filter };
     let bestError = this._calculateWeightedError(this.applyFilters(fr, [filter]), frTarget);
     
-    // Grid search for optimal parameters
     const freqSteps = isLowShelf ? [30, 50, 70, 100, 120, 150, 200, 250, 300] : 
                                    [4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000];
     const qSteps = [0.4, 0.5, 0.6, 0.7, 0.8, 1.0, 1.2, 1.5];
     
     for (const freq of freqSteps) {
       for (const q of qSteps) {
-        // Binary search for optimal gain
         let lowGain = minGain;
         let highGain = maxGain;
         
@@ -594,28 +495,17 @@ export class Equalizer {
     return bestFilter;
   }
 
-  /**
-   * Iteratively add filters one at a time, optimizing after each addition
-   * @param {Array} fr - Source frequency response
-   * @param {Array} frTarget - Target frequency response
-   * @param {Array} initialFilters - Starting filters (e.g., shelf filters)
-   * @param {number} maxFilters - Maximum number of filters to add
-   * @returns {Array} - Optimized filter array
-   */
   _iterativeBatchOptimization(fr, frTarget, initialFilters, maxFilters) {
     let filters = [...initialFilters];
     let currentFR = this.applyFilters(fr, filters);
     
     while (filters.length < maxFilters) {
-      // Find candidates for remaining error
       const candidates = this._searchCandidates(currentFR, frTarget, 0.3);
       if (candidates.length === 0) break;
       
-      // Score candidates by their impact
       const scoredCandidates = this._scoreCandidates(currentFR, frTarget, candidates);
       if (scoredCandidates.length === 0) break;
       
-      // Add the best candidate
       const bestCandidate = scoredCandidates[0];
       filters.push({
         type: bestCandidate.type,
@@ -624,20 +514,30 @@ export class Equalizer {
         gain: bestCandidate.gain
       });
       
-      // Optimize all filters together after each addition
       for (let i = 0; i < this.config.OptimizeDeltas.length; i++) {
         filters = this._optimize(fr, frTarget, filters, i);
-        filters = this._optimize(fr, frTarget, filters, i, true); // Reverse direction
+        filters = this._optimize(fr, frTarget, filters, i, true);
       }
       
       currentFR = this.applyFilters(fr, filters);
       
-      // Check if we've reached diminishing returns
       const remainingError = this._calculateWeightedError(currentFR, frTarget);
-      if (remainingError < 0.5) break; // Good enough match
+      if (remainingError < 0.5) break;
     }
     
     return filters;
+  }
+
+  _pruneIneffectiveFilters(fr, frTarget, filters) {
+    const baselineError = this._calculateWeightedError(this.applyFilters(fr, filters), frTarget);
+    
+    return filters.filter((filter, index) => {
+      const withoutThisFilter = filters.filter((_, i) => i !== index);
+      const errorWithout = this._calculateWeightedError(this.applyFilters(fr, withoutThisFilter), frTarget);
+      const contribution = errorWithout - baselineError;
+      
+      return contribution > 0.1;
+    });
   }
 
   autoEQ(source, target, options = {}) {
@@ -645,13 +545,12 @@ export class Equalizer {
     const freqRange = options.freqRange || this.config.AutoEQRange;
     const qRange = options.qRange || this.config.OptimizeQRange;
     const gainRange = options.gainRange || this.config.OptimizeGainRange;
-    const useShelfFilter = options.useShelfFilter !== false; // Default true
+    const useShelfFilter = options.useShelfFilter !== false;
 
     this.config.AutoEQRange = freqRange;
     this.config.OptimizeQRange = qRange;
     this.config.OptimizeGainRange = gainRange;
 
-    // Filter points within frequency range
     const normalizedData = this._normalizeResolution(source, target);
     const fr = normalizedData.source.filter(p => p[0] >= freqRange[0] && p[0] <= freqRange[1]);
     const frTarget = normalizedData.target.filter(p => p[0] >= freqRange[0] && p[0] <= freqRange[1]);
@@ -659,17 +558,14 @@ export class Equalizer {
     let initialFilters = [];
     let remainingFilterSlots = maxFilters;
     
-    // Step 1: Analyze and add shelf filters if beneficial
     if (useShelfFilter) {
       const shelfSuggestions = this._analyzeShelfOpportunities(fr, frTarget);
       
       for (const shelf of shelfSuggestions) {
-        if (remainingFilterSlots <= 2) break; // Keep at least 2 slots for peaking
+        if (remainingFilterSlots <= 2) break;
         
-        // Optimize the shelf filter
         const optimizedShelf = this._optimizeShelfFilter(fr, frTarget, shelf);
         
-        // Only add if it provides meaningful improvement
         const withShelf = this.applyFilters(fr, [...initialFilters, optimizedShelf]);
         const withoutShelf = this.applyFilters(fr, initialFilters);
         const improvementWithShelf = this._calculateWeightedError(withoutShelf, frTarget) - 
@@ -682,19 +578,16 @@ export class Equalizer {
       }
     }
     
-    // Step 2: Use iterative batch optimization for peaking filters
     let allFilters = this._iterativeBatchOptimization(fr, frTarget, initialFilters, maxFilters);
     
-    // Step 3: Final global optimization pass
     for (let i = 0; i < this.config.OptimizeDeltas.length; i++) {
       allFilters = this._optimize(fr, frTarget, allFilters, i);
-      allFilters = this._optimize(fr, frTarget, allFilters, i, true); // Reverse direction
+      allFilters = this._optimize(fr, frTarget, allFilters, i, true);
     }
     
-    // Step 4: Remove filters with negligible impact
     allFilters = this._pruneIneffectiveFilters(fr, frTarget, allFilters);
     
-    // Step 5: Round final values and sort by frequency
+    // Round final values and sort by frequency
     return allFilters.map(f => ({
       type: f.type,
       freq: this._round(f.freq, 0),
@@ -702,24 +595,21 @@ export class Equalizer {
       gain: this._round(f.gain, 1)
     })).sort((a, b) => a.freq - b.freq);
   }
-
-  /**
-   * Remove filters that don't contribute significantly to the result
-   * @param {Array} fr - Source frequency response
-   * @param {Array} frTarget - Target frequency response
-   * @param {Array} filters - Current filter array
-   * @returns {Array} - Pruned filter array
-   */
-  _pruneIneffectiveFilters(fr, frTarget, filters) {
-    const baselineError = this._calculateWeightedError(this.applyFilters(fr, filters), frTarget);
-    
-    return filters.filter((filter, index) => {
-      const withoutThisFilter = filters.filter((_, i) => i !== index);
-      const errorWithout = this._calculateWeightedError(this.applyFilters(fr, withoutThisFilter), frTarget);
-      const contribution = errorWithout - baselineError;
-      
-      // Keep if removing it increases error by more than 0.1 dB RMS
-      return contribution > 0.1;
-    });
-  }
 }
+
+// Worker message handler
+const equalizer = new EqualizerWorker();
+
+self.onmessage = function(e) {
+  const { type, payload, id } = e.data;
+  
+  if (type === 'autoEQ') {
+    try {
+      const { source, target, options } = payload;
+      const filters = equalizer.autoEQ(source, target, options);
+      self.postMessage({ type: 'result', id, payload: { filters } });
+    } catch (error) {
+      self.postMessage({ type: 'error', id, payload: { message: error.message } });
+    }
+  }
+};

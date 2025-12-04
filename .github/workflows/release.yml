@@ -153,7 +153,7 @@ jobs:
         ### Core System
         
         | Component | Version | Core API Level | Release Date |
-        |-------------|--------|----------------|--------------|
+        |-----------|---------|----------------|--------------|
         | **modernGraphTool Core** | v${{ steps.versions.outputs.core_version }} | 1 | ${{ steps.versions.outputs.release_date }} |
         
         ### Extensions
@@ -161,8 +161,8 @@ jobs:
         Certain extension may require more configuration on installation or update. \
         Please refer to Docs for more info.
         
-        | Extension | Version | Min. Core version | Documentation |
-        |-----------|---------|--------|---------------|
+        | Extension | Version | Min. Core version | Docs | Changelog |
+        |-----------|---------|-------------------|------|-----------|
         EOF
         
         # Add extension information

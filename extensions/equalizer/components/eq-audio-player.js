@@ -309,6 +309,9 @@ class EQAudioPlayer extends HTMLElement {
   }
 
   updateFilters(filters) {
+    // Do not update filter if audio player is not initialized
+    if (!this.gainNode) return;
+
     // Remove existing filters
     this.filterNodes.forEach(node => node.disconnect());
     this.filterNodes = [];

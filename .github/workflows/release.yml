@@ -52,6 +52,10 @@ jobs:
         ")
         echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
         
+        # Generate datetime-based tag
+        RELEASE_TAG="v${CORE_VERSION}-$(date -u +'%Y%m%d-%H%M%S')"
+        echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+        
         # Get extension versions using a simpler approach
         node -e "
         const fs = require('fs');
@@ -165,8 +169,8 @@ jobs:
         node -e "
         const extensions = require('./extensions.json');
         const extensionOrder = [
-          'equalizer', 'device-peq', 'target-customizer', 'graph-color-wheel',
-          'preference-bound', 'frequency-tutorial', 'squiglink-integration', 'template'
+          'equalizer', 'device-peq', 'frequency-tutorial', 'graph-color-wheel',
+          'preference-bound', 'squiglink-integration', 'target-customizer', 'template'
         ];
         
         const sortedExtensions = extensionOrder.map(name => 
@@ -185,7 +189,7 @@ jobs:
             word.charAt(0).toUpperCase() + word.slice(1)
           ).join(' ');
           
-          console.log(\`| **\${displayName}** | v\${ext.version} | v\${ext.minCore} | [📖 Docs](https://potatosalad775.github.io/modernGraphTool/docs/extensions/\${ext.name}) |\`);
+          console.log(\`| **\${displayName}** | v\${ext.version} | v\${ext.minCore} | [📖 Docs](https://potatosalad775.github.io/modernGraphTool/docs/extensions/\${ext.name}) | [🪵 Changelog](https://potatosalad775.github.io/modernGraphTool/docs/changelog/\${ext.name}) |\`);
         });
         " >> release_notes.md
         
@@ -219,11 +223,11 @@ jobs:
         echo "📦 Created release packages:"
         ls -la release-packages/
         
-    - name: Create or update release
+    - name: Create release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: release
-        name: "modernGraphTool Release (Core v${{ steps.versions.outputs.core_version }})"
+        tag_name: ${{ steps.versions.outputs.release_tag }}
+        name: "modernGraphTool v${{ steps.versions.outputs.core_version }} (${{ steps.versions.outputs.release_date }})"
         body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
         files: release-packages/*
         prerelease: false
@@ -236,10 +240,11 @@ jobs:
       run: |
         echo "🎉 Release completed successfully!"
         echo ""
+        echo "🏷️  Release Tag: ${{ steps.versions.outputs.release_tag }}"
         echo "📦 Core Version: v${{ steps.versions.outputs.core_version }}"
         echo "📅 Release Date: ${{ steps.versions.outputs.release_date }}"
         echo ""
         echo "📁 Packages created:"
         ls -1 release-packages/ | sed 's/^/  - /'
         echo ""
-        echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/release"
+        echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.versions.outputs.release_tag }}"

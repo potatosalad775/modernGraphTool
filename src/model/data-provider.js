@@ -517,7 +517,7 @@ class DataProvider {
    */
   updateChannels() {
     const numberOfSelections = Array.from(this.frDataMap).filter(
-      ([_, obj]) => obj.type === "phone").length;
+      ([_, obj]) => obj.type !== "target").length;
     if (numberOfSelections > 1) {
       // If multiple phones are selected, use AVG channel for all if possible
       this.frDataMap.forEach((dataObj) => {

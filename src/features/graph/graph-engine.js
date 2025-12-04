@@ -85,7 +85,7 @@ class GraphEngine {
     // 100ms delay before executing
     this._updateCurveTimeout = setTimeout(() => {
       // Remove Previous Graphs
-      this.svg.select(".fr-graph-curve-container").selectAll("*").remove();
+      this.svg.select(".fr-graph-curve-container").selectAll("path[class*='fr-graph-'][class*='-curve']").remove();
       // Re-draw every curves
       Array.from(this.dataProvider.getFRDataMap()).forEach(([uuid, _]) => {
         this.drawFRCurve(uuid);

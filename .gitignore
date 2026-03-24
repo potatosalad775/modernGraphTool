@@ -1,13 +1,26 @@
-# Modules
 node_modules
-# Source Map
-dist/core.min.js.map
-dist/extensions/*/main.js.map
-# Docs files
-docs/.docusaurus
-docs/build
-docs/node_modules
-#
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
 .DS_Store
-.trae
-.vscode
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+# Paraglide
+src/lib/paraglide
+project.inlang/cache/

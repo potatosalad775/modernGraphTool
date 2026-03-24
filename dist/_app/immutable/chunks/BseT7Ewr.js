@@ -1,0 +1,1 @@
+import{l as e,u,f as t,g as a,i as l}from"./uQ2bluK-.js";function c(n){t===null&&e(),a&&t.l!==null?f(t).m.push(n):u(()=>{const o=l(n);if(typeof o=="function")return o})}function s(n){t===null&&e(),c(()=>()=>l(n))}function f(n){var o=n.l;return o.u??={a:[],b:[],m:[]}}export{s as a,c as o};

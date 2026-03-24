@@ -242,7 +242,7 @@ const MetadataParser = {
   /** Fetch target_manifest metadata from (config.js). */
   _fetchTargetObject(): TargetManifestEntry[] {
     const manifest = (getConfigValue("TARGET_MANIFEST") || []) as TargetManifestEntry[];
-    return manifest.map((obj) => {
+    return manifest.filter((obj) => Array.isArray(obj.files)).map((obj) => {
       return {
         type: obj.type,
         files: obj.files.map((identifier) => {

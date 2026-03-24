@@ -24,8 +24,10 @@
 	});
 
 	$effect(() => {
-		const _size = frStore.size;
-		const _entries = frStore.entries;
+		// Iterate entries to subscribe to all SvelteMap mutations,
+		// including same-key value updates (visibility, channel, normalize, smooth, y-offset).
+		// A bare reference `frStore.entries` only tracks size changes, not value mutations.
+		for (const _ of frStore.entries) { /* reactive subscription */ }
 		if (graphEngine.isInitialized) {
 			graphEngine.refreshEveryFRCurves();
 			graphEngine.updateLabels();

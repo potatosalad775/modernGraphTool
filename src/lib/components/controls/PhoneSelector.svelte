@@ -73,19 +73,18 @@
 	}
 </script>
 
-<div class="flex h-full flex-col overflow-hidden">
+<div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
 	<div
 		class="flex shrink-0 items-center gap-2 border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-700"
 	>
-		<!-- Mobile: Brands toggle -->
+		<!-- Brands toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = false)}
-			class="rounded px-2 py-1 text-xs font-medium transition-colors
+			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors
 				{!showPhonePane
 				? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}
-				md:hidden"
+				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}"
 		>
 			{m.phone_selector_header_brand_btn()}
 		</button>
@@ -100,14 +99,13 @@
 				dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
 		/>
 
-		<!-- Mobile: Devices toggle -->
+		<!-- Devices toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = true)}
-			class="rounded px-2 py-1 text-xs font-medium transition-colors
+			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors
 				{showPhonePane
 				? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}
-				md:hidden"
+				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}"
 		>
 			{m.phone_selector_header_device_btn()}
 		</button>
@@ -118,9 +116,8 @@
 		<div class="flex h-full flex-row">
 			<!-- Brand list -->
 			<div
-				class="flex flex-col overflow-y-auto border-r border-zinc-200 dark:border-zinc-700
-					{showPhonePane ? 'hidden' : 'flex'} w-full
-					md:flex md:w-40 md:shrink-0"
+				class="ps-brand-pane flex flex-col overflow-y-auto border-r border-zinc-200 dark:border-zinc-700"
+				class:ps-brand-hidden={showPhonePane}
 			>
 				{#each brandListData as brand (brand)}
 					<label
@@ -141,9 +138,8 @@
 
 			<!-- Phone list -->
 			<div
-				class="flex flex-col overflow-y-auto
-					{showPhonePane ? 'flex' : 'hidden'} w-full
-					md:flex md:flex-1"
+				class="ps-phone-pane flex flex-col overflow-y-auto"
+				class:ps-phone-hidden={!showPhonePane}
 			>
 				{#if displayPhones.length === 0}
 					<p class="px-3 py-4 text-xs text-zinc-400 dark:text-zinc-600">
@@ -242,3 +238,40 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* Wide container: show both panes side-by-side, hide nav buttons */
+	@container (min-width: 500px) {
+		.ps-nav-btn {
+			display: none;
+		}
+		.ps-brand-pane {
+			display: flex !important;
+			width: 10rem;
+			flex-shrink: 0;
+		}
+		.ps-phone-pane {
+			display: flex !important;
+			flex: 1;
+		}
+	}
+
+	/* Narrow container: toggle between panes with nav buttons */
+	@container (max-width: 499px) {
+		.ps-nav-btn {
+			display: inline-flex;
+		}
+		.ps-brand-pane {
+			width: 100%;
+		}
+		.ps-brand-hidden {
+			display: none;
+		}
+		.ps-phone-pane {
+			width: 100%;
+		}
+		.ps-phone-hidden {
+			display: none;
+		}
+	}
+</style>

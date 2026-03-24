@@ -51,8 +51,9 @@ class SquiglinkStore {
 		}
 
 		const host = window.location.host;
+		const debug = getConfigValue('SQUIGLINK.DEBUG') === true;
 		this.isSquiglinkHost =
-			host === SQUIGLINK_DOMAIN || host.endsWith('.' + SQUIGLINK_DOMAIN);
+			debug || host === SQUIGLINK_DOMAIN || host.endsWith('.' + SQUIGLINK_DOMAIN);
 
 		const configEnabled = getConfigValue('SQUIGLINK.ENABLED') as boolean | undefined;
 		this.isEnabled = this.isSquiglinkHost && configEnabled !== false;

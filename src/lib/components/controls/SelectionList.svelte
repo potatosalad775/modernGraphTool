@@ -55,40 +55,28 @@
 	}
 
 	// ── Y-offset long-press ──────────────────────────────────────────────────────
-	interface LongPressHandlers {
-		onmousedown: () => void;
-		onmouseup: () => void;
-		onmouseleave: () => void;
+	// Timer lives at component level to survive re-renders triggered by frStore updates.
+	// Per-render closures (via {@const}) would lose the timer reference on each re-render,
+	// causing the interval to keep running after mouseup (runaway increment).
+	let yOffsetTimer: ReturnType<typeof setInterval> | null = null;
+
+	function startYOffset(uuid: string, direction: 'inc' | 'dec') {
+		stopYOffset();
+		const perform = () => {
+			const item = frStore.get(uuid);
+			if (!item) { stopYOffset(); return; }
+			const next = (item.yOffset ?? 0) + (direction === 'inc' ? 1 : -1);
+			dataProvider.updateYOffset(uuid, next);
+		};
+		perform();
+		yOffsetTimer = setInterval(perform, 150);
 	}
 
-	function createLongPressHandlers(action: 'inc' | 'dec', uuid: string): LongPressHandlers {
-		let timer: ReturnType<typeof setInterval> | null = null;
-
-		function perform() {
-			const item = frStore.get(uuid);
-			if (!item) return;
-			const current = item.yOffset ?? 0;
-			const next = action === 'inc' ? current + 1 : current - 1;
-			dataProvider.updateYOffset(uuid, next);
+	function stopYOffset() {
+		if (yOffsetTimer !== null) {
+			clearInterval(yOffsetTimer);
+			yOffsetTimer = null;
 		}
-
-		function start() {
-			perform();
-			timer = setInterval(perform, 150);
-		}
-
-		function stop() {
-			if (timer !== null) {
-				clearInterval(timer);
-				timer = null;
-			}
-		}
-
-		return {
-			onmousedown: start,
-			onmouseup: stop,
-			onmouseleave: stop
-		};
 	}
 
 	function handleYOffsetInput(uuid: string, raw: string) {
@@ -133,8 +121,6 @@
 		{@const channelOpts = getChannelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const hasVariants = !isTarget(item) && (item.meta as { files?: unknown[] } | undefined)?.files && ((item.meta as { files: unknown[] }).files.length > 1)}
-		{@const incHandlers = createLongPressHandlers('inc', uuid)}
-		{@const decHandlers = createLongPressHandlers('dec', uuid)}
 
 		<div
 			class="flex flex-col border-b border-zinc-100 px-3 py-2 dark:border-zinc-800
@@ -243,9 +229,9 @@
 				<!-- Y-offset controls -->
 				<div class="ml-auto flex items-center gap-1">
 					<button
-						onmousedown={decHandlers.onmousedown}
-						onmouseup={decHandlers.onmouseup}
-						onmouseleave={decHandlers.onmouseleave}
+						onmousedown={() => startYOffset(uuid, 'dec')}
+						onmouseup={stopYOffset}
+						onmouseleave={stopYOffset}
 						class="flex h-6 w-6 items-center justify-center rounded border border-zinc-200
 							text-xs text-zinc-500 hover:bg-zinc-100
 							dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
@@ -263,9 +249,9 @@
 					/>
 
 					<button
-						onmousedown={incHandlers.onmousedown}
-						onmouseup={incHandlers.onmouseup}
-						onmouseleave={incHandlers.onmouseleave}
+						onmousedown={() => startYOffset(uuid, 'inc')}
+						onmouseup={stopYOffset}
+						onmouseleave={stopYOffset}
 						class="flex h-6 w-6 items-center justify-center rounded border border-zinc-200
 							text-xs text-zinc-500 hover:bg-zinc-100
 							dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"

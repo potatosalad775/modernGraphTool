@@ -8,6 +8,7 @@
 	import DragDivider from './DragDivider.svelte';
 	import MenuCarousel from './MenuCarousel.svelte';
 	import GraphContainer from '$lib/components/graph/GraphContainer.svelte';
+	import GraphToolbar from '$lib/components/controls/GraphToolbar.svelte';
 	import { menuStore } from '$lib/stores/menu-store.svelte';
 	import DevicePanel from '$lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '$lib/components/panels/GraphPanel.svelte';
@@ -74,11 +75,12 @@
 
 	{#if appStore.isMobile}
 		<main class="flex flex-1 flex-col overflow-hidden">
-			<section class="flex-1 overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+			<!-- Graph at top, no flex-grow so it stays pinned to top -->
+			<section class="shrink-0 overflow-hidden bg-zinc-50 dark:bg-zinc-950" style="height: 50dvh">
 				<GraphContainer />
 			</section>
-			<section class="flex flex-col overflow-hidden border-t border-zinc-200 dark:border-zinc-700" style="max-height: 50dvh">
-				<MenuCarousel />
+			<!-- Panel area fills remaining space -->
+			<section class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-zinc-200 dark:border-zinc-700">
 				<div class="min-h-0 flex-1 overflow-hidden">
 					{#if menuStore.currentPanel === 'device'}
 						<DevicePanel />
@@ -90,6 +92,8 @@
 						<MiscPanel />
 					{/if}
 				</div>
+				<!-- Menu carousel at bottom -->
+				<MenuCarousel />
 			</section>
 		</main>
 	{:else}
@@ -98,10 +102,15 @@
 			class="grid flex-1 overflow-hidden"
 			style:grid-template-columns={gridCols}
 		>
-			<section class="overflow-hidden bg-zinc-50 dark:bg-zinc-950">
-				<GraphContainer />
+			<!-- Left column: graph + toolbar -->
+			<section class="flex flex-col overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+				<div class="min-h-0 flex-1 overflow-hidden">
+					<GraphContainer />
+				</div>
+				<GraphToolbar />
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
+			<!-- Right column: menu + panel -->
 			<section class="flex min-w-[340px] flex-col overflow-hidden">
 				<MenuCarousel />
 				<div class="min-h-0 flex-1 overflow-hidden">

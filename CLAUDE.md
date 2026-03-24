@@ -31,19 +31,22 @@ Data flow: User action → DataProvider service → frStore (SvelteMap)
            → $effect in GraphContainer → graphEngine.drawFRCurve()
 
 Stores (src/lib/stores/):
-  fr-store.svelte.ts    — FRDataStore wrapping SvelteMap<uuid, FRDataObject>
-  graph-store.svelte.ts — GraphStore: yScale, baselineUUID
-  menu-store.svelte.ts  — MenuStore: currentPanel; MENU_PANELS const
-  eq-store.svelte.ts    — EQStore: filters, preamp, isEnabled
-  app-store.svelte.ts   — AppStore: theme, isMobile, isReady
+  fr-store.svelte.ts         — FRDataStore wrapping SvelteMap<uuid, FRDataObject>
+  graph-store.svelte.ts      — GraphStore: yScale, baselineUUID
+  menu-store.svelte.ts       — MenuStore: currentPanel; MENU_PANELS const
+  eq-store.svelte.ts         — EQStore: filters, preamp, isEnabled
+  app-store.svelte.ts        — AppStore: theme, isMobile, isReady
+  squiglink-store.svelte.ts  — SquiglinkStore: squig.link integration (domain guard, site registry,
+                               cross-site search, shop links, sponsor content)
 
 Services (src/lib/services/):
-  data-provider.svelte.ts — DataProvider singleton: addFRData(), removeFRData(), toggleFRData(),
-                            insertRawFRData(), updateVariant(), updateDisplayChannel(),
-                            updateColors(), updateVisibility(), updateYOffset(),
-                            renormalizeAll(), reSmoothAll() — orchestrates commands + frStore
-  commands.ts             — Command pattern (Add/Remove/Update*) with execute()/undo()
-  command-history.ts      — Undo/redo stack; exports `commandHistory` singleton
+  data-provider.svelte.ts      — DataProvider singleton: addFRData(), removeFRData(), toggleFRData(),
+                                 insertRawFRData(), updateVariant(), updateDisplayChannel(),
+                                 updateColors(), updateVisibility(), updateYOffset(),
+                                 renormalizeAll(), reSmoothAll() — orchestrates commands + frStore
+  commands.ts                  — Command pattern (Add/Remove/Update*) with execute()/undo()
+  command-history.ts           — Undo/redo stack; exports `commandHistory` singleton
+  analytics-service.svelte.ts  — GA4 analytics (gtag.js, multi-measurement-ID support)
 
 Utils (src/lib/utils/):
   config.ts          — getConfigValue(path) reads window.GRAPHTOOL_CONFIG
@@ -136,6 +139,37 @@ in src/lib/components/features/:
 - TargetCustomizer.svelte  — Custom HRTF target with Tilt/Bass/Treble sliders
 - GraphColorWheel.svelte   — Color picker for graph curves (uses bits-ui Popover)
 - PreferenceBound.svelte   — Preference bound D3 overlay on graph
+- CrossSiteSearch.svelte   — Cross-site device search across squig.link network
+- SponsorBanner.svelte     — Sponsor modal on first visit (bits-ui Dialog)
+- ShopLink.svelte          — "Buy Now" button when a matching shop link exists
+
+## squig.link Integration
+Native Svelte reimplementation of the legacy squiglink-integration extension.
+Active ONLY when hosted on *.squig.link domains (domain guard in squiglink-store).
+
+Design: fetches data from squig.link JSON endpoints (squigsites.json, shoplinks.json)
+and loads squiglink-intro.js for sponsor content. Does NOT load squigsites.js.
+All UI is Svelte-native — no external DOM manipulation.
+
+Key files:
+  Types:      src/lib/types/squiglink-types.ts
+  Store:      src/lib/stores/squiglink-store.svelte.ts
+  Analytics:  src/lib/services/analytics-service.svelte.ts
+  Components: CrossSiteSearch, SponsorBanner, ShopLink (features/), SiteSelector (controls/)
+
+Config section (static/config.js):
+  SQUIGLINK.ENABLED                  — master toggle (default: true)
+  SQUIGLINK.ANALYTICS_MEASUREMENT_IDS — array of GA4 IDs (multi-tag support)
+  SQUIGLINK.ANALYTICS_SITE           — site name for analytics attribution
+  SQUIGLINK.ENABLE_ANALYTICS         — analytics toggle
+  SQUIGLINK.ENABLE_CROSS_SITE_SEARCH — cross-site search toggle
+  SQUIGLINK.ENABLE_SPONSOR           — sponsor features toggle
+
+Data sources (all from squig.link):
+  squigsites.json      — site registry (fetched at runtime)
+  shoplinks.json       — per-device shop links
+  squiglink-intro.js   — sponsor content (loaded as script, reads window.contentSponsor)
+  {site}/data/phone_book.json — per-site device catalogs (lazy-loaded)
 
 ## Migration Status
 See full migration plan at: ../.claude/plans/dynamic-squishing-dusk.md
@@ -150,7 +184,10 @@ Phases:
                          NormalizerInput, SmoothingButton, YAxisScaleButton, ScreenshotButton,
                          ShareButton, InspectionToggle; DevicePanel, GraphPanel,
                          EqualizerPanel (scaffold), MiscPanel; AppShell panel routing
-  7: Extensions        — FrequencyTutorial, TargetCustomizer, GraphColorWheel, PreferenceBound, DevicePeq
+  7: Extensions (DONE) — FrequencyTutorial, TargetCustomizer, GraphColorWheel, PreferenceBound, DevicePeq
+  7b: squig.link Integration (DONE) — squiglink-store, analytics-service, CrossSiteSearch,
+                         SiteSelector, SponsorBanner, ShopLink; config SQUIGLINK section;
+                         see ../.claude/plans/replicated-whistling-pine.md for design decisions
   8: URL Provider      — share URL building
   9: Testing           — port legacy tests to Vitest
 

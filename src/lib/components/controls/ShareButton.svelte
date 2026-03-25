@@ -1,11 +1,13 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { urlProvider } from '$lib/utils/url-provider';
 
 	let copied = $state(false);
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 	async function handleClick() {
-		await navigator.clipboard.writeText(window.location.href);
+		const url = urlProvider.getCurrentURL();
+		await navigator.clipboard.writeText(url);
 		copied = true;
 		if (timeoutId !== null) clearTimeout(timeoutId);
 		timeoutId = setTimeout(() => {

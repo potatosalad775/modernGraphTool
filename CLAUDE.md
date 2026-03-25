@@ -188,7 +188,9 @@ Phases:
   7b: squig.link Integration (DONE) — squiglink-store, analytics-service, CrossSiteSearch,
                          SiteSelector, SponsorBanner, ShopLink; config SQUIGLINK section;
                          see ../.claude/plans/replicated-whistling-pine.md for design decisions
-  8: URL Provider      — share URL building
+  8: URL Provider (DONE) — url-provider.ts, ShareButton integration, URL state encoding/decoding,
+                         initial data loading from URL or config (AppShell bootstrap),
+                         auto-update URL on store changes, config defaults (INITIAL_PANEL, normalization, yScale)
   9: Testing           — port legacy tests to Vitest
 
 ## Documentation References (for AI agents in this project)

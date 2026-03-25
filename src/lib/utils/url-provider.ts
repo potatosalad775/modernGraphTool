@@ -1,0 +1,242 @@
+import Base62 from './base62.js';
+import { frStore } from '$lib/stores/fr-store.svelte.js';
+import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import { getConfigValue } from './config.js';
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface EQStateSnapshot {
+	filters: EQFilter[];
+	preamp: number;
+}
+
+interface URLState {
+	yScale?: number;
+	baselineUUID?: string | null;
+	yOffsets?: Record<string, number>;
+	eq?: EQStateSnapshot;
+}
+
+// ── URL Provider ─────────────────────────────────────────────────────────────
+
+class URLProvider {
+	#baseTitle = '';
+	#baseDescription = '';
+	#baseURL = '';
+	#autoUpdateURL = true;
+	#useBase62 = false;
+	#phoneDataFromURL: string[] = [];
+	#stateFromURL: URLState | null = null;
+
+	/** Call once during app startup (in onMount). */
+	init(): void {
+		this.#baseTitle = document.querySelector('title')?.textContent || 'modernGraphTool';
+		this.#baseDescription =
+			document.querySelector('meta[name="description"]')?.getAttribute('content') ||
+			'View and compare frequency response graphs';
+		this.#baseURL = window.location.href.split('?')[0];
+		this.#autoUpdateURL = (getConfigValue('URL.AUTO_UPDATE_URL') as boolean) ?? true;
+		this.#useBase62 = (getConfigValue('URL.COMPRESS_URL') as boolean) ?? false;
+
+		this.#loadFromURL();
+	}
+
+	// ── Public reads ─────────────────────────────────────────────────────────
+
+	get phoneDataFromURL(): string[] {
+		return this.#phoneDataFromURL;
+	}
+
+	get stateFromURL(): URLState | null {
+		return this.#stateFromURL;
+	}
+
+	// ── URL update (called reactively from $effect or on demand) ─────────────
+
+	updateURL(changeURL = true): void {
+		const { url, title, namesCombined } = this.#buildURL();
+
+		if (changeURL) {
+			window.history.replaceState('', title, url);
+		}
+		document.title = title;
+		this.#updateMetaTags(namesCombined);
+	}
+
+	/** Auto-update URL if configured. Called from $effect. */
+	autoUpdate(): void {
+		if (this.#autoUpdateURL) this.updateURL(true);
+	}
+
+	/**
+	 * Returns a shareable URL that includes the current EQ filter state.
+	 */
+	getCurrentURLWithEQ(): string {
+		const { url } = this.#buildURL({
+			filters: eqStore.filters,
+			preamp: eqStore.preamp
+		});
+		return url;
+	}
+
+	/** Get the current share URL (without EQ state). */
+	getCurrentURL(): string {
+		const { url } = this.#buildURL();
+		return url;
+	}
+
+	toggleBase62(enable: boolean): void {
+		this.#useBase62 = enable;
+		this.updateURL();
+	}
+
+	// ── State restoration (called after initial data loads) ──────────────────
+
+	applyStateFromURL(): void {
+		if (!this.#stateFromURL) return;
+		const { yScale, baselineUUID, yOffsets, eq } = this.#stateFromURL;
+
+		if (yScale != null) graphStore.yScale = yScale;
+		if (baselineUUID != null) graphStore.baselineUUID = baselineUUID;
+
+		if (yOffsets) {
+			for (const [uuid, data] of frStore.entries) {
+				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				if (key in yOffsets) {
+					// Direct store update (no command history for URL restore)
+					frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
+				}
+			}
+		}
+
+		if (eq && eq.filters.length > 0) {
+			eqStore.filters = eq.filters;
+			eqStore.preamp = eq.preamp;
+			eqStore.isEnabled = true;
+		}
+	}
+
+	// ── Private ──────────────────────────────────────────────────────────────
+
+	#loadFromURL(): void {
+		const urlParams = new URLSearchParams(window.location.search);
+		const shareParam = urlParams.get('share');
+
+		if (shareParam) {
+			if (shareParam.startsWith('b62_')) {
+				const encoded = shareParam.replace('b62_', '');
+				this.#phoneDataFromURL = this.#smartSplit(Base62.decode(encoded));
+			} else {
+				const decodedParam = decodeURI(shareParam).replace(/_/g, ' ');
+				this.#phoneDataFromURL = this.#smartSplit(decodedParam);
+			}
+		}
+
+		const stateParam = urlParams.get('state');
+		if (stateParam) {
+			try {
+				const stateStr = Base62.decode(stateParam);
+				this.#stateFromURL = JSON.parse(stateStr);
+			} catch {
+				// ignore malformed state
+			}
+		}
+	}
+
+	/** Split comma-separated string while respecting parentheses/brackets. */
+	#smartSplit(input: string): string[] {
+		const result: string[] = [];
+		let current = '';
+		let parenDepth = 0;
+
+		for (let i = 0; i < input.length; i++) {
+			const char = input[i];
+			if (char === '(' || char === '[' || char === '{') {
+				parenDepth++;
+				current += char;
+			} else if (char === ')' || char === ']' || char === '}') {
+				parenDepth--;
+				current += char;
+			} else if (char === ',' && parenDepth === 0) {
+				if (current.trim()) result.push(current.trim());
+				current = '';
+			} else {
+				current += char;
+			}
+		}
+
+		if (current.trim()) result.push(current.trim());
+		return result;
+	}
+
+	#buildURL(eq?: EQStateSnapshot): { url: string; title: string; namesCombined: string } {
+		const activeNames: string[] = [];
+		for (const [, data] of frStore.entries) {
+			const name = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+			if (name) activeNames.push(name);
+		}
+
+		let title = this.#baseTitle;
+		let url = this.#baseURL;
+		const namesCombined = activeNames.join(', ');
+
+		if (activeNames.length) {
+			if (this.#useBase62) {
+				const encoded = Base62.encode(activeNames.join(','));
+				url += `?share=b62_${encoded}`;
+			} else {
+				url += `?share=${encodeURI(activeNames.join(','))}`;
+			}
+			title = title + ' - ' + namesCombined;
+		}
+
+		// Encode graph state
+		const stateData: URLState = { yScale: graphStore.yScale };
+		let hasExtraState = graphStore.yScale !== 60;
+
+		if (graphStore.baselineUUID) {
+			stateData.baselineUUID = graphStore.baselineUUID;
+			hasExtraState = true;
+		}
+
+		const yOffsets: Record<string, number> = {};
+		for (const [, data] of frStore.entries) {
+			if (data.yOffset) {
+				yOffsets[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.yOffset;
+				hasExtraState = true;
+			}
+		}
+		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
+
+		if (eq && eq.filters.length > 0) {
+			stateData.eq = eq;
+			hasExtraState = true;
+		}
+
+		if (hasExtraState) {
+			const stateStr = JSON.stringify(stateData);
+			const sep = url.includes('?') ? '&' : '?';
+			url += `${sep}state=${Base62.encode(stateStr)}`;
+		}
+
+		return { url, title, namesCombined };
+	}
+
+	#updateMetaTags(namesCombined: string): void {
+		const canonicalLink = document.querySelector("link[rel='canonical']");
+		if (canonicalLink) {
+			canonicalLink.setAttribute('href', namesCombined ? window.location.href : this.#baseURL);
+		}
+
+		const metaDescription = document.querySelector("meta[name='description']");
+		if (metaDescription && namesCombined) {
+			metaDescription.setAttribute(
+				'content',
+				`View and compare frequency response graph of ${namesCombined}.`
+			);
+		}
+	}
+}
+
+export const urlProvider = new URLProvider();

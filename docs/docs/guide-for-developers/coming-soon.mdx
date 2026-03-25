@@ -2,4 +2,57 @@
 sidebar_position: 1
 ---
 
-# Coming Soon
+# Developer Guide
+
+This guide provides an overview of modernGraphTool's architecture for developers who want to contribute or build upon the project.
+
+## Tech Stack
+
+- **Framework**: SvelteKit 2 + Svelte 5 (Runes)
+- **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
+- **Graph Rendering**: D3.js (SVG-based)
+- **i18n**: Paraglide JS (compile-time internationalization)
+- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Build Output**: Static SPA via `adapter-static` → `dist/`
+
+## Project Structure
+
+```
+src/
+├── routes/              # SvelteKit page routes
+├── lib/
+│   ├── components/      # UI components
+│   │   ├── controls/    # Interactive controls (buttons, inputs, selectors)
+│   │   ├── features/    # Feature panels (EQ, DevicePEQ, Tutorial, etc.)
+│   │   ├── graph/       # Graph container and toolbar
+│   │   └── layout/      # App shell, navigation, panels
+│   ├── stores/          # Reactive state management (.svelte.ts)
+│   ├── services/        # Data provider, command history, analytics
+│   ├── graph/           # D3.js graph engine and overlays
+│   ├── device-peq/      # Hardware EQ device connectors and handlers
+│   ├── utils/           # Parsing, normalization, smoothing, URL encoding
+│   ├── types/           # TypeScript type definitions
+│   └── paraglide/       # Generated i18n functions (do not edit manually)
+├── app.html             # HTML template
+└── app.css              # Tailwind CSS entry point
+static/
+├── config.js            # User-editable configuration
+├── theme.css            # Graph theme variables
+└── data/                # Measurement data and targets
+```
+
+## Build Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server (http://localhost:5173) |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview the built output |
+| `npm run check` | TypeScript + Svelte type checking |
+| `npm run test` | Run all Vitest tests |
+| `npm run lint` | ESLint + Prettier check |
+| `npm run format` | Auto-format code |
+
+## Contributing
+
+Contributions are welcome! Please visit the [GitHub repository](https://github.com/potatosalad775/modernGraphTool) for more information.

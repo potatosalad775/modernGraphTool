@@ -1,0 +1,80 @@
+# Preference Bound
+
+주파수 응답 그래프에 선호도 경계를 표시하여, 주파수 응답의 허용 가능한 변화 범위를 이해할 수 있도록 돕는 고급 시각화 기능입니다.
+
+## 개요
+
+Preference Bound 기능은 modernGraphTool에 타겟 커브 주변의 선호도 경계를 시각화하는 정교한 오버레이를 추가합니다.
+
+이 경계는 연구 데이터와 청취 선호도를 기반으로, 대부분의 청취자가 만족스럽게 느끼는 주파수 응답 변화의 통계적 허용 범위를 나타냅니다.
+
+## 주요 기능
+
+- **선호도 경계**: 상/하단 선호도 경계 표시
+- **외관 커스터마이즈**: 색상, 투명도, 스타일 조정 가능
+- **타겟 통합**: 정확한 기준선 참조를 위한 Diffuse Field 타겟 연동
+
+## 설정
+
+Preference Bound는 `config.js`에서 설정합니다:
+
+```javascript
+// In config.js
+PREFERENCE_BOUND: {
+    ENABLE_BOUND_ON_INITIAL_LOAD: false,
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+    COLOR_FILL: "rgba(180,180,180,0.2)",
+    COLOR_BORDER: "rgba(120,120,120,0.5)",
+}
+```
+
+### 설정 옵션
+
+- **`ENABLE_BOUND_ON_INITIAL_LOAD`**: modernGraphTool 첫 로드 시 선호도 경계 표시 여부
+- **`BASE_DF_TARGET_FILE`**: 기준선 계산에 사용되는 Diffuse Field 타겟 파일
+- **`COLOR_FILL`**: 경계 내부 영역을 채울 RGBA 색상
+- **`COLOR_BORDER`**: 경계선 RGBA 색상
+
+## 데이터 파일 포맷
+
+### 경계 데이터 파일
+이 기능은 `data/` 디렉터리에 경계 데이터 파일이 필요합니다:
+
+#### 상단 경계 (`Bounds U.txt`)
+상단 선호 경계의 주파수 응답 데이터:
+```
+20.0	2.5
+25.0	2.8
+31.5	3.1
+...
+```
+
+#### 하단 경계 (`Bounds D.txt`)
+하단 선호 경계의 주파수 응답 데이터:
+```
+20.0	-2.5
+25.0	-2.8
+31.5	-3.1
+...
+```
+
+#### 기준 타겟 파일
+경계 계산의 기준선으로 사용되는 Diffuse Field 타겟 파일 (예: `KEMAR DF (KB006x) Target.txt`).
+
+## 사용법
+
+### 기본 동작
+1. **토글 제어**: 토글 버튼으로 선호도 경계 표시/숨김 전환
+2. **타겟 정렬**: 선택한 기준 타겟에 따라 선호도 경계 자동 정렬
+3. **실시간 업데이트**: 타겟 또는 측정값 변경 시 선호도 경계 실시간 갱신
+
+### 시각적 해석
+- **채워진 영역**: 상/하단 경계 사이 영역이 선호 범위를 나타냄
+- **타겟 기준선**: 선호도 경계는 선택한 Diffuse Field 타겟을 기준으로 표시
+- **측정값 오버레이**: 헤드폰 측정값과 선호도 경계 비교 가능
+
+## 서드파티 고지
+
+이 기능은 [pbeshai의 d3-interpolate-path 라이브러리](https://github.com/pbeshai/d3-interpolate-path)를 포함하고 있습니다.
+- **저장소**: https://github.com/pbeshai/d3-interpolate-path
+- **라이선스**: BSD-3-Clause License

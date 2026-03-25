@@ -1,10 +1,10 @@
 {
-  "label": "Extensions",
+  "label": "Features",
   "position": 5,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "See more info about extensions."
+    "description": "Learn about modernGraphTool's built-in features."
   }
 }

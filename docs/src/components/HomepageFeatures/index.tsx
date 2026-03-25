@@ -20,10 +20,10 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: <Translate>Extensibility in Mind</Translate>,
+    title: <Translate>Feature-Rich</Translate>,
     description: (
       <Translate>
-        modernGraphTool is built with extensibility in mind. You can easily and safely extend modernGraphTool to fit your needs.
+        modernGraphTool comes packed with built-in features including parametric EQ, device PEQ bridge, target customization, and more — all configurable through a single config file.
       </Translate>
     ),
   },
@@ -31,7 +31,7 @@ const FeatureList: FeatureItem[] = [
     title: <Translate>Powered by Modern JS</Translate>,
     description: (
       <Translate>
-        modernGraphTool is built with modern JavaScript technologies. 
+        modernGraphTool is built with SvelteKit, Tailwind CSS, and D3.js for a fast, responsive experience.
       </Translate>
     ),
   },

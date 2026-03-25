@@ -2,4 +2,57 @@
 sidebar_position: 1
 ---
 
-# Coming Soon
+# 개발자 가이드
+
+이 가이드는 modernGraphTool에 기여하거나 이를 기반으로 프로젝트를 구축하려는 개발자를 위한 아키텍처 개요를 제공합니다.
+
+## 기술 스택
+
+- **프레임워크**: SvelteKit 2 + Svelte 5 (Runes)
+- **스타일링**: Tailwind CSS 4 + bits-ui (헤드리스 접근성 컴포넌트)
+- **그래프 렌더링**: D3.js (SVG 기반)
+- **i18n**: Paraglide JS (컴파일 타임 국제화)
+- **테스트**: Vitest (유닛) + Playwright (E2E)
+- **빌드 출력**: `adapter-static`을 통한 정적 SPA → `dist/`
+
+## 프로젝트 구조
+
+```
+src/
+├── routes/              # SvelteKit 페이지 라우트
+├── lib/
+│   ├── components/      # UI 컴포넌트
+│   │   ├── controls/    # 인터랙티브 컨트롤 (버튼, 입력, 선택기)
+│   │   ├── features/    # 기능 패널 (EQ, DevicePEQ, Tutorial 등)
+│   │   ├── graph/       # 그래프 컨테이너 및 툴바
+│   │   └── layout/      # 앱 쉘, 네비게이션, 패널
+│   ├── stores/          # 반응형 상태 관리 (.svelte.ts)
+│   ├── services/        # 데이터 프로바이더, 커맨드 히스토리, 애널리틱스
+│   ├── graph/           # D3.js 그래프 엔진 및 오버레이
+│   ├── device-peq/      # 하드웨어 EQ 디바이스 커넥터 및 핸들러
+│   ├── utils/           # 파싱, 정규화, 스무딩, URL 인코딩
+│   ├── types/           # TypeScript 타입 정의
+│   └── paraglide/       # 생성된 i18n 함수 (수동 편집 금지)
+├── app.html             # HTML 템플릿
+└── app.css              # Tailwind CSS 진입점
+static/
+├── config.js            # 사용자 편집 가능한 설정 파일
+├── theme.css            # 그래프 테마 변수
+└── data/                # 측정 데이터 및 타겟
+```
+
+## 빌드 명령어
+
+| 명령어 | 설명 |
+|---------|-------------|
+| `npm run dev` | 개발 서버 시작 (http://localhost:5173) |
+| `npm run build` | `dist/`로 프로덕션 빌드 |
+| `npm run preview` | 빌드된 결과물 미리보기 |
+| `npm run check` | TypeScript + Svelte 타입 검사 |
+| `npm run test` | 전체 Vitest 테스트 실행 |
+| `npm run lint` | ESLint + Prettier 검사 |
+| `npm run format` | 코드 자동 포맷 |
+
+## 기여하기
+
+기여를 환영합니다! 자세한 내용은 [GitHub 저장소](https://github.com/potatosalad775/modernGraphTool)를 방문해 주세요.

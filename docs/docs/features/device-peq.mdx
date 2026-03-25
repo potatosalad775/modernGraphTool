@@ -1,0 +1,61 @@
+# Device PEQ
+
+A modernGraphTool feature that wraps the devicePEQ project, enabling direct integration with hardware equalizers and audio devices.
+
+## Overview
+
+The Device PEQ feature integrates the powerful [devicePEQ plugin by jeromeof][DEVICEPEQ] into modernGraphTool, allowing users to send equalizer settings directly to compatible audio devices.
+
+This feature provides a bridge between modernGraphTool's measurement analysis capabilities and real-world audio device control.
+
+## Features
+
+- **Hardware Integration**: Direct connection to compatible audio devices
+- **Device Management**: Connect, disconnect, and manage multiple audio devices
+- **PEQ Slot Management**: Manage parametric EQ slots on supported devices
+- **Real-time Sync**: Synchronize EQ settings between modernGraphTool and hardware
+- **Advanced Controls**: Optional advanced device manipulation features
+
+## Usage
+
+### Device Connection
+1. **Connect Device**: Use the connect button to establish connection with your audio device
+2. **Device Info**: View device information and capabilities
+3. **Slot Management**: Select and manage available PEQ slots on your device
+
+### EQ Transfer
+1. **Set Filters**: Configure your EQ settings in the equalizer panel
+2. **Transfer to Device**: Use the Device PEQ controls to send settings to hardware
+
+## Supported Devices
+
+This feature works with devices supported by the devicePEQ plugin.
+
+:::note Device Compatibility
+Device support depends on the underlying devicePEQ plugin. Check the info dialog or [devicePEQ project][DEVICEPEQ] for the latest compatibility information.
+:::
+
+## Advanced Features
+
+When `ADVANCED: true` is enabled in config:
+- Access to advanced device configuration dialogs
+- Extended device manipulation capabilities
+- Additional troubleshooting tools
+
+:::warning Advanced Mode
+Advanced features can potentially damage your device or cause unexpected behavior. Use only if you understand the risks and have experience with audio device configuration.
+:::
+
+## Browser Compatibility
+
+- **Chrome/Edge**: Full support (recommended)
+- **Firefox**: Limited support (WebUSB restrictions may apply)
+- **Safari**: Not supported (lacks WebUSB support)
+
+## Third-party Acknowledgments
+
+This feature includes and wraps the [devicePEQ plugin by jeromeof][DEVICEPEQ].
+- **Repository**: https://github.com/jeromeof/devicePEQ
+- **License**: 0BSD License
+
+[DEVICEPEQ]: https://github.com/jeromeof/devicePEQ

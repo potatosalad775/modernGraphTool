@@ -1,0 +1,62 @@
+# squig.link Integration
+
+A built-in integration feature that connects modernGraphTool with the squig.link service.
+
+## Overview
+
+The squig.link Integration enhances modernGraphTool by providing seamless integration with the squig.link ecosystem. It enables cross-site search, shop links, analytics tracking, and sponsor banners.
+
+:::note
+squig.link features are only active when modernGraphTool is hosted on *.squig.link domains.
+:::
+
+## Features
+
+- **Cross-site Search**: Search for devices across all squig.link sites in the network
+- **Shop Links**: Display "Buy Now" links for devices with matching shop entries
+- **Analytics**: Google Analytics integration with multi-measurement-ID support
+- **Sponsor Banners**: Display sponsor content on first visit
+- **Configurable Options**: Flexible configuration for different deployment scenarios
+
+## Configuration
+
+squig.link Integration is configured in `config.js`:
+
+```javascript
+// In config.js
+SQUIGLINK: {
+    ENABLED: true,
+    DEBUG: false,
+    ANALYTICS_MEASUREMENT_IDS: [],
+    ANALYTICS_SITE: "",
+    LOG_ANALYTICS: true,
+    ENABLE_ANALYTICS: true,
+    ENABLE_CROSS_SITE_SEARCH: true,
+    ENABLE_SPONSOR: true,
+}
+```
+
+### Configuration Options
+
+- **`ENABLED`**: Master toggle for all squig.link features
+- **`DEBUG`**: Enable debug logging for troubleshooting
+- **`ANALYTICS_MEASUREMENT_IDS`**: Array of Google Analytics 4 measurement IDs for multi-tag support
+- **`ANALYTICS_SITE`**: Site name used for analytics event attribution
+- **`LOG_ANALYTICS`**: Log analytics events to console for debugging
+- **`ENABLE_ANALYTICS`**: Toggle analytics tracking on or off
+- **`ENABLE_CROSS_SITE_SEARCH`**: Toggle cross-site device search
+- **`ENABLE_SPONSOR`**: Toggle sponsor banner display
+
+## Usage
+
+### Cross-site Search
+Search for headphone measurements across all participating squig.link sites. Results link directly to the matching site's graph tool with the device loaded.
+
+### Shop Links
+When a loaded device has a matching entry in the squig.link shop links database, a "Buy Now" button is displayed linking to the retailer.
+
+### Analytics
+When enabled, user interactions are tracked via Google Analytics 4 (gtag.js) for site usage insights.
+
+### Sponsor Banners
+On first visit, a sponsor dialog may be displayed with content loaded from the squig.link network.

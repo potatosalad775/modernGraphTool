@@ -1,0 +1,80 @@
+# Preference Bound
+
+An advanced visualization feature that displays preference boundaries on frequency response graphs, helping users understand the acceptable variation ranges in FR.
+
+## Overview
+
+The Preference Bound feature adds a sophisticated overlay to modernGraphTool that visualizes preference boundaries around target curves.
+
+These boundaries represent the statistically acceptable range of frequency response variations that most listeners find pleasant, based on research data and listening preferences.
+
+## Features
+
+- **Preference Bound**: Display upper and lower preference bounds
+- **Customizable Appearance**: Adjustable colors, transparency, and styling
+- **Target Integration**: Works with diffuse field targets for accurate baseline reference
+
+## Configuration
+
+Preference Bound is configured in `config.js`:
+
+```javascript
+// In config.js
+PREFERENCE_BOUND: {
+    ENABLE_BOUND_ON_INITIAL_LOAD: false,
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+    COLOR_FILL: "rgba(180,180,180,0.2)",
+    COLOR_BORDER: "rgba(120,120,120,0.5)",
+}
+```
+
+### Configuration Options
+
+- **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when modernGraphTool first loads
+- **`BASE_DF_TARGET_FILE`**: Reference diffuse field target file for baseline calculations
+- **`COLOR_FILL`**: RGBA color for the filled boundary area
+- **`COLOR_BORDER`**: RGBA color for the boundary outline
+
+## Data File Format
+
+### Boundary Data Files
+The feature requires boundary data files in the `data/` directory:
+
+#### Upper Boundary (`Bounds U.txt`)
+Contains frequency response data for the upper preference boundary:
+```
+20.0	2.5
+25.0	2.8
+31.5	3.1
+...
+```
+
+#### Lower Boundary (`Bounds D.txt`)
+Contains frequency response data for the lower preference boundary:
+```
+20.0	-2.5
+25.0	-2.8
+31.5	-3.1
+...
+```
+
+#### Base Target File
+A reference diffuse field target file (e.g., `KEMAR DF (KB006x) Target.txt`) used as the baseline for boundary calculations.
+
+## Usage
+
+### Basic Operation
+1. **Toggle Control**: Use the toggle button to show/hide boundaries
+2. **Target Alignment**: Boundaries automatically align with the selected base target
+3. **Real-time Updates**: Boundaries update when changing targets or measurements
+
+### Visual Interpretation
+- **Filled Area**: The area between upper and lower bounds represents the preference range
+- **Target Baseline**: Boundaries are relative to the selected diffuse field target
+- **Measurement Overlay**: Compare headphone measurements against preference boundaries
+
+## Third-party Acknowledgments
+
+This feature includes the [d3-interpolate-path library by pbeshai](https://github.com/pbeshai/d3-interpolate-path).
+- **Repository**: https://github.com/pbeshai/d3-interpolate-path
+- **License**: BSD-3-Clause License

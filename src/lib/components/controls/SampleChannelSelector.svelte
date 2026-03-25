@@ -165,9 +165,9 @@
 		{#snippet child({ props })}
 			<button
 				{...props}
-				class="h-6 rounded border border-zinc-200 bg-white px-1.5 text-xs text-zinc-700
-					hover:bg-zinc-50 focus:outline-none focus:ring-1 focus:ring-zinc-400
-					dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+				class="h-6 rounded border border-border bg-surface-raised px-1.5 text-xs text-foreground-secondary
+					hover:bg-surface focus:outline-none focus:ring-1 focus:ring-accent
+					border-border-raised-secondary"
 			>
 				{triggerLabel}
 			</button>
@@ -177,15 +177,14 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-48 rounded-lg border border-zinc-200 bg-white p-2 shadow-xl
-				dark:border-zinc-700 dark:bg-zinc-900"
+			class="z-50 w-48 rounded-lg border border-border bg-surface-raised p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->
 			<fieldset class="mb-0">
 				{#each channelOptions as opt (opt.value)}
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-xs
-							text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							text-foreground-secondary hover:bg-surface-hover"
 					>
 						<input
 							type="radio"
@@ -193,7 +192,7 @@
 							value={opt.value}
 							checked={currentChannelValue === opt.value}
 							onchange={() => handleChannelChange(opt.value)}
-							class="accent-zinc-700 dark:accent-zinc-300"
+							class="accent-accent"
 						/>
 						{opt.label}
 					</label>
@@ -202,8 +201,8 @@
 
 			<!-- Section 2: Sample Traces (checkboxes) -->
 			{#if hasSamples}
-				<div class="mt-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+				<div class="mt-2 border-t border-border-muted pt-2">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-muted">
 						{m.selection_list_samples_header()} ({sampleCount})
 					</p>
 
@@ -212,13 +211,13 @@
 						{#each allSampleKeys as key (key)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+									text-foreground-secondary hover:bg-surface-hover"
 							>
 								<input
 									type="checkbox"
 									checked={isSampleChecked(key)}
 									onchange={() => handleSampleToggle(key)}
-									class="accent-zinc-700 dark:accent-zinc-300"
+									class="accent-accent"
 								/>
 								{key}
 							</label>
@@ -229,29 +228,29 @@
 					<div class="mt-1.5 flex gap-1 px-1">
 						<button
 							onclick={() => handlePreset('allL')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_samples_all_l()}
 						</button>
 						<button
 							onclick={() => handlePreset('allR')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_samples_all_r()}
 						</button>
 						<button
 							onclick={() => handlePreset('all')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_samples_all()}
 						</button>
 						<button
 							onclick={() => handlePreset('none')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_samples_none()}
 						</button>
@@ -261,21 +260,21 @@
 
 			<!-- Section 3: HpTF Rigs -->
 			{#if hasHptf}
-				<div class="mt-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+				<div class="mt-2 border-t border-border-muted pt-2">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-muted">
 						{m.selection_list_hptf_header()}
 					</p>
 
 					<!-- Fill toggle -->
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							text-foreground-secondary hover:bg-surface-hover"
 					>
 						<input
 							type="checkbox"
 							checked={hptfFillVisible}
 							onchange={handleHptfFillToggle}
-							class="accent-zinc-700 dark:accent-zinc-300"
+							class="accent-accent"
 						/>
 						{m.selection_list_hptf_fill_toggle()}
 					</label>
@@ -284,13 +283,13 @@
 					{#each hptfLabels as label, i (i)}
 						<label
 							class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-								text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+								text-foreground-secondary hover:bg-surface-hover"
 						>
 							<input
 								type="checkbox"
 								checked={isRigChecked(i)}
 								onchange={() => handleHptfRigToggle(i)}
-								class="accent-zinc-700 dark:accent-zinc-300"
+								class="accent-accent"
 							/>
 							{label}
 						</label>
@@ -300,15 +299,15 @@
 					<div class="mt-1.5 flex gap-1 px-1">
 						<button
 							onclick={() => handleHptfPreset('all')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_hptf_all()}
 						</button>
 						<button
 							onclick={() => handleHptfPreset('none')}
-							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
-								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-handle"
 						>
 							{m.selection_list_hptf_none()}
 						</button>

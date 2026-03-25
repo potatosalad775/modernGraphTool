@@ -147,9 +147,9 @@
 	}
 </script>
 
-<div class="flex flex-col gap-0 overflow-y-auto">
+<div class="flex flex-col gap-0 overflow-y-auto pb-2">
 	{#if sortedEntries.length === 0}
-		<p class="px-3 py-6 text-center text-xs text-zinc-400 dark:text-zinc-600">No curves loaded.</p>
+		<p class="px-3 py-6 text-center text-xs text-muted">No curves loaded.</p>
 	{/if}
 
 	{#each sortedEntries as [uuid, item] (uuid)}
@@ -159,7 +159,7 @@
 		{@const hasVariants = !isTarget(item) && (item.meta as { files?: unknown[] } | undefined)?.files && ((item.meta as { files: unknown[] }).files.length > 1)}
 
 		<div
-			class="flex flex-col border-b border-zinc-100 px-3 py-2 dark:border-zinc-800
+			class="flex flex-col border-b border-border-muted px-3 py-2-muted
 				{item.hidden ? 'opacity-50' : ''}"
 		>
 			<!-- Row 1: color swatch + name + action buttons -->
@@ -169,11 +169,11 @@
 
 				<!-- Name + suffix -->
 				<div class="flex min-w-0 flex-1 flex-col">
-					<span class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+					<span class="truncate text-sm font-medium text-foreground">
 						{item.identifier}
 					</span>
 					{#if item.dispSuffix}
-						<span class="truncate text-xs text-zinc-500 dark:text-zinc-400">{item.dispSuffix}</span>
+						<span class="truncate text-xs text-muted">{item.dispSuffix}</span>
 					{/if}
 				</div>
 
@@ -182,24 +182,24 @@
 					<div class="relative">
 						<button
 							onclick={() => toggleVariantDropdown(uuid)}
-							title="Switch variant"
-							class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold
-								text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900
-								dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
+							aria-label="Switch variant"
+							class="flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition-colors
+								text-icon-muted hover:bg-surface-hover hover:text-foreground
+								focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							+
 						</button>
 
 						{#if openVariantUUID === uuid}
 							<div
-								class="absolute right-0 top-7 z-10 min-w-max rounded-md border border-zinc-200
-									bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+								class="absolute right-0 top-8 z-10 min-w-max rounded-md border border-border
+									bg-surface-raised shadow-lg"
 							>
 								{#each (item.meta as { files: { suffix: string }[] }).files as variant (variant.suffix)}
 									<button
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
-										class="block w-full px-3 py-1.5 text-left text-xs text-zinc-700
-											hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800
+										class="block w-full px-3 py-1.5 text-left text-xs text-foreground-secondary
+											hover:bg-surface-hover
 											{item.dispSuffix === variant.suffix ? 'font-semibold' : ''}"
 									>
 										{variant.suffix || '(default)'}
@@ -213,13 +213,14 @@
 				<!-- Baseline button -->
 				<button
 					onclick={() => handleBaselineClick(uuid)}
-					title={getBaselineTooltip(uuid)}
-					class="flex h-6 w-6 items-center justify-center rounded text-sm transition-colors
+					aria-label={getBaselineTooltip(uuid)}
+					class="flex h-7 w-7 items-center justify-center rounded text-sm transition-colors
+						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 						{isBaseline
 						? graphStore.baselineMode === 'original'
-							? 'border border-zinc-800 text-zinc-800 dark:border-zinc-200 dark:text-zinc-200'
-							: 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-						: 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'}"
+							? 'border border-accent text-accent'
+							: 'bg-accent text-accent-foreground'
+						: 'text-icon-muted hover:bg-surface-hover hover:text-foreground-secondary'}"
 				>
 					{isBaseline && graphStore.baselineMode === 'original' ? '~*' : '~'}
 				</button>
@@ -231,23 +232,34 @@
 						graphEngine.updateVisibility(uuid, !willBeHidden);
 						dataProvider.updateVisibility(uuid, willBeHidden);
 					}}
-					title={item.hidden ? 'Show' : 'Hide'}
-					class="flex h-6 w-6 items-center justify-center rounded text-sm transition-colors
-						text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700
-						dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+					aria-label={item.hidden ? 'Show' : 'Hide'}
+					class="flex h-7 w-7 items-center justify-center rounded transition-colors
+						text-icon-muted hover:bg-surface-hover hover:text-foreground-secondary
+						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
-					{item.hidden ? '🙈' : '👁'}
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
+						{#if item.hidden}
+							<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+							<line x1="1" y1="1" x2="23" y2="23" />
+						{:else}
+							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+							<circle cx="12" cy="12" r="3" />
+						{/if}
+					</svg>
 				</button>
 
 				<!-- Delete button -->
 				<button
 					onclick={() => dataProvider.removeFRDataWithUUID(item.type, uuid)}
-					title="Remove"
-					class="flex h-6 w-6 items-center justify-center rounded text-sm text-zinc-400
-						transition-colors hover:bg-red-100 hover:text-red-600
-						dark:hover:bg-red-900/30 dark:hover:text-red-400"
+					aria-label="Remove"
+					class="flex h-7 w-7 items-center justify-center rounded transition-colors
+						text-icon-muted hover:bg-destructive-muted hover:text-destructive
+						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
-					✕
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
 				</button>
 			</div>
 
@@ -261,9 +273,9 @@
 						<select
 							value={currentChannelVal}
 							onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
-							class="h-6 rounded border border-zinc-200 bg-white px-1 text-xs text-zinc-700
-								focus:outline-none focus:ring-1 focus:ring-zinc-400
-								dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+							aria-label="Channel"
+							class="h-7 rounded border border-input bg-surface-raised px-1 text-xs text-foreground-secondary
+								focus:outline-none focus:ring-1 focus:ring-accent-raised-secondary"
 						>
 							{#each channelOpts as opt (opt.value)}
 								<option value={opt.value}>{opt.label}</option>
@@ -278,9 +290,10 @@
 						onmousedown={() => startYOffset(uuid, 'dec')}
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
-						class="flex h-6 w-6 items-center justify-center rounded border border-zinc-200
-							text-xs text-zinc-500 hover:bg-zinc-100
-							dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+						aria-label="Decrease Y offset"
+						class="flex h-7 w-7 items-center justify-center rounded border border-input
+							text-xs text-icon-muted transition-colors hover:bg-surface-hover
+							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						−
 					</button>
@@ -289,18 +302,19 @@
 						type="number"
 						value={item.yOffset ?? 0}
 						oninput={(e) => handleYOffsetInput(uuid, e.currentTarget.value)}
-						class="h-6 w-12 rounded border border-zinc-200 bg-white text-center text-xs
-							text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-400
-							dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+						aria-label="Y offset"
+						class="h-7 w-12 rounded border border-input bg-surface-raised text-center text-xs
+							text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 
 					<button
 						onmousedown={() => startYOffset(uuid, 'inc')}
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
-						class="flex h-6 w-6 items-center justify-center rounded border border-zinc-200
-							text-xs text-zinc-500 hover:bg-zinc-100
-							dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+						aria-label="Increase Y offset"
+						class="flex h-7 w-7 items-center justify-center rounded border border-input
+							text-xs text-icon-muted transition-colors hover:bg-surface-hover
+							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						+
 					</button>

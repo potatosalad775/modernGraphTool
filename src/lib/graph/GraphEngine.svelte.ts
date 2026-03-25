@@ -10,6 +10,8 @@ import { graphStore } from '$lib/stores/graph-store.svelte.js';
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
+	viewBoxWidth: number;
+	viewBoxHeight: number;
 	graphGeometry: { xStart: number; xEnd: number; yTop: number; yBottom: number };
 	labelPosition: Record<string, { x: number; y: number; anchor: string; growUp: boolean; style?: string }>;
 	baselineData: BaselineData;
@@ -28,17 +30,23 @@ class GraphEngine {
 	isInitialized = false;
 
 	constructor() {
+		// Compute viewBox dimensions from configured aspect ratio
+		const aspectRatio = (getConfigValue('VISUALIZATION.ASPECT_RATIO') as string) || '16:9';
+		this.viewBoxWidth = 800;
+		this.viewBoxHeight = aspectRatio === 'CrinGraph' ? 346 : 450;
+
+		const margin = 15;
 		this.graphGeometry = {
-			xStart: 15,
-			xEnd: 785,
-			yTop: 15,
-			yBottom: 435
+			xStart: margin,
+			xEnd: this.viewBoxWidth - margin,
+			yTop: margin,
+			yBottom: this.viewBoxHeight - margin
 		};
 		this.labelPosition = {
-			BOTTOM_LEFT: { x: 60, y: 427, anchor: 'start', growUp: true },
-			BOTTOM_RIGHT: { x: 740, y: 427, anchor: 'end', growUp: true },
-			TOP_LEFT: { x: 60, y: 60, anchor: 'start', growUp: false },
-			TOP_RIGHT: { x: 740, y: 60, anchor: 'end', growUp: false }
+			BOTTOM_LEFT: { x: 60, y: this.graphGeometry.yBottom - 8, anchor: 'start', growUp: true },
+			BOTTOM_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yBottom - 8, anchor: 'end', growUp: true },
+			TOP_LEFT: { x: 60, y: this.graphGeometry.yTop + 45, anchor: 'start', growUp: false },
+			TOP_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yTop + 45, anchor: 'end', growUp: false }
 		};
 		this.baselineData = {
 			uuid: null,
@@ -56,7 +64,7 @@ class GraphEngine {
 
 		this.svg = d3
 			.select(svgEl)
-			.attr('viewBox', '0 0 800 450')
+			.attr('viewBox', `0 0 ${this.viewBoxWidth} ${this.viewBoxHeight}`)
 			.attr('preserveAspectRatio', 'xMidYMid meet');
 
 		this._setupScales();
@@ -64,7 +72,7 @@ class GraphEngine {
 		this._drawFadeGradient();
 		this._createCurveGroup();
 
-		GraphWatermark(this.svg);
+		GraphWatermark(this.svg, this.viewBoxWidth, this.viewBoxHeight);
 		this.graphHandle = new GraphHandle(this.svg, this, isMobile);
 		this.graphInspection = new GraphInspection(this);
 
@@ -178,7 +186,7 @@ class GraphEngine {
 							.attr('uuid', obj.uuid)
 							.attr('width', textContent.length * lineHeight * 0.35)
 							.attr('height', lineHeight)
-							.attr('fill', 'var(--gt-color-surface-container-lowest)')
+							.attr('fill', 'var(--color-color-surface-container-lowest)')
 							.attr('opacity', '0.7')
 							.attr('filter', 'blur(4px)');
 
@@ -203,49 +211,7 @@ class GraphEngine {
 						labelCounter++;
 					});
 
-					// Sample labels (smaller, reduced opacity)
-					if (obj.dispSamples?.length) {
-						const sampleFontSize = Math.max(
-							10,
-							parseInt((getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '17') - 4
-						);
-						for (const key of obj.dispSamples) {
-							const color = obj.colors.samples?.[key] || obj.colors.AVG;
-							const sampleText = `${obj.identifier} ${obj.dispSuffix} (${key})`;
-
-							labelBgGroup
-								.append('rect')
-								.attr('class', 'fr-graph-label-bg-rect')
-								.attr('x', -10)
-								.attr('y', `${(labelCounter - 0.75) * lineHeight}`)
-								.attr('rx', 4)
-								.attr('ry', 4)
-								.attr('uuid', obj.uuid)
-								.attr('width', sampleText.length * lineHeight * 0.3)
-								.attr('height', lineHeight)
-								.attr('fill', 'var(--gt-color-surface-container-lowest)')
-								.attr('opacity', '0.5')
-								.attr('filter', 'blur(4px)');
-
-							labelGroup
-								.append('text')
-								.attr('class', 'fr-graph-label-text')
-								.attr('y', `${labelCounter * lineHeight}`)
-								.attr('fill', color)
-								.attr('opacity', '0.5')
-								.attr('style', this.labelPosition[labelLocation].style ?? null)
-								.attr('text-anchor', this.labelPosition[labelLocation].anchor)
-								.attr('font-size', `${sampleFontSize}px`)
-								.attr(
-									'font-weight',
-									(getConfigValue('VISUALIZATION.LABEL.TEXT_WEIGHT') as string) || '600'
-								)
-								.attr('uuid', obj.uuid)
-								.text(sampleText);
-
-							labelCounter++;
-						}
-					}
+					// Sample traces do not get individual labels
 
 					if (this.labelPosition[labelLocation].growUp) {
 						labelGroup.attr(
@@ -653,8 +619,6 @@ class GraphEngine {
 				const sample = obj.samples[sampleIndex];
 				if (!sample?.[side]) continue;
 
-				const color = obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG;
-
 				this.curveGroup
 					.append('path')
 					.datum(() => FRSmoother.smooth(sample[side]!.data))
@@ -664,7 +628,7 @@ class GraphEngine {
 					.attr('channel', key)
 					.attr('sample', 'true')
 					.attr('identifier', obj.identifier)
-					.attr('stroke', color)
+					.attr('stroke', '#888')
 					.attr('stroke-width', String(sampleThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
 					.attr('opacity', '0.35')
@@ -775,8 +739,8 @@ class GraphEngine {
 			.attr('y2', this.graphGeometry.yTop)
 			.attr('stroke', (d) =>
 				d === 20 || d === 20000 || majorPoints.has(d)
-					? 'var(--gt-graph-grid-major)'
-					: 'var(--gt-graph-grid-minor)'
+					? 'var(--color-graph-grid-major)'
+					: 'var(--color-graph-grid-minor)'
 			)
 			.attr('stroke-width', (d) =>
 				d === 20 || d === 20000 || majorPoints.has(d) ? 1 : 0.5
@@ -791,7 +755,7 @@ class GraphEngine {
 			.attr('font-size', '0.6rem')
 			.attr('font-weight', (d) => (majorPoints.has(d) ? '500' : '300'))
 			.attr('text-anchor', 'middle')
-			.attr('fill', 'var(--gt-graph-grid-text)')
+			.attr('fill', 'var(--color-graph-grid-text)')
 			.text((d) => (d >= 1000 ? `${d / 1000}k` : d));
 	}
 
@@ -858,7 +822,7 @@ class GraphEngine {
 			.attr('font-size', '0.6rem')
 			.attr('font-weight', '400')
 			.attr('text-anchor', 'start')
-			.attr('fill', 'var(--gt-graph-grid-text)');
+			.attr('fill', 'var(--color-graph-grid-text)');
 
 		this.orderOverlayLayers();
 	}
@@ -880,7 +844,7 @@ class GraphEngine {
 			.attr('y2', (d) => scale(d))
 			.attr('stroke', (d) => {
 				const isMajor = d % 10 === 0;
-				return isMajor ? 'var(--gt-graph-grid-major)' : 'var(--gt-graph-grid-minor)';
+				return isMajor ? 'var(--color-graph-grid-major)' : 'var(--color-graph-grid-minor)';
 			})
 			.attr('stroke-width', (d) => {
 				const isMajor = d % 10 === 0;
@@ -900,7 +864,7 @@ class GraphEngine {
 					.attr('font-size', '0.6rem')
 					.attr('font-weight', '400')
 					.attr('text-anchor', 'start')
-					.attr('fill', 'var(--gt-graph-grid-text)')
+					.attr('fill', 'var(--color-graph-grid-text)')
 					.text(d);
 			}
 		});
@@ -918,8 +882,8 @@ class GraphEngine {
 			.append('rect')
 			.attr('x', ix)
 			.attr('y', iy)
-			.attr('width', 800 - 2 * ix)
-			.attr('height', 450 - 2 * iy)
+			.attr('width', this.viewBoxWidth - 2 * ix)
+			.attr('height', this.viewBoxHeight - 2 * iy)
 			.attr('fill', 'white')
 			.attr('filter', 'blur(5px)');
 	}

@@ -86,15 +86,15 @@
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
 	<div
-		class="flex shrink-0 items-center gap-2 border-b border-zinc-200 px-2 py-1.5 dark:border-zinc-700"
+		class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5 border-border"
 	>
 		<!-- Brands toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = false)}
-			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors
+			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 				{!showPhonePane
-				? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}"
+				? 'bg-accent text-accent-foreground'
+				: 'text-foreground-secondary hover:bg-surface-hover'}"
 		>
 			{m.phone_selector_header_brand_btn()}
 		</button>
@@ -104,18 +104,17 @@
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
-			class="min-w-0 flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900
-				placeholder-zinc-400 focus:border-zinc-500 focus:outline-none
-				dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500"
+			class="min-w-0 flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-sm text-foreground
+				placeholder-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
 		/>
 
 		<!-- Devices toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = true)}
-			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors
+			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 				{showPhonePane
-				? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-				: 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'}"
+				? 'bg-accent text-accent-foreground'
+				: 'text-foreground-secondary hover:bg-surface-hover'}"
 		>
 			{m.phone_selector_header_device_btn()}
 		</button>
@@ -126,20 +125,20 @@
 		<div class="flex h-full flex-row">
 			<!-- Brand list -->
 			<div
-				class="ps-brand-pane flex flex-col overflow-y-auto border-r border-zinc-200 dark:border-zinc-700"
+				class="ps-brand-pane flex flex-col overflow-y-auto border-r border-border"
 				class:ps-brand-hidden={showPhonePane}
 			>
 				{#each brandListData as brand (brand)}
 					<label
 						class="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm
-							hover:bg-zinc-100 dark:hover:bg-zinc-800
-							{selectedBrands.has(brand) ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'text-zinc-700 dark:text-zinc-300'}"
+							hover:bg-surface-hover
+							{selectedBrands.has(brand) ? 'font-semibold text-foreground' : 'text-foreground-secondary'}"
 					>
 						<input
 							type="checkbox"
 							checked={selectedBrands.has(brand)}
 							onchange={(e) => toggleBrand(brand, e.currentTarget.checked)}
-							class="accent-zinc-700 dark:accent-zinc-300"
+							class="accent-accent"
 						/>
 						<span class="truncate">{brand}</span>
 					</label>
@@ -152,7 +151,7 @@
 				class:ps-phone-hidden={!showPhonePane}
 			>
 				{#if displayPhones.length === 0}
-					<p class="px-3 py-4 text-xs text-zinc-400 dark:text-zinc-600">
+					<p class="px-3 py-6 text-center text-xs text-muted">
 						{searchQuery.trim() ? 'No results.' : 'No devices.'}
 					</p>
 				{/if}
@@ -161,8 +160,8 @@
 					{@const isLoaded = loadedIds.has(phone.identifier)}
 					{@const isLoading = loadingIds.has(phone.identifier)}
 					<div
-						class="flex flex-col border-b border-zinc-100 px-3 py-1.5 dark:border-zinc-800
-							{isLoaded ? 'bg-zinc-50 dark:bg-zinc-800/40' : ''}"
+						class="flex flex-col border-b border-border-muted px-3 py-1.5-muted
+							{isLoaded ? 'bg-surface-hover/40' : ''}"
 					>
 						<label class="flex cursor-pointer items-start gap-2">
 							<input
@@ -170,30 +169,30 @@
 								checked={isLoaded}
 								disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 								onchange={(e) => togglePhone(phone.identifier, isLoaded, e.currentTarget.checked)}
-								class="mt-0.5 shrink-0 accent-zinc-700 dark:accent-zinc-300"
+								class="mt-0.5 shrink-0 accent-accent"
 							/>
 							<div class="flex min-w-0 flex-1 flex-col">
 								<span
 									class="truncate text-sm leading-snug
 										{isLoaded
-										? 'font-medium text-zinc-900 dark:text-zinc-100'
-										: 'text-zinc-700 dark:text-zinc-300'}
+										? 'font-medium text-foreground'
+										: 'text-foreground-secondary'}
 										{isLoading ? 'opacity-50' : ''}"
 								>
 									{phone.identifier}
 								</span>
 
-								<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 									<!-- Score stars -->
 									{#if phone.reviewScore !== undefined}
-										<span class="text-xs text-amber-500" title="Score: {phone.reviewScore}">
+										<span class="text-xs text-rating" title="Score: {phone.reviewScore}">
 											{renderStars(phone.reviewScore)}
 										</span>
 									{/if}
 
 									<!-- Price -->
 									{#if phone.price}
-										<span class="text-xs text-zinc-500 dark:text-zinc-400">{phone.price}</span>
+										<span class="text-xs text-muted">{phone.price}</span>
 									{/if}
 
 									<!-- Review link -->
@@ -203,7 +202,7 @@
 											target="_blank"
 											rel="noopener noreferrer"
 											onclick={(e) => e.stopPropagation()}
-											class="text-xs text-blue-600 hover:underline dark:text-blue-400"
+											class="text-xs text-link hover:underline"
 										>
 											{m.phone_selector_item_review()}
 										</a>
@@ -216,7 +215,7 @@
 											target="_blank"
 											rel="noopener noreferrer"
 											onclick={(e) => e.stopPropagation()}
-											class="text-xs text-blue-600 hover:underline dark:text-blue-400"
+											class="text-xs text-link hover:underline"
 										>
 											{m.phone_selector_item_shop()}
 										</a>
@@ -226,7 +225,7 @@
 
 							<!-- Loading spinner -->
 							{#if isLoading}
-								<span class="mt-0.5 shrink-0 animate-spin text-xs text-zinc-400">⟳</span>
+								<span class="mt-0.5 shrink-0 animate-spin text-xs text-muted">⟳</span>
 							{/if}
 						</label>
 					</div>
@@ -237,11 +236,11 @@
 
 	<!-- Clear brands button -->
 	{#if selectedBrands.size > 0}
-		<div class="shrink-0 border-t border-zinc-200 p-2 dark:border-zinc-700">
+		<div class="shrink-0 border-t border-border p-2 border-border">
 			<button
 				onclick={clearBrands}
-				class="w-full rounded-md bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white
-					hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300"
+				class="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition-colors
+					hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>
 				{m.phone_selector_clear_brands_btn()}
 			</button>

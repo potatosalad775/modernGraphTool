@@ -34,8 +34,7 @@
 <div
 	role="none"
 	tabindex="-1"
-	class="w-[5px] cursor-col-resize bg-zinc-200 transition-colors hover:bg-zinc-400 dark:bg-zinc-700 dark:hover:bg-zinc-500"
-	class:bg-zinc-400={isDragging}
-	class:dark:bg-zinc-500={isDragging}
+	class="w-[5px] cursor-col-resize bg-handle transition-colors hover:bg-handle-active"
+	class:bg-handle-active={isDragging}
 	onmousedown={startDrag}
 ></div>

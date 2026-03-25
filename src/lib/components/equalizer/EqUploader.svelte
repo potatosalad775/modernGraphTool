@@ -26,13 +26,13 @@
 <div class="flex gap-2">
   <button
     onclick={() => phoneInputEl?.click()}
-    class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+    class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
   >
     {m.extension_equalizer_upload_fr()}
   </button>
   <button
     onclick={() => targetInputEl?.click()}
-    class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+    class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
   >
     {m.extension_equalizer_upload_target()}
   </button>

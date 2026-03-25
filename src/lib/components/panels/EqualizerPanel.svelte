@@ -133,12 +133,12 @@
 			type="checkbox"
 			checked={eqStore.isEnabled}
 			onchange={() => (eqStore.isEnabled = !eqStore.isEnabled)}
-			class="h-4 w-4 accent-zinc-700 dark:accent-zinc-300"
+			class="h-4 w-4 accent-accent"
 		/>
-		<span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+		<span class="text-sm font-medium text-foreground-secondary">
 			{m.menu_item_equalizer_label()}
 		</span>
-		<span class="text-xs text-zinc-500 dark:text-zinc-400">
+		<span class="text-xs text-muted">
 			({eqStore.isEnabled ? 'ON' : 'OFF'})
 		</span>
 	</label>
@@ -152,7 +152,7 @@
 	<!-- AutoEQ — collapsible -->
 	<details class="group">
 		<summary
-			class="cursor-pointer select-none text-sm font-medium text-zinc-700 dark:text-zinc-300"
+			class="cursor-pointer select-none text-sm font-medium text-foreground-secondary"
 		>
 			AutoEQ
 		</summary>
@@ -164,7 +164,7 @@
 	<!-- Audio Player — collapsible -->
 	<details class="group">
 		<summary
-			class="cursor-pointer select-none text-sm font-medium text-zinc-700 dark:text-zinc-300"
+			class="cursor-pointer select-none text-sm font-medium text-foreground-secondary"
 		>
 			Audio Player
 		</summary>
@@ -179,7 +179,7 @@
 	<!-- Device PEQ — USB/Network hardware EQ bridge -->
 	<details class="group">
 		<summary
-			class="cursor-pointer select-none text-sm font-medium text-zinc-700 dark:text-zinc-300"
+			class="cursor-pointer select-none text-sm font-medium text-foreground-secondary"
 		>
 			Device PEQ
 		</summary>

@@ -36,7 +36,7 @@
 		<button
 			onclick={toggleTheme}
 			title={appStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-			class="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+			class="flex h-9 w-9 items-center justify-center rounded-md border border-input text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{#if appStore.theme === 'dark'}
 				<!-- Moon icon -->
@@ -81,7 +81,7 @@
 
 		<!-- Language selector (conditional) -->
 		{#if enableI18n}
-			<span class="h-5 w-px bg-zinc-300 dark:bg-zinc-600"></span>
+			<span class="h-5 w-px bg-separator"></span>
 			<!-- Globe icon -->
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +91,7 @@
 				stroke-width="1.5"
 				stroke-linecap="round"
 				stroke-linejoin="round"
-				class="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400"
+				class="h-4 w-4 shrink-0 text-muted"
 				aria-hidden="true"
 			>
 				<circle cx="12" cy="12" r="10" />
@@ -103,7 +103,7 @@
 			<select
 				value={getLocale()}
 				onchange={handleLocaleChange}
-				class="h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+				class="h-9 rounded-md border border-input bg-surface-raised px-2 text-sm text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
 			>
 				{#each languages as lang (lang.value)}
 					<option value={lang.value}>{lang.label}</option>
@@ -114,7 +114,7 @@
 
 	<!-- Description (conditional) -->
 	{#if description && description.length > 0}
-		<div class="flex flex-col gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+		<div class="flex flex-col gap-2 text-sm text-foreground-secondary">
 			{#each description as item (item.CONTENT)}
 				{#if item.TYPE === 'text'}
 					<p>{item.CONTENT}</p>
@@ -135,10 +135,10 @@
 	<!-- App info section -->
 	<div class="flex flex-col items-center gap-2 text-center">
 		<div class="flex items-baseline gap-2">
-			<h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100">modernGraphTool</h2>
-			<span class="text-xs text-zinc-500">beta</span>
+			<h2 class="text-base font-bold text-foreground">modernGraphTool</h2>
+			<span class="text-xs text-muted">beta</span>
 		</div>
-		<p class="text-xs text-zinc-500">Open-source project under the MIT license</p>
+		<p class="text-xs text-muted">Open-source project under the MIT license</p>
 		<div class="flex gap-2">
 			<!-- GitHub button -->
 			<a
@@ -146,7 +146,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="GitHub"
-				class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +171,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="Documentation"
-				class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -196,7 +196,7 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					title="Support on Ko-fi"
-					class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+					class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"

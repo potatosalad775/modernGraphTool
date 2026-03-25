@@ -43,17 +43,17 @@
 	<Dialog.Root bind:open onOpenChange={(v) => { if (!v) dismiss(); }}>
 		<Dialog.Portal>
 			<Dialog.Overlay
-				class="fixed inset-0 z-40 bg-black/50"
+				class="fixed inset-0 z-40 bg-overlay"
 			/>
 			<Dialog.Content
 				class="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2
-					rounded-xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
+					rounded-xl bg-surface-raised p-6 shadow-2xl"
 			>
-				<Dialog.Title class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+				<Dialog.Title class="text-lg font-semibold text-foreground">
 					{sponsor.heading}
 				</Dialog.Title>
 
-				<Dialog.Description class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+				<Dialog.Description class="mt-1 text-sm text-muted">
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
@@ -78,8 +78,8 @@
 							href={buildUtmUrl(sponsor.ctaLink, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg bg-zinc-800 px-4 py-2.5 text-center text-sm font-medium text-white
-								hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300"
+							class="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground transition-colors
+								hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{sponsor.ctaText}
 						</a>
@@ -90,8 +90,8 @@
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg border border-zinc-300 px-4 py-2.5 text-center text-sm font-medium
-								text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+							class="rounded-lg border border-input px-4 py-2.5 text-center text-sm font-medium
+								text-foreground-secondary hover:bg-surface-hover-secondary"
 						>
 							{sponsor.cta2Text}
 						</a>
@@ -99,8 +99,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-4 w-full text-center text-xs text-zinc-400 hover:text-zinc-600
-						dark:text-zinc-500 dark:hover:text-zinc-300"
+					class="mt-4 w-full text-center text-xs text-muted hover:text-foreground-secondary-secondary"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

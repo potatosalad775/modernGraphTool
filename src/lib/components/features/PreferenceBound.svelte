@@ -175,10 +175,10 @@
 
 <button
 	onclick={toggle}
-	class="rounded border px-2 py-1 text-xs transition-colors
+	class="rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
     {isVisible
-		? 'border-zinc-800 bg-zinc-800 text-white dark:border-zinc-200 dark:bg-zinc-200 dark:text-zinc-900'
-		: 'border-zinc-300 bg-white text-zinc-600 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-400 dark:hover:text-zinc-200'}"
+		? 'border-accent bg-accent text-accent-foreground'
+		: 'border-input bg-surface-raised text-foreground-secondary hover:bg-surface-hover hover:text-foreground'}"
 >
 	{m.pref_bound_btn_label()}
 </button>

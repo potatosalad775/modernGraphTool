@@ -254,7 +254,7 @@
 			audioSource = (e.target as HTMLSelectElement).value;
 			if (isPlaying) stop();
 		}}
-		class="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+		class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-sm"
 	>
 		<option value="">{m.extension_equalizer_player_option_init()}</option>
 		<option value="white">{m.extension_equalizer_player_option_white()}</option>
@@ -266,7 +266,7 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-zinc-500"
+			<span class="text-xs text-muted"
 				>{m.extension_equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{toneFreq} Hz</span
 				></span
@@ -291,7 +291,7 @@
 					);
 					if (oscillatorNode && isPlaying) oscillatorNode.frequency.value = toneFreq;
 				}}
-				class="w-full accent-zinc-700 dark:accent-zinc-300"
+				class="w-full accent-accent"
 			/>
 		</div>
 	{/if}
@@ -300,7 +300,7 @@
 	{#if audioSource === 'file'}
 		<input type="file" accept="audio/*" onchange={loadFile} class="text-xs" />
 		{#if fileLoaded}
-			<div class="flex items-center gap-2 text-xs text-zinc-500">
+			<div class="flex items-center gap-2 text-xs text-muted">
 				<span class="tabular-nums">{formatTime(currentTime)}</span>
 				<span>/</span>
 				<span class="tabular-nums">{formatTime(duration)}</span>
@@ -313,12 +313,12 @@
 		<button
 			onclick={stop}
 			disabled={!audioSource}
-			class="rounded border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-600 dark:hover:bg-zinc-700"
+			class="rounded border border-input px-2 py-1 text-sm transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
 		>⏮</button>
 		<button
 			onclick={togglePlay}
 			disabled={!audioSource || (audioSource === 'file' && !fileLoaded)}
-			class="rounded border border-zinc-300 px-3 py-1 text-sm hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-600 dark:hover:bg-zinc-700"
+			class="rounded border border-input px-3 py-1 text-sm transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
 		>{isPlaying ? '⏸' : '▶'}</button>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">
@@ -333,7 +333,7 @@
 					volume = parseFloat((e.target as HTMLInputElement).value);
 					if (gainNode) gainNode.gain.value = volume;
 				}}
-				class="w-full accent-zinc-700 dark:accent-zinc-300"
+				class="w-full accent-accent"
 			/>
 		</div>
 	</div>
@@ -344,7 +344,7 @@
 			type="checkbox"
 			checked={filtersEnabled}
 			onchange={(e) => (filtersEnabled = (e.target as HTMLInputElement).checked)}
-			class="h-3 w-3 accent-zinc-700 dark:accent-zinc-300"
+			class="h-3 w-3 accent-accent"
 		/>
 		{m.extension_equalizer_player_filter_toggle()}
 	</label>

@@ -7,5 +7,7 @@
 	<div class="min-h-0 flex-1 overflow-y-auto">
 		<PhoneSelector />
 	</div>
-	<CrossSiteSearch />
+	<div class="border-t border-border">
+		<CrossSiteSearch />
+	</div>
 </div>

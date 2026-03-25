@@ -15,13 +15,17 @@ interface WatermarkObject {
 
 type WatermarkPositionData = Record<string, { x: number; y: number; anchor: string }>;
 
-const GraphWatermark = (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
+const GraphWatermark = (
+	svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+	viewBoxWidth = 800,
+	viewBoxHeight = 450
+) => {
 	const watermarkPositionData: WatermarkPositionData = {
-		BOTTOM_LEFT: { x: 50, y: 400, anchor: 'start' },
-		BOTTOM_RIGHT: { x: 754, y: 400, anchor: 'end' },
+		BOTTOM_LEFT: { x: 50, y: viewBoxHeight - 50, anchor: 'start' },
+		BOTTOM_RIGHT: { x: viewBoxWidth - 46, y: viewBoxHeight - 50, anchor: 'end' },
 		TOP_LEFT: { x: 50, y: 70, anchor: 'start' },
-		TOP_RIGHT: { x: 754, y: 70, anchor: 'end' },
-		CENTER: { x: 400, y: 275, anchor: 'middle' }
+		TOP_RIGHT: { x: viewBoxWidth - 46, y: 70, anchor: 'end' },
+		CENTER: { x: viewBoxWidth / 2, y: Math.round(viewBoxHeight * 0.61), anchor: 'middle' }
 	};
 
 	// Display Rig Description

@@ -62,7 +62,7 @@
     onchange={(e) => {
       eqStore.sourcePhoneUUID = (e.target as HTMLSelectElement).value || null;
     }}
-    class="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+    class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-sm"
   >
     <option value="">{m.extension_equalizer_phone_select_option_source()}</option>
     {#each sourceOptions as opt (opt.uuid)}
@@ -76,7 +76,7 @@
     onchange={(e) => {
       eqStore.autoEqTargetUUID = (e.target as HTMLSelectElement).value || null;
     }}
-    class="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+    class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-sm"
   >
     <option value="">{m.extension_equalizer_phone_select_option_target()}</option>
     {#each targetOptions as opt (opt.uuid)}

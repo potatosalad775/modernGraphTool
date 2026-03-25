@@ -22,7 +22,7 @@
 	}
 </script>
 
-<header class="flex h-12 items-center border-b border-zinc-200 bg-white px-4 dark:border-zinc-700 dark:bg-zinc-900">
+<header class="flex h-12 items-center border-b border-border bg-surface-raised px-4">
 	<nav class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
 		<a href="." class="flex items-center no-underline">
@@ -32,7 +32,7 @@
 			{:else if titleType === 'IMAGE'}
 				<img src={titleContent} alt="topbar title" class="h-8" />
 			{:else}
-				<span class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{titleContent}</span>
+				<span class="text-base font-semibold text-foreground">{titleContent}</span>
 			{/if}
 		</a>
 
@@ -45,7 +45,7 @@
 						href={link.URL}
 						target="_blank"
 						rel="noopener"
-						class="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+						class="text-sm text-foreground-secondary hover:text-foreground"
 					>
 						{link.TITLE}
 					</a>
@@ -58,7 +58,7 @@
 			<button
 				type="button"
 				onclick={openSidebar}
-				class="rounded-md p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+				class="rounded-md p-2 text-foreground-secondary hover:bg-surface-hover"
 				aria-label="Open menu"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6">
@@ -74,20 +74,20 @@
 	<!-- Backdrop -->
 	<div
 		role="presentation"
-		class="fixed inset-0 z-40 bg-black/40"
+		class="fixed inset-0 z-40 bg-overlay"
 		onclick={closeSidebar}
 	></div>
 
 	<!-- Drawer -->
-	<div class="fixed right-0 top-0 z-50 flex h-full w-64 flex-col bg-white shadow-xl dark:bg-zinc-900">
-		<div class="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-			<h2 class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+	<div class="fixed right-0 top-0 z-50 flex h-full w-64 flex-col bg-surface-raised shadow-xl">
+		<div class="flex items-center justify-between border-b border-border px-4 py-3">
+			<h2 class="text-sm font-semibold text-foreground-secondary">
 				{m.top_nav_bar_sidebar_link_title()}
 			</h2>
 			<button
 				type="button"
 				onclick={closeSidebar}
-				class="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+				class="rounded-md p-1 text-foreground-secondary hover:bg-surface-hover"
 				aria-label="Close menu"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
@@ -102,7 +102,7 @@
 					target="_blank"
 					rel="noopener"
 					onclick={closeSidebar}
-					class="rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+					class="rounded-md px-3 py-2 text-sm text-foreground-secondary hover:bg-surface-hover"
 				>
 					{link.TITLE}
 				</a>

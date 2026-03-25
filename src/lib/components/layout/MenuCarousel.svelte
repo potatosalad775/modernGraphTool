@@ -100,7 +100,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
-	class="flex h-12 select-none items-center overflow-hidden border-t border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+	class="flex h-12 select-none items-center overflow-hidden border-t border-border bg-surface-raised"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}
@@ -110,6 +110,7 @@
 >
 	<div
 		role="tablist"
+		aria-orientation="horizontal"
 		class="flex items-center gap-3 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
 		style:transform="translateX({scrollX}px)"
 		style:transition={isDragging ? 'none' : undefined}
@@ -119,13 +120,10 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all"
-				class:text-zinc-900={menuStore.currentPanel === panel.id}
-				class:dark:text-zinc-100={menuStore.currentPanel === panel.id}
-				class:text-zinc-400={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) === 1}
-				class:dark:text-zinc-500={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) === 1}
-				class:text-zinc-300={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) !== 1}
-				class:dark:text-zinc-600={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) !== 1}
+				class="w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				class:text-accent={menuStore.currentPanel === panel.id}
+				class:text-carousel-near={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) === 1}
+				class:text-carousel-far={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) !== 1}
 				onclick={() => goTo(i)}
 			>
 				{panel.label()}

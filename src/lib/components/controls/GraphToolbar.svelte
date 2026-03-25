@@ -10,14 +10,23 @@
 </script>
 
 <div
-	class="flex flex-wrap items-center justify-center gap-2 border-b border-zinc-200 px-3 py-2 dark:border-zinc-700"
+	class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-border px-3 py-2 border-border"
 >
-	<NormalizerInput />
-	<SmoothingButton />
-	<YAxisScaleButton />
-	<PreferenceBound />
-	<InspectionToggle />
-	<ScreenshotButton />
-	<ShareButton />
-	<ShopLink />
+	<!-- Data controls: normalization, smoothing, scale -->
+	<div class="flex flex-wrap items-center gap-2">
+		<NormalizerInput />
+		<SmoothingButton />
+		<YAxisScaleButton />
+	</div>
+	<!-- Graph features: preference bound, inspection -->
+	<div class="flex flex-wrap items-center gap-2">
+		<PreferenceBound />
+		<InspectionToggle />
+	</div>
+	<!-- Actions: screenshot, share, shop -->
+	<div class="flex flex-wrap items-center gap-2">
+		<ScreenshotButton />
+		<ShareButton />
+		<ShopLink />
+	</div>
 </div>

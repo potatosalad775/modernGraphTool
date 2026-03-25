@@ -122,22 +122,22 @@
 <div class="flex flex-col gap-2">
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
-		<span class="text-xs text-zinc-500 dark:text-zinc-400">
+		<span class="text-xs text-muted">
 			{m.extension_equalizer_filter_list_preamp()}:
-			<span class="font-medium text-zinc-900 dark:text-zinc-100">{preamp.toFixed(1)} dB</span>
+			<span class="font-medium text-foreground">{preamp.toFixed(1)} dB</span>
 		</span>
 		<div class="flex gap-1">
 			<button
 				onclick={addBand}
-				class="rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-700"
+				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>+</button>
 			<button
 				onclick={removeBand}
-				class="rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-700"
+				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>−</button>
 			<button
 				onclick={sortBands}
-				class="rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-700"
+				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>↕</button>
 		</div>
 	</div>
@@ -147,7 +147,7 @@
 		<table class="w-full text-xs">
 			<thead>
 				<tr
-					class="border-b border-zinc-200 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+					class="border-b border-border text-muted border-border"
 				>
 					<th class="w-6 pb-1 text-left font-normal"></th>
 					<th class="pb-1 text-left font-normal">Type</th>
@@ -159,14 +159,14 @@
 			</thead>
 			<tbody>
 				{#each eqStore.filters as filter, i (i)}
-					<tr class="border-b border-zinc-100 dark:border-zinc-800">
+					<tr class="border-b border-border-muted">
 						<td class="py-0.5 pr-1">
 							<input
 								type="checkbox"
 								checked={filter.enabled}
 								onchange={(e) =>
 									updateFilter(i, { enabled: (e.target as HTMLInputElement).checked })}
-								class="h-3 w-3 accent-zinc-700 dark:accent-zinc-300"
+								class="h-3 w-3 accent-accent"
 							/>
 						</td>
 						<td class="py-0.5 pr-1">
@@ -176,7 +176,7 @@
 									updateFilter(i, {
 										type: (e.target as HTMLSelectElement).value as EQFilter['type']
 									})}
-								class="w-full rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
+								class="w-full rounded border-0 bg-transparent text-xs focus:outline-none"
 							>
 								<option value="PK">{m.extension_equalizer_filter_list_peak()}</option>
 								<option value="LSQ">{m.extension_equalizer_filter_list_lowshelf()}</option>
@@ -194,7 +194,7 @@
 									const raw = (e.target as HTMLInputElement).value;
 									updateFilter(i, { freq: raw === '' ? null : (parseFloat(raw) || null) });
 								}}
-								class="w-16 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
+								class="w-16 rounded border-0 bg-transparent text-xs focus:outline-none"
 							/>
 						</td>
 						<td class="py-0.5 pr-1">
@@ -209,7 +209,7 @@
 									const raw = (e.target as HTMLInputElement).value;
 									updateFilter(i, { q: raw === '' ? null : (parseFloat(raw) || null) });
 								}}
-								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
+								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none"
 							/>
 						</td>
 						<td class="py-0.5 pr-1">
@@ -225,13 +225,13 @@
 									const val = parseFloat(raw);
 									updateFilter(i, { gain: raw === '' ? null : (isNaN(val) ? null : val) });
 								}}
-								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
+								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none"
 							/>
 						</td>
 						<td class="py-0.5">
 							<button
 								onclick={() => eqStore.removeBandAt(i)}
-								class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+								class="text-muted hover:text-foreground-secondary"
 								aria-label="Remove filter"
 							>×</button>
 						</td>
@@ -245,13 +245,13 @@
 	<div class="flex gap-1">
 		<button
 			onclick={importFilters}
-			class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+			class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_import()}
 		</button>
 		<button
 			onclick={exportFilters}
-			class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+			class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export()}
 		</button>
@@ -259,7 +259,7 @@
 	<div>
 		<button
 			onclick={exportGraphicEQ}
-			class="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+			class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export_graphic_eq()}
 		</button>

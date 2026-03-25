@@ -70,49 +70,49 @@
 
 <div class="flex flex-col gap-2 text-sm">
   <!-- Filter settings fieldset -->
-  <fieldset class="rounded border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-    <legend class="px-1 text-xs text-zinc-500 dark:text-zinc-400">{m.extension_equalizer_autoeq_filter_setting()}</legend>
+  <fieldset class="rounded border border-border px-3 py-2 border-border">
+    <legend class="px-1 text-xs text-muted">{m.extension_equalizer_autoeq_filter_setting()}</legend>
     <label class="flex items-center gap-2">
       <input
         type="checkbox"
         checked={useShelfFilter}
         onchange={(e) => (useShelfFilter = (e.target as HTMLInputElement).checked)}
-        class="h-3 w-3 accent-zinc-700"
+        class="h-3 w-3 accent-accent"
       />
       <span class="text-xs">{m.extension_equalizer_autoeq_use_shelf_filter()}</span>
     </label>
   </fieldset>
 
   <!-- Frequency Range -->
-  <fieldset class="rounded border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-    <legend class="px-1 text-xs text-zinc-500 dark:text-zinc-400">{m.extension_equalizer_autoeq_freq_range()}</legend>
+  <fieldset class="rounded border border-border px-3 py-2 border-border">
+    <legend class="px-1 text-xs text-muted">{m.extension_equalizer_autoeq_freq_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={freqMin}
         min="20"
         max="20000"
         oninput={(e) => (freqMin = parseInt((e.target as HTMLInputElement).value) || freqMin)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={freqMax}
         min="20"
         max="20000"
         oninput={(e) => (freqMax = parseInt((e.target as HTMLInputElement).value) || freqMax)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
     </div>
   </fieldset>
 
   <!-- Q Range -->
-  <fieldset class="rounded border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-    <legend class="px-1 text-xs text-zinc-500 dark:text-zinc-400">{m.extension_equalizer_autoeq_q_range()}</legend>
+  <fieldset class="rounded border border-border px-3 py-2 border-border">
+    <legend class="px-1 text-xs text-muted">{m.extension_equalizer_autoeq_q_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={qMin}
@@ -120,9 +120,9 @@
         max="10"
         step="0.1"
         oninput={(e) => (qMin = parseFloat((e.target as HTMLInputElement).value) || qMin)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={qMax}
@@ -130,42 +130,42 @@
         max="10"
         step="0.1"
         oninput={(e) => (qMax = parseFloat((e.target as HTMLInputElement).value) || qMax)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
     </div>
   </fieldset>
 
   <!-- Gain Range -->
-  <fieldset class="rounded border border-zinc-200 px-3 py-2 dark:border-zinc-700">
-    <legend class="px-1 text-xs text-zinc-500 dark:text-zinc-400">{m.extension_equalizer_autoeq_gain_range()}</legend>
+  <fieldset class="rounded border border-border px-3 py-2 border-border">
+    <legend class="px-1 text-xs text-muted">{m.extension_equalizer_autoeq_gain_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={gainMin}
         min="-40"
         max="0"
         oninput={(e) => (gainMin = parseFloat((e.target as HTMLInputElement).value) ?? gainMin)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-zinc-500">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-muted">{m.extension_equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={gainMax}
         min="0"
         max="40"
         oninput={(e) => (gainMax = parseFloat((e.target as HTMLInputElement).value) ?? gainMax)}
-        class="w-20 rounded border border-zinc-200 bg-white px-1 py-0.5 text-xs dark:border-zinc-600 dark:bg-zinc-800"
+        class="w-20 rounded border border-input bg-surface-raised px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
     </div>
   </fieldset>
 
-  <p class="text-xs text-zinc-500 dark:text-zinc-400">{m.extension_equalizer_autoeq_description()}</p>
+  <p class="text-xs text-muted">{m.extension_equalizer_autoeq_description()}</p>
 
   <button
     onclick={runAutoEQ}
     disabled={isRunning}
-    class="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+    class="w-full rounded border border-input bg-surface-raised px-3 py-2 text-sm font-medium text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
   >
     {isRunning ? '...' : m.extension_equalizer_autoeq_run_button()}
   </button>

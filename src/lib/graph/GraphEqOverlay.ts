@@ -91,7 +91,7 @@ export class GraphEqOverlay {
 			.append('circle')
 			.attr('class', 'eq-q-ring')
 			.attr('fill', 'none')
-			.attr('stroke', 'var(--gt-color-primary)')
+			.attr('stroke', 'var(--color-color-primary)')
 			.attr('stroke-width', 1.5)
 			.attr('opacity', 0.5);
 
@@ -100,7 +100,7 @@ export class GraphEqOverlay {
 			.append('circle')
 			.attr('class', 'eq-center-dot')
 			.attr('r', 6)
-			.attr('fill', 'var(--gt-color-primary)')
+			.attr('fill', 'var(--color-color-primary)')
 			.attr('opacity', 0.9);
 
 		// Freq label
@@ -110,7 +110,7 @@ export class GraphEqOverlay {
 			.attr('text-anchor', 'middle')
 			.attr('dy', '-10')
 			.attr('font-size', '10px')
-			.attr('fill', 'var(--gt-color-on-surface)')
+			.attr('fill', 'var(--color-color-on-surface)')
 			.style('pointer-events', 'none')
 			.style('user-select', 'none');
 

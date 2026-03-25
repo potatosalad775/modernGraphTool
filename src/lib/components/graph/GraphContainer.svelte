@@ -63,4 +63,6 @@
 	});
 </script>
 
-<svg bind:this={svgEl} class="w-full h-full"></svg>
+<svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
+	<title>Frequency response graph</title>
+</svg>

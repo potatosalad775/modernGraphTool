@@ -113,7 +113,7 @@ Language switch: setLanguageTag('ko') from $lib/paraglide/runtime
 Tailwind CSS 4 for all component styling. Dark mode via .dark class on <html>:
   `document.documentElement.classList.toggle('dark', appStore.theme === 'dark')`
 static/theme.css — minimal D3 graph CSS variables only (user-editable post-build):
-  --gt-graph-grid-major, --gt-graph-grid-minor, --gt-graph-axis-label, etc.
+  --color-graph-grid-major, --color-graph-grid-minor, --color-graph-axis-label, etc.
 bits-ui for interactive components: Combobox, Slider, Dialog, Popover, Select, Switch, Tooltip
 
 ## Static Output
@@ -200,3 +200,55 @@ Phases:
 - **bits-ui docs**: Fetch https://bits-ui.com/llms.txt for the component index.
   Each component also has its own llms.txt, e.g. https://bits-ui.com/docs/components/combobox/llms.txt
   DO NOT use /llms-full.txt (returns 404).
+
+## Design Context
+
+### Users
+Audio enthusiasts, reviewers, and engineers who compare headphone/speaker frequency response measurements. They visit the tool to load FR data, overlay multiple curves, apply targets and EQ, and draw conclusions about audio device performance. Users range from casual hobbyists browsing squig.link to professionals doing serious measurement analysis. They expect precision and clarity — the graph is the center of attention, and the UI should stay out of the way.
+
+### Brand Personality
+**Modern, minimal, confident.**
+
+Voice: Direct and precise — no unnecessary embellishment. The tool speaks through its data visualization, not decorative UI. Controls are clear and purposeful.
+
+Tone: Professional but not cold. Approachable enough for hobbyists, authoritative enough for professionals.
+
+Emotional goals: **Confidence & trust** (users must feel the data is accurate and the tool is reliable) and **focus & flow** (the UI should disappear so users stay in the zone analyzing data).
+
+### Aesthetic Direction
+**Visual tone:** Clean, monochrome zinc palette with intentional restraint. The graph curves themselves provide the color — the chrome should be neutral and recede. Think "precision instrument with a modern software finish."
+
+**References:**
+- **squig.link / crinacle** — The ecosystem users already know; maintain familiarity with measurement tool conventions
+- **Linear / Vercel / Raycast** — Modern dev tools with minimal chrome, fast interactions, and confident design language
+- **Apple Music / Spotify** — Polished consumer-grade finish applied to audio-adjacent UX; smooth transitions, clear hierarchy
+
+**Anti-references:** Cluttered measurement software (dense toolbars, tiny buttons, Windows-era UI). Avoid looking like legacy desktop audio tools (REW, ARTA) even though users may be familiar with them.
+
+**Theme:** Light and dark mode (class-based `.dark` toggle). Zinc grayscale foundation. Color is reserved for data curves — the UI itself stays monochrome with subtle hover/focus states.
+
+### Design Principles
+
+1. **Data first, chrome second.** The frequency response graph is the hero. Every UI decision should maximize the graph's prominence and readability. Controls support the data — they don't compete with it.
+
+2. **Quiet confidence.** Use restraint in color, motion, and decoration. The design should feel assured and precise, not flashy. Zinc grayscale for UI; let curve colors be the only accent.
+
+3. **Instant clarity.** Every control should be immediately understandable. Labels are concise, states are obvious, and affordances are clear. No hidden functionality behind ambiguous icons.
+
+4. **Accessible by default.** Target WCAG AAA compliance. High contrast ratios, visible focus indicators, keyboard navigability, and screen reader support are non-negotiable. The tool must work for everyone.
+
+5. **Responsive without compromise.** Desktop and mobile must both feel intentional — not a squeezed desktop layout on mobile, but a genuinely adapted experience. The graph always remains usable.
+
+### Design Tokens (Current)
+
+**Colors:** Tailwind zinc scale (50–950) for structural UI. Blue-indigo accent (OKLCH hue 258) for interactive highlights. Operator-customizable via `--color-accent` in `/static/theme.css`. Tailwind utilities: `bg-accent`, `text-accent`, `ring-accent`, `bg-accent-muted`, `text-accent-foreground`, etc. All auto-switch between light/dark mode.
+
+**Typography:** System font stack (Tailwind default). Sizes: text-xs (metadata), text-sm (body/controls), text-lg (headings). Weights: regular (400), medium (500), semibold (600).
+
+**Spacing:** Tailwind default scale. Common values: gap-1 to gap-4, px-2 to px-4, py-1 to py-2. Border radius: rounded (4px) to rounded-xl (12px).
+
+**Borders:** 1px zinc-300 (light) / zinc-600 (dark) for interactive elements. 1px zinc-200 / zinc-700 for structural dividers.
+
+**Shadows:** Minimal — shadow-xl on popovers/dialogs only.
+
+**Motion:** transition-colors on interactive elements. No spring physics or complex animations. Respect prefers-reduced-motion.

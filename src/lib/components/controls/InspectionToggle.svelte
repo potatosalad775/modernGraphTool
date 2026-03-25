@@ -13,13 +13,13 @@
 <button
 	onclick={handleClick}
 	class={[
-		'flex h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors',
+		'flex h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
 		enabled
-			? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-			: 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800'
+			? 'border-accent bg-accent text-accent-foreground'
+			: 'border-input text-foreground-secondary hover:bg-surface-hover'
 	].join(' ')}
 >
 	{m.inspection_toggle_label()}
-	<span class="h-4 w-px {enabled ? 'bg-zinc-600 dark:bg-zinc-400' : 'bg-zinc-300 dark:bg-zinc-600'}"></span>
+	<span class="h-4 w-px {enabled ? 'bg-accent-foreground/30' : 'bg-separator'}"></span>
 	<span class="font-semibold">{enabled ? 'ON' : 'OFF'}</span>
 </button>

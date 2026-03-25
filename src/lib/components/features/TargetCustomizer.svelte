@@ -111,28 +111,45 @@
 	$effect(() => {
 		const frObj = frStore.get(uuid);
 		if (frObj && !originalData) {
-			const cached = new SvelteMap<string, [number, number][]>();
-			const channels = frObj.channels;
-			const sharedSnapshot: ParsedFRData = {};
-			for (const key of Object.keys(channels) as (keyof ParsedFRData)[]) {
-				const ch = channels[key];
-				if (ch) {
-					const dataCopy = ch.data.map(([f, d]) => [f, d] as [number, number]);
-					cached.set(key, dataCopy);
-					sharedSnapshot[key] = {
-						data: dataCopy.map(([f, d]) => [f, d] as [number, number]),
-						metadata: { ...ch.metadata }
-					};
+			// Recover persisted original data from a previous mount (panel switch)
+			const persisted = graphStore.targetOriginalData.get(uuid);
+			if (persisted) {
+				const cached = new SvelteMap<string, [number, number][]>();
+				for (const key of Object.keys(persisted) as (keyof ParsedFRData)[]) {
+					const ch = persisted[key];
+					if (ch) {
+						cached.set(key, ch.data.map(([f, d]) => [f, d] as [number, number]));
+					}
 				}
+				originalData = cached;
+			} else {
+				const cached = new SvelteMap<string, [number, number][]>();
+				const channels = frObj.channels;
+				const sharedSnapshot: ParsedFRData = {};
+				for (const key of Object.keys(channels) as (keyof ParsedFRData)[]) {
+					const ch = channels[key];
+					if (ch) {
+						const dataCopy = ch.data.map(([f, d]) => [f, d] as [number, number]);
+						cached.set(key, dataCopy);
+						sharedSnapshot[key] = {
+							data: dataCopy.map(([f, d]) => [f, d] as [number, number]),
+							metadata: { ...ch.metadata }
+						};
+					}
+				}
+				originalData = cached;
+				// Publish original target data for baseline compensation
+				graphStore.targetOriginalData.set(uuid, sharedSnapshot);
 			}
-			originalData = cached;
-			// Publish original target data for baseline compensation
-			graphStore.targetOriginalData.set(uuid, sharedSnapshot);
 		}
 	});
 
 	onDestroy(() => {
-		graphStore.targetOriginalData.delete(uuid);
+		// Only clean up if the FR data itself has been removed
+		// (not just a panel switch which unmounts/remounts the component)
+		if (!frStore.get(uuid)) {
+			graphStore.targetOriginalData.delete(uuid);
+		}
 	});
 
 	// ── Apply adjustments when filter values change ───────────────────────────
@@ -257,16 +274,16 @@
 	<div class="mt-1 w-full">
 		<button
 			onclick={toggleExpanded}
-			class="rounded px-1.5 py-0.5 text-xs text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+			class="rounded px-1.5 py-0.5 text-xs text-muted transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent hover:text-foreground-secondary"
 		>
 			{m.target_customizer_btn_view()}
 		</button>
 
 		{#if isExpanded}
-			<div class="mt-1 flex flex-col gap-2 rounded border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-700 dark:bg-zinc-800/50">
+			<div class="mt-1 flex flex-col gap-2 rounded border border-border bg-surface p-2 border-border-hover/50">
 				<!-- Active filters -->
 				{#if activeFilters.length === 0}
-					<p class="text-center text-xs text-zinc-400 dark:text-zinc-500">
+					<p class="text-center text-xs text-muted">
 						{m.target_customizer_no_filters()}
 					</p>
 				{/if}
@@ -275,14 +292,14 @@
 					{#each activeFilters as def (def.id)}
 						{@const range = getGainRange(def)}
 						{@const value = filterValues.get(def.id) ?? 0}
-						<div class="flex flex-col gap-0.5 rounded border border-zinc-200 bg-white p-1.5 dark:border-zinc-600 dark:bg-zinc-800">
+						<div class="flex flex-col gap-0.5 rounded border border-border bg-surface-raised p-1.5 border-border-hover">
 							<div class="flex items-center justify-between">
-								<label for="{uuid}-{def.id}" class="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+								<label for="{uuid}-{def.id}" class="text-xs font-medium text-foreground-secondary">
 									{getFilterLabel(def)}
 								</label>
 								<button
 									onclick={() => removeFilter(def.id)}
-									class="text-xs text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
+									class="text-xs text-muted hover:text-destructive"
 									title="Remove"
 								>&times;</button>
 							</div>
@@ -295,9 +312,9 @@
 									step={range.step}
 									{value}
 									oninput={(e) => setFilterValue(def.id, parseFloat(e.currentTarget.value))}
-									class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-300 accent-blue-500 dark:bg-zinc-600"
+									class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-separator accent-accent"
 								/>
-								<span class="w-10 text-right text-xs tabular-nums text-zinc-600 dark:text-zinc-300">
+								<span class="w-10 text-right text-xs tabular-nums text-foreground-secondary">
 									{value.toFixed(1)}
 								</span>
 							</div>
@@ -311,9 +328,8 @@
 					{#if inactiveFilters.length > 0}
 						<select
 							onchange={handleAddFilterChange}
-							class="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-700
-								focus:border-zinc-500 focus:outline-none
-								dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+							class="rounded border border-input bg-surface-raised px-1.5 py-0.5 text-xs text-foreground-secondary
+								focus:outline-none focus:ring-1 focus:ring-accent-hover-secondary"
 						>
 							<option value="">{m.target_customizer_add_filter()}</option>
 							{#each inactiveFilters as def (def.id)}
@@ -327,9 +343,8 @@
 						<select
 							value={selectedPreset}
 							onchange={handlePresetChange}
-							class="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs text-zinc-700
-								focus:border-zinc-500 focus:outline-none
-								dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+							class="rounded border border-input bg-surface-raised px-1.5 py-0.5 text-xs text-foreground-secondary
+								focus:outline-none focus:ring-1 focus:ring-accent-hover-secondary"
 						>
 							<option value="">{m.target_customizer_preset()}</option>
 							{#each filterPresets as preset (preset.name)}
@@ -341,7 +356,7 @@
 					<div class="ml-auto">
 						<button
 							onclick={handleReset}
-							class="rounded bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+							class="rounded bg-surface-hover px-2 py-0.5 text-xs text-foreground-secondary transition-colors hover:bg-handle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{m.target_customizer_btn_reset()}
 						</button>

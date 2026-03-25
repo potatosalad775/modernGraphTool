@@ -56,7 +56,7 @@
 
 {#if targets.length > 0}
 	<div class="flex flex-col gap-2">
-		<span class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+		<span class="text-xs font-semibold uppercase tracking-wide text-muted">
 			{m.target_selector_label()}
 		</span>
 
@@ -66,13 +66,13 @@
 				<div class="flex flex-col gap-1">
 					<button
 						onclick={() => toggleCollapse(group.type)}
-						class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+						class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground-secondary"
 					>
 						<span class="text-[10px]">{collapsedGroups.has(group.type) ? '▶' : '▼'}</span>
 						{group.type}
 					</button>
 					{#if !collapsedGroups.has(group.type)}
-						<div class="flex flex-wrap gap-1">
+						<div class="flex flex-wrap gap-1.5">
 							{#each group.files as file (file)}
 								{@const identifier = getIdentifier(file)}
 								{@const isLoaded = loadedIds.has(identifier)}
@@ -81,10 +81,10 @@
 									onclick={() => toggleTarget(identifier, isLoaded)}
 									disabled={isLoading}
 									class={[
-										'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
+										'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
 										isLoaded
-											? 'bg-zinc-200 text-zinc-900 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600'
-											: 'border border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800'
+											? 'bg-accent-muted text-accent hover:bg-accent-muted/80'
+											: 'border border-input text-foreground-secondary hover:bg-surface-hover'
 									].join(' ')}
 								>
 									{getDisplayName(file)}
@@ -96,7 +96,7 @@
 			{/each}
 		{:else}
 			<!-- Flat list — all targets in one row -->
-			<div class="flex flex-wrap gap-1">
+			<div class="flex flex-wrap gap-1.5">
 				{#each targets as group}
 					{#each group.files as file (file)}
 						{@const identifier = getIdentifier(file)}
@@ -106,10 +106,10 @@
 							onclick={() => toggleTarget(identifier, isLoaded)}
 							disabled={isLoading}
 							class={[
-								'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
+								'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
 								isLoaded
-									? 'bg-zinc-200 text-zinc-900 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600'
-									: 'border border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800'
+									? 'bg-accent-muted text-accent hover:bg-accent-muted/80'
+									: 'border border-input text-foreground-secondary hover:bg-surface-hover'
 							].join(' ')}
 						>
 							{getDisplayName(file)}

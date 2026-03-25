@@ -19,9 +19,8 @@
 	<select
 		value={squiglinkStore.currentSiteUsername ?? ''}
 		onchange={handleChange}
-		class="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700
-			focus:border-zinc-500 focus:outline-none
-			dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+		class="rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary
+			focus:outline-none focus:ring-1 focus:ring-accent"
 	>
 		{#each squiglinkStore.sites as site (site.username)}
 			<option value={site.username}>{site.name}</option>

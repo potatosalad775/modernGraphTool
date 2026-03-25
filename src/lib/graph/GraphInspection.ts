@@ -34,7 +34,7 @@ class GraphInspection {
 			.attr('class', 'inspection-line')
 			.attr('y1', this.graphEngine.graphGeometry.yTop)
 			.attr('y2', this.graphEngine.graphGeometry.yBottom)
-			.attr('stroke', 'var(--gt-color-on-surface)')
+			.attr('stroke', 'var(--color-color-on-surface)')
 			.attr('stroke-width', 1)
 			.attr('stroke-dasharray', '2,2')
 			.attr('opacity', 0.7);
@@ -48,7 +48,7 @@ class GraphInspection {
 			.attr('text-anchor', 'middle')
 			.attr('font-size', '16px')
 			.attr('font-weight', 'bold')
-			.attr('fill', 'var(--gt-color-on-surface)');
+			.attr('fill', 'var(--color-color-on-surface)');
 	}
 
 	/** Called by GraphPanel component to toggle inspection mode */
@@ -244,7 +244,7 @@ class GraphInspection {
 				.attr('y', -16)
 				.attr('width', rectWidth)
 				.attr('height', 18)
-				.attr('fill', 'var(--gt-color-surface-container-lowest)')
+				.attr('fill', 'var(--color-color-surface-container-lowest)')
 				.attr('rx', 2)
 				.attr('opacity', 0.7);
 

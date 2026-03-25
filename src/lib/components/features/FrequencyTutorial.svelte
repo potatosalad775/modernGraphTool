@@ -82,10 +82,10 @@
     {#each FREQ_RANGES as { key } (key)}
       <button
         onclick={() => toggleRange(key)}
-        class="shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors
+        class="shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
           {activeKey === key
-            ? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
-            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}"
+            ? 'bg-accent text-accent-foreground'
+            : 'bg-surface-hover text-foreground-secondary hover:bg-handle'}"
       >
         {getRangeName(key)}
       </button>
@@ -94,7 +94,7 @@
 
   <!-- Description panel: only shown when a range is active -->
   {#if activeKey !== null}
-    <div class="rounded-md bg-zinc-100 px-3 py-2 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+    <div class="rounded-md bg-surface-hover px-3 py-2 text-xs text-foreground-secondary">
       {getRangeDesc(activeKey)}
     </div>
   {/if}

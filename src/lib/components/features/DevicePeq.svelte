@@ -197,7 +197,7 @@
 					<button
 						onclick={connectHid}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+						class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (HID)'}
 					</button>
@@ -206,14 +206,14 @@
 					<button
 						onclick={connectSerial}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+						class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (Serial)'}
 					</button>
 				{/if}
 				<button
 					onclick={toggleNetworkPanel}
-					class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+					class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					Network
 				</button>
@@ -226,12 +226,12 @@
 						placeholder="Device IP"
 						value={networkIP}
 						oninput={(e) => (networkIP = (e.target as HTMLInputElement).value)}
-						class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+						class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs"
 					/>
 					<button
 						onclick={connectNetwork}
 						disabled={devicePeqStore.isConnecting}
-						class="rounded border border-zinc-300 bg-white px-2 py-1 text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+						class="rounded border border-input bg-surface-raised px-2 py-1 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						Connect
 					</button>
@@ -241,14 +241,14 @@
 			<!-- Connected state -->
 			<div class="flex items-center justify-between text-xs">
 				<span
-					class="font-medium text-zinc-700 dark:text-zinc-300"
+					class="font-medium text-foreground-secondary"
 					title={devicePeqStore.manufacturer ?? ''}
 				>
 					{devicePeqStore.deviceName}
 				</span>
 				<button
 					onclick={disconnect}
-					class="rounded border border-red-300 px-2 py-0.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+					class="rounded border border-destructive/40 px-2 py-0.5 text-xs text-destructive hover:bg-destructive-muted"
 				>
 					Disconnect
 				</button>
@@ -259,7 +259,7 @@
 				<select
 					value={devicePeqStore.activeSlot ?? ''}
 					onchange={(e) => onSlotChange(Number((e.target as HTMLSelectElement).value))}
-					class="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+					class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-xs"
 				>
 					{#each devicePeqStore.slots as slot (slot.id)}
 						<option value={slot.id}>{slot.name}</option>
@@ -272,14 +272,14 @@
 				<button
 					onclick={pullFromDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+					class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isReading ? 'Reading...' : 'Pull from Device'}
 				</button>
 				<button
 					onclick={pushToDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+					class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isWriting ? 'Writing...' : 'Push to Device'}
 				</button>
@@ -288,7 +288,7 @@
 
 		<!-- Status message -->
 		{#if devicePeqStore.statusMessage}
-			<p class="text-xs text-zinc-500 dark:text-zinc-400">{devicePeqStore.statusMessage}</p>
+			<p class="text-xs text-muted">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
 {/if}

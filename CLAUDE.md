@@ -191,7 +191,8 @@ Phases:
   8: URL Provider (DONE) — url-provider.ts, ShareButton integration, URL state encoding/decoding,
                          initial data loading from URL or config (AppShell bootstrap),
                          auto-update URL on store changes, config defaults (INITIAL_PANEL, normalization, yScale)
-  9: Testing           — port legacy tests to Vitest
+  9: Testing (DONE)    — DataProvider integration tests (33 tests), FR Normalizer (+6), FR Smoother (+5),
+                         FR Store (+5), URL Provider (20 tests); total 231 tests passing
 
 ## Documentation References (for AI agents in this project)
 - **Svelte 5 + SvelteKit docs**: Available via the MCP plugin `mcp__plugin_svelte_svelte__*` tools.

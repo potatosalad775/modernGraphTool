@@ -8,7 +8,8 @@ import {
 	UpdateVisibilityCommand,
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
-	UpdateYOffsetCommand
+	UpdateYOffsetCommand,
+	UpdateSampleDisplayCommand
 } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
@@ -253,6 +254,44 @@ describe('Commands', () => {
 			cmd.execute(store);
 			cmd.undo(store);
 			expect(store.data.get('a')!.yOffset).toBe(0);
+		});
+	});
+
+	describe('UpdateSampleDisplayCommand', () => {
+		it('sets dispSamples on execute', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: [] }));
+			const cmd = new UpdateSampleDisplayCommand('a', ['L1', 'R1', 'L2']);
+			cmd.execute(store);
+			expect(store.data.get('a')!.dispSamples).toEqual(['L1', 'R1', 'L2']);
+		});
+
+		it('restores previous dispSamples on undo', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: ['L1'] }));
+			const cmd = new UpdateSampleDisplayCommand('a', ['L1', 'R1', 'L2']);
+			cmd.execute(store);
+			cmd.undo(store);
+			expect(store.data.get('a')!.dispSamples).toEqual(['L1']);
+		});
+
+		it('defaults to empty array when no previous dispSamples', () => {
+			store.set('a', makeFRDataObject('a'));
+			const cmd = new UpdateSampleDisplayCommand('a', ['L1']);
+			cmd.execute(store);
+			cmd.undo(store);
+			expect(store.data.get('a')!.dispSamples).toEqual([]);
+		});
+
+		it('does nothing for non-existent uuid', () => {
+			const cmd = new UpdateSampleDisplayCommand('nonexistent', ['L1']);
+			cmd.execute(store);
+			expect(store.data.size).toBe(0);
+		});
+
+		it('can set to empty array (hide all samples)', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: ['L1', 'R1'] }));
+			const cmd = new UpdateSampleDisplayCommand('a', []);
+			cmd.execute(store);
+			expect(store.data.get('a')!.dispSamples).toEqual([]);
 		});
 	});
 });

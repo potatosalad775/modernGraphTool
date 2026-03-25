@@ -186,7 +186,7 @@ class GraphEngine {
 							.append('text')
 							.attr('class', 'fr-graph-label-text')
 							.attr('y', `${labelCounter * lineHeight}`)
-							.attr('fill', obj.colors[channel as keyof typeof obj.colors] || obj.colors?.AVG)
+							.attr('fill', obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG)
 							.attr('style', this.labelPosition[labelLocation].style ?? null)
 							.attr('text-anchor', this.labelPosition[labelLocation].anchor)
 							.attr(
@@ -202,6 +202,50 @@ class GraphEngine {
 
 						labelCounter++;
 					});
+
+					// Sample labels (smaller, reduced opacity)
+					if (obj.dispSamples?.length) {
+						const sampleFontSize = Math.max(
+							10,
+							parseInt((getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '17') - 4
+						);
+						for (const key of obj.dispSamples) {
+							const color = obj.colors.samples?.[key] || obj.colors.AVG;
+							const sampleText = `${obj.identifier} ${obj.dispSuffix} (${key})`;
+
+							labelBgGroup
+								.append('rect')
+								.attr('class', 'fr-graph-label-bg-rect')
+								.attr('x', -10)
+								.attr('y', `${(labelCounter - 0.75) * lineHeight}`)
+								.attr('rx', 4)
+								.attr('ry', 4)
+								.attr('uuid', obj.uuid)
+								.attr('width', sampleText.length * lineHeight * 0.3)
+								.attr('height', lineHeight)
+								.attr('fill', 'var(--gt-color-surface-container-lowest)')
+								.attr('opacity', '0.5')
+								.attr('filter', 'blur(4px)');
+
+							labelGroup
+								.append('text')
+								.attr('class', 'fr-graph-label-text')
+								.attr('y', `${labelCounter * lineHeight}`)
+								.attr('fill', color)
+								.attr('opacity', '0.5')
+								.attr('style', this.labelPosition[labelLocation].style ?? null)
+								.attr('text-anchor', this.labelPosition[labelLocation].anchor)
+								.attr('font-size', `${sampleFontSize}px`)
+								.attr(
+									'font-weight',
+									(getConfigValue('VISUALIZATION.LABEL.TEXT_WEIGHT') as string) || '600'
+								)
+								.attr('uuid', obj.uuid)
+								.text(sampleText);
+
+							labelCounter++;
+						}
+					}
 
 					if (this.labelPosition[labelLocation].growUp) {
 						labelGroup.attr(
@@ -482,6 +526,9 @@ class GraphEngine {
 	/** Draw Phone curve */
 	_drawPhoneCurve(obj: FRDataObject): void {
 		const channels = [...obj.dispChannel];
+		const baseThickness = parseFloat(
+			(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
+		);
 
 		channels.forEach((channel) => {
 			this.curveGroup
@@ -492,14 +539,42 @@ class GraphEngine {
 				.attr('type', obj.type)
 				.attr('channel', channel)
 				.attr('identifier', obj.identifier)
-				.attr('stroke', `${obj.colors[channel as keyof typeof obj.colors] || obj.colors['AVG']}`)
-				.attr(
-					'stroke-width',
-					(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
-				)
+				.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
+				.attr('stroke-width', String(baseThickness))
 				.attr('stroke-dasharray', obj.dash || '1 0')
 				.attr('d', (d) => this._getCompensatedPath(d));
 		});
+
+		// Draw sample traces (thin + transparent)
+		if (obj.samples && obj.dispSamples?.length) {
+			const sampleThickness = baseThickness * 0.6;
+
+			for (const key of obj.dispSamples) {
+				const match = key.match(/^([LR])(\d+)$/);
+				if (!match) continue;
+				const side = match[1] as 'L' | 'R';
+				const sampleIndex = parseInt(match[2]) - 1;
+				const sample = obj.samples[sampleIndex];
+				if (!sample?.[side]) continue;
+
+				const color = obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG;
+
+				this.curveGroup
+					.append('path')
+					.datum(() => FRSmoother.smooth(sample[side]!.data))
+					.attr('class', 'fr-graph-phone-curve')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('channel', key)
+					.attr('sample', 'true')
+					.attr('identifier', obj.identifier)
+					.attr('stroke', color)
+					.attr('stroke-width', String(sampleThickness))
+					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('opacity', '0.35')
+					.attr('d', (d) => this._getCompensatedPath(d));
+			}
+		}
 	}
 
 	/** Draw Target curve */
@@ -533,7 +608,7 @@ class GraphEngine {
 				.attr('type', obj.type)
 				.attr('channel', channel)
 				.attr('identifier', obj.identifier)
-				.attr('stroke', `${obj.colors[channel as keyof typeof obj.colors] || obj.colors['AVG']}`)
+				.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
 				.attr(
 					'stroke-width',
 					obj.type === 'inserted-target'

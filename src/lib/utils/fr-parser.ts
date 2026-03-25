@@ -1,5 +1,11 @@
 import { getConfigValue } from './config.js';
-import type { FRDataType, FRDataPoint, ChannelData, ParsedFRData, PhoneFileReference, PhoneMetadata, TargetMetadata } from '$lib/types/data-types.js';
+import type { FRDataType, FRDataPoint, ChannelData, ParsedFRData, PhoneFileReference, PhoneMetadata, TargetMetadata, SampleData } from '$lib/types/data-types.js';
+
+/** Return type for getFRDataFromMetadata, carrying optional sample data */
+export interface FRParseResult extends ParsedFRData {
+  _samples?: SampleData[];
+  _sampleCount?: number;
+}
 
 /**
  * Frequency Response Parser
@@ -72,25 +78,90 @@ const FRParser = {
   /**
    * Get frequency response data from metadata
    */
-  async getFRDataFromMetadata(sourceType: FRDataType, metaData: PhoneMetadata | TargetMetadata | undefined, suffix = ""): Promise<ParsedFRData> {
+  async getFRDataFromMetadata(sourceType: FRDataType, metaData: PhoneMetadata | TargetMetadata | undefined, suffix = ""): Promise<FRParseResult> {
     try {
-      // Return first variant if suffix is not specified
-      if (suffix === "") {
-        const phoneMetaData = metaData as PhoneMetadata;
-        return await FRParser.getFRDataFromFile(sourceType, phoneMetaData.files[0].files);
+      const phoneMetaData = metaData as PhoneMetadata;
+      const variant = suffix === ""
+        ? phoneMetaData.files[0]
+        : phoneMetaData.files.find(file => file.suffix === suffix);
+
+      if (!variant) {
+        throw new Error(`No file found with suffix: ${suffix}`);
       }
-      // Return specific variant if suffix is specified
-      else {
-        const phoneMetaData = metaData as PhoneMetadata;
-        const matchingFile = phoneMetaData.files.find(file => file.suffix === suffix);
-        if (!matchingFile) {
-          throw new Error(`No file found with suffix: ${suffix}`);
-        }
-        return await FRParser.getFRDataFromFile(sourceType, matchingFile.files);
+
+      // Multi-sample path: fetch all samples and compute averages
+      if (variant.sampleFiles && variant.sampleCount) {
+        const { samples, averaged } = await FRParser.getFRSampleData(variant.sampleFiles);
+        return { ...averaged, _samples: samples, _sampleCount: variant.sampleCount };
       }
+
+      // Standard path: single L/R pair
+      return await FRParser.getFRDataFromFile(sourceType, variant.files);
     } catch (e) {
       throw new Error(`Invalid FR file type: ${e instanceof Error ? e.message : String(e)}`);
     }
+  },
+
+  /**
+   * Fetch and parse multi-sample measurement data, computing averaged channels
+   */
+  async getFRSampleData(
+    sampleFiles: PhoneFileReference[]
+  ): Promise<{ samples: SampleData[]; averaged: ParsedFRData }> {
+    // Fetch all sample files in parallel
+    const samples: SampleData[] = await Promise.all(
+      sampleFiles.map(async (fileRef) => {
+        const sample: SampleData = {};
+        const [lRaw, rRaw] = await Promise.all([
+          this._fetchFRTextData('phone', fileRef.L),
+          this._fetchFRTextData('phone', fileRef.R),
+        ]);
+        if (lRaw) sample.L = await this.parseFRData(lRaw);
+        if (rRaw) sample.R = await this.parseFRData(rRaw);
+        return sample;
+      })
+    );
+
+    // Compute averaged channels from samples
+    const averaged: ParsedFRData = {};
+
+    // Average L channels across samples
+    const lSamples = samples.filter((s) => s.L).map((s) => s.L!);
+    if (lSamples.length > 0) {
+      averaged.L = this._averageChannelData(lSamples);
+    }
+
+    // Average R channels across samples
+    const rSamples = samples.filter((s) => s.R).map((s) => s.R!);
+    if (rSamples.length > 0) {
+      averaged.R = this._averageChannelData(rSamples);
+    }
+
+    // Compute AVG from averaged L and R
+    if (averaged.L && averaged.R) {
+      averaged.AVG = {
+        data: averaged.L.data.map(([freq, lDb], index) => [
+          freq,
+          (lDb + averaged.R!.data[index][1]) / 2
+        ] as FRDataPoint),
+        metadata: { ...averaged.L.metadata }
+      };
+    }
+
+    return { samples, averaged };
+  },
+
+  /** Average multiple ChannelData arrays point-by-point */
+  _averageChannelData(channels: ChannelData[]): ChannelData {
+    const count = channels.length;
+    const data: FRDataPoint[] = channels[0].data.map(([freq], index) => [
+      freq,
+      channels.reduce((sum, ch) => sum + ch.data[index][1], 0) / count
+    ]);
+    return {
+      data,
+      metadata: { ...channels[0].metadata }
+    };
   },
 
   /**

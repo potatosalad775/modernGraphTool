@@ -4,7 +4,9 @@ import type {
 	FRColors,
 	ParsedFRData,
 	FRInputMetadata,
-	PhoneMetadata
+	PhoneMetadata,
+	SampleChannelKey,
+	SampleData
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -18,7 +20,8 @@ import {
 	UpdateVisibilityCommand,
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
-	UpdateYOffsetCommand
+	UpdateYOffsetCommand,
+	UpdateSampleDisplayCommand
 } from './commands.js';
 import FRParser from '$lib/utils/fr-parser.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -56,6 +59,8 @@ class DataProvider {
 			inputMetadata.dispSuffix ??
 			((metaData as PhoneMetadata).files?.[0]?.suffix ?? '');
 
+		const colors = this.#getColorForType(sourceType);
+
 		const frObject: FRDataObject = {
 			uuid: crypto.randomUUID(),
 			type: sourceType,
@@ -67,10 +72,30 @@ class DataProvider {
 			},
 			dispChannel: this.#getChannelValue(sourceType, channels),
 			dispSuffix,
-			colors: this.#getColorForType(sourceType),
+			colors,
 			dash: this.#getDashForType(sourceType, metaData.identifier),
 			meta: metaData
 		};
+
+		// Multi-sample: process and attach sample data
+		if (rawData._samples && rawData._sampleCount) {
+			const processedSamples = rawData._samples.map((sample) => {
+				const s: SampleData = {};
+				if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+				if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
+				return s;
+			});
+			frObject.samples = processedSamples;
+			frObject.sampleCount = rawData._sampleCount;
+			frObject.colors = this.#addSampleColors(colors, rawData._sampleCount);
+
+			const defaultDisplay = getConfigValue('MULTI_SAMPLE.DEFAULT_DISPLAY') as string | undefined;
+			if (defaultDisplay === 'all') {
+				frObject.dispSamples = this.#getAllSampleKeys(rawData._sampleCount);
+			} else {
+				frObject.dispSamples = [];
+			}
+		}
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
 		this.#syncChannelsAfterAdd();
@@ -211,6 +236,44 @@ class DataProvider {
 			),
 			frStore
 		);
+
+		// Re-attach sample data for the new variant
+		if (rawData._samples && rawData._sampleCount) {
+			const existingData = frStore.get(uuid);
+			if (existingData) {
+				const processedSamples = rawData._samples.map((sample) => {
+					const s: SampleData = {};
+					if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+					if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
+					return s;
+				});
+				frStore.set(uuid, {
+					...existingData,
+					samples: processedSamples,
+					sampleCount: rawData._sampleCount,
+					colors: this.#addSampleColors(existingData.colors, rawData._sampleCount),
+					dispSamples: existingData.dispSamples ?? []
+				});
+			}
+		} else {
+			// New variant has no samples — clear sample data
+			const existingData = frStore.get(uuid);
+			if (existingData && existingData.samples) {
+				frStore.set(uuid, {
+					...existingData,
+					samples: undefined,
+					sampleCount: undefined,
+					dispSamples: undefined
+				});
+			}
+		}
+	}
+
+	// ─── Update sample display ────────────────────────────────────────────────
+
+	updateSampleDisplay(uuid: string, dispSamples: SampleChannelKey[]): void {
+		if (!frStore.has(uuid)) return;
+		commandHistory.execute(new UpdateSampleDisplayCommand(uuid, dispSamples), frStore);
 	}
 
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
@@ -222,14 +285,24 @@ class DataProvider {
 				graphStore.normType,
 				graphStore.normHzValue
 			);
-			frStore.set(uuid, {
+			const updated: FRDataObject = {
 				...data,
 				channels: {
 					...(processed.L && { L: processed.L }),
 					...(processed.R && { R: processed.R }),
 					...(processed.AVG && { AVG: processed.AVG })
 				}
-			});
+			};
+			// Re-normalize sample data
+			if (data.samples) {
+				updated.samples = data.samples.map((sample) => {
+					const s: SampleData = {};
+					if (sample.L) s.L = normalizeChannels({ L: sample.L }, graphStore.normType, graphStore.normHzValue).L;
+					if (sample.R) s.R = normalizeChannels({ R: sample.R }, graphStore.normType, graphStore.normHzValue).R;
+					return s;
+				});
+			}
+			frStore.set(uuid, updated);
 		}
 		// Invalidate history since snapshots are now stale
 		commandHistory.clear();
@@ -252,14 +325,25 @@ class DataProvider {
 					graphStore.normType,
 					graphStore.normHzValue
 				);
-				frStore.set(uuid, {
+				const updated: FRDataObject = {
 					...data,
 					channels: {
 						...(processed.L && { L: processed.L }),
 						...(processed.R && { R: processed.R }),
 						...(processed.AVG && { AVG: processed.AVG })
 					}
-				});
+				};
+				// Re-process sample data
+				if (rawData._samples && rawData._sampleCount) {
+					updated.samples = rawData._samples.map((sample) => {
+						const s: SampleData = {};
+						if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+						if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
+						return s;
+					});
+					updated.sampleCount = rawData._sampleCount;
+				}
+				frStore.set(uuid, updated);
 			} catch {
 				// Keep existing data on failure
 			}
@@ -389,6 +473,26 @@ class DataProvider {
 			(_, i) =>
 				i % 2 === 0 ? `${5 + Math.floor(Math.random() * 5)} ${space}` : `2 ${space}`
 		).join(' ');
+	}
+
+	/** Add sample colors to an existing FRColors object */
+	#addSampleColors(baseColors: FRColors, sampleCount: number): FRColors {
+		const samples: Record<string, string> = {};
+		for (let i = 1; i <= sampleCount; i++) {
+			// Use same color as the corresponding channel but will be rendered at reduced opacity
+			samples[`L${i}`] = baseColors.L ?? baseColors.AVG;
+			samples[`R${i}`] = baseColors.R ?? baseColors.AVG;
+		}
+		return { ...baseColors, samples };
+	}
+
+	/** Generate all sample channel keys for a given sample count */
+	#getAllSampleKeys(sampleCount: number): SampleChannelKey[] {
+		const keys: SampleChannelKey[] = [];
+		for (let i = 1; i <= sampleCount; i++) {
+			keys.push(`L${i}` as SampleChannelKey, `R${i}` as SampleChannelKey);
+		}
+		return keys;
 	}
 }
 

@@ -215,6 +215,10 @@ const MetadataParser = {
                   ).trim(),
                   files: { L: `${file} L.txt`, R: `${file} R.txt` },
                   fileName: file,
+                  ...(phone.samples && {
+                    sampleFiles: this._generateSampleFiles(file, phone.samples),
+                    sampleCount: phone.samples,
+                  }),
                 }))
               : [
                   {
@@ -231,6 +235,13 @@ const MetadataParser = {
                       R: `${phone.file} R.txt`,
                     },
                     fileName: phone.file || baseName,
+                    ...(phone.samples && {
+                      sampleFiles: this._generateSampleFiles(
+                        (phone.file as string) || baseName,
+                        phone.samples,
+                      ),
+                      sampleCount: phone.samples,
+                    }),
                   },
                 ],
           };
@@ -252,6 +263,14 @@ const MetadataParser = {
         }),
       };
     });
+  },
+
+  /** Generate sample file references for multi-sample measurements */
+  _generateSampleFiles(fileName: string, sampleCount: number): { L: string; R: string }[] {
+    return Array.from({ length: sampleCount }, (_, i) => ({
+      L: `${fileName} L${i + 1}.txt`,
+      R: `${fileName} R${i + 1}.txt`,
+    }));
   },
 
   /** Get suffix for phone variants */

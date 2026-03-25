@@ -30,6 +30,11 @@
          "shopLink":"https://www.aliexpress.com/",
          "price":"$100"
         },
+        {"name":["Multi Sample"],
+         "file":["Multi Sample"],
+         "suffix":[""],
+         "samples": 3
+        },
         {"name":["Variation Single"],
          "file":["Combo Variant (A)"],
          "suffix":["(A)"],

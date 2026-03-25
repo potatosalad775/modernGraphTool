@@ -7,6 +7,7 @@
 	import type { FRDataObject } from '$lib/types/data-types.js';
 	import GraphColorWheel from '$lib/components/features/GraphColorWheel.svelte';
 	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
+	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
 
 	// ── Derived: sorted entries ──────────────────────────────────────────────────
 	// Targets always first, phones/others after.
@@ -213,17 +214,21 @@
 			<div class="mt-1.5 flex items-center gap-2 pl-6">
 				<!-- Channel select (not for targets) -->
 				{#if !isTarget(item) && channelOpts.length > 0}
-					<select
-						value={currentChannelVal}
-						onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
-						class="h-6 rounded border border-zinc-200 bg-white px-1 text-xs text-zinc-700
-							focus:outline-none focus:ring-1 focus:ring-zinc-400
-							dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-					>
-						{#each channelOpts as opt (opt.value)}
-							<option value={opt.value}>{opt.label}</option>
-						{/each}
-					</select>
+					{#if item.sampleCount && item.sampleCount > 0}
+						<SampleChannelSelector {uuid} {item} />
+					{:else}
+						<select
+							value={currentChannelVal}
+							onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
+							class="h-6 rounded border border-zinc-200 bg-white px-1 text-xs text-zinc-700
+								focus:outline-none focus:ring-1 focus:ring-zinc-400
+								dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+						>
+							{#each channelOpts as opt (opt.value)}
+								<option value={opt.value}>{opt.label}</option>
+							{/each}
+						</select>
+					{/if}
 				{/if}
 
 				<!-- Y-offset controls -->

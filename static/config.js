@@ -100,6 +100,10 @@ const CONFIG = {
   //    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
   //    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
   //  ],
+  // Multi-Sample Measurement Settings
+  MULTI_SAMPLE: {
+    DEFAULT_DISPLAY: "average",                           // ("average" or "all") - default sample display on load
+  },
   // Graph Trace Styling
   TRACE_STYLING: {
     PHONE_TRACE_THICKNESS: 2,

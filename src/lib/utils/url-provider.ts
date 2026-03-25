@@ -3,6 +3,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
+import type { SampleChannelKey } from '$lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ interface URLState {
 	baselineUUID?: string | null;
 	yOffsets?: Record<string, number>;
 	eq?: EQStateSnapshot;
+	sampleDisplay?: Record<string, SampleChannelKey[]>;
 }
 
 // ── URL Provider ─────────────────────────────────────────────────────────────
@@ -95,7 +97,7 @@ class URLProvider {
 
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
-		const { yScale, baselineUUID, yOffsets, eq } = this.#stateFromURL;
+		const { yScale, baselineUUID, yOffsets, eq, sampleDisplay } = this.#stateFromURL;
 
 		if (yScale != null) graphStore.yScale = yScale;
 		if (baselineUUID != null) graphStore.baselineUUID = baselineUUID;
@@ -106,6 +108,15 @@ class URLProvider {
 				if (key in yOffsets) {
 					// Direct store update (no command history for URL restore)
 					frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
+				}
+			}
+		}
+
+		if (sampleDisplay) {
+			for (const [uuid, data] of frStore.entries) {
+				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				if (key in sampleDisplay && data.samples) {
+					frStore.set(uuid, { ...data, dispSamples: sampleDisplay[key] });
 				}
 			}
 		}
@@ -208,6 +219,15 @@ class URLProvider {
 			}
 		}
 		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
+
+		const sampleDisplay: Record<string, SampleChannelKey[]> = {};
+		for (const [, data] of frStore.entries) {
+			if (data.dispSamples && data.dispSamples.length > 0) {
+				sampleDisplay[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.dispSamples;
+				hasExtraState = true;
+			}
+		}
+		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
 
 		if (eq && eq.filters.length > 0) {
 			stateData.eq = eq;

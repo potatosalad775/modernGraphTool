@@ -267,4 +267,48 @@ describe('DataProvider', () => {
 			expect(frStore.get('a')!.hidden).toBe(false);
 		});
 	});
+
+	// ── Multi-sample display ─────────────────────────────────────────────
+
+	describe('updateSampleDisplay', () => {
+		it('sets dispSamples on a loaded phone', () => {
+			frStore.set('a', makeFRDataObject('a', {
+				samples: [
+					{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+					{ L: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+				],
+				sampleCount: 2,
+				dispSamples: [],
+			}));
+			dataProvider.updateSampleDisplay('a', ['L1', 'L2']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['L1', 'L2']);
+		});
+
+		it('does nothing for non-existent UUID', () => {
+			dataProvider.updateSampleDisplay('nonexistent', ['L1']);
+			expect(frStore.size).toBe(0);
+		});
+
+		it('can clear samples (set to empty array)', () => {
+			frStore.set('a', makeFRDataObject('a', { dispSamples: ['L1', 'R1'] }));
+			dataProvider.updateSampleDisplay('a', []);
+			expect(frStore.get('a')!.dispSamples).toEqual([]);
+		});
+
+		it('is undoable', () => {
+			frStore.set('a', makeFRDataObject('a', { dispSamples: ['L1'] }));
+			dataProvider.updateSampleDisplay('a', ['L1', 'L2', 'R1']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['L1', 'L2', 'R1']);
+
+			commandHistory.undo(frStore);
+			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
+		});
+
+		it('is safe to set on a phone without sample data', () => {
+			frStore.set('a', makeFRDataObject('a'));
+			// Phone has no samples field — setting dispSamples is harmless
+			dataProvider.updateSampleDisplay('a', ['L1']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
+		});
+	});
 });

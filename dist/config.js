@@ -100,6 +100,10 @@ const CONFIG = {
   //    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
   //    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
   //  ],
+  // Multi-Sample Measurement Settings
+  MULTI_SAMPLE: {
+    DEFAULT_DISPLAY: "average",                           // ("average" or "all") - default sample display on load
+  },
   // Graph Trace Styling
   TRACE_STYLING: {
     PHONE_TRACE_THICKNESS: 2,
@@ -147,9 +151,29 @@ const CONFIG = {
     COLOR_BORDER: "rgba(120,120,120,0.5)",           // Border color of the shaded area
   },
   // Target Customizer Settings
-  // Allows per-target Tilt/Bass/Treble adjustment for specified target curves.
+  // Allows per-target filter adjustments for specified target curves.
   TARGET_CUSTOMIZER: {
-    CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x)", "ISO 11904-2 DF"],
+    CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
+    // Available filters. Each filter has: id, name, type (TILT/LSQ/HSQ/PK), freq, q.
+    // Gain range defaults to -20..+20 (step 0.5) except Tilt which is -2..+2 (step 0.1).
+    FILTERS: [
+      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
+      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
+      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
+      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
+      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+    ],
+    // Filter presets selectable from a dropdown
+    FILTER_PRESET: [
+      { name: "Harman 2013", filter: { bass: 6.6, treble: -1.4 } },
+      { name: "Harman 2015", filter: { bass: 6.6, treble: -3, ear: -1.8 } },
+      { name: "Harman 2018", filter: { bass: 4.8, treble: -4.4 } },
+    ],
+    // Applies custom filter to the specified target on initial load
+    INITIAL_TARGET_FILTERS: [
+      { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 } },
+      { name: "ISO 11904-2 DF", filter: { tilt: -0.8, bass: 6 } },
+    ],
   },
   // Misc Panel Description
   // You can add some useful information about your database over here.
@@ -158,6 +182,7 @@ const CONFIG = {
   // This section is only active when hosted on *.squig.link domains.
   SQUIGLINK: {
     ENABLED: true,
+    DEBUG: false,                      // When true, enables squig.link features regardless of domain (for development)
     ANALYTICS_MEASUREMENT_IDS: [],     // Array of GA4 IDs, e.g. ["G-SQUIGLINK_ID", "G-YOUR_ID"]
     ANALYTICS_SITE: "",                // Site name for analytics attribution
     LOG_ANALYTICS: true,               // Console log analytics events

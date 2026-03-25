@@ -163,12 +163,42 @@ class GraphInspection {
 						displayText,
 						textWidth,
 						color:
-							obj.colors[channel as keyof typeof obj.colors] || obj.colors?.AVG || '#666',
+							obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || '#666',
 						yOffset
 					});
 
 					yOffset += lineHeight;
 				});
+
+				// Sample trace values
+				if (obj.samples && obj.dispSamples?.length) {
+					for (const key of obj.dispSamples) {
+						const match = key.match(/^([LR])(\d+)$/);
+						if (!match) continue;
+						const side = match[1] as 'L' | 'R';
+						const sampleIndex = parseInt(match[2]) - 1;
+						const sample = obj.samples[sampleIndex];
+						const sampleData = sample?.[side]?.data;
+						if (!sampleData) continue;
+
+						const splValue = this._interpolateSPL(sampleData, frequency);
+						if (splValue === null) continue;
+
+						const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
+						const displayText = `  ${obj.identifier} (${key}): ${compensatedSPL.toFixed(1)}dB`;
+						const textWidth = displayText.length * 9 + 50;
+						maxTextWidth = Math.max(maxTextWidth, textWidth);
+
+						deviceListData.push({
+							displayText,
+							textWidth,
+							color: obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG || '#666',
+							yOffset
+						});
+
+						yOffset += lineHeight;
+					}
+				}
 			});
 
 		const listPadding = 15;

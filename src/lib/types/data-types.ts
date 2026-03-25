@@ -25,11 +25,22 @@ export interface ParsedFRData {
   AVG?: ChannelData;
 }
 
+/** A single measurement sample containing L and R channels */
+export interface SampleData {
+  L?: ChannelData;
+  R?: ChannelData;
+}
+
+/** Display channel key for multi-sample mode */
+export type SampleChannelKey = 'L' | 'R' | 'AVG' | `L${number}` | `R${number}`;
+
 /** Color scheme for frequency response traces */
 export interface FRColors {
   L?: string;
   R?: string;
   AVG: string;
+  /** Colors for individual sample traces, keyed by SampleChannelKey like 'L1', 'R2' */
+  samples?: Record<string, string>;
 }
 
 /** FR data type discriminant */
@@ -48,6 +59,12 @@ export interface FRDataObject {
   meta?: PhoneMetadata | TargetMetadata;
   hidden?: boolean;
   yOffset?: number;
+  /** Multi-sample data. If present, `channels` holds the computed averages. */
+  samples?: SampleData[];
+  /** Which sample traces to display (independent of dispChannel). */
+  dispSamples?: SampleChannelKey[];
+  /** Number of samples (derived from samples.length). */
+  sampleCount?: number;
 }
 
 /** Input metadata for adding FR data */
@@ -84,6 +101,10 @@ export interface PhoneFileVariant {
   fullName: string;
   files: PhoneFileReference;
   fileName: string;
+  /** Per-sample file references for multi-sample measurements */
+  sampleFiles?: PhoneFileReference[];
+  /** Number of samples for this variant */
+  sampleCount?: number;
 }
 
 /** Raw phone data from phone_book.json before processing */
@@ -96,6 +117,8 @@ export interface RawPhoneData {
   reviewLink?: string;
   shopLink?: string;
   price?: string;
+  /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
+  samples?: number;
 }
 
 /** Raw brand data from phone_book.json before processing */
@@ -266,6 +289,12 @@ export interface DescriptionConfig {
   CONTENT: string;
 }
 
+/** Multi-sample configuration */
+export interface MultiSampleConfig {
+  /** Default display mode: 'average' shows only averaged trace, 'all' shows all samples */
+  DEFAULT_DISPLAY: 'average' | 'all';
+}
+
 /** Trace styling configuration */
 export interface TraceStylingConfig {
   PHONE_TRACE_THICKNESS: number;
@@ -288,6 +317,7 @@ export interface AppConfig {
   WATERMARK: WatermarkConfig[];
   TARGET_MANIFEST: TargetManifestEntry[] | I18nConfigValue;
   TRACE_STYLING: TraceStylingConfig;
+  MULTI_SAMPLE?: MultiSampleConfig;
   TOPBAR: TopbarConfig;
   DESCRIPTION: DescriptionConfig[] | I18nConfigValue;
 }

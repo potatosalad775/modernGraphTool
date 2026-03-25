@@ -1,4 +1,4 @@
-import type { FRDataObject, FRColors, ParsedFRData } from '$lib/types/data-types.js';
+import type { FRDataObject, FRColors, ParsedFRData, SampleChannelKey } from '$lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.js';
 
 /**
@@ -234,6 +234,34 @@ export class UpdateFRDataWithRawDataCommand implements Command {
 
   undo(store: FRStoreWriteAPI): void {
     if (this.#snapshot) store.set(this.#uuid, this.#snapshot);
+  }
+
+  get uuid() { return this.#uuid; }
+}
+
+// ─── Update sample display ───────────────────────────────────────────────────
+
+export class UpdateSampleDisplayCommand implements Command {
+  #uuid: string;
+  #newDispSamples: SampleChannelKey[];
+  #oldDispSamples: SampleChannelKey[] | null = null;
+
+  constructor(uuid: string, newDispSamples: SampleChannelKey[]) {
+    this.#uuid = uuid;
+    this.#newDispSamples = [...newDispSamples];
+  }
+
+  execute(store: FRStoreWriteAPI): void {
+    const data = store.get(this.#uuid);
+    if (!data) return;
+    this.#oldDispSamples = data.dispSamples ? [...data.dispSamples] : [];
+    store.set(this.#uuid, { ...data, dispSamples: this.#newDispSamples });
+  }
+
+  undo(store: FRStoreWriteAPI): void {
+    const data = store.get(this.#uuid);
+    if (!data || !this.#oldDispSamples) return;
+    store.set(this.#uuid, { ...data, dispSamples: this.#oldDispSamples });
   }
 
   get uuid() { return this.#uuid; }

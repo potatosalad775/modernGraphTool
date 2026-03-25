@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import FRParser from './fr-parser.js';
+import type { ChannelData, FRDataPoint, SampleData } from '$lib/types/data-types.js';
+
+/** Helper: create ChannelData with a given base dB and point count */
+function makeChannelData(baseDb: number, count = 480): ChannelData {
+	const step = Math.pow(2, 1 / 48);
+	let freq = 20;
+	const data: FRDataPoint[] = [];
+	for (let i = 0; i < count; i++) {
+		data.push([freq, baseDb + Math.sin(i * 0.1) * 3]);
+		freq *= step;
+	}
+	return { data, metadata: { minFreq: 20, maxFreq: freq } };
+}
 
 describe('FRParser', () => {
 	describe('parseFRData', () => {
@@ -168,6 +181,87 @@ describe('FRParser', () => {
 			// Points after 10000 Hz should use the last value
 			const lastPoint = result[result.length - 1];
 			expect(lastPoint[1]).toBe(60);
+		});
+	});
+
+	// ── Multi-sample averaging ──────────────────────────────────────────────
+
+	describe('_averageChannelData', () => {
+		it('returns same data for a single channel', () => {
+			const ch = makeChannelData(80, 10);
+			const result = FRParser._averageChannelData([ch]);
+			expect(result.data.length).toBe(10);
+			for (let i = 0; i < 10; i++) {
+				expect(result.data[i][1]).toBeCloseTo(ch.data[i][1], 10);
+			}
+		});
+
+		it('averages two channels point-by-point', () => {
+			const ch1 = makeChannelData(80, 10);
+			const ch2 = makeChannelData(90, 10);
+			const result = FRParser._averageChannelData([ch1, ch2]);
+			expect(result.data.length).toBe(10);
+			for (let i = 0; i < 10; i++) {
+				const expected = (ch1.data[i][1] + ch2.data[i][1]) / 2;
+				expect(result.data[i][1]).toBeCloseTo(expected, 10);
+			}
+		});
+
+		it('averages three channels correctly', () => {
+			const ch1 = makeChannelData(70, 5);
+			const ch2 = makeChannelData(80, 5);
+			const ch3 = makeChannelData(90, 5);
+			const result = FRParser._averageChannelData([ch1, ch2, ch3]);
+			expect(result.data.length).toBe(5);
+			for (let i = 0; i < 5; i++) {
+				const expected = (ch1.data[i][1] + ch2.data[i][1] + ch3.data[i][1]) / 3;
+				expect(result.data[i][1]).toBeCloseTo(expected, 10);
+			}
+		});
+
+		it('preserves frequency values from the first channel', () => {
+			const ch1 = makeChannelData(80, 5);
+			const ch2 = makeChannelData(90, 5);
+			const result = FRParser._averageChannelData([ch1, ch2]);
+			for (let i = 0; i < 5; i++) {
+				expect(result.data[i][0]).toBe(ch1.data[i][0]);
+			}
+		});
+
+		it('preserves metadata from the first channel', () => {
+			const ch1 = makeChannelData(80, 5);
+			ch1.metadata.minFreq = 20;
+			ch1.metadata.maxFreq = 20000;
+			const ch2 = makeChannelData(90, 5);
+			const result = FRParser._averageChannelData([ch1, ch2]);
+			expect(result.metadata.minFreq).toBe(20);
+			expect(result.metadata.maxFreq).toBe(20000);
+		});
+	});
+
+	describe('getFRSampleData', () => {
+		it('handles empty sample array', async () => {
+			const result = await FRParser.getFRSampleData([]);
+			expect(result.samples).toEqual([]);
+			expect(result.averaged.L).toBeUndefined();
+			expect(result.averaged.R).toBeUndefined();
+			expect(result.averaged.AVG).toBeUndefined();
+		});
+
+		it('produces empty samples when all files fail to load', async () => {
+			// Non-existent files will fail fetch and return null
+			const result = await FRParser.getFRSampleData([
+				{ L: 'nonexistent_L1.txt', R: 'nonexistent_R1.txt' },
+				{ L: 'nonexistent_L2.txt', R: 'nonexistent_R2.txt' },
+			]);
+			// Samples should exist but be empty objects
+			expect(result.samples.length).toBe(2);
+			expect(result.samples[0].L).toBeUndefined();
+			expect(result.samples[0].R).toBeUndefined();
+			// Averaged channels should be empty
+			expect(result.averaged.L).toBeUndefined();
+			expect(result.averaged.R).toBeUndefined();
+			expect(result.averaged.AVG).toBeUndefined();
 		});
 	});
 });

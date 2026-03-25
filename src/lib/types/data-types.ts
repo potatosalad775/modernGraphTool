@@ -34,6 +34,32 @@ export interface SampleData {
 /** Display channel key for multi-sample mode */
 export type SampleChannelKey = 'L' | 'R' | 'AVG' | `L${number}` | `R${number}`;
 
+// ── HpTF (Headphone Transfer Function) ──────────────────────────────────────
+
+/** Single rig measurement for HpTF */
+export interface HpTFRigData {
+  label: string;
+  L?: ChannelData;
+  R?: ChannelData;
+  AVG?: ChannelData;
+}
+
+/** Min/max envelope computed across all rig measurements */
+export interface HpTFEnvelope {
+  upper: FRDataPoint[];
+  lower: FRDataPoint[];
+}
+
+/** Complete HpTF data attached to an FRDataObject */
+export interface HpTFData {
+  rigs: HpTFRigData[];
+  envelope: Record<'L' | 'R' | 'AVG', HpTFEnvelope>;
+  labels: string[];
+}
+
+/** Display key for HpTF rig curves, e.g. "rig0_AVG", "rig1_L" */
+export type HpTFDisplayKey = `rig${number}_${'L' | 'R' | 'AVG'}`;
+
 /** Color scheme for frequency response traces */
 export interface FRColors {
   L?: string;
@@ -41,6 +67,8 @@ export interface FRColors {
   AVG: string;
   /** Colors for individual sample traces, keyed by SampleChannelKey like 'L1', 'R2' */
   samples?: Record<string, string>;
+  /** Color for the HpTF deviation fill area */
+  hptfFill?: string;
 }
 
 /** FR data type discriminant */
@@ -65,6 +93,14 @@ export interface FRDataObject {
   dispSamples?: SampleChannelKey[];
   /** Number of samples (derived from samples.length). */
   sampleCount?: number;
+  /** HpTF (rig deviation) data. If present, deviation fill can be rendered. */
+  hptf?: HpTFData;
+  /** Which individual HpTF rig curves to display. */
+  dispHptf?: HpTFDisplayKey[];
+  /** Whether the HpTF deviation fill area is visible. */
+  hptfFillVisible?: boolean;
+  /** When true, main channels are not drawn (HpTF-only mode, no file field in phone_book). */
+  hptfOnly?: boolean;
 }
 
 /** Input metadata for adding FR data */
@@ -105,6 +141,12 @@ export interface PhoneFileVariant {
   sampleFiles?: PhoneFileReference[];
   /** Number of samples for this variant */
   sampleCount?: number;
+  /** HpTF rig file references */
+  hptfFiles?: PhoneFileReference[];
+  /** Human-readable labels for each HpTF rig */
+  hptfLabels?: string[];
+  /** True when file was omitted — main curve should not render */
+  hptfOnly?: boolean;
 }
 
 /** Raw phone data from phone_book.json before processing */
@@ -119,6 +161,8 @@ export interface RawPhoneData {
   price?: string;
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
+  /** HpTF rig-to-rig deviation configuration */
+  hptf?: { files: string[]; labels?: string[] };
 }
 
 /** Raw brand data from phone_book.json before processing */
@@ -295,6 +339,14 @@ export interface MultiSampleConfig {
   DEFAULT_DISPLAY: 'average' | 'all';
 }
 
+/** HpTF (Headphone Transfer Function) configuration */
+export interface HpTFConfig {
+  /** Default display mode for HpTF items */
+  DEFAULT_DISPLAY: 'fill' | 'fill+curves' | 'curves' | 'none';
+  /** Opacity of the deviation fill area (0-1) */
+  FILL_OPACITY: number;
+}
+
 /** Trace styling configuration */
 export interface TraceStylingConfig {
   PHONE_TRACE_THICKNESS: number;
@@ -318,6 +370,7 @@ export interface AppConfig {
   TARGET_MANIFEST: TargetManifestEntry[] | I18nConfigValue;
   TRACE_STYLING: TraceStylingConfig;
   MULTI_SAMPLE?: MultiSampleConfig;
+  HPTF?: HpTFConfig;
   TOPBAR: TopbarConfig;
   DESCRIPTION: DescriptionConfig[] | I18nConfigValue;
 }

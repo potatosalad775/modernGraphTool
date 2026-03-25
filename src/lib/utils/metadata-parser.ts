@@ -1,4 +1,4 @@
-import type { FRDataType, PhoneMetadata, BrandMetadata, TargetMetadata, TargetManifestEntry, RawBrandData, RawPhoneData } from '$lib/types/data-types.js';
+import type { FRDataType, PhoneMetadata, BrandMetadata, TargetMetadata, TargetManifestEntry, RawBrandData, RawPhoneData, PhoneFileReference } from '$lib/types/data-types.js';
 import { getConfigValue } from './config.js';
 
 /**
@@ -199,6 +199,33 @@ const MetadataParser = {
           const baseName = Array.isArray(phone.name)
             ? phone.name[0]
             : phone.name;
+
+          // HpTF file references (shared across variants)
+          const hptfFields = phone.hptf ? {
+            hptfFiles: this._generateHpTFFiles(phone.hptf.files),
+            hptfLabels: phone.hptf.labels ?? phone.hptf.files,
+          } : {};
+
+          // HpTF-only mode: no file field, use first HpTF file as placeholder
+          if (!phone.file && phone.hptf) {
+            const placeholderFile = phone.hptf.files[0];
+            return {
+              ...basePhone,
+              name: baseName,
+              identifier: brandName + " " + baseName,
+              files: [
+                {
+                  suffix: '',
+                  fullName: (brandName + " " + baseName).trim(),
+                  files: { L: `${placeholderFile} L.txt`, R: `${placeholderFile} R.txt` },
+                  fileName: placeholderFile,
+                  ...hptfFields,
+                  hptfOnly: true,
+                },
+              ],
+            };
+          }
+
           return {
             ...basePhone,
             name: baseName,
@@ -219,6 +246,7 @@ const MetadataParser = {
                     sampleFiles: this._generateSampleFiles(file, phone.samples),
                     sampleCount: phone.samples,
                   }),
+                  ...hptfFields,
                 }))
               : [
                   {
@@ -242,6 +270,7 @@ const MetadataParser = {
                       ),
                       sampleCount: phone.samples,
                     }),
+                    ...hptfFields,
                   },
                 ],
           };
@@ -263,6 +292,14 @@ const MetadataParser = {
         }),
       };
     });
+  },
+
+  /** Generate HpTF rig file references */
+  _generateHpTFFiles(fileNames: string[]): PhoneFileReference[] {
+    return fileNames.map((f) => ({
+      L: `${f} L.txt`,
+      R: `${f} R.txt`,
+    }));
   },
 
   /** Generate sample file references for multi-sample measurements */

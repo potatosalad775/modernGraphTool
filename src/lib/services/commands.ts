@@ -1,4 +1,4 @@
-import type { FRDataObject, FRColors, ParsedFRData, SampleChannelKey } from '$lib/types/data-types.js';
+import type { FRDataObject, FRColors, ParsedFRData, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.js';
 
 /**
@@ -262,6 +262,46 @@ export class UpdateSampleDisplayCommand implements Command {
     const data = store.get(this.#uuid);
     if (!data || !this.#oldDispSamples) return;
     store.set(this.#uuid, { ...data, dispSamples: this.#oldDispSamples });
+  }
+
+  get uuid() { return this.#uuid; }
+}
+
+// ─── Update HpTF display ─────────────────────────────────────────────────────
+
+export class UpdateHpTFDisplayCommand implements Command {
+  #uuid: string;
+  #newDispHptf: HpTFDisplayKey[];
+  #newFillVisible: boolean;
+  #oldDispHptf: HpTFDisplayKey[] | null = null;
+  #oldFillVisible: boolean | null = null;
+
+  constructor(uuid: string, dispHptf: HpTFDisplayKey[], fillVisible: boolean) {
+    this.#uuid = uuid;
+    this.#newDispHptf = [...dispHptf];
+    this.#newFillVisible = fillVisible;
+  }
+
+  execute(store: FRStoreWriteAPI): void {
+    const data = store.get(this.#uuid);
+    if (!data) return;
+    this.#oldDispHptf = data.dispHptf ? [...data.dispHptf] : [];
+    this.#oldFillVisible = data.hptfFillVisible ?? false;
+    store.set(this.#uuid, {
+      ...data,
+      dispHptf: this.#newDispHptf,
+      hptfFillVisible: this.#newFillVisible
+    });
+  }
+
+  undo(store: FRStoreWriteAPI): void {
+    const data = store.get(this.#uuid);
+    if (!data || this.#oldDispHptf === null) return;
+    store.set(this.#uuid, {
+      ...data,
+      dispHptf: this.#oldDispHptf,
+      hptfFillVisible: this.#oldFillVisible ?? false
+    });
   }
 
   get uuid() { return this.#uuid; }

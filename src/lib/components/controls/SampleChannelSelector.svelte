@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import type { FRDataObject, SampleChannelKey } from '$lib/types/data-types.js';
+	import type { FRDataObject, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
@@ -63,6 +63,13 @@
 	/** Currently displayed sample keys */
 	let dispSamples = $derived(item.dispSamples ?? []);
 
+	// ── HpTF state ──────────────────────────────────────────────────────────────
+
+	let hasHptf = $derived(!!item.hptf);
+	let hptfLabels = $derived(item.hptf?.labels ?? []);
+	let dispHptf = $derived(item.dispHptf ?? []);
+	let hptfFillVisible = $derived(item.hptfFillVisible ?? false);
+
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
 	function handleChannelChange(value: string): void {
@@ -101,6 +108,55 @@
 
 	function isSampleChecked(key: SampleChannelKey): boolean {
 		return dispSamples.includes(key);
+	}
+
+	// ── HpTF handlers ───────────────────────────────────────────────────────────
+
+	function handleHptfFillToggle(): void {
+		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], !hptfFillVisible);
+	}
+
+	function handleHptfRigToggle(rigIndex: number): void {
+		const current = [...dispHptf];
+		// Find keys matching this rig (could be rig0_AVG, rig0_L, rig0_R)
+		const rigPrefix = `rig${rigIndex}_`;
+		const existingKeys = current.filter((k) => k.startsWith(rigPrefix));
+
+		if (existingKeys.length > 0) {
+			// Remove all keys for this rig
+			const next = current.filter((k) => !k.startsWith(rigPrefix));
+			dataProvider.updateHpTFDisplay(uuid, next, hptfFillVisible);
+		} else {
+			// Add AVG key for this rig (or L if no AVG)
+			const rig = item.hptf?.rigs[rigIndex];
+			if (rig) {
+				const key = rig.AVG
+					? `rig${rigIndex}_AVG`
+					: rig.L
+						? `rig${rigIndex}_L`
+						: `rig${rigIndex}_R`;
+				current.push(key as HpTFDisplayKey);
+				dataProvider.updateHpTFDisplay(uuid, current, hptfFillVisible);
+			}
+		}
+	}
+
+	function handleHptfPreset(preset: 'all' | 'none'): void {
+		if (preset === 'none') {
+			dataProvider.updateHpTFDisplay(uuid, [], hptfFillVisible);
+		} else {
+			const keys: HpTFDisplayKey[] = [];
+			item.hptf?.rigs.forEach((rig, i) => {
+				if (rig.AVG) keys.push(`rig${i}_AVG` as HpTFDisplayKey);
+				else if (rig.L) keys.push(`rig${i}_L` as HpTFDisplayKey);
+				else if (rig.R) keys.push(`rig${i}_R` as HpTFDisplayKey);
+			});
+			dataProvider.updateHpTFDisplay(uuid, keys, hptfFillVisible);
+		}
+	}
+
+	function isRigChecked(rigIndex: number): boolean {
+		return dispHptf.some((k) => k.startsWith(`rig${rigIndex}_`));
 	}
 </script>
 
@@ -198,6 +254,63 @@
 								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
 						>
 							{m.selection_list_samples_none()}
+						</button>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Section 3: HpTF Rigs -->
+			{#if hasHptf}
+				<div class="mt-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+						{m.selection_list_hptf_header()}
+					</p>
+
+					<!-- Fill toggle -->
+					<label
+						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+							text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+					>
+						<input
+							type="checkbox"
+							checked={hptfFillVisible}
+							onchange={handleHptfFillToggle}
+							class="accent-zinc-700 dark:accent-zinc-300"
+						/>
+						{m.selection_list_hptf_fill_toggle()}
+					</label>
+
+					<!-- Rig checkboxes -->
+					{#each hptfLabels as label, i (i)}
+						<label
+							class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+								text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+						>
+							<input
+								type="checkbox"
+								checked={isRigChecked(i)}
+								onchange={() => handleHptfRigToggle(i)}
+								class="accent-zinc-700 dark:accent-zinc-300"
+							/>
+							{label}
+						</label>
+					{/each}
+
+					<!-- Preset buttons -->
+					<div class="mt-1.5 flex gap-1 px-1">
+						<button
+							onclick={() => handleHptfPreset('all')}
+							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
+								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+						>
+							{m.selection_list_hptf_all()}
+						</button>
+						<button
+							onclick={() => handleHptfPreset('none')}
+							class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600 transition-colors
+								hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+						>
+							{m.selection_list_hptf_none()}
 						</button>
 					</div>
 				</div>

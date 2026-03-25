@@ -3,7 +3,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
-import type { SampleChannelKey } from '$lib/types/data-types.js';
+import type { SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,7 @@ interface URLState {
 	yOffsets?: Record<string, number>;
 	eq?: EQStateSnapshot;
 	sampleDisplay?: Record<string, SampleChannelKey[]>;
+	hptfDisplay?: Record<string, { keys: HpTFDisplayKey[]; fill: boolean }>;
 }
 
 // ── URL Provider ─────────────────────────────────────────────────────────────
@@ -97,7 +98,7 @@ class URLProvider {
 
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
-		const { yScale, baselineUUID, yOffsets, eq, sampleDisplay } = this.#stateFromURL;
+		const { yScale, baselineUUID, yOffsets, eq, sampleDisplay, hptfDisplay } = this.#stateFromURL;
 
 		if (yScale != null) graphStore.yScale = yScale;
 		if (baselineUUID != null) graphStore.baselineUUID = baselineUUID;
@@ -117,6 +118,19 @@ class URLProvider {
 				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
 				if (key in sampleDisplay && data.samples) {
 					frStore.set(uuid, { ...data, dispSamples: sampleDisplay[key] });
+				}
+			}
+		}
+
+		if (hptfDisplay) {
+			for (const [uuid, data] of frStore.entries) {
+				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				if (key in hptfDisplay && data.hptf) {
+					frStore.set(uuid, {
+						...data,
+						dispHptf: hptfDisplay[key].keys as HpTFDisplayKey[],
+						hptfFillVisible: hptfDisplay[key].fill
+					});
 				}
 			}
 		}
@@ -228,6 +242,19 @@ class URLProvider {
 			}
 		}
 		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
+
+		const hptfDisplay: Record<string, { keys: HpTFDisplayKey[]; fill: boolean }> = {};
+		for (const [, data] of frStore.entries) {
+			if (data.hptf) {
+				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				hptfDisplay[key] = {
+					keys: data.dispHptf ?? [],
+					fill: data.hptfFillVisible ?? false
+				};
+				hasExtraState = true;
+			}
+		}
+		if (Object.keys(hptfDisplay).length) stateData.hptfDisplay = hptfDisplay;
 
 		if (eq && eq.filters.length > 0) {
 			stateData.eq = eq;

@@ -214,7 +214,7 @@
 			<div class="mt-1.5 flex items-center gap-2 pl-6">
 				<!-- Channel select (not for targets) -->
 				{#if !isTarget(item) && channelOpts.length > 0}
-					{#if item.sampleCount && item.sampleCount > 0}
+					{#if (item.sampleCount && item.sampleCount > 0) || item.hptf}
 						<SampleChannelSelector {uuid} {item} />
 					{:else}
 						<select

@@ -9,7 +9,8 @@ import {
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
-	UpdateSampleDisplayCommand
+	UpdateSampleDisplayCommand,
+	UpdateHpTFDisplayCommand
 } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
@@ -292,6 +293,48 @@ describe('Commands', () => {
 			const cmd = new UpdateSampleDisplayCommand('a', []);
 			cmd.execute(store);
 			expect(store.data.get('a')!.dispSamples).toEqual([]);
+		});
+	});
+
+	describe('UpdateHpTFDisplayCommand', () => {
+		it('sets dispHptf and hptfFillVisible on execute', () => {
+			store.set('a', makeFRDataObject('a', { dispHptf: [], hptfFillVisible: false }));
+			const cmd = new UpdateHpTFDisplayCommand('a', ['rig0_AVG', 'rig1_AVG'], true);
+			cmd.execute(store);
+			expect(store.data.get('a')!.dispHptf).toEqual(['rig0_AVG', 'rig1_AVG']);
+			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
+		});
+
+		it('restores previous state on undo', () => {
+			store.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
+			const cmd = new UpdateHpTFDisplayCommand('a', ['rig0_AVG', 'rig1_AVG'], false);
+			cmd.execute(store);
+			cmd.undo(store);
+			expect(store.data.get('a')!.dispHptf).toEqual(['rig0_AVG']);
+			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
+		});
+
+		it('defaults to empty array and false when no previous HpTF state', () => {
+			store.set('a', makeFRDataObject('a'));
+			const cmd = new UpdateHpTFDisplayCommand('a', ['rig0_AVG'], true);
+			cmd.execute(store);
+			cmd.undo(store);
+			expect(store.data.get('a')!.dispHptf).toEqual([]);
+			expect(store.data.get('a')!.hptfFillVisible).toBe(false);
+		});
+
+		it('does nothing for non-existent uuid', () => {
+			const cmd = new UpdateHpTFDisplayCommand('nonexistent', ['rig0_AVG'], true);
+			cmd.execute(store);
+			expect(store.data.size).toBe(0);
+		});
+
+		it('can hide all rig curves (empty dispHptf) while keeping fill visible', () => {
+			store.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
+			const cmd = new UpdateHpTFDisplayCommand('a', [], true);
+			cmd.execute(store);
+			expect(store.data.get('a')!.dispHptf).toEqual([]);
+			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
 		});
 	});
 });

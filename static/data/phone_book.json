@@ -42,6 +42,20 @@
          "reviewLink":"https://www.head-fi.org/forums/",
          "shopLink":"https://www.aliexpress.com/",
          "price":"$100"
+        },
+        {"name":["HpTF With Main"],
+         "file":["HpTF Demo GRAS"],
+         "suffix":["GRAS"],
+         "hptf": {
+           "files":["HpTF Demo GRAS", "HpTF Demo BK", "HpTF Demo HMS"],
+           "labels":["GRAS RA0045", "B&K 5128", "HMS III.0"]
+         }
+        },
+        {"name":["HpTF Only"],
+         "hptf": {
+           "files":["HpTF Demo GRAS", "HpTF Demo BK", "HpTF Demo HMS"],
+           "labels":["GRAS RA0045", "B&K 5128", "HMS III.0"]
+         }
         }
     ]
   },

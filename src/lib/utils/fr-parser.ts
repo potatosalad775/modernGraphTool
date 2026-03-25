@@ -1,10 +1,13 @@
 import { getConfigValue } from './config.js';
 import type { FRDataType, FRDataPoint, ChannelData, ParsedFRData, PhoneFileReference, PhoneMetadata, TargetMetadata, SampleData } from '$lib/types/data-types.js';
 
-/** Return type for getFRDataFromMetadata, carrying optional sample data */
+/** Return type for getFRDataFromMetadata, carrying optional sample/HpTF data */
 export interface FRParseResult extends ParsedFRData {
   _samples?: SampleData[];
   _sampleCount?: number;
+  _hptfRigs?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
+  _hptfLabels?: string[];
+  _hptfOnly?: boolean;
 }
 
 /**
@@ -95,6 +98,21 @@ const FRParser = {
         return { ...averaged, _samples: samples, _sampleCount: variant.sampleCount };
       }
 
+      // HpTF path: fetch all rig measurements
+      if (variant.hptfFiles && variant.hptfLabels) {
+        const hptfResult = await FRParser.getFRHpTFData(variant.hptfFiles, variant.hptfLabels);
+
+        if (variant.hptfOnly) {
+          // HpTF-only: compute averaged channels across all rigs as main data
+          const averaged = FRParser._averageRigData(hptfResult._hptfRigs);
+          return { ...averaged, ...hptfResult, _hptfOnly: true };
+        }
+
+        // Normal: fetch main data AND merge HpTF rig data
+        const mainData = await FRParser.getFRDataFromFile(sourceType, variant.files);
+        return { ...mainData, ...hptfResult };
+      }
+
       // Standard path: single L/R pair
       return await FRParser.getFRDataFromFile(sourceType, variant.files);
     } catch (e) {
@@ -149,6 +167,53 @@ const FRParser = {
     }
 
     return { samples, averaged };
+  },
+
+  /**
+   * Fetch and parse HpTF rig measurement data
+   */
+  async getFRHpTFData(
+    hptfFiles: PhoneFileReference[],
+    hptfLabels: string[]
+  ): Promise<{ _hptfRigs: Array<{ label: string; L?: ChannelData; R?: ChannelData }>; _hptfLabels: string[] }> {
+    const rigs = await Promise.all(
+      hptfFiles.map(async (fileRef, index) => {
+        const rig: { label: string; L?: ChannelData; R?: ChannelData } = {
+          label: hptfLabels[index] ?? `Rig ${index + 1}`
+        };
+        const [lRaw, rRaw] = await Promise.all([
+          this._fetchFRTextData('phone', fileRef.L),
+          this._fetchFRTextData('phone', fileRef.R),
+        ]);
+        if (lRaw) rig.L = await this.parseFRData(lRaw);
+        if (rRaw) rig.R = await this.parseFRData(rRaw);
+        return rig;
+      })
+    );
+    return { _hptfRigs: rigs, _hptfLabels: hptfLabels };
+  },
+
+  /** Average channel data across all HpTF rigs to produce main channels */
+  _averageRigData(rigs: Array<{ label: string; L?: ChannelData; R?: ChannelData }>): ParsedFRData {
+    const averaged: ParsedFRData = {};
+
+    const lChannels = rigs.filter((r) => r.L).map((r) => r.L!);
+    if (lChannels.length > 0) averaged.L = FRParser._averageChannelData(lChannels);
+
+    const rChannels = rigs.filter((r) => r.R).map((r) => r.R!);
+    if (rChannels.length > 0) averaged.R = FRParser._averageChannelData(rChannels);
+
+    if (averaged.L && averaged.R) {
+      averaged.AVG = {
+        data: averaged.L.data.map(([freq, lDb], index) => [
+          freq,
+          (lDb + averaged.R!.data[index][1]) / 2
+        ] as FRDataPoint),
+        metadata: { ...averaged.L.metadata }
+      };
+    }
+
+    return averaged;
   },
 
   /** Average multiple ChannelData arrays point-by-point */

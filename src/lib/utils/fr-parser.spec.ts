@@ -264,4 +264,57 @@ describe('FRParser', () => {
 			expect(result.averaged.AVG).toBeUndefined();
 		});
 	});
+
+	// ── HpTF rig averaging ──────────────────────────────────────────────────
+
+	describe('_averageRigData', () => {
+		it('averages L channels across rigs', () => {
+			const rig1 = { label: 'Rig A', L: makeChannelData(80, 10) };
+			const rig2 = { label: 'Rig B', L: makeChannelData(90, 10) };
+			const result = FRParser._averageRigData([rig1, rig2]);
+			expect(result.L).toBeDefined();
+			for (let i = 0; i < 10; i++) {
+				const expected = (rig1.L!.data[i][1] + rig2.L!.data[i][1]) / 2;
+				expect(result.L!.data[i][1]).toBeCloseTo(expected, 10);
+			}
+		});
+
+		it('computes AVG from averaged L and R', () => {
+			const rig1 = { label: 'A', L: makeChannelData(80, 5), R: makeChannelData(78, 5) };
+			const rig2 = { label: 'B', L: makeChannelData(90, 5), R: makeChannelData(88, 5) };
+			const result = FRParser._averageRigData([rig1, rig2]);
+			expect(result.AVG).toBeDefined();
+			for (let i = 0; i < 5; i++) {
+				const avgL = (rig1.L!.data[i][1] + rig2.L!.data[i][1]) / 2;
+				const avgR = (rig1.R!.data[i][1] + rig2.R!.data[i][1]) / 2;
+				expect(result.AVG!.data[i][1]).toBeCloseTo((avgL + avgR) / 2, 10);
+			}
+		});
+
+		it('handles rigs with only L channel', () => {
+			const rig1 = { label: 'A', L: makeChannelData(80, 5) };
+			const rig2 = { label: 'B', L: makeChannelData(90, 5) };
+			const result = FRParser._averageRigData([rig1, rig2]);
+			expect(result.L).toBeDefined();
+			expect(result.R).toBeUndefined();
+			expect(result.AVG).toBeUndefined();
+		});
+	});
+
+	describe('getFRHpTFData', () => {
+		it('handles non-existent rig files gracefully', async () => {
+			const result = await FRParser.getFRHpTFData(
+				[
+					{ L: 'nonexistent_rig1_L.txt', R: 'nonexistent_rig1_R.txt' },
+					{ L: 'nonexistent_rig2_L.txt', R: 'nonexistent_rig2_R.txt' },
+				],
+				['Rig A', 'Rig B']
+			);
+			expect(result._hptfRigs.length).toBe(2);
+			expect(result._hptfRigs[0].label).toBe('Rig A');
+			expect(result._hptfRigs[1].label).toBe('Rig B');
+			expect(result._hptfRigs[0].L).toBeUndefined();
+			expect(result._hptfLabels).toEqual(['Rig A', 'Rig B']);
+		});
+	});
 });

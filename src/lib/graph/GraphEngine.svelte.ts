@@ -423,6 +423,49 @@ class GraphEngine {
 		return lineGenerator(originalData);
 	}
 
+	/** Build closed SVG path for HpTF deviation envelope */
+	_buildHpTFEnvelopePath(obj: FRDataObject): string | null {
+		if (!obj.hptf) return null;
+
+		// Select envelope based on displayed channel
+		let envelopeChannel: 'L' | 'R' | 'AVG' = 'AVG';
+		if (obj.dispChannel.length === 1) {
+			envelopeChannel = obj.dispChannel[0];
+		}
+		const envelope = obj.hptf.envelope[envelopeChannel];
+		if (!envelope?.upper.length) return null;
+
+		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
+		const isBaselineValid =
+			Array.isArray(this.baselineData.channelData) && this.baselineData.channelData.length > 0;
+
+		const computeY = (point: FRDataPoint): number => {
+			if (!isBaselineValid) return this.yScale(point[1]);
+			const channelData = this.baselineData.channelData!;
+			const i = bisect(channelData, point[0], 0);
+			const a = channelData[i - 1];
+			const b = channelData[i];
+			let baselineY = 0;
+			if (a && b) {
+				const t = (point[0] - a[0]) / (b[0] - a[0]);
+				baselineY = a[1] + t * (b[1] - a[1]);
+			} else if (a) baselineY = a[1];
+			else if (b) baselineY = b[1];
+			return this.yScale(point[1] - baselineY);
+		};
+
+		const lineGen = d3
+			.line<FRDataPoint>()
+			.x((d) => this.xScale(d[0]))
+			.y((d) => computeY(d))
+			.curve(d3.curveNatural);
+
+		const upperPath = lineGen(envelope.upper) ?? '';
+		const lowerPath = lineGen([...envelope.lower].reverse()) ?? '';
+
+		return upperPath + lowerPath.replace(/^M/, 'L') + 'Z';
+	}
+
 	getBaselineData(): BaselineData {
 		return this.baselineData;
 	}
@@ -530,20 +573,69 @@ class GraphEngine {
 			(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
 		);
 
-		channels.forEach((channel) => {
-			this.curveGroup
-				.append('path')
-				.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
-				.attr('class', 'fr-graph-phone-curve')
-				.attr('uuid', obj.uuid)
-				.attr('type', obj.type)
-				.attr('channel', channel)
-				.attr('identifier', obj.identifier)
-				.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-				.attr('stroke-width', String(baseThickness))
-				.attr('stroke-dasharray', obj.dash || '1 0')
-				.attr('d', (d) => this._getCompensatedPath(d));
-		});
+		// Draw HpTF deviation fill (behind everything)
+		if (obj.hptf && obj.hptfFillVisible) {
+			const fillPath = this._buildHpTFEnvelopePath(obj);
+			if (fillPath) {
+				const fillColor = obj.colors.hptfFill ?? 'rgba(128,128,128,0.3)';
+				this.curveGroup
+					.insert('path', ':first-child')
+					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-fill')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('identifier', obj.identifier)
+					.attr('d', fillPath)
+					.attr('fill', fillColor)
+					.attr('stroke', 'none')
+					.style('pointer-events', 'none');
+			}
+		}
+
+		// Draw individual HpTF rig curves
+		if (obj.hptf && obj.dispHptf?.length) {
+			for (const key of obj.dispHptf) {
+				const match = key.match(/^rig(\d+)_(L|R|AVG)$/);
+				if (!match) continue;
+				const rigIndex = parseInt(match[1]);
+				const channel = match[2] as 'L' | 'R' | 'AVG';
+				const rig = obj.hptf.rigs[rigIndex];
+				if (!rig?.[channel]) continue;
+
+				const color = obj.colors.AVG;
+
+				this.curveGroup
+					.append('path')
+					.datum(() => FRSmoother.smooth(rig[channel]!.data))
+					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-rig-curve')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('channel', key)
+					.attr('hptf-rig', 'true')
+					.attr('identifier', obj.identifier)
+					.attr('stroke', color)
+					.attr('stroke-width', String(baseThickness))
+					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('d', (d) => this._getCompensatedPath(d));
+			}
+		}
+
+		// Draw main channels (skip if hptfOnly)
+		if (!obj.hptfOnly) {
+			channels.forEach((channel) => {
+				this.curveGroup
+					.append('path')
+					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
+					.attr('class', 'fr-graph-phone-curve')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('channel', channel)
+					.attr('identifier', obj.identifier)
+					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
+					.attr('stroke-width', String(baseThickness))
+					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('d', (d) => this._getCompensatedPath(d));
+			});
+		}
 
 		// Draw sample traces (thin + transparent)
 		if (obj.samples && obj.dispSamples?.length) {

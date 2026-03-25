@@ -1,12 +1,18 @@
 import type {
 	FRDataType,
 	FRDataObject,
+	FRDataPoint,
 	FRColors,
 	ParsedFRData,
+	ChannelData,
 	FRInputMetadata,
 	PhoneMetadata,
 	SampleChannelKey,
-	SampleData
+	SampleData,
+	HpTFRigData,
+	HpTFData,
+	HpTFEnvelope,
+	HpTFDisplayKey
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -21,7 +27,8 @@ import {
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
-	UpdateSampleDisplayCommand
+	UpdateSampleDisplayCommand,
+	UpdateHpTFDisplayCommand
 } from './commands.js';
 import FRParser from '$lib/utils/fr-parser.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -94,6 +101,41 @@ class DataProvider {
 				frObject.dispSamples = this.#getAllSampleKeys(rawData._sampleCount);
 			} else {
 				frObject.dispSamples = [];
+			}
+		}
+
+		// HpTF: process and attach rig data + envelope
+		if (rawData._hptfRigs && rawData._hptfLabels) {
+			const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
+				const processed: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
+				if (rig.L) processed.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
+				if (rig.R) processed.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+				if (processed.L && processed.R) {
+					processed.AVG = {
+						data: processed.L.data.map(([freq, lDb], idx) => [
+							freq, (lDb + processed.R!.data[idx][1]) / 2
+						] as FRDataPoint),
+						metadata: { ...processed.L.metadata }
+					};
+				}
+				return processed;
+			});
+
+			frObject.hptf = {
+				rigs: processedRigs,
+				envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+				labels: rawData._hptfLabels
+			};
+
+			const defaultDisplay = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
+			frObject.hptfFillVisible = defaultDisplay === 'fill' || defaultDisplay === 'fill+curves';
+			frObject.dispHptf = (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
+				? this.#getAllHpTFKeys(processedRigs)
+				: [];
+			frObject.colors = { ...frObject.colors, hptfFill: this.#getHpTFFillColor(frObject.colors) };
+
+			if (rawData._hptfOnly) {
+				frObject.hptfOnly = true;
 			}
 		}
 
@@ -267,6 +309,48 @@ class DataProvider {
 				});
 			}
 		}
+
+		// Re-attach HpTF data for the new variant
+		if (rawData._hptfRigs && rawData._hptfLabels) {
+			const existingData = frStore.get(uuid);
+			if (existingData) {
+				const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
+					const p: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
+					if (rig.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
+					if (rig.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+					if (p.L && p.R) {
+						p.AVG = {
+							data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
+							metadata: { ...p.L.metadata }
+						};
+					}
+					return p;
+				});
+				frStore.set(uuid, {
+					...existingData,
+					hptf: {
+						rigs: processedRigs,
+						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+						labels: rawData._hptfLabels
+					},
+					hptfOnly: rawData._hptfOnly ?? false,
+					dispHptf: existingData.dispHptf ?? [],
+					hptfFillVisible: existingData.hptfFillVisible ?? true
+				});
+			}
+		} else {
+			// New variant has no HpTF — clear HpTF data
+			const existingData = frStore.get(uuid);
+			if (existingData && existingData.hptf) {
+				frStore.set(uuid, {
+					...existingData,
+					hptf: undefined,
+					dispHptf: undefined,
+					hptfFillVisible: undefined,
+					hptfOnly: undefined
+				});
+			}
+		}
 	}
 
 	// ─── Update sample display ────────────────────────────────────────────────
@@ -274,6 +358,13 @@ class DataProvider {
 	updateSampleDisplay(uuid: string, dispSamples: SampleChannelKey[]): void {
 		if (!frStore.has(uuid)) return;
 		commandHistory.execute(new UpdateSampleDisplayCommand(uuid, dispSamples), frStore);
+	}
+
+	// ─── Update HpTF display ─────────────────────────────────────────────────
+
+	updateHpTFDisplay(uuid: string, dispHptf: HpTFDisplayKey[], hptfFillVisible: boolean): void {
+		if (!frStore.has(uuid)) return;
+		commandHistory.execute(new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible), frStore);
 	}
 
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
@@ -301,6 +392,15 @@ class DataProvider {
 					if (sample.R) s.R = normalizeChannels({ R: sample.R }, graphStore.normType, graphStore.normHzValue).R;
 					return s;
 				});
+			}
+			// Re-normalize HpTF rig data
+			if (data.hptf) {
+				const reNormedRigs = this.#reprocessHpTFRigs(data.hptf.rigs, false);
+				updated.hptf = {
+					...data.hptf,
+					rigs: reNormedRigs,
+					envelope: this.#computeAllHpTFEnvelopes(reNormedRigs)
+				};
 			}
 			frStore.set(uuid, updated);
 		}
@@ -342,6 +442,26 @@ class DataProvider {
 						return s;
 					});
 					updated.sampleCount = rawData._sampleCount;
+				}
+				// Re-process HpTF rig data
+				if (rawData._hptfRigs && rawData._hptfLabels) {
+					const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
+						const p: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
+						if (rig.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
+						if (rig.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+						if (p.L && p.R) {
+							p.AVG = {
+								data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
+								metadata: { ...p.L.metadata }
+							};
+						}
+						return p;
+					});
+					updated.hptf = {
+						rigs: processedRigs,
+						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+						labels: rawData._hptfLabels
+					};
 				}
 				frStore.set(uuid, updated);
 			} catch {
@@ -493,6 +613,83 @@ class DataProvider {
 			keys.push(`L${i}` as SampleChannelKey, `R${i}` as SampleChannelKey);
 		}
 		return keys;
+	}
+
+	// ─── HpTF helpers ────────────────────────────────────────────────────────
+
+	/** Compute min/max envelope for a single channel across all rigs */
+	#computeHpTFEnvelope(rigs: HpTFRigData[], channel: 'L' | 'R' | 'AVG'): HpTFEnvelope {
+		const rigDataArrays = rigs
+			.map((r) => r[channel]?.data)
+			.filter((d): d is FRDataPoint[] => !!d);
+
+		if (rigDataArrays.length < 2) return { upper: [], lower: [] };
+
+		const upper: FRDataPoint[] = rigDataArrays[0].map(([freq], idx) => {
+			const max = Math.max(...rigDataArrays.map((d) => d[idx][1]));
+			return [freq, max] as FRDataPoint;
+		});
+		const lower: FRDataPoint[] = rigDataArrays[0].map(([freq], idx) => {
+			const min = Math.min(...rigDataArrays.map((d) => d[idx][1]));
+			return [freq, min] as FRDataPoint;
+		});
+
+		return { upper, lower };
+	}
+
+	/** Compute envelopes for all channels */
+	#computeAllHpTFEnvelopes(rigs: HpTFRigData[]): Record<'L' | 'R' | 'AVG', HpTFEnvelope> {
+		return {
+			L: this.#computeHpTFEnvelope(rigs, 'L'),
+			R: this.#computeHpTFEnvelope(rigs, 'R'),
+			AVG: this.#computeHpTFEnvelope(rigs, 'AVG'),
+		};
+	}
+
+	/** Generate all HpTF display keys (AVG per rig by default) */
+	#getAllHpTFKeys(rigs: HpTFRigData[]): HpTFDisplayKey[] {
+		const keys: HpTFDisplayKey[] = [];
+		rigs.forEach((rig, i) => {
+			if (rig.AVG) keys.push(`rig${i}_AVG` as HpTFDisplayKey);
+			else {
+				if (rig.L) keys.push(`rig${i}_L` as HpTFDisplayKey);
+				if (rig.R) keys.push(`rig${i}_R` as HpTFDisplayKey);
+			}
+		});
+		return keys;
+	}
+
+	/** Get semi-transparent fill color from the phone's AVG color */
+	#getHpTFFillColor(colors: FRColors): string {
+		const opacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.3;
+		const base = colors.AVG;
+		// Convert hsl() to hsla() with fill opacity
+		if (base.startsWith('hsl(')) {
+			return base.replace('hsl(', 'hsla(').replace(')', `, ${opacity})`);
+		}
+		return base;
+	}
+
+	/** Re-process HpTF rigs (normalize only, not re-smooth) */
+	#reprocessHpTFRigs(rigs: HpTFRigData[], smooth: boolean): HpTFRigData[] {
+		return rigs.map((rig) => {
+			const p: HpTFRigData = { label: rig.label };
+			if (rig.L) {
+				const src = smooth ? FRSmoother.smoothChannels({ L: rig.L }) : { L: rig.L };
+				p.L = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).L;
+			}
+			if (rig.R) {
+				const src = smooth ? FRSmoother.smoothChannels({ R: rig.R }) : { R: rig.R };
+				p.R = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).R;
+			}
+			if (p.L && p.R) {
+				p.AVG = {
+					data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
+					metadata: { ...p.L.metadata }
+				};
+			}
+			return p;
+		});
 	}
 }
 

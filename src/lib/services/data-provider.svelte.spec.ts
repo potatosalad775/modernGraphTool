@@ -311,4 +311,53 @@ describe('DataProvider', () => {
 			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
 		});
 	});
+
+	// ── HpTF display ─────────────────────────────────────────────────────
+
+	describe('updateHpTFDisplay', () => {
+		it('sets dispHptf and hptfFillVisible on a loaded phone', () => {
+			frStore.set('a', makeFRDataObject('a', {
+				hptf: {
+					rigs: [
+						{ label: 'GRAS', AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+						{ label: 'B&K', AVG: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+					],
+					envelope: {
+						L: { upper: [], lower: [] },
+						R: { upper: [], lower: [] },
+						AVG: { upper: [[1000, 82]], lower: [[1000, 80]] },
+					},
+					labels: ['GRAS', 'B&K'],
+				},
+				dispHptf: [],
+				hptfFillVisible: false,
+			}));
+			dataProvider.updateHpTFDisplay('a', ['rig0_AVG', 'rig1_AVG'], true);
+			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG', 'rig1_AVG']);
+			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
+		});
+
+		it('does nothing for non-existent UUID', () => {
+			dataProvider.updateHpTFDisplay('nonexistent', ['rig0_AVG'], true);
+			expect(frStore.size).toBe(0);
+		});
+
+		it('is undoable', () => {
+			frStore.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
+			dataProvider.updateHpTFDisplay('a', ['rig0_AVG', 'rig1_AVG'], false);
+			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG', 'rig1_AVG']);
+			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
+
+			commandHistory.undo(frStore);
+			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG']);
+			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
+		});
+
+		it('can toggle fill off while keeping rig curves', () => {
+			frStore.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
+			dataProvider.updateHpTFDisplay('a', ['rig0_AVG'], false);
+			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
+			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG']);
+		});
+	});
 });

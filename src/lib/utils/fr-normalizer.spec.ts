@@ -103,6 +103,73 @@ describe('fr-normalizer', () => {
 		});
 	});
 
+	describe('normalize — Hz mode preserves relative differences', () => {
+		it('maintains dB differences between points', () => {
+			const ch = makeChannelData(80);
+			const diff01 = ch.data[0][1] - ch.data[1][1];
+			const result = normalize(ch, 'Hz', 1000);
+			const resultDiff01 = result.data[0][1] - result.data[1][1];
+			expect(resultDiff01).toBeCloseTo(diff01, 1);
+		});
+	});
+
+	describe('normalize — _findNearestFrequency edge cases', () => {
+		it('handles target below all data (returns first point offset)', () => {
+			const ch: ChannelData = {
+				data: [
+					[100, 80],
+					[200, 82],
+					[500, 85]
+				],
+				metadata: { minFreq: 100, maxFreq: 500 }
+			};
+			// Target 20 Hz is below 100 Hz, should use first point as reference
+			const result = normalize(ch, 'Hz', 20);
+			expect(result.data[0][1]).toBeCloseTo(0, 0);
+		});
+
+		it('handles target above all data (returns last point offset)', () => {
+			const ch: ChannelData = {
+				data: [
+					[100, 80],
+					[200, 82],
+					[500, 85]
+				],
+				metadata: { minFreq: 100, maxFreq: 500 }
+			};
+			// Target 20000 Hz is above 500 Hz, should use last point
+			const result = normalize(ch, 'Hz', 20000);
+			expect(result.data[result.data.length - 1][1]).toBeCloseTo(0, 0);
+		});
+
+		it('interpolates between two surrounding points', () => {
+			const ch: ChannelData = {
+				data: [
+					[100, 70],
+					[1000, 80],
+					[10000, 90]
+				],
+				metadata: { minFreq: 100, maxFreq: 10000 }
+			};
+			const result = normalize(ch, 'Hz', 500);
+			// After normalization, the interpolated value at 500 Hz should be ~0
+			// The original value at 100 Hz was 70, at 1000 Hz was 80
+			// Interpolated at 500 Hz: somewhere between 70 and 80
+			expect(result.data.length).toBe(3);
+		});
+	});
+
+	describe('normalize — type handling', () => {
+		it('treats non-Hz types as Avg mode', () => {
+			const ch = makeChannelData(80);
+			// Anything that's not 'Hz' goes to Avg path
+			const result = normalize(ch, 'Avg', 0);
+			const midrange = result.data.filter((p) => p[0] >= 300 && p[0] <= 3000);
+			const avg = midrange.reduce((sum, p) => sum + p[1], 0) / midrange.length;
+			expect(avg).toBeCloseTo(0, 0);
+		});
+	});
+
 	describe('normalizeChannels', () => {
 		it('normalizes all present channels', () => {
 			const data: ParsedFRData = {

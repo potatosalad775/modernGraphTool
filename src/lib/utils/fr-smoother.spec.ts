@@ -87,6 +87,53 @@ describe('FRSmoother', () => {
 		});
 	});
 
+	describe('smooth — output range', () => {
+		it('output frequencies are within input frequency range', () => {
+			const data = makeFRData(200);
+			const inputMin = data[0][0];
+			const inputMax = data[data.length - 1][0];
+			FRSmoother.updateSmoothing('1/6');
+			const result = FRSmoother.smooth(data);
+			for (const [freq] of result) {
+				expect(freq).toBeGreaterThanOrEqual(inputMin - 1);
+				expect(freq).toBeLessThanOrEqual(inputMax + 1);
+			}
+		});
+	});
+
+	describe('smoothChannels — metadata', () => {
+		it('preserves channel metadata after smoothing', () => {
+			const data: ParsedFRData = {
+				AVG: {
+					data: makeFRData(100),
+					metadata: { minFreq: 20, maxFreq: 20000, weights: [1, 2, 3] }
+				}
+			};
+			FRSmoother.updateSmoothing('1/6');
+			const result = FRSmoother.smoothChannels(data);
+			expect(result.AVG!.metadata.minFreq).toBe(20);
+			expect(result.AVG!.metadata.maxFreq).toBe(20000);
+		});
+
+		it('does not mutate the original channel data', () => {
+			const data: ParsedFRData = {
+				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
+			};
+			const originalLen = data.AVG!.data.length;
+			FRSmoother.updateSmoothing('1/6');
+			FRSmoother.smoothChannels(data);
+			expect(data.AVG!.data.length).toBe(originalLen);
+		});
+	});
+
+	describe('_createOctaveBands — upper range', () => {
+		it('reaches at least 20000 Hz', () => {
+			const bands = FRSmoother._createOctaveBands('1/3');
+			const lastBand = bands[bands.length - 1];
+			expect(lastBand.upper).toBeGreaterThanOrEqual(20000);
+		});
+	});
+
 	describe('smoothChannels', () => {
 		it('smooths all available channels', () => {
 			const data: ParsedFRData = {

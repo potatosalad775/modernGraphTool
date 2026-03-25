@@ -105,6 +105,46 @@ describe('FRDataStore', () => {
 		});
 	});
 
+	describe('iteration', () => {
+		it('entries values() iterates all stored items', () => {
+			frStore.set('a', makeFRDataObject('a'));
+			frStore.set('b', makeFRDataObject('b'));
+			const ids: string[] = [];
+			for (const data of frStore.entries.values()) {
+				ids.push(data.uuid);
+			}
+			expect(ids.sort()).toEqual(['a', 'b']);
+		});
+
+		it('entries keys() iterates all UUIDs', () => {
+			frStore.set('a', makeFRDataObject('a'));
+			frStore.set('b', makeFRDataObject('b'));
+			const keys = [...frStore.entries.keys()].sort();
+			expect(keys).toEqual(['a', 'b']);
+		});
+
+		it('entries [Symbol.iterator] iterates [uuid, data] pairs', () => {
+			frStore.set('a', makeFRDataObject('a'));
+			const pairs = [...frStore.entries];
+			expect(pairs).toHaveLength(1);
+			expect(pairs[0][0]).toBe('a');
+			expect(pairs[0][1].identifier).toBe('Test a');
+		});
+	});
+
+	describe('toJSON', () => {
+		it('returns a new array (push does not affect store)', () => {
+			frStore.set('a', makeFRDataObject('a'));
+			const json = frStore.toJSON();
+			json.push(makeFRDataObject('extra'));
+			expect(frStore.size).toBe(1);
+		});
+
+		it('returns empty array when store is empty', () => {
+			expect(frStore.toJSON()).toEqual([]);
+		});
+	});
+
 	describe('overwrite behavior', () => {
 		it('overwrites existing entry with same key', () => {
 			frStore.set('a', makeFRDataObject('a', 'First'));

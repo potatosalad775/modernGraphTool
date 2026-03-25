@@ -4,7 +4,13 @@
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import MetadataParser from '$lib/utils/metadata-parser.js';
+	import { getConfigValue } from '$lib/utils/config.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
+
+	// ── Config ──────────────────────────────────────────────────────────────────
+
+	const allowRemovingPhone = (getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
+	const switchPanelOnBrandClick = (getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
@@ -47,13 +53,17 @@
 	function toggleBrand(brand: string, checked: boolean) {
 		if (checked) selectedBrands.add(brand);
 		else selectedBrands.delete(brand);
+		// Auto-switch to phone pane on brand click (mobile layout)
+		if (switchPanelOnBrandClick && checked) showPhonePane = true;
 	}
 
 	function clearBrands() {
 		selectedBrands.clear();
 	}
 
-	async function togglePhone(identifier: string, checked: boolean) {
+	async function togglePhone(identifier: string, isLoaded: boolean, checked: boolean) {
+		// Block removal if config disables it
+		if (!checked && isLoaded && !allowRemovingPhone) return;
 		if (loadingIds.has(identifier)) return;
 		loadingIds.add(identifier);
 		try {
@@ -158,8 +168,8 @@
 							<input
 								type="checkbox"
 								checked={isLoaded}
-								disabled={isLoading}
-								onchange={(e) => togglePhone(phone.identifier, e.currentTarget.checked)}
+								disabled={isLoading || (isLoaded && !allowRemovingPhone)}
+								onchange={(e) => togglePhone(phone.identifier, isLoaded, e.currentTarget.checked)}
 								class="mt-0.5 shrink-0 accent-zinc-700 dark:accent-zinc-300"
 							/>
 							<div class="flex min-w-0 flex-1 flex-col">

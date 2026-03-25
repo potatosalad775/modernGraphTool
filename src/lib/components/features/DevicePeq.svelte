@@ -127,13 +127,15 @@
 		devicePeqStore.isWriting = true;
 		try {
 			const connector = await getConnector(device.connectionType);
-			const filters = eqStore.filters.map((f: any) => ({
-				type: f.type,
-				freq: f.freq,
-				q: f.q,
-				gain: f.gain,
-				disabled: !f.enabled
-			}));
+			const filters = eqStore.filters
+				.filter((f) => f.freq != null && f.q != null && f.gain != null)
+				.map((f: any) => ({
+					type: f.type,
+					freq: f.freq,
+					q: f.q,
+					gain: f.gain,
+					disabled: !f.enabled
+				}));
 			const preamp = -Math.max(0, ...filters.map((f: any) => f.gain));
 			const shouldDisconnect = await connector.pushToDevice(
 				device,

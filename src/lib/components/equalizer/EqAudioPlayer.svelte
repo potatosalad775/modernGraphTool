@@ -69,9 +69,9 @@
 			if (f.type === 'PK') node.type = 'peaking';
 			else if (f.type === 'LSQ') node.type = 'lowshelf';
 			else if (f.type === 'HSQ') node.type = 'highshelf';
-			node.frequency.value = f.freq;
-			node.Q.value = f.q;
-			node.gain.value = f.gain;
+			node.frequency.value = f.freq!;
+			node.Q.value = f.q!;
+			node.gain.value = f.gain!;
 			filterNodes.push(node);
 		}
 

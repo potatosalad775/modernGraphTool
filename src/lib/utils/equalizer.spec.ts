@@ -226,7 +226,7 @@ describe('Equalizer', () => {
 			const filters = eq.autoEQ(source, target, { maxFilters: 5 });
 			expect(Array.isArray(filters)).toBe(true);
 			for (let i = 1; i < filters.length; i++) {
-				expect(filters[i].freq).toBeGreaterThanOrEqual(filters[i - 1].freq);
+				expect(filters[i].freq).toBeGreaterThanOrEqual(filters[i - 1].freq!);
 			}
 		});
 

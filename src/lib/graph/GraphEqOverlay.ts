@@ -51,11 +51,17 @@ export class GraphEqOverlay {
 	// ── Public render API ──────────────────────────────────────────────────────
 
 	render(): void {
+		// Hide all nodes when EQ is globally disabled
+		if (!eqStore.isEnabled) {
+			this.overlayGroup.selectAll('.eq-band-node').remove();
+			return;
+		}
+
 		const { xScale, yScale } = this.graphEngine.getScales();
 		const filters = eqStore.filters;
 		const data: BandDatum[] = filters
 			.map((filter, index) => ({ filter, index }))
-			.filter((d) => d.filter.enabled);
+			.filter((d) => d.filter.enabled && d.filter.freq != null && d.filter.gain != null);
 
 		// D3 data join on .eq-band-node groups
 		const nodes = this.overlayGroup
@@ -119,7 +125,7 @@ export class GraphEqOverlay {
 			(event: WheelEvent, d: BandDatum) => {
 				event.preventDefault();
 				const delta = event.deltaY > 0 ? -0.1 : 0.1;
-				const newQ = Math.max(0.1, Math.min(10, d.filter.q + delta));
+				const newQ = Math.max(0.1, Math.min(10, d.filter.q! + delta));
 				eqStore.updateBandAt(d.index, { q: parseFloat(newQ.toFixed(2)) });
 			},
 			{ passive: false } as EventListenerOptions
@@ -129,18 +135,18 @@ export class GraphEqOverlay {
 		const merged = entered.merge(nodes);
 
 		merged.attr('transform', (d) => {
-			const x = xScale(Math.max(20, Math.min(20000, d.filter.freq)));
-			const y = yScale(Math.max(-40, Math.min(40, d.filter.gain)));
+			const x = xScale(Math.max(20, Math.min(20000, d.filter.freq!)));
+			const y = yScale(Math.max(-40, Math.min(40, d.filter.gain!)));
 			return `translate(${x},${y})`;
 		});
 
 		merged
 			.select<SVGCircleElement>('.eq-q-ring')
-			.attr('r', (d) => this._qToRadius(d.filter.q));
+			.attr('r', (d) => this._qToRadius(d.filter.q!));
 
 		merged
 			.select<SVGTextElement>('.eq-freq-label')
-			.text((d) => this._formatFreq(d.filter.freq));
+			.text((d) => this._formatFreq(d.filter.freq!));
 	}
 
 	setEqPanelActive(active: boolean): void {
@@ -232,6 +238,7 @@ export class GraphEqOverlay {
 			.attr('fill', 'transparent')
 			.style('cursor', 'crosshair')
 			.on('click', (event: MouseEvent) => {
+				if (!eqStore.isEnabled) return;
 				// Don't fire when clicking on a node
 				if ((event.target as Element).closest?.('.eq-band-node')) return;
 				const { xScale, yScale } = this.graphEngine.getScales();

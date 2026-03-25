@@ -6,9 +6,9 @@
 export interface EQFilter {
 	enabled: boolean;
 	type: 'PK' | 'LSQ' | 'HSQ';
-	freq: number;
-	q: number;
-	gain: number;
+	freq: number | null;
+	q: number | null;
+	gain: number | null;
 }
 
 type FreqPoint = [number, number];
@@ -325,9 +325,9 @@ export class Equalizer {
 		return filters.map((f) => ({
 			enabled: f.enabled,
 			type: f.type,
-			freq: Math.floor(f.freq - (f.freq % this._freqUnit(f.freq))),
-			q: Math.min(Math.max(f.q, minQ), maxQ),
-			gain: Math.min(Math.max(f.gain, minGain), maxGain)
+			freq: Math.floor(f.freq! - (f.freq! % this._freqUnit(f.freq!))),
+			q: Math.min(Math.max(f.q!, minQ), maxQ),
+			gain: Math.min(Math.max(f.gain!, minGain), maxGain)
 		}));
 	}
 
@@ -393,9 +393,9 @@ export class Equalizer {
 			const effectiveMaxQ = isShelfFilter ? 1.5 : maxQ;
 
 			const testNewFilter = (df: number, dq: number, dg: number): boolean => {
-				const freq = f.freq + df * this._freqUnit(f.freq) * stepDF;
-				const q = f.q + dq * stepDQ;
-				const gain = f.gain + dg * stepDG;
+				const freq = f.freq! + df * this._freqUnit(f.freq!) * stepDF;
+				const q = f.q! + dq * stepDQ;
+				const gain = f.gain! + dg * stepDG;
 				if (
 					freq < effectiveMinFreq ||
 					freq > effectiveMaxFreq ||
@@ -457,7 +457,7 @@ export class Equalizer {
 			}
 			filters[i] = bestFilter;
 		}
-		return filters.sort((a, b) => a.freq - b.freq);
+		return filters.sort((a, b) => a.freq! - b.freq!);
 	}
 
 	_analyzeShelfOpportunities(
@@ -714,11 +714,11 @@ export class Equalizer {
 			.map((f) => ({
 				enabled: true,
 				type: f.type,
-				freq: this._round(f.freq, 0),
-				q: this._round(f.q, 2),
-				gain: this._round(f.gain, 1)
+				freq: this._round(f.freq!, 0),
+				q: this._round(f.q!, 2),
+				gain: this._round(f.gain!, 1)
 			}))
-			.sort((a, b) => a.freq - b.freq);
+			.sort((a, b) => a.freq! - b.freq!);
 	}
 
 	_pruneIneffectiveFilters(

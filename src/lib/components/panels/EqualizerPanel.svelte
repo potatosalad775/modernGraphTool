@@ -97,7 +97,7 @@
 		if (!cached) return;
 
 		// Apply EQ filters + preamp to each cached channel
-		const enabledFilters = filters.filter((f) => f.enabled);
+		const enabledFilters = filters.filter((f) => f.enabled && f.freq != null && f.q != null && f.gain != null);
 		const modified: ParsedFRData = {};
 
 		for (const ch of ['L', 'R', 'AVG'] as const) {

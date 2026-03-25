@@ -20,7 +20,7 @@
 	});
 
 	function addBand() {
-		eqStore.addBand({ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0 });
+		eqStore.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
 	}
 
 	function removeBand() {
@@ -30,7 +30,7 @@
 	}
 
 	function sortBands() {
-		const sorted = [...eqStore.filters].sort((a, b) => a.freq - b.freq);
+		const sorted = [...eqStore.filters].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity));
 		eqStore.filters = sorted;
 	}
 
@@ -81,16 +81,17 @@
 	}
 
 	function exportFilters() {
-		if (!eqStore.filters.length) {
+		const validFilters = eqStore.filters.filter(f => f.freq != null && f.q != null && f.gain != null);
+		if (!validFilters.length) {
 			alert(m.extension_equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
 		let text = `Preamp: ${preamp.toFixed(1)} dB\n`;
-		eqStore.filters.forEach((f, i) => {
+		validFilters.forEach((f, i) => {
 			let type: string = f.type;
 			if (type === 'LSQ') type = 'LSC';
 			if (type === 'HSQ') type = 'HSC';
-			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq.toFixed(0)} Hz Gain ${f.gain.toFixed(1)} dB Q ${f.q.toFixed(3)}\n`;
+			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
 		});
 		downloadText(text, 'filters.txt');
 	}
@@ -185,41 +186,45 @@
 						<td class="py-0.5 pr-1">
 							<input
 								type="number"
-								value={filter.freq}
+								value={filter.freq ?? ''}
+								placeholder="Hz"
 								min="20"
 								max="20000"
-								oninput={(e) =>
-									updateFilter(i, {
-										freq: parseFloat((e.target as HTMLInputElement).value) || filter.freq
-									})}
+								oninput={(e) => {
+									const raw = (e.target as HTMLInputElement).value;
+									updateFilter(i, { freq: raw === '' ? null : (parseFloat(raw) || null) });
+								}}
 								class="w-16 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
 							/>
 						</td>
 						<td class="py-0.5 pr-1">
 							<input
 								type="number"
-								value={filter.q}
+								value={filter.q ?? ''}
+								placeholder="Q"
 								min="0.1"
 								max="10"
 								step="0.1"
-								oninput={(e) =>
-									updateFilter(i, {
-										q: parseFloat((e.target as HTMLInputElement).value) || filter.q
-									})}
+								oninput={(e) => {
+									const raw = (e.target as HTMLInputElement).value;
+									updateFilter(i, { q: raw === '' ? null : (parseFloat(raw) || null) });
+								}}
 								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
 							/>
 						</td>
 						<td class="py-0.5 pr-1">
 							<input
 								type="number"
-								value={filter.gain}
+								value={filter.gain ?? ''}
+								placeholder="dB"
 								min="-30"
 								max="30"
 								step="0.1"
-								oninput={(e) =>
-									updateFilter(i, {
-										gain: parseFloat((e.target as HTMLInputElement).value) ?? filter.gain
-									})}
+								oninput={(e) => {
+									const raw = (e.target as HTMLInputElement).value;
+									const val = parseFloat(raw);
+									updateFilter(i, { gain: raw === '' ? null : (isNaN(val) ? null : val) });
+								}}
 								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none dark:text-zinc-200"
 							/>
 						</td>

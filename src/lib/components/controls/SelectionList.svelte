@@ -87,9 +87,44 @@
 
 	// ── Baseline ────────────────────────────────────────────────────────────────
 	function handleBaselineClick(uuid: string) {
-		const isActive = graphStore.baselineUUID === uuid;
-		graphEngine.updateBaselineData(!isActive, { uuid });
-		graphStore.baselineUUID = isActive ? null : uuid;
+		const item = frStore.get(uuid);
+		const hasOriginal = graphStore.targetOriginalData.has(uuid);
+		const isTargetItem = item && isTarget(item);
+
+		if (!isTargetItem || !hasOriginal) {
+			// Simple toggle for phones / targets without adjustments
+			const isActive = graphStore.baselineUUID === uuid;
+			graphEngine.updateBaselineData(!isActive, { uuid });
+			graphStore.baselineUUID = isActive ? null : uuid;
+			graphStore.baselineMode = isActive ? 'off' : 'adjusted';
+			return;
+		}
+
+		// Three-mode cycle for targets with adjustments: off → adjusted → original → off
+		const currentUUID = graphStore.baselineUUID;
+		const currentMode = graphStore.baselineMode;
+
+		if (currentUUID !== uuid) {
+			// Different UUID or no baseline: start with adjusted
+			graphEngine.updateBaselineData(true, { uuid });
+			graphStore.baselineMode = 'adjusted';
+		} else if (currentMode === 'adjusted') {
+			// Switch to original
+			const originalChannels = graphStore.targetOriginalData.get(uuid)!;
+			const channelData = originalChannels['AVG']?.data ?? null;
+			graphEngine.updateBaselineData(true, { uuid, channelData });
+			graphStore.baselineMode = 'original';
+		} else {
+			// original → off
+			graphEngine.updateBaselineData(false);
+			graphStore.baselineMode = 'off';
+		}
+	}
+
+	function getBaselineTooltip(uuid: string): string {
+		if (graphStore.baselineUUID !== uuid) return m.selection_list_baseline_off();
+		if (graphStore.baselineMode === 'original') return m.selection_list_baseline_original();
+		return m.selection_list_baseline_adjusted();
 	}
 
 	// ── Variant dropdown ────────────────────────────────────────────────────────
@@ -178,18 +213,24 @@
 				<!-- Baseline button -->
 				<button
 					onclick={() => handleBaselineClick(uuid)}
-					title="Set as baseline"
+					title={getBaselineTooltip(uuid)}
 					class="flex h-6 w-6 items-center justify-center rounded text-sm transition-colors
 						{isBaseline
-						? 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
+						? graphStore.baselineMode === 'original'
+							? 'border border-zinc-800 text-zinc-800 dark:border-zinc-200 dark:text-zinc-200'
+							: 'bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900'
 						: 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-300'}"
 				>
-					~
+					{isBaseline && graphStore.baselineMode === 'original' ? '~*' : '~'}
 				</button>
 
 				<!-- Visibility toggle -->
 				<button
-					onclick={() => dataProvider.updateVisibility(uuid, !item.hidden)}
+					onclick={() => {
+						const willBeHidden = !item.hidden;
+						graphEngine.updateVisibility(uuid, !willBeHidden);
+						dataProvider.updateVisibility(uuid, willBeHidden);
+					}}
 					title={item.hidden ? 'Show' : 'Hide'}
 					class="flex h-6 w-6 items-center justify-center rounded text-sm transition-colors
 						text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700

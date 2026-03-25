@@ -373,7 +373,11 @@ class GraphEngine {
 						'font-weight',
 						(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500'
 					)
-					.text(`${identifier} Compensated`);
+					.text(
+					graphStore.baselineMode === 'original'
+						? `${identifier} (Original) Compensated`
+						: `${identifier} Compensated`
+				);
 			}
 		}
 	}

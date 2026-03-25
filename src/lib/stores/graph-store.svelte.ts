@@ -1,8 +1,16 @@
+import { SvelteMap } from 'svelte/reactivity';
+import type { ParsedFRData } from '$lib/types/data-types.js';
+
+export type BaselineMode = 'off' | 'adjusted' | 'original';
+
 class GraphStore {
   yScale = $state(60);
   baselineUUID = $state<string | null>(null);
+  baselineMode = $state<BaselineMode>('off');
   normType = $state<'Hz' | 'Avg'>('Hz');
   normHzValue = $state(500);
+  /** Original (pre-adjustment) target channel data, keyed by target UUID */
+  readonly targetOriginalData = new SvelteMap<string, ParsedFRData>();
 }
 
 export const graphStore = new GraphStore();

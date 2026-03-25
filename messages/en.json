@@ -115,5 +115,8 @@
 	"crosssite_search_no_results": "No results found.",
 	"crosssite_search_loading": "Loading databases...",
 	"sponsor_banner_dismiss": "Close",
-	"shoplink_buy_now": "Buy Now"
+	"shoplink_buy_now": "Buy Now",
+	"selection_list_baseline_off": "Set as baseline",
+	"selection_list_baseline_adjusted": "Compensated (with adjustments)",
+	"selection_list_baseline_original": "Compensated (original target)"
 }

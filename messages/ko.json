@@ -115,5 +115,8 @@
 	"crosssite_search_no_results": "검색 결과가 없습니다.",
 	"crosssite_search_loading": "데이터베이스 불러오는 중...",
 	"sponsor_banner_dismiss": "닫기",
-	"shoplink_buy_now": "구매하기"
+	"shoplink_buy_now": "구매하기",
+	"selection_list_baseline_off": "기준선으로 설정",
+	"selection_list_baseline_adjusted": "보정됨 (조정 적용)",
+	"selection_list_baseline_original": "보정됨 (원본 타겟)"
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, onDestroy } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
+	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -112,14 +113,26 @@
 		if (frObj && !originalData) {
 			const cached = new SvelteMap<string, [number, number][]>();
 			const channels = frObj.channels;
+			const sharedSnapshot: ParsedFRData = {};
 			for (const key of Object.keys(channels) as (keyof ParsedFRData)[]) {
 				const ch = channels[key];
 				if (ch) {
-					cached.set(key, ch.data.map(([f, d]) => [f, d] as [number, number]));
+					const dataCopy = ch.data.map(([f, d]) => [f, d] as [number, number]);
+					cached.set(key, dataCopy);
+					sharedSnapshot[key] = {
+						data: dataCopy.map(([f, d]) => [f, d] as [number, number]),
+						metadata: { ...ch.metadata }
+					};
 				}
 			}
 			originalData = cached;
+			// Publish original target data for baseline compensation
+			graphStore.targetOriginalData.set(uuid, sharedSnapshot);
 		}
+	});
+
+	onDestroy(() => {
+		graphStore.targetOriginalData.delete(uuid);
 	});
 
 	// ── Apply adjustments when filter values change ───────────────────────────

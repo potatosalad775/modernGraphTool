@@ -4,13 +4,11 @@ import type {
 	FRDataPoint,
 	FRColors,
 	ParsedFRData,
-	ChannelData,
 	FRInputMetadata,
 	PhoneMetadata,
 	SampleChannelKey,
 	SampleData,
 	HpTFRigData,
-	HpTFData,
 	HpTFEnvelope,
 	HpTFDisplayKey
 } from '$lib/types/data-types.js';
@@ -121,18 +119,26 @@ class DataProvider {
 				return processed;
 			});
 
+			const fillOnly = rawData._hptfFillOnly ?? true;
 			frObject.hptf = {
 				rigs: processedRigs,
 				envelope: this.#computeAllHpTFEnvelopes(processedRigs),
-				labels: rawData._hptfLabels
+				labels: rawData._hptfLabels,
+				fillOnly
 			};
 
 			const defaultDisplay = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
 			frObject.hptfFillVisible = defaultDisplay === 'fill' || defaultDisplay === 'fill+curves';
-			frObject.dispHptf = (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
-				? this.#getAllHpTFKeys(processedRigs)
-				: [];
-			frObject.colors = { ...frObject.colors, hptfFill: this.#getHpTFFillColor(frObject.colors) };
+			frObject.dispHptf = fillOnly
+				? []
+				: (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
+					? this.#getAllHpTFKeys(processedRigs)
+					: [];
+			frObject.colors = { 
+				...frObject.colors, 
+				hptfStroke: this.#getHpTFStrokeColor(frObject.colors),
+				hptfFill: this.#getHpTFFillColor(frObject.colors) 
+			};
 
 			if (rawData._hptfOnly) {
 				frObject.hptfOnly = true;
@@ -326,15 +332,17 @@ class DataProvider {
 					}
 					return p;
 				});
+				const variantFillOnly = rawData._hptfFillOnly ?? true;
 				frStore.set(uuid, {
 					...existingData,
 					hptf: {
 						rigs: processedRigs,
 						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
-						labels: rawData._hptfLabels
+						labels: rawData._hptfLabels,
+						fillOnly: variantFillOnly
 					},
 					hptfOnly: rawData._hptfOnly ?? false,
-					dispHptf: existingData.dispHptf ?? [],
+					dispHptf: variantFillOnly ? [] : (existingData.dispHptf ?? []),
 					hptfFillVisible: existingData.hptfFillVisible ?? true
 				});
 			}
@@ -460,7 +468,8 @@ class DataProvider {
 					updated.hptf = {
 						rigs: processedRigs,
 						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
-						labels: rawData._hptfLabels
+						labels: rawData._hptfLabels,
+						fillOnly: rawData._hptfFillOnly ?? true
 					};
 				}
 				frStore.set(uuid, updated);
@@ -657,6 +666,17 @@ class DataProvider {
 			}
 		});
 		return keys;
+	}
+
+	/** Get semi-transparent stroke color for HpTF curves */
+	#getHpTFStrokeColor(colors: FRColors): string {
+		const opacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.5;
+		const base = colors.AVG;
+		// Convert hsl() to hsla() with fill opacity
+		if (base.startsWith('hsl(')) {
+			return base.replace('hsl(', 'hsla(').replace(')', `, ${opacity})`);
+		}
+		return base;
 	}
 
 	/** Get semi-transparent fill color from the phone's AVG color */

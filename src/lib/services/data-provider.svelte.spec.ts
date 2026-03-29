@@ -328,6 +328,7 @@ describe('DataProvider', () => {
 						AVG: { upper: [[1000, 82]], lower: [[1000, 80]] },
 					},
 					labels: ['GRAS', 'B&K'],
+					fillOnly: true,
 				},
 				dispHptf: [],
 				hptfFillVisible: false,

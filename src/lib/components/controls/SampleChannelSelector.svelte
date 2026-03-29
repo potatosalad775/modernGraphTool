@@ -66,7 +66,8 @@
 	// ── HpTF state ──────────────────────────────────────────────────────────────
 
 	let hasHptf = $derived(!!item.hptf);
-	let hptfLabels = $derived(item.hptf?.labels ?? []);
+	let hptfFillOnly = $derived(item.hptf?.fillOnly ?? true);
+	let hptfRigs = $derived(item.hptf?.rigs ?? []);
 	let dispHptf = $derived(item.dispHptf ?? []);
 	let hptfFillVisible = $derived(item.hptfFillVisible ?? false);
 
@@ -279,39 +280,41 @@
 						{m.selection_list_hptf_fill_toggle()}
 					</label>
 
-					<!-- Rig checkboxes -->
-					{#each hptfLabels as label, i (i)}
-						<label
-							class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-								text-foreground-secondary hover:bg-surface-hover"
-						>
-							<input
-								type="checkbox"
-								checked={isRigChecked(i)}
-								onchange={() => handleHptfRigToggle(i)}
-								class="accent-accent"
-							/>
-							{label}
-						</label>
-					{/each}
+					<!-- Rig checkboxes: only when fillOnly is false -->
+					{#if !hptfFillOnly && hptfRigs.length > 0}
+						{#each hptfRigs as rig, i (i)}
+							<label
+								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+									text-foreground-secondary hover:bg-surface-hover"
+							>
+								<input
+									type="checkbox"
+									checked={isRigChecked(i)}
+									onchange={() => handleHptfRigToggle(i)}
+									class="accent-accent"
+								/>
+								{rig.label}
+							</label>
+						{/each}
 
-					<!-- Preset buttons -->
-					<div class="mt-1.5 flex gap-1 px-1">
-						<button
-							onclick={() => handleHptfPreset('all')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
-						>
-							{m.selection_list_hptf_all()}
-						</button>
-						<button
-							onclick={() => handleHptfPreset('none')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
-						>
-							{m.selection_list_hptf_none()}
-						</button>
-					</div>
+						<!-- Preset buttons -->
+						<div class="mt-1.5 flex gap-1 px-1">
+							<button
+								onclick={() => handleHptfPreset('all')}
+								class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+									hover:bg-handle"
+							>
+								{m.selection_list_hptf_all()}
+							</button>
+							<button
+								onclick={() => handleHptfPreset('none')}
+								class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+									hover:bg-handle"
+							>
+								{m.selection_list_hptf_none()}
+							</button>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</Popover.Content>

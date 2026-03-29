@@ -8,6 +8,7 @@ export interface FRParseResult extends ParsedFRData {
   _hptfRigs?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
   _hptfLabels?: string[];
   _hptfOnly?: boolean;
+  _hptfFillOnly?: boolean;
 }
 
 /**
@@ -98,19 +99,12 @@ const FRParser = {
         return { ...averaged, _samples: samples, _sampleCount: variant.sampleCount };
       }
 
-      // HpTF path: fetch all rig measurements
+      // HpTF path: fetch all rig measurements, compute averaged channels as main data
       if (variant.hptfFiles && variant.hptfLabels) {
         const hptfResult = await FRParser.getFRHpTFData(variant.hptfFiles, variant.hptfLabels);
-
-        if (variant.hptfOnly) {
-          // HpTF-only: compute averaged channels across all rigs as main data
-          const averaged = FRParser._averageRigData(hptfResult._hptfRigs);
-          return { ...averaged, ...hptfResult, _hptfOnly: true };
-        }
-
-        // Normal: fetch main data AND merge HpTF rig data
-        const mainData = await FRParser.getFRDataFromFile(sourceType, variant.files);
-        return { ...mainData, ...hptfResult };
+        const fillOnly = variant.hptfFillOnly ?? true;
+        const averaged = FRParser._averageRigData(hptfResult._hptfRigs);
+        return { ...averaged, ...hptfResult, _hptfOnly: true, _hptfFillOnly: fillOnly };
       }
 
       // Standard path: single L/R pair

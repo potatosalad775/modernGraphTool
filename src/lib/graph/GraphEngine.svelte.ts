@@ -7,6 +7,7 @@ import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { SvelteSet } from 'svelte/reactivity';
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
@@ -165,7 +166,7 @@ class GraphEngine {
 			const labelGroup = this.labelGroup!;
 
 			Array.from(frStore.entries)
-				.sort(([, a], [, b]) => (a.type === 'target' ? -1 : 1))
+				.sort(([, a], [,]) => (a.type === 'target' ? -1 : 1))
 				.forEach(([, obj]) => {
 					if (obj.hidden) return;
 
@@ -547,6 +548,7 @@ class GraphEngine {
 		if (obj.hptf && obj.hptfFillVisible) {
 			const fillPath = this._buildHpTFEnvelopePath(obj);
 			if (fillPath) {
+				const color = obj.colors.hptfStroke ?? obj.colors.AVG;
 				const fillColor = obj.colors.hptfFill ?? 'rgba(128,128,128,0.3)';
 				this.curveGroup
 					.insert('path', ':first-child')
@@ -556,7 +558,8 @@ class GraphEngine {
 					.attr('identifier', obj.identifier)
 					.attr('d', fillPath)
 					.attr('fill', fillColor)
-					.attr('stroke', 'none')
+					.attr('stroke', color)
+					.attr('stroke-width', String(baseThickness / 2))
 					.style('pointer-events', 'none');
 			}
 		}
@@ -691,7 +694,7 @@ class GraphEngine {
 			20, 30, 40, 50, 60, 70, 80, 100, 200, 300, 400, 500, 600, 800, 1000, 2000, 3000, 4000, 5000,
 			6000, 8000, 10000, 15000, 20000
 		];
-		const majorTickValues = new Set([80, 300, 1000, 4000, 6000, 10000]);
+		const majorTickValues = new SvelteSet([80, 300, 1000, 4000, 6000, 10000]);
 
 		const axis = this.svg.select<SVGGElement>('.fr-graph-x-axis');
 		const gridGroups = axis

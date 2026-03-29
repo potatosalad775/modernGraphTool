@@ -204,10 +204,11 @@ const MetadataParser = {
           const hptfFields = phone.hptf ? {
             hptfFiles: this._generateHpTFFiles(phone.hptf.files),
             hptfLabels: phone.hptf.labels ?? phone.hptf.files,
+            hptfFillOnly: phone.hptf.fillOnly ?? true,
           } : {};
 
-          // HpTF-only mode: no file field, use first HpTF file as placeholder
-          if (!phone.file && phone.hptf) {
+          // HpTF mode: hptf takes over — file/suffix are ignored
+          if (phone.hptf) {
             const placeholderFile = phone.hptf.files[0];
             return {
               ...basePhone,

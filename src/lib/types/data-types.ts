@@ -55,6 +55,8 @@ export interface HpTFData {
   rigs: HpTFRigData[];
   envelope: Record<'L' | 'R' | 'AVG', HpTFEnvelope>;
   labels: string[];
+  /** When true, only the fill envelope is shown — no individual rig curve toggles. Default: true. */
+  fillOnly: boolean;
 }
 
 /** Display key for HpTF rig curves, e.g. "rig0_AVG", "rig1_L" */
@@ -68,6 +70,7 @@ export interface FRColors {
   /** Colors for individual sample traces, keyed by SampleChannelKey like 'L1', 'R2' */
   samples?: Record<string, string>;
   /** Color for the HpTF deviation fill area */
+  hptfStroke?: string;
   hptfFill?: string;
 }
 
@@ -147,6 +150,8 @@ export interface PhoneFileVariant {
   hptfLabels?: string[];
   /** True when file was omitted — main curve should not render */
   hptfOnly?: boolean;
+  /** When true, only fill envelope is shown — no individual rig curve toggles. Default: true. */
+  hptfFillOnly?: boolean;
 }
 
 /** Raw phone data from phone_book.json before processing */
@@ -162,7 +167,7 @@ export interface RawPhoneData {
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
   /** HpTF rig-to-rig deviation configuration */
-  hptf?: { files: string[]; labels?: string[] };
+  hptf?: { files: string[]; labels?: string[]; fillOnly?: boolean };
 }
 
 /** Raw brand data from phone_book.json before processing */

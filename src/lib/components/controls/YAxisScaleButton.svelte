@@ -2,10 +2,10 @@
 	import * as m from '$lib/paraglide/messages';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 
-	const options = [40, 60, 80, 100] as const;
+	const options = [30, 40, 50, 60, 80] as const;
 
 	function findClosestIndex(value: number): number {
-		let closest = 1; // default to 60dB index
+		let closest = 2; // default to 50dB index
 		let minDiff = Infinity;
 		for (let i = 0; i < options.length; i++) {
 			const diff = Math.abs(options[i] - value);

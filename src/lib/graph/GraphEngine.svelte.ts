@@ -17,7 +17,7 @@ class GraphEngine {
 	labelPosition: Record<string, { x: number; y: number; anchor: string; growUp: boolean; style?: string }>;
 	baselineData: BaselineData;
 	transitionDuration: number;
-	yScaleValue = 60;
+	yScaleValue = 50;
 	svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 	graphHandle!: GraphHandle;
 	graphInspection!: GraphInspection;
@@ -60,7 +60,7 @@ class GraphEngine {
 	/** Initialize GraphEngine with bound SVG element */
 	init(svgEl: SVGSVGElement, isMobile = false): void {
 		this.yScaleValue =
-			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '60') || 60;
+			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
 		graphStore.yScale = this.yScaleValue;
 
 		this.svg = d3
@@ -414,7 +414,7 @@ class GraphEngine {
 
 				return this.yScale(d[1] - baselineY);
 			})
-			.curve(d3.curveNatural);
+			.curve(d3.curveMonotoneX);
 
 		return lineGenerator(originalData);
 	}
@@ -818,7 +818,7 @@ class GraphEngine {
 	): void {
 		const yScale = this.yScale;
 		const tickValues =
-			this.yScaleValue < 60 ? yScale.ticks(this.yScaleValue) : yScale.ticks(this.yScaleValue / 5);
+			this.yScaleValue < 50 ? yScale.ticks(this.yScaleValue) : yScale.ticks(this.yScaleValue / 5);
 
 		const axis = this.svg.select<SVGGElement>('.fr-graph-y-axis');
 		const gridGroups = axis

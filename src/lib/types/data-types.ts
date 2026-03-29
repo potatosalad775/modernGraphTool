@@ -259,7 +259,7 @@ export interface NormalizationConfig {
 
 /** Visualization configuration */
 export interface VisualizationConfig {
-  DEFAULT_Y_SCALE: 40 | 60 | 80 | 100;
+  DEFAULT_Y_SCALE: 30 | 40 | 50 | 60 | 80;
   LABEL: LabelConfig;
   BASELINE_LABEL: LabelConfig;
   RIG_DESCRIPTION: string;

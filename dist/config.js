@@ -14,8 +14,8 @@ const CONFIG = {
   },
   // Default Visualization Settings.
   VISUALIZATION: {
-    ASPECT_RATIO: "16:9",                                // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
-    DEFAULT_Y_SCALE: 60,                                // (40, 60, 80, 100)
+    ASPECT_RATIO: "CrinGraph",                                // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
+    DEFAULT_Y_SCALE: 50,                                // (30, 40, 50, 60, 80)
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
       POSITION: {

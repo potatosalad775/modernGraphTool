@@ -105,12 +105,16 @@
 	const eq = new Equalizer();
 
 	// ── Cache original data ───────────────────────────────────────────────────
+	// Uses a plain flag (not reactive $state) to guard one-time init, avoiding
+	// a reactive cycle between the cache effect and the adjustment effect.
 
-	let originalData: SvelteMap<string, [number, number][]> | null = $state(null);
+	let originalData: SvelteMap<string, [number, number][]> | null = null;
+	let cacheInitialized = false;
 
 	$effect(() => {
 		const frObj = frStore.get(uuid);
-		if (frObj && !originalData) {
+		if (frObj && !cacheInitialized) {
+			cacheInitialized = true;
 			// Recover persisted original data from a previous mount (panel switch)
 			const persisted = graphStore.targetOriginalData.get(uuid);
 			if (persisted) {
@@ -152,7 +156,24 @@
 		}
 	});
 
-	// ── Apply adjustments when filter values change ───────────────────────────
+	// ── Sync base data when reSmoothAll updates it ────────────────────────────
+	// Watches only the version counter (not the SvelteMap directly) to avoid cycles.
+
+	$effect(() => {
+		const _version = graphStore.targetOriginalVersion;
+		if (!originalData) return;
+		// Non-reactive read of the updated base data
+		const stored = untrack(() => graphStore.targetOriginalData.get(uuid));
+		if (!stored) return;
+		for (const key of Object.keys(stored) as (keyof ParsedFRData)[]) {
+			const ch = stored[key];
+			if (ch) {
+				originalData.set(key, ch.data.map(([f, d]) => [f, d] as [number, number]));
+			}
+		}
+	});
+
+	// ── Apply adjustments when filter values or base data change ──────────────
 
 	$effect(() => {
 		// Subscribe to all active filter values
@@ -163,8 +184,7 @@
 		// Also track activeFilterIds size for reactivity on add/remove
 		const _size = activeFilterIds.size;
 
-		const cached = originalData;
-		if (!cached) return;
+		if (!originalData) return;
 
 		// Build EQ filters (skip tilt — handled separately)
 		const eqFilters: EQFilter[] = [];
@@ -184,7 +204,7 @@
 		const tiltValue = snapshot['tilt'] ?? 0;
 		const modifiedChannels: ParsedFRData = {};
 
-		for (const [key, points] of cached) {
+		for (const [key, points] of originalData) {
 			let modified: [number, number][] = points.map(([f, d]) => [f, d]);
 
 			// Apply tilt: gain * log2(freq / 1000)

@@ -11,6 +11,8 @@ class GraphStore {
   normHzValue = $state(500);
   /** Original (pre-adjustment) target channel data, keyed by target UUID */
   readonly targetOriginalData = new SvelteMap<string, ParsedFRData>();
+  /** Bumped by reSmoothAll to signal TargetCustomizer to re-sync base data */
+  targetOriginalVersion = $state(0);
 }
 
 export const graphStore = new GraphStore();

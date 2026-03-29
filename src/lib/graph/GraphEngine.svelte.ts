@@ -87,6 +87,8 @@ class GraphEngine {
 		}
 
 		this._updateCurveTimeout = setTimeout(() => {
+			this.refreshBaselineData();
+
 			this.svg
 				.select('.fr-graph-curve-container')
 				.selectAll("path[class*='fr-graph-'][class*='-curve']")
@@ -112,17 +114,12 @@ class GraphEngine {
 		this.updateYAxis();
 
 		this.curveGroup
-			.selectAll("path[class*='fr-graph-'][class*='-curve']")
+			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
 			.transition()
 			.duration(this.transitionDuration)
-			.attr('d', (d) => {
-				const lineGenerator = d3
-					.line<FRDataPoint>()
-					.x((d) => this.xScale(d[0]))
-					.y((d) => this.yScale(d[1]))
-					.curve(d3.curveNatural);
-				return lineGenerator(d as FRDataPoint[]);
-			});
+			.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
+
+		this._transitionHpTFFillPaths(true);
 	}
 
 	/** Update Labels of graph — debounced */
@@ -234,6 +231,37 @@ class GraphEngine {
 		}, 0);
 	}
 
+	/** Refresh baseline channel data from latest frStore entry (after re-smooth, re-normalize, etc.) */
+	refreshBaselineData(): void {
+		if (!this.baselineData.uuid) return;
+		const data = frStore.get(this.baselineData.uuid);
+		if (!data) {
+			// Baseline entry was removed
+			this.baselineData = { uuid: null, identifier: null, channelData: null };
+			graphStore.baselineUUID = null;
+			graphStore.baselineMode = 'off';
+			this.updateBaselineLabel();
+			return;
+		}
+		// In "original" mode, refresh from targetOriginalData
+		if (graphStore.baselineMode === 'original') {
+			const original = graphStore.targetOriginalData.get(this.baselineData.uuid);
+			if (original?.['AVG']?.data) {
+				this.baselineData.channelData = original['AVG'].data;
+			}
+			return;
+		}
+		// In "adjusted" mode, refresh from latest frStore data
+		this.baselineData.channelData =
+			data.type === 'phone'
+				? (data.channels[
+						data.dispChannel.includes('L') && data.dispChannel.includes('R')
+							? 'AVG'
+							: data.dispChannel[0]
+					]?.data ?? null)
+				: (data.channels['AVG']?.data ?? null);
+	}
+
 	/** Update Baseline Data */
 	updateBaselineData(
 		enable: boolean,
@@ -280,7 +308,7 @@ class GraphEngine {
 	updateBaseline(animate = false): void {
 		const self = this;
 		this.curveGroup
-			.selectAll("path[class*='fr-graph-'][class*='-curve']")
+			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
 			.transition()
 			.duration(animate ? this.transitionDuration : 0)
 			.attrTween('d', function (d) {
@@ -289,6 +317,8 @@ class GraphEngine {
 				const newPath = self._getCompensatedPath(d as FRDataPoint[]) ?? '';
 				return (t) => d3.interpolateString(oldPath, newPath)(t);
 			});
+
+		this._transitionHpTFFillPaths(animate);
 	}
 
 	/** Update Baseline Label */
@@ -296,57 +326,52 @@ class GraphEngine {
 		const uuid = this.baselineData.uuid;
 		const identifier = this.baselineData.identifier;
 
-		if (uuid === null) {
-			this.svg.selectAll('.fr-graph-baseline-text').remove();
-		} else {
-			if (!this.svg.selectAll(`.fr-graph-baseline-text[data-uuid='${uuid}']`).size()) {
-				const existingLabel = this.svg.selectAll('.fr-graph-baseline-text');
-				if (existingLabel) {
-					existingLabel.remove();
-				}
-				const labelLocation =
-					(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
-				const labelX =
-					this.labelPosition[labelLocation].x +
-					parseInt(
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0'
-					) -
-					parseInt(
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0'
-					);
-				const labelY =
-					this.labelPosition[labelLocation].y +
-					parseInt(
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0'
-					) -
-					parseInt(
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'
-					);
+		// Always remove existing label so mode changes update the text
+		this.svg.selectAll('.fr-graph-baseline-text').remove();
 
-				this.svg
-					.append('text')
-					.attr('class', 'fr-graph-baseline-text')
-					.attr('data-uuid', uuid)
-					.attr('x', labelX)
-					.attr('y', labelY)
-					.attr('text-anchor', this.labelPosition[labelLocation].anchor)
-					.attr('fill', '#000000')
-					.attr('opacity', '0.3')
-					.attr(
-						'font-size',
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px'
-					)
-					.attr(
-						'font-weight',
-						(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500'
-					)
-					.text(
-					graphStore.baselineMode === 'original'
-						? `${identifier} (Original) Compensated`
-						: `${identifier} Compensated`
-				);
-			}
-		}
+		if (uuid === null) return;
+
+		const labelLocation =
+			(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
+		const labelX =
+			this.labelPosition[labelLocation].x +
+			parseInt(
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0'
+			) -
+			parseInt(
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0'
+			);
+		const labelY =
+			this.labelPosition[labelLocation].y +
+			parseInt(
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0'
+			) -
+			parseInt(
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'
+			);
+
+		this.svg
+			.append('text')
+			.attr('class', 'fr-graph-baseline-text')
+			.attr('data-uuid', uuid)
+			.attr('x', labelX)
+			.attr('y', labelY)
+			.attr('text-anchor', this.labelPosition[labelLocation].anchor)
+			.attr('fill', '#000000')
+			.attr('opacity', '0.3')
+			.attr(
+				'font-size',
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px'
+			)
+			.attr(
+				'font-weight',
+				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500'
+			)
+			.text(
+				graphStore.baselineMode === 'original'
+					? `${identifier} (Original) Compensated`
+					: `${identifier} Compensated`
+			);
 	}
 
 	/** Update visibility of curves */
@@ -425,16 +450,40 @@ class GraphEngine {
 			return this.yScale(point[1] - baselineY);
 		};
 
+		// Use curveMonotoneX instead of curveNatural to prevent overshoot —
+		// the envelope represents strict min/max bounds and must not extend beyond data points.
 		const lineGen = d3
 			.line<FRDataPoint>()
 			.x((d) => this.xScale(d[0]))
 			.y((d) => computeY(d))
-			.curve(d3.curveNatural);
+			.curve(d3.curveMonotoneX);
 
 		const upperPath = lineGen(envelope.upper) ?? '';
 		const lowerPath = lineGen([...envelope.lower].reverse()) ?? '';
 
 		return upperPath + lowerPath.replace(/^M/, 'L') + 'Z';
+	}
+
+	/** Transition HpTF fill paths after scale or baseline changes */
+	_transitionHpTFFillPaths(animate: boolean): void {
+		const self = this;
+		this.curveGroup.selectAll<SVGPathElement, unknown>('path.fr-graph-hptf-fill').each(function () {
+			const el = d3.select(this);
+			const uuid = el.attr('uuid');
+			if (!uuid) return;
+			const obj = frStore.get(uuid);
+			if (!obj) return;
+			const newPath = self._buildHpTFEnvelopePath(obj);
+			if (!newPath) return;
+			if (animate) {
+				const oldPath = el.attr('d') ?? '';
+				el.transition()
+					.duration(self.transitionDuration)
+					.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
+			} else {
+				el.attr('d', newPath);
+			}
+		});
 	}
 
 	getBaselineData(): BaselineData {

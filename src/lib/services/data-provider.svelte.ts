@@ -473,10 +473,21 @@ class DataProvider {
 					};
 				}
 				frStore.set(uuid, updated);
+
+				// Update persisted original data so TargetCustomizer can re-apply adjustments
+				if (data.type === 'target' && graphStore.targetOriginalData.has(uuid)) {
+					graphStore.targetOriginalData.set(uuid, {
+						...(processed.L && { L: processed.L }),
+						...(processed.R && { R: processed.R }),
+						...(processed.AVG && { AVG: processed.AVG })
+					});
+				}
 			} catch {
 				// Keep existing data on failure
 			}
 		}
+		// Signal TargetCustomizer instances to re-sync base data and re-apply adjustments
+		graphStore.targetOriginalVersion++;
 		commandHistory.clear();
 	}
 

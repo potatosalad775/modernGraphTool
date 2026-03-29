@@ -88,7 +88,7 @@ DO:    `export const store = new StoreClass()`        (class instance)
 NEVER: `export let count = $state(0)` in .svelte.ts   (reassignable export)
 
 ## Config System
-static/config.js sets window.GRAPHTOOL_CONFIG (plain <script> in app.html, NOT type="module")
+defaults/config.js sets window.GRAPHTOOL_CONFIG (plain <script> in app.html, NOT type="module")
 Access via getConfigValue(path) from $lib/utils/config.
 Config-level i18n uses resolveI18nValue() for these operator-configured fields ONLY:
   DESCRIPTION, TOPBAR.TITLE, TOPBAR.LINK_LIST, TARGET_MANIFEST
@@ -112,15 +112,19 @@ Language switch: setLanguageTag('ko') from $lib/paraglide/runtime
 ## CSS / Theming
 Tailwind CSS 4 for all component styling. Dark mode via .dark class on <html>:
   `document.documentElement.classList.toggle('dark', appStore.theme === 'dark')`
-static/theme.css — minimal D3 graph CSS variables only (user-editable post-build):
+defaults/theme.css — D3 graph + UI CSS variables (user-editable post-build):
   --color-graph-grid-major, --color-graph-grid-minor, --color-graph-axis-label, etc.
 bits-ui for interactive components: Combobox, Slider, Dialog, Popover, Select, Switch, Tooltip
 
-## Static Output
+## Static Output & Defaults
 Build: `npm run build` → outputs to dist/
-static/ contents copied verbatim to dist/
+static/ holds only project assets (assets/strings/ translations).
+defaults/ holds user-configurable templates (config.js, theme.css, .htaccess, data/, assets/images/).
+A Vite plugin (vite-plugin-defaults.ts) serves defaults/ as fallback during dev and copies them
+to dist/ after build (without overwriting files from static/).
+To override a default locally: copy it to static/ (gitignored) — it takes priority.
 User-editable files in dist/: config.js, theme.css, data/, assets/strings/
-NEVER import files from static/ as modules — fetch() them at runtime.
+NEVER import files from static/ or defaults/ as modules — fetch() them at runtime.
 
 ## Build Commands
 npm run dev      — dev server (http://localhost:5173)
@@ -157,7 +161,7 @@ Key files:
   Analytics:  src/lib/services/analytics-service.svelte.ts
   Components: CrossSiteSearch, SponsorBanner, ShopLink (features/), SiteSelector (controls/)
 
-Config section (static/config.js):
+Config section (defaults/config.js):
   SQUIGLINK.ENABLED                  — master toggle (default: true)
   SQUIGLINK.ANALYTICS_MEASUREMENT_IDS — array of GA4 IDs (multi-tag support)
   SQUIGLINK.ANALYTICS_SITE           — site name for analytics attribution
@@ -241,7 +245,7 @@ Emotional goals: **Confidence & trust** (users must feel the data is accurate an
 
 ### Design Tokens (Current)
 
-**Colors:** Tailwind zinc scale (50–950) for structural UI. Blue-indigo accent (OKLCH hue 258) for interactive highlights. Operator-customizable via `--color-accent` in `/static/theme.css`. Tailwind utilities: `bg-accent`, `text-accent`, `ring-accent`, `bg-accent-muted`, `text-accent-foreground`, etc. All auto-switch between light/dark mode.
+**Colors:** Tailwind zinc scale (50–950) for structural UI. Blue-indigo accent (OKLCH hue 258) for interactive highlights. Operator-customizable via `--color-accent` in `defaults/theme.css`. Tailwind utilities: `bg-accent`, `text-accent`, `ring-accent`, `bg-accent-muted`, `text-accent-foreground`, etc. All auto-switch between light/dark mode.
 
 **Typography:** System font stack (Tailwind default). Sizes: text-xs (metadata), text-sm (body/controls), text-lg (headings). Weights: regular (400), medium (500), semibold (600).
 

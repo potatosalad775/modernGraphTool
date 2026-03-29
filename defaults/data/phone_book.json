@@ -44,17 +44,17 @@
          "price":"$100"
         },
         {"name":["HpTF With Main"],
-         "file":["HpTF Demo GRAS"],
-         "suffix":["GRAS"],
+         "file":["HpTF Demo KB501x"],
+         "suffix":["KB501x"],
          "hptf": {
-           "files":["HpTF Demo GRAS", "HpTF Demo BK", "HpTF Demo HMS"],
-           "labels":["GRAS RA0045", "B&K 5128", "HMS III.0"]
+           "files":["HpTF Demo KB501x", "HpTF Demo 5128", "HpTF Demo 45CA"],
+           "labels":["Clone 711 + KB501x", "B&K 5128", "GRAS 45CA"]
          }
         },
         {"name":["HpTF Only"],
          "hptf": {
-           "files":["HpTF Demo GRAS", "HpTF Demo BK", "HpTF Demo HMS"],
-           "labels":["GRAS RA0045", "B&K 5128", "HMS III.0"]
+           "files":["HpTF Demo KB501x", "HpTF Demo 5128", "HpTF Demo 45CA"],
+           "labels":["Clone 711 + KB501x", "B&K 5128", "GRAS 45CA"]
          }
         }
     ]

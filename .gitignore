@@ -24,3 +24,12 @@ vite.config.ts.timestamp-*
 # Paraglide
 src/lib/paraglide
 project.inlang/cache/
+
+# User-configurable overrides in static/ (defaults live in defaults/)
+static/config.js
+static/theme.css
+static/.htaccess
+static/robots.txt
+static/README.txt
+static/data/
+static/assets/images/

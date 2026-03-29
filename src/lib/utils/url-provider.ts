@@ -1,3 +1,5 @@
+import { replaceState } from '$app/navigation';
+import { resolve } from '$app/paths';
 import Base62 from './base62.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -61,7 +63,8 @@ class URLProvider {
 		const { url, title, namesCombined } = this.#buildURL();
 
 		if (changeURL) {
-			window.history.replaceState('', title, url);
+			const { pathname, search } = new URL(url);
+			replaceState(resolve((pathname + search) as '/'), {});
 		}
 		document.title = title;
 		this.#updateMetaTags(namesCombined);

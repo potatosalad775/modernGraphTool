@@ -6,7 +6,7 @@
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
-	import { frStore } from '$lib/stores/fr-store.svelte';
+	//import { frStore } from '$lib/stores/fr-store.svelte';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -162,9 +162,9 @@
 	$effect(() => {
 		if (!appStore.isReady) return;
 		// Subscribe to reactive dependencies
-		for (const _ of frStore.entries) { /* track all FR data mutations */ }
-		const _yScale = graphStore.yScale;
-		const _baseline = graphStore.baselineUUID;
+		//for (const _ of frStore.entries) { /* track all FR data mutations */ }
+		//const _yScale = graphStore.yScale;
+		//const _baseline = graphStore.baselineUUID;
 		urlProvider.autoUpdate();
 	});
 </script>
@@ -173,9 +173,9 @@
 	<TopNavBar />
 
 	{#if appStore.isMobile}
-		<main class="flex flex-1 flex-col overflow-hidden">
+		<main class="flex flex-1 flex-col overflow-hidden bg-surface text-foreground">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
-			<section aria-label="Frequency response graph" class="shrink-0 overflow-hidden bg-surface">
+			<section aria-label="Frequency response graph" class="shrink-0 overflow-hidden">
 				<GraphContainer />
 			</section>
 			<!-- Panel area fills remaining space -->
@@ -210,7 +210,7 @@
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden">
+			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-surface">
 				<MenuCarousel />
 				<div class="min-h-0 flex-1 overflow-hidden">
 					{#if menuStore.currentPanel === 'device'}

@@ -1,16 +1,20 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte.js';
 	import MetadataParser from '$lib/utils/metadata-parser.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
+	import type { CrossSiteSearchResult } from '$lib/types/squiglink-types.js';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
 
-	const allowRemovingPhone = (getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
-	const switchPanelOnBrandClick = (getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
+	const allowRemovingPhone =
+		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
+	const switchPanelOnBrandClick =
+		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
@@ -19,9 +23,78 @@
 	let showPhonePane = $state(true);
 	const loadingIds = new SvelteSet<string>();
 
+	// ── Cross-site search state ─────────────────────────────────────────────────
+
+	const crossSiteEnabled = $derived(
+		squiglinkStore.isEnabled &&
+			(getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH') as boolean) !== false
+	);
+
+	let crossSiteLoadStarted = false;
+	let crossSiteLoading = $state(false);
+
+	async function loadCrossSiteData(): Promise<void> {
+		crossSiteLoading = true;
+		try {
+			await squiglinkStore.fetchSiteRegistry();
+			const sites = squiglinkStore.sites;
+			// Fetch phone books in batches of 5
+			for (let i = 0; i < sites.length; i += 5) {
+				const batch = sites.slice(i, i + 5);
+				await Promise.all(batch.map((site) => squiglinkStore.fetchPhoneBook(site)));
+			}
+		} catch (e) {
+			console.error('Failed to load cross-site data:', e);
+		} finally {
+			crossSiteLoading = false;
+		}
+	}
+
+	// Sync searchQuery to squiglinkStore when cross-site is enabled
+	$effect(() => {
+		if (crossSiteEnabled) {
+			squiglinkStore.searchQuery = searchQuery;
+		}
+	});
+
+	// Trigger cross-site data load once when enabled and query is long enough
+	$effect(() => {
+		if (crossSiteEnabled && searchQuery.trim().length >= 2 && !crossSiteLoadStarted) {
+			crossSiteLoadStarted = true;
+			loadCrossSiteData();
+		}
+	});
+
+	const crossSiteResults = $derived<CrossSiteSearchResult[]>(
+		crossSiteEnabled && searchQuery.trim().length >= 2 ? squiglinkStore.searchResults : []
+	);
+
+	const groupedCrossSite = $derived.by(() => {
+		const map = new SvelteMap<string, CrossSiteSearchResult[]>();
+		for (const result of crossSiteResults) {
+			const existing = map.get(result.siteUsername);
+			if (existing) {
+				existing.push(result);
+			} else {
+				map.set(result.siteUsername, [result]);
+			}
+		}
+		return map;
+	});
+
+	const showCrossSiteSection = $derived(
+		crossSiteEnabled && searchQuery.trim().length >= 2
+	);
+
+	function openCrossSiteResult(siteUrl: string, phoneName: string): void {
+		window.open(
+			`${siteUrl}?share=${encodeURIComponent(phoneName.replace(/ /g, '_'))}`,
+			'_blank'
+		);
+	}
+
 	// ── Derived ─────────────────────────────────────────────────────────────────
 
-	// Full flat phone list, derived from MetadataParser (reactive once metadata loads)
 	const fullPhoneList = $derived.by((): (PhoneMetadata & { brand: string })[] => {
 		if (!MetadataParser.phoneMetadata) return [];
 		return MetadataParser.phoneMetadata.flatMap((b) =>
@@ -50,20 +123,22 @@
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
-	function toggleBrand(brand: string, checked: boolean) {
-		if (checked) selectedBrands.add(brand);
-		else selectedBrands.delete(brand);
-		// Auto-switch to phone pane on brand click (mobile layout)
-		if (switchPanelOnBrandClick && checked) showPhonePane = true;
+	function toggleBrand(brand: string): void {
+		if (selectedBrands.has(brand)) {
+			selectedBrands.delete(brand);
+		} else {
+			selectedBrands.add(brand);
+			if (switchPanelOnBrandClick) showPhonePane = true;
+		}
 	}
 
-	function clearBrands() {
+	function clearBrands(): void {
 		selectedBrands.clear();
 	}
 
-	async function togglePhone(identifier: string, isLoaded: boolean, checked: boolean) {
-		// Block removal if config disables it
-		if (!checked && isLoaded && !allowRemovingPhone) return;
+	async function togglePhone(identifier: string, isLoaded: boolean): Promise<void> {
+		const checked = !isLoaded;
+		if (!checked && !allowRemovingPhone) return;
 		if (loadingIds.has(identifier)) return;
 		loadingIds.add(identifier);
 		try {
@@ -85,9 +160,7 @@
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
-	<div
-		class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5 border-border"
-	>
+	<div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5">
 		<!-- Brands toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = false)}
@@ -129,19 +202,15 @@
 				class:ps-brand-hidden={showPhonePane}
 			>
 				{#each brandListData as brand (brand)}
-					<label
-						class="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm
-							hover:bg-surface-hover
-							{selectedBrands.has(brand) ? 'font-semibold text-foreground' : 'text-foreground-secondary'}"
+					<button
+						onclick={() => toggleBrand(brand)}
+						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors
+							{selectedBrands.has(brand)
+							? 'bg-accent/10 font-medium text-foreground'
+							: 'text-foreground-secondary hover:bg-surface-hover'}"
 					>
-						<input
-							type="checkbox"
-							checked={selectedBrands.has(brand)}
-							onchange={(e) => toggleBrand(brand, e.currentTarget.checked)}
-							class="accent-accent"
-						/>
 						<span class="truncate">{brand}</span>
-					</label>
+					</button>
 				{/each}
 			</div>
 
@@ -150,84 +219,131 @@
 				class="ps-phone-pane flex flex-col overflow-y-auto"
 				class:ps-phone-hidden={!showPhonePane}
 			>
-				{#if displayPhones.length === 0}
+				<!-- Cross-site search results -->
+				{#if showCrossSiteSection}
+					{#if crossSiteLoading && crossSiteResults.length === 0}
+						<p class="px-3 py-3 text-center text-xs text-muted">
+							{m.crosssite_search_loading()}
+						</p>
+					{/if}
+
+					{#if crossSiteResults.length > 0}
+						<div class="px-3 pb-1 pt-2">
+							<span class="text-[10px] font-semibold uppercase tracking-wider text-muted">
+								{m.crosssite_search_title()}
+							</span>
+						</div>
+
+						{#each [...groupedCrossSite] as [siteUsername, results] (siteUsername)}
+							<div class="px-3 pb-0.5 pt-1.5">
+								<span class="text-[10px] font-medium text-muted">
+									{results[0].siteName}
+								</span>
+							</div>
+
+							{#each results.slice(0, 10) as result (result.siteUsername + result.phoneName)}
+								<button
+									onclick={() => openCrossSiteResult(result.siteUrl, result.phoneName)}
+									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm text-foreground-secondary transition-colors hover:bg-surface-hover"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+										class="h-3.5 w-3.5 shrink-0 text-muted"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M5.22 14.78a.75.75 0 0 0 1.06 0l7.22-7.22v5.69a.75.75 0 0 0 1.5 0v-7.5a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0 0 1.5h5.69l-7.22 7.22a.75.75 0 0 0 0 1.06Z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<span class="min-w-0 flex-1 truncate">{result.phoneName}</span>
+									<span
+										class="shrink-0 rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-muted"
+									>
+										{result.dbType}
+									</span>
+								</button>
+							{/each}
+						{/each}
+
+						<!-- Divider between cross-site and local results -->
+						{#if displayPhones.length > 0}
+							<div class="mx-3 my-1 border-t border-border"></div>
+						{/if}
+					{/if}
+				{/if}
+
+				<!-- Empty state -->
+				{#if displayPhones.length === 0 && crossSiteResults.length === 0 && !crossSiteLoading}
 					<p class="px-3 py-6 text-center text-xs text-muted">
 						{searchQuery.trim() ? 'No results.' : 'No devices.'}
 					</p>
 				{/if}
 
+				<!-- Local phone results -->
 				{#each displayPhones as phone (phone.identifier)}
 					{@const isLoaded = loadedIds.has(phone.identifier)}
 					{@const isLoading = loadingIds.has(phone.identifier)}
 					<div
-						class="flex flex-col border-b border-border-muted px-3 py-1.5-muted
-							{isLoaded ? 'bg-surface-hover/40' : ''}"
+						class="border-b border-border-muted
+							{isLoaded ? 'border-l-2 border-l-accent bg-accent/5' : ''}"
 					>
-						<label class="flex cursor-pointer items-start gap-2">
-							<input
-								type="checkbox"
-								checked={isLoaded}
-								disabled={isLoading || (isLoaded && !allowRemovingPhone)}
-								onchange={(e) => togglePhone(phone.identifier, isLoaded, e.currentTarget.checked)}
-								class="mt-0.5 shrink-0 accent-accent"
-							/>
-							<div class="flex min-w-0 flex-1 flex-col">
-								<span
-									class="truncate text-sm leading-snug
-										{isLoaded
-										? 'font-medium text-foreground'
-										: 'text-foreground-secondary'}
-										{isLoading ? 'opacity-50' : ''}"
-								>
-									{phone.identifier}
-								</span>
+						<button
+							onclick={() => togglePhone(phone.identifier, isLoaded)}
+							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
+							class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors
+								{isLoaded
+								? 'font-medium text-foreground'
+								: 'text-foreground-secondary hover:bg-surface-hover'}
+								{isLoading ? 'opacity-50' : ''}
+								disabled:cursor-default"
+						>
+							<span class="min-w-0 flex-1 truncate leading-snug">
+								{phone.identifier}
+							</span>
 
-								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-									<!-- Score stars -->
-									{#if phone.reviewScore !== undefined}
-										<span class="text-xs text-rating" title="Score: {phone.reviewScore}">
-											{renderStars(phone.reviewScore)}
-										</span>
-									{/if}
-
-									<!-- Price -->
-									{#if phone.price}
-										<span class="text-xs text-muted">{phone.price}</span>
-									{/if}
-
-									<!-- Review link -->
-									{#if phone.reviewLink}
-										<a
-											href={phone.reviewLink}
-											target="_blank"
-											rel="noopener noreferrer"
-											onclick={(e) => e.stopPropagation()}
-											class="text-xs text-link hover:underline"
-										>
-											{m.phone_selector_item_review()}
-										</a>
-									{/if}
-
-									<!-- Shop link -->
-									{#if phone.shopLink}
-										<a
-											href={phone.shopLink}
-											target="_blank"
-											rel="noopener noreferrer"
-											onclick={(e) => e.stopPropagation()}
-											class="text-xs text-link hover:underline"
-										>
-											{m.phone_selector_item_shop()}
-										</a>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Loading spinner -->
 							{#if isLoading}
-								<span class="mt-0.5 shrink-0 animate-spin text-xs text-muted">⟳</span>
+								<span class="shrink-0 animate-spin text-xs text-muted">&#10227;</span>
 							{/if}
-						</label>
+						</button>
+
+						{#if isLoaded}
+							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1.5">
+								{#if phone.reviewScore !== undefined}
+									<span class="text-xs text-rating" title="Score: {phone.reviewScore}">
+										{renderStars(phone.reviewScore)}
+									</span>
+								{/if}
+
+								{#if phone.price}
+									<span class="text-xs text-muted">{phone.price}</span>
+								{/if}
+
+								{#if phone.reviewLink}
+									<a
+										href={phone.reviewLink}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="text-xs text-link hover:underline"
+									>
+										{m.phone_selector_item_review()}
+									</a>
+								{/if}
+
+								{#if phone.shopLink}
+									<a
+										href={phone.shopLink}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="text-xs text-link hover:underline"
+									>
+										{m.phone_selector_item_shop()}
+									</a>
+								{/if}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -236,7 +352,7 @@
 
 	<!-- Clear brands button -->
 	{#if selectedBrands.size > 0}
-		<div class="shrink-0 border-t border-border p-2 border-border">
+		<div class="shrink-0 border-t border-border p-2">
 			<button
 				onclick={clearBrands}
 				class="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition-colors

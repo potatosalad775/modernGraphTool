@@ -1,8 +1,9 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
-	import { menuStore, MENU_PANELS, type MenuPanel } from '$lib/stores/menu-store.svelte';
+	import { menuStore, type MenuPanel } from '$lib/stores/menu-store.svelte';
 
-	const ITEM_WIDTH = 108; // px — 6rem button + gap
+	const BUTTON_W = 96; // px — w-24 button width
+	const STRIDE = BUTTON_W + 12; // px — button + gap-3
 
 	const panels: { id: MenuPanel; label: () => string }[] = [
 		{ id: 'device', label: m.menu_item_device_label },
@@ -13,20 +14,22 @@
 
 	let currentIndex = $derived(panels.findIndex((p) => p.id === menuStore.currentPanel));
 
+	// Measured container width — reacts to window resize via bind:clientWidth
+	let containerWidth = $state(0);
+
 	// Drag state
 	let isDragging = $state(false);
 	let startX = $state(0);
 	let dragStartIndex = $state(0);
 	let liveOffset = $state(0); // extra px offset during active drag
-	let lastDragX = $state(0);
-
 	// Wheel accumulator
 	let wheelAccumulator = $state(0);
 	const WHEEL_SENSITIVITY = 0.3;
 	const WHEEL_THRESHOLD = 1.0;
 
+	// Center the selected button: translate so its midpoint aligns with container center
 	const scrollX = $derived(
-		((panels.length / 2) - 0.5 - currentIndex) * ITEM_WIDTH + (isDragging ? liveOffset : 0)
+		containerWidth / 2 - currentIndex * STRIDE - BUTTON_W / 2 + (isDragging ? liveOffset : 0)
 	);
 
 	function goTo(index: number) {
@@ -37,7 +40,6 @@
 	function handleMouseDown(e: MouseEvent) {
 		isDragging = true;
 		startX = e.pageX;
-		lastDragX = e.pageX;
 		dragStartIndex = currentIndex;
 		liveOffset = 0;
 		e.preventDefault();
@@ -46,7 +48,6 @@
 	function handleTouchStart(e: TouchEvent) {
 		isDragging = true;
 		startX = e.touches[0].pageX;
-		lastDragX = e.touches[0].pageX;
 		dragStartIndex = currentIndex;
 		liveOffset = 0;
 		e.preventDefault();
@@ -56,8 +57,7 @@
 		if (!isDragging) return;
 		const x = e.pageX;
 		liveOffset = x - startX;
-		lastDragX = x;
-		const estimatedIndex = Math.round(-liveOffset / ITEM_WIDTH) + dragStartIndex;
+		const estimatedIndex = Math.round(-liveOffset / STRIDE) + dragStartIndex;
 		if (estimatedIndex !== currentIndex) {
 			goTo(estimatedIndex);
 		}
@@ -68,8 +68,7 @@
 		e.preventDefault();
 		const x = e.touches[0].pageX;
 		liveOffset = x - startX;
-		lastDragX = x;
-		const estimatedIndex = Math.round(-liveOffset / ITEM_WIDTH) + dragStartIndex;
+		const estimatedIndex = Math.round(-liveOffset / STRIDE) + dragStartIndex;
 		if (estimatedIndex !== currentIndex) {
 			goTo(estimatedIndex);
 		}
@@ -100,6 +99,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
+	bind:clientWidth={containerWidth}
 	class="flex h-12 select-none items-center overflow-hidden border-t border-border bg-surface-raised"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}

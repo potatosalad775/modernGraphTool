@@ -25,7 +25,7 @@
 <header class="flex h-12 items-center border-b border-border bg-surface-raised px-4">
 	<nav class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
-		<a href="." class="flex items-center no-underline">
+		<a href="." class="flex items-center no-underline text-foreground">
 			{#if titleType === 'HTML'}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html titleContent}

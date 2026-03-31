@@ -275,7 +275,7 @@
 							onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
 							aria-label="Channel"
 							class="h-7 rounded border border-input bg-surface-raised px-1 text-xs text-foreground-secondary
-								focus:outline-none focus:ring-1 focus:ring-accent-raised-secondary"
+								focus:outline-none focus:ring-1 focus:ring-accent"
 						>
 							{#each channelOpts as opt (opt.value)}
 								<option value={opt.value}>{opt.label}</option>

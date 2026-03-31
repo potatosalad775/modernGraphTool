@@ -40,9 +40,9 @@ class GraphHandle {
 		this.handle = this.handleGroup
 			.append('circle')
 			.attr('r', this.handleRadius)
-			.attr('stroke', 'var(--color-color-primary)')
+			.attr('stroke', 'var(--color-primary)')
 			.attr('stroke-width', 2)
-			.attr('fill', 'var(--color-color-surface-container-highest)')
+			.attr('fill', 'var(--color-surface-hover)')
 			.attr('opacity', '0.4')
 			.attr('cursor', 'pointer')
 			.attr('cy', (this.graphEngine.graphGeometry.yTop + this.graphEngine.graphGeometry.yBottom) / 2);

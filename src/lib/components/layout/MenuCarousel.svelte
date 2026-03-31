@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { appStore } from '$lib/stores/app-store.svelte';
 	import { menuStore, type MenuPanel } from '$lib/stores/menu-store.svelte';
 
 	const BUTTON_W = 96; // px — w-24 button width
@@ -100,7 +101,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
 	bind:clientWidth={containerWidth}
-	class="flex h-12 select-none items-center overflow-hidden border-t border-border bg-surface-raised"
+	class="flex h-12 select-none items-center overflow-hidden border-border bg-surface-raised {appStore.isMobile ? 'border-t' : 'border-b'}"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}
@@ -111,7 +112,7 @@
 	<div
 		role="tablist"
 		aria-orientation="horizontal"
-		class="flex items-center gap-3 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+		class="flex items-center gap-3 transition-transform duration-300 ease-in-out"
 		style:transform="translateX({scrollX}px)"
 		style:transition={isDragging ? 'none' : undefined}
 	>

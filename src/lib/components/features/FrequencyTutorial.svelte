@@ -1,7 +1,8 @@
 <script lang="ts">
-  import * as d3 from 'd3';
   import * as m from '$lib/paraglide/messages.js';
   import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+	import ScrollArea from '../atoms/ScrollArea.svelte';
+	import Button from '../atoms/Button.svelte';
 
   const FREQ_RANGES = [
     { key: 'sub_bass',    range: [20, 60]     as [number, number] },
@@ -76,21 +77,23 @@
   });
 </script>
 
-<div class="flex flex-col gap-2 px-3 py-2">
+<div class="flex flex-col">
   <!-- Button row: horizontally scrollable -->
-  <div class="flex gap-1.5 overflow-x-auto pb-0.5">
-    {#each FREQ_RANGES as { key } (key)}
-      <button
-        onclick={() => toggleRange(key)}
-        class="shrink-0 rounded px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-          {activeKey === key
-            ? 'bg-accent text-accent-foreground'
-            : 'bg-surface-hover text-foreground-secondary hover:bg-handle'}"
-      >
-        {getRangeName(key)}
-      </button>
-    {/each}
-  </div>
+  <ScrollArea 
+    orientation="horizontal" type="always"
+    viewportClasses="flex gap-2 w-full"
+  >
+    <div class="flex gap-1.5 px-3 py-2">
+      {#each FREQ_RANGES as { key } (key)}
+        <Button
+          onclick={() => toggleRange(key)}
+          variant={activeKey === key ? 'primary' : 'secondary'}
+        >
+          {getRangeName(key)}
+        </Button>
+      {/each}
+    </div>
+  </ScrollArea>
 
   <!-- Description panel: only shown when a range is active -->
   {#if activeKey !== null}

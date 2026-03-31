@@ -66,7 +66,7 @@
 				{#if sponsor.creative}
 					<div
 						class="mt-4 flex justify-center overflow-hidden rounded-lg p-4"
-						style:background-color={sponsor.creativeBgColor || '#f4f4f5'}
+						style:background-color={sponsor.creativeBgColor || 'var(--color-surface-hover)'}
 					>
 						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="max-h-48 object-contain" />
 					</div>
@@ -91,7 +91,7 @@
 							target="_blank"
 							rel="noopener noreferrer"
 							class="rounded-lg border border-input px-4 py-2.5 text-center text-sm font-medium
-								text-foreground-secondary hover:bg-surface-hover-secondary"
+								text-foreground-secondary hover:bg-surface-hover"
 						>
 							{sponsor.cta2Text}
 						</a>
@@ -99,7 +99,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-4 w-full text-center text-xs text-muted hover:text-foreground-secondary-secondary"
+					class="mt-4 w-full text-center text-xs text-muted hover:text-foreground-secondary"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

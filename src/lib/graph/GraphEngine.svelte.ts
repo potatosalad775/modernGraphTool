@@ -184,7 +184,7 @@ class GraphEngine {
 							.attr('uuid', obj.uuid)
 							.attr('width', textContent.length * lineHeight * 0.35)
 							.attr('height', lineHeight)
-							.attr('fill', 'var(--color-color-surface-container-lowest)')
+							.attr('fill', 'var(--color-surface-raised)')
 							.attr('opacity', '0.7')
 							.attr('filter', 'blur(4px)');
 
@@ -357,8 +357,7 @@ class GraphEngine {
 			.attr('x', labelX)
 			.attr('y', labelY)
 			.attr('text-anchor', this.labelPosition[labelLocation].anchor)
-			.attr('fill', '#000000')
-			.attr('opacity', '0.3')
+			.attr('fill', 'var(--color-graph-axis-label)')
 			.attr(
 				'font-size',
 				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px'
@@ -680,7 +679,7 @@ class GraphEngine {
 					.attr('channel', key)
 					.attr('sample', 'true')
 					.attr('identifier', obj.identifier)
-					.attr('stroke', '#888')
+					.attr('stroke', 'var(--color-foreground-secondary)')
 					.attr('stroke-width', String(sampleThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
 					.attr('opacity', '0.35')
@@ -698,7 +697,7 @@ class GraphEngine {
 			.attr('uuid', obj.uuid)
 			.attr('type', obj.type)
 			.attr('identifier', obj.identifier)
-			.attr('stroke', `${obj.colors['AVG'] || '#666'}`)
+			.attr('stroke', `${obj.colors['AVG'] || 'var(--color-foreground-secondary)'}`)
 			.attr(
 				'stroke-width',
 				(getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1'

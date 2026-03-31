@@ -146,7 +146,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="GitHub"
-				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
+				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -171,7 +171,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="Documentation"
-				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
+				class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -196,7 +196,7 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					title="Support on Ko-fi"
-					class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary-secondary"
+					class="rounded-md p-1.5 text-muted hover:bg-surface-hover hover:text-foreground-secondary"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"

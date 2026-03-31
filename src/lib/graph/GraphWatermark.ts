@@ -41,7 +41,7 @@ const GraphWatermark = (
 			.attr('font-size', '15px')
 			.attr('font-weight', '500')
 			.attr('text-anchor', watermarkPositionData['TOP_RIGHT'].anchor)
-			.attr('fill', '#000')
+			.attr('fill', 'var(--color-foreground)')
 			.attr('opacity', '0.3')
 			.attr('filter', 'var(--watermark-text-filter)')
 			.text(rigDescription);
@@ -92,7 +92,7 @@ const GraphWatermark = (
 				.attr('font-weight', watermarkObj.FONT_WEIGHT || '500')
 				.attr('font-family', watermarkObj.FONT_FAMILY || '')
 				.attr('text-anchor', position.anchor)
-				.attr('fill', watermarkObj.COLOR || '#000')
+				.attr('fill', watermarkObj.COLOR || 'var(--color-foreground)')
 				.attr('opacity', watermarkObj.OPACITY || '0.3')
 				.attr('filter', 'var(--watermark-text-filter)')
 				.text(

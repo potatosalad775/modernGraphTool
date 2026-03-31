@@ -31,11 +31,10 @@
 		});
 
 		// Determine background color
-		const isDark = document.documentElement.classList.contains('dark');
 		const graphArea = document.querySelector('.graph-area');
 		const bgColor = graphArea
 			? getComputedStyle(graphArea).backgroundColor
-			: isDark ? '#18181b' : '#ffffff';
+			: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-raised').trim();
 
 		// Add background rect
 		const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');

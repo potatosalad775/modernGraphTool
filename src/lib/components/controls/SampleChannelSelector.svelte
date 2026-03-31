@@ -167,8 +167,7 @@
 			<button
 				{...props}
 				class="h-6 rounded border border-border bg-surface-raised px-1.5 text-xs text-foreground-secondary
-					hover:bg-surface focus:outline-none focus:ring-1 focus:ring-accent
-					border-border-raised-secondary"
+					hover:bg-surface focus:outline-none focus:ring-1 focus:ring-accent"
 			>
 				{triggerLabel}
 			</button>

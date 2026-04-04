@@ -44,9 +44,12 @@
          "price":"$100"
         },
         {"name":["HpTF With Main"],
+         "file":["HpTF Demo KB501x"],
+         "suffix":["KB501x"],
          "hptf": {
            "files":["HpTF Demo KB501x", "HpTF Demo 5128", "HpTF Demo 45CA"],
-           "labels":["Clone 711 + KB501x", "B&K 5128", "GRAS 45CA"]
+           "labels":["Clone 711 + KB501x", "B&K 5128", "GRAS 45CA"],
+           "fillOnly": false
          }
         },
         {"name":["HpTF Only"],

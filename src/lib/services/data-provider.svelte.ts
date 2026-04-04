@@ -34,6 +34,7 @@ import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { analyticsService } from './analytics-service.svelte.js';
+import { toast } from 'svelte-sonner';
 
 class DataProvider {
 	#baseHue: number | null = null;
@@ -47,12 +48,20 @@ class DataProvider {
 	): Promise<void> {
 		if (this.isFRDataLoaded(identifier, inputMetadata.dispSuffix)) return;
 
-		const metaData = MetadataParser.getFRMetadata(sourceType, identifier);
-		const rawData = await FRParser.getFRDataFromMetadata(
-			sourceType,
-			metaData,
-			inputMetadata.dispSuffix ?? ''
-		);
+		let metaData;
+		let rawData;
+		try {
+			metaData = MetadataParser.getFRMetadata(sourceType, identifier);
+			rawData = await FRParser.getFRDataFromMetadata(
+				sourceType,
+				metaData,
+				inputMetadata.dispSuffix ?? ''
+			);
+		} catch (err) {
+			const label = identifier.replace(/ Target$/, '');
+			toast.error(`Failed to load ${sourceType === 'target' ? 'target' : 'device'}: ${label}`);
+			return;
+		}
 		const processed = normalizeChannels(
 			FRSmoother.smoothChannels(rawData),
 			graphStore.normType,
@@ -258,7 +267,13 @@ class DataProvider {
 		const data = frStore.get(uuid);
 		if (!data?.meta) throw new Error(`No data found for UUID: ${uuid}`);
 
-		const rawData = await FRParser.getFRDataFromMetadata('phone', data.meta, dispSuffix);
+		let rawData;
+		try {
+			rawData = await FRParser.getFRDataFromMetadata('phone', data.meta, dispSuffix);
+		} catch {
+			toast.error(`Failed to load variant: ${dispSuffix || data.identifier}`);
+			return;
+		}
 		const processed = normalizeChannels(
 			FRSmoother.smoothChannels(rawData),
 			graphStore.normType,

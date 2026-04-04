@@ -8,7 +8,12 @@
 	let { children } = $props();
 
 	$effect(() => {
-		document.documentElement.classList.toggle('dark', appStore.theme === 'dark');
+		const html = document.documentElement;
+		html.classList.add('theme-transition');
+		html.classList.toggle('dark', appStore.theme === 'dark');
+		// Remove transition class after animation completes to avoid interfering with other transitions
+		const timer = setTimeout(() => html.classList.remove('theme-transition'), 350);
+		return () => clearTimeout(timer);
 	});
 </script>
 

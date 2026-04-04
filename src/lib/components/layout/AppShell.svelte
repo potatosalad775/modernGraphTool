@@ -20,6 +20,7 @@
 	import EqualizerPanel from '$lib/components/panels/EqualizerPanel.svelte';
 	import MiscPanel from '$lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
+	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
 	import { Toaster } from 'svelte-sonner';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
@@ -220,7 +221,7 @@
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-base-100">
+			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-base-200">
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
@@ -254,3 +255,4 @@
 />
 
 <SponsorBanner />
+<TutorialModal />

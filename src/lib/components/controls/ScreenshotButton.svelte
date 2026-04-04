@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { toast } from 'svelte-sonner';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { analyticsService } from '$lib/services/analytics-service.svelte.js';
 
@@ -65,8 +66,12 @@
 			a.href = pngUrl;
 			a.download = 'graph.png';
 			a.click();
+			toast.success(m.screenshot_button_label());
 		};
-		img.onerror = () => URL.revokeObjectURL(svgUrl);
+		img.onerror = () => {
+			URL.revokeObjectURL(svgUrl);
+			toast.error('Screenshot failed');
+		};
 		img.src = svgUrl;
 	}
 </script>

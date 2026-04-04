@@ -1,6 +1,7 @@
 <script lang="ts">
   import { dataProvider } from '$lib/services/data-provider.svelte.js';
   import FRParser from '$lib/utils/fr-parser.js';
+  import { toast } from 'svelte-sonner';
   import * as m from '$lib/paraglide/messages.js';
 
   let phoneInputEl = $state<HTMLInputElement | undefined>(undefined);
@@ -15,8 +16,10 @@
       const parsed = await FRParser.parseFRData(rawData);
       const filename = file.name.replace(/\.[^/.]+$/, '');
       await dataProvider.insertRawFRData(sourceType, filename, { AVG: parsed }, { dispSuffix: 'Uploaded', dispChannel: ['AVG'] });
+      toast.success(`Loaded ${filename}`);
     } catch (err) {
       console.error('EqUploader: failed to upload', err);
+      toast.error('Failed to load file', { description: err instanceof Error ? err.message : 'Invalid format' });
     } finally {
       input.value = '';
     }

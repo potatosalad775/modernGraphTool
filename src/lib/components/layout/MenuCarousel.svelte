@@ -35,7 +35,7 @@
 
 	function goTo(index: number) {
 		const clamped = Math.max(0, Math.min(index, panels.length - 1));
-		menuStore.currentPanel = panels[clamped].id;
+		menuStore.setPanel(panels[clamped].id);
 	}
 
 	function handleMouseDown(e: MouseEvent) {
@@ -101,7 +101,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
 	bind:clientWidth={containerWidth}
-	class="flex h-12 select-none items-center overflow-hidden border-base-content/15 bg-base-200 {appStore.isMobile ? 'border-t' : 'border-b'}"
+	class="relative flex h-12 select-none items-center overflow-hidden border-base-content/15 bg-base-200 {appStore.isMobile ? 'border-t' : 'border-b'}"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}
@@ -121,10 +121,13 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {menuStore.currentPanel === panel.id ? 'text-accent' : Math.abs(i - currentIndex) === 1 ? 'text-base-content/45' : 'text-base-content/25'}"
+				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {menuStore.currentPanel === panel.id ? 'text-accent' : Math.abs(i - currentIndex) === 1 ? 'text-base-content/45' : 'text-base-content/25'}"
 				onclick={() => goTo(i)}
 			>
 				{panel.label()}
+				{#if menuStore.currentPanel === panel.id}
+					<span class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-accent"></span>
+				{/if}
 			</button>
 		{/each}
 	</div>

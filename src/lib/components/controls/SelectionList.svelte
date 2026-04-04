@@ -291,8 +291,8 @@
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
 						aria-label="Decrease Y offset"
-						class="flex h-7 w-7 items-center justify-center rounded border border-base-content/20
-							text-xs text-base-content/55 transition-colors hover:bg-base-300
+						class="flex h-6 w-6 items-center justify-center rounded-full bg-accent
+							text-xs font-bold text-accent-content transition-colors hover:bg-accent/80
 							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						−
@@ -312,8 +312,8 @@
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
 						aria-label="Increase Y offset"
-						class="flex h-7 w-7 items-center justify-center rounded border border-base-content/20
-							text-xs text-base-content/55 transition-colors hover:bg-base-300
+						class="flex h-6 w-6 items-center justify-center rounded-full bg-accent
+							text-xs font-bold text-accent-content transition-colors hover:bg-accent/80
 							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						+

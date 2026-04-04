@@ -2,6 +2,7 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
+	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 
 	const preamp = $derived.by(() => {
@@ -51,7 +52,12 @@
 		reader.onload = (ev) => {
 			const text = ev.target!.result as string;
 			const filters = parseFilterText(text);
-			if (filters.length) eqStore.filters = filters;
+			if (filters.length) {
+				eqStore.filters = filters;
+				toast.success(m.extension_equalizer_filter_list_import(), { description: `${filters.length} filters` });
+			} else {
+				toast.error(m.extension_equalizer_filter_list_import(), { description: 'No valid filters found in file' });
+			}
 			(e.target as HTMLInputElement).value = '';
 		};
 		reader.readAsText(file);
@@ -83,7 +89,7 @@
 	function exportFilters() {
 		const validFilters = eqStore.filters.filter(f => f.freq != null && f.q != null && f.gain != null);
 		if (!validFilters.length) {
-			alert(m.extension_equalizer_filter_list_no_filter_export_alert());
+			toast.warning(m.extension_equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
 		let text = `Preamp: ${preamp.toFixed(1)} dB\n`;
@@ -94,11 +100,12 @@
 			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
 		});
 		downloadText(text, 'filters.txt');
+		toast.success(m.extension_equalizer_filter_list_export());
 	}
 
 	function exportGraphicEQ() {
 		if (!eqStore.filters.length) {
-			alert(m.extension_equalizer_filter_list_no_filter_export_alert());
+			toast.warning(m.extension_equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
 		const eq = new Equalizer();
@@ -106,6 +113,7 @@
 		const text =
 			'GraphicEQ: ' + graphicEQ.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
 		downloadText(text, 'graphic_eq.txt');
+		toast.success(m.extension_equalizer_filter_list_export_graphic_eq());
 	}
 
 	function downloadText(text: string, filename: string) {

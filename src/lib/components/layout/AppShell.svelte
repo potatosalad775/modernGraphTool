@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import { appStore } from '$lib/stores/app-store.svelte';
 	import { getConfigValue } from '$lib/utils/config';
 	import MetadataParser from '$lib/utils/metadata-parser';
@@ -19,6 +20,7 @@
 	import EqualizerPanel from '$lib/components/panels/EqualizerPanel.svelte';
 	import MiscPanel from '$lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
+	import { Toaster } from 'svelte-sonner';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	let gridCols = $state('minmax(400px, 65%) 5px minmax(340px, 1fr)');
@@ -179,17 +181,25 @@
 				<GraphContainer />
 			</section>
 			<!-- Panel area fills remaining space -->
-			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-base-content/15">
-				<div class="min-h-0 flex-1 overflow-hidden">
-					{#if menuStore.currentPanel === 'device'}
-						<DevicePanel />
-					{:else if menuStore.currentPanel === 'graph'}
-						<GraphPanel />
-					{:else if menuStore.currentPanel === 'equalizer'}
-						<EqualizerPanel />
-					{:else}
-						<MiscPanel />
-					{/if}
+			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-lg border-t border-base-content/15">
+				<div class="relative min-h-0 flex-1 overflow-hidden">
+					{#key menuStore.currentPanel}
+						<div
+							class="absolute inset-0"
+							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+						>
+							{#if menuStore.currentPanel === 'device'}
+								<DevicePanel />
+							{:else if menuStore.currentPanel === 'graph'}
+								<GraphPanel />
+							{:else if menuStore.currentPanel === 'equalizer'}
+								<EqualizerPanel />
+							{:else}
+								<MiscPanel />
+							{/if}
+						</div>
+					{/key}
 				</div>
 				<!-- Menu carousel at bottom -->
 				<MenuCarousel />
@@ -212,20 +222,35 @@
 			<!-- Right column: menu + panel -->
 			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-base-100">
 				<MenuCarousel />
-				<div class="min-h-0 flex-1 overflow-hidden">
-					{#if menuStore.currentPanel === 'device'}
-						<DevicePanel />
-					{:else if menuStore.currentPanel === 'graph'}
-						<GraphPanel />
-					{:else if menuStore.currentPanel === 'equalizer'}
-						<EqualizerPanel />
-					{:else}
-						<MiscPanel />
-					{/if}
+				<div class="relative min-h-0 flex-1 overflow-hidden">
+					{#key menuStore.currentPanel}
+						<div
+							class="absolute inset-0"
+							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+						>
+							{#if menuStore.currentPanel === 'device'}
+								<DevicePanel />
+							{:else if menuStore.currentPanel === 'graph'}
+								<GraphPanel />
+							{:else if menuStore.currentPanel === 'equalizer'}
+								<EqualizerPanel />
+							{:else}
+								<MiscPanel />
+							{/if}
+						</div>
+					{/key}
 				</div>
 			</section>
 		</main>
 	{/if}
 </div>
+
+<Toaster
+	position="top-center"
+	richColors
+	closeButton
+	theme={appStore.theme}
+/>
 
 <SponsorBanner />

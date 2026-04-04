@@ -15,41 +15,34 @@
 	}
 </script>
 
-<div class="normalizer-input flex flex-row flex-wrap items-center gap-2 text-sm text-base-content/60">
-	<label class="flex items-center gap-2">
-		{m.normalizer_input_label()}
-		<gt-divider></gt-divider>
-		<input
-			type="number"
-			min="20"
-			max="20000"
-			step="1"
-			value={graphStore.normHzValue}
-			disabled={graphStore.normType === 'Avg'}
-			onchange={onHzValueChange}
-			class="w-20 rounded border border-base-content/20 px-1 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-accent"
-		/>
-	</label>
-
-	<label class="flex cursor-pointer items-center gap-1">
-		<input
-			type="radio"
-			name="normType"
-			value="Hz"
-			checked={graphStore.normType === 'Hz'}
-			onchange={() => onNormTypeChange('Hz')}
-		/>
-		{m.normalizer_input_hz_btn()}
-	</label>
-
-	<label class="flex cursor-pointer items-center gap-1">
-		<input
-			type="radio"
-			name="normType"
-			value="Avg"
-			checked={graphStore.normType === 'Avg'}
-			onchange={() => onNormTypeChange('Avg')}
-		/>
-		{m.normalizer_input_avg_btn()}
-	</label>
+<div class="flex h-10 items-center rounded-md border border-base-content/20 text-sm font-medium text-base-content/60">
+	<!-- Segmented Hz/Avg toggle -->
+	<div class="flex h-full items-center">
+		<button
+			type="button"
+			class="h-full rounded-l-md px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {graphStore.normType === 'Hz' ? 'bg-accent text-accent-content' : 'hover:bg-base-300'}"
+			onclick={() => onNormTypeChange('Hz')}
+		>
+			{m.normalizer_input_hz_btn()}
+		</button>
+		<button
+			type="button"
+			class="h-full rounded-r-md border-l border-base-content/20 px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {graphStore.normType === 'Avg' ? 'bg-accent text-accent-content' : 'hover:bg-base-300'}"
+			onclick={() => onNormTypeChange('Avg')}
+		>
+			{m.normalizer_input_avg_btn()}
+		</button>
+	</div>
+	<span class="h-4 w-px bg-base-content/20"></span>
+	<!-- Frequency value input -->
+	<input
+		type="number"
+		min="20"
+		max="20000"
+		step="1"
+		value={graphStore.normHzValue}
+		disabled={graphStore.normType === 'Avg'}
+		onchange={onHzValueChange}
+		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-none disabled:opacity-40"
+	/>
 </div>

@@ -3,7 +3,7 @@
  * Customizable by deployment operators post-build.
  *
  * Graph variables control D3.js SVG rendering where Tailwind classes cannot be used.
- * UI variables control interactive element colors, text hierarchy, and semantic states.
+ * Base variables follow DaisyUI naming — all UI chrome is derived via opacity modifiers.
  * All variables switch automatically between light and dark mode.
  */
 
@@ -14,80 +14,30 @@
 	--color-graph-grid-major: rgba(0, 0, 0, 0.15);
 	--color-graph-grid-minor: rgba(0, 0, 0, 0.06);
 	--color-graph-axis-label: rgba(0, 0, 0, 0.6);
+	--color-graph-grid-text: rgba(0, 0, 0, 0.5);
 	--color-graph-baseline: rgba(0, 0, 0, 0.25);
 
-	/* ── Surface ───────────────────────────────────────────────────────── */
-	/* Page-level background (graph area, main canvas). */
-	--color-surface: #fafafa;
-	/* Elevated surfaces: nav bars, cards, popovers, modals, inputs. */
-	--color-surface-raised: #ffffff;
-	/* Hover state for list items, buttons, menu entries. */
-	--color-surface-hover: #f4f4f5;
-
-	/* ── Foreground (Text) ─────────────────────────────────────────────── */
-	/* Primary text: headings, item names, body copy. */
-	--color-foreground: #18181b;
-	/* Secondary text: metadata, descriptions, inactive labels. */
-	--color-foreground-secondary: #52525b;
-
-	/* ── UI Text ───────────────────────────────────────────────────────── */
-	/* Muted text for section labels and secondary info. */
-	--color-text-muted: oklch(0.45 0.012 286);
-	/* Muted icons for interactive controls in default (inactive) state. */
-	--color-icon-muted: oklch(0.55 0.014 286);
-
-	/* ── Border ────────────────────────────────────────────────────────── */
-	/* Primary structural borders: section dividers, nav edges. */
-	--color-border: #e4e4e7;
-	/* Subtle borders: list item separators, inner dividers. */
-	--color-border-muted: #f4f4f5;
-	/* Form input borders: text fields, selects, number inputs. */
-	--color-input: #d4d4d8;
-
-	/* ── UI Accent ─────────────────────────────────────────────────────── */
-	/* Primary interactive color: focus rings, toggles, active tabs, CTAs. */
-	--color-accent: oklch(0.50 0.16 258);
-	--color-accent-hover: oklch(0.43 0.18 258);
-	--color-accent-muted: oklch(0.95 0.025 258);
-	--color-accent-foreground: #ffffff;
-
-	/* ── Semantic: Destructive ─────────────────────────────────────────── */
-	/* Delete, disconnect, remove actions. */
-	--color-destructive: oklch(0.55 0.20 25);
-	--color-destructive-foreground: #ffffff;
-	--color-destructive-muted: oklch(0.94 0.03 25);
-
-	/* ── Semantic: Success ─────────────────────────────────────────────── */
-	/* Commerce, positive confirmations (e.g. shop link CTA). */
-	--color-success: #059669;
-	--color-success-hover: #10b981;
-	--color-success-foreground: #ffffff;
-
-	/* ── Semantic: Link ────────────────────────────────────────────────── */
-	/* External links, review/shop links. */
-	--color-link: #2563eb;
-
-	/* ── Semantic: Rating ──────────────────────────────────────────────── */
-	/* Star ratings, score displays. */
-	--color-rating: #f59e0b;
-
-	/* ── Overlay ───────────────────────────────────────────────────────── */
-	/* Modal/dialog backdrops. */
-	--color-overlay: rgba(0, 0, 0, 0.4);
-
-	/* ── Handle ────────────────────────────────────────────────────────── */
-	/* Drag divider and resize handles. */
-	--color-handle: #d4d4d8;
-	--color-handle-active: #a1a1aa;
-
-	/* ── Separator ─────────────────────────────────────────────────────── */
-	/* Inline dividers within buttons and controls. */
-	--color-separator: #d4d4d8;
-
-	/* ── Carousel ──────────────────────────────────────────────────────── */
-	/* Inactive tab labels in the menu carousel. */
-	--color-carousel-near: #a1a1aa;
-	--color-carousel-far: #d4d4d8;
+	/* ── Base ──────────────────────────────────────────────────────────── */
+	--color-base-100: oklch(98% 0.003 247.858);
+	--color-base-200: oklch(96% 0.007 247.896);
+	--color-base-300: oklch(92% 0.013 255.508);
+	--color-base-content: oklch(20% 0.042 265.755);
+	--color-primary: oklch(59% 0.145 163.225);
+	--color-primary-content: oklch(97% 0.021 166.113);
+	--color-secondary: oklch(60% 0.126 221.723);
+	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-accent: oklch(44% 0.017 285.786);
+	--color-accent-content: oklch(98% 0 0);
+	--color-neutral: oklch(44% 0.043 257.281);
+	--color-neutral-content: oklch(98% 0.003 247.858);
+	--color-info: oklch(68% 0.169 237.323);
+	--color-info-content: oklch(97% 0.013 236.62);
+	--color-success: oklch(76% 0.233 130.85);
+	--color-success-content: oklch(98% 0.031 120.757);
+	--color-warning: oklch(79% 0.184 86.047);
+	--color-warning-content: oklch(98% 0.026 102.212);
+	--color-error: oklch(64% 0.246 16.439);
+	--color-error-content: oklch(96% 0.015 12.422);
 }
 
 .dark {
@@ -95,59 +45,28 @@
 	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
 	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
 	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
 
-	/* ── Surface ───────────────────────────────────────────────────────── */
-	--color-surface: #09090b;
-	--color-surface-raised: #18181b;
-	--color-surface-hover: #27272a;
-
-	/* ── Foreground (Text) ─────────────────────────────────────────────── */
-	--color-foreground: #f4f4f5;
-	--color-foreground-secondary: #a1a1aa;
-
-	/* ── UI Text ───────────────────────────────────────────────────────── */
-	--color-text-muted: oklch(0.65 0.010 286);
-	--color-icon-muted: oklch(0.55 0.014 286);
-
-	/* ── Border ────────────────────────────────────────────────────────── */
-	--color-border: #3f3f46;
-	--color-border-muted: #27272a;
-	--color-input: #52525b;
-
-	/* ── UI Accent ─────────────────────────────────────────────────────── */
-	--color-accent: oklch(0.72 0.13 258);
-	--color-accent-hover: oklch(0.78 0.10 258);
-	--color-accent-muted: oklch(0.23 0.04 258);
-	--color-accent-foreground: oklch(0.15 0.02 258);
-
-	/* ── Semantic: Destructive ─────────────────────────────────────────── */
-	--color-destructive: oklch(0.65 0.18 25);
-	--color-destructive-foreground: oklch(0.15 0.02 25);
-	--color-destructive-muted: oklch(0.25 0.05 25);
-
-	/* ── Semantic: Success ─────────────────────────────────────────────── */
-	--color-success: #10b981;
-	--color-success-hover: #34d399;
-	--color-success-foreground: #ffffff;
-
-	/* ── Semantic: Link ────────────────────────────────────────────────── */
-	--color-link: #60a5fa;
-
-	/* ── Semantic: Rating ──────────────────────────────────────────────── */
-	--color-rating: #fbbf24;
-
-	/* ── Overlay ───────────────────────────────────────────────────────── */
-	--color-overlay: rgba(0, 0, 0, 0.4);
-
-	/* ── Handle ────────────────────────────────────────────────────────── */
-	--color-handle: #52525b;
-	--color-handle-active: #71717a;
-
-	/* ── Separator ─────────────────────────────────────────────────────── */
-	--color-separator: #52525b;
-
-	/* ── Carousel ──────────────────────────────────────────────────────── */
-	--color-carousel-near: #71717a;
-	--color-carousel-far: #52525b;
+	/* ── Base ──────────────────────────────────────────────────────────── */
+	--color-base-100: oklch(25.33% 0.016 252.42);
+	--color-base-200: oklch(23.26% 0.014 253.1);
+	--color-base-300: oklch(21.15% 0.012 254.09);
+	--color-base-content: oklch(97.807% 0.029 256.847);
+	--color-primary: oklch(58% 0.233 277.117);
+	--color-primary-content: oklch(96% 0.018 272.314);
+	--color-secondary: oklch(65% 0.241 354.308);
+	--color-secondary-content: oklch(94% 0.028 342.258);
+	--color-accent: oklch(77% 0.152 181.912);
+	--color-accent-content: oklch(38% 0.063 188.416);
+	--color-neutral: oklch(14% 0.005 285.823);
+	--color-neutral-content: oklch(92% 0.004 286.32);
+	--color-info: oklch(74% 0.16 232.661);
+	--color-info-content: oklch(29% 0.066 243.157);
+	--color-success: oklch(76% 0.177 163.223);
+	--color-success-content: oklch(37% 0.077 168.94);
+	--color-warning: oklch(82% 0.189 84.429);
+	--color-warning-content: oklch(41% 0.112 45.904);
+	--color-error: oklch(71% 0.194 13.428);
+	--color-error-content: oklch(27% 0.105 12.094);
 }

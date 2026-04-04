@@ -1,19 +1,16 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { toast } from 'svelte-sonner';
 	import { urlProvider } from '$lib/utils/url-provider';
 
-	let copied = $state(false);
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
 	async function handleClick() {
-		const url = urlProvider.getCurrentURL();
-		await navigator.clipboard.writeText(url);
-		copied = true;
-		if (timeoutId !== null) clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => {
-			copied = false;
-			timeoutId = null;
-		}, 1000);
+		try {
+			const url = urlProvider.getCurrentURL();
+			await navigator.clipboard.writeText(url);
+			toast.success(m.share_button_on_click());
+		} catch {
+			toast.error('Failed to copy URL');
+		}
 	}
 </script>
 
@@ -36,5 +33,5 @@
 		<polyline points="16 6 12 2 8 6" />
 		<line x1="12" y1="2" x2="12" y2="15" />
 	</svg>
-	{copied ? m.share_button_on_click() : m.share_button_label()}
+	{m.share_button_label()}
 </button>

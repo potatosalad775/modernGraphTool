@@ -206,7 +206,7 @@
 						onclick={() => toggleBrand(brand)}
 						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors
 							{selectedBrands.has(brand)
-							? 'bg-accent/10 font-medium text-base-content'
+							? 'bg-accent/12 font-medium text-accent'
 							: 'text-base-content/60 hover:bg-base-300'}"
 					>
 						<span class="truncate">{brand}</span>
@@ -288,7 +288,7 @@
 					{@const isLoading = loadingIds.has(phone.identifier)}
 					<div
 						class="border-b border-base-content/8
-							{isLoaded ? 'border-l-2 border-l-accent bg-accent/5' : ''}"
+							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : ''}"
 					>
 						<button
 							onclick={() => togglePhone(phone.identifier, isLoaded)}

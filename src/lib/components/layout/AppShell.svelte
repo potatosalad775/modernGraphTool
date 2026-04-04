@@ -173,13 +173,13 @@
 	<TopNavBar />
 
 	{#if appStore.isMobile}
-		<main class="flex flex-1 flex-col overflow-hidden bg-surface text-foreground">
+		<main class="flex flex-1 flex-col overflow-hidden bg-base-100 text-base-content">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
 			<section aria-label="Frequency response graph" class="shrink-0 overflow-hidden">
 				<GraphContainer />
 			</section>
 			<!-- Panel area fills remaining space -->
-			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-border">
+			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-t border-base-content/15">
 				<div class="min-h-0 flex-1 overflow-hidden">
 					{#if menuStore.currentPanel === 'device'}
 						<DevicePanel />
@@ -202,15 +202,15 @@
 			style:grid-template-columns={gridCols}
 		>
 			<!-- Left column: graph + toolbar -->
-			<section aria-label="Frequency response graph" class="flex flex-col overflow-hidden bg-surface">
-				<div class="min-h-0 overflow-hidden border-b border-border">
+			<section aria-label="Frequency response graph" class="flex flex-col overflow-hidden bg-base-100">
+				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
 				<GraphToolbar />
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-surface">
+			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-base-100">
 				<MenuCarousel />
 				<div class="min-h-0 flex-1 overflow-hidden">
 					{#if menuStore.currentPanel === 'device'}

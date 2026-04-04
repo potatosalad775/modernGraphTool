@@ -10,7 +10,7 @@
 </script>
 
 <div
-	class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-border px-3 py-2 border-border"
+	class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-base-content/15 px-3 py-2 border-base-content/15"
 >
 	<!-- Data controls: normalization, smoothing, scale -->
 	<div class="flex flex-wrap items-center gap-2">

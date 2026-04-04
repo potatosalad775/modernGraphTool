@@ -51,13 +51,13 @@
 </script>
 
 {#if enabled}
-	<div class="border-t border-border">
+	<div class="border-t border-base-content/15">
 		<!-- Header -->
 		<button
 			type="button"
 			onclick={toggleExpanded}
 			class="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider
-				text-muted hover:bg-surface-hover"
+				text-base-content/45 hover:bg-base-300"
 		>
 			<span>{m.crosssite_search_title()}</span>
 			<svg
@@ -81,7 +81,7 @@
 					type="search"
 					bind:value={squiglinkStore.searchQuery}
 					placeholder={m.crosssite_search_placeholder()}
-					class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-sm text-foreground
+					class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm text-base-content
 						placeholder-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
 				/>
 			</div>
@@ -89,17 +89,17 @@
 			<!-- Results -->
 			<div class="max-h-64 overflow-y-auto">
 				{#if squiglinkStore.isLoading}
-					<p class="px-3 py-3 text-xs text-muted">
+					<p class="px-3 py-3 text-xs text-base-content/45">
 						{m.crosssite_search_loading()}
 					</p>
 				{:else if squiglinkStore.searchQuery.trim().length >= 2 && groupedResults.size === 0}
-					<p class="px-3 py-3 text-xs text-muted">
+					<p class="px-3 py-3 text-xs text-base-content/45">
 						{m.crosssite_search_no_results()}
 					</p>
 				{:else}
 					{#each [...groupedResults] as [siteUsername, results] (siteUsername)}
-						<div class="border-t border-border-muted">
-							<div class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
+						<div class="border-t border-base-content/8">
+							<div class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-base-content/45">
 								{results[0].siteName}
 							</div>
 							{#each results.slice(0, 20) as result (result.phoneName + result.siteUsername)}
@@ -107,13 +107,13 @@
 									type="button"
 									onclick={() => openResult(result.siteUrl, result.phoneName)}
 									class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm
-										text-foreground-secondary hover:bg-surface-hover"
+										text-base-content/60 hover:bg-base-300"
 								>
 									<span class="min-w-0 flex-1 truncate">{result.phoneName}</span>
 									{#if result.dbType}
 										<span
-											class="shrink-0 rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium
-												text-muted-hover"
+											class="shrink-0 rounded bg-base-300 px-1.5 py-0.5 text-[10px] font-medium
+												text-base-content/45-hover"
 										>
 											{result.dbType}
 										</span>

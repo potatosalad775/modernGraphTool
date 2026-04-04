@@ -166,8 +166,8 @@
 		{#snippet child({ props })}
 			<button
 				{...props}
-				class="h-6 rounded border border-border bg-surface-raised px-1.5 text-xs text-foreground-secondary
-					hover:bg-surface focus:outline-none focus:ring-1 focus:ring-accent"
+				class="h-6 rounded border border-base-content/15 bg-base-200 px-1.5 text-xs text-base-content/60
+					hover:bg-base-100 focus:outline-none focus:ring-1 focus:ring-accent"
 			>
 				{triggerLabel}
 			</button>
@@ -177,14 +177,14 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-48 rounded-lg border border-border bg-surface-raised p-2 shadow-xl"
+			class="z-50 w-48 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->
 			<fieldset class="mb-0">
 				{#each channelOptions as opt (opt.value)}
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-xs
-							text-foreground-secondary hover:bg-surface-hover"
+							text-base-content/60 hover:bg-base-300"
 					>
 						<input
 							type="radio"
@@ -201,8 +201,8 @@
 
 			<!-- Section 2: Sample Traces (checkboxes) -->
 			{#if hasSamples}
-				<div class="mt-2 border-t border-border-muted pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-muted">
+				<div class="mt-2 border-t border-base-content/8 pt-2">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/45">
 						{m.selection_list_samples_header()} ({sampleCount})
 					</p>
 
@@ -211,7 +211,7 @@
 						{#each allSampleKeys as key (key)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									text-foreground-secondary hover:bg-surface-hover"
+									text-base-content/60 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
@@ -228,29 +228,29 @@
 					<div class="mt-1.5 flex gap-1 px-1">
 						<button
 							onclick={() => handlePreset('allL')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all_l()}
 						</button>
 						<button
 							onclick={() => handlePreset('allR')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all_r()}
 						</button>
 						<button
 							onclick={() => handlePreset('all')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all()}
 						</button>
 						<button
 							onclick={() => handlePreset('none')}
-							class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-handle"
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_none()}
 						</button>
@@ -260,15 +260,15 @@
 
 			<!-- Section 3: HpTF Rigs -->
 			{#if hasHptf}
-				<div class="mt-2 border-t border-border-muted pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-muted">
+				<div class="mt-2 border-t border-base-content/8 pt-2">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/45">
 						{m.selection_list_hptf_header()}
 					</p>
 
 					<!-- Fill toggle -->
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							text-foreground-secondary hover:bg-surface-hover"
+							text-base-content/60 hover:bg-base-300"
 					>
 						<input
 							type="checkbox"
@@ -284,7 +284,7 @@
 						{#each hptfRigs as rig, i (i)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									text-foreground-secondary hover:bg-surface-hover"
+									text-base-content/60 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
@@ -300,15 +300,15 @@
 						<div class="mt-1.5 flex gap-1 px-1">
 							<button
 								onclick={() => handleHptfPreset('all')}
-								class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-									hover:bg-handle"
+								class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+									hover:bg-base-content/25"
 							>
 								{m.selection_list_hptf_all()}
 							</button>
 							<button
 								onclick={() => handleHptfPreset('none')}
-								class="rounded bg-surface-hover px-1.5 py-0.5 text-xs text-foreground-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-									hover:bg-handle"
+								class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+									hover:bg-base-content/25"
 							>
 								{m.selection_list_hptf_none()}
 							</button>

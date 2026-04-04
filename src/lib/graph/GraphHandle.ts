@@ -42,7 +42,7 @@ class GraphHandle {
 			.attr('r', this.handleRadius)
 			.attr('stroke', 'var(--color-primary)')
 			.attr('stroke-width', 2)
-			.attr('fill', 'var(--color-surface-hover)')
+			.attr('fill', 'var(--color-base-300)')
 			.attr('opacity', '0.4')
 			.attr('cursor', 'pointer')
 			.attr('cy', (this.graphEngine.graphGeometry.yTop + this.graphEngine.graphGeometry.yBottom) / 2);

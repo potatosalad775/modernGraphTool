@@ -8,56 +8,16 @@
  * Map theme.css custom properties to Tailwind color utilities.
  * All auto-switch between light/dark mode via the CSS variables in theme.css.
  *
- * Surface:     bg-surface, bg-surface-raised, bg-surface-hover
- * Foreground:  text-foreground, text-foreground-secondary
- * Border:      border-border, border-border-muted, border-input
- * Accent:      bg-accent, text-accent, ring-accent, border-accent, etc.
- * Text:        text-muted (labels), text-icon-muted (inactive icons)
- * Destructive: bg-destructive, text-destructive, bg-destructive-muted, etc.
- * Success:     bg-success, text-success-foreground
- * Link:        text-link
- * Rating:      text-rating
- * Overlay:     bg-overlay
- * Handle:      bg-handle, bg-handle-active
- * Separator:   bg-separator
- * Carousel:    text-carousel-near, text-carousel-far
+ * Base:      bg-base-100, bg-base-200, bg-base-300, text-base-content
+ * Semantic:  primary, secondary, accent, neutral, info, success, warning, error
+ *            + -content suffix for text-on-color (e.g. text-primary-content)
+ * Graph:     graph-grid-text (for D3 SVG use)
+ *
+ * All other UI chrome uses opacity modifiers on base-content:
+ *   text-base-content/60 (secondary text), border-base-content/15 (borders), etc.
  */
 @theme {
-	/* Surface */
-	--color-surface: var(--color-surface);
-	--color-surface-raised: var(--color-surface-raised);
-	--color-surface-hover: var(--color-surface-hover);
-
-	/* Foreground */
-	--color-foreground: var(--color-foreground);
-	--color-foreground-secondary: var(--color-foreground-secondary);
-
-	/* Border */
-	--color-border: var(--color-border);
-	--color-border-muted: var(--color-border-muted);
-	--color-input: var(--color-input);
-
-	/* Accent */
-	--color-accent: var(--color-accent);
-	--color-accent-hover: var(--color-accent-hover);
-	--color-accent-muted: var(--color-accent-muted);
-	--color-accent-foreground: var(--color-accent-content);
-
-	/* Text */
-	--color-muted: var(--color-text-muted);
-	--color-icon-muted: var(--color-icon-muted);
-
-	/* Destructive */
-	--color-destructive: var(--color-destructive);
-	--color-destructive-foreground: var(--color-destructive-foreground);
-	--color-destructive-muted: var(--color-destructive-muted);
-
-	/* Success */
-	--color-success: var(--color-success);
-	--color-success-hover: var(--color-success-hover);
-	--color-success-foreground: var(--color-success-content);
-
-	/* Base surfaces */
+	/* Base */
 	--color-base-100: var(--color-base-100);
 	--color-base-200: var(--color-base-200);
 	--color-base-300: var(--color-base-300);
@@ -65,50 +25,38 @@
 
 	/* Primary */
 	--color-primary: var(--color-primary);
-	--color-primary-foreground: var(--color-primary-content);
+	--color-primary-content: var(--color-primary-content);
 
 	/* Secondary */
 	--color-secondary: var(--color-secondary);
-	--color-secondary-foreground: var(--color-secondary-content);
+	--color-secondary-content: var(--color-secondary-content);
+
+	/* Accent */
+	--color-accent: var(--color-accent);
+	--color-accent-content: var(--color-accent-content);
 
 	/* Neutral */
 	--color-neutral: var(--color-neutral);
-	--color-neutral-foreground: var(--color-neutral-content);
+	--color-neutral-content: var(--color-neutral-content);
 
 	/* Info */
 	--color-info: var(--color-info);
-	--color-info-foreground: var(--color-info-content);
+	--color-info-content: var(--color-info-content);
+
+	/* Success */
+	--color-success: var(--color-success);
+	--color-success-content: var(--color-success-content);
 
 	/* Warning */
 	--color-warning: var(--color-warning);
-	--color-warning-foreground: var(--color-warning-content);
+	--color-warning-content: var(--color-warning-content);
 
 	/* Error */
 	--color-error: var(--color-error);
-	--color-error-foreground: var(--color-error-content);
+	--color-error-content: var(--color-error-content);
 
 	/* Graph */
 	--color-graph-grid-text: var(--color-graph-grid-text);
-
-	/* Link */
-	--color-link: var(--color-link);
-
-	/* Rating */
-	--color-rating: var(--color-rating);
-
-	/* Overlay */
-	--color-overlay: var(--color-overlay);
-
-	/* Handle */
-	--color-handle: var(--color-handle);
-	--color-handle-active: var(--color-handle-active);
-
-	/* Separator */
-	--color-separator: var(--color-separator);
-
-	/* Carousel */
-	--color-carousel-near: var(--color-carousel-near);
-	--color-carousel-far: var(--color-carousel-far);
 }
 
 /* Respect reduced-motion preference */

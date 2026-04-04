@@ -122,22 +122,22 @@
 <div class="flex flex-col gap-2">
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
-		<span class="text-xs text-muted">
+		<span class="text-xs text-base-content/45">
 			{m.extension_equalizer_filter_list_preamp()}:
-			<span class="font-medium text-foreground">{preamp.toFixed(1)} dB</span>
+			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 		</span>
 		<div class="flex gap-1">
 			<button
 				onclick={addBand}
-				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>+</button>
 			<button
 				onclick={removeBand}
-				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>−</button>
 			<button
 				onclick={sortBands}
-				class="rounded border border-input px-2 py-0.5 text-xs transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>↕</button>
 		</div>
 	</div>
@@ -147,7 +147,7 @@
 		<table class="w-full text-xs">
 			<thead>
 				<tr
-					class="border-b border-border text-muted border-border"
+					class="border-b border-base-content/15 text-base-content/45 border-base-content/15"
 				>
 					<th class="w-6 pb-1 text-left font-normal"></th>
 					<th class="pb-1 text-left font-normal">Type</th>
@@ -159,7 +159,7 @@
 			</thead>
 			<tbody>
 				{#each eqStore.filters as filter, i (i)}
-					<tr class="border-b border-border-muted">
+					<tr class="border-b border-base-content/8">
 						<td class="py-0.5 pr-1">
 							<input
 								type="checkbox"
@@ -231,7 +231,7 @@
 						<td class="py-0.5">
 							<button
 								onclick={() => eqStore.removeBandAt(i)}
-								class="text-muted hover:text-foreground-secondary"
+								class="text-base-content/45 hover:text-base-content/60"
 								aria-label="Remove filter"
 							>×</button>
 						</td>
@@ -245,13 +245,13 @@
 	<div class="flex gap-1">
 		<button
 			onclick={importFilters}
-			class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_import()}
 		</button>
 		<button
 			onclick={exportFilters}
-			class="flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export()}
 		</button>
@@ -259,7 +259,7 @@
 	<div>
 		<button
 			onclick={exportGraphicEQ}
-			class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export_graphic_eq()}
 		</button>

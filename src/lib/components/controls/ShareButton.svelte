@@ -19,7 +19,7 @@
 
 <button
 	onclick={handleClick}
-	class="flex h-10 items-center gap-1.5 rounded-md bg-surface-hover px-3 text-sm font-medium text-foreground-secondary transition-colors hover:bg-handle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+	class="flex h-10 items-center gap-1.5 rounded-md bg-base-300 px-3 text-sm font-medium text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 >
 	<svg
 		xmlns="http://www.w3.org/2000/svg"

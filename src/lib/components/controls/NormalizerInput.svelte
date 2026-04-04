@@ -15,7 +15,7 @@
 	}
 </script>
 
-<div class="normalizer-input flex flex-row flex-wrap items-center gap-2 text-sm text-foreground-secondary">
+<div class="normalizer-input flex flex-row flex-wrap items-center gap-2 text-sm text-base-content/60">
 	<label class="flex items-center gap-2">
 		{m.normalizer_input_label()}
 		<gt-divider></gt-divider>
@@ -27,7 +27,7 @@
 			value={graphStore.normHzValue}
 			disabled={graphStore.normType === 'Avg'}
 			onchange={onHzValueChange}
-			class="w-20 rounded border border-input px-1 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-accent"
+			class="w-20 rounded border border-base-content/20 px-1 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-accent"
 		/>
 	</label>
 

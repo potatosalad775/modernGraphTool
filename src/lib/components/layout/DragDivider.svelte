@@ -34,7 +34,6 @@
 <div
 	role="none"
 	tabindex="-1"
-	class="w-[5px] cursor-col-resize bg-handle transition-colors hover:bg-handle-active"
-	class:bg-handle-active={isDragging}
+	class="w-[5px] cursor-col-resize transition-colors {isDragging ? 'bg-base-content/35' : 'bg-base-content/20 hover:bg-base-content/35'}"
 	onmousedown={startDrag}
 ></div>

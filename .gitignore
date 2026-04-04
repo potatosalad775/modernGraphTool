@@ -33,3 +33,6 @@ static/robots.txt
 static/README.txt
 static/data/
 static/assets/images/
+
+# Claude Code worktrees
+.claude/worktrees/

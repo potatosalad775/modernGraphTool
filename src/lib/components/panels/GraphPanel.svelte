@@ -12,11 +12,11 @@
 		<GraphToolbar />
 	{/if}
 	<!-- Frequency tutorial buttons + description -->
-	<div class="border-b border-border">
+	<div class="border-b border-base-content/15">
 		<FrequencyTutorial />
 	</div>
 	<!-- Target selector -->
-	<div class="border-b border-border px-3 py-2 border-border">
+	<div class="border-b border-base-content/15 px-3 py-2 border-base-content/15">
 		<TargetSelector />
 	</div>
 	<!-- Selection list: takes remaining space, scrollable -->

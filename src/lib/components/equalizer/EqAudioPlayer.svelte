@@ -254,7 +254,7 @@
 			audioSource = (e.target as HTMLSelectElement).value;
 			if (isPlaying) stop();
 		}}
-		class="w-full rounded border border-input bg-surface-raised px-2 py-1 text-sm"
+		class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
 	>
 		<option value="">{m.extension_equalizer_player_option_init()}</option>
 		<option value="white">{m.extension_equalizer_player_option_white()}</option>
@@ -266,7 +266,7 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-muted"
+			<span class="text-xs text-base-content/45"
 				>{m.extension_equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{toneFreq} Hz</span
 				></span
@@ -300,7 +300,7 @@
 	{#if audioSource === 'file'}
 		<input type="file" accept="audio/*" onchange={loadFile} class="text-xs" />
 		{#if fileLoaded}
-			<div class="flex items-center gap-2 text-xs text-muted">
+			<div class="flex items-center gap-2 text-xs text-base-content/45">
 				<span class="tabular-nums">{formatTime(currentTime)}</span>
 				<span>/</span>
 				<span class="tabular-nums">{formatTime(duration)}</span>
@@ -313,12 +313,12 @@
 		<button
 			onclick={stop}
 			disabled={!audioSource}
-			class="rounded border border-input px-2 py-1 text-sm transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+			class="rounded border border-base-content/20 px-2 py-1 text-sm transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
 		>⏮</button>
 		<button
 			onclick={togglePlay}
 			disabled={!audioSource || (audioSource === 'file' && !fileLoaded)}
-			class="rounded border border-input px-3 py-1 text-sm transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+			class="rounded border border-base-content/20 px-3 py-1 text-sm transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
 		>{isPlaying ? '⏸' : '▶'}</button>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">

@@ -187,7 +187,7 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-56 rounded-lg border border-border bg-surface-raised p-3 shadow-xl"
+			class="z-50 w-56 rounded-lg border border-base-content/15 bg-base-200 p-3 shadow-xl"
 		>
 			<!-- Hex color input -->
 			<div class="mb-3">
@@ -196,7 +196,7 @@
 					type="color"
 					value={localHex}
 					oninput={onHexInput}
-					class="h-8 w-full cursor-pointer rounded border border-input p-0.5"
+					class="h-8 w-full cursor-pointer rounded border border-base-content/20 p-0.5"
 				/>
 			</div>
 
@@ -205,7 +205,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-h"
-						class="text-xs text-muted"
+						class="text-xs text-base-content/45"
 					>{m.graph_color_wheel_label_hue()}</label>
 					<input
 						id="{uuid}-hsl-h"
@@ -214,13 +214,13 @@
 						max="360"
 						bind:value={localH}
 						oninput={onHslInput}
-						class="w-14 rounded border border-input px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-s"
-						class="text-xs text-muted"
+						class="text-xs text-base-content/45"
 					>{m.graph_color_wheel_label_saturation()}</label>
 					<input
 						id="{uuid}-hsl-s"
@@ -229,13 +229,13 @@
 						max="100"
 						bind:value={localS}
 						oninput={onHslInput}
-						class="w-14 rounded border border-input px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-l"
-						class="text-xs text-muted"
+						class="text-xs text-base-content/45"
 					>{m.graph_color_wheel_label_lightness()}</label>
 					<input
 						id="{uuid}-hsl-l"
@@ -244,7 +244,7 @@
 						max="100"
 						bind:value={localL}
 						oninput={onHslInput}
-						class="w-14 rounded border border-input px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 			</div>
@@ -254,7 +254,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-dash-tick"
-						class="text-xs text-muted"
+						class="text-xs text-base-content/45"
 					>{m.graph_color_wheel_label_tick()}</label>
 					<input
 						id="{uuid}-dash-tick"
@@ -263,13 +263,13 @@
 						step="0.5"
 						bind:value={localTick}
 						oninput={onDashInput}
-						class="w-14 rounded border border-input px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-dash-space"
-						class="text-xs text-muted"
+						class="text-xs text-base-content/45"
 					>{m.graph_color_wheel_label_space()}</label>
 					<input
 						id="{uuid}-dash-space"
@@ -278,7 +278,7 @@
 						step="0.5"
 						bind:value={localSpace}
 						oninput={onDashInput}
-						class="w-14 rounded border border-input px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 				</div>
 			</div>
@@ -287,7 +287,7 @@
 			<div class="flex items-center justify-between gap-2">
 				<button
 					onclick={onRandom}
-					class="rounded bg-surface-hover px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-handle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					class="rounded bg-base-300 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					{m.graph_color_wheel_btn_random()}
 				</button>
@@ -296,7 +296,7 @@
 					{#snippet child({ props })}
 						<button
 							{...props}
-							class="rounded bg-surface-hover px-2 py-1 text-xs text-foreground-secondary transition-colors hover:bg-handle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							class="rounded bg-base-300 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{m.graph_color_wheel_btn_close()}
 						</button>

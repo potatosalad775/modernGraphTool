@@ -43,17 +43,17 @@
 	<Dialog.Root bind:open onOpenChange={(v) => { if (!v) dismiss(); }}>
 		<Dialog.Portal>
 			<Dialog.Overlay
-				class="fixed inset-0 z-40 bg-overlay"
+				class="fixed inset-0 z-40 bg-black/40"
 			/>
 			<Dialog.Content
 				class="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2
-					rounded-xl bg-surface-raised p-6 shadow-2xl"
+					rounded-xl bg-base-200 p-6 shadow-2xl"
 			>
-				<Dialog.Title class="text-lg font-semibold text-foreground">
+				<Dialog.Title class="text-lg font-semibold text-base-content">
 					{sponsor.heading}
 				</Dialog.Title>
 
-				<Dialog.Description class="mt-1 text-sm text-muted">
+				<Dialog.Description class="mt-1 text-sm text-base-content/45">
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
@@ -66,7 +66,7 @@
 				{#if sponsor.creative}
 					<div
 						class="mt-4 flex justify-center overflow-hidden rounded-lg p-4"
-						style:background-color={sponsor.creativeBgColor || 'var(--color-surface-hover)'}
+						style:background-color={sponsor.creativeBgColor || 'var(--color-base-300)'}
 					>
 						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="max-h-48 object-contain" />
 					</div>
@@ -78,8 +78,8 @@
 							href={buildUtmUrl(sponsor.ctaLink, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-foreground transition-colors
-								hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							class="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
+								hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{sponsor.ctaText}
 						</a>
@@ -90,8 +90,8 @@
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg border border-input px-4 py-2.5 text-center text-sm font-medium
-								text-foreground-secondary hover:bg-surface-hover"
+							class="rounded-lg border border-base-content/20 px-4 py-2.5 text-center text-sm font-medium
+								text-base-content/60 hover:bg-base-300"
 						>
 							{sponsor.cta2Text}
 						</a>
@@ -99,7 +99,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-4 w-full text-center text-xs text-muted hover:text-foreground-secondary"
+					class="mt-4 w-full text-center text-xs text-base-content/45 hover:text-base-content/60"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

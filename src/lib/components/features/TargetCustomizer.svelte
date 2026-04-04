@@ -294,16 +294,16 @@
 	<div class="mt-1 w-full">
 		<button
 			onclick={toggleExpanded}
-			class="rounded px-1.5 py-0.5 text-xs text-muted transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent hover:text-foreground-secondary"
+			class="rounded px-1.5 py-0.5 text-xs text-base-content/45 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent hover:text-base-content/60"
 		>
 			{m.target_customizer_btn_view()}
 		</button>
 
 		{#if isExpanded}
-			<div class="mt-1 flex flex-col gap-2 rounded border border-border bg-surface p-2 border-border-hover/50">
+			<div class="mt-1 flex flex-col gap-2 rounded border border-base-content/15 bg-base-100 p-2 border-base-content/15">
 				<!-- Active filters -->
 				{#if activeFilters.length === 0}
-					<p class="text-center text-xs text-muted">
+					<p class="text-center text-xs text-base-content/45">
 						{m.target_customizer_no_filters()}
 					</p>
 				{/if}
@@ -312,14 +312,14 @@
 					{#each activeFilters as def (def.id)}
 						{@const range = getGainRange(def)}
 						{@const value = filterValues.get(def.id) ?? 0}
-						<div class="flex flex-col gap-0.5 rounded border border-border bg-surface-raised p-1.5 border-border-hover">
+						<div class="flex flex-col gap-0.5 rounded border border-base-content/15 bg-base-200 p-1.5 border-base-content/15">
 							<div class="flex items-center justify-between">
-								<label for="{uuid}-{def.id}" class="text-xs font-medium text-foreground-secondary">
+								<label for="{uuid}-{def.id}" class="text-xs font-medium text-base-content/60">
 									{getFilterLabel(def)}
 								</label>
 								<button
 									onclick={() => removeFilter(def.id)}
-									class="text-xs text-muted hover:text-destructive"
+									class="text-xs text-base-content/45 hover:text-error"
 									title="Remove"
 								>&times;</button>
 							</div>
@@ -332,9 +332,9 @@
 									step={range.step}
 									{value}
 									oninput={(e) => setFilterValue(def.id, parseFloat(e.currentTarget.value))}
-									class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-separator accent-accent"
+									class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
 								/>
-								<span class="w-10 text-right text-xs tabular-nums text-foreground-secondary">
+								<span class="w-10 text-right text-xs tabular-nums text-base-content/60">
 									{value.toFixed(1)}
 								</span>
 							</div>
@@ -348,7 +348,7 @@
 					{#if inactiveFilters.length > 0}
 						<select
 							onchange={handleAddFilterChange}
-							class="rounded border border-input bg-surface-raised px-1.5 py-0.5 text-xs text-foreground-secondary
+							class="rounded border border-base-content/20 bg-base-200 px-1.5 py-0.5 text-xs text-base-content/60
 								focus:outline-none focus:ring-1 focus:ring-accent"
 						>
 							<option value="">{m.target_customizer_add_filter()}</option>
@@ -363,7 +363,7 @@
 						<select
 							value={selectedPreset}
 							onchange={handlePresetChange}
-							class="rounded border border-input bg-surface-raised px-1.5 py-0.5 text-xs text-foreground-secondary
+							class="rounded border border-base-content/20 bg-base-200 px-1.5 py-0.5 text-xs text-base-content/60
 								focus:outline-none focus:ring-1 focus:ring-accent"
 						>
 							<option value="">{m.target_customizer_preset()}</option>
@@ -376,7 +376,7 @@
 					<div class="ml-auto">
 						<button
 							onclick={handleReset}
-							class="rounded bg-surface-hover px-2 py-0.5 text-xs text-foreground-secondary transition-colors hover:bg-handle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							class="rounded bg-base-300 px-2 py-0.5 text-xs text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{m.target_customizer_btn_reset()}
 						</button>

@@ -56,7 +56,7 @@
 
 {#if targets.length > 0}
 	<div class="flex flex-col gap-2">
-		<span class="text-xs font-semibold uppercase tracking-wide text-muted">
+		<span class="text-xs font-semibold uppercase tracking-wide text-base-content/45">
 			{m.target_selector_label()}
 		</span>
 
@@ -66,7 +66,7 @@
 				<div class="flex flex-col gap-1">
 					<button
 						onclick={() => toggleCollapse(group.type)}
-						class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted hover:text-foreground-secondary"
+						class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-base-content/45 hover:text-base-content/60"
 					>
 						<span class="text-[10px]">{collapsedGroups.has(group.type) ? '▶' : '▼'}</span>
 						{group.type}
@@ -83,8 +83,8 @@
 									class={[
 										'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
 										isLoaded
-											? 'bg-accent-muted text-accent hover:bg-accent-muted/80'
-											: 'border border-input text-foreground-secondary hover:bg-surface-hover'
+											? 'bg-accent/10 text-accent hover:bg-accent/8'
+											: 'border border-base-content/20 text-base-content/60 hover:bg-base-300'
 									].join(' ')}
 								>
 									{getDisplayName(file)}
@@ -108,8 +108,8 @@
 							class={[
 								'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
 								isLoaded
-									? 'bg-accent-muted text-accent hover:bg-accent-muted/80'
-									: 'border border-input text-foreground-secondary hover:bg-surface-hover'
+									? 'bg-accent/10 text-accent hover:bg-accent/8'
+									: 'border border-base-content/20 text-base-content/60 hover:bg-base-300'
 							].join(' ')}
 						>
 							{getDisplayName(file)}

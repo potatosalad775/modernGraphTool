@@ -110,7 +110,7 @@ export class GraphEqOverlay {
 			.attr('text-anchor', 'middle')
 			.attr('dy', '-10')
 			.attr('font-size', '10px')
-			.attr('fill', 'var(--color-foreground)')
+			.attr('fill', 'var(--color-base-content)')
 			.style('pointer-events', 'none')
 			.style('user-select', 'none');
 

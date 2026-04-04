@@ -24,7 +24,7 @@
     {orientation}
     class="group flex touch-none select-none p-0.5 transition-all duration-300 ease-out data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out-0 data-[state=visible]:fade-in-0 {orientation === 'vertical' ? 'w-2 hover:w-2.5' : 'h-2 hover:h-2.5'}"
   >
-    <ScrollArea.Thumb class="relative flex-1 rounded-full bg-handle-active/50 transition-colors duration-200 group-hover:bg-handle-active/70" />
+    <ScrollArea.Thumb class="relative flex-1 rounded-full bg-base-content/20 transition-colors duration-200 group-hover:bg-base-content/30" />
   </ScrollArea.Scrollbar>
 {/snippet}
  

@@ -177,8 +177,8 @@
 	onclick={toggle}
 	class="rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
     {isVisible
-		? 'border-accent bg-accent text-accent-foreground'
-		: 'border-input bg-surface-raised text-foreground-secondary hover:bg-surface-hover hover:text-foreground'}"
+		? 'border-accent bg-accent text-accent-content'
+		: 'border-base-content/20 bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content'}"
 >
 	{m.pref_bound_btn_label()}
 </button>

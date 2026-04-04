@@ -40,8 +40,8 @@
 		target="_blank"
 		rel="noopener noreferrer"
 		onclick={handleClick}
-		class="flex items-center gap-1.5 rounded-md bg-success px-3 py-1.5 text-xs font-medium text-success-foreground transition-colors
-			hover:bg-success-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+		class="flex items-center gap-1.5 rounded-md bg-success px-3 py-1.5 text-xs font-medium text-success-content transition-colors
+			hover:bg-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

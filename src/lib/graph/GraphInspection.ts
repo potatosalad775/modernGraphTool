@@ -34,7 +34,7 @@ class GraphInspection {
 			.attr('class', 'inspection-line')
 			.attr('y1', this.graphEngine.graphGeometry.yTop)
 			.attr('y2', this.graphEngine.graphGeometry.yBottom)
-			.attr('stroke', 'var(--color-foreground)')
+			.attr('stroke', 'var(--color-base-content)')
 			.attr('stroke-width', 1)
 			.attr('stroke-dasharray', '2,2')
 			.attr('opacity', 0.7);
@@ -48,7 +48,7 @@ class GraphInspection {
 			.attr('text-anchor', 'middle')
 			.attr('font-size', '16px')
 			.attr('font-weight', 'bold')
-			.attr('fill', 'var(--color-foreground)');
+			.attr('fill', 'var(--color-base-content)');
 	}
 
 	/** Called by GraphPanel component to toggle inspection mode */
@@ -163,7 +163,7 @@ class GraphInspection {
 						displayText,
 						textWidth,
 						color:
-							obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || 'var(--color-foreground-secondary)',
+							obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || 'var(--color-base-content)',
 						yOffset
 					});
 
@@ -192,7 +192,7 @@ class GraphInspection {
 						deviceListData.push({
 							displayText,
 							textWidth,
-							color: obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG || 'var(--color-foreground-secondary)',
+							color: obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG || 'var(--color-base-content)',
 							yOffset
 						});
 
@@ -244,7 +244,7 @@ class GraphInspection {
 				.attr('y', -16)
 				.attr('width', rectWidth)
 				.attr('height', 18)
-				.attr('fill', 'var(--color-surface-raised)')
+				.attr('fill', 'var(--color-base-200)')
 				.attr('rx', 2)
 				.attr('opacity', 0.7);
 

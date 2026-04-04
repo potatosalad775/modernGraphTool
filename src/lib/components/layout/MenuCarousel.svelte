@@ -101,7 +101,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
 	bind:clientWidth={containerWidth}
-	class="flex h-12 select-none items-center overflow-hidden border-border bg-surface-raised {appStore.isMobile ? 'border-t' : 'border-b'}"
+	class="flex h-12 select-none items-center overflow-hidden border-base-content/15 bg-base-200 {appStore.isMobile ? 'border-t' : 'border-b'}"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}
@@ -121,10 +121,7 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-				class:text-accent={menuStore.currentPanel === panel.id}
-				class:text-carousel-near={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) === 1}
-				class:text-carousel-far={menuStore.currentPanel !== panel.id && Math.abs(i - currentIndex) !== 1}
+				class="w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {menuStore.currentPanel === panel.id ? 'text-accent' : Math.abs(i - currentIndex) === 1 ? 'text-base-content/45' : 'text-base-content/25'}"
 				onclick={() => goTo(i)}
 			>
 				{panel.label()}

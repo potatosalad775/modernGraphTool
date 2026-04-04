@@ -149,7 +149,7 @@
 
 <div class="flex flex-col gap-0 overflow-y-auto pb-2">
 	{#if sortedEntries.length === 0}
-		<p class="px-3 py-6 text-center text-xs text-muted">No curves loaded.</p>
+		<p class="px-3 py-6 text-center text-xs text-base-content/45">No curves loaded.</p>
 	{/if}
 
 	{#each sortedEntries as [uuid, item] (uuid)}
@@ -159,7 +159,7 @@
 		{@const hasVariants = !isTarget(item) && (item.meta as { files?: unknown[] } | undefined)?.files && ((item.meta as { files: unknown[] }).files.length > 1)}
 
 		<div
-			class="flex flex-col border-b border-border-muted px-3 py-2-muted
+			class="flex flex-col border-b border-base-content/8 px-3 py-2-muted
 				{item.hidden ? 'opacity-50' : ''}"
 		>
 			<!-- Row 1: color swatch + name + action buttons -->
@@ -169,11 +169,11 @@
 
 				<!-- Name + suffix -->
 				<div class="flex min-w-0 flex-1 flex-col">
-					<span class="truncate text-sm font-medium text-foreground">
+					<span class="truncate text-sm font-medium text-base-content">
 						{item.identifier}
 					</span>
 					{#if item.dispSuffix}
-						<span class="truncate text-xs text-muted">{item.dispSuffix}</span>
+						<span class="truncate text-xs text-base-content/45">{item.dispSuffix}</span>
 					{/if}
 				</div>
 
@@ -184,7 +184,7 @@
 							onclick={() => toggleVariantDropdown(uuid)}
 							aria-label="Switch variant"
 							class="flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition-colors
-								text-icon-muted hover:bg-surface-hover hover:text-foreground
+								text-base-content/55 hover:bg-base-300 hover:text-base-content
 								focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							+
@@ -192,14 +192,14 @@
 
 						{#if openVariantUUID === uuid}
 							<div
-								class="absolute right-0 top-8 z-10 min-w-max rounded-md border border-border
-									bg-surface-raised shadow-lg"
+								class="absolute right-0 top-8 z-10 min-w-max rounded-md border border-base-content/15
+									bg-base-200 shadow-lg"
 							>
 								{#each (item.meta as { files: { suffix: string }[] }).files as variant (variant.suffix)}
 									<button
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
-										class="block w-full px-3 py-1.5 text-left text-xs text-foreground-secondary
-											hover:bg-surface-hover
+										class="block w-full px-3 py-1.5 text-left text-xs text-base-content/60
+											hover:bg-base-300
 											{item.dispSuffix === variant.suffix ? 'font-semibold' : ''}"
 									>
 										{variant.suffix || '(default)'}
@@ -219,8 +219,8 @@
 						{isBaseline
 						? graphStore.baselineMode === 'original'
 							? 'border border-accent text-accent'
-							: 'bg-accent text-accent-foreground'
-						: 'text-icon-muted hover:bg-surface-hover hover:text-foreground-secondary'}"
+							: 'bg-accent text-accent-content'
+						: 'text-base-content/55 hover:bg-base-300 hover:text-base-content/60'}"
 				>
 					{isBaseline && graphStore.baselineMode === 'original' ? '~*' : '~'}
 				</button>
@@ -234,7 +234,7 @@
 					}}
 					aria-label={item.hidden ? 'Show' : 'Hide'}
 					class="flex h-7 w-7 items-center justify-center rounded transition-colors
-						text-icon-muted hover:bg-surface-hover hover:text-foreground-secondary
+						text-base-content/55 hover:bg-base-300 hover:text-base-content/60
 						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
@@ -253,7 +253,7 @@
 					onclick={() => dataProvider.removeFRDataWithUUID(item.type, uuid)}
 					aria-label="Remove"
 					class="flex h-7 w-7 items-center justify-center rounded transition-colors
-						text-icon-muted hover:bg-destructive-muted hover:text-destructive
+						text-base-content/55 hover:bg-error/10 hover:text-error
 						focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5" aria-hidden="true">
@@ -274,7 +274,7 @@
 							value={currentChannelVal}
 							onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
 							aria-label="Channel"
-							class="h-7 rounded border border-input bg-surface-raised px-1 text-xs text-foreground-secondary
+							class="h-7 rounded border border-base-content/20 bg-base-200 px-1 text-xs text-base-content/60
 								focus:outline-none focus:ring-1 focus:ring-accent"
 						>
 							{#each channelOpts as opt (opt.value)}
@@ -291,8 +291,8 @@
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
 						aria-label="Decrease Y offset"
-						class="flex h-7 w-7 items-center justify-center rounded border border-input
-							text-xs text-icon-muted transition-colors hover:bg-surface-hover
+						class="flex h-7 w-7 items-center justify-center rounded border border-base-content/20
+							text-xs text-base-content/55 transition-colors hover:bg-base-300
 							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						−
@@ -303,8 +303,8 @@
 						value={item.yOffset ?? 0}
 						oninput={(e) => handleYOffsetInput(uuid, e.currentTarget.value)}
 						aria-label="Y offset"
-						class="h-7 w-12 rounded border border-input bg-surface-raised text-center text-xs
-							text-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
+						class="h-7 w-12 rounded border border-base-content/20 bg-base-200 text-center text-xs
+							text-base-content/60 focus:outline-none focus:ring-1 focus:ring-accent"
 					/>
 
 					<button
@@ -312,8 +312,8 @@
 						onmouseup={stopYOffset}
 						onmouseleave={stopYOffset}
 						aria-label="Increase Y offset"
-						class="flex h-7 w-7 items-center justify-center rounded border border-input
-							text-xs text-icon-muted transition-colors hover:bg-surface-hover
+						class="flex h-7 w-7 items-center justify-center rounded border border-base-content/20
+							text-xs text-base-content/55 transition-colors hover:bg-base-300
 							focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					>
 						+

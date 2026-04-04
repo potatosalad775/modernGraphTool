@@ -97,7 +97,7 @@
 
   <!-- Description panel: only shown when a range is active -->
   {#if activeKey !== null}
-    <div class="rounded-md bg-surface-hover px-3 py-2 text-xs text-foreground-secondary">
+    <div class="rounded-md bg-base-300 px-3 py-2 text-xs text-base-content/60">
       {getRangeDesc(activeKey)}
     </div>
   {/if}

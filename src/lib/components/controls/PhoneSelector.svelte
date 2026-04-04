@@ -160,14 +160,14 @@
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
-	<div class="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5">
+	<div class="flex shrink-0 items-center gap-2 border-b border-base-content/15 px-3 py-1.5">
 		<!-- Brands toggle (shown when container is narrow) -->
 		<button
 			onclick={() => (showPhonePane = false)}
 			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 				{!showPhonePane
-				? 'bg-accent text-accent-foreground'
-				: 'text-foreground-secondary hover:bg-surface-hover'}"
+				? 'bg-accent text-accent-content'
+				: 'text-base-content/60 hover:bg-base-300'}"
 		>
 			{m.phone_selector_header_brand_btn()}
 		</button>
@@ -177,7 +177,7 @@
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
-			class="min-w-0 flex-1 rounded border border-input bg-surface-raised px-2 py-1 text-sm text-foreground
+			class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm text-base-content
 				placeholder-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
 		/>
 
@@ -186,8 +186,8 @@
 			onclick={() => (showPhonePane = true)}
 			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 				{showPhonePane
-				? 'bg-accent text-accent-foreground'
-				: 'text-foreground-secondary hover:bg-surface-hover'}"
+				? 'bg-accent text-accent-content'
+				: 'text-base-content/60 hover:bg-base-300'}"
 		>
 			{m.phone_selector_header_device_btn()}
 		</button>
@@ -198,7 +198,7 @@
 		<div class="flex h-full flex-row">
 			<!-- Brand list -->
 			<div
-				class="ps-brand-pane flex flex-col overflow-y-auto border-r border-border"
+				class="ps-brand-pane flex flex-col overflow-y-auto border-r border-base-content/15"
 				class:ps-brand-hidden={showPhonePane}
 			>
 				{#each brandListData as brand (brand)}
@@ -206,8 +206,8 @@
 						onclick={() => toggleBrand(brand)}
 						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors
 							{selectedBrands.has(brand)
-							? 'bg-accent/10 font-medium text-foreground'
-							: 'text-foreground-secondary hover:bg-surface-hover'}"
+							? 'bg-accent/10 font-medium text-base-content'
+							: 'text-base-content/60 hover:bg-base-300'}"
 					>
 						<span class="truncate">{brand}</span>
 					</button>
@@ -222,21 +222,21 @@
 				<!-- Cross-site search results -->
 				{#if showCrossSiteSection}
 					{#if crossSiteLoading && crossSiteResults.length === 0}
-						<p class="px-3 py-3 text-center text-xs text-muted">
+						<p class="px-3 py-3 text-center text-xs text-base-content/45">
 							{m.crosssite_search_loading()}
 						</p>
 					{/if}
 
 					{#if crossSiteResults.length > 0}
 						<div class="px-3 pb-1 pt-2">
-							<span class="text-[10px] font-semibold uppercase tracking-wider text-muted">
+							<span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/45">
 								{m.crosssite_search_title()}
 							</span>
 						</div>
 
 						{#each [...groupedCrossSite] as [siteUsername, results] (siteUsername)}
 							<div class="px-3 pb-0.5 pt-1.5">
-								<span class="text-[10px] font-medium text-muted">
+								<span class="text-[10px] font-medium text-base-content/45">
 									{results[0].siteName}
 								</span>
 							</div>
@@ -244,13 +244,13 @@
 							{#each results.slice(0, 10) as result (result.siteUsername + result.phoneName)}
 								<button
 									onclick={() => openCrossSiteResult(result.siteUrl, result.phoneName)}
-									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm text-foreground-secondary transition-colors hover:bg-surface-hover"
+									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm text-base-content/60 transition-colors hover:bg-base-300"
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										viewBox="0 0 20 20"
 										fill="currentColor"
-										class="h-3.5 w-3.5 shrink-0 text-muted"
+										class="h-3.5 w-3.5 shrink-0 text-base-content/45"
 									>
 										<path
 											fill-rule="evenodd"
@@ -260,7 +260,7 @@
 									</svg>
 									<span class="min-w-0 flex-1 truncate">{result.phoneName}</span>
 									<span
-										class="shrink-0 rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-muted"
+										class="shrink-0 rounded-full bg-base-300 px-1.5 py-0.5 text-[10px] font-medium text-base-content/45"
 									>
 										{result.dbType}
 									</span>
@@ -270,14 +270,14 @@
 
 						<!-- Divider between cross-site and local results -->
 						{#if displayPhones.length > 0}
-							<div class="mx-3 my-1 border-t border-border"></div>
+							<div class="mx-3 my-1 border-t border-base-content/15"></div>
 						{/if}
 					{/if}
 				{/if}
 
 				<!-- Empty state -->
 				{#if displayPhones.length === 0 && crossSiteResults.length === 0 && !crossSiteLoading}
-					<p class="px-3 py-6 text-center text-xs text-muted">
+					<p class="px-3 py-6 text-center text-xs text-base-content/45">
 						{searchQuery.trim() ? 'No results.' : 'No devices.'}
 					</p>
 				{/if}
@@ -287,7 +287,7 @@
 					{@const isLoaded = loadedIds.has(phone.identifier)}
 					{@const isLoading = loadingIds.has(phone.identifier)}
 					<div
-						class="border-b border-border-muted
+						class="border-b border-base-content/8
 							{isLoaded ? 'border-l-2 border-l-accent bg-accent/5' : ''}"
 					>
 						<button
@@ -295,8 +295,8 @@
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 							class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors
 								{isLoaded
-								? 'font-medium text-foreground'
-								: 'text-foreground-secondary hover:bg-surface-hover'}
+								? 'font-medium text-base-content'
+								: 'text-base-content/60 hover:bg-base-300'}
 								{isLoading ? 'opacity-50' : ''}
 								disabled:cursor-default"
 						>
@@ -305,20 +305,20 @@
 							</span>
 
 							{#if isLoading}
-								<span class="shrink-0 animate-spin text-xs text-muted">&#10227;</span>
+								<span class="shrink-0 animate-spin text-xs text-base-content/45">&#10227;</span>
 							{/if}
 						</button>
 
 						{#if isLoaded}
 							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1.5">
 								{#if phone.reviewScore !== undefined}
-									<span class="text-xs text-rating" title="Score: {phone.reviewScore}">
+									<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
 										{renderStars(phone.reviewScore)}
 									</span>
 								{/if}
 
 								{#if phone.price}
-									<span class="text-xs text-muted">{phone.price}</span>
+									<span class="text-xs text-base-content/45">{phone.price}</span>
 								{/if}
 
 								{#if phone.reviewLink}
@@ -326,7 +326,7 @@
 										href={phone.reviewLink}
 										target="_blank"
 										rel="external noopener noreferrer"
-										class="text-xs text-link hover:underline"
+										class="text-xs text-info hover:underline"
 									>
 										{m.phone_selector_item_review()}
 									</a>
@@ -337,7 +337,7 @@
 										href={phone.shopLink}
 										target="_blank"
 										rel="external noopener noreferrer"
-										class="text-xs text-link hover:underline"
+										class="text-xs text-info hover:underline"
 									>
 										{m.phone_selector_item_shop()}
 									</a>
@@ -352,11 +352,11 @@
 
 	<!-- Clear brands button -->
 	{#if selectedBrands.size > 0}
-		<div class="shrink-0 border-t border-border p-2">
+		<div class="shrink-0 border-t border-base-content/15 p-2">
 			<button
 				onclick={clearBrands}
-				class="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground transition-colors
-					hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+				class="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-content transition-colors
+					hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 			>
 				{m.phone_selector_clear_brands_btn()}
 			</button>

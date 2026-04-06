@@ -8,6 +8,7 @@
 	import { normalize } from '$lib/utils/fr-normalizer.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import type { FRDataPoint, ChannelData } from '$lib/types/data-types.js';
+	import Button from '../atoms/Button.svelte';
 
 	// ── State ──────────────────────────────────────────────────────────────────
 
@@ -148,8 +149,8 @@
 	// ── Reactive draw effect ──────────────────────────────────────────────────
 
 	$effect(() => {
-		const _baseline = graphStore.baselineUUID;
-		const _yScale = graphStore.yScale;
+		//const _baseline = graphStore.baselineUUID;
+		//const _yScale = graphStore.yScale;
 		const _dfNorm = dfNormalized;
 		const _loaded = isLoaded;
 		const _visible = isVisible;
@@ -173,12 +174,11 @@
 	}
 </script>
 
-<button
+<Button
+	title={m.pref_bound_btn_label()}
 	onclick={toggle}
-	class="rounded border px-2 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-    {isVisible
-		? 'border-accent bg-accent text-accent-content'
-		: 'border-base-content/20 bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content'}"
+	variant={isVisible ? 'primary' : 'outline'}
+	class="h-9! px-3! gap-1.5"
 >
 	{m.pref_bound_btn_label()}
-</button>
+</Button>

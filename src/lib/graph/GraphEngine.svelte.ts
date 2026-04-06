@@ -44,8 +44,8 @@ class GraphEngine {
 			yBottom: this.viewBoxHeight - margin
 		};
 		this.labelPosition = {
-			BOTTOM_LEFT: { x: 60, y: this.graphGeometry.yBottom - 8, anchor: 'start', growUp: true },
-			BOTTOM_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yBottom - 8, anchor: 'end', growUp: true },
+			BOTTOM_LEFT: { x: 60, y: this.graphGeometry.yBottom - 12, anchor: 'start', growUp: true },
+			BOTTOM_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yBottom - 12, anchor: 'end', growUp: true },
 			TOP_LEFT: { x: 60, y: this.graphGeometry.yTop + 45, anchor: 'start', growUp: false },
 			TOP_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yTop + 45, anchor: 'end', growUp: false }
 		};
@@ -243,15 +243,15 @@ class GraphEngine {
 			this.updateBaselineLabel();
 			return;
 		}
-		// In "original" mode, refresh from targetOriginalData
-		if (graphStore.baselineMode === 'original') {
+		// In "withAdjustment" mode, refresh from targetOriginalData
+		if (graphStore.baselineMode === 'withAdjustment') {
 			const original = graphStore.targetOriginalData.get(this.baselineData.uuid);
 			if (original?.['AVG']?.data) {
 				this.baselineData.channelData = original['AVG'].data;
 			}
 			return;
 		}
-		// In "adjusted" mode, refresh from latest frStore data
+		// In "withoutAdjustment" mode, refresh from latest frStore data
 		this.baselineData.channelData =
 			data.type === 'phone'
 				? (data.channels[
@@ -306,6 +306,8 @@ class GraphEngine {
 
 	/** Update Baseline on Graph */
 	updateBaseline(animate = false): void {
+		// Use self alias to access GraphEngine instance inside attrTween
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
 		this.curveGroup
 			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
@@ -367,8 +369,8 @@ class GraphEngine {
 				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500'
 			)
 			.text(
-				graphStore.baselineMode === 'original'
-					? `${identifier} (Original) Compensated`
+				graphStore.baselineMode === 'withAdjustment'
+					? `${identifier} (With Adjustment) Compensated`
 					: `${identifier} Compensated`
 			);
 	}
@@ -465,6 +467,8 @@ class GraphEngine {
 
 	/** Transition HpTF fill paths after scale or baseline changes */
 	_transitionHpTFFillPaths(animate: boolean): void {
+		// Use self alias to access GraphEngine instance inside attrTween
+		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
 		this.curveGroup.selectAll<SVGPathElement, unknown>('path.fr-graph-hptf-fill').each(function () {
 			const el = d3.select(this);

@@ -19,7 +19,7 @@
 	<select
 		value={squiglinkStore.currentSiteUsername ?? ''}
 		onchange={handleChange}
-		class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60
+		class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs 
 			focus:outline-none focus:ring-1 focus:ring-accent"
 	>
 		{#each squiglinkStore.sites as site (site.username)}

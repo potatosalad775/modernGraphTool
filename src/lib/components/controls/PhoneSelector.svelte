@@ -8,6 +8,9 @@
 	import { getConfigValue } from '$lib/utils/config.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
 	import type { CrossSiteSearchResult } from '$lib/types/squiglink-types.js';
+	import Button from '../atoms/Button.svelte';
+	import Input from '../atoms/Input.svelte';
+	import { Search, X } from '@lucide/svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
 
@@ -150,9 +153,12 @@
 		}
 	}
 
-	function renderStars(score: number): string {
-		const full = Math.floor(score);
-		const half = score % 1 >= 0.5 ? 1 : 0;
+	function renderScore(score: number | string): string {
+		const num = typeof score === 'number' ? score : parseFloat(score);
+		if (isNaN(num)) return String(score);
+		const clamped = Math.max(0, Math.min(5, num));
+		const full = Math.floor(clamped);
+		const half = clamped % 1 >= 0.5 ? 1 : 0;
 		const empty = 5 - full - half;
 		return '★'.repeat(full) + (half ? '⭐' : '') + '☆'.repeat(empty);
 	}
@@ -160,38 +166,60 @@
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
-	<div class="flex shrink-0 items-center gap-2 border-b border-base-content/15 px-3 py-1.5">
+	<div class="flex shrink-0 items-center gap-2 border-b border-base-content/15 px-1.5 py-1.5">
 		<!-- Brands toggle (shown when container is narrow) -->
-		<button
-			onclick={() => (showPhonePane = false)}
-			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-				{!showPhonePane
-				? 'bg-accent text-accent-content'
-				: 'text-base-content/60 hover:bg-base-300'}"
-		>
-			{m.phone_selector_header_brand_btn()}
-		</button>
+		{#if showPhonePane}
+			<div class="ps-nav-btn">
+				<Button
+					title={m.phone_selector_header_brand_btn()}
+					onclick={() => (showPhonePane = false)}
+					variant="primary"
+				>
+					{m.phone_selector_header_brand_btn()}
+				</Button>
+			</div>
+		{/if}
 
 		<!-- Search -->
-		<input
+		<Input
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
-			class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm text-base-content
-				placeholder-foreground-secondary focus:outline-none focus:ring-1 focus:ring-accent"
-		/>
+			class="flex-1"
+		>
+			{#snippet icon()}
+				<Search class="h-4 w-4 text-base-content/60" aria-hidden="true" />
+			{/snippet}
+		</Input>
 
 		<!-- Devices toggle (shown when container is narrow) -->
-		<button
-			onclick={() => (showPhonePane = true)}
-			class="ps-nav-btn rounded px-2 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-				{showPhonePane
-				? 'bg-accent text-accent-content'
-				: 'text-base-content/60 hover:bg-base-300'}"
-		>
-			{m.phone_selector_header_device_btn()}
-		</button>
+		{#if !showPhonePane}
+			<div class="ps-nav-btn">
+				<Button
+					title={m.phone_selector_header_device_btn()}
+					onclick={() => (showPhonePane = true)}
+					variant="primary"
+				>
+					{m.phone_selector_header_device_btn()}
+				</Button>
+			</div>
+		{/if}
 	</div>
+
+	<!-- Clear brands button -->
+	{#if selectedBrands.size > 0}
+		<div class="shrink-0 p-2">
+			<Button
+				title={m.phone_selector_clear_brands_btn()}
+				onclick={clearBrands}
+				variant="secondary"
+				class="w-full gap-2"
+			>
+				<X class="h-4 w-4" aria-hidden="true" />
+				{m.phone_selector_clear_brands_btn()}
+			</Button>
+		</div>
+	{/if}
 
 	<!-- Panes -->
 	<div class="relative min-h-0 flex-1">
@@ -207,7 +235,7 @@
 						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors
 							{selectedBrands.has(brand)
 							? 'bg-accent/12 font-medium text-accent'
-							: 'text-base-content/60 hover:bg-base-300'}"
+							: ' hover:bg-base-300'}"
 					>
 						<span class="truncate">{brand}</span>
 					</button>
@@ -222,21 +250,21 @@
 				<!-- Cross-site search results -->
 				{#if showCrossSiteSection}
 					{#if crossSiteLoading && crossSiteResults.length === 0}
-						<p class="px-3 py-3 text-center text-xs text-base-content/45">
+						<p class="px-3 py-3 text-center text-xs text-base-content/60">
 							{m.crosssite_search_loading()}
 						</p>
 					{/if}
 
 					{#if crossSiteResults.length > 0}
 						<div class="px-3 pb-1 pt-2">
-							<span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/45">
+							<span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/60">
 								{m.crosssite_search_title()}
 							</span>
 						</div>
 
 						{#each [...groupedCrossSite] as [siteUsername, results] (siteUsername)}
 							<div class="px-3 pb-0.5 pt-1.5">
-								<span class="text-[10px] font-medium text-base-content/45">
+								<span class="text-[10px] font-medium text-base-content/60">
 									{results[0].siteName}
 								</span>
 							</div>
@@ -244,13 +272,13 @@
 							{#each results.slice(0, 10) as result (result.siteUsername + result.phoneName)}
 								<button
 									onclick={() => openCrossSiteResult(result.siteUrl, result.phoneName)}
-									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm text-base-content/60 transition-colors hover:bg-base-300"
+									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm  transition-colors hover:bg-base-300"
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										viewBox="0 0 20 20"
 										fill="currentColor"
-										class="h-3.5 w-3.5 shrink-0 text-base-content/45"
+										class="h-3.5 w-3.5 shrink-0 text-base-content/60"
 									>
 										<path
 											fill-rule="evenodd"
@@ -260,7 +288,7 @@
 									</svg>
 									<span class="min-w-0 flex-1 truncate">{result.phoneName}</span>
 									<span
-										class="shrink-0 rounded-full bg-base-300 px-1.5 py-0.5 text-[10px] font-medium text-base-content/45"
+										class="shrink-0 rounded-full bg-base-300 px-1.5 py-0.5 text-[10px] font-medium text-base-content/60"
 									>
 										{result.dbType}
 									</span>
@@ -277,7 +305,7 @@
 
 				<!-- Empty state -->
 				{#if displayPhones.length === 0 && crossSiteResults.length === 0 && !crossSiteLoading}
-					<p class="px-3 py-6 text-center text-xs text-base-content/45">
+					<p class="px-3 py-6 text-center text-xs text-base-content/60">
 						{searchQuery.trim() ? 'No results.' : 'No devices.'}
 					</p>
 				{/if}
@@ -293,75 +321,67 @@
 						<button
 							onclick={() => togglePhone(phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
-							class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors
+							class="flex flex-col w-full min-h-8 items-start gap-1 px-3 py-1.5 text-left text-sm transition-colors
 								{isLoaded
 								? 'font-medium text-base-content'
-								: 'text-base-content/60 hover:bg-base-300'}
+								: ' hover:bg-base-300'}
 								{isLoading ? 'opacity-50' : ''}
-								disabled:cursor-default"
+								cursor-pointer disabled:cursor-default"
 						>
 							<span class="min-w-0 flex-1 truncate leading-snug">
 								{phone.identifier}
 							</span>
 
-							{#if isLoading}
-								<span class="shrink-0 animate-spin text-xs text-base-content/45">&#10227;</span>
+							{#if phone.description}
+								<span class="min-w-0 self-stretch text-xs text-base-content/60 leading-snug
+									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
+									title={phone.description}
+								>
+									{phone.description}
+								</span>
+							{/if}
+
+							{#if isLoaded && (phone.reviewScore !== undefined || phone.price || phone.reviewLink || phone.shopLink)}
+								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+									{#if phone.reviewScore !== undefined}
+										<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
+											{renderScore(phone.reviewScore)}
+										</span>
+									{/if}
+
+									{#if phone.price}
+										<span class="text-xs text-base-content/60">{phone.price}</span>
+									{/if}
+
+									{#if phone.reviewLink}
+										<a
+											href={phone.reviewLink}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="text-xs text-info hover:underline"
+										>
+											{m.phone_selector_item_review()}
+										</a>
+									{/if}
+
+									{#if phone.shopLink}
+										<a
+											href={phone.shopLink}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="text-xs text-info hover:underline"
+										>
+											{m.phone_selector_item_shop()}
+										</a>
+									{/if}
+								</div>
 							{/if}
 						</button>
-
-						{#if isLoaded}
-							<div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pb-1.5">
-								{#if phone.reviewScore !== undefined}
-									<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
-										{renderStars(phone.reviewScore)}
-									</span>
-								{/if}
-
-								{#if phone.price}
-									<span class="text-xs text-base-content/45">{phone.price}</span>
-								{/if}
-
-								{#if phone.reviewLink}
-									<a
-										href={phone.reviewLink}
-										target="_blank"
-										rel="external noopener noreferrer"
-										class="text-xs text-info hover:underline"
-									>
-										{m.phone_selector_item_review()}
-									</a>
-								{/if}
-
-								{#if phone.shopLink}
-									<a
-										href={phone.shopLink}
-										target="_blank"
-										rel="external noopener noreferrer"
-										class="text-xs text-info hover:underline"
-									>
-										{m.phone_selector_item_shop()}
-									</a>
-								{/if}
-							</div>
-						{/if}
 					</div>
 				{/each}
 			</div>
 		</div>
 	</div>
-
-	<!-- Clear brands button -->
-	{#if selectedBrands.size > 0}
-		<div class="shrink-0 border-t border-base-content/15 p-2">
-			<button
-				onclick={clearBrands}
-				class="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-content transition-colors
-					hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-			>
-				{m.phone_selector_clear_brands_btn()}
-			</button>
-		</div>
-	{/if}
 </div>
 
 <style>
@@ -372,7 +392,9 @@
 		}
 		.ps-brand-pane {
 			display: flex !important;
-			width: 10rem;
+			width: 40%;
+			min-width: 10rem;
+			max-width: 15rem;
 			flex-shrink: 0;
 		}
 		.ps-phone-pane {

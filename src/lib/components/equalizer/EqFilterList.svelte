@@ -130,7 +130,7 @@
 <div class="flex flex-col gap-2">
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
-		<span class="text-xs text-base-content/45">
+		<span class="text-xs text-base-content/60">
 			{m.extension_equalizer_filter_list_preamp()}:
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 		</span>
@@ -155,7 +155,7 @@
 		<table class="w-full text-xs">
 			<thead>
 				<tr
-					class="border-b border-base-content/15 text-base-content/45 border-base-content/15"
+					class="border-b border-base-content/15 text-base-content/60 border-base-content/15"
 				>
 					<th class="w-6 pb-1 text-left font-normal"></th>
 					<th class="pb-1 text-left font-normal">Type</th>
@@ -239,7 +239,7 @@
 						<td class="py-0.5">
 							<button
 								onclick={() => eqStore.removeBandAt(i)}
-								class="text-base-content/45 hover:text-base-content/60"
+								class="text-base-content/60 hover:"
 								aria-label="Remove filter"
 							>×</button>
 						</td>
@@ -253,13 +253,13 @@
 	<div class="flex gap-1">
 		<button
 			onclick={importFilters}
-			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_import()}
 		</button>
 		<button
 			onclick={exportFilters}
-			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export()}
 		</button>
@@ -267,7 +267,7 @@
 	<div>
 		<button
 			onclick={exportGraphicEQ}
-			class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 		>
 			{m.extension_equalizer_filter_list_export_graphic_eq()}
 		</button>

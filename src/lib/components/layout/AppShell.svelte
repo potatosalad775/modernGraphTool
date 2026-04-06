@@ -22,6 +22,7 @@
 	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
 	import { Toaster } from 'svelte-sonner';
+	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	let gridCols = $state('minmax(400px, 65%) 5px minmax(340px, 1fr)');
@@ -178,8 +179,13 @@
 	{#if appStore.isMobile}
 		<main class="flex flex-1 flex-col overflow-hidden bg-base-100 text-base-content">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
-			<section aria-label="Frequency response graph" class="shrink-0 overflow-hidden">
-				<GraphContainer />
+			<section aria-label="Frequency response graph" class="flex flex-col overflow-hidden">
+				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
+					<GraphContainer />
+				</div>
+				<div class="bg-base-200 border-b border-base-content/15">
+					<FrequencyTutorial />
+				</div>
 			</section>
 			<!-- Panel area fills remaining space -->
 			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-lg border-t border-base-content/15">
@@ -217,11 +223,14 @@
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
+				<div class="bg-base-200 border-b border-base-content/15">
+					<FrequencyTutorial />
+				</div>
 				<GraphToolbar />
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-[340px] flex-col overflow-hidden bg-base-200">
+			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-200">
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}

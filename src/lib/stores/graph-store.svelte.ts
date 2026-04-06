@@ -1,10 +1,10 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { ParsedFRData } from '$lib/types/data-types.js';
 
-export type BaselineMode = 'off' | 'adjusted' | 'original';
+export type BaselineMode = 'off' | 'withoutAdjustment' | 'withAdjustment';
 
 class GraphStore {
-  yScale = $state(60);
+  yScale = $state(50);
   baselineUUID = $state<string | null>(null);
   baselineMode = $state<BaselineMode>('off');
   normType = $state<'Hz' | 'Avg'>('Hz');

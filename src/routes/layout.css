@@ -22,7 +22,7 @@
  * Graph:     graph-grid-text (for D3 SVG use)
  *
  * All other UI chrome uses opacity modifiers on base-content:
- *   text-base-content/60 (secondary text), border-base-content/15 (borders), etc.
+ *    (secondary text), border-base-content/15 (borders), etc.
  */
 @theme {
 	/* Base */
@@ -91,6 +91,8 @@ select,
 
 /* ─── User select ─────────────────────────────────────────────────────────── */
 body {
+	color: var(--color-base-content);
+	background-color: var(--color-base-100);
 	-webkit-user-select: none;
 	user-select: none;
 	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -115,11 +117,21 @@ select {
 	-webkit-appearance: none;
 	-moz-appearance: none;
 	appearance: none;
+	background-image:
+      linear-gradient(45deg, #0000 50%, currentColor 50%),
+      linear-gradient(135deg, currentColor 50%, #0000 50%);
+	background-position:
+		calc(100% - 9px) calc(1px + 50%),
+		calc(100% - 5.1px) calc(1px + 50%);
+	background-size:
+		4px 4px,
+		4px 4px;
 	background-repeat: no-repeat;
-	background-position: right 0.5rem center;
-	background-size: 1rem;
-	background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path></svg>');
-	padding-right: 1.5rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-left: 0.5rem;
+	padding-right: 1.125rem;
 }
 
 /* ─── Scrollbar styling ──────────────────────────────────────────────────── */

@@ -83,11 +83,14 @@
     orientation="horizontal" type="always"
     viewportClasses="flex gap-2 w-full"
   >
-    <div class="flex gap-1.5 px-3 py-2">
+    <div class="flex gap-1.5 px-3 py-2 justify-center">
       {#each FREQ_RANGES as { key } (key)}
         <Button
+          title={getRangeName(key)}
           onclick={() => toggleRange(key)}
-          variant={activeKey === key ? 'primary' : 'secondary'}
+          variant={activeKey === key ? 'primary' : 'outline'}
+          size="sm"
+          class="whitespace-nowrap line-clamp-1"
         >
           {getRangeName(key)}
         </Button>
@@ -97,8 +100,8 @@
 
   <!-- Description panel: only shown when a range is active -->
   {#if activeKey !== null}
-    <div class="rounded-md bg-base-300 px-3 py-2 text-xs text-base-content/60">
+    <span class="flex justify-center rounded-md bg-base-300 px-3 pb-2 text-xs">
       {getRangeDesc(activeKey)}
-    </div>
+    </span>
   {/if}
 </div>

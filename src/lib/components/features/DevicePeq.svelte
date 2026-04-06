@@ -197,7 +197,7 @@
 					<button
 						onclick={connectHid}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (HID)'}
 					</button>
@@ -206,14 +206,14 @@
 					<button
 						onclick={connectSerial}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (Serial)'}
 					</button>
 				{/if}
 				<button
 					onclick={toggleNetworkPanel}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					Network
 				</button>
@@ -241,7 +241,7 @@
 			<!-- Connected state -->
 			<div class="flex items-center justify-between text-xs">
 				<span
-					class="font-medium text-base-content/60"
+					class="font-medium "
 					title={devicePeqStore.manufacturer ?? ''}
 				>
 					{devicePeqStore.deviceName}
@@ -272,14 +272,14 @@
 				<button
 					onclick={pullFromDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isReading ? 'Reading...' : 'Pull from Device'}
 				</button>
 				<button
 					onclick={pushToDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isWriting ? 'Writing...' : 'Push to Device'}
 				</button>
@@ -288,7 +288,7 @@
 
 		<!-- Status message -->
 		{#if devicePeqStore.statusMessage}
-			<p class="text-xs text-base-content/45">{devicePeqStore.statusMessage}</p>
+			<p class="text-xs text-base-content/60">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
 {/if}

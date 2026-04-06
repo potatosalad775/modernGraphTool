@@ -164,6 +164,7 @@ export interface RawPhoneData {
   reviewLink?: string;
   shopLink?: string;
   price?: string;
+  description?: string;
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
   /** HpTF rig-to-rig deviation configuration */
@@ -183,10 +184,11 @@ export interface PhoneMetadata {
   name: string;
   identifier: string;
   files: PhoneFileVariant[];
-  reviewScore?: number;
+  reviewScore?: number | string;
   reviewLink?: string;
   shopLink?: string;
   price?: string;
+  description?: string;
   dispSuffix?: string;
   extensionData?: unknown;
 }

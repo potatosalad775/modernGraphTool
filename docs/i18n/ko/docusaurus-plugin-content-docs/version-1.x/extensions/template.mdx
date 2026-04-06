@@ -1,0 +1,179 @@
+# Template Extension
+
+modernGraphTool용 커스텀 확장 기능 개발을 위한 출발점이 되는 템플릿 Extension입니다.
+
+## 개요
+
+Template Extension은 개발자를 위해 제공되는 modernGraphTool 확장 기능 템플릿입니다. 
+
+개발 모범 사례, 올바른 API 사용법, 확장 개발에 자주 쓰이는 패턴을 보여줍니다.
+
+## 주요 기능
+
+- **완전한 확장 구조**: 확장 아키텍처 전체 예시
+- **API 데모**: modernGraphTool 핵심 API 사용 예시
+- **이벤트 처리**: 올바른 이벤트 리스닝 및 디스패치 패턴
+- **UI 통합**: Shadow DOM 및 컴포넌트 통합 예시
+- **설정 관리**: 확장 설정 관리
+- **개발 도구**: 내장 개발 및 디버깅 유틸리티
+
+## 기술 사양
+
+| 속성 | 값 |
+|----------|-------|
+| **확장 이름** | `template` |
+| **최신 버전** | 1.0.0 |
+| **최소 Core API 레벨** | 1 |
+| **최소 Core 버전** | 1.0.0 |
+| **I18N 지원** | 부분 (i18n 패턴 예시 포함) |
+
+## 설정 방법
+
+```javascript
+{
+  NAME: "template",
+  DESCRIPTION: "샘플 설명",
+  ENABLED: false,    // 개발 템플릿이므로 기본 비활성화
+}
+```
+
+:::note 개발 템플릿
+이 확장 기능은 **기본적으로 비활성화**되어 있으며, 개발 및 학습 용도로 제공되고 있습니다.
+:::
+
+## Core API 데모
+
+템플릿 확장 기능은 modernGraphTool의 핵심 API 사용 예시를 보여줍니다:
+
+### 데이터 접근 API
+- **MenuState**: 앱 메뉴 상태 접근 및 관리
+- **DataProvider**: 주파수 응답 데이터 및 메타데이터 읽기
+- **MetadataParser**: 헤드폰 메타데이터 파싱
+
+### 유틸리티 API
+- **GtToast**: 사용자 토스트 알림 표시
+- **StringLoader**: 국제화 및 문자열 관리 (I18N_ENABLED 시)
+- **CoreEvent**: 이벤트 시스템 통합
+
+### API 사용 예시
+```javascript
+// 템플릿 확장 기능 예시
+import { MenuState, DataProvider, MetadataParser, GtToast } from "../../core.min.js";
+
+// 현재 주파수 응답 데이터 접근
+const frDataMap = DataProvider.getFRDataMap();
+
+// 헤드폰 메타데이터 접근
+const phoneMetadata = DataProvider.getPhoneMetadata();
+
+// 토스트 알림 표시
+GtToast.show("템플릿 확장 기능이 로드되었습니다!", "info");
+```
+
+## 확장 구조
+
+### 파일 구성
+```
+template/
+├── main.js                 // 확장 진입점
+└── README.md              // 확장 문서 (필요시)
+```
+
+### 클래스 구조
+```javascript
+export default class TemplateElement extends HTMLElement {
+  constructor(config = {}) {
+    super();
+    this.config = config;           // 확장 설정 저장
+    this.attachShadow({ mode: 'open' });  // Shadow DOM 생성
+    
+    // 확장 초기화
+    this._initializeExtension();
+  }
+}
+```
+
+## 개발 패턴
+
+### Shadow DOM 사용
+템플릿은 올바른 Shadow DOM 구현을 보여줍니다:
+```javascript
+// Shadow DOM 생성
+const shadow = this.attachShadow({ mode: 'open' });
+
+// 컨테이너 생성 및 스타일 적용
+const container = document.createElement('div');
+container.classList.add('container');
+shadow.appendChild(container);
+```
+
+### 이벤트 처리
+올바른 이벤트 관리 예시:
+```javascript
+// 이벤트 리스너 설정
+this._setupEventListeners();
+
+// 버튼 클릭 핸들러
+button.addEventListener('click', (e) => {
+  this._handleButtonClick(e);
+});
+```
+
+### 설정 관리
+확장 설정 처리 방법:
+```javascript
+constructor(config = {}) {
+  this.config = config;
+  // 설정 값 사용
+  if (this.config.SOME_OPTION) {
+    // 설정 옵션 처리
+  }
+}
+```
+
+## 개발 템플릿으로 사용하기
+
+### 1단계: 템플릿 복사
+1. `template` 폴더를 복사해 새 확장 생성
+2. 폴더명을 확장 이름으로 변경
+3. `main.js` 파일에 확장 로직 작성
+
+### 2단계: 메타데이터 수정
+```javascript
+export const EXTENSION_METADATA = {
+  name: 'your-extension-name',        // 확장 이름으로 수정
+  version: '1.0.0',                  // 확장 버전
+  apiLevel: 1,                       // API 레벨 유지
+  coreMinVersion: '1.0.0',           // 최소 modernGraphTool 버전
+  coreMaxVersion: '1.0.x',           // 최대 호환 버전
+  description: '확장 설명',
+  author: '작성자 이름'
+};
+```
+
+### 3단계: 설정 커스터마이즈
+```javascript
+{
+  NAME: "your-extension-name",           // 폴더명과 일치해야 함
+  DESCRIPTION: "확장 설명",
+  ENABLED: true,                         // 개발용 활성화
+  I18N_ENABLED: false,                   // i18n 필요시 활성화
+  CONFIG: {
+    // 커스텀 설정 옵션
+    YOUR_OPTION: "default_value",
+  },
+}
+```
+
+### 4단계: 기능 구현
+템플릿 내용을 확장 로직으로 교체:
+```javascript
+export default class YourExtensionClass extends HTMLElement {
+  constructor(config = {}) {
+    super();
+    // 확장 초기화
+  }
+  
+  // 확장 메서드 및 기능 구현
+}
+```

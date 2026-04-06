@@ -266,7 +266,7 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-base-content/45"
+			<span class="text-xs text-base-content/60"
 				>{m.extension_equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{toneFreq} Hz</span
 				></span
@@ -300,7 +300,7 @@
 	{#if audioSource === 'file'}
 		<input type="file" accept="audio/*" onchange={loadFile} class="text-xs" />
 		{#if fileLoaded}
-			<div class="flex items-center gap-2 text-xs text-base-content/45">
+			<div class="flex items-center gap-2 text-xs text-base-content/60">
 				<span class="tabular-nums">{formatTime(currentTime)}</span>
 				<span>/</span>
 				<span class="tabular-nums">{formatTime(duration)}</span>

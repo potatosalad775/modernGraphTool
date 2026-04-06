@@ -205,7 +205,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-h"
-						class="text-xs text-base-content/45"
+						class="text-xs text-base-content/60"
 					>{m.graph_color_wheel_label_hue()}</label>
 					<input
 						id="{uuid}-hsl-h"
@@ -220,7 +220,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-s"
-						class="text-xs text-base-content/45"
+						class="text-xs text-base-content/60"
 					>{m.graph_color_wheel_label_saturation()}</label>
 					<input
 						id="{uuid}-hsl-s"
@@ -235,7 +235,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-hsl-l"
-						class="text-xs text-base-content/45"
+						class="text-xs text-base-content/60"
 					>{m.graph_color_wheel_label_lightness()}</label>
 					<input
 						id="{uuid}-hsl-l"
@@ -254,7 +254,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-dash-tick"
-						class="text-xs text-base-content/45"
+						class="text-xs text-base-content/60"
 					>{m.graph_color_wheel_label_tick()}</label>
 					<input
 						id="{uuid}-dash-tick"
@@ -269,7 +269,7 @@
 				<div class="flex flex-col items-center gap-0.5">
 					<label
 						for="{uuid}-dash-space"
-						class="text-xs text-base-content/45"
+						class="text-xs text-base-content/60"
 					>{m.graph_color_wheel_label_space()}</label>
 					<input
 						id="{uuid}-dash-space"
@@ -287,7 +287,7 @@
 			<div class="flex items-center justify-between gap-2">
 				<button
 					onclick={onRandom}
-					class="rounded bg-base-300 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					class="rounded bg-base-300 px-2 py-1 text-xs  transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					{m.graph_color_wheel_btn_random()}
 				</button>
@@ -296,7 +296,7 @@
 					{#snippet child({ props })}
 						<button
 							{...props}
-							class="rounded bg-base-300 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							class="rounded bg-base-300 px-2 py-1 text-xs  transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
 							{m.graph_color_wheel_btn_close()}
 						</button>

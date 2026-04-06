@@ -53,7 +53,7 @@
 					{sponsor.heading}
 				</Dialog.Title>
 
-				<Dialog.Description class="mt-1 text-sm text-base-content/45">
+				<Dialog.Description class="mt-1 text-sm text-base-content/60">
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
@@ -91,7 +91,7 @@
 							target="_blank"
 							rel="noopener noreferrer"
 							class="rounded-lg border border-base-content/20 px-4 py-2.5 text-center text-sm font-medium
-								text-base-content/60 hover:bg-base-300"
+								 hover:bg-base-300"
 						>
 							{sponsor.cta2Text}
 						</a>
@@ -99,7 +99,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-4 w-full text-center text-xs text-base-content/45 hover:text-base-content/60"
+					class="mt-4 w-full text-center text-xs text-base-content/60 hover:"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

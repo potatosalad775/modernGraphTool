@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { SvelteSet } from 'svelte/reactivity';
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '$lib/paraglide/messages.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import type { TargetManifestEntry } from '$lib/types/data-types.js';
+	import Accordion from '../atoms/Accordion.svelte';
+	import AccordionItem from '../atoms/AccordionItem.svelte';
+	import ScrollArea from '../atoms/ScrollArea.svelte';
+	import Button from '../atoms/Button.svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
 
@@ -17,11 +20,6 @@
 	const targets: TargetManifestEntry[] =
 		(getConfigValue('TARGET_MANIFEST') as TargetManifestEntry[] | undefined) ?? [];
 
-	// Track collapsed groups (by type name)
-	const collapsedGroups = new SvelteSet<string>(
-		collapseOnInitial ? targets.map((g) => g.type) : []
-	);
-
 	function getIdentifier(file: string): string {
 		return file.includes(' Target') ? file : file + ' Target';
 	}
@@ -31,12 +29,6 @@
 		return file;
 	}
 
-	function toggleCollapse(type: string) {
-		if (collapsedGroups.has(type)) collapsedGroups.delete(type);
-		else collapsedGroups.add(type);
-	}
-
-	// Derive a reactive set of loaded identifiers from the SvelteMap
 	const loadedIds = $derived(
 		new Set([...frStore.entries.values()].map((e) => e.identifier))
 	);
@@ -54,69 +46,45 @@
 	}
 </script>
 
-{#if targets.length > 0}
-	<div class="flex flex-col gap-2">
-		<span class="text-xs font-semibold uppercase tracking-wide text-base-content/45">
-			{m.target_selector_label()}
-		</span>
-
-		{#if allowMultiLine}
-			<!-- Grouped by type with optional collapse -->
-			{#each targets as group (group.type)}
-				<div class="flex flex-col gap-1">
-					<button
-						onclick={() => toggleCollapse(group.type)}
-						class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-base-content/45 hover:text-base-content/60"
+{#snippet targetRow(group: TargetManifestEntry)}
+	<ScrollArea orientation="horizontal" type="always" viewportClasses="flex w-full px-[1px] pt-[1px] pb-2">
+		<div class="flex items-center gap-2">
+			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/40">{group.type}</span>
+			<div class="flex gap-1.5">
+				{#each group.files as file (file)}
+					{@const identifier = getIdentifier(file)}
+					{@const isLoaded = loadedIds.has(identifier)}
+					{@const isLoading = loading.has(identifier)}
+					<Button
+						title={getDisplayName(file)}
+						onclick={() => toggleTarget(identifier, isLoaded)}
+						disabled={isLoading}
+						variant={isLoaded ? 'primary' : 'outline'}
+						size="sm"
+						class="whitespace-nowrap"
 					>
-						<span class="text-[10px]">{collapsedGroups.has(group.type) ? '▶' : '▼'}</span>
-						{group.type}
-					</button>
-					{#if !collapsedGroups.has(group.type)}
-						<div class="flex flex-wrap gap-1.5">
-							{#each group.files as file (file)}
-								{@const identifier = getIdentifier(file)}
-								{@const isLoaded = loadedIds.has(identifier)}
-								{@const isLoading = loading.has(identifier)}
-								<button
-									onclick={() => toggleTarget(identifier, isLoaded)}
-									disabled={isLoading}
-									class={[
-										'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-										isLoaded
-											? 'bg-accent/10 text-accent hover:bg-accent/8'
-											: 'border border-base-content/20 text-base-content/60 hover:bg-base-300'
-									].join(' ')}
-								>
-									{getDisplayName(file)}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				</div>
-			{/each}
-		{:else}
-			<!-- Flat list — all targets in one row -->
-			<div class="flex flex-wrap gap-1.5">
-				{#each targets as group}
-					{#each group.files as file (file)}
-						{@const identifier = getIdentifier(file)}
-						{@const isLoaded = loadedIds.has(identifier)}
-						{@const isLoading = loading.has(identifier)}
-						<button
-							onclick={() => toggleTarget(identifier, isLoaded)}
-							disabled={isLoading}
-							class={[
-								'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-								isLoaded
-									? 'bg-accent/10 text-accent hover:bg-accent/8'
-									: 'border border-base-content/20 text-base-content/60 hover:bg-base-300'
-							].join(' ')}
-						>
-							{getDisplayName(file)}
-						</button>
-					{/each}
+						{getDisplayName(file)}
+					</Button>
 				{/each}
 			</div>
-		{/if}
-	</div>
+		</div>
+	</ScrollArea>
+{/snippet}
+
+{#if targets.length > 0}
+	{#if allowMultiLine}
+		<Accordion type="single" value={collapseOnInitial ? '' : 'targets'}>
+			<AccordionItem value="targets" title={m.target_selector_label()}>
+				<div class="flex flex-col gap-0.5 pt-1">
+					{#each targets as group (group.type)}
+						{@render targetRow(group)}
+					{/each}
+				</div>
+			</AccordionItem>
+		</Accordion>
+	{:else}
+		{#each targets as group (group.type)}
+			{@render targetRow(group)}
+		{/each}
+	{/if}
 {/if}

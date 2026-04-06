@@ -81,12 +81,12 @@ describe('GraphStore', () => {
 			expect(graphStore.baselineMode).toBe('off');
 		});
 
-		it('can cycle through off → adjusted → original', () => {
-			graphStore.baselineMode = 'adjusted';
-			expect(graphStore.baselineMode).toBe('adjusted');
+		it('can cycle through off → withoutAdjustment → withAdjustment', () => {
+			graphStore.baselineMode = 'withoutAdjustment';
+			expect(graphStore.baselineMode).toBe('withoutAdjustment');
 
-			graphStore.baselineMode = 'original';
-			expect(graphStore.baselineMode).toBe('original');
+			graphStore.baselineMode = 'withAdjustment';
+			expect(graphStore.baselineMode).toBe('withAdjustment');
 
 			graphStore.baselineMode = 'off';
 			expect(graphStore.baselineMode).toBe('off');

@@ -5,84 +5,28 @@
 // Shared logic for JadeAudio / SnowSky / FiiO devices.
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, DeviceFilterType, PullResult } from '../types.js';
+import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult, UsbHidVendorConfig } from '../types.js';
+import { FIIO_FILTER_MAP } from '../utils/filter-type-maps.js';
+import {
+	PEQ_FILTER_COUNT,
+	PEQ_GLOBAL_GAIN,
+	PEQ_FILTER_PARAMS,
+	PEQ_PRESET_SWITCH,
+	PEQ_SAVE_TO_DEVICE,
+	SET_HEADER1,
+	SET_HEADER2,
+	GET_HEADER1,
+	GET_HEADER2,
+	END_HEADERS,
+	toBytePair,
+	splitUnsignedValue,
+	combineBytes,
+	fiioGainBytesFromValue,
+	handleGain
+} from '../utils/fiio-protocol.js';
 
-// ── Protocol constants ────────────────────────────────────────────────────────
-
-const PEQ_FILTER_COUNT = 0x18; // 24 in hex
-const PEQ_GLOBAL_GAIN = 0x17; // 23 in hex
-const PEQ_FILTER_PARAMS = 0x15; // 21 in hex
-const PEQ_PRESET_SWITCH = 0x16; // 22 in hex
-const PEQ_SAVE_TO_DEVICE = 0x19; // 25 in hex
-const PEQ_RESET_DEVICE = 0x1b; // 27 in hex
-const PEQ_RESET_ALL = 0x1c; // 28 in hex
-
-// Note these have different headers
-const PEQ_FIRMWARE_VERSION = 0x0b; // 11 in hex
-const PEQ_NAME_DEVICE = 0x30; // 48 in hex
-
-const SET_HEADER1 = 0xaa;
-const SET_HEADER2 = 0x0a;
-const GET_HEADER1 = 0xbb;
-const GET_HEADER2 = 0x0b;
-const END_HEADERS = 0xee;
-
-// ── Byte-manipulation helpers ─────────────────────────────────────────────────
-
-function toBytePair(value: number): [number, number] {
-	return [value & 0xff, (value & 0xff00) >> 8];
-}
-
-function splitSignedValue(value: number): [number, number] {
-	const signedValue = value < 0 ? value + 65536 : value;
-	return [(signedValue >> 8) & 0xff, signedValue & 0xff];
-}
-
-function splitUnsignedValue(value: number): [number, number] {
-	return [(value >> 8) & 0xff, value & 0xff];
-}
-
-function combineBytes(lowByte: number, highByte: number): number {
-	return (lowByte << 8) | highByte;
-}
-
-// ── Gain helpers ──────────────────────────────────────────────────────────────
-
-function fiioGainBytesFromValue(e: number): [number, number] {
-	let t = e * 10;
-	if (t < 0) {
-		t = (Math.abs(t) ^ 65535) + 1;
-	}
-	const r = (t >> 8) & 255;
-	const n = t & 255;
-	return [r, n];
-}
-
-function handleGain(lowByte: number, highByte: number): number {
-	let r = combineBytes(lowByte, highByte);
-	const gain = r & 32768 ? ((r = (r ^ 65535) + 1), -r / 10) : r / 10;
-	return gain;
-}
-
-// ── Filter-type converters ────────────────────────────────────────────────────
-
-function convertFromFilterType(filterType: DeviceFilterType): number {
-	const mapping: Record<string, number> = { PK: 0, LSQ: 1, HSQ: 2 };
-	return mapping[filterType] !== undefined ? mapping[filterType] : 0;
-}
-
-function convertToFilterType(datum: number): DeviceFilterType {
-	switch (datum) {
-		case 0:
-			return 'PK';
-		case 1:
-			return 'LSQ';
-		case 2:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
+const convertFromFilterType = FIIO_FILTER_MAP.toCode;
+const convertToFilterType = FIIO_FILTER_MAP.fromCode;
 
 // ── Report-ID helper ──────────────────────────────────────────────────────────
 
@@ -531,5 +475,83 @@ export const fiioUsbHidHandler: DeviceHandler = {
 		} else {
 			await setPresetPeq(device, deviceDetails.modelConfig.maxFilters, reportId);
 		}
+	}
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+const FIIO_DEFAULT_SLOTS = [
+	{ id: 0, name: 'Jazz' },
+	{ id: 1, name: 'Pop' },
+	{ id: 2, name: 'Rock' },
+	{ id: 3, name: 'Dance' },
+	{ id: 4, name: 'R&B' },
+	{ id: 5, name: 'Classic' },
+	{ id: 6, name: 'Hip-hop' },
+	{ id: 7, name: 'Monitor' },
+	{ id: 160, name: 'USER1' },
+	{ id: 161, name: 'USER2' },
+	{ id: 162, name: 'USER3' },
+	{ id: 163, name: 'USER4' },
+	{ id: 164, name: 'USER5' },
+	{ id: 165, name: 'USER6' },
+	{ id: 166, name: 'USER7' },
+	{ id: 167, name: 'USER8' },
+	{ id: 168, name: 'USER9' },
+	{ id: 169, name: 'USER10' }
+];
+
+const FIIO_KA17_SLOTS = [
+	{ id: 0, name: 'Jazz' },
+	{ id: 1, name: 'Pop' },
+	{ id: 2, name: 'Rock' },
+	{ id: 3, name: 'Dance' },
+	{ id: 5, name: 'R&B' },
+	{ id: 6, name: 'Classic' },
+	{ id: 7, name: 'Hip-hop' },
+	{ id: 4, name: 'USER1' },
+	{ id: 8, name: 'USER2' },
+	{ id: 9, name: 'USER3' }
+];
+
+export const registration: UsbHidVendorConfig = {
+	vendorIds: [0x2972, 0x0a12],
+	manufacturer: 'FiiO',
+	handler: fiioUsbHidHandler,
+	defaultModelConfig: {
+		minGain: -12,
+		maxGain: 12,
+		maxFilters: 5,
+		firstWritableEQSlot: -1,
+		maxWritableEQSlots: 0,
+		disconnectOnSave: true,
+		disabledPresetId: -1,
+		experimental: true,
+		supportsLSHSFilters: true,
+		supportsPregain: true,
+		defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }],
+		reportId: 7,
+		availableSlots: FIIO_DEFAULT_SLOTS
+	},
+	devices: {
+		'FIIO QX13': { modelConfig: { maxFilters: 10, experimental: false, disconnectOnSave: false } },
+		'SNOWSKY Melody': { manufacturer: 'FiiO', handler: fiioUsbHidHandler, modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: -1, maxWritableEQSlots: 0, disconnectOnSave: true } },
+		'JadeAudio JIEZI': { manufacturer: 'FiiO', handler: fiioUsbHidHandler, modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: 3, maxWritableEQSlots: 1, disconnectOnSave: true, disabledPresetId: 4, experimental: false, reportId: 2 } },
+		'JadeAudio JA11': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: 3, maxWritableEQSlots: 1, disconnectOnSave: true, disabledPresetId: 4, experimental: false, reportId: 2, availableSlots: [{ id: 0, name: 'Vocal' }, { id: 1, name: 'Classic' }, { id: 2, name: 'Bass' }, { id: 3, name: 'USER1' }] } },
+		'FIIO KA17': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, reportId: 1, availableSlots: FIIO_KA17_SLOTS } },
+		'FIIO Q7': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, reportId: 1, availableSlots: FIIO_KA17_SLOTS } },
+		'FIIO KA17 (MQA HID)': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, reportId: 1, availableSlots: FIIO_KA17_SLOTS } },
+		'FIIO BT11 (UAC1.0)': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, reportId: 1, availableSlots: FIIO_KA17_SLOTS } },
+		'FIIO Air Link': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, reportId: 1, availableSlots: FIIO_KA17_SLOTS } },
+		'FIIO BTR13': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 12, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 7, name: 'USER1' }, { id: 8, name: 'USER2' }, { id: 9, name: 'USER3' }] } },
+		'BTR17': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false } },
+		'FIIO KA15': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 7, name: 'USER1' }, { id: 8, name: 'USER2' }, { id: 9, name: 'USER3' }] } },
+		'LS-TC2': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: 3, maxWritableEQSlots: 1, disconnectOnSave: true, disabledPresetId: 11, experimental: true, availableSlots: [{ id: 0, name: 'Vocal' }, { id: 1, name: 'Classic' }, { id: 2, name: 'Bass' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 160, name: 'USER1' }] } },
+		'FIIO K13 R2R': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 160, maxWritableEQSlots: 10, disconnectOnSave: false, disabledPresetId: 240, experimental: false, reportId: 1, availableSlots: [{ id: 240, name: 'BYPASS' }, { id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 8, name: 'Retro' }, { id: 9, name: 'sDamp-1' }, { id: 10, name: 'sDamp-2' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 163, name: 'USER4' }, { id: 164, name: 'USER5' }, { id: 165, name: 'USER6' }, { id: 166, name: 'USER7' }, { id: 167, name: 'USER8' }, { id: 168, name: 'USER9' }, { id: 169, name: 'USER10' }] } },
+		'FIIO BR15 R2R': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 160, maxWritableEQSlots: 10, disconnectOnSave: false, disabledPresetId: 240, experimental: false, availableSlots: [{ id: 240, name: 'BYPASS' }, { id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 8, name: 'Retro' }, { id: 9, name: 'sDamp-1' }, { id: 10, name: 'sDamp-2' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 163, name: 'USER4' }, { id: 164, name: 'USER5' }, { id: 165, name: 'USER6' }, { id: 166, name: 'USER7' }, { id: 167, name: 'USER8' }, { id: 168, name: 'USER9' }, { id: 169, name: 'USER10' }] } },
+		'FIIO FP3': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 160, maxWritableEQSlots: 1, disconnectOnSave: false, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 160, name: 'USER1' }] } },
+		'FIIO FG3': { modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 160, maxWritableEQSlots: 10, disconnectOnSave: false, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 12, name: 'Cinema' }, { id: 13, name: 'FPS' }, { id: 14, name: 'MOBA' }, { id: 15, name: 'ACT' }, { id: 16, name: 'MUG' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 163, name: 'USER4' }, { id: 164, name: 'USER5' }, { id: 165, name: 'USER6' }, { id: 166, name: 'USER7' }, { id: 167, name: 'USER8' }, { id: 168, name: 'USER9' }, { id: 169, name: 'USER10' }] } },
+		'SNOWSKY TINY A': { manufacturer: 'FiiO', handler: fiioUsbHidHandler, modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: 160, maxWritableEQSlots: 3, disconnectOnSave: true, disabledPresetId: 240, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 240, name: 'Close EQ' }] } },
+		'SNOWSKY TINY B': { manufacturer: 'FiiO', handler: fiioUsbHidHandler, modelConfig: { minGain: -12, maxGain: 12, maxFilters: 5, firstWritableEQSlot: 160, maxWritableEQSlots: 3, disconnectOnSave: true, disabledPresetId: 240, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 240, name: 'Close EQ' }] } }
 	}
 };

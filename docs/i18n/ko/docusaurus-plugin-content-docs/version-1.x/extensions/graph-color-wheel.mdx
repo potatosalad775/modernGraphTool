@@ -1,0 +1,65 @@
+# Graph Color Wheel Extension
+
+modernGraphTool에서 그래프의 형태를 조작할 수 있는 컬러 휠 인터페이스 및 고급 스타일 옵션을 제공하는 Extension입니다.
+
+## 개요
+
+Graph Color Wheel Extension은 컬러 휠 인터페이스를 통해 색상을 변경하고 그래프 선 속성을 변경할 수 있는 기능을 지원합니다.
+
+정밀한 색상 제어와 고급 스타일링 옵션으로 원하는 모습의 그래프를 만들 수 있습니다.
+
+## 주요 기능
+
+- **인터랙티브 컬러 휠**: 직관적인 HSL 기반 색상 선택 인터페이스
+- **선 스타일 커스터마이즈**: 선의 실선 패턴, 간격 제어
+- **실시간 미리보기**: 그래프에 즉시 반영되는 스타일 변경값
+- **고급 제어**: 색상(H), 채도(S), 명도(L) 개별 미세 조정
+
+## 기술 사양
+
+| 속성 | 값 |
+|----------|-------|
+| **확장 이름** | `graph-color-wheel` |
+| **최신 버전** | 1.0.0 |
+| **최소 Core API 레벨** | 1 |
+| **최소 Core 버전** | 1.0.0 |
+| **I18N 지원** | 예 |
+
+## 설정 방법
+
+```javascript
+{
+  NAME: "graph-color-wheel",
+  DESCRIPTION: "Graph customizer for modernGraphTool with color wheel and dash customizer",
+  ENABLED: true,
+  I18N_ENABLED: true,
+}
+```
+
+## 설치 방법
+
+1. `graph-color-wheel` 폴더를 `extensions` 디렉터리에 추가
+2. 설정을 `extensions/extensions.config.js`에 추가
+3. `ENABLED: true`로 확장 기능 활성화
+4. modernGraphTool을 재시작하여 확장 기능 적용
+
+## 사용법
+
+### 기본 색상 선택
+1. **컬러 휠 열기**: 색상 커스터마이즈 인터페이스 접근
+2. **색상 선택**: 컬러 휠에서 클릭 및 드래그로 색상 선택
+3. **파라미터 조정**: HSL 슬라이더로 미세 조정
+4. **적용**: 색상이 그래프에 실시간 반영
+
+### 고급 선 스타일링
+1. **대시 패턴**: 그래프 요소별 선 대시 패턴 커스터마이즈
+2. **실선 길이**: 실선 구간 길이 조정
+3. **간격 길이**: 실선 구간 간격 조정
+
+## 서드파티 고지
+
+이 확장 기능은 luncheon의 **reinvented-color-wheel** 라이브러리를 포함합니다:
+- **저장소**: https://github.com/luncheon/reinvented-color-wheel
+- **라이선스**: WTFPL License
+
+라이브러리는 최적의 성능과 안정성을 위해 `reinvented-color-wheel.min.js`로 번들되어 있습니다.

@@ -3,6 +3,8 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import type { FRDataObject, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
+	import Button from '../atoms/Button.svelte';
+	import { Ellipsis } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -30,7 +32,7 @@
 		const hasAVG = keys.includes('AVG');
 		if (hasL) opts.push({ value: 'L', label: m.selection_list_channel_left() });
 		if (hasR) opts.push({ value: 'R', label: m.selection_list_channel_right() });
-		if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
+		// if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
 		if (hasAVG) opts.push({ value: 'AVG', label: m.selection_list_channel_average() });
 		return opts;
 	});
@@ -164,19 +166,21 @@
 <Popover.Root>
 	<Popover.Trigger>
 		{#snippet child({ props })}
-			<button
+			<Button
 				{...props}
-				class="h-6 rounded border border-base-content/15 bg-base-200 px-1.5 text-xs text-base-content/60
-					hover:bg-base-100 focus:outline-none focus:ring-1 focus:ring-accent"
+				title={triggerLabel}
+				variant="outline" size="sm"
+				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm!"
 			>
 				{triggerLabel}
-			</button>
+				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />
+			</Button>
 		{/snippet}
 	</Popover.Trigger>
 
 	<Popover.Portal>
 		<Popover.Content
-			sideOffset={6}
+			sideOffset={6} align="end"
 			class="z-50 w-48 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->
@@ -184,7 +188,7 @@
 				{#each channelOptions as opt (opt.value)}
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-xs
-							text-base-content/60 hover:bg-base-300"
+							 hover:bg-base-300"
 					>
 						<input
 							type="radio"
@@ -202,7 +206,7 @@
 			<!-- Section 2: Sample Traces (checkboxes) -->
 			{#if hasSamples}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/45">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
 						{m.selection_list_samples_header()} ({sampleCount})
 					</p>
 
@@ -211,7 +215,7 @@
 						{#each allSampleKeys as key (key)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									text-base-content/60 hover:bg-base-300"
+									 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
@@ -228,28 +232,28 @@
 					<div class="mt-1.5 flex gap-1 px-1">
 						<button
 							onclick={() => handlePreset('allL')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all_l()}
 						</button>
 						<button
 							onclick={() => handlePreset('allR')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all_r()}
 						</button>
 						<button
 							onclick={() => handlePreset('all')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_all()}
 						</button>
 						<button
 							onclick={() => handlePreset('none')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 								hover:bg-base-content/25"
 						>
 							{m.selection_list_samples_none()}
@@ -261,14 +265,14 @@
 			<!-- Section 3: HpTF Rigs -->
 			{#if hasHptf}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/45">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
 						{m.selection_list_hptf_header()}
 					</p>
 
 					<!-- Fill toggle -->
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							text-base-content/60 hover:bg-base-300"
+							 hover:bg-base-300"
 					>
 						<input
 							type="checkbox"
@@ -284,7 +288,7 @@
 						{#each hptfRigs as rig, i (i)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									text-base-content/60 hover:bg-base-300"
+									 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
@@ -300,14 +304,14 @@
 						<div class="mt-1.5 flex gap-1 px-1">
 							<button
 								onclick={() => handleHptfPreset('all')}
-								class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 									hover:bg-base-content/25"
 							>
 								{m.selection_list_hptf_all()}
 							</button>
 							<button
 								onclick={() => handleHptfPreset('none')}
-								class="rounded bg-base-300 px-1.5 py-0.5 text-xs text-base-content/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
+								class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
 									hover:bg-base-content/25"
 							>
 								{m.selection_list_hptf_none()}

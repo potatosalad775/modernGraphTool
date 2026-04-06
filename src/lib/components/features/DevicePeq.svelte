@@ -7,19 +7,21 @@
 
 	const hasHid = typeof navigator !== 'undefined' && 'hid' in navigator;
 	const hasSerial = typeof navigator !== 'undefined' && 'serial' in navigator;
-	const hasDeviceApi = hasHid || hasSerial;
+	const hasBluetooth = typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+	const hasDeviceApi = hasHid || hasSerial || hasBluetooth;
 
 	// ── State ─────────────────────────────────────────────────────────────────
 
 	let showNetworkPanel = $state(false);
 	let networkIP = $state('');
+	let networkDeviceType = $state('WiiM');
 
 	// ── Connection handlers ───────────────────────────────────────────────────
 
 	async function connectHid() {
 		devicePeqStore.isConnecting = true;
 		try {
-			const { getHidConfig } = await import('$lib/device-peq/device-config.js');
+			const { getHidConfig } = await import('$lib/device-peq/registry.js');
 			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
 				'$lib/device-peq/connectors/usb-hid-connector.js'
 			);
@@ -42,7 +44,7 @@
 	async function connectSerial() {
 		devicePeqStore.isConnecting = true;
 		try {
-			const { getSerialConfig } = await import('$lib/device-peq/device-config.js');
+			const { getSerialConfig } = await import('$lib/device-peq/registry.js');
 			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
 				'$lib/device-peq/connectors/usb-serial-connector.js'
 			);
@@ -62,6 +64,29 @@
 		}
 	}
 
+	async function connectBle() {
+		devicePeqStore.isConnecting = true;
+		try {
+			const { getBleConfig } = await import('$lib/device-peq/registry.js');
+			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
+				'$lib/device-peq/connectors/bluetooth-ble-connector.js'
+			);
+			const config = await getBleConfig();
+			const device = await getDeviceConnected(config);
+			if (!device) {
+				devicePeqStore.isConnecting = false;
+				return;
+			}
+			const slots = getAvailableSlots(device);
+			const currentSlot = await getCurrentSlot(device);
+			devicePeqStore.setConnected(device, slots, currentSlot);
+		} catch (e) {
+			console.error('Failed to connect BLE device:', e);
+			devicePeqStore.isConnecting = false;
+			devicePeqStore.setStatus('Connection failed');
+		}
+	}
+
 	async function connectNetwork() {
 		if (!networkIP.trim()) return;
 		devicePeqStore.isConnecting = true;
@@ -69,7 +94,7 @@
 			const { getDeviceConnected, getCurrentSlot } = await import(
 				'$lib/device-peq/connectors/network-connector.js'
 			);
-			const device = await getDeviceConnected(networkIP.trim(), 'WiiM');
+			const device = await getDeviceConnected(networkIP.trim(), networkDeviceType);
 			if (!device) {
 				devicePeqStore.isConnecting = false;
 				return;
@@ -92,6 +117,9 @@
 		}
 		if (connectionType === 'serial') {
 			return await import('$lib/device-peq/connectors/usb-serial-connector.js');
+		}
+		if (connectionType === 'ble') {
+			return await import('$lib/device-peq/connectors/bluetooth-ble-connector.js');
 		}
 		return await import('$lib/device-peq/connectors/network-connector.js');
 	}
@@ -197,7 +225,7 @@
 					<button
 						onclick={connectHid}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (HID)'}
 					</button>
@@ -206,14 +234,23 @@
 					<button
 						onclick={connectSerial}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (Serial)'}
 					</button>
 				{/if}
+				{#if hasBluetooth}
+					<button
+						onclick={connectBle}
+						disabled={devicePeqStore.isConnecting}
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					>
+						{devicePeqStore.isConnecting ? 'Connecting...' : 'Bluetooth'}
+					</button>
+				{/if}
 				<button
 					onclick={toggleNetworkPanel}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 				>
 					Network
 				</button>
@@ -221,6 +258,14 @@
 
 			{#if showNetworkPanel}
 				<div class="flex gap-1">
+					<select
+						value={networkDeviceType}
+						onchange={(e) => (networkDeviceType = (e.target as HTMLSelectElement).value)}
+						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
+					>
+						<option value="WiiM">WiiM</option>
+						<option value="LuxsinX9">Luxsin X9</option>
+					</select>
 					<input
 						type="text"
 						placeholder="Device IP"
@@ -241,7 +286,7 @@
 			<!-- Connected state -->
 			<div class="flex items-center justify-between text-xs">
 				<span
-					class="font-medium text-base-content/60"
+					class="font-medium "
 					title={devicePeqStore.manufacturer ?? ''}
 				>
 					{devicePeqStore.deviceName}
@@ -272,14 +317,14 @@
 				<button
 					onclick={pullFromDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isReading ? 'Reading...' : 'Pull from Device'}
 				</button>
 				<button
 					onclick={pushToDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
 				>
 					{devicePeqStore.isWriting ? 'Writing...' : 'Push to Device'}
 				</button>
@@ -288,7 +333,7 @@
 
 		<!-- Status message -->
 		{#if devicePeqStore.statusMessage}
-			<p class="text-xs text-base-content/45">{devicePeqStore.statusMessage}</p>
+			<p class="text-xs text-base-content/60">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
 {/if}

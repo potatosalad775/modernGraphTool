@@ -6,7 +6,12 @@
 // Many thanks to ma0shu for providing a dump
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult } from '../types.js';
+import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult, UsbHidVendorConfig } from '../types.js';
+import { WALKPLAY_FILTER_MAP } from '../utils/filter-type-maps.js';
+import { computeWalkplayBiquad, biquadCoeffsToBytes } from '../utils/biquad.js';
+
+const convertToFilterType = WALKPLAY_FILTER_MAP.fromCode;
+const convertFromFilterType = WALKPLAY_FILTER_MAP.toCode;
 
 const REPORT_ID = 0x4b;
 const ALT_REPORT_ID = 0x3c;
@@ -85,24 +90,6 @@ async function writeGlobalGain(hidDevice: HIDDevice, value: number): Promise<voi
 	await hidDevice.sendReport(REPORT_ID, request);
 }
 
-function convertToFilterType(byte: number): DeviceFilter['type'] {
-	switch (byte) {
-		case 1:
-			return 'LSQ';
-		case 2:
-			return 'PK';
-		case 3:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
-
-function convertFromFilterType(filterType: DeviceFilter['type']): number {
-	const mapping: Record<string, number> = { PK: 2, LSQ: 1, HSQ: 3 };
-	return mapping[filterType] ?? 2;
-}
-
 interface ParsedFilter extends DeviceFilter {
 	filterIndex: number;
 }
@@ -140,40 +127,8 @@ function parseFilterPacket(packet: Uint8Array): ParsedFilter {
 }
 
 // ---------------------------------------------------------------------------
-// IIR biquad computation helpers
+// Byte conversion helper
 // ---------------------------------------------------------------------------
-
-function quantizer(dArr: number[], dArr2: number[]): number[] {
-	const iArr = dArr.map((d) => Math.round(d * 1073741824));
-	const iArr2 = dArr2.map((d) => Math.round(d * 1073741824));
-	return [iArr2[0], iArr2[1], iArr2[2], -iArr[1], -iArr[2]];
-}
-
-function computeIIRFilter(_index: number, freq: number, gain: number, q: number): number[] {
-	const bArr = new Array<number>(20).fill(0);
-	const sqrt = Math.sqrt(Math.pow(10, gain / 20));
-	const d3 = (freq * 6.283185307179586) / 96000;
-	const sin = Math.sin(d3) / (2 * q);
-	const d4 = sin * sqrt;
-	const d5 = sin / sqrt;
-	const d6 = d5 + 1;
-
-	const quantizerData = quantizer(
-		[1, (Math.cos(d3) * -2) / d6, (1 - d5) / d6],
-		[(d4 + 1) / d6, (Math.cos(d3) * -2) / d6, (1 - d4) / d6]
-	);
-
-	let index = 0;
-	for (const value of quantizerData) {
-		bArr[index] = value & 0xff;
-		bArr[index + 1] = (value >> 8) & 0xff;
-		bArr[index + 2] = (value >> 16) & 0xff;
-		bArr[index + 3] = (value >> 24) & 0xff;
-		index += 4;
-	}
-
-	return bArr;
-}
 
 function convertToByteArray(value: number, length: number): number[] {
 	const arr: number[] = [];
@@ -280,7 +235,8 @@ async function pushToDevice(
 
 	for (let i = 0; i < filters.length; i++) {
 		const filter = filters[i];
-		const bArr = computeIIRFilter(i, filter.freq, filter.gain, filter.q);
+		const coeffs = computeWalkplayBiquad(filter.freq, filter.gain, filter.q);
+		const bArr = [...biquadCoeffsToBytes(coeffs)];
 
 		const packet = [
 			WRITE,
@@ -412,4 +368,84 @@ export const walkplayHidHandler: DeviceHandler = {
 	pushToDevice,
 	pullFromDevice,
 	enablePEQ
+};
+
+// ---------------------------------------------------------------------------
+// Registration
+// ---------------------------------------------------------------------------
+
+export const registration: UsbHidVendorConfig = {
+	vendorIds: [0x3302, 0x0762, 0x35d8, 0x2fc6, 0x0104, 0xb445, 0x0661, 0x0666, 0x0d8c],
+	manufacturer: 'WalkPlay',
+	handler: walkplayHidHandler,
+	defaultModelConfig: {
+		minGain: -12,
+		maxGain: 6,
+		maxFilters: 8,
+		schemeNo: 10,
+		firstWritableEQSlot: -1,
+		maxWritableEQSlots: 0,
+		disconnectOnSave: false,
+		disabledPresetId: -1,
+		supportsPregain: true,
+		supportsLSHSFilters: false,
+		experimental: false,
+		defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }],
+		availableSlots: [{ id: 101, name: 'Custom' }]
+	},
+	devices: {
+		'Old Fashioned': { manufacturer: 'Moondrop', handlerRef: 'moondrop-old-fashioned-hid', modelConfig: { minGain: -12, maxGain: 3, maxFilters: 5, firstWritableEQSlot: -1, maxWritableEQSlots: 0, disconnectOnSave: false, disabledPresetId: -1, experimental: false, supportsLSHSFilters: false, supportsPregain: false, defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }], availableSlots: [{ id: 0, name: 'Custom' }] } },
+		'FIIO FX17 ': { manufacturer: 'FiiO', handlerRef: 'fiio-usb-hid', modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 7, name: 'Monitor' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 163, name: 'USER4' }, { id: 164, name: 'USER5' }, { id: 165, name: 'USER6' }, { id: 166, name: 'USER7' }, { id: 167, name: 'USER8' }, { id: 168, name: 'USER9' }, { id: 169, name: 'USER10' }] } },
+		'Rays': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
+		'EPZ TP13 AI ENC audio': { manufacturer: 'EPZ', modelConfig: { supportsLSHSFilters: false, supportsPregain: true } },
+		'Marigold': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', modelConfig: { supportsLSHSFilters: false, supportsPregain: true } },
+		'FreeDSP Pro': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
+		'FreeDSP Mini': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
+		'MOONRIVER 3': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: false },
+		'ddHiFi DSP IEM - Memory': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid' },
+		'Quark2': { manufacturer: 'Moondrop' },
+		'ECHO-A': { manufacturer: 'Moondrop' },
+		'Truthear KEYX': { manufacturer: 'Truthear', handler: walkplayHidHandler, modelConfig: { minGain: -12, maxGain: 6, maxFilters: 8, firstWritableEQSlot: -1, maxWritableEQSlots: 0, disconnectOnSave: false, disabledPresetId: -1, supportsPregain: true, supportsLSHSFilters: false, experimental: false, defaultIndex: 0x17, availableSlots: [{ id: 101, name: 'Custom' }] } },
+		'Hi-MAX': { modelConfig: { experimental: false } },
+		'BGVP MX1': { modelConfig: { schemeNo: 15, experimental: true } },
+		'DT04': { manufacturer: 'LETSHUOER', modelConfig: { schemeNo: 15, experimental: true } },
+		'MD-QT-042': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: true } },
+		'MOONDROP HiFi with PD': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: true } },
+		'DAWN PRO 2': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: false } },
+		'CS431XX': { modelConfig: { schemeNo: 15, experimental: true } },
+		'ES9039 ': { modelConfig: { schemeNo: 15, experimental: true } },
+		'TANCHJIM-STARGATE II': { manufacturer: 'Tanchim', modelConfig: { schemeNo: 15, supportsLSHSFilters: false } },
+		'didiHiFi DSP Cable - Memory': { manufacturer: 'ddHifi', modelConfig: { schemeNo: 15, experimental: true } },
+		'Dual CS43198': { modelConfig: { schemeNo: 15, experimental: true } },
+		'ES9039 HiFi DSP Audio': { modelConfig: { schemeNo: 15, experimental: true } },
+		'AE6': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'KM_HA03': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'TP35 Pro': { modelConfig: { schemeNo: 16, maxFilters: 10 } },
+		'DA5': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'G303': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'HiFi DSP Audio with PD': { manufacturer: 'ddHifi', modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'Protocol Max': { manufacturer: 'CrinEar', modelConfig: { schemeNo: 16, maxFilters: 10, minGain: -10, maxGain: 10, autoGlobalGain: true, supportsLSHSFilters: true, supportsPregain: true, experimental: false } },
+		'CS43198 HiFi DSP Audio': { modelConfig: { schemeNo: 11, maxFilters: 8, minGain: -10, maxGain: 10, autoGlobalGain: true, supportsLSHSFilters: true, supportsPregain: true, experimental: false } }
+	},
+	deviceGroups: {
+		SchemeNo11: {
+			productIds: [0x13d4, 0x98c0, 0x93d1, 0x13d7, 0x12c0, 0x1264, 0x43d1, 0x1266, 0x51c0, 0x13c1, 0x13d3, 0x1251, 0x1262, 0x1261, 0x12c1, 0x98d5],
+			modelConfig: {
+				supportsLSHSFilters: false,
+				supportsPregain: true
+			}
+		},
+		SchemeNo16: {
+			productIds: [0x4380, 0x43b6, 0x43e1, 0x43d7, 0x43d8, 0x43e4, 0x98d4, 0x43c0, 0x43e8, 0xf808, 0xee10, 0x4352, 0xee20, 0x43c5, 0x43e6, 0x4351, 0x43de, 0x4358, 0x4359, 0x43db, 0x435a, 0x4355, 0x435c, 0x435d, 0x435e, 0x43ef, 0x43ec, 0x4361, 0x4363, 0x4366, 0x4364, 0x4360, 0x4382, 0x4383, 0x4386, 0x43c6, 0x43c7, 0x011d, 0x43c8, 0x43da, 0x43c9, 0x43ca, 0x43cc, 0x43cd, 0x43cf, 0x43b1, 0x43c2, 0x43b7, 0x43b8, 0x39c3],
+			modelConfig: {
+				schemeNo: 16,
+				maxFilters: 10,
+				minGain: -10,
+				maxGain: 10,
+				autoGlobalGain: false,
+				supportsLSHSFilters: true,
+				supportsPregain: true
+			}
+		}
+	}
 };

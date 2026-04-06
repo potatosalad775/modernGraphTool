@@ -45,7 +45,7 @@
 						href={link.URL}
 						target="_blank"
 						rel="noopener"
-						class="text-sm text-base-content/60 hover:text-base-content"
+						class="text-sm  hover:text-base-content"
 					>
 						{link.TITLE}
 					</a>
@@ -58,7 +58,7 @@
 			<button
 				type="button"
 				onclick={openSidebar}
-				class="rounded-md p-2 text-base-content/60 hover:bg-base-300"
+				class="rounded-md p-2  hover:bg-base-300"
 				aria-label="Open menu"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-6 w-6">
@@ -81,13 +81,13 @@
 	<!-- Drawer -->
 	<div class="fixed right-0 top-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl">
 		<div class="flex items-center justify-between border-b border-base-content/15 px-4 py-3">
-			<h2 class="text-sm font-semibold text-base-content/60">
+			<h2 class="text-sm font-semibold ">
 				{m.top_nav_bar_sidebar_link_title()}
 			</h2>
 			<button
 				type="button"
 				onclick={closeSidebar}
-				class="rounded-md p-1 text-base-content/60 hover:bg-base-300"
+				class="rounded-md p-1  hover:bg-base-300"
 				aria-label="Close menu"
 			>
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
@@ -102,7 +102,7 @@
 					target="_blank"
 					rel="noopener"
 					onclick={closeSidebar}
-					class="rounded-md px-3 py-2 text-sm text-base-content/60 hover:bg-base-300"
+					class="rounded-md px-3 py-2 text-sm  hover:bg-base-300"
 				>
 					{link.TITLE}
 				</a>

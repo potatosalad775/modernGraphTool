@@ -8,6 +8,7 @@ import type {
 	PullResult,
 	UsbSerialVendorConfig
 } from '../types.js';
+import { normalizeFiltersForDevice } from '../normalize-filters.js';
 
 let currentDevice: ConnectedDevice | null = null;
 
@@ -174,7 +175,8 @@ export async function pushToDevice(
 	filters: DeviceFilter[]
 ): Promise<boolean | undefined> {
 	if (!device?.handler) return;
-	return await device.handler.pushToDevice(device, slot, preamp, filters);
+	const filtersToWrite = normalizeFiltersForDevice(filters, device.modelConfig);
+	return await device.handler.pushToDevice(device, slot, preamp, filtersToWrite);
 }
 
 export async function pullFromDevice(

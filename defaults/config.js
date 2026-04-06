@@ -14,14 +14,14 @@ const CONFIG = {
   },
   // Default Visualization Settings.
   VISUALIZATION: {
-    ASPECT_RATIO: "CrinGraph",                                // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
+    ASPECT_RATIO: "CrinGraph",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
     DEFAULT_Y_SCALE: 50,                                // (30, 40, 50, 60, 80)
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
       POSITION: {
         LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",      // Fine-tune Label Location
       },                                          
-      TEXT_SIZE: "20px", 
+      TEXT_SIZE: "14px", 
       TEXT_WEIGHT: "600",                               // (100 ~ 900)
     },
     BASELINE_LABEL: {
@@ -29,7 +29,7 @@ const CONFIG = {
       POSITION: {
         LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
       },
-      TEXT_SIZE: "15px",
+      TEXT_SIZE: "14px",
       TEXT_WEIGHT: "500",                               // (100 ~ 900)
     },
     RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)", // Please don't leave this line empty, pretty please?
@@ -75,7 +75,7 @@ const CONFIG = {
   // Watermark Settings
   WATERMARK: [
     { TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
-      SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
+      SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
     },
     // You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
     { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "15", LEFT: "46", RIGHT: "0"}, OPACITY: "0.2",

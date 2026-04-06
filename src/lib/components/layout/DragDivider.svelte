@@ -7,11 +7,11 @@
 	let { mainEl, ondrag }: Props = $props();
 
 	let isDragging = $state(false);
-	let startX = $state(0);
+	//let startX = $state(0);
 
 	function startDrag(e: MouseEvent) {
 		isDragging = true;
-		startX = e.clientX;
+		//startX = e.clientX;
 		e.preventDefault();
 	}
 

@@ -117,6 +117,6 @@
 	"sponsor_banner_dismiss": "Close",
 	"shoplink_buy_now": "Buy Now",
 	"selection_list_baseline_off": "Set as baseline",
-	"selection_list_baseline_adjusted": "Compensated (with adjustments)",
-	"selection_list_baseline_original": "Compensated (original target)"
+	"selection_list_baseline_without_adjustment": "Compensated",
+	"selection_list_baseline_with_adjustment": "Compensated (with adjustment)"
 }

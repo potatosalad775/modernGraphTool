@@ -652,9 +652,9 @@ describe('DataProvider', () => {
 	describe('baseline data consistency', () => {
 		it('baseline UUID can be set and cleared via graphStore', () => {
 			graphStore.baselineUUID = 'target-1';
-			graphStore.baselineMode = 'adjusted';
+			graphStore.baselineMode = 'withoutAdjustment';
 			expect(graphStore.baselineUUID).toBe('target-1');
-			expect(graphStore.baselineMode).toBe('adjusted');
+			expect(graphStore.baselineMode).toBe('withoutAdjustment');
 
 			graphStore.baselineUUID = null;
 			graphStore.baselineMode = 'off';
@@ -665,7 +665,7 @@ describe('DataProvider', () => {
 		it('removing baseline entry clears baseline state when refreshed', () => {
 			frStore.set('t', makeTargetObject('t'));
 			graphStore.baselineUUID = 't';
-			graphStore.baselineMode = 'adjusted';
+			graphStore.baselineMode = 'withoutAdjustment';
 
 			// Remove the baseline source
 			dataProvider.removeFRDataWithUUID('target', 't');
@@ -677,7 +677,7 @@ describe('DataProvider', () => {
 		it('frStore update does not lose baseline-relevant data', () => {
 			frStore.set('t', makeTargetObject('t'));
 			graphStore.baselineUUID = 't';
-			graphStore.baselineMode = 'adjusted';
+			graphStore.baselineMode = 'withoutAdjustment';
 
 			// Update the target via updateFRDataWithRawData (simulates TargetCustomizer adjustment)
 			dataProvider.updateFRDataWithRawData('t', {

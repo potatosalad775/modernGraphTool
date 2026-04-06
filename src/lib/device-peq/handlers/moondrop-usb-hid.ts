@@ -1,10 +1,20 @@
+//
+// Copyright 2024 : Pragmatic Audio
+//
+// Moondrop USB HID handler — TypeScript port of the legacy moondropUsbHidHandler.js
+//
+
 import type {
 	ConnectedDevice,
 	DeviceHandler,
 	DeviceFilter,
-	DeviceFilterType,
 	PullResult
 } from '../types.js';
+import { WALKPLAY_FILTER_MAP } from '../utils/filter-type-maps.js';
+import { computeMoondropBiquad, biquadCoeffsToBytes } from '../utils/biquad.js';
+
+const convertToFilterType = WALKPLAY_FILTER_MAP.fromCode;
+const convertFromFilterType = WALKPLAY_FILTER_MAP.toCode;
 
 const REPORT_ID = 0x4b;
 
@@ -38,24 +48,6 @@ function decodeFilterResponse(data: Uint8Array): DeviceFilter {
 		gain: valid ? gain : 0.0,
 		disabled: !valid
 	};
-}
-
-function convertToFilterType(byte: number): DeviceFilterType {
-	switch (byte) {
-		case 1:
-			return 'LSQ';
-		case 2:
-			return 'PK';
-		case 3:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
-
-function convertFromFilterType(filterType: DeviceFilterType): number {
-	const mapping: Record<DeviceFilterType, number> = { PK: 2, LSQ: 1, HSQ: 3 };
-	return mapping[filterType] ?? 2;
 }
 
 async function getCurrentSlot(deviceDetails: ConnectedDevice): Promise<number> {
@@ -133,34 +125,6 @@ async function writePregain(device: HIDDevice, value: number): Promise<void> {
 	await device.sendReport(REPORT_ID, request);
 }
 
-function encodeBiquad(freq: number, gain: number, q: number): number[] {
-	const A = Math.pow(10, gain / 40);
-	const w0 = (2 * Math.PI * freq) / 96000;
-	const alpha = Math.sin(w0) / (2 * q);
-	const cosW0 = Math.cos(w0);
-	const norm = 1 + alpha / A;
-
-	const b0 = (1 + alpha * A) / norm;
-	const b1 = (-2 * cosW0) / norm;
-	const b2 = (1 - alpha * A) / norm;
-	const a1 = -b1;
-	const a2 = (1 - alpha / A) / norm;
-
-	return [b0, b1, b2, a1, -a2].map((c) => Math.round(c * 1073741824));
-}
-
-function encodeToByteArray(coeffs: number[]): Uint8Array {
-	const arr = new Uint8Array(20);
-	for (let i = 0; i < coeffs.length; i++) {
-		const val = coeffs[i];
-		arr[i * 4] = val & 0xff;
-		arr[i * 4 + 1] = (val >> 8) & 0xff;
-		arr[i * 4 + 2] = (val >> 16) & 0xff;
-		arr[i * 4 + 3] = (val >> 24) & 0xff;
-	}
-	return arr;
-}
-
 function buildWritePacket(filterIndex: number, filter: DeviceFilter): Uint8Array {
 	const { freq, gain, q, type } = filter;
 	const packet = new Uint8Array(63);
@@ -172,7 +136,7 @@ function buildWritePacket(filterIndex: number, filter: DeviceFilter): Uint8Array
 	packet[5] = 0x00;
 	packet[6] = 0x00;
 
-	const coeffs = encodeToByteArray(encodeBiquad(freq, gain, q));
+	const coeffs = biquadCoeffsToBytes(computeMoondropBiquad(freq, gain, q));
 	packet.set(coeffs, 7);
 
 	packet[27] = freq & 0xff;

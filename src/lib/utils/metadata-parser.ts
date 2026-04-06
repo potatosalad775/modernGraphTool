@@ -170,6 +170,8 @@ const MetadataParser = {
               phone.shopLink && { shopLink: phone.shopLink }),
             ...(typeof phone === "object" &&
               phone.price && { price: phone.price }),
+            ...(typeof phone === "object" &&
+              phone.description && { description: phone.description }),
           };
 
           // If phone is a string, it's a single phone

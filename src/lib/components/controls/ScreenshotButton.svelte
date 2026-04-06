@@ -3,6 +3,8 @@
 	import { toast } from 'svelte-sonner';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { analyticsService } from '$lib/services/analytics-service.svelte.js';
+	import Button from '../atoms/Button.svelte';
+	import { Camera } from '@lucide/svelte';
 
 	async function downloadScreenshot() {
 		analyticsService.trackGeneralEvent('clicked_download');
@@ -76,23 +78,12 @@
 	}
 </script>
 
-<button
+<Button
+	title={m.screenshot_button_label()}
 	onclick={downloadScreenshot}
-	class="flex h-10 items-center gap-1.5 rounded-md bg-base-300 px-3 text-sm font-medium text-base-content/60 transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+	variant="muted"
+	class="h-9! px-3! gap-1.5"
 >
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.5"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		class="h-4 w-4"
-		aria-hidden="true"
-	>
-		<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-		<circle cx="12" cy="13" r="4" />
-	</svg>
+	<Camera class="h-4 w-4" aria-hidden="true" />
 	{m.screenshot_button_label()}
-</button>
+</Button>

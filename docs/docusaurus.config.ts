@@ -42,6 +42,18 @@ const config: Config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/potatosalad775/modernGraphTool/tree/main/docs/',
+          lastVersion: 'current',
+          versions: {
+            current: {
+              label: 'v2',
+              path: '',
+            },
+            '1.x': {
+              label: 'v1',
+              path: '1.x',
+              banner: 'unmaintained',
+            },
+          },
         },
         /*
         blog: {
@@ -85,6 +97,10 @@ const config: Config = {
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: 'Docs',
+        },
+        {
+          type: 'docsVersionDropdown',
+          position: 'left',
         },
         {
           href: 'https://potatosalad775.github.io/modernGraphTool',

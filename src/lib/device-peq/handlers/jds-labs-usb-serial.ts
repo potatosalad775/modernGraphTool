@@ -10,7 +10,8 @@ import type {
 	DeviceHandler,
 	DeviceFilter,
 	DeviceFilterType,
-	PullResult
+	PullResult,
+	UsbSerialVendorConfig
 } from '../types.js';
 
 // ── Protocol constants ────────────────────────────────────────────────────────
@@ -262,5 +263,32 @@ export const jdsLabsUsbSerialHandler: DeviceHandler = {
 		_slotId: number
 	): Promise<void> {
 		// JDS Labs Element IV does not support enable/disable PEQ — no-op
+	}
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+export const registration: UsbSerialVendorConfig = {
+	vendorId: 0x152a,
+	manufacturer: 'JDS Labs',
+	handler: jdsLabsUsbSerialHandler,
+	devices: {
+		'Element IV': {
+			usbProductId: 35066,
+			modelConfig: {
+				minGain: -12,
+				maxGain: 12,
+				maxFilters: 10,
+				firstWritableEQSlot: 0,
+				maxWritableEQSlots: 1,
+				disconnectOnSave: false,
+				disabledPresetId: -1,
+				experimental: false,
+				availableSlots: [
+					{ id: 0, name: 'Headphones' },
+					{ id: 1, name: 'RCA' }
+				]
+			}
+		}
 	}
 };

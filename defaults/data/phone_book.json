@@ -12,6 +12,7 @@
                    "var3",
                    "var4"],
          "reviewScore":"4",
+         "description":"This is a description for the phone. It can be quite long and contain multiple sentences. It should be displayed in a way that is easy to read and visually appealing.",
          "reviewLink":"https://www.youtube.com/",
          "shopLink":"https://www.amazon.com/",
          "price":"¥100"

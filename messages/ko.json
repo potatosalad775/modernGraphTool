@@ -117,6 +117,6 @@
 	"sponsor_banner_dismiss": "닫기",
 	"shoplink_buy_now": "구매하기",
 	"selection_list_baseline_off": "기준선으로 설정",
-	"selection_list_baseline_adjusted": "보정됨 (조정 적용)",
-	"selection_list_baseline_original": "보정됨 (원본 타겟)"
+	"selection_list_baseline_without_adjustment": "보정됨",
+	"selection_list_baseline_with_adjustment": "보정됨 (조정 적용)"
 }

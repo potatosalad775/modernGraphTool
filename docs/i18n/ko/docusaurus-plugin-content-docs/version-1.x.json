@@ -1,7 +1,7 @@
 {
   "version.label": {
-    "message": "v2",
-    "description": "The label for version current"
+    "message": "v1",
+    "description": "The label for version 1.x"
   },
   "sidebar.tutorialSidebar.category.Guide for Users": {
     "message": "사용자 가이드",
@@ -43,13 +43,13 @@
     "message": "데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다.",
     "description": "The generated-index page description for category Database Setup Tips in sidebar tutorialSidebar"
   },
-  "sidebar.tutorialSidebar.category.Features": {
-    "message": "기능",
-    "description": "The label for category Features in sidebar tutorialSidebar"
+  "sidebar.tutorialSidebar.category.Extensions": {
+    "message": "확장 기능",
+    "description": "The label for category Extensions in sidebar tutorialSidebar"
   },
-  "sidebar.tutorialSidebar.category.Features.link.generated-index.description": {
-    "message": "modernGraphTool의 내장 기능에 대해 알아보세요.",
-    "description": "The generated-index page description for category Features in sidebar tutorialSidebar"
+  "sidebar.tutorialSidebar.category.Extensions.link.generated-index.description": {
+    "message": "확장 기능에 대한 자세한 정보를 확인하세요.",
+    "description": "The generated-index page description for category Extensions in sidebar tutorialSidebar"
   },
   "sidebar.tutorialSidebar.category.Dual-Hosting modernGraphTool & CrinGraph": {
     "message": "modernGraphTool & CrinGraph 동시 운영",

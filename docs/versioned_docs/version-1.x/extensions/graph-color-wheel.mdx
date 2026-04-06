@@ -1,0 +1,65 @@
+# Graph Color Wheel Extension
+
+A visual customization extension that provides an intuitive color wheel interface for customizing graph appearance in modernGraphTool, including advanced line styling options.
+
+## Overview
+
+The Graph Color Wheel extension enhances modernGraphTool's visual customization capabilities by providing an elegant color wheel interface for selecting colors and customizing graph line properties. 
+
+It offers precise color control and advanced styling options for creating personalized graph appearances.
+
+## Features
+
+- **Interactive Color Wheel**: Intuitive HSL-based color selection interface
+- **Line Style Customization**: Control line dash patterns and spacing
+- **Real-time Preview**: See color changes applied instantly to the graph
+- **Advanced Controls**: Fine-tune hue, saturation, and lightness independently
+
+## Technical Specifications
+
+| Property | Value |
+|----------|-------|
+| **Extension Name** | `graph-color-wheel` |
+| **Latest Version** | 1.0.0 |
+| **Minimum Core API Level** | 1 |
+| **Minimum Core Version** | 1.0.0 |
+| **I18N Support** | Yes |
+
+## Configuration
+
+```javascript
+{
+  NAME: "graph-color-wheel",
+  DESCRIPTION: "Graph customizer for modernGraphTool with color wheel and dash customizer",
+  ENABLED: true,
+  I18N_ENABLED: true,
+}
+```
+
+## Installation
+
+1. Add the `graph-color-wheel` folder to your `extensions` directory
+2. Add the configuration to `extensions/extensions.config.js`
+3. Enable the extension by setting `ENABLED: true`
+4. Restart modernGraphTool to load the extension
+
+## Usage
+
+### Basic Color Selection
+1. **Open Color Wheel**: Access the color customization interface
+2. **Select Colors**: Click and drag on the color wheel to choose colors
+3. **Adjust Parameters**: Use HSL sliders for fine-tuning
+4. **Apply Changes**: Colors are applied in real-time to the graph
+
+### Advanced Line Styling
+1. **Dash Patterns**: Customize line dash patterns for different graph elements
+2. **Tick Length**: Adjust the length of dash segments
+3. **Space Length**: Control spacing between dash segments
+
+## Third-party Acknowledgments
+
+This extension includes the **reinvented-color-wheel** library by luncheon:
+- **Repository**: https://github.com/luncheon/reinvented-color-wheel
+- **License**: WTFPL License
+
+The library is bundled as `reinvented-color-wheel.min.js` for optimal performance and reliability.

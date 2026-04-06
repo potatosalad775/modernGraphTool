@@ -1,0 +1,10 @@
+{
+  "label": "Dual-Hosting modernGraphTool & CrinGraph",
+  "position": 4,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "This section covers tips and tricks for dual-hosting modernGraphTool and CrinGraph together, allowing users to leverage the strengths of both tools in a single environment."
+  }
+}

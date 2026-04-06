@@ -51,6 +51,13 @@ const CONFIG = {
     AUTO_UPDATE_URL: true,                              // This will automatically update URL when phone/target is changed.
     COMPRESS_URL: true,                                 // Compresses URL with Base62 encoding
   },
+  // CDN Deployment Settings (optional)
+  // Uncomment this section ONLY if you are using the CDN deployment mode
+  // with the thin cdn-index.html. When using the full dist/ deployment, leave this commented out.
+  // CDN_MODE: {
+  //   MAJOR_VERSION: 2,                                   // Auto-updates within this major version (e.g., 2.x.x)
+  //   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",  // Custom CDN base URL (advanced)
+  // },
   // Language Settings
   LANGUAGE: {
     LANGUAGE_LIST: [                                    // List of available languages. (Automatically fallbacks to "en" if not found)

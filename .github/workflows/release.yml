@@ -1,8 +1,15 @@
-name: Build and Release
+name: Release
+
+# Builds both full and CDN distributions, creates a GitHub Release with
+# both zips attached, and publishes CDN assets to the cdn branch for jsDelivr.
 
 on:
   workflow_dispatch:
     inputs:
+      version_override:
+        description: 'Version override (defaults to package.json version)'
+        required: false
+        type: string
       release_notes:
         description: 'Additional release notes (optional)'
         required: false
@@ -10,241 +17,201 @@ on:
 
 permissions:
   contents: write
-  
+
 jobs:
-  build-and-release:
+  release:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Setup GitHub CLI
-      run: |
-        # GitHub CLI is pre-installed on GitHub Actions runners
-        gh --version
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Validate versions
-      run: npm run validate-versions
-      
-    - name: Get version information
-      id: versions
-      run: |
-        # Get core version from package.json
-        CORE_VERSION=$(node -p "require('./package.json').version")
-        echo "core_version=$CORE_VERSION" >> $GITHUB_OUTPUT
-        
-        # Get release date from core-api.js
-        RELEASE_DATE=$(node -e "
-          const fs = require('fs');
-          const content = fs.readFileSync('src/core-api.js', 'utf-8');
-          const match = content.match(/RELEASE_DATE:\s*['\\\`]([^'\\\`]+)['\\\`]/);
-          console.log(match ? match[1] : new Date().toISOString().split('T')[0]);
-        ")
-        echo "release_date=$RELEASE_DATE" >> $GITHUB_OUTPUT
-        
-        # Generate datetime-based tag
-        RELEASE_TAG="v${CORE_VERSION}-$(date -u +'%Y%m%d-%H%M%S')"
-        echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
-        
-        # Get extension versions using a simpler approach
-        node -e "
-        const fs = require('fs');
-        const path = require('path');
-        
-        try {
-          const extensionsDir = path.join(process.cwd(), 'extensions');
-          const entries = fs.readdirSync(extensionsDir, { withFileTypes: true });
-          const extensionDirs = entries
-            .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
-            .map(entry => entry.name);
-          
-          const extensions = [];
-          
-          for (const extensionName of extensionDirs) {
-            try {
-              const mainJsPath = path.join(extensionsDir, extensionName, 'main.js');
-              const content = fs.readFileSync(mainJsPath, 'utf-8');
-              
-              const versionMatch = content.match(/version:\s*['\\\`]([^'\\\`]+)['\\\`]/);
-              const minCoreMatch = content.match(/coreMinVersion:\s*['\\\`]([^'\\\`]+)['\\\`]/);
-              
-              if (versionMatch) {
-                extensions.push({
-                  name: extensionName,
-                  version: versionMatch[1],
-                  minCore: minCoreMatch ? minCoreMatch[1] : 'unknown'
-                });
-              }
-            } catch (error) {
-              console.error(\`Error reading extension \${extensionName}:\`, error.message);
-            }
-          }
-          
-          console.log(JSON.stringify(extensions));
-        } catch (error) {
-          console.error('Error generating extension info:', error);
-          console.log('[]'); // Empty array fallback
-        }
-        " > extensions.json
-        
-    - name: Clean and build project
-      run: |
-        npm run clean
-        npm run build
-        
-    - name: Create release packages
-      run: |
-        mkdir -p release-packages
-        
-        # Get core version
-        CORE_VERSION="${{ steps.versions.outputs.core_version }}"
-        
-        # 1. Full distribution package
-        cd dist
-        zip -r "../release-packages/modernGraphTool_full_${CORE_VERSION}.zip" .
-        cd ..
-        
-        # 2. Core-only package
-        cd dist
-        zip "../release-packages/modernGraphTool_core_${CORE_VERSION}.zip" core.min.js core.min.js.map
-        cd ..
-        
-        # 3. Individual extension packages
-        cd dist/extensions
-        for ext_dir in */; do
-          if [ -d "$ext_dir" ]; then
-            ext_name=$(basename "$ext_dir")
-            
-            # Skip if it's just the config file
-            if [ "$ext_name" = "extensions.config.js" ]; then
-              continue
-            fi
-            
-            # Get extension version from source directory (more reliable)
-            if [ -f "../../extensions/$ext_name/main.js" ]; then
-              ext_version=$(grep -oP "version:\s*['\"]([^'\"]+)['\"]" "../../extensions/$ext_name/main.js" | grep -oP "['\"]([^'\"]+)['\"]" | sed "s/['\"]//g" | head -1 || echo "unknown")
-            else
-              ext_version="unknown"
-            fi
-            
-            # Create extension package
-            zip -r "../../release-packages/mGT_ext_${ext_name}_${ext_version}.zip" "$ext_dir"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version_override }}" ]; then
+            VERSION="${{ github.event.inputs.version_override }}"
+          else
+            VERSION=$(node -p "require('./package.json').version")
           fi
-        done
-        cd ../..
-        
-    - name: Generate release notes
-      id: release_notes
-      run: |
-        # Create release notes with version information
-        cat > release_notes.md << 'EOF'
-        ## 📦 Version Information
-        
-        ### Core System
-        
-        | Component | Version | Core API Level | Release Date |
-        |-----------|---------|----------------|--------------|
-        | **modernGraphTool Core** | v${{ steps.versions.outputs.core_version }} | 1 | ${{ steps.versions.outputs.release_date }} |
-        
-        ### Extensions
-        
-        Certain extension may require more configuration on installation or update. \
-        Please refer to Docs for more info.
-        
-        | Extension | Version | Min. Core version | Docs | Changelog |
-        |-----------|---------|-------------------|------|-----------|
-        EOF
-        
-        # Add extension information
-        node -e "
-        const extensions = require('./extensions.json');
-        const extensionOrder = [
-          'equalizer', 'device-peq', 'frequency-tutorial', 'graph-color-wheel',
-          'preference-bound', 'squiglink-integration', 'target-customizer', 'template'
-        ];
-        
-        const sortedExtensions = extensionOrder.map(name => 
-          extensions.find(ext => ext.name === name)
-        ).filter(Boolean);
-        
-        // Add any extensions not in the predefined order
-        const remainingExtensions = extensions.filter(ext => 
-          !extensionOrder.includes(ext.name)
-        );
-        
-        const allExtensions = [...sortedExtensions, ...remainingExtensions];
-        
-        allExtensions.forEach(ext => {
-          const displayName = ext.name.split('-').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1)
-          ).join(' ');
-          
-          console.log(\`| **\${displayName}** | v\${ext.version} | v\${ext.minCore} | [📖 Docs](https://potatosalad775.github.io/modernGraphTool/docs/extensions/\${ext.name}) | [🪵 Changelog](https://potatosalad775.github.io/modernGraphTool/docs/changelog/\${ext.name}) |\`);
-        });
-        " >> release_notes.md
-        
-        cat >> release_notes.md << 'EOF'
-        
-        ## 📖 Documentation
-        
-        Complete documentation is available at: https://potatosalad775.github.io/modernGraphTool/docs
-        
-        - [**Admin Guide**](https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/intro)
-        - [**Extension Documentation**](https://potatosalad775.github.io/modernGraphTool/docs/extensions)
-        EOF
-        
-        # Add custom release notes if provided
-        if [ -n "${{ github.event.inputs.release_notes }}" ]; then
-          cat >> release_notes.md << 'EOF'
-        
-        ## 📝 Additional Notes
-        
-        ${{ github.event.inputs.release_notes }}
-        EOF
-        fi
-        
-        # Output for GitHub Actions
-        echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
-        cat release_notes.md >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-        
-    - name: List release packages
-      run: |
-        echo "📦 Created release packages:"
-        ls -la release-packages/
-        
-    - name: Create release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.versions.outputs.release_tag }}
-        name: "modernGraphTool v${{ steps.versions.outputs.core_version }} (${{ steps.versions.outputs.release_date }})"
-        body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
-        files: release-packages/*
-        prerelease: false
-        make_latest: true
-        generate_release_notes: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Summary
-      run: |
-        echo "🎉 Release completed successfully!"
-        echo ""
-        echo "🏷️  Release Tag: ${{ steps.versions.outputs.release_tag }}"
-        echo "📦 Core Version: v${{ steps.versions.outputs.core_version }}"
-        echo "📅 Release Date: ${{ steps.versions.outputs.release_date }}"
-        echo ""
-        echo "📁 Packages created:"
-        ls -1 release-packages/ | sed 's/^/  - /'
-        echo ""
-        echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.versions.outputs.release_tag }}"
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION (major: $MAJOR)"
+
+      # ── Build full dist/ ──────────────────────────────────────────────
+      - name: Build full distribution
+        run: npm run build
+
+      - name: Package full distribution
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-packages
+          cd dist
+          zip -r "../release-packages/modernGraphTool_v${VERSION}_full.zip" .
+          cd ..
+          echo "Full dist size:"
+          du -sh dist/
+
+      # ── Build CDN dist/ ──────────────────────────────────────────────
+      - name: Build CDN distribution
+        run: node scripts/build-cdn.js
+        env:
+          MGT_CDN_BASE: https://cdn.jsdelivr.net/gh/${{ github.repository }}@cdn/v${{ steps.version.outputs.version }}
+
+      - name: Package CDN distribution
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # The CDN user package contains everything EXCEPT _app/ and index.html
+          # (they get the app from the CDN instead). We rename cdn-index.html → index.html.
+          mkdir -p dist-cdn-package
+          # Copy user-configurable files
+          cp dist-cdn/config.js dist-cdn-package/
+          cp dist-cdn/theme.css dist-cdn-package/
+          cp dist-cdn/.htaccess dist-cdn-package/ 2>/dev/null || true
+          cp -r dist-cdn/data dist-cdn-package/ 2>/dev/null || true
+          cp -r dist-cdn/assets dist-cdn-package/ 2>/dev/null || true
+          # Use the thin CDN index.html
+          cp dist-cdn/cdn-index.html dist-cdn-package/index.html
+
+          cd dist-cdn-package
+          zip -r "../release-packages/modernGraphTool_v${VERSION}_cdn.zip" .
+          cd ..
+          echo "CDN package size:"
+          du -sh dist-cdn-package/
+
+      - name: Verify boot.json
+        run: |
+          echo "boot.json contents:"
+          cat dist-cdn/boot.json
+          echo ""
+          echo "CDN bundle size:"
+          du -sh dist-cdn/_app/
+
+      # ── Deploy CDN assets to cdn branch ──────────────────────────────
+      - name: Deploy to cdn branch
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          MAJOR="${{ steps.version.outputs.major }}"
+
+          # Save build artifacts to /tmp/ before switching branches
+          mkdir -p /tmp/cdn-assets
+          cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
+          cp dist-cdn/boot.json "/tmp/cdn-assets/boot.json"
+          cp cdn/loader.js "/tmp/cdn-assets/loader.js"
+          cp -r release-packages /tmp/release-packages
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch or create cdn branch
+          git fetch origin cdn:cdn 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/cdn; then
+            git checkout cdn
+          else
+            git checkout --orphan cdn
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy versioned assets
+          mkdir -p "v${VERSION}"
+          cp -r "/tmp/cdn-assets/_app" "v${VERSION}/_app"
+          cp "/tmp/cdn-assets/boot.json" "v${VERSION}/boot.json"
+
+          # Always update loader.js to latest
+          cp "/tmp/cdn-assets/loader.js" loader.js
+
+          # Update versions.json
+          if [ -f versions.json ]; then
+            node -e "
+              const fs = require('fs');
+              const v = JSON.parse(fs.readFileSync('versions.json', 'utf-8'));
+              v['${MAJOR}'] = '${VERSION}';
+              fs.writeFileSync('versions.json', JSON.stringify(v, null, 2));
+            "
+          else
+            echo '{ "${MAJOR}": "${VERSION}" }' > versions.json
+          fi
+
+          echo "versions.json:"
+          cat versions.json
+
+          # Commit and push
+          git add -A
+          git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
+          git push origin cdn
+
+      # ── Purge jsDelivr cache ─────────────────────────────────────────
+      - name: Purge jsDelivr cache
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ github.repository }}"
+          echo "Purging jsDelivr cache..."
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/versions.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/loader.js" || true
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json" || true
+          echo "Done."
+
+      # ── Create GitHub Release ────────────────────────────────────────
+      - name: Checkout back to source
+        uses: actions/checkout@v4
+
+      - name: Restore release packages
+        run: |
+          cp -r /tmp/release-packages release-packages
+          echo "Restored packages:"
+          ls -lh release-packages/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: modernGraphTool v${{ steps.version.outputs.version }}
+          body: |
+            ## Downloads
+
+            | Package | Description |
+            |---------|-------------|
+            | `modernGraphTool_v${{ steps.version.outputs.version }}_full.zip` | **Full distribution** — drop entire contents on your web server |
+            | `modernGraphTool_v${{ steps.version.outputs.version }}_cdn.zip` | **CDN distribution** — lightweight package, app loaded from CDN |
+
+            ### Full distribution
+            Extract and upload everything to your web server. Self-contained, no external dependencies.
+
+            ### CDN distribution
+            Lightweight package for auto-updating deployments. The core application is loaded from
+            `cdn.jsdelivr.net` — you only host your config, theme, and data files.
+            See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
+
+            ${{ github.event.inputs.release_notes && format('## Notes\n\n{0}', github.event.inputs.release_notes) || '' }}
+          files: release-packages/*
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Summary ──────────────────────────────────────────────────────
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ github.repository }}"
+          echo "Release complete!"
+          echo ""
+          echo "Version:       v${VERSION}"
+          echo "Release:       https://github.com/${REPO}/releases/tag/v${VERSION}"
+          echo "CDN loader:    https://cdn.jsdelivr.net/gh/${REPO}@cdn/loader.js"
+          echo "CDN boot:      https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
+          echo ""
+          echo "Packages:"
+          ls -lh release-packages/

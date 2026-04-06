@@ -1,14 +1,10 @@
 /**
  * Network Device Connector — wraps HTTP-based communication for network audio devices.
+ * Handler and config are loaded lazily from the registry.
  */
-import type { ConnectedDevice, DeviceFilter, DeviceHandler, PullResult } from '../types.js';
-import { wiimNetworkHandler } from '../handlers/wiim-network.js';
+import type { ConnectedDevice, DeviceFilter, PullResult } from '../types.js';
 
 let currentDevice: ConnectedDevice | null = null;
-
-const deviceHandlers: Record<string, DeviceHandler> = {
-	WiiM: wiimNetworkHandler
-};
 
 export async function getDeviceConnected(
 	deviceIP: string,
@@ -19,7 +15,12 @@ export async function getDeviceConnected(
 			console.warn('No IP Address provided.');
 			return null;
 		}
-		if (!deviceHandlers[deviceType]) {
+
+		const { getNetworkHandlers } = await import('../registry.js');
+		const handlers = await getNetworkHandlers();
+		const entry = handlers[deviceType];
+
+		if (!entry) {
 			console.warn('Unsupported Device Type.');
 			return null;
 		}
@@ -29,18 +30,8 @@ export async function getDeviceConnected(
 			ip: deviceIP,
 			manufacturer: deviceType,
 			model: deviceType,
-			handler: deviceHandlers[deviceType],
-			modelConfig: {
-				minGain: -12,
-				maxGain: 12,
-				maxFilters: 10,
-				firstWritableEQSlot: 0,
-				maxWritableEQSlots: 1,
-				disconnectOnSave: false,
-				disabledPresetId: -1,
-				experimental: false,
-				availableSlots: [{ id: 0, name: 'Default' }]
-			},
+			handler: entry.handler,
+			modelConfig: entry.defaultModelConfig,
 			connectionType: 'network'
 		};
 		return currentDevice;
@@ -81,8 +72,8 @@ export async function pullFromDevice(
 }
 
 export async function getCurrentSlot(device: ConnectedDevice): Promise<number> {
-	if (!deviceHandlers[device.model]) return 0;
-	return await deviceHandlers[device.model].getCurrentSlot(device);
+	if (!currentDevice) return 0;
+	return await currentDevice.handler.getCurrentSlot(currentDevice);
 }
 
 export async function enablePEQ(

@@ -1,33 +1,31 @@
-// fiio-usb-serial.ts
-// Pragmatic Audio - Handler for FiiO USB Serial EQ Control
+//
+// Copyright 2024 : Pragmatic Audio
+//
+// FiiO USB Serial handler — TypeScript port of the legacy fiioUsbSerialHandler.js
+//
 
 import type {
 	ConnectedDevice,
 	DeviceFilter,
-	DeviceFilterType,
 	DeviceHandler,
-	PullResult
+	PullResult,
+	UsbSerialVendorConfig
 } from '../types.js';
-
-// Header constants - matching fiioUsbHidHandler for compatibility
-const SET_HEADER1 = 0xaa;
-const SET_HEADER2 = 0x0a;
-const GET_HEADER1 = 0xbb;
-const GET_HEADER2 = 0x0b;
-const END_HEADERS = 0xee;
-
-// PEQ command constants - matching fiioUsbHidHandler for compatibility
-const PEQ_FILTER_COUNT = 0x18; // 24 in hex
-const PEQ_GLOBAL_GAIN = 0x17; // 23 in hex
-const PEQ_FILTER_PARAMS = 0x15; // 21 in hex
-const PEQ_PRESET_SWITCH = 0x16; // 22 in hex
-const PEQ_SAVE_TO_DEVICE = 0x19; // 25 in hex
-const PEQ_RESET_DEVICE = 0x1b; // 27 in hex
-const PEQ_RESET_ALL = 0x1c; // 28 in hex
-
-// Note these have different headers
-const PEQ_FIRMWARE_VERSION = 0x0b; // 11 in hex
-const PEQ_NAME_DEVICE = 0x30; // 48 in hex
+import { FIIO_FILTER_MAP } from '../utils/filter-type-maps.js';
+import {
+	SET_HEADER1,
+	SET_HEADER2,
+	GET_HEADER1,
+	GET_HEADER2,
+	END_HEADERS,
+	PEQ_FILTER_COUNT,
+	PEQ_GLOBAL_GAIN,
+	PEQ_FILTER_PARAMS,
+	PEQ_PRESET_SWITCH,
+	PEQ_RESET_DEVICE,
+	PEQ_FIRMWARE_VERSION,
+	PEQ_NAME_DEVICE
+} from '../utils/fiio-protocol.js';
 
 // Mutex to prevent concurrent serial access
 let __serialIsSending = false;
@@ -271,35 +269,10 @@ const createSetEqSwitchCommand = (enabled: boolean): Uint8Array =>
 const createSetEqPreCommand = (presetValue: number): Uint8Array =>
 	createCommandPacket(SET_HEADER1, SET_HEADER2, PEQ_PRESET_SWITCH, [presetValue & 0xff]);
 
-// ---- Filter type mapping ----
+// ---- Filter type mapping (from shared map) ----
 
-/** Map FiiO numeric filter type to DeviceFilterType string. 0=PK, 1=LSQ, 2=HSQ. */
-function toDeviceFilterType(fiioType: number): DeviceFilterType {
-	switch (fiioType) {
-		case 0:
-			return 'PK';
-		case 1:
-			return 'LSQ';
-		case 2:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
-
-/** Map DeviceFilterType string to FiiO numeric filter type. */
-function fromDeviceFilterType(type: DeviceFilterType): number {
-	switch (type) {
-		case 'PK':
-			return 0;
-		case 'LSQ':
-			return 1;
-		case 'HSQ':
-			return 2;
-		default:
-			return 0;
-	}
-}
+const toDeviceFilterType = FIIO_FILTER_MAP.fromCode;
+const fromDeviceFilterType = FIIO_FILTER_MAP.toCode;
 
 // ---- Main handler functions ----
 
@@ -433,4 +406,51 @@ export const fiioUsbSerialHandler: DeviceHandler = {
 	pullFromDevice,
 	pushToDevice,
 	enablePEQ
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+export const registration: UsbSerialVendorConfig = {
+	vendorId: 6790,
+	manufacturer: 'FiiO',
+	handler: fiioUsbSerialHandler,
+	devices: {
+		'FiiO Audio DSP': {
+			usbProductId: 21971,
+			modelConfig: {
+				baudRate: 57600,
+				minGain: -12,
+				maxGain: 12,
+				maxFilters: 10,
+				firstWritableEQSlot: 0,
+				maxWritableEQSlots: 21,
+				disconnectOnSave: false,
+				disabledPresetId: 11,
+				experimental: false,
+				availableSlots: [
+					{ id: 240, name: 'BYPASS' },
+					{ id: 0, name: 'Jazz' },
+					{ id: 1, name: 'Pop' },
+					{ id: 2, name: 'Rock' },
+					{ id: 3, name: 'Dance' },
+					{ id: 4, name: 'R&B' },
+					{ id: 5, name: 'Classic' },
+					{ id: 6, name: 'Hip Hop' },
+					{ id: 8, name: 'Retro' },
+					{ id: 9, name: 'De-essing-1' },
+					{ id: 10, name: 'De-essing-2' },
+					{ id: 160, name: 'USER1' },
+					{ id: 161, name: 'USER2' },
+					{ id: 162, name: 'USER3' },
+					{ id: 163, name: 'USER4' },
+					{ id: 164, name: 'USER5' },
+					{ id: 165, name: 'USER6' },
+					{ id: 166, name: 'USER7' },
+					{ id: 167, name: 'USER8' },
+					{ id: 168, name: 'USER9' },
+					{ id: 169, name: 'USER10' }
+				]
+			}
+		}
+	}
 };

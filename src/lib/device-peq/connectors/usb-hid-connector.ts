@@ -4,11 +4,11 @@
 import type {
 	ConnectedDevice,
 	DeviceFilter,
-	DeviceHandler,
 	DeviceModelConfig,
 	PullResult,
 	UsbHidVendorConfig
 } from '../types.js';
+import { normalizeFiltersForDevice } from '../normalize-filters.js';
 
 let currentDevice: ConnectedDevice | null = null;
 
@@ -30,19 +30,34 @@ export async function getDeviceConnected(
 		}
 
 		const model = rawDevice.productName;
-		const deviceDetails = vendorConfig.devices[model] || {};
+		let deviceDetails = vendorConfig.devices[model];
+
+		// If no productName match, try matching by productId in deviceGroups
+		if (!deviceDetails && vendorConfig.deviceGroups) {
+			for (const [groupName, groupConfig] of Object.entries(vendorConfig.deviceGroups)) {
+				if (groupConfig.productIds.includes(rawDevice.productId)) {
+					deviceDetails = { modelConfig: groupConfig.modelConfig };
+					console.log(
+						`Matched device by productId in group: ${groupName} (0x${rawDevice.productId.toString(16)})`
+					);
+					break;
+				}
+			}
+		}
+
+		const resolvedDetails = deviceDetails || {};
 		const modelConfig: DeviceModelConfig = {
 			...vendorConfig.defaultModelConfig,
-			...deviceDetails.modelConfig
+			...resolvedDetails.modelConfig
 		};
-		const handler = deviceDetails.handler || vendorConfig.handler;
+		const handler = resolvedDetails.handler || vendorConfig.handler;
 
 		if (currentDevice != null) return currentDevice;
 		if (!rawDevice.opened) await rawDevice.open();
 
 		currentDevice = {
 			rawDevice,
-			manufacturer: deviceDetails.manufacturer || vendorConfig.manufacturer,
+			manufacturer: resolvedDetails.manufacturer || vendorConfig.manufacturer,
 			model,
 			handler,
 			modelConfig,
@@ -95,68 +110,7 @@ export async function pushToDevice(
 		return true;
 	}
 
-	const filtersToWrite = [...filters];
-
-	if (filtersToWrite.length > device.modelConfig.maxFilters) {
-		console.warn(
-			`USB Device PEQ: Truncating ${filtersToWrite.length} filters to ${device.modelConfig.maxFilters} (device limit)`
-		);
-		filtersToWrite.splice(device.modelConfig.maxFilters);
-	}
-
-	for (let i = 0; i < filtersToWrite.length; i++) {
-		if (filtersToWrite[i].freq < 20 || filtersToWrite[i].freq > 20000) {
-			filtersToWrite[i].freq = 100;
-		}
-		if (filtersToWrite[i].q < 0.01 || filtersToWrite[i].q > 100) {
-			filtersToWrite[i].q = 1;
-		}
-	}
-
-	const hasLSHSFilters = filtersToWrite.some(
-		(filter) => (filter.type === 'LSQ' || filter.type === 'HSQ') && filter.gain !== 0
-	);
-	const needsPreGain = preamp < 0;
-
-	if (hasLSHSFilters && device.modelConfig.supportsLSHSFilters === false) {
-		for (let i = 0; i < filtersToWrite.length; i++) {
-			if (
-				(filtersToWrite[i].type === 'LSQ' || filtersToWrite[i].type === 'HSQ') &&
-				filtersToWrite[i].gain !== 0
-			) {
-				filtersToWrite[i].type = 'PK';
-				filtersToWrite[i].gain = 0;
-			}
-		}
-	}
-
-	if (hasLSHSFilters && device.modelConfig.supportsLSHSFilters === false) {
-		if (needsPreGain && device.modelConfig.supportsPregain === false) {
-			console.warn(
-				"Device doesn't support LS/HS filters and auto pregain - both will be ignored"
-			);
-		} else {
-			console.warn('Device only supports Peak filters - ignoring LS/HS filters');
-		}
-	} else if (needsPreGain && device.modelConfig.supportsPregain === false) {
-		console.warn('Device does not support auto calculated pregain');
-	}
-
-	if (
-		filtersToWrite.length < device.modelConfig.maxFilters &&
-		device.modelConfig.defaultResetFiltersValues
-	) {
-		const defaultFilter = device.modelConfig.defaultResetFiltersValues[0];
-		for (let i = filtersToWrite.length; i < device.modelConfig.maxFilters; i++) {
-			filtersToWrite.push({
-				type: (defaultFilter.filterType as DeviceFilter['type']) || 'PK',
-				freq: defaultFilter.freq,
-				q: defaultFilter.q,
-				gain: defaultFilter.gain
-			});
-		}
-	}
-
+	const filtersToWrite = normalizeFiltersForDevice(filters, device.modelConfig);
 	return await device.handler.pushToDevice(device, slot, preamp, filtersToWrite);
 }
 

@@ -10,44 +10,26 @@ import type {
 	DeviceHandler,
 	DeviceFilter,
 	DeviceFilterType,
+	DeviceModelConfig,
 	PullResult
 } from '../types.js';
+import { WIIM_FILTER_MAP } from '../utils/filter-type-maps.js';
 
 // ── Protocol constants ────────────────────────────────────────────────────────
 
 const PLUGIN_URI = 'http://moddevices.com/plugins/caps/EqNp';
 const SOURCE_NAME = 'wifi';
 
-// ── WiiM mode converters ──────────────────────────────────────────────────────
+// ── WiiM mode converters (from shared map) ───────────────────────────────────
 
 /** Convert our DeviceFilterType to WiiM mode number: LSQ=0, PK=1, HSQ=2, Off=-1 */
 function convertToWiimMode(filterType: DeviceFilterType, disabled: boolean): number {
 	if (disabled) return -1;
-	switch (filterType) {
-		case 'LSQ':
-			return 0;
-		case 'PK':
-			return 1;
-		case 'HSQ':
-			return 2;
-		default:
-			return 1;
-	}
+	return WIIM_FILTER_MAP.toCode(filterType);
 }
 
 /** Convert WiiM mode number to our DeviceFilterType: 0=LSQ, 1=PK, 2=HSQ */
-function convertFromWiimMode(mode: number): DeviceFilterType {
-	switch (mode) {
-		case 0:
-			return 'LSQ';
-		case 1:
-			return 'PK';
-		case 2:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
+const convertFromWiimMode = WIIM_FILTER_MAP.fromCode;
 
 // ── HTTP communication helpers ────────────────────────────────────────────────
 
@@ -200,4 +182,23 @@ export const wiimNetworkHandler: DeviceHandler = {
 			await sendHttpCommandJson(ip, 'EQSourceOff', payload);
 		}
 	}
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+export const networkRegistration = {
+	deviceType: 'WiiM',
+	manufacturer: 'WiiM',
+	handler: wiimNetworkHandler,
+	defaultModelConfig: {
+		minGain: -12,
+		maxGain: 12,
+		maxFilters: 10,
+		firstWritableEQSlot: 0,
+		maxWritableEQSlots: 1,
+		disconnectOnSave: false,
+		disabledPresetId: -1,
+		experimental: false,
+		availableSlots: [{ id: 0, name: 'Default' }]
+	} satisfies DeviceModelConfig
 };

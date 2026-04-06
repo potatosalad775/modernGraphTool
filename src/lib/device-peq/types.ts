@@ -60,10 +60,16 @@ export interface DeviceModelConfig {
 	baudRate?: number;
 	/** Read-only device flag */
 	readOnly?: boolean;
+	/** Write-only device flag (device does not return EQ data) */
+	writeOnly?: boolean;
+	/** Auto-apply global gain offset (Walkplay) */
+	autoGlobalGain?: boolean;
+	/** Reference FR measurement name for flat-EQ comparison (UI hint, not yet implemented) */
+	flatEQPhoneMeasurement?: string;
 }
 
 /** Connection type for device communication */
-export type ConnectionType = 'hid' | 'serial' | 'network';
+export type ConnectionType = 'hid' | 'serial' | 'network' | 'ble';
 
 /**
  * Handler interface that each device-specific handler must implement.
@@ -83,7 +89,7 @@ export interface DeviceHandler {
 
 /** A connected device returned by a connector */
 export interface ConnectedDevice {
-	rawDevice: HIDDevice | SerialPort | null;
+	rawDevice: HIDDevice | SerialPort | BluetoothDevice | null;
 	manufacturer: string;
 	model: string;
 	handler: DeviceHandler;
@@ -98,6 +104,29 @@ export interface ConnectedDevice {
 	ip?: string;
 	/** Firmware version (populated by some handlers) */
 	version?: number | null;
+	/** BLE GATT TX characteristic (ble only) */
+	txChar?: BluetoothRemoteGATTCharacteristic;
+	/** BLE GATT RX characteristic (ble only) */
+	rxChar?: BluetoothRemoteGATTCharacteristic;
+	/** BLE notification reader — returns next notification chunk or null on timeout (ble only) */
+	readNotification?: (timeoutMs?: number) => Promise<Uint8Array | null>;
+}
+
+/** Per-device entry within a vendor config */
+export interface DeviceEntry {
+	manufacturer?: string;
+	handler?: DeviceHandler;
+	/** String key to resolve a handler from another registration module (e.g. 'fiio-usb-hid'). */
+	handlerRef?: string;
+	modelConfig?: Partial<DeviceModelConfig>;
+	supportsLSHSFilters?: boolean;
+	supportsPregain?: boolean;
+}
+
+/** ProductId-based device group for fallback matching when productName is unknown */
+export interface DeviceGroup {
+	productIds: number[];
+	modelConfig: Partial<DeviceModelConfig>;
 }
 
 /** USB HID device vendor configuration entry */
@@ -106,16 +135,9 @@ export interface UsbHidVendorConfig {
 	manufacturer: string;
 	handler: DeviceHandler;
 	defaultModelConfig: DeviceModelConfig;
-	devices: Record<
-		string,
-		{
-			manufacturer?: string;
-			handler?: DeviceHandler;
-			modelConfig?: Partial<DeviceModelConfig>;
-			supportsLSHSFilters?: boolean;
-			supportsPregain?: boolean;
-		}
-	>;
+	devices: Record<string, DeviceEntry>;
+	/** Fallback matching by USB productId when productName doesn't match any device entry */
+	deviceGroups?: Record<string, DeviceGroup>;
 }
 
 /** Bluetooth SPP filter configuration for serial devices */
@@ -123,6 +145,23 @@ export interface BluetoothFilters {
 	usbVendorId: number | null;
 	allowedBluetoothServiceClassIds: string[];
 	bluetoothServiceClassId: string;
+}
+
+/** BLE GATT configuration for a device family */
+export interface BleGattConfig {
+	serviceUuid: string;
+	txCharacteristicUuid: string;
+	rxCharacteristicUuid: string;
+}
+
+/** Bluetooth BLE device configuration entry */
+export interface BleDeviceConfig {
+	manufacturer: string;
+	handler: DeviceHandler;
+	filters: { namePrefix?: string; services?: string[] };
+	gatt: BleGattConfig;
+	defaultModelConfig?: DeviceModelConfig;
+	devices: Record<string, { modelConfig: Partial<DeviceModelConfig> }>;
 }
 
 /** USB Serial device vendor configuration entry */

@@ -10,8 +10,10 @@ import type {
 	DeviceHandler,
 	DeviceFilter,
 	DeviceFilterType,
-	PullResult
+	PullResult,
+	UsbSerialVendorConfig
 } from '../types.js';
+import { WALKPLAY_FILTER_MAP } from '../utils/filter-type-maps.js';
 
 // ── Protocol constants ────────────────────────────────────────────────────────
 
@@ -184,24 +186,10 @@ function createEQDataPacket(
 	return data;
 }
 
-// ── Filter-type converters ────────────────────────────────────────────────────
+// ── Filter-type converters (from shared map) ────────────────────────────────
 
-function convertToFilterType(code: number): DeviceFilterType {
-	switch (code) {
-		case 1:
-			return 'LSQ';
-		case 3:
-			return 'HSQ';
-		case 2:
-		default:
-			return 'PK';
-	}
-}
-
-function convertFromFilterType(filterType: DeviceFilterType): number {
-	const mapping: Record<DeviceFilterType, number> = { PK: 2, LSQ: 1, HSQ: 3 };
-	return mapping[filterType] ?? 2;
-}
+const convertToFilterType = WALKPLAY_FILTER_MAP.fromCode;
+const convertFromFilterType = WALKPLAY_FILTER_MAP.toCode;
 
 // ── Read helpers ──────────────────────────────────────────────────────────────
 
@@ -310,5 +298,40 @@ export const nothingUsbSerialHandler: DeviceHandler = {
 		_slotId: number
 	): Promise<void> {
 		// Nothing devices do not support enable/disable PEQ — no-op
+	}
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+export const registration: UsbSerialVendorConfig = {
+	manufacturer: 'Nothing',
+	handler: nothingUsbSerialHandler,
+	filters: {
+		usbVendorId: null,
+		allowedBluetoothServiceClassIds: ['aeac4a03-dff5-498f-843a-34487cf133eb'],
+		bluetoothServiceClassId: 'aeac4a03-dff5-498f-843a-34487cf133eb'
+	},
+	devices: {
+		'Nothing Headphones': {
+			modelConfig: {
+				minGain: -12,
+				maxGain: 12,
+				maxFilters: 8,
+				firstWritableEQSlot: 5,
+				maxWritableEQSlots: 1,
+				disconnectOnSave: false,
+				disabledPresetId: -1,
+				experimental: false,
+				readOnly: false,
+				flatEQPhoneMeasurement: 'Nothing HP1 Balanced',
+				availableSlots: [
+					{ id: 0, name: 'Balanced' },
+					{ id: 1, name: 'Voice' },
+					{ id: 2, name: 'More Treble' },
+					{ id: 3, name: 'More Bass' },
+					{ id: 5, name: 'Custom' }
+				]
+			}
+		}
 	}
 };

@@ -9,8 +9,10 @@ import type {
 	DeviceHandler,
 	DeviceFilter,
 	DeviceFilterType,
-	PullResult
+	PullResult,
+	UsbHidVendorConfig
 } from '../types.js';
+import { KTMICRO_FILTER_MAP } from '../utils/filter-type-maps.js';
 
 // ── Protocol constants ────────────────────────────────────────────────────────
 
@@ -116,25 +118,10 @@ function decodeQResponse(data: Uint8Array): { q: number; type: DeviceFilterType 
 	return { q, type };
 }
 
-// ── Filter-type converters ────────────────────────────────────────────────────
+// ── Filter-type converters (from shared map) ────────────────────────────────
 
-function convertToFilterType(code: number): DeviceFilterType {
-	switch (code) {
-		case 3:
-			return 'LSQ';
-		case 0:
-			return 'PK';
-		case 4:
-			return 'HSQ';
-		default:
-			return 'PK';
-	}
-}
-
-function convertFromFilterType(filterType: DeviceFilterType): number {
-	const mapping: Record<DeviceFilterType, number> = { PK: 0, LSQ: 3, HSQ: 4 };
-	return mapping[filterType] ?? 0;
-}
+const convertToFilterType = KTMICRO_FILTER_MAP.fromCode;
+const convertFromFilterType = KTMICRO_FILTER_MAP.toCode;
 
 // ── HID communication helpers ─────────────────────────────────────────────────
 
@@ -295,5 +282,36 @@ export const ktmicroUsbHidHandler: DeviceHandler = {
 		const targetSlot = enabled ? slotId : deviceDetails.modelConfig.disabledPresetId;
 		const packet = buildEnableEQPacket(targetSlot);
 		await device.sendReport(REPORT_ID, packet);
+	}
+};
+
+// ── Registration ──────────────────────────────────────────────────────────────
+
+export const registration: UsbHidVendorConfig = {
+	vendorIds: [0x31b2],
+	manufacturer: 'KT Micro',
+	handler: ktmicroUsbHidHandler,
+	defaultModelConfig: {
+		minGain: -12,
+		maxGain: 12,
+		maxFilters: 5,
+		firstWritableEQSlot: -1,
+		maxWritableEQSlots: 0,
+		compensate2X: true,
+		disconnectOnSave: true,
+		disabledPresetId: 0x02,
+		experimental: false,
+		supportsPregain: false,
+		supportsLSHSFilters: true,
+		defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }],
+		availableSlots: [{ id: 0x03, name: 'Custom' }]
+	},
+	devices: {
+		'Kiwi Ears-Allegro PRO': { manufacturer: 'Kiwi Ears', modelConfig: { supportsLSHSFilters: false, disconnectOnSave: true } },
+		'KT02H20 HIFI Audio': { manufacturer: 'JCally', modelConfig: { supportsLSHSFilters: false } },
+		'TANCHJIM BUNNY DSP': { manufacturer: 'TANCHJIM', modelConfig: { compensate2X: false, supportsPregain: true } },
+		'TANCHJIM FISSION': { manufacturer: 'TANCHJIM', modelConfig: { compensate2X: false, supportsPregain: true } },
+		'CDSP': { manufacturer: 'Moondrop', modelConfig: { compensate2X: false } },
+		'Chu2 DSP': { manufacturer: 'Moondrop', modelConfig: { compensate2X: false } }
 	}
 };

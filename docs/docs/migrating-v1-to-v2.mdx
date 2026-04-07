@@ -1,0 +1,84 @@
+---
+sidebar_position: 3
+sidebar_label: Migrating from v1 to v2
+---
+
+# Migrating from v1 to v2
+
+modernGraphTool v2 is a complete rewrite using modern web technologies. This guide covers what changed and how to migrate your existing setup.
+
+## What Changed
+
+### Tech Stack
+
+| | v1 | v2 |
+|---|---|---|
+| **Framework** | Vanilla JavaScript + Web Components | SvelteKit 2 + Svelte 5 (Runes) |
+| **Bundler** | Rollup | Vite |
+| **Styling** | Custom CSS | Tailwind CSS 4 + CSS variables |
+| **i18n** | Custom JSON loader | Paraglide JS (compile-time) |
+| **Testing** | None | Vitest + Playwright |
+
+### Extensions → Built-in Features
+
+In v1, features were loaded as extensions via `extensions/extensions.config.js`. Each extension had its own folder, entry point, and optional Rollup config.
+
+This allowed modularity without code modification, but added complexity in managing extensions and their dependencies. 
+
+The majority of users kept every extension enabled as well, so the modular approach was less beneficial in practice. 
+
+In v2, **all extensions are now built-in features** — self-contained Svelte components that are always available and configured through `config.js`. There is no more `extensions/` folder or `extensions.config.js`.
+
+Extension settings that were previously in `extensions.config.js` have been integrated into `config.js`:
+
+| v1 (extensions.config.js) | v2 (config.js) |
+|---|---|
+| Extension `ENABLED` flags | Features are always included; toggle visibility via config sections |
+| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section in `config.js` |
+| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section in `config.js` |
+| `SQUIGLINK` config | `SQUIGLINK` section in `config.js` |
+
+### Graph Color Wheel
+
+The Graph Color Wheel was a standalone extension in v1. In v2, color and appearance customization is built directly into the selection list — click any curve's color swatch to change it. No separate panel or configuration needed.
+
+## What Stayed the Same
+
+### Data Format
+
+Your existing data works as-is in v2:
+
+- **`phone_book.json`** — same structure, same location (`data/phone_book.json`)
+- **FR measurement files** — same `.txt` format in `data/phones/`
+- **Target curve files** — same `.txt` format in `data/target/`
+- **Bounds files** — `Bounds U.txt` / `Bounds D.txt` in `data/`
+
+### Configuration
+
+`config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible. New sections have been added for features that were previously extension configs.
+
+### Deployment
+
+v2 still outputs a fully static SPA to `dist/`. Deploy by copying the folder to your web server. The `.htaccess` file for Apache SPA fallback is included.
+
+## What's New in v2
+
+- **Graph aspect ratio** — Configurable graph aspect ratio that can mimic CrinGraph's proportions
+- **Multi-sample display modes** — Show average or individual samples for multi-sample measurements
+- **HpTF deviation display** — Headphone Transfer Function deviation visualization (fill, curves, or both)
+- **CDN deployment** — Connect to a CDN-hosted version of modernGraphTool to keep up-to-date without manual updates
+
+## Migration Steps
+
+For site operators migrating from v1:
+
+1. **Download** the v2 release from the [Release Page](https://github.com/potatosalad775/modernGraphTool/releases)
+2. **Copy your data** — Move your `data/` folder (phones, targets, phone_book.json) into the v2 `dist/` folder
+3. **Migrate config** — Transfer your v1 `config.js` settings into the v2 `config.js` template. The structure is largely the same, but review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, etc.)
+4. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling)
+5. **Remove extensions** — The `extensions/` folder is no longer used. All features are built-in.
+6. **Test** — Open the page locally and verify your data loads correctly
+
+:::tip[CDN Alternative]
+Instead of hosting the full `dist/` folder, you can use the [CDN deployment mode](../guide-for-admins/setup-env#option-c-cdn-deployment) with `cdn-index.html`. This keeps your data and config local while loading app code from jsDelivr, so you don't need to update files when new versions are released.
+:::

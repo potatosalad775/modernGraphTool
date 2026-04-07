@@ -1,0 +1,52 @@
+---
+sidebar_position: 2
+sidebar_label: Why modernGraphTool?
+---
+
+# Why modernGraphTool?
+
+## Background
+
+modernGraphTool was directly inspired by [CrinGraph](https://github.com/mlochbaum/CrinGraph), which appeared in 2019 and has long been used as a standard tool for visualizing frequency response data. Even now, CrinGraph is widely used and loved for visualizing and comparing FR data.
+
+However, as time went by, those operating databases gradually needed more complex and diverse functions. Custom HRTF targets with their own preference adjustments are a prime example.
+
+Unfortunately, CrinGraph was not designed with extensibility in mind from the initial design stage, leading to fragmentation issues where numerous derivative versions emerged as users added their own features.
+
+This made code maintenance extremely difficult and made it almost impossible for users without programming knowledge to add new features or import features from other versions.
+
+modernGraphTool aims to solve these problems, inheriting the core features of CrinGraph while introducing modern techniques and a modular design to significantly enhance stability and extensibility.
+
+## CrinGraph vs modernGraphTool
+
+| | CrinGraph | modernGraphTool |
+|---|---|---|
+| **Adding features** | Fork and modify core scripts | Built-in, toggle via `config.js` |
+| **Customization** | Edit source code directly | Edit `config.js` and `theme.css` |
+| **Data format** | `phone_book.json` + FR text files | Same format, fully compatible |
+| **Mobile support** | Limited | Responsive layout, dedicated mobile UI |
+| **Dark mode** | Not supported | Built-in (light, dark, system) |
+| **Parametric EQ** | Not included | Built-in with AutoEQ and audio preview |
+| **Hardware device bridge** | Not included | Push EQ to 20+ devices via USB/BLE/Network |
+| **Target customization** | Not included | Per-target Tilt, Bass, Treble adjustment |
+| **Multi-language** | Not supported | i18n support (English, Korean) |
+
+## Core Principles
+
+### Feature-Rich Out of the Box
+
+modernGraphTool comes with a comprehensive set of built-in features that cover everything from basic graph visualization to advanced equalization and hardware device integration — all configurable through a single `config.js` file.
+
+Unlike fragmented CrinGraph derivatives where adding features required modifying core scripts, modernGraphTool's features are self-contained components that can be enabled, disabled, or configured without risk to the core functionality.
+
+### Easy-to-Use Design
+
+Some CrinGraph derivative versions had problems with UI complexity as various features were added. Numerous horizontal scroll areas with long lists of buttons often impaired usability in mobile environments.
+
+modernGraphTool focuses on user interface (UI) and user experience (UX) design to be intuitive and convenient in both desktop and mobile environments, organizing features into clearly defined panels (Device, Graph, Equalizer, Misc) with a responsive layout.
+
+### Compatibility with Existing Programs
+
+modernGraphTool fully supports the folder structure and file format of FR data used in the existing CrinGraph.
+
+Therefore, you can load the data from your existing CrinGraph directly into modernGraphTool, and compatibility with `squig.link` is also ensured through built-in integration.

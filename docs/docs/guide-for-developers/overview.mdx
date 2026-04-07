@@ -8,6 +8,7 @@ This guide provides an overview of modernGraphTool's architecture for developers
 
 ## Tech Stack
 
+- **Language**: TypeScript
 - **Framework**: SvelteKit 2 + Svelte 5 (Runes)
 - **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
 - **Graph Rendering**: D3.js (SVG-based)
@@ -19,13 +20,16 @@ This guide provides an overview of modernGraphTool's architecture for developers
 
 ```
 src/
-├── routes/              # SvelteKit page routes
+├── routes/              # SvelteKit page routes (single-page SPA)
 ├── lib/
 │   ├── components/      # UI components
-│   │   ├── controls/    # Interactive controls (buttons, inputs, selectors)
-│   │   ├── features/    # Feature panels (EQ, DevicePEQ, Tutorial, etc.)
-│   │   ├── graph/       # Graph container and toolbar
-│   │   └── layout/      # App shell, navigation, panels
+│   │   ├── atoms/       # Base UI primitives (Button, Input, Accordion)
+│   │   ├── controls/    # Interactive controls (selectors, toolbar buttons)
+│   │   ├── equalizer/   # Equalizer sub-components (filters, AutoEQ, player)
+│   │   ├── features/    # Feature modules (DevicePEQ, Tutorial, etc.)
+│   │   ├── graph/       # Graph container (Svelte bridge to D3 engine)
+│   │   ├── layout/      # App shell, navigation, panels
+│   │   └── panels/      # Major UI sections (Device, Graph, EQ, Misc)
 │   ├── stores/          # Reactive state management (.svelte.ts)
 │   ├── services/        # Data provider, command history, analytics
 │   ├── graph/           # D3.js graph engine and overlays
@@ -33,12 +37,18 @@ src/
 │   ├── utils/           # Parsing, normalization, smoothing, URL encoding
 │   ├── types/           # TypeScript type definitions
 │   └── paraglide/       # Generated i18n functions (do not edit manually)
-├── app.html             # HTML template
+├── app.html             # HTML template (loads config.js and theme.css)
 └── app.css              # Tailwind CSS entry point
-static/
+defaults/                # Default config, theme, and sample data
 ├── config.js            # User-editable configuration
 ├── theme.css            # Graph theme variables
-└── data/                # Measurement data and targets
+└── data/                # Sample measurement data and targets
+cdn/                     # CDN deployment templates
+├── cdn-index.html       # Thin index.html for CDN-hosted mode
+└── loader.js            # CDN bootstrap loader
+scripts/                 # Build utilities
+├── build-cdn.js         # CDN build orchestrator
+└── generate-boot-manifest.js
 ```
 
 ## Build Commands
@@ -47,6 +57,7 @@ static/
 |---------|-------------|
 | `npm run dev` | Start development server (http://localhost:5173) |
 | `npm run build` | Production build to `dist/` |
+| `npm run build:cdn` | Build CDN-optimized distribution to `dist-cdn/` |
 | `npm run preview` | Preview the built output |
 | `npm run check` | TypeScript + Svelte type checking |
 | `npm run test` | Run all Vitest tests |
@@ -55,4 +66,4 @@ static/
 
 ## Contributing
 
-Contributions are welcome! Please visit the [GitHub repository](https://github.com/potatosalad775/modernGraphTool) for more information.
+Contributions are welcome! See [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) for code style, testing, and PR guidelines.

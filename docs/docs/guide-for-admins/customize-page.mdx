@@ -12,7 +12,7 @@ You will primarily personalize the page by modifying the `config.js`, `index.htm
 
 :::info[File Locations]
 - **Pre-built release users**: These files are in the root of your extracted release folder.
-- **Source builders**: Editable source files are in the `static/` folder. The HTML entry point is `src/app.html`. After building (`npm run build`), everything is output to `dist/`.
+- **Source builders**: Default configuration and data files are in the `defaults/` folder. The HTML entry point is `src/app.html`. After building (`npm run build`), everything is output to `dist/`.
 :::
 
 ## Changing Basic Settings (`config.js`)
@@ -71,6 +71,7 @@ Specifies the default settings for graph normalization.
 ### `VISUALIZATION`
 ```JavaScript
 VISUALIZATION: {
+  ASPECT_RATIO: "16:9",
   DEFAULT_Y_SCALE: 60,
   LABEL: {
     LOCATION: "BOTTOM_LEFT",
@@ -92,6 +93,10 @@ VISUALIZATION: {
 },
 ```
 Specifies settings related to graph visualization.
+  #### `ASPECT_RATIO`
+  Sets the aspect ratio of the frequency response graph.
+  - `"16:9"` — Standard widescreen (800×450 viewBox).
+  - `"CrinGraph"` — Matches CrinGraph's proportions (800×346 viewBox).
   #### `DEFAULT_Y_SCALE`
   Sets the default display range for the Y-axis (dB).
   - You can choose from 30, 40, 50, 60, or 80.
@@ -160,6 +165,21 @@ URL: {
 - `COMPRESS_URL`: Sets whether to compress the URL.
   - When activated, the URL is compressed using the base62 algorithm.
   - Choose `true` or `false`.
+
+### `CDN_MODE`
+```JavaScript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
+},
+```
+Configures CDN deployment settings. **Only used when deploying with `cdn-index.html`** — leave this section commented out for standard `dist/` deployments.
+- `MAJOR_VERSION`: Pins the app to a specific major version (e.g., `2` means auto-update within v2.x.x).
+- `BASE`: Custom CDN base URL. Only change this if you're hosting the CDN assets yourself (advanced use).
+
+:::info[Standard Deployment]
+If you are using the standard deployment method (uploading the full `dist/` folder), you do not need this section. It is only relevant for CDN deployments using `cdn-index.html`.
+:::
 
 ### `LANGUAGE`
 ```JavaScript

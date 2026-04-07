@@ -5,7 +5,7 @@ import type { FRDataType, FRDataPoint, ChannelData, ParsedFRData, PhoneFileRefer
 export interface FRParseResult extends ParsedFRData {
   _samples?: SampleData[];
   _sampleCount?: number;
-  _hptfRigs?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
+  _hptfSamples?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
   _hptfLabels?: string[];
   _hptfOnly?: boolean;
   _hptfFillOnly?: boolean;
@@ -99,11 +99,11 @@ const FRParser = {
         return { ...averaged, _samples: samples, _sampleCount: variant.sampleCount };
       }
 
-      // HpTF path: fetch all rig measurements, compute averaged channels as main data
+      // HpTF path: fetch all HpTF samples, compute averaged channels as main data
       if (variant.hptfFiles && variant.hptfLabels) {
         const hptfResult = await FRParser.getFRHpTFData(variant.hptfFiles, variant.hptfLabels);
         const fillOnly = variant.hptfFillOnly ?? true;
-        const averaged = FRParser._averageRigData(hptfResult._hptfRigs);
+        const averaged = FRParser._averageSampleData(hptfResult._hptfSamples);
         return { ...averaged, ...hptfResult, _hptfOnly: true, _hptfFillOnly: fillOnly };
       }
 
@@ -164,37 +164,37 @@ const FRParser = {
   },
 
   /**
-   * Fetch and parse HpTF rig measurement data
+   * Fetch and parse HpTF sample measurement data
    */
   async getFRHpTFData(
     hptfFiles: PhoneFileReference[],
     hptfLabels: string[]
-  ): Promise<{ _hptfRigs: Array<{ label: string; L?: ChannelData; R?: ChannelData }>; _hptfLabels: string[] }> {
-    const rigs = await Promise.all(
+  ): Promise<{ _hptfSamples: Array<{ label: string; L?: ChannelData; R?: ChannelData }>; _hptfLabels: string[] }> {
+    const samples = await Promise.all(
       hptfFiles.map(async (fileRef, index) => {
-        const rig: { label: string; L?: ChannelData; R?: ChannelData } = {
-          label: hptfLabels[index] ?? `Rig ${index + 1}`
+        const sample: { label: string; L?: ChannelData; R?: ChannelData } = {
+          label: hptfLabels[index] ?? `Sample ${index + 1}`
         };
         const [lRaw, rRaw] = await Promise.all([
           this._fetchFRTextData('phone', fileRef.L),
           this._fetchFRTextData('phone', fileRef.R),
         ]);
-        if (lRaw) rig.L = await this.parseFRData(lRaw);
-        if (rRaw) rig.R = await this.parseFRData(rRaw);
-        return rig;
+        if (lRaw) sample.L = await this.parseFRData(lRaw);
+        if (rRaw) sample.R = await this.parseFRData(rRaw);
+        return sample;
       })
     );
-    return { _hptfRigs: rigs, _hptfLabels: hptfLabels };
+    return { _hptfSamples: samples, _hptfLabels: hptfLabels };
   },
 
-  /** Average channel data across all HpTF rigs to produce main channels */
-  _averageRigData(rigs: Array<{ label: string; L?: ChannelData; R?: ChannelData }>): ParsedFRData {
+  /** Average channel data across all HpTF samples to produce main channels */
+  _averageSampleData(samples: Array<{ label: string; L?: ChannelData; R?: ChannelData }>): ParsedFRData {
     const averaged: ParsedFRData = {};
 
-    const lChannels = rigs.filter((r) => r.L).map((r) => r.L!);
+    const lChannels = samples.filter((s) => s.L).map((s) => s.L!);
     if (lChannels.length > 0) averaged.L = FRParser._averageChannelData(lChannels);
 
-    const rChannels = rigs.filter((r) => r.R).map((r) => r.R!);
+    const rChannels = samples.filter((s) => s.R).map((s) => s.R!);
     if (rChannels.length > 0) averaged.R = FRParser._averageChannelData(rChannels);
 
     if (averaged.L && averaged.R) {

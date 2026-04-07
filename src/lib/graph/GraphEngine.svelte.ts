@@ -616,32 +616,51 @@ class GraphEngine {
 			}
 		}
 
-		// Draw individual HpTF rig curves
+		// Draw individual HpTF sample curves
 		if (obj.hptf && obj.dispHptf?.length) {
 			for (const key of obj.dispHptf) {
-				const match = key.match(/^rig(\d+)_(L|R|AVG)$/);
+				const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
 				if (!match) continue;
-				const rigIndex = parseInt(match[1]);
+				const sampleIndex = parseInt(match[1]);
 				const channel = match[2] as 'L' | 'R' | 'AVG';
-				const rig = obj.hptf.rigs[rigIndex];
-				if (!rig?.[channel]) continue;
+				const hptfSample = obj.hptf.samples[sampleIndex];
+				if (!hptfSample?.[channel]) continue;
 
 				const color = obj.colors.AVG;
 
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(rig[channel]!.data))
-					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-rig-curve')
+					.datum(() => FRSmoother.smooth(hptfSample[channel]!.data))
+					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-sample-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
 					.attr('channel', key)
-					.attr('hptf-rig', 'true')
+					.attr('hptf-sample', 'true')
 					.attr('identifier', obj.identifier)
 					.attr('stroke', color)
 					.attr('stroke-width', String(baseThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
 					.attr('d', (d) => this._getCompensatedPath(d));
 			}
+		}
+
+		// Draw HpTF average curve (mean of all samples, when hptfOnly)
+		if (obj.hptfOnly && obj.hptfAvgVisible) {
+			channels.forEach((channel) => {
+				if (!obj.channels[channel]) return;
+				this.curveGroup
+					.append('path')
+					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
+					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-avg-curve')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('channel', channel)
+					.attr('hptf-avg', 'true')
+					.attr('identifier', obj.identifier)
+					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
+					.attr('stroke-width', String(baseThickness * 1.5))
+					.attr('d', (d) => this._getCompensatedPath(d));
+			});
 		}
 
 		// Draw main channels (skip if hptfOnly)

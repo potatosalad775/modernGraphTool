@@ -265,36 +265,36 @@ describe('FRParser', () => {
 		});
 	});
 
-	// ── HpTF rig averaging ──────────────────────────────────────────────────
+	// ── HpTF sample averaging ───────────────────────────────────────────────
 
-	describe('_averageRigData', () => {
-		it('averages L channels across rigs', () => {
-			const rig1 = { label: 'Rig A', L: makeChannelData(80, 10) };
-			const rig2 = { label: 'Rig B', L: makeChannelData(90, 10) };
-			const result = FRParser._averageRigData([rig1, rig2]);
+	describe('_averageSampleData', () => {
+		it('averages L channels across samples', () => {
+			const s1 = { label: 'Sample A', L: makeChannelData(80, 10) };
+			const s2 = { label: 'Sample B', L: makeChannelData(90, 10) };
+			const result = FRParser._averageSampleData([s1, s2]);
 			expect(result.L).toBeDefined();
 			for (let i = 0; i < 10; i++) {
-				const expected = (rig1.L!.data[i][1] + rig2.L!.data[i][1]) / 2;
+				const expected = (s1.L!.data[i][1] + s2.L!.data[i][1]) / 2;
 				expect(result.L!.data[i][1]).toBeCloseTo(expected, 10);
 			}
 		});
 
 		it('computes AVG from averaged L and R', () => {
-			const rig1 = { label: 'A', L: makeChannelData(80, 5), R: makeChannelData(78, 5) };
-			const rig2 = { label: 'B', L: makeChannelData(90, 5), R: makeChannelData(88, 5) };
-			const result = FRParser._averageRigData([rig1, rig2]);
+			const s1 = { label: 'A', L: makeChannelData(80, 5), R: makeChannelData(78, 5) };
+			const s2 = { label: 'B', L: makeChannelData(90, 5), R: makeChannelData(88, 5) };
+			const result = FRParser._averageSampleData([s1, s2]);
 			expect(result.AVG).toBeDefined();
 			for (let i = 0; i < 5; i++) {
-				const avgL = (rig1.L!.data[i][1] + rig2.L!.data[i][1]) / 2;
-				const avgR = (rig1.R!.data[i][1] + rig2.R!.data[i][1]) / 2;
+				const avgL = (s1.L!.data[i][1] + s2.L!.data[i][1]) / 2;
+				const avgR = (s1.R!.data[i][1] + s2.R!.data[i][1]) / 2;
 				expect(result.AVG!.data[i][1]).toBeCloseTo((avgL + avgR) / 2, 10);
 			}
 		});
 
-		it('handles rigs with only L channel', () => {
-			const rig1 = { label: 'A', L: makeChannelData(80, 5) };
-			const rig2 = { label: 'B', L: makeChannelData(90, 5) };
-			const result = FRParser._averageRigData([rig1, rig2]);
+		it('handles samples with only L channel', () => {
+			const s1 = { label: 'A', L: makeChannelData(80, 5) };
+			const s2 = { label: 'B', L: makeChannelData(90, 5) };
+			const result = FRParser._averageSampleData([s1, s2]);
 			expect(result.L).toBeDefined();
 			expect(result.R).toBeUndefined();
 			expect(result.AVG).toBeUndefined();
@@ -302,19 +302,19 @@ describe('FRParser', () => {
 	});
 
 	describe('getFRHpTFData', () => {
-		it('handles non-existent rig files gracefully', async () => {
+		it('handles non-existent sample files gracefully', async () => {
 			const result = await FRParser.getFRHpTFData(
 				[
-					{ L: 'nonexistent_rig1_L.txt', R: 'nonexistent_rig1_R.txt' },
-					{ L: 'nonexistent_rig2_L.txt', R: 'nonexistent_rig2_R.txt' },
+					{ L: 'nonexistent_sample1_L.txt', R: 'nonexistent_sample1_R.txt' },
+					{ L: 'nonexistent_sample2_L.txt', R: 'nonexistent_sample2_R.txt' },
 				],
-				['Rig A', 'Rig B']
+				['Sample A', 'Sample B']
 			);
-			expect(result._hptfRigs.length).toBe(2);
-			expect(result._hptfRigs[0].label).toBe('Rig A');
-			expect(result._hptfRigs[1].label).toBe('Rig B');
-			expect(result._hptfRigs[0].L).toBeUndefined();
-			expect(result._hptfLabels).toEqual(['Rig A', 'Rig B']);
+			expect(result._hptfSamples.length).toBe(2);
+			expect(result._hptfSamples[0].label).toBe('Sample A');
+			expect(result._hptfSamples[1].label).toBe('Sample B');
+			expect(result._hptfSamples[0].L).toBeUndefined();
+			expect(result._hptfLabels).toEqual(['Sample A', 'Sample B']);
 		});
 	});
 });

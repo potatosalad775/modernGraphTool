@@ -112,7 +112,7 @@ const CONFIG = {
   MULTI_SAMPLE: {
     DEFAULT_DISPLAY: "average",                           // ("average" or "all") - default sample display on load
   },
-  // HpTF (Headphone Transfer Function) Rig Deviation Settings
+  // HpTF (Headphone Transfer Function) Sample Deviation Settings
   HPTF: {
     DEFAULT_DISPLAY: "fill+curves",                         // ("fill", "fill+curves", "curves", "none") - default HpTF display on load
     FILL_OPACITY: 0.3,                                      // Opacity of the deviation fill area (0-1)

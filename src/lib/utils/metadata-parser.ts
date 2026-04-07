@@ -297,7 +297,7 @@ const MetadataParser = {
     });
   },
 
-  /** Generate HpTF rig file references */
+  /** Generate HpTF sample file references */
   _generateHpTFFiles(fileNames: string[]): PhoneFileReference[] {
     return fileNames.map((f) => ({
       L: `${f} L.txt`,

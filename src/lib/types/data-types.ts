@@ -36,15 +36,15 @@ export type SampleChannelKey = 'L' | 'R' | 'AVG' | `L${number}` | `R${number}`;
 
 // ── HpTF (Headphone Transfer Function) ──────────────────────────────────────
 
-/** Single rig measurement for HpTF */
-export interface HpTFRigData {
+/** Single HpTF measurement sample */
+export interface HpTFSampleData {
   label: string;
   L?: ChannelData;
   R?: ChannelData;
   AVG?: ChannelData;
 }
 
-/** Min/max envelope computed across all rig measurements */
+/** Min/max envelope computed across all HpTF samples */
 export interface HpTFEnvelope {
   upper: FRDataPoint[];
   lower: FRDataPoint[];
@@ -52,15 +52,15 @@ export interface HpTFEnvelope {
 
 /** Complete HpTF data attached to an FRDataObject */
 export interface HpTFData {
-  rigs: HpTFRigData[];
+  samples: HpTFSampleData[];
   envelope: Record<'L' | 'R' | 'AVG', HpTFEnvelope>;
   labels: string[];
-  /** When true, only the fill envelope is shown — no individual rig curve toggles. Default: true. */
+  /** When true, only the fill envelope is shown — no individual sample curve toggles. Default: true. */
   fillOnly: boolean;
 }
 
-/** Display key for HpTF rig curves, e.g. "rig0_AVG", "rig1_L" */
-export type HpTFDisplayKey = `rig${number}_${'L' | 'R' | 'AVG'}`;
+/** Display key for HpTF sample curves, e.g. "sample0_AVG", "sample1_L" */
+export type HpTFDisplayKey = `sample${number}_${'L' | 'R' | 'AVG'}`;
 
 /** Color scheme for frequency response traces */
 export interface FRColors {
@@ -96,12 +96,14 @@ export interface FRDataObject {
   dispSamples?: SampleChannelKey[];
   /** Number of samples (derived from samples.length). */
   sampleCount?: number;
-  /** HpTF (rig deviation) data. If present, deviation fill can be rendered. */
+  /** HpTF deviation data. If present, deviation fill can be rendered. */
   hptf?: HpTFData;
-  /** Which individual HpTF rig curves to display. */
+  /** Which individual HpTF sample curves to display. */
   dispHptf?: HpTFDisplayKey[];
   /** Whether the HpTF deviation fill area is visible. */
   hptfFillVisible?: boolean;
+  /** Whether the HpTF average curve (mean of all samples) is visible. */
+  hptfAvgVisible?: boolean;
   /** When true, main channels are not drawn (HpTF-only mode, no file field in phone_book). */
   hptfOnly?: boolean;
 }
@@ -144,13 +146,13 @@ export interface PhoneFileVariant {
   sampleFiles?: PhoneFileReference[];
   /** Number of samples for this variant */
   sampleCount?: number;
-  /** HpTF rig file references */
+  /** HpTF sample file references */
   hptfFiles?: PhoneFileReference[];
-  /** Human-readable labels for each HpTF rig */
+  /** Human-readable labels for each HpTF sample */
   hptfLabels?: string[];
   /** True when file was omitted — main curve should not render */
   hptfOnly?: boolean;
-  /** When true, only fill envelope is shown — no individual rig curve toggles. Default: true. */
+  /** When true, only fill envelope is shown — no individual sample curve toggles. Default: true. */
   hptfFillOnly?: boolean;
 }
 
@@ -167,7 +169,7 @@ export interface RawPhoneData {
   description?: string;
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
-  /** HpTF rig-to-rig deviation configuration */
+  /** HpTF deviation configuration */
   hptf?: { files: string[]; labels?: string[]; fillOnly?: boolean };
 }
 

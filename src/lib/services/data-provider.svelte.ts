@@ -8,7 +8,7 @@ import type {
 	PhoneMetadata,
 	SampleChannelKey,
 	SampleData,
-	HpTFRigData,
+	HpTFSampleData,
 	HpTFEnvelope,
 	HpTFDisplayKey
 } from '$lib/types/data-types.js';
@@ -111,12 +111,12 @@ class DataProvider {
 			}
 		}
 
-		// HpTF: process and attach rig data + envelope
-		if (rawData._hptfRigs && rawData._hptfLabels) {
-			const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
-				const processed: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
-				if (rig.L) processed.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
-				if (rig.R) processed.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+		// HpTF: process and attach sample data + envelope
+		if (rawData._hptfSamples && rawData._hptfLabels) {
+			const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
+				const processed: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
+				if (sample.L) processed.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+				if (sample.R) processed.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
 				if (processed.L && processed.R) {
 					processed.AVG = {
 						data: processed.L.data.map(([freq, lDb], idx) => [
@@ -130,20 +130,21 @@ class DataProvider {
 
 			const fillOnly = rawData._hptfFillOnly ?? true;
 			frObject.hptf = {
-				rigs: processedRigs,
-				envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+				samples: processedSamples,
+				envelope: this.#computeAllHpTFEnvelopes(processedSamples),
 				labels: rawData._hptfLabels,
 				fillOnly
 			};
 
 			const defaultDisplay = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
 			frObject.hptfFillVisible = defaultDisplay === 'fill' || defaultDisplay === 'fill+curves';
+			frObject.hptfAvgVisible = defaultDisplay !== 'none';
 			frObject.dispHptf = fillOnly
 				? []
 				: (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
-					? this.#getAllHpTFKeys(processedRigs)
+					? this.#getAllHpTFKeys(processedSamples)
 					: [];
-			frObject.colors = { 
+			frObject.colors = {
 				...frObject.colors, 
 				hptfStroke: this.#getHpTFStrokeColor(frObject.colors),
 				hptfFill: this.#getHpTFFillColor(frObject.colors) 
@@ -332,13 +333,13 @@ class DataProvider {
 		}
 
 		// Re-attach HpTF data for the new variant
-		if (rawData._hptfRigs && rawData._hptfLabels) {
+		if (rawData._hptfSamples && rawData._hptfLabels) {
 			const existingData = frStore.get(uuid);
 			if (existingData) {
-				const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
-					const p: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
-					if (rig.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
-					if (rig.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+				const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
+					const p: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
+					if (sample.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+					if (sample.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
 					if (p.L && p.R) {
 						p.AVG = {
 							data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
@@ -351,8 +352,8 @@ class DataProvider {
 				frStore.set(uuid, {
 					...existingData,
 					hptf: {
-						rigs: processedRigs,
-						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+						samples: processedSamples,
+						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
 						labels: rawData._hptfLabels,
 						fillOnly: variantFillOnly
 					},
@@ -385,9 +386,9 @@ class DataProvider {
 
 	// ─── Update HpTF display ─────────────────────────────────────────────────
 
-	updateHpTFDisplay(uuid: string, dispHptf: HpTFDisplayKey[], hptfFillVisible: boolean): void {
+	updateHpTFDisplay(uuid: string, dispHptf: HpTFDisplayKey[], hptfFillVisible: boolean, hptfAvgVisible: boolean): void {
 		if (!frStore.has(uuid)) return;
-		commandHistory.execute(new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible), frStore);
+		commandHistory.execute(new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible, hptfAvgVisible), frStore);
 	}
 
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
@@ -416,13 +417,13 @@ class DataProvider {
 					return s;
 				});
 			}
-			// Re-normalize HpTF rig data
+			// Re-normalize HpTF sample data
 			if (data.hptf) {
-				const reNormedRigs = this.#reprocessHpTFRigs(data.hptf.rigs, false);
+				const reNormedSamples = this.#reprocessHpTFSamples(data.hptf.samples, false);
 				updated.hptf = {
 					...data.hptf,
-					rigs: reNormedRigs,
-					envelope: this.#computeAllHpTFEnvelopes(reNormedRigs)
+					samples: reNormedSamples,
+					envelope: this.#computeAllHpTFEnvelopes(reNormedSamples)
 				};
 			}
 			frStore.set(uuid, updated);
@@ -466,12 +467,12 @@ class DataProvider {
 					});
 					updated.sampleCount = rawData._sampleCount;
 				}
-				// Re-process HpTF rig data
-				if (rawData._hptfRigs && rawData._hptfLabels) {
-					const processedRigs: HpTFRigData[] = rawData._hptfRigs.map((rig, i) => {
-						const p: HpTFRigData = { label: rawData._hptfLabels![i] ?? `Rig ${i + 1}` };
-						if (rig.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: rig.L }), graphStore.normType, graphStore.normHzValue).L;
-						if (rig.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: rig.R }), graphStore.normType, graphStore.normHzValue).R;
+				// Re-process HpTF sample data
+				if (rawData._hptfSamples && rawData._hptfLabels) {
+					const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
+						const p: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
+						if (sample.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
+						if (sample.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
 						if (p.L && p.R) {
 							p.AVG = {
 								data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
@@ -481,8 +482,8 @@ class DataProvider {
 						return p;
 					});
 					updated.hptf = {
-						rigs: processedRigs,
-						envelope: this.#computeAllHpTFEnvelopes(processedRigs),
+						samples: processedSamples,
+						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
 						labels: rawData._hptfLabels,
 						fillOnly: rawData._hptfFillOnly ?? true
 					};
@@ -652,20 +653,20 @@ class DataProvider {
 
 	// ─── HpTF helpers ────────────────────────────────────────────────────────
 
-	/** Compute min/max envelope for a single channel across all rigs */
-	#computeHpTFEnvelope(rigs: HpTFRigData[], channel: 'L' | 'R' | 'AVG'): HpTFEnvelope {
-		const rigDataArrays = rigs
-			.map((r) => r[channel]?.data)
+	/** Compute min/max envelope for a single channel across all HpTF samples */
+	#computeHpTFEnvelope(samples: HpTFSampleData[], channel: 'L' | 'R' | 'AVG'): HpTFEnvelope {
+		const sampleDataArrays = samples
+			.map((s) => s[channel]?.data)
 			.filter((d): d is FRDataPoint[] => !!d);
 
-		if (rigDataArrays.length < 2) return { upper: [], lower: [] };
+		if (sampleDataArrays.length < 2) return { upper: [], lower: [] };
 
-		const upper: FRDataPoint[] = rigDataArrays[0].map(([freq], idx) => {
-			const max = Math.max(...rigDataArrays.map((d) => d[idx][1]));
+		const upper: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
+			const max = Math.max(...sampleDataArrays.map((d) => d[idx][1]));
 			return [freq, max] as FRDataPoint;
 		});
-		const lower: FRDataPoint[] = rigDataArrays[0].map(([freq], idx) => {
-			const min = Math.min(...rigDataArrays.map((d) => d[idx][1]));
+		const lower: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
+			const min = Math.min(...sampleDataArrays.map((d) => d[idx][1]));
 			return [freq, min] as FRDataPoint;
 		});
 
@@ -673,22 +674,22 @@ class DataProvider {
 	}
 
 	/** Compute envelopes for all channels */
-	#computeAllHpTFEnvelopes(rigs: HpTFRigData[]): Record<'L' | 'R' | 'AVG', HpTFEnvelope> {
+	#computeAllHpTFEnvelopes(samples: HpTFSampleData[]): Record<'L' | 'R' | 'AVG', HpTFEnvelope> {
 		return {
-			L: this.#computeHpTFEnvelope(rigs, 'L'),
-			R: this.#computeHpTFEnvelope(rigs, 'R'),
-			AVG: this.#computeHpTFEnvelope(rigs, 'AVG'),
+			L: this.#computeHpTFEnvelope(samples, 'L'),
+			R: this.#computeHpTFEnvelope(samples, 'R'),
+			AVG: this.#computeHpTFEnvelope(samples, 'AVG'),
 		};
 	}
 
-	/** Generate all HpTF display keys (AVG per rig by default) */
-	#getAllHpTFKeys(rigs: HpTFRigData[]): HpTFDisplayKey[] {
+	/** Generate all HpTF display keys (AVG per sample by default) */
+	#getAllHpTFKeys(samples: HpTFSampleData[]): HpTFDisplayKey[] {
 		const keys: HpTFDisplayKey[] = [];
-		rigs.forEach((rig, i) => {
-			if (rig.AVG) keys.push(`rig${i}_AVG` as HpTFDisplayKey);
+		samples.forEach((sample, i) => {
+			if (sample.AVG) keys.push(`sample${i}_AVG` as HpTFDisplayKey);
 			else {
-				if (rig.L) keys.push(`rig${i}_L` as HpTFDisplayKey);
-				if (rig.R) keys.push(`rig${i}_R` as HpTFDisplayKey);
+				if (sample.L) keys.push(`sample${i}_L` as HpTFDisplayKey);
+				if (sample.R) keys.push(`sample${i}_R` as HpTFDisplayKey);
 			}
 		});
 		return keys;
@@ -716,16 +717,16 @@ class DataProvider {
 		return base;
 	}
 
-	/** Re-process HpTF rigs (normalize only, not re-smooth) */
-	#reprocessHpTFRigs(rigs: HpTFRigData[], smooth: boolean): HpTFRigData[] {
-		return rigs.map((rig) => {
-			const p: HpTFRigData = { label: rig.label };
-			if (rig.L) {
-				const src = smooth ? FRSmoother.smoothChannels({ L: rig.L }) : { L: rig.L };
+	/** Re-process HpTF samples (normalize only, not re-smooth) */
+	#reprocessHpTFSamples(samples: HpTFSampleData[], smooth: boolean): HpTFSampleData[] {
+		return samples.map((sample) => {
+			const p: HpTFSampleData = { label: sample.label };
+			if (sample.L) {
+				const src = smooth ? FRSmoother.smoothChannels({ L: sample.L }) : { L: sample.L };
 				p.L = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).L;
 			}
-			if (rig.R) {
-				const src = smooth ? FRSmoother.smoothChannels({ R: rig.R }) : { R: rig.R };
+			if (sample.R) {
+				const src = smooth ? FRSmoother.smoothChannels({ R: sample.R }) : { R: sample.R };
 				p.R = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).R;
 			}
 			if (p.L && p.R) {

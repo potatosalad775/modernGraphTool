@@ -69,9 +69,10 @@
 
 	let hasHptf = $derived(!!item.hptf);
 	let hptfFillOnly = $derived(item.hptf?.fillOnly ?? true);
-	let hptfRigs = $derived(item.hptf?.rigs ?? []);
+	let hptfSamples = $derived(item.hptf?.samples ?? []);
 	let dispHptf = $derived(item.dispHptf ?? []);
 	let hptfFillVisible = $derived(item.hptfFillVisible ?? false);
+	let hptfAvgVisible = $derived(item.hptfAvgVisible ?? false);
 
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -116,50 +117,54 @@
 	// ── HpTF handlers ───────────────────────────────────────────────────────────
 
 	function handleHptfFillToggle(): void {
-		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], !hptfFillVisible);
+		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], !hptfFillVisible, hptfAvgVisible);
 	}
 
-	function handleHptfRigToggle(rigIndex: number): void {
+	function handleHptfAvgToggle(): void {
+		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], hptfFillVisible, !hptfAvgVisible);
+	}
+
+	function handleHptfSampleToggle(sampleIndex: number): void {
 		const current = [...dispHptf];
-		// Find keys matching this rig (could be rig0_AVG, rig0_L, rig0_R)
-		const rigPrefix = `rig${rigIndex}_`;
-		const existingKeys = current.filter((k) => k.startsWith(rigPrefix));
+		// Find keys matching this sample (could be sample0_AVG, sample0_L, sample0_R)
+		const samplePrefix = `sample${sampleIndex}_`;
+		const existingKeys = current.filter((k) => k.startsWith(samplePrefix));
 
 		if (existingKeys.length > 0) {
-			// Remove all keys for this rig
-			const next = current.filter((k) => !k.startsWith(rigPrefix));
-			dataProvider.updateHpTFDisplay(uuid, next, hptfFillVisible);
+			// Remove all keys for this sample
+			const next = current.filter((k) => !k.startsWith(samplePrefix));
+			dataProvider.updateHpTFDisplay(uuid, next, hptfFillVisible, hptfAvgVisible);
 		} else {
-			// Add AVG key for this rig (or L if no AVG)
-			const rig = item.hptf?.rigs[rigIndex];
-			if (rig) {
-				const key = rig.AVG
-					? `rig${rigIndex}_AVG`
-					: rig.L
-						? `rig${rigIndex}_L`
-						: `rig${rigIndex}_R`;
+			// Add AVG key for this sample (or L if no AVG)
+			const sample = item.hptf?.samples[sampleIndex];
+			if (sample) {
+				const key = sample.AVG
+					? `sample${sampleIndex}_AVG`
+					: sample.L
+						? `sample${sampleIndex}_L`
+						: `sample${sampleIndex}_R`;
 				current.push(key as HpTFDisplayKey);
-				dataProvider.updateHpTFDisplay(uuid, current, hptfFillVisible);
+				dataProvider.updateHpTFDisplay(uuid, current, hptfFillVisible, hptfAvgVisible);
 			}
 		}
 	}
 
 	function handleHptfPreset(preset: 'all' | 'none'): void {
 		if (preset === 'none') {
-			dataProvider.updateHpTFDisplay(uuid, [], hptfFillVisible);
+			dataProvider.updateHpTFDisplay(uuid, [], hptfFillVisible, hptfAvgVisible);
 		} else {
 			const keys: HpTFDisplayKey[] = [];
-			item.hptf?.rigs.forEach((rig, i) => {
-				if (rig.AVG) keys.push(`rig${i}_AVG` as HpTFDisplayKey);
-				else if (rig.L) keys.push(`rig${i}_L` as HpTFDisplayKey);
-				else if (rig.R) keys.push(`rig${i}_R` as HpTFDisplayKey);
+			item.hptf?.samples.forEach((sample, i) => {
+				if (sample.AVG) keys.push(`sample${i}_AVG` as HpTFDisplayKey);
+				else if (sample.L) keys.push(`sample${i}_L` as HpTFDisplayKey);
+				else if (sample.R) keys.push(`sample${i}_R` as HpTFDisplayKey);
 			});
-			dataProvider.updateHpTFDisplay(uuid, keys, hptfFillVisible);
+			dataProvider.updateHpTFDisplay(uuid, keys, hptfFillVisible, hptfAvgVisible);
 		}
 	}
 
-	function isRigChecked(rigIndex: number): boolean {
-		return dispHptf.some((k) => k.startsWith(`rig${rigIndex}_`));
+	function isHptfSampleChecked(sampleIndex: number): boolean {
+		return dispHptf.some((k) => k.startsWith(`sample${sampleIndex}_`));
 	}
 </script>
 
@@ -262,12 +267,26 @@
 				</div>
 			{/if}
 
-			<!-- Section 3: HpTF Rigs -->
+			<!-- Section 3: HpTF Samples -->
 			{#if hasHptf}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
 					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
 						{m.selection_list_hptf_header()}
 					</p>
+
+					<!-- Average toggle -->
+					<label
+						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+							 hover:bg-base-300"
+					>
+						<input
+							type="checkbox"
+							checked={hptfAvgVisible}
+							onchange={handleHptfAvgToggle}
+							class="accent-accent"
+						/>
+						{m.selection_list_hptf_avg_toggle()}
+					</label>
 
 					<!-- Fill toggle -->
 					<label
@@ -283,20 +302,20 @@
 						{m.selection_list_hptf_fill_toggle()}
 					</label>
 
-					<!-- Rig checkboxes: only when fillOnly is false -->
-					{#if !hptfFillOnly && hptfRigs.length > 0}
-						{#each hptfRigs as rig, i (i)}
+					<!-- Sample checkboxes: only when fillOnly is false -->
+					{#if !hptfFillOnly && hptfSamples.length > 0}
+						{#each hptfSamples as sample, i (i)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
 									 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
-									checked={isRigChecked(i)}
-									onchange={() => handleHptfRigToggle(i)}
+									checked={isHptfSampleChecked(i)}
+									onchange={() => handleHptfSampleToggle(i)}
 									class="accent-accent"
 								/>
-								{rig.label}
+								{sample.label}
 							</label>
 						{/each}
 

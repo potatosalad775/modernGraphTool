@@ -273,13 +273,16 @@ export class UpdateHpTFDisplayCommand implements Command {
   #uuid: string;
   #newDispHptf: HpTFDisplayKey[];
   #newFillVisible: boolean;
+  #newAvgVisible: boolean;
   #oldDispHptf: HpTFDisplayKey[] | null = null;
   #oldFillVisible: boolean | null = null;
+  #oldAvgVisible: boolean | null = null;
 
-  constructor(uuid: string, dispHptf: HpTFDisplayKey[], fillVisible: boolean) {
+  constructor(uuid: string, dispHptf: HpTFDisplayKey[], fillVisible: boolean, avgVisible: boolean) {
     this.#uuid = uuid;
     this.#newDispHptf = [...dispHptf];
     this.#newFillVisible = fillVisible;
+    this.#newAvgVisible = avgVisible;
   }
 
   execute(store: FRStoreWriteAPI): void {
@@ -287,10 +290,12 @@ export class UpdateHpTFDisplayCommand implements Command {
     if (!data) return;
     this.#oldDispHptf = data.dispHptf ? [...data.dispHptf] : [];
     this.#oldFillVisible = data.hptfFillVisible ?? false;
+    this.#oldAvgVisible = data.hptfAvgVisible ?? false;
     store.set(this.#uuid, {
       ...data,
       dispHptf: this.#newDispHptf,
-      hptfFillVisible: this.#newFillVisible
+      hptfFillVisible: this.#newFillVisible,
+      hptfAvgVisible: this.#newAvgVisible
     });
   }
 
@@ -300,7 +305,8 @@ export class UpdateHpTFDisplayCommand implements Command {
     store.set(this.#uuid, {
       ...data,
       dispHptf: this.#oldDispHptf,
-      hptfFillVisible: this.#oldFillVisible ?? false
+      hptfFillVisible: this.#oldFillVisible ?? false,
+      hptfAvgVisible: this.#oldAvgVisible ?? false
     });
   }
 

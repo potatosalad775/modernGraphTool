@@ -639,7 +639,7 @@ const CONFIG = {`);
 
   // HPTF
   if (config.HPTF) {
-    sections.push(`  // HpTF (Headphone Transfer Function) Rig Deviation Settings
+    sections.push(`  // HpTF (Headphone Transfer Function) Sample Deviation Settings
   HPTF: ${prettyPrint(config.HPTF, 1)},`);
   }
 

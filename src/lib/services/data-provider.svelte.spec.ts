@@ -58,15 +58,15 @@ function makeTargetObject(uuid: string, overrides: Partial<FRDataObject> = {}): 
 
 function makeHpTFData(): HpTFData {
 	return {
-		rigs: [
+		samples: [
 			{
-				label: 'Rig A',
+				label: 'Sample A',
 				L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
 				R: { data: makeFRPoints(78), metadata: { minFreq: 20, maxFreq: 20000 } },
 				AVG: { data: makeFRPoints(79), metadata: { minFreq: 20, maxFreq: 20000 } },
 			},
 			{
-				label: 'Rig B',
+				label: 'Sample B',
 				L: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } },
 				R: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
 				AVG: { data: makeFRPoints(81), metadata: { minFreq: 20, maxFreq: 20000 } },
@@ -77,7 +77,7 @@ function makeHpTFData(): HpTFData {
 			R: { upper: makeFRPoints(80), lower: makeFRPoints(78) },
 			AVG: { upper: makeFRPoints(81), lower: makeFRPoints(79) },
 		},
-		labels: ['Rig A', 'Rig B'],
+		labels: ['Sample A', 'Sample B'],
 		fillOnly: true,
 	};
 }
@@ -379,10 +379,10 @@ describe('DataProvider', () => {
 	// ── HpTF display ─────────────────────────────────────────────────────
 
 	describe('updateHpTFDisplay', () => {
-		it('sets dispHptf and hptfFillVisible on a loaded phone', () => {
+		it('sets dispHptf, hptfFillVisible, and hptfAvgVisible on a loaded phone', () => {
 			frStore.set('a', makeFRDataObject('a', {
 				hptf: {
-					rigs: [
+					samples: [
 						{ label: 'GRAS', AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
 						{ label: 'B&K', AVG: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } },
 					],
@@ -396,33 +396,38 @@ describe('DataProvider', () => {
 				},
 				dispHptf: [],
 				hptfFillVisible: false,
+				hptfAvgVisible: false,
 			}));
-			dataProvider.updateHpTFDisplay('a', ['rig0_AVG', 'rig1_AVG'], true);
-			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG', 'rig1_AVG']);
+			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], true, true);
+			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
+			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
 		});
 
 		it('does nothing for non-existent UUID', () => {
-			dataProvider.updateHpTFDisplay('nonexistent', ['rig0_AVG'], true);
+			dataProvider.updateHpTFDisplay('nonexistent', ['sample0_AVG'], true, false);
 			expect(frStore.size).toBe(0);
 		});
 
 		it('is undoable', () => {
-			frStore.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
-			dataProvider.updateHpTFDisplay('a', ['rig0_AVG', 'rig1_AVG'], false);
-			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG', 'rig1_AVG']);
+			frStore.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: true }));
+			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], false, false);
+			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
+			expect(frStore.get('a')!.hptfAvgVisible).toBe(false);
 
 			commandHistory.undo(frStore);
-			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG']);
+			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
+			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
 		});
 
-		it('can toggle fill off while keeping rig curves', () => {
-			frStore.set('a', makeFRDataObject('a', { dispHptf: ['rig0_AVG'], hptfFillVisible: true }));
-			dataProvider.updateHpTFDisplay('a', ['rig0_AVG'], false);
+		it('can toggle fill off while keeping sample curves', () => {
+			frStore.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: true }));
+			dataProvider.updateHpTFDisplay('a', ['sample0_AVG'], false, true);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
-			expect(frStore.get('a')!.dispHptf).toEqual(['rig0_AVG']);
+			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
+			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
 		});
 	});
 
@@ -477,16 +482,16 @@ describe('DataProvider', () => {
 			frStore.set('p', makeFRDataObject('p', {
 				hptf,
 				hptfFillVisible: true,
-				dispHptf: ['rig0_AVG'],
+				dispHptf: ['sample0_AVG'],
 			}));
 			dataProvider.updateFRDataWithRawData('p', {
 				AVG: { data: makeFRPoints(99), metadata: { minFreq: 20, maxFreq: 20000 } }
 			});
 			const updated = frStore.get('p')!;
 			expect(updated.hptf).toBeDefined();
-			expect(updated.hptf!.rigs).toHaveLength(2);
+			expect(updated.hptf!.samples).toHaveLength(2);
 			expect(updated.hptfFillVisible).toBe(true);
-			expect(updated.dispHptf).toEqual(['rig0_AVG']);
+			expect(updated.dispHptf).toEqual(['sample0_AVG']);
 		});
 	});
 
@@ -511,14 +516,14 @@ describe('DataProvider', () => {
 				channels: makeFullChannelData(),
 				hptf,
 				hptfFillVisible: true,
-				dispHptf: ['rig0_AVG'],
+				dispHptf: ['sample0_AVG'],
 				hptfOnly: true,
 			}));
 			dataProvider.renormalizeAll();
 			const updated = frStore.get('p')!;
 			expect(updated.hptf).toBeDefined();
-			expect(updated.hptf!.rigs).toHaveLength(2);
-			expect(updated.hptf!.labels).toEqual(['Rig A', 'Rig B']);
+			expect(updated.hptf!.samples).toHaveLength(2);
+			expect(updated.hptf!.labels).toEqual(['Sample A', 'Sample B']);
 			expect(updated.hptfFillVisible).toBe(true);
 			expect(updated.hptfOnly).toBe(true);
 		});
@@ -563,7 +568,7 @@ describe('DataProvider', () => {
 			const data = frStore.get('h')!;
 			expect(data.hptfOnly).toBe(true);
 			expect(Object.keys(data.channels)).toHaveLength(0);
-			expect(data.hptf!.rigs).toHaveLength(2);
+			expect(data.hptf!.samples).toHaveLength(2);
 			expect(data.hptf!.envelope.AVG.upper.length).toBeGreaterThan(0);
 		});
 

@@ -10,10 +10,14 @@
 	import type { FRDataPoint, ChannelData } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 
+	// ── Config-driven enable/disable ──────────────────────────────────────────
+	const baseDFTarget = (getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
+	const isEnabled = !!baseDFTarget;
+
 	// ── State ──────────────────────────────────────────────────────────────────
 
 	let isVisible = $state(
-		!!(getConfigValue('PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD') ?? false)
+		isEnabled && !!(getConfigValue('PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD') ?? false)
 	);
 	let isLoaded = $state(false);
 	let rawBoundU = $state<FRDataPoint[] | null>(null);
@@ -34,7 +38,7 @@
 	// ── Data loading ──────────────────────────────────────────────────────────
 
 	$effect(() => {
-		if (!graphEngine.isInitialized || isLoaded) return;
+		if (!isEnabled || !graphEngine.isInitialized || isLoaded) return;
 		loadData();
 	});
 
@@ -61,10 +65,7 @@
 	}
 
 	function fetchDFTarget(): Promise<string> {
-		const file = (
-			getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined
-		) ?? 'KEMAR DF (KB006x) Target';
-		const fileName = file.endsWith('.txt') ? file : `${file}.txt`;
+		const fileName = baseDFTarget.endsWith('.txt') ? baseDFTarget : `${baseDFTarget}.txt`;
 		return fetch(`/data/${fileName}`).then((r) => {
 			if (!r.ok) throw new Error(`Failed to fetch DF target: ${fileName}`);
 			return r.text();
@@ -174,6 +175,7 @@
 	}
 </script>
 
+{#if isEnabled}
 <Button
 	title={m.pref_bound_btn_label()}
 	onclick={toggle}
@@ -182,3 +184,4 @@
 >
 	{m.pref_bound_btn_label()}
 </Button>
+{/if}

@@ -3,6 +3,7 @@
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { getLocale, setLocale } from '$lib/paraglide/runtime.js';
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
+	import * as m from '$lib/paraglide/messages.js';
 
 	type DescriptionItem = { TYPE: string; CONTENT: string };
 
@@ -28,6 +29,7 @@
 	}
 
 	const hideDonate = $derived(!!getConfigValue('INTERFACE.HIDE_DEV_DONATE_BUTTON'));
+	const prefBoundTarget = (getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
 </script>
 
 <div class="flex h-full flex-col gap-4 overflow-y-auto p-4">
@@ -69,17 +71,24 @@
 	{#if description && description.length > 0}
 		<div class="flex flex-col gap-2 text-sm ">
 			{#each description as item (item.CONTENT)}
-				{#if item.TYPE === 'text'}
+				{#if item.TYPE.toUpperCase() === 'TEXT'}
 					<p>{item.CONTENT}</p>
-				{:else if item.TYPE === 'image'}
+				{:else if item.TYPE.toUpperCase() === 'IMAGE'}
 					<img src={item.CONTENT} alt="" class="max-w-full rounded" />
-				{:else if item.TYPE === 'html'}
+				{:else if item.TYPE.toUpperCase() === 'HTML'}
 					<!-- operator-supplied config content — trusted by definition -->
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html item.CONTENT}
 				{/if}
 			{/each}
 		</div>
+	{/if}
+
+	<!-- Preference bound description (auto-generated) -->
+	{#if prefBoundTarget}
+		<p class="text-sm text-base-content/70">
+			{m.pref_bound_description_label()}: {prefBoundTarget}
+		</p>
 	{/if}
 
 	<!-- Spacer to push info to bottom -->

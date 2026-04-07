@@ -101,6 +101,7 @@
 	"tutorial_freq_brilliance_name": "초고음",
 	"tutorial_freq_brilliance_desc": "초고음은 소리의 반짝임과 '에어리한' 느낌을 부여합니다. 지나친 초고역 강조는 쇳 소리를 강조하고 피로감을 유발할 수 있습니다.",
 	"pref_bound_btn_label": "선호도 범위",
+	"pref_bound_description_label": "선호도 범위 기준",
 	"target_customizer_btn_view": "선호도 조정",
 	"target_customizer_btn_reset": "초기화",
 	"target_customizer_label_tilt": "틸트 (dB/oct)",

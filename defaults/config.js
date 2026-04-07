@@ -159,7 +159,7 @@ const CONFIG = {
   // Bound data files (Bounds U.txt / Bounds D.txt) must exist in the data/ folder.
   PREFERENCE_BOUND: {
     ENABLE_BOUND_ON_INITIAL_LOAD: false,            // Show bounds immediately on page load
-    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target", // Reference DF target used for compensation
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target", // Reference DF target used for compensation. Set to "" to disable preference bound entirely.
     COLOR_FILL: "rgba(180,180,180,0.2)",             // Fill color of the shaded area
     COLOR_BORDER: "rgba(120,120,120,0.5)",           // Border color of the shaded area
   },

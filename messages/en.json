@@ -101,6 +101,7 @@
 	"tutorial_freq_brilliance_name": "Brilliance",
 	"tutorial_freq_brilliance_desc": "The brilliance range is composed entirely of harmonics and is responsible for sparkle and air of a sound. Over-boosting can accentuate hiss and cause ear fatigue.",
 	"pref_bound_btn_label": "Pref. Bound",
+	"pref_bound_description_label": "Preference Bound based on",
 	"target_customizer_btn_view": "Pref. Adjustment",
 	"target_customizer_btn_reset": "Reset",
 	"target_customizer_label_tilt": "Tilt (dB/oct)",

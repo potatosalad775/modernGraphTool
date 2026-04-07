@@ -24,9 +24,14 @@ const sidebars: SidebarsConfig = {
       value: '<hr style="margin: 1rem 0;" />'
     },
     {
-      type: 'link', 
-      label: 'Theme Generator', 
+      type: 'link',
+      label: 'Theme Generator',
       href: '/theme-generator',
+    },
+    {
+      type: 'link',
+      label: 'Config Generator',
+      href: '/config-generator',
     }
   ],
 

@@ -149,6 +149,10 @@ const config: Config = {
               label: 'Theme Generator',
               href: '/theme-generator',
             },
+            {
+              label: 'Config Generator',
+              href: '/config-generator',
+            },
           ],
         },
         {

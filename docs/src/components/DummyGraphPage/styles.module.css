@@ -6,6 +6,8 @@
   cursor: default;
   font-size: 12px;
   font-weight: 500;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .dgpHeader {
@@ -19,9 +21,8 @@
 
   h3 {
     margin: 0;
-  }
-  span {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 600;
   }
 }
 
@@ -39,6 +40,7 @@
   justify-content: center;
   align-items: center;
   padding: 12px;
+  min-height: 200px;
 }
 
 .dgpToasts {
@@ -46,17 +48,19 @@
   top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .dgpToast {
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .dgpDivider {
-  width: 6px;
+  width: 5px;
+  flex-shrink: 0;
 }
 
 .dgpTools {
@@ -64,77 +68,53 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-width: 300px;
+  min-width: 280px;
 }
 
 .dgpToolsContent {
   padding: 12px;
-}
-
-.dgpTutorial {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  overflow: hidden;
-  white-space: nowrap;
-  margin-bottom: 12px;
-
-  div {
-    padding: 4px 8px;
-    border-radius: 32px;
-  }
+  flex-direction: column;
+  gap: 12px;
 }
 
 .dgpTargetSelector {
   display: flex;
   flex-direction: row;
   align-items: center;
-  border-radius: 8px;
   gap: 8px;
-  overflow: hidden;
-  white-space: nowrap;
-  font-weight: 500;
-  padding: 4px 0;
-
-
-  span {
-    margin-left: 16px;
-    margin-right: 8px;
-  }
-  div {
-    border-radius: 32px;
-    padding: 2px 8px;
-  }
+  flex-wrap: wrap;
 }
 
 .dgpPhoneSelector {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 8px;
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .dgpPhoneSelectorObject {
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.dgpPhoneSelectorObjectSelected {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .dgpButtonContainer {
   display: flex;
   flex-direction: row;
-  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
 
   div {
-    padding: 4px 16px;
-    border-radius: 16px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
   }
 }
 
@@ -143,12 +123,29 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 8px 0;
+  gap: 20px;
+  padding: 10px 0;
+  height: 44px;
+}
 
-  div {
-    padding: 6px 16px;
-    border-radius: 32px;
-  }
+.dgpMenuItem {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.dgpMenuItemActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.dgpMenuIndicator {
+  width: 24px;
+  height: 2px;
+  border-radius: 1px;
 }

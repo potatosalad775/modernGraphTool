@@ -58,8 +58,8 @@ You can preview your changes locally before deploying:
 If you don't want to manage app updates manually, you can use the CDN deployment mode. In this setup, modernGraphTool's application code is loaded from a CDN (jsDelivr), while your configuration and data files stay on your own server.
 
 1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) and extract it.
-2.  Replace your server's `index.html` with the `cdn-index.html` file from the release (or the `cdn/` folder in the source).
-3.  Keep these files on your server alongside the index.html:
+2.  Copy `cdn-index.html` from the release (or the `cdn/` folder in the source) to your server and **rename it to `index.html`**.
+3.  Keep these files on your server alongside the `index.html`:
     - `config.js` — Your application settings
     - `theme.css` — Your graph color theme
     - `data/` — Your measurement data and target curves

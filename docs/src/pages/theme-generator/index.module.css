@@ -2,12 +2,12 @@
   display: flex;
   gap: 20px;
   padding: 20px;
-  flex-wrap: wrap; /* Allow wrapping for smaller screens */
+  flex-wrap: wrap;
 }
 
 .tgTools {
   flex: 1;
-  min-width: 300px; /* Minimum width for the tools panel */
+  min-width: 300px;
   padding: 15px;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 8px;
@@ -18,6 +18,12 @@
   margin-bottom: 10px;
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
   padding-bottom: 5px;
+}
+
+.tgDescription {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600);
+  margin-bottom: 1rem;
 }
 
 .tgSourceColorSection {
@@ -42,26 +48,82 @@
 
 .tgPreview {
   flex: 2;
-  min-width: 400px; /* Minimum width for the preview panel */
+  min-width: 400px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.tgSourceContrastInputRow {
+/* ── Base hue controls ─────────────────────────────────────────────────────── */
+
+.tgBaseHueSection {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tgBaseHueSection label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.tgBaseHueInputRow {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
   gap: 10px;
 }
 
-.tgSourceContrastInputRow input:first-child {
+.tgBaseHueInputRow input:first-child {
   width: 100%;
 }
 
-.tgSourceContrastInputRow input:last-child {
+.tgHueSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  background: linear-gradient(
+    to right,
+    hsl(0, 70%, 60%),
+    hsl(60, 70%, 60%),
+    hsl(120, 70%, 60%),
+    hsl(180, 70%, 60%),
+    hsl(240, 70%, 60%),
+    hsl(300, 70%, 60%),
+    hsl(360, 70%, 60%)
+  );
+}
+
+.tgHueSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--ifm-color-emphasis-400);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tgHueSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--ifm-color-emphasis-400);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.tgNumberInput {
+  width: 70px;
   padding: 8px 12px;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 4px;
@@ -69,12 +131,7 @@
   color: var(--ifm-font-color-base);
 }
 
-.tgSourceContrastSection {
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
+/* ── Color pickers ─────────────────────────────────────────────────────────── */
 
 .tgColorPickerWrapper {
   margin-bottom: 15px;
@@ -84,12 +141,11 @@
   width: 100%;
 }
 
-.tgSourceContrastSection label, .tgColorPickerWrapper label {
+.tgColorPickerWrapper label {
   font-weight: bold;
   font-size: 0.9rem;
 }
 
-/* Ensure chrome picker fits well */
 .tgColorButton {
   width: 100%;
   padding: 10px;
@@ -98,26 +154,40 @@
   text-align: left;
   font-family: var(--ifm-font-family-monospace);
   cursor: pointer;
-  min-height: 38px; /* Ensure consistent height */
+  min-height: 38px;
   box-sizing: border-box;
-  color: var(--ifm-font-color-base); /* Ensure text is visible on varied backgrounds */
-  text-shadow: 0 0 2px var(--ifm-background-color), 0 0 2px var(--ifm-background-color), 0 0 2px var(--ifm-background-color); /* Basic text stroke for visibility */
+  color: var(--ifm-font-color-base);
+  text-shadow:
+    0 0 2px var(--ifm-background-color),
+    0 0 2px var(--ifm-background-color),
+    0 0 2px var(--ifm-background-color);
 }
 
 .tgPickerPopover {
   position: absolute;
   z-index: 2;
-  /* Position it nicely relative to the button if needed, or center it */
 }
 
 .tgPickerCover {
   position: fixed;
-  top: 0px;
-  right: 0px;
-  bottom: 0px;
-  left: 0px;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
 }
+
+.tgPickerElement {
+  position: fixed;
+  z-index: 3;
+}
+
+.tgPickerPopover > div {
+  box-shadow: var(--ifm-global-shadow-lw) !important;
+  background: rgba(0, 0, 0, 0);
+}
+
+/* ── Export button ─────────────────────────────────────────────────────────── */
 
 .tgExportButton {
   margin-top: 1rem;
@@ -134,14 +204,4 @@
 
 .tgExportButton:hover {
   background-color: var(--ifm-color-primary-darkest);
-}
-
-.tgPickerElement {
-  position: fixed;
-  z-index: 3;
-}
-
-.tgPickerPopover > div {
-  box-shadow: var(--ifm-global-shadow-lw) !important;
-  background: rgba(0, 0, 0, 0);
 }

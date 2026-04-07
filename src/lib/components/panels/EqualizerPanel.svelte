@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
@@ -16,11 +15,11 @@
 	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
 
 	// ---------------------------------------------------------------------------
-	// Original data cache for EQ preview — keyed by UUID
-	// Non-reactive: mutations are intentional side-effects, not derived state.
+	// Original data cache lives in eqStore (shared with GraphEqOverlay for
+	// ghost curve rendering). Snapshot/restore logic stays here.
 	// ---------------------------------------------------------------------------
 
-	const originalDataCache = new SvelteMap<string, ParsedFRData>();
+	const originalDataCache = eqStore.originalDataCache;
 	const eq = new Equalizer();
 	let prevSourceUUID: string | null = null;
 

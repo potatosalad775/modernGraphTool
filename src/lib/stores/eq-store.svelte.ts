@@ -1,4 +1,6 @@
+import { SvelteMap } from 'svelte/reactivity';
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { ParsedFRData } from '$lib/types/data-types.js';
 
 export type { EQFilter };
 
@@ -10,6 +12,8 @@ class EQStore {
 	sourcePhoneUUID = $state<string | null>(null);
 	/** UUID of the target curve used for AutoEQ calculation */
 	autoEqTargetUUID = $state<string | null>(null);
+	/** Original (pre-EQ) FR data cache — keyed by UUID, used for ghost curve + restore */
+	readonly originalDataCache = new SvelteMap<string, ParsedFRData>();
 
 	updateBandAt(index: number, partial: Partial<EQFilter>): void {
 		if (index < 0 || index >= this.filters.length) return;

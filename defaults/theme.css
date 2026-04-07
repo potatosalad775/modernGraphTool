@@ -17,6 +17,11 @@
 	--color-graph-grid-text: rgba(0, 0, 0, 0.5);
 	--color-graph-baseline: rgba(0, 0, 0, 0.25);
 
+	/* ── EQ Overlay ───────────────────────────────────────────────────── */
+	--color-eq-response-boost: rgba(59, 130, 246, 0.15);
+	--color-eq-response-cut: rgba(239, 68, 68, 0.15);
+	--color-eq-ghost-curve: rgba(0, 0, 0, 0.25);
+
 	/* ── Base ──────────────────────────────────────────────────────────── */
 	--color-base-100: oklch(98% 0.003 247.858);
 	--color-base-200: oklch(96% 0.007 247.896);
@@ -47,6 +52,11 @@
 	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
 	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
+
+	/* ── EQ Overlay ───────────────────────────────────────────────────── */
+	--color-eq-response-boost: rgba(96, 165, 250, 0.18);
+	--color-eq-response-cut: rgba(248, 113, 113, 0.18);
+	--color-eq-ghost-curve: rgba(255, 255, 255, 0.25);
 
 	/* ── Base ──────────────────────────────────────────────────────────── */
   --color-base-100: oklch(30.857% 0.023 264.149);

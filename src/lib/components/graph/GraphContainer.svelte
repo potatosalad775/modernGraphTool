@@ -52,6 +52,9 @@
 		const _filters = eqStore.filters;
 		const _isEnabled = eqStore.isEnabled;
 		const _yScale = graphStore.yScale;
+		const sourceUUID = eqStore.sourcePhoneUUID;
+		// Track source phone's FR data so PK node positions update with the curve
+		const _sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
 		if (graphEngine.isInitialized && overlay) {
 			overlay.render();
 		}
@@ -59,7 +62,10 @@
 
 	$effect(() => {
 		const _currentPanel = menuStore.currentPanel;
-		overlay?.setEqPanelActive(menuStore.currentPanel === 'equalizer');
+		const _sourceUUID = eqStore.sourcePhoneUUID;
+		overlay?.setEqPanelActive(
+			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null
+		);
 	});
 </script>
 

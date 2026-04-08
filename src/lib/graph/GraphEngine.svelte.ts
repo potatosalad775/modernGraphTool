@@ -512,6 +512,7 @@ class GraphEngine {
 	/** Order overlay layers in the SVG */
 	orderOverlayLayers(): void {
 		this.svg.selectAll('.fr-graph-x-axis, .fr-graph-y-axis').lower();
+		this.svg.selectAll('.fr-graph-spectrum-overlay').raise();
 		this.svg.selectAll('.fr-graph-curve-container').raise();
 		this.svg.selectAll('.x-grid-text, .y-grid-text').raise();
 		this.svg.selectAll('.fr-graph-eq-overlay').raise();

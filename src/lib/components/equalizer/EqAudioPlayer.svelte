@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onDestroy } from 'svelte';
 
 	// --- Non-reactive Web Audio objects ---
 	let audioContext: AudioContext | null = null;
 	let gainNode: GainNode | null = null;
+	let analyserNode: AnalyserNode | null = null;
 	let sourceNode: AudioBufferSourceNode | null = null;
 	let oscillatorNode: OscillatorNode | null = null;
 	let filterNodes: AudioNode[] = [];
@@ -20,6 +22,7 @@
 	// --- UI state ---
 	let audioSource = $state('');
 	let filtersEnabled = $state(true);
+	let showSpectrum = $state(false);
 	let volume = $state(0.1);
 	let toneFreq = $state(1000);
 	let currentTime = $state(0);
@@ -75,11 +78,12 @@
 			filterNodes.push(node);
 		}
 
-		// Chain: filter[0] → filter[1] → ... → gainNode
+		// Chain: filter[0] → filter[1] → ... → analyserNode (or gainNode)
 		for (let i = 0; i < filterNodes.length - 1; i++) {
 			filterNodes[i].connect(filterNodes[i + 1]);
 		}
-		filterNodes[filterNodes.length - 1].connect(gainNode);
+		const chainTarget = analyserNode ?? gainNode;
+		filterNodes[filterNodes.length - 1].connect(chainTarget);
 
 		reconnectSource();
 	}
@@ -91,7 +95,7 @@
 		if (filterNodes.length > 0) {
 			source.connect(filterNodes[0]);
 		} else {
-			source.connect(gainNode!);
+			source.connect(analyserNode ?? gainNode!);
 		}
 	}
 
@@ -148,24 +152,32 @@
 			gainNode.connect(ctx.destination);
 		}
 
+		if (!analyserNode) {
+			analyserNode = ctx.createAnalyser();
+			analyserNode.fftSize = 4096;
+			analyserNode.smoothingTimeConstant = 0.8;
+			analyserNode.connect(gainNode);
+			audioSpectrumStore.analyserNode = analyserNode;
+		}
+
 		updateFilters();
 
 		if (audioSource === 'white' || audioSource === 'pink') {
 			sourceNode = createNoiseNode(audioSource);
-			const target = filterNodes.length > 0 ? filterNodes[0] : gainNode;
+			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
 			sourceNode.connect(target);
 			sourceNode.start();
 		} else if (audioSource === 'tone') {
 			oscillatorNode = ctx.createOscillator();
 			oscillatorNode.type = 'sine';
 			oscillatorNode.frequency.value = toneFreq;
-			const target = filterNodes.length > 0 ? filterNodes[0] : gainNode;
+			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
 			oscillatorNode.connect(target);
 			oscillatorNode.start();
 		} else if (audioSource === 'file' && audioBuffer) {
 			sourceNode = ctx.createBufferSource();
 			sourceNode.buffer = audioBuffer;
-			const target = filterNodes.length > 0 ? filterNodes[0] : gainNode;
+			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
 			sourceNode.connect(target);
 			sourceNode.start(0, pausedAt);
 			sourceNode.onended = () => {
@@ -207,6 +219,7 @@
 		pause();
 		pausedAt = 0;
 		currentTime = 0;
+		audioSpectrumStore.analyserNode = null;
 	}
 
 	function togglePlay() {
@@ -241,6 +254,8 @@
 	onDestroy(() => {
 		if (rafId) cancelAnimationFrame(rafId);
 		stop();
+		audioSpectrumStore.analyserNode = null;
+		audioSpectrumStore.isEnabled = false;
 		audioContext?.close();
 		audioContext = null;
 	});
@@ -339,13 +354,27 @@
 	</div>
 
 	<!-- EQ toggle -->
-	<label class="flex items-center gap-2 text-xs">
-		<input
-			type="checkbox"
-			checked={filtersEnabled}
-			onchange={(e) => (filtersEnabled = (e.target as HTMLInputElement).checked)}
-			class="h-3 w-3 accent-accent"
-		/>
-		{m.extension_equalizer_player_filter_toggle()}
-	</label>
+	<div class="flex items-center gap-4">
+		<label class="flex items-center gap-2 text-xs">
+			<input
+				type="checkbox"
+				checked={filtersEnabled}
+				onchange={(e) => (filtersEnabled = (e.target as HTMLInputElement).checked)}
+				class="h-3 w-3 accent-accent"
+			/>
+			{m.extension_equalizer_player_filter_toggle()}
+		</label>
+		<label class="flex items-center gap-2 text-xs">
+			<input
+				type="checkbox"
+				checked={showSpectrum}
+				onchange={(e) => {
+					showSpectrum = (e.target as HTMLInputElement).checked;
+					audioSpectrumStore.isEnabled = showSpectrum;
+				}}
+				class="h-3 w-3 accent-accent"
+			/>
+			{m.extension_equalizer_player_spectrum_toggle()}
+		</label>
+	</div>
 </div>

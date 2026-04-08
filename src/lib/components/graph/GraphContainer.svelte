@@ -2,25 +2,31 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { GraphEqOverlay } from '$lib/graph/GraphEqOverlay.js';
+	import { GraphSpectrumOverlay } from '$lib/graph/GraphSpectrumOverlay.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { appStore } from '$lib/stores/app-store.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { menuStore } from '$lib/stores/menu-store.svelte.js';
+	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 
 	let svgEl = $state<SVGSVGElement | undefined>(undefined);
 	let overlay = $state<GraphEqOverlay | null>(null);
+	let spectrumOverlay = $state<GraphSpectrumOverlay | null>(null);
 
 	onMount(() => {
 		if (svgEl) {
 			graphEngine.init(svgEl, appStore.isMobile);
 			overlay = new GraphEqOverlay(graphEngine);
+			spectrumOverlay = new GraphSpectrumOverlay(graphEngine);
 		}
 	});
 
 	onDestroy(() => {
 		overlay?.destroy();
 		overlay = null;
+		spectrumOverlay?.destroy();
+		spectrumOverlay = null;
 	});
 
 	$effect(() => {
@@ -38,6 +44,19 @@
 		const _yScale = graphStore.yScale;
 		if (graphEngine.isInitialized) {
 			graphEngine.updateYScale(String(graphStore.yScale));
+			spectrumOverlay?.updateScales();
+		}
+	});
+
+	$effect(() => {
+		const enabled = audioSpectrumStore.isEnabled;
+		const analyser = audioSpectrumStore.analyserNode;
+		if (graphEngine.isInitialized && spectrumOverlay) {
+			if (enabled && analyser) {
+				spectrumOverlay.start(analyser);
+			} else {
+				spectrumOverlay.stop();
+			}
 		}
 	});
 

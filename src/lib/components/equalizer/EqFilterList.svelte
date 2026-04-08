@@ -4,6 +4,9 @@
 	import { Equalizer } from '$lib/utils/equalizer.js';
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
+	import EqFilterCard from './EqFilterCard.svelte';
+
+	let expandedIndex = $state<number | null>(null);
 
 	const preamp = $derived.by(() => {
 		const filters = eqStore.filters.filter(f => f.enabled && f.freq && f.q && f.gain);
@@ -22,15 +25,19 @@
 
 	function addBand() {
 		eqStore.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
+		expandedIndex = eqStore.filters.length - 1;
 	}
 
 	function removeBand() {
 		if (eqStore.filters.length > 0) {
-			eqStore.removeBandAt(eqStore.filters.length - 1);
+			const lastIdx = eqStore.filters.length - 1;
+			if (expandedIndex === lastIdx) expandedIndex = null;
+			eqStore.removeBandAt(lastIdx);
 		}
 	}
 
 	function sortBands() {
+		expandedIndex = null;
 		const sorted = [...eqStore.filters].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity));
 		eqStore.filters = sorted;
 	}
@@ -150,103 +157,22 @@
 		</div>
 	</div>
 
-	<!-- Filter bands table -->
-	<div class="max-h-56 overflow-y-auto">
-		<table class="w-full text-xs">
-			<thead>
-				<tr
-					class="border-b border-base-content/15 text-base-content/60 border-base-content/15"
-				>
-					<th class="w-6 pb-1 text-left font-normal"></th>
-					<th class="pb-1 text-left font-normal">Type</th>
-					<th class="pb-1 text-left font-normal">{m.extension_equalizer_filter_list_freq()}</th>
-					<th class="pb-1 text-left font-normal">{m.extension_equalizer_filter_list_q()}</th>
-					<th class="pb-1 text-left font-normal">{m.extension_equalizer_filter_list_gain()}</th>
-					<th class="w-6 pb-1"></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each eqStore.filters as filter, i (i)}
-					<tr class="border-b border-base-content/8">
-						<td class="py-0.5 pr-1">
-							<input
-								type="checkbox"
-								checked={filter.enabled}
-								onchange={(e) =>
-									updateFilter(i, { enabled: (e.target as HTMLInputElement).checked })}
-								class="h-3 w-3 accent-accent"
-							/>
-						</td>
-						<td class="py-0.5 pr-1">
-							<select
-								value={filter.type}
-								onchange={(e) =>
-									updateFilter(i, {
-										type: (e.target as HTMLSelectElement).value as EQFilter['type']
-									})}
-								class="w-full rounded border-0 bg-transparent text-xs focus:outline-none"
-							>
-								<option value="PK">{m.extension_equalizer_filter_list_peak()}</option>
-								<option value="LSQ">{m.extension_equalizer_filter_list_lowshelf()}</option>
-								<option value="HSQ">{m.extension_equalizer_filter_list_highshelf()}</option>
-							</select>
-						</td>
-						<td class="py-0.5 pr-1">
-							<input
-								type="number"
-								value={filter.freq ?? ''}
-								placeholder="Hz"
-								min="20"
-								max="20000"
-								oninput={(e) => {
-									const raw = (e.target as HTMLInputElement).value;
-									updateFilter(i, { freq: raw === '' ? null : (parseFloat(raw) || null) });
-								}}
-								class="w-16 rounded border-0 bg-transparent text-xs focus:outline-none"
-							/>
-						</td>
-						<td class="py-0.5 pr-1">
-							<input
-								type="number"
-								value={filter.q ?? ''}
-								placeholder="Q"
-								min="0.1"
-								max="10"
-								step="0.1"
-								oninput={(e) => {
-									const raw = (e.target as HTMLInputElement).value;
-									updateFilter(i, { q: raw === '' ? null : (parseFloat(raw) || null) });
-								}}
-								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none"
-							/>
-						</td>
-						<td class="py-0.5 pr-1">
-							<input
-								type="number"
-								value={filter.gain ?? ''}
-								placeholder="dB"
-								min="-30"
-								max="30"
-								step="0.1"
-								oninput={(e) => {
-									const raw = (e.target as HTMLInputElement).value;
-									const val = parseFloat(raw);
-									updateFilter(i, { gain: raw === '' ? null : (isNaN(val) ? null : val) });
-								}}
-								class="w-12 rounded border-0 bg-transparent text-xs focus:outline-none"
-							/>
-						</td>
-						<td class="py-0.5">
-							<button
-								onclick={() => eqStore.removeBandAt(i)}
-								class="text-base-content/60 hover:"
-								aria-label="Remove filter"
-							>×</button>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+	<!-- Filter cards -->
+	<div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+		{#each eqStore.filters as filter, i (i)}
+			<EqFilterCard
+				{filter}
+				index={i}
+				expanded={expandedIndex === i}
+				onToggle={() => (expandedIndex = expandedIndex === i ? null : i)}
+				onUpdate={(partial) => updateFilter(i, partial)}
+				onRemove={() => {
+					if (expandedIndex === i) expandedIndex = null;
+					else if (expandedIndex !== null && expandedIndex > i) expandedIndex--;
+					eqStore.removeBandAt(i);
+				}}
+			/>
+		{/each}
 	</div>
 
 	<!-- Import/Export buttons -->

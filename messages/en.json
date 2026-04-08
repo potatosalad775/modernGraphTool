@@ -38,6 +38,8 @@
 	"extension_equalizer_filter_list_q": "Q",
 	"extension_equalizer_filter_list_gain": "Gain (dB)",
 	"extension_equalizer_filter_list_no_filter_export_alert": "Please add at least one filter before exporting.",
+	"extension_equalizer_filter_list_frequency": "Frequency",
+	"extension_equalizer_filter_list_type_label": "Type",
 	"extension_equalizer_autoeq_freq_range": "Frequency Range",
 	"extension_equalizer_autoeq_q_range": "Q Range",
 	"extension_equalizer_autoeq_gain_range": "Gain Range",

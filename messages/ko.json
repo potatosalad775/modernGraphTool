@@ -38,6 +38,8 @@
 	"extension_equalizer_filter_list_q": "Q",
 	"extension_equalizer_filter_list_gain": "게인 (dB)",
 	"extension_equalizer_filter_list_no_filter_export_alert": "내보내기 할 필터가 존재하지 않습니다.",
+	"extension_equalizer_filter_list_frequency": "주파수",
+	"extension_equalizer_filter_list_type_label": "타입",
 	"extension_equalizer_autoeq_freq_range": "주파수 범위",
 	"extension_equalizer_autoeq_q_range": "Q 범위",
 	"extension_equalizer_autoeq_gain_range": "게인 범위",

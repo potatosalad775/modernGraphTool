@@ -12,7 +12,7 @@ export function normalize(channelData: ChannelData, type: string, hzValue: numbe
     throw new Error("Cannot normalize - invalid data structure");
   }
 
-  const copy: ChannelData = JSON.parse(JSON.stringify(channelData));
+  const copy: ChannelData = structuredClone(channelData);
 
   return type === "Hz"
     ? _normalizeByHz(copy, hzValue)

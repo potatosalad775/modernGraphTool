@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import FRSmoother from './fr-smoother.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 
@@ -15,10 +15,6 @@ function makeFRData(count: number, baseDb = 80): FRDataPoint[] {
 }
 
 describe('FRSmoother', () => {
-	beforeEach(() => {
-		FRSmoother.currentSmoothValue = '1/48';
-	});
-
 	describe('OCTAVE_BANDS', () => {
 		it('has the expected band fractions', () => {
 			expect(FRSmoother.OCTAVE_BANDS['1/48']).toBeCloseTo(1 / 48);
@@ -29,32 +25,17 @@ describe('FRSmoother', () => {
 		});
 	});
 
-	describe('updateSmoothing', () => {
-		it('updates the current smooth value', () => {
-			FRSmoother.updateSmoothing('1/3');
-			expect(FRSmoother.currentSmoothValue).toBe('1/3');
-		});
-
-		it('does not change value when called with null', () => {
-			FRSmoother.updateSmoothing('1/6');
-			FRSmoother.updateSmoothing(null);
-			expect(FRSmoother.currentSmoothValue).toBe('1/6');
-		});
-	});
-
 	describe('smooth', () => {
 		it('returns original data when smoothing is at minimum (1/48)', () => {
 			const data = makeFRData(100);
-			FRSmoother.updateSmoothing('1/48');
-			const result = FRSmoother.smooth(data);
+			const result = FRSmoother.smooth(data, '1/48');
 			// At 1/48, each band has ~1 point, so result should be similar length
 			expect(result.length).toBeGreaterThan(0);
 		});
 
 		it('reduces data variance with heavier smoothing', () => {
 			const data = makeFRData(200);
-			FRSmoother.updateSmoothing('1/3');
-			const smoothed = FRSmoother.smooth(data);
+			const smoothed = FRSmoother.smooth(data, '1/3');
 
 			// Smoothed data should have less variance
 			const originalVariance = computeVariance(data.map((p) => p[1]));
@@ -65,24 +46,20 @@ describe('FRSmoother', () => {
 		it('returns fewer points with wider bands', () => {
 			const data = makeFRData(200);
 
-			FRSmoother.updateSmoothing('1/48');
-			const fine = FRSmoother.smooth(data);
-
-			FRSmoother.updateSmoothing('1/3');
-			const coarse = FRSmoother.smooth(data);
+			const fine = FRSmoother.smooth(data, '1/48');
+			const coarse = FRSmoother.smooth(data, '1/3');
 
 			expect(coarse.length).toBeLessThan(fine.length);
 		});
 
 		it('returns input unchanged for invalid smooth value', () => {
 			const data = makeFRData(50);
-			FRSmoother.currentSmoothValue = 'invalid';
-			const result = FRSmoother.smooth(data);
+			const result = FRSmoother.smooth(data, 'invalid');
 			expect(result).toBe(data);
 		});
 
 		it('handles null/undefined data gracefully', () => {
-			const result = FRSmoother.smooth(null as unknown as FRDataPoint[]);
+			const result = FRSmoother.smooth(null as unknown as FRDataPoint[], '1/6');
 			expect(result).toBeNull();
 		});
 	});
@@ -92,8 +69,7 @@ describe('FRSmoother', () => {
 			const data = makeFRData(200);
 			const inputMin = data[0][0];
 			const inputMax = data[data.length - 1][0];
-			FRSmoother.updateSmoothing('1/6');
-			const result = FRSmoother.smooth(data);
+			const result = FRSmoother.smooth(data, '1/6');
 			for (const [freq] of result) {
 				expect(freq).toBeGreaterThanOrEqual(inputMin - 1);
 				expect(freq).toBeLessThanOrEqual(inputMax + 1);
@@ -109,8 +85,7 @@ describe('FRSmoother', () => {
 					metadata: { minFreq: 20, maxFreq: 20000, weights: [1, 2, 3] }
 				}
 			};
-			FRSmoother.updateSmoothing('1/6');
-			const result = FRSmoother.smoothChannels(data);
+			const result = FRSmoother.smoothChannels(data, '1/6');
 			expect(result.AVG!.metadata.minFreq).toBe(20);
 			expect(result.AVG!.metadata.maxFreq).toBe(20000);
 		});
@@ -120,8 +95,7 @@ describe('FRSmoother', () => {
 				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
 			const originalLen = data.AVG!.data.length;
-			FRSmoother.updateSmoothing('1/6');
-			FRSmoother.smoothChannels(data);
+			FRSmoother.smoothChannels(data, '1/6');
 			expect(data.AVG!.data.length).toBe(originalLen);
 		});
 	});
@@ -141,8 +115,7 @@ describe('FRSmoother', () => {
 				R: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } },
 				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			FRSmoother.updateSmoothing('1/6');
-			const result = FRSmoother.smoothChannels(data);
+			const result = FRSmoother.smoothChannels(data, '1/6');
 			expect(result.L).toBeDefined();
 			expect(result.R).toBeDefined();
 			expect(result.AVG).toBeDefined();
@@ -153,8 +126,7 @@ describe('FRSmoother', () => {
 			const data: ParsedFRData = {
 				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			FRSmoother.updateSmoothing('1/6');
-			const result = FRSmoother.smoothChannels(data);
+			const result = FRSmoother.smoothChannels(data, '1/6');
 			expect(result.L).toBeUndefined();
 			expect(result.R).toBeUndefined();
 			expect(result.AVG).toBeDefined();
@@ -164,8 +136,7 @@ describe('FRSmoother', () => {
 			const data: ParsedFRData = {
 				AVG: { data: makeFRData(50), metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			FRSmoother.currentSmoothValue = 'invalid';
-			const result = FRSmoother.smoothChannels(data);
+			const result = FRSmoother.smoothChannels(data, 'invalid');
 			expect(result).toBe(data);
 		});
 	});

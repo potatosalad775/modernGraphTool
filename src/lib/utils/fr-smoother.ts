@@ -19,39 +19,26 @@ const FRSmoother = {
     '1/3': 1/3
   } as Record<string, number>,
 
-  currentSmoothValue: '1/48',
-
-  /** Smooth the frequency response data based on the current smoothing value. */
-  smooth(data: FRDataPoint[]): FRDataPoint[] {
-    if (!this.OCTAVE_BANDS[this.currentSmoothValue] || !data) return data;
-    return this._smoothChannel(data, this.currentSmoothValue);
+  /** Smooth a single data array using the given octave smoothing value. */
+  smooth(data: FRDataPoint[], smoothValue: string): FRDataPoint[] {
+    if (!this.OCTAVE_BANDS[smoothValue] || !data) return data;
+    return this._smoothChannel(data, smoothValue);
   },
 
-  /** Smooth the frequency response data across all channels. */
-  smoothChannels(data: ParsedFRData): ParsedFRData {
-    if (!this.OCTAVE_BANDS[this.currentSmoothValue]) return data;
+  /** Smooth all channels in a ParsedFRData using the given octave smoothing value. */
+  smoothChannels(data: ParsedFRData, smoothValue: string): ParsedFRData {
+    if (!this.OCTAVE_BANDS[smoothValue]) return data;
 
-    // Process each channel
     const smoothedData: ParsedFRData = {};
     for (const channel of ['L', 'R', 'AVG'] as ('L' | 'R' | 'AVG')[]) {
       if (data[channel]) {
         smoothedData[channel] = {
           ...data[channel]!,
-          data: this._smoothChannel(data[channel]!.data, this.currentSmoothValue)
+          data: this._smoothChannel(data[channel]!.data, smoothValue)
         };
       }
     }
     return smoothedData;
-  },
-
-  /**
-   * Update the current smoothing value.
-   * Caller is responsible for triggering reactivity (e.g., writing to a store).
-   */
-  updateSmoothing(octave: string | null = null): void {
-    if (octave !== null) {
-      this.currentSmoothValue = octave;
-    }
   },
 
   /** Smooth a single channel's data */

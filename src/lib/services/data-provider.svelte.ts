@@ -32,6 +32,7 @@ import {
 import FRParser from '$lib/utils/fr-parser.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
+import { DataProcessor } from '$lib/utils/data-processor.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { analyticsService } from './analytics-service.svelte.js';
@@ -39,6 +40,11 @@ import { toast } from 'svelte-sonner';
 
 class DataProvider {
 	#baseHue: number | null = null;
+
+	/** Current processing params from graph store */
+	get #processingParams() {
+		return { smoothValue: graphStore.smoothValue, normType: graphStore.normType, normHz: graphStore.normHzValue };
+	}
 
 	// ─── Add ─────────────────────────────────────────────────────────────────────
 
@@ -80,11 +86,7 @@ class DataProvider {
 			rawCache.hptfOnly = rawData._hptfOnly;
 			rawCache.hptfFillOnly = rawData._hptfFillOnly;
 		}
-		const processed = normalizeChannels(
-			FRSmoother.smoothChannels(rawData),
-			graphStore.normType,
-			graphStore.normHzValue
-		);
+		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 
 		const dispSuffix =
@@ -112,12 +114,7 @@ class DataProvider {
 
 		// Multi-sample: process and attach sample data
 		if (rawData._samples && rawData._sampleCount) {
-			const processedSamples = rawData._samples.map((sample) => {
-				const s: SampleData = {};
-				if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-				if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-				return s;
-			});
+			const processedSamples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
 			frObject.samples = processedSamples;
 			frObject.sampleCount = rawData._sampleCount;
 			frObject.colors = this.#addSampleColors(colors, rawData._sampleCount);
@@ -132,20 +129,7 @@ class DataProvider {
 
 		// HpTF: process and attach sample data + envelope
 		if (rawData._hptfSamples && rawData._hptfLabels) {
-			const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
-				const processed: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
-				if (sample.L) processed.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-				if (sample.R) processed.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-				if (processed.L && processed.R) {
-					processed.AVG = {
-						data: processed.L.data.map(([freq, lDb], idx) => [
-							freq, (lDb + processed.R!.data[idx][1]) / 2
-						] as FRDataPoint),
-						metadata: { ...processed.L.metadata }
-					};
-				}
-				return processed;
-			});
+			const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
 
 			const fillOnly = rawData._hptfFillOnly ?? true;
 			frObject.hptf = {
@@ -228,11 +212,7 @@ class DataProvider {
 		rawData: ParsedFRData,
 		inputMetadata: FRInputMetadata = {}
 	): Promise<void> {
-		const processed = normalizeChannels(
-			FRSmoother.smoothChannels(rawData),
-			graphStore.normType,
-			graphStore.normHzValue
-		);
+		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 
 		const frObject: FRDataObject = {
@@ -264,11 +244,7 @@ class DataProvider {
 	): void {
 		const existing = frStore.get(uuid);
 		if (!existing) return;
-		const processed = normalizeChannels(
-			FRSmoother.smoothChannels(rawData),
-			graphStore.normType,
-			graphStore.normHzValue
-		);
+		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const updated: FRDataObject = {
 			...existing,
 			channels: {
@@ -312,11 +288,7 @@ class DataProvider {
 			variantRawCache.hptfOnly = rawData._hptfOnly;
 			variantRawCache.hptfFillOnly = rawData._hptfFillOnly;
 		}
-		const processed = normalizeChannels(
-			FRSmoother.smoothChannels(rawData),
-			graphStore.normType,
-			graphStore.normHzValue
-		);
+		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch))
@@ -342,12 +314,7 @@ class DataProvider {
 		if (rawData._samples && rawData._sampleCount) {
 			const existingData = frStore.get(uuid);
 			if (existingData) {
-				const processedSamples = rawData._samples.map((sample) => {
-					const s: SampleData = {};
-					if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-					if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-					return s;
-				});
+				const processedSamples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
 				frStore.set(uuid, {
 					...existingData,
 					samples: processedSamples,
@@ -373,18 +340,7 @@ class DataProvider {
 		if (rawData._hptfSamples && rawData._hptfLabels) {
 			const existingData = frStore.get(uuid);
 			if (existingData) {
-				const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
-					const p: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
-					if (sample.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-					if (sample.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-					if (p.L && p.R) {
-						p.AVG = {
-							data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
-							metadata: { ...p.L.metadata }
-						};
-					}
-					return p;
-				});
+				const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
 				const variantFillOnly = rawData._hptfFillOnly ?? true;
 				frStore.set(uuid, {
 					...existingData,
@@ -483,11 +439,7 @@ class DataProvider {
 
 			if (rawCache) {
 				// Re-smooth from cached raw data (no network fetch)
-				const processed = normalizeChannels(
-					FRSmoother.smoothChannels(rawCache.channels),
-					graphStore.normType,
-					graphStore.normHzValue
-				);
+				const processed = DataProcessor.processChannels(rawCache.channels, this.#processingParams);
 				const updated: FRDataObject = {
 					...data,
 					channels: {
@@ -498,28 +450,12 @@ class DataProvider {
 				};
 				// Re-process sample data from cache
 				if (rawCache.samples && rawCache.sampleCount) {
-					updated.samples = rawCache.samples.map((sample) => {
-						const s: SampleData = {};
-						if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-						if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-						return s;
-					});
+					updated.samples = DataProcessor.processSamples(rawCache.samples, this.#processingParams);
 					updated.sampleCount = rawCache.sampleCount;
 				}
 				// Re-process HpTF sample data from cache
 				if (rawCache.hptfSamples && rawCache.hptfLabels) {
-					const processedSamples: HpTFSampleData[] = rawCache.hptfSamples.map((sample, i) => {
-						const p: HpTFSampleData = { label: rawCache.hptfLabels![i] ?? `Sample ${i + 1}` };
-						if (sample.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
-						if (sample.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
-						if (p.L && p.R) {
-							p.AVG = {
-								data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
-								metadata: { ...p.L.metadata }
-							};
-						}
-						return p;
-					});
+					const processedSamples = DataProcessor.processHpTFSamples(rawCache.hptfSamples, rawCache.hptfLabels, this.#processingParams);
 					updated.hptf = {
 						...data.hptf!,
 						samples: processedSamples,
@@ -561,11 +497,7 @@ class DataProvider {
 						fallbackCache.hptfOnly = rawData._hptfOnly;
 						fallbackCache.hptfFillOnly = rawData._hptfFillOnly;
 					}
-					const processed = normalizeChannels(
-						FRSmoother.smoothChannels(rawData),
-						graphStore.normType,
-						graphStore.normHzValue
-					);
+					const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 					frStore.set(uuid, {
 						...data,
 						channels: {
@@ -800,11 +732,11 @@ class DataProvider {
 		return samples.map((sample) => {
 			const p: HpTFSampleData = { label: sample.label };
 			if (sample.L) {
-				const src = smooth ? FRSmoother.smoothChannels({ L: sample.L }) : { L: sample.L };
+				const src = smooth ? FRSmoother.smoothChannels({ L: sample.L }, graphStore.smoothValue) : { L: sample.L };
 				p.L = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).L;
 			}
 			if (sample.R) {
-				const src = smooth ? FRSmoother.smoothChannels({ R: sample.R }) : { R: sample.R };
+				const src = smooth ? FRSmoother.smoothChannels({ R: sample.R }, graphStore.smoothValue) : { R: sample.R };
 				p.R = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).R;
 			}
 			if (p.L && p.R) {

@@ -1,7 +1,6 @@
 import * as d3 from 'd3';
 import type { FRDataObject, FRDataPoint, BaselineData } from '$lib/types/data-types.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
-import GraphWatermark from './GraphWatermark.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '$lib/utils/config.js';
@@ -22,9 +21,6 @@ class GraphEngine {
 	graphHandle!: GraphHandle;
 	graphInspection!: GraphInspection;
 	_updateCurveTimeout: ReturnType<typeof setTimeout> | null = null;
-	_updateLabelTimeout: ReturnType<typeof setTimeout> | null = null;
-	labelBgGroup: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
-	labelGroup: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
 	xScale!: d3.ScaleLogarithmic<number, number>;
 	yScale!: d3.ScaleLinear<number, number>;
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -73,7 +69,6 @@ class GraphEngine {
 		this._drawFadeGradient();
 		this._createCurveGroup();
 
-		GraphWatermark(this.svg, this.viewBoxWidth, this.viewBoxHeight);
 		this.graphHandle = new GraphHandle(this.svg, this, isMobile);
 		this.graphInspection = new GraphInspection(this);
 
@@ -124,115 +119,6 @@ class GraphEngine {
 		this._transitionHpTFFillPaths(true);
 	}
 
-	/** Update Labels of graph — debounced */
-	updateLabels(): void {
-		if (this._updateLabelTimeout) {
-			clearTimeout(this._updateLabelTimeout);
-		}
-
-		this._updateLabelTimeout = setTimeout(() => {
-			let labelCounter = 0;
-			const labelLocation =
-				(getConfigValue('VISUALIZATION.LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
-			const startX =
-				this.labelPosition[labelLocation].x +
-				parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '0') -
-				parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.LEFT') as string) || '0');
-			const startY =
-				this.labelPosition[labelLocation].y +
-				parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.DOWN') as string) || '0') -
-				parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.UP') as string) || '0');
-			const lineHeight =
-				parseInt((getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '17') + 8;
-
-			if (this.labelBgGroup) {
-				this.labelBgGroup.remove();
-			}
-			this.labelBgGroup = this.svg
-				.append('g')
-				.attr('class', 'fr-graph-label-bg')
-				.attr('transform', `translate(${startX},${startY})`);
-
-			if (this.labelGroup) {
-				this.labelGroup.remove();
-			}
-			this.labelGroup = this.svg
-				.append('g')
-				.attr('class', 'fr-graph-label')
-				.attr('transform', `translate(${startX},${startY})`);
-
-			const labelBgGroup = this.labelBgGroup!;
-			const labelGroup = this.labelGroup!;
-
-			Array.from(frStore.entries)
-				.sort(([, a], [,]) => (a.type === 'target' ? -1 : 1))
-				.forEach(([, obj]) => {
-					if (obj.hidden) return;
-
-					const channels = [...obj.dispChannel];
-					channels.forEach((channel) => {
-						const textContent =
-							obj.type !== 'target'
-								? `${obj.identifier} ${obj.dispSuffix} (${channel})`
-								: `${obj.identifier} ${obj.dispSuffix}`;
-
-						labelBgGroup
-							.append('rect')
-							.attr('class', 'fr-graph-label-bg-rect')
-							.attr('x', -10)
-							.attr('y', `${(labelCounter - 0.75) * lineHeight}`)
-							.attr('rx', 4)
-							.attr('ry', 4)
-							.attr('uuid', obj.uuid)
-							.attr('width', textContent.length * lineHeight * 0.35)
-							.attr('height', lineHeight)
-							.attr('fill', 'var(--color-base-200)')
-							.attr('opacity', '0.7')
-							.attr('filter', 'blur(4px)');
-
-						labelGroup
-							.append('text')
-							.attr('class', 'fr-graph-label-text')
-							.attr('y', `${labelCounter * lineHeight}`)
-							.attr('fill', obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG)
-							.attr('style', this.labelPosition[labelLocation].style ?? null)
-							.attr('text-anchor', this.labelPosition[labelLocation].anchor)
-							.attr(
-								'font-size',
-								(getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '20px'
-							)
-							.attr(
-								'font-weight',
-								(getConfigValue('VISUALIZATION.LABEL.TEXT_WEIGHT') as string) || '600'
-							)
-							.attr('uuid', obj.uuid)
-							.text(textContent);
-
-						labelCounter++;
-					});
-
-					// Sample traces do not get individual labels
-
-					if (this.labelPosition[labelLocation].growUp) {
-						labelGroup.attr(
-							'transform',
-							`translate(${startX}, ${startY - labelCounter * lineHeight})`
-						);
-						labelBgGroup.attr(
-							'transform',
-							`translate(${startX}, ${startY - labelCounter * lineHeight})`
-						);
-					}
-				});
-
-			this._updateLabelTimeout = null;
-
-			if (this.graphInspection) {
-				this.graphInspection.onLabelsUpdated();
-			}
-		}, 0);
-	}
-
 	/** Refresh baseline channel data from latest frStore entry (after re-smooth, re-normalize, etc.) */
 	refreshBaselineData(): void {
 		if (!this.baselineData.uuid) return;
@@ -242,7 +128,6 @@ class GraphEngine {
 			this.baselineData = { uuid: null, identifier: null, channelData: null };
 			graphStore.baselineUUID = null;
 			graphStore.baselineMode = 'off';
-			this.updateBaselineLabel();
 			return;
 		}
 		// In "withAdjustment" mode, refresh from targetOriginalData
@@ -303,7 +188,6 @@ class GraphEngine {
 
 		graphStore.baselineUUID = this.baselineData.uuid;
 		this.updateBaseline(true);
-		this.updateBaselineLabel();
 	}
 
 	/** Update Baseline on Graph */
@@ -326,65 +210,11 @@ class GraphEngine {
 		this._transitionHpTFFillPaths(animate);
 	}
 
-	/** Update Baseline Label */
-	updateBaselineLabel(): void {
-		const uuid = this.baselineData.uuid;
-		const identifier = this.baselineData.identifier;
-
-		// Always remove existing label so mode changes update the text
-		this.svg.selectAll('.fr-graph-baseline-text').remove();
-
-		if (uuid === null) return;
-
-		const labelLocation =
-			(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
-		const labelX =
-			this.labelPosition[labelLocation].x +
-			parseInt(
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0'
-			) -
-			parseInt(
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0'
-			);
-		const labelY =
-			this.labelPosition[labelLocation].y +
-			parseInt(
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0'
-			) -
-			parseInt(
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'
-			);
-
-		this.svg
-			.append('text')
-			.attr('class', 'fr-graph-baseline-text')
-			.attr('data-uuid', uuid)
-			.attr('x', labelX)
-			.attr('y', labelY)
-			.attr('text-anchor', this.labelPosition[labelLocation].anchor)
-			.attr('fill', 'var(--color-graph-axis-label)')
-			.attr(
-				'font-size',
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px'
-			)
-			.attr(
-				'font-weight',
-				(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500'
-			)
-			.text(
-				graphStore.baselineMode === 'withAdjustment'
-					? `${identifier} (With Adjustment) Compensated`
-					: `${identifier} Compensated`
-			);
-	}
-
 	/** Update visibility of curves */
 	updateVisibility(uuid: string, visible: boolean): void {
 		this.svg
 			.selectAll(`.fr-graph-curve-container *[uuid="${uuid}"]`)
 			.attr('visibility', visible ? 'visible' : 'hidden');
-
-		this.updateLabels();
 	}
 
 	/** Get compensated path for frequency response data */
@@ -644,7 +474,7 @@ class GraphEngine {
 
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(hptfSample[channel]!.data))
+					.datum(() => FRSmoother.smooth(hptfSample[channel]!.data, graphStore.smoothValue))
 					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-sample-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -664,7 +494,7 @@ class GraphEngine {
 				if (!obj.channels[channel]) return;
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
+					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
 					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-avg-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -682,7 +512,7 @@ class GraphEngine {
 			channels.forEach((channel) => {
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
+					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
 					.attr('class', 'fr-graph-phone-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -709,7 +539,7 @@ class GraphEngine {
 
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(sample[side]!.data))
+					.datum(() => FRSmoother.smooth(sample[side]!.data, graphStore.smoothValue))
 					.attr('class', 'fr-graph-phone-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -750,7 +580,7 @@ class GraphEngine {
 		channels.forEach((channel) => {
 			this.curveGroup
 				.append('path')
-				.datum(() => FRSmoother.smooth(obj.channels[channel]!.data))
+				.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
 				.attr('class', `fr-graph-${obj.type}-curve`)
 				.attr('uuid', obj.uuid)
 				.attr('type', obj.type)

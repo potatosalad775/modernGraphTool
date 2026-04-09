@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import FRSmoother from '$lib/utils/fr-smoother.js';
+	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
 	const options = ['1/48', '1/24', '1/12', '1/6', '1/3'] as const;
@@ -9,7 +9,7 @@
 
 	function handleClick() {
 		currentIndex = (currentIndex + 1) % options.length;
-		FRSmoother.updateSmoothing(options[currentIndex]);
+		graphStore.smoothValue = options[currentIndex];
 		dataProvider.reSmoothAll();
 	}
 </script>

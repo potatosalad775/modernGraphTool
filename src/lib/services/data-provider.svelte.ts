@@ -10,7 +10,8 @@ import type {
 	SampleData,
 	HpTFSampleData,
 	HpTFEnvelope,
-	HpTFDisplayKey
+	HpTFDisplayKey,
+	RawFRCache
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -62,6 +63,23 @@ class DataProvider {
 			toast.error(`Failed to load ${sourceType === 'target' ? 'target' : 'device'}: ${label}`);
 			return;
 		}
+		const rawCache: RawFRCache = {
+			channels: {
+				...(rawData.L && { L: rawData.L }),
+				...(rawData.R && { R: rawData.R }),
+				...(rawData.AVG && { AVG: rawData.AVG }),
+			},
+		};
+		if (rawData._samples && rawData._sampleCount) {
+			rawCache.samples = rawData._samples;
+			rawCache.sampleCount = rawData._sampleCount;
+		}
+		if (rawData._hptfSamples && rawData._hptfLabels) {
+			rawCache.hptfSamples = rawData._hptfSamples;
+			rawCache.hptfLabels = rawData._hptfLabels;
+			rawCache.hptfOnly = rawData._hptfOnly;
+			rawCache.hptfFillOnly = rawData._hptfFillOnly;
+		}
 		const processed = normalizeChannels(
 			FRSmoother.smoothChannels(rawData),
 			graphStore.normType,
@@ -88,7 +106,8 @@ class DataProvider {
 			dispSuffix,
 			colors,
 			dash: this.#getDashForType(sourceType, metaData.identifier),
-			meta: metaData
+			meta: metaData,
+			_rawData: rawCache
 		};
 
 		// Multi-sample: process and attach sample data
@@ -229,7 +248,8 @@ class DataProvider {
 				inputMetadata.dispChannel ?? this.#getChannelValue(sourceType, channels),
 			dispSuffix: inputMetadata.dispSuffix ?? '(Inserted)',
 			colors: this.#getColorForType(sourceType),
-			dash: this.#getDashForType(sourceType, identifier)
+			dash: this.#getDashForType(sourceType, identifier),
+			_rawData: { channels: rawData }
 		};
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
@@ -274,6 +294,23 @@ class DataProvider {
 		} catch {
 			toast.error(`Failed to load variant: ${dispSuffix || data.identifier}`);
 			return;
+		}
+		const variantRawCache: RawFRCache = {
+			channels: {
+				...(rawData.L && { L: rawData.L }),
+				...(rawData.R && { R: rawData.R }),
+				...(rawData.AVG && { AVG: rawData.AVG }),
+			},
+		};
+		if (rawData._samples && rawData._sampleCount) {
+			variantRawCache.samples = rawData._samples;
+			variantRawCache.sampleCount = rawData._sampleCount;
+		}
+		if (rawData._hptfSamples && rawData._hptfLabels) {
+			variantRawCache.hptfSamples = rawData._hptfSamples;
+			variantRawCache.hptfLabels = rawData._hptfLabels;
+			variantRawCache.hptfOnly = rawData._hptfOnly;
+			variantRawCache.hptfFillOnly = rawData._hptfFillOnly;
 		}
 		const processed = normalizeChannels(
 			FRSmoother.smoothChannels(rawData),
@@ -375,6 +412,12 @@ class DataProvider {
 				});
 			}
 		}
+
+		// Update raw data cache for re-smoothing
+		const finalData = frStore.get(uuid);
+		if (finalData) {
+			frStore.set(uuid, { ...finalData, _rawData: variantRawCache });
+		}
 	}
 
 	// ─── Update sample display ────────────────────────────────────────────────
@@ -435,17 +478,13 @@ class DataProvider {
 	// ─── Re-smooth all loaded data (called by SmoothingButton) ───────────────
 
 	async reSmoothAll(): Promise<void> {
-		// Re-fetch and re-process every entry from scratch
 		for (const [uuid, data] of frStore.entries) {
-			if (!data.meta || (data.type !== 'phone' && data.type !== 'target')) continue;
-			try {
-				const rawData = await FRParser.getFRDataFromMetadata(
-					data.type,
-					data.meta,
-					data.dispSuffix ?? ''
-				);
+			const rawCache = data._rawData;
+
+			if (rawCache) {
+				// Re-smooth from cached raw data (no network fetch)
 				const processed = normalizeChannels(
-					FRSmoother.smoothChannels(rawData),
+					FRSmoother.smoothChannels(rawCache.channels),
 					graphStore.normType,
 					graphStore.normHzValue
 				);
@@ -457,20 +496,20 @@ class DataProvider {
 						...(processed.AVG && { AVG: processed.AVG })
 					}
 				};
-				// Re-process sample data
-				if (rawData._samples && rawData._sampleCount) {
-					updated.samples = rawData._samples.map((sample) => {
+				// Re-process sample data from cache
+				if (rawCache.samples && rawCache.sampleCount) {
+					updated.samples = rawCache.samples.map((sample) => {
 						const s: SampleData = {};
 						if (sample.L) s.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
 						if (sample.R) s.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
 						return s;
 					});
-					updated.sampleCount = rawData._sampleCount;
+					updated.sampleCount = rawCache.sampleCount;
 				}
-				// Re-process HpTF sample data
-				if (rawData._hptfSamples && rawData._hptfLabels) {
-					const processedSamples: HpTFSampleData[] = rawData._hptfSamples.map((sample, i) => {
-						const p: HpTFSampleData = { label: rawData._hptfLabels![i] ?? `Sample ${i + 1}` };
+				// Re-process HpTF sample data from cache
+				if (rawCache.hptfSamples && rawCache.hptfLabels) {
+					const processedSamples: HpTFSampleData[] = rawCache.hptfSamples.map((sample, i) => {
+						const p: HpTFSampleData = { label: rawCache.hptfLabels![i] ?? `Sample ${i + 1}` };
 						if (sample.L) p.L = normalizeChannels(FRSmoother.smoothChannels({ L: sample.L }), graphStore.normType, graphStore.normHzValue).L;
 						if (sample.R) p.R = normalizeChannels(FRSmoother.smoothChannels({ R: sample.R }), graphStore.normType, graphStore.normHzValue).R;
 						if (p.L && p.R) {
@@ -482,10 +521,9 @@ class DataProvider {
 						return p;
 					});
 					updated.hptf = {
+						...data.hptf!,
 						samples: processedSamples,
 						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
-						labels: rawData._hptfLabels,
-						fillOnly: rawData._hptfFillOnly ?? true
 					};
 				}
 				frStore.set(uuid, updated);
@@ -498,8 +536,48 @@ class DataProvider {
 						...(processed.AVG && { AVG: processed.AVG })
 					});
 				}
-			} catch {
-				// Keep existing data on failure
+			} else if (data.meta && (data.type === 'phone' || data.type === 'target')) {
+				// Fallback: no cache, fetch from network
+				try {
+					const rawData = await FRParser.getFRDataFromMetadata(
+						data.type,
+						data.meta,
+						data.dispSuffix ?? ''
+					);
+					const fallbackCache: RawFRCache = {
+						channels: {
+							...(rawData.L && { L: rawData.L }),
+							...(rawData.R && { R: rawData.R }),
+							...(rawData.AVG && { AVG: rawData.AVG }),
+						},
+					};
+					if (rawData._samples && rawData._sampleCount) {
+						fallbackCache.samples = rawData._samples;
+						fallbackCache.sampleCount = rawData._sampleCount;
+					}
+					if (rawData._hptfSamples && rawData._hptfLabels) {
+						fallbackCache.hptfSamples = rawData._hptfSamples;
+						fallbackCache.hptfLabels = rawData._hptfLabels;
+						fallbackCache.hptfOnly = rawData._hptfOnly;
+						fallbackCache.hptfFillOnly = rawData._hptfFillOnly;
+					}
+					const processed = normalizeChannels(
+						FRSmoother.smoothChannels(rawData),
+						graphStore.normType,
+						graphStore.normHzValue
+					);
+					frStore.set(uuid, {
+						...data,
+						channels: {
+							...(processed.L && { L: processed.L }),
+							...(processed.R && { R: processed.R }),
+							...(processed.AVG && { AVG: processed.AVG })
+						},
+						_rawData: fallbackCache
+					});
+				} catch {
+					// Keep existing data on failure
+				}
 			}
 		}
 		// Signal TargetCustomizer instances to re-sync base data and re-apply adjustments

@@ -1,3 +1,15 @@
+<script module lang="ts">
+	import type { ChannelData } from '$lib/types/data-types.js';
+
+	// Module-level fetch promise: deduplicates concurrent calls AND persists across remounts.
+	// The first call creates the promise; all subsequent calls (concurrent or later) reuse it.
+	let _dataPromise: Promise<{
+		boundU: ChannelData;
+		boundD: ChannelData;
+		dfTarget: ChannelData;
+	}> | null = null;
+</script>
+
 <script lang="ts">
 	import * as d3 from 'd3';
 	import * as m from '$lib/paraglide/messages.js';
@@ -7,7 +19,7 @@
 	import FRSmoother from '$lib/utils/fr-smoother.js';
 	import { normalize } from '$lib/utils/fr-normalizer.js';
 	import { getConfigValue } from '$lib/utils/config.js';
-	import type { FRDataPoint, ChannelData } from '$lib/types/data-types.js';
+	import type { FRDataPoint } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 
 	// ── Config-driven enable/disable ──────────────────────────────────────────
@@ -44,23 +56,30 @@
 
 	async function loadData(): Promise<void> {
 		try {
-			const [textU, textD, textDF] = await Promise.all([
-				fetch('/data/Bounds U.txt').then((r) => r.text()),
-				fetch('/data/Bounds D.txt').then((r) => r.text()),
-				fetchDFTarget()
-			]);
+			if (!_dataPromise) {
+				_dataPromise = (async () => {
+					const [textU, textD, textDF] = await Promise.all([
+						fetch('/data/Bounds U.txt').then((r) => r.text()),
+						fetch('/data/Bounds D.txt').then((r) => r.text()),
+						fetchDFTarget()
+					]);
+					return {
+						boundU: await FRParser.parseFRData(textU),
+						boundD: await FRParser.parseFRData(textD),
+						dfTarget: await FRParser.parseFRData(textDF),
+					};
+				})();
+			}
+			const { boundU, boundD, dfTarget } = await _dataPromise;
 
-			const parsedU = await FRParser.parseFRData(textU);
-			const parsedD = await FRParser.parseFRData(textD);
-			const parsedDF = await FRParser.parseFRData(textDF);
-
-			rawBoundU = FRSmoother.smooth(parsedU.data);
-			rawBoundD = FRSmoother.smooth(parsedD.data);
-			rawDFData = { ...parsedDF, data: FRSmoother.smooth(parsedDF.data) };
+			rawBoundU = FRSmoother.smooth(boundU.data);
+			rawBoundD = FRSmoother.smooth(boundD.data);
+			rawDFData = { ...dfTarget, data: FRSmoother.smooth(dfTarget.data) };
 
 			isLoaded = true;
 		} catch (err) {
 			console.error('PreferenceBound: failed to load data', err);
+			_dataPromise = null; // Allow retry on failure
 		}
 	}
 

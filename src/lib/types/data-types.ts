@@ -25,6 +25,18 @@ export interface ParsedFRData {
   AVG?: ChannelData;
 }
 
+/** Cached raw FR data (parsed + interpolated, NOT smoothed or normalized).
+ *  Used by reSmoothAll() to avoid re-fetching from the network. */
+export interface RawFRCache {
+  channels: ParsedFRData;
+  samples?: SampleData[];
+  sampleCount?: number;
+  hptfSamples?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
+  hptfLabels?: string[];
+  hptfOnly?: boolean;
+  hptfFillOnly?: boolean;
+}
+
 /** A single measurement sample containing L and R channels */
 export interface SampleData {
   L?: ChannelData;
@@ -106,6 +118,8 @@ export interface FRDataObject {
   hptfAvgVisible?: boolean;
   /** When true, main channels are not drawn (HpTF-only mode, no file field in phone_book). */
   hptfOnly?: boolean;
+  /** Cached raw (unsmoothed, unnormalized) data for re-smoothing without re-fetching. */
+  _rawData?: RawFRCache;
 }
 
 /** Input metadata for adding FR data */

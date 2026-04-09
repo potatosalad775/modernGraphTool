@@ -36,18 +36,6 @@ export class GraphEqOverlay {
 	private _dragThrottleTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
 	private eq = new Equalizer();
 
-	// ── Log-spaced frequency grid for EQ response curve ──────────────────────
-	private static readonly EQ_CURVE_FREQS: number[] = (() => {
-		const freqs: number[] = [];
-		const minF = 20;
-		const maxF = 20000;
-		const n = 200;
-		for (let i = 0; i <= n; i++) {
-			freqs.push(minF * Math.pow(maxF / minF, i / n));
-		}
-		return freqs;
-	})();
-
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
 		this._createOverlayGroup();
@@ -74,7 +62,6 @@ export class GraphEqOverlay {
 		if (!eqStore.isEnabled) {
 			this.overlayGroup.selectAll('.eq-band-node').remove();
 			this._clearGhostCurve();
-			this._clearEqResponseCurve();
 			return;
 		}
 
@@ -85,9 +72,6 @@ export class GraphEqOverlay {
 		const enabledFilters = filters.filter(
 			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
 		);
-
-		// Draw EQ response curve (filled area showing combined filter shape)
-		this._renderEqResponseCurve(enabledFilters, xScale, yScale);
 
 		// Draw ghost curve (original pre-EQ FR)
 		this._renderGhostCurve(enabledFilters, xScale, yScale);
@@ -267,85 +251,15 @@ export class GraphEqOverlay {
 			.attr('class', 'eq-ghost-curve')
 			.attr('d', lineGenerator(smoothed))
 			.attr('fill', 'none')
-			.attr('stroke', 'var(--color-eq-ghost-curve)')
-			.attr('stroke-width', 1.5)
-			.attr('stroke-dasharray', '6 4')
+			.attr('stroke', sourceObj?.colors?.AVG || 'var(--color-base-content)')
+			.attr('stroke-width', 2)
+			.attr('opacity', 0.35)
 			.attr('clip-path', `polygon(${xStart}px ${yTop}px, ${xEnd}px ${yTop}px, ${xEnd}px ${yBottom}px, ${xStart}px ${yBottom}px)`)
 			.style('pointer-events', 'none');
 	}
 
 	private _clearGhostCurve(): void {
 		this.overlayGroup.selectAll('.eq-ghost-curve').remove();
-	}
-
-	// ── EQ Response curve (filled area) ───────────────────────────────────────
-
-	private _renderEqResponseCurve(
-		enabledFilters: EQFilter[],
-		xScale: d3.ScaleLogarithmic<number, number>,
-		yScale: d3.ScaleLinear<number, number>
-	): void {
-		this._clearEqResponseCurve();
-
-		if (enabledFilters.length === 0) return;
-
-		const preamp = eqStore.preamp;
-		const freqs = GraphEqOverlay.EQ_CURVE_FREQS;
-		const gains = this.eq.calculateGainsFromFilter(freqs, enabledFilters);
-
-		// Build area data: each point has [freq, eqGain]
-		type AreaPoint = { freq: number; gain: number };
-		const areaData: AreaPoint[] = freqs.map((f, i) => ({
-			freq: f,
-			gain: gains[i] + preamp
-		}));
-
-		const { xStart, xEnd, yTop, yBottom } = this.graphEngine.graphGeometry;
-		const zeroY = yScale(0);
-
-		// Positive (boost) area
-		const boostArea = d3
-			.area<AreaPoint>()
-			.x((d) => xScale(d.freq))
-			.y0(() => zeroY)
-			.y1((d) => {
-				const g = Math.max(0, d.gain);
-				return g === 0 ? zeroY : yScale(g);
-			})
-			.curve(d3.curveMonotoneX);
-
-		// Negative (cut) area
-		const cutArea = d3
-			.area<AreaPoint>()
-			.x((d) => xScale(d.freq))
-			.y0(() => zeroY)
-			.y1((d) => {
-				const g = Math.min(0, d.gain);
-				return g === 0 ? zeroY : yScale(g);
-			})
-			.curve(d3.curveMonotoneX);
-
-		const clipPath = `polygon(${xStart}px ${yTop}px, ${xEnd}px ${yTop}px, ${xEnd}px ${yBottom}px, ${xStart}px ${yBottom}px)`;
-
-		this.overlayGroup
-			.insert('path', '.eq-ghost-curve, .eq-band-node')
-			.attr('class', 'eq-response-boost')
-			.attr('d', boostArea(areaData))
-			.attr('fill', 'var(--color-eq-response-boost)')
-			.attr('clip-path', clipPath)
-			.style('pointer-events', 'none');
-
-		this.overlayGroup
-			.insert('path', '.eq-ghost-curve, .eq-band-node')
-			.attr('class', 'eq-response-cut')
-			.attr('d', cutArea(areaData))
-			.attr('fill', 'var(--color-eq-response-cut)')
-			.attr('clip-path', clipPath)
-			.style('pointer-events', 'none');
-	}
-
-	private _clearEqResponseCurve(): void {
-		this.overlayGroup.selectAll('.eq-response-boost, .eq-response-cut').remove();
 	}
 
 	// ── Curve lookup helpers ──────────────────────────────────────────────────

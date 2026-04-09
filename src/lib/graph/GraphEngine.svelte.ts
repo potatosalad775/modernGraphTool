@@ -20,7 +20,7 @@ class GraphEngine {
 	svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 	graphHandle!: GraphHandle;
 	graphInspection!: GraphInspection;
-	_updateCurveTimeout: ReturnType<typeof setTimeout> | null = null;
+	_updateCurveRAF: number | null = null;
 	xScale!: d3.ScaleLogarithmic<number, number>;
 	yScale!: d3.ScaleLinear<number, number>;
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -75,13 +75,13 @@ class GraphEngine {
 		this.isInitialized = true;
 	}
 
-	/** Update the graph with new data — debounced 100ms */
+	/** Update the graph with new data — coalesced via requestAnimationFrame */
 	refreshEveryFRCurves(): void {
-		if (this._updateCurveTimeout) {
-			clearTimeout(this._updateCurveTimeout);
+		if (this._updateCurveRAF !== null) {
+			cancelAnimationFrame(this._updateCurveRAF);
 		}
 
-		this._updateCurveTimeout = setTimeout(() => {
+		this._updateCurveRAF = requestAnimationFrame(() => {
 			this.refreshBaselineData();
 
 			this.svg
@@ -97,8 +97,8 @@ class GraphEngine {
 			});
 
 			this.orderOverlayLayers();
-			this._updateCurveTimeout = null;
-		}, 100);
+			this._updateCurveRAF = null;
+		});
 	}
 
 	/** Update Y Scale of Graph */

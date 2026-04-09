@@ -24,7 +24,7 @@ class GraphEngine {
 	xScale!: d3.ScaleLogarithmic<number, number>;
 	yScale!: d3.ScaleLinear<number, number>;
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
-	isInitialized = false;
+	isInitialized = $state(false);
 
 	constructor() {
 		// Compute viewBox dimensions from configured aspect ratio

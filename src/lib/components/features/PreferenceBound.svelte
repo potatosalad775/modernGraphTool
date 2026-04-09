@@ -15,6 +15,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
+	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import FRParser from '$lib/utils/fr-parser.js';
 	import FRSmoother from '$lib/utils/fr-smoother.js';
 	import { normalize } from '$lib/utils/fr-normalizer.js';
@@ -45,6 +46,31 @@
 		} catch {
 			return rawDFData;
 		}
+	});
+
+	// ── Derived: reactive baseline channel data ──────────────────────────────
+	// Mirrors GraphEngine.refreshBaselineData() but through Svelte reactivity,
+	// so PreferenceBound redraws when baseline mode or data changes.
+
+	const baselineChannelData = $derived.by((): FRDataPoint[] | null => {
+		const uuid = graphStore.baselineUUID;
+		if (!uuid) return null;
+
+		if (graphStore.baselineMode === 'withAdjustment') {
+			const original = graphStore.targetOriginalData.get(uuid);
+			return original?.AVG?.data ?? null;
+		}
+
+		const data = frStore.get(uuid);
+		if (!data) return null;
+		if (data.type === 'phone') {
+			const ch =
+				data.dispChannel.includes('L') && data.dispChannel.includes('R')
+					? 'AVG'
+					: data.dispChannel[0];
+			return data.channels[ch]?.data ?? null;
+		}
+		return data.channels.AVG?.data ?? null;
 	});
 
 	// ── Data loading ──────────────────────────────────────────────────────────
@@ -112,12 +138,11 @@
 
 		const { xScale, yScale } = graphEngine;
 		const dfData = dfNormalized.data;
-		const baselineData = graphEngine.baselineData;
 
 		const computeY = (freq: number, offset: number): number => {
 			const dfY = interpolateAt(dfData, freq);
-			if (baselineData.uuid !== null && baselineData.channelData) {
-				const baselineY = interpolateAt(baselineData.channelData, freq);
+			if (baselineChannelData) {
+				const baselineY = interpolateAt(baselineChannelData, freq);
 				return yScale(dfY + offset - baselineY);
 			}
 			return yScale(dfY + offset);
@@ -140,36 +165,63 @@
 
 	function drawBounds(): void {
 		if (!graphEngine.curveGroup) return;
-		removeBounds();
 
 		const pathStr = buildPathString();
-		if (!pathStr) return;
+		if (!pathStr) {
+			removeBounds();
+			return;
+		}
 
-		const fillColor =
-			(getConfigValue('PREFERENCE_BOUND.COLOR_FILL') as string | undefined) ??
-			'rgba(180,180,180,0.2)';
-		const strokeColor =
-			(getConfigValue('PREFERENCE_BOUND.COLOR_BORDER') as string | undefined) ??
-			'rgba(120,120,120,0.5)';
+		const existing = graphEngine.curveGroup.select<SVGPathElement>('.preference-bound-area');
 
-		graphEngine.curveGroup
-			.insert('path', ':first-child')
-			.attr('class', 'preference-bound-area')
-			.attr('d', pathStr)
-			.attr('fill', fillColor)
-			.attr('stroke', strokeColor)
-			.attr('stroke-width', 1)
-			.style('pointer-events', 'none');
+		if (existing.empty()) {
+			// First draw: create element without animation
+			const fillColor =
+				(getConfigValue('PREFERENCE_BOUND.COLOR_FILL') as string | undefined) ??
+				'rgba(180,180,180,0.2)';
+			const strokeColor =
+				(getConfigValue('PREFERENCE_BOUND.COLOR_BORDER') as string | undefined) ??
+				'rgba(120,120,120,0.5)';
+
+			graphEngine.curveGroup
+				.insert('path', ':first-child')
+				.attr('class', 'preference-bound-area')
+				.attr('d', pathStr)
+				.attr('fill', fillColor)
+				.attr('stroke', strokeColor)
+				.attr('stroke-width', 1)
+				.style('pointer-events', 'none');
+		} else {
+			// Subsequent updates: animate transition
+			existing.interrupt();
+			const oldPath = existing.attr('d') ?? '';
+			const numericPattern = /-?\d+\.?\d*(e[+-]?\d+)?/gi;
+			const oldCount = (oldPath.match(numericPattern) ?? []).length;
+			const newCount = (pathStr.match(numericPattern) ?? []).length;
+
+			if (oldCount === newCount && oldCount > 0) {
+				existing
+					.transition()
+					.duration(graphEngine.transitionDuration)
+					.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, pathStr)(t));
+			} else {
+				existing.attr('d', pathStr);
+			}
+		}
 	}
 
 	function removeBounds(): void {
-		graphEngine.curveGroup?.select('.preference-bound-area').remove();
+		const el = graphEngine.curveGroup?.select('.preference-bound-area');
+		if (el && !el.empty()) {
+			el.interrupt();
+			el.remove();
+		}
 	}
 
 	// ── Reactive draw effect ──────────────────────────────────────────────────
 
 	$effect(() => {
-		const _baseline = graphStore.baselineUUID;
+		const _baseline = baselineChannelData;
 		const _yScale = graphStore.yScale;
 		const _dfNorm = dfNormalized;
 		const _loaded = isLoaded;

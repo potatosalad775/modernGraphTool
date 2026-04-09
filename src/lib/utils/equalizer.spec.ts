@@ -248,6 +248,74 @@ describe('Equalizer', () => {
 		});
 	});
 
+	describe('autoEQ edge cases', () => {
+		it('produces no filters when source and target are both flat at same level', () => {
+			eq = makeEq();
+			const flat = flatCurve(80);
+			const filters = eq.autoEQ(flat, flat, { maxFilters: 5 });
+			expect(filters.length).toBeLessThanOrEqual(1);
+			if (filters.length > 0) {
+				// Any residual filter should have negligible gain
+				expect(Math.abs(filters[0].gain ?? 0)).toBeLessThan(1);
+			}
+		});
+
+		it('handles source with fewer points than target', () => {
+			eq = makeEq();
+			const source = flatCurve(0, 100);
+			const target = shapedCurve(480);
+			const filters = eq.autoEQ(source, target, { maxFilters: 4 });
+			expect(Array.isArray(filters)).toBe(true);
+			for (const f of filters) {
+				expect(f.freq).toBeGreaterThan(0);
+			}
+		});
+
+		it('handles extreme gain differences between source and target', () => {
+			eq = makeEq();
+			const source = flatCurve(0);
+			const target = flatCurve(20); // 20 dB difference
+			const filters = eq.autoEQ(source, target, { maxFilters: 5 });
+			expect(Array.isArray(filters)).toBe(true);
+		});
+	});
+
+	describe('convertFilterAsGraphicEQ edge cases', () => {
+		it('returns frequency points for LSQ filter', () => {
+			eq = makeEq();
+			const filters: EQFilter[] = [
+				{ enabled: true, type: 'LSQ', freq: 100, q: 0.7, gain: 6 }
+			];
+			const result = eq.convertFilterAsGraphicEQ(filters);
+			expect(result.length).toBeGreaterThan(0);
+			// Low shelf should boost low frequencies more
+			const lowIdx = result.findIndex((p) => p[0] >= 50);
+			const highIdx = result.findIndex((p) => p[0] >= 5000);
+			if (lowIdx >= 0 && highIdx >= 0) {
+				expect(result[lowIdx][1]).toBeGreaterThan(result[highIdx][1]);
+			}
+		});
+
+		it('returns frequency points for HSQ filter', () => {
+			eq = makeEq();
+			const filters: EQFilter[] = [
+				{ enabled: true, type: 'HSQ', freq: 8000, q: 0.7, gain: 6 }
+			];
+			const result = eq.convertFilterAsGraphicEQ(filters);
+			expect(result.length).toBeGreaterThan(0);
+		});
+
+		it('handles empty filter array', () => {
+			eq = makeEq();
+			const result = eq.convertFilterAsGraphicEQ([]);
+			expect(result.length).toBeGreaterThan(0);
+			// All gains should be 0 (normalized from 0)
+			for (const p of result) {
+				expect(p[1]).toBeCloseTo(0, 4);
+			}
+		});
+	});
+
 	describe('_round', () => {
 		it('rounds to specified decimal places', () => {
 			eq = makeEq();

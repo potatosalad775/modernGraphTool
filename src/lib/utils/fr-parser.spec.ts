@@ -95,6 +95,44 @@ describe('FRParser', () => {
 		});
 	});
 
+	describe('parseFRData edge cases', () => {
+		it('handles Windows-style CRLF line endings', async () => {
+			const raw = '100\t80\r\n1000\t85\r\n10000\t75';
+			const result = await FRParser.parseFRData(raw);
+			expect(result.data.length).toBeGreaterThan(0);
+		});
+
+		it('handles extra whitespace padding', async () => {
+			const raw = '  100  \t  80  \n  1000  \t  85  \n  10000  \t  75  ';
+			const result = await FRParser.parseFRData(raw);
+			expect(result.data.length).toBeGreaterThan(0);
+		});
+
+		it('handles mixed valid and invalid lines', async () => {
+			const raw = '100\t80\n---invalid---\n1000\t85\nXYZ\n10000\t75';
+			const result = await FRParser.parseFRData(raw);
+			expect(result.data.length).toBeGreaterThan(0);
+		});
+
+		it('handles only comment lines gracefully', async () => {
+			const raw = '# comment 1\n# comment 2\n# comment 3';
+			const result = await FRParser.parseFRData(raw);
+			expect(result.data.length).toBe(0);
+		});
+
+		it('handles large file (1000+ raw points)', async () => {
+			const lines: string[] = [];
+			for (let f = 20; f <= 20000; f += 20) {
+				lines.push(`${f}\t${80 + Math.sin(f / 1000) * 5}`);
+			}
+			const raw = lines.join('\n');
+			const result = await FRParser.parseFRData(raw);
+			expect(result.data.length).toBeGreaterThan(0);
+			// Should still interpolate to standard 1/48 octave
+			expect(result.data[0][0]).toBeCloseTo(20, 0);
+		});
+	});
+
 	describe('_parseFrequency', () => {
 		it('parses a plain number', () => {
 			expect(FRParser._parseFrequency('1000')).toBe(1000);

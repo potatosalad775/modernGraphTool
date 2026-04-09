@@ -8,7 +8,7 @@ type I18nValue<T> = T | { default: T; i18n: Record<string, T> };
  *  merged by index so omitted fields (e.g. `files` in TARGET_MANIFEST) fall
  *  back to the default entry rather than disappearing entirely.
  */
-function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
+export function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
   if (typeof value === 'object' && value !== null && 'default' in value && 'i18n' in value) {
     const wrapper = value as { default: T; i18n: Record<string, T> };
     const localized = wrapper.i18n[lang];
@@ -27,7 +27,7 @@ function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
   return value as T;
 }
 
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
+export function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce((acc: unknown, key) => (acc as any)?.[key], obj);
 }
 

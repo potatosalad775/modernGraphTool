@@ -32,7 +32,7 @@
 		const hasAVG = keys.includes('AVG');
 		if (hasL) opts.push({ value: 'L', label: m.selection_list_channel_left() });
 		if (hasR) opts.push({ value: 'R', label: m.selection_list_channel_right() });
-		// if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
+		if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
 		if (hasAVG) opts.push({ value: 'AVG', label: m.selection_list_channel_average() });
 		return opts;
 	});

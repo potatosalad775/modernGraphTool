@@ -7,7 +7,7 @@
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
-	//import { frStore } from '$lib/stores/fr-store.svelte';
+	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';

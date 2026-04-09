@@ -11,6 +11,7 @@
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
+	import GraphXAxis from './GraphXAxis.svelte';
 
 	let svgEl = $state<SVGSVGElement | undefined>(undefined);
 
@@ -185,9 +186,14 @@
 
 <svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
 	<title>Frequency response graph</title>
-	<!-- Static watermarks (Svelte-managed, rendered before D3 content) -->
+	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
 		<GraphWatermark viewBoxWidth={graphEngine.viewBoxWidth} viewBoxHeight={graphEngine.viewBoxHeight} />
+		<GraphXAxis
+			xScale={(freq) => graphEngine.xScale(freq)}
+			yTop={graphEngine.graphGeometry.yTop}
+			yBottom={graphEngine.graphGeometry.yBottom}
+		/>
 	{/if}
 	<!-- FR Labels (Svelte-managed) -->
 	{#if labelData.entries.length > 0}

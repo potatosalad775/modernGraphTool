@@ -6,7 +6,7 @@ import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { SvelteSet } from 'svelte/reactivity';
+
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
@@ -357,7 +357,7 @@ class GraphEngine {
 		this.svg.selectAll('.fr-graph-x-axis, .fr-graph-y-axis').lower();
 		this.svg.selectAll('.fr-graph-spectrum-overlay').raise();
 		this.svg.selectAll('.fr-graph-curve-container').raise();
-		this.svg.selectAll('.x-grid-text, .y-grid-text').raise();
+		this.svg.selectAll('.x-grid-text, .x-grid-text-major, .y-grid-text').raise();
 		this.svg.selectAll('.fr-graph-eq-overlay').raise();
 		this.svg.selectAll('.fr-graph-label, .fr-graph-label-bg').raise();
 	}
@@ -381,15 +381,8 @@ class GraphEngine {
 		return { xScale: this.xScale, yScale: this.yScale };
 	}
 
-	/** Draw axes for the graph */
+	/** Draw Y-axis (X-axis is Svelte-managed via GraphXAxis component) */
 	_drawAxis(): void {
-		if (this.svg.select('.fr-graph-x-axis').empty()) {
-			this.svg
-				.append('g')
-				.attr('class', 'fr-graph-x-axis')
-				.attr('transform', 'translate(0,0)');
-		}
-
 		if (this.svg.select('.fr-graph-y-axis').empty()) {
 			this.svg
 				.append('g')
@@ -397,7 +390,6 @@ class GraphEngine {
 				.attr('transform', 'translate(0,0)');
 		}
 
-		this.updateXAxis();
 		this.updateYAxis();
 	}
 
@@ -601,80 +593,6 @@ class GraphEngine {
 	/** Erase FR Curve */
 	eraseFRCurve(uuid: string): void {
 		this.curveGroup.selectAll(`*[uuid="${uuid}"]`).remove();
-	}
-
-	/** Update X Axis of the graph */
-	updateXAxis(transition = true): void {
-		const tickValues = [
-			20, 30, 40, 50, 60, 70, 80, 100, 200, 300, 400, 500, 600, 800, 1000, 2000, 3000, 4000, 5000,
-			6000, 8000, 10000, 15000, 20000
-		];
-		const majorTickValues = new SvelteSet([80, 300, 1000, 4000, 6000, 10000]);
-
-		const axis = this.svg.select<SVGGElement>('.fr-graph-x-axis');
-		const gridGroups = axis
-			.selectAll<SVGGElement, number>('.x-grid-group')
-			.data(tickValues, (d) => d);
-
-		gridGroups
-			.exit()
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
-			.style('opacity', 0)
-			.remove();
-
-		const enterGroups = gridGroups
-			.enter()
-			.append('g')
-			.attr('class', 'x-grid-group')
-			.attr('transform', (d) => `translate(${this.xScale(d)},0)`)
-			.style('opacity', 0);
-
-		this._createXAxisElements(enterGroups, majorTickValues);
-
-		const allGroups = enterGroups.merge(gridGroups);
-
-		allGroups
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
-			.style('opacity', 1)
-			.attr('transform', (d) => `translate(${this.xScale(d)},0)`);
-
-		this.orderOverlayLayers();
-	}
-
-	/** Create X Axis elements (lines and text) */
-	_createXAxisElements(
-		selection: d3.Selection<SVGGElement, number, SVGGElement, unknown>,
-		majorPoints: Set<number>
-	): void {
-		selection
-			.append('line')
-			.attr('class', (d) => (majorPoints.has(d) ? 'x-grid-line-major' : 'x-grid-line'))
-			.attr('x1', 0)
-			.attr('x2', 0)
-			.attr('y1', this.graphGeometry.yBottom)
-			.attr('y2', this.graphGeometry.yTop)
-			.attr('stroke', (d) =>
-				d === 20 || d === 20000 || majorPoints.has(d)
-					? 'var(--color-graph-grid-major)'
-					: 'var(--color-graph-grid-minor)'
-			)
-			.attr('stroke-width', (d) =>
-				d === 20 || d === 20000 || majorPoints.has(d) ? 1 : 0.5
-			);
-
-		selection
-			.append('text')
-			.attr('class', (d) => (majorPoints.has(d) ? 'x-grid-text-major' : 'x-grid-text'))
-			.attr('x', 0)
-			.attr('y', this.graphGeometry.yBottom)
-			.attr('dy', '11')
-			.attr('font-size', '0.6rem')
-			.attr('font-weight', (d) => (majorPoints.has(d) ? '500' : '300'))
-			.attr('text-anchor', 'middle')
-			.attr('fill', 'var(--color-graph-grid-text)')
-			.text((d) => (d >= 1000 ? `${d / 1000}k` : d));
 	}
 
 	/** Update Y Axis of the graph */

@@ -169,8 +169,8 @@
 	// ── Reactive draw effect ──────────────────────────────────────────────────
 
 	$effect(() => {
-		//const _baseline = graphStore.baselineUUID;
-		//const _yScale = graphStore.yScale;
+		const _baseline = graphStore.baselineUUID;
+		const _yScale = graphStore.yScale;
 		const _dfNorm = dfNormalized;
 		const _loaded = isLoaded;
 		const _visible = isVisible;

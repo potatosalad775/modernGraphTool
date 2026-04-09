@@ -166,9 +166,9 @@
 	$effect(() => {
 		if (!appStore.isReady) return;
 		// Subscribe to reactive dependencies
-		//for (const _ of frStore.entries) { /* track all FR data mutations */ }
-		//const _yScale = graphStore.yScale;
-		//const _baseline = graphStore.baselineUUID;
+		for (const _ of frStore.entries) { /* track all FR data mutations */ }
+		const _yScale = graphStore.yScale;
+		const _baseline = graphStore.baselineUUID;
 		urlProvider.autoUpdate();
 	});
 </script>

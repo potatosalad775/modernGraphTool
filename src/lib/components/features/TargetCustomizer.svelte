@@ -162,7 +162,7 @@
 	// Watches only the version counter (not the SvelteMap directly) to avoid cycles.
 
 	$effect(() => {
-		//const _version = graphStore.targetOriginalVersion;
+		const _version = graphStore.targetOriginalVersion;
 		if (!originalData) return;
 		// Non-reactive read of the updated base data
 		const stored = untrack(() => graphStore.targetOriginalData.get(uuid));
@@ -184,7 +184,7 @@
 			snapshot[id] = filterValues.get(id) ?? 0;
 		}
 		// Also track activeFilterIds size for reactivity on add/remove
-		//const _size = activeFilterIds.size;
+		const _size = activeFilterIds.size;
 
 		if (!originalData) return;
 

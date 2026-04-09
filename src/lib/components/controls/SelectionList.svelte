@@ -15,7 +15,7 @@
 	// ── Derived: sorted entries ──────────────────────────────────────────────────
 	// Targets always first, phones/others after.
 	const sortedEntries = $derived.by((): [string, FRDataObject][] => {
-		//const _size = frStore.size; // subscribe to size changes
+		const _size = frStore.size; // subscribe to size changes
 		const entries = [...frStore.entries.entries()];
 		return entries.sort(([, a], [, b]) => {
 			if (a.type === 'target' && b.type !== 'target') return -1;

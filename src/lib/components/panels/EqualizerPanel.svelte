@@ -81,8 +81,10 @@
 			return;
 		}
 
-		// Read source data reactively so the effect re-runs if it changes externally
-		const sourceData = frStore.get(sourceUUID);
+		// Read source data untracked — the effect's reactive triggers are the eqStore
+		// fields above. Tracking frStore here would create a read-write cycle (we write
+		// the EQ-modified data back to the same key at the end of this effect).
+		const sourceData = untrack(() => frStore.get(sourceUUID));
 		if (!sourceData) return;
 
 		// Cache original channel data on first run for this UUID

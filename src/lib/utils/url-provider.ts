@@ -64,7 +64,11 @@ class URLProvider {
 
 		if (changeURL) {
 			const { pathname, search } = new URL(url);
-			replaceState(resolve((pathname + search) as '/', {}), {});
+			const newPath = pathname + search;
+			const currentPath = window.location.pathname + window.location.search;
+			if (newPath !== currentPath) {
+				replaceState(resolve(newPath as '/', {}), {});
+			}
 		}
 		document.title = title;
 		this.#updateMetaTags(namesCombined);

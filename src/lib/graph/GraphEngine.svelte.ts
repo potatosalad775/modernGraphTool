@@ -92,6 +92,7 @@ class GraphEngine {
 			this.svg
 				.select('.fr-graph-curve-container')
 				.selectAll("path[class*='fr-graph-'][class*='-curve']")
+				.interrupt()
 				.remove();
 
 			frStore.entries.forEach((obj, uuid) => {
@@ -115,6 +116,7 @@ class GraphEngine {
 
 		this.curveGroup
 			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
+			.interrupt()
 			.transition()
 			.duration(this.transitionDuration)
 			.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
@@ -311,6 +313,7 @@ class GraphEngine {
 		const self = this;
 		this.curveGroup
 			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
+			.interrupt()
 			.transition()
 			.duration(animate ? this.transitionDuration : 0)
 			.attrTween('d', function (d) {
@@ -472,6 +475,7 @@ class GraphEngine {
 		const self = this;
 		this.curveGroup.selectAll<SVGPathElement, unknown>('path.fr-graph-hptf-fill').each(function () {
 			const el = d3.select(this);
+			el.interrupt(); // Cancel any in-progress transition to avoid stale path state
 			const uuid = el.attr('uuid');
 			if (!uuid) return;
 			const obj = frStore.get(uuid);
@@ -480,9 +484,18 @@ class GraphEngine {
 			if (!newPath) return;
 			if (animate) {
 				const oldPath = el.attr('d') ?? '';
-				el.transition()
-					.duration(self.transitionDuration)
-					.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
+				// Only use string interpolation when paths have compatible structure
+				// (same number of numeric values = same SVG command count).
+				// Mismatched structures (e.g. after smoothing change) produce garbled paths.
+				const oldCount = (oldPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
+				const newCount = (newPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
+				if (oldCount === newCount && oldCount > 0) {
+					el.transition()
+						.duration(self.transitionDuration)
+						.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
+				} else {
+					el.attr('d', newPath);
+				}
 			} else {
 				el.attr('d', newPath);
 			}

@@ -15,13 +15,13 @@
 
 	let { viewBoxWidth = 800, viewBoxHeight = 450 }: { viewBoxWidth?: number; viewBoxHeight?: number } = $props();
 
-	const positionData: Record<string, { x: number; y: number; anchor: string }> = {
+	const positionData: Record<string, { x: number; y: number; anchor: string }> = $derived({
 		BOTTOM_LEFT: { x: 50, y: viewBoxHeight - 50, anchor: 'start' },
 		BOTTOM_RIGHT: { x: viewBoxWidth - 46, y: viewBoxHeight - 50, anchor: 'end' },
 		TOP_LEFT: { x: 50, y: 70, anchor: 'start' },
 		TOP_RIGHT: { x: viewBoxWidth - 46, y: 70, anchor: 'end' },
 		CENTER: { x: viewBoxWidth / 2, y: Math.round(viewBoxHeight * 0.61), anchor: 'middle' }
-	};
+	});
 
 	const rigDescription =
 		(getConfigValue('VISUALIZATION.RIG_DESCRIPTION') as string) ||
@@ -64,7 +64,7 @@
 
 <!-- Custom watermarks -->
 <g class="watermark-group">
-	{#each watermarkData as watermarkObj}
+	{#each watermarkData as watermarkObj (watermarkObj.CONTENT)}
 		{@const pos = resolvePosition(watermarkObj)}
 		{#if watermarkObj.TYPE === 'IMAGE'}
 			<image

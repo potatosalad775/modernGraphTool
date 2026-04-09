@@ -78,7 +78,7 @@ class SquiglinkStore {
 		return username !== null && OPT_OUT_SITES.has(username);
 	}
 
-	get searchResults(): CrossSiteSearchResult[] {
+	searchResults: CrossSiteSearchResult[] = $derived.by(() => {
 		const q = this.searchQuery.trim().toLowerCase();
 		if (q.length < 2) return [];
 
@@ -114,7 +114,7 @@ class SquiglinkStore {
 		}
 
 		return results;
-	}
+	});
 
 	// ── Data fetching ────────────────────────────────────────────────────────
 

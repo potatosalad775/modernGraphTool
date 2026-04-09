@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
+import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -222,7 +223,7 @@ export class GraphEqOverlay {
 		const channelData = this._pickChannelData(originalData);
 		if (!channelData) return;
 
-		const smoothed = FRSmoother.smooth(channelData);
+		const smoothed = FRSmoother.smooth(channelData, graphStore.smoothValue);
 
 		// Build path with baseline compensation (same logic as GraphEngine._getCompensatedPath)
 		const baselineData = this.graphEngine.baselineData;
@@ -362,7 +363,7 @@ export class GraphEqOverlay {
 		const channelData = this._pickChannelData(sourceData.channels);
 		if (!channelData) return null;
 
-		return FRSmoother.smooth(channelData);
+		return FRSmoother.smooth(channelData, graphStore.smoothValue);
 	}
 
 	/**

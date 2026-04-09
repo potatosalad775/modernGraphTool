@@ -98,9 +98,9 @@
 			}
 			const { boundU, boundD, dfTarget } = await _dataPromise;
 
-			rawBoundU = FRSmoother.smooth(boundU.data);
-			rawBoundD = FRSmoother.smooth(boundD.data);
-			rawDFData = { ...dfTarget, data: FRSmoother.smooth(dfTarget.data) };
+			rawBoundU = FRSmoother.smooth(boundU.data, graphStore.smoothValue);
+			rawBoundD = FRSmoother.smooth(boundD.data, graphStore.smoothValue);
+			rawDFData = { ...dfTarget, data: FRSmoother.smooth(dfTarget.data, graphStore.smoothValue) };
 
 			isLoaded = true;
 		} catch (err) {

@@ -17,10 +17,10 @@ export interface FRStoreWriteAPI {
  *   history.redo(store)              — re-apply next command, returns it
  */
 class CommandHistory {
-  #history: Command[] = [];
+  #history: Command[] = $state([]);
 
   /** Index of the last executed command (-1 = empty) */
-  #pointer = -1;
+  #pointer = $state(-1);
 
   /** Execute a command and push it onto the history stack. Discards redo branch. */
   execute(command: Command, store: FRStoreWriteAPI): Command {
@@ -48,9 +48,9 @@ class CommandHistory {
     return command;
   }
 
-  canUndo(): boolean { return this.#pointer >= 0; }
+  get canUndo(): boolean { return this.#pointer >= 0; }
 
-  canRedo(): boolean { return this.#pointer < this.#history.length - 1; }
+  get canRedo(): boolean { return this.#pointer < this.#history.length - 1; }
 
   /**
    * Clear all history (called after bulk operations like re-normalization

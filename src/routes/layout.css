@@ -134,6 +134,24 @@ select {
 	padding-right: 1.125rem;
 }
 
+/* ─── kbd element styling ────────────────────────────────────────────────── */
+kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.25rem;
+	padding: 0rem 0.25rem;
+	min-width: 1.375rem;
+	font-family: var(--font-sans);
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--color-base-content);
+	background-color: var(--color-base-100);
+	border: 1px solid color-mix(in srgb, var(--color-base-content) 30%, #0000);
+	border-bottom: 2px solid color-mix(in srgb, var(--color-base-content) 30%, #0000);
+	border-radius: 4px;
+}
+
 /* ─── Scrollbar styling ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
 	width: 6px;

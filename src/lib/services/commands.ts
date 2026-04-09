@@ -1,5 +1,5 @@
 import type { FRDataObject, FRColors, ParsedFRData, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
-import type { FRStoreWriteAPI } from './command-history.js';
+import type { FRStoreWriteAPI } from './command-history.svelte.js';
 
 /**
  * Command base interface:

@@ -123,5 +123,8 @@
 	"shoplink_buy_now": "구매하기",
 	"selection_list_baseline_off": "기준선으로 설정",
 	"selection_list_baseline_without_adjustment": "보정됨",
-	"selection_list_baseline_with_adjustment": "보정됨 (조정 적용)"
+	"selection_list_baseline_with_adjustment": "보정됨 (조정 적용)",
+	"keyboard_shortcut_undo": "실행 취소",
+	"keyboard_shortcut_redo": "다시 실행",
+	"keyboard_shortcut_panels": "패널 전환"
 }

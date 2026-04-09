@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import CommandHistory from './command-history.js';
+import CommandHistory from './command-history.svelte.js';
 import type { Command } from './commands.js';
-import type { FRStoreWriteAPI } from './command-history.js';
+import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 
 /** Simple in-memory store for testing */
@@ -74,9 +74,9 @@ describe('CommandHistory', () => {
 		});
 
 		it('enables undo after execution', () => {
-			expect(history.canUndo()).toBe(false);
+			expect(history.canUndo).toBe(false);
 			history.execute(createTestCommand('a', 'Phone A'), store);
-			expect(history.canUndo()).toBe(true);
+			expect(history.canUndo).toBe(true);
 		});
 	});
 
@@ -103,10 +103,10 @@ describe('CommandHistory', () => {
 
 		it('enables redo after undo', () => {
 			history.execute(createTestCommand('a', 'Phone A'), store);
-			expect(history.canRedo()).toBe(false);
+			expect(history.canRedo).toBe(false);
 
 			history.undo(store);
-			expect(history.canRedo()).toBe(true);
+			expect(history.canRedo).toBe(true);
 		});
 	});
 
@@ -159,11 +159,11 @@ describe('CommandHistory', () => {
 			history.execute(createTestCommand('b', 'B'), store);
 
 			history.undo(store); // undo B
-			expect(history.canRedo()).toBe(true);
+			expect(history.canRedo).toBe(true);
 
 			// New command should discard the redo branch
 			history.execute(createTestCommand('c', 'C'), store);
-			expect(history.canRedo()).toBe(false);
+			expect(history.canRedo).toBe(false);
 		});
 	});
 
@@ -173,8 +173,8 @@ describe('CommandHistory', () => {
 			history.execute(createTestCommand('b', 'B'), store);
 
 			history.clear();
-			expect(history.canUndo()).toBe(false);
-			expect(history.canRedo()).toBe(false);
+			expect(history.canUndo).toBe(false);
+			expect(history.canRedo).toBe(false);
 		});
 
 		it('does not affect store data', () => {
@@ -187,21 +187,21 @@ describe('CommandHistory', () => {
 
 	describe('canUndo / canRedo', () => {
 		it('both false initially', () => {
-			expect(history.canUndo()).toBe(false);
-			expect(history.canRedo()).toBe(false);
+			expect(history.canUndo).toBe(false);
+			expect(history.canRedo).toBe(false);
 		});
 
 		it('canUndo true after execute', () => {
 			history.execute(createTestCommand('a', 'A'), store);
-			expect(history.canUndo()).toBe(true);
-			expect(history.canRedo()).toBe(false);
+			expect(history.canUndo).toBe(true);
+			expect(history.canRedo).toBe(false);
 		});
 
 		it('canRedo true after undo', () => {
 			history.execute(createTestCommand('a', 'A'), store);
 			history.undo(store);
-			expect(history.canUndo()).toBe(false);
-			expect(history.canRedo()).toBe(true);
+			expect(history.canUndo).toBe(false);
+			expect(history.canRedo).toBe(true);
 		});
 	});
 });

@@ -123,5 +123,8 @@
 	"shoplink_buy_now": "Buy Now",
 	"selection_list_baseline_off": "Set as baseline",
 	"selection_list_baseline_without_adjustment": "Compensated",
-	"selection_list_baseline_with_adjustment": "Compensated (with adjustment)"
+	"selection_list_baseline_with_adjustment": "Compensated (with adjustment)",
+	"keyboard_shortcut_undo": "Undo",
+	"keyboard_shortcut_redo": "Redo",
+	"keyboard_shortcut_panels": "Switch Panels"
 }

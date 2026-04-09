@@ -12,7 +12,7 @@ import {
 	UpdateSampleDisplayCommand,
 	UpdateHpTFDisplayCommand
 } from './commands.js';
-import type { FRStoreWriteAPI } from './command-history.js';
+import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 
 /** Simple in-memory store for testing */

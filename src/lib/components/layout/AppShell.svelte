@@ -220,7 +220,7 @@
 				</div>
 			</section>
 			<!-- Panel area fills remaining space -->
-			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-lg border-t border-base-content/15">
+			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15">
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
@@ -263,7 +263,7 @@
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-200">
+			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-100">
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}

@@ -57,7 +57,7 @@ v2 adds several new configuration sections to `config.js` that didn't exist in v
 | `HPTF` | HpTF deviation display mode and fill opacity |
 | `CDN_MODE` | Optional CDN deployment settings (version pinning, custom base URL) |
 
-These are all optional — v2 ships with sensible defaults if you omit them. The [Config Generator](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
+These are all optional — v2 ships with sensible defaults if you omit them. The [Config Editor](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
 
 ## What's New in v2
 
@@ -73,7 +73,7 @@ Beyond the rewrite itself, v2 introduces capabilities that weren't available in 
 
 1. **Download** the [latest v2 release](https://github.com/potatosalad775/modernGraphTool/releases)
 2. **Copy your data** — Move your `data/` folder (phones, targets, `phone_book.json`) into the v2 release folder
-3. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Generator](/config-generator) to build a fresh config interactively.
+3. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Editor](/config-generator) to build a fresh config interactively.
 4. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling). The [Theme Generator](/theme-generator) can help.
 5. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
 6. **Test locally** — Open the page in a browser and verify your data loads correctly

@@ -150,7 +150,7 @@ const config: Config = {
               href: '/theme-generator',
             },
             {
-              label: 'Config Generator',
+              label: 'Config Editor',
               href: '/config-generator',
             },
           ],

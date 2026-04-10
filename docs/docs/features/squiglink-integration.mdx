@@ -26,7 +26,6 @@ squig.link Integration is configured in `config.js`:
 // In config.js
 SQUIGLINK: {
     ENABLED: true,
-    DEBUG: false,
     ANALYTICS_MEASUREMENT_IDS: [],
     ANALYTICS_SITE: "",
     LOG_ANALYTICS: true,
@@ -39,7 +38,6 @@ SQUIGLINK: {
 ### Configuration Options
 
 - **`ENABLED`**: Master toggle for all squig.link features
-- **`DEBUG`**: Enable debug logging for troubleshooting
 - **`ANALYTICS_MEASUREMENT_IDS`**: Array of Google Analytics 4 measurement IDs for multi-tag support
 - **`ANALYTICS_SITE`**: Site name used for analytics event attribution
 - **`LOG_ANALYTICS`**: Log analytics events to console for debugging
@@ -53,7 +51,7 @@ SQUIGLINK: {
 Search for headphone measurements across all participating squig.link sites. Results link directly to the matching site's graph tool with the device loaded.
 
 ### Shop Links
-When a loaded device has a matching entry in the squig.link shop links database, a "Buy Now" button is displayed linking to the retailer.
+When a loaded device has a matching entry in the squig.link shop links database, a "Buy Now" button is displayed linking to the sponsor.
 
 ### Analytics
 When enabled, user interactions are tracked via Google Analytics 4 (gtag.js) for site usage insights.

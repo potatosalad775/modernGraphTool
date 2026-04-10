@@ -11,9 +11,42 @@ This guide explains the basic environment setup for using and managing modernGra
 1.  **modernGraphTool Project Files**: The built application files containing the core functionalities for visualizing and analyzing frequency response data.
 2.  **Text Editor**: A program for modifying various configuration files (`.js`, `.css`, `.json`). [Visual Studio Code (VS Code)](https://code.visualstudio.com/) is recommended.
 
-## Option A: Using the Pre-built Release (Recommended)
+## Option A: CDN Deployment (Recommended)
+
+If you don't want to manage app updates manually, you can use the CDN deployment mode. 
+
+In this setup, modernGraphTool's application code is loaded from a CDN (jsDelivr), while your configuration and data files stay on your own server.
 
 This is the simplest option. No programming knowledge is required.
+
+1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) and extract it.
+2.  Copy `cdn-index.html` from the release (or the `cdn/` folder in the source) to your server and **rename it to `index.html`**.
+3.  Keep these files on your server alongside the `index.html`:
+    - `config.js` — Your application settings
+    - `theme.css` — Your graph color theme
+    - `data/` — Your measurement data and target curves
+    - `assets/` — Your images and string files
+4.  The app will automatically load the latest version from the CDN.
+
+:::tip[Version Pinning]
+By default, the CDN loader auto-updates to the latest version within your major version. To pin a specific major version, add the `CDN_MODE` section to your `config.js`:
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,  // Stay on v2.x.x
+},
+```
+See [Customizing the Page](./customize-page#cdn_mode) for more details.
+:::
+
+:::info[How It Works]
+The `cdn-index.html` loads only your local `config.js` and `theme.css`, then fetches the modernGraphTool application from jsDelivr. When a new version is released, your site updates automatically — no file uploads needed.
+:::
+
+## Option B: Using the Pre-built Release
+
+If you prefer to host the entire application yourself, download the pre-built release and upload it to your server.
+
+This gives you more control but requires manual updates.
 
 1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) from the [modernGraphTool GitHub Release Page](https://github.com/potatosalad775/modernGraphTool/releases).
 2.  Extract the downloaded zip file. The extracted folder contains everything you need to deploy.
@@ -23,7 +56,7 @@ This is the simplest option. No programming knowledge is required.
     - `data/` — Your measurement data and target curves (see [Managing Data](./manage-data))
 4.  Upload the entire folder to your web server via FTP or any file transfer method.
 
-## Option B: Building from Source (For Developers)
+## Option C: Building from Source (For Developers)
 
 If you want to modify the source code or build from the latest development version:
 
@@ -51,33 +84,6 @@ If you want to modify the source code or build from the latest development versi
 You can preview your changes locally before deploying:
 - **From source**: Run `npm run dev` to start a development server at `http://localhost:5173`
 - **Built output**: Run `npm run preview` to serve the `dist/` folder locally
-:::
-
-## Option C: CDN Deployment
-
-If you don't want to manage app updates manually, you can use the CDN deployment mode. In this setup, modernGraphTool's application code is loaded from a CDN (jsDelivr), while your configuration and data files stay on your own server.
-
-1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) and extract it.
-2.  Copy `cdn-index.html` from the release (or the `cdn/` folder in the source) to your server and **rename it to `index.html`**.
-3.  Keep these files on your server alongside the `index.html`:
-    - `config.js` — Your application settings
-    - `theme.css` — Your graph color theme
-    - `data/` — Your measurement data and target curves
-    - `assets/` — Your images and string files
-4.  The app will automatically load the latest version from the CDN.
-
-:::tip[Version Pinning]
-By default, the CDN loader auto-updates to the latest version within your major version. To pin a specific major version, add the `CDN_MODE` section to your `config.js`:
-```javascript
-CDN_MODE: {
-  MAJOR_VERSION: 2,  // Stay on v2.x.x
-},
-```
-See [Customizing the Page](./customize-page#cdn_mode) for more details.
-:::
-
-:::info[How It Works]
-The `cdn-index.html` loads only your local `config.js` and `theme.css`, then fetches the modernGraphTool application from jsDelivr. When a new version is released, your site updates automatically — no file uploads needed.
 :::
 
 ## Installing a Text Editor

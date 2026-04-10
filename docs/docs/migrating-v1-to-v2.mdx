@@ -5,7 +5,20 @@ sidebar_label: Migrating from v1 to v2
 
 # Migrating from v1 to v2
 
-modernGraphTool v2 is a complete rewrite using modern web technologies. This guide covers what changed and how to migrate your existing setup.
+modernGraphTool v2 is a ground-up rewrite. The application code is entirely new, but your data and configuration carry over with minimal changes. This guide covers what's compatible, what changed, and how to migrate.
+
+## Compatibility
+
+**Your existing data works as-is.** The folder structure and file formats are unchanged:
+
+- `phone_book.json` — same structure, same location (`data/phone_book.json`)
+- FR measurement files — same `.txt` format in `data/phones/`
+- Target curve files — same `.txt` format in `data/target/`
+- Preference Bound files — `Bounds U.txt` / `Bounds D.txt` in `data/`
+
+`config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible.
+
+Deployment is also the same — v2 outputs a fully static SPA to `dist/`. Copy the folder to your web server. The `.htaccess` file for Apache SPA fallback is included.
 
 ## What Changed
 
@@ -19,66 +32,52 @@ modernGraphTool v2 is a complete rewrite using modern web technologies. This gui
 | **i18n** | Custom JSON loader | Paraglide JS (compile-time) |
 | **Testing** | None | Vitest + Playwright |
 
-### Extensions → Built-in Features
+### Extensions are Now Built-in
 
-In v1, features were loaded as extensions via `extensions/extensions.config.js`. Each extension had its own folder, entry point, and optional Rollup config.
+In v1, features were loaded as extensions via `extensions/extensions.config.js`. This offered modularity, but in practice most users kept every extension enabled, and managing separate extension folders and configs added unnecessary complexity.
 
-This allowed modularity without code modification, but added complexity in managing extensions and their dependencies. 
+In v2, **all extensions are built-in Svelte components** configured through a single `config.js`. The `extensions/` folder and `extensions.config.js` are gone.
 
-The majority of users kept every extension enabled as well, so the modular approach was less beneficial in practice. 
-
-In v2, **all extensions are now built-in features** — self-contained Svelte components that are always available and configured through `config.js`. There is no more `extensions/` folder or `extensions.config.js`.
-
-Extension settings that were previously in `extensions.config.js` have been integrated into `config.js`:
-
-| v1 (extensions.config.js) | v2 (config.js) |
+| v1 (`extensions.config.js`) | v2 (`config.js`) |
 |---|---|
 | Extension `ENABLED` flags | Features are always included; toggle visibility via config sections |
-| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section in `config.js` |
-| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section in `config.js` |
-| `SQUIGLINK` config | `SQUIGLINK` section in `config.js` |
+| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section |
+| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section |
+| `SQUIGLINK` config | `SQUIGLINK` section |
 
-### Graph Color Wheel
+The **Graph Color Wheel** extension is also gone as a standalone panel. In v2, color customization is built directly into the selection list — click any curve's color swatch to change it.
 
-The Graph Color Wheel was a standalone extension in v1. In v2, color and appearance customization is built directly into the selection list — click any curve's color swatch to change it. No separate panel or configuration needed.
+### New Config Sections
 
-## What Stayed the Same
+v2 adds several new configuration sections to `config.js` that didn't exist in v1:
 
-### Data Format
+| Section | Purpose |
+|---|---|
+| `MULTI_SAMPLE` | Default display mode for multi-sample measurements (`average` or `all`) |
+| `HPTF` | HpTF deviation display mode and fill opacity |
+| `CDN_MODE` | Optional CDN deployment settings (version pinning, custom base URL) |
 
-Your existing data works as-is in v2:
-
-- **`phone_book.json`** — same structure, same location (`data/phone_book.json`)
-- **FR measurement files** — same `.txt` format in `data/phones/`
-- **Target curve files** — same `.txt` format in `data/target/`
-- **Bounds files** — `Bounds U.txt` / `Bounds D.txt` in `data/`
-
-### Configuration
-
-`config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible. New sections have been added for features that were previously extension configs.
-
-### Deployment
-
-v2 still outputs a fully static SPA to `dist/`. Deploy by copying the folder to your web server. The `.htaccess` file for Apache SPA fallback is included.
+These are all optional — v2 ships with sensible defaults if you omit them. The [Config Generator](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
 
 ## What's New in v2
 
-- **Graph aspect ratio** — Configurable graph aspect ratio that can mimic CrinGraph's proportions
-- **Multi-sample display modes** — Show average or individual samples for multi-sample measurements
-- **HpTF deviation display** — Headphone Transfer Function deviation visualization (fill, curves, or both)
-- **CDN deployment** — Connect to a CDN-hosted version of modernGraphTool to keep up-to-date without manual updates
+Beyond the rewrite itself, v2 introduces capabilities that weren't available in v1:
+
+- **CDN deployment** — Serve app code from jsDelivr while keeping your data and config local. New versions update automatically without re-uploading files.
+- **Multi-sample display modes** — Show the average of all samples, or display every individual curve, configurable per-device
+- **HpTF deviation display** — Visualize headphone transfer function sample-to-sample variation as a fill area, individual curves, or both
+- **Interactive EQ** — Create and adjust EQ filters directly on the graph. Click to add a peaking filter, drag to change frequency and gain, scroll to adjust Q, and double-click to remove. The graph shows the EQ response curve and a ghost of the original FR in real-time.
+- **Configurable graph aspect ratio** — Choose between 16:9 or CrinGraph-style proportions via `VISUALIZATION.ASPECT_RATIO`
 
 ## Migration Steps
 
-For site operators migrating from v1:
-
-1. **Download** the v2 release from the [Release Page](https://github.com/potatosalad775/modernGraphTool/releases)
-2. **Copy your data** — Move your `data/` folder (phones, targets, phone_book.json) into the v2 `dist/` folder
-3. **Migrate config** — Transfer your v1 `config.js` settings into the v2 `config.js` template. The structure is largely the same, but review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, etc.)
-4. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling)
-5. **Remove extensions** — The `extensions/` folder is no longer used. All features are built-in.
-6. **Test** — Open the page locally and verify your data loads correctly
+1. **Download** the [latest v2 release](https://github.com/potatosalad775/modernGraphTool/releases)
+2. **Copy your data** — Move your `data/` folder (phones, targets, `phone_book.json`) into the v2 release folder
+3. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Generator](/config-generator) to build a fresh config interactively.
+4. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling). The [Theme Generator](/theme-generator) can help.
+5. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
+6. **Test locally** — Open the page in a browser and verify your data loads correctly
 
 :::tip[CDN Alternative]
-Instead of hosting the full `dist/` folder, you can use the [CDN deployment mode](../guide-for-admins/setup-env#option-c-cdn-deployment) with `cdn-index.html`. This keeps your data and config local while loading app code from jsDelivr, so you don't need to update files when new versions are released.
+Instead of hosting the full `dist/` folder, consider the [CDN deployment mode](./guide-for-admins/setup-env#option-a-cdn-deployment-recommended). Keep your `config.js`, `theme.css`, and `data/` on your server, and let jsDelivr serve the app code. Future updates apply automatically.
 :::

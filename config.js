@@ -14,13 +14,14 @@ const CONFIG = {
   },
   // Default Visualization Settings.
   VISUALIZATION: {
-    DEFAULT_Y_SCALE: 60,                                // (40, 60, 80, 100)
+    ASPECT_RATIO: "CrinGraph",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
+    DEFAULT_Y_SCALE: 50,                                // (30, 40, 50, 60, 80)
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
       POSITION: {
         LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",      // Fine-tune Label Location
       },                                          
-      TEXT_SIZE: "20px", 
+      TEXT_SIZE: "14px", 
       TEXT_WEIGHT: "600",                               // (100 ~ 900)
     },
     BASELINE_LABEL: {
@@ -28,7 +29,7 @@ const CONFIG = {
       POSITION: {
         LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
       },
-      TEXT_SIZE: "15px",
+      TEXT_SIZE: "14px",
       TEXT_WEIGHT: "500",                               // (100 ~ 900)
     },
     RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)", // Please don't leave this line empty, pretty please?
@@ -50,6 +51,13 @@ const CONFIG = {
     AUTO_UPDATE_URL: true,                              // This will automatically update URL when phone/target is changed.
     COMPRESS_URL: true,                                 // Compresses URL with Base62 encoding
   },
+  // CDN Deployment Settings (optional)
+  // Uncomment this section ONLY if you are using the CDN deployment mode
+  // with the thin cdn-index.html. When using the full dist/ deployment, leave this commented out.
+  // CDN_MODE: {
+  //   MAJOR_VERSION: 2,                                   // Auto-updates within this major version (e.g., 2.x.x)
+  //   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",  // Custom CDN base URL (advanced)
+  // },
   // Language Settings
   LANGUAGE: {
     LANGUAGE_LIST: [                                    // List of available languages. (Automatically fallbacks to "en" if not found)
@@ -67,7 +75,7 @@ const CONFIG = {
   // Watermark Settings
   WATERMARK: [
     { TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
-      SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
+      SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
     },
     // You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
     { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "15", LEFT: "46", RIGHT: "0"}, OPACITY: "0.2",
@@ -100,6 +108,15 @@ const CONFIG = {
   //    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
   //    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
   //  ],
+  // Multi-Sample Measurement Settings
+  MULTI_SAMPLE: {
+    DEFAULT_DISPLAY: "average",                           // ("average" or "all") - default sample display on load
+  },
+  // HpTF (Headphone Transfer Function) Sample Deviation Settings
+  HPTF: {
+    DEFAULT_DISPLAY: "fill+curves",                         // ("fill", "fill+curves", "curves", "none") - default HpTF display on load
+    FILL_OPACITY: 0.3,                                      // Opacity of the deviation fill area (0-1)
+  },
   // Graph Trace Styling
   TRACE_STYLING: {
     PHONE_TRACE_THICKNESS: 2,
@@ -136,6 +153,54 @@ const CONFIG = {
     //    { TITLE: "Google", URL: "https://www.google.com" },
     //    { TITLE: "Github", URL: "https://www.github.com" },
     //  ],
+  },
+  // Preference Bound Settings
+  // Draws a shaded upper/lower preference bound area on the graph.
+  // Bound data files (Bounds U.txt / Bounds D.txt) must exist in the data/ folder.
+  PREFERENCE_BOUND: {
+    ENABLE_BOUND_ON_INITIAL_LOAD: false,            // Show bounds immediately on page load
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target", // Reference DF target used for compensation. Set to "" to disable preference bound entirely.
+    COLOR_FILL: "rgba(180,180,180,0.2)",             // Fill color of the shaded area
+    COLOR_BORDER: "rgba(120,120,120,0.5)",           // Border color of the shaded area
+  },
+  // Target Customizer Settings
+  // Allows per-target filter adjustments for specified target curves.
+  TARGET_CUSTOMIZER: {
+    CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
+    // Available filters. Each filter has: id, name, type (TILT/LSQ/HSQ/PK), freq, q.
+    // Gain range defaults to -20..+20 (step 0.5) except Tilt which is -2..+2 (step 0.1).
+    FILTERS: [
+      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
+      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
+      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
+      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
+      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+    ],
+    // Filter presets selectable from a dropdown
+    FILTER_PRESET: [
+      { name: "Harman 2013", filter: { bass: 6.6, treble: -1.4 } },
+      { name: "Harman 2015", filter: { bass: 6.6, treble: -3, ear: -1.8 } },
+      { name: "Harman 2018", filter: { bass: 4.8, treble: -4.4 } },
+    ],
+    // Applies custom filter to the specified target on initial load
+    INITIAL_TARGET_FILTERS: [
+      { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 } },
+      { name: "ISO 11904-2 DF", filter: { tilt: -0.8, bass: 6 } },
+    ],
+  },
+  // Misc Panel Description
+  // You can add some useful information about your database over here.
+  // 'TEXT', 'HTML', 'IMAGE' types are supported.
+  // squig.link Integration Settings
+  // This section is only active when hosted on *.squig.link domains.
+  SQUIGLINK: {
+    ENABLED: true,
+    ANALYTICS_MEASUREMENT_IDS: [],     // Array of GA4 IDs, e.g. ["G-SQUIGLINK_ID", "G-YOUR_ID"]
+    ANALYTICS_SITE: "",                // Site name for analytics attribution
+    LOG_ANALYTICS: true,               // Console log analytics events
+    ENABLE_ANALYTICS: true,            // Master analytics toggle
+    ENABLE_CROSS_SITE_SEARCH: true,    // Cross-site device search
+    ENABLE_SPONSOR: true,              // Sponsor banner and shop links
   },
   // Misc Panel Description
   // You can add some useful information about your database over here.

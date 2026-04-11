@@ -20,6 +20,7 @@
 	import FRSmoother from '$lib/utils/fr-smoother.js';
 	import { normalize } from '$lib/utils/fr-normalizer.js';
 	import { getConfigValue } from '$lib/utils/config.js';
+	import { asset } from '$app/paths';
 	import type { FRDataPoint } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 
@@ -85,8 +86,8 @@
 			if (!_dataPromise) {
 				_dataPromise = (async () => {
 					const [textU, textD, textDF] = await Promise.all([
-						fetch('/data/Bounds U.txt').then((r) => r.text()),
-						fetch('/data/Bounds D.txt').then((r) => r.text()),
+						fetch(asset('/data/Bounds U.txt')).then((r) => r.text()),
+						fetch(asset('/data/Bounds D.txt')).then((r) => r.text()),
 						fetchDFTarget()
 					]);
 					return {
@@ -111,7 +112,7 @@
 
 	function fetchDFTarget(): Promise<string> {
 		const fileName = baseDFTarget.endsWith('.txt') ? baseDFTarget : `${baseDFTarget}.txt`;
-		return fetch(`/data/${fileName}`).then((r) => {
+		return fetch(asset(`/data/${fileName}`)).then((r) => {
 			if (!r.ok) throw new Error(`Failed to fetch DF target: ${fileName}`);
 			return r.text();
 		});

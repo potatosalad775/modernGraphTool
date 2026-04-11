@@ -32,6 +32,8 @@ jobs:
 
       - name: Build SvelteKit app
         run: npm run build
+        env:
+          BASE_PATH: '/modernGraphTool'
 
       - name: Prepare deployment artifact directory
         run: mkdir -p gh-pages-artifact

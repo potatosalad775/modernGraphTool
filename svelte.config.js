@@ -5,6 +5,10 @@ import adapter from '@sveltejs/adapter-static';
 // When unset, all assets are served locally (standard dist/ deployment).
 const CDN_BASE = process.env.MGT_CDN_BASE || '';
 
+// Base path: set BASE_PATH for deployments under a subpath (e.g. GitHub Pages).
+// Example: BASE_PATH=/modernGraphTool
+const BASE_PATH = process.env.BASE_PATH || '';
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
@@ -15,6 +19,7 @@ const config = {
 			precompress: false
 		}),
 		paths: {
+			base: BASE_PATH,
 			assets: CDN_BASE
 		},
 		prerender: { handleHttpError: 'warn' }

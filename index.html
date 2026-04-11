@@ -7,15 +7,15 @@
 		<!-- Pretendard Variable font (Korean-optimized, dynamic subset) -->
 		<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 		<!-- Plain script (NOT type="module") — sets window.GRAPHTOOL_CONFIG synchronously before SvelteKit boots -->
-		<script src="/config.js"></script>
-		<link rel="stylesheet" href="/theme.css" />
-		<link href="/_app/immutable/entry/start.CN9hZDSo.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/CoGLVJKU.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/wOZeTdke.js" rel="modulepreload">
-		<link href="/_app/immutable/entry/app.BK-wHJt3.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/Dji8NdfF.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/BY8JMB0F.js" rel="modulepreload">
-		<link href="/_app/immutable/chunks/DEkXnI9r.js" rel="modulepreload">
+		<script src="/modernGraphTool/config.js"></script>
+		<link rel="stylesheet" href="/modernGraphTool/theme.css" />
+		<link href="/modernGraphTool/_app/immutable/entry/start.DfwPFjPH.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/COOlkP3C.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/wOZeTdke.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/entry/app.DcN7kA_c.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/Dji8NdfF.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/BY8JMB0F.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/DEkXnI9r.js" rel="modulepreload">
 		
 	</head>
 
@@ -23,15 +23,16 @@
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_1aouyqj = {
-						base: ""
+					__sveltekit_1d5walu = {
+						base: "/modernGraphTool",
+						assets: "/modernGraphTool"
 					};
 
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/_app/immutable/entry/start.CN9hZDSo.js"),
-						import("/_app/immutable/entry/app.BK-wHJt3.js")
+						import("/modernGraphTool/_app/immutable/entry/start.DfwPFjPH.js"),
+						import("/modernGraphTool/_app/immutable/entry/app.DcN7kA_c.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});

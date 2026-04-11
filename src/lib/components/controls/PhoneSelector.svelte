@@ -1,15 +1,14 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
-	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte.js';
 	import MetadataParser from '$lib/utils/metadata-parser.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
-	import type { CrossSiteSearchResult } from '$lib/types/squiglink-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
+	import CrossSiteSearchResults from './CrossSiteSearchResults.svelte';
 	import { Search, X } from '@lucide/svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
@@ -26,75 +25,10 @@
 	let showPhonePane = $state(true);
 	const loadingIds = new SvelteSet<string>();
 
-	// ── Cross-site search state ─────────────────────────────────────────────────
+	// ── Cross-site search (delegated to CrossSiteSearchResults) ─────────────────
 
-	const crossSiteEnabled = $derived(
-		squiglinkStore.isEnabled &&
-			(getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH') as boolean) !== false
-	);
-
-	let crossSiteLoadStarted = false;
-	let crossSiteLoading = $state(false);
-
-	async function loadCrossSiteData(): Promise<void> {
-		crossSiteLoading = true;
-		try {
-			await squiglinkStore.fetchSiteRegistry();
-			const sites = squiglinkStore.sites;
-			// Fetch phone books in batches of 5
-			for (let i = 0; i < sites.length; i += 5) {
-				const batch = sites.slice(i, i + 5);
-				await Promise.all(batch.map((site) => squiglinkStore.fetchPhoneBook(site)));
-			}
-		} catch (e) {
-			console.error('Failed to load cross-site data:', e);
-		} finally {
-			crossSiteLoading = false;
-		}
-	}
-
-	// Sync searchQuery to squiglinkStore when cross-site is enabled
-	$effect(() => {
-		if (crossSiteEnabled) {
-			squiglinkStore.searchQuery = searchQuery;
-		}
-	});
-
-	// Trigger cross-site data load once when enabled and query is long enough
-	$effect(() => {
-		if (crossSiteEnabled && searchQuery.trim().length >= 2 && !crossSiteLoadStarted) {
-			crossSiteLoadStarted = true;
-			loadCrossSiteData();
-		}
-	});
-
-	const crossSiteResults = $derived<CrossSiteSearchResult[]>(
-		crossSiteEnabled && searchQuery.trim().length >= 2 ? squiglinkStore.searchResults : []
-	);
-
-	const groupedCrossSite = $derived.by(() => {
-		const map = new SvelteMap<string, CrossSiteSearchResult[]>();
-		for (const result of crossSiteResults) {
-			const existing = map.get(result.siteUsername);
-			if (existing) {
-				existing.push(result);
-			} else {
-				map.set(result.siteUsername, [result]);
-			}
-		}
-		return map;
-	});
-
-	const showCrossSiteSection = $derived(
-		crossSiteEnabled && searchQuery.trim().length >= 2
-	);
-
-	function openCrossSiteResult(siteUrl: string, phoneName: string): void {
-		window.open(
-			`${siteUrl}?share=${encodeURIComponent(phoneName.replace(/ /g, '_'))}`,
-			'_blank'
-		);
-	}
+	let crossSiteResultCount = $state(0);
+	let crossSiteIsLoading = $state(false);
 
 	// ── Derived ─────────────────────────────────────────────────────────────────
 
@@ -247,64 +181,8 @@
 				class="ps-phone-pane flex flex-col overflow-y-auto"
 				class:ps-phone-hidden={!showPhonePane}
 			>
-				<!-- Cross-site search results -->
-				{#if showCrossSiteSection}
-					{#if crossSiteLoading && crossSiteResults.length === 0}
-						<p class="px-3 py-3 text-center text-xs text-base-content/60">
-							{m.crosssite_search_loading()}
-						</p>
-					{/if}
-
-					{#if crossSiteResults.length > 0}
-						<div class="px-3 pb-1 pt-2">
-							<span class="text-[10px] font-semibold uppercase tracking-wider text-base-content/60">
-								{m.crosssite_search_title()}
-							</span>
-						</div>
-
-						{#each [...groupedCrossSite] as [siteUsername, results] (siteUsername)}
-							<div class="px-3 pb-0.5 pt-1.5">
-								<span class="text-[10px] font-medium text-base-content/60">
-									{results[0].siteName}
-								</span>
-							</div>
-
-							{#each results.slice(0, 10) as result (result.siteUsername + result.phoneName)}
-								<button
-									onclick={() => openCrossSiteResult(result.siteUrl, result.phoneName)}
-									class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm  transition-colors hover:bg-base-300"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-										class="h-3.5 w-3.5 shrink-0 text-base-content/60"
-									>
-										<path
-											fill-rule="evenodd"
-											d="M5.22 14.78a.75.75 0 0 0 1.06 0l7.22-7.22v5.69a.75.75 0 0 0 1.5 0v-7.5a.75.75 0 0 0-.75-.75h-7.5a.75.75 0 0 0 0 1.5h5.69l-7.22 7.22a.75.75 0 0 0 0 1.06Z"
-											clip-rule="evenodd"
-										/>
-									</svg>
-									<span class="min-w-0 flex-1 truncate">{result.phoneName}</span>
-									<span
-										class="shrink-0 rounded-full bg-base-300 px-1.5 py-0.5 text-[10px] font-medium text-base-content/60"
-									>
-										{result.dbType}
-									</span>
-								</button>
-							{/each}
-						{/each}
-
-						<!-- Divider between cross-site and local results -->
-						{#if displayPhones.length > 0}
-							<div class="mx-3 my-1 border-t border-base-content/15"></div>
-						{/if}
-					{/if}
-				{/if}
-
 				<!-- Empty state -->
-				{#if displayPhones.length === 0 && crossSiteResults.length === 0 && !crossSiteLoading}
+				{#if displayPhones.length === 0 && crossSiteResultCount === 0 && !crossSiteIsLoading}
 					<p class="px-3 py-6 text-center text-xs text-base-content/60">
 						{searchQuery.trim() ? 'No results.' : 'No devices.'}
 					</p>
@@ -379,6 +257,18 @@
 						</button>
 					</div>
 				{/each}
+
+				<!-- Cross-site search results -->
+				<CrossSiteSearchResults
+					{searchQuery}
+					bind:resultCount={crossSiteResultCount}
+					bind:isLoading={crossSiteIsLoading}
+				/>
+
+				<!-- Divider between cross-site and local results -->
+				{#if crossSiteResultCount > 0 && displayPhones.length > 0}
+					<div class="mx-3 my-1 border-t border-base-content/15"></div>
+				{/if}
 			</div>
 		</div>
 	</div>

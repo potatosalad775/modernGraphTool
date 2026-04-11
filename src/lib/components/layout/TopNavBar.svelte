@@ -3,6 +3,7 @@
 	import { getConfigValue } from '$lib/utils/config';
 	import { appStore } from '$lib/stores/app-store.svelte';
 	import SiteSelector from '$lib/components/controls/SiteSelector.svelte';
+	import Button from '../atoms/Button.svelte';
 	import { Menu, X } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -28,21 +29,23 @@
 <header class="flex h-12 items-center border-b border-base-content/15 bg-base-300 px-4">
 	<nav class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
-		<a href="." class="flex items-center no-underline text-base-content">
-			{#if titleType === 'HTML'}
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				{@html titleContent}
-			{:else if titleType === 'IMAGE'}
-				<img src={titleContent} alt="topbar title" class="h-8" />
-			{:else}
-				<span class="text-base font-semibold text-base-content">{titleContent}</span>
-			{/if}
-		</a>
+		<div class="flex items-center gap-4">
+			<a href="." class="flex items-center no-underline text-base-content">
+				{#if titleType === 'HTML'}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html titleContent}
+				{:else if titleType === 'IMAGE'}
+					<img src={titleContent} alt="topbar title" class="h-8" />
+				{:else}
+					<span class="text-base font-semibold text-base-content">{titleContent}</span>
+				{/if}
+			</a>
+			<SiteSelector />
+		</div>
 
 		<!-- Desktop: link list + site selector -->
 		{#if !appStore.isMobile}
 			<div class="flex items-center gap-4">
-				<SiteSelector />
 				{#each linkList as link (link.URL)}
 					<a
 						href={link.URL}
@@ -58,14 +61,13 @@
 
 		<!-- Mobile: hamburger button -->
 		{#if appStore.isMobile}
-			<button
-				type="button"
+			<Button
+				title="Open menu"
 				onclick={openSidebar}
-				class="rounded-md p-2  hover:bg-base-300"
-				aria-label="Open menu"
+				variant="ghost" size="icon"
 			>
-				<Menu class="h-5 w-5" aria-hidden="true" />
-			</button>
+				<Menu class="h-5 w-5" />
+			</Button>
 		{/if}
 	</nav>
 </header>
@@ -111,5 +113,8 @@
 				</a>
 			{/each}
 		</nav>
+		<div class="mt-auto border-t border-base-content/15 p-4">
+			<SiteSelector />
+		</div>
 	</div>
 {/if}

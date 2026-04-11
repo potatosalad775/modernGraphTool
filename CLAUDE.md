@@ -143,7 +143,6 @@ in src/lib/components/features/:
 - TargetCustomizer.svelte  — Custom HRTF target with Tilt/Bass/Treble sliders
 - GraphColorWheel.svelte   — Color picker for graph curves (uses bits-ui Popover)
 - PreferenceBound.svelte   — Preference bound D3 overlay on graph
-- CrossSiteSearch.svelte   — Cross-site device search across squig.link network
 - SponsorBanner.svelte     — Sponsor modal on first visit (bits-ui Dialog)
 - ShopLink.svelte          — "Buy Now" button when a matching shop link exists
 
@@ -159,7 +158,7 @@ Key files:
   Types:      src/lib/types/squiglink-types.ts
   Store:      src/lib/stores/squiglink-store.svelte.ts
   Analytics:  src/lib/services/analytics-service.svelte.ts
-  Components: CrossSiteSearch, SponsorBanner, ShopLink (features/), SiteSelector (controls/)
+  Components: SponsorBanner, ShopLink (features/), PhoneSelector (cross-site search inline), SiteSelector (controls/)
 
 Config section (defaults/config.js):
   SQUIGLINK.ENABLED                  — master toggle (default: true)
@@ -189,7 +188,7 @@ Phases:
                          ShareButton, InspectionToggle; DevicePanel, GraphPanel,
                          EqualizerPanel (scaffold), MiscPanel; AppShell panel routing
   7: Extensions (DONE) — FrequencyTutorial, TargetCustomizer, GraphColorWheel, PreferenceBound, DevicePeq
-  7b: squig.link Integration (DONE) — squiglink-store, analytics-service, CrossSiteSearch,
+  7b: squig.link Integration (DONE) — squiglink-store, analytics-service,
                          SiteSelector, SponsorBanner, ShopLink; config SQUIGLINK section;
                          see ../.claude/plans/replicated-whistling-pine.md for design decisions
   8: URL Provider (DONE) — url-provider.ts, ShareButton integration, URL state encoding/decoding,

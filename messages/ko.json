@@ -116,7 +116,6 @@
 	"target_customizer_add_filter": "필터 추가",
 	"target_customizer_preset": "프리셋",
 	"target_customizer_no_filters": "활성화된 필터 없음",
-	"crosssite_search_title": "다른 DB 검색",
 	"crosssite_search_placeholder": "다른 데이터베이스 검색...",
 	"crosssite_search_no_results": "검색 결과가 없습니다.",
 	"crosssite_search_loading": "데이터베이스 불러오는 중...",

@@ -93,14 +93,14 @@ const config: Config = {
       */
       items: [
         {
+          type: 'docsVersionDropdown',
+          position: 'left',
+        },
+        {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: 'Docs',
-        },
-        {
-          type: 'docsVersionDropdown',
-          position: 'left',
         },
         {
           href: 'https://potatosalad775.github.io/modernGraphTool',
@@ -150,7 +150,7 @@ const config: Config = {
               href: '/theme-generator',
             },
             {
-              label: 'Config Generator',
+              label: 'Config Editor',
               href: '/config-generator',
             },
           ],

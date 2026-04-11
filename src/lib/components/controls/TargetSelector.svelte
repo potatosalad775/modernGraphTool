@@ -47,7 +47,7 @@
 </script>
 
 {#snippet targetRow(group: TargetManifestEntry)}
-	<ScrollArea orientation="horizontal" type="always" viewportClasses="flex w-full px-[1px] pt-[1px] pb-2">
+	<ScrollArea orientation="horizontal" type="always" viewportClasses="flex w-full px-[1px] pt-[1px] pb-2 last-child:pb-[1px]">
 		<div class="flex items-center gap-2">
 			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/40">{group.type}</span>
 			<div class="flex gap-1.5">
@@ -75,7 +75,7 @@
 	{#if allowMultiLine}
 		<Accordion type="single" value={collapseOnInitial ? '' : 'targets'}>
 			<AccordionItem value="targets" title={m.target_selector_label()}>
-				<div class="flex flex-col gap-0.5 pt-1">
+				<div class="flex flex-col gap-0.5 pt-1 -mb-0.75">
 					{#each targets as group (group.type)}
 						{@render targetRow(group)}
 					{/each}

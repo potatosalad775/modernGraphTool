@@ -28,8 +28,8 @@
 	"extension_equalizer_phone_select_option_source": "Select Device to EQ",
 	"extension_equalizer_phone_select_option_target": "Select target for AutoEQ",
 	"extension_equalizer_filter_list_preamp": "Preamp",
-	"extension_equalizer_filter_list_import": "Import",
-	"extension_equalizer_filter_list_export": "Export",
+	"extension_equalizer_filter_list_import": "Import EQ",
+	"extension_equalizer_filter_list_export": "Export EQ",
 	"extension_equalizer_filter_list_export_graphic_eq": "Export as Graphic EQ (Wavelet)",
 	"extension_equalizer_filter_list_peak": "Peak",
 	"extension_equalizer_filter_list_lowshelf": "Low Shelf",
@@ -57,6 +57,7 @@
 	"extension_equalizer_player_tone_freq_label": "Frequency: ",
 	"extension_equalizer_player_filter_toggle": "EQ Effect",
 	"extension_equalizer_player_spectrum_toggle": "Spectrum",
+	"extension_equalizer_player_file_upload": "Upload Audio",
 	"extension_equalizer_upload_fr": "Upload FR",
 	"extension_equalizer_upload_target": "Upload Target",
 	"target_selector_label": "Target",
@@ -122,5 +123,9 @@
 	"shoplink_buy_now": "Buy Now",
 	"selection_list_baseline_off": "Set as baseline",
 	"selection_list_baseline_without_adjustment": "Compensated",
-	"selection_list_baseline_with_adjustment": "Compensated (with adjustment)"
+	"selection_list_baseline_with_adjustment": "Compensated (with adjustment)",
+	"keyboard_shortcut_undo": "Undo",
+	"keyboard_shortcut_redo": "Redo",
+	"keyboard_shortcut_panels": "Switch Panels",
+	"keyboard_shortcut_axis_lock": "Lock Axis (EQ drag)"
 }

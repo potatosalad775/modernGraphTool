@@ -15,7 +15,7 @@ import type {
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { commandHistory } from './command-history.js';
+import { commandHistory } from './command-history.svelte.js';
 import {
 	AddFRDataCommand,
 	RemoveFRDataCommand,

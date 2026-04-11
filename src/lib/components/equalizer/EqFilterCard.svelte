@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { EQFilter } from '$lib/utils/equalizer.js';
-	import { logToLinear, linearToLog, formatFreq, formatGain, formatQ } from '$lib/utils/log-scale.js';
-	import { ChevronDown } from '@lucide/svelte';
+	import { logToLinear, linearToLog } from '$lib/utils/log-scale.js';
+	import { ChevronDown, X } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
 	import * as m from '$lib/paraglide/messages.js';
+	import Switch from '../atoms/Switch.svelte';
+	import Button from '../atoms/Button.svelte';
 
 	let {
 		filter,
@@ -21,11 +23,6 @@
 		onRemove: () => void;
 	} = $props();
 
-	// ── Local state ──────────────────────────────────────────────────────────
-
-	let editingField = $state<'freq' | 'gain' | 'q' | null>(null);
-	let editValue = $state('');
-
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
 	const typeShortLabels: Record<EQFilter['type'], string> = { PK: 'PK', LSQ: 'LS', HSQ: 'HS' };
@@ -42,123 +39,149 @@
 	let gainSliderValue = $derived(filter.gain != null ? Math.round(filter.gain * 10) : 0);
 	let qSliderValue = $derived(filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10));
 
-	// ── Inline edit ──────────────────────────────────────────────────────────
+	// ── Number input handling ────────────────────────────────────────────────
 
-	function startEdit(field: 'freq' | 'gain' | 'q') {
-		editingField = field;
-		editValue = String(filter[field] ?? '');
-	}
+	const inputBase = 'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
-	function commitEdit(field: 'freq' | 'gain' | 'q') {
-		const val = parseFloat(editValue);
+	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {
+		const input = e.currentTarget as HTMLInputElement;
+		const val = parseFloat(input.value);
 		if (!isNaN(val)) {
 			const clamped =
 				field === 'freq'
-					? Math.max(20, Math.min(20000, val))
+					? Math.max(20, Math.min(20000, Math.round(val)))
 					: field === 'gain'
-						? Math.max(-30, Math.min(30, val))
-						: Math.max(0.1, Math.min(10, val));
+						? Math.max(-30, Math.min(30, Math.round(val * 10) / 10))
+						: Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
 			onUpdate({ [field]: clamped });
+			input.value = String(clamped);
+		} else {
+			input.value = String(filter[field] ?? '');
 		}
-		editingField = null;
 	}
 
-	function handleEditKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
+	function handleInputKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
 		if (e.key === 'Enter') {
-			e.preventDefault();
-			commitEdit(field);
+			(e.currentTarget as HTMLInputElement).blur();
 		} else if (e.key === 'Escape') {
-			e.preventDefault();
-			editingField = null;
+			const input = e.currentTarget as HTMLInputElement;
+			input.value = String(filter[field] ?? '');
+			input.blur();
 		}
-	}
-
-	/** Attachment to auto-focus and select an input element on mount */
-	function autofocus(node: HTMLInputElement) {
-		node.focus();
-		node.select();
 	}
 
 </script>
 
 <div
-	class="rounded-lg border overflow-hidden transition-colors {expanded
-		? 'border-l-2 border-l-accent border-base-content/15'
-		: 'border-base-content/15'}"
+	class="rounded-lg border overflow-hidden transition-colors border-base-content/20"
 >
 	<!-- Collapsed row (always visible) -->
-	<div class="flex min-h-[44px] items-center gap-1.5 px-2">
-		<!-- Checkbox -->
-		<input
-			type="checkbox"
+	<div class="flex min-h-8 items-center gap-2 pl-2 pr-1 py-0.5">
+		<!-- Switch -->
+		<Switch 
+			size="sm" variant="muted"
 			checked={filter.enabled}
-			onchange={(e) => onUpdate({ enabled: (e.target as HTMLInputElement).checked })}
-			class="h-3.5 w-3.5 shrink-0 accent-accent"
+			onCheckedChange={(checked) => onUpdate({ enabled: checked })}
 		/>
 
-		<!-- Clickable summary row -->
-		<button
-			onclick={onToggle}
-			aria-expanded={expanded}
-			class="flex min-w-0 flex-1 items-center gap-2 py-2 text-left"
-		>
-			<!-- Type badge -->
-			<span class="rounded bg-base-content/10 px-1.5 py-0.5 text-[10px] font-medium">
-				{typeShortLabels[filter.type]}
-			</span>
-
-			<!-- Freq -->
-			<span class="text-xs tabular-nums text-base-content">
-				{formatFreq(filter.freq)}{filter.freq != null ? ' Hz' : ''}
-			</span>
-
-			<!-- Gain -->
-			<span class="text-xs tabular-nums text-base-content">
-				{formatGain(filter.gain)}{filter.gain != null ? ' dB' : ''}
-			</span>
-
-			<!-- Q -->
-			<span class="text-xs tabular-nums text-base-content">
-				Q {formatQ(filter.q)}
-			</span>
-
-			<!-- Spacer -->
-			<span class="flex-1"></span>
-
-			<!-- Chevron -->
-			<ChevronDown
-				class="h-3.5 w-3.5 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
-					? 'rotate-180'
-					: ''}"
-			/>
-		</button>
-
-		<!-- Delete button -->
-		<button
-			onclick={(e) => {
+		<!-- Type badge -->
+		<Button
+			title="Change filter type"
+			onclick={(e: MouseEvent) => {
 				e.stopPropagation();
-				onRemove();
+				// Cycle through types on click
+				const currentIndex = typeOptions.findIndex(([value]) => value === filter.type);
+				const nextType = typeOptions[(currentIndex + 1) % typeOptions.length][0];
+				onUpdate({ type: nextType });
 			}}
-			class="shrink-0 px-1 text-base-content/40 transition-colors hover:text-error"
-			aria-label="Remove filter {index + 1}"
+			variant="muted" size="xs"
 		>
-			&times;
-		</button>
+			{typeShortLabels[filter.type]}
+		</Button>
+
+		<!-- Freq -->
+		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+			<input
+				type="number"
+				value={filter.freq}
+				min={20} max={20000} step={1}
+				onchange={(e) => commitNumberInput(e, 'freq')}
+				onkeydown={(e) => handleInputKeydown(e, 'freq')}
+				class="w-full {inputBase}"
+			/>
+			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
+		</label>
+
+		<!-- Gain -->
+		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+			<input
+				type="number"
+				value={filter.gain}
+				min={-30} max={30} step={0.1}
+				onchange={(e) => commitNumberInput(e, 'gain')}
+				onkeydown={(e) => handleInputKeydown(e, 'gain')}
+				class="w-full {inputBase}"
+			/>
+			<span class="text-[12px] text-base-content/60 select-none">dB</span>
+		</label>
+
+		<span class="text-[12px] text-base-content/60 select-none">-</span>
+
+		<!-- Q -->
+		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+			<span class="text-[12px] text-base-content/60 select-none">Q</span>
+			<input
+				type="number"
+				value={filter.q}
+				min={0.1} max={10} step={0.01}
+				onchange={(e) => commitNumberInput(e, 'q')}
+				onkeydown={(e) => handleInputKeydown(e, 'q')}
+				class="w-full {inputBase}"
+			/>
+		</label>
+
+		<div class="flex items-center">
+			<Button
+				title="Expand filter {index + 1} options"
+				onclick={onToggle}
+				variant="ghost" size="icon" class="text-base-content/50 hover:text-accent"
+			>
+				<ChevronDown
+					class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
+						? 'rotate-180'
+						: ''}"
+				/>
+			</Button>
+
+			<!-- Delete button -->
+			<Button
+				title="Remove filter {index + 1}"
+				onclick={(e: MouseEvent) => {
+					e.stopPropagation();
+					onRemove();
+				}}
+				variant="ghost" size="icon" class="text-base-content/50 hover:text-error"
+			>
+				<X class="h-3.5 w-3.5" />
+			</Button>
+		</div>
+		<!-- Expand/collapse button -->
+		
 	</div>
 
 	<!-- Expanded content -->
 	{#if expanded}
 		<div
 			transition:slide={{ duration: 150 }}
-			class="flex flex-col gap-3 px-3 pb-3 pt-1"
+			class="flex flex-col gap-3 px-3 pb-4 pt-0.5"
 			class:opacity-50={!filter.enabled}
 		>
 			<!-- Type selector (segmented buttons) -->
-			<div class="flex">
+			<div class="flex border border-base-content/20 rounded-md">
 				{#each typeOptions as [value, label] (value)}
 					<button
 						onclick={() => onUpdate({ type: value })}
-						class="flex-1 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md {filter.type ===
+						class="flex-1 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md first:border-r last:border-l border-base-content/20 {filter.type ===
 						value
 							? 'bg-accent text-white'
 							: 'bg-base-200 text-base-content/70 hover:bg-base-300'}"
@@ -174,23 +197,17 @@
 					<span class="text-xs text-base-content/60">
 						{m.extension_equalizer_filter_list_freq()}
 					</span>
-					{#if editingField === 'freq'}
+					<label class="inline-flex items-baseline gap-1">
 						<input
-							{@attach autofocus}
 							type="number"
-							bind:value={editValue}
-							onblur={() => commitEdit('freq')}
-							onkeydown={(e) => handleEditKeydown(e, 'freq')}
-							class="w-20 rounded border border-base-content/20 bg-base-200 px-1.5 py-0.5 text-xs text-right"
+							value={filter.freq}
+							min={20} max={20000} step={1}
+							onchange={(e) => commitNumberInput(e, 'freq')}
+							onkeydown={(e) => handleInputKeydown(e, 'freq')}
+							class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
 						/>
-					{:else}
-						<button
-							onclick={() => startEdit('freq')}
-							class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium tabular-nums text-base-content hover:bg-base-content/5 hover:text-accent"
-						>
-							{formatFreq(filter.freq)} Hz
-						</button>
-					{/if}
+						<span class="text-[10px] text-base-content/40 select-none">Hz</span>
+					</label>
 				</div>
 				<input
 					type="range"
@@ -212,23 +229,17 @@
 					<span class="text-xs text-base-content/60">
 						{m.extension_equalizer_filter_list_gain()}
 					</span>
-					{#if editingField === 'gain'}
+					<label class="inline-flex items-baseline gap-1">
 						<input
-							{@attach autofocus}
 							type="number"
-							bind:value={editValue}
-							onblur={() => commitEdit('gain')}
-							onkeydown={(e) => handleEditKeydown(e, 'gain')}
-							class="w-20 rounded border border-base-content/20 bg-base-200 px-1.5 py-0.5 text-xs text-right"
+							value={filter.gain}
+							min={-30} max={30} step={0.1}
+							onchange={(e) => commitNumberInput(e, 'gain')}
+							onkeydown={(e) => handleInputKeydown(e, 'gain')}
+							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
 						/>
-					{:else}
-						<button
-							onclick={() => startEdit('gain')}
-							class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium tabular-nums text-base-content hover:bg-base-content/5 hover:text-accent"
-						>
-							{formatGain(filter.gain)} dB
-						</button>
-					{/if}
+						<span class="text-[10px] text-base-content/40 select-none">dB</span>
+					</label>
 				</div>
 				<input
 					type="range"
@@ -249,23 +260,17 @@
 					<span class="text-xs text-base-content/60">
 						{m.extension_equalizer_filter_list_q()}
 					</span>
-					{#if editingField === 'q'}
+					<label class="inline-flex items-baseline gap-1">
+						<span class="text-[10px] text-base-content/40 select-none">Q</span>
 						<input
-							{@attach autofocus}
 							type="number"
-							bind:value={editValue}
-							onblur={() => commitEdit('q')}
-							onkeydown={(e) => handleEditKeydown(e, 'q')}
-							class="w-20 rounded border border-base-content/20 bg-base-200 px-1.5 py-0.5 text-xs text-right"
+							value={filter.q}
+							min={0.1} max={10} step={0.01}
+							onchange={(e) => commitNumberInput(e, 'q')}
+							onkeydown={(e) => handleInputKeydown(e, 'q')}
+							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
 						/>
-					{:else}
-						<button
-							onclick={() => startEdit('q')}
-							class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium tabular-nums text-base-content hover:bg-base-content/5 hover:text-accent"
-						>
-							Q {formatQ(filter.q)}
-						</button>
-					{/if}
+					</label>
 				</div>
 				<input
 					type="range"

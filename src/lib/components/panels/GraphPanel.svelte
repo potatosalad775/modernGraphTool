@@ -11,7 +11,7 @@
 		<GraphToolbar />
 	{/if}
 	<!-- Target selector -->
-	<div class="border-b border-base-content/15 p-1">
+	<div class="border-b border-base-content/15 bg-base-200 p-1">
 		<TargetSelector />
 	</div>
 	<!-- Selection list: takes remaining space, scrollable -->

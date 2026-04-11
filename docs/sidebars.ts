@@ -30,7 +30,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'link',
-      label: 'Config Generator',
+      label: 'Config Editor',
       href: '/config-generator',
     }
   ],

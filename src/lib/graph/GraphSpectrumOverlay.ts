@@ -22,16 +22,31 @@ export class GraphSpectrumOverlay {
 	private binIndices: number[] = [];
 	private xCoords: number[] = [];
 
-	// Decay detection: stop rendering after sustained silence
-	private silentFrames = 0;
-	private static readonly SILENT_THRESHOLD = 30; // ~0.5s at 60fps
+	private static readonly MAX_MAGNITUDE = 1;
+
+	private clipRect!: d3.Selection<SVGRectElement, unknown, null, undefined>;
 
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
 
+		// Create SVG clipPath in defs
+		const clipId = 'spectrum-overlay-clip';
+		const defs = graphEngine.svg.select<SVGDefsElement>('defs');
+		const { xStart, xEnd, yTop, yBottom } = graphEngine.graphGeometry;
+
+		this.clipRect = defs
+			.append('clipPath')
+			.attr('id', clipId)
+			.append('rect')
+			.attr('x', xStart)
+			.attr('y', yTop)
+			.attr('width', xEnd - xStart)
+			.attr('height', yBottom - yTop);
+
 		this.overlayGroup = graphEngine.svg
 			.append('g')
-			.attr('class', 'fr-graph-spectrum-overlay');
+			.attr('class', 'fr-graph-spectrum-overlay')
+			.attr('clip-path', `url(#${clipId})`);
 
 		this.spectrumPath = this.overlayGroup
 			.append('path')
@@ -39,7 +54,6 @@ export class GraphSpectrumOverlay {
 			.attr('opacity', 0.07)
 			.style('pointer-events', 'none');
 
-		this._applyClip();
 		graphEngine.orderOverlayLayers();
 	}
 
@@ -50,7 +64,6 @@ export class GraphSpectrumOverlay {
 
 		this.analyserNode = analyserNode;
 		this.dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-		this.silentFrames = 0;
 
 		this._computeMapping();
 
@@ -59,16 +72,12 @@ export class GraphSpectrumOverlay {
 		}
 	}
 
-	/** Stop the rendering loop (allows natural decay) */
+	/** Stop the rendering loop and clear the path */
 	stop(): void {
-		// Don't clear immediately — let the AnalyserNode's smoothing decay naturally.
-		// The rAF loop will self-terminate after SILENT_THRESHOLD silent frames.
-		// But if there's no analyser at all, clear immediately.
-		if (!this.analyserNode) {
-			this._cancelRaf();
-			this.spectrumPath.attr('d', null);
-		}
-		// Otherwise the loop keeps running and will detect silence + clear itself
+		this._cancelRaf();
+		this.spectrumPath.attr('d', null);
+		this.analyserNode = null;
+		this.dataArray = null;
 	}
 
 	/** Recompute x-coordinates when graph scales change */
@@ -84,12 +93,7 @@ export class GraphSpectrumOverlay {
 	destroy(): void {
 		this._cancelRaf();
 		this.overlayGroup.remove();
-		this.analyserNode = null;
-		this.dataArray = null;
-	}
-
-	/** Clear analyser reference (triggers decay-to-silence then cleanup) */
-	clearAnalyser(): void {
+		this.graphEngine.svg.select('#spectrum-overlay-clip').remove();
 		this.analyserNode = null;
 		this.dataArray = null;
 	}
@@ -98,10 +102,11 @@ export class GraphSpectrumOverlay {
 
 	private _applyClip(): void {
 		const { xStart, xEnd, yTop, yBottom } = this.graphEngine.graphGeometry;
-		this.spectrumPath.attr(
-			'clip-path',
-			`polygon(${xStart}px ${yTop}px, ${xEnd}px ${yTop}px, ${xEnd}px ${yBottom}px, ${xStart}px ${yBottom}px)`
-		);
+		this.clipRect
+			.attr('x', xStart)
+			.attr('y', yTop)
+			.attr('width', xEnd - xStart)
+			.attr('height', yBottom - yTop);
 	}
 
 	/**
@@ -135,50 +140,15 @@ export class GraphSpectrumOverlay {
 		}
 	}
 
-	/** The rAF rendering callback */
+	/** The rAF rendering callback — runs continuously while the spectrum checkbox is on */
 	private _tick = (): void => {
 		this.rafId = requestAnimationFrame(this._tick);
 
-		if (!this.dataArray || this.binIndices.length === 0) {
+		if (!this.analyserNode || !this.dataArray || this.binIndices.length === 0) {
 			return;
 		}
 
-		// If analyser was cleared (audio stopped), read decaying data
-		if (this.analyserNode) {
-			this.analyserNode.getByteFrequencyData(this.dataArray);
-		} else {
-			// No analyser — data stays as last read, but we fade by zeroing
-			// Actually with no analyser we can't read new data, so just count silence
-			this.silentFrames++;
-			if (this.silentFrames >= GraphSpectrumOverlay.SILENT_THRESHOLD) {
-				this._cancelRaf();
-				this.spectrumPath.attr('d', null);
-				this.dataArray = null;
-				return;
-			}
-			// Manually decay the existing data
-			for (let i = 0; i < this.dataArray.length; i++) {
-				this.dataArray[i] = Math.floor(this.dataArray[i] * 0.85);
-			}
-		}
-
-		// Check if all data is near-zero (silence)
-		let maxVal = 0;
-		for (let i = 0; i < this.binIndices.length; i++) {
-			const val = this.dataArray[this.binIndices[i]];
-			if (val > maxVal) maxVal = val;
-		}
-
-		if (maxVal < 2) {
-			this.silentFrames++;
-			if (this.silentFrames >= GraphSpectrumOverlay.SILENT_THRESHOLD) {
-				this._cancelRaf();
-				this.spectrumPath.attr('d', null);
-				return;
-			}
-		} else {
-			this.silentFrames = 0;
-		}
+		this.analyserNode.getByteFrequencyData(this.dataArray);
 
 		// Build SVG path: area from bottom up to spectrum magnitude
 		const { yTop, yBottom } = this.graphEngine.graphGeometry;
@@ -186,7 +156,10 @@ export class GraphSpectrumOverlay {
 
 		const points: [number, number][] = [];
 		for (let i = 0; i < this.binIndices.length; i++) {
-			const magnitude = this.dataArray[this.binIndices[i]] / 255;
+			const magnitude = Math.min(
+				this.dataArray[this.binIndices[i]] / 255,
+				GraphSpectrumOverlay.MAX_MAGNITUDE
+			);
 			const y = yBottom - magnitude * yRange;
 			points.push([this.xCoords[i], y]);
 		}

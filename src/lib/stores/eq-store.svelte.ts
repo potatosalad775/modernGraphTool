@@ -12,8 +12,10 @@ class EQStore {
 	sourcePhoneUUID = $state<string | null>(null);
 	/** UUID of the target curve used for AutoEQ calculation */
 	autoEqTargetUUID = $state<string | null>(null);
-	/** Original (pre-EQ) FR data cache — keyed by UUID, used for ghost curve + restore */
-	readonly originalDataCache = new SvelteMap<string, ParsedFRData>();
+	/** UUID of the EQ-modified FRDataObject in frStore */
+	eqCurveUUID = $state<string | null>(null);
+	/** EQ-modified FR data (pre-normalization) — used for overlay node positioning */
+	readonly eqModifiedData = new SvelteMap<string, ParsedFRData>();
 
 	updateBandAt(index: number, partial: Partial<EQFilter>): void {
 		if (index < 0 || index >= this.filters.length) return;

@@ -364,8 +364,14 @@
     "message": "선택 막대 축소",
     "description": "The ARIA label of the button to collapse the mobile dropdown navbar item"
   },
+  "Config Editor": {
+    "message": "설정 파일 편집기"
+  },
   "Config Generator": {
     "message": "설정 파일 변환기"
+  },
+  "Build or edit your modernGraphTool config.js with a visual editor. Import an existing config, adjust settings, and export the result.": {
+    "message": "비주얼 편집기로 modernGraphTool의 config.js를 만들거나 수정할 수 있습니다. 기존 설정을 불러오고, 항목을 조정한 뒤 결과를 내보내세요."
   },
   "Convert your existing config.js to the v2 format. Paste your config file contents below and click Convert.": {
     "message": "기존 config.js를 v2 형식으로 변환합니다. 아래에 설정 파일 내용을 붙여넣고 변환 버튼을 클릭하세요."

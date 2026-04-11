@@ -107,6 +107,7 @@
 		if (svgEl) {
 			graphEngine.init(svgEl, appStore.isMobile);
 			overlay = new GraphEqOverlay(graphEngine);
+			graphEngine.eqOverlay = overlay;
 			spectrumOverlay = new GraphSpectrumOverlay(graphEngine);
 		}
 	});
@@ -123,6 +124,9 @@
 		// including same-key value updates (visibility, channel, normalize, smooth, y-offset).
 		// A bare reference `frStore.entries` only tracks size changes, not value mutations.
 		for (const _ of frStore.entries) { /* reactive subscription */ }
+		// Track EQ state so curves re-render with ghost opacity when EQ is toggled
+		const _eqEnabled = eqStore.isEnabled;
+		const _eqSource = eqStore.sourcePhoneUUID;
 		if (graphEngine.isInitialized) {
 			graphEngine.refreshEveryFRCurves();
 		}
@@ -168,7 +172,10 @@
 		const _isEnabled = eqStore.isEnabled;
 		const _yScale = graphStore.yScale;
 		const sourceUUID = eqStore.sourcePhoneUUID;
-		// Track source phone's FR data so PK node positions update with the curve
+		const eqCurveUUID = eqStore.eqCurveUUID;
+		// Track EQ curve data (post-normalization) for node positioning
+		const _eqCurveData = eqCurveUUID ? frStore.get(eqCurveUUID) : null;
+		// Track source phone data for ghost opacity changes
 		const _sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
 		if (graphEngine.isInitialized && overlay) {
 			overlay.render();
@@ -185,7 +192,6 @@
 </script>
 
 <svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
-	<title>Frequency response graph</title>
 	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
 		<GraphWatermark viewBoxWidth={graphEngine.viewBoxWidth} viewBoxHeight={graphEngine.viewBoxHeight} />

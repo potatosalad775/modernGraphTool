@@ -58,7 +58,7 @@
 			<select
 				value={getLocale()}
 				onchange={handleLocaleChange}
-				class="h-9 flex-1 rounded-md border border-base-content/20 bg-base-200 px-2 text-sm  focus:outline-none focus:ring-1 focus:ring-accent"
+				class="h-9 flex-1 rounded-md border border-base-content/20 px-2 text-sm  focus:outline-none focus:ring-1 focus:ring-accent"
 			>
 				{#each languages as lang (lang.value)}
 					<option value={lang.value}>{lang.label}</option>

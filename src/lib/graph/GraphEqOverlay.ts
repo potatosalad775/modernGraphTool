@@ -30,23 +30,14 @@ interface BandDatum {
  */
 export class GraphEqOverlay {
 	private graphEngine: GraphEngine;
+	private clipWrapper!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	private overlayGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	private clickRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
 	private _eqPanelActive = false;
 	private _dragThrottleTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
 	private eq = new Equalizer();
 
-	// ── Log-spaced frequency grid for EQ response curve ──────────────────────
-	private static readonly EQ_CURVE_FREQS: number[] = (() => {
-		const freqs: number[] = [];
-		const minF = 20;
-		const maxF = 20000;
-		const n = 200;
-		for (let i = 0; i <= n; i++) {
-			freqs.push(minF * Math.pow(maxF / minF, i / n));
-		}
-		return freqs;
-	})();
+	private static readonly CLIP_ID = 'eq-overlay-clip';
 
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
@@ -55,42 +46,57 @@ export class GraphEqOverlay {
 
 	destroy(): void {
 		this._removeClickRect();
-		this.overlayGroup.remove();
+		this.clipWrapper.remove();
+		this.graphEngine.svg.select(`#${GraphEqOverlay.CLIP_ID}`).remove();
 	}
 
 	// ── SVG setup ──────────────────────────────────────────────────────────────
 
 	private _createOverlayGroup(): void {
-		this.overlayGroup = this.graphEngine.svg
+		const { xStart, xEnd, yTop, yBottom } = this.graphEngine.graphGeometry;
+
+		// Create clipPath in <defs> matching the graph viewport
+		this.graphEngine.svg
+			.select<SVGDefsElement>('defs')
+			.append('clipPath')
+			.attr('id', GraphEqOverlay.CLIP_ID)
+			.append('rect')
+			.attr('x', xStart)
+			.attr('y', yTop)
+			.attr('width', xEnd - xStart)
+			.attr('height', yBottom - yTop);
+
+		// Wrapper group with clip — stays fixed (no transform)
+		this.clipWrapper = this.graphEngine.svg
+			.append('g')
+			.attr('class', 'fr-graph-eq-clip-wrapper')
+			.attr('clip-path', `url(#${GraphEqOverlay.CLIP_ID})`);
+
+		// Inner overlay group — handle applies transform to this
+		this.overlayGroup = this.clipWrapper
 			.append('g')
 			.attr('class', 'fr-graph-eq-overlay');
+
 		this.graphEngine.orderOverlayLayers();
 	}
 
 	// ── Public render API ──────────────────────────────────────────────────────
 
 	render(): void {
-		// Hide everything when EQ is globally disabled
-		if (!eqStore.isEnabled) {
+		// Hide everything when EQ is globally disabled or panel is not active
+		if (!eqStore.isEnabled || !this._eqPanelActive) {
 			this.overlayGroup.selectAll('.eq-band-node').remove();
-			this._clearGhostCurve();
-			this._clearEqResponseCurve();
 			return;
 		}
 
-		const { xScale, yScale } = this.graphEngine.getScales();
+		const xScale = this.graphEngine.xScale;
+		const yScale = this.graphEngine.baseYScale;
 		const filters = eqStore.filters;
 		const sourceUUID = eqStore.sourcePhoneUUID;
 
-		const enabledFilters = filters.filter(
-			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-		);
-
-		// Draw EQ response curve (filled area showing combined filter shape)
-		this._renderEqResponseCurve(enabledFilters, xScale, yScale);
-
-		// Draw ghost curve (original pre-EQ FR)
-		this._renderGhostCurve(enabledFilters, xScale, yScale);
+		// Resolve curve color to match nodes with the visible EQ curve
+		const eqCurveObj = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
+		const curveColor = eqCurveObj?.colors?.AVG ?? 'var(--color-primary)';
 
 		// Data join for interactive nodes
 		const data: BandDatum[] = filters
@@ -129,7 +135,7 @@ export class GraphEqOverlay {
 			.append('circle')
 			.attr('class', 'eq-q-ring')
 			.attr('fill', 'none')
-			.attr('stroke', 'var(--color-primary)')
+			.attr('stroke', curveColor)
 			.attr('stroke-width', 1.5)
 			.attr('opacity', 0.5);
 
@@ -138,7 +144,7 @@ export class GraphEqOverlay {
 			.append('circle')
 			.attr('class', 'eq-center-dot')
 			.attr('r', 6)
-			.attr('fill', 'var(--color-primary)')
+			.attr('fill', curveColor)
 			.attr('opacity', 0.9);
 
 		// Freq label
@@ -151,6 +157,19 @@ export class GraphEqOverlay {
 			.attr('fill', 'var(--color-base-content)')
 			.style('pointer-events', 'none')
 			.style('user-select', 'none');
+
+		// Hover feedback
+		entered
+			.on('mouseenter', function () {
+				const node = d3.select(this);
+				node.select('.eq-center-dot').attr('r', 8).attr('opacity', 1);
+				node.select('.eq-q-ring').attr('opacity', 0.7);
+			})
+			.on('mouseleave', function () {
+				const node = d3.select(this);
+				node.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
+				node.select('.eq-q-ring').attr('opacity', 0.5);
+			});
 
 		// Double-click to remove
 		entered.on('dblclick', (_event: MouseEvent, d: BandDatum) => {
@@ -188,12 +207,14 @@ export class GraphEqOverlay {
 			}
 		});
 
-		merged
-			.select<SVGCircleElement>('.eq-q-ring')
-			.attr('r', (d) => this._qToRadius(d.filter.q!));
+		merged.select<SVGCircleElement>('.eq-q-ring')
+			.attr('r', (d) => this._qToRadius(d.filter.q!))
+			.attr('stroke', curveColor);
 
-		merged
-			.select<SVGTextElement>('.eq-freq-label')
+		merged.select<SVGCircleElement>('.eq-center-dot')
+			.attr('fill', curveColor);
+
+		merged.select<SVGTextElement>('.eq-freq-label')
 			.text((d) => this._formatFreq(d.filter.freq!));
 	}
 
@@ -201,168 +222,34 @@ export class GraphEqOverlay {
 		if (active !== this._eqPanelActive) {
 			this._eqPanelActive = active;
 			this._updateClickRect();
+			this.render();
 		}
-	}
-
-	// ── Ghost curve ───────────────────────────────────────────────────────────
-
-	private _renderGhostCurve(
-		enabledFilters: EQFilter[],
-		xScale: d3.ScaleLogarithmic<number, number>,
-		yScale: d3.ScaleLinear<number, number>
-	): void {
-		this._clearGhostCurve();
-
-		const sourceUUID = eqStore.sourcePhoneUUID;
-		if (!sourceUUID || enabledFilters.length === 0) return;
-
-		const originalData = eqStore.originalDataCache.get(sourceUUID);
-		if (!originalData) return;
-
-		// Pick same channel as the main displayed curve
-		const channelData = this._pickChannelData(originalData);
-		if (!channelData) return;
-
-		const smoothed = FRSmoother.smooth(channelData, graphStore.smoothValue);
-
-		// Build path with baseline compensation (same logic as GraphEngine._getCompensatedPath)
-		const baselineData = this.graphEngine.baselineData;
-		const isBaselineValid =
-			Array.isArray(baselineData.channelData) && baselineData.channelData.length > 0;
-
-		const sourceObj = frStore.get(sourceUUID);
-		const yOff = sourceObj?.yOffset ?? 0;
-
-		const bisect = d3.bisector<FRDataPoint, number>((p) => p[0]).left;
-
-		const lineGenerator = d3
-			.line<FRDataPoint>()
-			.x((d) => xScale(d[0]))
-			.y((d) => {
-				let db = d[1];
-				if (isBaselineValid) {
-					const chData = baselineData.channelData!;
-					const i = bisect(chData, d[0], 0);
-					const a = chData[i - 1];
-					const b = chData[i];
-					let baselineY = 0;
-					if (a && b) {
-						const t = (d[0] - a[0]) / (b[0] - a[0]);
-						baselineY = a[1] + t * (b[1] - a[1]);
-					} else if (a) {
-						baselineY = a[1];
-					} else if (b) {
-						baselineY = b[1];
-					}
-					db -= baselineY;
-				}
-				return yScale(db + yOff);
-			})
-			.curve(d3.curveMonotoneX);
-
-		const { xStart, xEnd, yTop, yBottom } = this.graphEngine.graphGeometry;
-
-		this.overlayGroup
-			.insert('path', ':first-child')
-			.attr('class', 'eq-ghost-curve')
-			.attr('d', lineGenerator(smoothed))
-			.attr('fill', 'none')
-			.attr('stroke', 'var(--color-eq-ghost-curve)')
-			.attr('stroke-width', 1.5)
-			.attr('stroke-dasharray', '6 4')
-			.attr('clip-path', `polygon(${xStart}px ${yTop}px, ${xEnd}px ${yTop}px, ${xEnd}px ${yBottom}px, ${xStart}px ${yBottom}px)`)
-			.style('pointer-events', 'none');
-	}
-
-	private _clearGhostCurve(): void {
-		this.overlayGroup.selectAll('.eq-ghost-curve').remove();
-	}
-
-	// ── EQ Response curve (filled area) ───────────────────────────────────────
-
-	private _renderEqResponseCurve(
-		enabledFilters: EQFilter[],
-		xScale: d3.ScaleLogarithmic<number, number>,
-		yScale: d3.ScaleLinear<number, number>
-	): void {
-		this._clearEqResponseCurve();
-
-		if (enabledFilters.length === 0) return;
-
-		const preamp = eqStore.preamp;
-		const freqs = GraphEqOverlay.EQ_CURVE_FREQS;
-		const gains = this.eq.calculateGainsFromFilter(freqs, enabledFilters);
-
-		// Build area data: each point has [freq, eqGain]
-		type AreaPoint = { freq: number; gain: number };
-		const areaData: AreaPoint[] = freqs.map((f, i) => ({
-			freq: f,
-			gain: gains[i] + preamp
-		}));
-
-		const { xStart, xEnd, yTop, yBottom } = this.graphEngine.graphGeometry;
-		const zeroY = yScale(0);
-
-		// Positive (boost) area
-		const boostArea = d3
-			.area<AreaPoint>()
-			.x((d) => xScale(d.freq))
-			.y0(() => zeroY)
-			.y1((d) => {
-				const g = Math.max(0, d.gain);
-				return g === 0 ? zeroY : yScale(g);
-			})
-			.curve(d3.curveMonotoneX);
-
-		// Negative (cut) area
-		const cutArea = d3
-			.area<AreaPoint>()
-			.x((d) => xScale(d.freq))
-			.y0(() => zeroY)
-			.y1((d) => {
-				const g = Math.min(0, d.gain);
-				return g === 0 ? zeroY : yScale(g);
-			})
-			.curve(d3.curveMonotoneX);
-
-		const clipPath = `polygon(${xStart}px ${yTop}px, ${xEnd}px ${yTop}px, ${xEnd}px ${yBottom}px, ${xStart}px ${yBottom}px)`;
-
-		this.overlayGroup
-			.insert('path', '.eq-ghost-curve, .eq-band-node')
-			.attr('class', 'eq-response-boost')
-			.attr('d', boostArea(areaData))
-			.attr('fill', 'var(--color-eq-response-boost)')
-			.attr('clip-path', clipPath)
-			.style('pointer-events', 'none');
-
-		this.overlayGroup
-			.insert('path', '.eq-ghost-curve, .eq-band-node')
-			.attr('class', 'eq-response-cut')
-			.attr('d', cutArea(areaData))
-			.attr('fill', 'var(--color-eq-response-cut)')
-			.attr('clip-path', clipPath)
-			.style('pointer-events', 'none');
-	}
-
-	private _clearEqResponseCurve(): void {
-		this.overlayGroup.selectAll('.eq-response-boost, .eq-response-cut').remove();
 	}
 
 	// ── Curve lookup helpers ──────────────────────────────────────────────────
 
 	/**
-	 * Get the smoothed FR data for the source phone's primary displayed channel.
-	 * This matches what GraphEngine._drawPhoneCurve renders.
+	 * Get the smoothed EQ-modified FR data for the source phone's primary displayed channel.
+	 * Reads from the frStore EQ entry (post-normalization) to match the visible EQ curve.
+	 * Falls back to source phone data when no EQ curve exists yet (click-to-add first band).
 	 */
 	private _getSourceChannelData(): FRDataPoint[] | null {
+		// Prefer EQ curve data (post-normalization, matches visible curve)
+		const eqCurveUUID = eqStore.eqCurveUUID;
+		if (eqCurveUUID) {
+			const eqEntry = frStore.get(eqCurveUUID);
+			if (eqEntry) {
+				const channelData = this._pickChannelData(eqEntry.channels);
+				if (channelData) return FRSmoother.smooth(channelData, graphStore.smoothValue);
+			}
+		}
+		// Fallback: source phone data (for click-to-add first band)
 		const sourceUUID = eqStore.sourcePhoneUUID;
 		if (!sourceUUID) return null;
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return null;
-
 		const channelData = this._pickChannelData(sourceData.channels);
 		if (!channelData) return null;
-
 		return FRSmoother.smooth(channelData, graphStore.smoothValue);
 	}
 
@@ -370,10 +257,11 @@ export class GraphEqOverlay {
 	 * Pick the primary channel data from ParsedFRData.
 	 * Prefers AVG, then falls back to first displayed channel.
 	 */
-	private _pickChannelData(channels: ParsedFRData): FRDataPoint[] | null {
-		const sourceUUID = eqStore.sourcePhoneUUID;
-		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
-		const dispChannels = sourceData?.dispChannel ?? ['AVG'];
+	private _pickChannelData(channels: ParsedFRData, dispChannelOverride?: string[]): FRDataPoint[] | null {
+		const dispChannels = dispChannelOverride
+			?? frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel
+			?? frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel
+			?? ['AVG'];
 
 		let channelKey: 'L' | 'R' | 'AVG';
 		if (channels.AVG && dispChannels.includes('AVG')) {
@@ -390,8 +278,8 @@ export class GraphEqOverlay {
 	}
 
 	/**
-	 * Get the dB value of the displayed curve at a given frequency.
-	 * Accounts for smoothing, baseline compensation, and y-offset.
+	 * Get the dB value of the displayed EQ curve at a given frequency.
+	 * Accounts for smoothing and baseline compensation.
 	 */
 	private _getCurveDbAtFreq(freq: number): number | null {
 		const smoothedData = this._getSourceChannelData();
@@ -411,15 +299,6 @@ export class GraphEqOverlay {
 			const baselineDb = lookupFRValueAtFreq(baselineData.channelData, freq);
 			if (baselineDb !== null) {
 				compensatedDb -= baselineDb;
-			}
-		}
-
-		// Y-offset
-		const sourceUUID = eqStore.sourcePhoneUUID;
-		if (sourceUUID) {
-			const sourceData = frStore.get(sourceUUID);
-			if (sourceData?.yOffset) {
-				compensatedDb += sourceData.yOffset;
 			}
 		}
 
@@ -447,26 +326,60 @@ export class GraphEqOverlay {
 		let dragState: {
 			isPK: boolean;
 			baseCurveDb: number | null;
+			shiftOriginX: number;
+			shiftOriginY: number;
+			lockedFreq: number;
+			lockedGain: number;
+			axisLock: 'h' | 'v' | null;
 		} | null = null;
 
 		return d3
 			.drag<SVGGElement, BandDatum>()
 			.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				d3.select(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element ?? _event.sourceEvent.currentTarget)
-					.style('cursor', 'grabbing')
-					.raise();
+				const nodeEl = d3.select(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element ?? _event.sourceEvent.currentTarget);
+				nodeEl.style('cursor', 'grabbing').raise();
+				nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
+				nodeEl.select('.eq-q-ring').attr('opacity', 0.8);
 
 				const isPK = d.filter.type === 'PK';
+				const common = {
+					shiftOriginX: _event.x,
+					shiftOriginY: _event.y,
+					lockedFreq: d.filter.freq!,
+					lockedGain: d.filter.gain!,
+					axisLock: null as 'h' | 'v' | null
+				};
 				if (isPK) {
 					const baseCurveDb = this._getCurveDbExcludingFilter(d.filter.freq!, d.index);
-					dragState = { isPK: true, baseCurveDb };
+					dragState = { isPK: true, baseCurveDb, ...common };
 				} else {
-					dragState = { isPK: false, baseCurveDb: null };
+					dragState = { isPK: false, baseCurveDb: null, ...common };
 				}
 			})
 			.on('drag', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const { xScale: xs, yScale: ys } = this.graphEngine.getScales();
-				const freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				const xs = this.graphEngine.xScale;
+				const ys = this.graphEngine.baseYScale;
+
+				// Shift+Drag axis lock detection
+				const shiftHeld = !!(event.sourceEvent as MouseEvent)?.shiftKey;
+				if (dragState) {
+					if (shiftHeld && dragState.axisLock === null) {
+						const dx = Math.abs(event.x - dragState.shiftOriginX);
+						const dy = Math.abs(event.y - dragState.shiftOriginY);
+						if (dx > 3 || dy > 3) {
+							dragState.axisLock = dx >= dy ? 'h' : 'v';
+						}
+					} else if (!shiftHeld && dragState.axisLock !== null) {
+						dragState.axisLock = null;
+						dragState.shiftOriginX = event.x;
+						dragState.shiftOriginY = event.y;
+						dragState.lockedFreq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+						dragState.lockedGain = d.filter.gain ?? 0;
+					}
+				}
+
+				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
 				let gain: number;
 				let visualY: number;
@@ -494,6 +407,14 @@ export class GraphEqOverlay {
 					visualY = ys(gain);
 				}
 
+				if (dragState?.axisLock === 'h') {
+					gain = dragState.lockedGain;
+					visualY =
+						dragState.isPK && dragState.baseCurveDb !== null
+							? ys(gain + dragState.baseCurveDb)
+							: ys(gain);
+				}
+
 				// Move node visually with zero latency
 				this.overlayGroup
 					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
@@ -517,8 +438,10 @@ export class GraphEqOverlay {
 			.on(
 				'end',
 				(event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-					const { xScale: xs, yScale: ys } = this.graphEngine.getScales();
-					const freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+					const xs = this.graphEngine.xScale;
+					const ys = this.graphEngine.baseYScale;
+					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
 					let gain: number;
 
@@ -528,6 +451,7 @@ export class GraphEqOverlay {
 					} else {
 						gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
 					}
+					if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
 
 					// Cancel pending throttle and commit final position
 					const pending = this._dragThrottleTimers.get(d.index);
@@ -540,10 +464,12 @@ export class GraphEqOverlay {
 						gain: parseFloat(gain.toFixed(1))
 					});
 
-					this.overlayGroup
+					const endNode = this.overlayGroup
 						.selectAll<SVGGElement, BandDatum>('.eq-band-node')
-						.filter((n) => n.index === d.index)
-						.style('cursor', 'grab');
+						.filter((n) => n.index === d.index);
+					endNode.style('cursor', 'grab');
+					endNode.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
+					endNode.select('.eq-q-ring').attr('opacity', 0.5);
 
 					dragState = null;
 				}
@@ -576,7 +502,8 @@ export class GraphEqOverlay {
 				if (!eqStore.isEnabled || !eqStore.sourcePhoneUUID) return;
 				// Don't fire when clicking on a node
 				if ((event.target as Element).closest?.('.eq-band-node')) return;
-				const { xScale, yScale } = this.graphEngine.getScales();
+				const xScale = this.graphEngine.xScale;
+				const yScale = this.graphEngine.baseYScale;
 				const [mx, my] = d3.pointer(event);
 				const freq = Math.round(Math.max(20, Math.min(20000, xScale.invert(mx))));
 				const clickedDb = yScale.invert(my);

@@ -3,23 +3,22 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
-	import type { ParsedFRData } from '$lib/types/data-types.js';
+	import { DataProcessor } from '$lib/utils/data-processor.js';
+	import type { ParsedFRData, FRDataObject } from '$lib/types/data-types.js';
 
 	import EqPhoneSelect from '$lib/components/equalizer/EqPhoneSelect.svelte';
 	import EqFilterList from '$lib/components/equalizer/EqFilterList.svelte';
+	import EqAutoEqSelect from '$lib/components/equalizer/EqAutoEqSelect.svelte';
 	import EqAutoEq from '$lib/components/equalizer/EqAutoEq.svelte';
 	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
-	import EqUploader from '$lib/components/equalizer/EqUploader.svelte';
 	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
+	import Switch from '../atoms/Switch.svelte';
+	import Accordion from '../atoms/Accordion.svelte';
+	import AccordionItem from '../atoms/AccordionItem.svelte';
+	import ScrollArea from '../atoms/ScrollArea.svelte';
 
-	// ---------------------------------------------------------------------------
-	// Original data cache lives in eqStore (shared with GraphEqOverlay for
-	// ghost curve rendering). Snapshot/restore logic stays here.
-	// ---------------------------------------------------------------------------
-
-	const originalDataCache = eqStore.originalDataCache;
 	const eq = new Equalizer();
 	let prevSourceUUID: string | null = null;
 
@@ -27,29 +26,17 @@
 	// Helpers
 	// ---------------------------------------------------------------------------
 
-	function snapshotChannels(channels: ParsedFRData): ParsedFRData {
-		const snapshot: ParsedFRData = {};
-		for (const ch of ['L', 'R', 'AVG'] as const) {
-			if (channels[ch]) {
-				snapshot[ch] = {
-					data: channels[ch].data.map(([f, d]) => [f, d] as [number, number]),
-					metadata: { ...channels[ch].metadata }
-				};
-			}
+	function removeEqCurve(): void {
+		const uuid = eqStore.eqCurveUUID;
+		if (uuid) {
+			frStore.delete(uuid);
+			eqStore.eqCurveUUID = null;
 		}
-		return snapshot;
-	}
-
-	function restoreAndRemove(uuid: string): void {
-		const cached = originalDataCache.get(uuid);
-		if (cached && frStore.has(uuid)) {
-			dataProvider.updateFRDataWithRawData(uuid, cached);
-		}
-		originalDataCache.delete(uuid);
+		eqStore.eqModifiedData.clear();
 	}
 
 	// ---------------------------------------------------------------------------
-	// Restore original data when sourcePhoneUUID changes
+	// Cleanup when sourcePhoneUUID changes
 	// ---------------------------------------------------------------------------
 
 	$effect(() => {
@@ -57,12 +44,18 @@
 		const prev = prevSourceUUID;
 		prevSourceUUID = currentUUID;
 		if (prev && prev !== currentUUID) {
-			untrack(() => restoreAndRemove(prev));
+			untrack(() => removeEqCurve());
 		}
 	});
 
 	// ---------------------------------------------------------------------------
 	// EQ Preview effect
+	//
+	// Reads frStore reactively — when reSmoothAll/renormalizeAll updates frStore,
+	// this effect re-fires automatically.
+	// Creates/updates a proper FRDataObject in frStore with type 'eq' so the
+	// EQ curve goes through the full processing pipeline (normalization).
+	// Also writes raw EQ data to eqStore.eqModifiedData for overlay node positioning.
 	// ---------------------------------------------------------------------------
 
 	$effect(() => {
@@ -72,35 +65,25 @@
 		const preamp = eqStore.preamp;
 
 		if (!enabled || !sourceUUID) {
-			// Restore all cached originals when EQ is disabled
-			untrack(() => {
-				for (const [uuid] of originalDataCache) {
-					restoreAndRemove(uuid);
-				}
-			});
+			untrack(() => removeEqCurve());
 			return;
 		}
 
-		// Read source data reactively so the effect re-runs if it changes externally
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return;
 
-		// Cache original channel data on first run for this UUID
-		untrack(() => {
-			if (!originalDataCache.has(sourceUUID)) {
-				originalDataCache.set(sourceUUID, snapshotChannels(sourceData.channels));
-			}
-		});
-
-		const cached = originalDataCache.get(sourceUUID);
-		if (!cached) return;
-
-		// Apply EQ filters + preamp to each cached channel
 		const enabledFilters = filters.filter((f) => f.enabled && f.freq != null && f.q != null && f.gain != null);
+
+		if (enabledFilters.length === 0 && preamp === 0) {
+			untrack(() => removeEqCurve());
+			return;
+		}
+
+		// Compute raw EQ-modified data (pre-normalization)
 		const modified: ParsedFRData = {};
 
 		for (const ch of ['L', 'R', 'AVG'] as const) {
-			const chData = cached[ch];
+			const chData = sourceData.channels[ch];
 			if (!chData) continue;
 
 			let points = chData.data;
@@ -119,71 +102,101 @@
 			};
 		}
 
+		// Store raw EQ data for overlay node positioning (pre-normalization)
+		eqStore.eqModifiedData.set(sourceUUID, modified);
+
+		// Process through normalization pipeline and create/update frStore entry
 		untrack(() => {
-			dataProvider.updateFRDataWithRawData(sourceUUID, modified);
+			const params = {
+				smoothValue: graphStore.smoothValue,
+				normType: graphStore.normType,
+				normHz: graphStore.normHzValue
+			};
+			const processed = DataProcessor.processChannels(modified, params);
+
+			const existingUUID = eqStore.eqCurveUUID;
+			const existing = existingUUID ? frStore.get(existingUUID) : null;
+
+			if (existing) {
+				// Update existing EQ entry
+				frStore.set(existingUUID!, {
+					...existing,
+					channels: {
+						...(processed.L && { L: processed.L }),
+						...(processed.R && { R: processed.R }),
+						...(processed.AVG && { AVG: processed.AVG })
+					},
+					dispChannel: [...sourceData.dispChannel],
+					colors: { ...sourceData.colors },
+					_rawData: { channels: modified }
+				});
+			} else {
+				// Create new EQ entry
+				const uuid = crypto.randomUUID();
+				const frObject: FRDataObject = {
+					uuid,
+					type: 'eq',
+					identifier: sourceData.identifier,
+					dispSuffix: '(EQ)',
+					channels: {
+						...(processed.L && { L: processed.L }),
+						...(processed.R && { R: processed.R }),
+						...(processed.AVG && { AVG: processed.AVG })
+					},
+					dispChannel: [...sourceData.dispChannel],
+					colors: { ...sourceData.colors },
+					dash: sourceData.dash || '1 0',
+					hidden: false,
+					yOffset: 0,
+					_rawData: { channels: modified }
+				};
+				frStore.set(uuid, frObject);
+				eqStore.eqCurveUUID = uuid;
+			}
 		});
 	});
 </script>
 
-<div class="flex h-full flex-col gap-3 overflow-y-auto p-3">
+<div class="flex gap-3 p-3 items-center bg-base-200 border-b border-base-content/20">
 	<!-- EQ Enable toggle -->
-	<label class="flex cursor-pointer items-center gap-2">
-		<input
-			type="checkbox"
-			checked={eqStore.isEnabled}
-			onchange={() => (eqStore.isEnabled = !eqStore.isEnabled)}
-			class="h-4 w-4 accent-accent"
-		/>
-		<span class="text-sm font-medium ">
-			{m.menu_item_equalizer_label()}
-		</span>
-		<span class="text-xs text-base-content/60">
-			({eqStore.isEnabled ? 'ON' : 'OFF'})
-		</span>
-	</label>
-
+	<Switch
+		labelText={m.menu_item_equalizer_label()}
+		size="md"
+		bind:checked={eqStore.isEnabled}
+	/>
+	<div class="h-7 w-px bg-base-content/20"></div>
 	<!-- Phone / Target select -->
 	<EqPhoneSelect />
+</div>
 
+<div class="flex h-full flex-col overflow-y-auto">
 	<!-- Filter band editor -->
-	<EqFilterList />
+	<div class="p-3 pb-4 border-b border-base-content/20">
+		<EqFilterList />
+	</div>
 
-	<!-- AutoEQ — collapsible -->
-	<details class="group">
-		<summary
-			class="cursor-pointer select-none text-sm font-medium "
-		>
-			AutoEQ
-		</summary>
-		<div class="mt-2">
-			<EqAutoEq />
-		</div>
-	</details>
-
-	<!-- Audio Player — collapsible -->
-	<details class="group">
-		<summary
-			class="cursor-pointer select-none text-sm font-medium "
-		>
-			Audio Player
-		</summary>
-		<div class="mt-2">
-			<EqAudioPlayer />
-		</div>
-	</details>
-
-	<!-- FR / Target file upload -->
-	<EqUploader />
-
-	<!-- Device PEQ — USB/Network hardware EQ bridge -->
-	<details class="group">
-		<summary
-			class="cursor-pointer select-none text-sm font-medium "
-		>
-			Device PEQ
-		</summary>
-		<div class="mt-2">
-			<DevicePeq />
-		</div>
-	</details>
+	<Accordion type="multiple" class="pt-1">
+		<!-- AutoEQ — collapsible -->
+		<AccordionItem value="auto-eq" title="AutoEQ" class="px-1">
+			<div class="flex flex-col gap-2 p-2 pt-1">
+				<EqAutoEqSelect />
+				<EqAutoEq />
+			</div>
+		</AccordionItem>
+		<div class="w-full h-px bg-base-content/20 my-1"></div>
+		<!-- Audio Player — collapsible -->
+		<AccordionItem value="audio-player" title="Audio Player" class="px-1">
+			<div class="p-2 pt-1">
+				<EqAudioPlayer />
+			</div>
+		</AccordionItem>
+		<div class="w-full h-px bg-base-content/20 my-1"></div>
+		<!-- Device PEQ — USB/Network hardware EQ bridge -->
+		<AccordionItem value="device-peq" title="Device PEQ" class="px-1">
+			<div class="p-2 pt-1">
+				<DevicePeq />
+			</div>
+		</AccordionItem>
+		<div class="w-full h-px bg-base-content/20 mt-1"></div>
+	</Accordion>
 </div>

@@ -121,12 +121,12 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-xs font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {menuStore.currentPanel === panel.id ? 'text-accent' : Math.abs(i - currentIndex) === 1 ? 'text-base-content/60' : 'text-base-content/25'}"
+				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent {menuStore.currentPanel === panel.id ? 'text-accent' : Math.abs(i - currentIndex) === 1 ? 'text-base-content/60' : 'text-base-content/25'}"
 				onclick={() => goTo(i)}
 			>
 				{panel.label()}
 				{#if menuStore.currentPanel === panel.id}
-					<span class="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-accent"></span>
+					<span class="absolute bottom-0 left-1/2 h-0.5 w-12 -translate-x-1/2 rounded-full bg-accent"></span>
 				{/if}
 			</button>
 		{/each}

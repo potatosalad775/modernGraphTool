@@ -11,7 +11,7 @@
 	//import { getConfigValue } from '$lib/utils/config.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
-	import { Settings2 } from '@lucide/svelte';
+	import { Settings2, X } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -313,43 +313,47 @@
 			{#each activeFilters as def (def.id)}
 				{@const range = getGainRange(def)}
 				{@const value = filterValues.get(def.id) ?? 0}
-				<div class="flex flex-col gap-0.5 rounded border border-base-content/15 bg-base-100 p-1.5">
-					<div class="flex items-center justify-between">
-						<label for="{uuid}-{def.id}" class="text-xs font-medium ">
-							{getFilterLabel(def)}
-						</label>
-						<button
-							onclick={() => removeFilter(def.id)}
-							class="text-xs text-base-content/60 hover:text-error"
-							title="Remove"
-						>&times;</button>
+				<div class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2">
+					<div class="flex flex-col flex-1 gap-0.25">
+						<div class="flex items-center justify-between">
+							<label for="{uuid}-{def.id}" class="text-xs font-medium ">
+								{getFilterLabel(def)}
+							</label>
+							<span class="w-10 text-right text-xs tabular-nums ">
+								{value.toFixed(1)}
+							</span>
+						</div>
+						<div>
+							<input
+								id="{uuid}-{def.id}"
+								type="range"
+								min={range.min}
+								max={range.max}
+								step={range.step}
+								{value}
+								oninput={(e) => setFilterValue(def.id, parseFloat(e.currentTarget.value))}
+								class="h-1 min-w-0 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+							/>
+						</div>
 					</div>
-					<div class="flex items-center gap-1">
-						<input
-							id="{uuid}-{def.id}"
-							type="range"
-							min={range.min}
-							max={range.max}
-							step={range.step}
-							{value}
-							oninput={(e) => setFilterValue(def.id, parseFloat(e.currentTarget.value))}
-							class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
-						/>
-						<span class="w-10 text-right text-xs tabular-nums ">
-							{value.toFixed(1)}
-						</span>
-					</div>
+					<Button
+						title="Remove"
+						onclick={() => removeFilter(def.id)}
+						variant="ghost" size="icon"
+					>
+						<X class="size-3" />
+					</Button>
 				</div>
 			{/each}
 		</div>
 
 		<!-- Add filter + Preset + Reset row -->
-		<div class="mt-2 flex flex-wrap items-center gap-2">
+		<div class="mt-2 flex flex-wrap items-center gap-1.5">
 			{#if inactiveFilters.length > 0}
 				<select
 					onchange={handleAddFilterChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-0.5 text-xs 
-						focus:outline-none focus:ring-1 focus:ring-accent"
+					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
+						focus:outline-none focus:ring-1 focus:ring-accent flex-1"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
@@ -362,8 +366,8 @@
 				<select
 					value={selectedPreset}
 					onchange={handlePresetChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-0.5 text-xs 
-						focus:outline-none focus:ring-1 focus:ring-accent"
+					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
+						focus:outline-none focus:ring-1 focus:ring-accent flex-1"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
 					{#each filterPresets as preset (preset.name)}
@@ -373,13 +377,13 @@
 			{/if}
 
 			<div class="ml-auto">
-				<button
+				<Button
+					title={m.target_customizer_btn_reset()}
 					onclick={handleReset}
-					class="rounded bg-base-100 px-2 py-0.5 text-xs  transition-colors
-						hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					variant="destructive" size="sm"
 				>
 					{m.target_customizer_btn_reset()}
-				</button>
+				</Button>
 			</div>
 		</div>
 	</PopoverPanel>

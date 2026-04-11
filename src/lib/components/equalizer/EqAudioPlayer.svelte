@@ -3,6 +3,9 @@
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onDestroy } from 'svelte';
+	import Button from '$lib/components/atoms/Button.svelte';
+	import { FileUp, Pause, Play, Square, VolumeX, Volume2 } from '@lucide/svelte';
+	import Switch from '../atoms/Switch.svelte';
 
 	// --- Non-reactive Web Audio objects ---
 	let audioContext: AudioContext | null = null;
@@ -219,7 +222,6 @@
 		pause();
 		pausedAt = 0;
 		currentTime = 0;
-		audioSpectrumStore.analyserNode = null;
 	}
 
 	function togglePlay() {
@@ -235,6 +237,40 @@
 			audioBuffer.duration
 		);
 		rafId = requestAnimationFrame(tickTimeDisplay);
+	}
+
+	// --- Seeking ---
+	function seekTo(targetTime: number) {
+		if (!audioBuffer) return;
+		const wasPlaying = isPlaying;
+		if (wasPlaying && sourceNode) {
+			sourceNode.onended = null;
+			sourceNode.stop();
+			sourceNode.disconnect();
+			sourceNode = null;
+		}
+		pausedAt = targetTime;
+		currentTime = targetTime;
+		if (wasPlaying) {
+			const ctx = getAudioContext();
+			sourceNode = ctx.createBufferSource();
+			sourceNode.buffer = audioBuffer;
+			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode!;
+			sourceNode.connect(target);
+			sourceNode.start(0, pausedAt);
+			sourceNode.onended = () => {
+				if (isPlaying && !isSeeking) {
+					isPlaying = false;
+					pausedAt = 0;
+					currentTime = 0;
+					if (rafId) {
+						cancelAnimationFrame(rafId);
+						rafId = null;
+					}
+				}
+			};
+			startTime = ctx.currentTime;
+		}
 	}
 
 	// --- File loading ---
@@ -261,7 +297,30 @@
 	});
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-3">
+	<!-- EQ toggle -->
+	<div class="flex items-center gap-4">
+		<Switch
+			title={filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
+			labelText={m.extension_equalizer_player_filter_toggle()}
+			labelClass="text-xs" size="sm"
+			checked={filtersEnabled}
+			onCheckedChange={(checked) => {
+				filtersEnabled = checked;
+			}}
+		/>
+		<Switch
+			title={showSpectrum ? 'Hide audio spectrum' : 'Show audio spectrum'}
+			labelText={m.extension_equalizer_player_spectrum_toggle()}
+			labelClass="text-xs" size="sm"
+			checked={showSpectrum}
+			onCheckedChange={() => {
+				showSpectrum = !showSpectrum;
+				audioSpectrumStore.isEnabled = showSpectrum;
+			}}
+		/>
+	</div>
+
 	<!-- Source select -->
 	<select
 		value={audioSource}
@@ -313,31 +372,70 @@
 
 	<!-- File upload (only when file selected) -->
 	{#if audioSource === 'file'}
-		<input type="file" accept="audio/*" onchange={loadFile} class="text-xs" />
+		<Button
+			title={m.extension_equalizer_player_file_upload()}
+			onclick={() => fileInputEl?.click()}
+			variant="outline"
+			size="sm"
+			class="w-full"
+		>
+			<FileUp class="size-3.5 mr-1.5" />
+			{m.extension_equalizer_player_file_upload()}
+		</Button>
+		<input
+			bind:this={fileInputEl}
+			type="file"
+			accept="audio/*"
+			class="hidden"
+			onchange={loadFile}
+		/>
 		{#if fileLoaded}
 			<div class="flex items-center gap-2 text-xs text-base-content/60">
 				<span class="tabular-nums">{formatTime(currentTime)}</span>
-				<span>/</span>
+				<input
+					type="range"
+					min="0"
+					max={duration}
+					step="0.1"
+					value={currentTime}
+					oninput={(e) => seekTo(parseFloat((e.target as HTMLInputElement).value))}
+					class="flex-1 accent-accent"
+				/>
 				<span class="tabular-nums">{formatTime(duration)}</span>
 			</div>
 		{/if}
 	{/if}
 
 	<!-- Playback controls -->
-	<div class="flex items-center gap-2">
-		<button
+	<div class="flex items-center gap-1.5">
+		<Button
+			title="Stop Audio"
 			onclick={stop}
 			disabled={!audioSource}
-			class="rounded border border-base-content/20 px-2 py-1 text-sm transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
-		>⏮</button>
-		<button
+			variant="muted" size="icon"
+		>
+			<Square class="size-3.5" />
+		</Button>
+		<Button
+			title={isPlaying ? 'Pause Audio' : 'Play Audio'}
 			onclick={togglePlay}
 			disabled={!audioSource || (audioSource === 'file' && !fileLoaded)}
-			class="rounded border border-base-content/20 px-3 py-1 text-sm transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
-		>{isPlaying ? '⏸' : '▶'}</button>
+			variant="muted" size="icon"
+		>
+			{#if isPlaying}
+				<Pause class="size-3.5" />
+			{:else}
+				<Play class="size-3.5" />
+			{/if}
+		</Button>
+		<div class="w-px h-5 bg-base-content/30 mx-1"></div>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">
-			<span class="text-xs">🔊</span>
+			{#if volume == 0}
+				<VolumeX class="size-3.5 text-base-content/60" />
+			{:else}
+				<Volume2 class="size-3.5" />
+			{/if}
 			<input
 				type="range"
 				min="0"
@@ -351,30 +449,5 @@
 				class="w-full accent-accent"
 			/>
 		</div>
-	</div>
-
-	<!-- EQ toggle -->
-	<div class="flex items-center gap-4">
-		<label class="flex items-center gap-2 text-xs">
-			<input
-				type="checkbox"
-				checked={filtersEnabled}
-				onchange={(e) => (filtersEnabled = (e.target as HTMLInputElement).checked)}
-				class="h-3 w-3 accent-accent"
-			/>
-			{m.extension_equalizer_player_filter_toggle()}
-		</label>
-		<label class="flex items-center gap-2 text-xs">
-			<input
-				type="checkbox"
-				checked={showSpectrum}
-				onchange={(e) => {
-					showSpectrum = (e.target as HTMLInputElement).checked;
-					audioSpectrumStore.isEnabled = showSpectrum;
-				}}
-				class="h-3 w-3 accent-accent"
-			/>
-			{m.extension_equalizer_player_spectrum_toggle()}
-		</label>
 	</div>
 </div>

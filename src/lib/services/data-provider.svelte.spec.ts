@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { dataProvider } from './data-provider.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { commandHistory } from './command-history.js';
+import { commandHistory } from './command-history.svelte.js';
 import type { FRDataObject, FRDataPoint, ParsedFRData, HpTFData } from '$lib/types/data-types.js';
 
 /** Generate synthetic FR data points spanning 20–20kHz at 1/48-octave spacing */
@@ -547,9 +547,9 @@ describe('DataProvider', () => {
 		it('clears command history after renormalization', () => {
 			frStore.set('a', makeFRDataObject('a', { channels: makeFullChannelData() }));
 			dataProvider.updateYOffset('a', 5);
-			expect(commandHistory.canUndo()).toBe(true);
+			expect(commandHistory.canUndo).toBe(true);
 			dataProvider.renormalizeAll();
-			expect(commandHistory.canUndo()).toBe(false);
+			expect(commandHistory.canUndo).toBe(false);
 		});
 	});
 

@@ -6,6 +6,7 @@
 	import MetadataParser from '$lib/utils/metadata-parser';
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
+	import { commandHistory } from '$lib/services/command-history.svelte';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { urlProvider } from '$lib/utils/url-provider';
@@ -23,6 +24,7 @@
 	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
+	import KeyboardShortcutBar from '$lib/components/controls/KeyboardShortcutBar.svelte';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	let gridCols = $state('minmax(400px, 65%) 5px minmax(340px, 1fr)');
@@ -162,6 +164,34 @@
 		return () => window.removeEventListener('resize', updateMobile);
 	});
 
+	function handleKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
+		const mod = e.metaKey || e.ctrlKey;
+
+		if (mod && e.key === 'z' && !e.shiftKey) {
+			e.preventDefault();
+			commandHistory.undo(frStore);
+			return;
+		}
+
+		if (mod && (e.key === 'z' && e.shiftKey || e.key === 'y')) {
+			e.preventDefault();
+			commandHistory.redo(frStore);
+			return;
+		}
+
+		if (!mod && !e.altKey && !e.shiftKey) {
+			const panels = ['device', 'graph', 'equalizer', 'misc'] as const;
+			const num = parseInt(e.key);
+			if (num >= 1 && num <= 4) {
+				e.preventDefault();
+				menuStore.setPanel(panels[num - 1]);
+			}
+		}
+	}
+
 	// Auto-update URL when store data changes (phones added/removed, graph state, etc.)
 	$effect(() => {
 		if (!appStore.isReady) return;
@@ -172,6 +202,8 @@
 		urlProvider.autoUpdate();
 	});
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="flex flex-col" style="height: 100dvh">
 	<TopNavBar />
@@ -188,11 +220,11 @@
 				</div>
 			</section>
 			<!-- Panel area fills remaining space -->
-			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-lg border-t border-base-content/15">
+			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15">
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
-							class="absolute inset-0"
+							class="absolute inset-0 flex flex-col overflow-hidden"
 							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
 							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>
@@ -227,10 +259,11 @@
 					<FrequencyTutorial />
 				</div>
 				<GraphToolbar />
+				<KeyboardShortcutBar />
 			</section>
 			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
 			<!-- Right column: menu + panel -->
-			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-200">
+			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-100">
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}

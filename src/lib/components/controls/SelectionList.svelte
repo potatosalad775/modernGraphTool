@@ -11,6 +11,7 @@
 	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
 	import PopoverPanel from '$lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
+	import GraphUploader from './GraphUploader.svelte';
 
 	// ── Derived: sorted entries ──────────────────────────────────────────────────
 	// Targets always first, phones/others after.
@@ -342,4 +343,9 @@
 			</div>
 		</div>
 	{/each}
+	
+	<!-- Graph Uploader -->
+	<div class="px-2 py-4">
+		<GraphUploader />
+	</div>
 </div>

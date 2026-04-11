@@ -5,6 +5,8 @@
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
+	import { ArrowDown01, Download, Minus, Plus, Upload } from '@lucide/svelte';
+	import Button from '../atoms/Button.svelte';
 
 	let expandedIndex = $state<number | null>(null);
 
@@ -25,7 +27,7 @@
 
 	function addBand() {
 		eqStore.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
-		expandedIndex = eqStore.filters.length - 1;
+		//expandedIndex = eqStore.filters.length - 1;
 	}
 
 	function removeBand() {
@@ -134,7 +136,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-1.75">
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
 		<span class="text-xs text-base-content/60">
@@ -142,23 +144,35 @@
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 		</span>
 		<div class="flex gap-1">
-			<button
+			<Button
+				title="Add EQ Band"
+				variant="outline" size="icon"
+				class="size-6 p-px"
 				onclick={addBand}
-				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-			>+</button>
-			<button
+			>
+				<Plus class="size-3" />
+			</Button>
+			<Button
+				title="Remove EQ Band"
+				variant="outline" size="icon"
+				class="size-6 p-px"
 				onclick={removeBand}
-				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-			>−</button>
-			<button
+			>
+				<Minus class="size-3" />
+			</Button>
+			<Button
+				title="Sort EQ Bands"
+				variant="outline" size="icon"
+				class="size-6 p-px"
 				onclick={sortBands}
-				class="rounded border border-base-content/20 px-2 py-0.5 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-			>↕</button>
+			>
+				<ArrowDown01 class="size-3.25" />
+			</Button>
 		</div>
 	</div>
 
 	<!-- Filter cards -->
-	<div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+	<div class="flex flex-col gap-1.5">
 		{#each eqStore.filters as filter, i (i)}
 			<EqFilterCard
 				{filter}
@@ -176,27 +190,35 @@
 	</div>
 
 	<!-- Import/Export buttons -->
-	<div class="flex gap-1">
-		<button
+	<div class="flex gap-1.5">
+		<Button
+			title={m.extension_equalizer_filter_list_import()}
 			onclick={importFilters}
-			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			variant="outline" size="sm"
+			class="flex-1"
 		>
+			<Download class="size-3.5 mr-1.5" />
 			{m.extension_equalizer_filter_list_import()}
-		</button>
-		<button
+		</Button>
+		<Button
+			title={m.extension_equalizer_filter_list_export()}
 			onclick={exportFilters}
-			class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			variant="outline" size="sm"
+			class="flex-1"
 		>
+			<Upload class="size-3.5 mr-1.5" />
 			{m.extension_equalizer_filter_list_export()}
-		</button>
+		</Button>
 	</div>
 	<div>
-		<button
+		<Button
+			title="Export filters as Graphic EQ File"
 			onclick={exportGraphicEQ}
-			class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			variant="muted" size="sm"
+			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
 		>
 			{m.extension_equalizer_filter_list_export_graphic_eq()}
-		</button>
+		</Button>
 	</div>
 
 	<input

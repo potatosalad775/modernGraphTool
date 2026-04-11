@@ -28,8 +28,8 @@
 	"extension_equalizer_phone_select_option_source": "EQ 적용 기기 선택",
 	"extension_equalizer_phone_select_option_target": "AutoEQ 목표 선택",
 	"extension_equalizer_filter_list_preamp": "프리앰프",
-	"extension_equalizer_filter_list_import": "불러오기",
-	"extension_equalizer_filter_list_export": "내보내기",
+	"extension_equalizer_filter_list_import": "EQ 불러오기",
+	"extension_equalizer_filter_list_export": "EQ 내보내기",
 	"extension_equalizer_filter_list_export_graphic_eq": "그래픽 EQ로 내보내기 (Wavelet)",
 	"extension_equalizer_filter_list_peak": "피크",
 	"extension_equalizer_filter_list_lowshelf": "로우쉘프",
@@ -57,6 +57,7 @@
 	"extension_equalizer_player_tone_freq_label": "주파수: ",
 	"extension_equalizer_player_filter_toggle": "EQ 효과",
 	"extension_equalizer_player_spectrum_toggle": "스펙트럼",
+	"extension_equalizer_player_file_upload": "음악 파일 업로드",
 	"extension_equalizer_upload_fr": "FR 업로드",
 	"extension_equalizer_upload_target": "타겟 업로드",
 	"target_selector_label": "타겟",
@@ -126,5 +127,6 @@
 	"selection_list_baseline_with_adjustment": "보정됨 (조정 적용)",
 	"keyboard_shortcut_undo": "실행 취소",
 	"keyboard_shortcut_redo": "다시 실행",
-	"keyboard_shortcut_panels": "패널 전환"
+	"keyboard_shortcut_panels": "패널 전환",
+	"keyboard_shortcut_axis_lock": "이동 방향 고정 (EQ 드래그)"
 }

@@ -159,22 +159,23 @@ kbd {
 }
 
 ::-webkit-scrollbar-track {
-	background: transparent;
+	background: color-mix(in oklch, var(--color-base-content) 5%, transparent);
 }
 
 ::-webkit-scrollbar-thumb {
-	background: color-mix(in oklch, var(--color-base-content) 15%, transparent);
+	background: color-mix(in oklch, var(--color-base-content) 20%, transparent);
 	border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: color-mix(in oklch, var(--color-base-content) 25%, transparent);
+	background: color-mix(in oklch, var(--color-base-content) 30%, transparent);
 }
 
 /* Firefox scrollbar */
 * {
 	scrollbar-width: thin;
-	scrollbar-color: color-mix(in oklch, var(--color-base-content) 15%, transparent) transparent;
+	scrollbar-color: color-mix(in oklch, var(--color-base-content) 20%, transparent)
+		color-mix(in oklch, var(--color-base-content) 5%, transparent);
 }
 
 /* ─── Theme toggle transition ────────────────────────────────────────────── */

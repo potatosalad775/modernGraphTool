@@ -224,7 +224,7 @@
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
-							class="absolute inset-0"
+							class="absolute inset-0 flex flex-col overflow-hidden"
 							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
 							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>

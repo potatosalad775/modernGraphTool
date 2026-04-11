@@ -4,7 +4,7 @@
   type Props = WithChildren<Button.RootProps> & {
     title: string;
     variant?: "primary" | "secondary" | "muted" | "destructive" | "outline" | "ghost" | "link";
-    size?: "sm" | "md" | "lg" | "icon";
+    size?: "xs" | "sm" | "md" | "lg" | "icon";
   };
 
   let {
@@ -26,6 +26,7 @@
   };
 
   const sizeClasses = {
+    xs: "px-1.5 py-0.5 text-[10px]",
     sm: "px-2.5 py-1.5 text-xs",
     md: "px-4 py-2 text-sm",
     lg: "px-6 py-3 text-base",

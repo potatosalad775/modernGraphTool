@@ -3,6 +3,8 @@
   import FRParser from '$lib/utils/fr-parser.js';
   import { toast } from 'svelte-sonner';
   import * as m from '$lib/paraglide/messages.js';
+	import Button from '../atoms/Button.svelte';
+	import { FileUp } from '@lucide/svelte';
 
   let phoneInputEl = $state<HTMLInputElement | undefined>(undefined);
   let targetInputEl = $state<HTMLInputElement | undefined>(undefined);
@@ -27,18 +29,24 @@
 </script>
 
 <div class="flex gap-2">
-  <button
+  <Button
+    title={m.extension_equalizer_upload_fr()}
     onclick={() => phoneInputEl?.click()}
-    class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    variant="outline" size="sm"
+    class="flex-1"
   >
+    <FileUp class="size-3.5 mr-1.5" />
     {m.extension_equalizer_upload_fr()}
-  </button>
-  <button
+  </Button>
+  <Button
+    title={m.extension_equalizer_upload_target()}
     onclick={() => targetInputEl?.click()}
-    class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    variant="outline" size="sm"
+    class="flex-1"
   >
+    <FileUp class="size-3.5 mr-1.5" />
     {m.extension_equalizer_upload_target()}
-  </button>
+  </Button>
   <input
     bind:this={phoneInputEl}
     type="file"

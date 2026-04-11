@@ -87,12 +87,9 @@ class GraphHandle {
 			])
 			.range([this.graphEngine.graphGeometry.yBottom, this.graphEngine.graphGeometry.yTop]);
 
+		this.graphEngine.baseYScale = this.graphEngine.yScale.copy();
 		this.graphEngine.updateYAxis(null, false);
-
-		this.graphEngine.curveGroup.attr(
-			'transform',
-			`translate(0, ${this.yShift * ((this.graphEngine.graphGeometry.yBottom - this.graphEngine.graphGeometry.yTop) / this.graphEngine.yScaleValue)})`
-		);
+		this.graphEngine.repositionCurves();
 	}
 
 	resetHandle() {

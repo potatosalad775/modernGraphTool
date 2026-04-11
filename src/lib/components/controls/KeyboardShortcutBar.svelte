@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { commandHistory } from '$lib/services/command-history.svelte';
+	import { menuStore } from '$lib/stores/menu-store.svelte';
 	import * as m from '$lib/paraglide/messages';
 
 	let isMac = $state(false);
@@ -27,4 +28,10 @@
 		<kbd>1</kbd>–<kbd>4</kbd>
 		{m.keyboard_shortcut_panels()}
 	</span>
+	{#if menuStore.currentPanel === 'equalizer'}
+		<span class="inline-flex items-center gap-1.5">
+			<kbd>{isMac ? '\u21e7' : 'Shift'}+Drag</kbd>
+			{m.keyboard_shortcut_axis_lock()}
+		</span>
+	{/if}
 </div>

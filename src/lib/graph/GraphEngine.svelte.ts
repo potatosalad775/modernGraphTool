@@ -6,6 +6,7 @@ import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
 
 
 class GraphEngine {
@@ -23,7 +24,11 @@ class GraphEngine {
 	_updateCurveRAF: number | null = null;
 	xScale!: d3.ScaleLogarithmic<number, number>;
 	yScale!: d3.ScaleLinear<number, number>;
+	/** Y scale without handle pan shift — used by EQ overlay for node positioning */
+	baseYScale!: d3.ScaleLinear<number, number>;
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
+	/** Optional EQ overlay reference — set by GraphContainer for handle-drag coordination */
+	eqOverlay: { render(): void } | null = null;
 	isInitialized = $state(false);
 
 	constructor() {
@@ -83,6 +88,7 @@ class GraphEngine {
 
 		this._updateCurveRAF = requestAnimationFrame(() => {
 			this.refreshBaselineData();
+			this.curveGroup.attr('transform', 'translate(0,0)');
 
 			this.svg
 				.select('.fr-graph-curve-container')
@@ -332,6 +338,18 @@ class GraphEngine {
 		});
 	}
 
+	/** Reposition all visible curves by recomputing path data with current yScale.
+	 *  Lightweight: no DOM creation/removal, just d-attribute updates. */
+	repositionCurves(): void {
+		this.curveGroup
+			.selectAll<SVGPathElement, FRDataPoint[]>(
+				"path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)"
+			)
+			.attr('d', (d) => this._getCompensatedPath(d));
+		this._transitionHpTFFillPaths(false);
+		this.eqOverlay?.render();
+	}
+
 	getBaselineData(): BaselineData {
 		return this.baselineData;
 	}
@@ -358,8 +376,9 @@ class GraphEngine {
 		this.svg.selectAll('.fr-graph-spectrum-overlay').raise();
 		this.svg.selectAll('.fr-graph-curve-container').raise();
 		this.svg.selectAll('.x-grid-text, .x-grid-text-major, .y-grid-text').raise();
-		this.svg.selectAll('.fr-graph-eq-overlay').raise();
 		this.svg.selectAll('.fr-graph-label, .fr-graph-label-bg').raise();
+		this.svg.selectAll('.fr-graph-eq-clip-wrapper').raise();
+		this.svg.selectAll('.y-scaler-handle').raise();
 	}
 
 	/** Setup scales for the graph */
@@ -372,6 +391,7 @@ class GraphEngine {
 			.scaleLinear()
 			.domain([-(this.yScaleValue / 2), this.yScaleValue / 2])
 			.range([this.graphGeometry.yBottom, this.graphGeometry.yTop]);
+		this.baseYScale = this.yScale.copy();
 	}
 
 	getScales(): {
@@ -431,6 +451,7 @@ class GraphEngine {
 		const baseThickness = parseFloat(
 			(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
 		);
+		const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
 
 		// Draw HpTF deviation fill (behind everything)
 		if (obj.hptf && obj.hptfFillVisible) {
@@ -448,6 +469,7 @@ class GraphEngine {
 					.attr('fill', fillColor)
 					.attr('stroke', color)
 					.attr('stroke-width', String(baseThickness / 2))
+					.attr('opacity', isEqSource ? 0.35 : null)
 					.style('pointer-events', 'none');
 			}
 		}
@@ -476,6 +498,7 @@ class GraphEngine {
 					.attr('stroke', color)
 					.attr('stroke-width', String(baseThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('opacity', isEqSource ? 0.35 : null)
 					.attr('d', (d) => this._getCompensatedPath(d));
 			}
 		}
@@ -495,6 +518,7 @@ class GraphEngine {
 					.attr('identifier', obj.identifier)
 					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
 					.attr('stroke-width', String(baseThickness * 1.5))
+					.attr('opacity', isEqSource ? 0.35 : null)
 					.attr('d', (d) => this._getCompensatedPath(d));
 			});
 		}
@@ -513,6 +537,7 @@ class GraphEngine {
 					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
 					.attr('stroke-width', String(baseThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('opacity', isEqSource ? 0.35 : null)
 					.attr('d', (d) => this._getCompensatedPath(d));
 			});
 		}

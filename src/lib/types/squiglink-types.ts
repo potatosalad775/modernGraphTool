@@ -45,6 +45,13 @@ export interface ShopLinkEntry {
 	hfg_ali: string;
 }
 
+// ── Sponsor Detail (from sponsorDetails in shoplinks.js) ─────────────────────
+export interface SponsorDetail {
+	sponsorName: string;
+	sponsorLogo: string;
+	utmParams: string;
+}
+
 // ── Sponsor Content (from contentSponsor in squiglink-intro.js) ──────────────
 
 export interface SponsorContent {
@@ -62,6 +69,13 @@ export interface SponsorContent {
 	cta2Link?: string;
 }
 
+// ── Sponsor Product Data ─────────────────────────────────────────────────────
+export interface SponsorProductData {
+	currentPrice: string;
+	originalPrice: string;
+	onSale: boolean;
+}
+
 // ── Cross-Site Search (computed) ─────────────────────────────────────────────
 
 export interface CrossSiteSearchResult {
@@ -71,6 +85,7 @@ export interface CrossSiteSearchResult {
 	brand: string;
 	phoneName: string;
 	dbType: string;
+	deltaReady: boolean;
 }
 
 // ── Config ───────────────────────────────────────────────────────────────────

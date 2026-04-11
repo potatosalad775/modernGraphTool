@@ -115,7 +115,6 @@
 	"target_customizer_add_filter": "Add Filter",
 	"target_customizer_preset": "Preset",
 	"target_customizer_no_filters": "No filters active",
-	"crosssite_search_title": "Cross-Site Search",
 	"crosssite_search_placeholder": "Search other databases...",
 	"crosssite_search_no_results": "No results found.",
 	"crosssite_search_loading": "Loading databases...",

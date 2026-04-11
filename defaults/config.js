@@ -195,7 +195,6 @@ const CONFIG = {
   // This section is only active when hosted on *.squig.link domains.
   SQUIGLINK: {
     ENABLED: true,
-    DEBUG: false,                      // When true, enables squig.link features regardless of domain (for development)
     ANALYTICS_MEASUREMENT_IDS: [],     // Array of GA4 IDs, e.g. ["G-SQUIGLINK_ID", "G-YOUR_ID"]
     ANALYTICS_SITE: "",                // Site name for analytics attribution
     LOG_ANALYTICS: true,               // Console log analytics events

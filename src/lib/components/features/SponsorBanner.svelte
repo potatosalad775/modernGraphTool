@@ -4,6 +4,7 @@
 	import * as m from '$lib/paraglide/messages';
 	import { getConfigValue } from '$lib/utils/config';
 	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
+	import { ExternalLink } from '@lucide/svelte';
 
 	let open = $state(false);
 
@@ -46,7 +47,7 @@
 				class="fixed inset-0 z-40 bg-black/40"
 			/>
 			<Dialog.Content
-				class="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2
+				class="fixed left-1/2 top-1/2 z-50 w-full max-w-md max-h-5/6 -translate-x-1/2 -translate-y-1/2
 					rounded-xl bg-base-200 p-6 shadow-2xl"
 			>
 				<Dialog.Title class="text-lg font-semibold text-base-content">
@@ -57,30 +58,25 @@
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
-				{#if sponsor.sponsorLogo}
-					<div class="mt-4 flex justify-center">
-						<img src={sponsor.sponsorLogo} alt={sponsor.sponsorshipName} class="h-8" />
-					</div>
-				{/if}
-
 				{#if sponsor.creative}
 					<div
-						class="mt-4 flex justify-center overflow-hidden rounded-lg p-4"
+						class="mt-4 flex justify-center overflow-hidden rounded-lg"
 						style:background-color={sponsor.creativeBgColor || 'var(--color-base-300)'}
 					>
-						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="max-h-48 object-contain" />
+						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="object-contain" />
 					</div>
 				{/if}
 
-				<div class="mt-6 flex flex-col gap-2">
+				<div class="mt-3 flex flex-row gap-2">
 					{#if sponsor.ctaLink}
 						<a
 							href={buildUtmUrl(sponsor.ctaLink, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
+							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
 								hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 						>
+							<ExternalLink class="w-4 h-4" />
 							{sponsor.ctaText}
 						</a>
 					{/if}
@@ -90,16 +86,17 @@
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="rounded-lg border border-base-content/20 px-4 py-2.5 text-center text-sm font-medium
-								 hover:bg-base-300"
+							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg border 
+								border-base-content/20 px-4 py-2.5 text-center text-sm font-medium hover:bg-base-300"
 						>
+							<ExternalLink class="w-4 h-4" />
 							{sponsor.cta2Text}
 						</a>
 					{/if}
 				</div>
 
 				<Dialog.Close
-					class="mt-4 w-full text-center text-xs text-base-content/60 hover:"
+					class="mt-3 -mb-2 h-12 w-full text-center text-sm text-base-content/60 hover:bg-base-300 rounded-lg py-1 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-base-content/80"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

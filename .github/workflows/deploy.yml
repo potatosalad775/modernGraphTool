@@ -83,8 +83,11 @@ jobs:
             git rm -rf . 2>/dev/null || true
           fi
 
-          # Copy versioned assets
+          # Copy versioned assets. Clean any pre-existing _app/ first so a
+          # re-deploy of the same version doesn't nest into v${VERSION}/_app/_app/
+          # (cp -r src existing-dir copies src *inside* existing-dir).
           mkdir -p "v${VERSION}"
+          rm -rf "v${VERSION}/_app"
           cp -r "/tmp/cdn-assets/_app" "v${VERSION}/_app"
           cp "/tmp/cdn-assets/boot.json" "v${VERSION}/boot.json"
 

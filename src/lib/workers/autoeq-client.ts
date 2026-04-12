@@ -3,9 +3,29 @@ import type { EQFilter } from '$lib/utils/equalizer.js';
 let worker: Worker | null = null;
 let nextId = 0;
 
+function createModuleWorker(url: URL | string): Worker {
+	const href = typeof url === 'string' ? url : url.href;
+	const sameOrigin =
+		typeof window === 'undefined' ||
+		new URL(href, window.location.href).origin === window.location.origin;
+
+	if (sameOrigin) {
+		return new Worker(href, { type: 'module' });
+	}
+
+	const shim = `import ${JSON.stringify(href)};`;
+	const blob = new Blob([shim], { type: 'text/javascript' });
+	const blobUrl = URL.createObjectURL(blob);
+	try {
+		return new Worker(blobUrl, { type: 'module' });
+	} finally {
+		URL.revokeObjectURL(blobUrl);
+	}
+}
+
 function getWorker(): Worker {
 	if (!worker) {
-		worker = new Worker(new URL('./autoeq.worker.ts', import.meta.url), { type: 'module' });
+		worker = createModuleWorker(new URL('./autoeq.worker.ts', import.meta.url));
 	}
 	return worker;
 }

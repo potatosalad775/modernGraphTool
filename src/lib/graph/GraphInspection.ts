@@ -129,6 +129,7 @@ class GraphInspection {
 
 		let yOffset = 0;
 		const lineHeight = 18;
+		const rectPadding = 10;
 
 		const deviceListData: {
 			displayText: string;
@@ -137,7 +138,6 @@ class GraphInspection {
 			yOffset: number;
 		}[] = [];
 
-		let maxTextWidth = 0;
 		Array.from(frStore.entries)
 			.filter(([, obj]) => !obj.hidden)
 			.sort(([, a], [, b]) => (a.type === 'target' ? -1 : 1))
@@ -156,12 +156,10 @@ class GraphInspection {
 					const displayName =
 						obj.type !== 'target' ? `${obj.identifier} (${channel})` : obj.identifier;
 					const displayText = `${displayName}: ${compensatedSPL.toFixed(1)}dB`;
-					const textWidth = displayText.length * 9 + 50;
-					maxTextWidth = Math.max(maxTextWidth, textWidth);
 
 					deviceListData.push({
 						displayText,
-						textWidth,
+						textWidth: 0,
 						color:
 							obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || 'var(--color-base-content)',
 						yOffset
@@ -186,12 +184,10 @@ class GraphInspection {
 
 						const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
 						const displayText = `  ${obj.identifier} (${key}): ${compensatedSPL.toFixed(1)}dB`;
-						const textWidth = displayText.length * 9 + 50;
-						maxTextWidth = Math.max(maxTextWidth, textWidth);
 
 						deviceListData.push({
 							displayText,
-							textWidth,
+							textWidth: 0,
 							color: obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG || 'var(--color-base-content)',
 							yOffset
 						});
@@ -200,6 +196,23 @@ class GraphInspection {
 					}
 				}
 			});
+
+		// Pre-pass: measure each entry's actual rendered text width via a hidden
+		// scratch text node. Required for both backdrop sizing AND for the
+		// edge-fitting logic below — character-count heuristics misjudge layout
+		// for proportional fonts (Pretendard).
+		const scratch = this.valueDisplay
+			.append('text')
+			.attr('font-size', '16px')
+			.attr('font-weight', '500')
+			.style('visibility', 'hidden');
+		let maxTextWidth = 0;
+		for (const item of deviceListData) {
+			scratch.text(item.displayText);
+			item.textWidth = scratch.node()!.getBBox().width + rectPadding * 2;
+			if (item.textWidth > maxTextWidth) maxTextWidth = item.textWidth;
+		}
+		scratch.remove();
 
 		const listPadding = 15;
 		const rightEdgeSpace = this.graphEngine.graphGeometry.xEnd - mouseX;
@@ -230,19 +243,13 @@ class GraphInspection {
 					`translate(${listX}, ${this.graphEngine.graphGeometry.yTop + 32 + item.yOffset})`
 				);
 
-			let rectX: number;
-			const rectWidth = item.textWidth;
-			if (textAnchor === 'start') {
-				rectX = -5;
-			} else {
-				rectX = -item.textWidth + 5;
-			}
+			const rectX = textAnchor === 'start' ? -rectPadding : -(item.textWidth - rectPadding);
 
 			valueGroup
 				.append('rect')
 				.attr('x', rectX)
 				.attr('y', -16)
-				.attr('width', rectWidth)
+				.attr('width', item.textWidth)
 				.attr('height', 18)
 				.attr('fill', 'var(--color-base-200)')
 				.attr('rx', 2)

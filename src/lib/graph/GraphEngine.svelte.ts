@@ -44,11 +44,13 @@ class GraphEngine {
 			yTop: margin,
 			yBottom: this.viewBoxHeight - margin
 		};
+		const g = this.graphGeometry;
 		this.labelPosition = {
-			BOTTOM_LEFT: { x: 60, y: this.graphGeometry.yBottom - 12, anchor: 'start', growUp: true },
-			BOTTOM_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yBottom - 12, anchor: 'end', growUp: true },
-			TOP_LEFT: { x: 60, y: this.graphGeometry.yTop + 45, anchor: 'start', growUp: false },
-			TOP_RIGHT: { x: this.graphGeometry.xEnd - 45, y: this.graphGeometry.yTop + 45, anchor: 'end', growUp: false }
+			BOTTOM_LEFT: { x: g.xStart, y: g.yBottom, anchor: 'start', growUp: true },
+			BOTTOM_RIGHT: { x: g.xEnd, y: g.yBottom, anchor: 'end', growUp: true },
+			TOP_LEFT: { x: g.xStart, y: g.yTop, anchor: 'start', growUp: false },
+			TOP_RIGHT: { x: g.xEnd, y: g.yTop, anchor: 'end', growUp: false },
+			CENTER: { x: (g.xStart + g.xEnd) / 2, y: (g.yTop + g.yBottom) / 2, anchor: 'middle', growUp: false }
 		};
 		this.baselineData = {
 			uuid: null,

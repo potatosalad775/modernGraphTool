@@ -19,7 +19,7 @@ const CONFIG = {
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
       POSITION: {
-        LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",      // Fine-tune Label Location
+        LEFT: "0", RIGHT: "44", UP: "43", DOWN: "0",      // Fine-tune Label Location
       },                                          
       TEXT_SIZE: "14px", 
       TEXT_WEIGHT: "600",                               // (100 ~ 900)
@@ -27,7 +27,7 @@ const CONFIG = {
     BASELINE_LABEL: {
       LOCATION: "TOP_LEFT",
       POSITION: {
-        LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
+        LEFT: "0", RIGHT: "44", UP: "0", DOWN: "39",
       },
       TEXT_SIZE: "14px",
       TEXT_WEIGHT: "500",                               // (100 ~ 900)
@@ -74,11 +74,14 @@ const CONFIG = {
   },
   // Watermark Settings
   WATERMARK: [
-    { TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
-      SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
+    { 
+      TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", 
+      LOCATION: "BOTTOM_RIGHT", POSITION: {UP: "43", DOWN: "0", LEFT: "32", RIGHT: "0"},
+      OPACITY: "0.3", SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
     },
     // You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
-    { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "15", LEFT: "46", RIGHT: "0"}, OPACITY: "0.2",
+    { TYPE: "IMAGE", SIZE: "50px", OPACITY: "0.3",
+      LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "64", LEFT: "82", RIGHT: "0"},
       CONTENT: [
         "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
       ] 

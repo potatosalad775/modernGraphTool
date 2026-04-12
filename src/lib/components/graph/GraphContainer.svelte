@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { GraphEqOverlay } from '$lib/graph/GraphEqOverlay.js';
 	import { GraphSpectrumOverlay } from '$lib/graph/GraphSpectrumOverlay.js';
@@ -17,9 +18,11 @@
 
 	// ── FR Labels (Svelte-managed) ──────────────────────────────────────────
 	const labelLocation = (getConfigValue('VISUALIZATION.LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
-	const labelFontSize = (getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '20px';
+	const labelFontSize = (getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '14px';
+	const labelFontPx = parseInt(labelFontSize) || 14;
 	const labelFontWeight = (getConfigValue('VISUALIZATION.LABEL.TEXT_WEIGHT') as string) || '600';
-	const labelLineHeight = parseInt((getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '17') + 8;
+	const labelLineHeight = labelFontPx + 8;
+	const labelBgPaddingX = 12;
 	const labelOffsetRight = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '0');
 	const labelOffsetLeft = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.LEFT') as string) || '0');
 	const labelOffsetDown = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.DOWN') as string) || '0');
@@ -31,6 +34,38 @@
 		text: string;
 		color: string;
 		index: number;
+		textY: number;
+	}
+
+	const labelTextWidths = new SvelteMap<string, number>();
+
+	function measureLabel(node: SVGTextElement, key: string) {
+		const measure = (k: string) => {
+			// requestAnimationFrame avoids measuring during the same microtask Svelte
+			// is mid-render in (some browsers return stale bbox in that window).
+			requestAnimationFrame(() => {
+				if (!node.isConnected) return;
+				labelTextWidths.set(k, node.getBBox().width);
+			});
+		};
+		let currentKey = key;
+		measure(currentKey);
+		return {
+			update(newKey: string) {
+				if (newKey !== currentKey) labelTextWidths.delete(currentKey);
+				currentKey = newKey;
+				measure(currentKey);
+			},
+			destroy() {
+				labelTextWidths.delete(currentKey);
+			}
+		};
+	}
+
+	function backdropX(width: number, anchor: string): number {
+		if (anchor === 'end') return -(width + labelBgPaddingX / 2);
+		if (anchor === 'middle') return -(width + labelBgPaddingX) / 2;
+		return -labelBgPaddingX / 2;
 	}
 
 	const labelData = $derived.by(() => {
@@ -42,7 +77,7 @@
 		const startX = pos.x + labelOffsetRight - labelOffsetLeft;
 		const startY = pos.y + labelOffsetDown - labelOffsetUp;
 
-		const entries: LabelEntry[] = [];
+		const raw: Omit<LabelEntry, 'textY'>[] = [];
 		let counter = 0;
 
 		Array.from(frStore.entries)
@@ -61,7 +96,7 @@
 					const desc = obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
 					const suffix = obj.dispSuffix ? ` ${obj.dispSuffix}` : '';
 					const channelPart = channelStr ? ` (${channelStr})` : '';
-					entries.push({
+					raw.push({
 						uuid: obj.uuid,
 						channel: 'hptf',
 						text: `${obj.identifier}${suffix}${desc}${channelPart}`,
@@ -76,7 +111,7 @@
 					const text = obj.type !== 'target'
 						? `${obj.identifier} ${obj.dispSuffix} (${channel})`
 						: `${obj.identifier} ${obj.dispSuffix}`;
-					entries.push({
+					raw.push({
 						uuid: obj.uuid,
 						channel,
 						text,
@@ -87,18 +122,23 @@
 				});
 			});
 
+		const total = raw.length;
+		const entries: LabelEntry[] = raw.map((r) => ({
+			...r,
+			textY: pos.growUp
+				? -(total - 1 - r.index) * labelLineHeight
+				: r.index * labelLineHeight + labelFontPx
+		}));
+
 		return { entries, startX, startY, growUp: pos.growUp, anchor: pos.anchor, style: pos.style ?? null };
 	});
 
-	const labelTransform = $derived(
-		labelData.growUp
-			? `translate(${labelData.startX}, ${labelData.startY - labelData.entries.length * labelLineHeight})`
-			: `translate(${labelData.startX}, ${labelData.startY})`
-	);
+	const labelTransform = $derived(`translate(${labelData.startX}, ${labelData.startY})`);
 
 	// ── Baseline label (Svelte-managed) ─────────────────────────────────────
 	const blLabelLoc = (getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
 	const blFontSize = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px';
+	const blFontPx = parseInt(blFontSize) || 15;
 	const blFontWeight = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500';
 	const blOffsetRight = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0');
 	const blOffsetLeft = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0');
@@ -113,11 +153,12 @@
 		if (!pos) return null;
 		const identifier = data.identifier;
 		const text = graphStore.baselineMode === 'withAdjustment'
-			? `${identifier} (With Adjustment) Compensated`
+			? `${identifier} (with Adjustment) Compensated`
 			: `${identifier} Compensated`;
+		const baseY = pos.y + blOffsetDown - blOffsetUp;
 		return {
 			x: pos.x + blOffsetRight - blOffsetLeft,
-			y: pos.y + blOffsetDown - blOffsetUp,
+			y: pos.growUp ? baseY : baseY + blFontPx,
 			anchor: pos.anchor,
 			text
 		};
@@ -216,7 +257,7 @@
 <svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
 	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
-		<GraphWatermark viewBoxWidth={graphEngine.viewBoxWidth} viewBoxHeight={graphEngine.viewBoxHeight} />
+		<GraphWatermark />
 		<GraphXAxis
 			xScale={(freq) => graphEngine.xScale(freq)}
 			yTop={graphEngine.graphGeometry.yTop}
@@ -227,13 +268,15 @@
 	{#if labelData.entries.length > 0}
 		<g class="fr-graph-label-bg" transform={labelTransform}>
 			{#each labelData.entries as label (label.uuid + label.channel)}
+				{@const key = label.uuid + label.channel}
+				{@const w = labelTextWidths.get(key) ?? 0}
 				<rect
 					class="fr-graph-label-bg-rect"
-					x={-10}
-					y={(label.index - 0.75) * labelLineHeight}
+					x={backdropX(w, labelData.anchor)}
+					y={label.textY - labelFontPx}
 					rx={4}
 					ry={4}
-					width={label.text.length * labelLineHeight * 0.35}
+					width={w + labelBgPaddingX}
 					height={labelLineHeight}
 					fill="var(--color-base-200)"
 					opacity="0.7"
@@ -245,12 +288,13 @@
 			{#each labelData.entries as label (label.uuid + label.channel)}
 				<text
 					class="fr-graph-label-text"
-					y={label.index * labelLineHeight}
+					y={label.textY}
 					fill={label.color}
 					style={labelData.style}
 					text-anchor={labelData.anchor}
 					font-size={labelFontSize}
 					font-weight={labelFontWeight}
+					use:measureLabel={label.uuid + label.channel}
 				>{label.text}</text>
 			{/each}
 		</g>
@@ -265,6 +309,7 @@
 			fill="var(--color-graph-axis-label)"
 			font-size={blFontSize}
 			font-weight={blFontWeight}
+			opacity="0.6"
 		>{baselineLabel.text}</text>
 	{/if}
 </svg>

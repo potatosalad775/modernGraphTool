@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 
 	interface WatermarkObject {
@@ -13,29 +14,29 @@
 		FONT_FAMILY?: string;
 	}
 
-	let { viewBoxWidth = 800, viewBoxHeight = 450 }: { viewBoxWidth?: number; viewBoxHeight?: number } = $props();
-
-	const positionData: Record<string, { x: number; y: number; anchor: string }> = $derived({
-		BOTTOM_LEFT: { x: 50, y: viewBoxHeight - 47, anchor: 'start' },
-		BOTTOM_RIGHT: { x: viewBoxWidth - 46, y: viewBoxHeight - 47, anchor: 'end' },
-		TOP_LEFT: { x: 50, y: 70, anchor: 'start' },
-		TOP_RIGHT: { x: viewBoxWidth - 46, y: 70, anchor: 'end' },
-		CENTER: { x: viewBoxWidth / 2, y: Math.round(viewBoxHeight * 0.61), anchor: 'middle' }
-	});
+	const positionData = $derived(graphEngine.labelPosition);
 
 	const rigDescription =
 		(getConfigValue('VISUALIZATION.RIG_DESCRIPTION') as string) ||
 		'Measured with IEC 60318-4 (711)';
+	const rigFontPx = 14;
 
 	const watermarkData = (getConfigValue('WATERMARK') as WatermarkObject[]) || [];
 
 	function resolvePosition(watermarkObj: WatermarkObject) {
 		const loc = watermarkObj.LOCATION || 'CENTER';
 		const basePos = positionData[loc] || positionData['CENTER'];
+		const offsetX = watermarkObj.POSITION
+			? (watermarkObj.POSITION.RIGHT ?? 0) - (watermarkObj.POSITION.LEFT ?? 0)
+			: 0;
+		const offsetY = watermarkObj.POSITION
+			? (watermarkObj.POSITION.DOWN ?? 0) - (watermarkObj.POSITION.UP ?? 0)
+			: 0;
 		return {
-			x: basePos.x + (watermarkObj.POSITION ? (watermarkObj.POSITION.RIGHT ?? 0) - (watermarkObj.POSITION.LEFT ?? 0) : 0),
-			y: basePos.y + (watermarkObj.POSITION ? (watermarkObj.POSITION.DOWN ?? 0) - (watermarkObj.POSITION.UP ?? 0) : 0),
-			anchor: basePos.anchor
+			x: basePos.x + offsetX,
+			y: basePos.y + offsetY,
+			anchor: basePos.anchor,
+			growUp: basePos.growUp
 		};
 	}
 
@@ -47,15 +48,15 @@
 	}
 </script>
 
-<!-- Rig description -->
+<!-- Rig description: anchored to TOP_RIGHT, baseline pushed inside the graph area -->
 {#if rigDescription}
 	<text
 		class="rig-description"
-		x={positionData['TOP_RIGHT'].x}
-		y={positionData['TOP_RIGHT'].y - 12}
-		font-size="14px"
+		x={positionData.TOP_RIGHT.x - 32}
+		y={positionData.TOP_RIGHT.y + rigFontPx + 39}
+		font-size="{rigFontPx}px"
 		font-weight="500"
-		text-anchor={positionData['TOP_RIGHT'].anchor}
+		text-anchor={positionData.TOP_RIGHT.anchor}
 		fill="var(--color-base-content)"
 		opacity="0.3"
 		filter="var(--watermark-text-filter)"

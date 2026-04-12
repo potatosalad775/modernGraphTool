@@ -35,6 +35,7 @@ class GraphHandle {
 		this.handleGroup = this.svg
 			.append('g')
 			.attr('class', 'y-scaler-handle')
+			.attr('data-tutorial-target', 'graph_handle')
 			.attr('transform', `translate(${this.graphEngine.graphGeometry.xEnd},0)`);
 
 		this.handle = this.handleGroup
@@ -45,7 +46,10 @@ class GraphHandle {
 			.attr('fill', 'var(--color-base-300)')
 			.attr('opacity', '0.4')
 			.attr('cursor', 'pointer')
-			.attr('cy', (this.graphEngine.graphGeometry.yTop + this.graphEngine.graphGeometry.yBottom) / 2);
+			.attr(
+				'cy',
+				(this.graphEngine.graphGeometry.yTop + this.graphEngine.graphGeometry.yBottom) / 2
+			);
 
 		this.minY = this.graphEngine.graphGeometry.yTop + this.handleRadius;
 		this.maxY = this.graphEngine.graphGeometry.yBottom - this.handleRadius;

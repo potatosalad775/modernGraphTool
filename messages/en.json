@@ -85,6 +85,7 @@
 	"tutorial_modal_menu_content": "You can slide the menu to the left or right to access the variety of tools.",
 	"tutorial_modal_graph_handle_content": "You can drag this handle to shift graph vertically. Double click to reset position.",
 	"tutorial_modal_divider_content": "You can drag this divider to change the size of the graph.",
+	"tutorial_modal_shortcuts_content": "Use keyboard shortcuts to speed up your workflow. You can find the list of shortcuts at the bottom left corner.",
 	"tutorial_modal_pwa_title": "Use as App (PWA)",
 	"tutorial_modal_pwa_content": "modernGraphTool is built as a progressive web app (PWA). You can install it to your device for full-app experience.",
 	"tutorial_modal_pwa_inst_ios": "On Safari: Tap the Share button, then select 'Add to Home Screen'.",

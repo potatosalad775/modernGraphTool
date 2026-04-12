@@ -19,9 +19,7 @@
 		if (!isDragging || !mainEl) return;
 		const { width: containerWidth, x: containerX } = mainEl.getBoundingClientRect();
 		const newWidthPct = ((e.clientX - containerX) / containerWidth) * 100;
-		ondrag(
-			`clamp(400px, ${newWidthPct}%, calc(100% - 346px)) 5px minmax(340px, 1fr)`
-		);
+		ondrag(`clamp(400px, ${newWidthPct}%, calc(100% - 346px)) 5px minmax(340px, 1fr)`);
 	}
 
 	function stopDrag() {
@@ -34,6 +32,9 @@
 <div
 	role="none"
 	tabindex="-1"
-	class="w-[5px] cursor-col-resize transition-colors {isDragging ? 'bg-base-content/35' : 'bg-base-content/20 hover:bg-base-content/35'}"
+	data-tutorial-target="divider"
+	class="w-[5px] cursor-col-resize transition-colors {isDragging
+		? 'bg-base-content/35'
+		: 'bg-base-content/20 hover:bg-base-content/35'}"
 	onmousedown={startDrag}
 ></div>

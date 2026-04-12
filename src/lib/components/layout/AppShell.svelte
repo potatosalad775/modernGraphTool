@@ -205,7 +205,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="flex flex-col" style="height: 100dvh">
+<div class="flex flex-col h-full">
 	<TopNavBar />
 
 	{#if appStore.isMobile}

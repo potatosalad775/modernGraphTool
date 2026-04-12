@@ -92,12 +92,15 @@ select,
 html {
   overscroll-behavior-y: none;
 	touch-action: manipulation;
+	height: 100dvh;
 }
 
 /* ─── User select ─────────────────────────────────────────────────────────── */
 body {
 	color: var(--color-base-content);
 	background-color: var(--color-base-300);
+	height: 100dvh;
+	box-sizing: border-box;
 	-webkit-user-select: none;
 	user-select: none;
 	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)

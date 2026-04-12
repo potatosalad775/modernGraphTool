@@ -1,14 +1,14 @@
 {
   "version": "2.0.0",
   "assets_base": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0",
-  "global_name": "__sveltekit_p04jqx",
-  "start_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/start.CvQurKAb.js",
-  "app_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/app.CjEwYDW8.js",
+  "global_name": "__sveltekit_53topj",
+  "start_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/start.C4c8FMHd.js",
+  "app_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/app.DvPjTTub.js",
   "preloads": [
-    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/start.CvQurKAb.js",
-    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/p169mQjY.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/start.C4c8FMHd.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/B63ndncH.js",
     "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/DuKiNuQX.js",
-    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/app.CjEwYDW8.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/entry/app.DvPjTTub.js",
     "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/C47anG8Q.js",
     "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/0fCUB_f9.js",
     "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0/_app/immutable/chunks/Ctq5spUS.js"

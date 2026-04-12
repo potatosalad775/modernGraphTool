@@ -1,4 +1,5 @@
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import autoeqWorkerUrl from './autoeq.worker.ts?worker&url';
 
 let worker: Worker | null = null;
 let nextId = 0;
@@ -25,7 +26,7 @@ function createModuleWorker(url: URL | string): Worker {
 
 function getWorker(): Worker {
 	if (!worker) {
-		worker = createModuleWorker(new URL('./autoeq.worker.ts', import.meta.url));
+		worker = createModuleWorker(autoeqWorkerUrl);
 	}
 	return worker;
 }

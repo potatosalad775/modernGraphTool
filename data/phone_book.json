@@ -44,7 +44,20 @@
          "shopLink":"https://www.aliexpress.com/",
          "price":"$100"
         },
-        {"name":["HpTF With Main"],
+        {"name":["HpTF Fill Only"],
+         "hptf": {
+            "files":[
+              "HpTF Demo Center", 
+              "HpTF Demo Front", 
+              "HpTF Demo Back", 
+              "HpTF Demo Up",
+              "HpTF Demo Down"
+            ],
+            "labels":["Center", "Front", "Back", "Up", "Down"],
+            "description": "(Positional Variance)"
+         }
+        },
+        {"name":["HpTF With Samples"],
          "file":["HpTF Demo Center"],
          "suffix":["Center"],
          "hptf": {
@@ -56,19 +69,8 @@
             "HpTF Demo Down"
            ],
            "labels":["Center", "Front", "Back", "Up", "Down"],
+           "description": "(Positional Variance)",
            "fillOnly": false
-         }
-        },
-        {"name":["HpTF Only"],
-         "hptf": {
-            "files":[
-              "HpTF Demo Center", 
-              "HpTF Demo Front", 
-              "HpTF Demo Back", 
-              "HpTF Demo Up",
-              "HpTF Demo Down"
-            ],
-            "labels":["Center", "Front", "Back", "Up", "Down"]
          }
         }
     ]

@@ -14,12 +14,12 @@ const CONFIG = {
   },
   // Default Visualization Settings.
   VISUALIZATION: {
-    ASPECT_RATIO: "CrinGraph",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
+    ASPECT_RATIO: "16:9",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
     DEFAULT_Y_SCALE: 50,                                // (30, 40, 50, 60, 80)
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
       POSITION: {
-        LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",      // Fine-tune Label Location
+        LEFT: "0", RIGHT: "44", UP: "43", DOWN: "0",      // Fine-tune Label Location
       },                                          
       TEXT_SIZE: "14px", 
       TEXT_WEIGHT: "600",                               // (100 ~ 900)
@@ -27,7 +27,7 @@ const CONFIG = {
     BASELINE_LABEL: {
       LOCATION: "TOP_LEFT",
       POSITION: {
-        LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
+        LEFT: "0", RIGHT: "44", UP: "0", DOWN: "39",
       },
       TEXT_SIZE: "14px",
       TEXT_WEIGHT: "500",                               // (100 ~ 900)
@@ -74,11 +74,14 @@ const CONFIG = {
   },
   // Watermark Settings
   WATERMARK: [
-    { TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
-      SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
+    { 
+      TYPE: "TEXT", CONTENT: "© 2025 modernGraphTool", 
+      LOCATION: "BOTTOM_RIGHT", POSITION: {UP: "43", DOWN: "0", LEFT: "32", RIGHT: "0"},
+      OPACITY: "0.3", SIZE: "14px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600",
     },
     // You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
-    { TYPE: "IMAGE", SIZE: "50px", LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "15", LEFT: "46", RIGHT: "0"}, OPACITY: "0.2",
+    { TYPE: "IMAGE", SIZE: "50px", OPACITY: "0.3",
+      LOCATION: "TOP_RIGHT", POSITION: {UP: "0", DOWN: "64", LEFT: "82", RIGHT: "0"},
       CONTENT: [
         "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
       ] 
@@ -170,11 +173,13 @@ const CONFIG = {
     // Available filters. Each filter has: id, name, type (TILT/LSQ/HSQ/PK), freq, q.
     // Gain range defaults to -20..+20 (step 0.5) except Tilt which is -2..+2 (step 0.1).
     FILTERS: [
-      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
-      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
-      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
-      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
-      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+      { id: "tilt", name: "Tilt (dB/oct)", type: "TILT", freq: 0, q: 0 },
+      { id: "bass", name: "Bass (dB)", type: "LSQ", freq: 105, q: 0.707 },
+      { id: "treble", name: "Treble (dB)", type: "HSQ", freq: 2500, q: 0.42 },
+      { id: "ear", name: "Ear (dB)", type: "PK", freq: 2750, q: 1 },
+      { id: "harman_moa_2025_bass", name: "Harman MoA 2025 Bass (dB)", type: "LSQ", freq: 164, q: 0.4, description: "Based on Harman 2025 MoA Research." },
+      { id: "harman_moa_2025_treble", name: "Harman MoA 2025 Treble (dB)", type: "HSQ", freq: 4304, q: 0.41, description: "Based on Harman 2025 MoA Research." },
+      { id: "harman_moa_2025_ear", name: "Harman MoA 2025 Ear (dB)", type: "PK", freq: 3000, q: 2, description: "Based on Harman 2025 MoA Research." },
     ],
     // Filter presets selectable from a dropdown
     FILTER_PRESET: [

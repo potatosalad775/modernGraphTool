@@ -1,7 +1,7 @@
 name: Release
 
-# Builds both full and CDN distributions, creates a GitHub Release with
-# both zips attached, and publishes CDN assets to the cdn branch for jsDelivr.
+# Builds both full and CDN distributions and creates a GitHub Release with
+# both zips attached. Does NOT publish to the cdn branch — see deploy.yml.
 
 on:
   workflow_dispatch:
@@ -90,91 +90,9 @@ jobs:
           echo "CDN package size:"
           du -sh dist-cdn-package/
 
-      - name: Verify boot.json
-        run: |
-          echo "boot.json contents:"
-          cat dist-cdn/boot.json
-          echo ""
-          echo "CDN bundle size:"
-          du -sh dist-cdn/_app/
-
-      # ── Deploy CDN assets to cdn branch ──────────────────────────────
-      - name: Deploy to cdn branch
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          MAJOR="${{ steps.version.outputs.major }}"
-
-          # Save build artifacts to /tmp/ before switching branches
-          mkdir -p /tmp/cdn-assets
-          cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
-          cp dist-cdn/boot.json "/tmp/cdn-assets/boot.json"
-          cp cdn/loader.js "/tmp/cdn-assets/loader.js"
-          cp -r release-packages /tmp/release-packages
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Fetch or create cdn branch
-          git fetch origin cdn:cdn 2>/dev/null || true
-          if git show-ref --verify --quiet refs/heads/cdn; then
-            git checkout cdn
-          else
-            git checkout --orphan cdn
-            git rm -rf . 2>/dev/null || true
-          fi
-
-          # Copy versioned assets
-          mkdir -p "v${VERSION}"
-          cp -r "/tmp/cdn-assets/_app" "v${VERSION}/_app"
-          cp "/tmp/cdn-assets/boot.json" "v${VERSION}/boot.json"
-
-          # Always update loader.js to latest
-          cp "/tmp/cdn-assets/loader.js" loader.js
-
-          # Update versions.json
-          if [ -f versions.json ]; then
-            node -e "
-              const fs = require('fs');
-              const v = JSON.parse(fs.readFileSync('versions.json', 'utf-8'));
-              v['${MAJOR}'] = '${VERSION}';
-              fs.writeFileSync('versions.json', JSON.stringify(v, null, 2));
-            "
-          else
-            echo '{ "${MAJOR}": "${VERSION}" }' > versions.json
-          fi
-
-          echo "versions.json:"
-          cat versions.json
-
-          # Commit and push
-          git add -A
-          git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
-          git push origin cdn
-
-      # ── Purge jsDelivr cache ─────────────────────────────────────────
-      - name: Purge jsDelivr cache
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          REPO="${{ github.repository }}"
-          echo "Purging jsDelivr cache..."
-          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/versions.json" || true
-          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/loader.js" || true
-          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json" || true
-          echo "Done."
-
       # ── Create GitHub Release ────────────────────────────────────────
-      - name: Checkout back to source
-        uses: actions/checkout@v6
-
-      - name: Restore release packages
-        run: |
-          cp -r /tmp/release-packages release-packages
-          echo "Restored packages:"
-          ls -lh release-packages/
-
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: modernGraphTool v${{ steps.version.outputs.version }}
@@ -208,10 +126,8 @@ jobs:
           REPO="${{ github.repository }}"
           echo "Release complete!"
           echo ""
-          echo "Version:       v${VERSION}"
-          echo "Release:       https://github.com/${REPO}/releases/tag/v${VERSION}"
-          echo "CDN loader:    https://cdn.jsdelivr.net/gh/${REPO}@cdn/loader.js"
-          echo "CDN boot:      https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
+          echo "Version: v${VERSION}"
+          echo "Release: https://github.com/${REPO}/releases/tag/v${VERSION}"
           echo ""
           echo "Packages:"
           ls -lh release-packages/

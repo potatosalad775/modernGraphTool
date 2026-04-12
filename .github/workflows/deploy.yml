@@ -1,0 +1,141 @@
+name: Deploy CDN
+
+# Builds the CDN distribution and publishes assets to the cdn branch for jsDelivr.
+# Does NOT create a GitHub Release — see release.yml.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Version override (defaults to package.json version)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version_override }}" ]; then
+            VERSION="${{ github.event.inputs.version_override }}"
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION (major: $MAJOR)"
+
+      # ── Build CDN dist/ ──────────────────────────────────────────────
+      - name: Build CDN distribution
+        run: node scripts/build-cdn.js
+        env:
+          MGT_CDN_BASE: https://cdn.jsdelivr.net/gh/${{ github.repository }}@cdn/v${{ steps.version.outputs.version }}
+
+      - name: Verify boot.json
+        run: |
+          echo "boot.json contents:"
+          cat dist-cdn/boot.json
+          echo ""
+          echo "CDN bundle size:"
+          du -sh dist-cdn/_app/
+
+      # ── Deploy CDN assets to cdn branch ──────────────────────────────
+      - name: Deploy to cdn branch
+        env:
+          MAJOR: ${{ steps.version.outputs.major }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Save build artifacts to /tmp/ before switching branches
+          mkdir -p /tmp/cdn-assets
+          cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
+          cp dist-cdn/boot.json "/tmp/cdn-assets/boot.json"
+          cp cdn/loader.js "/tmp/cdn-assets/loader.js"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Fetch or create cdn branch
+          git fetch origin cdn:cdn 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/cdn; then
+            git checkout cdn
+          else
+            git checkout --orphan cdn
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Copy versioned assets
+          mkdir -p "v${VERSION}"
+          cp -r "/tmp/cdn-assets/_app" "v${VERSION}/_app"
+          cp "/tmp/cdn-assets/boot.json" "v${VERSION}/boot.json"
+
+          # Always update loader.js to latest
+          cp "/tmp/cdn-assets/loader.js" loader.js
+
+          # Update versions.json (self-heals if the existing file is missing or corrupt)
+          node -e "
+            const fs = require('fs');
+            const path = 'versions.json';
+            let v = {};
+            if (fs.existsSync(path)) {
+              try {
+                v = JSON.parse(fs.readFileSync(path, 'utf-8'));
+                if (v === null || typeof v !== 'object' || Array.isArray(v)) v = {};
+              } catch (e) {
+                console.warn('versions.json was unparseable, starting fresh:', e.message);
+                v = {};
+              }
+            }
+            v[process.env.MAJOR] = process.env.VERSION;
+            fs.writeFileSync(path, JSON.stringify(v, null, 2) + '\n');
+          "
+
+          echo "versions.json:"
+          cat versions.json
+
+          # Commit and push
+          git add -A
+          git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
+          git push origin cdn
+
+      # ── Purge jsDelivr cache ─────────────────────────────────────────
+      - name: Purge jsDelivr cache
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ github.repository }}"
+          echo "Purging jsDelivr cache..."
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/versions.json" || true
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/loader.js" || true
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json" || true
+          echo "Done."
+
+      # ── Summary ──────────────────────────────────────────────────────
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="${{ github.repository }}"
+          echo "CDN deploy complete!"
+          echo ""
+          echo "Version:    v${VERSION}"
+          echo "CDN loader: https://cdn.jsdelivr.net/gh/${REPO}@cdn/loader.js"
+          echo "CDN boot:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
+          echo "Versions:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/versions.json"

@@ -69,6 +69,8 @@ export interface HpTFData {
   labels: string[];
   /** When true, only the fill envelope is shown — no individual sample curve toggles. Default: true. */
   fillOnly: boolean;
+  /** Curator-supplied label describing what the deviation represents (e.g. "(Positional Variance)"). */
+  description?: string;
 }
 
 /** Display key for HpTF sample curves, e.g. "sample0_AVG", "sample1_L" */
@@ -81,9 +83,6 @@ export interface FRColors {
   AVG: string;
   /** Colors for individual sample traces, keyed by SampleChannelKey like 'L1', 'R2' */
   samples?: Record<string, string>;
-  /** Color for the HpTF deviation fill area */
-  hptfStroke?: string;
-  hptfFill?: string;
 }
 
 /** FR data type discriminant */
@@ -168,6 +167,8 @@ export interface PhoneFileVariant {
   hptfOnly?: boolean;
   /** When true, only fill envelope is shown — no individual sample curve toggles. Default: true. */
   hptfFillOnly?: boolean;
+  /** Optional curator description shown with the fill envelope. */
+  hptfDescription?: string;
 }
 
 /** Raw phone data from phone_book.json before processing */
@@ -184,7 +185,7 @@ export interface RawPhoneData {
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
   /** HpTF deviation configuration */
-  hptf?: { files: string[]; labels?: string[]; fillOnly?: boolean };
+  hptf?: { files: string[]; labels?: string[]; fillOnly?: boolean; description?: string };
 }
 
 /** Raw brand data from phone_book.json before processing */

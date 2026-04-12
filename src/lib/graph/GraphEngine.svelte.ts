@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import type { FRDataObject, FRDataPoint, BaselineData } from '$lib/types/data-types.js';
+import type { FRDataObject, FRDataPoint, BaselineData, HpTFEnvelope } from '$lib/types/data-types.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
@@ -259,17 +259,46 @@ class GraphEngine {
 		return lineGenerator(originalData);
 	}
 
+	/** Merge multiple per-channel envelopes into one by taking the widest spread
+	 *  at each frequency index. Used when dispChannel covers more than one channel
+	 *  (e.g. L+R) so the fill area reflects every underlying sample's extremes. */
+	_combineHpTFEnvelopes(envelopes: HpTFEnvelope[]): HpTFEnvelope {
+		const valid = envelopes.filter((e) => e?.upper.length && e?.lower.length);
+		if (valid.length === 0) return { upper: [], lower: [] };
+		if (valid.length === 1) return valid[0];
+		const base = valid[0];
+		const upper: FRDataPoint[] = base.upper.map(([freq], i) => {
+			let max = -Infinity;
+			for (const e of valid) {
+				const v = e.upper[i]?.[1];
+				if (v !== undefined && v > max) max = v;
+			}
+			return [freq, max] as FRDataPoint;
+		});
+		const lower: FRDataPoint[] = base.lower.map(([freq], i) => {
+			let min = Infinity;
+			for (const e of valid) {
+				const v = e.lower[i]?.[1];
+				if (v !== undefined && v < min) min = v;
+			}
+			return [freq, min] as FRDataPoint;
+		});
+		return { upper, lower };
+	}
+
 	/** Build closed SVG path for HpTF deviation envelope */
 	_buildHpTFEnvelopePath(obj: FRDataObject): string | null {
 		if (!obj.hptf) return null;
 
-		// Select envelope based on displayed channel
-		let envelopeChannel: 'L' | 'R' | 'AVG' = 'AVG';
-		if (obj.dispChannel.length === 1) {
-			envelopeChannel = obj.dispChannel[0];
-		}
-		const envelope = obj.hptf.envelope[envelopeChannel];
-		if (!envelope?.upper.length) return null;
+		// Select envelope(s) based on displayed channel. For multi-channel displays
+		// (L+R), combine per-channel envelopes so the fill covers every sample's
+		// extremes instead of collapsing back to AVG.
+		const channels: ('L' | 'R' | 'AVG')[] =
+			obj.dispChannel.length >= 1 ? [...obj.dispChannel] : ['AVG'];
+		const envelope = this._combineHpTFEnvelopes(
+			channels.map((c) => obj.hptf!.envelope[c])
+		);
+		if (!envelope.upper.length) return null;
 
 		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
 		const isBaselineValid =
@@ -457,8 +486,13 @@ class GraphEngine {
 		if (obj.hptf && obj.hptfFillVisible) {
 			const fillPath = this._buildHpTFEnvelopePath(obj);
 			if (fillPath) {
-				const color = obj.colors.hptfStroke ?? obj.colors.AVG;
-				const fillColor = obj.colors.hptfFill ?? 'rgba(128,128,128,0.3)';
+				const baseAvg = obj.colors.AVG;
+				const strokeOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.5;
+				const fillOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.3;
+				const toAlpha = (c: string, a: number) =>
+					c.startsWith('hsl(') ? c.replace('hsl(', 'hsla(').replace(')', `, ${a})`) : c;
+				const color = toAlpha(baseAvg, strokeOpacity);
+				const fillColor = toAlpha(baseAvg, fillOpacity);
 				this.curveGroup
 					.insert('path', ':first-child')
 					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-fill')
@@ -517,7 +551,7 @@ class GraphEngine {
 					.attr('hptf-avg', 'true')
 					.attr('identifier', obj.identifier)
 					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-					.attr('stroke-width', String(baseThickness * 1.5))
+					.attr('stroke-width', String(baseThickness))
 					.attr('opacity', isEqSource ? 0.35 : null)
 					.attr('d', (d) => this._getCompensatedPath(d));
 			});

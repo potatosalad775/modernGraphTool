@@ -207,6 +207,7 @@ const MetadataParser = {
             hptfFiles: this._generateHpTFFiles(phone.hptf.files),
             hptfLabels: phone.hptf.labels ?? phone.hptf.files,
             hptfFillOnly: phone.hptf.fillOnly ?? true,
+            hptfDescription: phone.hptf.description,
           } : {};
 
           // HpTF mode: hptf takes over — file/suffix are ignored

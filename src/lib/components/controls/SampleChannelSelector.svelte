@@ -186,7 +186,7 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6} align="end"
-			class="z-50 w-48 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
+			class="z-50 w-54 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->
 			<fieldset class="mb-0">
@@ -274,20 +274,6 @@
 						{m.selection_list_hptf_header()}
 					</p>
 
-					<!-- Average toggle -->
-					<label
-						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							 hover:bg-base-300"
-					>
-						<input
-							type="checkbox"
-							checked={hptfAvgVisible}
-							onchange={handleHptfAvgToggle}
-							class="accent-accent"
-						/>
-						{m.selection_list_hptf_avg_toggle()}
-					</label>
-
 					<!-- Fill toggle -->
 					<label
 						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
@@ -302,12 +288,26 @@
 						{m.selection_list_hptf_fill_toggle()}
 					</label>
 
+					<!-- Average toggle -->
+					<label
+						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+							 hover:bg-base-300"
+					>
+						<input
+							type="checkbox"
+							checked={hptfAvgVisible}
+							onchange={handleHptfAvgToggle}
+							class="accent-accent"
+						/>
+						{m.selection_list_hptf_avg_toggle()}
+					</label>
+
 					<!-- Sample checkboxes: only when fillOnly is false -->
 					{#if !hptfFillOnly && hptfSamples.length > 0}
 						{#each hptfSamples as sample, i (i)}
 							<label
 								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									 hover:bg-base-300"
+									ml-2 hover:bg-base-300"
 							>
 								<input
 									type="checkbox"
@@ -320,21 +320,21 @@
 						{/each}
 
 						<!-- Preset buttons -->
-						<div class="mt-1.5 flex gap-1 px-1">
-							<button
+						<div class="mt-1.5 flex gap-1 px-0.5">
+							<Button
+								title={m.selection_list_hptf_all()}
 								onclick={() => handleHptfPreset('all')}
-								class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-									hover:bg-base-content/25"
+								variant="muted" size="sm"
 							>
 								{m.selection_list_hptf_all()}
-							</button>
-							<button
+							</Button>
+							<Button
+								title={m.selection_list_hptf_none()}
 								onclick={() => handleHptfPreset('none')}
-								class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-									hover:bg-base-content/25"
+								variant="muted" size="sm"
 							>
 								{m.selection_list_hptf_none()}
-							</button>
+							</Button>
 						</div>
 					{/if}
 				</div>

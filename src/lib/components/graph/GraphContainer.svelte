@@ -50,6 +50,28 @@
 			.forEach(([, obj]) => {
 				if (obj.hidden) return;
 				const channels = [...obj.dispChannel];
+
+				// HpTF items collapse to a single label line — the fill area is one
+				// shared envelope across channels, so per-channel rows would just be
+				// duplicate noise on the graph.
+				if (obj.hptf) {
+					const channelStr = channels.length === 2 && channels.includes('L') && channels.includes('R')
+						? 'L+R'
+						: channels.join('+');
+					const desc = obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
+					const suffix = obj.dispSuffix ? ` ${obj.dispSuffix}` : '';
+					const channelPart = channelStr ? ` (${channelStr})` : '';
+					entries.push({
+						uuid: obj.uuid,
+						channel: 'hptf',
+						text: `${obj.identifier}${suffix}${desc}${channelPart}`,
+						color: obj.colors?.AVG || 'var(--color-base-content)',
+						index: counter
+					});
+					counter++;
+					return;
+				}
+
 				channels.forEach((channel) => {
 					const text = obj.type !== 'target'
 						? `${obj.identifier} ${obj.dispSuffix} (${channel})`

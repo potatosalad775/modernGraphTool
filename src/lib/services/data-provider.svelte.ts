@@ -132,11 +132,13 @@ class DataProvider {
 			const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
 
 			const fillOnly = rawData._hptfFillOnly ?? true;
+			const hptfDescription = (metaData as PhoneMetadata).files?.[0]?.hptfDescription;
 			frObject.hptf = {
 				samples: processedSamples,
 				envelope: this.#computeAllHpTFEnvelopes(processedSamples),
 				labels: rawData._hptfLabels,
-				fillOnly
+				fillOnly,
+				...(hptfDescription && { description: hptfDescription })
 			};
 
 			const defaultDisplay = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
@@ -147,12 +149,6 @@ class DataProvider {
 				: (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
 					? this.#getAllHpTFKeys(processedSamples)
 					: [];
-			frObject.colors = {
-				...frObject.colors, 
-				hptfStroke: this.#getHpTFStrokeColor(frObject.colors),
-				hptfFill: this.#getHpTFFillColor(frObject.colors) 
-			};
-
 			if (rawData._hptfOnly) {
 				frObject.hptfOnly = true;
 			}
@@ -342,13 +338,18 @@ class DataProvider {
 			if (existingData) {
 				const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
 				const variantFillOnly = rawData._hptfFillOnly ?? true;
+				const phoneMeta = data.meta as PhoneMetadata;
+				const variantDescription =
+					phoneMeta.files?.find((f) => f.suffix === dispSuffix)?.hptfDescription ??
+					phoneMeta.files?.[0]?.hptfDescription;
 				frStore.set(uuid, {
 					...existingData,
 					hptf: {
 						samples: processedSamples,
 						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
 						labels: rawData._hptfLabels,
-						fillOnly: variantFillOnly
+						fillOnly: variantFillOnly,
+						...(variantDescription && { description: variantDescription })
 					},
 					hptfOnly: rawData._hptfOnly ?? false,
 					dispHptf: variantFillOnly ? [] : (existingData.dispHptf ?? []),
@@ -703,28 +704,6 @@ class DataProvider {
 			}
 		});
 		return keys;
-	}
-
-	/** Get semi-transparent stroke color for HpTF curves */
-	#getHpTFStrokeColor(colors: FRColors): string {
-		const opacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.5;
-		const base = colors.AVG;
-		// Convert hsl() to hsla() with fill opacity
-		if (base.startsWith('hsl(')) {
-			return base.replace('hsl(', 'hsla(').replace(')', `, ${opacity})`);
-		}
-		return base;
-	}
-
-	/** Get semi-transparent fill color from the phone's AVG color */
-	#getHpTFFillColor(colors: FRColors): string {
-		const opacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.3;
-		const base = colors.AVG;
-		// Convert hsl() to hsla() with fill opacity
-		if (base.startsWith('hsl(')) {
-			return base.replace('hsl(', 'hsla(').replace(')', `, ${opacity})`);
-		}
-		return base;
 	}
 
 	/** Re-process HpTF samples (normalize only, not re-smooth) */

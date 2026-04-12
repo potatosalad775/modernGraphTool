@@ -1,0 +1,746 @@
+import { test, expect } from "vitest";
+import { compileMessage } from "./compile-message.js";
+import { createRegistry } from "./registry.js";
+test("compiles a message with a single variant", async () => {
+    const declarations = [];
+    const message = {
+        locale: "en",
+        bundleId: "some_message",
+        id: "message-id",
+        selectors: [],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "message-id",
+            matches: [],
+            pattern: [{ type: "text", value: "Hello" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { some_message } = await import("data:text/javascript;base64," +
+        btoa("export const some_message =" + compiled.code));
+    expect(some_message()).toBe("Hello");
+});
+test("compiles a markup message with .parts()", async () => {
+    const declarations = [
+        { type: "input-variable", name: "amount" },
+        { type: "input-variable", name: "relationship" },
+    ];
+    const message = {
+        locale: "en",
+        bundleId: "balance",
+        id: "balance-id",
+        selectors: [],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "balance-id",
+            matches: [],
+            pattern: [
+                { type: "text", value: "You have " },
+                {
+                    type: "markup-start",
+                    name: "tooltip",
+                    options: [{ name: "rel", value: { type: "variable-reference", name: "relationship" } }],
+                    attributes: [{ name: "track", value: true }],
+                },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "amount" },
+                },
+                { type: "text", value: " coins" },
+                {
+                    type: "markup-end",
+                    name: "tooltip",
+                    options: [],
+                    attributes: [],
+                },
+                { type: "text", value: "." },
+            ],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { balance } = await import("data:text/javascript;base64," + btoa("export const balance =" + compiled.code));
+    expect(balance({ amount: 5, relationship: "noopener" })).toBe("You have 5 coins.");
+    expect(balance.parts({ amount: 5, relationship: "noopener" })).toEqual([
+        { type: "text", value: "You have " },
+        {
+            type: "markup-start",
+            name: "tooltip",
+            options: { rel: "noopener" },
+            attributes: { track: true },
+        },
+        { type: "text", value: "5" },
+        { type: "text", value: " coins" },
+        {
+            type: "markup-end",
+            name: "tooltip",
+            options: {},
+            attributes: {},
+        },
+        { type: "text", value: "." },
+    ]);
+});
+test("does not add .parts() for plain messages", async () => {
+    const declarations = [];
+    const message = {
+        locale: "en",
+        bundleId: "plain",
+        id: "plain-id",
+        selectors: [],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "plain-id",
+            matches: [],
+            pattern: [{ type: "text", value: "Hello" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { plain } = await import("data:text/javascript;base64," + btoa("export const plain = " + compiled.code));
+    expect(plain()).toBe("Hello");
+    expect("parts" in plain).toBe(false);
+});
+test("compiles multi-variant markup messages with .parts()", async () => {
+    const declarations = [{ type: "input-variable", name: "count" }];
+    const message = {
+        locale: "en",
+        id: "select-id",
+        bundleId: "select_message",
+        selectors: [{ type: "variable-reference", name: "count" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "select-id",
+            matches: [{ type: "literal-match", key: "count", value: "1" }],
+            pattern: [
+                { type: "markup-start", name: "strong", options: [], attributes: [] },
+                { type: "text", value: "One item" },
+                { type: "markup-end", name: "strong", options: [], attributes: [] },
+            ],
+        },
+        {
+            id: "2",
+            messageId: "select-id",
+            matches: [{ type: "catchall-match", key: "count" }],
+            pattern: [{ type: "text", value: "Many items" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { select_message } = await import("data:text/javascript;base64," +
+        btoa("export const select_message = " + compiled.code));
+    expect(select_message({ count: 1 })).toBe("One item");
+    expect(select_message.parts({ count: 1 })).toEqual([
+        { type: "markup-start", name: "strong", options: {}, attributes: {} },
+        { type: "text", value: "One item" },
+        { type: "markup-end", name: "strong", options: {}, attributes: {} },
+    ]);
+    expect(select_message({ count: 2 })).toBe("Many items");
+    expect(select_message.parts({ count: 2 })).toEqual([
+        { type: "text", value: "Many items" },
+    ]);
+});
+// https://github.com/opral/paraglide-js/issues/571
+test("compiles a message that can be parsed as JSON", async () => {
+    const declarations = [];
+    const message = {
+        locale: "en",
+        bundleId: "json_message",
+        id: "json-message-id",
+        selectors: [],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "json-message-id",
+            matches: [],
+            pattern: [{ type: "text", value: '["a","b","c"]' }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { json_message } = await import("data:text/javascript;base64," +
+        btoa("export const json_message = " + compiled.code));
+    expect(JSON.parse(json_message())).toEqual(["a", "b", "c"]);
+});
+test("compiles a message with variants", async () => {
+    const declarations = [
+        { type: "input-variable", name: "fistInput" },
+        { type: "input-variable", name: "secondInput" },
+    ];
+    const message = {
+        locale: "en",
+        id: "some_message",
+        bundleId: "some_message",
+        selectors: [
+            { type: "variable-reference", name: "fistInput" },
+            { type: "variable-reference", name: "secondInput" },
+        ],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "some_message",
+            matches: [
+                { type: "literal-match", key: "fistInput", value: "1" },
+                { type: "literal-match", key: "secondInput", value: "2" },
+            ],
+            pattern: [
+                { type: "text", value: "The inputs are " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "fistInput" },
+                },
+                { type: "text", value: " and " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "secondInput" },
+                },
+            ],
+        },
+        {
+            id: "2",
+            messageId: "some_message",
+            matches: [
+                { type: "catchall-match", key: "fistInput" },
+                { type: "catchall-match", key: "secondInput" },
+            ],
+            pattern: [{ type: "text", value: "Catch all" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { some_message } = await import("data:text/javascript;base64," +
+        btoa("export const some_message = " + compiled.code));
+    expect(some_message({ fistInput: 1, secondInput: 2 })).toBe("The inputs are 1 and 2");
+    expect(some_message({ fistInput: 3, secondInput: 4 })).toBe("Catch all");
+    expect(some_message({ fistInput: 1, secondInput: 5 })).toBe("Catch all");
+});
+test("compiles a message with non-identifier input names", async () => {
+    const declarations = [
+        { type: "input-variable", name: "half!" },
+    ];
+    const message = {
+        locale: "en",
+        id: "special_input",
+        bundleId: "special_input",
+        selectors: [{ type: "variable-reference", name: "half!" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "special_input",
+            matches: [{ type: "literal-match", key: "half!", value: "1" }],
+            pattern: [{ type: "text", value: "First" }],
+        },
+        {
+            id: "2",
+            messageId: "special_input",
+            matches: [{ type: "catchall-match", key: "half!" }],
+            pattern: [
+                { type: "text", value: "Value: " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "half!" },
+                },
+            ],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { special_input } = await import("data:text/javascript;base64," +
+        btoa("export const special_input = " + compiled.code));
+    expect(special_input({ "half!": "1" })).toBe("First");
+    expect(special_input({ "half!": "2" })).toBe("Value: 2");
+});
+test("compiles multi-variant message with a fallback in case the variants are not matched", async () => {
+    const declarations = [
+        { type: "input-variable", name: "fistInput" },
+        { type: "input-variable", name: "secondInput" },
+    ];
+    const message = {
+        locale: "en",
+        id: "some_message",
+        bundleId: "some_message",
+        selectors: [
+            { type: "variable-reference", name: "fistInput" },
+            { type: "variable-reference", name: "secondInput" },
+        ],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "some_message",
+            matches: [
+                { type: "literal-match", key: "fistInput", value: "1" },
+                { type: "literal-match", key: "secondInput", value: "2" },
+            ],
+            pattern: [
+                { type: "text", value: "The inputs are " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "fistInput" },
+                },
+                { type: "text", value: " and " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "secondInput" },
+                },
+            ],
+        },
+        {
+            id: "2",
+            messageId: "some_message",
+            matches: [
+                { type: "catchall-match", key: "fistInput" },
+                { type: "literal-match", key: "secondInput", value: "2" },
+            ],
+            pattern: [{ type: "text", value: "Catch all" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { some_message } = await import("data:text/javascript;base64," +
+        btoa("export const some_message = " + compiled.code));
+    expect(some_message({ secondInput: 2 })).toBe("Catch all");
+    expect(some_message({})).toBe("some_message");
+});
+test("only emits input arguments when inputs exist", async () => {
+    const declarations = [];
+    const message = {
+        locale: "en",
+        bundleId: "some_message",
+        id: "message-id",
+        selectors: [],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "message-id",
+            matches: [],
+            pattern: [{ type: "text", value: "Hello" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    expect(compiled.code).toBe("/** @type {(inputs: {}) => LocalizedString} */ () => {\n\treturn /** @type {LocalizedString} */ (`Hello`)\n};");
+});
+// https://github.com/opral/inlang-paraglide-js/issues/379
+test("compiles messages that use plural()", async () => {
+    const declarations = [
+        { type: "input-variable", name: "date" },
+        {
+            type: "local-variable",
+            name: "countPlural",
+            value: {
+                arg: { type: "variable-reference", name: "count" },
+                annotation: {
+                    type: "function-reference",
+                    name: "plural",
+                    options: [],
+                },
+                type: "expression",
+            },
+        },
+    ];
+    const message = {
+        locale: "en",
+        bundleId: "plural_test",
+        id: "message_id",
+        selectors: [{ type: "variable-reference", name: "countPlural" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "message_id",
+            matches: [{ type: "literal-match", value: "one", key: "countPlural" }],
+            pattern: [{ type: "text", value: "There is one cat." }],
+        },
+        {
+            id: "2",
+            messageId: "message_id",
+            matches: [
+                {
+                    type: "literal-match",
+                    value: "other",
+                    key: "countPlural",
+                },
+            ],
+            pattern: [{ type: "text", value: "There are many cats." }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { plural_test } = await import("data:text/javascript;base64," +
+        // bundling the registry inline to avoid managing module imports here
+        btoa(createRegistry()) +
+        btoa("export const plural_test = " + compiled.code.replace("registry.", "")));
+    expect(plural_test({ count: 1 })).toBe("There is one cat.");
+    expect(plural_test({ count: 2 })).toBe("There are many cats.");
+    // INTL.plural will match "other" for undefined
+    expect(plural_test({ count: undefined })).toBe("There are many cats.");
+});
+test("compiles messages that use plural() with ordinal type", async () => {
+    const declarations = [
+        { type: "input-variable", name: "count" },
+        {
+            type: "local-variable",
+            name: "countOrdinal",
+            value: {
+                arg: { type: "variable-reference", name: "count" },
+                annotation: {
+                    type: "function-reference",
+                    name: "plural",
+                    options: [
+                        { name: "type", value: { type: "literal", value: "ordinal" } },
+                    ],
+                },
+                type: "expression",
+            },
+        },
+    ];
+    const message = {
+        locale: "en",
+        bundleId: "ordinal_test",
+        id: "message_id",
+        selectors: [{ type: "variable-reference", name: "countOrdinal" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "message_id",
+            matches: [{ type: "literal-match", value: "one", key: "countOrdinal" }],
+            pattern: [
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "count" },
+                },
+                { type: "text", value: "st place" },
+            ],
+        },
+        {
+            id: "2",
+            messageId: "message_id",
+            matches: [{ type: "literal-match", value: "two", key: "countOrdinal" }],
+            pattern: [
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "count" },
+                },
+                { type: "text", value: "nd place" },
+            ],
+        },
+        {
+            id: "3",
+            messageId: "message_id",
+            matches: [{ type: "literal-match", value: "few", key: "countOrdinal" }],
+            pattern: [
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "count" },
+                },
+                { type: "text", value: "rd place" },
+            ],
+        },
+        {
+            id: "4",
+            messageId: "message_id",
+            matches: [{ type: "literal-match", value: "other", key: "countOrdinal" }],
+            pattern: [
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "count" },
+                },
+                { type: "text", value: "th place" },
+            ],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { ordinal_test } = await import("data:text/javascript;base64," +
+        btoa(createRegistry()) +
+        btoa("export const ordinal_test = " + compiled.code.replace("registry.", "")));
+    expect(ordinal_test({ count: 1 })).toBe("1st place");
+    expect(ordinal_test({ count: 2 })).toBe("2nd place");
+    expect(ordinal_test({ count: 3 })).toBe("3rd place");
+    expect(ordinal_test({ count: 4 })).toBe("4th place");
+});
+test("compiles messages that use number()", async () => {
+    const createMessage = async (locale) => {
+        const declarations = [
+            { type: "input-variable", name: "amount" },
+            {
+                type: "local-variable",
+                name: "formattedAmount",
+                value: {
+                    arg: { type: "variable-reference", name: "amount" },
+                    annotation: {
+                        type: "function-reference",
+                        name: "number",
+                        options: [],
+                    },
+                    type: "expression",
+                },
+            },
+        ];
+        const message = {
+            locale,
+            bundleId: "number_test",
+            id: "message_id",
+            selectors: [],
+        };
+        const variants = [
+            {
+                id: "1",
+                messageId: "message_id",
+                matches: [],
+                pattern: [
+                    { type: "text", value: "Your balance is " },
+                    {
+                        type: "expression",
+                        arg: { type: "variable-reference", name: "formattedAmount" },
+                    },
+                    { type: "text", value: "." },
+                ],
+            },
+        ];
+        const compiled = compileMessage(declarations, message, variants);
+        const { number_test } = await import("data:text/javascript;base64," +
+            // bundling the registry inline to avoid managing module imports here
+            btoa(createRegistry()) +
+            btoa("export const number_test = " + compiled.code.replace("registry.", "")));
+        return number_test;
+    };
+    const enMessage = await createMessage("en");
+    const deMessage = await createMessage("de");
+    expect(enMessage({ amount: 1000.57 })).toBe("Your balance is 1,000.57.");
+    expect(deMessage({ amount: 1000.57 })).toBe("Your balance is 1.000,57.");
+});
+test("compiles messages that use number() with options", async () => {
+    const createMessage = async (locale) => {
+        const declarations = [
+            { type: "input-variable", name: "amount" },
+            {
+                type: "local-variable",
+                name: "formattedAmount",
+                value: {
+                    arg: { type: "variable-reference", name: "amount" },
+                    annotation: {
+                        type: "function-reference",
+                        name: "number",
+                        options: [
+                            {
+                                name: "minimumFractionDigits",
+                                value: { type: "literal", value: "2" },
+                            },
+                            {
+                                name: "maximumFractionDigits",
+                                value: { type: "literal", value: "2" },
+                            },
+                        ],
+                    },
+                    type: "expression",
+                },
+            },
+        ];
+        const message = {
+            locale,
+            bundleId: "number_test",
+            id: "message_id",
+            selectors: [],
+        };
+        const variants = [
+            {
+                id: "1",
+                messageId: "message_id",
+                matches: [],
+                pattern: [
+                    { type: "text", value: "Balance: " },
+                    {
+                        type: "expression",
+                        arg: { type: "variable-reference", name: "formattedAmount" },
+                    },
+                    { type: "text", value: "." },
+                ],
+            },
+        ];
+        const compiled = compileMessage(declarations, message, variants);
+        const { number_test } = await import("data:text/javascript;base64," +
+            // bundling the registry inline to avoid managing module imports here
+            btoa(createRegistry()) +
+            btoa("export const number_test = " + compiled.code.replace("registry.", "")));
+        return number_test;
+    };
+    const enMessage = await createMessage("en");
+    const deMessage = await createMessage("de");
+    expect(enMessage({ amount: 1000.5 })).toBe("Balance: 1,000.50.");
+    expect(deMessage({ amount: 1000.5 })).toBe("Balance: 1.000,50.");
+});
+test("compiles messages that use datetime()", async () => {
+    const createMessage = async (locale) => {
+        const declarations = [
+            { type: "input-variable", name: "date" },
+            {
+                type: "local-variable",
+                name: "formattedDate",
+                value: {
+                    arg: { type: "variable-reference", name: "date" },
+                    annotation: {
+                        type: "function-reference",
+                        name: "datetime",
+                        options: [],
+                    },
+                    type: "expression",
+                },
+            },
+        ];
+        const message = {
+            locale,
+            bundleId: "datetime_test",
+            id: "message_id",
+            selectors: [],
+        };
+        const variants = [
+            {
+                id: "1",
+                messageId: "message_id",
+                matches: [],
+                pattern: [
+                    { type: "text", value: "Today is " },
+                    {
+                        type: "expression",
+                        arg: { type: "variable-reference", name: "formattedDate" },
+                    },
+                    { type: "text", value: "." },
+                ],
+            },
+        ];
+        const compiled = compileMessage(declarations, message, variants);
+        const { datetime_test } = await import("data:text/javascript;base64," +
+            // bundling the registry inline to avoid managing module imports here
+            btoa(createRegistry()) +
+            btoa("export const datetime_test =" +
+                compiled.code.replace("registry.", "")));
+        return datetime_test;
+    };
+    const enMessage = await createMessage("en");
+    const deMessage = await createMessage("de");
+    expect(enMessage({ date: "2022-04-01" })).toMatch(/Today is \d{1,2}\/\d{1,2}\/2022\./);
+    expect(deMessage({ date: "2022-04-01" })).toMatch(/Today is \d{1,2}\.\d{1,2}\.2022\./);
+});
+test("compiles messages that use datetime a function with options", async () => {
+    const createMessage = async (locale) => {
+        const declarations = [
+            { type: "input-variable", name: "date" },
+            {
+                type: "local-variable",
+                name: "formattedDate",
+                value: {
+                    arg: { type: "variable-reference", name: "date" },
+                    annotation: {
+                        type: "function-reference",
+                        name: "datetime",
+                        options: [
+                            { name: "month", value: { type: "literal", value: "long" } },
+                            { name: "day", value: { type: "literal", value: "numeric" } },
+                        ],
+                    },
+                    type: "expression",
+                },
+            },
+        ];
+        const message = {
+            locale,
+            bundleId: "datetime_test",
+            id: "message_id",
+            selectors: [],
+        };
+        const variants = [
+            {
+                id: "1",
+                messageId: "message_id",
+                matches: [],
+                pattern: [
+                    { type: "text", value: "Today is " },
+                    {
+                        type: "expression",
+                        arg: { type: "variable-reference", name: "formattedDate" },
+                    },
+                    { type: "text", value: "." },
+                ],
+            },
+        ];
+        const compiled = compileMessage(declarations, message, variants);
+        const { datetime_test } = await import("data:text/javascript;base64," +
+            // bundling the registry inline to avoid managing module imports here
+            btoa(createRegistry()) +
+            btoa("export const datetime_test = " +
+                compiled.code.replace("registry.", "")));
+        return datetime_test;
+    };
+    const enMessage = await createMessage("en");
+    const deMessage = await createMessage("de");
+    // needs regex to avoid timezone's effecting the unit test
+    expect(enMessage({ date: "2022-03-31" })).toMatch(/Today is March \d{1,2}\./);
+    expect(deMessage({ date: "2022-03-31" })).toMatch(/Today is \d{1,2}\. März\./);
+});
+test("does not throw when input is omitted for a single-variant message", async () => {
+    const declarations = [
+        { type: "input-variable", name: "name" },
+    ];
+    const message = {
+        locale: "en",
+        bundleId: "greeting",
+        id: "greeting",
+        selectors: [{ type: "variable-reference", name: "name" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "greeting",
+            matches: [{ type: "catchall-match", key: "name" }],
+            pattern: [
+                { type: "text", value: "Hello " },
+                {
+                    type: "expression",
+                    arg: { type: "variable-reference", name: "name" },
+                },
+                { type: "text", value: "!" },
+            ],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { greeting } = await import("data:text/javascript;base64," +
+        btoa("export const greeting = " + compiled.code));
+    expect(() => greeting()).not.toThrow();
+    expect(greeting()).toBe("Hello undefined!");
+});
+test("does not throw when input is omitted for multi-variant message", async () => {
+    const declarations = [
+        { type: "input-variable", name: "status" },
+    ];
+    const message = {
+        locale: "en",
+        bundleId: "status_message",
+        id: "status_message",
+        selectors: [{ type: "variable-reference", name: "status" }],
+    };
+    const variants = [
+        {
+            id: "1",
+            messageId: "status_message",
+            matches: [{ type: "literal-match", key: "status", value: "ready" }],
+            pattern: [{ type: "text", value: "Ready to go" }],
+        },
+        {
+            id: "2",
+            messageId: "status_message",
+            matches: [{ type: "catchall-match", key: "status" }],
+            pattern: [{ type: "text", value: "Unknown status" }],
+        },
+    ];
+    const compiled = compileMessage(declarations, message, variants);
+    const { status_message } = await import("data:text/javascript;base64," +
+        btoa("export const status_message = " + compiled.code));
+    expect(status_message({ status: "ready" })).toBe("Ready to go");
+    expect(() => status_message()).not.toThrow();
+    expect(status_message()).toBe("Unknown status");
+});
+//# sourceMappingURL=compile-message.test.js.map

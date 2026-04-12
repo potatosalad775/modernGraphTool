@@ -1,0 +1,72 @@
+/*
+ * modernGraphTool — Theme Variables
+ * Customizable by deployment operators post-build.
+ *
+ * Graph variables control D3.js SVG rendering where Tailwind classes cannot be used.
+ * Base variables follow DaisyUI naming — all UI chrome is derived via opacity modifiers.
+ * All variables switch automatically between light and dark mode.
+ */
+
+:root {
+	/* ── Graph ─────────────────────────────────────────────────────────── */
+	--color-graph-bg: transparent;
+	--color-graph-watermark-opacity: 0.08;
+	--color-graph-grid-major: rgba(0, 0, 0, 0.15);
+	--color-graph-grid-minor: rgba(0, 0, 0, 0.06);
+	--color-graph-axis-label: rgba(0, 0, 0, 0.6);
+	--color-graph-grid-text: rgba(0, 0, 0, 0.5);
+	--color-graph-baseline: rgba(0, 0, 0, 0.25);
+
+	/* ── Base ──────────────────────────────────────────────────────────── */
+	--color-base-100: oklch(98% 0.003 247.858);
+	--color-base-200: oklch(96% 0.007 247.896);
+	--color-base-300: oklch(92% 0.013 255.508);
+	--color-base-content: oklch(20% 0.042 265.755);
+	--color-primary: oklch(59% 0.145 163.225);
+	--color-primary-content: oklch(97% 0.021 166.113);
+	--color-secondary: oklch(60% 0.126 221.723);
+	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-accent: oklch(44% 0.017 285.786);
+	--color-accent-content: oklch(98% 0 0);
+	--color-neutral: oklch(44% 0.043 257.281);
+	--color-neutral-content: oklch(98% 0.003 247.858);
+	--color-info: oklch(68% 0.169 237.323);
+	--color-info-content: oklch(97% 0.013 236.62);
+	--color-success: oklch(76% 0.233 130.85);
+	--color-success-content: oklch(98% 0.031 120.757);
+	--color-warning: oklch(79% 0.184 86.047);
+	--color-warning-content: oklch(98% 0.026 102.212);
+	--color-error: oklch(64% 0.246 16.439);
+	--color-error-content: oklch(96% 0.015 12.422);
+}
+
+.dark {
+	/* ── Graph ─────────────────────────────────────────────────────────── */
+	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
+	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-baseline: rgba(255, 255, 255, 0.25);
+
+	/* ── Base ──────────────────────────────────────────────────────────── */
+  --color-base-100: oklch(30.857% 0.023 264.149);
+  --color-base-200: oklch(28.036% 0.019 264.182);
+  --color-base-300: oklch(26.346% 0.018 262.177);
+  --color-base-content: oklch(82.901% 0.031 222.959);
+  --color-primary: oklch(86.133% 0.141 139.549);
+  --color-primary-content: oklch(17.226% 0.028 139.549);
+  --color-secondary: oklch(73.375% 0.165 35.353);
+  --color-secondary-content: oklch(14.675% 0.033 35.353);
+  --color-accent: oklch(74.229% 0.133 311.379);
+  --color-accent-content: oklch(14.845% 0.026 311.379);
+  --color-neutral: oklch(24.731% 0.02 264.094);
+  --color-neutral-content: oklch(82.901% 0.031 222.959);
+  --color-info: oklch(86.078% 0.142 206.182);
+  --color-info-content: oklch(17.215% 0.028 206.182);
+	--color-success: oklch(76% 0.177 163.223);
+	--color-success-content: oklch(37% 0.077 168.94);
+	--color-warning: oklch(82% 0.189 84.429);
+	--color-warning-content: oklch(41% 0.112 45.904);
+	--color-error: oklch(71% 0.194 13.428);
+	--color-error-content: oklch(27% 0.105 12.094);
+}

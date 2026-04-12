@@ -6,12 +6,41 @@
 	import Button from '../atoms/Button.svelte';
 	import { Camera } from '@lucide/svelte';
 
+	async function inlineImageHref(image: SVGImageElement): Promise<void> {
+		const href =
+			image.getAttribute('href') ?? image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+		if (!href || href.startsWith('data:')) return;
+		try {
+			const res = await fetch(href);
+			if (!res.ok) return;
+			const blob = await res.blob();
+			const dataUrl = await new Promise<string>((resolve, reject) => {
+				const reader = new FileReader();
+				reader.onload = () => resolve(reader.result as string);
+				reader.onerror = () => reject(reader.error);
+				reader.readAsDataURL(blob);
+			});
+			image.setAttribute('href', dataUrl);
+			image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+		} catch {
+			// leave the original href; the image will simply be missing from the PNG
+		}
+	}
+
 	async function downloadScreenshot() {
 		analyticsService.trackGeneralEvent('clicked_download');
 		const svgNode = graphEngine.svg?.node();
 		if (!svgNode) return;
 
 		const clone = svgNode.cloneNode(true) as SVGSVGElement;
+
+		clone.querySelectorAll('.y-scaler-handle').forEach((el) => el.remove());
+
+		await Promise.all(
+			Array.from(clone.querySelectorAll('image')).map((el) =>
+				inlineImageHref(el as SVGImageElement)
+			)
+		);
 
 		// Get dimensions from viewBox
 		const viewBox = svgNode.getAttribute('viewBox');

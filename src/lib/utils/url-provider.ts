@@ -1,5 +1,4 @@
 import { replaceState } from '$app/navigation';
-import { resolve } from '$app/paths';
 import Base62 from './base62.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -67,7 +66,11 @@ class URLProvider {
 			const newPath = pathname + search;
 			const currentPath = window.location.pathname + window.location.search;
 			if (newPath !== currentPath) {
-				replaceState(resolve(newPath as '/', {}), {});
+				// newPath is already an absolute path (pathname from #baseURL includes
+				// the deployment base). Pass it directly to replaceState instead of
+				// resolve(), which would prepend base a second time under subpath
+				// deployments like /cdn/.
+				replaceState(newPath, {});
 			}
 		}
 		document.title = title;

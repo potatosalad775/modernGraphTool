@@ -14,6 +14,14 @@
     CDN_MODE: {
       MAJOR_VERSION: 1,
     },
+
+  Local testing: serve this folder with any static server and visit the
+  file by its literal name (e.g. http://localhost:3000/cdn-index.html).
+  The loader auto-normalizes the URL so SvelteKit's router resolves to
+  the root route. When running on localhost/127.0.0.1, the inline script
+  below loads ./loader.js alongside this file (so you can iterate on
+  loader changes without publishing). On any other hostname it pulls
+  loader.js from the jsDelivr CDN.
 -->
 <html lang="en" dir="ltr">
 	<head>
@@ -54,6 +62,17 @@
 	<body data-sveltekit-preload-data="hover">
 		<div id="app" style="display: contents"></div>
 		<!-- modernGraphTool CDN loader — bootstraps the app from CDN -->
-		<script src="https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js"></script>
+		<script>
+			(function () {
+				var h = location.hostname;
+				var isLocal = h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1';
+				var src = isLocal
+					? './loader.js'
+					: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js';
+				var s = document.createElement('script');
+				s.src = src;
+				document.body.appendChild(s);
+			})();
+		</script>
 	</body>
 </html>

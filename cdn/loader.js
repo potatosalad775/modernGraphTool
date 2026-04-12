@@ -7,6 +7,15 @@
  * It reads the CDN configuration from window.GRAPHTOOL_CONFIG.CDN_MODE,
  * resolves the version, fetches the boot manifest, and starts SvelteKit.
  *
+ * Config keys (all optional, under window.GRAPHTOOL_CONFIG.CDN_MODE):
+ *   MAJOR_VERSION — pin to a major version (default: highest available)
+ *   BASE          — CDN base URL (default: jsDelivr)
+ *   BASE_PATH     — deployment subpath (e.g. "/cdn"). Set this when deploying
+ *                   under a subdirectory *and* using share-link deep routes so
+ *                   the loader can't auto-detect the base from the URL. For
+ *                   root deployments or "cdn-index.html"-style entries, leave
+ *                   unset — the loader auto-detects.
+ *
  * Stable URL: https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js
  */
 (async function () {
@@ -88,9 +97,58 @@
 		}
 	}
 
+	// --- Resolve base path ---
+	// Operator override via CDN_MODE.BASE_PATH; otherwise auto-detect from URL.
+	// Auto-detection strips an "*.html" filename from the pathname so SvelteKit
+	// sees the directory as the root route. For non-HTML paths (direct route
+	// visits like /share/abc) we cannot infer the base reliably — those cases
+	// need the explicit BASE_PATH override.
+	const pathname = window.location.pathname;
+	const lastSlash = pathname.lastIndexOf('/');
+	const isHtmlFile = /\.html?$/i.test(pathname);
+	let baseDir;
+	if (cfg.BASE_PATH != null) {
+		baseDir = String(cfg.BASE_PATH).replace(/\/+$/, '');
+	} else if (isHtmlFile) {
+		baseDir = lastSlash > 0 ? pathname.slice(0, lastSlash) : '';
+	} else {
+		baseDir = '';
+	}
+
+	// Normalize the URL so SvelteKit's router sees the directory (root route)
+	// instead of the literal .html filename. This is what makes direct visits
+	// to /cdn/cdn-index.html resolve to the root route under base "/cdn".
+	if (isHtmlFile) {
+		const normalized = baseDir + '/' + window.location.search + window.location.hash;
+		if (normalized !== pathname + window.location.search + window.location.hash) {
+			history.replaceState(null, '', normalized);
+		}
+	}
+
+	// --- Patch fetch to work around jsDelivr CORS on _app/version.json ---
+	// SvelteKit's version check (runtime/client/utils.js) sends
+	//   headers: { pragma: 'no-cache', 'cache-control': 'no-cache' }
+	// jsDelivr's Access-Control-Allow-Headers does not include `cache-control`,
+	// so the preflight fails. Strip those headers and cache-bust via a query
+	// param instead. Scoped narrowly to `_app/version.json`.
+	// Must be installed before importing the SvelteKit client modules.
+	const __nativeFetch = window.fetch.bind(window);
+	window.fetch = function (input, init) {
+		const url = typeof input === 'string' ? input : (input && input.url) || '';
+		if (url.indexOf('/_app/version.json') !== -1) {
+			const headers = new Headers((init && init.headers) || undefined);
+			headers.delete('cache-control');
+			headers.delete('pragma');
+			const cacheBusted = url + (url.indexOf('?') !== -1 ? '&' : '?') + '_=' + Date.now();
+			return __nativeFetch(cacheBusted, { ...(init || {}), headers });
+		}
+		return __nativeFetch(input, init);
+	};
+
 	// --- Set SvelteKit global ---
-	// `base` stays empty (local routing), `assets` points to CDN (for dynamic chunk imports)
-	window[boot.global_name] = { base: '', assets: boot.assets_base };
+	// `base` is the deployment subpath (empty for root deployments).
+	// `assets` points to the CDN (for dynamic chunk imports).
+	window[boot.global_name] = { base: baseDir, assets: boot.assets_base };
 
 	// --- Boot SvelteKit ---
 	const appElement = document.querySelector('#app') || document.querySelector('[style*="display: contents"]');

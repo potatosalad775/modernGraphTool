@@ -130,7 +130,7 @@
 			{#each groupedSites as group (group.type)}
 				<Select.Group>
 					<Select.GroupHeading
-						class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider
+						class="px-2 py-1 text-[12px] font-semibold uppercase tracking-wider
 							text-base-content/50"
 					>
 						{group.type}
@@ -147,7 +147,7 @@
 									href={item.href}
 									target="_blank"
 									rel="external noopener noreferrer"
-									class="block cursor-pointer rounded px-2 py-1 text-xs text-base-content
+									class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content
 										no-underline outline-none data-highlighted:bg-base-300
 										{selected ? 'font-medium text-accent' : ''}"
 								>

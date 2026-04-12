@@ -43,7 +43,9 @@
 					<span class="text-base font-semibold text-base-content">{titleContent}</span>
 				{/if}
 			</a>
-			<SiteSelector />
+			{#if !appStore.isMobile}
+				<SiteSelector />
+			{/if}
 		</div>
 
 		<!-- Desktop: link list + site selector -->

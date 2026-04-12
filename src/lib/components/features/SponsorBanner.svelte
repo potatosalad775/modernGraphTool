@@ -47,8 +47,8 @@
 				class="fixed inset-0 z-40 bg-black/40"
 			/>
 			<Dialog.Content
-				class="fixed left-1/2 top-1/2 z-50 w-full max-w-md max-h-5/6 -translate-x-1/2 -translate-y-1/2
-					rounded-xl bg-base-200 p-6 shadow-2xl"
+				class="fixed left-1/2 top-1/2 z-50 w-11/12 max-w-md max-h-11/12 -translate-x-1/2 -translate-y-1/2
+					flex flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
 			>
 				<Dialog.Title class="text-lg font-semibold text-base-content">
 					{sponsor.heading}
@@ -60,7 +60,7 @@
 
 				{#if sponsor.creative}
 					<div
-						class="mt-4 flex justify-center overflow-hidden rounded-lg"
+						class="mt-4 flex flex-1 justify-center overflow-hidden rounded-lg"
 						style:background-color={sponsor.creativeBgColor || 'var(--color-base-300)'}
 					>
 						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="object-contain" />

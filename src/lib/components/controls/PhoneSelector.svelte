@@ -100,7 +100,7 @@
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
-	<div class="flex shrink-0 items-center gap-2 border-b border-base-content/15 px-1.5 py-1.5">
+	<div class="flex shrink-0 items-center gap-2 bg-base-200 border-b border-base-content/15 px-1.5 py-1.5">
 		<!-- Brands toggle (shown when container is narrow) -->
 		{#if showPhonePane}
 			<div class="ps-nav-btn">
@@ -119,7 +119,7 @@
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
-			class="flex-1"
+			class="flex-1 bg-base-100!"
 		>
 			{#snippet icon()}
 				<Search class="h-4 w-4 text-base-content/60" aria-hidden="true" />

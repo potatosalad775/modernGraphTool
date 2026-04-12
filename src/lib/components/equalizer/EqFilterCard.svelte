@@ -28,9 +28,9 @@
 	const typeShortLabels: Record<EQFilter['type'], string> = { PK: 'PK', LSQ: 'LS', HSQ: 'HS' };
 
 	const typeOptions: [EQFilter['type'], () => string][] = [
-		['PK', m.extension_equalizer_filter_list_peak],
-		['LSQ', m.extension_equalizer_filter_list_lowshelf],
-		['HSQ', m.extension_equalizer_filter_list_highshelf],
+		['PK', m.equalizer_filter_list_peak],
+		['LSQ', m.equalizer_filter_list_lowshelf],
+		['HSQ', m.equalizer_filter_list_highshelf],
 	];
 
 	// ── Slider computed values ───────────────────────────────────────────────
@@ -195,7 +195,7 @@
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center justify-between">
 					<span class="text-xs text-base-content/60">
-						{m.extension_equalizer_filter_list_freq()}
+						{m.equalizer_filter_list_freq()}
 					</span>
 					<label class="inline-flex items-baseline gap-1">
 						<input
@@ -227,7 +227,7 @@
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center justify-between">
 					<span class="text-xs text-base-content/60">
-						{m.extension_equalizer_filter_list_gain()}
+						{m.equalizer_filter_list_gain()}
 					</span>
 					<label class="inline-flex items-baseline gap-1">
 						<input
@@ -258,7 +258,7 @@
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center justify-between">
 					<span class="text-xs text-base-content/60">
-						{m.extension_equalizer_filter_list_q()}
+						{m.equalizer_filter_list_q()}
 					</span>
 					<label class="inline-flex items-baseline gap-1">
 						<span class="text-[10px] text-base-content/40 select-none">Q</span>

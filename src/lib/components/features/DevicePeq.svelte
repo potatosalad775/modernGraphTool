@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import type { ConnectedDevice, DeviceSlot } from '$lib/device-peq/types.js';
+	import * as m from '$lib/paraglide/messages.js';
 
 	// ── Feature detection ─────────────────────────────────────────────────────
 
@@ -336,4 +336,8 @@
 			<p class="text-xs text-base-content/60">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
+{:else}
+	<p class="text-xs text-base-content/60">
+		{m.equalizer_device_peq_incompatible_browser_alert()}
+	</p>
 {/if}

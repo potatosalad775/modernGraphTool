@@ -63,9 +63,9 @@
 			const filters = parseFilterText(text);
 			if (filters.length) {
 				eqStore.filters = filters;
-				toast.success(m.extension_equalizer_filter_list_import(), { description: `${filters.length} filters` });
+				toast.success(m.equalizer_filter_list_import(), { description: `${filters.length} filters` });
 			} else {
-				toast.error(m.extension_equalizer_filter_list_import(), { description: 'No valid filters found in file' });
+				toast.error(m.equalizer_filter_list_import(), { description: 'No valid filters found in file' });
 			}
 			(e.target as HTMLInputElement).value = '';
 		};
@@ -98,7 +98,7 @@
 	function exportFilters() {
 		const validFilters = eqStore.filters.filter(f => f.freq != null && f.q != null && f.gain != null);
 		if (!validFilters.length) {
-			toast.warning(m.extension_equalizer_filter_list_no_filter_export_alert());
+			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
 		let text = `Preamp: ${preamp.toFixed(1)} dB\n`;
@@ -109,12 +109,12 @@
 			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
 		});
 		downloadText(text, 'filters.txt');
-		toast.success(m.extension_equalizer_filter_list_export());
+		toast.success(m.equalizer_filter_list_export());
 	}
 
 	function exportGraphicEQ() {
 		if (!eqStore.filters.length) {
-			toast.warning(m.extension_equalizer_filter_list_no_filter_export_alert());
+			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
 		const eq = new Equalizer();
@@ -122,7 +122,7 @@
 		const text =
 			'GraphicEQ: ' + graphicEQ.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
 		downloadText(text, 'graphic_eq.txt');
-		toast.success(m.extension_equalizer_filter_list_export_graphic_eq());
+		toast.success(m.equalizer_filter_list_export_graphic_eq());
 	}
 
 	function downloadText(text: string, filename: string) {
@@ -140,7 +140,7 @@
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
 		<span class="text-xs text-base-content/60">
-			{m.extension_equalizer_filter_list_preamp()}:
+			{m.equalizer_filter_list_preamp()}:
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 		</span>
 		<div class="flex gap-1">
@@ -192,22 +192,22 @@
 	<!-- Import/Export buttons -->
 	<div class="flex gap-1.5">
 		<Button
-			title={m.extension_equalizer_filter_list_import()}
+			title={m.equalizer_filter_list_import()}
 			onclick={importFilters}
 			variant="outline" size="sm"
 			class="flex-1"
 		>
 			<Download class="size-3.5 mr-1.5" />
-			{m.extension_equalizer_filter_list_import()}
+			{m.equalizer_filter_list_import()}
 		</Button>
 		<Button
-			title={m.extension_equalizer_filter_list_export()}
+			title={m.equalizer_filter_list_export()}
 			onclick={exportFilters}
 			variant="outline" size="sm"
 			class="flex-1"
 		>
 			<Upload class="size-3.5 mr-1.5" />
-			{m.extension_equalizer_filter_list_export()}
+			{m.equalizer_filter_list_export()}
 		</Button>
 	</div>
 	<div>
@@ -217,7 +217,7 @@
 			variant="muted" size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
 		>
-			{m.extension_equalizer_filter_list_export_graphic_eq()}
+			{m.equalizer_filter_list_export_graphic_eq()}
 		</Button>
 	</div>
 

@@ -32,7 +32,7 @@
   }}
   class="w-full rounded border border-base-content/20 px-2 py-1 text-sm cursor-pointer"
 >
-  <option value="">{m.extension_equalizer_phone_select_option_target()}</option>
+  <option value="">{m.equalizer_phone_select_option_target()}</option>
   {#each targetOptions as opt (opt.uuid)}
     <option value={opt.uuid}>{opt.label}</option>
   {/each}

@@ -30,7 +30,10 @@
 	<nav class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
 		<div class="flex items-center gap-4">
-			<a href="." class="flex items-center no-underline text-base-content">
+			<a 
+				href="."
+				class="flex items-center no-underline text-base-content"
+			>
 				{#if titleType === 'HTML'}
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html titleContent}
@@ -50,7 +53,7 @@
 					<a
 						href={link.URL}
 						target="_blank"
-						rel="noopener"
+						rel="external noopener noreferrer"
 						class="text-sm  hover:text-base-content"
 					>
 						{link.TITLE}
@@ -65,6 +68,7 @@
 				title="Open menu"
 				onclick={openSidebar}
 				variant="ghost" size="icon"
+				class="hover:bg-base-300"
 			>
 				<Menu class="h-5 w-5" />
 			</Button>
@@ -91,23 +95,22 @@
 			<h2 class="text-sm font-semibold ">
 				{m.top_nav_bar_sidebar_link_title()}
 			</h2>
-			<button
-				type="button"
+			<Button
+				title="Close menu"
 				onclick={closeSidebar}
-				class="rounded-md p-1  hover:bg-base-300"
-				aria-label="Close menu"
+				variant="ghost" size="icon"
 			>
 				<X class="h-5 w-5" aria-hidden="true" />
-			</button>
+			</Button>
 		</div>
 		<nav class="flex flex-col gap-0.5 p-2">
 			{#each linkList as link (link.URL)}
 				<a
 					href={link.URL}
 					target="_blank"
-					rel="noopener"
+					rel="external noopener noreferrer"
 					onclick={closeSidebar}
-					class="rounded-md p-2 text-sm  hover:bg-base-300"
+					class="rounded-md p-2 text-sm hover:bg-base-300"
 				>
 					{link.TITLE}
 				</a>

@@ -101,7 +101,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
 	bind:clientWidth={containerWidth}
-	class="relative flex h-12 select-none items-center overflow-hidden border-base-content/15 bg-base-200 {appStore.isMobile ? 'border-t' : 'border-b'}"
+	class="relative flex h-12 select-none items-center overflow-hidden border-base-content/15 bg-base-300 {appStore.isMobile ? 'border-t' : 'border-b'}"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	ontouchmove={handleTouchMove}

@@ -175,7 +175,7 @@
 				{...props}
 				title={triggerLabel}
 				variant="outline" size="sm"
-				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm!"
+				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm! bg-base-200!"
 			>
 				{triggerLabel}
 				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />
@@ -235,34 +235,36 @@
 
 					<!-- Preset buttons -->
 					<div class="mt-1.5 flex gap-1 px-1">
-						<button
+						<Button
+							title={m.selection_list_samples_all_l()}
 							onclick={() => handlePreset('allL')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-base-content/25"
+							variant="muted" size="sm" class="flex-1"
 						>
 							{m.selection_list_samples_all_l()}
-						</button>
-						<button
+						</Button>
+						<Button
+							title={m.selection_list_samples_all_r()}
 							onclick={() => handlePreset('allR')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-base-content/25"
+							variant="muted" size="sm" class="flex-1"
 						>
 							{m.selection_list_samples_all_r()}
-						</button>
-						<button
+						</Button>
+					</div>
+					<div class="mt-1.5 flex gap-1 px-1">
+						<Button
+							title={m.selection_list_samples_all()}
 							onclick={() => handlePreset('all')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-base-content/25"
+							variant="muted" size="sm" class="flex-1"
 						>
 							{m.selection_list_samples_all()}
-						</button>
-						<button
+						</Button>
+						<Button
+							title={m.selection_list_samples_none()}
 							onclick={() => handlePreset('none')}
-							class="rounded bg-base-300 px-1.5 py-0.5 text-xs  transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent
-								hover:bg-base-content/25"
+							variant="muted" size="sm" class="flex-1"
 						>
 							{m.selection_list_samples_none()}
-						</button>
+						</Button>
 					</div>
 				</div>
 			{/if}
@@ -324,14 +326,14 @@
 							<Button
 								title={m.selection_list_hptf_all()}
 								onclick={() => handleHptfPreset('all')}
-								variant="muted" size="sm"
+								variant="muted" size="sm" class="flex-1"
 							>
 								{m.selection_list_hptf_all()}
 							</Button>
 							<Button
 								title={m.selection_list_hptf_none()}
 								onclick={() => handleHptfPreset('none')}
-								variant="muted" size="sm"
+								variant="muted" size="sm" class="flex-1"
 							>
 								{m.selection_list_hptf_none()}
 							</Button>

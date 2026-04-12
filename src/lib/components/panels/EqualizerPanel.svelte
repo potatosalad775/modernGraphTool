@@ -157,11 +157,11 @@
 	});
 </script>
 
-<div class="flex gap-3 p-3 items-center bg-base-200 border-b border-base-content/20">
+<div class="flex gap-3 px-3 py-2 items-center bg-base-200 border-b border-base-content/20">
 	<!-- EQ Enable toggle -->
 	<Switch
 		labelText={m.menu_item_equalizer_label()}
-		size="md"
+		size="md" 
 		bind:checked={eqStore.isEnabled}
 	/>
 	<div class="h-7 w-px bg-base-content/20"></div>
@@ -177,7 +177,7 @@
 
 	<Accordion type="multiple" class="pt-1">
 		<!-- AutoEQ — collapsible -->
-		<AccordionItem value="auto-eq" title="AutoEQ" class="px-1">
+		<AccordionItem value="auto-eq" title={m.equalizer_auto_eq_label()} class="px-1">
 			<div class="flex flex-col gap-2 p-2 pt-1">
 				<EqAutoEqSelect />
 				<EqAutoEq />
@@ -185,14 +185,14 @@
 		</AccordionItem>
 		<div class="w-full h-px bg-base-content/20 my-1"></div>
 		<!-- Audio Player — collapsible -->
-		<AccordionItem value="audio-player" title="Audio Player" class="px-1">
+		<AccordionItem value="audio-player" title={m.equalizer_player_label()} class="px-1">
 			<div class="p-2 pt-1">
 				<EqAudioPlayer />
 			</div>
 		</AccordionItem>
 		<div class="w-full h-px bg-base-content/20 my-1"></div>
 		<!-- Device PEQ — USB/Network hardware EQ bridge -->
-		<AccordionItem value="device-peq" title="Device PEQ" class="px-1">
+		<AccordionItem value="device-peq" title={m.equalizer_device_peq_label()} class="px-1">
 			<div class="p-2 pt-1">
 				<DevicePeq />
 			</div>

@@ -302,7 +302,7 @@
 	<div class="flex items-center gap-4">
 		<Switch
 			title={filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
-			labelText={m.extension_equalizer_player_filter_toggle()}
+			labelText={m.equalizer_player_filter_toggle()}
 			labelClass="text-xs" size="sm"
 			checked={filtersEnabled}
 			onCheckedChange={(checked) => {
@@ -311,7 +311,7 @@
 		/>
 		<Switch
 			title={showSpectrum ? 'Hide audio spectrum' : 'Show audio spectrum'}
-			labelText={m.extension_equalizer_player_spectrum_toggle()}
+			labelText={m.equalizer_player_spectrum_toggle()}
 			labelClass="text-xs" size="sm"
 			checked={showSpectrum}
 			onCheckedChange={() => {
@@ -330,18 +330,18 @@
 		}}
 		class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
 	>
-		<option value="">{m.extension_equalizer_player_option_init()}</option>
-		<option value="white">{m.extension_equalizer_player_option_white()}</option>
-		<option value="pink">{m.extension_equalizer_player_option_pink()}</option>
-		<option value="tone">{m.extension_equalizer_player_option_tone()}</option>
-		<option value="file">{m.extension_equalizer_player_option_file()}</option>
+		<option value="">{m.equalizer_player_option_init()}</option>
+		<option value="white">{m.equalizer_player_option_white()}</option>
+		<option value="pink">{m.equalizer_player_option_pink()}</option>
+		<option value="tone">{m.equalizer_player_option_tone()}</option>
+		<option value="file">{m.equalizer_player_option_file()}</option>
 	</select>
 
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
 			<span class="text-xs text-base-content/60"
-				>{m.extension_equalizer_player_tone_freq_label()}<span class="font-medium"
+				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{toneFreq} Hz</span
 				></span
 			>
@@ -373,14 +373,14 @@
 	<!-- File upload (only when file selected) -->
 	{#if audioSource === 'file'}
 		<Button
-			title={m.extension_equalizer_player_file_upload()}
+			title={m.equalizer_player_file_upload()}
 			onclick={() => fileInputEl?.click()}
 			variant="outline"
 			size="sm"
 			class="w-full"
 		>
 			<FileUp class="size-3.5 mr-1.5" />
-			{m.extension_equalizer_player_file_upload()}
+			{m.equalizer_player_file_upload()}
 		</Button>
 		<input
 			bind:this={fileInputEl}

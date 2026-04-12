@@ -30,9 +30,9 @@
   onchange={(e) => {
     eqStore.sourcePhoneUUID = (e.target as HTMLSelectElement).value || null;
   }}
-  class="flex-1 rounded min-w-16 border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
+  class="flex-1 rounded min-w-16 border border-base-content/20 bg-base-100 px-2 py-1 text-sm"
 >
-  <option value="">{m.extension_equalizer_phone_select_option_source()}</option>
+  <option value="">{m.equalizer_phone_select_option_source()}</option>
   {#each sourceOptions as opt (opt.uuid)}
     <option value={opt.uuid}>{opt.label}</option>
   {/each}

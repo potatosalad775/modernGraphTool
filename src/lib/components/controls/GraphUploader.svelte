@@ -20,7 +20,7 @@
       await dataProvider.insertRawFRData(sourceType, filename, { AVG: parsed }, { dispSuffix: 'Uploaded', dispChannel: ['AVG'] });
       toast.success(`Loaded ${filename}`);
     } catch (err) {
-      console.error('EqUploader: failed to upload', err);
+      console.error('GraphUploader: failed to upload', err);
       toast.error('Failed to load file', { description: err instanceof Error ? err.message : 'Invalid format' });
     } finally {
       input.value = '';
@@ -30,22 +30,22 @@
 
 <div class="flex gap-2">
   <Button
-    title={m.extension_equalizer_upload_fr()}
+    title={m.graph_uploader_upload_fr()}
     onclick={() => phoneInputEl?.click()}
     variant="outline" size="sm"
     class="flex-1"
   >
     <FileUp class="size-3.5 mr-1.5" />
-    {m.extension_equalizer_upload_fr()}
+    {m.graph_uploader_upload_fr()}
   </Button>
   <Button
-    title={m.extension_equalizer_upload_target()}
+    title={m.graph_uploader_upload_target()}
     onclick={() => targetInputEl?.click()}
     variant="outline" size="sm"
     class="flex-1"
   >
     <FileUp class="size-3.5 mr-1.5" />
-    {m.extension_equalizer_upload_target()}
+    {m.graph_uploader_upload_target()}
   </Button>
   <input
     bind:this={phoneInputEl}

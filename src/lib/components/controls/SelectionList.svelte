@@ -351,7 +351,7 @@
 	{/each}
 	
 	<!-- Graph Uploader -->
-	<div class="px-2 py-4">
+	<div class="px-2 py-4 -mb-2">
 		<GraphUploader />
 	</div>
 </div>

@@ -68,9 +68,9 @@
 <div class="flex flex-col gap-2 text-sm">
   <!-- Filter settings fieldset -->
   <fieldset class="rounded border border-base-content/15 px-3 py-2">
-    <legend class="px-1 text-xs text-base-content/60">{m.extension_equalizer_autoeq_filter_setting()}</legend>
+    <legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_filter_setting()}</legend>
     <Switch
-      labelText={m.extension_equalizer_autoeq_use_shelf_filter()}
+      labelText={m.equalizer_autoeq_use_shelf_filter()}
       size="sm" labelClass="text-xs font-normal"
       bind:checked={useShelfFilter}
     />
@@ -78,9 +78,9 @@
 
   <!-- Frequency Range -->
   <fieldset class="rounded border border-base-content/15 px-3 py-2">
-    <legend class="px-1 text-xs text-base-content/60">{m.extension_equalizer_autoeq_freq_range()}</legend>
+    <legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_freq_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={freqMin}
@@ -89,7 +89,7 @@
         oninput={(e) => (freqMin = parseInt((e.target as HTMLInputElement).value) || freqMin)}
         class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={freqMax}
@@ -103,9 +103,9 @@
 
   <!-- Gain Range -->
   <fieldset class="rounded border border-base-content/15 px-3 py-2">
-    <legend class="px-1 text-xs text-base-content/60">{m.extension_equalizer_autoeq_gain_range()}</legend>
+    <legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_gain_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={gainMin}
@@ -114,7 +114,7 @@
         oninput={(e) => (gainMin = parseFloat((e.target as HTMLInputElement).value) ?? gainMin)}
         class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={gainMax}
@@ -128,9 +128,9 @@
 
   <!-- Q Range -->
   <fieldset class="rounded border border-base-content/15 px-3 py-2">
-    <legend class="px-1 text-xs text-base-content/60">{m.extension_equalizer_autoeq_q_range()}</legend>
+    <legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_q_range()}</legend>
     <div class="flex items-center gap-2">
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_min()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
       <input
         type="number"
         value={qMin}
@@ -140,7 +140,7 @@
         oninput={(e) => (qMin = parseFloat((e.target as HTMLInputElement).value) || qMin)}
         class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
       />
-      <span class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_max()}</span>
+      <span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
       <input
         type="number"
         value={qMax}
@@ -153,14 +153,14 @@
     </div>
   </fieldset>
 
-  <p class="text-xs text-base-content/60">{m.extension_equalizer_autoeq_description()}</p>
+  <p class="text-xs text-base-content/60">{m.equalizer_autoeq_description()}</p>
 
   <Button
-    title={m.extension_equalizer_autoeq_run_button()}
+    title={m.equalizer_autoeq_run_button()}
     onclick={runAutoEQ}
     disabled={isRunning}
     variant="primary"
   >
-    {isRunning ? '...' : m.extension_equalizer_autoeq_run_button()}
+    {isRunning ? '...' : m.equalizer_autoeq_run_button()}
   </Button>
 </div>

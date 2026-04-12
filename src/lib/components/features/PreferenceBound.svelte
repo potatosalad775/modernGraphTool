@@ -34,9 +34,9 @@
 		isEnabled && !!(getConfigValue('PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD') ?? false)
 	);
 	let isLoaded = $state(false);
-	let rawBoundU = $state<FRDataPoint[] | null>(null);
-	let rawBoundD = $state<FRDataPoint[] | null>(null);
-	let rawDFData = $state<ChannelData | null>(null);
+	let rawBoundU = $state.raw<FRDataPoint[] | null>(null);
+	let rawBoundD = $state.raw<FRDataPoint[] | null>(null);
+	let rawDFData = $state.raw<ChannelData | null>(null);
 
 	// ── Derived: normalized DF target ─────────────────────────────────────────
 

@@ -91,6 +91,7 @@ select,
 
 html {
   overscroll-behavior-y: none;
+	touch-action: manipulation;
 }
 
 /* ─── User select ─────────────────────────────────────────────────────────── */

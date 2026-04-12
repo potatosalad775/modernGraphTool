@@ -111,7 +111,8 @@
 	}
 
 	function fetchDFTarget(): Promise<string> {
-		const fileName = baseDFTarget.endsWith('.txt') ? baseDFTarget : `${baseDFTarget}.txt`;
+		const targetName = baseDFTarget.trim().endsWith(' Target') ? baseDFTarget : `${baseDFTarget} Target`;
+		const fileName = targetName.endsWith('.txt') ? targetName : `${targetName}.txt`;
 		return fetch(resolve(`/data/targets/${fileName}` as '/', {})).then((r) => {
 			if (!r.ok) throw new Error(`Failed to fetch DF target: ${fileName}`);
 			return r.text();

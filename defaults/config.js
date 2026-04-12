@@ -14,7 +14,7 @@ const CONFIG = {
   },
   // Default Visualization Settings.
   VISUALIZATION: {
-    ASPECT_RATIO: "CrinGraph",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
+    ASPECT_RATIO: "16:9",                          // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
     DEFAULT_Y_SCALE: 50,                                // (30, 40, 50, 60, 80)
     LABEL: {                                            // Phone & Target Label Text Settings
       LOCATION: "BOTTOM_LEFT",                          // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
@@ -170,11 +170,13 @@ const CONFIG = {
     // Available filters. Each filter has: id, name, type (TILT/LSQ/HSQ/PK), freq, q.
     // Gain range defaults to -20..+20 (step 0.5) except Tilt which is -2..+2 (step 0.1).
     FILTERS: [
-      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
-      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
-      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
-      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
-      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+      { id: "tilt", name: "Tilt (dB/oct)", type: "TILT", freq: 0, q: 0 },
+      { id: "bass", name: "Bass (dB)", type: "LSQ", freq: 105, q: 0.707 },
+      { id: "treble", name: "Treble (dB)", type: "HSQ", freq: 2500, q: 0.42 },
+      { id: "ear", name: "Ear (dB)", type: "PK", freq: 2750, q: 1 },
+      { id: "harman_moa_2025_bass", name: "Harman MoA 2025 Bass (dB)", type: "LSQ", freq: 164, q: 0.4, description: "Based on Harman 2025 MoA Research." },
+      { id: "harman_moa_2025_treble", name: "Harman MoA 2025 Treble (dB)", type: "HSQ", freq: 4304, q: 0.41, description: "Based on Harman 2025 MoA Research." },
+      { id: "harman_moa_2025_ear", name: "Harman MoA 2025 Ear (dB)", type: "PK", freq: 3000, q: 2, description: "Based on Harman 2025 MoA Research." },
     ],
     // Filter presets selectable from a dropdown
     FILTER_PRESET: [

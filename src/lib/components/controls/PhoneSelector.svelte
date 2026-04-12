@@ -142,7 +142,7 @@
 
 	<!-- Clear brands button -->
 	{#if selectedBrands.size > 0}
-		<div class="shrink-0 p-2">
+		<div class="shrink-0 p-1.5">
 			<Button
 				title={m.phone_selector_clear_brands_btn()}
 				onclick={clearBrands}
@@ -166,10 +166,10 @@
 				{#each brandListData as brand (brand)}
 					<button
 						onclick={() => toggleBrand(brand)}
-						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors
+						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors border-b border-base-content/8 
 							{selectedBrands.has(brand)
-							? 'bg-accent/12 font-medium text-accent'
-							: ' hover:bg-base-300'}"
+							? 'border-l-2 border-l-accent bg-accent/8 font-medium text-accent'
+							: 'hover:bg-base-300'}"
 					>
 						<span class="truncate">{brand}</span>
 					</button>

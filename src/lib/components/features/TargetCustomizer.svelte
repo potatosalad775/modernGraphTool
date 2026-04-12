@@ -8,10 +8,9 @@
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import type { FRDataObject, ParsedFRData } from '$lib/types/data-types.js';
 	import * as m from '$lib/paraglide/messages.js';
-	//import { getConfigValue } from '$lib/utils/config.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
-	import { Settings2, X } from '@lucide/svelte';
+	import { CircleAlert, Settings2, X } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -23,6 +22,7 @@
 		type: 'TILT' | 'LSQ' | 'HSQ' | 'PK';
 		freq: number;
 		q: number;
+		description?: string;
 	}
 
 	interface FilterPreset {
@@ -46,9 +46,9 @@
 
 	const customizableTargets = tcConfig?.CUSTOMIZABLE_TARGETS ?? [];
 	const availableFilters: FilterDef[] = tcConfig?.FILTERS ?? [
-		{ id: 'tilt', name: 'Tilt', type: 'TILT', freq: 0, q: 0 },
-		{ id: 'bass', name: 'Bass', type: 'LSQ', freq: 105, q: 0.707 },
-		{ id: 'treble', name: 'Treble', type: 'HSQ', freq: 2500, q: 0.42 }
+		{ id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
+		{ id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
+		{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 }
 	];
 	const filterPresets: FilterPreset[] = tcConfig?.FILTER_PRESET ?? [];
 	const initialFilters: InitialFilter[] = tcConfig?.INITIAL_TARGET_FILTERS ?? [];
@@ -316,10 +316,27 @@
 				<div class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2">
 					<div class="flex flex-col flex-1 gap-0.25">
 						<div class="flex items-center justify-between">
-							<label for="{uuid}-{def.id}" class="text-xs font-medium ">
-								{getFilterLabel(def)}
-							</label>
-							<span class="w-10 text-right text-xs tabular-nums ">
+							<div class="flex items-center">
+								<label for="{uuid}-{def.id}" class="text-xs font-medium line-clamp-1">
+									{getFilterLabel(def)}
+								</label>
+								{#if def.description}
+									<PopoverPanel align="end">
+										{#snippet trigger({ props })}
+											<Button
+												{...props}
+												title="Open target filter description"
+												variant="ghost" size="icon"
+												class="ml-0.5 p-1! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
+											>
+												<CircleAlert class="h-3 w-3" />
+											</Button>
+										{/snippet}
+										<p class="max-w-xs text-sm text-base-content">{def.description}</p>
+									</PopoverPanel>
+								{/if}
+							</div>
+							<span class="w-8 text-right text-xs tabular-nums ">
 								{value.toFixed(1)}
 							</span>
 						</div>

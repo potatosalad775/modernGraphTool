@@ -57,6 +57,10 @@ const CONFIG = {
   // CDN_MODE: {
   //   MAJOR_VERSION: 2,                                   // Auto-updates within this major version (e.g., 2.x.x)
   //   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",  // Custom CDN base URL (advanced)
+  //   // BASE_PATH: "/cdn",                                // Deployment subpath. Set this ONLY when the app is
+  //   //                                                   // served under a subdirectory AND users may land on
+  //   //                                                   // share-link routes directly (e.g. /cdn/share/abc).
+  //   //                                                   // For root deployments, leave unset.
   // },
   // Language Settings
   LANGUAGE: {

@@ -4,81 +4,43 @@ sidebar_position: 1
 
 # 환경 구성하기
 
-이 가이드에서는 modernGraphTool을 사용하고 관리하기 위한 기본적인 환경 설정 방법을 안내합니다.
+이 페이지는 설치 과정에서의 선택지를 정리하고 올바른 배포 옵션으로 안내합니다. 각 옵션에는 아래 표에서 링크된 전용 가이드가 있습니다.
 
 ## 준비물
 
-1.  **modernGraphTool 프로젝트 파일**: 주파수 응답 데이터를 시각화하고 분석하기 위한 핵심 기능이 포함된 빌드된 애플리케이션 파일입니다.
-2.  **텍스트 에디터**: 각종 설정 파일(`.js`, `.css`, `.json`)을 수정하기 위한 프로그램입니다. [Visual Studio Code (VS Code)](https://code.visualstudio.com/) 사용을 권장합니다.
+1.  **modernGraphTool 프로젝트 파일** — 선택한 배포 옵션에 따라 [사전 빌드 릴리스](https://github.com/potatosalad775/modernGraphTool/releases) 또는 소스 저장소의 클론이 필요합니다.
+2.  **텍스트 에디터** — `config.js`, `theme.css`, 기타 설정 파일 수정을 위한 에디터. 구문 강조와 자동 완성을 제공하는 [Visual Studio Code](https://code.visualstudio.com/) 사용을 권장합니다.
 
-## 옵션 A: 사전 빌드된 릴리스 사용 (권장)
+## 배포 옵션
 
-가장 간단한 방법입니다. 프로그래밍 지식이 필요하지 않습니다.
+modernGraphTool은 세 가지 배포 경로를 지원합니다. 업데이트와 커스터마이징을 얼마나 직접 제어하고 싶은지에 따라 선택하세요:
 
-1.  [modernGraphTool GitHub 릴리스 페이지](https://github.com/potatosalad775/modernGraphTool/releases)에서 [최신 릴리스 zip 파일](https://github.com/potatosalad775/modernGraphTool/releases)을 다운로드합니다.
-2.  다운로드한 zip 파일의 압축을 해제합니다. 압축 해제된 폴더에는 배포에 필요한 모든 파일이 포함되어 있습니다.
-3.  필요에 맞게 설정 파일을 수정합니다:
-    - `config.js` — 애플리케이션 설정 ([페이지 커스터마이징](./customize-page) 참조)
-    - `theme.css` — 그래프 색상 테마 ([페이지 스타일 개인화하기](./customize-page#페이지-스타일-개인화하기-themecss) 참조)
-    - `data/` — 측정 데이터 및 타겟 커브 ([데이터 관리](./manage-data) 참조)
-4.  FTP 또는 기타 파일 전송 방법을 사용하여 전체 폴더를 웹 서버에 업로드합니다.
+| 옵션 | 적합 대상 | 업데이트 | 커스터마이징 | 하위 디렉토리 호스팅 |
+|---|---|---|---|---|
+| **[CDN 배포](./deployment/cdn)** (권장) | 대부분의 운영자 | 자동 | 설정, 테마, 데이터 | 설정 한 줄 필요 (`BASE_PATH`) |
+| **[사전 빌드 릴리스](./deployment/prebuilt)** | 통제된 배포, 에어갭 환경 | 수동 (재다운로드) | 설정, 테마, 데이터, HTML 메타데이터 | 즉시 동작 |
+| **[소스에서 빌드](./deployment/from-source)** | 개발자, 포크 | 수동 (git pull + 빌드) | 전부 | 즉시 동작 |
 
-## 옵션 B: 소스에서 직접 빌드 (개발자용)
+### [CDN 배포](./deployment/cdn)
 
-소스 코드를 수정하거나 최신 개발 버전에서 빌드하고 싶은 경우:
+서버에는 최소한의 `index.html` 로더와 `config.js`, `theme.css`, `data/`, `assets/`만 호스팅됩니다. 애플리케이션 코드 자체는 jsDelivr에서 제공되며 새 버전이 나오면 자동으로 업데이트됩니다. 가장 간단한 경로입니다 — 수동 업데이트도, 재업로드도 없습니다.
 
-1.  시스템에 [Node.js](https://nodejs.org/) (v18 이상)가 설치되어 있는지 확인합니다.
-2.  저장소를 클론합니다:
-    ```bash
-    git clone https://github.com/potatosalad775/modernGraphTool.git
-    cd modernGraphTool
-    ```
-3.  의존성을 설치합니다:
-    ```bash
-    npm install
-    ```
-4.  설정을 수정합니다:
-    - `static/config.js` — 애플리케이션 설정
-    - `static/theme.css` — 그래프 색상 테마
-    - `static/data/` — 측정 데이터 및 타겟 커브
-5.  프로젝트를 빌드합니다:
-    ```bash
-    npm run build
-    ```
-6.  빌드된 결과물은 `dist/` 폴더에 생성됩니다. 이 폴더를 웹 서버에 배포하면 됩니다.
+사이트가 `/headphones/`와 같은 하위 디렉토리에 있다면 (squig.link에서 흔한 패턴 — 같은 서브도메인에 루트 이어폰 데이터베이스와 `/headphones/` 헤드폰 데이터베이스를 함께 운영), `config.js`에 `CDN_MODE.BASE_PATH`를 설정해야 합니다 — 설정 한 줄이면 되지만 놓치기 쉽습니다. 자세한 내용은 [CDN 배포 가이드](./deployment/cdn#why-base_path-is-almost-always-required)를 참고하세요.
 
-:::tip[로컬 미리보기]
-배포 전에 변경 사항을 로컬에서 미리 확인할 수 있습니다:
-- **소스에서 실행**: `npm run dev`를 실행하면 `http://localhost:5173`에서 개발 서버가 시작됩니다.
-- **빌드 결과물 확인**: `npm run preview`를 실행하면 `dist/` 폴더를 로컬에서 서빙합니다.
-:::
+### [사전 빌드 릴리스](./deployment/prebuilt)
+
+완전한 `dist/` 폴더를 다운로드해 서버에 업로드합니다. 어떤 버전이 언제 동작할지 정확히 제어할 수 있습니다 — jsDelivr에 런타임 의존성이 없고, 에어갭 환경에서도 동작하며, 하위 디렉토리 호스팅도 추가 설정 없이 바로 됩니다. 단점은 새 릴리스로 업데이트하려면 다시 내려받아 다시 업로드해야 한다는 점입니다.
+
+### [소스에서 빌드](./deployment/from-source)
+
+저장소를 클론하고, 원하는 대로 커스터마이즈한 뒤, 자신만의 `dist/` 폴더를 빌드합니다. 이것은 개발자 경로입니다 — `config.js`에서 노출하는 범위를 넘는 변경이 필요한 경우 사용하세요.
 
 ## 텍스트 에디터 설치
 
-다양한 텍스트 에디터가 있지만, 코드 하이라이팅, 자동 완성 등 편리한 기능을 제공하는 [Visual Studio Code (VS Code)](https://code.visualstudio.com/) 사용을 권장합니다.
+다양한 텍스트 에디터가 있지만, 코드 하이라이팅과 자동 완성 같은 편리한 기능을 제공하는 [Visual Studio Code](https://code.visualstudio.com/) 사용을 권장합니다.
 
-VS Code는 누구나 무료로 다운로드하여 사용할 수 있으며, Windows, macOS, Linux를 모두 지원합니다.
+VS Code는 누구나 무료로 다운로드해 사용할 수 있으며, Windows, macOS, Linux를 모두 지원합니다.
 
-1.  [VS Code 웹사이트](https://code.visualstudio.com/)에 접속하여 사용 중인 운영체제에 맞는 설치 파일을 다운로드하고 설치합니다.
-2.  VS Code에서 modernGraphTool 프로젝트 폴더(또는 압축 해제한 릴리스 폴더)를 엽니다.
+1.  [VS Code 웹사이트](https://code.visualstudio.com/)에 접속하여 운영체제에 맞는 설치 파일을 다운로드하고 설치합니다.
+2.  VS Code에서 modernGraphTool 프로젝트 폴더 (또는 압축 해제한 릴리스 폴더)를 엽니다.
 3.  이제 설정 파일을 수정하고 데이터를 관리할 수 있습니다.
-
-## 프로젝트 구조
-
-릴리스 압축 해제 후(또는 소스에서 빌드한 후)의 주요 파일 및 폴더 구조는 다음과 같습니다:
-
-```
-dist/                     # (또는 압축 해제한 릴리스 폴더)
-├── config.js             # 애플리케이션 설정
-├── theme.css             # 그래프 색상 테마
-├── index.html            # HTML 진입점 (메타데이터 수정 가능)
-├── data/
-│   ├── phones/           # 측정 데이터 파일 (.txt)
-│   ├── target/           # 타겟 커브 데이터 파일 (.txt)
-│   └── phone_book.json   # 기기 목록 정의
-└── assets/               # 정적 자산 (이미지, 문자열 등)
-```
-
-:::info[소스 빌드 사용자 참고]
-소스에서 빌드하는 경우, 수정 가능한 파일은 `static/` 폴더에 있습니다. 소스의 HTML 진입점은 `src/app.html`(SvelteKit 템플릿)입니다. 빌드 후 이 파일들은 컴파일되어 `dist/`에 출력됩니다.
-:::

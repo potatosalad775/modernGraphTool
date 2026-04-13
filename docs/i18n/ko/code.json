@@ -331,21 +331,6 @@
     "message": "태그",
     "description": "The title of the tag list page"
   },
-  "Contrast": {
-    "message": "대비"
-  },
-  "Core Colors": {
-    "message": "핵심 컬러"
-  },
-  "Export Theme.css": {
-    "message": "Theme.css 내보내기"
-  },
-  "Primary Color": {
-    "message": "Primary 컬러"
-  },
-  "Secondary and tertiary colors are automatically generated from the primary color using Material 3 algorithms.": {
-    "message": "Secondary 및 tertiary 컬러는 Material 3 알고리즘을 사용하여 Primary 컬러로부터 자동으로 생성됩니다."
-  },
   "Random All": {
     "message": "전체 무작위"
   },
@@ -367,40 +352,29 @@
   "Config Editor": {
     "message": "설정 파일 편집기"
   },
-  "Config Generator": {
-    "message": "설정 파일 변환기"
-  },
   "Build or edit your modernGraphTool config.js with a visual editor. Import an existing config, adjust settings, and export the result.": {
     "message": "비주얼 편집기로 modernGraphTool의 config.js를 만들거나 수정할 수 있습니다. 기존 설정을 불러오고, 항목을 조정한 뒤 결과를 내보내세요."
   },
-  "Convert your existing config.js to the v2 format. Paste your config file contents below and click Convert.": {
-    "message": "기존 config.js를 v2 형식으로 변환합니다. 아래에 설정 파일 내용을 붙여넣고 변환 버튼을 클릭하세요."
+  "Base Tone": {
+    "message": "Base Tone"
   },
-  "v1 to v2": {
-    "message": "v1 → v2"
+  "Controls the neutral base palette (backgrounds, text, borders). Adjust the hue to tint your UI surface.": {
+    "message": "Controls the neutral base palette (backgrounds, text, borders). Adjust the hue to tint your UI surface."
   },
-  "CrinGraph to v2": {
-    "message": "CrinGraph → v2"
+  "Base Hue": {
+    "message": "Base Hue"
   },
-  "config.js": {
-    "message": "config.js"
+  "Pick colors for each role. Content (text-on-color) and dark mode variants are auto-generated.": {
+    "message": "Pick colors for each role. Content (text-on-color) and dark mode variants are auto-generated."
   },
-  "extensions.config.js (optional)": {
-    "message": "extensions.config.js (선택사항)"
+  "Status Colors": {
+    "message": "Status Colors"
   },
-  "CrinGraph config.js": {
-    "message": "CrinGraph config.js"
+  "Export theme.css": {
+    "message": "Export theme.css"
   },
-  "Convert": {
-    "message": "변환"
-  },
-  "Download config.js": {
-    "message": "config.js 다운로드"
-  },
-  "Output": {
-    "message": "출력 결과"
-  },
-  "Warnings:": {
-    "message": "경고:"
+  "theme.IconExternalLink.ariaLabel": {
+    "message": "(opens in new tab)",
+    "description": "The ARIA label for the external link icon"
   }
 }

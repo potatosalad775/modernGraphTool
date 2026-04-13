@@ -42,5 +42,9 @@
   "link.item.label.Theme Generator": {
     "message": "테마 생성기",
     "description": "The label of footer link with label=Theme Generator linking to /theme-generator"
+  },
+  "link.item.label.Config Editor": {
+    "message": "Config Editor",
+    "description": "The label of footer link with label=Config Editor linking to /config-generator"
   }
 }

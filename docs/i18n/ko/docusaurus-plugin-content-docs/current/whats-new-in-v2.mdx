@@ -1,0 +1,68 @@
+---
+sidebar_position: 3
+sidebar_label: v2의 새로운 기능
+---
+
+# v2의 새로운 기능
+
+modernGraphTool v2는 처음부터 다시 작성된 완전한 재작성(rewrite)입니다. 애플리케이션 코드는 완전히 새롭지만, 기존의 데이터와 설정은 최소한의 변경만으로 그대로 사용할 수 있습니다.
+
+이 페이지는 변경된 사항과 새롭게 추가된 기능을 한 번에 확인할 수 있는 레퍼런스입니다. 실제로 기존 데이터베이스를 마이그레이션하는 중이라면 [v1에서 v2로 마이그레이션](./migrating-v1-to-v2) 또는 [CrinGraph에서 마이그레이션](./migrating-from-cringraph) 페이지로 이동하세요. 필요할 때마다 이 페이지를 참조합니다.
+
+## 변경된 점
+
+### 기술 스택
+
+| | v1 | v2 |
+|---|---|---|
+| **프레임워크** | Vanilla JavaScript + Web Components | SvelteKit 2 + Svelte 5 (Runes) |
+| **번들러** | Rollup | Vite |
+| **스타일링** | 커스텀 CSS | Tailwind CSS 4 + CSS 변수 |
+| **i18n** | 커스텀 JSON 로더 | Paraglide JS (컴파일 타임) |
+| **테스트** | 없음 | Vitest + Playwright |
+
+### Extension이 내장 기능으로 통합됨
+
+v1에서는 기능들이 `extensions/extensions.config.js`를 통해 확장 모듈(extension)로 로드되었습니다. 이는 모듈성을 제공했지만, 실제로는 대부분의 사용자가 모든 확장을 활성화한 채로 사용했고, 별도의 extension 폴더와 설정을 관리해야 하는 번거로움이 추가되었습니다.
+
+v2에서는 **모든 확장이 내장 Svelte 컴포넌트**로 포함되며 단일 `config.js`로 설정됩니다. `extensions/` 폴더와 `extensions.config.js`는 더 이상 존재하지 않습니다.
+
+| v1 (`extensions.config.js`) | v2 (`config.js`) |
+|---|---|
+| 확장 `ENABLED` 플래그 | 기능은 항상 포함되며, config 섹션을 통해 표시 여부를 전환 |
+| `PREFERENCE_BOUND` 설정 | `PREFERENCE_BOUND` 섹션 |
+| `TARGET_CUSTOMIZER` 설정 | `TARGET_CUSTOMIZER` 섹션 |
+| `SQUIGLINK` 설정 | `SQUIGLINK` 섹션 |
+
+**Graph Color Wheel** 확장 또한 독립 패널로는 제거되었습니다. v2에서는 색상 커스터마이징이 선택 목록에 직접 통합되어 있어, 원하는 커브의 색상 샘플을 클릭하여 바로 변경할 수 있습니다.
+
+### 새로운 Config 섹션 {#new-config-sections}
+
+v2에서는 v1에 없던 여러 설정 섹션이 `config.js`에 새로 추가되었습니다:
+
+| 섹션 | 용도 |
+|---|---|
+| `MULTI_SAMPLE` | 다중 샘플 측정 데이터의 기본 표시 모드 (`average` 또는 `all`) |
+| `HPTF` | HpTF 편차 표시 모드 및 음영 투명도 |
+| `CDN_MODE` | CDN 배포 관련 선택 설정 (버전 고정, 커스텀 base URL) |
+
+모두 선택 사항이며, 생략할 경우 v2는 합리적인 기본값으로 동작합니다. [Config Editor](/config-generator)를 사용하면 완전한 `config.js`를 처음부터 작성하거나 사용 가능한 모든 옵션을 검토할 수 있습니다.
+
+## 새로운 기능
+
+재작성 그 자체를 넘어, v2는 v1에서는 제공되지 않았던 다양한 기능을 새롭게 도입했습니다:
+
+- **CDN 배포** — 애플리케이션 코드를 jsDelivr에서 제공받고, 데이터와 설정만 사용자의 서버에 두는 방식입니다. 새 버전이 릴리스되면 파일을 다시 업로드하지 않아도 자동으로 반영됩니다. [CDN 배포 가이드](./guide-for-admins/deployment/cdn)를 참고하세요.
+- **다중 샘플 표시 모드** — 여러 샘플의 평균을 표시하거나, 모든 개별 커브를 표시할 수 있으며, 기기 단위로 설정할 수 있습니다.
+- **HpTF 편차 표시** — 헤드폰 전달 함수의 샘플 간 편차를 음영 영역, 개별 커브, 또는 둘 다로 시각화할 수 있습니다.
+- **인터랙티브 EQ** — 그래프 위에서 직접 EQ 필터를 만들고 조정할 수 있습니다. 클릭하여 피킹 필터를 추가하고, 드래그로 주파수와 게인을 변경하며, 휠로 Q를 조정하고, 더블 클릭으로 제거합니다. 그래프는 EQ 적용 커브와 원본 FR의 고스트를 실시간으로 함께 표시합니다.
+- **그래프 종횡비 설정** — `VISUALIZATION.ASPECT_RATIO`로 16:9 또는 CrinGraph 스타일 비율을 선택할 수 있습니다.
+- **네이티브 squig.link 연동** — 크로스 사이트 검색, 스폰서 배너, 쇼핑 링크, 다중 GA4 분석이 내장되어 있으며 `*.squig.link` 도메인에서 자동으로 활성화됩니다. 더 이상 `squigsites.js` 스크립트 태그가 필요하지 않습니다.
+- **디바이스 PEQ (하드웨어 EQ)** — USB로 연결되는 하드웨어 EQ 디바이스(WebHID/WebSerial)를 기본적으로 지원합니다.
+- **통합 테마** — 하나의 `theme.css`로 D3 그래프와 주변 UI를 모두 구동하며, 라이트/다크 모드가 자동으로 전환됩니다. [테마 생성기](/theme-generator)에서 시각적으로 생성할 수 있습니다.
+
+## 다음 단계
+
+- v1에서 넘어오시나요? → [v1에서 v2로 마이그레이션](./migrating-v1-to-v2)
+- CrinGraph, squiglink lab, PublicGraphTool, 또는 기타 CrinGraph 파생 버전에서 넘어오시나요? → [CrinGraph에서 마이그레이션](./migrating-from-cringraph)
+- 새로 설치하시나요? → [배포 옵션](./guide-for-admins/deployment/prebuilt)

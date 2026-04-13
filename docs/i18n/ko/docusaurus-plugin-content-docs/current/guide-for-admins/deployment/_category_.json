@@ -1,0 +1,10 @@
+{
+  "label": "배포 옵션",
+  "position": 2,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "modernGraphTool을 배포하는 세 가지 방법: CDN (대부분의 사용자에게 권장), 사전 빌드 릴리스, 소스에서 빌드. 업데이트와 커스터마이징을 얼마나 직접 제어하고 싶은지에 따라 선택하세요."
+  }
+}

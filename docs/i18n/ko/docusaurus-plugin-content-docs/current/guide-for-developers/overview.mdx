@@ -1,0 +1,69 @@
+---
+sidebar_position: 1
+---
+
+# 개발자 가이드
+
+이 가이드는 modernGraphTool의 아키텍처 개요를 제공하며, 기여하거나 프로젝트를 기반으로 무언가를 구축하려는 개발자를 위한 내용입니다.
+
+## 기술 스택
+
+- **언어**: TypeScript
+- **프레임워크**: SvelteKit 2 + Svelte 5 (Runes)
+- **스타일링**: Tailwind CSS 4 + bits-ui (헤드리스 접근성 컴포넌트)
+- **그래프 렌더링**: D3.js (SVG 기반)
+- **i18n**: Paraglide JS (컴파일 타임 국제화)
+- **테스트**: Vitest (단위) + Playwright (E2E)
+- **빌드 출력**: `adapter-static`을 통한 정적 SPA → `dist/`
+
+## 프로젝트 구조
+
+```
+src/
+├── routes/              # SvelteKit 페이지 라우트 (단일 페이지 SPA)
+├── lib/
+│   ├── components/      # UI 컴포넌트
+│   │   ├── atoms/       # 기본 UI 프리미티브 (Button, Input, Accordion)
+│   │   ├── controls/    # 인터랙티브 컨트롤 (selector, 툴바 버튼)
+│   │   ├── equalizer/   # 이퀄라이저 하위 컴포넌트 (필터, AutoEQ, 플레이어)
+│   │   ├── features/    # 기능 모듈 (DevicePEQ, Tutorial 등)
+│   │   ├── graph/       # 그래프 컨테이너 (D3 엔진과의 Svelte 브릿지)
+│   │   ├── layout/      # 앱 셸, 내비게이션, 패널
+│   │   └── panels/      # 주요 UI 섹션 (Device, Graph, EQ, Misc)
+│   ├── stores/          # 반응형 상태 관리 (.svelte.ts)
+│   ├── services/        # 데이터 프로바이더, 커맨드 이력, 분석
+│   ├── graph/           # D3.js 그래프 엔진 및 오버레이
+│   ├── device-peq/      # 하드웨어 EQ 디바이스 커넥터 및 핸들러
+│   ├── utils/           # 파싱, 정규화, 스무딩, URL 인코딩
+│   ├── types/           # TypeScript 타입 정의
+│   └── paraglide/       # 생성된 i18n 함수 (수동 편집 금지)
+├── app.html             # HTML 템플릿 (config.js 및 theme.css 로드)
+└── app.css              # Tailwind CSS 진입점
+defaults/                # 기본 설정, 테마, 샘플 데이터
+├── config.js            # 사용자 편집 가능한 설정
+├── theme.css            # 그래프 테마 변수
+└── data/                # 샘플 측정 데이터 및 타겟
+cdn/                     # CDN 배포 템플릿
+├── cdn-index.html       # CDN 모드용 슬림 index.html
+└── loader.js            # CDN 부트스트랩 로더
+scripts/                 # 빌드 유틸리티
+├── build-cdn.js         # CDN 빌드 오케스트레이터
+└── generate-boot-manifest.js
+```
+
+## 빌드 명령어
+
+| 명령어 | 설명 |
+|---------|-------------|
+| `npm run dev` | 개발 서버 시작 (http://localhost:5173) |
+| `npm run build` | `dist/`로 프로덕션 빌드 |
+| `npm run build:cdn` | `dist-cdn/`으로 CDN 최적화 빌드 |
+| `npm run preview` | 빌드된 결과물 미리 보기 |
+| `npm run check` | TypeScript + Svelte 타입 체크 |
+| `npm run test` | 모든 Vitest 테스트 실행 |
+| `npm run lint` | ESLint + Prettier 검사 |
+| `npm run format` | 코드 자동 포매팅 |
+
+## 기여하기
+
+기여를 환영합니다! 코드 스타일, 테스트, PR 가이드라인은 [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md)를 참고하세요.

@@ -1,0 +1,194 @@
+---
+sidebar_position: 5
+sidebar_label: CrinGraph에서 마이그레이션
+---
+
+# CrinGraph에서 마이그레이션
+
+이 페이지는 기존 [CrinGraph](https://github.com/mlochbaum/CrinGraph) 데이터베이스 — 또는 대표적인 파생 버전 — 를 modernGraphTool v2로 이전하려는 운영자를 위한 가이드입니다.
+
+좋은 소식: 핵심 데이터 (FR `.txt` 파일, `phone_book.json`, 타겟 파일)는 형식 호환이 되어 수정 없이 그대로 이전됩니다. 작업의 대부분은 **`data/` 폴더 구조를 재정리**하고, **v2 형식으로 설정을 다시 생성**하며, **페이지 메타데이터를 다시 적용**하는 것입니다.
+
+:::tip[하이라이트를 찾으시나요?]
+v2가 제공하는 새로운 기능을 한눈에 보려면 [v2의 새로운 기능](./whats-new-in-v2) 페이지를 참고하세요. 마이그레이션을 할지 결정하는 단계라면 특히 유용합니다.
+:::
+
+## 어떤 포크에서 오시나요?
+
+CrinGraph는 오랜 역사를 거치며 현재까지도 활발히 유지보수되는 여러 포크가 존재합니다. 마이그레이션 단계는 대체로 동일하지만, 각 포크마다 구조적으로 다른 부분이 있어 미리 언급해 두겠습니다.
+
+| | Vanilla CrinGraph | [squiglink lab](https://github.com/squiglink/lab) | [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) |
+|---|---|---|---|
+| 설정 파일 | `config.js` (루트) | `config.js` (루트), HP 변형용 `config_hp.js` | `assets/js/config.js` |
+| Phone FR 파일 | `data/*.txt` (플랫) | `data/*.txt` (플랫) | `data/*.txt` (플랫) |
+| 타겟 파일 | `data/*.txt` (phones와 혼재) | `data/*.txt` (phones와 혼재) | 분리됨: 일부는 `data/*Target.txt`, 나머지는 `data/targets/` |
+| `phone_book.json` | 선택 사항 (없는 경우가 많음) | `data/phone_book.json` | `data/phone_book.json` |
+| Preference bound | 없음 | 없음 | `assets/pref_bounds/Bounds L.txt` + `Bounds R.txt` |
+| 테마 CSS | 루트의 `style*.css` | `style*.css` + `styles/dark.css` + `styles/white.css` | `assets/css/extra.css` + `style*.css` |
+| 헤드폰 변형 | 보통 별도 설치 | `data_hp/` 폴더 + `config_hp.js` | `data_hp/` 폴더 + `headphones.html` + `config_hp.js` |
+| 외부 스크립트 | 없음 | 없음 | `squigsites.js`, `reinvented-color-wheel.min.js`, `90inclusion.js`, 오디오 태그 |
+
+여기에 목록이 없는 포크를 사용 중이더라도 대부분 이 세 가지 중 하나와 거의 동일하게 동작합니다. 아래 단계들은 포크별 차이점을 **Lab**, **PublicGraphTool**, **Vanilla** 주석으로 함께 표시합니다.
+
+## 호환성
+
+**형식 호환 — 수정 없이 이전 가능:**
+
+- FR 측정 `.txt` 파일 (탭/공백으로 구분된 `freq dB` 컬럼)
+- 타겟 `.txt` 파일 (동일한 형식)
+- `phone_book.json` 스키마 (생성이 필요한 경우 [데이터 관리](./guide-for-admins/manage-data) 페이지를 참고하세요)
+- 워터마크 이미지, 로고, 파비콘 이미지
+
+**호환되지 않아 재생성이 필요한 항목:**
+
+- `config.js` — CrinGraph는 최상위 `const` 선언 (`const init_phones = [...], DIR = "data/"`)을 사용하지만, v2는 구조화된 단일 `CONFIG = { ... }` 객체를 사용합니다. 필드는 대체로 동일하지만 형식이 완전히 다릅니다.
+- 테마/스타일시트 CSS — CrinGraph의 스타일은 여러 파일에 흩어져 있고 하드코딩된 hex 값을 사용합니다. v2는 CSS 커스텀 속성(OKLCH 기반)을 사용하는 단일 `theme.css`로 관리합니다.
+- 폴더 레이아웃 — CrinGraph는 phones와 targets를 단일 `data/` 폴더에 혼재시키지만, v2는 `data/phones/`와 `data/target/`으로 분리합니다.
+
+**전혀 이전되지 않는 항목:**
+
+- CrinGraph의 JS 파일들 (`graphtool.js`, `equalizer.js`, `listAugment.js`, `saveSvgAsPng.js`, `graphAnalytics.js`)
+- 번들된 라이브러리들 (`d3.v5.min.js`, `fuse.min.js`, `reinvented-color-wheel.min.js`)
+- `squig.link/squigsites.js`에서 로드되는 외부 스크립트 — v2는 `SQUIGLINK` config 섹션을 통해 squig.link 연동이 기본 제공됩니다. 해당 스크립트 태그는 제거하세요.
+
+## 마이그레이션 단계
+
+1. **다운로드** [최신 modernGraphTool v2 릴리스](https://github.com/potatosalad775/modernGraphTool/releases)를 내려받아 압축을 해제합니다.
+
+2. **`data/` 폴더 재구성** — v2는 phones와 targets를 별도 하위 폴더에 두는 것을 기대합니다:
+
+    ```plaintext
+    data/
+    ├── phones/            # 모든 phone FR .txt 파일
+    │   ├── IEM A L.txt
+    │   ├── IEM A R.txt
+    │   └── ...
+    ├── target/            # 모든 target 커브 .txt 파일
+    │   ├── Harman IE 2019v2 Target.txt
+    │   └── ...
+    └── phone_book.json    # 변경 없음
+    ```
+
+    타겟이 아닌 FR 파일은 모두 `data/phones/`로, 타겟 파일은 모두 `data/target/`으로 옮기세요. 타겟은 보통 파일명이 `Target.txt`로 끝나거나, 기존 CrinGraph 설정의 `targets` 배열에 이름이 등장하므로 쉽게 구별할 수 있습니다.
+
+    - **Lab 참고**: 기존의 플랫한 `data/` 폴더 안 모든 파일을 분류해야 합니다. `data/phone_book.json`은 그대로 옮깁니다.
+    - **PublicGraphTool 참고**: 이미 일부 분리가 되어 있습니다 — `data/targets/`에 타겟 파일이 많이 있을 겁니다. `data/targets/*.txt`와 `data/*Target.txt`를 모두 v2의 `data/target/`에 합치세요. 그 외 파일은 모두 `data/phones/`로 이동합니다.
+    - **Vanilla CrinGraph 참고**: `phone_book.json`이 없다면 새로 작성해야 합니다. 스키마와 최소 예제는 [데이터 관리](./guide-for-admins/manage-data) 페이지를 참고하세요.
+
+3. **Preference Bound 파일 이동** *(PublicGraphTool 전용)* — v2는 bound 데이터 파일을 `data/Bounds U.txt`와 `data/Bounds D.txt` (상/하)로 기대합니다. PublicGraphTool은 이 파일들을 `assets/pref_bounds/Bounds L.txt`와 `Bounds R.txt` (좌/우)로 저장했습니다. 복사 후 **이름을 변경**하세요:
+
+    - `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
+    - `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
+
+    또한 보정 기준 (보통 KEMAR DF 계열)이 `data/target/`에 있는지 확인하고, 확장자를 제외한 파일명을 기록해 두세요 — 다음 단계에서 `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`에 입력하게 됩니다.
+
+4. **새 `config.js` 생성** — CrinGraph의 설정 형식은 v2와 호환되지 않으므로, 가장 깔끔한 방법은 [**Config Editor**](/config-generator)를 사용해 새로 작성하면서 기존 설정의 값을 참고해 옮기는 것입니다. 작업 속도를 높이기 위한 주요 필드 매핑은 아래와 같습니다:
+
+    | CrinGraph (기존) | modernGraphTool v2 (신규) |
+    |---|---|
+    | `init_phones = [...]` | `INITIAL_PHONES: [...]` |
+    | `targets = [{ type, files }]` | `TARGET_MANIFEST: [{ type, files }]` |
+    | `DIR = "data/"` | `PATH.PHONE_MEASUREMENT`, `PATH.TARGET_MEASUREMENT`, `PATH.PHONE_BOOK` |
+    | `default_normalization = "Hz" / "dB"` | `NORMALIZATION.TYPE` (`"Hz"` 또는 `"Avg"`) |
+    | `default_norm_hz = 500` | `NORMALIZATION.HZ_VALUE: 500` |
+    | `default_y_scale = "40db"` | `VISUALIZATION.DEFAULT_Y_SCALE: 40` |
+    | `watermark_text`, `watermark_image_url` | `WATERMARK: [{ TYPE, CONTENT, ... }]` |
+    | `rig_description` | `VISUALIZATION.RIG_DESCRIPTION` |
+    | `labelsPosition = "bottom-left"` | `VISUALIZATION.LABEL.LOCATION: "BOTTOM_LEFT"` |
+    | `headerLinks = [...]` | `TOPBAR.LINK_LIST: [...]` |
+    | `page_title`, `page_description` | `index.html`의 `<title>` / `<meta>`에 설정 (6단계) |
+    | `themingEnabled`, `alt_layout`, `alt_*` 플래그 | 필요 없음 — v2는 항상 테마와 레이아웃이 켜져 있음 |
+    | `extraEQBands`, `extraEQplugins` | 필요 없음 — v2는 Interactive EQ와 Device PEQ가 내장되어 있음 |
+    | `preference_bounds_dir`, `preference_bounds_name` | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + `data/` 내 파일 위치 |
+    | `tiltableTargets`, `compTargets` | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS` |
+    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS` |
+    | `allowSquigDownload`, `analyticsEnabled` | `SQUIGLINK.ENABLE_*` 필드 |
+    | `default_DF_name` | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`에서 이름으로 사용 |
+
+    v2의 모든 옵션에 대한 필드별 상세 내용은 [페이지 커스터마이징 → `config.js`](./guide-for-admins/customize-page#changing-basic-settings-configjs)를 참고하세요.
+
+5. **새 `theme.css` 생성** — [**테마 생성기**](/theme-generator)를 사용해 v2 호환 테마를 시각적으로 만들 수 있습니다. 기존 스타일시트에서 색상을 참고할 수 있습니다:
+
+    - **Lab**: 다크/라이트 팔레트는 `styles/dark.css` / `styles/white.css`에서, 액센트 색상은 `style-alt-theme.css`에서 가져옵니다.
+    - **PublicGraphTool**: 대부분의 커스텀 CSS 변수는 `assets/css/extra.css`에 있습니다 (`--accent-color-contrast`, `--background-color` 등). 나머지는 `dark.css` / `theme-*.css`에 있습니다.
+    - **Vanilla**: `style.css`, `style-alt.css`.
+
+    생성된 `theme.css`를 새 `index.html`, `config.js`와 함께 배치하세요.
+
+6. **페이지 메타데이터 마이그레이션 (`index.html`)** — v2는 자체 `index.html`을 제공합니다. CrinGraph `index.html`에 가한 수정 사항은 자동으로 이전되지 **않습니다**. 다시 적용하세요:
+
+    - `<title>` 및 `<meta name="title">` (CrinGraph의 `page_title`)
+    - `<meta name="description">` (CrinGraph의 `page_description`)
+    - Open Graph 태그: `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<meta property="og:image">`
+    - `<link rel="canonical">`
+    - 파비콘: `<link rel="icon">`, `<link rel="shortcut icon">`, `<link rel="apple-touch-icon">` — 본인 이미지 파일로 다시 가리키도록 경로를 수정하세요 (이미지는 먼저 `assets/images/`로 복사).
+    - `<meta name="apple-mobile-web-app-title">`
+    - 웹 앱 매니페스트: `<link rel="manifest">` (사용 중인 경우)
+
+    필드별 상세 내용은 [페이지 커스터마이징 → 페이지 메타데이터 변경](./guide-for-admins/customize-page#changing-page-metadata-indexhtml) 섹션에 전부 정리되어 있습니다.
+
+    **CrinGraph `index.html`에서 이전하면 안 되는 항목:**
+
+    - `<script src="https://squig.link/squigsites.js"></script>` — v2는 squig.link 연동을 기본 제공합니다. 대신 `config.js`의 `SQUIGLINK` 섹션에서 활성화하세요. 크로스 사이트 검색, 스폰서 배너, 다중 GA4 분석이 모두 기본 제공됩니다.
+    - `<script src="assets/js/graphAnalytics.js"></script>` — v2의 분석은 `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS` (배열이므로 다중 태그 지원)를 통해 라우팅됩니다.
+    - `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2는 각 커브의 색상 샘플에 기본 제공되는 색상 선택기가 있습니다.
+    - `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` 태그 — v2에는 해당 기능이 없습니다.
+    - `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool 전용 스크립트로, v2와 무관합니다.
+    - Open Sans / Source Sans Pro를 위한 Google Fonts `<link>` 태그 — v2는 기본적으로 Pretendard Variable 글꼴을 사용합니다. 의도적으로 글꼴 스택을 대체하는 경우가 아니라면 그대로 두세요.
+
+    :::info[소스 빌드 사용자]
+    소스에서 빌드하는 경우 `index.html` 대신 `src/app.html`을 수정하세요. 빌드 결과인 `dist/index.html`은 이 템플릿으로부터 생성됩니다.
+    :::
+
+7. **CrinGraph 전용 파일 삭제** — 1~6단계가 완료되면 기존 CrinGraph 파일들은 더 이상 필요하지 않습니다. 안전하게 제거할 수 있는 파일들:
+
+    - `graphtool.js`, `equalizer.js`, `listAugment.js`, `saveSvgAsPng.js`, `graphAnalytics.js`
+    - `d3.v5.min.js`, `d3-selection-multi.v1.min.js`, `fuse.min.js`, `reinvented-color-wheel.min.js`
+    - `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` (폴더), `extra.css`, 기타 CrinGraph 전용 테마 CSS
+    - `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (본인 브랜딩 이미지는 유지)
+    - `90inclusion.js`, 이전의 `<audio>` 태그에서만 사용되던 오디오 자산 파일
+    - `devicePEQ/` 플러그인 폴더 — v2는 Device PEQ가 내장되어 있습니다.
+    - 기존 `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
+
+    `data/` 폴더, 새 `config.js`, 새 `theme.css`, 파비콘/워터마크 이미지, 그리고 v2 자체 파일들은 그대로 유지하세요.
+
+8. **로컬 테스트**를 거친 뒤 배포합니다.
+
+:::info[v2에 `headphones.html`이 없는 이유]
+PublicGraphTool은 `headphones.html` + `data_hp/` + `config_hp.js` 조합의 이중 인스턴스 레이아웃으로 제공되며, squiglink lab도 `config_hp.js` + `data_hp/` 형태의 유사한 패턴을 가집니다. modernGraphTool v2는 의도적으로 이 구조를 재현하지 **않습니다**.
+
+squig.link 서비스 모델은 이어폰과 헤드폰 데이터베이스를 같은 (서브)도메인의 **형제 디렉토리**로 호스팅합니다 — 예: `username.squig.link/` (이어폰), `username.squig.link/headphones/` (헤드폰). 각각은 자체 `data/`, `config.js`, `theme.css`를 가진 독립적인 배포입니다. 이 방식은 각 인스턴스를 단일 목적으로 유지하여 이해하기 쉽게 만들며, 크로스 인스턴스 검색과 통합 분석 같은 기능을 위해 squig.link 서비스가 기대하는 배포 구조이기도 합니다.
+
+이중 인스턴스 CrinGraph 구성에서 마이그레이션하는 경우, 두 개의 개별 마이그레이션으로 취급하세요 — 하나는 이어폰 배포, 다른 하나는 헤드폰 배포이며, 각각 이 페이지의 단계를 독립적으로 따라야 합니다. 하위 디렉토리에 위치한 헤드폰 인스턴스에 대해서는 아래의 [`BASE_PATH` 주의 사항](#if-you-pick-cdn-mode-watch-out-for-base_path)을 참고하세요.
+:::
+
+## 배포 옵션 선택
+
+modernGraphTool v2는 세 가지 배포 경로를 제공합니다:
+
+- **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt)** — 현재 CrinGraph를 배포하는 방식에 가장 가깝습니다. 릴리스를 다운로드하고 `data/`, `config.js`, `theme.css`를 넣은 뒤 업로드하면 됩니다. `BASE_PATH`를 신경 쓸 필요가 없습니다.
+- **[CDN 배포](./guide-for-admins/deployment/cdn)** — 권장 방식이며, 서버에 올라가는 양이 더 적습니다. `index.html`, `config.js`, `theme.css`, `data/`, `assets/`만 서버에 두고 앱 번들은 jsDelivr에서 로드되며 새 v2 릴리스가 나오면 자동으로 업데이트됩니다.
+- **[소스에서 빌드](./guide-for-admins/deployment/from-source)** — 개발자 및 포크를 위한 옵션입니다.
+
+:::tip[CDN 대안]
+사전 빌드된 릴리스를 전체적으로 호스팅하는 대신 [CDN 배포 모드](./guide-for-admins/deployment/cdn) 사용을 고려해 보세요. 앱 코드를 직접 관리할 필요가 없고, 향후 업데이트도 자동으로 적용됩니다.
+:::
+
+### CDN 모드를 선택했다면 `BASE_PATH`를 꼭 확인하세요 {#if-you-pick-cdn-mode-watch-out-for-base_path}
+
+v2 CDN 모드에서는 (서브)도메인의 루트가 **아닌** 경로에 배포할 경우, `config.js`에 `CDN_MODE.BASE_PATH`가 반드시 필요합니다. 설정하지 않으면 홈 페이지는 정상적으로 로드되지만 모든 공유 링크가 404가 됩니다. 수정은 설정 한 줄이면 됩니다. `example.com/headphones/`에 배포된 사이트의 경우:
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE_PATH: "/headphones",
+},
+```
+
+상세한 설명과 예시는 [왜 `BASE_PATH`는 거의 항상 필요한가](./guide-for-admins/deployment/cdn#why-base_path-is-almost-always-required)를 참고하세요.
+
+이는 위에서 언급한 헤드폰 형제 배포에 특히 중요합니다 — 서브도메인 루트의 이어폰 인스턴스에는 `BASE_PATH`가 필요하지 않지만, `/headphones/`에 위치한 헤드폰 인스턴스에는 필요합니다.
+
+### 이미 CrinGraph를 다른 도구와 함께 운영 중이신가요?
+
+CrinGraph를 메인 페이지로 유지하고 modernGraphTool을 하위 폴더에서 함께 운영하려는 경우 (또는 그 반대), [이중 호스팅 가이드](./database-tips/dual-hosting/main-cringraph)에서 해당 레이아웃을 처음부터 끝까지 다룹니다 — 두 도구가 단일 `data/` 폴더를 공유하도록 설정하는 방법을 포함합니다.

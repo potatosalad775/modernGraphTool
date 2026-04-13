@@ -6,7 +6,6 @@
 	import type { TargetManifestEntry } from '$lib/types/data-types.js';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
-	import ScrollArea from '../atoms/ScrollArea.svelte';
 	import Button from '../atoms/Button.svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
@@ -47,8 +46,8 @@
 </script>
 
 {#snippet targetRow(group: TargetManifestEntry)}
-	<ScrollArea orientation="horizontal" type="always" viewportClasses="flex w-full px-[1px] pt-[1px] pb-2 last-child:pb-[1px]">
-		<div class="flex items-center gap-2">
+	<div class="overflow-x-auto px-px pt-px pb-1">
+		<div class="flex items-center gap-2 w-max">
 			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/40">{group.type}</span>
 			<div class="flex gap-1.5">
 				{#each group.files as file (file)}
@@ -68,7 +67,7 @@
 				{/each}
 			</div>
 		</div>
-	</ScrollArea>
+	</div>
 {/snippet}
 
 {#if targets.length > 0}

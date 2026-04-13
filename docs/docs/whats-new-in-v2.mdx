@@ -1,0 +1,68 @@
+---
+sidebar_position: 3
+sidebar_label: What's New in v2
+---
+
+# What's New in v2
+
+modernGraphTool v2 is a ground-up rewrite. The application code is entirely new, but your data and configuration carry over with minimal changes.
+
+This page is a reference for everything that changed and everything that's new. If you're actively migrating an existing database, head to [Migrating from v1 to v2](./migrating-v1-to-v2) or [Migrating from CrinGraph](./migrating-from-cringraph) — they point back here where useful.
+
+## What Changed
+
+### Tech Stack
+
+| | v1 | v2 |
+|---|---|---|
+| **Framework** | Vanilla JavaScript + Web Components | SvelteKit 2 + Svelte 5 (Runes) |
+| **Bundler** | Rollup | Vite |
+| **Styling** | Custom CSS | Tailwind CSS 4 + CSS variables |
+| **i18n** | Custom JSON loader | Paraglide JS (compile-time) |
+| **Testing** | None | Vitest + Playwright |
+
+### Extensions are Now Built-in
+
+In v1, features were loaded as extensions via `extensions/extensions.config.js`. This offered modularity, but in practice most users kept every extension enabled, and managing separate extension folders and configs added unnecessary complexity.
+
+In v2, **all extensions are built-in Svelte components** configured through a single `config.js`. The `extensions/` folder and `extensions.config.js` are gone.
+
+| v1 (`extensions.config.js`) | v2 (`config.js`) |
+|---|---|
+| Extension `ENABLED` flags | Features are always included; toggle visibility via config sections |
+| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section |
+| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section |
+| `SQUIGLINK` config | `SQUIGLINK` section |
+
+The **Graph Color Wheel** extension is also gone as a standalone panel. In v2, color customization is built directly into the selection list — click any curve's color swatch to change it.
+
+### New Config Sections
+
+v2 adds several new configuration sections to `config.js` that didn't exist in v1:
+
+| Section | Purpose |
+|---|---|
+| `MULTI_SAMPLE` | Default display mode for multi-sample measurements (`average` or `all`) |
+| `HPTF` | HpTF deviation display mode and fill opacity |
+| `CDN_MODE` | Optional CDN deployment settings (version pinning, custom base URL) |
+
+These are all optional — v2 ships with sensible defaults if you omit them. The [Config Editor](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
+
+## New Capabilities
+
+Beyond the rewrite itself, v2 introduces capabilities that weren't available in v1:
+
+- **CDN deployment** — Serve app code from jsDelivr while keeping your data and config local. New versions update automatically without re-uploading files. See the [CDN deployment guide](./guide-for-admins/deployment/cdn).
+- **Multi-sample display modes** — Show the average of all samples, or display every individual curve, configurable per-device.
+- **HpTF deviation display** — Visualize headphone transfer function sample-to-sample variation as a fill area, individual curves, or both.
+- **Interactive EQ** — Create and adjust EQ filters directly on the graph. Click to add a peaking filter, drag to change frequency and gain, scroll to adjust Q, and double-click to remove. The graph shows the EQ response curve and a ghost of the original FR in real-time.
+- **Configurable graph aspect ratio** — Choose between 16:9 or CrinGraph-style proportions via `VISUALIZATION.ASPECT_RATIO`.
+- **Native squig.link integration** — Cross-site search, sponsor banner, shop links, and multi-GA4 analytics are built in and activate automatically on `*.squig.link` domains. No more `squigsites.js` script tag.
+- **Device PEQ (hardware EQ)** — USB-connected hardware EQ devices (via WebHID/WebSerial) are supported out of the box.
+- **Unified theming** — A single `theme.css` drives both the D3 graph and the surrounding UI, with automatic light/dark mode. The [Theme Generator](/theme-generator) lets you build one visually.
+
+## Where to Next
+
+- Coming from v1? → [Migrating from v1 to v2](./migrating-v1-to-v2)
+- Coming from CrinGraph, squiglink lab, PublicGraphTool, or another CrinGraph derivative? → [Migrating from CrinGraph](./migrating-from-cringraph)
+- New installation? → [Deployment options](./guide-for-admins/deployment/prebuilt)

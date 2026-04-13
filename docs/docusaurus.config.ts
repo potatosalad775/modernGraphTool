@@ -20,8 +20,12 @@ const config: Config = {
   organizationName: 'potatosalad775', // Usually your GitHub org/user name.
   projectName: 'modernGraphTool', // Usually your repo name.
 
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    }
+  },
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you

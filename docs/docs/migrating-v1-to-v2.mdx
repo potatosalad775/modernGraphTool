@@ -1,11 +1,15 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 sidebar_label: Migrating from v1 to v2
 ---
 
 # Migrating from v1 to v2
 
-modernGraphTool v2 is a ground-up rewrite. The application code is entirely new, but your data and configuration carry over with minimal changes. This guide covers what's compatible, what changed, and how to migrate.
+This page is the step-by-step checklist for moving an existing modernGraphTool v1 database to v2.
+
+:::tip[Looking for the highlights?]
+For a feature-level overview of what's different, see [What's New in v2](./whats-new-in-v2). This page stays focused on the migration procedure.
+:::
 
 ## Compatibility
 
@@ -16,79 +20,44 @@ modernGraphTool v2 is a ground-up rewrite. The application code is entirely new,
 - Target curve files — same `.txt` format in `data/target/`
 - Preference Bound files — `Bounds U.txt` / `Bounds D.txt` still `.txt`, but their location changed (see [Migration Steps](#migration-steps) below — moved from v1's `extensions/preference-bound/data/` to `data/`)
 
-`config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible.
+`config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible. v2 adds a few optional new sections — see [What's New in v2](./whats-new-in-v2#new-config-sections).
 
 Deployment is also the same — v2 outputs a fully static SPA to `dist/`. Copy the folder to your web server. The `.htaccess` file for Apache SPA fallback is included.
 
-## What Changed
-
-### Tech Stack
-
-| | v1 | v2 |
-|---|---|---|
-| **Framework** | Vanilla JavaScript + Web Components | SvelteKit 2 + Svelte 5 (Runes) |
-| **Bundler** | Rollup | Vite |
-| **Styling** | Custom CSS | Tailwind CSS 4 + CSS variables |
-| **i18n** | Custom JSON loader | Paraglide JS (compile-time) |
-| **Testing** | None | Vitest + Playwright |
-
-### Extensions are Now Built-in
-
-In v1, features were loaded as extensions via `extensions/extensions.config.js`. This offered modularity, but in practice most users kept every extension enabled, and managing separate extension folders and configs added unnecessary complexity.
-
-In v2, **all extensions are built-in Svelte components** configured through a single `config.js`. The `extensions/` folder and `extensions.config.js` are gone.
-
-| v1 (`extensions.config.js`) | v2 (`config.js`) |
-|---|---|
-| Extension `ENABLED` flags | Features are always included; toggle visibility via config sections |
-| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section |
-| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section |
-| `SQUIGLINK` config | `SQUIGLINK` section |
-
-The **Graph Color Wheel** extension is also gone as a standalone panel. In v2, color customization is built directly into the selection list — click any curve's color swatch to change it.
-
-### New Config Sections
-
-v2 adds several new configuration sections to `config.js` that didn't exist in v1:
-
-| Section | Purpose |
-|---|---|
-| `MULTI_SAMPLE` | Default display mode for multi-sample measurements (`average` or `all`) |
-| `HPTF` | HpTF deviation display mode and fill opacity |
-| `CDN_MODE` | Optional CDN deployment settings (version pinning, custom base URL) |
-
-These are all optional — v2 ships with sensible defaults if you omit them. The [Config Editor](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
-
-## What's New in v2
-
-Beyond the rewrite itself, v2 introduces capabilities that weren't available in v1:
-
-- **CDN deployment** — Serve app code from jsDelivr while keeping your data and config local. New versions update automatically without re-uploading files.
-- **Multi-sample display modes** — Show the average of all samples, or display every individual curve, configurable per-device
-- **HpTF deviation display** — Visualize headphone transfer function sample-to-sample variation as a fill area, individual curves, or both
-- **Interactive EQ** — Create and adjust EQ filters directly on the graph. Click to add a peaking filter, drag to change frequency and gain, scroll to adjust Q, and double-click to remove. The graph shows the EQ response curve and a ghost of the original FR in real-time.
-- **Configurable graph aspect ratio** — Choose between 16:9 or CrinGraph-style proportions via `VISUALIZATION.ASPECT_RATIO`
-
 ## Migration Steps
 
-1. **Download** the [latest v2 release](https://github.com/potatosalad775/modernGraphTool/releases)
-2. **Copy your data** — Move your `data/` folder (phones, targets, `phone_book.json`) into the v2 release folder
+1. **Download** the [latest v2 release](https://github.com/potatosalad775/modernGraphTool/releases).
+2. **Copy your data** — Move your `data/` folder (phones, targets, `phone_book.json`) into the v2 release folder.
 3. **Move Preference Bound data files** — In v1, `Bounds U.txt` and `Bounds D.txt` lived in `extensions/preference-bound/data/`. In v2 they must sit directly in `data/`, alongside `phones/` and `target/`. If you skip this, the Preference Bound overlay will silently fail to render when enabled. The base DF target file (e.g. `KEMAR DF (KB006x) Target.txt`) should already be in `data/target/` as part of step 2.
-4. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Editor](/config-generator) to build a fresh config interactively.
-5. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling). The [Theme Generator](/theme-generator) can help.
-6. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
-7. **Test locally** — Open the page in a browser and verify your data loads correctly
+4. **Migrate `config.js`** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the [new sections](./whats-new-in-v2#new-config-sections) (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can use the [Config Editor](/config-generator) to easily migrate and review all settings.
+5. **Migrate `theme.css`** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling, plus OKLCH-based UI variables). The [Theme Generator](/theme-generator) can help.
+6. **Migrate page metadata (`index.html`)** — v2 ships with its own `index.html`, so any edits you made to your v1 `index.html` do **not** carry over automatically. Re-apply them in the v2 `index.html`:
+   - `<title>` and `<meta name="title">`
+   - `<meta name="description">` and `<meta name="keywords">`
+   - Open Graph tags: `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<meta property="og:image">`
+   - `<link rel="canonical">`
+   - Favicons: `<link rel="icon">`, `<link rel="shortcut icon">`, `<link rel="apple-touch-icon">`
+   - `<meta name="apple-mobile-web-app-title">`
+   - Web app manifest: `<link rel="manifest">` (if you had one)
+
+   The [Customizing the Page → Changing Page Metadata](./guide-for-admins/customize-page#changing-page-metadata-indexhtml) section has the field-by-field reference.
+
+   :::info[Source builders]
+   If you build from source, edit `src/app.html` instead of `index.html`. The output `dist/index.html` is generated from that template.
+   :::
+7. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
+8. **Test locally** — Open the page in a browser and verify your data loads correctly.
 
 ## Picking a Deployment Option
 
 v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds two more:
 
-- **[Pre-built Release](./guide-for-admins/deployment/prebuilt)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no BASE_PATH to set, works exactly like v1 did.
-- **[CDN Deployment](./guide-for-admins/deployment/cdn)** — A thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
+- **[Pre-built Release](./guide-for-admins/deployment/prebuilt)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no `BASE_PATH` to set, works exactly like v1 did.
+- **[CDN Deployment](./guide-for-admins/deployment/cdn)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
 - **[Building from Source](./guide-for-admins/deployment/from-source)** — For developers and forks.
 
 :::tip[CDN Alternative]
-Instead of hosting the full Pre-built release, consider the [CDN deployment mode](./guide-for-admins/deployment/cdn). Keep your `config.js`, `theme.css`, and `data/` on your server, and let jsDelivr serve the app code. Future updates apply automatically.
+Instead of hosting the full pre-built release, consider the [CDN deployment mode](./guide-for-admins/deployment/cdn). You don't need to manage the app code, and future updates apply automatically with it.
 :::
 
 ### If you pick CDN mode, watch out for `BASE_PATH`
@@ -111,4 +80,3 @@ Full explanation and worked examples: [Why `BASE_PATH` is almost always required
 ### Switching between CDN and pre-built later
 
 Everything that isn't the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There's no lock-in.
-

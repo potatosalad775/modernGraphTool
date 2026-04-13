@@ -37,6 +37,8 @@ export interface ConfigFormState {
   CDN_MODE: {
     MAJOR_VERSION: number;
     BASE: string;
+    BASE_PATH: string;
+    VERSIONS_URL: string;
   };
   LANGUAGE: {
     LANGUAGE_LIST: [string, string][];
@@ -132,6 +134,7 @@ export interface FilterForm {
   type: string;
   freq: number;
   q: number;
+  description?: string;
 }
 
 export interface FilterPresetForm {
@@ -182,7 +185,7 @@ export function createDefaultConfig(): ConfigFormState {
       HZ_VALUE: 500,
     },
     VISUALIZATION: {
-      ASPECT_RATIO: 'CrinGraph',
+      ASPECT_RATIO: '16:9',
       DEFAULT_Y_SCALE: 50,
       LABEL: { ...DEFAULT_LABEL },
       BASELINE_LABEL: { ...DEFAULT_BASELINE_LABEL },
@@ -207,6 +210,8 @@ export function createDefaultConfig(): ConfigFormState {
     CDN_MODE: {
       MAJOR_VERSION: 2,
       BASE: '',
+      BASE_PATH: '',
+      VERSIONS_URL: '',
     },
     LANGUAGE: {
       LANGUAGE_LIST: [['en', 'English'], ['ko', '한국어']],
@@ -280,12 +285,55 @@ export function createDefaultConfig(): ConfigFormState {
         { id: 'bass', name: 'Bass', type: 'LSQ', freq: 105, q: 0.707 },
         { id: 'treble', name: 'Treble', type: 'HSQ', freq: 2500, q: 0.42 },
         { id: 'ear', name: 'Ear', type: 'PK', freq: 2750, q: 1 },
-        { id: 'pssr', name: 'PSSR', type: 'HSQ', freq: 500, q: 0.4 },
+        {
+          id: "h25bass",
+          name: "H25Bass",
+          type: "LSQ",
+          freq: 164,
+          q: 0.4,
+          description: "Bass Filter from Harman MoA 2025 study",
+        },
+        {
+          id: "h25treble",
+          name: "H25Treble",
+          type: "HSQ",
+          freq: 4304,
+          q: 0.41,
+          description: "Treble Filter from Harman MoA 2025 study",
+        },
+        {
+          id: "h25ear",
+          name: "H25Ear",
+          type: "PK",
+          freq: 3000,
+          q: 2,
+          description: "Ear-gain Filter from Harman MoA 2025 study",
+        },
       ],
       FILTER_PRESET: [
         { name: 'Harman 2013', filter: { bass: 6.6, treble: -1.4 } },
         { name: 'Harman 2015', filter: { bass: 6.6, treble: -3, ear: -1.8 } },
         { name: 'Harman 2018', filter: { bass: 4.8, treble: -4.4 } },
+        {
+          name: "Harman IE MoA 2025 Average",
+          filter: { h25bass: 5.5, h25treble: -1.8, h25ear: 0.1 },
+        },
+        {
+          name: "Harman IE MoA 2025 C1",
+          filter: { h25bass: 4.2, h25treble: -3.4, h25ear: 0.2 },
+        },
+        {
+          name: "Harman IE MoA 2025 C2",
+          filter: { h25bass: 2, h25treble: 0.1, h25ear: -0.1 },
+        },
+        {
+          name: "Harman IE MoA 2025 C3",
+          filter: { h25bass: 8.6, h25treble: 2, h25ear: -0.2 },
+        },
+        {
+          name: "Harman IE MoA 2025 C4",
+          filter: { h25bass: 9, h25treble: -4.8, h25ear: 1 },
+        }
       ],
       INITIAL_TARGET_FILTERS: [
         { name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } },

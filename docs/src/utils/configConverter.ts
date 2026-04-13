@@ -245,6 +245,7 @@ export function convertV1ToV2(
           type: f.type,
           freq: f.freq,
           q: f.q,
+          ...(f.description ? { description: f.description } : {}),
         })),
         FILTER_PRESET: tc.CONFIG.FILTER_PRESET ?? [],
         INITIAL_TARGET_FILTERS: tc.CONFIG.INITIAL_TARGET_FILTERS ?? [],
@@ -783,6 +784,8 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
     CDN_MODE: {
       MAJOR_VERSION: raw.CDN_MODE?.MAJOR_VERSION ?? defaults.CDN_MODE.MAJOR_VERSION,
       BASE: raw.CDN_MODE?.BASE ?? defaults.CDN_MODE.BASE,
+      BASE_PATH: raw.CDN_MODE?.BASE_PATH ?? defaults.CDN_MODE.BASE_PATH,
+      VERSIONS_URL: raw.CDN_MODE?.VERSIONS_URL ?? defaults.CDN_MODE.VERSIONS_URL,
     },
     LANGUAGE: {
       LANGUAGE_LIST: raw.LANGUAGE?.LANGUAGE_LIST ?? defaults.LANGUAGE.LANGUAGE_LIST,
@@ -837,6 +840,7 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
       CUSTOMIZABLE_TARGETS: raw.TARGET_CUSTOMIZER?.CUSTOMIZABLE_TARGETS ?? defaults.TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS,
       FILTERS: (raw.TARGET_CUSTOMIZER?.FILTERS ?? defaults.TARGET_CUSTOMIZER.FILTERS).map((f: any): FilterForm => ({
         id: f.id ?? '', name: f.name ?? '', type: f.type ?? 'PK', freq: f.freq ?? 0, q: f.q ?? 0,
+        ...(f.description ? { description: f.description } : {}),
       })),
       FILTER_PRESET: (raw.TARGET_CUSTOMIZER?.FILTER_PRESET ?? defaults.TARGET_CUSTOMIZER.FILTER_PRESET).map((p: any): FilterPresetForm => ({
         name: p.name ?? '', filter: p.filter ?? {},
@@ -885,6 +889,8 @@ export function formStateToConfigString(state: ConfigFormState): string {
   if (state.CDN_MODE_ENABLED) {
     const cdn: Record<string, any> = { MAJOR_VERSION: state.CDN_MODE.MAJOR_VERSION };
     if (state.CDN_MODE.BASE) cdn.BASE = state.CDN_MODE.BASE;
+    if (state.CDN_MODE.BASE_PATH) cdn.BASE_PATH = state.CDN_MODE.BASE_PATH;
+    if (state.CDN_MODE.VERSIONS_URL) cdn.VERSIONS_URL = state.CDN_MODE.VERSIONS_URL;
     config.CDN_MODE = cdn;
   }
 

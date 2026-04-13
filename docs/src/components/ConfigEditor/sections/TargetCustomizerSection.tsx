@@ -23,6 +23,17 @@ export default function TargetCustomizerSection() {
     set('FILTERS', copy);
   };
 
+  const updateFilterDescription = (index: number, value: string) => {
+    const copy = filters.map((f) => ({ ...f }));
+    if (value) {
+      copy[index] = { ...copy[index], description: value };
+    } else {
+      const { description, ...rest } = copy[index];
+      copy[index] = rest as FilterForm;
+    }
+    set('FILTERS', copy);
+  };
+
   const removeFilter = (index: number) => {
     set('FILTERS', filters.filter((_, i) => i !== index));
   };
@@ -200,6 +211,19 @@ export default function TargetCustomizerSection() {
                   step={0.001}
                 />
               </div>
+            </div>
+            <div className={styles.ceFieldGroup}>
+              <label className={styles.ceLabel}>
+                Description
+                <span className={styles.ceLabelHint}>optional</span>
+              </label>
+              <input
+                type="text"
+                className={styles.ceInput}
+                value={f.description ?? ''}
+                onChange={(e) => updateFilterDescription(i, e.target.value)}
+                placeholder="Bass Filter from Harman MoA 2025 study"
+              />
             </div>
           </div>
         ))}

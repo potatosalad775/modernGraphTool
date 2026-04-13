@@ -5,6 +5,14 @@ sidebar_label: Changelog
 
 # modernGraphTool v2 Changelog
 
+### v2.0.5
+- Feat: Added devicePEQ info dialog with list of supported devices and instructions
+- Refactor: Replaced color scheme for Switch component for better contrast and accessibility
+- Refactor: Normalizer input now uses `oninput` event for real-time updates on every keystroke
+- Fix: Fixed an issue where HpTF deviation fill could be misaligned in certain normalization options
+- Fix: Prevented variant selector from escaping screen
+- Fix: Added missing hover effect on several interactive elements
+
 ### v2.0.4
 - Refactor: Replaced singular `hptf` phone_book field with `hptfs` array. Each hptfs entry becomes its own independent variant
 - Refactor: Multi-sample variants now fall back to unnumbered L.txt/R.txt when L1.txt/R1.txt don't exist.

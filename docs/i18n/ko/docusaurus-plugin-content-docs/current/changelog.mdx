@@ -5,6 +5,14 @@ sidebar_label: 변경 이력
 
 # modernGraphTool v2 변경 이력
 
+### v2.0.5
+- Feat: 지원되는 기기 목록과 안내 사항이 포함된 devicePEQ 정보 다이얼로그 추가
+- Refactor: Switch 컴포넌트의 색상 체계를 변경하여 대비와 접근성 향상
+- Refactor: Normalizer 기능이 키 입력에 따라 실시간으로 바뀌도록 변경
+- Fix: 특정 정규화 옵션에서 HpTF 편차 영역이 잘못 정렬되는 문제 수정
+- Fix: variant 선택기가 화면을 벗어나지 않도록 수정
+- Fix: 여러 화면 요소에 누락된 Hover 효과 추가
+
 ### v2.0.4
 - Refactor: phone_book의 단일 `hptf` 필드를 `hptfs` 배열로 교체. 각 `hptfs` 항목은 독립적인 variant가 됩니다
 - Refactor: 번호가 매겨진 `L1.txt`/`R1.txt`가 없을 때 다중 샘플 variant가 번호 없는 `L.txt`/`R.txt`로 폴백

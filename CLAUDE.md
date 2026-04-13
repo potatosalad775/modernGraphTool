@@ -1,257 +1,272 @@
-# modernGraphTool (SvelteKit) — Development Guide
+# modernGraphTool — Development Guide
 
 ## What This Is
-Web-based frequency response (FR) visualization tool for audio devices.
-SvelteKit 5 (Runes) rewrite of the legacy Vanilla JS/Web Components version.
-Fully static SPA, deployed via FTP. Users copy the `dist/` folder to their server.
+Web-based frequency response (FR) visualization tool for headphones and other audio devices.
+Fully static SPA — operators copy the `dist/` folder to any web host.
+Successor to the legacy CrinGraph / vanilla-JS modernGraphTool; built for operators who
+run measurement databases (e.g. sites on squig.link) as well as end users browsing them.
 
-## Legacy Reference
-Original implementation: `../modernGraphTool_legacy/`
-Refer to it for: config schema (dist/config.js), phone_book format, FR file format,
-original D3 implementations (src/features/graph/graph-engine.ts), extension logic being ported.
+**User-facing docs:** [docs/docs/](docs/docs/) (Docusaurus site). Start at
+`intro.mdx`, `why-moderngraphtool.mdx`, and `guide-for-developers/overview.mdx`.
+**Contributor rules:** [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Tech Stack
-- SvelteKit 2 + Svelte 5 (Runes, enforced globally in svelte.config.js)
-- Tailwind CSS 4 (all UI styling) + bits-ui (headless accessible components)
-- Paraglide JS i18n (compile-time, messages/en.json + messages/ko.json)
-- D3.js for graph rendering (SVG, no Tailwind inside SVG — uses CSS vars from theme.css)
-- Vitest (unit) + Playwright (E2E)
-- adapter-static → outputs to dist/ (Apache-hosted via .htaccess fallback)
+- **SvelteKit 2 + Svelte 5** (Runes API, enforced globally)
+- **TypeScript** (strict)
+- **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`
+- **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
+- **D3.js** for SVG graph rendering (no Tailwind inside SVG — uses CSS vars from `defaults/theme.css`)
+- **Paraglide JS** for compile-time i18n (English + Korean)
+- **Vitest + Playwright** (browser mode) for tests, co-located as `*.spec.ts`
+- **adapter-static** → outputs to `dist/` (Apache-hosted, `.htaccess` SPA fallback)
+- Optional **CDN build** (`npm run build:cdn`) produces `dist-cdn/` with a thin loader for jsDelivr-hosted assets
 
 ## Svelte 5 Runes — Required Conventions
-ALWAYS use runes, NEVER the legacy Options API or writable stores:
-- State:   `let x = $state(value)`        NOT `writable(value)`
-- Derived: `let y = $derived(expr)`       NOT `$: y = expr`
-- Effects: `$effect(() => { ... })`       NOT `afterUpdate`
-- Props:   `let { prop } = $props()`      NOT `export let prop`
-- Module-level reactive state: use `.svelte.ts` files (NOT plain `.ts` files)
+Always use the Runes API. Never the legacy Options API or writable stores:
+- State:   `let x = $state(value)`        **not** `writable(value)`
+- Derived: `let y = $derived(expr)`       **not** `$: y = expr`
+- Effects: `$effect(() => { ... })`       **not** `afterUpdate`
+- Props:   `let { prop } = $props()`      **not** `export let prop`
+- Module-level reactive state lives in `.svelte.ts` files, not plain `.ts`.
 
-## Architecture
-Data flow: User action → DataProvider service → frStore (SvelteMap)
-           → $effect in GraphContainer → graphEngine.drawFRCurve()
+## Code Style (from CONTRIBUTING.md)
+- Tabs for indentation · single quotes · no trailing commas · 100-char line width
+- `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
+- Target **WCAG AAA** accessibility
 
-Stores (src/lib/stores/):
-  fr-store.svelte.ts         — FRDataStore wrapping SvelteMap<uuid, FRDataObject>
-  graph-store.svelte.ts      — GraphStore: yScale, baselineUUID
-  menu-store.svelte.ts       — MenuStore: currentPanel; MENU_PANELS const
-  eq-store.svelte.ts         — EQStore: filters, preamp, isEnabled
-  app-store.svelte.ts        — AppStore: theme, isMobile, isReady
-  squiglink-store.svelte.ts  — SquiglinkStore: squig.link integration (domain guard, site registry,
-                               cross-site search, shop links, sponsor content)
+## Keeping Docs in Sync
+When a task materially changes architecture, conventions, feature behavior, configuration,
+build/deployment flow, or folder structure, update the relevant docs as part of the same
+change — don't leave them for later:
+- **This file (`CLAUDE.md`)** — project overview, stack, conventions, folder map, stores/services/utils
+  inventories, design context. Keep it concise; prune anything that's no longer true.
+- **[docs/docs/](docs/docs/)** — user- and operator-facing docs (Docusaurus). Update the relevant
+  section (`guide-for-developers/`, `guide-for-admins/`, `features/`, `intro.mdx`, etc.) whenever
+  a change affects what an operator configures, what a user sees, or how a developer contributes.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — only when contributor workflow or code-style rules change.
+If you're unsure whether a change warrants a doc update, ask. Drift is the main reason this
+guide had to be rewritten.
 
-Services (src/lib/services/):
-  data-provider.svelte.ts      — DataProvider singleton: addFRData(), removeFRData(), toggleFRData(),
-                                 insertRawFRData(), updateVariant(), updateDisplayChannel(),
-                                 updateColors(), updateVisibility(), updateYOffset(),
-                                 renormalizeAll(), reSmoothAll() — orchestrates commands + frStore
-  commands.ts                  — Command pattern (Add/Remove/Update*) with execute()/undo()
-  command-history.ts           — Undo/redo stack; exports `commandHistory` singleton
-  analytics-service.svelte.ts  — GA4 analytics (gtag.js, multi-measurement-ID support)
-
-Utils (src/lib/utils/):
-  config.ts          — getConfigValue(path) reads window.GRAPHTOOL_CONFIG
-  fr-parser.ts       — parse raw FR text files → ParsedFRData
-  fr-smoother.ts     — octave-band smoothing
-  fr-normalizer.ts   — dB normalization
-  metadata-parser.ts — phone_book.json reader
-  url-provider.ts    — share URL building (uses history.replaceState directly, NOT goto())
-  base62.ts          — Base62 encode/decode for URL compression
+## Project Layout
+```
+src/
+├── routes/              # SvelteKit pages — single-page SPA, +layout + +page
+│   └── layout.css       # Tailwind v4 entry + @theme tokens (Pretendard font, semantic palette)
+├── app.html             # Loads config.js + theme.css as plain <script>/<link> tags
+└── lib/
+    ├── components/
+    │   ├── atoms/       # Button, Input, Accordion, PopoverPanel, ScrollArea, Skeleton, Switch
+    │   ├── controls/    # PhoneSelector, GraphUploader, SelectionList, ScreenshotButton,
+    │   │                #   YAxisScaleButton, SampleChannelSelector, CrossSiteSearchResults, …
+    │   ├── equalizer/   # EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard,
+    │   │                #   EqFilterList, EqPhoneSelect
+    │   ├── features/    # DevicePeq, TargetCustomizer, GraphColorWheel, PreferenceBound,
+    │   │                #   FrequencyTutorial, TutorialModal, SponsorBanner, ShopLink
+    │   ├── graph/       # GraphContainer, GraphXAxis, GraphWatermark (Svelte ↔ D3 bridge)
+    │   ├── layout/      # AppShell, TopNavBar, MenuCarousel, DragDivider
+    │   └── panels/      # DevicePanel, GraphPanel, EqualizerPanel, MiscPanel
+    ├── stores/          # Reactive class instances in .svelte.ts (see below)
+    ├── services/        # DataProvider, commands, command history, analytics
+    ├── graph/           # D3 engine + overlays (see below)
+    ├── device-peq/      # Hardware EQ bridge (WebHID/WebSerial/BLE/Network) for 20+ devices
+    ├── utils/           # Parsing, normalization, smoothing, URL encoding, config lookup, …
+    ├── workers/         # Web workers for heavy FR processing
+    ├── types/           # data-types.ts, squiglink-types.ts
+    └── paraglide/       # GENERATED i18n functions — do not edit
+defaults/                # Operator-editable templates, copied to dist/ by a Vite plugin
+├── config.js            # window.GRAPHTOOL_CONFIG (plain <script>, not type=module)
+├── theme.css            # Graph + UI CSS variables (OKLCH, light+dark, semantic tokens)
+├── assets/              # Default images / string overrides
+└── data/                # Sample phone_book.json + FR files + targets
+messages/                # Paraglide sources: en.json, ko.json
+scripts/                 # build-cdn.js, generate-boot-manifest.js
+static/                  # Project assets (local overrides; gitignored where noted)
+```
 
 ## Stores — Class Pattern
-All stores are reactive class instances exported from .svelte.ts files.
+All stores are exported as class instances from `.svelte.ts` files.
+- `fr-store.svelte.ts` — `FRDataStore` wraps `SvelteMap<uuid, FRDataObject>` from `svelte/reactivity`
+- `graph-store.svelte.ts` — yScale, baseline UUID, normalization type, smoothing, target-original data map
+- `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
+- `menu-store.svelte.ts` — current panel + slide direction
+- `app-store.svelte.ts` — theme, isMobile, isReady
+- `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle + `AnalyserNode`
+- `device-peq-store.svelte.ts` — hardware EQ device connection state
+- `squiglink-store.svelte.ts` — cross-site registry, sponsor content, domain guard
 
-FRStore uses SvelteMap from svelte/reactivity (NOT $state(new Map())):
+Pattern:
 ```ts
 import { SvelteMap } from 'svelte/reactivity';
 class FRDataStore {
-  readonly #map = new SvelteMap<string, FRDataObject>();
-  get entries() { return this.#map; }  // for {#each frStore.entries.values() as item}
-  get size() { return this.#map.size; }
-  get(uuid: string) { return this.#map.get(uuid) ?? null; }
-  set(uuid: string, obj: FRDataObject) { this.#map.set(uuid, obj); }
-  delete(uuid: string) { this.#map.delete(uuid); }
+	readonly #map = new SvelteMap<string, FRDataObject>();
+	get entries() { return this.#map; }
+	get size() { return this.#map.size; }
+	get(uuid: string) { return this.#map.get(uuid) ?? null; }
+	set(uuid: string, obj: FRDataObject) { this.#map.set(uuid, obj); }
+	delete(uuid: string) { this.#map.delete(uuid); }
 }
 export const frStore = new FRDataStore();
 ```
+- **Never** `export const store = { yScale: $state(60) }` (plain object literal).
+- **Do** `export const store = new StoreClass()`.
+- **Never** `export let count = $state(0)` in `.svelte.ts`.
 
-Other stores use $state class fields:
-```ts
-class GraphStore {
-  yScale = $state(60);
-  baselineUUID = $state<string | null>(null);
-}
-export const graphStore = new GraphStore();
-```
+## Services
+- `data-provider.svelte.ts` — orchestrates commands + `frStore`: add/remove/toggle FR, insertRaw,
+  updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll
+- `commands.ts` — Command pattern (Add/Remove/Update*) with `execute()` / `undo()`
+- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
+- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 
-NEVER: `export const store = { yScale: $state(60) }` (plain object literal)
-DO:    `export const store = new StoreClass()`        (class instance)
-NEVER: `export let count = $state(0)` in .svelte.ts   (reassignable export)
-
-## Config System
-defaults/config.js sets window.GRAPHTOOL_CONFIG (plain <script> in app.html, NOT type="module")
-Access via getConfigValue(path) from $lib/utils/config.
-Config-level i18n uses resolveI18nValue() for these operator-configured fields ONLY:
-  DESCRIPTION, TOPBAR.TITLE, TOPBAR.LINK_LIST, TARGET_MANIFEST
-This is SEPARATE from Paraglide UI string i18n.
+## Utils
+`config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
+`log-scale.ts`, `metadata-parser.ts`, `equalizer.ts`, `url-provider.ts`, `base62.ts`.
+`url-provider.ts` uses `history.replaceState` directly — **not** `goto()`.
 
 ## Graph Engine
-D3.js in src/lib/graph/GraphEngine.svelte.ts
-Initialize in GraphContainer.svelte's onMount: graphEngine.init(svgEl) with bind:this={svgEl}
-NEVER use d3.select('#fr-graph') — always pass the bound SVG element reference.
-SVG viewBox: 800x450. X: log frequency 20–20000 Hz. Y: linear dB, configurable scale.
-React to store changes with $effect reading frStore.size (SvelteMap reactive).
+D3.js lives in [src/lib/graph/GraphEngine.svelte.ts](src/lib/graph/GraphEngine.svelte.ts) with overlays:
+- `GraphHandle.ts` — drag/zoom interaction
+- `GraphInspection.ts` — hover inspection overlay
+- `GraphEqOverlay.ts` — EQ curve rendering
+- `GraphSpectrumOverlay.ts` — live audio spectrum
+
+Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using `bind:this={svgEl}`.
+**Never** `d3.select('#fr-graph')` — always pass the bound SVG element.
+Viewbox 800×450. X: log 20–20000 Hz. Y: linear dB, configurable scale.
+React to store changes with `$effect(() => frStore.size)` (SvelteMap is reactive).
+
+## Config System
+`defaults/config.js` sets `window.GRAPHTOOL_CONFIG` via a plain `<script>` in `app.html`
+(NOT `type="module"`). Read it with `getConfigValue(path)` from `$lib/utils/config`.
+Operator-configured fields use `resolveI18nValue()` for inline multilingual values:
+`DESCRIPTION`, `TOPBAR.TITLE`, `TOPBAR.LINK_LIST`, `TARGET_MANIFEST`.
+This is separate from Paraglide UI-string i18n.
 
 ## i18n
-UI strings: Paraglide — messages/en.json, messages/ko.json
-Generated functions in src/lib/paraglide/ (DO NOT EDIT manually)
-Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
-Key format: underscore_separated (NOT dot.separated — "menu.item" → "menu_item")
-ALL keys must exist in catalog — no fallback default string.
-Language switch: setLanguageTag('ko') from $lib/paraglide/runtime
+- UI strings: Paraglide — `messages/en.json`, `messages/ko.json`
+- Key format: `underscore_separated` (e.g. `menu_graph_panel`, not `menu.graphPanel`)
+- **All keys must exist in both language files.** No runtime fallback string.
+- Generated code in `src/lib/paraglide/` is **not** hand-edited
+- Switch language: `setLanguageTag('ko')` from `$lib/paraglide/runtime`
+- Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
 
 ## CSS / Theming
-Tailwind CSS 4 for all component styling. Dark mode via .dark class on <html>:
-  `document.documentElement.classList.toggle('dark', appStore.theme === 'dark')`
-defaults/theme.css — D3 graph + UI CSS variables (user-editable post-build):
-  --color-graph-grid-major, --color-graph-grid-minor, --color-graph-axis-label, etc.
-bits-ui for interactive components: Combobox, Slider, Dialog, Popover, Select, Switch, Tooltip
+All colors are operator-customizable via CSS variables in [defaults/theme.css](defaults/theme.css) —
+**no hardcoded palette values in components**. [src/routes/layout.css](src/routes/layout.css) is the
+Tailwind v4 entry; it declares `@custom-variant dark` and re-exports the theme.css variables into
+`@theme` so Tailwind utilities (`bg-base-100`, `text-primary`, `border-accent`, …) resolve to them.
 
-## Static Output & Defaults
-Build: `npm run build` → outputs to dist/
-static/ holds only project assets (assets/strings/ translations).
-defaults/ holds user-configurable templates (config.js, theme.css, .htaccess, data/, assets/images/).
-A Vite plugin (vite-plugin-defaults.ts) serves defaults/ as fallback during dev and copies them
-to dist/ after build (without overwriting files from static/).
-To override a default locally: copy it to static/ (gitignored) — it takes priority.
-User-editable files in dist/: config.js, theme.css, data/, assets/strings/
-NEVER import files from static/ or defaults/ as modules — fetch() them at runtime.
+The token system follows DaisyUI naming (OKLCH color space, light + dark variants in theme.css):
+- **Base surfaces:** `--color-base-100` / `-200` / `-300`, `--color-base-content`
+- **Semantic roles:** `primary`, `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`
+  — each with a `-content` counterpart for text-on-color
+- **Graph-only (D3 SVG where Tailwind can't reach):** `--color-graph-bg`, `-grid-major`, `-grid-minor`,
+  `-axis-label`, `-grid-text`, `-baseline`, `-watermark-opacity`
+
+**UI chrome uses opacity modifiers on `base-content`**, e.g. `text-base-content/60` for secondary
+text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
+always go through the semantic tokens so operator themes stay consistent.
+
+Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', appStore.theme === 'dark')`.
+All theme.css variables switch automatically; add `html.theme-transition` briefly during toggle for
+the cross-fade (handled in layout.css).
+
+bits-ui provides interactive primitives; style them with semantic tokens, not literal colors.
+
+## Static Output & Deployment
+- `npm run build` → static SPA in `dist/` (prerendered; SPA fallback via `.htaccess`)
+- `npm run build:cdn` → `dist-cdn/` with a thin `cdn-index.html` loader and `cdn/loader.js`
+  for jsDelivr-hosted assets (set `MGT_CDN_BASE` to rewrite `_app/` URLs)
+- A Vite plugin serves `defaults/` as fallback during dev and copies them into `dist/` at build
+  (without overwriting files that already exist under `static/`)
+- User-editable files in `dist/`: `config.js`, `theme.css`, `data/`, `assets/strings/`
+- **Never** import from `static/` or `defaults/` as modules — `fetch()` them at runtime
 
 ## Build Commands
-npm run dev      — dev server (http://localhost:5173)
-npm run build    — production build to dist/
-npm run preview  — preview built output
-npm run check    — TypeScript + Svelte type checking
-npm run test     — run all Vitest tests
-npm run lint     — ESLint + Prettier check
-npm run format   — auto-format code
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server at http://localhost:5173 |
+| `npm run build` | Production build to `dist/` |
+| `npm run build:cdn` | CDN-optimized build to `dist-cdn/` |
+| `npm run preview` | Preview built output |
+| `npm run check` | `svelte-kit sync` + `svelte-check` (TypeScript + Svelte) |
+| `npm run test` | Vitest (client + server, Playwright browser mode) |
+| `npm run lint` | Prettier + ESLint |
+| `npm run format` | Auto-format code |
 
-## Core Feature Panels (formerly extensions)
-All active extensions from the legacy project are now built-in Svelte components
-in src/lib/components/features/:
-- DevicePeq.svelte         — USB device bridge for hardware EQ (WebHID/WebSerial)
-- FrequencyTutorial.svelte — Educational frequency range overlay on graph
-- TargetCustomizer.svelte  — Custom HRTF target with Tilt/Bass/Treble sliders
-- GraphColorWheel.svelte   — Color picker for graph curves (uses bits-ui Popover)
-- PreferenceBound.svelte   — Preference bound D3 overlay on graph
-- SponsorBanner.svelte     — Sponsor modal on first visit (bits-ui Dialog)
-- ShopLink.svelte          — "Buy Now" button when a matching shop link exists
+## Built-in Features
+All active features are first-class Svelte components in `src/lib/components/features/` and
+`src/lib/components/equalizer/` — **not** separate extensions, and not fork-based:
+- **Parametric EQ** with AutoEQ, real-time audio preview, import/export
+- **Device PEQ Bridge** — push EQ to 20+ hardware devices via USB HID / Serial / BLE / Network
+  (implementation under `src/lib/device-peq/`)
+- **Target Customizer** — per-target Tilt / Bass / Treble / Ear / PSSR sliders with presets
+- **Graph Color Wheel** — per-curve color picker (bits-ui Popover)
+- **Preference Bound** — upper/lower preference-range overlay
+- **Frequency Tutorial** — educational frequency-band overlay
+- **Tutorial Modal** — first-visit walkthrough
+- **Sponsor Banner / Shop Link** — squig.link-gated
+
+See [docs/docs/features/](docs/docs/features/) for per-feature user docs.
 
 ## squig.link Integration
-Native Svelte reimplementation of the legacy squiglink-integration extension.
-Active ONLY when hosted on *.squig.link domains (domain guard in squiglink-store).
+Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`).
+Fetches site registry and shop links from squig.link JSON endpoints, loads `squiglink-intro.js`
+for sponsor content, and performs cross-site device search. All UI is Svelte-native — no
+external DOM manipulation. Toggled via the `SQUIGLINK` section in `defaults/config.js`:
+`ENABLED`, `ANALYTICS_MEASUREMENT_IDS`, `ANALYTICS_SITE`, `ENABLE_ANALYTICS`,
+`ENABLE_CROSS_SITE_SEARCH`, `ENABLE_SPONSOR`.
 
-Design: fetches data from squig.link JSON endpoints (squigsites.json, shoplinks.json)
-and loads squiglink-intro.js for sponsor content. Does NOT load squigsites.js.
-All UI is Svelte-native — no external DOM manipulation.
-
-Key files:
-  Types:      src/lib/types/squiglink-types.ts
-  Store:      src/lib/stores/squiglink-store.svelte.ts
-  Analytics:  src/lib/services/analytics-service.svelte.ts
-  Components: SponsorBanner, ShopLink (features/), PhoneSelector (cross-site search inline), SiteSelector (controls/)
-
-Config section (defaults/config.js):
-  SQUIGLINK.ENABLED                  — master toggle (default: true)
-  SQUIGLINK.ANALYTICS_MEASUREMENT_IDS — array of GA4 IDs (multi-tag support)
-  SQUIGLINK.ANALYTICS_SITE           — site name for analytics attribution
-  SQUIGLINK.ENABLE_ANALYTICS         — analytics toggle
-  SQUIGLINK.ENABLE_CROSS_SITE_SEARCH — cross-site search toggle
-  SQUIGLINK.ENABLE_SPONSOR           — sponsor features toggle
-
-Data sources (all from squig.link):
-  squigsites.json      — site registry (fetched at runtime)
-  shoplinks.json       — per-device shop links
-  squiglink-intro.js   — sponsor content (loaded as script, reads window.contentSponsor)
-  {site}/data/phone_book.json — per-site device catalogs (lazy-loaded)
-
-## Migration Status
-See full migration plan at: ../.claude/plans/dynamic-squishing-dusk.md
-Phases:
-  0: Foundation (DONE) — adapter-static, static assets, folder structure, CLAUDE.md
-  1: Data Layer (DONE) — types, stores, utils (fr-parser, fr-smoother, etc.), commands
-  2: Config & i18n (DONE) — config.ts, Paraglide message migration
-  3: CSS / Theme (DONE) — theme.css written; Tailwind dark mode in layout
-  4: Core Layout (DONE) — AppShell, TopNavBar, DragDivider, MenuCarousel
-  5: Graph Engine (DONE) — D3 GraphEngine port, GraphContainer
-  6: Panels (DONE)     — DataProvider service, PhoneSelector, SelectionList, TargetSelector,
-                         NormalizerInput, SmoothingButton, YAxisScaleButton, ScreenshotButton,
-                         ShareButton, InspectionToggle; DevicePanel, GraphPanel,
-                         EqualizerPanel (scaffold), MiscPanel; AppShell panel routing
-  7: Extensions (DONE) — FrequencyTutorial, TargetCustomizer, GraphColorWheel, PreferenceBound, DevicePeq
-  7b: squig.link Integration (DONE) — squiglink-store, analytics-service,
-                         SiteSelector, SponsorBanner, ShopLink; config SQUIGLINK section;
-                         see ../.claude/plans/replicated-whistling-pine.md for design decisions
-  8: URL Provider (DONE) — url-provider.ts, ShareButton integration, URL state encoding/decoding,
-                         initial data loading from URL or config (AppShell bootstrap),
-                         auto-update URL on store changes, config defaults (INITIAL_PANEL, normalization, yScale)
-  9: Testing (DONE)    — DataProvider integration tests (33 tests), FR Normalizer (+6), FR Smoother (+5),
-                         FR Store (+5), URL Provider (20 tests); total 231 tests passing
-
-## Documentation References (for AI agents in this project)
-- **Svelte 5 + SvelteKit docs**: Available via the MCP plugin `mcp__plugin_svelte_svelte__*` tools.
-  Use `list-sections` first, then `get-documentation` with relevant section names.
-- **bits-ui docs**: Fetch https://bits-ui.com/llms.txt for the component index.
-  Each component also has its own llms.txt, e.g. https://bits-ui.com/docs/components/combobox/llms.txt
-  DO NOT use /llms-full.txt (returns 404).
+## Documentation References (for AI agents)
+- **Svelte 5 + SvelteKit docs** — available via `mcp__plugin_svelte_svelte__*` MCP tools.
+  Call `list-sections` first, then `get-documentation` for the section you need.
+- **bits-ui docs** — fetch `https://bits-ui.com/llms.txt` for the component index; each
+  component has its own `llms.txt` (e.g. `https://bits-ui.com/docs/components/combobox/llms.txt`).
+  Do **not** use `/llms-full.txt` (404).
+- **Project docs** — [docs/docs/](docs/docs/) (Docusaurus sources).
 
 ## Design Context
 
 ### Users
-Audio enthusiasts, reviewers, and engineers who compare headphone/speaker frequency response measurements. They visit the tool to load FR data, overlay multiple curves, apply targets and EQ, and draw conclusions about audio device performance. Users range from casual hobbyists browsing squig.link to professionals doing serious measurement analysis. They expect precision and clarity — the graph is the center of attention, and the UI should stay out of the way.
+Audio enthusiasts, reviewers, and engineers who compare headphone/speaker FR measurements.
+They visit the tool to load FR data, overlay curves, apply targets and EQ, and draw conclusions.
+Range from casual hobbyists on squig.link to professionals doing serious analysis.
+They expect precision and clarity — the graph is the center of attention; the UI should get
+out of the way.
 
 ### Brand Personality
-**Modern, minimal, confident.**
-
-Voice: Direct and precise — no unnecessary embellishment. The tool speaks through its data visualization, not decorative UI. Controls are clear and purposeful.
-
-Tone: Professional but not cold. Approachable enough for hobbyists, authoritative enough for professionals.
-
-Emotional goals: **Confidence & trust** (users must feel the data is accurate and the tool is reliable) and **focus & flow** (the UI should disappear so users stay in the zone analyzing data).
+**Modern, minimal, confident.** Direct and precise, professional but not cold. The goals are
+**confidence & trust** (data must feel accurate) and **focus & flow** (the UI should disappear).
 
 ### Aesthetic Direction
-**Visual tone:** Clean, monochrome zinc palette with intentional restraint. The graph curves themselves provide the color — the chrome should be neutral and recede. Think "precision instrument with a modern software finish."
-
-**References:**
-- **squig.link / crinacle** — The ecosystem users already know; maintain familiarity with measurement tool conventions
-- **Linear / Vercel / Raycast** — Modern dev tools with minimal chrome, fast interactions, and confident design language
-- **Apple Music / Spotify** — Polished consumer-grade finish applied to audio-adjacent UX; smooth transitions, clear hierarchy
-
-**Anti-references:** Cluttered measurement software (dense toolbars, tiny buttons, Windows-era UI). Avoid looking like legacy desktop audio tools (REW, ARTA) even though users may be familiar with them.
-
-**Theme:** Light and dark mode (class-based `.dark` toggle). Zinc grayscale foundation. Color is reserved for data curves — the UI itself stays monochrome with subtle hover/focus states.
+Clean, restrained chrome with **operator-customizable theming** — the default palette is only
+a starting point. Every color flows through the semantic tokens in [defaults/theme.css](defaults/theme.css),
+so a deployment can re-skin the tool without touching source. The FR curves themselves carry the
+informational color; the chrome stays quiet regardless of which theme an operator picks.
+References: squig.link / crinacle (familiarity), Linear / Vercel / Raycast (modern tool language),
+Apple Music / Spotify (consumer-grade finish), DaisyUI (semantic token model). Anti-references:
+dense legacy measurement tools (REW, ARTA).
 
 ### Design Principles
+1. **Data first, chrome second.** The FR graph is the hero.
+2. **Quiet confidence.** Restraint in color, motion, and decoration.
+3. **Instant clarity.** Obvious labels, states, and affordances. No mystery icons.
+4. **Accessible by default.** WCAG AAA target. Keyboard, focus, contrast, SR support.
+5. **Responsive without compromise.** Desktop and mobile both feel intentional.
 
-1. **Data first, chrome second.** The frequency response graph is the hero. Every UI decision should maximize the graph's prominence and readability. Controls support the data — they don't compete with it.
-
-2. **Quiet confidence.** Use restraint in color, motion, and decoration. The design should feel assured and precise, not flashy. Zinc grayscale for UI; let curve colors be the only accent.
-
-3. **Instant clarity.** Every control should be immediately understandable. Labels are concise, states are obvious, and affordances are clear. No hidden functionality behind ambiguous icons.
-
-4. **Accessible by default.** Target WCAG AAA compliance. High contrast ratios, visible focus indicators, keyboard navigability, and screen reader support are non-negotiable. The tool must work for everyone.
-
-5. **Responsive without compromise.** Desktop and mobile must both feel intentional — not a squeezed desktop layout on mobile, but a genuinely adapted experience. The graph always remains usable.
-
-### Design Tokens (Current)
-
-**Colors:** Tailwind zinc scale (50–950) for structural UI. Blue-indigo accent (OKLCH hue 258) for interactive highlights. Operator-customizable via `--color-accent` in `defaults/theme.css`. Tailwind utilities: `bg-accent`, `text-accent`, `ring-accent`, `bg-accent-muted`, `text-accent-foreground`, etc. All auto-switch between light/dark mode.
-
-**Typography:** System font stack (Tailwind default). Sizes: text-xs (metadata), text-sm (body/controls), text-lg (headings). Weights: regular (400), medium (500), semibold (600).
-
-**Spacing:** Tailwind default scale. Common values: gap-1 to gap-4, px-2 to px-4, py-1 to py-2. Border radius: rounded (4px) to rounded-xl (12px).
-
-**Borders:** 1px zinc-300 (light) / zinc-600 (dark) for interactive elements. 1px zinc-200 / zinc-700 for structural dividers.
-
-**Shadows:** Minimal — shadow-xl on popovers/dialogs only.
-
-**Motion:** transition-colors on interactive elements. No spring physics or complex animations. Respect prefers-reduced-motion.
+### Design Tokens
+- **Colors:** Operator-customizable via [defaults/theme.css](defaults/theme.css). DaisyUI-style
+  semantic tokens (OKLCH) with light + dark variants: `base-100/200/300/content`, `primary`,
+  `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`, each with a
+  `-content` counterpart. Graph-only variables (`--color-graph-*`) cover D3 SVG where Tailwind
+  can't reach. **Never hardcode palette values in components** — always use the semantic
+  utilities (`bg-base-200`, `text-primary`, `border-base-content/15`, …).
+- **Typography:** Pretendard via `@theme` in [src/routes/layout.css](src/routes/layout.css);
+  sizes text-xs (metadata), text-sm (body/controls), text-lg (headings); weights 400 / 500 / 600.
+- **Spacing:** Tailwind defaults; common gap-1..4, px-2..4, py-1..2; radius `rounded`..`rounded-xl`.
+- **Borders/dividers:** `border-base-content/15` to `/25` for structure and interactive outlines —
+  opacity modifiers adapt to whatever base palette the operator picks.
+- **Shadows:** Minimal — `shadow-xl` on popovers/dialogs only.
+- **Motion:** 0.15s `transition-colors` globally on interactive elements (see `layout.css`);
+  longer 0.3s cross-fade only during theme toggle via `html.theme-transition`; no spring physics;
+  respect `prefers-reduced-motion`.

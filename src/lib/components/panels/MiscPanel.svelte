@@ -4,6 +4,7 @@
 	import { getLocale, setLocale } from '$lib/paraglide/runtime.js';
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import Button from '../atoms/Button.svelte';
 
 	const appVersion = __APP_VERSION__;
 
@@ -38,10 +39,10 @@
 	<!-- Theme + Language row -->
 	<div class="flex items-center gap-3">
 		<!-- Theme toggle button -->
-		<button
+		<Button
 			onclick={toggleTheme}
 			title={appStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-			class="flex h-9 w-9 items-center justify-center rounded-md border border-base-content/20  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+			class="h-9 w-9" variant="outline" size="icon"
 		>
 			{#if appStore.theme === 'dark'}
 				<!-- Moon icon -->
@@ -50,7 +51,7 @@
 				<!-- Sun icon -->
 				<Sun class="h-4 w-4" aria-hidden="true" />
 			{/if}
-		</button>
+		</Button>
 
 		<!-- Language selector (conditional) -->
 		{#if enableI18n}
@@ -60,7 +61,7 @@
 			<select
 				value={getLocale()}
 				onchange={handleLocaleChange}
-				class="h-9 flex-1 rounded-md border border-base-content/20 px-2 text-sm  focus:outline-none focus:ring-1 focus:ring-accent"
+				class="h-9 flex-1 rounded-md border border-base-content/20 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent hover:cursor-pointer hover:bg-base-content/10"
 			>
 				{#each languages as lang (lang.value)}
 					<option value={lang.value}>{lang.label}</option>

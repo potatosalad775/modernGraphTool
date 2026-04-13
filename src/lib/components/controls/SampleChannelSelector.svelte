@@ -175,7 +175,7 @@
 				{...props}
 				title={triggerLabel}
 				variant="outline" size="sm"
-				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm! bg-base-200!"
+				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm! bg-base-200! hover:bg-base-content/10!"
 			>
 				{triggerLabel}
 				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />

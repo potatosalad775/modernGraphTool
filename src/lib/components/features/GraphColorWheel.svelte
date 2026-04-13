@@ -3,6 +3,8 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import type { FRDataObject, FRColors } from '$lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
+	import Button from '../atoms/Button.svelte';
+	import { Shuffle } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -285,21 +287,24 @@
 
 			<!-- Action buttons -->
 			<div class="flex items-center justify-between gap-2">
-				<button
+				<Button
+					title={m.graph_color_wheel_btn_random()}
 					onclick={onRandom}
-					class="rounded bg-base-300 px-2 py-1 text-xs  transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					variant="muted" size="sm"
 				>
 					{m.graph_color_wheel_btn_random()}
-				</button>
+					<Shuffle class="ml-1 h-3 w-3" aria-hidden="true" />
+				</Button>
 
 				<Popover.Close>
 					{#snippet child({ props })}
-						<button
+						<Button
 							{...props}
-							class="rounded bg-base-300 px-2 py-1 text-xs  transition-colors hover:bg-base-content/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							title={m.graph_color_wheel_btn_close()}
+							variant="muted" size="sm"
 						>
 							{m.graph_color_wheel_btn_close()}
-						</button>
+						</Button>
 					{/snippet}
 				</Popover.Close>
 			</div>

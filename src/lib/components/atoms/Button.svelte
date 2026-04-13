@@ -18,10 +18,10 @@
   const variantClasses = {
     primary: "bg-primary text-primary-content hover:bg-primary/90",
     secondary: "bg-secondary text-secondary-content hover:bg-secondary/80",
-    muted: "bg-base-300 text-base-content hover:bg-base-content/10",
+    muted: "bg-base-300 text-base-content hover:bg-base-300/60",
     destructive: "bg-error text-error-content hover:bg-error/90",
-    outline: "ring ring-base-content/20 bg-inherit text-base-content hover:brightness-90",
-    ghost: "text-base-content bg-inherit hover:brightness-90",
+    outline: "ring ring-base-content/20 bg-inherit text-base-content hover:bg-base-content/10",
+    ghost: "text-base-content bg-inherit hover:bg-base-content/10",
     link: "text-primary underline-offset-4 hover:underline",
   };
 

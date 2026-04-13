@@ -48,7 +48,7 @@
 {#snippet targetRow(group: TargetManifestEntry)}
 	<div class="overflow-x-auto px-px pt-px pb-1">
 		<div class="flex items-center gap-2 w-max">
-			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/40">{group.type}</span>
+			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/70">{group.type}</span>
 			<div class="flex gap-1.5">
 				{#each group.files as file (file)}
 					{@const identifier = getIdentifier(file)}

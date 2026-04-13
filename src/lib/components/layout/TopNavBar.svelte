@@ -32,7 +32,7 @@
 		<div class="flex items-center gap-4">
 			<a 
 				href="."
-				class="flex items-center no-underline text-base-content"
+				class="flex items-center no-underline text-base-content rounded px-2 py-1.5 -ml-2 hover:bg-base-content/10"
 			>
 				{#if titleType === 'HTML'}
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -50,13 +50,13 @@
 
 		<!-- Desktop: link list + site selector -->
 		{#if !appStore.isMobile}
-			<div class="flex items-center gap-4">
+			<div class="flex items-center gap-1">
 				{#each linkList as link (link.URL)}
 					<a
 						href={link.URL}
 						target="_blank"
 						rel="external noopener noreferrer"
-						class="text-sm  hover:text-base-content"
+						class="text-sm rounded px-2 py-1.5 hover:bg-base-content/10"
 					>
 						{link.TITLE}
 					</a>
@@ -70,7 +70,6 @@
 				title="Open menu"
 				onclick={openSidebar}
 				variant="ghost" size="icon"
-				class="hover:bg-base-300"
 			>
 				<Menu class="h-5 w-5" />
 			</Button>

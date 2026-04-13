@@ -388,7 +388,7 @@
 				<select
 					onchange={handleAddFilterChange}
 					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
-						focus:outline-none focus:ring-1 focus:ring-accent flex-1"
+						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
@@ -402,7 +402,7 @@
 					value={selectedPreset}
 					onchange={handlePresetChange}
 					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
-						focus:outline-none focus:ring-1 focus:ring-accent flex-1"
+						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
 					{#each filterPresets as preset (preset.name)}

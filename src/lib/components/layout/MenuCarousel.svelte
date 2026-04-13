@@ -124,12 +124,14 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold tracking-wide transition-all focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none {menuStore.currentPanel ===
-				panel.id
-					? 'text-accent'
-					: Math.abs(i - currentIndex) === 1
-						? 'text-base-content/60'
-						: 'text-base-content/25'}"
+				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold 
+					tracking-wide transition-all hover:bg-base-content/5 hover:cursor-pointer
+					focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none 
+					{menuStore.currentPanel === panel.id
+						? 'text-accent'
+						: Math.abs(i - currentIndex) === 1
+							? 'text-base-content/60'
+							: 'text-base-content/25'}"
 				onclick={() => goTo(i)}
 			>
 				{panel.label()}

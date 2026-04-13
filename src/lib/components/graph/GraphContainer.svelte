@@ -39,7 +39,7 @@
 
 	const labelTextWidths = new SvelteMap<string, number>();
 
-	function measureLabel(node: SVGTextElement, key: string) {
+	function measureLabel(node: SVGTextElement, param: { key: string; text: string }) {
 		const measure = (k: string) => {
 			// requestAnimationFrame avoids measuring during the same microtask Svelte
 			// is mid-render in (some browsers return stale bbox in that window).
@@ -48,12 +48,15 @@
 				labelTextWidths.set(k, node.getBBox().width);
 			});
 		};
-		let currentKey = key;
+		let currentKey = param.key;
 		measure(currentKey);
 		return {
-			update(newKey: string) {
-				if (newKey !== currentKey) labelTextWidths.delete(currentKey);
-				currentKey = newKey;
+			update(next: { key: string; text: string }) {
+				if (next.key !== currentKey) labelTextWidths.delete(currentKey);
+				currentKey = next.key;
+				// Re-measure on every update — key stays stable across text edits
+				// (e.g. TargetCustomizer adjustment label), so we can't rely on key
+				// change alone to trigger a recompute.
 				measure(currentKey);
 			},
 			destroy() {
@@ -108,9 +111,10 @@
 				}
 
 				channels.forEach((channel) => {
+					const adj = obj.adjustmentLabel ? ` ${obj.adjustmentLabel}` : '';
 					const text = obj.type !== 'target'
 						? `${obj.identifier} ${obj.dispSuffix} (${channel})`
-						: `${obj.identifier} ${obj.dispSuffix}`;
+						: `${obj.identifier} ${obj.dispSuffix}${adj}`;
 					raw.push({
 						uuid: obj.uuid,
 						channel,
@@ -294,7 +298,7 @@
 					text-anchor={labelData.anchor}
 					font-size={labelFontSize}
 					font-weight={labelFontWeight}
-					use:measureLabel={label.uuid + label.channel}
+					use:measureLabel={{ key: label.uuid + label.channel, text: label.text }}
 				>{label.text}</text>
 			{/each}
 		</g>

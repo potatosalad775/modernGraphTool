@@ -76,6 +76,27 @@
 		return fn ? fn() : def.name;
 	}
 
+	function getShortFilterName(def: FilterDef): string {
+		const label = getFilterLabel(def);
+		const paren = label.indexOf(' (');
+		return paren >= 0 ? label.slice(0, paren) : label;
+	}
+
+	function formatAdjustmentLabel(
+		filters: FilterDef[],
+		values: Map<string, number>
+	): string | null {
+		const parts: string[] = [];
+		for (const def of filters) {
+			const v = values.get(def.id) ?? 0;
+			if (v === 0) continue;
+			const unit = def.type === 'TILT' ? 'dB/oct' : 'dB';
+			const sign = v > 0 ? '+' : '';
+			parts.push(`${getShortFilterName(def)}: ${sign}${v.toFixed(1)}${unit}`);
+		}
+		return parts.length > 0 ? `(${parts.join(', ')})` : null;
+	}
+
 	function getGainRange(def: FilterDef): { min: number; max: number; step: number } {
 		if (def.type === 'TILT') return { min: -2, max: 2, step: 0.1 };
 		return { min: -20, max: 20, step: 0.5 };
@@ -237,7 +258,12 @@
 			};
 		}
 
-		untrack(() => dataProvider.updateFRDataWithRawData(uuid, modifiedChannels));
+		const label = formatAdjustmentLabel(activeFilters, filterValues);
+		untrack(() =>
+			dataProvider.updateFRDataWithRawData(uuid, modifiedChannels, {
+				adjustmentLabel: label
+			})
+		);
 	});
 
 	// ── Handlers ──────────────────────────────────────────────────────────────

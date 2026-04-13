@@ -96,6 +96,8 @@ export interface FRDataObject {
   channels: ParsedFRData;
   dispChannel: ('L' | 'R' | 'AVG')[];
   dispSuffix?: string | null;
+  /** Short summary of TargetCustomizer adjustments, e.g. "(Tilt: -0.8dB/oct, Bass: +6.0dB)". */
+  adjustmentLabel?: string | null;
   colors: FRColors;
   dash: string;
   meta?: PhoneMetadata | TargetMetadata;

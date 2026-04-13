@@ -197,6 +197,9 @@
 												group-data-[state=open]:rotate-180" />
 										</span>
 									{/if}
+									{#if item.adjustmentLabel}
+										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
+									{/if}
 									{#if item.hptfFillVisible && item.hptf?.description}
 										<span class="truncate text-xs text-base-content/50">{item.hptf.description}</span>
 									{/if}
@@ -225,6 +228,9 @@
 						</span>
 						{#if item.dispSuffix}
 							<span class="truncate text-xs text-base-content/60">{item.dispSuffix}</span>
+						{/if}
+						{#if item.adjustmentLabel}
+							<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
 						{/if}
 						{#if item.hptfFillVisible && item.hptf?.description}
 							<span class="truncate text-xs text-base-content/50">{item.hptf.description}</span>

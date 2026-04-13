@@ -236,7 +236,11 @@ class DataProvider {
 	updateFRDataWithRawData(
 		uuid: string,
 		rawData: ParsedFRData,
-		opts: { identifier?: string | null; dispSuffix?: string | null } = {}
+		opts: {
+			identifier?: string | null;
+			dispSuffix?: string | null;
+			adjustmentLabel?: string | null;
+		} = {}
 	): void {
 		const existing = frStore.get(uuid);
 		if (!existing) return;
@@ -249,7 +253,9 @@ class DataProvider {
 				...(processed.AVG && { AVG: processed.AVG })
 			},
 			identifier: opts.identifier ?? existing.identifier,
-			dispSuffix: opts.dispSuffix ?? existing.dispSuffix
+			dispSuffix: opts.dispSuffix ?? existing.dispSuffix,
+			adjustmentLabel:
+				'adjustmentLabel' in opts ? opts.adjustmentLabel : existing.adjustmentLabel
 		};
 		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
 	}

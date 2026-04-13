@@ -44,7 +44,12 @@
 		  }
 		| undefined;
 
-	const customizableTargets = tcConfig?.CUSTOMIZABLE_TARGETS ?? [];
+	function normalizeTargetName(name: string): string {
+		const trimmed = name.trim();
+		return trimmed.endsWith(' Target') ? trimmed : `${trimmed} Target`;
+	}
+
+	const customizableTargets = (tcConfig?.CUSTOMIZABLE_TARGETS ?? []).map(normalizeTargetName);
 	const availableFilters: FilterDef[] = tcConfig?.FILTERS ?? [
 		{ id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
 		{ id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
@@ -53,7 +58,8 @@
 	const filterPresets: FilterPreset[] = tcConfig?.FILTER_PRESET ?? [];
 	const initialFilters: InitialFilter[] = tcConfig?.INITIAL_TARGET_FILTERS ?? [];
 
-	const isCustomizable = $derived(customizableTargets.includes(item.identifier));
+	const normalizedIdentifier = $derived(normalizeTargetName(item.identifier));
+	const isCustomizable = $derived(customizableTargets.includes(normalizedIdentifier));
 
 	// ── i18n label map ────────────────────────────────────────────────────────
 
@@ -82,7 +88,9 @@
 	let selectedPreset = $state('');
 
 	// Apply initial filters for this target
-	const initial = initialFilters.find((f) => item.identifier.includes(f.name));
+	const initial = initialFilters.find(
+		(f) => normalizeTargetName(f.name) === normalizedIdentifier
+	);
 	if (initial) {
 		for (const [id, value] of Object.entries(initial.filter)) {
 			if (availableFilters.some((f) => f.id === id)) {

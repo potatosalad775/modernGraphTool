@@ -18,14 +18,12 @@
          "price":"¥100"
         },
         {"name":["Variations 2"],
-         "file":["Combo Variant (A)",
+         "file":["Combo Variant",
+                 "Combo Variant (A)",
                  "Combo Variant (B)",
                  "Combo Variant (C)",
                  "Combo Variant (D)"],
-         "suffix":["(A)",
-                   "(B)",
-                   "(C)",
-                   "(D)"],
+         "prefix": "Combo Variant",
          "reviewScore":"A+",
          "reviewLink":"https://www.head-fi.org/forums/",
          "shopLink":"https://www.aliexpress.com/",
@@ -33,7 +31,6 @@
         },
         {"name":["Multi Sample"],
          "file":["Multi Sample"],
-         "suffix":[""],
          "samples": 3
         },
         {"name":["Variation Single"],
@@ -44,34 +41,47 @@
          "shopLink":"https://www.aliexpress.com/",
          "price":"$100"
         },
-        {"name":["HpTF Fill Only"],
-         "hptf": {
-            "files":[
-              "HpTF Demo Center", 
-              "HpTF Demo Front", 
-              "HpTF Demo Back", 
-              "HpTF Demo Up",
-              "HpTF Demo Down"
-            ],
-            "labels":["Center", "Front", "Back", "Up", "Down"],
-            "description": "(Positional Variance)"
-         }
-        },
-        {"name":["HpTF With Samples"],
-         "file":["HpTF Demo Center"],
-         "suffix":["Center"],
-         "hptf": {
-           "files":[
-            "HpTF Demo Center", 
-            "HpTF Demo Front", 
-            "HpTF Demo Back", 
-            "HpTF Demo Up",
-            "HpTF Demo Down"
-           ],
-           "labels":["Center", "Front", "Back", "Up", "Down"],
-           "description": "(Positional Variance)",
-           "fillOnly": false
-         }
+        {"name":["HpTF Multi Pad"],
+         "file":[
+          "HpTF Demo Front",
+          "HpTF Demo Back"
+         ],
+         "suffix": ["S1", "S2"],
+         "hptfs":[
+           {
+             "suffix": "Leather Pad",
+             "files":[
+               "HpTF Demo Center",
+               "HpTF Demo Front",
+               "HpTF Demo Back"
+             ],
+             "labels":["Center", "Front", "Back"],
+             "description": "(Positional Variance)"
+           },
+           {
+             "suffix": "Suede Pad",
+             "files":[
+               "HpTF Demo Up",
+               "HpTF Demo Down",
+               "HpTF Demo Center"
+             ],
+             "labels":["Up", "Down", "Center"],
+             "description": "(Positional Variance)"
+           },
+           {
+             "suffix": "with Samples",
+             "files":[
+               "HpTF Demo Center",
+               "HpTF Demo Front",
+               "HpTF Demo Back",
+               "HpTF Demo Up",
+               "HpTF Demo Down"
+             ],
+             "labels":["Center", "Front", "Back", "Up", "Down"],
+             "description": "(Positional Variance)",
+             "fillOnly": false
+           }
+         ]
         }
     ]
   },

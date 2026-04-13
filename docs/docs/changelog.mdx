@@ -5,6 +5,14 @@ sidebar_label: Changelog
 
 # modernGraphTool v2 Changelog
 
+### v2.0.4
+- Refactor: Replaced singular `hptf` phone_book field with `hptfs` array. Each hptfs entry becomes its own independent variant
+- Refactor: Multi-sample variants now fall back to unnumbered L.txt/R.txt when L1.txt/R1.txt don't exist.
+- Refactor: Dropped translation for target adjustment label, as it's user-defined value, not system parameter.
+- Fix: HpTF deviation fill now uses the combined L+R envelope when AVG is displayed
+- Fix: Variant selector no longer hides the chevron when dispSuffix is empty
+- Fix: _getSuffix returning "0" for explicit empty-string suffix entries
+
 ### v2.0.3
 - Feat: Added target adjustment label to the graph
 - Feat: Added version info in the misc panel

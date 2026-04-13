@@ -5,6 +5,14 @@ sidebar_label: 변경 이력
 
 # modernGraphTool v2 변경 이력
 
+### v2.0.4
+- Refactor: phone_book의 단일 `hptf` 필드를 `hptfs` 배열로 교체. 각 `hptfs` 항목은 독립적인 variant가 됩니다
+- Refactor: 번호가 매겨진 `L1.txt`/`R1.txt`가 없을 때 다중 샘플 variant가 번호 없는 `L.txt`/`R.txt`로 폴백
+- Refactor: 사용자 정의 값인 타겟 조정(Target Adjustment) 라벨의 번역 제거
+- Fix: AVG 채널 표시 시 HpTF 편차 음영이 L+R 결합 포락선을 사용하도록 수정
+- Fix: `dispSuffix`가 비어 있을 때 variant 선택기의 화살표 아이콘이 사라지던 문제 수정
+- Fix: `"suffix": [""]`처럼 명시적으로 빈 문자열을 지정한 suffix 항목이 `"0"`으로 처리되던 `_getSuffix` 버그 수정
+
 ### v2.0.3
 - Feat: 그래프에 타겟 조정(Target Adjustment) 라벨 추가
 - Feat: 기타(Misc) 패널에 버전 정보 표시

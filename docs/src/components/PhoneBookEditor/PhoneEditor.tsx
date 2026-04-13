@@ -89,8 +89,8 @@ function summarize(phone: PhoneState): string {
     case 'multiSample':  return phone.multiSample?.name
       ? `${phone.multiSample.name} (${phone.multiSample.samples} samples)`
       : '(unnamed)';
-    case 'hptf':         return phone.hptf?.name
-      ? `${phone.hptf.name} — HpTF (${phone.hptf.rows.length} positions)`
+    case 'hptf':         return phone.hptfs?.name
+      ? `${phone.hptfs.name} — HpTF (${phone.hptfs.entries.length} set${phone.hptfs.entries.length === 1 ? '' : 's'})`
       : '(unnamed)';
   }
 }

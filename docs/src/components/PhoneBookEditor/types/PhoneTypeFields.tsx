@@ -1,7 +1,8 @@
 import React, { type ReactNode } from 'react';
-import type { PhoneState } from '@site/src/utils/phoneBookConverter';
+import type { PhoneState, HpTFEntry } from '@site/src/utils/phoneBookConverter';
 import RowsEditor from '../shared/RowsEditor';
 import ceStyles from '../../ConfigEditor/ConfigEditor.module.css';
+import pbStyles from '../PhoneBookEditor.module.css';
 
 /**
  * Six phone-type-specific field editors.
@@ -239,9 +240,31 @@ export function MultiSamplePhoneFields({ phone, onPatch }: FieldsProps): ReactNo
 
 // ── HpTF ───────────────────────────────────────────────────────────────────
 
+const createEmptyHpTFEntry = (): HpTFEntry => ({
+  rows: [
+    { file: '', label: '' },
+    { file: '', label: '' },
+  ],
+  fillOnly: true,
+});
+
 export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const h = phone.hptf ?? { name: '', rows: [], fillOnly: true };
-  const update = (next: Partial<typeof h>) => onPatch({ hptf: { ...h, ...next } });
+  const h = phone.hptfs ?? { name: '', entries: [createEmptyHpTFEntry()] };
+  const updateWrapper = (next: Partial<typeof h>) =>
+    onPatch({ hptfs: { ...h, ...next } });
+  const updateEntry = (index: number, next: Partial<HpTFEntry>) => {
+    const copy = [...h.entries];
+    copy[index] = { ...copy[index], ...next };
+    updateWrapper({ entries: copy });
+  };
+  const removeEntry = (index: number) => {
+    if (h.entries.length <= 1) return;
+    updateWrapper({ entries: h.entries.filter((_, i) => i !== index) });
+  };
+  const addEntry = () => {
+    updateWrapper({ entries: [...h.entries, createEmptyHpTFEntry()] });
+  };
+
   return (
     <>
       <div className={ceStyles.ceFieldGroup}>
@@ -251,56 +274,108 @@ export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
           className={ceStyles.ceInput}
           value={h.name}
           placeholder="e.g. HpTF Fill Only"
-          onChange={(e) => update({ name: e.target.value })}
+          onChange={(e) => updateWrapper({ name: e.target.value })}
         />
       </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Variance Samples
-          <span className={ceStyles.ceLabelHint}>
-            (at least two related measurements — the shaded envelope spans their range)
-          </span>
-        </label>
-        <RowsEditor
-          rows={h.rows}
-          columns={[
-            { key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
-            { key: 'label', label: 'UI label', placeholder: 'Center' },
-          ]}
-          onChange={(rows) => update({ rows })}
-          createEmpty={() => ({ file: '', label: '' })}
-          minRows={2}
-          addLabel="+ Add sample"
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Description
-          <span className={ceStyles.ceLabelHint}>(shown beside the fill envelope)</span>
-        </label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={h.description ?? ''}
-          placeholder="(Variance)"
-          onChange={(e) => update({ description: e.target.value || undefined })}
-        />
-      </div>
-      <div className={ceStyles.ceToggleRow}>
-        <input
-          type="checkbox"
-          className={ceStyles.ceCheckbox}
-          id={`${phone.id}-fillOnly`}
-          checked={h.fillOnly}
-          onChange={(e) => update({ fillOnly: e.target.checked })}
-        />
-        <label className={ceStyles.ceToggleLabel} htmlFor={`${phone.id}-fillOnly`}>
-          Fill only
-          <span className={ceStyles.ceToggleHint}>
-            (uncheck to let users toggle individual sample curves)
-          </span>
-        </label>
-      </div>
+
+      {h.entries.map((entry, index) => {
+        const title = h.entries.length > 1
+          ? `HpTF set ${index + 1}${entry.suffix ? ` — ${entry.suffix}` : ''}`
+          : 'HpTF set';
+        return (
+          <div key={index} className={pbStyles.pbHptfEntry}>
+            <div className={pbStyles.pbHptfEntryHeader}>
+              <span className={pbStyles.pbHptfEntryTitle}>{title}</span>
+              <button
+                type="button"
+                className={ceStyles.ceArrayRemoveBtn}
+                onClick={() => removeEntry(index)}
+                title="Remove HpTF set"
+                disabled={h.entries.length <= 1}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className={ceStyles.ceFieldGroup}>
+              <label className={ceStyles.ceLabel}>
+                Variant Suffix
+                <span className={ceStyles.ceLabelHint}>
+                  (optional — shown in the device variant selector, e.g. "Leather Pad")
+                </span>
+              </label>
+              <input
+                type="text"
+                className={ceStyles.ceInput}
+                value={entry.suffix ?? ''}
+                placeholder="e.g. Leather Pad"
+                onChange={(e) =>
+                  updateEntry(index, { suffix: e.target.value || undefined })
+                }
+              />
+            </div>
+
+            <div className={ceStyles.ceFieldGroup}>
+              <label className={ceStyles.ceLabel}>
+                Variance Samples
+                <span className={ceStyles.ceLabelHint}>
+                  (at least two related measurements — the shaded envelope spans their range)
+                </span>
+              </label>
+              <RowsEditor
+                rows={entry.rows}
+                columns={[
+                  { key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
+                  { key: 'label', label: 'UI label', placeholder: 'Center' },
+                ]}
+                onChange={(rows) => updateEntry(index, { rows })}
+                createEmpty={() => ({ file: '', label: '' })}
+                minRows={2}
+                addLabel="+ Add sample"
+              />
+            </div>
+
+            <div className={ceStyles.ceFieldGroup}>
+              <label className={ceStyles.ceLabel}>
+                Description
+                <span className={ceStyles.ceLabelHint}>(shown beside the fill envelope)</span>
+              </label>
+              <input
+                type="text"
+                className={ceStyles.ceInput}
+                value={entry.description ?? ''}
+                placeholder="(Variance)"
+                onChange={(e) =>
+                  updateEntry(index, { description: e.target.value || undefined })
+                }
+              />
+            </div>
+
+            <div className={ceStyles.ceToggleRow}>
+              <input
+                type="checkbox"
+                className={ceStyles.ceCheckbox}
+                id={`${phone.id}-${index}-fillOnly`}
+                checked={entry.fillOnly}
+                onChange={(e) => updateEntry(index, { fillOnly: e.target.checked })}
+              />
+              <label
+                className={ceStyles.ceToggleLabel}
+                htmlFor={`${phone.id}-${index}-fillOnly`}
+              >
+                Fill only
+                <span className={ceStyles.ceToggleHint}>
+                  (uncheck to let users toggle individual sample curves)
+                </span>
+              </label>
+            </div>
+          </div>
+        );
+      })}
+
+      <button type="button" className={ceStyles.ceArrayAddBtn} onClick={addEntry}>
+        + Add HpTF set
+      </button>
     </>
   );
 }

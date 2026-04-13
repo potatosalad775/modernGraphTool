@@ -194,38 +194,74 @@ phones 배열에는 다음과 같은 데이터가 포함될 수 있습니다:
 위 예시는 6개의 파일을 로드합니다:
 `Multi Sample L1.txt`, `Multi Sample R1.txt`, `Multi Sample L2.txt`, `Multi Sample R2.txt`, `Multi Sample L3.txt`, `Multi Sample R3.txt`.
 
+:::tip[번호 없는 파일 폴백]
+`samples: N`으로 선언한 variant에서 번호 파일 `{file} L1.txt` / `{file} R1.txt`를 찾을 수 없을 때, 도구는 번호 없는 `{file} L.txt` / `{file} R.txt` 쌍으로 폴백하며 해당 variant를 단일 샘플 측정으로 취급합니다. 덕분에 같은 `file` 배열 안의 여러 variant가 번호 있는 샘플과 번호 없는 쌍을 자유롭게 섞을 수 있고, 번호 샘플이 없는 variant도 오류 없이 로드됩니다.
+:::
+
 :::tip[기본 표시]
 `config.js`의 `MULTI_SAMPLE.DEFAULT_DISPLAY`를 조정해 다중 샘플 phone이 평균 단일 커브로 열릴지, 아니면 모든 개별 샘플로 열릴지 변경할 수 있습니다. [`MULTI_SAMPLE`](./customize-page#multi_sample) 설정 섹션을 참고하세요.
 :::
 
 #### HpTF (Headphone Transfer Function) 항목
-HpTF 항목은 서로 관련된 여러 측정 사이의 **편차(variance)** — 예를 들어 약간씩 다른 착용 위치(Center, Front, Back, Up, Down), 또는 측정 장비 따위를 그래프에 겹쳐진 음영 포락선으로 시각화하며, 선택적으로 샘플별 커브를 함께 표시합니다. 편차 음영이 일반 측정 커브를 대체하므로, HpTF 항목은 그래프 자체가 포락선인 하나의 phone이 됩니다. 샘플은 비교하고 싶은 어떤 것이든 나타낼 수 있으며, HpTF는 착용 위치에만 국한되지 않습니다.
+HpTF 항목은 서로 관련된 여러 측정 사이의 **편차(variance)** — 예를 들어 약간씩 다른 착용 위치(Center, Front, Back, Up, Down), 또는 측정 장비 따위를 그래프에 겹쳐진 음영 포락선으로 시각화하며, 선택적으로 샘플별 커브를 함께 표시합니다. 각 HpTF 세트는 그래프 자체가 포락선인 하나의 기기 variant가 됩니다. 샘플은 비교하고 싶은 어떤 것이든 나타낼 수 있으며, HpTF는 착용 위치에만 국한되지 않습니다.
 
-- `hptf.files` (문자열 배열, 필수): 각 편차 샘플의 기본 파일 이름입니다. 도구는 각 항목에 대해 `{name} L.txt`와 `{name} R.txt`를 로드합니다.
-- `hptf.labels` (문자열 배열, 선택 사항): HpTF 토글 UI에 표시되는 사람이 읽기 쉬운 라벨입니다. 생략 시 `files` 값이 기본으로 사용됩니다.
-- `hptf.description` (문자열, 선택 사항): 무엇이 변화하는지 설명하는 짧은 메모로 음영 포락선과 함께 표시됩니다 (예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
-- `hptf.fillOnly` (불리언, 선택 사항, 기본값 `true`): `true`일 때는 음영 포락선만 렌더링됩니다. 사용자가 UI에서 샘플별 편차 커브를 토글할 수 있게 하려면 `false`로 설정하세요.
+하나의 기기는 `hptfs` 배열을 통해 **여러 개의** HpTF 세트를 선언할 수 있습니다 — 예를 들어 이어패드별(Leather / Suede), 또는 착용 깊이별로 하나씩. 각 `hptfs` 항목은 기기 선택기에서 각각 독립적인 variant가 됩니다.
+
+- `hptfs` (객체 배열, 필수): 하나 이상의 HpTF 측정 세트. 각 항목은 다음 키를 가집니다:
+  - `files` (문자열 배열, 필수): 각 편차 샘플의 기본 파일 이름입니다. 도구는 각 항목에 대해 `{name} L.txt`와 `{name} R.txt`를 로드합니다.
+  - `labels` (문자열 배열, 선택 사항): HpTF 토글 UI에 표시되는 사람이 읽기 쉬운 라벨입니다. 생략 시 `files` 값이 기본으로 사용됩니다.
+  - `suffix` (문자열, 선택 사항): 기기 선택기 드롭다운에 표시되는 variant 접미사입니다 (예: `"Leather Pad"`). 하나의 기기에 여러 `hptfs` 항목이 있을 때, 사용자가 선택하는 값이 바로 이 값입니다. 항목이 하나뿐이면 생략할 수 있습니다.
+  - `description` (문자열, 선택 사항): 무엇이 변화하는지 설명하는 짧은 메모로 음영 포락선과 함께 표시됩니다 (예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
+  - `fillOnly` (불리언, 선택 사항, 기본값 `true`): `true`일 때는 음영 포락선만 렌더링됩니다. 사용자가 UI에서 샘플별 편차 커브를 토글할 수 있게 하려면 `false`로 설정하세요.
 - 측정 파일은 다른 항목과 마찬가지로 `data/phones/`에 둡니다.
+
+**HpTF 세트 하나:**
 
 ```json
 {
   "name": ["HpTF Fill Only"],
-  "hptf": {
-    "files": [
-      "HpTF Demo Center",
-      "HpTF Demo Front",
-      "HpTF Demo Back",
-      "HpTF Demo Up",
-      "HpTF Demo Down"
-    ],
-    "labels": ["Center", "Front", "Back", "Up", "Down"],
-    "description": "(Fit Position)"
-  }
+  "hptfs": [
+    {
+      "files": [
+        "HpTF Demo Center",
+        "HpTF Demo Front",
+        "HpTF Demo Back",
+        "HpTF Demo Up",
+        "HpTF Demo Down"
+      ],
+      "labels": ["Center", "Front", "Back", "Up", "Down"],
+      "description": "(Fit Position)"
+    }
+  ]
 }
 ```
 
-:::note[`file` / `suffix`는 무시됨]
-phone 항목에 `hptf` 블록이 포함된 경우, 같은 항목의 `file` 또는 `suffix` 필드는 **파서가 무시합니다** — 해당 항목은 항상 HpTF 전용으로 취급되며 편차 포락선이 그 자리를 차지합니다. 기기와 함께 일반 측정값도 보여주고 싶다면, 별도의 `phone_book.json` 항목으로 추가하세요.
+**여러 HpTF 세트 (예: 이어패드별):**
+
+```json
+{
+  "name": ["HpTF Multi Pad"],
+  "hptfs": [
+    {
+      "suffix": "Leather Pad",
+      "files": ["Leather Center", "Leather Front", "Leather Back"],
+      "labels": ["Center", "Front", "Back"],
+      "description": "(Leather Pad Variance)"
+    },
+    {
+      "suffix": "Suede Pad",
+      "files": ["Suede Center", "Suede Front", "Suede Back"],
+      "labels": ["Center", "Front", "Back"],
+      "description": "(Suede Pad Variance)"
+    }
+  ]
+}
+```
+
+위 예시는 *HpTF Multi Pad Leather Pad*와 *HpTF Multi Pad Suede Pad*라는 두 개의 독립적인 variant를 만들어내며, 사용자는 기기 선택기의 variant 드롭다운에서 이 둘을 전환할 수 있습니다.
+
+:::note[일반 측정값과 함께 사용하기]
+하나의 phone 항목에 `file` / `suffix` variant와 `hptfs`를 같이 선언할 수도 있습니다. 이 둘은 하나의 평평한 목록에서 **독립적인 variant**로 취급되며 조합되지 않습니다 — `file` variant 2개와 `hptfs` 항목 2개가 있는 phone은 variant 선택기에 4개의 별개 항목(예: `Stock`, `Modded`, `Leather Pad`, `Suede Pad`)으로 표시됩니다.
 :::
 
 :::tip[기본 표시]

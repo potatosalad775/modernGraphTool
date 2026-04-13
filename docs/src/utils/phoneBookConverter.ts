@@ -35,6 +35,15 @@ export interface BrandState {
   phones: PhoneState[];
 }
 
+/** One HpTF measurement set within an hptfs[] array. */
+export interface HpTFEntry {
+  /** Variant suffix shown in the device selector dropdown (e.g. "Leather Pad"). */
+  suffix?: string;
+  rows: Array<{ file: string; label: string }>;
+  description?: string;
+  fillOnly: boolean;
+}
+
 export interface PhoneState extends SharedPhoneMeta {
   id: string;
   kind: PhoneKind;
@@ -43,11 +52,11 @@ export interface PhoneState extends SharedPhoneMeta {
   variations?: { name: string; rows: Array<{ file: string; suffix: string }> };
   prefix?: { name: string; prefix: string; files: string[] };
   multiSample?: { name: string; file: string; samples: number; suffix?: string };
-  hptf?: {
+  hptfs?: {
+    /** Device display name (shared across all HpTF entries). */
     name: string;
-    rows: Array<{ file: string; label: string }>;
-    description?: string;
-    fillOnly: boolean;
+    /** One or more HpTF measurement sets — each becomes its own variant. */
+    entries: HpTFEntry[];
   };
   /** Unknown keys from the raw JSON, preserved round-trip. */
   passthrough?: Record<string, unknown>;
@@ -95,16 +104,20 @@ export function createEmptyPhone(kind: PhoneKind = 'detailed'): PhoneState {
       base.multiSample = { name: '', file: '', samples: 3 };
       break;
     case 'hptf':
-      base.hptf = {
+      base.hptfs = {
         name: '',
-        rows: [
-          { file: '', label: 'Center' },
-          { file: '', label: 'Front' },
-          { file: '', label: 'Back' },
-          { file: '', label: 'Up' },
-          { file: '', label: 'Down' },
+        entries: [
+          {
+            rows: [
+              { file: '', label: 'Center' },
+              { file: '', label: 'Front' },
+              { file: '', label: 'Back' },
+              { file: '', label: 'Up' },
+              { file: '', label: 'Down' },
+            ],
+            fillOnly: true,
+          },
         ],
-        fillOnly: true,
       };
       break;
   }
@@ -154,7 +167,7 @@ export function switchPhoneKind(phone: PhoneState, newKind: PhoneKind): PhoneSta
         fresh.multiSample!.name = oldName;
         break;
       case 'hptf':
-        fresh.hptf!.name = oldName;
+        fresh.hptfs!.name = oldName;
         break;
       case 'simple':
         fresh.simple!.value = oldName;
@@ -171,14 +184,14 @@ export function extractName(phone: PhoneState): string {
     case 'variations':   return phone.variations?.name ?? '';
     case 'prefix':       return phone.prefix?.name ?? '';
     case 'multiSample':  return phone.multiSample?.name ?? '';
-    case 'hptf':         return phone.hptf?.name ?? '';
+    case 'hptf':         return phone.hptfs?.name ?? '';
   }
 }
 
 // ── Parse: JSON text → PhoneBookState ───────────────────────────────────────
 
 const KNOWN_PHONE_KEYS = new Set([
-  'name', 'file', 'suffix', 'prefix', 'samples', 'hptf',
+  'name', 'file', 'suffix', 'prefix', 'samples', 'hptfs',
   'reviewScore', 'reviewLink', 'shopLink', 'price', 'description',
 ]);
 
@@ -266,24 +279,34 @@ function parsePhone(raw: unknown, brandLabel: string, phoneIdx: number, warnings
 
   const baseName = extractBaseName(p.name);
 
-  // hptf block → HpTF (file/suffix discarded per parser behavior)
-  if (p.hptf && typeof p.hptf === 'object' && !Array.isArray(p.hptf)) {
-    const h = p.hptf as Record<string, unknown>;
-    const files = Array.isArray(h.files) ? h.files.map(String) : [];
-    const labels = Array.isArray(h.labels) ? h.labels.map(String) : files;
-    const rows = files.map((file, i) => ({ file, label: labels[i] ?? file }));
+  // hptfs[] block → HpTF. Each array entry becomes its own variant in the
+  // device selector. If the same phone also declares file/suffix variants,
+  // the editor can only represent one kind at a time — warn the user that
+  // the file[] / suffix[] side will be lost on re-export.
+  if (Array.isArray(p.hptfs) && p.hptfs.length > 0) {
     if (p.file !== undefined || p.suffix !== undefined) {
-      warnings.push(`Brand "${brandLabel}" phone "${baseName || phoneIdx}": HpTF entry — "file"/"suffix" discarded by parser.`);
+      warnings.push(`Brand "${brandLabel}" phone "${baseName || phoneIdx}": phone has both "file"/"suffix" and "hptfs" — the editor will only show the HpTF sets. Hand-edit the JSON to keep both.`);
     }
-    return withShared({
-      id: makeId('phone'),
-      kind: 'hptf',
-      hptf: {
-        name: baseName,
+    const entries: HpTFEntry[] = p.hptfs.map((raw, entryIdx) => {
+      if (typeof raw !== 'object' || raw == null || Array.isArray(raw)) {
+        warnings.push(`Brand "${brandLabel}" phone "${baseName || phoneIdx}": hptfs[${entryIdx}] is not an object, coerced to empty.`);
+        return { rows: [], fillOnly: true };
+      }
+      const h = raw as Record<string, unknown>;
+      const files = Array.isArray(h.files) ? h.files.map(String) : [];
+      const labels = Array.isArray(h.labels) ? h.labels.map(String) : files;
+      const rows = files.map((file, i) => ({ file, label: labels[i] ?? file }));
+      return {
+        suffix: typeof h.suffix === 'string' ? h.suffix : undefined,
         rows,
         description: typeof h.description === 'string' ? h.description : undefined,
         fillOnly: typeof h.fillOnly === 'boolean' ? h.fillOnly : true,
-      },
+      };
+    });
+    return withShared({
+      id: makeId('phone'),
+      kind: 'hptf',
+      hptfs: { name: baseName, entries },
     });
   }
 
@@ -391,14 +414,15 @@ function serializePhone(phone: PhoneState): unknown {
       break;
     }
     case 'hptf': {
-      const h = phone.hptf!;
+      const h = phone.hptfs!;
       obj.name = [h.name];
-      obj.hptf = {
-        files: h.rows.map((r) => r.file),
-        labels: h.rows.map((r) => r.label),
-        ...(h.description ? { description: h.description } : {}),
-        ...(h.fillOnly === false ? { fillOnly: false } : {}),
-      };
+      obj.hptfs = h.entries.map((entry) => ({
+        ...(entry.suffix ? { suffix: entry.suffix } : {}),
+        files: entry.rows.map((r) => r.file),
+        labels: entry.rows.map((r) => r.label),
+        ...(entry.description ? { description: entry.description } : {}),
+        ...(entry.fillOnly === false ? { fillOnly: false } : {}),
+      }));
       break;
     }
   }

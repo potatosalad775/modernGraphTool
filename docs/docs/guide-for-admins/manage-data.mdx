@@ -198,38 +198,74 @@ A multi-sample entry groups several numbered measurement runs of the same device
 The example above loads six files:
 `Multi Sample L1.txt`, `Multi Sample R1.txt`, `Multi Sample L2.txt`, `Multi Sample R2.txt`, `Multi Sample L3.txt`, `Multi Sample R3.txt`.
 
+:::tip[Unnumbered fallback]
+If a variant with `samples: N` is missing the numbered files `{file} L1.txt` / `{file} R1.txt`, the tool falls back to the unnumbered pair `{file} L.txt` / `{file} R.txt` and treats the variant as a single-sample measurement. This lets sibling variants in the same `file` array freely mix numbered and unnumbered pairs — a variant without numbered samples will still load without error.
+:::
+
 :::tip[Default display]
 You can change whether multi-sample phones open as an averaged single curve or as all individual samples by adjusting `MULTI_SAMPLE.DEFAULT_DISPLAY` in `config.js`. See the [`MULTI_SAMPLE`](./customize-page#multi_sample) config section.
 :::
 
 #### HpTF (Headphone Transfer Function) Entries
-HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. The deviation fill replaces the normal measurement curve; an HpTF entry is effectively one phone whose graph *is* the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
+HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. Each HpTF set is effectively one device variant whose graph *is* the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
 
-- `hptf.files` (Array of Strings, Required): The base file names for each deviation sample. The tool loads `{name} L.txt` and `{name} R.txt` for each entry.
-- `hptf.labels` (Array of Strings, Optional): Human-readable labels shown in the HpTF toggle UI. Defaults to the `files` values if omitted.
-- `hptf.description` (String, Optional): A short note displayed alongside the fill envelope describing what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, or `"(Insertion Depth)"`.
-- `hptf.fillOnly` (Boolean, Optional, default `true`): When `true`, only the fill envelope is rendered. Set to `false` if you want users to toggle individual per-sample deviation curves in the UI.
+A single device can declare **multiple** HpTF sets via the `hptfs` array — for example one set per ear pad (Leather / Suede), or one per fit depth. Each `hptfs` entry becomes its own independent variant in the device selector.
+
+- `hptfs` (Array of Objects, Required): One or more HpTF measurement sets. Each entry has the following keys:
+  - `files` (Array of Strings, Required): The base file names for each deviation sample. The tool loads `{name} L.txt` and `{name} R.txt` for each entry.
+  - `labels` (Array of Strings, Optional): Human-readable labels shown in the HpTF toggle UI. Defaults to the `files` values if omitted.
+  - `suffix` (String, Optional): Variant suffix shown in the device selector dropdown (e.g. `"Leather Pad"`). When a device has multiple `hptfs` entries, this is what the user picks between. Optional when there is only one entry.
+  - `description` (String, Optional): A short note displayed alongside the fill envelope describing what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, or `"(Insertion Depth)"`.
+  - `fillOnly` (Boolean, Optional, default `true`): When `true`, only the fill envelope is rendered. Set to `false` if you want users to toggle individual per-sample deviation curves in the UI.
 - Measurement files live in `data/phones/` like any other entry.
+
+**Single HpTF set:**
 
 ```json
 {
   "name": ["HpTF Fill Only"],
-  "hptf": {
-    "files": [
-      "HpTF Demo Center",
-      "HpTF Demo Front",
-      "HpTF Demo Back",
-      "HpTF Demo Up",
-      "HpTF Demo Down"
-    ],
-    "labels": ["Center", "Front", "Back", "Up", "Down"],
-    "description": "(Fit Position)"
-  }
+  "hptfs": [
+    {
+      "files": [
+        "HpTF Demo Center",
+        "HpTF Demo Front",
+        "HpTF Demo Back",
+        "HpTF Demo Up",
+        "HpTF Demo Down"
+      ],
+      "labels": ["Center", "Front", "Back", "Up", "Down"],
+      "description": "(Fit Position)"
+    }
+  ]
 }
 ```
 
-:::note[`file` / `suffix` are ignored]
-When a phone entry contains an `hptf` block, any `file` or `suffix` fields on the same entry are **discarded by the parser** — the entry is always treated as HpTF-only and the deviation envelope takes over. If you want a regular measurement alongside a device, add it as a separate `phone_book.json` entry.
+**Multiple HpTF sets (e.g. different ear pads):**
+
+```json
+{
+  "name": ["HpTF Multi Pad"],
+  "hptfs": [
+    {
+      "suffix": "Leather Pad",
+      "files": ["Leather Center", "Leather Front", "Leather Back"],
+      "labels": ["Center", "Front", "Back"],
+      "description": "(Leather Pad Variance)"
+    },
+    {
+      "suffix": "Suede Pad",
+      "files": ["Suede Center", "Suede Front", "Suede Back"],
+      "labels": ["Center", "Front", "Back"],
+      "description": "(Suede Pad Variance)"
+    }
+  ]
+}
+```
+
+The example above produces two independent variants — *HpTF Multi Pad Leather Pad* and *HpTF Multi Pad Suede Pad* — that the user can switch between via the variant dropdown in the device selector.
+
+:::note[Combining with regular measurements]
+You can also declare `file` / `suffix` variants and `hptfs` on the same phone entry. They are treated as **independent variants** in a single flat list, not combined — a phone with two `file` variants and two `hptfs` entries produces four separate entries in the variant selector (e.g. `Stock`, `Modded`, `Leather Pad`, `Suede Pad`).
 :::
 
 :::tip[Default display]

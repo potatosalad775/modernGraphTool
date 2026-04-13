@@ -5,6 +5,8 @@
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
+	const appVersion = __APP_VERSION__;
+
 	type DescriptionItem = { TYPE: string; CONTENT: string };
 
 	const languages = [
@@ -100,7 +102,7 @@
 			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
 			<span class="text-xs text-base-content/60">beta</span>
 		</div>
-		<p class="text-xs text-base-content/60">Open-source project under the MIT license</p>
+		<p class="text-xs text-base-content/60 -mt-1">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
 			<a

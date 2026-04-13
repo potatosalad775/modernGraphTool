@@ -64,7 +64,7 @@ Even if you are using a different version of CrinGraph, you should be able to fo
 
 #### graphtool.js
 
-Head over to line 787, and edit `loadFiles` function.
+Open `graphtool.js` and find the `loadFiles` function (near the bottom of the file). Edit it as follows:
 
 ```js
 // Previous
@@ -88,7 +88,7 @@ Since we don't want to manage 2 data folders for each graphtool respectively, We
 
 #### config.js
 
-Head over to line 62, and edit `PATH` object.
+Find the `PATH` block in `config.js` and point each entry at the parent directory:
 
 ```js
 // Previous
@@ -108,6 +108,19 @@ PATH: {
 ```
 
 Notice that the single dot has been replaced with two dots, indicating mGT to look for a parent directory.
+
+:::warning[CDN-mode installs: set `BASE_PATH`]
+If you installed modernGraphTool with the [**CDN deployment**](../../guide-for-admins/deployment/cdn) method (`cdn-index.html` renamed to `index.html`), you also need to set `CDN_MODE.BASE_PATH` in `config.js` to match the subfolder you placed mGT in. For the `/mGT/` layout above:
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE_PATH: "/mGT",
+},
+```
+
+Without this, the mGT home page will load but share links will 404. See [Why `BASE_PATH` is almost always required](../../guide-for-admins/deployment/cdn#why-base_path-is-almost-always-required) for the full explanation. This step is not needed for Pre-built Release installs.
+:::
 
 ### 5. Add Navigation Buttons to Each Tool
 
@@ -137,12 +150,15 @@ headerLinks = [
 
 #### modernGraphTool
 
-Head over to line 114 of `config.js` for `TOPBAR` object, and add these line:
+Find the `TOPBAR` block in `config.js` and add a `LINK_LIST` entry. `LINK_LIST` is an array of `{ TITLE, URL }` objects — you can add more entries later if you want extra navigation buttons.
+
 ```js
 TOPBAR: {
-  LINK_LIST: { TITLE: "Go back to CrinGraph", URL: "https://yourdomain.com/" },
-  // or
-  LINK_LIST: { TITLE: "Go back to CrinGraph", URL: "../" },
+  LINK_LIST: [
+    { TITLE: "Go back to CrinGraph", URL: "https://yourdomain.com/" },
+    // or, relative to the mGT subfolder:
+    // { TITLE: "Go back to CrinGraph", URL: "../" },
+  ],
 }
 ```
 

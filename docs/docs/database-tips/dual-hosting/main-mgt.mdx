@@ -64,7 +64,7 @@ Even if you are using a different version of CrinGraph, you should be able to fo
 
 #### graphtool.js
 
-Head over to line 787, and edit `loadFiles` function.
+Open `graphtool.js` and find the `loadFiles` function (near the bottom of the file). Edit it as follows:
 
 ```js
 // Previous
@@ -84,7 +84,7 @@ let f = p.isTarget ? [lt(p.fileName)]
 
 #### config.js
 
-Head over to line 3, and edit `DIR`:
+Find the `DIR` variable at the top of `config.js` and edit it:
 
 ```js
 // Previous
@@ -95,16 +95,19 @@ DIR = "data/",
 DIR = "../data/", 
 ```
 
-If you're using Haruto's iteration of CrinGraph ([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool)), 
-You should change this line too : 
+If you're using Haruto's iteration of CrinGraph ([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool)), you'll also need to repoint the `PHONE_BOOK` variable in the same file:
 
 ```js
-// Previous at Line 55
+// Previous
 PHONE_BOOK = "phone_book.json", // Path to phone book JSON file
 
 // After
 PHONE_BOOK = "../data/phone_book.json", // Path to phone book JSON file
 ```
+
+:::info[CDN-mode installs: leave `BASE_PATH` unset]
+Because modernGraphTool is served from the **root** of its (sub)domain in this layout, leave `CDN_MODE.BASE_PATH` unset (or commented out) in `config.js`. If you later move mGT into a subfolder, you'll need to set `BASE_PATH` to match — see the [CDN deployment guide](../../guide-for-admins/deployment/cdn#why-base_path-is-almost-always-required) for the full explanation.
+:::
 
 ### 4. Add Navigation Buttons to Each Tool
 
@@ -117,12 +120,15 @@ We can add little buttons so users can easily navigate between these two.
 
 #### modernGraphTool
 
-Head over to line 114 of `config.js` for `TOPBAR` object, and add these line:
+Find the `TOPBAR` block in `config.js` and add a `LINK_LIST` entry. `LINK_LIST` is an array of `{ TITLE, URL }` objects — you can add more entries later if you want extra navigation buttons.
+
 ```js
 TOPBAR: {
-  LINK_LIST: { TITLE: "Go to CrinGraph", URL: "https://yourdomain.com/cringraph" },
-  // or
-  LINK_LIST: { TITLE: "Go to CrinGraph", URL: "./cringraph" },
+  LINK_LIST: [
+    { TITLE: "Go to CrinGraph", URL: "https://yourdomain.com/cringraph" },
+    // or, relative to the mGT root:
+    // { TITLE: "Go to CrinGraph", URL: "./cringraph" },
+  ],
 }
 ```
 

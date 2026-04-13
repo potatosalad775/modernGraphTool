@@ -174,6 +174,63 @@ If your variation files share a common prefix in their names but have distinct p
   - The display name will be brand_name + name + file[i]. (e.g, "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
   - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
+#### Multi-Sample Entries
+A multi-sample entry groups several numbered measurement runs of the same device into one phone. By default the UI displays the **average** of all runs, and users can toggle individual samples via the Sample picker (which appears automatically when `samples > 1`).
+
+- `samples` (Number, Required): The number of measurement runs. The tool loads files named `{file} L{n}.txt` and `{file} R{n}.txt` for `n = 1..samples`.
+- Works with all regular phone-object keys (`reviewLink`, `price`, `shopLink`, etc.).
+- The measurement files still live in `data/phones/` like any other entry.
+
+```json
+{
+  "name": ["Multi Sample"],
+  "file": ["Multi Sample"],
+  "suffix": [""],
+  "samples": 3
+}
+```
+
+The example above loads six files:
+`Multi Sample L1.txt`, `Multi Sample R1.txt`, `Multi Sample L2.txt`, `Multi Sample R2.txt`, `Multi Sample L3.txt`, `Multi Sample R3.txt`.
+
+:::tip[Default display]
+You can change whether multi-sample phones open as an averaged single curve or as all individual samples by adjusting `MULTI_SAMPLE.DEFAULT_DISPLAY` in `config.js`. See the [`MULTI_SAMPLE`](./customize-page#multi_sample) config section.
+:::
+
+#### HpTF (Headphone Transfer Function) Entries
+HpTF entries visualise **positional variance** around a measurement — typically a sweep of slightly different fit positions (Center, Front, Back, Up, Down) — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. The deviation fill replaces the normal measurement curve; an HpTF entry is effectively one phone whose graph *is* the envelope itself.
+
+- `hptf.files` (Array of Strings, Required): The base file names for each deviation sample. The tool loads `{name} L.txt` and `{name} R.txt` for each entry.
+- `hptf.labels` (Array of Strings, Optional): Human-readable labels shown in the HpTF toggle UI. Defaults to the `files` values if omitted.
+- `hptf.description` (String, Optional): A short note displayed alongside the fill envelope, e.g. `"(Positional Variance)"`.
+- `hptf.fillOnly` (Boolean, Optional, default `true`): When `true`, only the fill envelope is rendered. Set to `false` if you want users to toggle individual per-sample deviation curves in the UI.
+- Measurement files live in `data/phones/` like any other entry.
+
+```json
+{
+  "name": ["HpTF Fill Only"],
+  "hptf": {
+    "files": [
+      "HpTF Demo Center",
+      "HpTF Demo Front",
+      "HpTF Demo Back",
+      "HpTF Demo Up",
+      "HpTF Demo Down"
+    ],
+    "labels": ["Center", "Front", "Back", "Up", "Down"],
+    "description": "(Positional Variance)"
+  }
+}
+```
+
+:::note[`file` / `suffix` are ignored]
+When a phone entry contains an `hptf` block, any `file` or `suffix` fields on the same entry are **discarded by the parser** — the entry is always treated as HpTF-only and the deviation envelope takes over. If you want a regular measurement alongside a device, add it as a separate `phone_book.json` entry.
+:::
+
+:::tip[Default display]
+Fill opacity and the default display mode (`fill`, `fill+curves`, `curves`, `none`) are configurable via the [`HPTF`](./customize-page#hptf) config section.
+:::
+
 ## How to Add/Modify Measurement Data
 
 1.  Copy the new Phone measurement data file(s) (.txt) to the `data/phones` folder.

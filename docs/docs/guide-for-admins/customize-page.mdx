@@ -8,14 +8,149 @@ import TabItem from '@theme/TabItem';
 # Customizing the Page
 You can change the initial display content, design theme, etc., of the modernGraphTool page to suit your needs.
 
-You will primarily personalize the page by modifying the `config.js`, `index.html`, and `theme.css` files.
+You will primarily personalize the page by editing `index.html`, `theme.css`, and `config.js` — in that order, from simplest to most involved.
 
 :::info[File Locations]
 - **Pre-built release users**: These files are in the root of your extracted release folder.
 - **Source builders**: Default configuration and data files are in the `defaults/` folder. The HTML entry point is `src/app.html`. After building (`npm run build`), everything is output to `dist/`.
 :::
 
+## Changing Page Metadata (`index.html`)
+
+The `index.html` file defines the basic HTML structure and metadata for modernGraphTool — the page title, description, preview image, favicon, and other `<head>` fields picked up by browsers and social media scrapers.
+
+:::info[File Location]
+- **Pre-built release**: Edit `index.html` directly in your release folder.
+- **Source builders**: Edit `src/app.html` (SvelteKit template). After building, the output `dist/index.html` is generated from this template.
+:::
+
+:::warning[Caution]
+The HTML file follows HTML syntax. You must check for syntax errors after modification.
+:::
+
+### `TITLE`
+```html
+<title>modernGraphTool</title>
+<meta name="title" content="modernGraphTool" />
+<meta property="og:title" content="modernGraphTool" />
+```
+Sets the page title.
+
+### `DESCRIPTION`
+```html
+<meta name="description" content="View and compare frequency response graphs for earphones/headphones."/>
+<meta property="og:description" content="View and compare frequency response graphs for earphones/headphones."/>
+```
+Sets the page description.
+
+### `KEYWORDS`
+Sets the page keywords (used for search engine optimization).
+```html
+<meta name="keywords" content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"/>
+```
+
+### `URL` / `LINK`
+Sets the page URL and link.
+```html
+<meta property="og:url" content="/?"/>
+<link rel="canonical" href="/?">
+```
+
+### `IMAGE`
+Sets the page preview image.
+```html
+<meta property="og:image" content="/preview.png"/>
+```
+:::tip[Tip]
+Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
+:::
+
+### `FAVICON`
+Sets the page favicon (tab icon).
+```html
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+```
+:::tip[Tip]
+Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
+:::
+
+## Customizing Page Styles (`theme.css`)
+
+The `theme.css` file contains CSS custom properties (variables) that drive modernGraphTool's visual theme — both the D3.js frequency response graph and the surrounding UI chrome. All variables switch automatically between light and dark mode.
+
+:::tip[Generate a theme visually]
+The docs site ships a live **[Theme Generator](/theme-generator)** that lets you pick colors, preview the graph and UI in both light and dark mode, and download a ready-to-drop `theme.css` file. Use it if you don't want to hand-edit the CSS variables below.
+:::
+
+:::tip[Tip]
+The `theme.css` file should be co-located with `index.html` at the root of your deployment.
+:::
+
+### Graph Variables
+
+These drive the SVG rendering where Tailwind classes cannot be used:
+
+```css
+:root {
+  --color-graph-bg: transparent;                 /* Graph background */
+  --color-graph-watermark-opacity: 0.08;         /* Watermark opacity */
+  --color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
+  --color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
+  --color-graph-axis-label: rgba(0, 0, 0, 0.6);  /* Axis labels (Hz, dB) */
+  --color-graph-grid-text: rgba(0, 0, 0, 0.5);   /* Grid value labels */
+  --color-graph-baseline: rgba(0, 0, 0, 0.25);   /* Baseline indicator */
+}
+
+.dark {
+  --color-graph-grid-major: rgba(255, 255, 255, 0.15);
+  --color-graph-grid-minor: rgba(255, 255, 255, 0.06);
+  --color-graph-axis-label: rgba(255, 255, 255, 0.6);
+  --color-graph-grid-text: rgba(255, 255, 255, 0.5);
+  --color-graph-baseline: rgba(255, 255, 255, 0.25);
+}
+```
+
+### Base UI Variables
+
+The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:
+
+```css
+:root {
+  --color-base-100: oklch(98% 0.003 247.858);      /* Background */
+  --color-base-200: oklch(96% 0.007 247.896);      /* Elevated surface */
+  --color-base-300: oklch(92% 0.013 255.508);      /* Highest surface */
+  --color-base-content: oklch(20% 0.042 265.755);  /* Default text */
+  --color-primary: oklch(59% 0.145 163.225);       /* Primary accent */
+  --color-primary-content: oklch(97% 0.021 166.113);
+  --color-secondary: oklch(60% 0.126 221.723);
+  --color-secondary-content: oklch(98% 0.019 200.873);
+  --color-accent: oklch(44% 0.017 285.786);
+  --color-accent-content: oklch(98% 0 0);
+  --color-neutral: oklch(44% 0.043 257.281);
+  --color-neutral-content: oklch(98% 0.003 247.858);
+  --color-info: oklch(68% 0.169 237.323);
+  --color-info-content: oklch(97% 0.013 236.62);
+  --color-success: oklch(76% 0.233 130.85);
+  --color-success-content: oklch(98% 0.031 120.757);
+  --color-warning: oklch(79% 0.184 86.047);
+  --color-warning-content: oklch(98% 0.026 102.212);
+  --color-error: oklch(64% 0.246 16.439);
+  --color-error-content: oklch(96% 0.015 12.422);
+}
+```
+
+Each `--color-*` role has a matching `--color-*-content` variable that sets the foreground (text/icon) color rendered on top of it, so contrast is preserved automatically when you change the base.
+
+:::info[Color format]
+Values use the [OKLCH color space](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch). You can still supply `rgb()`, `hsl()`, or hex values if you prefer, but OKLCH gives more predictable perceptual lightness across the palette.
+:::
+
 ## Changing Basic Settings (`config.js`)
+
+:::tip[Prefer a visual editor?]
+The docs site ships a live **[Config Editor](/config-generator)** that lets you build and export a valid `config.js` without hand-editing. It covers every field described below — this reference page is still useful when you want to understand what each field does or tweak an existing file by hand.
+:::
+
 The `config.js` file contains various settings related to the operation of modernGraphTool. You can open this file with a text editor and modify the necessary parts.
 
 :::warning[Caution]
@@ -505,95 +640,3 @@ For multilingual support items, objects written in the default language (English
 - The `i18n` field must have an object that matches the language code registered in the `LANGUAGE_LIST` item within the `LANGUAGE` item.
 - If you don't need multilingual support, you can use the simpler flat array format (without `default` and `i18n` wrappers).
 
-## Changing Display Content (`index.html`)
-
-The `index.html` file defines the basic HTML structure and metadata for modernGraphTool.
-
-:::info[File Location]
-- **Pre-built release**: Edit `index.html` directly in your release folder.
-- **Source builders**: Edit `src/app.html` (SvelteKit template). After building, the output `dist/index.html` is generated from this template.
-:::
-
-:::warning[Caution]
-The HTML file follows HTML syntax. You must check for syntax errors after modification.
-:::
-
-### `TITLE`
-```html
-<title>modernGraphTool</title>
-<meta name="title" content="modernGraphTool" />
-<meta property="og:title" content="modernGraphTool" />
-```
-Sets the page title.
-
-### `DESCRIPTION`
-```html
-<meta name="description" content="View and compare frequency response graphs for earphones/headphones."/>
-<meta property="og:description" content="View and compare frequency response graphs for earphones/headphones."/>
-```
-Sets the page description.
-
-### `KEYWORDS`
-Sets the page keywords (used for search engine optimization).
-```html
-<meta name="keywords" content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"/>
-```
-
-### `URL` / `LINK`
-Sets the page URL and link.
-```html
-<meta property="og:url" content="/?"/>
-<link rel="canonical" href="/?">
-```
-
-### `IMAGE`
-Sets the page preview image.
-```html
-<meta property="og:image" content="/preview.png"/>
-```
-:::tip[Tip]
-Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
-:::
-
-### `FAVICON`
-Sets the page favicon (tab icon).
-```html
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-```
-:::tip[Tip]
-Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
-:::
-
-## Customizing Page Styles (`theme.css`)
-
-The `theme.css` file contains CSS custom properties (variables) that control the appearance of the D3.js frequency response graph.
-
-You can manually modify this CSS file to customize graph colors and styling. The [Theme Generator](/theme-generator) can also help you generate a customized `theme.css` file.
-
-### Available Variables
-
-```css
-:root {
-  --color-graph-grid-major: rgba(0, 0, 0, 0.15);    /* Major grid lines */
-  --color-graph-grid-minor: rgba(0, 0, 0, 0.06);    /* Minor grid lines */
-  --color-graph-axis-label: rgba(0, 0, 0, 0.6);     /* Axis labels (Hz, dB) */
-  --color-graph-baseline: rgba(0, 0, 0, 0.25);      /* Baseline indicator */
-  --color-graph-watermark-opacity: 0.08;             /* Watermark opacity */
-}
-
-/* Dark mode overrides */
-.dark {
-  --color-graph-grid-major: rgba(255, 255, 255, 0.15);
-  --color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-  --color-graph-axis-label: rgba(255, 255, 255, 0.6);
-  --color-graph-baseline: rgba(255, 255, 255, 0.25);
-}
-```
-
-:::info[Note]
-The `theme.css` file controls graph-specific styling only. The overall UI uses Tailwind CSS with built-in light/dark mode support. Full UI color customization is planned for a future release.
-:::
-
-:::tip[Tip]
-The `theme.css` file should be co-located with `index.html` at the root location.
-:::

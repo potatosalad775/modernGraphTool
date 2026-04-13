@@ -31,14 +31,18 @@ PREFERENCE_BOUND: {
 ### Configuration Options
 
 - **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when modernGraphTool first loads
-- **`BASE_DF_TARGET_FILE`**: Reference diffuse field target file for baseline calculations
+- **`BASE_DF_TARGET_FILE`**: File name (without `.txt` extension) of the diffuse field target used as the baseline for boundary calculations. The file must already exist in your configured target folder — the preference bound loader reads it directly from `PATH.TARGET_MEASUREMENT`, so no duplicate copy is needed.
 - **`COLOR_FILL`**: RGBA color for the filled boundary area
 - **`COLOR_BORDER`**: RGBA color for the boundary outline
+
+:::info[Base target location]
+The base DF target file is resolved from the same folder your other target curves live in, defined by `PATH.TARGET_MEASUREMENT` in `config.js`. See the [`PATH`](../guide-for-admins/customize-page#path) config section.
+:::
 
 ## Data File Format
 
 ### Boundary Data Files
-The feature requires boundary data files in the `data/` directory:
+The feature requires two boundary data files in the `data/` directory (alongside `phones/` and `target/`):
 
 #### Upper Boundary (`Bounds U.txt`)
 Contains frequency response data for the upper preference boundary:
@@ -59,7 +63,9 @@ Contains frequency response data for the lower preference boundary:
 ```
 
 #### Base Target File
-A reference diffuse field target file (e.g., `KEMAR DF (KB006x) Target.txt`) used as the baseline for boundary calculations.
+The base DF target file is **resolved from `PATH.TARGET_MEASUREMENT`** in `config.js` — the same folder where every other target curve lives (default: `./data/target/`). You do **not** need to duplicate the target file into another folder; the preference bound loader reads it directly from the regular target directory using the file name you set in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`.
+
+For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data/target/KEMAR DF (KB006x) Target.txt` (or whichever path you've configured in `PATH.TARGET_MEASUREMENT`).
 
 ## Usage
 

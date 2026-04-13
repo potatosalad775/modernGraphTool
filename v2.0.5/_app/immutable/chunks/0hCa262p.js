@@ -1,0 +1,1 @@
+function t(o,s="PK"){const c=new Map;for(const[e,P]of Object.entries(o))c.set(P,e);const L=o[s];return{toCode:e=>o[e]??L,fromCode:e=>c.get(e)??s}}const n=t({PK:0,LSQ:1,HSQ:2}),r=t({PK:2,LSQ:1,HSQ:3}),Q=t({PK:0,LSQ:3,HSQ:4});t({PK:13,LSQ:10,HSQ:11});const S=t({PK:1,LSQ:0,HSQ:2});export{n as F,Q as K,r as W,S as a};

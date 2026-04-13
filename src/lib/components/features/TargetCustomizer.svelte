@@ -61,25 +61,9 @@
 	const normalizedIdentifier = $derived(normalizeTargetName(item.identifier));
 	const isCustomizable = $derived(customizableTargets.includes(normalizedIdentifier));
 
-	// ── i18n label map ────────────────────────────────────────────────────────
-
-	const i18nLabels: Record<string, () => string> = {
-		tilt: m.target_customizer_label_tilt,
-		bass: m.target_customizer_label_bass,
-		treble: m.target_customizer_label_treble,
-		ear: m.target_customizer_label_ear,
-		pssr: m.target_customizer_label_pssr
-	};
-
-	function getFilterLabel(def: FilterDef): string {
-		const fn = i18nLabels[def.id];
-		return fn ? fn() : def.name;
-	}
-
 	function getShortFilterName(def: FilterDef): string {
-		const label = getFilterLabel(def);
-		const paren = label.indexOf(' (');
-		return paren >= 0 ? label.slice(0, paren) : label;
+		const paren = def.name.indexOf(' (');
+		return paren >= 0 ? def.name.slice(0, paren) : def.name;
 	}
 
 	function formatAdjustmentLabel(
@@ -352,7 +336,7 @@
 						<div class="flex items-center justify-between">
 							<div class="flex items-center">
 								<label for="{uuid}-{def.id}" class="text-xs font-medium line-clamp-1">
-									{getFilterLabel(def)}
+									{def.name}
 								</label>
 								{#if def.description}
 									<PopoverPanel align="end">
@@ -408,7 +392,7 @@
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
-						<option value={def.id}>{getFilterLabel(def)}</option>
+						<option value={def.id}>{def.name}</option>
 					{/each}
 				</select>
 			{/if}

@@ -124,10 +124,18 @@ const FRParser = {
     const samples: SampleData[] = await Promise.all(
       sampleFiles.map(async (fileRef) => {
         const sample: SampleData = {};
-        const [lRaw, rRaw] = await Promise.all([
+        let [lRaw, rRaw] = await Promise.all([
           this._fetchFRTextData('phone', fileRef.L),
           this._fetchFRTextData('phone', fileRef.R),
         ]);
+        // If the primary pair 404s, try the unnumbered fallback (e.g. "Foo L.txt"
+        // when "Foo L1.txt" doesn't exist). Only sample index 0 carries a fallback.
+        if (!lRaw && !rRaw && fileRef.fallback) {
+          [lRaw, rRaw] = await Promise.all([
+            this._fetchFRTextData('phone', fileRef.fallback.L),
+            this._fetchFRTextData('phone', fileRef.fallback.R),
+          ]);
+        }
         if (lRaw) sample.L = await this.parseFRData(lRaw);
         if (rRaw) sample.R = await this.parseFRData(rRaw);
         return sample;

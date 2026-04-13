@@ -292,13 +292,30 @@ class GraphEngine {
 	_buildHpTFEnvelopePath(obj: FRDataObject): string | null {
 		if (!obj.hptf) return null;
 
-		// Select envelope(s) based on displayed channel. For multi-channel displays
-		// (L+R), combine per-channel envelopes so the fill covers every sample's
-		// extremes instead of collapsing back to AVG.
-		const channels: ('L' | 'R' | 'AVG')[] =
-			obj.dispChannel.length >= 1 ? [...obj.dispChannel] : ['AVG'];
+		// Fill envelope rules:
+		//   dispChannel = ['L']         → envelope.L only
+		//   dispChannel = ['R']         → envelope.R only
+		//   dispChannel = ['AVG']       → combined L+R envelope (NOT envelope.AVG — that hides true spread)
+		//   dispChannel = ['L','R'] etc → combined L+R envelope
+		let pickChannels: ('L' | 'R' | 'AVG')[];
+		const single = obj.dispChannel.length === 1 ? obj.dispChannel[0] : null;
+		if (single === 'L') {
+			pickChannels = ['L'];
+		} else if (single === 'R') {
+			pickChannels = ['R'];
+		} else {
+			const available: ('L' | 'R')[] = [];
+			if (obj.hptf.envelope.L?.upper.length) available.push('L');
+			if (obj.hptf.envelope.R?.upper.length) available.push('R');
+			pickChannels =
+				available.length > 0
+					? available
+					: obj.hptf.envelope.AVG?.upper.length
+						? ['AVG']
+						: [];
+		}
 		const envelope = this._combineHpTFEnvelopes(
-			channels.map((c) => obj.hptf!.envelope[c])
+			pickChannels.map((c) => obj.hptf!.envelope[c])
 		);
 		if (!envelope.upper.length) return null;
 

@@ -149,6 +149,10 @@ export interface BaselineData {
 export interface PhoneFileReference {
   L: string;
   R: string;
+  /** Fallback L/R files to try if the primary pair 404s.
+   *  Used by sample-1 of multi-sample variants to fall back to unnumbered
+   *  "Foo L.txt"/"Foo R.txt" when "Foo L1.txt"/"Foo R1.txt" don't exist. */
+  fallback?: { L: string; R: string };
 }
 
 /** File variant for phones with multiple measurement variants */
@@ -173,6 +177,20 @@ export interface PhoneFileVariant {
   hptfDescription?: string;
 }
 
+/** Single HpTF measurement set declared in phone_book.json */
+export interface RawHpTFEntry {
+  /** Variant suffix shown in the device selector dropdown (e.g. "Leather Pad"). */
+  suffix?: string;
+  /** Base filenames for each HpTF sample (L/R derived by appending " L.txt"/" R.txt"). */
+  files: string[];
+  /** Human-readable labels per sample, same length as files. Defaults to files. */
+  labels?: string[];
+  /** When true, only the deviation fill envelope is shown — no individual curve toggles. Default: true. */
+  fillOnly?: boolean;
+  /** Curator caption shown under the device name (e.g. "(Positional Variance)"). */
+  description?: string;
+}
+
 /** Raw phone data from phone_book.json before processing */
 export interface RawPhoneData {
   name: string | string[];
@@ -186,8 +204,8 @@ export interface RawPhoneData {
   description?: string;
   /** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
   samples?: number;
-  /** HpTF deviation configuration */
-  hptf?: { files: string[]; labels?: string[]; fillOnly?: boolean; description?: string };
+  /** HpTF measurement sets. Each entry becomes its own variant in the selector. */
+  hptfs?: RawHpTFEntry[];
 }
 
 /** Raw brand data from phone_book.json before processing */

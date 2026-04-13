@@ -85,7 +85,11 @@ describe('MetadataParser', () => {
 		it('generates correct file references for 3 samples', () => {
 			const result = MetadataParser._generateSampleFiles('Dunu Zen', 3);
 			expect(result).toEqual([
-				{ L: 'Dunu Zen L1.txt', R: 'Dunu Zen R1.txt' },
+				{
+					L: 'Dunu Zen L1.txt',
+					R: 'Dunu Zen R1.txt',
+					fallback: { L: 'Dunu Zen L.txt', R: 'Dunu Zen R.txt' }
+				},
 				{ L: 'Dunu Zen L2.txt', R: 'Dunu Zen R2.txt' },
 				{ L: 'Dunu Zen L3.txt', R: 'Dunu Zen R3.txt' }
 			]);
@@ -94,7 +98,18 @@ describe('MetadataParser', () => {
 		it('generates single sample file reference', () => {
 			const result = MetadataParser._generateSampleFiles('Test', 1);
 			expect(result).toHaveLength(1);
-			expect(result[0]).toEqual({ L: 'Test L1.txt', R: 'Test R1.txt' });
+			expect(result[0]).toEqual({
+				L: 'Test L1.txt',
+				R: 'Test R1.txt',
+				fallback: { L: 'Test L.txt', R: 'Test R.txt' }
+			});
+		});
+
+		it('only sample index 0 carries an unnumbered fallback', () => {
+			const result = MetadataParser._generateSampleFiles('Foo', 3);
+			expect(result[0].fallback).toEqual({ L: 'Foo L.txt', R: 'Foo R.txt' });
+			expect(result[1].fallback).toBeUndefined();
+			expect(result[2].fallback).toBeUndefined();
 		});
 
 		it('returns empty array for 0 samples', () => {
@@ -142,11 +157,23 @@ describe('MetadataParser', () => {
 			expect(MetadataParser._getSuffix(phone, 1)).toBe('Modded');
 		});
 
-		it('returns String(index) when suffix array entry is empty', () => {
+		it('returns empty string when suffix array entry is explicitly empty', () => {
+			// Explicit "" is a valid "no suffix" intent — must not fall back to
+			// String(index), which would stringify to "0" and show up as a label.
 			const phone: RawPhoneData = {
 				name: 'Test',
 				file: ['File A', 'File B'],
 				suffix: ['', '']
+			};
+			expect(MetadataParser._getSuffix(phone, 0)).toBe('');
+			expect(MetadataParser._getSuffix(phone, 1)).toBe('');
+		});
+
+		it('returns String(index) when suffix array entry is missing (undefined)', () => {
+			const phone: RawPhoneData = {
+				name: 'Test',
+				file: ['File A', 'File B'],
+				suffix: []
 			};
 			expect(MetadataParser._getSuffix(phone, 0)).toBe('0');
 			expect(MetadataParser._getSuffix(phone, 1)).toBe('1');

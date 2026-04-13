@@ -1,4 +1,4 @@
-import type { FRDataType, PhoneMetadata, BrandMetadata, TargetMetadata, TargetManifestEntry, RawBrandData, RawPhoneData, PhoneFileReference } from '$lib/types/data-types.js';
+import type { FRDataType, PhoneMetadata, BrandMetadata, TargetMetadata, TargetManifestEntry, RawBrandData, RawPhoneData, PhoneFileReference, PhoneFileVariant } from '$lib/types/data-types.js';
 import { getConfigValue } from './config.js';
 
 /**
@@ -201,82 +201,78 @@ const MetadataParser = {
           const baseName = Array.isArray(phone.name)
             ? phone.name[0]
             : phone.name;
+          const identifier = brandName + " " + baseName;
 
-          // HpTF file references (shared across variants)
-          const hptfFields = phone.hptf ? {
-            hptfFiles: this._generateHpTFFiles(phone.hptf.files),
-            hptfLabels: phone.hptf.labels ?? phone.hptf.files,
-            hptfFillOnly: phone.hptf.fillOnly ?? true,
-            hptfDescription: phone.hptf.description,
-          } : {};
-
-          // HpTF mode: hptf takes over — file/suffix are ignored
-          if (phone.hptf) {
-            const placeholderFile = phone.hptf.files[0];
-            return {
-              ...basePhone,
-              name: baseName,
-              identifier: brandName + " " + baseName,
-              files: [
-                {
-                  suffix: '',
-                  fullName: (brandName + " " + baseName).trim(),
-                  files: { L: `${placeholderFile} L.txt`, R: `${placeholderFile} R.txt` },
-                  fileName: placeholderFile,
-                  ...hptfFields,
-                  hptfOnly: true,
-                },
-              ],
-            };
-          }
-
-          return {
-            ...basePhone,
-            name: baseName,
-            identifier: brandName + " " + baseName,
-            files: Array.isArray(phone.file)
-              ? phone.file.map((file, index) => ({
-                  suffix: this._getSuffix(phone, index),
-                  fullName: (
-                    brandName +
-                    " " +
-                    baseName +
-                    " " +
-                    this._getSuffix(phone, index)
-                  ).trim(),
-                  files: { L: `${file} L.txt`, R: `${file} R.txt` },
-                  fileName: file,
-                  ...(phone.samples && {
-                    sampleFiles: this._generateSampleFiles(file, phone.samples),
-                    sampleCount: phone.samples,
-                  }),
-                  ...hptfFields,
-                }))
-              : [
-                  {
-                    suffix: this._getSuffix(phone, 0),
+          // Build regular FR variants from file[] / file.
+          const fileVariants: PhoneFileVariant[] = phone.file
+            ? (Array.isArray(phone.file)
+                ? phone.file.map((file, index) => ({
+                    suffix: this._getSuffix(phone, index),
                     fullName: (
                       brandName +
                       " " +
                       baseName +
                       " " +
-                      this._getSuffix(phone, 0)
+                      this._getSuffix(phone, index)
                     ).trim(),
-                    files: {
-                      L: `${phone.file} L.txt`,
-                      R: `${phone.file} R.txt`,
-                    },
-                    fileName: phone.file || baseName,
+                    files: { L: `${file} L.txt`, R: `${file} R.txt` },
+                    fileName: file,
                     ...(phone.samples && {
-                      sampleFiles: this._generateSampleFiles(
-                        (phone.file as string) || baseName,
-                        phone.samples,
-                      ),
+                      sampleFiles: this._generateSampleFiles(file, phone.samples),
                       sampleCount: phone.samples,
                     }),
-                    ...hptfFields,
-                  },
-                ],
+                  }))
+                : [
+                    {
+                      suffix: this._getSuffix(phone, 0),
+                      fullName: (
+                        brandName +
+                        " " +
+                        baseName +
+                        " " +
+                        this._getSuffix(phone, 0)
+                      ).trim(),
+                      files: {
+                        L: `${phone.file} L.txt`,
+                        R: `${phone.file} R.txt`,
+                      },
+                      fileName: (phone.file as string) || baseName,
+                      ...(phone.samples && {
+                        sampleFiles: this._generateSampleFiles(
+                          (phone.file as string) || baseName,
+                          phone.samples,
+                        ),
+                        sampleCount: phone.samples,
+                      }),
+                    },
+                  ])
+            : [];
+
+          // Build HpTF-only variants from hptfs[]. Each entry becomes its own
+          // independent variant alongside any regular file variants.
+          const hptfVariants: PhoneFileVariant[] = (phone.hptfs ?? []).map((entry) => {
+            const entrySuffix = entry.suffix ?? '';
+            const placeholderFile = entry.files[0];
+            return {
+              suffix: entrySuffix,
+              fullName: (brandName + " " + baseName + " " + entrySuffix).trim(),
+              // Placeholder main-channel files — unused when hptfOnly is true,
+              // but the field is required by the PhoneFileVariant type.
+              files: { L: `${placeholderFile} L.txt`, R: `${placeholderFile} R.txt` },
+              fileName: placeholderFile,
+              hptfFiles: this._generateHpTFFiles(entry.files),
+              hptfLabels: entry.labels ?? entry.files,
+              hptfFillOnly: entry.fillOnly ?? true,
+              hptfDescription: entry.description,
+              hptfOnly: true,
+            };
+          });
+
+          return {
+            ...basePhone,
+            name: baseName,
+            identifier,
+            files: [...fileVariants, ...hptfVariants],
           };
         }),
       };
@@ -307,10 +303,13 @@ const MetadataParser = {
   },
 
   /** Generate sample file references for multi-sample measurements */
-  _generateSampleFiles(fileName: string, sampleCount: number): { L: string; R: string }[] {
+  _generateSampleFiles(fileName: string, sampleCount: number): PhoneFileReference[] {
     return Array.from({ length: sampleCount }, (_, i) => ({
       L: `${fileName} L${i + 1}.txt`,
       R: `${fileName} R${i + 1}.txt`,
+      ...(i === 0 && {
+        fallback: { L: `${fileName} L.txt`, R: `${fileName} R.txt` },
+      }),
     }));
   },
 
@@ -323,7 +322,11 @@ const MetadataParser = {
     if (Array.isArray(phone.file)) {
       // Handle array cases
       if (Array.isArray(phone.suffix) && index !== null) {
-        return phone.suffix[index]?.trim() || String(index);
+        // Distinguish "suffix explicitly empty" from "suffix missing".
+        // An explicit "" is a valid "no suffix" intent — don't fall back to the
+        // index (which would stringify to "0" and show up as a stray label).
+        const entry = phone.suffix[index];
+        return typeof entry === "string" ? entry.trim() : String(index);
       } else if (typeof phone.suffix === "string") {
         return phone.suffix.trim() || String(index);
       } else if (Array.isArray(phone.prefix) && index !== null) {

@@ -190,13 +190,11 @@
 									<span class="truncate text-sm font-medium text-base-content">
 										{item.identifier}
 									</span>
-									{#if item.dispSuffix}
-										<span class="flex flex-row items-center gap-0.5">
-											<span class="truncate text-xs text-base-content/60">{item.dispSuffix}</span>
-											<ChevronDown class="h-3 w-3 shrink-0 text-base-content/65 transition-transform
-												group-data-[state=open]:rotate-180" />
-										</span>
-									{/if}
+									<span class="flex flex-row items-center gap-0.5">
+										<span class="truncate text-xs text-base-content/60">{item.dispSuffix || '(default)'}</span>
+										<ChevronDown class="h-3 w-3 shrink-0 text-base-content/65 transition-transform
+											group-data-[state=open]:rotate-180" />
+									</span>
 									{#if item.adjustmentLabel}
 										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
 									{/if}

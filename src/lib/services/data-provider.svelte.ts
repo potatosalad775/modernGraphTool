@@ -121,7 +121,10 @@ class DataProvider {
 
 			const defaultDisplay = getConfigValue('MULTI_SAMPLE.DEFAULT_DISPLAY') as string | undefined;
 			if (defaultDisplay === 'all') {
-				frObject.dispSamples = this.#getAllSampleKeys(rawData._sampleCount);
+				// Only emit keys for sample slots that actually loaded — protects
+				// against missing L{n}/R{n} files (e.g. fallback-to-unnumbered mode
+				// where only sample 1 has data).
+				frObject.dispSamples = this.#getLoadedSampleKeys(processedSamples);
 			} else {
 				frObject.dispSamples = [];
 			}
@@ -659,12 +662,14 @@ class DataProvider {
 		return { ...baseColors, samples };
 	}
 
-	/** Generate all sample channel keys for a given sample count */
-	#getAllSampleKeys(sampleCount: number): SampleChannelKey[] {
+	/** Sample channel keys for slots that actually have L and/or R data loaded */
+	#getLoadedSampleKeys(samples: SampleData[]): SampleChannelKey[] {
 		const keys: SampleChannelKey[] = [];
-		for (let i = 1; i <= sampleCount; i++) {
-			keys.push(`L${i}` as SampleChannelKey, `R${i}` as SampleChannelKey);
-		}
+		samples.forEach((sample, i) => {
+			const n = i + 1;
+			if (sample.L) keys.push(`L${n}` as SampleChannelKey);
+			if (sample.R) keys.push(`R${n}` as SampleChannelKey);
+		});
 		return keys;
 	}
 

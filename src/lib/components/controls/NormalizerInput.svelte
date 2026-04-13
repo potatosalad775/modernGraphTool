@@ -45,7 +45,7 @@
 		step="1"
 		value={graphStore.normHzValue}
 		disabled={graphStore.normType === 'Avg'}
-		onchange={onHzValueChange}
+		oninput={onHzValueChange}
 		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
 	/>
 </div>

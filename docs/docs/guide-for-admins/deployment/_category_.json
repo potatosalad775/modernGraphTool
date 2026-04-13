@@ -1,0 +1,10 @@
+{
+  "label": "Deployment Options",
+  "position": 2,
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "description": "Three ways to deploy modernGraphTool: CDN (recommended for most users), pre-built release, or building from source. Pick one based on how much control you need over updates and customization."
+  }
+}

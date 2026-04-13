@@ -14,7 +14,7 @@ modernGraphTool v2 is a ground-up rewrite. The application code is entirely new,
 - `phone_book.json` — same structure, same location (`data/phone_book.json`)
 - FR measurement files — same `.txt` format in `data/phones/`
 - Target curve files — same `.txt` format in `data/target/`
-- Preference Bound files — `Bounds U.txt` / `Bounds D.txt` in `data/`
+- Preference Bound files — `Bounds U.txt` / `Bounds D.txt` still `.txt`, but their location changed (see [Migration Steps](#migration-steps) below — moved from v1's `extensions/preference-bound/data/` to `data/`)
 
 `config.js` retains the same general structure. All v1 settings (`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST`, etc.) remain compatible.
 
@@ -73,11 +73,42 @@ Beyond the rewrite itself, v2 introduces capabilities that weren't available in 
 
 1. **Download** the [latest v2 release](https://github.com/potatosalad775/modernGraphTool/releases)
 2. **Copy your data** — Move your `data/` folder (phones, targets, `phone_book.json`) into the v2 release folder
-3. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Editor](/config-generator) to build a fresh config interactively.
-4. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling). The [Theme Generator](/theme-generator) can help.
-5. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
-6. **Test locally** — Open the page in a browser and verify your data loads correctly
+3. **Move Preference Bound data files** — In v1, `Bounds U.txt` and `Bounds D.txt` lived in `extensions/preference-bound/data/`. In v2 they must sit directly in `data/`, alongside `phones/` and `target/`. If you skip this, the Preference Bound overlay will silently fail to render when enabled. The base DF target file (e.g. `KEMAR DF (KB006x) Target.txt`) should already be in `data/target/` as part of step 2.
+4. **Migrate config** — Copy your v1 `config.js` settings into the v2 `config.js` template. The core settings are the same; review the new sections (`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `MULTI_SAMPLE`, `HPTF`, `CDN_MODE`) and adjust as needed. You can also use the [Config Editor](/config-generator) to build a fresh config interactively.
+5. **Migrate theme** — If you customized `theme.css`, port your color values to the v2 format (CSS custom properties for graph styling). The [Theme Generator](/theme-generator) can help.
+6. **Delete extensions** — The `extensions/` folder is no longer used. Any extension settings should now be in `config.js`.
+7. **Test locally** — Open the page in a browser and verify your data loads correctly
+
+## Picking a Deployment Option
+
+v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds two more:
+
+- **[Pre-built Release](./guide-for-admins/deployment/prebuilt)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no BASE_PATH to set, works exactly like v1 did.
+- **[CDN Deployment](./guide-for-admins/deployment/cdn)** — A thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
+- **[Building from Source](./guide-for-admins/deployment/from-source)** — For developers and forks.
 
 :::tip[CDN Alternative]
-Instead of hosting the full `dist/` folder, consider the [CDN deployment mode](./guide-for-admins/setup-env#option-a-cdn-deployment-recommended). Keep your `config.js`, `theme.css`, and `data/` on your server, and let jsDelivr serve the app code. Future updates apply automatically.
+Instead of hosting the full Pre-built release, consider the [CDN deployment mode](./guide-for-admins/deployment/cdn). Keep your `config.js`, `theme.css`, and `data/` on your server, and let jsDelivr serve the app code. Future updates apply automatically.
 :::
+
+### If you pick CDN mode, watch out for `BASE_PATH`
+
+In v2 CDN mode, any deployment **not** at the root of its (sub)domain requires `CDN_MODE.BASE_PATH` in `config.js`. Without it, the home page loads fine but every share link 404s. The fix is one config line. For a site at `example.com/headphones/`:
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE_PATH: "/headphones",
+},
+```
+
+Full explanation and worked examples: [Why `BASE_PATH` is almost always required](./guide-for-admins/deployment/cdn#why-base_path-is-almost-always-required).
+
+**squig.link operators** typically run two instances on the same subdomain: `<username>.squig.link/` for earphones (at the subdomain root — no `BASE_PATH`) and `<username>.squig.link/headphones/` for headphones (needs `BASE_PATH: "/headphones"`). Each instance has its own `config.js`, so set `BASE_PATH` only on the `/headphones/` one. The root earphones instance stays as-is.
+
+**Personal databases** under a subdirectory like `example.com/headphones/` need `BASE_PATH` to match. A database at `example.com/` (domain root) does not.
+
+### Switching between CDN and pre-built later
+
+Everything that isn't the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There's no lock-in.
+

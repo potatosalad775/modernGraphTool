@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 import Tabs from '@theme/Tabs';
@@ -171,14 +171,18 @@ URL: {
 CDN_MODE: {
   MAJOR_VERSION: 2,
   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
+  // BASE_PATH: "/headphones",
+  // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
 },
 ```
 Configures CDN deployment settings. **Only used when deploying with `cdn-index.html`** — leave this section commented out for standard `dist/` deployments.
 - `MAJOR_VERSION`: Pins the app to a specific major version (e.g., `2` means auto-update within v2.x.x).
 - `BASE`: Custom CDN base URL. Only change this if you're hosting the CDN assets yourself (advanced use).
+- `BASE_PATH`: Deployment subpath (e.g. `"/headphones"`), with no trailing slash. **Required for any deployment not at the (sub)domain root.** For a site at `example.com/headphones/` or `myrig.squig.link/headphones/`, set `BASE_PATH: "/headphones"`. Only leave this unset if your site is served at the root of its (sub)domain — e.g. `example.com/` or `myrig.squig.link/`. Without it, share-link deep routes will 404 even though the home page loads fine. For the full explanation of why this is effectively always required, see the [CDN deployment guide](./deployment/cdn#why-base_path-is-almost-always-required).
+- `VERSIONS_URL`: Full URL to `versions.json`. By default, the loader derives a `raw.githubusercontent.com` URL from `BASE` and fetches `versions.json` directly from GitHub — **not** through jsDelivr. This is intentional: jsDelivr's edge cache can pin stale `versions.json` responses for hours, which delays new releases from reaching users. `versions.json` is the one file where that matters, so the loader sidesteps it. Only override `VERSIONS_URL` if you host your own fork of the `cdn` branch or serve from a non-GitHub origin.
 
 :::info[Standard Deployment]
-If you are using the standard deployment method (uploading the full `dist/` folder), you do not need this section. It is only relevant for CDN deployments using `cdn-index.html`.
+If you are using the [Pre-built Release](./deployment/prebuilt) method (uploading the full `dist/` folder), you do not need this section. It is only relevant for [CDN deployments](./deployment/cdn) using `cdn-index.html`.
 :::
 
 ### `LANGUAGE`

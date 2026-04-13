@@ -1,0 +1,93 @@
+---
+sidebar_position: 2
+---
+
+# Pre-built Release
+
+Download a pre-built modernGraphTool release and host the entire `dist/` folder on your own server. This gives you full control over when and which version runs, at the cost of manual updates.
+
+## Overview
+
+A pre-built release is a self-contained static site. You unzip it, drop your config and data in, and upload the whole folder to your web server. There's no runtime dependency on jsDelivr, no version-detection magic, and no auto-updates — you control exactly what users see.
+
+## When to pick this
+
+**Good fit for:**
+- Controlled update cadence (you decide when a new version ships)
+- Airgapped, intranet, or otherwise jsDelivr-unreachable environments
+- Customized `index.html` metadata (OG tags, analytics snippets, etc.)
+- Subdirectory hosting without any extra config — it just works
+
+**Bad fit for:**
+- Operators who don't want to re-upload files on every release
+
+## Installation
+
+1.  **Download** the [latest release zip](https://github.com/potatosalad775/modernGraphTool/releases).
+2.  **Extract the zip.** The extracted folder is a complete site — everything you need to deploy.
+3.  **Customize the configuration files:**
+    - `config.js` — application settings (see [Customizing the Page](../customize-page))
+    - `theme.css` — graph color theme (see [Customizing Page Styles](../customize-page#customizing-page-styles-themecss))
+    - `data/` — measurement data and target curves (see [Managing Data](../manage-data))
+4.  **Upload the entire folder** to your web server via FTP or any file-transfer method. That's it — open the page in a browser and verify it loads.
+
+## Folder structure
+
+After extracting the release, you'll see something like this:
+
+```
+dist/                     # (or extracted release folder)
+├── config.js             # Application settings — YOU EDIT
+├── theme.css             # Graph color theme — YOU EDIT
+├── index.html            # HTML entry point — editable for metadata
+├── .htaccess             # Apache SPA fallback
+├── data/
+│   ├── phones/           # Measurement data files (.txt) — YOU EDIT
+│   ├── target/           # Target curve data files (.txt) — YOU EDIT
+│   ├── phone_book.json   # Device list definition — YOU EDIT
+│   ├── Bounds U.txt      # Preference Bound upper (optional) — YOU EDIT
+│   └── Bounds D.txt      # Preference Bound lower (optional) — YOU EDIT
+├── assets/               # Images, strings, etc. — YOU EDIT
+└── _app/                 # Built application bundle — DO NOT EDIT
+```
+
+Files marked **YOU EDIT** are safe to customize. The `_app/` folder contains the built application and should be left alone — it's overwritten on every release update.
+
+## Updating the app
+
+Pre-built releases need manual updates. The safe procedure:
+
+1.  **Back up your current deployment.** Keep a copy of `config.js`, `theme.css`, `data/`, `assets/`, and any customized `index.html`.
+2.  **Download the new release** from the [releases page](https://github.com/potatosalad775/modernGraphTool/releases) and extract it.
+3.  **Copy your customized files back in:**
+    - `config.js`
+    - `theme.css`
+    - `data/` (entire folder — phones, targets, `phone_book.json`, bounds)
+    - `assets/` (entire folder)
+    - `index.html` — **only if you've customized it** (OG tags, analytics, etc.). Otherwise use the new release's `index.html` so you pick up any upstream improvements.
+4.  **Upload the merged folder** to your server, overwriting the old deployment.
+5.  **Check the [changelog](../../changelog)** for any config schema changes that need your attention.
+
+:::warning[Don't overwrite your data]
+The most common update mistake is extracting the new release directly over your live deployment. This overwrites `config.js`, `data/`, etc. with the default release templates. Always back up or copy out first.
+:::
+
+## Troubleshooting
+
+### Data doesn't appear in the device selector
+
+**Cause:** `PATH` configuration in `config.js` doesn't match your actual folder layout, or `phone_book.json` is missing / malformed.
+
+**Fix:** Verify the paths in `PATH` (`PHONE_MEASUREMENT`, `TARGET_MEASUREMENT`, `PHONE_BOOK`) point at real files. Open the browser's network tab and check which request is 404ing. See [Managing Data](../manage-data) for the expected layout.
+
+### Site works locally but not on the server
+
+**Cause:** Case sensitivity. Windows and macOS filesystems are case-insensitive by default; most Linux web servers are not. A file named `Harman IE 2019v2.txt` on disk won't match a request for `harman ie 2019v2.txt`.
+
+**Fix:** Match your filenames exactly to the `phone_book.json` entries, including case.
+
+### Preference Bound doesn't render
+
+**Cause:** `Bounds U.txt` and `Bounds D.txt` aren't in `data/`.
+
+**Fix:** Place both files directly in `data/` (not in a subfolder). See the [Preference Bound feature doc](../../features/preference-bound) for the file format.

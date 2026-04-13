@@ -1,0 +1,135 @@
+---
+sidebar_position: 3
+---
+
+# Building from Source
+
+Clone the modernGraphTool repository, customize whatever you like, and build your own `dist/` folder. This path is aimed at developers and operators who need changes that go beyond what `config.js` exposes.
+
+## Overview
+
+Building from source gives you full control over the app bundle itself — you can edit components, add features, change the build pipeline, and ship custom releases. It's also the most work: you need Node.js, `git`, and the ability to debug build errors.
+
+If you only want to customize `config.js`, `theme.css`, `data/`, or `assets/`, you don't need to build from source — use [CDN Deployment](./cdn) or [Pre-built Release](./prebuilt) instead.
+
+## When to pick this
+
+**Good fit for:**
+- Forks with custom features beyond what the config surface exposes
+- Developers who want to contribute upstream
+- Operators who need to edit app components, routes, or build configuration
+
+**Bad fit for:**
+- Operators who just want a working site — use CDN or Pre-built
+- People who don't want to deal with `node_modules` and build errors
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) v18 or later
+- `git`
+- Basic command-line familiarity
+
+## Clone and install
+
+```bash
+git clone https://github.com/potatosalad775/modernGraphTool.git
+cd modernGraphTool
+npm install
+```
+
+## `defaults/` vs `static/`
+
+modernGraphTool uses a two-layer static assets system. Understanding it before you start editing will save you a lot of time.
+
+- **`defaults/`** holds user-configurable templates: `config.js`, `theme.css`, `data/`, `assets/`, and so on. These are the files a regular operator would edit. They're checked into git and ship with every release.
+- **`static/`** is a gitignored override layer. Any file you place in `static/` takes priority over the same path in `defaults/` — during `npm run dev` and during `npm run build`.
+
+**Pattern for customizing while developing:** copy the file you want to edit from `defaults/` into `static/`, then edit the copy in `static/`. This keeps your personal customizations out of git and makes `git pull` painless.
+
+The fallback behavior is implemented by [vite-plugin-defaults.ts](https://github.com/potatosalad775/modernGraphTool/blob/main/vite-plugin-defaults.ts), which serves `defaults/` as a fallback during dev and copies it into `dist/` after the build (without overwriting files from `static/`).
+
+:::warning[Don't import from defaults/ or static/ as modules]
+Files in `defaults/` and `static/` are runtime-loaded assets, not bundled modules. Use `fetch()` at runtime to read them — never `import` them from source.
+:::
+
+## Local development
+
+```bash
+npm run dev
+```
+
+This starts the Vite dev server at `http://localhost:5173` with hot module reload. Edits to `.svelte`, `.ts`, `.css`, and `defaults/` files all reload live.
+
+If you want to test against your own measurement data, drop your `data/` folder into `static/data/` — the dev server will serve your files instead of the shipped defaults.
+
+## Previewing the production build
+
+```bash
+npm run build
+npm run preview
+```
+
+`npm run build` produces `dist/`, and `npm run preview` serves that built folder locally. This is how you verify the production bundle before uploading. The preview server runs at `http://localhost:4173` by default.
+
+## Type checking and quality gates
+
+```bash
+npm run check          # TypeScript + Svelte type checking
+npm run lint           # Prettier + ESLint
+npm run test           # Vitest unit tests
+npm run format         # Auto-fix formatting
+```
+
+Run `npm run check` and `npm run test` before shipping any custom build — they catch most integration issues before they reach users.
+
+## Building and deploying
+
+```bash
+npm run build
+```
+
+The build output goes to `dist/`. From there, deployment is identical to [Pre-built Release](./prebuilt) — upload the folder to your web server, make sure the SPA fallback is configured (`.htaccess` for Apache, or equivalent for other servers).
+
+If you also want a CDN-mode build for your own mirror, run:
+
+```bash
+npm run build:cdn
+```
+
+This produces a `dist-cdn/` folder containing the versioned bundle structure that a CDN loader expects.
+
+## Updating from upstream
+
+```bash
+git pull
+npm install
+npm run build
+```
+
+If you've been editing files in `defaults/` directly (instead of copying them to `static/`), expect merge conflicts on upstream updates. The clean fix is to move your customizations to `static/` once, then `git pull` stops conflicting with your edits forever.
+
+## Troubleshooting
+
+### Build fails with TypeScript errors
+
+**Cause:** Usually a stale `.svelte-kit/` directory after a `git pull`.
+
+**Fix:** Run `npm run prepare` (which runs `svelte-kit sync`), then retry `npm run build`. If it still fails, delete `node_modules/` and `.svelte-kit/` and reinstall.
+
+### `npm run dev` fails with a port conflict
+
+**Cause:** Port 5173 is already in use (another Vite instance, or another dev server).
+
+**Fix:** Either stop the other process or pass `--port` to Vite: `npm run dev -- --port 5174`.
+
+### My edits to `defaults/config.js` aren't showing up
+
+**Cause:** You have a `static/config.js` that's shadowing it.
+
+**Fix:** Edit `static/config.js` instead, or remove it if you want `defaults/` to take over.
+
+### Tests fail on a fresh clone
+
+**Cause:** Missing the Paraglide i18n code generation step.
+
+**Fix:** Run `npm run prepare` before running tests — it runs `svelte-kit sync`, which among other things triggers the Paraglide compile step.

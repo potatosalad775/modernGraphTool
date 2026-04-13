@@ -4,114 +4,43 @@ sidebar_position: 1
 
 # Setting Up Your Environment
 
-This guide explains the basic environment setup for using and managing modernGraphTool.
+This page frames the setup decision and points you at the right deployment option. Each option has its own dedicated guide linked from the table below.
 
 ## Prerequisites
 
-1.  **modernGraphTool Project Files**: The built application files containing the core functionalities for visualizing and analyzing frequency response data.
-2.  **Text Editor**: A program for modifying various configuration files (`.js`, `.css`, `.json`). [Visual Studio Code (VS Code)](https://code.visualstudio.com/) is recommended.
+1.  **modernGraphTool project files** — either a [pre-built release](https://github.com/potatosalad775/modernGraphTool/releases) or a clone of the source repository, depending on which deployment option you pick.
+2.  **Text editor** — for modifying `config.js`, `theme.css`, and other configuration files. [Visual Studio Code](https://code.visualstudio.com/) is recommended for its syntax highlighting and auto-completion.
 
-## Option A: CDN Deployment (Recommended)
+## Deployment Options
 
-If you don't want to manage app updates manually, you can use the CDN deployment mode. 
+modernGraphTool supports three deployment paths. Pick one based on how much control you need over updates and customization:
 
-In this setup, modernGraphTool's application code is loaded from a CDN (jsDelivr), while your configuration and data files stay on your own server.
+| Option | Best for | Updates | Customization | Subdirectory hosting |
+|---|---|---|---|---|
+| **[CDN Deployment](./deployment/cdn)** (recommended) | Most operators | Automatic | Config, theme, data | Requires one config line (`BASE_PATH`) |
+| **[Pre-built Release](./deployment/prebuilt)** | Controlled rollouts, airgapped | Manual (re-download) | Config, theme, data, HTML metadata | Works out of the box |
+| **[Building from Source](./deployment/from-source)** | Developers, forks | Manual (git pull + build) | Everything | Works out of the box |
 
-This is the simplest option. No programming knowledge is required.
+### [CDN Deployment](./deployment/cdn)
 
-1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) and extract it.
-2.  Copy `cdn-index.html` from the release (or the `cdn/` folder in the source) to your server and **rename it to `index.html`**.
-3.  Keep these files on your server alongside the `index.html`:
-    - `config.js` — Your application settings
-    - `theme.css` — Your graph color theme
-    - `data/` — Your measurement data and target curves
-    - `assets/` — Your images and string files
-4.  The app will automatically load the latest version from the CDN.
+Your server hosts only a minimal `index.html` loader plus your `config.js`, `theme.css`, `data/`, and `assets/`. The application code itself comes from jsDelivr and auto-updates when new versions ship. This is the simplest path — no manual updates, no re-uploads.
 
-:::tip[Version Pinning]
-By default, the CDN loader auto-updates to the latest version within your major version. To pin a specific major version, add the `CDN_MODE` section to your `config.js`:
-```javascript
-CDN_MODE: {
-  MAJOR_VERSION: 2,  // Stay on v2.x.x
-},
-```
-See [Customizing the Page](./customize-page#cdn_mode) for more details.
-:::
+If your site lives under a subdirectory like `/headphones/` (common on squig.link, where operators often run a root earphones database plus a `/headphones/` headphones database on the same subdomain), you'll need to set `CDN_MODE.BASE_PATH` in your config — it's a one-line change, but easy to miss. See the [CDN deployment guide](./deployment/cdn#why-base_path-is-almost-always-required) for details.
 
-:::info[How It Works]
-The `cdn-index.html` loads only your local `config.js` and `theme.css`, then fetches the modernGraphTool application from jsDelivr. When a new version is released, your site updates automatically — no file uploads needed.
-:::
+### [Pre-built Release](./deployment/prebuilt)
 
-## Option B: Using the Pre-built Release
+Download a full `dist/` folder and upload it to your server. You control exactly which version runs and when it changes — no runtime dependency on jsDelivr, works in airgapped environments, subdirectory hosting works without any extra config. The tradeoff is that updating to a new release means re-downloading and re-uploading.
 
-If you prefer to host the entire application yourself, download the pre-built release and upload it to your server.
+### [Building from Source](./deployment/from-source)
 
-This gives you more control but requires manual updates.
-
-1.  Download the [latest release zip file](https://github.com/potatosalad775/modernGraphTool/releases) from the [modernGraphTool GitHub Release Page](https://github.com/potatosalad775/modernGraphTool/releases).
-2.  Extract the downloaded zip file. The extracted folder contains everything you need to deploy.
-3.  Customize the configuration files to suit your needs:
-    - `config.js` — Application settings (see [Customizing the Page](./customize-page))
-    - `theme.css` — Graph color theme (see [Customizing Page Styles](./customize-page#customizing-page-styles-themecss))
-    - `data/` — Your measurement data and target curves (see [Managing Data](./manage-data))
-4.  Upload the entire folder to your web server via FTP or any file transfer method.
-
-## Option C: Building from Source (For Developers)
-
-If you want to modify the source code or build from the latest development version:
-
-1.  Ensure you have [Node.js](https://nodejs.org/) (v18 or later) installed on your system.
-2.  Clone the repository:
-    ```bash
-    git clone https://github.com/potatosalad775/modernGraphTool.git
-    cd modernGraphTool
-    ```
-3.  Install dependencies:
-    ```bash
-    npm install
-    ```
-4.  Customize the configuration:
-    - `defaults/config.js` — Application settings
-    - `defaults/theme.css` — Graph color theme
-    - `defaults/data/` — Your measurement data and target curves
-5.  Build the project:
-    ```bash
-    npm run build
-    ```
-6.  The built output will be in the `dist/` folder. Deploy this folder to your web server.
-
-:::tip[Local Preview]
-You can preview your changes locally before deploying:
-- **From source**: Run `npm run dev` to start a development server at `http://localhost:5173`
-- **Built output**: Run `npm run preview` to serve the `dist/` folder locally
-:::
+Clone the repository, customize anything you like, and build your own `dist/` folder. This is the developer path — use it if you need changes that go beyond what `config.js` exposes.
 
 ## Installing a Text Editor
 
-While various text editors are available, using [Visual Studio Code (VS Code)](https://code.visualstudio.com/) is recommended for its convenient features like code highlighting and auto-completion.
+While various text editors are available, [Visual Studio Code](https://code.visualstudio.com/) is recommended for its convenient features like code highlighting and auto-completion.
 
 VS Code can be downloaded for free by anyone and supports Windows, macOS, and Linux.
 
 1.  Go to the [VS Code website](https://code.visualstudio.com/), download the installer for your operating system, and install it.
 2.  Open the modernGraphTool project folder (or the extracted release folder) in VS Code.
 3.  You can now edit configuration files and manage your data.
-
-## Project Structure
-
-After extracting the release (or building from source), the key files and folders are:
-
-```
-dist/                     # (or extracted release folder)
-├── config.js             # Application settings
-├── theme.css             # Graph color theme
-├── index.html            # HTML entry point (editable for metadata)
-├── data/
-│   ├── phones/           # Measurement data files (.txt)
-│   ├── target/           # Target curve data files (.txt)
-│   └── phone_book.json   # Device list definition
-└── assets/               # Static assets (images, strings, etc.)
-```
-
-:::info[For Source Builders]
-When building from source, default configuration and data files are in the `defaults/` folder. The HTML entry point in the source is `src/app.html` (SvelteKit template). After building, defaults are copied to `dist/` (without overwriting files from `static/`).
-:::

@@ -1,0 +1,167 @@
+---
+sidebar_position: 1
+---
+
+# CDN Deployment
+
+Load the modernGraphTool application code from a CDN (jsDelivr) and keep only your configuration, theme, and data on your own server. This is the recommended deployment mode for most operators.
+
+## Overview
+
+In CDN mode, your server hosts a minimal set of files — an `index.html` loader, `config.js`, `theme.css`, `data/`, and `assets/` — while the actual application bundle is served from jsDelivr. When a new version of modernGraphTool is released, your site picks it up automatically: no file uploads, no redeploys.
+
+The tradeoff is that your site needs to reach jsDelivr at load time, and you don't directly control *when* the update ships. If either of those matters to you, see [Pre-built Release](./prebuilt) instead.
+
+## When to pick this
+
+**Good fit for:**
+- Most operators who just want a working site with minimal maintenance
+- Personal databases that don't need a controlled release cadence
+- Anyone who dreads manual re-uploads on every release
+
+**Bad fit for:**
+- Airgapped or intranet deployments where jsDelivr isn't reachable
+- Sites that need strict control over when and which version users receive
+- Heavy customization of the app bundle itself (forks, custom features)
+
+## Installation
+
+1.  **Download** the [latest CDN release zip](https://github.com/potatosalad775/modernGraphTool/releases) (with the name ending in `_cdn.zip`) and extract it.
+2.  **Copy `cdn-index.html`** from the release (or from the `cdn/` folder in the source) to your server and **rename it to `index.html`**.
+3.  **Keep these files next to it** on your server:
+    - `config.js` — your application settings
+    - `theme.css` — your graph color theme
+    - `data/` — your measurement data and target curves
+    - `assets/` — images and string files
+4.  **Set `CDN_MODE.BASE_PATH` in `config.js`** — required unless your site lives at the root of its (sub)domain. See [the advanced section](#why-base_path-is-almost-always-required) for why. For a site at `example.com/headphones/` or `user.squig.link/headphones/`:
+    ```javascript
+    CDN_MODE: {
+      MAJOR_VERSION: 2,
+      BASE_PATH: "/headphones",
+    },
+    ```
+    No trailing slash. If your site is served at the root of its (sub)domain — e.g. `example.com/` or `user.squig.link/` — you can leave `BASE_PATH` unset. If you run **multiple** modernGraphTool instances on the same (sub)domain (common on squig.link — see the tip below), each instance gets its own `config.js` with a `BASE_PATH` that matches its own URL.
+5.  **(Optional) Pin a major version** via `CDN_MODE.MAJOR_VERSION`. The default is to always serve the latest major.
+6.  **Upload and test.** Open the page, load a device, copy the share link, then open the share link in a new browser tab. If the share link 404s, double-check `BASE_PATH` — this is the single most common installation mistake.
+
+That's it. Future releases within your pinned major version reach your site automatically.
+
+## Version pinning
+
+By default, the CDN loader auto-updates to the latest major version available. If you've tested your site against v2 and don't want v3 rolling in unannounced, pin the major:
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+},
+```
+
+This keeps your site on v2.x.x — you'll still receive minor and patch releases within v2, but not v3. When you're ready to move up, update the number.
+
+:::info[Pinning doesn't freeze minor versions]
+`MAJOR_VERSION` only pins the major. Patches and minor releases within your pinned major (e.g. v2.1.0 → v2.2.0) still roll out automatically. If you need to pin a specific patch version, use [Pre-built Release](./prebuilt) instead.
+:::
+
+## Updating the app
+
+Under normal operation, nothing — updates are automatic within your pinned major. When you're ready to move to a new major:
+
+1. Bump `CDN_MODE.MAJOR_VERSION` in `config.js` (e.g. `2` → `3`)
+2. Re-upload `config.js`
+3. Users pick up the new major on their next page load
+
+Users who want to force a refresh in the meantime can clear their browser cache or do a hard reload.
+
+## Troubleshooting
+
+### Page does not load properly with 404 errors
+
+**Cause:** Missing or wrong `BASE_PATH`.
+
+**Fix:** Open `config.js` and set `CDN_MODE.BASE_PATH` to your subdirectory with no trailing slash. If you're at `example.com/headphones/`, it should be `"/headphones"`. After editing, reload without cache. See [Why `BASE_PATH` is almost always required](#why-base_path-is-almost-always-required) for the full explanation.
+
+### Stuck on an old version after a new release
+
+**Cause:** Browser cache, jsDelivr edge cache, or a `MAJOR_VERSION` pin you forgot about.
+
+**Fix:**
+1. Check whether `CDN_MODE.MAJOR_VERSION` is pinned to an older major than the one you want.
+2. Clear your browser cache or do a hard reload (Ctrl+Shift+R / Cmd+Shift+R).
+3. For non-`versions.json` files, wait on the jsDelivr edge cache — it clears within minutes to hours depending on your POP.
+
+### Can't load the app at all
+
+**Cause:** Network reachability, config syntax error, or CDN blocked in your region.
+
+**Fix:**
+1. Open the browser's network tab and check which request is failing.
+2. If `versions.json` or `boot.json` fails, jsDelivr / GitHub raw is unreachable from where you are. Consider [Pre-built Release](./prebuilt) as a fallback.
+3. If nothing loads and there's no network activity, `config.js` may have a syntax error — check the browser console.
+
+### Works in dev, broken in production
+
+**Cause:** Almost always `BASE_PATH`. Local preview usually runs at `localhost:5173/`, which is effectively root; your production server is at a subdirectory.
+
+**Fix:** Set `BASE_PATH` to match your production subdirectory.
+
+### `versions.json: HTTP 404`
+
+**Cause:** A custom `BASE` that points at a location without a `versions.json` file, and no explicit `VERSIONS_URL` override.
+
+**Fix:** Either add `versions.json` to your `BASE` root, or set `VERSIONS_URL` explicitly to the correct URL.
+
+## Advanced
+
+### How updates propagate
+
+`versions.json` — the file that maps major versions to specific release numbers — is fetched directly from `raw.githubusercontent.com`, **not** through jsDelivr. This is deliberate: jsDelivr's edge cache can pin stale responses for hours, and `versions.json` is the one file where that delay matters. Fetching from GitHub raw bypasses the cache so new releases reach your users within minutes of publication.
+
+### Overriding `VERSIONS_URL`
+
+`VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn't a recognizable jsDelivr `gh/` URL (because you're self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196).
+
+All the *other* files (app chunks, CSS, preloads) still come from jsDelivr with its normal cache behavior, which is minutes to hours depending on the edge location. Users who want to force-refresh to the newest version can clear their browser cache or hard-reload.
+
+### Self-hosting the CDN assets
+
+If jsDelivr isn't an option for you — private fork, air-gapped mirror, bandwidth concerns — you can host the CDN assets yourself and point `CDN_MODE.BASE` at your own URL:
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE: "https://my-mirror.example.com/moderngraphtool",
+  VERSIONS_URL: "https://my-mirror.example.com/moderngraphtool/versions.json",
+},
+```
+
+You'll need to mirror the full structure: `versions.json` at the root, plus `v{version}/boot.json` and all referenced chunks. Set `VERSIONS_URL` alongside `BASE` — the default GitHub raw derivation only works when `BASE` points at a jsDelivr `gh/` URL.
+
+:::warning[Trade-off]
+Self-hosting the CDN assets defeats the "no manual updates" selling point of CDN mode. You now have two things to maintain: your site *and* your mirror. For most operators, the [Pre-built Release](./prebuilt) path is simpler.
+:::
+
+### Why `BASE_PATH` is almost always required
+
+The loader tries to auto-detect the deployment path from the URL, but the auto-detection only works for root-of-domain deployments. Here's why.
+
+When a visitor opens `https://example.com/headphones/`, the browser's `window.location.pathname` is `/headphones/` — **not** `/headphones/index.html`. Even though the server serves `index.html` by default, the URL bar shows the directory. The loader checks whether the pathname ends in `.html`; if it doesn't, the loader assumes the app is hosted at the domain root and uses an empty base path. That's fine for `example.com/` but wrong for `example.com/headphones/`, and it's wrong for every share-link deep route like `example.com/headphones/share/abc`.
+
+The practical result:
+
+| Deployment | Auto-detected base | Correct? | Action |
+|---|---|---|---|
+| `example.com/` | `""` | Yes | Leave `BASE_PATH` unset |
+| `example.com/headphones/` | `""` | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"` |
+| `example.com/headphones/share/abc` | `""` | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"` |
+| `example.com/headphones/cdn-index.html` | `/headphones` | Yes | (But nobody visits this URL — the install instructions tell you to rename the file.) |
+
+So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js:111-137](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L111-L137) if you want to read the exact detection rules.
+
+:::tip[squig.link operators]
+Each squig.link user gets their own subdomain — `<username>.squig.link` — and has full access to the root plus any subdirectories they create. The common pattern is to run **two** modernGraphTool instances on the same subdomain:
+
+- `<username>.squig.link/` — usually the earphones database. This is at the subdomain root, so **leave `BASE_PATH` unset** for this instance.
+- `<username>.squig.link/headphones/` — the headphones database under a subdirectory. This one **needs `BASE_PATH: "/headphones"`** in its own `config.js`.
+
+Each instance has its own `index.html`, its own `config.js`, its own `data/`, etc. The `BASE_PATH` setting applies per-instance, so you'll only set it on the `/headphones/` one. If you create additional subdirectories (e.g. `/iems/`, `/speakers/`), each needs its own `BASE_PATH` matching its path.
+:::

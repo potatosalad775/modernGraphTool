@@ -199,11 +199,11 @@ phones 배열에는 다음과 같은 데이터가 포함될 수 있습니다:
 :::
 
 #### HpTF (Headphone Transfer Function) 항목
-HpTF 항목은 측정값 주변의 **위치별 편차** — 보통 약간씩 다른 착용 위치를 스윕한 측정 (Center, Front, Back, Up, Down) — 를 그래프에 겹쳐진 음영 포락선으로 시각화하며, 선택적으로 샘플별 커브를 함께 표시합니다. 편차 음영이 일반 측정 커브를 대체하므로, HpTF 항목은 그래프 자체가 포락선인 하나의 phone이 됩니다.
+HpTF 항목은 서로 관련된 여러 측정 사이의 **편차(variance)** — 예를 들어 약간씩 다른 착용 위치(Center, Front, Back, Up, Down), 또는 측정 장비 따위를 그래프에 겹쳐진 음영 포락선으로 시각화하며, 선택적으로 샘플별 커브를 함께 표시합니다. 편차 음영이 일반 측정 커브를 대체하므로, HpTF 항목은 그래프 자체가 포락선인 하나의 phone이 됩니다. 샘플은 비교하고 싶은 어떤 것이든 나타낼 수 있으며, HpTF는 착용 위치에만 국한되지 않습니다.
 
 - `hptf.files` (문자열 배열, 필수): 각 편차 샘플의 기본 파일 이름입니다. 도구는 각 항목에 대해 `{name} L.txt`와 `{name} R.txt`를 로드합니다.
 - `hptf.labels` (문자열 배열, 선택 사항): HpTF 토글 UI에 표시되는 사람이 읽기 쉬운 라벨입니다. 생략 시 `files` 값이 기본으로 사용됩니다.
-- `hptf.description` (문자열, 선택 사항): 음영 포락선과 함께 표시되는 짧은 메모 (예: `"(Positional Variance)"`).
+- `hptf.description` (문자열, 선택 사항): 무엇이 변화하는지 설명하는 짧은 메모로 음영 포락선과 함께 표시됩니다 (예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
 - `hptf.fillOnly` (불리언, 선택 사항, 기본값 `true`): `true`일 때는 음영 포락선만 렌더링됩니다. 사용자가 UI에서 샘플별 편차 커브를 토글할 수 있게 하려면 `false`로 설정하세요.
 - 측정 파일은 다른 항목과 마찬가지로 `data/phones/`에 둡니다.
 
@@ -219,7 +219,7 @@ HpTF 항목은 측정값 주변의 **위치별 편차** — 보통 약간씩 다
       "HpTF Demo Down"
     ],
     "labels": ["Center", "Front", "Back", "Up", "Down"],
-    "description": "(Positional Variance)"
+    "description": "(Fit Position)"
   }
 }
 ```

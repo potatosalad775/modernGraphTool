@@ -150,12 +150,16 @@ const config: Config = {
           title: 'Useful Links',
           items: [
             {
-              label: 'Theme Generator',
-              href: '/theme-generator',
+              label: 'phone_book.json Editor',
+              href: '/phone-book-editor',
             },
             {
               label: 'Config Editor',
               href: '/config-generator',
+            },
+            {
+              label: 'Theme Generator',
+              href: '/theme-generator',
             },
           ],
         },

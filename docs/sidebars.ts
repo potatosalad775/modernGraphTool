@@ -32,6 +32,11 @@ const sidebars: SidebarsConfig = {
       type: 'link',
       label: 'Config Editor',
       href: '/config-generator',
+    },
+    {
+      type: 'link',
+      label: 'phone_book.json Editor',
+      href: '/phone-book-editor',
     }
   ],
 

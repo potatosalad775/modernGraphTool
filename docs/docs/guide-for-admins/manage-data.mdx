@@ -12,6 +12,10 @@ The data list is managed by the `data/phone_book.json` file. If the paths are no
 modernGraphTool is designed to use the same data structure as CrinGraph. Therefore, users familiar with CrinGraph can skip this section.
 :::
 
+:::tip[GUI editor]
+Prefer a form? Use the [phone_book.json Editor](/phone-book-editor) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Multi-Sample, HpTF).
+:::
+
 ## Data Folder Structure
 
 The `dist/data` folder has the following structure:
@@ -45,14 +49,14 @@ JSON (JavaScript Object Notation) is a text format for structuring data. You can
 
 The `phone_book.json` file starts and ends with one large array (`[]`). The array contains multiple **brand** objects (`{}`).
 
-Each brand object has a `brand` key (e.g., "Sennheiser", "Sony") and a `phones` key. 
+Each brand object has a `name` key (e.g., "Sennheiser", "Sony") and a `phones` key. 
 
 The value of the `phones` key is an array containing phone definitions for each model of that brand. Phone definitions can be simple strings or more detailed objects.
 
 ```json
 [
   {
-    "brand": "Brand A",
+    "name": "Brand A",
     "suffix": "(Audio)", // Optional: Suffix for the brand name
     "phones": [
       "ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
@@ -62,13 +66,13 @@ The value of the `phones` key is an array containing phone definitions for each 
         "suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
         "reviewLink": "https://example.com/review/modely", // Optional: Review link
         "price": "$199", // Optional: Price (string)
-        "notes": "Some notes about Model Y" // Optional: Additional notes
+        "description": "Some description about Model Y" // Optional: Extra description
       },
       // ... more models for Brand A
     ]
   },
   {
-    "brand": "Brand B",
+    "name": "Brand B",
     "phones": [
       // ... models for Brand B
     ]
@@ -78,7 +82,7 @@ The value of the `phones` key is an array containing phone definitions for each 
 ```
 
 ### Brand Object Keys
-- `brand` (String, Required): The name of the brand.- 
+- `name` (String, Required): The name of the brand.
 - `suffix` (String, Optional): An optional suffix that will be appended to the brand name in the UI.
 - `phones` (Array, Required): An array of phone definitions. Each element can be a string (for simple cases) or a phone object (for detailed configuration or variations).
 
@@ -89,7 +93,7 @@ The phones array can contain:
 If a phone entry is a simple string (e.g., "ModelX"), it's assumed that the display name is "ModelX" and the data files are ModelX L.txt and ModelX R.txt.
 ```json
 {
-  "brand": "BrandSimple",
+  "name": "BrandSimple",
   "phones": [
     "ModelS1",  // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
     "ModelS2"   // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
@@ -107,10 +111,11 @@ For more control, a phone can be defined as an object with the following keys:
 - `reviewLink` (String, Optional): A URL link to a review of the phone.
 - `shopLink` (String, Optional): A URL to a shop or purchase page.
 - `price` (String, Optional): The price of the phone (e.g., "$299", "€250"). Using a string allows for currency symbols and various formats.
+- `description` (String, Optional): Free-form description displayed alongside the phone.
 
 ```json
 {
-  "brand": "BrandDetailed",
+  "name": "BrandDetailed",
   "phones": [
     {
       "name": "Model D1",
@@ -130,7 +135,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
 ```json
 {
-  "brand": "BrandVariations",
+  "name": "BrandVariations",
   "phones": [
     {
       "name": "Model V1", // Base name for variations
@@ -151,7 +156,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
 ```json
 {
-  "brand": "BrandPrefix",
+  "name": "BrandPrefix",
   "phones": [
     {
       "name": "Model P1", // Base display name
@@ -160,7 +165,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
         "BrandP ModelP1 (Silicone Tip)"
       ], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
       "prefix": "BrandP ModelP1", // Common file prefix
-      "notes": "Uses different eartips"
+      "description": "Uses different eartips"
     }
   ]
 }
@@ -198,11 +203,11 @@ You can change whether multi-sample phones open as an averaged single curve or a
 :::
 
 #### HpTF (Headphone Transfer Function) Entries
-HpTF entries visualise **positional variance** around a measurement — typically a sweep of slightly different fit positions (Center, Front, Back, Up, Down) — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. The deviation fill replaces the normal measurement curve; an HpTF entry is effectively one phone whose graph *is* the envelope itself.
+HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. The deviation fill replaces the normal measurement curve; an HpTF entry is effectively one phone whose graph *is* the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
 
 - `hptf.files` (Array of Strings, Required): The base file names for each deviation sample. The tool loads `{name} L.txt` and `{name} R.txt` for each entry.
 - `hptf.labels` (Array of Strings, Optional): Human-readable labels shown in the HpTF toggle UI. Defaults to the `files` values if omitted.
-- `hptf.description` (String, Optional): A short note displayed alongside the fill envelope, e.g. `"(Positional Variance)"`.
+- `hptf.description` (String, Optional): A short note displayed alongside the fill envelope describing what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, or `"(Insertion Depth)"`.
 - `hptf.fillOnly` (Boolean, Optional, default `true`): When `true`, only the fill envelope is rendered. Set to `false` if you want users to toggle individual per-sample deviation curves in the UI.
 - Measurement files live in `data/phones/` like any other entry.
 
@@ -218,7 +223,7 @@ HpTF entries visualise **positional variance** around a measurement — typicall
       "HpTF Demo Down"
     ],
     "labels": ["Center", "Front", "Back", "Up", "Down"],
-    "description": "(Positional Variance)"
+    "description": "(Fit Position)"
   }
 }
 ```

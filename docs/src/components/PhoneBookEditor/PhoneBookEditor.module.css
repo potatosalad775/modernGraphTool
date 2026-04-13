@@ -1,0 +1,473 @@
+/* Phone-book-specific styles layered on top of ConfigEditor.module.css */
+
+/* ── Two-column master/detail layout ──────────────────────────────────────── */
+
+.pbLayout {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .pbLayout {
+    flex-direction: column;
+  }
+}
+
+/* ── Left column: brand picker ────────────────────────────────────────────── */
+
+.pbPicker {
+  width: 260px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: calc(var(--ifm-navbar-height) + 1rem);
+  max-height: calc(100vh - var(--ifm-navbar-height) - 3rem);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  background: var(--ifm-background-color);
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .pbPicker {
+    width: 100%;
+    min-width: 0;
+    position: static;
+    max-height: none;
+  }
+}
+
+.pbPickerHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-color-emphasis-100);
+}
+
+.pbPickerTitle {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ifm-color-content);
+}
+
+.pbPickerCount {
+  font-weight: 400;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.75rem;
+}
+
+.pbPickerList {
+  list-style: none;
+  padding: 0.25rem;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .pbPickerList {
+    max-height: 260px;
+  }
+}
+
+.pbEmptyPicker {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ifm-color-content-secondary);
+}
+
+.pbBrandButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ifm-color-content);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.pbBrandButton:hover {
+  background: var(--ifm-color-emphasis-100);
+}
+
+.pbBrandButton:focus-visible {
+  outline: none;
+  border-color: var(--ifm-color-primary);
+}
+
+.pbBrandButtonSelected {
+  background: var(--ifm-color-primary-lightest, rgba(37, 99, 235, 0.08));
+  border-color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+.pbBrandButtonSelected:hover {
+  background: var(--ifm-color-primary-lightest, rgba(37, 99, 235, 0.12));
+}
+
+.pbBrandButtonLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pbBrandButtonCount {
+  font-size: 0.6875rem;
+  color: var(--ifm-color-content-secondary);
+  background: var(--ifm-color-emphasis-200);
+  padding: 0.0625rem 0.375rem;
+  border-radius: 10px;
+  flex-shrink: 0;
+  font-weight: 400;
+}
+
+.pbBrandButtonActions {
+  display: none;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.pbBrandButton:hover .pbBrandButtonActions,
+.pbBrandButtonSelected .pbBrandButtonActions {
+  display: inline-flex;
+}
+
+.pbIconBtnMini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 3px;
+  background: var(--ifm-background-color);
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.6875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.pbIconBtnMini:hover:not(:disabled) {
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-primary);
+}
+
+.pbIconBtnMini:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Right column: workspace ─────────────────────────────────────────────── */
+
+.pbWorkspace {
+  flex: 1;
+  min-width: 0;
+}
+
+.pbWorkspaceEmpty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.875rem;
+}
+
+.pbWorkspaceHeader {
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  background: var(--ifm-color-emphasis-100);
+  margin-bottom: 0.75rem;
+}
+
+.pbBrandFields {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+@media (max-width: 700px) {
+  .pbBrandFields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pbBrandHeaderActions {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding-bottom: 1px;
+}
+
+.pbWorkspaceToolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+  padding: 0 0.125rem;
+}
+
+.pbWorkspaceToolbarLabel {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ifm-color-content);
+}
+
+.pbWorkspaceToolbarActions {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+/* ── Shared icon buttons and chevron (used by phone cards) ───────────────── */
+
+.pbBrandChevron {
+  font-size: 0.625rem;
+  color: var(--ifm-color-content-secondary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.pbBrandChevronOpen {
+  transform: rotate(90deg);
+}
+
+.pbIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+  background: var(--ifm-background-color);
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.pbIconBtn:hover:not(:disabled) {
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-primary);
+}
+
+.pbIconBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pbIconBtnDanger:hover:not(:disabled) {
+  background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
+  color: var(--ifm-color-danger);
+  border-color: var(--ifm-color-danger);
+}
+
+.pbBrandActions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ── Phone card (collapsible accordion) ──────────────────────────────────── */
+
+.pbPhoneCard {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  background: var(--ifm-background-surface-color);
+  overflow: hidden;
+}
+
+.pbPhoneHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.pbPhoneHeaderClickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.pbPhoneHeaderClickable:hover {
+  background: var(--ifm-color-emphasis-100);
+}
+
+.pbPhoneSummary {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--ifm-color-content);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pbPhoneKindBadge {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.125rem 0.4rem;
+  border-radius: 3px;
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-content-secondary);
+  flex-shrink: 0;
+}
+
+.pbPhoneBody {
+  padding: 0.875rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-color);
+}
+
+.pbKindSelectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px dashed var(--ifm-color-emphasis-200);
+}
+
+.pbKindSelectLabelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pbKindSelectLabelRow label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ifm-color-content);
+}
+
+.pbKindDescription {
+  font-size: 0.75rem;
+  color: var(--ifm-color-content-secondary);
+  line-height: 1.4;
+}
+
+.pbKindDescription a {
+  font-size: 0.75rem;
+}
+
+/* ── Parallel-row editor (file/suffix pairs, hptf rows, etc.) ────────────── */
+
+.pbRowsTable {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.pbRowsHeader {
+  display: grid;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ifm-color-content-secondary);
+  padding: 0 0.25rem;
+  margin-bottom: 0.125rem;
+}
+
+.pbRow {
+  display: grid;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.pbRowTwoCol {
+  grid-template-columns: 1fr 1fr auto;
+}
+
+.pbRowOneCol {
+  grid-template-columns: 1fr auto;
+}
+
+/* ── Shared metadata grid ────────────────────────────────────────────────── */
+
+.pbMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--ifm-color-emphasis-200);
+}
+
+.pbMetaField label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ifm-color-content-secondary);
+  margin-bottom: 0.25rem;
+}
+
+/* ── Passthrough warning ─────────────────────────────────────────────────── */
+
+.pbPassthroughWarning {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--ifm-color-warning-dark, #a16207);
+  font-style: italic;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.pbEmptyList {
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--ifm-color-emphasis-300);
+  border-radius: 6px;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.8125rem;
+  margin-bottom: 0.75rem;
+}
+
+.pbBrandAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--ifm-color-emphasis-300);
+  background: none;
+  color: var(--ifm-color-content-secondary);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  border-radius: 0;
+  transition: border-color 0.15s, color 0.15s;
+  width: 100%;
+  justify-content: center;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.pbBrandAddBtn:hover {
+  color: var(--ifm-color-primary);
+  background: var(--ifm-color-emphasis-100);
+}

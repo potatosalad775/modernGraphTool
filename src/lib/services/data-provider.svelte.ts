@@ -30,9 +30,8 @@ import {
 	UpdateHpTFDisplayCommand
 } from './commands.js';
 import FRParser from '$lib/utils/fr-parser.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
-import { DataProcessor } from '$lib/utils/data-processor.js';
+import { DataProcessor, anchorAndNormalizeHpTFSamples } from '$lib/utils/data-processor.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { analyticsService } from './analytics-service.svelte.js';
@@ -43,7 +42,11 @@ class DataProvider {
 
 	/** Current processing params from graph store */
 	get #processingParams() {
-		return { smoothValue: graphStore.smoothValue, normType: graphStore.normType, normHz: graphStore.normHzValue };
+		return {
+			smoothValue: graphStore.smoothValue,
+			normType: graphStore.normType,
+			normHz: graphStore.normHzValue
+		};
 	}
 
 	// ─── Add ─────────────────────────────────────────────────────────────────────
@@ -73,8 +76,8 @@ class DataProvider {
 			channels: {
 				...(rawData.L && { L: rawData.L }),
 				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG }),
-			},
+				...(rawData.AVG && { AVG: rawData.AVG })
+			}
 		};
 		if (rawData._samples && rawData._sampleCount) {
 			rawCache.samples = rawData._samples;
@@ -90,8 +93,7 @@ class DataProvider {
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 
 		const dispSuffix =
-			inputMetadata.dispSuffix ??
-			((metaData as PhoneMetadata).files?.[0]?.suffix ?? '');
+			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
 
 		const colors = this.#getColorForType(sourceType);
 
@@ -114,7 +116,10 @@ class DataProvider {
 
 		// Multi-sample: process and attach sample data
 		if (rawData._samples && rawData._sampleCount) {
-			const processedSamples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
+			const processedSamples = DataProcessor.processSamples(
+				rawData._samples,
+				this.#processingParams
+			);
 			frObject.samples = processedSamples;
 			frObject.sampleCount = rawData._sampleCount;
 			frObject.colors = this.#addSampleColors(colors, rawData._sampleCount);
@@ -132,7 +137,11 @@ class DataProvider {
 
 		// HpTF: process and attach sample data + envelope
 		if (rawData._hptfSamples && rawData._hptfLabels) {
-			const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
+			const processedSamples = DataProcessor.processHpTFSamples(
+				rawData._hptfSamples,
+				rawData._hptfLabels,
+				this.#processingParams
+			);
 
 			const fillOnly = rawData._hptfFillOnly ?? true;
 			const hptfDescription = (metaData as PhoneMetadata).files?.[0]?.hptfDescription;
@@ -149,7 +158,7 @@ class DataProvider {
 			frObject.hptfAvgVisible = defaultDisplay !== 'none';
 			frObject.dispHptf = fillOnly
 				? []
-				: (defaultDisplay === 'curves' || defaultDisplay === 'fill+curves')
+				: defaultDisplay === 'curves' || defaultDisplay === 'fill+curves'
 					? this.#getAllHpTFKeys(processedSamples)
 					: [];
 			if (rawData._hptfOnly) {
@@ -194,11 +203,7 @@ class DataProvider {
 		commandHistory.execute(new RemoveFRDataCommand(uuid, sourceType), frStore);
 	}
 
-	async toggleFRData(
-		sourceType: FRDataType,
-		identifier: string,
-		enabled: boolean
-	): Promise<void> {
+	async toggleFRData(sourceType: FRDataType, identifier: string, enabled: boolean): Promise<void> {
 		if (enabled) await this.addFRData(sourceType, identifier);
 		else this.removeFRData(sourceType, identifier);
 	}
@@ -223,8 +228,7 @@ class DataProvider {
 				...(processed.R && { R: processed.R }),
 				...(processed.AVG && { AVG: processed.AVG })
 			},
-			dispChannel:
-				inputMetadata.dispChannel ?? this.#getChannelValue(sourceType, channels),
+			dispChannel: inputMetadata.dispChannel ?? this.#getChannelValue(sourceType, channels),
 			dispSuffix: inputMetadata.dispSuffix ?? '(Inserted)',
 			colors: this.#getColorForType(sourceType),
 			dash: this.#getDashForType(sourceType, identifier),
@@ -257,8 +261,7 @@ class DataProvider {
 			},
 			identifier: opts.identifier ?? existing.identifier,
 			dispSuffix: opts.dispSuffix ?? existing.dispSuffix,
-			adjustmentLabel:
-				'adjustmentLabel' in opts ? opts.adjustmentLabel : existing.adjustmentLabel
+			adjustmentLabel: 'adjustmentLabel' in opts ? opts.adjustmentLabel : existing.adjustmentLabel
 		};
 		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
 	}
@@ -280,8 +283,8 @@ class DataProvider {
 			channels: {
 				...(rawData.L && { L: rawData.L }),
 				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG }),
-			},
+				...(rawData.AVG && { AVG: rawData.AVG })
+			}
 		};
 		if (rawData._samples && rawData._sampleCount) {
 			variantRawCache.samples = rawData._samples;
@@ -296,9 +299,7 @@ class DataProvider {
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 		const dispChannel = (
-			data.dispChannel.every((ch) => channels.includes(ch))
-				? [...data.dispChannel]
-				: [channels[0]]
+			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
 		) as ('L' | 'R' | 'AVG')[];
 
 		commandHistory.execute(
@@ -319,7 +320,10 @@ class DataProvider {
 		if (rawData._samples && rawData._sampleCount) {
 			const existingData = frStore.get(uuid);
 			if (existingData) {
-				const processedSamples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
+				const processedSamples = DataProcessor.processSamples(
+					rawData._samples,
+					this.#processingParams
+				);
 				frStore.set(uuid, {
 					...existingData,
 					samples: processedSamples,
@@ -345,7 +349,11 @@ class DataProvider {
 		if (rawData._hptfSamples && rawData._hptfLabels) {
 			const existingData = frStore.get(uuid);
 			if (existingData) {
-				const processedSamples = DataProcessor.processHpTFSamples(rawData._hptfSamples, rawData._hptfLabels, this.#processingParams);
+				const processedSamples = DataProcessor.processHpTFSamples(
+					rawData._hptfSamples,
+					rawData._hptfLabels,
+					this.#processingParams
+				);
 				const variantFillOnly = rawData._hptfFillOnly ?? true;
 				const phoneMeta = data.meta as PhoneMetadata;
 				const variantDescription =
@@ -395,9 +403,17 @@ class DataProvider {
 
 	// ─── Update HpTF display ─────────────────────────────────────────────────
 
-	updateHpTFDisplay(uuid: string, dispHptf: HpTFDisplayKey[], hptfFillVisible: boolean, hptfAvgVisible: boolean): void {
+	updateHpTFDisplay(
+		uuid: string,
+		dispHptf: HpTFDisplayKey[],
+		hptfFillVisible: boolean,
+		hptfAvgVisible: boolean
+	): void {
 		if (!frStore.has(uuid)) return;
-		commandHistory.execute(new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible, hptfAvgVisible), frStore);
+		commandHistory.execute(
+			new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible, hptfAvgVisible),
+			frStore
+		);
 	}
 
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
@@ -421,14 +437,20 @@ class DataProvider {
 			if (data.samples) {
 				updated.samples = data.samples.map((sample) => {
 					const s: SampleData = {};
-					if (sample.L) s.L = normalizeChannels({ L: sample.L }, graphStore.normType, graphStore.normHzValue).L;
-					if (sample.R) s.R = normalizeChannels({ R: sample.R }, graphStore.normType, graphStore.normHzValue).R;
+					if (sample.L)
+						s.L = normalizeChannels({ L: sample.L }, graphStore.normType, graphStore.normHzValue).L;
+					if (sample.R)
+						s.R = normalizeChannels({ R: sample.R }, graphStore.normType, graphStore.normHzValue).R;
 					return s;
 				});
 			}
 			// Re-normalize HpTF sample data
 			if (data.hptf) {
-				const reNormedSamples = this.#reprocessHpTFSamples(data.hptf.samples, false);
+				const reNormedSamples = anchorAndNormalizeHpTFSamples(
+					data.hptf.samples,
+					graphStore.normType,
+					graphStore.normHzValue
+				);
 				updated.hptf = {
 					...data.hptf,
 					samples: reNormedSamples,
@@ -465,11 +487,15 @@ class DataProvider {
 				}
 				// Re-process HpTF sample data from cache
 				if (rawCache.hptfSamples && rawCache.hptfLabels) {
-					const processedSamples = DataProcessor.processHpTFSamples(rawCache.hptfSamples, rawCache.hptfLabels, this.#processingParams);
+					const processedSamples = DataProcessor.processHpTFSamples(
+						rawCache.hptfSamples,
+						rawCache.hptfLabels,
+						this.#processingParams
+					);
 					updated.hptf = {
 						...data.hptf!,
 						samples: processedSamples,
-						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
+						envelope: this.#computeAllHpTFEnvelopes(processedSamples)
 					};
 				}
 				frStore.set(uuid, updated);
@@ -494,8 +520,8 @@ class DataProvider {
 						channels: {
 							...(rawData.L && { L: rawData.L }),
 							...(rawData.R && { R: rawData.R }),
-							...(rawData.AVG && { AVG: rawData.AVG }),
-						},
+							...(rawData.AVG && { AVG: rawData.AVG })
+						}
 					};
 					if (rawData._samples && rawData._sampleCount) {
 						fallbackCache.samples = rawData._samples;
@@ -605,9 +631,7 @@ class DataProvider {
 		sourceType: FRDataType,
 		available: ('L' | 'R' | 'AVG')[]
 	): ('L' | 'R' | 'AVG')[] {
-		const phoneCount = [...frStore.entries.values()].filter(
-			(e) => e.type === 'phone'
-		).length;
+		const phoneCount = [...frStore.entries.values()].filter((e) => e.type === 'phone').length;
 		if (sourceType !== 'phone') return ['AVG'];
 		if (phoneCount < 1) return available.filter((ch) => ch !== 'AVG');
 		return available.includes('AVG') ? ['AVG'] : [available[0]];
@@ -635,8 +659,7 @@ class DataProvider {
 			| Array<{ name: string; dash: string }>
 			| undefined;
 		const match = list?.find(
-			(o) =>
-				(o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
+			(o) => (o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
 		);
 		return match?.dash ?? this.#randomDash();
 	}
@@ -644,10 +667,8 @@ class DataProvider {
 	#randomDash(): string {
 		const numPairs = 1 + Math.floor(Math.random() * 3);
 		const space = 5 + Math.floor(Math.random() * 3);
-		return Array.from(
-			{ length: numPairs },
-			(_, i) =>
-				i % 2 === 0 ? `${5 + Math.floor(Math.random() * 5)} ${space}` : `2 ${space}`
+		return Array.from({ length: numPairs }, (_, i) =>
+			i % 2 === 0 ? `${5 + Math.floor(Math.random() * 5)} ${space}` : `2 ${space}`
 		).join(' ');
 	}
 
@@ -700,7 +721,7 @@ class DataProvider {
 		return {
 			L: this.#computeHpTFEnvelope(samples, 'L'),
 			R: this.#computeHpTFEnvelope(samples, 'R'),
-			AVG: this.#computeHpTFEnvelope(samples, 'AVG'),
+			AVG: this.#computeHpTFEnvelope(samples, 'AVG')
 		};
 	}
 
@@ -715,28 +736,6 @@ class DataProvider {
 			}
 		});
 		return keys;
-	}
-
-	/** Re-process HpTF samples (normalize only, not re-smooth) */
-	#reprocessHpTFSamples(samples: HpTFSampleData[], smooth: boolean): HpTFSampleData[] {
-		return samples.map((sample) => {
-			const p: HpTFSampleData = { label: sample.label };
-			if (sample.L) {
-				const src = smooth ? FRSmoother.smoothChannels({ L: sample.L }, graphStore.smoothValue) : { L: sample.L };
-				p.L = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).L;
-			}
-			if (sample.R) {
-				const src = smooth ? FRSmoother.smoothChannels({ R: sample.R }, graphStore.smoothValue) : { R: sample.R };
-				p.R = normalizeChannels(src, graphStore.normType, graphStore.normHzValue).R;
-			}
-			if (p.L && p.R) {
-				p.AVG = {
-					data: p.L.data.map(([freq, lDb], idx) => [freq, (lDb + p.R!.data[idx][1]) / 2] as FRDataPoint),
-					metadata: { ...p.L.metadata }
-				};
-			}
-			return p;
-		});
 	}
 }
 

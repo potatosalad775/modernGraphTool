@@ -39,7 +39,7 @@ function makeFullChannelData(baseDb = 80) {
 	return {
 		L: { data: makeFRPoints(baseDb), metadata: { minFreq: 20, maxFreq: 20000 } },
 		R: { data: makeFRPoints(baseDb - 2), metadata: { minFreq: 20, maxFreq: 20000 } },
-		AVG: { data: makeFRPoints(baseDb - 1), metadata: { minFreq: 20, maxFreq: 20000 } },
+		AVG: { data: makeFRPoints(baseDb - 1), metadata: { minFreq: 20, maxFreq: 20000 } }
 	};
 }
 
@@ -52,7 +52,7 @@ function makeTargetObject(uuid: string, overrides: Partial<FRDataObject> = {}): 
 		},
 		colors: { AVG: '#666666' },
 		dash: '4 4',
-		...overrides,
+		...overrides
 	});
 }
 
@@ -63,22 +63,22 @@ function makeHpTFData(): HpTFData {
 				label: 'Sample A',
 				L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
 				R: { data: makeFRPoints(78), metadata: { minFreq: 20, maxFreq: 20000 } },
-				AVG: { data: makeFRPoints(79), metadata: { minFreq: 20, maxFreq: 20000 } },
+				AVG: { data: makeFRPoints(79), metadata: { minFreq: 20, maxFreq: 20000 } }
 			},
 			{
 				label: 'Sample B',
 				L: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } },
 				R: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
-				AVG: { data: makeFRPoints(81), metadata: { minFreq: 20, maxFreq: 20000 } },
-			},
+				AVG: { data: makeFRPoints(81), metadata: { minFreq: 20, maxFreq: 20000 } }
+			}
 		],
 		envelope: {
 			L: { upper: makeFRPoints(82), lower: makeFRPoints(80) },
 			R: { upper: makeFRPoints(80), lower: makeFRPoints(78) },
-			AVG: { upper: makeFRPoints(81), lower: makeFRPoints(79) },
+			AVG: { upper: makeFRPoints(81), lower: makeFRPoints(79) }
 		},
 		labels: ['Sample A', 'Sample B'],
-		fillOnly: true,
+		fillOnly: true
 	};
 }
 
@@ -336,14 +336,17 @@ describe('DataProvider', () => {
 
 	describe('updateSampleDisplay', () => {
 		it('sets dispSamples on a loaded phone', () => {
-			frStore.set('a', makeFRDataObject('a', {
-				samples: [
-					{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
-					{ L: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } },
-				],
-				sampleCount: 2,
-				dispSamples: [],
-			}));
+			frStore.set(
+				'a',
+				makeFRDataObject('a', {
+					samples: [
+						{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+						{ L: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } }
+					],
+					sampleCount: 2,
+					dispSamples: []
+				})
+			);
 			dataProvider.updateSampleDisplay('a', ['L1', 'L2']);
 			expect(frStore.get('a')!.dispSamples).toEqual(['L1', 'L2']);
 		});
@@ -380,24 +383,33 @@ describe('DataProvider', () => {
 
 	describe('updateHpTFDisplay', () => {
 		it('sets dispHptf, hptfFillVisible, and hptfAvgVisible on a loaded phone', () => {
-			frStore.set('a', makeFRDataObject('a', {
-				hptf: {
-					samples: [
-						{ label: 'GRAS', AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
-						{ label: 'B&K', AVG: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } },
-					],
-					envelope: {
-						L: { upper: [], lower: [] },
-						R: { upper: [], lower: [] },
-						AVG: { upper: [[1000, 82]], lower: [[1000, 80]] },
+			frStore.set(
+				'a',
+				makeFRDataObject('a', {
+					hptf: {
+						samples: [
+							{
+								label: 'GRAS',
+								AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } }
+							},
+							{
+								label: 'B&K',
+								AVG: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } }
+							}
+						],
+						envelope: {
+							L: { upper: [], lower: [] },
+							R: { upper: [], lower: [] },
+							AVG: { upper: [[1000, 82]], lower: [[1000, 80]] }
+						},
+						labels: ['GRAS', 'B&K'],
+						fillOnly: true
 					},
-					labels: ['GRAS', 'B&K'],
-					fillOnly: true,
-				},
-				dispHptf: [],
-				hptfFillVisible: false,
-				hptfAvgVisible: false,
-			}));
+					dispHptf: [],
+					hptfFillVisible: false,
+					hptfAvgVisible: false
+				})
+			);
 			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], true, true);
 			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
@@ -410,7 +422,14 @@ describe('DataProvider', () => {
 		});
 
 		it('is undoable', () => {
-			frStore.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: true }));
+			frStore.set(
+				'a',
+				makeFRDataObject('a', {
+					dispHptf: ['sample0_AVG'],
+					hptfFillVisible: true,
+					hptfAvgVisible: true
+				})
+			);
 			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], false, false);
 			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
@@ -423,7 +442,14 @@ describe('DataProvider', () => {
 		});
 
 		it('can toggle fill off while keeping sample curves', () => {
-			frStore.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: true }));
+			frStore.set(
+				'a',
+				makeFRDataObject('a', {
+					dispHptf: ['sample0_AVG'],
+					hptfFillVisible: true,
+					hptfAvgVisible: true
+				})
+			);
 			dataProvider.updateHpTFDisplay('a', ['sample0_AVG'], false, true);
 			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
 			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
@@ -469,7 +495,8 @@ describe('DataProvider', () => {
 
 		it('can update identifier and dispSuffix', () => {
 			frStore.set('t', makeTargetObject('t'));
-			dataProvider.updateFRDataWithRawData('t',
+			dataProvider.updateFRDataWithRawData(
+				't',
 				{ AVG: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } },
 				{ identifier: 'New Name', dispSuffix: '(Modified)' }
 			);
@@ -479,11 +506,14 @@ describe('DataProvider', () => {
 
 		it('preserves HpTF data when updating channels', () => {
 			const hptf = makeHpTFData();
-			frStore.set('p', makeFRDataObject('p', {
-				hptf,
-				hptfFillVisible: true,
-				dispHptf: ['sample0_AVG'],
-			}));
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					hptf,
+					hptfFillVisible: true,
+					dispHptf: ['sample0_AVG']
+				})
+			);
 			dataProvider.updateFRDataWithRawData('p', {
 				AVG: { data: makeFRPoints(99), metadata: { minFreq: 20, maxFreq: 20000 } }
 			});
@@ -499,9 +529,12 @@ describe('DataProvider', () => {
 
 	describe('renormalizeAll', () => {
 		it('re-normalizes all entries in frStore', () => {
-			frStore.set('a', makeFRDataObject('a', {
-				channels: { AVG: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } }
-			}));
+			frStore.set(
+				'a',
+				makeFRDataObject('a', {
+					channels: { AVG: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } }
+				})
+			);
 			const beforeDb = frStore.get('a')!.channels.AVG!.data[100][1];
 			graphStore.normType = 'Avg';
 			dataProvider.renormalizeAll();
@@ -512,13 +545,16 @@ describe('DataProvider', () => {
 
 		it('preserves HpTF data during renormalization', () => {
 			const hptf = makeHpTFData();
-			frStore.set('p', makeFRDataObject('p', {
-				channels: makeFullChannelData(),
-				hptf,
-				hptfFillVisible: true,
-				dispHptf: ['sample0_AVG'],
-				hptfOnly: true,
-			}));
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					channels: makeFullChannelData(),
+					hptf,
+					hptfFillVisible: true,
+					dispHptf: ['sample0_AVG'],
+					hptfOnly: true
+				})
+			);
 			dataProvider.renormalizeAll();
 			const updated = frStore.get('p')!;
 			expect(updated.hptf).toBeDefined();
@@ -529,15 +565,18 @@ describe('DataProvider', () => {
 		});
 
 		it('preserves sample data during renormalization', () => {
-			frStore.set('s', makeFRDataObject('s', {
-				channels: makeFullChannelData(),
-				samples: [
-					{ L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } },
-					{ L: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } } },
-				],
-				sampleCount: 2,
-				dispSamples: ['L1', 'L2'],
-			}));
+			frStore.set(
+				's',
+				makeFRDataObject('s', {
+					channels: makeFullChannelData(),
+					samples: [
+						{ L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } },
+						{ L: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } } }
+					],
+					sampleCount: 2,
+					dispSamples: ['L1', 'L2']
+				})
+			);
 			dataProvider.renormalizeAll();
 			const updated = frStore.get('s')!;
 			expect(updated.samples).toHaveLength(2);
@@ -551,6 +590,115 @@ describe('DataProvider', () => {
 			dataProvider.renormalizeAll();
 			expect(commandHistory.canUndo).toBe(false);
 		});
+
+		// HpTF samples are anchored to a single pooled L+R mean, so every pairwise
+		// value difference — within a channel, across samples, and between L & R
+		// at any frequency — must stay constant when the user changes
+		// normalization. This covers both the per-channel envelope spread and
+		// the combined L+R envelope used when displaying both channels.
+		it('preserves HpTF sample deltas across normalization changes', () => {
+			const hptf = makeHpTFData();
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					channels: makeFullChannelData(),
+					hptf,
+					hptfFillVisible: true
+				})
+			);
+
+			const snapshotDeltas = () => {
+				const samples = frStore.get('p')!.hptf!.samples;
+				const env = frStore.get('p')!.hptf!.envelope;
+				const n = samples[0].L!.data.length;
+				const lSpan = new Array(n);
+				const rSpan = new Array(n);
+				const combinedSpan = new Array(n);
+				const lrGap = new Array(n);
+				for (let k = 0; k < n; k++) {
+					lSpan[k] = env.L.upper[k][1] - env.L.lower[k][1];
+					rSpan[k] = env.R.upper[k][1] - env.R.lower[k][1];
+					// Combined upper/lower = max/min across L and R at bin k
+					// (mirrors GraphEngine._combineHpTFEnvelopes).
+					const up = Math.max(env.L.upper[k][1], env.R.upper[k][1]);
+					const lo = Math.min(env.L.lower[k][1], env.R.lower[k][1]);
+					combinedSpan[k] = up - lo;
+					// Sample-0 L minus sample-0 R gap — another invariant under
+					// pooled anchoring.
+					lrGap[k] = samples[0].L!.data[k][1] - samples[0].R!.data[k][1];
+				}
+				return { lSpan, rSpan, combinedSpan, lrGap };
+			};
+
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 60;
+			dataProvider.renormalizeAll();
+			const bass = snapshotDeltas();
+
+			graphStore.normHzValue = 6000;
+			dataProvider.renormalizeAll();
+			const treble = snapshotDeltas();
+
+			graphStore.normType = 'Avg';
+			dataProvider.renormalizeAll();
+			const avg = snapshotDeltas();
+
+			expect(treble.lSpan).toHaveLength(bass.lSpan.length);
+			for (let k = 0; k < bass.lSpan.length; k++) {
+				expect(treble.lSpan[k]).toBeCloseTo(bass.lSpan[k], 6);
+				expect(treble.rSpan[k]).toBeCloseTo(bass.rSpan[k], 6);
+				expect(treble.combinedSpan[k]).toBeCloseTo(bass.combinedSpan[k], 6);
+				expect(treble.lrGap[k]).toBeCloseTo(bass.lrGap[k], 6);
+
+				expect(avg.lSpan[k]).toBeCloseTo(bass.lSpan[k], 6);
+				expect(avg.rSpan[k]).toBeCloseTo(bass.rSpan[k], 6);
+				expect(avg.combinedSpan[k]).toBeCloseTo(bass.combinedSpan[k], 6);
+				expect(avg.lrGap[k]).toBeCloseTo(bass.lrGap[k], 6);
+			}
+			expect(Math.max(...bass.combinedSpan)).toBeGreaterThan(0);
+		});
+
+		// Under Hz normalization, the pooled L+R sample mean — not each channel
+		// independently — reads 0 dB at the reference frequency. This is the
+		// single vertical anchor shared by every HpTF sample value.
+		it('positions HpTF pooled mean at 0 dB at the Hz reference', () => {
+			const hptf = makeHpTFData();
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					channels: makeFullChannelData(),
+					hptf,
+					hptfFillVisible: true
+				})
+			);
+
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 1000;
+			dataProvider.renormalizeAll();
+			const samples = frStore.get('p')!.hptf!.samples;
+
+			const pts = samples[0].L!.data;
+			let nearest = 0;
+			for (let i = 0; i < pts.length; i++) {
+				if (Math.abs(pts[i][0] - 1000) < Math.abs(pts[nearest][0] - 1000)) nearest = i;
+			}
+
+			// Pooled mean at reference bin across all L and R sample values.
+			let sum = 0;
+			let count = 0;
+			for (const s of samples) {
+				if (s.L) {
+					sum += s.L.data[nearest][1];
+					count++;
+				}
+				if (s.R) {
+					sum += s.R.data[nearest][1];
+					count++;
+				}
+			}
+			const pooledAtRef = sum / count;
+			expect(pooledAtRef).toBeCloseTo(0, 1);
+		});
 	});
 
 	// ── HpTF-only phone edge cases ──────────────────────────────────────
@@ -558,13 +706,16 @@ describe('DataProvider', () => {
 	describe('HpTF-only phone data', () => {
 		it('stores phone with hptfOnly flag and no main channels', () => {
 			const hptf = makeHpTFData();
-			frStore.set('h', makeFRDataObject('h', {
-				channels: {},
-				hptf,
-				hptfOnly: true,
-				hptfFillVisible: true,
-				dispHptf: [],
-			}));
+			frStore.set(
+				'h',
+				makeFRDataObject('h', {
+					channels: {},
+					hptf,
+					hptfOnly: true,
+					hptfFillVisible: true,
+					dispHptf: []
+				})
+			);
 			const data = frStore.get('h')!;
 			expect(data.hptfOnly).toBe(true);
 			expect(Object.keys(data.channels)).toHaveLength(0);
@@ -573,12 +724,15 @@ describe('DataProvider', () => {
 		});
 
 		it('preserves hptfOnly through visibility toggle', () => {
-			frStore.set('h', makeFRDataObject('h', {
-				channels: {},
-				hptf: makeHpTFData(),
-				hptfOnly: true,
-				hptfFillVisible: true,
-			}));
+			frStore.set(
+				'h',
+				makeFRDataObject('h', {
+					channels: {},
+					hptf: makeHpTFData(),
+					hptfOnly: true,
+					hptfFillVisible: true
+				})
+			);
 			dataProvider.updateVisibility('h', true);
 			expect(frStore.get('h')!.hptfOnly).toBe(true);
 			expect(frStore.get('h')!.hptf).toBeDefined();
@@ -587,22 +741,28 @@ describe('DataProvider', () => {
 		});
 
 		it('preserves hptfOnly through y-offset update', () => {
-			frStore.set('h', makeFRDataObject('h', {
-				channels: {},
-				hptf: makeHpTFData(),
-				hptfOnly: true,
-			}));
+			frStore.set(
+				'h',
+				makeFRDataObject('h', {
+					channels: {},
+					hptf: makeHpTFData(),
+					hptfOnly: true
+				})
+			);
 			dataProvider.updateYOffset('h', 10);
 			expect(frStore.get('h')!.hptfOnly).toBe(true);
 			expect(frStore.get('h')!.yOffset).toBe(10);
 		});
 
 		it('preserves hptfOnly through color update', () => {
-			frStore.set('h', makeFRDataObject('h', {
-				channels: {},
-				hptf: makeHpTFData(),
-				hptfOnly: true,
-			}));
+			frStore.set(
+				'h',
+				makeFRDataObject('h', {
+					channels: {},
+					hptf: makeHpTFData(),
+					hptfOnly: true
+				})
+			);
 			dataProvider.updateColors('h', { AVG: '#ff0000' });
 			expect(frStore.get('h')!.hptfOnly).toBe(true);
 			expect(frStore.get('h')!.colors.AVG).toBe('#ff0000');
@@ -624,17 +784,33 @@ describe('DataProvider', () => {
 			dataProvider.updateFRDataWithRawData('t', {
 				AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } }
 			});
-			expect(graphStore.targetOriginalData.get('t')!.AVG!.data[0][1]).toBe(targetData.AVG!.data[0][1]);
+			expect(graphStore.targetOriginalData.get('t')!.AVG!.data[0][1]).toBe(
+				targetData.AVG!.data[0][1]
+			);
 		});
 
 		it('targetOriginalData is used for original baseline compensation', () => {
 			const original: ParsedFRData = {
-				AVG: { data: [[500, 70], [1000, 75], [2000, 72]], metadata: { minFreq: 20, maxFreq: 20000 } }
+				AVG: {
+					data: [
+						[500, 70],
+						[1000, 75],
+						[2000, 72]
+					],
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				}
 			};
 			graphStore.targetOriginalData.set('t', original);
 
 			const adjusted: ParsedFRData = {
-				AVG: { data: [[500, 72], [1000, 77], [2000, 74]], metadata: { minFreq: 20, maxFreq: 20000 } }
+				AVG: {
+					data: [
+						[500, 72],
+						[1000, 77],
+						[2000, 74]
+					],
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				}
 			};
 			frStore.set('t', makeTargetObject('t', { channels: adjusted }));
 

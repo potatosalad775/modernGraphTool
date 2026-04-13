@@ -10,6 +10,11 @@
  * Config keys (all optional, under window.GRAPHTOOL_CONFIG.CDN_MODE):
  *   MAJOR_VERSION — pin to a major version (default: highest available)
  *   BASE          — CDN base URL (default: jsDelivr)
+ *   VERSIONS_URL  — full URL to versions.json (default: raw.githubusercontent.com
+ *                   derived from BASE). We fetch this from GitHub directly to
+ *                   sidestep jsDelivr's edge cache, which otherwise pins stale
+ *                   version maps for hours. Override if you host your own fork
+ *                   of the cdn branch or use a non-GitHub origin.
  *   BASE_PATH     — deployment subpath (e.g. "/cdn"). Set this when deploying
  *                   under a subdirectory *and* using share-link deep routes so
  *                   the loader can't auto-detect the base from the URL. For
@@ -29,10 +34,16 @@
 	const cdnBase = (cfg.BASE || CDN_BASE_DEFAULT).replace(/\/+$/, '');
 	const requestedMajor = cfg.MAJOR_VERSION;
 
+	// Resolve versions.json URL. Default: derive raw.githubusercontent.com from
+	// cdnBase so we bypass jsDelivr's edge cache for this one file. Falls back
+	// to `${cdnBase}/versions.json` if cdnBase isn't a recognizable jsDelivr
+	// gh/ URL (e.g. operator pointed BASE at their own server).
+	const versionsUrl = cfg.VERSIONS_URL || rawGhVersionsUrl(cdnBase) || `${cdnBase}/versions.json`;
+
 	// --- Resolve version ---
 	let version;
 	try {
-		const res = await fetchWithTimeout(`${cdnBase}/versions.json`, LOAD_TIMEOUT_MS);
+		const res = await fetchWithTimeout(`${versionsUrl}?t=${Date.now()}`, LOAD_TIMEOUT_MS);
 		if (!res.ok) throw new Error(`versions.json: HTTP ${res.status}`);
 		const versions = await res.json();
 
@@ -65,7 +76,7 @@
 	// --- Fetch boot manifest ---
 	let boot;
 	try {
-		const res = await fetchWithTimeout(`${cdnBase}/v${version}/boot.json`, LOAD_TIMEOUT_MS);
+		const res = await fetchWithTimeout(`${cdnBase}/v${version}/boot.json?t=${Date.now()}`, LOAD_TIMEOUT_MS);
 		if (!res.ok) throw new Error(`boot.json: HTTP ${res.status}`);
 		boot = await res.json();
 	} catch (err) {
@@ -170,6 +181,18 @@
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), ms);
 		return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+	}
+
+	// Translate a jsDelivr gh/ URL like
+	//   https://cdn.jsdelivr.net/gh/owner/repo@ref
+	// to the matching raw.githubusercontent.com URL for versions.json:
+	//   https://raw.githubusercontent.com/owner/repo/ref/versions.json
+	// Returns null if the input isn't a recognizable jsDelivr gh/ URL.
+	function rawGhVersionsUrl(base) {
+		const m = base.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/([^/]+)\/([^/@]+)@([^/]+)\/?$/);
+		if (!m) return null;
+		const [, owner, repo, ref] = m;
+		return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/versions.json`;
 	}
 
 	function showError(title, detail, hint) {

@@ -30,13 +30,13 @@
   } as const;
 
   const variantRootClasses = {
-    accent: "focus-visible:ring-accent focus-visible:ring-offset-base-100 data-[state=checked]:bg-primary data-[state=unchecked]:bg-base-300",
-    muted: "focus-visible:ring-base-content focus-visible:ring-offset-base-100 data-[state=checked]:bg-base-content/80 data-[state=unchecked]:bg-base-content/30",
+    accent: "focus-visible:ring-accent focus-visible:ring-offset-base-100 data-[state=checked]:bg-primary data-[state=unchecked]:bg-base-content/20",
+    muted: "focus-visible:ring-base-content focus-visible:ring-offset-base-100 data-[state=checked]:bg-base-content/80 data-[state=unchecked]:bg-base-content/20",
   } as const;
 
   const variantThumbClasses = {
-    accent: "bg-base-100",
-    muted: "bg-base-100",
+    accent: "data-[state=checked]:bg-primary-content data-[state=unchecked]:bg-white",
+    muted: "data-[state=checked]:bg-base-100 data-[state=unchecked]:bg-white",
   } as const;
 </script>
 

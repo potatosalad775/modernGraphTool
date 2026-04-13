@@ -176,7 +176,7 @@
 							if (v) openVariantUUID = uuid;
 							else if (openVariantUUID === uuid) openVariantUUID = null;
 						}}
-						contentClass="w-52"
+						contentClass="max-w-56 max-h-64 overflow-y-auto"
 						trapFocus={false}
 					>
 						{#snippet trigger({ props })}

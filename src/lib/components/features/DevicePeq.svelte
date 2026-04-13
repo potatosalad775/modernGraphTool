@@ -2,6 +2,8 @@
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { Info } from '@lucide/svelte';
+	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
 
 	// ── Feature detection ─────────────────────────────────────────────────────
 
@@ -15,6 +17,7 @@
 	let showNetworkPanel = $state(false);
 	let networkIP = $state('');
 	let networkDeviceType = $state('WiiM');
+	let showInfo = $state(false);
 
 	// ── Connection handlers ───────────────────────────────────────────────────
 
@@ -22,9 +25,8 @@
 		devicePeqStore.isConnecting = true;
 		try {
 			const { getHidConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
-				'$lib/device-peq/connectors/usb-hid-connector.js'
-			);
+			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
+				await import('$lib/device-peq/connectors/usb-hid-connector.js');
 			const config = await getHidConfig();
 			const device = await getDeviceConnected(config);
 			if (!device) {
@@ -45,9 +47,8 @@
 		devicePeqStore.isConnecting = true;
 		try {
 			const { getSerialConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
-				'$lib/device-peq/connectors/usb-serial-connector.js'
-			);
+			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
+				await import('$lib/device-peq/connectors/usb-serial-connector.js');
 			const config = await getSerialConfig();
 			const device = await getDeviceConnected(config);
 			if (!device) {
@@ -68,9 +69,8 @@
 		devicePeqStore.isConnecting = true;
 		try {
 			const { getBleConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } = await import(
-				'$lib/device-peq/connectors/bluetooth-ble-connector.js'
-			);
+			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
+				await import('$lib/device-peq/connectors/bluetooth-ble-connector.js');
 			const config = await getBleConfig();
 			const device = await getDeviceConnected(config);
 			if (!device) {
@@ -91,9 +91,8 @@
 		if (!networkIP.trim()) return;
 		devicePeqStore.isConnecting = true;
 		try {
-			const { getDeviceConnected, getCurrentSlot } = await import(
-				'$lib/device-peq/connectors/network-connector.js'
-			);
+			const { getDeviceConnected, getCurrentSlot } =
+				await import('$lib/device-peq/connectors/network-connector.js');
 			const device = await getDeviceConnected(networkIP.trim(), networkDeviceType);
 			if (!device) {
 				devicePeqStore.isConnecting = false;
@@ -218,6 +217,17 @@
 
 {#if hasDeviceApi}
 	<div class="flex flex-col gap-2">
+		<div class="flex items-center justify-between text-xs text-base-content/60">
+			<span>{m.equalizer_device_peq_info_prompt()}</span>
+			<button
+				type="button"
+				onclick={() => (showInfo = true)}
+				aria-label={m.equalizer_device_peq_info_trigger_label()}
+				class="rounded p-1 text-base-content/60 transition-colors hover:bg-base-content/10 hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+			>
+				<Info class="h-4 w-4" />
+			</button>
+		</div>
 		{#if !devicePeqStore.isConnected}
 			<!-- Connect buttons -->
 			<div class="flex gap-1">
@@ -225,7 +235,7 @@
 					<button
 						onclick={connectHid}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (HID)'}
 					</button>
@@ -234,7 +244,7 @@
 					<button
 						onclick={connectSerial}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (Serial)'}
 					</button>
@@ -243,14 +253,14 @@
 					<button
 						onclick={connectBle}
 						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 					>
 						{devicePeqStore.isConnecting ? 'Connecting...' : 'Bluetooth'}
 					</button>
 				{/if}
 				<button
 					onclick={toggleNetworkPanel}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 				>
 					Network
 				</button>
@@ -276,7 +286,7 @@
 					<button
 						onclick={connectNetwork}
 						disabled={devicePeqStore.isConnecting}
-						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 					>
 						Connect
 					</button>
@@ -285,10 +295,7 @@
 		{:else}
 			<!-- Connected state -->
 			<div class="flex items-center justify-between text-xs">
-				<span
-					class="font-medium "
-					title={devicePeqStore.manufacturer ?? ''}
-				>
+				<span class="font-medium" title={devicePeqStore.manufacturer ?? ''}>
 					{devicePeqStore.deviceName}
 				</span>
 				<button
@@ -317,14 +324,14 @@
 				<button
 					onclick={pullFromDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 				>
 					{devicePeqStore.isReading ? 'Reading...' : 'Pull from Device'}
 				</button>
 				<button
 					onclick={pushToDevice}
 					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs  transition-colors hover:bg-base-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
 				>
 					{devicePeqStore.isWriting ? 'Writing...' : 'Push to Device'}
 				</button>
@@ -337,7 +344,21 @@
 		{/if}
 	</div>
 {:else}
-	<p class="text-xs text-base-content/60">
-		{m.equalizer_device_peq_incompatible_browser_alert()}
-	</p>
+	<div class="flex flex-col gap-2">
+		<div class="flex items-start justify-between gap-2">
+			<p class="text-xs text-base-content/60">
+				{m.equalizer_device_peq_incompatible_browser_alert()}
+			</p>
+			<button
+				type="button"
+				onclick={() => (showInfo = true)}
+				aria-label={m.equalizer_device_peq_info_trigger_label()}
+				class="shrink-0 rounded p-1 text-base-content/60 transition-colors hover:bg-base-content/10 hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+			>
+				<Info class="h-4 w-4" />
+			</button>
+		</div>
+	</div>
 {/if}
+
+<DevicePeqInfoDialog bind:open={showInfo} />

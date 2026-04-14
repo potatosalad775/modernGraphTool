@@ -568,7 +568,6 @@ Configures the target customizer, which allows per-target filter adjustments for
 ```JavaScript
 SQUIGLINK: {
   ENABLED: true,
-  DEBUG: false,
   ANALYTICS_MEASUREMENT_IDS: [],
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
@@ -577,9 +576,8 @@ SQUIGLINK: {
   ENABLE_SPONSOR: true,
 },
 ```
-Configures the squig.link integration. These features are only active when hosted on `*.squig.link` domains (unless `DEBUG` is enabled).
+Configures the squig.link integration. These features are only active when hosted on `*.squig.link` domains.
 - `ENABLED`: Master toggle for squig.link integration.
-- `DEBUG`: When `true`, enables squig.link features regardless of the hosting domain (for development/testing).
 - `ANALYTICS_MEASUREMENT_IDS`: Array of GA4 measurement IDs, e.g., `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
 - `ANALYTICS_SITE`: Site name used for analytics attribution.
 - `LOG_ANALYTICS`: Whether to log analytics events to the browser console.

@@ -31,20 +31,6 @@ export default function SquiglinkSection() {
         </label>
       </div>
 
-      <div className={styles.ceToggleRow}>
-        <input
-          type="checkbox"
-          className={styles.ceCheckbox}
-          checked={state.SQUIGLINK.DEBUG}
-          onChange={(e) => set('DEBUG', e.target.checked)}
-          id="sq-debug"
-        />
-        <label htmlFor="sq-debug" className={styles.ceToggleLabel}>
-          Debug mode
-          <span className={styles.ceToggleHint}>Enable features regardless of domain</span>
-        </label>
-      </div>
-
       <div className={styles.ceFieldGroup}>
         <label className={styles.ceLabel}>Analytics Measurement IDs</label>
         <StringArrayEditor

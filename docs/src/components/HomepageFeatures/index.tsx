@@ -1,49 +1,68 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
+import Link from '@docusaurus/Link';
 import Heading from '@theme/Heading';
 import styles from './styles.module.css';
 
-import Translate, {translate} from '@docusaurus/Translate';
+import Translate from '@docusaurus/Translate';
 
 type FeatureItem = {
   title: ReactNode;
   description: ReactNode;
+  to: string;
+  cta: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: <Translate>Easy to Use</Translate>,
+    title: <Translate>phone_book.json Editor</Translate>,
+    to: '/phone-book-editor',
     description: (
       <Translate>
-        modernGraphTool features a completely redesigned UI to improve user experience.
+        Build or edit your phone_book.json visually — import an existing file, adjust brands and phones, and export the result.
       </Translate>
     ),
+    cta: <Translate>Open editor</Translate>,
   },
   {
-    title: <Translate>Feature-Rich</Translate>,
+    title: <Translate>Config Editor</Translate>,
+    to: '/config-generator',
     description: (
       <Translate>
-        modernGraphTool comes packed with built-in features including parametric EQ, device PEQ bridge, target customization, and more — all configurable through a single config file.
+        Build or edit config.js with a visual editor — import an existing config, adjust settings, and export the result.
       </Translate>
     ),
+    cta: <Translate>Open editor</Translate>,
   },
   {
-    title: <Translate>Powered by Modern JS</Translate>,
+    title: <Translate>Theme Generator</Translate>,
+    to: '/theme-generator',
     description: (
       <Translate>
-        modernGraphTool is built with SvelteKit, Tailwind CSS, and D3.js for a fast, responsive experience.
+        Pick colors, preview the graph and UI in light and dark mode, and download a ready-to-drop theme.css file.
       </Translate>
     ),
+    cta: <Translate>Open generator</Translate>,
   },
 ];
 
-function Feature({title, description}: FeatureItem) {
+function Feature({title, description, to, cta}: FeatureItem) {
   return (
-    <div className={clsx('col col--4')}>
-      <div className="text--center padding-horiz--md padding-top--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
-      </div>
+    <div className={clsx('col col--4', styles.featureCol)}>
+      <article className={styles.featureCard}>
+        <div className={styles.featureBody}>
+          <Heading as="h3" className={styles.featureTitle}>
+            {title}
+          </Heading>
+          <p className={styles.featureDescription}>{description}</p>
+        </div>
+        <Link to={to} className={clsx('button button--primary', styles.featureButton)}>
+          {cta}
+          <span aria-hidden="true" className={styles.featureButtonArrow}>
+            →
+          </span>
+        </Link>
+      </article>
     </div>
   );
 }
@@ -52,7 +71,17 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
+        <header className={styles.featuresHeader}>
+          <Heading as="h2" className={styles.featuresHeading}>
+            <Translate>Useful tools</Translate>
+          </Heading>
+          <p className={styles.featuresSubheading}>
+            <Translate>
+              Visual editors and generators that help you set up modernGraphTool — no hand-editing required.
+            </Translate>
+          </p>
+        </header>
+        <div className={clsx('row', styles.featuresRow)}>
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />
           ))}

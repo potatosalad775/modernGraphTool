@@ -568,7 +568,6 @@ TARGET_CUSTOMIZER: {
 ```JavaScript
 SQUIGLINK: {
   ENABLED: true,
-  DEBUG: false,
   ANALYTICS_MEASUREMENT_IDS: [],
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
@@ -577,9 +576,8 @@ SQUIGLINK: {
   ENABLE_SPONSOR: true,
 },
 ```
-squig.link 연동을 설정합니다. 이 기능은 `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다 (`DEBUG`가 활성화된 경우 제외).
+squig.link 연동을 설정합니다. 이 기능은 `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
 - `ENABLED`: squig.link 연동의 마스터 토글입니다.
-- `DEBUG`: `true`로 설정하면 호스팅 도메인과 관계없이 squig.link 기능을 활성화합니다 (개발/테스트용).
 - `ANALYTICS_MEASUREMENT_IDS`: GA4 측정 ID 배열입니다. 예: `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
 - `ANALYTICS_SITE`: 분석 귀속에 사용되는 사이트 이름입니다.
 - `LOG_ANALYTICS`: 분석 이벤트를 브라우저 콘솔에 기록할지 여부를 설정합니다.

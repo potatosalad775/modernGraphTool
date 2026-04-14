@@ -2,23 +2,32 @@
   "Learn more about modernGraphTool": {
     "message": "modernGraphTool 알아보기"
   },
-  "Easy to Use": {
-    "message": "사용하기 쉬운 UI"
+  "Useful tools": {
+    "message": "유용한 도구"
   },
-  "modernGraphTool features a completely redesigned UI to improve user experience.": {
-    "message": "modernGraphTool은 사용자 경험을 개선하기 위해 완전히 새롭게 설계된 UI를 갖추고 있습니다."
+  "Visual editors and generators that help you set up modernGraphTool — no hand-editing required.": {
+    "message": "코드를 직접 수정하지 않고도 modernGraphTool을 손쉽게 설정할 수 있도록 도와주는 도구들입니다."
   },
-  "Feature-Rich": {
-    "message": "풍부한 내장 기능"
+  "Open editor": {
+    "message": "편집기 열기"
   },
-  "modernGraphTool comes packed with built-in features including parametric EQ, device PEQ bridge, target customization, and more — all configurable through a single config file.": {
-    "message": "modernGraphTool은 파라메트릭 EQ, 디바이스 PEQ 브리지, 타겟 커스터마이즈 등 풍부한 내장 기능을 제공하며, 하나의 설정 파일로 모든 기능을 관리할 수 있습니다."
+  "Open generator": {
+    "message": "생성기 열기"
   },
-  "Powered by Modern JS": {
-    "message": "모던 JS 기반 설계"
+  "phone_book.json Editor": {
+    "message": "phone_book.json 편집기"
   },
-  "modernGraphTool is built with SvelteKit, Tailwind CSS, and D3.js for a fast, responsive experience.": {
-    "message": "modernGraphTool은 SvelteKit, Tailwind CSS, D3.js를 활용하여 빠르고 반응성 높은 경험을 제공합니다."
+  "Build or edit your phone_book.json visually — import an existing file, adjust brands and phones, and export the result.": {
+    "message": "phone_book.json을 손쉽게 편집하세요. 기존 파일을 가져오고 브랜드와 기기를 수정한 뒤 결과를 내보낼 수 있습니다."
+  },
+  "Build or edit config.js with a visual editor — import an existing config, adjust settings, and export the result.": {
+    "message": "config.js를 간편하게 수정하세요. 기존 설정을 가져오고 항목을 조정한 뒤 결과를 내보낼 수 있습니다."
+  },
+  "Theme Generator": {
+    "message": "테마 생성기"
+  },
+  "Pick colors, preview the graph and UI in light and dark mode, and download a ready-to-drop theme.css file.": {
+    "message": "색상 선택, 테마 미리보기, theme.css 다운로드를 지원하는 테마 생성기입니다."
   },
   "theme.ErrorPageContent.title": {
     "message": "페이지에 오류가 발생하였습니다.",

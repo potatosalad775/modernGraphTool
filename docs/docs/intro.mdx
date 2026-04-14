@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Overview
 
-modernGraphTool is a web-based tool for visualizing and comparing frequency response (FR) measurements of headphones, IEMs, and speakers. Load measurements, overlay multiple curves, apply targets and EQ, and share results — all from the browser.
+modernGraphTool is a web-based tool for visualizing and comparing frequency response (FR) measurements of headphones, and IEMs. Load measurements, overlay multiple curves, apply targets and EQ, and share results — all from the browser.
 
 Built with SvelteKit 2, Svelte 5, Tailwind CSS, and D3.js. Deployed as a fully static SPA — just upload the `dist/` folder to any web server, or use the CDN mode for automatic updates.
 
@@ -12,7 +12,9 @@ If you're coming from modernGraphTool v1, see the [migration guide](./migrating-
 
 ## Features
 
-Everything is built-in and configurable through a single [`config.js`](./guide-for-admins/customize-page) file. For detailed documentation on individual features, see the [Features](./category/features) section.
+Everything is built-in and configurable through a single [`config.js`](./guide-for-admins/customize-page) file. 
+
+For detailed documentation on individual features, see the [Features](./category/features) section.
 
 ### Visualization & Analysis
 
@@ -30,7 +32,7 @@ Everything is built-in and configurable through a single [`config.js`](./guide-f
 ### Equalization
 
 - **[Parametric EQ](./features/equalizer)** — Full-featured EQ panel with multiple filter types (PEQ, LSQ, HSQ), adjustable frequency/gain/Q, and preamp control
-- **AutoEQ** — Automatically generate EQ profiles to match a selected target curve
+- **AutoEQ** — Automatically generate EQ profiles to match a selected target curve, now with optional LSQ/HSQ filters for more flexible tuning
 - **Real-time audio preview** — Play audio through the browser with EQ filters applied in real-time
 - **Import / Export** — Save and load EQ settings for later use
 - **[Device PEQ bridge](./features/device-peq)** — Push EQ settings directly to 20+ compatible hardware devices via USB HID, Serial, BLE, or Network

@@ -154,8 +154,8 @@
 	"keyboard_shortcut_axis_lock": "Lock Axis (EQ drag)",
 	"eq_settings_accordion_title": "Settings",
 	"eq_settings_autoeq_persist_label": "Remember AutoEQ inputs",
-	"eq_settings_autoeq_persist_session": "For current session",
-	"eq_settings_autoeq_persist_local": "Permanently",
+	"eq_settings_autoeq_persist_session": "Keep for this tab only",
+	"eq_settings_autoeq_persist_local": "Save to this browser",
 	"eq_settings_link_eq_normalization_label": "Lock EQ curve to original",
 	"eq_settings_link_eq_normalization_description": "Keep the EQ curve positioned relative to the original graph regardless of normalization settings."
 }

@@ -154,8 +154,8 @@
 	"keyboard_shortcut_axis_lock": "이동 방향 고정 (EQ 드래그)",
 	"eq_settings_accordion_title": "설정",
 	"eq_settings_autoeq_persist_label": "AutoEQ 입력값 기억",
-	"eq_settings_autoeq_persist_session": "현재 세션에서만 유지",
-	"eq_settings_autoeq_persist_local": "영구적으로 유지",
+	"eq_settings_autoeq_persist_session": "현재 탭에서만 유지",
+	"eq_settings_autoeq_persist_local": "브라우저에 계속 저장",
 	"eq_settings_link_eq_normalization_label": "EQ 그래프를 원본에 고정",
 	"eq_settings_link_eq_normalization_description": "정규화 설정과 무관하게, EQ 그래프가 원본 측정값 대비 상대 위치를 그대로 유지합니다."
 }

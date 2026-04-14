@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { appStore } from '$lib/stores/app-store.svelte';
+	import { settingsStore } from '$lib/stores/settings-store.svelte';
 	import { getConfigValue } from '$lib/utils/config';
 	import MetadataParser from '$lib/utils/metadata-parser';
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
@@ -124,20 +125,8 @@
 	onMount(() => {
 		disableIOSZoom();
 
-		// Resolve initial theme: localStorage > config > system
-		const savedTheme = localStorage.getItem('gt-theme') as 'light' | 'dark' | null;
-		const cfgTheme = (getConfigValue('INTERFACE.PREFERRED_DARK_MODE_THEME') as string) ?? 'system';
-		let resolved: 'light' | 'dark';
-		if (savedTheme === 'light' || savedTheme === 'dark') {
-			resolved = savedTheme;
-		} else if (cfgTheme === 'dark') {
-			resolved = 'dark';
-		} else if (cfgTheme === 'system') {
-			resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-		} else {
-			resolved = 'light';
-		}
-		appStore.theme = resolved;
+		// Hydrate user preferences (theme, AutoEQ options, EQ-normalization link, …)
+		settingsStore.hydrate();
 
 		// Mobile detection
 		const updateMobile = () => {
@@ -166,7 +155,8 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
-		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+			return;
 
 		const mod = e.metaKey || e.ctrlKey;
 
@@ -176,7 +166,7 @@
 			return;
 		}
 
-		if (mod && (e.key === 'z' && e.shiftKey || e.key === 'y')) {
+		if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
 			e.preventDefault();
 			commandHistory.redo(frStore);
 			return;
@@ -196,16 +186,27 @@
 	$effect(() => {
 		if (!appStore.isReady) return;
 		// Subscribe to reactive dependencies
-		for (const _ of frStore.entries) { /* track all FR data mutations */ }
+		for (const _ of frStore.entries) {
+			/* track all FR data mutations */
+		}
 		const _yScale = graphStore.yScale;
 		const _baseline = graphStore.baselineUUID;
 		urlProvider.autoUpdate();
+	});
+
+	// Persist AutoEQ options to the currently-selected storage whenever they change.
+	$effect(() => {
+		if (!appStore.isReady) return;
+		const o = settingsStore.autoEqOptions;
+		// Touch each field so the effect re-runs on any nested mutation.
+		void [o.freqMin, o.freqMax, o.qMin, o.qMax, o.gainMin, o.gainMax, o.useShelfFilter];
+		settingsStore.persistAutoEqOptions();
 	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="flex flex-col h-full">
+<div class="flex h-full flex-col">
 	<TopNavBar />
 
 	{#if appStore.isMobile}
@@ -215,12 +216,15 @@
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
-				<div class="bg-base-200 border-b border-base-content/15">
+				<div class="border-b border-base-content/15 bg-base-200">
 					<FrequencyTutorial />
 				</div>
 			</section>
 			<!-- Panel area fills remaining space -->
-			<section aria-label="Controls" class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15">
+			<section
+				aria-label="Controls"
+				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15"
+			>
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
@@ -251,11 +255,14 @@
 			style:grid-template-columns={gridCols}
 		>
 			<!-- Left column: graph + toolbar -->
-			<section aria-label="Frequency response graph" class="flex flex-col overflow-hidden bg-base-100">
+			<section
+				aria-label="Frequency response graph"
+				class="flex flex-col overflow-hidden bg-base-100"
+			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
-				<div class="bg-base-200 border-b border-base-content/15">
+				<div class="border-b border-base-content/15 bg-base-200">
 					<FrequencyTutorial />
 				</div>
 				<GraphToolbar />
@@ -289,12 +296,7 @@
 	{/if}
 </div>
 
-<Toaster
-	position="top-center"
-	richColors
-	closeButton
-	theme={appStore.theme}
-/>
+<Toaster position="top-center" richColors closeButton theme={settingsStore.theme} />
 
 <SponsorBanner />
 <TutorialModal />

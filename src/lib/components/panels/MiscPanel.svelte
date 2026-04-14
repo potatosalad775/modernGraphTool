@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { appStore } from '$lib/stores/app-store.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
-	import { getLocale, setLocale } from '$lib/paraglide/runtime.js';
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+	import { getLocale, setLocale } from '$lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 
 	const appVersion = __APP_VERSION__;
@@ -16,63 +16,54 @@
 	];
 
 	const enableI18n = $derived(!!getConfigValue('LANGUAGE.ENABLE_I18N'));
-	const description = $derived(
-		getConfigValue('DESCRIPTION') as DescriptionItem[] | undefined
-	);
+	const description = $derived(getConfigValue('DESCRIPTION') as DescriptionItem[] | undefined);
 
-	function toggleTheme() {
-		appStore.theme = appStore.theme === 'light' ? 'dark' : 'light';
-		document.documentElement.classList.toggle('dark', appStore.theme === 'dark');
-		localStorage.setItem('gt-theme', appStore.theme);
-	}
+	const hideDonate = $derived(!!getConfigValue('INTERFACE.HIDE_DEV_DONATE_BUTTON'));
+	const prefBoundTarget =
+		(getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
 
 	function handleLocaleChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
 		setLocale(select.value as 'en' | 'ko');
 	}
-
-	const hideDonate = $derived(!!getConfigValue('INTERFACE.HIDE_DEV_DONATE_BUTTON'));
-	const prefBoundTarget = (getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
 </script>
 
-<div class="flex h-full flex-col gap-4 overflow-y-auto p-4">
+<div class="flex h-full flex-col gap-4 overflow-y-auto">
 	<!-- Theme + Language row -->
-	<div class="flex items-center gap-3">
-		<!-- Theme toggle button -->
+	<div class="flex items-center gap-2 border-b border-base-content/15 bg-base-200 px-3 py-2">
 		<Button
-			onclick={toggleTheme}
-			title={appStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-			class="h-9 w-9" variant="outline" size="icon"
+			onclick={() => settingsStore.toggleTheme()}
+			title={settingsStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+			class="h-8 w-8"
+			variant="outline"
+			size="icon"
 		>
-			{#if appStore.theme === 'dark'}
-				<!-- Moon icon -->
+			{#if settingsStore.theme === 'dark'}
 				<Moon class="h-4 w-4" aria-hidden="true" />
 			{:else}
-				<!-- Sun icon -->
 				<Sun class="h-4 w-4" aria-hidden="true" />
 			{/if}
 		</Button>
-
-		<!-- Language selector (conditional) -->
 		{#if enableI18n}
-			<span class="h-5 w-px bg-base-content/20"></span>
-			<!-- Globe icon -->
-			<Globe class="h-4 w-4 " aria-hidden="true" />
-			<select
-				value={getLocale()}
-				onchange={handleLocaleChange}
-				class="h-9 flex-1 rounded-md border border-base-content/20 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent hover:cursor-pointer hover:bg-base-content/10"
-			>
-				{#each languages as lang (lang.value)}
-					<option value={lang.value}>{lang.label}</option>
-				{/each}
-			</select>
+			<div class="flex flex-1 items-center gap-2">
+				<div class="mx-1 h-8 w-px bg-base-content/20"></div>
+				<Globe class="-ml-0.5 h-4 w-4 text-base-content/70" aria-hidden="true" />
+				<select
+					value={getLocale()}
+					onchange={handleLocaleChange}
+					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 px-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
+				>
+					{#each languages as lang (lang.value)}
+						<option value={lang.value}>{lang.label}</option>
+					{/each}
+				</select>
+			</div>
 		{/if}
 	</div>
 
 	<!-- Description (conditional) -->
 	{#if description && description.length > 0}
-		<div class="flex flex-col gap-2 text-sm ">
+		<div class="flex flex-col gap-2 px-4 text-sm">
 			{#each description as item (item.CONTENT)}
 				{#if item.TYPE.toUpperCase() === 'TEXT'}
 					<p>{item.CONTENT}</p>
@@ -89,7 +80,7 @@
 
 	<!-- Preference bound description (auto-generated) -->
 	{#if prefBoundTarget}
-		<p class="text-sm text-base-content/70">
+		<p class="px-4 text-sm text-base-content/70">
 			{m.pref_bound_description_label()}: {prefBoundTarget}
 		</p>
 	{/if}
@@ -98,12 +89,12 @@
 	<div class="flex-1"></div>
 
 	<!-- App info section -->
-	<div class="flex flex-col items-center gap-1 text-center">
+	<div class="mb-3 flex flex-col items-center gap-1 text-center">
 		<div class="flex items-baseline gap-2">
 			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
 			<span class="text-xs text-base-content/60">beta</span>
 		</div>
-		<p class="text-xs text-base-content/60 -mt-1">v{appVersion}</p>
+		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
 			<a
@@ -111,7 +102,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="GitHub"
-				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300 hover:"
+				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +127,7 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				title="Documentation"
-				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300 hover:"
+				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
 			>
 				<BookOpen class="h-4 w-4" aria-hidden="true" />
 			</a>
@@ -148,7 +139,7 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					title="Support on Ko-fi"
-					class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300 hover:"
+					class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
 				>
 					<Heart class="h-4 w-4" aria-hidden="true" />
 				</a>

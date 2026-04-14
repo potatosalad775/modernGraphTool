@@ -89,7 +89,10 @@ All stores are exported as class instances from `.svelte.ts` files.
 - `graph-store.svelte.ts` — yScale, baseline UUID, normalization type, smoothing, target-original data map
 - `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
 - `menu-store.svelte.ts` — current panel + slide direction
-- `app-store.svelte.ts` — theme, isMobile, isReady
+- `app-store.svelte.ts` — isMobile, isReady
+- `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
+  `linkEqNormalization` flag. Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
+  AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle + `AnalyserNode`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
 - `squiglink-store.svelte.ts` — cross-site registry, sponsor content, domain guard
@@ -167,7 +170,7 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
 text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
 always go through the semantic tokens so operator themes stay consistent.
 
-Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', appStore.theme === 'dark')`.
+Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', settingsStore.theme === 'dark')`.
 All theme.css variables switch automatically; add `html.theme-transition` briefly during toggle for
 the cross-fade (handled in layout.css).
 

@@ -15,6 +15,8 @@ import type {
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import {
 	AddFRDataCommand,
@@ -32,6 +34,8 @@ import {
 import FRParser from '$lib/utils/fr-parser.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
 import { DataProcessor, anchorAndNormalizeHpTFSamples } from '$lib/utils/data-processor.js';
+import FRSmoother from '$lib/utils/fr-smoother.js';
+import { Equalizer } from '$lib/utils/equalizer.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { analyticsService } from './analytics-service.svelte.js';
@@ -419,12 +423,14 @@ class DataProvider {
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
 
 	renormalizeAll(): void {
+		const { normType, normHzValue } = graphStore;
+		const eqUUID = eqStore.eqCurveUUID;
+
 		for (const [uuid, data] of frStore.entries) {
-			const processed = normalizeChannels(
-				data.channels,
-				graphStore.normType,
-				graphStore.normHzValue
-			);
+			// Skip the linked EQ curve — it will be rebuilt from the source below.
+			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
+
+			const processed = normalizeChannels(data.channels, normType, normHzValue);
 			const updated: FRDataObject = {
 				...data,
 				channels: {
@@ -437,10 +443,8 @@ class DataProvider {
 			if (data.samples) {
 				updated.samples = data.samples.map((sample) => {
 					const s: SampleData = {};
-					if (sample.L)
-						s.L = normalizeChannels({ L: sample.L }, graphStore.normType, graphStore.normHzValue).L;
-					if (sample.R)
-						s.R = normalizeChannels({ R: sample.R }, graphStore.normType, graphStore.normHzValue).R;
+					if (sample.L) s.L = normalizeChannels({ L: sample.L }, normType, normHzValue).L;
+					if (sample.R) s.R = normalizeChannels({ R: sample.R }, normType, normHzValue).R;
 					return s;
 				});
 			}
@@ -448,8 +452,8 @@ class DataProvider {
 			if (data.hptf) {
 				const reNormedSamples = anchorAndNormalizeHpTFSamples(
 					data.hptf.samples,
-					graphStore.normType,
-					graphStore.normHzValue
+					normType,
+					normHzValue
 				);
 				updated.hptf = {
 					...data.hptf,
@@ -459,8 +463,130 @@ class DataProvider {
 			}
 			frStore.set(uuid, updated);
 		}
+
+		// Rebuild the EQ curve after the source phone has been renormalized.
+		// Reacts to the current `linkEqNormalization` setting: linked → smooth-only,
+		// unlinked → smooth + independent normalization.
+		this.rebuildEqCurve();
+
 		// Invalidate history since snapshots are now stale
 		commandHistory.clear();
+	}
+
+	// ─── Rebuild the EQ preview curve from current eqStore + source phone ────
+
+	/**
+	 * Recomputes the EQ-modified curve in frStore from the current source phone,
+	 * filters, preamp, and smoothing settings. When `settingsStore.linkEqNormalization`
+	 * is on, the curve is smoothed but NOT independently normalized — it inherits
+	 * the source phone's normalization, keeping the two curves visually tied
+	 * regardless of how radical the EQ is.
+	 *
+	 * This is the single source of truth for EQ curve construction. Both
+	 * `EqualizerPanel.svelte`'s reactive effect and `renormalizeAll()` funnel
+	 * through here.
+	 */
+	rebuildEqCurve(): void {
+		const sourceUUID = eqStore.sourcePhoneUUID;
+		if (!eqStore.isEnabled || !sourceUUID) {
+			this.#removeEqCurve();
+			return;
+		}
+
+		const sourceData = frStore.get(sourceUUID);
+		if (!sourceData) return;
+
+		const enabledFilters = eqStore.filters.filter(
+			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
+		);
+		const preamp = eqStore.preamp;
+		if (enabledFilters.length === 0 && preamp === 0) {
+			this.#removeEqCurve();
+			return;
+		}
+
+		// Linked mode treats preamp as a pure playback gain (audio player + hardware
+		// PEQ export both read eqStore.preamp directly). The on-screen EQ curve only
+		// visualizes the filter response so peak/dip filters stay anchored to the
+		// source ghost regardless of whether the user added headroom compensation.
+		const linked = settingsStore.linkEqNormalization;
+		const applyPreamp = preamp !== 0 && !linked;
+
+		const eq = new Equalizer();
+		const modified: ParsedFRData = {};
+		for (const ch of ['L', 'R', 'AVG'] as const) {
+			const chData = sourceData.channels[ch];
+			if (!chData) continue;
+			let points = chData.data;
+			if (enabledFilters.length > 0) {
+				points = eq.applyFilters(points, enabledFilters);
+			}
+			if (applyPreamp) {
+				points = points.map(([f, d]) => [f, d + preamp] as [number, number]);
+			}
+			modified[ch] = { data: points, metadata: { ...chData.metadata } };
+		}
+		eqStore.eqModifiedData.set(sourceUUID, modified);
+
+		const params = {
+			smoothValue: graphStore.smoothValue,
+			normType: graphStore.normType,
+			normHz: graphStore.normHzValue
+		};
+
+		// Linked mode: smooth only. The absolute dB values in `modified` already
+		// encode "source_normalized + filter_effect" — skipping normalization
+		// preserves that relationship. Unlinked mode: smooth + renormalize.
+		const processed = linked
+			? FRSmoother.smoothChannels(modified, params.smoothValue)
+			: DataProcessor.processChannels(modified, params);
+
+		const existingUUID = eqStore.eqCurveUUID;
+		const existing = existingUUID ? frStore.get(existingUUID) : null;
+
+		if (existing && existingUUID) {
+			frStore.set(existingUUID, {
+				...existing,
+				channels: {
+					...(processed.L && { L: processed.L }),
+					...(processed.R && { R: processed.R }),
+					...(processed.AVG && { AVG: processed.AVG })
+				},
+				dispChannel: [...sourceData.dispChannel],
+				colors: { ...sourceData.colors },
+				_rawData: { channels: modified }
+			});
+		} else {
+			const uuid = crypto.randomUUID();
+			const frObject: FRDataObject = {
+				uuid,
+				type: 'eq',
+				identifier: sourceData.identifier,
+				dispSuffix: '(EQ)',
+				channels: {
+					...(processed.L && { L: processed.L }),
+					...(processed.R && { R: processed.R }),
+					...(processed.AVG && { AVG: processed.AVG })
+				},
+				dispChannel: [...sourceData.dispChannel],
+				colors: { ...sourceData.colors },
+				dash: sourceData.dash || '1 0',
+				hidden: false,
+				yOffset: 0,
+				_rawData: { channels: modified }
+			};
+			frStore.set(uuid, frObject);
+			eqStore.eqCurveUUID = uuid;
+		}
+	}
+
+	#removeEqCurve(): void {
+		const uuid = eqStore.eqCurveUUID;
+		if (uuid) {
+			frStore.delete(uuid);
+			eqStore.eqCurveUUID = null;
+		}
+		eqStore.eqModifiedData.clear();
 	}
 
 	// ─── Re-smooth all loaded data (called by SmoothingButton) ───────────────

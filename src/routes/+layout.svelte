@@ -2,14 +2,14 @@
 	import { page } from '$app/state';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import './layout.css';
-	import { appStore } from '$lib/stores/app-store.svelte';
+	import { settingsStore } from '$lib/stores/settings-store.svelte';
 
 	let { children } = $props();
 
 	$effect(() => {
 		const html = document.documentElement;
 		html.classList.add('theme-transition');
-		html.classList.toggle('dark', appStore.theme === 'dark');
+		html.classList.toggle('dark', settingsStore.theme === 'dark');
 		// Remove transition class after animation completes to avoid interfering with other transitions
 		const timer = setTimeout(() => html.classList.remove('theme-transition'), 350);
 		return () => clearTimeout(timer);

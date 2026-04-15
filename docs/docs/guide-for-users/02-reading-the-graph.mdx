@@ -1,0 +1,72 @@
+---
+sidebar_position: 2
+description: How to interpret the axes, peaks, dips, and overlays of a frequency response graph.
+---
+
+# Reading the graph
+
+This page explains what the graph in the middle of the screen actually shows. If you already know how to read a frequency response graph, feel free to skim.
+
+{/* TODO: annotated screenshot of the graph with callouts for X axis, Y axis, a loaded curve, and a target overlay */}
+
+## The two axes
+
+The graph has two axes, and each one is doing something slightly unusual.
+
+### X axis — frequency (Hz)
+
+The horizontal axis is **frequency**, measured in hertz (Hz). Left is low (deep bass), right is high (air and sparkle). The full range is 20 Hz on the far left to 20,000 Hz on the far right — roughly the range of human hearing.
+
+The axis is drawn on a **logarithmic scale**, which means equal distances on screen represent equal _multiplications_ of frequency, not equal additions. 100 Hz to 200 Hz takes up the same width as 1,000 Hz to 2,000 Hz, because both are "one octave". That matches how we actually hear pitch: doubling a frequency always sounds like the same-size jump.
+
+If the axis were drawn linearly instead, almost everything we care about in the midrange and bass would be crammed into the leftmost inch of the graph. Log scale spreads it out evenly.
+
+### Y axis — loudness (dB)
+
+The vertical axis is **loudness**, measured in decibels (dB). Up means louder at that frequency, down means quieter. Unlike a normal ruler, dB is also logarithmic — a 6 dB difference is about twice the acoustic power, and a 10 dB difference sounds about twice as loud to human ears.
+
+This means **small-looking differences matter a lot**. A 3 dB bump at 5 kHz is not a subtle cosmetic detail — it's something you'll most likely hear. Whenever you're about to dismiss a wiggle as "not much", check the dB value first.
+
+The absolute numbers on the Y axis don't usually matter. The graph is zoomed to show the _shape_ of the curve, and the shape is what describes how the headphone sounds.
+
+## Peaks and dips
+
+A **peak** is a bump where the headphone is playing one region louder than its neighbors. A **dip** is the opposite — a notch where it plays quieter. The tool's job is to make these easy to see.
+
+Roughly speaking, here's what different regions of the X axis correspond to by ear:
+
+| Region | Frequencies | What lives there |
+|---|---|---|
+| Sub-bass | 20 – 60 Hz | Rumble, felt more than heard |
+| Bass | 60 – 250 Hz | Kick drum, bass guitar body, "punch" |
+| Lower mids | 250 – 500 Hz | Warmth, fullness of male vocals |
+| Upper mids | 500 – 2 kHz | Most of the intelligibility and presence of a voice |
+| Presence | 2 – 5 kHz | Consonants, bite, "forwardness" |
+| Brilliance | 5 – 20 kHz | Cymbal shimmer, air, top-end sparkle |
+
+modernGraphTool has an interactive version of this table built in. Turn on the [Frequency Tutorial](../features/frequency-tutorial) overlay from the Graph panel and labels appear directly on the graph.
+
+## The bumps aren't noise
+
+A brand-new listener usually expects a headphone's curve to be close to a flat line, like a ruler drawn across the middle of the graph. They never are. Real headphones are bumpy — there's almost always a rise somewhere in the bass, a notch between 2 and 5 kHz, and ripples higher up. Two different headphones of the same model measured on the same rig won't even trace exactly the same curve.
+
+This is normal, and it's mostly not the headphone's fault. The curve you see is almost always **raw SPL as the measurement rig's microphone heard it** — so the shape contains the headphone's own response _plus_ the rig's natural quirks _plus_ a little fit variation. A curve that matches what sounds neutral to a human doesn't look flat on a graph, because "flat at the rig's microphone" and "flat to your ears" aren't the same thing. That's why you overlay a target curve to compare against, rather than judging the shape on its own. The next page — [How measurements work](./03-how-measurements-work.mdx) — explains where that shape actually comes from and why comparing curves between different sites needs a bit of care.
+
+## Overlays and what they mean
+
+Once you've loaded a measurement, you'll usually see more than one line on the graph.
+
+- **Colored solid lines** are the headphones you loaded. Each gets its own color.
+- **A gray or dotted line** is usually a **target curve** — a reference "what neutral should look like" drawn so you can compare against it. We talk about targets in [Why targets exist](./04-why-targets-exist.mdx).
+- **A shaded band** around a curve is a **sample deviation** band. Some devices are measured multiple times, and the band shows how much the measurements disagreed with each other. Narrow band = consistent; wide band = varies between samples.
+- **A lightly shaded region** across a larger area of the graph may be a **preference bound** — a research-derived range of "curves most people would find acceptable". See [Preference Bound](../features/preference-bound).
+
+## Channels, samples, and variations
+
+When you load a device, you'll sometimes see options like **L**, **R**, **L+R**, or **AVG**. Those are **channels**: the left earcup, the right earcup, both drawn separately, or both averaged into a single line. Stereo headphones are never _perfectly_ matched between channels, and seeing L and R separately can reveal differences a single averaged line would hide.
+
+Some devices also have **variations** (same model measured with different tips, pads, or damping settings) and **multi-sample** data (the same headphone measured several times to average out unit-to-unit differences). You'll see controls for both when they apply. They get their own detailed section in [Working with curves](./07-working-with-curves.mdx).
+
+---
+
+Once you've got this mental model, read [How measurements work](./03-how-measurements-work.mdx) to understand why two different sites can publish two different-looking curves for the exact same headphone — and what to do about it.

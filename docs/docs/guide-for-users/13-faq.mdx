@@ -1,0 +1,86 @@
+---
+sidebar_position: 13
+description: Common questions and quick troubleshooting for people using modernGraphTool.
+---
+
+# FAQ
+
+Short answers to questions that come up a lot. If yours isn't here, check the [Features](../category/features) section for feature-specific deep dives, or the main [Overview](../intro) page.
+
+## Measurement and interpretation
+
+### Why do two sites show different curves for the same headphone?
+
+Because they're using different measurement rigs or different compensation curves — the physics of the coupler and the math of the compensation both shape what you see. It's rarely either site being "wrong". Read [How measurements work](./03-how-measurements-work.mdx) for the longer version. The practical rule of thumb: comparisons _within_ a single site are trustworthy; comparisons _across_ sites need a bit of care.
+
+### Why do measurements look so bumpy?
+
+Real headphones are bumpy because real acoustics are messy. Coupler resonances, the headphone's own drivers, the way the earpad seals, and the compensation curve all introduce ripples. None of this is noise from bad equipment — it's an honest picture of what's reaching a simulated eardrum. Page [02 · Reading the graph](./02-reading-the-graph.mdx) has a primer on which bumps matter.
+
+### What's the shaded band around a curve?
+
+It's the **sample-to-sample deviation** — the range of variation across multiple measurements of the same device (or multiple units). A narrow band means the headphone measures consistently; a wide band means it depends a lot on fit, seal, or unit variation. You can change the shading style per-curve via the sample selector (see [Working with curves](./07-working-with-curves.mdx)).
+
+### What's the big shaded region across the whole graph?
+
+That's the **preference bound** — a research-derived range of "most listeners find this acceptable". A curve inside the region is in the preference range; a curve outside it is either brighter or darker than average preferences. Toggle it on and off from the graph toolbar. More detail at [Targets and preferences](./09-targets-and-preferences.mdx) and the full feature doc [Preference Bound](../features/preference-bound).
+
+## The UI
+
+### The graph looks weirdly zoomed out / in.
+
+That's the Y-axis scale. Click the **Y scale button** in the graph toolbar to change the dB range. More on this in [Graph controls](./08-graph-controls.mdx#y-axis-scale).
+
+### I accidentally deleted a curve. Is it gone?
+
+Press **Ctrl+Z**. Loading, removing, and per-curve edits all go onto an undo stack — you can undo several steps back. **Ctrl+Shift+Z** (or **Ctrl+Y**) redoes.
+
+### Can I upload my own measurement file?
+
+Yes — scroll to the bottom of the selection list and use the **Graph Uploader**. Drop in a CrinGraph-style two-column frequency/SPL text file and it loads as if it were a local device. The file stays in your browser session; nothing is uploaded anywhere. See [Loading devices](./06-loading-devices.mdx#uploading-your-own-measurement).
+
+### How do I compare two headphones at a specific frequency?
+
+Either turn on **Inspection mode** and hover over that frequency to read both dB values, or switch normalization to **Hz mode** and set the input to that frequency — the curves will align there, and any vertical distance at other frequencies is the difference. [Graph controls](./08-graph-controls.mdx) has details.
+
+### Where's the dark mode toggle?
+
+In the **Misc panel** (fourth menu icon, or press **4** on desktop). It's the Sun/Moon icon at the top. See [Appearance and language](./12-appearance-and-language.mdx#light-and-dark-theme).
+
+## Sharing
+
+### The share URL is really long and ugly. Can I shorten it?
+
+The URL embeds the full graph state inline, so it's long on purpose — there's no server, no account, no storage. If you want a short link, run it through any public URL shortener. Don't worry about the length for forum posts or chat messages; the underlying tool doesn't care.
+
+### I sent someone a share URL and they don't see what I see.
+
+Share URLs are generated for a specific site — the one you were on when you clicked Share. If the recipient opens the URL on a _different_ measurement site, any device names that don't exist in the other site's database will be silently skipped. Make sure both of you are on the same measurement site.
+
+## Equalizer
+
+### I hit play on the audio preview and nothing happens.
+
+Most browsers block audio from starting until you've clicked somewhere on the page. Click anywhere in the tool first, then press play again. If it still doesn't work, check that your browser tab isn't muted (some browsers add their own per-tab mute controls).
+
+### Why does my EQ need a preamp?
+
+If you boost a frequency by +6 dB digitally, the whole signal is 6 dB closer to the digital ceiling — and it might clip. The tool automatically computes a preamp (a global gain reduction) that keeps the peak below the ceiling. It's nothing you need to manage manually. See [Equalizer](../features/equalizer).
+
+### Can I send an EQ directly to my DAC/headphone hardware?
+
+If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. Best support is in Chrome and Edge. Safari doesn't support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](../features/device-peq).
+
+## squig.link
+
+### What's the "Buy Now" / Shop link button?
+
+It only appears on **squig.link**-hosted sites, and only when the focused device is found in the sponsor shop database. It jumps to a purchase page for that device. If you don't see it, your site either isn't on squig.link or the device isn't in the shop database. See [squig.link Integration](../features/squiglink-integration).
+
+### Can I search across other squig.link sites?
+
+On squig.link-hosted sites, yes — when you type in the search box in the Device panel, matching devices from other sites in the network appear underneath the local results. Click one to jump to that site. Sites that aren't part of the squig.link network won't show cross-site results.
+
+---
+
+Can't find your question? Try the [Features](../category/features) section for per-feature deep dives, or ask questions on [GitHub](https://github.com/potatosalad775/modernGraphTool/discussions).

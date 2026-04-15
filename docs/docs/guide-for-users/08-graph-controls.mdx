@@ -1,0 +1,95 @@
+---
+sidebar_position: 8
+description: Target selection, normalization, smoothing, Y-axis scale, inspection, and the rest of the graph-wide controls.
+---
+
+# Graph controls
+
+The last page covered controls that apply to a _single_ curve. This page is about controls that apply to **the whole graph**. They live in two places:
+
+- The **Graph panel**, which contains a target selector at the top and the selection list below it.
+- The **graph toolbar**, which sits _directly under the graph_ on desktop, and inside a collapsible accordion at the top of the Graph panel on mobile.
+
+{/* TODO: screenshot of the graph toolbar with each button labeled */}
+
+## Target selector
+
+At the top of the Graph panel is a **Target selector**: a dropdown (or expandable list, depending on how the operator has configured it) of every target the site ships with. Pick one and it appears on the graph as an overlay — usually as a gray dotted line.
+
+You can also select more than one target at a time if you want to compare two definitions of "neutral" side by side. Targets are organized into groups in the site's configuration, so the exact list you see depends on the deployment.
+
+For the target philosophy (why there are so many, what they mean) see [Why targets exist](./04-why-targets-exist.mdx). For tweaking a target's shape, see [Targets and preferences](./09-targets-and-preferences.mdx).
+
+## Normalize
+
+**Normalization** is how the tool decides where to place each curve vertically. Without it, two headphones measured at different overall volumes would sit at wildly different heights on the graph and you couldn't compare them. Normalization aligns them so shape differences become obvious.
+
+The toolbar has a segmented toggle with two modes:
+
+### Avg mode (default)
+
+Averages the SPL between 300 Hz and 3,000 Hz and uses that average as each curve's zero-point. Every loaded curve gets the same midrange average, which lines them up naturally across the most audible part of the spectrum.
+
+**Use Avg when** you're doing general comparison. It's the right default ~95% of the time.
+
+### Hz mode
+
+Instead of an average, you pick a _single_ frequency and every curve is shifted so that it's at 0 dB at that frequency. The frequency input next to the toggle lets you pick the exact value (any whole Hz from 20 to 20,000).
+
+**Use Hz when** you want to compare two curves at a specific pitch — for example, "if I match these two headphones at 500 Hz, how much do they differ in the bass?". The answer is the vertical distance at every other frequency.
+
+:::tip[Normalization is a view setting, not a data change]
+Neither mode modifies the underlying measurement files. Switching between Avg and Hz just re-draws the same data with a different alignment.
+:::
+
+## Smoothing
+
+Measurement files contain a lot of fine detail, and much of it is noise or room-dependent wiggles that won't affect what you actually hear. **Smoothing** averages each point with its neighbors to produce a cleaner curve.
+
+The smoothing button cycles through fractional-octave values from **1/48 octave** (barely any smoothing — essentially raw) to **1/3 octave** (heavily smoothed). Larger denominators = more raw; smaller denominators = smoother.
+
+- **1/48** shows the measurement as-delivered. You'll see every ripple including the noise.
+- **1/24** is the most common "give me the shape with the fine detail" setting.
+- **1/6 or 1/3** turn the curve into a broad outline, useful when comparing several headphones at once because ripples don't visually clash.
+
+There's no "correct" setting. Pick whichever makes the thing you're trying to see easiest to see. Smoothing is purely a view setting — the underlying file is untouched.
+
+## Y-axis scale
+
+The **Y scale button** (vertical double-arrow) controls how many dB the Y axis covers. A smaller range zooms in on the curves; a larger range zooms out and gives you more headroom for stacking multiple offset curves.
+
+There isn't a single right answer here either, but as a starting point:
+
+- **~40 dB range** is the default and works well for most comparisons.
+- **~60 dB range** if you're looking at aggressive sub-bass rolloffs or very tall treble peaks.
+- **~30 dB range** if you're zooming in on subtle differences between similar headphones.
+
+Beware of over-zooming: a 5 dB difference that looks enormous on a 20 dB range is still just 5 dB, and a _visual_ difference isn't necessarily a big audible difference. When in doubt, zoom out.
+
+## Inspection mode
+
+Toggle **Inspection** (magnifier icon) on and a small readout follows your cursor as it moves across the graph, showing the exact frequency and dB value at that position. Every loaded curve gets its own line in the readout, so you can compare all of them at a single frequency at once.
+
+On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don't need it — the cursor tracking gets in the way otherwise.
+
+## Preference Bound toggle
+
+The **preference bound** button toggles a shaded region that represents a statistical range of "acceptable" tunings rather than a single target line. See [Preference Bound](../features/preference-bound) for the full story. The button is enabled only when the site has configured bound data files — if it's missing, the feature isn't available for that deployment.
+
+## Frequency Tutorial
+
+The **Frequency Tutorial** is a labeled overlay that names each region of the graph — sub-bass, bass, lower mids, upper mids, presence, brilliance — with a short description of what lives there. Toggle it from the area above the graph toolbar. If you're still building intuition for which part of the graph corresponds to which part of a song, leave this on for a while. Full docs: [Frequency Tutorial](../features/frequency-tutorial).
+
+## Screenshot, Share, and Shop Link
+
+The last three buttons on the toolbar are export-oriented. They're covered in their own page:
+
+- **Screenshot** — save the current graph view as a PNG image.
+- **Share** — copy a URL that encodes the full graph state for someone else to open.
+- **Shop link** — only on squig.link sites; jumps to a buying page for the focused device if the shop database has one.
+
+See [Sharing and exporting](./11-sharing-and-exporting.mdx).
+
+---
+
+Next up, the two features that build on the target concept from page 04: [Targets and preferences](./09-targets-and-preferences.mdx).

@@ -1,0 +1,67 @@
+---
+sidebar_position: 11
+description: Share URLs, screenshots, and exporting EQ filter files.
+---
+
+# Sharing and exporting
+
+Once you've built a graph view that says what you wanted to say, you usually want to show someone else. modernGraphTool has three ways to do that, all in the graph toolbar: **Share**, **Screenshot**, and (inside the Equalizer panel) **Import/Export** for EQ files.
+
+## Share URL
+
+Click the **Share** button in the graph toolbar. The tool copies a URL to your clipboard that contains a compact, encoded snapshot of the current view:
+
+- Every loaded phone and target
+- Y-offsets, variants, channel selection, colors
+- Normalization mode, smoothing, Y scale, baseline
+- Target customizer adjustments
+- EQ filter list, if enabled
+
+Paste the URL anywhere — a chat message, a forum post, a reviewer article, a bug report. When someone opens it in their browser, modernGraphTool rebuilds the exact same view, device for device.
+
+:::info[No account, no server]
+Share URLs don't upload anything. They encode the state inline into the address bar itself. There's no shortlink service, no database of shares, no rate limit. If the URL works for you, it'll work for anyone you send it to (as long as they're on the same measurement site — more on that in a moment).
+:::
+
+### Why share URLs look long and ugly
+
+The URL includes a base62-encoded chunk that represents all the state. It's intentionally ugly-looking — that chunk is the whole point. If you'd prefer a short URL, run the long one through a URL shortener before posting.
+
+### Cross-site caveat
+
+A share URL is generated _for the site you're currently on_. If you build a view on _site-A.squig.link_ and paste the URL to someone who opens it on _site-B.squig.link_, site B will try to load the same device names from _its_ database — and any names that don't exist there will silently be skipped.
+
+If you want the recipient to see exactly what you saw, make sure they open the URL on the same site. Cross-site links work only when both sites happen to ship the same device names.
+
+## Screenshot
+
+Click the **Screenshot** button and modernGraphTool generates a PNG of the current graph view, labels and all, and downloads it to your browser's default download location.
+
+The screenshot includes:
+
+- The graph with every visible curve
+- Axis labels
+- Any watermark the site operator has configured (text or image, positioned and styled via the site's `config.js`)
+- The target curve if one is loaded
+
+It does _not_ include the panels, the toolbar, or anything outside the graph area itself. This is a graph export, not a whole-page screenshot.
+
+Screenshots are the right call when:
+
+- You're writing a review or article and want to embed a static image.
+- You're reading on a device where share URLs are awkward (printed output, a slide deck, a PDF).
+- You want a permanent record that won't break if the underlying database changes.
+
+If you'd rather a live link than a static image, use Share instead — the recipient gets the interactive version with all the controls still working.
+
+## Exporting EQ
+
+The Equalizer panel has its own import/export for EQ filter lists. These are plain text files that live outside the share URL system — you save them like any other file, email them around, or load them into another EQ application.
+
+See [Equalizing audio](./10-equalizing.mdx) and [Equalizer](../features/equalizer) for the workflow.
+
+## Undo and redo
+
+While we're on the subject of "not losing work": loading a device, removing a device, or changing any per-curve setting goes onto an **undo stack**. Press **Ctrl+Z** to undo and **Ctrl+Shift+Z** (or **Ctrl+Y**) to redo. If you accidentally delete a curve you spent time adjusting, it's a single keypress away.
+
+Undo doesn't cover _every_ state change — toolbar view settings like smoothing or Y scale aren't undoable — but the things that matter most (load/remove, Y-offset, customizer tweaks) are.

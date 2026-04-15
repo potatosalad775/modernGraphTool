@@ -1,0 +1,64 @@
+---
+sidebar_position: 12
+description: Theme, language, per-curve colors, and the Frequency Tutorial overlay.
+---
+
+# Appearance and language
+
+Everything in this page is about the _look_ of the tool, not the data. Nothing here affects any measurement or EQ — just the way things are presented.
+
+## Light and dark theme
+
+Open the **Misc panel** (fourth menu icon, or press **4** on desktop). At the top is a **Sun/Moon icon** — click it to switch between light and dark mode. The whole UI cross-fades briefly during the swap, including the graph itself.
+
+The theme you pick is saved in browser storage, so your next visit will remember it. If you've never touched the toggle, the initial theme comes from either the site operator's default or your operating system's light/dark preference, depending on how the site is configured.
+
+Theme is purely a visual choice — dark mode doesn't affect graph data, colors of the curves, or any exported screenshots.
+
+## Language
+
+If the site has enabled internationalization, a **language selector** appears next to the theme toggle. modernGraphTool currently supports:
+
+- **English**
+- **한국어 (Korean)**
+
+Pick one and the UI strings switch immediately. Device names, target names, and any operator-supplied description text are _not_ translated — they're whatever the site operator entered into the database. Only UI strings (button labels, panel names, help text) are affected.
+
+If the site hasn't enabled i18n, the selector is hidden and the UI uses whatever the operator picked as the default language.
+
+## Per-curve color
+
+The color swatch at the start of each selection-list row opens a small **color picker** popover. Use it when the auto-assigned palette doesn't give you enough contrast — for example, two loaded headphones ended up in similar blues and you can't tell which line is which.
+
+The popover contains:
+
+- A native **color field** you can click to open your system's color picker, or type a hex value into directly.
+- **HSL inputs** (hue, saturation, lightness) for numeric precision.
+- **Dash-pattern inputs** to draw the curve as a dashed line instead of solid — useful for distinguishing a second copy of the same device or for matching a convention you've set elsewhere.
+- A **randomize** button that picks a fresh color for you.
+
+Changes apply live as you edit. Close the popover when you're done. Colors and dash patterns are saved into share URLs, so if you set a specific style to make a point, the link you send will preserve it.
+
+To reset a curve back to its auto-assigned color, remove it and reload it from the Device panel — or just pick a fresh color.
+
+## Frequency Tutorial
+
+The **Frequency Tutorial** is an overlay that labels each region of the graph (sub-bass, bass, lower mids, upper mids, presence, brilliance) with a short description of what lives there musically.
+
+Toggle it from the area above the graph toolbar. It's a particularly useful aid if you're:
+
+- New to reading frequency response graphs.
+- Explaining a headphone's sound to someone who doesn't yet have the vocabulary.
+- Trying to place a particular instrument on the X axis ("ok, the kick drum's fundamentals are roughly _here_").
+
+The labels and descriptions come from the site's i18n files, so they'll switch language along with the rest of the UI. For more detail on what the feature does and how operators customize the label text, see [Frequency Tutorial](../features/frequency-tutorial).
+
+## Operator-supplied content
+
+The Misc panel also shows any **description content** the site operator has configured — typically a short introduction, credits, donation links, or related-site links. This is free-form content and varies per deployment, so what you see here on one site won't match another.
+
+At the bottom of the Misc panel you'll find the app version, links to the GitHub repo and documentation, and (unless the operator has hidden it) a donate button for the project's developer. These aren't per-site — they're consistent across all modernGraphTool installations.
+
+---
+
+One more page: [FAQ](./13-faq.mdx).

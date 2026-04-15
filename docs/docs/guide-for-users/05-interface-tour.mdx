@@ -1,0 +1,76 @@
+---
+sidebar_position: 5
+description: A walkthrough of the panels, layouts, and navigation that make up the modernGraphTool interface.
+---
+
+# Interface tour
+
+Concept pages done — from here on, the guide is about the buttons on screen. This page gives you the big picture so the more detailed pages make sense in context.
+
+{/* TODO: full-screen screenshot with the three regions (top bar, graph area, panel area) annotated */}
+
+## Three regions
+
+No matter which device you're using, the screen is always divided into three regions:
+
+1. **Top bar** — the slim bar across the top with the site title and any navigation links the operator has set up. On squig.link sites, a site selector may appear here.
+2. **Graph area** — everywhere the frequency response curves are drawn. This is where your eyes spend most of their time.
+3. **Panel area** — the controls that let you load devices, change the graph, apply EQ, and so on. Everything you "do" happens in the panel area.
+
+The relationship between the graph area and the panel area changes depending on screen size, but the regions themselves don't.
+
+## The four panels
+
+The panel area isn't a single view — it's four separate panels you switch between using a small **menu carousel** (four icons stacked together). Each panel is purpose-built:
+
+| Panel | What it's for | Deep dive |
+|---|---|---|
+| **Device** | Browse, search, and load headphones. | [Loading devices](./06-loading-devices.mdx) |
+| **Graph** | Pick a target, adjust the graph itself, manage loaded curves. | [Graph controls](./08-graph-controls.mdx) and [Working with curves](./07-working-with-curves.mdx) |
+| **Equalizer** | Build an EQ profile, preview it, optionally send it to hardware. | [Equalizing audio](./10-equalizing.mdx) |
+| **Misc** | Theme, language, site description, app info. | [Appearance and language](./12-appearance-and-language.mdx) |
+
+Only one panel is visible at a time. Switching between them is instant — the graph stays put, the panel slides in.
+
+:::tip[Jump straight to a panel]
+On desktop, press **1**, **2**, **3**, or **4** to jump directly to Device, Graph, Equalizer, or Misc. No chord, just the number key.
+:::
+
+## Desktop layout
+
+When your browser window is at least 1000 pixels wide, modernGraphTool uses the **desktop layout**:
+
+- The graph area sits on the **left**, taking up most of the space.
+- The panel area sits on the **right**, fixed-width but resizable.
+- Between them is a thin **drag divider**. Grab it and drag left or right to change how much space each region gets.
+- Underneath the graph you'll find the **graph toolbar** (normalize, smoothing, screenshot, and so on) along with the frequency-tutorial strip and a tiny **keyboard shortcut bar** at the very bottom of the graph column.
+- The **selection list** (your loaded curves) lives inside the **Graph panel** on the right — not under the graph — so you switch to the Graph panel when you want to adjust a specific curve.
+
+## Mobile layout
+
+When your browser window is narrower than 1000 pixels — phones, tablets in portrait mode, very small browser windows — modernGraphTool uses the **mobile layout** instead:
+
+- The graph area is at the **top**, pinned there.
+- Below it is the panel area, taking the rest of the screen. Swipes and taps happen here.
+- The menu carousel for switching panels sits at the **bottom** of the panel area, thumb-reachable.
+- The **graph toolbar** (normalize, smoothing, etc.) is tucked into a collapsible accordion at the top of the Graph panel — tap to expand.
+- The drag divider doesn't exist in the mobile layout. Graph-to-panel ratio is fixed.
+
+The selection list lives inside the Graph panel in both layouts, so the mental model of "switch to the Graph panel to manage your curves" is identical on desktop and mobile.
+
+You can switch between panels either by tapping an icon in the menu carousel or by **swiping horizontally** on the panel area.
+
+## Keyboard and focus
+
+Most buttons are reachable with the keyboard:
+
+- **Tab** moves forward through interactive elements; **Shift+Tab** moves back.
+- **Enter** or **Space** activates the focused control.
+- **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**) undo and redo loading, removing, or modifying curves.
+- **1 / 2 / 3 / 4** jump to Device, Graph, Equalizer, or Misc on desktop.
+
+Keyboard and screen-reader support is still being polished in places — if you find a control you can't reach or label you can't hear, that's a bug worth reporting.
+
+---
+
+Ready for the details? Start with [Loading devices](./06-loading-devices.mdx), where the actual data comes from.

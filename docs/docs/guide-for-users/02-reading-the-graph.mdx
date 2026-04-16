@@ -27,8 +27,6 @@ The vertical axis is **loudness**, measured in decibels (dB). Up means louder at
 
 This means **small-looking differences matter a lot**. A 3 dB bump at 5 kHz is not a subtle cosmetic detail — it's something you'll most likely hear. Whenever you're about to dismiss a wiggle as "not much", check the dB value first.
 
-The absolute numbers on the Y axis don't usually matter. The graph is zoomed to show the _shape_ of the curve, and the shape is what describes how the headphone sounds.
-
 ## Peaks and dips
 
 A **peak** is a bump where the headphone is playing one region louder than its neighbors. A **dip** is the opposite — a notch where it plays quieter. The tool's job is to make these easy to see.
@@ -50,14 +48,16 @@ modernGraphTool has an interactive version of this table built in. Turn on the [
 
 A brand-new listener usually expects a headphone's curve to be close to a flat line, like a ruler drawn across the middle of the graph. They never are. Real headphones are bumpy — there's almost always a rise somewhere in the bass, a notch between 2 and 5 kHz, and ripples higher up. Two different headphones of the same model measured on the same rig won't even trace exactly the same curve.
 
-This is normal, and it's mostly not the headphone's fault. The curve you see is almost always **raw SPL as the measurement rig's microphone heard it** — so the shape contains the headphone's own response _plus_ the rig's natural quirks _plus_ a little fit variation. A curve that matches what sounds neutral to a human doesn't look flat on a graph, because "flat at the rig's microphone" and "flat to your ears" aren't the same thing. That's why you overlay a target curve to compare against, rather than judging the shape on its own. The next page — [How measurements work](./03-how-measurements-work.mdx) — explains where that shape actually comes from and why comparing curves between different sites needs a bit of care.
+This is normal, and it's mostly not the headphone's fault. The curve you see is almost always **raw SPL as the measurement rig's microphone heard it** — so the shape contains the headphone's own response _plus_ the rig's natural quirks _plus_ a little fit variation. 
+
+That's why you overlay a target curve to compare against, rather than judging the shape on its own. The next page — [How measurements work](./03-how-measurements-work.mdx) — explains where that shape actually comes from and why comparing curves between different sites needs a bit of care.
 
 ## Overlays and what they mean
 
 Once you've loaded a measurement, you'll usually see more than one line on the graph.
 
 - **Colored solid lines** are the headphones you loaded. Each gets its own color.
-- **A gray or dotted line** is usually a **target curve** — a reference "what neutral should look like" drawn so you can compare against it. We talk about targets in [Why targets exist](./04-why-targets-exist.mdx).
+- **A gray or dotted line** is usually a **target curve** — a reference "what 'good sound' should look like" drawn so you can compare against it. We talk about targets in [Why targets exist](./04-why-targets-exist.mdx).
 - **A shaded band** around a curve is a **sample deviation** band. Some devices are measured multiple times, and the band shows how much the measurements disagreed with each other. Narrow band = consistent; wide band = varies between samples.
 - **A lightly shaded region** across a larger area of the graph may be a **preference bound** — a research-derived range of "curves most people would find acceptable". See [Preference Bound](../features/preference-bound).
 
@@ -65,7 +65,7 @@ Once you've loaded a measurement, you'll usually see more than one line on the g
 
 When you load a device, you'll sometimes see options like **L**, **R**, **L+R**, or **AVG**. Those are **channels**: the left earcup, the right earcup, both drawn separately, or both averaged into a single line. Stereo headphones are never _perfectly_ matched between channels, and seeing L and R separately can reveal differences a single averaged line would hide.
 
-Some devices also have **variations** (same model measured with different tips, pads, or damping settings) and **multi-sample** data (the same headphone measured several times to average out unit-to-unit differences). You'll see controls for both when they apply. They get their own detailed section in [Working with curves](./07-working-with-curves.mdx).
+Some devices also have **variations** (same model measured with different tips or pads) and **multi-sample** data (the same headphone measured several times to average out unit-to-unit differences). You'll see controls for both when they apply. They get their own detailed section in [Working with curves](./07-working-with-curves.mdx).
 
 ---
 

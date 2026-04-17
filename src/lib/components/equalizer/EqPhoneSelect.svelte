@@ -14,7 +14,15 @@
         });
       }
     }
-    return opts;
+    // Sort phones first, then targets, all alphabetically by label
+    return opts.sort((a, b) => {
+      const itemA = frStore.get(a.uuid);
+      const itemB = frStore.get(b.uuid);
+      if (!itemA || !itemB) return 0;
+      if (itemA.type === 'phone' && itemB.type !== 'phone') return -1;
+      if (itemA.type !== 'phone' && itemB.type === 'phone') return 1;
+      return a.label.localeCompare(b.label);
+    });
   });
 
   $effect(() => {

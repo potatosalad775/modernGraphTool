@@ -22,6 +22,13 @@
     if (eqStore.autoEqTargetUUID && !uuids.has(eqStore.autoEqTargetUUID)) {
       eqStore.autoEqTargetUUID = null;
     }
+    if (eqStore.autoEqTargetUUID === null) {
+      const targets: string[] = [];
+      for (const [, item] of frStore.entries) {
+        if (item.type === 'target' || item.type === 'inserted-target') targets.push(item.uuid);
+      }
+      if (targets.length === 1) eqStore.autoEqTargetUUID = targets[0];
+    }
   });
 </script>
 

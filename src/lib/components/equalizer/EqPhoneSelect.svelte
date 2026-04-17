@@ -22,6 +22,13 @@
     if (eqStore.sourcePhoneUUID && !uuids.has(eqStore.sourcePhoneUUID)) {
       eqStore.sourcePhoneUUID = null;
     }
+    if (eqStore.sourcePhoneUUID === null) {
+      const phones: string[] = [];
+      for (const [, item] of frStore.entries) {
+        if (item.type === 'phone' || item.type === 'inserted-phone') phones.push(item.uuid);
+      }
+      if (phones.length === 1) eqStore.sourcePhoneUUID = phones[0];
+    }
   });
 </script>
 

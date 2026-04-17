@@ -15,10 +15,10 @@ This page walks through every control on a single row, from left to right and to
 
 A single row contains:
 
-- **Top line:** a color swatch, the device name (with a variant dropdown if the device has variants), and a cluster of action buttons on the right.
+- **Top line:** a color picker, the device name (with a variant dropdown if the device has variants), and a cluster of action buttons on the right.
 - **Bottom line:** a channel selector (for devices that have channels) and a Y-offset control.
 
-## Color swatch
+## Color picker
 
 The small colored square on the left is the curve's **color on the graph**. Click it to open the [color picker](./12-appearance-and-language.mdx#per-curve-color) — a small popover with a native color field, HSL inputs, dash-pattern controls, and a randomize button. Use it when you have several curves in similar hues and want to make one stand out.
 
@@ -28,7 +28,7 @@ New curves are assigned automatic colors from a palette, so you rarely need to s
 
 Most devices have a single measurement file and the name just sits there. Devices with **multiple variants** — different tips, pads, position — show a small chevron next to the name. Click the name to open a dropdown listing every variant, then click the one you want: picking a variant **replaces** the current curve on the graph.
 
-If you want to keep both variants visible at the same time, the current workaround is to load the device from the Device panel a second time and switch the new copy's variant — the original row keeps its variant and you end up with both on the graph.
+If you want to keep both variants visible at the same time, click the plus button at the right side of each row.
 
 Variants are configured per device in the site's measurement database — if a device doesn't have variants, the dropdown won't appear.
 
@@ -75,7 +75,7 @@ Below the row header you'll find a channel selector (only shown for devices — 
 
 ### Sample selector (for multi-sample devices)
 
-If a device has **multiple samples** (the same model measured several times) _or_ a precomputed HpTF deviation, the channel selector is replaced by a richer **Sample / Channel selector** that also lets you choose:
+If a device has **multiple samples** (the same model measured several times), the channel selector is replaced by a richer **Sample / Channel selector** that also lets you choose:
 
 - A specific sample by index, or the average across all samples.
 - Whether to show the HpTF deviation as a **fill band**, as **individual curves**, or both.

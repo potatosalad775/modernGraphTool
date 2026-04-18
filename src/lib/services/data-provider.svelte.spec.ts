@@ -591,6 +591,61 @@ describe('DataProvider', () => {
 			expect(commandHistory.canUndo).toBe(false);
 		});
 
+		// Once Bug 1 is fixed and 'withoutAdjustment' baselines read from
+		// targetOriginalData, the cached original must also track the current
+		// normalization — otherwise the baseline and the curves would sit at
+		// different reference points, producing a constant-dB drift after any
+		// normalization change.
+		it('keeps targetOriginalData aligned with the current normalization', () => {
+			const originalAvg = makeFRPoints(75);
+			frStore.set(
+				't',
+				makeTargetObject('t', {
+					channels: { AVG: { data: originalAvg, metadata: { minFreq: 20, maxFreq: 20000 } } }
+				})
+			);
+			graphStore.targetOriginalData.set('t', {
+				AVG: {
+					data: originalAvg.map(([f, d]) => [f, d]),
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				}
+			});
+
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 1000;
+			dataProvider.renormalizeAll();
+
+			const normalizedFr = frStore.get('t')!.channels.AVG!.data;
+			const normalizedOriginal = graphStore.targetOriginalData.get('t')!.AVG!.data;
+			for (let i = 0; i < normalizedFr.length; i++) {
+				expect(normalizedOriginal[i][0]).toBe(normalizedFr[i][0]);
+				expect(normalizedOriginal[i][1]).toBeCloseTo(normalizedFr[i][1], 10);
+			}
+		});
+
+		it('bumps targetOriginalVersion when a target has cached original data', () => {
+			frStore.set(
+				't',
+				makeTargetObject('t', {
+					channels: { AVG: { data: makeFRPoints(75), metadata: { minFreq: 20, maxFreq: 20000 } } }
+				})
+			);
+			graphStore.targetOriginalData.set('t', {
+				AVG: { data: makeFRPoints(75), metadata: { minFreq: 20, maxFreq: 20000 } }
+			});
+
+			const before = graphStore.targetOriginalVersion;
+			dataProvider.renormalizeAll();
+			expect(graphStore.targetOriginalVersion).toBe(before + 1);
+		});
+
+		it('does not bump targetOriginalVersion when no targets have cached original data', () => {
+			frStore.set('a', makeFRDataObject('a', { channels: makeFullChannelData() }));
+			const before = graphStore.targetOriginalVersion;
+			dataProvider.renormalizeAll();
+			expect(graphStore.targetOriginalVersion).toBe(before);
+		});
+
 		// HpTF samples are anchored to a single pooled L+R mean, so every pairwise
 		// value difference — within a channel, across samples, and between L & R
 		// at any frequency — must stay constant when the user changes

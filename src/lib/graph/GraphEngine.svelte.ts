@@ -1,5 +1,10 @@
 import * as d3 from 'd3';
-import type { FRDataObject, FRDataPoint, BaselineData, HpTFEnvelope } from '$lib/types/data-types.js';
+import type {
+	FRDataObject,
+	FRDataPoint,
+	BaselineData,
+	HpTFEnvelope
+} from '$lib/types/data-types.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
@@ -7,14 +12,17 @@ import { getConfigValue } from '$lib/utils/config.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
-
+import { resolveBaselineChannelData } from './baseline.js';
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
 	viewBoxWidth: number;
 	viewBoxHeight: number;
 	graphGeometry: { xStart: number; xEnd: number; yTop: number; yBottom: number };
-	labelPosition: Record<string, { x: number; y: number; anchor: string; growUp: boolean; style?: string }>;
+	labelPosition: Record<
+		string,
+		{ x: number; y: number; anchor: string; growUp: boolean; style?: string }
+	>;
 	baselineData: BaselineData;
 	transitionDuration: number;
 	yScaleValue = 50;
@@ -50,7 +58,12 @@ class GraphEngine {
 			BOTTOM_RIGHT: { x: g.xEnd, y: g.yBottom, anchor: 'end', growUp: true },
 			TOP_LEFT: { x: g.xStart, y: g.yTop, anchor: 'start', growUp: false },
 			TOP_RIGHT: { x: g.xEnd, y: g.yTop, anchor: 'end', growUp: false },
-			CENTER: { x: (g.xStart + g.xEnd) / 2, y: (g.yTop + g.yBottom) / 2, anchor: 'middle', growUp: false }
+			CENTER: {
+				x: (g.xStart + g.xEnd) / 2,
+				y: (g.yTop + g.yBottom) / 2,
+				anchor: 'middle',
+				growUp: false
+			}
 		};
 		this.baselineData = {
 			uuid: null,
@@ -130,31 +143,17 @@ class GraphEngine {
 	/** Refresh baseline channel data from latest frStore entry (after re-smooth, re-normalize, etc.) */
 	refreshBaselineData(): void {
 		if (!this.baselineData.uuid) return;
-		const data = frStore.get(this.baselineData.uuid);
-		if (!data) {
+		if (!frStore.get(this.baselineData.uuid)) {
 			// Baseline entry was removed
 			this.baselineData = { uuid: null, identifier: null, channelData: null };
 			graphStore.baselineUUID = null;
 			graphStore.baselineMode = 'off';
 			return;
 		}
-		// In "withAdjustment" mode, refresh from targetOriginalData
-		if (graphStore.baselineMode === 'withAdjustment') {
-			const original = graphStore.targetOriginalData.get(this.baselineData.uuid);
-			if (original?.['AVG']?.data) {
-				this.baselineData.channelData = original['AVG'].data;
-			}
-			return;
-		}
-		// In "withoutAdjustment" mode, refresh from latest frStore data
-		this.baselineData.channelData =
-			data.type === 'phone'
-				? (data.channels[
-						data.dispChannel.includes('L') && data.dispChannel.includes('R')
-							? 'AVG'
-							: data.dispChannel[0]
-					]?.data ?? null)
-				: (data.channels['AVG']?.data ?? null);
+		this.baselineData.channelData = resolveBaselineChannelData(
+			this.baselineData.uuid,
+			graphStore.baselineMode
+		);
 	}
 
 	/** Update Baseline Data */
@@ -308,15 +307,9 @@ class GraphEngine {
 			if (obj.hptf.envelope.L?.upper.length) available.push('L');
 			if (obj.hptf.envelope.R?.upper.length) available.push('R');
 			pickChannels =
-				available.length > 0
-					? available
-					: obj.hptf.envelope.AVG?.upper.length
-						? ['AVG']
-						: [];
+				available.length > 0 ? available : obj.hptf.envelope.AVG?.upper.length ? ['AVG'] : [];
 		}
-		const envelope = this._combineHpTFEnvelopes(
-			pickChannels.map((c) => obj.hptf!.envelope[c])
-		);
+		const envelope = this._combineHpTFEnvelopes(pickChannels.map((c) => obj.hptf!.envelope[c]));
 		if (!envelope.upper.length) return null;
 
 		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
@@ -390,9 +383,10 @@ class GraphEngine {
 	 *  Lightweight: no DOM creation/removal, just d-attribute updates. */
 	repositionCurves(): void {
 		this.curveGroup
-			.selectAll<SVGPathElement, FRDataPoint[]>(
-				"path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)"
-			)
+			.selectAll<
+				SVGPathElement,
+				FRDataPoint[]
+			>("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
 			.attr('d', (d) => this._getCompensatedPath(d));
 		this._transitionHpTFFillPaths(false);
 		this.eqOverlay?.render();
@@ -452,10 +446,7 @@ class GraphEngine {
 	/** Draw Y-axis (X-axis is Svelte-managed via GraphXAxis component) */
 	_drawAxis(): void {
 		if (this.svg.select('.fr-graph-y-axis').empty()) {
-			this.svg
-				.append('g')
-				.attr('class', 'fr-graph-y-axis')
-				.attr('transform', 'translate(0,0)');
+			this.svg.append('g').attr('class', 'fr-graph-y-axis').attr('transform', 'translate(0,0)');
 		}
 
 		this.updateYAxis();
@@ -660,8 +651,8 @@ class GraphEngine {
 				.attr(
 					'stroke-width',
 					obj.type === 'inserted-target'
-						? ((getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1')
-						: ((getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2')
+						? (getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1'
+						: (getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
 				)
 				.attr('stroke-dasharray', obj.dash || '1 0')
 				.attr('d', (d) => this._getCompensatedPath(d));
@@ -674,10 +665,7 @@ class GraphEngine {
 	}
 
 	/** Update Y Axis of the graph */
-	updateYAxis(
-		oldYScale: d3.ScaleLinear<number, number> | null = null,
-		transition = true
-	): void {
+	updateYAxis(oldYScale: d3.ScaleLinear<number, number> | null = null, transition = true): void {
 		const yScale = this.yScale;
 		const tickValues =
 			this.yScaleValue < 50 ? yScale.ticks(this.yScaleValue) : yScale.ticks(this.yScaleValue / 5);
@@ -725,7 +713,11 @@ class GraphEngine {
 
 		let dbText = axis.select<SVGTextElement>('.y-grid-db-text');
 		if (dbText.empty()) {
-			dbText = axis.append('text').attr('class', 'y-grid-db-text').attr('transform', 'rotate(-90)').text('dB');
+			dbText = axis
+				.append('text')
+				.attr('class', 'y-grid-db-text')
+				.attr('transform', 'rotate(-90)')
+				.text('dB');
 		}
 
 		dbText

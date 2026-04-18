@@ -14,8 +14,8 @@
 	import * as d3 from 'd3';
 	import * as m from '$lib/paraglide/messages.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+	import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import FRParser from '$lib/utils/fr-parser.js';
 	import FRSmoother from '$lib/utils/fr-smoother.js';
 	import { normalize } from '$lib/utils/fr-normalizer.js';
@@ -25,7 +25,8 @@
 	import Button from '../atoms/Button.svelte';
 
 	// ── Config-driven enable/disable ──────────────────────────────────────────
-	const baseDFTarget = (getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
+	const baseDFTarget =
+		(getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
 	const isEnabled = !!baseDFTarget;
 
 	// ── State ──────────────────────────────────────────────────────────────────
@@ -50,29 +51,13 @@
 	});
 
 	// ── Derived: reactive baseline channel data ──────────────────────────────
-	// Mirrors GraphEngine.refreshBaselineData() but through Svelte reactivity,
-	// so PreferenceBound redraws when baseline mode or data changes.
+	// Shares resolution logic with GraphEngine.refreshBaselineData() via
+	// resolveBaselineChannelData, so PreferenceBound redraws when baseline mode
+	// or data changes.
 
-	const baselineChannelData = $derived.by((): FRDataPoint[] | null => {
-		const uuid = graphStore.baselineUUID;
-		if (!uuid) return null;
-
-		if (graphStore.baselineMode === 'withAdjustment') {
-			const original = graphStore.targetOriginalData.get(uuid);
-			return original?.AVG?.data ?? null;
-		}
-
-		const data = frStore.get(uuid);
-		if (!data) return null;
-		if (data.type === 'phone') {
-			const ch =
-				data.dispChannel.includes('L') && data.dispChannel.includes('R')
-					? 'AVG'
-					: data.dispChannel[0];
-			return data.channels[ch]?.data ?? null;
-		}
-		return data.channels.AVG?.data ?? null;
-	});
+	const baselineChannelData = $derived(
+		resolveBaselineChannelData(graphStore.baselineUUID, graphStore.baselineMode)
+	);
 
 	// ── Data loading ──────────────────────────────────────────────────────────
 
@@ -93,7 +78,7 @@
 					return {
 						boundU: await FRParser.parseFRData(textU),
 						boundD: await FRParser.parseFRData(textD),
-						dfTarget: await FRParser.parseFRData(textDF),
+						dfTarget: await FRParser.parseFRData(textDF)
 					};
 				})();
 			}
@@ -111,9 +96,12 @@
 	}
 
 	function fetchDFTarget(): Promise<string> {
-		const targetName = baseDFTarget.trim().endsWith(' Target') ? baseDFTarget : `${baseDFTarget} Target`;
+		const targetName = baseDFTarget.trim().endsWith(' Target')
+			? baseDFTarget
+			: `${baseDFTarget} Target`;
 		const fileName = targetName.endsWith('.txt') ? targetName : `${targetName}.txt`;
-		const base = (getConfigValue('PATH.TARGET_MEASUREMENT') as string | undefined) ?? './data/target';
+		const base =
+			(getConfigValue('PATH.TARGET_MEASUREMENT') as string | undefined) ?? './data/target';
 		const url = `${base}${base.endsWith('/') ? '' : '/'}${fileName}`;
 		return fetch(url).then((r) => {
 			if (!r.ok) throw new Error(`Failed to fetch DF target: ${fileName}`);
@@ -231,7 +219,14 @@
 		const _loaded = isLoaded;
 		const _visible = isVisible;
 
-		if (!graphEngine.isInitialized || !_visible || !_loaded || !rawBoundU || !rawBoundD || !_dfNorm) {
+		if (
+			!graphEngine.isInitialized ||
+			!_visible ||
+			!_loaded ||
+			!rawBoundU ||
+			!rawBoundD ||
+			!_dfNorm
+		) {
 			removeBounds();
 			return;
 		}
@@ -251,12 +246,12 @@
 </script>
 
 {#if isEnabled}
-<Button
-	title={m.pref_bound_btn_label()}
-	onclick={toggle}
-	variant={isVisible ? 'primary' : 'outline'}
-	class="h-9! px-3! gap-1.5"
->
-	{m.pref_bound_btn_label()}
-</Button>
+	<Button
+		title={m.pref_bound_btn_label()}
+		onclick={toggle}
+		variant={isVisible ? 'primary' : 'outline'}
+		class="h-9! gap-1.5 px-3!"
+	>
+		{m.pref_bound_btn_label()}
+	</Button>
 {/if}

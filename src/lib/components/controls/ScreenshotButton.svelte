@@ -6,6 +6,20 @@
 	import Button from '../atoms/Button.svelte';
 	import { Camera } from '@lucide/svelte';
 
+	// Force light-theme values for SVG export so the PNG looks the same regardless
+	// of the active theme. Mirrors the `:root` block in defaults/theme.css.
+	const LIGHT_THEME_VARS: Record<string, string> = {
+		'--color-graph-grid-major': 'rgba(0, 0, 0, 0.15)',
+		'--color-graph-grid-minor': 'rgba(0, 0, 0, 0.06)',
+		'--color-graph-axis-label': 'rgba(0, 0, 0, 0.6)',
+		'--color-graph-grid-text': 'rgba(0, 0, 0, 0.5)',
+		'--color-graph-baseline': 'rgba(0, 0, 0, 0.25)',
+		'--color-graph-bg': 'transparent',
+		'--color-base-100': 'oklch(98% 0.003 247.858)',
+		'--color-base-200': 'oklch(96% 0.007 247.896)',
+		'--color-base-content': 'oklch(20% 0.042 265.755)'
+	};
+
 	async function inlineImageHref(image: SVGImageElement): Promise<void> {
 		const href =
 			image.getAttribute('href') ?? image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
@@ -48,43 +62,64 @@
 		clone.setAttribute('width', String(vbWidth));
 		clone.setAttribute('height', String(vbHeight));
 
-		// Apply computed styles to all elements in the clone
-		const sourceElements = svgNode.querySelectorAll('*');
-		const cloneElements = clone.querySelectorAll('*');
-		const styleProps = ['fill', 'stroke', 'font-size', 'font-family', 'font-weight', 'opacity', 'stroke-width', 'stroke-dasharray'];
-		sourceElements.forEach((src, i) => {
-			const computed = getComputedStyle(src);
-			const cloneEl = cloneElements[i] as HTMLElement;
-			if (!cloneEl) return;
-			for (const prop of styleProps) {
-				const val = computed.getPropertyValue(prop);
-				if (val) cloneEl.style.setProperty(prop, val);
-			}
-		});
+		// Mount the clone in a hidden, light-themed container so var(--color-*)
+		// references resolve to light values regardless of the active theme.
+		const lightContainer = document.createElement('div');
+		lightContainer.style.cssText =
+			'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;';
+		for (const [name, value] of Object.entries(LIGHT_THEME_VARS)) {
+			lightContainer.style.setProperty(name, value);
+		}
+		lightContainer.appendChild(clone);
+		document.body.appendChild(lightContainer);
 
-		// Determine background color
-		const graphArea = document.querySelector('.graph-area');
-		const bgColor = graphArea
-			? getComputedStyle(graphArea).backgroundColor
-			: getComputedStyle(document.documentElement).getPropertyValue('--color-base-200').trim();
+		let svgUrl: string;
+		try {
+			// Apply computed styles to all elements in the clone (read from the
+			// clone so styles resolve under the forced light-theme container).
+			const cloneElements = clone.querySelectorAll('*');
+			const styleProps = [
+				'fill',
+				'stroke',
+				'font-size',
+				'font-family',
+				'font-weight',
+				'opacity',
+				'stroke-width',
+				'stroke-dasharray'
+			];
+			cloneElements.forEach((el) => {
+				const computed = getComputedStyle(el);
+				const cloneEl = el as HTMLElement;
+				for (const prop of styleProps) {
+					const val = computed.getPropertyValue(prop);
+					if (val) cloneEl.style.setProperty(prop, val);
+				}
+			});
 
-		// Add background rect
-		const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-		bgRect.setAttribute('width', String(vbWidth));
-		bgRect.setAttribute('height', String(vbHeight));
-		bgRect.setAttribute('fill', bgColor);
-		clone.insertBefore(bgRect, clone.firstChild);
+			// Always export with a pure white background.
+			const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+			bgRect.setAttribute('width', String(vbWidth));
+			bgRect.setAttribute('height', String(vbHeight));
+			bgRect.setAttribute('fill', '#ffffff');
+			clone.insertBefore(bgRect, clone.firstChild);
 
-		const svgData = new XMLSerializer().serializeToString(clone);
-		const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-		const svgUrl = URL.createObjectURL(svgBlob);
+			const svgData = new XMLSerializer().serializeToString(clone);
+			const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+			svgUrl = URL.createObjectURL(svgBlob);
+		} finally {
+			lightContainer.remove();
+		}
 
 		const scale = 2;
 		const canvas = document.createElement('canvas');
 		canvas.width = vbWidth * scale;
 		canvas.height = vbHeight * scale;
 		const ctx = canvas.getContext('2d');
-		if (!ctx) { URL.revokeObjectURL(svgUrl); return; }
+		if (!ctx) {
+			URL.revokeObjectURL(svgUrl);
+			return;
+		}
 
 		const img = new Image();
 		img.onload = () => {
@@ -111,7 +146,7 @@
 	title={m.screenshot_button_label()}
 	onclick={downloadScreenshot}
 	variant="muted"
-	class="h-9! px-3! gap-1.5"
+	class="h-9! gap-1.5 px-3!"
 >
 	<Camera class="h-4 w-4" aria-hidden="true" />
 	{m.screenshot_button_label()}

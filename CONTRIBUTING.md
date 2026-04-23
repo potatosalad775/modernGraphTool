@@ -6,7 +6,7 @@ Contributions are always welcome, no matter how small or large! Thank you for yo
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or higher
+- [Node.js](https://nodejs.org/) v20 or higher
 - npm (included with Node.js)
 
 ### Getting Started

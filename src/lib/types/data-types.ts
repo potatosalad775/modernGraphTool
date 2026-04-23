@@ -408,6 +408,7 @@ export interface AppConfig {
   VISUALIZATION: VisualizationConfig;
   INTERFACE: InterfaceConfig;
   URL: URLConfig;
+  RANKING_URL?: string;
   LANGUAGE: LanguageConfig;
   PATH: PathConfig;
   WATERMARK: WatermarkConfig[];

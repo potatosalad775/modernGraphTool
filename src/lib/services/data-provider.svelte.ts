@@ -425,6 +425,7 @@ class DataProvider {
 	renormalizeAll(): void {
 		const { normType, normHzValue } = graphStore;
 		const eqUUID = eqStore.eqCurveUUID;
+		let targetOriginalTouched = false;
 
 		for (const [uuid, data] of frStore.entries) {
 			// Skip the linked EQ curve — it will be rebuilt from the source below.
@@ -462,7 +463,23 @@ class DataProvider {
 				};
 			}
 			frStore.set(uuid, updated);
+
+			// Keep the cached pre-adjustment target channels aligned with the new
+			// normalization so `withoutAdjustment` baselines remain correct and
+			// TargetCustomizer can re-apply filters on top of it.
+			const cachedOriginal = graphStore.targetOriginalData.get(uuid);
+			if (cachedOriginal) {
+				graphStore.targetOriginalData.set(
+					uuid,
+					normalizeChannels(cachedOriginal, normType, normHzValue)
+				);
+				targetOriginalTouched = true;
+			}
 		}
+
+		// Signal mounted TargetCustomizer instances to re-sync their base data
+		// and re-apply filter stacks on top of the newly normalized original.
+		if (targetOriginalTouched) graphStore.targetOriginalVersion++;
 
 		// Rebuild the EQ curve after the source phone has been renormalized.
 		// Reacts to the current `linkEqNormalization` setting: linked → smooth-only,

@@ -282,7 +282,7 @@
 					ry={4}
 					width={w + labelBgPaddingX}
 					height={labelLineHeight}
-					fill="var(--color-base-200)"
+					fill="var(--color-base-100)"
 					opacity="0.7"
 					filter="blur(4px)"
 				/>

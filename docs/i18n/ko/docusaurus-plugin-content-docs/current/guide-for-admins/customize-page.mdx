@@ -302,6 +302,38 @@ URL: {
   - 활성화하면 base62 알고리즘을 사용해 URL을 압축합니다.
   - `true`, `false` 중 선택.
 
+### `RANKING_URL`
+```JavaScript
+// 기본 - 링크 없음, 리뷰 점수는 일반 텍스트로 표시됩니다.
+RANKING_URL: "",
+
+// 동일한 서버 내의 squigRanking 페이지로 연결하고자 하는 경우:
+RANKING_URL: "/ranking/?type=earphone#{slug}",
+
+// 외부 랭킹 페이지:
+RANKING_URL: "https://reviews.example.com/?type={type}#{slug}",
+
+// 기기 항목이 없는 원시 URL (그대로 사용):
+RANKING_URL: "https://docs.google.com/spreadsheets/.../pubhtml",
+```
+기기 선택 목록에 포함된 각 기기의 리뷰 점수를 [squigRanking](https://github.com/potatosalad775/squigRanking)을 비롯한 랭킹 페이지로 연결하는 URL 링크로 바꿉니다. 빈 문자열로 설정할 경우, 점수가 일반 텍스트로 표시됩니다 (기존과 동일).
+
+값으로 URL 템플릿을 입력합니다. modernGraphTool은 각 행마다 다음과 같은 매개 변수를 알아서 대체합니다. 값은 URL로 인코딩됩니다(단, `{slug}`는 `-`가 읽히도록 인코딩되지 않습니다).
+
+| 매개 변수     | 설명                                                            |
+|--------------|-----------------------------------------------------------------------|
+| `{brand}`    | 기기의 브랜드                                                     |
+| `{model}`    | 기기의 모델                                                     |
+| `{slug}`     | `{brand}-{model}` 소문자, 공백 → `-` (squigRanking의 `deepLink` 슬러그 형식과 일치) |
+| `{fullName}` | `{brand} {model}` 결합                                              |
+| `{type}`     | 항상 `earphone` — 아래 참고 사항 참조                                    |
+
+템플릿에 **매개 변수가 없는 경우**(예: Google Sheet URL), 해당 입력값이 그대로 사용됩니다 — 슬러그나 쿼리 문자열이 추가되지 않습니다.
+
+:::info[`{type}` on headphone deploys]
+modernGraphTool의 `phone_book.json`은 각 기기별로 타입을 기록하지 않으므로 `{type}`은 항상 리터럴 `earphone`으로 해석됩니다. 헤드폰 페이지의 경우, 타입을 하드코딩하세요 — 예: `RANKING_URL: "/ranking/?type=headphone#{slug}"`.
+:::
+
 ### `CDN_MODE`
 ```JavaScript
 CDN_MODE: {

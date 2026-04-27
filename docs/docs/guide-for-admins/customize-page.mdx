@@ -301,6 +301,38 @@ URL: {
   - When activated, the URL is compressed using the base62 algorithm.
   - Choose `true` or `false`.
 
+### `RANKING_URL`
+```JavaScript
+// Default — no link, review score renders as plain text:
+RANKING_URL: "",
+
+// Link to a squigRanking page on the same deploy, anchored to the device card:
+RANKING_URL: "/ranking/?type=earphone#{slug}",
+
+// External ranking page:
+RANKING_URL: "https://reviews.example.com/?type={type}#{slug}",
+
+// Raw URL with no per-device anchoring (no placeholders → used verbatim):
+RANKING_URL: "https://docs.google.com/spreadsheets/.../pubhtml",
+```
+Wraps the per-phone review score in the device selector with a clickable link to your ranking page (e.g. [squigRanking](https://github.com/potatosalad775/squigRanking)). When empty (the default), the score renders as plain text — there is no behavior change for existing deploys.
+
+The value is a URL template. modernGraphTool substitutes the following placeholders per row at render time. Values are URL-encoded (except `{slug}`, which keeps `-` readable).
+
+| Placeholder  | Expands to                                                            |
+|--------------|-----------------------------------------------------------------------|
+| `{brand}`    | The phone's brand                                                     |
+| `{model}`    | The phone's model                                                     |
+| `{slug}`     | `{brand}-{model}` lowercased, whitespace → `-` (matches squigRanking's `deepLink` slug format) |
+| `{fullName}` | `{brand} {model}` joined                                              |
+| `{type}`     | Always `earphone` — see note below                                    |
+
+If the template contains **no** placeholders (e.g. a Google Sheet URL), it is used verbatim — no slug or query string is appended.
+
+:::info[`{type}` on headphone deploys]
+modernGraphTool's `phone_book.json` does not record device type per phone, so `{type}` always resolves to the literal `earphone`. For a headphone-only deploy, hardcode the type instead — e.g. `RANKING_URL: "/ranking/?type=headphone#{slug}"`.
+:::
+
 ### `CDN_MODE`
 ```JavaScript
 CDN_MODE: {

@@ -18,11 +18,11 @@
 		return closest;
 	}
 
-	let currentIndex = $state(findClosestIndex(graphStore.yScale));
+	let currentIndex = $derived(findClosestIndex(graphStore.yScale));
 
 	function handleClick() {
-		currentIndex = (currentIndex + 1) % options.length;
-		graphStore.yScale = options[currentIndex];
+		const nextIndex = (currentIndex + 1) % options.length;
+		graphStore.yScale = options[nextIndex];
 	}
 </script>
 

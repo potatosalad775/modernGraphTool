@@ -5,6 +5,7 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import MetadataParser from '$lib/utils/metadata-parser.js';
 	import { getConfigValue } from '$lib/utils/config.js';
+	import { buildRankingUrl } from '$lib/utils/url-template.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
@@ -17,6 +18,7 @@
 		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
 	const switchPanelOnBrandClick =
 		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
+	const rankingUrlTemplate = (getConfigValue('RANKING_URL') as string) ?? '';
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
@@ -222,9 +224,27 @@
 							{#if isLoaded && (phone.reviewScore !== undefined || phone.price || phone.reviewLink || phone.shopLink)}
 								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 									{#if phone.reviewScore !== undefined}
-										<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
-											{renderScore(phone.reviewScore)}
-										</span>
+										{@const rankingHref = buildRankingUrl(rankingUrlTemplate, {
+											type: 'earphone',
+											brand: phone.brand,
+											model: phone.name
+										})}
+										{#if rankingHref}
+											<a
+												href={rankingHref}
+												target="_blank"
+												rel="external noopener noreferrer"
+												class="text-xs text-warning hover:underline"
+												title="Score: {phone.reviewScore}"
+												onclick={(e) => e.stopPropagation()}
+											>
+												{renderScore(phone.reviewScore)}
+											</a>
+										{:else}
+											<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
+												{renderScore(phone.reviewScore)}
+											</span>
+										{/if}
 									{/if}
 
 									{#if phone.price}

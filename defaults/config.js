@@ -51,6 +51,13 @@ const CONFIG = {
     AUTO_UPDATE_URL: true,                              // This will automatically update URL when phone/target is changed.
     COMPRESS_URL: true,                                 // Compresses URL with Base62 encoding
   },
+  // Review-score link template for PhoneSelector.
+  // When empty (default), the review score renders as plain text (legacy behavior, no link).
+  // Placeholders: {brand}, {model}, {slug}, {fullName}. Values are URL-encoded.
+  // If the template contains no placeholders, it is used verbatim.
+  // mGT does not track per-phone type. 
+  // For headphone-only deploys, hardcode '?type=headphone' in the template instead.
+  RANKING_URL: "",
   // CDN Deployment Settings (optional)
   // Uncomment this section ONLY if you are using the CDN deployment mode
   // with the thin cdn-index.html. When using the full dist/ deployment, leave this commented out.

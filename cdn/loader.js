@@ -38,14 +38,17 @@
 	// cdnBase so we bypass jsDelivr's edge cache for this one file. Falls back
 	// to `${cdnBase}/versions.json` if cdnBase isn't a recognizable jsDelivr
 	// gh/ URL (e.g. operator pointed BASE at their own server).
-	const versionsUrl = cfg.VERSIONS_URL || rawGhVersionsUrl(cdnBase) || `${cdnBase}/versions.json`;
+	const primaryVersionsUrl = cfg.VERSIONS_URL || rawGhVersionsUrl(cdnBase) || `${cdnBase}/versions.json`;
+	// jsDelivr-hosted backup. Only used if the primary fetch fails with a
+	// network/5xx error — a stale version map is better than a blank page.
+	// Skipped when the primary URL already points at jsDelivr.
+	const fallbackVersionsUrl = `${cdnBase}/versions.json`;
+	const useFallback = primaryVersionsUrl !== fallbackVersionsUrl;
 
 	// --- Resolve version ---
 	let version;
 	try {
-		const res = await fetchWithTimeout(`${versionsUrl}?t=${Date.now()}`, LOAD_TIMEOUT_MS);
-		if (!res.ok) throw new Error(`versions.json: HTTP ${res.status}`);
-		const versions = await res.json();
+		const versions = await fetchVersions(primaryVersionsUrl, useFallback ? fallbackVersionsUrl : null);
 
 		if (requestedMajor != null) {
 			version = versions[String(requestedMajor)];
@@ -181,6 +184,34 @@
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), ms);
 		return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+	}
+
+	// Fetch versions.json from the primary URL. On network/5xx failure (but not
+	// 4xx — those indicate a misconfiguration that should surface), retry from
+	// the fallback URL. Returns parsed JSON or throws.
+	async function fetchVersions(primaryUrl, fallbackUrl) {
+		try {
+			const res = await fetchWithTimeout(`${primaryUrl}?t=${Date.now()}`, LOAD_TIMEOUT_MS);
+			if (res.ok) return await res.json();
+			if (res.status >= 400 && res.status < 500) {
+				throw new Error(`versions.json: HTTP ${res.status}`);
+			}
+			throw new Error(`versions.json: HTTP ${res.status}`);
+		} catch (primaryErr) {
+			const isClientError = /HTTP 4\d\d/.test(primaryErr.message);
+			if (!fallbackUrl || isClientError) throw primaryErr;
+			try {
+				const res = await fetchWithTimeout(`${fallbackUrl}?t=${Date.now()}`, LOAD_TIMEOUT_MS);
+				if (!res.ok) {
+					throw new Error(`versions.json (fallback): HTTP ${res.status}`, { cause: primaryErr });
+				}
+				return await res.json();
+			} catch (fallbackErr) {
+				throw new Error(`${primaryErr.message}; fallback failed: ${fallbackErr.message}`, {
+					cause: fallbackErr
+				});
+			}
+		}
 	}
 
 	// Translate a jsDelivr gh/ URL like

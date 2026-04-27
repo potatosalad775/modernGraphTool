@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import MetadataParser from './metadata-parser.js';
 import type { BrandMetadata, TargetManifestEntry, RawPhoneData } from '$lib/types/data-types.js';
 
@@ -425,6 +425,100 @@ describe('MetadataParser', () => {
 
 		it('throws when phone not found at all', () => {
 			expect(() => MetadataParser.getFRMetadata('phone', 'NonExistent')).toThrow();
+		});
+	});
+
+	// ── _fetchBookObject — invalid entry tolerance ────────────────────────
+	//
+	// A single malformed brand or phone in phone_book.json must NOT crash the
+	// whole fetch. The fetcher should skip the bad entry, warn, and continue
+	// returning the rest. Reported case: `{ "name": "brand", "phones": null }`
+	// caused mGT to show 0 devices because the parser ran `null.map(...)`.
+
+	describe('_fetchBookObject — invalid entry tolerance', () => {
+		const realFetch = globalThis.fetch;
+		let warnSpy: ReturnType<typeof vi.spyOn>;
+
+		const mockFetch = (data: unknown) => {
+			globalThis.fetch = vi.fn(
+				async () =>
+					new Response(JSON.stringify(data), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			) as unknown as typeof fetch;
+		};
+
+		beforeEach(() => {
+			warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			globalThis.fetch = realFetch;
+			warnSpy.mockRestore();
+		});
+
+		it('skips a brand whose "phones" is null and keeps remaining brands', async () => {
+			mockFetch([
+				{ name: 'brand', phones: null },
+				{ name: 'Sennheiser', phones: ['HD 600'] }
+			]);
+
+			const result = await MetadataParser._fetchBookObject();
+
+			// Bad brand becomes an empty-phones brand entry; good brand still loads.
+			expect(result).toHaveLength(2);
+			expect(result[0]).toEqual({ brand: 'brand', phones: [] });
+			expect(result[1].brand).toBe('Sennheiser');
+			expect(result[1].phones).toHaveLength(1);
+			expect(result[1].phones[0].identifier).toBe('Sennheiser HD 600');
+			expect(warnSpy).toHaveBeenCalled();
+		});
+
+		it('returns [] when the top-level JSON is not an array', async () => {
+			mockFetch({ not: 'an array' });
+
+			const result = await MetadataParser._fetchBookObject();
+
+			expect(result).toEqual([]);
+			expect(warnSpy).toHaveBeenCalled();
+		});
+
+		it('skips brand entries that are null or non-object', async () => {
+			mockFetch([null, 'not an object', { name: 'Moondrop', phones: ['Blessing 3'] }]);
+
+			const result = await MetadataParser._fetchBookObject();
+
+			expect(result).toHaveLength(1);
+			expect(result[0].brand).toBe('Moondrop');
+			expect(warnSpy).toHaveBeenCalledTimes(2);
+		});
+
+		it('skips brand entries with no name', async () => {
+			mockFetch([{ phones: ['Orphan'] }, { name: 'Sennheiser', phones: ['HD 600'] }]);
+
+			const result = await MetadataParser._fetchBookObject();
+
+			expect(result).toHaveLength(1);
+			expect(result[0].brand).toBe('Sennheiser');
+		});
+
+		it('skips invalid phone entries within a brand and keeps the rest', async () => {
+			mockFetch([
+				{
+					name: 'Sennheiser',
+					phones: [null, 'HD 600', 42, { name: 'HD 800 S', file: 'HD 800 S' }]
+				}
+			]);
+
+			const result = await MetadataParser._fetchBookObject();
+
+			expect(result).toHaveLength(1);
+			const phones = result[0].phones;
+			// null and 42 are skipped → 2 valid entries remain.
+			expect(phones).toHaveLength(2);
+			expect(phones[0].identifier).toBe('Sennheiser HD 600');
+			expect(phones[1].identifier).toBe('Sennheiser HD 800 S');
 		});
 	});
 });

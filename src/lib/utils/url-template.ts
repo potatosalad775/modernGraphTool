@@ -15,7 +15,7 @@ export function buildRankingUrl(
 	const slug = (brand + '-' + model).toLowerCase().replace(/\s+/g, '-');
 	const fullName = brand + ' ' + model;
 	const values: Record<string, string> = {
-		type: ctx.type ?? '',
+		type: encodeURIComponent(ctx.type ?? ''),
 		brand: encodeURIComponent(brand),
 		model: encodeURIComponent(model),
 		slug: encodeURIComponent(slug).replace(/%2D/gi, '-'),

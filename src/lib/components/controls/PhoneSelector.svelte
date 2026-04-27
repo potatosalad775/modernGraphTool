@@ -236,6 +236,7 @@
 												rel="external noopener noreferrer"
 												class="text-xs text-warning hover:underline"
 												title="Score: {phone.reviewScore}"
+												onclick={(e) => e.stopPropagation()}
 											>
 												{renderScore(phone.reviewScore)}
 											</a>

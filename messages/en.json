@@ -159,6 +159,8 @@
 	"keyboard_shortcut_redo": "Redo",
 	"keyboard_shortcut_panels": "Switch Panels",
 	"keyboard_shortcut_axis_lock": "Lock Axis (EQ drag)",
+	"keyboard_shortcut_eq_bypass": "Hold to bypass EQ",
+	"keyboard_shortcut_delete_band": "Delete selected band",
 	"eq_settings_accordion_title": "Settings",
 	"eq_settings_autoeq_persist_label": "Remember AutoEQ inputs",
 	"eq_settings_autoeq_persist_session": "Keep for this tab only",

@@ -123,16 +123,51 @@ describe('clampFilterToConstraint — graphic', () => {
 });
 
 describe('clampFiltersToConstraint', () => {
-	it('trims to maxBands', () => {
+	it('trims to maxBands in parametric mode', () => {
 		const filters = Array.from({ length: 8 }, () => pk());
-		const out = clampFiltersToConstraint(filters, GRAPHIC); // maxBands = 3
-		expect(out).toHaveLength(3);
+		const out = clampFiltersToConstraint(filters, { ...PARAMETRIC, maxBands: 4 });
+		expect(out).toHaveLength(4);
 	});
 
 	it('does not trim when maxBands is 0 (unlimited)', () => {
 		const unlimited = { ...PARAMETRIC, maxBands: 0 };
 		const filters = Array.from({ length: 12 }, () => pk());
 		expect(clampFiltersToConstraint(filters, unlimited)).toHaveLength(12);
+	});
+
+	it('produces exactly bands.length rows in graphic mode (one per band)', () => {
+		const out = clampFiltersToConstraint([pk({ freq: 1100, gain: 4 })], GRAPHIC);
+		expect(out).toHaveLength(3); // GRAPHIC has 3 bands
+	});
+
+	it('folds existing gains onto the nearest band in graphic mode', () => {
+		const out = clampFiltersToConstraint(
+			[pk({ freq: 1050, gain: 5 }), pk({ freq: 9500, gain: -2 })],
+			GRAPHIC
+		);
+		// band 0 (100 Hz): no nearby source → 0 dB
+		expect(out[0].freq).toBe(100);
+		expect(out[0].gain).toBe(0);
+		// band 1 (1000 Hz): nearest to 1050 → 5 dB
+		expect(out[1].freq).toBe(1000);
+		expect(out[1].gain).toBe(5);
+		// band 2 (10000 Hz): nearest to 9500 → -2 dB
+		expect(out[2].freq).toBe(10000);
+		expect(out[2].gain).toBe(-2);
+	});
+
+	it('clamps folded gains to the preset’s gain bounds', () => {
+		const out = clampFiltersToConstraint([pk({ freq: 1000, gain: 30 })], GRAPHIC);
+		expect(out[1].gain).toBe(12); // GRAPHIC.gainMax = 12
+	});
+
+	it('locks freq + Q to band template in graphic mode regardless of source filters', () => {
+		const out = clampFiltersToConstraint([pk({ freq: 50, q: 5 })], GRAPHIC);
+		// All output bands carry the template's freq + q, not the source's.
+		out.forEach((f, i) => {
+			expect(f.freq).toBe(GRAPHIC.graphicBands![i].freq);
+			expect(f.q).toBe(GRAPHIC.graphicBands![i].q);
+		});
 	});
 });
 

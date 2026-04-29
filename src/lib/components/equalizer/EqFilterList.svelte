@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
@@ -27,9 +28,27 @@
 		eqStore.preamp = preamp;
 	});
 
+	const atMaxBands = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		return preset && preset.maxBands > 0 && eqStore.filters.length >= preset.maxBands;
+	});
+
 	function addBand() {
-		eqCommands.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
-		//expandedIndex = eqStore.filters.length - 1;
+		const ok = eqCommands.addBand({
+			enabled: true,
+			type: 'PK',
+			freq: null,
+			q: null,
+			gain: null
+		});
+		if (!ok) {
+			const preset = eqConstraintsStore.active;
+			if (preset && preset.maxBands > 0) {
+				toast.warning(
+					m.eq_constraint_max_bands_reached({ label: preset.label, max: preset.maxBands })
+				);
+			}
+		}
 	}
 
 	function removeBand() {
@@ -154,10 +173,11 @@
 		</span>
 		<div class="flex gap-1">
 			<Button
-				title="Add EQ Band"
+				title={atMaxBands ? 'Active constraint preset has reached its maxBands cap' : 'Add EQ Band'}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
+				disabled={atMaxBands}
 				onclick={addBand}
 			>
 				<Plus class="size-3" />

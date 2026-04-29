@@ -4,6 +4,7 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
+import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -264,6 +265,35 @@ export class GraphEqOverlay {
 						this.selectedFilterIndex = null;
 						this.render();
 					}
+				} else if (
+					(e.key === 'ArrowUp' ||
+						e.key === 'ArrowDown' ||
+						e.key === 'ArrowLeft' ||
+						e.key === 'ArrowRight') &&
+					this.selectedFilterIndex !== null
+				) {
+					e.preventDefault();
+					const idx = this.selectedFilterIndex;
+					const filter = eqStore.filters[idx];
+					if (!filter) return;
+					const multiplier = e.shiftKey ? 10 : 1;
+					const isGraphicNow = eqConstraintsStore.active?.mode === 'graphic';
+					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+						const dir = e.key === 'ArrowUp' ? 1 : -1;
+						const newGain = Math.max(
+							-40,
+							Math.min(40, (filter.gain ?? 0) + dir * 0.1 * multiplier)
+						);
+						eqCommands.updateBand(idx, { gain: Math.round(newGain * 10) / 10 });
+						eqCommands.flushBand(idx);
+					} else if (!isGraphicNow) {
+						const dir = e.key === 'ArrowRight' ? 1 : -1;
+						const step = multiplier;
+						const newFreq = Math.max(20, Math.min(20000, (filter.freq ?? 1000) + dir * step));
+						eqCommands.updateBand(idx, { freq: newFreq });
+						eqCommands.flushBand(idx);
+					}
+					this.render();
 				}
 			};
 			window.addEventListener('keydown', this._keydownHandler);
@@ -427,7 +457,10 @@ export class GraphEqOverlay {
 					}
 				}
 
+				const isGraphic = eqConstraintsStore.active?.mode === 'graphic';
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				// Graphic mode: frequency is pinned to the band's preset position.
+				if (isGraphic) freq = d.filter.freq!;
 				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
 				let gain: number;
@@ -441,9 +474,10 @@ export class GraphEqOverlay {
 					visualY = event.y;
 
 					// Recompute baseCurveDb at new freq if frequency changed significantly
-					// (the base curve shape varies across frequency)
+					// (the base curve shape varies across frequency) — skipped in graphic
+					// mode since freq is frozen.
 					const origFreq = d.filter.freq!;
-					if (Math.abs(freq - origFreq) / origFreq > 0.05) {
+					if (!isGraphic && Math.abs(freq - origFreq) / origFreq > 0.05) {
 						const newBase = this._getCurveDbExcludingFilter(freq, d.index);
 						if (newBase !== null) {
 							dragState.baseCurveDb = newBase;

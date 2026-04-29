@@ -64,6 +64,10 @@
 
 	// ── Number input handling ────────────────────────────────────────────────
 
+	// Snapshot taken on focus so Escape can revert arrow-key edits that already
+	// called onUpdate (unlike manual text entry, arrow keys commit immediately).
+	let focusSnapshot: number | null = null;
+
 	const inputBase =
 		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
@@ -85,6 +89,14 @@
 		}
 	}
 
+	function handleInputFocus(field: 'freq' | 'gain' | 'q') {
+		focusSnapshot = filter[field] ?? null;
+	}
+
+	function handleInputBlur() {
+		focusSnapshot = null;
+	}
+
 	function handleInputKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
 		if (e.key === 'Enter') {
 			(e.currentTarget as HTMLInputElement).blur();
@@ -92,7 +104,13 @@
 		}
 		if (e.key === 'Escape') {
 			const input = e.currentTarget as HTMLInputElement;
-			input.value = String(filter[field] ?? '');
+			// Revert to the value captured on focus — arrow-key edits call onUpdate
+			// immediately, so filter[field] may already be the incremented value.
+			const revertTo = focusSnapshot ?? filter[field] ?? null;
+			if (revertTo !== null && revertTo !== filter[field]) {
+				onUpdate({ [field]: revertTo });
+			}
+			input.value = String(revertTo ?? filter[field] ?? '');
 			input.blur();
 			return;
 		}
@@ -164,6 +182,8 @@
 					min={20}
 					max={20000}
 					step={1}
+					onfocus={() => handleInputFocus('freq')}
+					onblur={handleInputBlur}
 					onchange={(e) => commitNumberInput(e, 'freq')}
 					onkeydown={(e) => handleInputKeydown(e, 'freq')}
 					class="w-full {inputBase} {violation.freq ? 'ring-error!' : ''}"
@@ -181,6 +201,8 @@
 				min={-30}
 				max={30}
 				step={0.1}
+				onfocus={() => handleInputFocus('gain')}
+				onblur={handleInputBlur}
 				onchange={(e) => commitNumberInput(e, 'gain')}
 				onkeydown={(e) => handleInputKeydown(e, 'gain')}
 				class="w-full {inputBase} {violation.gain ? 'ring-error!' : ''}"
@@ -208,6 +230,8 @@
 					min={0.1}
 					max={10}
 					step={0.01}
+					onfocus={() => handleInputFocus('q')}
+					onblur={handleInputBlur}
 					onchange={(e) => commitNumberInput(e, 'q')}
 					onkeydown={(e) => handleInputKeydown(e, 'q')}
 					class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"

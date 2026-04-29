@@ -25,7 +25,12 @@
 	});
 
 	$effect(() => {
-		eqStore.preamp = preamp;
+		const next = preamp;
+		const prev = eqStore.preamp;
+		if (next < prev - 0.05) {
+			toast.info(m.eq_preamp_auto_reduced({ value: next.toFixed(1) }));
+		}
+		eqStore.preamp = next;
 	});
 
 	const atMaxBands = $derived.by(() => {
@@ -69,6 +74,12 @@
 	}
 
 	function updateFilter(index: number, partial: Partial<EQFilter>) {
+		// enabled-only toggle bypasses the coalescer so it's always its own undo
+		// entry — a gain drag starting within 400 ms can't swallow the toggle.
+		if ('enabled' in partial && Object.keys(partial).length === 1) {
+			eqCommands.toggleBandEnabled(index, partial.enabled!);
+			return;
+		}
 		// Number inputs and sliders flow through the coalescer so a slider
 		// drag (60 oninput events/sec) collapses into one undo entry.
 		eqCommands.updateBand(index, partial);

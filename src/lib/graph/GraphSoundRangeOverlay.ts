@@ -14,6 +14,7 @@ export class GraphSoundRangeOverlay {
 	private clipWrapper!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	private overlayGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	private bandRect!: d3.Selection<SVGRectElement, unknown, null, undefined>;
+	private modeBadge!: d3.Selection<SVGTextElement, unknown, null, undefined>;
 	private clickRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
 	private _active = false;
 
@@ -67,6 +68,20 @@ export class GraphSoundRangeOverlay {
 			.attr('opacity', 0)
 			.attr('pointer-events', 'none');
 
+		// Mode badge — top-right corner label shown while range mode is active.
+		this.modeBadge = this.overlayGroup
+			.append('text')
+			.attr('class', 'fr-graph-sound-range-badge')
+			.attr('x', xEnd - 6)
+			.attr('y', yTop + 14)
+			.attr('text-anchor', 'end')
+			.attr('font-size', '10px')
+			.attr('font-weight', '500')
+			.attr('fill', 'var(--color-accent)')
+			.attr('opacity', 0)
+			.attr('pointer-events', 'none')
+			.text('FREQ RANGE');
+
 		this.graphEngine.orderOverlayLayers();
 	}
 
@@ -83,6 +98,7 @@ export class GraphSoundRangeOverlay {
 	render(): void {
 		if (!this._active) {
 			this.bandRect.attr('opacity', 0);
+			this.modeBadge.attr('opacity', 0);
 			return;
 		}
 		const xs = this.graphEngine.xScale;
@@ -92,6 +108,7 @@ export class GraphSoundRangeOverlay {
 			.attr('x', Math.min(x1, x2))
 			.attr('width', Math.max(2, Math.abs(x2 - x1)))
 			.attr('opacity', 0.18);
+		this.modeBadge.attr('opacity', 0.7);
 	}
 
 	// ── Drag-to-set ────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import {
@@ -288,6 +289,18 @@ export const eqCommands = {
 	},
 
 	/**
+	 * Toggle the enabled state of a single band. Bypasses the burst coalescer
+	 * so the toggle is always its own distinct undo entry, independent of any
+	 * concurrent gain/freq drag.
+	 */
+	toggleBandEnabled(index: number, enabled: boolean): void {
+		const cur = eqStore.filters[index];
+		if (!cur || cur.enabled === enabled) return;
+		coalescer.flushBand(index);
+		commandHistory.execute(new UpdateEqFilterCommand(index, { ...cur, enabled }), frStore);
+	},
+
+	/**
 	 * Append a new filter band. Pushes immediately to history. The filter
 	 * is clamped against the active constraint, and the call is rejected
 	 * (no command pushed) if it would exceed the preset's `maxBands` cap.
@@ -349,6 +362,7 @@ export const eqCommands = {
 				);
 			});
 		if (samePreamp && sameContent) return;
+		eqHistoryStore.suppressNext();
 		commandHistory.execute(new ApplyEqSnapshotCommand(filters, preamp), frStore);
 	},
 

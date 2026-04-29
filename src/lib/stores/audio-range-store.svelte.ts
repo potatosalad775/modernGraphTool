@@ -14,8 +14,8 @@ class AudioRangeStore {
 	toHz = $state(20000);
 
 	setRange(fromHz: number, toHz: number): void {
-		const lo = Math.max(20, Math.min(20000, Math.min(fromHz, toHz)));
-		const hi = Math.max(20, Math.min(20000, Math.max(fromHz, toHz)));
+		const lo = Math.round(Math.max(20, Math.min(20000, Math.min(fromHz, toHz))));
+		const hi = Math.round(Math.max(20, Math.min(20000, Math.max(fromHz, toHz))));
 		// Clamp to a minimum bandwidth so the bandpass can't fully close.
 		this.fromHz = lo;
 		this.toHz = Math.max(hi, lo + 1);

@@ -69,6 +69,11 @@
 	>
 		<!-- EQ Enable toggle -->
 		<Switch labelText={m.menu_item_equalizer_label()} size="md" bind:checked={eqStore.isEnabled} />
+		{#if eqStore.isMomentarilyBypassed}
+			<span class="rounded bg-warning/20 px-1.5 py-0.5 text-xs font-medium text-warning">
+				{m.eq_bypassed_label()}
+			</span>
+		{/if}
 		<div class="h-7 w-px bg-base-content/20"></div>
 		<!-- Phone / Target select -->
 		<EqPhoneSelect />

@@ -294,10 +294,11 @@ export const eqCommands = {
 	 * concurrent gain/freq drag.
 	 */
 	toggleBandEnabled(index: number, enabled: boolean): void {
-		const cur = eqStore.filters[index];
-		if (!cur || cur.enabled === enabled) return;
-		coalescer.flushBand(index);
-		commandHistory.execute(new UpdateEqFilterCommand(index, { ...cur, enabled }), frStore);
+		const pre = eqStore.filters[index];
+		if (!pre || pre.enabled === enabled) return;
+		coalescer.flushAll();
+		const cur = eqStore.filters[index]!;
+		commandHistory.execute(new UpdateEqFilterCommand(index, { ...cur, enabled }, cur), frStore);
 	},
 
 	/**

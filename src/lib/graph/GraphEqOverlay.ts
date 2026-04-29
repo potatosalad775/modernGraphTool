@@ -540,6 +540,7 @@ export class GraphEqOverlay {
 
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+				if (eqConstraintsStore.active?.mode === 'graphic') freq = d.filter.freq!;
 
 				let gain: number;
 

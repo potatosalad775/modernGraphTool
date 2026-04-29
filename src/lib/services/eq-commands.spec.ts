@@ -74,6 +74,31 @@ describe('eqCommands', () => {
 		});
 	});
 
+	describe('applySnapshot', () => {
+		it('replaces filters + preamp and is undoable', () => {
+			eqStore.filters = [makeFilter({ freq: 1000, gain: 5 })];
+			eqStore.preamp = -1;
+
+			eqCommands.applySnapshot([makeFilter({ freq: 500, gain: -3 })], -2.5);
+			expect(eqStore.filters[0].freq).toBe(500);
+			expect(eqStore.filters[0].gain).toBe(-3);
+			expect(eqStore.preamp).toBe(-2.5);
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters[0].freq).toBe(1000);
+			expect(eqStore.filters[0].gain).toBe(5);
+			expect(eqStore.preamp).toBe(-1);
+		});
+
+		it('skips no-op applies (live state already matches the snapshot)', () => {
+			eqStore.filters = [makeFilter({ freq: 1000, gain: 0 })];
+			eqStore.preamp = 0;
+			expect(commandHistory.canUndo).toBe(false);
+			eqCommands.applySnapshot([makeFilter({ freq: 1000, gain: 0 })], 0);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+	});
+
 	describe('updateBand coalescing', () => {
 		beforeEach(() => {
 			vi.useFakeTimers();

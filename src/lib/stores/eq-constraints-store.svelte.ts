@@ -4,6 +4,9 @@ import { getConfigValue } from '$lib/utils/config.js';
 const ACTIVE_ID_LS_KEY = 'gt-eq-constraint-active-id';
 const FETCH_TIMEOUT_MS = 4000;
 
+/** Synthetic preset id reserved for the currently-connected device. */
+const DEVICE_CONSTRAINT_ID = '__device-peq__';
+
 /**
  * Active EQ constraint preset + the merged catalog of available presets.
  *
@@ -22,6 +25,8 @@ class EqConstraintsStore {
 	presets = $state<EqConstraintPreset[]>([]);
 	activeId = $state<string>('default');
 	isLoaded = $state(false);
+	/** Active id snapshot before a device's preset took over — restored on disconnect. */
+	#preDeviceActiveId: string | null = null;
 
 	get active(): EqConstraintPreset | null {
 		return this.presets.find((p) => p.id === this.activeId) ?? this.presets[0] ?? null;
@@ -31,6 +36,41 @@ class EqConstraintsStore {
 		if (this.presets.some((p) => p.id === id)) {
 			this.activeId = id;
 			this.persistActive();
+		}
+	}
+
+	/**
+	 * Inject the connected device's derived constraint preset and auto-select
+	 * it. Replaces any previous device preset (devices reconnecting under a
+	 * different model). The user-selected preset is remembered so disconnect
+	 * can restore it.
+	 */
+	setDeviceConstraint(preset: EqConstraintPreset): void {
+		const withId: EqConstraintPreset = { ...preset, id: DEVICE_CONSTRAINT_ID };
+		const idx = this.presets.findIndex((p) => p.id === DEVICE_CONSTRAINT_ID);
+		const next = [...this.presets];
+		if (idx >= 0) next[idx] = withId;
+		else next.push(withId);
+		this.presets = next;
+		// Remember what the user had selected so disconnect can restore.
+		if (this.activeId !== DEVICE_CONSTRAINT_ID) {
+			this.#preDeviceActiveId = this.activeId;
+		}
+		this.activeId = DEVICE_CONSTRAINT_ID;
+		// Don't persist — the device preset is session-scoped, not user choice.
+	}
+
+	/** Remove the connected-device preset and restore the user's prior pick. */
+	clearDeviceConstraint(): void {
+		const had = this.presets.some((p) => p.id === DEVICE_CONSTRAINT_ID);
+		if (!had) return;
+		this.presets = this.presets.filter((p) => p.id !== DEVICE_CONSTRAINT_ID);
+		const restore = this.#preDeviceActiveId;
+		this.#preDeviceActiveId = null;
+		if (restore && this.presets.some((p) => p.id === restore)) {
+			this.activeId = restore;
+		} else {
+			this.activeId = this.presets[0]?.id ?? 'default';
 		}
 	}
 

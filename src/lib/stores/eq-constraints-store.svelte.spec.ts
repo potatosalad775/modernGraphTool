@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
-import { mergePresets, sanitizeInlinePresets } from './eq-constraints-store.svelte.js';
+import {
+	eqConstraintsStore,
+	mergePresets,
+	sanitizeInlinePresets
+} from './eq-constraints-store.svelte.js';
 
 function preset(id: string, overrides: Partial<EqConstraintPreset> = {}): EqConstraintPreset {
 	return {
@@ -70,5 +74,55 @@ describe('sanitizeInlinePresets', () => {
 			'not an object'
 		]);
 		expect(out.map((p) => p.id)).toEqual(['a']);
+	});
+});
+
+describe('eqConstraintsStore device preset', () => {
+	const devicePreset = (overrides: Partial<EqConstraintPreset> = {}): EqConstraintPreset =>
+		preset('will-be-overridden', {
+			label: 'Connected Device',
+			maxBands: 5,
+			gainMin: -6,
+			gainMax: 6,
+			...overrides
+		});
+
+	beforeEach(() => {
+		// Seed a small catalog and a known active id
+		eqConstraintsStore.presets = [preset('default', { label: 'Default' }), preset('alt')];
+		eqConstraintsStore.activeId = 'alt';
+		// Drop any leftover device preset from a previous test
+		eqConstraintsStore.clearDeviceConstraint();
+	});
+
+	it('appends the device preset under the sentinel id and auto-selects it', () => {
+		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		const ids = eqConstraintsStore.presets.map((p) => p.id);
+		expect(ids).toContain('__device-peq__');
+		expect(eqConstraintsStore.activeId).toBe('__device-peq__');
+		expect(eqConstraintsStore.active?.label).toBe('Connected Device');
+	});
+
+	it('replaces a prior device preset on reconnect under a different model', () => {
+		eqConstraintsStore.setDeviceConstraint(devicePreset({ label: 'Device A' }));
+		eqConstraintsStore.setDeviceConstraint(devicePreset({ label: 'Device B' }));
+		const matches = eqConstraintsStore.presets.filter((p) => p.id === '__device-peq__');
+		expect(matches).toHaveLength(1);
+		expect(matches[0].label).toBe('Device B');
+	});
+
+	it('restores the user’s prior selection on disconnect', () => {
+		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		eqConstraintsStore.clearDeviceConstraint();
+		expect(eqConstraintsStore.activeId).toBe('alt');
+		expect(eqConstraintsStore.presets.find((p) => p.id === '__device-peq__')).toBeUndefined();
+	});
+
+	it('falls back to first preset if the prior id is gone', () => {
+		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		// Simulate the prior preset disappearing while the device was connected
+		eqConstraintsStore.presets = eqConstraintsStore.presets.filter((p) => p.id !== 'alt');
+		eqConstraintsStore.clearDeviceConstraint();
+		expect(eqConstraintsStore.activeId).toBe('default');
 	});
 });

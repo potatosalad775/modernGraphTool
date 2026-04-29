@@ -5,12 +5,14 @@
 	import { GraphEqOverlay } from '$lib/graph/GraphEqOverlay.js';
 	import { GraphSpectrumOverlay } from '$lib/graph/GraphSpectrumOverlay.js';
 	import { GraphPreferenceBoundOverlay } from '$lib/graph/GraphPreferenceBoundOverlay.js';
+	import { GraphSoundRangeOverlay } from '$lib/graph/GraphSoundRangeOverlay.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { appStore } from '$lib/stores/app-store.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { menuStore } from '$lib/stores/menu-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
@@ -217,6 +219,7 @@
 	let overlay = $state<GraphEqOverlay | null>(null);
 	let spectrumOverlay = $state<GraphSpectrumOverlay | null>(null);
 	let prefBoundOverlay = $state<GraphPreferenceBoundOverlay | null>(null);
+	let soundRangeOverlay = $state<GraphSoundRangeOverlay | null>(null);
 
 	onMount(() => {
 		if (svgEl) {
@@ -226,6 +229,7 @@
 			spectrumOverlay = new GraphSpectrumOverlay(graphEngine);
 			prefBoundOverlay = new GraphPreferenceBoundOverlay(graphEngine);
 			graphEngine.preferenceBoundOverlay = prefBoundOverlay;
+			soundRangeOverlay = new GraphSoundRangeOverlay(graphEngine);
 		}
 	});
 
@@ -237,6 +241,8 @@
 		prefBoundOverlay?.destroy();
 		prefBoundOverlay = null;
 		graphEngine.preferenceBoundOverlay = null;
+		soundRangeOverlay?.destroy();
+		soundRangeOverlay = null;
 	});
 
 	$effect(() => {
@@ -307,13 +313,27 @@
 	$effect(() => {
 		const _currentPanel = menuStore.currentPanel;
 		const _sourceUUID = eqStore.sourcePhoneUUID;
+		const inRangeMode = audioRangeStore.isFrequencySelectionMode;
+		// While the frequency-selection mode is active, EQ-node interaction
+		// is suppressed even though the EQ panel may still be open.
 		overlay?.setEqPanelActive(
-			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null
+			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null && !inRangeMode
 		);
+	});
+
+	// Sound-range overlay: active only when the user has toggled
+	// "Frequency selection mode" in EqAudioPlayer. Tracks range bounds so
+	// the band rect repositions when From/To change from elsewhere.
+	$effect(() => {
+		const active = audioRangeStore.isFrequencySelectionMode;
+		void audioRangeStore.fromHz;
+		void audioRangeStore.toHz;
+		soundRangeOverlay?.setActive(active);
+		if (active) soundRangeOverlay?.render();
 	});
 </script>
 
-<svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
+<svg bind:this={svgEl} class="h-full w-full" role="img" aria-label="Frequency response graph">
 	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
 		<GraphWatermark />

@@ -54,6 +54,7 @@
 		<option value="white">{m.equalizer_player_option_white()}</option>
 		<option value="pink">{m.equalizer_player_option_pink()}</option>
 		<option value="tone">{m.equalizer_player_option_tone()}</option>
+		<option value="sweep">{m.equalizer_player_option_sweep()}</option>
 		<option value="file">{m.equalizer_player_option_file()}</option>
 	</select>
 
@@ -84,6 +85,74 @@
 				}}
 				class="w-full accent-accent"
 			/>
+		</div>
+	{/if}
+
+	<!-- Sweep controls (only when sweep selected) -->
+	{#if audioPlayerService.audioSource === 'sweep'}
+		<div class="flex flex-col gap-2">
+			<div class="flex items-center gap-2 text-xs text-base-content/60">
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_from_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={audioPlayerService.sweepFromHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepFrom(v);
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_to_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={audioPlayerService.sweepToHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepTo(v);
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_duration_label()}
+					<input
+						type="number"
+						min="0.5"
+						max="60"
+						step="0.5"
+						value={audioPlayerService.sweepDurationSec}
+						onchange={(e) => {
+							const v = parseFloat((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepDuration(v);
+						}}
+						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">s</span>
+				</label>
+				<Switch
+					labelText={m.equalizer_player_sweep_loop_label()}
+					labelClass="text-xs"
+					size="sm"
+					checked={audioPlayerService.sweepLoop}
+					onCheckedChange={(checked) => audioPlayerService.setSweepLoop(checked)}
+				/>
+			</div>
+			{#if audioPlayerService.isPlaying}
+				<span class="text-xs text-base-content/60 tabular-nums">
+					{audioPlayerService.sweepCurrentHz} Hz
+				</span>
+			{/if}
 		</div>
 	{/if}
 

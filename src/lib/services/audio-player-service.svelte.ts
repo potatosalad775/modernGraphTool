@@ -2,7 +2,7 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 
-export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'file';
+export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
 /**
  * AudioPlayerService — module-level singleton owning the entire Web Audio engine
@@ -26,6 +26,10 @@ class AudioPlayerService {
 	#bypassMatchNode: GainNode | null = null;
 	#filterNodes: AudioNode[] = [];
 	#audioBuffer: AudioBuffer | null = null;
+	// Sweep-only nodes / timers — created when sweep starts, torn down on stop().
+	#sweepFadeNode: GainNode | null = null;
+	#sweepTimer: ReturnType<typeof setTimeout> | null = null;
+	#sweepRafId: number | null = null;
 
 	// --- Non-reactive bookkeeping ---
 	#startTime = 0;
@@ -43,6 +47,15 @@ class AudioPlayerService {
 	#currentTime = $state(0);
 	#duration = $state(0);
 	#fileLoaded = $state(false);
+
+	// Sweep state — exponential sine sweep from `sweepFromHz` to `sweepToHz`
+	// over `sweepDurationSec`. `sweepLoop` repeats the cycle until stopped.
+	// `sweepCurrentHz` mirrors the live oscillator frequency for display.
+	#sweepFromHz = $state(20);
+	#sweepToHz = $state(20000);
+	#sweepDurationSec = $state(6);
+	#sweepLoop = $state(true);
+	#sweepCurrentHz = $state(20);
 
 	// --- Public reactive getters ---
 	get isPlaying(): boolean {
@@ -69,6 +82,21 @@ class AudioPlayerService {
 	get fileLoaded(): boolean {
 		return this.#fileLoaded;
 	}
+	get sweepFromHz(): number {
+		return this.#sweepFromHz;
+	}
+	get sweepToHz(): number {
+		return this.#sweepToHz;
+	}
+	get sweepDurationSec(): number {
+		return this.#sweepDurationSec;
+	}
+	get sweepLoop(): boolean {
+		return this.#sweepLoop;
+	}
+	get sweepCurrentHz(): number {
+		return this.#sweepCurrentHz;
+	}
 
 	// --- Setters / commands ---
 	setAudioSource(src: AudioSource): void {
@@ -90,6 +118,22 @@ class AudioPlayerService {
 		if (this.#oscillatorNode && this.#isPlaying) {
 			this.#oscillatorNode.frequency.value = hz;
 		}
+	}
+
+	// Sweep parameter setters. Changes take effect on the next cycle boundary —
+	// #scheduleSweepCycle reads these fields fresh each cycle, so no mid-cycle
+	// restart is needed.
+	setSweepFrom(hz: number): void {
+		this.#sweepFromHz = Math.max(20, Math.min(20000, hz));
+	}
+	setSweepTo(hz: number): void {
+		this.#sweepToHz = Math.max(20, Math.min(20000, hz));
+	}
+	setSweepDuration(sec: number): void {
+		this.#sweepDurationSec = Math.max(0.5, Math.min(60, sec));
+	}
+	setSweepLoop(loop: boolean): void {
+		this.#sweepLoop = loop;
 	}
 
 	// --- Internals ---
@@ -182,7 +226,87 @@ class AudioPlayerService {
 		const source: AudioNode | null = this.#sourceNode ?? this.#oscillatorNode ?? null;
 		if (!source || !this.#bypassMatchNode) return;
 		source.disconnect();
-		source.connect(this.#bypassMatchNode);
+		// During a sweep the oscillator is routed via sweepFadeNode (which masks
+		// the from→to wraparound click); for all other sources the signal goes
+		// straight into the bypass-match stage.
+		if (this.#audioSource === 'sweep' && this.#sweepFadeNode) {
+			source.connect(this.#sweepFadeNode);
+		} else {
+			source.connect(this.#bypassMatchNode);
+		}
+	}
+
+	// --- Sweep cycle ---
+	/**
+	 * Schedule one cycle of the exponential frequency sweep on the live
+	 * oscillator, plus a short gain fade at the start and end of the cycle so
+	 * the from→to wraparound on loop doesn't pop. Calls itself recursively via
+	 * setTimeout when #sweepLoop is true.
+	 */
+	#scheduleSweepCycle(): void {
+		const ctx = this.#audioContext;
+		const osc = this.#oscillatorNode;
+		const fade = this.#sweepFadeNode;
+		if (!ctx || !osc || !fade) return;
+
+		const now = ctx.currentTime;
+		// exponentialRampToValueAtTime requires positive non-zero endpoints.
+		const from = Math.max(1, Math.min(20000, this.#sweepFromHz));
+		const to = Math.max(1, Math.min(20000, this.#sweepToHz));
+		// Floor at 0.5 s so the ramp is meaningful; cap at 60 s.
+		const dur = Math.max(0.5, Math.min(60, this.#sweepDurationSec));
+		const fadeMs = 0.005;
+
+		const f = osc.frequency;
+		f.cancelScheduledValues(now);
+		f.setValueAtTime(from, now);
+		f.exponentialRampToValueAtTime(to, now + dur);
+
+		const g = fade.gain;
+		g.cancelScheduledValues(now);
+		g.setValueAtTime(0, now);
+		g.linearRampToValueAtTime(1, now + fadeMs);
+		g.setValueAtTime(1, now + Math.max(fadeMs, dur - fadeMs));
+		g.linearRampToValueAtTime(0, now + dur);
+
+		if (this.#sweepTimer) clearTimeout(this.#sweepTimer);
+		this.#sweepTimer = setTimeout(
+			() => {
+				this.#sweepTimer = null;
+				if (!this.#isPlaying) return;
+				if (this.#sweepLoop) this.#scheduleSweepCycle();
+				else this.stop();
+			},
+			Math.max(50, dur * 1000)
+		);
+	}
+
+	#tickSweepDisplay = (): void => {
+		if (!this.#isPlaying || this.#audioSource !== 'sweep' || !this.#oscillatorNode) {
+			this.#sweepRafId = null;
+			return;
+		}
+		this.#sweepCurrentHz = Math.round(this.#oscillatorNode.frequency.value);
+		this.#sweepRafId = requestAnimationFrame(this.#tickSweepDisplay);
+	};
+
+	#stopSweep(): void {
+		if (this.#sweepTimer) {
+			clearTimeout(this.#sweepTimer);
+			this.#sweepTimer = null;
+		}
+		if (this.#sweepRafId) {
+			cancelAnimationFrame(this.#sweepRafId);
+			this.#sweepRafId = null;
+		}
+		if (this.#sweepFadeNode) {
+			try {
+				this.#sweepFadeNode.disconnect();
+			} catch {
+				/* already disconnected */
+			}
+			this.#sweepFadeNode = null;
+		}
 	}
 
 	#createNoiseNode(type: 'white' | 'pink'): AudioBufferSourceNode {
@@ -280,6 +404,19 @@ class AudioPlayerService {
 			this.#oscillatorNode.frequency.value = this.#toneFreq;
 			this.#oscillatorNode.connect(sourceTarget);
 			this.#oscillatorNode.start();
+		} else if (this.#audioSource === 'sweep') {
+			this.#oscillatorNode = ctx.createOscillator();
+			this.#oscillatorNode.type = 'sine';
+			this.#oscillatorNode.frequency.value = Math.max(1, this.#sweepFromHz);
+			// Insert a fade gain stage between oscillator and the rest of the
+			// chain so the sweep can fade in/out at cycle boundaries.
+			this.#sweepFadeNode = ctx.createGain();
+			this.#sweepFadeNode.gain.value = 0;
+			this.#oscillatorNode.connect(this.#sweepFadeNode);
+			this.#sweepFadeNode.connect(sourceTarget);
+			this.#oscillatorNode.start();
+			this.#scheduleSweepCycle();
+			this.#tickSweepDisplay();
 		} else if (this.#audioSource === 'file' && this.#audioBuffer) {
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
@@ -306,6 +443,7 @@ class AudioPlayerService {
 
 	pause(): void {
 		if (!this.#isPlaying) return;
+		this.#stopSweep();
 		this.#sourceNode?.stop();
 		this.#sourceNode?.disconnect();
 		this.#sourceNode = null;

@@ -186,6 +186,7 @@
 			e.preventDefault();
 			eqMomentaryRestore = eqStore.isEnabled;
 			eqStore.isEnabled = false;
+			eqStore.isMomentarilyBypassed = true;
 			return;
 		}
 
@@ -222,6 +223,7 @@
 		// if the user tabbed during the hold.
 		if (e.key === '\\' && eqMomentaryRestore !== null) {
 			eqStore.isEnabled = eqMomentaryRestore;
+			eqStore.isMomentarilyBypassed = false;
 			eqMomentaryRestore = null;
 		}
 	}

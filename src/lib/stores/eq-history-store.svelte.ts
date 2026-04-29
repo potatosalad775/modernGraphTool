@@ -36,6 +36,15 @@ class EqHistoryStore {
 
 	#pendingTimer: ReturnType<typeof setTimeout> | null = null;
 	#lastCommitTimestamp = 0;
+	#suppress = false;
+
+	/**
+	 * Skip the next `record()` call exactly once. Used by A/B apply so that
+	 * restoring a snapshot doesn't add a duplicate entry to the history list.
+	 */
+	suppressNext(): void {
+		this.#suppress = true;
+	}
 
 	/**
 	 * Schedule a snapshot of the current filter state. Repeated calls within
@@ -44,6 +53,10 @@ class EqHistoryStore {
 	 * the list with near-duplicates.
 	 */
 	record(filters: EQFilter[], preamp: number): void {
+		if (this.#suppress) {
+			this.#suppress = false;
+			return;
+		}
 		// Snapshot the values now (state may shift before the timer fires).
 		const captured = {
 			filters: filters.map((f) => ({ ...f })),
@@ -118,16 +131,17 @@ function makeId(now: number): string {
 }
 
 export function summarize(filters: EQFilter[], preamp: number): string {
-	const enabled = filters.filter((f) => f.enabled);
-	const pk = enabled.filter((f) => f.type === 'PK').length;
-	const ls = enabled.filter((f) => f.type === 'LSQ').length;
-	const hs = enabled.filter((f) => f.type === 'HSQ').length;
-	const parts: string[] = [];
-	if (pk) parts.push(`${pk} PK`);
-	if (ls) parts.push(`${ls} LS`);
-	if (hs) parts.push(`${hs} HS`);
-	const filterPart = parts.length ? parts.join(' / ') : 'no bands';
-	return `${filterPart}, preamp ${preamp.toFixed(1)} dB`;
+	const enabled = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
+	const preampStr = `preamp ${preamp.toFixed(1)} dB`;
+	if (!enabled.length) return `no bands, ${preampStr}`;
+
+	const dominant = enabled.reduce((a, b) => (Math.abs(b.gain!) > Math.abs(a.gain!) ? b : a));
+	const f = dominant.freq!;
+	const hz = f >= 1000 ? `${(f / 1000).toFixed(f >= 10000 ? 0 : 1)}k` : `${f}`;
+	const gain = dominant.gain!;
+	const gainStr = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`;
+	const tail = enabled.length > 1 ? ` +${enabled.length - 1}` : '';
+	return `${dominant.type} ${hz} Hz ${gainStr}${tail}, ${preampStr}`;
 }
 
 export function snapshotMatches(

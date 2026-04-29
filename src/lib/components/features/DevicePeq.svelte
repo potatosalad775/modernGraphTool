@@ -1,10 +1,26 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
+	import { deriveDeviceConstraint } from '$lib/device-peq/derive-constraint.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Info } from '@lucide/svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
+
+	// Sync the connected device's hardware capabilities into the constraint
+	// store as a synthetic preset, auto-selected while the device is
+	// connected. Disconnect restores whichever preset the user had picked.
+	// Re-clamping is pushed as a single undoable command in eqCommands.
+	$effect(() => {
+		const dev = devicePeqStore.device;
+		if (dev) {
+			eqConstraintsStore.setDeviceConstraint(deriveDeviceConstraint(dev));
+		} else {
+			eqConstraintsStore.clearDeviceConstraint();
+		}
+		eqCommands.reclampToActiveConstraint();
+	});
 
 	// ── Feature detection ─────────────────────────────────────────────────────
 

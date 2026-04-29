@@ -6,6 +6,12 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import {
+		getFilterViolation,
+		isPastMaxBands,
+		type FilterViolation
+	} from '$lib/utils/eq-constraint-clamp.js';
 
 	let {
 		filter,
@@ -22,6 +28,19 @@
 		onUpdate: (partial: Partial<EQFilter>) => void;
 		onRemove: () => void;
 	} = $props();
+
+	// Constraint-driven UI state. `violation` flags out-of-range fields with a
+	// red ring; `inactive` greys the whole row when its index sits past the
+	// active preset's `maxBands` cap.
+	const violation: FilterViolation = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		if (!preset) return { type: false, freq: false, q: false, gain: false };
+		return getFilterViolation(filter, preset);
+	});
+	const inactive = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		return preset ? isPastMaxBands(index, preset) : false;
+	});
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -91,7 +110,14 @@
 	}
 </script>
 
-<div class="overflow-hidden rounded-lg border border-base-content/20 transition-colors">
+<div
+	class="overflow-hidden rounded-lg border transition-colors {inactive
+		? 'border-base-content/15 opacity-50'
+		: 'border-base-content/20'}"
+	title={inactive
+		? 'Past the active constraint preset’s maxBands cap. Remove or switch preset to edit.'
+		: undefined}
+>
 	<!-- Collapsed row (always visible) -->
 	<div class="flex min-h-8 items-center gap-2 py-0.5 pr-1 pl-2">
 		<!-- Switch -->
@@ -128,7 +154,8 @@
 				step={1}
 				onchange={(e) => commitNumberInput(e, 'freq')}
 				onkeydown={(e) => handleInputKeydown(e, 'freq')}
-				class="w-full {inputBase}"
+				class="w-full {inputBase} {violation.freq ? 'ring-error!' : ''}"
+				title={violation.freq ? 'Out of constraint preset range' : undefined}
 			/>
 			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
 		</label>
@@ -143,7 +170,8 @@
 				step={0.1}
 				onchange={(e) => commitNumberInput(e, 'gain')}
 				onkeydown={(e) => handleInputKeydown(e, 'gain')}
-				class="w-full {inputBase}"
+				class="w-full {inputBase} {violation.gain ? 'ring-error!' : ''}"
+				title={violation.gain ? 'Out of constraint preset range' : undefined}
 			/>
 			<span class="text-[12px] text-base-content/60 select-none">dB</span>
 		</label>
@@ -161,7 +189,8 @@
 				step={0.01}
 				onchange={(e) => commitNumberInput(e, 'q')}
 				onkeydown={(e) => handleInputKeydown(e, 'q')}
-				class="w-full {inputBase}"
+				class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"
+				title={violation.q ? 'Out of constraint preset range' : undefined}
 			/>
 		</label>
 

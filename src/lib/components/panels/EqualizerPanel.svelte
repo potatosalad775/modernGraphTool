@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
@@ -20,13 +21,17 @@
 
 	let prevSourceUUID: string | null = null;
 
-	// Cleanup when sourcePhoneUUID changes
+	// Cleanup when sourcePhoneUUID changes — also drop the EQ snapshot history
+	// since snapshots are session-scoped to a particular source phone.
 	$effect(() => {
 		const currentUUID = eqStore.sourcePhoneUUID;
 		const prev = prevSourceUUID;
 		prevSourceUUID = currentUUID;
 		if (prev && prev !== currentUUID) {
-			untrack(() => dataProvider.rebuildEqCurve());
+			untrack(() => {
+				dataProvider.rebuildEqCurve();
+				eqHistoryStore.clear();
+			});
 		}
 	});
 
@@ -44,6 +49,16 @@
 		if (sourceUUID) void frStore.get(sourceUUID);
 
 		untrack(() => dataProvider.rebuildEqCurve());
+	});
+
+	// Record snapshots of the EQ state for the History & Compare UI.
+	// Debounced + min-gapped inside the store so a slider drag becomes one
+	// entry, not 60. Doesn't fire on phone-source change since clear() above
+	// resets the log first.
+	$effect(() => {
+		void eqStore.filters;
+		void eqStore.preamp;
+		untrack(() => eqHistoryStore.record(eqStore.filters, eqStore.preamp));
 	});
 </script>
 

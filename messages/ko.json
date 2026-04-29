@@ -65,6 +65,8 @@
 	"equalizer_player_tone_freq_label": "주파수: ",
 	"equalizer_player_filter_toggle": "EQ 효과",
 	"equalizer_player_spectrum_toggle": "스펙트럼",
+	"equalizer_player_freq_select_toggle": "주파수 영역",
+	"equalizer_player_freq_select_reset": "영역 초기화",
 	"equalizer_player_file_upload": "음악 파일 업로드",
 	"equalizer_device_peq_incompatible_browser_alert": "브라우저가 기기에 연결하는 데 필요한 API를 지원하지 않습니다. 호환 브라우저(예: Chrome 또는 Edge)를 사용하시고, 필요한 권한이 활성화되어 있는지 확인하세요.",
 	"equalizer_device_peq_info_prompt": "Device PEQ가 처음이신가요?",

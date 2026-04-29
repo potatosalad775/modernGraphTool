@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onDestroy } from 'svelte';
@@ -90,12 +91,34 @@
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		const chainTail = analyserNode ?? gainNode;
 
+		// Listening-range bandpass — when frequency-selection mode is on, prepend
+		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz].
+		if (audioRangeStore.isFrequencySelectionMode) {
+			const hp = ctx.createBiquadFilter();
+			hp.type = 'highpass';
+			hp.frequency.value = audioRangeStore.fromHz;
+			hp.Q.value = 0.707;
+			const lp = ctx.createBiquadFilter();
+			lp.type = 'lowpass';
+			lp.frequency.value = audioRangeStore.toHz;
+			lp.Q.value = 0.707;
+			filterNodes.push(hp, lp);
+		}
+
 		if (!filtersEnabled || !filters.length) {
 			// Bypass path. When EQ is toggled off but filters exist, apply the
 			// K-weighted bypass-match trim so listening A/B doesn't change level.
 			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
 			rampGain(match.gain, trim);
-			match.connect(chainTail);
+			if (filterNodes.length === 0) {
+				match.connect(chainTail);
+			} else {
+				match.connect(filterNodes[0]);
+				for (let i = 0; i < filterNodes.length - 1; i++) {
+					filterNodes[i].connect(filterNodes[i + 1]);
+				}
+				filterNodes[filterNodes.length - 1].connect(chainTail);
+			}
 			reconnectSource();
 			return;
 		}
@@ -120,7 +143,7 @@
 			filterNodes.push(node);
 		}
 
-		// Chain: match → preamp → filter[0] → ... → chainTail
+		// Chain: match → [bandpass pair if range mode] → preamp → filter[0] → ... → chainTail
 		match.connect(filterNodes[0]);
 		for (let i = 0; i < filterNodes.length - 1; i++) {
 			filterNodes[i].connect(filterNodes[i + 1]);
@@ -232,9 +255,12 @@
 	}
 
 	$effect(() => {
-		const _filters = eqStore.filters;
-		const _preamp = eqStore.preamp;
-		const _enabled = filtersEnabled;
+		void eqStore.filters;
+		void eqStore.preamp;
+		void filtersEnabled;
+		void audioRangeStore.isFrequencySelectionMode;
+		void audioRangeStore.fromHz;
+		void audioRangeStore.toHz;
 		updateFilters();
 	});
 
@@ -442,8 +468,8 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<!-- EQ toggle -->
-	<div class="flex items-center gap-4">
+	<!-- EQ toggle / spectrum toggle / range-mode toggle -->
+	<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 		<Switch
 			title={filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
 			labelText={m.equalizer_player_filter_toggle()}
@@ -465,7 +491,64 @@
 				audioSpectrumStore.isEnabled = showSpectrum;
 			}}
 		/>
+		<Switch
+			title="Drag a range on the graph to gate playback to a frequency band. Disables EQ-node interaction while active."
+			labelText={m.equalizer_player_freq_select_toggle()}
+			labelClass="text-xs"
+			size="sm"
+			checked={audioRangeStore.isFrequencySelectionMode}
+			onCheckedChange={(checked) => {
+				audioRangeStore.isFrequencySelectionMode = checked;
+			}}
+		/>
 	</div>
+
+	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
+	{#if audioRangeStore.isFrequencySelectionMode}
+		<div class="flex items-center gap-2 text-xs text-base-content/60">
+			<label class="flex items-baseline gap-1">
+				{m.equalizer_player_sweep_from_label()}
+				<input
+					type="number"
+					min="20"
+					max="20000"
+					step="1"
+					value={audioRangeStore.fromHz}
+					onchange={(e) => {
+						const v = parseInt((e.target as HTMLInputElement).value);
+						if (!isNaN(v)) audioRangeStore.setRange(v, audioRangeStore.toHz);
+					}}
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-[10px]">Hz</span>
+			</label>
+			<label class="flex items-baseline gap-1">
+				{m.equalizer_player_sweep_to_label()}
+				<input
+					type="number"
+					min="20"
+					max="20000"
+					step="1"
+					value={audioRangeStore.toHz}
+					onchange={(e) => {
+						const v = parseInt((e.target as HTMLInputElement).value);
+						if (!isNaN(v)) audioRangeStore.setRange(audioRangeStore.fromHz, v);
+					}}
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-[10px]">Hz</span>
+			</label>
+			<Button
+				title={m.equalizer_player_freq_select_reset()}
+				onclick={() => audioRangeStore.reset()}
+				variant="ghost"
+				size="xs"
+				class="ml-auto text-[11px]"
+			>
+				{m.equalizer_player_freq_select_reset()}
+			</Button>
+		</div>
+	{/if}
 
 	<!-- Source select -->
 	<select

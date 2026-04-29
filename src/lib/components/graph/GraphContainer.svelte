@@ -4,12 +4,14 @@
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { GraphEqOverlay } from '$lib/graph/GraphEqOverlay.js';
 	import { GraphSpectrumOverlay } from '$lib/graph/GraphSpectrumOverlay.js';
+	import { GraphSoundRangeOverlay } from '$lib/graph/GraphSoundRangeOverlay.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { appStore } from '$lib/stores/app-store.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { menuStore } from '$lib/stores/menu-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
@@ -23,10 +25,18 @@
 	const labelFontWeight = (getConfigValue('VISUALIZATION.LABEL.TEXT_WEIGHT') as string) || '600';
 	const labelLineHeight = labelFontPx + 8;
 	const labelBgPaddingX = 12;
-	const labelOffsetRight = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '0');
-	const labelOffsetLeft = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.LEFT') as string) || '0');
-	const labelOffsetDown = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.DOWN') as string) || '0');
-	const labelOffsetUp = parseInt((getConfigValue('VISUALIZATION.LABEL.POSITION.UP') as string) || '0');
+	const labelOffsetRight = parseInt(
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '0'
+	);
+	const labelOffsetLeft = parseInt(
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.LEFT') as string) || '0'
+	);
+	const labelOffsetDown = parseInt(
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.DOWN') as string) || '0'
+	);
+	const labelOffsetUp = parseInt(
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.UP') as string) || '0'
+	);
 
 	interface LabelEntry {
 		uuid: string;
@@ -72,9 +82,19 @@
 	}
 
 	const labelData = $derived.by(() => {
-		if (!graphEngine.isInitialized) return { entries: [] as LabelEntry[], startX: 0, startY: 0, growUp: false, anchor: 'start', style: null as string | null };
+		if (!graphEngine.isInitialized)
+			return {
+				entries: [] as LabelEntry[],
+				startX: 0,
+				startY: 0,
+				growUp: false,
+				anchor: 'start',
+				style: null as string | null
+			};
 		// Subscribe to frStore mutations
-		for (const _ of frStore.entries) { /* reactive subscription */ }
+		for (const _ of frStore.entries) {
+			/* reactive subscription */
+		}
 
 		const pos = graphEngine.labelPosition[labelLocation];
 		const startX = pos.x + labelOffsetRight - labelOffsetLeft;
@@ -93,10 +113,12 @@
 				// shared envelope across channels, so per-channel rows would just be
 				// duplicate noise on the graph.
 				if (obj.hptf) {
-					const channelStr = channels.length === 2 && channels.includes('L') && channels.includes('R')
-						? 'L+R'
-						: channels.join('+');
-					const desc = obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
+					const channelStr =
+						channels.length === 2 && channels.includes('L') && channels.includes('R')
+							? 'L+R'
+							: channels.join('+');
+					const desc =
+						obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
 					const suffix = obj.dispSuffix ? ` ${obj.dispSuffix}` : '';
 					const channelPart = channelStr ? ` (${channelStr})` : '';
 					raw.push({
@@ -112,14 +134,18 @@
 
 				channels.forEach((channel) => {
 					const adj = obj.adjustmentLabel ? ` ${obj.adjustmentLabel}` : '';
-					const text = obj.type !== 'target'
-						? `${obj.identifier} ${obj.dispSuffix} (${channel})`
-						: `${obj.identifier} ${obj.dispSuffix}${adj}`;
+					const text =
+						obj.type !== 'target'
+							? `${obj.identifier} ${obj.dispSuffix} (${channel})`
+							: `${obj.identifier} ${obj.dispSuffix}${adj}`;
 					raw.push({
 						uuid: obj.uuid,
 						channel,
 						text,
-						color: obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || 'var(--color-base-content)',
+						color:
+							obj.colors[channel as 'L' | 'R' | 'AVG'] ||
+							obj.colors?.AVG ||
+							'var(--color-base-content)',
 						index: counter
 					});
 					counter++;
@@ -134,20 +160,37 @@
 				: r.index * labelLineHeight + labelFontPx
 		}));
 
-		return { entries, startX, startY, growUp: pos.growUp, anchor: pos.anchor, style: pos.style ?? null };
+		return {
+			entries,
+			startX,
+			startY,
+			growUp: pos.growUp,
+			anchor: pos.anchor,
+			style: pos.style ?? null
+		};
 	});
 
 	const labelTransform = $derived(`translate(${labelData.startX}, ${labelData.startY})`);
 
 	// ── Baseline label (Svelte-managed) ─────────────────────────────────────
-	const blLabelLoc = (getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
+	const blLabelLoc =
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
 	const blFontSize = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px';
 	const blFontPx = parseInt(blFontSize) || 15;
-	const blFontWeight = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500';
-	const blOffsetRight = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0');
-	const blOffsetLeft = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0');
-	const blOffsetDown = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0');
-	const blOffsetUp = parseInt((getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0');
+	const blFontWeight =
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500';
+	const blOffsetRight = parseInt(
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0'
+	);
+	const blOffsetLeft = parseInt(
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0'
+	);
+	const blOffsetDown = parseInt(
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0'
+	);
+	const blOffsetUp = parseInt(
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'
+	);
 
 	const baselineLabel = $derived.by(() => {
 		if (!graphEngine.isInitialized || !graphStore.baselineUUID) return null;
@@ -156,9 +199,10 @@
 		const pos = graphEngine.labelPosition[blLabelLoc];
 		if (!pos) return null;
 		const identifier = data.identifier;
-		const text = graphStore.baselineMode === 'withAdjustment'
-			? `${identifier} (with Adjustment) Compensated`
-			: `${identifier} Compensated`;
+		const text =
+			graphStore.baselineMode === 'withAdjustment'
+				? `${identifier} (with Adjustment) Compensated`
+				: `${identifier} Compensated`;
 		const baseY = pos.y + blOffsetDown - blOffsetUp;
 		return {
 			x: pos.x + blOffsetRight - blOffsetLeft,
@@ -169,6 +213,7 @@
 	});
 	let overlay = $state<GraphEqOverlay | null>(null);
 	let spectrumOverlay = $state<GraphSpectrumOverlay | null>(null);
+	let soundRangeOverlay = $state<GraphSoundRangeOverlay | null>(null);
 
 	onMount(() => {
 		if (svgEl) {
@@ -176,6 +221,7 @@
 			overlay = new GraphEqOverlay(graphEngine);
 			graphEngine.eqOverlay = overlay;
 			spectrumOverlay = new GraphSpectrumOverlay(graphEngine);
+			soundRangeOverlay = new GraphSoundRangeOverlay(graphEngine);
 		}
 	});
 
@@ -184,13 +230,17 @@
 		overlay = null;
 		spectrumOverlay?.destroy();
 		spectrumOverlay = null;
+		soundRangeOverlay?.destroy();
+		soundRangeOverlay = null;
 	});
 
 	$effect(() => {
 		// Iterate entries to subscribe to all SvelteMap mutations,
 		// including same-key value updates (visibility, channel, normalize, smooth, y-offset).
 		// A bare reference `frStore.entries` only tracks size changes, not value mutations.
-		for (const _ of frStore.entries) { /* reactive subscription */ }
+		for (const _ of frStore.entries) {
+			/* reactive subscription */
+		}
 		// Track EQ state so curves re-render with ghost opacity when EQ is toggled
 		const _eqEnabled = eqStore.isEnabled;
 		const _eqSource = eqStore.sourcePhoneUUID;
@@ -252,13 +302,27 @@
 	$effect(() => {
 		const _currentPanel = menuStore.currentPanel;
 		const _sourceUUID = eqStore.sourcePhoneUUID;
+		const inRangeMode = audioRangeStore.isFrequencySelectionMode;
+		// While the frequency-selection mode is active, EQ-node interaction
+		// is suppressed even though the EQ panel may still be open.
 		overlay?.setEqPanelActive(
-			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null
+			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null && !inRangeMode
 		);
+	});
+
+	// Sound-range overlay: active only when the user has toggled
+	// "Frequency selection mode" in EqAudioPlayer. Tracks range bounds so
+	// the band rect repositions when From/To change from elsewhere.
+	$effect(() => {
+		const active = audioRangeStore.isFrequencySelectionMode;
+		void audioRangeStore.fromHz;
+		void audioRangeStore.toHz;
+		soundRangeOverlay?.setActive(active);
+		if (active) soundRangeOverlay?.render();
 	});
 </script>
 
-<svg bind:this={svgEl} class="w-full h-full" role="img" aria-label="Frequency response graph">
+<svg bind:this={svgEl} class="h-full w-full" role="img" aria-label="Frequency response graph">
 	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
 		<GraphWatermark />
@@ -299,7 +363,8 @@
 					font-size={labelFontSize}
 					font-weight={labelFontWeight}
 					use:measureLabel={{ key: label.uuid + label.channel, text: label.text }}
-				>{label.text}</text>
+					>{label.text}</text
+				>
 			{/each}
 		</g>
 	{/if}
@@ -313,7 +378,7 @@
 			fill="var(--color-graph-axis-label)"
 			font-size={blFontSize}
 			font-weight={blFontWeight}
-			opacity="0.6"
-		>{baselineLabel.text}</text>
+			opacity="0.6">{baselineLabel.text}</text
+		>
 	{/if}
 </svg>

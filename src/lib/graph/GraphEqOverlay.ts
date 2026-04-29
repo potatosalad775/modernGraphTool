@@ -3,6 +3,7 @@ import type { GraphEngine } from './GraphEngine.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqCommands } from '$lib/services/eq-commands.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -179,17 +180,17 @@ export class GraphEqOverlay {
 
 		// Double-click to remove
 		entered.on('dblclick', (_event: MouseEvent, d: BandDatum) => {
-			eqStore.removeBandAt(d.index);
+			eqCommands.removeBand(d.index);
 		});
 
-		// Scroll to adjust Q
+		// Scroll to adjust Q — repeated ticks coalesce into one undo entry
 		entered.on(
 			'wheel',
 			(event: WheelEvent, d: BandDatum) => {
 				event.preventDefault();
 				const delta = event.deltaY > 0 ? -0.1 : 0.1;
 				const newQ = Math.max(0.1, Math.min(10, d.filter.q! + delta));
-				eqStore.updateBandAt(d.index, { q: parseFloat(newQ.toFixed(2)) });
+				eqCommands.updateBand(d.index, { q: parseFloat(newQ.toFixed(2)) });
 			},
 			{ passive: false } as EventListenerOptions
 		);
@@ -257,7 +258,7 @@ export class GraphEqOverlay {
 					e.preventDefault();
 					const idx = this.selectedFilterIndex;
 					this.selectedFilterIndex = null;
-					eqStore.removeBandAt(idx);
+					eqCommands.removeBand(idx);
 				} else if (e.key === 'Escape') {
 					if (this.selectedFilterIndex !== null) {
 						this.selectedFilterIndex = null;
@@ -469,13 +470,15 @@ export class GraphEqOverlay {
 					.filter((n) => n.index === d.index)
 					.attr('transform', `translate(${xs(freq)},${visualY})`);
 
-				// Throttle state update to ~60fps
+				// Throttle state update to ~60fps. Mid-drag updates flow through the
+				// coalescer, which mutates the store directly *and* tracks the burst
+				// — so a whole drag becomes one undo entry once dragend flushes.
 				if (!this._dragThrottleTimers.has(d.index)) {
 					this._dragThrottleTimers.set(
 						d.index,
 						setTimeout(() => {
 							this._dragThrottleTimers.delete(d.index);
-							eqStore.updateBandAt(d.index, {
+							eqCommands.updateBand(d.index, {
 								freq: Math.round(freq),
 								gain: parseFloat(gain.toFixed(1))
 							});
@@ -514,16 +517,19 @@ export class GraphEqOverlay {
 				}
 				if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
 
-				// Cancel pending throttle and commit final position
+				// Cancel pending throttle and commit final position to the store
+				// (still through the coalescer so the whole drag stays one entry).
 				const pending = this._dragThrottleTimers.get(d.index);
 				if (pending !== undefined) {
 					clearTimeout(pending);
 					this._dragThrottleTimers.delete(d.index);
 				}
-				eqStore.updateBandAt(d.index, {
+				eqCommands.updateBand(d.index, {
 					freq: Math.round(freq),
 					gain: parseFloat(gain.toFixed(1))
 				});
+				// Flush the burst now so undo immediately undoes the whole drag.
+				eqCommands.flushBand(d.index);
 
 				const endNode = this.overlayGroup
 					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
@@ -573,7 +579,7 @@ export class GraphEqOverlay {
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
 					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
-					eqStore.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					eqCommands.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
 					// Newly added band sits at the end — auto-select for immediate Delete affordance.
 					this.selectedFilterIndex = eqStore.filters.length - 1;
 				}

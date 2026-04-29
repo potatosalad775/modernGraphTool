@@ -12,6 +12,7 @@
 	import EqAutoEq from '$lib/components/equalizer/EqAutoEq.svelte';
 	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
 	import EqSettings from '$lib/components/equalizer/EqSettings.svelte';
+	import EqConstraintSelect from '$lib/components/equalizer/EqConstraintSelect.svelte';
 	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
@@ -46,16 +47,20 @@
 	});
 </script>
 
-<div class="flex h-full flex-col @container/eq">
-	<div class="flex items-center gap-3 border-b border-base-content/20 bg-base-200 px-3 py-2">
+<div class="@container/eq flex h-full flex-col">
+	<div
+		class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-base-content/20 bg-base-200 px-3 py-2"
+	>
 		<!-- EQ Enable toggle -->
 		<Switch labelText={m.menu_item_equalizer_label()} size="md" bind:checked={eqStore.isEnabled} />
 		<div class="h-7 w-px bg-base-content/20"></div>
 		<!-- Phone / Target select -->
 		<EqPhoneSelect />
+		<!-- Constraint preset picker -->
+		<EqConstraintSelect />
 	</div>
 	<div
-		class="flex flex-1 min-h-0 flex-col overflow-y-auto @[720px]/eq:flex-row @[720px]/eq:overflow-hidden"
+		class="flex min-h-0 flex-1 flex-col overflow-y-auto @[720px]/eq:flex-row @[720px]/eq:overflow-hidden"
 	>
 		<!-- Filter band editor — left column when wide -->
 		<div

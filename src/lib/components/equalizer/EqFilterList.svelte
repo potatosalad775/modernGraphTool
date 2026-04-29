@@ -33,6 +33,9 @@
 		return preset && preset.maxBands > 0 && eqStore.filters.length >= preset.maxBands;
 	});
 
+	/** Graphic mode: the band list is fixed, so add/remove/sort/import are no-ops. */
+	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+
 	function addBand() {
 		const ok = eqCommands.addBand({
 			enabled: true,
@@ -173,29 +176,35 @@
 		</span>
 		<div class="flex gap-1">
 			<Button
-				title={atMaxBands ? 'Active constraint preset has reached its maxBands cap' : 'Add EQ Band'}
+				title={isGraphic
+					? 'Bands are fixed by the graphic preset'
+					: atMaxBands
+						? 'Active constraint preset has reached its maxBands cap'
+						: 'Add EQ Band'}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
-				disabled={atMaxBands}
+				disabled={atMaxBands || isGraphic}
 				onclick={addBand}
 			>
 				<Plus class="size-3" />
 			</Button>
 			<Button
-				title="Remove EQ Band"
+				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Remove EQ Band'}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
+				disabled={isGraphic}
 				onclick={removeBand}
 			>
 				<Minus class="size-3" />
 			</Button>
 			<Button
-				title="Sort EQ Bands"
+				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Sort EQ Bands'}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
+				disabled={isGraphic}
 				onclick={sortBands}
 			>
 				<ArrowDown01 class="size-3.25" />

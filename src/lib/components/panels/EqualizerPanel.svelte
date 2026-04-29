@@ -14,6 +14,7 @@
 	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
 	import EqSettings from '$lib/components/equalizer/EqSettings.svelte';
 	import EqConstraintSelect from '$lib/components/equalizer/EqConstraintSelect.svelte';
+	import EqHistoryAndCompare from '$lib/components/equalizer/EqHistoryAndCompare.svelte';
 	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
@@ -99,6 +100,13 @@
 				<AccordionItem value="audio-player" title={m.equalizer_player_label()} class="px-1">
 					<div class="p-2 pt-1">
 						<EqAudioPlayer />
+					</div>
+				</AccordionItem>
+				<div class="my-1 h-px w-full bg-base-content/20"></div>
+				<!-- History & Compare — snapshot list + A/B switcher -->
+				<AccordionItem value="history-compare" title={m.eq_history_accordion_title()} class="px-1">
+					<div class="p-2 pt-1">
+						<EqHistoryAndCompare />
 					</div>
 				</AccordionItem>
 				<div class="my-1 h-px w-full bg-base-content/20"></div>

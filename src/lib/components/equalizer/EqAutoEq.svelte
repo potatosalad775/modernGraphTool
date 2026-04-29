@@ -2,6 +2,7 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
@@ -51,7 +52,7 @@
 		isRunning = true;
 		try {
 			const filters = await runAutoEQInWorker(sourcePoints, targetPoints, options);
-			eqStore.filters = filters;
+			eqCommands.replaceFilters(filters);
 		} catch (err) {
 			console.error('AutoEQ failed:', err);
 		} finally {

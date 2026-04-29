@@ -2,6 +2,7 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
@@ -27,7 +28,7 @@
 	});
 
 	function addBand() {
-		eqStore.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
+		eqCommands.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
 		//expandedIndex = eqStore.filters.length - 1;
 	}
 
@@ -35,18 +36,20 @@
 		if (eqStore.filters.length > 0) {
 			const lastIdx = eqStore.filters.length - 1;
 			if (expandedIndex === lastIdx) expandedIndex = null;
-			eqStore.removeBandAt(lastIdx);
+			eqCommands.removeBand(lastIdx);
 		}
 	}
 
 	function sortBands() {
 		expandedIndex = null;
 		const sorted = [...eqStore.filters].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity));
-		eqStore.filters = sorted;
+		eqCommands.replaceFilters(sorted);
 	}
 
 	function updateFilter(index: number, partial: Partial<EQFilter>) {
-		eqStore.updateBandAt(index, partial);
+		// Number inputs and sliders flow through the coalescer so a slider
+		// drag (60 oninput events/sec) collapses into one undo entry.
+		eqCommands.updateBand(index, partial);
 	}
 
 	let importInputEl = $state<HTMLInputElement | undefined>(undefined);
@@ -63,7 +66,7 @@
 			const text = ev.target!.result as string;
 			const filters = parseFilterText(text);
 			if (filters.length) {
-				eqStore.filters = filters;
+				eqCommands.replaceFilters(filters);
 				toast.success(m.equalizer_filter_list_import(), {
 					description: `${filters.length} filters`
 				});
@@ -192,7 +195,7 @@
 				onRemove={() => {
 					if (expandedIndex === i) expandedIndex = null;
 					else if (expandedIndex !== null && expandedIndex > i) expandedIndex--;
-					eqStore.removeBandAt(i);
+					eqCommands.removeBand(i);
 				}}
 			/>
 		{/each}
@@ -207,7 +210,7 @@
 			size="sm"
 			class="flex-1"
 		>
-			<Download class="size-3.5 mr-1.5" />
+			<Download class="mr-1.5 size-3.5" />
 			{m.equalizer_filter_list_import()}
 		</Button>
 		<Button
@@ -217,7 +220,7 @@
 			size="sm"
 			class="flex-1"
 		>
-			<Upload class="size-3.5 mr-1.5" />
+			<Upload class="mr-1.5 size-3.5" />
 			{m.equalizer_filter_list_export()}
 		</Button>
 	</div>

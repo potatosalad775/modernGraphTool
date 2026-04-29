@@ -37,8 +37,21 @@
 	let duration = $state(0);
 	let fileLoaded = $state(false);
 
+	// Sweep state — exponential sine sweep from `sweepFromHz` to `sweepToHz`
+	// over `sweepDurationSec`. `sweepLoop` repeats the cycle until stopped.
+	// `sweepCurrentHz` mirrors the live oscillator frequency for display.
+	let sweepFromHz = $state(20);
+	let sweepToHz = $state(20000);
+	let sweepDurationSec = $state(6);
+	let sweepLoop = $state(true);
+	let sweepCurrentHz = $state(20);
+
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
 	let rafId: number | null = null;
+	// Sweep-only nodes / timers — created when sweep starts, torn down on stop()
+	let sweepFadeNode: GainNode | null = null;
+	let sweepTimer: ReturnType<typeof setTimeout> | null = null;
+	let sweepRafId: number | null = null;
 
 	// --- Helpers ---
 	function formatTime(seconds: number): string {
@@ -135,7 +148,87 @@
 		const source: AudioNode | null = sourceNode ?? oscillatorNode ?? null;
 		if (!source || !bypassMatchNode) return;
 		source.disconnect();
-		source.connect(bypassMatchNode);
+		// During a sweep the oscillator is routed via sweepFadeNode (which
+		// masks the from→to wraparound click); for all other sources the
+		// signal goes straight into the bypass-match stage.
+		if (audioSource === 'sweep' && sweepFadeNode) {
+			source.connect(sweepFadeNode);
+		} else {
+			source.connect(bypassMatchNode);
+		}
+	}
+
+	// --- Sweep cycle ---
+	/**
+	 * Schedule one cycle of the exponential frequency sweep on the live
+	 * oscillator, plus a short gain fade at the start and end of the cycle
+	 * so the from→to wraparound on loop doesn't pop. Calls itself recursively
+	 * via setTimeout when {@link sweepLoop} is true.
+	 */
+	function scheduleSweepCycle() {
+		const ctx = audioContext;
+		const osc = oscillatorNode;
+		const fade = sweepFadeNode;
+		if (!ctx || !osc || !fade) return;
+
+		const now = ctx.currentTime;
+		// exponentialRampToValueAtTime requires positive non-zero endpoints
+		const from = Math.max(1, Math.min(20000, sweepFromHz));
+		const to = Math.max(1, Math.min(20000, sweepToHz));
+		// Floor at 0.5 s so the ramp is meaningful; cap at 60 s.
+		const dur = Math.max(0.5, Math.min(60, sweepDurationSec));
+		const fadeMs = 0.005;
+
+		const f = osc.frequency;
+		f.cancelScheduledValues(now);
+		f.setValueAtTime(from, now);
+		f.exponentialRampToValueAtTime(to, now + dur);
+
+		const g = fade.gain;
+		g.cancelScheduledValues(now);
+		g.setValueAtTime(0, now);
+		g.linearRampToValueAtTime(1, now + fadeMs);
+		g.setValueAtTime(1, now + Math.max(fadeMs, dur - fadeMs));
+		g.linearRampToValueAtTime(0, now + dur);
+
+		if (sweepTimer) clearTimeout(sweepTimer);
+		sweepTimer = setTimeout(
+			() => {
+				sweepTimer = null;
+				if (!isPlaying) return;
+				if (sweepLoop) scheduleSweepCycle();
+				else stop();
+			},
+			Math.max(50, dur * 1000)
+		);
+	}
+
+	function tickSweepDisplay() {
+		if (!isPlaying || audioSource !== 'sweep' || !oscillatorNode) {
+			sweepRafId = null;
+			return;
+		}
+		sweepCurrentHz = Math.round(oscillatorNode.frequency.value);
+		sweepRafId = requestAnimationFrame(tickSweepDisplay);
+	}
+
+	function stopSweep() {
+		if (sweepTimer) {
+			clearTimeout(sweepTimer);
+			sweepTimer = null;
+		}
+		if (sweepRafId) {
+			cancelAnimationFrame(sweepRafId);
+			sweepRafId = null;
+		}
+		if (sweepFadeNode) {
+			try {
+				sweepFadeNode.disconnect();
+			} catch {
+				/* already disconnected */
+			}
+			sweepFadeNode = null;
+		}
 	}
 
 	$effect(() => {
@@ -216,6 +309,19 @@
 			oscillatorNode.frequency.value = toneFreq;
 			oscillatorNode.connect(sourceTarget);
 			oscillatorNode.start();
+		} else if (audioSource === 'sweep') {
+			oscillatorNode = ctx.createOscillator();
+			oscillatorNode.type = 'sine';
+			oscillatorNode.frequency.value = Math.max(1, sweepFromHz);
+			// Insert a fade gain stage between oscillator and the rest of the
+			// chain so the sweep can fade in/out at cycle boundaries.
+			sweepFadeNode = ctx.createGain();
+			sweepFadeNode.gain.value = 0;
+			oscillatorNode.connect(sweepFadeNode);
+			sweepFadeNode.connect(sourceTarget);
+			oscillatorNode.start();
+			scheduleSweepCycle();
+			tickSweepDisplay();
 		} else if (audioSource === 'file' && audioBuffer) {
 			sourceNode = ctx.createBufferSource();
 			sourceNode.buffer = audioBuffer;
@@ -242,6 +348,7 @@
 
 	function pause() {
 		if (!isPlaying) return;
+		stopSweep();
 		sourceNode?.stop();
 		sourceNode?.disconnect();
 		sourceNode = null;
@@ -324,6 +431,7 @@
 	onDestroy(() => {
 		if (rafId) cancelAnimationFrame(rafId);
 		stop();
+		stopSweep();
 		bypassMatchNode?.disconnect();
 		bypassMatchNode = null;
 		audioSpectrumStore.analyserNode = null;
@@ -372,6 +480,7 @@
 		<option value="white">{m.equalizer_player_option_white()}</option>
 		<option value="pink">{m.equalizer_player_option_pink()}</option>
 		<option value="tone">{m.equalizer_player_option_tone()}</option>
+		<option value="sweep">{m.equalizer_player_option_sweep()}</option>
 		<option value="file">{m.equalizer_player_option_file()}</option>
 	</select>
 
@@ -398,6 +507,74 @@
 				}}
 				class="w-full accent-accent"
 			/>
+		</div>
+	{/if}
+
+	<!-- Sweep controls (only when sweep selected) -->
+	{#if audioSource === 'sweep'}
+		<div class="flex flex-col gap-2">
+			<div class="flex items-center gap-2 text-xs text-base-content/60">
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_from_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={sweepFromHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) sweepFromHz = Math.max(20, Math.min(20000, v));
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_to_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={sweepToHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) sweepToHz = Math.max(20, Math.min(20000, v));
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_duration_label()}
+					<input
+						type="number"
+						min="0.5"
+						max="60"
+						step="0.5"
+						value={sweepDurationSec}
+						onchange={(e) => {
+							const v = parseFloat((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) sweepDurationSec = Math.max(0.5, Math.min(60, v));
+						}}
+						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">s</span>
+				</label>
+				<Switch
+					labelText={m.equalizer_player_sweep_loop_label()}
+					labelClass="text-xs"
+					size="sm"
+					checked={sweepLoop}
+					onCheckedChange={(checked) => (sweepLoop = checked)}
+				/>
+			</div>
+			{#if isPlaying}
+				<span class="text-xs text-base-content/60 tabular-nums">
+					{sweepCurrentHz} Hz
+				</span>
+			{/if}
 		</div>
 	{/if}
 

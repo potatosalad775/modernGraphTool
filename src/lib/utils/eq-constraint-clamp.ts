@@ -143,14 +143,53 @@ export function isPastMaxBands(index: number, preset: EqConstraintPreset): boole
  * Bulk-clamp every filter against a preset and trim to maxBands. Used when
  * the active preset changes — the user's existing filters get folded onto
  * the new shape instead of going out of range.
+ *
+ * Graphic mode is a special case: the result is always exactly
+ * `graphicBands.length` rows, one per band. Existing gains are folded onto
+ * the band template by nearest-frequency match (in log space); bands with
+ * no nearby source filter receive gain = 0. This keeps the 1:1 row-to-band
+ * mapping the UI relies on, and avoids two parametric filters collapsing
+ * onto the same band when their frequencies were close.
  */
 export function clampFiltersToConstraint(
 	filters: EQFilter[],
 	preset: EqConstraintPreset
 ): EQFilter[] {
+	if (preset.mode === 'graphic') {
+		return foldOntoGraphicBands(filters, preset);
+	}
 	const clamped = filters.map((f) => clampFilterToConstraint(f, preset));
 	if (preset.maxBands > 0 && clamped.length > preset.maxBands) {
 		return clamped.slice(0, preset.maxBands);
 	}
 	return clamped;
+}
+
+const GRAPHIC_FOLD_LOG_THRESHOLD = Math.log(2); // ±1 octave
+
+function foldOntoGraphicBands(filters: EQFilter[], preset: EqConstraintPreset): EQFilter[] {
+	const bands = preset.graphicBands ?? [];
+	if (bands.length === 0) return [];
+
+	const sources = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
+
+	return bands.map((band): EQFilter => {
+		let bestGain = 0;
+		let bestDelta = Infinity;
+		for (const f of sources) {
+			const delta = Math.abs(Math.log(f.freq! / band.freq));
+			if (delta < bestDelta && delta < GRAPHIC_FOLD_LOG_THRESHOLD) {
+				bestDelta = delta;
+				bestGain = f.gain!;
+			}
+		}
+		const gain = Math.max(preset.gainMin, Math.min(preset.gainMax, bestGain));
+		return {
+			enabled: true,
+			type: 'PK',
+			freq: band.freq,
+			q: band.q ?? preset.qDefault ?? 1.0,
+			gain
+		};
+	});
 }

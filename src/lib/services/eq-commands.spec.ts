@@ -165,4 +165,40 @@ describe('eqCommands', () => {
 			expect(commandHistory.canUndo).toBe(false);
 		});
 	});
+
+	describe('toggleBandEnabled', () => {
+		it('toggle is its own undo entry and is undoable', () => {
+			eqCommands.addBand(makeFilter({ freq: 1000, gain: 3, enabled: true }));
+			eqCommands.toggleBandEnabled(0, false);
+			expect(eqStore.filters[0].enabled).toBe(false);
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters[0].enabled).toBe(true);
+			expect(eqStore.filters[0].gain).toBe(3);
+		});
+
+		it('flushes a pending drag burst on another band before committing', () => {
+			vi.useFakeTimers();
+			eqCommands.addBand(makeFilter({ freq: 500, gain: 0 }));
+			eqCommands.addBand(makeFilter({ freq: 1000, gain: 0 }));
+
+			eqCommands.updateBand(1, { gain: 5 }); // pending burst for band 1
+			eqCommands.toggleBandEnabled(0, false); // should flush band 1 first
+
+			// history: [add0, add1, drag1, toggle0]
+			commandHistory.undo(frStore); // undo toggle → enabled restored
+			expect(eqStore.filters[0].enabled).toBe(true);
+			expect(eqStore.filters[1].gain).toBe(5); // drag still committed
+
+			vi.useRealTimers();
+		});
+
+		it('is a no-op when the band already has the target enabled state', () => {
+			eqCommands.addBand(makeFilter({ freq: 1000, enabled: true }));
+			eqCommands.toggleBandEnabled(0, true); // already true
+			expect(commandHistory.canUndo).toBe(true); // only addBand in history
+			commandHistory.undo(frStore);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+	import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { onDestroy } from 'svelte';
 	import Button from '$lib/components/atoms/Button.svelte';
@@ -11,6 +12,10 @@
 	let audioContext: AudioContext | null = null;
 	let gainNode: GainNode | null = null;
 	let analyserNode: AnalyserNode | null = null;
+	// Static gain stage between source and filter chain. Carries the
+	// K-weighted bypass-match trim when EQ is toggled off so the bypass path
+	// matches the EQ-on path's perceived loudness. Stays at unity when EQ is on.
+	let bypassMatchNode: GainNode | null = null;
 	let sourceNode: AudioBufferSourceNode | null = null;
 	let oscillatorNode: OscillatorNode | null = null;
 	let filterNodes: AudioNode[] = [];
@@ -50,19 +55,40 @@
 	}
 
 	// --- Filter chain ---
+	function ensureBypassMatchNode(ctx: AudioContext): GainNode {
+		if (!bypassMatchNode) {
+			bypassMatchNode = ctx.createGain();
+			bypassMatchNode.gain.value = 1;
+		}
+		return bypassMatchNode;
+	}
+
 	function updateFilters() {
 		const ctx = audioContext;
 		if (!ctx || !gainNode) return;
 
+		const match = ensureBypassMatchNode(ctx);
+		// Reset wiring downstream of the source: tear down old filter chain
+		// and the bypass-match stage's outputs before rebuilding.
+		match.disconnect();
 		filterNodes.forEach((n) => n.disconnect());
 		filterNodes = [];
 
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+		const chainTail = analyserNode ?? gainNode;
 
 		if (!filtersEnabled || !filters.length) {
+			// Bypass path. When EQ is toggled off but filters exist, apply the
+			// K-weighted bypass-match trim so listening A/B doesn't change level.
+			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
+			rampGain(match.gain, trim);
+			match.connect(chainTail);
 			reconnectSource();
 			return;
 		}
+
+		// EQ path — match stage is unity, the EQ chain produces the eq-on level.
+		rampGain(match.gain, 1);
 
 		// Preamp node
 		const preampNode = ctx.createGain();
@@ -81,25 +107,35 @@
 			filterNodes.push(node);
 		}
 
-		// Chain: filter[0] → filter[1] → ... → analyserNode (or gainNode)
+		// Chain: match → preamp → filter[0] → ... → chainTail
+		match.connect(filterNodes[0]);
 		for (let i = 0; i < filterNodes.length - 1; i++) {
 			filterNodes[i].connect(filterNodes[i + 1]);
 		}
-		const chainTarget = analyserNode ?? gainNode;
-		filterNodes[filterNodes.length - 1].connect(chainTarget);
+		filterNodes[filterNodes.length - 1].connect(chainTail);
 
 		reconnectSource();
 	}
 
+	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
+	function rampGain(param: AudioParam, target: number) {
+		const ctx = audioContext;
+		if (!ctx) {
+			param.value = target;
+			return;
+		}
+		const now = ctx.currentTime;
+		param.cancelScheduledValues(now);
+		// Hold current value as the ramp anchor, then linear-ramp over 20 ms.
+		param.setValueAtTime(param.value, now);
+		param.linearRampToValueAtTime(target, now + 0.02);
+	}
+
 	function reconnectSource() {
 		const source: AudioNode | null = sourceNode ?? oscillatorNode ?? null;
-		if (!source) return;
+		if (!source || !bypassMatchNode) return;
 		source.disconnect();
-		if (filterNodes.length > 0) {
-			source.connect(filterNodes[0]);
-		} else {
-			source.connect(analyserNode ?? gainNode!);
-		}
+		source.connect(bypassMatchNode);
 	}
 
 	$effect(() => {
@@ -163,25 +199,27 @@
 			audioSpectrumStore.analyserNode = analyserNode;
 		}
 
+		ensureBypassMatchNode(ctx);
 		updateFilters();
+
+		// All sources route into bypassMatchNode; updateFilters() wires the
+		// rest of the chain (filters or bypass) downstream.
+		const sourceTarget = bypassMatchNode!;
 
 		if (audioSource === 'white' || audioSource === 'pink') {
 			sourceNode = createNoiseNode(audioSource);
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			sourceNode.connect(target);
+			sourceNode.connect(sourceTarget);
 			sourceNode.start();
 		} else if (audioSource === 'tone') {
 			oscillatorNode = ctx.createOscillator();
 			oscillatorNode.type = 'sine';
 			oscillatorNode.frequency.value = toneFreq;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			oscillatorNode.connect(target);
+			oscillatorNode.connect(sourceTarget);
 			oscillatorNode.start();
 		} else if (audioSource === 'file' && audioBuffer) {
 			sourceNode = ctx.createBufferSource();
 			sourceNode.buffer = audioBuffer;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			sourceNode.connect(target);
+			sourceNode.connect(sourceTarget);
 			sourceNode.start(0, pausedAt);
 			sourceNode.onended = () => {
 				if (isPlaying && !isSeeking) {
@@ -232,10 +270,7 @@
 
 	function tickTimeDisplay() {
 		if (!isPlaying || !audioContext || !audioBuffer) return;
-		currentTime = Math.min(
-			audioContext.currentTime - startTime + pausedAt,
-			audioBuffer.duration
-		);
+		currentTime = Math.min(audioContext.currentTime - startTime + pausedAt, audioBuffer.duration);
 		rafId = requestAnimationFrame(tickTimeDisplay);
 	}
 
@@ -255,8 +290,7 @@
 			const ctx = getAudioContext();
 			sourceNode = ctx.createBufferSource();
 			sourceNode.buffer = audioBuffer;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode!;
-			sourceNode.connect(target);
+			sourceNode.connect(ensureBypassMatchNode(ctx));
 			sourceNode.start(0, pausedAt);
 			sourceNode.onended = () => {
 				if (isPlaying && !isSeeking) {
@@ -290,6 +324,8 @@
 	onDestroy(() => {
 		if (rafId) cancelAnimationFrame(rafId);
 		stop();
+		bypassMatchNode?.disconnect();
+		bypassMatchNode = null;
 		audioSpectrumStore.analyserNode = null;
 		audioSpectrumStore.isEnabled = false;
 		audioContext?.close();
@@ -303,7 +339,8 @@
 		<Switch
 			title={filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
 			labelText={m.equalizer_player_filter_toggle()}
-			labelClass="text-xs" size="sm"
+			labelClass="text-xs"
+			size="sm"
 			checked={filtersEnabled}
 			onCheckedChange={(checked) => {
 				filtersEnabled = checked;
@@ -312,7 +349,8 @@
 		<Switch
 			title={showSpectrum ? 'Hide audio spectrum' : 'Show audio spectrum'}
 			labelText={m.equalizer_player_spectrum_toggle()}
-			labelClass="text-xs" size="sm"
+			labelClass="text-xs"
+			size="sm"
 			checked={showSpectrum}
 			onCheckedChange={() => {
 				showSpectrum = !showSpectrum;
@@ -341,9 +379,7 @@
 	{#if audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
 			<span class="text-xs text-base-content/60"
-				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
-					>{toneFreq} Hz</span
-				></span
+				>{m.equalizer_player_tone_freq_label()}<span class="font-medium">{toneFreq} Hz</span></span
 			>
 			<input
 				type="range"
@@ -351,17 +387,12 @@
 				max="1000"
 				step="1"
 				value={Math.round(
-					((Math.log10(toneFreq) - Math.log10(20)) /
-						(Math.log10(20000) - Math.log10(20))) *
-						1000
+					((Math.log10(toneFreq) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20))) * 1000
 				)}
 				oninput={(e) => {
 					const v = parseFloat((e.target as HTMLInputElement).value);
 					toneFreq = Math.round(
-						Math.pow(
-							10,
-							Math.log10(20) + (v / 1000) * (Math.log10(20000) - Math.log10(20))
-						)
+						Math.pow(10, Math.log10(20) + (v / 1000) * (Math.log10(20000) - Math.log10(20)))
 					);
 					if (oscillatorNode && isPlaying) oscillatorNode.frequency.value = toneFreq;
 				}}
@@ -379,7 +410,7 @@
 			size="sm"
 			class="w-full"
 		>
-			<FileUp class="size-3.5 mr-1.5" />
+			<FileUp class="mr-1.5 size-3.5" />
 			{m.equalizer_player_file_upload()}
 		</Button>
 		<input
@@ -408,19 +439,15 @@
 
 	<!-- Playback controls -->
 	<div class="flex items-center gap-1.5">
-		<Button
-			title="Stop Audio"
-			onclick={stop}
-			disabled={!audioSource}
-			variant="muted" size="icon"
-		>
+		<Button title="Stop Audio" onclick={stop} disabled={!audioSource} variant="muted" size="icon">
 			<Square class="size-3.5" />
 		</Button>
 		<Button
 			title={isPlaying ? 'Pause Audio' : 'Play Audio'}
 			onclick={togglePlay}
 			disabled={!audioSource || (audioSource === 'file' && !fileLoaded)}
-			variant="muted" size="icon"
+			variant="muted"
+			size="icon"
 		>
 			{#if isPlaying}
 				<Pause class="size-3.5" />
@@ -428,7 +455,7 @@
 				<Play class="size-3.5" />
 			{/if}
 		</Button>
-		<div class="w-px h-5 bg-base-content/30 mx-1"></div>
+		<div class="mx-1 h-5 w-px bg-base-content/30"></div>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">
 			{#if volume == 0}

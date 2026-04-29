@@ -1,5 +1,6 @@
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'file';
 
@@ -19,6 +20,10 @@ class AudioPlayerService {
 	#analyserNode: AnalyserNode | null = null;
 	#sourceNode: AudioBufferSourceNode | null = null;
 	#oscillatorNode: OscillatorNode | null = null;
+	// Static gain stage between source and filter chain. Carries the K-weighted
+	// bypass-match trim when EQ is toggled off so the bypass path matches the
+	// EQ-on path's perceived loudness. Stays at unity when EQ is on.
+	#bypassMatchNode: GainNode | null = null;
 	#filterNodes: AudioNode[] = [];
 	#audioBuffer: AudioBuffer | null = null;
 
@@ -95,19 +100,42 @@ class AudioPlayerService {
 		return this.#audioContext;
 	}
 
+	#ensureBypassMatchNode(ctx: AudioContext): GainNode {
+		if (!this.#bypassMatchNode) {
+			this.#bypassMatchNode = ctx.createGain();
+			this.#bypassMatchNode.gain.value = 1;
+		}
+		return this.#bypassMatchNode;
+	}
+
 	#updateFilters(): void {
 		const ctx = this.#audioContext;
 		if (!ctx || !this.#gainNode) return;
 
+		const match = this.#ensureBypassMatchNode(ctx);
+		// Reset wiring downstream of the source: tear down old filter chain and
+		// the bypass-match stage's outputs before rebuilding.
+		match.disconnect();
 		this.#filterNodes.forEach((n) => n.disconnect());
 		this.#filterNodes = [];
 
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+		const chainTail = this.#analyserNode ?? this.#gainNode;
 
 		if (!this.#filtersEnabled || !filters.length) {
+			// Bypass path. When EQ is toggled off but filters exist, apply the
+			// K-weighted bypass-match trim so listening A/B doesn't change level.
+			const trim = filters.length
+				? computeBypassMatchLinear(eqStore.filters, eqStore.preamp)
+				: 1;
+			this.#rampGain(match.gain, trim);
+			match.connect(chainTail);
 			this.#reconnectSource();
 			return;
 		}
+
+		// EQ path — match stage is unity, the EQ chain produces the eq-on level.
+		this.#rampGain(match.gain, 1);
 
 		// Preamp node
 		const preampNode = ctx.createGain();
@@ -126,25 +154,35 @@ class AudioPlayerService {
 			this.#filterNodes.push(node);
 		}
 
-		// Chain: filter[0] → filter[1] → ... → analyserNode (or gainNode)
+		// Chain: match → preamp → filter[0] → ... → analyserNode (or gainNode)
+		match.connect(this.#filterNodes[0]);
 		for (let i = 0; i < this.#filterNodes.length - 1; i++) {
 			this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
 		}
-		const chainTarget = this.#analyserNode ?? this.#gainNode;
-		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTarget);
+		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
 
 		this.#reconnectSource();
 	}
 
+	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
+	#rampGain(param: AudioParam, target: number): void {
+		const ctx = this.#audioContext;
+		if (!ctx) {
+			param.value = target;
+			return;
+		}
+		const now = ctx.currentTime;
+		param.cancelScheduledValues(now);
+		// Hold current value as the ramp anchor, then linear-ramp over 20 ms.
+		param.setValueAtTime(param.value, now);
+		param.linearRampToValueAtTime(target, now + 0.02);
+	}
+
 	#reconnectSource(): void {
 		const source: AudioNode | null = this.#sourceNode ?? this.#oscillatorNode ?? null;
-		if (!source) return;
+		if (!source || !this.#bypassMatchNode) return;
 		source.disconnect();
-		if (this.#filterNodes.length > 0) {
-			source.connect(this.#filterNodes[0]);
-		} else {
-			source.connect(this.#analyserNode ?? this.#gainNode!);
-		}
+		source.connect(this.#bypassMatchNode);
 	}
 
 	#createNoiseNode(type: 'white' | 'pink'): AudioBufferSourceNode {
@@ -228,32 +266,24 @@ class AudioPlayerService {
 
 		this.#updateFilters();
 
+		// All sources route into bypassMatchNode; #updateFilters() wires the
+		// rest of the chain (filters or bypass) downstream.
+		const sourceTarget = this.#ensureBypassMatchNode(ctx);
+
 		if (this.#audioSource === 'white' || this.#audioSource === 'pink') {
 			this.#sourceNode = this.#createNoiseNode(this.#audioSource);
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(sourceTarget);
 			this.#sourceNode.start();
 		} else if (this.#audioSource === 'tone') {
 			this.#oscillatorNode = ctx.createOscillator();
 			this.#oscillatorNode.type = 'sine';
 			this.#oscillatorNode.frequency.value = this.#toneFreq;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#oscillatorNode.connect(target);
+			this.#oscillatorNode.connect(sourceTarget);
 			this.#oscillatorNode.start();
 		} else if (this.#audioSource === 'file' && this.#audioBuffer) {
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(sourceTarget);
 			this.#sourceNode.start(0, this.#pausedAt);
 			this.#sourceNode.onended = () => {
 				if (this.#isPlaying && !this.#isSeeking) {
@@ -321,11 +351,7 @@ class AudioPlayerService {
 			const ctx = this.#getAudioContext();
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode!);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(this.#ensureBypassMatchNode(ctx));
 			this.#sourceNode.start(0, this.#pausedAt);
 			this.#sourceNode.onended = () => {
 				if (this.#isPlaying && !this.#isSeeking) {

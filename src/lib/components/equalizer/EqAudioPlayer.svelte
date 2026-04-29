@@ -54,6 +54,11 @@
 		/>
 	</div>
 
+	<!-- Freq-range mode hint -->
+	{#if audioRangeStore.isFrequencySelectionMode}
+		<p class="text-xs text-base-content/50">{m.equalizer_player_freq_select_hint()}</p>
+	{/if}
+
 	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
 	{#if audioRangeStore.isFrequencySelectionMode}
 		<div class="flex items-center gap-2 text-xs text-base-content/60">
@@ -149,7 +154,7 @@
 	<!-- Sweep controls (only when sweep selected) -->
 	{#if audioPlayerService.audioSource === 'sweep'}
 		<div class="flex flex-col gap-2">
-			<div class="flex items-center gap-2 text-xs text-base-content/60">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/60">
 				<label class="flex items-baseline gap-1">
 					{m.equalizer_player_sweep_from_label()}
 					<input

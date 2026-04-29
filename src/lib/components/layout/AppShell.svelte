@@ -12,6 +12,9 @@
 	import { graphStore } from '$lib/stores/graph-store.svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte';
+	import bundledEqConstraints from '../../../../defaults/eq-constraints.json';
+	import type { EqConstraintsFile } from '$lib/types/eq-constraint';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -129,6 +132,12 @@
 
 		// Hydrate user preferences (theme, AutoEQ options, EQ-normalization link, …)
 		settingsStore.hydrate();
+
+		// Hydrate EQ constraint presets — fire-and-forget; the picker UI shows
+		// only the bundled fallbacks until the remote fetch resolves.
+		eqConstraintsStore.hydrate(bundledEqConstraints as EqConstraintsFile).catch((err) => {
+			console.warn('[eq-constraints] hydrate failed', err);
+		});
 
 		// Mobile detection
 		const updateMobile = () => {

@@ -35,9 +35,14 @@ export class GraphEqOverlay {
 	private clickRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
 	private _eqPanelActive = false;
 	private _dragThrottleTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
+	private _keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+	private selectedFilterIndex: number | null = null;
 	private eq = new Equalizer();
 
 	private static readonly CLIP_ID = 'eq-overlay-clip';
+	// Click vs drag threshold (pixels). A pointer that moves less than this between
+	// dragstart and dragend is treated as a click and toggles selection.
+	private static readonly CLICK_DRAG_THRESHOLD = 3;
 
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
@@ -45,6 +50,7 @@ export class GraphEqOverlay {
 	}
 
 	destroy(): void {
+		this._setKeydownActive(false);
 		this._removeClickRect();
 		this.clipWrapper.remove();
 		this.graphEngine.svg.select(`#${GraphEqOverlay.CLIP_ID}`).remove();
@@ -73,9 +79,7 @@ export class GraphEqOverlay {
 			.attr('clip-path', `url(#${GraphEqOverlay.CLIP_ID})`);
 
 		// Inner overlay group — handle applies transform to this
-		this.overlayGroup = this.clipWrapper
-			.append('g')
-			.attr('class', 'fr-graph-eq-overlay');
+		this.overlayGroup = this.clipWrapper.append('g').attr('class', 'fr-graph-eq-overlay');
 
 		this.graphEngine.orderOverlayLayers();
 	}
@@ -93,6 +97,12 @@ export class GraphEqOverlay {
 		const yScale = this.graphEngine.baseYScale;
 		const filters = eqStore.filters;
 		const sourceUUID = eqStore.sourcePhoneUUID;
+
+		// Drop a stale selection that points past the end of the filter list
+		// (can happen after external removal / import).
+		if (this.selectedFilterIndex !== null && this.selectedFilterIndex >= filters.length) {
+			this.selectedFilterIndex = null;
+		}
 
 		// Resolve curve color to match nodes with the visible EQ curve
 		const eqCurveObj = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
@@ -124,11 +134,7 @@ export class GraphEqOverlay {
 			.call(this._buildDragBehavior());
 
 		// Transparent hit area (larger than visible dot for easier grabbing)
-		entered
-			.append('circle')
-			.attr('class', 'eq-hit-area')
-			.attr('r', 16)
-			.attr('fill', 'transparent');
+		entered.append('circle').attr('class', 'eq-hit-area').attr('r', 16).attr('fill', 'transparent');
 
 		// Q ring
 		entered
@@ -207,22 +213,62 @@ export class GraphEqOverlay {
 			}
 		});
 
-		merged.select<SVGCircleElement>('.eq-q-ring')
+		merged
+			.select<SVGCircleElement>('.eq-q-ring')
 			.attr('r', (d) => this._qToRadius(d.filter.q!))
-			.attr('stroke', curveColor);
+			.attr('stroke', curveColor)
+			.attr('stroke-width', (d) => (d.index === this.selectedFilterIndex ? 3 : 1.5))
+			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 0.9 : 0.5));
 
-		merged.select<SVGCircleElement>('.eq-center-dot')
-			.attr('fill', curveColor);
+		merged
+			.select<SVGCircleElement>('.eq-center-dot')
+			.attr('fill', curveColor)
+			.attr('r', (d) => (d.index === this.selectedFilterIndex ? 8 : 6))
+			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 1 : 0.9));
 
-		merged.select<SVGTextElement>('.eq-freq-label')
-			.text((d) => this._formatFreq(d.filter.freq!));
+		merged.select<SVGTextElement>('.eq-freq-label').text((d) => this._formatFreq(d.filter.freq!));
 	}
 
 	setEqPanelActive(active: boolean): void {
 		if (active !== this._eqPanelActive) {
 			this._eqPanelActive = active;
 			this._updateClickRect();
+			this._setKeydownActive(active);
+			if (!active) this.selectedFilterIndex = null;
 			this.render();
+		}
+	}
+
+	// ── Keyboard handling (window-level, only while EQ panel is active) ────────
+
+	private _setKeydownActive(active: boolean): void {
+		if (active && !this._keydownHandler) {
+			this._keydownHandler = (e: KeyboardEvent) => {
+				const target = e.target as HTMLElement;
+				if (
+					target.tagName === 'INPUT' ||
+					target.tagName === 'TEXTAREA' ||
+					target.isContentEditable
+				) {
+					return;
+				}
+				if (e.key === 'Delete' || e.key === 'Backspace') {
+					if (this.selectedFilterIndex === null) return;
+					e.preventDefault();
+					const idx = this.selectedFilterIndex;
+					this.selectedFilterIndex = null;
+					eqStore.removeBandAt(idx);
+				} else if (e.key === 'Escape') {
+					if (this.selectedFilterIndex !== null) {
+						this.selectedFilterIndex = null;
+						this.render();
+					}
+				}
+			};
+			window.addEventListener('keydown', this._keydownHandler);
+		} else if (!active && this._keydownHandler) {
+			window.removeEventListener('keydown', this._keydownHandler);
+			this._keydownHandler = null;
 		}
 	}
 
@@ -257,11 +303,13 @@ export class GraphEqOverlay {
 	 * Pick the primary channel data from ParsedFRData.
 	 * Prefers AVG, then falls back to first displayed channel.
 	 */
-	private _pickChannelData(channels: ParsedFRData, dispChannelOverride?: string[]): FRDataPoint[] | null {
-		const dispChannels = dispChannelOverride
-			?? frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel
-			?? frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel
-			?? ['AVG'];
+	private _pickChannelData(
+		channels: ParsedFRData,
+		dispChannelOverride?: string[]
+	): FRDataPoint[] | null {
+		const dispChannels = dispChannelOverride ??
+			frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel ??
+			frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel ?? ['AVG'];
 
 		let channelKey: 'L' | 'R' | 'AVG';
 		if (channels.AVG && dispChannels.includes('AVG')) {
@@ -292,10 +340,7 @@ export class GraphEqOverlay {
 
 		// Baseline compensation
 		const baselineData = this.graphEngine.baselineData;
-		if (
-			Array.isArray(baselineData.channelData) &&
-			baselineData.channelData.length > 0
-		) {
+		if (Array.isArray(baselineData.channelData) && baselineData.channelData.length > 0) {
 			const baselineDb = lookupFRValueAtFreq(baselineData.channelData, freq);
 			if (baselineDb !== null) {
 				compensatedDb -= baselineDb;
@@ -336,7 +381,10 @@ export class GraphEqOverlay {
 		return d3
 			.drag<SVGGElement, BandDatum>()
 			.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const nodeEl = d3.select(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element ?? _event.sourceEvent.currentTarget);
+				const nodeEl = d3.select(
+					(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element) ??
+						_event.sourceEvent.currentTarget
+				);
 				nodeEl.style('cursor', 'grabbing').raise();
 				nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
 				nodeEl.select('.eq-q-ring').attr('opacity', 0.8);
@@ -435,45 +483,58 @@ export class GraphEqOverlay {
 					);
 				}
 			})
-			.on(
-				'end',
-				(event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-					const xs = this.graphEngine.xScale;
-					const ys = this.graphEngine.baseYScale;
-					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+			.on('end', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
+				const xs = this.graphEngine.xScale;
+				const ys = this.graphEngine.baseYScale;
 
-					let gain: number;
+				// Click vs drag: if the pointer barely moved between start and end,
+				// treat as a click — toggle selection without committing position.
+				const moved = dragState
+					? Math.hypot(event.x - dragState.shiftOriginX, event.y - dragState.shiftOriginY)
+					: 0;
+				const isClick = moved < GraphEqOverlay.CLICK_DRAG_THRESHOLD;
 
-					if (dragState?.isPK && dragState.baseCurveDb !== null) {
-						const targetDb = ys.invert(event.y);
-						gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
-					} else {
-						gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
-					}
-					if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
-
-					// Cancel pending throttle and commit final position
-					const pending = this._dragThrottleTimers.get(d.index);
-					if (pending !== undefined) {
-						clearTimeout(pending);
-						this._dragThrottleTimers.delete(d.index);
-					}
-					eqStore.updateBandAt(d.index, {
-						freq: Math.round(freq),
-						gain: parseFloat(gain.toFixed(1))
-					});
-
-					const endNode = this.overlayGroup
-						.selectAll<SVGGElement, BandDatum>('.eq-band-node')
-						.filter((n) => n.index === d.index);
-					endNode.style('cursor', 'grab');
-					endNode.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
-					endNode.select('.eq-q-ring').attr('opacity', 0.5);
-
+				if (isClick) {
+					this.selectedFilterIndex = this.selectedFilterIndex === d.index ? null : d.index;
+					this.render();
 					dragState = null;
+					return;
 				}
-			);
+
+				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+
+				let gain: number;
+
+				if (dragState?.isPK && dragState.baseCurveDb !== null) {
+					const targetDb = ys.invert(event.y);
+					gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
+				} else {
+					gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
+				}
+				if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
+
+				// Cancel pending throttle and commit final position
+				const pending = this._dragThrottleTimers.get(d.index);
+				if (pending !== undefined) {
+					clearTimeout(pending);
+					this._dragThrottleTimers.delete(d.index);
+				}
+				eqStore.updateBandAt(d.index, {
+					freq: Math.round(freq),
+					gain: parseFloat(gain.toFixed(1))
+				});
+
+				const endNode = this.overlayGroup
+					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
+					.filter((n) => n.index === d.index);
+				endNode.style('cursor', 'grab');
+				// Reset transient hover sizing — the real selected/unselected
+				// styling is applied on next render().
+				this.render();
+
+				dragState = null;
+			});
 	}
 
 	// ── Click-to-add ───────────────────────────────────────────────────────────
@@ -511,10 +572,10 @@ export class GraphEqOverlay {
 				// PK on curve: gain = clicked position minus current curve value
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
-					const gain = parseFloat(
-						Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1)
-					);
+					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
 					eqStore.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					// Newly added band sits at the end — auto-select for immediate Delete affordance.
+					this.selectedFilterIndex = eqStore.filters.length - 1;
 				}
 			});
 		this.graphEngine.orderOverlayLayers();

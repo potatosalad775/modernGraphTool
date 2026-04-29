@@ -10,6 +10,7 @@
 	import { commandHistory } from '$lib/services/command-history.svelte';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte';
+	import { eqStore } from '$lib/stores/eq-store.svelte';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -178,12 +179,32 @@
 		return () => window.removeEventListener('resize', updateMobile);
 	});
 
+	// Tracks EQ-enabled state across a `\`-key press-and-hold so we can restore on keyup
+	// even if focus moves to an input mid-hold.
+	let eqMomentaryRestore: boolean | null = null;
+
 	function handleKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
-		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-			return;
+		const inEditable =
+			target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
 		const mod = e.metaKey || e.ctrlKey;
+
+		// `\` (backslash) — press-and-hold to bypass EQ momentarily for A/B comparison.
+		// Only triggered when EQ is currently enabled; ignored inside text inputs.
+		if (!inEditable && !mod && !e.altKey && e.key === '\\') {
+			if (e.repeat) {
+				e.preventDefault();
+				return;
+			}
+			if (!eqStore.isEnabled) return;
+			e.preventDefault();
+			eqMomentaryRestore = eqStore.isEnabled;
+			eqStore.isEnabled = false;
+			return;
+		}
+
+		if (inEditable) return;
 
 		if (mod && e.key === 'z' && !e.shiftKey) {
 			e.preventDefault();
@@ -204,6 +225,15 @@
 				e.preventDefault();
 				menuStore.setPanel(panels[num - 1]);
 			}
+		}
+	}
+
+	function handleKeyup(e: KeyboardEvent) {
+		// Restore EQ regardless of focus target — the keyup may land in an input
+		// if the user tabbed during the hold.
+		if (e.key === '\\' && eqMomentaryRestore !== null) {
+			eqStore.isEnabled = eqMomentaryRestore;
+			eqMomentaryRestore = null;
 		}
 	}
 
@@ -229,7 +259,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
 
 <div class="flex h-full flex-col">
 	<TopNavBar />

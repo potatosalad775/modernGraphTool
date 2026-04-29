@@ -46,16 +46,17 @@
 	const inputBase =
 		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
+	function clampField(field: 'freq' | 'gain' | 'q', val: number): number {
+		if (field === 'freq') return Math.max(20, Math.min(20000, Math.round(val)));
+		if (field === 'gain') return Math.max(-30, Math.min(30, Math.round(val * 10) / 10));
+		return Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+	}
+
 	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {
 		const input = e.currentTarget as HTMLInputElement;
 		const val = parseFloat(input.value);
 		if (!isNaN(val)) {
-			const clamped =
-				field === 'freq'
-					? Math.max(20, Math.min(20000, Math.round(val)))
-					: field === 'gain'
-						? Math.max(-30, Math.min(30, Math.round(val * 10) / 10))
-						: Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+			const clamped = clampField(field, val);
 			onUpdate({ [field]: clamped });
 			input.value = String(clamped);
 		} else {
@@ -66,17 +67,33 @@
 	function handleInputKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
 		if (e.key === 'Enter') {
 			(e.currentTarget as HTMLInputElement).blur();
-		} else if (e.key === 'Escape') {
+			return;
+		}
+		if (e.key === 'Escape') {
 			const input = e.currentTarget as HTMLInputElement;
 			input.value = String(filter[field] ?? '');
 			input.blur();
+			return;
+		}
+		if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+			// Override browser's default step so we can apply a Shift multiplier and
+			// commit to the store immediately (the inputs are one-way bound).
+			e.preventDefault();
+			const baseStep = field === 'freq' ? 1 : field === 'gain' ? 0.1 : 0.01;
+			const multiplier = e.shiftKey ? 10 : 1;
+			const dir = e.key === 'ArrowUp' ? 1 : -1;
+			const fallback = field === 'freq' ? 1000 : field === 'gain' ? 0 : 1;
+			const current = filter[field] ?? fallback;
+			const next = clampField(field, current + dir * baseStep * multiplier);
+			onUpdate({ [field]: next });
+			(e.currentTarget as HTMLInputElement).value = String(next);
 		}
 	}
 </script>
 
-<div class="rounded-lg border overflow-hidden transition-colors border-base-content/20">
+<div class="overflow-hidden rounded-lg border border-base-content/20 transition-colors">
 	<!-- Collapsed row (always visible) -->
-	<div class="flex min-h-8 items-center gap-2 pl-2 pr-1 py-0.5">
+	<div class="flex min-h-8 items-center gap-2 py-0.5 pr-1 pl-2">
 		<!-- Switch -->
 		<Switch
 			size="sm"
@@ -102,7 +119,7 @@
 		</Button>
 
 		<!-- Freq -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<input
 				type="number"
 				value={filter.freq}
@@ -117,7 +134,7 @@
 		</label>
 
 		<!-- Gain -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<input
 				type="number"
 				value={filter.gain}
@@ -134,7 +151,7 @@
 		<span class="text-[12px] text-base-content/60 select-none">-</span>
 
 		<!-- Q -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<span class="text-[12px] text-base-content/60 select-none">Q</span>
 			<input
 				type="number"
@@ -184,15 +201,15 @@
 	{#if expanded}
 		<div
 			transition:slide={{ duration: 150 }}
-			class="flex flex-col gap-3 px-3 pb-4 pt-0.5"
+			class="flex flex-col gap-3 px-3 pt-0.5 pb-4"
 			class:opacity-50={!filter.enabled}
 		>
 			<!-- Type selector (segmented buttons) -->
-			<div class="flex border border-base-content/20 rounded-md">
+			<div class="flex rounded-md border border-base-content/20">
 				{#each typeOptions as [value, label] (value)}
 					<button
 						onclick={() => onUpdate({ type: value })}
-						class="flex-1 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md first:border-r last:border-l border-base-content/20 {filter.type ===
+						class="flex-1 border-base-content/20 py-1 text-xs font-medium transition-colors first:rounded-l-md first:border-r last:rounded-r-md last:border-l {filter.type ===
 						value
 							? 'bg-accent text-white'
 							: 'bg-base-200 text-base-content/70 hover:bg-base-300'}"

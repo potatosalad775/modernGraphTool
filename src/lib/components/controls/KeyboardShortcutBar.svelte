@@ -40,5 +40,13 @@
 			<kbd>{isMac ? '\u21e7' : 'Shift'}+Drag</kbd>
 			{m.keyboard_shortcut_axis_lock()}
 		</span>
+		<span class="inline-flex items-center gap-1.5">
+			<kbd>\</kbd>
+			{m.keyboard_shortcut_eq_bypass()}
+		</span>
+		<span class="inline-flex items-center gap-1.5">
+			<kbd>Del</kbd>
+			{m.keyboard_shortcut_delete_band()}
+		</span>
 	{/if}
 </div>

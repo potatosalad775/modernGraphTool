@@ -143,6 +143,39 @@ export class ReplaceEqFiltersCommand implements Command {
 	}
 }
 
+// ─── Apply EQ history snapshot ──────────────────────────────────────────────
+
+/**
+ * ApplyEqSnapshotCommand — apply a logged history snapshot's filters and
+ * preamp as one undoable transition. Wraps ReplaceEqFiltersCommand and
+ * also captures preamp so an A/B switch is fully reversible.
+ */
+export class ApplyEqSnapshotCommand implements Command {
+	readonly uuid = EQ_COMMAND_UUID;
+	readonly #newFilters: EQFilter[];
+	readonly #newPreamp: number;
+	#oldFilters: EQFilter[] | null = null;
+	#oldPreamp = 0;
+
+	constructor(filters: EQFilter[], preamp: number) {
+		this.#newFilters = filters.map((f) => ({ ...f }));
+		this.#newPreamp = preamp;
+	}
+
+	execute(_store: FRStoreWriteAPI): void {
+		this.#oldFilters = eqStore.filters.map((f) => ({ ...f }));
+		this.#oldPreamp = eqStore.preamp;
+		eqStore.filters = this.#newFilters.map((f) => ({ ...f }));
+		eqStore.preamp = this.#newPreamp;
+	}
+
+	undo(_store: FRStoreWriteAPI): void {
+		if (!this.#oldFilters) return;
+		eqStore.filters = this.#oldFilters.map((f) => ({ ...f }));
+		eqStore.preamp = this.#oldPreamp;
+	}
+}
+
 // ─── Coalescing layer for rapid repeated edits ───────────────────────────────
 
 const COALESCE_WINDOW_MS = 400;
@@ -291,6 +324,32 @@ export const eqCommands = {
 		const preset = eqConstraintsStore.active;
 		const clamped = preset ? clampFiltersToConstraint(filters, preset) : filters;
 		commandHistory.execute(new ReplaceEqFiltersCommand(clamped), frStore);
+	},
+
+	/**
+	 * Apply a history snapshot's filters + preamp as one undoable command.
+	 * Used by the History & Compare UI's A/B switch. Skips when the live
+	 * state already matches the snapshot byte-for-byte.
+	 */
+	applySnapshot(filters: EQFilter[], preamp: number): void {
+		coalescer.flushAll();
+		const sameLength = eqStore.filters.length === filters.length;
+		const samePreamp = eqStore.preamp === preamp;
+		const sameContent =
+			sameLength &&
+			filters.every((f, i) => {
+				const c = eqStore.filters[i];
+				return (
+					c &&
+					c.enabled === f.enabled &&
+					c.type === f.type &&
+					c.freq === f.freq &&
+					c.q === f.q &&
+					c.gain === f.gain
+				);
+			});
+		if (samePreamp && sameContent) return;
+		commandHistory.execute(new ApplyEqSnapshotCommand(filters, preamp), frStore);
 	},
 
 	/**

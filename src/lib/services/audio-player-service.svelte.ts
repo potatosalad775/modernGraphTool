@@ -1,5 +1,6 @@
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
@@ -166,12 +167,35 @@ class AudioPlayerService {
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		const chainTail = this.#analyserNode ?? this.#gainNode;
 
+		// Listening-range bandpass — when frequency-selection mode is on, prepend
+		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz].
+		if (audioRangeStore.isFrequencySelectionMode) {
+			const hp = ctx.createBiquadFilter();
+			hp.type = 'highpass';
+			hp.frequency.value = audioRangeStore.fromHz;
+			hp.Q.value = 0.707;
+			const lp = ctx.createBiquadFilter();
+			lp.type = 'lowpass';
+			lp.frequency.value = audioRangeStore.toHz;
+			lp.Q.value = 0.707;
+			this.#filterNodes.push(hp, lp);
+		}
+
 		if (!this.#filtersEnabled || !filters.length) {
 			// Bypass path. When EQ is toggled off but filters exist, apply the
 			// K-weighted bypass-match trim so listening A/B doesn't change level.
 			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
 			this.#rampGain(match.gain, trim);
-			match.connect(chainTail);
+			// A range-mode bandpass may still sit downstream even with EQ off.
+			if (this.#filterNodes.length === 0) {
+				match.connect(chainTail);
+			} else {
+				match.connect(this.#filterNodes[0]);
+				for (let i = 0; i < this.#filterNodes.length - 1; i++) {
+					this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
+				}
+				this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
+			}
 			this.#reconnectSource();
 			return;
 		}
@@ -196,7 +220,7 @@ class AudioPlayerService {
 			this.#filterNodes.push(node);
 		}
 
-		// Chain: match → preamp → filter[0] → ... → chainTail
+		// Chain: match → [bandpass pair if range mode] → preamp → filter[0] → ... → chainTail
 		match.connect(this.#filterNodes[0]);
 		for (let i = 0; i < this.#filterNodes.length - 1; i++) {
 			this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
@@ -361,6 +385,9 @@ class AudioPlayerService {
 				void eqStore.filters;
 				void eqStore.preamp;
 				void this.#filtersEnabled;
+				void audioRangeStore.isFrequencySelectionMode;
+				void audioRangeStore.fromHz;
+				void audioRangeStore.toHz;
 				this.#updateFilters();
 			});
 		});

@@ -8,6 +8,7 @@
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
 	import { commandHistory } from '$lib/services/command-history.svelte';
+	import { eqCommands } from '$lib/services/eq-commands';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte';
@@ -183,12 +184,16 @@
 
 		if (mod && e.key === 'z' && !e.shiftKey) {
 			e.preventDefault();
+			// Flush any pending EQ-edit burst so undo doesn't land between
+			// a coalescer's capture and its deferred commit.
+			eqCommands.flushAll();
 			commandHistory.undo(frStore);
 			return;
 		}
 
 		if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
 			e.preventDefault();
+			eqCommands.flushAll();
 			commandHistory.redo(frStore);
 			return;
 		}

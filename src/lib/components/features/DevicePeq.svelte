@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Info } from '@lucide/svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
@@ -132,13 +133,15 @@
 		try {
 			const connector = await getConnector(device.connectionType);
 			const result = await connector.pullFromDevice(device, devicePeqStore.activeSlot ?? 0);
-			eqStore.filters = result.filters.map((f: any) => ({
-				enabled: !f.disabled,
-				type: f.type,
-				freq: f.freq,
-				q: f.q,
-				gain: f.gain
-			}));
+			eqCommands.replaceFilters(
+				result.filters.map((f: any) => ({
+					enabled: !f.disabled,
+					type: f.type,
+					freq: f.freq,
+					q: f.q,
+					gain: f.gain
+				}))
+			);
 			devicePeqStore.setStatus(`Read ${result.filters.length} filters from device`);
 		} catch (e) {
 			console.error('Failed to pull from device:', e);

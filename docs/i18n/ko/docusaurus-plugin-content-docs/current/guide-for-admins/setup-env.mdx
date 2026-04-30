@@ -4,42 +4,42 @@ sidebar_position: 1
 
 # 환경 구성
 
-이 페이지는 설치 단계에서 결정해야 할 것을 정리하고 적절한 배포 옵션으로 안내합니다. 옵션마다 아래 표에 링크된 전용 가이드가 별도로 있습니다.
+이 페이지는 설치 단계에서 정해야 할 사항을 정리하고, 상황에 맞는 배포 옵션으로 안내합니다. 옵션마다 아래 표에 링크된 전용 가이드가 따로 있습니다.
 
 ## 준비물
 
-1.  **modernGraphTool 프로젝트 파일** — 선택한 배포 옵션에 따라 [사전 빌드 릴리스](https://github.com/potatosalad775/modernGraphTool/releases)나 소스 저장소 클론이 필요합니다.
-2.  **텍스트 에디터** — `config.js`, `theme.css` 등 설정 파일을 수정할 때 씁니다. 구문 강조와 자동 완성을 제공하는 [Visual Studio Code](https://code.visualstudio.com/)를 권장합니다.
+1.  **modernGraphTool 프로젝트 파일** — 고른 배포 옵션에 따라 [사전 빌드 릴리스](https://github.com/potatosalad775/modernGraphTool/releases)를 받거나 소스 저장소를 클론해야 합니다.
+2.  **텍스트 에디터** — `config.js`, `theme.css` 같은 설정 파일을 수정할 때 씁니다. 구문 강조와 자동 완성을 지원하는 [Visual Studio Code](https://code.visualstudio.com/)를 권장합니다.
 
 ## 배포 옵션
 
-modernGraphTool은 세 가지 배포 방식을 제공합니다. 업데이트와 커스터마이징을 어디까지 직접 다루고 싶은지에 따라 고르세요.
+modernGraphTool은 세 가지 배포 방식을 제공합니다. 업데이트와 커스터마이징을 어디까지 직접 손대고 싶은지에 따라 고르세요.
 
 | 옵션 | 적합한 운영자 | 업데이트 | 커스터마이징 | 하위 디렉터리 호스팅 |
 |---|---|---|---|---|
 | **[CDN 배포](./deployment/cdn)** (권장) | 대부분의 운영자 | 자동 | 설정·테마·데이터 | 설정 한 줄(`BASE_PATH`) 필요 |
-| **[사전 빌드 릴리스](./deployment/prebuilt)** | 통제된 배포, 에어갭 환경 | 수동(재다운로드) | 설정·테마·데이터·HTML 메타데이터 | 추가 설정 없이 동작 |
+| **[사전 빌드 릴리스](./deployment/prebuilt)** | 통제된 배포 환경 | 수동(재다운로드) | 설정·테마·데이터·HTML 메타데이터 | 추가 설정 없이 동작 |
 | **[소스에서 빌드](./deployment/from-source)** | 개발자, 포크 운영자 | 수동(git pull + 빌드) | 전부 | 추가 설정 없이 동작 |
 
 ### [CDN 배포](./deployment/cdn)
 
-서버에는 최소한의 `index.html` 로더와 `config.js`, `theme.css`, `data/`, `assets/`만 둡니다. 앱 코드 자체는 jsDelivr에서 받아오며 새 버전이 나오면 자동으로 갱신됩니다. 가장 간단한 길이고, 수동 업데이트도 재업로드도 필요 없습니다.
+서버에는 최소한의 `index.html` 로더와 `config.js`, `theme.css`, `data/`, `assets/`만 둡니다. 앱 코드 자체는 jsDelivr에서 받아오며, 새 버전이 나오면 알아서 갱신됩니다. 수동 업데이트도, 재업로드도 필요 없는 가장 간편한 방식입니다.
 
-사이트가 `/headphones/` 같은 하위 디렉터리에 있다면(squig.link에서 흔한 패턴입니다. 같은 서브도메인에 루트 이어폰 데이터베이스와 `/headphones/` 헤드폰 데이터베이스를 함께 운영하죠) `config.js`에 `CDN_MODE.BASE_PATH`를 설정해야 합니다. 한 줄짜리지만 빠뜨리기 쉬우니 [CDN 배포 가이드](./deployment/cdn#why-base_path-is-almost-always-required)에서 자세한 설명을 확인하세요.
+사이트가 `/headphones/` 같은 하위 디렉터리에 있다면(squig.link에서 흔한 패턴입니다. 같은 서브도메인에 루트 이어폰 데이터베이스와 `/headphones/` 헤드폰 데이터베이스를 함께 두는 식입니다) `config.js`에 `CDN_MODE.BASE_PATH`를 설정해야 합니다. 한 줄짜리지만 빠뜨리기 쉬우니 [CDN 배포 가이드](./deployment/cdn#why-base_path-is-almost-always-required)에서 자세한 설명을 확인하세요.
 
 ### [사전 빌드 릴리스](./deployment/prebuilt)
 
-`dist/` 폴더 전체를 다운로드해 서버에 업로드합니다. 어떤 버전이 언제 동작할지 직접 정할 수 있고, jsDelivr에 런타임 의존성이 없으며, 에어갭 환경에서도 잘 동작하고, 하위 디렉터리 호스팅도 추가 설정 없이 바로 됩니다. 단점은 새 릴리스로 올릴 때마다 다시 받아 다시 올려야 한다는 점입니다.
+`dist/` 폴더 전체를 다운로드해 서버에 올립니다. 어떤 버전을 언제 띄울지 직접 정할 수 있고, jsDelivr에 런타임 의존성이 없으며, 외부 서버와 단절된 환경에서도 잘 돌아가고, 하위 디렉터리 호스팅도 추가 설정 없이 바로 됩니다. 단점은 새 릴리스가 나올 때마다 다시 받아 다시 올려야 한다는 점입니다.
 
 ### [소스에서 빌드](./deployment/from-source)
 
-저장소를 클론하고 원하는 만큼 손본 뒤 직접 `dist/` 폴더를 빌드합니다. 개발자용 경로입니다. `config.js`에서 노출되는 범위를 넘어서는 변경이 필요할 때 사용하세요.
+저장소를 클론해 원하는 만큼 손본 뒤, `dist/` 폴더를 직접 빌드합니다. 개발자에게 적합합니다. `config.js`로 설정할 수 있는 범위 이상의 커스터마이징이 필요할 때 선택할 수 있습니다.
 
 ## 텍스트 에디터 설치
 
-여러 텍스트 에디터가 있지만, 코드 강조와 자동 완성 같은 편의 기능을 갖춘 [Visual Studio Code](https://code.visualstudio.com/)를 권장합니다.
+텍스트 에디터는 여러 가지가 있지만, 코드 강조와 자동 완성 같은 편의 기능을 갖춘 [Visual Studio Code](https://code.visualstudio.com/)를 권장합니다.
 
-VS Code는 누구나 무료로 받을 수 있고 Windows, macOS, Linux를 모두 지원합니다.
+VS Code는 누구나 무료로 받을 수 있고, Windows·macOS·Linux를 모두 지원합니다.
 
 1.  [VS Code 웹사이트](https://code.visualstudio.com/)에서 운영체제에 맞는 설치 파일을 받아 설치합니다.
 2.  modernGraphTool 프로젝트 폴더(또는 압축을 푼 릴리스 폴더)를 VS Code로 엽니다.

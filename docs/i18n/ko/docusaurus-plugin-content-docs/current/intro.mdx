@@ -6,7 +6,7 @@ sidebar_position: 1
 
 modernGraphTool은 헤드폰과 이어폰의 주파수 응답(FR) 측정 데이터를 시각화하고 비교하는 웹 도구입니다. 측정 데이터 불러오기, 여러 그래프 겹치기, 타겟·EQ 적용, 결과 공유까지 모두 브라우저에서 바로 처리합니다.
 
-SvelteKit 2, Svelte 5, Tailwind CSS, D3.js로 만든 정적 SPA로, `dist/` 폴더를 어떤 웹 서버에 올려도 동작합니다. CDN 모드를 쓰면 자동 업데이트도 받을 수 있습니다.
+SvelteKit 2, Svelte 5, Tailwind CSS, D3.js로 만든 정적 SPA로, `dist/` 폴더를 어떤 웹 서버에 올려도 동작합니다. CDN 모드를 쓰면 자동 업데이트도 함께 받습니다.
 
 modernGraphTool v1에서 넘어오신다면 [전환 가이드](./migrating-v1-to-v2)를 참고하세요. 프로젝트의 배경이 궁금하다면 [왜 modernGraphTool인가?](./why-moderngraphtool) 페이지를 보시면 됩니다.
 
@@ -32,10 +32,10 @@ modernGraphTool v1에서 넘어오신다면 [전환 가이드](./migrating-v1-to
 ### 이퀄라이저
 
 - **[파라메트릭 EQ](./features/equalizer)** — 다양한 필터 타입(PEQ, LSQ, HSQ), 주파수·게인·Q 조정, 프리앰프 제어를 갖춘 본격 EQ 패널
-- **AutoEQ** — 선택한 타겟 커브에 맞춰 EQ 프로파일을 자동 생성. LSQ/HSQ 필터 옵션이 추가되어 튜닝 자유도가 한층 높아졌습니다.
-- **실시간 오디오 미리 듣기** — EQ 필터가 적용된 음악을 브라우저에서 바로 들어볼 수 있습니다.
+- **AutoEQ** — 선택한 타겟 커브에 맞춰 EQ 프로파일을 자동 생성. LSQ/HSQ 필터 옵션이 추가되어 튜닝 자유도가 넓어졌습니다.
+- **실시간 오디오 미리 듣기** — EQ 필터가 적용된 음악을 브라우저에서 바로 들어봅니다.
 - **가져오기 / 내보내기** — EQ 설정을 텍스트 파일로 저장하거나 불러옵니다.
-- **[Device PEQ 브리지](./features/device-peq)** — USB HID, Serial, BLE, 네트워크를 통해 20여 종의 호환 하드웨어에 EQ 설정을 직접 전송
+- **[Device PEQ 브리지](./features/device-peq)** — USB HID, Serial, BLE, 네트워크로 20여 종의 호환 하드웨어에 EQ 설정을 직접 전송
 
 ### 타겟 커스터마이징
 

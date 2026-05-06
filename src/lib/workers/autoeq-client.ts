@@ -52,6 +52,9 @@ export function runAutoEQInWorker(
 			w.removeEventListener('message', handler);
 			w.removeEventListener('error', errorHandler);
 			if (data.type === 'autoeq-result') {
+				if (typeof data.elapsedMs === 'number') {
+					console.debug('[autoEQ] %dms', data.elapsedMs.toFixed(1));
+				}
 				resolve(data.filters);
 			} else if (data.type === 'autoeq-error') {
 				reject(new Error(data.error));

@@ -69,7 +69,7 @@ export class Equalizer {
 				if (i == 0 && f < f0) {
 					return [f, v0];
 				} else if (f >= f0 && f < f1) {
-					const v = v0 + (v1 - v0) * (f - f0) / (f1 - f0);
+					const v = v0 + ((v1 - v0) * (f - f0)) / (f1 - f0);
 					return [f, v];
 				}
 			}
@@ -91,10 +91,10 @@ export class Equalizer {
 		const alphamod = 2 * Math.sqrt(a) * alpha || 0;
 
 		const a0 = a + 1 + (a - 1) * cos + alphamod;
-		const a1 = -2 * ((a - 1) + (a + 1) * cos);
+		const a1 = -2 * (a - 1 + (a + 1) * cos);
 		const a2 = a + 1 + (a - 1) * cos - alphamod;
 		const b0 = a * (a + 1 - (a - 1) * cos + alphamod);
-		const b1 = 2 * a * ((a - 1) - (a + 1) * cos);
+		const b1 = 2 * a * (a - 1 - (a + 1) * cos);
 		const b2 = a * (a + 1 - (a - 1) * cos - alphamod);
 
 		return [1.0, a1 / a0, a2 / a0, b0 / a0, b1 / a0, b2 / a0];
@@ -114,10 +114,10 @@ export class Equalizer {
 		const alphamod = 2 * Math.sqrt(a) * alpha || 0;
 
 		const a0 = a + 1 - (a - 1) * cos + alphamod;
-		const a1 = 2 * ((a - 1) - (a + 1) * cos);
+		const a1 = 2 * (a - 1 - (a + 1) * cos);
 		const a2 = a + 1 - (a - 1) * cos - alphamod;
 		const b0 = a * (a + 1 + (a - 1) * cos + alphamod);
-		const b1 = -2 * a * ((a - 1) + (a + 1) * cos);
+		const b1 = -2 * a * (a - 1 + (a + 1) * cos);
 		const b2 = a * (a + 1 + (a - 1) * cos - alphamod);
 
 		return [1.0, a1 / a0, a2 / a0, b0 / a0, b1 / a0, b2 / a0];
@@ -146,25 +146,35 @@ export class Equalizer {
 	}
 
 	_calculateGains(freqs: number[], coeffs: number[][]): number[] {
-		const gains = new Array(freqs.length).fill(0);
+		const n = freqs.length;
+		const gains = new Array(n).fill(0);
+		if (coeffs.length === 0) return gains;
+
+		const wScale = (2 * Math.PI) / this.config.DefaultSampleRate;
+		const phi = new Float64Array(n);
+		for (let j = 0; j < n; ++j) {
+			const s = Math.sin((freqs[j] * wScale) / 2);
+			phi[j] = 4 * s * s;
+		}
+
+		const inv10ln10 = 10 / Math.LN10;
 
 		for (let i = 0; i < coeffs.length; ++i) {
 			const [a0, a1, a2, b0, b1, b2] = coeffs[i];
-			for (let j = 0; j < freqs.length; ++j) {
-				const w = (2 * Math.PI * freqs[j]) / this.config.DefaultSampleRate;
-				const phi = 4 * Math.pow(Math.sin(w / 2), 2);
-				const c =
-					10 *
-						Math.log10(
-							Math.pow(b0 + b1 + b2, 2) +
-								(b0 * b2 * phi - (b1 * (b0 + b2) + 4 * b0 * b2)) * phi
-						) -
-					10 *
-						Math.log10(
-							Math.pow(a0 + a1 + a2, 2) +
-								(a0 * a2 * phi - (a1 * (a0 + a2) + 4 * a0 * a2)) * phi
-						);
-				gains[j] += c;
+			const bSum = b0 + b1 + b2;
+			const aSum = a0 + a1 + a2;
+			const bSum2 = bSum * bSum;
+			const aSum2 = aSum * aSum;
+			const bQuad = b0 * b2;
+			const aQuad = a0 * a2;
+			const bLinear = -(b1 * (b0 + b2) + 4 * bQuad);
+			const aLinear = -(a1 * (a0 + a2) + 4 * aQuad);
+
+			for (let j = 0; j < n; ++j) {
+				const p = phi[j];
+				const num = bSum2 + (bLinear + bQuad * p) * p;
+				const den = aSum2 + (aLinear + aQuad * p) * p;
+				gains[j] += inv10ln10 * Math.log(num / den);
 			}
 		}
 		return gains;
@@ -367,11 +377,8 @@ export class Equalizer {
 		const [minFreq, maxFreq] = this.config.AutoEQRange;
 		const [minQ, maxQ] = this.config.OptimizeQRange;
 		const [minGain, maxGain] = this.config.OptimizeGainRange;
-		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] =
-			this.config.OptimizeDeltas[iteration];
-		const [begin, end, step] = dir
-			? [filters.length - 1, -1, -1]
-			: [0, filters.length, 1];
+		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] = this.config.OptimizeDeltas[iteration];
+		const [begin, end, step] = dir ? [filters.length - 1, -1, -1] : [0, filters.length, 1];
 
 		for (let i = begin; i != end; i += step) {
 			let f = filters[i];
@@ -384,11 +391,7 @@ export class Equalizer {
 
 			const isShelfFilter = f.type === 'LSQ' || f.type === 'HSQ';
 			const effectiveMinFreq = isShelfFilter ? (f.type === 'LSQ' ? 20 : 4000) : minFreq;
-			const effectiveMaxFreq = isShelfFilter
-				? f.type === 'LSQ'
-					? 400
-					: 16000
-				: maxFreq;
+			const effectiveMaxFreq = isShelfFilter ? (f.type === 'LSQ' ? 400 : 16000) : maxFreq;
 			const effectiveMinQ = isShelfFilter ? 0.3 : minQ;
 			const effectiveMaxQ = isShelfFilter ? 1.5 : maxQ;
 
@@ -460,10 +463,7 @@ export class Equalizer {
 		return filters.sort((a, b) => a.freq! - b.freq!);
 	}
 
-	_analyzeShelfOpportunities(
-		fr: FreqPoint[],
-		frTarget: FreqPoint[]
-	): Partial<EQFilter>[] {
+	_analyzeShelfOpportunities(fr: FreqPoint[], frTarget: FreqPoint[]): Partial<EQFilter>[] {
 		const [minFreq, maxFreq] = this.config.AutoEQRange;
 		const shelfFilters: Partial<EQFilter>[] = [];
 
@@ -559,10 +559,7 @@ export class Equalizer {
 		const [minGain, maxGain] = this.config.OptimizeGainRange;
 
 		let bestFilter: EQFilter = { enabled: true, ...filter } as EQFilter;
-		let bestError = this._calculateWeightedError(
-			this.applyFilters(fr, [bestFilter]),
-			frTarget
-		);
+		let bestError = this._calculateWeightedError(this.applyFilters(fr, [bestFilter]), frTarget);
 
 		const freqSteps = isLowShelf
 			? [30, 50, 70, 100, 120, 150, 200, 250, 300]
@@ -605,10 +602,7 @@ export class Equalizer {
 					q,
 					gain: (lowGain + highGain) / 2
 				};
-				const error = this._calculateWeightedError(
-					this.applyFilters(fr, [testFilter]),
-					frTarget
-				);
+				const error = this._calculateWeightedError(this.applyFilters(fr, [testFilter]), frTarget);
 				if (error < bestError) {
 					bestFilter = testFilter;
 					bestError = error;
@@ -652,11 +646,7 @@ export class Equalizer {
 		return filters;
 	}
 
-	autoEQ(
-		source: FreqPoint[],
-		target: FreqPoint[],
-		options: AutoEQOptions = {}
-	): EQFilter[] {
+	autoEQ(source: FreqPoint[], target: FreqPoint[], options: AutoEQOptions = {}): EQFilter[] {
 		const maxFilters = options.maxFilters || 8;
 		const freqRange = options.freqRange || this.config.AutoEQRange;
 		const qRange = options.qRange || this.config.OptimizeQRange;
@@ -668,9 +658,7 @@ export class Equalizer {
 		this.config.OptimizeGainRange = gainRange;
 
 		const normalizedData = this._normalizeResolution(source, target);
-		const fr = normalizedData.source.filter(
-			(p) => p[0] >= freqRange[0] && p[0] <= freqRange[1]
-		);
+		const fr = normalizedData.source.filter((p) => p[0] >= freqRange[0] && p[0] <= freqRange[1]);
 		const frTarget = normalizedData.target.filter(
 			(p) => p[0] >= freqRange[0] && p[0] <= freqRange[1]
 		);
@@ -696,12 +684,7 @@ export class Equalizer {
 			}
 		}
 
-		let allFilters = this._iterativeBatchOptimization(
-			fr,
-			frTarget,
-			initialFilters,
-			maxFilters
-		);
+		let allFilters = this._iterativeBatchOptimization(fr, frTarget, initialFilters, maxFilters);
 
 		for (let i = 0; i < this.config.OptimizeDeltas.length; i++) {
 			allFilters = this._optimize(fr, frTarget, allFilters, i);
@@ -726,10 +709,7 @@ export class Equalizer {
 		frTarget: FreqPoint[],
 		filters: EQFilter[]
 	): EQFilter[] {
-		const baselineError = this._calculateWeightedError(
-			this.applyFilters(fr, filters),
-			frTarget
-		);
+		const baselineError = this._calculateWeightedError(this.applyFilters(fr, filters), frTarget);
 		return filters.filter((_filter, index) => {
 			const withoutThisFilter = filters.filter((_, i) => i !== index);
 			const errorWithout = this._calculateWeightedError(

@@ -14,11 +14,7 @@
 		isLoading: boolean;
 	}
 
-	let {
-		searchQuery,
-		resultCount = $bindable(0),
-		isLoading = $bindable(false)
-	}: Props = $props();
+	let { searchQuery, resultCount = $bindable(0), isLoading = $bindable(false) }: Props = $props();
 
 	// ── Cross-site search logic ─────────────────────────────────────────────────
 
@@ -34,12 +30,7 @@
 		crossSiteLoading = true;
 		try {
 			await squiglinkStore.fetchSiteRegistry();
-			const sites = squiglinkStore.sites;
-			// Fetch phone books in batches of 5
-			for (let i = 0; i < sites.length; i += 5) {
-				const batch = sites.slice(i, i + 5);
-				await Promise.all(batch.map((site) => squiglinkStore.fetchPhoneBook(site)));
-			}
+			await Promise.all(squiglinkStore.sites.map((site) => squiglinkStore.fetchPhoneBook(site)));
 		} catch (e) {
 			console.error('Failed to load cross-site data:', e);
 		} finally {
@@ -70,7 +61,8 @@
 		const map = new SvelteMap<string, CrossSiteSearchResult[]>();
 		const seen = new SvelteSet<string>();
 		for (const result of crossSiteResults) {
-			const dedupKey = result.siteUsername + '\0' + result.dbType + '\0' + result.brand + '\0' + result.phoneName;
+			const dedupKey =
+				result.siteUsername + '\0' + result.dbType + '\0' + result.brand + '\0' + result.phoneName;
 			if (seen.has(dedupKey)) continue;
 			seen.add(dedupKey);
 			const groupKey = result.siteUsername + '\0' + result.dbType;
@@ -95,13 +87,8 @@
 		isLoading = crossSiteLoading;
 	});
 
-	function getCrossSiteUrl(
-		siteUrl: string, 
-		brandName: string, 
-		phoneName: string
-	): string {
-		return `${siteUrl}?share=${encodeURIComponent(
-			`${brandName} ${phoneName}`.replace(/ /g, '_'))}`;
+	function getCrossSiteUrl(siteUrl: string, brandName: string, phoneName: string): string {
+		return `${siteUrl}?share=${encodeURIComponent(`${brandName} ${phoneName}`.replace(/ /g, '_'))}`;
 	}
 </script>
 
@@ -114,8 +101,8 @@
 
 	{#if crossSiteResults.length > 0}
 		{#each [...groupedCrossSite] as [siteUsername, results] (siteUsername + results[0].dbType)}
-			<div class="flex gap-1 items-center px-3 py-1.5 bg-base-300 border-b border-base-content/10">
-				<span class="text-[12px] mr-1.5 font-medium text-base-content">
+			<div class="flex items-center gap-1 border-b border-base-content/10 bg-base-300 px-3 py-1.5">
+				<span class="mr-1.5 text-[12px] font-medium text-base-content">
 					{results[0].siteName}
 				</span>
 				<span
@@ -137,8 +124,8 @@
 					href={getCrossSiteUrl(result.siteUrl, result.brand, result.phoneName)}
 					target="_blank"
 					rel="external noopener noreferrer"
-					class="flex w-full items-center gap-2 px-3 py-1 text-left text-sm transition-colors hover:bg-base-300
-						border-b border-base-content/10 cursor-pointer no-underline"
+					class="flex w-full cursor-pointer items-center gap-2 border-b border-base-content/10 px-3 py-1 text-left
+						text-sm no-underline transition-colors hover:bg-base-300"
 				>
 					<ArrowUpRight class="h-4 w-4 text-base-content/80" aria-hidden="true" />
 					<span class="min-w-0 flex-1 truncate">{result.brand} {result.phoneName}</span>

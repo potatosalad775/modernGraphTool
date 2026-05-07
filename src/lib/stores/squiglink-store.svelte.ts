@@ -95,6 +95,7 @@ class SquiglinkStore {
 
 		const results: CrossSiteSearchResult[] = [];
 		const currentUser = this.currentSiteUsername;
+		const siteByUsername = new Map(this.sites.map((s) => [s.username, s]));
 
 		for (const [key, entry] of this.#phoneBooks) {
 			const siteUsername = key.split('\0')[0];
@@ -102,7 +103,7 @@ class SquiglinkStore {
 			// Skip current site's own results
 			if (siteUsername === currentUser) continue;
 
-			const site = this.sites.find((s) => s.username === siteUsername);
+			const site = siteByUsername.get(siteUsername);
 			if (!site) continue;
 
 			const siteUrl = this.buildSiteUrl(site);
@@ -112,21 +113,25 @@ class SquiglinkStore {
 
 			for (const brand of entry.brands) {
 				if (brand.name.toLowerCase().includes(q)) {
-					results.push(...brand.phones.map((phone) => ({
-						siteName: site.name,
-						siteUsername: site.username,
-						siteUrl: resultSiteUrl,
-						brand: brand.name,
-						phoneName: typeof phone.name === 'string' ? phone.name : String(phone.name),
-						dbType,
-						deltaReady
-					} as CrossSiteSearchResult)));
+					results.push(
+						...brand.phones.map(
+							(phone) =>
+								({
+									siteName: site.name,
+									siteUsername: site.username,
+									siteUrl: resultSiteUrl,
+									brand: brand.name,
+									phoneName: typeof phone.name === 'string' ? phone.name : String(phone.name),
+									dbType,
+									deltaReady
+								}) as CrossSiteSearchResult
+						)
+					);
 					continue; // Skip individual phones if brand matches
 				}
 
 				for (const phone of brand.phones) {
-					const name =
-						typeof phone.name === 'string' ? phone.name : String(phone.name);
+					const name = typeof phone.name === 'string' ? phone.name : String(phone.name);
 					if (name.toLowerCase().includes(q)) {
 						results.push({
 							siteName: site.name,
@@ -199,9 +204,7 @@ class SquiglinkStore {
 				if (!res.ok) return;
 				const data = await res.json();
 				// phone_book.json can have either { brandPhones: [...] } or be the array directly
-				const brands: SquiglinkBrandEntry[] = Array.isArray(data)
-					? data
-					: data.brandPhones ?? [];
+				const brands: SquiglinkBrandEntry[] = Array.isArray(data) ? data : (data.brandPhones ?? []);
 				this.#phoneBooks.set(key, { brands, dbType: db.type, folder, deltaReady: !!db.deltaReady });
 			} catch {
 				// Silently skip dbs that fail to load

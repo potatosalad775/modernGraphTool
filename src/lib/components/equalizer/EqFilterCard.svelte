@@ -6,6 +6,12 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import {
+		getFilterViolation,
+		isPastMaxBands,
+		type FilterViolation
+	} from '$lib/utils/eq-constraint-clamp.js';
 
 	let {
 		filter,
@@ -13,7 +19,7 @@
 		expanded,
 		onToggle,
 		onUpdate,
-		onRemove,
+		onRemove
 	}: {
 		filter: EQFilter;
 		index: number;
@@ -23,6 +29,21 @@
 		onRemove: () => void;
 	} = $props();
 
+	// Constraint-driven UI state. `violation` flags out-of-range fields with a
+	// red ring; `inactive` greys the whole row when its index sits past the
+	// active preset's `maxBands` cap.
+	const violation: FilterViolation = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		if (!preset) return { type: false, freq: false, q: false, gain: false };
+		return getFilterViolation(filter, preset);
+	});
+	const inactive = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		return preset ? isPastMaxBands(index, preset) : false;
+	});
+	/** Active preset is in graphic mode → freq + Q are locked, only gain edits. */
+	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
 	const typeShortLabels: Record<EQFilter['type'], string> = { PK: 'PK', LSQ: 'LS', HSQ: 'HS' };
@@ -30,29 +51,37 @@
 	const typeOptions: [EQFilter['type'], () => string][] = [
 		['PK', m.equalizer_filter_list_peak],
 		['LSQ', m.equalizer_filter_list_lowshelf],
-		['HSQ', m.equalizer_filter_list_highshelf],
+		['HSQ', m.equalizer_filter_list_highshelf]
 	];
 
 	// ── Slider computed values ───────────────────────────────────────────────
 
 	let freqSliderValue = $derived(filter.freq != null ? logToLinear(filter.freq, 20, 20000) : 500);
 	let gainSliderValue = $derived(filter.gain != null ? Math.round(filter.gain * 10) : 0);
-	let qSliderValue = $derived(filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10));
+	let qSliderValue = $derived(
+		filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10)
+	);
 
 	// ── Number input handling ────────────────────────────────────────────────
 
-	const inputBase = 'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+	// Snapshot taken on focus so Escape can revert arrow-key edits that already
+	// called onUpdate (unlike manual text entry, arrow keys commit immediately).
+	let focusSnapshot: number | null = null;
+
+	const inputBase =
+		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+
+	function clampField(field: 'freq' | 'gain' | 'q', val: number): number {
+		if (field === 'freq') return Math.max(20, Math.min(20000, Math.round(val)));
+		if (field === 'gain') return Math.max(-30, Math.min(30, Math.round(val * 10) / 10));
+		return Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+	}
 
 	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {
 		const input = e.currentTarget as HTMLInputElement;
 		const val = parseFloat(input.value);
 		if (!isNaN(val)) {
-			const clamped =
-				field === 'freq'
-					? Math.max(20, Math.min(20000, Math.round(val)))
-					: field === 'gain'
-						? Math.max(-30, Math.min(30, Math.round(val * 10) / 10))
-						: Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+			const clamped = clampField(field, val);
 			onUpdate({ [field]: clamped });
 			input.value = String(clamped);
 		} else {
@@ -60,91 +89,164 @@
 		}
 	}
 
+	function handleInputFocus(field: 'freq' | 'gain' | 'q') {
+		focusSnapshot = filter[field] ?? null;
+	}
+
+	function handleInputBlur() {
+		focusSnapshot = null;
+	}
+
 	function handleInputKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
 		if (e.key === 'Enter') {
 			(e.currentTarget as HTMLInputElement).blur();
-		} else if (e.key === 'Escape') {
+			return;
+		}
+		if (e.key === 'Escape') {
 			const input = e.currentTarget as HTMLInputElement;
-			input.value = String(filter[field] ?? '');
+			// Revert to the value captured on focus — arrow-key edits call onUpdate
+			// immediately, so filter[field] may already be the incremented value.
+			const revertTo = focusSnapshot ?? filter[field] ?? null;
+			if (revertTo !== null && revertTo !== filter[field]) {
+				onUpdate({ [field]: revertTo });
+			}
+			input.value = String(revertTo ?? filter[field] ?? '');
 			input.blur();
+			return;
+		}
+		if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+			// Override browser's default step so we can apply a Shift multiplier and
+			// commit to the store immediately (the inputs are one-way bound).
+			e.preventDefault();
+			const baseStep = field === 'freq' ? 1 : field === 'gain' ? 0.1 : 0.01;
+			const multiplier = e.shiftKey ? 10 : 1;
+			const dir = e.key === 'ArrowUp' ? 1 : -1;
+			const fallback = field === 'freq' ? 1000 : field === 'gain' ? 0 : 1;
+			const current = filter[field] ?? fallback;
+			const next = clampField(field, current + dir * baseStep * multiplier);
+			onUpdate({ [field]: next });
+			(e.currentTarget as HTMLInputElement).value = String(next);
 		}
 	}
-
 </script>
 
 <div
-	class="rounded-lg border overflow-hidden transition-colors border-base-content/20"
+	class="overflow-hidden rounded-lg border transition-colors {inactive
+		? 'border-base-content/15 opacity-50'
+		: 'border-base-content/20'}"
+	title={inactive
+		? 'Past the active constraint preset’s maxBands cap. Remove or switch preset to edit.'
+		: undefined}
 >
 	<!-- Collapsed row (always visible) -->
-	<div class="flex min-h-8 items-center gap-2 pl-2 pr-1 py-0.5">
+	<div class="flex min-h-8 items-center gap-2 py-0.5 pr-1 pl-2">
 		<!-- Switch -->
-		<Switch 
-			size="sm" variant="muted"
+		<Switch
+			size="sm"
+			variant="muted"
 			checked={filter.enabled}
 			onCheckedChange={(checked) => onUpdate({ enabled: checked })}
 		/>
 
-		<!-- Type badge -->
+		<!-- Type badge — disabled in graphic mode (PK is forced) -->
 		<Button
-			title="Change filter type"
+			title={isGraphic ? 'Filter type locked by graphic preset' : 'Change filter type'}
 			onclick={(e: MouseEvent) => {
 				e.stopPropagation();
+				if (isGraphic) return;
 				// Cycle through types on click
 				const currentIndex = typeOptions.findIndex(([value]) => value === filter.type);
 				const nextType = typeOptions[(currentIndex + 1) % typeOptions.length][0];
 				onUpdate({ type: nextType });
 			}}
-			variant="muted" size="xs"
+			variant="muted"
+			size="xs"
+			disabled={isGraphic}
 		>
 			{typeShortLabels[filter.type]}
 		</Button>
 
-		<!-- Freq -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
-			<input
-				type="number"
-				value={filter.freq}
-				min={20} max={20000} step={1}
-				onchange={(e) => commitNumberInput(e, 'freq')}
-				onkeydown={(e) => handleInputKeydown(e, 'freq')}
-				class="w-full {inputBase}"
-			/>
+		<!-- Freq — read-only chip in graphic mode -->
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
+			{#if isGraphic}
+				<span
+					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
+					title="Frequency locked by graphic preset"
+				>
+					{filter.freq ?? '—'}
+				</span>
+			{:else}
+				<input
+					type="number"
+					value={filter.freq}
+					min={20}
+					max={20000}
+					step={1}
+					onfocus={() => handleInputFocus('freq')}
+					onblur={handleInputBlur}
+					onchange={(e) => commitNumberInput(e, 'freq')}
+					onkeydown={(e) => handleInputKeydown(e, 'freq')}
+					class="w-full {inputBase} {violation.freq ? 'ring-error!' : ''}"
+					title={violation.freq ? 'Out of constraint preset range' : undefined}
+				/>
+			{/if}
 			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
 		</label>
 
 		<!-- Gain -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<input
 				type="number"
 				value={filter.gain}
-				min={-30} max={30} step={0.1}
+				min={-30}
+				max={30}
+				step={0.1}
+				onfocus={() => handleInputFocus('gain')}
+				onblur={handleInputBlur}
 				onchange={(e) => commitNumberInput(e, 'gain')}
 				onkeydown={(e) => handleInputKeydown(e, 'gain')}
-				class="w-full {inputBase}"
+				class="w-full {inputBase} {violation.gain ? 'ring-error!' : ''}"
+				title={violation.gain ? 'Out of constraint preset range' : undefined}
 			/>
 			<span class="text-[12px] text-base-content/60 select-none">dB</span>
 		</label>
 
 		<span class="text-[12px] text-base-content/60 select-none">-</span>
 
-		<!-- Q -->
-		<label class="flex-1 inline-flex items-baseline gap-0.5 shrink-0">
+		<!-- Q — read-only chip in graphic mode -->
+		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<span class="text-[12px] text-base-content/60 select-none">Q</span>
-			<input
-				type="number"
-				value={filter.q}
-				min={0.1} max={10} step={0.01}
-				onchange={(e) => commitNumberInput(e, 'q')}
-				onkeydown={(e) => handleInputKeydown(e, 'q')}
-				class="w-full {inputBase}"
-			/>
+			{#if isGraphic}
+				<span
+					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
+					title="Q locked by graphic preset"
+				>
+					{filter.q ?? '—'}
+				</span>
+			{:else}
+				<input
+					type="number"
+					value={filter.q}
+					min={0.1}
+					max={10}
+					step={0.01}
+					onfocus={() => handleInputFocus('q')}
+					onblur={handleInputBlur}
+					onchange={(e) => commitNumberInput(e, 'q')}
+					onkeydown={(e) => handleInputKeydown(e, 'q')}
+					class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"
+					title={violation.q ? 'Out of constraint preset range' : undefined}
+				/>
+			{/if}
 		</label>
 
 		<div class="flex items-center">
 			<Button
 				title="Expand filter {index + 1} options"
 				onclick={onToggle}
-				variant="ghost" size="icon" class="text-base-content/50 hover:text-accent"
+				variant="ghost"
+				size="icon"
+				class="text-base-content/50 hover:text-accent"
 			>
 				<ChevronDown
 					class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
@@ -153,75 +255,82 @@
 				/>
 			</Button>
 
-			<!-- Delete button -->
-			<Button
-				title="Remove filter {index + 1}"
-				onclick={(e: MouseEvent) => {
-					e.stopPropagation();
-					onRemove();
-				}}
-				variant="ghost" size="icon" class="text-base-content/50 hover:text-error"
-			>
-				<X class="h-3.5 w-3.5" />
-			</Button>
+			<!-- Delete button — hidden in graphic mode (band slots are part of the preset template) -->
+			{#if !isGraphic}
+				<Button
+					title="Remove filter {index + 1}"
+					onclick={(e: MouseEvent) => {
+						e.stopPropagation();
+						onRemove();
+					}}
+					variant="ghost"
+					size="icon"
+					class="text-base-content/50 hover:text-error"
+				>
+					<X class="h-3.5 w-3.5" />
+				</Button>
+			{/if}
 		</div>
 		<!-- Expand/collapse button -->
-		
 	</div>
 
 	<!-- Expanded content -->
 	{#if expanded}
 		<div
 			transition:slide={{ duration: 150 }}
-			class="flex flex-col gap-3 px-3 pb-4 pt-0.5"
+			class="flex flex-col gap-3 px-3 pt-0.5 pb-4"
 			class:opacity-50={!filter.enabled}
 		>
-			<!-- Type selector (segmented buttons) -->
-			<div class="flex border border-base-content/20 rounded-md">
-				{#each typeOptions as [value, label] (value)}
-					<button
-						onclick={() => onUpdate({ type: value })}
-						class="flex-1 py-1 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md first:border-r last:border-l border-base-content/20 {filter.type ===
-						value
-							? 'bg-accent text-white'
-							: 'bg-base-200 text-base-content/70 hover:bg-base-300'}"
-					>
-						{label()}
-					</button>
-				{/each}
-			</div>
-
-			<!-- Frequency slider -->
-			<div class="flex flex-col gap-1">
-				<div class="flex items-center justify-between">
-					<span class="text-xs text-base-content/60">
-						{m.equalizer_filter_list_freq()}
-					</span>
-					<label class="inline-flex items-baseline gap-1">
-						<input
-							type="number"
-							value={filter.freq}
-							min={20} max={20000} step={1}
-							onchange={(e) => commitNumberInput(e, 'freq')}
-							onkeydown={(e) => handleInputKeydown(e, 'freq')}
-							class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
-						/>
-						<span class="text-[10px] text-base-content/40 select-none">Hz</span>
-					</label>
+			{#if !isGraphic}
+				<!-- Type selector (segmented buttons) — hidden in graphic mode -->
+				<div class="flex rounded-md border border-base-content/20">
+					{#each typeOptions as [value, label] (value)}
+						<button
+							onclick={() => onUpdate({ type: value })}
+							class="flex-1 border-base-content/20 py-1 text-xs font-medium transition-colors first:rounded-l-md first:border-r last:rounded-r-md last:border-l {filter.type ===
+							value
+								? 'bg-accent text-white'
+								: 'bg-base-200 text-base-content/70 hover:bg-base-300'}"
+						>
+							{label()}
+						</button>
+					{/each}
 				</div>
-				<input
-					type="range"
-					min="0"
-					max="1000"
-					step="1"
-					value={freqSliderValue}
-					oninput={(e) => {
-						const hz = linearToLog(parseFloat(e.currentTarget.value), 20, 20000);
-						onUpdate({ freq: Math.round(hz) });
-					}}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
-				/>
-			</div>
+
+				<!-- Frequency slider — hidden in graphic mode -->
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center justify-between">
+						<span class="text-xs text-base-content/60">
+							{m.equalizer_filter_list_freq()}
+						</span>
+						<label class="inline-flex items-baseline gap-1">
+							<input
+								type="number"
+								value={filter.freq}
+								min={20}
+								max={20000}
+								step={1}
+								onchange={(e) => commitNumberInput(e, 'freq')}
+								onkeydown={(e) => handleInputKeydown(e, 'freq')}
+								class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
+							/>
+							<span class="text-[10px] text-base-content/40 select-none">Hz</span>
+						</label>
+					</div>
+					<input
+						type="range"
+						min="0"
+						max="1000"
+						step="1"
+						value={freqSliderValue}
+						oninput={(e) => {
+							const hz = linearToLog(parseFloat(e.currentTarget.value), 20, 20000);
+							onUpdate({ freq: Math.round(hz) });
+						}}
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+					/>
+				</div>
+			{/if}
 
 			<!-- Gain slider -->
 			<div class="flex flex-col gap-1">
@@ -233,7 +342,9 @@
 						<input
 							type="number"
 							value={filter.gain}
-							min={-30} max={30} step={0.1}
+							min={-30}
+							max={30}
+							step={0.1}
 							onchange={(e) => commitNumberInput(e, 'gain')}
 							onkeydown={(e) => handleInputKeydown(e, 'gain')}
 							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
@@ -254,37 +365,41 @@
 				/>
 			</div>
 
-			<!-- Q slider -->
-			<div class="flex flex-col gap-1">
-				<div class="flex items-center justify-between">
-					<span class="text-xs text-base-content/60">
-						{m.equalizer_filter_list_q()}
-					</span>
-					<label class="inline-flex items-baseline gap-1">
-						<span class="text-[10px] text-base-content/40 select-none">Q</span>
-						<input
-							type="number"
-							value={filter.q}
-							min={0.1} max={10} step={0.01}
-							onchange={(e) => commitNumberInput(e, 'q')}
-							onkeydown={(e) => handleInputKeydown(e, 'q')}
-							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
-						/>
-					</label>
+			{#if !isGraphic}
+				<!-- Q slider — hidden in graphic mode -->
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center justify-between">
+						<span class="text-xs text-base-content/60">
+							{m.equalizer_filter_list_q()}
+						</span>
+						<label class="inline-flex items-baseline gap-1">
+							<span class="text-[10px] text-base-content/40 select-none">Q</span>
+							<input
+								type="number"
+								value={filter.q}
+								min={0.1}
+								max={10}
+								step={0.01}
+								onchange={(e) => commitNumberInput(e, 'q')}
+								onkeydown={(e) => handleInputKeydown(e, 'q')}
+								class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
+							/>
+						</label>
+					</div>
+					<input
+						type="range"
+						min="0"
+						max="1000"
+						step="1"
+						value={qSliderValue}
+						oninput={(e) => {
+							const q = linearToLog(parseFloat(e.currentTarget.value), 0.1, 10);
+							onUpdate({ q: parseFloat(q.toFixed(2)) });
+						}}
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+					/>
 				</div>
-				<input
-					type="range"
-					min="0"
-					max="1000"
-					step="1"
-					value={qSliderValue}
-					oninput={(e) => {
-						const q = linearToLog(parseFloat(e.currentTarget.value), 0.1, 10);
-						onUpdate({ q: parseFloat(q.toFixed(2)) });
-					}}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
-				/>
-			</div>
+			{/if}
 		</div>
 	{/if}
 </div>

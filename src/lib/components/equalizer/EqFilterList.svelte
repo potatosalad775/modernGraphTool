@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
@@ -11,41 +13,76 @@
 	let expandedIndex = $state<number | null>(null);
 
 	const preamp = $derived.by(() => {
-		const filters = eqStore.filters.filter(f => f.enabled && f.freq && f.q && f.gain);
+		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		if (!filters.length) return 0;
-		const baseFreqs = Array.from({ length: 100 }, (_, i) =>
-			20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
+		const baseFreqs = Array.from(
+			{ length: 100 },
+			(_, i) => 20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
 		);
-		const baseFR: [number, number][] = baseFreqs.map(f => [f, 0]);
+		const baseFR: [number, number][] = baseFreqs.map((f) => [f, 0]);
 		const eq = new Equalizer();
 		return parseFloat(eq.calculatePreamp(baseFR, filters).toFixed(1));
 	});
 
 	$effect(() => {
-		eqStore.preamp = preamp;
+		const next = preamp;
+		const prev = eqStore.preamp;
+		if (next < prev - 0.05) {
+			toast.info(m.eq_preamp_auto_reduced({ value: next.toFixed(1) }));
+		}
+		eqStore.preamp = next;
 	});
 
+	const atMaxBands = $derived.by(() => {
+		const preset = eqConstraintsStore.active;
+		return preset && preset.maxBands > 0 && eqStore.filters.length >= preset.maxBands;
+	});
+
+	/** Graphic mode: the band list is fixed, so add/remove/sort/import are no-ops. */
+	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+
 	function addBand() {
-		eqStore.addBand({ enabled: true, type: 'PK', freq: null, q: null, gain: null });
-		//expandedIndex = eqStore.filters.length - 1;
+		const ok = eqCommands.addBand({
+			enabled: true,
+			type: 'PK',
+			freq: null,
+			q: null,
+			gain: null
+		});
+		if (!ok) {
+			const preset = eqConstraintsStore.active;
+			if (preset && preset.maxBands > 0) {
+				toast.warning(
+					m.eq_constraint_max_bands_reached({ label: preset.label, max: preset.maxBands })
+				);
+			}
+		}
 	}
 
 	function removeBand() {
 		if (eqStore.filters.length > 0) {
 			const lastIdx = eqStore.filters.length - 1;
 			if (expandedIndex === lastIdx) expandedIndex = null;
-			eqStore.removeBandAt(lastIdx);
+			eqCommands.removeBand(lastIdx);
 		}
 	}
 
 	function sortBands() {
 		expandedIndex = null;
 		const sorted = [...eqStore.filters].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity));
-		eqStore.filters = sorted;
+		eqCommands.replaceFilters(sorted);
 	}
 
 	function updateFilter(index: number, partial: Partial<EQFilter>) {
-		eqStore.updateBandAt(index, partial);
+		// enabled-only toggle bypasses the coalescer so it's always its own undo
+		// entry — a gain drag starting within 400 ms can't swallow the toggle.
+		if ('enabled' in partial && Object.keys(partial).length === 1) {
+			eqCommands.toggleBandEnabled(index, partial.enabled!);
+			return;
+		}
+		// Number inputs and sliders flow through the coalescer so a slider
+		// drag (60 oninput events/sec) collapses into one undo entry.
+		eqCommands.updateBand(index, partial);
 	}
 
 	let importInputEl = $state<HTMLInputElement | undefined>(undefined);
@@ -62,10 +99,14 @@
 			const text = ev.target!.result as string;
 			const filters = parseFilterText(text);
 			if (filters.length) {
-				eqStore.filters = filters;
-				toast.success(m.equalizer_filter_list_import(), { description: `${filters.length} filters` });
+				eqCommands.replaceFilters(filters);
+				toast.success(m.equalizer_filter_list_import(), {
+					description: `${filters.length} filters`
+				});
 			} else {
-				toast.error(m.equalizer_filter_list_import(), { description: 'No valid filters found in file' });
+				toast.error(m.equalizer_filter_list_import(), {
+					description: 'No valid filters found in file'
+				});
 			}
 			(e.target as HTMLInputElement).value = '';
 		};
@@ -83,8 +124,7 @@
 					const [, type, freq, gain, q] = match;
 					filters.push({
 						enabled: true,
-						type:
-							type === 'LSC' ? 'LSQ' : type === 'HSC' ? 'HSQ' : (type as EQFilter['type']),
+						type: type === 'LSC' ? 'LSQ' : type === 'HSC' ? 'HSQ' : (type as EQFilter['type']),
 						freq: parseFloat(freq),
 						gain: parseFloat(gain),
 						q: parseFloat(q)
@@ -96,7 +136,9 @@
 	}
 
 	function exportFilters() {
-		const validFilters = eqStore.filters.filter(f => f.freq != null && f.q != null && f.gain != null);
+		const validFilters = eqStore.filters.filter(
+			(f) => f.freq != null && f.q != null && f.gain != null
+		);
 		if (!validFilters.length) {
 			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
@@ -145,25 +187,35 @@
 		</span>
 		<div class="flex gap-1">
 			<Button
-				title="Add EQ Band"
-				variant="outline" size="icon"
+				title={isGraphic
+					? 'Bands are fixed by the graphic preset'
+					: atMaxBands
+						? 'Active constraint preset has reached its maxBands cap'
+						: 'Add EQ Band'}
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
+				disabled={atMaxBands || isGraphic}
 				onclick={addBand}
 			>
 				<Plus class="size-3" />
 			</Button>
 			<Button
-				title="Remove EQ Band"
-				variant="outline" size="icon"
+				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Remove EQ Band'}
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
+				disabled={isGraphic}
 				onclick={removeBand}
 			>
 				<Minus class="size-3" />
 			</Button>
 			<Button
-				title="Sort EQ Bands"
-				variant="outline" size="icon"
+				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Sort EQ Bands'}
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
+				disabled={isGraphic}
 				onclick={sortBands}
 			>
 				<ArrowDown01 class="size-3.25" />
@@ -183,7 +235,7 @@
 				onRemove={() => {
 					if (expandedIndex === i) expandedIndex = null;
 					else if (expandedIndex !== null && expandedIndex > i) expandedIndex--;
-					eqStore.removeBandAt(i);
+					eqCommands.removeBand(i);
 				}}
 			/>
 		{/each}
@@ -194,19 +246,21 @@
 		<Button
 			title={m.equalizer_filter_list_import()}
 			onclick={importFilters}
-			variant="outline" size="sm"
+			variant="outline"
+			size="sm"
 			class="flex-1"
 		>
-			<Download class="size-3.5 mr-1.5" />
+			<Download class="mr-1.5 size-3.5" />
 			{m.equalizer_filter_list_import()}
 		</Button>
 		<Button
 			title={m.equalizer_filter_list_export()}
 			onclick={exportFilters}
-			variant="outline" size="sm"
+			variant="outline"
+			size="sm"
 			class="flex-1"
 		>
-			<Upload class="size-3.5 mr-1.5" />
+			<Upload class="mr-1.5 size-3.5" />
 			{m.equalizer_filter_list_export()}
 		</Button>
 	</div>
@@ -214,7 +268,8 @@
 		<Button
 			title="Export filters as Graphic EQ File"
 			onclick={exportGraphicEQ}
-			variant="muted" size="sm"
+			variant="muted"
+			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
 		>
 			{m.equalizer_filter_list_export_graphic_eq()}

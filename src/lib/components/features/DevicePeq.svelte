@@ -1,9 +1,26 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
+	import { deriveDeviceConstraint } from '$lib/device-peq/derive-constraint.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Info } from '@lucide/svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
+
+	// Sync the connected device's hardware capabilities into the constraint
+	// store as a synthetic preset, auto-selected while the device is
+	// connected. Disconnect restores whichever preset the user had picked.
+	// Re-clamping is pushed as a single undoable command in eqCommands.
+	$effect(() => {
+		const dev = devicePeqStore.device;
+		if (dev) {
+			eqConstraintsStore.setDeviceConstraint(deriveDeviceConstraint(dev));
+		} else {
+			eqConstraintsStore.clearDeviceConstraint();
+		}
+		eqCommands.reclampToActiveConstraint();
+	});
 
 	// ── Feature detection ─────────────────────────────────────────────────────
 
@@ -132,13 +149,15 @@
 		try {
 			const connector = await getConnector(device.connectionType);
 			const result = await connector.pullFromDevice(device, devicePeqStore.activeSlot ?? 0);
-			eqStore.filters = result.filters.map((f: any) => ({
-				enabled: !f.disabled,
-				type: f.type,
-				freq: f.freq,
-				q: f.q,
-				gain: f.gain
-			}));
+			eqCommands.replaceFilters(
+				result.filters.map((f: any) => ({
+					enabled: !f.disabled,
+					type: f.type,
+					freq: f.freq,
+					q: f.q,
+					gain: f.gain
+				}))
+			);
 			devicePeqStore.setStatus(`Read ${result.filters.length} filters from device`);
 		} catch (e) {
 			console.error('Failed to pull from device:', e);

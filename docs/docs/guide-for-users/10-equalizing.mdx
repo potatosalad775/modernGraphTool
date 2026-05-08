@@ -62,6 +62,8 @@ Most browsers block audio from starting automatically until you interact with th
 
 The player uses the Web Audio API, so CPU usage goes up slightly while it's running — particularly with many EQ bands.
 
+Playback continues across panel switches — switching to the Graph or Device panel won't stop the audio. Return to the Equalizer panel and use the player's stop button when you're done.
+
 ## Device PEQ — push EQ to hardware
 
 Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices over WebUSB / WebSerial / WebHID / WebBluetooth and push your filter list into the device's own EQ memory. Unplug your computer and the EQ stays loaded.

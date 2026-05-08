@@ -32,6 +32,9 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - Effects: `$effect(() => { ... })` **not** `afterUpdate`
 - Props: `let { prop } = $props()` **not** `export let prop`
 - Module-level reactive state lives in `.svelte.ts` files, not plain `.ts`.
+- For long-lived reactive subscriptions in module-level singletons, wrap effects in
+  `$effect.root(() => $effect(() => ...))`. Install lazily on first interaction; never
+  dispose for page-lifetime singletons. Precedent: [audio-player-service.svelte.ts](src/lib/services/audio-player-service.svelte.ts).
 
 ## Code Style (from CONTRIBUTING.md)
 
@@ -103,7 +106,7 @@ All stores are exported as class instances from `.svelte.ts` files.
 - `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
   `linkEqNormalization` flag. Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
-- `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle + `AnalyserNode`
+- `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
 - `squiglink-store.svelte.ts` — cross-site registry, sponsor content, domain guard
 
@@ -143,6 +146,10 @@ export const frStore = new FRDataStore();
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
+- `audio-player-service.svelte.ts` — Web Audio engine (context, gain, analyser, source/oscillator/buffer,
+  filter chain) + playback state. Outlives the `EqAudioPlayer` view so audio survives panel switches.
+  Subscribes to `eqStore.filters` / `eqStore.preamp` via a lazy `$effect.root` installed on first `play()`.
+  Exports `audioPlayerService` singleton.
 
 ## Utils
 

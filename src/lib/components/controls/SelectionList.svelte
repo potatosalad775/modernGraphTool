@@ -5,7 +5,7 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import type { FRDataObject } from '$lib/types/data-types.js';
-	import GraphColorWheel from '$lib/components/features/GraphColorWheel.svelte';
+	import GraphColorPicker from '$lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
 	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
@@ -179,7 +179,7 @@
 			<!-- Row 1: color swatch + name + action buttons -->
 			<div class="flex flex-1 items-start gap-2">
 				<!-- Color swatch / picker -->
-				<GraphColorWheel {uuid} {item} />
+				<GraphColorPicker {uuid} {item} />
 
 				<!-- Name + suffix / variant trigger -->
 				{#if hasVariants}

@@ -499,8 +499,11 @@ class GraphEngine {
 				const baseAvg = obj.colors.AVG;
 				const strokeOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.5;
 				const fillOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.3;
-				const toAlpha = (c: string, a: number) =>
-					c.startsWith('hsl(') ? c.replace('hsl(', 'hsla(').replace(')', `, ${a})`) : c;
+				const toAlpha = (c: string, a: number) => {
+					if (c.startsWith('oklch(')) return c.replace(/\)$/, ` / ${a})`);
+					if (c.startsWith('hsl(')) return c.replace('hsl(', 'hsla(').replace(')', `, ${a})`);
+					return c;
+				};
 				const color = toAlpha(baseAvg, strokeOpacity);
 				const fillColor = toAlpha(baseAvg, fillOpacity);
 				this.curveGroup

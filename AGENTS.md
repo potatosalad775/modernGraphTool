@@ -68,7 +68,7 @@ src/
     │   │                #   YAxisScaleButton, SampleChannelSelector, CrossSiteSearchResults, …
     │   ├── equalizer/   # EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard,
     │   │                #   EqFilterList, EqPhoneSelect
-    │   ├── features/    # DevicePeq, TargetCustomizer, GraphColorWheel, PreferenceBound,
+    │   ├── features/    # DevicePeq, TargetCustomizer, GraphColorPicker, PreferenceBound,
     │   │                #   FrequencyTutorial, TutorialModal, SponsorBanner, ShopLink
     │   ├── graph/       # GraphContainer, GraphXAxis, GraphWatermark (Svelte ↔ D3 bridge)
     │   ├── layout/      # AppShell, TopNavBar, MenuCarousel, DragDivider

@@ -67,8 +67,8 @@ class AudioPlayerService {
 
 	// --- Setters / commands ---
 	setAudioSource(src: AudioSource): void {
-		this.#audioSource = src;
 		if (this.#isPlaying) this.stop();
+		this.#audioSource = src;
 	}
 
 	setFiltersEnabled(enabled: boolean): void {
@@ -282,7 +282,11 @@ class AudioPlayerService {
 		this.#oscillatorNode?.stop();
 		this.#oscillatorNode?.disconnect();
 		this.#oscillatorNode = null;
-		if (this.#audioContext) this.#pausedAt += this.#audioContext.currentTime - this.#startTime;
+		// Only file playback resumes via #pausedAt; accumulating it for noise/tone
+		// would pollute the next file resume position.
+		if (this.#audioSource === 'file' && this.#audioContext) {
+			this.#pausedAt += this.#audioContext.currentTime - this.#startTime;
+		}
 		this.#isPlaying = false;
 		if (this.#rafId) {
 			cancelAnimationFrame(this.#rafId);

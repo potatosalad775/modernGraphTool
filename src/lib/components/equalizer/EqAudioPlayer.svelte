@@ -1,333 +1,53 @@
 <script lang="ts">
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+	import {
+		audioPlayerService,
+		type AudioSource
+	} from '$lib/services/audio-player-service.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { onDestroy } from 'svelte';
 	import Button from '$lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
 
-	// --- Non-reactive Web Audio objects ---
-	let audioContext: AudioContext | null = null;
-	let gainNode: GainNode | null = null;
-	let analyserNode: AnalyserNode | null = null;
-	let sourceNode: AudioBufferSourceNode | null = null;
-	let oscillatorNode: OscillatorNode | null = null;
-	let filterNodes: AudioNode[] = [];
-	let audioBuffer: AudioBuffer | null = null;
-
-	// --- Playback tracking ---
-	let isPlaying = $state(false);
-	let startTime = 0;
-	let pausedAt = 0;
-	let isSeeking = false;
-
-	// --- UI state ---
-	let audioSource = $state('');
-	let filtersEnabled = $state(true);
-	let showSpectrum = $state(false);
-	let volume = $state(0.1);
-	let toneFreq = $state(1000);
-	let currentTime = $state(0);
-	let duration = $state(0);
-	let fileLoaded = $state(false);
-
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
-	let rafId: number | null = null;
 
-	// --- Helpers ---
 	function formatTime(seconds: number): string {
 		const min = Math.floor(seconds / 60);
 		const s = Math.floor(seconds % 60);
 		return `${min}:${String(s).padStart(2, '0')}`;
 	}
 
-	function getAudioContext(): AudioContext {
-		if (!audioContext) {
-			audioContext = new AudioContext();
-		}
-		return audioContext;
-	}
-
-	// --- Filter chain ---
-	function updateFilters() {
-		const ctx = audioContext;
-		if (!ctx || !gainNode) return;
-
-		filterNodes.forEach((n) => n.disconnect());
-		filterNodes = [];
-
-		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
-
-		if (!filtersEnabled || !filters.length) {
-			reconnectSource();
-			return;
-		}
-
-		// Preamp node
-		const preampNode = ctx.createGain();
-		preampNode.gain.value = Math.pow(10, eqStore.preamp / 20);
-		filterNodes.push(preampNode);
-
-		// Biquad filters
-		for (const f of filters) {
-			const node = ctx.createBiquadFilter();
-			if (f.type === 'PK') node.type = 'peaking';
-			else if (f.type === 'LSQ') node.type = 'lowshelf';
-			else if (f.type === 'HSQ') node.type = 'highshelf';
-			node.frequency.value = f.freq!;
-			node.Q.value = f.q!;
-			node.gain.value = f.gain!;
-			filterNodes.push(node);
-		}
-
-		// Chain: filter[0] → filter[1] → ... → analyserNode (or gainNode)
-		for (let i = 0; i < filterNodes.length - 1; i++) {
-			filterNodes[i].connect(filterNodes[i + 1]);
-		}
-		const chainTarget = analyserNode ?? gainNode;
-		filterNodes[filterNodes.length - 1].connect(chainTarget);
-
-		reconnectSource();
-	}
-
-	function reconnectSource() {
-		const source: AudioNode | null = sourceNode ?? oscillatorNode ?? null;
-		if (!source) return;
-		source.disconnect();
-		if (filterNodes.length > 0) {
-			source.connect(filterNodes[0]);
-		} else {
-			source.connect(analyserNode ?? gainNode!);
-		}
-	}
-
-	$effect(() => {
-		const _filters = eqStore.filters;
-		const _preamp = eqStore.preamp;
-		const _enabled = filtersEnabled;
-		updateFilters();
-	});
-
-	// --- Noise generators ---
-	function createNoiseNode(type: 'white' | 'pink'): AudioBufferSourceNode {
-		const ctx = getAudioContext();
-		const bufferSize = 2 * ctx.sampleRate;
-		const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-		const output = buffer.getChannelData(0);
-
-		if (type === 'white') {
-			for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-		} else {
-			let b0 = 0,
-				b1 = 0,
-				b2 = 0,
-				b3 = 0,
-				b4 = 0,
-				b5 = 0,
-				b6 = 0;
-			for (let i = 0; i < bufferSize; i++) {
-				const w = Math.random() * 2 - 1;
-				b0 = 0.99886 * b0 + w * 0.0555179;
-				b1 = 0.99332 * b1 + w * 0.0750759;
-				b2 = 0.969 * b2 + w * 0.153852;
-				b3 = 0.8665 * b3 + w * 0.3104856;
-				b4 = 0.55 * b4 + w * 0.5329522;
-				b5 = -0.7616 * b5 - w * 0.016898;
-				b6 = w * 0.115926;
-				output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-			}
-		}
-
-		const node = ctx.createBufferSource();
-		node.buffer = buffer;
-		node.loop = true;
-		return node;
-	}
-
-	// --- Playback ---
-	function play() {
-		const ctx = getAudioContext();
-
-		if (!gainNode) {
-			gainNode = ctx.createGain();
-			gainNode.gain.value = volume;
-			gainNode.connect(ctx.destination);
-		}
-
-		if (!analyserNode) {
-			analyserNode = ctx.createAnalyser();
-			analyserNode.fftSize = 4096;
-			analyserNode.smoothingTimeConstant = 0.8;
-			analyserNode.connect(gainNode);
-			audioSpectrumStore.analyserNode = analyserNode;
-		}
-
-		updateFilters();
-
-		if (audioSource === 'white' || audioSource === 'pink') {
-			sourceNode = createNoiseNode(audioSource);
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			sourceNode.connect(target);
-			sourceNode.start();
-		} else if (audioSource === 'tone') {
-			oscillatorNode = ctx.createOscillator();
-			oscillatorNode.type = 'sine';
-			oscillatorNode.frequency.value = toneFreq;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			oscillatorNode.connect(target);
-			oscillatorNode.start();
-		} else if (audioSource === 'file' && audioBuffer) {
-			sourceNode = ctx.createBufferSource();
-			sourceNode.buffer = audioBuffer;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode;
-			sourceNode.connect(target);
-			sourceNode.start(0, pausedAt);
-			sourceNode.onended = () => {
-				if (isPlaying && !isSeeking) {
-					isPlaying = false;
-					pausedAt = 0;
-					currentTime = 0;
-					if (rafId) {
-						cancelAnimationFrame(rafId);
-						rafId = null;
-					}
-				}
-			};
-		} else return;
-
-		startTime = ctx.currentTime;
-		isPlaying = true;
-
-		if (audioSource === 'file') tickTimeDisplay();
-	}
-
-	function pause() {
-		if (!isPlaying) return;
-		sourceNode?.stop();
-		sourceNode?.disconnect();
-		sourceNode = null;
-		oscillatorNode?.stop();
-		oscillatorNode?.disconnect();
-		oscillatorNode = null;
-		if (audioContext) pausedAt += audioContext.currentTime - startTime;
-		isPlaying = false;
-		if (rafId) {
-			cancelAnimationFrame(rafId);
-			rafId = null;
-		}
-	}
-
-	function stop() {
-		pause();
-		pausedAt = 0;
-		currentTime = 0;
-	}
-
-	function togglePlay() {
-		if (!audioSource) return;
-		if (isPlaying) pause();
-		else play();
-	}
-
-	function tickTimeDisplay() {
-		if (!isPlaying || !audioContext || !audioBuffer) return;
-		currentTime = Math.min(
-			audioContext.currentTime - startTime + pausedAt,
-			audioBuffer.duration
-		);
-		rafId = requestAnimationFrame(tickTimeDisplay);
-	}
-
-	// --- Seeking ---
-	function seekTo(targetTime: number) {
-		if (!audioBuffer) return;
-		const wasPlaying = isPlaying;
-		if (wasPlaying && sourceNode) {
-			sourceNode.onended = null;
-			sourceNode.stop();
-			sourceNode.disconnect();
-			sourceNode = null;
-		}
-		pausedAt = targetTime;
-		currentTime = targetTime;
-		if (wasPlaying) {
-			const ctx = getAudioContext();
-			sourceNode = ctx.createBufferSource();
-			sourceNode.buffer = audioBuffer;
-			const target = filterNodes.length > 0 ? filterNodes[0] : analyserNode ?? gainNode!;
-			sourceNode.connect(target);
-			sourceNode.start(0, pausedAt);
-			sourceNode.onended = () => {
-				if (isPlaying && !isSeeking) {
-					isPlaying = false;
-					pausedAt = 0;
-					currentTime = 0;
-					if (rafId) {
-						cancelAnimationFrame(rafId);
-						rafId = null;
-					}
-				}
-			};
-			startTime = ctx.currentTime;
-		}
-	}
-
-	// --- File loading ---
-	async function loadFile(e: Event) {
+	async function onFileChange(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
-		if (!file) return;
-		const ctx = getAudioContext();
-		const arrayBuf = await file.arrayBuffer();
-		audioBuffer = await ctx.decodeAudioData(arrayBuf);
-		duration = audioBuffer.duration;
-		pausedAt = 0;
-		currentTime = 0;
-		fileLoaded = true;
+		if (file) await audioPlayerService.loadFile(file);
 	}
-
-	// --- Cleanup ---
-	onDestroy(() => {
-		if (rafId) cancelAnimationFrame(rafId);
-		stop();
-		audioSpectrumStore.analyserNode = null;
-		audioSpectrumStore.isEnabled = false;
-		audioContext?.close();
-		audioContext = null;
-	});
 </script>
 
 <div class="flex flex-col gap-3">
 	<!-- EQ toggle -->
 	<div class="flex items-center gap-4">
 		<Switch
-			title={filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
+			title={audioPlayerService.filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
 			labelText={m.equalizer_player_filter_toggle()}
-			labelClass="text-xs" size="sm"
-			checked={filtersEnabled}
-			onCheckedChange={(checked) => {
-				filtersEnabled = checked;
-			}}
+			labelClass="text-xs"
+			size="sm"
+			checked={audioPlayerService.filtersEnabled}
+			onCheckedChange={(checked) => audioPlayerService.setFiltersEnabled(checked)}
 		/>
 		<Switch
-			title={showSpectrum ? 'Hide audio spectrum' : 'Show audio spectrum'}
+			title={audioSpectrumStore.isEnabled ? 'Hide audio spectrum' : 'Show audio spectrum'}
 			labelText={m.equalizer_player_spectrum_toggle()}
-			labelClass="text-xs" size="sm"
-			checked={showSpectrum}
-			onCheckedChange={() => {
-				showSpectrum = !showSpectrum;
-				audioSpectrumStore.isEnabled = showSpectrum;
-			}}
+			labelClass="text-xs"
+			size="sm"
+			bind:checked={audioSpectrumStore.isEnabled}
 		/>
 	</div>
 
 	<!-- Source select -->
 	<select
-		value={audioSource}
-		onchange={(e) => {
-			audioSource = (e.target as HTMLSelectElement).value;
-			if (isPlaying) stop();
-		}}
+		value={audioPlayerService.audioSource}
+		onchange={(e) =>
+			audioPlayerService.setAudioSource((e.target as HTMLSelectElement).value as AudioSource)}
 		class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
 	>
 		<option value="">{m.equalizer_player_option_init()}</option>
@@ -338,11 +58,11 @@
 	</select>
 
 	<!-- Tone controls (only when tone selected) -->
-	{#if audioSource === 'tone'}
+	{#if audioPlayerService.audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
 			<span class="text-xs text-base-content/60"
 				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
-					>{toneFreq} Hz</span
+					>{audioPlayerService.toneFreq} Hz</span
 				></span
 			>
 			<input
@@ -351,19 +71,16 @@
 				max="1000"
 				step="1"
 				value={Math.round(
-					((Math.log10(toneFreq) - Math.log10(20)) /
+					((Math.log10(audioPlayerService.toneFreq) - Math.log10(20)) /
 						(Math.log10(20000) - Math.log10(20))) *
 						1000
 				)}
 				oninput={(e) => {
 					const v = parseFloat((e.target as HTMLInputElement).value);
-					toneFreq = Math.round(
-						Math.pow(
-							10,
-							Math.log10(20) + (v / 1000) * (Math.log10(20000) - Math.log10(20))
-						)
+					const hz = Math.round(
+						Math.pow(10, Math.log10(20) + (v / 1000) * (Math.log10(20000) - Math.log10(20)))
 					);
-					if (oscillatorNode && isPlaying) oscillatorNode.frequency.value = toneFreq;
+					audioPlayerService.setToneFreq(hz);
 				}}
 				class="w-full accent-accent"
 			/>
@@ -371,7 +88,7 @@
 	{/if}
 
 	<!-- File upload (only when file selected) -->
-	{#if audioSource === 'file'}
+	{#if audioPlayerService.audioSource === 'file'}
 		<Button
 			title={m.equalizer_player_file_upload()}
 			onclick={() => fileInputEl?.click()}
@@ -379,7 +96,7 @@
 			size="sm"
 			class="w-full"
 		>
-			<FileUp class="size-3.5 mr-1.5" />
+			<FileUp class="mr-1.5 size-3.5" />
 			{m.equalizer_player_file_upload()}
 		</Button>
 		<input
@@ -387,21 +104,22 @@
 			type="file"
 			accept="audio/*"
 			class="hidden"
-			onchange={loadFile}
+			onchange={onFileChange}
 		/>
-		{#if fileLoaded}
+		{#if audioPlayerService.fileLoaded}
 			<div class="flex items-center gap-2 text-xs text-base-content/60">
-				<span class="tabular-nums">{formatTime(currentTime)}</span>
+				<span class="tabular-nums">{formatTime(audioPlayerService.currentTime)}</span>
 				<input
 					type="range"
 					min="0"
-					max={duration}
+					max={audioPlayerService.duration}
 					step="0.1"
-					value={currentTime}
-					oninput={(e) => seekTo(parseFloat((e.target as HTMLInputElement).value))}
+					value={audioPlayerService.currentTime}
+					oninput={(e) =>
+						audioPlayerService.seekTo(parseFloat((e.target as HTMLInputElement).value))}
 					class="flex-1 accent-accent"
 				/>
-				<span class="tabular-nums">{formatTime(duration)}</span>
+				<span class="tabular-nums">{formatTime(audioPlayerService.duration)}</span>
 			</div>
 		{/if}
 	{/if}
@@ -410,28 +128,31 @@
 	<div class="flex items-center gap-1.5">
 		<Button
 			title="Stop Audio"
-			onclick={stop}
-			disabled={!audioSource}
-			variant="muted" size="icon"
+			onclick={() => audioPlayerService.stop()}
+			disabled={!audioPlayerService.audioSource}
+			variant="muted"
+			size="icon"
 		>
 			<Square class="size-3.5" />
 		</Button>
 		<Button
-			title={isPlaying ? 'Pause Audio' : 'Play Audio'}
-			onclick={togglePlay}
-			disabled={!audioSource || (audioSource === 'file' && !fileLoaded)}
-			variant="muted" size="icon"
+			title={audioPlayerService.isPlaying ? 'Pause Audio' : 'Play Audio'}
+			onclick={() => audioPlayerService.togglePlay()}
+			disabled={!audioPlayerService.audioSource ||
+				(audioPlayerService.audioSource === 'file' && !audioPlayerService.fileLoaded)}
+			variant="muted"
+			size="icon"
 		>
-			{#if isPlaying}
+			{#if audioPlayerService.isPlaying}
 				<Pause class="size-3.5" />
 			{:else}
 				<Play class="size-3.5" />
 			{/if}
 		</Button>
-		<div class="w-px h-5 bg-base-content/30 mx-1"></div>
+		<div class="mx-1 h-5 w-px bg-base-content/30"></div>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">
-			{#if volume == 0}
+			{#if audioPlayerService.volume == 0}
 				<VolumeX class="size-3.5 text-base-content/60" />
 			{:else}
 				<Volume2 class="size-3.5" />
@@ -441,11 +162,9 @@
 				min="0"
 				max="1"
 				step="0.01"
-				value={volume}
-				oninput={(e) => {
-					volume = parseFloat((e.target as HTMLInputElement).value);
-					if (gainNode) gainNode.gain.value = volume;
-				}}
+				value={audioPlayerService.volume}
+				oninput={(e) =>
+					audioPlayerService.setVolume(parseFloat((e.target as HTMLInputElement).value))}
 				class="w-full accent-accent"
 			/>
 		</div>

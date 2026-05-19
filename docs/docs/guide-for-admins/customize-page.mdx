@@ -6,70 +6,95 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 # Customizing the Page
+
 You can change the initial display content, design theme, etc., of the modernGraphTool page to suit your needs.
 
 You will primarily personalize the page by editing `index.html`, `theme.css`, and `config.js` — in that order, from simplest to most involved.
 
 :::info[File Locations]
+
 - **Pre-built release users**: These files are in the root of your extracted release folder.
 - **Source builders**: Default configuration and data files are in the `defaults/` folder. The HTML entry point is `src/app.html`. After building (`npm run build`), everything is output to `dist/`.
-:::
+  :::
 
 ## Changing Page Metadata (`index.html`)
 
 The `index.html` file defines the basic HTML structure and metadata for modernGraphTool — the page title, description, preview image, favicon, and other `<head>` fields picked up by browsers and social media scrapers.
 
 :::info[File Location]
+
 - **Pre-built release**: Edit `index.html` directly in your release folder.
 - **Source builders**: Edit `src/app.html` (SvelteKit template). After building, the output `dist/index.html` is generated from this template.
-:::
+  :::
 
 :::warning[Caution]
 The HTML file follows HTML syntax. You must check for syntax errors after modification.
 :::
 
 ### `TITLE`
+
 ```html
 <title>modernGraphTool</title>
 <meta name="title" content="modernGraphTool" />
 <meta property="og:title" content="modernGraphTool" />
 ```
+
 Sets the page title.
 
 ### `DESCRIPTION`
+
 ```html
-<meta name="description" content="View and compare frequency response graphs for earphones/headphones."/>
-<meta property="og:description" content="View and compare frequency response graphs for earphones/headphones."/>
+<meta
+	name="description"
+	content="View and compare frequency response graphs for earphones/headphones."
+/>
+<meta
+	property="og:description"
+	content="View and compare frequency response graphs for earphones/headphones."
+/>
 ```
+
 Sets the page description.
 
 ### `KEYWORDS`
+
 Sets the page keywords (used for search engine optimization).
+
 ```html
-<meta name="keywords" content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"/>
+<meta
+	name="keywords"
+	content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"
+/>
 ```
 
 ### `URL` / `LINK`
+
 Sets the page URL and link.
+
 ```html
-<meta property="og:url" content="/?"/>
-<link rel="canonical" href="/?">
+<meta property="og:url" content="/?" /> <link rel="canonical" href="/?" />
 ```
 
 ### `IMAGE`
+
 Sets the page preview image.
+
 ```html
-<meta property="og:image" content="/preview.png"/>
+<meta property="og:image" content="/preview.png" />
 ```
+
 :::tip[Tip]
 Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
 :::
 
 ### `FAVICON`
+
 Sets the page favicon (tab icon).
+
 ```html
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
 ```
+
 :::tip[Tip]
 Images used in modernGraphTool can be located in any path, but it is recommended to place them in the `assets/images` folder.
 :::
@@ -92,21 +117,21 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 
 ```css
 :root {
-  --color-graph-bg: transparent;                 /* Graph background */
-  --color-graph-watermark-opacity: 0.08;         /* Watermark opacity */
-  --color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
-  --color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
-  --color-graph-axis-label: rgba(0, 0, 0, 0.6);  /* Axis labels (Hz, dB) */
-  --color-graph-grid-text: rgba(0, 0, 0, 0.5);   /* Grid value labels */
-  --color-graph-baseline: rgba(0, 0, 0, 0.25);   /* Baseline indicator */
+	--color-graph-bg: transparent; /* Graph background */
+	--color-graph-watermark-opacity: 0.08; /* Watermark opacity */
+	--color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
+	--color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
+	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
+	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
+	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
 }
 
 .dark {
-  --color-graph-grid-major: rgba(255, 255, 255, 0.15);
-  --color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-  --color-graph-axis-label: rgba(255, 255, 255, 0.6);
-  --color-graph-grid-text: rgba(255, 255, 255, 0.5);
-  --color-graph-baseline: rgba(255, 255, 255, 0.25);
+	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
+	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-baseline: rgba(255, 255, 255, 0.25);
 }
 ```
 
@@ -116,26 +141,26 @@ The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI
 
 ```css
 :root {
-  --color-base-100: oklch(98% 0.003 247.858);      /* Background */
-  --color-base-200: oklch(96% 0.007 247.896);      /* Elevated surface */
-  --color-base-300: oklch(92% 0.013 255.508);      /* Highest surface */
-  --color-base-content: oklch(20% 0.042 265.755);  /* Default text */
-  --color-primary: oklch(59% 0.145 163.225);       /* Primary accent */
-  --color-primary-content: oklch(97% 0.021 166.113);
-  --color-secondary: oklch(60% 0.126 221.723);
-  --color-secondary-content: oklch(98% 0.019 200.873);
-  --color-accent: oklch(44% 0.017 285.786);
-  --color-accent-content: oklch(98% 0 0);
-  --color-neutral: oklch(44% 0.043 257.281);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(68% 0.169 237.323);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(76% 0.233 130.85);
-  --color-success-content: oklch(98% 0.031 120.757);
-  --color-warning: oklch(79% 0.184 86.047);
-  --color-warning-content: oklch(98% 0.026 102.212);
-  --color-error: oklch(64% 0.246 16.439);
-  --color-error-content: oklch(96% 0.015 12.422);
+	--color-base-100: oklch(98% 0.003 247.858); /* Background */
+	--color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
+	--color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
+	--color-base-content: oklch(20% 0.042 265.755); /* Default text */
+	--color-primary: oklch(59% 0.145 163.225); /* Primary accent */
+	--color-primary-content: oklch(97% 0.021 166.113);
+	--color-secondary: oklch(60% 0.126 221.723);
+	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-accent: oklch(44% 0.017 285.786);
+	--color-accent-content: oklch(98% 0 0);
+	--color-neutral: oklch(44% 0.043 257.281);
+	--color-neutral-content: oklch(98% 0.003 247.858);
+	--color-info: oklch(68% 0.169 237.323);
+	--color-info-content: oklch(97% 0.013 236.62);
+	--color-success: oklch(76% 0.233 130.85);
+	--color-success-content: oklch(98% 0.031 120.757);
+	--color-warning: oklch(79% 0.184 86.047);
+	--color-warning-content: oklch(98% 0.026 102.212);
+	--color-error: oklch(64% 0.246 16.439);
+	--color-error-content: oklch(96% 0.015 12.422);
 }
 ```
 
@@ -158,6 +183,7 @@ The `config.js` file follows JavaScript syntax. Strings must be enclosed in quot
 :::
 
 ### `INITIAL_PHONES`
+
 ```JavaScript
 // Brand : Sennheiser
 // Model : IE200
@@ -167,43 +193,59 @@ INITIAL_PHONES: ["Sennheiser IE200 (Foam Tip)"],
 // You can add multiple phones to the list.
 INITIAL_PHONES: ["Sennheiser IE200", "Sony IER-Z1R"],
 ```
+
 Specifies the names of the Phone (measurement data) to be displayed by default when the page loads, in array format.
+
 - You must use the brand + device name defined in `phone_book.json`.
   - The device name to be displayed can include a suffix. If no suffix is specified, the first file will be displayed by default.
 - You can choose to display multiple Phones (measurement data).
 
 ### `INITIAL_TARGETS`
+
 ```JavaScript
 INITIAL_TARGETS: ["Harman IE 2019v2 Target"],
 
 // You can add multiple targets to the list.
 INITIAL_TARGETS: ["Harman IE 2019v2 Target", "KEMAR DF Target"],
 ```
+
 Specifies the names of the Target (target curve) to be displayed by default when the page loads, in array format.
+
 - Use the file names (excluding extension) in the `data/target` folder.
 
 ### `INITIAL_PANEL`
+
 ```JavaScript
 INITIAL_PANEL: "graph",
 ```
+
 Specifies the panel to be displayed by default when the page loads.
+
 - You can choose from `phone`, `graph`, `equalizer`, or `misc`.
 
 ### `NORMALIZATION`
+
 ```JavaScript
 NORMALIZATION: {
   TYPE: "Hz",
   HZ_VALUE: 500,
 },
 ```
+
 Specifies the default settings for graph normalization.
-  #### `TYPE`
-  Sets the normalization method.
-  - You can choose between `Hz (based on a specific frequency)` or `Avg (based on the average of 300~3000Hz)`.
-  #### `HZ_VALUE`
-  If `TYPE` is set to 'Hz', the entered number will be used as the default frequency.
+
+#### `TYPE`
+
+Sets the normalization method.
+
+- You can choose between `Hz (based on a specific frequency)` or `Avg (based on the average of 300~3000Hz)`.
+
+#### `HZ_VALUE`
+
+If `TYPE` is set to 'Hz', the entered number will be used as the default frequency.
 
 ### `VISUALIZATION`
+
 ```JavaScript
 VISUALIZATION: {
   ASPECT_RATIO: "16:9",
@@ -227,29 +269,45 @@ VISUALIZATION: {
   RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)",
 },
 ```
+
 Specifies settings related to graph visualization.
-  #### `ASPECT_RATIO`
-  Sets the aspect ratio of the frequency response graph.
-  - `"16:9"` — Standard widescreen (800×450 viewBox).
-  - `"CrinGraph"` — Matches CrinGraph's proportions (800×346 viewBox).
-  #### `DEFAULT_Y_SCALE`
-  Sets the default display range for the Y-axis (dB).
-  - You can choose from 30, 40, 50, 60, or 80.
-  #### `LABEL`
-  Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph.
-  - `LOCATION` : Name label position
-    - Choose from `BOTTOM_LEFT`, `BOTTOM_RIGHT`, `TOP_LEFT`, `TOP_RIGHT`.
-  - `POSITION` : Fine-tune name label position
-    - Adjustable values for `LEFT`, `RIGHT`, `UP`, `DOWN` items.
-  - `TEXT_SIZE` : Name label size (in px).
-  - `TEXT_WEIGHT` : Name label weight (choose a multiple of 100 from 100 to 900).
-  #### `BASELINE_LABEL`
-  Sets the position, size, weight, etc., of the baseline label displayed on the graph when a baseline (compensation) target is active.
-  - Same options as `LABEL` above.
-  #### `RIG_DESCRIPTION`
-  Enter the description of the measurement equipment to be displayed in the upper right corner of the graph.
+
+#### `ASPECT_RATIO`
+
+Sets the aspect ratio of the frequency response graph.
+
+- `"16:9"` — Standard widescreen (800×450 viewBox).
+- `"CrinGraph"` — Matches CrinGraph's proportions (800×346 viewBox).
+
+#### `DEFAULT_Y_SCALE`
+
+Sets the default display range for the Y-axis (dB).
+
+- You can choose from 30, 40, 50, 60, or 80.
+
+#### `LABEL`
+
+Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph.
+
+- `LOCATION` : Name label position
+  - Choose from `BOTTOM_LEFT`, `BOTTOM_RIGHT`, `TOP_LEFT`, `TOP_RIGHT`.
+- `POSITION` : Fine-tune name label position
+  - Adjustable values for `LEFT`, `RIGHT`, `UP`, `DOWN` items.
+- `TEXT_SIZE` : Name label size (in px).
+- `TEXT_WEIGHT` : Name label weight (choose a multiple of 100 from 100 to 900).
+
+#### `BASELINE_LABEL`
+
+Sets the position, size, weight, etc., of the baseline label displayed on the graph when a baseline (compensation) target is active.
+
+- Same options as `LABEL` above.
+
+#### `RIG_DESCRIPTION`
+
+Enter the description of the measurement equipment to be displayed in the upper right corner of the graph.
 
 ### `INTERFACE`
+
 ```JavaScript
 INTERFACE: {
   PREFERRED_DARK_MODE_THEME: "light",
@@ -263,38 +321,49 @@ INTERFACE: {
   HIDE_DEV_DONATE_BUTTON: false,
 },
 ```
+
 Specifies settings related to the user interface.
-  #### `PREFERRED_DARK_MODE_THEME`
-  Specifies the dark mode setting.
-  - Choose from `light`, `dark`, `system`.
-  #### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
-  Sets whether to remove an already added item from the graph when reselected in the Phone (measurement data) selector.
-  - Choose `true` or `false`.
-  #### `SWITCH_PHONE_PANEL_ON_BRAND_CLICK`
-  Sets whether to automatically switch to the phone list when a brand button is clicked in the mobile UI.
-  - Choose `true` or `false`.
-  #### `TARGET`
-  Specifies settings related to the Target selector.
-    ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
-    Sets whether to display the Target list in multiple lines per type.
-    - Choose `true` or `false`.
-    ##### `OMIT_TARGET_SUFFIX`
-    Sets whether to omit the 'Target' suffix for each target item.
-    - Choose `true` or `false`.
-    ##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
-    Sets whether the target list is collapsed on initial page load.
-    - Choose `true` or `false`.
-  #### `HIDE_DEV_DONATE_BUTTON`
-  Sets whether to hide the 'Donate' button.
-  - Choose `true` or `false`.
+
+#### `PREFERRED_DARK_MODE_THEME`
+
+Specifies the dark mode setting.
+
+- Choose from `light`, `dark`, `system`.
+
+#### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
+
+Sets whether to remove an already added item from the graph when reselected in the Phone (measurement data) selector.
+
+- Choose `true` or `false`.
+
+#### `SWITCH_PHONE_PANEL_ON_BRAND_CLICK`
+
+Sets whether to automatically switch to the phone list when a brand button is clicked in the mobile UI.
+
+- Choose `true` or `false`.
+
+#### `TARGET`
+
+Specifies settings related to the Target selector. ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+Sets whether to display the Target list in multiple lines per type. - Choose `true` or `false`. ##### `OMIT_TARGET_SUFFIX`
+Sets whether to omit the 'Target' suffix for each target item. - Choose `true` or `false`. ##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
+Sets whether the target list is collapsed on initial page load. - Choose `true` or `false`.
+
+#### `HIDE_DEV_DONATE_BUTTON`
+
+Sets whether to hide the 'Donate' button.
+
+- Choose `true` or `false`.
 
 ### `URL`
+
 ```JavaScript
 URL: {
   AUTO_UPDATE_URL: true,
   COMPRESS_URL: true,
 },
 ```
+
 - `AUTO_UPDATE_URL`: Sets whether to automatically update the URL according to the selected device and target.
   - Choose `true` or `false`.
 - `COMPRESS_URL`: Sets whether to compress the URL.
@@ -302,6 +371,7 @@ URL: {
   - Choose `true` or `false`.
 
 ### `RANKING_URL`
+
 ```JavaScript
 // Default — no link, review score renders as plain text:
 RANKING_URL: "",
@@ -315,17 +385,18 @@ RANKING_URL: "https://reviews.example.com/?type={type}#{slug}",
 // Raw URL with no per-device anchoring (no placeholders → used verbatim):
 RANKING_URL: "https://docs.google.com/spreadsheets/.../pubhtml",
 ```
+
 Wraps the per-phone review score in the device selector with a clickable link to your ranking page (e.g. [squigRanking](https://github.com/potatosalad775/squigRanking)). When empty (the default), the score renders as plain text — there is no behavior change for existing deploys.
 
 The value is a URL template. modernGraphTool substitutes the following placeholders per row at render time. Values are URL-encoded (except `{slug}`, which keeps `-` readable).
 
-| Placeholder  | Expands to                                                            |
-|--------------|-----------------------------------------------------------------------|
-| `{brand}`    | The phone's brand                                                     |
-| `{model}`    | The phone's model                                                     |
+| Placeholder  | Expands to                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| `{brand}`    | The phone's brand                                                                              |
+| `{model}`    | The phone's model                                                                              |
 | `{slug}`     | `{brand}-{model}` lowercased, whitespace → `-` (matches squigRanking's `deepLink` slug format) |
-| `{fullName}` | `{brand} {model}` joined                                              |
-| `{type}`     | Always `earphone` — see note below                                    |
+| `{fullName}` | `{brand} {model}` joined                                                                       |
+| `{type}`     | Always `earphone` — see note below                                                             |
 
 If the template contains **no** placeholders (e.g. a Google Sheet URL), it is used verbatim — no slug or query string is appended.
 
@@ -334,6 +405,7 @@ modernGraphTool's `phone_book.json` does not record device type per phone, so `{
 :::
 
 ### `CDN_MODE`
+
 ```JavaScript
 CDN_MODE: {
   MAJOR_VERSION: 2,
@@ -342,7 +414,9 @@ CDN_MODE: {
   // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
 },
 ```
+
 Configures CDN deployment settings. **Only used when deploying with `cdn-index.html`** — leave this section commented out for standard `dist/` deployments.
+
 - `MAJOR_VERSION`: Pins the app to a specific major version (e.g., `2` means auto-update within v2.x.x).
 - `BASE`: Custom CDN base URL. Only change this if you're hosting the CDN assets yourself (advanced use).
 - `BASE_PATH`: Deployment subpath (e.g. `"/headphones"`), with no trailing slash. **Required for any deployment not at the (sub)domain root.** For a site at `example.com/headphones/` or `username.squig.link/headphones/`, set `BASE_PATH: "/headphones"`. Only leave this unset if your site is served at the root of its (sub)domain — e.g. `example.com/` or `username.squig.link/`. Without it, share-link deep routes will 404 even though the home page loads fine. For the full explanation of why this is effectively always required, see the [CDN deployment guide](./deployment/cdn#why-base_path-is-almost-always-required).
@@ -353,6 +427,7 @@ If you are using the [Pre-built Release](./deployment/prebuilt) method (uploadin
 :::
 
 ### `LANGUAGE`
+
 ```JavaScript
 LANGUAGE: {
   LANGUAGE_LIST: [
@@ -362,6 +437,7 @@ LANGUAGE: {
   ENABLE_SYSTEM_LANG_DETECTION: true,
 },
 ```
+
 - `LANGUAGE_LIST`: Sets the list of available languages.
   - Add each language in the format `["language_code", "language_name"]`.
 - `ENABLE_I18N`: Sets whether to enable multilingual support.
@@ -371,6 +447,7 @@ LANGUAGE: {
   - Choose `true` or `false`.
 
 ### `PATH`
+
 ```JavaScript
 PATH: {
   PHONE_MEASUREMENT: "./data/phones",
@@ -378,6 +455,7 @@ PATH: {
   PHONE_BOOK: "./data/phone_book.json",
 },
 ```
+
 - `PHONE_MEASUREMENT`: Sets the folder path where Phone (measurement data) files are stored.
 - `TARGET_MEASUREMENT`: Sets the folder path where Target (target curve) files are stored.
 - `PHONE_BOOK`: Sets the file path for `phone_book.json`, which records Phone (measurement data) information.
@@ -387,6 +465,7 @@ It is recommended **not to modify** the data file paths unless absolutely necess
 :::
 
 ### `WATERMARK`
+
 ```JavaScript
 WATERMARK: [
   {
@@ -405,7 +484,9 @@ WATERMARK: [
   }
 ],
 ```
+
 Sets the watermark to be displayed on the graph.
+
 - Multiple watermarks can be displayed simultaneously. Each watermark is distinguished by a `{}` object.
 - modernGraphTool supports two types of watermarks: `TEXT` and `IMAGE`.
   - Specify the watermark type with the `TYPE` field within the object.
@@ -415,36 +496,30 @@ Images used in modernGraphTool can be located in any path, but it is recommended
 :::
 
 <Tabs>
-  <TabItem value="TEXT" label="TEXT">
-    - `TYPE` : Specifies the watermark type.
-      - Set to `TEXT`.
-    - `CONTENT` : Sets the text to be displayed in the watermark.
-      - Multiple strings can be entered in array format (enclosed in `[]`).
-      - If 2 or more strings are specified, a randomly selected string will be displayed on initial load.
-    - `LOCATION` : Sets the watermark position.
-      - Choose from `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`.
-    - `SIZE` : Sets the watermark size (in px).
-    - `FONT_FAMILY` : Sets the watermark font.
-    - `FONT_WEIGHT` : Sets the watermark font weight (a multiple of 100 from 100 to 900).
-    - `COLOR` : Sets the watermark color (HEX code).
-    - `OPACITY` : Sets the watermark opacity (0 to 1).
-  </TabItem>
-  <TabItem value="IMAGE" label="IMAGE">
-    - `TYPE` : Specifies the watermark type.
-      - Set to `IMAGE`.
-    - `CONTENT` : Sets the image file path to be displayed in the watermark.
-      - Multiple image file paths can be entered in array format (enclosed in `[]`).
-      - If 2 or more image paths are specified, a randomly selected image will be displayed on initial load.
-    - `LOCATION` : Sets the watermark position.
-      - Choose from `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`.
-    - `SIZE` : Sets the watermark size (in px).
-    - `POSITION` : Fine-tunes the watermark position.
-      - Set the top, bottom, left, and right positions of the watermark with the `UP`, `DOWN`, `LEFT`, `RIGHT` fields (in px).
-    - `OPACITY` : Sets the watermark opacity (0 to 1).
-  </TabItem>
+	<TabItem value="TEXT" label="TEXT">
+		- `TYPE` : Specifies the watermark type. - Set to `TEXT`. - `CONTENT` : Sets the text to be
+		displayed in the watermark. - Multiple strings can be entered in array format (enclosed in
+		`[]`). - If 2 or more strings are specified, a randomly selected string will be displayed on
+		initial load. - `LOCATION` : Sets the watermark position. - Choose from `TOP_LEFT`, `TOP_RIGHT`,
+		`BOTTOM_LEFT`, `BOTTOM_RIGHT`. - `SIZE` : Sets the watermark size (in px). - `FONT_FAMILY` :
+		Sets the watermark font. - `FONT_WEIGHT` : Sets the watermark font weight (a multiple of 100
+		from 100 to 900). - `COLOR` : Sets the watermark color (HEX code). - `OPACITY` : Sets the
+		watermark opacity (0 to 1).
+	</TabItem>
+	<TabItem value="IMAGE" label="IMAGE">
+		- `TYPE` : Specifies the watermark type. - Set to `IMAGE`. - `CONTENT` : Sets the image file
+		path to be displayed in the watermark. - Multiple image file paths can be entered in array
+		format (enclosed in `[]`). - If 2 or more image paths are specified, a randomly selected image
+		will be displayed on initial load. - `LOCATION` : Sets the watermark position. - Choose from
+		`TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT`. - `SIZE` : Sets the watermark size (in
+		px). - `POSITION` : Fine-tunes the watermark position. - Set the top, bottom, left, and right
+		positions of the watermark with the `UP`, `DOWN`, `LEFT`, `RIGHT` fields (in px). - `OPACITY` :
+		Sets the watermark opacity (0 to 1).
+	</TabItem>
 </Tabs>
 
 ### `TARGET_MANIFEST`
+
 ```JavaScript
 TARGET_MANIFEST: [
   { type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
@@ -454,7 +529,9 @@ TARGET_MANIFEST: [
   { type:"Δ",           files:["Universal ∆"] }
 ],
 ```
+
 Defines how targets displayed in the Target selector are grouped and sorted.
+
 - The `type` field defines the name of the target group.
 - The `files` field specifies the file names of the targets belonging to that group in array format.
 
@@ -463,24 +540,30 @@ Defines how targets displayed in the Target selector are grouped and sorted.
 :::
 
 ### `MULTI_SAMPLE`
+
 ```JavaScript
 MULTI_SAMPLE: {
   DEFAULT_DISPLAY: "average",
 },
 ```
+
 Controls how multi-sample measurements are displayed when a phone has multiple measurement samples.
+
 - `DEFAULT_DISPLAY`: Sets the default display mode for multi-sample data.
   - `"average"` — Display the average of all samples (default).
   - `"all"` — Display all individual sample curves.
 
 ### `HPTF`
+
 ```JavaScript
 HPTF: {
   DEFAULT_DISPLAY: "fill+curves",
   FILL_OPACITY: 0.3,
 },
 ```
+
 Controls the display of HpTF (Headphone Transfer Function) sample deviation data.
+
 - `DEFAULT_DISPLAY`: Sets the default display mode for HpTF deviation.
   - `"fill"` — Show only the shaded deviation fill area.
   - `"fill+curves"` — Show both the fill area and individual deviation curves.
@@ -489,16 +572,32 @@ Controls the display of HpTF (Headphone Transfer Function) sample deviation data
 - `FILL_OPACITY`: Sets the opacity of the deviation fill area (0 to 1).
 
 ### `TRACE_STYLING`
+
 ```JavaScript
 TRACE_STYLING: {
   PHONE_TRACE_THICKNESS: 2,
   TARGET_TRACE_THICKNESS: 1,
+  CURVE_COLOR_PALETTE: [
+    "#0072B2", "#E69F00", "#009E73", "#CC79A7",
+    "#56B4E9", "#D55E00", "#F0E442", "#000000",
+  ],
+  CURVE_COLOR_PALETTE_RANDOMIZE: false,
   TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
 },
 ```
-Sets the thickness, dash style, etc., of graph lines. You can also specify different line styles for specific targets.
+
+Sets the thickness, dash style, color palette, etc., of graph lines. You can also specify different line styles for specific targets.
+
 - `PHONE_TRACE_THICKNESS` : Sets the thickness of Phone (measurement data) graph lines (in px).
 - `TARGET_TRACE_THICKNESS` : Sets the thickness of Target (target curve) graph lines (in px).
+- `CURVE_COLOR_PALETTE` : Curated palette consumed in order when assigning a color to a newly added curve.
+  - Accepts any CSS color string (`#hex`, `oklch(...)`, `hsl(...)`, `rgb(...)`).
+  - Once exhausted (or every preset is too close to a color the user already manually picked), modernGraphTool falls back to OKLCH-based generation that picks the next color farthest in perceptual distance from every color already on the graph.
+  - Leave empty or omit to use the built-in [Okabe-Ito](https://jfly.uni-koeln.de/color/) default (8 colorblind-safe colors).
+- `CURVE_COLOR_PALETTE_RANDOMIZE` : When `true`, `CURVE_COLOR_PALETTE` is shuffled once per page load so each session starts from a different color.
+  - The shuffled order stays stable within the session, so add / undo / redo remain consistent.
+  - Has no effect when `CURVE_COLOR_PALETTE` is empty or omitted.
+  - Defaults to `false`.
 - `TARGET_TRACE_DASH` : Sets the line style for a specific target.
   - The `name` field specifies the target's name.
   - The `dash` field sets the target's line style.
@@ -507,6 +606,7 @@ Sets the thickness, dash style, etc., of graph lines. You can also specify diffe
     - Setting to `null` will display the line as solid.
 
 ### `TOPBAR`
+
 ```JavaScript
 TOPBAR: {
   TITLE: {
@@ -520,7 +620,9 @@ TOPBAR: {
   ],
 },
 ```
+
 Sets the title and link list for the page's top bar.
+
 - `TITLE` : Sets the title for the page's top bar.
   - `TYPE` : Specifies the title type.
     - Set to `TEXT` to display a text-formatted title.
@@ -540,6 +642,7 @@ Sets the title and link list for the page's top bar.
 :::
 
 ### `PREFERENCE_BOUND`
+
 ```JavaScript
 PREFERENCE_BOUND: {
   ENABLE_BOUND_ON_INITIAL_LOAD: false,
@@ -548,7 +651,9 @@ PREFERENCE_BOUND: {
   COLOR_BORDER: "rgba(120,120,120,0.5)",
 },
 ```
+
 Configures the preference bound overlay that draws a shaded upper/lower preference range on the graph.
+
 - `ENABLE_BOUND_ON_INITIAL_LOAD`: Shows bounds immediately on page load.
   - Choose `true` or `false`.
 - `BASE_DF_TARGET_FILE`: The reference DF target file used for compensation.
@@ -560,6 +665,7 @@ Bound data files (`Bounds U.txt` / `Bounds D.txt`) must exist in the `data/` fol
 :::
 
 ### `TARGET_CUSTOMIZER`
+
 ```JavaScript
 TARGET_CUSTOMIZER: {
   CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
@@ -581,7 +687,9 @@ TARGET_CUSTOMIZER: {
   ],
 },
 ```
+
 Configures the target customizer, which allows per-target filter adjustments for specified target curves.
+
 - `CUSTOMIZABLE_TARGETS`: Array of target file names that can be customized.
 - `FILTERS`: Available filter definitions. Each filter has:
   - `id` — Unique identifier for the filter.
@@ -597,6 +705,7 @@ Configures the target customizer, which allows per-target filter adjustments for
   - `filter` — Object mapping filter IDs to gain values.
 
 ### `SQUIGLINK`
+
 ```JavaScript
 SQUIGLINK: {
   ENABLED: true,
@@ -608,7 +717,9 @@ SQUIGLINK: {
   ENABLE_SPONSOR: true,
 },
 ```
+
 Configures the squig.link integration. These features are only active when hosted on `*.squig.link` domains.
+
 - `ENABLED`: Master toggle for squig.link integration.
 - `ANALYTICS_MEASUREMENT_IDS`: Array of GA4 measurement IDs, e.g., `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
 - `ANALYTICS_SITE`: Site name used for analytics attribution.
@@ -618,14 +729,17 @@ Configures the squig.link integration. These features are only active when hoste
 - `ENABLE_SPONSOR`: Enables sponsor banner and shop link features.
 
 ### `DESCRIPTION`
+
 ```JavaScript
 DESCRIPTION: [
   //{ TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
   { TYPE: "HTML", CONTENT: "<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>" },
 ],
 ```
+
 Adds the text / image / HTML element to the 'description' area of the Misc panel.
 Multiple descriptions can be added simultaneously. Each description is distinguished by a `{}` object.
+
 - `TYPE` : Specifies the content type.
   - Set to `TEXT` to display plain text.
   - Set to `IMAGE` to display an image.
@@ -642,6 +756,7 @@ Multiple descriptions can be added simultaneously. Each description is distingui
 ## Multilingual Support (`config.js`)
 
 Some items in `config.js` can be written in languages other than English.
+
 - To enable multilingual support, you need to modify the `LANGUAGE` item in the `config.js` file.
 - The items that support multilingual configuration are:
   - `TARGET_MANIFEST`
@@ -667,6 +782,6 @@ TOPBAR: {
 ```
 
 For multilingual support items, objects written in the default language (English) should be in the `default` field, and objects written in other languages should be in the `i18n` field.
+
 - The `i18n` field must have an object that matches the language code registered in the `LANGUAGE_LIST` item within the `LANGUAGE` item.
 - If you don't need multilingual support, you can use the simpler flat array format (without `default` and `i18n` wrappers).
-

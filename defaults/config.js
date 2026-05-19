@@ -160,7 +160,7 @@ const CONFIG = {
 		// picked) modernGraphTool falls back to OKLCH generation that picks the
 		// next color farthest from every color already on the graph.
 		// Accepts any CSS color (hex, oklch, hsl, rgb).
-		// Leave empty or undefined to use the built-in Okabe-Ito default (8 colorblind-safe colors).
+		// Leave empty or undefined to use the built-in Okabe-Ito default (7 colorblind-safe colors except black).
 		CURVE_COLOR_PALETTE: [
 			'#0072B2',
 			'#E69F00',
@@ -168,9 +168,12 @@ const CONFIG = {
 			'#CC79A7',
 			'#56B4E9',
 			'#D55E00',
-			'#F0E442',
-			'#000000'
+			'#F0E442'
 		],
+		// When true, shuffle CURVE_COLOR_PALETTE once per page load so each
+		// session starts from a different color. The shuffled order stays
+		// stable within the session (consistent across add / undo / redo).
+		CURVE_COLOR_PALETTE_RANDOMIZE: true,
 		// For more information about 'stroke-dasharray' attribute, please refer to:
 		// https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray
 		// ... If you want to hide target graph trace, please set 'dash' to '0 1'.

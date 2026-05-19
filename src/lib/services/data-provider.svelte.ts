@@ -38,7 +38,12 @@ import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
-import { nextCurveColor, parseOklch, formatOklch } from '$lib/utils/curve-palette.js';
+import {
+	nextCurveColor,
+	parseOklch,
+	formatOklch,
+	resolveCurvePalette
+} from '$lib/utils/curve-palette.js';
 import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
 
@@ -784,7 +789,10 @@ class DataProvider {
 			[e.colors.AVG, e.colors.L, e.colors.R].filter((c): c is string => Boolean(c))
 		);
 		const palette = getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE') as string[] | undefined;
-		const base = nextCurveColor(used, palette, { isTarget: sourceType === 'target' });
+		const randomize = Boolean(getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE_RANDOMIZE'));
+		const base = nextCurveColor(used, resolveCurvePalette(palette, randomize), {
+			isTarget: sourceType === 'target'
+		});
 
 		if (sourceType === 'target') return { AVG: base };
 

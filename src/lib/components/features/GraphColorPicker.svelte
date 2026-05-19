@@ -8,7 +8,8 @@
 		parseOklch,
 		formatOklch,
 		hexToOklch,
-		oklchToHex
+		oklchToHex,
+		resolveCurvePalette
 	} from '$lib/utils/curve-palette.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { Popover } from 'bits-ui';
@@ -116,7 +117,10 @@
 				[e.colors.AVG, e.colors.L, e.colors.R].filter((c): c is string => Boolean(c))
 			);
 		const palette = getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE') as string[] | undefined;
-		const next = nextCurveColor(used, palette, { isTarget: isTargetType() });
+		const randomize = Boolean(getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE_RANDOMIZE'));
+		const next = nextCurveColor(used, resolveCurvePalette(palette, randomize), {
+			isTarget: isTargetType()
+		});
 		const [L, C, H] = parseOklch(next);
 		localL = round2(L);
 		localC = round2(C);

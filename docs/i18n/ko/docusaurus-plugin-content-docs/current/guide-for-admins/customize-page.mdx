@@ -579,6 +579,7 @@ TRACE_STYLING: {
     "#0072B2", "#E69F00", "#009E73", "#CC79A7",
     "#56B4E9", "#D55E00", "#F0E442", "#000000",
   ],
+  CURVE_COLOR_PALETTE_RANDOMIZE: false,
   TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
 },
 ```
@@ -591,6 +592,10 @@ TRACE_STYLING: {
   - 모든 CSS 색상 표기를 입력받습니다 (`#hex`, `oklch(...)`, `hsl(...)`, `rgb(...)`).
   - 팔레트가 모두 소진되었거나 사용자가 직접 고른 색과 너무 가까운 경우, modernGraphTool은 OKLCH 기반 자동 생성으로 전환하여 그래프에 이미 표시된 모든 색과 시각적으로 가장 거리가 먼 색을 선택합니다.
   - 비워 두거나 생략하면 기본 [Okabe-Ito](https://jfly.uni-koeln.de/color/) 팔레트(색맹 친화적인 8가지 색)가 사용됩니다.
+- `CURVE_COLOR_PALETTE_RANDOMIZE` : `true`로 설정하면 페이지가 로드될 때마다 `CURVE_COLOR_PALETTE` 순서가 한 번 무작위로 섞여, 매 세션이 서로 다른 색으로 시작합니다.
+  - 섞인 순서는 한 세션 내에서는 그대로 유지되므로 추가 / 실행취소 / 다시실행이 일관되게 동작합니다.
+  - `CURVE_COLOR_PALETTE`가 비어 있거나 생략된 경우에는 효과가 없습니다.
+  - 기본값은 `false`입니다.
 - `TARGET_TRACE_DASH` : 특정 타겟의 선 스타일을 설정합니다.
   - `name` 필드는 타겟의 이름을 지정합니다.
   - `dash` 필드는 타겟의 선 스타일을 설정합니다.

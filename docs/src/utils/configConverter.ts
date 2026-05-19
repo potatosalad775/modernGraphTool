@@ -261,9 +261,9 @@ export function convertV1ToV2(
 			'#CC79A7',
 			'#56B4E9',
 			'#D55E00',
-			'#F0E442',
-			'#000000'
+			'#F0E442'
 		],
+		CURVE_COLOR_PALETTE_RANDOMIZE: true,
 		TARGET_TRACE_DASH: []
 	};
 
@@ -508,6 +508,7 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 			'#F0E442',
 			'#000000'
 		],
+		CURVE_COLOR_PALETTE_RANDOMIZE: false,
 		TARGET_TRACE_DASH: crin.targetDashed ? [] : []
 	};
 
@@ -923,6 +924,9 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 				raw.TRACE_STYLING?.TARGET_TRACE_THICKNESS ?? defaults.TRACE_STYLING.TARGET_TRACE_THICKNESS,
 			CURVE_COLOR_PALETTE:
 				raw.TRACE_STYLING?.CURVE_COLOR_PALETTE ?? defaults.TRACE_STYLING.CURVE_COLOR_PALETTE,
+			CURVE_COLOR_PALETTE_RANDOMIZE:
+				raw.TRACE_STYLING?.CURVE_COLOR_PALETTE_RANDOMIZE ??
+				defaults.TRACE_STYLING.CURVE_COLOR_PALETTE_RANDOMIZE,
 			TARGET_TRACE_DASH:
 				raw.TRACE_STYLING?.TARGET_TRACE_DASH ?? defaults.TRACE_STYLING.TARGET_TRACE_DASH
 		},

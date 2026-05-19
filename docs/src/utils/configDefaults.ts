@@ -63,6 +63,7 @@ export interface ConfigFormState {
 		PHONE_TRACE_THICKNESS: number;
 		TARGET_TRACE_THICKNESS: number;
 		CURVE_COLOR_PALETTE: string[];
+		CURVE_COLOR_PALETTE_RANDOMIZE: boolean;
 		TARGET_TRACE_DASH: Array<{ name: string; dash: string }>;
 	};
 	TOPBAR: {
@@ -268,6 +269,7 @@ export function createDefaultConfig(): ConfigFormState {
 				'#F0E442',
 				'#000000'
 			],
+			CURVE_COLOR_PALETTE_RANDOMIZE: false,
 			TARGET_TRACE_DASH: []
 		},
 		TOPBAR: {

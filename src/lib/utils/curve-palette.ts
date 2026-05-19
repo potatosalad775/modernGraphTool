@@ -145,6 +145,29 @@ function okabeItoOklch(): [number, number, number][] {
 	return _okabeItoOklch;
 }
 
+// ── Palette resolution (with optional once-per-session shuffle) ─────────────
+
+let _shuffledPalette: { sourceKey: string; shuffled: string[] } | null = null;
+
+export function resolveCurvePalette(
+	palette: string[] | undefined,
+	randomize: boolean
+): string[] | undefined {
+	if (!palette || palette.length === 0) return palette;
+	if (!randomize) return palette;
+	const sourceKey = palette.join('|');
+	if (_shuffledPalette && _shuffledPalette.sourceKey === sourceKey) {
+		return _shuffledPalette.shuffled;
+	}
+	const shuffled = palette.slice();
+	for (let i = shuffled.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+	}
+	_shuffledPalette = { sourceKey, shuffled };
+	return shuffled;
+}
+
 // ── nextCurveColor ─────────────────────────────────────────────────────────
 
 export interface NextCurveColorOptions {

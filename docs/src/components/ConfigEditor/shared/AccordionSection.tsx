@@ -1,4 +1,5 @@
 import React, { useState, useId, type ReactNode } from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import styles from '../ConfigEditor.module.css';
 
 interface AccordionSectionProps {
@@ -27,6 +28,18 @@ export default function AccordionSection({
 }: AccordionSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const contentId = useId();
+
+  // Resolve doc links against the site baseUrl and active locale. These are
+  // plain <a> tags (not Markdown links or Docusaurus <Link>), so the build
+  // never rewrites them — a raw relative href would resolve against the
+  // trailing-slashed page URL on GitHub Pages and break. Build the absolute
+  // path explicitly: baseUrl + locale + path.
+  const { siteConfig, i18n } = useDocusaurusContext();
+  const localePrefix =
+    i18n.currentLocale === i18n.defaultLocale ? '' : `${i18n.currentLocale}/`;
+  const resolvedLearnMoreHref = learnMoreHref
+    ? `${siteConfig.baseUrl}${localePrefix}${learnMoreHref.replace(/^\.?\//, '')}`
+    : undefined;
 
   return (
     <div className={styles.ceSection} id={id}>
@@ -71,7 +84,7 @@ export default function AccordionSection({
                 <>
                   {' '}
                   <a
-                    href={learnMoreHref}
+                    href={resolvedLearnMoreHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.ceSectionLearnMore}

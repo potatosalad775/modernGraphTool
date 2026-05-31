@@ -30,7 +30,7 @@
 
 <Button.Root
 	{...restProps}
-	class="inline-flex items-center justify-center rounded-md font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent data-[state=open]:bg-base-100 {sizeClasses[
+	class="inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100 {sizeClasses[
 		size
 	]} {variantClasses[variant]} {restProps.class}"
 	{title}

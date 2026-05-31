@@ -99,6 +99,13 @@
 			const text = ev.target!.result as string;
 			const filters = parseFilterText(text);
 			if (filters.length) {
+				// An imported parametric file is authored without a device
+				// constraint in mind — applying it under a graphic preset
+				// (e.g. Sony 10-band) would fold the filters into the wrong
+				// shape. Reset to unlimited PEQ so the import lands faithfully.
+				if (eqConstraintsStore.activeId !== 'default') {
+					eqConstraintsStore.setActive('default');
+				}
 				eqCommands.replaceFilters(filters);
 				toast.success(m.equalizer_filter_list_import(), {
 					description: `${filters.length} filters`

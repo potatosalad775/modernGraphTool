@@ -60,6 +60,14 @@ export interface EqConstraintPreset {
 	 * once 2-channel support lands.
 	 */
 	twoChannelSupport?: boolean;
+	/**
+	 * Case-insensitive substrings matched against the loaded phone's
+	 * `identifier`. When a phone is selected as the EQ source and the
+	 * currently active preset is `default`, the first preset whose
+	 * `matchPhones` entry is contained in the identifier is auto-picked.
+	 * Manual picks and connected hardware devices override this.
+	 */
+	matchPhones?: string[];
 }
 
 /** Shape of `defaults/eq-constraints.json` and any remote constraints file. */

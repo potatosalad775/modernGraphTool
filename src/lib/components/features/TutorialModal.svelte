@@ -5,7 +5,14 @@
 	import * as m from '$lib/paraglide/messages';
 	import { appStore } from '$lib/stores/app-store.svelte';
 	import Button from '../atoms/Button.svelte';
-	import { ArrowRightLeft, ArrowUpDown, Keyboard, MoveHorizontal } from '@lucide/svelte';
+	import {
+		ArrowRightLeft,
+		ArrowUpDown,
+		BookOpen,
+		ExternalLink,
+		Keyboard,
+		MoveHorizontal
+	} from '@lucide/svelte';
 
 	const STORAGE_KEY = 'gt-tutorial-dismissed';
 
@@ -16,6 +23,7 @@
 		content: () => string;
 		extra?: () => string;
 		extra2?: () => string;
+		guideLinkLabel?: () => string;
 		icon: string | Component;
 		target?: TutorialTarget;
 	}
@@ -59,6 +67,13 @@
 				target: 'keyboard'
 			});
 		}
+
+		base.push({
+			title: m.tutorial_modal_guide_title,
+			content: m.tutorial_modal_guide_content,
+			guideLinkLabel: m.tutorial_modal_guide_link,
+			icon: BookOpen
+		});
 
 		return base;
 	});
@@ -203,6 +218,18 @@
 							<p>{steps[currentStep].extra2?.()}</p>
 						{/if}
 					</div>
+				{/if}
+
+				{#if steps[currentStep].guideLinkLabel}
+					<a
+						href="https://potatosalad775.github.io/modernGraphTool/docs/category/guide-for-users"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:underline"
+					>
+						{steps[currentStep].guideLinkLabel?.()}
+						<ExternalLink size={14} aria-hidden="true" />
+					</a>
 				{/if}
 			</div>
 

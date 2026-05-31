@@ -3,7 +3,9 @@ import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
 import {
 	eqConstraintsStore,
 	mergePresets,
-	sanitizeInlinePresets
+	sanitizeInlinePresets,
+	BUILTIN_PRESETS,
+	DEFAULT_CONSTRAINT_ID
 } from './eq-constraints-store.svelte.js';
 
 function preset(id: string, overrides: Partial<EqConstraintPreset> = {}): EqConstraintPreset {
@@ -124,5 +126,132 @@ describe('eqConstraintsStore device preset', () => {
 		eqConstraintsStore.presets = eqConstraintsStore.presets.filter((p) => p.id !== 'alt');
 		eqConstraintsStore.clearDeviceConstraint();
 		expect(eqConstraintsStore.activeId).toBe('default');
+	});
+});
+
+describe('eqConstraintsStore built-ins', () => {
+	it('exports built-in presets containing default + generic-10-band', () => {
+		const ids = BUILTIN_PRESETS.map((p) => p.id);
+		expect(ids).toContain(DEFAULT_CONSTRAINT_ID);
+		expect(ids).toContain('generic-10-band');
+	});
+
+	it('default constraint id is "default"', () => {
+		expect(DEFAULT_CONSTRAINT_ID).toBe('default');
+	});
+});
+
+describe('eqConstraintsStore applyPhoneMatch', () => {
+	const sonyPreset = (): EqConstraintPreset =>
+		preset('sony-wh-1000xm6', {
+			label: 'Sony WH-1000XM6',
+			matchPhones: ['WH-1000XM6', '1000XM6']
+		});
+	const fiioPreset = (): EqConstraintPreset =>
+		preset('fiio-eh11', { label: 'Fiio EH11', matchPhones: ['EH11'] });
+
+	beforeEach(() => {
+		eqConstraintsStore.clearDeviceConstraint();
+		eqConstraintsStore.presets = [
+			preset('default', { label: 'Default' }),
+			sonyPreset(),
+			fiioPreset()
+		];
+		// setActive (not direct assignment) to reset the auto-pick flag
+		// between tests.
+		eqConstraintsStore.setActive('default');
+	});
+
+	it('switches to a matching preset when active is default', () => {
+		const id = eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		expect(id).toBe('sony-wh-1000xm6');
+		expect(eqConstraintsStore.activeId).toBe('sony-wh-1000xm6');
+	});
+
+	it('matches case-insensitive substrings inside larger identifiers', () => {
+		const id = eqConstraintsStore.applyPhoneMatch('sony wh-1000xm6 (sample 2)');
+		expect(id).toBe('sony-wh-1000xm6');
+	});
+
+	it('no-ops when the user manually picked a non-default preset', () => {
+		eqConstraintsStore.setActive('fiio-eh11');
+		const id = eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		expect(id).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe('fiio-eh11');
+	});
+
+	it('no-ops when no preset matches the identifier and active is default', () => {
+		const id = eqConstraintsStore.applyPhoneMatch('Some Random Headphone');
+		expect(id).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe('default');
+	});
+
+	it('no-ops on a null/empty identifier when active is default', () => {
+		expect(eqConstraintsStore.applyPhoneMatch(null)).toBeNull();
+		expect(eqConstraintsStore.applyPhoneMatch('')).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe('default');
+	});
+
+	it('skips the default preset itself when scanning matches', () => {
+		eqConstraintsStore.presets = [
+			preset('default', { label: 'Default', matchPhones: ['everything'] }),
+			sonyPreset()
+		];
+		eqConstraintsStore.setActive('default');
+		const id = eqConstraintsStore.applyPhoneMatch('everything sony WH-1000XM6');
+		expect(id).toBe('sony-wh-1000xm6');
+	});
+
+	it('re-routes auto-picked active to the new phone match', () => {
+		eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		expect(eqConstraintsStore.activeId).toBe('sony-wh-1000xm6');
+		const id = eqConstraintsStore.applyPhoneMatch('Fiio EH11 (variant 2)');
+		expect(id).toBe('fiio-eh11');
+		expect(eqConstraintsStore.activeId).toBe('fiio-eh11');
+	});
+
+	it('reverts an auto-picked active to default when the new phone has no match', () => {
+		eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		expect(eqConstraintsStore.activeId).toBe('sony-wh-1000xm6');
+		const id = eqConstraintsStore.applyPhoneMatch('Demo Variations var2');
+		expect(id).toBe('default');
+		expect(eqConstraintsStore.activeId).toBe('default');
+	});
+
+	it('a manual pick after auto-pick blocks future re-routing', () => {
+		eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		eqConstraintsStore.setActive('fiio-eh11');
+		const id = eqConstraintsStore.applyPhoneMatch('Demo Variations var2');
+		expect(id).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe('fiio-eh11');
+	});
+
+	it('does not persist auto-picks to localStorage', () => {
+		try {
+			localStorage.removeItem('gt-eq-constraint-active-id');
+		} catch {
+			/* ignore */
+		}
+		eqConstraintsStore.applyPhoneMatch('Sony WH-1000XM6');
+		expect(eqConstraintsStore.activeId).toBe('sony-wh-1000xm6');
+		try {
+			expect(localStorage.getItem('gt-eq-constraint-active-id')).toBeNull();
+		} catch {
+			/* ignore in environments without localStorage */
+		}
+	});
+
+	it('persists explicit picks via setActive', () => {
+		try {
+			localStorage.removeItem('gt-eq-constraint-active-id');
+		} catch {
+			/* ignore */
+		}
+		eqConstraintsStore.setActive('fiio-eh11');
+		try {
+			expect(localStorage.getItem('gt-eq-constraint-active-id')).toBe('fiio-eh11');
+		} catch {
+			/* ignore */
+		}
 	});
 });

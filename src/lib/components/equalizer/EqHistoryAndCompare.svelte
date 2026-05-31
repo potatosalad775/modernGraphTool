@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
+	import { eqHistoryStore, snapshotMatches } from '$lib/stores/eq-history-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
@@ -14,13 +14,25 @@
 		)}:${String(d.getSeconds()).padStart(2, '0')}`;
 	}
 
+	const aSnap = $derived(
+		eqHistoryStore.aSnapshotId
+			? (eqHistoryStore.snapshots.find((s) => s.id === eqHistoryStore.aSnapshotId) ?? null)
+			: null
+	);
+	const bSnap = $derived(
+		eqHistoryStore.bSnapshotId
+			? (eqHistoryStore.snapshots.find((s) => s.id === eqHistoryStore.bSnapshotId) ?? null)
+			: null
+	);
+	const aActive = $derived(
+		aSnap !== null && snapshotMatches(aSnap, eqStore.filters, eqStore.preamp)
+	);
+	const bActive = $derived(
+		bSnap !== null && snapshotMatches(bSnap, eqStore.filters, eqStore.preamp)
+	);
+
 	function applySide(side: 'a' | 'b') {
-		const id = side === 'a' ? eqHistoryStore.aSnapshotId : eqHistoryStore.bSnapshotId;
-		if (id === null) {
-			// "current" sentinel — no-op (already live).
-			return;
-		}
-		const snap = eqHistoryStore.snapshots.find((s) => s.id === id);
+		const snap = side === 'a' ? aSnap : bSnap;
 		if (!snap) return;
 		eqCommands.applySnapshot(snap.filters, snap.preamp);
 	}
@@ -32,30 +44,24 @@
 		<span class="text-xs text-base-content/60">{m.eq_history_compare_label()}</span>
 		<div class="flex flex-1 gap-1">
 			<Button
-				title={eqHistoryStore.aSnapshotId
-					? m.eq_history_apply_a_title()
-					: m.eq_history_pick_a_first()}
+				title={aSnap ? m.eq_history_apply_a_title() : m.eq_history_pick_a_first()}
 				onclick={() => applySide('a')}
-				variant="outline"
+				variant={aActive ? 'primary' : 'outline'}
 				size="sm"
-				disabled={eqHistoryStore.aSnapshotId === null}
+				disabled={aSnap === null}
 				class="flex-1"
 			>
 				A
 			</Button>
 			<Button
-				title={eqHistoryStore.bSnapshotId === null
-					? m.eq_history_b_is_current()
-					: m.eq_history_apply_b_title()}
+				title={bSnap ? m.eq_history_apply_b_title() : m.eq_history_pick_b_first()}
 				onclick={() => applySide('b')}
-				variant="outline"
+				variant={bActive ? 'primary' : 'outline'}
 				size="sm"
+				disabled={bSnap === null}
 				class="flex-1"
 			>
 				B
-				{#if eqHistoryStore.bSnapshotId === null}
-					<span class="ml-1 text-[10px] text-base-content/50">(now)</span>
-				{/if}
 			</Button>
 		</div>
 		<Button
@@ -75,12 +81,15 @@
 			<p class="text-xs text-base-content/60">{m.eq_history_empty()}</p>
 		</div>
 	{:else}
-		<ul class="flex max-h-64 flex-col gap-0.5 overflow-y-auto">
+		<ul
+			class="flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded border border-base-content/20"
+		>
 			{#each [...eqHistoryStore.snapshots].reverse() as snap (snap.id)}
 				{@const isA = eqHistoryStore.aSnapshotId === snap.id}
 				{@const isB = eqHistoryStore.bSnapshotId === snap.id}
 				<li
-					class="flex items-center gap-1.5 rounded px-1.5 py-1 hover:bg-base-200 {isA || isB
+					class="flex items-center gap-1.5 border-b border-base-content/20 px-1.5 py-1 last:border-b-0 hover:bg-base-200 {isA ||
+					isB
 						? 'bg-base-200'
 						: ''}"
 				>

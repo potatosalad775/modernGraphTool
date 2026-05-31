@@ -44,6 +44,7 @@ const CONFIG = {
 	// User Interface Settings
 	INTERFACE: {
 		PREFERRED_DARK_MODE_THEME: 'light', // ("light", "dark", "system")
+		PANEL_POSITION: 'left', // ("left" or "right") — which side the menu+panel column sits on in desktop UI. Mobile UI is unaffected.
 		ALLOW_REMOVING_PHONE_FROM_SELECTOR: true, // Setting it to false will prevent user from removing phone from selector.
 		SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true, // Switch to phone list when brand button is clicked (in mobile UI)
 		TARGET: {

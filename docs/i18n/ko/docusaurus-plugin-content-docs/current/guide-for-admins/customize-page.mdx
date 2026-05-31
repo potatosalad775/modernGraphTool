@@ -311,6 +311,7 @@ Y축(dB)의 기본 표시 범위를 설정합니다.
 ```JavaScript
 INTERFACE: {
   PREFERRED_DARK_MODE_THEME: "light",
+  PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
   TARGET: {
@@ -329,6 +330,12 @@ INTERFACE: {
 다크 모드 설정을 지정합니다.
 
 - `light`, `dark`, `system` 중 선택.
+
+#### `PANEL_POSITION`
+
+데스크톱 UI에서 메뉴 + 패널 열이 표시될 위치를 설정합니다. 모바일 UI에는 영향을 주지 않습니다.
+
+- `left`(기본값 — 컨트롤이 왼쪽, 그래프가 오른쪽; 기존 CrinGraph 레이아웃과 동일) 또는 `right`(그래프가 왼쪽, 컨트롤이 오른쪽) 중 선택.
 
 #### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
 

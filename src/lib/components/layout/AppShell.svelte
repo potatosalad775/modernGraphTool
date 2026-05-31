@@ -28,7 +28,15 @@
 	import KeyboardShortcutBar from '$lib/components/controls/KeyboardShortcutBar.svelte';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
-	let gridCols = $state('minmax(400px, 65%) 5px minmax(340px, 1fr)');
+	// Default: panel on the left (matches the legacy CrinGraph / vanilla modernGraphTool layout).
+	// Operator must explicitly set INTERFACE.PANEL_POSITION = 'right' to flip it.
+	const panelOnLeft = getConfigValue('INTERFACE.PANEL_POSITION') !== 'right';
+	// When panel is on the left, it gets the 340px min and the graph takes the flexible 65%.
+	let gridCols = $state(
+		panelOnLeft
+			? 'minmax(340px, 1fr) 5px minmax(400px, 65%)'
+			: 'minmax(400px, 65%) 5px minmax(340px, 1fr)'
+	);
 
 	/** Apply config defaults to stores before data loads */
 	function applyConfigDefaults() {
@@ -249,12 +257,7 @@
 			</section>
 		</main>
 	{:else}
-		<main
-			bind:this={mainEl}
-			class="grid flex-1 overflow-hidden"
-			style:grid-template-columns={gridCols}
-		>
-			<!-- Left column: graph + toolbar -->
+		{#snippet graphSection()}
 			<section
 				aria-label="Frequency response graph"
 				class="flex flex-col overflow-hidden bg-base-100"
@@ -268,8 +271,8 @@
 				<GraphToolbar />
 				<KeyboardShortcutBar />
 			</section>
-			<DragDivider {mainEl} ondrag={(cols) => (gridCols = cols)} />
-			<!-- Right column: menu + panel -->
+		{/snippet}
+		{#snippet controlsSection()}
 			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-100">
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
@@ -292,6 +295,21 @@
 					{/key}
 				</div>
 			</section>
+		{/snippet}
+		<main
+			bind:this={mainEl}
+			class="grid flex-1 overflow-hidden"
+			style:grid-template-columns={gridCols}
+		>
+			{#if panelOnLeft}
+				{@render controlsSection()}
+				<DragDivider {mainEl} {panelOnLeft} ondrag={(cols) => (gridCols = cols)} />
+				{@render graphSection()}
+			{:else}
+				{@render graphSection()}
+				<DragDivider {mainEl} {panelOnLeft} ondrag={(cols) => (gridCols = cols)} />
+				{@render controlsSection()}
+			{/if}
 		</main>
 	{/if}
 </div>

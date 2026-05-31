@@ -311,6 +311,7 @@ Enter the description of the measurement equipment to be displayed in the upper 
 ```JavaScript
 INTERFACE: {
   PREFERRED_DARK_MODE_THEME: "light",
+  PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
   TARGET: {
@@ -329,6 +330,12 @@ Specifies settings related to the user interface.
 Specifies the dark mode setting.
 
 - Choose from `light`, `dark`, `system`.
+
+#### `PANEL_POSITION`
+
+Sets which side the menu + panel column appears on in the desktop UI. The mobile UI is unaffected.
+
+- Choose `left` (default — controls on the left, graph on the right; matches the legacy CrinGraph layout) or `right` (graph on the left, controls on the right).
 
 #### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
 

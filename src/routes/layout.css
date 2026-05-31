@@ -6,10 +6,10 @@
 
 /* ─── Font family ─────────────────────────────────────────────────────────── */
 @theme {
-	--font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
-		system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo',
-		'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji',
-		'Segoe UI Symbol', sans-serif;
+	--font-sans:
+		'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+		'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic',
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 }
 
 /*
@@ -90,7 +90,7 @@ select,
 }
 
 html {
-  overscroll-behavior-y: none;
+	overscroll-behavior-y: none;
 	touch-action: manipulation;
 	height: 100dvh;
 }
@@ -126,8 +126,8 @@ select {
 	-moz-appearance: none;
 	appearance: none;
 	background-image:
-      linear-gradient(45deg, #0000 50%, currentColor 50%),
-      linear-gradient(135deg, currentColor 50%, #0000 50%);
+		linear-gradient(45deg, #0000 50%, currentColor 50%),
+		linear-gradient(135deg, currentColor 50%, #0000 50%);
 	background-position:
 		calc(100% - 9px) calc(1px + 50%),
 		calc(100% - 5.1px) calc(1px + 50%);
@@ -184,6 +184,48 @@ kbd {
 	scrollbar-width: thin;
 	scrollbar-color: color-mix(in oklch, var(--color-base-content) 20%, transparent)
 		color-mix(in oklch, var(--color-base-content) 5%, transparent);
+}
+
+/* ─── Toast (svelte-sonner) ──────────────────────────────────────────────── */
+/* Map sonner's internal CSS variables to project tokens so toasts inherit
+   the operator-customizable palette and switch with .dark automatically.
+   `html` prefix outranks sonner's own [data-sonner-toaster][data-sonner-theme='X']
+   selectors regardless of CSS bundle order. */
+html [data-sonner-toaster][data-sonner-theme] {
+	--normal-bg: var(--color-base-100);
+	--normal-border: color-mix(in oklch, var(--color-base-content) 15%, transparent);
+	--normal-text: var(--color-base-content);
+	--normal-bg-hover: var(--color-base-200);
+	--normal-border-hover: color-mix(in oklch, var(--color-base-content) 25%, transparent);
+
+	/* Rich-color states: soft tint of the semantic token over base-100,
+	   text mixes with base-content to keep contrast in both themes. */
+	--success-bg: color-mix(in oklch, var(--color-success) 14%, var(--color-base-100));
+	--success-border: color-mix(in oklch, var(--color-success) 35%, var(--color-base-100));
+	--success-text: color-mix(in oklch, var(--color-success) 55%, var(--color-base-content));
+
+	--error-bg: color-mix(in oklch, var(--color-error) 14%, var(--color-base-100));
+	--error-border: color-mix(in oklch, var(--color-error) 35%, var(--color-base-100));
+	--error-text: color-mix(in oklch, var(--color-error) 55%, var(--color-base-content));
+
+	--info-bg: color-mix(in oklch, var(--color-info) 14%, var(--color-base-100));
+	--info-border: color-mix(in oklch, var(--color-info) 35%, var(--color-base-100));
+	--info-text: color-mix(in oklch, var(--color-info) 55%, var(--color-base-content));
+
+	--warning-bg: color-mix(in oklch, var(--color-warning) 14%, var(--color-base-100));
+	--warning-border: color-mix(in oklch, var(--color-warning) 35%, var(--color-base-100));
+	--warning-text: color-mix(in oklch, var(--color-warning) 55%, var(--color-base-content));
+}
+
+/* Action / cancel buttons: derive from base palette so they remain legible
+   across both default and rich-color toasts. */
+html [data-sonner-toaster] [data-sonner-toast] [data-button] {
+	background: var(--color-base-content);
+	color: var(--color-base-100);
+}
+html [data-sonner-toaster] [data-sonner-toast] [data-cancel] {
+	background: color-mix(in oklch, var(--color-base-content) 10%, transparent);
+	color: var(--color-base-content);
 }
 
 /* ─── Theme toggle transition ────────────────────────────────────────────── */

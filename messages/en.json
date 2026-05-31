@@ -98,6 +98,8 @@
 	"inspection_toggle_label": "Inspect",
 	"share_button_label": "Share",
 	"share_button_on_click": "Copied!",
+	"version_update_toast_title": "Updated to v{version}",
+	"version_update_toast_changelog": "Changelog",
 	"tutorial_modal_btn_prev": "Previous",
 	"tutorial_modal_btn_next": "Next",
 	"tutorial_modal_btn_done": "Done",

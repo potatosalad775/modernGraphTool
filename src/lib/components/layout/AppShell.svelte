@@ -23,9 +23,13 @@
 	import MiscPanel from '$lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
-	import { Toaster } from 'svelte-sonner';
+	import { Toaster, toast } from 'svelte-sonner';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '$lib/components/controls/KeyboardShortcutBar.svelte';
+	import { checkVersionUpdate } from '$lib/utils/version-update';
+	import * as m from '$lib/paraglide/messages';
+
+	const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	// Default: panel on the left (matches the legacy CrinGraph / vanilla modernGraphTool layout).
@@ -135,6 +139,19 @@
 
 		// Hydrate user preferences (theme, AutoEQ options, EQ-normalization link, …)
 		settingsStore.hydrate();
+
+		// Notify the user when the app version has changed since their last visit.
+		// Skipped on first visit (no stored version) and on same/downgraded versions.
+		const update = checkVersionUpdate(__APP_VERSION__);
+		if (update) {
+			toast.message(m.version_update_toast_title({ version: update.current }), {
+				duration: 10000,
+				action: {
+					label: m.version_update_toast_changelog(),
+					onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
+				},
+			});
+		}
 
 		// Mobile detection
 		const updateMobile = () => {

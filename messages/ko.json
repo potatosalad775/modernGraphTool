@@ -98,6 +98,8 @@
 	"inspection_toggle_label": "조사",
 	"share_button_label": "공유",
 	"share_button_on_click": "복사 완료!",
+	"version_update_toast_title": "v{version}(으)로 업데이트되었습니다",
+	"version_update_toast_changelog": "변경 사항",
 	"tutorial_modal_btn_prev": "이전",
 	"tutorial_modal_btn_next": "다음",
 	"tutorial_modal_btn_done": "완료",

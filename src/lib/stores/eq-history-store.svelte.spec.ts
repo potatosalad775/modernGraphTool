@@ -7,13 +7,18 @@ function pk(o: Partial<EQFilter> = {}): EQFilter {
 }
 
 describe('summarize', () => {
-	it('counts each filter type and includes preamp', () => {
-		const filters = [pk(), pk({ type: 'LSQ' }), pk({ type: 'HSQ' }), pk()];
-		expect(summarize(filters, -2.4)).toBe('2 PK / 1 LS / 1 HS, preamp -2.4 dB');
+	it('reports the dominant band (largest |gain|) with a +N tail for the rest', () => {
+		const filters = [pk({ freq: 100, gain: 2 }), pk({ freq: 3000, gain: -6 }), pk({ freq: 8000, gain: 1 })];
+		// dominant = 3000 Hz / -6 dB; two other enabled bands → ' +2'
+		expect(summarize(filters, -2.4)).toBe('PK 3.0k Hz -6.0 dB +2, preamp -2.4 dB');
 	});
 
-	it('skips counts of zero', () => {
-		expect(summarize([pk()], 0)).toBe('1 PK, preamp 0.0 dB');
+	it('omits the +N tail for a single band and shows sub-1k freqs as plain Hz', () => {
+		expect(summarize([pk({ freq: 200, gain: 3 })], 0)).toBe('PK 200 Hz +3.0 dB, preamp 0.0 dB');
+	});
+
+	it('rounds freqs ≥10 kHz to whole-k', () => {
+		expect(summarize([pk({ freq: 12000, gain: -2 })], 0)).toBe('PK 12k Hz -2.0 dB, preamp 0.0 dB');
 	});
 
 	it('says "no bands" when all filters are disabled', () => {

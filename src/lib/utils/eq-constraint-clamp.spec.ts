@@ -68,6 +68,11 @@ describe('isTypeAllowed / pickAllowedType', () => {
 	it('falls back to the first allowed type when current is disallowed', () => {
 		expect(pickAllowedType('LSQ', PK_ONLY)).toBe('PK');
 	});
+
+	it('returns the original type for a pathological preset that allows nothing', () => {
+		const noTypes = { ...PARAMETRIC, allowPk: false, allowLsq: false, allowHsq: false };
+		expect(pickAllowedType('LSQ', noTypes)).toBe('LSQ');
+	});
 });
 
 describe('snapToGraphicBand', () => {
@@ -80,6 +85,11 @@ describe('snapToGraphicBand', () => {
 	it('returns the snapped band’s Q', () => {
 		expect(snapToGraphicBand(100, GRAPHIC).q).toBe(1.4);
 		expect(snapToGraphicBand(10000, GRAPHIC).q).toBe(0.8);
+	});
+
+	it('passes freq through and uses qDefault when the preset has no bands', () => {
+		const noBands = { ...GRAPHIC, graphicBands: undefined, qDefault: 2 };
+		expect(snapToGraphicBand(120, noBands)).toEqual({ freq: 120, q: 2 });
 	});
 });
 
@@ -154,6 +164,12 @@ describe('clampFiltersToConstraint', () => {
 		// band 2 (10000 Hz): nearest to 9500 → -2 dB
 		expect(out[2].freq).toBe(10000);
 		expect(out[2].gain).toBe(-2);
+	});
+
+	it('leaves a band at 0 dB when no source filter is within ±1 octave', () => {
+		// 300 Hz is >1 octave from every band (100 / 1000 / 10000) → all reject it.
+		const out = clampFiltersToConstraint([pk({ freq: 300, gain: 8 })], GRAPHIC);
+		expect(out.map((f) => f.gain)).toEqual([0, 0, 0]);
 	});
 
 	it('clamps folded gains to the preset’s gain bounds', () => {

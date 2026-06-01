@@ -4,6 +4,7 @@
 		audioPlayerService,
 		type AudioSource
 	} from '$lib/services/audio-player-service.svelte.js';
+	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Button from '$lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2 } from '@lucide/svelte';
@@ -24,8 +25,8 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<!-- EQ toggle -->
-	<div class="flex items-center gap-4">
+	<!-- EQ toggle / spectrum toggle / range-mode toggle -->
+	<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 		<Switch
 			title={audioPlayerService.filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
 			labelText={m.equalizer_player_filter_toggle()}
@@ -41,7 +42,69 @@
 			size="sm"
 			bind:checked={audioSpectrumStore.isEnabled}
 		/>
+		<Switch
+			title="Drag a range on the graph to gate playback to a frequency band. Disables EQ-node interaction while active."
+			labelText={m.equalizer_player_freq_select_toggle()}
+			labelClass="text-xs"
+			size="sm"
+			checked={audioRangeStore.isFrequencySelectionMode}
+			onCheckedChange={(checked) => {
+				audioRangeStore.isFrequencySelectionMode = checked;
+			}}
+		/>
 	</div>
+
+	<!-- Freq-range mode hint -->
+	{#if audioRangeStore.isFrequencySelectionMode}
+		<p class="text-xs text-base-content/50">{m.equalizer_player_freq_select_hint()}</p>
+	{/if}
+
+	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
+	{#if audioRangeStore.isFrequencySelectionMode}
+		<div class="flex items-center gap-2 text-xs text-base-content/60">
+			<label class="flex items-baseline gap-1">
+				{m.equalizer_player_sweep_from_label()}
+				<input
+					type="number"
+					min="20"
+					max="20000"
+					step="1"
+					value={audioRangeStore.fromHz}
+					onchange={(e) => {
+						const v = parseInt((e.target as HTMLInputElement).value);
+						if (!isNaN(v)) audioRangeStore.setRange(v, audioRangeStore.toHz);
+					}}
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-[10px]">Hz</span>
+			</label>
+			<label class="flex items-baseline gap-1">
+				{m.equalizer_player_sweep_to_label()}
+				<input
+					type="number"
+					min="20"
+					max="20000"
+					step="1"
+					value={audioRangeStore.toHz}
+					onchange={(e) => {
+						const v = parseInt((e.target as HTMLInputElement).value);
+						if (!isNaN(v)) audioRangeStore.setRange(audioRangeStore.fromHz, v);
+					}}
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-[10px]">Hz</span>
+			</label>
+			<Button
+				title={m.equalizer_player_freq_select_reset()}
+				onclick={() => audioRangeStore.reset()}
+				variant="ghost"
+				size="xs"
+				class="ml-auto text-[11px]"
+			>
+				{m.equalizer_player_freq_select_reset()}
+			</Button>
+		</div>
+	{/if}
 
 	<!-- Source select -->
 	<select
@@ -54,6 +117,7 @@
 		<option value="white">{m.equalizer_player_option_white()}</option>
 		<option value="pink">{m.equalizer_player_option_pink()}</option>
 		<option value="tone">{m.equalizer_player_option_tone()}</option>
+		<option value="sweep">{m.equalizer_player_option_sweep()}</option>
 		<option value="file">{m.equalizer_player_option_file()}</option>
 	</select>
 
@@ -84,6 +148,74 @@
 				}}
 				class="w-full accent-accent"
 			/>
+		</div>
+	{/if}
+
+	<!-- Sweep controls (only when sweep selected) -->
+	{#if audioPlayerService.audioSource === 'sweep'}
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/60">
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_from_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={audioPlayerService.sweepFromHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepFrom(v);
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_to_label()}
+					<input
+						type="number"
+						min="20"
+						max="20000"
+						step="1"
+						value={audioPlayerService.sweepToHz}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepTo(v);
+						}}
+						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">Hz</span>
+				</label>
+				<label class="flex items-baseline gap-1">
+					{m.equalizer_player_sweep_duration_label()}
+					<input
+						type="number"
+						min="0.5"
+						max="60"
+						step="0.5"
+						value={audioPlayerService.sweepDurationSec}
+						onchange={(e) => {
+							const v = parseFloat((e.target as HTMLInputElement).value);
+							if (!isNaN(v)) audioPlayerService.setSweepDuration(v);
+						}}
+						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					/>
+					<span class="text-[10px]">s</span>
+				</label>
+				<Switch
+					labelText={m.equalizer_player_sweep_loop_label()}
+					labelClass="text-xs"
+					size="sm"
+					checked={audioPlayerService.sweepLoop}
+					onCheckedChange={(checked) => audioPlayerService.setSweepLoop(checked)}
+				/>
+			</div>
+			{#if audioPlayerService.isPlaying}
+				<span class="text-xs text-base-content/60 tabular-nums">
+					{audioPlayerService.sweepCurrentHz} Hz
+				</span>
+			{/if}
 		</div>
 	{/if}
 

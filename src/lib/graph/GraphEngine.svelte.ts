@@ -420,6 +420,7 @@ class GraphEngine {
 		this.svg.selectAll('.x-grid-text, .x-grid-text-major, .y-grid-text').raise();
 		this.svg.selectAll('.fr-graph-label, .fr-graph-label-bg').raise();
 		this.svg.selectAll('.fr-graph-eq-clip-wrapper').raise();
+		this.svg.selectAll('.fr-graph-sound-range-clip-wrapper').raise();
 		this.svg.selectAll('.y-scaler-handle').raise();
 	}
 

@@ -8,8 +8,13 @@
 	import { analyticsService } from '$lib/services/analytics-service.svelte';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
 	import { commandHistory } from '$lib/services/command-history.svelte';
+	import { eqCommands } from '$lib/services/eq-commands';
 	import { graphStore } from '$lib/stores/graph-store.svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte';
+	import { eqStore } from '$lib/stores/eq-store.svelte';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte';
+	import bundledEqConstraints from '../../../../defaults/eq-constraints.json';
+	import type { EqConstraintsFile } from '$lib/types/eq-constraint';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -153,6 +158,12 @@
 			});
 		}
 
+		// Hydrate EQ constraint presets — fire-and-forget; the picker UI shows
+		// only the bundled fallbacks until the remote fetch resolves.
+		eqConstraintsStore.hydrate(bundledEqConstraints as EqConstraintsFile).catch((err) => {
+			console.warn('[eq-constraints] hydrate failed', err);
+		});
+
 		// Mobile detection
 		const updateMobile = () => {
 			appStore.isMobile = window.innerWidth < 1000;
@@ -178,21 +189,46 @@
 		return () => window.removeEventListener('resize', updateMobile);
 	});
 
+	// Tracks EQ-enabled state across a `\`-key press-and-hold so we can restore on keyup
+	// even if focus moves to an input mid-hold.
+	let eqMomentaryRestore: boolean | null = null;
+
 	function handleKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
-		if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-			return;
+		const inEditable =
+			target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
 		const mod = e.metaKey || e.ctrlKey;
 
+		// `\` (backslash) — press-and-hold to bypass EQ momentarily for A/B comparison.
+		// Only triggered when EQ is currently enabled; ignored inside text inputs.
+		if (!inEditable && !mod && !e.altKey && e.key === '\\') {
+			if (e.repeat) {
+				e.preventDefault();
+				return;
+			}
+			if (!eqStore.isEnabled) return;
+			e.preventDefault();
+			eqMomentaryRestore = eqStore.isEnabled;
+			eqStore.isEnabled = false;
+			eqStore.isMomentarilyBypassed = true;
+			return;
+		}
+
+		if (inEditable) return;
+
 		if (mod && e.key === 'z' && !e.shiftKey) {
 			e.preventDefault();
+			// Flush any pending EQ-edit burst so undo doesn't land between
+			// a coalescer's capture and its deferred commit.
+			eqCommands.flushAll();
 			commandHistory.undo(frStore);
 			return;
 		}
 
 		if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
 			e.preventDefault();
+			eqCommands.flushAll();
 			commandHistory.redo(frStore);
 			return;
 		}
@@ -204,6 +240,16 @@
 				e.preventDefault();
 				menuStore.setPanel(panels[num - 1]);
 			}
+		}
+	}
+
+	function handleKeyup(e: KeyboardEvent) {
+		// Restore EQ regardless of focus target — the keyup may land in an input
+		// if the user tabbed during the hold.
+		if (e.key === '\\' && eqMomentaryRestore !== null) {
+			eqStore.isEnabled = eqMomentaryRestore;
+			eqStore.isMomentarilyBypassed = false;
+			eqMomentaryRestore = null;
 		}
 	}
 
@@ -229,7 +275,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
 
 <div class="flex h-full flex-col">
 	<TopNavBar />

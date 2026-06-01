@@ -108,6 +108,14 @@ All stores are exported as class instances from `.svelte.ts` files.
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
+- `audio-range-store.svelte.ts` — listening-range "frequency selection" mode: `isFrequencySelectionMode`,
+  `fromHz`/`toHz`. Drives the graph range overlay + the audio chain's bandpass gating in `audio-player-service`.
+- `eq-constraints-store.svelte.ts` — active EQ constraint preset + merged catalog. The two general-purpose
+  presets (Default unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS` so they're
+  available synchronously; `defaults/eq-constraints.json` holds device-specific PEQ profiles only. Each
+  device entry can declare `matchPhones: string[]` substrings; when the source phone changes and the active
+  preset is `default`, `applyPhoneMatch()` auto-selects the matching device profile.
+- `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
 - `squiglink-store.svelte.ts` — cross-site registry, sponsor content, domain guard
 
 Pattern:

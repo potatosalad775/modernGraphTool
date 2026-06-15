@@ -6,7 +6,8 @@
 		parseOklch,
 		formatOklch,
 		hexToOklch,
-		oklchToHex
+		oklchToHex,
+		randomCurveColor
 	} from '$lib/utils/curve-palette.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { Popover } from 'bits-ui';
@@ -109,23 +110,7 @@
 
 	function onRandom(): void {
 		const palette = getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE') as string[] | undefined;
-		let L: number;
-		let C: number;
-		let H: number;
-
-		if (palette && palette.length > 0) {
-			// Pick a random palette entry, avoiding the current color when possible.
-			const candidates =
-				palette.length > 1 ? palette.filter((c) => c !== item.colors.AVG) : palette;
-			const pick = candidates[Math.floor(Math.random() * candidates.length)];
-			[L, C, H] = parseOklch(pick);
-		} else {
-			// Generate a random OKLCH color at the default lightness/chroma.
-			L = 0.68;
-			C = 0.16;
-			H = Math.floor(Math.random() * 360);
-		}
-
+		const [L, C, H] = parseOklch(randomCurveColor(palette, item.colors.AVG));
 		localL = round2(L);
 		localC = round2(C);
 		localH = Math.round(H);

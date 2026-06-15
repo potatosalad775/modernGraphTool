@@ -168,6 +168,30 @@ export function resolveCurvePalette(
 	return shuffled;
 }
 
+// ── randomCurveColor ───────────────────────────────────────────────────────
+
+/**
+ * Pick a genuinely random color for the color-picker "Random" button.
+ *
+ * Unlike {@link nextCurveColor} (deterministic auto-assignment on add), this
+ * returns a fresh random pick on every call:
+ *  - With a configured palette: a random entry, avoiding `current` when the
+ *    palette has more than one option so repeated clicks visibly change.
+ *  - Otherwise: a random hue at the default generation L/C.
+ *
+ * Output is always an `oklch(L C H)` string.
+ */
+export function randomCurveColor(palette?: string[], current?: string): string {
+	if (palette && palette.length > 0) {
+		const candidates =
+			palette.length > 1 && current ? palette.filter((c) => c !== current) : palette;
+		const pick = candidates[Math.floor(Math.random() * candidates.length)];
+		return formatOklch(...parseOklch(pick));
+	}
+	const H = Math.floor(Math.random() * 360);
+	return formatOklch(DEFAULT_GEN_L, DEFAULT_GEN_C, H);
+}
+
 // ── nextCurveColor ─────────────────────────────────────────────────────────
 
 export interface NextCurveColorOptions {

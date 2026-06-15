@@ -3,17 +3,24 @@
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-	import { getLocale, setLocale } from '$lib/paraglide/runtime.js';
+	import { getLocale, locales, setLocale, type Locale } from '$lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 
 	const appVersion = __APP_VERSION__;
 
 	type DescriptionItem = { TYPE: string; CONTENT: string };
 
-	const languages = [
-		{ value: 'en', label: 'English' },
-		{ value: 'ko', label: '한국어' }
-	];
+	// Languages are derived from the locales registered in project.inlang/settings.json.
+	// Labels are each language's own endonym (e.g. ko → 한국어), resolved automatically.
+	function localeLabel(locale: string): string {
+		try {
+			return new Intl.DisplayNames([locale], { type: 'language' }).of(locale) ?? locale;
+		} catch {
+			return locale;
+		}
+	}
+
+	const languages = locales.map((value) => ({ value, label: localeLabel(value) }));
 
 	const enableI18n = $derived(!!getConfigValue('LANGUAGE.ENABLE_I18N'));
 	const description = $derived(getConfigValue('DESCRIPTION') as DescriptionItem[] | undefined);
@@ -24,7 +31,7 @@
 
 	function handleLocaleChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
-		setLocale(select.value as 'en' | 'ko');
+		setLocale(select.value as Locale);
 	}
 </script>
 

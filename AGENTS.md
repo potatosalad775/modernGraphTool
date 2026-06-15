@@ -192,7 +192,9 @@ This is separate from Paraglide UI-string i18n.
 - Key format: `underscore_separated` (e.g. `menu_graph_panel`, not `menu.graphPanel`)
 - **All keys must exist in both language files.** No runtime fallback string.
 - Generated code in `src/lib/paraglide/` is **not** hand-edited
-- Switch language: `setLanguageTag('ko')` from `$lib/paraglide/runtime`
+- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build
+- Switch language: `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`
+- Adding a language = add to `locales` + create `messages/<locale>.json` (all keys). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames` — no component edit. See CONTRIBUTING.md.
 - Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
 
 ## CSS / Theming

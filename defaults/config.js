@@ -137,6 +137,7 @@ const CONFIG = {
 			ko: [{ type: '하만' }, { type: '뉴트럴' }, { type: '리뷰어' }, { type: '선호도' }],
 			ru: [{ type: "Harman" }, { type: "Нейтральные" }, { type: "От обзорщиков" }, { type: "Предпочтения" }, { type: "Δ" }],
       		uk: [{ type: "Harman" }, { type: "Нейтральні" }, { type: "Від оглядачів" }, { type: "Вподобання" }, { type: "Δ" }]
+		}
 	},
 	// ... Of course, if you're not interested in localization, you can just skip this setting, as below.
 	//     Note that there are no 'default' and 'i18n' elements here.
@@ -321,7 +322,7 @@ const CONFIG = {
 					TYPE: "HTML",
 					CONTENT: "<p>Усі вимірювання були виконані з використанням симулятора вуха IEC 60318-4 (711).</p>",
 		        }
-		      ]
+		    ]
 		}
 	}
 };

@@ -3,8 +3,9 @@
 	import { appStore } from '$lib/stores/app-store.svelte';
 	import { menuStore, type MenuPanel } from '$lib/stores/menu-store.svelte';
 
-	const BUTTON_W = 96; // px — w-24 button width
-	const STRIDE = BUTTON_W + 12; // px — button + gap-3
+	const MIN_W = 96; // px — floor, matches the previous w-24 width
+	const MAX_W = 192; // px — cap so a pathologically long label can't swallow the carousel
+	const GAP = 12; // px — gap-3 between buttons
 
 	const panels: { id: MenuPanel; label: () => string }[] = [
 		{ id: 'device', label: m.menu_item_device_label },
@@ -12,6 +13,16 @@
 		{ id: 'equalizer', label: m.menu_item_equalizer_label },
 		{ id: 'misc', label: m.menu_item_misc_label }
 	];
+
+	// Intrinsic label widths (incl. px-2 padding) measured off the invisible ghost row below.
+	// bind:clientWidth is backed by a ResizeObserver, so this re-settles once the web font loads.
+	let labelWidths = $state<number[]>([]);
+	// Every button shares one width sized to the widest label, clamped between floor and cap.
+	// Uniform width keeps the centering/drag/wheel math (STRIDE) trivial.
+	const BUTTON_W = $derived(
+		Math.min(MAX_W, Math.max(MIN_W, ...labelWidths.filter(Number.isFinite)))
+	);
+	const STRIDE = $derived(BUTTON_W + GAP);
 
 	let currentIndex = $derived(panels.findIndex((p) => p.id === menuStore.currentPanel));
 
@@ -124,23 +135,40 @@
 				type="button"
 				role="tab"
 				aria-selected={menuStore.currentPanel === panel.id}
-				class="relative w-24 shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold 
-					tracking-wide transition-all hover:bg-base-content/5 hover:cursor-pointer
-					focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none 
+				title={labelWidths[i] > MAX_W ? panel.label() : undefined}
+				style:width="{BUTTON_W}px"
+				class="relative shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold
+					tracking-wide transition-all hover:cursor-pointer hover:bg-base-content/5
+					focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none
 					{menuStore.currentPanel === panel.id
-						? 'text-accent'
-						: Math.abs(i - currentIndex) === 1
-							? 'text-base-content/60'
-							: 'text-base-content/25'}"
+					? 'text-accent'
+					: Math.abs(i - currentIndex) === 1
+						? 'text-base-content/60'
+						: 'text-base-content/25'}"
 				onclick={() => goTo(i)}
 			>
-				{panel.label()}
+				<span class="block overflow-hidden text-center text-ellipsis whitespace-nowrap">
+					{panel.label()}
+				</span>
 				{#if menuStore.currentPanel === panel.id}
 					<span
 						class="absolute bottom-0 left-1/2 h-0.5 w-12 -translate-x-1/2 rounded-full bg-accent"
 					></span>
 				{/if}
 			</button>
+		{/each}
+	</div>
+
+	<!-- Invisible ghost row: measures each label's intrinsic width (incl. px-2 padding) to
+	     size the buttons above. Kept out of flow and hidden from AT/pointer. -->
+	<div aria-hidden="true" class="pointer-events-none invisible absolute flex">
+		{#each panels as panel, i (panel.id)}
+			<span
+				bind:clientWidth={labelWidths[i]}
+				class="px-2 text-sm font-semibold tracking-wide whitespace-nowrap"
+			>
+				{panel.label()}
+			</span>
 		{/each}
 	</div>
 </nav>

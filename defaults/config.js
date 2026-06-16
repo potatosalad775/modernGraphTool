@@ -82,7 +82,9 @@ const CONFIG = {
 		LANGUAGE_LIST: [
 			// List of available languages. (Automatically fallbacks to "en" if not found)
 			['en', 'English'],
-			['ko', '한국어']
+			['ko', '한국어'],
+			['ru', 'Русский'],
+			['uk', 'Українська']
 		],
 		ENABLE_I18N: true, // Enable internationalization (Add Language selector to Misc Panel)
 		ENABLE_SYSTEM_LANG_DETECTION: true // Enable system language detection
@@ -132,8 +134,9 @@ const CONFIG = {
 		],
 		// And add more languages as you want.
 		i18n: {
-			ko: [{ type: '하만' }, { type: '뉴트럴' }, { type: '리뷰어' }, { type: '선호도' }]
-		}
+			ko: [{ type: '하만' }, { type: '뉴트럴' }, { type: '리뷰어' }, { type: '선호도' }],
+			ru: [{ type: "Harman" }, { type: "Нейтральные" }, { type: "От обзорщиков" }, { type: "Предпочтения" }, { type: "Δ" }],
+      		uk: [{ type: "Harman" }, { type: "Нейтральні" }, { type: "Від оглядачів" }, { type: "Вподобання" }, { type: "Δ" }}
 	},
 	// ... Of course, if you're not interested in localization, you can just skip this setting, as below.
 	//     Note that there are no 'default' and 'i18n' elements here.
@@ -200,6 +203,14 @@ const CONFIG = {
 				ko: [
 					{ TITLE: '깃허브', URL: 'https://www.github.com' },
 					{ TITLE: '가이드', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
+				],
+				ru: [
+					{ TITLE: 'Github', URL: 'https://www.github.com' },
+					{ TITLE: 'Документация', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
+				],
+				uk: [
+					{ TITLE: 'Github', URL: 'https://www.github.com' },
+					{ TITLE: 'Документація', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
 				]
 			}
 		}
@@ -298,7 +309,19 @@ const CONFIG = {
 					TYPE: 'HTML',
 					CONTENT: '<p>모든 데이터는 IEC 60318-4 (711) 이어 시뮬레이터를 활용해 측정되었습니다.</p>'
 				}
-			]
+			],
+			ru: [
+				{
+					TYPE: "HTML",
+					CONTENT: "<p>Все измерения выполнены с использованием симулятора уха IEC 60318-4 (711).</p>",
+				}
+			],
+			uk: [
+				{
+					TYPE: "HTML",
+					CONTENT: "<p>Усі вимірювання було виконано з використанням симулятора вуха IEC 60318-4 (711).</p>",
+		        }
+		      ]
 		}
 	}
 };

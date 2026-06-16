@@ -44,12 +44,20 @@ export const DataProcessor = {
 		)[channelKey];
 	},
 
-	/** Smooth and normalize multi-sample data (L/R per sample). */
+	/**
+	 * Smooth and normalize multi-sample data (L/R per sample). Each sample's L and
+	 * R are normalized together with a single shared offset so the channel balance
+	 * within a sample is preserved (see fr-normalizer#normalizeChannels).
+	 */
 	processSamples(rawSamples: SampleData[], params: ProcessingParams): SampleData[] {
 		return rawSamples.map((sample) => {
+			const raw: ParsedFRData = {};
+			if (sample.L) raw.L = sample.L;
+			if (sample.R) raw.R = sample.R;
+			const processed = DataProcessor.processChannels(raw, params);
 			const s: SampleData = {};
-			if (sample.L) s.L = DataProcessor.processChannel('L', sample, params);
-			if (sample.R) s.R = DataProcessor.processChannel('R', sample, params);
+			if (processed.L) s.L = processed.L;
+			if (processed.R) s.R = processed.R;
 			return s;
 		});
 	},

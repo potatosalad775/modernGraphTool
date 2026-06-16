@@ -8,6 +8,7 @@ sidebar_label: Changelog
 ### v2.1.2
 - Fix: Fixed an issue where color randomizer was not working properly.
 - Fix: Fixed an issue where Preference Bound was not properly following y-axis position adjustment via graph handle.
+- Fix: Normalization now shifts a device's left and right channels by the same amount, so the displayed L/R gap reflects the true channel imbalance instead of being flattened at the normalization point.
 
 ### v2.1.1
 - Feat: Added a new "CURVE_COLOR_PALETTE" field in the `config.js` that allows users to customize the color palette used for device curves. See more at [TRACE_STYLING documentation](./guide-for-admins/customize-page.mdx#trace_styling).

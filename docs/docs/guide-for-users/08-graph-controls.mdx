@@ -42,6 +42,10 @@ Instead of an average, you pick a _single_ frequency and every curve is shifted 
 Neither mode modifies the underlying measurement files. Switching between Avg and Hz just re-draws the same data with a different alignment.
 :::
 
+:::note[Channel balance is preserved]
+When a device shows both **L** and **R**, normalization shifts the two channels by the _same_ amount, so the vertical gap between them always reflects the real measured left/right imbalance — not an artifact of where you normalized. The pair as a whole is anchored using the device's average, so the curves never pinch together at the normalization point.
+:::
+
 ## Smoothing
 
 Measurement files contain a lot of fine detail, and much of it is noise or room-dependent wiggles that won't affect what you actually hear. **Smoothing** averages each point with its neighbors to produce a cleaner curve.

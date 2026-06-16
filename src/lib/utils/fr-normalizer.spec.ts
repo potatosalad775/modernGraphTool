@@ -14,6 +14,32 @@ function makeChannelData(baseDb = 80, count = 480): ChannelData {
 	return { data, metadata: { minFreq: 20, maxFreq: freq } };
 }
 
+/**
+ * Generate an L/R/AVG triple with a frequency-varying L/R gap (always ≥ 1 dB,
+ * never zero) and AVG = (L+R)/2, mimicking real phone measurement data.
+ */
+function makeLRChannels(count = 480): { L: ChannelData; R: ChannelData; AVG: ChannelData } {
+	const step = Math.pow(2, 1 / 48);
+	let freq = 20;
+	const L: FRDataPoint[] = [];
+	const R: FRDataPoint[] = [];
+	const AVG: FRDataPoint[] = [];
+	for (let i = 0; i < count; i++) {
+		const lDb = 80 + Math.sin(i * 0.1) * 3;
+		const rDb = lDb - (2.5 + Math.cos(i * 0.07) * 1.5); // gap ranges [1, 4] dB
+		L.push([freq, lDb]);
+		R.push([freq, rDb]);
+		AVG.push([freq, (lDb + rDb) / 2]);
+		freq *= step;
+	}
+	const metadata = { minFreq: 20, maxFreq: freq };
+	return {
+		L: { data: L, metadata },
+		R: { data: R, metadata },
+		AVG: { data: AVG, metadata }
+	};
+}
+
 describe('fr-normalizer', () => {
 	describe('normalize — Hz mode', () => {
 		it('sets the reference frequency to 0 dB', () => {
@@ -200,6 +226,42 @@ describe('fr-normalizer', () => {
 			const originalFirst = data.AVG!.data[0][1];
 			normalizeChannels(data, 'Hz', 1000);
 			expect(data.AVG!.data[0][1]).toBe(originalFirst);
+		});
+
+		it('preserves the L/R difference under Hz normalization', () => {
+			const { L, R, AVG } = makeLRChannels();
+			const origGap = L.data.map((p, i) => p[1] - R.data[i][1]);
+			const result = normalizeChannels({ L, R, AVG }, 'Hz', 1000);
+			result.L!.data.forEach((p, i) => {
+				expect(p[1] - result.R!.data[i][1]).toBeCloseTo(origGap[i], 1);
+			});
+		});
+
+		it('preserves the L/R difference under Avg normalization', () => {
+			const { L, R, AVG } = makeLRChannels();
+			const origGap = L.data.map((p, i) => p[1] - R.data[i][1]);
+			const result = normalizeChannels({ L, R, AVG }, 'Avg', 0);
+			result.L!.data.forEach((p, i) => {
+				expect(p[1] - result.R!.data[i][1]).toBeCloseTo(origGap[i], 1);
+			});
+		});
+
+		it('keeps AVG position identical to standalone normalization', () => {
+			const { L, R, AVG } = makeLRChannels();
+			const shared = normalizeChannels({ L, R, AVG }, 'Hz', 1000);
+			const standalone = normalize(AVG, 'Hz', 1000);
+			shared.AVG!.data.forEach((p, i) => {
+				expect(p[1]).toBeCloseTo(standalone.data[i][1], 5);
+			});
+		});
+
+		it('does not flatten the L/R gap to zero at the normalization frequency', () => {
+			const { L, R, AVG } = makeLRChannels();
+			const result = normalizeChannels({ L, R, AVG }, 'Hz', 1000);
+			const idx = result.L!.data.findIndex((p) => Math.abs(p[0] - 1000) < 50);
+			expect(idx).toBeGreaterThanOrEqual(0);
+			const gap = result.L!.data[idx][1] - result.R!.data[idx][1];
+			expect(Math.abs(gap)).toBeGreaterThan(0.5);
 		});
 	});
 });

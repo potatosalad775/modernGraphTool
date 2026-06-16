@@ -444,12 +444,17 @@ class DataProvider {
 					...(processed.AVG && { AVG: processed.AVG })
 				}
 			};
-			// Re-normalize sample data
+			// Re-normalize sample data — L and R share one offset to preserve the
+			// per-sample channel balance (see fr-normalizer#normalizeChannels).
 			if (data.samples) {
 				updated.samples = data.samples.map((sample) => {
+					const raw: ParsedFRData = {};
+					if (sample.L) raw.L = sample.L;
+					if (sample.R) raw.R = sample.R;
+					const processed = normalizeChannels(raw, normType, normHzValue);
 					const s: SampleData = {};
-					if (sample.L) s.L = normalizeChannels({ L: sample.L }, normType, normHzValue).L;
-					if (sample.R) s.R = normalizeChannels({ R: sample.R }, normType, normHzValue).R;
+					if (processed.L) s.L = processed.L;
+					if (processed.R) s.R = processed.R;
 					return s;
 				});
 			}

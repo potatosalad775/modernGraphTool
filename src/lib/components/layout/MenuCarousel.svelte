@@ -4,7 +4,7 @@
 	import { menuStore, type MenuPanel } from '$lib/stores/menu-store.svelte';
 
 	const MIN_W = 96; // px — floor, matches the previous w-24 width
-	const MAX_W = 192; // px — cap so a pathologically long label can't swallow the carousel
+	const MAX_W = 144; // px — cap so a pathologically long label can't swallow the carousel
 	const GAP = 12; // px — gap-3 between buttons
 
 	const panels: { id: MenuPanel; label: () => string }[] = [
@@ -20,7 +20,7 @@
 	// Every button shares one width sized to the widest label, clamped between floor and cap.
 	// Uniform width keeps the centering/drag/wheel math (STRIDE) trivial.
 	const BUTTON_W = $derived(
-		Math.min(MAX_W, Math.max(MIN_W, ...labelWidths.filter(Number.isFinite)))
+		Math.min(MAX_W, Math.max(MIN_W, ...labelWidths.filter(Number.isFinite)) + 2)
 	);
 	const STRIDE = $derived(BUTTON_W + GAP);
 

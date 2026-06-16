@@ -54,6 +54,8 @@
   "overrides": {
     "serialize-javascript": "^7.0.5",
     "uuid": "^14.0.0",
-    "postcss": "^8.5.10"
+    "postcss": "^8.5.10",
+    "js-yaml": "^4.2.0",
+    "joi": "^17.13.4"
   }
 }

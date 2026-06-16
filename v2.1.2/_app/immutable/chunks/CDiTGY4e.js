@@ -1,0 +1,1 @@
+function e(e){return[e&255,(e&65280)>>8]}function t(e){return[e>>8&255,e&255]}function n(e,t){return e<<8|t}function r(e){let t=e*10;return t<0&&(t=(Math.abs(t)^65535)+1),[t>>8&255,t&255]}function i(e,t){let r=n(e,t);return r&32768?(r=(r^65535)+1,-r/10):r/10}export{e as a,t as i,r as n,i as r,n as t};

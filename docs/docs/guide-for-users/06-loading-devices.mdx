@@ -57,11 +57,25 @@ Switch to the **Graph panel** and scroll to the bottom of the selection list. Yo
 - **Upload FR** — load the file as a headphone measurement.
 - **Upload target** — load the file as a target curve instead.
 
-Click the button that matches what you're uploading, pick a `.txt` file from your computer, and it appears on the graph as if it were a local device or target. The accepted format is the standard CrinGraph-style two-column `frequency\tSPL` text file — the same format modernGraphTool and CrinGraph both use for their on-disk device databases. You can use this to:
+Click the button that matches what you're uploading, pick one or more `.txt` files from your computer, and they appear on the graph as if they were local devices or targets. The accepted format is the standard CrinGraph-style two-column `frequency\tSPL` text file — the same format modernGraphTool and CrinGraph both use for their on-disk device databases. You can use this to:
 
 - Overlay your own measurements against the ones the site hosts.
 - Compare a target curve you found online against the built-in targets.
 - Sanity-check a file before sharing it.
+
+### Left/right channels and multiple files
+
+You can select several files at once, and **Upload FR** pairs left/right channels into a single device — exactly like the site's hosted measurements. Name the files with a matching base name plus an `L` or `R` channel marker, separated by a space, underscore, or dash:
+
+| Files you select                  | What you get                                  |
+| ---------------------------------- | --------------------------------------------- |
+| `HD600 L.txt`, `HD600 R.txt`       | One device "HD600" with L, R, and AVG curves  |
+| `HD600_L.txt`, `HD600-R.txt`       | Same — `_` and `-` markers work too           |
+| `HD600 L.txt`, `HD650 L.txt`, …    | One device per base name, grouped automatically |
+| `HD600 L.txt` (no matching R)      | A single-channel device showing just that side |
+| `MyMeasurement.txt` (no L/R marker) | One curve, as before                          |
+
+**Upload target** also accepts multiple files (each becomes its own target); targets are always single-curve, so channel markers don't apply.
 
 Uploaded files live only in your browser session — they're not uploaded anywhere. Reload the page and they're gone.
 

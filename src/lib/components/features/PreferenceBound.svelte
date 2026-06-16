@@ -11,7 +11,6 @@
 </script>
 
 <script lang="ts">
-	import * as d3 from 'd3';
 	import * as m from '$lib/paraglide/messages.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
@@ -21,6 +20,7 @@
 	import { normalize } from '$lib/utils/fr-normalizer.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { resolve } from '$app/paths';
+	import { onDestroy } from 'svelte';
 	import type { FRDataPoint } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 
@@ -52,7 +52,7 @@
 
 	// ── Derived: reactive baseline channel data ──────────────────────────────
 	// Shares resolution logic with GraphEngine.refreshBaselineData() via
-	// resolveBaselineChannelData, so PreferenceBound redraws when baseline mode
+	// resolveBaselineChannelData, so the overlay redraws when baseline mode
 	// or data changes.
 
 	const baselineChannelData = $derived(
@@ -109,134 +109,26 @@
 		});
 	}
 
-	// ── Interpolation helper ──────────────────────────────────────────────────
-
-	function interpolateAt(data: FRDataPoint[], freq: number): number {
-		const bisect = d3.bisector((d: FRDataPoint) => d[0]).left;
-		const i = bisect(data, freq, 0);
-		const a = data[i - 1];
-		const b = data[i];
-		if (a && b) {
-			const t = (freq - a[0]) / (b[0] - a[0]);
-			return a[1] + t * (b[1] - a[1]);
-		}
-		return a ? a[1] : b ? b[1] : 0;
-	}
-
-	// ── Path building ─────────────────────────────────────────────────────────
-
-	function buildPathString(): string | null {
-		if (!rawBoundU || !rawBoundD || !dfNormalized) return null;
-
-		const { xScale, yScale } = graphEngine;
-		const dfData = dfNormalized.data;
-
-		const computeY = (freq: number, offset: number): number => {
-			const dfY = interpolateAt(dfData, freq);
-			if (baselineChannelData) {
-				const baselineY = interpolateAt(baselineChannelData, freq);
-				return yScale(dfY + offset - baselineY);
-			}
-			return yScale(dfY + offset);
-		};
-
-		const lineGen = (pts: FRDataPoint[]) =>
-			d3
-				.line<FRDataPoint>()
-				.x((d) => xScale(d[0]))
-				.y((d) => computeY(d[0], d[1]))
-				.curve(d3.curveLinear)(pts) ?? '';
-
-		const upperPath = lineGen(rawBoundU);
-		const lowerPath = lineGen([...rawBoundD].reverse());
-
-		return upperPath + lowerPath.replace(/^M/, 'L') + 'Z';
-	}
-
-	// ── D3 draw/remove helpers ────────────────────────────────────────────────
-
-	function drawBounds(): void {
-		if (!graphEngine.curveGroup) return;
-
-		const pathStr = buildPathString();
-		if (!pathStr) {
-			removeBounds();
-			return;
-		}
-
-		const existing = graphEngine.curveGroup.select<SVGPathElement>('.preference-bound-area');
-
-		if (existing.empty()) {
-			// First draw: create element without animation
-			const fillColor =
-				(getConfigValue('PREFERENCE_BOUND.COLOR_FILL') as string | undefined) ??
-				'rgba(180,180,180,0.2)';
-			const strokeColor =
-				(getConfigValue('PREFERENCE_BOUND.COLOR_BORDER') as string | undefined) ??
-				'rgba(120,120,120,0.5)';
-
-			graphEngine.curveGroup
-				.insert('path', ':first-child')
-				.attr('class', 'preference-bound-area')
-				.attr('d', pathStr)
-				.attr('fill', fillColor)
-				.attr('stroke', strokeColor)
-				.attr('stroke-width', 1)
-				.style('pointer-events', 'none');
-		} else {
-			// Subsequent updates: animate transition
-			existing.interrupt();
-			const oldPath = existing.attr('d') ?? '';
-			const numericPattern = /-?\d+\.?\d*(e[+-]?\d+)?/gi;
-			const oldCount = (oldPath.match(numericPattern) ?? []).length;
-			const newCount = (pathStr.match(numericPattern) ?? []).length;
-
-			if (oldCount === newCount && oldCount > 0) {
-				existing
-					.transition()
-					.duration(graphEngine.transitionDuration)
-					.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, pathStr)(t));
-			} else {
-				existing.attr('d', pathStr);
-			}
-		}
-	}
-
-	function removeBounds(): void {
-		const el = graphEngine.curveGroup?.select('.preference-bound-area');
-		if (el && !el.empty()) {
-			el.interrupt();
-			el.remove();
-		}
-	}
-
-	// ── Reactive draw effect ──────────────────────────────────────────────────
+	// ── Push reactive state into the engine-owned overlay ──────────────────────
+	// Imperative D3 rendering lives in GraphPreferenceBoundOverlay; this effect feeds
+	// it the latest reactive data and visibility. Reading graphEngine.preferenceBoundOverlay
+	// ($state) re-runs the effect once GraphContainer assigns the overlay. Handle-drag
+	// repositioning is driven separately via GraphEngine.repositionCurves() → overlay.render().
 
 	$effect(() => {
-		const _baseline = baselineChannelData;
-		const _yScale = graphStore.yScale;
-		const _dfNorm = dfNormalized;
-		const _loaded = isLoaded;
-		const _visible = isVisible;
-
-		if (
-			!graphEngine.isInitialized ||
-			!_visible ||
-			!_loaded ||
-			!rawBoundU ||
-			!rawBoundD ||
-			!_dfNorm
-		) {
-			removeBounds();
-			return;
-		}
-
-		drawBounds();
-
-		return () => {
-			removeBounds();
-		};
+		const ov = graphEngine.preferenceBoundOverlay;
+		if (!graphEngine.isInitialized || !ov) return;
+		ov.update({
+			visible: isVisible,
+			rawBoundU,
+			rawBoundD,
+			dfNormalized,
+			baselineChannelData
+		});
 	});
+
+	// Clear the overlay if this component unmounts while the graph survives.
+	onDestroy(() => graphEngine.preferenceBoundOverlay?.clear());
 
 	// ── Toggle handler ────────────────────────────────────────────────────────
 

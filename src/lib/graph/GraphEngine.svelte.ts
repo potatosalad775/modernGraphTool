@@ -13,6 +13,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { resolveBaselineChannelData } from './baseline.js';
+import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
@@ -37,6 +38,10 @@ class GraphEngine {
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	/** Optional EQ overlay reference — set by GraphContainer for handle-drag coordination */
 	eqOverlay: { render(): void } | null = null;
+	/** Preference-bound overlay reference — set by GraphContainer. `$state` so the
+	 *  separately-mounted PreferenceBound toolbar component re-runs its push effect
+	 *  once this is assigned (cf. `eqOverlay`, which lives in the same component). */
+	preferenceBoundOverlay = $state<PreferenceBoundOverlayApi | null>(null);
 	isInitialized = $state(false);
 
 	constructor() {
@@ -390,6 +395,7 @@ class GraphEngine {
 			.attr('d', (d) => this._getCompensatedPath(d));
 		this._transitionHpTFFillPaths(false);
 		this.eqOverlay?.render();
+		this.preferenceBoundOverlay?.render();
 	}
 
 	getBaselineData(): BaselineData {

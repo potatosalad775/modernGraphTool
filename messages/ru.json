@@ -160,8 +160,8 @@
 	"keyboard_shortcut_panels": "Переключить панели",
 	"keyboard_shortcut_axis_lock": "Заблокировать ось (при перетаскивании экв.)",
 	"eq_settings_accordion_title": "Настройки",
-	"eq_settings_autoeq_persist_label": "Запоминать ввод AutoEQ",
-	"eq_settings_autoeq_persist_session": "Только для этой вкладки",
+	"eq_settings_autoeq_persist_label": "Запоминать настройки фильтров AutoEQ",
+	"eq_settings_autoeq_persist_session": "Только в этой вкладке",
 	"eq_settings_autoeq_persist_local": "Сохранять в этом браузере",
 	"eq_settings_link_eq_normalization_label": "Прикрепить кривую экв. к исходной",
 	"eq_settings_link_eq_normalization_description": "Сохранять положение кривой эквалайзера относительно исходного графика независимо от настроек нормализации."

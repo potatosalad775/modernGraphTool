@@ -20,7 +20,7 @@ Also available in Squiglink: https://silicagel.squig.link
 - **Target Customizer** — Custom HRTF target curves with tilt, bass, and treble adjustment
 - **squig.link Integration** — Cross-site device search, shop links, and sponsor content
 - **Built-in Device PEQ Bridge** — Write EQ settings directly to 20+ supported devices, originally by jeromeof
-- **Internationalization** — English and Korean (Paraglide JS compile-time i18n)
+- **Internationalization** — English, Korean, Ukrainian and Russian (Paraglide JS compile-time i18n)
 - **Light & Dark Mode** — Colorful UI with operator-customizable theme system
 
 ## Getting Started

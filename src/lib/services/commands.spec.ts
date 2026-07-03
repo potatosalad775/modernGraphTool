@@ -194,7 +194,11 @@ describe('Commands', () => {
 			const newChannels = {
 				AVG: { data: [[500, 70] as [number, number]], metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			const cmd = new UpdateVariantCommand('a', newChannels, 'v2', ['AVG']);
+			const cmd = new UpdateVariantCommand('a', {
+				channels: newChannels,
+				dispSuffix: 'v2',
+				dispChannel: ['AVG']
+			});
 			cmd.execute(store);
 			const data = store.data.get('a')!;
 			expect(data.dispSuffix).toBe('v2');
@@ -207,7 +211,11 @@ describe('Commands', () => {
 			const newChannels = {
 				AVG: { data: [[500, 70] as [number, number]], metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			const cmd = new UpdateVariantCommand('a', newChannels, 'v2', ['AVG']);
+			const cmd = new UpdateVariantCommand('a', {
+				channels: newChannels,
+				dispSuffix: 'v2',
+				dispChannel: ['AVG']
+			});
 			cmd.execute(store);
 			cmd.undo(store);
 			expect(store.data.get('a')!.dispSuffix).toBe('v1');

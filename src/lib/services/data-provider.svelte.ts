@@ -310,96 +310,61 @@ class DataProvider {
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
 		) as ('L' | 'R' | 'AVG')[];
 
-		commandHistory.execute(
-			new UpdateVariantCommand(
-				uuid,
-				{
-					...(processed.L && { L: processed.L }),
-					...(processed.R && { R: processed.R }),
-					...(processed.AVG && { AVG: processed.AVG })
-				},
-				dispSuffix,
-				dispChannel
-			),
-			frStore
-		);
+		// Bundle every field the new variant touches into one command so undo/redo
+		// stays atomic — see UpdateVariantCommand doc comment.
+		const newFields: Partial<FRDataObject> = {
+			channels: {
+				...(processed.L && { L: processed.L }),
+				...(processed.R && { R: processed.R }),
+				...(processed.AVG && { AVG: processed.AVG })
+			},
+			dispSuffix,
+			dispChannel,
+			_rawData: variantRawCache
+		};
 
-		// Re-attach sample data for the new variant
 		if (rawData._samples && rawData._sampleCount) {
-			const existingData = frStore.get(uuid);
-			if (existingData) {
-				const processedSamples = DataProcessor.processSamples(
-					rawData._samples,
-					this.#processingParams
-				);
-				frStore.set(uuid, {
-					...existingData,
-					samples: processedSamples,
-					sampleCount: rawData._sampleCount,
-					colors: this.#addSampleColors(existingData.colors, rawData._sampleCount),
-					dispSamples: existingData.dispSamples ?? []
-				});
-			}
+			newFields.samples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
+			newFields.sampleCount = rawData._sampleCount;
+			newFields.colors = this.#addSampleColors(data.colors, rawData._sampleCount);
+			newFields.dispSamples = data.dispSamples ?? [];
 		} else {
 			// New variant has no samples — clear sample data
-			const existingData = frStore.get(uuid);
-			if (existingData && existingData.samples) {
-				frStore.set(uuid, {
-					...existingData,
-					samples: undefined,
-					sampleCount: undefined,
-					dispSamples: undefined
-				});
-			}
+			newFields.samples = undefined;
+			newFields.sampleCount = undefined;
+			newFields.dispSamples = undefined;
 		}
 
-		// Re-attach HpTF data for the new variant
 		if (rawData._hptfSamples && rawData._hptfLabels) {
-			const existingData = frStore.get(uuid);
-			if (existingData) {
-				const processedSamples = DataProcessor.processHpTFSamples(
-					rawData._hptfSamples,
-					rawData._hptfLabels,
-					this.#processingParams
-				);
-				const variantFillOnly = rawData._hptfFillOnly ?? true;
-				const phoneMeta = data.meta as PhoneMetadata;
-				const variantDescription =
-					phoneMeta.files?.find((f) => f.suffix === dispSuffix)?.hptfDescription ??
-					phoneMeta.files?.[0]?.hptfDescription;
-				frStore.set(uuid, {
-					...existingData,
-					hptf: {
-						samples: processedSamples,
-						envelope: this.#computeAllHpTFEnvelopes(processedSamples),
-						labels: rawData._hptfLabels,
-						fillOnly: variantFillOnly,
-						...(variantDescription && { description: variantDescription })
-					},
-					hptfOnly: rawData._hptfOnly ?? false,
-					dispHptf: variantFillOnly ? [] : (existingData.dispHptf ?? []),
-					hptfFillVisible: existingData.hptfFillVisible ?? true
-				});
-			}
+			const processedSamples = DataProcessor.processHpTFSamples(
+				rawData._hptfSamples,
+				rawData._hptfLabels,
+				this.#processingParams
+			);
+			const variantFillOnly = rawData._hptfFillOnly ?? true;
+			const phoneMeta = data.meta as PhoneMetadata;
+			const variantDescription =
+				phoneMeta.files?.find((f) => f.suffix === dispSuffix)?.hptfDescription ??
+				phoneMeta.files?.[0]?.hptfDescription;
+			newFields.hptf = {
+				samples: processedSamples,
+				envelope: this.#computeAllHpTFEnvelopes(processedSamples),
+				labels: rawData._hptfLabels,
+				fillOnly: variantFillOnly,
+				...(variantDescription && { description: variantDescription })
+			};
+			newFields.hptfOnly = rawData._hptfOnly ?? false;
+			newFields.dispHptf = variantFillOnly ? [] : (data.dispHptf ?? []);
+			newFields.hptfFillVisible = data.hptfFillVisible ?? true;
 		} else {
 			// New variant has no HpTF — clear HpTF data
-			const existingData = frStore.get(uuid);
-			if (existingData && existingData.hptf) {
-				frStore.set(uuid, {
-					...existingData,
-					hptf: undefined,
-					dispHptf: undefined,
-					hptfFillVisible: undefined,
-					hptfOnly: undefined
-				});
-			}
+			newFields.hptf = undefined;
+			newFields.dispHptf = undefined;
+			newFields.hptfFillVisible = undefined;
+			newFields.hptfOnly = undefined;
 		}
 
-		// Update raw data cache for re-smoothing
-		const finalData = frStore.get(uuid);
-		if (finalData) {
-			frStore.set(uuid, { ...finalData, _rawData: variantRawCache });
-		}
+		commandHistory.execute(new UpdateVariantCommand(uuid, newFields), frStore);
 	}
 
 	// ─── Update sample display ────────────────────────────────────────────────

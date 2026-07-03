@@ -1,4 +1,4 @@
-import type { FRDataObject, FRColors, ParsedFRData, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
+import type { FRDataObject, FRColors, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 
 /**
@@ -182,28 +182,25 @@ export class UpdateVisibilityCommand implements Command {
 
 export class UpdateVariantCommand implements Command {
   #uuid: string;
-  #newChannels: ParsedFRData;
-  #newDispSuffix: string;
-  #newDispChannel: ('L' | 'R' | 'AVG')[];
+  #newFields: Partial<FRDataObject>;
   #snapshot: FRDataObject | null = null;
 
-  constructor(uuid: string, newChannels: ParsedFRData, newDispSuffix: string, newDispChannel: ('L' | 'R' | 'AVG')[]) {
+  // newFields carries every field the new variant touches — channels, dispSuffix,
+  // dispChannel, _rawData, and (when applicable) samples/hptf data. Fields the new
+  // variant doesn't have must be passed as explicit `undefined` so they're cleared,
+  // not left stale from the previous variant. Bundling it all into one command keeps
+  // undo/redo atomic — a partial untracked update would let redo re-apply only some
+  // fields while others stay paired with the wrong variant.
+  constructor(uuid: string, newFields: Partial<FRDataObject>) {
     this.#uuid = uuid;
-    this.#newChannels = structuredClone(newChannels);
-    this.#newDispSuffix = newDispSuffix;
-    this.#newDispChannel = [...newDispChannel];
+    this.#newFields = structuredClone(newFields);
   }
 
   execute(store: FRStoreWriteAPI): void {
     const data = store.get(this.#uuid);
     if (!data) return;
     this.#snapshot = structuredClone(data);
-    store.set(this.#uuid, {
-      ...data,
-      channels: this.#newChannels,
-      dispSuffix: this.#newDispSuffix,
-      dispChannel: this.#newDispChannel,
-    });
+    store.set(this.#uuid, { ...data, ...this.#newFields });
   }
 
   undo(store: FRStoreWriteAPI): void {

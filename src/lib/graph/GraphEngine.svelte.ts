@@ -161,7 +161,15 @@ class GraphEngine {
 		);
 	}
 
-	/** Update Baseline Data */
+	/**
+	 * Update Baseline Data.
+	 *
+	 * Callers must set `graphStore.baselineMode` before calling this with `enable: true` —
+	 * channel data is resolved via `resolveBaselineChannelData`, the single source of truth
+	 * for baseline resolution, which reads the mode from the store. An explicit
+	 * `channelData` override is still accepted for callers restoring a specific snapshot
+	 * (e.g. URL state restoration) that shouldn't re-derive it.
+	 */
 	updateBaselineData(
 		enable: boolean,
 		{
@@ -185,16 +193,7 @@ class GraphEngine {
 				uuid,
 				identifier: baselineMetaData.identifier,
 				channelData:
-					channelData !== null
-						? channelData
-						: baselineMetaData.type === 'phone'
-							? (baselineMetaData.channels[
-									baselineMetaData.dispChannel.includes('L') &&
-									baselineMetaData.dispChannel.includes('R')
-										? 'AVG'
-										: baselineMetaData.dispChannel[0]
-								]?.data ?? null)
-							: (baselineMetaData.channels['AVG']?.data ?? null)
+					channelData !== null ? channelData : resolveBaselineChannelData(uuid, graphStore.baselineMode)
 			};
 		}
 

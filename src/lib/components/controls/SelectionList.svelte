@@ -101,30 +101,30 @@
 		if (!isTargetItem || !hasOriginal) {
 			// Simple toggle for phones / targets without adjustments
 			const isActive = graphStore.baselineUUID === uuid;
-			graphEngine.updateBaselineData(!isActive, { uuid });
-			graphStore.baselineUUID = isActive ? null : uuid;
 			graphStore.baselineMode = isActive ? 'off' : 'withoutAdjustment';
+			graphEngine.updateBaselineData(!isActive, { uuid });
 			return;
 		}
 
 		// Three-mode cycle for targets with adjustments: off → withoutAdjustment → withAdjustment → off
+		// baselineMode is set before calling updateBaselineData — it resolves channel
+		// data via resolveBaselineChannelData(uuid, graphStore.baselineMode), the single
+		// source of truth for baseline resolution (see baseline.ts).
 		const currentUUID = graphStore.baselineUUID;
 		const currentMode = graphStore.baselineMode;
 
 		if (currentUUID !== uuid) {
 			// Different UUID or no baseline: start with withoutAdjustment
-			const originalChannels = graphStore.targetOriginalData.get(uuid)!;
-			const channelData = originalChannels['AVG']?.data ?? null;
-			graphEngine.updateBaselineData(true, { uuid, channelData });
 			graphStore.baselineMode = 'withoutAdjustment';
+			graphEngine.updateBaselineData(true, { uuid });
 		} else if (currentMode === 'withoutAdjustment') {
 			// withoutAdjustment -> withAdjustment
-			graphEngine.updateBaselineData(true, { uuid });
 			graphStore.baselineMode = 'withAdjustment';
+			graphEngine.updateBaselineData(true, { uuid });
 		} else {
 			// withAdjustment -> off
-			graphEngine.updateBaselineData(false);
 			graphStore.baselineMode = 'off';
+			graphEngine.updateBaselineData(false);
 		}
 	}
 

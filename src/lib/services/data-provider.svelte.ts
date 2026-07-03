@@ -583,7 +583,13 @@ class DataProvider {
 	// ─── Re-smooth all loaded data (called by SmoothingButton) ───────────────
 
 	async reSmoothAll(): Promise<void> {
+		const eqUUID = eqStore.eqCurveUUID;
 		for (const [uuid, data] of frStore.entries) {
+			// Skip the linked EQ curve — it will be rebuilt from the source below,
+			// same as renormalizeAll. Otherwise it gets independently re-smoothed
+			// here and detaches from the source ghost when linkEqNormalization is on.
+			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
+
 			const rawCache = data._rawData;
 
 			if (rawCache) {
@@ -667,6 +673,11 @@ class DataProvider {
 		}
 		// Signal TargetCustomizer instances to re-sync base data and re-apply adjustments
 		graphStore.targetOriginalVersion++;
+
+		// Rebuild the EQ curve from the newly re-smoothed source phone, same as
+		// renormalizeAll — respects the current linkEqNormalization setting.
+		this.rebuildEqCurve();
+
 		commandHistory.clear();
 	}
 

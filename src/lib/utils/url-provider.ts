@@ -249,7 +249,9 @@ class URLProvider {
 
 		// Encode graph state
 		const stateData: URLState = { yScale: graphStore.yScale };
-		let hasExtraState = graphStore.yScale !== 60;
+		const defaultYScale =
+			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
+		let hasExtraState = graphStore.yScale !== defaultYScale;
 
 		if (graphStore.baselineUUID) {
 			const baselineData = frStore.get(graphStore.baselineUUID);

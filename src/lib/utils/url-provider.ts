@@ -1,9 +1,11 @@
 import { replaceState } from '$app/navigation';
 import Base62 from './base62.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { graphStore, type BaselineMode } from '$lib/stores/graph-store.svelte.js';
 import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
+import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
 import type { SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -15,7 +17,7 @@ interface EQStateSnapshot {
 
 interface URLState {
 	yScale?: number;
-	baselineUUID?: string | null;
+	baseline?: { key: string; mode: BaselineMode };
 	yOffsets?: Record<string, number>;
 	eq?: EQStateSnapshot;
 	sampleDisplay?: Record<string, SampleChannelKey[]>;
@@ -108,10 +110,29 @@ class URLProvider {
 
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
-		const { yScale, baselineUUID, yOffsets, eq, sampleDisplay, hptfDisplay } = this.#stateFromURL;
+		const { yScale, baseline, yOffsets, eq, sampleDisplay, hptfDisplay } = this.#stateFromURL;
 
 		if (yScale != null) graphStore.yScale = yScale;
-		if (baselineUUID != null) graphStore.baselineUUID = baselineUUID;
+
+		if (baseline) {
+			let matchedUUID: string | null = null;
+			for (const [uuid, data] of frStore.entries) {
+				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				if (key === baseline.key) {
+					matchedUUID = uuid;
+					break;
+				}
+			}
+			if (matchedUUID) {
+				graphStore.baselineMode = baseline.mode;
+				const channelData = resolveBaselineChannelData(matchedUUID, baseline.mode);
+				if (graphEngine.isInitialized) {
+					graphEngine.updateBaselineData(true, { uuid: matchedUUID, channelData });
+				} else {
+					graphStore.baselineUUID = matchedUUID;
+				}
+			}
+		}
 
 		if (yOffsets) {
 			for (const [uuid, data] of frStore.entries) {
@@ -231,8 +252,12 @@ class URLProvider {
 		let hasExtraState = graphStore.yScale !== 60;
 
 		if (graphStore.baselineUUID) {
-			stateData.baselineUUID = graphStore.baselineUUID;
-			hasExtraState = true;
+			const baselineData = frStore.get(graphStore.baselineUUID);
+			if (baselineData) {
+				const key = (baselineData.identifier + ' ' + (baselineData.dispSuffix ?? '')).trim();
+				stateData.baseline = { key, mode: graphStore.baselineMode };
+				hasExtraState = true;
+			}
 		}
 
 		const yOffsets: Record<string, number> = {};

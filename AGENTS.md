@@ -155,7 +155,7 @@ export const frStore = new FRDataStore();
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `log-scale.ts`, `metadata-parser.ts`, `equalizer.ts`, `url-provider.ts`, `base62.ts`.
-`url-provider.ts` uses `history.replaceState` directly — **not** `goto()`.
+`url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not** `goto()`.
 
 ## Graph Engine
 

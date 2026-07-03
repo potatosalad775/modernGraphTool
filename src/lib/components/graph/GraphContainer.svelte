@@ -103,7 +103,11 @@
 		let counter = 0;
 
 		Array.from(frStore.entries)
-			.sort(([, a]) => (a.type === 'target' ? -1 : 1))
+			.sort(([, a], [, b]) => {
+				if (a.type === 'target' && b.type !== 'target') return -1;
+				if (b.type === 'target' && a.type !== 'target') return 1;
+				return 0;
+			})
 			.forEach(([, obj]) => {
 				if (obj.hidden) return;
 				const channels = [...obj.dispChannel];

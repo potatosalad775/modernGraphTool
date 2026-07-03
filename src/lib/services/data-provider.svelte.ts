@@ -189,9 +189,12 @@ class DataProvider {
 
 	// ─── Remove ──────────────────────────────────────────────────────────────────
 
-	removeFRData(sourceType: FRDataType, identifier: string): void {
+	removeFRData(sourceType: FRDataType, identifier: string, dispSuffix?: string): void {
 		for (const [uuid, data] of frStore.entries) {
-			if (data.identifier === identifier) {
+			if (
+				data.identifier === identifier &&
+				(dispSuffix === undefined || (data.dispSuffix ?? '') === dispSuffix)
+			) {
 				commandHistory.execute(new RemoveFRDataCommand(uuid, sourceType), frStore);
 
 				if (sourceType === 'phone' && data.meta && 'brand' in data.meta) {
@@ -211,9 +214,14 @@ class DataProvider {
 		commandHistory.execute(new RemoveFRDataCommand(uuid, sourceType), frStore);
 	}
 
-	async toggleFRData(sourceType: FRDataType, identifier: string, enabled: boolean): Promise<void> {
-		if (enabled) await this.addFRData(sourceType, identifier);
-		else this.removeFRData(sourceType, identifier);
+	async toggleFRData(
+		sourceType: FRDataType,
+		identifier: string,
+		enabled: boolean,
+		dispSuffix?: string
+	): Promise<void> {
+		if (enabled) await this.addFRData(sourceType, identifier, { dispSuffix });
+		else this.removeFRData(sourceType, identifier, dispSuffix);
 	}
 
 	// ─── Insert raw ──────────────────────────────────────────────────────────────

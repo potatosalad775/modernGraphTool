@@ -175,7 +175,7 @@ class DataProvider {
 		}
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
-		this.#syncChannelsAfterAdd();
+		this.syncPhoneChannels();
 
 		if (sourceType === 'phone') {
 			const phoneMeta = metaData as PhoneMetadata;
@@ -738,10 +738,16 @@ class DataProvider {
 		return null;
 	}
 
-	// ─── Private helpers ──────────────────────────────────────────────────────
-
-	/** After adding a phone, sync channel display across all phones */
-	#syncChannelsAfterAdd(): void {
+	/**
+	 * Sync channel display across all loaded phones so it matches the current phone
+	 * count (single phone shows L+R when available; multiple phones collapse to AVG).
+	 * Called after adding a phone, and after undo/redo (from AppShell's keyboard
+	 * handler) since undoing/redoing an Add or Remove changes the phone count these
+	 * writes depend on but isn't itself tracked through command history — the writes
+	 * here are a derived display convention, not user-editable state, so they're
+	 * idempotently re-applied rather than snapshotted/undone.
+	 */
+	syncPhoneChannels(): void {
 		const phones = [...frStore.entries.values()].filter((e) => e.type === 'phone');
 		if (phones.length > 1) {
 			for (const phone of phones) {
@@ -762,6 +768,8 @@ class DataProvider {
 			frStore.set(phone.uuid, { ...phone, dispChannel });
 		}
 	}
+
+	// ─── Private helpers ──────────────────────────────────────────────────────
 
 	#getChannelValue(
 		sourceType: FRDataType,

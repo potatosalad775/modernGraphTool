@@ -188,12 +188,16 @@
 		if (mod && e.key === 'z' && !e.shiftKey) {
 			e.preventDefault();
 			commandHistory.undo(frStore);
+			// Add/Remove change the phone count that channel display depends on —
+			// re-sync since that derived display state isn't itself command-tracked.
+			dataProvider.syncPhoneChannels();
 			return;
 		}
 
 		if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
 			e.preventDefault();
 			commandHistory.redo(frStore);
+			dataProvider.syncPhoneChannels();
 			return;
 		}
 

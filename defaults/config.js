@@ -81,6 +81,7 @@ const CONFIG = {
 	LANGUAGE: {
 		LANGUAGE_LIST: [
 			// List of available languages. (Automatically fallbacks to "en" if not found)
+			['cs', 'Čeština'],
 			['en', 'English'],
 			['ko', '한국어'],
 			['ru', 'Русский'],

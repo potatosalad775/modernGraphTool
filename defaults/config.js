@@ -279,6 +279,25 @@ const CONFIG = {
 			{ name: 'ISO 11904-2 DF', filter: { tilt: -0.8, bass: 6 } }
 		]
 	},
+	// EQ Constraint Settings
+	// Operator-customizable list of EQ "constraint presets" (hardware capability
+	// profiles). The user picks one in EqualizerPanel; it caps maxBands, clamps
+	// freq/Q/gain, and switches between parametric and graphic editing modes.
+	//
+	// Three sources merge at boot, in priority order (later overrides earlier
+	// for the same id):
+	//   1. The bundled fallback (defaults/eq-constraints.json) — copied to dist/
+	//      so users can edit it locally without touching source.
+	//   2. The JSON list at EQ.CONSTRAINTS_URL — typically the same file as (1),
+	//      but can point at a remote URL so multiple operators share one curated
+	//      list (e.g. hosted on a squig.link CDN).
+	//   3. EQ.CUSTOM_CONSTRAINTS — inline operator additions; small extras don't
+	//      need a separate file.
+	EQ: {
+		CONSTRAINTS_URL: './eq-constraints.json', // Set to a remote URL to pull a shared list
+		CUSTOM_CONSTRAINTS: [], // Inline preset objects appended last
+		DEFAULT_CONSTRAINT_ID: 'default' // Active preset on first load
+	},
 	// Misc Panel Description
 	// You can add some useful information about your database over here.
 	// 'TEXT', 'HTML', 'IMAGE' types are supported.

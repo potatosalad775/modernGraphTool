@@ -1,7 +1,9 @@
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
+import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
+import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 
-export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'file';
+export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
 /**
  * AudioPlayerService — module-level singleton owning the entire Web Audio engine
@@ -17,10 +19,18 @@ class AudioPlayerService {
 	#audioContext: AudioContext | null = null;
 	#gainNode: GainNode | null = null;
 	#analyserNode: AnalyserNode | null = null;
+	// Static gain stage between source and filter chain. Carries the
+	// K-weighted bypass-match trim when EQ is toggled off so the bypass path
+	// matches the EQ-on path's perceived loudness. Stays at unity when EQ is on.
+	#bypassMatchNode: GainNode | null = null;
 	#sourceNode: AudioBufferSourceNode | null = null;
 	#oscillatorNode: OscillatorNode | null = null;
 	#filterNodes: AudioNode[] = [];
 	#audioBuffer: AudioBuffer | null = null;
+	// Sweep-only nodes / timers — created when sweep starts, torn down on stop().
+	#sweepFadeNode: GainNode | null = null;
+	#sweepTimer: ReturnType<typeof setTimeout> | null = null;
+	#sweepRafId: number | null = null;
 
 	// --- Non-reactive bookkeeping ---
 	#startTime = 0;
@@ -38,6 +48,15 @@ class AudioPlayerService {
 	#currentTime = $state(0);
 	#duration = $state(0);
 	#fileLoaded = $state(false);
+
+	// Sweep state — exponential sine sweep from `sweepFromHz` to `sweepToHz`
+	// over `sweepDurationSec`. `sweepLoop` repeats the cycle until stopped.
+	// `sweepCurrentHz` mirrors the live oscillator frequency for display.
+	#sweepFromHz = $state(20);
+	#sweepToHz = $state(20000);
+	#sweepDurationSec = $state(6);
+	#sweepLoop = $state(true);
+	#sweepCurrentHz = $state(20);
 
 	// --- Public reactive getters ---
 	get isPlaying(): boolean {
@@ -64,6 +83,21 @@ class AudioPlayerService {
 	get fileLoaded(): boolean {
 		return this.#fileLoaded;
 	}
+	get sweepFromHz(): number {
+		return this.#sweepFromHz;
+	}
+	get sweepToHz(): number {
+		return this.#sweepToHz;
+	}
+	get sweepDurationSec(): number {
+		return this.#sweepDurationSec;
+	}
+	get sweepLoop(): boolean {
+		return this.#sweepLoop;
+	}
+	get sweepCurrentHz(): number {
+		return this.#sweepCurrentHz;
+	}
 
 	// --- Setters / commands ---
 	setAudioSource(src: AudioSource): void {
@@ -87,6 +121,22 @@ class AudioPlayerService {
 		}
 	}
 
+	setSweepFromHz(hz: number): void {
+		this.#sweepFromHz = Math.max(20, Math.min(20000, hz));
+	}
+
+	setSweepToHz(hz: number): void {
+		this.#sweepToHz = Math.max(20, Math.min(20000, hz));
+	}
+
+	setSweepDurationSec(sec: number): void {
+		this.#sweepDurationSec = Math.max(0.5, Math.min(60, sec));
+	}
+
+	setSweepLoop(loop: boolean): void {
+		this.#sweepLoop = loop;
+	}
+
 	// --- Internals ---
 	#getAudioContext(): AudioContext {
 		if (!this.#audioContext) {
@@ -95,19 +145,63 @@ class AudioPlayerService {
 		return this.#audioContext;
 	}
 
+	#ensureBypassMatchNode(ctx: AudioContext): GainNode {
+		if (!this.#bypassMatchNode) {
+			this.#bypassMatchNode = ctx.createGain();
+			this.#bypassMatchNode.gain.value = 1;
+		}
+		return this.#bypassMatchNode;
+	}
+
 	#updateFilters(): void {
 		const ctx = this.#audioContext;
 		if (!ctx || !this.#gainNode) return;
 
+		const match = this.#ensureBypassMatchNode(ctx);
+		// Reset wiring downstream of the source: tear down old filter chain
+		// and the bypass-match stage's outputs before rebuilding.
+		match.disconnect();
 		this.#filterNodes.forEach((n) => n.disconnect());
 		this.#filterNodes = [];
 
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+		const chainTail = this.#analyserNode ?? this.#gainNode;
+
+		// Listening-range bandpass — when frequency-selection mode is on, prepend
+		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz].
+		if (audioRangeStore.isFrequencySelectionMode) {
+			const hp = ctx.createBiquadFilter();
+			hp.type = 'highpass';
+			hp.frequency.value = audioRangeStore.fromHz;
+			hp.Q.value = 0.707;
+			const lp = ctx.createBiquadFilter();
+			lp.type = 'lowpass';
+			lp.frequency.value = audioRangeStore.toHz;
+			lp.Q.value = 0.707;
+			this.#filterNodes.push(hp, lp);
+		}
 
 		if (!this.#filtersEnabled || !filters.length) {
+			// Bypass path. When EQ is toggled off but filters exist, apply the
+			// K-weighted bypass-match trim so listening A/B doesn't change level.
+			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
+			this.#rampGain(match.gain, trim);
+			// A range-mode bandpass may still sit downstream even with EQ off.
+			if (this.#filterNodes.length === 0) {
+				match.connect(chainTail);
+			} else {
+				match.connect(this.#filterNodes[0]);
+				for (let i = 0; i < this.#filterNodes.length - 1; i++) {
+					this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
+				}
+				this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
+			}
 			this.#reconnectSource();
 			return;
 		}
+
+		// EQ path — match stage is unity, the EQ chain produces the eq-on level.
+		this.#rampGain(match.gain, 1);
 
 		// Preamp node
 		const preampNode = ctx.createGain();
@@ -126,24 +220,114 @@ class AudioPlayerService {
 			this.#filterNodes.push(node);
 		}
 
-		// Chain: filter[0] → filter[1] → ... → analyserNode (or gainNode)
+		// Chain: match → [bandpass pair if range mode] → preamp → filter[0] → ... → chainTail
+		match.connect(this.#filterNodes[0]);
 		for (let i = 0; i < this.#filterNodes.length - 1; i++) {
 			this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
 		}
-		const chainTarget = this.#analyserNode ?? this.#gainNode;
-		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTarget);
+		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
 
 		this.#reconnectSource();
 	}
 
+	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
+	#rampGain(param: AudioParam, target: number): void {
+		const ctx = this.#audioContext;
+		if (!ctx) {
+			param.value = target;
+			return;
+		}
+		const now = ctx.currentTime;
+		param.cancelScheduledValues(now);
+		// Hold current value as the ramp anchor, then linear-ramp over 20 ms.
+		param.setValueAtTime(param.value, now);
+		param.linearRampToValueAtTime(target, now + 0.02);
+	}
+
 	#reconnectSource(): void {
 		const source: AudioNode | null = this.#sourceNode ?? this.#oscillatorNode ?? null;
-		if (!source) return;
+		if (!source || !this.#bypassMatchNode) return;
 		source.disconnect();
-		if (this.#filterNodes.length > 0) {
-			source.connect(this.#filterNodes[0]);
+		// During a sweep the oscillator is routed via sweepFadeNode (which
+		// masks the from→to wraparound click); for all other sources the
+		// signal goes straight into the bypass-match stage.
+		if (this.#audioSource === 'sweep' && this.#sweepFadeNode) {
+			source.connect(this.#sweepFadeNode);
 		} else {
-			source.connect(this.#analyserNode ?? this.#gainNode!);
+			source.connect(this.#bypassMatchNode);
+		}
+	}
+
+	// --- Sweep cycle ---
+	/**
+	 * Schedule one cycle of the exponential frequency sweep on the live
+	 * oscillator, plus a short gain fade at the start and end of the cycle
+	 * so the from→to wraparound on loop doesn't pop. Calls itself recursively
+	 * via setTimeout when {@link sweepLoop} is true.
+	 */
+	#scheduleSweepCycle(): void {
+		const ctx = this.#audioContext;
+		const osc = this.#oscillatorNode;
+		const fade = this.#sweepFadeNode;
+		if (!ctx || !osc || !fade) return;
+
+		const now = ctx.currentTime;
+		// exponentialRampToValueAtTime requires positive non-zero endpoints
+		const from = Math.max(1, Math.min(20000, this.#sweepFromHz));
+		const to = Math.max(1, Math.min(20000, this.#sweepToHz));
+		// Floor at 0.5 s so the ramp is meaningful; cap at 60 s.
+		const dur = Math.max(0.5, Math.min(60, this.#sweepDurationSec));
+		const fadeMs = 0.005;
+
+		const f = osc.frequency;
+		f.cancelScheduledValues(now);
+		f.setValueAtTime(from, now);
+		f.exponentialRampToValueAtTime(to, now + dur);
+
+		const g = fade.gain;
+		g.cancelScheduledValues(now);
+		g.setValueAtTime(0, now);
+		g.linearRampToValueAtTime(1, now + fadeMs);
+		g.setValueAtTime(1, now + Math.max(fadeMs, dur - fadeMs));
+		g.linearRampToValueAtTime(0, now + dur);
+
+		if (this.#sweepTimer) clearTimeout(this.#sweepTimer);
+		this.#sweepTimer = setTimeout(
+			() => {
+				this.#sweepTimer = null;
+				if (!this.#isPlaying) return;
+				if (this.#sweepLoop) this.#scheduleSweepCycle();
+				else this.stop();
+			},
+			Math.max(50, dur * 1000)
+		);
+	}
+
+	#tickSweepDisplay = (): void => {
+		if (!this.#isPlaying || this.#audioSource !== 'sweep' || !this.#oscillatorNode) {
+			this.#sweepRafId = null;
+			return;
+		}
+		this.#sweepCurrentHz = Math.round(this.#oscillatorNode.frequency.value);
+		this.#sweepRafId = requestAnimationFrame(this.#tickSweepDisplay);
+	};
+
+	#stopSweep(): void {
+		if (this.#sweepTimer) {
+			clearTimeout(this.#sweepTimer);
+			this.#sweepTimer = null;
+		}
+		if (this.#sweepRafId) {
+			cancelAnimationFrame(this.#sweepRafId);
+			this.#sweepRafId = null;
+		}
+		if (this.#sweepFadeNode) {
+			try {
+				this.#sweepFadeNode.disconnect();
+			} catch {
+				/* already disconnected */
+			}
+			this.#sweepFadeNode = null;
 		}
 	}
 
@@ -201,6 +385,9 @@ class AudioPlayerService {
 				void eqStore.filters;
 				void eqStore.preamp;
 				void this.#filtersEnabled;
+				void audioRangeStore.isFrequencySelectionMode;
+				void audioRangeStore.fromHz;
+				void audioRangeStore.toHz;
 				this.#updateFilters();
 			});
 		});
@@ -226,34 +413,40 @@ class AudioPlayerService {
 			audioSpectrumStore.analyserNode = this.#analyserNode;
 		}
 
+		this.#ensureBypassMatchNode(ctx);
 		this.#updateFilters();
+
+		// All sources route into bypassMatchNode; #updateFilters() wires the
+		// rest of the chain (filters or bypass) downstream.
+		const sourceTarget = this.#bypassMatchNode!;
 
 		if (this.#audioSource === 'white' || this.#audioSource === 'pink') {
 			this.#sourceNode = this.#createNoiseNode(this.#audioSource);
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(sourceTarget);
 			this.#sourceNode.start();
 		} else if (this.#audioSource === 'tone') {
 			this.#oscillatorNode = ctx.createOscillator();
 			this.#oscillatorNode.type = 'sine';
 			this.#oscillatorNode.frequency.value = this.#toneFreq;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#oscillatorNode.connect(target);
+			this.#oscillatorNode.connect(sourceTarget);
 			this.#oscillatorNode.start();
+		} else if (this.#audioSource === 'sweep') {
+			this.#oscillatorNode = ctx.createOscillator();
+			this.#oscillatorNode.type = 'sine';
+			this.#oscillatorNode.frequency.value = Math.max(1, this.#sweepFromHz);
+			// Insert a fade gain stage between oscillator and the rest of the
+			// chain so the sweep can fade in/out at cycle boundaries.
+			this.#sweepFadeNode = ctx.createGain();
+			this.#sweepFadeNode.gain.value = 0;
+			this.#oscillatorNode.connect(this.#sweepFadeNode);
+			this.#sweepFadeNode.connect(sourceTarget);
+			this.#oscillatorNode.start();
+			this.#scheduleSweepCycle();
+			this.#tickSweepDisplay();
 		} else if (this.#audioSource === 'file' && this.#audioBuffer) {
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(sourceTarget);
 			this.#sourceNode.start(0, this.#pausedAt);
 			this.#sourceNode.onended = () => {
 				if (this.#isPlaying && !this.#isSeeking) {
@@ -276,6 +469,7 @@ class AudioPlayerService {
 
 	pause(): void {
 		if (!this.#isPlaying) return;
+		this.#stopSweep();
 		this.#sourceNode?.stop();
 		this.#sourceNode?.disconnect();
 		this.#sourceNode = null;
@@ -321,11 +515,7 @@ class AudioPlayerService {
 			const ctx = this.#getAudioContext();
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
-			const target =
-				this.#filterNodes.length > 0
-					? this.#filterNodes[0]
-					: (this.#analyserNode ?? this.#gainNode!);
-			this.#sourceNode.connect(target);
+			this.#sourceNode.connect(this.#ensureBypassMatchNode(ctx));
 			this.#sourceNode.start(0, this.#pausedAt);
 			this.#sourceNode.onended = () => {
 				if (this.#isPlaying && !this.#isSeeking) {

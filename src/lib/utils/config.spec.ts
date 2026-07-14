@@ -32,10 +32,7 @@ describe('resolveI18nValue', () => {
 				{ name: 'Item B', files: ['b.txt'] }
 			],
 			i18n: {
-				ko: [
-					{ name: '항목 A' },
-					{ name: '항목 B' }
-				]
+				ko: [{ name: '항목 A' }, { name: '항목 B' }]
 			}
 		};
 		const result = resolveI18nValue(value, 'ko') as Array<{ name: string; files?: string[] }>;
@@ -97,6 +94,6 @@ describe('getNestedValue', () => {
 	});
 
 	it('handles path through null intermediate', () => {
-		expect(getNestedValue({ a: null } as any, 'a.b')).toBeUndefined();
+		expect(getNestedValue({ a: null }, 'a.b')).toBeUndefined();
 	});
 });

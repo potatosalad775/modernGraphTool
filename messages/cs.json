@@ -40,7 +40,7 @@
 	"equalizer_filter_list_no_filter_export_alert": "Přidejte alespoň jeden filtr před exportováním.",
 	"equalizer_filter_list_frequency": "Frekvence",
 	"equalizer_filter_list_type_label": "Typ",
-	"equalizer_autoeq_freq_range": "Frekvenční Rozsah" ,
+	"equalizer_autoeq_freq_range": "Frekvenční Rozsah",
 	"equalizer_autoeq_q_range": "Rozsah Q",
 	"equalizer_autoeq_gain_range": "Rozsah zesílení",
 	"equalizer_autoeq_filter_setting": "Nastavení filtrů",

@@ -115,7 +115,9 @@ const FRParser = {
 			// Standard path: single L/R pair
 			return await FRParser.getFRDataFromFile(sourceType, variant.files);
 		} catch (e) {
-			throw new Error(`Invalid FR file type: ${e instanceof Error ? e.message : String(e)}`);
+			throw new Error(`Invalid FR file type: ${e instanceof Error ? e.message : String(e)}`, {
+				cause: e
+			});
 		}
 	},
 

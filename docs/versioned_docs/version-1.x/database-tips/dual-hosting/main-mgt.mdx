@@ -4,13 +4,13 @@ sidebar_position: 1
 
 # Use modernGraphTool as main
 
-You can host modernGraphTool and CrinGraph together with slight change of code! 
+You can host modernGraphTool and CrinGraph together with slight change of code!
 
 This chapter showcases how to dual-host 2 graphtools in 1 domain, using modernGraphTool as main forefront page.
 
 ## Overview
 
-There are several ways to host two services on a single domain. 
+There are several ways to host two services on a single domain.
 
 Here, we showcase the classic "folder as subdomain" approach, which is simple and effective for static sites or web apps.
 
@@ -23,9 +23,9 @@ Here, we showcase the classic "folder as subdomain" approach, which is simple an
 
 ### 2. Organize Your Directory Structure
 
-Your root folder should contain the main `index.html` for modernGraphTool. 
+Your root folder should contain the main `index.html` for modernGraphTool.
 
-Create a new folder (e.g., `cringraph`) inside the root directory, and place all CrinGraph files there. 
+Create a new folder (e.g., `cringraph`) inside the root directory, and place all CrinGraph files there.
 
 The `cringraph` folder should also have its own `index.html`.
 
@@ -68,18 +68,18 @@ Head over to line 787, and edit `loadFiles` function.
 
 ```js
 // Previous
-let l = f => d3.text(DIR+f+".txt").catch(()=>null);
-let f = p.isTarget ? [l(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [l(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 
 // After
 // If you're using custom directory for measurements, change the 'phones' and 'target' words to yours.
-let l = f => d3.text(DIR+"phones/"+f+".txt").catch(()=>null);
-let lt = f => d3.text(DIR+"target/"+f+".txt").catch(()=>null);
-let f = p.isTarget ? [lt(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + 'phones/' + f + '.txt').catch(() => null);
+let lt = (f) => d3.text(DIR + 'target/' + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [lt(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 ```
 
 #### config.js
@@ -92,11 +92,11 @@ DIR = "data/",
 
 // After
 // '../' means 'parent directory'.
-DIR = "../data/", 
+DIR = "../data/",
 ```
 
-If you're using Haruto's iteration of CrinGraph ([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool)), 
-You should change this line too : 
+If you're using Haruto's iteration of CrinGraph ([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool)),
+You should change this line too :
 
 ```js
 // Previous at Line 55
@@ -118,6 +118,7 @@ We can add little buttons so users can easily navigate between these two.
 #### modernGraphTool
 
 Head over to line 114 of `config.js` for `TOPBAR` object, and add these line:
+
 ```js
 TOPBAR: {
   LINK_LIST: { TITLE: "Go to CrinGraph", URL: "https://yourdomain.com/cringraph" },
@@ -129,23 +130,24 @@ TOPBAR: {
 #### CrinGraph
 
 Head over to line 250 of `config.js` for `headerLinks` array, and add these line:
+
 ```js
 headerLinks = [
-  {
-    name: "Head back to modernGraphTool",
-    url: "https://yourdomain.com/"
-  },
-  // or
-  {
-    name: "Head back to modernGraphTool",
-    url: "../"
-  },
-]
+	{
+		name: 'Head back to modernGraphTool',
+		url: 'https://yourdomain.com/'
+	},
+	// or
+	{
+		name: 'Head back to modernGraphTool',
+		url: '../'
+	}
+];
 ```
 
 ### 5. Deploying
 
-Upload your project to your web server, ensuring the folder structure is preserved. 
+Upload your project to your web server, ensuring the folder structure is preserved.
 
 Both tools should now be accessible as described above.
 
@@ -153,7 +155,9 @@ Both tools should now be accessible as described above.
 If you are applying these changes to your `squig.link` database, the changes might not be shown immediately due to cached files.
 
 You can apply these changes immediately by refreshing the cache. Add `?cachebust` to the end of your database address, then reload the page.
+
 ```plaintext
 e.g) https://example.squig.link/?cachebust
 ```
+
 :::

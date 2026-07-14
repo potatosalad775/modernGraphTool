@@ -198,11 +198,7 @@ export const fiioSppSerialHandler: DeviceHandler = {
 		return false;
 	},
 
-	async enablePEQ(
-		_device: ConnectedDevice,
-		_enabled: boolean,
-		_slotId: number
-	): Promise<void> {
+	async enablePEQ(_device: ConnectedDevice, _enabled: boolean, _slotId: number): Promise<void> {
 		// FiiO SPP devices do not support enable/disable PEQ — no-op
 	}
 };

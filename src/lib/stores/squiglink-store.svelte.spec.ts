@@ -57,7 +57,10 @@ describe('SquiglinkStore', () => {
 		});
 
 		it('defaults to subdomain for unknown urlType', () => {
-			const site = makeSite({ urlType: 'unknown' as any, username: 'fallback' });
+			const site = makeSite({
+				urlType: 'unknown' as unknown as SquiglinkSite['urlType'],
+				username: 'fallback'
+			});
 			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://fallback.squig.link');
 		});
 	});

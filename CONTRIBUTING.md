@@ -42,15 +42,38 @@ npm run lint
 npm run format
 ```
 
+`npm run lint` is enforced in CI on both Linux and Windows, so a PR that is not
+Prettier-clean will not merge.
+
+### Line endings
+
+All text files are **LF**, pinned by [.gitattributes](.gitattributes). This overrides
+`core.autocrlf`, which the Git for Windows installer turns on by default — you do not
+need to configure anything locally, and you should not commit CRLF.
+
+[.editorconfig](.editorconfig) tells your editor the same thing. Install the EditorConfig
+extension if your editor does not read it natively.
+
+### git blame
+
+One commit reformatted the whole repository. To keep `git blame` pointing at real
+authorship rather than that commit, run this once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+GitHub's blame view already honours the file automatically.
+
 ## Svelte 5 Conventions
 
 This project uses **Svelte 5 with Runes** (enforced globally). Always use the Runes API:
 
-| Use | Don't use |
-|-----|-----------|
-| `let x = $state(value)` | `writable(value)` |
-| `let y = $derived(expr)` | `$: y = expr` |
-| `$effect(() => { ... })` | `afterUpdate` |
+| Use                       | Don't use         |
+| ------------------------- | ----------------- |
+| `let x = $state(value)`   | `writable(value)` |
+| `let y = $derived(expr)`  | `$: y = expr`     |
+| `$effect(() => { ... })`  | `afterUpdate`     |
 | `let { prop } = $props()` | `export let prop` |
 
 Stores are reactive class instances in `.svelte.ts` files, not plain `.ts` files. See `CLAUDE.md` for detailed architecture and conventions.
@@ -63,13 +86,13 @@ build time into `src/lib/paraglide/`, so adding strings or locales always means 
 
 ### How it fits together
 
-| Piece | Location | Role |
-|-------|----------|------|
-| Locale list | `project.inlang/settings.json` | `baseLocale` + `locales` array — the source of truth for which languages exist |
-| Message sources | `messages/<locale>.json` | One file per locale; flat `key → string` map |
-| Generated code | `src/lib/paraglide/` | Auto-generated message functions + `runtime` — **never hand-edit** |
-| Build hook | `paraglideVitePlugin` in `vite.config.ts` | Regenerates `src/lib/paraglide/` on every `dev` / `build` |
-| Language picker | `MiscPanel.svelte` | Reads `locales` from the runtime — no per-language code needed |
+| Piece           | Location                                  | Role                                                                           |
+| --------------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| Locale list     | `project.inlang/settings.json`            | `baseLocale` + `locales` array — the source of truth for which languages exist |
+| Message sources | `messages/<locale>.json`                  | One file per locale; flat `key → string` map                                   |
+| Generated code  | `src/lib/paraglide/`                      | Auto-generated message functions + `runtime` — **never hand-edit**             |
+| Build hook      | `paraglideVitePlugin` in `vite.config.ts` | Regenerates `src/lib/paraglide/` on every `dev` / `build`                      |
+| Language picker | `MiscPanel.svelte`                        | Reads `locales` from the runtime — no per-language code needed                 |
 
 The picker dropdown derives its options from the generated `locales` array and labels each with
 the language's own endonym via `Intl.DisplayNames`, so a newly registered locale shows up
@@ -102,8 +125,8 @@ To read or change the locale programmatically, import from the generated runtime
 ```ts
 import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
 
-getLocale();        // 'en'
-setLocale('ko');    // switch (persists via localStorage strategy)
+getLocale(); // 'en'
+setLocale('ko'); // switch (persists via localStorage strategy)
 ```
 
 ### Adding a new translation key
@@ -129,11 +152,11 @@ and deletes the staging file. You never have to touch the main dictionary or res
 
 Maintainer-side commands:
 
-| Command                | What it does                                                                 |
-| ---------------------- | --------------------------------------------------------------------------- |
-| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.                    |
-| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files.          |
-| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them.          |
+| Command                | What it does                                                        |
+| ---------------------- | ------------------------------------------------------------------- |
+| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.           |
+| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files. |
+| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them. |
 
 ### Adding a new language option
 
@@ -184,6 +207,8 @@ npm run test:unit
    npm run lint     # ESLint + Prettier
    npm run test     # All tests
    ```
+   The `CI` workflow runs exactly these on Linux and Windows, plus a build of the app,
+   the CDN distribution and the docs site. Running them locally first saves a round trip.
 4. **Open a PR** with a clear description of what changed and why
 
 ## What to Contribute

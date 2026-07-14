@@ -193,8 +193,12 @@ This is separate from Paraglide UI-string i18n.
 - **Missing keys in a non-`en` locale are fine.** Paraglide's compiler falls back to `baseLocale`
   (`en`) per key automatically — no build error, no runtime crash. Contributors can add partial
   translations; untranslated strings just render in English until filled in.
-- Generated code in `src/lib/paraglide/` is **not** hand-edited
-- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build
+- Generated code in `src/lib/paraglide/` is **not** hand-edited, and is gitignored
+- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build/test
+- `npm run check` does **not** go through Vite, so on a fresh clone `$lib/paraglide/*` would have
+  no type declarations. `check` therefore runs `npm run i18n:compile` first (the Paraglide CLI with
+  the same options as the Vite plugin — keep the two in sync). `prepare` runs it too, so a plain
+  `npm ci` leaves the tree typecheckable.
 - Switch language: `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`
 - Adding a language = add to `locales` + create `messages/<locale>.json` (keys fill in over time,
   see fallback note above). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames`
@@ -207,11 +211,11 @@ This is separate from Paraglide UI-string i18n.
 Translators never touch `messages/<locale>.json` directly — they edit a generated staging file
 that contains only the keys they need to fill in:
 
-| Command              | Who         | What it does                                                                                                 |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------ |
-| `npm run i18n:check` | anyone      | Reports missing / stale keys per locale. Changes nothing.                                                     |
-| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text.   |
-| `npm run i18n:apply` | maintainer  | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.           |
+| Command                | Who        | What it does                                                                                                |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `npm run i18n:check`   | anyone     | Reports missing / stale keys per locale. Changes nothing.                                                   |
+| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text. |
+| `npm run i18n:apply`   | maintainer | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.         |
 
 1. A key is added to `messages/en.json` → run `npm run i18n:missing` to regenerate the staging files.
 2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they're unsure
@@ -221,6 +225,7 @@ that contains only the keys they need to fill in:
 `i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys
 rather than dropping them. Use `--dry-run` to preview. Paraglide ignores
 `_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
+
 - Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
 
 ## CSS / Theming
@@ -270,6 +275,25 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 | `npm run test`      | Vitest (client + server, Playwright browser mode)        |
 | `npm run lint`      | Prettier + ESLint                                        |
 | `npm run format`    | Auto-format code                                         |
+
+## CI
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every PR and every push to
+`main`: `lint` → `check` → `test` on **both ubuntu-latest and windows-latest**, plus a
+build of the app, the CDN distribution and the docs site on Linux.
+
+The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in its system
+config, so before [.gitattributes](.gitattributes) pinned every text file to `eol=lf`, the
+same commit was Prettier-clean on macOS and dirty on Windows. The `Working tree must be
+clean` step is the guard against that regressing: it fails if a checkout plus install
+leaves anything modified, or if CRLF ever reaches the index.
+
+`npm run lint` must exit 0. ESLint warnings (currently 33 `no-unused-vars`, mostly
+device-peq protocol constants kept for reference) do not fail the build. Rule overrides
+live in [eslint.config.js](eslint.config.js) and each carries a comment explaining why —
+notably `no-useless-assignment` is off for `*.svelte` because it misreads `$bindable()`
+prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
+tool parses arbitrary operator-authored config.
 
 ## Built-in Features
 

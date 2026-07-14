@@ -72,6 +72,7 @@ class URLProvider {
 				// the deployment base). Pass it directly to replaceState instead of
 				// resolve(), which would prepend base a second time under subpath
 				// deployments like /cdn/.
+				// eslint-disable-next-line svelte/no-navigation-without-resolve
 				replaceState(newPath, {});
 			}
 		}
@@ -314,10 +315,12 @@ class URLProvider {
 		}
 
 		const metaDescription = document.querySelector("meta[name='description']");
-		if (metaDescription && namesCombined) {
+		if (metaDescription) {
 			metaDescription.setAttribute(
 				'content',
-				`View and compare frequency response graph of ${namesCombined}.`
+				namesCombined
+					? `View and compare frequency response graph of ${namesCombined}.`
+					: this.#baseDescription
 			);
 		}
 	}

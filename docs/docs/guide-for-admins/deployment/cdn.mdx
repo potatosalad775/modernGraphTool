@@ -10,16 +10,18 @@ Load the modernGraphTool application code from a CDN (jsDelivr) and keep only yo
 
 In CDN mode, your server hosts a minimal set of files — an `index.html` loader, `config.js`, `theme.css`, `data/`, and `assets/` — while the actual application bundle is served from jsDelivr. When a new version of modernGraphTool is released, your site picks it up automatically: no file uploads, no redeploys.
 
-The tradeoff is that your site needs to reach jsDelivr at load time, and you don't directly control *when* the update ships. If either of those matters to you, see [Pre-built Release](./prebuilt) instead.
+The tradeoff is that your site needs to reach jsDelivr at load time, and you don't directly control _when_ the update ships. If either of those matters to you, see [Pre-built Release](./prebuilt) instead.
 
 ## When to pick this
 
 **Good fit for:**
+
 - Most operators who just want a working site with minimal maintenance
 - Personal databases that don't need a controlled release cadence
 - Anyone who dreads manual re-uploads on every release
 
 **Bad fit for:**
+
 - Airgapped or intranet deployments where jsDelivr isn't reachable
 - Sites that need strict control over when and which version users receive
 - Heavy customization of the app bundle itself (forks, custom features)
@@ -85,6 +87,7 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 **Cause:** Browser cache, jsDelivr edge cache, or a `MAJOR_VERSION` pin you forgot about.
 
 **Fix:**
+
 1. Check whether `CDN_MODE.MAJOR_VERSION` is pinned to an older major than the one you want.
 2. Clear your browser cache or do a hard reload (Ctrl+Shift+R / Cmd+Shift+R).
 3. For non-`versions.json` files, wait on the jsDelivr edge cache — it clears within minutes to hours depending on your POP.
@@ -94,6 +97,7 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 **Cause:** Network reachability, config syntax error, or CDN blocked in your region.
 
 **Fix:**
+
 1. Open the browser's network tab and check which request is failing.
 2. If `versions.json` or `boot.json` fails, jsDelivr / GitHub raw is unreachable from where you are. Consider [Pre-built Release](./prebuilt) as a fallback.
 3. If nothing loads and there's no network activity, `config.js` may have a syntax error — check the browser console.
@@ -120,7 +124,7 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 
 `VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn't a recognizable jsDelivr `gh/` URL (because you're self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196).
 
-All the *other* files (app chunks, CSS, preloads) still come from jsDelivr with its normal cache behavior, which is minutes to hours depending on the edge location. Users who want to force-refresh to the newest version can clear their browser cache or hard-reload.
+All the _other_ files (app chunks, CSS, preloads) still come from jsDelivr with its normal cache behavior, which is minutes to hours depending on the edge location. Users who want to force-refresh to the newest version can clear their browser cache or hard-reload.
 
 ### Self-hosting the CDN assets
 
@@ -137,7 +141,7 @@ CDN_MODE: {
 You'll need to mirror the full structure: `versions.json` at the root, plus `v{version}/boot.json` and all referenced chunks. Set `VERSIONS_URL` alongside `BASE` — the default GitHub raw derivation only works when `BASE` points at a jsDelivr `gh/` URL.
 
 :::warning[Trade-off]
-Self-hosting the CDN assets defeats the "no manual updates" selling point of CDN mode. You now have two things to maintain: your site *and* your mirror. For most operators, the [Pre-built Release](./prebuilt) path is simpler.
+Self-hosting the CDN assets defeats the "no manual updates" selling point of CDN mode. You now have two things to maintain: your site _and_ your mirror. For most operators, the [Pre-built Release](./prebuilt) path is simpler.
 :::
 
 ### Why `BASE_PATH` is almost always required
@@ -148,12 +152,12 @@ When a visitor opens `https://example.com/headphones/`, the browser's `window.lo
 
 The practical result:
 
-| Deployment | Auto-detected base | Correct? | Action |
-|---|---|---|---|
-| `example.com/` | `""` | Yes | Leave `BASE_PATH` unset |
-| `example.com/headphones/` | `""` | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"` |
-| `example.com/headphones/share/abc` | `""` | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"` |
-| `example.com/headphones/cdn-index.html` | `/headphones` | Yes | (But nobody visits this URL — the install instructions tell you to rename the file.) |
+| Deployment                              | Auto-detected base | Correct?                         | Action                                                                               |
+| --------------------------------------- | ------------------ | -------------------------------- | ------------------------------------------------------------------------------------ |
+| `example.com/`                          | `""`               | Yes                              | Leave `BASE_PATH` unset                                                              |
+| `example.com/headphones/`               | `""`               | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"`                                                       |
+| `example.com/headphones/share/abc`      | `""`               | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"`                                                       |
+| `example.com/headphones/cdn-index.html` | `/headphones`      | Yes                              | (But nobody visits this URL — the install instructions tell you to rename the file.) |
 
 So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js:111-137](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L111-L137) if you want to read the exact detection rules.
 

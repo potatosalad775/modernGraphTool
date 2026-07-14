@@ -4,7 +4,7 @@ An advanced visualization extension that displays preference boundary on frequen
 
 ## Overview
 
-The Preference Bound extension adds a sophisticated overlay feature to modernGraphTool that visualizes preference boundaries around target curves. 
+The Preference Bound extension adds a sophisticated overlay feature to modernGraphTool that visualizes preference boundaries around target curves.
 
 These boundaries represent the statistically acceptable range of frequency response variations that most listeners find pleasant, based on research data and listening preferences.
 
@@ -16,13 +16,13 @@ These boundaries represent the statistically acceptable range of frequency respo
 
 ## Technical Specifications
 
-| Property | Value |
-|----------|-------|
-| **Extension Name** | `preference-bound` |
-| **Version** | 1.0.0 |
-| **Minimum Core API Level** | 1 |
-| **Minimum Core Version** | 1.0.0 |
-| **I18N Support** | Yes |
+| Property                   | Value              |
+| -------------------------- | ------------------ |
+| **Extension Name**         | `preference-bound` |
+| **Version**                | 1.0.0              |
+| **Minimum Core API Level** | 1                  |
+| **Minimum Core Version**   | 1.0.0              |
+| **I18N Support**           | Yes                |
 
 ## Configuration
 
@@ -36,7 +36,7 @@ These boundaries represent the statistically acceptable range of frequency respo
     // Boundary data file configuration
     BOUND_DATA_FILE: "Bounds",                      // Base filename for boundary data
     BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target", // Base diffuse field target
-    
+
     // Visual configuration
     ENABLE_BOUND_ON_INITIAL_LOAD: true,             // Show bounds when extension loads
     COLOR_FILL: "rgba(180, 180, 180, 0.2)",        // Fill color for boundary area
@@ -48,10 +48,12 @@ These boundaries represent the statistically acceptable range of frequency respo
 ### Configuration Options
 
 #### Data Files
+
 - **`BOUND_DATA_FILE`**: Base name for boundary data files (e.g., "Bounds" looks for "Bounds U.txt" and "Bounds D.txt")
 - **`BASE_DF_TARGET_FILE`**: Reference diffuse field target file for baseline calculations
 
 #### Visual Settings
+
 - **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when the extension first loads
 - **`COLOR_FILL`**: RGBA color for the filled boundary area
 - **`COLOR_BORDER`**: RGBA color for the boundary outline
@@ -59,10 +61,13 @@ These boundaries represent the statistically acceptable range of frequency respo
 ## Data File Format
 
 ### Boundary Data Files
+
 The extension requires 3 data files in the `extensions/preference-bound/data/` directory:
 
 #### Upper Boundary (`Bounds U.txt`)
+
 Contains frequency response data for the upper preference boundary:
+
 ```
 20.0	2.5
 25.0	2.8
@@ -71,7 +76,9 @@ Contains frequency response data for the upper preference boundary:
 ```
 
 #### Lower Boundary (`Bounds D.txt`)
+
 Contains frequency response data for the lower preference boundary:
+
 ```
 20.0	-2.5
 25.0	-2.8
@@ -80,6 +87,7 @@ Contains frequency response data for the lower preference boundary:
 ```
 
 #### Base Target File
+
 A reference diffuse field target file (e.g., `KEMAR DF (KB006x) Target.txt`) used as the baseline for boundary calculations.
 
 ## Installation
@@ -96,11 +104,13 @@ A reference diffuse field target file (e.g., `KEMAR DF (KB006x) Target.txt`) use
 ## Usage
 
 ### Basic Operation
+
 1. **Toggle Control**: Use the extension's toggle button to show/hide boundaries
 2. **Target Alignment**: Boundaries automatically align with the selected base target
 3. **Real-time Updates**: Boundaries update when changing targets or measurements
 
 ### Visual Interpretation
+
 - **Filled Area**: The area between upper and lower bounds represents the preference range
 - **Target Baseline**: Boundaries are relative to the selected diffuse field target
 - **Measurement Overlay**: Compare headphone measurements against preference boundaries
@@ -108,5 +118,6 @@ A reference diffuse field target file (e.g., `KEMAR DF (KB006x) Target.txt`) use
 ## Third-party Acknowledgments
 
 This extension includes the [d3-interpolate-path library by pbeshai](https://github.com/pbeshai/d3-interpolate-path).
+
 - **Repository**: https://github.com/pbeshai/d3-interpolate-path
 - **License**: BSD-3-Clause License

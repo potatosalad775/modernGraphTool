@@ -174,7 +174,8 @@
 			<Button
 				{...props}
 				title={triggerLabel}
-				variant="outline" size="sm"
+				variant="outline"
+				size="sm"
 				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm! bg-base-200! hover:bg-base-content/10!"
 			>
 				{triggerLabel}
@@ -185,7 +186,8 @@
 
 	<Popover.Portal>
 		<Popover.Content
-			sideOffset={6} align="end"
+			sideOffset={6}
+			align="end"
 			class="z-50 w-54 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->
@@ -238,14 +240,18 @@
 						<Button
 							title={m.selection_list_samples_all_l()}
 							onclick={() => handlePreset('allL')}
-							variant="muted" size="sm" class="flex-1"
+							variant="muted"
+							size="sm"
+							class="flex-1"
 						>
 							{m.selection_list_samples_all_l()}
 						</Button>
 						<Button
 							title={m.selection_list_samples_all_r()}
 							onclick={() => handlePreset('allR')}
-							variant="muted" size="sm" class="flex-1"
+							variant="muted"
+							size="sm"
+							class="flex-1"
 						>
 							{m.selection_list_samples_all_r()}
 						</Button>
@@ -254,14 +260,18 @@
 						<Button
 							title={m.selection_list_samples_all()}
 							onclick={() => handlePreset('all')}
-							variant="muted" size="sm" class="flex-1"
+							variant="muted"
+							size="sm"
+							class="flex-1"
 						>
 							{m.selection_list_samples_all()}
 						</Button>
 						<Button
 							title={m.selection_list_samples_none()}
 							onclick={() => handlePreset('none')}
-							variant="muted" size="sm" class="flex-1"
+							variant="muted"
+							size="sm"
+							class="flex-1"
 						>
 							{m.selection_list_samples_none()}
 						</Button>
@@ -326,14 +336,18 @@
 							<Button
 								title={m.selection_list_hptf_all()}
 								onclick={() => handleHptfPreset('all')}
-								variant="muted" size="sm" class="flex-1"
+								variant="muted"
+								size="sm"
+								class="flex-1"
 							>
 								{m.selection_list_hptf_all()}
 							</Button>
 							<Button
 								title={m.selection_list_hptf_none()}
 								onclick={() => handleHptfPreset('none')}
-								variant="muted" size="sm" class="flex-1"
+								variant="muted"
+								size="sm"
+								class="flex-1"
 							>
 								{m.selection_list_hptf_none()}
 							</Button>

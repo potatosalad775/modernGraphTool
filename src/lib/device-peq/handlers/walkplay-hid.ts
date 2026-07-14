@@ -6,7 +6,13 @@
 // Many thanks to ma0shu for providing a dump
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult, UsbHidVendorConfig } from '../types.js';
+import type {
+	ConnectedDevice,
+	DeviceHandler,
+	DeviceFilter,
+	PullResult,
+	UsbHidVendorConfig
+} from '../types.js';
 import { WALKPLAY_FILTER_MAP } from '../utils/filter-type-maps.js';
 import { computeWalkplayBiquad, biquadCoeffsToBytes } from '../utils/biquad.js';
 
@@ -263,7 +269,16 @@ async function pushToDevice(
 	await writeGlobalGain(hidDevice, preamp);
 	console.log(`USB Device PEQ: Walkplay set global gain to ${preamp}`);
 
-	await sendReport(hidDevice, REPORT_ID, [WRITE, CMD.TEMP_WRITE, 0x04, 0x00, 0x00, 0xff, 0xff, END]);
+	await sendReport(hidDevice, REPORT_ID, [
+		WRITE,
+		CMD.TEMP_WRITE,
+		0x04,
+		0x00,
+		0x00,
+		0xff,
+		0xff,
+		END
+	]);
 	await sendReport(hidDevice, REPORT_ID, [WRITE, CMD.FLASH_EQ, 0x01, END]);
 
 	console.log('PEQ filters successfully pushed to Walkplay device.');
@@ -394,49 +409,187 @@ export const registration: UsbHidVendorConfig = {
 		availableSlots: [{ id: 101, name: 'Custom' }]
 	},
 	devices: {
-		'Old Fashioned': { manufacturer: 'Moondrop', handlerRef: 'moondrop-old-fashioned-hid', modelConfig: { minGain: -12, maxGain: 3, maxFilters: 5, firstWritableEQSlot: -1, maxWritableEQSlots: 0, disconnectOnSave: false, disabledPresetId: -1, experimental: false, supportsLSHSFilters: false, supportsPregain: false, defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }], availableSlots: [{ id: 0, name: 'Custom' }] } },
-		'FIIO FX17 ': { manufacturer: 'FiiO', handlerRef: 'fiio-usb-hid', modelConfig: { minGain: -12, maxGain: 12, maxFilters: 10, firstWritableEQSlot: 7, maxWritableEQSlots: 3, disconnectOnSave: false, disabledPresetId: 11, experimental: false, availableSlots: [{ id: 0, name: 'Jazz' }, { id: 1, name: 'Pop' }, { id: 2, name: 'Rock' }, { id: 3, name: 'Dance' }, { id: 4, name: 'R&B' }, { id: 5, name: 'Classic' }, { id: 6, name: 'Hip-hop' }, { id: 7, name: 'Monitor' }, { id: 160, name: 'USER1' }, { id: 161, name: 'USER2' }, { id: 162, name: 'USER3' }, { id: 163, name: 'USER4' }, { id: 164, name: 'USER5' }, { id: 165, name: 'USER6' }, { id: 166, name: 'USER7' }, { id: 167, name: 'USER8' }, { id: 168, name: 'USER9' }, { id: 169, name: 'USER10' }] } },
-		'Rays': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
-		'EPZ TP13 AI ENC audio': { manufacturer: 'EPZ', modelConfig: { supportsLSHSFilters: false, supportsPregain: true } },
-		'Marigold': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', modelConfig: { supportsLSHSFilters: false, supportsPregain: true } },
-		'FreeDSP Pro': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
-		'FreeDSP Mini': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: true },
-		'MOONRIVER 3': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid', supportsLSHSFilters: true, supportsPregain: false },
+		'Old Fashioned': {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-old-fashioned-hid',
+			modelConfig: {
+				minGain: -12,
+				maxGain: 3,
+				maxFilters: 5,
+				firstWritableEQSlot: -1,
+				maxWritableEQSlots: 0,
+				disconnectOnSave: false,
+				disabledPresetId: -1,
+				experimental: false,
+				supportsLSHSFilters: false,
+				supportsPregain: false,
+				defaultResetFiltersValues: [{ gain: 0, freq: 100, q: 1, filterType: 'PK' }],
+				availableSlots: [{ id: 0, name: 'Custom' }]
+			}
+		},
+		'FIIO FX17 ': {
+			manufacturer: 'FiiO',
+			handlerRef: 'fiio-usb-hid',
+			modelConfig: {
+				minGain: -12,
+				maxGain: 12,
+				maxFilters: 10,
+				firstWritableEQSlot: 7,
+				maxWritableEQSlots: 3,
+				disconnectOnSave: false,
+				disabledPresetId: 11,
+				experimental: false,
+				availableSlots: [
+					{ id: 0, name: 'Jazz' },
+					{ id: 1, name: 'Pop' },
+					{ id: 2, name: 'Rock' },
+					{ id: 3, name: 'Dance' },
+					{ id: 4, name: 'R&B' },
+					{ id: 5, name: 'Classic' },
+					{ id: 6, name: 'Hip-hop' },
+					{ id: 7, name: 'Monitor' },
+					{ id: 160, name: 'USER1' },
+					{ id: 161, name: 'USER2' },
+					{ id: 162, name: 'USER3' },
+					{ id: 163, name: 'USER4' },
+					{ id: 164, name: 'USER5' },
+					{ id: 165, name: 'USER6' },
+					{ id: 166, name: 'USER7' },
+					{ id: 167, name: 'USER8' },
+					{ id: 168, name: 'USER9' },
+					{ id: 169, name: 'USER10' }
+				]
+			}
+		},
+		Rays: {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-usb-hid',
+			supportsLSHSFilters: true,
+			supportsPregain: true
+		},
+		'EPZ TP13 AI ENC audio': {
+			manufacturer: 'EPZ',
+			modelConfig: { supportsLSHSFilters: false, supportsPregain: true }
+		},
+		Marigold: {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-usb-hid',
+			modelConfig: { supportsLSHSFilters: false, supportsPregain: true }
+		},
+		'FreeDSP Pro': {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-usb-hid',
+			supportsLSHSFilters: true,
+			supportsPregain: true
+		},
+		'FreeDSP Mini': {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-usb-hid',
+			supportsLSHSFilters: true,
+			supportsPregain: true
+		},
+		'MOONRIVER 3': {
+			manufacturer: 'Moondrop',
+			handlerRef: 'moondrop-usb-hid',
+			supportsLSHSFilters: true,
+			supportsPregain: false
+		},
 		'ddHiFi DSP IEM - Memory': { manufacturer: 'Moondrop', handlerRef: 'moondrop-usb-hid' },
-		'Quark2': { manufacturer: 'Moondrop' },
+		Quark2: { manufacturer: 'Moondrop' },
 		'ECHO-A': { manufacturer: 'Moondrop' },
-		'Truthear KEYX': { manufacturer: 'Truthear', handler: walkplayHidHandler, modelConfig: { minGain: -12, maxGain: 6, maxFilters: 8, firstWritableEQSlot: -1, maxWritableEQSlots: 0, disconnectOnSave: false, disabledPresetId: -1, supportsPregain: true, supportsLSHSFilters: false, experimental: false, defaultIndex: 0x17, availableSlots: [{ id: 101, name: 'Custom' }] } },
+		'Truthear KEYX': {
+			manufacturer: 'Truthear',
+			handler: walkplayHidHandler,
+			modelConfig: {
+				minGain: -12,
+				maxGain: 6,
+				maxFilters: 8,
+				firstWritableEQSlot: -1,
+				maxWritableEQSlots: 0,
+				disconnectOnSave: false,
+				disabledPresetId: -1,
+				supportsPregain: true,
+				supportsLSHSFilters: false,
+				experimental: false,
+				defaultIndex: 0x17,
+				availableSlots: [{ id: 101, name: 'Custom' }]
+			}
+		},
 		'Hi-MAX': { modelConfig: { experimental: false } },
 		'BGVP MX1': { modelConfig: { schemeNo: 15, experimental: true } },
-		'DT04': { manufacturer: 'LETSHUOER', modelConfig: { schemeNo: 15, experimental: true } },
+		DT04: { manufacturer: 'LETSHUOER', modelConfig: { schemeNo: 15, experimental: true } },
 		'MD-QT-042': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: true } },
-		'MOONDROP HiFi with PD': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: true } },
+		'MOONDROP HiFi with PD': {
+			manufacturer: 'Moondrop',
+			modelConfig: { schemeNo: 15, experimental: true }
+		},
 		'DAWN PRO 2': { manufacturer: 'Moondrop', modelConfig: { schemeNo: 15, experimental: false } },
-		'CS431XX': { modelConfig: { schemeNo: 15, experimental: true } },
+		CS431XX: { modelConfig: { schemeNo: 15, experimental: true } },
 		'ES9039 ': { modelConfig: { schemeNo: 15, experimental: true } },
-		'TANCHJIM-STARGATE II': { manufacturer: 'Tanchim', modelConfig: { schemeNo: 15, supportsLSHSFilters: false } },
-		'didiHiFi DSP Cable - Memory': { manufacturer: 'ddHifi', modelConfig: { schemeNo: 15, experimental: true } },
+		'TANCHJIM-STARGATE II': {
+			manufacturer: 'Tanchim',
+			modelConfig: { schemeNo: 15, supportsLSHSFilters: false }
+		},
+		'didiHiFi DSP Cable - Memory': {
+			manufacturer: 'ddHifi',
+			modelConfig: { schemeNo: 15, experimental: true }
+		},
 		'Dual CS43198': { modelConfig: { schemeNo: 15, experimental: true } },
 		'ES9039 HiFi DSP Audio': { modelConfig: { schemeNo: 15, experimental: true } },
-		'AE6': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
-		'KM_HA03': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		AE6: { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		KM_HA03: { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
 		'TP35 Pro': { modelConfig: { schemeNo: 16, maxFilters: 10 } },
-		'DA5': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
-		'G303': { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
-		'HiFi DSP Audio with PD': { manufacturer: 'ddHifi', modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
-		'Protocol Max': { manufacturer: 'CrinEar', modelConfig: { schemeNo: 16, maxFilters: 10, minGain: -10, maxGain: 10, autoGlobalGain: true, supportsLSHSFilters: true, supportsPregain: true, experimental: false } },
-		'CS43198 HiFi DSP Audio': { modelConfig: { schemeNo: 11, maxFilters: 8, minGain: -10, maxGain: 10, autoGlobalGain: true, supportsLSHSFilters: true, supportsPregain: true, experimental: false } }
+		DA5: { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		G303: { modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true } },
+		'HiFi DSP Audio with PD': {
+			manufacturer: 'ddHifi',
+			modelConfig: { schemeNo: 16, maxFilters: 10, experimental: true }
+		},
+		'Protocol Max': {
+			manufacturer: 'CrinEar',
+			modelConfig: {
+				schemeNo: 16,
+				maxFilters: 10,
+				minGain: -10,
+				maxGain: 10,
+				autoGlobalGain: true,
+				supportsLSHSFilters: true,
+				supportsPregain: true,
+				experimental: false
+			}
+		},
+		'CS43198 HiFi DSP Audio': {
+			modelConfig: {
+				schemeNo: 11,
+				maxFilters: 8,
+				minGain: -10,
+				maxGain: 10,
+				autoGlobalGain: true,
+				supportsLSHSFilters: true,
+				supportsPregain: true,
+				experimental: false
+			}
+		}
 	},
 	deviceGroups: {
 		SchemeNo11: {
-			productIds: [0x13d4, 0x98c0, 0x93d1, 0x13d7, 0x12c0, 0x1264, 0x43d1, 0x1266, 0x51c0, 0x13c1, 0x13d3, 0x1251, 0x1262, 0x1261, 0x12c1, 0x98d5],
+			productIds: [
+				0x13d4, 0x98c0, 0x93d1, 0x13d7, 0x12c0, 0x1264, 0x43d1, 0x1266, 0x51c0, 0x13c1, 0x13d3,
+				0x1251, 0x1262, 0x1261, 0x12c1, 0x98d5
+			],
 			modelConfig: {
 				supportsLSHSFilters: false,
 				supportsPregain: true
 			}
 		},
 		SchemeNo16: {
-			productIds: [0x4380, 0x43b6, 0x43e1, 0x43d7, 0x43d8, 0x43e4, 0x98d4, 0x43c0, 0x43e8, 0xf808, 0xee10, 0x4352, 0xee20, 0x43c5, 0x43e6, 0x4351, 0x43de, 0x4358, 0x4359, 0x43db, 0x435a, 0x4355, 0x435c, 0x435d, 0x435e, 0x43ef, 0x43ec, 0x4361, 0x4363, 0x4366, 0x4364, 0x4360, 0x4382, 0x4383, 0x4386, 0x43c6, 0x43c7, 0x011d, 0x43c8, 0x43da, 0x43c9, 0x43ca, 0x43cc, 0x43cd, 0x43cf, 0x43b1, 0x43c2, 0x43b7, 0x43b8, 0x39c3],
+			productIds: [
+				0x4380, 0x43b6, 0x43e1, 0x43d7, 0x43d8, 0x43e4, 0x98d4, 0x43c0, 0x43e8, 0xf808, 0xee10,
+				0x4352, 0xee20, 0x43c5, 0x43e6, 0x4351, 0x43de, 0x4358, 0x4359, 0x43db, 0x435a, 0x4355,
+				0x435c, 0x435d, 0x435e, 0x43ef, 0x43ec, 0x4361, 0x4363, 0x4366, 0x4364, 0x4360, 0x4382,
+				0x4383, 0x4386, 0x43c6, 0x43c7, 0x011d, 0x43c8, 0x43da, 0x43c9, 0x43ca, 0x43cc, 0x43cd,
+				0x43cf, 0x43b1, 0x43c2, 0x43b7, 0x43b8, 0x39c3
+			],
 			modelConfig: {
 				schemeNo: 16,
 				maxFilters: 10,

@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import MetadataParser from './metadata-parser.js';
-import type { BrandMetadata, TargetManifestEntry, RawPhoneData } from '$lib/types/data-types.js';
+import type {
+	BrandMetadata,
+	TargetManifestEntry,
+	RawPhoneData,
+	FRDataType
+} from '$lib/types/data-types.js';
 
 // ── Mock data factories ──────────────────────────────────────────────────────
 
@@ -416,7 +421,7 @@ describe('MetadataParser', () => {
 		});
 
 		it('returns fallback structure for unknown source type', () => {
-			const result = MetadataParser.getFRMetadata('unknown' as any, 'SomeData');
+			const result = MetadataParser.getFRMetadata('unknown' as unknown as FRDataType, 'SomeData');
 			expect(result).toEqual({
 				identifier: 'SomeData',
 				files: [{ files: 'SomeData.txt' }]

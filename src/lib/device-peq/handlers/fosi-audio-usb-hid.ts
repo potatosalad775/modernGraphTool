@@ -64,11 +64,7 @@ function convertToFilterType(value: number): 'PK' | 'LSQ' | 'HSQ' {
 	}
 }
 
-function encodeBandParams(
-	presetId: number,
-	bandIndex: number,
-	filter: DeviceFilter
-): Uint8Array {
+function encodeBandParams(presetId: number, bandIndex: number, filter: DeviceFilter): Uint8Array {
 	const packet = new Uint8Array(PACKET_SIZE);
 	const view = new DataView(packet.buffer);
 
@@ -86,9 +82,7 @@ function encodeBandParams(
 	return packet;
 }
 
-function parseBandParams(
-	data: Uint8Array
-): {
+function parseBandParams(data: Uint8Array): {
 	presetId: number;
 	bandIndex: number;
 	type: 'PK' | 'LSQ' | 'HSQ';
@@ -138,10 +132,7 @@ async function sendCommand(
 	if (delay > 0) await waitMs(delay);
 }
 
-async function receiveFeatureReport(
-	device: HIDDevice,
-	reportId: number
-): Promise<DataView | null> {
+async function receiveFeatureReport(device: HIDDevice, reportId: number): Promise<DataView | null> {
 	try {
 		const dataView = await device.receiveFeatureReport(reportId);
 		console.log(
@@ -289,11 +280,7 @@ export const fosiAudioUsbHidHandler: DeviceHandler = {
 		}
 	},
 
-	async enablePEQ(
-		deviceDetails: ConnectedDevice,
-		enable: boolean,
-		slotId: number
-	): Promise<void> {
+	async enablePEQ(deviceDetails: ConnectedDevice, enable: boolean, slotId: number): Promise<void> {
 		const device = deviceDetails.rawDevice as HIDDevice;
 		const reportId = deviceDetails.modelConfig.reportId || REPORT_ID;
 

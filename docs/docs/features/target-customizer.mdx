@@ -47,25 +47,30 @@ TARGET_CUSTOMIZER: {
 ### Available Filter Types
 
 #### TILT Filter
+
 - **Purpose**: Overall tonal balance adjustment
 - **Behavior**: Applies a linear frequency-dependent gain change
 - **Use Case**: Adjust overall brightness or warmth of the target curve
 
 #### LSQ (Low Shelf)
+
 - **Purpose**: Bass frequency adjustment
 - **Use Case**: Boost or cut low-frequency content
 
 #### HSQ (High Shelf)
+
 - **Purpose**: Treble frequency adjustment
 - **Use Case**: Adjust high-frequency brightness and detail
 
 #### PK (Peaking)
+
 - **Purpose**: Specific frequency range adjustment
 - **Use Case**: Ear gain compensation and specific frequency targeting
 
 ### Filter Configuration
 
 Each filter in the `FILTERS` array contains:
+
 - **`id`**: Unique identifier for the filter
 - **`name`**: Display name in the user interface
 - **`type`**: Filter type (TILT, LSQ, HSQ, PK)
@@ -77,22 +82,26 @@ Each filter in the `FILTERS` array contains:
 ### Basic Target Customization
 
 #### Selecting Targets
+
 1. **Target List**: Choose from available customizable targets
 2. **Filter Application**: Apply filters to selected targets
 3. **Real-time Preview**: See changes applied immediately to the graph
 
 #### Filter Adjustments
+
 1. **Individual Filters**: Adjust each filter type independently
 2. **Gain Control**: Set positive or negative gain values
 3. **Visual Feedback**: Watch target curve update in real-time
 
 #### Using Presets
+
 1. **Select Preset**: Choose from available preset options
 2. **Apply Filters**: Preset values are automatically applied
 
 ## Customization and Extensibility
 
 ### Adding Custom Filters
+
 ```javascript
 {
   id: "custom",
@@ -104,6 +113,7 @@ Each filter in the `FILTERS` array contains:
 ```
 
 ### Custom Preset Creation
+
 ```javascript
 {
   name: 'My Custom Preset',
@@ -117,19 +127,17 @@ Each filter in the `FILTERS` array contains:
 ```
 
 ### Initial Load Filters
+
 Automatically applies preferred filters when modernGraphTool loads:
+
 ```javascript
-INITIAL_TARGET_FILTERS: [
-  { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 }},
-]
+INITIAL_TARGET_FILTERS: [{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } }];
 ```
 
 ### Custom Target Support
+
 Add new targets to the customizable list:
+
 ```javascript
-CUSTOMIZABLE_TARGETS: [
-  "KEMAR DF (KB006x)",
-  "ISO 11904-2 DF",
-  "Custom Target Name"
-]
+CUSTOMIZABLE_TARGETS: ['KEMAR DF (KB006x)', 'ISO 11904-2 DF', 'Custom Target Name'];
 ```

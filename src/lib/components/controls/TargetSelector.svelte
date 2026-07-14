@@ -10,9 +10,11 @@
 
 	// ── Config ──────────────────────────────────────────────────────────────────
 
-	const allowMultiLine = (getConfigValue('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE') as boolean) ?? true;
+	const allowMultiLine =
+		(getConfigValue('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE') as boolean) ?? true;
 	const omitSuffix = (getConfigValue('INTERFACE.TARGET.OMIT_TARGET_SUFFIX') as boolean) ?? false;
-	const collapseOnInitial = (getConfigValue('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL') as boolean) ?? false;
+	const collapseOnInitial =
+		(getConfigValue('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL') as boolean) ?? false;
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
@@ -28,9 +30,7 @@
 		return file;
 	}
 
-	const loadedIds = $derived(
-		new Set([...frStore.entries.values()].map((e) => e.identifier))
-	);
+	const loadedIds = $derived(new Set([...frStore.entries.values()].map((e) => e.identifier)));
 
 	let loading = $state(new Set<string>());
 

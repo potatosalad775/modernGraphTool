@@ -161,7 +161,9 @@ class GraphInspection {
 						displayText,
 						textWidth: 0,
 						color:
-							obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors?.AVG || 'var(--color-base-content)',
+							obj.colors[channel as 'L' | 'R' | 'AVG'] ||
+							obj.colors?.AVG ||
+							'var(--color-base-content)',
 						yOffset
 					});
 
@@ -188,7 +190,11 @@ class GraphInspection {
 						deviceListData.push({
 							displayText,
 							textWidth: 0,
-							color: obj.colors.samples?.[key] || obj.colors[side] || obj.colors.AVG || 'var(--color-base-content)',
+							color:
+								obj.colors.samples?.[key] ||
+								obj.colors[side] ||
+								obj.colors.AVG ||
+								'var(--color-base-content)',
 							yOffset
 						});
 

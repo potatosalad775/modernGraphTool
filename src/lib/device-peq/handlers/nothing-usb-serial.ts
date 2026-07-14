@@ -65,12 +65,7 @@ function floatToBytes(value: number): number[] {
 	const buffer = new ArrayBuffer(4);
 	const view = new DataView(buffer);
 	view.setFloat32(0, value, true); // little-endian
-	return [
-		view.getUint8(0),
-		view.getUint8(1),
-		view.getUint8(2),
-		view.getUint8(3)
-	];
+	return [view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)];
 }
 
 // ── Serial communication ──────────────────────────────────────────────────────

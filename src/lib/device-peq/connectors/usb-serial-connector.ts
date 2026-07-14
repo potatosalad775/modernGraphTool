@@ -41,8 +41,9 @@ export async function getDeviceConnected(
 		const rawDevice = await navigator.serial.requestPort(requestOptions);
 		const info = rawDevice.getInfo();
 		const productId = info.usbProductId;
-		const bluetoothServiceClassId = (info as Record<string, unknown>)
-			.bluetoothServiceClassId as string | undefined;
+		const bluetoothServiceClassId = (info as Record<string, unknown>).bluetoothServiceClassId as
+			| string
+			| undefined;
 
 		let vendorConfig: UsbSerialVendorConfig | null = null;
 		let modelName: string | null = null;
@@ -69,9 +70,7 @@ export async function getDeviceConnected(
 				const svc = (bluetoothServiceClassId || '').toLowerCase();
 				const cfgSingle = (entry.filters.bluetoothServiceClassId || '').toLowerCase();
 				const cfgList = Array.isArray(entry.filters.allowedBluetoothServiceClassIds)
-					? entry.filters.allowedBluetoothServiceClassIds.map((x) =>
-							String(x).toLowerCase()
-						)
+					? entry.filters.allowedBluetoothServiceClassIds.map((x) => String(x).toLowerCase())
 					: [];
 				if ((svc && cfgSingle && svc === cfgSingle) || (svc && cfgList.includes(svc))) {
 					const deviceEntries = Object.entries(entry.devices);
@@ -179,10 +178,7 @@ export async function pushToDevice(
 	return await device.handler.pushToDevice(device, slot, preamp, filtersToWrite);
 }
 
-export async function pullFromDevice(
-	device: ConnectedDevice,
-	slot: number
-): Promise<PullResult> {
+export async function pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult> {
 	if (!device?.handler) return { filters: [], globalGain: 0 };
 	return await device.handler.pullFromDevice(device, slot);
 }

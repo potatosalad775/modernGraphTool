@@ -20,9 +20,9 @@ extensions/
 └── extensions.config.js  # Extension activation and configuration file
 ```
 
-*   Each Extension has a folder with a unique name (e.g., `equalizer`, `target-customizer`).
-*   Each Extension folder may contain the core JavaScript file (`main.js`) that constitutes the Extension's functionality and other resource files.
-*   The `extensions.config.js` file is an important file that defines which Extensions to activate and how to configure the detailed settings for each Extension.
+- Each Extension has a folder with a unique name (e.g., `equalizer`, `target-customizer`).
+- Each Extension folder may contain the core JavaScript file (`main.js`) that constitutes the Extension's functionality and other resource files.
+- The `extensions.config.js` file is an important file that defines which Extensions to activate and how to configure the detailed settings for each Extension.
 
 ## How to Activate and Configure Extensions (`extensions.config.js`)
 
@@ -32,23 +32,23 @@ This file is structured as a JavaScript array, and each array element is an obje
 
 ```javascript
 export const EXTENSION_CONFIG = [
-  {
-    // name: Extension name (must be the same as the folder name)
-    NAME: "equalizer",
-    // description: Extension description (does not affect functionality)
-    DESCRIPTION: `equalizer panel for modernGraphTool`,
-    // enabled: Extension activation status (true: enabled, false: disabled)
-    ENABLED: true,
-    // I18N_ENABLED: Multilingual support activation status (true/false)
-    // - Some Extensions may not provide this feature
-    I18N_ENABLED: true,
-    // CONFIG: Detailed configuration object for the Extension
-    CONFIG: {
-      INITIAL_EQ_BANDS: 5,  // Initial number of EQ bands
-      MAXIMUM_EQ_BANDS: 20, // Maximum number of EQ bands
-    },
-  },
-  // ... other Extension configurations
+	{
+		// name: Extension name (must be the same as the folder name)
+		NAME: 'equalizer',
+		// description: Extension description (does not affect functionality)
+		DESCRIPTION: `equalizer panel for modernGraphTool`,
+		// enabled: Extension activation status (true: enabled, false: disabled)
+		ENABLED: true,
+		// I18N_ENABLED: Multilingual support activation status (true/false)
+		// - Some Extensions may not provide this feature
+		I18N_ENABLED: true,
+		// CONFIG: Detailed configuration object for the Extension
+		CONFIG: {
+			INITIAL_EQ_BANDS: 5, // Initial number of EQ bands
+			MAXIMUM_EQ_BANDS: 20 // Maximum number of EQ bands
+		}
+	}
+	// ... other Extension configurations
 ];
 ```
 

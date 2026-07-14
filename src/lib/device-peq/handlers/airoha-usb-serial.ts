@@ -18,7 +18,7 @@ import type {
 const AIROHA = {
 	NUM_BANDS: 10,
 	RESPONSE_HEADER: [0x05, 0x5b, 0xbd] as const,
-	READ_RESPONSE_LENGTH: 193,
+	READ_RESPONSE_LENGTH: 193
 } as const;
 
 // ── Internal filter representation for write encoding ─────────────────────────
@@ -33,17 +33,10 @@ interface NormalizedFilter {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildReadPresetCommand(preset: number): Uint8Array {
-	return new Uint8Array([
-		0x05, 0x5a, 0x06, 0x00, 0x00, 0x0a,
-		preset & 0xff,
-		0xef, 0xe8, 0x03,
-	]);
+	return new Uint8Array([0x05, 0x5a, 0x06, 0x00, 0x00, 0x0a, preset & 0xff, 0xef, 0xe8, 0x03]);
 }
 
-function buildWritePEQCommandFull(
-	presetNum: number,
-	filters: NormalizedFilter[]
-): Uint8Array {
+function buildWritePEQCommandFull(presetNum: number, filters: NormalizedFilter[]): Uint8Array {
 	if (presetNum < 0 || presetNum > 3) {
 		throw new Error('Preset must be 0-3');
 	}
@@ -113,18 +106,14 @@ function parsePEQResponse(
 	data: Uint8Array
 ): { numBands: number; eqEnabled: boolean; filters: DeviceFilter[] } | null {
 	if (data.length < AIROHA.READ_RESPONSE_LENGTH) return null;
-	if (
-		data[0] !== 0x05 ||
-		data[1] !== 0x5b ||
-		data[2] !== 0xbd
-	) {
+	if (data[0] !== 0x05 || data[1] !== 0x5b || data[2] !== 0xbd) {
 		return null;
 	}
 
 	const result = {
 		numBands: data[5],
 		eqEnabled: data[8] === 1,
-		filters: [] as DeviceFilter[],
+		filters: [] as DeviceFilter[]
 	};
 
 	const filterStart = 13;
@@ -162,27 +151,23 @@ function parsePEQResponse(
 			freq: freqHz,
 			gain: gainDb,
 			q: qValue,
-			type: 'PK' as const,
+			type: 'PK' as const
 		});
 	}
 
 	return result;
 }
 
-function normalizeFilters(
-	filters: DeviceFilter[],
-	targetCount: number
-): NormalizedFilter[] {
+function normalizeFilters(filters: DeviceFilter[], targetCount: number): NormalizedFilter[] {
 	const normalized: NormalizedFilter[] = [];
 
 	for (const filter of filters) {
-		const filterType =
-			filter.type === 'LSQ' ? 3 : filter.type === 'HSQ' ? 4 : 2;
+		const filterType = filter.type === 'LSQ' ? 3 : filter.type === 'HSQ' ? 4 : 2;
 		normalized.push({
 			freqHz: filter.freq,
 			gainDb: filter.gain,
 			qValue: filter.q,
-			filterType,
+			filterType
 		});
 		if (normalized.length >= targetCount) break;
 	}
@@ -193,7 +178,7 @@ function normalizeFilters(
 			freqHz: 1000.0,
 			gainDb: 0.0,
 			qValue: 1.0,
-			filterType: 2,
+			filterType: 2
 		});
 	}
 
@@ -238,10 +223,7 @@ async function getCurrentSlot(_device: ConnectedDevice): Promise<number> {
 	return 0;
 }
 
-async function pullFromDevice(
-	device: ConnectedDevice,
-	slot: number
-): Promise<PullResult> {
+async function pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult> {
 	try {
 		const command = buildReadPresetCommand(slot);
 		await device.writable!.write(command);
@@ -284,7 +266,7 @@ export const airohaUsbSerialHandler: DeviceHandler = {
 	getCurrentSlot,
 	pullFromDevice,
 	pushToDevice,
-	enablePEQ,
+	enablePEQ
 };
 
 export const registration: UsbSerialVendorConfig = {
@@ -292,10 +274,8 @@ export const registration: UsbSerialVendorConfig = {
 	handler: airohaUsbSerialHandler,
 	filters: {
 		usbVendorId: null,
-		allowedBluetoothServiceClassIds: [
-			'00001101-0000-1000-8000-00805f9b34fb',
-		],
-		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb',
+		allowedBluetoothServiceClassIds: ['00001101-0000-1000-8000-00805f9b34fb'],
+		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb'
 	},
 	devices: {
 		'Audeze Maxwell': {
@@ -313,9 +293,9 @@ export const registration: UsbSerialVendorConfig = {
 					{ id: 0, name: 'Preset 1' },
 					{ id: 1, name: 'Preset 2' },
 					{ id: 2, name: 'Preset 3' },
-					{ id: 3, name: 'Preset 4' },
-				],
-			},
-		},
-	},
+					{ id: 3, name: 'Preset 4' }
+				]
+			}
+		}
+	}
 };

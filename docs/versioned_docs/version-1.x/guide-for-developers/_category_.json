@@ -1,9 +1,9 @@
 {
-  "label": "Guide for Developers",
-  "position": 3,
-  "collapsible": true,
-  "collapsed": true,
-  "link": {
-    "type": "generated-index"
-  }
+	"label": "Guide for Developers",
+	"position": 3,
+	"collapsible": true,
+	"collapsed": true,
+	"link": {
+		"type": "generated-index"
+	}
 }

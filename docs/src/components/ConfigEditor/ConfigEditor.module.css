@@ -1,652 +1,662 @@
 /* ── Layout ───────────────────────────────────────────────────────────────── */
 
 .ceContainer {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1.5rem;
 }
 
 .ceLayout {
-  display: flex;
-  gap: 2rem;
+	display: flex;
+	gap: 2rem;
 }
 
 .ceNav {
-  position: sticky;
-  top: calc(var(--ifm-navbar-height) + 1rem);
-  width: 220px;
-  min-width: 220px;
-  max-height: calc(100vh - var(--ifm-navbar-height) - 3rem);
-  overflow-y: auto;
-  padding-right: 0.5rem;
-  align-self: flex-start;
+	position: sticky;
+	top: calc(var(--ifm-navbar-height) + 1rem);
+	width: 220px;
+	min-width: 220px;
+	max-height: calc(100vh - var(--ifm-navbar-height) - 3rem);
+	overflow-y: auto;
+	padding-right: 0.5rem;
+	align-self: flex-start;
 }
 
 .ceNavList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.8125rem;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	font-size: 0.8125rem;
 }
 
 .ceNavItem {
-  padding: 0.25rem 0.5rem;
-  border-left: 2px solid transparent;
-  color: var(--ifm-color-content-secondary);
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+	padding: 0.25rem 0.5rem;
+	border-left: 2px solid transparent;
+	color: var(--ifm-color-content-secondary);
+	cursor: pointer;
+	transition:
+		color 0.15s,
+		border-color 0.15s;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .ceNavItem:hover {
-  color: var(--ifm-color-primary);
+	color: var(--ifm-color-primary);
 }
 
 .ceNavItemActive {
-  border-left-color: var(--ifm-color-primary);
-  color: var(--ifm-color-primary);
-  font-weight: 500;
+	border-left-color: var(--ifm-color-primary);
+	color: var(--ifm-color-primary);
+	font-weight: 500;
 }
 
 .ceMain {
-  flex: 1;
-  min-width: 0;
+	flex: 1;
+	min-width: 0;
 }
 
 /* ── Accordion Section ───────────────────────────────────────────────────── */
 
 .ceSection {
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  overflow: hidden;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 8px;
+	margin-bottom: 1rem;
+	overflow: hidden;
 }
 
 .ceSectionHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--ifm-color-emphasis-100);
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.15s;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background: var(--ifm-color-emphasis-100);
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 0.15s;
 }
 
 .ceSectionHeader:hover {
-  background: var(--ifm-color-emphasis-200);
+	background: var(--ifm-color-emphasis-200);
 }
 
 .ceSectionChevron {
-  font-size: 0.75rem;
-  transition: transform 0.2s;
-  color: var(--ifm-color-content-secondary);
-  flex-shrink: 0;
+	font-size: 0.75rem;
+	transition: transform 0.2s;
+	color: var(--ifm-color-content-secondary);
+	flex-shrink: 0;
 }
 
 .ceSectionChevronOpen {
-  transform: rotate(90deg);
+	transform: rotate(90deg);
 }
 
 .ceSectionTitle {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  flex: 1;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	flex: 1;
 }
 
 .ceSectionToggle {
-  flex-shrink: 0;
+	flex-shrink: 0;
 }
 
 .ceSectionBody {
-  padding: 1rem;
-  border-top: 1px solid var(--ifm-color-emphasis-300);
+	padding: 1rem;
+	border-top: 1px solid var(--ifm-color-emphasis-300);
 }
 
 .ceSectionDescription {
-  font-size: 0.8125rem;
-  color: var(--ifm-color-content-secondary);
-  margin-bottom: 1rem;
-  line-height: 1.5;
+	font-size: 0.8125rem;
+	color: var(--ifm-color-content-secondary);
+	margin-bottom: 1rem;
+	line-height: 1.5;
 }
 
 .ceSectionLearnMore {
-  font-size: 0.75rem;
+	font-size: 0.75rem;
 }
 
 /* ── Form Controls ───────────────────────────────────────────────────────── */
 
 .ceFieldGroup {
-  margin-bottom: 1rem;
+	margin-bottom: 1rem;
 }
 
 .ceFieldGroup:last-child {
-  margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 .ceLabel {
-  display: block;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  color: var(--ifm-color-content);
+	display: block;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	margin-bottom: 0.25rem;
+	color: var(--ifm-color-content);
 }
 
 .ceLabelHint {
-  font-weight: 400;
-  color: var(--ifm-color-content-secondary);
-  margin-left: 0.5rem;
+	font-weight: 400;
+	color: var(--ifm-color-content-secondary);
+	margin-left: 0.5rem;
 }
 
 .ceInput {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.875rem;
-  font-family: inherit;
-  transition: border-color 0.15s;
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.875rem;
+	font-family: inherit;
+	transition: border-color 0.15s;
 }
 
 .ceInput:focus {
-  outline: none;
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 0 0 2px var(--ifm-color-primary-lightest);
+	outline: none;
+	border-color: var(--ifm-color-primary);
+	box-shadow: 0 0 0 2px var(--ifm-color-primary-lightest);
 }
 
 .ceInputSmall {
-  width: auto;
-  min-width: 80px;
+	width: auto;
+	min-width: 80px;
 }
 
 .ceInputInline {
-  width: auto;
-  display: inline-block;
+	width: auto;
+	display: inline-block;
 }
 
 .ceTextarea {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.875rem;
-  font-family: var(--ifm-font-family-monospace);
-  min-height: 80px;
-  resize: vertical;
-  transition: border-color 0.15s;
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.875rem;
+	font-family: var(--ifm-font-family-monospace);
+	min-height: 80px;
+	resize: vertical;
+	transition: border-color 0.15s;
 }
 
 .ceTextarea:focus {
-  outline: none;
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 0 0 2px var(--ifm-color-primary-lightest);
+	outline: none;
+	border-color: var(--ifm-color-primary);
+	box-shadow: 0 0 0 2px var(--ifm-color-primary-lightest);
 }
 
 .ceSelect {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.875rem;
+	font-family: inherit;
+	cursor: pointer;
+	transition: border-color 0.15s;
 }
 
 .ceSelect:focus {
-  outline: none;
-  border-color: var(--ifm-color-primary);
+	outline: none;
+	border-color: var(--ifm-color-primary);
 }
 
 .ceToggleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
 }
 
 .ceToggleRow:last-child {
-  margin-bottom: 0;
+	margin-bottom: 0;
 }
 
 .ceToggleLabel {
-  font-size: 0.8125rem;
-  color: var(--ifm-color-content);
-  cursor: pointer;
+	font-size: 0.8125rem;
+	color: var(--ifm-color-content);
+	cursor: pointer;
 }
 
 .ceToggleHint {
-  font-size: 0.75rem;
-  color: var(--ifm-color-content-secondary);
-  margin-left: 0.25rem;
+	font-size: 0.75rem;
+	color: var(--ifm-color-content-secondary);
+	margin-left: 0.25rem;
 }
 
 .ceCheckbox {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--ifm-color-primary);
-  cursor: pointer;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--ifm-color-primary);
+	cursor: pointer;
 }
 
 .ceRadioGroup {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.25rem;
+	display: flex;
+	gap: 1rem;
+	margin-top: 0.25rem;
 }
 
 .ceRadioLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-  cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-size: 0.8125rem;
+	cursor: pointer;
 }
 
 .ceRadio {
-  accent-color: var(--ifm-color-primary);
+	accent-color: var(--ifm-color-primary);
 }
 
 .ceRangeRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .ceRange {
-  flex: 1;
-  accent-color: var(--ifm-color-primary);
+	flex: 1;
+	accent-color: var(--ifm-color-primary);
 }
 
 .ceNumberInline {
-  width: 70px;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.8125rem;
-  text-align: center;
+	width: 70px;
+	padding: 0.375rem 0.5rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.8125rem;
+	text-align: center;
 }
 
 /* ── String Array Editor ─────────────────────────────────────────────────── */
 
 .ceArrayList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
 }
 
 .ceArrayItem {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
 }
 
 .ceArrayInput {
-  flex: 1;
+	flex: 1;
 }
 
 .ceArrayRemoveBtn {
-  padding: 0.375rem 0.5rem;
-  border: none;
-  background: none;
-  color: var(--ifm-color-danger);
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  border-radius: 4px;
-  flex-shrink: 0;
+	padding: 0.375rem 0.5rem;
+	border: none;
+	background: none;
+	color: var(--ifm-color-danger);
+	cursor: pointer;
+	font-size: 1rem;
+	line-height: 1;
+	border-radius: 4px;
+	flex-shrink: 0;
 }
 
 .ceArrayRemoveBtn:hover {
-  background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
+	background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
 }
 
 .ceArrayAddBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px dashed var(--ifm-color-emphasis-300);
-  background: none;
-  color: var(--ifm-color-content-secondary);
-  cursor: pointer;
-  font-size: 0.8125rem;
-  border-radius: 6px;
-  margin-top: 0.375rem;
-  transition: border-color 0.15s, color 0.15s;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.75rem;
+	border: 1px dashed var(--ifm-color-emphasis-300);
+	background: none;
+	color: var(--ifm-color-content-secondary);
+	cursor: pointer;
+	font-size: 0.8125rem;
+	border-radius: 6px;
+	margin-top: 0.375rem;
+	transition:
+		border-color 0.15s,
+		color 0.15s;
 }
 
 .ceArrayAddBtn:hover {
-  border-color: var(--ifm-color-primary);
-  color: var(--ifm-color-primary);
+	border-color: var(--ifm-color-primary);
+	color: var(--ifm-color-primary);
 }
 
 /* ── Card (for watermark items, filters, etc.) ───────────────────────────── */
 
 .ceCard {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: var(--ifm-background-surface-color);
+	border: 1px solid var(--ifm-color-emphasis-200);
+	border-radius: 6px;
+	padding: 0.75rem;
+	margin-bottom: 0.5rem;
+	background: var(--ifm-background-surface-color);
 }
 
 .ceCardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 0.5rem;
 }
 
 .ceCardTitle {
-  font-size: 0.8125rem;
-  font-weight: 500;
+	font-size: 0.8125rem;
+	font-weight: 500;
 }
 
 .ceCardActions {
-  display: flex;
-  gap: 0.25rem;
+	display: flex;
+	gap: 0.25rem;
 }
 
 .ceCardGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.5rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 0.5rem;
 }
 
 /* ── I18n Wrapper ────────────────────────────────────────────────────────── */
 
 .ceI18nToggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+	font-size: 0.8125rem;
 }
 
 .ceI18nTabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--ifm-color-emphasis-300);
-  margin-bottom: 0.75rem;
+	display: flex;
+	gap: 0;
+	border-bottom: 1px solid var(--ifm-color-emphasis-300);
+	margin-bottom: 0.75rem;
 }
 
 .ceI18nTab {
-  padding: 0.375rem 0.75rem;
-  border: none;
-  background: none;
-  color: var(--ifm-color-content-secondary);
-  font-size: 0.8125rem;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.15s, border-color 0.15s;
+	padding: 0.375rem 0.75rem;
+	border: none;
+	background: none;
+	color: var(--ifm-color-content-secondary);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	transition:
+		color 0.15s,
+		border-color 0.15s;
 }
 
 .ceI18nTab:hover {
-  color: var(--ifm-color-primary);
+	color: var(--ifm-color-primary);
 }
 
 .ceI18nTabActive {
-  color: var(--ifm-color-primary);
-  border-bottom-color: var(--ifm-color-primary);
-  font-weight: 500;
+	color: var(--ifm-color-primary);
+	border-bottom-color: var(--ifm-color-primary);
+	font-weight: 500;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 
 .ceBtn {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.8125rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.8125rem;
+	border-radius: 6px;
+	cursor: pointer;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 
 .ceBtn:hover {
-  background: var(--ifm-color-emphasis-100);
+	background: var(--ifm-color-emphasis-100);
 }
 
 .ceBtnPrimary {
-  background: var(--ifm-color-primary);
-  color: var(--ifm-color-primary-contrast-foreground, #fff);
-  border-color: var(--ifm-color-primary);
+	background: var(--ifm-color-primary);
+	color: var(--ifm-color-primary-contrast-foreground, #fff);
+	border-color: var(--ifm-color-primary);
 }
 
 .ceBtnPrimary:hover {
-  background: var(--ifm-color-primary-dark);
-  border-color: var(--ifm-color-primary-dark);
+	background: var(--ifm-color-primary-dark);
+	border-color: var(--ifm-color-primary-dark);
 }
 
 .ceBtnSmall {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
 }
 
 .ceBtnDanger {
-  color: var(--ifm-color-danger);
-  border-color: var(--ifm-color-danger);
+	color: var(--ifm-color-danger);
+	border-color: var(--ifm-color-danger);
 }
 
 .ceBtnDanger:hover {
-  background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
+	background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
 }
 
 /* ── Import Panel ────────────────────────────────────────────────────────── */
 
 .ceImportPanel {
-  margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .ceImportTabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--ifm-color-emphasis-300);
-  margin-bottom: 1rem;
+	display: flex;
+	gap: 0;
+	border-bottom: 1px solid var(--ifm-color-emphasis-300);
+	margin-bottom: 1rem;
 }
 
 .ceImportTab {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: none;
-  color: var(--ifm-color-content-secondary);
-  font-size: 0.875rem;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.15s, border-color 0.15s;
+	padding: 0.5rem 1rem;
+	border: none;
+	background: none;
+	color: var(--ifm-color-content-secondary);
+	font-size: 0.875rem;
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	transition:
+		color 0.15s,
+		border-color 0.15s;
 }
 
 .ceImportTab:hover {
-  color: var(--ifm-color-primary);
+	color: var(--ifm-color-primary);
 }
 
 .ceImportTabActive {
-  color: var(--ifm-color-primary);
-  border-bottom-color: var(--ifm-color-primary);
-  font-weight: 500;
+	color: var(--ifm-color-primary);
+	border-bottom-color: var(--ifm-color-primary);
+	font-weight: 500;
 }
 
 .ceImportContent {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
 }
 
 .ceImportTextarea {
-  width: 100%;
-  min-height: 200px;
-  padding: 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.8125rem;
-  font-family: var(--ifm-font-family-monospace);
-  resize: vertical;
+	width: 100%;
+	min-height: 200px;
+	padding: 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.8125rem;
+	font-family: var(--ifm-font-family-monospace);
+	resize: vertical;
 }
 
 .ceImportTextarea:focus {
-  outline: none;
-  border-color: var(--ifm-color-primary);
+	outline: none;
+	border-color: var(--ifm-color-primary);
 }
 
 .ceImportActions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
 }
 
 .ceImportFileLabel {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  background: var(--ifm-background-color);
-  color: var(--ifm-color-content);
-  font-size: 0.8125rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	background: var(--ifm-background-color);
+	color: var(--ifm-color-content);
+	font-size: 0.8125rem;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: background 0.15s;
 }
 
 .ceImportFileLabel:hover {
-  background: var(--ifm-color-emphasis-100);
+	background: var(--ifm-color-emphasis-100);
 }
 
 .ceImportFileInput {
-  display: none;
+	display: none;
 }
 
 /* ── Export Bar ───────────────────────────────────────────────────────────── */
 
 .ceExportBar {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  background: var(--ifm-background-color);
-  border-top: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
-  z-index: 10;
-  margin-top: 1rem;
+	position: sticky;
+	bottom: 0;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem 1rem;
+	background: var(--ifm-background-color);
+	border-top: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 8px 8px 0 0;
+	box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+	z-index: 10;
+	margin-top: 1rem;
 }
 
 .ceExportPreview {
-  margin-top: 0.75rem;
-  position: relative;
+	margin-top: 0.75rem;
+	position: relative;
 }
 
 .ceExportTextarea {
-  width: 100%;
-  min-height: 300px;
-  padding: 0.75rem;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 6px;
-  background: var(--ifm-color-emphasis-100);
-  color: var(--ifm-color-content);
-  font-size: 0.8125rem;
-  font-family: var(--ifm-font-family-monospace);
-  resize: vertical;
+	width: 100%;
+	min-height: 300px;
+	padding: 0.75rem;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 6px;
+	background: var(--ifm-color-emphasis-100);
+	color: var(--ifm-color-content);
+	font-size: 0.8125rem;
+	font-family: var(--ifm-font-family-monospace);
+	resize: vertical;
 }
 
 /* ── Warnings / Errors ───────────────────────────────────────────────────── */
 
 .ceWarnings {
-  background: var(--ifm-color-warning-lightest, rgba(234, 179, 8, 0.1));
-  border: 1px solid var(--ifm-color-warning-dark);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
+	background: var(--ifm-color-warning-lightest, rgba(234, 179, 8, 0.1));
+	border: 1px solid var(--ifm-color-warning-dark);
+	border-radius: 6px;
+	padding: 0.75rem;
+	margin-bottom: 0.75rem;
+	font-size: 0.8125rem;
 }
 
 .ceWarnings ul {
-  margin: 0.25rem 0 0 1.25rem;
-  padding: 0;
+	margin: 0.25rem 0 0 1.25rem;
+	padding: 0;
 }
 
 .ceError {
-  background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
-  border: 1px solid var(--ifm-color-danger);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--ifm-color-danger-darkest, #991b1b);
+	background: var(--ifm-color-danger-lightest, rgba(220, 38, 38, 0.1));
+	border: 1px solid var(--ifm-color-danger);
+	border-radius: 6px;
+	padding: 0.75rem;
+	margin-bottom: 0.75rem;
+	font-size: 0.8125rem;
+	color: var(--ifm-color-danger-darkest, #991b1b);
 }
 
 .ceSuccess {
-  background: var(--ifm-color-success-lightest, rgba(22, 163, 74, 0.1));
-  border: 1px solid var(--ifm-color-success-dark);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8125rem;
-  color: var(--ifm-color-success-darkest, #14532d);
+	background: var(--ifm-color-success-lightest, rgba(22, 163, 74, 0.1));
+	border: 1px solid var(--ifm-color-success-dark);
+	border-radius: 6px;
+	padding: 0.75rem;
+	margin-bottom: 0.75rem;
+	font-size: 0.8125rem;
+	color: var(--ifm-color-success-darkest, #14532d);
 }
 
 /* ── Nested sub-section ──────────────────────────────────────────────────── */
 
 .ceSubSection {
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 6px;
-  padding: 0.75rem;
-  margin-bottom: 0.75rem;
-  background: var(--ifm-background-surface-color);
+	border: 1px solid var(--ifm-color-emphasis-200);
+	border-radius: 6px;
+	padding: 0.75rem;
+	margin-bottom: 0.75rem;
+	background: var(--ifm-background-surface-color);
 }
 
 .ceSubSectionTitle {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--ifm-color-content-secondary);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: var(--ifm-color-content-secondary);
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .ceLayout {
-    flex-direction: column;
-  }
-  .ceNav {
-    position: static;
-    width: 100%;
-    min-width: 0;
-    max-height: none;
-    overflow: visible;
-  }
-  .ceNavList {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-  .ceNavItem {
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-  }
-  .ceNavItemActive {
-    border-bottom-color: var(--ifm-color-primary);
-    border-left-color: transparent;
-  }
-  .ceCardGrid {
-    grid-template-columns: 1fr;
-  }
+	.ceLayout {
+		flex-direction: column;
+	}
+	.ceNav {
+		position: static;
+		width: 100%;
+		min-width: 0;
+		max-height: none;
+		overflow: visible;
+	}
+	.ceNavList {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+	.ceNavItem {
+		border-left: none;
+		border-bottom: 2px solid transparent;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+	}
+	.ceNavItemActive {
+		border-bottom-color: var(--ifm-color-primary);
+		border-left-color: transparent;
+	}
+	.ceCardGrid {
+		grid-template-columns: 1fr;
+	}
 }

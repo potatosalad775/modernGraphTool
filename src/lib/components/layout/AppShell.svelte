@@ -121,7 +121,7 @@
 	}
 
 	function disableIOSZoom() {
-		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 		if (!isIOS) return;
 		const meta = document.querySelector('meta[name=viewport]');
 		if (!meta) return;
@@ -149,7 +149,7 @@
 				action: {
 					label: m.version_update_toast_changelog(),
 					onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
-				},
+				}
 			});
 		}
 

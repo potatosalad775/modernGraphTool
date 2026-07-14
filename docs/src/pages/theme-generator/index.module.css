@@ -1,207 +1,207 @@
 .tgContainer {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-  flex-wrap: wrap;
+	display: flex;
+	gap: 20px;
+	padding: 20px;
+	flex-wrap: wrap;
 }
 
 .tgTools {
-  flex: 1;
-  min-width: 300px;
-  padding: 15px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-  background-color: var(--ifm-background-color);
+	flex: 1;
+	min-width: 300px;
+	padding: 15px;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 8px;
+	background-color: var(--ifm-background-color);
 }
 
 .tgTools h4 {
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--ifm-color-emphasis-200);
-  padding-bottom: 5px;
+	margin-bottom: 10px;
+	border-bottom: 1px solid var(--ifm-color-emphasis-200);
+	padding-bottom: 5px;
 }
 
 .tgDescription {
-  font-size: 0.85rem;
-  color: var(--ifm-color-emphasis-600);
-  margin-bottom: 1rem;
+	font-size: 0.85rem;
+	color: var(--ifm-color-emphasis-600);
+	margin-bottom: 1rem;
 }
 
 .tgSourceColorSection {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-end;
-  width: 100%;
-  gap: 10px;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: flex-end;
+	width: 100%;
+	gap: 10px;
 }
 
 .tgSourceColorRandomizerButton {
-  padding: 8px 12px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 4px;
-  background-color: var(--ifm-color-emphasis-100);
-  color: var(--ifm-font-color-base);
-  cursor: pointer;
-  margin-bottom: 15px;
-  min-height: 38px;
+	padding: 8px 12px;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 4px;
+	background-color: var(--ifm-color-emphasis-100);
+	color: var(--ifm-font-color-base);
+	cursor: pointer;
+	margin-bottom: 15px;
+	min-height: 38px;
 }
 
 .tgPreview {
-  flex: 2;
-  min-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+	flex: 2;
+	min-width: 400px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
 }
 
 /* ── Base hue controls ─────────────────────────────────────────────────────── */
 
 .tgBaseHueSection {
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+	margin-bottom: 15px;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
 }
 
 .tgBaseHueSection label {
-  font-weight: bold;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
+	font-weight: bold;
+	font-size: 0.9rem;
+	margin-bottom: 4px;
 }
 
 .tgBaseHueInputRow {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  gap: 10px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	width: 100%;
+	gap: 10px;
 }
 
 .tgBaseHueInputRow input:first-child {
-  width: 100%;
+	width: 100%;
 }
 
 .tgHueSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  outline: none;
-  background: linear-gradient(
-    to right,
-    hsl(0, 70%, 60%),
-    hsl(60, 70%, 60%),
-    hsl(120, 70%, 60%),
-    hsl(180, 70%, 60%),
-    hsl(240, 70%, 60%),
-    hsl(300, 70%, 60%),
-    hsl(360, 70%, 60%)
-  );
+	-webkit-appearance: none;
+	appearance: none;
+	width: 100%;
+	height: 8px;
+	border-radius: 4px;
+	outline: none;
+	background: linear-gradient(
+		to right,
+		hsl(0, 70%, 60%),
+		hsl(60, 70%, 60%),
+		hsl(120, 70%, 60%),
+		hsl(180, 70%, 60%),
+		hsl(240, 70%, 60%),
+		hsl(300, 70%, 60%),
+		hsl(360, 70%, 60%)
+	);
 }
 
 .tgHueSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  border: 2px solid var(--ifm-color-emphasis-400);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: white;
+	border: 2px solid var(--ifm-color-emphasis-400);
+	cursor: pointer;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .tgHueSlider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  border: 2px solid var(--ifm-color-emphasis-400);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: white;
+	border: 2px solid var(--ifm-color-emphasis-400);
+	cursor: pointer;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .tgNumberInput {
-  width: 70px;
-  padding: 8px 12px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 4px;
-  background-color: var(--ifm-color-emphasis-100);
-  color: var(--ifm-font-color-base);
+	width: 70px;
+	padding: 8px 12px;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 4px;
+	background-color: var(--ifm-color-emphasis-100);
+	color: var(--ifm-font-color-base);
 }
 
 /* ── Color pickers ─────────────────────────────────────────────────────────── */
 
 .tgColorPickerWrapper {
-  margin-bottom: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
+	margin-bottom: 15px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
 }
 
 .tgColorPickerWrapper label {
-  font-weight: bold;
-  font-size: 0.9rem;
+	font-weight: bold;
+	font-size: 0.9rem;
 }
 
 .tgColorButton {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 4px;
-  text-align: left;
-  font-family: var(--ifm-font-family-monospace);
-  cursor: pointer;
-  min-height: 38px;
-  box-sizing: border-box;
-  color: var(--ifm-font-color-base);
-  text-shadow:
-    0 0 2px var(--ifm-background-color),
-    0 0 2px var(--ifm-background-color),
-    0 0 2px var(--ifm-background-color);
+	width: 100%;
+	padding: 10px;
+	border: 1px solid var(--ifm-color-emphasis-300);
+	border-radius: 4px;
+	text-align: left;
+	font-family: var(--ifm-font-family-monospace);
+	cursor: pointer;
+	min-height: 38px;
+	box-sizing: border-box;
+	color: var(--ifm-font-color-base);
+	text-shadow:
+		0 0 2px var(--ifm-background-color),
+		0 0 2px var(--ifm-background-color),
+		0 0 2px var(--ifm-background-color);
 }
 
 .tgPickerPopover {
-  position: absolute;
-  z-index: 2;
+	position: absolute;
+	z-index: 2;
 }
 
 .tgPickerCover {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1;
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 1;
 }
 
 .tgPickerElement {
-  position: fixed;
-  z-index: 3;
+	position: fixed;
+	z-index: 3;
 }
 
 .tgPickerPopover > div {
-  box-shadow: var(--ifm-global-shadow-lw) !important;
-  background: rgba(0, 0, 0, 0);
+	box-shadow: var(--ifm-global-shadow-lw) !important;
+	background: rgba(0, 0, 0, 0);
 }
 
 /* ── Export button ─────────────────────────────────────────────────────────── */
 
 .tgExportButton {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--ifm-color-primary-darkest);
-  background-color: var(--ifm-color-primary-dark);
-  color: var(--ifm-color-white);
-  border-radius: 4px;
-  width: 100%;
-  height: 38px;
-  cursor: pointer;
-  font-weight: bold;
+	margin-top: 1rem;
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--ifm-color-primary-darkest);
+	background-color: var(--ifm-color-primary-dark);
+	color: var(--ifm-color-white);
+	border-radius: 4px;
+	width: 100%;
+	height: 38px;
+	cursor: pointer;
+	font-weight: bold;
 }
 
 .tgExportButton:hover {
-  background-color: var(--ifm-color-primary-darkest);
+	background-color: var(--ifm-color-primary-darkest);
 }

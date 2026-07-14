@@ -65,18 +65,18 @@ sidebar_position: 1
 
 ```js
 // 수정 전
-let l = f => d3.text(DIR+f+".txt").catch(()=>null);
-let f = p.isTarget ? [l(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [l(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 
 // 수정 후
 // 다른 이름의 폴더에 측정 데이터를 두고 있다면 'phones', 'target' 대신 실제 이름을 적어야 합니다.
-let l = f => d3.text(DIR+"phones/"+f+".txt").catch(()=>null);
-let lt = f => d3.text(DIR+"target/"+f+".txt").catch(()=>null);
-let f = p.isTarget ? [lt(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + 'phones/' + f + '.txt').catch(() => null);
+let lt = (f) => d3.text(DIR + 'target/' + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [lt(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 ```
 
 #### config.js
@@ -89,7 +89,7 @@ DIR = "data/",
 
 // 수정 후
 // '../'는 부모 경로를 의미합니다.
-DIR = "../data/", 
+DIR = "../data/",
 ```
 
 Haruto의 추가 기능이 적용된 CrinGraph([PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) / [ExtendedGraphTool](https://github.com/potatosalad775/ExtendedGraphTool))를 쓰고 있다면 다음 부분도 함께 고치세요.
@@ -129,16 +129,16 @@ TOPBAR: {
 
 ```js
 headerLinks = [
-  {
-    name: "Head back to modernGraphTool",
-    url: "https://yourdomain.com/"
-  },
-  // 또는
-  {
-    name: "Head back to modernGraphTool",
-    url: "../"
-  },
-]
+	{
+		name: 'Head back to modernGraphTool',
+		url: 'https://yourdomain.com/'
+	},
+	// 또는
+	{
+		name: 'Head back to modernGraphTool',
+		url: '../'
+	}
+];
 ```
 
 ### 5. 배포
@@ -155,4 +155,5 @@ headerLinks = [
 ```plaintext
 예시) https://example.squig.link/?cachebust
 ```
+
 :::

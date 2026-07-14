@@ -6,7 +6,13 @@
 // Supports FiiO EH11 (write-without-response) and EH13 (write-with-response).
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult, BleDeviceConfig } from '../types.js';
+import type {
+	ConnectedDevice,
+	DeviceHandler,
+	DeviceFilter,
+	PullResult,
+	BleDeviceConfig
+} from '../types.js';
 
 const NUM_BANDS = 10;
 const GAIN_MIN = -20;
@@ -23,9 +29,12 @@ function typeFromString(s: string): number {
 function buildPacket(cmd1: number, cmd2: number, payload: number[] = []): Uint8Array {
 	const total = 2 + 2 + 2 + payload.length + 1;
 	return new Uint8Array([
-		0xf1, 0x10,
-		(total >> 8) & 0xff, total & 0xff,
-		cmd1, cmd2,
+		0xf1,
+		0x10,
+		(total >> 8) & 0xff,
+		total & 0xff,
+		cmd1,
+		cmd2,
 		...payload,
 		0xff
 	]);
@@ -43,7 +52,9 @@ function decGain(hi: number, lo: number): number {
 	return raw / 10.0;
 }
 
-function parseEQResponse(data: Uint8Array): { gain: number; freqHz: number; q: number; rawType: number }[] | null {
+function parseEQResponse(
+	data: Uint8Array
+): { gain: number; freqHz: number; q: number; rawType: number }[] | null {
 	if (data.length < 80) return null;
 	if (data[0] !== 0xf1 || data[1] !== 0x10) return null;
 	if (data[4] !== 0x03 || data[5] !== 0x0d) return null;
@@ -63,7 +74,10 @@ function parseEQResponse(data: Uint8Array): { gain: number; freqHz: number; q: n
 	return bands.length === NUM_BANDS ? bands : null;
 }
 
-async function readFiioPacket(device: ConnectedDevice, timeoutMs = 6000): Promise<Uint8Array | null> {
+async function readFiioPacket(
+	device: ConnectedDevice,
+	timeoutMs = 6000
+): Promise<Uint8Array | null> {
 	const buf: number[] = [];
 	const deadline = Date.now() + timeoutMs;
 
@@ -84,7 +98,11 @@ async function readFiioPacket(device: ConnectedDevice, timeoutMs = 6000): Promis
 	return null;
 }
 
-async function sendAndReceive(device: ConnectedDevice, packet: Uint8Array, timeoutMs = 4000): Promise<Uint8Array | null> {
+async function sendAndReceive(
+	device: ConnectedDevice,
+	packet: Uint8Array,
+	timeoutMs = 4000
+): Promise<Uint8Array | null> {
 	const txChar = device.txChar!;
 	const useWriteWithResponse = !!txChar.properties.write && !txChar.properties.writeWithoutResponse;
 	if (useWriteWithResponse) {
@@ -150,10 +168,15 @@ export const fiioBleHandler: DeviceHandler = {
 			const [gHi, gLo] = encGain(gainDb);
 
 			const pkt = buildPacket(0x13, 0x0d, [
-				0x01, i, i,
-				gHi, gLo,
-				(freqRaw >> 8) & 0xff, freqRaw & 0xff,
-				(qRaw >> 8) & 0xff, qRaw & 0xff,
+				0x01,
+				i,
+				i,
+				gHi,
+				gLo,
+				(freqRaw >> 8) & 0xff,
+				freqRaw & 0xff,
+				(qRaw >> 8) & 0xff,
+				qRaw & 0xff,
 				type
 			]);
 

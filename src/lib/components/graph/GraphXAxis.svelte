@@ -44,8 +44,8 @@
 				font-size="0.6rem"
 				font-weight={MAJOR_TICKS.has(tick) ? '500' : '300'}
 				text-anchor="middle"
-				fill="var(--color-graph-grid-text)"
-			>{formatTick(tick)}</text>
+				fill="var(--color-graph-grid-text)">{formatTick(tick)}</text
+			>
 		</g>
 	{/each}
 </g>

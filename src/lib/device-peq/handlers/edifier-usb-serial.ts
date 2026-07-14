@@ -50,8 +50,8 @@ const EDIFIER = {
 		5000: [0xb6, 0x2d],
 		6000: [0xb2, 0xd5],
 		8000: [0xba, 0xe5],
-		10000: [0x82, 0xb5],
-	} as Record<number, [number, number]>,
+		10000: [0x82, 0xb5]
+	} as Record<number, [number, number]>
 } as const;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ function buildCommand(command: number, payload: number[] = []): Uint8Array {
 		command,
 		(len >> 8) & 0xff,
 		len & 0xff,
-		...payload,
+		...payload
 	];
 	pkt.push(calculateCRC(pkt));
 	return new Uint8Array(pkt);
@@ -98,15 +98,12 @@ async function getCurrentSlot(_device: ConnectedDevice): Promise<number> {
 	return 0;
 }
 
-async function pullFromDevice(
-	_device: ConnectedDevice,
-	_slot: number
-): Promise<PullResult> {
+async function pullFromDevice(_device: ConnectedDevice, _slot: number): Promise<PullResult> {
 	const filters: DeviceFilter[] = EDIFIER.DEFAULT_FREQS.map((freq) => ({
 		freq,
 		gain: 0.0,
 		q: 1.4,
-		type: 'PK' as const,
+		type: 'PK' as const
 	}));
 	return { filters, globalGain: 0 };
 }
@@ -121,7 +118,7 @@ async function pushToDevice(
 		const f = filters[i] || {
 			freq: EDIFIER.DEFAULT_FREQS[i],
 			gain: 0,
-			q: 1.4,
+			q: 1.4
 		};
 		const bandId = EDIFIER.BAND_IDS[i];
 		const [freqB2, freqB3] = encodeFrequency(f.freq ?? EDIFIER.DEFAULT_FREQS[i]);
@@ -149,7 +146,7 @@ export const edifierUsbSerialHandler: DeviceHandler = {
 	getCurrentSlot,
 	pullFromDevice,
 	pushToDevice,
-	enablePEQ,
+	enablePEQ
 };
 
 export const registration: UsbSerialVendorConfig = {
@@ -157,10 +154,8 @@ export const registration: UsbSerialVendorConfig = {
 	handler: edifierUsbSerialHandler,
 	filters: {
 		usbVendorId: null,
-		allowedBluetoothServiceClassIds: [
-			'00001101-0000-1000-8000-00805f9b34fb',
-		],
-		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb',
+		allowedBluetoothServiceClassIds: ['00001101-0000-1000-8000-00805f9b34fb'],
+		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb'
 	},
 	devices: {
 		'Edifier W830NB': {
@@ -176,8 +171,8 @@ export const registration: UsbSerialVendorConfig = {
 				experimental: false,
 				writeOnly: true,
 				flatEQPhoneMeasurement: 'Edifier 830NB Custom EQ 0db',
-				availableSlots: [{ id: 0, name: 'Custom EQ' }],
-			},
-		},
-	},
+				availableSlots: [{ id: 0, name: 'Custom EQ' }]
+			}
+		}
+	}
 };

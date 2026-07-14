@@ -24,7 +24,7 @@ const MOONDROP = {
 	DIRECTION_FROM_DEVICE: 0x0b,
 	CMD_ENABLE_EQ: 0x03,
 	CMD_QUERY_EQ: 0x05,
-	CMD_SET_EQ: 0x06,
+	CMD_SET_EQ: 0x06
 } as const;
 
 // ── Parsed band from device response ─────────────────────────────────────────
@@ -71,7 +71,7 @@ function parseEQData(payload: Uint8Array): ParsedBand[] | null {
 			rawBytes: Array.from(bytes),
 			frequency: freqHz,
 			qFactor: qRaw / 4096.0,
-			gain: null,
+			gain: null
 		});
 	}
 
@@ -98,9 +98,7 @@ function parseEQData(payload: Uint8Array): ParsedBand[] | null {
 	return bands;
 }
 
-function encodeEQBands(
-	bands: { freq: number; gain: number; q: number }[]
-): Uint8Array {
+function encodeEQBands(bands: { freq: number; gain: number; q: number }[]): Uint8Array {
 	const payload: number[] = [];
 
 	// Header: mode byte + band count
@@ -184,10 +182,7 @@ async function getCurrentSlot(_device: ConnectedDevice): Promise<number> {
 	return 0;
 }
 
-async function pullFromDevice(
-	device: ConnectedDevice,
-	_slot: number
-): Promise<PullResult> {
+async function pullFromDevice(device: ConnectedDevice, _slot: number): Promise<PullResult> {
 	const queryPayload = new Uint8Array([0x00, 0x04]);
 	const queryPacket = createPacket(MOONDROP.CMD_QUERY_EQ, queryPayload);
 	await device.writable!.write(queryPacket);
@@ -206,7 +201,7 @@ async function pullFromDevice(
 		freq: b.frequency,
 		gain: Math.round((b.gain ?? 0) * 100) / 100,
 		q: Math.round(b.qFactor * 1000) / 1000,
-		type: 'PK' as const,
+		type: 'PK' as const
 	}));
 
 	return { filters, globalGain: 0 };
@@ -224,7 +219,7 @@ async function pushToDevice(
 		bands.push({
 			freq: f.freq ?? 1000,
 			gain: f.gain ?? 0,
-			q: f.q ?? 1.0,
+			q: f.q ?? 1.0
 		});
 	}
 
@@ -250,7 +245,7 @@ export const moondropEdgeUsbSerialHandler: DeviceHandler = {
 	getCurrentSlot,
 	pullFromDevice,
 	pushToDevice,
-	enablePEQ,
+	enablePEQ
 };
 
 export const registration: UsbSerialVendorConfig = {
@@ -258,10 +253,8 @@ export const registration: UsbSerialVendorConfig = {
 	handler: moondropEdgeUsbSerialHandler,
 	filters: {
 		usbVendorId: null,
-		allowedBluetoothServiceClassIds: [
-			'00001101-0000-1000-8000-00805f9b34fb',
-		],
-		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb',
+		allowedBluetoothServiceClassIds: ['00001101-0000-1000-8000-00805f9b34fb'],
+		bluetoothServiceClassId: '00001101-0000-1000-8000-00805f9b34fb'
 	},
 	devices: {
 		'Moondrop Edge': {
@@ -276,8 +269,8 @@ export const registration: UsbSerialVendorConfig = {
 				disabledPresetId: -1,
 				experimental: false,
 				flatEQPhoneMeasurement: 'Moondrop Edge Default',
-				availableSlots: [{ id: 0, name: 'Custom EQ' }],
-			},
-		},
-	},
+				availableSlots: [{ id: 0, name: 'Custom EQ' }]
+			}
+		}
+	}
 };

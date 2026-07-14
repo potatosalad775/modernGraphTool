@@ -6,19 +6,23 @@ sidebar_label: 변경 이력
 # modernGraphTool v2 변경 이력
 
 ### v2.1.4
+
 - 현지화: 러시아어 및 우크라이나어에 대한 새로운 번역 추가 (by @reallystates)
 - 수정: 서브픽셀 반올림으로 인한 의도치 않은 줄임표 표시를 방지하기 위해 MenuCarousel 버튼에 작은 버퍼 추가
 
 ### v2.1.3
+
 - Refactor: 'FR 업로드' 버튼이 이제 이름을 기반으로 L/R 채널 파일을 자동으로 처리하도록 변경되었습니다.
 - Refactor: MenuCarousel 버튼이 이제 내부 텍스트 길이에 따라 너비를 조정하여 더 긴 번역에서 발생하는 오버플로우 문제를 방지합니다.
 - Fix: L/R 채널 위치 불일치 문제 수정
 
 ### v2.1.2
+
 - Fix: 색상 랜덤화 기능이 제대로 작동하지 않던 문제 수정
 - Fix: 그래프 핸들을 통한 y축 위치 조정 시 선호도 경계가 제대로 따라가지 않던 문제 수정
 
 ### v2.1.1
+
 - Feat: `config.js`에 새로운 "CURVE_COLOR_PALETTE" 필드를 추가, 기기 곡선에 사용되는 색상 팔레트를 사용자 정의할 수 있도록 변경. 자세한 내용은 [TRACE_STYLING 문서](./guide-for-admins/customize-page.mdx#trace_styling) 참조
 - Feat: `config.js`에 새로운 "PANEL_POSITION" 필드를 추가, 데스크톱 인터페이스에서 메뉴 패널의 위치를 사용자 정의할 수 있도록 변경. 자세한 내용은 [INTERFACE 문서](./guide-for-admins/customize-page.mdx#interface) 참조
 - Refactor: 오디오 플레이어를 업데이트하여 탐색 간에도 동일한 인스턴스를 유지하도록 변경, 다양한 패널 간 전환 시 재생 상태와 위치를 유지할 수 있도록 개선
@@ -27,28 +31,34 @@ sidebar_label: 변경 이력
 - Refactor (squig-link): 사이트 간 검색 성능 개선
 
 ### v2.1.0
+
 - Feat: `config.js`에 새로운 "RANKING_URL" 필드를 추가, 기기 선택기의 랭킹 표시기가 사용자 정의 URL로 연결되도록 변경. 자세한 내용은 [RANKING_URL 문서](./guide-for-admins/customize-page.mdx#ranking_url) 참조
 - Fix: 페이지 로드 시 구성된 기본값으로 y축 스케일 버튼이 제대로 초기화되지 않던 문제 수정
 - Fix: phone_book의 단일 항목이 잘못된 형식일 때 해당 항목만 건너뛰는 대신 전체 기기가 사라지던 문제 수정
 
 ### v2.0.9
+
 - Fix: 기준선 그래프 렌더링과 관련된 여러 문제를 수정, 특정 정규화 옵션 사용 시 잘못된 기준선 표시 및 일부 경우 기준선 요소의 정렬 문제 해결
 
 ### v2.0.8
+
 - Fix: 스크린샷이 현재 테마와 독립적으로 작동하도록 변경하여 라이트/다크 모드 설정과 관계없이 일관된 모습을 보장합니다.
 
 ### v2.0.7
+
 - Feat: 동일한 기기의 새 variant를 빠르게 추가할 수 있도록 variant 선택기에 플러스 버튼 추가
 - Feat: EQ 및 AutoEQ 항목이 유형과 라벨별로 정렬되도록 변경
 - Feat: 폰과 타겟이 각각 하나씩만 선택된 경우 EQ와 AutoEQ가 자동으로 선택되도록 수정
 
 ### v2.0.6
+
 - Feat: 정규화 연결 및 AutoEQ 지속 옵션이 포함된 새로운 EQ 설정 구성 요소 추가
 - Feat: EQ 그래프를 원본 그래프에 고정하는 옵션 추가, 정규화 설정과 무관하게 원본 측정값 대비 상대 위치를 유지
 - Feat: AutoEQ 입력값을 기억하는 옵션 추가, 현재 탭에서만 유지 또는 브라우저에 계속 저장 선택 가능
 - Refactor: 넓은 화면을 보다 효율적으로 사용할 수 있도록 EQ 패널 레이아웃 개선
 
 ### v2.0.5
+
 - Feat: 지원되는 기기 목록과 안내 사항이 포함된 devicePEQ 정보 다이얼로그 추가
 - Refactor: Switch 컴포넌트의 색상 체계를 변경하여 대비와 접근성 향상
 - Refactor: Normalizer 기능이 키 입력에 따라 실시간으로 바뀌도록 변경
@@ -57,6 +67,7 @@ sidebar_label: 변경 이력
 - Fix: 여러 화면 요소에 누락된 Hover 효과 추가
 
 ### v2.0.4
+
 - Refactor: phone_book의 단일 `hptf` 필드를 `hptfs` 배열로 교체. 각 `hptfs` 항목은 독립적인 variant가 됩니다
 - Refactor: 번호가 매겨진 `L1.txt`/`R1.txt`가 없을 때 다중 샘플 variant가 번호 없는 `L.txt`/`R.txt`로 폴백
 - Refactor: 사용자 정의 값인 타겟 조정(Target Adjustment) 라벨의 번역 제거
@@ -65,18 +76,22 @@ sidebar_label: 변경 이력
 - Fix: `"suffix": [""]`처럼 명시적으로 빈 문자열을 지정한 suffix 항목이 `"0"`으로 처리되던 `_getSuffix` 버그 수정
 
 ### v2.0.3
+
 - Feat: 그래프에 타겟 조정(Target Adjustment) 라벨 추가
 - Feat: 기타(Misc) 패널에 버전 정보 표시
 - Fix: Target Customizer가 타겟 이름을 올바르게 정규화하지 못해 일부 타겟이 목록에서 누락되던 문제 수정
 - Fix: 타겟이 많을 때 타겟 선택기의 수평 스크롤바가 제대로 표시되지 않던 문제 수정
 
 ### v2.0.2
+
 - Fix: 선호도 경계의 타겟 경로가 하드코딩되어 있던 문제 수정
 - Fix: 사용자의 언어 선택이 기억되지 않던 문제 수정
 - Fix: jsDelivr의 느린 버전 업데이트 문제 수정 — GitHub를 사용하도록 변경
 
 ### v2.0.1
+
 - Fix: CDN 빌드에서 Web Worker 기반 AutoEQ가 작동하지 않던 문제 수정
 
 ### v2.0.0
+
 - v2 최초 릴리스

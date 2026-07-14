@@ -1,0 +1,24 @@
+# Normalize all text files to LF in the repository and in the working tree.
+# This overrides core.autocrlf (which Git for Windows sets to `true` in its
+# system config), so a checkout is byte-identical on Windows, macOS and Linux
+# and Prettier's `endOfLine: lf` check passes everywhere.
+* text=auto eol=lf
+
+# Binary assets — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.pdf binary
+
+# Generated — keep out of diffs and language stats.
+package-lock.json linguist-generated=true -diff
+src/lib/paraglide/** linguist-generated=true

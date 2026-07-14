@@ -1,10 +1,10 @@
 {
-  "label": "Guide for Admins",
-  "position": 8,
-  "collapsible": true,
-  "collapsed": true,
-  "link": {
-    "type": "generated-index",
-    "description": "Learn how to build your own FR database using modernGraphTool."
-  }
+	"label": "Guide for Admins",
+	"position": 8,
+	"collapsible": true,
+	"collapsed": true,
+	"link": {
+		"type": "generated-index",
+		"description": "Learn how to build your own FR database using modernGraphTool."
+	}
 }

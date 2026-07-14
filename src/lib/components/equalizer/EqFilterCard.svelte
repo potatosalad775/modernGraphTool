@@ -13,7 +13,7 @@
 		expanded,
 		onToggle,
 		onUpdate,
-		onRemove,
+		onRemove
 	}: {
 		filter: EQFilter;
 		index: number;
@@ -30,18 +30,21 @@
 	const typeOptions: [EQFilter['type'], () => string][] = [
 		['PK', m.equalizer_filter_list_peak],
 		['LSQ', m.equalizer_filter_list_lowshelf],
-		['HSQ', m.equalizer_filter_list_highshelf],
+		['HSQ', m.equalizer_filter_list_highshelf]
 	];
 
 	// ── Slider computed values ───────────────────────────────────────────────
 
 	let freqSliderValue = $derived(filter.freq != null ? logToLinear(filter.freq, 20, 20000) : 500);
 	let gainSliderValue = $derived(filter.gain != null ? Math.round(filter.gain * 10) : 0);
-	let qSliderValue = $derived(filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10));
+	let qSliderValue = $derived(
+		filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10)
+	);
 
 	// ── Number input handling ────────────────────────────────────────────────
 
-	const inputBase = 'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+	const inputBase =
+		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {
 		const input = e.currentTarget as HTMLInputElement;
@@ -69,17 +72,15 @@
 			input.blur();
 		}
 	}
-
 </script>
 
-<div
-	class="rounded-lg border overflow-hidden transition-colors border-base-content/20"
->
+<div class="rounded-lg border overflow-hidden transition-colors border-base-content/20">
 	<!-- Collapsed row (always visible) -->
 	<div class="flex min-h-8 items-center gap-2 pl-2 pr-1 py-0.5">
 		<!-- Switch -->
-		<Switch 
-			size="sm" variant="muted"
+		<Switch
+			size="sm"
+			variant="muted"
 			checked={filter.enabled}
 			onCheckedChange={(checked) => onUpdate({ enabled: checked })}
 		/>
@@ -94,7 +95,8 @@
 				const nextType = typeOptions[(currentIndex + 1) % typeOptions.length][0];
 				onUpdate({ type: nextType });
 			}}
-			variant="muted" size="xs"
+			variant="muted"
+			size="xs"
 		>
 			{typeShortLabels[filter.type]}
 		</Button>
@@ -104,7 +106,9 @@
 			<input
 				type="number"
 				value={filter.freq}
-				min={20} max={20000} step={1}
+				min={20}
+				max={20000}
+				step={1}
 				onchange={(e) => commitNumberInput(e, 'freq')}
 				onkeydown={(e) => handleInputKeydown(e, 'freq')}
 				class="w-full {inputBase}"
@@ -117,7 +121,9 @@
 			<input
 				type="number"
 				value={filter.gain}
-				min={-30} max={30} step={0.1}
+				min={-30}
+				max={30}
+				step={0.1}
 				onchange={(e) => commitNumberInput(e, 'gain')}
 				onkeydown={(e) => handleInputKeydown(e, 'gain')}
 				class="w-full {inputBase}"
@@ -133,7 +139,9 @@
 			<input
 				type="number"
 				value={filter.q}
-				min={0.1} max={10} step={0.01}
+				min={0.1}
+				max={10}
+				step={0.01}
 				onchange={(e) => commitNumberInput(e, 'q')}
 				onkeydown={(e) => handleInputKeydown(e, 'q')}
 				class="w-full {inputBase}"
@@ -144,7 +152,9 @@
 			<Button
 				title="Expand filter {index + 1} options"
 				onclick={onToggle}
-				variant="ghost" size="icon" class="text-base-content/50 hover:text-accent"
+				variant="ghost"
+				size="icon"
+				class="text-base-content/50 hover:text-accent"
 			>
 				<ChevronDown
 					class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
@@ -160,13 +170,14 @@
 					e.stopPropagation();
 					onRemove();
 				}}
-				variant="ghost" size="icon" class="text-base-content/50 hover:text-error"
+				variant="ghost"
+				size="icon"
+				class="text-base-content/50 hover:text-error"
 			>
 				<X class="h-3.5 w-3.5" />
 			</Button>
 		</div>
 		<!-- Expand/collapse button -->
-		
 	</div>
 
 	<!-- Expanded content -->
@@ -201,7 +212,9 @@
 						<input
 							type="number"
 							value={filter.freq}
-							min={20} max={20000} step={1}
+							min={20}
+							max={20000}
+							step={1}
 							onchange={(e) => commitNumberInput(e, 'freq')}
 							onkeydown={(e) => handleInputKeydown(e, 'freq')}
 							class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
@@ -233,7 +246,9 @@
 						<input
 							type="number"
 							value={filter.gain}
-							min={-30} max={30} step={0.1}
+							min={-30}
+							max={30}
+							step={0.1}
 							onchange={(e) => commitNumberInput(e, 'gain')}
 							onkeydown={(e) => handleInputKeydown(e, 'gain')}
 							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
@@ -265,7 +280,9 @@
 						<input
 							type="number"
 							value={filter.q}
-							min={0.1} max={10} step={0.01}
+							min={0.1}
+							max={10}
+							step={0.01}
 							onchange={(e) => commitNumberInput(e, 'q')}
 							onkeydown={(e) => handleInputKeydown(e, 'q')}
 							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"

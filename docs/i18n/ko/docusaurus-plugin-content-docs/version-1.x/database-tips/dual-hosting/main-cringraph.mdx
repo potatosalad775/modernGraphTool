@@ -59,7 +59,7 @@ CrinGraph는 본래 하나의 `data` 폴더 안에 측정치와 타겟 데이터
 아래의 예시는 [squiglink/labs 버전](https://github.com/squiglink/lab)의 CrinGraph에 기반하고 있습니다.
 
 :::tip[팁]
-다른 버전의 CrinGraph를 이용하고 있더라도, 대체로 아래의 예시를 따라하는데 큰 문제가 발생하지 않습니다. 다만, 수정해야 될 코드가 위치한 라인 번호가 다를 수는 있습니다. 
+다른 버전의 CrinGraph를 이용하고 있더라도, 대체로 아래의 예시를 따라하는데 큰 문제가 발생하지 않습니다. 다만, 수정해야 될 코드가 위치한 라인 번호가 다를 수는 있습니다.
 :::
 
 #### graphtool.js
@@ -68,18 +68,18 @@ CrinGraph는 본래 하나의 `data` 폴더 안에 측정치와 타겟 데이터
 
 ```js
 // 수정 전
-let l = f => d3.text(DIR+f+".txt").catch(()=>null);
-let f = p.isTarget ? [l(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [l(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 
 // 수정 후
 // 다른 이름을 가진 폴더에 측정치 데이터를 관리하고 있을 경우, 'phones', 'target' 대신 진짜 이름을 적용해야 합니다.
-let l = f => d3.text(DIR+"phones/"+f+".txt").catch(()=>null);
-let lt = f => d3.text(DIR+"target/"+f+".txt").catch(()=>null);
-let f = p.isTarget ? [lt(p.fileName)]
-      : d3.merge(LR.map(s =>
-            sampnums.map(n => l(p.fileName+" "+s+n))));
+let l = (f) => d3.text(DIR + 'phones/' + f + '.txt').catch(() => null);
+let lt = (f) => d3.text(DIR + 'target/' + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [lt(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
 ```
 
 ### 4. modernGraphTool 코드 수정
@@ -121,23 +121,25 @@ PATH: {
 #### CrinGraph
 
 `config.js`의 250번 라인으로 이동하여, headerLinks 배열에 아래 문구를 추가하세요.
+
 ```js
 headerLinks = [
-  {
-    name: "modernGraphTool 버전으로 보기",
-    url: "https://yourdomain.com/mGT"
-  },
-  // or
-  {
-    name: "modernGraphTool 버전으로 보기",
-    url: "./mGT"
-  },
-]
+	{
+		name: 'modernGraphTool 버전으로 보기',
+		url: 'https://yourdomain.com/mGT'
+	},
+	// or
+	{
+		name: 'modernGraphTool 버전으로 보기',
+		url: './mGT'
+	}
+];
 ```
 
 #### modernGraphTool
 
 `config.js`의 114번 라인으로 이동하여, `TOPBAR` 객체에 아래 문구를 추가하세요.
+
 ```js
 TOPBAR: {
   LINK_LIST: { TITLE: "CrinGraph로 돌아가기", URL: "https://yourdomain.com/" },
@@ -156,7 +158,9 @@ TOPBAR: {
 `squig.link` 데이터베이스에서 작업하는 경우, 파일 캐시로 인해 앞서 작업한 변화들이 곧바로 나타나지 않을 수 있습니다.
 
 데이터베이스 주소 뒤에 `?cachebust`를 입력하고 사이트에 다시 접속하는 방식으로 캐시를 새로고침하면 이러한 변경점들을 바로 적용할 수 있습니다.
+
 ```plaintext
 예시) https://example.squig.link/?cachebust
 ```
+
 :::

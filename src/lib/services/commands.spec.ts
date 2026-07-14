@@ -306,7 +306,10 @@ describe('Commands', () => {
 
 	describe('UpdateHpTFDisplayCommand', () => {
 		it('sets dispHptf, hptfFillVisible, and hptfAvgVisible on execute', () => {
-			store.set('a', makeFRDataObject('a', { dispHptf: [], hptfFillVisible: false, hptfAvgVisible: false }));
+			store.set(
+				'a',
+				makeFRDataObject('a', { dispHptf: [], hptfFillVisible: false, hptfAvgVisible: false })
+			);
 			const cmd = new UpdateHpTFDisplayCommand('a', ['sample0_AVG', 'sample1_AVG'], true, true);
 			cmd.execute(store);
 			expect(store.data.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
@@ -315,7 +318,14 @@ describe('Commands', () => {
 		});
 
 		it('restores previous state on undo', () => {
-			store.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: true }));
+			store.set(
+				'a',
+				makeFRDataObject('a', {
+					dispHptf: ['sample0_AVG'],
+					hptfFillVisible: true,
+					hptfAvgVisible: true
+				})
+			);
 			const cmd = new UpdateHpTFDisplayCommand('a', ['sample0_AVG', 'sample1_AVG'], false, false);
 			cmd.execute(store);
 			cmd.undo(store);
@@ -341,7 +351,14 @@ describe('Commands', () => {
 		});
 
 		it('can hide all sample curves (empty dispHptf) while keeping fill visible', () => {
-			store.set('a', makeFRDataObject('a', { dispHptf: ['sample0_AVG'], hptfFillVisible: true, hptfAvgVisible: false }));
+			store.set(
+				'a',
+				makeFRDataObject('a', {
+					dispHptf: ['sample0_AVG'],
+					hptfFillVisible: true,
+					hptfAvgVisible: false
+				})
+			);
 			const cmd = new UpdateHpTFDisplayCommand('a', [], true, false);
 			cmd.execute(store);
 			expect(store.data.get('a')!.dispHptf).toEqual([]);
@@ -349,7 +366,10 @@ describe('Commands', () => {
 		});
 
 		it('can toggle average visibility independently', () => {
-			store.set('a', makeFRDataObject('a', { dispHptf: [], hptfFillVisible: true, hptfAvgVisible: false }));
+			store.set(
+				'a',
+				makeFRDataObject('a', { dispHptf: [], hptfFillVisible: true, hptfAvgVisible: false })
+			);
 			const cmd = new UpdateHpTFDisplayCommand('a', [], true, true);
 			cmd.execute(store);
 			expect(store.data.get('a')!.hptfAvgVisible).toBe(true);

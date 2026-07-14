@@ -5,5 +5,24 @@ yarn.lock
 bun.lock
 bun.lockb
 
+# Build output and generated code. Prettier does not read .gitignore — neither the
+# root one nor the nested ones (docs/.gitignore, project.inlang/.gitignore) — so
+# without these, `npm run lint` fails on generated files as soon as anything has
+# been built or compiled. The inlang entries are rewritten by every Paraglide
+# compile, which `prepare` now runs on install.
+/dist/
+/dist-cdn/
+/.svelte-kit/
+/docs/build/
+/docs/.docusaurus/
+/docs/.cache-loader/
+/src/lib/paraglide/
+
+# Mirrors project.inlang/.gitignore: inlang owns everything in here except settings.json,
+# and rewrites it on every compile. Matching its rule rather than listing today's files
+# means a new inlang artifact cannot break lint.
+/project.inlang/*
+!/project.inlang/settings.json
+
 # Miscellaneous
 /static/

@@ -35,7 +35,7 @@
 		filter: Record<string, number>;
 	}
 
-	const tcConfig = (window as any).GRAPHTOOL_CONFIG?.TARGET_CUSTOMIZER as
+	const tcConfig = window.GRAPHTOOL_CONFIG?.TARGET_CUSTOMIZER as
 		| {
 				CUSTOMIZABLE_TARGETS?: string[];
 				FILTERS?: FilterDef[];
@@ -66,10 +66,7 @@
 		return paren >= 0 ? def.name.slice(0, paren) : def.name;
 	}
 
-	function formatAdjustmentLabel(
-		filters: FilterDef[],
-		values: Map<string, number>
-	): string | null {
+	function formatAdjustmentLabel(filters: FilterDef[], values: Map<string, number>): string | null {
 		const parts: string[] = [];
 		for (const def of filters) {
 			const v = values.get(def.id) ?? 0;
@@ -93,9 +90,7 @@
 	let selectedPreset = $state('');
 
 	// Apply initial filters for this target
-	const initial = initialFilters.find(
-		(f) => normalizeTargetName(f.name) === normalizedIdentifier
-	);
+	const initial = initialFilters.find((f) => normalizeTargetName(f.name) === normalizedIdentifier);
 	if (initial) {
 		for (const [id, value] of Object.entries(initial.filter)) {
 			if (availableFilters.some((f) => f.id === id)) {
@@ -107,13 +102,9 @@
 
 	// ── Derived ───────────────────────────────────────────────────────────────
 
-	const activeFilters = $derived(
-		availableFilters.filter((f) => activeFilterIds.has(f.id))
-	);
+	const activeFilters = $derived(availableFilters.filter((f) => activeFilterIds.has(f.id)));
 
-	const inactiveFilters = $derived(
-		availableFilters.filter((f) => !activeFilterIds.has(f.id))
-	);
+	const inactiveFilters = $derived(availableFilters.filter((f) => !activeFilterIds.has(f.id)));
 
 	// ── Equalizer instance ────────────────────────────────────────────────────
 
@@ -137,7 +128,10 @@
 				for (const key of Object.keys(persisted) as (keyof ParsedFRData)[]) {
 					const ch = persisted[key];
 					if (ch) {
-						cached.set(key, ch.data.map(([f, d]) => [f, d] as [number, number]));
+						cached.set(
+							key,
+							ch.data.map(([f, d]) => [f, d] as [number, number])
+						);
 					}
 				}
 				originalData = cached;
@@ -183,7 +177,10 @@
 		for (const key of Object.keys(stored) as (keyof ParsedFRData)[]) {
 			const ch = stored[key];
 			if (ch) {
-				originalData.set(key, ch.data.map(([f, d]) => [f, d] as [number, number]));
+				originalData.set(
+					key,
+					ch.data.map(([f, d]) => [f, d] as [number, number])
+				);
 			}
 		}
 	});
@@ -304,7 +301,6 @@
 			(e.target as HTMLSelectElement).value = '';
 		}
 	}
-
 </script>
 
 {#if isCustomizable}
@@ -313,7 +309,8 @@
 			<Button
 				{...props}
 				title={m.target_customizer_btn_view()}
-				variant="outline" size="icon"
+				variant="outline"
+				size="icon"
 				class="mr-0.5 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
 			>
 				<Settings2 class="h-4 w-4" />
@@ -331,7 +328,9 @@
 			{#each activeFilters as def (def.id)}
 				{@const range = getGainRange(def)}
 				{@const value = filterValues.get(def.id) ?? 0}
-				<div class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2">
+				<div
+					class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2"
+				>
 					<div class="flex flex-col flex-1 gap-0.25">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center">
@@ -344,7 +343,8 @@
 											<Button
 												{...props}
 												title="Open target filter description"
-												variant="ghost" size="icon"
+												variant="ghost"
+												size="icon"
 												class="ml-0.5 p-1! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
 											>
 												<CircleAlert class="h-3 w-3" />
@@ -354,7 +354,7 @@
 									</PopoverPanel>
 								{/if}
 							</div>
-							<span class="w-8 text-right text-xs tabular-nums ">
+							<span class="w-8 text-right text-xs tabular-nums">
 								{value.toFixed(1)}
 							</span>
 						</div>
@@ -371,11 +371,7 @@
 							/>
 						</div>
 					</div>
-					<Button
-						title="Remove"
-						onclick={() => removeFilter(def.id)}
-						variant="ghost" size="icon"
-					>
+					<Button title="Remove" onclick={() => removeFilter(def.id)} variant="ghost" size="icon">
 						<X class="size-3" />
 					</Button>
 				</div>
@@ -387,7 +383,7 @@
 			{#if inactiveFilters.length > 0}
 				<select
 					onchange={handleAddFilterChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
+					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm
 						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
@@ -401,7 +397,7 @@
 				<select
 					value={selectedPreset}
 					onchange={handlePresetChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm 
+					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm
 						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
@@ -415,7 +411,8 @@
 				<Button
 					title={m.target_customizer_btn_reset()}
 					onclick={handleReset}
-					variant="destructive" size="sm"
+					variant="destructive"
+					size="sm"
 				>
 					{m.target_customizer_btn_reset()}
 				</Button>

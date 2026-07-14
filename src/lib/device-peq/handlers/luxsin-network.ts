@@ -5,7 +5,13 @@
 // HTTP API with custom base64 alphabet encoding via /dev/info.cgi
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, DeviceModelConfig, PullResult } from '../types.js';
+import type {
+	ConnectedDevice,
+	DeviceHandler,
+	DeviceFilter,
+	DeviceModelConfig,
+	PullResult
+} from '../types.js';
 
 // ── Custom base64 encoding ──────────────────────────────────────────────────
 
@@ -44,23 +50,39 @@ function decodeCustom(encoded: string): string {
 
 function toLuxsinType(type: string): number {
 	const map: Record<string, number> = {
-		LPF: 0, HPF: 1, BPF: 2, Notch: 3,
-		Peak: 4, PK: 4, LSQ: 5, HSQ: 6, AllPass: 7
+		LPF: 0,
+		HPF: 1,
+		BPF: 2,
+		Notch: 3,
+		Peak: 4,
+		PK: 4,
+		LSQ: 5,
+		HSQ: 6,
+		AllPass: 7
 	};
 	return map[type] ?? 4; // default to Peak
 }
 
 function fromLuxsinType(code: number): string {
 	switch (code) {
-		case 0: return 'PK'; // LPF — not in our type system, map to PK
-		case 1: return 'PK'; // HPF
-		case 2: return 'PK'; // BPF
-		case 3: return 'PK'; // Notch
-		case 4: return 'PK';
-		case 5: return 'LSQ';
-		case 6: return 'HSQ';
-		case 7: return 'PK'; // AllPass
-		default: return 'PK';
+		case 0:
+			return 'PK'; // LPF — not in our type system, map to PK
+		case 1:
+			return 'PK'; // HPF
+		case 2:
+			return 'PK'; // BPF
+		case 3:
+			return 'PK'; // Notch
+		case 4:
+			return 'PK';
+		case 5:
+			return 'LSQ';
+		case 6:
+			return 'HSQ';
+		case 7:
+			return 'PK'; // AllPass
+		default:
+			return 'PK';
 	}
 }
 
@@ -155,7 +177,7 @@ export const luxsinNetworkHandler: DeviceHandler = {
 			// Get current data to fetch profile metadata
 			const syncDataText = await httpGet(deviceIp, '/dev/info.cgi?action=syncData');
 			const deviceData = JSON.parse(decodeCustom(syncDataText));
-			const currentIndex = slot ?? (deviceData.peqSelect ?? 0);
+			const currentIndex = slot ?? deviceData.peqSelect ?? 0;
 			const profile = Array.isArray(deviceData.peq) ? deviceData.peq[currentIndex] : null;
 
 			const luxFilters = (filters || []).map((f) => ({

@@ -1,10 +1,10 @@
 {
-  "label": "기능",
-  "position": 6,
-  "collapsible": true,
-  "collapsed": true,
-  "link": {
-    "type": "generated-index",
-    "description": "modernGraphTool의 내장 기능에 대해 알아보세요."
-  }
+	"label": "기능",
+	"position": 6,
+	"collapsible": true,
+	"collapsed": true,
+	"link": {
+		"type": "generated-index",
+		"description": "modernGraphTool의 내장 기능에 대해 알아보세요."
+	}
 }

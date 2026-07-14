@@ -6,7 +6,13 @@
 // Write uses mirror command (simpler than multi-sample-rate SPP write).
 //
 
-import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult, BleDeviceConfig } from '../types.js';
+import type {
+	ConnectedDevice,
+	DeviceHandler,
+	DeviceFilter,
+	PullResult,
+	BleDeviceConfig
+} from '../types.js';
 
 const NUM_BANDS = 10;
 const RESPONSE_HEADER = [0x05, 0x5b, 0xbd];
@@ -64,7 +70,11 @@ function buildWritePEQCommandMirror(presetNum: number, filters: NormalizedBand[]
 
 function parsePEQResponse(data: Uint8Array): { filters: DeviceFilter[] } | null {
 	if (data.length < READ_RESPONSE_LENGTH) return null;
-	if (data[0] !== RESPONSE_HEADER[0] || data[1] !== RESPONSE_HEADER[1] || data[2] !== RESPONSE_HEADER[2]) {
+	if (
+		data[0] !== RESPONSE_HEADER[0] ||
+		data[1] !== RESPONSE_HEADER[1] ||
+		data[2] !== RESPONSE_HEADER[2]
+	) {
 		return null;
 	}
 
@@ -77,17 +87,26 @@ function parsePEQResponse(data: Uint8Array): { filters: DeviceFilter[] } | null 
 		if (offset + 18 > data.length) break;
 
 		const freqRaw =
-			data[offset + 2] | (data[offset + 3] << 8) | (data[offset + 4] << 16) | (data[offset + 5] << 24);
+			data[offset + 2] |
+			(data[offset + 3] << 8) |
+			(data[offset + 4] << 16) |
+			(data[offset + 5] << 24);
 		const freqHz = freqRaw / 100.0;
 
 		let gainRaw =
-			((data[offset + 6] | (data[offset + 7] << 8) | (data[offset + 8] << 16) | (data[offset + 9] << 24)) >>>
-				0);
+			(data[offset + 6] |
+				(data[offset + 7] << 8) |
+				(data[offset + 8] << 16) |
+				(data[offset + 9] << 24)) >>>
+			0;
 		if (gainRaw > 0x7fffffff) gainRaw -= 0x100000000;
 		const gainDb = gainRaw / 100.0;
 
 		const qRaw =
-			data[offset + 14] | (data[offset + 15] << 8) | (data[offset + 16] << 16) | (data[offset + 17] << 24);
+			data[offset + 14] |
+			(data[offset + 15] << 8) |
+			(data[offset + 16] << 16) |
+			(data[offset + 17] << 24);
 		const qValue = qRaw / 100.0;
 
 		filters.push({ freq: freqHz, gain: gainDb, q: qValue, type: 'PK' });
@@ -122,7 +141,10 @@ async function writePacket(device: ConnectedDevice, packet: Uint8Array): Promise
 	}
 }
 
-async function readPEQPacket(device: ConnectedDevice, timeoutMs = 5000): Promise<{ filters: DeviceFilter[] } | null> {
+async function readPEQPacket(
+	device: ConnectedDevice,
+	timeoutMs = 5000
+): Promise<{ filters: DeviceFilter[] } | null> {
 	const startTime = Date.now();
 	let buffer: number[] = [];
 
@@ -195,12 +217,10 @@ export const airohaBleHandler: DeviceHandler = {
 		}
 	},
 
-	async enablePEQ(
-		_device: ConnectedDevice,
-		enabled: boolean,
-		slotId: number
-	): Promise<void> {
-		console.log(`Airoha BLE: enable/disable not supported (requested ${enabled} for slot ${slotId})`);
+	async enablePEQ(_device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void> {
+		console.log(
+			`Airoha BLE: enable/disable not supported (requested ${enabled} for slot ${slotId})`
+		);
 	}
 };
 

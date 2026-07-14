@@ -49,7 +49,6 @@ async function sendReportAndListen(
 		throw new Error('Serial port not available');
 	}
 
-	let writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
 	let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 	const buffer: number[] = [];
 	const overallTimeoutMs = 5000;
@@ -61,7 +60,7 @@ async function sendReportAndListen(
 
 	try {
 		// Acquire writer per call, write, then release (replicating reference write())
-		writer = port.writable!.getWriter();
+		const writer = port.writable!.getWriter();
 		await writer.write(data);
 		try {
 			writer.releaseLock();
@@ -375,11 +374,7 @@ async function pushToDevice(
 	}
 }
 
-async function enablePEQ(
-	device: ConnectedDevice,
-	enabled: boolean,
-	slotId: number
-): Promise<void> {
+async function enablePEQ(device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void> {
 	try {
 		if (enabled) {
 			// Enable EQ and set to specified slot/preset

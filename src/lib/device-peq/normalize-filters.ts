@@ -25,9 +25,7 @@ export function normalizeFiltersForDevice(
 	}
 
 	// Convert unsupported LS/HS filters
-	const hasLSHSFilters = result.some(
-		(f) => (f.type === 'LSQ' || f.type === 'HSQ') && f.gain !== 0
-	);
+	const hasLSHSFilters = result.some((f) => (f.type === 'LSQ' || f.type === 'HSQ') && f.gain !== 0);
 	const needsPreGain = result.some((f) => f.gain > 0);
 
 	if (hasLSHSFilters && modelConfig.supportsLSHSFilters === false) {
@@ -39,9 +37,7 @@ export function normalizeFiltersForDevice(
 		}
 
 		if (needsPreGain && modelConfig.supportsPregain === false) {
-			console.warn(
-				"Device doesn't support LS/HS filters and auto pregain - both will be ignored"
-			);
+			console.warn("Device doesn't support LS/HS filters and auto pregain - both will be ignored");
 		} else {
 			console.warn('Device only supports Peak filters - ignoring LS/HS filters');
 		}

@@ -13,13 +13,13 @@ This page is a reference for everything that changed and everything that's new. 
 
 ### Tech Stack
 
-| | v1 | v2 |
-|---|---|---|
+|               | v1                                  | v2                             |
+| ------------- | ----------------------------------- | ------------------------------ |
 | **Framework** | Vanilla JavaScript + Web Components | SvelteKit 2 + Svelte 5 (Runes) |
-| **Bundler** | Rollup | Vite |
-| **Styling** | Custom CSS | Tailwind CSS 4 + CSS variables |
-| **i18n** | Custom JSON loader | Paraglide JS (compile-time) |
-| **Testing** | None | Vitest + Playwright |
+| **Bundler**   | Rollup                              | Vite                           |
+| **Styling**   | Custom CSS                          | Tailwind CSS 4 + CSS variables |
+| **i18n**      | Custom JSON loader                  | Paraglide JS (compile-time)    |
+| **Testing**   | None                                | Vitest + Playwright            |
 
 ### Extensions are Now Built-in
 
@@ -27,22 +27,22 @@ In v1, features were loaded as extensions via `extensions/extensions.config.js`.
 
 In v2, **all extensions are built-in Svelte components** configured through a single `config.js`. The `extensions/` folder and `extensions.config.js` are gone.
 
-| v1 (`extensions.config.js`) | v2 (`config.js`) |
-|---|---|
-| Extension `ENABLED` flags | Features are always included; toggle visibility via config sections |
-| `PREFERENCE_BOUND` config | `PREFERENCE_BOUND` section |
-| `TARGET_CUSTOMIZER` config | `TARGET_CUSTOMIZER` section |
-| `SQUIGLINK` config | `SQUIGLINK` section |
+| v1 (`extensions.config.js`) | v2 (`config.js`)                                                    |
+| --------------------------- | ------------------------------------------------------------------- |
+| Extension `ENABLED` flags   | Features are always included; toggle visibility via config sections |
+| `PREFERENCE_BOUND` config   | `PREFERENCE_BOUND` section                                          |
+| `TARGET_CUSTOMIZER` config  | `TARGET_CUSTOMIZER` section                                         |
+| `SQUIGLINK` config          | `SQUIGLINK` section                                                 |
 
 ### New Config Sections
 
 v2 adds several new configuration sections to `config.js` that didn't exist in v1:
 
-| Section | Purpose |
-|---|---|
+| Section        | Purpose                                                                 |
+| -------------- | ----------------------------------------------------------------------- |
 | `MULTI_SAMPLE` | Default display mode for multi-sample measurements (`average` or `all`) |
-| `HPTF` | HpTF deviation display mode and fill opacity |
-| `CDN_MODE` | Optional CDN deployment settings (version pinning, custom base URL) |
+| `HPTF`         | HpTF deviation display mode and fill opacity                            |
+| `CDN_MODE`     | Optional CDN deployment settings (version pinning, custom base URL)     |
 
 These are all optional — v2 ships with sensible defaults if you omit them. The [Config Editor](/config-generator) can help you build a complete `config.js` from scratch or review all available options.
 

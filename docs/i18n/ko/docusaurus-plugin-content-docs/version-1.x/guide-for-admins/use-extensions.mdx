@@ -20,9 +20,9 @@ extensions/
 └── extensions.config.js  # Extension 활성화 및 설정 파일
 ```
 
-*   각 Extension은 고유한 이름의 폴더를 가집니다 (예: `equalizer`, `target-customizer`).
-*   각 Extension 폴더 안에는 해당 Extension의 기능을 구성하는 핵심 JavaScript 파일(`main.js`) 및 기타 리소스 파일이 포함될 수 있습니다.
-*   `extensions.config.js` 파일은 어떤 Extension을 활성화할지, 그리고 각 Extension의 세부 설정을 어떻게 할지 정의하는 중요한 파일입니다.
+- 각 Extension은 고유한 이름의 폴더를 가집니다 (예: `equalizer`, `target-customizer`).
+- 각 Extension 폴더 안에는 해당 Extension의 기능을 구성하는 핵심 JavaScript 파일(`main.js`) 및 기타 리소스 파일이 포함될 수 있습니다.
+- `extensions.config.js` 파일은 어떤 Extension을 활성화할지, 그리고 각 Extension의 세부 설정을 어떻게 할지 정의하는 중요한 파일입니다.
 
 ## Extension 활성화 및 설정 방법 (`extensions.config.js`)
 
@@ -32,23 +32,23 @@ extensions/
 
 ```javascript
 export const EXTENSION_CONFIG = [
-  {
-    // name: Extension 이름 (폴더 이름과 동일해야 함)
-    NAME: "equalizer",
-    // description: Extension 설명 (기능에는 영향 없음)
-    DESCRIPTION: `equalizer panel for modernGraphTool`,
-    // enabled: Extension 활성화 여부 (true: 활성화, false: 비활성화)
-    ENABLED: true,
-    // I18N_ENABLED: 다국어 지원 활성화 여부 (true/false) 
-    // - 관련 기능을 제공하지 않는 Extension도 존재할 수 있음
-    I18N_ENABLED: true,
-    // CONFIG: Extension별 세부 설정 객체
-    CONFIG: {
-      INITIAL_EQ_BANDS: 5,  // 초기 EQ 밴드 수
-      MAXIMUM_EQ_BANDS: 20, // 최대 EQ 밴드 수
-    },
-  },
-  // ... 다른 Extension 설정들
+	{
+		// name: Extension 이름 (폴더 이름과 동일해야 함)
+		NAME: 'equalizer',
+		// description: Extension 설명 (기능에는 영향 없음)
+		DESCRIPTION: `equalizer panel for modernGraphTool`,
+		// enabled: Extension 활성화 여부 (true: 활성화, false: 비활성화)
+		ENABLED: true,
+		// I18N_ENABLED: 다국어 지원 활성화 여부 (true/false)
+		// - 관련 기능을 제공하지 않는 Extension도 존재할 수 있음
+		I18N_ENABLED: true,
+		// CONFIG: Extension별 세부 설정 객체
+		CONFIG: {
+			INITIAL_EQ_BANDS: 5, // 초기 EQ 밴드 수
+			MAXIMUM_EQ_BANDS: 20 // 최대 EQ 밴드 수
+		}
+	}
+	// ... 다른 Extension 설정들
 ];
 ```
 

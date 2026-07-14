@@ -1,151 +1,151 @@
 .dgpContainer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  cursor: default;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 8px;
-  overflow: hidden;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	cursor: default;
+	font-size: 12px;
+	font-weight: 500;
+	border-radius: 8px;
+	overflow: hidden;
 }
 
 .dgpHeader {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  height: 48px;
-  padding: 0 16px;
-  font-size: 12px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	height: 48px;
+	padding: 0 16px;
+	font-size: 12px;
 
-  h3 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
+	h3 {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 600;
+	}
 }
 
 .dgpContent {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
+	flex: 1;
+	display: flex;
+	flex-direction: row;
 }
 
 .dgpGraph {
-  flex: 4;
-  display: flex;
-  position: relative;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 12px;
-  min-height: 200px;
+	flex: 4;
+	display: flex;
+	position: relative;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 12px;
+	min-height: 200px;
 }
 
 .dgpToasts {
-  position: absolute;
-  top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+	position: absolute;
+	top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
 }
 
 .dgpToast {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
+	padding: 6px 12px;
+	border-radius: 6px;
+	font-size: 11px;
+	font-weight: 500;
 }
 
 .dgpDivider {
-  width: 5px;
-  flex-shrink: 0;
+	width: 5px;
+	flex-shrink: 0;
 }
 
 .dgpTools {
-  flex: 3;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-width: 280px;
+	flex: 3;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	min-width: 280px;
 }
 
 .dgpToolsContent {
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
 }
 
 .dgpTargetSelector {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
 .dgpPhoneSelector {
-  display: flex;
-  flex-direction: column;
-  border-radius: 8px;
-  overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	border-radius: 8px;
+	overflow: hidden;
 }
 
 .dgpPhoneSelectorObject {
-  padding: 8px 12px;
-  font-size: 12px;
+	padding: 8px 12px;
+	font-size: 12px;
 }
 
 .dgpPhoneSelectorObjectSelected {
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 500;
+	padding: 8px 12px;
+	font-size: 12px;
+	font-weight: 500;
 }
 
 .dgpButtonContainer {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
 
-  div {
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-  }
+	div {
+		padding: 4px 12px;
+		border-radius: 6px;
+		font-size: 11px;
+	}
 }
 
 .dgpMenuCarousel {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  padding: 10px 0;
-  height: 44px;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	gap: 20px;
+	padding: 10px 0;
+	height: 44px;
 }
 
 .dgpMenuItem {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
 }
 
 .dgpMenuItemActive {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
 }
 
 .dgpMenuIndicator {
-  width: 24px;
-  height: 2px;
-  border-radius: 1px;
+	width: 24px;
+	height: 2px;
+	border-radius: 1px;
 }

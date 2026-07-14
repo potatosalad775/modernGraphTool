@@ -11,11 +11,11 @@
 		sideOffset = 6,
 		side = 'bottom',
 		align = 'start',
-		trapFocus = true,
+		trapFocus = true
 	}: {
 		open?: boolean;
 		onOpenChange?: (open: boolean) => void;
-		trigger: Snippet<[{ props: Record<string, any> }]>;
+		trigger: Snippet<[{ props: Record<string, unknown> }]>;
 		children: Snippet;
 		contentClass?: string;
 		sideOffset?: number;
@@ -38,7 +38,10 @@
 	</Popover.Trigger>
 	<Popover.Portal>
 		<Popover.Content
-			{sideOffset} {side} {align} {trapFocus}
+			{sideOffset}
+			{side}
+			{align}
+			{trapFocus}
 			class="z-50 rounded-lg border border-base-content/15 bg-base-200 p-1.5 shadow-xl {contentClass}"
 		>
 			{@render children()}

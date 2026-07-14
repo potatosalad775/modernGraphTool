@@ -73,7 +73,10 @@ function collectEchoes(
 	});
 }
 
-function decodeFilterResponse(cmd: number, value: number): Partial<DeviceFilter & { disabled: boolean }> {
+function decodeFilterResponse(
+	cmd: number,
+	value: number
+): Partial<DeviceFilter & { disabled: boolean }> {
 	const low = cmd & 0x0f;
 	const out: Partial<DeviceFilter & { disabled: boolean }> = {};
 
@@ -152,7 +155,11 @@ async function writePregain(device: HIDDevice, dB: number): Promise<void> {
 	await sendCmd(device, PREG_TRIG_B, 1);
 }
 
-async function writeFilter(device: HIDDevice, filterIndex: number, filter: DeviceFilter): Promise<void> {
+async function writeFilter(
+	device: HIDDevice,
+	filterIndex: number,
+	filter: DeviceFilter
+): Promise<void> {
 	const base = bandBase(filterIndex);
 	const enabled = filter.disabled ? 0 : 1;
 
@@ -223,9 +230,7 @@ export const toppingUsbHidHandler: DeviceHandler = {
 	},
 
 	async enablePEQ(): Promise<void> {
-		console.log(
-			'USB Device PEQ: Topping enablePEQ - no separate global opcode observed.'
-		);
+		console.log('USB Device PEQ: Topping enablePEQ - no separate global opcode observed.');
 	}
 };
 

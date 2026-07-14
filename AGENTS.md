@@ -272,6 +272,25 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 | `npm run lint`      | Prettier + ESLint                                        |
 | `npm run format`    | Auto-format code                                         |
 
+## CI
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every PR and every push to
+`main`: `lint` → `check` → `test` on **both ubuntu-latest and windows-latest**, plus a
+build of the app, the CDN distribution and the docs site on Linux.
+
+The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in its system
+config, so before [.gitattributes](.gitattributes) pinned every text file to `eol=lf`, the
+same commit was Prettier-clean on macOS and dirty on Windows. The `Working tree must be
+clean` step is the guard against that regressing: it fails if a checkout plus install
+leaves anything modified, or if CRLF ever reaches the index.
+
+`npm run lint` must exit 0. ESLint warnings (currently 33 `no-unused-vars`, mostly
+device-peq protocol constants kept for reference) do not fail the build. Rule overrides
+live in [eslint.config.js](eslint.config.js) and each carries a comment explaining why —
+notably `no-useless-assignment` is off for `*.svelte` because it misreads `$bindable()`
+prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
+tool parses arbitrary operator-authored config.
+
 ## Built-in Features
 
 All active features are first-class Svelte components in `src/lib/components/features/` and

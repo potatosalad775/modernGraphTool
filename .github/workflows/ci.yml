@@ -1,0 +1,115 @@
+name: CI
+
+# Lint, typecheck, test and build on every PR and every push to main.
+#
+# The quality job runs on Windows as well as Linux on purpose: the formatting
+# drift this workflow exists to prevent was invisible on macOS/Linux and only
+# showed up on a Windows checkout, because Git for Windows rewrites line endings
+# unless .gitattributes pins them. A Linux-only gate would not have caught it.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to the same branch cancels the run still in flight for it.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (Prettier + ESLint)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium-headless-shell
+
+      - name: Test
+        run: npm run test
+
+      - name: Translation status (informational)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: npm run i18n:check
+
+      # The real cross-platform regression test: after a clean checkout, an install
+      # and a full build of generated files, nothing tracked may have changed. If
+      # .gitattributes ever stops pinning LF, this fails on Windows and nowhere else.
+      - name: Working tree must be clean
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Working tree is dirty after install + lint + test."
+            git status --porcelain
+            git diff
+            exit 1
+          fi
+          if git ls-files --eol | grep -q 'i/crlf'; then
+            echo "::error::CRLF line endings found in the index. See .gitattributes."
+            git ls-files --eol | grep 'i/crlf'
+            exit 1
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Build CDN distribution
+        run: npm run build:cdn
+
+      # deploy-gh-pages.yml publishes the Docusaurus site alongside the app on every
+      # push to main. Building it here means a docs break is caught on the PR instead
+      # of taking the deploy down.
+      - name: Build docs
+        working-directory: ./docs
+        run: |
+          npm ci
+          npm run build

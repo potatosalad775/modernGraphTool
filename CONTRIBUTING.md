@@ -42,6 +42,29 @@ npm run lint
 npm run format
 ```
 
+`npm run lint` is enforced in CI on both Linux and Windows, so a PR that is not
+Prettier-clean will not merge.
+
+### Line endings
+
+All text files are **LF**, pinned by [.gitattributes](.gitattributes). This overrides
+`core.autocrlf`, which the Git for Windows installer turns on by default — you do not
+need to configure anything locally, and you should not commit CRLF.
+
+[.editorconfig](.editorconfig) tells your editor the same thing. Install the EditorConfig
+extension if your editor does not read it natively.
+
+### git blame
+
+One commit reformatted the whole repository. To keep `git blame` pointing at real
+authorship rather than that commit, run this once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+GitHub's blame view already honours the file automatically.
+
 ## Svelte 5 Conventions
 
 This project uses **Svelte 5 with Runes** (enforced globally). Always use the Runes API:
@@ -184,6 +207,8 @@ npm run test:unit
    npm run lint     # ESLint + Prettier
    npm run test     # All tests
    ```
+   The `CI` workflow runs exactly these on Linux and Windows, plus a build of the app,
+   the CDN distribution and the docs site. Running them locally first saves a round trip.
 4. **Open a PR** with a clear description of what changed and why
 
 ## What to Contribute

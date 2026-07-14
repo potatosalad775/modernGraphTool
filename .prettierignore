@@ -5,5 +5,15 @@ yarn.lock
 bun.lock
 bun.lockb
 
+# Build output and generated code. Prettier does not read .gitignore, so without
+# these a contributor who has run `npm run build` or built the docs would see
+# `npm run lint` fail on hundreds of generated files.
+/dist/
+/dist-cdn/
+/.svelte-kit/
+/docs/build/
+/docs/.docusaurus/
+/src/lib/paraglide/
+
 # Miscellaneous
 /static/

@@ -12,6 +12,12 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	{
+		// The root .gitignore anchors its output patterns (`/build`, `/dist`), so it does not
+		// cover the Docusaurus site's generated output, and includeIgnoreFile only reads the
+		// root file. Without this, linting after a docs build walks into minified bundles.
+		ignores: ['docs/build/**', 'docs/.docusaurus/**']
+	},
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

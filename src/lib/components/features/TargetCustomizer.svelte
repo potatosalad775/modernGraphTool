@@ -35,7 +35,7 @@
 		filter: Record<string, number>;
 	}
 
-	const tcConfig = (window as any).GRAPHTOOL_CONFIG?.TARGET_CUSTOMIZER as
+	const tcConfig = window.GRAPHTOOL_CONFIG?.TARGET_CUSTOMIZER as
 		| {
 				CUSTOMIZABLE_TARGETS?: string[];
 				FILTERS?: FilterDef[];

@@ -30,6 +30,12 @@
 	<nav class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
 		<div class="flex items-center gap-4">
+			<!--
+				Deliberately relative: operators drop dist/ into an arbitrary subdirectory,
+				which SvelteKit's `base` doesn't know about at build time. resolve('/') would
+				link to the server root and break those deployments.
+			-->
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href="."
 				class="flex items-center no-underline text-base-content rounded px-2 py-1.5 -ml-2 hover:bg-base-content/10"
@@ -43,6 +49,7 @@
 					<span class="text-base font-semibold text-base-content">{titleContent}</span>
 				{/if}
 			</a>
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			{#if !appStore.isMobile}
 				<SiteSelector />
 			{/if}

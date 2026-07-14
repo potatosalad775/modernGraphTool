@@ -39,6 +39,20 @@ export default defineConfig(
 				parser: ts.parser,
 				svelteConfig
 			}
+		},
+		rules: {
+			// `let { open = $bindable(false) } = $props()` reads as a dead initializer to this
+			// rule, but the default is what Svelte hands the component when the prop is omitted.
+			'no-useless-assignment': 'off'
+		}
+	},
+	{
+		// The Docusaurus site includes the config migration tool, which parses arbitrary
+		// operator-authored config.js / phone_book.json. Their shape is unknown until it has
+		// been validated, so `any` is the honest annotation there.
+		files: ['docs/**'],
+		rules: {
+			'@typescript-eslint/no-explicit-any': 'off'
 		}
 	}
 );

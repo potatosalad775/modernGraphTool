@@ -3,8 +3,6 @@
  * These are experimental browser APIs not yet in lib.dom.d.ts.
  */
 
-/* eslint-disable @typescript-eslint/no-empty-object-type */
-
 // ---------------------------------------------------------------------------
 // WebHID API
 // ---------------------------------------------------------------------------

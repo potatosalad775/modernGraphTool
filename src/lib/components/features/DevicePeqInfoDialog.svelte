@@ -24,6 +24,10 @@
 				getBleConfig(),
 				getNetworkHandlers()
 			]);
+			// Throwaway accumulator — the grouped result is copied into the `deviceGroups`
+			// $state below, so this Map is never read reactively. SvelteMap would only add
+			// proxy overhead here.
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity
 			const byKey = new Map<string, VendorGroup>();
 			const add = (category: Category, vendor: string, models: string[]) => {
 				const key = `${category}:${vendor}`;

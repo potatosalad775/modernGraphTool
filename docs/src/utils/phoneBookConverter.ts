@@ -213,7 +213,7 @@ export function parsePhoneBook(jsonText: string): ParseResult {
 		raw = JSON.parse(jsonText);
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);
-		throw new Error(`Invalid JSON: ${msg}`);
+		throw new Error(`Invalid JSON: ${msg}`, { cause: e });
 	}
 	if (!Array.isArray(raw)) {
 		throw new Error('phone_book.json must be a top-level array of brand objects.');

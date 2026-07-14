@@ -421,7 +421,7 @@ export class Equalizer {
 			};
 
 			let improved = true;
-			let maxIterations = 50;
+			const maxIterations = 50;
 			let iterCount = 0;
 
 			while (improved && iterCount < maxIterations) {
@@ -663,7 +663,7 @@ export class Equalizer {
 			(p) => p[0] >= freqRange[0] && p[0] <= freqRange[1]
 		);
 
-		let initialFilters: EQFilter[] = [];
+		const initialFilters: EQFilter[] = [];
 		let remainingFilterSlots = maxFilters;
 
 		if (useShelfFilter) {

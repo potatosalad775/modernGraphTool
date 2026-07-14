@@ -94,6 +94,6 @@ describe('getNestedValue', () => {
 	});
 
 	it('handles path through null intermediate', () => {
-		expect(getNestedValue({ a: null } as any, 'a.b')).toBeUndefined();
+		expect(getNestedValue({ a: null }, 'a.b')).toBeUndefined();
 	});
 });

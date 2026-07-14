@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Info } from '@lucide/svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
@@ -132,7 +132,7 @@
 		try {
 			const connector = await getConnector(device.connectionType);
 			const result = await connector.pullFromDevice(device, devicePeqStore.activeSlot ?? 0);
-			eqStore.filters = result.filters.map((f: any) => ({
+			eqStore.filters = result.filters.map((f) => ({
 				enabled: !f.disabled,
 				type: f.type,
 				freq: f.freq,
@@ -155,15 +155,18 @@
 		try {
 			const connector = await getConnector(device.connectionType);
 			const filters = eqStore.filters
-				.filter((f) => f.freq != null && f.q != null && f.gain != null)
-				.map((f: any) => ({
+				.filter(
+					(f): f is EQFilter & { freq: number; q: number; gain: number } =>
+						f.freq != null && f.q != null && f.gain != null
+				)
+				.map((f) => ({
 					type: f.type,
 					freq: f.freq,
 					q: f.q,
 					gain: f.gain,
 					disabled: !f.enabled
 				}));
-			const preamp = -Math.max(0, ...filters.map((f: any) => f.gain));
+			const preamp = -Math.max(0, ...filters.map((f) => f.gain));
 			const shouldDisconnect = await connector.pushToDevice(
 				device,
 				devicePeqStore.activeSlot ?? 0,

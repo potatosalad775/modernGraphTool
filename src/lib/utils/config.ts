@@ -28,12 +28,14 @@ export function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
 }
 
 export function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-	return path.split('.').reduce((acc: unknown, key) => (acc as any)?.[key], obj);
+	return path
+		.split('.')
+		.reduce<unknown>((acc, key) => (acc as Record<string, unknown> | null | undefined)?.[key], obj);
 }
 
 export function getConfigValue(path: string): unknown {
 	if (!browser) return undefined;
-	const cfg = (window as any).GRAPHTOOL_CONFIG ?? {};
+	const cfg = window.GRAPHTOOL_CONFIG ?? {};
 	const raw = getNestedValue(cfg, path);
 	return resolveI18nValue(raw, getLocale());
 }

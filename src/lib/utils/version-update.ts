@@ -38,7 +38,7 @@ export type VersionUpdate = {
  */
 export function checkVersionUpdate(current: string): VersionUpdate | null {
 	if (typeof window === 'undefined') return null;
-	let previous: string | null = null;
+	let previous: string | null;
 	try {
 		previous = localStorage.getItem(LS_KEY);
 		localStorage.setItem(LS_KEY, current);

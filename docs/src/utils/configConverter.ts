@@ -45,7 +45,7 @@ export function parseV1Config(source: string): Record<string, any> {
 		return result;
 	} catch (e) {
 		if (e instanceof SyntaxError) {
-			throw new Error(`Syntax error in config.js: ${e.message}`);
+			throw new Error(`Syntax error in config.js: ${e.message}`, { cause: e });
 		}
 		throw e;
 	}
@@ -69,7 +69,7 @@ export function parseV1Extensions(source: string): any[] {
 		return result;
 	} catch (e) {
 		if (e instanceof SyntaxError) {
-			throw new Error(`Syntax error in extensions.config.js: ${e.message}`);
+			throw new Error(`Syntax error in extensions.config.js: ${e.message}`, { cause: e });
 		}
 		throw e;
 	}
@@ -183,7 +183,7 @@ export function parseCrinGraphConfig(source: string): Record<string, any> {
 		return fn();
 	} catch (e) {
 		if (e instanceof SyntaxError) {
-			throw new Error(`Syntax error in CrinGraph config.js: ${e.message}`);
+			throw new Error(`Syntax error in CrinGraph config.js: ${e.message}`, { cause: e });
 		}
 		throw e;
 	}
@@ -785,7 +785,7 @@ export function parseV2Config(source: string): Record<string, any> {
 		return result;
 	} catch (e) {
 		if (e instanceof SyntaxError) {
-			throw new Error(`Syntax error in config.js: ${e.message}`);
+			throw new Error(`Syntax error in config.js: ${e.message}`, { cause: e });
 		}
 		throw e;
 	}

@@ -15,7 +15,7 @@
 	}: {
 		open?: boolean;
 		onOpenChange?: (open: boolean) => void;
-		trigger: Snippet<[{ props: Record<string, any> }]>;
+		trigger: Snippet<[{ props: Record<string, unknown> }]>;
 		children: Snippet;
 		contentClass?: string;
 		sideOffset?: number;

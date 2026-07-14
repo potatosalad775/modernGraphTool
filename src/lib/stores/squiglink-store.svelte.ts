@@ -1,12 +1,17 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { browser } from '$app/environment';
 import { getConfigValue } from '$lib/utils/config.js';
+import {
+	buildShareUrl,
+	deriveShareSlug,
+	sortCrossSiteResults
+} from '$lib/services/aggregate-index-core.js';
+import type { CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
 import type {
 	SquiglinkSite,
 	SquiglinkBrandEntry,
 	ShopLinkEntry,
 	SponsorContent,
-	CrossSiteSearchResult,
 	SquiglinkUrlType,
 	SponsorDetail,
 	SponsorProductData
@@ -89,6 +94,11 @@ class SquiglinkStore {
 		return username !== null && OPT_OUT_SITES.has(username);
 	}
 
+	/**
+	 * Fallback search path, used only when no aggregate index is reachable.
+	 * Emits the same `CrossSiteSearchResult` shape as `aggregate-index` so the
+	 * UI renders both sources identically. Uncapped — the caller slices.
+	 */
 	searchResults: CrossSiteSearchResult[] = $derived.by(() => {
 		const q = this.searchQuery.trim().toLowerCase();
 		if (q.length < 2) return [];
@@ -106,66 +116,31 @@ class SquiglinkStore {
 			const site = siteByUsername.get(siteUsername);
 			if (!site) continue;
 
-			const siteUrl = this.buildSiteUrl(site);
 			const folderPath = entry.folder === '/' ? '' : entry.folder.replace(/\/$/, '');
-			const resultSiteUrl = `${siteUrl}${folderPath}`;
+			const dbUrl = `${this.buildSiteUrl(site)}${folderPath}`;
 			const { dbType, deltaReady } = entry;
 
 			for (const brand of entry.brands) {
-				if (brand.name.toLowerCase().includes(q)) {
-					results.push(
-						...brand.phones.map(
-							(phone) =>
-								({
-									siteName: site.name,
-									siteUsername: site.username,
-									siteUrl: resultSiteUrl,
-									brand: brand.name,
-									phoneName: typeof phone.name === 'string' ? phone.name : String(phone.name),
-									dbType,
-									deltaReady
-								}) as CrossSiteSearchResult
-						)
-					);
-					continue; // Skip individual phones if brand matches
-				}
-
 				for (const phone of brand.phones) {
 					const name = typeof phone.name === 'string' ? phone.name : String(phone.name);
-					if (name.toLowerCase().includes(q)) {
-						results.push({
-							siteName: site.name,
-							siteUsername: site.username,
-							siteUrl: resultSiteUrl,
-							brand: brand.name,
-							phoneName: name,
-							dbType,
-							deltaReady
-						});
-					}
+					// Match on "<brand> <model>", same as the aggregate index rows.
+					if (!`${brand.name} ${name}`.toLowerCase().includes(q)) continue;
+
+					results.push({
+						siteId: site.username,
+						siteName: site.name,
+						dbId: `${site.username}\0${entry.folder}`,
+						dbType,
+						deltaReady,
+						brand: brand.name,
+						phoneName: name,
+						url: buildShareUrl(dbUrl, deriveShareSlug(brand.name, name))
+					});
 				}
 			}
 		}
 
-		// Sort: dbType (5128 → IEMs → Headphones → Earbuds), deltaReady first, then site name, phone name
-		const DB_TYPE_ORDER = ['5128', 'IEMs', 'Headphones', 'Earbuds'];
-		results.sort((a, b) => {
-			if (a.dbType !== b.dbType) {
-				const aIdx = DB_TYPE_ORDER.indexOf(a.dbType);
-				const bIdx = DB_TYPE_ORDER.indexOf(b.dbType);
-				if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-				if (aIdx !== -1) return -1;
-				if (bIdx !== -1) return 1;
-				return a.dbType.localeCompare(b.dbType);
-			}
-			// Prioritize deltaReady dbs within the same dbType
-			if (a.deltaReady !== b.deltaReady) return a.deltaReady ? -1 : 1;
-			if (a.siteName !== b.siteName) {
-				return a.siteName.localeCompare(b.siteName);
-			}
-			return a.phoneName.localeCompare(b.phoneName);
-		});
-		return results;
+		return sortCrossSiteResults(results);
 	});
 
 	// ── Data fetching ────────────────────────────────────────────────────────

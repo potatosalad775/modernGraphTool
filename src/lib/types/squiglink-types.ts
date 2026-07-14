@@ -76,18 +76,6 @@ export interface SponsorProductData {
 	onSale: boolean;
 }
 
-// ── Cross-Site Search (computed) ─────────────────────────────────────────────
-
-export interface CrossSiteSearchResult {
-	siteName: string;
-	siteUsername: string;
-	siteUrl: string;
-	brand: string;
-	phoneName: string;
-	dbType: string;
-	deltaReady: boolean;
-}
-
 // ── Config ───────────────────────────────────────────────────────────────────
 
 export interface SquiglinkConfig {
@@ -96,6 +84,7 @@ export interface SquiglinkConfig {
 	ANALYTICS_SITE: string;
 	LOG_ANALYTICS: boolean;
 	ENABLE_ANALYTICS: boolean;
+	/** @deprecated Use `CROSS_SITE_SEARCH.ENABLED`. Read as a fallback only. */
 	ENABLE_CROSS_SITE_SEARCH: boolean;
 	ENABLE_SPONSOR: boolean;
 }

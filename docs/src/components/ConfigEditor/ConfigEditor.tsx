@@ -20,6 +20,7 @@ import TraceStylingSection from './sections/TraceStylingSection';
 import TopbarSection from './sections/TopbarSection';
 import PreferenceBoundSection from './sections/PreferenceBoundSection';
 import TargetCustomizerSection from './sections/TargetCustomizerSection';
+import CrossSiteSearchSection from './sections/CrossSiteSearchSection';
 import SquiglinkSection from './sections/SquiglinkSection';
 import DescriptionSection from './sections/DescriptionSection';
 
@@ -42,6 +43,7 @@ const SECTIONS = [
 	{ id: 'section-topbar', label: 'Topbar' },
 	{ id: 'section-preference-bound', label: 'Preference Bound' },
 	{ id: 'section-target-customizer', label: 'Target Customizer' },
+	{ id: 'section-cross-site-search', label: 'Cross-Site Search' },
 	{ id: 'section-squiglink', label: 'squig.link' },
 	{ id: 'section-description', label: 'Description' }
 ];
@@ -98,6 +100,7 @@ function ConfigEditorInner(): ReactNode {
 					<TopbarSection />
 					<PreferenceBoundSection />
 					<TargetCustomizerSection />
+					<CrossSiteSearchSection />
 					<SquiglinkSection />
 					<DescriptionSection />
 				</div>

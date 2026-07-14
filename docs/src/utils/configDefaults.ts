@@ -87,6 +87,11 @@ export interface ConfigFormState {
 		FILTER_PRESET: FilterPresetForm[];
 		INITIAL_TARGET_FILTERS: InitialTargetFilterForm[];
 	};
+	CROSS_SITE_SEARCH: {
+		ENABLED: boolean;
+		INDEX_URLS: string[];
+		SQUIGLINK_FALLBACK: boolean;
+	};
 	SQUIGLINK_ENABLED: boolean;
 	SQUIGLINK: {
 		ENABLED: boolean;
@@ -355,6 +360,11 @@ export function createDefaultConfig(): ConfigFormState {
 				{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } },
 				{ name: 'ISO 11904-2 DF', filter: { tilt: -0.8, bass: 6 } }
 			]
+		},
+		CROSS_SITE_SEARCH: {
+			ENABLED: true,
+			INDEX_URLS: [],
+			SQUIGLINK_FALLBACK: true
 		},
 		SQUIGLINK_ENABLED: false,
 		SQUIGLINK: {

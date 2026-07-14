@@ -982,6 +982,16 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 				})
 			)
 		},
+		CROSS_SITE_SEARCH: {
+			// Configs predating this section fall back to the deprecated squig.link toggle.
+			ENABLED:
+				raw.CROSS_SITE_SEARCH?.ENABLED ??
+				raw.SQUIGLINK?.ENABLE_CROSS_SITE_SEARCH ??
+				defaults.CROSS_SITE_SEARCH.ENABLED,
+			INDEX_URLS: raw.CROSS_SITE_SEARCH?.INDEX_URLS ?? defaults.CROSS_SITE_SEARCH.INDEX_URLS,
+			SQUIGLINK_FALLBACK:
+				raw.CROSS_SITE_SEARCH?.SQUIGLINK_FALLBACK ?? defaults.CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK
+		},
 		SQUIGLINK_ENABLED: !!raw.SQUIGLINK,
 		SQUIGLINK: {
 			ENABLED: raw.SQUIGLINK?.ENABLED ?? defaults.SQUIGLINK.ENABLED,
@@ -1040,6 +1050,7 @@ export function formStateToConfigString(state: ConfigFormState): string {
 		TITLE: state.TOPBAR.TITLE,
 		LINK_LIST: fromI18nArrayState(state.TOPBAR.LINK_LIST)
 	};
+	config.CROSS_SITE_SEARCH = state.CROSS_SITE_SEARCH;
 
 	if (state.PREFERENCE_BOUND_ENABLED) {
 		config.PREFERENCE_BOUND = state.PREFERENCE_BOUND;

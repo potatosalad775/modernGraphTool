@@ -108,7 +108,8 @@ All stores are exported as class instances from `.svelte.ts` files.
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
-- `squiglink-store.svelte.ts` — cross-site registry, sponsor content, domain guard
+- `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
+  phone-book-crawling fallback search used only when no aggregate index is reachable
 
 Pattern:
 
@@ -145,6 +146,12 @@ export const frStore = new FRDataStore();
   updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
+- `aggregate-index.svelte.ts` — cross-site search. Fetches the GraphAggregator index (one JSON doc
+  listing every known site/database/device), normalizes both `flat` and `collapsed` phone formats,
+  and answers queries against a prebuilt lowercase row set. Host-agnostic — **not** squig.link-gated.
+  Exports `aggregateIndexService`, plus `getCrossSiteSearchConfig`, `buildShareUrl`,
+  `deriveShareSlug` and `sortCrossSiteResults`, which `squiglink-store`'s fallback path reuses so
+  both sources emit an identical `CrossSiteSearchResult`.
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `audio-player-service.svelte.ts` — Web Audio engine (context, gain, analyser, source/oscillator/buffer,
   filter chain) + playback state. Outlives the `EqAudioPlayer` view so audio survives panel switches.
@@ -308,16 +315,39 @@ All active features are first-class Svelte components in `src/lib/components/fea
 - **Preference Bound** — upper/lower preference-range overlay
 - **Frequency Tutorial** — educational frequency-band overlay
 - **Tutorial Modal** — first-visit walkthrough
+- **Cross-Site Search** — searches other measurement databases from the device search box, on any
+  host (see below)
 - **Sponsor Banner / Shop Link** — squig.link-gated
 
 See [docs/docs/features/](docs/docs/features/) for per-feature user docs.
 
+## Cross-Site Search
+
+Works on **any** host — not squig.link-gated. Configured via `CROSS_SITE_SEARCH` in
+`defaults/config.js`; `SQUIGLINK.ENABLE_CROSS_SITE_SEARCH` is deprecated and read only as a
+fallback for configs that predate the new section.
+
+Source order, resolved in `CrossSiteSearchResults.svelte`:
+
+1. **GraphAggregator index** (`aggregate-index.svelte.ts`) — one JSON document, ~360 KB gzip,
+   fetched lazily on the first query of ≥2 chars. Operators can override `INDEX_URLS` to
+   self-host; the defaults are the official URL plus its GitHub Pages mirror, tried in order.
+   Schema: https://github.com/HarutoHiroki/GraphAggregator
+2. **squig.link phone-book crawl** (`squiglink-store`) — legacy path, one request per database.
+   Runs only if no index URL resolved **and** the deployment is on squig.link **and**
+   `SQUIGLINK_FALLBACK` is on.
+
+Both sources emit `CrossSiteSearchResult` and share `buildShareUrl` / `sortCrossSiteResults`, so
+the UI never branches on which one produced a hit. Share slugs **must** go through
+`buildShareUrl` — over a thousand device names contain `+`, `&` or non-ASCII characters that
+break `?share=` links if concatenated raw.
+
 ## squig.link Integration
 
 Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`).
-Fetches site registry and shop links from squig.link JSON endpoints, loads `squiglink-intro.js`
-for sponsor content, and performs cross-site device search. All UI is Svelte-native — no
-external DOM manipulation. Toggled via the `SQUIGLINK` section in `defaults/config.js`.
+Fetches site registry and shop links from squig.link JSON endpoints and loads `squiglink-intro.js`
+for sponsor content. All UI is Svelte-native — no external DOM manipulation. Toggled via the
+`SQUIGLINK` section in `defaults/config.js`.
 
 ## Documentation References (for AI agents)
 

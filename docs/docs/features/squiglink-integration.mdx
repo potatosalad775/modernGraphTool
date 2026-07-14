@@ -4,7 +4,7 @@ A built-in integration feature that connects modernGraphTool with the squig.link
 
 ## Overview
 
-The squig.link Integration enhances modernGraphTool by providing seamless integration with the squig.link ecosystem. It enables cross-site search, shop links, analytics tracking, and sponsor banners.
+The squig.link Integration enhances modernGraphTool by providing seamless integration with the squig.link ecosystem. It enables shop links, analytics tracking, and sponsor banners.
 
 :::note
 squig.link features are only active when modernGraphTool is hosted on \*.squig.link domains.
@@ -12,7 +12,6 @@ squig.link features are only active when modernGraphTool is hosted on \*.squig.l
 
 ## Features
 
-- **Cross-site Search**: Search for devices across all squig.link sites in the network
 - **Shop Links**: Display "Buy Now" links for devices with matching shop entries
 - **Analytics**: Google Analytics integration with multi-measurement-ID support
 - **Sponsor Banners**: Display sponsor content on first visit
@@ -42,8 +41,16 @@ SQUIGLINK: {
 - **`ANALYTICS_SITE`**: Site name used for analytics event attribution
 - **`LOG_ANALYTICS`**: Log analytics events to console for debugging
 - **`ENABLE_ANALYTICS`**: Toggle analytics tracking on or off
-- **`ENABLE_CROSS_SITE_SEARCH`**: Toggle cross-site device search
+- **`ENABLE_CROSS_SITE_SEARCH`**: Deprecated — use `CROSS_SITE_SEARCH.ENABLED` instead. Still read as a fallback for existing configs.
 - **`ENABLE_SPONSOR`**: Toggle sponsor banner display
+
+:::info Cross-site search moved
+Cross-site device search is no longer a squig.link-only feature — it now works on any host and is
+configured under its own `CROSS_SITE_SEARCH` section. See [Cross-Site Search](./cross-site-search.mdx).
+
+On squig.link deployments it still falls back to crawling each site's `phone_book.json` if the
+aggregate index can't be reached.
+:::
 
 ## Usage
 

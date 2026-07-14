@@ -711,6 +711,22 @@ Configures the target customizer, which allows per-target filter adjustments for
   - `name` — Target name to apply filters to.
   - `filter` — Object mapping filter IDs to gain values.
 
+### `CROSS_SITE_SEARCH`
+
+```JavaScript
+CROSS_SITE_SEARCH: {
+  ENABLED: true,
+  INDEX_URLS: [],
+  SQUIGLINK_FALLBACK: true,
+},
+```
+
+Lets visitors search other measurement databases from your search box. Works on any host — squig.link is not required. See [Cross-Site Search](../features/cross-site-search.mdx).
+
+- `ENABLED`: Enables cross-site device search.
+- `INDEX_URLS`: Index documents to try, in order. Leave empty to use the official [GraphAggregator](https://github.com/HarutoHiroki/GraphAggregator) index and its GitHub Pages mirror. Set your own URLs to self-host an index following the same schema.
+- `SQUIGLINK_FALLBACK`: When no index is reachable and the site runs on squig.link, crawl each squig.link site's `phone_book.json` instead. Slower — one request per database.
+
 ### `SQUIGLINK`
 
 ```JavaScript
@@ -732,7 +748,7 @@ Configures the squig.link integration. These features are only active when hoste
 - `ANALYTICS_SITE`: Site name used for analytics attribution.
 - `LOG_ANALYTICS`: Whether to log analytics events to the browser console.
 - `ENABLE_ANALYTICS`: Master toggle for analytics tracking.
-- `ENABLE_CROSS_SITE_SEARCH`: Enables cross-site device search across the squig.link network.
+- `ENABLE_CROSS_SITE_SEARCH`: **Deprecated** — use `CROSS_SITE_SEARCH.ENABLED`. Still read as a fallback for configs that predate that section.
 - `ENABLE_SPONSOR`: Enables sponsor banner and shop link features.
 
 ### `DESCRIPTION`

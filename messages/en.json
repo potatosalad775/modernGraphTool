@@ -148,6 +148,7 @@
 	"crosssite_search_placeholder": "Search other databases...",
 	"crosssite_search_no_results": "No results found.",
 	"crosssite_search_loading": "Loading databases...",
+	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down.",
 	"sponsor_banner_dismiss": "Close",
 	"shoplink_buy_now": "Buy Now",
 	"selection_list_baseline_off": "Set as baseline",

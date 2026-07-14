@@ -291,9 +291,20 @@ const CONFIG = {
 			{ name: 'ISO 11904-2 DF', filter: { tilt: -0.8, bass: 6 } }
 		]
 	},
-	// Misc Panel Description
-	// You can add some useful information about your database over here.
-	// 'TEXT', 'HTML', 'IMAGE' types are supported.
+	// Cross-Site Device Search
+	// Searches devices across other measurement databases from the search box,
+	// using the GraphAggregator index. Works on any host — squig.link not required.
+	CROSS_SITE_SEARCH: {
+		ENABLED: true,
+		// Index documents to try, in order. Leave empty to use the official
+		// GraphAggregator index (with its GitHub Pages mirror as backup).
+		// Self-hosting? Point this at your own document following the same schema:
+		// https://github.com/HarutoHiroki/GraphAggregator
+		INDEX_URLS: [],
+		// When no index is reachable and squig.link integration is on, fall back to
+		// crawling each squig.link site's phone_book.json (slower, many requests).
+		SQUIGLINK_FALLBACK: true
+	},
 	// squig.link Integration Settings
 	// This section is only active when hosted on *.squig.link domains.
 	SQUIGLINK: {
@@ -302,7 +313,7 @@ const CONFIG = {
 		ANALYTICS_SITE: '', // Site name for analytics attribution
 		LOG_ANALYTICS: true, // Console log analytics events
 		ENABLE_ANALYTICS: true, // Master analytics toggle
-		ENABLE_CROSS_SITE_SEARCH: true, // Cross-site device search
+		ENABLE_CROSS_SITE_SEARCH: true, // Deprecated — use CROSS_SITE_SEARCH.ENABLED
 		ENABLE_SPONSOR: true // Sponsor banner and shop links
 	},
 	// Misc Panel Description

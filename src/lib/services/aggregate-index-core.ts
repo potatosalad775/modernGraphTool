@@ -125,12 +125,16 @@ export function sortCrossSiteResults(results: CrossSiteSearchResult[]): CrossSit
 	});
 }
 
-/** Tries each URL in order; the first one that yields a valid index wins. */
+/**
+ * Requests every mirror at once and takes the first valid index in URL order, so
+ * earlier mirrors keep their preference without a stalled primary adding its
+ * timeout to the next one's.
+ */
 export async function fetchAggregateIndex(urls: string[]): Promise<AggregateIndex | null> {
-	for (const url of urls) {
+	const attempts = urls.map(async (url): Promise<AggregateIndex | null> => {
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-			if (!res.ok) continue;
+			if (!res.ok) return null;
 			const data = (await res.json()) as AggregateIndex;
 			if (
 				Array.isArray(data?.brands) &&
@@ -141,8 +145,13 @@ export async function fetchAggregateIndex(urls: string[]): Promise<AggregateInde
 				return data;
 			}
 		} catch {
-			// Try the next mirror.
+			// Another mirror may still answer.
 		}
+		return null;
+	});
+
+	for (const index of await Promise.all(attempts)) {
+		if (index) return index;
 	}
 	return null;
 }

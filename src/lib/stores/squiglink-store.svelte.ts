@@ -121,11 +121,10 @@ class SquiglinkStore {
 			const { dbType, deltaReady } = entry;
 
 			for (const brand of entry.brands) {
-				const brandMatches = brand.name.toLowerCase().includes(q);
-
 				for (const phone of brand.phones) {
 					const name = typeof phone.name === 'string' ? phone.name : String(phone.name);
-					if (!brandMatches && !name.toLowerCase().includes(q)) continue;
+					// Match on "<brand> <model>", same as the aggregate index rows.
+					if (!`${brand.name} ${name}`.toLowerCase().includes(q)) continue;
 
 					results.push({
 						siteId: site.username,

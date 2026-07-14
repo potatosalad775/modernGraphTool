@@ -41,6 +41,8 @@ export class AggregateIndexService {
 		const index = await fetchAggregateIndex(getCrossSiteSearchConfig().INDEX_URLS);
 		if (!index) {
 			this.status = 'failed';
+			// Page-lifetime singleton — drop the cached promise so a later query retries.
+			this.#loading = null;
 			return false;
 		}
 

@@ -217,11 +217,33 @@ describe('AggregateIndexService', () => {
 			expect(service.status).toBe('failed');
 		});
 
-		it('fetches once for concurrent callers', async () => {
+		it('loads once for concurrent callers', async () => {
 			const fetchMock = stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
 
 			await Promise.all([service.load(), service.load(), service.load()]);
-			expect(fetchMock).toHaveBeenCalledTimes(1);
+			// Mirrors are requested in parallel, so one load is one fetch per URL.
+			expect(fetchMock).toHaveBeenCalledTimes(OFFICIAL_URLS.length);
+			expect(fetchMock.mock.calls.filter(([url]) => url === OFFICIAL_URLS[0])).toHaveLength(1);
+		});
+
+		it('prefers the primary URL when both mirrors answer', async () => {
+			stubFetch({
+				[OFFICIAL_URLS[0]]: makeIndex({ generatedAt: 'primary' }),
+				[OFFICIAL_URLS[1]]: makeIndex({ generatedAt: 'mirror' })
+			});
+
+			await expect(service.load()).resolves.toBe(true);
+			expect(service.generatedAt).toBe('primary');
+		});
+
+		it('retries on the next load after every URL failed', async () => {
+			stubFetch({});
+			await expect(service.load()).resolves.toBe(false);
+			expect(service.status).toBe('failed');
+
+			stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
+			await expect(service.load()).resolves.toBe(true);
+			expect(service.status).toBe('ready');
 		});
 	});
 

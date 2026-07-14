@@ -193,8 +193,12 @@ This is separate from Paraglide UI-string i18n.
 - **Missing keys in a non-`en` locale are fine.** Paraglide's compiler falls back to `baseLocale`
   (`en`) per key automatically — no build error, no runtime crash. Contributors can add partial
   translations; untranslated strings just render in English until filled in.
-- Generated code in `src/lib/paraglide/` is **not** hand-edited
-- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build
+- Generated code in `src/lib/paraglide/` is **not** hand-edited, and is gitignored
+- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build/test
+- `npm run check` does **not** go through Vite, so on a fresh clone `$lib/paraglide/*` would have
+  no type declarations. `check` therefore runs `npm run i18n:compile` first (the Paraglide CLI with
+  the same options as the Vite plugin — keep the two in sync). `prepare` runs it too, so a plain
+  `npm ci` leaves the tree typecheckable.
 - Switch language: `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`
 - Adding a language = add to `locales` + create `messages/<locale>.json` (keys fill in over time,
   see fallback note above). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames`

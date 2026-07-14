@@ -73,9 +73,12 @@ jobs:
             git diff
             exit 1
           fi
-          if git ls-files --eol | grep -q 'i/crlf'; then
-            echo "::error::CRLF line endings found in the index. See .gitattributes."
-            git ls-files --eol | grep 'i/crlf'
+          # Check the index (what got committed) and the working tree (what a checkout
+          # produced) separately. A file can be LF in the index but CRLF on disk, which
+          # is the exact state that makes Prettier fail on Windows and pass elsewhere.
+          if git ls-files --eol | grep -qE 'i/crlf|w/crlf'; then
+            echo "::error::CRLF line endings found. See .gitattributes."
+            git ls-files --eol | grep -E 'i/crlf|w/crlf'
             exit 1
           fi
 

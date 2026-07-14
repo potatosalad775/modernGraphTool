@@ -18,6 +18,9 @@ export default defineConfig({
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
+		// Keep these options in sync with the `i18n:compile` script in package.json, which
+		// compiles the same output for `npm run check` — svelte-check does not run Vite, so
+		// without it $lib/paraglide/* has no type declarations on a fresh clone.
 		paraglideVitePlugin({
 			project: './project.inlang',
 			outdir: './src/lib/paraglide',

@@ -12,6 +12,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
+		"i18n:check": "node scripts/check-translations.js",
+		"i18n:missing": "node scripts/check-translations.js --write",
+		"i18n:apply": "node scripts/apply-translations.js",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run"

@@ -188,13 +188,39 @@ This is separate from Paraglide UI-string i18n.
 
 ## i18n
 
-- UI strings: Paraglide — `messages/en.json`, `messages/ko.json`
+- UI strings: Paraglide — `messages/<locale>.json` (`en`, `cs`, `ko`, `ru`, `uk`)
 - Key format: `underscore_separated` (e.g. `menu_graph_panel`, not `menu.graphPanel`)
-- **All keys must exist in both language files.** No runtime fallback string.
+- **Missing keys in a non-`en` locale are fine.** Paraglide's compiler falls back to `baseLocale`
+  (`en`) per key automatically — no build error, no runtime crash. Contributors can add partial
+  translations; untranslated strings just render in English until filled in.
 - Generated code in `src/lib/paraglide/` is **not** hand-edited
 - Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build
 - Switch language: `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`
-- Adding a language = add to `locales` + create `messages/<locale>.json` (all keys). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames` — no component edit. See CONTRIBUTING.md.
+- Adding a language = add to `locales` + create `messages/<locale>.json` (keys fill in over time,
+  see fallback note above). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames`
+  — no component edit. See CONTRIBUTING.md.
+- **Run `npm run i18n:check` after adding/renaming/removing keys in `messages/en.json`.** Reports
+  which locales now have missing or stale keys vs `en`. Non-blocking, informational.
+
+### Translation contribution flow
+
+Translators never touch `messages/<locale>.json` directly — they edit a generated staging file
+that contains only the keys they need to fill in:
+
+| Command              | Who         | What it does                                                                                                 |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------ |
+| `npm run i18n:check` | anyone      | Reports missing / stale keys per locale. Changes nothing.                                                     |
+| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text.   |
+| `npm run i18n:apply` | maintainer  | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.           |
+
+1. A key is added to `messages/en.json` → run `npm run i18n:missing` to regenerate the staging files.
+2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they're unsure
+   about can be left out entirely — those keep falling back to English.
+3. After merging the PR, run `npm run i18n:apply` and commit the result.
+
+`i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys
+rather than dropping them. Use `--dry-run` to preview. Paraglide ignores
+`_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
 - Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
 
 ## CSS / Theming

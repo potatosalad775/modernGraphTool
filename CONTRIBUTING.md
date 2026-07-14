@@ -81,8 +81,10 @@ The active locale is resolved by the strategy `['localStorage', 'preferredLangua
 ### Conventions
 
 - Key format: `underscore_separated` (e.g., `menu_graph_panel`, not `menu.graphPanel`)
-- **Every key must exist in every locale file.** There is no runtime fallback string — a missing
-  key is a build/type error, not a silent default.
+- **A key missing from a non-`en` locale is fine.** Paraglide compiles it to a fallback on the
+  base locale (`en`) — not a build error, not a runtime crash. Partial translations are welcome;
+  untranslated strings just render in English until someone fills them in.
+- Every key **does** need to exist in `messages/en.json` — that's the source of truth.
 - Generated files in `src/lib/paraglide/` are auto-generated — **do not edit manually**
 
 ### Using strings in components
@@ -106,9 +108,32 @@ setLocale('ko');    // switch (persists via localStorage strategy)
 
 ### Adding a new translation key
 
-1. Add the key to **all** locale files (`messages/en.json`, `messages/ko.json`, …).
+1. Add the key to `messages/en.json`. Add it to other locales too if you can translate them —
+   otherwise leave them alone, they'll fall back to English.
 2. Run `npm run dev` (or `npm run build`) — the Vite plugin regenerates the message functions.
 3. Use it as `m.your_new_key()`.
+4. Run `npm run i18n:missing` so the translation staging files pick up the new key.
+
+### Translating (no code required)
+
+You don't edit `messages/<locale>.json` by hand. Instead:
+
+1. Open `messages/_missing_translations_<locale>.json` — it lists exactly the keys that locale is
+   missing, pre-filled with the English source text.
+2. Replace the English values with your translations. **Leave out any key you're unsure about** —
+   partial contributions are genuinely fine, and an untranslated key just shows English.
+3. Open a PR with only that file changed.
+
+A maintainer then runs `npm run i18n:apply`, which merges your file into `messages/<locale>.json`
+and deletes the staging file. You never have to touch the main dictionary or resolve conflicts in it.
+
+Maintainer-side commands:
+
+| Command                | What it does                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.                    |
+| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files.          |
+| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them.          |
 
 ### Adding a new language option
 
@@ -119,11 +144,13 @@ Example: adding Japanese (`ja`).
    "baseLocale": "en",
    "locales": ["en", "ko", "ja"]
    ```
-2. **Create the message file.** Copy `messages/en.json` to `messages/ja.json` and translate
-   every value. Keep all keys — every key present in `en.json` must exist here.
+2. **Create the message file.** Create `messages/ja.json` with at least `{ "$schema": "..." }` —
+   it does not have to be complete. Translate what you can; the rest falls back to English.
+   Run `npm run i18n:missing` to generate `messages/_missing_translations_ja.json` listing
+   everything still to do.
 3. **Regenerate + verify.** Run `npm run dev` (regenerates `src/lib/paraglide/`), then
-   `npm run check` to confirm no key is missing. The new language appears in the Misc panel
-   dropdown automatically (label resolved via `Intl.DisplayNames`) and is auto-selected for
+   `npm run i18n:check` to see what's still untranslated. The new language appears in the Misc
+   panel dropdown automatically (label resolved via `Intl.DisplayNames`) and is auto-selected for
    visitors whose browser prefers it.
 
 > **No component edit needed.** The dropdown reads the `locales` array, so the locale code

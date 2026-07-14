@@ -1,0 +1,10 @@
+# Commits that only reformat code. Skipped by `git blame` so they don't bury
+# the real authorship of every line.
+#
+# Enable locally (once per clone):
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub honours this file automatically in its blame view.
+
+# chore: apply Prettier formatting repo-wide
+74f1e9d504225d411354cdd60ac69490f8dbc890

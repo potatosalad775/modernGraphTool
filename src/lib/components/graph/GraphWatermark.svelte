@@ -59,8 +59,8 @@
 		text-anchor={positionData.TOP_RIGHT.anchor}
 		fill="var(--color-base-content)"
 		opacity="0.3"
-		filter="var(--watermark-text-filter)"
-	>{rigDescription}</text>
+		filter="var(--watermark-text-filter)">{rigDescription}</text
+	>
 {/if}
 
 <!-- Custom watermarks -->
@@ -87,8 +87,8 @@
 				text-anchor={pos.anchor}
 				fill={watermarkObj.COLOR || 'var(--color-base-content)'}
 				opacity={watermarkObj.OPACITY || '0.3'}
-				filter="var(--watermark-text-filter)"
-			>{resolveContent(watermarkObj.CONTENT)}</text>
+				filter="var(--watermark-text-filter)">{resolveContent(watermarkObj.CONTENT)}</text
+			>
 		{/if}
 	{/each}
 </g>

@@ -9,9 +9,7 @@
 	import ShopLink from '$lib/components/features/ShopLink.svelte';
 </script>
 
-<div
-	class="flex flex-wrap items-center justify-center gap-2 px-3 py-2"
->
+<div class="flex flex-wrap items-center justify-center gap-2 px-3 py-2">
 	<!-- Data controls: normalization, smoothing, scale -->
 	<NormalizerInput />
 	<SmoothingButton />

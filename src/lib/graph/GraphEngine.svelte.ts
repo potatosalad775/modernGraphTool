@@ -193,7 +193,9 @@ class GraphEngine {
 				uuid,
 				identifier: baselineMetaData.identifier,
 				channelData:
-					channelData !== null ? channelData : resolveBaselineChannelData(uuid, graphStore.baselineMode)
+					channelData !== null
+						? channelData
+						: resolveBaselineChannelData(uuid, graphStore.baselineMode)
 			};
 		}
 

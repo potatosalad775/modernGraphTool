@@ -104,11 +104,7 @@ export const earfunUsbSerialHandler: DeviceHandler = {
 	): Promise<boolean> {
 		for (let i = 0; i < EARFUN.NUM_BANDS; i++) {
 			const f = filters[i] || { freq: EARFUN.STANDARD_FREQS[i], gain: 0 };
-			const packet = buildBandPacket(
-				i + 1,
-				f.freq ?? EARFUN.STANDARD_FREQS[i],
-				f.gain ?? 0
-			);
+			const packet = buildBandPacket(i + 1, f.freq ?? EARFUN.STANDARD_FREQS[i], f.gain ?? 0);
 			await device.writable!.write(packet);
 			await new Promise((r) => setTimeout(r, 50));
 		}
@@ -116,11 +112,7 @@ export const earfunUsbSerialHandler: DeviceHandler = {
 		return false;
 	},
 
-	async enablePEQ(
-		_device: ConnectedDevice,
-		_enabled: boolean,
-		_slotId: number
-	): Promise<void> {
+	async enablePEQ(_device: ConnectedDevice, _enabled: boolean, _slotId: number): Promise<void> {
 		// EarFun devices do not support enable/disable PEQ — no-op
 	}
 };

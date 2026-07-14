@@ -51,6 +51,7 @@ src/lib/device-peq/
 ## Supported Devices
 
 ### USB HID (50+ devices)
+
 - **FiiO**: QX13, KA17, KA15, Q7, BT11, Air Link, BTR13, BTR17, K13 R2R, BR15 R2R, FP3, FG3, FX17, and more
 - **Walkplay chipset**: EPZ TP13, Truthear KEYX, Hi-MAX, AE6, TP35 Pro, DA5, G303, plus ~67 auto-detected devices via productId groups (SchemeNo11/SchemeNo16)
 - **Moondrop**: Old Fashioned, Rays, Marigold, FreeDSP Pro/Mini, MOONRIVER 3, DAWN PRO 2, Quark2, ECHO-A, ddHiFi DSP, and more
@@ -61,6 +62,7 @@ src/lib/device-peq/
 - **JadeAudio**: JIEZI, JA11
 
 ### USB Serial / Bluetooth SPP (9 devices)
+
 - **JDS Labs**: Element IV (JSON-over-serial)
 - **Nothing**: Headphones (BT SPP, CRC16)
 - **FiiO**: Audio DSP (USB Serial), EH11/EH13 (BT SPP)
@@ -70,10 +72,12 @@ src/lib/device-peq/
 - **Edifier**: W830NB (BT SPP, write-only)
 
 ### Bluetooth BLE (3 devices)
+
 - **FiiO**: EH11, EH13 (BLE GATT, F1 10 framing)
 - **Audeze**: Maxwell (BLE GATT, Airoha chipset)
 
 ### Network (2 devices)
+
 - **WiiM**: Mini/Pro/Pro Plus/Ultra/Amp (HTTP/JSON, Linkplay API)
 - **Luxsin**: X9 (HTTP, custom base64 encoding)
 
@@ -96,10 +100,15 @@ Every handler implements this interface (defined in `types.ts`):
 
 ```typescript
 interface DeviceHandler {
-  getCurrentSlot(device: ConnectedDevice): Promise<number>;
-  pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult>;
-  pushToDevice(device: ConnectedDevice, slot: number, preamp: number, filters: DeviceFilter[]): Promise<boolean>;
-  enablePEQ(device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void>;
+	getCurrentSlot(device: ConnectedDevice): Promise<number>;
+	pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult>;
+	pushToDevice(
+		device: ConnectedDevice,
+		slot: number,
+		preamp: number,
+		filters: DeviceFilter[]
+	): Promise<boolean>;
+	enablePEQ(device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void>;
 }
 ```
 
@@ -113,10 +122,18 @@ Create `handlers/your-device.ts`. Implement the `DeviceHandler` interface and ex
 import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult } from '../types.js';
 
 export const yourDeviceHandler: DeviceHandler = {
-  async getCurrentSlot(device) { /* ... */ },
-  async pullFromDevice(device, slot) { /* ... */ },
-  async pushToDevice(device, slot, preamp, filters) { /* ... */ },
-  async enablePEQ(device, enabled, slotId) { /* ... */ },
+	async getCurrentSlot(device) {
+		/* ... */
+	},
+	async pullFromDevice(device, slot) {
+		/* ... */
+	},
+	async pushToDevice(device, slot, preamp, filters) {
+		/* ... */
+	},
+	async enablePEQ(device, enabled, slotId) {
+		/* ... */
+	}
 };
 ```
 
@@ -125,87 +142,97 @@ export const yourDeviceHandler: DeviceHandler = {
 At the bottom of the same file, export a `registration` object with vendor IDs, default config, and per-device overrides:
 
 **For HID devices:**
+
 ```typescript
 import type { UsbHidVendorConfig } from '../types.js';
 
 export const registration: UsbHidVendorConfig = {
-  vendorIds: [0x1234],
-  manufacturer: 'Your Brand',
-  handler: yourDeviceHandler,
-  defaultModelConfig: {
-    minGain: -12,
-    maxGain: 12,
-    maxFilters: 10,
-    firstWritableEQSlot: 0,
-    maxWritableEQSlots: 1,
-    disconnectOnSave: false,
-    disabledPresetId: -1,
-    experimental: true,
-    availableSlots: [{ id: 0, name: 'Custom' }],
-  },
-  devices: {
-    'Product Name': { modelConfig: { maxFilters: 5, experimental: false } },
-  },
-  // Optional: match unknown productNames by USB productId
-  deviceGroups: {
-    'GroupName': {
-      productIds: [0x1234, 0x5678],
-      modelConfig: { maxFilters: 10 },
-    },
-  },
+	vendorIds: [0x1234],
+	manufacturer: 'Your Brand',
+	handler: yourDeviceHandler,
+	defaultModelConfig: {
+		minGain: -12,
+		maxGain: 12,
+		maxFilters: 10,
+		firstWritableEQSlot: 0,
+		maxWritableEQSlots: 1,
+		disconnectOnSave: false,
+		disabledPresetId: -1,
+		experimental: true,
+		availableSlots: [{ id: 0, name: 'Custom' }]
+	},
+	devices: {
+		'Product Name': { modelConfig: { maxFilters: 5, experimental: false } }
+	},
+	// Optional: match unknown productNames by USB productId
+	deviceGroups: {
+		GroupName: {
+			productIds: [0x1234, 0x5678],
+			modelConfig: { maxFilters: 10 }
+		}
+	}
 };
 ```
 
 **For Serial devices:**
+
 ```typescript
 import type { UsbSerialVendorConfig } from '../types.js';
 
 export const registration: UsbSerialVendorConfig = {
-  vendorId: 0x1234,                       // USB vendor ID (omit for Bluetooth SPP)
-  manufacturer: 'Your Brand',
-  handler: yourDeviceHandler,
-  // For Bluetooth SPP devices:
-  // filters: {
-  //   usbVendorId: null,
-  //   allowedBluetoothServiceClassIds: ['your-uuid'],
-  //   bluetoothServiceClassId: 'your-uuid',
-  // },
-  devices: {
-    'Product Name': {
-      usbProductId: 12345,
-      modelConfig: { /* full DeviceModelConfig */ },
-    },
-  },
+	vendorId: 0x1234, // USB vendor ID (omit for Bluetooth SPP)
+	manufacturer: 'Your Brand',
+	handler: yourDeviceHandler,
+	// For Bluetooth SPP devices:
+	// filters: {
+	//   usbVendorId: null,
+	//   allowedBluetoothServiceClassIds: ['your-uuid'],
+	//   bluetoothServiceClassId: 'your-uuid',
+	// },
+	devices: {
+		'Product Name': {
+			usbProductId: 12345,
+			modelConfig: {
+				/* full DeviceModelConfig */
+			}
+		}
+	}
 };
 ```
 
 **For BLE devices:**
+
 ```typescript
 import type { BleDeviceConfig } from '../types.js';
 
 export const registration: BleDeviceConfig = {
-  manufacturer: 'Your Brand',
-  handler: yourDeviceHandler,
-  filters: { namePrefix: 'YourDevice' },
-  gatt: {
-    serviceUuid: 'your-service-uuid',
-    txCharacteristicUuid: 'your-tx-uuid',
-    rxCharacteristicUuid: 'your-rx-uuid',
-  },
-  defaultModelConfig: { /* DeviceModelConfig */ },
-  devices: {
-    'Device Name': { modelConfig: {} },
-  },
+	manufacturer: 'Your Brand',
+	handler: yourDeviceHandler,
+	filters: { namePrefix: 'YourDevice' },
+	gatt: {
+		serviceUuid: 'your-service-uuid',
+		txCharacteristicUuid: 'your-tx-uuid',
+		rxCharacteristicUuid: 'your-rx-uuid'
+	},
+	defaultModelConfig: {
+		/* DeviceModelConfig */
+	},
+	devices: {
+		'Device Name': { modelConfig: {} }
+	}
 };
 ```
 
 **For Network devices:**
+
 ```typescript
 export const networkRegistration = {
-  deviceType: 'YourDevice',
-  manufacturer: 'Your Brand',
-  handler: yourDeviceHandler,
-  defaultModelConfig: { /* DeviceModelConfig */ } satisfies DeviceModelConfig,
+	deviceType: 'YourDevice',
+	manufacturer: 'Your Brand',
+	handler: yourDeviceHandler,
+	defaultModelConfig: {
+		/* DeviceModelConfig */
+	} satisfies DeviceModelConfig
 };
 ```
 
@@ -214,24 +241,31 @@ export const networkRegistration = {
 Add one import line to `registry.ts`:
 
 **HID** — add to the `Promise.all` in `getHidConfig()`:
+
 ```typescript
 import('./handlers/your-device.js'),
 ```
+
 Then add `yourModule.registration` to the `_hidConfig` array, and add an entry to `handlerMap` if other devices may reference your handler.
 
 **Serial** — add to the `Promise.all` in `getSerialConfig()`:
+
 ```typescript
 import('./handlers/your-device.js'),
 ```
+
 Then add `yourModule.registration` to the `_serialConfig` array.
 
 **BLE** — add to the `Promise.all` in `getBleConfig()`:
+
 ```typescript
 import('./handlers/your-device.js'),
 ```
+
 Then add `yourModule.registration` to the `_bleConfig` array.
 
 **Network** — add to `getNetworkHandlers()`:
+
 ```typescript
 const { networkRegistration } = await import('./handlers/your-device.js');
 _networkHandlers[networkRegistration.deviceType] = { ... };
@@ -249,8 +283,8 @@ Each device encodes PK/LSQ/HSQ as different numbers. Use pre-built maps or creat
 import { FIIO_FILTER_MAP, createFilterTypeMap } from '../utils/filter-type-maps.js';
 
 // Pre-built: FIIO_FILTER_MAP, WALKPLAY_FILTER_MAP, KTMICRO_FILTER_MAP, QUDELIX_FILTER_MAP, WIIM_FILTER_MAP
-FIIO_FILTER_MAP.toCode('PK')    // → 0
-FIIO_FILTER_MAP.fromCode(1)     // → 'LSQ'
+FIIO_FILTER_MAP.toCode('PK'); // → 0
+FIIO_FILTER_MAP.fromCode(1); // → 'LSQ'
 
 // Custom:
 const MY_MAP = createFilterTypeMap({ PK: 5, LSQ: 6, HSQ: 7 });
@@ -263,8 +297,8 @@ For devices that need client-side IIR biquad coefficients (Walkplay, Moondrop):
 ```typescript
 import { computeWalkplayBiquad, biquadCoeffsToBytes } from '../utils/biquad.js';
 
-const coeffs = computeWalkplayBiquad(freq, gain, q);  // 5 quantized int32 coefficients
-const bytes = biquadCoeffsToBytes(coeffs);              // 20-byte LE Uint8Array
+const coeffs = computeWalkplayBiquad(freq, gain, q); // 5 quantized int32 coefficients
+const bytes = biquadCoeffsToBytes(coeffs); // 20-byte LE Uint8Array
 ```
 
 ### FiiO Protocol (`utils/fiio-protocol.ts`)
@@ -272,12 +306,18 @@ const bytes = biquadCoeffsToBytes(coeffs);              // 20-byte LE Uint8Array
 Shared constants and helpers for FiiO HID/Serial handlers:
 
 ```typescript
-import { SET_HEADER1, PEQ_FILTER_PARAMS, fiioGainBytesFromValue, handleGain } from '../utils/fiio-protocol.js';
+import {
+	SET_HEADER1,
+	PEQ_FILTER_PARAMS,
+	fiioGainBytesFromValue,
+	handleGain
+} from '../utils/fiio-protocol.js';
 ```
 
 ### Filter Normalization (`normalize-filters.ts`)
 
 Applied automatically by connectors before `pushToDevice()`. Handles:
+
 - Truncating filters to device `maxFilters`
 - Clamping frequency (20–20000 Hz) and Q (0.01–100)
 - Converting unsupported LS/HS filters to PK
@@ -315,6 +355,7 @@ deviceGroups: {
 ```
 
 The HID connector tries three matching strategies in order:
+
 1. Match by `productName` in `devices`
 2. Match by `productId` in `deviceGroups`
 3. Fall back to `defaultModelConfig`
@@ -326,13 +367,16 @@ This module was ported from jeromeof's [devicePEQ](https://github.com/jeromeof/d
 ### What changes between original JS and our TypeScript
 
 **Module structure.** The original wraps each handler in an IIFE:
+
 ```javascript
 export const fiioUsbHID = (function () {
-  // private functions...
-  return { getCurrentSlot, pullFromDevice, pushToDevice, enablePEQ };
+	// private functions...
+	return { getCurrentSlot, pullFromDevice, pushToDevice, enablePEQ };
 })();
 ```
+
 We convert this to a plain exported object that satisfies the `DeviceHandler` interface:
+
 ```typescript
 export const fiioUsbHidHandler: DeviceHandler = {
   async getCurrentSlot(device) { ... },
@@ -341,6 +385,7 @@ export const fiioUsbHidHandler: DeviceHandler = {
   async enablePEQ(device, enabled, slotId) { ... },
 };
 ```
+
 Private functions become module-level functions above the export.
 
 **`pushToDevice` signature.** The original passes `(deviceDetails, phoneObj, slot, globalGain, filters)`. Our interface uses `(device, slot, preamp, filters)` — `phoneObj` is dropped entirely. If the original handler uses `phoneObj` (only Luxsin does, for naming new presets), find an alternative (we use `device.model` as fallback).
@@ -349,12 +394,12 @@ Private functions become module-level functions above the export.
 
 **Device access patterns differ by transport:**
 
-| Transport | Original access | Our access |
-|-----------|----------------|------------|
-| HID | `deviceDetails.rawDevice` | `device.rawDevice as HIDDevice` |
-| Serial | `deviceDetails.writable.write()` | `device.writable!.write()` |
-| BLE | `device.txChar`, `device.readNotification()` | `device.txChar!`, `device.readNotification!()` |
-| Network | `device.ip` | `device.ip!` |
+| Transport | Original access                              | Our access                                     |
+| --------- | -------------------------------------------- | ---------------------------------------------- |
+| HID       | `deviceDetails.rawDevice`                    | `device.rawDevice as HIDDevice`                |
+| Serial    | `deviceDetails.writable.write()`             | `device.writable!.write()`                     |
+| BLE       | `device.txChar`, `device.readNotification()` | `device.txChar!`, `device.readNotification!()` |
+| Network   | `device.ip`                                  | `device.ip!`                                   |
 
 Serial and BLE fields are optional on `ConnectedDevice`, so TypeScript requires non-null assertions (`!`).
 
@@ -383,13 +428,13 @@ When syncing a new handler from the original project:
 
 ## Browser Compatibility
 
-| Transport | Chrome/Edge | Firefox | Safari |
-|-----------|-------------|---------|--------|
-| WebHID | Yes | No | No |
-| WebSerial (USB) | Yes | No | No |
-| WebSerial (BT SPP) | Yes (varies by OS) | No | No |
-| Web Bluetooth (BLE) | Yes (HTTPS only) | No | No |
-| Network (HTTP) | Yes | Yes | Yes |
+| Transport           | Chrome/Edge        | Firefox | Safari |
+| ------------------- | ------------------ | ------- | ------ |
+| WebHID              | Yes                | No      | No     |
+| WebSerial (USB)     | Yes                | No      | No     |
+| WebSerial (BT SPP)  | Yes (varies by OS) | No      | No     |
+| Web Bluetooth (BLE) | Yes (HTTPS only)   | No      | No     |
+| Network (HTTP)      | Yes                | Yes     | Yes    |
 
 ## Testing
 

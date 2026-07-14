@@ -17,11 +17,13 @@ $ npm run start
 This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
 
 ### Starting localized site
+
 ```
 $ npm run start -- --locale ko
 ```
 
 ## Generate Translate data
+
 ```
 $ npm run write-translations -- --locale ko
 ```

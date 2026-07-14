@@ -1,10 +1,10 @@
 {
-  "label": "관리자 가이드",
-  "position": 8,
-  "collapsible": true,
-  "collapsed": true,
-  "link": {
-    "type": "generated-index",
-    "description": "modernGraphTool을 사용해 자신만의 FR 데이터베이스를 구축하는 방법을 배워보세요."
-  }
+	"label": "관리자 가이드",
+	"position": 8,
+	"collapsible": true,
+	"collapsed": true,
+	"link": {
+		"type": "generated-index",
+		"description": "modernGraphTool을 사용해 자신만의 FR 데이터베이스를 구축하는 방법을 배워보세요."
+	}
 }

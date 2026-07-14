@@ -5,20 +5,20 @@ sidebar_label: Why modernGraphTool?
 
 # Why modernGraphTool?
 
-The audio measurement community's needs have outgrown the tools that once served it well. 
+The audio measurement community's needs have outgrown the tools that once served it well.
 
 modernGraphTool is a ground-up rewrite — built on modern web technologies with a modular architecture — designed to give measurement operators and enthusiasts a tool that can evolve with the community.
 
 ## The CrinGraph Legacy
 
-[CrinGraph](https://github.com/mlochbaum/CrinGraph) appeared around 2019 and quickly became the de facto standard for frequency response visualization in the audio enthusiast community. 
+[CrinGraph](https://github.com/mlochbaum/CrinGraph) appeared around 2019 and quickly became the de facto standard for frequency response visualization in the audio enthusiast community.
 
 It did its original job well: load measurements, overlay curves, compare headphones. Simple and effective.
 
 Most measurement databases in the squig.link network still run CrinGraph or a derivative of it, and its influence on how we visualize FR data is undeniable.
 
 :::info[Full data compatibility]
-modernGraphTool is not a 'rejection' of CrinGraph — it's a continuation. 
+modernGraphTool is not a 'rejection' of CrinGraph — it's a continuation.
 
 It uses the same data format, the same folder structure, and the same `phone_book.json`. Your existing measurement data works without any changes.
 :::
@@ -29,39 +29,39 @@ As the community grew, so did the demands on the tool — and CrinGraph's origin
 
 ### A Single Script Does Everything
 
-CrinGraph's core functionality — data loading, graph rendering, UI construction, state management — lives in a single JavaScript file spanning thousands of lines. There is no separation between concerns. 
+CrinGraph's core functionality — data loading, graph rendering, UI construction, state management — lives in a single JavaScript file spanning thousands of lines. There is no separation between concerns.
 
 Even for experienced developers, making targeted changes without breaking something else is a challenge. For operators without programming experience, it's practically impossible.
 
 ### Styling Is Scattered
 
-The visual appearance is spread across multiple CSS files without variables, combined with inline styles in dozens of `createElement` calls throughout the JavaScript. There is no single file you can edit to theme the entire tool. 
+The visual appearance is spread across multiple CSS files without variables, combined with inline styles in dozens of `createElement` calls throughout the JavaScript. There is no single file you can edit to theme the entire tool.
 
 Changing a color scheme or adapting the look for yourself means hunting through both CSS and JS, hoping you catch every instance.
 
 ### Forks Diverge, Features Fragment
 
-When enthusiasts wanted new capabilities — like preference adjustments for Diffuse Field targets — they had to fork the entire project and modify the core script. 
+When enthusiasts wanted new capabilities — like preference adjustments for Diffuse Field targets — they had to fork the entire project and modify the core script.
 
 Each fork became its own island. Complexity of 'single script does everything' made it hard to port features across forks, and operators had to choose which subset of capabilities they wanted — with no way to combine them.
 
 ## How modernGraphTool Is Different
 
-modernGraphTool is a completely new graph tool built on SvelteKit, TypeScript, and D3.js. 
+modernGraphTool is a completely new graph tool built on SvelteKit, TypeScript, and D3.js.
 
 Rather than patching an aging codebase, it was designed from the start for the features the community needs.
 
-| | CrinGraph / Forks | modernGraphTool |
-|---|---|---|
-| **Architecture** | Single JS script (thousands of lines) | Modular SvelteKit components (TypeScript) |
-| **Theming** | Multiple CSS files + inline styles | Single `theme.css` with CSS variables + [Theme Generator](/theme-generator) |
-| **Target adjustment** | Fork-dependent; one target, 3–4 hardcoded filters | [Per-target adjustments, configurable filters, filter presets](./features/target-customizer) |
-| **Parametric EQ** | External plugin scripts, fragmented across forks | Built-in with [AutoEQ, real-time audio preview, and interactive EQ](./features/equalizer) |
-| **Device PEQ bridge** | [External plugin by jeromeof](https://github.com/jeromeof/devicePEQ) | [Imported and refactored](./features/device-peq) as a built-in component |
-| **Multi-language** | Not supported | English + Korean ([compile-time i18n](https://inlang.com/m/gerre34r/library-inlang-paraglideJs), extensible) |
-| **Performance** | Unbundled vanilla JS | Bundled with tree-shaking and code splitting |
-| **Updates** | Manual file replacement | CDN mode: auto-updates without re-uploading |
-| **Data format** | `phone_book.json` + FR text files | Same format — drop-in compatible |
+|                       | CrinGraph / Forks                                                    | modernGraphTool                                                                                              |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Architecture**      | Single JS script (thousands of lines)                                | Modular SvelteKit components (TypeScript)                                                                    |
+| **Theming**           | Multiple CSS files + inline styles                                   | Single `theme.css` with CSS variables + [Theme Generator](/theme-generator)                                  |
+| **Target adjustment** | Fork-dependent; one target, 3–4 hardcoded filters                    | [Per-target adjustments, configurable filters, filter presets](./features/target-customizer)                 |
+| **Parametric EQ**     | External plugin scripts, fragmented across forks                     | Built-in with [AutoEQ, real-time audio preview, and interactive EQ](./features/equalizer)                    |
+| **Device PEQ bridge** | [External plugin by jeromeof](https://github.com/jeromeof/devicePEQ) | [Imported and refactored](./features/device-peq) as a built-in component                                     |
+| **Multi-language**    | Not supported                                                        | English + Korean ([compile-time i18n](https://inlang.com/m/gerre34r/library-inlang-paraglideJs), extensible) |
+| **Performance**       | Unbundled vanilla JS                                                 | Bundled with tree-shaking and code splitting                                                                 |
+| **Updates**           | Manual file replacement                                              | CDN mode: auto-updates without re-uploading                                                                  |
+| **Data format**       | `phone_book.json` + FR text files                                    | Same format — drop-in compatible                                                                             |
 
 ## Built for Operators
 

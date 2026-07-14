@@ -49,59 +49,64 @@ JSON (JavaScript Object Notation) is a text format for structuring data. You can
 
 The `phone_book.json` file starts and ends with one large array (`[]`). The array contains multiple **brand** objects (`{}`).
 
-Each brand object has a `name` key (e.g., "Sennheiser", "Sony") and a `phones` key. 
+Each brand object has a `name` key (e.g., "Sennheiser", "Sony") and a `phones` key.
 
 The value of the `phones` key is an array containing phone definitions for each model of that brand. Phone definitions can be simple strings or more detailed objects.
 
 ```json
 [
-  {
-    "name": "Brand A",
-    "suffix": "(Audio)", // Optional: Suffix for the brand name
-    "phones": [
-      "ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
-      {
-        "name": "Model Y",
-        "file": "BrandA ModelY", // File name (without L/R and .txt)
-        "suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
-        "reviewLink": "https://example.com/review/modely", // Optional: Review link
-        "price": "$199", // Optional: Price (string)
-        "description": "Some description about Model Y" // Optional: Extra description
-      },
-      // ... more models for Brand A
-    ]
-  },
-  {
-    "name": "Brand B",
-    "phones": [
-      // ... models for Brand B
-    ]
-  }
-  // ... more brands
+	{
+		"name": "Brand A",
+		"suffix": "(Audio)", // Optional: Suffix for the brand name
+		"phones": [
+			"ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
+			{
+				"name": "Model Y",
+				"file": "BrandA ModelY", // File name (without L/R and .txt)
+				"suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
+				"reviewLink": "https://example.com/review/modely", // Optional: Review link
+				"price": "$199", // Optional: Price (string)
+				"description": "Some description about Model Y" // Optional: Extra description
+			}
+			// ... more models for Brand A
+		]
+	},
+	{
+		"name": "Brand B",
+		"phones": [
+			// ... models for Brand B
+		]
+	}
+	// ... more brands
 ]
 ```
 
 ### Brand Object Keys
+
 - `name` (String, Required): The name of the brand.
 - `suffix` (String, Optional): An optional suffix that will be appended to the brand name in the UI.
 - `phones` (Array, Required): An array of phone definitions. Each element can be a string (for simple cases) or a phone object (for detailed configuration or variations).
 
 ### Phone Definition Types
+
 The phones array can contain:
 
 #### Simple String Definition
+
 If a phone entry is a simple string (e.g., "ModelX"), it's assumed that the display name is "ModelX" and the data files are ModelX L.txt and ModelX R.txt.
+
 ```json
 {
-  "name": "BrandSimple",
-  "phones": [
-    "ModelS1",  // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
-    "ModelS2"   // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
-  ]
+	"name": "BrandSimple",
+	"phones": [
+		"ModelS1", // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
+		"ModelS2" // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
+	]
 }
 ```
 
 #### Detailed Phone Object Definition
+
 For more control, a phone can be defined as an object with the following keys:
 
 - `name` (String, Required): The model name of the phone to be displayed in the list.
@@ -115,35 +120,36 @@ For more control, a phone can be defined as an object with the following keys:
 
 ```json
 {
-  "name": "BrandDetailed",
-  "phones": [
-    {
-      "name": "Model D1",
-      "file": "ModelD1_Data",
-      "suffix": "Rev.2",
-      "reviewScore": "A+",
-      "reviewLink": "https://example.com/review/d1",
-      "shopLink": "https://example.com/shop/d1",
-      "price": "$299"
-    }
-  ]
+	"name": "BrandDetailed",
+	"phones": [
+		{
+			"name": "Model D1",
+			"file": "ModelD1_Data",
+			"suffix": "Rev.2",
+			"reviewScore": "A+",
+			"reviewLink": "https://example.com/review/d1",
+			"shopLink": "https://example.com/shop/d1",
+			"price": "$299"
+		}
+	]
 }
 ```
 
 #### Variations (Grouping Multiple Data Files under One Phone Name)
+
 You can group multiple measurement versions (e.g., different eartips, EQ settings) under a single conceptual phone model.
 
 ```json
 {
-  "name": "BrandVariations",
-  "phones": [
-    {
-      "name": "Model V1", // Base name for variations
-      "file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
-      "suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
-      "price": "$150" // Applies to all V1 variations
-    }
-  ]
+	"name": "BrandVariations",
+	"phones": [
+		{
+			"name": "Model V1", // Base name for variations
+			"file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
+			"suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
+			"price": "$150" // Applies to all V1 variations
+		}
+	]
 }
 ```
 
@@ -156,23 +162,20 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
 ```json
 {
-  "name": "BrandPrefix",
-  "phones": [
-    {
-      "name": "Model P1", // Base display name
-      "file": [
-        "BrandP ModelP1 (Foam Tip)", 
-        "BrandP ModelP1 (Silicone Tip)"
-      ], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
-      "prefix": "BrandP ModelP1", // Common file prefix
-      "description": "Uses different eartips"
-    }
-  ]
+	"name": "BrandPrefix",
+	"phones": [
+		{
+			"name": "Model P1", // Base display name
+			"file": ["BrandP ModelP1 (Foam Tip)", "BrandP ModelP1 (Silicone Tip)"], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
+			"prefix": "BrandP ModelP1", // Common file prefix
+			"description": "Uses different eartips"
+		}
+	]
 }
 ```
 
 - Using prefix for common file prefixes :
-If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
+  If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
   - `name` (Array of Strings, Required): An array containing a single string, the base display name.
   - `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
   - `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file[i] .
@@ -180,6 +183,7 @@ If your variation files share a common prefix in their names but have distinct p
   - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
 #### Multi-Sample Entries
+
 A multi-sample entry groups several numbered measurement runs of the same device into one phone. By default the UI displays the **average** of all runs, and users can toggle individual samples via the Sample picker (which appears automatically when `samples > 1`).
 
 - `samples` (Number, Required): The number of measurement runs. The tool loads files named `{file} L{n}.txt` and `{file} R{n}.txt` for `n = 1..samples`.
@@ -188,10 +192,10 @@ A multi-sample entry groups several numbered measurement runs of the same device
 
 ```json
 {
-  "name": ["Multi Sample"],
-  "file": ["Multi Sample"],
-  "suffix": [""],
-  "samples": 3
+	"name": ["Multi Sample"],
+	"file": ["Multi Sample"],
+	"suffix": [""],
+	"samples": 3
 }
 ```
 
@@ -207,7 +211,8 @@ You can change whether multi-sample phones open as an averaged single curve or a
 :::
 
 #### HpTF (Headphone Transfer Function) Entries
-HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. Each HpTF set is effectively one device variant whose graph *is* the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
+
+HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. Each HpTF set is effectively one device variant whose graph _is_ the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
 
 A single device can declare **multiple** HpTF sets via the `hptfs` array — for example one set per ear pad (Leather / Suede), or one per fit depth. Each `hptfs` entry becomes its own independent variant in the device selector.
 
@@ -223,20 +228,20 @@ A single device can declare **multiple** HpTF sets via the `hptfs` array — for
 
 ```json
 {
-  "name": ["HpTF Fill Only"],
-  "hptfs": [
-    {
-      "files": [
-        "HpTF Demo Center",
-        "HpTF Demo Front",
-        "HpTF Demo Back",
-        "HpTF Demo Up",
-        "HpTF Demo Down"
-      ],
-      "labels": ["Center", "Front", "Back", "Up", "Down"],
-      "description": "(Fit Position)"
-    }
-  ]
+	"name": ["HpTF Fill Only"],
+	"hptfs": [
+		{
+			"files": [
+				"HpTF Demo Center",
+				"HpTF Demo Front",
+				"HpTF Demo Back",
+				"HpTF Demo Up",
+				"HpTF Demo Down"
+			],
+			"labels": ["Center", "Front", "Back", "Up", "Down"],
+			"description": "(Fit Position)"
+		}
+	]
 }
 ```
 
@@ -244,25 +249,25 @@ A single device can declare **multiple** HpTF sets via the `hptfs` array — for
 
 ```json
 {
-  "name": ["HpTF Multi Pad"],
-  "hptfs": [
-    {
-      "suffix": "Leather Pad",
-      "files": ["Leather Center", "Leather Front", "Leather Back"],
-      "labels": ["Center", "Front", "Back"],
-      "description": "(Leather Pad Variance)"
-    },
-    {
-      "suffix": "Suede Pad",
-      "files": ["Suede Center", "Suede Front", "Suede Back"],
-      "labels": ["Center", "Front", "Back"],
-      "description": "(Suede Pad Variance)"
-    }
-  ]
+	"name": ["HpTF Multi Pad"],
+	"hptfs": [
+		{
+			"suffix": "Leather Pad",
+			"files": ["Leather Center", "Leather Front", "Leather Back"],
+			"labels": ["Center", "Front", "Back"],
+			"description": "(Leather Pad Variance)"
+		},
+		{
+			"suffix": "Suede Pad",
+			"files": ["Suede Center", "Suede Front", "Suede Back"],
+			"labels": ["Center", "Front", "Back"],
+			"description": "(Suede Pad Variance)"
+		}
+	]
 }
 ```
 
-The example above produces two independent variants — *HpTF Multi Pad Leather Pad* and *HpTF Multi Pad Suede Pad* — that the user can switch between via the variant dropdown in the device selector.
+The example above produces two independent variants — _HpTF Multi Pad Leather Pad_ and _HpTF Multi Pad Suede Pad_ — that the user can switch between via the variant dropdown in the device selector.
 
 :::note[Combining with regular measurements]
 You can also declare `file` / `suffix` variants and `hptfs` on the same phone entry. They are treated as **independent variants** in a single flat list, not combined — a phone with two `file` variants and two `hptfs` entries produces four separate entries in the variant selector (e.g. `Stock`, `Modded`, `Leather Pad`, `Suede Pad`).

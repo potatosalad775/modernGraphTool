@@ -102,7 +102,9 @@
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
-	<div class="flex shrink-0 items-center gap-2 bg-base-200 border-b border-base-content/15 px-1.5 py-1.5">
+	<div
+		class="flex shrink-0 items-center gap-2 bg-base-200 border-b border-base-content/15 px-1.5 py-1.5"
+	>
 		<!-- Brands toggle (shown when container is narrow) -->
 		{#if showPhonePane}
 			<div class="ps-nav-btn">
@@ -168,7 +170,7 @@
 				{#each brandListData as brand (brand)}
 					<button
 						onclick={() => toggleBrand(brand)}
-						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors border-b border-base-content/8 
+						class="flex w-full cursor-pointer items-center px-3 py-1.5 text-left text-sm transition-colors border-b border-base-content/8
 							{selectedBrands.has(brand)
 							? 'border-l-2 border-l-accent bg-accent/8 font-medium text-accent'
 							: 'hover:bg-base-300'}"
@@ -202,9 +204,7 @@
 							onclick={() => togglePhone(phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 							class="flex flex-col w-full min-h-8 items-start gap-1 px-3 py-1.5 text-left text-sm transition-colors
-								{isLoaded
-								? 'font-medium text-base-content'
-								: ' hover:bg-base-300'}
+								{isLoaded ? 'font-medium text-base-content' : ' hover:bg-base-300'}
 								{isLoading ? 'opacity-50' : ''}
 								cursor-pointer disabled:cursor-default"
 						>
@@ -213,7 +213,8 @@
 							</span>
 
 							{#if phone.description}
-								<span class="min-w-0 self-stretch text-xs text-base-content/60 leading-snug
+								<span
+									class="min-w-0 self-stretch text-xs text-base-content/60 leading-snug
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
 									title={phone.description}
 								>

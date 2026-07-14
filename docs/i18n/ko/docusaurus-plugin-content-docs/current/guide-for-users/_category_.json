@@ -1,10 +1,10 @@
 {
-  "label": "사용자 가이드",
-  "position": 7,
-  "collapsible": true,
-  "collapsed": false,
-  "link": {
-    "type": "generated-index",
-    "description": "인터페이스 전체를 단계별로 안내합니다. 주파수 응답 그래프가 처음이라면 여기서부터 시작하세요 — 처음 네 페이지에서 개념을 처음부터 설명하고, 이후 페이지에서는 그 개념을 화면에 보이는 모든 요소에 연결해 설명합니다."
-  }
+	"label": "사용자 가이드",
+	"position": 7,
+	"collapsible": true,
+	"collapsed": false,
+	"link": {
+		"type": "generated-index",
+		"description": "인터페이스 전체를 단계별로 안내합니다. 주파수 응답 그래프가 처음이라면 여기서부터 시작하세요 — 처음 네 페이지에서 개념을 처음부터 설명하고, 이후 페이지에서는 그 개념을 화면에 보이는 모든 요소에 연결해 설명합니다."
+	}
 }

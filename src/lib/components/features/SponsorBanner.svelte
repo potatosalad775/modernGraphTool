@@ -41,11 +41,14 @@
 
 {#if showDialog && squiglinkStore.sponsorContent}
 	{@const sponsor = squiglinkStore.sponsorContent}
-	<Dialog.Root bind:open onOpenChange={(v) => { if (!v) dismiss(); }}>
+	<Dialog.Root
+		bind:open
+		onOpenChange={(v) => {
+			if (!v) dismiss();
+		}}
+	>
 		<Dialog.Portal>
-			<Dialog.Overlay
-				class="fixed inset-0 z-40 bg-black/40"
-			/>
+			<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
 			<Dialog.Content
 				class="fixed left-1/2 top-1/2 z-50 w-11/12 max-w-md max-h-11/12 -translate-x-1/2 -translate-y-1/2
 					flex flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
@@ -86,7 +89,7 @@
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg border 
+							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg border
 								border-base-content/20 px-4 py-2.5 text-center text-sm font-medium hover:bg-base-300"
 						>
 							<ExternalLink class="w-4 h-4" />

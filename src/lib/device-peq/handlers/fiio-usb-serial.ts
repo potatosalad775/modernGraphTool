@@ -375,11 +375,7 @@ async function pushToDevice(
 	}
 }
 
-async function enablePEQ(
-	device: ConnectedDevice,
-	enabled: boolean,
-	slotId: number
-): Promise<void> {
+async function enablePEQ(device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void> {
 	try {
 		if (enabled) {
 			// Enable EQ and set to specified slot/preset

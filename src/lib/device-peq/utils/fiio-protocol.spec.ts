@@ -45,7 +45,7 @@ describe('fiio-protocol', () => {
 			expect(lo).toBe(100);
 		});
 
-		it('handles negative values with two\'s complement', () => {
+		it("handles negative values with two's complement", () => {
 			const [hi, lo] = splitSignedValue(-1);
 			expect(hi).toBe(0xff);
 			expect(lo).toBe(0xff);

@@ -21,7 +21,8 @@ class AnalyticsService {
 		const enableAnalytics = getConfigValue('SQUIGLINK.ENABLE_ANALYTICS') as boolean | undefined;
 		if (enableAnalytics === false) return;
 
-		const measurementIds = (getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS') as string[]) ?? [];
+		const measurementIds =
+			(getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS') as string[]) ?? [];
 		if (measurementIds.length === 0) return;
 
 		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string) ?? '';

@@ -149,7 +149,7 @@
 				action: {
 					label: m.version_update_toast_changelog(),
 					onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
-				},
+				}
 			});
 		}
 

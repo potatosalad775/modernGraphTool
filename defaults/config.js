@@ -136,8 +136,20 @@ const CONFIG = {
 		// And add more languages as you want.
 		i18n: {
 			ko: [{ type: '하만' }, { type: '뉴트럴' }, { type: '리뷰어' }, { type: '선호도' }],
-			ru: [{ type: "Harman" }, { type: "Нейтральные" }, { type: "От обзорщиков" }, { type: "Предпочтения" }, { type: "Δ" }],
-      		uk: [{ type: "Harman" }, { type: "Нейтральні" }, { type: "Від оглядачів" }, { type: "Вподобання" }, { type: "Δ" }]
+			ru: [
+				{ type: 'Harman' },
+				{ type: 'Нейтральные' },
+				{ type: 'От обзорщиков' },
+				{ type: 'Предпочтения' },
+				{ type: 'Δ' }
+			],
+			uk: [
+				{ type: 'Harman' },
+				{ type: 'Нейтральні' },
+				{ type: 'Від оглядачів' },
+				{ type: 'Вподобання' },
+				{ type: 'Δ' }
+			]
 		}
 	},
 	// ... Of course, if you're not interested in localization, you can just skip this setting, as below.
@@ -314,16 +326,18 @@ const CONFIG = {
 			],
 			ru: [
 				{
-					TYPE: "HTML",
-					CONTENT: "<p>Все измерения выполнены с использованием симулятора уха IEC 60318-4 (711).</p>",
+					TYPE: 'HTML',
+					CONTENT:
+						'<p>Все измерения выполнены с использованием симулятора уха IEC 60318-4 (711).</p>'
 				}
 			],
 			uk: [
 				{
-					TYPE: "HTML",
-					CONTENT: "<p>Усі вимірювання були виконані з використанням симулятора вуха IEC 60318-4 (711).</p>",
-		        }
-		    ]
+					TYPE: 'HTML',
+					CONTENT:
+						'<p>Усі вимірювання були виконані з використанням симулятора вуха IEC 60318-4 (711).</p>'
+				}
+			]
 		}
 	}
 };

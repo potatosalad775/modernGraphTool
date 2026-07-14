@@ -46,10 +46,7 @@ describe('normalizeFiltersForDevice', () => {
 	});
 
 	it('converts LS/HS to PK when device does not support them', () => {
-		const filters = [
-			makeFilter({ type: 'LSQ', gain: 3 }),
-			makeFilter({ type: 'HSQ', gain: -2 })
-		];
+		const filters = [makeFilter({ type: 'LSQ', gain: 3 }), makeFilter({ type: 'HSQ', gain: -2 })];
 		const config = makeConfig({ maxFilters: 10, supportsLSHSFilters: false });
 		const result = normalizeFiltersForDevice(filters, config);
 		expect(result[0].type).toBe('PK');

@@ -8,7 +8,12 @@
  *   1. Create a handler in handlers/ that exports `registration`
  *   2. Add one `import()` line to the appropriate Promise.all below
  */
-import type { DeviceHandler, UsbHidVendorConfig, UsbSerialVendorConfig, BleDeviceConfig } from './types.js';
+import type {
+	DeviceHandler,
+	UsbHidVendorConfig,
+	UsbSerialVendorConfig,
+	BleDeviceConfig
+} from './types.js';
 
 // ---------------------------------------------------------------------------
 // Lazy caches
@@ -17,7 +22,10 @@ import type { DeviceHandler, UsbHidVendorConfig, UsbSerialVendorConfig, BleDevic
 let _hidConfig: UsbHidVendorConfig[] | null = null;
 let _serialConfig: UsbSerialVendorConfig[] | null = null;
 let _bleConfig: BleDeviceConfig[] | null = null;
-let _networkHandlers: Record<string, { handler: DeviceHandler; defaultModelConfig: UsbHidVendorConfig['defaultModelConfig'] }> | null = null;
+let _networkHandlers: Record<
+	string,
+	{ handler: DeviceHandler; defaultModelConfig: UsbHidVendorConfig['defaultModelConfig'] }
+> | null = null;
 
 // ---------------------------------------------------------------------------
 // Cross-handler reference resolution
@@ -142,7 +150,10 @@ export async function getBleConfig(): Promise<BleDeviceConfig[]> {
 // ---------------------------------------------------------------------------
 
 export async function getNetworkHandlers(): Promise<
-	Record<string, { handler: DeviceHandler; defaultModelConfig: UsbHidVendorConfig['defaultModelConfig'] }>
+	Record<
+		string,
+		{ handler: DeviceHandler; defaultModelConfig: UsbHidVendorConfig['defaultModelConfig'] }
+	>
 > {
 	if (_networkHandlers) return _networkHandlers;
 

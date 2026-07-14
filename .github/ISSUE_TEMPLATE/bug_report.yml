@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report a bug building or running modernGraphTool
-labels: ["bug"]
-title: "[Bug] "
+labels: ['bug']
+title: '[Bug] '
 body:
   - type: markdown
     attributes:
@@ -13,27 +13,27 @@ body:
       label: Operating system
       description: The OS you are running modernGraphTool on
       options:
-          - Windows
-          - macOS
-          - Linux
-          - Android
-          - iOS
-          - Other
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS
+        - Other
     validations:
-        required: true
+      required: true
   - type: dropdown
     id: browser
     attributes:
       label: Browser
       description: The browser you are running modernGraphTool on
       options:
-          - Chrome (Chromium)
-          - Edge
-          - Firefox
-          - Safari
-          - Other
+        - Chrome (Chromium)
+        - Edge
+        - Firefox
+        - Safari
+        - Other
     validations:
-        required: true
+      required: true
   - type: input
     id: version
     attributes:

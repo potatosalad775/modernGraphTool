@@ -4,8 +4,8 @@ A completely re-engineered graphtool for frequency response visualization, built
 
 You can discover more at the [modernGraphTool documentation page][DOCS].
 
-> *modernGraphTool_**beta** is still in the early stages of development. \
-> Frequent breaking changes and design revisions may occur.*
+> _modernGraphTool\_**beta** is still in the early stages of development. \
+> Frequent breaking changes and design revisions may occur._
 
 ## Demo
 

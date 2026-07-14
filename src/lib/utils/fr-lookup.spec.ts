@@ -18,42 +18,72 @@ describe('lookupFRValueAtFreq', () => {
 	});
 
 	it('returns first dB for frequency below range', () => {
-		const data: FRDataPoint[] = [[20, 60], [100, 70], [1000, 80]];
+		const data: FRDataPoint[] = [
+			[20, 60],
+			[100, 70],
+			[1000, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 10)).toBe(60);
 	});
 
 	it('returns first dB for frequency equal to min', () => {
-		const data: FRDataPoint[] = [[20, 60], [100, 70], [1000, 80]];
+		const data: FRDataPoint[] = [
+			[20, 60],
+			[100, 70],
+			[1000, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 20)).toBe(60);
 	});
 
 	it('returns last dB for frequency above range', () => {
-		const data: FRDataPoint[] = [[20, 60], [100, 70], [1000, 80]];
+		const data: FRDataPoint[] = [
+			[20, 60],
+			[100, 70],
+			[1000, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 25000)).toBe(80);
 	});
 
 	it('returns last dB for frequency equal to max', () => {
-		const data: FRDataPoint[] = [[20, 60], [100, 70], [1000, 80]];
+		const data: FRDataPoint[] = [
+			[20, 60],
+			[100, 70],
+			[1000, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 1000)).toBe(80);
 	});
 
 	it('returns exact dB when frequency matches a data point', () => {
-		const data: FRDataPoint[] = [[20, 60], [100, 70], [500, 75], [1000, 80]];
+		const data: FRDataPoint[] = [
+			[20, 60],
+			[100, 70],
+			[500, 75],
+			[1000, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 100)).toBe(70);
 	});
 
 	it('interpolates linearly at midpoint between two points', () => {
-		const data: FRDataPoint[] = [[100, 60], [200, 80]];
+		const data: FRDataPoint[] = [
+			[100, 60],
+			[200, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 150)).toBeCloseTo(70, 5);
 	});
 
 	it('interpolates at 25% position between points', () => {
-		const data: FRDataPoint[] = [[100, 60], [200, 80]];
+		const data: FRDataPoint[] = [
+			[100, 60],
+			[200, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 125)).toBeCloseTo(65, 5);
 	});
 
 	it('interpolates at 75% position between points', () => {
-		const data: FRDataPoint[] = [[100, 60], [200, 80]];
+		const data: FRDataPoint[] = [
+			[100, 60],
+			[200, 80]
+		];
 		expect(lookupFRValueAtFreq(data, 175)).toBeCloseTo(75, 5);
 	});
 

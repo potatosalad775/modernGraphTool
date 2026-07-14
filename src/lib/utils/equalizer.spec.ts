@@ -99,9 +99,7 @@ describe('Equalizer', () => {
 		it('returns non-zero gains for a peaking filter', () => {
 			eq = makeEq();
 			const freqs = [100, 1000, 10000];
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }];
 			const gains = eq.calculateGainsFromFilter(freqs, filters);
 			// Peak should be near 1000 Hz
 			expect(gains[1]).toBeGreaterThan(gains[0]);
@@ -111,9 +109,7 @@ describe('Equalizer', () => {
 		it('skips filters with zero freq/gain/q', () => {
 			eq = makeEq();
 			const freqs = [1000];
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 0, q: 1.0, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 0, q: 1.0, gain: 6 }];
 			const gains = eq.calculateGainsFromFilter(freqs, filters);
 			expect(gains[0]).toBeCloseTo(0, 4);
 		});
@@ -134,9 +130,7 @@ describe('Equalizer', () => {
 		it('boosts around the filter frequency', () => {
 			eq = makeEq();
 			const fr = flatCurve(0);
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }];
 			const result = eq.applyFilters(fr, filters);
 			// Find the point closest to 1000 Hz
 			const idx1k = result.findIndex((p) => p[0] >= 1000);
@@ -164,9 +158,7 @@ describe('Equalizer', () => {
 		it('returns negative of max gain increase', () => {
 			eq = makeEq();
 			const fr = flatCurve(0);
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }];
 			const preamp = eq.calculatePreamp(fr, filters);
 			expect(preamp).toBeLessThan(0);
 			expect(preamp).toBeCloseTo(-6, 0);
@@ -175,9 +167,7 @@ describe('Equalizer', () => {
 		it('returns 0 for negative-only gain filters', () => {
 			eq = makeEq();
 			const fr = flatCurve(0);
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: -6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: -6 }];
 			const preamp = eq.calculatePreamp(fr, filters);
 			// Max gain change is negative, so preamp should be positive (or zero)
 			expect(preamp).toBeGreaterThanOrEqual(0);
@@ -187,9 +177,7 @@ describe('Equalizer', () => {
 	describe('convertFilterAsGraphicEQ', () => {
 		it('returns frequency points', () => {
 			eq = makeEq();
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 6 }];
 			const result = eq.convertFilterAsGraphicEQ(filters);
 			expect(result.length).toBeGreaterThan(0);
 			// Max gain should be 0 (normalized)
@@ -283,9 +271,7 @@ describe('Equalizer', () => {
 	describe('convertFilterAsGraphicEQ edge cases', () => {
 		it('returns frequency points for LSQ filter', () => {
 			eq = makeEq();
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'LSQ', freq: 100, q: 0.7, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'LSQ', freq: 100, q: 0.7, gain: 6 }];
 			const result = eq.convertFilterAsGraphicEQ(filters);
 			expect(result.length).toBeGreaterThan(0);
 			// Low shelf should boost low frequencies more
@@ -298,9 +284,7 @@ describe('Equalizer', () => {
 
 		it('returns frequency points for HSQ filter', () => {
 			eq = makeEq();
-			const filters: EQFilter[] = [
-				{ enabled: true, type: 'HSQ', freq: 8000, q: 0.7, gain: 6 }
-			];
+			const filters: EQFilter[] = [{ enabled: true, type: 'HSQ', freq: 8000, q: 0.7, gain: 6 }];
 			const result = eq.convertFilterAsGraphicEQ(filters);
 			expect(result.length).toBeGreaterThan(0);
 		});

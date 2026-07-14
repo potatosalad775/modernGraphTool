@@ -5,7 +5,7 @@
 	import SelectionList from '$lib/components/controls/SelectionList.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
-  import * as m from '$lib/paraglide/messages.js';
+	import * as m from '$lib/paraglide/messages.js';
 </script>
 
 <div class="flex h-full flex-col overflow-hidden">

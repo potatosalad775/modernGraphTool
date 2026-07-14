@@ -97,10 +97,7 @@ describe('URL Provider — smart split logic', () => {
 	});
 
 	it('preserves names with brackets', () => {
-		expect(smartSplit('Phone A [Special],Phone B')).toEqual([
-			'Phone A [Special]',
-			'Phone B'
-		]);
+		expect(smartSplit('Phone A [Special],Phone B')).toEqual(['Phone A [Special]', 'Phone B']);
 	});
 
 	it('preserves names with nested parentheses', () => {

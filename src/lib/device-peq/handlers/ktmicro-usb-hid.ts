@@ -62,11 +62,7 @@ function buildWriteGainFreqPacket(
 	const freqLow = adjustedFreq & 0xff;
 	const freqHigh = (adjustedFreq >> 8) & 0xff;
 
-	return new Uint8Array([
-		fieldId, 0, 0, 0, COMMAND_WRITE, 0,
-		gainLow, gainHigh,
-		freqLow, freqHigh
-	]);
+	return new Uint8Array([fieldId, 0, 0, 0, COMMAND_WRITE, 0, gainLow, gainHigh, freqLow, freqHigh]);
 }
 
 function buildWriteQPacket(
@@ -80,11 +76,7 @@ function buildWriteQPacket(
 	const qHigh = (qRaw >> 8) & 0xff;
 	const typeCode = convertFromFilterType(filterType);
 
-	return new Uint8Array([
-		fieldId, 0, 0, 0, COMMAND_WRITE, 0,
-		qLow, qHigh,
-		typeCode, 0
-	]);
+	return new Uint8Array([fieldId, 0, 0, 0, COMMAND_WRITE, 0, qLow, qHigh, typeCode, 0]);
 }
 
 function buildCommitPacket(): Uint8Array {
@@ -273,11 +265,7 @@ export const ktmicroUsbHidHandler: DeviceHandler = {
 		return deviceDetails.modelConfig.disconnectOnSave;
 	},
 
-	async enablePEQ(
-		deviceDetails: ConnectedDevice,
-		enabled: boolean,
-		slotId: number
-	): Promise<void> {
+	async enablePEQ(deviceDetails: ConnectedDevice, enabled: boolean, slotId: number): Promise<void> {
 		const device = deviceDetails.rawDevice as HIDDevice;
 		const targetSlot = enabled ? slotId : deviceDetails.modelConfig.disabledPresetId;
 		const packet = buildEnableEQPacket(targetSlot);
@@ -307,11 +295,20 @@ export const registration: UsbHidVendorConfig = {
 		availableSlots: [{ id: 0x03, name: 'Custom' }]
 	},
 	devices: {
-		'Kiwi Ears-Allegro PRO': { manufacturer: 'Kiwi Ears', modelConfig: { supportsLSHSFilters: false, disconnectOnSave: true } },
+		'Kiwi Ears-Allegro PRO': {
+			manufacturer: 'Kiwi Ears',
+			modelConfig: { supportsLSHSFilters: false, disconnectOnSave: true }
+		},
 		'KT02H20 HIFI Audio': { manufacturer: 'JCally', modelConfig: { supportsLSHSFilters: false } },
-		'TANCHJIM BUNNY DSP': { manufacturer: 'TANCHJIM', modelConfig: { compensate2X: false, supportsPregain: true } },
-		'TANCHJIM FISSION': { manufacturer: 'TANCHJIM', modelConfig: { compensate2X: false, supportsPregain: true } },
-		'CDSP': { manufacturer: 'Moondrop', modelConfig: { compensate2X: false } },
+		'TANCHJIM BUNNY DSP': {
+			manufacturer: 'TANCHJIM',
+			modelConfig: { compensate2X: false, supportsPregain: true }
+		},
+		'TANCHJIM FISSION': {
+			manufacturer: 'TANCHJIM',
+			modelConfig: { compensate2X: false, supportsPregain: true }
+		},
+		CDSP: { manufacturer: 'Moondrop', modelConfig: { compensate2X: false } },
 		'Chu2 DSP': { manufacturer: 'Moondrop', modelConfig: { compensate2X: false } }
 	}
 };

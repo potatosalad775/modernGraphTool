@@ -17,16 +17,16 @@ For a feature-level overview of what v2 brings to the table, see [What's New in 
 
 CrinGraph has a long history and several actively maintained forks. The migration steps are largely the same, but each fork has structural quirks worth naming up front.
 
-| | Vanilla CrinGraph | [squiglink lab](https://github.com/squiglink/lab) | [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) |
-|---|---|---|---|
-| Config file | `config.js` (root) | `config.js` (root), `config_hp.js` for HP variant | `assets/js/config.js` |
-| Phone FR files | `data/*.txt` (flat) | `data/*.txt` (flat) | `data/*.txt` (flat) |
-| Target files | `data/*.txt` (mixed with phones) | `data/*.txt` (mixed with phones) | Split: some in `data/*Target.txt`, more in `data/targets/` |
-| `phone_book.json` | Optional (often absent) | `data/phone_book.json` | `data/phone_book.json` |
-| Preference bounds | None | None | `assets/pref_bounds/Bounds L.txt` + `Bounds R.txt` |
-| Theme CSS | `style*.css` at root | `style*.css` + `styles/dark.css` + `styles/white.css` | `assets/css/extra.css` + `style*.css` |
-| Headphones variant | Usually a separate install | `data_hp/` folder + `config_hp.js` | `data_hp/` folder + `headphones.html` + `config_hp.js` |
-| External scripts | None | None | `squigsites.js`, `reinvented-color-wheel.min.js`, `90inclusion.js`, audio tags |
+|                    | Vanilla CrinGraph                | [squiglink lab](https://github.com/squiglink/lab)     | [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool)             |
+| ------------------ | -------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Config file        | `config.js` (root)               | `config.js` (root), `config_hp.js` for HP variant     | `assets/js/config.js`                                                          |
+| Phone FR files     | `data/*.txt` (flat)              | `data/*.txt` (flat)                                   | `data/*.txt` (flat)                                                            |
+| Target files       | `data/*.txt` (mixed with phones) | `data/*.txt` (mixed with phones)                      | Split: some in `data/*Target.txt`, more in `data/targets/`                     |
+| `phone_book.json`  | Optional (often absent)          | `data/phone_book.json`                                | `data/phone_book.json`                                                         |
+| Preference bounds  | None                             | None                                                  | `assets/pref_bounds/Bounds L.txt` + `Bounds R.txt`                             |
+| Theme CSS          | `style*.css` at root             | `style*.css` + `styles/dark.css` + `styles/white.css` | `assets/css/extra.css` + `style*.css`                                          |
+| Headphones variant | Usually a separate install       | `data_hp/` folder + `config_hp.js`                    | `data_hp/` folder + `headphones.html` + `config_hp.js`                         |
+| External scripts   | None                             | None                                                  | `squigsites.js`, `reinvented-color-wheel.min.js`, `90inclusion.js`, audio tags |
 
 If your fork isn't listed here, it almost certainly behaves like one of these three. The steps below call out fork-specific differences inline as **Lab**, **PublicGraphTool**, and **Vanilla** notes.
 
@@ -57,100 +57,100 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
 
 2. **Restructure your `data/` folder.** v2 expects phones and targets in separate subfolders:
 
-    ```plaintext
-    data/
-    ├── phones/            # all your phone FR .txt files
-    │   ├── IEM A L.txt
-    │   ├── IEM A R.txt
-    │   └── ...
-    ├── target/            # all your target curve .txt files
-    │   ├── Harman IE 2019v2 Target.txt
-    │   └── ...
-    └── phone_book.json    # unchanged
-    ```
+   ```plaintext
+   data/
+   ├── phones/            # all your phone FR .txt files
+   │   ├── IEM A L.txt
+   │   ├── IEM A R.txt
+   │   └── ...
+   ├── target/            # all your target curve .txt files
+   │   ├── Harman IE 2019v2 Target.txt
+   │   └── ...
+   └── phone_book.json    # unchanged
+   ```
 
-    Move every non-target FR file into `data/phones/`, and every target file into `data/target/`. Targets are usually easy to identify — they end in `Target.txt`, or they appear by name in the `targets` array of your old CrinGraph config.
+   Move every non-target FR file into `data/phones/`, and every target file into `data/target/`. Targets are usually easy to identify — they end in `Target.txt`, or they appear by name in the `targets` array of your old CrinGraph config.
 
-    - **Lab note**: All files in your old flat `data/` folder need to be sorted. The `data/phone_book.json` moves as-is.
-    - **PublicGraphTool note**: You have a partial split already — `data/targets/` contains many of your target files. Merge `data/targets/*.txt` **and** any `data/*Target.txt` files at the root of `data/` into v2's `data/target/`. Everything else goes into `data/phones/`.
-    - **Vanilla CrinGraph note**: If you don't already have a `phone_book.json`, you'll need to create one. See [Managing Data](./guide-for-admins/manage-data) for the schema and a minimal example.
+   - **Lab note**: All files in your old flat `data/` folder need to be sorted. The `data/phone_book.json` moves as-is.
+   - **PublicGraphTool note**: You have a partial split already — `data/targets/` contains many of your target files. Merge `data/targets/*.txt` **and** any `data/*Target.txt` files at the root of `data/` into v2's `data/target/`. Everything else goes into `data/phones/`.
+   - **Vanilla CrinGraph note**: If you don't already have a `phone_book.json`, you'll need to create one. See [Managing Data](./guide-for-admins/manage-data) for the schema and a minimal example.
 
-3. **Move Preference Bound files** *(PublicGraphTool only)* — v2 expects bound data files at `data/Bounds U.txt` and `data/Bounds D.txt` (upper/lower). PublicGraphTool stored them at `assets/pref_bounds/Bounds L.txt` and `Bounds R.txt` (left/right). Copy them over and **rename**:
+3. **Move Preference Bound files** _(PublicGraphTool only)_ — v2 expects bound data files at `data/Bounds U.txt` and `data/Bounds D.txt` (upper/lower). PublicGraphTool stored them at `assets/pref_bounds/Bounds L.txt` and `Bounds R.txt` (left/right). Copy them over and **rename**:
 
-    - `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
-    - `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
+   - `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
+   - `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
 
-    Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you'll set `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` to it in the next step.
+   Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you'll set `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` to it in the next step.
 
 4. **Generate a new `config.js`** — CrinGraph's config format is incompatible with v2, so the cleanest approach is to build a fresh one using the [**Config Editor**](/config-generator), referencing your old config for the values. A few common field mappings to speed you along:
 
-    | CrinGraph (old) | modernGraphTool v2 (new) |
-    |---|---|
-    | `init_phones = [...]` | `INITIAL_PHONES: [...]` |
-    | `targets = [{ type, files }]` | `TARGET_MANIFEST: [{ type, files }]` |
-    | `DIR = "data/"` | `PATH.PHONE_MEASUREMENT`, `PATH.TARGET_MEASUREMENT`, `PATH.PHONE_BOOK` |
-    | `default_normalization = "Hz" / "dB"` | `NORMALIZATION.TYPE` (`"Hz"` or `"Avg"`) |
-    | `default_norm_hz = 500` | `NORMALIZATION.HZ_VALUE: 500` |
-    | `default_y_scale = "40db"` | `VISUALIZATION.DEFAULT_Y_SCALE: 40` |
-    | `watermark_text`, `watermark_image_url` | `WATERMARK: [{ TYPE, CONTENT, ... }]` |
-    | `rig_description` | `VISUALIZATION.RIG_DESCRIPTION` |
-    | `labelsPosition = "bottom-left"` | `VISUALIZATION.LABEL.LOCATION: "BOTTOM_LEFT"` |
-    | `headerLinks = [...]` | `TOPBAR.LINK_LIST: [...]` |
-    | `page_title`, `page_description` | Set in `index.html` `<title>` / `<meta>` (step 6) |
-    | `themingEnabled`, `alt_layout`, `alt_*` flags | Not needed — v2's theme and layout are always on |
-    | `extraEQBands`, `extraEQplugins` | Not needed — v2 has built-in Interactive EQ and Device PEQ |
-    | `preference_bounds_dir`, `preference_bounds_name` | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/` |
-    | `tiltableTargets`, `compTargets` | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS` |
-    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS` |
-    | `allowSquigDownload`, `analyticsEnabled` | `SQUIGLINK.ENABLE_*` fields |
-    | `default_DF_name` | Used as the name in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` |
+   | CrinGraph (old)                                                       | modernGraphTool v2 (new)                                               |
+   | --------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+   | `init_phones = [...]`                                                 | `INITIAL_PHONES: [...]`                                                |
+   | `targets = [{ type, files }]`                                         | `TARGET_MANIFEST: [{ type, files }]`                                   |
+   | `DIR = "data/"`                                                       | `PATH.PHONE_MEASUREMENT`, `PATH.TARGET_MEASUREMENT`, `PATH.PHONE_BOOK` |
+   | `default_normalization = "Hz" / "dB"`                                 | `NORMALIZATION.TYPE` (`"Hz"` or `"Avg"`)                               |
+   | `default_norm_hz = 500`                                               | `NORMALIZATION.HZ_VALUE: 500`                                          |
+   | `default_y_scale = "40db"`                                            | `VISUALIZATION.DEFAULT_Y_SCALE: 40`                                    |
+   | `watermark_text`, `watermark_image_url`                               | `WATERMARK: [{ TYPE, CONTENT, ... }]`                                  |
+   | `rig_description`                                                     | `VISUALIZATION.RIG_DESCRIPTION`                                        |
+   | `labelsPosition = "bottom-left"`                                      | `VISUALIZATION.LABEL.LOCATION: "BOTTOM_LEFT"`                          |
+   | `headerLinks = [...]`                                                 | `TOPBAR.LINK_LIST: [...]`                                              |
+   | `page_title`, `page_description`                                      | Set in `index.html` `<title>` / `<meta>` (step 6)                      |
+   | `themingEnabled`, `alt_layout`, `alt_*` flags                         | Not needed — v2's theme and layout are always on                       |
+   | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Device PEQ             |
+   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/`      |
+   | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
+   | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
+   | `allowSquigDownload`, `analyticsEnabled`                              | `SQUIGLINK.ENABLE_*` fields                                            |
+   | `default_DF_name`                                                     | Used as the name in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`             |
 
-    For the field-by-field reference of every v2 option, see [Customizing the Page → `config.js`](./guide-for-admins/customize-page#changing-basic-settings-configjs).
+   For the field-by-field reference of every v2 option, see [Customizing the Page → `config.js`](./guide-for-admins/customize-page#changing-basic-settings-configjs).
 
 5. **Generate a new `theme.css`** — use the [**Theme Generator**](/theme-generator) to build a v2-compatible theme visually. You can eyeball the colors from your old stylesheets:
 
-    - **Lab**: start from `styles/dark.css` / `styles/white.css` for the dark/light palettes and `style-alt-theme.css` for accent colors.
-    - **PublicGraphTool**: `assets/css/extra.css` holds most of the custom CSS variables (look for `--accent-color-contrast`, `--background-color`); `dark.css` / `theme-*.css` hold the rest.
-    - **Vanilla**: `style.css` and `style-alt.css`.
+   - **Lab**: start from `styles/dark.css` / `styles/white.css` for the dark/light palettes and `style-alt-theme.css` for accent colors.
+   - **PublicGraphTool**: `assets/css/extra.css` holds most of the custom CSS variables (look for `--accent-color-contrast`, `--background-color`); `dark.css` / `theme-*.css` hold the rest.
+   - **Vanilla**: `style.css` and `style-alt.css`.
 
-    Drop the generated `theme.css` alongside your new `index.html` and `config.js`.
+   Drop the generated `theme.css` alongside your new `index.html` and `config.js`.
 
 6. **Migrate page metadata (`index.html`)** — v2 ships with its own `index.html`; the edits you made to your CrinGraph `index.html` do **not** carry over automatically. Re-apply them:
 
-    - `<title>` and `<meta name="title">` (CrinGraph `page_title`)
-    - `<meta name="description">` (CrinGraph `page_description`)
-    - Open Graph tags: `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<meta property="og:image">`
-    - `<link rel="canonical">`
-    - Favicons: `<link rel="icon">`, `<link rel="shortcut icon">`, `<link rel="apple-touch-icon">` — repoint these to your own image files (copy them into `assets/images/` first)
-    - `<meta name="apple-mobile-web-app-title">`
-    - Web app manifest: `<link rel="manifest">` (if you have one)
+   - `<title>` and `<meta name="title">` (CrinGraph `page_title`)
+   - `<meta name="description">` (CrinGraph `page_description`)
+   - Open Graph tags: `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<meta property="og:image">`
+   - `<link rel="canonical">`
+   - Favicons: `<link rel="icon">`, `<link rel="shortcut icon">`, `<link rel="apple-touch-icon">` — repoint these to your own image files (copy them into `assets/images/` first)
+   - `<meta name="apple-mobile-web-app-title">`
+   - Web app manifest: `<link rel="manifest">` (if you have one)
 
-    The [Customizing the Page → Changing Page Metadata](./guide-for-admins/customize-page#changing-page-metadata-indexhtml) section has the full field-by-field reference.
+   The [Customizing the Page → Changing Page Metadata](./guide-for-admins/customize-page#changing-page-metadata-indexhtml) section has the full field-by-field reference.
 
-    **Things that should NOT be carried over from your CrinGraph `index.html`:**
+   **Things that should NOT be carried over from your CrinGraph `index.html`:**
 
-    - `<script src="https://squig.link/squigsites.js"></script>` — v2 has native squig.link integration. Enable it via the `SQUIGLINK` section in `config.js` instead. Cross-site search, sponsor banner, and multi-GA4 analytics are all built in.
-    - `<script src="assets/js/graphAnalytics.js"></script>` — v2 analytics are routed through `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS` (an array, so multi-tag support works out of the box).
-    - `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2 has a built-in color picker on every curve's color swatch.
-    - `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` tags — not a v2 feature.
-    - `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool-specific; not applicable to v2.
-    - Google Fonts `<link>` tags for Open Sans / Source Sans Pro — v2 ships with the Pretendard Variable font by default. Keep them only if you're intentionally replacing the font stack.
+   - `<script src="https://squig.link/squigsites.js"></script>` — v2 has native squig.link integration. Enable it via the `SQUIGLINK` section in `config.js` instead. Cross-site search, sponsor banner, and multi-GA4 analytics are all built in.
+   - `<script src="assets/js/graphAnalytics.js"></script>` — v2 analytics are routed through `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS` (an array, so multi-tag support works out of the box).
+   - `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2 has a built-in color picker on every curve's color swatch.
+   - `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` tags — not a v2 feature.
+   - `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool-specific; not applicable to v2.
+   - Google Fonts `<link>` tags for Open Sans / Source Sans Pro — v2 ships with the Pretendard Variable font by default. Keep them only if you're intentionally replacing the font stack.
 
-    :::info[Source builders]
-    If you build from source, edit `src/app.html` instead of `index.html`. The output `dist/index.html` is generated from that template.
-    :::
+   :::info[Source builders]
+   If you build from source, edit `src/app.html` instead of `index.html`. The output `dist/index.html` is generated from that template.
+   :::
 
 7. **Delete CrinGraph-specific files** — once steps 1–6 are complete, your old CrinGraph files are no longer needed in the v2 folder. Safe to remove:
 
-    - `graphtool.js`, `equalizer.js`, `listAugment.js`, `saveSvgAsPng.js`, `graphAnalytics.js`
-    - `d3.v5.min.js`, `d3-selection-multi.v1.min.js`, `fuse.min.js`, `reinvented-color-wheel.min.js`
-    - `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` (folder), `extra.css`, any CrinGraph-specific theme CSS
-    - `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (keep your own branding images)
-    - `90inclusion.js`, audio asset files if they were only used by the old `<audio>` tags
-    - `devicePEQ/` plugin folder — v2 has built-in Device PEQ
-    - Old `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
+   - `graphtool.js`, `equalizer.js`, `listAugment.js`, `saveSvgAsPng.js`, `graphAnalytics.js`
+   - `d3.v5.min.js`, `d3-selection-multi.v1.min.js`, `fuse.min.js`, `reinvented-color-wheel.min.js`
+   - `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` (folder), `extra.css`, any CrinGraph-specific theme CSS
+   - `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (keep your own branding images)
+   - `90inclusion.js`, audio asset files if they were only used by the old `<audio>` tags
+   - `devicePEQ/` plugin folder — v2 has built-in Device PEQ
+   - Old `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
 
-    Keep your `data/` folder, your new `config.js`, your new `theme.css`, your favicon/watermark images, and v2's own files.
+   Keep your `data/` folder, your new `config.js`, your new `theme.css`, your favicon/watermark images, and v2's own files.
 
 8. **Test locally** and deploy.
 

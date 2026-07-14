@@ -4,7 +4,7 @@ A modernGraphTool-compatible wrapper for the devicePEQ project, enabling direct 
 
 ## Overview
 
-The Device PEQ extension integrates the powerful [devicePEQ plugin by jeromeof][DEVICEPEQ] into modernGraphTool, allowing users to send equalizer settings directly to compatible audio devices. 
+The Device PEQ extension integrates the powerful [devicePEQ plugin by jeromeof][DEVICEPEQ] into modernGraphTool, allowing users to send equalizer settings directly to compatible audio devices.
 
 This extension provides a bridge between modernGraphTool's measurement analysis capabilities and real-world audio device control.
 
@@ -18,17 +18,18 @@ This extension provides a bridge between modernGraphTool's measurement analysis 
 
 ## Technical Specifications
 
-| Property | Value |
-|----------|-------|
-| **Extension Name** | `device-peq` |
-| **Latest Version** | 1.0.2 |
-| **Minimum Core API Level** | 1 |
-| **Minimum Core Version** | 1.0.0 |
-| **I18N Support** | No |
+| Property                   | Value        |
+| -------------------------- | ------------ |
+| **Extension Name**         | `device-peq` |
+| **Latest Version**         | 1.0.2        |
+| **Minimum Core API Level** | 1            |
+| **Minimum Core Version**   | 1.0.0        |
+| **I18N Support**           | No           |
 
 ## Dependencies
 
 ### Required Extensions
+
 - **Equalizer Extension**: This extension requires the `equalizer` extension to be installed and enabled first
 
 ## Configuration
@@ -61,11 +62,13 @@ This extension provides a bridge between modernGraphTool's measurement analysis 
 ## Usage
 
 ### Device Connection
+
 1. **Connect Device**: Use the connect button to establish connection with your audio device
 2. **Device Info**: View device information and capabilities
 3. **Slot Management**: Select and manage available PEQ slots on your device
 
 ### EQ Transfer
+
 1. **Set Filters**: Configure your EQ settings in the equalizer extension
 2. **Transfer to Device**: Use the device-peq controls to send settings to hardware
 
@@ -80,6 +83,7 @@ Device support depends on the underlying devicePEQ plugin. Check the info dialog
 ## Advanced Features
 
 When `ADVANCED: true` is enabled:
+
 - Access to advanced device configuration dialogs
 - Extended device manipulation capabilities
 - Additional troubleshooting tools
@@ -105,7 +109,8 @@ The devicePEQ plugin files are located in `extensions/device-peq/devicePEQ/`. To
 
 ## Third-party Acknowledgments
 
-This extension includes and wraps the [devicePEQ plugin by jeromeof][DEVICEPEQ]. 
+This extension includes and wraps the [devicePEQ plugin by jeromeof][DEVICEPEQ].
+
 - **Repository**: https://github.com/jeromeof/devicePEQ
 - **License**: 0BSD License
 

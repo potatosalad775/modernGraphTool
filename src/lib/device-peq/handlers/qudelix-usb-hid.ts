@@ -127,11 +127,7 @@ function encodeInt16LE(value: number): [number, number] {
 	return [signed & 0xff, (signed >> 8) & 0xff];
 }
 
-async function sendCommand(
-	device: HIDDevice,
-	cmdType: number,
-	payload: number[]
-): Promise<void> {
+async function sendCommand(device: HIDDevice, cmdType: number, payload: number[]): Promise<void> {
 	const len = payload.length + 2; // +2 for the 0x80 marker and length byte
 	const packet = new Uint8Array(64);
 	packet[0] = len;
@@ -167,10 +163,7 @@ export const qudelixUsbHidHandler: DeviceHandler = {
 		const device = deviceDetails.rawDevice as HIDDevice;
 		const reports = initHidReports(device);
 
-		console.warn(
-			'Qudelix: pullFromDevice is EXPERIMENTAL. HID reports:',
-			reports
-		);
+		console.warn('Qudelix: pullFromDevice is EXPERIMENTAL. HID reports:', reports);
 
 		const filters: DeviceFilter[] = [];
 		const globalGain = 0;

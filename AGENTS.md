@@ -207,11 +207,11 @@ This is separate from Paraglide UI-string i18n.
 Translators never touch `messages/<locale>.json` directly — they edit a generated staging file
 that contains only the keys they need to fill in:
 
-| Command              | Who         | What it does                                                                                                 |
-| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------ |
-| `npm run i18n:check` | anyone      | Reports missing / stale keys per locale. Changes nothing.                                                     |
-| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text.   |
-| `npm run i18n:apply` | maintainer  | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.           |
+| Command                | Who        | What it does                                                                                                |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `npm run i18n:check`   | anyone     | Reports missing / stale keys per locale. Changes nothing.                                                   |
+| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text. |
+| `npm run i18n:apply`   | maintainer | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.         |
 
 1. A key is added to `messages/en.json` → run `npm run i18n:missing` to regenerate the staging files.
 2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they're unsure
@@ -221,6 +221,7 @@ that contains only the keys they need to fill in:
 `i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys
 rather than dropping them. Use `--dry-run` to preview. Paraglide ignores
 `_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
+
 - Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
 
 ## CSS / Theming

@@ -42,10 +42,13 @@ The base DF target file is resolved from the same folder your other target curve
 ## Data File Format
 
 ### Boundary Data Files
+
 The feature requires two boundary data files in the `data/` directory (alongside `phones/` and `target/`):
 
 #### Upper Boundary (`Bounds U.txt`)
+
 Contains frequency response data for the upper preference boundary:
+
 ```
 20.0	2.5
 25.0	2.8
@@ -54,7 +57,9 @@ Contains frequency response data for the upper preference boundary:
 ```
 
 #### Lower Boundary (`Bounds D.txt`)
+
 Contains frequency response data for the lower preference boundary:
+
 ```
 20.0	-2.5
 25.0	-2.8
@@ -63,6 +68,7 @@ Contains frequency response data for the lower preference boundary:
 ```
 
 #### Base Target File
+
 The base DF target file is **resolved from `PATH.TARGET_MEASUREMENT`** in `config.js` — the same folder where every other target curve lives (default: `./data/target/`). You do **not** need to duplicate the target file into another folder; the preference bound loader reads it directly from the regular target directory using the file name you set in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`.
 
 For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data/target/KEMAR DF (KB006x) Target.txt` (or whichever path you've configured in `PATH.TARGET_MEASUREMENT`).
@@ -70,11 +76,13 @@ For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data
 ## Usage
 
 ### Basic Operation
+
 1. **Toggle Control**: Use the toggle button to show/hide boundaries
 2. **Target Alignment**: Boundaries automatically align with the selected base target
 3. **Real-time Updates**: Boundaries update when changing targets or measurements
 
 ### Visual Interpretation
+
 - **Filled Area**: The area between upper and lower bounds represents the preference range
 - **Target Baseline**: Boundaries are relative to the selected diffuse field target
 - **Measurement Overlay**: Compare headphone measurements against preference boundaries

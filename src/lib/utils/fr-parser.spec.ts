@@ -290,7 +290,7 @@ describe('FRParser', () => {
 			// Non-existent files will fail fetch and return null
 			const result = await FRParser.getFRSampleData([
 				{ L: 'nonexistent_L1.txt', R: 'nonexistent_R1.txt' },
-				{ L: 'nonexistent_L2.txt', R: 'nonexistent_R2.txt' },
+				{ L: 'nonexistent_L2.txt', R: 'nonexistent_R2.txt' }
 			]);
 			// Samples should exist but be empty objects
 			expect(result.samples.length).toBe(2);
@@ -344,7 +344,7 @@ describe('FRParser', () => {
 			const result = await FRParser.getFRHpTFData(
 				[
 					{ L: 'nonexistent_sample1_L.txt', R: 'nonexistent_sample1_R.txt' },
-					{ L: 'nonexistent_sample2_L.txt', R: 'nonexistent_sample2_R.txt' },
+					{ L: 'nonexistent_sample2_L.txt', R: 'nonexistent_sample2_R.txt' }
 				],
 				['Sample A', 'Sample B']
 			);

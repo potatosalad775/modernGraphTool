@@ -41,10 +41,7 @@ function buildRequestOptions(config: BleDeviceConfig[]): RequestDeviceOptions {
 	return requestOptions;
 }
 
-function matchConfigEntry(
-	deviceName: string,
-	config: BleDeviceConfig[]
-): BleDeviceConfig | null {
+function matchConfigEntry(deviceName: string, config: BleDeviceConfig[]): BleDeviceConfig | null {
 	if (!deviceName) return null;
 	return (
 		config.find((entry) => {
@@ -61,9 +58,7 @@ function matchConfigEntry(
 
 function resolveModelConfig(entry: BleDeviceConfig, deviceName: string): DeviceModelConfig {
 	const deviceDetails =
-		entry.devices?.[deviceName] ||
-		entry.devices?.[Object.keys(entry.devices || {})[0]] ||
-		{};
+		entry.devices?.[deviceName] || entry.devices?.[Object.keys(entry.devices || {})[0]] || {};
 	return {
 		...(entry.defaultModelConfig || ({} as DeviceModelConfig)),
 		...deviceDetails.modelConfig
@@ -188,10 +183,7 @@ export async function pushToDevice(
 	return await device.handler.pushToDevice(device, slot, preamp, filtersToWrite);
 }
 
-export async function pullFromDevice(
-	device: ConnectedDevice,
-	slot: number
-): Promise<PullResult> {
+export async function pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult> {
 	if (device?.handler) {
 		return await device.handler.pullFromDevice(device, slot);
 	}

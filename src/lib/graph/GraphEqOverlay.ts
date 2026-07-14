@@ -73,9 +73,7 @@ export class GraphEqOverlay {
 			.attr('clip-path', `url(#${GraphEqOverlay.CLIP_ID})`);
 
 		// Inner overlay group — handle applies transform to this
-		this.overlayGroup = this.clipWrapper
-			.append('g')
-			.attr('class', 'fr-graph-eq-overlay');
+		this.overlayGroup = this.clipWrapper.append('g').attr('class', 'fr-graph-eq-overlay');
 
 		this.graphEngine.orderOverlayLayers();
 	}
@@ -124,11 +122,7 @@ export class GraphEqOverlay {
 			.call(this._buildDragBehavior());
 
 		// Transparent hit area (larger than visible dot for easier grabbing)
-		entered
-			.append('circle')
-			.attr('class', 'eq-hit-area')
-			.attr('r', 16)
-			.attr('fill', 'transparent');
+		entered.append('circle').attr('class', 'eq-hit-area').attr('r', 16).attr('fill', 'transparent');
 
 		// Q ring
 		entered
@@ -207,15 +201,14 @@ export class GraphEqOverlay {
 			}
 		});
 
-		merged.select<SVGCircleElement>('.eq-q-ring')
+		merged
+			.select<SVGCircleElement>('.eq-q-ring')
 			.attr('r', (d) => this._qToRadius(d.filter.q!))
 			.attr('stroke', curveColor);
 
-		merged.select<SVGCircleElement>('.eq-center-dot')
-			.attr('fill', curveColor);
+		merged.select<SVGCircleElement>('.eq-center-dot').attr('fill', curveColor);
 
-		merged.select<SVGTextElement>('.eq-freq-label')
-			.text((d) => this._formatFreq(d.filter.freq!));
+		merged.select<SVGTextElement>('.eq-freq-label').text((d) => this._formatFreq(d.filter.freq!));
 	}
 
 	setEqPanelActive(active: boolean): void {
@@ -257,11 +250,13 @@ export class GraphEqOverlay {
 	 * Pick the primary channel data from ParsedFRData.
 	 * Prefers AVG, then falls back to first displayed channel.
 	 */
-	private _pickChannelData(channels: ParsedFRData, dispChannelOverride?: string[]): FRDataPoint[] | null {
-		const dispChannels = dispChannelOverride
-			?? frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel
-			?? frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel
-			?? ['AVG'];
+	private _pickChannelData(
+		channels: ParsedFRData,
+		dispChannelOverride?: string[]
+	): FRDataPoint[] | null {
+		const dispChannels = dispChannelOverride ??
+			frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel ??
+			frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel ?? ['AVG'];
 
 		let channelKey: 'L' | 'R' | 'AVG';
 		if (channels.AVG && dispChannels.includes('AVG')) {
@@ -292,10 +287,7 @@ export class GraphEqOverlay {
 
 		// Baseline compensation
 		const baselineData = this.graphEngine.baselineData;
-		if (
-			Array.isArray(baselineData.channelData) &&
-			baselineData.channelData.length > 0
-		) {
+		if (Array.isArray(baselineData.channelData) && baselineData.channelData.length > 0) {
 			const baselineDb = lookupFRValueAtFreq(baselineData.channelData, freq);
 			if (baselineDb !== null) {
 				compensatedDb -= baselineDb;
@@ -336,7 +328,10 @@ export class GraphEqOverlay {
 		return d3
 			.drag<SVGGElement, BandDatum>()
 			.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const nodeEl = d3.select(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element ?? _event.sourceEvent.currentTarget);
+				const nodeEl = d3.select(
+					(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element) ??
+						_event.sourceEvent.currentTarget
+				);
 				nodeEl.style('cursor', 'grabbing').raise();
 				nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
 				nodeEl.select('.eq-q-ring').attr('opacity', 0.8);
@@ -435,45 +430,42 @@ export class GraphEqOverlay {
 					);
 				}
 			})
-			.on(
-				'end',
-				(event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-					const xs = this.graphEngine.xScale;
-					const ys = this.graphEngine.baseYScale;
-					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+			.on('end', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
+				const xs = this.graphEngine.xScale;
+				const ys = this.graphEngine.baseYScale;
+				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
-					let gain: number;
+				let gain: number;
 
-					if (dragState?.isPK && dragState.baseCurveDb !== null) {
-						const targetDb = ys.invert(event.y);
-						gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
-					} else {
-						gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
-					}
-					if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
-
-					// Cancel pending throttle and commit final position
-					const pending = this._dragThrottleTimers.get(d.index);
-					if (pending !== undefined) {
-						clearTimeout(pending);
-						this._dragThrottleTimers.delete(d.index);
-					}
-					eqStore.updateBandAt(d.index, {
-						freq: Math.round(freq),
-						gain: parseFloat(gain.toFixed(1))
-					});
-
-					const endNode = this.overlayGroup
-						.selectAll<SVGGElement, BandDatum>('.eq-band-node')
-						.filter((n) => n.index === d.index);
-					endNode.style('cursor', 'grab');
-					endNode.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
-					endNode.select('.eq-q-ring').attr('opacity', 0.5);
-
-					dragState = null;
+				if (dragState?.isPK && dragState.baseCurveDb !== null) {
+					const targetDb = ys.invert(event.y);
+					gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
+				} else {
+					gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
 				}
-			);
+				if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
+
+				// Cancel pending throttle and commit final position
+				const pending = this._dragThrottleTimers.get(d.index);
+				if (pending !== undefined) {
+					clearTimeout(pending);
+					this._dragThrottleTimers.delete(d.index);
+				}
+				eqStore.updateBandAt(d.index, {
+					freq: Math.round(freq),
+					gain: parseFloat(gain.toFixed(1))
+				});
+
+				const endNode = this.overlayGroup
+					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
+					.filter((n) => n.index === d.index);
+				endNode.style('cursor', 'grab');
+				endNode.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
+				endNode.select('.eq-q-ring').attr('opacity', 0.5);
+
+				dragState = null;
+			});
 	}
 
 	// ── Click-to-add ───────────────────────────────────────────────────────────
@@ -511,9 +503,7 @@ export class GraphEqOverlay {
 				// PK on curve: gain = clicked position minus current curve value
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
-					const gain = parseFloat(
-						Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1)
-					);
+					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
 					eqStore.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
 				}
 			});

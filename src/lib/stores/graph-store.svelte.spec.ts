@@ -122,8 +122,12 @@ describe('GraphStore', () => {
 		});
 
 		it('can store data for multiple targets', () => {
-			const dataA: ParsedFRData = { AVG: { data: [[500, 70]], metadata: { minFreq: 20, maxFreq: 20000 } } };
-			const dataB: ParsedFRData = { AVG: { data: [[500, 85]], metadata: { minFreq: 20, maxFreq: 20000 } } };
+			const dataA: ParsedFRData = {
+				AVG: { data: [[500, 70]], metadata: { minFreq: 20, maxFreq: 20000 } }
+			};
+			const dataB: ParsedFRData = {
+				AVG: { data: [[500, 85]], metadata: { minFreq: 20, maxFreq: 20000 } }
+			};
 			graphStore.targetOriginalData.set('a', dataA);
 			graphStore.targetOriginalData.set('b', dataB);
 			expect(graphStore.targetOriginalData.size).toBe(2);

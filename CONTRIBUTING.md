@@ -46,11 +46,11 @@ npm run format
 
 This project uses **Svelte 5 with Runes** (enforced globally). Always use the Runes API:
 
-| Use | Don't use |
-|-----|-----------|
-| `let x = $state(value)` | `writable(value)` |
-| `let y = $derived(expr)` | `$: y = expr` |
-| `$effect(() => { ... })` | `afterUpdate` |
+| Use                       | Don't use         |
+| ------------------------- | ----------------- |
+| `let x = $state(value)`   | `writable(value)` |
+| `let y = $derived(expr)`  | `$: y = expr`     |
+| `$effect(() => { ... })`  | `afterUpdate`     |
 | `let { prop } = $props()` | `export let prop` |
 
 Stores are reactive class instances in `.svelte.ts` files, not plain `.ts` files. See `CLAUDE.md` for detailed architecture and conventions.
@@ -63,13 +63,13 @@ build time into `src/lib/paraglide/`, so adding strings or locales always means 
 
 ### How it fits together
 
-| Piece | Location | Role |
-|-------|----------|------|
-| Locale list | `project.inlang/settings.json` | `baseLocale` + `locales` array — the source of truth for which languages exist |
-| Message sources | `messages/<locale>.json` | One file per locale; flat `key → string` map |
-| Generated code | `src/lib/paraglide/` | Auto-generated message functions + `runtime` — **never hand-edit** |
-| Build hook | `paraglideVitePlugin` in `vite.config.ts` | Regenerates `src/lib/paraglide/` on every `dev` / `build` |
-| Language picker | `MiscPanel.svelte` | Reads `locales` from the runtime — no per-language code needed |
+| Piece           | Location                                  | Role                                                                           |
+| --------------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| Locale list     | `project.inlang/settings.json`            | `baseLocale` + `locales` array — the source of truth for which languages exist |
+| Message sources | `messages/<locale>.json`                  | One file per locale; flat `key → string` map                                   |
+| Generated code  | `src/lib/paraglide/`                      | Auto-generated message functions + `runtime` — **never hand-edit**             |
+| Build hook      | `paraglideVitePlugin` in `vite.config.ts` | Regenerates `src/lib/paraglide/` on every `dev` / `build`                      |
+| Language picker | `MiscPanel.svelte`                        | Reads `locales` from the runtime — no per-language code needed                 |
 
 The picker dropdown derives its options from the generated `locales` array and labels each with
 the language's own endonym via `Intl.DisplayNames`, so a newly registered locale shows up
@@ -102,8 +102,8 @@ To read or change the locale programmatically, import from the generated runtime
 ```ts
 import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
 
-getLocale();        // 'en'
-setLocale('ko');    // switch (persists via localStorage strategy)
+getLocale(); // 'en'
+setLocale('ko'); // switch (persists via localStorage strategy)
 ```
 
 ### Adding a new translation key
@@ -129,11 +129,11 @@ and deletes the staging file. You never have to touch the main dictionary or res
 
 Maintainer-side commands:
 
-| Command                | What it does                                                                 |
-| ---------------------- | --------------------------------------------------------------------------- |
-| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.                    |
-| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files.          |
-| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them.          |
+| Command                | What it does                                                        |
+| ---------------------- | ------------------------------------------------------------------- |
+| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.           |
+| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files. |
+| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them. |
 
 ### Adding a new language option
 

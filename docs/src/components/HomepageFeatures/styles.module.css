@@ -1,101 +1,104 @@
 .features {
-  display: flex;
-  align-items: center;
-  padding: 4rem 0 5rem;
-  width: 100%;
+	display: flex;
+	align-items: center;
+	padding: 4rem 0 5rem;
+	width: 100%;
 }
 
 .featuresHeader {
-  text-align: center;
-  max-width: 42rem;
-  margin: 0 auto 3rem;
+	text-align: center;
+	max-width: 42rem;
+	margin: 0 auto 3rem;
 }
 
 .featuresHeading {
-  font-size: 2.25rem;
-  margin: 0 0 0.75rem;
+	font-size: 2.25rem;
+	margin: 0 0 0.75rem;
 }
 
 .featuresSubheading {
-  font-size: 1.0625rem;
-  color: var(--ifm-color-content-secondary);
-  margin: 0;
+	font-size: 1.0625rem;
+	color: var(--ifm-color-content-secondary);
+	margin: 0;
 }
 
 .featuresRow {
-  align-items: stretch;
-  row-gap: 1.5rem;
+	align-items: stretch;
+	row-gap: 1.5rem;
 }
 
 .featureCol {
-  display: flex;
+	display: flex;
 }
 
 .featureCard {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  padding: 1.75rem 1.5rem 1.5rem;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 0.875rem;
-  background-color: var(--ifm-background-surface-color);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	padding: 1.75rem 1.5rem 1.5rem;
+	border: 1px solid var(--ifm-color-emphasis-200);
+	border-radius: 0.875rem;
+	background-color: var(--ifm-background-surface-color);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	transition:
+		transform 0.18s ease,
+		box-shadow 0.18s ease,
+		border-color 0.18s ease;
 }
 
 .featureCard:hover {
-  transform: translateY(-2px);
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.18);
+	transform: translateY(-2px);
+	border-color: var(--ifm-color-primary);
+	box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.18);
 }
 
 .featureBody {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
 }
 
 .featureTitle {
-  font-size: 1.25rem;
-  margin: 0 0 0.625rem;
+	font-size: 1.25rem;
+	margin: 0 0 0.625rem;
 }
 
 .featureDescription {
-  color: var(--ifm-color-content-secondary);
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  margin: 0 0 1.5rem;
+	color: var(--ifm-color-content-secondary);
+	font-size: 0.9375rem;
+	line-height: 1.55;
+	margin: 0 0 1.5rem;
 }
 
 .featureButton {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: auto;
+	align-self: flex-start;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: auto;
 }
 
 .featureButtonArrow {
-  display: inline-block;
-  transition: transform 0.18s ease;
+	display: inline-block;
+	transition: transform 0.18s ease;
 }
 
 .featureButton:hover .featureButtonArrow,
 .featureCard:hover .featureButtonArrow {
-  transform: translateX(3px);
+	transform: translateX(3px);
 }
 
 @media screen and (max-width: 996px) {
-  .features {
-    padding: 3rem 0;
-  }
+	.features {
+		padding: 3rem 0;
+	}
 
-  .featuresHeading {
-    font-size: 1.75rem;
-  }
+	.featuresHeading {
+		font-size: 1.75rem;
+	}
 
-  .featureCard {
-    padding: 1.5rem 1.25rem 1.25rem;
-  }
+	.featureCard {
+		padding: 1.5rem 1.25rem 1.25rem;
+	}
 }

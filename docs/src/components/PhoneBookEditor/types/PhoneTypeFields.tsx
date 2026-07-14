@@ -13,369 +13,367 @@ import pbStyles from '../PhoneBookEditor.module.css';
  */
 
 interface FieldsProps {
-  phone: PhoneState;
-  onPatch: (patch: Partial<PhoneState>) => void;
+	phone: PhoneState;
+	onPatch: (patch: Partial<PhoneState>) => void;
 }
 
 // ── Simple ──────────────────────────────────────────────────────────────────
 
 export function SimplePhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const value = phone.simple?.value ?? '';
-  return (
-    <div className={ceStyles.ceFieldGroup}>
-      <label className={ceStyles.ceLabel}>
-        Device Name
-        <span className={ceStyles.ceLabelHint}>
-          (the tool will load <code>{value || 'Name'} L.txt</code> and <code>{value || 'Name'} R.txt</code>)
-        </span>
-      </label>
-      <input
-        type="text"
-        className={ceStyles.ceInput}
-        value={value}
-        onChange={(e) => onPatch({ simple: { value: e.target.value } })}
-        placeholder="e.g. ModelX"
-      />
-    </div>
-  );
+	const value = phone.simple?.value ?? '';
+	return (
+		<div className={ceStyles.ceFieldGroup}>
+			<label className={ceStyles.ceLabel}>
+				Device Name
+				<span className={ceStyles.ceLabelHint}>
+					(the tool will load <code>{value || 'Name'} L.txt</code> and{' '}
+					<code>{value || 'Name'} R.txt</code>)
+				</span>
+			</label>
+			<input
+				type="text"
+				className={ceStyles.ceInput}
+				value={value}
+				onChange={(e) => onPatch({ simple: { value: e.target.value } })}
+				placeholder="e.g. ModelX"
+			/>
+		</div>
+	);
 }
 
 // ── Detailed ────────────────────────────────────────────────────────────────
 
 export function DetailedPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const d = phone.detailed ?? { name: '', file: '' };
-  const patch = (next: Partial<typeof d>) => onPatch({ detailed: { ...d, ...next } });
-  return (
-    <>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>Display Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={d.name}
-          placeholder="e.g. Model D1"
-          onChange={(e) => patch({ name: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          File Base Name
-          <span className={ceStyles.ceLabelHint}>(without L/R and .txt)</span>
-        </label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={d.file}
-          placeholder="e.g. ModelD1_Data"
-          onChange={(e) => patch({ file: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Suffix
-          <span className={ceStyles.ceLabelHint}>(optional, appended to name)</span>
-        </label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={d.suffix ?? ''}
-          placeholder='e.g. "Rev.2" or "(Foam Tip)"'
-          onChange={(e) => patch({ suffix: e.target.value || undefined })}
-        />
-      </div>
-    </>
-  );
+	const d = phone.detailed ?? { name: '', file: '' };
+	const patch = (next: Partial<typeof d>) => onPatch({ detailed: { ...d, ...next } });
+	return (
+		<>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>Display Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={d.name}
+					placeholder="e.g. Model D1"
+					onChange={(e) => patch({ name: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					File Base Name
+					<span className={ceStyles.ceLabelHint}>(without L/R and .txt)</span>
+				</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={d.file}
+					placeholder="e.g. ModelD1_Data"
+					onChange={(e) => patch({ file: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Suffix
+					<span className={ceStyles.ceLabelHint}>(optional, appended to name)</span>
+				</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={d.suffix ?? ''}
+					placeholder='e.g. "Rev.2" or "(Foam Tip)"'
+					onChange={(e) => patch({ suffix: e.target.value || undefined })}
+				/>
+			</div>
+		</>
+	);
 }
 
 // ── Variations (parallel file/suffix arrays) ───────────────────────────────
 
 export function VariationsPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const v = phone.variations ?? { name: '', rows: [] };
-  return (
-    <>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>Base Display Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={v.name}
-          placeholder="e.g. Model V1"
-          onChange={(e) => onPatch({ variations: { ...v, name: e.target.value } })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Variants
-          <span className={ceStyles.ceLabelHint}>
-            (each row becomes one entry in the selection list)
-          </span>
-        </label>
-        <RowsEditor
-          rows={v.rows}
-          columns={[
-            { key: 'file', label: 'File base name', placeholder: 'e.g. ModelV1_Foam' },
-            { key: 'suffix', label: 'Suffix (shown in UI)', placeholder: '(Foam Tip)' },
-          ]}
-          onChange={(rows) => onPatch({ variations: { ...v, rows } })}
-          createEmpty={() => ({ file: '', suffix: '' })}
-          minRows={1}
-          addLabel="+ Add variant"
-        />
-      </div>
-    </>
-  );
+	const v = phone.variations ?? { name: '', rows: [] };
+	return (
+		<>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>Base Display Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={v.name}
+					placeholder="e.g. Model V1"
+					onChange={(e) => onPatch({ variations: { ...v, name: e.target.value } })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Variants
+					<span className={ceStyles.ceLabelHint}>
+						(each row becomes one entry in the selection list)
+					</span>
+				</label>
+				<RowsEditor
+					rows={v.rows}
+					columns={[
+						{ key: 'file', label: 'File base name', placeholder: 'e.g. ModelV1_Foam' },
+						{ key: 'suffix', label: 'Suffix (shown in UI)', placeholder: '(Foam Tip)' }
+					]}
+					onChange={(rows) => onPatch({ variations: { ...v, rows } })}
+					createEmpty={() => ({ file: '', suffix: '' })}
+					minRows={1}
+					addLabel="+ Add variant"
+				/>
+			</div>
+		</>
+	);
 }
 
 // ── Prefix variations (shared file prefix + distinct parts) ────────────────
 
 export function PrefixVariationsPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const pr = phone.prefix ?? { name: '', prefix: '', files: [] };
-  const update = (next: Partial<typeof pr>) => onPatch({ prefix: { ...pr, ...next } });
-  return (
-    <>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>Base Display Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={pr.name}
-          placeholder="e.g. Model P1"
-          onChange={(e) => update({ name: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Common File Prefix
-          <span className={ceStyles.ceLabelHint}>
-            (the parser looks for <code>prefix + file[i] L.txt</code>)
-          </span>
-        </label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={pr.prefix}
-          placeholder="e.g. BrandP ModelP1"
-          onChange={(e) => update({ prefix: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Distinguishing Parts
-          <span className={ceStyles.ceLabelHint}>
-            (used both as UI suffix and to build the filename)
-          </span>
-        </label>
-        <RowsEditor
-          rows={pr.files.map((f) => ({ file: f }))}
-          columns={[{ key: 'file', label: 'Part (e.g. "(Foam Tip)")', placeholder: '(Foam Tip)' }]}
-          onChange={(rows) => update({ files: rows.map((r) => r.file) })}
-          createEmpty={() => ({ file: '' })}
-          minRows={1}
-          addLabel="+ Add part"
-        />
-      </div>
-    </>
-  );
+	const pr = phone.prefix ?? { name: '', prefix: '', files: [] };
+	const update = (next: Partial<typeof pr>) => onPatch({ prefix: { ...pr, ...next } });
+	return (
+		<>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>Base Display Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={pr.name}
+					placeholder="e.g. Model P1"
+					onChange={(e) => update({ name: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Common File Prefix
+					<span className={ceStyles.ceLabelHint}>
+						(the parser looks for <code>prefix + file[i] L.txt</code>)
+					</span>
+				</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={pr.prefix}
+					placeholder="e.g. BrandP ModelP1"
+					onChange={(e) => update({ prefix: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Distinguishing Parts
+					<span className={ceStyles.ceLabelHint}>
+						(used both as UI suffix and to build the filename)
+					</span>
+				</label>
+				<RowsEditor
+					rows={pr.files.map((f) => ({ file: f }))}
+					columns={[{ key: 'file', label: 'Part (e.g. "(Foam Tip)")', placeholder: '(Foam Tip)' }]}
+					onChange={(rows) => update({ files: rows.map((r) => r.file) })}
+					createEmpty={() => ({ file: '' })}
+					minRows={1}
+					addLabel="+ Add part"
+				/>
+			</div>
+		</>
+	);
 }
 
 // ── Multi-sample ───────────────────────────────────────────────────────────
 
 export function MultiSamplePhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const ms = phone.multiSample ?? { name: '', file: '', samples: 3 };
-  const update = (next: Partial<typeof ms>) => onPatch({ multiSample: { ...ms, ...next } });
-  return (
-    <>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>Display Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={ms.name}
-          placeholder="e.g. Multi Sample"
-          onChange={(e) => update({ name: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>File Base Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={ms.file}
-          placeholder="e.g. Multi Sample"
-          onChange={(e) => update({ file: e.target.value })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Number of Samples
-          <span className={ceStyles.ceLabelHint}>
-            (loads <code>{ms.file || 'File'} L1.txt … L{ms.samples}.txt</code>)
-          </span>
-        </label>
-        <input
-          type="number"
-          min={2}
-          max={20}
-          className={`${ceStyles.ceInput} ${ceStyles.ceInputSmall}`}
-          value={ms.samples}
-          onChange={(e) => update({ samples: Math.max(2, Number(e.target.value) || 2) })}
-        />
-      </div>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>
-          Suffix
-          <span className={ceStyles.ceLabelHint}>(optional)</span>
-        </label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={ms.suffix ?? ''}
-          placeholder=""
-          onChange={(e) => update({ suffix: e.target.value || undefined })}
-        />
-      </div>
-    </>
-  );
+	const ms = phone.multiSample ?? { name: '', file: '', samples: 3 };
+	const update = (next: Partial<typeof ms>) => onPatch({ multiSample: { ...ms, ...next } });
+	return (
+		<>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>Display Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={ms.name}
+					placeholder="e.g. Multi Sample"
+					onChange={(e) => update({ name: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>File Base Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={ms.file}
+					placeholder="e.g. Multi Sample"
+					onChange={(e) => update({ file: e.target.value })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Number of Samples
+					<span className={ceStyles.ceLabelHint}>
+						(loads{' '}
+						<code>
+							{ms.file || 'File'} L1.txt … L{ms.samples}.txt
+						</code>
+						)
+					</span>
+				</label>
+				<input
+					type="number"
+					min={2}
+					max={20}
+					className={`${ceStyles.ceInput} ${ceStyles.ceInputSmall}`}
+					value={ms.samples}
+					onChange={(e) => update({ samples: Math.max(2, Number(e.target.value) || 2) })}
+				/>
+			</div>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>
+					Suffix
+					<span className={ceStyles.ceLabelHint}>(optional)</span>
+				</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={ms.suffix ?? ''}
+					placeholder=""
+					onChange={(e) => update({ suffix: e.target.value || undefined })}
+				/>
+			</div>
+		</>
+	);
 }
 
 // ── HpTF ───────────────────────────────────────────────────────────────────
 
 const createEmptyHpTFEntry = (): HpTFEntry => ({
-  rows: [
-    { file: '', label: '' },
-    { file: '', label: '' },
-  ],
-  fillOnly: true,
+	rows: [
+		{ file: '', label: '' },
+		{ file: '', label: '' }
+	],
+	fillOnly: true
 });
 
 export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-  const h = phone.hptfs ?? { name: '', entries: [createEmptyHpTFEntry()] };
-  const updateWrapper = (next: Partial<typeof h>) =>
-    onPatch({ hptfs: { ...h, ...next } });
-  const updateEntry = (index: number, next: Partial<HpTFEntry>) => {
-    const copy = [...h.entries];
-    copy[index] = { ...copy[index], ...next };
-    updateWrapper({ entries: copy });
-  };
-  const removeEntry = (index: number) => {
-    if (h.entries.length <= 1) return;
-    updateWrapper({ entries: h.entries.filter((_, i) => i !== index) });
-  };
-  const addEntry = () => {
-    updateWrapper({ entries: [...h.entries, createEmptyHpTFEntry()] });
-  };
+	const h = phone.hptfs ?? { name: '', entries: [createEmptyHpTFEntry()] };
+	const updateWrapper = (next: Partial<typeof h>) => onPatch({ hptfs: { ...h, ...next } });
+	const updateEntry = (index: number, next: Partial<HpTFEntry>) => {
+		const copy = [...h.entries];
+		copy[index] = { ...copy[index], ...next };
+		updateWrapper({ entries: copy });
+	};
+	const removeEntry = (index: number) => {
+		if (h.entries.length <= 1) return;
+		updateWrapper({ entries: h.entries.filter((_, i) => i !== index) });
+	};
+	const addEntry = () => {
+		updateWrapper({ entries: [...h.entries, createEmptyHpTFEntry()] });
+	};
 
-  return (
-    <>
-      <div className={ceStyles.ceFieldGroup}>
-        <label className={ceStyles.ceLabel}>Display Name</label>
-        <input
-          type="text"
-          className={ceStyles.ceInput}
-          value={h.name}
-          placeholder="e.g. HpTF Fill Only"
-          onChange={(e) => updateWrapper({ name: e.target.value })}
-        />
-      </div>
+	return (
+		<>
+			<div className={ceStyles.ceFieldGroup}>
+				<label className={ceStyles.ceLabel}>Display Name</label>
+				<input
+					type="text"
+					className={ceStyles.ceInput}
+					value={h.name}
+					placeholder="e.g. HpTF Fill Only"
+					onChange={(e) => updateWrapper({ name: e.target.value })}
+				/>
+			</div>
 
-      {h.entries.map((entry, index) => {
-        const title = h.entries.length > 1
-          ? `HpTF set ${index + 1}${entry.suffix ? ` — ${entry.suffix}` : ''}`
-          : 'HpTF set';
-        return (
-          <div key={index} className={pbStyles.pbHptfEntry}>
-            <div className={pbStyles.pbHptfEntryHeader}>
-              <span className={pbStyles.pbHptfEntryTitle}>{title}</span>
-              <button
-                type="button"
-                className={ceStyles.ceArrayRemoveBtn}
-                onClick={() => removeEntry(index)}
-                title="Remove HpTF set"
-                disabled={h.entries.length <= 1}
-              >
-                &times;
-              </button>
-            </div>
+			{h.entries.map((entry, index) => {
+				const title =
+					h.entries.length > 1
+						? `HpTF set ${index + 1}${entry.suffix ? ` — ${entry.suffix}` : ''}`
+						: 'HpTF set';
+				return (
+					<div key={index} className={pbStyles.pbHptfEntry}>
+						<div className={pbStyles.pbHptfEntryHeader}>
+							<span className={pbStyles.pbHptfEntryTitle}>{title}</span>
+							<button
+								type="button"
+								className={ceStyles.ceArrayRemoveBtn}
+								onClick={() => removeEntry(index)}
+								title="Remove HpTF set"
+								disabled={h.entries.length <= 1}
+							>
+								&times;
+							</button>
+						</div>
 
-            <div className={ceStyles.ceFieldGroup}>
-              <label className={ceStyles.ceLabel}>
-                Variant Suffix
-                <span className={ceStyles.ceLabelHint}>
-                  (optional — shown in the device variant selector, e.g. "Leather Pad")
-                </span>
-              </label>
-              <input
-                type="text"
-                className={ceStyles.ceInput}
-                value={entry.suffix ?? ''}
-                placeholder="e.g. Leather Pad"
-                onChange={(e) =>
-                  updateEntry(index, { suffix: e.target.value || undefined })
-                }
-              />
-            </div>
+						<div className={ceStyles.ceFieldGroup}>
+							<label className={ceStyles.ceLabel}>
+								Variant Suffix
+								<span className={ceStyles.ceLabelHint}>
+									(optional — shown in the device variant selector, e.g. "Leather Pad")
+								</span>
+							</label>
+							<input
+								type="text"
+								className={ceStyles.ceInput}
+								value={entry.suffix ?? ''}
+								placeholder="e.g. Leather Pad"
+								onChange={(e) => updateEntry(index, { suffix: e.target.value || undefined })}
+							/>
+						</div>
 
-            <div className={ceStyles.ceFieldGroup}>
-              <label className={ceStyles.ceLabel}>
-                Variance Samples
-                <span className={ceStyles.ceLabelHint}>
-                  (at least two related measurements — the shaded envelope spans their range)
-                </span>
-              </label>
-              <RowsEditor
-                rows={entry.rows}
-                columns={[
-                  { key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
-                  { key: 'label', label: 'UI label', placeholder: 'Center' },
-                ]}
-                onChange={(rows) => updateEntry(index, { rows })}
-                createEmpty={() => ({ file: '', label: '' })}
-                minRows={2}
-                addLabel="+ Add sample"
-              />
-            </div>
+						<div className={ceStyles.ceFieldGroup}>
+							<label className={ceStyles.ceLabel}>
+								Variance Samples
+								<span className={ceStyles.ceLabelHint}>
+									(at least two related measurements — the shaded envelope spans their range)
+								</span>
+							</label>
+							<RowsEditor
+								rows={entry.rows}
+								columns={[
+									{ key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
+									{ key: 'label', label: 'UI label', placeholder: 'Center' }
+								]}
+								onChange={(rows) => updateEntry(index, { rows })}
+								createEmpty={() => ({ file: '', label: '' })}
+								minRows={2}
+								addLabel="+ Add sample"
+							/>
+						</div>
 
-            <div className={ceStyles.ceFieldGroup}>
-              <label className={ceStyles.ceLabel}>
-                Description
-                <span className={ceStyles.ceLabelHint}>(shown beside the fill envelope)</span>
-              </label>
-              <input
-                type="text"
-                className={ceStyles.ceInput}
-                value={entry.description ?? ''}
-                placeholder="(Variance)"
-                onChange={(e) =>
-                  updateEntry(index, { description: e.target.value || undefined })
-                }
-              />
-            </div>
+						<div className={ceStyles.ceFieldGroup}>
+							<label className={ceStyles.ceLabel}>
+								Description
+								<span className={ceStyles.ceLabelHint}>(shown beside the fill envelope)</span>
+							</label>
+							<input
+								type="text"
+								className={ceStyles.ceInput}
+								value={entry.description ?? ''}
+								placeholder="(Variance)"
+								onChange={(e) => updateEntry(index, { description: e.target.value || undefined })}
+							/>
+						</div>
 
-            <div className={ceStyles.ceToggleRow}>
-              <input
-                type="checkbox"
-                className={ceStyles.ceCheckbox}
-                id={`${phone.id}-${index}-fillOnly`}
-                checked={entry.fillOnly}
-                onChange={(e) => updateEntry(index, { fillOnly: e.target.checked })}
-              />
-              <label
-                className={ceStyles.ceToggleLabel}
-                htmlFor={`${phone.id}-${index}-fillOnly`}
-              >
-                Fill only
-                <span className={ceStyles.ceToggleHint}>
-                  (uncheck to let users toggle individual sample curves)
-                </span>
-              </label>
-            </div>
-          </div>
-        );
-      })}
+						<div className={ceStyles.ceToggleRow}>
+							<input
+								type="checkbox"
+								className={ceStyles.ceCheckbox}
+								id={`${phone.id}-${index}-fillOnly`}
+								checked={entry.fillOnly}
+								onChange={(e) => updateEntry(index, { fillOnly: e.target.checked })}
+							/>
+							<label className={ceStyles.ceToggleLabel} htmlFor={`${phone.id}-${index}-fillOnly`}>
+								Fill only
+								<span className={ceStyles.ceToggleHint}>
+									(uncheck to let users toggle individual sample curves)
+								</span>
+							</label>
+						</div>
+					</div>
+				);
+			})}
 
-      <button type="button" className={ceStyles.ceArrayAddBtn} onClick={addEntry}>
-        + Add HpTF set
-      </button>
-    </>
-  );
+			<button type="button" className={ceStyles.ceArrayAddBtn} onClick={addEntry}>
+				+ Add HpTF set
+			</button>
+		</>
+	);
 }

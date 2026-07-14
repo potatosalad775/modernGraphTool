@@ -24,8 +24,8 @@ modernGraphTool aims to solve these problems, inheriting the core features of Cr
 
 One of the biggest features of modernGraphTool is its architecture, which is divided into 'Core' and 'Extension'.
 
-*   **Core:** Provides core functionalities including frequency response data processing and graph visualization.
-*   **Extension:** Additional features such as AutoEQ and target preference adjustment tools can be implemented as independent modules. Users can safely add or remove Extensions as needed.
+- **Core:** Provides core functionalities including frequency response data processing and graph visualization.
+- **Extension:** Additional features such as AutoEQ and target preference adjustment tools can be implemented as independent modules. Users can safely add or remove Extensions as needed.
 
 In the existing CrinGraph, nearly all functions were integrated into a single script, so a small mistake could lead to the malfunction of the entire program.
 
@@ -48,25 +48,30 @@ Therefore, you can load the data from your existing CrinGraph directly into mode
 ## Features
 
 ### Frequency Response Graph Visualization
+
 - Normalization options - (Hz / Midrange Average (300Hz~3kHz))
 - Smoothing options - (1/48oct ~ 1/3oct)
 - Custom HRTF Target support via extension (with Tilt & Preference Adjustment)
 
 ### Headphone / Target Selector
+
 - Search headphones by name or brand
 - Headphone / target compensation (set as baseline)
 - Compatible with CrinGraph file structure (phone_book & target_manifest)
 
 ### Graph Tools
+
 - Share with URL (+ Base62 encoding support)
 - Save Frequency Response graph screenshot
 
 ### User Interface & Customization
+
 - Multi-Language & Dark Mode support
 - User configurable elements (Link, Watermark..)
 - Based on 'Material Design 3' color palette (+ [Theme Generator](/theme-generator))
 
 ### Expandability
+
 - API-based extension system
 - User configurable extension
 
@@ -74,12 +79,12 @@ Therefore, you can load the data from your existing CrinGraph directly into mode
 
 This section lists the extensions that are pre-loaded with modernGraphTool.
 
-| Name                  | Description |
-|-----------------------|-------------|
+| Name                  | Description                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------- |
 | device-peq            | A bridge extension that integrates [devicePEQ plugin by jeromeof](https://github.com/jeromeof/devicePEQ) |
-| equalizer             | A equalizer panel with AutoEQ functionality |
-| frequency-tutorial    | Frequency range tutorial for beginners |
-| graph-color-wheel     | A rudimentary implant for customizing color and appearance of graphs |
-| preference-bound      | Customizable preference bound overlay |
-| squiglink-integration | A bridge extension that integrates squig.link functionality (search other databases, hints, and more) |
-| target-customizer     | A target customizer panel with Tilt & Preference Adjustment functionality |
+| equalizer             | A equalizer panel with AutoEQ functionality                                                              |
+| frequency-tutorial    | Frequency range tutorial for beginners                                                                   |
+| graph-color-wheel     | A rudimentary implant for customizing color and appearance of graphs                                     |
+| preference-bound      | Customizable preference bound overlay                                                                    |
+| squiglink-integration | A bridge extension that integrates squig.link functionality (search other databases, hints, and more)    |
+| target-customizer     | A target customizer panel with Tilt & Preference Adjustment functionality                                |

@@ -103,15 +103,10 @@
 		if (!username) return 'Select a site';
 		return squiglinkStore.sites.find((s) => s.username === username)?.name ?? 'Select a site';
 	});
-
 </script>
 
 {#if squiglinkStore.isEnabled && squiglinkStore.sites.length > 0}
-	<Select.Root
-		type="single"
-		value={currentValue}
-		items={flatItems}
-	>
+	<Select.Root type="single" value={currentValue} items={flatItems}>
 		<Select.Trigger
 			class="inline-flex items-center justify-between gap-1 rounded border border-base-content/20
 				min-w-36 bg-base-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
@@ -137,10 +132,7 @@
 					</Select.GroupHeading>
 
 					{#each group.items as item (item.label + item.type)}
-						<Select.Item
-							value={item.value}
-							label={item.label}
-						>
+						<Select.Item value={item.value} label={item.label}>
 							{#snippet child({ props, selected })}
 								<a
 									{...props}

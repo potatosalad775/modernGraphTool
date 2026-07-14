@@ -45,59 +45,64 @@ JSON (JavaScript Object Notation) is a text format for structuring data. You can
 
 The `phone_book.json` file starts and ends with one large array (`[]`). The array contains multiple **brand** objects (`{}`).
 
-Each brand object has a `brand` key (e.g., "Sennheiser", "Sony") and a `phones` key. 
+Each brand object has a `brand` key (e.g., "Sennheiser", "Sony") and a `phones` key.
 
 The value of the `phones` key is an array containing phone definitions for each model of that brand. Phone definitions can be simple strings or more detailed objects.
 
 ```json
 [
-  {
-    "brand": "Brand A",
-    "suffix": "(Audio)", // Optional: Suffix for the brand name
-    "phones": [
-      "ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
-      {
-        "name": "Model Y",
-        "file": "BrandA ModelY", // File name (without L/R and .txt)
-        "suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
-        "reviewLink": "https://example.com/review/modely", // Optional: Review link
-        "price": "$199", // Optional: Price (string)
-        "notes": "Some notes about Model Y" // Optional: Additional notes
-      },
-      // ... more models for Brand A
-    ]
-  },
-  {
-    "brand": "Brand B",
-    "phones": [
-      // ... models for Brand B
-    ]
-  }
-  // ... more brands
+	{
+		"brand": "Brand A",
+		"suffix": "(Audio)", // Optional: Suffix for the brand name
+		"phones": [
+			"ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
+			{
+				"name": "Model Y",
+				"file": "BrandA ModelY", // File name (without L/R and .txt)
+				"suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
+				"reviewLink": "https://example.com/review/modely", // Optional: Review link
+				"price": "$199", // Optional: Price (string)
+				"notes": "Some notes about Model Y" // Optional: Additional notes
+			}
+			// ... more models for Brand A
+		]
+	},
+	{
+		"brand": "Brand B",
+		"phones": [
+			// ... models for Brand B
+		]
+	}
+	// ... more brands
 ]
 ```
 
 ### Brand Object Keys
-- `brand` (String, Required): The name of the brand.- 
+
+- `brand` (String, Required): The name of the brand.-
 - `suffix` (String, Optional): An optional suffix that will be appended to the brand name in the UI.
 - `phones` (Array, Required): An array of phone definitions. Each element can be a string (for simple cases) or a phone object (for detailed configuration or variations).
 
 ### Phone Definition Types
+
 The phones array can contain:
 
 #### Simple String Definition
+
 If a phone entry is a simple string (e.g., "ModelX"), it's assumed that the display name is "ModelX" and the data files are ModelX L.txt and ModelX R.txt.
+
 ```json
 {
-  "brand": "BrandSimple",
-  "phones": [
-    "ModelS1",  // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
-    "ModelS2"   // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
-  ]
+	"brand": "BrandSimple",
+	"phones": [
+		"ModelS1", // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
+		"ModelS2" // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
+	]
 }
 ```
 
 #### Detailed Phone Object Definition
+
 For more control, a phone can be defined as an object with the following keys:
 
 - `name` (String, Required): The model name of the phone to be displayed in the list.
@@ -110,35 +115,36 @@ For more control, a phone can be defined as an object with the following keys:
 
 ```json
 {
-  "brand": "BrandDetailed",
-  "phones": [
-    {
-      "name": "Model D1",
-      "file": "ModelD1_Data",
-      "suffix": "Rev.2",
-      "reviewScore": "A+",
-      "reviewLink": "https://example.com/review/d1",
-      "shopLink": "https://example.com/shop/d1",
-      "price": "$299"
-    }
-  ]
+	"brand": "BrandDetailed",
+	"phones": [
+		{
+			"name": "Model D1",
+			"file": "ModelD1_Data",
+			"suffix": "Rev.2",
+			"reviewScore": "A+",
+			"reviewLink": "https://example.com/review/d1",
+			"shopLink": "https://example.com/shop/d1",
+			"price": "$299"
+		}
+	]
 }
 ```
 
 #### Variations (Grouping Multiple Data Files under One Phone Name)
+
 You can group multiple measurement versions (e.g., different eartips, EQ settings) under a single conceptual phone model.
 
 ```json
 {
-  "brand": "BrandVariations",
-  "phones": [
-    {
-      "name": "Model V1", // Base name for variations
-      "file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
-      "suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
-      "price": "$150" // Applies to all V1 variations
-    }
-  ]
+	"brand": "BrandVariations",
+	"phones": [
+		{
+			"name": "Model V1", // Base name for variations
+			"file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
+			"suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
+			"price": "$150" // Applies to all V1 variations
+		}
+	]
 }
 ```
 
@@ -151,23 +157,20 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
 ```json
 {
-  "brand": "BrandPrefix",
-  "phones": [
-    {
-      "name": "Model P1", // Base display name
-      "file": [
-        "BrandP ModelP1 (Foam Tip)", 
-        "BrandP ModelP1 (Silicone Tip)"
-      ], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
-      "prefix": "BrandP ModelP1", // Common file prefix
-      "notes": "Uses different eartips"
-    }
-  ]
+	"brand": "BrandPrefix",
+	"phones": [
+		{
+			"name": "Model P1", // Base display name
+			"file": ["BrandP ModelP1 (Foam Tip)", "BrandP ModelP1 (Silicone Tip)"], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
+			"prefix": "BrandP ModelP1", // Common file prefix
+			"notes": "Uses different eartips"
+		}
+	]
 }
 ```
 
 - Using prefix for common file prefixes :
-If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
+  If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
   - `name` (Array of Strings, Required): An array containing a single string, the base display name.
   - `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
   - `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file[i] .

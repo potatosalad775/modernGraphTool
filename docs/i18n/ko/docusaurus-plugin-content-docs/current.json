@@ -1,74 +1,74 @@
 {
-  "version.label": {
-    "message": "v2",
-    "description": "The label for version current"
-  },
-  "sidebar.tutorialSidebar.category.Guide for Users": {
-    "message": "사용자 가이드",
-    "description": "The label for category 'Guide for Users' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Guide for Users.link.generated-index.description": {
-    "message": "5분 안에 modernGraphTool 사용법을 배워보세요.",
-    "description": "The generated-index page description for category 'Guide for Users' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Tool Guide": {
-    "message": "도구 가이드",
-    "description": "The label for category 'Tool Guide' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Tool Guide.link.generated-index.description": {
-    "message": "modernGraphTool을 구성하는 각종 도구의 사용법을 배워보세요.",
-    "description": "The generated-index page description for category 'Tool Guide' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Guide for Admins": {
-    "message": "관리자 가이드",
-    "description": "The label for category 'Guide for Admins' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Guide for Admins.link.generated-index.description": {
-    "message": "modernGraphTool을 사용하여 나만의 FR 데이터베이스를 구축하는 방법을 배워보세요.",
-    "description": "The generated-index page description for category 'Guide for Admins' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Guide for Developers": {
-    "message": "개발자 가이드",
-    "description": "The label for category 'Guide for Developers' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.link.Theme Generator": {
-    "message": "테마 생성기",
-    "description": "The label for link 'Theme Generator' in sidebar 'tutorialSidebar', linking to '/theme-generator'"
-  },
-  "sidebar.tutorialSidebar.category.Database Setup Tips": {
-    "message": "데이터베이스 설정 팁",
-    "description": "The label for category 'Database Setup Tips' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Database Setup Tips.link.generated-index.description": {
-    "message": "데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다.",
-    "description": "The generated-index page description for category 'Database Setup Tips' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Features": {
-    "message": "기능",
-    "description": "The label for category 'Features' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Features.link.generated-index.description": {
-    "message": "modernGraphTool의 내장 기능에 대해 알아보세요.",
-    "description": "The generated-index page description for category 'Features' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Dual-Hosting modernGraphTool & CrinGraph": {
-    "message": "modernGraphTool & CrinGraph 동시 운영",
-    "description": "The label for category 'Dual-Hosting modernGraphTool & CrinGraph' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Dual-Hosting modernGraphTool & CrinGraph.link.generated-index.description": {
-    "message": "이 섹션에서는 modernGraphTool과 CrinGraph를 함께 운영하기 위한 팁과 요령을 다루며, 사용자가 하나의 환경에서 두 도구를 활용할 수 있도록 하는 것을 목표로 합니다.",
-    "description": "The generated-index page description for category 'Dual-Hosting modernGraphTool & CrinGraph' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Deployment Options": {
-    "message": "Deployment Options",
-    "description": "The label for category 'Deployment Options' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.category.Deployment Options.link.generated-index.description": {
-    "message": "Three ways to deploy modernGraphTool: CDN (recommended for most users), pre-built release, or building from source. Pick one based on how much control you need over updates and customization.",
-    "description": "The generated-index page description for category 'Deployment Options' in sidebar 'tutorialSidebar'"
-  },
-  "sidebar.tutorialSidebar.link.Config Editor": {
-    "message": "Config Editor",
-    "description": "The label for link 'Config Editor' in sidebar 'tutorialSidebar', linking to '/config-generator'"
-  }
+	"version.label": {
+		"message": "v2",
+		"description": "The label for version current"
+	},
+	"sidebar.tutorialSidebar.category.Guide for Users": {
+		"message": "사용자 가이드",
+		"description": "The label for category 'Guide for Users' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Guide for Users.link.generated-index.description": {
+		"message": "5분 안에 modernGraphTool 사용법을 배워보세요.",
+		"description": "The generated-index page description for category 'Guide for Users' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Tool Guide": {
+		"message": "도구 가이드",
+		"description": "The label for category 'Tool Guide' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Tool Guide.link.generated-index.description": {
+		"message": "modernGraphTool을 구성하는 각종 도구의 사용법을 배워보세요.",
+		"description": "The generated-index page description for category 'Tool Guide' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Guide for Admins": {
+		"message": "관리자 가이드",
+		"description": "The label for category 'Guide for Admins' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Guide for Admins.link.generated-index.description": {
+		"message": "modernGraphTool을 사용하여 나만의 FR 데이터베이스를 구축하는 방법을 배워보세요.",
+		"description": "The generated-index page description for category 'Guide for Admins' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Guide for Developers": {
+		"message": "개발자 가이드",
+		"description": "The label for category 'Guide for Developers' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.link.Theme Generator": {
+		"message": "테마 생성기",
+		"description": "The label for link 'Theme Generator' in sidebar 'tutorialSidebar', linking to '/theme-generator'"
+	},
+	"sidebar.tutorialSidebar.category.Database Setup Tips": {
+		"message": "데이터베이스 설정 팁",
+		"description": "The label for category 'Database Setup Tips' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Database Setup Tips.link.generated-index.description": {
+		"message": "데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다.",
+		"description": "The generated-index page description for category 'Database Setup Tips' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Features": {
+		"message": "기능",
+		"description": "The label for category 'Features' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Features.link.generated-index.description": {
+		"message": "modernGraphTool의 내장 기능에 대해 알아보세요.",
+		"description": "The generated-index page description for category 'Features' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Dual-Hosting modernGraphTool & CrinGraph": {
+		"message": "modernGraphTool & CrinGraph 동시 운영",
+		"description": "The label for category 'Dual-Hosting modernGraphTool & CrinGraph' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Dual-Hosting modernGraphTool & CrinGraph.link.generated-index.description": {
+		"message": "이 섹션에서는 modernGraphTool과 CrinGraph를 함께 운영하기 위한 팁과 요령을 다루며, 사용자가 하나의 환경에서 두 도구를 활용할 수 있도록 하는 것을 목표로 합니다.",
+		"description": "The generated-index page description for category 'Dual-Hosting modernGraphTool & CrinGraph' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Deployment Options": {
+		"message": "Deployment Options",
+		"description": "The label for category 'Deployment Options' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.category.Deployment Options.link.generated-index.description": {
+		"message": "Three ways to deploy modernGraphTool: CDN (recommended for most users), pre-built release, or building from source. Pick one based on how much control you need over updates and customization.",
+		"description": "The generated-index page description for category 'Deployment Options' in sidebar 'tutorialSidebar'"
+	},
+	"sidebar.tutorialSidebar.link.Config Editor": {
+		"message": "Config Editor",
+		"description": "The label for link 'Config Editor' in sidebar 'tutorialSidebar', linking to '/config-generator'"
+	}
 }

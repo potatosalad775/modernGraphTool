@@ -32,9 +32,7 @@ function encodeBand(
 	filterType: number = 0x01
 ): number[] {
 	const rawGain =
-		gainDb >= 0
-			? Math.round(gainDb * 100)
-			: (65536 + Math.round(gainDb * 100)) & 0xffff;
+		gainDb >= 0 ? Math.round(gainDb * 100) : (65536 + Math.round(gainDb * 100)) & 0xffff;
 	const rawFreq = Math.round(freqHz) & 0xffff;
 	const rawQ = Math.max(1, Math.round(q * 100)) & 0xffff;
 
@@ -163,11 +161,7 @@ export const ritaUsbSerialHandler: DeviceHandler = {
 		return false;
 	},
 
-	async enablePEQ(
-		_device: ConnectedDevice,
-		_enabled: boolean,
-		_slotId: number
-	): Promise<void> {
+	async enablePEQ(_device: ConnectedDevice, _enabled: boolean, _slotId: number): Promise<void> {
 		// Rita does not support enable/disable PEQ — no-op
 	}
 };

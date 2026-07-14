@@ -11,12 +11,13 @@
 	let expandedIndex = $state<number | null>(null);
 
 	const preamp = $derived.by(() => {
-		const filters = eqStore.filters.filter(f => f.enabled && f.freq && f.q && f.gain);
+		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		if (!filters.length) return 0;
-		const baseFreqs = Array.from({ length: 100 }, (_, i) =>
-			20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
+		const baseFreqs = Array.from(
+			{ length: 100 },
+			(_, i) => 20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
 		);
-		const baseFR: [number, number][] = baseFreqs.map(f => [f, 0]);
+		const baseFR: [number, number][] = baseFreqs.map((f) => [f, 0]);
 		const eq = new Equalizer();
 		return parseFloat(eq.calculatePreamp(baseFR, filters).toFixed(1));
 	});
@@ -63,9 +64,13 @@
 			const filters = parseFilterText(text);
 			if (filters.length) {
 				eqStore.filters = filters;
-				toast.success(m.equalizer_filter_list_import(), { description: `${filters.length} filters` });
+				toast.success(m.equalizer_filter_list_import(), {
+					description: `${filters.length} filters`
+				});
 			} else {
-				toast.error(m.equalizer_filter_list_import(), { description: 'No valid filters found in file' });
+				toast.error(m.equalizer_filter_list_import(), {
+					description: 'No valid filters found in file'
+				});
 			}
 			(e.target as HTMLInputElement).value = '';
 		};
@@ -83,8 +88,7 @@
 					const [, type, freq, gain, q] = match;
 					filters.push({
 						enabled: true,
-						type:
-							type === 'LSC' ? 'LSQ' : type === 'HSC' ? 'HSQ' : (type as EQFilter['type']),
+						type: type === 'LSC' ? 'LSQ' : type === 'HSC' ? 'HSQ' : (type as EQFilter['type']),
 						freq: parseFloat(freq),
 						gain: parseFloat(gain),
 						q: parseFloat(q)
@@ -96,7 +100,9 @@
 	}
 
 	function exportFilters() {
-		const validFilters = eqStore.filters.filter(f => f.freq != null && f.q != null && f.gain != null);
+		const validFilters = eqStore.filters.filter(
+			(f) => f.freq != null && f.q != null && f.gain != null
+		);
 		if (!validFilters.length) {
 			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
@@ -146,7 +152,8 @@
 		<div class="flex gap-1">
 			<Button
 				title="Add EQ Band"
-				variant="outline" size="icon"
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
 				onclick={addBand}
 			>
@@ -154,7 +161,8 @@
 			</Button>
 			<Button
 				title="Remove EQ Band"
-				variant="outline" size="icon"
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
 				onclick={removeBand}
 			>
@@ -162,7 +170,8 @@
 			</Button>
 			<Button
 				title="Sort EQ Bands"
-				variant="outline" size="icon"
+				variant="outline"
+				size="icon"
 				class="size-6 p-px"
 				onclick={sortBands}
 			>
@@ -194,7 +203,8 @@
 		<Button
 			title={m.equalizer_filter_list_import()}
 			onclick={importFilters}
-			variant="outline" size="sm"
+			variant="outline"
+			size="sm"
 			class="flex-1"
 		>
 			<Download class="size-3.5 mr-1.5" />
@@ -203,7 +213,8 @@
 		<Button
 			title={m.equalizer_filter_list_export()}
 			onclick={exportFilters}
-			variant="outline" size="sm"
+			variant="outline"
+			size="sm"
 			class="flex-1"
 		>
 			<Upload class="size-3.5 mr-1.5" />
@@ -214,7 +225,8 @@
 		<Button
 			title="Export filters as Graphic EQ File"
 			onclick={exportGraphicEQ}
-			variant="muted" size="sm"
+			variant="muted"
+			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
 		>
 			{m.equalizer_filter_list_export_graphic_eq()}

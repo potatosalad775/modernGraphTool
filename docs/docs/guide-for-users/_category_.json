@@ -1,10 +1,10 @@
 {
-  "label": "Guide for Users",
-  "position": 7,
-  "collapsible": true,
-  "collapsed": false,
-  "link": {
-    "type": "generated-index",
-    "description": "A complete walkthrough of the interface. Start here if you're new to frequency response graphs — the first four pages teach the concepts from scratch, then the rest maps those concepts to everything you see on screen."
-  }
+	"label": "Guide for Users",
+	"position": 7,
+	"collapsible": true,
+	"collapsed": false,
+	"link": {
+		"type": "generated-index",
+		"description": "A complete walkthrough of the interface. Start here if you're new to frequency response graphs — the first four pages teach the concepts from scratch, then the rest maps those concepts to everything you see on screen."
+	}
 }

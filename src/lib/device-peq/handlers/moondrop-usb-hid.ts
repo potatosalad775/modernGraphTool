@@ -4,12 +4,7 @@
 // Moondrop USB HID handler — TypeScript port of the legacy moondropUsbHidHandler.js
 //
 
-import type {
-	ConnectedDevice,
-	DeviceHandler,
-	DeviceFilter,
-	PullResult
-} from '../types.js';
+import type { ConnectedDevice, DeviceHandler, DeviceFilter, PullResult } from '../types.js';
 import { WALKPLAY_FILTER_MAP } from '../utils/filter-type-maps.js';
 import { computeMoondropBiquad, biquadCoeffsToBytes } from '../utils/biquad.js';
 

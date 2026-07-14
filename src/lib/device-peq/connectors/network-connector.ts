@@ -60,10 +60,7 @@ export async function pushToDevice(
 	return await currentDevice.handler.pushToDevice(currentDevice, slot, preamp, filters);
 }
 
-export async function pullFromDevice(
-	device: ConnectedDevice,
-	slot: number
-): Promise<PullResult> {
+export async function pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult> {
 	if (!currentDevice) {
 		console.warn('No network device connected.');
 		return { filters: [], globalGain: 0 };

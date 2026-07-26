@@ -4,7 +4,8 @@
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Button from '../atoms/Button.svelte';
-	import { Trash2 } from '@lucide/svelte';
+	import { Info, Trash2 } from '@lucide/svelte';
+	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 
 	function timeStr(ts: number): string {
 		const d = new Date(ts);
@@ -40,8 +41,8 @@
 
 <div class="flex flex-col gap-2 text-sm">
 	<!-- A / B switcher header -->
-	<div class="flex items-center gap-2">
-		<span class="text-xs text-base-content/60">{m.eq_history_compare_label()}</span>
+	<div class="flex items-center gap-1">
+		<span class="text-xs text-base-content/60 mr-1">{m.eq_history_compare_label()}</span>
 		<div class="flex flex-1 gap-1">
 			<Button
 				title={aSnap ? m.eq_history_apply_a_title() : m.eq_history_pick_a_first()}
@@ -64,14 +65,31 @@
 				B
 			</Button>
 		</div>
+		<PopoverPanel>
+			{#snippet trigger({ props })}
+				<Button
+					{...props}
+					title="Open 'Frequency range' option description"
+					variant="ghost"
+					size="icon"
+					class="p-1.5! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
+				>
+					<Info class="size-4" />
+				</Button>
+			{/snippet}
+			<p class="max-w-xs text-xs text-base-content">
+				{m.eq_history_help_text()}
+			</p>
+		</PopoverPanel>
 		<Button
 			title={m.eq_history_clear()}
 			onclick={() => eqHistoryStore.clear()}
-			variant="ghost"
+			variant="destructive"
 			size="icon"
+			class="p-1.5!"
 			disabled={eqHistoryStore.snapshots.length === 0}
 		>
-			<Trash2 class="size-3.5" />
+			<Trash2 class="size-4" />
 		</Button>
 	</div>
 
@@ -99,31 +117,24 @@
 							{timeStr(snap.timestamp)}
 						</span>
 					</div>
-					<button
-						type="button"
+					<Button
 						title={isA ? m.eq_history_unset_a() : m.eq_history_set_a()}
 						onclick={() => eqHistoryStore.setA(isA ? null : snap.id)}
-						class="rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors {isA
-							? 'bg-accent text-white'
-							: 'bg-base-300 text-base-content/70 hover:bg-base-content/15'}"
+						variant={isA ? 'accent' : 'muted'}
+						size="sm"
 					>
 						A
-					</button>
-					<button
-						type="button"
+					</Button>
+					<Button
 						title={isB ? m.eq_history_unset_b() : m.eq_history_set_b()}
 						onclick={() => eqHistoryStore.setB(isB ? null : snap.id)}
-						class="rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors {isB
-							? 'bg-accent text-white'
-							: 'bg-base-300 text-base-content/70 hover:bg-base-content/15'}"
+						variant={isB ? 'accent' : 'muted'}
+						size="sm"
 					>
 						B
-					</button>
+					</Button>
 				</li>
 			{/each}
 		</ul>
-		<p class="text-[10px] text-base-content/50">
-			{m.eq_history_help_text()}
-		</p>
 	{/if}
 </div>

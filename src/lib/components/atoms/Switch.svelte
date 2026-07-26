@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Switch, Label, useId, type WithoutChildrenOrChild } from 'bits-ui';
+	import type { Snippet } from 'svelte';
 
 	let {
 		id = useId(),
@@ -7,12 +8,14 @@
 		ref = $bindable(null),
 		labelText,
 		labelClass = '',
+		children,
 		size = 'md',
 		variant = 'accent',
 		...restProps
 	}: WithoutChildrenOrChild<Switch.RootProps> & {
 		labelText?: string | undefined;
 		labelClass?: string;
+		children?: Snippet;
 		size?: 'sm' | 'md' | 'lg';
 		variant?: 'accent' | 'muted';
 	} = $props();
@@ -42,7 +45,7 @@
 	} as const;
 </script>
 
-<div class="flex items-center space-x-2">
+<div class="flex items-center">
 	<Switch.Root
 		bind:checked
 		bind:ref
@@ -59,6 +62,9 @@
 		/>
 	</Switch.Root>
 	{#if labelText}
-		<Label.Root for={id} class="text-sm font-medium {labelClass}">{labelText}</Label.Root>
+		<Label.Root for={id} class="text-sm font-medium ml-2 {labelClass}">{labelText}</Label.Root>
+	{/if}
+	{#if children}
+		{@render children()}
 	{/if}
 </div>

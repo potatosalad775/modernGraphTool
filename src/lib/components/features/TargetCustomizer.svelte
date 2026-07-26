@@ -304,7 +304,7 @@
 </script>
 
 {#if isCustomizable}
-	<PopoverPanel contentClass="w-72" align="end" trapFocus={false}>
+	<PopoverPanel contentClass="w-72" trapFocus={false}>
 		{#snippet trigger({ props })}
 			<Button
 				{...props}
@@ -338,7 +338,7 @@
 									{def.name}
 								</label>
 								{#if def.description}
-									<PopoverPanel align="end">
+									<PopoverPanel>
 										{#snippet trigger({ props })}
 											<Button
 												{...props}

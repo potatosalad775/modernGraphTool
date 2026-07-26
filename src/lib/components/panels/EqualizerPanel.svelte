@@ -13,7 +13,6 @@
 	import EqAutoEq from '$lib/components/equalizer/EqAutoEq.svelte';
 	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
 	import EqSettings from '$lib/components/equalizer/EqSettings.svelte';
-	import EqConstraintSelect from '$lib/components/equalizer/EqConstraintSelect.svelte';
 	import EqHistoryAndCompare from '$lib/components/equalizer/EqHistoryAndCompare.svelte';
 	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
 	import Switch from '../atoms/Switch.svelte';
@@ -77,8 +76,6 @@
 		<div class="h-7 w-px bg-base-content/20"></div>
 		<!-- Phone / Target select -->
 		<EqPhoneSelect />
-		<!-- Constraint preset picker -->
-		<EqConstraintSelect />
 	</div>
 	<div
 		class="flex min-h-0 flex-1 flex-col overflow-y-auto @[720px]/eq:flex-row @[720px]/eq:overflow-hidden"

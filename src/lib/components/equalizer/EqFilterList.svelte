@@ -7,6 +7,7 @@
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
+	import EqOptionButton from './EqOptionButton.svelte';
 	import { ArrowDown01, Download, Minus, Plus, Upload } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 
@@ -227,6 +228,9 @@
 			>
 				<ArrowDown01 class="size-3.25" />
 			</Button>
+			<!-- Disabled EqOption (Constraints) button until shared constraint infra is ready -->
+			<!--div class="h-6 w-px mx-1 bg-base-content/20"></div-->
+			<!--EqOptionButton /-->
 		</div>
 	</div>
 

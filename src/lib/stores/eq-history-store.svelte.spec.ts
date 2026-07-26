@@ -7,13 +7,13 @@ function pk(o: Partial<EQFilter> = {}): EQFilter {
 }
 
 describe('summarize', () => {
-	it('counts each filter type and includes preamp', () => {
-		const filters = [pk(), pk({ type: 'LSQ' }), pk({ type: 'HSQ' }), pk()];
-		expect(summarize(filters, -2.4)).toBe('2 PK / 1 LS / 1 HS, preamp -2.4 dB');
+	it('describes the dominant band and counts the rest', () => {
+		const filters = [pk(), pk({ type: 'LSQ', gain: -6 }), pk({ type: 'HSQ' }), pk()];
+		expect(summarize(filters, -2.4)).toBe('LSQ 1.0k Hz -6.0 dB +3, preamp -2.4 dB');
 	});
 
-	it('skips counts of zero', () => {
-		expect(summarize([pk()], 0)).toBe('1 PK, preamp 0.0 dB');
+	it('omits the extra-band count for a single band', () => {
+		expect(summarize([pk()], 0)).toBe('PK 1.0k Hz +0.0 dB, preamp 0.0 dB');
 	});
 
 	it('says "no bands" when all filters are disabled', () => {

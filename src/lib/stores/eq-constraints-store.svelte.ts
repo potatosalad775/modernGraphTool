@@ -258,6 +258,8 @@ class EqConstraintsStore {
  */
 export function mergePresets(sources: EqConstraintPreset[][]): EqConstraintPreset[] {
 	const order: string[] = [];
+	// Local lookup inside a pure function — never read reactively.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const byId = new Map<string, EqConstraintPreset>();
 	for (const list of sources) {
 		for (const p of list) {

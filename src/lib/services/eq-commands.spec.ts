@@ -2,6 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
+import {
+	eqConstraintsStore,
+	BUILTIN_PRESETS,
+	DEFAULT_CONSTRAINT_ID
+} from '$lib/stores/eq-constraints-store.svelte.js';
+import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
 import { eqCommands } from './eq-commands.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
@@ -199,6 +205,88 @@ describe('eqCommands', () => {
 			expect(commandHistory.canUndo).toBe(true); // only addBand in history
 			commandHistory.undo(frStore);
 			expect(commandHistory.canUndo).toBe(false);
+		});
+	});
+
+	describe('active constraint enforcement', () => {
+		const strict: EqConstraintPreset = {
+			id: 'strict',
+			label: 'Strict 2-band',
+			mode: 'parametric',
+			maxBands: 2,
+			allowPk: true,
+			allowLsq: false,
+			allowHsq: false,
+			freqMin: 100,
+			freqMax: 10000,
+			gainMin: -6,
+			gainMax: 6,
+			qMin: 0.5,
+			qMax: 5
+		};
+
+		beforeEach(() => {
+			eqConstraintsStore.presets = [strict];
+			eqConstraintsStore.activeId = strict.id;
+		});
+
+		afterEach(() => {
+			eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+			eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		});
+
+		it('updateBand clamps the edit to the preset bounds before recording it', () => {
+			eqStore.filters = [makeFilter({ freq: 1000, gain: 0 })];
+
+			eqCommands.updateBand(0, { gain: 20 }); // beyond gainMax
+			expect(eqStore.filters[0].gain).toBe(6);
+			eqCommands.flushBand(0);
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters[0].gain).toBe(0);
+		});
+
+		it('updateBand pins a disallowed type to an allowed one', () => {
+			eqStore.filters = [makeFilter({ freq: 1000 })];
+			eqCommands.updateBand(0, { type: 'LSQ' }); // allowLsq is false
+			eqCommands.flushBand(0);
+			expect(eqStore.filters[0].type).toBe('PK');
+		});
+
+		it('addBand rejects additions past maxBands and creates no history entry', () => {
+			expect(eqCommands.addBand(makeFilter({ freq: 500 }))).toBe(true);
+			expect(eqCommands.addBand(makeFilter({ freq: 600 }))).toBe(true);
+			expect(eqCommands.addBand(makeFilter({ freq: 700 }))).toBe(false);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([500, 600]);
+
+			// Exactly two entries in history — the rejected add pushed nothing.
+			commandHistory.undo(frStore);
+			commandHistory.undo(frStore);
+			expect(eqStore.filters).toHaveLength(0);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('addBand clamps the incoming filter into range', () => {
+			eqCommands.addBand(makeFilter({ freq: 20, gain: -30, q: 9 }));
+			expect(eqStore.filters[0]).toMatchObject({ freq: 100, gain: -6, q: 5 });
+		});
+
+		it('replaceFilters clamps values, trims to maxBands, and stays undoable', () => {
+			eqStore.filters = [makeFilter({ freq: 1000, gain: 1 })];
+
+			eqCommands.replaceFilters([
+				makeFilter({ freq: 50, gain: 12, q: 0.2 }),
+				makeFilter({ freq: 15000, gain: -12, q: 8 }),
+				makeFilter({ freq: 2000, gain: 3 })
+			]);
+
+			expect(eqStore.filters).toHaveLength(2); // third row trimmed by maxBands
+			expect(eqStore.filters[0]).toMatchObject({ freq: 100, gain: 6, q: 0.5 });
+			expect(eqStore.filters[1]).toMatchObject({ freq: 10000, gain: -6, q: 5 });
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].gain).toBe(1);
 		});
 	});
 });

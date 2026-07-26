@@ -173,7 +173,13 @@ function foldOntoGraphicBands(filters: EQFilter[], preset: EqConstraintPreset): 
 
 	const sources = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
 
-	return bands.map((band): EQFilter => {
+	// A well-formed graphic preset has maxBands === graphicBands.length. Operator-
+	// authored or remote presets can disagree; honour the smaller of the two so a
+	// device never receives more rows than it accepts.
+	const usable =
+		preset.maxBands > 0 && preset.maxBands < bands.length ? bands.slice(0, preset.maxBands) : bands;
+
+	return usable.map((band): EQFilter => {
 		let bestGain = 0;
 		let bestDelta = Infinity;
 		for (const f of sources) {

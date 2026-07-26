@@ -13,8 +13,6 @@
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte';
-	import bundledEqConstraints from '../../../../defaults/eq-constraints.json';
-	import type { EqConstraintsFile } from '$lib/types/eq-constraint';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -159,8 +157,8 @@
 		}
 
 		// Hydrate EQ constraint presets — fire-and-forget; the picker UI shows
-		// only the bundled fallbacks until the remote fetch resolves.
-		eqConstraintsStore.hydrate(bundledEqConstraints as EqConstraintsFile).catch((err) => {
+		// only the built-ins until the fetches resolve.
+		eqConstraintsStore.hydrate().catch((err) => {
 			console.warn('[eq-constraints] hydrate failed', err);
 		});
 
@@ -247,14 +245,23 @@
 		}
 	}
 
+	function releaseMomentaryBypass() {
+		if (eqMomentaryRestore === null) return;
+		eqStore.isEnabled = eqMomentaryRestore;
+		eqStore.isMomentarilyBypassed = false;
+		eqMomentaryRestore = null;
+	}
+
 	function handleKeyup(e: KeyboardEvent) {
 		// Restore EQ regardless of focus target — the keyup may land in an input
 		// if the user tabbed during the hold.
-		if (e.key === '\\' && eqMomentaryRestore !== null) {
-			eqStore.isEnabled = eqMomentaryRestore;
-			eqStore.isMomentarilyBypassed = false;
-			eqMomentaryRestore = null;
-		}
+		if (e.key === '\\') releaseMomentaryBypass();
+	}
+
+	// Losing window focus mid-hold (alt-tab, devtools) swallows the keyup, which
+	// would otherwise leave EQ bypassed indefinitely — restore on blur too.
+	function handleWindowBlur() {
+		releaseMomentaryBypass();
 	}
 
 	// Auto-update URL when store data changes (phones added/removed, graph state, etc.)
@@ -279,7 +286,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} onblur={handleWindowBlur} />
 
 <div class="flex h-full flex-col">
 	<TopNavBar />

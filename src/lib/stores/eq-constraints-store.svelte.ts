@@ -4,6 +4,13 @@ import { getConfigValue } from '$lib/utils/config.js';
 const ACTIVE_ID_LS_KEY = 'gt-eq-constraint-active-id';
 const FETCH_TIMEOUT_MS = 4000;
 
+/**
+ * Bundled device profiles. `defaults/eq-constraints.json` is copied to `dist/`
+ * at build so operators can edit the deployed copy — it is fetched at runtime,
+ * never imported as a module.
+ */
+const BUNDLED_CONSTRAINTS_URL = './eq-constraints.json';
+
 /** Synthetic preset id reserved for the currently-connected device. */
 const DEVICE_CONSTRAINT_ID = '__device-peq__';
 
@@ -65,14 +72,16 @@ export const BUILTIN_PRESETS: EqConstraintPreset[] = [
  * always present from construction. Hydration runs once at app boot and
  * appends device-specific presets from three sources, in priority order
  * (later overrides earlier for the same `id`):
- *   1. Bundled fallback (`defaults/eq-constraints.json`, embedded at build).
+ *   1. Bundled defaults — `eq-constraints.json` fetched from the deployment
+ *      root (shipped from `defaults/`, editable in `dist/`).
  *   2. The list at `EQ.CONSTRAINTS_URL` from operator config — usually the
- *      same file, but can be a remote URL pointing at a curated list shared
- *      across deployments.
+ *      same file (then skipped as a duplicate), but can be a remote URL
+ *      pointing at a curated list shared across deployments.
  *   3. Inline `EQ.CUSTOM_CONSTRAINTS` from operator config.
  *
- * If (2) fails to fetch (network error / 404 / parse error) we fall back to
- * (1)+(3), so the picker never starts empty.
+ * Either fetch failing (network error / 404 / parse error) contributes no
+ * presets rather than aborting hydration, so the picker never starts empty —
+ * the built-ins alone are always available.
  */
 class EqConstraintsStore {
 	presets = $state<EqConstraintPreset[]>([...BUILTIN_PRESETS]);
@@ -191,7 +200,7 @@ class EqConstraintsStore {
 	}
 
 	/** Idempotent — calling more than once is a no-op after first success. */
-	async hydrate(bundled: EqConstraintsFile): Promise<void> {
+	async hydrate(): Promise<void> {
 		if (this.isLoaded) return;
 
 		const url = (getConfigValue('EQ.CONSTRAINTS_URL') as string | undefined) ?? '';
@@ -200,22 +209,16 @@ class EqConstraintsStore {
 		const initialId =
 			(getConfigValue('EQ.DEFAULT_CONSTRAINT_ID') as string | undefined) ?? DEFAULT_CONSTRAINT_ID;
 
-		let fetched: EqConstraintPreset[] = [];
-		if (url) {
-			try {
-				fetched = await fetchPresets(url);
-			} catch (err) {
-				console.warn(`[eq-constraints] failed to fetch ${url}; using bundled defaults only.`, err);
-				fetched = [];
-			}
-		}
-
-		this.presets = mergePresets([
-			BUILTIN_PRESETS,
-			bundled.presets,
-			fetched,
-			sanitizeInlinePresets(inline)
+		// The default config points CONSTRAINTS_URL at the bundled file — don't
+		// fetch the same document twice.
+		const [bundled, fetched] = await Promise.all([
+			fetchPresetsOrEmpty(BUNDLED_CONSTRAINTS_URL),
+			url && url !== BUNDLED_CONSTRAINTS_URL
+				? fetchPresetsOrEmpty(url)
+				: Promise.resolve<EqConstraintPreset[]>([])
 		]);
+
+		this.presets = mergePresets([BUILTIN_PRESETS, bundled, fetched, sanitizeInlinePresets(inline)]);
 		this.activeId = this.restoreActiveOrDefault(initialId);
 		// A restored non-builtin id is almost certainly tied to a specific
 		// device — treat it as auto-picked so the next `applyPhoneMatch`
@@ -284,6 +287,16 @@ export function sanitizeInlinePresets(raw: unknown[]): EqConstraintPreset[] {
 		out.push(p);
 	}
 	return out;
+}
+
+/** {@link fetchPresets} with failures downgraded to "this source has no presets". */
+async function fetchPresetsOrEmpty(url: string): Promise<EqConstraintPreset[]> {
+	try {
+		return await fetchPresets(url);
+	} catch (err) {
+		console.warn(`[eq-constraints] failed to fetch ${url}; skipping that source.`, err);
+		return [];
+	}
 }
 
 async function fetchPresets(url: string): Promise<EqConstraintPreset[]> {

@@ -14,11 +14,20 @@ class AudioRangeStore {
 	toHz = $state(20000);
 
 	setRange(fromHz: number, toHz: number): void {
-		const lo = Math.round(Math.max(20, Math.min(20000, Math.min(fromHz, toHz))));
-		const hi = Math.round(Math.max(20, Math.min(20000, Math.max(fromHz, toHz))));
-		// Clamp to a minimum bandwidth so the bandpass can't fully close.
+		let lo = Math.round(Math.max(20, Math.min(20000, Math.min(fromHz, toHz))));
+		let hi = Math.round(Math.max(20, Math.min(20000, Math.max(fromHz, toHz))));
+		// Enforce a minimum bandwidth so the bandpass can't fully close, without
+		// letting `hi` escape the 20 kHz ceiling — at the top of the domain the
+		// separation is taken out of `lo` instead.
+		if (hi - lo < 1) {
+			if (lo < 20000) hi = lo + 1;
+			else {
+				hi = 20000;
+				lo = 19999;
+			}
+		}
 		this.fromHz = lo;
-		this.toHz = Math.max(hi, lo + 1);
+		this.toHz = hi;
 	}
 
 	reset(): void {

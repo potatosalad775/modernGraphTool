@@ -16,6 +16,20 @@ interface BandDatum {
 }
 
 /**
+ * Composite/custom widgets that consume Delete/Backspace/arrow keys natively
+ * (bits-ui Slider thumbs, listboxes, comboboxes, menus, spinbuttons).
+ */
+const WIDGET_ROLE_SELECTOR =
+	'[role="slider"],[role="listbox"],[role="combobox"],[role="option"],[role="spinbutton"],[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
+
+/** True when the event target or the focused element is such a widget. */
+function isWidgetFocused(target: Element | null): boolean {
+	if (target?.closest?.(WIDGET_ROLE_SELECTOR)) return true;
+	const active = document.activeElement;
+	return !!(active && active !== target && active.closest?.(WIDGET_ROLE_SELECTOR));
+}
+
+/**
  * GraphEqOverlay — renders interactive EQ band nodes, EQ response curve,
  * and ghost (pre-EQ) curve on the graph SVG.
  *
@@ -254,6 +268,9 @@ export class GraphEqOverlay {
 				) {
 					return;
 				}
+				// Custom widgets (bits-ui sliders, listboxes, comboboxes) own
+				// Delete/Backspace/arrows while focused — don't steal them.
+				if (isWidgetFocused(target)) return;
 				if (e.key === 'Delete' || e.key === 'Backspace') {
 					if (this.selectedFilterIndex === null) return;
 					e.preventDefault();
@@ -614,9 +631,11 @@ export class GraphEqOverlay {
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
 					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
-					eqCommands.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
-					// Newly added band sits at the end — auto-select for immediate Delete affordance.
-					this.selectedFilterIndex = eqStore.filters.length - 1;
+					const added = eqCommands.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					// Newly added band sits at the end — auto-select for immediate Delete
+					// affordance. Skipped when the active maxBands cap rejected the add,
+					// so the previous selection survives.
+					if (added) this.selectedFilterIndex = eqStore.filters.length - 1;
 				}
 			});
 		this.graphEngine.orderOverlayLayers();

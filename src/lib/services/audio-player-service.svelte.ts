@@ -26,6 +26,10 @@ class AudioPlayerService {
 	#sourceNode: AudioBufferSourceNode | null = null;
 	#oscillatorNode: OscillatorNode | null = null;
 	#filterNodes: AudioNode[] = [];
+	// Listening-range bandpass pair, kept addressable so a range drag retunes
+	// them in place instead of rebuilding the whole chain per pointer event.
+	#rangeHighpass: BiquadFilterNode | null = null;
+	#rangeLowpass: BiquadFilterNode | null = null;
 	#audioBuffer: AudioBuffer | null = null;
 	// Sweep-only nodes / timers — created when sweep starts, torn down on stop().
 	#sweepFadeNode: GainNode | null = null;
@@ -163,6 +167,8 @@ class AudioPlayerService {
 		match.disconnect();
 		this.#filterNodes.forEach((n) => n.disconnect());
 		this.#filterNodes = [];
+		this.#rangeHighpass = null;
+		this.#rangeLowpass = null;
 
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		const chainTail = this.#analyserNode ?? this.#gainNode;
@@ -178,6 +184,8 @@ class AudioPlayerService {
 			lp.type = 'lowpass';
 			lp.frequency.value = audioRangeStore.toHz;
 			lp.Q.value = 0.707;
+			this.#rangeHighpass = hp;
+			this.#rangeLowpass = lp;
 			this.#filterNodes.push(hp, lp);
 		}
 
@@ -228,6 +236,16 @@ class AudioPlayerService {
 		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
 
 		this.#reconnectSource();
+	}
+
+	/**
+	 * Retune the existing listening-range bandpass. Called on every fromHz /
+	 * toHz change (a graph drag emits them at pointer rate), so it must not
+	 * rebuild the chain — a no-op when range mode is off.
+	 */
+	#retuneRangeFilters(fromHz: number, toHz: number): void {
+		if (this.#rangeHighpass) this.#rangeHighpass.frequency.value = fromHz;
+		if (this.#rangeLowpass) this.#rangeLowpass.frequency.value = toHz;
 	}
 
 	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
@@ -386,9 +404,13 @@ class AudioPlayerService {
 				void eqStore.preamp;
 				void this.#filtersEnabled;
 				void audioRangeStore.isFrequencySelectionMode;
-				void audioRangeStore.fromHz;
-				void audioRangeStore.toHz;
 				this.#updateFilters();
+			});
+			// Range bounds change continuously while the user drags the graph
+			// overlay — retune the existing biquads rather than re-entering
+			// #updateFilters() and rebuilding every node in the chain.
+			$effect(() => {
+				this.#retuneRangeFilters(audioRangeStore.fromHz, audioRangeStore.toHz);
 			});
 		});
 	}

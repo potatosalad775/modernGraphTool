@@ -8,6 +8,8 @@
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 
 	const BUILTIN_IDS = new Set(BUILTIN_PRESETS.map((p) => p.id));
+	// Unique per component instance so the group headings can label their groups.
+	const uid = $props.id();
 
 	let open = $state(false);
 	let query = $state('');
@@ -30,8 +32,8 @@
 			(BUILTIN_IDS.has(p.id) ? builtin : device).push(p);
 		}
 		return [
-			{ heading: m.eq_constraint_group_builtin(), items: builtin },
-			{ heading: m.eq_constraint_group_device(), items: device }
+			{ id: `${uid}-builtin`, heading: m.eq_constraint_group_builtin(), items: builtin },
+			{ id: `${uid}-device`, heading: m.eq_constraint_group_device(), items: device }
 		];
 	});
 
@@ -77,29 +79,32 @@
 		/>
 
 		<div class="max-h-64 overflow-y-auto">
-			{#each filtered as group (group.heading)}
+			{#each filtered as group (group.id)}
 				{#if group.items.length > 0}
-					<div
-						class="px-2 py-1 text-[10px] font-semibold tracking-wider text-base-content/50 uppercase"
-					>
-						{group.heading}
-					</div>
-					{#each group.items as p (p.id)}
-						{@const selected = p.id === eqConstraintsStore.activeId}
-						<button
-							type="button"
-							aria-pressed={selected}
-							onclick={() => select(p.id)}
-							class="flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none {selected
-								? 'font-medium text-accent'
-								: ''}"
+					<div role="group" aria-labelledby="{group.id}-heading">
+						<div
+							id="{group.id}-heading"
+							class="px-2 py-1 text-[10px] font-semibold tracking-wider text-base-content/50 uppercase"
 						>
-							<span class="truncate">{p.label}</span>
-							{#if selected}
-								<Check class="size-3 shrink-0" />
-							{/if}
-						</button>
-					{/each}
+							{group.heading}
+						</div>
+						{#each group.items as p (p.id)}
+							{@const selected = p.id === eqConstraintsStore.activeId}
+							<button
+								type="button"
+								aria-pressed={selected}
+								onclick={() => select(p.id)}
+								class="flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none {selected
+									? 'font-medium text-accent'
+									: ''}"
+							>
+								<span class="truncate">{p.label}</span>
+								{#if selected}
+									<Check class="size-3 shrink-0" />
+								{/if}
+							</button>
+						{/each}
+					</div>
 				{/if}
 			{/each}
 			{#if isEmpty}

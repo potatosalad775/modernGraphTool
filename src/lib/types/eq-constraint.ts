@@ -10,16 +10,18 @@
  *     `graphicBands` where only `gain` is user-editable; `freq` and `q` are
  *     locked per band. Different bands can carry different Q values.
  *
- * Constraints come from three sources merged at boot (see eq-constraints-store):
- *   1. `EQ.CUSTOM_CONSTRAINTS` inline in defaults/config.js — operator-specific
- *      additions that don't warrant a separate file.
- *   2. The JSON list at `EQ.CONSTRAINTS_URL` — typically a local file shipped
- *      with the deployment, but can point at a remotely hosted URL so multiple
- *      operators can share one curated list.
- *   3. Bundled defaults (`defaults/eq-constraints.json`) — used when (2) fails
- *      to fetch.
- *
- * Later sources override earlier ones for the same `id`.
+ * Constraints are merged at boot in this order (see `hydrate()` in
+ * eq-constraints-store) — later sources override earlier ones for the same `id`:
+ *   1. `BUILTIN_PRESETS` — Default (unlimited PEQ) + Generic 10-band, baked
+ *      into the binary so the picker is never empty.
+ *   2. Bundled defaults (`defaults/eq-constraints.json`, fetched from the
+ *      deployment root) — device-specific profiles, always merged in.
+ *   3. The JSON list at `EQ.CONSTRAINTS_URL` — optional; typically the same
+ *      file as (2) (then skipped), but can point at a remotely hosted URL so
+ *      multiple operators share one curated list. Contributes nothing when
+ *      unset or when the fetch fails.
+ *   4. `EQ.CUSTOM_CONSTRAINTS` inline in defaults/config.js — operator-specific
+ *      additions that don't warrant a separate file. Highest priority.
  */
 export interface EqConstraintGraphicBand {
 	/** Center frequency (Hz). Locked — not user-editable in graphic mode. */

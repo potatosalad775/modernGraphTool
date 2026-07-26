@@ -104,6 +104,55 @@ describe('eqHistoryStore.record', () => {
 		expect(eqHistoryStore.aSnapshotId).toBeNull();
 	});
 
+	it('suppressNext() skips exactly one record (used when applying a snapshot)', () => {
+		eqHistoryStore.suppressNext();
+		eqHistoryStore.record([pk({ gain: 1 })], 0);
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots).toHaveLength(0);
+
+		// Only the next call is skipped — the following one records normally.
+		eqHistoryStore.record([pk({ gain: 2 })], 0);
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
+		expect(eqHistoryStore.snapshots[0].filters[0].gain).toBe(2);
+	});
+
+	it('flush() commits the pending debounced record immediately', () => {
+		eqHistoryStore.record([pk({ gain: 1 })], 0);
+		eqHistoryStore.record([pk({ gain: 4 })], -1.5);
+		expect(eqHistoryStore.snapshots).toHaveLength(0);
+
+		eqHistoryStore.flush();
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
+		expect(eqHistoryStore.snapshots[0].filters[0].gain).toBe(4);
+		expect(eqHistoryStore.snapshots[0].preamp).toBe(-1.5);
+
+		// The pending timer was consumed — no duplicate lands afterwards.
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
+	});
+
+	it('cancelPending() drops the pending record without committing', () => {
+		eqHistoryStore.record([pk({ gain: 1 })], 0);
+		eqHistoryStore.cancelPending();
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots).toHaveLength(0);
+	});
+
+	it('carries an A/B selection onto the entry that supersedes it', () => {
+		eqHistoryStore.record([pk({ gain: 1 })], 0);
+		vi.advanceTimersByTime(600);
+		const firstId = eqHistoryStore.snapshots[0].id;
+		eqHistoryStore.setA(firstId);
+
+		// Second commit within the min-gap window replaces the first entry.
+		eqHistoryStore.record([pk({ gain: 2 })], 0);
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
+		expect(eqHistoryStore.aSnapshotId).toBe(eqHistoryStore.snapshots[0].id);
+		expect(eqHistoryStore.snapshots[0].filters[0].gain).toBe(2);
+	});
+
 	it('setA / setB only accept ids that exist in the snapshot list', () => {
 		eqHistoryStore.record([pk({ gain: 1 })], 0);
 		vi.advanceTimersByTime(600);

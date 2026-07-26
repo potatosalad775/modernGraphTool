@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
@@ -50,8 +51,12 @@
 		if (!uuid) return;
 		const item = frStore.get(uuid);
 		if (!item) return;
-		const matched = eqConstraintsStore.applyPhoneMatch(item.identifier);
-		if (matched) eqCommands.reclampToActiveConstraint();
+		// Source phone is the only intended dependency — the constraint/filter
+		// mutations below must not feed back into this effect.
+		untrack(() => {
+			const matched = eqConstraintsStore.applyPhoneMatch(item.identifier);
+			if (matched) eqCommands.reclampToActiveConstraint();
+		});
 	});
 </script>
 

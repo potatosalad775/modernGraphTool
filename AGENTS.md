@@ -110,9 +110,11 @@ All stores are exported as class instances from `.svelte.ts` files.
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
 - `eq-constraints-store.svelte.ts` — active EQ constraint preset + merged catalog. The two general-purpose
   presets (Default unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS` so they're
-  available synchronously; `defaults/eq-constraints.json` holds device-specific PEQ profiles only. Each
-  device entry can declare `matchPhones: string[]` substrings; when the source phone changes and the active
-  preset is `default`, `applyPhoneMatch()` auto-selects the matching device profile.
+  available synchronously; `defaults/eq-constraints.json` holds device-specific PEQ profiles only and is
+  `fetch()`ed at runtime by `hydrate()` (never imported as a module), then merged with `EQ.CONSTRAINTS_URL`
+  and `EQ.CUSTOM_CONSTRAINTS`. Each device entry can declare `matchPhones: string[]` substrings; when the
+  source phone changes and the active preset is `default`, `applyPhoneMatch()` auto-selects the matching
+  device profile.
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
 - `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
   phone-book-crawling fallback search used only when no aggregate index is reachable

@@ -35,6 +35,7 @@ class EqHistoryStore {
 	bSnapshotId = $state<string | null>(null);
 
 	#pendingTimer: ReturnType<typeof setTimeout> | null = null;
+	#pending: { filters: EQFilter[]; preamp: number } | null = null;
 	#lastCommitTimestamp = 0;
 	#suppress = false;
 
@@ -58,28 +59,43 @@ class EqHistoryStore {
 			return;
 		}
 		// Snapshot the values now (state may shift before the timer fires).
-		const captured = {
+		this.#pending = {
 			filters: filters.map((f) => ({ ...f })),
 			preamp
 		};
 		if (this.#pendingTimer) clearTimeout(this.#pendingTimer);
 		this.#pendingTimer = setTimeout(() => {
+			const captured = this.#pending;
 			this.#pendingTimer = null;
-			this.#commit(captured.filters, captured.preamp);
+			this.#pending = null;
+			if (captured) this.#commit(captured.filters, captured.preamp);
 		}, RECORD_DEBOUNCE_MS);
 	}
 
-	/** Force-flush any pending debounced record (e.g. before phone change). */
+	/**
+	 * Commit any pending debounced record right now (e.g. before a phone
+	 * change), so the last edit of a burst isn't lost.
+	 */
 	flush(): void {
+		const captured = this.#pending;
+		this.cancelPending();
+		if (captured) this.#commit(captured.filters, captured.preamp);
+	}
+
+	/** Drop any pending debounced record without committing it. */
+	cancelPending(): void {
 		if (this.#pendingTimer) {
 			clearTimeout(this.#pendingTimer);
 			this.#pendingTimer = null;
 		}
+		this.#pending = null;
 	}
 
 	/** Drop every snapshot (e.g. on source phone change). */
 	clear(): void {
-		this.flush();
+		// Discard rather than flush — a pending record belongs to the state
+		// being cleared, so committing it would resurrect it into the empty log.
+		this.cancelPending();
 		this.snapshots = [];
 		this.aSnapshotId = null;
 		this.bSnapshotId = null;
@@ -114,14 +130,29 @@ class EqHistoryStore {
 		};
 
 		let next: EqSnapshot[];
+		let nextA = this.aSnapshotId;
+		let nextB = this.bSnapshotId;
 		if (withinGap) {
+			// The coalesced entry supersedes the one it replaces — carry any A/B
+			// selection over so the pick doesn't silently dangle.
+			const replacedId = last!.id;
+			if (nextA === replacedId) nextA = entry.id;
+			if (nextB === replacedId) nextB = entry.id;
 			next = [...this.snapshots.slice(0, -1), entry];
 		} else {
 			next = [...this.snapshots, entry];
 		}
 		// Cap at SNAPSHOT_CAP — drop oldest when overflowing.
-		if (next.length > SNAPSHOT_CAP) next = next.slice(next.length - SNAPSHOT_CAP);
+		if (next.length > SNAPSHOT_CAP) {
+			next = next.slice(next.length - SNAPSHOT_CAP);
+			// Trimmed-away snapshots can't stay selected.
+			const kept = new Set(next.map((s) => s.id));
+			if (nextA !== null && !kept.has(nextA)) nextA = null;
+			if (nextB !== null && !kept.has(nextB)) nextB = null;
+		}
 		this.snapshots = next;
+		if (nextA !== this.aSnapshotId) this.aSnapshotId = nextA;
+		if (nextB !== this.bSnapshotId) this.bSnapshotId = nextB;
 		this.#lastCommitTimestamp = now;
 	}
 }

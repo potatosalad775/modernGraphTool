@@ -11,6 +11,10 @@ describe('computeBypassMatchDb', () => {
 		expect(computeBypassMatchDb([], 0)).toBe(0);
 	});
 
+	it('returns 0 for preamp-only input (no filters to match against)', () => {
+		expect(computeBypassMatchDb([], -6)).toBe(0);
+	});
+
 	it('returns 0 when all filters are disabled', () => {
 		expect(computeBypassMatchDb([{ ...pk(1000, 6), enabled: false }], 0)).toBe(0);
 	});

@@ -8,6 +8,7 @@
 	import Button from '../atoms/Button.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import {
+		clampFilterToConstraint,
 		getFilterViolation,
 		isPastMaxBands,
 		type FilterViolation
@@ -72,9 +73,19 @@
 		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 	function clampField(field: 'freq' | 'gain' | 'q', val: number): number {
-		if (field === 'freq') return Math.max(20, Math.min(20000, Math.round(val)));
-		if (field === 'gain') return Math.max(-30, Math.min(30, Math.round(val * 10) / 10));
-		return Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+		const widest =
+			field === 'freq'
+				? Math.max(20, Math.min(20000, Math.round(val)))
+				: field === 'gain'
+					? Math.max(-30, Math.min(30, Math.round(val * 10) / 10))
+					: Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
+		// `eqCommands.updateBand` clamps again against the active preset (tighter
+		// ranges, graphic-band snapping). Apply the same boundary here so the
+		// number input shows the value that actually lands in the store.
+		const preset = eqConstraintsStore.active;
+		if (!preset) return widest;
+		const clamped = clampFilterToConstraint({ ...filter, [field]: widest }, preset)[field];
+		return clamped ?? widest;
 	}
 
 	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {

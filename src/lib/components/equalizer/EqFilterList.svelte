@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -27,11 +28,15 @@
 
 	$effect(() => {
 		const next = preamp;
-		const prev = eqStore.preamp;
-		if (next < prev - 0.05) {
-			toast.info(m.eq_preamp_auto_reduced({ value: next.toFixed(1) }));
-		}
-		eqStore.preamp = next;
+		// The effect writes eqStore.preamp; reading it untracked keeps that write
+		// from re-triggering this effect.
+		untrack(() => {
+			const prev = eqStore.preamp;
+			if (next < prev - 0.05) {
+				toast.info(m.eq_preamp_auto_reduced({ value: next.toFixed(1) }));
+			}
+			eqStore.preamp = next;
+		});
 	});
 
 	const atMaxBands = $derived.by(() => {

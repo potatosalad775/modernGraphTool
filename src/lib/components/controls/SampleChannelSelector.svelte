@@ -187,7 +187,6 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			align="end"
 			class="z-50 w-54 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!-- Section 1: Channel Display (radio buttons) -->

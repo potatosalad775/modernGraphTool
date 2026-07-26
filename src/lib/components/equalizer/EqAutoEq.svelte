@@ -2,6 +2,8 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
@@ -9,6 +11,8 @@
 
 	const opts = $derived(settingsStore.autoEqOptions);
 	let isRunning = $state(false);
+	/** AutoEQ has no place in graphic mode — gain-only edits, freq/Q locked. */
+	const isGraphicMode = $derived(eqConstraintsStore.active?.mode === 'graphic');
 
 	async function runAutoEQ() {
 		const sourceUUID = eqStore.sourcePhoneUUID;
@@ -51,7 +55,7 @@
 		isRunning = true;
 		try {
 			const filters = await runAutoEQInWorker(sourcePoints, targetPoints, options);
-			eqStore.filters = filters;
+			eqCommands.replaceFilters(filters);
 		} catch (err) {
 			console.error('AutoEQ failed:', err);
 		} finally {
@@ -166,9 +170,11 @@
 	<p class="text-xs text-base-content/60">{m.equalizer_autoeq_description()}</p>
 
 	<Button
-		title={m.equalizer_autoeq_run_button()}
+		title={isGraphicMode
+			? 'AutoEQ is unavailable in graphic mode (frequency and Q are locked per band)'
+			: m.equalizer_autoeq_run_button()}
 		onclick={runAutoEQ}
-		disabled={isRunning}
+		disabled={isRunning || isGraphicMode}
 		variant="primary"
 	>
 		{isRunning ? '...' : m.equalizer_autoeq_run_button()}

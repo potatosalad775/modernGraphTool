@@ -1,0 +1,60 @@
+{
+	"presets": [
+		{
+			"id": "fiio-eh11",
+			"label": "Fiio EH11 (10-band PEQ)",
+			"mode": "parametric",
+			"maxBands": 10,
+			"allowPk": true,
+			"allowLsq": true,
+			"allowHsq": true,
+			"freqMin": 20,
+			"freqMax": 20000,
+			"gainMin": -12,
+			"gainMax": 12,
+			"qMin": 0.25,
+			"qMax": 8,
+			"matchPhones": ["FiiO EH11", "EH11"]
+		},
+		{
+			"id": "sennheiser-hdb-630",
+			"label": "Sennheiser HDB 630 (5-band PEQ)",
+			"mode": "parametric",
+			"maxBands": 5,
+			"allowPk": true,
+			"allowLsq": true,
+			"allowHsq": true,
+			"freqMin": 20,
+			"freqMax": 20000,
+			"gainMin": -6,
+			"gainMax": 6,
+			"qMin": 0.25,
+			"qMax": 8,
+			"matchPhones": ["HDB 630", "HDB630"]
+		},
+		{
+			"id": "sony-wh-1000xm6",
+			"label": "Sony WH-1000XM6",
+			"mode": "graphic",
+			"maxBands": 10,
+			"allowPk": true,
+			"allowLsq": false,
+			"allowHsq": false,
+			"graphicBands": [
+				{ "freq": 31, "q": 1.0 },
+				{ "freq": 63, "q": 1.0 },
+				{ "freq": 125, "q": 1.0 },
+				{ "freq": 250, "q": 1.0 },
+				{ "freq": 500, "q": 1.0 },
+				{ "freq": 1000, "q": 1.0 },
+				{ "freq": 2000, "q": 1.0 },
+				{ "freq": 4000, "q": 1.0 },
+				{ "freq": 8000, "q": 1.0 },
+				{ "freq": 16000, "q": 1.0 }
+			],
+			"gainMin": -6,
+			"gainMax": 6,
+			"matchPhones": ["WH-1000XM6", "1000XM6"]
+		}
+	]
+}

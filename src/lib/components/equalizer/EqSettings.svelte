@@ -42,11 +42,11 @@
 			<span class="flex-1 text-xs font-medium text-base-content/80"
 				>{m.eq_settings_link_eq_normalization_label()}</span
 			>
-			<PopoverPanel align="end">
+			<PopoverPanel>
 				{#snippet trigger({ props })}
 					<Button
 						{...props}
-						title="Open target filter description"
+						title="Open 'Link EQ curve to original' option description"
 						variant="ghost"
 						size="icon"
 						class="ml-0.5 p-1! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"

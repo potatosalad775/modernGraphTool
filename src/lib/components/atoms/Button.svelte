@@ -3,7 +3,15 @@
 
 	type Props = WithChildren<Button.RootProps> & {
 		title: string;
-		variant?: 'primary' | 'secondary' | 'muted' | 'destructive' | 'outline' | 'ghost' | 'link';
+		variant?:
+			| 'primary'
+			| 'secondary'
+			| 'accent'
+			| 'muted'
+			| 'destructive'
+			| 'outline'
+			| 'ghost'
+			| 'link';
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon';
 	};
 
@@ -12,6 +20,7 @@
 	const variantClasses = {
 		primary: 'bg-primary text-primary-content hover:bg-primary/90',
 		secondary: 'bg-secondary text-secondary-content hover:bg-secondary/80',
+		accent: 'bg-accent text-accent-content hover:bg-accent/80',
 		muted: 'bg-base-300 text-base-content hover:bg-base-300/60',
 		destructive: 'bg-error text-error-content hover:bg-error/90',
 		outline: 'ring ring-base-content/20 bg-inherit text-base-content hover:bg-base-content/10',
@@ -30,7 +39,7 @@
 
 <Button.Root
 	{...restProps}
-	class="inline-flex items-center justify-center rounded-md font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent data-[state=open]:bg-base-100 {sizeClasses[
+	class="inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100 {sizeClasses[
 		size
 	]} {variantClasses[variant]} {restProps.class}"
 	{title}

@@ -3,6 +3,8 @@ import type { GraphEngine } from './GraphEngine.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqCommands } from '$lib/services/eq-commands.js';
+import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
@@ -11,6 +13,20 @@ import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 interface BandDatum {
 	filter: EQFilter;
 	index: number;
+}
+
+/**
+ * Composite/custom widgets that consume Delete/Backspace/arrow keys natively
+ * (bits-ui Slider thumbs, listboxes, comboboxes, menus, spinbuttons).
+ */
+const WIDGET_ROLE_SELECTOR =
+	'[role="slider"],[role="listbox"],[role="combobox"],[role="option"],[role="spinbutton"],[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
+
+/** True when the event target or the focused element is such a widget. */
+function isWidgetFocused(target: Element | null): boolean {
+	if (target?.closest?.(WIDGET_ROLE_SELECTOR)) return true;
+	const active = document.activeElement;
+	return !!(active && active !== target && active.closest?.(WIDGET_ROLE_SELECTOR));
 }
 
 /**
@@ -35,9 +51,14 @@ export class GraphEqOverlay {
 	private clickRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
 	private _eqPanelActive = false;
 	private _dragThrottleTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
+	private _keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+	private selectedFilterIndex: number | null = null;
 	private eq = new Equalizer();
 
 	private static readonly CLIP_ID = 'eq-overlay-clip';
+	// Click vs drag threshold (pixels). A pointer that moves less than this between
+	// dragstart and dragend is treated as a click and toggles selection.
+	private static readonly CLICK_DRAG_THRESHOLD = 3;
 
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
@@ -45,6 +66,7 @@ export class GraphEqOverlay {
 	}
 
 	destroy(): void {
+		this._setKeydownActive(false);
 		this._removeClickRect();
 		this.clipWrapper.remove();
 		this.graphEngine.svg.select(`#${GraphEqOverlay.CLIP_ID}`).remove();
@@ -91,6 +113,12 @@ export class GraphEqOverlay {
 		const yScale = this.graphEngine.baseYScale;
 		const filters = eqStore.filters;
 		const sourceUUID = eqStore.sourcePhoneUUID;
+
+		// Drop a stale selection that points past the end of the filter list
+		// (can happen after external removal / import).
+		if (this.selectedFilterIndex !== null && this.selectedFilterIndex >= filters.length) {
+			this.selectedFilterIndex = null;
+		}
 
 		// Resolve curve color to match nodes with the visible EQ curve
 		const eqCurveObj = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
@@ -167,17 +195,17 @@ export class GraphEqOverlay {
 
 		// Double-click to remove
 		entered.on('dblclick', (_event: MouseEvent, d: BandDatum) => {
-			eqStore.removeBandAt(d.index);
+			eqCommands.removeBand(d.index);
 		});
 
-		// Scroll to adjust Q
+		// Scroll to adjust Q — repeated ticks coalesce into one undo entry
 		entered.on(
 			'wheel',
 			(event: WheelEvent, d: BandDatum) => {
 				event.preventDefault();
 				const delta = event.deltaY > 0 ? -0.1 : 0.1;
 				const newQ = Math.max(0.1, Math.min(10, d.filter.q! + delta));
-				eqStore.updateBandAt(d.index, { q: parseFloat(newQ.toFixed(2)) });
+				eqCommands.updateBand(d.index, { q: parseFloat(newQ.toFixed(2)) });
 			},
 			{ passive: false } as EventListenerOptions
 		);
@@ -204,9 +232,15 @@ export class GraphEqOverlay {
 		merged
 			.select<SVGCircleElement>('.eq-q-ring')
 			.attr('r', (d) => this._qToRadius(d.filter.q!))
-			.attr('stroke', curveColor);
+			.attr('stroke', curveColor)
+			.attr('stroke-width', (d) => (d.index === this.selectedFilterIndex ? 3 : 1.5))
+			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 0.9 : 0.5));
 
-		merged.select<SVGCircleElement>('.eq-center-dot').attr('fill', curveColor);
+		merged
+			.select<SVGCircleElement>('.eq-center-dot')
+			.attr('fill', curveColor)
+			.attr('r', (d) => (d.index === this.selectedFilterIndex ? 8 : 6))
+			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 1 : 0.9));
 
 		merged.select<SVGTextElement>('.eq-freq-label').text((d) => this._formatFreq(d.filter.freq!));
 	}
@@ -215,7 +249,74 @@ export class GraphEqOverlay {
 		if (active !== this._eqPanelActive) {
 			this._eqPanelActive = active;
 			this._updateClickRect();
+			this._setKeydownActive(active);
+			if (!active) this.selectedFilterIndex = null;
 			this.render();
+		}
+	}
+
+	// ── Keyboard handling (window-level, only while EQ panel is active) ────────
+
+	private _setKeydownActive(active: boolean): void {
+		if (active && !this._keydownHandler) {
+			this._keydownHandler = (e: KeyboardEvent) => {
+				const target = e.target as HTMLElement;
+				if (
+					target.tagName === 'INPUT' ||
+					target.tagName === 'TEXTAREA' ||
+					target.isContentEditable
+				) {
+					return;
+				}
+				// Custom widgets (bits-ui sliders, listboxes, comboboxes) own
+				// Delete/Backspace/arrows while focused — don't steal them.
+				if (isWidgetFocused(target)) return;
+				if (e.key === 'Delete' || e.key === 'Backspace') {
+					if (this.selectedFilterIndex === null) return;
+					e.preventDefault();
+					const idx = this.selectedFilterIndex;
+					this.selectedFilterIndex = null;
+					eqCommands.removeBand(idx);
+				} else if (e.key === 'Escape') {
+					if (this.selectedFilterIndex !== null) {
+						this.selectedFilterIndex = null;
+						this.render();
+					}
+				} else if (
+					(e.key === 'ArrowUp' ||
+						e.key === 'ArrowDown' ||
+						e.key === 'ArrowLeft' ||
+						e.key === 'ArrowRight') &&
+					this.selectedFilterIndex !== null
+				) {
+					e.preventDefault();
+					const idx = this.selectedFilterIndex;
+					const filter = eqStore.filters[idx];
+					if (!filter) return;
+					const multiplier = e.shiftKey ? 10 : 1;
+					const isGraphicNow = eqConstraintsStore.active?.mode === 'graphic';
+					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+						const dir = e.key === 'ArrowUp' ? 1 : -1;
+						const newGain = Math.max(
+							-40,
+							Math.min(40, (filter.gain ?? 0) + dir * 0.1 * multiplier)
+						);
+						eqCommands.updateBand(idx, { gain: Math.round(newGain * 10) / 10 });
+						eqCommands.flushBand(idx);
+					} else if (!isGraphicNow) {
+						const dir = e.key === 'ArrowRight' ? 1 : -1;
+						const step = multiplier;
+						const newFreq = Math.max(20, Math.min(20000, (filter.freq ?? 1000) + dir * step));
+						eqCommands.updateBand(idx, { freq: newFreq });
+						eqCommands.flushBand(idx);
+					}
+					this.render();
+				}
+			};
+			window.addEventListener('keydown', this._keydownHandler);
+		} else if (!active && this._keydownHandler) {
+			window.removeEventListener('keydown', this._keydownHandler);
+			this._keydownHandler = null;
 		}
 	}
 
@@ -373,7 +474,10 @@ export class GraphEqOverlay {
 					}
 				}
 
+				const isGraphic = eqConstraintsStore.active?.mode === 'graphic';
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+				// Graphic mode: frequency is pinned to the band's preset position.
+				if (isGraphic) freq = d.filter.freq!;
 				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
 				let gain: number;
@@ -387,9 +491,10 @@ export class GraphEqOverlay {
 					visualY = event.y;
 
 					// Recompute baseCurveDb at new freq if frequency changed significantly
-					// (the base curve shape varies across frequency)
+					// (the base curve shape varies across frequency) — skipped in graphic
+					// mode since freq is frozen.
 					const origFreq = d.filter.freq!;
-					if (Math.abs(freq - origFreq) / origFreq > 0.05) {
+					if (!isGraphic && Math.abs(freq - origFreq) / origFreq > 0.05) {
 						const newBase = this._getCurveDbExcludingFilter(freq, d.index);
 						if (newBase !== null) {
 							dragState.baseCurveDb = newBase;
@@ -416,13 +521,15 @@ export class GraphEqOverlay {
 					.filter((n) => n.index === d.index)
 					.attr('transform', `translate(${xs(freq)},${visualY})`);
 
-				// Throttle state update to ~60fps
+				// Throttle state update to ~60fps. Mid-drag updates flow through the
+				// coalescer, which mutates the store directly *and* tracks the burst
+				// — so a whole drag becomes one undo entry once dragend flushes.
 				if (!this._dragThrottleTimers.has(d.index)) {
 					this._dragThrottleTimers.set(
 						d.index,
 						setTimeout(() => {
 							this._dragThrottleTimers.delete(d.index);
-							eqStore.updateBandAt(d.index, {
+							eqCommands.updateBand(d.index, {
 								freq: Math.round(freq),
 								gain: parseFloat(gain.toFixed(1))
 							});
@@ -433,8 +540,24 @@ export class GraphEqOverlay {
 			.on('end', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
 				const xs = this.graphEngine.xScale;
 				const ys = this.graphEngine.baseYScale;
+
+				// Click vs drag: if the pointer barely moved between start and end,
+				// treat as a click — toggle selection without committing position.
+				const moved = dragState
+					? Math.hypot(event.x - dragState.shiftOriginX, event.y - dragState.shiftOriginY)
+					: 0;
+				const isClick = moved < GraphEqOverlay.CLICK_DRAG_THRESHOLD;
+
+				if (isClick) {
+					this.selectedFilterIndex = this.selectedFilterIndex === d.index ? null : d.index;
+					this.render();
+					dragState = null;
+					return;
+				}
+
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+				if (eqConstraintsStore.active?.mode === 'graphic') freq = d.filter.freq!;
 
 				let gain: number;
 
@@ -446,23 +569,27 @@ export class GraphEqOverlay {
 				}
 				if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
 
-				// Cancel pending throttle and commit final position
+				// Cancel pending throttle and commit final position to the store
+				// (still through the coalescer so the whole drag stays one entry).
 				const pending = this._dragThrottleTimers.get(d.index);
 				if (pending !== undefined) {
 					clearTimeout(pending);
 					this._dragThrottleTimers.delete(d.index);
 				}
-				eqStore.updateBandAt(d.index, {
+				eqCommands.updateBand(d.index, {
 					freq: Math.round(freq),
 					gain: parseFloat(gain.toFixed(1))
 				});
+				// Flush the burst now so undo immediately undoes the whole drag.
+				eqCommands.flushBand(d.index);
 
 				const endNode = this.overlayGroup
 					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
 					.filter((n) => n.index === d.index);
 				endNode.style('cursor', 'grab');
-				endNode.select('.eq-center-dot').attr('r', 6).attr('opacity', 0.9);
-				endNode.select('.eq-q-ring').attr('opacity', 0.5);
+				// Reset transient hover sizing — the real selected/unselected
+				// styling is applied on next render().
+				this.render();
 
 				dragState = null;
 			});
@@ -504,7 +631,11 @@ export class GraphEqOverlay {
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
 					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
-					eqStore.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					const added = eqCommands.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					// Newly added band sits at the end — auto-select for immediate Delete
+					// affordance. Skipped when the active maxBands cap rejected the add,
+					// so the previous selection survives.
+					if (added) this.selectedFilterIndex = eqStore.filters.length - 1;
 				}
 			});
 		this.graphEngine.orderOverlayLayers();

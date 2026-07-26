@@ -14,6 +14,8 @@ class EQStore {
 	autoEqTargetUUID = $state<string | null>(null);
 	/** UUID of the EQ-modified FRDataObject in frStore */
 	eqCurveUUID = $state<string | null>(null);
+	/** True while the `\` bypass key is held — used for a transient "BYPASSED" badge. */
+	isMomentarilyBypassed = $state(false);
 	/** EQ-modified FR data (pre-normalization) — used for overlay node positioning */
 	readonly eqModifiedData = new SvelteMap<string, ParsedFRData>();
 

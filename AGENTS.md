@@ -122,6 +122,11 @@ All stores are exported as class instances from `.svelte.ts` files.
   `GraphToolbar`, which on mobile lives in a collapsed accordion that genuinely unmounts, so component-scoped
   visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default. `GraphContainer` owns the effects that call
   `load()` and push state into the overlay.
+- `target-adjustment-store.svelte.ts` — Target Customizer slider stacks keyed by FR-data UUID, plus the
+  `TARGET_CUSTOMIZER` config (filters, presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math
+  (`adjustedChannels`, `label`). `TargetCustomizer.svelte` is UI only. Keeping the state here is what lets
+  `DataProvider.applyTargetAdjustment()` rebuild a target with no component mounted — `GraphPanel` is torn
+  down on every panel switch.
 - `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
   phone-book-crawling fallback search used only when no aggregate index is reachable
 
@@ -157,7 +162,11 @@ export const frStore = new FRDataStore();
 ## Services
 
 - `data-provider.svelte.ts` — orchestrates commands + `frStore`: add/remove/toggle FR, insertRaw,
-  updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll
+  updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll,
+  applyTargetAdjustment. `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it
+  re-applies target adjustments itself afterwards; `renormalizeAll` normalizes the already-adjusted
+  channels in place and must **not** re-apply, or it re-anchors before the adjustment and resamples onto
+  a different frequency grid than `targetOriginalData`.
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `aggregate-index.svelte.ts` — cross-site search. Fetches the GraphAggregator index (one JSON doc

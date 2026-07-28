@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { untrack, onDestroy } from 'svelte';
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
+	import {
+		targetAdjustmentStore,
+		type TargetFilterDef
+	} from '$lib/stores/target-adjustment-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { Equalizer } from '$lib/utils/equalizer.js';
-	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import type { FRDataObject, ParsedFRData } from '$lib/types/data-types.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
@@ -14,291 +15,93 @@
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
-	// ── Config ────────────────────────────────────────────────────────────────
+	// This component is UI only. Slider state lives in targetAdjustmentStore so it
+	// survives the panel switches that unmount GraphPanel, and so DataProvider can
+	// re-apply adjustments after a global re-smooth / re-normalize without needing
+	// a mounted instance.
+	const isCustomizable = $derived(targetAdjustmentStore.isCustomizable(item.identifier));
+	const adjustment = $derived(targetAdjustmentStore.get(uuid));
+	const availableFilters = $derived(targetAdjustmentStore.availableFilters);
+	const filterPresets = $derived(targetAdjustmentStore.filterPresets);
 
-	interface FilterDef {
-		id: string;
-		name: string;
-		type: 'TILT' | 'LSQ' | 'HSQ' | 'PK';
-		freq: number;
-		q: number;
-		description?: string;
-	}
+	const activeFilters = $derived(
+		availableFilters.filter((f) => adjustment.activeIds.includes(f.id))
+	);
+	const inactiveFilters = $derived(
+		availableFilters.filter((f) => !adjustment.activeIds.includes(f.id))
+	);
 
-	interface FilterPreset {
-		name: string;
-		filter: Record<string, number>;
-	}
-
-	interface InitialFilter {
-		name: string;
-		filter: Record<string, number>;
-	}
-
-	const tcConfig = window.GRAPHTOOL_CONFIG?.TARGET_CUSTOMIZER as
-		| {
-				CUSTOMIZABLE_TARGETS?: string[];
-				FILTERS?: FilterDef[];
-				FILTER_PRESET?: FilterPreset[];
-				INITIAL_TARGET_FILTERS?: InitialFilter[];
-		  }
-		| undefined;
-
-	function normalizeTargetName(name: string): string {
-		const trimmed = name.trim();
-		return trimmed.endsWith(' Target') ? trimmed : `${trimmed} Target`;
-	}
-
-	const customizableTargets = (tcConfig?.CUSTOMIZABLE_TARGETS ?? []).map(normalizeTargetName);
-	const availableFilters: FilterDef[] = tcConfig?.FILTERS ?? [
-		{ id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
-		{ id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
-		{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 }
-	];
-	const filterPresets: FilterPreset[] = tcConfig?.FILTER_PRESET ?? [];
-	const initialFilters: InitialFilter[] = tcConfig?.INITIAL_TARGET_FILTERS ?? [];
-
-	const normalizedIdentifier = $derived(normalizeTargetName(item.identifier));
-	const isCustomizable = $derived(customizableTargets.includes(normalizedIdentifier));
-
-	function getShortFilterName(def: FilterDef): string {
-		const paren = def.name.indexOf(' (');
-		return paren >= 0 ? def.name.slice(0, paren) : def.name;
-	}
-
-	function formatAdjustmentLabel(filters: FilterDef[], values: Map<string, number>): string | null {
-		const parts: string[] = [];
-		for (const def of filters) {
-			const v = values.get(def.id) ?? 0;
-			if (v === 0) continue;
-			const unit = def.type === 'TILT' ? 'dB/oct' : 'dB';
-			const sign = v > 0 ? '+' : '';
-			parts.push(`${getShortFilterName(def)}: ${sign}${v.toFixed(1)}${unit}`);
-		}
-		return parts.length > 0 ? `(${parts.join(', ')})` : null;
-	}
-
-	function getGainRange(def: FilterDef): { min: number; max: number; step: number } {
+	function getGainRange(def: TargetFilterDef): { min: number; max: number; step: number } {
 		if (def.type === 'TILT') return { min: -2, max: 2, step: 0.1 };
 		return { min: -20, max: 20, step: 0.5 };
 	}
 
-	// ── State ─────────────────────────────────────────────────────────────────
+	// ── One-time registration ─────────────────────────────────────────────────
+	// Seeds the slider stack from INITIAL_TARGET_FILTERS (no-op if this UUID already
+	// has state from an earlier mount) and publishes the target's pre-adjustment
+	// curve to graphStore, which baseline compensation and DataProvider's re-apply
+	// path both read. Guarded by a plain flag — not $state — to avoid a cycle with
+	// the apply effect below.
 
-	const activeFilterIds = new SvelteSet<string>();
-	const filterValues = new SvelteMap<string, number>();
-	let selectedPreset = $state('');
-
-	// Apply initial filters for this target
-	const initial = initialFilters.find((f) => normalizeTargetName(f.name) === normalizedIdentifier);
-	if (initial) {
-		for (const [id, value] of Object.entries(initial.filter)) {
-			if (availableFilters.some((f) => f.id === id)) {
-				activeFilterIds.add(id);
-				filterValues.set(id, value);
-			}
-		}
-	}
-
-	// ── Derived ───────────────────────────────────────────────────────────────
-
-	const activeFilters = $derived(availableFilters.filter((f) => activeFilterIds.has(f.id)));
-
-	const inactiveFilters = $derived(availableFilters.filter((f) => !activeFilterIds.has(f.id)));
-
-	// ── Equalizer instance ────────────────────────────────────────────────────
-
-	const eq = new Equalizer();
-
-	// ── Cache original data ───────────────────────────────────────────────────
-	// Uses a plain flag (not reactive $state) to guard one-time init, avoiding
-	// a reactive cycle between the cache effect and the adjustment effect.
-
-	let originalData: SvelteMap<string, [number, number][]> | null = null;
-	let cacheInitialized = false;
+	let initialized = false;
 
 	$effect(() => {
 		const frObj = frStore.get(uuid);
-		if (frObj && !cacheInitialized) {
-			cacheInitialized = true;
-			// Recover persisted original data from a previous mount (panel switch)
-			const persisted = graphStore.targetOriginalData.get(uuid);
-			if (persisted) {
-				const cached = new SvelteMap<string, [number, number][]>();
-				for (const key of Object.keys(persisted) as (keyof ParsedFRData)[]) {
-					const ch = persisted[key];
-					if (ch) {
-						cached.set(
-							key,
-							ch.data.map(([f, d]) => [f, d] as [number, number])
-						);
-					}
+		if (!frObj || initialized) return;
+		initialized = true;
+
+		untrack(() => {
+			targetAdjustmentStore.ensure(uuid, item.identifier);
+
+			// A snapshot from a previous mount survives in graphStore — don't overwrite
+			// it with the already-adjusted channels currently in frStore.
+			if (graphStore.targetOriginalData.has(uuid)) return;
+
+			const snapshot: ParsedFRData = {};
+			for (const key of Object.keys(frObj.channels) as (keyof ParsedFRData)[]) {
+				const ch = frObj.channels[key];
+				if (ch) {
+					snapshot[key] = {
+						data: ch.data.map(([f, d]) => [f, d] as [number, number]),
+						metadata: { ...ch.metadata }
+					};
 				}
-				originalData = cached;
-			} else {
-				const cached = new SvelteMap<string, [number, number][]>();
-				const channels = frObj.channels;
-				const sharedSnapshot: ParsedFRData = {};
-				for (const key of Object.keys(channels) as (keyof ParsedFRData)[]) {
-					const ch = channels[key];
-					if (ch) {
-						const dataCopy = ch.data.map(([f, d]) => [f, d] as [number, number]);
-						cached.set(key, dataCopy);
-						sharedSnapshot[key] = {
-							data: dataCopy.map(([f, d]) => [f, d] as [number, number]),
-							metadata: { ...ch.metadata }
-						};
-					}
-				}
-				originalData = cached;
-				// Publish original target data for baseline compensation
-				graphStore.targetOriginalData.set(uuid, sharedSnapshot);
 			}
-		}
+			graphStore.targetOriginalData.set(uuid, snapshot);
+		});
 	});
 
 	onDestroy(() => {
-		// Only clean up if the FR data itself has been removed
-		// (not just a panel switch which unmounts/remounts the component)
+		// Only clean up if the FR data itself has been removed — a panel switch
+		// unmounts this component but must not discard the user's adjustments.
 		if (!frStore.get(uuid)) {
 			graphStore.targetOriginalData.delete(uuid);
+			targetAdjustmentStore.delete(uuid);
 		}
 	});
 
-	// ── Sync base data when reSmoothAll updates it ────────────────────────────
-	// Watches only the version counter (not the SvelteMap directly) to avoid cycles.
+	// ── Push adjustments into the curve ───────────────────────────────────────
+	// Tracks the store record, which is replaced wholesale on every edit, and
+	// delegates the math to DataProvider — the same entry point reSmoothAll and
+	// renormalizeAll use, so the mounted and unmounted paths can't drift.
+	// `targetOriginalVersion` is deliberately NOT tracked: those two callers now
+	// re-apply adjustments themselves, so watching it here would double the work.
 
 	$effect(() => {
-		const _version = graphStore.targetOriginalVersion;
-		if (!originalData) return;
-		// Non-reactive read of the updated base data
-		const stored = untrack(() => graphStore.targetOriginalData.get(uuid));
-		if (!stored) return;
-		for (const key of Object.keys(stored) as (keyof ParsedFRData)[]) {
-			const ch = stored[key];
-			if (ch) {
-				originalData.set(
-					key,
-					ch.data.map(([f, d]) => [f, d] as [number, number])
-				);
-			}
-		}
+		void adjustment;
+		if (!graphStore.targetOriginalData.has(uuid)) return;
+		untrack(() => dataProvider.applyTargetAdjustment(uuid));
 	});
-
-	// ── Apply adjustments when filter values or base data change ──────────────
-
-	$effect(() => {
-		// Subscribe to all active filter values
-		const snapshot: Record<string, number> = {};
-		for (const id of activeFilterIds) {
-			snapshot[id] = filterValues.get(id) ?? 0;
-		}
-		// Also track activeFilterIds size for reactivity on add/remove
-		const _size = activeFilterIds.size;
-
-		if (!originalData) return;
-
-		// Build EQ filters (skip tilt — handled separately)
-		const eqFilters: EQFilter[] = [];
-		for (const def of availableFilters) {
-			const value = snapshot[def.id];
-			if (value === undefined || value === 0) continue;
-			if (def.type === 'TILT') continue;
-			eqFilters.push({
-				enabled: true,
-				type: def.type,
-				freq: def.freq,
-				q: def.q,
-				gain: value
-			});
-		}
-
-		const tiltValue = snapshot['tilt'] ?? 0;
-		const modifiedChannels: ParsedFRData = {};
-
-		for (const [key, points] of originalData) {
-			let modified: [number, number][] = points.map(([f, d]) => [f, d]);
-
-			// Apply tilt: gain * log2(freq / 1000)
-			if (tiltValue !== 0) {
-				modified = modified.map(([f, d]) => [f, d + tiltValue * Math.log2(f / 1000)]);
-			}
-
-			// Apply EQ filters
-			if (eqFilters.length > 0) {
-				modified = eq.applyFilters(modified, eqFilters) as [number, number][];
-			}
-
-			const chKey = key as keyof ParsedFRData;
-			modifiedChannels[chKey] = {
-				data: modified,
-				metadata: {
-					minFreq: modified[0]?.[0] ?? 20,
-					maxFreq: modified[modified.length - 1]?.[0] ?? 20000
-				}
-			};
-		}
-
-		const label = formatAdjustmentLabel(activeFilters, filterValues);
-		untrack(() =>
-			dataProvider.updateFRDataWithRawData(uuid, modifiedChannels, {
-				adjustmentLabel: label
-			})
-		);
-	});
-
-	// ── Handlers ──────────────────────────────────────────────────────────────
-
-	function addFilter(id: string) {
-		activeFilterIds.add(id);
-		filterValues.set(id, 0);
-	}
-
-	function removeFilter(id: string) {
-		activeFilterIds.delete(id);
-		filterValues.delete(id);
-	}
-
-	function setFilterValue(id: string, value: number) {
-		filterValues.set(id, value);
-	}
-
-	function handleReset() {
-		for (const id of [...activeFilterIds]) {
-			activeFilterIds.delete(id);
-			filterValues.delete(id);
-		}
-		selectedPreset = '';
-	}
-
-	function applyPreset(preset: FilterPreset) {
-		// Clear existing
-		for (const id of [...activeFilterIds]) {
-			activeFilterIds.delete(id);
-			filterValues.delete(id);
-		}
-		// Apply preset values
-		for (const [id, value] of Object.entries(preset.filter)) {
-			if (availableFilters.some((f) => f.id === id) && value !== 0) {
-				activeFilterIds.add(id);
-				filterValues.set(id, value);
-			}
-		}
-	}
 
 	function handlePresetChange(e: Event) {
-		const name = (e.target as HTMLSelectElement).value;
-		selectedPreset = name;
-		if (!name) return;
-		const preset = filterPresets.find((p) => p.name === name);
-		if (preset) applyPreset(preset);
+		targetAdjustmentStore.applyPreset(uuid, (e.target as HTMLSelectElement).value);
 	}
 
 	function handleAddFilterChange(e: Event) {
-		const id = (e.target as HTMLSelectElement).value;
-		if (id) {
-			addFilter(id);
-			(e.target as HTMLSelectElement).value = '';
+		const el = e.target as HTMLSelectElement;
+		if (el.value) {
+			targetAdjustmentStore.addFilter(uuid, el.value);
+			el.value = '';
 		}
 	}
 </script>
@@ -327,7 +130,7 @@
 		<div class="grid gap-1.5" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
 			{#each activeFilters as def (def.id)}
 				{@const range = getGainRange(def)}
-				{@const value = filterValues.get(def.id) ?? 0}
+				{@const value = adjustment.values[def.id] ?? 0}
 				<div
 					class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2"
 				>
@@ -366,12 +169,18 @@
 								max={range.max}
 								step={range.step}
 								{value}
-								oninput={(e) => setFilterValue(def.id, parseFloat(e.currentTarget.value))}
+								oninput={(e) =>
+									targetAdjustmentStore.setValue(uuid, def.id, parseFloat(e.currentTarget.value))}
 								class="h-1 min-w-0 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
 							/>
 						</div>
 					</div>
-					<Button title="Remove" onclick={() => removeFilter(def.id)} variant="ghost" size="icon">
+					<Button
+						title="Remove"
+						onclick={() => targetAdjustmentStore.removeFilter(uuid, def.id)}
+						variant="ghost"
+						size="icon"
+					>
 						<X class="size-3" />
 					</Button>
 				</div>
@@ -395,7 +204,7 @@
 
 			{#if filterPresets.length > 0}
 				<select
-					value={selectedPreset}
+					value={adjustment.preset}
 					onchange={handlePresetChange}
 					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm
 						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
@@ -410,7 +219,7 @@
 			<div class="ml-auto">
 				<Button
 					title={m.target_customizer_btn_reset()}
-					onclick={handleReset}
+					onclick={() => targetAdjustmentStore.reset(uuid)}
 					variant="destructive"
 					size="sm"
 				>

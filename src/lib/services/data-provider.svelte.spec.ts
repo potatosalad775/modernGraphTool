@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { dataProvider } from './data-provider.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import type { FRDataObject, FRDataPoint, ParsedFRData, HpTFData } from '$lib/types/data-types.js';
 
@@ -880,6 +881,88 @@ describe('DataProvider', () => {
 			expect(graphStore.targetOriginalVersion).toBe(0);
 			graphStore.targetOriginalVersion++;
 			expect(graphStore.targetOriginalVersion).toBe(1);
+		});
+	});
+
+	// ── reSmoothAll re-applies target adjustments ────────────────────────────
+	// reSmoothAll rebuilds every curve from its cached raw source, which is
+	// pre-adjustment data. It used to signal mounted TargetCustomizer instances via
+	// targetOriginalVersion and let them re-apply — so changing smoothing while the
+	// Graph tab was closed silently discarded the user's target adjustments, including
+	// the operator's INITIAL_TARGET_FILTERS defaults. DataProvider now re-applies them
+	// itself; these tests run with no component mounted at all.
+
+	describe('reSmoothAll target adjustments', () => {
+		const ADJUSTED = 'adjusted-target';
+		const PLAIN = 'plain-target';
+
+		/** A target with cached raw data and a published pre-adjustment snapshot. */
+		function seedTarget(uuid: string): void {
+			const raw = makeFRPoints(75);
+			frStore.set(
+				uuid,
+				makeTargetObject(uuid, {
+					channels: { AVG: { data: raw, metadata: { minFreq: 20, maxFreq: 20000 } } },
+					_rawData: {
+						channels: { AVG: { data: raw, metadata: { minFreq: 20, maxFreq: 20000 } } }
+					}
+				})
+			);
+			graphStore.targetOriginalData.set(uuid, {
+				AVG: {
+					data: raw.map(([f, d]) => [f, d] as FRDataPoint),
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				}
+			});
+		}
+
+		/** Mean dB below 100 Hz — where a +6 dB low shelf shows up unambiguously. */
+		function bassLevel(uuid: string): number {
+			const low = frStore.get(uuid)!.channels.AVG!.data.filter(([f]) => f < 100);
+			return low.reduce((sum, [, d]) => sum + d, 0) / low.length;
+		}
+
+		beforeEach(() => {
+			targetAdjustmentStore.delete(ADJUSTED);
+			targetAdjustmentStore.delete(PLAIN);
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 1000;
+		});
+
+		it('re-applies the filter stack after re-smoothing, with nothing mounted', async () => {
+			// Both targets start from identical source data; only one carries a shelf,
+			// so the post-rebuild delta between them is the adjustment itself.
+			seedTarget(ADJUSTED);
+			seedTarget(PLAIN);
+			targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+			targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+			targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+
+			await dataProvider.reSmoothAll();
+
+			expect(bassLevel(ADJUSTED)).toBeGreaterThan(bassLevel(PLAIN) + 4);
+		});
+
+		it('restores the adjustment label after re-smoothing', async () => {
+			seedTarget(ADJUSTED);
+			targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+			targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+			targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+
+			await dataProvider.reSmoothAll();
+
+			expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
+		});
+
+		it('leaves a registered but unadjusted target untouched', async () => {
+			seedTarget(ADJUSTED);
+			seedTarget(PLAIN);
+			targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+
+			await dataProvider.reSmoothAll();
+
+			expect(bassLevel(ADJUSTED)).toBeCloseTo(bassLevel(PLAIN), 6);
+			expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBeNull();
 		});
 	});
 

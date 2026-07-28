@@ -17,6 +17,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import {
 	AddFRDataCommand,
@@ -282,6 +283,32 @@ class DataProvider {
 		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
 	}
 
+	// ─── Target customizer adjustments ────────────────────────────────────────
+
+	/**
+	 * Rebuild a customizable target's curve from its cached pre-adjustment channels
+	 * plus the current slider stack in `targetAdjustmentStore`.
+	 *
+	 * Callable without a mounted `TargetCustomizer` — that component only drives the
+	 * UI now. `reSmoothAll()` in particular rebuilds targets from raw source data, and
+	 * used to rely on a mounted customizer noticing `targetOriginalVersion` and
+	 * re-applying; with the Graph tab closed the adjustment was dropped for good.
+	 */
+	applyTargetAdjustment(uuid: string): void {
+		const original = graphStore.targetOriginalData.get(uuid);
+		if (!original) return;
+		this.updateFRDataWithRawData(uuid, targetAdjustmentStore.adjustedChannels(uuid, original), {
+			adjustmentLabel: targetAdjustmentStore.label(uuid)
+		});
+	}
+
+	/** Re-apply every known target adjustment — used after a global re-process. */
+	#reapplyTargetAdjustments(): void {
+		for (const uuid of graphStore.targetOriginalData.keys()) {
+			this.applyTargetAdjustment(uuid);
+		}
+	}
+
 	// ─── Update variant ───────────────────────────────────────────────────────
 
 	async updateVariant(uuid: string, dispSuffix: string): Promise<void> {
@@ -459,8 +486,11 @@ class DataProvider {
 			}
 		}
 
-		// Signal mounted TargetCustomizer instances to re-sync their base data
-		// and re-apply filter stacks on top of the newly normalized original.
+		// No re-apply pass here, unlike reSmoothAll: the loop above normalized each
+		// target's already-adjusted channels in place, so the customizer stack is
+		// still baked in. Rebuilding it from the original would only re-anchor the
+		// curve *before* the adjustment and cost an extra smoothing pass, which
+		// resamples onto a different frequency grid than targetOriginalData.
 		if (targetOriginalTouched) graphStore.targetOriginalVersion++;
 
 		// Rebuild the EQ curve after the source phone has been renormalized.
@@ -679,8 +709,11 @@ class DataProvider {
 				}
 			}
 		}
-		// Signal TargetCustomizer instances to re-sync base data and re-apply adjustments
+		// Targets were rebuilt from raw (pre-adjustment) source data above, so their
+		// customizer stacks have to go back on top — this no longer depends on a
+		// mounted TargetCustomizer to happen.
 		graphStore.targetOriginalVersion++;
+		this.#reapplyTargetAdjustments();
 
 		// Rebuild the EQ curve from the newly re-smoothed source phone, same as
 		// renormalizeAll — respects the current linkEqNormalization setting.

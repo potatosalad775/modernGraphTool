@@ -2,6 +2,7 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
+import { rangeMakeupGain, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
@@ -26,10 +27,12 @@ class AudioPlayerService {
 	#sourceNode: AudioBufferSourceNode | null = null;
 	#oscillatorNode: OscillatorNode | null = null;
 	#filterNodes: AudioNode[] = [];
-	// Listening-range bandpass pair, kept addressable so a range drag retunes
-	// them in place instead of rebuilding the whole chain per pointer event.
+	// Listening-range bandpass pair plus its makeup-gain stage, kept addressable so
+	// a range drag retunes them in place instead of rebuilding the whole chain per
+	// pointer event.
 	#rangeHighpass: BiquadFilterNode | null = null;
 	#rangeLowpass: BiquadFilterNode | null = null;
+	#rangeMakeup: GainNode | null = null;
 	#audioBuffer: AudioBuffer | null = null;
 	// Sweep-only nodes / timers — created when sweep starts, torn down on stop().
 	#sweepFadeNode: GainNode | null = null;
@@ -119,10 +122,7 @@ class AudioPlayerService {
 	}
 
 	setToneFreq(hz: number): void {
-		this.#toneFreq = hz;
-		if (this.#oscillatorNode && this.#isPlaying) {
-			this.#oscillatorNode.frequency.value = hz;
-		}
+		this.#assignToneFreq(this.#clampToRange(hz));
 	}
 
 	setSweepFromHz(hz: number): void {
@@ -184,24 +184,29 @@ class AudioPlayerService {
 		this.#filterNodes = [];
 		this.#rangeHighpass = null;
 		this.#rangeLowpass = null;
+		this.#rangeMakeup = null;
 
 		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
 		const chainTail = this.#analyserNode ?? this.#gainNode;
 
 		// Listening-range bandpass — when frequency-selection mode is on, prepend
-		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz].
-		if (audioRangeStore.isFrequencySelectionMode) {
+		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz],
+		// followed by a makeup stage that puts the band's center back at unity.
+		if (audioRangeStore.isFrequencySelectionMode && this.#rangeGatingApplies) {
 			const hp = ctx.createBiquadFilter();
 			hp.type = 'highpass';
 			hp.frequency.value = audioRangeStore.fromHz;
-			hp.Q.value = 0.707;
+			hp.Q.value = RANGE_FILTER_Q;
 			const lp = ctx.createBiquadFilter();
 			lp.type = 'lowpass';
 			lp.frequency.value = audioRangeStore.toHz;
-			lp.Q.value = 0.707;
+			lp.Q.value = RANGE_FILTER_Q;
+			const makeup = ctx.createGain();
+			makeup.gain.value = rangeMakeupGain(audioRangeStore.fromHz, audioRangeStore.toHz);
 			this.#rangeHighpass = hp;
 			this.#rangeLowpass = lp;
-			this.#filterNodes.push(hp, lp);
+			this.#rangeMakeup = makeup;
+			this.#filterNodes.push(hp, lp, makeup);
 		}
 
 		if (!this.#eqActive || !filters.length) {
@@ -261,6 +266,42 @@ class AudioPlayerService {
 	#retuneRangeFilters(fromHz: number, toHz: number): void {
 		if (this.#rangeHighpass) this.#rangeHighpass.frequency.value = fromHz;
 		if (this.#rangeLowpass) this.#rangeLowpass.frequency.value = toHz;
+		// Band width changed, so the in-band loss did too.
+		if (this.#rangeMakeup) this.#rangeMakeup.gain.value = rangeMakeupGain(fromHz, toHz);
+	}
+
+	/**
+	 * Whether the listening-range bandpass is meaningful for the current source.
+	 *
+	 * Only for broadband material. A tone has energy at exactly one frequency and a
+	 * sweep at one frequency per instant, so a bandpass can never *isolate* anything
+	 * in them — it can only attenuate, which reads as "selecting a range turned the
+	 * volume down". Tone is constrained by clamping its frequency into the band
+	 * instead (see {@link #clampToneToRange}); sweep already has its own from/to
+	 * bounds driving the oscillator directly.
+	 */
+	get #rangeGatingApplies(): boolean {
+		return this.#audioSource !== 'tone' && this.#audioSource !== 'sweep';
+	}
+
+	/** Constrain a tone frequency to the active listening range, if there is one. */
+	#clampToRange(hz: number): number {
+		if (!audioRangeStore.isFrequencySelectionMode) return hz;
+		return Math.min(Math.max(hz, audioRangeStore.fromHz), audioRangeStore.toHz);
+	}
+
+	#assignToneFreq(hz: number): void {
+		this.#toneFreq = hz;
+		if (this.#oscillatorNode && this.#isPlaying) {
+			this.#oscillatorNode.frequency.value = hz;
+		}
+	}
+
+	/** Pull the tone back inside the band after the range itself moved. */
+	#clampToneToRange(): void {
+		if (!audioRangeStore.isFrequencySelectionMode || this.#audioSource !== 'tone') return;
+		const clamped = this.#clampToRange(this.#toneFreq);
+		if (clamped !== this.#toneFreq) this.#assignToneFreq(clamped);
 	}
 
 	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
@@ -422,6 +463,8 @@ class AudioPlayerService {
 				void eqStore.isEnabled;
 				void this.#filtersEnabled;
 				void audioRangeStore.isFrequencySelectionMode;
+				// Whether the range bandpass applies at all depends on the source.
+				void this.#audioSource;
 				this.#updateFilters();
 			});
 			// Range bounds change continuously while the user drags the graph
@@ -429,6 +472,15 @@ class AudioPlayerService {
 			// #updateFilters() and rebuilding every node in the chain.
 			$effect(() => {
 				this.#retuneRangeFilters(audioRangeStore.fromHz, audioRangeStore.toHz);
+			});
+			// A tone is gated by moving it rather than by filtering it, so it has to
+			// follow the band when the user redraws the range on the graph.
+			$effect(() => {
+				void audioRangeStore.fromHz;
+				void audioRangeStore.toHz;
+				void audioRangeStore.isFrequencySelectionMode;
+				void this.#audioSource;
+				this.#clampToneToRange();
 			});
 		});
 	}

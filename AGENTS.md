@@ -179,11 +179,19 @@ export const frStore = new FRDataStore();
 - `audio-player-service.svelte.ts` — Web Audio engine (context, gain, analyser, source/oscillator/buffer,
   filter chain) + playback state. Outlives the `EqAudioPlayer` view so audio survives panel switches.
   Subscribes to `eqStore.filters` / `eqStore.preamp` via a lazy `$effect.root` installed on first `play()`.
-  Exports `audioPlayerService` singleton.
+  Exports `audioPlayerService` singleton. Two invariants worth keeping:
+  - **EQ bypass** is `eqStore.isEnabled && filtersEnabled` (the `#eqActive` predicate). The master
+    "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have to
+    reach the audio, and all have to pick up the K-weighted bypass-match trim.
+  - **The listening-range bandpass is for broadband sources only** (`#rangeGatingApplies`). Tone and sweep
+    carry energy at a single frequency, so filtering them can only attenuate — a tone is constrained by
+    clamping its frequency into the band, and a sweep by its own `sweepFromHz`/`sweepToHz`. The bandpass
+    also carries a makeup stage (`rangeMakeupGain` in `utils/listening-range.ts`) so a narrow band doesn't
+    just read as "quieter".
 
 ## Utils
 
-`config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
+`config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`, `listening-range.ts`,
 `log-scale.ts`, `metadata-parser.ts`, `equalizer.ts`, `url-provider.ts`, `base62.ts`.
 `url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not** `goto()`.
 

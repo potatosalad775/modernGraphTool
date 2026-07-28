@@ -23,6 +23,28 @@
 
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
 
+	// In frequency-selection mode the tone is constrained to the selected band —
+	// the range gates a tone by moving it, not by filtering it. Map the slider
+	// across that band, otherwise most of its travel would clamp to the endpoints.
+	const toneMinHz = $derived(
+		audioRangeStore.isFrequencySelectionMode ? audioRangeStore.fromHz : 20
+	);
+	const toneMaxHz = $derived(
+		audioRangeStore.isFrequencySelectionMode ? audioRangeStore.toHz : 20000
+	);
+
+	function toneSliderPos(hz: number, min: number, max: number): number {
+		const lo = Math.log10(min);
+		const span = Math.log10(max) - lo;
+		if (span <= 0) return 0;
+		return Math.min(1000, Math.max(0, Math.round(((Math.log10(hz) - lo) / span) * 1000)));
+	}
+
+	function toneSliderHz(pos: number, min: number, max: number): number {
+		const lo = Math.log10(min);
+		return Math.round(Math.pow(10, lo + (pos / 1000) * (Math.log10(max) - lo)));
+	}
+
 	function formatTime(seconds: number): string {
 		const min = Math.floor(seconds / 60);
 		const s = Math.floor(seconds % 60);
@@ -160,18 +182,11 @@
 				min="0"
 				max="1000"
 				step="1"
-				value={Math.round(
-					((Math.log10(audioPlayerService.toneFreq) - Math.log10(20)) /
-						(Math.log10(20000) - Math.log10(20))) *
-						1000
-				)}
-				oninput={(e) => {
-					const v = parseFloat((e.target as HTMLInputElement).value);
-					const hz = Math.round(
-						Math.pow(10, Math.log10(20) + (v / 1000) * (Math.log10(20000) - Math.log10(20)))
-					);
-					audioPlayerService.setToneFreq(hz);
-				}}
+				value={toneSliderPos(audioPlayerService.toneFreq, toneMinHz, toneMaxHz)}
+				oninput={(e) =>
+					audioPlayerService.setToneFreq(
+						toneSliderHz(parseFloat((e.target as HTMLInputElement).value), toneMinHz, toneMaxHz)
+					)}
 				class="w-full accent-accent"
 			/>
 		</div>

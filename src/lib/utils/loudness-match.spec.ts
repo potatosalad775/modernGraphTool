@@ -11,8 +11,19 @@ describe('computeBypassMatchDb', () => {
 		expect(computeBypassMatchDb([], 0)).toBe(0);
 	});
 
-	it('returns 0 for preamp-only input (no filters to match against)', () => {
-		expect(computeBypassMatchDb([], -6)).toBe(0);
+	// A preamp with no filters still changes the EQ-on level by exactly that many dB,
+	// so the bypass path has to carry the same trim or toggling EQ jumps in volume.
+	// The general integration reduces to preampDb here: with a flat chain the ratio is
+	// preampLin², and 10·log10(preampLin²) is preampDb.
+	it('matches the preamp exactly when there are no filters', () => {
+		expect(computeBypassMatchDb([], -6)).toBeCloseTo(-6, 10);
+		expect(computeBypassMatchDb([], 3)).toBeCloseTo(3, 10);
+	});
+
+	it('agrees with the general integration for a preamp-only chain', () => {
+		// Same preamp, expressed as a filter stack that contributes no gain.
+		const noOp = [pk(1000, 0)];
+		expect(computeBypassMatchDb([], -6)).toBeCloseTo(computeBypassMatchDb(noOp, -6), 6);
 	});
 
 	it('returns 0 when all filters are disabled', () => {

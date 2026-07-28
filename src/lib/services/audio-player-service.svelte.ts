@@ -186,7 +186,16 @@ class AudioPlayerService {
 		this.#rangeLowpass = null;
 		this.#rangeMakeup = null;
 
-		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+		// `!= null` — not truthiness — matching rebuildEqCurve, computeBypassMatchDb and
+		// the filter export. `null` is the "not filled in yet" state for a new band; a
+		// band with gain 0 is a real (if no-op) filter, and dropping it here used to
+		// make `filters.length` 0 and silently strip the preamp along with it.
+		const filters = eqStore.filters.filter(
+			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
+		);
+		// A preamp with no filters is still something to apply — same rule the on-screen
+		// EQ curve uses — and the bypass path has to match its level.
+		const hasEqToApply = filters.length > 0 || eqStore.preamp !== 0;
 		const chainTail = this.#analyserNode ?? this.#gainNode;
 
 		// Listening-range bandpass — when frequency-selection mode is on, prepend
@@ -209,10 +218,11 @@ class AudioPlayerService {
 			this.#filterNodes.push(hp, lp, makeup);
 		}
 
-		if (!this.#eqActive || !filters.length) {
-			// Bypass path. When EQ is toggled off but filters exist, apply the
-			// K-weighted bypass-match trim so listening A/B doesn't change level.
-			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
+		if (!this.#eqActive || !hasEqToApply) {
+			// Bypass path. When EQ is toggled off but there is something to bypass,
+			// apply the K-weighted bypass-match trim so listening A/B doesn't
+			// change level.
+			const trim = hasEqToApply ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
 			this.#rampGain(match.gain, trim);
 			// A range-mode bandpass may still sit downstream even with EQ off.
 			if (this.#filterNodes.length === 0) {

@@ -103,7 +103,10 @@ const eq = new Equalizer();
  * Bypass-match gain in dB — the trim to apply to the bypass path so that
  * playback loudness matches what the EQ-on path produces.
  *
- * - Returns `0` when no EQ filters are active (nothing to match).
+ * - With no active filters the EQ path is nothing but the preamp, so the match
+ *   is exactly `preampDb` — the general integration below reduces to that, and
+ *   returning `0` here would leave a preamp-only setup jumping in level on
+ *   bypass. Falls out to `0` when the preamp is 0 too, i.e. nothing to match.
  * - Sign: positive when EQ + preamp produces a louder signal than flat
  *   (so bypass needs the same boost), negative when EQ is quieter.
  *
@@ -114,7 +117,7 @@ export function computeBypassMatchDb(filters: EQFilter[], preampDb: number): num
 	const active = filters.filter(
 		(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
 	);
-	if (!active.length) return 0;
+	if (!active.length) return preampDb;
 
 	const eqGainsDb = eq.calculateGainsFromFilter(TEST_FREQS, active);
 	const preampLin = Math.pow(10, preampDb / 20);

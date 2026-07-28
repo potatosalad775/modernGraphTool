@@ -36,6 +36,13 @@ export default defineConfig({
 		projects: [
 			{
 				extends: './vite.config.ts',
+				// Component tests mount real UI, which pulls in bits-ui. Pre-bundling it
+				// gives it its own copy of the Svelte client runtime, and a component
+				// rendered by one instance can't read the other's context — Accordion
+				// dies with "Cannot read properties of null". Serving it unbundled lets
+				// its bare `svelte` imports resolve through the same deduped copy the app
+				// uses. Only needed for tests; dev and build pre-bundle it normally.
+				optimizeDeps: { exclude: ['bits-ui'] },
 				test: {
 					name: 'client',
 					browser: {

@@ -319,6 +319,35 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 | `npm run lint`      | Prettier + ESLint                                        |
 | `npm run format`    | Auto-format code                                         |
 
+## Testing
+
+Specs are co-located as `*.spec.ts`. The name decides which project runs them: `*.svelte.spec.ts`
+runs in the `client` project (real Chromium via Playwright), everything else runs in `server`
+(node). Most specs drive stores and services directly.
+
+**Boot tests** — [AppShell.svelte.spec.ts](src/lib/components/layout/AppShell.svelte.spec.ts) and
+[AppShell.mobile.svelte.spec.ts](src/lib/components/layout/AppShell.mobile.svelte.spec.ts) mount the
+whole app against the shipped `defaults/config.js` and assert the no-`?share=` path an ordinary
+visitor takes. They exist because a suite that only exercises stores cannot see a boot that never
+finishes. Things worth knowing before adding to them:
+
+- **Set the viewport explicitly.** The browser-mode iframe defaults to 414×896, so every test runs
+  the mobile layout unless it calls `page.viewport()`. `appStore.isMobile` keys off
+  `window.innerWidth < 1000`.
+- **Reactive write loops hang, they don't fail.** A runaway effect blocks the main thread, so
+  vitest's timeout — a timer — never fires. `installFrWriteBudget()` in
+  [app-boot-harness.ts](src/lib/components/layout/app-boot-harness.ts) throws once `frStore` is
+  written more times than a healthy boot needs, which unwinds the loop and turns it into an ordinary
+  failure with a usable stack.
+- **One boot file per page-lifetime hydration.** Stores like `preferenceBoundStore` hydrate once per
+  page, so a second scenario in the same file reads whatever the first boot left behind. That's why
+  mobile has its own file.
+- `AUTO_UPDATE_URL` is forced off in the harness: `urlProvider.autoUpdate()` calls SvelteKit's
+  `replaceState`, which throws with no mounted router.
+- The `client` project sets `optimizeDeps.exclude: ['bits-ui']`. Pre-bundling gives bits-ui its own
+  copy of the Svelte client runtime, and a component rendered by one instance can't read the other's
+  context. Dev and build are unaffected.
+
 ## CI
 
 [.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every PR and every push to

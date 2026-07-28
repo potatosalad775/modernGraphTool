@@ -48,6 +48,11 @@ export default defineConfig({
 					browser: {
 						enabled: true,
 						provider: playwright(),
+						// Browser mode defaults to a 414x896 iframe, which is below the
+						// `appStore.isMobile` threshold (innerWidth < 1000) — so without this
+						// every component test silently runs the mobile layout. Default to
+						// desktop and let mobile tests opt in via `page.viewport()`.
+						viewport: { width: 1280, height: 800 },
 						instances: [{ browser: 'chromium', headless: true }]
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],

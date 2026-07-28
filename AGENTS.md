@@ -170,6 +170,11 @@ export const frStore = new FRDataStore();
   `applyTargetAdjustment` **normalizes only, never re-smooths** — `targetOriginalData` already holds
   smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off the
   cached original's frequency grid, which baseline compensation reads against.
+  `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve, installed once from
+  `AppShell.onMount` and never disposed. It must **not** live in `EqualizerPanel.svelte`: that panel
+  unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
+  `<svelte:window>` and fires from any tab — a panel-scoped effect left the curve showing the EQ'd
+  response until the user reopened the Equalizer tab.
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `aggregate-index.svelte.ts` — cross-site search. Fetches the GraphAggregator index (one JSON doc
@@ -331,9 +336,11 @@ whole app against the shipped `defaults/config.js` and assert the no-`?share=` p
 visitor takes. They exist because a suite that only exercises stores cannot see a boot that never
 finishes. Things worth knowing before adding to them:
 
-- **Set the viewport explicitly.** The browser-mode iframe defaults to 414×896, so every test runs
-  the mobile layout unless it calls `page.viewport()`. `appStore.isMobile` keys off
-  `window.innerWidth < 1000`.
+- **Mind the viewport.** Browser mode's own default is a 414×896 iframe, which is below the
+  `appStore.isMobile` threshold (`window.innerWidth < 1000`) — so component tests silently ran the
+  mobile layout. The `client` project now sets `browser.viewport` to 1280×800 so desktop is the
+  default; mobile tests opt in with `page.viewport()`. Tests where the layout is load-bearing should
+  still state it explicitly.
 - **Reactive write loops hang, they don't fail.** A runaway effect blocks the main thread, so
   vitest's timeout — a timer — never fires. `installFrWriteBudget()` in
   [app-boot-harness.ts](src/lib/components/layout/app-boot-harness.ts) throws once `frStore` is

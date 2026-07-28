@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
+	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import {
 		audioPlayerService,
 		type AudioSource
@@ -38,10 +39,15 @@
 	<!-- EQ toggle / spectrum toggle / range-mode toggle -->
 	<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 		<Switch
-			title={audioPlayerService.filtersEnabled ? 'Disable EQ filters' : 'Enable EQ filters'}
+			title={!eqStore.isEnabled
+				? 'Turn the Equalizer on to apply EQ filters to playback'
+				: audioPlayerService.filtersEnabled
+					? 'Disable EQ filters'
+					: 'Enable EQ filters'}
 			labelText={m.equalizer_player_filter_toggle()}
 			labelClass="text-xs"
 			size="sm"
+			disabled={!eqStore.isEnabled}
 			checked={audioPlayerService.filtersEnabled}
 			onCheckedChange={(checked) => audioPlayerService.setFiltersEnabled(checked)}
 		/>

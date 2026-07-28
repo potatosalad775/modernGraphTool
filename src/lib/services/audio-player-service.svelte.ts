@@ -157,6 +157,21 @@ class AudioPlayerService {
 		return this.#bypassMatchNode;
 	}
 
+	/**
+	 * Effective EQ state for the audio chain.
+	 *
+	 * The UI exposes three ways to bypass EQ and they must all reach the audio,
+	 * not just the on-screen curve: the "EQ Effect" switch in this player
+	 * (`#filtersEnabled`), the master "Equalizer" toggle, and the `\`
+	 * momentary-bypass key — the latter two both write `eqStore.isEnabled`.
+	 * Routing them through one predicate means every bypass affordance also
+	 * gets the K-weighted bypass-match trim, so A/B stays level-matched
+	 * whichever control the user reaches for.
+	 */
+	get #eqActive(): boolean {
+		return eqStore.isEnabled && this.#filtersEnabled;
+	}
+
 	#updateFilters(): void {
 		const ctx = this.#audioContext;
 		if (!ctx || !this.#gainNode) return;
@@ -189,7 +204,7 @@ class AudioPlayerService {
 			this.#filterNodes.push(hp, lp);
 		}
 
-		if (!this.#filtersEnabled || !filters.length) {
+		if (!this.#eqActive || !filters.length) {
 			// Bypass path. When EQ is toggled off but filters exist, apply the
 			// K-weighted bypass-match trim so listening A/B doesn't change level.
 			const trim = filters.length ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
@@ -402,6 +417,9 @@ class AudioPlayerService {
 			$effect(() => {
 				void eqStore.filters;
 				void eqStore.preamp;
+				// Both bypass sources — the local switch and the master toggle /
+				// `\` key — must retrigger the chain rebuild.
+				void eqStore.isEnabled;
 				void this.#filtersEnabled;
 				void audioRangeStore.isFrequencySelectionMode;
 				this.#updateFilters();

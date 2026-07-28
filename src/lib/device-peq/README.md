@@ -192,9 +192,7 @@ export const registration: UsbSerialVendorConfig = {
 	devices: {
 		'Product Name': {
 			usbProductId: 12345,
-			modelConfig: {
-				/* full DeviceModelConfig */
-			}
+			modelConfig: {/* full DeviceModelConfig */}
 		}
 	}
 };
@@ -214,9 +212,7 @@ export const registration: BleDeviceConfig = {
 		txCharacteristicUuid: 'your-tx-uuid',
 		rxCharacteristicUuid: 'your-rx-uuid'
 	},
-	defaultModelConfig: {
-		/* DeviceModelConfig */
-	},
+	defaultModelConfig: {/* DeviceModelConfig */},
 	devices: {
 		'Device Name': { modelConfig: {} }
 	}
@@ -230,9 +226,7 @@ export const networkRegistration = {
 	deviceType: 'YourDevice',
 	manufacturer: 'Your Brand',
 	handler: yourDeviceHandler,
-	defaultModelConfig: {
-		/* DeviceModelConfig */
-	} satisfies DeviceModelConfig
+	defaultModelConfig: {/* DeviceModelConfig */} satisfies DeviceModelConfig
 };
 ```
 

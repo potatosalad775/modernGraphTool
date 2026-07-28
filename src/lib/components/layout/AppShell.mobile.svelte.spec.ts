@@ -66,7 +66,12 @@ describe('AppShell boot (mobile)', () => {
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		expect(frStore.size).toBe(2);
-		expect(document.querySelectorAll('.fr-graph-phone-curve').length).toBeGreaterThan(0);
+		// Polled for the same reason as the desktop boot test: the D3 curve draw is
+		// coalesced into a `requestAnimationFrame`, so it lands a frame after the
+		// Svelte-rendered label this test waits on.
+		await expect
+			.poll(() => document.querySelectorAll('.fr-graph-phone-curve').length)
+			.toBeGreaterThan(0);
 		expect(budget.count).toBeLessThan(WRITE_BUDGET);
 	}, 30000);
 });

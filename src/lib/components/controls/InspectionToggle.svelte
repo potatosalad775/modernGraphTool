@@ -15,7 +15,7 @@
 	title={m.inspection_toggle_label()}
 	onclick={handleClick}
 	variant={enabled ? 'primary' : 'outline'}
-	class="h-9! px-3! gap-1.5"
+	class="h-9! gap-1.5 px-3!"
 >
 	{m.inspection_toggle_label()}
 	<span class="h-5 w-px {enabled ? 'bg-accent-content/30' : 'bg-base-content/20'}"></span>

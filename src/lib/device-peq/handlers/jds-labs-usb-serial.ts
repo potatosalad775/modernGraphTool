@@ -151,8 +151,7 @@ export const jdsLabsUsbSerialHandler: DeviceHandler = {
 		// Parse 12-band EQ
 		for (const bandName of FILTER_12_BAND_ORDER) {
 			const band = headphone[bandName] as
-				| { Frequency: number; Gain: number; Q: number }
-				| undefined;
+				{ Frequency: number; Gain: number; Q: number } | undefined;
 			if (band) {
 				const filterType = transformFilterType(bandName);
 				filters.push({

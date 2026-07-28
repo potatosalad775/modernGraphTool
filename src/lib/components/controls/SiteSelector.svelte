@@ -108,8 +108,8 @@
 {#if squiglinkStore.isEnabled && squiglinkStore.sites.length > 0}
 	<Select.Root type="single" value={currentValue} items={flatItems}>
 		<Select.Trigger
-			class="inline-flex items-center justify-between gap-1 rounded border border-base-content/20
-				min-w-36 bg-base-200 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+			class="inline-flex min-w-36 items-center justify-between gap-1 rounded border
+				border-base-content/20 bg-base-200 px-2 py-1 text-sm focus:ring-1 focus:ring-accent focus:outline-none"
 		>
 			{triggerLabel}
 			<ChevronDown class="h-3 w-3 shrink-0 text-base-content/60" />
@@ -125,8 +125,8 @@
 			{#each groupedSites as group (group.type)}
 				<Select.Group>
 					<Select.GroupHeading
-						class="px-2 py-1 text-[12px] font-semibold uppercase tracking-wider
-							text-base-content/50"
+						class="px-2 py-1 text-[12px] font-semibold tracking-wider text-base-content/50
+							uppercase"
 					>
 						{group.type}
 					</Select.GroupHeading>

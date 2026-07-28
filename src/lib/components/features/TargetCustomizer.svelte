@@ -136,10 +136,10 @@
 				<div
 					class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2"
 				>
-					<div class="flex flex-col flex-1 gap-0.25">
+					<div class="flex flex-1 flex-col gap-0.25">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center">
-								<label for="{uuid}-{def.id}" class="text-xs font-medium line-clamp-1">
+								<label for="{uuid}-{def.id}" class="line-clamp-1 text-xs font-medium">
 									{def.name}
 								</label>
 								{#if def.description}
@@ -173,7 +173,7 @@
 								{value}
 								oninput={(e) =>
 									targetAdjustmentStore.setValue(uuid, def.id, parseFloat(e.currentTarget.value))}
-								class="h-1 min-w-0 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+								class="h-1 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
 							/>
 						</div>
 					</div>
@@ -194,8 +194,8 @@
 			{#if inactiveFilters.length > 0}
 				<select
 					onchange={handleAddFilterChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm
-						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
+					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
@@ -208,8 +208,8 @@
 				<select
 					value={adjustment.preset}
 					onchange={handlePresetChange}
-					class="rounded border border-base-content/20 bg-base-100 px-1.5 py-1 text-sm
-						focus:outline-none focus:ring-1 focus:ring-accent flex-1 hover:cursor-pointer hover:bg-base-content/5"
+					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
 					{#each filterPresets as preset (preset.name)}

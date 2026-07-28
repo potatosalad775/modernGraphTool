@@ -42,7 +42,7 @@
 <div class="flex flex-col gap-2 text-sm">
 	<!-- A / B switcher header -->
 	<div class="flex items-center gap-1">
-		<span class="text-xs text-base-content/60 mr-1">{m.eq_history_compare_label()}</span>
+		<span class="mr-1 text-xs text-base-content/60">{m.eq_history_compare_label()}</span>
 		<div class="flex flex-1 gap-1">
 			<Button
 				title={aSnap ? m.eq_history_apply_a_title() : m.eq_history_pick_a_first()}

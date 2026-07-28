@@ -76,8 +76,19 @@ describe('AppShell boot', () => {
 		expect(targetAdjustmentStore.get(target![0]).values).toEqual({ tilt: -0.8, bass: 6 });
 
 		// The curves actually reached the SVG, not just the store.
-		expect(document.querySelectorAll('.fr-graph-phone-curve').length).toBeGreaterThan(0);
-		expect(document.querySelectorAll('.fr-graph-target-curve').length).toBeGreaterThan(0);
+		//
+		// Polled, not asserted synchronously: `GraphEngine.refreshEveryFRCurves()`
+		// coalesces the D3 draw into a `requestAnimationFrame`, while the labels above
+		// are Svelte-rendered in the effect flush. The label is therefore on screen a
+		// frame *before* the paths are, and a bare `expect` here races that frame — it
+		// read 0 curves whenever the run happened to land between the flush and the
+		// RAF, which is why this failed intermittently on CI and not locally.
+		await expect
+			.poll(() => document.querySelectorAll('.fr-graph-phone-curve').length)
+			.toBeGreaterThan(0);
+		await expect
+			.poll(() => document.querySelectorAll('.fr-graph-target-curve').length)
+			.toBeGreaterThan(0);
 
 		// Boot settles instead of writing reactive state forever.
 		expect(budget.count).toBeLessThan(WRITE_BUDGET);

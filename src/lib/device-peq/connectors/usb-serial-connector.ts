@@ -42,8 +42,7 @@ export async function getDeviceConnected(
 		const info = rawDevice.getInfo();
 		const productId = info.usbProductId;
 		const bluetoothServiceClassId = (info as Record<string, unknown>).bluetoothServiceClassId as
-			| string
-			| undefined;
+			string | undefined;
 
 		let vendorConfig: UsbSerialVendorConfig | null = null;
 		let modelName: string | null = null;

@@ -4,14 +4,7 @@
 	type Props = WithChildren<Button.RootProps> & {
 		title: string;
 		variant?:
-			| 'primary'
-			| 'secondary'
-			| 'accent'
-			| 'muted'
-			| 'destructive'
-			| 'outline'
-			| 'ghost'
-			| 'link';
+			'primary' | 'secondary' | 'accent' | 'muted' | 'destructive' | 'outline' | 'ghost' | 'link';
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon';
 	};
 

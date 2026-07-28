@@ -38,7 +38,7 @@
 			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href="."
-				class="flex items-center no-underline text-base-content rounded px-2 py-1.5 -ml-2 hover:bg-base-content/10"
+				class="-ml-2 flex items-center rounded px-2 py-1.5 text-base-content no-underline hover:bg-base-content/10"
 			>
 				{#if titleType === 'HTML'}
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -63,7 +63,7 @@
 						href={link.URL}
 						target="_blank"
 						rel="external noopener noreferrer"
-						class="text-sm rounded px-2 py-1.5 hover:bg-base-content/10"
+						class="rounded px-2 py-1.5 text-sm hover:bg-base-content/10"
 					>
 						{link.TITLE}
 					</a>
@@ -92,11 +92,11 @@
 
 	<!-- Drawer -->
 	<div
-		class="fixed right-0 top-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl"
+		class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl"
 		transition:fly={{ x: 256, duration: 250, easing: cubicOut }}
 	>
 		<div
-			class="flex items-center justify-between h-12 bg-base-300 border-b border-base-content/15 px-4 py-3"
+			class="flex h-12 items-center justify-between border-b border-base-content/15 bg-base-300 px-4 py-3"
 		>
 			<h2 class="text-sm font-semibold">
 				{m.top_nav_bar_sidebar_link_title()}

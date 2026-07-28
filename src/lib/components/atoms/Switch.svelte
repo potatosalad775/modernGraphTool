@@ -50,7 +50,7 @@
 		bind:checked
 		bind:ref
 		{id}
-		class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 data-[state=unchecked]:shadow-inner disabled:cursor-not-allowed disabled:opacity-50 {sizeClasses[
+		class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:shadow-inner {sizeClasses[
 			size
 		]} {variantRootClasses[variant]} {restProps.class}"
 		{...restProps}
@@ -62,7 +62,7 @@
 		/>
 	</Switch.Root>
 	{#if labelText}
-		<Label.Root for={id} class="text-sm font-medium ml-2 {labelClass}">{labelText}</Label.Root>
+		<Label.Root for={id} class="ml-2 text-sm font-medium {labelClass}">{labelText}</Label.Root>
 	{/if}
 	{#if children}
 		{@render children()}

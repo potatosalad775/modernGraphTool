@@ -16,9 +16,9 @@
 	}
 </script>
 
-<div class="flex h-9 items-center rounded-md ring ring-base-content/20 text-sm font-medium">
+<div class="flex h-9 items-center rounded-md text-sm font-medium ring ring-base-content/20">
 	<!-- Segmented Hz/Avg toggle -->
-	<div class="flex h-full items-center p-0.5 gap-0.5">
+	<div class="flex h-full items-center gap-0.5 p-0.5">
 		<Button
 			title="Normalize at average"
 			variant={graphStore.normType === 'Avg' ? 'primary' : 'ghost'}
@@ -46,6 +46,6 @@
 		value={graphStore.normHzValue}
 		disabled={graphStore.normType === 'Avg'}
 		oninput={onHzValueChange}
-		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
 	/>
 </div>

@@ -20,7 +20,7 @@ Also available in Squiglink: https://silicagel.squig.link
 - **Target Customizer** — Custom HRTF target curves with tilt, bass, and treble adjustment
 - **squig.link Integration** — Cross-site device search, shop links, and sponsor content
 - **Built-in Device PEQ Bridge** — Write EQ settings directly to 20+ supported devices, originally by jeromeof
-- **Internationalization** — English, Korean, Ukrainian and Russian (Paraglide JS compile-time i18n)
+- **Internationalization** — 5+ Language support (See [CONTRIBUTING.md][CONTRIBUTING_I18N] for contribution guide)
 - **Light & Dark Mode** — Colorful UI with operator-customizable theme system
 
 ## Getting Started
@@ -61,3 +61,4 @@ modernGraphTool is open source software licensed under the MIT License.
 [RELEASE]: https://github.com/potatosalad775/modernGraphTool/releases
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DEVICE_PEQ]: https://github.com/jeromeof/devicePEQ
+[CONTRIBUTING_I18N]: CONTRIBUTING.md#translating-no-code-required

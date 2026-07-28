@@ -47,8 +47,11 @@ import {
 } from '$lib/utils/curve-palette.js';
 import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
+import { untrack } from 'svelte';
 
 class DataProvider {
+	#eqCurveSyncInstalled = false;
+
 	/** Current processing params from graph store */
 	get #processingParams() {
 		return {
@@ -56,6 +59,42 @@ class DataProvider {
 			normType: graphStore.normType,
 			normHz: graphStore.normHzValue
 		};
+	}
+
+	/**
+	 * Keep the on-graph EQ curve in step with `eqStore`, for the lifetime of the page.
+	 *
+	 * This used to be an `$effect` inside `EqualizerPanel.svelte`, which AppShell
+	 * unmounts on every panel switch — so the only reactive caller of
+	 * `rebuildEqCurve()` existed only while the Equalizer tab was open. The `\`
+	 * momentary A/B key is global (`AppShell`'s `<svelte:window onkeydown>`) and
+	 * flips `eqStore.isEnabled` from anywhere: pressing it on the Graph tab changed
+	 * the audio while the curve on screen kept showing the EQ'd response, and only
+	 * caught up the next time the user opened the Equalizer panel.
+	 *
+	 * Installed once from `AppShell.onMount` and never disposed — same shape as
+	 * `audioPlayerService`, which owns its filter chain the same way and for the
+	 * same reason.
+	 */
+	installEqCurveSync(): void {
+		if (this.#eqCurveSyncInstalled) return;
+		this.#eqCurveSyncInstalled = true;
+
+		$effect.root(() => {
+			$effect(() => {
+				// Track the inputs; the curve math itself is untracked so its writes
+				// to frStore can't feed back into this effect.
+				const sourceUUID = eqStore.sourcePhoneUUID;
+				void eqStore.isEnabled;
+				void eqStore.filters;
+				void eqStore.preamp;
+				void settingsStore.linkEqNormalization;
+				// Re-fire when the source phone data itself changes (e.g. renormalizeAll).
+				if (sourceUUID) void frStore.get(sourceUUID);
+
+				untrack(() => this.rebuildEqCurve());
+			});
+		});
 	}
 
 	// ─── Add ─────────────────────────────────────────────────────────────────────
@@ -531,9 +570,9 @@ class DataProvider {
 	 * the source phone's normalization, keeping the two curves visually tied
 	 * regardless of how radical the EQ is.
 	 *
-	 * This is the single source of truth for EQ curve construction. Both
-	 * `EqualizerPanel.svelte`'s reactive effect and `renormalizeAll()` funnel
-	 * through here.
+	 * This is the single source of truth for EQ curve construction. The reactive
+	 * caller is `installEqCurveSync()` above; `renormalizeAll()` and `reSmoothAll()`
+	 * call it directly after rebuilding the source phone.
 	 */
 	rebuildEqCurve(): void {
 		const sourceUUID = eqStore.sourcePhoneUUID;

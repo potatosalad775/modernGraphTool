@@ -3,8 +3,6 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 
 	import EqPhoneSelect from '$lib/components/equalizer/EqPhoneSelect.svelte';
@@ -35,21 +33,11 @@
 		}
 	});
 
-	// EQ preview effect — tracks the reactive inputs and delegates the actual
-	// curve construction to dataProvider.rebuildEqCurve(), which is the single
-	// source of truth for EQ curve math (shared with renormalizeAll).
-	$effect(() => {
-		// Track dependencies reactively
-		const sourceUUID = eqStore.sourcePhoneUUID;
-		void eqStore.isEnabled;
-		void eqStore.filters;
-		void eqStore.preamp;
-		void settingsStore.linkEqNormalization;
-		// Re-fire when the source phone data itself changes (e.g. after renormalizeAll)
-		if (sourceUUID) void frStore.get(sourceUUID);
-
-		untrack(() => dataProvider.rebuildEqCurve());
-	});
+	// The EQ preview curve is NOT rebuilt from here. This panel unmounts on every
+	// panel switch, and the `\` momentary A/B key is global — so a panel-scoped
+	// effect left the on-graph curve stale whenever the key was pressed from
+	// another tab. `dataProvider.installEqCurveSync()`, installed once from
+	// AppShell, owns that now.
 
 	// Record snapshots of the EQ state for the History & Compare UI.
 	// Debounced + min-gapped inside the store so a slider drag becomes one

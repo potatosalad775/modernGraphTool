@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import AppShell from './AppShell.svelte';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { menuStore } from '$lib/stores/menu-store.svelte.js';
@@ -18,9 +19,10 @@ import { loadDefaultConfig, installFrWriteBudget, findTarget } from './app-boot-
  * `INITIAL_TARGETS` populate the graph. Regressions there are invisible to unit
  * tests and total for the user.
  *
- * The viewport is set explicitly on every test. `appStore.isMobile` keys off
- * `window.innerWidth < 1000` and the browser-mode iframe defaults to 414×896, so
- * without this the desktop layout is never exercised at all.
+ * The viewport is set explicitly here rather than relying on the project default
+ * (`browser.viewport` in vite.config.ts), since `appStore.isMobile` keys off
+ * `window.innerWidth < 1000` and which layout renders is load-bearing for these
+ * assertions.
  */
 
 /** Loaded by `INITIAL_TARGETS`; listed in `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`. */
@@ -44,6 +46,11 @@ describe('AppShell boot', () => {
 		graphStore.targetOriginalData.clear();
 		commandHistory.clear();
 		menuStore.currentPanel = 'graph';
+		eqStore.filters = [];
+		eqStore.preamp = 0;
+		eqStore.isEnabled = false;
+		eqStore.sourcePhoneUUID = null;
+		eqStore.eqCurveUUID = null;
 		budget = installFrWriteBudget(FR_WRITE_BUDGET);
 		await loadDefaultConfig();
 		await page.viewport(1280, 800);
@@ -95,5 +102,41 @@ describe('AppShell boot', () => {
 
 		expect(targetAdjustmentStore.get(uuid).values).toEqual(before);
 		expect(frStore.size).toBe(2);
+	}, 30000);
+
+	it('syncs the on-graph EQ curve when `\\` is pressed from another panel', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		const phoneUUID = [...frStore.entries].find(([, d]) => d.type === 'phone')![0];
+
+		// Build a live EQ curve — a third entry alongside the demo phone and target.
+		menuStore.currentPanel = 'equalizer';
+		eqStore.sourcePhoneUUID = phoneUUID;
+		eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 6 }];
+		eqStore.isEnabled = true;
+		await expect.poll(() => frStore.size).toBe(3);
+		expect(eqStore.eqCurveUUID).not.toBeNull();
+
+		// Leave the Equalizer tab. The panel unmounts, and with it the only reactive
+		// caller of rebuildEqCurve() this app used to have.
+		menuStore.currentPanel = 'graph';
+		await expect.poll(() => page.getByText(ADJUSTED_LABEL).elements().length).toBe(2);
+
+		// `\` is bound on AppShell's <svelte:window>, so it fires from any panel and
+		// flips eqStore.isEnabled. The curve on screen has to follow — it used to
+		// keep showing the EQ'd response until the user reopened the Equalizer tab,
+		// which made the audio and the graph disagree for the whole hold.
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: '\\', bubbles: true }));
+		await expect.poll(() => frStore.size).toBe(2);
+		expect(eqStore.isEnabled).toBe(false);
+		expect(eqStore.momentaryOverride).toBe('bypass');
+		expect(eqStore.eqCurveUUID).toBeNull();
+
+		// Releasing restores both the EQ state and the curve.
+		window.dispatchEvent(new KeyboardEvent('keyup', { key: '\\', bubbles: true }));
+		await expect.poll(() => frStore.size).toBe(3);
+		expect(eqStore.isEnabled).toBe(true);
+		expect(eqStore.eqCurveUUID).not.toBeNull();
 	}, 30000);
 });

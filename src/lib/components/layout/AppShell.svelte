@@ -162,6 +162,11 @@
 			});
 		}
 
+		// Keep the on-graph EQ curve in step with eqStore for the lifetime of the
+		// page. EqualizerPanel unmounts on every panel switch, but the `\` A/B key
+		// below is global — so this can't live in the panel.
+		dataProvider.installEqCurveSync();
+
 		// Hydrate EQ constraint presets — fire-and-forget; the picker UI shows
 		// only the built-ins until the fetches resolve.
 		eqConstraintsStore.hydrate().catch((err) => {

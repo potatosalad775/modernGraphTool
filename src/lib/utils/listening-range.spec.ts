@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rangeMakeupGain, RANGE_FILTER_Q } from './listening-range.js';
+import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from './listening-range.js';
 
 /** Magnitude of a 2nd-order highpass at `f`, corner `f0`, Q = 1/√2. */
 function highpassMag(f: number, f0: number): number {
@@ -53,5 +53,26 @@ describe('rangeMakeupGain', () => {
 
 	it('exposes the Butterworth Q the derivation assumes', () => {
 		expect(RANGE_FILTER_Q).toBeCloseTo(0.707, 3);
+	});
+});
+
+describe('clampToBand', () => {
+	it('leaves a frequency inside the band alone', () => {
+		expect(clampToBand(1000, 500, 2000)).toBe(1000);
+	});
+
+	it('pulls frequencies outside the band to the nearest edge', () => {
+		expect(clampToBand(100, 500, 2000)).toBe(500);
+		expect(clampToBand(9000, 500, 2000)).toBe(2000);
+	});
+
+	it('keeps the endpoints themselves', () => {
+		expect(clampToBand(500, 500, 2000)).toBe(500);
+		expect(clampToBand(2000, 500, 2000)).toBe(2000);
+	});
+
+	it('tolerates reversed bounds', () => {
+		expect(clampToBand(100, 2000, 500)).toBe(500);
+		expect(clampToBand(9000, 2000, 500)).toBe(2000);
 	});
 });

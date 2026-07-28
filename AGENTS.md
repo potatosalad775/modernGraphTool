@@ -187,10 +187,12 @@ export const frStore = new FRDataStore();
     "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have to
     reach the audio, and all have to pick up the K-weighted bypass-match trim.
   - **The listening-range bandpass is for broadband sources only** (`#rangeGatingApplies`). Tone and sweep
-    carry energy at a single frequency, so filtering them can only attenuate — a tone is constrained by
-    clamping its frequency into the band, and a sweep by its own `sweepFromHz`/`sweepToHz`. The bandpass
-    also carries a makeup stage (`rangeMakeupGain` in `utils/listening-range.ts`) so a narrow band doesn't
-    just read as "quieter".
+    carry energy at a single frequency, so filtering them can only attenuate. Both are constrained by
+    **clamping** instead (`clampToBand` in `utils/listening-range.ts`): the tone's frequency, and the
+    sweep's `sweepFromHz`/`sweepToHz` endpoints. One rule across every source — the band is the region
+    you're auditioning. The bandpass also carries a makeup stage (`rangeMakeupGain`) so a narrow band
+    doesn't just read as "quieter". Clamps are sticky: leaving range mode keeps the clamped values rather
+    than restoring what they were before.
 
 ## Utils
 

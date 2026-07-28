@@ -23,13 +23,14 @@
 
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
 
-	// In frequency-selection mode the tone is constrained to the selected band —
-	// the range gates a tone by moving it, not by filtering it. Map the slider
-	// across that band, otherwise most of its travel would clamp to the endpoints.
-	const toneMinHz = $derived(
+	// In frequency-selection mode the single-frequency sources are constrained to the
+	// selected band — the range gates them by moving them, not by filtering them. The
+	// tone slider maps across the band (otherwise most of its travel would clamp to the
+	// endpoints) and the sweep's from/to inputs take it as their min/max.
+	const bandMinHz = $derived(
 		audioRangeStore.isFrequencySelectionMode ? audioRangeStore.fromHz : 20
 	);
-	const toneMaxHz = $derived(
+	const bandMaxHz = $derived(
 		audioRangeStore.isFrequencySelectionMode ? audioRangeStore.toHz : 20000
 	);
 
@@ -81,7 +82,7 @@
 			bind:checked={audioSpectrumStore.isEnabled}
 		/>
 		<Switch
-			title="Drag a range on the graph to gate playback to a frequency band. Disables EQ-node interaction while active."
+			title="Drag a range on the graph to focus playback on a frequency band — noise and files are band-passed, a tone or sweep is clamped into it. Disables EQ-node interaction while active."
 			labelText={m.equalizer_player_freq_select_toggle()}
 			labelClass="text-xs"
 			size="sm"
@@ -182,10 +183,10 @@
 				min="0"
 				max="1000"
 				step="1"
-				value={toneSliderPos(audioPlayerService.toneFreq, toneMinHz, toneMaxHz)}
+				value={toneSliderPos(audioPlayerService.toneFreq, bandMinHz, bandMaxHz)}
 				oninput={(e) =>
 					audioPlayerService.setToneFreq(
-						toneSliderHz(parseFloat((e.target as HTMLInputElement).value), toneMinHz, toneMaxHz)
+						toneSliderHz(parseFloat((e.target as HTMLInputElement).value), bandMinHz, bandMaxHz)
 					)}
 				class="w-full accent-accent"
 			/>
@@ -200,8 +201,8 @@
 					{m.equalizer_player_sweep_from_label()}
 					<input
 						type="number"
-						min="20"
-						max="20000"
+						min={bandMinHz}
+						max={bandMaxHz}
 						step="1"
 						value={audioPlayerService.sweepFromHz}
 						onchange={(e) => {
@@ -216,8 +217,8 @@
 					{m.equalizer_player_sweep_to_label()}
 					<input
 						type="number"
-						min="20"
-						max="20000"
+						min={bandMinHz}
+						max={bandMaxHz}
 						step="1"
 						value={audioPlayerService.sweepToHz}
 						onchange={(e) => {

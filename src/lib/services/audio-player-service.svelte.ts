@@ -2,7 +2,7 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
-import { rangeMakeupGain, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
+import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
@@ -126,11 +126,11 @@ class AudioPlayerService {
 	}
 
 	setSweepFromHz(hz: number): void {
-		this.#sweepFromHz = Math.max(20, Math.min(20000, hz));
+		this.#sweepFromHz = this.#clampSweepHz(hz);
 	}
 
 	setSweepToHz(hz: number): void {
-		this.#sweepToHz = Math.max(20, Math.min(20000, hz));
+		this.#sweepToHz = this.#clampSweepHz(hz);
 	}
 
 	setSweepDurationSec(sec: number): void {
@@ -286,18 +286,23 @@ class AudioPlayerService {
 	 * Only for broadband material. A tone has energy at exactly one frequency and a
 	 * sweep at one frequency per instant, so a bandpass can never *isolate* anything
 	 * in them — it can only attenuate, which reads as "selecting a range turned the
-	 * volume down". Tone is constrained by clamping its frequency into the band
-	 * instead (see {@link #clampToneToRange}); sweep already has its own from/to
-	 * bounds driving the oscillator directly.
+	 * volume down". Both are constrained by clamping instead: the tone's frequency
+	 * and the sweep's two endpoints are pulled into the band, so "the band is the
+	 * region you're auditioning" holds for every source.
 	 */
 	get #rangeGatingApplies(): boolean {
 		return this.#audioSource !== 'tone' && this.#audioSource !== 'sweep';
 	}
 
-	/** Constrain a tone frequency to the active listening range, if there is one. */
+	/** Constrain a frequency to the active listening range, if there is one. */
 	#clampToRange(hz: number): number {
 		if (!audioRangeStore.isFrequencySelectionMode) return hz;
-		return Math.min(Math.max(hz, audioRangeStore.fromHz), audioRangeStore.toHz);
+		return clampToBand(hz, audioRangeStore.fromHz, audioRangeStore.toHz);
+	}
+
+	/** Sweep endpoints are bounded by the audible band, then by the listening range. */
+	#clampSweepHz(hz: number): number {
+		return this.#clampToRange(Math.max(20, Math.min(20000, hz)));
 	}
 
 	#assignToneFreq(hz: number): void {
@@ -312,6 +317,19 @@ class AudioPlayerService {
 		if (!audioRangeStore.isFrequencySelectionMode || this.#audioSource !== 'tone') return;
 		const clamped = this.#clampToRange(this.#toneFreq);
 		if (clamped !== this.#toneFreq) this.#assignToneFreq(clamped);
+	}
+
+	/**
+	 * Pull the sweep's endpoints back inside the band after the range itself moved.
+	 * A running sweep picks the new bounds up on its next cycle rather than jumping
+	 * mid-glide — {@link #scheduleSweepCycle} reads these fields each time round.
+	 */
+	#clampSweepToRange(): void {
+		if (!audioRangeStore.isFrequencySelectionMode || this.#audioSource !== 'sweep') return;
+		const from = this.#clampToRange(this.#sweepFromHz);
+		const to = this.#clampToRange(this.#sweepToHz);
+		if (from !== this.#sweepFromHz) this.#sweepFromHz = from;
+		if (to !== this.#sweepToHz) this.#sweepToHz = to;
 	}
 
 	/** Smooth a `GainNode.gain` ramp to avoid clicks on EQ on/off transitions. */
@@ -483,14 +501,15 @@ class AudioPlayerService {
 			$effect(() => {
 				this.#retuneRangeFilters(audioRangeStore.fromHz, audioRangeStore.toHz);
 			});
-			// A tone is gated by moving it rather than by filtering it, so it has to
-			// follow the band when the user redraws the range on the graph.
+			// Tone and sweep are gated by moving them rather than by filtering them, so
+			// both have to follow the band when the user redraws the range on the graph.
 			$effect(() => {
 				void audioRangeStore.fromHz;
 				void audioRangeStore.toHz;
 				void audioRangeStore.isFrequencySelectionMode;
 				void this.#audioSource;
 				this.#clampToneToRange();
+				this.#clampSweepToRange();
 			});
 		});
 	}

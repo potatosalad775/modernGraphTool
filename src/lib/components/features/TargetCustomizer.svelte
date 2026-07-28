@@ -89,8 +89,10 @@
 
 	$effect(() => {
 		void adjustment;
-		if (!graphStore.targetOriginalData.has(uuid)) return;
-		untrack(() => dataProvider.applyTargetAdjustment(uuid));
+		untrack(() => {
+			if (!graphStore.targetOriginalData.has(uuid)) return;
+			dataProvider.applyTargetAdjustment(uuid);
+		});
 	});
 
 	function handlePresetChange(e: Event) {

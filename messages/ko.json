@@ -167,7 +167,7 @@
 	"keyboard_shortcut_redo": "다시 실행",
 	"keyboard_shortcut_panels": "패널 전환",
 	"keyboard_shortcut_axis_lock": "이동 방향 고정 (EQ 드래그)",
-	"keyboard_shortcut_eq_bypass": "누르고 있는 동안 EQ 우회",
+	"keyboard_shortcut_eq_bypass": "누르고 있는 동안 EQ 비교",
 	"keyboard_shortcut_delete_band": "선택한 밴드 삭제",
 	"eq_constraint_select_label": "제한",
 	"eq_constraint_select_title": "EQ 제한 프리셋 — 밴드 수, 필터 종류, 주파수/Q/게인 범위를 제한합니다",

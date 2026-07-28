@@ -6,5 +6,6 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/ko.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
-	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down."
+	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down.",
+	"eq_auditioned_label": "EQ ON"
 }

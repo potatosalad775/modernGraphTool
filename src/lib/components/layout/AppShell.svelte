@@ -204,18 +204,21 @@
 
 		const mod = e.metaKey || e.ctrlKey;
 
-		// `\` (backslash) — press-and-hold to bypass EQ momentarily for A/B comparison.
-		// Only triggered when EQ is currently enabled; ignored inside text inputs.
+		// `\` (backslash) — press-and-hold to flip the EQ state momentarily for A/B
+		// comparison. Bidirectional: it bypasses a live EQ and auditions a disabled
+		// one, so the comparison can be started from either side. Ignored inside text
+		// inputs, and when there is no EQ source phone to compare against.
 		if (!inEditable && !mod && !e.altKey && e.key === '\\') {
 			if (e.repeat) {
 				e.preventDefault();
 				return;
 			}
-			if (!eqStore.isEnabled) return;
+			if (eqMomentaryRestore !== null) return;
+			if (!eqStore.sourcePhoneUUID) return;
 			e.preventDefault();
 			eqMomentaryRestore = eqStore.isEnabled;
-			eqStore.isEnabled = false;
-			eqStore.isMomentarilyBypassed = true;
+			eqStore.isEnabled = !eqStore.isEnabled;
+			eqStore.momentaryOverride = eqMomentaryRestore ? 'bypass' : 'audition';
 			return;
 		}
 
@@ -254,7 +257,7 @@
 	function releaseMomentaryBypass() {
 		if (eqMomentaryRestore === null) return;
 		eqStore.isEnabled = eqMomentaryRestore;
-		eqStore.isMomentarilyBypassed = false;
+		eqStore.momentaryOverride = null;
 		eqMomentaryRestore = null;
 	}
 

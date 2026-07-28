@@ -6,9 +6,14 @@
  * the maintainer-side half of that flow. Keys are written in messages/en.json order so the diffs
  * stay readable.
  *
+ * By default, a stub value that's identical to the en.json source is skipped — translators
+ * sometimes leave a key untouched or a proper noun genuinely stays in English, but an unreviewed
+ * copy shouldn't silently overwrite the fallback. Pass --force to import those too.
+ *
  * Usage:
  *   node scripts/apply-translations.js            # merge and delete the staging files
  *   node scripts/apply-translations.js --dry-run  # report what would be merged, change nothing
+ *   node scripts/apply-translations.js --force    # also import values identical to en.json
  */
 
 import { unlinkSync } from 'fs';
@@ -25,6 +30,7 @@ import {
 } from './i18n-shared.js';
 
 const dryRun = process.argv.includes('--dry-run');
+const force = process.argv.includes('--force');
 
 const base = readJson(`${BASE_LOCALE}.json`);
 const baseKeys = messageKeys(base);
@@ -55,6 +61,7 @@ for (const fileName of files) {
 	const merged = {};
 	const unknown = [];
 	const empty = [];
+	const sameAsEnglish = [];
 
 	for (const key of messageKeys(stub)) {
 		if (!baseKeySet.has(key)) {
@@ -66,6 +73,10 @@ for (const fileName of files) {
 			empty.push(key);
 			continue;
 		}
+		if (!force && value === base[key]) {
+			sameAsEnglish.push(key);
+			continue;
+		}
 		merged[key] = value;
 	}
 
@@ -74,6 +85,11 @@ for (const fileName of files) {
 	}
 	for (const key of empty) {
 		console.warn(`  ${locale}: '${key}' has no translation — skipping (stays on fallback).`);
+	}
+	for (const key of sameAsEnglish) {
+		console.warn(
+			`  ${locale}: '${key}' is identical to ${BASE_LOCALE}.json — skipping (use --force to import anyway).`
+		);
 	}
 
 	// Rebuild in en.json key order. Keys the locale already had win over the stub only if the

@@ -15,7 +15,8 @@
 		"i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --strategy localStorage preferredLanguage baseLocale",
 		"i18n:check": "node scripts/check-translations.js",
 		"i18n:missing": "node scripts/check-translations.js --write",
-		"i18n:apply": "node scripts/apply-translations.js",
+		"i18n:apply": "node scripts/apply-translations.js || node scripts/check-translations.js --write",
+		"i18n:apply_force": "node scripts/apply-translations.js --force",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run"

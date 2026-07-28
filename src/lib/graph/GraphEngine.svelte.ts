@@ -389,10 +389,9 @@ class GraphEngine {
 	 *  Lightweight: no DOM creation/removal, just d-attribute updates. */
 	repositionCurves(): void {
 		this.curveGroup
-			.selectAll<
-				SVGPathElement,
-				FRDataPoint[]
-			>("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
+			.selectAll<SVGPathElement, FRDataPoint[]>(
+				"path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)"
+			)
 			.attr('d', (d) => this._getCompensatedPath(d));
 		this._transitionHpTFFillPaths(false);
 		this.eqOverlay?.render();

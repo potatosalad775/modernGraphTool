@@ -894,19 +894,17 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			TARGET_MEASUREMENT: raw.PATH?.TARGET_MEASUREMENT ?? defaults.PATH.TARGET_MEASUREMENT,
 			PHONE_BOOK: raw.PATH?.PHONE_BOOK ?? defaults.PATH.PHONE_BOOK
 		},
-		WATERMARK: (raw.WATERMARK ?? defaults.WATERMARK).map(
-			(w: any): WatermarkFormState => ({
-				TYPE: w.TYPE ?? 'TEXT',
-				CONTENT: w.CONTENT ?? '',
-				LOCATION: w.LOCATION ?? 'BOTTOM_RIGHT',
-				SIZE: w.SIZE ?? '14px',
-				FONT_FAMILY: w.FONT_FAMILY,
-				FONT_WEIGHT: w.FONT_WEIGHT,
-				COLOR: w.COLOR,
-				OPACITY: w.OPACITY,
-				POSITION: w.POSITION
-			})
-		),
+		WATERMARK: (raw.WATERMARK ?? defaults.WATERMARK).map((w: any): WatermarkFormState => ({
+			TYPE: w.TYPE ?? 'TEXT',
+			CONTENT: w.CONTENT ?? '',
+			LOCATION: w.LOCATION ?? 'BOTTOM_RIGHT',
+			SIZE: w.SIZE ?? '14px',
+			FONT_FAMILY: w.FONT_FAMILY,
+			FONT_WEIGHT: w.FONT_WEIGHT,
+			COLOR: w.COLOR,
+			OPACITY: w.OPACITY,
+			POSITION: w.POSITION
+		})),
 		TARGET_MANIFEST: toI18nArrayState<TargetManifestEntryForm>(
 			raw.TARGET_MANIFEST ?? defaults.TARGET_MANIFEST
 		),
@@ -966,21 +964,17 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			),
 			FILTER_PRESET: (
 				raw.TARGET_CUSTOMIZER?.FILTER_PRESET ?? defaults.TARGET_CUSTOMIZER.FILTER_PRESET
-			).map(
-				(p: any): FilterPresetForm => ({
-					name: p.name ?? '',
-					filter: p.filter ?? {}
-				})
-			),
+			).map((p: any): FilterPresetForm => ({
+				name: p.name ?? '',
+				filter: p.filter ?? {}
+			})),
 			INITIAL_TARGET_FILTERS: (
 				raw.TARGET_CUSTOMIZER?.INITIAL_TARGET_FILTERS ??
 				defaults.TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS
-			).map(
-				(t: any): InitialTargetFilterForm => ({
-					name: t.name ?? '',
-					filter: t.filter ?? {}
-				})
-			)
+			).map((t: any): InitialTargetFilterForm => ({
+				name: t.name ?? '',
+				filter: t.filter ?? {}
+			}))
 		},
 		CROSS_SITE_SEARCH: {
 			// Configs predating this section fall back to the deprecated squig.link toggle.

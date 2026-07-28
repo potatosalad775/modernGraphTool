@@ -18,7 +18,7 @@
 {#snippet Scrollbar({ orientation }: { orientation: 'vertical' | 'horizontal' })}
 	<ScrollArea.Scrollbar
 		{orientation}
-		class="group flex touch-none select-none p-0.5 transition-all duration-300 ease-out data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out-0 data-[state=visible]:fade-in-0 {orientation ===
+		class="group data-[state=visible]:animate-in data-[state=hidden]:animate-out data-[state=hidden]:fade-out-0 data-[state=visible]:fade-in-0 flex touch-none p-0.5 transition-all duration-300 ease-out select-none {orientation ===
 		'vertical'
 			? 'w-2 hover:w-2.5'
 			: 'h-2 hover:h-2.5'}"

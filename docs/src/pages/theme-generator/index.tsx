@@ -141,13 +141,7 @@ const PICKER_PRESETS = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 type SemanticColorKey =
-	| 'primary'
-	| 'secondary'
-	| 'accent'
-	| 'info'
-	| 'success'
-	| 'warning'
-	| 'error';
+	'primary' | 'secondary' | 'accent' | 'info' | 'success' | 'warning' | 'error';
 
 export default function ThemeGenerator(): ReactNode {
 	const [inputs, setInputs] = useState<PaletteInputs>(DEFAULT_INPUTS);

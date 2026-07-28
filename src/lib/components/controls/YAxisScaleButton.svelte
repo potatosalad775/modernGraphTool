@@ -30,7 +30,7 @@
 	title={m.y_axis_scale_button_label()}
 	onclick={handleClick}
 	variant="outline"
-	class="h-9! px-3! gap-1.5"
+	class="h-9! gap-1.5 px-3!"
 >
 	{m.y_axis_scale_button_label()}
 	<span class="h-5 w-px bg-base-content/20"></span>

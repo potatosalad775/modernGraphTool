@@ -176,7 +176,7 @@
 				title={triggerLabel}
 				variant="outline"
 				size="sm"
-				class="h-7! px-2! justify-between! gap-1 min-w-14 rounded-sm! bg-base-200! hover:bg-base-content/10!"
+				class="h-7! min-w-14 justify-between! gap-1 rounded-sm! bg-base-200! px-2! hover:bg-base-content/10!"
 			>
 				{triggerLabel}
 				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />
@@ -317,8 +317,8 @@
 					{#if !hptfFillOnly && hptfSamples.length > 0}
 						{#each hptfSamples as sample, i (i)}
 							<label
-								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									ml-2 hover:bg-base-300"
+								class="ml-2 flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5
+									text-xs hover:bg-base-300"
 							>
 								<input
 									type="checkbox"

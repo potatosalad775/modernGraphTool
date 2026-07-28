@@ -59,17 +59,17 @@
 		target="_blank"
 		rel="noopener noreferrer"
 		onclick={handleClick}
-		class="flex items-center gap-1.75 rounded-md px-3 py-1.5 h-9 text-sm font-medium transition-colors
-			bg-secondary text-secondary-content hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+		class="flex h-9 items-center gap-1.75 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium
+			text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 	>
-		<ShoppingBag class="w-4 h-4" />
+		<ShoppingBag class="h-4 w-4" />
 		{m.shoplink_buy_now()}
 		{#if productData?.currentPrice || shopLink.sponsorName}
-			<div class="w-px h-5 bg-success-content/60"></div>
+			<div class="h-5 w-px bg-success-content/60"></div>
 			<span class="flex gap-0.5">
 				{#if productData?.currentPrice}
 					{#if productData.onSale && productData.originalPrice}
-						<span class="line-through opacity-60 text-xs">${productData.originalPrice}</span>
+						<span class="text-xs line-through opacity-60">${productData.originalPrice}</span>
 						<span class="font-semibold">${productData.currentPrice}</span>
 					{:else}
 						<span class="font-semibold">${productData.currentPrice}</span>

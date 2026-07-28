@@ -50,8 +50,8 @@
 		<Dialog.Portal>
 			<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
 			<Dialog.Content
-				class="fixed left-1/2 top-1/2 z-50 w-11/12 max-w-md max-h-11/12 -translate-x-1/2 -translate-y-1/2
-					flex flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
+				class="fixed top-1/2 left-1/2 z-50 flex max-h-11/12 w-11/12 max-w-md -translate-x-1/2
+					-translate-y-1/2 flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
 			>
 				<Dialog.Title class="text-lg font-semibold text-base-content">
 					{sponsor.heading}
@@ -76,10 +76,10 @@
 							href={buildUtmUrl(sponsor.ctaLink, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
-								hover:bg-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
+								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 						>
-							<ExternalLink class="w-4 h-4" />
+							<ExternalLink class="h-4 w-4" />
 							{sponsor.ctaText}
 						</a>
 					{/if}
@@ -89,17 +89,17 @@
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="flex items-center justify-center flex-1 gap-2 h-12 rounded-lg border
+							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg border
 								border-base-content/20 px-4 py-2.5 text-center text-sm font-medium hover:bg-base-300"
 						>
-							<ExternalLink class="w-4 h-4" />
+							<ExternalLink class="h-4 w-4" />
 							{sponsor.cta2Text}
 						</a>
 					{/if}
 				</div>
 
 				<Dialog.Close
-					class="mt-3 -mb-2 h-12 w-full text-center text-sm text-base-content/60 hover:bg-base-300 rounded-lg py-1 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-base-content/80"
+					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-none"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

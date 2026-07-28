@@ -81,14 +81,14 @@
 <div class="flex flex-col">
 	<!-- Button row: horizontally scrollable -->
 	<ScrollArea orientation="horizontal" type="always" viewportClasses="flex gap-2 w-full">
-		<div class="flex gap-1.5 px-3 py-2 justify-center">
+		<div class="flex justify-center gap-1.5 px-3 py-2">
 			{#each FREQ_RANGES as { key } (key)}
 				<Button
 					title={getRangeName(key)}
 					onclick={() => toggleRange(key)}
 					variant={activeKey === key ? 'primary' : 'outline'}
 					size="sm"
-					class="whitespace-nowrap line-clamp-1"
+					class="line-clamp-1 whitespace-nowrap"
 				>
 					{getRangeName(key)}
 				</Button>

@@ -47,8 +47,8 @@
 
 {#snippet targetRow(group: TargetManifestEntry)}
 	<div class="overflow-x-auto px-px pt-px pb-1">
-		<div class="flex items-center gap-2 w-max">
-			<span class="pl-1 shrink-0 text-xs font-medium text-base-content/70">{group.type}</span>
+		<div class="flex w-max items-center gap-2">
+			<span class="shrink-0 pl-1 text-xs font-medium text-base-content/70">{group.type}</span>
 			<div class="flex gap-1.5">
 				{#each group.files as file (file)}
 					{@const identifier = getIdentifier(file)}
@@ -74,7 +74,7 @@
 	{#if allowMultiLine}
 		<Accordion type="single" value={collapseOnInitial ? '' : 'targets'}>
 			<AccordionItem value="targets" title={m.target_selector_label()}>
-				<div class="flex flex-col gap-0.5 pt-1 -mb-0.75">
+				<div class="-mb-0.75 flex flex-col gap-0.5 pt-1">
 					{#each targets as group (group.type)}
 						{@render targetRow(group)}
 					{/each}

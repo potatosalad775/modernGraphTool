@@ -87,12 +87,7 @@ export interface FRColors {
 
 /** FR data type discriminant */
 export type FRDataType =
-	| 'phone'
-	| 'target'
-	| 'eq'
-	| 'inserted-phone'
-	| 'inserted-target'
-	| 'inserted-eq';
+	'phone' | 'target' | 'eq' | 'inserted-phone' | 'inserted-target' | 'inserted-eq';
 
 /** Complete frequency response data object stored in DataProvider */
 export interface FRDataObject {

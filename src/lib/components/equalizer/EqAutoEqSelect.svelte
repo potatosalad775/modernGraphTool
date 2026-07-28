@@ -45,7 +45,7 @@
 	onchange={(e) => {
 		eqStore.autoEqTargetUUID = (e.target as HTMLSelectElement).value || null;
 	}}
-	class="w-full rounded border border-base-content/20 px-2 py-1 text-sm cursor-pointer"
+	class="w-full cursor-pointer rounded border border-base-content/20 px-2 py-1 text-sm"
 >
 	<option value="">{m.equalizer_phone_select_option_target()}</option>
 	{#each targetOptions as opt (opt.uuid)}

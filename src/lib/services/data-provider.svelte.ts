@@ -293,13 +293,33 @@ class DataProvider {
 	 * UI now. `reSmoothAll()` in particular rebuilds targets from raw source data, and
 	 * used to rely on a mounted customizer noticing `targetOriginalVersion` and
 	 * re-applying; with the Graph tab closed the adjustment was dropped for good.
+	 *
+	 * Normalizes but does NOT re-smooth. `targetOriginalData` is a snapshot of channels
+	 * that already went through smooth → normalize, and the tilt/shelf stack on top is a
+	 * smooth analytic curve with nothing to filter out. Sending the result back through
+	 * `updateFRDataWithRawData` would smooth it a second time, blurring the target and —
+	 * because the smoother resamples — leaving the curve on a different frequency grid
+	 * than the cached original that baseline compensation reads. Normalization is kept
+	 * so a shelf adjustment can't drag the target off the anchor point.
 	 */
 	applyTargetAdjustment(uuid: string): void {
+		const existing = frStore.get(uuid);
 		const original = graphStore.targetOriginalData.get(uuid);
-		if (!original) return;
-		this.updateFRDataWithRawData(uuid, targetAdjustmentStore.adjustedChannels(uuid, original), {
+		if (!existing || !original) return;
+
+		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, original);
+		const processed = normalizeChannels(adjusted, graphStore.normType, graphStore.normHzValue);
+
+		const updated: FRDataObject = {
+			...existing,
+			channels: {
+				...(processed.L && { L: processed.L }),
+				...(processed.R && { R: processed.R }),
+				...(processed.AVG && { AVG: processed.AVG })
+			},
 			adjustmentLabel: targetAdjustmentStore.label(uuid)
-		});
+		};
+		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
 	}
 
 	/** Re-apply every known target adjustment — used after a global re-process. */
@@ -487,10 +507,10 @@ class DataProvider {
 		}
 
 		// No re-apply pass here, unlike reSmoothAll: the loop above normalized each
-		// target's already-adjusted channels in place, so the customizer stack is
-		// still baked in. Rebuilding it from the original would only re-anchor the
-		// curve *before* the adjustment and cost an extra smoothing pass, which
-		// resamples onto a different frequency grid than targetOriginalData.
+		// target's already-adjusted channels in place, so the customizer stack is still
+		// baked in. Re-applying would be a no-op anyway — normalization only subtracts a
+		// constant offset, so normalize(original + adjustment) lands on the same curve
+		// whether the original was normalized before the adjustment or after it.
 		if (targetOriginalTouched) graphStore.targetOriginalVersion++;
 
 		// Rebuild the EQ curve after the source phone has been renormalized.

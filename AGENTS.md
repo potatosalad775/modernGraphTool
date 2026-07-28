@@ -165,8 +165,11 @@ export const frStore = new FRDataStore();
   updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll,
   applyTargetAdjustment. `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it
   re-applies target adjustments itself afterwards; `renormalizeAll` normalizes the already-adjusted
-  channels in place and must **not** re-apply, or it re-anchors before the adjustment and resamples onto
-  a different frequency grid than `targetOriginalData`.
+  channels in place and must **not** re-apply (it would be a no-op — normalization only removes a
+  constant offset, so the adjustment lands on the same curve either way).
+  `applyTargetAdjustment` **normalizes only, never re-smooths** — `targetOriginalData` already holds
+  smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off the
+  cached original's frequency grid, which baseline compensation reads against.
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `aggregate-index.svelte.ts` — cross-site search. Fetches the GraphAggregator index (one JSON doc

@@ -892,7 +892,7 @@ describe('DataProvider', () => {
 	// the operator's INITIAL_TARGET_FILTERS defaults. DataProvider now re-applies them
 	// itself; these tests run with no component mounted at all.
 
-	describe('reSmoothAll target adjustments', () => {
+	describe('target adjustments (applyTargetAdjustment + reSmoothAll)', () => {
 		const ADJUSTED = 'adjusted-target';
 		const PLAIN = 'plain-target';
 
@@ -927,6 +927,26 @@ describe('DataProvider', () => {
 			targetAdjustmentStore.delete(PLAIN);
 			graphStore.normType = 'Hz';
 			graphStore.normHzValue = 1000;
+		});
+
+		// targetOriginalData is a snapshot of already-smoothed channels, so re-running
+		// the adjusted result through the smoother would blur the target twice and
+		// resample it onto a different grid than the cached original that baseline
+		// compensation reads against. applyTargetAdjustment normalizes only.
+		it('keeps the adjusted curve on the cached original frequency grid', () => {
+			seedTarget(ADJUSTED);
+			targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+			targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+			targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+
+			dataProvider.applyTargetAdjustment(ADJUSTED);
+
+			const adjusted = frStore.get(ADJUSTED)!.channels.AVG!.data;
+			const original = graphStore.targetOriginalData.get(ADJUSTED)!.AVG!.data;
+			expect(adjusted).toHaveLength(original.length);
+			for (let i = 0; i < original.length; i++) {
+				expect(adjusted[i][0]).toBe(original[i][0]);
+			}
 		});
 
 		it('re-applies the filter stack after re-smoothing, with nothing mounted', async () => {

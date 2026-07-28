@@ -8,7 +8,7 @@ import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { menuStore } from '$lib/stores/menu-store.svelte.js';
 import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
 import { commandHistory } from '$lib/services/command-history.svelte.js';
-import { loadDefaultConfig, installFrWriteBudget } from './app-boot-harness.js';
+import { loadDefaultConfig, installWriteBudget } from './app-boot-harness.js';
 
 /**
  * Mobile boot, in its own file so the page-lifetime stores hydrate fresh.
@@ -25,9 +25,9 @@ import { loadDefaultConfig, installFrWriteBudget } from './app-boot-harness.js';
  */
 
 const ADJUSTED_LABEL = '(Tilt: -0.8dB/oct, Bass: +6.0dB)';
-const FR_WRITE_BUDGET = 80;
+const WRITE_BUDGET = 80;
 
-let budget: ReturnType<typeof installFrWriteBudget>;
+let budget: ReturnType<typeof installWriteBudget>;
 
 describe('AppShell boot (mobile)', () => {
 	beforeEach(async () => {
@@ -35,7 +35,7 @@ describe('AppShell boot (mobile)', () => {
 		graphStore.targetOriginalData.clear();
 		commandHistory.clear();
 		menuStore.currentPanel = 'graph';
-		budget = installFrWriteBudget(FR_WRITE_BUDGET);
+		budget = installWriteBudget(WRITE_BUDGET);
 		await loadDefaultConfig((cfg) => {
 			// Off in the shipped defaults; the point of the test is that an operator
 			// who turns it on gets it on mobile too.
@@ -67,6 +67,6 @@ describe('AppShell boot (mobile)', () => {
 
 		expect(frStore.size).toBe(2);
 		expect(document.querySelectorAll('.fr-graph-phone-curve').length).toBeGreaterThan(0);
-		expect(budget.count).toBeLessThan(FR_WRITE_BUDGET);
+		expect(budget.count).toBeLessThan(WRITE_BUDGET);
 	}, 30000);
 });

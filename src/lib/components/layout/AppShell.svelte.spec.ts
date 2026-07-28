@@ -8,7 +8,7 @@ import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { menuStore } from '$lib/stores/menu-store.svelte.js';
 import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from '$lib/services/command-history.svelte.js';
-import { loadDefaultConfig, installFrWriteBudget, findTarget } from './app-boot-harness.js';
+import { loadDefaultConfig, installWriteBudget, findTarget } from './app-boot-harness.js';
 
 /**
  * Whole-app boot tests against the shipped `defaults/config.js`.
@@ -31,14 +31,15 @@ const DEMO_TARGET = 'KEMAR DF (KB006x) Target';
 const ADJUSTED_LABEL = '(Tilt: -0.8dB/oct, Bass: +6.0dB)';
 
 /**
- * A healthy boot writes each curve a handful of times — insert, normalize, apply
- * the customizer stack; 5 in total at the time of writing. The budget only has to
- * sit below "runaway"; see `installFrWriteBudget` for why this is a throwing
- * breaker rather than a timeout.
+ * A healthy desktop boot costs 11 instrumented writes: 5 to `frStore` (insert,
+ * normalize, apply the customizer stack), 5 to `graphStore` from the config
+ * defaults, 1 caching the pre-adjustment target. The budget only has to sit below
+ * "runaway", so there is plenty of headroom for legitimate growth; see
+ * `installWriteBudget` for why this is a throwing breaker rather than a timeout.
  */
-const FR_WRITE_BUDGET = 80;
+const WRITE_BUDGET = 80;
 
-let budget: ReturnType<typeof installFrWriteBudget>;
+let budget: ReturnType<typeof installWriteBudget>;
 
 describe('AppShell boot', () => {
 	beforeEach(async () => {
@@ -51,7 +52,7 @@ describe('AppShell boot', () => {
 		eqStore.isEnabled = false;
 		eqStore.sourcePhoneUUID = null;
 		eqStore.eqCurveUUID = null;
-		budget = installFrWriteBudget(FR_WRITE_BUDGET);
+		budget = installWriteBudget(WRITE_BUDGET);
 		await loadDefaultConfig();
 		await page.viewport(1280, 800);
 	});
@@ -78,8 +79,8 @@ describe('AppShell boot', () => {
 		expect(document.querySelectorAll('.fr-graph-phone-curve').length).toBeGreaterThan(0);
 		expect(document.querySelectorAll('.fr-graph-target-curve').length).toBeGreaterThan(0);
 
-		// Boot settles instead of rewriting curves forever.
-		expect(budget.count).toBeLessThan(FR_WRITE_BUDGET);
+		// Boot settles instead of writing reactive state forever.
+		expect(budget.count).toBeLessThan(WRITE_BUDGET);
 	}, 30000);
 
 	it('keeps target customizer adjustments across a panel switch', async () => {

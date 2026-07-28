@@ -342,10 +342,14 @@ finishes. Things worth knowing before adding to them:
   default; mobile tests opt in with `page.viewport()`. Tests where the layout is load-bearing should
   still state it explicitly.
 - **Reactive write loops hang, they don't fail.** A runaway effect blocks the main thread, so
-  vitest's timeout — a timer — never fires. `installFrWriteBudget()` in
-  [app-boot-harness.ts](src/lib/components/layout/app-boot-harness.ts) throws once `frStore` is
-  written more times than a healthy boot needs, which unwinds the loop and turns it into an ordinary
-  failure with a usable stack.
+  vitest's timeout — a timer — never fires. `installWriteBudget()` in
+  [app-boot-harness.ts](src/lib/components/layout/app-boot-harness.ts) throws once the app writes
+  reactive state more times than a healthy boot needs, which unwinds the loop and turns it into an
+  ordinary failure naming the key that ran away. It covers `frStore`, `graphStore` and `eqStore`,
+  including their `SvelteMap` fields — `$state` class fields compile to accessor pairs on the
+  prototype, so every setter on the chain is instrumented without listing field names. A healthy
+  desktop boot costs 11 writes against a budget of 80. Add a store to `writeTargets()` when one
+  starts carrying boot-time state.
 - **One boot file per page-lifetime hydration.** Stores like `preferenceBoundStore` hydrate once per
   page, so a second scenario in the same file reads whatever the first boot left behind. That's why
   mobile has its own file.

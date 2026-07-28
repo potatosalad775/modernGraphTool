@@ -116,6 +116,12 @@ All stores are exported as class instances from `.svelte.ts` files.
   source phone changes and the active preset is `default`, `applyPhoneMatch()` auto-selects the matching
   device profile.
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
+- `preference-bound-store.svelte.ts` — preference-range overlay: `isEnabled`/`isVisible` plus the fetched
+  bound + DF-target curves, with smoothing/normalization applied as `$derived`. Hydrated from
+  `AppShell.onMount`. **State must not move back into `PreferenceBound.svelte`** — that button renders inside
+  `GraphToolbar`, which on mobile lives in a collapsed accordion that genuinely unmounts, so component-scoped
+  visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default. `GraphContainer` owns the effects that call
+  `load()` and push state into the overlay.
 - `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
   phone-book-crawling fallback search used only when no aggregate index is reachable
 

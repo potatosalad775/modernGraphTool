@@ -13,6 +13,7 @@
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte';
+	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -142,6 +143,11 @@
 
 		// Hydrate user preferences (theme, AutoEQ options, EQ-normalization link, …)
 		settingsStore.hydrate();
+
+		// Read PREFERENCE_BOUND config — the initial-visibility default has to be
+		// applied here, not in the toolbar button, which is unmounted on mobile
+		// until the graph-controls accordion is expanded.
+		preferenceBoundStore.hydrate();
 
 		// Notify the user when the app version has changed since their last visit.
 		// Skipped on first visit (no stored version) and on same/downgraded versions.

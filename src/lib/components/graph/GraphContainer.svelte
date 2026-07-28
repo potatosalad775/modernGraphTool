@@ -13,6 +13,8 @@
 	import { menuStore } from '$lib/stores/menu-store.svelte.js';
 	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
+	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
+	import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
@@ -319,6 +321,28 @@
 		overlay?.setEqPanelActive(
 			menuStore.currentPanel === 'equalizer' && eqStore.sourcePhoneUUID !== null && !inRangeMode
 		);
+	});
+
+	// Preference-bound overlay: driven from the store rather than from
+	// PreferenceBound.svelte, which unmounts with the mobile toolbar accordion.
+	// Loading is lazy — nothing is fetched unless an operator configured bounds.
+	$effect(() => {
+		if (!preferenceBoundStore.isEnabled || !graphEngine.isInitialized) return;
+		preferenceBoundStore.load();
+	});
+
+	$effect(() => {
+		if (!graphEngine.isInitialized || !prefBoundOverlay) return;
+		prefBoundOverlay.update({
+			visible: preferenceBoundStore.isVisible,
+			rawBoundU: preferenceBoundStore.boundU,
+			rawBoundD: preferenceBoundStore.boundD,
+			dfNormalized: preferenceBoundStore.dfNormalized,
+			baselineChannelData: resolveBaselineChannelData(
+				graphStore.baselineUUID,
+				graphStore.baselineMode
+			)
+		});
 	});
 
 	// Sound-range overlay: active only when the user has toggled

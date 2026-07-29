@@ -363,7 +363,12 @@ runs coverage on the Linux leg only, currently `continue-on-error: true`.
   Query the document via `page`, not the returned `container`.
 - **`getByLabelText` is a substring match by default** and also matches `aria-label`, so a
   one-character label like the color picker's `L` collides with "Pick color". Pass
-  `{ exact: true }` for short labels.
+  `{ exact: true }` for short labels. Conversely, a `<label>` that wraps both the input and
+  a unit span (`From … Hz`) has that whole string as its accessible name, so `exact` fails
+  there — anchor a regex on the leading word instead.
+- **`fill()` fires `input`, not `change`.** A field wired to `onchange` (the sweep and range
+  Hz boxes in `EqAudioPlayer`) needs a blur afterwards to commit, the way leaving the field
+  would. Fields on `oninput` (the color picker) take `fill()` alone.
 
 Components that read `navigator.hid` / `.serial` / `.bluetooth` (`DevicePeq`) test with the
 `in` operator, which walks the prototype chain — a test that hides a transport has to delete

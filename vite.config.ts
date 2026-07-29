@@ -57,10 +57,15 @@ export default defineConfig({
 			// A ratchet, not a target. These are the measured numbers at the time the
 			// honest config landed, rounded down. Raise them when coverage improves;
 			// never lower them to make a red run go green.
+			//
+			// Each sits ~1 point under the measured figure. Repeated runs drift by a
+			// few hundredths of a percent — browser-mode specs race a little over
+			// which branches they reach — so a threshold pinned to the exact number
+			// would flap red without anything changing.
 			thresholds: {
-				statements: 57,
+				statements: 58,
 				branches: 51,
-				functions: 58,
+				functions: 60,
 				lines: 59
 			}
 		},

@@ -51,7 +51,10 @@ describe('GraphColorPicker', () => {
 		} as never;
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		// Drain any debounce still in flight. Left pending, it fires into the next
+		// test's spy and reports a colour that test never picked.
+		await new Promise((resolve) => setTimeout(resolve, 80));
 		vi.restoreAllMocks();
 		delete (window as { GRAPHTOOL_CONFIG?: unknown }).GRAPHTOOL_CONFIG;
 	});
@@ -140,9 +143,14 @@ describe('GraphColorPicker', () => {
 
 		it('coalesces a burst of edits into a single update', async () => {
 			await open(makeItem());
-			await numberField('H').fill('100');
-			await numberField('H').fill('150');
-			await numberField('H').fill('200');
+			// Driven straight at the element: a driver-level `fill()` can take longer
+			// than the 50 ms debounce under load, which would make each keystroke its
+			// own update and defeat the point of the test.
+			const field = numberField('H').element() as HTMLInputElement;
+			for (const value of ['100', '150', '200']) {
+				field.value = value;
+				field.dispatchEvent(new Event('input', { bubbles: true }));
+			}
 
 			await vi.waitFor(() => expect(updateColors).toHaveBeenCalled());
 			// The debounce restarts on each keystroke, so the last value wins and

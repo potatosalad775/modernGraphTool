@@ -53,7 +53,16 @@ export default defineConfig({
 				'src/hooks*.ts',
 				'src/lib/components/layout/app-boot-harness.ts' // test infrastructure
 			],
-			reporter: ['text', 'text-summary', 'html', 'json-summary']
+			reporter: ['text', 'text-summary', 'html', 'json-summary'],
+			// A ratchet, not a target. These are the measured numbers at the time the
+			// honest config landed, rounded down. Raise them when coverage improves;
+			// never lower them to make a red run go green.
+			thresholds: {
+				statements: 47,
+				branches: 41,
+				functions: 49,
+				lines: 49
+			}
 		},
 		projects: [
 			{

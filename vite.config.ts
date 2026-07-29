@@ -63,10 +63,10 @@ export default defineConfig({
 			// which branches they reach — so a threshold pinned to the exact number
 			// would flap red without anything changing.
 			thresholds: {
-				statements: 58,
-				branches: 51,
-				functions: 60,
-				lines: 59
+				statements: 67,
+				branches: 58,
+				functions: 72,
+				lines: 67
 			}
 		},
 		projects: [

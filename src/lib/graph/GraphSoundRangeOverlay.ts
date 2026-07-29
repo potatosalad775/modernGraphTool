@@ -146,6 +146,10 @@ export class GraphSoundRangeOverlay {
 				startX = event.x;
 			})
 			.on('drag', (event: d3.D3DragEvent<SVGRectElement, unknown, unknown>) => {
+				// The same threshold the `end` handler applies. Checking it only there
+				// left the guard useless: a click with a pixel or two of jitter still
+				// fires `drag`, which committed the sliver before `end` declined to.
+				if (Math.abs(event.x - startX) < GraphSoundRangeOverlay.CLICK_DRAG_THRESHOLD) return;
 				const a = xs().invert(startX);
 				const b = xs().invert(event.x);
 				audioRangeStore.setRange(a, b);

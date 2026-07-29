@@ -1,28 +1,18 @@
 import { replaceState } from '$app/navigation';
-import Base62 from './base62.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore, type BaselineMode } from '$lib/stores/graph-store.svelte.js';
-import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
 import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
+import {
+	buildQueryString,
+	parseShareParam,
+	parseStateParam,
+	type EQStateSnapshot,
+	type URLState
+} from './url-state.js';
 import type { SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface EQStateSnapshot {
-	filters: EQFilter[];
-	preamp: number;
-}
-
-interface URLState {
-	yScale?: number;
-	baseline?: { key: string; mode: BaselineMode };
-	yOffsets?: Record<string, number>;
-	eq?: EQStateSnapshot;
-	sampleDisplay?: Record<string, SampleChannelKey[]>;
-	hptfDisplay?: Record<string, { keys: HpTFDisplayKey[]; fill: boolean }>;
-}
 
 // ── URL Provider ─────────────────────────────────────────────────────────────
 
@@ -178,53 +168,8 @@ class URLProvider {
 
 	#loadFromURL(): void {
 		const urlParams = new URLSearchParams(window.location.search);
-		const shareParam = urlParams.get('share');
-
-		if (shareParam) {
-			if (shareParam.startsWith('b62_')) {
-				const encoded = shareParam.replace('b62_', '');
-				this.#phoneDataFromURL = this.#smartSplit(Base62.decode(encoded));
-			} else {
-				const decodedParam = decodeURI(shareParam).replace(/_/g, ' ');
-				this.#phoneDataFromURL = this.#smartSplit(decodedParam);
-			}
-		}
-
-		const stateParam = urlParams.get('state');
-		if (stateParam) {
-			try {
-				const stateStr = Base62.decode(stateParam);
-				this.#stateFromURL = JSON.parse(stateStr);
-			} catch {
-				// ignore malformed state
-			}
-		}
-	}
-
-	/** Split comma-separated string while respecting parentheses/brackets. */
-	#smartSplit(input: string): string[] {
-		const result: string[] = [];
-		let current = '';
-		let parenDepth = 0;
-
-		for (let i = 0; i < input.length; i++) {
-			const char = input[i];
-			if (char === '(' || char === '[' || char === '{') {
-				parenDepth++;
-				current += char;
-			} else if (char === ')' || char === ']' || char === '}') {
-				parenDepth--;
-				current += char;
-			} else if (char === ',' && parenDepth === 0) {
-				if (current.trim()) result.push(current.trim());
-				current = '';
-			} else {
-				current += char;
-			}
-		}
-
-		if (current.trim()) result.push(current.trim());
-		return result;
+		this.#phoneDataFromURL = parseShareParam(urlParams.get('share'));
+		this.#stateFromURL = parseStateParam(urlParams.get('state'));
 	}
 
 	#buildURL(eq?: EQStateSnapshot): { url: string; title: string; namesCombined: string } {
@@ -238,28 +183,18 @@ class URLProvider {
 		let url = this.#baseURL;
 		const namesCombined = activeNames.join(', ');
 
-		if (activeNames.length) {
-			if (this.#useBase62) {
-				const encoded = Base62.encode(activeNames.join(','));
-				url += `?share=b62_${encoded}`;
-			} else {
-				url += `?share=${encodeURI(activeNames.join(','))}`;
-			}
-			title = title + ' - ' + namesCombined;
-		}
+		if (activeNames.length) title = title + ' - ' + namesCombined;
 
-		// Encode graph state
+		// Collect graph state from the stores; url-state decides what makes the URL.
 		const stateData: URLState = { yScale: graphStore.yScale };
 		const defaultYScale =
 			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
-		let hasExtraState = graphStore.yScale !== defaultYScale;
 
 		if (graphStore.baselineUUID) {
 			const baselineData = frStore.get(graphStore.baselineUUID);
 			if (baselineData) {
 				const key = (baselineData.identifier + ' ' + (baselineData.dispSuffix ?? '')).trim();
 				stateData.baseline = { key, mode: graphStore.baselineMode };
-				hasExtraState = true;
 			}
 		}
 
@@ -267,7 +202,6 @@ class URLProvider {
 		for (const [, data] of frStore.entries) {
 			if (data.yOffset) {
 				yOffsets[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.yOffset;
-				hasExtraState = true;
 			}
 		}
 		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
@@ -276,7 +210,6 @@ class URLProvider {
 		for (const [, data] of frStore.entries) {
 			if (data.dispSamples && data.dispSamples.length > 0) {
 				sampleDisplay[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.dispSamples;
-				hasExtraState = true;
 			}
 		}
 		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
@@ -289,21 +222,13 @@ class URLProvider {
 					keys: data.dispHptf ?? [],
 					fill: data.hptfFillVisible ?? false
 				};
-				hasExtraState = true;
 			}
 		}
 		if (Object.keys(hptfDisplay).length) stateData.hptfDisplay = hptfDisplay;
 
-		if (eq && eq.filters.length > 0) {
-			stateData.eq = eq;
-			hasExtraState = true;
-		}
+		if (eq && eq.filters.length > 0) stateData.eq = eq;
 
-		if (hasExtraState) {
-			const stateStr = JSON.stringify(stateData);
-			const sep = url.includes('?') ? '&' : '?';
-			url += `${sep}state=${Base62.encode(stateStr)}`;
-		}
+		url += buildQueryString(activeNames, stateData, defaultYScale, this.#useBase62);
 
 		return { url, title, namesCombined };
 	}

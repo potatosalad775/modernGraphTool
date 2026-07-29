@@ -1,3 +1,4 @@
+import { untrack } from 'svelte';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
@@ -202,16 +203,25 @@ class AudioPlayerService {
 		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz],
 		// followed by a makeup stage that puts the band's center back at unity.
 		if (audioRangeStore.isFrequencySelectionMode && this.#rangeGatingApplies) {
+			// Read the bounds untracked. Entering or leaving range mode has to rebuild
+			// the chain, but a drag must not: this method runs inside the $effect
+			// installed by #installFilterEffectRoot, so tracking fromHz/toHz here would
+			// subscribe that effect to them and rebuild every node on every pointer
+			// event — exactly what #retuneRangeFilters exists to avoid.
+			const { fromHz, toHz } = untrack(() => ({
+				fromHz: audioRangeStore.fromHz,
+				toHz: audioRangeStore.toHz
+			}));
 			const hp = ctx.createBiquadFilter();
 			hp.type = 'highpass';
-			hp.frequency.value = audioRangeStore.fromHz;
+			hp.frequency.value = fromHz;
 			hp.Q.value = RANGE_FILTER_Q;
 			const lp = ctx.createBiquadFilter();
 			lp.type = 'lowpass';
-			lp.frequency.value = audioRangeStore.toHz;
+			lp.frequency.value = toHz;
 			lp.Q.value = RANGE_FILTER_Q;
 			const makeup = ctx.createGain();
-			makeup.gain.value = rangeMakeupGain(audioRangeStore.fromHz, audioRangeStore.toHz);
+			makeup.gain.value = rangeMakeupGain(fromHz, toHz);
 			this.#rangeHighpass = hp;
 			this.#rangeLowpass = lp;
 			this.#rangeMakeup = makeup;

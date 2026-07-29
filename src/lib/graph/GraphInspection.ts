@@ -67,6 +67,11 @@ class GraphInspection {
 	}
 
 	_enableMouseTracking() {
+		// Re-enabling without disabling first would orphan the previous rect: it
+		// keeps `pointer-events: all` and its mousemove handler, stacked over the
+		// plot, and `_disableMouseTracking` only ever removes the newest one.
+		this._disableMouseTracking();
+
 		this.mouseTracker = this.graphEngine.svg
 			.append('rect')
 			.attr('class', 'mouse-tracker')

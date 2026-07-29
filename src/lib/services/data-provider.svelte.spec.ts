@@ -12,6 +12,7 @@ import type {
 	ParsedFRData,
 	HpTFData,
 	PhoneMetadata,
+	PhoneFileVariant,
 	SampleData
 } from '$lib/types/data-types.js';
 
@@ -64,6 +65,16 @@ function makeTargetObject(uuid: string, overrides: Partial<FRDataObject> = {}): 
 		dash: '4 4',
 		...overrides
 	});
+}
+
+/** One `PhoneFileVariant` entry, with the L/R file reference filled in. */
+function phoneFile(base: string, suffix: string): PhoneFileVariant {
+	return {
+		suffix,
+		fullName: suffix ? `${base} ${suffix}` : base,
+		fileName: base,
+		files: { L: `${base} L.txt`, R: `${base} R.txt` }
+	};
 }
 
 function makeHpTFData(): HpTFData {
@@ -1116,7 +1127,7 @@ describe('DataProvider', () => {
 			brand: 'Brand',
 			name: 'Phone',
 			identifier: 'Brand Phone',
-			files: [{ files: 'Brand Phone', suffix: '' }]
+			files: [phoneFile('Brand Phone', '')]
 		};
 
 		beforeEach(() => {
@@ -1185,8 +1196,8 @@ describe('DataProvider', () => {
 			name: 'Phone',
 			identifier: 'Brand Phone',
 			files: [
-				{ files: 'Brand Phone', suffix: '' },
-				{ files: 'Brand Phone v2', suffix: 'v2', hptfDescription: 'v2 fit variation' }
+				phoneFile('Brand Phone', ''),
+				{ ...phoneFile('Brand Phone v2', 'v2'), hptfDescription: 'v2 fit variation' }
 			]
 		};
 

@@ -107,7 +107,9 @@ describe('GraphEqOverlay', () => {
 
 	beforeEach(() => {
 		frStore.clear();
-		graphStore.smoothValue = 0;
+		// Any value outside OCTAVE_BANDS is a no-op in FRSmoother, which keeps the
+		// assertions reading the input data rather than a smoothed resampling of it.
+		graphStore.smoothValue = 'none';
 		eqStore.filters = [];
 		eqStore.isEnabled = true;
 		eqStore.sourcePhoneUUID = null;

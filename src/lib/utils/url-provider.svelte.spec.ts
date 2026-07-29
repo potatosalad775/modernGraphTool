@@ -213,7 +213,7 @@ describe('URLProvider', () => {
 
 		it('omits EQ state — that is `getCurrentURLWithEQ`', () => {
 			frStore.set('a', makeEntry('a'));
-			eqStore.filters = [{ type: 'PK', freq: 1000, q: 1, gain: 3, disabled: false }];
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
 			eqStore.preamp = -3;
 
 			expect(urlProvider.getCurrentURL()).not.toContain('state=');
@@ -225,7 +225,7 @@ describe('URLProvider', () => {
 
 		it('embeds the filter stack and preamp', () => {
 			frStore.set('a', makeEntry('a'));
-			eqStore.filters = [{ type: 'PK', freq: 1000, q: 1, gain: 3, disabled: false }];
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
 			eqStore.preamp = -3;
 
 			const params = new URLSearchParams(new URL(urlProvider.getCurrentURLWithEQ()).search);
@@ -442,7 +442,7 @@ describe('URLProvider', () => {
 			initWith({
 				eq: {
 					preamp: -2,
-					filters: [{ type: 'PK', freq: 1000, q: 1, gain: 3, disabled: false }]
+					filters: [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }]
 				}
 			});
 

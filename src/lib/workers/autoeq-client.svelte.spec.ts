@@ -53,9 +53,9 @@ describe('runAutoEQInWorker', () => {
 
 		// The only deviation is the 3 kHz bump, so at least one filter must sit
 		// near it and pull down.
-		const nearBump = filters.filter((f) => f.freq > 1500 && f.freq < 6000);
+		const nearBump = filters.filter((f) => f.freq != null && f.freq > 1500 && f.freq < 6000);
 		expect(nearBump.length).toBeGreaterThan(0);
-		expect(nearBump.some((f) => f.gain < 0)).toBe(true);
+		expect(nearBump.some((f) => (f.gain ?? 0) < 0)).toBe(true);
 	});
 
 	it('honours maxFilters', async () => {

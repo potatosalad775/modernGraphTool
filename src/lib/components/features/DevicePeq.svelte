@@ -6,20 +6,32 @@
 	import { deriveDeviceConstraint } from '$lib/device-peq/derive-constraint.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Info } from '@lucide/svelte';
+	import { untrack } from 'svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
 
 	// Sync the connected device's hardware capabilities into the constraint
 	// store as a synthetic preset, auto-selected while the device is
 	// connected. Disconnect restores whichever preset the user had picked.
 	// Re-clamping is pushed as a single undoable command in eqCommands.
+	//
+	// The body must stay untracked. `setDeviceConstraint()` assigns
+	// `eqConstraintsStore.presets` and `.activeId`, and `reclampToActiveConstraint()`
+	// reads both back through `eqConstraintsStore.active` — so a tracked body
+	// reads and writes the same state and re-runs itself forever the moment a
+	// device is connected (`effect_update_depth_exceeded`). Only the device
+	// identity should re-trigger this, which is also the right granularity:
+	// a device swap replaces the whole object. Same shape as the untracked
+	// curve math in `dataProvider.installEqCurveSync()`.
 	$effect(() => {
 		const dev = devicePeqStore.device;
-		if (dev) {
-			eqConstraintsStore.setDeviceConstraint(deriveDeviceConstraint(dev));
-		} else {
-			eqConstraintsStore.clearDeviceConstraint();
-		}
-		eqCommands.reclampToActiveConstraint();
+		untrack(() => {
+			if (dev) {
+				eqConstraintsStore.setDeviceConstraint(deriveDeviceConstraint(dev));
+			} else {
+				eqConstraintsStore.clearDeviceConstraint();
+			}
+			eqCommands.reclampToActiveConstraint();
+		});
 	});
 
 	// ── Feature detection ─────────────────────────────────────────────────────

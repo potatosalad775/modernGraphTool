@@ -356,6 +356,30 @@ and two settings there are load-bearing:
 last improvement. Raise it when coverage goes up; never lower it to turn a red run green. CI
 runs coverage on the Linux leg only, currently `continue-on-error: true`.
 
+**Component tests** — mount with `render()` from `vitest-browser-svelte` and query through
+`page.getBy*` from `vitest/browser`. Two things bite:
+
+- **bits-ui popovers render into a portal**, so they are outside the render result's container.
+  Query the document via `page`, not the returned `container`.
+- **`getByLabelText` is a substring match by default** and also matches `aria-label`, so a
+  one-character label like the color picker's `L` collides with "Pick color". Pass
+  `{ exact: true }` for short labels.
+
+Components that read `navigator.hid` / `.serial` / `.bluetooth` (`DevicePeq`) test with the
+`in` operator, which walks the prototype chain — a test that hides a transport has to delete
+it from `Navigator.prototype`, not shadow it with `undefined` on the instance. See
+[DevicePeq.svelte.spec.ts](src/lib/components/features/DevicePeq.svelte.spec.ts), which also
+shows the connector-module mocking pattern: every transport is reached through a dynamic
+`import()`, so the four connector modules and the registry get `vi.mock`ed rather than the
+run touching WebHID/WebSerial.
+
+**Graph tests** — `GraphEngine` is driven through a real `<svg>` attached to the document and
+`init(svgEl)`; the overlays take a minimal fake engine exposing only what they read (see
+[GraphPreferenceBoundOverlay.svelte.spec.ts](src/lib/graph/GraphPreferenceBoundOverlay.svelte.spec.ts)
+and [GraphEqOverlay.svelte.spec.ts](src/lib/graph/GraphEqOverlay.svelte.spec.ts)). d3 rounds
+path coordinates to 3 decimals, so assert on parsed numbers with `toBeCloseTo`, never on a
+formatted substring of `d`.
+
 **Device-handler tests** — `device-peq/handlers/__fixtures__/fake-device.ts` provides
 `FakeHidDevice` (records `sendReport`, replays `inputreport`, supports both the
 `addEventListener` and `oninputreport` styles handlers use) and `FakeSerialPort` (queue-backed

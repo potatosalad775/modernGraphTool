@@ -20,7 +20,8 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"test:coverage": "vitest --run --coverage"
+		"test:coverage": "vitest --run --coverage",
+		"test:smoke": "node scripts/smoke-dist.js"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.0",

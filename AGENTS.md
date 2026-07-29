@@ -329,6 +329,7 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 | `npm run check`         | `svelte-kit sync` + `svelte-check` (TypeScript + Svelte) |
 | `npm run test`          | Vitest (client + server, Playwright browser mode)        |
 | `npm run test:coverage` | Full suite + v8 coverage report into `coverage/`         |
+| `npm run test:smoke`    | Boots the built `dist/` in a browser (run `build` first) |
 | `npm run lint`          | Prettier + ESLint                                        |
 | `npm run format`        | Auto-format code                                         |
 
@@ -354,7 +355,78 @@ and two settings there are load-bearing:
 
 `thresholds` is a **ratchet**, not a target: it holds the measured numbers at the time of the
 last improvement. Raise it when coverage goes up; never lower it to turn a red run green. CI
-runs coverage on the Linux leg only, currently `continue-on-error: true`.
+runs coverage on the Linux leg only, and it **blocks** — a PR that falls below the ratchet has
+removed coverage that used to exist.
+
+**Smoke test** — `npm run build && npm run test:smoke` ([scripts/smoke-dist.js](scripts/smoke-dist.js)).
+The unit suite mounts components against source, so nothing in it ever loads what the build
+emits: an adapter-static misconfiguration, a `defaults/` file the Vite plugin stopped copying,
+an asset-URL regression or a worker that fails to resolve once bundled all ship a blank page
+with the whole suite green. The script serves `dist/` over real HTTP — including the SPA
+fallback `.htaccess` provides — boots it in Playwright chromium, and fails on a console error,
+an uncaught exception, a 4xx, a graph that never draws, or a `?share=` link that lands no curve.
+
+Two things to keep in mind when extending it:
+
+- **A 200 does not prove a file exists.** The SPA fallback answers anything not on disk with
+  `index.html`, on the real Apache host as much as here, so asset checks compare the body
+  against the HTML shell rather than trusting the status.
+- It runs in the `build` CI job, after `npm run build`, because it needs the built output.
+
+**Component tests** — mount with `render()` from `vitest-browser-svelte` and query through
+`page.getBy*` from `vitest/browser`. Two things bite:
+
+- **bits-ui popovers render into a portal**, so they are outside the render result's container.
+  Query the document via `page`, not the returned `container`.
+- **`getByLabelText` is a substring match by default** and also matches `aria-label`, so a
+  one-character label like the color picker's `L` collides with "Pick color". Pass
+  `{ exact: true }` for short labels. Conversely, a `<label>` that wraps both the input and
+  a unit span (`From … Hz`) has that whole string as its accessible name, so `exact` fails
+  there — anchor a regex on the leading word instead.
+- **`fill()` fires `input`, not `change`.** A field wired to `onchange` (the sweep and range
+  Hz boxes in `EqAudioPlayer`, every number box in `EqFilterCard`) needs a blur afterwards to
+  commit, the way leaving the field would. Fields on `oninput` (the color picker) take
+  `fill()` alone.
+- **`render()` is async.** Most specs never await it and get away with it, but anything on the
+  returned result — `rerender`, `unmount` — is `undefined` unless you do. `rerender` is the only
+  way to test a component reacting to a changed prop, since a `.svelte.spec.ts` file is not a
+  rune module (the Svelte plugin matches `*.svelte.ts`, which `*.svelte.spec.ts` is not).
+  See the Escape-reverts case in
+  [EqFilterCard.svelte.spec.ts](src/lib/components/equalizer/EqFilterCard.svelte.spec.ts).
+- **`Button` mirrors `title` into `aria-label`**, which overrides its text content. A button
+  whose title changes with state (AutoEQ's run button in graphic mode) changes accessible name
+  too, so `getByRole('button', { name })` has to follow the title, not the label you see.
+- **Do not wait on something the handler does first.** `GraphUploader` clears `input.value` on
+  its opening line, long before it has parsed anything, so waiting on that let in-flight
+  uploads spill their calls into the next test. Poll the observable effect — spy calls,
+  a toast — until it stops changing.
+
+Components that read `navigator.hid` / `.serial` / `.bluetooth` (`DevicePeq`) test with the
+`in` operator, which walks the prototype chain — a test that hides a transport has to delete
+it from `Navigator.prototype`, not shadow it with `undefined` on the instance. See
+[DevicePeq.svelte.spec.ts](src/lib/components/features/DevicePeq.svelte.spec.ts), which also
+shows the connector-module mocking pattern: every transport is reached through a dynamic
+`import()`, so the four connector modules and the registry get `vi.mock`ed rather than the
+run touching WebHID/WebSerial.
+
+**Graph tests** — `GraphEngine` is driven through a real `<svg>` attached to the document and
+`init(svgEl)`; the overlays take a minimal fake engine exposing only what they read (see
+[GraphPreferenceBoundOverlay.svelte.spec.ts](src/lib/graph/GraphPreferenceBoundOverlay.svelte.spec.ts)
+and [GraphEqOverlay.svelte.spec.ts](src/lib/graph/GraphEqOverlay.svelte.spec.ts)). d3 rounds
+path coordinates to 3 decimals, so assert on parsed numbers with `toBeCloseTo`, never on a
+formatted substring of `d`.
+
+Two more traps in this layer:
+
+- **d3-drag v3 binds `mousedown`, not pointer events**, and registers its move/up listeners on
+  `event.view`. A synthetic `PointerEvent`, or a `MouseEvent` built without `view: window`,
+  starts a drag that can never move or end — and the test then reads an unchanged store rather
+  than failing outright, which looks like the component is fine. See the `drag()` helper in
+  [GraphSoundRangeOverlay.svelte.spec.ts](src/lib/graph/GraphSoundRangeOverlay.svelte.spec.ts).
+- **rAF loops need `requestAnimationFrame` stubbed** so frames can be stepped deliberately.
+  With a real rAF, "did `stop()` actually stop it?" is untestable — and a loop that outlives
+  the player is the failure that matters. See
+  [GraphSpectrumOverlay.svelte.spec.ts](src/lib/graph/GraphSpectrumOverlay.svelte.spec.ts).
 
 **Device-handler tests** — `device-peq/handlers/__fixtures__/fake-device.ts` provides
 `FakeHidDevice` (records `sendReport`, replays `inputreport`, supports both the

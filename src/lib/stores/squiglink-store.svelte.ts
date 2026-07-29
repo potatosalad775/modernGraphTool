@@ -38,7 +38,12 @@ const OPT_OUT_SITES = new Set([
 	'vsg'
 ]);
 
-class SquiglinkStore {
+/**
+ * Exported for tests only — the app uses the `squiglinkStore` singleton below.
+ * The domain guard runs in the constructor, so covering the enabled paths means
+ * building an instance after `SQUIGLINK.DEBUG` is in place.
+ */
+export class SquiglinkStore {
 	// ── Domain guard ─────────────────────────────────────────────────────────
 	readonly isSquiglinkHost: boolean;
 	readonly isEnabled: boolean;
@@ -105,6 +110,9 @@ class SquiglinkStore {
 
 		const results: CrossSiteSearchResult[] = [];
 		const currentUser = this.currentSiteUsername;
+		// A throwaway lookup rebuilt on every recompute and never read outside this
+		// function — nothing to make reactive.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const siteByUsername = new Map(this.sites.map((s) => [s.username, s]));
 
 		for (const [key, entry] of this.#phoneBooks) {

@@ -63,11 +63,10 @@ jobs:
 
       # Coverage runs the whole suite a second time, so it is Linux-only — the
       # Windows leg exists for the line-ending regression, which coverage cannot
-      # see. Non-blocking for now; drop `continue-on-error` once the ratchet in
-      # vite.config.ts has settled.
-      - name: Coverage (informational)
+      # see. Blocking: the thresholds in vite.config.ts are a ratchet, and a PR
+      # that drops below them has removed coverage that used to exist.
+      - name: Coverage
         if: matrix.os == 'ubuntu-latest'
-        continue-on-error: true
         run: npm run test:coverage
 
       # The real cross-platform regression test: after a clean checkout, an install
@@ -113,6 +112,15 @@ jobs:
 
       - name: Build app
         run: npm run build
+
+      # The unit suite never loads what `build` emits, so an adapter-static or
+      # asset-copy regression is invisible to it. This boots the real dist/ in a
+      # browser and fails on a console error or a graph that never draws.
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test the built output
+        run: npm run test:smoke
 
       - name: Build CDN distribution
         run: npm run build:cdn

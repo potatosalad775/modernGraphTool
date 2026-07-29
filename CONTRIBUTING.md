@@ -191,11 +191,17 @@ npm run test
 
 # Run tests in watch mode
 npm run test:unit
+
+# Run all tests and report coverage (HTML report lands in coverage/)
+npm run test:coverage
 ```
 
 - Tests are co-located with source files using `*.spec.ts` naming
 - Write tests for new utility functions and services
 - The test framework is [Vitest](https://vitest.dev/) with Playwright for browser testing
+- Coverage thresholds in `vite.config.ts` are a **ratchet**: raise them when coverage
+  improves, never lower them to make a red run green. Run `npm run test:coverage`
+  before opening a PR that adds code.
 
 ## Pull Request Process
 

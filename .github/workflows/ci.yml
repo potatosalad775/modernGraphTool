@@ -61,6 +61,15 @@ jobs:
         continue-on-error: true
         run: npm run i18n:check
 
+      # Coverage runs the whole suite a second time, so it is Linux-only — the
+      # Windows leg exists for the line-ending regression, which coverage cannot
+      # see. Non-blocking for now; drop `continue-on-error` once the ratchet in
+      # vite.config.ts has settled.
+      - name: Coverage (informational)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: npm run test:coverage
+
       # The real cross-platform regression test: after a clean checkout, an install
       # and a full build of generated files, nothing tracked may have changed. If
       # .gitattributes ever stops pinning LF, this fails on Windows and nowhere else.

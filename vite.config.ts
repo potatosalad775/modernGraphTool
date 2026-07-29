@@ -58,10 +58,10 @@ export default defineConfig({
 			// honest config landed, rounded down. Raise them when coverage improves;
 			// never lower them to make a red run go green.
 			thresholds: {
-				statements: 47,
-				branches: 41,
-				functions: 49,
-				lines: 49
+				statements: 50,
+				branches: 46,
+				functions: 51,
+				lines: 52
 			}
 		},
 		projects: [

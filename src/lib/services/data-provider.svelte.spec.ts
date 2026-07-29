@@ -1,10 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { dataProvider } from './data-provider.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
-import type { FRDataObject, FRDataPoint, ParsedFRData, HpTFData } from '$lib/types/data-types.js';
+import FRParser, { type FRParseResult } from '$lib/utils/fr-parser.js';
+import MetadataParser from '$lib/utils/metadata-parser.js';
+import type {
+	FRDataObject,
+	FRDataPoint,
+	ParsedFRData,
+	HpTFData,
+	PhoneMetadata,
+	SampleData
+} from '$lib/types/data-types.js';
 
 /** Generate synthetic FR data points spanning 20–20kHz at 1/48-octave spacing */
 function makeFRPoints(baseDb = 80, count = 480): FRDataPoint[] {
@@ -1027,6 +1036,383 @@ describe('DataProvider', () => {
 			const updated = frStore.get('t')!;
 			expect(updated.type).toBe('target');
 			expect(updated.channels.AVG).toBeDefined();
+		});
+	});
+
+	// ── insertRawFRData ──────────────────────────────────────────────────
+
+	describe('insertRawFRData', () => {
+		it('adds an entry typed `inserted-<sourceType>` with an `(Inserted)` suffix', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+
+			expect(frStore.size).toBe(1);
+			const entry = [...frStore.entries.values()][0];
+			expect(entry.type).toBe('inserted-phone');
+			expect(entry.identifier).toBe('My Upload');
+			expect(entry.dispSuffix).toBe('(Inserted)');
+		});
+
+		it('processes the raw channels rather than storing them verbatim', async () => {
+			const raw = makeFullChannelData();
+			await dataProvider.insertRawFRData('phone', 'My Upload', raw);
+
+			const entry = [...frStore.entries.values()][0];
+			// Smoothing + normalization run, so the stored curve is not the input array.
+			expect(entry.channels.AVG!.data).not.toBe(raw.AVG.data);
+			expect(entry.channels.L).toBeDefined();
+			expect(entry.channels.R).toBeDefined();
+			expect(entry.channels.AVG).toBeDefined();
+		});
+
+		it('caches the untouched raw channels under `_rawData` for reSmoothAll', async () => {
+			const raw = makeFullChannelData();
+			await dataProvider.insertRawFRData('phone', 'My Upload', raw);
+
+			const entry = [...frStore.entries.values()][0];
+			expect(entry._rawData!.channels.AVG!.data).toEqual(raw.AVG.data);
+		});
+
+		it('honours dispChannel and dispSuffix passed in the input metadata', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(), {
+				dispChannel: ['L', 'R'],
+				dispSuffix: '(v2)'
+			});
+
+			const entry = [...frStore.entries.values()][0];
+			expect(entry.dispChannel).toEqual(['L', 'R']);
+			expect(entry.dispSuffix).toBe('(v2)');
+		});
+
+		it('assigns a solid dash for a non-target source', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			expect([...frStore.entries.values()][0].dash).toBe('1 0');
+		});
+
+		it('is undoable as a single command', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			expect(frStore.size).toBe(1);
+
+			commandHistory.undo(frStore);
+			expect(frStore.size).toBe(0);
+
+			commandHistory.redo(frStore);
+			expect(frStore.size).toBe(1);
+		});
+
+		it('gives each insert its own UUID, so the same name can be inserted twice', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(80));
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(70));
+
+			const uuids = [...frStore.entries.keys()];
+			expect(uuids).toHaveLength(2);
+			expect(uuids[0]).not.toBe(uuids[1]);
+		});
+	});
+
+	// ── toggleFRData ─────────────────────────────────────────────────────
+
+	describe('toggleFRData', () => {
+		const PHONE_META: PhoneMetadata = {
+			brand: 'Brand',
+			name: 'Phone',
+			identifier: 'Brand Phone',
+			files: [{ files: 'Brand Phone', suffix: '' }]
+		};
+
+		beforeEach(() => {
+			vi.spyOn(MetadataParser, 'getFRMetadata').mockReturnValue(PHONE_META);
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData() as FRParseResult
+			);
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('adds the device when toggled on', async () => {
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true);
+
+			expect(frStore.size).toBe(1);
+			expect([...frStore.entries.values()][0].identifier).toBe('Brand Phone');
+		});
+
+		it('removes the device when toggled off', async () => {
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true);
+			await dataProvider.toggleFRData('phone', 'Brand Phone', false);
+
+			expect(frStore.size).toBe(0);
+		});
+
+		it('is a no-op when toggling on something already loaded', async () => {
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true);
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true);
+
+			expect(frStore.size).toBe(1);
+			expect(FRParser.getFRDataFromMetadata).toHaveBeenCalledTimes(1);
+		});
+
+		it('is a no-op when toggling off something that was never loaded', async () => {
+			await dataProvider.toggleFRData('phone', 'Brand Phone', false);
+			expect(frStore.size).toBe(0);
+		});
+
+		it('forwards dispSuffix so variants toggle independently', async () => {
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true, 'Sample 1');
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true, 'Sample 2');
+			expect(frStore.size).toBe(2);
+
+			await dataProvider.toggleFRData('phone', 'Brand Phone', false, 'Sample 1');
+
+			expect(frStore.size).toBe(1);
+			expect([...frStore.entries.values()][0].dispSuffix).toBe('Sample 2');
+		});
+
+		it('leaves the store untouched when the fetch fails', async () => {
+			vi.mocked(FRParser.getFRDataFromMetadata).mockRejectedValueOnce(new Error('404'));
+
+			await dataProvider.toggleFRData('phone', 'Brand Phone', true);
+
+			expect(frStore.size).toBe(0);
+		});
+	});
+
+	// ── updateVariant ────────────────────────────────────────────────────
+
+	describe('updateVariant', () => {
+		const PHONE_META: PhoneMetadata = {
+			brand: 'Brand',
+			name: 'Phone',
+			identifier: 'Brand Phone',
+			files: [
+				{ files: 'Brand Phone', suffix: '' },
+				{ files: 'Brand Phone v2', suffix: 'v2', hptfDescription: 'v2 fit variation' }
+			]
+		};
+
+		function seedPhone(overrides: Partial<FRDataObject> = {}) {
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					identifier: 'Brand Phone',
+					meta: PHONE_META,
+					channels: makeFullChannelData(),
+					dispChannel: ['AVG'],
+					...overrides
+				})
+			);
+		}
+
+		function makeSamples(count: number): SampleData[] {
+			return Array.from({ length: count }, (_, i) => ({
+				L: { data: makeFRPoints(80 + i), metadata: { minFreq: 20, maxFreq: 20000 } },
+				R: { data: makeFRPoints(78 + i), metadata: { minFreq: 20, maxFreq: 20000 } }
+			}));
+		}
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('throws when the UUID has no metadata to resolve the variant against', async () => {
+			frStore.set('p', makeFRDataObject('p'));
+			await expect(dataProvider.updateVariant('p', 'v2')).rejects.toThrow(/No data found/);
+		});
+
+		it('throws for a UUID that is not in the store', async () => {
+			await expect(dataProvider.updateVariant('missing', 'v2')).rejects.toThrow(/No data found/);
+		});
+
+		it('swaps in the new variant channels and suffix', async () => {
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData(90) as FRParseResult
+			);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			const updated = frStore.get('p')!;
+			expect(updated.dispSuffix).toBe('v2');
+			expect(updated.identifier).toBe('Brand Phone');
+			expect(updated.channels.AVG!.data.length).toBeGreaterThan(0);
+		});
+
+		it('caches the new variant raw channels for reSmoothAll', async () => {
+			seedPhone();
+			const raw = makeFullChannelData(90);
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(raw as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!._rawData!.channels.AVG!.data).toEqual(raw.AVG.data);
+		});
+
+		it('keeps the existing dispChannel when the variant still has those channels', async () => {
+			seedPhone({ dispChannel: ['L', 'R'] });
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData(90) as FRParseResult
+			);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.dispChannel).toEqual(['L', 'R']);
+		});
+
+		it('falls back to the first available channel when the variant drops one', async () => {
+			seedPhone({ dispChannel: ['L', 'R'] });
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } }
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.dispChannel).toEqual(['AVG']);
+		});
+
+		it('leaves the entry untouched and surfaces no throw when the fetch fails', async () => {
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockRejectedValue(new Error('404'));
+
+			await expect(dataProvider.updateVariant('p', 'v2')).resolves.toBeUndefined();
+
+			expect(frStore.get('p')!.dispSuffix).toBe('');
+		});
+
+		it('is undoable as one atomic command', async () => {
+			seedPhone();
+			const before = frStore.get('p')!.channels.AVG!.data;
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData(90) as FRParseResult
+			);
+
+			await dataProvider.updateVariant('p', 'v2');
+			expect(frStore.get('p')!.dispSuffix).toBe('v2');
+
+			commandHistory.undo(frStore);
+			const restored = frStore.get('p')!;
+			expect(restored.dispSuffix).toBe('');
+			expect(restored.channels.AVG!.data).toEqual(before);
+		});
+
+		it('attaches sample data and per-sample colors when the variant has samples', async () => {
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_samples: makeSamples(2),
+				_sampleCount: 2
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			const updated = frStore.get('p')!;
+			expect(updated.sampleCount).toBe(2);
+			expect(updated.samples).toHaveLength(2);
+			expect(updated.colors.samples!.L1).toBe(updated.colors.L);
+			expect(updated.colors.samples!.R2).toBe(updated.colors.R);
+		});
+
+		it('clears sample data when the new variant has none', async () => {
+			seedPhone({
+				samples: makeSamples(2),
+				sampleCount: 2,
+				dispSamples: ['L1', 'R1']
+			});
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData(90) as FRParseResult
+			);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			const updated = frStore.get('p')!;
+			expect(updated.samples).toBeUndefined();
+			expect(updated.sampleCount).toBeUndefined();
+			expect(updated.dispSamples).toBeUndefined();
+		});
+
+		it('builds HpTF samples, envelope and the variant description', async () => {
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_hptfSamples: [
+					{
+						label: 'Fit A',
+						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
+						R: { data: makeFRPoints(78), metadata: { minFreq: 20, maxFreq: 20000 } }
+					},
+					{
+						label: 'Fit B',
+						L: { data: makeFRPoints(84), metadata: { minFreq: 20, maxFreq: 20000 } },
+						R: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } }
+					}
+				],
+				_hptfLabels: ['Fit A', 'Fit B'],
+				_hptfFillOnly: true
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			const hptf = frStore.get('p')!.hptf!;
+			expect(hptf.labels).toEqual(['Fit A', 'Fit B']);
+			expect(hptf.samples).toHaveLength(2);
+			expect(hptf.description).toBe('v2 fit variation');
+			// Two samples means a real envelope; upper must sit at or above lower everywhere.
+			expect(hptf.envelope.L.upper.length).toBeGreaterThan(0);
+			expect(hptf.envelope.L.upper.every(([, db], i) => db >= hptf.envelope.L.lower[i][1])).toBe(
+				true
+			);
+		});
+
+		it('hides HpTF sample curves when the variant is fill-only', async () => {
+			seedPhone({ dispHptf: ['sample0_AVG'] });
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_hptfSamples: [
+					{
+						label: 'Fit A',
+						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } }
+					}
+				],
+				_hptfLabels: ['Fit A'],
+				_hptfFillOnly: true
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.dispHptf).toEqual([]);
+		});
+
+		it('keeps the previous HpTF selection when the variant is not fill-only', async () => {
+			seedPhone({ dispHptf: ['sample0_AVG'] });
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_hptfSamples: [
+					{
+						label: 'Fit A',
+						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } }
+					}
+				],
+				_hptfLabels: ['Fit A'],
+				_hptfFillOnly: false
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.dispHptf).toEqual(['sample0_AVG']);
+		});
+
+		it('clears HpTF data when the new variant has none', async () => {
+			seedPhone({ hptf: makeHpTFData(), dispHptf: ['sample0_AVG'], hptfFillVisible: true });
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData(90) as FRParseResult
+			);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			const updated = frStore.get('p')!;
+			expect(updated.hptf).toBeUndefined();
+			expect(updated.dispHptf).toBeUndefined();
+			expect(updated.hptfFillVisible).toBeUndefined();
+			expect(updated.hptfOnly).toBeUndefined();
 		});
 	});
 });

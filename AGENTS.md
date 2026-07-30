@@ -464,6 +464,14 @@ finishes. Things worth knowing before adding to them:
 - The `client` project sets `optimizeDeps.exclude: ['bits-ui']`. Pre-bundling gives bits-ui its own
   copy of the Svelte client runtime, and a component rendered by one instance can't read the other's
   context. Dev and build are unaffected.
+- **The UI language is pinned to `en`** by [src/test-setup.client.ts](src/test-setup.client.ts).
+  Chromium inherits the host's system locale and Paraglide's `preferredLanguage` strategy follows
+  it, so on a non-English machine the whole UI renders translated and every spec that queries an
+  English string matches nothing — then burns its full retry timeout before failing. That was 34
+  failures and 200s of wall time locally against a green CI, which runs en-US. The pin writes
+  `localStorage` directly: `context.locale` doesn't reach the page in browser mode, and importing
+  `$lib/paraglide/runtime.js` from a setup file caches the real module before a spec's `vi.mock`
+  can intercept it (MiscPanel mocks `setLocale`).
 
 ## CI
 

@@ -91,6 +91,10 @@ export default defineConfig({
 						viewport: { width: 1280, height: 800 },
 						instances: [{ browser: 'chromium', headless: true }]
 					},
+					// Pins the UI language. Without it the suite renders in whatever
+					// locale the developer's machine uses and every English-string query
+					// fails on a timeout. See the file for the full story.
+					setupFiles: ['./src/test-setup.client.ts'],
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['src/lib/server/**']
 				}

@@ -51,7 +51,7 @@ class GraphInspection {
 			.attr('class', 'inspection-frequency')
 			.attr('y', this.graphEngine.graphGeometry.yBottom - 15)
 			.attr('text-anchor', 'middle')
-			.attr('font-size', '16px')
+			.attr('font-size', '14px')
 			.attr('font-weight', 'bold')
 			.attr('fill', 'var(--color-base-content)');
 	}
@@ -226,7 +226,7 @@ class GraphInspection {
 		// for proportional fonts (Pretendard).
 		const scratch = this.valueDisplay
 			.append('text')
-			.attr('font-size', '16px')
+			.attr('font-size', '14px')
 			.attr('font-weight', '500')
 			.style('visibility', 'hidden');
 		let maxTextWidth = 0;
@@ -283,7 +283,7 @@ class GraphInspection {
 				.attr('x', 0)
 				.attr('y', -2)
 				.attr('text-anchor', textAnchor)
-				.attr('font-size', '16px')
+				.attr('font-size', '14px')
 				.attr('font-weight', '500')
 				.attr('fill', item.color)
 				.text(item.displayText);

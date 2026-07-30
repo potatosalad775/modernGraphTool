@@ -64,11 +64,15 @@ function addPhone(uuid: string, identifier: string, db: number, extra: Partial<F
 	} as FRDataObject);
 }
 
-/** Drive a mousemove at the x position of `hz`. */
-function hoverAt(hz: number) {
-	const x = engine.xScale(hz);
+/** Drive a mousemove at user-space x. */
+function hoverAtX(x: number) {
 	const rect = host.querySelector('.mouse-tracker') as SVGRectElement;
 	rect.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: 200, bubbles: true }));
+}
+
+/** Drive a mousemove at the x position of `hz`. */
+function hoverAt(hz: number) {
+	hoverAtX(engine.xScale(hz));
 }
 
 function labels(): string[] {
@@ -117,12 +121,18 @@ describe('GraphInspection', () => {
 			expect((host.querySelector('.fr-graph-label') as SVGTextElement).style.display).toBe('none');
 		});
 
-		it('sizes the tracker to the plot area', () => {
+		it('sizes the tracker to the plot area, overhanging both x edges', () => {
 			inspection.setEnabled(true);
 			const rect = host.querySelector('.mouse-tracker') as SVGRectElement;
 
-			expect(rect.getAttribute('x')).toBe(String(GEOMETRY.xStart));
-			expect(rect.getAttribute('width')).toBe(String(GEOMETRY.xEnd - GEOMETRY.xStart));
+			// The overhang is what makes the domain endpoints reachable — a pointer
+			// position is a whole CSS pixel, so a rect ending on `xEnd` can never be
+			// hovered at `xEnd` itself. See the clamping tests below.
+			const x = Number(rect.getAttribute('x'));
+			const width = Number(rect.getAttribute('width'));
+			expect(x).toBeLessThan(GEOMETRY.xStart);
+			expect(x + width).toBeGreaterThan(GEOMETRY.xEnd);
+			expect(GEOMETRY.xStart - x).toBe(x + width - GEOMETRY.xEnd);
 			expect(rect.getAttribute('height')).toBe(String(GEOMETRY.yBottom - GEOMETRY.yTop));
 		});
 
@@ -149,12 +159,32 @@ describe('GraphInspection', () => {
 	describe('frequency readout', () => {
 		beforeEach(() => inspection.setEnabled(true));
 
-		it('formats sub-kHz frequencies in Hz and the rest in kHz', () => {
-			hoverAt(500);
-			expect(host.querySelector('.inspection-frequency')!.textContent).toMatch(/^\d+Hz$/);
+		it('reports whole Hz at every frequency, never abbreviated to kHz', () => {
+			// Value within 2%, not exact: the harness's clientX lands a fraction of a
+			// pixel off, which on a log axis is a constant *relative* frequency error.
+			for (const hz of [500, 5000]) {
+				hoverAt(hz);
+				const text = host.querySelector('.inspection-frequency')!.textContent ?? '';
+				expect(text).toMatch(/^\d+Hz$/);
+				expect(Math.abs(Number(text.replace('Hz', '')) / hz - 1)).toBeLessThan(0.02);
+			}
+		});
 
-			hoverAt(5000);
-			expect(host.querySelector('.inspection-frequency')!.textContent).toBe('5.0kHz');
+		it('reaches both domain endpoints when hovering into the overhang', () => {
+			// Regression: with the tracker flush to the plot the top of the axis read
+			// ~19870 Hz, because one unreachable pixel is a constant ~0.65% of the
+			// frequency on a log scale — 0.13 Hz at 20 Hz, but 130 Hz at 20 kHz.
+			hoverAtX(GEOMETRY.xEnd + 3);
+			expect(host.querySelector('.inspection-frequency')!.textContent).toBe('20000Hz');
+
+			hoverAtX(GEOMETRY.xStart - 3);
+			expect(host.querySelector('.inspection-frequency')!.textContent).toBe('20Hz');
+		});
+
+		it('pins the vertical line to the plot edge inside the overhang', () => {
+			hoverAtX(GEOMETRY.xEnd + 3);
+			const line = host.querySelector('.inspection-line') as SVGLineElement;
+			expect(Number(line.getAttribute('x1'))).toBeCloseTo(GEOMETRY.xEnd, 0);
 		});
 
 		it('centres the readout in the middle of the plot', () => {

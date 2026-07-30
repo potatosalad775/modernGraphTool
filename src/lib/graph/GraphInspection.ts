@@ -3,6 +3,10 @@ import type { FRDataPoint } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 
+/** How far the mouse tracker extends past the plot edges, in viewBox units.
+ *  There are 15 units of margin on each side, so this stays inside the SVG. */
+const TRACKER_OVERHANG = 4;
+
 class GraphInspection {
 	graphEngine: GraphEngine;
 	isEnabled: boolean;
@@ -72,13 +76,19 @@ class GraphInspection {
 		// plot, and `_disableMouseTracking` only ever removes the newest one.
 		this._disableMouseTracking();
 
+		// Overhang past the plot edges, into the margin. A pointer position is an
+		// integer CSS pixel, so a rect ending exactly on `xEnd` leaves the final
+		// pixel column unreachable — and on a log axis that one pixel is a constant
+		// ~0.65% of the *frequency*, i.e. ~130 Hz at the 20 kHz end. Without this the
+		// axis tops out around 19870 Hz. `_onMouseMove` clamps back into the domain.
+		const g = this.graphEngine.graphGeometry;
 		this.mouseTracker = this.graphEngine.svg
 			.append('rect')
 			.attr('class', 'mouse-tracker')
-			.attr('x', this.graphEngine.graphGeometry.xStart)
-			.attr('y', this.graphEngine.graphGeometry.yTop)
-			.attr('width', this.graphEngine.graphGeometry.xEnd - this.graphEngine.graphGeometry.xStart)
-			.attr('height', this.graphEngine.graphGeometry.yBottom - this.graphEngine.graphGeometry.yTop)
+			.attr('x', g.xStart - TRACKER_OVERHANG)
+			.attr('y', g.yTop)
+			.attr('width', g.xEnd - g.xStart + TRACKER_OVERHANG * 2)
+			.attr('height', g.yBottom - g.yTop)
 			.attr('fill', 'none')
 			.attr('pointer-events', 'all')
 			.style('cursor', 'crosshair');
@@ -96,7 +106,11 @@ class GraphInspection {
 	}
 
 	_onMouseMove(event: MouseEvent) {
-		const [mouseX] = d3.pointer(event);
+		const [rawX] = d3.pointer(event);
+		const g = this.graphEngine.graphGeometry;
+		// Clamp the overhang back onto the plot so the readout stays inside the
+		// 20 Hz–20 kHz domain and `_interpolateSPL` never extrapolates.
+		const mouseX = Math.min(Math.max(rawX, g.xStart), g.xEnd);
 		const frequency = this.graphEngine.xScale.invert(mouseX);
 
 		this.verticalLine.attr('x1', mouseX).attr('x2', mouseX);
@@ -109,8 +123,7 @@ class GraphInspection {
 	}
 
 	_updateFrequencyDisplay(frequency: number, mouseX: number) {
-		const frequencyString =
-			frequency >= 1000 ? `${(frequency / 1000).toFixed(1)}kHz` : `${Math.round(frequency)}Hz`;
+		const frequencyString = `${Math.round(frequency)}Hz`;
 
 		const textWidth = frequencyString.length * 10;
 		const halfTextWidth = textWidth / 2;

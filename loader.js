@@ -38,7 +38,8 @@
 	// cdnBase so we bypass jsDelivr's edge cache for this one file. Falls back
 	// to `${cdnBase}/versions.json` if cdnBase isn't a recognizable jsDelivr
 	// gh/ URL (e.g. operator pointed BASE at their own server).
-	const primaryVersionsUrl = cfg.VERSIONS_URL || rawGhVersionsUrl(cdnBase) || `${cdnBase}/versions.json`;
+	const primaryVersionsUrl =
+		cfg.VERSIONS_URL || rawGhVersionsUrl(cdnBase) || `${cdnBase}/versions.json`;
 	// jsDelivr-hosted backup. Only used if the primary fetch fails with a
 	// network/5xx error — a stale version map is better than a blank page.
 	// Skipped when the primary URL already points at jsDelivr.
@@ -48,7 +49,10 @@
 	// --- Resolve version ---
 	let version;
 	try {
-		const versions = await fetchVersions(primaryVersionsUrl, useFallback ? fallbackVersionsUrl : null);
+		const versions = await fetchVersions(
+			primaryVersionsUrl,
+			useFallback ? fallbackVersionsUrl : null
+		);
 
 		if (requestedMajor != null) {
 			version = versions[String(requestedMajor)];
@@ -79,7 +83,10 @@
 	// --- Fetch boot manifest ---
 	let boot;
 	try {
-		const res = await fetchWithTimeout(`${cdnBase}/v${version}/boot.json?t=${Date.now()}`, LOAD_TIMEOUT_MS);
+		const res = await fetchWithTimeout(
+			`${cdnBase}/v${version}/boot.json?t=${Date.now()}`,
+			LOAD_TIMEOUT_MS
+		);
 		if (!res.ok) throw new Error(`boot.json: HTTP ${res.status}`);
 		boot = await res.json();
 	} catch (err) {
@@ -165,9 +172,13 @@
 	window[boot.global_name] = { base: baseDir, assets: boot.assets_base };
 
 	// --- Boot SvelteKit ---
-	const appElement = document.querySelector('#app') || document.querySelector('[style*="display: contents"]');
+	const appElement =
+		document.querySelector('#app') || document.querySelector('[style*="display: contents"]');
 	if (!appElement) {
-		showError('Could not find app mount element.', 'Expected #app or an element with display:contents.');
+		showError(
+			'Could not find app mount element.',
+			'Expected #app or an element with display:contents.'
+		);
 		return;
 	}
 
@@ -175,7 +186,11 @@
 		const [kit, app] = await Promise.all([import(boot.start_url), import(boot.app_url)]);
 		kit.start(app, appElement);
 	} catch (err) {
-		showError('Failed to start the application.', err.message, 'Check the browser console for details.');
+		showError(
+			'Failed to start the application.',
+			err.message,
+			'Check the browser console for details.'
+		);
 	}
 
 	// --- Helpers ---

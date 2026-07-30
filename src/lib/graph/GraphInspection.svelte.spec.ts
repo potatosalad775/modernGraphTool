@@ -239,6 +239,36 @@ describe('GraphInspection', () => {
 			expect(labels()[1]).toBe('Phone A (AVG): 79.0dB');
 		});
 
+		it('carries the variant suffix, so two variants stay distinguishable', () => {
+			addPhone('a', 'Phone A', 80, { dispSuffix: 'Stock' });
+			addPhone('b', 'Phone A', 70, { dispSuffix: 'Modded' });
+
+			hoverAt(1000);
+			expect(labels()).toEqual(['Phone A Stock (AVG): 79.0dB', 'Phone A Modded (AVG): 69.0dB']);
+		});
+
+		it('carries the target adjustment summary', () => {
+			frStore.set('t', {
+				uuid: 't',
+				type: 'target',
+				identifier: 'Harman Target',
+				adjustmentLabel: '(Tilt: -0.8dB/oct)',
+				channels: { AVG: channel(75) },
+				dispChannel: ['AVG'],
+				colors: { AVG: '#888888' },
+				dash: ''
+			} as FRDataObject);
+
+			hoverAt(1000);
+			expect(labels()[0]).toBe('Harman Target (Tilt: -0.8dB/oct): 75.0dB');
+		});
+
+		it('does not leave a double space when the suffix is empty', () => {
+			addPhone('a', 'Phone A', 80, { dispSuffix: '' });
+			hoverAt(1000);
+			expect(labels()[0]).toBe('Phone A (AVG): 79.0dB');
+		});
+
 		it('skips hidden curves', () => {
 			addPhone('a', 'Phone A', 80);
 			addPhone('b', 'Phone B', 70, { hidden: true });

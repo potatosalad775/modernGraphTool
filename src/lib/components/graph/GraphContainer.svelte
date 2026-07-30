@@ -15,6 +15,7 @@
 	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
 	import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
+	import { curveBaseName, curveDisplayName } from '$lib/graph/curve-label.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
@@ -126,12 +127,11 @@
 							: channels.join('+');
 					const desc =
 						obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
-					const suffix = obj.dispSuffix ? ` ${obj.dispSuffix}` : '';
 					const channelPart = channelStr ? ` (${channelStr})` : '';
 					raw.push({
 						uuid: obj.uuid,
 						channel: 'hptf',
-						text: `${obj.identifier}${suffix}${desc}${channelPart}`,
+						text: `${curveBaseName(obj)}${desc}${channelPart}`,
 						color: obj.colors?.AVG || 'var(--color-base-content)',
 						index: counter
 					});
@@ -140,15 +140,10 @@
 				}
 
 				channels.forEach((channel) => {
-					const adj = obj.adjustmentLabel ? ` ${obj.adjustmentLabel}` : '';
-					const text =
-						obj.type !== 'target'
-							? `${obj.identifier} ${obj.dispSuffix} (${channel})`
-							: `${obj.identifier} ${obj.dispSuffix}${adj}`;
 					raw.push({
 						uuid: obj.uuid,
 						channel,
-						text,
+						text: curveDisplayName(obj, channel),
 						color:
 							obj.colors[channel as 'L' | 'R' | 'AVG'] ||
 							obj.colors?.AVG ||

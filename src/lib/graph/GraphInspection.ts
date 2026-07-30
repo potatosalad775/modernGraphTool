@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import type { FRDataPoint } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
+import { curveBaseName, curveDisplayName } from './curve-label.js';
 
 /** How far the mouse tracker extends past the plot edges, in viewBox units.
  *  There are 15 units of margin on each side, so this stays inside the SVG. */
@@ -171,9 +172,7 @@ class GraphInspection {
 
 					const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
 
-					const displayName =
-						obj.type !== 'target' ? `${obj.identifier} (${channel})` : obj.identifier;
-					const displayText = `${displayName}: ${compensatedSPL.toFixed(1)}dB`;
+					const displayText = `${curveDisplayName(obj, channel)}: ${compensatedSPL.toFixed(1)}dB`;
 
 					deviceListData.push({
 						displayText,
@@ -203,7 +202,7 @@ class GraphInspection {
 						if (splValue === null) continue;
 
 						const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
-						const displayText = `  ${obj.identifier} (${key}): ${compensatedSPL.toFixed(1)}dB`;
+						const displayText = `  ${curveBaseName(obj)} (${key}): ${compensatedSPL.toFixed(1)}dB`;
 
 						deviceListData.push({
 							displayText,

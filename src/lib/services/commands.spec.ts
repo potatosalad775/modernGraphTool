@@ -9,8 +9,7 @@ import {
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
-	UpdateSampleDisplayCommand,
-	UpdateHpTFDisplayCommand
+	UpdateSampleDisplayCommand
 } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
@@ -269,112 +268,88 @@ describe('Commands', () => {
 	describe('UpdateSampleDisplayCommand', () => {
 		it('sets dispSamples on execute', () => {
 			store.set('a', makeFRDataObject('a', { dispSamples: [] }));
-			const cmd = new UpdateSampleDisplayCommand('a', ['L1', 'R1', 'L2']);
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample0_L', 'sample0_R', 'sample1_L']);
 			cmd.execute(store);
-			expect(store.data.get('a')!.dispSamples).toEqual(['L1', 'R1', 'L2']);
+			expect(store.data.get('a')!.dispSamples).toEqual(['sample0_L', 'sample0_R', 'sample1_L']);
 		});
 
 		it('restores previous dispSamples on undo', () => {
-			store.set('a', makeFRDataObject('a', { dispSamples: ['L1'] }));
-			const cmd = new UpdateSampleDisplayCommand('a', ['L1', 'R1', 'L2']);
+			store.set('a', makeFRDataObject('a', { dispSamples: ['sample0_L'] }));
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample0_L', 'sample0_R']);
 			cmd.execute(store);
 			cmd.undo(store);
-			expect(store.data.get('a')!.dispSamples).toEqual(['L1']);
+			expect(store.data.get('a')!.dispSamples).toEqual(['sample0_L']);
 		});
 
 		it('defaults to empty array when no previous dispSamples', () => {
 			store.set('a', makeFRDataObject('a'));
-			const cmd = new UpdateSampleDisplayCommand('a', ['L1']);
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample0_L']);
 			cmd.execute(store);
 			cmd.undo(store);
 			expect(store.data.get('a')!.dispSamples).toEqual([]);
 		});
 
 		it('does nothing for non-existent uuid', () => {
-			const cmd = new UpdateSampleDisplayCommand('nonexistent', ['L1']);
+			const cmd = new UpdateSampleDisplayCommand('nonexistent', ['sample0_L']);
 			cmd.execute(store);
 			expect(store.data.size).toBe(0);
 		});
 
-		it('can set to empty array (hide all samples)', () => {
-			store.set('a', makeFRDataObject('a', { dispSamples: ['L1', 'R1'] }));
+		it('can set to empty array (hide all runs)', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: ['sample0_L', 'sample0_R'] }));
 			const cmd = new UpdateSampleDisplayCommand('a', []);
 			cmd.execute(store);
 			expect(store.data.get('a')!.dispSamples).toEqual([]);
 		});
-	});
 
-	describe('UpdateHpTFDisplayCommand', () => {
-		it('sets dispHptf, hptfFillVisible, and hptfAvgVisible on execute', () => {
-			store.set(
-				'a',
-				makeFRDataObject('a', { dispHptf: [], hptfFillVisible: false, hptfAvgVisible: false })
-			);
-			const cmd = new UpdateHpTFDisplayCommand('a', ['sample0_AVG', 'sample1_AVG'], true, true);
+		// The fill and the average were a separate command until the two sample
+		// concepts were unified. Folding them in is what makes undo of a single UI
+		// interaction restore the whole display state at once.
+
+		it('sets the fill and average toggles alongside the run picks', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: [], showFill: false, showAvg: false }));
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample0_AVG'], true, true);
 			cmd.execute(store);
-			expect(store.data.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
-			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
-			expect(store.data.get('a')!.hptfAvgVisible).toBe(true);
+			expect(store.data.get('a')!.dispSamples).toEqual(['sample0_AVG']);
+			expect(store.data.get('a')!.showFill).toBe(true);
+			expect(store.data.get('a')!.showAvg).toBe(true);
 		});
 
-		it('restores previous state on undo', () => {
+		it('restores all three fields on undo', () => {
 			store.set(
 				'a',
 				makeFRDataObject('a', {
-					dispHptf: ['sample0_AVG'],
-					hptfFillVisible: true,
-					hptfAvgVisible: true
+					dispSamples: ['sample0_AVG'],
+					showFill: true,
+					showAvg: true
 				})
 			);
-			const cmd = new UpdateHpTFDisplayCommand('a', ['sample0_AVG', 'sample1_AVG'], false, false);
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample1_AVG'], false, false);
 			cmd.execute(store);
 			cmd.undo(store);
-			expect(store.data.get('a')!.dispHptf).toEqual(['sample0_AVG']);
-			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
-			expect(store.data.get('a')!.hptfAvgVisible).toBe(true);
+			expect(store.data.get('a')!.dispSamples).toEqual(['sample0_AVG']);
+			expect(store.data.get('a')!.showFill).toBe(true);
+			expect(store.data.get('a')!.showAvg).toBe(true);
 		});
 
-		it('defaults to empty array and false when no previous HpTF state', () => {
+		it('undoes to fill off and average on when the item carried no toggles', () => {
+			// A plain curve has neither field set, and `showAvg` absent must mean
+			// "drawn" — otherwise undo would make an ordinary phone disappear.
 			store.set('a', makeFRDataObject('a'));
-			const cmd = new UpdateHpTFDisplayCommand('a', ['sample0_AVG'], true, true);
+			const cmd = new UpdateSampleDisplayCommand('a', ['sample0_AVG'], true, false);
 			cmd.execute(store);
 			cmd.undo(store);
-			expect(store.data.get('a')!.dispHptf).toEqual([]);
-			expect(store.data.get('a')!.hptfFillVisible).toBe(false);
-			expect(store.data.get('a')!.hptfAvgVisible).toBe(false);
+			expect(store.data.get('a')!.showFill).toBe(false);
+			expect(store.data.get('a')!.showAvg).toBe(true);
 		});
 
-		it('does nothing for non-existent uuid', () => {
-			const cmd = new UpdateHpTFDisplayCommand('nonexistent', ['sample0_AVG'], true, false);
+		it('can hide every run curve while keeping the fill visible', () => {
+			store.set('a', makeFRDataObject('a', { dispSamples: ['sample0_AVG'], showFill: true }));
+			const cmd = new UpdateSampleDisplayCommand('a', [], true, false);
 			cmd.execute(store);
-			expect(store.data.size).toBe(0);
-		});
-
-		it('can hide all sample curves (empty dispHptf) while keeping fill visible', () => {
-			store.set(
-				'a',
-				makeFRDataObject('a', {
-					dispHptf: ['sample0_AVG'],
-					hptfFillVisible: true,
-					hptfAvgVisible: false
-				})
-			);
-			const cmd = new UpdateHpTFDisplayCommand('a', [], true, false);
-			cmd.execute(store);
-			expect(store.data.get('a')!.dispHptf).toEqual([]);
-			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
-		});
-
-		it('can toggle average visibility independently', () => {
-			store.set(
-				'a',
-				makeFRDataObject('a', { dispHptf: [], hptfFillVisible: true, hptfAvgVisible: false })
-			);
-			const cmd = new UpdateHpTFDisplayCommand('a', [], true, true);
-			cmd.execute(store);
-			expect(store.data.get('a')!.hptfAvgVisible).toBe(true);
-			expect(store.data.get('a')!.hptfFillVisible).toBe(true);
-			expect(store.data.get('a')!.dispHptf).toEqual([]);
+			expect(store.data.get('a')!.dispSamples).toEqual([]);
+			expect(store.data.get('a')!.showFill).toBe(true);
+			expect(store.data.get('a')!.showAvg).toBe(false);
 		});
 	});
 });

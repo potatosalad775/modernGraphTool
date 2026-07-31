@@ -186,29 +186,34 @@ describe('URLProvider', () => {
 			expect(JSON.parse(Base62.decode(params.get('state')!)).yOffsets).toEqual({ 'Phone a': 3 });
 		});
 
-		it('records sample display selections', () => {
-			frStore.set('a', makeEntry('a', { dispSamples: ['L1', 'R1'] }));
-
-			const params = new URLSearchParams(new URL(urlProvider.getCurrentURL()).search);
-			expect(JSON.parse(Base62.decode(params.get('state')!)).sampleDisplay).toEqual({
-				'Phone a': ['L1', 'R1']
-			});
-		});
-
-		it('records HpTF display state for any entry that has HpTF data', () => {
+		it('records the whole sample-display state for any entry with a sample set', () => {
 			frStore.set(
 				'a',
 				makeEntry('a', {
-					hptf: { samples: [], envelope: {}, labels: [], fillOnly: false } as never,
-					dispHptf: ['sample0_AVG'],
-					hptfFillVisible: true
+					samples: [{}, {}],
+					dispSamples: ['sample0_L', 'sample0_R'],
+					showFill: true,
+					showAvg: false
 				})
 			);
 
 			const params = new URLSearchParams(new URL(urlProvider.getCurrentURL()).search);
-			expect(JSON.parse(Base62.decode(params.get('state')!)).hptfDisplay).toEqual({
-				'Phone a': { keys: ['sample0_AVG'], fill: true }
+			expect(JSON.parse(Base62.decode(params.get('state')!)).sampleDisplay).toEqual({
+				'Phone a': { keys: ['sample0_L', 'sample0_R'], fill: true, avg: false }
 			});
+		});
+
+		it('never writes the legacy hptfDisplay key', () => {
+			frStore.set('a', makeEntry('a', { samples: [{}], showFill: true }));
+
+			const params = new URLSearchParams(new URL(urlProvider.getCurrentURL()).search);
+			expect(JSON.parse(Base62.decode(params.get('state')!)).hptfDisplay).toBeUndefined();
+		});
+
+		it('skips entries with no sample set', () => {
+			frStore.set('a', makeEntry('a'));
+
+			expect(urlProvider.getCurrentURL()).not.toContain('state=');
 		});
 
 		it('omits EQ state — that is `getCurrentURLWithEQ`', () => {
@@ -412,30 +417,45 @@ describe('URLProvider', () => {
 		});
 
 		it('restores sample display only for entries that actually have samples', () => {
-			initWith({ sampleDisplay: { 'Phone a': ['L1'], 'Phone b': ['L1'] } });
-			frStore.set('a', makeEntry('a', { samples: [{}], sampleCount: 1 }));
+			initWith({
+				sampleDisplay: {
+					'Phone a': { keys: ['sample0_L'], fill: true, avg: false },
+					'Phone b': { keys: ['sample0_L'], fill: true, avg: false }
+				}
+			});
+			frStore.set('a', makeEntry('a', { samples: [{}] }));
 			frStore.set('b', makeEntry('b'));
 
 			urlProvider.applyStateFromURL();
 
-			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L']);
+			expect(frStore.get('a')!.showFill).toBe(true);
+			expect(frStore.get('a')!.showAvg).toBe(false);
 			expect(frStore.get('b')!.dispSamples).toBeUndefined();
 		});
 
-		it('restores HpTF display only for entries that actually have HpTF data', () => {
-			initWith({ hptfDisplay: { 'Phone a': { keys: ['sample0_AVG'], fill: false } } });
-			frStore.set(
-				'a',
-				makeEntry('a', {
-					hptf: { samples: [], envelope: {}, labels: [], fillOnly: false } as never,
-					hptfFillVisible: true
-				})
-			);
+		// Links minted before multi-sample and HpTF were unified. Neither shape
+		// fails loudly when its read path is dropped — the page just comes up with
+		// the wrong curves — so both get an end-to-end restore case here.
+
+		it('restores a legacy flat sampleDisplay array', () => {
+			initWith({ sampleDisplay: { 'Phone a': ['L1', 'R2'] } });
+			frStore.set('a', makeEntry('a', { samples: [{}, {}] }));
 
 			urlProvider.applyStateFromURL();
 
-			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
-			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L', 'sample1_R']);
+			expect(frStore.get('a')!.showAvg).toBe(true);
+		});
+
+		it('restores a legacy hptfDisplay entry onto the sample fields', () => {
+			initWith({ hptfDisplay: { 'Phone a': { keys: ['sample0_AVG'], fill: true } } });
+			frStore.set('a', makeEntry('a', { samples: [{}] }));
+
+			urlProvider.applyStateFromURL();
+
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_AVG']);
+			expect(frStore.get('a')!.showFill).toBe(true);
 		});
 
 		it('restores the EQ stack and switches the equalizer on', () => {

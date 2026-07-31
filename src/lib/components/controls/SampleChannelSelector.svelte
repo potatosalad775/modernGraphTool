@@ -49,24 +49,38 @@
 
 	// ── Sample-set state ────────────────────────────────────────────────────────
 
-	let samples = $derived(item.samples ?? []);
-	let hasSamples = $derived(samples.length > 0);
-	let dispSamples = $derived(item.dispSamples ?? []);
-	let showFill = $derived(item.showFill ?? false);
+	// Event handlers read straight off `item` rather than through `$derived`
+	// aliases: a handler can fire after the effect a derived belongs to is torn
+	// down, which Svelte warns about (`derived_inert`) and answers with a
+	// possibly stale value.
+	const runsOf = () => item.samples ?? [];
+	const dispSamplesOf = () => item.dispSamples ?? [];
+	const showFillOf = () => item.showFill ?? false;
+	const showAvgOf = () => item.showAvg ?? true;
+
+	/**
+	 * One row per run that loaded something, with a checkbox per channel it has.
+	 * Rows carry their own checked state so the template needs no `{@const}` or
+	 * per-checkbox lookup inside the loop.
+	 */
+	let sampleRows = $derived.by(() => {
+		const disp = item.dispSamples ?? [];
+		return (item.samples ?? [])
+			.map((run, index) => ({
+				index,
+				label: run.label ?? `${m.selection_list_samples_run()} ${index + 1}`,
+				boxes: (['L', 'R', 'AVG'] as const)
+					.filter((channel) => run[channel])
+					.map((channel) => {
+						const key = `sample${index}_${channel}` as SampleDisplayKey;
+						return { channel, key, checked: disp.includes(key) };
+					})
+			}))
+			.filter((row) => row.boxes.length > 0);
+	});
+
 	let showAvg = $derived(item.showAvg ?? true);
-	/** A single run has no spread to fill, so the toggle would do nothing. */
-	let canFill = $derived(samples.length > 1);
-
-	/** Which channels a given run actually loaded. */
-	function runChannels(index: number): ('L' | 'R' | 'AVG')[] {
-		const sample = samples[index];
-		if (!sample) return [];
-		return (['L', 'R', 'AVG'] as const).filter((ch) => sample[ch]);
-	}
-
-	function runLabel(index: number): string {
-		return samples[index]?.label ?? `${m.selection_list_samples_run()} ${index + 1}`;
-	}
+	let showFill = $derived(item.showFill ?? false);
 
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -83,7 +97,7 @@
 	 * UI just never produced them.
 	 */
 	function handleSampleToggle(key: SampleDisplayKey): void {
-		const current = [...dispSamples];
+		const current = [...dispSamplesOf()];
 		const idx = current.indexOf(key);
 		if (idx >= 0) current.splice(idx, 1);
 		else current.push(key);
@@ -92,9 +106,9 @@
 
 	function keysFor(channels: ('L' | 'R' | 'AVG')[]): SampleDisplayKey[] {
 		const keys: SampleDisplayKey[] = [];
-		samples.forEach((_, i) => {
+		runsOf().forEach((run, i) => {
 			for (const ch of channels) {
-				if (samples[i]?.[ch]) keys.push(`sample${i}_${ch}` as SampleDisplayKey);
+				if (run[ch]) keys.push(`sample${i}_${ch}` as SampleDisplayKey);
 			}
 		});
 		return keys;
@@ -112,16 +126,12 @@
 		dataProvider.updateSampleDisplay(uuid, next);
 	}
 
-	function isSampleChecked(key: SampleDisplayKey): boolean {
-		return dispSamples.includes(key);
-	}
-
 	function handleFillToggle(): void {
-		dataProvider.updateSampleDisplay(uuid, [...dispSamples], !showFill, showAvg);
+		dataProvider.updateSampleDisplay(uuid, [...dispSamplesOf()], !showFillOf(), showAvgOf());
 	}
 
 	function handleAvgToggle(): void {
-		dataProvider.updateSampleDisplay(uuid, [...dispSamples], showFill, !showAvg);
+		dataProvider.updateSampleDisplay(uuid, [...dispSamplesOf()], showFillOf(), !showAvgOf());
 	}
 </script>
 
@@ -167,10 +177,10 @@
 			</fieldset>
 
 			<!-- Section 2: Sample set — one section for every kind of set -->
-			{#if hasSamples}
+			{#if sampleRows.length > 0}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
 					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
-						{m.selection_list_samples_header()} ({samples.length})
+						{m.selection_list_samples_header()} ({sampleRows.length})
 					</p>
 
 					<!-- Averaged curve -->
@@ -187,8 +197,8 @@
 						{m.selection_list_samples_avg_toggle()}
 					</label>
 
-					<!-- Deviation fill -->
-					{#if canFill}
+					<!-- Deviation fill. A single run has no spread, so the toggle is hidden. -->
+					{#if sampleRows.length > 1}
 						<label
 							class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
 								 hover:bg-base-300"
@@ -205,31 +215,27 @@
 
 					<!-- One row per run, with a checkbox per channel that run loaded -->
 					<div class="mt-1 flex flex-col gap-0.5">
-						{#each samples as _sample, i (i)}
-							{@const channels = runChannels(i)}
-							{#if channels.length > 0}
-								<div class="flex items-center justify-between gap-2 px-1.5">
-									<span class="truncate text-xs text-base-content/80">{runLabel(i)}</span>
-									<div class="flex shrink-0 gap-1.5">
-										{#each channels as ch (ch)}
-											{@const key = `sample${i}_${ch}` as SampleDisplayKey}
-											<label
-												class="flex cursor-pointer items-center gap-0.5 rounded px-1 text-xs
-													hover:bg-base-300"
-											>
-												<input
-													type="checkbox"
-													aria-label="{runLabel(i)} {ch}"
-													checked={isSampleChecked(key)}
-													onchange={() => handleSampleToggle(key)}
-													class="accent-accent"
-												/>
-												{ch}
-											</label>
-										{/each}
-									</div>
+						{#each sampleRows as row (row.index)}
+							<div class="flex items-center justify-between gap-2 px-1.5">
+								<span class="truncate text-xs text-base-content/80">{row.label}</span>
+								<div class="flex shrink-0 gap-1.5">
+									{#each row.boxes as box (box.key)}
+										<label
+											class="flex cursor-pointer items-center gap-0.5 rounded px-1 text-xs
+												hover:bg-base-300"
+										>
+											<input
+												type="checkbox"
+												aria-label="{row.label} {box.channel}"
+												checked={box.checked}
+												onchange={() => handleSampleToggle(box.key)}
+												class="accent-accent"
+											/>
+											{box.channel}
+										</label>
+									{/each}
 								</div>
-							{/if}
+							</div>
 						{/each}
 					</div>
 

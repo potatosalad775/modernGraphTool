@@ -1,6 +1,6 @@
 /**
  * `GraphEngine` drives the D3 side of the graph: scales, curve drawing, the
- * baseline compensation applied to every path, and the HpTF envelope fill.
+ * baseline compensation applied to every path, and the sample-set envelope fill.
  *
  * Runs in the `client` project against a real `<svg>` attached to the document,
  * initialized the same way `GraphContainer` does it — `init(svgEl)` with a bound
@@ -12,7 +12,7 @@ import { graphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import type { FRDataObject, FRDataPoint, HpTFEnvelope } from '$lib/types/data-types.js';
+import type { FRDataObject, FRDataPoint, SampleEnvelope } from '$lib/types/data-types.js';
 
 let svgEl: SVGSVGElement;
 
@@ -56,7 +56,7 @@ function makeTarget(uuid: string, overrides: Partial<FRDataObject> = {}): FRData
 	};
 }
 
-function envelope(upperDb: number, lowerDb: number): HpTFEnvelope {
+function envelope(upperDb: number, lowerDb: number): SampleEnvelope {
 	return { upper: flat(upperDb), lower: flat(lowerDb) };
 }
 
@@ -210,34 +210,46 @@ describe('GraphEngine', () => {
 		});
 	});
 
-	describe('multi-sample traces', () => {
-		it('draws a thin trace per selected sample key', () => {
-			frStore.set(
-				'p',
-				makePhone('p', {
-					samples: [
-						{ L: channel(81), R: channel(79) },
-						{ L: channel(82), R: channel(80) }
-					],
-					sampleCount: 2,
-					dispSamples: ['L1', 'R2']
-				})
-			);
+	// ── Sample sets ──────────────────────────────────────────────────────────
+	//
+	// One draw path, three independent layers: envelope fill, per-run curves,
+	// averaged main channels. Before unification these were three code paths
+	// gated on which of two mutually-exclusive schemas the item came from.
+
+	describe('sample set rendering', () => {
+		function samplePhone(overrides: Partial<FRDataObject> = {}): FRDataObject {
+			return makePhone('p', {
+				samples: [
+					{ label: 'Fit A', L: channel(81), R: channel(79), AVG: channel(80) },
+					{ label: 'Fit B', L: channel(83), R: channel(81), AVG: channel(82) }
+				],
+				envelope: {
+					L: envelope(83, 81),
+					R: envelope(81, 79),
+					AVG: envelope(82, 80)
+				},
+				showFill: true,
+				showAvg: true,
+				...overrides
+			});
+		}
+
+		it('draws a thin trace per selected run key', () => {
+			frStore.set('p', samplePhone({ showFill: false, dispSamples: ['sample0_L', 'sample1_R'] }));
 			graphEngine.drawFRCurve('p');
 
-			const samples = paths('[sample="true"]');
-			expect(samples).toHaveLength(2);
-			expect(samples.map((p) => p.getAttribute('channel'))).toEqual(['L1', 'R2']);
-			expect(samples[0].getAttribute('opacity')).toBe('0.35');
+			const runs = paths('[sample="true"]');
+			expect(runs).toHaveLength(2);
+			expect(runs.map((p) => p.getAttribute('channel'))).toEqual(['sample0_L', 'sample1_R']);
+			expect(runs[0].getAttribute('opacity')).toBe('0.5');
 		});
 
-		it('skips a sample key whose slot has no data on that side', () => {
+		it('skips a run key whose slot has no data on that channel', () => {
 			frStore.set(
 				'p',
-				makePhone('p', {
+				samplePhone({
 					samples: [{ L: channel(81) }],
-					sampleCount: 1,
-					dispSamples: ['L1', 'R1']
+					dispSamples: ['sample0_L', 'sample0_R']
 				})
 			);
 			graphEngine.drawFRCurve('p');
@@ -245,94 +257,71 @@ describe('GraphEngine', () => {
 			expect(paths('[sample="true"]')).toHaveLength(1);
 		});
 
-		it('ignores an unparseable sample key', () => {
-			frStore.set(
-				'p',
-				makePhone('p', {
-					samples: [{ L: channel(81) }],
-					sampleCount: 1,
-					dispSamples: ['nonsense' as never]
-				})
-			);
+		it('ignores a run key pointing past the end of the set, or unparseable', () => {
+			frStore.set('p', samplePhone({ dispSamples: ['sample9_L', 'nonsense' as never] }));
 			graphEngine.drawFRCurve('p');
 
 			expect(paths('[sample="true"]')).toHaveLength(0);
 		});
-	});
-
-	describe('HpTF rendering', () => {
-		function hptfPhone(overrides: Partial<FRDataObject> = {}): FRDataObject {
-			return makePhone('p', {
-				hptf: {
-					samples: [
-						{ label: 'Fit A', L: channel(81), R: channel(79) },
-						{ label: 'Fit B', L: channel(83), R: channel(81) }
-					],
-					envelope: {
-						L: envelope(83, 81),
-						R: envelope(81, 79),
-						AVG: envelope(82, 80)
-					},
-					labels: ['Fit A', 'Fit B'],
-					fillOnly: false
-				},
-				hptfFillVisible: true,
-				...overrides
-			});
-		}
 
 		it('draws the envelope as one closed filled path behind the curves', () => {
-			frStore.set('p', hptfPhone());
+			frStore.set('p', samplePhone());
 			graphEngine.drawFRCurve('p');
 
-			const fill = paths('.fr-graph-hptf-fill');
+			const fill = paths('.fr-graph-sample-fill');
 			expect(fill).toHaveLength(1);
 			expect(fill[0].getAttribute('d')!.endsWith('Z')).toBe(true);
 			// Inserted as first child so it sits under the stroked curves.
 			expect(fill[0].previousElementSibling).toBeNull();
 		});
 
-		it('omits the fill when hptfFillVisible is off', () => {
-			frStore.set('p', hptfPhone({ hptfFillVisible: false }));
+		it('omits the fill when showFill is off', () => {
+			frStore.set('p', samplePhone({ showFill: false }));
 			graphEngine.drawFRCurve('p');
-			expect(paths('.fr-graph-hptf-fill')).toHaveLength(0);
+			expect(paths('.fr-graph-sample-fill')).toHaveLength(0);
 		});
 
-		it('draws one sample curve per selected HpTF key', () => {
-			frStore.set('p', hptfPhone({ dispHptf: ['sample0_L', 'sample1_R'] }));
+		it('draws both the averaged line and the fill for display ["avg","fill"]', () => {
+			// The configuration that was inexpressible before: a mean curve with a
+			// variance band around it.
+			frStore.set('p', samplePhone({ showAvg: true, showFill: true }));
 			graphEngine.drawFRCurve('p');
 
-			const drawn = paths('[hptf-sample="true"]');
-			expect(drawn).toHaveLength(2);
-			expect(drawn.map((p) => p.getAttribute('channel'))).toEqual(['sample0_L', 'sample1_R']);
-		});
-
-		it('skips an HpTF key pointing at a missing sample or channel', () => {
-			frStore.set('p', hptfPhone({ dispHptf: ['sample9_L', 'sample0_AVG', 'garbage' as never] }));
-			graphEngine.drawFRCurve('p');
-			expect(paths('[hptf-sample="true"]')).toHaveLength(0);
-		});
-
-		it('draws the pooled mean instead of the main channels when hptfOnly', () => {
-			frStore.set('p', hptfPhone({ hptfOnly: true, hptfAvgVisible: true }));
-			graphEngine.drawFRCurve('p');
-
-			expect(paths('[hptf-avg="true"]')).toHaveLength(1);
-			// No plain channel curve — hptfOnly suppresses it.
+			expect(paths('.fr-graph-sample-fill')).toHaveLength(1);
 			expect(
 				paths('.fr-graph-phone-curve').filter(
-					(p) => !p.hasAttribute('hptf-avg') && !p.classList.contains('fr-graph-hptf-fill')
+					(p) => !p.classList.contains('fr-graph-sample-fill') && !p.hasAttribute('sample')
+				)
+			).toHaveLength(1);
+		});
+
+		it('draws no main curve when showAvg is off', () => {
+			frStore.set('p', samplePhone({ showAvg: false }));
+			graphEngine.drawFRCurve('p');
+
+			expect(
+				paths('.fr-graph-phone-curve').filter(
+					(p) => !p.classList.contains('fr-graph-sample-fill') && !p.hasAttribute('sample')
 				)
 			).toHaveLength(0);
+			// The fill is still there — that is the whole point of the mode.
+			expect(paths('.fr-graph-sample-fill')).toHaveLength(1);
+		});
+
+		it('draws the main curve for an item with no sample set at all', () => {
+			// `showAvg` absent must mean "drawn", or every ordinary phone vanishes.
+			frStore.set('p', makePhone('p'));
+			graphEngine.drawFRCurve('p');
+			expect(paths('.fr-graph-phone-curve')).toHaveLength(1);
 		});
 	});
 
 	// ── Envelope maths ───────────────────────────────────────────────────────
 
-	describe('_combineHpTFEnvelopes', () => {
+	describe('_combineEnvelopes', () => {
 		it('returns an empty envelope when nothing is usable', () => {
-			expect(graphEngine._combineHpTFEnvelopes([])).toEqual({ upper: [], lower: [] });
-			expect(graphEngine._combineHpTFEnvelopes([{ upper: [], lower: [] }])).toEqual({
+			expect(graphEngine._combineEnvelopes([])).toEqual({ upper: [], lower: [] });
+			expect(graphEngine._combineEnvelopes([{ upper: [], lower: [] }])).toEqual({
 				upper: [],
 				lower: []
 			});
@@ -340,57 +329,52 @@ describe('GraphEngine', () => {
 
 		it('passes a single envelope through untouched', () => {
 			const only = envelope(6, -6);
-			expect(graphEngine._combineHpTFEnvelopes([only])).toBe(only);
+			expect(graphEngine._combineEnvelopes([only])).toBe(only);
 		});
 
 		it('takes the widest spread at each index', () => {
-			const combined = graphEngine._combineHpTFEnvelopes([envelope(4, -2), envelope(2, -6)]);
+			const combined = graphEngine._combineEnvelopes([envelope(4, -2), envelope(2, -6)]);
 			expect(combined.upper[0][1]).toBe(4);
 			expect(combined.lower[0][1]).toBe(-6);
 		});
 	});
 
-	describe('_buildHpTFEnvelopePath channel selection', () => {
+	describe('_buildEnvelopePath channel selection', () => {
 		function withEnvelopes(
 			dispChannel: ('L' | 'R' | 'AVG')[],
-			env: Partial<Record<'L' | 'R' | 'AVG', HpTFEnvelope>>
+			env: Partial<Record<'L' | 'R' | 'AVG', SampleEnvelope>>
 		): FRDataObject {
 			return makePhone('p', {
 				dispChannel,
-				hptf: {
-					samples: [],
-					envelope: {
-						L: { upper: [], lower: [] },
-						R: { upper: [], lower: [] },
-						AVG: { upper: [], lower: [] },
-						...env
-					},
-					labels: [],
-					fillOnly: false
+				envelope: {
+					L: { upper: [], lower: [] },
+					R: { upper: [], lower: [] },
+					AVG: { upper: [], lower: [] },
+					...env
 				}
 			});
 		}
 
-		it('returns null without HpTF data', () => {
-			expect(graphEngine._buildHpTFEnvelopePath(makePhone('p'))).toBeNull();
+		it('returns null without an envelope', () => {
+			expect(graphEngine._buildEnvelopePath(makePhone('p'))).toBeNull();
 		});
 
 		it('returns null when the picked envelope is empty', () => {
-			expect(graphEngine._buildHpTFEnvelopePath(withEnvelopes(['AVG'], {}))).toBeNull();
+			expect(graphEngine._buildEnvelopePath(withEnvelopes(['AVG'], {}))).toBeNull();
 		});
 
 		it('uses only L when L is the sole displayed channel', () => {
 			const obj = withEnvelopes(['L'], { L: envelope(3, -3), R: envelope(9, -9) });
-			const d = graphEngine._buildHpTFEnvelopePath(obj)!;
+			const d = graphEngine._buildEnvelopePath(obj)!;
 			// Upper edge is L's +3 dB, not R's +9 dB.
 			expect(coords(d)[0][1]).toBeCloseTo(graphEngine.getScales().yScale(3), 2);
 		});
 
 		it('combines L and R for an AVG display rather than using envelope.AVG', () => {
-			const combined = graphEngine._buildHpTFEnvelopePath(
+			const combined = graphEngine._buildEnvelopePath(
 				withEnvelopes(['AVG'], { L: envelope(3, -1), R: envelope(1, -3), AVG: envelope(2, -2) })
 			)!;
-			const avgOnly = graphEngine._buildHpTFEnvelopePath(
+			const avgOnly = graphEngine._buildEnvelopePath(
 				withEnvelopes(['AVG'], { AVG: envelope(2, -2) })
 			)!;
 			// The true spread (+3/-3) is wider than envelope.AVG (+2/-2), so the
@@ -400,9 +384,7 @@ describe('GraphEngine', () => {
 		});
 
 		it('falls back to envelope.AVG when neither L nor R has data', () => {
-			const d = graphEngine._buildHpTFEnvelopePath(
-				withEnvelopes(['AVG'], { AVG: envelope(2, -2) })
-			);
+			const d = graphEngine._buildEnvelopePath(withEnvelopes(['AVG'], { AVG: envelope(2, -2) }));
 			expect(d).toMatch(/^M/);
 			expect(d!.endsWith('Z')).toBe(true);
 		});

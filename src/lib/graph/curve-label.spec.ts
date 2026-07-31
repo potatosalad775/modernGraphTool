@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { curveBaseName, curveDisplayName } from './curve-label.js';
+import { curveBaseName, curveDisplayName, sampleKeyParts } from './curve-label.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 
 /**
@@ -68,5 +68,48 @@ describe('curveDisplayName', () => {
 		expect(curveDisplayName(obj({ adjustmentLabel: '(Bass: +6.0dB)' }), 'AVG')).toBe(
 			'Phone A (AVG)'
 		);
+	});
+
+	// Before the sample concepts were unified, every run of a set rendered as the
+	// same string, so the graph could not say which measurement a curve was.
+
+	it('puts the run label ahead of the channel', () => {
+		expect(curveDisplayName(obj({ dispSuffix: 'Leather Pad' }), 'R', 'Center')).toBe(
+			'Phone A Leather Pad (Center, R)'
+		);
+	});
+
+	it('still ignores a run label on a target', () => {
+		expect(curveDisplayName(obj({ type: 'target', identifier: 'Harman' }), 'AVG', 'Center')).toBe(
+			'Harman'
+		);
+	});
+});
+
+describe('sampleKeyParts', () => {
+	const withRuns = () =>
+		obj({ samples: [{ label: 'Center' }, { label: 'Front' }, {}] } as Partial<FRDataObject>);
+
+	it('resolves the label and channel of a run key', () => {
+		expect(sampleKeyParts(withRuns(), 'sample1_R')).toEqual({
+			label: 'Front',
+			channel: 'R',
+			index: 1
+		});
+	});
+
+	it('falls back to a 1-based ordinal for an unlabelled run', () => {
+		// Keys are 0-based internally; "Sample 3" is how the operator numbered it.
+		expect(sampleKeyParts(withRuns(), 'sample2_AVG')!.label).toBe('Sample 3');
+	});
+
+	it('falls back to the ordinal for an index past the end of the set', () => {
+		expect(sampleKeyParts(withRuns(), 'sample9_L')!.label).toBe('Sample 10');
+	});
+
+	it('returns null for a key it cannot parse', () => {
+		expect(sampleKeyParts(withRuns(), 'L1')).toBeNull();
+		expect(sampleKeyParts(withRuns(), 'garbage')).toBeNull();
+		expect(sampleKeyParts(withRuns(), 'sample0_X')).toBeNull();
 	});
 });

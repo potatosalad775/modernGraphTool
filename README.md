@@ -15,7 +15,7 @@ Also available in Squiglink: https://silicagel.squig.link
 
 ## Features
 
-- **Frequency Response Graph** — Interactive D3.js SVG visualization with HpTF overlay support
+- **Frequency Response Graph** — Interactive D3.js SVG visualization with sample-set deviation overlays
 - **Parametric Equalizer** — Full PEQ editor with auto EQ generation and audio preview
 - **Target Customizer** — Custom HRTF target curves with tilt, bass, and treble adjustment
 - **squig.link Integration** — Cross-site device search, shop links, and sponsor content

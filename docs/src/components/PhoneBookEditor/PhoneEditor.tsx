@@ -4,9 +4,8 @@ import { usePhoneBookEditor } from './PhoneBookEditorContext';
 import SharedMetaFields from './shared/SharedMetaFields';
 import {
 	DetailedPhoneFields,
-	HpTFPhoneFields,
-	MultiSamplePhoneFields,
 	PrefixVariationsPhoneFields,
+	SampleSetPhoneFields,
 	SimplePhoneFields,
 	VariationsPhoneFields
 } from './types/PhoneTypeFields';
@@ -61,18 +60,11 @@ const KIND_OPTIONS: KindOption[] = [
 		docAnchor: '#variations-grouping-multiple-data-files-under-one-phone-name'
 	},
 	{
-		value: 'multiSample',
-		label: 'Multi-Sample',
+		value: 'sampleSet',
+		label: 'Sample Sets (variants)',
 		description:
-			'Combine several numbered measurement runs (L1/R1, L2/R2, …) into one phone. The UI averages them by default and lets users toggle individual runs.',
-		docAnchor: '#multi-sample-entries'
-	},
-	{
-		value: 'hptf',
-		label: 'HpTF (Variance)',
-		description:
-			'Render the spread between several related measurements as a shaded envelope on the graph — e.g. different fit positions, measurement rigs, or insertion depths. The entry IS the envelope — no separate measurement curve.',
-		docAnchor: '#hptf-headphone-transfer-function-entries'
+			'Declare each variant explicitly, and give any of them several measurement runs — repeat runs, seating positions, one measurement per ear pad. Each set can be drawn as an averaged curve, individual run curves, a shaded min/max band, or any combination.',
+		docAnchor: '#sample-sets'
 	}
 ];
 
@@ -90,14 +82,12 @@ function summarize(phone: PhoneState): string {
 			return phone.prefix?.name
 				? `${phone.prefix.name} — ${phone.prefix.files.length} variants`
 				: '(unnamed)';
-		case 'multiSample':
-			return phone.multiSample?.name
-				? `${phone.multiSample.name} (${phone.multiSample.samples} samples)`
-				: '(unnamed)';
-		case 'hptf':
-			return phone.hptfs?.name
-				? `${phone.hptfs.name} — HpTF (${phone.hptfs.entries.length} set${phone.hptfs.entries.length === 1 ? '' : 's'})`
-				: '(unnamed)';
+		case 'sampleSet': {
+			const set = phone.sampleSet;
+			if (!set?.name) return '(unnamed)';
+			const count = set.variants.length;
+			return `${set.name} — ${count} variant${count === 1 ? '' : 's'}`;
+		}
 	}
 }
 
@@ -114,10 +104,8 @@ function renderKindFields(
 			return <VariationsPhoneFields phone={phone} onPatch={onPatch} />;
 		case 'prefix':
 			return <PrefixVariationsPhoneFields phone={phone} onPatch={onPatch} />;
-		case 'multiSample':
-			return <MultiSamplePhoneFields phone={phone} onPatch={onPatch} />;
-		case 'hptf':
-			return <HpTFPhoneFields phone={phone} onPatch={onPatch} />;
+		case 'sampleSet':
+			return <SampleSetPhoneFields phone={phone} onPatch={onPatch} />;
 	}
 }
 

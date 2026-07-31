@@ -5,6 +5,16 @@ sidebar_label: 변경 이력
 
 # modernGraphTool v2 변경 이력
 
+### v2.1.6
+
+- Feat: 다중 샘플과 HpTF 측정을 하나의 **샘플 세트(Sample Set)** 개념으로 통합했습니다. 여러 번 측정한 variant를 평균 곡선, 측정별 곡선, 최소/최대 음영 밴드 또는 그 조합으로 그릴 수 있습니다. 예전에는 어느 쪽으로도 표현할 수 없던 "평균선 + 편차 밴드"도 이제 가능합니다. 새 `variants[]` 스키마로 variant마다 선언하세요. [샘플 세트 문서](./guide-for-admins/manage-data.mdx#샘플-세트-sample-sets)를 참고하세요.
+- Feat: 샘플 세트의 각 측정에 라벨을 붙일 수 있습니다. 라벨은 샘플 선택기와 그래프 라벨에 표시됩니다(예: `HD 600 Leather Pad (Center, R)`).
+- Feat: `MULTI_SAMPLE`과 `HPTF`를 대체하는 새 `SAMPLES` 설정 섹션(`DEFAULT_COUNT`, `DEFAULT_DISPLAY`, `FILL_OPACITY`)을 추가했습니다. 사이트 전역 기본 측정 횟수를 지정하면 모든 기기를 같은 횟수로 측정하는 데이터베이스는 항목마다 설정할 필요가 없습니다. [SAMPLES 문서](./guide-for-admins/customize-page.mdx#samples)를 참고하세요.
+- Fix: 개별 샘플 곡선이 항상 L/R 평균으로 그려지던 문제를 수정했습니다. 이제 측정마다 L, R, AVG를 각각 켜고 끌 수 있습니다.
+- Fix: 개별 측정을 켜고 끌 때 그래프 라벨이 함께 갱신되며, 마우스 오버 수치 표시가 모든 종류의 샘플 세트에서 개별 측정을 보여줍니다.
+- Fix: 다중 샘플 기기의 평균 곡선을 숨길 수 있게 되었고, 개별 측정이 정규화 주파수에서 하나로 모이지 않고 실제 편차를 유지합니다.
+- Change: `samples`, `hptfs`와 기존 `MULTI_SAMPLE` / `HPTF` 설정 섹션은 그대로 동작합니다. 마이그레이션은 필요 없습니다.
+
 ### v2.1.5
 
 - Feat: Sine Sweep 재생 기능, A/B 테스트 기능, 편집 취소/다시 실행 기능을 포함하여 이퀄라이저 기능을 대폭 개선했습니다.

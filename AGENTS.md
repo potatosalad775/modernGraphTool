@@ -202,7 +202,8 @@ export const frStore = new FRDataStore();
 ## Utils
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`, `listening-range.ts`,
-`log-scale.ts`, `metadata-parser.ts`, `equalizer.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`.
+`log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`, `equalizer.ts`, `url-provider.ts`, `url-state.ts`,
+`base62.ts`.
 `url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not** `goto()`.
 
 `url-state.ts` holds the **pure** share-URL encoding/decoding (`smartSplit`, `parseShareParam`,
@@ -232,6 +233,40 @@ React to store changes with `$effect(() => frStore.size)` (SvelteMap is reactive
 - `withAdjustment` — baseline = current (adjusted) channels from `frStore`. The target line snaps flat; other curves shift with adjustments.
 - Single source of truth: [src/lib/graph/baseline.ts](src/lib/graph/baseline.ts) `resolveBaselineChannelData(uuid, mode)`. Both `GraphEngine.refreshBaselineData` and `PreferenceBound` go through it — **do not branch on `baselineMode` elsewhere**.
 - `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
+
+## Sample Sets
+
+A **sample set** is a variant measured more than once — repeat runs, seating positions, one
+measurement per ear pad. `samples` and `hptfs` in `phone_book.json` used to be two separate
+concepts for this, with parallel state, fetch, process and render paths; they are now one.
+
+- **Schema:** `variants[]` with a per-variant `samples` (a number, or
+  `{ count | files, labels, display, description }`). `variants` takes precedence over the
+  terse phone-level `file`/`suffix`/`prefix`/`samples`/`hptfs` form — no merging.
+  `metadata-parser` emits the same `PhoneFileVariant[]` from either, so **nothing downstream
+  branches on which form was authored**.
+- **Legacy keys stay readable permanently.** Cross-site search crawls other sites'
+  CrinGraph-format phone books, which only ever speak the old dialect.
+- **Model:** `FRDataObject.samples[]` (each run carrying an optional `label`),
+  `dispSamples` keyed `sample{n}_{ch}` (zero-based — legacy `?state=` URLs already use this
+  shape), plus `showAvg` / `showFill` / `envelope` / `sampleDescription`. `showAvg` absent
+  means **drawn**; an item with no set is just the averaged-channels layer.
+- **`display` is a set, not an enum:** `avg` · `curves` · `fill` compose. `['avg','fill']` is
+  an averaged line with a variance band, which neither old schema could express.
+- **Processing anchor-normalizes** (`anchorAndNormalizeSamples`): every run shares one pooled
+  offset, so run-to-run spread survives the user's normalization choice. The old multi-sample
+  path normalized each run independently and flattened that spread at the anchor frequency.
+  The pooled offset is the same one `normalizeChannels` computes for the main channels, so
+  runs and average stay on a common reference.
+- **The envelope is always computed** when a set is present, not only when `showFill` is on —
+  the user can toggle the fill at any time and recomputing on toggle would mean threading the
+  processing params through the UI.
+- **Config:** `SAMPLES` (`DEFAULT_COUNT` / `DEFAULT_DISPLAY` / `FILL_OPACITY`), resolved in
+  [src/lib/utils/sample-config.ts](src/lib/utils/sample-config.ts), which also maps the
+  deprecated `MULTI_SAMPLE` / `HPTF` sections onto the new tokens.
+- **Share URLs:** `sampleDisplay` carries `{ keys, fill, avg }`. `normalizeSampleDisplay` in
+  `url-state.ts` folds in the two legacy shapes (a flat `L{n}`/`R{n}` array, and the separate
+  `hptfDisplay` key). Only the current shape is written.
 
 ## Config System
 
@@ -500,6 +535,8 @@ All active features are first-class Svelte components in `src/lib/components/fea
 - **Parametric EQ** with AutoEQ, real-time audio preview, import/export
 - **Device PEQ Bridge** — push EQ to 20+ hardware devices via USB HID / Serial / BLE / Network
   (implementation under `src/lib/device-peq/`)
+- **Sample Sets** — variants measured more than once, drawn as an averaged curve, per-run
+  curves, a min/max deviation band, or any combination (see above)
 - **Target Customizer** — per-target Tilt / Bass / Treble / Ear / PSSR sliders with presets
 - **Graph Color Wheel** — per-curve color picker (bits-ui Popover)
 - **Preference Bound** — upper/lower preference-range overlay

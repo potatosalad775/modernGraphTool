@@ -346,7 +346,7 @@
 	flex-shrink: 0;
 }
 
-.pbHptfEntry {
+.pbVariantEntry {
 	border: 1px solid var(--ifm-color-emphasis-200);
 	border-radius: 6px;
 	padding: 0.75rem;
@@ -354,7 +354,7 @@
 	background: var(--ifm-background-color);
 }
 
-.pbHptfEntryHeader {
+.pbVariantEntryHeader {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -364,7 +364,7 @@
 	border-bottom: 1px dashed var(--ifm-color-emphasis-200);
 }
 
-.pbHptfEntryTitle {
+.pbVariantEntryTitle {
 	font-size: 0.8125rem;
 	font-weight: 500;
 	color: var(--ifm-color-content);

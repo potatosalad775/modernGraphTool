@@ -544,37 +544,43 @@ Target 선택기에 표시될 타겟을 그룹화하고 정렬하는 방식을 �
 `TARGET_MANIFEST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
 :::
 
-### `MULTI_SAMPLE`
+### `SAMPLES`
 
 ```JavaScript
-MULTI_SAMPLE: {
-  DEFAULT_DISPLAY: "average",
-},
-```
-
-기기에 여러 개의 측정 샘플이 있을 때 다중 샘플 측정 데이터의 표시 방식을 제어합니다.
-
-- `DEFAULT_DISPLAY`: 다중 샘플 데이터의 기본 표시 모드를 설정합니다.
-  - `"average"` — 모든 샘플의 평균을 표시 (기본값).
-  - `"all"` — 모든 개별 샘플 커브를 표시.
-
-### `HPTF`
-
-```JavaScript
-HPTF: {
-  DEFAULT_DISPLAY: "fill+curves",
+SAMPLES: {
+  DEFAULT_COUNT: 1,
+  DEFAULT_DISPLAY: ["avg"],
   FILL_OPACITY: 0.3,
 },
 ```
 
-HpTF(Headphone Transfer Function) 샘플 편차 데이터의 표시 방식을 제어합니다.
+**샘플 세트**의 사이트 전역 기본값입니다. 샘플 세트란 여러 번 측정한 variant를
+말합니다(반복 측정, 착용 위치 스윕, 이어패드별 측정 등). `phone_book.json` 쪽은
+[샘플 세트](./manage-data#샘플-세트-sample-sets)를 참고하세요.
 
-- `DEFAULT_DISPLAY` — HpTF 편차 범위의 기본 표시 모드.
-  - `"fill"` — 음영으로 표시한 편차 범위만 표시
-  - `"fill+curves"` — 음영 범위와 개별 편차 곡선을 모두 표시
-  - `"curves"` — 개별 편차 곡선만 표시
-  - `"none"` — HpTF 편차 범위를 표시하지 않음
-- `FILL_OPACITY` — 편차 음영 영역의 투명도 (0 ~ 1).
+- `DEFAULT_COUNT`: variant가 자체 `samples`를 선언하지 않았을 때의 측정 횟수.
+  데이터베이스의 모든 기기를 같은 횟수로 측정하는 경우가 아니라면 `1`로 두세요.
+  그런 경우라면 항목마다 적는 대신 여기서 한 번만 지정하면 됩니다.
+- `DEFAULT_DISPLAY`: `display`를 선언하지 않은 샘플 세트를 그리는 방식. 다음의 조합:
+  - `"avg"` — 모든 측정의 평균 곡선.
+  - `"curves"` — 각 측정을 개별 곡선으로.
+  - `"fill"` — 측정 범위를 감싸는 음영 밴드.
+    `["avg", "fill"]`은 평균선과 그 주위의 편차 밴드를 함께 그립니다.
+- `FILL_OPACITY`: 음영 밴드의 투명도 (0 ~ 1).
+
+:::note[더 이상 사용되지 않음: `MULTI_SAMPLE`, `HPTF`]
+`SAMPLES`가 두 섹션을 모두 대체합니다. 예전 섹션도 폴백으로 계속 읽히므로 기존
+`config.js`는 그대로 동작합니다. 다만 다음에 파일을 손볼 때 `SAMPLES`를 설정하고
+예전 섹션은 지우세요.
+
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`
+- `HPTF.DEFAULT_DISPLAY: "fill"` → `["avg", "fill"]`
+- `HPTF.DEFAULT_DISPLAY: "fill+curves"` → `["avg", "curves", "fill"]`
+- `HPTF.DEFAULT_DISPLAY: "curves"` → `["avg", "curves"]`
+- `HPTF.DEFAULT_DISPLAY: "none"` → `[]`
+- `HPTF.FILL_OPACITY` → `SAMPLES.FILL_OPACITY`
+  :::
 
 ### `TRACE_STYLING`
 

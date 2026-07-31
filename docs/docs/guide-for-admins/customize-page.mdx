@@ -546,37 +546,44 @@ Defines how targets displayed in the Target selector are grouped and sorted.
 `TARGET_MANIFEST` supports multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.
 :::
 
-### `MULTI_SAMPLE`
+### `SAMPLES`
 
 ```JavaScript
-MULTI_SAMPLE: {
-  DEFAULT_DISPLAY: "average",
-},
-```
-
-Controls how multi-sample measurements are displayed when a phone has multiple measurement samples.
-
-- `DEFAULT_DISPLAY`: Sets the default display mode for multi-sample data.
-  - `"average"` — Display the average of all samples (default).
-  - `"all"` — Display all individual sample curves.
-
-### `HPTF`
-
-```JavaScript
-HPTF: {
-  DEFAULT_DISPLAY: "fill+curves",
+SAMPLES: {
+  DEFAULT_COUNT: 1,
+  DEFAULT_DISPLAY: ["avg"],
   FILL_OPACITY: 0.3,
 },
 ```
 
-Controls the display of HpTF (Headphone Transfer Function) sample deviation data.
+Site-wide defaults for **sample sets** — variants measured more than once (repeat
+runs, seating positions, one measurement per ear pad). See
+[Sample Sets](./manage-data#sample-sets) for the `phone_book.json` side.
 
-- `DEFAULT_DISPLAY`: Sets the default display mode for HpTF deviation.
-  - `"fill"` — Show only the shaded deviation fill area.
-  - `"fill+curves"` — Show both the fill area and individual deviation curves.
-  - `"curves"` — Show only the individual deviation curves.
-  - `"none"` — Do not display HpTF deviation.
-- `FILL_OPACITY`: Sets the opacity of the deviation fill area (0 to 1).
+- `DEFAULT_COUNT`: How many runs a variant has when it declares no `samples` of its
+  own. Leave at `1` unless every device in your database is measured the same number
+  of times — then set it once here instead of on every entry.
+- `DEFAULT_DISPLAY`: How a sample set is drawn when it declares no `display`. Any
+  combination of:
+  - `"avg"` — the averaged curve across every run.
+  - `"curves"` — each run as its own toggleable curve.
+  - `"fill"` — a shaded min/max band across the runs.
+    `["avg", "fill"]` gives an averaged line with a variance band around it.
+- `FILL_OPACITY`: Opacity of the fill band (0 to 1).
+
+:::note[Deprecated: `MULTI_SAMPLE` and `HPTF`]
+`SAMPLES` replaces both. The old sections are still read as a fallback, so an
+existing `config.js` keeps working unchanged — but set `SAMPLES` and delete them
+when you next touch the file.
+
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`
+- `HPTF.DEFAULT_DISPLAY: "fill"` → `["avg", "fill"]`
+- `HPTF.DEFAULT_DISPLAY: "fill+curves"` → `["avg", "curves", "fill"]`
+- `HPTF.DEFAULT_DISPLAY: "curves"` → `["avg", "curves"]`
+- `HPTF.DEFAULT_DISPLAY: "none"` → `[]`
+- `HPTF.FILL_OPACITY` → `SAMPLES.FILL_OPACITY`
+  :::
 
 ### `TRACE_STYLING`
 

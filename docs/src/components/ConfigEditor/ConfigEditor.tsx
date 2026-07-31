@@ -14,8 +14,7 @@ import LanguageSection from './sections/LanguageSection';
 import PathSection from './sections/PathSection';
 import WatermarkSection from './sections/WatermarkSection';
 import TargetManifestSection from './sections/TargetManifestSection';
-import MultiSampleSection from './sections/MultiSampleSection';
-import HptfSection from './sections/HptfSection';
+import SamplesSection from './sections/SamplesSection';
 import TraceStylingSection from './sections/TraceStylingSection';
 import TopbarSection from './sections/TopbarSection';
 import PreferenceBoundSection from './sections/PreferenceBoundSection';
@@ -94,8 +93,7 @@ function ConfigEditorInner(): ReactNode {
 					<PathSection />
 					<WatermarkSection />
 					<TargetManifestSection />
-					<MultiSampleSection />
-					<HptfSection />
+					<SamplesSection />
 					<TraceStylingSection />
 					<TopbarSection />
 					<PreferenceBoundSection />

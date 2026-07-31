@@ -248,8 +248,7 @@ export function convertV1ToV2(
 	v2.TARGET_MANIFEST = v1Config.TARGET_MANIFEST ?? { default: [], i18n: {} };
 
 	// New v2 sections
-	v2.MULTI_SAMPLE = { DEFAULT_DISPLAY: 'average' };
-	v2.HPTF = { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 };
+	v2.SAMPLES = { DEFAULT_COUNT: 1, DEFAULT_DISPLAY: ['avg'], FILL_OPACITY: 0.3 };
 
 	v2.TRACE_STYLING = v1Config.TRACE_STYLING ?? {
 		PHONE_TRACE_THICKNESS: 2,
@@ -490,9 +489,8 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 		i18n: {}
 	};
 
-	// MULTI_SAMPLE & HPTF (new v2 features)
-	v2.MULTI_SAMPLE = { DEFAULT_DISPLAY: 'average' };
-	v2.HPTF = { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 };
+	// SAMPLES (new v2 feature)
+	v2.SAMPLES = { DEFAULT_COUNT: 1, DEFAULT_DISPLAY: ['avg'], FILL_OPACITY: 0.3 };
 
 	// TRACE_STYLING
 	v2.TRACE_STYLING = {
@@ -717,16 +715,10 @@ const CONFIG = {`);
 	sections.push(`  // Target configuration
   TARGET_MANIFEST: ${prettyPrint(config.TARGET_MANIFEST, 1)},`);
 
-	// MULTI_SAMPLE
-	if (config.MULTI_SAMPLE) {
-		sections.push(`  // Multi-Sample Measurement Settings
-  MULTI_SAMPLE: ${prettyPrint(config.MULTI_SAMPLE, 1)},`);
-	}
-
-	// HPTF
-	if (config.HPTF) {
-		sections.push(`  // HpTF (Headphone Transfer Function) Sample Deviation Settings
-  HPTF: ${prettyPrint(config.HPTF, 1)},`);
+	// SAMPLES
+	if (config.SAMPLES) {
+		sections.push(`  // Sample Set Settings
+  SAMPLES: ${prettyPrint(config.SAMPLES, 1)},`);
 	}
 
 	// TRACE_STYLING
@@ -814,6 +806,27 @@ function toI18nArrayState<T>(val: any): I18nArrayFormState<T> {
 /**
  * Convert a parsed v2 config object into ConfigFormState for the editor.
  */
+/**
+ * Map a pre-unification `MULTI_SAMPLE` / `HPTF` section onto the `SAMPLES`
+ * display set, so importing an older config.js keeps its intended rendering
+ * instead of quietly falling back to the default. Returns null when the config
+ * declares neither, which is the caller's cue to use the default.
+ */
+function legacyDisplayModes(raw: Record<string, any>): string[] | null {
+	if (raw.HPTF?.DEFAULT_DISPLAY) {
+		const mode = raw.HPTF.DEFAULT_DISPLAY;
+		const modes: string[] = [];
+		if (mode !== 'none') modes.push('avg');
+		if (mode === 'curves' || mode === 'fill+curves') modes.push('curves');
+		if (mode === 'fill' || mode === 'fill+curves') modes.push('fill');
+		return modes;
+	}
+	if (raw.MULTI_SAMPLE?.DEFAULT_DISPLAY) {
+		return raw.MULTI_SAMPLE.DEFAULT_DISPLAY === 'all' ? ['avg', 'curves'] : ['avg'];
+	}
+	return null;
+}
+
 export function configToFormState(raw: Record<string, any>): ConfigFormState {
 	const defaults = createDefaultConfig();
 
@@ -908,12 +921,15 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 		TARGET_MANIFEST: toI18nArrayState<TargetManifestEntryForm>(
 			raw.TARGET_MANIFEST ?? defaults.TARGET_MANIFEST
 		),
-		MULTI_SAMPLE: {
-			DEFAULT_DISPLAY: raw.MULTI_SAMPLE?.DEFAULT_DISPLAY ?? defaults.MULTI_SAMPLE.DEFAULT_DISPLAY
-		},
-		HPTF: {
-			DEFAULT_DISPLAY: raw.HPTF?.DEFAULT_DISPLAY ?? defaults.HPTF.DEFAULT_DISPLAY,
-			FILL_OPACITY: raw.HPTF?.FILL_OPACITY ?? defaults.HPTF.FILL_OPACITY
+		SAMPLES: {
+			DEFAULT_COUNT: raw.SAMPLES?.DEFAULT_COUNT ?? defaults.SAMPLES.DEFAULT_COUNT,
+			// `MULTI_SAMPLE` and `HPTF` are the pre-unification sections. They are
+			// read here so importing an older config.js lands on the equivalent
+			// display set rather than silently reverting to the default.
+			DEFAULT_DISPLAY:
+				raw.SAMPLES?.DEFAULT_DISPLAY ?? legacyDisplayModes(raw) ?? defaults.SAMPLES.DEFAULT_DISPLAY,
+			FILL_OPACITY:
+				raw.SAMPLES?.FILL_OPACITY ?? raw.HPTF?.FILL_OPACITY ?? defaults.SAMPLES.FILL_OPACITY
 		},
 		TRACE_STYLING: {
 			PHONE_TRACE_THICKNESS:
@@ -1037,8 +1053,7 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	config.PATH = state.PATH;
 	config.WATERMARK = state.WATERMARK;
 	config.TARGET_MANIFEST = fromI18nArrayState(state.TARGET_MANIFEST);
-	config.MULTI_SAMPLE = state.MULTI_SAMPLE;
-	config.HPTF = state.HPTF;
+	config.SAMPLES = state.SAMPLES;
 	config.TRACE_STYLING = state.TRACE_STYLING;
 	config.TOPBAR = {
 		TITLE: state.TOPBAR.TITLE,

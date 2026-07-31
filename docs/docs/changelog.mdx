@@ -5,6 +5,16 @@ sidebar_label: Changelog
 
 # modernGraphTool v2 Changelog
 
+### v2.1.6
+
+- Feat: Unified multi-sample and HpTF measurements into one **Sample Set** concept. A variant measured more than once can now be drawn as an averaged curve, per-run curves, a shaded min/max deviation band, or any combination — including "averaged line with a variance band", which neither old form could express. Declare it per variant with the new `variants[]` schema. See [Sample Sets documentation](./guide-for-admins/manage-data.mdx#sample-sets).
+- Feat: Sample sets can carry a label per measurement run. Labels appear in the sample picker and on the on-graph label, e.g. `HD 600 Leather Pad (Center, R)`.
+- Feat: New `SAMPLES` config section (`DEFAULT_COUNT`, `DEFAULT_DISPLAY`, `FILL_OPACITY`), replacing `MULTI_SAMPLE` and `HPTF`. A site-wide default run count means a uniformly multi-sampled database needs no per-entry setting. See [SAMPLES documentation](./guide-for-admins/customize-page.mdx#samples).
+- Fix: An individual sample curve is no longer always the L/R average — each run now has its own L, R and AVG toggles.
+- Fix: The on-graph label now updates as individual runs are toggled, and the hover readout reports runs from every kind of sample set.
+- Fix: The averaged curve of a multi-sample device can now be hidden, and individual runs keep their true spread at the normalization frequency instead of being flattened onto it.
+- Change: `samples`, `hptfs` and the existing `MULTI_SAMPLE` / `HPTF` config sections keep working unchanged — nothing needs migrating.
+
 ### v2.1.5
 
 - Feat: Reworked the Equalizer with the new sine sweep audio source, a History & Compare panel with A/B mode switching, and full undo/redo for filter edits.

@@ -6,11 +6,9 @@ import type {
 	ParsedFRData,
 	FRInputMetadata,
 	PhoneMetadata,
-	SampleChannelKey,
 	SampleData,
-	HpTFSampleData,
-	HpTFEnvelope,
-	HpTFDisplayKey,
+	SampleDisplayKey,
+	SampleEnvelope,
 	RawFRCache
 } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
@@ -29,12 +27,13 @@ import {
 	UpdateVariantCommand,
 	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
-	UpdateSampleDisplayCommand,
-	UpdateHpTFDisplayCommand
+	UpdateSampleDisplayCommand
 } from './commands.js';
 import FRParser from '$lib/utils/fr-parser.js';
+import type { FRParseResult } from '$lib/utils/fr-parser.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
-import { DataProcessor, anchorAndNormalizeHpTFSamples } from '$lib/utils/data-processor.js';
+import { DataProcessor, anchorAndNormalizeSamples } from '$lib/utils/data-processor.js';
+import { defaultSampleDisplay } from '$lib/utils/sample-config.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
@@ -120,23 +119,7 @@ class DataProvider {
 			toast.error(`Failed to load ${sourceType === 'target' ? 'target' : 'device'}: ${label}`);
 			return;
 		}
-		const rawCache: RawFRCache = {
-			channels: {
-				...(rawData.L && { L: rawData.L }),
-				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG })
-			}
-		};
-		if (rawData._samples && rawData._sampleCount) {
-			rawCache.samples = rawData._samples;
-			rawCache.sampleCount = rawData._sampleCount;
-		}
-		if (rawData._hptfSamples && rawData._hptfLabels) {
-			rawCache.hptfSamples = rawData._hptfSamples;
-			rawCache.hptfLabels = rawData._hptfLabels;
-			rawCache.hptfOnly = rawData._hptfOnly;
-			rawCache.hptfFillOnly = rawData._hptfFillOnly;
-		}
+		const rawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 
@@ -162,57 +145,7 @@ class DataProvider {
 			_rawData: rawCache
 		};
 
-		// Multi-sample: process and attach sample data
-		if (rawData._samples && rawData._sampleCount) {
-			const processedSamples = DataProcessor.processSamples(
-				rawData._samples,
-				this.#processingParams
-			);
-			frObject.samples = processedSamples;
-			frObject.sampleCount = rawData._sampleCount;
-			frObject.colors = this.#addSampleColors(colors, rawData._sampleCount);
-
-			const defaultDisplay = getConfigValue('MULTI_SAMPLE.DEFAULT_DISPLAY') as string | undefined;
-			if (defaultDisplay === 'all') {
-				// Only emit keys for sample slots that actually loaded — protects
-				// against missing L{n}/R{n} files (e.g. fallback-to-unnumbered mode
-				// where only sample 1 has data).
-				frObject.dispSamples = this.#getLoadedSampleKeys(processedSamples);
-			} else {
-				frObject.dispSamples = [];
-			}
-		}
-
-		// HpTF: process and attach sample data + envelope
-		if (rawData._hptfSamples && rawData._hptfLabels) {
-			const processedSamples = DataProcessor.processHpTFSamples(
-				rawData._hptfSamples,
-				rawData._hptfLabels,
-				this.#processingParams
-			);
-
-			const fillOnly = rawData._hptfFillOnly ?? true;
-			const hptfDescription = (metaData as PhoneMetadata).files?.[0]?.hptfDescription;
-			frObject.hptf = {
-				samples: processedSamples,
-				envelope: this.#computeAllHpTFEnvelopes(processedSamples),
-				labels: rawData._hptfLabels,
-				fillOnly,
-				...(hptfDescription && { description: hptfDescription })
-			};
-
-			const defaultDisplay = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
-			frObject.hptfFillVisible = defaultDisplay === 'fill' || defaultDisplay === 'fill+curves';
-			frObject.hptfAvgVisible = defaultDisplay !== 'none';
-			frObject.dispHptf = fillOnly
-				? []
-				: defaultDisplay === 'curves' || defaultDisplay === 'fill+curves'
-					? this.#getAllHpTFKeys(processedSamples)
-					: [];
-			if (rawData._hptfOnly) {
-				frObject.hptfOnly = true;
-			}
-		}
+		Object.assign(frObject, this.#buildSampleFields(rawData, colors));
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
 		this.syncPhoneChannels();
@@ -381,23 +314,7 @@ class DataProvider {
 			toast.error(`Failed to load variant: ${dispSuffix || data.identifier}`);
 			return;
 		}
-		const variantRawCache: RawFRCache = {
-			channels: {
-				...(rawData.L && { L: rawData.L }),
-				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG })
-			}
-		};
-		if (rawData._samples && rawData._sampleCount) {
-			variantRawCache.samples = rawData._samples;
-			variantRawCache.sampleCount = rawData._sampleCount;
-		}
-		if (rawData._hptfSamples && rawData._hptfLabels) {
-			variantRawCache.hptfSamples = rawData._hptfSamples;
-			variantRawCache.hptfLabels = rawData._hptfLabels;
-			variantRawCache.hptfOnly = rawData._hptfOnly;
-			variantRawCache.hptfFillOnly = rawData._hptfFillOnly;
-		}
+		const variantRawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
 		const dispChannel = (
@@ -417,68 +334,38 @@ class DataProvider {
 			_rawData: variantRawCache
 		};
 
-		if (rawData._samples && rawData._sampleCount) {
-			newFields.samples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
-			newFields.sampleCount = rawData._sampleCount;
-			newFields.colors = this.#addSampleColors(data.colors, rawData._sampleCount);
-			newFields.dispSamples = data.dispSamples ?? [];
-		} else {
-			// New variant has no samples — clear sample data
-			newFields.samples = undefined;
-			newFields.sampleCount = undefined;
-			newFields.dispSamples = undefined;
-		}
-
-		if (rawData._hptfSamples && rawData._hptfLabels) {
-			const processedSamples = DataProcessor.processHpTFSamples(
-				rawData._hptfSamples,
-				rawData._hptfLabels,
-				this.#processingParams
-			);
-			const variantFillOnly = rawData._hptfFillOnly ?? true;
-			const phoneMeta = data.meta as PhoneMetadata;
-			const variantDescription =
-				phoneMeta.files?.find((f) => f.suffix === dispSuffix)?.hptfDescription ??
-				phoneMeta.files?.[0]?.hptfDescription;
-			newFields.hptf = {
-				samples: processedSamples,
-				envelope: this.#computeAllHpTFEnvelopes(processedSamples),
-				labels: rawData._hptfLabels,
-				fillOnly: variantFillOnly,
-				...(variantDescription && { description: variantDescription })
-			};
-			newFields.hptfOnly = rawData._hptfOnly ?? false;
-			newFields.dispHptf = variantFillOnly ? [] : (data.dispHptf ?? []);
-			newFields.hptfFillVisible = data.hptfFillVisible ?? true;
-		} else {
-			// New variant has no HpTF — clear HpTF data
-			newFields.hptf = undefined;
-			newFields.dispHptf = undefined;
-			newFields.hptfFillVisible = undefined;
-			newFields.hptfOnly = undefined;
-		}
+		// Sample fields are re-derived from the new variant's own declaration —
+		// `display` is a per-variant property, so carrying the previous variant's
+		// toggles over would silently override what the operator declared. Only the
+		// user's per-run curve picks survive, and only where they still resolve.
+		Object.assign(
+			newFields,
+			this.#buildSampleFields(rawData, data.colors, data.dispSamples ?? undefined)
+		);
 
 		commandHistory.execute(new UpdateVariantCommand(uuid, newFields), frStore);
 	}
 
 	// ─── Update sample display ────────────────────────────────────────────────
 
-	updateSampleDisplay(uuid: string, dispSamples: SampleChannelKey[]): void {
-		if (!frStore.has(uuid)) return;
-		commandHistory.execute(new UpdateSampleDisplayCommand(uuid, dispSamples), frStore);
-	}
-
-	// ─── Update HpTF display ─────────────────────────────────────────────────
-
-	updateHpTFDisplay(
+	/** Set which runs are drawn, and whether the fill and the average are drawn.
+	 *  `showFill` / `showAvg` default to the item's current state so callers that
+	 *  only touch the per-run picks don't have to restate them. */
+	updateSampleDisplay(
 		uuid: string,
-		dispHptf: HpTFDisplayKey[],
-		hptfFillVisible: boolean,
-		hptfAvgVisible: boolean
+		dispSamples: SampleDisplayKey[],
+		showFill?: boolean,
+		showAvg?: boolean
 	): void {
-		if (!frStore.has(uuid)) return;
+		const data = frStore.get(uuid);
+		if (!data) return;
 		commandHistory.execute(
-			new UpdateHpTFDisplayCommand(uuid, dispHptf, hptfFillVisible, hptfAvgVisible),
+			new UpdateSampleDisplayCommand(
+				uuid,
+				dispSamples,
+				showFill ?? data.showFill ?? false,
+				showAvg ?? data.showAvg ?? true
+			),
 			frStore
 		);
 	}
@@ -503,32 +390,12 @@ class DataProvider {
 					...(processed.AVG && { AVG: processed.AVG })
 				}
 			};
-			// Re-normalize sample data — L and R share one offset to preserve the
-			// per-sample channel balance (see fr-normalizer#normalizeChannels).
+			// Re-anchor the sample set against the same pooled reference the main
+			// channels use, then rebuild the envelope from the shifted runs.
 			if (data.samples) {
-				updated.samples = data.samples.map((sample) => {
-					const raw: ParsedFRData = {};
-					if (sample.L) raw.L = sample.L;
-					if (sample.R) raw.R = sample.R;
-					const processed = normalizeChannels(raw, normType, normHzValue);
-					const s: SampleData = {};
-					if (processed.L) s.L = processed.L;
-					if (processed.R) s.R = processed.R;
-					return s;
-				});
-			}
-			// Re-normalize HpTF sample data
-			if (data.hptf) {
-				const reNormedSamples = anchorAndNormalizeHpTFSamples(
-					data.hptf.samples,
-					normType,
-					normHzValue
-				);
-				updated.hptf = {
-					...data.hptf,
-					samples: reNormedSamples,
-					envelope: this.#computeAllHpTFEnvelopes(reNormedSamples)
-				};
+				const reNormed = anchorAndNormalizeSamples(data.samples, normType, normHzValue);
+				updated.samples = reNormed;
+				updated.envelope = this.#computeAllEnvelopes(reNormed);
 			}
 			frStore.set(uuid, updated);
 
@@ -700,23 +567,16 @@ class DataProvider {
 						...(processed.AVG && { AVG: processed.AVG })
 					}
 				};
-				// Re-process sample data from cache
-				if (rawCache.samples && rawCache.sampleCount) {
-					updated.samples = DataProcessor.processSamples(rawCache.samples, this.#processingParams);
-					updated.sampleCount = rawCache.sampleCount;
-				}
-				// Re-process HpTF sample data from cache
-				if (rawCache.hptfSamples && rawCache.hptfLabels) {
-					const processedSamples = DataProcessor.processHpTFSamples(
-						rawCache.hptfSamples,
-						rawCache.hptfLabels,
+				// Re-process the sample set from cache. The envelope has to follow —
+				// a different smoothing window moves the runs, so a stale envelope
+				// would no longer bound them.
+				if (rawCache.samples) {
+					const processedSamples = DataProcessor.processSamples(
+						rawCache.samples,
 						this.#processingParams
 					);
-					updated.hptf = {
-						...data.hptf!,
-						samples: processedSamples,
-						envelope: this.#computeAllHpTFEnvelopes(processedSamples)
-					};
+					updated.samples = processedSamples;
+					updated.envelope = this.#computeAllEnvelopes(processedSamples);
 				}
 				frStore.set(uuid, updated);
 
@@ -736,23 +596,7 @@ class DataProvider {
 						data.meta,
 						data.dispSuffix ?? ''
 					);
-					const fallbackCache: RawFRCache = {
-						channels: {
-							...(rawData.L && { L: rawData.L }),
-							...(rawData.R && { R: rawData.R }),
-							...(rawData.AVG && { AVG: rawData.AVG })
-						}
-					};
-					if (rawData._samples && rawData._sampleCount) {
-						fallbackCache.samples = rawData._samples;
-						fallbackCache.sampleCount = rawData._sampleCount;
-					}
-					if (rawData._hptfSamples && rawData._hptfLabels) {
-						fallbackCache.hptfSamples = rawData._hptfSamples;
-						fallbackCache.hptfLabels = rawData._hptfLabels;
-						fallbackCache.hptfOnly = rawData._hptfOnly;
-						fallbackCache.hptfFillOnly = rawData._hptfFillOnly;
-					}
+					const fallbackCache = this.#buildRawCache(rawData);
 					const processed = DataProcessor.processChannels(rawData, this.#processingParams);
 					frStore.set(uuid, {
 						...data,
@@ -911,32 +755,102 @@ class DataProvider {
 		).join(' ');
 	}
 
-	/** Add sample colors to an existing FRColors object */
-	#addSampleColors(baseColors: FRColors, sampleCount: number): FRColors {
-		const samples: Record<string, string> = {};
-		for (let i = 1; i <= sampleCount; i++) {
-			// Use same color as the corresponding channel but will be rendered at reduced opacity
-			samples[`L${i}`] = baseColors.L ?? baseColors.AVG;
-			samples[`R${i}`] = baseColors.R ?? baseColors.AVG;
+	// ─── Sample-set helpers ──────────────────────────────────────────────────
+
+	/** Cache the raw (unsmoothed, unnormalized) payload for `reSmoothAll`. */
+	#buildRawCache(rawData: FRParseResult): RawFRCache {
+		const cache: RawFRCache = {
+			channels: {
+				...(rawData.L && { L: rawData.L }),
+				...(rawData.R && { R: rawData.R }),
+				...(rawData.AVG && { AVG: rawData.AVG })
+			}
+		};
+		if (rawData._samples?.length) {
+			cache.samples = rawData._samples;
+			if (rawData._sampleLabels) cache.sampleLabels = rawData._sampleLabels;
+			if (rawData._sampleDisplay) cache.sampleDisplay = rawData._sampleDisplay;
+			if (rawData._sampleDescription) cache.sampleDescription = rawData._sampleDescription;
 		}
-		return { ...baseColors, samples };
+		return cache;
 	}
 
-	/** Sample channel keys for slots that actually have L and/or R data loaded */
-	#getLoadedSampleKeys(samples: SampleData[]): SampleChannelKey[] {
-		const keys: SampleChannelKey[] = [];
+	/**
+	 * Every sample-set field an FRDataObject carries, derived in one place.
+	 *
+	 * Both `addFRData` and `updateVariant` used to keep their own near-identical
+	 * copies of this — one for multi-sample, one for HpTF, four blocks in total.
+	 * Fields are always returned, `undefined` when the item has no set, so
+	 * `UpdateVariantCommand` clears them rather than leaving the previous
+	 * variant's set attached.
+	 */
+	#buildSampleFields(
+		rawData: FRParseResult,
+		baseColors: FRColors,
+		previousDispSamples?: SampleDisplayKey[]
+	): Partial<FRDataObject> {
+		if (!rawData._samples?.length) {
+			return {
+				samples: undefined,
+				dispSamples: undefined,
+				showAvg: undefined,
+				showFill: undefined,
+				envelope: undefined,
+				sampleDescription: undefined
+			};
+		}
+
+		const samples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
+		const display = rawData._sampleDisplay ?? defaultSampleDisplay();
+		const loadedKeys = this.#getLoadedSampleKeys(samples);
+
+		// Preserve the user's per-run picks across a variant switch, but only the
+		// ones that still name a run with data in the new set.
+		const carried = previousDispSamples?.filter((k) => loadedKeys.includes(k));
+
+		return {
+			samples,
+			colors: this.#addSampleColors(baseColors, samples),
+			// The envelope is computed whether or not `fill` is on: the user can turn
+			// the fill on at any time, and recomputing on toggle would mean threading
+			// the processing params through the UI.
+			envelope: this.#computeAllEnvelopes(samples),
+			showAvg: display.includes('avg'),
+			showFill: display.includes('fill'),
+			dispSamples: carried?.length ? carried : display.includes('curves') ? loadedKeys : [],
+			sampleDescription: rawData._sampleDescription
+		};
+	}
+
+	/** Add per-run colors to an existing FRColors object */
+	#addSampleColors(baseColors: FRColors, samples: SampleData[]): FRColors {
+		const sampleColors: Record<string, string> = {};
 		samples.forEach((sample, i) => {
-			const n = i + 1;
-			if (sample.L) keys.push(`L${n}` as SampleChannelKey);
-			if (sample.R) keys.push(`R${n}` as SampleChannelKey);
+			// Same color as the corresponding channel — rendered at reduced opacity.
+			if (sample.L) sampleColors[`sample${i}_L`] = baseColors.L ?? baseColors.AVG;
+			if (sample.R) sampleColors[`sample${i}_R`] = baseColors.R ?? baseColors.AVG;
+			if (sample.AVG) sampleColors[`sample${i}_AVG`] = baseColors.AVG;
+		});
+		return { ...baseColors, samples: sampleColors };
+	}
+
+	/**
+	 * One display key per run that actually loaded — AVG where both channels are
+	 * present, else whichever single channel is. Guards against missing files
+	 * (e.g. the fallback-to-unnumbered layout, where only run 1 has data).
+	 */
+	#getLoadedSampleKeys(samples: SampleData[]): SampleDisplayKey[] {
+		const keys: SampleDisplayKey[] = [];
+		samples.forEach((sample, i) => {
+			if (sample.AVG) keys.push(`sample${i}_AVG`);
+			else if (sample.L) keys.push(`sample${i}_L`);
+			else if (sample.R) keys.push(`sample${i}_R`);
 		});
 		return keys;
 	}
 
-	// ─── HpTF helpers ────────────────────────────────────────────────────────
-
-	/** Compute min/max envelope for a single channel across all HpTF samples */
-	#computeHpTFEnvelope(samples: HpTFSampleData[], channel: 'L' | 'R' | 'AVG'): HpTFEnvelope {
+	/** Min/max envelope for a single channel across every run in the set */
+	#computeEnvelope(samples: SampleData[], channel: 'L' | 'R' | 'AVG'): SampleEnvelope {
 		const sampleDataArrays = samples
 			.map((s) => s[channel]?.data)
 			.filter((d): d is FRDataPoint[] => !!d);
@@ -956,25 +870,12 @@ class DataProvider {
 	}
 
 	/** Compute envelopes for all channels */
-	#computeAllHpTFEnvelopes(samples: HpTFSampleData[]): Record<'L' | 'R' | 'AVG', HpTFEnvelope> {
+	#computeAllEnvelopes(samples: SampleData[]): Record<'L' | 'R' | 'AVG', SampleEnvelope> {
 		return {
-			L: this.#computeHpTFEnvelope(samples, 'L'),
-			R: this.#computeHpTFEnvelope(samples, 'R'),
-			AVG: this.#computeHpTFEnvelope(samples, 'AVG')
+			L: this.#computeEnvelope(samples, 'L'),
+			R: this.#computeEnvelope(samples, 'R'),
+			AVG: this.#computeEnvelope(samples, 'AVG')
 		};
-	}
-
-	/** Generate all HpTF display keys (AVG per sample by default) */
-	#getAllHpTFKeys(samples: HpTFSampleData[]): HpTFDisplayKey[] {
-		const keys: HpTFDisplayKey[] = [];
-		samples.forEach((sample, i) => {
-			if (sample.AVG) keys.push(`sample${i}_AVG` as HpTFDisplayKey);
-			else {
-				if (sample.L) keys.push(`sample${i}_L` as HpTFDisplayKey);
-				if (sample.R) keys.push(`sample${i}_R` as HpTFDisplayKey);
-			}
-		});
-		return keys;
 	}
 }
 

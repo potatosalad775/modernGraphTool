@@ -7,12 +7,13 @@ import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
 import {
 	buildQueryString,
+	normalizeSampleDisplay,
 	parseShareParam,
 	parseStateParam,
 	type EQStateSnapshot,
+	type SampleDisplayState,
 	type URLState
 } from './url-state.js';
-import type { SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
 
 // ── URL Provider ─────────────────────────────────────────────────────────────
 
@@ -101,7 +102,8 @@ class URLProvider {
 
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
-		const { yScale, baseline, yOffsets, eq, sampleDisplay, hptfDisplay } = this.#stateFromURL;
+		const { yScale, baseline, yOffsets, eq } = this.#stateFromURL;
+		const sampleDisplay = normalizeSampleDisplay(this.#stateFromURL);
 
 		if (yScale != null) graphStore.yScale = yScale;
 
@@ -135,25 +137,16 @@ class URLProvider {
 			}
 		}
 
-		if (sampleDisplay) {
-			for (const [uuid, data] of frStore.entries) {
-				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
-				if (key in sampleDisplay && data.samples) {
-					frStore.set(uuid, { ...data, dispSamples: sampleDisplay[key] });
-				}
-			}
-		}
-
-		if (hptfDisplay) {
-			for (const [uuid, data] of frStore.entries) {
-				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
-				if (key in hptfDisplay && data.hptf) {
-					frStore.set(uuid, {
-						...data,
-						dispHptf: hptfDisplay[key].keys as HpTFDisplayKey[],
-						hptfFillVisible: hptfDisplay[key].fill
-					});
-				}
+		for (const [uuid, data] of frStore.entries) {
+			const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+			const entry = sampleDisplay[key];
+			if (entry && data.samples) {
+				frStore.set(uuid, {
+					...data,
+					dispSamples: entry.keys,
+					showFill: entry.fill,
+					showAvg: entry.avg
+				});
 			}
 		}
 
@@ -206,25 +199,18 @@ class URLProvider {
 		}
 		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
 
-		const sampleDisplay: Record<string, SampleChannelKey[]> = {};
+		// Only the current shape is written. `hptfDisplay` is read on the way in
+		// (see normalizeSampleDisplay) and never emitted again.
+		const sampleDisplay: Record<string, SampleDisplayState> = {};
 		for (const [, data] of frStore.entries) {
-			if (data.dispSamples && data.dispSamples.length > 0) {
-				sampleDisplay[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.dispSamples;
-			}
+			if (!data.samples?.length) continue;
+			sampleDisplay[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = {
+				keys: data.dispSamples ?? [],
+				fill: data.showFill ?? false,
+				avg: data.showAvg ?? true
+			};
 		}
 		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
-
-		const hptfDisplay: Record<string, { keys: HpTFDisplayKey[]; fill: boolean }> = {};
-		for (const [, data] of frStore.entries) {
-			if (data.hptf) {
-				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
-				hptfDisplay[key] = {
-					keys: data.dispHptf ?? [],
-					fill: data.hptfFillVisible ?? false
-				};
-			}
-		}
-		if (Object.keys(hptfDisplay).length) stateData.hptfDisplay = hptfDisplay;
 
 		if (eq && eq.filters.length > 0) stateData.eq = eq;
 

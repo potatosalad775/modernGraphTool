@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import type { FRDataObject, SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
+	import type { FRDataObject, SampleDisplayKey } from '$lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { Ellipsis } from '@lucide/svelte';
@@ -47,32 +47,26 @@
 		return opt ? opt.label : val;
 	});
 
-	// ── Sample state ────────────────────────────────────────────────────────────
+	// ── Sample-set state ────────────────────────────────────────────────────────
 
-	let hasSamples = $derived((item.sampleCount ?? 0) > 0);
-	let sampleCount = $derived(item.sampleCount ?? 0);
-
-	/** All possible sample channel keys for this item */
-	let allSampleKeys = $derived.by((): SampleChannelKey[] => {
-		const keys: SampleChannelKey[] = [];
-		for (let i = 1; i <= sampleCount; i++) {
-			keys.push(`L${i}` as SampleChannelKey);
-			keys.push(`R${i}` as SampleChannelKey);
-		}
-		return keys;
-	});
-
-	/** Currently displayed sample keys */
+	let samples = $derived(item.samples ?? []);
+	let hasSamples = $derived(samples.length > 0);
 	let dispSamples = $derived(item.dispSamples ?? []);
+	let showFill = $derived(item.showFill ?? false);
+	let showAvg = $derived(item.showAvg ?? true);
+	/** A single run has no spread to fill, so the toggle would do nothing. */
+	let canFill = $derived(samples.length > 1);
 
-	// ── HpTF state ──────────────────────────────────────────────────────────────
+	/** Which channels a given run actually loaded. */
+	function runChannels(index: number): ('L' | 'R' | 'AVG')[] {
+		const sample = samples[index];
+		if (!sample) return [];
+		return (['L', 'R', 'AVG'] as const).filter((ch) => sample[ch]);
+	}
 
-	let hasHptf = $derived(!!item.hptf);
-	let hptfFillOnly = $derived(item.hptf?.fillOnly ?? true);
-	let hptfSamples = $derived(item.hptf?.samples ?? []);
-	let dispHptf = $derived(item.dispHptf ?? []);
-	let hptfFillVisible = $derived(item.hptfFillVisible ?? false);
-	let hptfAvgVisible = $derived(item.hptfAvgVisible ?? false);
+	function runLabel(index: number): string {
+		return samples[index]?.label ?? `${m.selection_list_samples_run()} ${index + 1}`;
+	}
 
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -80,91 +74,54 @@
 		dataProvider.updateDisplayChannel(uuid, selectValueToDispChannel(value));
 	}
 
-	function handleSampleToggle(key: SampleChannelKey): void {
+	/**
+	 * Toggle one channel of one run.
+	 *
+	 * The old HpTF control emitted `sample{n}_AVG` unconditionally, so an
+	 * individual sample curve was always the L/R mean no matter which channel the
+	 * user wanted. The renderer has always understood all three suffixes — the
+	 * UI just never produced them.
+	 */
+	function handleSampleToggle(key: SampleDisplayKey): void {
 		const current = [...dispSamples];
 		const idx = current.indexOf(key);
-		if (idx >= 0) {
-			current.splice(idx, 1);
-		} else {
-			current.push(key);
-		}
+		if (idx >= 0) current.splice(idx, 1);
+		else current.push(key);
 		dataProvider.updateSampleDisplay(uuid, current);
 	}
 
+	function keysFor(channels: ('L' | 'R' | 'AVG')[]): SampleDisplayKey[] {
+		const keys: SampleDisplayKey[] = [];
+		samples.forEach((_, i) => {
+			for (const ch of channels) {
+				if (samples[i]?.[ch]) keys.push(`sample${i}_${ch}` as SampleDisplayKey);
+			}
+		});
+		return keys;
+	}
+
 	function handlePreset(preset: 'allL' | 'allR' | 'all' | 'none'): void {
-		let next: SampleChannelKey[] = [];
-		switch (preset) {
-			case 'allL':
-				next = allSampleKeys.filter((k) => k.startsWith('L'));
-				break;
-			case 'allR':
-				next = allSampleKeys.filter((k) => k.startsWith('R'));
-				break;
-			case 'all':
-				next = [...allSampleKeys];
-				break;
-			case 'none':
-				next = [];
-				break;
-		}
+		const next: SampleDisplayKey[] =
+			preset === 'allL'
+				? keysFor(['L'])
+				: preset === 'allR'
+					? keysFor(['R'])
+					: preset === 'all'
+						? keysFor(['L', 'R', 'AVG'])
+						: [];
 		dataProvider.updateSampleDisplay(uuid, next);
 	}
 
-	function isSampleChecked(key: SampleChannelKey): boolean {
+	function isSampleChecked(key: SampleDisplayKey): boolean {
 		return dispSamples.includes(key);
 	}
 
-	// ── HpTF handlers ───────────────────────────────────────────────────────────
-
-	function handleHptfFillToggle(): void {
-		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], !hptfFillVisible, hptfAvgVisible);
+	function handleFillToggle(): void {
+		dataProvider.updateSampleDisplay(uuid, [...dispSamples], !showFill, showAvg);
 	}
 
-	function handleHptfAvgToggle(): void {
-		dataProvider.updateHpTFDisplay(uuid, [...dispHptf], hptfFillVisible, !hptfAvgVisible);
-	}
-
-	function handleHptfSampleToggle(sampleIndex: number): void {
-		const current = [...dispHptf];
-		// Find keys matching this sample (could be sample0_AVG, sample0_L, sample0_R)
-		const samplePrefix = `sample${sampleIndex}_`;
-		const existingKeys = current.filter((k) => k.startsWith(samplePrefix));
-
-		if (existingKeys.length > 0) {
-			// Remove all keys for this sample
-			const next = current.filter((k) => !k.startsWith(samplePrefix));
-			dataProvider.updateHpTFDisplay(uuid, next, hptfFillVisible, hptfAvgVisible);
-		} else {
-			// Add AVG key for this sample (or L if no AVG)
-			const sample = item.hptf?.samples[sampleIndex];
-			if (sample) {
-				const key = sample.AVG
-					? `sample${sampleIndex}_AVG`
-					: sample.L
-						? `sample${sampleIndex}_L`
-						: `sample${sampleIndex}_R`;
-				current.push(key as HpTFDisplayKey);
-				dataProvider.updateHpTFDisplay(uuid, current, hptfFillVisible, hptfAvgVisible);
-			}
-		}
-	}
-
-	function handleHptfPreset(preset: 'all' | 'none'): void {
-		if (preset === 'none') {
-			dataProvider.updateHpTFDisplay(uuid, [], hptfFillVisible, hptfAvgVisible);
-		} else {
-			const keys: HpTFDisplayKey[] = [];
-			item.hptf?.samples.forEach((sample, i) => {
-				if (sample.AVG) keys.push(`sample${i}_AVG` as HpTFDisplayKey);
-				else if (sample.L) keys.push(`sample${i}_L` as HpTFDisplayKey);
-				else if (sample.R) keys.push(`sample${i}_R` as HpTFDisplayKey);
-			});
-			dataProvider.updateHpTFDisplay(uuid, keys, hptfFillVisible, hptfAvgVisible);
-		}
-	}
-
-	function isHptfSampleChecked(sampleIndex: number): boolean {
-		return dispHptf.some((k) => k.startsWith(`sample${sampleIndex}_`));
+	function handleAvgToggle(): void {
+		dataProvider.updateSampleDisplay(uuid, [...dispSamples], showFill, !showAvg);
 	}
 </script>
 
@@ -209,28 +166,70 @@
 				{/each}
 			</fieldset>
 
-			<!-- Section 2: Sample Traces (checkboxes) -->
+			<!-- Section 2: Sample set — one section for every kind of set -->
 			{#if hasSamples}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
 					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
-						{m.selection_list_samples_header()} ({sampleCount})
+						{m.selection_list_samples_header()} ({samples.length})
 					</p>
 
-					<!-- Sample checkboxes -->
-					<div class="grid grid-cols-2 gap-0">
-						{#each allSampleKeys as key (key)}
-							<label
-								class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-									 hover:bg-base-300"
-							>
-								<input
-									type="checkbox"
-									checked={isSampleChecked(key)}
-									onchange={() => handleSampleToggle(key)}
-									class="accent-accent"
-								/>
-								{key}
-							</label>
+					<!-- Averaged curve -->
+					<label
+						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+							 hover:bg-base-300"
+					>
+						<input
+							type="checkbox"
+							checked={showAvg}
+							onchange={handleAvgToggle}
+							class="accent-accent"
+						/>
+						{m.selection_list_samples_avg_toggle()}
+					</label>
+
+					<!-- Deviation fill -->
+					{#if canFill}
+						<label
+							class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
+								 hover:bg-base-300"
+						>
+							<input
+								type="checkbox"
+								checked={showFill}
+								onchange={handleFillToggle}
+								class="accent-accent"
+							/>
+							{m.selection_list_samples_fill_toggle()}
+						</label>
+					{/if}
+
+					<!-- One row per run, with a checkbox per channel that run loaded -->
+					<div class="mt-1 flex flex-col gap-0.5">
+						{#each samples as _sample, i (i)}
+							{@const channels = runChannels(i)}
+							{#if channels.length > 0}
+								<div class="flex items-center justify-between gap-2 px-1.5">
+									<span class="truncate text-xs text-base-content/80">{runLabel(i)}</span>
+									<div class="flex shrink-0 gap-1.5">
+										{#each channels as ch (ch)}
+											{@const key = `sample${i}_${ch}` as SampleDisplayKey}
+											<label
+												class="flex cursor-pointer items-center gap-0.5 rounded px-1 text-xs
+													hover:bg-base-300"
+											>
+												<input
+													type="checkbox"
+													aria-label="{runLabel(i)} {ch}"
+													checked={isSampleChecked(key)}
+													onchange={() => handleSampleToggle(key)}
+													class="accent-accent"
+												/>
+												{ch}
+											</label>
+										{/each}
+									</div>
+								</div>
+							{/if}
 						{/each}
 					</div>
 
@@ -275,83 +274,6 @@
 							{m.selection_list_samples_none()}
 						</Button>
 					</div>
-				</div>
-			{/if}
-
-			<!-- Section 3: HpTF Samples -->
-			{#if hasHptf}
-				<div class="mt-2 border-t border-base-content/8 pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
-						{m.selection_list_hptf_header()}
-					</p>
-
-					<!-- Fill toggle -->
-					<label
-						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							 hover:bg-base-300"
-					>
-						<input
-							type="checkbox"
-							checked={hptfFillVisible}
-							onchange={handleHptfFillToggle}
-							class="accent-accent"
-						/>
-						{m.selection_list_hptf_fill_toggle()}
-					</label>
-
-					<!-- Average toggle -->
-					<label
-						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5 text-xs
-							 hover:bg-base-300"
-					>
-						<input
-							type="checkbox"
-							checked={hptfAvgVisible}
-							onchange={handleHptfAvgToggle}
-							class="accent-accent"
-						/>
-						{m.selection_list_hptf_avg_toggle()}
-					</label>
-
-					<!-- Sample checkboxes: only when fillOnly is false -->
-					{#if !hptfFillOnly && hptfSamples.length > 0}
-						{#each hptfSamples as sample, i (i)}
-							<label
-								class="ml-2 flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-0.5
-									text-xs hover:bg-base-300"
-							>
-								<input
-									type="checkbox"
-									checked={isHptfSampleChecked(i)}
-									onchange={() => handleHptfSampleToggle(i)}
-									class="accent-accent"
-								/>
-								{sample.label}
-							</label>
-						{/each}
-
-						<!-- Preset buttons -->
-						<div class="mt-1.5 flex gap-1 px-0.5">
-							<Button
-								title={m.selection_list_hptf_all()}
-								onclick={() => handleHptfPreset('all')}
-								variant="muted"
-								size="sm"
-								class="flex-1"
-							>
-								{m.selection_list_hptf_all()}
-							</Button>
-							<Button
-								title={m.selection_list_hptf_none()}
-								onclick={() => handleHptfPreset('none')}
-								variant="muted"
-								size="sm"
-								class="flex-1"
-							>
-								{m.selection_list_hptf_none()}
-							</Button>
-						</div>
-					{/if}
 				</div>
 			{/if}
 		</Popover.Content>

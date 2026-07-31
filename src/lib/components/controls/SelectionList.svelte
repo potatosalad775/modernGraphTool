@@ -216,9 +216,9 @@
 										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span
 										>
 									{/if}
-									{#if item.hptfFillVisible && item.hptf?.description}
+									{#if item.showFill && item.sampleDescription}
 										<span class="truncate text-xs text-base-content/50"
-											>{item.hptf.description}</span
+											>{item.sampleDescription}</span
 										>
 									{/if}
 								</div>
@@ -272,8 +272,8 @@
 						{#if item.adjustmentLabel}
 							<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
 						{/if}
-						{#if item.hptfFillVisible && item.hptf?.description}
-							<span class="truncate text-xs text-base-content/50">{item.hptf.description}</span>
+						{#if item.showFill && item.sampleDescription}
+							<span class="truncate text-xs text-base-content/50">{item.sampleDescription}</span>
 						{/if}
 					</div>
 				{/if}
@@ -356,7 +356,7 @@
 				<div class="flex flex-wrap items-center justify-end gap-3">
 					<!-- Channel select (not for targets) -->
 					{#if !isTarget(item) && channelOpts.length > 0}
-						{#if (item.sampleCount && item.sampleCount > 0) || item.hptf}
+						{#if item.samples?.length}
 							<SampleChannelSelector {uuid} {item} />
 						{:else}
 							<select

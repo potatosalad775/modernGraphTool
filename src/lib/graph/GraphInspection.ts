@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import type { FRDataPoint } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { curveBaseName, curveDisplayName } from './curve-label.js';
+import { curveDisplayName, sampleKeyParts } from './curve-label.js';
 
 /** How far the mouse tracker extends past the plot edges, in viewBox units.
  *  There are 15 units of margin on each side, so this stays inside the SVG. */
@@ -187,29 +187,30 @@ class GraphInspection {
 					yOffset += lineHeight;
 				});
 
-				// Sample trace values
+				// Per-run values from the sample set. Reads `dispSamples` for every
+				// item that has one — before the two sample concepts were unified,
+				// this branch only saw multi-sample items, so hovering never
+				// reported a run from an HpTF-style set.
 				if (obj.samples && obj.dispSamples?.length) {
 					for (const key of obj.dispSamples) {
-						const match = key.match(/^([LR])(\d+)$/);
-						if (!match) continue;
-						const side = match[1] as 'L' | 'R';
-						const sampleIndex = parseInt(match[2]) - 1;
-						const sample = obj.samples[sampleIndex];
-						const sampleData = sample?.[side]?.data;
+						const parts = sampleKeyParts(obj, key);
+						if (!parts) continue;
+						const sampleData = obj.samples[parts.index]?.[parts.channel]?.data;
 						if (!sampleData) continue;
 
 						const splValue = this._interpolateSPL(sampleData, frequency);
 						if (splValue === null) continue;
 
 						const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
-						const displayText = `  ${curveBaseName(obj)} (${key}): ${compensatedSPL.toFixed(1)}dB`;
+						const name = curveDisplayName(obj, parts.channel, parts.label);
+						const displayText = `  ${name}: ${compensatedSPL.toFixed(1)}dB`;
 
 						deviceListData.push({
 							displayText,
 							textWidth: 0,
 							color:
 								obj.colors.samples?.[key] ||
-								obj.colors[side] ||
+								obj.colors[parts.channel] ||
 								obj.colors.AVG ||
 								'var(--color-base-content)',
 							yOffset

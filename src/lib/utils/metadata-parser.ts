@@ -6,10 +6,20 @@ import type {
 	TargetManifestEntry,
 	RawBrandData,
 	RawPhoneData,
+	RawSampleSet,
+	RawVariant,
 	PhoneFileReference,
-	PhoneFileVariant
+	PhoneFileVariant,
+	SampleDisplayMode
 } from '$lib/types/data-types.js';
 import { getConfigValue } from './config.js';
+import {
+	defaultSampleCount,
+	defaultSampleDisplay,
+	legacyHptfDisplay,
+	legacyMultiSampleDisplay,
+	normalizeDisplayModes
+} from './sample-config.js';
 
 /**
  * Metadata Parser for phone and target data
@@ -181,6 +191,7 @@ const MetadataParser = {
 
 			const b = brand as Partial<RawBrandData>;
 			const brandName = [b.name, b.suffix].filter(Boolean).join(' ');
+			const brandDefaults = this._normalizeSampleSet(b.defaultSamples);
 
 			if (!brandName) {
 				console.warn(
@@ -244,64 +255,19 @@ const MetadataParser = {
 				const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
 				const identifier = brandName + ' ' + baseName;
 
-				// Build regular FR variants from file[] / file.
-				const fileVariants: PhoneFileVariant[] = phone.file
-					? Array.isArray(phone.file)
-						? phone.file.map((file, index) => ({
-								suffix: this._getSuffix(phone, index),
-								fullName: (brandName + ' ' + baseName + ' ' + this._getSuffix(phone, index)).trim(),
-								files: { L: `${file} L.txt`, R: `${file} R.txt` },
-								fileName: file,
-								...(phone.samples && {
-									sampleFiles: this._generateSampleFiles(file, phone.samples),
-									sampleCount: phone.samples
-								})
-							}))
-						: [
-								{
-									suffix: this._getSuffix(phone, 0),
-									fullName: (brandName + ' ' + baseName + ' ' + this._getSuffix(phone, 0)).trim(),
-									files: {
-										L: `${phone.file} L.txt`,
-										R: `${phone.file} R.txt`
-									},
-									fileName: (phone.file as string) || baseName,
-									...(phone.samples && {
-										sampleFiles: this._generateSampleFiles(
-											(phone.file as string) || baseName,
-											phone.samples
-										),
-										sampleCount: phone.samples
-									})
-								}
-							]
-					: [];
-
-				// Build HpTF-only variants from hptfs[]. Each entry becomes its own
-				// independent variant alongside any regular file variants.
-				const hptfVariants: PhoneFileVariant[] = (phone.hptfs ?? []).map((entry) => {
-					const entrySuffix = entry.suffix ?? '';
-					const placeholderFile = entry.files[0];
-					return {
-						suffix: entrySuffix,
-						fullName: (brandName + ' ' + baseName + ' ' + entrySuffix).trim(),
-						// Placeholder main-channel files — unused when hptfOnly is true,
-						// but the field is required by the PhoneFileVariant type.
-						files: { L: `${placeholderFile} L.txt`, R: `${placeholderFile} R.txt` },
-						fileName: placeholderFile,
-						hptfFiles: this._generateHpTFFiles(entry.files),
-						hptfLabels: entry.labels ?? entry.files,
-						hptfFillOnly: entry.fillOnly ?? true,
-						hptfDescription: entry.description,
-						hptfOnly: true
-					};
-				});
+				// `variants[]` is precedence, not merging: when it's present the terse
+				// phone-level form (file/suffix/prefix/samples/hptfs) is ignored entirely.
+				// Both branches emit the same PhoneFileVariant[], so nothing downstream
+				// can tell which form was authored.
+				const files = Array.isArray(phone.variants)
+					? this._parseVariants(brandName, baseName, phone.variants, brandDefaults)
+					: this._parseLegacyVariants(brandName, baseName, phone);
 
 				phoneEntries.push({
 					...basePhone,
 					name: baseName,
 					identifier,
-					files: [...fileVariants, ...hptfVariants]
+					files
 				});
 			});
 
@@ -329,8 +295,144 @@ const MetadataParser = {
 			});
 	},
 
-	/** Generate HpTF sample file references */
-	_generateHpTFFiles(fileNames: string[]): PhoneFileReference[] {
+	// ── Variant parsing ───────────────────────────────────────────────────────
+
+	/** Normalize the number shorthand so only one shape flows onward. */
+	_normalizeSampleSet(raw: number | RawSampleSet | undefined | null): RawSampleSet | null {
+		if (raw == null) return null;
+		if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? { count: raw } : null;
+		if (typeof raw !== 'object' || Array.isArray(raw)) return null;
+		return raw;
+	},
+
+	/**
+	 * Resolve a variant's run count and display set.
+	 *
+	 * Count:   `variant.samples.count` → `brand.defaultSamples` → `SAMPLES.DEFAULT_COUNT` → 1
+	 * Display: `variant.samples.display` → `brand.defaultSamples.display` → `SAMPLES.DEFAULT_DISPLAY`
+	 */
+	_resolveSampleDefaults(
+		raw: RawSampleSet | null,
+		brandDefaults: RawSampleSet | null
+	): { count: number; display: SampleDisplayMode[] } {
+		const count =
+			raw?.count ?? brandDefaults?.count ?? (raw?.files ? raw.files.length : defaultSampleCount());
+		const display =
+			normalizeDisplayModes(raw?.display) ??
+			normalizeDisplayModes(brandDefaults?.display) ??
+			defaultSampleDisplay();
+		return { count, display };
+	},
+
+	/**
+	 * Build variants from the explicit `variants[]` form.
+	 *
+	 * A variant is a sample set when it declares `samples.files`, or when the
+	 * resolved run count is above 1. Anything else is an ordinary L/R pair.
+	 */
+	_parseVariants(
+		brandName: string,
+		baseName: string,
+		variants: RawVariant[],
+		brandDefaults: RawSampleSet | null
+	): PhoneFileVariant[] {
+		return variants
+			.filter((v): v is RawVariant => typeof v === 'object' && v !== null && !Array.isArray(v))
+			.map((entry) => {
+				const suffix = (entry.suffix ?? '').trim();
+				const raw = this._normalizeSampleSet(entry.samples);
+				const { count, display } = this._resolveSampleDefaults(raw, brandDefaults);
+
+				const explicitFiles = Array.isArray(raw?.files) ? raw.files : null;
+				const fileName = entry.file ?? explicitFiles?.[0] ?? baseName;
+
+				const variant: PhoneFileVariant = {
+					suffix,
+					fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
+					fileName
+				};
+
+				// The main L/R pair only exists when the operator named a file. A set
+				// declared purely through `samples.files` has no unnumbered pair to
+				// fetch — its main curve is the average across runs.
+				if (entry.file || !explicitFiles) {
+					variant.files = { L: `${fileName} L.txt`, R: `${fileName} R.txt` };
+				}
+
+				if (explicitFiles) {
+					variant.sampleFiles = this._generateExplicitSampleFiles(explicitFiles);
+					variant.sampleLabels = raw?.labels ?? explicitFiles;
+				} else if (count > 1 || (raw?.count ?? 0) > 0) {
+					// An explicit `count` — even `1` — declares the numbered-file layout.
+					// A count of 1 arriving only from a default is just "no sample set".
+					variant.sampleFiles = this._generateSampleFiles(fileName, count);
+					if (raw?.labels) variant.sampleLabels = raw.labels;
+				}
+
+				if (variant.sampleFiles) {
+					variant.sampleDisplay = display;
+					if (raw?.description) variant.sampleDescription = raw.description;
+				}
+
+				return variant;
+			});
+	},
+
+	/**
+	 * Build variants from the terse legacy form: `file[]`/`suffix[]`/`prefix` with
+	 * an optional phone-level `samples: N`, plus one variant per `hptfs[]` entry.
+	 *
+	 * Read permanently, not just for migration — cross-site search crawls other
+	 * sites' CrinGraph-format phone books, which only ever speak this dialect.
+	 */
+	_parseLegacyVariants(
+		brandName: string,
+		baseName: string,
+		phone: RawPhoneData
+	): PhoneFileVariant[] {
+		const sampleCount = phone.samples;
+		const multiSampleDisplay = legacyMultiSampleDisplay();
+
+		const buildFileVariant = (file: string, index: number): PhoneFileVariant => {
+			const suffix = this._getSuffix(phone, index);
+			const variant: PhoneFileVariant = {
+				suffix,
+				fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
+				files: { L: `${file} L.txt`, R: `${file} R.txt` },
+				fileName: file
+			};
+			if (sampleCount && sampleCount > 0) {
+				variant.sampleFiles = this._generateSampleFiles(file, sampleCount);
+				variant.sampleDisplay = multiSampleDisplay;
+			}
+			return variant;
+		};
+
+		const fileVariants: PhoneFileVariant[] = phone.file
+			? Array.isArray(phone.file)
+				? phone.file.map(buildFileVariant)
+				: [buildFileVariant((phone.file as string) || baseName, 0)]
+			: [];
+
+		// Each hptfs[] entry becomes its own variant alongside the file variants.
+		const hptfVariants: PhoneFileVariant[] = (phone.hptfs ?? []).map((entry) => {
+			const suffix = entry.suffix ?? '';
+			return {
+				suffix,
+				fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
+				fileName: entry.files[0],
+				sampleFiles: this._generateExplicitSampleFiles(entry.files),
+				sampleLabels: entry.labels ?? entry.files,
+				sampleDisplay: legacyHptfDisplay(entry.fillOnly ?? true),
+				...(entry.description && { sampleDescription: entry.description })
+			};
+		});
+
+		return [...fileVariants, ...hptfVariants];
+	},
+
+	/** Sample file references from explicit base filenames */
+	_generateExplicitSampleFiles(fileNames: string[]): PhoneFileReference[] {
 		return fileNames.map((f) => ({
 			L: `${f} L.txt`,
 			R: `${f} R.txt`

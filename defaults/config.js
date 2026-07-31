@@ -160,15 +160,20 @@ const CONFIG = {
 	//    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
 	//    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
 	//  ],
-	// Multi-Sample Measurement Settings
-	MULTI_SAMPLE: {
-		DEFAULT_DISPLAY: 'average' // ("average" or "all") - default sample display on load
-	},
-	// HpTF (Headphone Transfer Function) Sample Deviation Settings
-	HPTF: {
-		DEFAULT_DISPLAY: 'fill+curves', // ("fill", "fill+curves", "curves", "none") - default HpTF display on load
+	// Sample Set Settings
+	// A "sample set" is a variant measured more than once — repeat runs, pad
+	// swaps, seating positions. See phone_book.json's `variants[].samples`.
+	SAMPLES: {
+		DEFAULT_COUNT: 1, // Runs per variant when the phone book declares none
+		DEFAULT_DISPLAY: ['avg'], // Any of 'avg' (averaged line), 'curves' (per-run), 'fill' (min/max band)
 		FILL_OPACITY: 0.3 // Opacity of the deviation fill area (0-1)
 	},
+	// DEPRECATED — superseded by SAMPLES above, but still read as a fallback so
+	// existing config.js files keep working. Delete them once SAMPLES is set.
+	//   MULTI_SAMPLE.DEFAULT_DISPLAY: 'average' -> ['avg'], 'all' -> ['avg','curves']
+	//   HPTF.DEFAULT_DISPLAY / HPTF.FILL_OPACITY map onto SAMPLES the same way.
+	// MULTI_SAMPLE: { DEFAULT_DISPLAY: 'average' },
+	// HPTF: { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 },
 	// Graph Trace Styling
 	TRACE_STYLING: {
 		PHONE_TRACE_THICKNESS: 2,

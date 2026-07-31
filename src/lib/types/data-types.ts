@@ -30,58 +30,50 @@ export interface ParsedFRData {
 export interface RawFRCache {
 	channels: ParsedFRData;
 	samples?: SampleData[];
-	sampleCount?: number;
-	hptfSamples?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
-	hptfLabels?: string[];
-	hptfOnly?: boolean;
-	hptfFillOnly?: boolean;
+	sampleLabels?: string[];
+	sampleDisplay?: SampleDisplayMode[];
+	sampleDescription?: string;
 }
 
-/** A single measurement sample containing L and R channels */
+// ── Sample sets ───────────────────────────────────────────────────────────────
+
+/**
+ * One measurement run inside a sample set. `label` is optional curator metadata;
+ * `AVG` is derived from L and R by the processing pipeline, not fetched.
+ */
 export interface SampleData {
-	L?: ChannelData;
-	R?: ChannelData;
-}
-
-/** Display channel key for multi-sample mode */
-export type SampleChannelKey = 'L' | 'R' | 'AVG' | `L${number}` | `R${number}`;
-
-// ── HpTF (Headphone Transfer Function) ──────────────────────────────────────
-
-/** Single HpTF measurement sample */
-export interface HpTFSampleData {
-	label: string;
+	label?: string;
 	L?: ChannelData;
 	R?: ChannelData;
 	AVG?: ChannelData;
 }
 
-/** Min/max envelope computed across all HpTF samples */
-export interface HpTFEnvelope {
+/** Min/max envelope computed across every run in a sample set */
+export interface SampleEnvelope {
 	upper: FRDataPoint[];
 	lower: FRDataPoint[];
 }
 
-/** Complete HpTF data attached to an FRDataObject */
-export interface HpTFData {
-	samples: HpTFSampleData[];
-	envelope: Record<'L' | 'R' | 'AVG', HpTFEnvelope>;
-	labels: string[];
-	/** When true, only the fill envelope is shown — no individual sample curve toggles. Default: true. */
-	fillOnly: boolean;
-	/** Curator-supplied label describing what the deviation represents (e.g. "(Positional Variance)"). */
-	description?: string;
-}
+/**
+ * How a sample set is drawn. A set, not an enum — `['avg','fill']` is an
+ * averaged line with a variance band around it.
+ *
+ *  - `avg`    — draw the averaged main channels
+ *  - `curves` — expose per-run curves (seeds `dispSamples`)
+ *  - `fill`   — draw the min/max envelope as a filled band
+ */
+export type SampleDisplayMode = 'avg' | 'curves' | 'fill';
 
-/** Display key for HpTF sample curves, e.g. "sample0_AVG", "sample1_L" */
-export type HpTFDisplayKey = `sample${number}_${'L' | 'R' | 'AVG'}`;
+/** Display key for one run's curve, e.g. "sample0_AVG", "sample1_L".
+ *  Zero-based to match the keys already present in legacy `?state=` URLs. */
+export type SampleDisplayKey = `sample${number}_${'L' | 'R' | 'AVG'}`;
 
 /** Color scheme for frequency response traces */
 export interface FRColors {
 	L?: string;
 	R?: string;
 	AVG: string;
-	/** Colors for individual sample traces, keyed by SampleChannelKey like 'L1', 'R2' */
+	/** Colors for individual sample traces, keyed by SampleDisplayKey like 'sample0_L' */
 	samples?: Record<string, string>;
 }
 
@@ -104,22 +96,18 @@ export interface FRDataObject {
 	meta?: PhoneMetadata | TargetMetadata;
 	hidden?: boolean;
 	yOffset?: number;
-	/** Multi-sample data. If present, `channels` holds the computed averages. */
+	/** Sample set. If present, `channels` holds the computed averages across runs. */
 	samples?: SampleData[];
-	/** Which sample traces to display (independent of dispChannel). */
-	dispSamples?: SampleChannelKey[];
-	/** Number of samples (derived from samples.length). */
-	sampleCount?: number;
-	/** HpTF deviation data. If present, deviation fill can be rendered. */
-	hptf?: HpTFData;
-	/** Which individual HpTF sample curves to display. */
-	dispHptf?: HpTFDisplayKey[];
-	/** Whether the HpTF deviation fill area is visible. */
-	hptfFillVisible?: boolean;
-	/** Whether the HpTF average curve (mean of all samples) is visible. */
-	hptfAvgVisible?: boolean;
-	/** When true, main channels are not drawn (HpTF-only mode, no file field in phone_book). */
-	hptfOnly?: boolean;
+	/** Which individual sample curves to display (independent of dispChannel). */
+	dispSamples?: SampleDisplayKey[];
+	/** Whether the averaged main channels are drawn. Absent means "yes" (plain curve). */
+	showAvg?: boolean;
+	/** Whether the min/max envelope fill is drawn. */
+	showFill?: boolean;
+	/** Min/max envelope across the set, per channel. Present when the set can be filled. */
+	envelope?: Record<'L' | 'R' | 'AVG', SampleEnvelope>;
+	/** Curator caption describing what the set's deviation represents. */
+	sampleDescription?: string;
 	/** Cached raw (unsmoothed, unnormalized) data for re-smoothing without re-fetching. */
 	_rawData?: RawFRCache;
 }
@@ -160,25 +148,48 @@ export interface PhoneFileReference {
 export interface PhoneFileVariant {
 	suffix: string;
 	fullName: string;
-	files: PhoneFileReference;
+	/** Main L/R pair. Absent on variants that are a sample set with no `file` of
+	 *  their own — the averaged runs are the main curve there. */
+	files?: PhoneFileReference;
 	fileName: string;
-	/** Per-sample file references for multi-sample measurements */
+	/** Per-run file references. Present only when this variant is a sample set. */
 	sampleFiles?: PhoneFileReference[];
-	/** Number of samples for this variant */
-	sampleCount?: number;
-	/** HpTF sample file references */
-	hptfFiles?: PhoneFileReference[];
-	/** Human-readable labels for each HpTF sample */
-	hptfLabels?: string[];
-	/** True when file was omitted — main curve should not render */
-	hptfOnly?: boolean;
-	/** When true, only fill envelope is shown — no individual sample curve toggles. Default: true. */
-	hptfFillOnly?: boolean;
-	/** Optional curator description shown with the fill envelope. */
-	hptfDescription?: string;
+	/** Human-readable label per run, same length as sampleFiles. */
+	sampleLabels?: string[];
+	/** How the set is drawn. Seeds the runtime toggles; the user can change them. */
+	sampleDisplay?: SampleDisplayMode[];
+	/** Curator caption shown with the set (e.g. "(Positional Variance)"). */
+	sampleDescription?: string;
 }
 
-/** Single HpTF measurement set declared in phone_book.json */
+/**
+ * A sample set declared inside `variants[]`. A bare number is shorthand for
+ * `{ count: n }` and is normalized at the parser's entry point.
+ */
+export interface RawSampleSet {
+	/** Numbered-file convention: `{file} L1.txt`…`L{count}.txt`. */
+	count?: number;
+	/** Explicit base filenames, one per run (L/R derived by appending " L.txt"/" R.txt"). */
+	files?: string[];
+	/** Human-readable labels per run. Defaults to `files`, else "Sample {n}". */
+	labels?: string[];
+	/** Which of avg / curves / fill to draw. Defaults resolve through the config chain. */
+	display?: SampleDisplayMode[];
+	/** Curator caption shown under the device name (e.g. "(Positional Variance)"). */
+	description?: string;
+}
+
+/** One entry of the `variants[]` form — the explicit, per-variant schema. */
+export interface RawVariant {
+	/** Variant suffix shown in the device selector dropdown. */
+	suffix?: string;
+	/** Base filename for the main L/R pair. Optional when `samples.files` is given. */
+	file?: string;
+	/** Sample set for this variant. A number is shorthand for `{ count: n }`. */
+	samples?: number | RawSampleSet;
+}
+
+/** Single HpTF measurement set declared in phone_book.json (legacy schema) */
 export interface RawHpTFEntry {
 	/** Variant suffix shown in the device selector dropdown (e.g. "Leather Pad"). */
 	suffix?: string;
@@ -203,9 +214,14 @@ export interface RawPhoneData {
 	shopLink?: string;
 	price?: string;
 	description?: string;
-	/** Number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
+	/**
+	 * Explicit per-variant declarations. When present, `file` / `suffix` / `prefix` /
+	 * `samples` / `hptfs` at this level are ignored (precedence, not merging).
+	 */
+	variants?: RawVariant[];
+	/** Legacy: number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
 	samples?: number;
-	/** HpTF measurement sets. Each entry becomes its own variant in the selector. */
+	/** Legacy: HpTF measurement sets. Each entry becomes its own variant in the selector. */
 	hptfs?: RawHpTFEntry[];
 }
 
@@ -213,6 +229,8 @@ export interface RawPhoneData {
 export interface RawBrandData {
 	name: string;
 	suffix?: string;
+	/** Site-wide-per-brand default run count, used when a variant declares none. */
+	defaultSamples?: number | RawSampleSet;
 	phones: (string | RawPhoneData)[];
 }
 
@@ -378,13 +396,23 @@ export interface DescriptionConfig {
 	CONTENT: string;
 }
 
-/** Multi-sample configuration */
+/** Sample-set configuration */
+export interface SamplesConfig {
+	/** Site-wide default run count when a variant declares no sample set. */
+	DEFAULT_COUNT?: number;
+	/** Site-wide default display set when a sample set declares none. */
+	DEFAULT_DISPLAY?: SampleDisplayMode[];
+	/** Opacity of the deviation fill area (0-1) */
+	FILL_OPACITY?: number;
+}
+
+/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY`. */
 export interface MultiSampleConfig {
 	/** Default display mode: 'average' shows only averaged trace, 'all' shows all samples */
 	DEFAULT_DISPLAY: 'average' | 'all';
 }
 
-/** HpTF (Headphone Transfer Function) configuration */
+/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY` / `SAMPLES.FILL_OPACITY`. */
 export interface HpTFConfig {
 	/** Default display mode for HpTF items */
 	DEFAULT_DISPLAY: 'fill' | 'fill+curves' | 'curves' | 'none';
@@ -415,7 +443,10 @@ export interface AppConfig {
 	WATERMARK: WatermarkConfig[];
 	TARGET_MANIFEST: TargetManifestEntry[] | I18nConfigValue;
 	TRACE_STYLING: TraceStylingConfig;
+	SAMPLES?: SamplesConfig;
+	/** @deprecated superseded by SAMPLES */
 	MULTI_SAMPLE?: MultiSampleConfig;
+	/** @deprecated superseded by SAMPLES */
 	HPTF?: HpTFConfig;
 	TOPBAR: TopbarConfig;
 	DESCRIPTION: DescriptionConfig[] | I18nConfigValue;

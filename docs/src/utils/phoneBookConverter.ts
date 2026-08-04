@@ -299,9 +299,18 @@ function parsePhone(
 	// `variants[]` — the explicit form. Each entry is one variant, optionally
 	// carrying its own sample set.
 	if (Array.isArray(p.variants) && p.variants.length > 0) {
-		if (p.file !== undefined || p.suffix !== undefined || p.samples !== undefined) {
+		// All five phone-level keys are dropped, not just the three the warning
+		// used to name — `prefix` and `hptfs` disappear just as silently.
+		const shadowed = (['file', 'suffix', 'prefix', 'samples', 'hptfs'] as const).filter(
+			(key) => p[key] !== undefined
+		);
+		if (shadowed.length > 0) {
 			warnings.push(
-				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": "variants" takes precedence — the phone-level "file"/"suffix"/"samples" keys are ignored by modernGraphTool and will not be re-exported.`
+				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": "variants" takes precedence — the phone-level ${shadowed
+					.map((key) => `"${key}"`)
+					.join(
+						'/'
+					)} ${shadowed.length > 1 ? 'keys are' : 'key is'} ignored by modernGraphTool and will not be re-exported.`
 			);
 		}
 		const variants = p.variants.map((raw, entryIdx) =>

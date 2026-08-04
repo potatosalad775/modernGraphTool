@@ -279,12 +279,14 @@ export function SampleSetPhoneFields({ phone, onPatch }: FieldsProps): ReactNode
 									updateVariant(
 										index,
 										e.target.checked
-											? {
+											? // `rows` is what decides the mode on export, so `count` goes
+												// unused while named — keeping it means toggling the box
+												// twice doesn't silently rewrite the count the user entered.
+												{
 													rows: [
 														{ file: '', label: '' },
 														{ file: '', label: '' }
-													],
-													count: 0
+													]
 												}
 											: { rows: [], count: Math.max(variant.count, 2) }
 									)
@@ -357,7 +359,11 @@ export function SampleSetPhoneFields({ phone, onPatch }: FieldsProps): ReactNode
 										className={`${ceStyles.ceInput} ${ceStyles.ceInputSmall}`}
 										value={variant.count}
 										onChange={(e) =>
-											updateVariant(index, { count: Math.max(0, Number(e.target.value) || 0) })
+											// `min`/`max` only bound the spinner arrows — a typed or pasted
+											// number reaches state unclamped otherwise.
+											updateVariant(index, {
+												count: Math.min(20, Math.max(0, Number(e.target.value) || 0))
+											})
 										}
 									/>
 								</div>

@@ -12,6 +12,21 @@ const MODES: Array<{ value: DisplayMode; label: string; hint: string }> = [
 ];
 
 /**
+ * The `min`/`max` attributes only constrain the spinner arrows — a cleared field
+ * or a pasted value still reaches `onChange`, and whatever lands in state is what
+ * gets written to `config.js`. Both numeric fields are clamped here instead.
+ */
+const clampCount = (raw: string) => {
+	const n = Math.floor(Number(raw));
+	return Number.isFinite(n) ? Math.max(1, n) : 1;
+};
+
+const clampOpacity = (raw: string) => {
+	const n = Number(raw);
+	return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0.3;
+};
+
+/**
  * `SAMPLES` replaced the old `MULTI_SAMPLE` and `HPTF` sections. `display` is a
  * set rather than an enum, so the control is checkboxes: "averaged curve plus a
  * variance band" was one of the combinations neither old section could express.
@@ -37,15 +52,16 @@ export default function SamplesSection() {
 			learnMoreHref="./guide-for-admins/customize-page#samples"
 		>
 			<div className={styles.ceFieldGroup}>
-				<label className={styles.ceLabel}>
+				<label className={styles.ceLabel} htmlFor="samples-default-count">
 					Default Run Count
 					<span className={styles.ceLabelHint}>when a variant declares none</span>
 				</label>
 				<input
+					id="samples-default-count"
 					type="number"
 					className={styles.ceNumberInline}
 					value={state.SAMPLES?.DEFAULT_COUNT ?? 1}
-					onChange={(e) => set('DEFAULT_COUNT', Number(e.target.value))}
+					onChange={(e) => set('DEFAULT_COUNT', clampCount(e.target.value))}
 					min={1}
 					step={1}
 				/>
@@ -71,25 +87,28 @@ export default function SamplesSection() {
 			</div>
 
 			<div className={styles.ceFieldGroup}>
-				<label className={styles.ceLabel}>
+				<label className={styles.ceLabel} htmlFor="samples-fill-opacity">
 					Fill Opacity
 					<span className={styles.ceLabelHint}>0 - 1</span>
 				</label>
 				<div className={styles.ceRangeRow}>
 					<input
+						id="samples-fill-opacity-range"
 						type="range"
 						className={styles.ceRange}
 						min={0}
 						max={1}
 						step={0.05}
 						value={state.SAMPLES?.FILL_OPACITY ?? 0.3}
-						onChange={(e) => set('FILL_OPACITY', Number(e.target.value))}
+						onChange={(e) => set('FILL_OPACITY', clampOpacity(e.target.value))}
+						aria-label="Fill Opacity"
 					/>
 					<input
+						id="samples-fill-opacity"
 						type="number"
 						className={styles.ceNumberInline}
 						value={state.SAMPLES?.FILL_OPACITY ?? 0.3}
-						onChange={(e) => set('FILL_OPACITY', Number(e.target.value))}
+						onChange={(e) => set('FILL_OPACITY', clampOpacity(e.target.value))}
 						min={0}
 						max={1}
 						step={0.05}

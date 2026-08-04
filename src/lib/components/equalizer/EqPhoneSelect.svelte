@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
 
 	const sourceOptions = $derived.by(() => {
@@ -40,23 +37,6 @@
 			}
 			if (phones.length === 1) eqStore.sourcePhoneUUID = phones[0];
 		}
-	});
-
-	// Auto-pick a device-specific constraint preset when the source phone
-	// matches its `matchPhones` substrings. The store no-ops unless the
-	// current preset is `default`, so manual picks and connected hardware
-	// devices are respected.
-	$effect(() => {
-		const uuid = eqStore.sourcePhoneUUID;
-		if (!uuid) return;
-		const item = frStore.get(uuid);
-		if (!item) return;
-		// Source phone is the only intended dependency — the constraint/filter
-		// mutations below must not feed back into this effect.
-		untrack(() => {
-			const matched = eqConstraintsStore.applyPhoneMatch(item.identifier);
-			if (matched) eqCommands.reclampToActiveConstraint();
-		});
 	});
 </script>
 

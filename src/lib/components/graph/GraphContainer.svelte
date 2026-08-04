@@ -23,6 +23,9 @@
 	let svgEl = $state<SVGSVGElement | undefined>(undefined);
 
 	// ── FR Labels (Svelte-managed) ──────────────────────────────────────────
+	// Defaults match the layout modernGraphTool ships with, so `VISUALIZATION.LABEL`
+	// is optional in config.js. Offsets always apply as `x + RIGHT - LEFT` /
+	// `y + DOWN - UP`, whatever the anchor corner — they are not per-location.
 	const labelLocation = (getConfigValue('VISUALIZATION.LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
 	const labelFontSize = (getConfigValue('VISUALIZATION.LABEL.TEXT_SIZE') as string) || '14px';
 	const labelFontPx = parseInt(labelFontSize) || 14;
@@ -30,7 +33,7 @@
 	const labelLineHeight = labelFontPx + 8;
 	const labelBgPaddingX = 12;
 	const labelOffsetRight = parseInt(
-		(getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '0'
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.RIGHT') as string) || '44'
 	);
 	const labelOffsetLeft = parseInt(
 		(getConfigValue('VISUALIZATION.LABEL.POSITION.LEFT') as string) || '0'
@@ -39,7 +42,7 @@
 		(getConfigValue('VISUALIZATION.LABEL.POSITION.DOWN') as string) || '0'
 	);
 	const labelOffsetUp = parseInt(
-		(getConfigValue('VISUALIZATION.LABEL.POSITION.UP') as string) || '0'
+		(getConfigValue('VISUALIZATION.LABEL.POSITION.UP') as string) || '43'
 	);
 
 	interface LabelEntry {
@@ -204,20 +207,21 @@
 	const labelTransform = $derived(`translate(${labelData.startX}, ${labelData.startY})`);
 
 	// ── Baseline label (Svelte-managed) ─────────────────────────────────────
+	// As above, defaults match the shipped layout so the config block is optional.
 	const blLabelLoc =
-		(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'BOTTOM_LEFT';
-	const blFontSize = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '15px';
-	const blFontPx = parseInt(blFontSize) || 15;
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.LOCATION') as string) || 'TOP_LEFT';
+	const blFontSize = (getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_SIZE') as string) || '14px';
+	const blFontPx = parseInt(blFontSize) || 14;
 	const blFontWeight =
 		(getConfigValue('VISUALIZATION.BASELINE_LABEL.TEXT_WEIGHT') as string) || '500';
 	const blOffsetRight = parseInt(
-		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '0'
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.RIGHT') as string) || '44'
 	);
 	const blOffsetLeft = parseInt(
 		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.LEFT') as string) || '0'
 	);
 	const blOffsetDown = parseInt(
-		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '0'
+		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.DOWN') as string) || '39'
 	);
 	const blOffsetUp = parseInt(
 		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'

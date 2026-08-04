@@ -1,12 +1,15 @@
 /**
  * `EqOptionButton` is the constraint-preset picker: a popover with a search box
- * and two groups — the built-ins baked into the binary, and whatever device
- * profiles hydration merged in.
+ * and two groups — the built-ins baked into the binary, and the profile derived
+ * from a connected hardware device.
  *
- * `eqConstraintsStore.presets` is written directly rather than hydrated, so the
- * catalog under test doesn't depend on `eq-constraints.json` being reachable.
- * `reclampToActiveConstraint` is spied on: picking a preset must re-clamp the
- * live stack, but the clamping itself belongs to `eq-commands.spec.ts`.
+ * The picker is currently not rendered (see EqFilterList) — it comes back when
+ * a shared constraints service exists to supply device profiles. The component
+ * and this spec stay so it works the day it is re-enabled.
+ *
+ * `eqConstraintsStore.presets` is written directly to seed the catalog under
+ * test. `reclampToActiveConstraint` is spied on: picking a preset must re-clamp
+ * the live stack, but the clamping itself belongs to `eq-commands.spec.ts`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';

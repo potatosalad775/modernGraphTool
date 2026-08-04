@@ -31,10 +31,27 @@ export interface TargetAdjustment {
 	preset: string;
 }
 
+/**
+ * Filters offered when the operator doesn't specify `TARGET_CUSTOMIZER.FILTERS`.
+ *
+ * Kept to the four general-purpose controls. More specialized sets — the Harman
+ * 2025 MoA filters, say — are a deployment choice rather than a default, and
+ * ship as a commented example in `defaults/config.js`. Setting `FILTERS`
+ * replaces this list outright, so an operator adding one filter has to restate
+ * the ones they want to keep.
+ */
 const DEFAULT_FILTERS: TargetFilterDef[] = [
 	{ id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
 	{ id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
-	{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 }
+	{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 },
+	{ id: 'ear', name: 'Ear (dB)', type: 'PK', freq: 2750, q: 1 }
+];
+
+/** Presets offered when the operator doesn't specify `TARGET_CUSTOMIZER.FILTER_PRESET`. */
+const DEFAULT_FILTER_PRESETS: TargetFilterPreset[] = [
+	{ name: 'Harman 2013', filter: { bass: 6.6, treble: -1.4 } },
+	{ name: 'Harman 2015', filter: { bass: 6.6, treble: -3, ear: -1.8 } },
+	{ name: 'Harman 2018', filter: { bass: 4.8, treble: -4.4 } }
 ];
 
 const EMPTY_ADJUSTMENT: TargetAdjustment = Object.freeze({
@@ -70,7 +87,7 @@ class TargetAdjustmentStore {
 	#configLoaded = false;
 	#customizableTargets: string[] = [];
 	#availableFilters: TargetFilterDef[] = DEFAULT_FILTERS;
-	#filterPresets: TargetFilterPreset[] = [];
+	#filterPresets: TargetFilterPreset[] = DEFAULT_FILTER_PRESETS;
 	#initialFilters: { name: string; filter: Record<string, number> }[] = [];
 
 	// ── Config ────────────────────────────────────────────────────────────────
@@ -90,7 +107,7 @@ class TargetAdjustmentStore {
 
 		this.#customizableTargets = (cfg?.CUSTOMIZABLE_TARGETS ?? []).map(normalizeTargetName);
 		this.#availableFilters = cfg?.FILTERS ?? DEFAULT_FILTERS;
-		this.#filterPresets = cfg?.FILTER_PRESET ?? [];
+		this.#filterPresets = cfg?.FILTER_PRESET ?? DEFAULT_FILTER_PRESETS;
 		this.#initialFilters = cfg?.INITIAL_TARGET_FILTERS ?? [];
 	}
 

@@ -149,13 +149,16 @@ All stores are exported as class instances from `.svelte.ts` files.
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
-- `eq-constraints-store.svelte.ts` — active EQ constraint preset + merged catalog. The two general-purpose
-  presets (Default unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS` so they're
-  available synchronously; `defaults/eq-constraints.json` holds device-specific PEQ profiles only and is
-  `fetch()`ed at runtime by `hydrate()` (never imported as a module), then merged with `EQ.CONSTRAINTS_URL`
-  and `EQ.CUSTOM_CONSTRAINTS`. Each device entry can declare `matchPhones: string[]` substrings; when the
-  source phone changes and the active preset is `default`, `applyPhoneMatch()` auto-selects the matching
-  device profile.
+- `eq-constraints-store.svelte.ts` — active EQ constraint preset + the catalog. Two general-purpose presets
+  (Default unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS`; the only other
+  entry is the profile derived from a hardware device the user connected (`setDeviceConstraint`). Nothing
+  is fetched and there is **no operator config** — the store is fully resolved from construction.
+  A curated device dictionary used to sit on top of this (a bundled `eq-constraints.json`, an `EQ` config
+  section, and a `matchPhones` auto-selector keyed on the source phone's name). It was removed pending a
+  shared constraints service: a device list hand-maintained in this repo goes stale faster than it helps,
+  and with the picker not rendered the auto-select silently clamped the user's filters with no way back.
+  **Don't reintroduce a bundled or config-authored catalog** — that's what the service is for. The picker
+  (`EqOptionButton`) is commented out in `EqFilterList` and returns when the service lands.
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
 - `preference-bound-store.svelte.ts` — preference-range overlay: `isEnabled`/`isVisible` plus the fetched
   bound + DF-target curves, with smoothing/normalization applied as `$derived`. Hydrated from
@@ -327,6 +330,30 @@ concepts for this, with parallel state, fetch, process and render paths; they ar
 Operator-configured fields use `resolveI18nValue()` for inline multilingual values:
 `DESCRIPTION`, `TOPBAR.TITLE`, `TOPBAR.LINK_LIST`, `TARGET_MANIFEST`.
 This is separate from Paraglide UI-string i18n.
+
+**`defaults/config.js` is a starting point, not a reference.** It carries live values only for what
+most deployments edit; optional features appear as commented stubs with a `→ docs:` pointer, and the
+exhaustive option lists live in [customize-page.mdx](docs/docs/guide-for-admins/customize-page.mdx)
+and the docs-site config generator. When adding a config key:
+
+- Add it to the docs page and the generator — those are the reference surfaces.
+- Add it to `config.js` only if a typical deployment must set it. Otherwise extend a stub, or add a
+  new one-line stub, so the feature stays discoverable to operators who never open the docs.
+- **Give it a code-side default and verify the absent case**, since a stub means the key ships
+  commented out. `getConfigValue` returns `undefined` for a missing path and each call site applies
+  its own `??`. Not every default is the obvious one — `LANGUAGE.ENABLE_I18N` reads as falsy when
+  absent, which hides the language picker entirely, so `LANGUAGE` has to stay uncommented.
+- **Make the code default reproduce the shipped look**, so omitting the section is a no-op rather
+  than a silent visual change. `VISUALIZATION.LABEL` / `BASELINE_LABEL` are the precedent: their
+  offsets apply as `x + RIGHT - LEFT` / `y + DOWN - UP` for _every_ anchor corner, so the defaults
+  in `GraphContainer` carry the shipped `44` / `43` / `39` values rather than `0`.
+- **A list-valued key replaces, never extends.** `TARGET_CUSTOMIZER.FILTERS` discards the built-in
+  filters outright, so the config.js example restates the defaults alongside the additions and the
+  docs flag it. Prefer this shape over merging — merging makes "remove a default" unexpressible.
+
+A stub block must sit **above** a live key. Prettier strips the trailing comma from the last
+property, so stubs at the end of an object turn into a syntax error the moment one is uncommented.
+`DESCRIPTION` closes `defaults/config.js` for exactly this reason.
 
 ## i18n
 

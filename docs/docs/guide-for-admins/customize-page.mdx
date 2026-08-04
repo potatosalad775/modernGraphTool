@@ -178,6 +178,12 @@ The docs site ships a live **[Config Editor](/config-generator)** that lets you 
 
 The `config.js` file contains various settings related to the operation of modernGraphTool. You can open this file with a text editor and modify the necessary parts.
 
+:::info[Not every option is in the file you downloaded]
+The shipped `config.js` is deliberately short. It sets **live values only for the options most deployments change** — everything else is a commented-out stub with a one-line description and a pointer to the section on this page.
+
+An option that is absent or commented out falls back to a built-in default; it does not break. So to switch a feature on, uncomment its stub and fill in what you need — you never have to add a whole section from scratch. This page documents every field either way, including ones not present in the file at all.
+:::
+
 :::warning[Caution]
 The `config.js` file follows JavaScript syntax. Strings must be enclosed in quotes (`"` or `'`), and a comma (`,`) must be appended to the end of each setting item (except for the last item). You must check for syntax errors after modification.
 :::
@@ -287,20 +293,20 @@ Sets the default display range for the Y-axis (dB).
 
 #### `LABEL`
 
-Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph.
+Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph. Optional — the defaults below produce the layout modernGraphTool ships with, so set this only to move the labels.
 
-- `LOCATION` : Name label position
+- `LOCATION` : Name label position — default `BOTTOM_LEFT`
   - Choose from `BOTTOM_LEFT`, `BOTTOM_RIGHT`, `TOP_LEFT`, `TOP_RIGHT`.
-- `POSITION` : Fine-tune name label position
-  - Adjustable values for `LEFT`, `RIGHT`, `UP`, `DOWN` items.
-- `TEXT_SIZE` : Name label size (in px).
-- `TEXT_WEIGHT` : Name label weight (choose a multiple of 100 from 100 to 900).
+- `POSITION` : Fine-tune name label position — defaults `RIGHT: "44"`, `UP: "43"`, `LEFT: "0"`, `DOWN: "0"`
+  - Applied as `x + RIGHT - LEFT` and `y + DOWN - UP`, from whichever corner `LOCATION` anchors to. All four always apply — they are not specific to the chosen corner.
+- `TEXT_SIZE` : Name label size (in px) — default `"14px"`.
+- `TEXT_WEIGHT` : Name label weight (choose a multiple of 100 from 100 to 900) — default `"600"`.
 
 #### `BASELINE_LABEL`
 
-Sets the position, size, weight, etc., of the baseline label displayed on the graph when a baseline (compensation) target is active.
+Sets the position, size, weight, etc., of the baseline label displayed on the graph when a baseline (compensation) target is active. Also optional.
 
-- Same options as `LABEL` above.
+- Same options as `LABEL` above, with defaults `LOCATION: "TOP_LEFT"`, `POSITION: { RIGHT: "44", DOWN: "39", LEFT: "0", UP: "0" }`, `TEXT_SIZE: "14px"`, `TEXT_WEIGHT: "500"`.
 
 #### `RIG_DESCRIPTION`
 
@@ -706,6 +712,12 @@ TARGET_CUSTOMIZER: {
 ```
 
 Configures the target customizer, which allows per-target filter adjustments for specified target curves.
+
+Only `CUSTOMIZABLE_TARGETS` is required. `FILTERS` defaults to Tilt / Bass / Treble / Ear, and `FILTER_PRESET` to the three Harman presets shown above — omit both unless you want something different.
+
+:::caution[`FILTERS` replaces the list, it does not extend it]
+Setting `FILTERS` discards the four built-in filters entirely. If you are adding one filter, restate the built-ins you want to keep alongside it. The shipped `config.js` carries a commented-out example that does exactly this, adding the Harman 2025 MoA set on top of the defaults.
+:::
 
 - `CUSTOMIZABLE_TARGETS`: Array of target file names that can be customized.
 - `FILTERS`: Available filter definitions. Each filter has:

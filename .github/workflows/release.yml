@@ -48,6 +48,34 @@ jobs:
           echo "major=$MAJOR" >> $GITHUB_OUTPUT
           echo "Version: $VERSION (major: $MAJOR)"
 
+      - name: Extract changelog entry
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          awk -v ver="### v$VERSION" '
+            $0 == ver { found=1; next }
+            found && /^### v/ { exit }
+            found { buf = buf $0 "\n" }
+            END {
+              gsub(/^\n+/, "", buf)
+              gsub(/\n+$/, "", buf)
+              printf "%s", buf
+            }
+          ' docs/docs/changelog.mdx > changelog-section.md
+
+          if [ -s changelog-section.md ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "No changelog.mdx entry found for v$VERSION — release body will omit the Changelog section."
+          fi
+
+          {
+            echo "notes<<CHANGELOG_EOF"
+            cat changelog-section.md
+            echo "CHANGELOG_EOF"
+          } >> $GITHUB_OUTPUT
+
       # ── Build full dist/ ──────────────────────────────────────────────
       - name: Build full distribution
         run: npm run build
@@ -95,8 +123,12 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: modernGraphTool v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
           body: |
+            ${{ steps.changelog.outputs.found == 'true' && format('## Changelog\n\n{0}', steps.changelog.outputs.notes) || '' }}
+
+            ${{ github.event.inputs.release_notes && format('## Notes\n\n{0}', github.event.inputs.release_notes) || '' }}
+
             ## Downloads
 
             | Package | Description |
@@ -110,9 +142,8 @@ jobs:
             ### CDN distribution
             Lightweight package for auto-updating deployments. The core application is loaded from
             `cdn.jsdelivr.net` — you only host your config, theme, and data files.
-            See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
 
-            ${{ github.event.inputs.release_notes && format('## Notes\n\n{0}', github.event.inputs.release_notes) || '' }}
+            See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
           files: release-packages/*
           prerelease: false
           make_latest: true

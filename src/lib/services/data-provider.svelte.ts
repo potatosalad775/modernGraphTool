@@ -598,7 +598,7 @@ class DataProvider {
 					);
 					const fallbackCache = this.#buildRawCache(rawData);
 					const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-					frStore.set(uuid, {
+					const updated: FRDataObject = {
 						...data,
 						channels: {
 							...(processed.L && { L: processed.L }),
@@ -606,7 +606,19 @@ class DataProvider {
 							...(processed.AVG && { AVG: processed.AVG })
 						},
 						_rawData: fallbackCache
-					});
+					};
+					// Same as the cached branch above: the runs and their envelope have to
+					// be rebuilt at the new smoothing too, or a set fetched down this path
+					// keeps run curves smoothed differently from its own average.
+					if (fallbackCache.samples) {
+						const processedSamples = DataProcessor.processSamples(
+							fallbackCache.samples,
+							this.#processingParams
+						);
+						updated.samples = processedSamples;
+						updated.envelope = this.#computeAllEnvelopes(processedSamples);
+					}
+					frStore.set(uuid, updated);
 				} catch {
 					// Keep existing data on failure
 				}

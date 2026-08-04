@@ -163,7 +163,7 @@
 	<input
 		bind:this={phoneInputEl}
 		type="file"
-		accept=".txt"
+		accept=".txt|.csv"
 		multiple
 		class="hidden"
 		onchange={handlePhoneUpload}
@@ -171,7 +171,7 @@
 	<input
 		bind:this={targetInputEl}
 		type="file"
-		accept=".txt"
+		accept=".txt|.csv"
 		multiple
 		class="hidden"
 		onchange={handleTargetUpload}

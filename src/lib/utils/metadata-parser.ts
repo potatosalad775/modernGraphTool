@@ -382,8 +382,10 @@ const MetadataParser = {
 	 * Build variants from the terse legacy form: `file[]`/`suffix[]`/`prefix` with
 	 * an optional phone-level `samples: N`, plus one variant per `hptfs[]` entry.
 	 *
-	 * Read permanently, not just for migration — cross-site search crawls other
-	 * sites' CrinGraph-format phone books, which only ever speak this dialect.
+	 * Read permanently, not just for migration — operators hand-author
+	 * `phone_book.json` and most existing databases only speak this dialect.
+	 * (Cross-site search isn't the reason: the squig.link crawl reads names out of
+	 * a foreign book directly and never comes through here.)
 	 */
 	_parseLegacyVariants(
 		brandName: string,
@@ -408,25 +410,38 @@ const MetadataParser = {
 			return variant;
 		};
 
+		const hptfEntries = Array.isArray(phone.hptfs) ? phone.hptfs : [];
+
+		// An object phone with no `file` falls back to its own name, the same way a
+		// string phone does — otherwise it would produce no variant at all and
+		// `getFRDataFromMetadata` would have no `files[0]` to load. A phone whose
+		// only measurements are `hptfs[]` entries keeps an empty file list.
 		const fileVariants: PhoneFileVariant[] = phone.file
 			? Array.isArray(phone.file)
 				? phone.file.map(buildFileVariant)
 				: [buildFileVariant((phone.file as string) || baseName, 0)]
-			: [];
+			: hptfEntries.length > 0
+				? []
+				: [buildFileVariant(baseName, 0)];
 
 		// Each hptfs[] entry becomes its own variant alongside the file variants.
-		const hptfVariants: PhoneFileVariant[] = (phone.hptfs ?? []).map((entry) => {
-			const suffix = entry.suffix ?? '';
-			return {
-				suffix,
-				fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
-				fileName: entry.files[0],
-				sampleFiles: this._generateExplicitSampleFiles(entry.files),
-				sampleLabels: entry.labels ?? entry.files,
-				sampleDisplay: legacyHptfDisplay(entry.fillOnly ?? true),
-				...(entry.description && { sampleDescription: entry.description })
-			};
-		});
+		// Entries are operator-authored, so a malformed one is skipped rather than
+		// allowed to abort the whole phone book.
+		const hptfVariants: PhoneFileVariant[] = hptfEntries
+			.filter((entry) => entry && typeof entry === 'object')
+			.map((entry) => {
+				const suffix = entry.suffix ?? '';
+				const files = Array.isArray(entry.files) ? entry.files : [];
+				return {
+					suffix,
+					fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
+					fileName: files[0] ?? baseName,
+					sampleFiles: this._generateExplicitSampleFiles(files),
+					sampleLabels: entry.labels ?? files,
+					sampleDisplay: legacyHptfDisplay(entry.fillOnly ?? true),
+					...(entry.description && { sampleDescription: entry.description })
+				};
+			});
 
 		return [...fileVariants, ...hptfVariants];
 	},

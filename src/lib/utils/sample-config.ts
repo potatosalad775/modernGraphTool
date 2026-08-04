@@ -11,10 +11,18 @@ import { getConfigValue } from './config.js';
 
 const VALID_MODES: SampleDisplayMode[] = ['avg', 'curves', 'fill'];
 
-/** Keep only recognized tokens, in a stable order, without duplicates. */
+/**
+ * Keep only recognized tokens, in a stable order, without duplicates.
+ *
+ * `null` means "nothing usable was declared", so the caller's `??` chain moves on
+ * to the next fallback. An array that named only garbage counts as nothing
+ * usable; an explicitly empty array is a real choice ("draw no layer") and comes
+ * back as `[]`.
+ */
 export function normalizeDisplayModes(input: unknown): SampleDisplayMode[] | null {
 	if (!Array.isArray(input)) return null;
 	const out = VALID_MODES.filter((mode) => input.includes(mode));
+	if (out.length === 0 && input.length > 0) return null;
 	return out;
 }
 

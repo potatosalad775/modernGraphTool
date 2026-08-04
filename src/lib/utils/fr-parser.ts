@@ -103,6 +103,13 @@ const FRParser = {
 					variant.sampleFiles,
 					variant.sampleLabels
 				);
+				// A run that 404s is tolerated — the average is taken over whatever
+				// loaded. Every run failing is not: the standard path throws in that
+				// case, and `addFRData` relies on the throw to avoid inserting an item
+				// with no curve at all.
+				if (!averaged.L && !averaged.R && !averaged.AVG) {
+					throw new Error(`No sample data could be loaded for: ${variant.fullName}`);
+				}
 				return {
 					...averaged,
 					_samples: samples,

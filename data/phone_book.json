@@ -68,6 +68,36 @@
 						"fillOnly": false
 					}
 				]
+			},
+			{
+				"name": ["Sample Sets"],
+				"variants": [
+					{ "suffix": "Stock", "file": "Combo Variant 1" },
+					{ "suffix": "Repeat Runs", "file": "Multi Sample", "samples": 3 },
+					{
+						"suffix": "Pad Positions",
+						"samples": {
+							"files": [
+								"HpTF Demo Center",
+								"HpTF Demo Front",
+								"HpTF Demo Back",
+								"HpTF Demo Up",
+								"HpTF Demo Down"
+							],
+							"labels": ["Center", "Front", "Back", "Up", "Down"],
+							"display": ["avg", "fill"],
+							"description": "(Positional Variance)"
+						}
+					},
+					{
+						"suffix": "Pad Positions (Curves)",
+						"samples": {
+							"files": ["HpTF Demo Center", "HpTF Demo Front", "HpTF Demo Back"],
+							"labels": ["Center", "Front", "Back"],
+							"display": ["fill", "curves"]
+						}
+					}
+				]
 			}
 		]
 	},

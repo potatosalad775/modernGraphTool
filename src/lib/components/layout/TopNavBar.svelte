@@ -72,7 +72,7 @@
 		{/if}
 
 		<!-- Mobile: hamburger button -->
-		{#if appStore.isMobile}
+		{#if appStore.isMobile && linkList.length > 0}
 			<Button title="Open menu" onclick={openSidebar} variant="ghost" size="icon">
 				<Menu class="h-5 w-5" />
 			</Button>

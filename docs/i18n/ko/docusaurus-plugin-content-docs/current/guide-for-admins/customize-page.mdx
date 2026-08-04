@@ -578,12 +578,12 @@ SAMPLES: {
 
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`
-- `HPTF.DEFAULT_DISPLAY: "fill"` → `["avg", "fill"]`
-- `HPTF.DEFAULT_DISPLAY: "fill+curves"` → `["avg", "curves", "fill"]`
-- `HPTF.DEFAULT_DISPLAY: "curves"` → `["avg", "curves"]`
-- `HPTF.DEFAULT_DISPLAY: "none"` → `[]`
 - `HPTF.FILL_OPACITY` → `SAMPLES.FILL_OPACITY`
-  :::
+
+`HPTF.DEFAULT_DISPLAY`에 대응하는 `SAMPLES` 설정은 없습니다. 이 값은
+`phone_book.json`의 예전 `hptfs[]` 항목에만 적용될 뿐 샘플 세트 전반의 사이트 기본값을
+정하지 않습니다. 해당 항목을 `variants[]`로 옮기고 각자 `display`를 지정하세요.
+:::
 
 ### `TRACE_STYLING`
 

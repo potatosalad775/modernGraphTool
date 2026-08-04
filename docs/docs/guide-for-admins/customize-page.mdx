@@ -581,12 +581,12 @@ unchanged — but set `SAMPLES` and delete them when you next touch the file. Th
 
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`
-- `HPTF.DEFAULT_DISPLAY: "fill"` → `["avg", "fill"]`
-- `HPTF.DEFAULT_DISPLAY: "fill+curves"` → `["avg", "curves", "fill"]`
-- `HPTF.DEFAULT_DISPLAY: "curves"` → `["avg", "curves"]`
-- `HPTF.DEFAULT_DISPLAY: "none"` → `[]`
 - `HPTF.FILL_OPACITY` → `SAMPLES.FILL_OPACITY`
-  :::
+
+`HPTF.DEFAULT_DISPLAY` has no `SAMPLES` equivalent. It applies only to the legacy
+`hptfs[]` entries in `phone_book.json` and does not set a site-wide default for
+sample sets — convert those entries to `variants[]` with their own `display` instead.
+:::
 
 ### `TRACE_STYLING`
 

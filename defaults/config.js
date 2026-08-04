@@ -171,7 +171,9 @@ const CONFIG = {
 	// DEPRECATED — superseded by SAMPLES above, but still read as a fallback so
 	// existing config.js files keep working. Delete them once SAMPLES is set.
 	//   MULTI_SAMPLE.DEFAULT_DISPLAY: 'average' -> ['avg'], 'all' -> ['avg','curves']
-	//   HPTF.DEFAULT_DISPLAY / HPTF.FILL_OPACITY map onto SAMPLES the same way.
+	//   HPTF.FILL_OPACITY -> SAMPLES.FILL_OPACITY
+	//   HPTF.DEFAULT_DISPLAY has no SAMPLES equivalent — it only ever applies to
+	//   legacy hptfs[] entries in phone_book.json, not to sample sets generally.
 	// MULTI_SAMPLE: { DEFAULT_DISPLAY: 'average' },
 	// HPTF: { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 },
 	// Graph Trace Styling

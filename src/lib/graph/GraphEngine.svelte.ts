@@ -511,13 +511,13 @@ class GraphEngine {
 		if (obj.showFill && obj.envelope) {
 			const fillPath = this._buildEnvelopePath(obj);
 			if (fillPath) {
+				// Transparency goes through `fill-opacity` / `stroke-opacity` rather than
+				// being folded into the color string. Rewriting the color only worked for
+				// the `oklch()` and `hsl()` notations — a hex from CURVE_COLOR_PALETTE fell
+				// through unchanged and the band drew fully opaque, hiding the curves it
+				// is supposed to sit behind.
 				const opacity = sampleFillOpacity();
-				const toAlpha = (c: string, a: number) => {
-					if (c.startsWith('oklch(')) return c.replace(/\)$/, ` / ${a})`);
-					if (c.startsWith('hsl(')) return c.replace('hsl(', 'hsla(').replace(')', `, ${a})`);
-					return c;
-				};
-				const color = toAlpha(obj.colors.AVG, opacity);
+				const color = obj.colors.AVG;
 				this.curveGroup
 					.insert('path', ':first-child')
 					.attr('class', 'fr-graph-phone-curve fr-graph-sample-fill')
@@ -526,7 +526,9 @@ class GraphEngine {
 					.attr('identifier', obj.identifier)
 					.attr('d', fillPath)
 					.attr('fill', color)
+					.attr('fill-opacity', String(opacity))
 					.attr('stroke', color)
+					.attr('stroke-opacity', String(opacity))
 					.attr('stroke-width', String(baseThickness / 2))
 					.attr('opacity', isEqSource ? 0.35 : null)
 					.style('pointer-events', 'none');

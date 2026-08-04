@@ -12,6 +12,7 @@ import { graphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { sampleFillOpacity } from '$lib/utils/sample-config.js';
 import type { FRDataObject, FRDataPoint, SampleEnvelope } from '$lib/types/data-types.js';
 
 let svgEl: SVGSVGElement;
@@ -273,6 +274,22 @@ describe('GraphEngine', () => {
 			expect(fill[0].getAttribute('d')!.endsWith('Z')).toBe(true);
 			// Inserted as first child so it sits under the stroked curves.
 			expect(fill[0].previousElementSibling).toBeNull();
+		});
+
+		it('leaves the AVG color alone and carries the opacity as an attribute', () => {
+			// Transparency used to be folded into the color string, which only knew
+			// how to rewrite `oklch()` and `hsl()`. A hex — what CURVE_COLOR_PALETTE
+			// hands out by default — fell through and the band drew fully opaque.
+			frStore.set('p', samplePhone());
+			graphEngine.drawFRCurve('p');
+
+			const fill = paths('.fr-graph-sample-fill')[0];
+			expect(fill.getAttribute('fill')).toBe('#00ff00');
+			expect(fill.getAttribute('stroke')).toBe('#00ff00');
+			const opacity = String(sampleFillOpacity());
+			expect(fill.getAttribute('fill-opacity')).toBe(opacity);
+			expect(fill.getAttribute('stroke-opacity')).toBe(opacity);
+			expect(parseFloat(fill.getAttribute('fill-opacity')!)).toBeLessThan(1);
 		});
 
 		it('omits the fill when showFill is off', () => {

@@ -117,10 +117,18 @@
 				if (obj.hidden) return;
 				const channels = [...obj.dispChannel];
 
+				// A restored `?state=` can name runs this variant doesn't have, so the
+				// keys are resolved once here and reused below — an undrawable key must
+				// neither suppress the fill-only label nor produce a row of its own.
+				const drawableSampleKeys = (obj.dispSamples ?? []).filter((key) => {
+					const parts = sampleKeyParts(obj, key);
+					return !!parts && !!obj.samples?.[parts.index]?.[parts.channel];
+				});
+
 				// An envelope fill is genuinely one object across channels, so a set
 				// showing only the fill collapses to a single line rather than one
 				// row per channel. Anything with curves on screen gets a row each.
-				const fillOnly = obj.showFill && obj.showAvg === false && !obj.dispSamples?.length;
+				const fillOnly = obj.showFill && obj.showAvg === false && !drawableSampleKeys.length;
 				if (fillOnly) {
 					const channelStr =
 						channels.length === 2 && channels.includes('L') && channels.includes('R')
@@ -158,9 +166,8 @@
 
 				// One line per displayed run, named by its curator label — the graph
 				// could not previously say which measurement a run curve was.
-				for (const key of obj.dispSamples ?? []) {
-					const parts = sampleKeyParts(obj, key);
-					if (!parts || !obj.samples?.[parts.index]?.[parts.channel]) continue;
+				for (const key of drawableSampleKeys) {
+					const parts = sampleKeyParts(obj, key)!;
 					raw.push({
 						uuid: obj.uuid,
 						channel: key,

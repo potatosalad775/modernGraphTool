@@ -216,7 +216,9 @@
 										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span
 										>
 									{/if}
-									{#if item.showFill && item.sampleDescription}
+									<!-- The caption describes the set, not the fill — a single-run set
+										 drawn as `avg` or `curves` still needs it. -->
+									{#if item.samples?.length && item.sampleDescription}
 										<span class="truncate text-xs text-base-content/50"
 											>{item.sampleDescription}</span
 										>
@@ -272,7 +274,7 @@
 						{#if item.adjustmentLabel}
 							<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
 						{/if}
-						{#if item.showFill && item.sampleDescription}
+						{#if item.samples?.length && item.sampleDescription}
 							<span class="truncate text-xs text-base-content/50">{item.sampleDescription}</span>
 						{/if}
 					</div>

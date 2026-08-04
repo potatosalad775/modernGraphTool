@@ -264,8 +264,12 @@
 						{/if}
 					</Button>
 
-					{#if runsOpen}
-						<div id="{uuid}-sample-runs">
+					<!--
+						The panel stays mounted so the trigger's `aria-controls` always
+						resolves; only its contents come and go with `runsOpen`.
+					-->
+					<div id="{uuid}-sample-runs">
+						{#if runsOpen}
 							<!-- One row per run, with a checkbox per channel that run loaded -->
 							<div class="mt-1 flex max-h-40 flex-col gap-0.5 overflow-y-auto">
 								{#each sampleRows as row (row.index)}
@@ -333,8 +337,8 @@
 									{m.selection_list_samples_none()}
 								</Button>
 							</div>
-						</div>
-					{/if}
+						{/if}
+					</div>
 				</div>
 			{/if}
 		</Popover.Content>

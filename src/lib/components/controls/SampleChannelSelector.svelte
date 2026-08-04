@@ -159,7 +159,7 @@
 				title={triggerLabel}
 				variant="outline"
 				size="sm"
-				class="h-7! min-w-14 justify-between! gap-1 rounded-sm! bg-base-200! px-2! hover:bg-base-content/10!"
+				class="h-7 min-w-14 justify-between gap-1 rounded-sm bg-base-200 px-2 hover:bg-base-content/10"
 			>
 				{triggerLabel}
 				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />
@@ -252,8 +252,8 @@
 						aria-controls="{uuid}-sample-runs"
 						variant="muted"
 						size="sm"
-						class="mt-0.5 w-full justify-start! gap-1 rounded! px-1.5! py-1! font-normal!
-							 hover:bg-base-300!"
+						class="mt-1 w-full justify-start gap-1 rounded px-1.5 py-1 font-normal
+							 hover:bg-base-300"
 					>
 						<ChevronDown
 							class="h-3 w-3 shrink-0 transition-transform {runsOpen ? '' : '-rotate-90'}"

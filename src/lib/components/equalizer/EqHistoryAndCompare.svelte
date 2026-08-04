@@ -71,8 +71,9 @@
 					{...props}
 					title="Open 'Frequency range' option description"
 					variant="ghost"
-					size="icon"
-					class="p-1.5! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
+					size="icon-sm"
+					activeOnOpen
+					class="opacity-80 hover:opacity-100"
 				>
 					<Info class="size-4" />
 				</Button>
@@ -85,8 +86,7 @@
 			title={m.eq_history_clear()}
 			onclick={() => eqHistoryStore.clear()}
 			variant="destructive"
-			size="icon"
-			class="p-1.5!"
+			size="icon-sm"
 			disabled={eqHistoryStore.snapshots.length === 0}
 		>
 			<Trash2 class="size-4" />

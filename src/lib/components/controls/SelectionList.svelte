@@ -382,8 +382,8 @@
 							onmouseleave={stopYOffset}
 							aria-label="Decrease Y offset"
 							variant="secondary"
-							size="icon"
-							class="rounded-full! p-1!"
+							size="icon-xs"
+							class="rounded-full"
 						>
 							<Minus class="h-4 w-4" aria-hidden="true" />
 						</Button>
@@ -406,8 +406,8 @@
 							onmouseleave={stopYOffset}
 							aria-label="Increase Y offset"
 							variant="secondary"
-							size="icon"
-							class="rounded-full! p-1!"
+							size="icon-xs"
+							class="rounded-full"
 						>
 							<Plus class="h-4 w-4" aria-hidden="true" />
 						</Button>

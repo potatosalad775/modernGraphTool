@@ -14,12 +14,7 @@
 	}
 </script>
 
-<Button
-	title={m.smoothing_button_label()}
-	onclick={handleClick}
-	variant="outline"
-	class="h-9! gap-1.5 px-3!"
->
+<Button title={m.smoothing_button_label()} onclick={handleClick} variant="outline" size="toolbar">
 	{m.smoothing_button_label()}
 	<span class="h-5 w-px bg-base-content/20"></span>
 	<b>{options[currentIndex]}oct</b>

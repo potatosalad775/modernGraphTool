@@ -15,7 +15,7 @@ run measurement databases (e.g. sites on squig.link) as well as end users browsi
 
 - **SvelteKit 2 + Svelte 5** (Runes API, enforced globally)
 - **TypeScript** (strict)
-- **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`
+- **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`; **tailwind-merge** resolves class conflicts in the `Button` atom
 - **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
 - **D3.js** for SVG graph rendering (no Tailwind inside SVG — uses CSS vars from `defaults/theme.css`)
 - **Paraglide JS** for compile-time i18n (English + Korean)
@@ -41,6 +41,47 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
 - Target **WCAG AAA** accessibility
+
+## Components — Reach for the Atoms First
+
+[src/lib/components/atoms/](src/lib/components/atoms/) wraps the primitives everything else builds
+on: `Button`, `Input`, `Switch`, `Accordion` / `AccordionItem`, `PopoverPanel`, `ScrollArea`,
+`Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the
+`transition-colors`, the disabled styling and the semantic-token palette, and a raw `<button>`
+silently opts out of all four.
+
+`Button` specifically:
+
+- Takes `variant` (`primary` … `ghost`, `link`) and `size` instead of a hand-rolled class list.
+  Sizes are `xs` · `sm` · `md` · `lg` · `toolbar` (`h-9`, icon + label, for the graph toolbar row)
+  · `icon` (`p-2`) · `icon-sm` (`p-1.5`) · `icon-xs` (`p-1`). Reach for the size before reaching
+  for `class` — six components used to duplicate one `h-9 gap-1.5 px-3` string because `toolbar`
+  didn't exist.
+- `activeOnOpen` highlights a popover trigger in the accent color while its surface is open,
+  replacing a hand-written `data-[state=open]:bg-accent data-[state=open]:text-accent-content`.
+- **Classes are merged with `tailwind-merge`, so `class` overrides win without a `!` modifier.**
+  This matters because conflicting Tailwind utilities have _equal CSS specificity_ — appending
+  the caller's class to the end of the string never did anything on its own, and the winner was
+  whichever utility Tailwind happened to emit later in the stylesheet. `twMerge` drops the losing
+  class outright, so `class="px-3"` beats the size's `px-4`. Write plain utilities; don't add `!`.
+- **`title` is required and mirrors into `aria-label`**, which overrides the button's text content
+  as the accessible name. Keep the two saying the same thing, and note that anything rendered
+  inside — a count, a badge — is then _not_ part of the accessible name. This is also why a button
+  whose title changes with state changes what `getByRole('button', { name })` matches (see Testing).
+- Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
+  `aria-controls` and `disabled` work as written.
+
+Only `Button` merges its classes. On a raw element — the inputs in `EqFilterCard`, say — two
+conflicting utilities still tie on specificity, so `!` remains the way to force one.
+
+Deliberate exceptions — these stay raw elements:
+
+- **Checkboxes and radios.** `Input` is a labelled text field and does not cover them; `Switch`
+  covers the toggle-switch case only.
+- Anything bits-ui already owns through a `child` snippet (`Popover.Trigger`, `Combobox.Input`, …).
+
+The conversion is not finished — raw `<button>` still appears in several older components. New code
+uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Keeping Docs in Sync
 

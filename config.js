@@ -1,5 +1,15 @@
 /**
- * modernGraphTool Configuration - User editable settings
+ * modernGraphTool Configuration
+ *
+ * This file holds the settings most deployments change. Everything else has a
+ * sensible built-in default and is listed further down as a commented stub —
+ * uncomment a stub to start using that feature.
+ *
+ * Full reference for every option, with examples:
+ *   https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/customize-page
+ *
+ * Prefer not to hand-edit? Build this file visually, or import an existing one:
+ *   https://potatosalad775.github.io/modernGraphTool/docs/config-generator
  */
 const CONFIG = {
 	// Phone & Targets to display on initial load.
@@ -7,376 +17,204 @@ const CONFIG = {
 	INITIAL_PHONES: ['Demo Variations var2'],
 	INITIAL_TARGETS: ['KEMAR DF (KB006x)'],
 	INITIAL_PANEL: 'graph', // (phone, graph, misc)
+
 	// Default Normalization Type and Value.
 	NORMALIZATION: {
 		TYPE: 'Hz', // ("Hz" or "Avg" - 300~3000Hz Midrange Average Normalization)
 		HZ_VALUE: 500 // This will be ignored if NORMALIZATION.TYPE is "Avg"
 	},
+
 	// Default Visualization Settings.
 	VISUALIZATION: {
 		ASPECT_RATIO: '16:9', // ("16:9" or "CrinGraph") — 16:9 = 800×450, CrinGraph = 800×346
 		DEFAULT_Y_SCALE: 50, // (30, 40, 50, 60, 80)
-		LABEL: {
-			// Phone & Target Label Text Settings
-			LOCATION: 'BOTTOM_LEFT', // (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT)
-			POSITION: {
-				LEFT: '0',
-				RIGHT: '44',
-				UP: '43',
-				DOWN: '0' // Fine-tune Label Location
-			},
-			TEXT_SIZE: '14px',
-			TEXT_WEIGHT: '600' // (100 ~ 900)
-		},
-		BASELINE_LABEL: {
-			LOCATION: 'TOP_LEFT',
-			POSITION: {
-				LEFT: '0',
-				RIGHT: '44',
-				UP: '0',
-				DOWN: '39'
-			},
-			TEXT_SIZE: '14px',
-			TEXT_WEIGHT: '500' // (100 ~ 900)
-		},
 		RIG_DESCRIPTION: 'Measured with IEC 60318-4 (711)' // Please don't leave this line empty, pretty please?
+		// Add LABEL / BASELINE_LABEL here to move the on-graph labels. LOCATION is
+		// the anchor corner (BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT) and
+		// POSITION nudges it from there. Defaults match the layout you see now.
+		// → docs: VISUALIZATION
 	},
+
 	// User Interface Settings
 	INTERFACE: {
 		PREFERRED_DARK_MODE_THEME: 'light', // ("light", "dark", "system")
 		PANEL_POSITION: 'left', // ("left" or "right") — which side the menu+panel column sits on in desktop UI. Mobile UI is unaffected.
 		ALLOW_REMOVING_PHONE_FROM_SELECTOR: true, // Setting it to false will prevent user from removing phone from selector.
 		SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true, // Switch to phone list when brand button is clicked (in mobile UI)
+		HIDE_DEV_DONATE_BUTTON: false, // This option determines whether to hide "Donate" button on Misc Panel or not.
 		TARGET: {
-			ALLOW_MULTIPLE_LINE_PER_TYPE: true, // This will display targets in multiple line by 'type's. Enabling this option adds collapse button to hide/show target lists.
-			OMIT_TARGET_SUFFIX: true, // This option will omit 'target' suffix to save some space.
-			COLLAPSE_TARGET_LIST_ON_INITIAL: true // This option determines whether target list is collapsed on initial load or not.
-		},
-		HIDE_DEV_DONATE_BUTTON: false // This option determines whether to hide "Donate" button on Misc Panel or not.
+			ALLOW_MULTIPLE_LINE_PER_TYPE: true, // Display targets in multiple lines by 'type'. Adds a collapse button.
+			OMIT_TARGET_SUFFIX: true, // Omit the 'Target' suffix to save some space.
+			COLLAPSE_TARGET_LIST_ON_INITIAL: true // Whether the target list starts collapsed.
+		}
 	},
-	// URL Settings
-	URL: {
-		AUTO_UPDATE_URL: true, // This will automatically update URL when phone/target is changed.
-		COMPRESS_URL: true // Compresses URL with Base62 encoding
-	},
-	// Review-score link template for PhoneSelector.
-	// When empty (default), the review score renders as plain text (legacy behavior, no link).
-	// Placeholders: {brand}, {model}, {slug}, {fullName}. Values are URL-encoded.
-	// If the template contains no placeholders, it is used verbatim.
-	// mGT does not track per-phone type.
-	// For headphone-only deploys, hardcode '?type=headphone' in the template instead.
-	RANKING_URL: '',
-	// CDN Deployment Settings (optional)
-	// Uncomment this section ONLY if you are using the CDN deployment mode
-	// with the thin cdn-index.html. When using the full dist/ deployment, leave this commented out.
-	// CDN_MODE: {
-	//   MAJOR_VERSION: 2,                                   // Auto-updates within this major version (e.g., 2.x.x)
-	//   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",  // Custom CDN base URL (advanced)
-	//   // BASE_PATH: "/cdn",                                // Deployment subpath. Set this ONLY when the app is
-	//   //                                                   // served under a subdirectory AND users may land on
-	//   //                                                   // share-link routes directly (e.g. /cdn/share/abc).
-	//   //                                                   // For root deployments, leave unset.
-	// },
-	// Language Settings
-	LANGUAGE: {
-		LANGUAGE_LIST: [
-			// List of available languages. (Automatically fallbacks to "en" if not found)
-			['cs', 'Čeština'],
-			['en', 'English'],
-			['ko', '한국어'],
-			['ru', 'Русский'],
-			['uk', 'Українська']
-		],
-		ENABLE_I18N: true, // Enable internationalization (Add Language selector to Misc Panel)
-		ENABLE_SYSTEM_LANG_DETECTION: true // Enable system language detection
-	},
+
 	// File Path Settings
 	PATH: {
 		PHONE_MEASUREMENT: './data/phones',
 		TARGET_MEASUREMENT: './data/target',
 		PHONE_BOOK: './data/phone_book.json' // Changing this value is HIGHLY NOT RECOMMENDED, since it WOULD break squig.link integrations.
 	},
-	// Watermark Settings
-	WATERMARK: [
-		{
-			TYPE: 'TEXT',
-			CONTENT: '© 2025 modernGraphTool',
-			LOCATION: 'BOTTOM_RIGHT',
-			POSITION: { UP: '43', DOWN: '0', LEFT: '32', RIGHT: '0' },
-			OPACITY: '0.3',
-			SIZE: '14px',
-			FONT_FAMILY: 'sans-serif',
-			FONT_WEIGHT: '600'
-		},
-		// You can even put multiple TEXT or IMAGE in Array. Randomly picked content will be rendered on every load.
-		{
-			TYPE: 'IMAGE',
-			SIZE: '50px',
-			OPACITY: '0.3',
-			LOCATION: 'TOP_RIGHT',
-			POSITION: { UP: '0', DOWN: '64', LEFT: '82', RIGHT: '0' },
-			CONTENT: [
-				'./assets/images/icon_1.png',
-				'./assets/images/icon_2.png',
-				'./assets/images/icon_3.png'
-			]
-		}
+
+	// Target list, grouped by type. Supports i18n — see docs → TARGET_MANIFEST.
+	TARGET_MANIFEST: [
+		{ type: 'Harman', files: ['Harman IE 2019v2', 'Harman IE 2017v2'] },
+		{ type: 'Neutral', files: ['KEMAR DF (KB006x)', 'ISO 11904-2 DF', 'IEF Neutral 2023'] },
+		{ type: 'Reviewer', files: ['Banbeucmas', 'HBB', 'Precogvision', 'Super 22 Adjusted'] },
+		{ type: 'Preference', files: ['AutoEQ', 'Rtings', 'Sonarworks'] },
+		{ type: 'Δ', files: ['Universal ∆'] }
 	],
-	// Target configuration
-	TARGET_MANIFEST: {
-		// TARGET_MANIFEST works with modernGraphTool Core's internationalization features.
-		// You can configure target data in default(EN) language...
-		default: [
-			{ type: 'Harman', files: ['Harman IE 2019v2', 'Harman IE 2017v2'] },
-			{ type: 'Neutral', files: ['KEMAR DF (KB006x)', 'ISO 11904-2 DF', 'IEF Neutral 2023'] },
-			{ type: 'Reviewer', files: ['Banbeucmas', 'HBB', 'Precogvision', 'Super 22 Adjusted'] },
-			{ type: 'Preference', files: ['AutoEQ', 'Rtings', 'Sonarworks'] },
-			{ type: 'Δ', files: ['Universal ∆'] }
-		],
-		// And add more languages as you want.
-		i18n: {
-			ko: [{ type: '하만' }, { type: '뉴트럴' }, { type: '리뷰어' }, { type: '선호도' }],
-			ru: [
-				{ type: 'Harman' },
-				{ type: 'Нейтральные' },
-				{ type: 'От обзорщиков' },
-				{ type: 'Предпочтения' },
-				{ type: 'Δ' }
-			],
-			uk: [
-				{ type: 'Harman' },
-				{ type: 'Нейтральні' },
-				{ type: 'Від оглядачів' },
-				{ type: 'Вподобання' },
-				{ type: 'Δ' }
-			]
-		}
-	},
-	// ... Of course, if you're not interested in localization, you can just skip this setting, as below.
-	//     Note that there are no 'default' and 'i18n' elements here.
-	//  TARGET_MANIFEST: [
-	//    { type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
-	//    { type:"Neutral",     files:["KEMAR DF (KB006x)","ISO 11904-2 DF","IEF Neutral 2023"] },
-	//    { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
-	//    { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] }
-	//  ],
-	// Sample Set Settings
-	// A "sample set" is a variant measured more than once — repeat runs, pad
-	// swaps, seating positions. See phone_book.json's `variants[].samples`.
-	SAMPLES: {
-		DEFAULT_COUNT: 1, // Runs per variant when the phone book declares none
-		DEFAULT_DISPLAY: ['avg'], // Any of 'avg' (averaged line), 'curves' (per-run), 'fill' (min/max band)
-		FILL_OPACITY: 0.3 // Opacity of the deviation fill area (0-1)
-	},
-	// DEPRECATED — superseded by SAMPLES above, but still read as a fallback so
-	// existing config.js files keep working. Delete them once SAMPLES is set.
-	//   MULTI_SAMPLE.DEFAULT_DISPLAY: 'average' -> ['avg'], 'all' -> ['avg','curves']
-	//   HPTF.FILL_OPACITY -> SAMPLES.FILL_OPACITY
-	//   HPTF.DEFAULT_DISPLAY has no SAMPLES equivalent — it only ever applies to
-	//   legacy hptfs[] entries in phone_book.json, not to sample sets generally.
-	// MULTI_SAMPLE: { DEFAULT_DISPLAY: 'average' },
-	// HPTF: { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 },
-	// Graph Trace Styling
-	TRACE_STYLING: {
-		PHONE_TRACE_THICKNESS: 2,
-		TARGET_TRACE_THICKNESS: 1,
-		// Curated palette used for new curve colors. Consumed in order; once
-		// exhausted (or every preset is too close to a color the user manually
-		// picked) modernGraphTool falls back to OKLCH generation that picks the
-		// next color farthest from every color already on the graph.
-		// Accepts any CSS color (hex, oklch, hsl, rgb).
-		// Leave empty or undefined to use the built-in Okabe-Ito default (7 colorblind-safe colors except black).
-		CURVE_COLOR_PALETTE: [
-			'#0072B2',
-			'#E69F00',
-			'#009E73',
-			'#CC79A7',
-			'#56B4E9',
-			'#D55E00',
-			'#F0E442'
-		],
-		// When true, shuffle CURVE_COLOR_PALETTE once per page load so each
-		// session starts from a different color. The shuffled order stays
-		// stable within the session (consistent across add / undo / redo).
-		CURVE_COLOR_PALETTE_RANDOMIZE: true,
-		// For more information about 'stroke-dasharray' attribute, please refer to:
-		// https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray
-		// ... If you want to hide target graph trace, please set 'dash' to '0 1'.
-		// ... Or, you can set 'dash' to 'null' to make it look like a solid line.
-		TARGET_TRACE_DASH: [{ name: 'KEMAR DF (KB006x)', dash: '10 10' }]
-	},
-	// Topbar Link List
-	TOPBAR: {
-		TITLE: {
-			//TYPE: "TEXT", CONTENT: "modernGraphTool",
-			//TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-			TYPE: 'HTML',
-			CONTENT: '<h2>modernGraphTool</h2>'
-		},
-		// 'LINK_LIST' also supports i18n like 'TARGET_MANIFEST'.
-		// You MUST add 'http(s)://' to the URL Website PATH.
-		LINK_LIST: {
-			default: [
-				{ TITLE: 'Github', URL: 'https://www.github.com' },
-				{ TITLE: 'Docs', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
-			],
-			i18n: {
-				ko: [
-					{ TITLE: '깃허브', URL: 'https://www.github.com' },
-					{ TITLE: '가이드', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
-				],
-				ru: [
-					{ TITLE: 'Github', URL: 'https://www.github.com' },
-					{ TITLE: 'Документация', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
-				],
-				uk: [
-					{ TITLE: 'Github', URL: 'https://www.github.com' },
-					{ TITLE: 'Документація', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
-				]
-			}
-		}
-		// .. You can skip localization options like below.
-		//  LINK_LIST: [
-		//    { TITLE: "Google", URL: "https://www.google.com" },
-		//    { TITLE: "Github", URL: "https://www.github.com" },
-		//  ],
-	},
-	// Preference Bound Settings
-	// Draws a shaded upper/lower preference bound area on the graph.
-	// Bound data files (Bounds U.txt / Bounds D.txt) must exist in the data/ folder.
-	PREFERENCE_BOUND: {
-		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Show bounds immediately on page load
-		BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target', // Reference DF target used for compensation. Set to "" to disable preference bound entirely.
-		COLOR_FILL: 'rgba(180,180,180,0.2)', // Fill color of the shaded area
-		COLOR_BORDER: 'rgba(120,120,120,0.5)' // Border color of the shaded area
-	},
-	// Target Customizer Settings
-	// Allows per-target filter adjustments for specified target curves.
+
+	// Per-target Tilt / Bass / Treble / Ear sliders. Those four filters and the
+	// Harman 2013/2015/2018 presets are built in; list which targets get the
+	// sliders, and optionally the adjustment each starts at.
+	// → docs: TARGET_CUSTOMIZER
 	TARGET_CUSTOMIZER: {
 		CUSTOMIZABLE_TARGETS: ['KEMAR DF (KB006x) Target', 'ISO 11904-2 DF'],
-		// Available filters. Each filter has: id, name, type (TILT/LSQ/HSQ/PK), freq, q.
-		// Gain range defaults to -20..+20 (step 0.5) except Tilt which is -2..+2 (step 0.1).
-		FILTERS: [
-			{ id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
-			{ id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
-			{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 },
-			{ id: 'ear', name: 'Ear (dB)', type: 'PK', freq: 2750, q: 1 },
-			{
-				id: 'harman_moa_2025_bass',
-				name: 'Harman MoA 2025 Bass (dB)',
-				type: 'LSQ',
-				freq: 164,
-				q: 0.4,
-				description: 'Based on Harman 2025 MoA Research.'
-			},
-			{
-				id: 'harman_moa_2025_treble',
-				name: 'Harman MoA 2025 Treble (dB)',
-				type: 'HSQ',
-				freq: 4304,
-				q: 0.41,
-				description: 'Based on Harman 2025 MoA Research.'
-			},
-			{
-				id: 'harman_moa_2025_ear',
-				name: 'Harman MoA 2025 Ear (dB)',
-				type: 'PK',
-				freq: 3000,
-				q: 2,
-				description: 'Based on Harman 2025 MoA Research.'
-			}
-		],
-		// Filter presets selectable from a dropdown
-		FILTER_PRESET: [
-			{ name: 'Harman 2013', filter: { bass: 6.6, treble: -1.4 } },
-			{ name: 'Harman 2015', filter: { bass: 6.6, treble: -3, ear: -1.8 } },
-			{ name: 'Harman 2018', filter: { bass: 4.8, treble: -4.4 } }
-		],
-		// Applies custom filter to the specified target on initial load
+		// FILTER_PRESET replaces the built-in Harman 2013/2015/2018 presets.
+		// FILTERS replaces the built-in filter list — it does not extend it, so
+		// restate the ones you want to keep. This example is the four defaults
+		// plus the Harman 2025 MoA set:
+		// FILTERS: [
+		//   { id: 'tilt', name: 'Tilt (dB/oct)', type: 'TILT', freq: 0, q: 0 },
+		//   { id: 'bass', name: 'Bass (dB)', type: 'LSQ', freq: 105, q: 0.707 },
+		//   { id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 },
+		//   { id: 'ear', name: 'Ear (dB)', type: 'PK', freq: 2750, q: 1 },
+		//   { id: 'harman_moa_2025_bass', name: 'Harman MoA 2025 Bass (dB)',
+		//     type: 'LSQ', freq: 164, q: 0.4, description: 'Based on Harman 2025 MoA Research.' },
+		//   { id: 'harman_moa_2025_treble', name: 'Harman MoA 2025 Treble (dB)',
+		//     type: 'HSQ', freq: 4304, q: 0.41, description: 'Based on Harman 2025 MoA Research.' },
+		//   { id: 'harman_moa_2025_ear', name: 'Harman MoA 2025 Ear (dB)',
+		//     type: 'PK', freq: 3000, q: 2, description: 'Based on Harman 2025 MoA Research.' },
+		// ],
 		INITIAL_TARGET_FILTERS: [
 			{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } },
 			{ name: 'ISO 11904-2 DF', filter: { tilt: -0.8, bass: 6 } }
 		]
 	},
-	// Cross-Site Device Search
-	// Searches devices across other measurement databases from the search box,
-	// using the GraphAggregator index. Works on any host — squig.link not required.
-	CROSS_SITE_SEARCH: {
-		ENABLED: true,
-		// Index documents to try, in order. Leave empty to use the official
-		// GraphAggregator index (with its GitHub Pages mirror as backup).
-		// Self-hosting? Point this at your own document following the same schema:
-		// https://github.com/HarutoHiroki/GraphAggregator
-		INDEX_URLS: [],
-		// When no index is reachable and squig.link integration is on, fall back to
-		// crawling each squig.link site's phone_book.json (slower, many requests).
-		SQUIGLINK_FALLBACK: true
+
+	// Shaded upper/lower preference-range overlay. Needs Bounds U.txt and
+	// Bounds D.txt in your data/ folder. → docs: PREFERENCE_BOUND
+	PREFERENCE_BOUND: {
+		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Show the bounds immediately on page load
+		BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target', // Reference DF target; "" disables the feature
+		COLOR_FILL: 'rgba(180,180,180,0.2)',
+		COLOR_BORDER: 'rgba(120,120,120,0.5)'
 	},
-	// EQ Constraint Settings
-	// Operator-customizable list of EQ "constraint presets" (hardware capability
-	// profiles). The user picks one in EqualizerPanel; it caps maxBands, clamps
-	// freq/Q/gain, and switches between parametric and graphic editing modes.
-	//
-	// Three sources merge at boot, in priority order (later overrides earlier
-	// for the same id):
-	//   1. The bundled fallback (defaults/eq-constraints.json) — copied to dist/
-	//      so users can edit it locally without touching source.
-	//   2. The JSON list at EQ.CONSTRAINTS_URL — typically the same file as (1),
-	//      but can point at a remote URL so multiple operators share one curated
-	//      list (e.g. hosted on a squig.link CDN).
-	//   3. EQ.CUSTOM_CONSTRAINTS — inline operator additions; small extras don't
-	//      need a separate file.
-	EQ: {
-		CONSTRAINTS_URL: './eq-constraints.json', // Set to a remote URL to pull a shared list
-		CUSTOM_CONSTRAINTS: [], // Inline preset objects appended last
-		DEFAULT_CONSTRAINT_ID: 'default' // Active preset on first load
+
+	// Language selector on the Misc panel. ENABLE_I18N must be true for it to
+	// appear at all. LANGUAGE_LIST restricts which of the build's locales are
+	// offered — omit it to offer all of them. → docs: LANGUAGE
+	LANGUAGE: {
+		ENABLE_I18N: true,
+		ENABLE_SYSTEM_LANG_DETECTION: true,
+		LANGUAGE_LIST: [
+			['cs', 'Čeština'],
+			['en', 'English'],
+			['ko', '한국어'],
+			['ru', 'Русский'],
+			['uk', 'Українська']
+		]
 	},
-	// squig.link Integration Settings
-	// This section is only active when hosted on *.squig.link domains.
-	SQUIGLINK: {
-		ENABLED: true,
-		ANALYTICS_MEASUREMENT_IDS: [], // Array of GA4 IDs, e.g. ["G-SQUIGLINK_ID", "G-YOUR_ID"]
-		ANALYTICS_SITE: '', // Site name for analytics attribution
-		LOG_ANALYTICS: true, // Console log analytics events
-		ENABLE_ANALYTICS: true, // Master analytics toggle
-		ENABLE_CROSS_SITE_SEARCH: true, // Deprecated — use CROSS_SITE_SEARCH.ENABLED
-		ENABLE_SPONSOR: true // Sponsor banner and shop links
+
+	// Topbar title. 'TEXT', 'HTML' and 'IMAGE' types are supported.
+	// LINK_LIST adds links next to it, and supports i18n — see docs → TOPBAR.
+	TOPBAR: {
+		TITLE: { TYPE: 'HTML', CONTENT: '<h2>modernGraphTool</h2>' },
+		LINK_LIST: [
+			{ TITLE: 'Github', URL: 'https://www.github.com' },
+			{ TITLE: 'Docs', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
+		]
 	},
-	// Misc Panel Description
-	// You can add some useful information about your database over here.
-	// 'TEXT', 'HTML', 'IMAGE' types are supported.
-	DESCRIPTION: {
-		default: [
-			//{ TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
-			{
-				TYPE: 'HTML',
-				CONTENT: '<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>'
-			}
-		],
-		i18n: {
-			ko: [
-				//{ TYPE: "TEXT", CONTENT: "모든 데이터는 IEC 60318-4 (711) 이어 시뮬레이터를 활용해 측정되었습니다." },
-				{
-					TYPE: 'HTML',
-					CONTENT: '<p>모든 데이터는 IEC 60318-4 (711) 이어 시뮬레이터를 활용해 측정되었습니다.</p>'
-				}
-			],
-			ru: [
-				{
-					TYPE: 'HTML',
-					CONTENT:
-						'<p>Все измерения выполнены с использованием симулятора уха IEC 60318-4 (711).</p>'
-				}
-			],
-			uk: [
-				{
-					TYPE: 'HTML',
-					CONTENT:
-						'<p>Усі вимірювання були виконані з використанням симулятора вуха IEC 60318-4 (711).</p>'
-				}
-			]
+
+	// URL Settings
+	URL: {
+		AUTO_UPDATE_URL: true, // Update the URL when phone/target selection changes.
+		COMPRESS_URL: true // Compresses URL with Base62 encoding
+	},
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// Optional features — each falls back to a built-in default while commented
+	// out. To switch one on, uncomment it and edit the values; the trailing
+	// commas are already in place, so nothing else needs changing.
+	// Full option lists live in the docs section named after each one.
+	// ─────────────────────────────────────────────────────────────────────────
+
+	// Watermark — text and/or images drawn over the graph. Accepts an array;
+	// one entry is picked at random per page load. → docs: WATERMARK
+	// WATERMARK: [
+	//   { TYPE: 'TEXT', CONTENT: '© 2025 modernGraphTool', LOCATION: 'BOTTOM_RIGHT',
+	//     POSITION: { UP: '43', DOWN: '0', LEFT: '32', RIGHT: '0' },
+	//     OPACITY: '0.3', SIZE: '14px', FONT_FAMILY: 'sans-serif', FONT_WEIGHT: '600' },
+	// ],
+
+	// Curve thickness, color palette and target dash patterns. Defaults to the
+	// colorblind-safe Okabe-Ito palette. → docs: TRACE_STYLING
+	// TRACE_STYLING: {
+	//   PHONE_TRACE_THICKNESS: 2,
+	//   TARGET_TRACE_THICKNESS: 1,
+	//   CURVE_COLOR_PALETTE: ['#0072B2', '#E69F00', '#009E73', '#CC79A7'],
+	//   CURVE_COLOR_PALETTE_RANDOMIZE: true,
+	//   TARGET_TRACE_DASH: [{ name: 'KEMAR DF (KB006x)', dash: '10 10' }],
+	// },
+
+	// Sample sets — variants measured more than once (repeat runs, pad swaps,
+	// seating positions). Configured per variant in phone_book.json; this only
+	// sets the defaults. → docs: SAMPLES
+	// SAMPLES: {
+	//   DEFAULT_COUNT: 1,               // Runs per variant when the phone book declares none
+	//   DEFAULT_DISPLAY: ['avg'],       // Any of 'avg', 'curves' (per-run), 'fill' (min/max band)
+	//   FILL_OPACITY: 0.3,
+	// },
+
+	// Search other measurement databases from the device search box. On by
+	// default, using the shared GraphAggregator index. → docs: CROSS_SITE_SEARCH
+	// CROSS_SITE_SEARCH: {
+	//   ENABLED: true,
+	//   INDEX_URLS: [],          // Empty = official index + its mirror
+	//   SQUIGLINK_FALLBACK: true,
+	// },
+
+	// Link the review score in the phone list to your ranking page.
+	// Placeholders: {brand}, {model}, {slug}, {fullName}. → docs: RANKING_URL
+	// RANKING_URL: '',
+
+	// Only active on *.squig.link domains: analytics, sponsor banner, shop links.
+	// → docs: SQUIGLINK
+	// SQUIGLINK: {
+	//   ENABLED: true,
+	//   ANALYTICS_MEASUREMENT_IDS: [],   // GA4 IDs, e.g. ['G-XXXXXXX']
+	//   ANALYTICS_SITE: '',
+	//   ENABLE_ANALYTICS: true,
+	//   ENABLE_SPONSOR: true,
+	// },
+
+	// CDN deployment only — for the thin cdn-index.html. Leave commented out
+	// when deploying the full dist/ folder. → docs: CDN_MODE
+	// CDN_MODE: {
+	//   MAJOR_VERSION: 2,        // Auto-updates within this major version
+	//   // BASE: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn',
+	//   // BASE_PATH: '/cdn',    // Only when served from a subdirectory
+	// },
+
+	// Deprecated, still read so existing files keep working. Migrate to SAMPLES.
+	// MULTI_SAMPLE.DEFAULT_DISPLAY: 'average' -> ['avg'], 'all' -> ['avg','curves']
+	// HPTF.FILL_OPACITY -> SAMPLES.FILL_OPACITY
+	// MULTI_SAMPLE: { DEFAULT_DISPLAY: 'average' },
+	// HPTF: { DEFAULT_DISPLAY: 'fill+curves', FILL_OPACITY: 0.3 },
+
+	// ─────────────────────────────────────────────────────────────────────────
+
+	// Information about your database, shown on the Misc panel.
+	// 'TEXT', 'HTML' and 'IMAGE' types are supported, and it accepts i18n.
+	// Kept last on purpose: it closes the object, so every stub above can be
+	// uncommented as-is without leaving a trailing comma dangling.
+	DESCRIPTION: [
+		{
+			TYPE: 'HTML',
+			CONTENT: '<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>'
 		}
-	}
+	]
 };
 
 window.GRAPHTOOL_CONFIG = CONFIG;

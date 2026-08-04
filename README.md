@@ -23,7 +23,15 @@ Also available in Squiglink: https://silicagel.squig.link
 - **Internationalization** — 5+ Language support (See [CONTRIBUTING.md][CONTRIBUTING_I18N] for contribution guide)
 - **Light & Dark Mode** — Colorful UI with operator-customizable theme system
 
-## Getting Started
+## Documentation
+
+See the [documentation site][DOCS] for feature guides, admin setup, and developer reference.
+
+## Download
+
+See the [Release Page][RELEASE] for download options, and the [deployment guide][DEPLOY] for how to host the build.
+
+## For developers
 
 ```bash
 # Install dependencies
@@ -35,14 +43,6 @@ npm run dev
 # Build for production (outputs to ./dist)
 npm run build
 ```
-
-## Documentation
-
-See the [documentation site][DOCS] for feature guides, admin setup, and developer reference.
-
-## Download
-
-See the [Release Page][RELEASE] for download options.
 
 ## Contributing
 
@@ -58,6 +58,7 @@ modernGraphTool is open source software licensed under the MIT License.
 <sup>The Device PEQ bridge is based on work by [jeromeof][DEVICE_PEQ].</sup>
 
 [DOCS]: https://potatosalad775.github.io/modernGraphTool/docs
+[DEPLOY]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/setup-env
 [RELEASE]: https://github.com/potatosalad775/modernGraphTool/releases
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DEVICE_PEQ]: https://github.com/jeromeof/devicePEQ

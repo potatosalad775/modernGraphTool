@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # CDN 배포
@@ -25,6 +25,10 @@ CDN 모드에서는 서버에 최소한의 파일, `index.html` 로더, `config.
 - jsDelivr에 접속할 수 없는 지역 또는 인트라넷에 배포하는 경우
 - 사이트의 버전과 업데이트 시점을 엄격히 통제해야 하는 경우
 - 앱 번들 자체를 깊이 손보는 경우(포크, 커스텀 기능)
+
+:::tip[웹 서버가 없다면?]
+[GitHub Pages](./github-pages)는 이 배포 방식을 GitHub이 대신 호스팅해 주는 것으로, 템플릿 저장소에서 시작해 전 과정을 브라우저에서 처리합니다. `BASE_PATH`도 자동으로 해결되므로 아래 4번 항목의 주의사항이 해당되지 않습니다.
+:::
 
 ## 설치
 
@@ -116,7 +120,7 @@ CDN_MODE: {
 
 ## 고급
 
-### 업데이트가 전파되는 방식
+### 업데이트가 전파되는 방식 {#how-updates-propagate}
 
 메이저 버전을 특정 릴리스 번호와 매핑하는 파일인 `versions.json`은 jsDelivr가 **아닌** `raw.githubusercontent.com`에서 직접 가져옵니다. 의도된 동작입니다. jsDelivr 엣지 캐시는 오래된 응답을 몇 시간씩 잡아 둘 수 있는데, `versions.json`은 그 지연이 가장 크게 문제가 되는 유일한 파일입니다. GitHub raw에서 가져오면 캐시를 우회해 새 릴리스를 게시하고 몇 분 안에 사용자에게 전달할 수 있습니다.
 

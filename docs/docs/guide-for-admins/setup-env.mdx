@@ -11,15 +11,24 @@ This page frames the setup decision and points you at the right deployment optio
 1.  **modernGraphTool project files** — either a [pre-built release](https://github.com/potatosalad775/modernGraphTool/releases) or a clone of the source repository, depending on which deployment option you pick.
 2.  **Text editor** — for modifying `config.js`, `theme.css`, and other configuration files. [Visual Studio Code](https://code.visualstudio.com/) is recommended for its syntax highlighting and auto-completion.
 
+Neither is required for the [GitHub Pages](./deployment/github-pages) option, which starts from a template repository and is edited in the browser.
+
 ## Deployment Options
 
-modernGraphTool supports three deployment paths. Pick one based on how much control you need over updates and customization:
+modernGraphTool supports four deployment paths. The first question is whether you already have a web server — if not, GitHub Pages gives you one for free. After that, pick based on how much control you need over updates and customization:
 
 | Option                                               | Best for                       | Updates                   | Customization                      | Subdirectory hosting                   |
 | ---------------------------------------------------- | ------------------------------ | ------------------------- | ---------------------------------- | -------------------------------------- |
+| **[GitHub Pages](./deployment/github-pages)**        | Operators without hosting      | Automatic                 | Config, theme, data, HTML metadata | Handled automatically                  |
 | **[CDN Deployment](./deployment/cdn)** (recommended) | Most operators                 | Automatic                 | Config, theme, data                | Requires one config line (`BASE_PATH`) |
 | **[Pre-built Release](./deployment/prebuilt)**       | Controlled rollouts, airgapped | Manual (re-download)      | Config, theme, data, HTML metadata | Works out of the box                   |
 | **[Building from Source](./deployment/from-source)** | Developers, forks              | Manual (git pull + build) | Everything                         | Works out of the box                   |
+
+### [GitHub Pages](./deployment/github-pages)
+
+Free hosting from GitHub, set up entirely in your browser — no server, no FTP, and nothing to install. You copy a [template repository](https://github.com/potatosalad775/modernGraphTool_site) that already contains a working site, switch Pages on, and replace the demo measurements with your own. Under the hood it's CDN deployment, so updates are automatic and the `BASE_PATH` problem below is solved for you.
+
+Note that this requires a public repository, so it isn't an option for a private database.
 
 ### [CDN Deployment](./deployment/cdn)
 

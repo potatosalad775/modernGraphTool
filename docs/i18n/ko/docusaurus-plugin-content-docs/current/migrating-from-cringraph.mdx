@@ -164,10 +164,11 @@ squig.link 서비스 모델은 이어폰과 헤드폰 데이터베이스를 같�
 
 ## 배포 옵션 선택
 
-modernGraphTool v2는 세 가지 배포 방식을 제공합니다.
+modernGraphTool v2는 네 가지 배포 방식을 제공합니다.
 
 - **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt)** — v1과 비슷한 방식입니다. 배포 파일을 내려받고 데이터·설정을 복사한 뒤 업로드하면 됩니다. 따로 설정할 `BASE_PATH`도 없습니다.
 - **[CDN 배포](./guide-for-admins/deployment/cdn)** — 가장 권장하는 방식입니다. 서버에는 `index.html`, `config.js`, `theme.css`, `data/`, `assets/`만 두고, 핵심 코드는 jsDelivr에서 받아 자동으로 적용하는 방식입니다.
+- **[GitHub Pages](./guide-for-admins/deployment/github-pages)** — CDN 배포를 GitHub에서 무료로 호스팅하는 방식입니다. 이참에 웹 서버 관리에서 벗어나고 싶다면 좋은 선택입니다.
 - **[소스에서 빌드](./guide-for-admins/deployment/from-source)** — 개발자와 포크 운영자를 위한 옵션입니다.
 
 :::tip[CDN을 권장합니다]

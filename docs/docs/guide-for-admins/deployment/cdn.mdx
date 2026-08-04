@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # CDN Deployment
@@ -25,6 +25,10 @@ The tradeoff is that your site needs to reach jsDelivr at load time, and you don
 - Airgapped or intranet deployments where jsDelivr isn't reachable
 - Sites that need strict control over when and which version users receive
 - Heavy customization of the app bundle itself (forks, custom features)
+
+:::tip[No web server?]
+[GitHub Pages](./github-pages) is this same deployment mode with GitHub providing the hosting, set up from a template repository entirely in your browser. It also resolves `BASE_PATH` automatically, so the step-4 caveat below doesn't apply there.
+:::
 
 ## Installation
 

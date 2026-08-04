@@ -432,6 +432,20 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 - User-editable files in `dist/`: `config.js`, `theme.css`, `data/`, `assets/strings/`
 - **Never** import from `static/` or `defaults/` as modules — `fetch()` them at runtime
 
+**GitHub Pages template** — [potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site)
+is a separate repo operators copy with "Use this template". It holds the same payload
+`release.yml` packs into `modernGraphTool_v*_cdn.zip` (`index.html`, `config.js`, `theme.css`,
+`data/`, `assets/`) plus `.nojekyll`, so a change to `defaults/` or to `cdn/cdn-index.html`
+should be mirrored there. Two things differ from the shipped `cdn-index.html` on purpose:
+
+- It always loads `loader.js` from jsDelivr — no localhost branch, since operators never
+  iterate on the loader.
+- It carries an inline base-path detector that sets `CDN_MODE.BASE_PATH` from the first path
+  segment on `*.github.io` hosts, so `username.github.io/<repo>/` and `username.github.io/`
+  both work with no config edit and survive a repo rename. It defers to an explicit
+  `BASE_PATH` in `config.js`. This lives in the template rather than in `cdn/loader.js`
+  because a loader change only reaches deployments after the next `cdn` branch publish.
+
 ## Build Commands
 
 | Command                 | What it does                                             |

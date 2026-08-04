@@ -51,10 +51,11 @@ Deployment is also the same — v2 outputs a fully static SPA to `dist/`. Copy t
 
 ## Picking a Deployment Option
 
-v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds two more:
+v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds three more:
 
 - **[Pre-built Release](./guide-for-admins/deployment/prebuilt)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no `BASE_PATH` to set, works exactly like v1 did.
 - **[CDN Deployment](./guide-for-admins/deployment/cdn)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
+- **[GitHub Pages](./guide-for-admins/deployment/github-pages)** — CDN deployment hosted on GitHub for free, if you'd rather not keep running a web server for this.
 - **[Building from Source](./guide-for-admins/deployment/from-source)** — For developers and forks.
 
 :::tip[CDN Alternative]

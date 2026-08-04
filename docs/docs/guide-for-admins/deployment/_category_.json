@@ -5,6 +5,6 @@
 	"collapsed": false,
 	"link": {
 		"type": "generated-index",
-		"description": "Three ways to deploy modernGraphTool: CDN (recommended for most users), pre-built release, or building from source. Pick one based on how much control you need over updates and customization."
+		"description": "Four ways to deploy modernGraphTool: GitHub Pages (free hosting, no server needed), CDN (recommended if you already have a server), pre-built release, or building from source. Pick one based on the hosting you have and how much control you need over updates."
 	}
 }

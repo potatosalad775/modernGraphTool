@@ -16,7 +16,7 @@ export default defineConfig(
 		// The root .gitignore anchors its output patterns (`/build`, `/dist`), so it does not
 		// cover the Docusaurus site's generated output, and includeIgnoreFile only reads the
 		// root file. Without this, linting after a docs build walks into minified bundles.
-		ignores: ['docs/build/**', 'docs/.docusaurus/**']
+		ignores: ['docs/build/**', 'docs/.docusaurus/**', 'site-template/config-cdn-mode.js']
 	},
 	js.configs.recommended,
 	ts.configs.recommended,

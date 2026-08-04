@@ -131,7 +131,8 @@ defaults/                # Operator-editable templates, copied to dist/ by a Vit
 ├── assets/              # Default images / string overrides
 └── data/                # Sample phone_book.json + FR files + targets
 messages/                # Paraglide sources: en.json, ko.json
-scripts/                 # build-cdn.js, generate-boot-manifest.js
+scripts/                 # build-cdn.js, build-site-template.js, generate-boot-manifest.js
+site-template/           # Sources for the GitHub Pages template repo (see Deployment)
 static/                  # Project assets (local overrides; gitignored where noted)
 ```
 
@@ -427,39 +428,53 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 - `npm run build` → static SPA in `dist/` (prerendered; SPA fallback via `.htaccess`)
 - `npm run build:cdn` → `dist-cdn/` with a thin `cdn-index.html` loader and `cdn/loader.js`
   for jsDelivr-hosted assets (set `MGT_CDN_BASE` to rewrite `_app/` URLs)
+- `npm run build:site-template` → `dist-site-template/`, the GitHub Pages template (see below)
 - A Vite plugin serves `defaults/` as fallback during dev and copies them into `dist/` at build
   (without overwriting files that already exist under `static/`)
 - User-editable files in `dist/`: `config.js`, `theme.css`, `data/`, `assets/strings/`
 - **Never** import from `static/` or `defaults/` as modules — `fetch()` them at runtime
 
 **GitHub Pages template** — [potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site)
-is a separate repo operators copy with "Use this template". It holds the same payload
-`release.yml` packs into `modernGraphTool_v*_cdn.zip` (`index.html`, `config.js`, `theme.css`,
-`data/`, `assets/`) plus `.nojekyll`, so a change to `defaults/` or to `cdn/cdn-index.html`
-should be mirrored there. Two things differ from the shipped `cdn-index.html` on purpose:
+is a separate repo operators copy with "Use this template". It is **generated output, not a
+hand-maintained repo**: `npm run build:site-template` assembles it and
+[.github/workflows/sync-site-template.yml](.github/workflows/sync-site-template.yml) force-syncs
+the result on every push to `main` that touches `defaults/`, `site-template/` or the script.
+Edit the sources here; anything committed straight to the template repo is overwritten.
 
-- It always loads `loader.js` from jsDelivr — no localhost branch, since operators never
-  iterate on the loader.
-- It carries an inline base-path detector that sets `CDN_MODE.BASE_PATH` from the first path
-  segment on `*.github.io` hosts, so `username.github.io/<repo>/` and `username.github.io/`
-  both work with no config edit and survive a repo rename. It defers to an explicit
-  `BASE_PATH` in `config.js`. This lives in the template rather than in `cdn/loader.js`
-  because a loader change only reaches deployments after the next `cdn` branch publish.
+- Most of it is `defaults/` verbatim (`theme.css`, `data/`, `assets/`), which is the whole
+  reason the sync exists — that content drifts the moment `defaults/` changes.
+- `config.js` is `defaults/config.js` with the commented `CDN_MODE` stub spliced out and
+  [site-template/config-cdn-mode.js](site-template/config-cdn-mode.js) spliced in, so new
+  config options reach the template for free. The splice is anchored on the stub's first and
+  last lines and **throws** if it stops matching — a template with no live `CDN_MODE` is a
+  blank page, since `index.html` is only a loader. That file is a JS _fragment_, so it's in
+  `.prettierignore` and ESLint's ignores; the generated `config.js` is syntax-checked instead.
+- `site-template/index.html` is source, **not** derived from `cdn/cdn-index.html` — keep the
+  shared parts in sync by hand. Two deliberate divergences: it always loads `loader.js` from
+  jsDelivr (no localhost branch — operators never iterate on the loader), and it carries an
+  inline base-path detector that sets `CDN_MODE.BASE_PATH` from the first path segment on
+  `*.github.io` hosts, so `username.github.io/<repo>/` and `username.github.io/` both work
+  with no config edit and survive a repo rename. It defers to an explicit `BASE_PATH`. This
+  lives in the template rather than in `cdn/loader.js` because a loader change only reaches
+  deployments after the next `cdn` branch publish.
+- The workflow needs a `SITE_TEMPLATE_TOKEN` secret (fine-grained PAT, `Contents: write` on
+  the template repo) — `GITHUB_TOKEN` cannot push across repositories.
 
 ## Build Commands
 
-| Command                 | What it does                                             |
-| ----------------------- | -------------------------------------------------------- |
-| `npm run dev`           | Dev server at http://localhost:5173                      |
-| `npm run build`         | Production build to `dist/`                              |
-| `npm run build:cdn`     | CDN-optimized build to `dist-cdn/`                       |
-| `npm run preview`       | Preview built output                                     |
-| `npm run check`         | `svelte-kit sync` + `svelte-check` (TypeScript + Svelte) |
-| `npm run test`          | Vitest (client + server, Playwright browser mode)        |
-| `npm run test:coverage` | Full suite + v8 coverage report into `coverage/`         |
-| `npm run test:smoke`    | Boots the built `dist/` in a browser (run `build` first) |
-| `npm run lint`          | Prettier + ESLint                                        |
-| `npm run format`        | Auto-format code                                         |
+| Command                       | What it does                                             |
+| ----------------------------- | -------------------------------------------------------- |
+| `npm run dev`                 | Dev server at http://localhost:5173                      |
+| `npm run build`               | Production build to `dist/`                              |
+| `npm run build:cdn`           | CDN-optimized build to `dist-cdn/`                       |
+| `npm run build:site-template` | GitHub Pages template to `dist-site-template/`           |
+| `npm run preview`             | Preview built output                                     |
+| `npm run check`               | `svelte-kit sync` + `svelte-check` (TypeScript + Svelte) |
+| `npm run test`                | Vitest (client + server, Playwright browser mode)        |
+| `npm run test:coverage`       | Full suite + v8 coverage report into `coverage/`         |
+| `npm run test:smoke`          | Boots the built `dist/` in a browser (run `build` first) |
+| `npm run lint`                | Prettier + ESLint                                        |
+| `npm run format`              | Auto-format code                                         |
 
 ## Testing
 

@@ -143,6 +143,10 @@ Nothing to do. The application loads from jsDelivr and picks up new releases wit
 
 When a new **major** version ships and you're ready to move to it, edit `MAJOR_VERSION` in `config.js` and commit. That is the only update this deployment mode ever asks of you.
 
+:::note[Template updates don't touch your copy]
+The template repository is refreshed whenever modernGraphTool's defaults change, but "Use this template" makes an independent repository — it has no upstream link, so nothing there can overwrite your settings or your measurements. You don't need to re-copy it either; the application code comes from the CDN, not from the template.
+:::
+
 ## Custom domain
 
 If you own a domain, you can serve the site from it instead of `username.github.io`.

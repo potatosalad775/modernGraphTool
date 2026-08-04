@@ -26,3 +26,9 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# A JavaScript *fragment*, not a module: the CDN_MODE property that
+# scripts/build-site-template.js splices into defaults/config.js. It cannot parse
+# on its own, so neither Prettier nor ESLint can read it. The generated
+# config.js is syntax-checked by the build script instead.
+/site-template/config-cdn-mode.js

@@ -10,6 +10,7 @@ node_modules
 /dist
 /dist-cdn
 /dist-backup
+/dist-site-template
 /coverage
 
 # OS

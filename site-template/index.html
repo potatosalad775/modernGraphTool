@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  modernGraphTool — GitHub Pages site template
+
+  This is a thin entry point. The application itself loads from jsDelivr and
+  updates itself when a new version is released — you never re-upload it.
+  The files next to this one are yours to edit:
+
+    config.js   your settings          theme.css   your colors
+    data/       your measurements      assets/     your images
+
+  Most operators only need to touch the <title> and the two <meta> descriptions
+  below. Full docs:
+  https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/deployment/github-pages
+-->
+<html lang="en" dir="ltr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+		<!-- ── Edit these to name your database ────────────────────────────── -->
+		<title>modernGraphTool</title>
+		<meta name="title" content="modernGraphTool" />
+		<meta property="og:title" content="modernGraphTool" />
+		<meta
+			name="description"
+			content="View and compare frequency response graphs for earphones/headphones."
+		/>
+		<meta
+			property="og:description"
+			content="View and compare frequency response graphs for earphones/headphones."
+		/>
+		<!-- ────────────────────────────────────────────────────────────────── -->
+
+		<meta property="og:url" content="" />
+		<link rel="canonical" href="" />
+		<link rel="icon" type="image/png" href="./assets/favicon-96x96.png" sizes="96x96" />
+		<link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+		<link rel="shortcut icon" href="./assets/favicon.ico" />
+		<meta property="og:type" content="website" />
+		<meta
+			name="keywords"
+			content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"
+		/>
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-title" content="modernGraphTool" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png" />
+		<link rel="manifest" href="./assets/site.webmanifest" />
+
+		<!-- Pretendard Variable font (Korean-optimized, dynamic subset) -->
+		<link
+			rel="stylesheet"
+			as="style"
+			crossorigin
+			href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+		/>
+
+		<!-- Your settings and colors -->
+		<script src="./config.js"></script>
+		<link rel="stylesheet" href="./theme.css" />
+
+		<!--
+			GitHub Pages base-path auto-detect.
+
+			A project site is served from a subdirectory named after the repository
+			(username.github.io/my-repo/), and the app has to know that prefix or
+			share links break. This works it out from the URL so you don't have to
+			edit config.js when you name — or rename — your repository.
+
+			It only runs on *.github.io, and only when config.js leaves BASE_PATH
+			unset. Set CDN_MODE.BASE_PATH in config.js to override it (needed for a
+			custom domain that serves the site from a subdirectory).
+		-->
+		<script>
+			(function () {
+				var cfg = (window.GRAPHTOOL_CONFIG = window.GRAPHTOOL_CONFIG || {});
+				var cdn = (cfg.CDN_MODE = cfg.CDN_MODE || {});
+				if (cdn.BASE_PATH != null) return;
+				if (!/\.github\.io$/i.test(location.hostname)) return;
+				var seg = location.pathname.split('/').filter(Boolean)[0];
+				cdn.BASE_PATH = seg && !/\.html?$/i.test(seg) ? '/' + seg : '';
+			})();
+		</script>
+	</head>
+
+	<body data-sveltekit-preload-data="hover">
+		<div id="app" style="display: contents"></div>
+		<script src="https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js"></script>
+	</body>
+</html>

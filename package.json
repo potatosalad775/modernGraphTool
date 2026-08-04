@@ -7,6 +7,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"build:cdn": "node scripts/build-cdn.js",
+		"build:site-template": "node scripts/build-site-template.js",
 		"preview": "vite preview",
 		"prepare": "npm run i18n:compile && svelte-kit sync || echo ''",
 		"check": "npm run i18n:compile && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

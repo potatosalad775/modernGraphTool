@@ -5,6 +5,9 @@
  * Graph variables control D3.js SVG rendering where Tailwind classes cannot be used.
  * Base variables follow DaisyUI naming — all UI chrome is derived via opacity modifiers.
  * All variables switch automatically between light and dark mode.
+ *
+ * Create your own style with Theme generator:
+ *   https://potatosalad775.github.io/modernGraphTool/docs/theme-generator
  */
 
 :root {

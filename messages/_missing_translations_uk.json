@@ -6,6 +6,9 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/uk.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
+	"selection_list_channel_header": "Канал",
+	"selection_list_samples_run": "Екземпляр",
+	"selection_list_samples_runs_toggle": "Окремі криві",
 	"eq_constraint_select_title": "EQ constraint preset — limits bands, filter types, and frequency / Q / gain ranges",
 	"eq_constraint_search_placeholder": "Search presets…",
 	"eq_constraint_group_builtin": "Built-in",

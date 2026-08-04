@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import type { FRDataObject, SampleDisplayKey } from '$lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
-	import { Ellipsis } from '@lucide/svelte';
+	import { ChevronDown, Ellipsis } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -82,6 +83,21 @@
 	let showAvg = $derived(item.showAvg ?? true);
 	let showFill = $derived(item.showFill ?? false);
 
+	let selectedRunCount = $derived(
+		sampleRows.reduce((total, row) => total + row.boxes.filter((box) => box.checked).length, 0)
+	);
+
+	/**
+	 * Per-run curves are collapsed by default. Most visitors only ever want the
+	 * averaged curve, and an unbounded run list made the popover taller than the
+	 * viewport on sets with many runs.
+	 *
+	 * Opened up front when the item already displays runs — a `?share=` link or a
+	 * variant configured `display: ['curves']` would otherwise hide the very
+	 * checkboxes that explain what is on the graph.
+	 */
+	let runsOpen = $state(untrack(() => (item.dispSamples ?? []).length > 0));
+
 	// ── Handlers ────────────────────────────────────────────────────────────────
 
 	function handleChannelChange(value: string): void {
@@ -156,24 +172,36 @@
 			sideOffset={6}
 			class="z-50 w-54 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
-			<!-- Section 1: Channel Display (radio buttons) -->
+			<!--
+				Section 1: Channel display.
+
+				Governs more than the averaged curve, so it stays visible whatever the
+				sample toggles below are set to: `_buildEnvelopePath` picks which side
+				of the deviation fill to draw off `dispChannel`, and so do the baseline,
+				the hover readout and the EQ overlay.
+			-->
 			<fieldset class="mb-0">
-				{#each channelOptions as opt (opt.value)}
-					<label
-						class="flex cursor-pointer items-center gap-1.5 rounded px-1.5 py-1 text-xs
-							 hover:bg-base-300"
-					>
-						<input
-							type="radio"
-							name="{uuid}-channel"
-							value={opt.value}
-							checked={currentChannelValue === opt.value}
-							onchange={() => handleChannelChange(opt.value)}
-							class="accent-accent"
-						/>
-						{opt.label}
-					</label>
-				{/each}
+				<legend class="mb-1 px-1.5 text-xs font-medium text-base-content/60">
+					{m.selection_list_channel_header()}
+				</legend>
+				<div class="flex flex-wrap gap-x-1">
+					{#each channelOptions as opt (opt.value)}
+						<label
+							class="flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-xs
+								 hover:bg-base-300"
+						>
+							<input
+								type="radio"
+								name="{uuid}-channel"
+								value={opt.value}
+								checked={currentChannelValue === opt.value}
+								onchange={() => handleChannelChange(opt.value)}
+								class="accent-accent"
+							/>
+							{opt.label}
+						</label>
+					{/each}
+				</div>
 			</fieldset>
 
 			<!-- Section 2: Sample set — one section for every kind of set -->
@@ -213,73 +241,100 @@
 						</label>
 					{/if}
 
-					<!-- One row per run, with a checkbox per channel that run loaded -->
-					<div class="mt-1 flex flex-col gap-0.5">
-						{#each sampleRows as row (row.index)}
-							<div class="flex items-center justify-between gap-2 px-1.5">
-								<span class="truncate text-xs text-base-content/80">{row.label}</span>
-								<div class="flex shrink-0 gap-1.5">
-									{#each row.boxes as box (box.key)}
-										<label
-											class="flex cursor-pointer items-center gap-0.5 rounded px-1 text-xs
-												hover:bg-base-300"
-										>
-											<input
-												type="checkbox"
-												aria-label="{row.label} {box.channel}"
-												checked={box.checked}
-												onchange={() => handleSampleToggle(box.key)}
-												class="accent-accent"
-											/>
-											{box.channel}
-										</label>
-									{/each}
-								</div>
-							</div>
-						{/each}
-					</div>
+					<!--
+						Per-run curves, behind a disclosure. The list is capped and scrolls:
+						a set with a dozen runs used to push the popover past the viewport.
+					-->
+					<Button
+						title={m.selection_list_samples_runs_toggle()}
+						onclick={() => (runsOpen = !runsOpen)}
+						aria-expanded={runsOpen}
+						aria-controls="{uuid}-sample-runs"
+						variant="muted"
+						size="sm"
+						class="mt-0.5 w-full justify-start! gap-1 rounded! px-1.5! py-1! font-normal!
+							 hover:bg-base-300!"
+					>
+						<ChevronDown
+							class="h-3 w-3 shrink-0 transition-transform {runsOpen ? '' : '-rotate-90'}"
+						/>
+						<span class="truncate">{m.selection_list_samples_runs_toggle()}</span>
+						{#if selectedRunCount > 0}
+							<span class="ml-auto shrink-0 text-base-content/60">{selectedRunCount}</span>
+						{/if}
+					</Button>
 
-					<!-- Preset buttons -->
-					<div class="mt-1.5 flex gap-1 px-1">
-						<Button
-							title={m.selection_list_samples_all_l()}
-							onclick={() => handlePreset('allL')}
-							variant="muted"
-							size="sm"
-							class="flex-1"
-						>
-							{m.selection_list_samples_all_l()}
-						</Button>
-						<Button
-							title={m.selection_list_samples_all_r()}
-							onclick={() => handlePreset('allR')}
-							variant="muted"
-							size="sm"
-							class="flex-1"
-						>
-							{m.selection_list_samples_all_r()}
-						</Button>
-					</div>
-					<div class="mt-1.5 flex gap-1 px-1">
-						<Button
-							title={m.selection_list_samples_all()}
-							onclick={() => handlePreset('all')}
-							variant="muted"
-							size="sm"
-							class="flex-1"
-						>
-							{m.selection_list_samples_all()}
-						</Button>
-						<Button
-							title={m.selection_list_samples_none()}
-							onclick={() => handlePreset('none')}
-							variant="muted"
-							size="sm"
-							class="flex-1"
-						>
-							{m.selection_list_samples_none()}
-						</Button>
-					</div>
+					{#if runsOpen}
+						<div id="{uuid}-sample-runs">
+							<!-- One row per run, with a checkbox per channel that run loaded -->
+							<div class="mt-1 flex max-h-40 flex-col gap-0.5 overflow-y-auto">
+								{#each sampleRows as row (row.index)}
+									<div class="flex items-center justify-between gap-2 px-1.5">
+										<span class="truncate text-xs text-base-content/80">{row.label}</span>
+										<div class="flex shrink-0 gap-1.5">
+											{#each row.boxes as box (box.key)}
+												<label
+													class="flex cursor-pointer items-center gap-0.5 rounded px-1 text-xs
+												hover:bg-base-300"
+												>
+													<input
+														type="checkbox"
+														aria-label="{row.label} {box.channel}"
+														checked={box.checked}
+														onchange={() => handleSampleToggle(box.key)}
+														class="accent-accent"
+													/>
+													{box.channel}
+												</label>
+											{/each}
+										</div>
+									</div>
+								{/each}
+							</div>
+
+							<!-- Preset buttons -->
+							<div class="mt-1.5 flex gap-1 px-1">
+								<Button
+									title={m.selection_list_samples_all_l()}
+									onclick={() => handlePreset('allL')}
+									variant="muted"
+									size="sm"
+									class="flex-1"
+								>
+									{m.selection_list_samples_all_l()}
+								</Button>
+								<Button
+									title={m.selection_list_samples_all_r()}
+									onclick={() => handlePreset('allR')}
+									variant="muted"
+									size="sm"
+									class="flex-1"
+								>
+									{m.selection_list_samples_all_r()}
+								</Button>
+							</div>
+							<div class="mt-1.5 flex gap-1 px-1">
+								<Button
+									title={m.selection_list_samples_all()}
+									onclick={() => handlePreset('all')}
+									variant="muted"
+									size="sm"
+									class="flex-1"
+								>
+									{m.selection_list_samples_all()}
+								</Button>
+								<Button
+									title={m.selection_list_samples_none()}
+									onclick={() => handlePreset('none')}
+									variant="muted"
+									size="sm"
+									class="flex-1"
+								>
+									{m.selection_list_samples_none()}
+								</Button>
+							</div>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</Popover.Content>

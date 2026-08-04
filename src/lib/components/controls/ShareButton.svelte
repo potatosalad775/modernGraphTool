@@ -16,12 +16,7 @@
 	}
 </script>
 
-<Button
-	title={m.share_button_label()}
-	onclick={handleClick}
-	variant="muted"
-	class="h-9! gap-1.5 px-3!"
->
+<Button title={m.share_button_label()} onclick={handleClick} variant="muted" size="toolbar">
 	<Share2 class="h-4 w-4" aria-hidden="true" />
 	{m.share_button_label()}
 </Button>

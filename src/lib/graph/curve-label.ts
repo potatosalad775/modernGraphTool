@@ -27,11 +27,36 @@ export function curveBaseName(obj: FRDataObject): string {
  * The name for one curve row: base name, plus the TargetCustomizer adjustment
  * summary on targets and the channel tag on everything else. Targets carry no
  * channel tag because they are always a single AVG curve.
+ *
+ * `sampleLabel` names an individual run of a sample set, and reads ahead of the
+ * channel — "HD 600 Leather Pad (Center, R)". Without it, every run of a set
+ * rendered as the same string, so the graph could not say which measurement a
+ * curve was.
  */
-export function curveDisplayName(obj: FRDataObject, channel: string): string {
+export function curveDisplayName(obj: FRDataObject, channel: string, sampleLabel?: string): string {
 	const base = curveBaseName(obj);
 	if (obj.type === 'target') {
 		return obj.adjustmentLabel ? `${base} ${obj.adjustmentLabel}` : base;
 	}
-	return `${base} (${channel})`;
+	return sampleLabel ? `${base} (${sampleLabel}, ${channel})` : `${base} (${channel})`;
+}
+
+/**
+ * Resolve a `sample{n}_{ch}` display key against an item's sample set.
+ *
+ * Returns the run's curator label when it has one and its channel, so callers
+ * can hand both to `curveDisplayName`. A run with no label falls back to a
+ * 1-based ordinal — keys are 0-based internally, but "Sample 1" is what the
+ * operator numbered the file.
+ */
+export function sampleKeyParts(
+	obj: FRDataObject,
+	key: string
+): { label: string; channel: 'L' | 'R' | 'AVG'; index: number } | null {
+	const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
+	if (!match) return null;
+	const index = parseInt(match[1]);
+	const channel = match[2] as 'L' | 'R' | 'AVG';
+	const label = obj.samples?.[index]?.label ?? `Sample ${index + 1}`;
+	return { label, channel, index };
 }

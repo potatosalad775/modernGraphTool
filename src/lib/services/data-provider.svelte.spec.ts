@@ -10,7 +10,6 @@ import type {
 	FRDataObject,
 	FRDataPoint,
 	ParsedFRData,
-	HpTFData,
 	PhoneMetadata,
 	PhoneFileVariant,
 	SampleData
@@ -77,7 +76,8 @@ function phoneFile(base: string, suffix: string): PhoneFileVariant {
 	};
 }
 
-function makeHpTFData(): HpTFData {
+/** A two-run labelled sample set with its envelope, as an FRDataObject fragment. */
+function makeSampleSet(overrides: Partial<FRDataObject> = {}): Partial<FRDataObject> {
 	return {
 		samples: [
 			{
@@ -98,8 +98,9 @@ function makeHpTFData(): HpTFData {
 			R: { upper: makeFRPoints(80), lower: makeFRPoints(78) },
 			AVG: { upper: makeFRPoints(81), lower: makeFRPoints(79) }
 		},
-		labels: ['Sample A', 'Sample B'],
-		fillOnly: true
+		showFill: true,
+		showAvg: true,
+		...overrides
 	};
 }
 
@@ -353,132 +354,84 @@ describe('DataProvider', () => {
 		});
 	});
 
-	// ── Multi-sample display ─────────────────────────────────────────────
+	// ── Sample display ───────────────────────────────────────────────────
 
 	describe('updateSampleDisplay', () => {
+		const withSamples = (overrides: Partial<FRDataObject> = {}) =>
+			makeFRDataObject('a', {
+				samples: [
+					{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+					{ L: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } }
+				],
+				dispSamples: [],
+				...overrides
+			});
+
 		it('sets dispSamples on a loaded phone', () => {
-			frStore.set(
-				'a',
-				makeFRDataObject('a', {
-					samples: [
-						{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
-						{ L: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } } }
-					],
-					sampleCount: 2,
-					dispSamples: []
-				})
-			);
-			dataProvider.updateSampleDisplay('a', ['L1', 'L2']);
-			expect(frStore.get('a')!.dispSamples).toEqual(['L1', 'L2']);
+			frStore.set('a', withSamples());
+			dataProvider.updateSampleDisplay('a', ['sample0_L', 'sample1_L']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L', 'sample1_L']);
 		});
 
 		it('does nothing for non-existent UUID', () => {
-			dataProvider.updateSampleDisplay('nonexistent', ['L1']);
+			dataProvider.updateSampleDisplay('nonexistent', ['sample0_L']);
 			expect(frStore.size).toBe(0);
 		});
 
-		it('can clear samples (set to empty array)', () => {
-			frStore.set('a', makeFRDataObject('a', { dispSamples: ['L1', 'R1'] }));
+		it('can clear the run picks (set to empty array)', () => {
+			frStore.set('a', withSamples({ dispSamples: ['sample0_L', 'sample0_R'] }));
 			dataProvider.updateSampleDisplay('a', []);
 			expect(frStore.get('a')!.dispSamples).toEqual([]);
 		});
 
 		it('is undoable', () => {
-			frStore.set('a', makeFRDataObject('a', { dispSamples: ['L1'] }));
-			dataProvider.updateSampleDisplay('a', ['L1', 'L2', 'R1']);
-			expect(frStore.get('a')!.dispSamples).toEqual(['L1', 'L2', 'R1']);
+			frStore.set('a', withSamples({ dispSamples: ['sample0_L'] }));
+			dataProvider.updateSampleDisplay('a', ['sample0_L', 'sample1_L']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L', 'sample1_L']);
 
 			commandHistory.undo(frStore);
-			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L']);
 		});
 
 		it('is safe to set on a phone without sample data', () => {
 			frStore.set('a', makeFRDataObject('a'));
-			// Phone has no samples field — setting dispSamples is harmless
-			dataProvider.updateSampleDisplay('a', ['L1']);
-			expect(frStore.get('a')!.dispSamples).toEqual(['L1']);
-		});
-	});
-
-	// ── HpTF display ─────────────────────────────────────────────────────
-
-	describe('updateHpTFDisplay', () => {
-		it('sets dispHptf, hptfFillVisible, and hptfAvgVisible on a loaded phone', () => {
-			frStore.set(
-				'a',
-				makeFRDataObject('a', {
-					hptf: {
-						samples: [
-							{
-								label: 'GRAS',
-								AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } }
-							},
-							{
-								label: 'B&K',
-								AVG: { data: [[1000, 82]], metadata: { minFreq: 20, maxFreq: 20000 } }
-							}
-						],
-						envelope: {
-							L: { upper: [], lower: [] },
-							R: { upper: [], lower: [] },
-							AVG: { upper: [[1000, 82]], lower: [[1000, 80]] }
-						},
-						labels: ['GRAS', 'B&K'],
-						fillOnly: true
-					},
-					dispHptf: [],
-					hptfFillVisible: false,
-					hptfAvgVisible: false
-				})
-			);
-			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], true, true);
-			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
-			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
-			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
+			dataProvider.updateSampleDisplay('a', ['sample0_L']);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L']);
 		});
 
-		it('does nothing for non-existent UUID', () => {
-			dataProvider.updateHpTFDisplay('nonexistent', ['sample0_AVG'], true, false);
-			expect(frStore.size).toBe(0);
+		it('sets the fill and average toggles when given', () => {
+			frStore.set('a', withSamples({ showFill: false, showAvg: true }));
+			dataProvider.updateSampleDisplay('a', ['sample0_AVG'], true, false);
+			expect(frStore.get('a')!.showFill).toBe(true);
+			expect(frStore.get('a')!.showAvg).toBe(false);
 		});
 
-		it('is undoable', () => {
-			frStore.set(
-				'a',
-				makeFRDataObject('a', {
-					dispHptf: ['sample0_AVG'],
-					hptfFillVisible: true,
-					hptfAvgVisible: true
-				})
-			);
-			dataProvider.updateHpTFDisplay('a', ['sample0_AVG', 'sample1_AVG'], false, false);
-			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG', 'sample1_AVG']);
-			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
-			expect(frStore.get('a')!.hptfAvgVisible).toBe(false);
+		it('leaves the toggles alone when the caller only changes run picks', () => {
+			// The selector calls this on every checkbox tick without restating the
+			// other two toggles — they must not silently reset.
+			frStore.set('a', withSamples({ showFill: true, showAvg: false }));
+			dataProvider.updateSampleDisplay('a', ['sample0_AVG']);
+			expect(frStore.get('a')!.showFill).toBe(true);
+			expect(frStore.get('a')!.showAvg).toBe(false);
+		});
 
+		it('can hide the average — impossible for multi-sample before unification', () => {
+			frStore.set('a', withSamples({ showAvg: true }));
+			dataProvider.updateSampleDisplay('a', [], false, false);
+			expect(frStore.get('a')!.showAvg).toBe(false);
+		});
+
+		it('restores all three fields on undo', () => {
+			frStore.set('a', withSamples({ dispSamples: ['sample0_L'], showFill: true, showAvg: true }));
+			dataProvider.updateSampleDisplay('a', ['sample1_R'], false, false);
 			commandHistory.undo(frStore);
-			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
-			expect(frStore.get('a')!.hptfFillVisible).toBe(true);
-			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
-		});
-
-		it('can toggle fill off while keeping sample curves', () => {
-			frStore.set(
-				'a',
-				makeFRDataObject('a', {
-					dispHptf: ['sample0_AVG'],
-					hptfFillVisible: true,
-					hptfAvgVisible: true
-				})
-			);
-			dataProvider.updateHpTFDisplay('a', ['sample0_AVG'], false, true);
-			expect(frStore.get('a')!.hptfFillVisible).toBe(false);
-			expect(frStore.get('a')!.dispHptf).toEqual(['sample0_AVG']);
-			expect(frStore.get('a')!.hptfAvgVisible).toBe(true);
+			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_L']);
+			expect(frStore.get('a')!.showFill).toBe(true);
+			expect(frStore.get('a')!.showAvg).toBe(true);
 		});
 	});
 
-	// ── updateFRDataWithRawData (target customizer / EQ preview) ─────────
+	// ── updateFRDataWithRawData (target customizer / EQ preview) ─────────────
 
 	describe('updateFRDataWithRawData', () => {
 		it('updates channel data while preserving other fields', () => {
@@ -525,24 +478,16 @@ describe('DataProvider', () => {
 			expect(frStore.get('t')!.dispSuffix).toBe('(Modified)');
 		});
 
-		it('preserves HpTF data when updating channels', () => {
-			const hptf = makeHpTFData();
-			frStore.set(
-				'p',
-				makeFRDataObject('p', {
-					hptf,
-					hptfFillVisible: true,
-					dispHptf: ['sample0_AVG']
-				})
-			);
+		it('preserves the sample set when updating channels', () => {
+			frStore.set('p', makeFRDataObject('p', { ...makeSampleSet(), dispSamples: ['sample0_AVG'] }));
 			dataProvider.updateFRDataWithRawData('p', {
 				AVG: { data: makeFRPoints(99), metadata: { minFreq: 20, maxFreq: 20000 } }
 			});
 			const updated = frStore.get('p')!;
-			expect(updated.hptf).toBeDefined();
-			expect(updated.hptf!.samples).toHaveLength(2);
-			expect(updated.hptfFillVisible).toBe(true);
-			expect(updated.dispHptf).toEqual(['sample0_AVG']);
+			expect(updated.samples).toHaveLength(2);
+			expect(updated.envelope).toBeDefined();
+			expect(updated.showFill).toBe(true);
+			expect(updated.dispSamples).toEqual(['sample0_AVG']);
 		});
 	});
 
@@ -564,44 +509,42 @@ describe('DataProvider', () => {
 			expect(afterDb).not.toBe(beforeDb);
 		});
 
-		it('preserves HpTF data during renormalization', () => {
-			const hptf = makeHpTFData();
+		it('preserves run labels and display toggles during renormalization', () => {
 			frStore.set(
 				'p',
 				makeFRDataObject('p', {
 					channels: makeFullChannelData(),
-					hptf,
-					hptfFillVisible: true,
-					dispHptf: ['sample0_AVG'],
-					hptfOnly: true
+					...makeSampleSet(),
+					dispSamples: ['sample0_AVG'],
+					showAvg: false
 				})
 			);
 			dataProvider.renormalizeAll();
 			const updated = frStore.get('p')!;
-			expect(updated.hptf).toBeDefined();
-			expect(updated.hptf!.samples).toHaveLength(2);
-			expect(updated.hptf!.labels).toEqual(['Sample A', 'Sample B']);
-			expect(updated.hptfFillVisible).toBe(true);
-			expect(updated.hptfOnly).toBe(true);
+			expect(updated.samples).toHaveLength(2);
+			expect(updated.samples!.map((s) => s.label)).toEqual(['Sample A', 'Sample B']);
+			expect(updated.showFill).toBe(true);
+			expect(updated.showAvg).toBe(false);
+			expect(updated.dispSamples).toEqual(['sample0_AVG']);
 		});
 
-		it('preserves sample data during renormalization', () => {
+		it('rebuilds the envelope from the renormalized runs', () => {
+			// A stale envelope would no longer bound the runs it is drawn around.
 			frStore.set(
-				's',
-				makeFRDataObject('s', {
-					channels: makeFullChannelData(),
-					samples: [
-						{ L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } },
-						{ L: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } } }
-					],
-					sampleCount: 2,
-					dispSamples: ['L1', 'L2']
-				})
+				'p',
+				makeFRDataObject('p', { channels: makeFullChannelData(), ...makeSampleSet() })
 			);
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 1000;
 			dataProvider.renormalizeAll();
-			const updated = frStore.get('s')!;
-			expect(updated.samples).toHaveLength(2);
-			expect(updated.sampleCount).toBe(2);
+
+			const { samples, envelope } = frStore.get('p')!;
+			const n = samples![0].L!.data.length;
+			for (let k = 0; k < n; k++) {
+				const values = samples!.map((s) => s.L!.data[k][1]);
+				expect(envelope!.L.upper[k][1]).toBeCloseTo(Math.max(...values), 6);
+				expect(envelope!.L.lower[k][1]).toBeCloseTo(Math.min(...values), 6);
+			}
 		});
 
 		it('clears command history after renormalization', () => {
@@ -667,25 +610,20 @@ describe('DataProvider', () => {
 			expect(graphStore.targetOriginalVersion).toBe(before);
 		});
 
-		// HpTF samples are anchored to a single pooled L+R mean, so every pairwise
-		// value difference — within a channel, across samples, and between L & R
+		// Sample runs are anchored to a single pooled L+R mean, so every pairwise
+		// value difference — within a channel, across runs, and between L & R
 		// at any frequency — must stay constant when the user changes
 		// normalization. This covers both the per-channel envelope spread and
 		// the combined L+R envelope used when displaying both channels.
-		it('preserves HpTF sample deltas across normalization changes', () => {
-			const hptf = makeHpTFData();
+		it('preserves run deltas across normalization changes', () => {
 			frStore.set(
 				'p',
-				makeFRDataObject('p', {
-					channels: makeFullChannelData(),
-					hptf,
-					hptfFillVisible: true
-				})
+				makeFRDataObject('p', { channels: makeFullChannelData(), ...makeSampleSet() })
 			);
 
 			const snapshotDeltas = () => {
-				const samples = frStore.get('p')!.hptf!.samples;
-				const env = frStore.get('p')!.hptf!.envelope;
+				const samples = frStore.get('p')!.samples!;
+				const env = frStore.get('p')!.envelope!;
 				const n = samples[0].L!.data.length;
 				const lSpan = new Array(n);
 				const rSpan = new Array(n);
@@ -695,11 +633,11 @@ describe('DataProvider', () => {
 					lSpan[k] = env.L.upper[k][1] - env.L.lower[k][1];
 					rSpan[k] = env.R.upper[k][1] - env.R.lower[k][1];
 					// Combined upper/lower = max/min across L and R at bin k
-					// (mirrors GraphEngine._combineHpTFEnvelopes).
+					// (mirrors GraphEngine._combineEnvelopes).
 					const up = Math.max(env.L.upper[k][1], env.R.upper[k][1]);
 					const lo = Math.min(env.L.lower[k][1], env.R.lower[k][1]);
 					combinedSpan[k] = up - lo;
-					// Sample-0 L minus sample-0 R gap — another invariant under
+					// Run-0 L minus run-0 R gap — another invariant under
 					// pooled anchoring.
 					lrGap[k] = samples[0].L!.data[k][1] - samples[0].R!.data[k][1];
 				}
@@ -734,24 +672,19 @@ describe('DataProvider', () => {
 			expect(Math.max(...bass.combinedSpan)).toBeGreaterThan(0);
 		});
 
-		// Under Hz normalization, the pooled L+R sample mean — not each channel
+		// Under Hz normalization, the pooled L+R run mean — not each channel
 		// independently — reads 0 dB at the reference frequency. This is the
-		// single vertical anchor shared by every HpTF sample value.
-		it('positions HpTF pooled mean at 0 dB at the Hz reference', () => {
-			const hptf = makeHpTFData();
+		// single vertical anchor shared by every run value.
+		it('positions the pooled mean at 0 dB at the Hz reference', () => {
 			frStore.set(
 				'p',
-				makeFRDataObject('p', {
-					channels: makeFullChannelData(),
-					hptf,
-					hptfFillVisible: true
-				})
+				makeFRDataObject('p', { channels: makeFullChannelData(), ...makeSampleSet() })
 			);
 
 			graphStore.normType = 'Hz';
 			graphStore.normHzValue = 1000;
 			dataProvider.renormalizeAll();
-			const samples = frStore.get('p')!.hptf!.samples;
+			const samples = frStore.get('p')!.samples!;
 
 			const pts = samples[0].L!.data;
 			let nearest = 0;
@@ -759,7 +692,7 @@ describe('DataProvider', () => {
 				if (Math.abs(pts[i][0] - 1000) < Math.abs(pts[nearest][0] - 1000)) nearest = i;
 			}
 
-			// Pooled mean at reference bin across all L and R sample values.
+			// Pooled mean at reference bin across all L and R run values.
 			let sum = 0;
 			let count = 0;
 			for (const s of samples) {
@@ -777,70 +710,57 @@ describe('DataProvider', () => {
 		});
 	});
 
-	// ── HpTF-only phone edge cases ──────────────────────────────────────
+	// ── Fill-only phone edge cases ──────────────────────────────────────
+	//
+	// `hptfOnly` used to be a field of its own; it is now simply `showAvg: false`,
+	// which is why these all assert the flag survives unrelated field updates.
 
-	describe('HpTF-only phone data', () => {
-		it('stores phone with hptfOnly flag and no main channels', () => {
-			const hptf = makeHpTFData();
+	describe('phone drawn as a fill only', () => {
+		it('stores a set with the average off and no main channels', () => {
 			frStore.set(
 				'h',
 				makeFRDataObject('h', {
 					channels: {},
-					hptf,
-					hptfOnly: true,
-					hptfFillVisible: true,
-					dispHptf: []
+					...makeSampleSet({ showAvg: false }),
+					dispSamples: []
 				})
 			);
 			const data = frStore.get('h')!;
-			expect(data.hptfOnly).toBe(true);
+			expect(data.showAvg).toBe(false);
 			expect(Object.keys(data.channels)).toHaveLength(0);
-			expect(data.hptf!.samples).toHaveLength(2);
-			expect(data.hptf!.envelope.AVG.upper.length).toBeGreaterThan(0);
+			expect(data.samples).toHaveLength(2);
+			expect(data.envelope!.AVG.upper.length).toBeGreaterThan(0);
 		});
 
-		it('preserves hptfOnly through visibility toggle', () => {
+		it('preserves showAvg through visibility toggle', () => {
 			frStore.set(
 				'h',
-				makeFRDataObject('h', {
-					channels: {},
-					hptf: makeHpTFData(),
-					hptfOnly: true,
-					hptfFillVisible: true
-				})
+				makeFRDataObject('h', { channels: {}, ...makeSampleSet({ showAvg: false }) })
 			);
 			dataProvider.updateVisibility('h', true);
-			expect(frStore.get('h')!.hptfOnly).toBe(true);
-			expect(frStore.get('h')!.hptf).toBeDefined();
+			expect(frStore.get('h')!.showAvg).toBe(false);
+			expect(frStore.get('h')!.samples).toBeDefined();
 			dataProvider.updateVisibility('h', false);
-			expect(frStore.get('h')!.hptfOnly).toBe(true);
+			expect(frStore.get('h')!.showAvg).toBe(false);
 		});
 
-		it('preserves hptfOnly through y-offset update', () => {
+		it('preserves showAvg through y-offset update', () => {
 			frStore.set(
 				'h',
-				makeFRDataObject('h', {
-					channels: {},
-					hptf: makeHpTFData(),
-					hptfOnly: true
-				})
+				makeFRDataObject('h', { channels: {}, ...makeSampleSet({ showAvg: false }) })
 			);
 			dataProvider.updateYOffset('h', 10);
-			expect(frStore.get('h')!.hptfOnly).toBe(true);
+			expect(frStore.get('h')!.showAvg).toBe(false);
 			expect(frStore.get('h')!.yOffset).toBe(10);
 		});
 
-		it('preserves hptfOnly through color update', () => {
+		it('preserves showAvg through color update', () => {
 			frStore.set(
 				'h',
-				makeFRDataObject('h', {
-					channels: {},
-					hptf: makeHpTFData(),
-					hptfOnly: true
-				})
+				makeFRDataObject('h', { channels: {}, ...makeSampleSet({ showAvg: false }) })
 			);
 			dataProvider.updateColors('h', { AVG: '#ff0000' });
-			expect(frStore.get('h')!.hptfOnly).toBe(true);
+			expect(frStore.get('h')!.showAvg).toBe(false);
 			expect(frStore.get('h')!.colors.AVG).toBe('#ff0000');
 		});
 	});
@@ -1197,7 +1117,7 @@ describe('DataProvider', () => {
 			identifier: 'Brand Phone',
 			files: [
 				phoneFile('Brand Phone', ''),
-				{ ...phoneFile('Brand Phone v2', 'v2'), hptfDescription: 'v2 fit variation' }
+				{ ...phoneFile('Brand Phone v2', 'v2'), sampleDescription: 'v2 fit variation' }
 			]
 		};
 
@@ -1305,28 +1225,31 @@ describe('DataProvider', () => {
 			expect(restored.channels.AVG!.data).toEqual(before);
 		});
 
-		it('attaches sample data and per-sample colors when the variant has samples', async () => {
+		it('attaches sample data and per-run colors when the variant has samples', async () => {
 			seedPhone();
 			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
 				...makeFullChannelData(90),
-				_samples: makeSamples(2),
-				_sampleCount: 2
+				_samples: makeSamples(2)
 			} as FRParseResult);
 
 			await dataProvider.updateVariant('p', 'v2');
 
 			const updated = frStore.get('p')!;
-			expect(updated.sampleCount).toBe(2);
 			expect(updated.samples).toHaveLength(2);
-			expect(updated.colors.samples!.L1).toBe(updated.colors.L);
-			expect(updated.colors.samples!.R2).toBe(updated.colors.R);
+			expect(updated.colors.samples!.sample0_L).toBe(updated.colors.L);
+			expect(updated.colors.samples!.sample1_R).toBe(updated.colors.R);
 		});
 
 		it('clears sample data when the new variant has none', async () => {
 			seedPhone({
 				samples: makeSamples(2),
-				sampleCount: 2,
-				dispSamples: ['L1', 'R1']
+				dispSamples: ['sample0_L', 'sample0_R'],
+				showFill: true,
+				envelope: {
+					L: { upper: [], lower: [] },
+					R: { upper: [], lower: [] },
+					AVG: { upper: [], lower: [] }
+				}
 			});
 			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
 				makeFullChannelData(90) as FRParseResult
@@ -1336,15 +1259,17 @@ describe('DataProvider', () => {
 
 			const updated = frStore.get('p')!;
 			expect(updated.samples).toBeUndefined();
-			expect(updated.sampleCount).toBeUndefined();
 			expect(updated.dispSamples).toBeUndefined();
+			expect(updated.envelope).toBeUndefined();
+			expect(updated.showFill).toBeUndefined();
+			expect(updated.showAvg).toBeUndefined();
 		});
 
-		it('builds HpTF samples, envelope and the variant description', async () => {
+		it('builds the envelope and carries the set description', async () => {
 			seedPhone();
 			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
 				...makeFullChannelData(90),
-				_hptfSamples: [
+				_samples: [
 					{
 						label: 'Fit A',
 						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } },
@@ -1356,74 +1281,70 @@ describe('DataProvider', () => {
 						R: { data: makeFRPoints(82), metadata: { minFreq: 20, maxFreq: 20000 } }
 					}
 				],
-				_hptfLabels: ['Fit A', 'Fit B'],
-				_hptfFillOnly: true
+				_sampleDisplay: ['avg', 'fill'],
+				_sampleDescription: 'v2 fit variation'
 			} as FRParseResult);
-
-			await dataProvider.updateVariant('p', 'v2');
-
-			const hptf = frStore.get('p')!.hptf!;
-			expect(hptf.labels).toEqual(['Fit A', 'Fit B']);
-			expect(hptf.samples).toHaveLength(2);
-			expect(hptf.description).toBe('v2 fit variation');
-			// Two samples means a real envelope; upper must sit at or above lower everywhere.
-			expect(hptf.envelope.L.upper.length).toBeGreaterThan(0);
-			expect(hptf.envelope.L.upper.every(([, db], i) => db >= hptf.envelope.L.lower[i][1])).toBe(
-				true
-			);
-		});
-
-		it('hides HpTF sample curves when the variant is fill-only', async () => {
-			seedPhone({ dispHptf: ['sample0_AVG'] });
-			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
-				...makeFullChannelData(90),
-				_hptfSamples: [
-					{
-						label: 'Fit A',
-						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } }
-					}
-				],
-				_hptfLabels: ['Fit A'],
-				_hptfFillOnly: true
-			} as FRParseResult);
-
-			await dataProvider.updateVariant('p', 'v2');
-
-			expect(frStore.get('p')!.dispHptf).toEqual([]);
-		});
-
-		it('keeps the previous HpTF selection when the variant is not fill-only', async () => {
-			seedPhone({ dispHptf: ['sample0_AVG'] });
-			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
-				...makeFullChannelData(90),
-				_hptfSamples: [
-					{
-						label: 'Fit A',
-						L: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } }
-					}
-				],
-				_hptfLabels: ['Fit A'],
-				_hptfFillOnly: false
-			} as FRParseResult);
-
-			await dataProvider.updateVariant('p', 'v2');
-
-			expect(frStore.get('p')!.dispHptf).toEqual(['sample0_AVG']);
-		});
-
-		it('clears HpTF data when the new variant has none', async () => {
-			seedPhone({ hptf: makeHpTFData(), dispHptf: ['sample0_AVG'], hptfFillVisible: true });
-			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
-				makeFullChannelData(90) as FRParseResult
-			);
 
 			await dataProvider.updateVariant('p', 'v2');
 
 			const updated = frStore.get('p')!;
-			expect(updated.hptf).toBeUndefined();
-			expect(updated.dispHptf).toBeUndefined();
-			expect(updated.hptfFillVisible).toBeUndefined();
-			expect(updated.hptfOnly).toBeUndefined();
+			expect(updated.samples!.map((s) => s.label)).toEqual(['Fit A', 'Fit B']);
+			expect(updated.sampleDescription).toBe('v2 fit variation');
+			expect(updated.showAvg).toBe(true);
+			expect(updated.showFill).toBe(true);
+			// Two runs means a real envelope; upper must sit at or above lower everywhere.
+			expect(updated.envelope!.L.upper.length).toBeGreaterThan(0);
+			expect(
+				updated.envelope!.L.upper.every(([, db], i) => db >= updated.envelope!.L.lower[i][1])
+			).toBe(true);
+		});
+
+		it('computes the envelope even when the variant is not drawn as a fill', async () => {
+			// The user can turn the fill on at any time, so it cannot be conditional
+			// on the declared display.
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_samples: makeSamples(3),
+				_sampleDisplay: ['avg']
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.showFill).toBe(false);
+			expect(frStore.get('p')!.envelope!.L.upper.length).toBeGreaterThan(0);
+		});
+
+		it('seeds the run picks from a `curves` display', async () => {
+			seedPhone();
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_samples: makeSamples(2),
+				_sampleDisplay: ['fill', 'curves']
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			// One key per run — AVG, since both channels loaded.
+			expect(frStore.get('p')!.dispSamples).toEqual(['sample0_AVG', 'sample1_AVG']);
+			expect(frStore.get('p')!.showAvg).toBe(false);
+		});
+
+		it('drops carried-over run picks that no longer name a loaded run', async () => {
+			// Switching to a shorter set must not leave a key pointing past its end.
+			seedPhone({
+				samples: makeSamples(4),
+				dispSamples: ['sample0_AVG', 'sample3_AVG']
+			});
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
+				...makeFullChannelData(90),
+				_samples: makeSamples(2),
+				_sampleDisplay: ['avg']
+			} as FRParseResult);
+
+			await dataProvider.updateVariant('p', 'v2');
+
+			expect(frStore.get('p')!.dispSamples).toEqual(['sample0_AVG']);
 		});
 	});
 });

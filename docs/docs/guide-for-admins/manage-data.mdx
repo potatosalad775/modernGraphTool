@@ -13,7 +13,9 @@ modernGraphTool is designed to use the same data structure as CrinGraph. Therefo
 :::
 
 :::tip[GUI editor]
-Prefer a form? Use the [phone_book.json Editor](/phone-book-editor) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Multi-Sample, HpTF).
+Prefer a form? Use the [phone_book.json Editor](/phone-book-editor) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Sample Sets).
+
+It also **converts**: import an existing phone book in any older format and export it in the current one. Worth a round-trip if yours still uses [`hptfs[]`](#deprecated-hptfs), which is deprecated.
 :::
 
 ## Data Folder Structure
@@ -182,70 +184,123 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
   - The display name will be brand_name + name + file[i]. (e.g, "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
   - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
-#### Multi-Sample Entries
+#### Sample Sets \{#sample-sets\}
 
-A multi-sample entry groups several numbered measurement runs of the same device into one phone. By default the UI displays the **average** of all runs, and users can toggle individual samples via the Sample picker (which appears automatically when `samples > 1`).
+A **sample set** is a variant that was measured more than once: repeat runs of the
+same fit, a sweep of seating positions, one measurement per ear pad, or the same
+device on several rigs. modernGraphTool can draw a set three ways, and they
+compose freely:
 
-- `samples` (Number, Required): The number of measurement runs. The tool loads files named `{file} L{n}.txt` and `{file} R{n}.txt` for `n = 1..samples`.
-- Works with all regular phone-object keys (`reviewLink`, `price`, `shopLink`, etc.).
-- The measurement files still live in `data/phones/` like any other entry.
+| Token    | What it draws                                                      |
+| -------- | ------------------------------------------------------------------ |
+| `avg`    | One averaged curve across every run — the device's "main" line.    |
+| `curves` | Each run as its own thin curve, individually toggleable in the UI. |
+| `fill`   | A shaded min/max band spanning every run — the variance envelope.  |
 
-```json
-{
-	"name": ["Multi Sample"],
-	"file": ["Multi Sample"],
-	"suffix": [""],
-	"samples": 3
-}
-```
-
-The example above loads six files:
-`Multi Sample L1.txt`, `Multi Sample R1.txt`, `Multi Sample L2.txt`, `Multi Sample R2.txt`, `Multi Sample L3.txt`, `Multi Sample R3.txt`.
-
-:::tip[Unnumbered fallback]
-If a variant with `samples: N` is missing the numbered files `{file} L1.txt` / `{file} R1.txt`, the tool falls back to the unnumbered pair `{file} L.txt` / `{file} R.txt` and treats the variant as a single-sample measurement. This lets sibling variants in the same `file` array freely mix numbered and unnumbered pairs — a variant without numbered samples will still load without error.
-:::
-
-:::tip[Default display]
-You can change whether multi-sample phones open as an averaged single curve or as all individual samples by adjusting `MULTI_SAMPLE.DEFAULT_DISPLAY` in `config.js`. See the [`MULTI_SAMPLE`](./customize-page#multi_sample) config section.
-:::
-
-#### HpTF (Headphone Transfer Function) Entries
-
-HpTF entries visualise **variance** between several related measurements — for example a sweep of slightly different fit positions (Center, Front, Back, Up, Down), or measurement rigs — as a shaded fill envelope overlaid on the graph, with optional per-sample curves. Each HpTF set is effectively one device variant whose graph _is_ the envelope itself. The samples can represent anything you want compared — HpTF is not limited to fit positions.
-
-A single device can declare **multiple** HpTF sets via the `hptfs` array — for example one set per ear pad (Leather / Suede), or one per fit depth. Each `hptfs` entry becomes its own independent variant in the device selector.
-
-- `hptfs` (Array of Objects, Required): One or more HpTF measurement sets. Each entry has the following keys:
-  - `files` (Array of Strings, Required): The base file names for each deviation sample. The tool loads `{name} L.txt` and `{name} R.txt` for each entry.
-  - `labels` (Array of Strings, Optional): Human-readable labels shown in the HpTF toggle UI. Defaults to the `files` values if omitted.
-  - `suffix` (String, Optional): Variant suffix shown in the device selector dropdown (e.g. `"Leather Pad"`). When a device has multiple `hptfs` entries, this is what the user picks between. Optional when there is only one entry.
-  - `description` (String, Optional): A short note displayed alongside the fill envelope describing what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, or `"(Insertion Depth)"`.
-  - `fillOnly` (Boolean, Optional, default `true`): When `true`, only the fill envelope is rendered. Set to `false` if you want users to toggle individual per-sample deviation curves in the UI.
-- Measurement files live in `data/phones/` like any other entry.
-
-**Single HpTF set:**
+Sample sets are declared per variant, inside a `variants` array:
 
 ```json
 {
-	"name": ["HpTF Fill Only"],
-	"hptfs": [
+	"name": ["HD 600"],
+	"variants": [
+		{ "suffix": "Stock", "file": "HD600 Stock" },
+
+		{ "suffix": "Modded", "file": "HD600 Mod", "samples": 5 },
+
 		{
-			"files": [
-				"HpTF Demo Center",
-				"HpTF Demo Front",
-				"HpTF Demo Back",
-				"HpTF Demo Up",
-				"HpTF Demo Down"
-			],
-			"labels": ["Center", "Front", "Back", "Up", "Down"],
-			"description": "(Fit Position)"
+			"suffix": "Leather Pad",
+			"file": "HD600 Leather",
+			"samples": {
+				"count": 5,
+				"labels": ["Center", "Front", "Back", "Up", "Down"],
+				"display": ["avg", "fill"],
+				"description": "(Positional Variance)"
+			}
+		},
+
+		{
+			"suffix": "Suede Pad",
+			"samples": {
+				"files": ["Suede Center", "Suede Front", "Suede Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["fill", "curves"]
+			}
 		}
 	]
 }
 ```
 
-**Multiple HpTF sets (e.g. different ear pads):**
+Each entry of `variants` takes:
+
+- `suffix` (String, Optional): The variant label shown in the device selector dropdown.
+- `file` (String, Optional): Base filename for the main L/R pair — `{file} L.txt` / `{file} R.txt`.
+  Can be omitted when `samples.files` names the measurements instead.
+- `samples` (Number or Object, Optional): The sample set. A bare number is shorthand
+  for `{ "count": n }`.
+
+And `samples`, in object form:
+
+- `count` (Number): Number of runs, loaded as `{file} L1.txt`…`L{count}.txt` and the
+  matching `R` files. This is the layout a CrinGraph `num_samples` site already uses.
+- `files` (Array of Strings): Explicit base filename per run, loaded as `{name} L.txt`
+  and `{name} R.txt`. Use this **or** `count`, not both.
+- `labels` (Array of Strings, Optional): A human-readable name per run — shown in the
+  sample picker and on the graph label, e.g. `HD 600 Leather Pad (Center, R)`. Defaults
+  to the `files` values, or to "Sample 1", "Sample 2"… for the `count` form.
+- `display` (Array of Strings, Optional): Any combination of `avg`, `curves` and `fill`.
+  Seeds the toggles; the user can still change them per curve. Defaults to
+  `SAMPLES.DEFAULT_DISPLAY` in `config.js`.
+- `description` (String, Optional): A short note shown beside the device name describing
+  what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`.
+
+`count` versus `files` is only a **filename convention**, not a feature difference —
+labels, fills and per-run curves all work with either.
+
+:::note[variants takes precedence]
+When `variants` is present, the phone-level `file` / `suffix` / `prefix` / `samples` /
+`hptfs` keys are **ignored** for that phone. It is precedence, not merging — declare a
+phone one way or the other.
+:::
+
+:::tip[Unnumbered fallback]
+With the `count` form, if `{file} L1.txt` / `{file} R1.txt` are missing the tool falls
+back to the unnumbered pair `{file} L.txt` / `{file} R.txt` for run 1. This lets sibling
+variants freely mix numbered and unnumbered pairs — a variant with no numbered files
+still loads without error.
+:::
+
+:::tip[Site-wide defaults]
+`SAMPLES.DEFAULT_COUNT` and `SAMPLES.DEFAULT_DISPLAY` in `config.js` apply to every
+variant that declares no set of its own, so a database where every device is measured
+five times needs no per-entry `samples` at all. A brand can also set `defaultSamples`
+next to its `name` to override the site default for its own devices. See the
+[`SAMPLES`](./customize-page#samples) config section.
+:::
+
+##### The terse form: phone-level `samples: N`
+
+A phone can declare one run count for all of its `file[]` variants at once, without a
+`variants` array:
+
+```json
+{ "name": ["Multi Sample"], "file": ["Multi Sample"], "samples": 3 }
+```
+
+Equivalent to `"variants": [{ "file": "Multi Sample", "samples": 3 }]`. This form is
+**supported indefinitely** — it shares the CrinGraph-compatible shape of the rest of the
+phone entry, so a `phone_book.json` written for another tool keeps working here as-is.
+Its limits are why `variants` exists: one run count for every variant of the phone, no
+per-run labels, and no fill.
+
+##### Deprecated: `hptfs[]` \{#deprecated-hptfs\}
+
+`hptfs[]` was modernGraphTool's own key for a variance set, and `variants[]` now covers
+everything it did. **It is deprecated and will be removed in a future release.** It is
+still read today, so nothing breaks the moment you upgrade — but convert your phone book
+when convenient rather than writing new `hptfs[]` entries.
+
+Unlike `samples: N`, no other tool in the CrinGraph ecosystem reads `hptfs[]`, so keeping
+it costs compatibility nothing to drop.
 
 ```json
 {
@@ -255,26 +310,54 @@ A single device can declare **multiple** HpTF sets via the `hptfs` array — for
 			"suffix": "Leather Pad",
 			"files": ["Leather Center", "Leather Front", "Leather Back"],
 			"labels": ["Center", "Front", "Back"],
-			"description": "(Leather Pad Variance)"
-		},
-		{
-			"suffix": "Suede Pad",
-			"files": ["Suede Center", "Suede Front", "Suede Back"],
-			"labels": ["Center", "Front", "Back"],
-			"description": "(Suede Pad Variance)"
+			"description": "(Leather Pad Variance)",
+			"fillOnly": false
 		}
 	]
 }
 ```
 
-The example above produces two independent variants — _HpTF Multi Pad Leather Pad_ and _HpTF Multi Pad Suede Pad_ — that the user can switch between via the variant dropdown in the device selector.
+Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fill"]` —
+plus `"curves"` when `fillOnly` is `false`:
 
-:::note[Combining with regular measurements]
-You can also declare `file` / `suffix` variants and `hptfs` on the same phone entry. They are treated as **independent variants** in a single flat list, not combined — a phone with two `file` variants and two `hptfs` entries produces four separate entries in the variant selector (e.g. `Stock`, `Modded`, `Leather Pad`, `Suede Pad`).
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"variants": [
+		{
+			"suffix": "Leather Pad",
+			"samples": {
+				"files": ["Leather Center", "Leather Front", "Leather Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["avg", "fill", "curves"],
+				"description": "(Leather Pad Variance)"
+			}
+		}
+	]
+}
+```
+
+:::tip[Convert automatically]
+You don't have to do this by hand. Load your existing `phone_book.json` into the
+[**phone_book.json Editor**](/phone-book-editor) and export it again — import reads every
+legacy form, and export always writes canonical `variants[]`. It converts the whole file
+in one pass, `hptfs[]` entries included.
 :::
 
-:::tip[Default display]
-Fill opacity and the default display mode (`fill`, `fill+curves`, `curves`, `none`) are configurable via the [`HPTF`](./customize-page#hptf) config section.
+The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated alongside
+it; see [`SAMPLES`](./customize-page#samples) for the replacement keys.
+
+:::note[Combining forms]
+Regular `file` / `suffix` variants, phone-level `samples` and `hptfs` on one phone entry
+are treated as **independent variants** in a single flat list, not combined — two `file`
+variants plus two `hptfs` entries produce four entries in the variant selector.
+:::
+
+:::tip[Dual-hosting with CrinGraph]
+Labels, fills and per-run display are **additive metadata over numbered files**. A
+database using `count` keeps the exact `{file} L{n}.txt` layout a CrinGraph
+`num_samples` site expects, so the same measurement folder can serve both tools —
+CrinGraph ignores the extra keys, modernGraphTool uses them.
 :::
 
 ## How to Add/Modify Measurement Data

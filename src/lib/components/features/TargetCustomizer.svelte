@@ -116,7 +116,8 @@
 				title={m.target_customizer_btn_view()}
 				variant="outline"
 				size="icon"
-				class="mr-0.5 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
+				activeOnOpen
+				class="mr-0.5"
 			>
 				<Settings2 class="h-4 w-4" />
 			</Button>
@@ -149,8 +150,9 @@
 												{...props}
 												title="Open target filter description"
 												variant="ghost"
-												size="icon"
-												class="ml-0.5 p-1! opacity-80 hover:opacity-100 data-[state=open]:bg-accent! data-[state=open]:text-accent-content!"
+												size="icon-xs"
+												activeOnOpen
+												class="ml-0.5 opacity-80 hover:opacity-100"
 											>
 												<CircleAlert class="h-3 w-3" />
 											</Button>

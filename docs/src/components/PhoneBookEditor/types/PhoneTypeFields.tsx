@@ -1,5 +1,10 @@
 import React, { type ReactNode } from 'react';
-import type { PhoneState, HpTFEntry } from '@site/src/utils/phoneBookConverter';
+import type {
+	PhoneState,
+	SampleDisplayMode,
+	VariantEntry
+} from '@site/src/utils/phoneBookConverter';
+import { emptyVariant } from '@site/src/utils/phoneBookConverter';
 import RowsEditor from '../shared/RowsEditor';
 import ceStyles from '../../ConfigEditor/ConfigEditor.module.css';
 import pbStyles from '../PhoneBookEditor.module.css';
@@ -179,95 +184,31 @@ export function PrefixVariationsPhoneFields({ phone, onPatch }: FieldsProps): Re
 	);
 }
 
-// ── Multi-sample ───────────────────────────────────────────────────────────
+// ── Sample sets ────────────────────────────────────────────────────────────
+//
+// One editor for what used to be two phone types. A variant is a plain L/R pair
+// until it declares runs, and how it is drawn (`display`) is independent of how
+// its files are named (`count` vs. explicit rows).
 
-export function MultiSamplePhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-	const ms = phone.multiSample ?? { name: '', file: '', samples: 3 };
-	const update = (next: Partial<typeof ms>) => onPatch({ multiSample: { ...ms, ...next } });
-	return (
-		<>
-			<div className={ceStyles.ceFieldGroup}>
-				<label className={ceStyles.ceLabel}>Display Name</label>
-				<input
-					type="text"
-					className={ceStyles.ceInput}
-					value={ms.name}
-					placeholder="e.g. Multi Sample"
-					onChange={(e) => update({ name: e.target.value })}
-				/>
-			</div>
-			<div className={ceStyles.ceFieldGroup}>
-				<label className={ceStyles.ceLabel}>File Base Name</label>
-				<input
-					type="text"
-					className={ceStyles.ceInput}
-					value={ms.file}
-					placeholder="e.g. Multi Sample"
-					onChange={(e) => update({ file: e.target.value })}
-				/>
-			</div>
-			<div className={ceStyles.ceFieldGroup}>
-				<label className={ceStyles.ceLabel}>
-					Number of Samples
-					<span className={ceStyles.ceLabelHint}>
-						(loads{' '}
-						<code>
-							{ms.file || 'File'} L1.txt … L{ms.samples}.txt
-						</code>
-						)
-					</span>
-				</label>
-				<input
-					type="number"
-					min={2}
-					max={20}
-					className={`${ceStyles.ceInput} ${ceStyles.ceInputSmall}`}
-					value={ms.samples}
-					onChange={(e) => update({ samples: Math.max(2, Number(e.target.value) || 2) })}
-				/>
-			</div>
-			<div className={ceStyles.ceFieldGroup}>
-				<label className={ceStyles.ceLabel}>
-					Suffix
-					<span className={ceStyles.ceLabelHint}>(optional)</span>
-				</label>
-				<input
-					type="text"
-					className={ceStyles.ceInput}
-					value={ms.suffix ?? ''}
-					placeholder=""
-					onChange={(e) => update({ suffix: e.target.value || undefined })}
-				/>
-			</div>
-		</>
-	);
-}
+const DISPLAY_MODES: Array<{ value: SampleDisplayMode; label: string; hint: string }> = [
+	{ value: 'avg', label: 'Averaged curve', hint: 'the mean of every run' },
+	{ value: 'curves', label: 'Individual runs', hint: 'one toggleable curve per run' },
+	{ value: 'fill', label: 'Deviation fill', hint: 'shaded min/max band' }
+];
 
-// ── HpTF ───────────────────────────────────────────────────────────────────
-
-const createEmptyHpTFEntry = (): HpTFEntry => ({
-	rows: [
-		{ file: '', label: '' },
-		{ file: '', label: '' }
-	],
-	fillOnly: true
-});
-
-export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
-	const h = phone.hptfs ?? { name: '', entries: [createEmptyHpTFEntry()] };
-	const updateWrapper = (next: Partial<typeof h>) => onPatch({ hptfs: { ...h, ...next } });
-	const updateEntry = (index: number, next: Partial<HpTFEntry>) => {
-		const copy = [...h.entries];
+export function SampleSetPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
+	const set = phone.sampleSet ?? { name: '', variants: [emptyVariant()] };
+	const updateWrapper = (next: Partial<typeof set>) => onPatch({ sampleSet: { ...set, ...next } });
+	const updateVariant = (index: number, next: Partial<VariantEntry>) => {
+		const copy = [...set.variants];
 		copy[index] = { ...copy[index], ...next };
-		updateWrapper({ entries: copy });
+		updateWrapper({ variants: copy });
 	};
-	const removeEntry = (index: number) => {
-		if (h.entries.length <= 1) return;
-		updateWrapper({ entries: h.entries.filter((_, i) => i !== index) });
+	const removeVariant = (index: number) => {
+		if (set.variants.length <= 1) return;
+		updateWrapper({ variants: set.variants.filter((_, i) => i !== index) });
 	};
-	const addEntry = () => {
-		updateWrapper({ entries: [...h.entries, createEmptyHpTFEntry()] });
-	};
+	const addVariant = () => updateWrapper({ variants: [...set.variants, emptyVariant()] });
 
 	return (
 		<>
@@ -276,27 +217,37 @@ export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
 				<input
 					type="text"
 					className={ceStyles.ceInput}
-					value={h.name}
-					placeholder="e.g. HpTF Fill Only"
+					value={set.name}
+					placeholder="e.g. HD 600"
 					onChange={(e) => updateWrapper({ name: e.target.value })}
 				/>
 			</div>
 
-			{h.entries.map((entry, index) => {
+			{set.variants.map((variant, index) => {
+				const named = variant.rows.length > 0;
 				const title =
-					h.entries.length > 1
-						? `HpTF set ${index + 1}${entry.suffix ? ` — ${entry.suffix}` : ''}`
-						: 'HpTF set';
+					set.variants.length > 1
+						? `Variant ${index + 1}${variant.suffix ? ` — ${variant.suffix}` : ''}`
+						: 'Variant';
+				const toggleMode = (mode: SampleDisplayMode) => {
+					const next = variant.display.includes(mode)
+						? variant.display.filter((m) => m !== mode)
+						: DISPLAY_MODES.map((m) => m.value).filter(
+								(m) => m === mode || variant.display.includes(m)
+							);
+					updateVariant(index, { display: next });
+				};
+
 				return (
-					<div key={index} className={pbStyles.pbHptfEntry}>
-						<div className={pbStyles.pbHptfEntryHeader}>
-							<span className={pbStyles.pbHptfEntryTitle}>{title}</span>
+					<div key={index} className={pbStyles.pbVariantEntry}>
+						<div className={pbStyles.pbVariantEntryHeader}>
+							<span className={pbStyles.pbVariantEntryTitle}>{title}</span>
 							<button
 								type="button"
 								className={ceStyles.ceArrayRemoveBtn}
-								onClick={() => removeEntry(index)}
-								title="Remove HpTF set"
-								disabled={h.entries.length <= 1}
+								onClick={() => removeVariant(index)}
+								title="Remove variant"
+								disabled={set.variants.length <= 1}
 							>
 								&times;
 							</button>
@@ -312,43 +263,9 @@ export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
 							<input
 								type="text"
 								className={ceStyles.ceInput}
-								value={entry.suffix ?? ''}
+								value={variant.suffix ?? ''}
 								placeholder="e.g. Leather Pad"
-								onChange={(e) => updateEntry(index, { suffix: e.target.value || undefined })}
-							/>
-						</div>
-
-						<div className={ceStyles.ceFieldGroup}>
-							<label className={ceStyles.ceLabel}>
-								Variance Samples
-								<span className={ceStyles.ceLabelHint}>
-									(at least two related measurements — the shaded envelope spans their range)
-								</span>
-							</label>
-							<RowsEditor
-								rows={entry.rows}
-								columns={[
-									{ key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
-									{ key: 'label', label: 'UI label', placeholder: 'Center' }
-								]}
-								onChange={(rows) => updateEntry(index, { rows })}
-								createEmpty={() => ({ file: '', label: '' })}
-								minRows={2}
-								addLabel="+ Add sample"
-							/>
-						</div>
-
-						<div className={ceStyles.ceFieldGroup}>
-							<label className={ceStyles.ceLabel}>
-								Description
-								<span className={ceStyles.ceLabelHint}>(shown beside the fill envelope)</span>
-							</label>
-							<input
-								type="text"
-								className={ceStyles.ceInput}
-								value={entry.description ?? ''}
-								placeholder="(Variance)"
-								onChange={(e) => updateEntry(index, { description: e.target.value || undefined })}
+								onChange={(e) => updateVariant(index, { suffix: e.target.value })}
 							/>
 						</div>
 
@@ -356,23 +273,155 @@ export function HpTFPhoneFields({ phone, onPatch }: FieldsProps): ReactNode {
 							<input
 								type="checkbox"
 								className={ceStyles.ceCheckbox}
-								id={`${phone.id}-${index}-fillOnly`}
-								checked={entry.fillOnly}
-								onChange={(e) => updateEntry(index, { fillOnly: e.target.checked })}
+								id={`${phone.id}-${index}-named`}
+								checked={named}
+								onChange={(e) =>
+									updateVariant(
+										index,
+										e.target.checked
+											? // `rows` is what decides the mode on export, so `count` goes
+												// unused while named — keeping it means toggling the box
+												// twice doesn't silently rewrite the count the user entered.
+												{
+													rows: [
+														{ file: '', label: '' },
+														{ file: '', label: '' }
+													]
+												}
+											: { rows: [], count: Math.max(variant.count, 2) }
+									)
+								}
 							/>
-							<label className={ceStyles.ceToggleLabel} htmlFor={`${phone.id}-${index}-fillOnly`}>
-								Fill only
+							<label className={ceStyles.ceToggleLabel} htmlFor={`${phone.id}-${index}-named`}>
+								Name each run's file
 								<span className={ceStyles.ceToggleHint}>
-									(uncheck to let users toggle individual sample curves)
+									(uncheck for the numbered <code>L1/L2/L3</code> layout)
 								</span>
 							</label>
 						</div>
+
+						{named ? (
+							<div className={ceStyles.ceFieldGroup}>
+								<label className={ceStyles.ceLabel}>
+									Runs
+									<span className={ceStyles.ceLabelHint}>
+										(each loads <code>{'{name}'} L.txt</code> / <code>{'{name}'} R.txt</code>)
+									</span>
+								</label>
+								<RowsEditor
+									rows={variant.rows}
+									columns={[
+										{ key: 'file', label: 'File base name', placeholder: 'HpTF Demo Center' },
+										{ key: 'label', label: 'UI label', placeholder: 'Center' }
+									]}
+									onChange={(rows) => updateVariant(index, { rows })}
+									createEmpty={() => ({ file: '', label: '' })}
+									minRows={2}
+									addLabel="+ Add run"
+								/>
+							</div>
+						) : (
+							<>
+								<div className={ceStyles.ceFieldGroup}>
+									<label className={ceStyles.ceLabel}>File Base Name</label>
+									<input
+										type="text"
+										className={ceStyles.ceInput}
+										value={variant.file}
+										placeholder="e.g. HD600 Stock"
+										onChange={(e) => updateVariant(index, { file: e.target.value })}
+									/>
+								</div>
+								<div className={ceStyles.ceFieldGroup}>
+									<label className={ceStyles.ceLabel}>
+										Number of Runs
+										<span className={ceStyles.ceLabelHint}>
+											{variant.count > 0 ? (
+												<>
+													(loads{' '}
+													<code>
+														{variant.file || 'File'} L1.txt … L{variant.count}.txt
+													</code>
+													)
+												</>
+											) : (
+												<>
+													(0 — a plain <code>{variant.file || 'File'} L.txt</code> /{' '}
+													<code>R.txt</code> pair)
+												</>
+											)}
+										</span>
+									</label>
+									<input
+										type="number"
+										min={0}
+										max={20}
+										className={`${ceStyles.ceInput} ${ceStyles.ceInputSmall}`}
+										value={variant.count}
+										onChange={(e) =>
+											// `min`/`max` only bound the spinner arrows — a typed or pasted
+											// number reaches state unclamped otherwise.
+											updateVariant(index, {
+												count: Math.min(20, Math.max(0, Number(e.target.value) || 0))
+											})
+										}
+									/>
+								</div>
+							</>
+						)}
+
+						{(named || variant.count > 0) && (
+							<>
+								<div className={ceStyles.ceFieldGroup}>
+									<label className={ceStyles.ceLabel}>
+										Display
+										<span className={ceStyles.ceLabelHint}>
+											(seeds the toggles; users can still change them)
+										</span>
+									</label>
+									{DISPLAY_MODES.map((mode) => (
+										<div key={mode.value} className={ceStyles.ceToggleRow}>
+											<input
+												type="checkbox"
+												className={ceStyles.ceCheckbox}
+												id={`${phone.id}-${index}-${mode.value}`}
+												checked={variant.display.includes(mode.value)}
+												onChange={() => toggleMode(mode.value)}
+											/>
+											<label
+												className={ceStyles.ceToggleLabel}
+												htmlFor={`${phone.id}-${index}-${mode.value}`}
+											>
+												{mode.label}
+												<span className={ceStyles.ceToggleHint}>({mode.hint})</span>
+											</label>
+										</div>
+									))}
+								</div>
+
+								<div className={ceStyles.ceFieldGroup}>
+									<label className={ceStyles.ceLabel}>
+										Description
+										<span className={ceStyles.ceLabelHint}>(shown beside the device name)</span>
+									</label>
+									<input
+										type="text"
+										className={ceStyles.ceInput}
+										value={variant.description ?? ''}
+										placeholder="(Positional Variance)"
+										onChange={(e) =>
+											updateVariant(index, { description: e.target.value || undefined })
+										}
+									/>
+								</div>
+							</>
+						)}
 					</div>
 				);
 			})}
 
-			<button type="button" className={ceStyles.ceArrayAddBtn} onClick={addEntry}>
-				+ Add HpTF set
+			<button type="button" className={ceStyles.ceArrayAddBtn} onClick={addVariant}>
+				+ Add variant
 			</button>
 		</>
 	);

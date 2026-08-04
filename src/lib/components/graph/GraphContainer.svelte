@@ -15,7 +15,7 @@
 	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
 	import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
-	import { curveBaseName, curveDisplayName } from '$lib/graph/curve-label.js';
+	import { curveBaseName, curveDisplayName, sampleKeyParts } from '$lib/graph/curve-label.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
@@ -117,20 +117,28 @@
 				if (obj.hidden) return;
 				const channels = [...obj.dispChannel];
 
-				// HpTF items collapse to a single label line — the fill area is one
-				// shared envelope across channels, so per-channel rows would just be
-				// duplicate noise on the graph.
-				if (obj.hptf) {
+				// A restored `?state=` can name runs this variant doesn't have, so the
+				// keys are resolved once here and reused below — an undrawable key must
+				// neither suppress the fill-only label nor produce a row of its own.
+				const drawableSampleKeys = (obj.dispSamples ?? []).filter((key) => {
+					const parts = sampleKeyParts(obj, key);
+					return !!parts && !!obj.samples?.[parts.index]?.[parts.channel];
+				});
+
+				// An envelope fill is genuinely one object across channels, so a set
+				// showing only the fill collapses to a single line rather than one
+				// row per channel. Anything with curves on screen gets a row each.
+				const fillOnly = obj.showFill && obj.showAvg === false && !drawableSampleKeys.length;
+				if (fillOnly) {
 					const channelStr =
 						channels.length === 2 && channels.includes('L') && channels.includes('R')
 							? 'L+R'
 							: channels.join('+');
-					const desc =
-						obj.hptfFillVisible && obj.hptf.description ? ` ${obj.hptf.description}` : '';
+					const desc = obj.sampleDescription ? ` ${obj.sampleDescription}` : '';
 					const channelPart = channelStr ? ` (${channelStr})` : '';
 					raw.push({
 						uuid: obj.uuid,
-						channel: 'hptf',
+						channel: 'fill',
 						text: `${curveBaseName(obj)}${desc}${channelPart}`,
 						color: obj.colors?.AVG || 'var(--color-base-content)',
 						index: counter
@@ -139,19 +147,40 @@
 					return;
 				}
 
-				channels.forEach((channel) => {
+				if (obj.showAvg !== false) {
+					channels.forEach((channel) => {
+						const desc = obj.showFill && obj.sampleDescription ? ` ${obj.sampleDescription}` : '';
+						raw.push({
+							uuid: obj.uuid,
+							channel,
+							text: `${curveDisplayName(obj, channel)}${desc}`,
+							color:
+								obj.colors[channel as 'L' | 'R' | 'AVG'] ||
+								obj.colors?.AVG ||
+								'var(--color-base-content)',
+							index: counter
+						});
+						counter++;
+					});
+				}
+
+				// One line per displayed run, named by its curator label — the graph
+				// could not previously say which measurement a run curve was.
+				for (const key of drawableSampleKeys) {
+					const parts = sampleKeyParts(obj, key)!;
 					raw.push({
 						uuid: obj.uuid,
-						channel,
-						text: curveDisplayName(obj, channel),
+						channel: key,
+						text: curveDisplayName(obj, parts.channel, parts.label),
 						color:
-							obj.colors[channel as 'L' | 'R' | 'AVG'] ||
+							obj.colors.samples?.[key] ||
+							obj.colors[parts.channel] ||
 							obj.colors?.AVG ||
 							'var(--color-base-content)',
 						index: counter
 					});
 					counter++;
-				});
+				}
 			});
 
 		const total = raw.length;

@@ -22,7 +22,7 @@
 		<Button
 			title="Normalize at average"
 			variant={graphStore.normType === 'Avg' ? 'primary' : 'ghost'}
-			class="h-full rounded-sm px-2.5!"
+			class="h-full rounded-sm px-2.5"
 			onclick={() => onNormTypeChange('Avg')}
 		>
 			{m.normalizer_input_avg_btn()}
@@ -30,7 +30,7 @@
 		<Button
 			title="Normalize at specific frequency"
 			variant={graphStore.normType === 'Hz' ? 'primary' : 'ghost'}
-			class="h-full rounded-sm px-2.5!"
+			class="h-full rounded-sm px-2.5"
 			onclick={() => onNormTypeChange('Hz')}
 		>
 			{m.normalizer_input_hz_btn()}

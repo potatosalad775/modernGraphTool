@@ -62,9 +62,14 @@ export default defineConfig({
 			// few hundredths of a percent — browser-mode specs race a little over
 			// which branches they reach — so a threshold pinned to the exact number
 			// would flap red without anything changing.
+			//
+			// Last measured after the sample-set unification: 68.73 / 60.01 / 73.35 /
+			// 68.51, up from 68.47 / 59.08 / 73.28 / 68.25. Only `branches` moved a
+			// full point, so only it is raised — the other three would lose the
+			// margin above if they followed a rise of a quarter point.
 			thresholds: {
 				statements: 67,
-				branches: 58,
+				branches: 59,
 				functions: 72,
 				lines: 67
 			}

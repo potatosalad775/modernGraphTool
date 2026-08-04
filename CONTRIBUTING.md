@@ -45,6 +45,28 @@ npm run format
 `npm run lint` is enforced in CI on both Linux and Windows, so a PR that is not
 Prettier-clean will not merge.
 
+### Use the shared components
+
+Build UI out of the wrappers in [src/lib/components/atoms/](src/lib/components/atoms/) —
+`Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `ScrollArea`, `Skeleton` — rather
+than the bare HTML element. They carry the focus-visible ring, the transition, the disabled
+styling and the operator-customizable palette; a raw `<button>` quietly opts out of all of it
+and drifts as themes change.
+
+`Button` takes `variant` and `size` props instead of a class list — check whether a size
+already covers what you need (`toolbar`, `icon`, `icon-sm`, `icon-xs`) before writing padding
+classes by hand. Its required `title` also becomes the `aria-label`, so keep the title and the
+visible text saying the same thing.
+
+Anything you pass in `class` is merged with [tailwind-merge](https://github.com/dcastil/tailwind-merge),
+so an override beats the built-in style **without** a `!` modifier — write `class="rounded-full"`,
+not `class="rounded-full!"`. This only applies to `Button`; on a raw element, conflicting Tailwind
+utilities tie on specificity and `!` is still needed.
+
+Checkboxes and radios are the exception — no atom covers them, so they stay raw (`Input` is a
+labelled text field, `Switch` is the toggle-switch case). Elements bits-ui owns through a
+`child` snippet stay as bits-ui renders them.
+
 ### Line endings
 
 All text files are **LF**, pinned by [.gitattributes](.gitattributes). This overrides

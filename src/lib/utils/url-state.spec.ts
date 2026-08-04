@@ -5,6 +5,7 @@ import {
 	parseStateParam,
 	encodeShareNames,
 	hasNonDefaultState,
+	normalizeSampleDisplay,
 	buildQueryString,
 	BASE62_PREFIX,
 	type URLState
@@ -86,8 +87,10 @@ describe('parseStateParam', () => {
 			yScale: 80,
 			baseline: { key: 'Phone A', mode: 'withAdjustment' },
 			yOffsets: { 'Phone A': 5, 'Phone B': -3 },
-			sampleDisplay: { 'Phone A': ['L', 'R'] },
-			hptfDisplay: { 'Phone B': { keys: ['sample1_L', 'sample1_AVG'], fill: true } },
+			sampleDisplay: {
+				'Phone A': { keys: ['sample0_AVG', 'sample1_AVG'], fill: false, avg: true },
+				'Phone B': { keys: ['sample1_L', 'sample1_AVG'], fill: true, avg: false }
+			},
 			eq: {
 				filters: [
 					{ enabled: true, type: 'PK', freq: 1000, q: 1.4, gain: -3 },
@@ -149,6 +152,76 @@ describe('share round-trip through URLSearchParams', () => {
 	});
 });
 
+// ── Legacy share-link compatibility ──────────────────────────────────────────
+//
+// Nothing fails loudly when one of these read paths is dropped — the page just
+// loads with the wrong curves showing — so each historical shape gets its own
+// case here.
+
+describe('normalizeSampleDisplay', () => {
+	it('returns an empty record when nothing is set', () => {
+		expect(normalizeSampleDisplay({})).toEqual({});
+	});
+
+	it('passes the current object form through, filling in defaults', () => {
+		const out = normalizeSampleDisplay({
+			sampleDisplay: { 'Phone A': { keys: ['sample0_L'], fill: true, avg: false } }
+		});
+		expect(out['Phone A']).toEqual({ keys: ['sample0_L'], fill: true, avg: false });
+	});
+
+	it('defaults a missing avg to true and a missing fill to false', () => {
+		const out = normalizeSampleDisplay({
+			sampleDisplay: { 'Phone A': { keys: ['sample0_AVG'] } as never }
+		});
+		expect(out['Phone A']).toEqual({ keys: ['sample0_AVG'], fill: false, avg: true });
+	});
+
+	it('maps the legacy flat L{n}/R{n} array onto zero-based sample keys', () => {
+		// Links minted before the two sample concepts were unified. `L1` was the
+		// FIRST run, so it becomes `sample0_L`.
+		const out = normalizeSampleDisplay({
+			sampleDisplay: { 'Phone A': ['L1', 'R1', 'L3'] }
+		});
+		expect(out['Phone A']).toEqual({
+			keys: ['sample0_L', 'sample0_R', 'sample2_L'],
+			fill: false,
+			avg: true
+		});
+	});
+
+	it('accepts an array that already holds current-shape keys', () => {
+		const out = normalizeSampleDisplay({ sampleDisplay: { 'Phone A': ['sample1_AVG'] } });
+		expect(out['Phone A'].keys).toEqual(['sample1_AVG']);
+	});
+
+	it('drops array entries it cannot parse rather than passing junk downstream', () => {
+		const out = normalizeSampleDisplay({
+			sampleDisplay: { 'Phone A': ['L1', 'garbage', ''] as never }
+		});
+		expect(out['Phone A'].keys).toEqual(['sample0_L']);
+	});
+
+	it('folds legacy hptfDisplay in — its keys already use the current shape', () => {
+		const out = normalizeSampleDisplay({
+			hptfDisplay: { 'Phone B': { keys: ['sample0_AVG', 'sample1_L'], fill: true } }
+		});
+		expect(out['Phone B']).toEqual({
+			keys: ['sample0_AVG', 'sample1_L'],
+			fill: true,
+			avg: true
+		});
+	});
+
+	it('reads both legacy sources in one state object', () => {
+		const out = normalizeSampleDisplay({
+			sampleDisplay: { 'Phone A': ['L1'] },
+			hptfDisplay: { 'Phone B': { keys: ['sample0_AVG'], fill: true } }
+		});
+		expect(Object.keys(out).sort()).toEqual(['Phone A', 'Phone B']);
+	});
+});
+
 describe('hasNonDefaultState', () => {
 	it('is false when only yScale is present and it matches the default', () => {
 		expect(hasNonDefaultState({ yScale: DEFAULT_Y_SCALE }, DEFAULT_Y_SCALE)).toBe(false);
@@ -162,8 +235,7 @@ describe('hasNonDefaultState', () => {
 		const state: URLState = {
 			yScale: DEFAULT_Y_SCALE,
 			yOffsets: {},
-			sampleDisplay: {},
-			hptfDisplay: {}
+			sampleDisplay: {}
 		};
 		expect(hasNonDefaultState(state, DEFAULT_Y_SCALE)).toBe(false);
 	});
@@ -176,8 +248,7 @@ describe('hasNonDefaultState', () => {
 	it.each([
 		['baseline', { baseline: { key: 'Phone A', mode: 'withoutAdjustment' } }],
 		['yOffsets', { yOffsets: { 'Phone A': 5 } }],
-		['sampleDisplay', { sampleDisplay: { 'Phone A': ['L'] } }],
-		['hptfDisplay', { hptfDisplay: { 'Phone A': { keys: [], fill: false } } }],
+		['sampleDisplay', { sampleDisplay: { 'Phone A': { keys: [], fill: false, avg: false } } }],
 		[
 			'eq',
 			{ eq: { filters: [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }], preamp: 0 } }

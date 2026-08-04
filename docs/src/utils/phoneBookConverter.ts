@@ -4,15 +4,16 @@
  * Matches the actual parser in src/lib/utils/metadata-parser.ts:
  *  - brand key is `name` (not `brand`)
  *  - phone-level `description` (not `notes`)
- *  - HpTF blocks discard `file`/`suffix` on the same entry
+ *  - sample sets are declared per variant inside `variants[]`
  *
- * Import is permissive: it also accepts `brand` as the brand key (legacy docs).
- * Export is canonical: always writes `name`.
+ * Import is permissive: it accepts `brand` as the brand key (legacy docs), and
+ * the two pre-unification sample forms — phone-level `samples: N` and `hptfs[]`.
+ * Export is canonical: always writes `name`, and always `variants[]`.
  */
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type PhoneKind = 'simple' | 'detailed' | 'variations' | 'prefix' | 'multiSample' | 'hptf';
+export type PhoneKind = 'simple' | 'detailed' | 'variations' | 'prefix' | 'sampleSet';
 
 export interface SharedPhoneMeta {
 	reviewScore?: string;
@@ -29,13 +30,26 @@ export interface BrandState {
 	phones: PhoneState[];
 }
 
-/** One HpTF measurement set within an hptfs[] array. */
-export interface HpTFEntry {
+/** How a sample set is drawn. A set, not an enum — the three compose. */
+export type SampleDisplayMode = 'avg' | 'curves' | 'fill';
+
+/**
+ * One entry of `variants[]`. A variant is either a plain L/R pair (`file` alone),
+ * a numbered sample set (`file` + `count`), or an explicitly-named one (`rows`).
+ */
+export interface VariantEntry {
 	/** Variant suffix shown in the device selector dropdown (e.g. "Leather Pad"). */
 	suffix?: string;
+	/** Base filename for the main L/R pair, and for the numbered run layout. */
+	file: string;
+	/** Numbered layout: `{file} L1.txt`…`L{count}.txt`. 0 means "no sample set". */
+	count: number;
+	/** Explicit layout: one row per run. Takes precedence over `count` when non-empty. */
 	rows: Array<{ file: string; label: string }>;
+	/** Run labels for the numbered (`count`) layout, where there are no rows. */
+	labels: string[];
+	display: SampleDisplayMode[];
 	description?: string;
-	fillOnly: boolean;
 }
 
 export interface PhoneState extends SharedPhoneMeta {
@@ -45,12 +59,11 @@ export interface PhoneState extends SharedPhoneMeta {
 	detailed?: { name: string; file: string; suffix?: string };
 	variations?: { name: string; rows: Array<{ file: string; suffix: string }> };
 	prefix?: { name: string; prefix: string; files: string[] };
-	multiSample?: { name: string; file: string; samples: number; suffix?: string };
-	hptfs?: {
-		/** Device display name (shared across all HpTF entries). */
+	sampleSet?: {
+		/** Device display name (shared across every variant). */
 		name: string;
-		/** One or more HpTF measurement sets — each becomes its own variant. */
-		entries: HpTFEntry[];
+		/** One or more variants, each optionally carrying its own sample set. */
+		variants: VariantEntry[];
 	};
 	/** Unknown keys from the raw JSON, preserved round-trip. */
 	passthrough?: Record<string, unknown>;
@@ -94,24 +107,10 @@ export function createEmptyPhone(kind: PhoneKind = 'detailed'): PhoneState {
 		case 'prefix':
 			base.prefix = { name: '', prefix: '', files: ['', ''] };
 			break;
-		case 'multiSample':
-			base.multiSample = { name: '', file: '', samples: 3 };
-			break;
-		case 'hptf':
-			base.hptfs = {
+		case 'sampleSet':
+			base.sampleSet = {
 				name: '',
-				entries: [
-					{
-						rows: [
-							{ file: '', label: 'Center' },
-							{ file: '', label: 'Front' },
-							{ file: '', label: 'Back' },
-							{ file: '', label: 'Up' },
-							{ file: '', label: 'Down' }
-						],
-						fillOnly: true
-					}
-				]
+				variants: [{ suffix: '', file: '', count: 3, rows: [], labels: [], display: ['avg'] }]
 			};
 			break;
 	}
@@ -157,11 +156,8 @@ export function switchPhoneKind(phone: PhoneState, newKind: PhoneKind): PhoneSta
 			case 'prefix':
 				fresh.prefix!.name = oldName;
 				break;
-			case 'multiSample':
-				fresh.multiSample!.name = oldName;
-				break;
-			case 'hptf':
-				fresh.hptfs!.name = oldName;
+			case 'sampleSet':
+				fresh.sampleSet!.name = oldName;
 				break;
 			case 'simple':
 				fresh.simple!.value = oldName;
@@ -181,10 +177,8 @@ export function extractName(phone: PhoneState): string {
 			return phone.variations?.name ?? '';
 		case 'prefix':
 			return phone.prefix?.name ?? '';
-		case 'multiSample':
-			return phone.multiSample?.name ?? '';
-		case 'hptf':
-			return phone.hptfs?.name ?? '';
+		case 'sampleSet':
+			return phone.sampleSet?.name ?? '';
 	}
 }
 
@@ -195,6 +189,7 @@ const KNOWN_PHONE_KEYS = new Set([
 	'file',
 	'suffix',
 	'prefix',
+	'variants',
 	'samples',
 	'hptfs',
 	'reviewScore',
@@ -301,57 +296,92 @@ function parsePhone(
 
 	const baseName = extractBaseName(p.name);
 
-	// hptfs[] block → HpTF. Each array entry becomes its own variant in the
-	// device selector. If the same phone also declares file/suffix variants,
-	// the editor can only represent one kind at a time — warn the user that
-	// the file[] / suffix[] side will be lost on re-export.
-	if (Array.isArray(p.hptfs) && p.hptfs.length > 0) {
-		if (p.file !== undefined || p.suffix !== undefined) {
+	// `variants[]` — the explicit form. Each entry is one variant, optionally
+	// carrying its own sample set.
+	if (Array.isArray(p.variants) && p.variants.length > 0) {
+		// All five phone-level keys are dropped, not just the three the warning
+		// used to name — `prefix` and `hptfs` disappear just as silently.
+		const shadowed = (['file', 'suffix', 'prefix', 'samples', 'hptfs'] as const).filter(
+			(key) => p[key] !== undefined
+		);
+		if (shadowed.length > 0) {
 			warnings.push(
-				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": phone has both "file"/"suffix" and "hptfs" — the editor will only show the HpTF sets. Hand-edit the JSON to keep both.`
+				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": "variants" takes precedence — the phone-level ${shadowed
+					.map((key) => `"${key}"`)
+					.join(
+						'/'
+					)} ${shadowed.length > 1 ? 'keys are' : 'key is'} ignored by modernGraphTool and will not be re-exported.`
 			);
 		}
-		const entries: HpTFEntry[] = p.hptfs.map((raw, entryIdx) => {
+		const variants = p.variants.map((raw, entryIdx) =>
+			parseVariant(
+				raw,
+				`${brandLabel}" phone "${baseName || phoneIdx}" variants[${entryIdx}]`,
+				warnings
+			)
+		);
+		return withShared({
+			id: makeId('phone'),
+			kind: 'sampleSet',
+			sampleSet: { name: baseName, variants }
+		});
+	}
+
+	// Legacy `hptfs[]` — one variance set per entry. Unlike the old editor, the
+	// phone's own file/suffix variants survive: `variants[]` is a flat list, so
+	// both can be represented at once.
+	if (Array.isArray(p.hptfs) && p.hptfs.length > 0) {
+		const fileVariants = fileSuffixPairs(p).map(({ file, suffix }): VariantEntry => ({
+			suffix,
+			file,
+			count: typeof p.samples === 'number' ? p.samples : 0,
+			rows: [],
+			labels: [],
+			display: ['avg']
+		}));
+		const hptfVariants: VariantEntry[] = p.hptfs.map((raw, entryIdx) => {
 			if (typeof raw !== 'object' || raw == null || Array.isArray(raw)) {
 				warnings.push(
 					`Brand "${brandLabel}" phone "${baseName || phoneIdx}": hptfs[${entryIdx}] is not an object, coerced to empty.`
 				);
-				return { rows: [], fillOnly: true };
+				return { file: '', count: 0, rows: [], labels: [], display: ['avg', 'fill'] };
 			}
 			const h = raw as Record<string, unknown>;
 			const files = Array.isArray(h.files) ? h.files.map(String) : [];
 			const labels = Array.isArray(h.labels) ? h.labels.map(String) : files;
-			const rows = files.map((file, i) => ({ file, label: labels[i] ?? file }));
+			const fillOnly = typeof h.fillOnly === 'boolean' ? h.fillOnly : true;
 			return {
 				suffix: typeof h.suffix === 'string' ? h.suffix : undefined,
-				rows,
-				description: typeof h.description === 'string' ? h.description : undefined,
-				fillOnly: typeof h.fillOnly === 'boolean' ? h.fillOnly : true
+				file: '',
+				count: 0,
+				rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
+				labels: [],
+				// `fillOnly` meant "no per-run curve toggles", nothing more.
+				display: (fillOnly ? ['avg', 'fill'] : ['avg', 'curves', 'fill']) as SampleDisplayMode[],
+				description: typeof h.description === 'string' ? h.description : undefined
 			};
 		});
 		return withShared({
 			id: makeId('phone'),
-			kind: 'hptf',
-			hptfs: { name: baseName, entries }
+			kind: 'sampleSet',
+			sampleSet: { name: baseName, variants: [...fileVariants, ...hptfVariants] }
 		});
 	}
 
-	// samples → multiSample
+	// Legacy phone-level `samples: N` — the same run count on every file variant.
 	if (typeof p.samples === 'number') {
-		const file = Array.isArray(p.file)
-			? String(p.file[0] ?? '')
-			: typeof p.file === 'string'
-				? p.file
-				: '';
-		const suffix = Array.isArray(p.suffix)
-			? String(p.suffix[0] ?? '')
-			: typeof p.suffix === 'string'
-				? p.suffix
-				: '';
+		const variants = fileSuffixPairs(p).map(({ file, suffix }): VariantEntry => ({
+			suffix,
+			file,
+			count: p.samples as number,
+			rows: [],
+			labels: [],
+			display: ['avg']
+		}));
 		return withShared({
 			id: makeId('phone'),
-			kind: 'multiSample',
-			multiSample: { name: baseName, file, samples: p.samples, suffix: suffix || undefined }
+			kind: 'sampleSet',
+			sampleSet: { name: baseName, variants: variants.length ? variants : [emptyVariant()] }
 		});
 	}
 
@@ -402,6 +432,98 @@ function parsePhone(
 	});
 }
 
+export function emptyVariant(): VariantEntry {
+	return { suffix: '', file: '', count: 0, rows: [], labels: [], display: ['avg'] };
+}
+
+/** Zip the phone-level `file` / `suffix` keys into one pair per variant. */
+function fileSuffixPairs(p: Record<string, unknown>): Array<{ file: string; suffix: string }> {
+	const files = Array.isArray(p.file)
+		? p.file.map(String)
+		: typeof p.file === 'string'
+			? [p.file]
+			: [];
+	const suffixes = Array.isArray(p.suffix)
+		? p.suffix.map(String)
+		: typeof p.suffix === 'string'
+			? [p.suffix]
+			: [];
+	return files.map((file, i) => ({ file, suffix: suffixes[i] ?? '' }));
+}
+
+const VALID_MODES: SampleDisplayMode[] = ['avg', 'curves', 'fill'];
+
+function parseVariant(raw: unknown, where: string, warnings: string[]): VariantEntry {
+	if (typeof raw !== 'object' || raw == null || Array.isArray(raw)) {
+		warnings.push(`Brand "${where}: not an object, coerced to empty.`);
+		return emptyVariant();
+	}
+	const v = raw as Record<string, unknown>;
+
+	// A bare number is shorthand for `{ count: n }` — normalize at the boundary
+	// so only one shape flows through the editor.
+	const set: Record<string, unknown> =
+		typeof v.samples === 'number'
+			? { count: v.samples }
+			: typeof v.samples === 'object' && v.samples != null && !Array.isArray(v.samples)
+				? (v.samples as Record<string, unknown>)
+				: {};
+
+	const files = Array.isArray(set.files) ? set.files.map(String) : [];
+	const labels = Array.isArray(set.labels) ? set.labels.map(String) : files;
+	const display = Array.isArray(set.display)
+		? VALID_MODES.filter((m) => (set.display as unknown[]).includes(m))
+		: ['avg' as SampleDisplayMode];
+
+	return {
+		suffix: typeof v.suffix === 'string' ? v.suffix : '',
+		file: typeof v.file === 'string' ? v.file : '',
+		count: typeof set.count === 'number' ? set.count : 0,
+		rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
+		labels: files.length === 0 && Array.isArray(set.labels) ? set.labels.map(String) : [],
+		display,
+		description: typeof set.description === 'string' ? set.description : undefined
+	};
+}
+
+/**
+ * Emit one `variants[]` entry. A variant with no runs writes no `samples` key at
+ * all, and one that only needs a count writes the number shorthand — the object
+ * form appears only when labels, an explicit file list, a non-default display or
+ * a description actually need saying.
+ */
+function serializeVariant(entry: VariantEntry): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	if (entry.suffix) out.suffix = entry.suffix;
+	if (entry.file) out.file = entry.file;
+
+	const hasRows = entry.rows.length > 0;
+	const hasCount = !hasRows && entry.count > 0;
+	if (!hasRows && !hasCount) return out;
+
+	const rowsLabelled = entry.rows.some((r) => r.label && r.label !== r.file);
+	const countLabelled = entry.labels.some((l) => l);
+	const defaultDisplay = entry.display.length === 1 && entry.display[0] === 'avg';
+
+	if (hasCount && defaultDisplay && !countLabelled && !entry.description) {
+		out.samples = entry.count;
+		return out;
+	}
+
+	const set: Record<string, unknown> = {};
+	if (hasRows) {
+		set.files = entry.rows.map((r) => r.file);
+		if (rowsLabelled) set.labels = entry.rows.map((r) => r.label);
+	} else {
+		set.count = entry.count;
+		if (countLabelled) set.labels = entry.labels;
+	}
+	if (!defaultDisplay) set.display = entry.display;
+	if (entry.description) set.description = entry.description;
+	out.samples = set;
+	return out;
+}
+
 function extractBaseName(raw: unknown): string {
 	if (typeof raw === 'string') return raw;
 	if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'string') return raw[0];
@@ -449,24 +571,10 @@ function serializePhone(phone: PhoneState): unknown {
 			obj.prefix = pr.prefix;
 			break;
 		}
-		case 'multiSample': {
-			const ms = phone.multiSample!;
-			obj.name = [ms.name];
-			obj.file = [ms.file];
-			obj.suffix = [ms.suffix ?? ''];
-			obj.samples = ms.samples;
-			break;
-		}
-		case 'hptf': {
-			const h = phone.hptfs!;
-			obj.name = [h.name];
-			obj.hptfs = h.entries.map((entry) => ({
-				...(entry.suffix ? { suffix: entry.suffix } : {}),
-				files: entry.rows.map((r) => r.file),
-				labels: entry.rows.map((r) => r.label),
-				...(entry.description ? { description: entry.description } : {}),
-				...(entry.fillOnly === false ? { fillOnly: false } : {})
-			}));
+		case 'sampleSet': {
+			const set = phone.sampleSet!;
+			obj.name = [set.name];
+			obj.variants = set.variants.map(serializeVariant);
 			break;
 		}
 	}

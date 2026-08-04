@@ -303,27 +303,57 @@ describe('GraphInspection', () => {
 			expect(labels()).toHaveLength(1);
 		});
 
-		it('lists selected sample traces under their parent, indented', () => {
+		it('names a run by its curator label and channel', () => {
 			addPhone('a', 'Phone A', 80, {
 				samples: [
-					{ L: channel(81), R: channel(79) },
-					{ L: channel(83), R: channel(77) }
+					{ label: 'Center', L: channel(81), R: channel(79) },
+					{ label: 'Front', L: channel(83), R: channel(77) }
 				],
-				dispSamples: ['L2'],
-				colors: { L: '#ff0000', R: '#0000ff', AVG: '#00ff00', samples: { L2: '#123456' } }
+				dispSamples: ['sample1_L'],
+				colors: {
+					L: '#ff0000',
+					R: '#0000ff',
+					AVG: '#00ff00',
+					samples: { sample1_L: '#123456' }
+				}
 			} as Partial<FRDataObject>);
 
 			hoverAt(1000);
-			expect(labels()[1]).toBe('  Phone A (L2): 83.0dB');
+			expect(labels()[1]).toBe('  Phone A (Front, L): 83.0dB');
 			expect([...host.querySelectorAll('.inspection-values g text')][1].getAttribute('fill')).toBe(
 				'#123456'
 			);
 		});
 
-		it('ignores sample keys that do not name a real sample', () => {
+		it('falls back to a 1-based ordinal for an unlabelled run', () => {
+			// Keys are 0-based internally, but "Sample 1" is what the operator
+			// numbered the file.
+			addPhone('a', 'Phone A', 80, {
+				samples: [{ L: channel(81) }, { L: channel(83) }],
+				dispSamples: ['sample1_L']
+			} as Partial<FRDataObject>);
+
+			hoverAt(1000);
+			expect(labels()[1]).toBe('  Phone A (Sample 2, L): 83.0dB');
+		});
+
+		it('reports runs from a set that also draws a fill', () => {
+			// Hovering never reported these before the two sample concepts were
+			// unified — this branch only ever saw multi-sample items.
+			addPhone('a', 'Phone A', 80, {
+				samples: [{ label: 'Fit A', L: channel(81), R: channel(79), AVG: channel(80) }],
+				dispSamples: ['sample0_AVG'],
+				showFill: true
+			} as Partial<FRDataObject>);
+
+			hoverAt(1000);
+			expect(labels()[1]).toBe('  Phone A (Fit A, AVG): 80.0dB');
+		});
+
+		it('ignores run keys that do not name a real run', () => {
 			addPhone('a', 'Phone A', 80, {
 				samples: [{ L: channel(81) }],
-				dispSamples: ['AVG', 'L9']
+				dispSamples: ['AVG', 'sample9_L']
 			} as Partial<FRDataObject>);
 
 			hoverAt(1000);

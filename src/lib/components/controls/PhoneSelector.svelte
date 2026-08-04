@@ -123,7 +123,7 @@
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
-			class="flex-1 bg-base-100!"
+			class="flex-1 bg-base-100"
 		>
 			{#snippet icon()}
 				<Search class="h-4 w-4 text-base-content/60" aria-hidden="true" />

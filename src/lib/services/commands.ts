@@ -1,9 +1,4 @@
-import type {
-	FRDataObject,
-	FRColors,
-	SampleChannelKey,
-	HpTFDisplayKey
-} from '$lib/types/data-types.js';
+import type { FRDataObject, FRColors, SampleDisplayKey } from '$lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 
 /**
@@ -213,7 +208,7 @@ export class UpdateVariantCommand implements Command {
 	#snapshot: FRDataObject | null = null;
 
 	// newFields carries every field the new variant touches — channels, dispSuffix,
-	// dispChannel, _rawData, and (when applicable) samples/hptf data. Fields the new
+	// dispChannel, _rawData, and the sample-set fields. Fields the new
 	// variant doesn't have must be passed as explicit `undefined` so they're cleared,
 	// not left stale from the previous variant. Bundling it all into one command keeps
 	// undo/redo atomic — a partial untracked update would let redo re-apply only some
@@ -269,74 +264,50 @@ export class UpdateFRDataWithRawDataCommand implements Command {
 
 // ─── Update sample display ───────────────────────────────────────────────────
 
+/**
+ * Every runtime toggle a sample set has: which runs are drawn, whether the
+ * min/max fill is drawn, and whether the averaged main curve is drawn. One
+ * command covers all three so undo of a UI interaction restores the whole
+ * display state at once, whichever control the user touched.
+ */
 export class UpdateSampleDisplayCommand implements Command {
 	#uuid: string;
-	#newDispSamples: SampleChannelKey[];
-	#oldDispSamples: SampleChannelKey[] | null = null;
+	#newDispSamples: SampleDisplayKey[];
+	#newShowFill: boolean;
+	#newShowAvg: boolean;
+	#oldDispSamples: SampleDisplayKey[] | null = null;
+	#oldShowFill: boolean | null = null;
+	#oldShowAvg: boolean | null = null;
 
-	constructor(uuid: string, newDispSamples: SampleChannelKey[]) {
+	constructor(uuid: string, newDispSamples: SampleDisplayKey[], showFill = false, showAvg = true) {
 		this.#uuid = uuid;
 		this.#newDispSamples = [...newDispSamples];
+		this.#newShowFill = showFill;
+		this.#newShowAvg = showAvg;
 	}
 
 	execute(store: FRStoreWriteAPI): void {
 		const data = store.get(this.#uuid);
 		if (!data) return;
 		this.#oldDispSamples = data.dispSamples ? [...data.dispSamples] : [];
-		store.set(this.#uuid, { ...data, dispSamples: this.#newDispSamples });
-	}
-
-	undo(store: FRStoreWriteAPI): void {
-		const data = store.get(this.#uuid);
-		if (!data || !this.#oldDispSamples) return;
-		store.set(this.#uuid, { ...data, dispSamples: this.#oldDispSamples });
-	}
-
-	get uuid() {
-		return this.#uuid;
-	}
-}
-
-// ─── Update HpTF display ─────────────────────────────────────────────────────
-
-export class UpdateHpTFDisplayCommand implements Command {
-	#uuid: string;
-	#newDispHptf: HpTFDisplayKey[];
-	#newFillVisible: boolean;
-	#newAvgVisible: boolean;
-	#oldDispHptf: HpTFDisplayKey[] | null = null;
-	#oldFillVisible: boolean | null = null;
-	#oldAvgVisible: boolean | null = null;
-
-	constructor(uuid: string, dispHptf: HpTFDisplayKey[], fillVisible: boolean, avgVisible: boolean) {
-		this.#uuid = uuid;
-		this.#newDispHptf = [...dispHptf];
-		this.#newFillVisible = fillVisible;
-		this.#newAvgVisible = avgVisible;
-	}
-
-	execute(store: FRStoreWriteAPI): void {
-		const data = store.get(this.#uuid);
-		if (!data) return;
-		this.#oldDispHptf = data.dispHptf ? [...data.dispHptf] : [];
-		this.#oldFillVisible = data.hptfFillVisible ?? false;
-		this.#oldAvgVisible = data.hptfAvgVisible ?? false;
+		this.#oldShowFill = data.showFill ?? false;
+		this.#oldShowAvg = data.showAvg ?? true;
 		store.set(this.#uuid, {
 			...data,
-			dispHptf: this.#newDispHptf,
-			hptfFillVisible: this.#newFillVisible,
-			hptfAvgVisible: this.#newAvgVisible
+			dispSamples: this.#newDispSamples,
+			showFill: this.#newShowFill,
+			showAvg: this.#newShowAvg
 		});
 	}
 
 	undo(store: FRStoreWriteAPI): void {
 		const data = store.get(this.#uuid);
-		if (!data || this.#oldDispHptf === null) return;
+		if (!data || !this.#oldDispSamples) return;
 		store.set(this.#uuid, {
 			...data,
-			dispHptf: this.#oldDispHptf,
-			hptfFillVisible: this.#oldFillVisible ?? false,
-			hptfAvgVisible: this.#oldAvgVisible ?? false
+			dispSamples: this.#oldDispSamples,
+			showFill: this.#oldShowFill ?? false,
+			showAvg: this.#oldShowAvg ?? true
 		});
 	}
 

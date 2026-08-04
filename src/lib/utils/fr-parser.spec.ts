@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import FRParser from './fr-parser.js';
-import type { ChannelData, FRDataPoint, SampleData } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
 
 /** Helper: create ChannelData with a given base dB and point count */
 function makeChannelData(baseDb: number, count = 480): ChannelData {
@@ -277,7 +277,30 @@ describe('FRParser', () => {
 		});
 	});
 
+	// ── Sample sets ─────────────────────────────────────────────────────────
+	//
+	// One fetch path now serves both filename conventions. The numbered form's
+	// unnumbered fallback and the explicit form's labels are both parameters of
+	// the same function rather than two near-identical copies of it.
+
 	describe('getFRSampleData', () => {
+		const realFetch = globalThis.fetch;
+		afterEach(() => {
+			globalThis.fetch = realFetch;
+		});
+
+		/** Serve only the filenames in `available`; 404 everything else. */
+		const serve = (available: Record<string, number>) => {
+			globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+				const name = String(url);
+				const match = Object.keys(available).find((f) => name.endsWith(f));
+				if (!match) return new Response('', { status: 404 });
+				return new Response(`20\t${available[match]}\n20000\t${available[match]}\n`, {
+					status: 200
+				});
+			}) as unknown as typeof fetch;
+		};
+
 		it('handles empty sample array', async () => {
 			const result = await FRParser.getFRSampleData([]);
 			expect(result.samples).toEqual([]);
@@ -301,58 +324,64 @@ describe('FRParser', () => {
 			expect(result.averaged.R).toBeUndefined();
 			expect(result.averaged.AVG).toBeUndefined();
 		});
-	});
 
-	// ── HpTF sample averaging ───────────────────────────────────────────────
-
-	describe('_averageSampleData', () => {
-		it('averages L channels across samples', () => {
-			const s1 = { label: 'Sample A', L: makeChannelData(80, 10) };
-			const s2 = { label: 'Sample B', L: makeChannelData(90, 10) };
-			const result = FRParser._averageSampleData([s1, s2]);
-			expect(result.L).toBeDefined();
-			for (let i = 0; i < 10; i++) {
-				const expected = (s1.L!.data[i][1] + s2.L!.data[i][1]) / 2;
-				expect(result.L!.data[i][1]).toBeCloseTo(expected, 10);
-			}
-		});
-
-		it('computes AVG from averaged L and R', () => {
-			const s1 = { label: 'A', L: makeChannelData(80, 5), R: makeChannelData(78, 5) };
-			const s2 = { label: 'B', L: makeChannelData(90, 5), R: makeChannelData(88, 5) };
-			const result = FRParser._averageSampleData([s1, s2]);
-			expect(result.AVG).toBeDefined();
-			for (let i = 0; i < 5; i++) {
-				const avgL = (s1.L!.data[i][1] + s2.L!.data[i][1]) / 2;
-				const avgR = (s1.R!.data[i][1] + s2.R!.data[i][1]) / 2;
-				expect(result.AVG!.data[i][1]).toBeCloseTo((avgL + avgR) / 2, 10);
-			}
-		});
-
-		it('handles samples with only L channel', () => {
-			const s1 = { label: 'A', L: makeChannelData(80, 5) };
-			const s2 = { label: 'B', L: makeChannelData(90, 5) };
-			const result = FRParser._averageSampleData([s1, s2]);
-			expect(result.L).toBeDefined();
-			expect(result.R).toBeUndefined();
-			expect(result.AVG).toBeUndefined();
-		});
-	});
-
-	describe('getFRHpTFData', () => {
-		it('handles non-existent sample files gracefully', async () => {
-			const result = await FRParser.getFRHpTFData(
+		it('attaches the curator label to each run', async () => {
+			serve({ 'A L.txt': 80, 'A R.txt': 78, 'B L.txt': 90, 'B R.txt': 88 });
+			const result = await FRParser.getFRSampleData(
 				[
-					{ L: 'nonexistent_sample1_L.txt', R: 'nonexistent_sample1_R.txt' },
-					{ L: 'nonexistent_sample2_L.txt', R: 'nonexistent_sample2_R.txt' }
+					{ L: 'A L.txt', R: 'A R.txt' },
+					{ L: 'B L.txt', R: 'B R.txt' }
 				],
-				['Sample A', 'Sample B']
+				['Center', 'Front']
 			);
-			expect(result._hptfSamples.length).toBe(2);
-			expect(result._hptfSamples[0].label).toBe('Sample A');
-			expect(result._hptfSamples[1].label).toBe('Sample B');
-			expect(result._hptfSamples[0].L).toBeUndefined();
-			expect(result._hptfLabels).toEqual(['Sample A', 'Sample B']);
+			expect(result.samples.map((s) => s.label)).toEqual(['Center', 'Front']);
+			// Averaged main channels are the mean across runs.
+			expect(result.averaged.L!.data[0][1]).toBeCloseTo(85, 5);
+			expect(result.averaged.AVG!.data[0][1]).toBeCloseTo(84, 5);
+		});
+
+		it('leaves labels off when none are supplied', async () => {
+			serve({ 'A L.txt': 80, 'A R.txt': 80 });
+			const result = await FRParser.getFRSampleData([{ L: 'A L.txt', R: 'A R.txt' }]);
+			expect(result.samples[0].label).toBeUndefined();
+		});
+
+		it('falls back to the unnumbered pair for run 1 when the numbered one 404s', async () => {
+			// The `count` form only: run 1 is the one that can also be named
+			// "Foo L.txt" on a database that started out single-sample.
+			serve({ 'Foo L.txt': 80, 'Foo R.txt': 78 });
+			const result = await FRParser.getFRSampleData([
+				{
+					L: 'Foo L1.txt',
+					R: 'Foo R1.txt',
+					fallback: { L: 'Foo L.txt', R: 'Foo R.txt' }
+				},
+				{ L: 'Foo L2.txt', R: 'Foo R2.txt' }
+			]);
+			expect(result.samples[0].L).toBeDefined();
+			expect(result.samples[0].L!.data[0][1]).toBeCloseTo(80, 5);
+			expect(result.samples[1].L).toBeUndefined();
+		});
+
+		it('does not use the fallback when the numbered pair resolves', async () => {
+			serve({ 'Foo L1.txt': 70, 'Foo R1.txt': 70, 'Foo L.txt': 99, 'Foo R.txt': 99 });
+			const result = await FRParser.getFRSampleData([
+				{ L: 'Foo L1.txt', R: 'Foo R1.txt', fallback: { L: 'Foo L.txt', R: 'Foo R.txt' } }
+			]);
+			expect(result.samples[0].L!.data[0][1]).toBeCloseTo(70, 5);
+		});
+	});
+
+	describe('getFRDataFromMetadata', () => {
+		it('throws when a variant has neither sample files nor an L/R pair', async () => {
+			await expect(
+				FRParser.getFRDataFromMetadata('phone', {
+					brand: 'B',
+					name: 'N',
+					identifier: 'B N',
+					files: [{ suffix: '', fullName: 'B N', fileName: 'N' }]
+				})
+			).rejects.toThrow(/neither sample files nor an L\/R pair/);
 		});
 	});
 });

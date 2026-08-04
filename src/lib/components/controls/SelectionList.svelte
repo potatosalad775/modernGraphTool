@@ -216,9 +216,11 @@
 										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span
 										>
 									{/if}
-									{#if item.hptfFillVisible && item.hptf?.description}
+									<!-- The caption describes the set, not the fill — a single-run set
+										 drawn as `avg` or `curves` still needs it. -->
+									{#if item.samples?.length && item.sampleDescription}
 										<span class="truncate text-xs text-base-content/50"
-											>{item.hptf.description}</span
+											>{item.sampleDescription}</span
 										>
 									{/if}
 								</div>
@@ -272,8 +274,8 @@
 						{#if item.adjustmentLabel}
 							<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
 						{/if}
-						{#if item.hptfFillVisible && item.hptf?.description}
-							<span class="truncate text-xs text-base-content/50">{item.hptf.description}</span>
+						{#if item.samples?.length && item.sampleDescription}
+							<span class="truncate text-xs text-base-content/50">{item.sampleDescription}</span>
 						{/if}
 					</div>
 				{/if}
@@ -356,7 +358,7 @@
 				<div class="flex flex-wrap items-center justify-end gap-3">
 					<!-- Channel select (not for targets) -->
 					{#if !isTarget(item) && channelOpts.length > 0}
-						{#if (item.sampleCount && item.sampleCount > 0) || item.hptf}
+						{#if item.samples?.length}
 							<SampleChannelSelector {uuid} {item} />
 						{:else}
 							<select
@@ -382,8 +384,8 @@
 							onmouseleave={stopYOffset}
 							aria-label="Decrease Y offset"
 							variant="secondary"
-							size="icon"
-							class="rounded-full! p-1!"
+							size="icon-xs"
+							class="rounded-full"
 						>
 							<Minus class="h-4 w-4" aria-hidden="true" />
 						</Button>
@@ -406,8 +408,8 @@
 							onmouseleave={stopYOffset}
 							aria-label="Increase Y offset"
 							variant="secondary"
-							size="icon"
-							class="rounded-full! p-1!"
+							size="icon-xs"
+							class="rounded-full"
 						>
 							<Plus class="h-4 w-4" aria-hidden="true" />
 						</Button>

@@ -7,17 +7,16 @@ import type {
 	PhoneFileReference,
 	PhoneMetadata,
 	TargetMetadata,
-	SampleData
+	SampleData,
+	SampleDisplayMode
 } from '$lib/types/data-types.js';
 
-/** Return type for getFRDataFromMetadata, carrying optional sample/HpTF data */
+/** Return type for getFRDataFromMetadata, carrying an optional sample set */
 export interface FRParseResult extends ParsedFRData {
 	_samples?: SampleData[];
-	_sampleCount?: number;
-	_hptfSamples?: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
-	_hptfLabels?: string[];
-	_hptfOnly?: boolean;
-	_hptfFillOnly?: boolean;
+	_sampleLabels?: string[];
+	_sampleDisplay?: SampleDisplayMode[];
+	_sampleDescription?: string;
 }
 
 /**
@@ -98,21 +97,32 @@ const FRParser = {
 				throw new Error(`No file found with suffix: ${suffix}`);
 			}
 
-			// Multi-sample path: fetch all samples and compute averages
-			if (variant.sampleFiles && variant.sampleCount) {
-				const { samples, averaged } = await FRParser.getFRSampleData(variant.sampleFiles);
-				return { ...averaged, _samples: samples, _sampleCount: variant.sampleCount };
-			}
-
-			// HpTF path: fetch all HpTF samples, compute averaged channels as main data
-			if (variant.hptfFiles && variant.hptfLabels) {
-				const hptfResult = await FRParser.getFRHpTFData(variant.hptfFiles, variant.hptfLabels);
-				const fillOnly = variant.hptfFillOnly ?? true;
-				const averaged = FRParser._averageSampleData(hptfResult._hptfSamples);
-				return { ...averaged, ...hptfResult, _hptfOnly: true, _hptfFillOnly: fillOnly };
+			// Sample-set path: fetch every run, and use their mean as the main channels
+			if (variant.sampleFiles?.length) {
+				const { samples, averaged } = await FRParser.getFRSampleData(
+					variant.sampleFiles,
+					variant.sampleLabels
+				);
+				// A run that 404s is tolerated — the average is taken over whatever
+				// loaded. Every run failing is not: the standard path throws in that
+				// case, and `addFRData` relies on the throw to avoid inserting an item
+				// with no curve at all.
+				if (!averaged.L && !averaged.R && !averaged.AVG) {
+					throw new Error(`No sample data could be loaded for: ${variant.fullName}`);
+				}
+				return {
+					...averaged,
+					_samples: samples,
+					...(variant.sampleLabels && { _sampleLabels: variant.sampleLabels }),
+					...(variant.sampleDisplay && { _sampleDisplay: variant.sampleDisplay }),
+					...(variant.sampleDescription && { _sampleDescription: variant.sampleDescription })
+				};
 			}
 
 			// Standard path: single L/R pair
+			if (!variant.files) {
+				throw new Error(`Variant has neither sample files nor an L/R pair: ${variant.fullName}`);
+			}
 			return await FRParser.getFRDataFromFile(sourceType, variant.files);
 		} catch (e) {
 			throw new Error(`Invalid FR file type: ${e instanceof Error ? e.message : String(e)}`, {
@@ -122,15 +132,23 @@ const FRParser = {
 	},
 
 	/**
-	 * Fetch and parse multi-sample measurement data, computing averaged channels
+	 * Fetch and parse a sample set, computing the averaged channels that become
+	 * the item's main curve.
+	 *
+	 * One path for both filename conventions. `labels` is optional curator
+	 * metadata; the unnumbered fallback only ever applies to run 1 of the
+	 * `count` form, since that's the only layout where `Foo L.txt` and
+	 * `Foo L1.txt` can name the same measurement.
 	 */
 	async getFRSampleData(
-		sampleFiles: PhoneFileReference[]
+		sampleFiles: PhoneFileReference[],
+		labels?: string[]
 	): Promise<{ samples: SampleData[]; averaged: ParsedFRData }> {
 		// Fetch all sample files in parallel
 		const samples: SampleData[] = await Promise.all(
-			sampleFiles.map(async (fileRef) => {
+			sampleFiles.map(async (fileRef, index) => {
 				const sample: SampleData = {};
+				if (labels?.[index]) sample.label = labels[index];
 				let [lRaw, rRaw] = await Promise.all([
 					this._fetchFRTextData('phone', fileRef.L),
 					this._fetchFRTextData('phone', fileRef.R)
@@ -170,52 +188,6 @@ const FRParser = {
 		}
 
 		return { samples, averaged };
-	},
-
-	/**
-	 * Fetch and parse HpTF sample measurement data
-	 */
-	async getFRHpTFData(
-		hptfFiles: PhoneFileReference[],
-		hptfLabels: string[]
-	): Promise<{
-		_hptfSamples: Array<{ label: string; L?: ChannelData; R?: ChannelData }>;
-		_hptfLabels: string[];
-	}> {
-		const samples = await Promise.all(
-			hptfFiles.map(async (fileRef, index) => {
-				const sample: { label: string; L?: ChannelData; R?: ChannelData } = {
-					label: hptfLabels[index] ?? `Sample ${index + 1}`
-				};
-				const [lRaw, rRaw] = await Promise.all([
-					this._fetchFRTextData('phone', fileRef.L),
-					this._fetchFRTextData('phone', fileRef.R)
-				]);
-				if (lRaw) sample.L = await this.parseFRData(lRaw);
-				if (rRaw) sample.R = await this.parseFRData(rRaw);
-				return sample;
-			})
-		);
-		return { _hptfSamples: samples, _hptfLabels: hptfLabels };
-	},
-
-	/** Average channel data across all HpTF samples to produce main channels */
-	_averageSampleData(
-		samples: Array<{ label: string; L?: ChannelData; R?: ChannelData }>
-	): ParsedFRData {
-		const averaged: ParsedFRData = {};
-
-		const lChannels = samples.filter((s) => s.L).map((s) => s.L!);
-		if (lChannels.length > 0) averaged.L = FRParser._averageChannelData(lChannels);
-
-		const rChannels = samples.filter((s) => s.R).map((s) => s.R!);
-		if (rChannels.length > 0) averaged.R = FRParser._averageChannelData(rChannels);
-
-		if (averaged.L && averaged.R) {
-			averaged.AVG = FRParser._computeAvgChannel(averaged.L, averaged.R);
-		}
-
-		return averaged;
 	},
 
 	/** Average multiple ChannelData arrays point-by-point */

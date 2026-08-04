@@ -3,7 +3,7 @@ import type {
 	FRDataObject,
 	FRDataPoint,
 	BaselineData,
-	HpTFEnvelope
+	SampleEnvelope
 } from '$lib/types/data-types.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import GraphHandle from './GraphHandle.js';
@@ -12,6 +12,7 @@ import { getConfigValue } from '$lib/utils/config.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { sampleFillOpacity } from '$lib/utils/sample-config.js';
 import { resolveBaselineChannelData } from './baseline.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 
@@ -136,13 +137,13 @@ class GraphEngine {
 		this.updateYAxis();
 
 		this.curveGroup
-			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
+			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-sample-fill)")
 			.interrupt()
 			.transition()
 			.duration(this.transitionDuration)
 			.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
 
-		this._transitionHpTFFillPaths(true);
+		this._transitionFillPaths(true);
 	}
 
 	/** Refresh baseline channel data from latest frStore entry (after re-smooth, re-normalize, etc.) */
@@ -209,7 +210,7 @@ class GraphEngine {
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
 		this.curveGroup
-			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)")
+			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-sample-fill)")
 			.interrupt()
 			.transition()
 			.duration(animate ? this.transitionDuration : 0)
@@ -220,7 +221,7 @@ class GraphEngine {
 				return (t) => d3.interpolateString(oldPath, newPath)(t);
 			});
 
-		this._transitionHpTFFillPaths(animate);
+		this._transitionFillPaths(animate);
 	}
 
 	/** Update visibility of curves */
@@ -268,8 +269,8 @@ class GraphEngine {
 
 	/** Merge multiple per-channel envelopes into one by taking the widest spread
 	 *  at each frequency index. Used when dispChannel covers more than one channel
-	 *  (e.g. L+R) so the fill area reflects every underlying sample's extremes. */
-	_combineHpTFEnvelopes(envelopes: HpTFEnvelope[]): HpTFEnvelope {
+	 *  (e.g. L+R) so the fill area reflects every underlying run's extremes. */
+	_combineEnvelopes(envelopes: SampleEnvelope[]): SampleEnvelope {
 		const valid = envelopes.filter((e) => e?.upper.length && e?.lower.length);
 		if (valid.length === 0) return { upper: [], lower: [] };
 		if (valid.length === 1) return valid[0];
@@ -293,9 +294,9 @@ class GraphEngine {
 		return { upper, lower };
 	}
 
-	/** Build closed SVG path for HpTF deviation envelope */
-	_buildHpTFEnvelopePath(obj: FRDataObject): string | null {
-		if (!obj.hptf) return null;
+	/** Build closed SVG path for a sample set's min/max envelope */
+	_buildEnvelopePath(obj: FRDataObject): string | null {
+		if (!obj.envelope) return null;
 
 		// Fill envelope rules:
 		//   dispChannel = ['L']         → envelope.L only
@@ -310,12 +311,12 @@ class GraphEngine {
 			pickChannels = ['R'];
 		} else {
 			const available: ('L' | 'R')[] = [];
-			if (obj.hptf.envelope.L?.upper.length) available.push('L');
-			if (obj.hptf.envelope.R?.upper.length) available.push('R');
+			if (obj.envelope.L?.upper.length) available.push('L');
+			if (obj.envelope.R?.upper.length) available.push('R');
 			pickChannels =
-				available.length > 0 ? available : obj.hptf.envelope.AVG?.upper.length ? ['AVG'] : [];
+				available.length > 0 ? available : obj.envelope.AVG?.upper.length ? ['AVG'] : [];
 		}
-		const envelope = this._combineHpTFEnvelopes(pickChannels.map((c) => obj.hptf!.envelope[c]));
+		const envelope = this._combineEnvelopes(pickChannels.map((c) => obj.envelope![c]));
 		if (!envelope.upper.length) return null;
 
 		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
@@ -351,38 +352,40 @@ class GraphEngine {
 		return upperPath + lowerPath.replace(/^M/, 'L') + 'Z';
 	}
 
-	/** Transition HpTF fill paths after scale or baseline changes */
-	_transitionHpTFFillPaths(animate: boolean): void {
+	/** Transition sample fill paths after scale or baseline changes */
+	_transitionFillPaths(animate: boolean): void {
 		// Use self alias to access GraphEngine instance inside attrTween
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
-		this.curveGroup.selectAll<SVGPathElement, unknown>('path.fr-graph-hptf-fill').each(function () {
-			const el = d3.select(this);
-			el.interrupt(); // Cancel any in-progress transition to avoid stale path state
-			const uuid = el.attr('uuid');
-			if (!uuid) return;
-			const obj = frStore.get(uuid);
-			if (!obj) return;
-			const newPath = self._buildHpTFEnvelopePath(obj);
-			if (!newPath) return;
-			if (animate) {
-				const oldPath = el.attr('d') ?? '';
-				// Only use string interpolation when paths have compatible structure
-				// (same number of numeric values = same SVG command count).
-				// Mismatched structures (e.g. after smoothing change) produce garbled paths.
-				const oldCount = (oldPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
-				const newCount = (newPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
-				if (oldCount === newCount && oldCount > 0) {
-					el.transition()
-						.duration(self.transitionDuration)
-						.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
+		this.curveGroup
+			.selectAll<SVGPathElement, unknown>('path.fr-graph-sample-fill')
+			.each(function () {
+				const el = d3.select(this);
+				el.interrupt(); // Cancel any in-progress transition to avoid stale path state
+				const uuid = el.attr('uuid');
+				if (!uuid) return;
+				const obj = frStore.get(uuid);
+				if (!obj) return;
+				const newPath = self._buildEnvelopePath(obj);
+				if (!newPath) return;
+				if (animate) {
+					const oldPath = el.attr('d') ?? '';
+					// Only use string interpolation when paths have compatible structure
+					// (same number of numeric values = same SVG command count).
+					// Mismatched structures (e.g. after smoothing change) produce garbled paths.
+					const oldCount = (oldPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
+					const newCount = (newPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
+					if (oldCount === newCount && oldCount > 0) {
+						el.transition()
+							.duration(self.transitionDuration)
+							.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
+					} else {
+						el.attr('d', newPath);
+					}
 				} else {
 					el.attr('d', newPath);
 				}
-			} else {
-				el.attr('d', newPath);
-			}
-		});
+			});
 	}
 
 	/** Reposition all visible curves by recomputing path data with current yScale.
@@ -390,10 +393,10 @@ class GraphEngine {
 	repositionCurves(): void {
 		this.curveGroup
 			.selectAll<SVGPathElement, FRDataPoint[]>(
-				"path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-hptf-fill)"
+				"path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-sample-fill)"
 			)
 			.attr('d', (d) => this._getCompensatedPath(d));
-		this._transitionHpTFFillPaths(false);
+		this._transitionFillPaths(false);
 		this.eqOverlay?.render();
 		this.preferenceBoundOverlay?.render();
 	}
@@ -499,130 +502,86 @@ class GraphEngine {
 		);
 		const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
 
-		// Draw HpTF deviation fill (behind everything)
-		if (obj.hptf && obj.hptfFillVisible) {
-			const fillPath = this._buildHpTFEnvelopePath(obj);
+		// A sample set draws as three independent layers — envelope fill behind,
+		// per-run curves, then the averaged main channels — each with its own
+		// toggle. An item with no set is just the third layer, which is why
+		// `showAvg` being absent has to mean "draw it".
+
+		// 1. Min/max envelope fill (behind everything)
+		if (obj.showFill && obj.envelope) {
+			const fillPath = this._buildEnvelopePath(obj);
 			if (fillPath) {
-				const baseAvg = obj.colors.AVG;
-				const strokeOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.5;
-				const fillOpacity = (getConfigValue('HPTF.FILL_OPACITY') as number) ?? 0.3;
-				const toAlpha = (c: string, a: number) => {
-					if (c.startsWith('oklch(')) return c.replace(/\)$/, ` / ${a})`);
-					if (c.startsWith('hsl(')) return c.replace('hsl(', 'hsla(').replace(')', `, ${a})`);
-					return c;
-				};
-				const color = toAlpha(baseAvg, strokeOpacity);
-				const fillColor = toAlpha(baseAvg, fillOpacity);
+				// Transparency goes through `fill-opacity` / `stroke-opacity` rather than
+				// being folded into the color string. Rewriting the color only worked for
+				// the `oklch()` and `hsl()` notations — a hex from CURVE_COLOR_PALETTE fell
+				// through unchanged and the band drew fully opaque, hiding the curves it
+				// is supposed to sit behind.
+				const opacity = sampleFillOpacity();
+				const color = obj.colors.AVG;
 				this.curveGroup
 					.insert('path', ':first-child')
-					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-fill')
+					.attr('class', 'fr-graph-phone-curve fr-graph-sample-fill')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
 					.attr('identifier', obj.identifier)
 					.attr('d', fillPath)
-					.attr('fill', fillColor)
+					.attr('fill', color)
+					.attr('fill-opacity', String(opacity))
 					.attr('stroke', color)
+					.attr('stroke-opacity', String(opacity))
 					.attr('stroke-width', String(baseThickness / 2))
 					.attr('opacity', isEqSource ? 0.35 : null)
 					.style('pointer-events', 'none');
 			}
 		}
 
-		// Draw individual HpTF sample curves
-		if (obj.hptf && obj.dispHptf?.length) {
-			for (const key of obj.dispHptf) {
-				const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
-				if (!match) continue;
-				const sampleIndex = parseInt(match[1]);
-				const channel = match[2] as 'L' | 'R' | 'AVG';
-				const hptfSample = obj.hptf.samples[sampleIndex];
-				if (!hptfSample?.[channel]) continue;
-
-				const color = obj.colors.AVG;
-
-				this.curveGroup
-					.append('path')
-					.datum(() => FRSmoother.smooth(hptfSample[channel]!.data, graphStore.smoothValue))
-					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-sample-curve')
-					.attr('uuid', obj.uuid)
-					.attr('type', obj.type)
-					.attr('channel', key)
-					.attr('hptf-sample', 'true')
-					.attr('identifier', obj.identifier)
-					.attr('stroke', color)
-					.attr('stroke-width', String(baseThickness))
-					.attr('stroke-dasharray', obj.dash || '1 0')
-					.attr('opacity', isEqSource ? 0.35 : null)
-					.attr('d', (d) => this._getCompensatedPath(d));
-			}
-		}
-
-		// Draw HpTF average curve (mean of all samples, when hptfOnly)
-		if (obj.hptfOnly && obj.hptfAvgVisible) {
-			channels.forEach((channel) => {
-				if (!obj.channels[channel]) return;
-				this.curveGroup
-					.append('path')
-					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
-					.attr('class', 'fr-graph-phone-curve fr-graph-hptf-avg-curve')
-					.attr('uuid', obj.uuid)
-					.attr('type', obj.type)
-					.attr('channel', channel)
-					.attr('hptf-avg', 'true')
-					.attr('identifier', obj.identifier)
-					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-					.attr('stroke-width', String(baseThickness))
-					.attr('opacity', isEqSource ? 0.35 : null)
-					.attr('d', (d) => this._getCompensatedPath(d));
-			});
-		}
-
-		// Draw main channels (skip if hptfOnly)
-		if (!obj.hptfOnly) {
-			channels.forEach((channel) => {
-				this.curveGroup
-					.append('path')
-					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
-					.attr('class', 'fr-graph-phone-curve')
-					.attr('uuid', obj.uuid)
-					.attr('type', obj.type)
-					.attr('channel', channel)
-					.attr('identifier', obj.identifier)
-					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-					.attr('stroke-width', String(baseThickness))
-					.attr('stroke-dasharray', obj.dash || '1 0')
-					.attr('opacity', isEqSource ? 0.35 : null)
-					.attr('d', (d) => this._getCompensatedPath(d));
-			});
-		}
-
-		// Draw sample traces (thin + transparent)
+		// 2. Individual run curves
 		if (obj.samples && obj.dispSamples?.length) {
 			const sampleThickness = baseThickness * 0.6;
 
 			for (const key of obj.dispSamples) {
-				const match = key.match(/^([LR])(\d+)$/);
+				const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
 				if (!match) continue;
-				const side = match[1] as 'L' | 'R';
-				const sampleIndex = parseInt(match[2]) - 1;
+				const sampleIndex = parseInt(match[1]);
+				const channel = match[2] as 'L' | 'R' | 'AVG';
 				const sample = obj.samples[sampleIndex];
-				if (!sample?.[side]) continue;
+				if (!sample?.[channel]) continue;
 
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(sample[side]!.data, graphStore.smoothValue))
-					.attr('class', 'fr-graph-phone-curve')
+					.datum(() => FRSmoother.smooth(sample[channel]!.data, graphStore.smoothValue))
+					.attr('class', 'fr-graph-phone-curve fr-graph-sample-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
 					.attr('channel', key)
 					.attr('sample', 'true')
 					.attr('identifier', obj.identifier)
-					.attr('stroke', 'var(--color-base-content)')
+					.attr('stroke', obj.colors.samples?.[key] || obj.colors.AVG)
 					.attr('stroke-width', String(sampleThickness))
 					.attr('stroke-dasharray', obj.dash || '1 0')
-					.attr('opacity', '0.35')
+					.attr('opacity', '0.5')
 					.attr('d', (d) => this._getCompensatedPath(d));
 			}
+		}
+
+		// 3. Averaged main channels
+		if (obj.showAvg !== false) {
+			channels.forEach((channel) => {
+				if (!obj.channels[channel]) return;
+				this.curveGroup
+					.append('path')
+					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
+					.attr('class', 'fr-graph-phone-curve')
+					.attr('uuid', obj.uuid)
+					.attr('type', obj.type)
+					.attr('channel', channel)
+					.attr('identifier', obj.identifier)
+					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
+					.attr('stroke-width', String(baseThickness))
+					.attr('stroke-dasharray', obj.dash || '1 0')
+					.attr('opacity', isEqSource ? 0.35 : null)
+					.attr('d', (d) => this._getCompensatedPath(d));
+			});
 		}
 	}
 

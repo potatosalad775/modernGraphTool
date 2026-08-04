@@ -129,11 +129,11 @@ describe('MetadataParser', () => {
 		});
 	});
 
-	// ── _generateHpTFFiles ────────────────────────────────────────────────
+	// ── _generateExplicitSampleFiles ──────────────────────────────────────
 
-	describe('_generateHpTFFiles', () => {
+	describe('_generateExplicitSampleFiles', () => {
 		it('generates L/R file references for each filename', () => {
-			const result = MetadataParser._generateHpTFFiles(['Sample1', 'Sample2']);
+			const result = MetadataParser._generateExplicitSampleFiles(['Sample1', 'Sample2']);
 			expect(result).toEqual([
 				{ L: 'Sample1 L.txt', R: 'Sample1 R.txt' },
 				{ L: 'Sample2 L.txt', R: 'Sample2 R.txt' }
@@ -141,7 +141,28 @@ describe('MetadataParser', () => {
 		});
 
 		it('returns empty array for empty input', () => {
-			expect(MetadataParser._generateHpTFFiles([])).toEqual([]);
+			expect(MetadataParser._generateExplicitSampleFiles([])).toEqual([]);
+		});
+	});
+
+	// ── _normalizeSampleSet ───────────────────────────────────────────────
+
+	describe('_normalizeSampleSet', () => {
+		it('expands the number shorthand to { count }', () => {
+			expect(MetadataParser._normalizeSampleSet(5)).toEqual({ count: 5 });
+		});
+
+		it('passes an object through unchanged', () => {
+			const raw = { files: ['A', 'B'], display: ['fill' as const] };
+			expect(MetadataParser._normalizeSampleSet(raw)).toBe(raw);
+		});
+
+		it('rejects nonsense — null, zero, negatives, arrays', () => {
+			expect(MetadataParser._normalizeSampleSet(undefined)).toBeNull();
+			expect(MetadataParser._normalizeSampleSet(null)).toBeNull();
+			expect(MetadataParser._normalizeSampleSet(0)).toBeNull();
+			expect(MetadataParser._normalizeSampleSet(-3)).toBeNull();
+			expect(MetadataParser._normalizeSampleSet([] as unknown as number)).toBeNull();
 		});
 	});
 
@@ -430,6 +451,239 @@ describe('MetadataParser', () => {
 
 		it('throws when phone not found at all', () => {
 			expect(() => MetadataParser.getFRMetadata('phone', 'NonExistent')).toThrow();
+		});
+	});
+
+	// ── Sample sets: variants[] and the legacy forms ──────────────────────
+	//
+	// The two authoring forms must produce the SAME PhoneFileVariant[], because
+	// everything downstream — fetch, process, render — reads only that.
+
+	describe('sample sets', () => {
+		const realFetch = globalThis.fetch;
+
+		const parse = async (book: unknown) => {
+			globalThis.fetch = vi.fn(
+				async () =>
+					new Response(JSON.stringify(book), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			) as unknown as typeof fetch;
+			return MetadataParser._fetchBookObject();
+		};
+
+		afterEach(() => {
+			globalThis.fetch = realFetch;
+		});
+
+		it('parses variants[] with a per-variant sample set', async () => {
+			const result = await parse([
+				{
+					name: 'Sennheiser',
+					phones: [
+						{
+							name: ['HD 600'],
+							variants: [
+								{ suffix: 'Stock', file: 'HD600 Stock' },
+								{
+									suffix: 'Leather Pad',
+									file: 'HD600 Leather',
+									samples: {
+										count: 3,
+										labels: ['Center', 'Front', 'Back'],
+										display: ['avg', 'fill'],
+										description: '(Positional Variance)'
+									}
+								}
+							]
+						}
+					]
+				}
+			]);
+
+			const [stock, leather] = result[0].phones[0].files;
+
+			expect(stock.suffix).toBe('Stock');
+			expect(stock.files).toEqual({ L: 'HD600 Stock L.txt', R: 'HD600 Stock R.txt' });
+			expect(stock.sampleFiles).toBeUndefined();
+
+			expect(leather.fullName).toBe('Sennheiser HD 600 Leather Pad');
+			expect(leather.sampleFiles).toHaveLength(3);
+			expect(leather.sampleFiles![0]).toEqual({
+				L: 'HD600 Leather L1.txt',
+				R: 'HD600 Leather R1.txt',
+				fallback: { L: 'HD600 Leather L.txt', R: 'HD600 Leather R.txt' }
+			});
+			expect(leather.sampleLabels).toEqual(['Center', 'Front', 'Back']);
+			expect(leather.sampleDisplay).toEqual(['avg', 'fill']);
+			expect(leather.sampleDescription).toBe('(Positional Variance)');
+		});
+
+		it('expands the number shorthand inside a variant', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [{ name: ['X'], variants: [{ suffix: 'M', file: 'X Mod', samples: 4 }] }]
+				}
+			]);
+			const variant = result[0].phones[0].files[0];
+			expect(variant.sampleFiles).toHaveLength(4);
+			expect(variant.sampleFiles![3]).toEqual({ L: 'X Mod L4.txt', R: 'X Mod R4.txt' });
+			// No `display` declared → the config chain's default.
+			expect(variant.sampleDisplay).toEqual(['avg']);
+		});
+
+		it('uses samples.files with no `file`, and then has no main L/R pair', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							variants: [
+								{
+									suffix: 'Suede',
+									samples: { files: ['Suede Center', 'Suede Front'], display: ['fill'] }
+								}
+							]
+						}
+					]
+				}
+			]);
+			const variant = result[0].phones[0].files[0];
+			expect(variant.files).toBeUndefined();
+			expect(variant.sampleFiles).toEqual([
+				{ L: 'Suede Center L.txt', R: 'Suede Center R.txt' },
+				{ L: 'Suede Front L.txt', R: 'Suede Front R.txt' }
+			]);
+			// Labels default to the filenames when none are given.
+			expect(variant.sampleLabels).toEqual(['Suede Center', 'Suede Front']);
+			expect(variant.sampleDisplay).toEqual(['fill']);
+		});
+
+		it('falls back to brand.defaultSamples for count and display', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					defaultSamples: { count: 5, display: ['avg', 'curves'] },
+					phones: [{ name: ['X'], variants: [{ suffix: 'A', file: 'X A' }] }]
+				}
+			]);
+			const variant = result[0].phones[0].files[0];
+			expect(variant.sampleFiles).toHaveLength(5);
+			expect(variant.sampleDisplay).toEqual(['avg', 'curves']);
+		});
+
+		it('lets a variant override the brand default', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					defaultSamples: 5,
+					phones: [{ name: ['X'], variants: [{ suffix: 'A', file: 'X A', samples: { count: 2 } }] }]
+				}
+			]);
+			expect(result[0].phones[0].files[0].sampleFiles).toHaveLength(2);
+		});
+
+		it('treats a default count of 1 as "no sample set"', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					defaultSamples: 1,
+					phones: [{ name: ['X'], variants: [{ suffix: 'A', file: 'X A' }] }]
+				}
+			]);
+			expect(result[0].phones[0].files[0].sampleFiles).toBeUndefined();
+		});
+
+		it('honours an explicit count of 1 as the numbered layout', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [{ name: ['X'], variants: [{ suffix: 'A', file: 'X A', samples: 1 }] }]
+				}
+			]);
+			expect(result[0].phones[0].files[0].sampleFiles).toEqual([
+				{ L: 'X A L1.txt', R: 'X A R1.txt', fallback: { L: 'X A L.txt', R: 'X A R.txt' } }
+			]);
+		});
+
+		it('ignores phone-level file/suffix/samples/hptfs when variants is present', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							file: ['Ignored A', 'Ignored B'],
+							suffix: ['IA', 'IB'],
+							samples: 7,
+							hptfs: [{ suffix: 'IgnoredHpTF', files: ['A', 'B'] }],
+							variants: [{ suffix: 'Only', file: 'X Only' }]
+						}
+					]
+				}
+			]);
+			const files = result[0].phones[0].files;
+			expect(files).toHaveLength(1);
+			expect(files[0].suffix).toBe('Only');
+			expect(files[0].sampleFiles).toBeUndefined();
+		});
+
+		it('normalizes legacy phone-level samples to the same shape as variants[]', async () => {
+			const legacy = await parse([
+				{ name: 'Demo', phones: [{ name: ['X'], file: ['X A'], suffix: ['A'], samples: 3 }] }
+			]);
+			const modern = await parse([
+				{
+					name: 'Demo',
+					phones: [{ name: ['X'], variants: [{ suffix: 'A', file: 'X A', samples: 3 }] }]
+				}
+			]);
+			expect(legacy[0].phones[0].files).toEqual(modern[0].phones[0].files);
+		});
+
+		it('normalizes each legacy hptfs entry into its own variant', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							file: ['X Main'],
+							suffix: ['Main'],
+							hptfs: [
+								{
+									suffix: 'Leather Pad',
+									files: ['Center', 'Front'],
+									labels: ['C', 'F'],
+									description: '(Positional Variance)'
+								},
+								{ suffix: 'With Curves', files: ['Up', 'Down'], fillOnly: false }
+							]
+						}
+					]
+				}
+			]);
+
+			const files = result[0].phones[0].files;
+			expect(files.map((f) => f.suffix)).toEqual(['Main', 'Leather Pad', 'With Curves']);
+
+			const leather = files[1];
+			expect(leather.files).toBeUndefined();
+			expect(leather.sampleFiles).toEqual([
+				{ L: 'Center L.txt', R: 'Center R.txt' },
+				{ L: 'Front L.txt', R: 'Front R.txt' }
+			]);
+			expect(leather.sampleLabels).toEqual(['C', 'F']);
+			expect(leather.sampleDescription).toBe('(Positional Variance)');
+			// fillOnly defaults true → average + fill, no per-run curves.
+			expect(leather.sampleDisplay).toEqual(['avg', 'fill']);
+
+			// fillOnly: false additionally exposes the per-run curves.
+			expect(files[2].sampleDisplay).toEqual(['avg', 'curves', 'fill']);
+			expect(files[2].sampleLabels).toEqual(['Up', 'Down']);
 		});
 	});
 

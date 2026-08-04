@@ -75,14 +75,19 @@ Below the row header you'll find a channel selector (only shown for devices — 
 
 The vertical gap you see between `L` and `R` is the device's true channel imbalance: [normalization](./08-graph-controls.mdx#normalize) moves both channels together, so the gap stays accurate no matter which normalization mode or frequency you pick.
 
-### Sample selector (for multi-sample devices)
+### Sample selector (for devices measured more than once)
 
-If a device has **multiple samples** (the same model measured several times), the channel selector is replaced by a richer **Sample / Channel selector** that also lets you choose:
+Some variants are a **sample set** — the same thing measured several times, whether that's repeat runs, a sweep of seating positions, or one measurement per ear pad. For those, a **Samples** section appears below the channel options with three independent toggles:
 
-- A specific sample by index, or the average across all samples.
-- Whether to show the HpTF deviation as a **fill band**, as **individual curves**, or both.
+- **Show all-sample average** — the single averaged curve across every run.
+- **Show Deviation Fill** — a shaded band spanning the highest and lowest run at each frequency.
+- **Per-sample curves** — a collapsible list of every run by name (e.g. "Center", "Front"), each with its own **L**, **R** and **AVG** boxes so you can pull out exactly the curve you want. `Select All L` / `Select All R` / `Select All` / `Deselect All` do the obvious thing. The list starts closed unless individual runs are already on the graph, and the number beside it counts how many are drawn.
 
-This is how you drill into "is this headphone a consistent performer across units or does it vary a lot". A narrow band is consistent; a wide band shifts around.
+They compose freely: an averaged line with a variance band around it, or the band alone with no main curve, or every individual run and nothing else.
+
+The **Channel** options above still apply throughout — with the average switched off they steer which side the deviation band covers, so `L` narrows the band to the left ear alone while `AVG` and `L+R` span both.
+
+This is how you drill into "is this headphone a consistent performer across units or does it vary a lot". A narrow band is consistent; a wide band shifts around. When a run is drawn on its own, the on-graph label names it — `HD 600 Leather Pad (Center, R)`.
 
 ## Y-offset
 

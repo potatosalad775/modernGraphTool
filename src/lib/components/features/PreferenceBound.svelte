@@ -13,7 +13,7 @@
 		title={m.pref_bound_btn_label()}
 		onclick={() => preferenceBoundStore.toggle()}
 		variant={preferenceBoundStore.isVisible ? 'primary' : 'outline'}
-		class="h-9! gap-1.5 px-3!"
+		size="toolbar"
 	>
 		{m.pref_bound_btn_label()}
 	</Button>

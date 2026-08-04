@@ -58,7 +58,8 @@
 		"@lucide/svelte": "^1.27.0",
 		"bits-ui": "^2.18.1",
 		"d3": "^7.9.0",
-		"svelte-sonner": "^1.1.1"
+		"svelte-sonner": "^1.1.1",
+		"tailwind-merge": "^3.6.0"
 	},
 	"engines": {
 		"node": ">=20"

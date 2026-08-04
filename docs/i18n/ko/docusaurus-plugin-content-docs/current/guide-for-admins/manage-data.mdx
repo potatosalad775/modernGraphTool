@@ -12,6 +12,12 @@ modernGraphTool에 표시할 측정 데이터(Phone)와 타겟 커브(Target)를
 modernGraphTool은 CrinGraph와 같은 데이터 구조를 그대로 따릅니다. 기존 CrinGraph 사용에 익숙하다면 이 페이지는 건너뛰어도 됩니다.
 :::
 
+:::tip[GUI 편집기]
+JSON을 직접 다루기 번거롭다면 [phone_book.json 편집기](/phone-book-editor)로 `phone_book.json`을 불러오고, 편집하고, 내보낼 수 있습니다. 모든 phone 유형(단순, 상세, 변형, 샘플 세트)에 대한 설명이 함께 표시됩니다.
+
+**변환** 기능도 겸합니다. 이전 형식으로 작성된 phone book을 불러와 현재 형식으로 내보낼 수 있습니다. 사용 중단된 [`hptfs[]`](#deprecated-hptfs)를 아직 쓰고 있다면 한 번 거쳐 보세요.
+:::
+
 ## 데이터 폴더 구조
 
 `dist/data` 폴더는 다음과 같이 구성됩니다.
@@ -180,71 +186,123 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 - UI에는 `brand_name + name + suffix[i]` 형태로 표시됩니다(예: "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)").
 - 여러 이어팁이나 이어패드를 조합한 측정, 또는 착용 위치별 측정처럼 같은 기기에 속한 데이터를 한데 묶을 때 편리합니다.
 
-#### 다중 샘플 항목 (Multi-Sample Entries)
+#### 샘플 세트 (Sample Sets) \{#sample-sets\}
 
-다중 샘플 항목은 같은 기기를 여러 번 측정한 결과를 하나의 phone으로 묶습니다. UI는 기본적으로 모든 측정의 **평균**을 표시하고, `samples > 1`일 때 자동으로 나타나는 샘플 선택기에서 개별 샘플을 켜고 끌 수 있습니다.
+**샘플 세트**는 한 variant를 여러 번 측정한 것입니다. 같은 착용 상태의 반복 측정,
+착용 위치를 조금씩 바꾼 스윕, 이어패드별 측정, 여러 장비에서 측정한 같은 기기 등이
+여기에 해당합니다. modernGraphTool은 세트를 세 가지 방식으로 그릴 수 있고, 이들은
+자유롭게 조합됩니다.
 
-- `samples` (숫자, 필수) — 측정 횟수. 도구가 `n = 1..samples`에 대해 `{file} L{n}.txt`와 `{file} R{n}.txt`를 차례로 로드합니다.
-- 일반 phone 객체의 다른 키(`reviewLink`, `price`, `shopLink` 등)와 함께 써도 됩니다.
-- 측정 파일은 다른 항목과 마찬가지로 `data/phones/`에 그대로 둡니다.
+| 토큰     | 그려지는 것                                                 |
+| -------- | ----------------------------------------------------------- |
+| `avg`    | 모든 측정의 평균 곡선 하나 — 기기의 "대표" 선입니다.        |
+| `curves` | 각 측정을 개별 곡선으로. UI에서 하나씩 켜고 끌 수 있습니다. |
+| `fill`   | 모든 측정을 감싸는 최소/최대 음영 밴드 — 편차 포락선입니다. |
 
-```json
-{
-	"name": ["Multi Sample"],
-	"file": ["Multi Sample"],
-	"suffix": [""],
-	"samples": 3
-}
-```
-
-위 예시는 다음 6개 파일을 로드합니다.
-
-`Multi Sample L1.txt`, `Multi Sample R1.txt`, `Multi Sample L2.txt`, `Multi Sample R2.txt`, `Multi Sample L3.txt`, `Multi Sample R3.txt`
-
-:::tip[번호 없는 파일 폴백]
-`samples: N`으로 선언한 variant에서 번호 파일 `{file} L1.txt` / `{file} R1.txt`를 찾지 못하면, 도구가 번호 없는 `{file} L.txt` / `{file} R.txt` 쌍으로 폴백하고 해당 variant를 단일 샘플 측정으로 취급합니다. 덕분에 같은 `file` 배열 안에서 번호 있는 샘플과 번호 없는 쌍을 자유롭게 섞어 둘 수 있고, 번호 샘플이 없는 variant도 오류 없이 로드됩니다.
-:::
-
-:::tip[기본 표시 설정]
-`config.js`의 `MULTI_SAMPLE.DEFAULT_DISPLAY`로 다중 샘플 phone을 평균 한 곡선으로 열지, 모든 개별 샘플로 열지 정할 수 있습니다. [`MULTI_SAMPLE`](./customize-page#multi_sample) 설정 섹션을 참고하세요.
-:::
-
-#### HpTF (Headphone Transfer Function) 항목
-
-HpTF 항목은 서로 관련된 여러 측정 사이의 **편차(variance)**—예를 들어 약간씩 다른 착용 위치(Center, Front, Back, Up, Down)나 측정 장비 차이—를 그래프에 겹쳐진 음영 포락선으로 시각화합니다. 원하면 샘플별 곡선도 함께 표시할 수 있죠. 각 HpTF 세트는 그래프 자체가 포락선인 하나의 기기 variant가 됩니다. 비교하고 싶은 무엇이든 샘플로 만들 수 있으니, HpTF는 착용 위치에만 한정되지 않습니다.
-
-하나의 기기에 `hptfs` 배열로 **여러 개의** HpTF 세트를 선언할 수도 있습니다. 예를 들어 이어패드별(Leather / Suede)이나 착용 깊이별로 하나씩 둘 수 있습니다. 각 `hptfs` 항목은 기기 선택기에서 독립된 variant가 됩니다.
-
-- `hptfs` (객체 배열, 필수) — 하나 이상의 HpTF 측정 세트. 각 항목은 다음 키를 가집니다.
-  - `files` (문자열 배열, 필수) — 각 편차 샘플의 기본 파일 이름. 도구가 항목마다 `{name} L.txt`와 `{name} R.txt`를 로드합니다.
-  - `labels` (문자열 배열, 선택) — HpTF 토글 UI에 표시될 라벨. 생략하면 `files` 값이 그대로 사용됩니다.
-  - `suffix` (문자열, 선택) — 기기 선택기 드롭다운에 표시되는 variant 접미사(예: `"Leather Pad"`). 한 기기에 여러 `hptfs` 항목이 있을 때 사용자가 고르는 값이 바로 이 값입니다. 항목이 하나뿐이면 생략해도 됩니다.
-  - `description` (문자열, 선택) — 무엇이 달라지는지 설명하는 짧은 메모로, 음영 포락선과 함께 표시됩니다(예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
-  - `fillOnly` (불리언, 선택, 기본값 `true`) — `true`이면 음영 포락선만 그립니다. 사용자가 UI에서 샘플별 편차 곡선을 켜고 끌 수 있게 하려면 `false`로 설정하세요.
-- 측정 파일은 다른 항목과 마찬가지로 `data/phones/`에 둡니다.
-
-**HpTF 세트 하나:**
+샘플 세트는 `variants` 배열 안에서 variant별로 선언합니다.
 
 ```json
 {
-	"name": ["HpTF Fill Only"],
-	"hptfs": [
+	"name": ["HD 600"],
+	"variants": [
+		{ "suffix": "Stock", "file": "HD600 Stock" },
+
+		{ "suffix": "Modded", "file": "HD600 Mod", "samples": 5 },
+
 		{
-			"files": [
-				"HpTF Demo Center",
-				"HpTF Demo Front",
-				"HpTF Demo Back",
-				"HpTF Demo Up",
-				"HpTF Demo Down"
-			],
-			"labels": ["Center", "Front", "Back", "Up", "Down"],
-			"description": "(Fit Position)"
+			"suffix": "Leather Pad",
+			"file": "HD600 Leather",
+			"samples": {
+				"count": 5,
+				"labels": ["Center", "Front", "Back", "Up", "Down"],
+				"display": ["avg", "fill"],
+				"description": "(Positional Variance)"
+			}
+		},
+
+		{
+			"suffix": "Suede Pad",
+			"samples": {
+				"files": ["Suede Center", "Suede Front", "Suede Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["fill", "curves"]
+			}
 		}
 	]
 }
 ```
 
-**여러 HpTF 세트 (예: 이어패드별):**
+`variants`의 각 항목이 받는 키:
+
+- `suffix` (문자열, 선택) — 기기 선택기 드롭다운에 표시되는 variant 라벨.
+- `file` (문자열, 선택) — 대표 L/R 쌍의 기본 파일 이름 — `{file} L.txt` / `{file} R.txt`.
+  `samples.files`로 측정 파일을 직접 나열한다면 생략해도 됩니다.
+- `samples` (숫자 또는 객체, 선택) — 샘플 세트. 숫자만 쓰면 `{ "count": n }`의 축약형입니다.
+
+`samples`를 객체로 쓸 때의 키:
+
+- `count` (숫자) — 측정 횟수. `{file} L1.txt`…`L{count}.txt`와 대응하는 `R` 파일을
+  로드합니다. CrinGraph의 `num_samples` 사이트가 이미 쓰고 있는 파일 배치입니다.
+- `files` (문자열 배열) — 측정별 기본 파일 이름. `{name} L.txt`와 `{name} R.txt`를
+  로드합니다. `count`와 함께 쓰지 말고 둘 중 하나만 쓰세요.
+- `labels` (문자열 배열, 선택) — 측정별 표시 이름. 샘플 선택기와 그래프 라벨에
+  나타납니다(예: `HD 600 Leather Pad (Center, R)`). 생략하면 `files` 값이, `count`
+  형식에서는 "Sample 1", "Sample 2"… 가 쓰입니다.
+- `display` (문자열 배열, 선택) — `avg`, `curves`, `fill`의 조합. 초기 토글 상태를
+  정할 뿐이고 사용자는 여전히 곡선별로 바꿀 수 있습니다. 생략하면 `config.js`의
+  `SAMPLES.DEFAULT_DISPLAY`를 따릅니다.
+- `description` (문자열, 선택) — 무엇이 달라지는지 설명하는 짧은 메모로, 기기 이름
+  옆에 표시됩니다(예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
+
+`count`와 `files`의 차이는 **파일 이름 규칙**일 뿐이며 기능 차이가 아닙니다. 라벨,
+음영, 개별 곡선은 어느 쪽에서도 똑같이 동작합니다.
+
+:::note[variants가 우선합니다]
+`variants`가 있으면 해당 phone의 `file` / `suffix` / `prefix` / `samples` / `hptfs`
+키는 **무시됩니다**. 병합이 아니라 우선순위이므로, 한 phone은 둘 중 한 방식으로만
+선언하세요.
+:::
+
+:::tip[번호 없는 파일 폴백]
+`count` 형식에서 `{file} L1.txt` / `{file} R1.txt`를 찾지 못하면 첫 번째 측정에
+한해 번호 없는 `{file} L.txt` / `{file} R.txt` 쌍으로 폴백합니다. 덕분에 형제
+variant끼리 번호 있는 파일과 없는 파일을 자유롭게 섞을 수 있고, 번호 파일이 없는
+variant도 오류 없이 로드됩니다.
+:::
+
+:::tip[사이트 전역 기본값]
+`config.js`의 `SAMPLES.DEFAULT_COUNT`와 `SAMPLES.DEFAULT_DISPLAY`는 자체 세트를
+선언하지 않은 모든 variant에 적용됩니다. 모든 기기를 다섯 번씩 측정하는
+데이터베이스라면 항목마다 `samples`를 적을 필요가 전혀 없습니다. 브랜드 단위로는 `name` 옆에
+`defaultSamples`를 두어 그 브랜드의 기기에만 다른 기본값을 줄 수 있습니다.
+[`SAMPLES`](./customize-page#samples) 설정 섹션을 참고하세요.
+:::
+
+##### 간략 형식: phone 레벨 `samples: N`
+
+`variants` 배열 없이, phone의 모든 `file[]` variant에 같은 측정 횟수를 한 번에
+지정할 수 있습니다.
+
+```json
+{ "name": ["Multi Sample"], "file": ["Multi Sample"], "samples": 3 }
+```
+
+`"variants": [{ "file": "Multi Sample", "samples": 3 }]`과 동등합니다. 이 형식은
+**계속 지원됩니다**. phone 항목의 나머지 부분과 마찬가지로 CrinGraph 호환 구조를
+공유하므로, 다른 도구용으로 작성한 `phone_book.json`도 그대로 동작합니다. 다만
+한계가 있고, 그 한계가 `variants`가 존재하는 이유입니다. phone의 모든 variant가 같은
+측정 횟수를 공유해야 하고, 측정별 라벨도 음영도 쓸 수 없습니다.
+
+##### 사용 중단: `hptfs[]` \{#deprecated-hptfs\}
+
+`hptfs[]`는 편차 세트를 위해 modernGraphTool이 자체적으로 만든 키였고, 이제
+`variants[]`가 그 역할을 모두 대신합니다. **이 키는 사용 중단(deprecated)되었으며
+향후 릴리스에서 제거될 예정입니다.** 지금은 계속 읽히므로 업그레이드하는 순간
+깨지지는 않지만, 새로 `hptfs[]` 항목을 작성하지 말고 편한 시점에 phone book을
+변환해 두세요.
+
+`samples: N`과 달리 CrinGraph 생태계의 다른 도구는 `hptfs[]`를 읽지 않으므로,
+제거해도 호환성에 손해가 없습니다.
 
 ```json
 {
@@ -254,26 +312,54 @@ HpTF 항목은 서로 관련된 여러 측정 사이의 **편차(variance)**—�
 			"suffix": "Leather Pad",
 			"files": ["Leather Center", "Leather Front", "Leather Back"],
 			"labels": ["Center", "Front", "Back"],
-			"description": "(Leather Pad Variance)"
-		},
-		{
-			"suffix": "Suede Pad",
-			"files": ["Suede Center", "Suede Front", "Suede Back"],
-			"labels": ["Center", "Front", "Back"],
-			"description": "(Suede Pad Variance)"
+			"description": "(Leather Pad Variance)",
+			"fillOnly": false
 		}
 	]
 }
 ```
 
-위 예시는 *HpTF Multi Pad Leather Pad*와 *HpTF Multi Pad Suede Pad*라는 두 독립 variant를 만듭니다. 기기 선택기의 variant 드롭다운에서 둘 사이를 전환할 수 있습니다.
+위 항목은 `samples.files`와 `display: ["avg", "fill"]`을 가진 `variants` 항목이
+됩니다. `fillOnly`가 `false`이면 여기에 `"curves"`가 추가됩니다.
 
-:::note[일반 측정값과 함께 쓰기]
-하나의 phone 항목에 `file` / `suffix` variant와 `hptfs`를 함께 선언해도 됩니다. 둘은 한 평면 목록에서 **각각 독립된 variant**로 취급되며 서로 조합되지 않습니다. `file` variant 2개와 `hptfs` 항목 2개가 있는 phone이라면 variant 선택기에 4개 별개 항목(예: `Stock`, `Modded`, `Leather Pad`, `Suede Pad`)으로 표시됩니다.
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"variants": [
+		{
+			"suffix": "Leather Pad",
+			"samples": {
+				"files": ["Leather Center", "Leather Front", "Leather Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["avg", "fill", "curves"],
+				"description": "(Leather Pad Variance)"
+			}
+		}
+	]
+}
+```
+
+:::tip[자동으로 변환하기]
+직접 손으로 고칠 필요는 없습니다. 기존 `phone_book.json`을
+[**phone_book.json 편집기**](/phone-book-editor)에 불러온 뒤 다시 내보내면 됩니다.
+불러오기는 모든 이전 형식을 읽고, 내보내기는 항상 표준 형식인 `variants[]`로
+작성합니다. `hptfs[]` 항목을 포함해 파일 전체가 한 번에 변환됩니다.
 :::
 
-:::tip[기본 표시 설정]
-음영 투명도와 기본 표시 모드(`fill`, `fill+curves`, `curves`, `none`)는 [`HPTF`](./customize-page#hptf) 설정 섹션에서 정할 수 있습니다.
+`config.js`의 `MULTI_SAMPLE`, `HPTF` 섹션도 함께 사용 중단되었습니다. 대체 키는
+[`SAMPLES`](./customize-page#samples)를 참고하세요.
+
+:::note[여러 형식 함께 쓰기]
+한 phone 항목의 일반 `file` / `suffix` variant, phone 레벨 `samples`, `hptfs`는 한
+평면 목록에서 **각각 독립된 variant**로 취급되며 서로 조합되지 않습니다. `file`
+variant 2개와 `hptfs` 항목 2개가 있으면 variant 선택기에 4개 항목이 표시됩니다.
+:::
+
+:::tip[CrinGraph와 함께 호스팅하기]
+라벨, 음영, 개별 곡선 설정은 **번호 파일 위에 얹히는 부가 메타데이터**입니다.
+`count`를 쓰는 데이터베이스는 CrinGraph의 `num_samples` 사이트가 기대하는
+`{file} L{n}.txt` 배치를 그대로 유지하므로, 같은 측정 폴더로 두 도구를 모두 서비스할
+수 있습니다. CrinGraph는 추가 키를 무시하고, modernGraphTool은 그것을 사용합니다.
 :::
 
 ## 측정 데이터 추가/수정 절차

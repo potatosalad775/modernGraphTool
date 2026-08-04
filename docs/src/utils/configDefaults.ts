@@ -52,11 +52,10 @@ export interface ConfigFormState {
 	};
 	WATERMARK: WatermarkFormState[];
 	TARGET_MANIFEST: I18nArrayFormState<TargetManifestEntryForm>;
-	MULTI_SAMPLE: {
-		DEFAULT_DISPLAY: string;
-	};
-	HPTF: {
-		DEFAULT_DISPLAY: string;
+	SAMPLES: {
+		DEFAULT_COUNT: number;
+		/** Any of 'avg' | 'curves' | 'fill'. A set, not an enum — they compose. */
+		DEFAULT_DISPLAY: string[];
 		FILL_OPACITY: number;
 	};
 	TRACE_STYLING: {
@@ -254,11 +253,9 @@ export function createDefaultConfig(): ConfigFormState {
 			],
 			i18n: {}
 		},
-		MULTI_SAMPLE: {
-			DEFAULT_DISPLAY: 'average'
-		},
-		HPTF: {
-			DEFAULT_DISPLAY: 'fill+curves',
+		SAMPLES: {
+			DEFAULT_COUNT: 1,
+			DEFAULT_DISPLAY: ['avg'],
 			FILL_OPACITY: 0.3
 		},
 		TRACE_STYLING: {

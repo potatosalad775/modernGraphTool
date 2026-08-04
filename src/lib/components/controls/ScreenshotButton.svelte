@@ -146,7 +146,7 @@
 	title={m.screenshot_button_label()}
 	onclick={downloadScreenshot}
 	variant="muted"
-	class="h-9! gap-1.5 px-3!"
+	size="toolbar"
 >
 	<Camera class="h-4 w-4" aria-hidden="true" />
 	{m.screenshot_button_label()}

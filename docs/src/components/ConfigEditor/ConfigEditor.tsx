@@ -14,8 +14,7 @@ import LanguageSection from './sections/LanguageSection';
 import PathSection from './sections/PathSection';
 import WatermarkSection from './sections/WatermarkSection';
 import TargetManifestSection from './sections/TargetManifestSection';
-import MultiSampleSection from './sections/MultiSampleSection';
-import HptfSection from './sections/HptfSection';
+import SamplesSection from './sections/SamplesSection';
 import TraceStylingSection from './sections/TraceStylingSection';
 import TopbarSection from './sections/TopbarSection';
 import PreferenceBoundSection from './sections/PreferenceBoundSection';
@@ -37,8 +36,9 @@ const SECTIONS = [
 	{ id: 'section-path', label: 'Path' },
 	{ id: 'section-watermark', label: 'Watermark' },
 	{ id: 'section-target-manifest', label: 'Target Manifest' },
-	{ id: 'section-multi-sample', label: 'Multi-Sample' },
-	{ id: 'section-hptf', label: 'HpTF' },
+	// `SAMPLES` replaced the separate `MULTI_SAMPLE` and `HPTF` sections, which the
+	// editor now only reads on import — it never writes them back.
+	{ id: 'section-samples', label: 'Samples' },
 	{ id: 'section-trace-styling', label: 'Trace Styling' },
 	{ id: 'section-topbar', label: 'Topbar' },
 	{ id: 'section-preference-bound', label: 'Preference Bound' },
@@ -94,8 +94,7 @@ function ConfigEditorInner(): ReactNode {
 					<PathSection />
 					<WatermarkSection />
 					<TargetManifestSection />
-					<MultiSampleSection />
-					<HptfSection />
+					<SamplesSection />
 					<TraceStylingSection />
 					<TopbarSection />
 					<PreferenceBoundSection />

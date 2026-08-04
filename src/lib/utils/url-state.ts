@@ -9,7 +9,7 @@
 import Base62 from './base62.js';
 import type { BaselineMode } from '$lib/stores/graph-store.svelte.js';
 import type { EQFilter } from '$lib/stores/eq-store.svelte.js';
-import type { SampleChannelKey, HpTFDisplayKey } from '$lib/types/data-types.js';
+import type { SampleDisplayKey } from '$lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,13 +18,21 @@ export interface EQStateSnapshot {
 	preamp: number;
 }
 
+/** Per-item sample display, as written into `state=` today. */
+export interface SampleDisplayState {
+	keys: SampleDisplayKey[];
+	fill: boolean;
+	avg: boolean;
+}
+
 export interface URLState {
 	yScale?: number;
 	baseline?: { key: string; mode: BaselineMode };
 	yOffsets?: Record<string, number>;
 	eq?: EQStateSnapshot;
-	sampleDisplay?: Record<string, SampleChannelKey[]>;
-	hptfDisplay?: Record<string, { keys: HpTFDisplayKey[]; fill: boolean }>;
+	sampleDisplay?: Record<string, SampleDisplayState | SampleDisplayKey[] | string[]>;
+	/** @deprecated Written by builds that kept HpTF separate. Read, never written. */
+	hptfDisplay?: Record<string, { keys: SampleDisplayKey[]; fill: boolean }>;
 }
 
 /** Prefix marking a Base62-compressed `share=` value. */
@@ -97,6 +105,50 @@ export function parseStateParam(value: string | null): URLState | null {
 	}
 }
 
+/**
+ * Fold every historical shape of the sample-display state into the current one.
+ *
+ * Three forms exist in links already out in the wild, and none of them fail
+ * loudly when dropped — the page just loads with the wrong curves showing:
+ *
+ *  1. `sampleDisplay` as a flat array of `L{n}`/`R{n}`, 1-based, from the
+ *     multi-sample era. Mapped to `sample{n-1}_{ch}`.
+ *  2. `hptfDisplay` as `{ keys, fill }`. Its keys are already `sample{n}_{ch}`,
+ *     so only the wrapper changes.
+ *  3. The current `{ keys, fill, avg }` object.
+ *
+ * An item was never both multi-sample and HpTF, so the two sources can't
+ * collide on a key; `hptfDisplay` is applied second regardless.
+ */
+export function normalizeSampleDisplay(state: URLState): Record<string, SampleDisplayState> {
+	const out: Record<string, SampleDisplayState> = {};
+
+	for (const [key, value] of Object.entries(state.sampleDisplay ?? {})) {
+		if (Array.isArray(value)) {
+			const keys = value
+				.map((k) => {
+					const match = String(k).match(/^([LR])(\d+)$/);
+					if (match) return `sample${parseInt(match[2]) - 1}_${match[1]}` as SampleDisplayKey;
+					return /^sample\d+_(L|R|AVG)$/.test(String(k)) ? (String(k) as SampleDisplayKey) : null;
+				})
+				.filter((k): k is SampleDisplayKey => k !== null);
+			out[key] = { keys, fill: false, avg: true };
+		} else if (value && typeof value === 'object') {
+			out[key] = {
+				keys: value.keys ?? [],
+				fill: value.fill ?? false,
+				avg: value.avg ?? true
+			};
+		}
+	}
+
+	for (const [key, value] of Object.entries(state.hptfDisplay ?? {})) {
+		out[key] = { keys: value.keys ?? [], fill: value.fill ?? false, avg: true };
+	}
+
+	return out;
+}
+
 // ── Encoding ─────────────────────────────────────────────────────────────────
 
 /**
@@ -108,8 +160,9 @@ export function hasNonDefaultState(state: URLState, defaultYScale: number): bool
 	if (state.yScale != null && state.yScale !== defaultYScale) return true;
 	if (state.baseline) return true;
 	if (state.yOffsets && Object.keys(state.yOffsets).length > 0) return true;
+	// A sample set that is drawn exactly as the phone book declares carries no
+	// information — only a state the user changed is worth a longer URL.
 	if (state.sampleDisplay && Object.keys(state.sampleDisplay).length > 0) return true;
-	if (state.hptfDisplay && Object.keys(state.hptfDisplay).length > 0) return true;
 	if (state.eq && state.eq.filters.length > 0) return true;
 	return false;
 }

@@ -13,7 +13,8 @@ sidebar_label: Changelog
 - Fix: An individual sample curve is no longer always the L/R average — each run now has its own L, R and AVG toggles.
 - Fix: The on-graph label now updates as individual runs are toggled, and the hover readout reports runs from every kind of sample set.
 - Fix: The averaged curve of a multi-sample device can now be hidden, and individual runs keep their true spread at the normalization frequency instead of being flattened onto it.
-- Change: `samples`, `hptfs` and the existing `MULTI_SAMPLE` / `HPTF` config sections keep working unchanged — nothing needs migrating.
+- Change: The phone-level `samples: N` key keeps working and stays supported — it shares the CrinGraph-compatible shape of the rest of a phone entry.
+- Deprecated: The modernGraphTool-specific `hptfs[]` key and the `MULTI_SAMPLE` / `HPTF` config sections still load, but will be removed in a future release. Convert your files by importing and re-exporting them in the [phone_book.json Editor](/phone-book-editor) and the [Config Editor](/config-generator). See [Deprecated: `hptfs[]`](./guide-for-admins/manage-data.mdx#deprecated-hptfs).
 
 ### v2.1.5
 

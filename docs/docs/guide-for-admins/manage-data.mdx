@@ -14,6 +14,8 @@ modernGraphTool is designed to use the same data structure as CrinGraph. Therefo
 
 :::tip[GUI editor]
 Prefer a form? Use the [phone_book.json Editor](/phone-book-editor) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Sample Sets).
+
+It also **converts**: import an existing phone book in any older format and export it in the current one. Worth a round-trip if yours still uses [`hptfs[]`](#deprecated-hptfs), which is deprecated.
 :::
 
 ## Data Folder Structure
@@ -182,7 +184,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
   - The display name will be brand_name + name + file[i]. (e.g, "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
   - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
-#### Sample Sets
+#### Sample Sets \{#sample-sets\}
 
 A **sample set** is a variant that was measured more than once: repeat runs of the
 same fit, a sweep of seating positions, one measurement per ear pad, or the same
@@ -275,23 +277,30 @@ next to its `name` to override the site default for its own devices. See the
 [`SAMPLES`](./customize-page#samples) config section.
 :::
 
-##### Legacy sample keys
+##### The terse form: phone-level `samples: N`
 
-Two older forms declared the same thing and are **still read** — permanently, since
-cross-site search crawls other sites' CrinGraph-format phone books. Nothing needs
-migrating; the new form just makes more configurations reachable.
-
-**Phone-level `samples: N`** — numbered runs, applied to every variant in `file[]`:
+A phone can declare one run count for all of its `file[]` variants at once, without a
+`variants` array:
 
 ```json
 { "name": ["Multi Sample"], "file": ["Multi Sample"], "samples": 3 }
 ```
 
-Equivalent to `"variants": [{ "file": "Multi Sample", "samples": 3 }]`. The limitation
-it has is why `variants` exists: one run count for every variant of the phone, no
-labels, and no fill.
+Equivalent to `"variants": [{ "file": "Multi Sample", "samples": 3 }]`. This form is
+**supported indefinitely** — it shares the CrinGraph-compatible shape of the rest of the
+phone entry, so a `phone_book.json` written for another tool keeps working here as-is.
+Its limits are why `variants` exists: one run count for every variant of the phone, no
+per-run labels, and no fill.
 
-**`hptfs[]`** — one variance set per entry, each becoming its own variant:
+##### Deprecated: `hptfs[]` \{#deprecated-hptfs\}
+
+`hptfs[]` was modernGraphTool's own key for a variance set, and `variants[]` now covers
+everything it did. **It is deprecated and will be removed in a future release.** It is
+still read today, so nothing breaks the moment you upgrade — but convert your phone book
+when convenient rather than writing new `hptfs[]` entries.
+
+Unlike `samples: N`, no other tool in the CrinGraph ecosystem reads `hptfs[]`, so keeping
+it costs compatibility nothing to drop.
 
 ```json
 {
@@ -308,8 +317,35 @@ labels, and no fill.
 }
 ```
 
-Equivalent to a `variants` entry with `samples.files` and `display` of
-`["avg", "fill"]` — plus `"curves"` when `fillOnly` is `false`.
+Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fill"]` —
+plus `"curves"` when `fillOnly` is `false`:
+
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"variants": [
+		{
+			"suffix": "Leather Pad",
+			"samples": {
+				"files": ["Leather Center", "Leather Front", "Leather Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["avg", "fill", "curves"],
+				"description": "(Leather Pad Variance)"
+			}
+		}
+	]
+}
+```
+
+:::tip[Convert automatically]
+You don't have to do this by hand. Load your existing `phone_book.json` into the
+[**phone_book.json Editor**](/phone-book-editor) and export it again — import reads every
+legacy form, and export always writes canonical `variants[]`. It converts the whole file
+in one pass, `hptfs[]` entries included.
+:::
+
+The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated alongside
+it; see [`SAMPLES`](./customize-page#samples) for the replacement keys.
 
 :::note[Combining forms]
 Regular `file` / `suffix` variants, phone-level `samples` and `hptfs` on one phone entry

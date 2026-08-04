@@ -12,6 +12,12 @@ modernGraphTool에 표시할 측정 데이터(Phone)와 타겟 커브(Target)를
 modernGraphTool은 CrinGraph와 같은 데이터 구조를 그대로 따릅니다. 기존 CrinGraph 사용에 익숙하다면 이 페이지는 건너뛰어도 됩니다.
 :::
 
+:::tip[GUI 편집기]
+JSON을 직접 다루기 번거롭다면 [phone_book.json 편집기](/phone-book-editor)로 `phone_book.json`을 불러오고, 편집하고, 내보낼 수 있습니다. 모든 phone 유형(단순, 상세, 변형, 샘플 세트)에 대한 설명이 함께 표시됩니다.
+
+**변환** 기능도 겸합니다. 이전 형식으로 작성된 phone book을 불러와 현재 형식으로 내보낼 수 있습니다. 사용 중단된 [`hptfs[]`](#deprecated-hptfs)를 아직 쓰고 있다면 한 번 거쳐 보세요.
+:::
+
 ## 데이터 폴더 구조
 
 `dist/data` 폴더는 다음과 같이 구성됩니다.
@@ -180,7 +186,7 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 - UI에는 `brand_name + name + suffix[i]` 형태로 표시됩니다(예: "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)").
 - 여러 이어팁이나 이어패드를 조합한 측정, 또는 착용 위치별 측정처럼 같은 기기에 속한 데이터를 한데 묶을 때 편리합니다.
 
-#### 샘플 세트 (Sample Sets)
+#### 샘플 세트 (Sample Sets) \{#sample-sets\}
 
 **샘플 세트**는 한 variant를 여러 번 측정한 것입니다. 같은 착용 상태의 반복 측정,
 착용 위치를 조금씩 바꾼 스윕, 이어패드별 측정, 여러 장비에서 측정한 같은 기기 등이
@@ -272,24 +278,31 @@ variant도 오류 없이 로드됩니다.
 [`SAMPLES`](./customize-page#samples) 설정 섹션을 참고하세요.
 :::
 
-##### 이전 방식의 샘플 키
+##### 간략 형식: phone 레벨 `samples: N`
 
-같은 것을 선언하던 두 가지 예전 형식이 있고, 이들은 **계속 읽힙니다**. 교차 사이트
-검색이 다른 사이트의 CrinGraph 형식 phone book을 크롤링하기 때문에 영구적으로
-지원됩니다. 마이그레이션할 필요는 없으며, 새 형식은 표현할 수 있는 구성이 더 많을
-뿐입니다.
-
-**phone 레벨 `samples: N`** — 번호 측정을 `file[]`의 모든 variant에 적용합니다.
+`variants` 배열 없이, phone의 모든 `file[]` variant에 같은 측정 횟수를 한 번에
+지정할 수 있습니다.
 
 ```json
 { "name": ["Multi Sample"], "file": ["Multi Sample"], "samples": 3 }
 ```
 
-`"variants": [{ "file": "Multi Sample", "samples": 3 }]`과 동등합니다. 이 형식의
-한계가 `variants`가 존재하는 이유입니다. phone의 모든 variant가 같은 측정 횟수를
-공유해야 하고, 라벨도 음영도 쓸 수 없습니다.
+`"variants": [{ "file": "Multi Sample", "samples": 3 }]`과 동등합니다. 이 형식은
+**계속 지원됩니다**. phone 항목의 나머지 부분과 마찬가지로 CrinGraph 호환 구조를
+공유하므로, 다른 도구용으로 작성한 `phone_book.json`도 그대로 동작합니다. 다만
+한계가 있고, 그 한계가 `variants`가 존재하는 이유입니다. phone의 모든 variant가 같은
+측정 횟수를 공유해야 하고, 측정별 라벨도 음영도 쓸 수 없습니다.
 
-**`hptfs[]`** — 항목 하나가 편차 세트 하나이고, 각각이 독립된 variant가 됩니다.
+##### 사용 중단: `hptfs[]` \{#deprecated-hptfs\}
+
+`hptfs[]`는 편차 세트를 위해 modernGraphTool이 자체적으로 만든 키였고, 이제
+`variants[]`가 그 역할을 모두 대신합니다. **이 키는 사용 중단(deprecated)되었으며
+향후 릴리스에서 제거될 예정입니다.** 지금은 계속 읽히므로 업그레이드하는 순간
+깨지지는 않지만, 새로 `hptfs[]` 항목을 작성하지 말고 편한 시점에 phone book을
+변환해 두세요.
+
+`samples: N`과 달리 CrinGraph 생태계의 다른 도구는 `hptfs[]`를 읽지 않으므로,
+제거해도 호환성에 손해가 없습니다.
 
 ```json
 {
@@ -306,8 +319,35 @@ variant도 오류 없이 로드됩니다.
 }
 ```
 
-`samples.files`와 `display: ["avg", "fill"]`을 가진 `variants` 항목과 동등합니다.
-`fillOnly`가 `false`이면 여기에 `"curves"`가 추가됩니다.
+위 항목은 `samples.files`와 `display: ["avg", "fill"]`을 가진 `variants` 항목이
+됩니다. `fillOnly`가 `false`이면 여기에 `"curves"`가 추가됩니다.
+
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"variants": [
+		{
+			"suffix": "Leather Pad",
+			"samples": {
+				"files": ["Leather Center", "Leather Front", "Leather Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["avg", "fill", "curves"],
+				"description": "(Leather Pad Variance)"
+			}
+		}
+	]
+}
+```
+
+:::tip[자동으로 변환하기]
+직접 손으로 고칠 필요는 없습니다. 기존 `phone_book.json`을
+[**phone_book.json 편집기**](/phone-book-editor)에 불러온 뒤 다시 내보내면 됩니다.
+불러오기는 모든 이전 형식을 읽고, 내보내기는 항상 표준 형식인 `variants[]`로
+작성합니다. `hptfs[]` 항목을 포함해 파일 전체가 한 번에 변환됩니다.
+:::
+
+`config.js`의 `MULTI_SAMPLE`, `HPTF` 섹션도 함께 사용 중단되었습니다. 대체 키는
+[`SAMPLES`](./customize-page#samples)를 참고하세요.
 
 :::note[여러 형식 함께 쓰기]
 한 phone 항목의 일반 `file` / `suffix` variant, phone 레벨 `samples`, `hptfs`는 한

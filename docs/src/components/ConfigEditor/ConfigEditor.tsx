@@ -36,8 +36,9 @@ const SECTIONS = [
 	{ id: 'section-path', label: 'Path' },
 	{ id: 'section-watermark', label: 'Watermark' },
 	{ id: 'section-target-manifest', label: 'Target Manifest' },
-	{ id: 'section-multi-sample', label: 'Multi-Sample' },
-	{ id: 'section-hptf', label: 'HpTF' },
+	// `SAMPLES` replaced the separate `MULTI_SAMPLE` and `HPTF` sections, which the
+	// editor now only reads on import — it never writes them back.
+	{ id: 'section-samples', label: 'Samples' },
 	{ id: 'section-trace-styling', label: 'Trace Styling' },
 	{ id: 'section-topbar', label: 'Topbar' },
 	{ id: 'section-preference-bound', label: 'Preference Bound' },

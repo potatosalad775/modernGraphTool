@@ -572,9 +572,12 @@ runs, seating positions, one measurement per ear pad). See
 - `FILL_OPACITY`: Opacity of the fill band (0 to 1).
 
 :::note[Deprecated: `MULTI_SAMPLE` and `HPTF`]
-`SAMPLES` replaces both. The old sections are still read as a fallback, so an
-existing `config.js` keeps working unchanged — but set `SAMPLES` and delete them
-when you next touch the file.
+`SAMPLES` replaces both, and the old sections **will be removed in a future release**.
+They are still read as a fallback today, so an existing `config.js` keeps working
+unchanged — but set `SAMPLES` and delete them when you next touch the file. The
+[Config Editor](/config-generator) does the translation for you: import your current
+`config.js` and export it again. The same goes for the `hptfs[]` key in
+`phone_book.json` — see [Managing Data](./manage-data#deprecated-hptfs).
 
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
 - `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`

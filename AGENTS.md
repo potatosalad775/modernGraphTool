@@ -286,8 +286,15 @@ concepts for this, with parallel state, fetch, process and render paths; they ar
   terse phone-level `file`/`suffix`/`prefix`/`samples`/`hptfs` form — no merging.
   `metadata-parser` emits the same `PhoneFileVariant[]` from either, so **nothing downstream
   branches on which form was authored**.
-- **Legacy keys stay readable permanently.** Cross-site search crawls other sites'
-  CrinGraph-format phone books, which only ever speak the old dialect.
+- **The CrinGraph dialect stays readable permanently** — `file` / `suffix` / `prefix`
+  arrays and the phone-level `samples: N`. Cross-site search crawls other sites'
+  phone books, which only ever speak it.
+- **`hptfs[]` is deprecated and slated for removal**, along with the `MULTI_SAMPLE` /
+  `HPTF` config sections. It was modernGraphTool's own invention — nothing else in the
+  ecosystem reads it, and the crawl only takes device names from foreign books — so the
+  compatibility argument above never covered it. Keep the read path working until it is
+  removed; do not add new features to it. The docs' phone_book.json Editor converts a
+  file in one import/export round-trip.
 - **Model:** `FRDataObject.samples[]` (each run carrying an optional `label`),
   `dispSamples` keyed `sample{n}_{ch}` (zero-based — legacy `?state=` URLs already use this
   shape), plus `showAvg` / `showFill` / `envelope` / `sampleDescription`. `showAvg` absent

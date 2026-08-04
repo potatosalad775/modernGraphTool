@@ -50,8 +50,7 @@ These are all optional — v2 ships with sensible defaults if you omit them. The
 Beyond the rewrite itself, v2 introduces capabilities that weren't available in v1:
 
 - **CDN deployment** — Serve app code from jsDelivr while keeping your data and config local. New versions update automatically without re-uploading files. See the [CDN deployment guide](./guide-for-admins/deployment/cdn).
-- **Multi-sample display modes** — Show the average of all samples, or display every individual curve, configurable per-device.
-- **HpTF deviation display** — Visualize headphone transfer function sample-to-sample variation as a fill area, individual curves, or both.
+- **Sample sets** — Any variant measured more than once — repeat runs, seating positions, one measurement per ear pad — drawn as an averaged curve, per-run curves, a min/max variance band, or any combination. v1's separate multi-sample and HpTF concepts are now one thing, declared per variant in [`variants[]`](./guide-for-admins/manage-data#sample-sets). The old `hptfs[]` key still loads but is [deprecated](./guide-for-admins/manage-data#deprecated-hptfs).
 - **Interactive EQ** — Create and adjust EQ filters directly on the graph. Click to add a peaking filter, drag to change frequency and gain, scroll to adjust Q, and double-click to remove. The graph shows the EQ response curve and a ghost of the original FR in real-time.
 - **Configurable graph aspect ratio** — Choose between 16:9 or CrinGraph-style proportions via `VISUALIZATION.ASPECT_RATIO`.
 - **Native squig.link integration** — Cross-site search, sponsor banner, shop links, and multi-GA4 analytics are built in and activate automatically on `*.squig.link` domains. No more `squigsites.js` script tag.

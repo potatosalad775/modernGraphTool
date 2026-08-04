@@ -229,8 +229,14 @@ export interface RawPhoneData {
 export interface RawBrandData {
 	name: string;
 	suffix?: string;
-	/** Site-wide-per-brand default run count, used when a variant declares none. */
-	defaultSamples?: number | RawSampleSet;
+	/**
+	 * Per-brand defaults for variants that declare no sample set of their own.
+	 *
+	 * A bare number is shorthand for `{ count: n }`. Only `count` and `display`
+	 * are honored (`_resolveSampleDefaults`) — `files`, `labels` and `description`
+	 * describe one specific set and are ignored at brand level.
+	 */
+	defaultSamples?: number | Pick<RawSampleSet, 'count' | 'display'>;
 	phones: (string | RawPhoneData)[];
 }
 

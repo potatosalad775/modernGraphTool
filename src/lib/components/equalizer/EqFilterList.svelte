@@ -11,6 +11,7 @@
 	import EqOptionButton from './EqOptionButton.svelte';
 	import { ArrowDown01, Download, Minus, Plus, Upload } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
+	import { downloadText } from '$lib/utils/download-text.js';
 
 	let expandedIndex = $state<number | null>(null);
 
@@ -178,16 +179,6 @@
 			'GraphicEQ: ' + graphicEQ.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
 		downloadText(text, 'graphic_eq.txt');
 		toast.success(m.equalizer_filter_list_export_graphic_eq());
-	}
-
-	function downloadText(text: string, filename: string) {
-		const blob = new Blob([text], { type: 'text/plain' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = filename;
-		a.click();
-		URL.revokeObjectURL(url);
 	}
 </script>
 

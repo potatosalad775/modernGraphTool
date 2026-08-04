@@ -1002,6 +1002,10 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			SQUIGLINK_FALLBACK:
 				raw.CROSS_SITE_SEARCH?.SQUIGLINK_FALLBACK ?? defaults.CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK
 		},
+		DOWNLOAD_ENABLED: !!raw.DOWNLOAD,
+		DOWNLOAD: {
+			ENABLED: raw.DOWNLOAD?.ENABLED ?? defaults.DOWNLOAD.ENABLED
+		},
 		SQUIGLINK_ENABLED: !!raw.SQUIGLINK,
 		SQUIGLINK: {
 			ENABLED: raw.SQUIGLINK?.ENABLED ?? defaults.SQUIGLINK.ENABLED,
@@ -1066,6 +1070,9 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	}
 	if (state.TARGET_CUSTOMIZER_ENABLED) {
 		config.TARGET_CUSTOMIZER = state.TARGET_CUSTOMIZER;
+	}
+	if (state.DOWNLOAD_ENABLED) {
+		config.DOWNLOAD = state.DOWNLOAD;
 	}
 	if (state.SQUIGLINK_ENABLED) {
 		config.SQUIGLINK = state.SQUIGLINK;

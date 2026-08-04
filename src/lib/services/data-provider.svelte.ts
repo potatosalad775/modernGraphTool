@@ -34,6 +34,8 @@ import type { FRParseResult } from '$lib/utils/fr-parser.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
 import { DataProcessor, anchorAndNormalizeSamples } from '$lib/utils/data-processor.js';
 import { defaultSampleDisplay } from '$lib/utils/sample-config.js';
+import { encodeFRDataForDownload } from '$lib/utils/fr-encoder.js';
+import { downloadText } from '$lib/utils/download-text.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
@@ -185,6 +187,20 @@ class DataProvider {
 	removeFRDataWithUUID(sourceType: FRDataType, uuid: string): void {
 		if (!frStore.has(uuid)) return;
 		commandHistory.execute(new RemoveFRDataCommand(uuid, sourceType), frStore);
+	}
+
+	/**
+	 * Download a curve as displayed — smoothing, normalization, target adjustments
+	 * and EQ are already baked into `frStore`'s `channels` by the time this reads
+	 * it, so no separate "apply the modifications" step is needed here. One .txt
+	 * file per available channel (see fr-encoder.ts).
+	 */
+	downloadFRDataWithUUID(uuid: string): void {
+		const item = frStore.get(uuid);
+		if (!item) return;
+		for (const { filename, text } of encodeFRDataForDownload(item)) {
+			downloadText(text, filename);
+		}
 	}
 
 	async toggleFRData(

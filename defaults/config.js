@@ -179,6 +179,14 @@ const CONFIG = {
 	// Placeholders: {brand}, {model}, {slug}, {fullName}. → docs: RANKING_URL
 	// RANKING_URL: '',
 
+	// Per-curve download button in the selection list. Exports the curve exactly
+	// as displayed — smoothing, normalization, target adjustments and EQ are
+	// baked in — as CrinGraph-style "Frequency dB" .txt files. Off by default.
+	// → docs: DOWNLOAD
+	// DOWNLOAD: {
+	//   ENABLED: true,
+	// },
+
 	// Only active on *.squig.link domains: analytics, sponsor banner, shop links.
 	// → docs: SQUIGLINK
 	// SQUIGLINK: {

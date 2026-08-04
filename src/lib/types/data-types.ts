@@ -426,6 +426,11 @@ export interface HpTFConfig {
 	FILL_OPACITY: number;
 }
 
+/** Per-curve download button configuration */
+export interface DownloadConfig {
+	ENABLED: boolean;
+}
+
 /** Trace styling configuration */
 export interface TraceStylingConfig {
 	PHONE_TRACE_THICKNESS: number;
@@ -450,6 +455,7 @@ export interface AppConfig {
 	TARGET_MANIFEST: TargetManifestEntry[] | I18nConfigValue;
 	TRACE_STYLING: TraceStylingConfig;
 	SAMPLES?: SamplesConfig;
+	DOWNLOAD?: DownloadConfig;
 	/** @deprecated superseded by SAMPLES */
 	MULTI_SAMPLE?: MultiSampleConfig;
 	/** @deprecated superseded by SAMPLES */

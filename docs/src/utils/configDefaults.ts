@@ -91,6 +91,10 @@ export interface ConfigFormState {
 		INDEX_URLS: string[];
 		SQUIGLINK_FALLBACK: boolean;
 	};
+	DOWNLOAD_ENABLED: boolean;
+	DOWNLOAD: {
+		ENABLED: boolean;
+	};
 	SQUIGLINK_ENABLED: boolean;
 	SQUIGLINK: {
 		ENABLED: boolean;
@@ -362,6 +366,10 @@ export function createDefaultConfig(): ConfigFormState {
 			ENABLED: true,
 			INDEX_URLS: [],
 			SQUIGLINK_FALLBACK: true
+		},
+		DOWNLOAD_ENABLED: false,
+		DOWNLOAD: {
+			ENABLED: true
 		},
 		SQUIGLINK_ENABLED: false,
 		SQUIGLINK: {

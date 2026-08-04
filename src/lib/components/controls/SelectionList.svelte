@@ -4,11 +4,12 @@
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+	import { getConfigValue } from '$lib/utils/config.js';
 	import type { FRDataObject } from '$lib/types/data-types.js';
 	import GraphColorPicker from '$lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
-	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
+	import { Check, ChevronDown, Download, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
 	import PopoverPanel from '$lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 	import GraphUploader from './GraphUploader.svelte';
@@ -28,6 +29,9 @@
 	// ── Per-item state (keyed by uuid) ──────────────────────────────────────────
 	// Variant dropdowns open state
 	let openVariantUUID = $state<string | null>(null);
+
+	// Off by default — set DOWNLOAD.ENABLED in config.js to expose it.
+	const downloadEnabled = $derived(Boolean(getConfigValue('DOWNLOAD.ENABLED')));
 
 	// ── Channel helpers ──────────────────────────────────────────────────────────
 	type ChannelOption = { value: string; label: string };
@@ -338,6 +342,19 @@
 							<Eye class="h-4 w-4" aria-hidden="true" />
 						{/if}
 					</Button>
+
+					<!-- Download button -->
+					{#if downloadEnabled}
+						<Button
+							title="Download"
+							onclick={() => dataProvider.downloadFRDataWithUUID(uuid)}
+							aria-label="Download"
+							variant="ghost"
+							size="icon"
+						>
+							<Download class="h-4 w-4" aria-hidden="true" />
+						</Button>
+					{/if}
 
 					<!-- Delete button -->
 					<Button

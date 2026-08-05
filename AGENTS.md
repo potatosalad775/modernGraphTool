@@ -11,6 +11,28 @@ run measurement databases (e.g. sites on squig.link) as well as end users browsi
 `intro.mdx`, `why-moderngraphtool.mdx`, and `guide-for-developers/overview.mdx`.
 **Contributor rules:** [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Where the Rest of This Guide Lives
+
+This file covers what applies everywhere. Anything specific to one area lives in that area's own
+`AGENTS.md`, which loads automatically when you work on files there:
+
+| Directory                                           | Covers                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| [src/lib/components/](src/lib/components/AGENTS.md) | Atoms / `Button` API, directory map, component + boot tests |
+| [src/lib/stores/](src/lib/stores/AGENTS.md)         | Class pattern, store inventory, per-store invariants        |
+| [src/lib/services/](src/lib/services/AGENTS.md)     | DataProvider, audio player, cross-site search, squig.link   |
+| [src/lib/graph/](src/lib/graph/AGENTS.md)           | D3 engine, overlays, baseline modes, d3/rAF test traps      |
+| [src/lib/utils/](src/lib/utils/AGENTS.md)           | Sanitizer, URL state, sample sets                           |
+| [src/lib/device-peq/](src/lib/device-peq/AGENTS.md) | Hardware EQ transports, fake-device fixtures                |
+
+Each of those directories also holds a one-line `CLAUDE.md` (`@AGENTS.md`) — that shim is what makes
+the guide load. **If you add a new area guide, add the shim too**, or nothing will read it.
+
+Deeper contributor documentation lives in the Docusaurus site:
+[testing](docs/docs/guide-for-developers/testing.mdx),
+[build & deployment internals](docs/docs/guide-for-developers/build-and-deploy.mdx),
+[i18n](docs/docs/guide-for-developers/i18n.mdx).
+
 ## Tech Stack
 
 - **SvelteKit 2 + Svelte 5** (Runes API, enforced globally)
@@ -18,7 +40,7 @@ run measurement databases (e.g. sites on squig.link) as well as end users browsi
 - **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`; **tailwind-merge** resolves class conflicts in the `Button` atom
 - **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
 - **D3.js** for SVG graph rendering (no Tailwind inside SVG — uses CSS vars from `defaults/theme.css`)
-- **Paraglide JS** for compile-time i18n (English + Korean)
+- **Paraglide JS** for compile-time i18n (`en`, `cs`, `ko`, `ru`, `uk`)
 - **Vitest + Playwright** (browser mode) for tests, co-located as `*.spec.ts`
 - **adapter-static** → outputs to `dist/` (Apache-hosted, `.htaccess` SPA fallback)
 - Optional **CDN build** (`npm run build:cdn`) produces `dist-cdn/` with a thin loader for jsDelivr-hosted assets
@@ -42,61 +64,22 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
 - Target **WCAG AAA** accessibility
 
-## Components — Reach for the Atoms First
+## Rules That Apply Everywhere
 
-[src/lib/components/atoms/](src/lib/components/atoms/) wraps the primitives everything else builds
-on: `Button`, `Input`, `Switch`, `Accordion` / `AccordionItem`, `PopoverPanel`, `ScrollArea`,
-`Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the
-`transition-colors`, the disabled styling and the semantic-token palette, and a raw `<button>`
-silently opts out of all four.
-
-`Button` specifically:
-
-- Takes `variant` (`primary` … `ghost`, `link`) and `size` instead of a hand-rolled class list.
-  Sizes are `xs` · `sm` · `md` · `lg` · `toolbar` (`h-9`, icon + label, for the graph toolbar row)
-  · `icon` (`p-2`) · `icon-sm` (`p-1.5`) · `icon-xs` (`p-1`). Reach for the size before reaching
-  for `class` — six components used to duplicate one `h-9 gap-1.5 px-3` string because `toolbar`
-  didn't exist.
-- `activeOnOpen` highlights a popover trigger in the accent color while its surface is open,
-  replacing a hand-written `data-[state=open]:bg-accent data-[state=open]:text-accent-content`.
-- **Classes are merged with `tailwind-merge`, so `class` overrides win without a `!` modifier.**
-  This matters because conflicting Tailwind utilities have _equal CSS specificity_ — appending
-  the caller's class to the end of the string never did anything on its own, and the winner was
-  whichever utility Tailwind happened to emit later in the stylesheet. `twMerge` drops the losing
-  class outright, so `class="px-3"` beats the size's `px-4`. Write plain utilities; don't add `!`.
-- **`title` is required and mirrors into `aria-label`**, which overrides the button's text content
-  as the accessible name. Keep the two saying the same thing, and note that anything rendered
-  inside — a count, a badge — is then _not_ part of the accessible name. This is also why a button
-  whose title changes with state changes what `getByRole('button', { name })` matches (see Testing).
-- Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
-  `aria-controls` and `disabled` work as written.
-
-Only `Button` merges its classes. On a raw element — the inputs in `EqFilterCard`, say — two
-conflicting utilities still tie on specificity, so `!` remains the way to force one.
-
-Deliberate exceptions — these stay raw elements:
-
-- **Checkboxes and radios.** `Input` is a labelled text field and does not cover them; `Switch`
-  covers the toggle-switch case only.
-- Anything bits-ui already owns through a `child` snippet (`Popover.Trigger`, `Combobox.Input`, …).
-
-The conversion is not finished — raw `<button>` still appears in several older components. New code
-uses the atom, and touching a raw one is a good moment to convert it.
-
-## Keeping Docs in Sync
-
-When a task materially changes architecture, conventions, feature behavior, configuration,
-build/deployment flow, or folder structure, update the relevant docs as part of the same
-change — don't leave them for later:
-
-- **This file (`CLAUDE.md`)** — project overview, stack, conventions, folder map, stores/services/utils
-  inventories, design context. Keep it concise; prune anything that's no longer true.
-- **[docs/docs/](docs/docs/)** — user- and operator-facing docs (Docusaurus). Update the relevant
-  section (`guide-for-developers/`, `guide-for-admins/`, `features/`, `intro.mdx`, etc.) whenever
-  a change affects what an operator configures, what a user sees, or how a developer contributes.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — only when contributor workflow or code-style rules change.
-  If you're unsure whether a change warrants a doc update, ask. Drift is the main reason this
-  guide had to be rewritten.
+- **Panels unmount on every panel switch.** Anything that must survive that belongs in a store or in
+  a service installed once from `AppShell.onMount` — never in a panel-scoped `$effect`.
+- **Never import from `static/` or `defaults/` as modules** — `fetch()` them at runtime. They are
+  operator-editable deployment artifacts; importing one bakes a copy into the bundle and the
+  operator's edit silently stops taking effect.
+- **No hardcoded palette values in components.** Everything goes through the semantic tokens (see
+  CSS / Theming below), so operator themes stay coherent.
+- **Reach for the atoms** in [src/lib/components/atoms/](src/lib/components/atoms/) before a raw
+  HTML element — a raw `<button>` opts out of the focus ring, transitions, disabled styling and
+  the token palette all at once.
+- **Share slugs go through `buildShareUrl`**, never raw concatenation — over a thousand device
+  names contain `+`, `&` or non-ASCII characters.
+- **The CrinGraph `phone_book.json` dialect stays readable permanently.** Operators hand-author
+  these files and most databases predate the current schema.
 
 ## Project Layout
 
@@ -106,22 +89,12 @@ src/
 │   └── layout.css       # Tailwind v4 entry + @theme tokens (Pretendard font, semantic palette)
 ├── app.html             # Loads config.js + theme.css as plain <script>/<link> tags
 └── lib/
-    ├── components/
-    │   ├── atoms/       # Button, Input, Accordion, PopoverPanel, ScrollArea, Skeleton, Switch
-    │   ├── controls/    # PhoneSelector, GraphUploader, SelectionList, ScreenshotButton,
-    │   │                #   YAxisScaleButton, SampleChannelSelector, CrossSiteSearchResults, …
-    │   ├── equalizer/   # EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard,
-    │   │                #   EqFilterList, EqPhoneSelect
-    │   ├── features/    # DevicePeq, TargetCustomizer, GraphColorPicker, PreferenceBound,
-    │   │                #   FrequencyTutorial, TutorialModal, SponsorBanner, ShopLink
-    │   ├── graph/       # GraphContainer, GraphXAxis, GraphWatermark (Svelte ↔ D3 bridge)
-    │   ├── layout/      # AppShell, TopNavBar, MenuCarousel, DragDivider
-    │   └── panels/      # DevicePanel, GraphPanel, EqualizerPanel, MiscPanel
-    ├── stores/          # Reactive class instances in .svelte.ts (see below)
-    ├── services/        # DataProvider, commands, command history, analytics
-    ├── graph/           # D3 engine + overlays (see below)
-    ├── device-peq/      # Hardware EQ bridge (WebHID/WebSerial/BLE/Network) for 20+ devices
-    ├── utils/           # Parsing, normalization, smoothing, URL encoding, config lookup, …
+    ├── components/      # → AGENTS.md · atoms, controls, equalizer, features, graph, layout, panels
+    ├── stores/          # → AGENTS.md · reactive class instances in .svelte.ts
+    ├── services/        # → AGENTS.md · DataProvider, commands, aggregate index, audio, analytics
+    ├── graph/           # → AGENTS.md · D3 engine + overlays
+    ├── device-peq/      # → AGENTS.md · hardware EQ bridge (WebHID/WebSerial/BLE/Network)
+    ├── utils/           # → AGENTS.md · parsing, normalization, smoothing, URL encoding, config
     ├── workers/         # Web workers for heavy FR processing
     ├── types/           # data-types.ts, squiglink-types.ts
     └── paraglide/       # GENERATED i18n functions — do not edit
@@ -130,208 +103,11 @@ defaults/                # Operator-editable templates, copied to dist/ by a Vit
 ├── theme.css            # Graph + UI CSS variables (OKLCH, light+dark, semantic tokens)
 ├── assets/              # Default images / string overrides
 └── data/                # Sample phone_book.json + FR files + targets
-messages/                # Paraglide sources: en.json, ko.json
+messages/                # Paraglide sources: en.json, cs.json, ko.json, ru.json, uk.json
 scripts/                 # build-cdn.js, build-site-template.js, generate-boot-manifest.js
-site-template/           # Sources for the GitHub Pages template repo (see Deployment)
+site-template/           # Sources for the GitHub Pages template repo
 static/                  # Project assets (local overrides; gitignored where noted)
 ```
-
-## Stores — Class Pattern
-
-All stores are exported as class instances from `.svelte.ts` files.
-
-- `fr-store.svelte.ts` — `FRDataStore` wraps `SvelteMap<uuid, FRDataObject>` from `svelte/reactivity`
-- `graph-store.svelte.ts` — yScale, baseline UUID, normalization type, smoothing, target-original data map
-- `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
-- `menu-store.svelte.ts` — current panel + slide direction
-- `app-store.svelte.ts` — isMobile, isReady
-- `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
-  `linkEqNormalization` flag. Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
-  AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
-- `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by `GraphContainer`/`GraphSpectrumOverlay`
-- `device-peq-store.svelte.ts` — hardware EQ device connection state
-- `eq-constraints-store.svelte.ts` — active EQ constraint preset + the catalog. Two general-purpose presets
-  (Default unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS`; the only other
-  entry is the profile derived from a hardware device the user connected (`setDeviceConstraint`). Nothing
-  is fetched and there is **no operator config** — the store is fully resolved from construction.
-  A curated device dictionary used to sit on top of this (a bundled `eq-constraints.json`, an `EQ` config
-  section, and a `matchPhones` auto-selector keyed on the source phone's name). It was removed pending a
-  shared constraints service: a device list hand-maintained in this repo goes stale faster than it helps,
-  and with the picker not rendered the auto-select silently clamped the user's filters with no way back.
-  **Don't reintroduce a bundled or config-authored catalog** — that's what the service is for. The picker
-  (`EqOptionButton`) is commented out in `EqFilterList` and returns when the service lands.
-- `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
-- `preference-bound-store.svelte.ts` — preference-range overlay: `isEnabled`/`isVisible` plus the fetched
-  bound + DF-target curves, with smoothing/normalization applied as `$derived`. Hydrated from
-  `AppShell.onMount`. **State must not move back into `PreferenceBound.svelte`** — that button renders inside
-  `GraphToolbar`, which on mobile lives in a collapsed accordion that genuinely unmounts, so component-scoped
-  visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default. `GraphContainer` owns the effects that call
-  `load()` and push state into the overlay.
-- `target-adjustment-store.svelte.ts` — Target Customizer slider stacks keyed by FR-data UUID, plus the
-  `TARGET_CUSTOMIZER` config (filters, presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math
-  (`adjustedChannels`, `label`). `TargetCustomizer.svelte` is UI only. Keeping the state here is what lets
-  `DataProvider.applyTargetAdjustment()` rebuild a target with no component mounted — `GraphPanel` is torn
-  down on every panel switch.
-- `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
-  phone-book-crawling fallback search used only when no aggregate index is reachable
-
-Pattern:
-
-```ts
-import { SvelteMap } from 'svelte/reactivity';
-class FRDataStore {
-	readonly #map = new SvelteMap<string, FRDataObject>();
-	get entries() {
-		return this.#map;
-	}
-	get size() {
-		return this.#map.size;
-	}
-	get(uuid: string) {
-		return this.#map.get(uuid) ?? null;
-	}
-	set(uuid: string, obj: FRDataObject) {
-		this.#map.set(uuid, obj);
-	}
-	delete(uuid: string) {
-		this.#map.delete(uuid);
-	}
-}
-export const frStore = new FRDataStore();
-```
-
-- **Never** `export const store = { yScale: $state(60) }` (plain object literal).
-- **Do** `export const store = new StoreClass()`.
-- **Never** `export let count = $state(0)` in `.svelte.ts`.
-
-## Services
-
-- `data-provider.svelte.ts` — orchestrates commands + `frStore`: add/remove/toggle FR, insertRaw,
-  updateVariant/DisplayChannel/Colors/Visibility/YOffset, renormalizeAll, reSmoothAll,
-  applyTargetAdjustment. `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it
-  re-applies target adjustments itself afterwards; `renormalizeAll` normalizes the already-adjusted
-  channels in place and must **not** re-apply (it would be a no-op — normalization only removes a
-  constant offset, so the adjustment lands on the same curve either way).
-  `applyTargetAdjustment` **normalizes only, never re-smooths** — `targetOriginalData` already holds
-  smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off the
-  cached original's frequency grid, which baseline compensation reads against.
-  `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve, installed once from
-  `AppShell.onMount` and never disposed. It must **not** live in `EqualizerPanel.svelte`: that panel
-  unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
-  `<svelte:window>` and fires from any tab — a panel-scoped effect left the curve showing the EQ'd
-  response until the user reopened the Equalizer tab.
-- `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
-- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
-- `aggregate-index.svelte.ts` — cross-site search. Fetches the GraphAggregator index (one JSON doc
-  listing every known site/database/device), normalizes both `flat` and `collapsed` phone formats,
-  and answers queries against a prebuilt lowercase row set. Host-agnostic — **not** squig.link-gated.
-  Exports `aggregateIndexService`, plus `getCrossSiteSearchConfig`, `buildShareUrl`,
-  `deriveShareSlug` and `sortCrossSiteResults`, which `squiglink-store`'s fallback path reuses so
-  both sources emit an identical `CrossSiteSearchResult`.
-- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
-- `audio-player-service.svelte.ts` — Web Audio engine (context, gain, analyser, source/oscillator/buffer,
-  filter chain) + playback state. Outlives the `EqAudioPlayer` view so audio survives panel switches.
-  Subscribes to `eqStore.filters` / `eqStore.preamp` via a lazy `$effect.root` installed on first `play()`.
-  Exports `audioPlayerService` singleton. Two invariants worth keeping:
-  - **EQ bypass** is `eqStore.isEnabled && filtersEnabled` (the `#eqActive` predicate). The master
-    "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have to
-    reach the audio, and all have to pick up the K-weighted bypass-match trim.
-  - **The listening-range bandpass is for broadband sources only** (`#rangeGatingApplies`). Tone and sweep
-    carry energy at a single frequency, so filtering them can only attenuate. Both are constrained by
-    **clamping** instead (`clampToBand` in `utils/listening-range.ts`): the tone's frequency, and the
-    sweep's `sweepFromHz`/`sweepToHz` endpoints. One rule across every source — the band is the region
-    you're auditioning. The bandpass also carries a makeup stage (`rangeMakeupGain`) so a narrow band
-    doesn't just read as "quieter". Clamps are sticky: leaving range mode keeps the clamped values rather
-    than restoring what they were before.
-
-## Utils
-
-`config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`, `listening-range.ts`,
-`log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`, `equalizer.ts`, `url-provider.ts`, `url-state.ts`,
-`base62.ts`, `html-sanitizer.ts`.
-
-`html-sanitizer.ts` is the allowlist sanitizer for operator-authored strings — currently the
-`description` field in `phone_book.json`, which `PhoneSelector` renders through `{@html}`. It
-exports `sanitizeHtml` (inline tags only, unknown tags unwrapped, `<script>`/`<style>`/`<iframe>`
-dropped with their content, output always balanced), `stripHtml` (the same input flattened to text,
-for `title` attributes) and `sanitizeUrl` (http / https / mailto / tel / relative only, after entity
-and control-character decoding — `metadata-parser` uses it to validate a phone's `links[]`).
-Hand-rolled rather than DOMPurify-backed: it has to give identical results in the `server` (node,
-no DOM) test project and the browser, and this is a static site operators self-host.
-`url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not** `goto()`.
-
-`url-state.ts` holds the **pure** share-URL encoding/decoding (`smartSplit`, `parseShareParam`,
-`parseStateParam`, `encodeShareNames`, `hasNonDefaultState`, `buildQueryString`); `URLProvider`
-keeps only what touches `window`, `document`, `replaceState` and the stores, and delegates the
-rest. Share names go through `encodeURIComponent`, **not** `encodeURI` — the latter leaves `&`,
-`+` and `#` untouched, and over a thousand device names contain one of them. Reading is
-unaffected either way, since `URLSearchParams` decodes both forms identically.
-
-## Graph Engine
-
-D3.js lives in [src/lib/graph/GraphEngine.svelte.ts](src/lib/graph/GraphEngine.svelte.ts) with overlays:
-
-- `GraphHandle.ts` — drag/zoom interaction
-- `GraphInspection.ts` — hover inspection overlay
-- `GraphEqOverlay.ts` — EQ curve rendering
-- `GraphSpectrumOverlay.ts` — live audio spectrum
-
-Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using `bind:this={svgEl}`.
-**Never** `d3.select('#fr-graph')` — always pass the bound SVG element.
-Viewbox 800×450. X: log 20–20000 Hz. Y: linear dB, configurable scale.
-React to store changes with `$effect(() => frStore.size)` (SvelteMap is reactive).
-
-**Baseline** (`graphStore.baselineMode`) — cycles `off` → `withoutAdjustment` → `withAdjustment` → `off` on customizable targets, and simple `off` ↔ `withoutAdjustment` on phones / targets without cached originals:
-
-- `withoutAdjustment` — baseline = original pre-adjustment channels from `graphStore.targetOriginalData`. Slider changes on the baseline target appear as a delta **on the target line**; other curves stay stable.
-- `withAdjustment` — baseline = current (adjusted) channels from `frStore`. The target line snaps flat; other curves shift with adjustments.
-- Single source of truth: [src/lib/graph/baseline.ts](src/lib/graph/baseline.ts) `resolveBaselineChannelData(uuid, mode)`. Both `GraphEngine.refreshBaselineData` and `PreferenceBound` go through it — **do not branch on `baselineMode` elsewhere**.
-- `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
-
-## Sample Sets
-
-A **sample set** is a variant measured more than once — repeat runs, seating positions, one
-measurement per ear pad. `samples` and `hptfs` in `phone_book.json` used to be two separate
-concepts for this, with parallel state, fetch, process and render paths; they are now one.
-
-- **Schema:** `variants[]` with a per-variant `samples` (a number, or
-  `{ count | files, labels, display, description }`). `variants` takes precedence over the
-  terse phone-level `file`/`suffix`/`prefix`/`samples`/`hptfs` form — no merging.
-  `metadata-parser` emits the same `PhoneFileVariant[]` from either, so **nothing downstream
-  branches on which form was authored**.
-- **The CrinGraph dialect stays readable permanently** — `file` / `suffix` / `prefix`
-  arrays and the phone-level `samples: N`. Operators hand-author `phone_book.json`, and
-  most existing databases predate `variants[]`; those files have to keep loading
-  untouched. Cross-site search is _not_ the reason: the GraphAggregator index carries
-  its own schema, and the squig.link phone-book crawl — the legacy fallback in
-  `squiglink-store` — only lifts brand and device names out of a foreign book, never
-  its file or sample keys.
-- **`hptfs[]` is deprecated and slated for removal**, along with the `MULTI_SAMPLE` /
-  `HPTF` config sections. It was modernGraphTool's own invention — no other
-  CrinGraph-derived tool ever wrote it — so the argument above covers it far more
-  thinly than it covers the rest of the dialect. Keep the read path working until it is
-  removed; do not add new features to it. The docs' phone_book.json Editor converts a
-  file in one import/export round-trip.
-- **Model:** `FRDataObject.samples[]` (each run carrying an optional `label`),
-  `dispSamples` keyed `sample{n}_{ch}` (zero-based — legacy `?state=` URLs already use this
-  shape), plus `showAvg` / `showFill` / `envelope` / `sampleDescription`. `showAvg` absent
-  means **drawn**; an item with no set is just the averaged-channels layer.
-- **`display` is a set, not an enum:** `avg` · `curves` · `fill` compose. `['avg','fill']` is
-  an averaged line with a variance band, which neither old schema could express.
-- **Processing anchor-normalizes** (`anchorAndNormalizeSamples`): every run shares one pooled
-  offset, so run-to-run spread survives the user's normalization choice. The old multi-sample
-  path normalized each run independently and flattened that spread at the anchor frequency.
-  The pooled offset is the same one `normalizeChannels` computes for the main channels, so
-  runs and average stay on a common reference.
-- **The envelope is always computed** when a set is present, not only when `showFill` is on —
-  the user can toggle the fill at any time and recomputing on toggle would mean threading the
-  processing params through the UI.
-- **Config:** `SAMPLES` (`DEFAULT_COUNT` / `DEFAULT_DISPLAY` / `FILL_OPACITY`), resolved in
-  [src/lib/utils/sample-config.ts](src/lib/utils/sample-config.ts), which also maps the
-  deprecated `MULTI_SAMPLE` / `HPTF` sections onto the new tokens.
-- **Share URLs:** `sampleDisplay` carries `{ keys, fill, avg }`. `normalizeSampleDisplay` in
-  `url-state.ts` folds in the two legacy shapes (a flat `L{n}`/`R{n}` array, and the separate
-  `hptfDisplay` key). Only the current shape is written.
 
 ## Config System
 
@@ -367,45 +143,16 @@ property, so stubs at the end of an object turn into a syntax error the moment o
 
 ## i18n
 
-- UI strings: Paraglide — `messages/<locale>.json` (`en`, `cs`, `ko`, `ru`, `uk`)
-- Key format: `underscore_separated` (e.g. `menu_graph_panel`, not `menu.graphPanel`)
-- **Missing keys in a non-`en` locale are fine.** Paraglide's compiler falls back to `baseLocale`
-  (`en`) per key automatically — no build error, no runtime crash. Contributors can add partial
-  translations; untranslated strings just render in English until filled in.
-- Generated code in `src/lib/paraglide/` is **not** hand-edited, and is gitignored
-- Locales registered in `project.inlang/settings.json` (`baseLocale` + `locales`); Vite plugin regenerates `src/lib/paraglide/` on dev/build/test
-- `npm run check` does **not** go through Vite, so on a fresh clone `$lib/paraglide/*` would have
-  no type declarations. `check` therefore runs `npm run i18n:compile` first (the Paraglide CLI with
-  the same options as the Vite plugin — keep the two in sync). `prepare` runs it too, so a plain
-  `npm ci` leaves the tree typecheckable.
-- Switch language: `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`
-- Adding a language = add to `locales` + create `messages/<locale>.json` (keys fill in over time,
-  see fallback note above). The `MiscPanel` picker reads `locales` and labels via `Intl.DisplayNames`
-  — no component edit. See CONTRIBUTING.md.
-- **Run `npm run i18n:check` after adding/renaming/removing keys in `messages/en.json`.** Reports
-  which locales now have missing or stale keys vs `en`. Non-blocking, informational.
+UI strings go through Paraglide: `import * as m from '$lib/paraglide/messages'; m.some_key()`.
+Keys are `underscore_separated` (`menu_graph_panel`, not `menu.graphPanel`). Generated code in
+`src/lib/paraglide/` is gitignored and never hand-edited.
 
-### Translation contribution flow
+**Missing keys in a non-`en` locale are fine** — Paraglide falls back to `baseLocale` per key, so
+partial translations are welcome and untranslated strings just render in English.
 
-Translators never touch `messages/<locale>.json` directly — they edit a generated staging file
-that contains only the keys they need to fill in:
-
-| Command                | Who        | What it does                                                                                                |
-| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| `npm run i18n:check`   | anyone     | Reports missing / stale keys per locale. Changes nothing.                                                   |
-| `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text. |
-| `npm run i18n:apply`   | maintainer | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.         |
-
-1. A key is added to `messages/en.json` → run `npm run i18n:missing` to regenerate the staging files.
-2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they're unsure
-   about can be left out entirely — those keep falling back to English.
-3. After merging the PR, run `npm run i18n:apply` and commit the result.
-
-`i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys
-rather than dropping them. Use `--dry-run` to preview. Paraglide ignores
-`_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
-
-- Usage: `import * as m from '$lib/paraglide/messages'; m.some_key()`
+Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en.json`.
+Full details — adding a locale, the `i18n:missing` / `i18n:apply` translator flow, why `check`
+compiles first — are in [guide-for-developers/i18n.mdx](docs/docs/guide-for-developers/i18n.mdx).
 
 ## CSS / Theming
 
@@ -426,48 +173,17 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
 text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
 always go through the semantic tokens so operator themes stay consistent.
 
+Other tokens: **Typography** — Pretendard via `@theme`; text-xs (metadata), text-sm (body/controls),
+text-lg (headings); weights 400 / 500 / 600. **Spacing** — Tailwind defaults; common gap-1..4,
+px-2..4, py-1..2; radius `rounded`..`rounded-xl`. **Borders** — `border-base-content/15` to `/25`.
+**Shadows** — minimal, `shadow-xl` on popovers and dialogs only. **Motion** — 0.15s
+`transition-colors` globally on interactive elements; a 0.3s cross-fade only during theme toggle via
+`html.theme-transition`; no spring physics; respect `prefers-reduced-motion`.
+
 Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', settingsStore.theme === 'dark')`.
-All theme.css variables switch automatically; add `html.theme-transition` briefly during toggle for
-the cross-fade (handled in layout.css).
+All theme.css variables switch automatically.
 
 bits-ui provides interactive primitives; style them with semantic tokens, not literal colors.
-
-## Static Output & Deployment
-
-- `npm run build` → static SPA in `dist/` (prerendered; SPA fallback via `.htaccess`)
-- `npm run build:cdn` → `dist-cdn/` with a thin `cdn-index.html` loader and `cdn/loader.js`
-  for jsDelivr-hosted assets (set `MGT_CDN_BASE` to rewrite `_app/` URLs)
-- `npm run build:site-template` → `dist-site-template/`, the GitHub Pages template (see below)
-- A Vite plugin serves `defaults/` as fallback during dev and copies them into `dist/` at build
-  (without overwriting files that already exist under `static/`)
-- User-editable files in `dist/`: `config.js`, `theme.css`, `data/`, `assets/strings/`
-- **Never** import from `static/` or `defaults/` as modules — `fetch()` them at runtime
-
-**GitHub Pages template** — [potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site)
-is a separate repo operators copy with "Use this template". It is **generated output, not a
-hand-maintained repo**: `npm run build:site-template` assembles it and
-[.github/workflows/sync-site-template.yml](.github/workflows/sync-site-template.yml) force-syncs
-the result on every push to `main` that touches `defaults/`, `site-template/` or the script.
-Edit the sources here; anything committed straight to the template repo is overwritten.
-
-- Most of it is `defaults/` verbatim (`theme.css`, `data/`, `assets/`), which is the whole
-  reason the sync exists — that content drifts the moment `defaults/` changes.
-- `config.js` is `defaults/config.js` with the commented `CDN_MODE` stub spliced out and
-  [site-template/config-cdn-mode.js](site-template/config-cdn-mode.js) spliced in, so new
-  config options reach the template for free. The splice is anchored on the stub's first and
-  last lines and **throws** if it stops matching — a template with no live `CDN_MODE` is a
-  blank page, since `index.html` is only a loader. That file is a JS _fragment_, so it's in
-  `.prettierignore` and ESLint's ignores; the generated `config.js` is syntax-checked instead.
-- `site-template/index.html` is source, **not** derived from `cdn/cdn-index.html` — keep the
-  shared parts in sync by hand. Two deliberate divergences: it always loads `loader.js` from
-  jsDelivr (no localhost branch — operators never iterate on the loader), and it carries an
-  inline base-path detector that sets `CDN_MODE.BASE_PATH` from the first path segment on
-  `*.github.io` hosts, so `username.github.io/<repo>/` and `username.github.io/` both work
-  with no config edit and survive a repo rename. It defers to an explicit `BASE_PATH`. This
-  lives in the template rather than in `cdn/loader.js` because a loader change only reaches
-  deployments after the next `cdn` branch publish.
-- The workflow needs a `SITE_TEMPLATE_TOKEN` secret (fine-grained PAT, `Contents: write` on
-  the template repo) — `GITHUB_TOKEN` cannot push across repositories.
 
 ## Build Commands
 
@@ -485,213 +201,42 @@ Edit the sources here; anything committed straight to the template repo is overw
 | `npm run lint`                | Prettier + ESLint                                        |
 | `npm run format`              | Auto-format code                                         |
 
-## Testing
-
-Specs are co-located as `*.spec.ts`. The name decides which project runs them: `*.svelte.spec.ts`
-runs in the `client` project (real Chromium via Playwright), everything else runs in `server`
-(node). Most specs drive stores and services directly.
-
-**Coverage** — `npm run test:coverage`. The config lives in `vite.config.ts` under `test.coverage`
-and two settings there are load-bearing:
-
-- `include: ['src/**/*.{ts,svelte}']`. It is what makes files no test imports count at all.
-  Without it the ~25 `device-peq/handlers` and `connectors` modules vanish from the
-  denominator entirely rather than showing as the 0% they were, which made the reported
-  number ~10 points optimistic. (Vitest 4 removed the old `coverage.all` flag — `include`
-  now does that job, and passing `all` is a type error.)
-- `exclude` omits `src/lib/paraglide/**`. That directory is generated by the Paraglide Vite
-  plugin and gitignored; counting it added ~3800 machine-written statements — a third of the
-  total — and dragged the figure well below what the hand-written source actually is.
-  `src/lib/types/**` (type-only) and `src/routes/**` (shells covered by the boot tests) are
-  excluded for the same "not meaningfully coverable" reason.
-
-`thresholds` is a **ratchet**, not a target: it holds the measured numbers at the time of the
-last improvement. Raise it when coverage goes up; never lower it to turn a red run green. CI
-runs coverage on the Linux leg only, and it **blocks** — a PR that falls below the ratchet has
-removed coverage that used to exist.
-
-**Smoke test** — `npm run build && npm run test:smoke` ([scripts/smoke-dist.js](scripts/smoke-dist.js)).
-The unit suite mounts components against source, so nothing in it ever loads what the build
-emits: an adapter-static misconfiguration, a `defaults/` file the Vite plugin stopped copying,
-an asset-URL regression or a worker that fails to resolve once bundled all ship a blank page
-with the whole suite green. The script serves `dist/` over real HTTP — including the SPA
-fallback `.htaccess` provides — boots it in Playwright chromium, and fails on a console error,
-an uncaught exception, a 4xx, a graph that never draws, or a `?share=` link that lands no curve.
-
-Two things to keep in mind when extending it:
-
-- **A 200 does not prove a file exists.** The SPA fallback answers anything not on disk with
-  `index.html`, on the real Apache host as much as here, so asset checks compare the body
-  against the HTML shell rather than trusting the status.
-- It runs in the `build` CI job, after `npm run build`, because it needs the built output.
-
-**Component tests** — mount with `render()` from `vitest-browser-svelte` and query through
-`page.getBy*` from `vitest/browser`. Two things bite:
-
-- **bits-ui popovers render into a portal**, so they are outside the render result's container.
-  Query the document via `page`, not the returned `container`.
-- **`getByLabelText` is a substring match by default** and also matches `aria-label`, so a
-  one-character label like the color picker's `L` collides with "Pick color". Pass
-  `{ exact: true }` for short labels. Conversely, a `<label>` that wraps both the input and
-  a unit span (`From … Hz`) has that whole string as its accessible name, so `exact` fails
-  there — anchor a regex on the leading word instead.
-- **`fill()` fires `input`, not `change`.** A field wired to `onchange` (the sweep and range
-  Hz boxes in `EqAudioPlayer`, every number box in `EqFilterCard`) needs a blur afterwards to
-  commit, the way leaving the field would. Fields on `oninput` (the color picker) take
-  `fill()` alone.
-- **`render()` is async.** Most specs never await it and get away with it, but anything on the
-  returned result — `rerender`, `unmount` — is `undefined` unless you do. `rerender` is the only
-  way to test a component reacting to a changed prop, since a `.svelte.spec.ts` file is not a
-  rune module (the Svelte plugin matches `*.svelte.ts`, which `*.svelte.spec.ts` is not).
-  See the Escape-reverts case in
-  [EqFilterCard.svelte.spec.ts](src/lib/components/equalizer/EqFilterCard.svelte.spec.ts).
-- **`Button` mirrors `title` into `aria-label`**, which overrides its text content. A button
-  whose title changes with state (AutoEQ's run button in graphic mode) changes accessible name
-  too, so `getByRole('button', { name })` has to follow the title, not the label you see.
-- **Do not wait on something the handler does first.** `GraphUploader` clears `input.value` on
-  its opening line, long before it has parsed anything, so waiting on that let in-flight
-  uploads spill their calls into the next test. Poll the observable effect — spy calls,
-  a toast — until it stops changing.
-
-Components that read `navigator.hid` / `.serial` / `.bluetooth` (`DevicePeq`) test with the
-`in` operator, which walks the prototype chain — a test that hides a transport has to delete
-it from `Navigator.prototype`, not shadow it with `undefined` on the instance. See
-[DevicePeq.svelte.spec.ts](src/lib/components/features/DevicePeq.svelte.spec.ts), which also
-shows the connector-module mocking pattern: every transport is reached through a dynamic
-`import()`, so the four connector modules and the registry get `vi.mock`ed rather than the
-run touching WebHID/WebSerial.
-
-**Graph tests** — `GraphEngine` is driven through a real `<svg>` attached to the document and
-`init(svgEl)`; the overlays take a minimal fake engine exposing only what they read (see
-[GraphPreferenceBoundOverlay.svelte.spec.ts](src/lib/graph/GraphPreferenceBoundOverlay.svelte.spec.ts)
-and [GraphEqOverlay.svelte.spec.ts](src/lib/graph/GraphEqOverlay.svelte.spec.ts)). d3 rounds
-path coordinates to 3 decimals, so assert on parsed numbers with `toBeCloseTo`, never on a
-formatted substring of `d`.
-
-Two more traps in this layer:
-
-- **d3-drag v3 binds `mousedown`, not pointer events**, and registers its move/up listeners on
-  `event.view`. A synthetic `PointerEvent`, or a `MouseEvent` built without `view: window`,
-  starts a drag that can never move or end — and the test then reads an unchanged store rather
-  than failing outright, which looks like the component is fine. See the `drag()` helper in
-  [GraphSoundRangeOverlay.svelte.spec.ts](src/lib/graph/GraphSoundRangeOverlay.svelte.spec.ts).
-- **rAF loops need `requestAnimationFrame` stubbed** so frames can be stepped deliberately.
-  With a real rAF, "did `stop()` actually stop it?" is untestable — and a loop that outlives
-  the player is the failure that matters. See
-  [GraphSpectrumOverlay.svelte.spec.ts](src/lib/graph/GraphSpectrumOverlay.svelte.spec.ts).
-
-**Device-handler tests** — `device-peq/handlers/__fixtures__/fake-device.ts` provides
-`FakeHidDevice` (records `sendReport`, replays `inputreport`, supports both the
-`addEventListener` and `oninputreport` styles handlers use) and `FakeSerialPort` (queue-backed
-read/write shims). Both make a real push→pull round-trip through a device's own byte layout
-testable — see [moondrop-usb-hid.spec.ts](src/lib/device-peq/handlers/moondrop-usb-hid.spec.ts).
-FiiO's handler resolves through a 100 ms poll interval, so its spec drives `vi.useFakeTimers()`
-and `advanceTimersByTimeAsync` rather than waiting in real time.
-
-**Boot tests** — [AppShell.svelte.spec.ts](src/lib/components/layout/AppShell.svelte.spec.ts) and
-[AppShell.mobile.svelte.spec.ts](src/lib/components/layout/AppShell.mobile.svelte.spec.ts) mount the
-whole app against the shipped `defaults/config.js` and assert the no-`?share=` path an ordinary
-visitor takes. They exist because a suite that only exercises stores cannot see a boot that never
-finishes. Things worth knowing before adding to them:
-
-- **Mind the viewport.** Browser mode's own default is a 414×896 iframe, which is below the
-  `appStore.isMobile` threshold (`window.innerWidth < 1000`) — so component tests silently ran the
-  mobile layout. The `client` project now sets `browser.viewport` to 1280×800 so desktop is the
-  default; mobile tests opt in with `page.viewport()`. Tests where the layout is load-bearing should
-  still state it explicitly.
-- **Reactive write loops hang, they don't fail.** A runaway effect blocks the main thread, so
-  vitest's timeout — a timer — never fires. `installWriteBudget()` in
-  [app-boot-harness.ts](src/lib/components/layout/app-boot-harness.ts) throws once the app writes
-  reactive state more times than a healthy boot needs, which unwinds the loop and turns it into an
-  ordinary failure naming the key that ran away. It covers `frStore`, `graphStore` and `eqStore`,
-  including their `SvelteMap` fields — `$state` class fields compile to accessor pairs on the
-  prototype, so every setter on the chain is instrumented without listing field names. A healthy
-  desktop boot costs 11 writes against a budget of 80. Add a store to `writeTargets()` when one
-  starts carrying boot-time state.
-- **One boot file per page-lifetime hydration.** Stores like `preferenceBoundStore` hydrate once per
-  page, so a second scenario in the same file reads whatever the first boot left behind. That's why
-  mobile has its own file.
-- `AUTO_UPDATE_URL` is forced off in the harness: `urlProvider.autoUpdate()` calls SvelteKit's
-  `replaceState`, which throws with no mounted router.
-- The `client` project sets `optimizeDeps.exclude: ['bits-ui']`. Pre-bundling gives bits-ui its own
-  copy of the Svelte client runtime, and a component rendered by one instance can't read the other's
-  context. Dev and build are unaffected.
-- **The UI language is pinned to `en`** by [src/test-setup.client.ts](src/test-setup.client.ts).
-  Chromium inherits the host's system locale and Paraglide's `preferredLanguage` strategy follows
-  it, so on a non-English machine the whole UI renders translated and every spec that queries an
-  English string matches nothing — then burns its full retry timeout before failing. That was 34
-  failures and 200s of wall time locally against a green CI, which runs en-US. The pin writes
-  `localStorage` directly: `context.locale` doesn't reach the page in browser mode, and importing
-  `$lib/paraglide/runtime.js` from a setup file caches the real module before a spec's `vi.mock`
-  can intercept it (MiscPanel mocks `setLocale`).
-
-## CI
-
-[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every PR and every push to
-`main`: `lint` → `check` → `test` on **both ubuntu-latest and windows-latest**, plus a
-build of the app, the CDN distribution and the docs site on Linux.
-
-The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in its system
-config, so before [.gitattributes](.gitattributes) pinned every text file to `eol=lf`, the
-same commit was Prettier-clean on macOS and dirty on Windows. The `Working tree must be
-clean` step is the guard against that regressing: it fails if a checkout plus install
-leaves anything modified, or if CRLF ever reaches the index.
-
-`npm run lint` must exit 0. ESLint warnings (currently 33 `no-unused-vars`, mostly
-device-peq protocol constants kept for reference) do not fail the build. Rule overrides
-live in [eslint.config.js](eslint.config.js) and each carries a comment explaining why —
-notably `no-useless-assignment` is off for `*.svelte` because it misreads `$bindable()`
-prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
-tool parses arbitrary operator-authored config.
+Specs are co-located as `*.spec.ts`; the filename decides the project (`*.svelte.spec.ts` → real
+Chromium, everything else → node). Coverage `thresholds` in `vite.config.ts` is a **ratchet** — raise
+it when coverage improves, never lower it to turn a red run green. See
+[guide-for-developers/testing.mdx](docs/docs/guide-for-developers/testing.mdx) for the full picture,
+and each area's `AGENTS.md` for its own test traps.
 
 ## Built-in Features
 
 All active features are first-class Svelte components in `src/lib/components/features/` and
-`src/lib/components/equalizer/` — **not** separate extensions, and not fork-based:
+`src/lib/components/equalizer/` — **not** separate extensions, and not fork-based: Parametric EQ
+(AutoEQ, live audio preview, import/export), Device PEQ Bridge, Sample Sets, Target Customizer,
+Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site Search, and the
+squig.link-gated Sponsor Banner / Shop Link.
 
-- **Parametric EQ** with AutoEQ, real-time audio preview, import/export
-- **Device PEQ Bridge** — push EQ to 20+ hardware devices via USB HID / Serial / BLE / Network
-  (implementation under `src/lib/device-peq/`)
-- **Sample Sets** — variants measured more than once, drawn as an averaged curve, per-run
-  curves, a min/max deviation band, or any combination (see above)
-- **Target Customizer** — per-target Tilt / Bass / Treble / Ear / PSSR sliders with presets
-- **Graph Color Wheel** — per-curve color picker (bits-ui Popover)
-- **Preference Bound** — upper/lower preference-range overlay
-- **Frequency Tutorial** — educational frequency-band overlay
-- **Tutorial Modal** — first-visit walkthrough
-- **Cross-Site Search** — searches other measurement databases from the device search box, on any
-  host (see below)
-- **Sponsor Banner / Shop Link** — squig.link-gated
+Per-feature user docs: [docs/docs/features/](docs/docs/features/).
 
-See [docs/docs/features/](docs/docs/features/) for per-feature user docs.
+## Keeping Docs in Sync
 
-## Cross-Site Search
+When a task materially changes architecture, conventions, feature behavior, configuration,
+build/deployment flow, or folder structure, update the relevant docs as part of the same
+change — don't leave them for later. Pick the surface by scope:
 
-Works on **any** host — not squig.link-gated. Configured via `CROSS_SITE_SEARCH` in
-`defaults/config.js`; `SQUIGLINK.ENABLE_CROSS_SITE_SEARCH` is deprecated and read only as a
-fallback for configs that predate the new section.
+- **This file** — only what applies project-wide: stack, conventions, cross-cutting rules, config
+  policy, the folder map. Keep it short; if a note only matters inside one directory, it belongs in
+  that directory's `AGENTS.md` instead.
+- **A directory's `AGENTS.md`** — inventories, per-module invariants, and the "don't undo this"
+  notes for that area. This is the default home for detail. New area guide ⇒ add the `CLAUDE.md`
+  shim alongside it.
+- **[docs/docs/](docs/docs/)** — anything a human operator, user or contributor needs (Docusaurus).
+  Update the relevant section (`guide-for-developers/`, `guide-for-admins/`, `features/`,
+  `intro.mdx`, …) whenever a change affects what an operator configures, what a user sees, or how a
+  developer contributes.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — only when contributor workflow or code-style rules change.
 
-Source order, resolved in `CrossSiteSearchResults.svelte`:
-
-1. **GraphAggregator index** (`aggregate-index.svelte.ts`) — one JSON document, ~360 KB gzip,
-   fetched lazily on the first query of ≥2 chars. Operators can override `INDEX_URLS` to
-   self-host; the defaults are the official URL plus its GitHub Pages mirror, tried in order.
-   Schema: https://github.com/HarutoHiroki/GraphAggregator
-2. **squig.link phone-book crawl** (`squiglink-store`) — legacy path, one request per database.
-   Runs only if no index URL resolved **and** the deployment is on squig.link **and**
-   `SQUIGLINK_FALLBACK` is on.
-
-Both sources emit `CrossSiteSearchResult` and share `buildShareUrl` / `sortCrossSiteResults`, so
-the UI never branches on which one produced a hit. Share slugs **must** go through
-`buildShareUrl` — over a thousand device names contain `+`, `&` or non-ASCII characters that
-break `?share=` links if concatenated raw.
-
-## squig.link Integration
-
-Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`).
-Fetches site registry and shop links from squig.link JSON endpoints and loads `squiglink-intro.js`
-for sponsor content. All UI is Svelte-native — no external DOM manipulation. Toggled via the
-`SQUIGLINK` section in `defaults/config.js`.
+Prefer one home per fact and link to it rather than restating it. Drift is the main reason this
+guide had to be rewritten. If you're unsure whether a change warrants a doc update, ask.
 
 ## Documentation References (for AI agents)
 
@@ -704,35 +249,14 @@ for sponsor content. All UI is Svelte-native — no external DOM manipulation. T
 
 ## Design Context
 
-### Aesthetic Direction
-
-Clean, restrained chrome with **operator-customizable theming** — the default palette is only
-a starting point. Every color flows through the semantic tokens in [defaults/theme.css](defaults/theme.css),
-so a deployment can re-skin the tool without touching source. The FR curves themselves carry the
-informational color; the chrome stays quiet regardless of which theme an operator picks.
-
-### Design Principles
+Clean, restrained chrome with **operator-customizable theming** — the default palette is only a
+starting point. Every color flows through the semantic tokens in
+[defaults/theme.css](defaults/theme.css), so a deployment can re-skin the tool without touching
+source. The FR curves themselves carry the informational color; the chrome stays quiet regardless of
+which theme an operator picks.
 
 1. **Data first, chrome second.** The FR graph is the hero.
 2. **Quiet confidence.** Restraint in color, motion, and decoration.
 3. **Instant clarity.** Obvious labels, states, and affordances. No mystery icons.
 4. **Accessible by default.** WCAG AAA target. Keyboard, focus, contrast, SR support.
 5. **Responsive without compromise.** Desktop and mobile both feel intentional.
-
-### Design Tokens
-
-- **Colors:** Operator-customizable via [defaults/theme.css](defaults/theme.css). DaisyUI-style
-  semantic tokens (OKLCH) with light + dark variants: `base-100/200/300/content`, `primary`,
-  `secondary`, `accent`, `neutral`, `info`, `success`, `warning`, `error`, each with a
-  `-content` counterpart. Graph-only variables (`--color-graph-*`) cover D3 SVG where Tailwind
-  can't reach. **Never hardcode palette values in components** — always use the semantic
-  utilities (`bg-base-200`, `text-primary`, `border-base-content/15`, …).
-- **Typography:** Pretendard via `@theme` in [src/routes/layout.css](src/routes/layout.css);
-  sizes text-xs (metadata), text-sm (body/controls), text-lg (headings); weights 400 / 500 / 600.
-- **Spacing:** Tailwind defaults; common gap-1..4, px-2..4, py-1..2; radius `rounded`..`rounded-xl`.
-- **Borders/dividers:** `border-base-content/15` to `/25` for structure and interactive outlines —
-  opacity modifiers adapt to whatever base palette the operator picks.
-- **Shadows:** Minimal — `shadow-xl` on popovers/dialogs only.
-- **Motion:** 0.15s `transition-colors` globally on interactive elements (see `layout.css`);
-  longer 0.3s cross-fade only during theme toggle via `html.theme-transition`; no spring physics;
-  respect `prefers-reduced-motion`.

@@ -8,13 +8,12 @@ sidebar_label: 변경 이력
 ### v2.1.6
 
 - Feat: 다중 샘플과 HpTF 측정을 하나의 **샘플 세트(Sample Set)** 개념으로 통합했습니다. 여러 번 측정한 variant를 평균 곡선, 측정별 곡선, 최소/최대 음영 밴드 또는 그 조합으로 그릴 수 있습니다. 예전에는 어느 쪽으로도 표현할 수 없던 "평균선 + 편차 밴드"도 이제 가능합니다. 새 `variants[]` 스키마로 variant마다 선언하세요. [샘플 세트 문서](./guide-for-admins/manage-data.mdx#sample-sets)를 참고하세요.
-- Feat: 샘플 세트의 각 측정에 라벨을 붙일 수 있습니다. 라벨은 샘플 선택기와 그래프 라벨에 표시됩니다(예: `HD 600 Leather Pad (Center, R)`).
 - Feat: `MULTI_SAMPLE`과 `HPTF`를 대체하는 새 `SAMPLES` 설정 섹션(`DEFAULT_COUNT`, `DEFAULT_DISPLAY`, `FILL_OPACITY`)을 추가했습니다. 사이트 전역 기본 측정 횟수를 지정하면 모든 기기를 같은 횟수로 측정하는 데이터베이스는 항목마다 설정할 필요가 없습니다. [SAMPLES 문서](./guide-for-admins/customize-page.mdx#samples)를 참고하세요.
-- Fix: 개별 샘플 곡선이 항상 L/R 평균으로 그려지던 문제를 수정했습니다. 이제 측정마다 L, R, AVG를 각각 켜고 끌 수 있습니다.
-- Fix: 개별 측정을 켜고 끌 때 그래프 라벨이 함께 갱신되며, 마우스 오버 수치 표시가 모든 종류의 샘플 세트에서 개별 측정을 보여줍니다.
-- Fix: 다중 샘플 기기의 평균 곡선을 숨길 수 있게 되었고, 개별 측정이 정규화 주파수에서 하나로 모이지 않고 실제 편차를 유지합니다.
-- Change: phone 레벨 `samples: N` 키는 그대로 동작하며 계속 지원됩니다. phone 항목의 나머지 부분과 마찬가지로 CrinGraph 호환 구조를 공유하기 때문입니다.
-- Deprecated: modernGraphTool 전용 키인 `hptfs[]`와 `MULTI_SAMPLE` / `HPTF` 설정 섹션은 지금도 읽히지만, 향후 릴리스에서 제거될 예정입니다. [phone_book.json 편집기](/phone-book-editor)와 [Config Editor](/config-generator)에서 파일을 불러왔다가 다시 내보내면 변환됩니다. [사용 중단: `hptfs[]`](./guide-for-admins/manage-data.mdx#deprecated-hptfs) 문서를 참고하세요.
+- Feat: 개별 샘플 곡선마다 L, R, AVG를 각각 켜고 끌 수 있습니다.
+- Feat: `config.js`에 새로운 `DOWNLOAD` 옵션을 추가하여 사용자가 측정치 데이터을 내보낼 수 있도록 했습니다. 다운로드 버튼은 기본적으로 비활성화되어 있습니다. 자세한 내용은 [DOWNLOAD 문서](./guide-for-admins/customize-page.mdx#download)를 참고하세요.
+- Fix: 개별 측정을 켜고 끌 때 그래프 이름표가 함께 갱신되며, '검사 모드'에서도 모든 종류의 샘플마다 이름표를 표시합니다.
+- Fix: 다중 샘플 기기의 평균 곡선을 숨길 수 있게 되었고, 개별 그래프가 실제 편차를 유지하도록 수정했습니다.
+- Deprecated: modernGraphTool 전용 키인 `hptfs[]`와 `MULTI_SAMPLE` / `HPTF` 설정 섹션은 지금도 작동하지만, 향후 버전에서 제거될 예정입니다. [phone_book.json 편집기](/phone-book-editor)와 [Config Editor](/config-generator)에서 파일을 불러왔다가 다시 내보내면 변환됩니다. [사용 중단: `hptfs[]`](./guide-for-admins/manage-data.mdx#deprecated-hptfs) 문서를 참고하세요.
 
 ### v2.1.5
 

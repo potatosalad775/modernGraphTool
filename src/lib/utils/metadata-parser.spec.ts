@@ -780,4 +780,94 @@ describe('MetadataParser', () => {
 			expect(phones[1].identifier).toBe('Sennheiser HD 800 S');
 		});
 	});
+
+	// ── phone-level `links` ───────────────────────────────────────────────
+
+	describe('_fetchBookObject — links', () => {
+		const realFetch = globalThis.fetch;
+		let warnSpy: ReturnType<typeof vi.spyOn>;
+
+		const parsePhone = async (phone: unknown) => {
+			globalThis.fetch = vi.fn(
+				async () =>
+					new Response(JSON.stringify([{ name: 'Sennheiser', phones: [phone] }]), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			) as unknown as typeof fetch;
+			const result = await MetadataParser._fetchBookObject();
+			return result[0].phones[0];
+		};
+
+		beforeEach(() => {
+			warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			globalThis.fetch = realFetch;
+			warnSpy.mockRestore();
+		});
+
+		it('keeps a list of labelled links in order', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				links: [
+					{ label: 'Amazon', url: 'https://amazon.example/hd600' },
+					{ label: 'Local Shop', url: 'https://shop.example/hd600' }
+				]
+			});
+
+			expect(phone.links).toEqual([
+				{ label: 'Amazon', url: 'https://amazon.example/hd600' },
+				{ label: 'Local Shop', url: 'https://shop.example/hd600' }
+			]);
+		});
+
+		it('drops individual malformed entries but keeps the valid ones', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				links: [
+					{ label: 'Good', url: 'https://a.example' },
+					{ label: 'No URL' },
+					{ url: 'https://b.example' },
+					'not an object',
+					{ label: 'Unsafe', url: 'javascript:alert(1)' }
+				]
+			});
+
+			expect(phone.links).toEqual([{ label: 'Good', url: 'https://a.example' }]);
+			expect(warnSpy).toHaveBeenCalled();
+		});
+
+		it('flattens markup in a label to plain text', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				links: [{ label: '<b>Shop</b> <script>alert(1)</script>now', url: 'https://a.example' }]
+			});
+
+			expect(phone.links).toEqual([{ label: 'Shop now', url: 'https://a.example' }]);
+		});
+
+		it('leaves links undefined when absent, empty, or not an array', async () => {
+			expect((await parsePhone({ name: 'A', file: 'A' })).links).toBeUndefined();
+			expect((await parsePhone({ name: 'B', file: 'B', links: [] })).links).toBeUndefined();
+			expect(
+				(await parsePhone({ name: 'C', file: 'C', links: 'https://a.example' })).links
+			).toBeUndefined();
+			expect(warnSpy).toHaveBeenCalled();
+		});
+
+		it('leaves description untouched — sanitizing is a render-time concern', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				description: 'B&K5128 unit available <a href="https://x.example">here</a>'
+			});
+
+			expect(phone.description).toBe('B&K5128 unit available <a href="https://x.example">here</a>');
+		});
+	});
 });

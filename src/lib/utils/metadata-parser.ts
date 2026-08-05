@@ -10,9 +10,11 @@ import type {
 	RawVariant,
 	PhoneFileReference,
 	PhoneFileVariant,
+	PhoneLink,
 	SampleDisplayMode
 } from '$lib/types/data-types.js';
 import { getConfigValue } from './config.js';
+import { sanitizeUrl, stripHtml } from './html-sanitizer.js';
 import {
 	defaultSampleCount,
 	defaultSampleDisplay,
@@ -223,6 +225,11 @@ const MetadataParser = {
 					return;
 				}
 
+				const links =
+					typeof phone === 'object'
+						? this._parseLinks(phone.links, `brand "${brandName}" phone #${phoneIdx}`)
+						: undefined;
+
 				// Common properties for all phone types
 				const basePhone = {
 					brand: brandName,
@@ -230,7 +237,8 @@ const MetadataParser = {
 					...(typeof phone === 'object' && phone.reviewLink && { reviewLink: phone.reviewLink }),
 					...(typeof phone === 'object' && phone.shopLink && { shopLink: phone.shopLink }),
 					...(typeof phone === 'object' && phone.price && { price: phone.price }),
-					...(typeof phone === 'object' && phone.description && { description: phone.description })
+					...(typeof phone === 'object' && phone.description && { description: phone.description }),
+					...(links && { links })
 				};
 
 				// If phone is a string, it's a single phone
@@ -278,6 +286,46 @@ const MetadataParser = {
 		});
 
 		return out;
+	},
+
+	/**
+	 * Validate a phone's operator-authored `links` array.
+	 *
+	 * Entries are dropped individually rather than rejecting the whole list — one
+	 * typo in a hand-edited phone_book.json shouldn't cost an operator the other
+	 * links on that device. Labels are flattened to text and URLs go through
+	 * `sanitizeUrl`, so nothing downstream has to re-check either.
+	 */
+	_parseLinks(raw: unknown, context: string): PhoneLink[] | undefined {
+		if (raw == null) return undefined;
+		if (!Array.isArray(raw)) {
+			console.warn(
+				`[modernGraphTool] phone_book.json: ${context} has invalid "links" (expected array) — ignoring.`
+			);
+			return undefined;
+		}
+
+		const out: PhoneLink[] = [];
+		raw.forEach((entry, i) => {
+			if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+				console.warn(
+					`[modernGraphTool] phone_book.json: ${context} link #${i} is not an object — skipping.`
+				);
+				return;
+			}
+			const { label, url } = entry as { label?: unknown; url?: unknown };
+			const cleanLabel = typeof label === 'string' ? stripHtml(label) : '';
+			const cleanUrl = typeof url === 'string' ? sanitizeUrl(url) : null;
+			if (!cleanLabel || !cleanUrl) {
+				console.warn(
+					`[modernGraphTool] phone_book.json: ${context} link #${i} needs a "label" and a safe "url" — skipping.`
+				);
+				return;
+			}
+			out.push({ label: cleanLabel, url: cleanUrl });
+		});
+
+		return out.length ? out : undefined;
 	},
 
 	/** Fetch target_manifest metadata from (config.js). */

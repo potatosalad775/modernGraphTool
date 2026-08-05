@@ -248,7 +248,16 @@ export const frStore = new FRDataStore();
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`, `listening-range.ts`,
 `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`, `equalizer.ts`, `url-provider.ts`, `url-state.ts`,
-`base62.ts`.
+`base62.ts`, `html-sanitizer.ts`.
+
+`html-sanitizer.ts` is the allowlist sanitizer for operator-authored strings — currently the
+`description` field in `phone_book.json`, which `PhoneSelector` renders through `{@html}`. It
+exports `sanitizeHtml` (inline tags only, unknown tags unwrapped, `<script>`/`<style>`/`<iframe>`
+dropped with their content, output always balanced), `stripHtml` (the same input flattened to text,
+for `title` attributes) and `sanitizeUrl` (http / https / mailto / tel / relative only, after entity
+and control-character decoding — `metadata-parser` uses it to validate a phone's `links[]`).
+Hand-rolled rather than DOMPurify-backed: it has to give identical results in the `server` (node,
+no DOM) test project and the browser, and this is a static site operators self-host.
 `url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not** `goto()`.
 
 `url-state.ts` holds the **pure** share-URL encoding/decoding (`smartSplit`, `parseShareParam`,

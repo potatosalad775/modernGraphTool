@@ -15,12 +15,21 @@
 
 export type PhoneKind = 'simple' | 'detailed' | 'variations' | 'prefix' | 'sampleSet';
 
+/** One entry of a phone's `links[]` — an operator-labelled extra link.
+ *  A type alias rather than an interface so it satisfies `RowsEditor`'s
+ *  `Record<string, string>` constraint (interfaces get no implicit index signature). */
+export type PhoneLinkEntry = {
+	label: string;
+	url: string;
+};
+
 export interface SharedPhoneMeta {
 	reviewScore?: string;
 	reviewLink?: string;
 	shopLink?: string;
 	price?: string;
 	description?: string;
+	links?: PhoneLinkEntry[];
 }
 
 export interface BrandState {
@@ -141,6 +150,7 @@ export function switchPhoneKind(phone: PhoneState, newKind: PhoneKind): PhoneSta
 	fresh.shopLink = phone.shopLink;
 	fresh.price = phone.price;
 	fresh.description = phone.description;
+	fresh.links = phone.links;
 	fresh.passthrough = phone.passthrough;
 
 	// Best-effort field migration: carry over the base name where sensible
@@ -196,7 +206,8 @@ const KNOWN_PHONE_KEYS = new Set([
 	'reviewLink',
 	'shopLink',
 	'price',
-	'description'
+	'description',
+	'links'
 ]);
 
 const KNOWN_BRAND_KEYS = new Set(['name', 'brand', 'suffix', 'phones']);
@@ -287,6 +298,28 @@ function parsePhone(
 	if (typeof p.shopLink === 'string') shared.shopLink = p.shopLink;
 	if (typeof p.price === 'string') shared.price = p.price;
 	if (typeof p.description === 'string') shared.description = p.description;
+	if (p.links != null) {
+		if (!Array.isArray(p.links)) {
+			warnings.push(`Brand "${brandLabel}" phone #${phoneIdx}: "links" is not an array, dropped.`);
+		} else {
+			// mGT skips malformed entries at load time rather than failing the phone,
+			// so the editor keeps whatever is salvageable and reports the rest.
+			const links: PhoneLinkEntry[] = [];
+			p.links.forEach((entry, linkIdx) => {
+				const e = entry as Record<string, unknown> | null;
+				const label = typeof e?.label === 'string' ? e.label : '';
+				const url = typeof e?.url === 'string' ? e.url : '';
+				if (!label || !url) {
+					warnings.push(
+						`Brand "${brandLabel}" phone #${phoneIdx}: link #${linkIdx} needs a "label" and a "url", dropped.`
+					);
+					return;
+				}
+				links.push({ label, url });
+			});
+			if (links.length) shared.links = links;
+		}
+	}
 
 	const withShared = (phone: PhoneState): PhoneState => ({
 		...phone,
@@ -585,6 +618,12 @@ function serializePhone(phone: PhoneState): unknown {
 	if (phone.shopLink) obj.shopLink = phone.shopLink;
 	if (phone.price) obj.price = phone.price;
 	if (phone.description) obj.description = phone.description;
+	if (phone.links?.length) {
+		const links = phone.links.filter((l) => l.label.trim() && l.url.trim());
+		if (links.length) {
+			obj.links = links.map((l) => ({ label: l.label.trim(), url: l.url.trim() }));
+		}
+	}
 
 	// Preserved unknown keys
 	if (phone.passthrough) {

@@ -203,6 +203,18 @@ export interface RawHpTFEntry {
 	description?: string;
 }
 
+/**
+ * An operator-authored link shown on an expanded device row, alongside the
+ * built-in Review / Shop links. Free-form so a database can list several shops,
+ * a manufacturer page, a measurement note — whatever it has.
+ */
+export interface PhoneLink {
+	/** Link text. Plain text — markup is stripped before it is rendered. */
+	label: string;
+	/** Destination. Only http / https / mailto / tel and relative URLs survive parsing. */
+	url: string;
+}
+
 /** Raw phone data from phone_book.json before processing */
 export interface RawPhoneData {
 	name: string | string[];
@@ -213,7 +225,14 @@ export interface RawPhoneData {
 	reviewLink?: string;
 	shopLink?: string;
 	price?: string;
+	/**
+	 * Free-form note shown under the device name. A small inline HTML subset is
+	 * allowed (`<a>`, `<b>`, `<em>`, `<br>`, …) and everything else is stripped —
+	 * see [html-sanitizer.ts](../utils/html-sanitizer.ts).
+	 */
 	description?: string;
+	/** Extra links shown on the expanded row. Invalid entries are dropped at parse time. */
+	links?: PhoneLink[];
 	/**
 	 * Explicit per-variant declarations. When present, `file` / `suffix` / `prefix` /
 	 * `samples` / `hptfs` at this level are ignored (precedence, not merging).
@@ -250,7 +269,10 @@ export interface PhoneMetadata {
 	reviewLink?: string;
 	shopLink?: string;
 	price?: string;
+	/** Raw, unsanitized note as authored. Sanitized at render time, not here. */
 	description?: string;
+	/** Validated operator links — label non-empty, URL scheme already checked. */
+	links?: PhoneLink[];
 	dispSuffix?: string;
 	extensionData?: unknown;
 }

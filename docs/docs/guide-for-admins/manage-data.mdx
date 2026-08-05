@@ -118,7 +118,8 @@ For more control, a phone can be defined as an object with the following keys:
 - `reviewLink` (String, Optional): A URL link to a review of the phone.
 - `shopLink` (String, Optional): A URL to a shop or purchase page.
 - `price` (String, Optional): The price of the phone (e.g., "$299", "€250"). Using a string allows for currency symbols and various formats.
-- `description` (String, Optional): Free-form description displayed alongside the phone.
+- `description` (String, Optional): Free-form description displayed alongside the phone. A small set of inline HTML tags is supported — see [Rich Descriptions](#rich-descriptions) below.
+- `links` (Array of Objects, Optional): Extra links shown on the device row when it's loaded, next to the built-in Review / Shop links. See [Custom Links](#custom-links) below.
 
 ```json
 {
@@ -136,6 +137,73 @@ For more control, a phone can be defined as an object with the following keys:
 	]
 }
 ```
+
+#### Rich Descriptions
+
+`description` accepts a small subset of inline HTML, so a note can carry a link or
+some emphasis:
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"description": "B&K5128 measurement of an identical unit is available <a href=\"https://other.example/?share=Brand%20Model%20D1\">here</a>."
+}
+```
+
+Allowed tags: `a`, `abbr`, `b`, `br`, `code`, `del`, `em`, `i`, `ins`, `kbd`,
+`mark`, `s`, `small`, `span`, `strong`, `sub`, `sup`, `u`, `wbr`.
+
+Everything else is sanitized away before the description reaches the page:
+
+- **Unknown tags are unwrapped** — `<div>text</div>` renders as `text`, so nothing
+  silently disappears.
+- **`<script>`, `<style>`, `<iframe>` and friends are removed together with their
+  content.**
+- **All attributes are dropped** except `href` / `title` on `<a>` and `title` on
+  `<abbr>` / `<span>`. Event handlers (`onclick`, …) and `style` never survive.
+- **Links must use `http`, `https`, `mailto` or `tel`** (or be relative). A
+  `javascript:` URL is stripped and the link text renders as plain text.
+- **Links open in a new tab** with `rel="external noopener noreferrer"` applied
+  automatically — you don't need to write `target` yourself.
+- **A bare `&` is fine.** `B&K5128` renders as written; you don't have to escape it
+  as `&amp;` (though that works too).
+
+Unclosed tags are closed for you, so a typo can't leak markup into the rest of the
+list. Since descriptions render inside the device row's button, only inline tags are
+allowed — block-level markup (`<p>`, `<ul>`, …) is unwrapped.
+
+The tooltip that appears when hovering a truncated description shows the **plain
+text** version, with markup stripped.
+
+#### Custom Links
+
+`shopLink` holds a single URL. When a device has several places worth pointing at —
+two shops, a manufacturer page, a measurement note — use `links` instead. Each entry
+is an object with a `label` and a `url`:
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"links": [
+		{ "label": "Amazon", "url": "https://amazon.example/d1" },
+		{ "label": "Official Store", "url": "https://brand.example/shop/d1" },
+		{ "label": "Measurement Notes", "url": "/data/notes/d1.html" }
+	]
+}
+```
+
+- `label` (String, Required): The link text. Plain text — any markup is stripped.
+- `url` (String, Required): `http`, `https`, `mailto`, `tel`, or a URL relative to
+  your site. Anything else is rejected.
+
+Links appear in the order you list them, after the built-in Review and Shop links,
+and are shown only once the device is loaded onto the graph. `links` works alongside
+`shopLink` rather than replacing it — you can use either or both.
+
+An entry with a missing `label`, a missing `url`, or an unusable URL is skipped (with
+a warning in the browser console) while the rest of the list still loads.
 
 #### Variations (Grouping Multiple Data Files under One Phone Name)
 

@@ -6,6 +6,7 @@
 	import MetadataParser from '$lib/utils/metadata-parser.js';
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { buildRankingUrl } from '$lib/utils/url-template.js';
+	import { sanitizeHtml, stripHtml } from '$lib/utils/html-sanitizer.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
@@ -73,6 +74,17 @@
 
 	function clearBrands(): void {
 		selectedBrands.clear();
+	}
+
+	/**
+	 * Row clicks toggle the device — except on a link. The review / shop /
+	 * operator links and any anchor inside an HTML description all live inside
+	 * the row button, so guarding here covers every one of them at once (and
+	 * covers Enter on a focused link, which dispatches a click too).
+	 */
+	function onRowClick(event: MouseEvent, identifier: string, isLoaded: boolean): void {
+		if ((event.target as Element | null)?.closest('a')) return;
+		togglePhone(identifier, isLoaded);
 	}
 
 	async function togglePhone(identifier: string, isLoaded: boolean): Promise<void> {
@@ -201,7 +213,7 @@
 							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : ''}"
 					>
 						<button
-							onclick={() => togglePhone(phone.identifier, isLoaded)}
+							onclick={(e) => onRowClick(e, phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 							class="flex min-h-8 w-full flex-col items-start gap-1 px-3 py-1.5 text-left text-sm transition-colors
 								{isLoaded ? 'font-medium text-base-content' : ' hover:bg-base-300'}
@@ -213,16 +225,20 @@
 							</span>
 
 							{#if phone.description}
+								<!-- Operator-authored, so a small inline HTML subset is honored. The
+								     sanitizer drops everything else; `title` gets the flattened text
+								     because a tooltip would otherwise show raw markup. -->
 								<span
-									class="min-w-0 self-stretch text-xs leading-snug text-base-content/60
+									class="ps-description min-w-0 self-stretch text-xs leading-snug text-base-content/60
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
-									title={phone.description}
+									title={stripHtml(phone.description)}
 								>
-									{phone.description}
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+									{@html sanitizeHtml(phone.description)}
 								</span>
 							{/if}
 
-							{#if isLoaded && (phone.reviewScore !== undefined || phone.price || phone.reviewLink || phone.shopLink)}
+							{#if isLoaded && (phone.reviewScore !== undefined || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
 								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 									{#if phone.reviewScore !== undefined}
 										{@const rankingHref = buildRankingUrl(rankingUrlTemplate, {
@@ -237,7 +253,6 @@
 												rel="external noopener noreferrer"
 												class="text-xs text-warning hover:underline"
 												title="Score: {phone.reviewScore}"
-												onclick={(e) => e.stopPropagation()}
 											>
 												{renderScore(phone.reviewScore)}
 											</a>
@@ -273,6 +288,19 @@
 											{m.phone_selector_item_shop()}
 										</a>
 									{/if}
+
+									<!-- Operator-defined extras — several shops, a manufacturer page,
+									     a measurement note. Labels come from phone_book.json as-is. -->
+									{#each phone.links ?? [] as link, i (link.url + ' ' + link.label + i)}
+										<a
+											href={link.url}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="text-xs text-info hover:underline"
+										>
+											{link.label}
+										</a>
+									{/each}
 								</div>
 							{/if}
 						</button>
@@ -296,6 +324,15 @@
 </div>
 
 <style>
+	/* Links inside an HTML description are injected via {@html}, so they carry no
+	   Tailwind classes — style them here to match the review / shop links. */
+	.ps-description :global(a) {
+		color: var(--color-info);
+	}
+	.ps-description :global(a:hover) {
+		text-decoration: underline;
+	}
+
 	/* Wide container: show both panes side-by-side, hide nav buttons */
 	@container (min-width: 500px) {
 		.ps-nav-btn {

@@ -118,7 +118,8 @@ JSON(JavaScript Object Notation)은 데이터를 구조적으로 표현하는 �
 - `reviewLink` (문자열, 선택) — Phone 리뷰 URL.
 - `shopLink` (문자열, 선택) — 상점 또는 구매 페이지 URL.
 - `price` (문자열, 선택) — 가격(예: `"$299"`, `"€250"`). 문자열이라 통화 기호가 다른 표기도 그대로 허용됩니다.
-- `description` (문자열, 선택) — Phone과 함께 표시할 자유 서술 설명.
+- `description` (문자열, 선택) — Phone과 함께 표시할 자유 서술 설명. 일부 인라인 HTML 태그를 사용할 수 있습니다. 아래 [서식 있는 설명](#rich-descriptions) 참고.
+- `links` (객체 배열, 선택) — 기기를 그래프에 올렸을 때 기본 리뷰 / 상점 링크 옆에 함께 표시할 추가 링크. 아래 [커스텀 링크](#custom-links) 참고.
 
 ```json
 {
@@ -136,6 +137,72 @@ JSON(JavaScript Object Notation)은 데이터를 구조적으로 표현하는 �
 	]
 }
 ```
+
+#### 서식 있는 설명 \{#rich-descriptions\}
+
+`description`에는 인라인 HTML 태그를 일부 쓸 수 있어서, 설명 안에 링크나 강조를
+넣을 수 있습니다.
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"description": "동일 개체의 B&K5128 측정치는 <a href=\"https://other.example/?share=Brand%20Model%20D1\">여기</a>에서 볼 수 있습니다."
+}
+```
+
+허용되는 태그: `a`, `abbr`, `b`, `br`, `code`, `del`, `em`, `i`, `ins`, `kbd`,
+`mark`, `s`, `small`, `span`, `strong`, `sub`, `sup`, `u`, `wbr`.
+
+그 외의 내용은 화면에 그려지기 전에 모두 정리됩니다.
+
+- **모르는 태그는 태그만 제거되고 내용은 남습니다.** `<div>text</div>`는 `text`로
+  표시되므로 내용이 조용히 사라지는 일은 없습니다.
+- **`<script>`, `<style>`, `<iframe>` 등은 내용까지 통째로 제거됩니다.**
+- **속성은 전부 제거됩니다.** 예외는 `<a>`의 `href` / `title`, `<abbr>`·`<span>`의
+  `title`뿐입니다. `onclick` 같은 이벤트 핸들러와 `style`은 남지 않습니다.
+- **링크는 `http`, `https`, `mailto`, `tel` 또는 상대 경로여야 합니다.**
+  `javascript:` URL은 제거되고 링크 텍스트만 일반 텍스트로 남습니다.
+- **링크는 새 탭에서 열립니다.** `rel="external noopener noreferrer"`가 자동으로
+  붙으므로 `target`을 직접 쓸 필요가 없습니다.
+- **`&`는 그대로 써도 됩니다.** `B&K5128`은 쓴 그대로 표시됩니다(`&amp;`로 써도
+  동작합니다).
+
+닫지 않은 태그는 자동으로 닫히므로, 오타 하나가 목록 전체의 레이아웃을 망가뜨리지
+않습니다. 설명은 기기 항목 버튼 안에 렌더링되기 때문에 인라인 태그만 허용되며,
+블록 태그(`<p>`, `<ul>` 등)는 태그만 제거됩니다.
+
+설명이 잘려 있을 때 마우스를 올리면 나오는 툴팁에는 태그를 제거한 **평문**이
+표시됩니다.
+
+#### 커스텀 링크 \{#custom-links\}
+
+`shopLink`에는 URL을 하나만 넣을 수 있습니다. 상점 두 곳, 제조사 페이지, 측정
+노트처럼 가리킬 곳이 여러 개라면 `links`를 쓰세요. 각 항목은 `label`과 `url`을
+가진 객체입니다.
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"links": [
+		{ "label": "Amazon", "url": "https://amazon.example/d1" },
+		{ "label": "공식 스토어", "url": "https://brand.example/shop/d1" },
+		{ "label": "측정 노트", "url": "/data/notes/d1.html" }
+	]
+}
+```
+
+- `label` (문자열, 필수) — 링크 텍스트. 평문으로만 표시되며 태그는 제거됩니다.
+- `url` (문자열, 필수) — `http`, `https`, `mailto`, `tel` 또는 사이트 기준 상대
+  경로. 그 외에는 무시됩니다.
+
+링크는 적어 둔 순서대로, 기본 리뷰 / 상점 링크 뒤에 표시되며 기기를 그래프에 올린
+뒤에만 나타납니다. `links`는 `shopLink`를 대체하지 않으므로 둘 중 하나만 써도 되고
+둘 다 써도 됩니다.
+
+`label`이나 `url`이 없거나 쓸 수 없는 URL인 항목은 (브라우저 콘솔에 경고를 남기고)
+건너뛰며, 나머지 링크는 정상적으로 표시됩니다.
 
 #### Variations (여러 데이터 파일을 하나로 묶기)
 

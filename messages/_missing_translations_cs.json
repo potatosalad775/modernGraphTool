@@ -6,6 +6,9 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/cs.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
+	"selection_list_channel_header": "Channel",
+	"selection_list_samples_run": "Sample",
+	"selection_list_samples_runs_toggle": "Per-sample curves",
 	"equalizer_player_option_sweep": "Sine Sweep",
 	"equalizer_player_sweep_from_label": "From",
 	"equalizer_player_sweep_to_label": "To",

@@ -152,6 +152,20 @@ describe('GraphUploader', () => {
 			expect(insert.mock.calls.map((c: unknown[]) => c[1]).sort()).toEqual(['HD600', 'HD800']);
 		});
 
+		it('loads a comma-delimited .csv export', async () => {
+			// UsyTrace exports .csv: a header row, commas, and CRLF line endings.
+			// The parser tokenizes on /[\s,]+/ and drops non-numeric rows, so the
+			// only thing that has to hold is that nothing gates on the extension.
+			const csv = 'Frequency (Hz),Level (dB)\r\n' + VALID.replace(/ /g, ',').replace(/\n/g, '\r\n');
+			await upload('phone', [file('HD600 L.csv', csv), file('HD600 R.csv', csv)]);
+
+			expect(error).not.toHaveBeenCalled();
+			expect(insert).toHaveBeenCalledOnce();
+			const [, name, channels] = insert.mock.calls[0];
+			expect(name).toBe('HD600');
+			expect(Object.keys(channels as object)).toEqual(['L', 'R', 'AVG']);
+		});
+
 		it('does nothing when the picker is dismissed', async () => {
 			await upload('phone', []);
 

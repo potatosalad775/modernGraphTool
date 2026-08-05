@@ -7,9 +7,13 @@
 				"file": ["Combo Variant 1", "Combo Variant 2", "Combo Variant 3", "Combo Variant 4"],
 				"suffix": ["var1", "var2", "var3", "var4"],
 				"reviewScore": "4",
-				"description": "This is a description for the phone. It can be quite long and contain multiple sentences. It should be displayed in a way that is easy to read and visually appealing.",
+				"description": "This is a description for the phone. It can be quite long and contain multiple sentences. A few inline HTML tags work here too — <b>bold</b>, <em>emphasis</em>, and links like <a href=\"https://www.youtube.com/\">this one</a>.",
 				"reviewLink": "https://www.youtube.com/",
 				"shopLink": "https://www.amazon.com/",
+				"links": [
+					{ "label": "Official Store", "url": "https://www.aliexpress.com/" },
+					{ "label": "Measurement Notes", "url": "https://www.head-fi.org/forums/" }
+				],
 				"price": "¥100"
 			},
 			{

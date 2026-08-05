@@ -48,33 +48,72 @@ jobs:
           echo "major=$MAJOR" >> $GITHUB_OUTPUT
           echo "Version: $VERSION (major: $MAJOR)"
 
-      - name: Extract changelog entry
-        id: changelog
+      # Assembles the whole release body into a file, which the release step reads
+      # via body_path. Nothing here may block the release: a missing or malformed
+      # changelog entry only drops that one section.
+      - name: Build release body
+        continue-on-error: true
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          EXTRA_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          awk -v ver="### v$VERSION" '
-            $0 == ver { found=1; next }
-            found && /^### v/ { exit }
-            found { buf = buf $0 "\n" }
-            END {
-              gsub(/^\n+/, "", buf)
-              gsub(/\n+$/, "", buf)
-              printf "%s", buf
-            }
-          ' docs/docs/changelog.mdx > changelog-section.md
+          : > release-body.md
+          : > changelog-section.md
 
-          if [ -s changelog-section.md ]; then
-            echo "found=true" >> $GITHUB_OUTPUT
-          else
-            echo "found=false" >> $GITHUB_OUTPUT
-            echo "No changelog.mdx entry found for v$VERSION — release body will omit the Changelog section."
+          if [ -f docs/docs/changelog.mdx ]; then
+            awk -v ver="### v$VERSION" '
+              $0 == ver { found=1; next }
+              found && /^### v/ { exit }
+              found { buf = buf $0 "\n" }
+              END {
+                gsub(/^\n+/, "", buf)
+                gsub(/\n+$/, "", buf)
+                # Trailing newline is required: without it the section would run
+                # into whatever is appended next. Emit nothing at all when the
+                # version has no entry, so [ -s ] below is a real test.
+                if (buf != "") printf "%s\n", buf
+              }
+            ' docs/docs/changelog.mdx > changelog-section.md || true
           fi
 
-          {
-            echo "notes<<CHANGELOG_EOF"
-            cat changelog-section.md
-            echo "CHANGELOG_EOF"
-          } >> $GITHUB_OUTPUT
+          if [ -s changelog-section.md ]; then
+            {
+              echo "## Changelog"
+              echo
+              cat changelog-section.md
+              echo
+            } >> release-body.md
+          else
+            echo "::warning::No changelog.mdx entry found for v$VERSION — release body omits the Changelog section."
+          fi
+
+          if [ -n "$EXTRA_NOTES" ]; then
+            {
+              echo "## Notes"
+              echo
+              printf '%s\n\n' "$EXTRA_NOTES"
+            } >> release-body.md
+          fi
+
+          # Quoted heredoc: the markdown table is full of backticks, which an
+          # unquoted one would run as command substitution.
+          sed "s/__VERSION__/$VERSION/g" >> release-body.md <<'DOWNLOADS'
+          ## Downloads
+
+          | Package | Description |
+          |---------|-------------|
+          | `modernGraphTool_v__VERSION___full.zip` | **Full distribution** — drop entire contents on your web server |
+          | `modernGraphTool_v__VERSION___cdn.zip` | **CDN distribution** — lightweight package, app loaded from CDN |
+
+          ### Full distribution
+          Extract and upload everything to your web server. Self-contained, no external dependencies.
+
+          ### CDN distribution
+          Lightweight package for auto-updating deployments. The core application is loaded from
+          `cdn.jsdelivr.net` — you only host your config, theme, and data files.
+
+          See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
+          DOWNLOADS
 
       # ── Build full dist/ ──────────────────────────────────────────────
       - name: Build full distribution
@@ -119,31 +158,17 @@ jobs:
           du -sh dist-cdn-package/
 
       # ── Create GitHub Release ────────────────────────────────────────
+      # Guards against the body step having bailed out — body_path on a missing
+      # file would fail the release.
+      - name: Ensure release body exists
+        run: '[ -f release-body.md ] || touch release-body.md'
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
-          body: |
-            ${{ steps.changelog.outputs.found == 'true' && format('## Changelog\n\n{0}', steps.changelog.outputs.notes) || '' }}
-
-            ${{ github.event.inputs.release_notes && format('## Notes\n\n{0}', github.event.inputs.release_notes) || '' }}
-
-            ## Downloads
-
-            | Package | Description |
-            |---------|-------------|
-            | `modernGraphTool_v${{ steps.version.outputs.version }}_full.zip` | **Full distribution** — drop entire contents on your web server |
-            | `modernGraphTool_v${{ steps.version.outputs.version }}_cdn.zip` | **CDN distribution** — lightweight package, app loaded from CDN |
-
-            ### Full distribution
-            Extract and upload everything to your web server. Self-contained, no external dependencies.
-
-            ### CDN distribution
-            Lightweight package for auto-updating deployments. The core application is loaded from
-            `cdn.jsdelivr.net` — you only host your config, theme, and data files.
-
-            See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
+          body_path: release-body.md
           files: release-packages/*
           prerelease: false
           make_latest: true

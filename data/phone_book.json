@@ -102,6 +102,25 @@
 						}
 					}
 				]
+			},
+			{
+				"name": ["Dual Hosted"],
+				"file": ["Combo Variant 1", "Combo Variant 2", "Multi Sample"],
+				"suffix": ["Foam Tip", "Silicone Tip", "Repeat Runs"],
+				"variants": [
+					{ "suffix": "Repeat Runs", "file": "Multi Sample", "samples": 3 },
+					{
+						"suffix": "Pad Positions",
+						"samples": {
+							"files": ["HpTF Demo Center", "HpTF Demo Front", "HpTF Demo Back"],
+							"labels": ["Center", "Front", "Back"],
+							"display": ["avg", "fill"],
+							"description": "(Positional Variance)"
+						}
+					}
+				],
+				"description": "Both schemas on one entry. CrinGraph reads the three <code>file</code> variants; modernGraphTool composes them with <code>variants</code> — <b>Repeat Runs</b> gains its 3 runs in place, <b>Pad Positions</b> is appended as a fourth.",
+				"price": "$100"
 			}
 		]
 	},

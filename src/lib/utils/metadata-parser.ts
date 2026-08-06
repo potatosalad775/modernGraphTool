@@ -263,13 +263,19 @@ const MetadataParser = {
 				const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
 				const identifier = brandName + ' ' + baseName;
 
-				// `variants[]` is precedence, not merging: when it's present the terse
-				// phone-level form (file/suffix/prefix/samples/hptfs) is ignored entirely.
-				// Both branches emit the same PhoneFileVariant[], so nothing downstream
-				// can tell which form was authored.
-				const files = Array.isArray(phone.variants)
-					? this._parseVariants(brandName, baseName, phone.variants, brandDefaults)
-					: this._parseLegacyVariants(brandName, baseName, phone);
+				// `variants[]` composes with the terse phone-level form rather than
+				// replacing it, so one phone can declare its plain measurements the way
+				// every CrinGraph-derived tool reads them and still carry sample sets
+				// here. Both paths emit the same PhoneFileVariant[], so nothing
+				// downstream can tell which form was authored.
+				const explicit = Array.isArray(phone.variants) ? phone.variants : null;
+				const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
+				const files = explicit
+					? this._mergeVariants(
+							legacy,
+							this._parseVariants(brandName, baseName, explicit, brandDefaults)
+						)
+					: legacy;
 
 				phoneEntries.push({
 					...basePhone,
@@ -427,6 +433,33 @@ const MetadataParser = {
 	},
 
 	/**
+	 * Fold the explicit `variants[]` entries into the ones derived from the terse
+	 * `file`/`suffix`/`prefix`/`samples`/`hptfs` form.
+	 *
+	 * Matching is by `fileName`. An entry naming a measurement the phone already
+	 * declared **replaces it in place**, so enriching a variant with a sample set
+	 * never moves it — `files[0]` stays the phone's default curve, which
+	 * `fr-parser` loads when no suffix is requested and `searchFRInfoWithFullName`
+	 * reports as `dispSuffix`. Anything else appends after the legacy entries,
+	 * matching how `hptfs[]` — the key `variants[]` supersedes — has always
+	 * combined with `file[]`.
+	 *
+	 * The point is dual-hosting: `variants[]` is modernGraphTool's own key, so a
+	 * phone that declared its measurements only there is invisible to CrinGraph,
+	 * which reads `file` and nothing else. Composing lets both keys coexist on one
+	 * entry without the plain variants showing up twice.
+	 */
+	_mergeVariants(legacy: PhoneFileVariant[], explicit: PhoneFileVariant[]): PhoneFileVariant[] {
+		const merged = [...legacy];
+		explicit.forEach((variant) => {
+			const at = merged.findIndex((existing) => existing.fileName === variant.fileName);
+			if (at === -1) merged.push(variant);
+			else merged[at] = variant;
+		});
+		return merged;
+	},
+
+	/**
 	 * Build variants from the terse legacy form: `file[]`/`suffix[]`/`prefix` with
 	 * an optional phone-level `samples: N`, plus one variant per `hptfs[]` entry.
 	 *
@@ -434,11 +467,16 @@ const MetadataParser = {
 	 * `phone_book.json` and most existing databases only speak this dialect.
 	 * (Cross-site search isn't the reason: the squig.link crawl reads names out of
 	 * a foreign book directly and never comes through here.)
+	 *
+	 * `allowNameFallback` is off when `variants[]` is also present: the name-derived
+	 * variant below exists so a phone with no `file` still has something to load,
+	 * and a phone declaring `variants[]` already does.
 	 */
 	_parseLegacyVariants(
 		brandName: string,
 		baseName: string,
-		phone: RawPhoneData
+		phone: RawPhoneData,
+		allowNameFallback = true
 	): PhoneFileVariant[] {
 		const sampleCount = phone.samples;
 		const multiSampleDisplay = legacyMultiSampleDisplay();
@@ -463,12 +501,13 @@ const MetadataParser = {
 		// An object phone with no `file` falls back to its own name, the same way a
 		// string phone does — otherwise it would produce no variant at all and
 		// `getFRDataFromMetadata` would have no `files[0]` to load. A phone whose
-		// only measurements are `hptfs[]` entries keeps an empty file list.
+		// only measurements are `hptfs[]` or `variants[]` entries keeps an empty
+		// file list, so the fallback doesn't add a phantom variant beside them.
 		const fileVariants: PhoneFileVariant[] = phone.file
 			? Array.isArray(phone.file)
 				? phone.file.map(buildFileVariant)
 				: [buildFileVariant((phone.file as string) || baseName, 0)]
-			: hptfEntries.length > 0
+			: hptfEntries.length > 0 || !allowNameFallback
 				? []
 				: [buildFileVariant(baseName, 0)];
 

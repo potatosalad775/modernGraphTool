@@ -37,10 +37,19 @@ measurement per ear pad. `samples` and `hptfs` in `phone_book.json` used to be t
 for this, with parallel state, fetch, process and render paths; they are now one.
 
 - **Schema:** `variants[]` with a per-variant `samples` (a number, or
-  `{ count | files, labels, display, description }`). `variants` takes precedence over the terse
-  phone-level `file`/`suffix`/`prefix`/`samples`/`hptfs` form — no merging. `metadata-parser` emits
-  the same `PhoneFileVariant[]` from either, so **nothing downstream branches on which form was
+  `{ count | files, labels, display, description }`). `metadata-parser` emits the same
+  `PhoneFileVariant[]` from either form, so **nothing downstream branches on which form was
   authored**.
+- **`variants[]` composes with the terse form, it does not replace it** (`_mergeVariants`). Matching
+  is by `fileName`: an entry naming an already-declared file replaces that variant **in place**,
+  anything else appends. Two invariants ride on this — position 0 is the phone's default curve
+  (`fr-parser` loads `files[0]` when no suffix is requested, `searchFRInfoWithFullName` reports
+  `files[0].suffix` as `dispSuffix`), and `_parseLegacyVariants`' name-derived fallback must stay
+  suppressed when `variants[]` is present or every such phone grows a phantom variant.
+  It replaced a precedence rule that silently dropped `file`, which cost operators CrinGraph
+  compatibility: `variants[]` is mGT's own key, so a phone declared only there is invisible to
+  CrinGraph. `hptfs[]` — which `variants[]` supersedes — has always been additive with `file[]`, so
+  precedence also made the advertised `hptfs[]` → `variants[]` conversion silently reorder selectors.
 - **The CrinGraph dialect stays readable permanently** — `file` / `suffix` / `prefix` arrays and the
   phone-level `samples: N`. Operators hand-author `phone_book.json`, and most existing databases
   predate `variants[]`; those files have to keep loading untouched. Cross-site search is _not_ the

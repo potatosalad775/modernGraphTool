@@ -324,10 +324,38 @@ And `samples`, in object form:
 `count` versus `files` is only a **filename convention**, not a feature difference —
 labels, fills and per-run curves all work with either.
 
-:::note[variants takes precedence]
-When `variants` is present, the phone-level `file` / `suffix` / `prefix` / `samples` /
-`hptfs` keys are **ignored** for that phone. It is precedence, not merging — declare a
-phone one way or the other.
+:::note[variants composes with `file`]
+`variants` does **not** replace the phone-level `file` / `suffix` / `prefix` / `samples` /
+`hptfs` keys — the two combine into one variant list. An entry whose `file` names a
+measurement the phone already declared **upgrades that variant in place**, keeping its
+position (so the phone's default curve doesn't move); every other entry is **appended**
+after. Declaring the same variant in both places lists it once, not twice.
+
+This is what lets one entry serve both tools. CrinGraph reads `file` and nothing else, so a
+phone whose measurements live only in `variants` is invisible to it. Keep the plain
+measurements in `file` / `suffix` and layer the sample sets on top:
+
+```json
+{
+	"name": ["Soloist"],
+	"file": ["Soloist Stock", "Soloist Starline", "Soloist SpinFit"],
+	"prefix": "Soloist",
+	"variants": [
+		{
+			"suffix": "Insertion Depth",
+			"samples": {
+				"files": ["Soloist Starline 7k", "Soloist Starline", "Soloist Starline 9k"],
+				"labels": ["7 kHz", "8 kHz", "9 kHz"],
+				"display": ["avg", "fill"]
+			}
+		}
+	]
+}
+```
+
+CrinGraph shows the three eartip variants; modernGraphTool shows those three **plus** the
+insertion-depth set. To give one of the eartips its own runs instead of adding a fourth
+entry, set that variant's `file` to the eartip's filename — it upgrades in place.
 :::
 
 :::tip[Unnumbered fallback]
@@ -416,16 +444,23 @@ The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated al
 it; see [`SAMPLES`](./customize-page#samples) for the replacement keys.
 
 :::note[Combining forms]
-Regular `file` / `suffix` variants, phone-level `samples` and `hptfs` on one phone entry
-are treated as **independent variants** in a single flat list, not combined — two `file`
-variants plus two `hptfs` entries produce four entries in the variant selector.
+Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `variants`
+entries on one phone are treated as **independent variants** in a single flat list — two
+`file` variants plus two `hptfs` entries produce four entries in the variant selector. The
+one exception is the in-place upgrade above: a `variants` entry naming an already-declared
+`file` refines that variant instead of adding another.
 :::
 
 :::tip[Dual-hosting with CrinGraph]
-Labels, fills and per-run display are **additive metadata over numbered files**. A
-database using `count` keeps the exact `{file} L{n}.txt` layout a CrinGraph
-`num_samples` site expects, so the same measurement folder can serve both tools —
-CrinGraph ignores the extra keys, modernGraphTool uses them.
+Both halves of a shared deployment work out:
+
+- **Measurement folder** — labels, fills and per-run display are additive metadata over
+  numbered files. A database using `count` keeps the exact `{file} L{n}.txt` layout a
+  CrinGraph `num_samples` site expects, so one folder serves both tools.
+- **`phone_book.json`** — keep every plain measurement in `file` / `suffix`, since that is
+  all CrinGraph reads, and add `variants` alongside it for the sample sets. CrinGraph
+  ignores the keys it doesn't know; modernGraphTool composes the two.
+
 :::
 
 ## How to Add/Modify Measurement Data

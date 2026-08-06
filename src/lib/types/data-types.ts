@@ -234,8 +234,11 @@ export interface RawPhoneData {
 	/** Extra links shown on the expanded row. Invalid entries are dropped at parse time. */
 	links?: PhoneLink[];
 	/**
-	 * Explicit per-variant declarations. When present, `file` / `suffix` / `prefix` /
-	 * `samples` / `hptfs` at this level are ignored (precedence, not merging).
+	 * Explicit per-variant declarations. These **compose** with the CrinGraph-dialect
+	 * `file` / `suffix` / `prefix` / `samples` / `hptfs` keys rather than replacing
+	 * them: an entry naming an already-declared file upgrades that variant in place,
+	 * anything else is appended. Lets one phone stay readable by CrinGraph — which
+	 * only knows `file` — while carrying sample sets here.
 	 */
 	variants?: RawVariant[];
 	/** Legacy: number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */

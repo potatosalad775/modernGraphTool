@@ -79,7 +79,10 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - **Share slugs go through `buildShareUrl`**, never raw concatenation — over a thousand device
   names contain `+`, `&` or non-ASCII characters.
 - **The CrinGraph `phone_book.json` dialect stays readable permanently.** Operators hand-author
-  these files and most databases predate the current schema.
+  these files and most databases predate the current schema. A modernGraphTool-only key must
+  **compose** with the dialect rather than override it — CrinGraph reads `file` and nothing else, so
+  a key that suppresses `file` silently makes the entry unreadable there and forces operators to
+  choose between our features and dual-hosting. Precedent: `variants[]` (`_mergeVariants`).
 
 ## Project Layout
 

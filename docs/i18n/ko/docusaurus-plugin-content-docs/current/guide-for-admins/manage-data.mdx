@@ -324,10 +324,39 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 `count`와 `files`의 차이는 **파일 이름 규칙**일 뿐이며 기능 차이가 아닙니다. 라벨,
 음영, 개별 곡선은 어느 쪽에서도 똑같이 동작합니다.
 
-:::note[variants가 우선합니다]
-`variants`가 있으면 해당 phone의 `file` / `suffix` / `prefix` / `samples` / `hptfs`
-키는 **무시됩니다**. 병합이 아니라 우선순위이므로, 한 phone은 둘 중 한 방식으로만
-선언하세요.
+:::note[variants는 `file`과 함께 동작합니다]
+`variants`는 phone 레벨의 `file` / `suffix` / `prefix` / `samples` / `hptfs` 키를
+**대체하지 않습니다**. 두 형식은 하나의 variant 목록으로 합쳐집니다. `file`이 이미
+선언된 측정을 가리키는 항목은 **그 variant를 제자리에서 보강**하며 순서를 유지하므로
+phone의 기본 곡선이 바뀌지 않고, 그 외의 항목은 뒤에 **추가**됩니다. 따라서 같은
+variant를 양쪽에 선언해도 목록에는 한 번만 나타납니다.
+
+덕분에 하나의 항목으로 두 도구를 모두 지원할 수 있습니다. CrinGraph는 `file`만 읽기
+때문에, 측정이 `variants`에만 선언된 phone은 CrinGraph에서 보이지 않습니다. 일반
+측정은 `file` / `suffix`에 두고 그 위에 sample set을 얹으세요.
+
+```json
+{
+	"name": ["Soloist"],
+	"file": ["Soloist Stock", "Soloist Starline", "Soloist SpinFit"],
+	"prefix": "Soloist",
+	"variants": [
+		{
+			"suffix": "Insertion Depth",
+			"samples": {
+				"files": ["Soloist Starline 7k", "Soloist Starline", "Soloist Starline 9k"],
+				"labels": ["7 kHz", "8 kHz", "9 kHz"],
+				"display": ["avg", "fill"]
+			}
+		}
+	]
+}
+```
+
+CrinGraph에는 이어팁 variant 3개가, modernGraphTool에는 그 3개에 **더해** 삽입 깊이
+sample set이 표시됩니다. 항목을 하나 더 늘리는 대신 특정 이어팁에 측정 반복을 붙이고
+싶다면, 해당 variant의 `file`을 그 이어팁의 파일 이름으로 지정하면 제자리에서
+보강됩니다.
 :::
 
 :::tip[번호 없는 파일 폴백]
@@ -417,16 +446,24 @@ variant도 오류 없이 로드됩니다.
 [`SAMPLES`](./customize-page#samples)를 참고하세요.
 
 :::note[여러 형식 함께 쓰기]
-한 phone 항목의 일반 `file` / `suffix` variant, phone 레벨 `samples`, `hptfs`는 한
-평면 목록에서 **각각 독립된 variant**로 취급되며 서로 조합되지 않습니다. `file`
+한 phone 항목의 일반 `file` / `suffix` variant, phone 레벨 `samples`, `hptfs` 항목,
+`variants` 항목은 한 평면 목록에서 **각각 독립된 variant**로 취급됩니다. `file`
 variant 2개와 `hptfs` 항목 2개가 있으면 variant 선택기에 4개 항목이 표시됩니다.
+예외는 위에서 설명한 제자리 보강뿐입니다. 이미 선언된 `file`을 가리키는 `variants`
+항목은 새 항목을 만들지 않고 그 variant를 보강합니다.
 :::
 
 :::tip[CrinGraph와 함께 호스팅하기]
-라벨, 음영, 개별 곡선 설정은 **번호 파일 위에 얹히는 부가 메타데이터**입니다.
-`count`를 쓰는 데이터베이스는 CrinGraph의 `num_samples` 사이트가 기대하는
-`{file} L{n}.txt` 배치를 그대로 유지하므로, 같은 측정 폴더로 두 도구를 모두 서비스할
-수 있습니다. CrinGraph는 추가 키를 무시하고, modernGraphTool은 그것을 사용합니다.
+두 부분 모두 문제없이 공유할 수 있습니다.
+
+- **측정 폴더** — 라벨, 음영, 개별 곡선 설정은 번호 파일 위에 얹히는 부가
+  메타데이터입니다. `count`를 쓰는 데이터베이스는 CrinGraph의 `num_samples` 사이트가
+  기대하는 `{file} L{n}.txt` 배치를 그대로 유지하므로 폴더 하나로 두 도구를 모두
+  서비스할 수 있습니다.
+- **`phone_book.json`** — CrinGraph가 읽는 것은 `file`뿐이므로 일반 측정은 모두
+  `file` / `suffix`에 두고, sample set은 그 옆에 `variants`로 추가하세요. CrinGraph는
+  모르는 키를 무시하고, modernGraphTool은 둘을 합쳐서 보여줍니다.
+
 :::
 
 ## 측정 데이터 추가/수정 절차

@@ -609,21 +609,108 @@ describe('MetadataParser', () => {
 			]);
 		});
 
-		it('ignores phone-level file/suffix/samples/hptfs when variants is present', async () => {
+		it('appends a variants[] entry that names no already-declared file', async () => {
+			// Reported case: three eartip variants in the CrinGraph dialect — which is
+			// what keeps the entry readable by CrinGraph — plus one insertion-depth
+			// sample set added through variants[]. All four belong in the selector.
+			const result = await parse([
+				{
+					name: 'Letshuoer',
+					phones: [
+						{
+							name: ['Soloist'],
+							file: [
+								'Letshuoer Soloist s1 Stock white',
+								'Letshuoer Soloist s1 KZ Starline IO',
+								'Letshuoer Soloist s1 SpinFit CP145'
+							],
+							prefix: 'Letshuoer Soloist s1',
+							variants: [
+								{
+									suffix: 'Insertion Depth Variance',
+									samples: {
+										files: [
+											'Letshuoer Soloist s1 KZ Starline IO 7k',
+											'Letshuoer Soloist s1 KZ Starline IO',
+											'Letshuoer Soloist s1 KZ Starline IO 9k'
+										],
+										labels: ['7 kHz', '8 kHz', '9 kHz'],
+										display: ['avg', 'fill']
+									}
+								}
+							]
+						}
+					]
+				}
+			]);
+
+			const files = result[0].phones[0].files;
+			expect(files.map((f) => f.suffix)).toEqual([
+				'Stock white',
+				'KZ Starline IO',
+				'SpinFit CP145',
+				'Insertion Depth Variance'
+			]);
+			// The eartip variants keep their plain L/R pairs and gain no runs.
+			expect(files[0].files).toEqual({
+				L: 'Letshuoer Soloist s1 Stock white L.txt',
+				R: 'Letshuoer Soloist s1 Stock white R.txt'
+			});
+			expect(files[0].sampleFiles).toBeUndefined();
+			expect(files[3].sampleFiles).toHaveLength(3);
+			expect(files[3].sampleLabels).toEqual(['7 kHz', '8 kHz', '9 kHz']);
+			expect(files[3].sampleDisplay).toEqual(['avg', 'fill']);
+		});
+
+		it('replaces a legacy variant in place when a variants[] entry names its file', async () => {
 			const result = await parse([
 				{
 					name: 'Demo',
 					phones: [
 						{
 							name: ['X'],
-							file: ['Ignored A', 'Ignored B'],
-							suffix: ['IA', 'IB'],
-							samples: 7,
-							hptfs: [{ suffix: 'IgnoredHpTF', files: ['A', 'B'] }],
-							variants: [{ suffix: 'Only', file: 'X Only' }]
+							file: ['X Stock', 'X Mod'],
+							suffix: ['Stock', 'Mod'],
+							variants: [{ suffix: 'Stock', file: 'X Stock', samples: 3 }]
 						}
 					]
 				}
+			]);
+
+			// Upgraded rather than duplicated, and still at index 0 — so the phone's
+			// default curve doesn't move when a sample set is added to it.
+			const files = result[0].phones[0].files;
+			expect(files).toHaveLength(2);
+			expect(files.map((f) => f.suffix)).toEqual(['Stock', 'Mod']);
+			expect(files[0].sampleFiles).toHaveLength(3);
+			expect(files[1].sampleFiles).toBeUndefined();
+		});
+
+		it('composes variants[] with hptfs[] entries too', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							file: ['X Main'],
+							suffix: ['Main'],
+							hptfs: [{ suffix: 'Leather Pad', files: ['Center', 'Front'] }],
+							variants: [{ suffix: 'Suede Pad', samples: { files: ['Suede A', 'Suede B'] } }]
+						}
+					]
+				}
+			]);
+			expect(result[0].phones[0].files.map((f) => f.suffix)).toEqual([
+				'Main',
+				'Leather Pad',
+				'Suede Pad'
+			]);
+		});
+
+		it('adds no name-derived variant to a phone declaring only variants[]', async () => {
+			const result = await parse([
+				{ name: 'Demo', phones: [{ name: ['X'], variants: [{ suffix: 'Only', file: 'X Only' }] }] }
 			]);
 			const files = result[0].phones[0].files;
 			expect(files).toHaveLength(1);

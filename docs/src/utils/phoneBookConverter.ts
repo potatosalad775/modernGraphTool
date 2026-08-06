@@ -332,18 +332,24 @@ function parsePhone(
 	// `variants[]` — the explicit form. Each entry is one variant, optionally
 	// carrying its own sample set.
 	if (Array.isArray(p.variants) && p.variants.length > 0) {
-		// All five phone-level keys are dropped, not just the three the warning
-		// used to name — `prefix` and `hptfs` disappear just as silently.
+		// modernGraphTool composes these with `variants[]` rather than ignoring them,
+		// but this editor has no phone kind that holds both, so all five are dropped
+		// on export. Say so plainly — silently discarding them costs the operator
+		// both the variants themselves and the entry's CrinGraph compatibility.
 		const shadowed = (['file', 'suffix', 'prefix', 'samples', 'hptfs'] as const).filter(
 			(key) => p[key] !== undefined
 		);
 		if (shadowed.length > 0) {
+			const list = shadowed.map((key) => `"${key}"`).join('/');
+			const plural = shadowed.length > 1;
 			warnings.push(
-				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": "variants" takes precedence — the phone-level ${shadowed
-					.map((key) => `"${key}"`)
-					.join(
-						'/'
-					)} ${shadowed.length > 1 ? 'keys are' : 'key is'} ignored by modernGraphTool and will not be re-exported.`
+				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": the phone-level ${list} ${
+					plural ? 'keys are' : 'key is'
+				} loaded by modernGraphTool alongside "variants", but this editor cannot represent ${
+					plural ? 'them' : 'it'
+				} yet and will drop ${
+					plural ? 'them' : 'it'
+				} on export — removing those variants and this entry's CrinGraph compatibility. Edit this phone by hand instead.`
 			);
 		}
 		const variants = p.variants.map((raw, entryIdx) =>

@@ -5,6 +5,11 @@ sidebar_label: Changelog
 
 # modernGraphTool v2 Changelog
 
+### v2.1.7
+
+- Feat: Phone entries can now carry a rich `description` (a small inline HTML subset — links, emphasis, etc.) and a `links[]` array of operator-defined links shown alongside the built-in Review / Shop links. See [Rich Descriptions](./guide-for-admins/manage-data.mdx#rich-descriptions) and [Custom Links](./guide-for-admins/manage-data.mdx#custom-links).
+- Fix: `variants[]` now composes with the phone-level `file` / `suffix` / `prefix` / `samples` / `hptfs` form instead of discarding it, so a database can use Sample Sets without losing CrinGraph compatibility. See [Sample Sets](./guide-for-admins/manage-data.mdx#sample-sets).
+
 ### v2.1.6
 
 - Feat: Unified multi-sample and HpTF measurements into one **Sample Set** concept. A variant measured more than once can now be drawn as an averaged curve, per-run curves, a shaded min/max deviation band, or any combination — including "averaged line with a variance band", which neither old form could express. Declare it per variant with the new `variants[]` schema. See [Sample Sets documentation](./guide-for-admins/manage-data.mdx#sample-sets).

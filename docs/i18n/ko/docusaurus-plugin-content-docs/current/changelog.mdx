@@ -5,6 +5,11 @@ sidebar_label: 변경 이력
 
 # modernGraphTool v2 변경 이력
 
+### v2.1.7
+
+- Feat: 기기 항목에 서식 있는 `description`(링크, 강조 등 일부 인라인 HTML 허용)과, 기본 제공되는 Review / Shop 링크 옆에 표시되는 운영자 정의 링크 배열 `links[]`를 추가할 수 있습니다. [서식 있는 설명](./guide-for-admins/manage-data.mdx#rich-descriptions)과 [커스텀 링크](./guide-for-admins/manage-data.mdx#custom-links) 문서를 참고하세요.
+- Fix: `variants[]`가 phone 레벨의 `file` / `suffix` / `prefix` / `samples` / `hptfs` 형식을 무시하고 덮어쓰던 문제를 수정했습니다. 이제 두 형식이 합쳐지므로, 샘플 세트를 사용하면서도 CrinGraph 호환성을 유지할 수 있습니다. [샘플 세트 문서](./guide-for-admins/manage-data.mdx#sample-sets)를 참고하세요.
+
 ### v2.1.6
 
 - Feat: 다중 샘플과 HpTF 측정을 하나의 **샘플 세트(Sample Set)** 개념으로 통합했습니다. 여러 번 측정한 variant를 평균 곡선, 측정별 곡선, 최소/최대 음영 밴드 또는 그 조합으로 그릴 수 있습니다. 예전에는 어느 쪽으로도 표현할 수 없던 "평균선 + 편차 밴드"도 이제 가능합니다. 새 `variants[]` 스키마로 variant마다 선언하세요. [샘플 세트 문서](./guide-for-admins/manage-data.mdx#sample-sets)를 참고하세요.

@@ -32,11 +32,17 @@ silently and the graph never moves, which is the single most-reported EQ confusi
 
 ## `data-provider.svelte.ts`
 
-Orchestrates commands + `frStore`: add/remove/toggle FR, insertRaw, updateVariant /
-DisplayChannel / Colors / Visibility / YOffset, renormalizeAll, reSmoothAll, applyTargetAdjustment.
+Orchestrates commands + `frStore`: add/remove/toggle FR, insertRaw, averageVisiblePhones,
+updateVariant / DisplayChannel / Colors / Visibility / YOffset, renormalizeAll, reSmoothAll,
+applyTargetAdjustment.
 
 - `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it re-applies target
   adjustments itself afterwards.
+- `averageVisiblePhones` inserts the mean of every visible phone as an `inserted-phone`, which is
+  what makes it hideable / recolorable / EQ-able / undoable for free. It is a **snapshot** — later
+  add/remove of a source does not update it, and the suffix carries the contributor count so a stale
+  one is self-describing. It averages the cached raw channels, not the drawn ones; see
+  `utils/AGENTS.md#fr-averagets--average-all-visible` for why the two are equivalent and why raw wins.
 - `renormalizeAll` normalizes the already-adjusted channels in place and must **not** re-apply — it
   would be a no-op, since normalization only removes a constant offset, so the adjustment lands on
   the same curve either way.

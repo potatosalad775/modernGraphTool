@@ -214,9 +214,9 @@ and each area's `AGENTS.md` for its own test traps.
 
 All active features are first-class Svelte components in `src/lib/components/features/` and
 `src/lib/components/equalizer/` — **not** separate extensions, and not fork-based: Parametric EQ
-(AutoEQ, live audio preview, import/export), Device PEQ Bridge, Sample Sets, Target Customizer,
-Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site Search, and the
-squig.link-gated Sponsor Banner / Shop Link.
+(AutoEQ, live audio preview, import/export), Device PEQ Bridge, Sample Sets, Average Curves, Target
+Customizer, Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site
+Search, and the squig.link-gated Sponsor Banner / Shop Link.
 
 Per-feature user docs: [docs/docs/features/](docs/docs/features/).
 

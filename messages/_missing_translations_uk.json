@@ -6,6 +6,12 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/uk.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
+	"average_button_label": "Average",
+	"average_button_hint": "Average all visible measurements into a new curve",
+	"average_button_needs_two": "Show at least two measurements to average",
+	"average_curve_name": "Average",
+	"average_curve_suffix": "(of {count})",
+	"average_button_done": "Averaged {count} measurements",
 	"eq_constraint_select_title": "EQ constraint preset — limits bands, filter types, and frequency / Q / gain ranges",
 	"eq_constraint_search_placeholder": "Search presets…",
 	"eq_constraint_group_builtin": "Built-in",

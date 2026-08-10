@@ -1,8 +1,28 @@
 # Utils
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
-`listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`, `equalizer.ts`,
-`url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`.
+`fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
+`equalizer.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`.
+
+## `fr-average.ts` — average all visible
+
+Backs the toolbar's Average button (`DataProvider.averageVisiblePhones`). `isAveragable` is the
+eligibility rule — visible phones and inserted phones only — and `averageChannels` is the math.
+
+- **A channel is averaged only over the items currently displaying it.** A device shown as AVG does
+  not contribute to L/R. Channels are averaged independently and each over its own contributor
+  count, and one with fewer than two contributors is dropped rather than passed through.
+- **Feed it raw channels, process afterwards.** Both pipeline stages are linear, so averaging raw and
+  averaging the drawn curves describe the same curve — they differ only by the 0.01 dB quantum
+  `clampDB` rounds to, which is what `fr-average.spec.ts` pins. Averaging raw is what gives the
+  result a real `_rawData`, so `reSmoothAll` rebuilds it with everything else instead of stranding it
+  at the smoothing that was active when it was made. If a non-linear stage ever enters the pipeline
+  that spec fails, and the choice has to be revisited.
+- **`yOffset` is deliberately ignored.** It is a frequency-independent constant, so it survives the
+  mean as a constant and normalization strips it straight back off — it cannot change the result's
+  shape.
+- Index-wise averaging is safe because `FRParser.parseFRData` puts every curve on the same 1/48oct
+  grid; the length clamp in `meanOf` is only there so a truncated curve can't produce NaN.
 
 ## `html-sanitizer.ts`
 

@@ -49,7 +49,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 - `atoms/` — Button, Input, Accordion, PopoverPanel, ScrollArea, Skeleton, Switch
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
-  SampleChannelSelector, CrossSiteSearchResults, …
+  AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect
 - `features/` — DevicePeq, TargetCustomizer, GraphColorPicker, PreferenceBound, FrequencyTutorial,
   TutorialModal, SponsorBanner, ShopLink

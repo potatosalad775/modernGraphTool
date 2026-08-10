@@ -32,6 +32,7 @@ import {
 import FRParser from '$lib/utils/fr-parser.js';
 import type { FRParseResult } from '$lib/utils/fr-parser.js';
 import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
+import { averageChannels, isAveragable } from '$lib/utils/fr-average.js';
 import { DataProcessor, anchorAndNormalizeSamples } from '$lib/utils/data-processor.js';
 import { defaultSampleDisplay } from '$lib/utils/sample-config.js';
 import { encodeFRDataForDownload } from '$lib/utils/fr-encoder.js';
@@ -241,6 +242,57 @@ class DataProvider {
 		};
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
+	}
+
+	// ─── Average every visible phone ─────────────────────────────────────────
+
+	/**
+	 * Insert the mean of every visible phone curve as a new curve.
+	 *
+	 * Lands as an `inserted-phone` through `insertRawFRData`, which makes it a
+	 * first-class citizen for free: hideable, recolorable, removable, selectable
+	 * as an EQ source or a baseline, downloadable, and undoable in one step.
+	 *
+	 * Averages the **raw** cached channels rather than the drawn ones so the
+	 * result carries a real `_rawData` and re-smooths with everything else. The
+	 * curves agree either way — see `averageChannels` on why the two orders are
+	 * equivalent.
+	 *
+	 * It is a **snapshot**, not a live view: adding or removing a device
+	 * afterwards leaves it untouched. A live average would have to decide what to
+	 * do when it is itself one of the visible curves, and would fight undo/redo
+	 * on every source change. The suffix carries the contributor count so a stale
+	 * one is at least self-describing.
+	 *
+	 * Returns the number of curves that contributed, or 0 when there was nothing
+	 * to do — the caller owns the messaging.
+	 */
+	averageVisiblePhones(labels: { identifier: string; dispSuffix: string }): number {
+		const sources = [...frStore.entries.values()].filter(isAveragable);
+		if (sources.length < 2) return 0;
+
+		const averaged = averageChannels(
+			sources.map((item) => ({
+				// Raw when it's cached (always, for anything loaded through the normal
+				// paths) and the drawn channels only as a fallback, so a curve that
+				// somehow lost its cache still contributes rather than vanishing.
+				channels: item._rawData?.channels ?? item.channels,
+				dispChannel: item.dispChannel
+			}))
+		);
+
+		const channels = Object.keys(averaged) as ('L' | 'R' | 'AVG')[];
+		if (channels.length === 0) return 0;
+
+		this.insertRawFRData('phone', labels.identifier, averaged, {
+			// Show exactly what was produced. `#getChannelValue` would collapse an
+			// L+R average down to L alone, since it assumes an AVG channel exists
+			// whenever more than one channel does.
+			dispChannel: channels,
+			dispSuffix: labels.dispSuffix
+		});
+
+		return sources.length;
 	}
 
 	// ─── Update raw data (EQ preview) ─────────────────────────────────────────

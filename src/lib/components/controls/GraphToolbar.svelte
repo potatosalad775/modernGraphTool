@@ -3,6 +3,7 @@
 	import SmoothingButton from '$lib/components/controls/SmoothingButton.svelte';
 	import YAxisScaleButton from '$lib/components/controls/YAxisScaleButton.svelte';
 	import InspectionToggle from '$lib/components/controls/InspectionToggle.svelte';
+	import AverageButton from '$lib/components/controls/AverageButton.svelte';
 	import ScreenshotButton from '$lib/components/controls/ScreenshotButton.svelte';
 	import ShareButton from '$lib/components/controls/ShareButton.svelte';
 	import PreferenceBound from '$lib/components/features/PreferenceBound.svelte';
@@ -17,7 +18,8 @@
 	<!-- Graph features: preference bound, inspection -->
 	<PreferenceBound />
 	<InspectionToggle />
-	<!-- Actions: screenshot, share, shop -->
+	<!-- Actions: average, screenshot, share, shop -->
+	<AverageButton />
 	<ScreenshotButton />
 	<ShareButton />
 	<ShopLink />

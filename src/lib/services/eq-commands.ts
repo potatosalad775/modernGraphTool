@@ -289,6 +289,31 @@ export const eqCommands = {
 	},
 
 	/**
+	 * Switch the master EQ toggle on because the user just did something that
+	 * only makes sense with EQ live — importing a filter file, running AutoEQ,
+	 * pulling a device's PEQ, or adding the first band to an empty stack.
+	 * Without this the action lands silently and the graph never moves.
+	 *
+	 * Deliberately **not** a command: undo restores filters, not toggle state.
+	 * And deliberately not called from `replaceFilters`, which undo/redo, the
+	 * sort button and the History & Compare A/B switch all route through —
+	 * re-enabling EQ on an undo would be worse than the problem it fixes.
+	 *
+	 * Editing an existing band is not on the list either. Toggling EQ off to
+	 * compare against the raw curve while tweaking is a real workflow, and
+	 * re-enabling under the user there would fight them on every keystroke.
+	 */
+	ensureEnabled(): void {
+		if (eqStore.momentaryRestore !== null) {
+			// The momentary A/B key is held: `isEnabled` is mid-flip and keyup
+			// will overwrite whatever we write now. Set the post-release state.
+			eqStore.momentaryRestore = true;
+			return;
+		}
+		eqStore.isEnabled = true;
+	},
+
+	/**
 	 * Toggle the enabled state of a single band. Bypasses the burst coalescer
 	 * so the toggle is always its own distinct undo entry, independent of any
 	 * concurrent gain/freq drag.

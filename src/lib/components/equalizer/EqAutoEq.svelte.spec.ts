@@ -97,6 +97,9 @@ describe('EqAutoEq', () => {
 		eqStore.filters = [];
 		eqStore.sourcePhoneUUID = null;
 		eqStore.autoEqTargetUUID = null;
+		eqStore.isEnabled = false;
+		eqStore.momentaryOverride = null;
+		eqStore.momentaryRestore = null;
 		settingsStore.autoEqOptions = { ...DEFAULT_OPTS };
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
@@ -110,6 +113,7 @@ describe('EqAutoEq', () => {
 		vi.restoreAllMocks();
 		frStore.entries.clear();
 		eqStore.filters = [];
+		eqStore.isEnabled = false;
 		settingsStore.autoEqOptions = { ...DEFAULT_OPTS };
 		delete (window as { GRAPHTOOL_CONFIG?: unknown }).GRAPHTOOL_CONFIG;
 	});
@@ -368,6 +372,18 @@ describe('EqAutoEq', () => {
 			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT));
 		});
 
+		// Without this the run lands silently: filters appear in the list, the
+		// graph does not move, and the toggle that would show it is off-screen
+		// unless the user is looking at the panel header.
+		it('switches the master EQ toggle on', async () => {
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(eqStore.isEnabled).toBe(true));
+		});
+
 		it('leaves the stack alone when the worker rejects', async () => {
 			vi.spyOn(console, 'error').mockImplementation(() => {});
 			runInWorker.mockRejectedValue(new Error('worker died'));
@@ -378,6 +394,7 @@ describe('EqAutoEq', () => {
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
 			expect(replaceFilters).not.toHaveBeenCalled();
+			expect(eqStore.isEnabled).toBe(false);
 		});
 
 		it('re-enables the button after a failed run', async () => {

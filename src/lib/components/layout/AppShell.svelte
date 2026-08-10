@@ -191,9 +191,9 @@
 		return () => window.removeEventListener('resize', updateMobile);
 	});
 
-	// Tracks EQ-enabled state across a `\`-key press-and-hold so we can restore on keyup
-	// even if focus moves to an input mid-hold.
-	let eqMomentaryRestore: boolean | null = null;
+	// The restore value lives on `eqStore` rather than here so that an action taken
+	// mid-hold — an import, an AutoEQ run — can redirect it via
+	// `eqCommands.ensureEnabled()` instead of being silently undone on keyup.
 
 	function handleKeydown(e: KeyboardEvent) {
 		const target = e.target as HTMLElement;
@@ -211,12 +211,13 @@
 				e.preventDefault();
 				return;
 			}
-			if (eqMomentaryRestore !== null) return;
+			if (eqStore.momentaryRestore !== null) return;
 			if (!eqStore.sourcePhoneUUID) return;
 			e.preventDefault();
-			eqMomentaryRestore = eqStore.isEnabled;
-			eqStore.isEnabled = !eqStore.isEnabled;
-			eqStore.momentaryOverride = eqMomentaryRestore ? 'bypass' : 'audition';
+			const wasEnabled = eqStore.isEnabled;
+			eqStore.momentaryRestore = wasEnabled;
+			eqStore.isEnabled = !wasEnabled;
+			eqStore.momentaryOverride = wasEnabled ? 'bypass' : 'audition';
 			return;
 		}
 
@@ -253,10 +254,10 @@
 	}
 
 	function releaseMomentaryBypass() {
-		if (eqMomentaryRestore === null) return;
-		eqStore.isEnabled = eqMomentaryRestore;
+		if (eqStore.momentaryRestore === null) return;
+		eqStore.isEnabled = eqStore.momentaryRestore;
 		eqStore.momentaryOverride = null;
-		eqMomentaryRestore = null;
+		eqStore.momentaryRestore = null;
 	}
 
 	function handleKeyup(e: KeyboardEvent) {

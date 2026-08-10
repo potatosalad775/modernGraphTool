@@ -80,6 +80,8 @@
 		try {
 			const filters = await runAutoEQInWorker(sourcePoints, targetPoints, options);
 			eqCommands.replaceFilters(filters);
+			// Nobody runs AutoEQ wanting the graph to stay put.
+			eqCommands.ensureEnabled();
 		} catch (err) {
 			console.error('AutoEQ failed:', err);
 		} finally {

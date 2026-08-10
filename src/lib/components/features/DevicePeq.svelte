@@ -170,6 +170,7 @@
 					gain: f.gain
 				}))
 			);
+			eqCommands.ensureEnabled();
 			devicePeqStore.setStatus(`Read ${result.filters.length} filters from device`);
 		} catch (e) {
 			console.error('Failed to pull from device:', e);

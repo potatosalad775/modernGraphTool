@@ -18,8 +18,54 @@ describe('eqCommands', () => {
 	beforeEach(() => {
 		eqStore.filters = [];
 		eqStore.preamp = 0;
+		eqStore.isEnabled = false;
+		eqStore.momentaryOverride = null;
+		eqStore.momentaryRestore = null;
 		commandHistory.clear();
 		eqCommands.flushAll();
+	});
+
+	describe('ensureEnabled', () => {
+		it('switches the master toggle on', () => {
+			eqCommands.ensureEnabled();
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		it('is idempotent and pushes nothing onto the undo stack', () => {
+			eqStore.isEnabled = true;
+			eqCommands.ensureEnabled();
+			expect(eqStore.isEnabled).toBe(true);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		// Mid-hold, `isEnabled` is whatever the momentary flip made it and keyup
+		// overwrites it from `momentaryRestore`. Writing `isEnabled` here would be
+		// silently reverted a moment later, so the post-release state is what gets set.
+		it('redirects to the post-release state while the momentary key is held', () => {
+			// `\` pressed with EQ off: auditioning, and keyup would turn it back off.
+			eqStore.isEnabled = true;
+			eqStore.momentaryOverride = 'audition';
+			eqStore.momentaryRestore = false;
+
+			eqCommands.ensureEnabled();
+
+			expect(eqStore.momentaryRestore).toBe(true);
+			// The hold itself is untouched — releasing the key is still what commits.
+			expect(eqStore.momentaryOverride).toBe('audition');
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		it('leaves a bypass hold auditioning the raw curve until release', () => {
+			// `\` pressed with EQ on: bypassed, and keyup already restores `true`.
+			eqStore.isEnabled = false;
+			eqStore.momentaryOverride = 'bypass';
+			eqStore.momentaryRestore = true;
+
+			eqCommands.ensureEnabled();
+
+			expect(eqStore.isEnabled).toBe(false);
+			expect(eqStore.momentaryRestore).toBe(true);
+		});
 	});
 
 	describe('addBand', () => {

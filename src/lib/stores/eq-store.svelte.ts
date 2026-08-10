@@ -20,6 +20,13 @@ class EQStore {
 	 * temporarily on. Drives a transient badge so the two directions read differently.
 	 */
 	momentaryOverride = $state<'bypass' | 'audition' | null>(null);
+	/**
+	 * What `isEnabled` reverts to when the momentary key is released, or null
+	 * when no hold is active. Deliberately separate from `momentaryOverride`
+	 * rather than derived from it: `eqCommands.ensureEnabled()` writes here so
+	 * an import or AutoEQ run started mid-hold survives the release.
+	 */
+	momentaryRestore = $state<boolean | null>(null);
 	/** EQ-modified FR data (pre-normalization) — used for overlay node positioning */
 	readonly eqModifiedData = new SvelteMap<string, ParsedFRData>();
 

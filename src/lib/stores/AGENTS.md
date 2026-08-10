@@ -62,6 +62,15 @@ than it helps, and with the picker not rendered the auto-select silently clamped
 with no way back. That's what the service is for. The picker (`EqOptionButton`) is commented out in
 `EqFilterList` and returns when the service lands.
 
+**`eq-store.svelte.ts` — `momentaryRestore` is not derivable from `momentaryOverride`.**
+The two are set together by the `\` press-and-hold in `AppShell` and look redundant (`'bypass'`
+implies restore `true`, `'audition'` implies `false`). They stopped being redundant when
+`eqCommands.ensureEnabled()` gained the ability to redirect the post-release state: an import or
+AutoEQ run started mid-hold writes `momentaryRestore = true` and leaves the override alone, so the
+result survives keyup instead of being reverted by it. Collapsing the field back into a `$derived`
+re-breaks that. The restore value also has to live on the store rather than in `AppShell`, since
+`eqCommands` is where the redirect happens.
+
 **`preference-bound-store.svelte.ts` — state must not move back into `PreferenceBound.svelte`.**
 The store holds the preference-range overlay: `isEnabled`/`isVisible` plus the fetched bound + DF-target
 curves, with smoothing/normalization applied as `$derived`. Hydrated from `AppShell.onMount`.

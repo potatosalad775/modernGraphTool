@@ -49,6 +49,7 @@
 	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
 
 	function addBand() {
+		const wasEmpty = eqStore.filters.length === 0;
 		const ok = eqCommands.addBand({
 			enabled: true,
 			type: 'PK',
@@ -56,6 +57,9 @@
 			q: null,
 			gain: null
 		});
+		// Only the first band flips the master toggle. Adding a band to a stack
+		// the user has deliberately bypassed is an edit, not a fresh start.
+		if (ok && wasEmpty) eqCommands.ensureEnabled();
 		if (!ok) {
 			const preset = eqConstraintsStore.active;
 			if (preset && preset.maxBands > 0) {
@@ -114,6 +118,7 @@
 					eqConstraintsStore.setActive('default');
 				}
 				eqCommands.replaceFilters(filters);
+				eqCommands.ensureEnabled();
 				toast.success(m.equalizer_filter_list_import(), {
 					description: `${filters.length} filters`
 				});

@@ -7,11 +7,28 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 ## Inventory
 
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
+- `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `aggregate-index.svelte.ts` — see below
+
+## `eq-commands.ts` — `ensureEnabled()`
+
+Flips the master EQ toggle on after an action that only makes sense with EQ live: file import,
+AutoEQ run, device PEQ pull, and the first band added to an empty stack. Without it those land
+silently and the graph never moves, which is the single most-reported EQ confusion.
+
+- **Call it from the call site, never from `replaceFilters`.** Undo/redo, the sort button and the
+  History & Compare A/B switch all route through `replaceFilters`; hooking it there re-enables EQ on
+  an _undo_.
+- **Not a command.** Undo restores filters, not toggle state.
+- **Editing an existing band is deliberately excluded.** Toggling EQ off to compare against the raw
+  curve while tweaking is a real workflow — the `\` momentary key exists for exactly that — so
+  auto-enabling on every edit would fight the user.
+- It writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is active, otherwise
+  keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
 
 ## `data-provider.svelte.ts`
 

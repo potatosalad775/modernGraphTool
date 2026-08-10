@@ -27,6 +27,20 @@ It supports multiple filter types, preamp control, and audio playback with EQ ef
 4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
 5. **Import/Export**: Save and load EQ settings using the import/export functions
 
+## The Equalizer toggle
+
+Nothing in the panel reaches the graph or the audio player until the master **Equalizer** switch at
+the top of the panel is on. Actions that only make sense with EQ live turn it on for you:
+
+- Importing a filter file
+- Running AutoEQ
+- Pulling filters from a connected device (Device PEQ)
+- Adding the **first** band to an empty filter list
+
+Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
+curve while you tweak is a deliberate workflow — hold <kbd>\\</kbd> for a momentary A/B flip in
+either direction — so nothing re-enables it under you.
+
 ## AutoEQ band count
 
 **Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before

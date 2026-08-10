@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
@@ -154,6 +155,15 @@
 		return filters;
 	}
 
+	/** Sanitized "<device model>" for the export filename, or null with no EQ source selected. */
+	function sourceDeviceLabel(): string | null {
+		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
+		if (!source) return null;
+		const label = `${source.identifier} ${source.dispSuffix || ''}`.trim();
+		const sanitized = label.replace(/[\\/:*?"<>|]/g, '').trim();
+		return sanitized || null;
+	}
+
 	function exportFilters() {
 		const validFilters = eqStore.filters.filter(
 			(f) => f.freq != null && f.q != null && f.gain != null
@@ -169,7 +179,8 @@
 			if (type === 'HSQ') type = 'HSC';
 			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
 		});
-		downloadText(text, 'filters.txt');
+		const label = sourceDeviceLabel();
+		downloadText(text, label ? `${label} filters.txt` : 'filters.txt');
 		toast.success(m.equalizer_filter_list_export());
 	}
 
@@ -182,7 +193,8 @@
 		const graphicEQ = eq.convertFilterAsGraphicEQ(eqStore.filters);
 		const text =
 			'GraphicEQ: ' + graphicEQ.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
-		downloadText(text, 'graphic_eq.txt');
+		const label = sourceDeviceLabel();
+		downloadText(text, label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt');
 		toast.success(m.equalizer_filter_list_export_graphic_eq());
 	}
 </script>

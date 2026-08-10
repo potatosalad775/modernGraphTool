@@ -83,6 +83,11 @@ Always use the Runes API. Never the legacy Options API or writable stores:
   **compose** with the dialect rather than override it — CrinGraph reads `file` and nothing else, so
   a key that suppresses `file` silently makes the entry unreadable there and forces operators to
   choose between our features and dual-hosting. Precedent: `variants[]` (`_mergeVariants`).
+- **Keep commit messages short — a subject line plus at most two short paragraphs.** Long,
+  multi-section commit bodies (one paragraph per design decision) are hard to read in tools like
+  VS Code's commit view and `git log --oneline`. State what changed and, if it's not obvious from
+  the diff, the one main reason why. Deeper rationale (alternatives considered, per-decision
+  tradeoffs) belongs in the PR description, not the commit body.
 
 ## Project Layout
 

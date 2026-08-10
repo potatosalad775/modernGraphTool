@@ -67,6 +67,23 @@
 	--color-graph-grid-text: var(--color-graph-grid-text);
 }
 
+/* ─── Graph toolbar row ───────────────────────────────────────────────────── */
+/*
+ * The one place the graph toolbar's row height is defined. Three unrelated
+ * elements sit in that row and have to line up: the `toolbar` size in the
+ * Button atom, NormalizerInput's wrapper and ShopLink's anchor. ShopLink only
+ * renders on squig.link deployments, so a height changed in the other two
+ * drifts invisibly in local dev.
+ *
+ * A variable rather than an `@utility` so `h-(--toolbar-height)` stays a plain
+ * `h-` class that tailwind-merge can still resolve against a caller's override
+ * — a custom utility is opaque to it and would silently win or lose on source
+ * order, which is exactly what the twMerge note in Button.svelte exists to stop.
+ */
+@theme {
+	--toolbar-height: calc(var(--spacing) * 8);
+}
+
 /* ─── Global interactive transitions ──────────────────────────────────────── */
 button,
 a,

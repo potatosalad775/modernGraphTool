@@ -59,8 +59,8 @@
 		target="_blank"
 		rel="noopener noreferrer"
 		onclick={handleClick}
-		class="flex h-9 items-center gap-1.75 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium
-			text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+		class="flex h-(--toolbar-height) items-center gap-1.75 rounded-md bg-secondary px-2.5 py-1.5 text-xs
+			font-medium text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 	>
 		<ShoppingBag class="h-4 w-4" />
 		{m.shoplink_buy_now()}

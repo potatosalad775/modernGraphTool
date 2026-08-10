@@ -16,13 +16,16 @@
 	}
 </script>
 
-<div class="flex h-9 items-center rounded-md text-sm font-medium ring ring-base-content/20">
+<!-- Height/type match the `toolbar` Button size — see --toolbar-height in layout.css -->
+<div
+	class="flex h-(--toolbar-height) items-center rounded-md text-xs font-medium ring ring-base-content/20"
+>
 	<!-- Segmented Hz/Avg toggle -->
 	<div class="flex h-full items-center gap-0.5 p-0.5">
 		<Button
 			title="Normalize at average"
 			variant={graphStore.normType === 'Avg' ? 'primary' : 'ghost'}
-			class="h-full rounded-sm px-2.5"
+			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Avg')}
 		>
 			{m.normalizer_input_avg_btn()}
@@ -30,7 +33,7 @@
 		<Button
 			title="Normalize at specific frequency"
 			variant={graphStore.normType === 'Hz' ? 'primary' : 'ghost'}
-			class="h-full rounded-sm px-2.5"
+			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Hz')}
 		>
 			{m.normalizer_input_hz_btn()}

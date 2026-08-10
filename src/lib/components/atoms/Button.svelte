@@ -44,7 +44,9 @@
 		md: 'px-4 py-2 text-sm',
 		lg: 'px-6 py-3 text-base',
 		// Graph toolbar: icon + label pinned to one height so the row lines up.
-		toolbar: 'h-9 gap-1.5 px-3 text-sm',
+		// Height comes from `--toolbar-height` in layout.css — NormalizerInput and
+		// ShopLink sit in the same row and read the same variable.
+		toolbar: 'h-(--toolbar-height) gap-1.5 px-2.5 text-xs',
 		icon: 'p-2',
 		'icon-sm': 'p-1.5',
 		'icon-xs': 'p-1'

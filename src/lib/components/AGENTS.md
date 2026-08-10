@@ -10,10 +10,16 @@ semantic-token palette, and a raw `<button>` silently opts out of all four.
 `Button` specifically:
 
 - Takes `variant` (`primary` … `ghost`, `link`) and `size` instead of a hand-rolled class list.
-  Sizes are `xs` · `sm` · `md` · `lg` · `toolbar` (`h-9`, icon + label, for the graph toolbar row) ·
+  Sizes are `xs` · `sm` · `md` · `lg` · `toolbar` (icon + label, for the graph toolbar row) ·
   `icon` (`p-2`) · `icon-sm` (`p-1.5`) · `icon-xs` (`p-1`). Reach for the size before reaching for
-  `class` — six components used to duplicate one `h-9 gap-1.5 px-3` string because `toolbar` didn't
+  `class` — six components used to duplicate one hand-written height string because `toolbar` didn't
   exist.
+- **`toolbar` takes its height from `--toolbar-height`** in `routes/layout.css`, not from a literal.
+  Two non-`Button` elements share that row and must line up with it — `NormalizerInput`'s wrapper and
+  `ShopLink`'s anchor — so the number lives in one place. `ShopLink` renders only on squig.link
+  deployments, so a height changed in the other two drifts invisibly in local dev. It stays a
+  variable rather than an `@utility` so `h-(--toolbar-height)` remains a plain `h-` class that
+  `tailwind-merge` can resolve against a caller's override.
 - `activeOnOpen` highlights a popover trigger in the accent color while its surface is open,
   replacing a hand-written `data-[state=open]:bg-accent data-[state=open]:text-accent-content`.
 - **Classes are merged with `tailwind-merge`, so `class` overrides win without a `!` modifier.** This

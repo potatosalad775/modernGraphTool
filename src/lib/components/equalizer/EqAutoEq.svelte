@@ -5,6 +5,7 @@
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
+	import { getConfigValue } from '$lib/utils/config.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
@@ -13,6 +14,30 @@
 	let isRunning = $state(false);
 	/** AutoEQ has no place in graphic mode — gain-only edits, freq/Q locked. */
 	const isGraphicMode = $derived(eqConstraintsStore.active?.mode === 'graphic');
+
+	/** Bands generated when the filter list is empty. Operator-overridable via
+	 *  `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT`, which ships commented out. */
+	const DEFAULT_BAND_COUNT = 8;
+
+	/**
+	 * How many bands to ask the optimizer for. A non-empty stack still wins, so
+	 * "add five bands, then Run" keeps working as the way to pick a count by
+	 * hand; the default only covers the empty case, which used to resolve to a
+	 * single band and made AutoEQ look broken on first use.
+	 */
+	function resolveBandCount(): number {
+		let count = eqStore.filters.length;
+		if (count === 0) {
+			const raw = getConfigValue('EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT');
+			count = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : NaN;
+			if (!(count >= 1)) count = DEFAULT_BAND_COUNT;
+		}
+		// `replaceFilters` trims to the preset cap anyway, and truncating an
+		// 8-band solution to 5 fits worse than optimizing for 5 in the first place.
+		const preset = eqConstraintsStore.active;
+		if (preset && preset.maxBands > 0) count = Math.min(count, preset.maxBands);
+		return count;
+	}
 
 	async function runAutoEQ() {
 		const sourceUUID = eqStore.sourcePhoneUUID;
@@ -43,9 +68,8 @@
 			return;
 		}
 
-		const maxFilters = Math.max(1, eqStore.filters.length);
 		const options = {
-			maxFilters,
+			maxFilters: resolveBandCount(),
 			freqRange: [opts.freqMin, opts.freqMax] as [number, number],
 			qRange: [opts.qMin, opts.qMax] as [number, number],
 			gainRange: [opts.gainMin, opts.gainMax] as [number, number],

@@ -27,6 +27,15 @@ It supports multiple filter types, preamp control, and audio playback with EQ ef
 4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
 5. **Import/Export**: Save and load EQ settings using the import/export functions
 
+## AutoEQ band count
+
+**Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before
+running is how you ask for a five-band result. With an empty list it falls back to **8** bands.
+
+Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see
+[Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). Either way, the active
+constraint preset's band cap wins: a connected 5-band device gets 5.
+
 ## Notes
 
 - Requires a modern browser with Web Audio API support for audio features

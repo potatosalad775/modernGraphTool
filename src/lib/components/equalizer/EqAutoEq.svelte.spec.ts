@@ -111,6 +111,7 @@ describe('EqAutoEq', () => {
 		frStore.entries.clear();
 		eqStore.filters = [];
 		settingsStore.autoEqOptions = { ...DEFAULT_OPTS };
+		delete (window as { GRAPHTOOL_CONFIG?: unknown }).GRAPHTOOL_CONFIG;
 	});
 
 	// ── Option fields ────────────────────────────────────────────────────────
@@ -284,14 +285,56 @@ describe('EqAutoEq', () => {
 			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(5);
 		});
 
-		it('asks for at least one filter when the stack is empty', async () => {
+		// This used to resolve to a single band, which made AutoEQ look broken to
+		// anyone who pressed Run before adding filters by hand — the common case.
+		it('asks for eight filters when the stack is empty and no config is set', async () => {
+			expect(window.GRAPHTOOL_CONFIG).toBeUndefined();
 			seedPair();
 			render(EqAutoEq);
 
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(1);
+			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(8);
+		});
+
+		it('honours EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT for the empty stack', async () => {
+			window.GRAPHTOOL_CONFIG = { EQUALIZER: { AUTOEQ_DEFAULT_BAND_COUNT: 12 } } as never;
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(12);
+		});
+
+		it('ignores a nonsensical configured band count', async () => {
+			window.GRAPHTOOL_CONFIG = { EQUALIZER: { AUTOEQ_DEFAULT_BAND_COUNT: 0 } } as never;
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(8);
+		});
+
+		// Generating 8 and letting `replaceFilters` trim to 5 fits worse than
+		// optimizing for 5 up front, so the cap is applied before the run.
+		it('caps the default at the active preset maxBands', async () => {
+			eqConstraintsStore.presets = [
+				...BUILTIN_PRESETS,
+				{ ...BUILTIN_PRESETS[0], id: 'five-band', label: 'Five Band', maxBands: 5 }
+			];
+			eqConstraintsStore.activeId = 'five-band';
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(5);
 		});
 
 		it('falls back to the L channel when there is no average', async () => {

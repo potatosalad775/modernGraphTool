@@ -95,6 +95,10 @@ export interface ConfigFormState {
 	DOWNLOAD: {
 		ENABLED: boolean;
 	};
+	EQUALIZER_ENABLED: boolean;
+	EQUALIZER: {
+		AUTOEQ_DEFAULT_BAND_COUNT: number;
+	};
 	SQUIGLINK_ENABLED: boolean;
 	SQUIGLINK: {
 		ENABLED: boolean;
@@ -370,6 +374,10 @@ export function createDefaultConfig(): ConfigFormState {
 		DOWNLOAD_ENABLED: false,
 		DOWNLOAD: {
 			ENABLED: true
+		},
+		EQUALIZER_ENABLED: false,
+		EQUALIZER: {
+			AUTOEQ_DEFAULT_BAND_COUNT: 8
 		},
 		SQUIGLINK_ENABLED: false,
 		SQUIGLINK: {

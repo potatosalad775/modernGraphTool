@@ -761,6 +761,18 @@ Adds a per-curve download button to the selection list. Exports the curve exactl
 
 - `ENABLED`: Shows the download button. Off by default.
 
+### `EQUALIZER`
+
+```JavaScript
+EQUALIZER: {
+  AUTOEQ_DEFAULT_BAND_COUNT: 8,
+},
+```
+
+Defaults for the Equalizer panel. See [Equalizer](../features/equalizer.mdx).
+
+- `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active constraint preset's band cap still applies — a connected 5-band device gets 5.
+
 ### `SQUIGLINK`
 
 ```JavaScript

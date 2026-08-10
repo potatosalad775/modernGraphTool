@@ -746,6 +746,18 @@ DOWNLOAD: {
 
 - `ENABLED`: 다운로드 버튼을 표시합니다. 기본적으로 비활성화되어 있습니다.
 
+### `EQUALIZER`
+
+```JavaScript
+EQUALIZER: {
+  AUTOEQ_DEFAULT_BAND_COUNT: 8,
+},
+```
+
+이퀄라이저 패널의 기본값입니다. [이퀄라이저](../features/equalizer.mdx)를 참고하세요.
+
+- `AUTOEQ_DEFAULT_BAND_COUNT` — 필터 목록이 비어 있을 때 **AutoEQ 실행**이 생성할 필터 밴드 수입니다. 기본값은 `8`입니다. 목록에 밴드가 하나라도 있으면 그 개수가 우선하므로, 사용자는 실행 전에 밴드를 추가하거나 제거해 원하는 개수를 직접 정할 수 있습니다. `1` 미만의 값은 무시되며, 활성화된 제약 프리셋의 밴드 상한도 그대로 적용됩니다. 5밴드 기기가 연결되어 있다면 5개가 생성됩니다.
+
 ### `SQUIGLINK`
 
 ```JavaScript

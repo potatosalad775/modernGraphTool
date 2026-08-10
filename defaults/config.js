@@ -187,6 +187,14 @@ const CONFIG = {
 	//   ENABLED: true,
 	// },
 
+	// Equalizer defaults. AUTOEQ_DEFAULT_BAND_COUNT is how many bands "Run AutoEQ"
+	// generates when the filter list is empty (default 8). Users who want a
+	// different count still just add or remove bands before running — a non-empty
+	// list always wins. → docs: EQUALIZER
+	// EQUALIZER: {
+	//   AUTOEQ_DEFAULT_BAND_COUNT: 8,
+	// },
+
 	// Only active on *.squig.link domains: analytics, sponsor banner, shop links.
 	// → docs: SQUIGLINK
 	// SQUIGLINK: {

@@ -741,10 +741,34 @@ const CONFIG = {`);
   TARGET_CUSTOMIZER: ${prettyPrint(config.TARGET_CUSTOMIZER, 1)},`);
 	}
 
+	// CROSS_SITE_SEARCH
+	if (config.CROSS_SITE_SEARCH) {
+		sections.push(`  // Cross-Site Search Settings
+  CROSS_SITE_SEARCH: ${prettyPrint(config.CROSS_SITE_SEARCH, 1)},`);
+	}
+
+	// DOWNLOAD (optional)
+	if (config.DOWNLOAD) {
+		sections.push(`  // Per-Curve Download Button
+  DOWNLOAD: ${prettyPrint(config.DOWNLOAD, 1)},`);
+	}
+
+	// EQUALIZER (optional)
+	if (config.EQUALIZER) {
+		sections.push(`  // Equalizer Settings
+  EQUALIZER: ${prettyPrint(config.EQUALIZER, 1)},`);
+	}
+
 	// SQUIGLINK (optional)
 	if (config.SQUIGLINK) {
 		sections.push(`  // squig.link Integration Settings
   SQUIGLINK: ${prettyPrint(config.SQUIGLINK, 1)},`);
+	}
+
+	// CDN_MODE (optional)
+	if (config.CDN_MODE) {
+		sections.push(`  // CDN Deployment Settings
+  CDN_MODE: ${prettyPrint(config.CDN_MODE, 1)},`);
 	}
 
 	// DESCRIPTION
@@ -1006,6 +1030,11 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 		DOWNLOAD: {
 			ENABLED: raw.DOWNLOAD?.ENABLED ?? defaults.DOWNLOAD.ENABLED
 		},
+		EQUALIZER_ENABLED: !!raw.EQUALIZER,
+		EQUALIZER: {
+			AUTOEQ_DEFAULT_BAND_COUNT:
+				raw.EQUALIZER?.AUTOEQ_DEFAULT_BAND_COUNT ?? defaults.EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT
+		},
 		SQUIGLINK_ENABLED: !!raw.SQUIGLINK,
 		SQUIGLINK: {
 			ENABLED: raw.SQUIGLINK?.ENABLED ?? defaults.SQUIGLINK.ENABLED,
@@ -1073,6 +1102,9 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	}
 	if (state.DOWNLOAD_ENABLED) {
 		config.DOWNLOAD = state.DOWNLOAD;
+	}
+	if (state.EQUALIZER_ENABLED) {
+		config.EQUALIZER = state.EQUALIZER;
 	}
 	if (state.SQUIGLINK_ENABLED) {
 		config.SQUIGLINK = state.SQUIGLINK;

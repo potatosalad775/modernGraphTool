@@ -418,16 +418,52 @@ describe('AudioPlayerService', () => {
 			expect(audioPlayerService.toneFreq).toBe(2000);
 		});
 
-		it('clamps both sweep endpoints', () => {
+		it('makes the sweep span the band', () => {
 			audioPlayerService.setAudioSource('sweep');
 			audioRangeStore.isFrequencySelectionMode = true;
 			audioRangeStore.setRange(300, 3000);
 			settle();
 
-			audioPlayerService.setSweepFromHz(20);
-			audioPlayerService.setSweepToHz(20000);
 			expect(audioPlayerService.sweepFromHz).toBe(300);
 			expect(audioPlayerService.sweepToHz).toBe(3000);
+		});
+
+		it('re-spans the sweep when a later band clears the previous one', () => {
+			// Regression: clamping each endpoint independently collapsed the sweep to
+			// a fixed tone as soon as the new band sat entirely above (or below) the
+			// old one — both endpoints landed on the same edge.
+			audioPlayerService.setAudioSource('sweep');
+			audioRangeStore.isFrequencySelectionMode = true;
+			audioRangeStore.setRange(200, 500);
+			settle();
+			expect(audioPlayerService.sweepFromHz).toBe(200);
+			expect(audioPlayerService.sweepToHz).toBe(500);
+
+			// Entirely above the current sweep.
+			audioRangeStore.setRange(2000, 5000);
+			settle();
+			expect(audioPlayerService.sweepFromHz).toBe(2000);
+			expect(audioPlayerService.sweepToHz).toBe(5000);
+
+			// Entirely below it again.
+			audioRangeStore.setRange(30, 80);
+			settle();
+			expect(audioPlayerService.sweepFromHz).toBe(30);
+			expect(audioPlayerService.sweepToHz).toBe(80);
+		});
+
+		it('starts the first sweep cycle on a band drawn before playback began', () => {
+			// The clamp effects flush asynchronously, but play() reads the endpoints
+			// synchronously — without an explicit sync the first cycle ran on the old
+			// range and only the second one picked the band up.
+			audioPlayerService.setAudioSource('sweep');
+			audioRangeStore.isFrequencySelectionMode = true;
+			audioRangeStore.setRange(400, 900);
+
+			audioPlayerService.play();
+			expect(audioPlayerService.sweepFromHz).toBe(400);
+			expect(audioPlayerService.sweepToHz).toBe(900);
+			settle();
 		});
 
 		it('keeps clamped values when the band is released — clamps are sticky', () => {

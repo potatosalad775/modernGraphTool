@@ -67,11 +67,21 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
   to reach the audio, and all have to pick up the K-weighted bypass-match trim.
 - **The listening-range bandpass is for broadband sources only** (`#rangeGatingApplies`). Tone and
   sweep carry energy at a single frequency, so filtering them can only attenuate. Both are
-  constrained by **clamping** instead (`clampToBand` in `utils/listening-range.ts`): the tone's
-  frequency, and the sweep's `sweepFromHz`/`sweepToHz` endpoints. One rule across every source — the
-  band is the region you're auditioning. The bandpass also carries a makeup stage (`rangeMakeupGain`)
-  so a narrow band doesn't just read as "quieter". Clamps are sticky: leaving range mode keeps the
-  clamped values rather than restoring what they were before.
+  constrained by **moving** them instead. One rule across every source — the band is the region
+  you're auditioning. The bandpass also carries a makeup stage (`rangeMakeupGain`) so a narrow band
+  doesn't just read as "quieter". The moves are sticky: leaving range mode keeps the constrained
+  values rather than restoring what they were before.
+  - A **tone** is clamped (`clampToBand` in `utils/listening-range.ts`) — one frequency, pulled to
+    the nearest edge.
+  - A **sweep takes the band as its span** (`#syncSweepToRange`), it is _not_ two independent
+    clamps. Clamping `sweepFromHz` and `sweepToHz` separately collapses them onto the same edge the
+    moment the new band clears the old one — a sweep with `from === to` is a fixed tone, and a
+    partial overlap silently narrows the sweep to the overlap. Because the span is the band,
+    `EqAudioPlayer` hides the sweep's own From/To inputs in range mode; the Range From/To pair above
+    the source dropdown is the single control.
+- **`play()` applies both constraints synchronously before starting the oscillator.** The `$effect`
+  that normally does it flushes on a microtask, so a band drawn before the first play would
+  otherwise reach the sweep a cycle late.
 
 ## `aggregate-index.svelte.ts` — cross-site search
 

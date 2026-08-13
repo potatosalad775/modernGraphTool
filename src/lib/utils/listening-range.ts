@@ -18,10 +18,12 @@ export const RANGE_FILTER_Q = 0.707;
 /**
  * Constrain a frequency to the selected band.
  *
- * Single-frequency sources are gated by *moving* them rather than by filtering them:
- * a tone's frequency and a sweep's two endpoints all get clamped here, so "the band is
- * the region you're auditioning" holds for every source without a bandpass that could
- * only ever attenuate them.
+ * Single-frequency sources are gated by *moving* them rather than by filtering them, so
+ * "the band is the region you're auditioning" holds for every source without a bandpass
+ * that could only ever attenuate them. This is the tone's case — one frequency pulled to
+ * the nearest edge. A sweep is **not** two calls to this: clamping its endpoints
+ * independently collapses both onto the same edge whenever the new band clears the old
+ * one, so the sweep takes the band as its span outright (`#syncSweepToRange`).
  */
 export function clampToBand(hz: number, fromHz: number, toHz: number): number {
 	const lo = Math.min(fromHz, toHz);

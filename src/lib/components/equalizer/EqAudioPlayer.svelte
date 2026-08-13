@@ -25,8 +25,10 @@
 
 	// In frequency-selection mode the single-frequency sources are constrained to the
 	// selected band — the range gates them by moving them, not by filtering them. The
-	// tone slider maps across the band (otherwise most of its travel would clamp to the
-	// endpoints) and the sweep's from/to inputs take it as their min/max.
+	// tone slider maps across the band, otherwise most of its travel would clamp to the
+	// endpoints. The sweep spans the band outright, so it hides its own From/To inputs
+	// rather than showing a second, identically labelled pair of the same numbers that
+	// the next graph drag would overwrite.
 	const bandMinHz = $derived(
 		audioRangeStore.isFrequencySelectionMode ? audioRangeStore.fromHz : 20
 	);
@@ -198,38 +200,43 @@
 	{#if audioPlayerService.audioSource === 'sweep'}
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/60">
-				<label class="flex items-baseline gap-1">
-					{m.equalizer_player_sweep_from_label()}
-					<input
-						type="number"
-						min={bandMinHz}
-						max={bandMaxHz}
-						step="1"
-						value={audioPlayerService.sweepFromHz}
-						onchange={(e) => {
-							const v = parseInt((e.target as HTMLInputElement).value);
-							if (!isNaN(v)) audioPlayerService.setSweepFromHz(v);
-						}}
-						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
-					/>
-					<span class="text-[10px]">Hz</span>
-				</label>
-				<label class="flex items-baseline gap-1">
-					{m.equalizer_player_sweep_to_label()}
-					<input
-						type="number"
-						min={bandMinHz}
-						max={bandMaxHz}
-						step="1"
-						value={audioPlayerService.sweepToHz}
-						onchange={(e) => {
-							const v = parseInt((e.target as HTMLInputElement).value);
-							if (!isNaN(v)) audioPlayerService.setSweepToHz(v);
-						}}
-						class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
-					/>
-					<span class="text-[10px]">Hz</span>
-				</label>
+				<!-- In range mode the band *is* the sweep span, and the Range From/To pair
+				     above already edits it — a second pair here would carry the same labels
+				     and the same numbers. -->
+				{#if !audioRangeStore.isFrequencySelectionMode}
+					<label class="flex items-baseline gap-1">
+						{m.equalizer_player_sweep_from_label()}
+						<input
+							type="number"
+							min="20"
+							max="20000"
+							step="1"
+							value={audioPlayerService.sweepFromHz}
+							onchange={(e) => {
+								const v = parseInt((e.target as HTMLInputElement).value);
+								if (!isNaN(v)) audioPlayerService.setSweepFromHz(v);
+							}}
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+						/>
+						<span class="text-[10px]">Hz</span>
+					</label>
+					<label class="flex items-baseline gap-1">
+						{m.equalizer_player_sweep_to_label()}
+						<input
+							type="number"
+							min="20"
+							max="20000"
+							step="1"
+							value={audioPlayerService.sweepToHz}
+							onchange={(e) => {
+								const v = parseInt((e.target as HTMLInputElement).value);
+								if (!isNaN(v)) audioPlayerService.setSweepToHz(v);
+							}}
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+						/>
+						<span class="text-[10px]">Hz</span>
+					</label>
+				{/if}
 				<label class="flex items-baseline gap-1">
 					{m.equalizer_player_sweep_duration_label()}
 					<input

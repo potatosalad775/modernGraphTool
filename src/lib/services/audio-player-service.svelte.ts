@@ -330,14 +330,23 @@ class AudioPlayerService {
 	}
 
 	/**
-	 * Pull the sweep's endpoints back inside the band after the range itself moved.
+	 * Make the sweep span the listening range after the range itself moved.
+	 *
+	 * The endpoints are taken from the band wholesale rather than clamped into it
+	 * one at a time. Clamping independently collapses the sweep as soon as the new
+	 * band sits entirely to one side of the old one — both endpoints land on the
+	 * same edge, and a sweep with `from === to` is a fixed tone. Taking the span
+	 * also matches what the band means for the other single-frequency source: the
+	 * tone slider maps across the whole band, so the sweep traverses the whole band.
+	 *
 	 * A running sweep picks the new bounds up on its next cycle rather than jumping
 	 * mid-glide — {@link #scheduleSweepCycle} reads these fields each time round.
 	 */
-	#clampSweepToRange(): void {
+	#syncSweepToRange(): void {
 		if (!audioRangeStore.isFrequencySelectionMode || this.#audioSource !== 'sweep') return;
-		const from = this.#clampToRange(this.#sweepFromHz);
-		const to = this.#clampToRange(this.#sweepToHz);
+		// setRange() already bounds these to [20, 20000] and keeps them ≥ 1 Hz apart.
+		const from = audioRangeStore.fromHz;
+		const to = audioRangeStore.toHz;
 		if (from !== this.#sweepFromHz) this.#sweepFromHz = from;
 		if (to !== this.#sweepToHz) this.#sweepToHz = to;
 	}
@@ -519,7 +528,7 @@ class AudioPlayerService {
 				void audioRangeStore.isFrequencySelectionMode;
 				void this.#audioSource;
 				this.#clampToneToRange();
-				this.#clampSweepToRange();
+				this.#syncSweepToRange();
 			});
 		});
 	}
@@ -527,6 +536,12 @@ class AudioPlayerService {
 	// --- Playback ---
 	play(): void {
 		this.#installFilterEffectRoot();
+		// The effects above flush asynchronously, so a band drawn before the very
+		// first play has not reached the tone/sweep fields yet — and the oscillator
+		// below reads them synchronously. Applying them here means the first cycle
+		// starts on the band rather than a cycle late.
+		this.#clampToneToRange();
+		this.#syncSweepToRange();
 
 		const ctx = this.#getAudioContext();
 

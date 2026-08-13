@@ -206,13 +206,18 @@ describe('EqAudioPlayer', () => {
 			expect(audioPlayerService.sweepLoop).toBe(true);
 		});
 
-		it('bounds the endpoint inputs to the band while range mode is active', async () => {
+		it('drops its own endpoint inputs while range mode is active', async () => {
+			// In range mode the band is the sweep span, so the range section's From/To
+			// is the only pair — a second one would carry the same labels and the same
+			// numbers, and the next graph drag would overwrite whatever was typed in it.
 			audioRangeStore.isFrequencySelectionMode = true;
 			audioRangeStore.setRange(500, 5000);
 
-			// The range section renders its own From/To above the sweep pair.
-			await expect.element(numberBox('From').last()).toHaveAttribute('min', '500');
-			await expect.element(numberBox('From').last()).toHaveAttribute('max', '5000');
+			await expect.element(numberBox('From')).toHaveValue(500);
+			expect(await numberBox('From').all()).toHaveLength(1);
+			expect(await numberBox('To').all()).toHaveLength(1);
+			// The rest of the sweep controls stay.
+			expect(await numberBox('Duration').all()).toHaveLength(1);
 		});
 	});
 

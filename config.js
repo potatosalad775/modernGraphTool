@@ -142,11 +142,18 @@ const CONFIG = {
 
 	// Watermark — text and/or images drawn over the graph. Accepts an array;
 	// one entry is picked at random per page load. → docs: WATERMARK
-	// WATERMARK: [
-	//   { TYPE: 'TEXT', CONTENT: '© 2025 modernGraphTool', LOCATION: 'BOTTOM_RIGHT',
-	//     POSITION: { UP: '43', DOWN: '0', LEFT: '32', RIGHT: '0' },
-	//     OPACITY: '0.3', SIZE: '14px', FONT_FAMILY: 'sans-serif', FONT_WEIGHT: '600' },
-	// ],
+	WATERMARK: [
+		{
+			TYPE: 'TEXT',
+			CONTENT: '© 2025 modernGraphTool',
+			LOCATION: 'BOTTOM_RIGHT',
+			POSITION: { UP: '43', DOWN: '0', LEFT: '32', RIGHT: '0' },
+			OPACITY: '0.3',
+			SIZE: '14px',
+			FONT_FAMILY: 'sans-serif',
+			FONT_WEIGHT: '600'
+		}
+	],
 
 	// Curve thickness, color palette and target dash patterns. Defaults to the
 	// colorblind-safe Okabe-Ito palette. → docs: TRACE_STYLING
@@ -169,11 +176,19 @@ const CONFIG = {
 
 	// Search other measurement databases from the device search box. On by
 	// default, using the shared GraphAggregator index. → docs: CROSS_SITE_SEARCH
-	// CROSS_SITE_SEARCH: {
-	//   ENABLED: true,
-	//   INDEX_URLS: [],          // Empty = official index + its mirror
-	//   SQUIGLINK_FALLBACK: true,
-	// },
+	CROSS_SITE_SEARCH: {
+		ENABLED: true,
+		INDEX_URLS: [] // Empty = official index + its mirror
+	},
+
+	// Top-bar dropdown for switching between measurement databases across sites,
+	// using the shared GAA site index. 'auto' shows it only when this deployment
+	// is listed in that index (register at graphaggregator.harutohiroki.com) or is
+	// hosted on squig.link. → docs: SITE_SELECTOR
+	SITE_SELECTOR: {
+		ENABLED: true, // 'auto' | true | false
+		INDEX_URLS: [] // Empty = official GAA index
+	},
 
 	// Link the review score in the phone list to your ranking page.
 	// Placeholders: {brand}, {model}, {slug}, {fullName}. → docs: RANKING_URL

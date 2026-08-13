@@ -61,6 +61,15 @@ uses the atom, and touching a raw one is a good moment to convert it.
 Panels are **torn down on every panel switch.** Anything that has to survive that belongs in a store
 or a service installed from `AppShell.onMount`, not in a panel-scoped `$effect`.
 
+## Invariants worth keeping
+
+**`controls/PhoneSelector` — the pinned-device order is a snapshot, not a `$derived` of
+`loadedIds`.** Because the panel remounts scrolled to the top, devices already loaded when it opens
+sort to the head of the list. That snapshot then freezes — on the first user toggle, and on the
+first non-empty `loadedIds` for a `?share=` boot where the devices land a tick after mount. Making
+the sort track `loadedIds` live looks like a simplification and re-sorts rows out from under the
+cursor mid-click; keeping a stale pin on a device the user just unloaded is the deliberate trade.
+
 ## Component tests
 
 Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy*` from

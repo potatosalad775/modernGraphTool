@@ -49,6 +49,26 @@
 
 	const loadedIds = $derived(new Set([...frStore.entries.values()].map((e) => e.identifier)));
 
+	// ── Pinned devices ──────────────────────────────────────────────────────────
+	// The panel unmounts on every panel switch, so the list is rebuilt scrolled to
+	// the top and an already-selected device can sit hundreds of rows down. Float
+	// whatever was loaded when the panel opened to the head of the list instead.
+	//
+	// The snapshot is taken once and then frozen: re-sorting under the cursor as
+	// rows are selected costs more than the scrolling it saves. It is deliberately
+	// not seeded from an empty `loadedIds` — on a `?share=` boot the devices arrive
+	// a tick after mount, and freezing before then would pin nothing.
+	let pinnedIds = $state.raw<ReadonlySet<string>>(new Set());
+	let pinsFrozen = false;
+
+	$effect(() => {
+		if (pinsFrozen) return;
+		const ids = loadedIds;
+		if (ids.size === 0) return;
+		pinnedIds = ids;
+		pinsFrozen = true;
+	});
+
 	const displayPhones = $derived.by((): (PhoneMetadata & { brand: string })[] => {
 		let list =
 			selectedBrands.size > 0
@@ -58,8 +78,17 @@
 			const q = searchQuery.toLowerCase();
 			list = list.filter((p) => p.identifier.toLowerCase().includes(q));
 		}
-		return list;
+		if (pinnedIds.size === 0) return list;
+		// Sort is stable, so both groups keep their phone_book.json order.
+		return [...list].sort(
+			(a, b) => Number(pinnedIds.has(b.identifier)) - Number(pinnedIds.has(a.identifier))
+		);
 	});
+
+	/** Pinned rows are sorted to the front, so this doubles as the divider index. */
+	const pinnedCount = $derived(
+		pinnedIds.size === 0 ? 0 : displayPhones.filter((p) => pinnedIds.has(p.identifier)).length
+	);
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +117,8 @@
 	}
 
 	async function togglePhone(identifier: string, isLoaded: boolean): Promise<void> {
+		// Whatever the list looks like now is what the user is aiming at — hold it.
+		pinsFrozen = true;
 		const checked = !isLoaded;
 		if (!checked && !allowRemovingPhone) return;
 		if (loadingIds.has(identifier)) return;
@@ -205,11 +236,16 @@
 				{/if}
 
 				<!-- Local phone results -->
-				{#each displayPhones as phone (phone.identifier)}
+				{#each displayPhones as phone, i (phone.identifier)}
 					{@const isLoaded = loadedIds.has(phone.identifier)}
 					{@const isLoading = loadingIds.has(phone.identifier)}
+					<!-- Last row of the pinned block carries the divider — but not when the
+					     whole visible list is pinned, since there is nothing to divide from. -->
+					{@const isPinBoundary = i === pinnedCount - 1 && pinnedCount < displayPhones.length}
 					<div
-						class="border-b border-base-content/8
+						class="{isPinBoundary
+							? 'border-b-2 border-b-base-content/30'
+							: 'border-b border-base-content/8'}
 							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : ''}"
 					>
 						<button

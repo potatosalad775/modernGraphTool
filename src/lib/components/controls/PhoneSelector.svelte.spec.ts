@@ -161,4 +161,102 @@ describe('PhoneSelector', () => {
 			expect(document.querySelector('a[href="https://amazon.example"]')).toBeNull();
 		});
 	});
+
+	/**
+	 * The panel unmounts on every panel switch, so the list is rebuilt scrolled to
+	 * the top. Devices loaded when it opens are pinned to the head of the list —
+	 * and that order then holds for the rest of the panel's life.
+	 */
+	describe('pinned devices', () => {
+		const added: string[] = [];
+
+		function stubBigBook(): void {
+			MetadataParser.phoneMetadata = [
+				{
+					brand: 'Acme',
+					phones: (['Alpha', 'Bravo', 'Charlie'] as const).map((name) =>
+						makePhone({ brand: 'Acme', name, identifier: `Acme ${name}` })
+					)
+				}
+			];
+		}
+
+		function load(identifier: string): void {
+			const uuid = `pin-${identifier}`;
+			added.push(uuid);
+			frStore.set(uuid, {
+				uuid,
+				type: 'phone',
+				identifier,
+				channels: {},
+				dispChannel: ['AVG'],
+				dispSuffix: '',
+				colors: { L: '#f00', R: '#00f', AVG: '#0f0' },
+				dash: '1 0'
+			} as unknown as FRDataObject);
+		}
+
+		/** Device rows in render order. Brand buttons live in the other pane. */
+		function rowOrder(): string[] {
+			return [...document.querySelectorAll('.ps-phone-pane > div > button')].map((b) =>
+				b.textContent!.trim()
+			);
+		}
+
+		afterEach(() => {
+			for (const uuid of added) frStore.delete(uuid);
+			added.length = 0;
+		});
+
+		it('floats devices loaded at mount to the top, keeping book order within each group', async () => {
+			stubBigBook();
+			load('Acme Charlie');
+			render(PhoneSelector);
+
+			await vi.waitFor(() =>
+				expect(rowOrder()).toEqual(['Acme Charlie', 'Acme Alpha', 'Acme Bravo'])
+			);
+		});
+
+		it('marks the boundary between the pinned block and the rest', async () => {
+			stubBigBook();
+			load('Acme Charlie');
+			render(PhoneSelector);
+
+			await vi.waitFor(() => expect(rowOrder()[0]).toBe('Acme Charlie'));
+			const rows = [...document.querySelectorAll('.ps-phone-pane > div')];
+			expect(rows[0].className).toContain('border-b-2');
+			expect(rows[1].className).not.toContain('border-b-2');
+			expect(rows[2].className).not.toContain('border-b-2');
+		});
+
+		it('does not reorder the list when a device is selected', async () => {
+			const toggle = vi.spyOn(dataProvider, 'toggleFRData').mockResolvedValue(undefined);
+			stubBigBook();
+			render(PhoneSelector);
+
+			await expect.element(page.getByRole('button', { name: 'Acme Bravo' })).toBeInTheDocument();
+			await page.getByRole('button', { name: 'Acme Bravo' }).click();
+			expect(toggle).toHaveBeenCalled();
+			// The real load lands asynchronously, after the click.
+			load('Acme Bravo');
+
+			await vi.waitFor(() => expect(rowOrder()[1]).toBe('Acme Bravo'));
+			expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Bravo', 'Acme Charlie']);
+		});
+
+		it('leaves a pinned device in place after it is deselected', async () => {
+			vi.spyOn(dataProvider, 'toggleFRData').mockResolvedValue(undefined);
+			stubBigBook();
+			load('Acme Charlie');
+			render(PhoneSelector);
+
+			await vi.waitFor(() => expect(rowOrder()[0]).toBe('Acme Charlie'));
+			frStore.delete('pin-Acme Charlie');
+
+			await vi.waitFor(() =>
+				expect(rowOrder()).toEqual(['Acme Charlie', 'Acme Alpha', 'Acme Bravo'])
+			);
+		});
+	});
 });

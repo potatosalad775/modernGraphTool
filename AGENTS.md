@@ -83,11 +83,14 @@ Always use the Runes API. Never the legacy Options API or writable stores:
   **compose** with the dialect rather than override it — CrinGraph reads `file` and nothing else, so
   a key that suppresses `file` silently makes the entry unreadable there and forces operators to
   choose between our features and dual-hosting. Precedent: `variants[]` (`_mergeVariants`).
-- **Keep commit messages short — a subject line plus at most two short paragraphs.** Long,
-  multi-section commit bodies (one paragraph per design decision) are hard to read in tools like
-  VS Code's commit view and `git log --oneline`. State what changed and, if it's not obvious from
-  the diff, the one main reason why. Deeper rationale (alternatives considered, per-decision
-  tradeoffs) belongs in the PR description, not the commit body.
+- **Keep commit messages short. Default to a subject line alone.** Add a body only when the _why_
+  can't be read off the diff, and cap it at one paragraph of two or three lines. Never one paragraph
+  per design decision — long bodies are hard to read in VS Code's commit view and drown out
+  `git log --oneline`. "Two or three lines" is the literal budget, not a vibe: if the body explains
+  the bug, the fix, and a caveat, it is already too long. Pick the one thing a reader needs.
+  Everything else — alternatives considered, per-decision tradeoffs, secondary fixes, follow-up
+  caveats — belongs in the PR description, and the doc/code comments are where the durable rationale
+  already lives.
 
 ## Project Layout
 

@@ -163,6 +163,8 @@
 	"crosssite_search_no_results": "Ничего не найдено.",
 	"crosssite_search_loading": "Загрузка баз данных...",
 	"crosssite_search_truncated": "Показаны первые {count} из {total} результатов. Уточните критерии поиска, чтобы сократить количество результатов.",
+	"site_selector_label": "Выбрать сайт",
+	"site_selector_unverified": "Во время последнего создания индекса доступ к этой базе данных был невозможен. Ссылка может не работать.",
 	"sponsor_banner_dismiss": "Закрыть",
 	"shoplink_buy_now": "Купить сейчас",
 	"selection_list_baseline_off": "Сделать базовой линией",

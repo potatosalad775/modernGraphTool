@@ -163,6 +163,8 @@
 	"crosssite_search_no_results": "Нічого не знайдено.",
 	"crosssite_search_loading": "Завантаження баз даних...",
 	"crosssite_search_truncated": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+	"site_selector_label": "Обрати сайт",
+	"site_selector_unverified": "Під час останнього створення індексу доступ до цієї бази даних був неможливий. Посилання може не працювати.",
 	"sponsor_banner_dismiss": "Закрити",
 	"shoplink_buy_now": "Купити зараз",
 	"selection_list_baseline_off": "Зробити базовою лінією",

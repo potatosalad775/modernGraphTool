@@ -24,6 +24,8 @@
 	"average_curve_suffix": "(of {count})",
 	"average_button_done": "Averaged {count} measurements",
 	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down.",
+	"site_selector_label": "Select a site",
+	"site_selector_unverified": "This database was unreachable when the index was last built. The link may not work.",
 	"keyboard_shortcut_eq_bypass": "Hold to A/B EQ",
 	"keyboard_shortcut_delete_band": "Delete selected band",
 	"eq_constraint_select_label": "Constraint",

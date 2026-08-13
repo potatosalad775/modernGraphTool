@@ -44,8 +44,9 @@ export const frStore = new FRDataStore();
   `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — hardware EQ device connection state
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
-- `squiglink-store.svelte.ts` — squig.link site registry, sponsor content, domain guard, and the
-  phone-book-crawling fallback search used only when no aggregate index is reachable
+- `squiglink-store.svelte.ts` — squig.link domain guard, sponsor content and shop links. The site
+  registry and phone-book crawl it used to own moved to `services/site-index.svelte.ts` and
+  `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`
 
 ## Invariants worth keeping
 

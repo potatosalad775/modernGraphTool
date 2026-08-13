@@ -55,7 +55,6 @@ export function getCrossSiteSearchConfig(): CrossSiteSearchConfig {
 	const enabled = getConfigValue('CROSS_SITE_SEARCH.ENABLED') as boolean | undefined;
 	const legacyEnabled = getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH') as boolean | undefined;
 	const urls = getConfigValue('CROSS_SITE_SEARCH.INDEX_URLS');
-	const fallback = getConfigValue('CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK') as boolean | undefined;
 
 	const indexUrls = Array.isArray(urls)
 		? urls.filter((url): url is string => typeof url === 'string' && url.trim() !== '')
@@ -63,8 +62,7 @@ export function getCrossSiteSearchConfig(): CrossSiteSearchConfig {
 
 	return {
 		ENABLED: (enabled ?? legacyEnabled ?? true) !== false,
-		INDEX_URLS: indexUrls.length > 0 ? indexUrls : DEFAULT_INDEX_URLS,
-		SQUIGLINK_FALLBACK: fallback !== false
+		INDEX_URLS: indexUrls.length > 0 ? indexUrls : DEFAULT_INDEX_URLS
 	};
 }
 
@@ -82,7 +80,12 @@ export function buildShareUrl(dbUrl: string, slug: string): string {
 	return `${dbUrl}?share=${encodeURIComponent(slug)}`;
 }
 
-function rankDbType(dbType: string): number {
+/**
+ * Position of a rig class in the canonical ordering; unknown types sort last.
+ * Shared with the site selector so search results and the site dropdown group
+ * databases in the same order.
+ */
+export function rankDbType(dbType: string): number {
 	const index = DB_TYPE_ORDER.indexOf(dbType);
 	return index === -1 ? DB_TYPE_ORDER.length : index;
 }

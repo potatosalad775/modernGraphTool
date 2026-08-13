@@ -13,6 +13,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `data-provider.svelte.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `aggregate-index.svelte.ts` — see below
+- `site-index.svelte.ts` — see below
 
 ## `eq-commands.ts` — `ensureEnabled()`
 
@@ -77,29 +78,56 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 Fetches the GraphAggregator index (one JSON doc listing every known site/database/device), normalizes
 both `flat` and `collapsed` phone formats, and answers queries against a prebuilt lowercase row set.
 Host-agnostic — **not** squig.link-gated. Exports `aggregateIndexService`, plus
-`getCrossSiteSearchConfig`, `buildShareUrl`, `deriveShareSlug` and `sortCrossSiteResults`, which
-`squiglink-store`'s fallback path reuses so both sources emit an identical `CrossSiteSearchResult`.
+`getCrossSiteSearchConfig`, `buildShareUrl`, `deriveShareSlug`, `sortCrossSiteResults` and
+`rankDbType`.
+
+One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars — so it costs nothing
+for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the
+official URL plus its GitHub Pages mirror, tried in order.
+Schema: https://github.com/HarutoHiroki/GraphAggregator
 
 Configured via `CROSS_SITE_SEARCH` in `defaults/config.js`; `SQUIGLINK.ENABLE_CROSS_SITE_SEARCH` is
 deprecated and read only as a fallback for configs that predate the new section.
 
-Source order, resolved in `CrossSiteSearchResults.svelte`:
+Share slugs **must** go through `buildShareUrl` — over a thousand device names contain `+`, `&` or
+non-ASCII characters that break `?share=` links if concatenated raw.
 
-1. **GraphAggregator index** — one JSON document, ~360 KB gzip, fetched lazily on the first query of
-   ≥2 chars. Operators can override `INDEX_URLS` to self-host; the defaults are the official URL plus
-   its GitHub Pages mirror, tried in order. Schema: https://github.com/HarutoHiroki/GraphAggregator
-2. **squig.link phone-book crawl** (`squiglink-store`) — legacy path, one request per database. Runs
-   only if no index URL resolved **and** the deployment is on squig.link **and** `SQUIGLINK_FALLBACK`
-   is on.
+**A squig.link `phone_book.json` crawl used to back this up** when no index resolved, living in
+`squiglink-store` behind `CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK`. It was removed: one request per
+database (146 and climbing) to reproduce a strictly worse result set than the one document, and it
+only ever ran when both aggregator mirrors were down. Don't reintroduce it — if the index is
+unreachable, cross-site search returning nothing is the intended degradation.
 
-Both sources emit `CrossSiteSearchResult` and share `buildShareUrl` / `sortCrossSiteResults`, so the
-UI never branches on which one produced a hit. Share slugs **must** go through `buildShareUrl` — over
-a thousand device names contain `+`, `&` or non-ASCII characters that break `?share=` links if
-concatenated raw.
+## `site-index.svelte.ts` — site selector
+
+Fetches the GAA site index — a directory of every known site and database, with URLs already
+resolved and **no** device corpus, so it is ~4.5 KB gzip against the aggregate index's ~360 KB.
+Small enough to load on mount rather than lazily. Host-agnostic; exports `siteIndexService` plus
+`getSiteSelectorConfig`, `fetchSiteIndex`, `findCurrentDbId`, `buildSiteEntries` and
+`groupSiteEntries`. Schema: https://github.com/potatosalad775/GAA
+
+GAA unions GraphAggregator's index with squig.link's registry, which is the point: the aggregator
+drops any database whose phone book failed its nightly crawl, and a site that 502'd at 06:00 UTC
+disappearing from the site switcher for a day is wrong for navigation even though it's right for
+search. Union entries carry `verified: false` and render dimmed. **A missing `verified` field means
+verified**, so an aggregator-shaped document doesn't dim every row.
+
+- **`SITE_SELECTOR.ENABLED` defaults to `'auto'`**, not `true`: show the switcher only where the
+  deployment is in the index or is on squig.link. An unregistered standalone site would otherwise get
+  a dropdown listing a hundred other people's databases and none of its own. `SiteSelector.svelte`
+  resolves that tri-state; the core stays pure and never reads the squig.link store.
+- **`findCurrentDbId` takes an optional `href`.** Browser-mode specs can't navigate the page they run
+  on, so the parameter is what makes current-site matching testable. Longest path match wins — a site
+  hosting both `/` and `/headphones/` would otherwise always resolve to the root database.
+- `rankDbType` is imported from `aggregate-index-core`, so search results and the site dropdown order
+  rig classes identically. Don't copy the array.
+
+This replaced a `squigsites.json` fetch in `squiglink-store`, along with its `urlType` / `altDomain` /
+lab-folder URL construction — GAA resolves all of that server-side into absolute URLs.
 
 ## squig.link integration
 
 Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`). Fetches
-site registry and shop links from squig.link JSON endpoints and loads `squiglink-intro.js` for
-sponsor content. All UI is Svelte-native — no external DOM manipulation. Toggled via the `SQUIGLINK`
-section in `defaults/config.js`.
+shop links from squig.link JSON endpoints and loads `squiglink-intro.js` for sponsor content. All UI
+is Svelte-native — no external DOM manipulation. Toggled via the `SQUIGLINK` section in
+`defaults/config.js`.

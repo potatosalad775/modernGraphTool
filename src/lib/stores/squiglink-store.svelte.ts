@@ -1,30 +1,13 @@
-import { SvelteMap } from 'svelte/reactivity';
 import { browser } from '$app/environment';
 import { getConfigValue } from '$lib/utils/config.js';
-import {
-	buildShareUrl,
-	deriveShareSlug,
-	sortCrossSiteResults
-} from '$lib/services/aggregate-index-core.js';
-import type { CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
 import type {
-	SquiglinkSite,
-	SquiglinkBrandEntry,
 	ShopLinkEntry,
 	SponsorContent,
-	SquiglinkUrlType,
 	SponsorDetail,
 	SponsorProductData
 } from '$lib/types/squiglink-types.js';
 
 const SQUIGLINK_DOMAIN = 'squig.link';
-
-interface PhoneBookEntry {
-	brands: SquiglinkBrandEntry[];
-	dbType: string;
-	folder: string;
-	deltaReady: boolean;
-}
 
 const OPT_OUT_SITES = new Set([
 	'64audio',
@@ -39,6 +22,11 @@ const OPT_OUT_SITES = new Set([
 ]);
 
 /**
+ * squig.link-only integration: sponsor content and shop links, gated on the
+ * deployment actually being hosted there. The site registry and phone-book
+ * crawl this used to own now come from the GAA site index and the
+ * GraphAggregator index respectively — both host-agnostic.
+ *
  * Exported for tests only — the app uses the `squiglinkStore` singleton below.
  * The domain guard runs in the constructor, so covering the enabled paths means
  * building an instance after `SQUIGLINK.DEBUG` is in place.
@@ -49,17 +37,10 @@ export class SquiglinkStore {
 	readonly isEnabled: boolean;
 
 	// ── State ────────────────────────────────────────────────────────────────
-	sites = $state<SquiglinkSite[]>([]);
 	shopLinks = $state<ShopLinkEntry[]>([]);
 	sponsorDetail = $state<SponsorDetail | null>(null);
 	sponsorContent = $state<SponsorContent | null>(null);
-	isLoading = $state(false);
-	error = $state<string | null>(null);
 
-	searchQuery = $state('');
-
-	readonly #phoneBooks = new SvelteMap<string, PhoneBookEntry>();
-	#sitesFetched = false;
 	#shopLinksFetched = false;
 	#sponsorDetailFetched = false;
 	#sponsorFetched = false;
@@ -99,103 +80,7 @@ export class SquiglinkStore {
 		return username !== null && OPT_OUT_SITES.has(username);
 	}
 
-	/**
-	 * Fallback search path, used only when no aggregate index is reachable.
-	 * Emits the same `CrossSiteSearchResult` shape as `aggregate-index` so the
-	 * UI renders both sources identically. Uncapped — the caller slices.
-	 */
-	searchResults: CrossSiteSearchResult[] = $derived.by(() => {
-		const q = this.searchQuery.trim().toLowerCase();
-		if (q.length < 2) return [];
-
-		const results: CrossSiteSearchResult[] = [];
-		const currentUser = this.currentSiteUsername;
-		// A throwaway lookup rebuilt on every recompute and never read outside this
-		// function — nothing to make reactive.
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		const siteByUsername = new Map(this.sites.map((s) => [s.username, s]));
-
-		for (const [key, entry] of this.#phoneBooks) {
-			const siteUsername = key.split('\0')[0];
-
-			// Skip current site's own results
-			if (siteUsername === currentUser) continue;
-
-			const site = siteByUsername.get(siteUsername);
-			if (!site) continue;
-
-			const folderPath = entry.folder === '/' ? '' : entry.folder.replace(/\/$/, '');
-			const dbUrl = `${this.buildSiteUrl(site)}${folderPath}`;
-			const { dbType, deltaReady } = entry;
-
-			for (const brand of entry.brands) {
-				for (const phone of brand.phones) {
-					const name = typeof phone.name === 'string' ? phone.name : String(phone.name);
-					// Match on "<brand> <model>", same as the aggregate index rows.
-					if (!`${brand.name} ${name}`.toLowerCase().includes(q)) continue;
-
-					results.push({
-						siteId: site.username,
-						siteName: site.name,
-						dbId: `${site.username}\0${entry.folder}`,
-						dbType,
-						deltaReady,
-						brand: brand.name,
-						phoneName: name,
-						url: buildShareUrl(dbUrl, deriveShareSlug(brand.name, name))
-					});
-				}
-			}
-		}
-
-		return sortCrossSiteResults(results);
-	});
-
 	// ── Data fetching ────────────────────────────────────────────────────────
-
-	async fetchSiteRegistry(): Promise<void> {
-		if (this.#sitesFetched || !this.isEnabled) return;
-
-		this.isLoading = true;
-		this.error = null;
-
-		try {
-			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squigsites.json`);
-			if (!res.ok) throw new Error(`Failed to fetch site registry: ${res.status}`);
-			this.sites = (await res.json()) as SquiglinkSite[];
-			this.#sitesFetched = true;
-		} catch (e) {
-			this.error = e instanceof Error ? e.message : 'Failed to fetch site registry';
-		} finally {
-			this.isLoading = false;
-		}
-	}
-
-	async fetchPhoneBook(site: SquiglinkSite): Promise<void> {
-		const siteUrl = this.buildSiteUrl(site);
-
-		const fetches = site.dbs.map(async (db) => {
-			const folder = db.folder || '/';
-			const key = site.username + '\0' + folder;
-			if (this.#phoneBooks.has(key)) return;
-
-			const folderPath = folder === '/' ? '' : folder.replace(/\/$/, '');
-			const url = `${siteUrl}${folderPath}/data/phone_book.json`;
-
-			try {
-				const res = await fetch(url);
-				if (!res.ok) return;
-				const data = await res.json();
-				// phone_book.json can have either { brandPhones: [...] } or be the array directly
-				const brands: SquiglinkBrandEntry[] = Array.isArray(data) ? data : (data.brandPhones ?? []);
-				this.#phoneBooks.set(key, { brands, dbType: db.type, folder, deltaReady: !!db.deltaReady });
-			} catch {
-				// Silently skip dbs that fail to load
-			}
-		});
-
-		await Promise.all(fetches);
-	}
 
 	async fetchShopLinks(): Promise<void> {
 		if (this.#shopLinksFetched || !this.isEnabled) return;
@@ -290,10 +175,6 @@ export class SquiglinkStore {
 		}
 	}
 
-	getPhoneBook(siteUsername: string, folder: string = '/'): SquiglinkBrandEntry[] | undefined {
-		return this.#phoneBooks.get(siteUsername + '\0' + folder)?.brands;
-	}
-
 	getSponsorDetail(): SponsorDetail | null {
 		return this.sponsorDetail;
 	}
@@ -301,19 +182,6 @@ export class SquiglinkStore {
 	findShopLink(modelName: string): ShopLinkEntry | undefined {
 		const lower = modelName.toLowerCase();
 		return this.shopLinks.find((entry) => entry.model.toLowerCase() === lower);
-	}
-
-	// ── URL construction ─────────────────────────────────────────────────────
-
-	buildSiteUrl(site: SquiglinkSite): string {
-		const urlBuilders: Record<SquiglinkUrlType, () => string> = {
-			root: () => `https://${SQUIGLINK_DOMAIN}`,
-			altDomain: () => site.altDomain ?? `https://${site.username}.${SQUIGLINK_DOMAIN}`,
-			subdomain: () => `https://${site.username}.${SQUIGLINK_DOMAIN}`,
-			labFolder: () => `https://${SQUIGLINK_DOMAIN}/lab/${site.username}`
-		};
-
-		return (urlBuilders[site.urlType] ?? urlBuilders.subdomain)();
 	}
 }
 

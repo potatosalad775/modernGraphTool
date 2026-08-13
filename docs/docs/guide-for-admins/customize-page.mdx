@@ -739,7 +739,6 @@ Setting `FILTERS` discards the four built-in filters entirely. If you are adding
 CROSS_SITE_SEARCH: {
   ENABLED: true,
   INDEX_URLS: [],
-  SQUIGLINK_FALLBACK: true,
 },
 ```
 
@@ -747,7 +746,20 @@ Lets visitors search other measurement databases from your search box. Works on 
 
 - `ENABLED`: Enables cross-site device search.
 - `INDEX_URLS`: Index documents to try, in order. Leave empty to use the official [GraphAggregator](https://github.com/HarutoHiroki/GraphAggregator) index and its GitHub Pages mirror. Set your own URLs to self-host an index following the same schema.
-- `SQUIGLINK_FALLBACK`: When no index is reachable and the site runs on squig.link, crawl each squig.link site's `phone_book.json` instead. Slower — one request per database.
+
+### `SITE_SELECTOR`
+
+```JavaScript
+SITE_SELECTOR: {
+  ENABLED: 'auto',
+  INDEX_URLS: [],
+},
+```
+
+Adds a top-bar dropdown for switching between measurement databases across sites. Works on any host — squig.link is not required. See [Site Selector](../features/site-selector.mdx).
+
+- `ENABLED`: `'auto'` shows the selector only when this deployment is listed in the shared index (register at [graphaggregator.harutohiroki.com](https://graphaggregator.harutohiroki.com/)) or is hosted on squig.link. `true` always shows it; `false` never does and skips the fetch.
+- `INDEX_URLS`: Directory documents to try, in order. Leave empty to use the official [GAA](https://github.com/potatosalad775/GAA) index. Set your own URLs to self-host one following the same schema.
 
 ### `DOWNLOAD`
 

@@ -1,36 +1,12 @@
 /**
  * Type definitions for squig.link integration data structures.
+ *
+ * The site registry (`squigsites.json`) and per-site phone-book types that used
+ * to live here are gone: the site selector reads the GAA site index instead
+ * (`site-index-types.ts`), and cross-site search reads the GraphAggregator index
+ * (`aggregate-index-types.ts`). What remains is the squig.link-only commercial
+ * integration.
  */
-
-// ── Site Registry (from squigsites.json) ─────────────────────────────────────
-
-export interface SquiglinkSiteDB {
-	type: string;
-	folder: string;
-	deltaReady?: boolean;
-}
-
-export type SquiglinkUrlType = 'subdomain' | 'labFolder' | 'altDomain' | 'root';
-
-export interface SquiglinkSite {
-	username: string;
-	name: string;
-	urlType: SquiglinkUrlType;
-	altDomain?: string;
-	dbs: SquiglinkSiteDB[];
-}
-
-// ── Phone Book (per-site) ────────────────────────────────────────────────────
-
-export interface SquiglinkPhoneEntry {
-	name: string;
-	file: string | string[];
-}
-
-export interface SquiglinkBrandEntry {
-	name: string;
-	phones: SquiglinkPhoneEntry[];
-}
 
 // ── Shop Links (from shoplinks.json) ─────────────────────────────────────────
 

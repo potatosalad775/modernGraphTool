@@ -1,9 +1,8 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte.js';
 	import { aggregateIndexService } from '$lib/services/aggregate-index.svelte.js';
-	import { getCrossSiteSearchConfig, MAX_RESULTS } from '$lib/services/aggregate-index-core.js';
+	import { getCrossSiteSearchConfig } from '$lib/services/aggregate-index-core.js';
 	import type { CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
 	import { ArrowUpRight } from '@lucide/svelte';
 
@@ -24,36 +23,17 @@
 
 	let crossSiteLoadStarted = false;
 	let crossSiteLoading = $state(false);
-	/** Set when no aggregate index was reachable and we crawled squig.link instead. */
-	let usingSquiglinkFallback = $state(false);
 
-	/**
-	 * Loads the aggregate index. If every index URL fails, falls back to crawling
-	 * each squig.link site's phone_book.json — but only on squig.link deployments,
-	 * since that path depends on the squig.link site registry.
-	 */
 	async function loadCrossSiteData(): Promise<void> {
 		crossSiteLoading = true;
 		try {
-			if (await aggregateIndexService.load()) return;
-
-			if (!config.SQUIGLINK_FALLBACK || !squiglinkStore.isEnabled) return;
-			usingSquiglinkFallback = true;
-			await squiglinkStore.fetchSiteRegistry();
-			await Promise.all(squiglinkStore.sites.map((site) => squiglinkStore.fetchPhoneBook(site)));
+			await aggregateIndexService.load();
 		} catch (e) {
 			console.error('Failed to load cross-site data:', e);
 		} finally {
 			crossSiteLoading = false;
 		}
 	}
-
-	// Keep the fallback store's query in sync — its results are a $derived of it
-	$effect(() => {
-		if (usingSquiglinkFallback) {
-			squiglinkStore.searchQuery = searchQuery;
-		}
-	});
 
 	// Trigger cross-site data load once when enabled and query is long enough
 	$effect(() => {
@@ -65,10 +45,7 @@
 
 	const hits = $derived.by(() => {
 		if (!crossSiteEnabled || searchQuery.trim().length < 2) return { results: [], total: 0 };
-		if (aggregateIndexService.isReady) return aggregateIndexService.search(searchQuery);
-
-		const results = squiglinkStore.searchResults;
-		return { results: results.slice(0, MAX_RESULTS), total: results.length };
+		return aggregateIndexService.search(searchQuery);
 	});
 
 	const groupedCrossSite = $derived.by(() => {

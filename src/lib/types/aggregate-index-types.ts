@@ -64,10 +64,7 @@ export interface AggregateIndex {
 
 // ── Cross-site search (computed, shared by both data sources) ────────────────
 
-/**
- * One search hit. Produced from the aggregate index, or synthesized by the
- * squig.link phone-book fallback in `squiglink-store`.
- */
+/** One search hit, produced from the aggregate index. */
 export interface CrossSiteSearchResult {
 	siteId: string;
 	siteName: string;
@@ -86,5 +83,4 @@ export interface CrossSiteSearchConfig {
 	ENABLED: boolean;
 	/** Empty → the built-in official aggregator URLs are used. */
 	INDEX_URLS: string[];
-	SQUIGLINK_FALLBACK: boolean;
 }

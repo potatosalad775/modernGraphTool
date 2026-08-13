@@ -23,7 +23,6 @@ modernGraphTool에 공식 URL이 내장되어 있어 따로 설정할 것은 없
 CROSS_SITE_SEARCH: {
     ENABLED: true,
     INDEX_URLS: [],
-    SQUIGLINK_FALLBACK: true,
 }
 ```
 
@@ -32,9 +31,6 @@ CROSS_SITE_SEARCH: {
 - **`ENABLED`** — 크로스 사이트 검색 켜기/끄기. 기본값은 켜짐.
 - **`INDEX_URLS`** — 시도할 인덱스 문서 목록(순서대로). 비워 두면 공식 GraphAggregator 인덱스를
   사용하며, GitHub Pages 미러가 자동 백업으로 동작합니다.
-- **`SQUIGLINK_FALLBACK`** — 인덱스를 하나도 받아오지 못했고 **동시에** 사이트가 squig.link에서
-  호스팅될 때, 각 squig.link 사이트의 `phone_book.json`을 직접 수집하는 방식으로 대체합니다.
-  기존 방식이라 동작은 하지만, 데이터베이스 수만큼 요청이 발생해 느립니다.
 
 ## 인덱스 직접 호스팅하기
 

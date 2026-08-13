@@ -89,7 +89,10 @@ export interface ConfigFormState {
 	CROSS_SITE_SEARCH: {
 		ENABLED: boolean;
 		INDEX_URLS: string[];
-		SQUIGLINK_FALLBACK: boolean;
+	};
+	SITE_SELECTOR: {
+		ENABLED: 'auto' | boolean;
+		INDEX_URLS: string[];
 	};
 	DOWNLOAD_ENABLED: boolean;
 	DOWNLOAD: {
@@ -368,8 +371,11 @@ export function createDefaultConfig(): ConfigFormState {
 		},
 		CROSS_SITE_SEARCH: {
 			ENABLED: true,
-			INDEX_URLS: [],
-			SQUIGLINK_FALLBACK: true
+			INDEX_URLS: []
+		},
+		SITE_SELECTOR: {
+			ENABLED: 'auto',
+			INDEX_URLS: []
 		},
 		DOWNLOAD_ENABLED: false,
 		DOWNLOAD: {

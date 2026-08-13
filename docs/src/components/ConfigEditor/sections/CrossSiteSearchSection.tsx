@@ -40,22 +40,6 @@ export default function CrossSiteSearchSection() {
 					addLabel="+ Add URL"
 				/>
 			</div>
-
-			<div className={styles.ceToggleRow}>
-				<input
-					type="checkbox"
-					className={styles.ceCheckbox}
-					checked={state.CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK}
-					onChange={(e) => set('SQUIGLINK_FALLBACK', e.target.checked)}
-					id="css-fallback"
-				/>
-				<label htmlFor="css-fallback" className={styles.ceToggleLabel}>
-					squig.link fallback
-					<span className={styles.ceToggleHint}>
-						Crawl squig.link phone books when no index is reachable
-					</span>
-				</label>
-			</div>
 		</AccordionSection>
 	);
 }

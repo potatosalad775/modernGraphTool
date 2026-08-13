@@ -73,9 +73,9 @@ for this, with parallel state, fetch, process and render paths; they are now one
 - **The CrinGraph dialect stays readable permanently** — `file` / `suffix` / `prefix` arrays and the
   phone-level `samples: N`. Operators hand-author `phone_book.json`, and most existing databases
   predate `variants[]`; those files have to keep loading untouched. Cross-site search is _not_ the
-  reason: the GraphAggregator index carries its own schema, and the squig.link phone-book crawl — the
-  legacy fallback in `squiglink-store` — only lifts brand and device names out of a foreign book,
-  never its file or sample keys.
+  reason: the GraphAggregator index carries its own schema, and the squig.link phone-book crawl that
+  used to back it up (since removed) only lifted brand and device names out of a foreign book, never
+  its file or sample keys.
 - **`hptfs[]` is deprecated and slated for removal**, along with the `MULTI_SAMPLE` / `HPTF` config
   sections. It was modernGraphTool's own invention — no other CrinGraph-derived tool ever wrote it —
   so the argument above covers it far more thinly than it covers the rest of the dialect. Keep the

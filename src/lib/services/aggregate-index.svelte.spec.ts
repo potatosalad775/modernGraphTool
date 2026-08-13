@@ -142,7 +142,6 @@ describe('cross-site search helpers', () => {
 			const config = getCrossSiteSearchConfig();
 			expect(config.ENABLED).toBe(true);
 			expect(config.INDEX_URLS).toEqual(OFFICIAL_URLS);
-			expect(config.SQUIGLINK_FALLBACK).toBe(true);
 		});
 
 		it('falls back to the deprecated squig.link toggle', () => {

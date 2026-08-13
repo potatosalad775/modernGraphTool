@@ -20,6 +20,7 @@ import TopbarSection from './sections/TopbarSection';
 import PreferenceBoundSection from './sections/PreferenceBoundSection';
 import TargetCustomizerSection from './sections/TargetCustomizerSection';
 import CrossSiteSearchSection from './sections/CrossSiteSearchSection';
+import SiteSelectorSection from './sections/SiteSelectorSection';
 import DownloadSection from './sections/DownloadSection';
 import EqualizerSection from './sections/EqualizerSection';
 import SquiglinkSection from './sections/SquiglinkSection';
@@ -104,6 +105,7 @@ function ConfigEditorInner(): ReactNode {
 					<PreferenceBoundSection />
 					<TargetCustomizerSection />
 					<CrossSiteSearchSection />
+					<SiteSelectorSection />
 					<DownloadSection />
 					<EqualizerSection />
 					<SquiglinkSection />

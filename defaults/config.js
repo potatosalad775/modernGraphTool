@@ -172,7 +172,15 @@ const CONFIG = {
 	// CROSS_SITE_SEARCH: {
 	//   ENABLED: true,
 	//   INDEX_URLS: [],          // Empty = official index + its mirror
-	//   SQUIGLINK_FALLBACK: true,
+	// },
+
+	// Top-bar dropdown for switching between measurement databases across sites,
+	// using the shared GAA site index. 'auto' shows it only when this deployment
+	// is listed in that index (register at graphaggregator.harutohiroki.com) or is
+	// hosted on squig.link. → docs: SITE_SELECTOR
+	// SITE_SELECTOR: {
+	//   ENABLED: 'auto',         // 'auto' | true | false
+	//   INDEX_URLS: [],          // Empty = official GAA index
 	// },
 
 	// Link the review score in the phone list to your ranking page.

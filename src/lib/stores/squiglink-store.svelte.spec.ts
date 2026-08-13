@@ -7,17 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { squiglinkStore, SquiglinkStore } from './squiglink-store.svelte.js';
-import type { SquiglinkSite, ShopLinkEntry } from '$lib/types/squiglink-types.js';
-
-function makeSite(overrides: Partial<SquiglinkSite> = {}): SquiglinkSite {
-	return {
-		username: 'testsite',
-		name: 'Test Site',
-		urlType: 'subdomain',
-		dbs: [{ type: 'IEM', folder: 'data' }],
-		...overrides
-	};
-}
+import type { ShopLinkEntry } from '$lib/types/squiglink-types.js';
 
 function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
 	return {
@@ -34,44 +24,6 @@ function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
 }
 
 describe('SquiglinkStore', () => {
-	// ── buildSiteUrl ──────────────────────────────────────────────────────
-
-	describe('buildSiteUrl', () => {
-		it('builds root URL for root urlType', () => {
-			const site = makeSite({ urlType: 'root' });
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://squig.link');
-		});
-
-		it('uses altDomain when urlType is altDomain and altDomain is set', () => {
-			const site = makeSite({ urlType: 'altDomain', altDomain: 'https://custom.example.com' });
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://custom.example.com');
-		});
-
-		it('falls back to subdomain URL when altDomain urlType but altDomain is missing', () => {
-			const site = makeSite({ urlType: 'altDomain', username: 'bob' });
-			// altDomain is undefined, so fallback: `https://${username}.squig.link`
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://bob.squig.link');
-		});
-
-		it('builds subdomain URL for subdomain urlType', () => {
-			const site = makeSite({ urlType: 'subdomain', username: 'alice' });
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://alice.squig.link');
-		});
-
-		it('builds lab folder URL for labFolder urlType', () => {
-			const site = makeSite({ urlType: 'labFolder', username: 'labuser' });
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://squig.link/lab/labuser');
-		});
-
-		it('defaults to subdomain for unknown urlType', () => {
-			const site = makeSite({
-				urlType: 'unknown' as unknown as SquiglinkSite['urlType'],
-				username: 'fallback'
-			});
-			expect(squiglinkStore.buildSiteUrl(site)).toBe('https://fallback.squig.link');
-		});
-	});
-
 	// ── findShopLink ──────────────────────────────────────────────────────
 
 	describe('findShopLink', () => {
@@ -96,32 +48,6 @@ describe('SquiglinkStore', () => {
 		it('returns undefined when no match', () => {
 			squiglinkStore.shopLinks = [makeShopLink({ model: 'Sennheiser HD 600' })];
 			expect(squiglinkStore.findShopLink('NonExistent')).toBeUndefined();
-		});
-	});
-
-	// ── searchResults ─────────────────────────────────────────────────────
-
-	describe('searchResults', () => {
-		beforeEach(() => {
-			squiglinkStore.searchQuery = '';
-			squiglinkStore.sites = [];
-			squiglinkStore.shopLinks = [];
-		});
-
-		it('returns empty array for query shorter than 2 chars', () => {
-			squiglinkStore.searchQuery = 'a';
-			expect(squiglinkStore.searchResults).toEqual([]);
-		});
-
-		it('returns empty array for empty query', () => {
-			squiglinkStore.searchQuery = '';
-			expect(squiglinkStore.searchResults).toEqual([]);
-		});
-
-		it('returns empty when no phoneBooks loaded', () => {
-			squiglinkStore.sites = [makeSite({ username: 'othersite' })];
-			squiglinkStore.searchQuery = 'HD 600';
-			expect(squiglinkStore.searchResults).toEqual([]);
 		});
 	});
 
@@ -160,11 +86,6 @@ function enabledStore(config: Record<string, unknown> = { DEBUG: true }): Squigl
 	return new SquiglinkStore();
 }
 
-/** A site with a single root-folder database — the common single-db layout. */
-function rootDbSite(overrides: Partial<SquiglinkSite> = {}): SquiglinkSite {
-	return makeSite({ username: 'alice', dbs: [{ type: 'IEMs', folder: '/' }], ...overrides });
-}
-
 function jsonResponse(body: unknown, ok = true, status = 200) {
 	return {
 		ok,
@@ -201,233 +122,6 @@ describe('SquiglinkStore (enabled)', () => {
 
 		expect(off.isSquiglinkHost).toBe(true);
 		expect(off.isEnabled).toBe(false);
-	});
-
-	// ── Site registry ─────────────────────────────────────────────────────
-
-	describe('fetchSiteRegistry', () => {
-		it('loads the registry from the root domain', async () => {
-			const sites = [makeSite({ username: 'alice' })];
-			fetchMock.mockResolvedValue(jsonResponse(sites));
-
-			await store.fetchSiteRegistry();
-
-			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/squigsites.json');
-			expect(store.sites).toEqual(sites);
-			expect(store.error).toBeNull();
-			expect(store.isLoading).toBe(false);
-		});
-
-		it('records the status code when the registry is missing', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(null, false, 404));
-
-			await store.fetchSiteRegistry();
-
-			expect(store.sites).toEqual([]);
-			expect(store.error).toBe('Failed to fetch site registry: 404');
-			expect(store.isLoading).toBe(false);
-		});
-
-		it('records a network failure', async () => {
-			fetchMock.mockRejectedValue(new Error('offline'));
-
-			await store.fetchSiteRegistry();
-
-			expect(store.error).toBe('offline');
-		});
-
-		it('fetches only once per session', async () => {
-			fetchMock.mockResolvedValue(jsonResponse([makeSite()]));
-
-			await store.fetchSiteRegistry();
-			await store.fetchSiteRegistry();
-
-			expect(fetchMock).toHaveBeenCalledTimes(1);
-		});
-
-		it('retries after a failure, since nothing was cached', async () => {
-			fetchMock.mockRejectedValueOnce(new Error('offline'));
-			fetchMock.mockResolvedValueOnce(jsonResponse([makeSite()]));
-
-			await store.fetchSiteRegistry();
-			await store.fetchSiteRegistry();
-
-			expect(fetchMock).toHaveBeenCalledTimes(2);
-			expect(store.error).toBeNull();
-		});
-	});
-
-	// ── Phone books ───────────────────────────────────────────────────────
-
-	describe('fetchPhoneBook', () => {
-		const BRANDS = [{ name: 'Sennheiser', phones: [{ name: 'HD 600' }] }];
-
-		it('requests one phone_book.json per database', async () => {
-			fetchMock.mockResolvedValue(jsonResponse({ brandPhones: BRANDS }));
-			const site = makeSite({
-				username: 'alice',
-				dbs: [
-					{ type: 'IEMs', folder: '/' },
-					{ type: 'Headphones', folder: '/headphones' }
-				]
-			});
-
-			await store.fetchPhoneBook(site);
-
-			// Every squig site keeps its phone book under `<folder>/data/`.
-			expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
-				'https://alice.squig.link/data/phone_book.json',
-				'https://alice.squig.link/headphones/data/phone_book.json'
-			]);
-		});
-
-		it('accepts a bare array as well as the brandPhones wrapper', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(BRANDS));
-
-			await store.fetchPhoneBook(rootDbSite());
-
-			expect(store.getPhoneBook('alice', '/')).toEqual(BRANDS);
-		});
-
-		it('drops the trailing slash from a folder when building the URL', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(BRANDS));
-
-			await store.fetchPhoneBook(
-				makeSite({ username: 'alice', dbs: [{ type: 'IEMs', folder: '/headphones/' }] })
-			);
-
-			expect(fetchMock.mock.calls[0][0]).toBe(
-				'https://alice.squig.link/headphones/data/phone_book.json'
-			);
-		});
-
-		it('treats a database with no folder as the site root', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(BRANDS));
-
-			await store.fetchPhoneBook(
-				makeSite({ username: 'alice', dbs: [{ type: 'IEMs', folder: '' }] })
-			);
-
-			expect(fetchMock.mock.calls[0][0]).toBe('https://alice.squig.link/data/phone_book.json');
-			expect(store.getPhoneBook('alice')).toEqual(BRANDS);
-		});
-
-		it('skips a database that 404s', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(null, false, 404));
-
-			await store.fetchPhoneBook(rootDbSite());
-
-			expect(store.getPhoneBook('alice', '/')).toBeUndefined();
-		});
-
-		it('skips a database whose request throws', async () => {
-			fetchMock.mockRejectedValue(new Error('CORS'));
-
-			await store.fetchPhoneBook(rootDbSite());
-
-			expect(store.getPhoneBook('alice', '/')).toBeUndefined();
-		});
-
-		it('does not refetch a database it already holds', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(BRANDS));
-			const site = rootDbSite();
-
-			await store.fetchPhoneBook(site);
-			await store.fetchPhoneBook(site);
-
-			expect(fetchMock).toHaveBeenCalledTimes(1);
-		});
-	});
-
-	// ── Fallback search ───────────────────────────────────────────────────
-
-	describe('searchResults', () => {
-		const BRANDS = [
-			{ name: 'Sennheiser', phones: [{ name: 'HD 600' }, { name: 'HD 800 S' }] },
-			{ name: 'Moondrop', phones: [{ name: 'Blessing 3' }] }
-		];
-
-		async function seed(site: SquiglinkSite, brands: unknown = BRANDS) {
-			fetchMock.mockResolvedValue(jsonResponse(brands));
-			store.sites = [site];
-			await store.fetchPhoneBook(site);
-		}
-
-		it('matches on "<brand> <model>"', async () => {
-			await seed(rootDbSite({ name: 'Alice Audio' }));
-			store.searchQuery = 'sennheiser hd 6';
-
-			expect(store.searchResults).toHaveLength(1);
-			expect(store.searchResults[0]).toMatchObject({
-				siteId: 'alice',
-				siteName: 'Alice Audio',
-				dbType: 'IEMs',
-				brand: 'Sennheiser',
-				phoneName: 'HD 600'
-			});
-		});
-
-		it('encodes the share slug', async () => {
-			await seed(rootDbSite({ dbs: [{ type: 'IEMs', folder: '/headphones' }] }), [
-				{ name: 'Brand+Co', phones: [{ name: 'Model & More' }] }
-			]);
-			store.searchQuery = 'brand';
-
-			// Raw, a `+` in the slug decodes back to a space on the receiving site.
-			expect(store.searchResults[0].url).toBe(
-				'https://alice.squig.link/headphones?share=Brand%2BCo_Model_%26_More'
-			);
-		});
-
-		it('carries the database type and delta readiness through', async () => {
-			await seed(rootDbSite({ dbs: [{ type: 'Headphones', folder: '/', deltaReady: true }] }));
-			store.searchQuery = 'blessing';
-
-			expect(store.searchResults[0]).toMatchObject({
-				dbType: 'Headphones',
-				deltaReady: true,
-				dbId: 'alice\0/'
-			});
-		});
-
-		it('coerces a non-string phone name', async () => {
-			await seed(rootDbSite(), [{ name: 'Brand', phones: [{ name: 12345 }] }]);
-			store.searchQuery = '12345';
-
-			expect(store.searchResults[0].phoneName).toBe('12345');
-		});
-
-		it('ignores phone books whose site is not in the registry', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(BRANDS));
-			await store.fetchPhoneBook(rootDbSite());
-			store.sites = [];
-			store.searchQuery = 'sennheiser';
-
-			expect(store.searchResults).toEqual([]);
-		});
-
-		it('excludes the site the tool is served from', async () => {
-			const self = store.currentSiteUsername!;
-			await seed(rootDbSite({ username: self }));
-			store.searchQuery = 'sennheiser';
-
-			expect(store.searchResults).toEqual([]);
-		});
-
-		it('orders headphones after IEMs regardless of insertion order', async () => {
-			const site = rootDbSite({
-				dbs: [
-					{ type: 'Headphones', folder: '/hp' },
-					{ type: 'IEMs', folder: '/' }
-				]
-			});
-			fetchMock.mockResolvedValue(jsonResponse([{ name: 'Brand', phones: [{ name: 'Thing' }] }]));
-			store.sites = [site];
-			await store.fetchPhoneBook(site);
-			store.searchQuery = 'brand thing';
-
-			expect(store.searchResults.map((r) => r.dbType)).toEqual(['IEMs', 'Headphones']);
-		});
 	});
 
 	// ── Shop links ────────────────────────────────────────────────────────

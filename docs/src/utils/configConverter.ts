@@ -747,6 +747,12 @@ const CONFIG = {`);
   CROSS_SITE_SEARCH: ${prettyPrint(config.CROSS_SITE_SEARCH, 1)},`);
 	}
 
+	// SITE_SELECTOR
+	if (config.SITE_SELECTOR) {
+		sections.push(`  // Site Selector Settings
+  SITE_SELECTOR: ${prettyPrint(config.SITE_SELECTOR, 1)},`);
+	}
+
 	// DOWNLOAD (optional)
 	if (config.DOWNLOAD) {
 		sections.push(`  // Per-Curve Download Button
@@ -1022,9 +1028,11 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 				raw.CROSS_SITE_SEARCH?.ENABLED ??
 				raw.SQUIGLINK?.ENABLE_CROSS_SITE_SEARCH ??
 				defaults.CROSS_SITE_SEARCH.ENABLED,
-			INDEX_URLS: raw.CROSS_SITE_SEARCH?.INDEX_URLS ?? defaults.CROSS_SITE_SEARCH.INDEX_URLS,
-			SQUIGLINK_FALLBACK:
-				raw.CROSS_SITE_SEARCH?.SQUIGLINK_FALLBACK ?? defaults.CROSS_SITE_SEARCH.SQUIGLINK_FALLBACK
+			INDEX_URLS: raw.CROSS_SITE_SEARCH?.INDEX_URLS ?? defaults.CROSS_SITE_SEARCH.INDEX_URLS
+		},
+		SITE_SELECTOR: {
+			ENABLED: raw.SITE_SELECTOR?.ENABLED ?? defaults.SITE_SELECTOR.ENABLED,
+			INDEX_URLS: raw.SITE_SELECTOR?.INDEX_URLS ?? defaults.SITE_SELECTOR.INDEX_URLS
 		},
 		DOWNLOAD_ENABLED: !!raw.DOWNLOAD,
 		DOWNLOAD: {
@@ -1093,6 +1101,7 @@ export function formStateToConfigString(state: ConfigFormState): string {
 		LINK_LIST: fromI18nArrayState(state.TOPBAR.LINK_LIST)
 	};
 	config.CROSS_SITE_SEARCH = state.CROSS_SITE_SEARCH;
+	config.SITE_SELECTOR = state.SITE_SELECTOR;
 
 	if (state.PREFERENCE_BOUND_ENABLED) {
 		config.PREFERENCE_BOUND = state.PREFERENCE_BOUND;

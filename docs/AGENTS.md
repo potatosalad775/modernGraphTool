@@ -56,6 +56,8 @@ src/
     ├── custom.css         # accent tokens only
     └── infima-compat.css  # --ifm-* → --sl-* bridge, tool pages only
 public/                    # .nojekyll + img/ (favicon, social card)
+dist/                      # BUILD OUTPUT, gitignored — includes a .md twin of every page
+                           # and llms*.txt. Never edit or cite; see "Machine-readable output"
 ```
 
 ## Rules that keep URLs working
@@ -140,6 +142,42 @@ Run it alone against an existing `dist/` with `npm run check:links`. Because it 
 `build`, both CI and the GitHub Pages deploy already gate on it.
 
 Anchors are not resolved — only the page part of each URL.
+
+## Machine-readable output (for AI agents)
+
+Two plugins publish the docs in a form agents can consume. Both write into `dist/` only —
+**nothing under `dist/` is a source file.** Never edit one, and never cite `dist/**.md` as
+the content: the sources are `src/content/docs/**`.
+
+- **`starlight-dot-md`** — appending `.md` to any page URL serves its raw Markdown. No
+  configuration, no index; it only answers a request you already knew to make.
+- **`starlight-llms-txt`** — the discovery layer, configured in `astro.config.mjs`. Writes
+  `llms.txt` (the index), `llms-small.txt`, `llms-full.txt`, and one file per `customSets`
+  entry under `dist/_llms-txt/`.
+
+Three things about that config are easy to get wrong:
+
+- **`exclude` filters `llms-small.txt` only.** `llms-full.txt` is the complete corpus by
+  definition, so excluding a page there is not possible — `demote` is what keeps it out of
+  the way. This is why `1.x/**` appears in both lists.
+- **Patterns are micromatch, so `'1.x'` matches only a page whose slug is exactly `1.x`.**
+  The v1 tree needs `'1.x/**'`. The wrong form fails silently: the build succeeds and the
+  file just still contains everything.
+- **The frozen v1 tree is the main hazard in this output.** Seven v1 pages share a title
+  with their v2 replacement while describing a setup that no longer works, and a flattened
+  text dump carries neither the URL nor the "unmaintained" banner that disambiguates them
+  on the site. They are excluded from `llms-small.txt`, sorted to the bottom of
+  `llms-full.txt`, and called out by name in the `details` string that opens `llms.txt`.
+
+`customSelectors` strips `.sl-anchor-link` — Starlight renders a "Section titled …" link
+beside every heading, which is ~600 lines of noise once the HTML is flattened. Do not set
+`rawContent: true` to speed the build up: it bypasses the HTML pipeline, so both
+`customSelectors` and every `minify` option stop applying. It is only needed for content
+built from React/Vue/Svelte components, and the docs collection has none — the Svelte
+islands live in `src/pages/`, outside the collection.
+
+`scripts/check-links.mjs` walks `dist/**/*.html` and does not look at these `.txt` files,
+so the internal links inside them are unverified.
 
 ## The interactive tools
 

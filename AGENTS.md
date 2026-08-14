@@ -257,6 +257,11 @@ guide had to be rewritten. If you're unsure whether a change warrants a doc upda
   component has its own `llms.txt` (e.g. `https://bits-ui.com/docs/components/combobox/llms.txt`).
   Do **not** use `/llms-full.txt` (404).
 - **Project docs** — [docs/src/content/docs/](docs/src/content/docs/) (Starlight content sources).
+  Read these, not `docs/dist/`. The built site publishes a `.md` twin of every page plus
+  `llms.txt` / `llms-full.txt` for agents that can only reach it over HTTP; those are
+  gitignored build output, absent from a fresh clone, and stale the moment a source
+  changes. Working in this repo, the `.mdx` sources are always the answer. See
+  [docs/AGENTS.md](docs/AGENTS.md) for how that output is generated and tuned.
 
 ## Design Context
 

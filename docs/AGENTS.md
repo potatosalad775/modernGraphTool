@@ -36,12 +36,14 @@ stores — it comes from `@astrojs/svelte` and costs no extra dependency.
 ## Layout
 
 ```
-astro.config.mjs           # site/base, i18n, the whole sidebar, /category/* redirects
+astro.config.mjs           # site/base, i18n, integrations, /category/* redirects
 svelte.config.js           # vitePreprocess, so `lang="ts"` compiles in the islands
 scripts/check-links.mjs    # post-build link check, runs as part of `npm run build`
 src/
 ├── content.config.ts      # docs collection + the custom generateId (see below)
 ├── routeData.ts           # Starlight route middleware: base-resolves hero action links
+├── sidebar.ts             # the whole sidebar tree, imported into astro.config.mjs
+├── llms-txt.config.ts     # starlight-llms-txt options, imported into astro.config.mjs
 ├── content/docs/          # ALL content
 │   ├── *.mdx              #   English (the root locale) → /intro, /changelog, …
 │   ├── <section>/index.mdx#   section overview pages → /features/, /guide-for-users/, …
@@ -78,9 +80,14 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
   applies `base` to the redirect's own route but not to the target it writes into the
   meta-refresh. The loop at the top of the config does this — 30 `/category/*` routes
   depend on it.
-- **The sidebar is explicit, not `autogenerate`.** Section order and group labels came
-  from Docusaurus `_category_.json` files and are not alphabetical. Adding a page means
-  adding a sidebar entry. Group labels carry their Korean via `translations: { ko: … }`.
+- **The sidebar (`src/sidebar.ts`) is explicit, not `autogenerate`.** Section order and
+  group labels came from Docusaurus `_category_.json` files and are not alphabetical.
+  Adding a page means adding a sidebar entry. Group labels carry their Korean via
+  `translations: { ko: … }`.
+- **`markdown.processor` in `astro.config.mjs` uses `unified({...})` from
+  `@astrojs/markdown-remark`, not the top-level `markdown.remarkPlugins`.** The
+  top-level form still works but is deprecated as of Astro 7.2 and logs a build
+  warning; `remarkHeadingIds` / `remarkDocsLinks` go inside `unified({ remarkPlugins })`.
 
 ## Writing content
 
@@ -119,7 +126,7 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
 Korean is a **partial** translation and that is fine — Starlight falls back to the English
 page per slug, so an untranslated page simply renders in English. Add `ko/<same path>.mdx`
 to translate one. UI chrome comes from Starlight's own `ko.json`; only sidebar group labels
-are ours, in `astro.config.mjs`.
+are ours, in `src/sidebar.ts`.
 
 ## The frozen v1 tree
 
@@ -151,7 +158,7 @@ the content: the sources are `src/content/docs/**`.
 
 - **`starlight-dot-md`** — appending `.md` to any page URL serves its raw Markdown. No
   configuration, no index; it only answers a request you already knew to make.
-- **`starlight-llms-txt`** — the discovery layer, configured in `astro.config.mjs`. Writes
+- **`starlight-llms-txt`** — the discovery layer, configured in `src/llms-txt.config.ts`. Writes
   `llms.txt` (the index), `llms-small.txt`, `llms-full.txt`, and one file per `customSets`
   entry under `dist/_llms-txt/`.
 

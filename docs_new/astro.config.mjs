@@ -182,6 +182,34 @@ export default defineConfig({
 				},
 				{ slug: 'changelog' },
 				{
+					// The three interactive tools. `link` rather than `slug` because they
+					// are Astro pages under src/pages/, not docs-collection entries, so
+					// Starlight cannot validate them — a typo here 404s silently.
+					//
+					// Starlight still localises these hrefs, so the Korean sidebar points
+					// at `/ko/config-generator`. Each tool page builds that route itself
+					// via `getStaticPaths`; drop it and these links break.
+					label: 'Tools',
+					translations: { ko: '도구' },
+					items: [
+						{
+							link: '/config-generator',
+							label: 'Config Editor',
+							translations: { ko: '설정 파일 편집기' }
+						},
+						{
+							link: '/phone-book-editor',
+							label: 'phone_book.json Editor',
+							translations: { ko: 'phone_book.json 편집기' }
+						},
+						{
+							link: '/theme-generator',
+							label: 'Theme Generator',
+							translations: { ko: '테마 생성기' }
+						}
+					]
+				},
+				{
 					// Frozen v1 snapshot. Every page under here also carries an
 					// "unmaintained" banner in its frontmatter, which is what replaces
 					// the old Docusaurus version dropdown.

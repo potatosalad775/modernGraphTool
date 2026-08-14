@@ -24,11 +24,6 @@ bun.lockb
 # reflows MDX prose and reindents JSX inside it, which would bury the real diff
 # when the remaining pages are ported. Drop this once docs_new/ becomes docs/.
 /docs_new/src/content/
-# Parked React sources awaiting their port, kept close to the Docusaurus originals
-# so the port diff stays readable. No longer byte-identical: utils/configConverter.ts
-# carries two escaping/round-trip fixes its specs caught, which docs/src/utils/ still
-# lacks. The co-located *.spec.ts files are ours and follow house style.
-/docs_new/src/tools-legacy/
 
 # Mirrors project.inlang/.gitignore: inlang owns everything in here except settings.json,
 # and rewrites it on every compile. Matching its rule rather than listing today's files

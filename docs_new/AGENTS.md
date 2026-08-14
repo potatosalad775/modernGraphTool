@@ -20,15 +20,24 @@ deliberately no `astro check` script: it needs `@astrojs/check` + `typescript`, 
 dependencies this site would otherwise not carry, and the only TypeScript here is
 `content.config.ts`.
 
-`npm test` runs Vitest over `src/**/*.spec.ts`. Today that is only the parked tools'
-framework-free `utils/` — the converters that emit the `config.js` and `phone_book.json`
-operators paste into live deployments — and it is the safety net for porting those tools off
-React. See `src/tools-legacy/README.md`. CI runs it before the build.
+`npm test` runs Vitest over `src/**/*.spec.ts`, and CI runs it before the build. Most of it
+covers `src/utils/` — the framework-free converters that emit the `config.js` and
+`phone_book.json` operators paste into live deployments. The tools' form components are
+deliberately uncovered: **a mis-wired field surfaces as a failing round-trip assertion**
+(`state → file → state`), so porting or editing one means running the suite, not eyeballing
+the output.
+
+The two `*-store.spec.ts` files exist because the editors mutate `$state` in place while the
+converters were written against plain objects; they pin that the converters cannot tell a
+Svelte proxy from a plain object, which is what makes leaving the forms uncovered safe.
+`vitest.config.ts` loads `@sveltejs/vite-plugin-svelte` so specs can import `.svelte.ts`
+stores — it comes from `@astrojs/svelte` and costs no extra dependency.
 
 ## Layout
 
 ```
 astro.config.mjs           # site/base, i18n, the whole sidebar, /category/* redirects
+svelte.config.js           # vitePreprocess, so `lang="ts"` compiles in the islands
 src/
 ├── content.config.ts      # docs collection + the custom generateId (see below)
 ├── content/docs/          # ALL content
@@ -36,9 +45,14 @@ src/
 │   ├── <section>/index.mdx#   section overview pages → /features/, /guide-for-users/, …
 │   ├── ko/                #   Korean → /ko/*
 │   └── 1.x/  ko/1.x/      #   frozen v1 snapshot → /1.x/*, /ko/1.x/*
+├── pages/[...locale]/     # the three tool routes (see "The interactive tools")
+├── components/tools/      # their Svelte islands
+├── utils/                 # framework-free converters + their specs
+├── i18n/tools.ts          # the tools' own strings, keyed by English source
 ├── plugins/               # two small local remark plugins (see below)
-├── styles/custom.css      # accent tokens only
-└── tools-legacy/          # parked React tools, NOT built — see its README
+└── styles/
+    ├── custom.css         # accent tokens only
+    └── infima-compat.css  # --ifm-* → --sl-* bridge, tool pages only
 public/                    # .nojekyll + img/ (favicon, social card)
 ```
 
@@ -108,11 +122,39 @@ npm run build
 # every <a href> that stays inside the site should resolve to a built route
 ```
 
-The three tool URLs (`/config-generator`, `/phone-book-editor`, `/theme-generator`) are
-expected to 404 until `src/tools-legacy/` is ported — see that directory's README.
+## The interactive tools
+
+`/config-generator`, `/phone-book-editor` and `/theme-generator` are Svelte 5 islands, ported
+from the Docusaurus site's React sources. Everything else on the site stays zero-JS; the
+islands hydrate on these three routes only.
+
+- **One file builds both locales.** Each lives at `src/pages/[...locale]/<tool>.astro` with a
+  `getStaticPaths` returning `undefined` and `'ko'`. Starlight localises sidebar `link`
+  hrefs, and the Korean landing page links relatively, so `/ko/<tool>` has to exist —
+  Docusaurus generated it implicitly. Drop `getStaticPaths` and both links 404.
+- **`template: 'splash'`** gives the tools full page width and suppresses Starlight's own
+  `<h1>`, which is why two of the pages render their own heading.
+- **Sidebar entries are `link`, not `slug`**, so Starlight cannot validate them. A typo 404s
+  silently.
+- **State lives in a `.svelte.ts` store**, mutated in place. The React originals used
+  `useReducer` + Context with immutable path helpers; deep `$state` made all of that
+  unnecessary, and the field access is now type-checked rather than stringly-typed.
+- **Their CSS came from Docusaurus and still uses `--ifm-*` variables**, redefined in terms of
+  Starlight's `--sl-*` tokens by `styles/infima-compat.css`. That file explains the mapping —
+  it is not a colour-for-colour copy, because Starlight's scales flip between light and dark
+  and Infima's did not. Solid accent buttons are the exception and use `--sl-color-bg-accent`
+  / `--sl-color-text-invert` directly; the Infima pairing lands light-on-light here.
+- `config-editor.css` and `phone-book-editor.css` are **global, not scoped**: their classes
+  are shared across the section components, and Svelte scoping is per-component. The `ce` /
+  `pb` prefixes are what keep them apart. Single-component stylesheets (the theme generator)
+  use scoped `<style>` instead.
+- **The tools' strings are keyed by their English source text** in `src/i18n/tools.ts`,
+  mirroring the old `<Translate>` + `i18n/ko/code.json` setup so they stay greppable against
+  it. Untranslated keys fall back to English and are simply absent from the dictionary. This
+  is separate from Starlight's own UI i18n.
 
 ## Not yet migrated
 
 The site still lives at `docs_new/` while `docs/` (Docusaurus) remains the deployed
 version. The cutover — deleting `docs/`, renaming this directory, and repointing
-`deploy-gh-pages.yml`, `ci.yml` and `release.yml` — happens once the tools are ported.
+`deploy-gh-pages.yml`, `ci.yml` and `release.yml` — is the last step.

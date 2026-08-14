@@ -21,9 +21,6 @@ export default defineConfig(
 			'docs/.docusaurus/**',
 			'docs_new/dist/**',
 			'docs_new/.astro/**',
-			// Parked React sources for the three interactive tools, carried over from
-			// the Docusaurus site unmodified until they are ported to Astro.
-			'docs_new/src/tools-legacy/**',
 			'site-template/config-cdn-mode.js'
 		]
 	},

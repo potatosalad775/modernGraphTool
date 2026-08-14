@@ -33,15 +33,20 @@ async function* htmlFiles(dir) {
 	}
 }
 
-/** Does a built page exist for this site-absolute path? */
+/**
+ * Does a built page exist for this site-absolute path?
+ *
+ * A path naming a file (`/llms.txt`) must match that file exactly. `join` folds a
+ * trailing slash away, so testing `join(DIST, '/llms.txt/')` would find the real
+ * file and pass — but a browser asking for `/llms.txt/` gets a 404. Splitting the
+ * two cases is what catches that.
+ */
 function resolves(pathname) {
 	const p = pathname.slice(BASE.length) || '/';
-	const candidates = [
-		join(DIST, p.replace(/\/$/, ''), 'index.html'),
-		join(DIST, p),
-		join(DIST, p, 'index.html')
-	];
-	return candidates.some((c) => existsSync(c));
+	if (extname(p)) return !p.endsWith('/') && existsSync(join(DIST, p));
+	return [join(DIST, p.replace(/\/$/, ''), 'index.html'), join(DIST, p, 'index.html')].some((c) =>
+		existsSync(c)
+	);
 }
 
 const relativeLinks = new Map(); // href -> Set(page)
@@ -66,11 +71,7 @@ for await (const file of htmlFiles(DIST)) {
 		}
 
 		const pathname = href.split('#')[0].split('?')[0];
-		// Hashed asset paths and files with an extension are served directly.
-		if (extname(pathname) && !resolves(pathname)) {
-			if (!deadLinks.has(href)) deadLinks.set(href, new Set());
-			deadLinks.get(href).add(page);
-		} else if (!extname(pathname) && !resolves(pathname)) {
+		if (!resolves(pathname)) {
 			if (!deadLinks.has(href)) deadLinks.set(href, new Set());
 			deadLinks.get(href).add(page);
 		}

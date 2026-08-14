@@ -69,7 +69,11 @@ function resolveUrl(url, selfDir, base, asRoute) {
 	if (target.startsWith('/')) {
 		// Site-internal absolute link authored without the deployment base.
 		if (base && !target.startsWith(`${base}/`)) {
-			return `${base}${target.replace(/\/$/, '')}/${hash}`;
+			// A target that names a file (`/llms.txt`, `/intro.md`) is served at
+			// exactly that path. Astro's trailing slash belongs on routes only —
+			// appending it here produces `/llms.txt/`, which 404s.
+			const suffix = path.posix.extname(target) ? '' : '/';
+			return `${base}${target.replace(/\/$/, '')}${suffix}${hash}`;
 		}
 		return;
 	}

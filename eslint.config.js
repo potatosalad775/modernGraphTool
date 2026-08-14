@@ -62,6 +62,15 @@ export default defineConfig(
 		}
 	},
 	{
+		// The docs site's Svelte components are Astro islands, not SvelteKit routes.
+		// `resolve()` is a SvelteKit import that does not exist there, and these links
+		// point at the Docusaurus-era doc pages via `import.meta.env.BASE_URL`.
+		files: ['docs_new/src/**/*.svelte'],
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off'
+		}
+	},
+	{
 		// Both docs sites include the config migration tool, which parses arbitrary
 		// operator-authored config.js / phone_book.json. Their shape is unknown until it has
 		// been validated, so `any` is the honest annotation there.

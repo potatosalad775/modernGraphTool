@@ -1,0 +1,44 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import ConfigEditor from '../../components/tools/config-editor/ConfigEditor.svelte';
+import { createTranslator, toToolLang } from '../../i18n/tools';
+import '../../styles/infima-compat.css';
+
+export function getStaticPaths() {
+	return [{ params: { locale: undefined } }, { params: { locale: 'ko' } }];
+}
+
+const lang = toToolLang(Astro.params.locale);
+const t = createTranslator(lang);
+
+const title = t('Config Editor');
+const description = t(
+	'Build or edit your modernGraphTool config.js with a visual editor. Import an existing config, adjust settings, and export the result.'
+);
+---
+
+<StarlightPage frontmatter={{ title, template: 'splash', tableOfContents: false }}>
+	<div class="cgPageHeader">
+		<h1>{title}</h1>
+		<p>{description}</p>
+	</div>
+	<ConfigEditor client:load />
+</StarlightPage>
+
+<style>
+	/*
+	 * `template: 'splash'` suppresses Starlight's own title so the tool can use
+	 * the full page width; the heading is rendered here instead to keep the
+	 * lead-in the Docusaurus page had.
+	 */
+	.cgPageHeader {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.cgPageHeader p {
+		color: var(--sl-color-gray-3);
+		margin-bottom: 1.5rem;
+	}
+</style>

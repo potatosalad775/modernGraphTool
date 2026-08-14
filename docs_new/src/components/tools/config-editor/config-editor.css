@@ -1,3 +1,14 @@
+/*
+ * Config Editor styles, carried over from the Docusaurus `ConfigEditor.module.css`.
+ *
+ * Global rather than a CSS Module or a Svelte `<style>` block: these classes are
+ * shared across the 21 section components, and Svelte's scoping is per-component,
+ * so scoping them would mean duplicating the sheet 21 times. The `ce` prefix is
+ * what keeps them from colliding.
+ *
+ * `--ifm-*` variables resolve through `styles/infima-compat.css`.
+ */
+
 /* ── Layout ───────────────────────────────────────────────────────────────── */
 
 .ceContainer {
@@ -30,19 +41,33 @@
 }
 
 .ceNavItem {
-	padding: 0.25rem 0.5rem;
 	border-left: 2px solid transparent;
+	transition: border-color 0.15s;
+}
+
+/*
+ * The React version put the click handler on the <li> with role="button" and a
+ * manual Enter handler. It is a real <button> now — same look, but it reaches
+ * the tab order, responds to Space as well as Enter, and announces itself
+ * correctly — so the padding and text styling moved here from the <li>.
+ */
+.ceNavItem button {
+	display: block;
+	width: 100%;
+	padding: 0.25rem 0.5rem;
+	border: none;
+	background: none;
+	font: inherit;
+	text-align: left;
 	color: var(--ifm-color-content-secondary);
 	cursor: pointer;
-	transition:
-		color 0.15s,
-		border-color 0.15s;
+	transition: color 0.15s;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
-.ceNavItem:hover {
+.ceNavItem button:hover {
 	color: var(--ifm-color-primary);
 }
 
@@ -426,15 +451,19 @@
 	background: var(--ifm-color-emphasis-100);
 }
 
+/*
+ * `bg-accent` / `text-invert` is Starlight's own solid-button pair, legible in
+ * both themes. The Infima original put `primary-contrast-foreground` on
+ * `primary`, which lands light-on-light once both map onto Starlight's accent.
+ */
 .ceBtnPrimary {
-	background: var(--ifm-color-primary);
-	color: var(--ifm-color-primary-contrast-foreground, #fff);
-	border-color: var(--ifm-color-primary);
+	background: var(--sl-color-bg-accent);
+	color: var(--sl-color-text-invert);
+	border-color: var(--sl-color-bg-accent);
 }
 
 .ceBtnPrimary:hover {
-	background: var(--ifm-color-primary-dark);
-	border-color: var(--ifm-color-primary-dark);
+	filter: brightness(1.1);
 }
 
 .ceBtnSmall {

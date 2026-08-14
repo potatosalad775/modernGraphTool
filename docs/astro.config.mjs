@@ -82,6 +82,9 @@ export default defineConfig({
 				}
 			],
 			customCss: ['./src/styles/custom.css'],
+			// Base-resolves the hero action links, which frontmatter puts out of
+			// `remark-docs-links`' reach. See src/routeData.ts.
+			routeMiddleware: './src/routeData.ts',
 			// Explicit rather than `autogenerate`: the section order and the group
 			// labels come from the old `_category_.json` files and are not
 			// alphabetical, and each group leads with its overview page.

@@ -38,8 +38,10 @@ stores — it comes from `@astrojs/svelte` and costs no extra dependency.
 ```
 astro.config.mjs           # site/base, i18n, the whole sidebar, /category/* redirects
 svelte.config.js           # vitePreprocess, so `lang="ts"` compiles in the islands
+scripts/check-links.mjs    # post-build link check, runs as part of `npm run build`
 src/
 ├── content.config.ts      # docs collection + the custom generateId (see below)
+├── routeData.ts           # Starlight route middleware: base-resolves hero action links
 ├── content/docs/          # ALL content
 │   ├── *.mdx              #   English (the root locale) → /intro, /changelog, …
 │   ├── <section>/index.mdx#   section overview pages → /features/, /guide-for-users/, …
@@ -89,6 +91,17 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
   to real base-prefixed URLs at build time. Astro does **not** do this on its own, so a
   bare `./manage-data` or an extensionless path ships to the browser verbatim and 404s.
   Root-absolute links (`/theme-generator`) are fine too — the same plugin adds the base.
+- **`href` on a JSX component** (`<LinkCard href="./cdn/">`) is rewritten by the same
+  plugin, which also visits MDX JSX attributes. Write these as **routes**, not files:
+  `./cdn/`, not `./cdn.mdx`.
+- **`hero.actions[].link` is frontmatter**, so remark never sees it — the content layer
+  validates and stores frontmatter before remark runs, and Starlight reads it back off
+  `entry.data`. `src/routeData.ts` (a Starlight route middleware) base-resolves it instead.
+  Anything else added to frontmatter that holds a URL needs the same treatment.
+  **Never leave an internal link relative in the emitted HTML.** The browser resolves it
+  against the current URL, so it silently points somewhere different depending on whether
+  the page was served with a trailing slash — `href="intro/"` on the landing page reached
+  `/modernGraphTool/intro/`. `npm run build` fails on this now; see below.
 - **Explicit heading ids** (`## Base path \{#base-path\}`) are supported via
   `src/plugins/remark-heading-ids.mjs`, and the braces **must stay backslash-escaped** or
   MDX parses them as a JS expression and the build fails. They matter on the Korean pages,
@@ -115,12 +128,18 @@ dropdown.
 
 ## Verifying a change that touches URLs
 
-Build, then check that no internal link or anchor broke:
+`npm run build` runs `scripts/check-links.mjs` over `dist/` and **fails the build** on
+either of the two silent failures:
 
-```sh
-npm run build
-# every <a href> that stays inside the site should resolve to a built route
-```
+- an internal `href` that is not absolute under the base — it renders fine but resolves
+  against the current URL, so it depends on the trailing slash;
+- a base-absolute `href` with no built page behind it — sidebar `link:` entries and
+  hand-written hrefs are not validated the way content-collection slugs are.
+
+Run it alone against an existing `dist/` with `npm run check:links`. Because it is part of
+`build`, both CI and the GitHub Pages deploy already gate on it.
+
+Anchors are not resolved — only the page part of each URL.
 
 ## The interactive tools
 

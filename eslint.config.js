@@ -62,10 +62,10 @@ export default defineConfig(
 		}
 	},
 	{
-		// The Docusaurus site includes the config migration tool, which parses arbitrary
+		// Both docs sites include the config migration tool, which parses arbitrary
 		// operator-authored config.js / phone_book.json. Their shape is unknown until it has
 		// been validated, so `any` is the honest annotation there.
-		files: ['docs/**'],
+		files: ['docs/**', 'docs_new/src/utils/**'],
 		rules: {
 			'@typescript-eslint/no-explicit-any': 'off'
 		}

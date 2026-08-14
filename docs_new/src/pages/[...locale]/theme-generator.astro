@@ -1,0 +1,31 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import ThemeGenerator from '../../components/tools/theme-generator/ThemeGenerator.svelte';
+import { createTranslator, toToolLang } from '../../i18n/tools';
+import '../../styles/infima-compat.css';
+
+/**
+ * Both locales are built from this one file. Starlight only localises sidebar
+ * entries that point at content-collection slugs, and these tools are Astro
+ * pages rather than content — but the Korean landing page links to them
+ * relatively (`href="theme-generator/"` from `/ko/`), so `/ko/theme-generator`
+ * has to exist. Docusaurus generated it implicitly; here it is explicit.
+ */
+export function getStaticPaths() {
+	return [{ params: { locale: undefined } }, { params: { locale: 'ko' } }];
+}
+
+const lang = toToolLang(Astro.params.locale);
+const t = createTranslator(lang);
+---
+
+<StarlightPage
+	frontmatter={{
+		title: t('Theme Generator'),
+		description: 'Theme Generator for modernGraphTool',
+		template: 'splash',
+		tableOfContents: false
+	}}
+>
+	<ThemeGenerator {lang} client:load />
+</StarlightPage>

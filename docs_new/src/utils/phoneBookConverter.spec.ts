@@ -20,9 +20,7 @@ import {
  */
 
 function stripIds<T>(value: T): T {
-	return JSON.parse(
-		JSON.stringify(value, (key, v) => (key === 'id' ? undefined : v))
-	) as T;
+	return JSON.parse(JSON.stringify(value, (key, v) => (key === 'id' ? undefined : v))) as T;
 }
 
 /** state → phone_book.json → state, the full path the editor's export/import takes */
@@ -289,7 +287,7 @@ describe('CrinGraph compatibility warnings', () => {
 
 describe('the shipped defaults/data/phone_book.json', () => {
 	const shipped = readFileSync(
-		fileURLToPath(new URL('../../../../defaults/data/phone_book.json', import.meta.url)),
+		fileURLToPath(new URL('../../../defaults/data/phone_book.json', import.meta.url)),
 		'utf8'
 	);
 

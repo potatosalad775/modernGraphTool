@@ -110,7 +110,9 @@ describe('hex ↔ OKLCH', () => {
 
 describe('oklchToCssString', () => {
 	it('emits the percentage-lightness CSS form', () => {
-		expect(oklchToCssString({ l: 0.59, c: 0.145, h: 163.225 })).toBe('oklch(59.000% 0.145 163.225)');
+		expect(oklchToCssString({ l: 0.59, c: 0.145, h: 163.225 })).toBe(
+			'oklch(59.000% 0.145 163.225)'
+		);
 	});
 
 	it('emits values CSS can parse for every sample colour', () => {

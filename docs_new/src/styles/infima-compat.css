@@ -1,0 +1,92 @@
+/*
+ * Infima → Starlight variable bridge.
+ *
+ * The three tool stylesheets came from Docusaurus, whose theme (Infima) exposes
+ * a `--ifm-*` palette that does not exist here. Rather than rewrite ~1500 lines
+ * of CSS by hand — and re-derive every colour decision while doing it — the
+ * variables are redefined in terms of Starlight's `--sl-*` tokens, so the
+ * stylesheets carry over essentially unchanged and stay diffable against the
+ * originals.
+ *
+ * Imported by the three tool pages only, not by `customCss`: the ~180 content
+ * pages have no use for it.
+ *
+ * Two things make this a better mapping than a literal colour-for-colour copy:
+ *
+ * - Starlight's grey scale INVERTS between light and dark mode (`gray-1` is the
+ *   near-text end in both), so an emphasis level maps to the same perceptual
+ *   role in both themes automatically.
+ * - Infima's `-lightest` / `-darkest` pairs are fixed pale/deep shades that do
+ *   not flip, so Docusaurus' tinted callouts only ever really worked in light
+ *   mode. Starlight's `-low` / `-high` pairs DO flip, so mapping
+ *   `-lightest → -low` (tint background) and `-darkest → -high` (text on that
+ *   tint) keeps the contrast correct in both themes rather than only one.
+ */
+
+:root {
+	/* ── Surfaces ──────────────────────────────────────────────────────────── */
+	--ifm-background-color: var(--sl-color-bg);
+	--ifm-background-surface-color: var(--sl-color-bg-nav);
+
+	/* ── Text ──────────────────────────────────────────────────────────────── */
+	--ifm-font-color-base: var(--sl-color-text);
+	--ifm-color-content: var(--sl-color-text);
+	--ifm-color-content-secondary: var(--sl-color-gray-3);
+
+	/*
+	 * Infima's emphasis scale runs 0 (background) → 1000 (text). Starlight's
+	 * grey scale runs the other way, hence the descending mapping. `gray-7` is
+	 * deliberately unused: Starlight only defines it in light mode.
+	 */
+	--ifm-color-emphasis-100: var(--sl-color-gray-6);
+	--ifm-color-emphasis-200: var(--sl-color-hairline-light);
+	--ifm-color-emphasis-300: var(--sl-color-gray-5);
+	--ifm-color-emphasis-400: var(--sl-color-gray-4);
+	--ifm-color-emphasis-600: var(--sl-color-gray-3);
+
+	/* ── Accent ────────────────────────────────────────────────────────────── */
+	--ifm-color-primary: var(--sl-color-text-accent);
+	--ifm-color-primary-dark: var(--sl-color-bg-accent);
+	--ifm-color-primary-darkest: var(--sl-color-accent-high);
+	--ifm-color-primary-lightest: var(--sl-color-accent-low);
+	--ifm-color-primary-contrast-foreground: var(--sl-color-accent-high);
+
+	/*
+	 * Paired with `--ifm-color-primary-dark` as a solid button. `text-invert` is
+	 * Starlight's own counterpart to `bg-accent`, so the pair stays legible in
+	 * both themes — a literal white would vanish on light mode's pale accent.
+	 */
+	--ifm-color-white: var(--sl-color-text-invert);
+
+	/* ── Status ────────────────────────────────────────────────────────────── */
+	--ifm-color-danger: var(--sl-color-red);
+	--ifm-color-danger-dark: var(--sl-color-red);
+	--ifm-color-danger-darkest: var(--sl-color-red-high);
+	--ifm-color-danger-lightest: var(--sl-color-red-low);
+	--ifm-color-danger-contrast-background: var(--sl-color-red-low);
+
+	--ifm-color-success-dark: var(--sl-color-green);
+	--ifm-color-success-darkest: var(--sl-color-green-high);
+	--ifm-color-success-lightest: var(--sl-color-green-low);
+
+	/* Infima "warning" is amber; Starlight's nearest hue is orange. */
+	--ifm-color-warning-dark: var(--sl-color-orange);
+	--ifm-color-warning-darkest: var(--sl-color-orange-high);
+	--ifm-color-warning-lightest: var(--sl-color-orange-low);
+	--ifm-color-warning-contrast-background: var(--sl-color-orange-low);
+
+	/* ── Misc ──────────────────────────────────────────────────────────────── */
+	--ifm-global-shadow-lw: var(--sl-shadow-sm);
+	--ifm-navbar-height: var(--sl-nav-height);
+	--ifm-font-family-monospace: var(
+		--sl-font-mono,
+		ui-monospace,
+		SFMono-Regular,
+		Menlo,
+		Monaco,
+		Consolas,
+		'Liberation Mono',
+		'Courier New',
+		monospace
+	);
+}

@@ -183,7 +183,7 @@ describe('the shipped defaults/config.js', () => {
 	// if defaults/config.js gains a key shape the parser chokes on, that is a
 	// real break for every operator who starts from it.
 	const shipped = readFileSync(
-		fileURLToPath(new URL('../../../../defaults/config.js', import.meta.url)),
+		fileURLToPath(new URL('../../../defaults/config.js', import.meta.url)),
 		'utf8'
 	);
 

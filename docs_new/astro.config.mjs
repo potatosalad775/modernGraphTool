@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import svelte from '@astrojs/svelte';
 import starlightDotMd from 'starlight-dot-md';
 import remarkHeadingIds from './src/plugins/remark-heading-ids.mjs';
 import remarkDocsLinks from './src/plugins/remark-docs-links.mjs';
@@ -53,6 +54,9 @@ export default defineConfig({
 	redirects,
 	markdown: { remarkPlugins: [remarkHeadingIds, [remarkDocsLinks, { base: BASE }]] },
 	integrations: [
+		// Powers the three interactive tools under src/pages/. Every other page
+		// stays zero-JS: the islands only hydrate on those three routes.
+		svelte(),
 		starlight({
 			title: { en: 'modernGraphTool Docs', ko: 'modernGraphTool 문서' },
 			favicon: '/img/favicon.ico',

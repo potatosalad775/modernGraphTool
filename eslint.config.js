@@ -24,7 +24,9 @@ export default defineConfig(
 	prettier,
 	svelte.configs.prettier,
 	{
-		languageOptions: { globals: { ...globals.browser, ...globals.node } },
+		languageOptions: {
+			globals: { ...globals.browser, ...globals.node }
+		},
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
@@ -41,6 +43,10 @@ export default defineConfig(
 		languageOptions: {
 			parserOptions: {
 				projectService: true,
+				// Anchors `projectService` at the repo root. It belongs under
+				// `parserOptions` — ESLint 10 rejects an unknown key directly on
+				// `languageOptions` and refuses to run at all.
+				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser,
 				svelteConfig

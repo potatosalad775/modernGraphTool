@@ -60,6 +60,21 @@ describe('the config store is transparent to the converters', () => {
 		expect(back.TARGET_CUSTOMIZER.FILTERS[4].description).toBeUndefined();
 	});
 
+	it('carries per-locale i18n items through to the emitted config', () => {
+		// I18nWrapper creates `i18n[lang]` on the tab click and the section then
+		// mutates that array in place. Both halves have to survive the emit, or a
+		// translated Description silently ships as English only.
+		const c = configEditor.config;
+		c.DESCRIPTION.useI18n = true;
+		c.DESCRIPTION.i18n.ko ??= [];
+		c.DESCRIPTION.i18n.ko.push({ TYPE: 'HTML', CONTENT: '<p>KO copy</p>' });
+
+		const back = configToFormState(parseV2Config(formStateToConfigString(c)));
+		expect(back.DESCRIPTION.useI18n).toBe(true);
+		expect(back.DESCRIPTION.i18n.ko).toEqual([{ TYPE: 'HTML', CONTENT: '<p>KO copy</p>' }]);
+		expect(back.DESCRIPTION.items).toEqual(c.DESCRIPTION.items);
+	});
+
 	it('load() and reset() swap the whole tree without stale reads', () => {
 		const imported = createDefaultConfig();
 		imported.VISUALIZATION.RIG_DESCRIPTION = 'Measured with 5128';

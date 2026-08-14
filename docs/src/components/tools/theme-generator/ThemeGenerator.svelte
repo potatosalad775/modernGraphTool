@@ -15,7 +15,10 @@
 	}
 
 	let { lang }: Props = $props();
-	const t = createTranslator(lang);
+	// `$derived`, not a plain const: the const would capture only the initial
+	// `lang`. Each route passes a fixed locale today, so this never actually
+	// recomputes — but the reactive form is the one that stays correct.
+	let t = $derived(createTranslator(lang));
 
 	// ── CSS export template ────────────────────────────────────────────────────
 

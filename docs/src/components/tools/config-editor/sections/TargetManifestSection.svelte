@@ -59,5 +59,5 @@
 	description="Groups and sorts targets in the target selector. Supports multilingual type names."
 	learnMoreHref="./guide-for-admins/customize-page#target_manifest"
 >
-	<I18nWrapper bind:state={config.TARGET_MANIFEST} renderItems={entries} />
+	<I18nWrapper bind:value={config.TARGET_MANIFEST} renderItems={entries} />
 </AccordionSection>

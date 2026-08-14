@@ -88,6 +88,6 @@
 
 	<div class="ceFieldGroup">
 		<span class="ceLabel">Link List</span>
-		<I18nWrapper bind:state={config.TOPBAR.LINK_LIST} renderItems={links} />
+		<I18nWrapper bind:value={config.TOPBAR.LINK_LIST} renderItems={links} />
 	</div>
 </AccordionSection>

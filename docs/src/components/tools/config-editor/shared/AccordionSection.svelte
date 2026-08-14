@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 
 	interface Props {
 		id: string;
@@ -24,7 +24,10 @@
 		children
 	}: Props = $props();
 
-	let open = $state(defaultOpen);
+	// Seeded once and then owned by this component — a later change to the prop
+	// must not slam a section shut while someone is editing it. `untrack` says
+	// that deliberately, rather than leaving it as an accidental capture.
+	let open = $state(untrack(() => defaultOpen));
 	const contentId = $props.id();
 
 	/*

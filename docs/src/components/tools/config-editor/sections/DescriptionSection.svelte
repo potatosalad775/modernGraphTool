@@ -67,5 +67,5 @@
 	description="Content displayed in the Misc panel description area. Supports text, HTML, and image types with multilingual options."
 	learnMoreHref="./guide-for-admins/customize-page#description"
 >
-	<I18nWrapper bind:state={config.DESCRIPTION} renderItems={descriptionItems} />
+	<I18nWrapper bind:value={config.DESCRIPTION} renderItems={descriptionItems} />
 </AccordionSection>

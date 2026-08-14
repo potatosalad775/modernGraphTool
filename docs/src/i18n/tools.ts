@@ -21,6 +21,8 @@ const ko: Record<string, string> = {
 		'비주얼 편집기로 modernGraphTool의 config.js를 만들거나 수정할 수 있습니다. 기존 설정을 불러오고, 항목을 조정한 뒤 결과를 내보내세요.',
 	'phone_book.json Editor': 'phone_book.json 편집기',
 	'Theme Generator': '테마 생성기',
+	'Build a custom theme.css for modernGraphTool with a visual editor. Adjust colors, preview the result, and export the CSS.':
+		'비주얼 편집기로 modernGraphTool의 theme.css를 만들 수 있습니다. 색상을 조정하고 결과를 미리 본 뒤 CSS를 내보내세요.',
 
 	// ── Theme generator ──────────────────────────────────────────────────────
 	'Semantic Colors': 'Semantic 컬러',

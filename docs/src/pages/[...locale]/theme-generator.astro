@@ -17,6 +17,10 @@ export function getStaticPaths() {
 
 const lang = toToolLang(Astro.params.locale);
 const t = createTranslator(lang);
+
+const description = t(
+	'Build a custom theme.css for modernGraphTool with a visual editor. Adjust colors, preview the result, and export the CSS.'
+);
 ---
 
 <StarlightPage
@@ -27,5 +31,26 @@ const t = createTranslator(lang);
 		tableOfContents: false
 	}}
 >
+	<div class="tgPageHeader">
+		<p>{description}</p>
+	</div>
 	<ThemeGenerator {lang} client:load />
 </StarlightPage>
+
+<style>
+	/*
+	 * Matches `.cgPageHeader` / `.pbPageHeader` on the other two tool pages: a
+	 * lead-in paragraph under Starlight's own `<h1>{title}</h1>` (`template:
+	 * 'splash'` only drops the sidebar and TOC, it does not suppress the title).
+	 */
+	.tgPageHeader {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+	}
+
+	.tgPageHeader p {
+		color: var(--sl-color-gray-3);
+		margin-bottom: 1.5rem;
+	}
+</style>

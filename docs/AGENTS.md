@@ -196,8 +196,11 @@ islands hydrate on these three routes only.
   `getStaticPaths` returning `undefined` and `'ko'`. Starlight localises sidebar `link`
   hrefs, and the Korean landing page links relatively, so `/ko/<tool>` has to exist —
   Docusaurus generated it implicitly. Drop `getStaticPaths` and both links 404.
-- **`template: 'splash'`** gives the tools full page width and suppresses Starlight's own
-  `<h1>`, which is why two of the pages render their own heading.
+- **`template: 'splash'`** only drops the sidebar and TOC to give the tools full page width —
+  it does **not** suppress Starlight's own `<h1>{title}</h1>`, which still renders
+  unconditionally unless the page sets `hero` frontmatter. All three tool pages render a
+  `<p>{description}</p>` lead-in beneath it (`.cgPageHeader` / `.pbPageHeader` /
+  `.tgPageHeader`); adding a second `<h1>` there duplicates the title.
 - **Sidebar entries are `link`, not `slug`**, so Starlight cannot validate them. A typo 404s
   silently.
 - **State lives in a `.svelte.ts` store**, mutated in place. The React originals used

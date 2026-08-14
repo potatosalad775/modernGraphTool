@@ -19,7 +19,6 @@ const description = t(
 
 <StarlightPage frontmatter={{ title, template: 'splash', tableOfContents: false }}>
 	<div class="pbPageHeader">
-		<h1>{title}</h1>
 		<p>{description}</p>
 	</div>
 	<PhoneBookEditor client:load />
@@ -27,9 +26,10 @@ const description = t(
 
 <style>
 	/*
-	 * `template: 'splash'` suppresses Starlight's own title so the tool can use
-	 * the full page width; the heading is rendered here instead to keep the
-	 * lead-in the Docusaurus page had.
+	 * `template: 'splash'` only drops the sidebar and TOC — Starlight still
+	 * renders its own `<h1>{title}</h1>` above this. Adding a second one here
+	 * duplicated the heading; this block now only carries the lead-in paragraph
+	 * the Docusaurus page had.
 	 */
 	.pbPageHeader {
 		max-width: 1200px;

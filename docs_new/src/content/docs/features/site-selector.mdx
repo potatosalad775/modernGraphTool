@@ -1,0 +1,83 @@
+---
+title: 'Site Selector'
+---
+
+A dropdown in the top bar that lists every known measurement database, grouped by rig type, so
+visitors can jump straight to another site.
+
+## Overview
+
+Where [Cross-Site Search](./cross-site-search.mdx) answers "who else measured _this device_", the
+site selector answers "where else can I go". It lists the databases themselves rather than
+individual devices, and highlights the one the visitor is currently on.
+
+This works on **any host** — squig.link is not required. The selector reads a single small
+directory document (a few KB), so it costs one cached request per visit.
+
+That document comes from [GAA](https://github.com/potatosalad775/GAA), which merges
+[GraphAggregator](https://github.com/HarutoHiroki/GraphAggregator)'s federated index with
+squig.link's site registry and publishes just the site and database list — no device corpus.
+modernGraphTool ships with its URL built in, so there is nothing to set up.
+
+## Getting your site listed
+
+The selector shows what the shared index knows about. To appear in it:
+
+- **Self-hosted or custom domain** — register at
+  [graphaggregator.harutohiroki.com](https://graphaggregator.harutohiroki.com/).
+- **Hosted on squig.link** — you are already listed, via squig.link's own registry.
+
+Registering also makes your databases discoverable through cross-site search on every other
+deployment, and it is what makes the selector appear on your own site under the default `auto`
+setting.
+
+## Configuration
+
+Configured in `config.js`. The section is optional — omit it entirely and the defaults below apply:
+
+```javascript
+SITE_SELECTOR: {
+    ENABLED: 'auto',
+    INDEX_URLS: [],
+}
+```
+
+### Configuration Options
+
+- **`ENABLED`**: When to show the selector.
+  - `'auto'` (default) — show it only when this deployment is listed in the index, or is hosted on
+    squig.link. A standalone site that isn't registered gets nothing, rather than a dropdown listing
+    a hundred other people's databases and none of its own.
+  - `true` — always show it.
+  - `false` — never show it, and skip the fetch entirely.
+- **`INDEX_URLS`**: Directory documents to try, in order. Leave empty to use the official GAA index.
+
+## Self-hosting the index
+
+To avoid depending on a third-party origin, publish your own directory document and point
+`INDEX_URLS` at it:
+
+```javascript
+SITE_SELECTOR: {
+    ENABLED: 'auto',
+    INDEX_URLS: [
+        'https://example.com/my-site-index.json',
+        'https://backup.example.com/my-site-index.json'
+    ],
+}
+```
+
+Each URL is tried in order and the first valid document wins, so a mirror can be listed as a backup.
+The document must follow the GAA schema — see the
+[GAA repository](https://github.com/potatosalad775/GAA) for the spec and for a build script that
+generates it. Forking GAA and pointing this at your fork's GitHub Pages URL is the least-effort
+route.
+
+## Notes
+
+- The database the visitor is currently viewing is detected by URL and shown as selected. Longest
+  path match wins, so a site hosting `/` and `/headphones/` resolves to the right one.
+- Databases that were unreachable when the index was last built stay listed but are dimmed, with a
+  tooltip explaining that the link may not work. A site that is briefly down doesn't vanish from
+  navigation.
+- Entries open in a new tab.

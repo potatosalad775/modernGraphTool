@@ -1,0 +1,476 @@
+---
+title: 'Managing Data'
+sidebar:
+  order: 5
+---
+
+This guide explains how to manage the measurement data (Phone) and target curves (Target) displayed in modernGraphTool.
+
+The data list is managed by the `data/phone_book.json` file. If the paths are not modified separately, measurement data files are stored in `data/phones`, and target curve data files are stored in the `data/target` folder.
+
+:::tip[Tip]
+modernGraphTool is designed to use the same data structure as CrinGraph. Therefore, users familiar with CrinGraph can skip this section.
+:::
+
+:::tip[GUI editor]
+Prefer a form? Use the [phone_book.json Editor](/phone-book-editor) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Sample Sets).
+
+It also **converts**: import an existing phone book in any older format and export it in the current one. Worth a round-trip if yours still uses [`hptfs[]`](#deprecated-hptfs), which is deprecated.
+:::
+
+## Data Folder Structure
+
+The `dist/data` folder has the following structure:
+
+```
+data/
+├── phones/         # Storage location for measurement data files (.txt)
+│   ├── PhoneA L.txt
+│   ├── PhoneA R.txt
+│   └── PhoneB.txt
+├── target/         # Storage location for target curve data files (.txt)
+│   ├── X Target.txt
+│   └── Y Target.txt
+└── phone_book.json # Definition file for measurement device list and related data
+```
+
+- **`phones` folder**: Stores the frequency response measurement data files (.txt) for each Phone. File names can be freely assigned, but the correct file name must be entered when creating `phone_book.json`. If left/right channel data are in separate files, distinguish them by adding a space and `L` or `R` at the end of the file name.
+- **`target` folder**: Stores target curve data files (.txt). The correct file names must be entered when modifying the `INITIAL_TARGETS` and `TARGET_MANIFEST` settings in `config.js`.
+- **`phone_book.json`**: A file that defines the product names to be displayed in the measurement device list and various additional information (review links, prices, etc.) in JSON format.
+
+## JSON Syntax Basics
+
+JSON (JavaScript Object Notation) is a text format for structuring data. You can easily understand and modify it by knowing a few basic rules.
+
+- Data consists of **name** (Key) and **value** (Value) pairs. The name is always a string (enclosed in quotes).
+- Values can be **strings** (quotes), **numbers** (no quotes), **booleans** (true/false, no quotes), **arrays** (enclosed in `[` and `]` and separated by commas), or other **objects** (enclosed in `{` and `}`).
+- Each key-value pair within an object is separated by a comma (`,`). No comma is added after the last pair.
+- Each element within an array is also separated by a comma (`,`). No comma is added after the last element.
+
+## `phone_book.json` Structure
+
+The `phone_book.json` file starts and ends with one large array (`[]`). The array contains multiple **brand** objects (`{}`).
+
+Each brand object has a `name` key (e.g., "Sennheiser", "Sony") and a `phones` key.
+
+The value of the `phones` key is an array containing phone definitions for each model of that brand. Phone definitions can be simple strings or more detailed objects.
+
+```json
+[
+	{
+		"name": "Brand A",
+		"suffix": "(Audio)", // Optional: Suffix for the brand name
+		"phones": [
+			"ModelX_Simple", // Simple definition: Assumes files "ModelX_Simple L.txt" and "ModelX_Simple R.txt"
+			{
+				"name": "Model Y",
+				"file": "BrandA ModelY", // File name (without L/R and .txt)
+				"suffix": ["(Setting 1)", "(Setting 2)"], // Optional: Suffixes for different versions
+				"reviewLink": "https://example.com/review/modely", // Optional: Review link
+				"price": "$199", // Optional: Price (string)
+				"description": "Some description about Model Y" // Optional: Extra description
+			}
+			// ... more models for Brand A
+		]
+	},
+	{
+		"name": "Brand B",
+		"phones": [
+			// ... models for Brand B
+		]
+	}
+	// ... more brands
+]
+```
+
+### Brand Object Keys
+
+- `name` (String, Required): The name of the brand.
+- `suffix` (String, Optional): An optional suffix that will be appended to the brand name in the UI.
+- `phones` (Array, Required): An array of phone definitions. Each element can be a string (for simple cases) or a phone object (for detailed configuration or variations).
+
+### Phone Definition Types
+
+The phones array can contain:
+
+#### Simple String Definition
+
+If a phone entry is a simple string (e.g., "ModelX"), it's assumed that the display name is "ModelX" and the data files are ModelX L.txt and ModelX R.txt.
+
+```json
+{
+	"name": "BrandSimple",
+	"phones": [
+		"ModelS1", // Loads `~/ModelS1 L.txt`, `~/ModelS1 R.txt`
+		"ModelS2" // Loads `~/ModelS2 L.txt`, `~/ModelS2 R.txt`
+	]
+}
+```
+
+#### Detailed Phone Object Definition
+
+For more control, a phone can be defined as an object with the following keys:
+
+- `name` (String, Required): The model name of the phone to be displayed in the list.
+- `file` (String, Required): The base file name of the measurement data file (without L / R suffix and .txt extension). For example, if the files are MyPhone L.txt and MyPhone R.txt , file should be "MyPhone".
+- `suffix` (String, Optional): An optional suffix to append to the name in the selection list (e.g., "Rev.2", "(Foam Tip)"). The actual data file should reflect this suffix if it's part of the filename (e.g., MyPhone (Foam Tip) L.txt ).
+- `reviewScore` (String, Optional): A review score, e.g., "A+" or "3" (number between 0 to 5).
+- `reviewLink` (String, Optional): A URL link to a review of the phone.
+- `shopLink` (String, Optional): A URL to a shop or purchase page.
+- `price` (String, Optional): The price of the phone (e.g., "$299", "€250"). Using a string allows for currency symbols and various formats.
+- `description` (String, Optional): Free-form description displayed alongside the phone. A small set of inline HTML tags is supported — see [Rich Descriptions](#rich-descriptions) below.
+- `links` (Array of Objects, Optional): Extra links shown on the device row when it's loaded, next to the built-in Review / Shop links. See [Custom Links](#custom-links) below.
+
+```json
+{
+	"name": "BrandDetailed",
+	"phones": [
+		{
+			"name": "Model D1",
+			"file": "ModelD1_Data",
+			"suffix": "Rev.2",
+			"reviewScore": "A+",
+			"reviewLink": "https://example.com/review/d1",
+			"shopLink": "https://example.com/shop/d1",
+			"price": "$299"
+		}
+	]
+}
+```
+
+#### Rich Descriptions
+
+`description` accepts a small subset of inline HTML, so a note can carry a link or
+some emphasis:
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"description": "B&K5128 measurement of an identical unit is available <a href=\"https://other.example/?share=Brand%20Model%20D1\">here</a>."
+}
+```
+
+Allowed tags: `a`, `abbr`, `b`, `br`, `code`, `del`, `em`, `i`, `ins`, `kbd`,
+`mark`, `s`, `small`, `span`, `strong`, `sub`, `sup`, `u`, `wbr`.
+
+Everything else is sanitized away before the description reaches the page:
+
+- **Unknown tags are unwrapped** — `<div>text</div>` renders as `text`, so nothing
+  silently disappears.
+- **`<script>`, `<style>`, `<iframe>` and friends are removed together with their
+  content.**
+- **All attributes are dropped** except `href` / `title` on `<a>` and `title` on
+  `<abbr>` / `<span>`. Event handlers (`onclick`, …) and `style` never survive.
+- **Links must use `http`, `https`, `mailto` or `tel`** (or be relative). A
+  `javascript:` URL is stripped and the link text renders as plain text.
+- **Links open in a new tab** with `rel="external noopener noreferrer"` applied
+  automatically — you don't need to write `target` yourself.
+- **A bare `&` is fine.** `B&K5128` renders as written; you don't have to escape it
+  as `&amp;` (though that works too).
+
+Unclosed tags are closed for you, so a typo can't leak markup into the rest of the
+list. Since descriptions render inside the device row's button, only inline tags are
+allowed — block-level markup (`<p>`, `<ul>`, …) is unwrapped.
+
+The tooltip that appears when hovering a truncated description shows the **plain
+text** version, with markup stripped.
+
+#### Custom Links
+
+`shopLink` holds a single URL. When a device has several places worth pointing at —
+two shops, a manufacturer page, a measurement note — use `links` instead. Each entry
+is an object with a `label` and a `url`:
+
+```json
+{
+	"name": "Model D1",
+	"file": "ModelD1_Data",
+	"links": [
+		{ "label": "Amazon", "url": "https://amazon.example/d1" },
+		{ "label": "Official Store", "url": "https://brand.example/shop/d1" },
+		{ "label": "Measurement Notes", "url": "/data/notes/d1.html" }
+	]
+}
+```
+
+- `label` (String, Required): The link text. Plain text — any markup is stripped.
+- `url` (String, Required): `http`, `https`, `mailto`, `tel`, or a URL relative to
+  your site. Anything else is rejected.
+
+Links appear in the order you list them, after the built-in Review and Shop links,
+and are shown only once the device is loaded onto the graph. `links` works alongside
+`shopLink` rather than replacing it — you can use either or both.
+
+An entry with a missing `label`, a missing `url`, or an unusable URL is skipped (with
+a warning in the browser console) while the rest of the list still loads.
+
+#### Variations (Grouping Multiple Data Files under One Phone Name)
+
+You can group multiple measurement versions (e.g., different eartips, EQ settings) under a single conceptual phone model.
+
+```json
+{
+	"name": "BrandVariations",
+	"phones": [
+		{
+			"name": "Model V1", // Base name for variations
+			"file": ["ModelV1_Foam", "ModelV1_Silicone", "ModelV1_Hybrid"],
+			"suffix": ["(Foam Tip)", "(Silicone Tip)", "(Hybrid Tip)"],
+			"price": "$150" // Applies to all V1 variations
+		}
+	]
+}
+```
+
+- Using name , file , and suffix arrays :
+  - `name` (Array of Strings, Required): An array containing a single string, which will be the base name for all variations.
+  - `file` (Array of Strings, Required): An array of base file names for each variation.
+  - `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand_name + name + suffix[i] .
+  - This will create entries like "BrandVariations Model V1 (Foam Tip)", "BrandVariations Model V1 (Silicone Tip)", etc.
+  - The lengths of file and suffix arrays must be the same. Other optional keys like reviewLink , price , etc., can be added and will apply to all variations.
+
+```json
+{
+	"name": "BrandPrefix",
+	"phones": [
+		{
+			"name": "Model P1", // Base display name
+			"file": ["BrandP ModelP1 (Foam Tip)", "BrandP ModelP1 (Silicone Tip)"], // Actual files would be: BrandP ModelP1 (Foam Tip) L.txt, BrandP ModelP1 (Silicone Tip) L.txt, etc.
+			"prefix": "BrandP ModelP1", // Common file prefix
+			"description": "Uses different eartips"
+		}
+	]
+}
+```
+
+- Using prefix for common file prefixes :
+  If your variation files share a common prefix in their names but have distinct parts that can serve as suffixes.
+  - `name` (Array of Strings, Required): An array containing a single string, the base display name.
+  - `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
+  - `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file[i] .
+  - The display name will be brand_name + name + file[i]. (e.g, "BrandPrefix Model P1 (Foam Tip)", "BrandPrefix Model P1 (Silicone Tip)")
+  - This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
+
+#### Sample Sets \{#sample-sets\}
+
+A **sample set** is a variant that was measured more than once: repeat runs of the
+same fit, a sweep of seating positions, one measurement per ear pad, or the same
+device on several rigs. modernGraphTool can draw a set three ways, and they
+compose freely:
+
+| Token    | What it draws                                                      |
+| -------- | ------------------------------------------------------------------ |
+| `avg`    | One averaged curve across every run — the device's "main" line.    |
+| `curves` | Each run as its own thin curve, individually toggleable in the UI. |
+| `fill`   | A shaded min/max band spanning every run — the variance envelope.  |
+
+Sample sets are declared per variant, inside a `variants` array:
+
+```json
+{
+	"name": ["HD 600"],
+	"variants": [
+		{ "suffix": "Stock", "file": "HD600 Stock" },
+
+		{ "suffix": "Modded", "file": "HD600 Mod", "samples": 5 },
+
+		{
+			"suffix": "Leather Pad",
+			"file": "HD600 Leather",
+			"samples": {
+				"count": 5,
+				"labels": ["Center", "Front", "Back", "Up", "Down"],
+				"display": ["avg", "fill"],
+				"description": "(Positional Variance)"
+			}
+		},
+
+		{
+			"suffix": "Suede Pad",
+			"samples": {
+				"files": ["Suede Center", "Suede Front", "Suede Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["fill", "curves"]
+			}
+		}
+	]
+}
+```
+
+Each entry of `variants` takes:
+
+- `suffix` (String, Optional): The variant label shown in the device selector dropdown.
+- `file` (String, Optional): Base filename for the main L/R pair — `{file} L.txt` / `{file} R.txt`.
+  Can be omitted when `samples.files` names the measurements instead.
+- `samples` (Number or Object, Optional): The sample set. A bare number is shorthand
+  for `{ "count": n }`.
+
+And `samples`, in object form:
+
+- `count` (Number): Number of runs, loaded as `{file} L1.txt`…`L{count}.txt` and the
+  matching `R` files. This is the layout a CrinGraph `num_samples` site already uses.
+- `files` (Array of Strings): Explicit base filename per run, loaded as `{name} L.txt`
+  and `{name} R.txt`. Use this **or** `count`, not both.
+- `labels` (Array of Strings, Optional): A human-readable name per run — shown in the
+  sample picker and on the graph label, e.g. `HD 600 Leather Pad (Center, R)`. Defaults
+  to the `files` values, or to "Sample 1", "Sample 2"… for the `count` form.
+- `display` (Array of Strings, Optional): Any combination of `avg`, `curves` and `fill`.
+  Seeds the toggles; the user can still change them per curve. Defaults to
+  `SAMPLES.DEFAULT_DISPLAY` in `config.js`.
+- `description` (String, Optional): A short note shown beside the device name describing
+  what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`.
+
+`count` versus `files` is only a **filename convention**, not a feature difference —
+labels, fills and per-run curves all work with either.
+
+:::note[variants composes with `file`]
+`variants` does **not** replace the phone-level `file` / `suffix` / `prefix` / `samples` /
+`hptfs` keys — the two combine into one variant list. An entry whose `file` names a
+measurement the phone already declared **upgrades that variant in place**, keeping its
+position (so the phone's default curve doesn't move); every other entry is **appended**
+after. Declaring the same variant in both places lists it once, not twice.
+
+This is what lets one entry serve both tools. CrinGraph reads `file` and nothing else, so a
+phone whose measurements live only in `variants` is invisible to it. Keep the plain
+measurements in `file` / `suffix` and layer the sample sets on top:
+
+```json
+{
+	"name": ["Soloist"],
+	"file": ["Soloist Stock", "Soloist Starline", "Soloist SpinFit"],
+	"prefix": "Soloist",
+	"variants": [
+		{
+			"suffix": "Insertion Depth",
+			"samples": {
+				"files": ["Soloist Starline 7k", "Soloist Starline", "Soloist Starline 9k"],
+				"labels": ["7 kHz", "8 kHz", "9 kHz"],
+				"display": ["avg", "fill"]
+			}
+		}
+	]
+}
+```
+
+CrinGraph shows the three eartip variants; modernGraphTool shows those three **plus** the
+insertion-depth set. To give one of the eartips its own runs instead of adding a fourth
+entry, set that variant's `file` to the eartip's filename — it upgrades in place.
+:::
+
+:::tip[Unnumbered fallback]
+With the `count` form, if `{file} L1.txt` / `{file} R1.txt` are missing the tool falls
+back to the unnumbered pair `{file} L.txt` / `{file} R.txt` for run 1. This lets sibling
+variants freely mix numbered and unnumbered pairs — a variant with no numbered files
+still loads without error.
+:::
+
+:::tip[Site-wide defaults]
+`SAMPLES.DEFAULT_COUNT` and `SAMPLES.DEFAULT_DISPLAY` in `config.js` apply to every
+variant that declares no set of its own, so a database where every device is measured
+five times needs no per-entry `samples` at all. A brand can also set `defaultSamples`
+next to its `name` to override the site default for its own devices. See the
+[`SAMPLES`](./customize-page.mdx#samples) config section.
+:::
+
+##### The terse form: phone-level `samples: N`
+
+A phone can declare one run count for all of its `file[]` variants at once, without a
+`variants` array:
+
+```json
+{ "name": ["Multi Sample"], "file": ["Multi Sample"], "samples": 3 }
+```
+
+Equivalent to `"variants": [{ "file": "Multi Sample", "samples": 3 }]`. This form is
+**supported indefinitely** — it shares the CrinGraph-compatible shape of the rest of the
+phone entry, so a `phone_book.json` written for another tool keeps working here as-is.
+Its limits are why `variants` exists: one run count for every variant of the phone, no
+per-run labels, and no fill.
+
+##### Deprecated: `hptfs[]` \{#deprecated-hptfs\}
+
+`hptfs[]` was modernGraphTool's own key for a variance set, and `variants[]` now covers
+everything it did. **It is deprecated and will be removed in a future release.** It is
+still read today, so nothing breaks the moment you upgrade — but convert your phone book
+when convenient rather than writing new `hptfs[]` entries.
+
+Unlike `samples: N`, no other tool in the CrinGraph ecosystem reads `hptfs[]`, so keeping
+it costs compatibility nothing to drop.
+
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"hptfs": [
+		{
+			"suffix": "Leather Pad",
+			"files": ["Leather Center", "Leather Front", "Leather Back"],
+			"labels": ["Center", "Front", "Back"],
+			"description": "(Leather Pad Variance)",
+			"fillOnly": false
+		}
+	]
+}
+```
+
+Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fill"]` —
+plus `"curves"` when `fillOnly` is `false`:
+
+```json
+{
+	"name": ["HpTF Multi Pad"],
+	"variants": [
+		{
+			"suffix": "Leather Pad",
+			"samples": {
+				"files": ["Leather Center", "Leather Front", "Leather Back"],
+				"labels": ["Center", "Front", "Back"],
+				"display": ["avg", "fill", "curves"],
+				"description": "(Leather Pad Variance)"
+			}
+		}
+	]
+}
+```
+
+:::tip[Convert automatically]
+You don't have to do this by hand. Load your existing `phone_book.json` into the
+[**phone_book.json Editor**](/phone-book-editor) and export it again — import reads every
+legacy form, and export always writes canonical `variants[]`. It converts the whole file
+in one pass, `hptfs[]` entries included.
+:::
+
+The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated alongside
+it; see [`SAMPLES`](./customize-page.mdx#samples) for the replacement keys.
+
+:::note[Combining forms]
+Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `variants`
+entries on one phone are treated as **independent variants** in a single flat list — two
+`file` variants plus two `hptfs` entries produce four entries in the variant selector. The
+one exception is the in-place upgrade above: a `variants` entry naming an already-declared
+`file` refines that variant instead of adding another.
+:::
+
+:::tip[Dual-hosting with CrinGraph]
+Both halves of a shared deployment work out:
+
+- **Measurement folder** — labels, fills and per-run display are additive metadata over
+  numbered files. A database using `count` keeps the exact `{file} L{n}.txt` layout a
+  CrinGraph `num_samples` site expects, so one folder serves both tools.
+- **`phone_book.json`** — keep every plain measurement in `file` / `suffix`, since that is
+  all CrinGraph reads, and add `variants` alongside it for the sample sets. CrinGraph
+  ignores the keys it doesn't know; modernGraphTool composes the two.
+
+:::
+
+## How to Add/Modify Measurement Data
+
+1.  Copy the new Phone measurement data file(s) (.txt) to the `data/phones` folder.
+2.  Open the `data/phone_book.json` file with a text editor.
+3.  Add new Phone information or modify existing information according to the JSON syntax and structure described above.
+4.  Save the `phone_book.json` file.
+5.  Refresh the web page in your browser to see if the changes have been applied correctly.
+
+:::caution[Caution]
+When editing the `phone_book.json` file, ensure you strictly follow JSON syntax rules (quotes, commas, brackets, etc.). Errors in the JSON structure can prevent the page from loading correctly or displaying data. Using a text editor with JSON validation (like VS Code, which highlights errors) is highly recommended.
+:::

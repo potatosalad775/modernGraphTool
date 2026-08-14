@@ -16,7 +16,16 @@ export default defineConfig(
 		// The root .gitignore anchors its output patterns (`/build`, `/dist`), so it does not
 		// cover the Docusaurus site's generated output, and includeIgnoreFile only reads the
 		// root file. Without this, linting after a docs build walks into minified bundles.
-		ignores: ['docs/build/**', 'docs/.docusaurus/**', 'site-template/config-cdn-mode.js']
+		ignores: [
+			'docs/build/**',
+			'docs/.docusaurus/**',
+			'docs_new/dist/**',
+			'docs_new/.astro/**',
+			// Parked React sources for the three interactive tools, carried over from
+			// the Docusaurus site unmodified until they are ported to Astro.
+			'docs_new/src/tools-legacy/**',
+			'site-template/config-cdn-mode.js'
+		]
 	},
 	js.configs.recommended,
 	ts.configs.recommended,

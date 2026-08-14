@@ -1,0 +1,44 @@
+---
+title: modernGraphTool Docs
+description: Documentation for modernGraphTool — a web-based frequency response visualization tool for headphones and IEMs.
+template: splash
+# Without this the tab reads "modernGraphTool Docs | modernGraphTool Docs":
+# Starlight appends the site title even when the page title already matches it.
+head:
+  - tag: title
+    content: modernGraphTool Docs
+hero:
+  tagline: Docs for funky squiggly line tool
+  actions:
+    - text: Learn more about modernGraphTool
+      # Relative so the same link works under the site's `/modernGraphTool/docs`
+      # base and under the `/ko` locale root without duplicating it per locale.
+      link: intro/
+      icon: right-arrow
+      variant: primary
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## Useful tools
+
+Visual editors and generators that help you set up modernGraphTool — no hand-editing
+required.
+
+<CardGrid>
+	<LinkCard
+		title="phone_book.json Editor"
+		href="phone-book-editor/"
+		description="Build or edit your phone_book.json visually — import an existing file, adjust brands and phones, and export the result."
+	/>
+	<LinkCard
+		title="Config Editor"
+		href="config-generator/"
+		description="Build or edit config.js with a visual editor — import an existing config, adjust settings, and export the result."
+	/>
+	<LinkCard
+		title="Theme Generator"
+		href="theme-generator/"
+		description="Pick colors, preview the graph and UI in light and dark mode, and download a ready-to-drop theme.css file."
+	/>
+</CardGrid>

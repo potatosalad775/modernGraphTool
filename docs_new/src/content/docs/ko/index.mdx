@@ -1,0 +1,39 @@
+---
+title: modernGraphTool 문서
+description: 헤드폰과 이어폰의 주파수 응답을 시각화하는 웹 도구, modernGraphTool의 문서입니다.
+template: splash
+head:
+  - tag: title
+    content: modernGraphTool 문서
+hero:
+  tagline: 꼬불꼬불한 선을 그려주는 도구를 위한 문서
+  actions:
+    - text: modernGraphTool 알아보기
+      link: intro/
+      icon: right-arrow
+      variant: primary
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## 유용한 도구
+
+코드를 직접 수정하지 않고도 modernGraphTool을 손쉽게 설정할 수 있도록 도와주는 도구들입니다.
+
+<CardGrid>
+	<LinkCard
+		title="phone_book.json 편집기"
+		href="phone-book-editor/"
+		description="phone_book.json을 손쉽게 편집하세요. 기존 파일을 가져오고 브랜드와 기기를 수정한 뒤 결과를 내보낼 수 있습니다."
+	/>
+	<LinkCard
+		title="설정 파일 편집기"
+		href="config-generator/"
+		description="config.js를 간편하게 수정하세요. 기존 설정을 가져오고 항목을 조정한 뒤 결과를 내보낼 수 있습니다."
+	/>
+	<LinkCard
+		title="테마 생성기"
+		href="theme-generator/"
+		description="색상 선택, 테마 미리보기, theme.css 다운로드를 지원하는 테마 생성기입니다."
+	/>
+</CardGrid>

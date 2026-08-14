@@ -1,0 +1,16 @@
+/*
+ * Accent ramp carried over from the Docusaurus site's `--ifm-color-primary`
+ * (#2e8555 light / #25c2a0 dark). Everything else in the old custom.css was
+ * untouched template boilerplate and is intentionally not ported.
+ */
+:root {
+	--sl-color-accent-low: #12352a;
+	--sl-color-accent: #2e8555;
+	--sl-color-accent-high: #b7e3c9;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #c3e7d3;
+	--sl-color-accent: #22693f;
+	--sl-color-accent-high: #10352b;
+}

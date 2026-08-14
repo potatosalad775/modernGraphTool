@@ -1,0 +1,852 @@
+---
+title: '페이지 커스터마이징'
+sidebar:
+  order: 3
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+modernGraphTool 페이지의 초기 표시 내용과 디자인 테마 등을 운영자의 필요에 맞게 자유롭게 바꿀 수 있습니다.
+
+주로 `index.html`, `theme.css`, `config.js` 세 파일을 편집합니다. 단순한 것부터 복잡한 것 순서로 정리되어 있습니다.
+
+:::note[파일 위치]
+
+- **사전 빌드 릴리스 사용자** — 압축을 푼 릴리스 폴더의 루트에 이 파일들이 있습니다.
+- **소스 빌드 사용자** — 기본 설정과 데이터 파일은 `defaults/` 폴더에 있고, HTML 진입점은 `src/app.html`입니다. 빌드(`npm run build`) 후 모든 결과물은 `dist/`로 출력됩니다.
+  :::
+
+## 페이지 메타데이터 변경 (`index.html`) \{#changing-page-metadata-indexhtml\}
+
+`index.html` 파일은 modernGraphTool의 기본 HTML 구조와 메타데이터를 정의합니다. 페이지 제목, 설명, 미리보기 이미지, 파비콘 등 브라우저와 소셜 미디어 스크래퍼가 읽는 `<head>` 필드가 모두 여기에 들어 있습니다.
+
+:::note[파일 위치]
+
+- **사전 빌드 릴리스** — 릴리스 폴더의 `index.html`을 직접 편집합니다.
+- **소스 빌드 사용자** — SvelteKit 템플릿인 `src/app.html`을 편집합니다. 빌드 결과인 `dist/index.html`은 이 템플릿에서 생성됩니다.
+  :::
+
+:::caution[주의]
+HTML 파일은 HTML 문법을 따릅니다. 수정한 뒤에는 문법 오류가 없는지 반드시 확인하세요.
+:::
+
+### `TITLE`
+
+```html
+<title>modernGraphTool</title>
+<meta name="title" content="modernGraphTool" />
+<meta property="og:title" content="modernGraphTool" />
+```
+
+페이지 제목을 설정합니다.
+
+### `DESCRIPTION`
+
+```html
+<meta
+	name="description"
+	content="View and compare frequency response graphs for earphones/headphones."
+/>
+<meta
+	property="og:description"
+	content="View and compare frequency response graphs for earphones/headphones."
+/>
+```
+
+페이지 설명을 설정합니다.
+
+### `KEYWORDS`
+
+페이지 키워드를 설정합니다 (검색 엔진 최적화에 사용).
+
+```html
+<meta
+	name="keywords"
+	content="earphone,headphone,IEM,frequency response,graph,comparison,measurement,FR"
+/>
+```
+
+### `URL` / `LINK`
+
+페이지 URL과 링크를 설정합니다.
+
+```html
+<meta property="og:url" content="/?" /> <link rel="canonical" href="/?" />
+```
+
+### `IMAGE`
+
+페이지 미리보기 이미지를 설정합니다.
+
+```html
+<meta property="og:image" content="/preview.png" />
+```
+
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 있어도 되지만, `assets/images` 폴더에 두는 것을 권장합니다.
+:::
+
+### `FAVICON`
+
+페이지 파비콘 (탭 아이콘)을 설정합니다.
+
+```html
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+```
+
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 있어도 되지만, `assets/images` 폴더에 두는 것을 권장합니다.
+:::
+
+## 페이지 스타일 커스터마이징 (`theme.css`) \{#customizing-page-styles-themecss\}
+
+`theme.css` 파일은 modernGraphTool의 시각 테마를 구동하는 CSS 커스텀 속성(변수)을 담고 있습니다. D3.js 주파수 응답 그래프와 주변 UI 크롬에 모두 적용되며, 모든 변수는 라이트와 다크 모드 사이에서 자동으로 전환됩니다.
+
+:::tip[시각적으로 테마 만들기]
+docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께 들어 있습니다. 색상을 골라 그래프와 UI를 라이트·다크 모드로 미리 보면서 바로 쓸 수 있는 `theme.css` 파일을 내려받을 수 있습니다. 아래 CSS 변수를 직접 편집하기 부담스럽다면 이 도구를 권장합니다.
+:::
+
+:::tip[배치 위치]
+`theme.css` 파일은 배포 루트의 `index.html`과 같은 위치에 두어야 합니다.
+:::
+
+### 그래프 변수
+
+다음 변수들은 Tailwind 클래스를 적용할 수 없는 SVG 렌더링을 담당합니다.
+
+```css
+:root {
+	--color-graph-bg: transparent; /* Graph background */
+	--color-graph-watermark-opacity: 0.08; /* Watermark opacity */
+	--color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
+	--color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
+	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
+	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
+	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
+}
+
+.dark {
+	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
+	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-baseline: rgba(255, 255, 255, 0.25);
+}
+```
+
+### 기본 UI 변수
+
+배경, 텍스트, 버튼, 액센트 같은 UI 크롬은 DaisyUI 스타일의 기본 팔레트로 구동됩니다. 모든 변수는 라이트(`:root`)와 다크(`.dark`) 값을 함께 가집니다.
+
+```css
+:root {
+	--color-base-100: oklch(98% 0.003 247.858); /* Background */
+	--color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
+	--color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
+	--color-base-content: oklch(20% 0.042 265.755); /* Default text */
+	--color-primary: oklch(59% 0.145 163.225); /* Primary accent */
+	--color-primary-content: oklch(97% 0.021 166.113);
+	--color-secondary: oklch(60% 0.126 221.723);
+	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-accent: oklch(44% 0.017 285.786);
+	--color-accent-content: oklch(98% 0 0);
+	--color-neutral: oklch(44% 0.043 257.281);
+	--color-neutral-content: oklch(98% 0.003 247.858);
+	--color-info: oklch(68% 0.169 237.323);
+	--color-info-content: oklch(97% 0.013 236.62);
+	--color-success: oklch(76% 0.233 130.85);
+	--color-success-content: oklch(98% 0.031 120.757);
+	--color-warning: oklch(79% 0.184 86.047);
+	--color-warning-content: oklch(98% 0.026 102.212);
+	--color-error: oklch(64% 0.246 16.439);
+	--color-error-content: oklch(96% 0.015 12.422);
+}
+```
+
+각 `--color-*` 역할에는 대응하는 `--color-*-content` 변수가 있어, 그 위에 그려질 전경(텍스트·아이콘) 색상을 정합니다. 덕분에 기본 색상을 바꿔도 대비가 자동으로 유지됩니다.
+
+:::note[색상 형식]
+값은 [OKLCH 색공간](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch)을 사용합니다. 원한다면 `rgb()`, `hsl()`, hex 값을 써도 되지만, OKLCH가 팔레트 전반에 걸친 지각적 밝기를 더 예측 가능하게 만들어 줍니다.
+:::
+
+## 기본 설정 변경 (`config.js`) \{#changing-basic-settings-configjs\}
+
+:::tip[시각적 에디터가 더 편하다면]
+docs 사이트에는 실시간 **[Config Editor](/config-generator)**가 함께 들어 있습니다. 파일을 직접 편집하지 않고도 유효한 `config.js`를 구성하고 내보낼 수 있습니다. 아래에 설명된 모든 필드를 다루므로, 이 레퍼런스 페이지는 각 필드의 역할을 이해하거나 기존 파일을 손으로 수정할 때 참고하세요.
+:::
+
+`config.js` 파일은 modernGraphTool의 동작과 관련된 다양한 설정을 담습니다. 텍스트 에디터로 열어 필요한 항목을 수정합니다.
+
+:::caution[주의]
+`config.js` 파일은 JavaScript 문법을 따릅니다. 문자열은 따옴표(`"` 또는 `'`)로 감싸고, 각 항목 끝에는 쉼표(`,`)를 붙여야 합니다(마지막 항목 제외). 수정한 뒤에는 문법 오류가 없는지 반드시 확인하세요.
+:::
+
+### `INITIAL_PHONES`
+
+```javascript
+// Brand : Sennheiser
+// Model : IE200
+// Suffix : (Foam Tip)
+INITIAL_PHONES: ["Sennheiser IE200 (Foam Tip)"],
+
+// You can add multiple phones to the list.
+INITIAL_PHONES: ["Sennheiser IE200", "Sony IER-Z1R"],
+```
+
+페이지 로드 시 기본으로 표시할 Phone(측정 데이터)의 이름을 배열 형태로 지정합니다.
+
+- `phone_book.json`에 정의된 브랜드 + 기기 이름을 사용해야 합니다.
+  - 표시할 기기 이름에는 suffix가 포함될 수 있습니다. suffix를 지정하지 않으면 첫 번째 파일이 기본으로 표시됩니다.
+- 여러 Phone(측정 데이터)을 동시에 표시할 수 있습니다.
+
+### `INITIAL_TARGETS`
+
+```javascript
+INITIAL_TARGETS: ["Harman IE 2019v2 Target"],
+
+// You can add multiple targets to the list.
+INITIAL_TARGETS: ["Harman IE 2019v2 Target", "KEMAR DF Target"],
+```
+
+페이지 로드 시 기본으로 표시할 Target(타겟 커브)의 이름을 배열 형태로 지정합니다.
+
+- `data/target` 폴더의 파일명(확장자 제외)을 사용합니다.
+
+### `INITIAL_PANEL`
+
+```javascript
+INITIAL_PANEL: "graph",
+```
+
+페이지 로드 시 기본으로 표시될 패널을 지정합니다.
+
+- `phone`, `graph`, `equalizer`, `misc` 중 하나를 선택할 수 있습니다.
+
+### `NORMALIZATION`
+
+```javascript
+NORMALIZATION: {
+  TYPE: "Hz",
+  HZ_VALUE: 500,
+},
+```
+
+그래프 정규화(Normalization) 기본 설정을 지정합니다.
+
+#### `TYPE`
+
+정규화 방식을 설정합니다.
+
+- `Hz (특정 주파수 기준)` 또는 `Avg (300~3000Hz 평균 기준)` 중 하나를 선택할 수 있습니다.
+
+#### `HZ_VALUE`
+
+`TYPE`이 'Hz'로 설정된 경우, 입력된 숫자가 기본 주파수로 사용됩니다.
+
+### `VISUALIZATION`
+
+```javascript
+VISUALIZATION: {
+  ASPECT_RATIO: "16:9",
+  DEFAULT_Y_SCALE: 60,
+  LABEL: {
+    LOCATION: "BOTTOM_LEFT",
+    POSITION: {
+      LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
+    },
+    TEXT_SIZE: "20px",
+    TEXT_WEIGHT: "600",
+  },
+  BASELINE_LABEL: {
+    LOCATION: "TOP_LEFT",
+    POSITION: {
+      LEFT: "0", RIGHT: "0", UP: "0", DOWN: "0",
+    },
+    TEXT_SIZE: "15px",
+    TEXT_WEIGHT: "500",
+  },
+  RIG_DESCRIPTION: "Measured with IEC 60318-4 (711)",
+},
+```
+
+그래프 시각화 관련 설정을 지정합니다.
+
+#### `ASPECT_RATIO`
+
+주파수 응답 그래프의 종횡비를 설정합니다.
+
+- `"16:9"` — 표준 와이드스크린 (800×450 viewBox).
+- `"CrinGraph"` — CrinGraph의 비율과 동일 (800×346 viewBox).
+
+#### `DEFAULT_Y_SCALE`
+
+Y축(dB)의 기본 표시 범위를 설정합니다.
+
+- 30, 40, 50, 60, 80 중 하나를 선택할 수 있습니다.
+
+#### `LABEL`
+
+그래프 위에 표시되는 Phone/Target 이름 라벨의 위치, 크기, 굵기 등을 설정합니다.
+
+- `LOCATION` : 이름 라벨 위치
+  - `BOTTOM_LEFT`, `BOTTOM_RIGHT`, `TOP_LEFT`, `TOP_RIGHT` 중 선택.
+- `POSITION` : 이름 라벨 위치 세부 조정값
+  - `LEFT`, `RIGHT`, `UP`, `DOWN` 항목 별 조정값 입력 가능.
+- `TEXT_SIZE` : 이름 라벨 크기 (px 단위).
+- `TEXT_WEIGHT` : 이름 라벨 굵기 (100 ~ 900 중 백 단위 숫자).
+
+#### `BASELINE_LABEL`
+
+베이스라인(보정) 타겟이 활성화되어 있을 때 그래프에 표시되는 베이스라인 라벨의 위치, 크기, 굵기 등을 설정합니다.
+
+- 위의 `LABEL`과 동일한 옵션을 사용할 수 있습니다.
+
+#### `RIG_DESCRIPTION`
+
+그래프 우측 상단에 표시될 측정 장비 설명을 입력합니다.
+
+### `INTERFACE`
+
+```javascript
+INTERFACE: {
+  PREFERRED_DARK_MODE_THEME: "light",
+  PANEL_POSITION: "left",
+  ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
+  SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  TARGET: {
+    ALLOW_MULTIPLE_LINE_PER_TYPE: true,
+    OMIT_TARGET_SUFFIX: true,
+    COLLAPSE_TARGET_LIST_ON_INITIAL: true,
+  },
+  HIDE_DEV_DONATE_BUTTON: false,
+},
+```
+
+사용자 인터페이스 관련 설정을 지정합니다.
+
+#### `PREFERRED_DARK_MODE_THEME`
+
+다크 모드 설정을 지정합니다.
+
+- `light`, `dark`, `system` 중 선택.
+
+#### `PANEL_POSITION`
+
+데스크톱 UI에서 메뉴 + 패널 열이 표시될 위치를 설정합니다. 모바일 UI에는 영향을 주지 않습니다.
+
+- `left`(기본값 — 컨트롤이 왼쪽, 그래프가 오른쪽; 기존 CrinGraph 레이아웃과 동일) 또는 `right`(그래프가 왼쪽, 컨트롤이 오른쪽) 중 선택.
+
+#### `ALLOW_REMOVING_PHONE_FROM_SELECTOR`
+
+Phone(측정 데이터) 선택기에서 이미 추가된 항목을 다시 선택했을 때 그래프에서 제거할지 여부를 설정합니다.
+
+- `true`, `false` 중 선택.
+
+#### `SWITCH_PHONE_PANEL_ON_BRAND_CLICK`
+
+모바일 UI에서 브랜드 버튼 클릭 시 자동으로 기기 목록으로 전환할지 여부를 설정합니다.
+
+- `true`, `false` 중 선택.
+
+#### `TARGET`
+
+Target 선택기 관련 설정을 지정합니다. ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+타입별로 Target 목록을 여러 줄로 표시할지 여부를 설정합니다. - `true`, `false` 중 선택. ##### `OMIT_TARGET_SUFFIX`
+각 타겟 항목마다 'Target' 접미어를 생략할지 여부를 설정합니다. - `true`, `false` 중 선택. ##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
+초기 페이지 로드 시 타겟 목록을 접어서 표시할지 여부를 설정합니다. - `true`, `false` 중 선택.
+
+#### `HIDE_DEV_DONATE_BUTTON`
+
+'기부' 버튼을 숨길지 여부를 설정합니다.
+
+- `true`, `false` 중 선택.
+
+### `URL`
+
+```javascript
+URL: {
+  AUTO_UPDATE_URL: true,
+  COMPRESS_URL: true,
+},
+```
+
+- `AUTO_UPDATE_URL`: 선택된 기기 및 타겟에 따라 URL을 자동으로 업데이트할지 여부를 설정합니다.
+  - `true`, `false` 중 선택.
+- `COMPRESS_URL`: URL을 압축할지 여부를 설정합니다.
+  - 활성화하면 base62 알고리즘을 사용해 URL을 압축합니다.
+  - `true`, `false` 중 선택.
+
+### `RANKING_URL`
+
+```javascript
+// 기본 - 링크 없음, 리뷰 점수는 일반 텍스트로 표시됩니다.
+RANKING_URL: "",
+
+// 동일한 서버 내의 squigRanking 페이지로 연결하고자 하는 경우:
+RANKING_URL: "/ranking/?type=earphone#{slug}",
+
+// 외부 랭킹 페이지:
+RANKING_URL: "https://reviews.example.com/?type={type}#{slug}",
+
+// 기기 항목이 없는 원시 URL (그대로 사용):
+RANKING_URL: "https://docs.google.com/spreadsheets/.../pubhtml",
+```
+
+기기 선택 목록에 포함된 각 기기의 리뷰 점수를 [squigRanking](https://github.com/potatosalad775/squigRanking)을 비롯한 랭킹 페이지로 연결하는 URL 링크로 바꿉니다. 빈 문자열로 설정할 경우, 점수가 일반 텍스트로 표시됩니다 (기존과 동일).
+
+값으로 URL 템플릿을 입력합니다. modernGraphTool은 각 행마다 다음과 같은 매개 변수를 알아서 대체합니다. 값은 URL로 인코딩됩니다(단, `{slug}`는 `-`가 읽히도록 인코딩되지 않습니다).
+
+| 매개 변수    | 설명                                                                                |
+| ------------ | ----------------------------------------------------------------------------------- |
+| `{brand}`    | 기기의 브랜드                                                                       |
+| `{model}`    | 기기의 모델                                                                         |
+| `{slug}`     | `{brand}-{model}` 소문자, 공백 → `-` (squigRanking의 `deepLink` 슬러그 형식과 일치) |
+| `{fullName}` | `{brand} {model}` 결합                                                              |
+| `{type}`     | 항상 `earphone` — 아래 참고 사항 참조                                               |
+
+템플릿에 **매개 변수가 없는 경우**(예: Google Sheet URL), 해당 입력값이 그대로 사용됩니다 — 슬러그나 쿼리 문자열이 추가되지 않습니다.
+
+:::note[`{type}` on headphone deploys]
+modernGraphTool의 `phone_book.json`은 각 기기별로 타입을 기록하지 않으므로 `{type}`은 항상 리터럴 `earphone`으로 해석됩니다. 헤드폰 페이지의 경우, 타입을 하드코딩하세요 — 예: `RANKING_URL: "/ranking/?type=headphone#{slug}"`.
+:::
+
+### `CDN_MODE`
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
+  // BASE_PATH: "/headphones",
+  // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
+},
+```
+
+CDN 배포 관련 설정을 구성합니다. **`cdn-index.html`로 배포할 때만 사용되며**, 표준 `dist/` 배포에서는 이 섹션을 주석 처리한 채로 두세요.
+
+- `MAJOR_VERSION` — 앱을 특정 메이저 버전에 고정합니다(예: `2`는 v2.x.x 안에서 자동 업데이트).
+- `BASE` — 커스텀 CDN 기본 URL. CDN 자산을 직접 호스팅하는 고급 사용자만 바꿉니다.
+- `BASE_PATH` — 배포 하위 경로(예: `"/headphones"`). 끝에 슬래시는 붙이지 마세요. **(서브)도메인 루트가 아닌 모든 배포에 반드시 필요합니다.** `example.com/headphones/`나 `username.squig.link/headphones/`에 사이트가 있다면 `BASE_PATH: "/headphones"`로 설정하세요. 사이트가 (서브)도메인 루트(예: `example.com/`, `username.squig.link/`)에 있을 때만 설정 없이 둡니다. 빠뜨리면 홈 페이지는 정상 로드되지만 공유 링크 딥 라우트가 모두 404가 됩니다. 거의 항상 필요한 이유는 [CDN 배포 가이드](./deployment/cdn.mdx#why-base_path-is-almost-always-required)에서 자세히 다룹니다.
+- `VERSIONS_URL` — `versions.json`의 전체 URL. 기본적으로 로더는 `BASE`에서 `raw.githubusercontent.com` URL을 유도해 GitHub에서 직접 `versions.json`을 가져오며, jsDelivr를 거치지 **않습니다**. 의도된 동작입니다. jsDelivr 엣지 캐시는 오래된 `versions.json` 응답을 몇 시간씩 잡아 두는 일이 있어 새 릴리스가 사용자에게 닿는 시점이 늦어집니다. `versions.json`은 이 지연이 문제가 되는 유일한 파일이라 로더가 일부러 우회합니다. `cdn` 브랜치를 자체 포크로 호스팅하거나 GitHub이 아닌 출처에서 제공하는 경우에만 `VERSIONS_URL`을 재정의하세요.
+
+:::note[표준 배포라면]
+[사전 빌드 릴리스](./deployment/prebuilt.mdx) 방식(`dist/` 폴더 전체 업로드)을 쓴다면 이 섹션은 필요 없습니다. `cdn-index.html`을 사용하는 [CDN 배포](./deployment/cdn.mdx)에만 해당합니다.
+:::
+
+### `LANGUAGE`
+
+```javascript
+LANGUAGE: {
+  LANGUAGE_LIST: [
+    ["en", "English"], ["ko", "한국어"]
+  ],
+  ENABLE_I18N: true,
+  ENABLE_SYSTEM_LANG_DETECTION: true,
+},
+```
+
+- `LANGUAGE_LIST`: 사용 가능한 언어 목록을 설정합니다.
+  - 각 언어마다 `["언어코드", "언어이름"]` 형태로 추가합니다.
+- `ENABLE_I18N`: 다국어 지원을 활성화할지 여부를 설정합니다.
+  - 비활성화 시 언어 선택 UI가 제거되고, 영어만 표시됩니다.
+  - `true`, `false` 중 선택.
+- `ENABLE_SYSTEM_LANG_DETECTION`: 사용자의 시스템 언어를 자동으로 감지할지 여부를 설정합니다.
+  - `true`, `false` 중 선택.
+
+### `PATH`
+
+```javascript
+PATH: {
+  PHONE_MEASUREMENT: "./data/phones",
+  TARGET_MEASUREMENT: "./data/target",
+  PHONE_BOOK: "./data/phone_book.json",
+},
+```
+
+- `PHONE_MEASUREMENT`: Phone(측정 데이터) 파일이 저장된 폴더 경로를 설정합니다.
+- `TARGET_MEASUREMENT`: Target(타겟 커브) 파일이 저장된 폴더 경로를 설정합니다.
+- `PHONE_BOOK`: Phone(측정 데이터) 정보가 기록된 `phone_book.json` 파일 경로를 설정합니다.
+
+:::caution[주의]
+특별한 경우가 아니라면 데이터 파일 경로는 **수정하지 않는 것**을 권장합니다. 특히 `phone_book.json` 파일의 경로를 수정하면 squig.link를 비롯한 서비스와의 호환성 문제가 발생할 수 있습니다.
+:::
+
+### `WATERMARK`
+
+```javascript
+WATERMARK: [
+  {
+    TYPE: "TEXT",
+    CONTENT: "© 2025 modernGraphTool", LOCATION: "BOTTOM_RIGHT",
+    SIZE: "15px", FONT_FAMILY: "sans-serif", FONT_WEIGHT: "600", COLOR: "#000000", OPACITY: "0.4",
+  },
+  // You can even put multiple TEXT or IMAGE in Array.
+  // Randomly picked content will be rendered on every load.
+  {
+    TYPE: "IMAGE",
+    SIZE: "50px", LOCATION: "TOP_LEFT", POSITION: {UP: "20", DOWN: "0", LEFT: "0", RIGHT: "10"}, OPACITY: "0.2",
+    CONTENT: [
+      "./assets/images/icon_1.png", "./assets/images/icon_2.png", "./assets/images/icon_3.png",
+    ]
+  }
+],
+```
+
+그래프에 표시될 워터마크를 설정합니다.
+
+- 여러 개의 워터마크를 동시에 표시할 수 있습니다. 각 워터마크는 `{}` 객체로 구분됩니다.
+- modernGraphTool은 `TEXT`와 `IMAGE` 두 가지 워터마크 타입을 지원합니다.
+  - 객체 내 `TYPE` 필드로 워터마크 타입을 지정합니다.
+
+:::tip[팁]
+modernGraphTool에서 사용할 이미지는 어느 경로에 있어도 되지만, `assets/images` 폴더에 두는 것을 권장합니다.
+:::
+
+<Tabs>
+	<TabItem label="TEXT">
+		- `TYPE` : 워터마크 타입을 지정합니다. - `TEXT`로 설정. - `CONTENT` : 워터마크에 표시될 텍스트를
+		설정합니다. - 여러 개의 문자열을 배열 형태로 입력할 수 있습니다 (`[]`로 감쌈). - 2개 이상의
+		문자열이 지정되면 첫 로드 시 무작위로 선택된 문자열이 표시됩니다. - `LOCATION` : 워터마크 위치를
+		설정합니다. - `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`, `BOTTOM_RIGHT` 중 선택. - `SIZE` :
+		워터마크 크기 (px 단위). - `FONT_FAMILY` : 워터마크 폰트. - `FONT_WEIGHT` : 워터마크 폰트 굵기
+		(100 ~ 900 중 백 단위 숫자). - `COLOR` : 워터마크 색상 (HEX 코드). - `OPACITY` : 워터마크 투명도
+		(0 ~ 1).
+	</TabItem>
+	<TabItem label="IMAGE">
+		- `TYPE` : 워터마크 타입을 지정합니다. - `IMAGE`로 설정. - `CONTENT` : 워터마크에 표시될 이미지
+		파일 경로를 설정합니다. - 여러 개의 이미지 파일 경로를 배열 형태로 입력할 수 있습니다 (`[]`로
+		감쌈). - 2개 이상의 이미지 경로가 지정되면 첫 로드 시 무작위로 선택된 이미지가 표시됩니다. -
+		`LOCATION` : 워터마크 위치를 설정합니다. - `TOP_LEFT`, `TOP_RIGHT`, `BOTTOM_LEFT`,
+		`BOTTOM_RIGHT` 중 선택. - `SIZE` : 워터마크 크기 (px 단위). - `POSITION` : 워터마크 위치 세부
+		조정. - `UP`, `DOWN`, `LEFT`, `RIGHT` 필드로 워터마크의 상하좌우 위치를 설정합니다 (px 단위). -
+		`OPACITY` : 워터마크 투명도 (0 ~ 1).
+	</TabItem>
+</Tabs>
+
+### `TARGET_MANIFEST`
+
+```javascript
+TARGET_MANIFEST: [
+  { type:"Harman",      files:["Harman IE 2019v2","Harman IE 2017v2"] },
+  { type:"Neutral",     files:["KEMAR DF (KB006x)","ISO 11904-2 DF","IEF Neutral 2023"] },
+  { type:"Reviewer",    files:["Banbeucmas","HBB","Precogvision","Super 22 Adjusted"] },
+  { type:"Preference",  files:["AutoEQ","Rtings","Sonarworks"] },
+  { type:"Δ",           files:["Universal ∆"] }
+],
+```
+
+Target 선택기에 표시될 타겟을 그룹화하고 정렬하는 방식을 정의합니다.
+
+- `type` 필드는 타겟 그룹의 이름을 정의합니다.
+- `files` 필드는 해당 그룹에 속하는 타겟들의 파일 이름을 배열 형태로 지정합니다.
+
+:::tip[다국어 지원]
+`TARGET_MANIFEST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
+:::
+
+### `SAMPLES`
+
+```javascript
+SAMPLES: {
+  DEFAULT_COUNT: 1,
+  DEFAULT_DISPLAY: ["avg"],
+  FILL_OPACITY: 0.3,
+},
+```
+
+**샘플 세트**의 사이트 전역 기본값입니다. 샘플 세트란 여러 번 측정한 variant를
+말합니다(반복 측정, 착용 위치 스윕, 이어패드별 측정 등). `phone_book.json` 쪽은
+[샘플 세트](./manage-data.mdx#sample-sets)를 참고하세요.
+
+- `DEFAULT_COUNT`: variant가 자체 `samples`를 선언하지 않았을 때의 측정 횟수.
+  데이터베이스의 모든 기기를 같은 횟수로 측정하는 경우가 아니라면 `1`로 두세요.
+  그런 경우라면 항목마다 적는 대신 여기서 한 번만 지정하면 됩니다.
+- `DEFAULT_DISPLAY`: `display`를 선언하지 않은 샘플 세트를 그리는 방식. 다음의 조합:
+  - `"avg"` — 모든 측정의 평균 곡선.
+  - `"curves"` — 각 측정을 개별 곡선으로.
+  - `"fill"` — 측정 범위를 감싸는 음영 밴드.
+    `["avg", "fill"]`은 평균선과 그 주위의 편차 밴드를 함께 그립니다.
+- `FILL_OPACITY`: 음영 밴드의 투명도 (0 ~ 1).
+
+:::note[더 이상 사용되지 않음: `MULTI_SAMPLE`, `HPTF`]
+`SAMPLES`가 두 섹션을 모두 대체하며, 예전 섹션은 **향후 릴리스에서 제거될
+예정입니다.** 지금은 폴백으로 계속 읽히므로 기존 `config.js`도 그대로 동작하지만,
+다음에 파일을 손볼 때 `SAMPLES`를 설정하고 예전 섹션은 지우세요.
+[Config Editor](/config-generator)가 이 변환을 대신해 줍니다. 현재 `config.js`를
+불러온 뒤 다시 내보내면 됩니다. `phone_book.json`의 `hptfs[]` 키도 마찬가지이며,
+[데이터 관리](./manage-data.mdx#deprecated-hptfs) 문서를 참고하세요.
+
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "average"` → `DEFAULT_DISPLAY: ["avg"]`
+- `MULTI_SAMPLE.DEFAULT_DISPLAY: "all"` → `DEFAULT_DISPLAY: ["avg", "curves"]`
+- `HPTF.FILL_OPACITY` → `SAMPLES.FILL_OPACITY`
+
+`HPTF.DEFAULT_DISPLAY`에 대응하는 `SAMPLES` 설정은 없습니다. 이 값은
+`phone_book.json`의 예전 `hptfs[]` 항목에만 적용될 뿐 샘플 세트 전반의 사이트 기본값을
+정하지 않습니다. 해당 항목을 `variants[]`로 옮기고 각자 `display`를 지정하세요.
+:::
+
+### `TRACE_STYLING`
+
+```javascript
+TRACE_STYLING: {
+  PHONE_TRACE_THICKNESS: 2,
+  TARGET_TRACE_THICKNESS: 1,
+  CURVE_COLOR_PALETTE: [
+    "#0072B2", "#E69F00", "#009E73", "#CC79A7",
+    "#56B4E9", "#D55E00", "#F0E442", "#000000",
+  ],
+  CURVE_COLOR_PALETTE_RANDOMIZE: false,
+  TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
+},
+```
+
+그래프 선의 굵기, 점선 스타일, 색상 팔레트 등을 설정합니다. 특정 타겟의 선 스타일을 다르게 지정할 수도 있습니다.
+
+- `PHONE_TRACE_THICKNESS` : Phone(측정 데이터) 그래프 선의 굵기를 설정합니다 (px 단위).
+- `TARGET_TRACE_THICKNESS` : Target(타겟 커브) 그래프 선의 굵기를 설정합니다 (px 단위).
+- `CURVE_COLOR_PALETTE` : 새 그래프 선에 색을 할당할 때 순서대로 사용되는 색상 팔레트.
+  - 모든 CSS 색상 표기를 입력받습니다 (`#hex`, `oklch(...)`, `hsl(...)`, `rgb(...)`).
+  - 팔레트가 모두 소진되었거나 사용자가 직접 고른 색과 너무 가까운 경우, modernGraphTool은 OKLCH 기반 자동 생성으로 전환하여 그래프에 이미 표시된 모든 색과 시각적으로 가장 거리가 먼 색을 선택합니다.
+  - 비워 두거나 생략하면 기본 [Okabe-Ito](https://jfly.uni-koeln.de/color/) 팔레트(색맹 친화적인 8가지 색)가 사용됩니다.
+- `CURVE_COLOR_PALETTE_RANDOMIZE` : `true`로 설정하면 페이지가 로드될 때마다 `CURVE_COLOR_PALETTE` 순서가 한 번 무작위로 섞여, 매 세션이 서로 다른 색으로 시작합니다.
+  - 섞인 순서는 한 세션 내에서는 그대로 유지되므로 추가 / 실행취소 / 다시실행이 일관되게 동작합니다.
+  - `CURVE_COLOR_PALETTE`가 비어 있거나 생략된 경우에는 효과가 없습니다.
+  - 기본값은 `false`입니다.
+- `TARGET_TRACE_DASH` : 특정 타겟의 선 스타일을 설정합니다.
+  - `name` 필드는 타겟의 이름을 지정합니다.
+  - `dash` 필드는 타겟의 선 스타일을 설정합니다.
+    - 'stroke-dasharray' 속성에 따른 값을 입력받습니다. 자세한 설명은 [MDN 문서](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/stroke-dasharray)를 참고하세요.
+    - `0 1`로 설정하면 선이 표시되지 않습니다.
+    - `null`로 설정하면 선이 실선으로 표시됩니다.
+
+### `TOPBAR`
+
+```javascript
+TOPBAR: {
+  TITLE: {
+    //TYPE: "TEXT", CONTENT: "modernGraphTool",
+    //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
+    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+  },
+  LINK_LIST: [
+    { TITLE: "Home", URL: "/" },
+    { TITLE: "Docs", URL: "https://example.com/docs" },
+  ],
+},
+```
+
+페이지 상단 바의 제목과 링크 목록을 설정합니다.
+
+- `TITLE` : 페이지 상단 바의 제목을 설정합니다.
+  - `TYPE` : 제목의 타입을 지정합니다.
+    - `TEXT`로 설정하면 텍스트 형식의 제목이 표시됩니다.
+    - `IMAGE`로 설정하면 이미지 형식의 제목이 표시됩니다.
+    - `HTML`로 설정하면 HTML 형식의 제목이 표시됩니다.
+  - `CONTENT` : 제목의 내용을 설정합니다.
+    - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 제목을 설정합니다.
+    - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
+    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다.
+- `LINK_LIST` : 페이지 상단 바의 링크 목록을 설정합니다.
+  - `TITLE` 필드는 링크의 제목을 지정합니다.
+  - `URL` 필드는 링크의 URL을 지정합니다.
+  - 외부 URL에는 반드시 `http(s)://`를 포함해야 합니다.
+
+:::tip[다국어 지원]
+`LINK_LIST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
+:::
+
+### `PREFERENCE_BOUND`
+
+```javascript
+PREFERENCE_BOUND: {
+  ENABLE_BOUND_ON_INITIAL_LOAD: false,
+  BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+  COLOR_FILL: "rgba(180,180,180,0.2)",
+  COLOR_BORDER: "rgba(120,120,120,0.5)",
+},
+```
+
+그래프에 음영으로 상·하한 선호 범위를 표시하는 선호도 경계(Preference Bound) 오버레이를 설정합니다.
+
+- `ENABLE_BOUND_ON_INITIAL_LOAD` — 페이지 로드 시 곧바로 선호도 경계를 표시할지 여부.
+  - `true` 또는 `false`.
+- `BASE_DF_TARGET_FILE` — 보정 기준선으로 쓸 DF 타겟 파일.
+- `COLOR_FILL` — 음영 영역을 채울 색상 (CSS 색상 값).
+- `COLOR_BORDER` — 경계선 색상 (CSS 색상 값).
+
+:::note[데이터 파일]
+선호도 경계를 표시하려면 `data/` 폴더에 경계 데이터 파일(`Bounds U.txt` / `Bounds D.txt`)이 있어야 합니다.
+:::
+
+### `TARGET_CUSTOMIZER`
+
+```javascript
+TARGET_CUSTOMIZER: {
+  CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
+  FILTERS: [
+    { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
+    { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
+    { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
+    { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
+    { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+  ],
+  FILTER_PRESET: [
+    { name: "Harman 2013", filter: { bass: 6.6, treble: -1.4 } },
+    { name: "Harman 2015", filter: { bass: 6.6, treble: -3, ear: -1.8 } },
+    { name: "Harman 2018", filter: { bass: 4.8, treble: -4.4 } },
+  ],
+  INITIAL_TARGET_FILTERS: [
+    { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 } },
+    { name: "ISO 11904-2 DF", filter: { tilt: -0.8, bass: 6 } },
+  ],
+},
+```
+
+특정 타겟 커브에 타겟별 필터 조정을 적용할 수 있는 Target Customizer를 설정합니다.
+
+- `CUSTOMIZABLE_TARGETS` — 커스터마이즈할 수 있는 타겟 파일 이름 배열.
+- `FILTERS` — 사용 가능한 필터 정의. 각 필터는 다음 항목을 가집니다.
+  - `id` — 필터 고유 식별자
+  - `name` — 표시 이름
+  - `type` — 필터 타입. `TILT`, `LSQ`(Low Shelf), `HSQ`(High Shelf), `PK`(Peaking) 중 하나
+  - `freq` — 중심·코너 주파수 (Hz)
+  - `q` — Q값 (대역폭)
+- `FILTER_PRESET` — 드롭다운에서 고를 수 있는 필터 프리셋 구성.
+  - `name` — 프리셋 표시 이름
+  - `filter` — 필터 ID와 게인 값을 매핑한 객체
+- `INITIAL_TARGET_FILTERS` — 페이지 첫 로드 시 자동으로 적용할 필터.
+  - `name` — 필터를 적용할 타겟 이름
+  - `filter` — 필터 ID와 게인 값을 매핑한 객체
+
+### `CROSS_SITE_SEARCH`
+
+```javascript
+CROSS_SITE_SEARCH: {
+  ENABLED: true,
+  INDEX_URLS: [],
+},
+```
+
+방문자가 검색창에서 다른 측정 데이터베이스까지 함께 검색할 수 있게 합니다. squig.link가 아니어도 어떤 호스팅 환경에서든 동작합니다. [크로스 사이트 검색](../features/cross-site-search.mdx)을 참고하세요.
+
+- `ENABLED` — 크로스 사이트 기기 검색 활성화.
+- `INDEX_URLS` — 시도할 인덱스 문서 목록(순서대로). 비워 두면 공식 [GraphAggregator](https://github.com/HarutoHiroki/GraphAggregator) 인덱스와 GitHub Pages 미러를 사용합니다. 같은 스키마를 따르는 인덱스를 직접 호스팅한다면 그 URL을 지정하세요.
+
+### `SITE_SELECTOR`
+
+```javascript
+SITE_SELECTOR: {
+  ENABLED: 'auto',
+  INDEX_URLS: [],
+},
+```
+
+상단 바에 다른 사이트의 측정 데이터베이스로 이동할 수 있는 드롭다운을 추가합니다. squig.link가 아니어도 어떤 호스팅 환경에서든 동작합니다. [사이트 선택기](../features/site-selector.mdx)를 참고하세요.
+
+- `ENABLED` — `'auto'`는 이 사이트가 공유 인덱스에 등록되어 있거나([graphaggregator.harutohiroki.com](https://graphaggregator.harutohiroki.com/)에서 등록) squig.link에서 호스팅될 때만 선택기를 표시합니다. `true`는 항상 표시하고, `false`는 표시하지 않으며 인덱스를 받아오지도 않습니다.
+- `INDEX_URLS` — 시도할 디렉터리 문서 목록(순서대로). 비워 두면 공식 [GAA](https://github.com/potatosalad775/GAA) 인덱스를 사용합니다. 같은 스키마를 따르는 문서를 직접 호스팅한다면 그 URL을 지정하세요.
+
+### `DOWNLOAD`
+
+```javascript
+DOWNLOAD: {
+  ENABLED: true,
+},
+```
+
+그래프 별 다운로드 버튼을 추가합니다. 스무딩, 정규화, 타겟 조정, 파라메트릭 EQ가 모두 적용된 상태 그대로의 곡선을 내보냅니다. 탭으로 구분된 `Frequency` / `dB`가 채널 별로 `.txt` 파일(`Name Suffix L.txt`, `Name Suffix R.txt`, …)에 저장됩니다.
+
+- `ENABLED`: 다운로드 버튼을 표시합니다. 기본적으로 비활성화되어 있습니다.
+
+### `EQUALIZER`
+
+```javascript
+EQUALIZER: {
+  AUTOEQ_DEFAULT_BAND_COUNT: 8,
+},
+```
+
+이퀄라이저 패널의 기본값입니다. [이퀄라이저](../features/equalizer.mdx)를 참고하세요.
+
+- `AUTOEQ_DEFAULT_BAND_COUNT` — 필터 목록이 비어 있을 때 **AutoEQ 실행**이 생성할 필터 밴드 수입니다. 기본값은 `8`입니다. 목록에 밴드가 하나라도 있으면 그 개수가 우선하므로, 사용자는 실행 전에 밴드를 추가하거나 제거해 원하는 개수를 직접 정할 수 있습니다. `1` 미만의 값은 무시되며, 활성화된 제약 프리셋의 밴드 상한도 그대로 적용됩니다. 5밴드 기기가 연결되어 있다면 5개가 생성됩니다.
+
+### `SQUIGLINK`
+
+```javascript
+SQUIGLINK: {
+  ENABLED: true,
+  ANALYTICS_MEASUREMENT_IDS: [],
+  ANALYTICS_SITE: "",
+  LOG_ANALYTICS: true,
+  ENABLE_ANALYTICS: true,
+  ENABLE_CROSS_SITE_SEARCH: true,
+  ENABLE_SPONSOR: true,
+},
+```
+
+squig.link 연동을 설정합니다. `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
+
+- `ENABLED` — squig.link 연동의 마스터 토글.
+- `ANALYTICS_MEASUREMENT_IDS` — GA4 측정 ID 배열. 예: `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
+- `ANALYTICS_SITE` — 분석 이벤트에 붙일 사이트 이름.
+- `LOG_ANALYTICS` — 분석 이벤트를 브라우저 콘솔에 기록할지 여부.
+- `ENABLE_ANALYTICS` — 분석 추적의 마스터 토글.
+- `ENABLE_CROSS_SITE_SEARCH` — **더 이상 사용하지 않습니다.** `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 해당 섹션이 없는 기존 설정 파일을 위해 대체값으로만 읽습니다.
+- `ENABLE_SPONSOR` — 스폰서 배너와 쇼핑 링크 활성화.
+
+### `DESCRIPTION`
+
+```javascript
+DESCRIPTION: [
+  //{ TYPE: "TEXT", CONTENT: "Every measurements are done by using IEC 60318-4 (711) Ear Simulator." },
+  { TYPE: "HTML", CONTENT: "<p>Every measurements are done by using IEC 60318-4 (711) Ear Simulator.</p>" },
+],
+```
+
+기타(Misc) 패널의 '설명' 영역에 텍스트 / 이미지 / HTML 요소를 추가합니다.
+여러 개의 설명을 동시에 추가할 수 있습니다. 각 설명은 `{}` 객체로 구분됩니다.
+
+- `TYPE` : 내용의 타입을 지정합니다.
+  - `TEXT`로 설정하면 텍스트 형식으로 표시됩니다.
+  - `IMAGE`로 설정하면 이미지 형식으로 표시됩니다.
+  - `HTML`로 설정하면 HTML 형식으로 표시됩니다.
+- `CONTENT` : 내용을 설정합니다.
+  - `TYPE`이 `TEXT`인 경우, 텍스트 문자열을 설정합니다.
+  - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
+  - `TYPE`이 `HTML`인 경우, HTML 형식의 내용을 설정합니다.
+
+:::tip[다국어 지원]
+`DESCRIPTION`은 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
+:::
+
+## 다국어 지원 (`config.js`) \{#multilingual-support-configjs\}
+
+`config.js`의 일부 항목은 영어 외 다른 언어로도 작성할 수 있습니다.
+
+- 다국어 지원을 켜려면 `config.js`의 `LANGUAGE` 항목부터 수정합니다.
+- 다국어 구성을 지원하는 항목은 다음과 같습니다.
+  - `TARGET_MANIFEST`
+  - `TOPBAR` → `LINK_LIST`
+  - `DESCRIPTION`
+
+```javascript
+// Example: TOPBAR.LINK_LIST with multilingual support
+TOPBAR: {
+  LINK_LIST: {
+    default: [
+      { TITLE: "Google", URL: "https://www.google.com" },
+      { TITLE: "Github", URL: "https://www.github.com" },
+    ],
+    i18n: {
+      ko: [
+        { TITLE: "구글", URL: "https://www.google.com" },
+        { TITLE: "깃허브", URL: "https://www.github.com" },
+      ]
+    }
+  },
+},
+```
+
+다국어 항목은 기본 언어(영어)로 작성한 객체는 `default` 필드에, 다른 언어로 작성한 객체는 `i18n` 필드에 둡니다.
+
+- `i18n` 필드 안의 키는 `LANGUAGE.LANGUAGE_LIST`에 등록된 언어 코드와 일치해야 합니다.
+- 다국어 지원이 필요 없다면 `default`와 `i18n` 래퍼 없이 평면 배열 형식만 써도 됩니다.

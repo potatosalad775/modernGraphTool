@@ -1,0 +1,42 @@
+---
+title: 'Average Curves'
+---
+
+Folds every measurement currently on the graph into a single averaged curve, added alongside the originals.
+
+## Overview
+
+The **Average** button sits in the graph toolbar. Pressing it takes the mean of every visible measurement and adds the result as a new curve.
+
+The typical use is combining several measurements of the same model — different units, or the same unit measured by different people — into one representative response to equalize against. Upload or select the measurements, press Average, and the result behaves like any other curve on the graph.
+
+## What gets averaged
+
+Only **measurements that are currently drawn**:
+
+- **Measurements only.** Targets and the EQ curve are never included — averaging a measurement against a target produces a curve that means nothing.
+- **Hidden curves are skipped.** Use the eye icon in the selection list to exclude a measurement without removing it.
+- **Uploaded measurements count.** A file you dragged in participates exactly like one from the database, which is the main reason the feature exists.
+- **Only the channels you are showing.** A device displayed as its left/right pair contributes to the L and R averages; one displayed as an average contributes to the AVG average. Each channel is averaged over its own set of contributors.
+
+The button stays disabled until at least two measurements are visible.
+
+## Working with the result
+
+The averaged curve is a normal inserted curve, so everything you can do with an uploaded measurement works on it:
+
+- Recolor it, hide it, or remove it from the selection list
+- Use it as the EQ source in the Equalizer panel
+- Set it as the graph baseline
+- Download it as a `.txt` measurement file
+- Undo the whole thing in one step
+
+Its name carries the number of measurements that went into it, for example **Average (of 3)**.
+
+:::note[The average is a snapshot]
+It is calculated once, at the moment you press the button. Adding, removing or hiding a measurement afterwards does **not** update it — press Average again to build a new one. The contributor count in the name tells you how many curves the existing one was built from.
+:::
+
+:::caution[Averaged curves are not saved in share links]
+Like uploaded measurements, an averaged curve exists only in your browser session. A `?share=` link will not carry it, and reloading the page clears it.
+:::

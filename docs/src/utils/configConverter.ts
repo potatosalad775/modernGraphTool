@@ -607,8 +607,19 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 // ── Output Generation ────────────────────────────────────────────────────────
 
 /**
+ * U+2028 / U+2029. Legal inside a JSON string but illegal in a JS string literal
+ * before ES2019, and config.js is loaded as a plain <script>. Built via RegExp so
+ * the separators never appear literally in this file.
+ */
+const LINE_SEPARATORS = new RegExp('[\\u2028\\u2029]', 'g');
+
+/**
  * Pretty-print a JS value with proper indentation.
- * Produces JS-style output (unquoted keys, single-quoted strings).
+ * Produces JS-style output (unquoted keys, double-quoted strings).
+ *
+ * Keys whose value is `undefined` are omitted rather than emitted as `null`, so
+ * an unset optional field round-trips back as unset — and the generated file
+ * does not carry rows of `COLOR: null` noise for operators to read past.
  */
 export function prettyPrint(value: any, indent: number): string {
 	const pad = '  '.repeat(indent);
@@ -616,7 +627,17 @@ export function prettyPrint(value: any, indent: number): string {
 
 	if (value === null || value === undefined) return 'null';
 	if (typeof value === 'boolean' || typeof value === 'number') return String(value);
-	if (typeof value === 'string') return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+	if (typeof value === 'string') {
+		// JSON.stringify covers quotes, backslashes and control characters — hand-rolled
+		// escaping of just \ and " let a newline or tab through verbatim, which closed
+		// the string literal early and made the emitted config.js a syntax error.
+		// U+2028/U+2029 are legal in JSON but were illegal in JS string literals before
+		// ES2019, and config.js is loaded as a plain <script>.
+		return JSON.stringify(value).replace(
+			LINE_SEPARATORS,
+			(c) => '\\u' + c.charCodeAt(0).toString(16)
+		);
+	}
 
 	if (Array.isArray(value)) {
 		if (value.length === 0) return '[]';
@@ -643,7 +664,9 @@ export function prettyPrint(value: any, indent: number): string {
 	}
 
 	if (typeof value === 'object') {
-		const entries = Object.entries(value);
+		// Undefined-valued keys are dropped, matching JSON.stringify. Array elements
+		// still print as `null` above, since omitting one would shift every index.
+		const entries = Object.entries(value).filter(([, v]) => v !== undefined);
 		if (entries.length === 0) return '{}';
 		// Check for short inline objects
 		const jsonLen = JSON.stringify(value).length;

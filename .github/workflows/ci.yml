@@ -106,7 +106,6 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/package-lock.json
-            docs_new/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -126,24 +125,17 @@ jobs:
       - name: Build CDN distribution
         run: npm run build:cdn
 
-      # deploy-gh-pages.yml publishes the Docusaurus site alongside the app on every
-      # push to main. Building it here means a docs break is caught on the PR instead
-      # of taking the deploy down.
+      # deploy-gh-pages.yml publishes the docs site alongside the app on every push
+      # to main. Building it here means a docs break is caught on the PR instead of
+      # taking the deploy down.
+      #
+      # The specs run first: they cover the framework-free converters behind the
+      # three interactive tools, which emit the config.js and phone_book.json
+      # operators paste into live deployments. The tools' form components are
+      # deliberately uncovered, so a mis-wired field shows up as a failing
+      # round-trip assertion here rather than as a wrong file on someone's site.
       - name: Build docs
         working-directory: ./docs
-        run: |
-          npm ci
-          npm run build
-
-      # The Starlight replacement in docs_new/ is not deployed yet — the cutover
-      # waits on the three interactive tools being ported. Building it here keeps
-      # it from rotting in the meantime.
-      #
-      # The specs cover the tools' framework-free utils, which emit the config.js
-      # and phone_book.json operators paste into live deployments. They are the
-      # safety net for the React → Svelte port, so they run before the build.
-      - name: Build docs (Starlight)
-        working-directory: ./docs_new
         run: |
           npm ci
           npm test

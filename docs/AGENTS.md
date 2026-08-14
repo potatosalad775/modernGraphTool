@@ -153,8 +153,12 @@ islands hydrate on these three routes only.
   it. Untranslated keys fall back to English and are simply absent from the dictionary. This
   is separate from Starlight's own UI i18n.
 
-## Not yet migrated
+## Leftovers from the Docusaurus era
 
-The site still lives at `docs_new/` while `docs/` (Docusaurus) remains the deployed
-version. The cutover — deleting `docs/`, renaming this directory, and repointing
-`deploy-gh-pages.yml`, `ci.yml` and `release.yml` — is the last step.
+- **`src/content/` is `.prettierignore`d.** Unignoring it rewrites ~180 MDX files at once,
+  which is worth doing on its own with a build to confirm nothing stopped parsing — not
+  folded into an unrelated change.
+- **`editLink.baseUrl` still points at `/docs/`**, which is correct again now that this
+  directory is `docs/`.
+- Astro writes to `dist/`, where Docusaurus wrote to `build/`. `deploy-gh-pages.yml` copies
+  `docs/dist/*`; anything else still naming `docs/build` is stale.

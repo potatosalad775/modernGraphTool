@@ -14,15 +14,9 @@ export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	{
 		// The root .gitignore anchors its output patterns (`/build`, `/dist`), so it does not
-		// cover the Docusaurus site's generated output, and includeIgnoreFile only reads the
-		// root file. Without this, linting after a docs build walks into minified bundles.
-		ignores: [
-			'docs/build/**',
-			'docs/.docusaurus/**',
-			'docs_new/dist/**',
-			'docs_new/.astro/**',
-			'site-template/config-cdn-mode.js'
-		]
+		// cover the docs site's generated output, and includeIgnoreFile only reads the root
+		// file. Without this, linting after a docs build walks into minified bundles.
+		ignores: ['docs/dist/**', 'docs/.astro/**', 'site-template/config-cdn-mode.js']
 	},
 	js.configs.recommended,
 	ts.configs.recommended,
@@ -61,17 +55,17 @@ export default defineConfig(
 	{
 		// The docs site's Svelte components are Astro islands, not SvelteKit routes.
 		// `resolve()` is a SvelteKit import that does not exist there, and these links
-		// point at the Docusaurus-era doc pages via `import.meta.env.BASE_URL`.
-		files: ['docs_new/src/**/*.svelte'],
+		// are built from `import.meta.env.BASE_URL` instead.
+		files: ['docs/src/**/*.svelte'],
 		rules: {
 			'svelte/no-navigation-without-resolve': 'off'
 		}
 	},
 	{
-		// Both docs sites include the config migration tool, which parses arbitrary
-		// operator-authored config.js / phone_book.json. Their shape is unknown until it has
-		// been validated, so `any` is the honest annotation there.
-		files: ['docs/**', 'docs_new/src/utils/**'],
+		// The docs site's config migration tool parses arbitrary operator-authored
+		// config.js / phone_book.json. Their shape is unknown until it has been
+		// validated, so `any` is the honest annotation there.
+		files: ['docs/src/utils/**'],
 		rules: {
 			'@typescript-eslint/no-explicit-any': 'off'
 		}

@@ -60,7 +60,7 @@ jobs:
           : > release-body.md
           : > changelog-section.md
 
-          if [ -f docs/docs/changelog.mdx ]; then
+          if [ -f docs/src/content/docs/changelog.mdx ]; then
             awk -v ver="### v$VERSION" '
               $0 == ver { found=1; next }
               found && /^### v/ { exit }
@@ -73,7 +73,7 @@ jobs:
                 # version has no entry, so [ -s ] below is a real test.
                 if (buf != "") printf "%s\n", buf
               }
-            ' docs/docs/changelog.mdx > changelog-section.md || true
+            ' docs/src/content/docs/changelog.mdx > changelog-section.md || true
           fi
 
           if [ -s changelog-section.md ]; then

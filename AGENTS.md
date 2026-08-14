@@ -7,7 +7,7 @@ Fully static SPA — operators copy the `dist/` folder to any web host.
 Successor to the legacy CrinGraph / vanilla-JS modernGraphTool; built for operators who
 run measurement databases (e.g. sites on squig.link) as well as end users browsing them.
 
-**User-facing docs:** [docs/docs/](docs/docs/) (Docusaurus site). Start at
+**User-facing docs:** [docs/src/content/docs/](docs/src/content/docs/) (Astro + Starlight site). Start at
 `intro.mdx`, `why-moderngraphtool.mdx`, and `guide-for-developers/overview.mdx`.
 **Contributor rules:** [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -28,10 +28,10 @@ This file covers what applies everywhere. Anything specific to one area lives in
 Each of those directories also holds a one-line `CLAUDE.md` (`@AGENTS.md`) — that shim is what makes
 the guide load. **If you add a new area guide, add the shim too**, or nothing will read it.
 
-Deeper contributor documentation lives in the Docusaurus site:
-[testing](docs/docs/guide-for-developers/testing.mdx),
-[build & deployment internals](docs/docs/guide-for-developers/build-and-deploy.mdx),
-[i18n](docs/docs/guide-for-developers/i18n.mdx).
+Deeper contributor documentation lives in the docs site:
+[testing](docs/src/content/docs/guide-for-developers/testing.mdx),
+[build & deployment internals](docs/src/content/docs/guide-for-developers/build-and-deploy.mdx),
+[i18n](docs/src/content/docs/guide-for-developers/i18n.mdx).
 
 ## Tech Stack
 
@@ -130,7 +130,7 @@ This is separate from Paraglide UI-string i18n.
 
 **`defaults/config.js` is a starting point, not a reference.** It carries live values only for what
 most deployments edit; optional features appear as commented stubs with a `→ docs:` pointer, and the
-exhaustive option lists live in [customize-page.mdx](docs/docs/guide-for-admins/customize-page.mdx)
+exhaustive option lists live in [customize-page.mdx](docs/src/content/docs/guide-for-admins/customize-page.mdx)
 and the docs-site config generator. When adding a config key:
 
 - Add it to the docs page and the generator — those are the reference surfaces.
@@ -163,7 +163,7 @@ partial translations are welcome and untranslated strings just render in English
 
 Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en.json`.
 Full details — adding a locale, the `i18n:missing` / `i18n:apply` translator flow, why `check`
-compiles first — are in [guide-for-developers/i18n.mdx](docs/docs/guide-for-developers/i18n.mdx).
+compiles first — are in [guide-for-developers/i18n.mdx](docs/src/content/docs/guide-for-developers/i18n.mdx).
 
 ## CSS / Theming
 
@@ -215,7 +215,7 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 Specs are co-located as `*.spec.ts`; the filename decides the project (`*.svelte.spec.ts` → real
 Chromium, everything else → node). Coverage `thresholds` in `vite.config.ts` is a **ratchet** — raise
 it when coverage improves, never lower it to turn a red run green. See
-[guide-for-developers/testing.mdx](docs/docs/guide-for-developers/testing.mdx) for the full picture,
+[guide-for-developers/testing.mdx](docs/src/content/docs/guide-for-developers/testing.mdx) for the full picture,
 and each area's `AGENTS.md` for its own test traps.
 
 ## Built-in Features
@@ -226,7 +226,7 @@ All active features are first-class Svelte components in `src/lib/components/fea
 Customizer, Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site
 Search, and the squig.link-gated Sponsor Banner / Shop Link.
 
-Per-feature user docs: [docs/docs/features/](docs/docs/features/).
+Per-feature user docs: [docs/src/content/docs/features/](docs/src/content/docs/features/).
 
 ## Keeping Docs in Sync
 
@@ -240,7 +240,7 @@ change — don't leave them for later. Pick the surface by scope:
 - **A directory's `AGENTS.md`** — inventories, per-module invariants, and the "don't undo this"
   notes for that area. This is the default home for detail. New area guide ⇒ add the `CLAUDE.md`
   shim alongside it.
-- **[docs/docs/](docs/docs/)** — anything a human operator, user or contributor needs (Docusaurus).
+- **[docs/src/content/docs/](docs/src/content/docs/)** — anything a human operator, user or contributor needs (Astro + Starlight).
   Update the relevant section (`guide-for-developers/`, `guide-for-admins/`, `features/`,
   `intro.mdx`, …) whenever a change affects what an operator configures, what a user sees, or how a
   developer contributes.
@@ -256,7 +256,7 @@ guide had to be rewritten. If you're unsure whether a change warrants a doc upda
 - **bits-ui docs** — fetch `https://bits-ui.com/llms.txt` for the component index; each
   component has its own `llms.txt` (e.g. `https://bits-ui.com/docs/components/combobox/llms.txt`).
   Do **not** use `/llms-full.txt` (404).
-- **Project docs** — [docs/docs/](docs/docs/) (Docusaurus sources).
+- **Project docs** — [docs/src/content/docs/](docs/src/content/docs/) (Starlight content sources).
 
 ## Design Context
 

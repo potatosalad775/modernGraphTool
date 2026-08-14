@@ -13,17 +13,15 @@ bun.lockb
 /dist/
 /dist-cdn/
 /.svelte-kit/
-/docs/build/
-/docs/.docusaurus/
-/docs/.cache-loader/
-/docs_new/dist/
-/docs_new/.astro/
+/docs/dist/
+/docs/.astro/
 /src/lib/paraglide/
 
-# Migrated content, mechanically produced from the Docusaurus sources. Prettier
-# reflows MDX prose and reindents JSX inside it, which would bury the real diff
-# when the remaining pages are ported. Drop this once docs_new/ becomes docs/.
-/docs_new/src/content/
+# Docs content, carried over from the Docusaurus sources. Prettier reflows MDX
+# prose and reindents JSX inside it, so unignoring this rewrites ~180 files in one
+# go — worth doing deliberately, on its own, with a docs build to confirm nothing
+# stopped parsing. Not worth folding into an unrelated change.
+/docs/src/content/
 
 # Mirrors project.inlang/.gitignore: inlang owns everything in here except settings.json,
 # and rewrites it on every compile. Matching its rule rather than listing today's files

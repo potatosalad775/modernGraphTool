@@ -12,6 +12,16 @@ pagefind: true
 draft: false
 ---
 
+### v2.1.8
+
+- Feat: Added an "Average" option to combine all visible measurements into a single averaged curve.
+- Feat: The site selector can now switch between any deployment listed in the shared site index, not just squig.link-hosted ones.
+- Feat: The Equalizer now turns itself on automatically when you import a filter file, run AutoEQ, pull a device's PEQ, or add your first filter band.
+- Feat: Running AutoEQ on an empty filter list now defaults to eight bands instead of one.
+- Refactor: Selected devices are now pinned to the top of the device list.
+- Refactor: Exported EQ filter files now include the device/target model name.
+- Fix: The EQ sweep tone now correctly spans your selected listening range instead of collapsing to one edge.
+
 ### v2.1.7
 
 - Feat: Phone entries can now carry a rich `description` (a small inline HTML subset — links, emphasis, etc.) and a `links[]` array of operator-defined links shown alongside the built-in Review / Shop links. See [Rich Descriptions](./guide-for-admins/manage-data.mdx#rich-descriptions) and [Custom Links](./guide-for-admins/manage-data.mdx#custom-links).

@@ -12,6 +12,16 @@ pagefind: true
 draft: false
 ---
 
+### v2.1.8
+
+- Feat: 현재 표시되고 있는 모든 측정치를 하나의 그래프로 평균화하는 '평균화' 기능이 추가되었습니다.
+- Feat: 사이트 선택창이 이제 squig.link를 제외한 커뮤니티 데이터베이스도 표시하도록 개선되었습니다.
+- Feat: 이제 필터 파일을 불러오거나, AutoEQ를 실행하거나, 외부 기기의 PEQ 값을 불러오거나, 첫 필터를 추가하는 등의 동작을 수행할 경우 자동으로 이퀄라이저가 활성화됩니다.
+- Feat: EQ 필터가 비어있는 상태에서 AutoEQ를 실행할 경우, 이제 1개가 아닌 8개의 필터가 자동으로 생성됩니다.
+- Refactor: 이제 사용자가 선택한 기기가 목록의 최상단에 우선 표시됩니다.
+- Refactor: 이제 EQ 필터를 내보낼 경우, 기기 및 타겟의 이름이 파일 이름에 포함됩니다.
+- Fix: EQ 스윕 시그널 재생 시, 사용자가 지정한 청취 영역이 제대로 적용되지 않던 문제가 수정되었습니다.
+
 ### v2.1.7
 
 - Feat: 기기 항목에 서식 있는 `description`(링크, 강조 등 일부 인라인 HTML 허용)과, 기본 제공되는 Review / Shop 링크 옆에 표시되는 운영자 정의 링크 배열 `links[]`를 추가할 수 있습니다. [서식 있는 설명](./guide-for-admins/manage-data.mdx#rich-descriptions)과 [커스텀 링크](./guide-for-admins/manage-data.mdx#custom-links) 문서를 참고하세요.

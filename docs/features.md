@@ -1,0 +1,28 @@
+---
+title: Features
+description: Learn about modernGraphTool's built-in features.
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Learn about modernGraphTool's built-in features.
+
+<CardGrid>
+	<LinkCard title="Average Curves" href="./average-curves/" />
+	<LinkCard title="Cross-Site Search" href="./cross-site-search/" />
+	<LinkCard title="Device PEQ" href="./device-peq/" />
+	<LinkCard title="Equalizer" href="./equalizer/" />
+	<LinkCard title="Frequency Tutorial" href="./frequency-tutorial/" />
+	<LinkCard title="Preference Bound" href="./preference-bound/" />
+	<LinkCard title="Site Selector" href="./site-selector/" />
+	<LinkCard title="squig.link Integration" href="./squiglink-integration/" />
+	<LinkCard title="Target Customizer" href="./target-customizer/" />
+</CardGrid>

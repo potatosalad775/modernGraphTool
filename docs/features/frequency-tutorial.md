@@ -1,0 +1,51 @@
+---
+title: Frequency Tutorial
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+A built-in feature that provides frequency range tutorials for understanding audio frequency characteristics in modernGraphTool.
+
+## Overview
+
+The Frequency Tutorial adds an educational component to modernGraphTool, helping users understand different frequency ranges and their audio characteristics.
+
+It provides visual and textual information about frequency bands and their typical audio content.
+
+## Features
+
+- **Interactive Frequency Guide**: Visual representation of frequency ranges overlaid on the graph
+- **Multi-language Support**: Tutorial content is available in all supported languages
+- **Visual Integration**: Seamlessly integrates with modernGraphTool's graph interface
+
+## Usage
+
+The Frequency Tutorial overlays frequency band information on the graph, showing labeled regions for Sub Bass, Bass, Lower Mids, Upper Mids, Presence, and Brilliance along with descriptions of their audio characteristics.
+
+Toggle the tutorial from the **Graph Panel** toolbar.
+
+### Editing Tutorial Content
+
+Tutorial strings are managed through the [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) i18n system. To customize or translate tutorial content, edit the message files:
+
+- **English**: `messages/en.json`
+- **Korean**: `messages/ko.json`
+
+The relevant keys follow the pattern `tutorial_freq_<range>_name` and `tutorial_freq_<range>_desc`, for example:
+
+```json
+{
+	"tutorial_freq_sub_bass_name": "Sub Bass",
+	"tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range...",
+	"tutorial_freq_bass_name": "Bass",
+	"tutorial_freq_bass_desc": "Determines how 'fat' or 'thin' the sound is..."
+}
+```
+
+To add a new language, create a new message file (e.g., `messages/ja.json`) and add translations for all tutorial keys.

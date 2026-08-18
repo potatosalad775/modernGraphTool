@@ -1,0 +1,182 @@
+---
+title: CDN 배포
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 2
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+modernGraphTool 앱 코드를 CDN(jsDelivr)에서 받아오고, 서버에는 설정·테마·데이터만 두는 방식입니다. 대부분의 운영자에게 권장하는 배포 모드입니다.
+
+## 개요
+
+CDN 모드에서는 서버에 최소한의 파일, `index.html` 로더, `config.js`, `theme.css`, `data/`, `assets/`만 둡니다. 페이지를 구성하는 핵심 코드는 jsDelivr에서 가져오죠. modernGraphTool의 새 버전이 배포되면 이를 자동으로 받아옵니다. 직접 새 버전의 파일을 업로드하거나 재배포할 필요가 없습니다.
+
+그 대신, 사이트에 접속하는 과정에서 jsDelivr에 닿을 수 있어야 하고, 업데이트가 _언제_ 적용될지 직접 정할 수 없다는 점은 감안해야 할 부분입니다. 이 두 가지 중 하나라도 마음에 걸린다면 [사전 빌드된 배포 파일](./prebuilt.mdx)을 쓰는 편이 나을 수도 있습니다.
+
+## 추천 대상
+
+**추천**
+
+- 최소한의 노력으로 별도의 유지보수 없이 사이트가 잘 돌아가기를 희망하는 대다수의 운영자
+- 통제된 배포 주기가 필요 없는 개인 데이터베이스를 운영하는 경우
+- 새 버전이 배포될 때마다 이를 직접 적용해야 하는 상황을 피하고 싶은 경우
+
+**비추천**
+
+- jsDelivr에 접속할 수 없는 지역 또는 인트라넷에 배포하는 경우
+- 사이트의 버전과 업데이트 시점을 엄격히 통제해야 하는 경우
+- 앱 번들 자체를 깊이 손보는 경우(포크, 커스텀 기능)
+
+:::tip[웹 서버가 없다면?]
+[GitHub Pages](./github-pages.mdx)는 이 배포 방식을 GitHub이 대신 호스팅해 주는 것으로, 템플릿 저장소에서 시작해 전 과정을 브라우저에서 처리합니다. `BASE_PATH`도 자동으로 해결되므로 아래 4번 항목의 주의사항이 해당되지 않습니다.
+:::
+
+## 설치
+
+1.  **다운로드** — [최신 CDN 릴리스 zip](https://github.com/potatosalad775/modernGraphTool/releases)(이름이 `_cdn.zip`으로 끝나는 파일)을 받아 압축을 풉니다.
+2.  **`index.html` 복사** — 압축 파일 속 `index.html`을 서버로 복사합니다. 필요하다면 원하는 하위 디렉터리 안에 두세요.
+3.  **다음 파일들을 `index.html`과 같은 위치에 두세요.**
+    - `config.js` — 애플리케이션 설정
+    - `theme.css` — 그래프 색상 테마
+    - `data/` — 측정 데이터와 타겟 커브
+    - `assets/` — 이미지와 문자열 파일
+4.  **`config.js`에 `CDN_MODE.BASE_PATH`를 설정** — 사이트가 (서브)도메인 루트에 있지 않다면 반드시 설정해야 합니다. 이유는 [고급 섹션](#why-base_path-is-almost-always-required)을 보세요. `example.com/headphones/`나 `user.squig.link/headphones/`라면 다음과 같이 적습니다.
+    ```javascript
+    CDN_MODE: {
+      MAJOR_VERSION: 2,
+      BASE_PATH: "/headphones",
+    },
+    ```
+    끝에 슬래시는 붙이지 마세요. 사이트가 (서브)도메인 루트(`example.com/`나 `user.squig.link/`)에 있다면 `BASE_PATH`는 비워 두면 됩니다. 같은 (서브)도메인에 modernGraphTool 인스턴스를 **여러 개** 운영하는 경우(squig.link에서 흔한 패턴입니다. 아래 팁 참고), 인스턴스마다 자체 `config.js`에 자신의 URL에 맞는 `BASE_PATH`를 설정합니다.
+5.  **(선택) 메이저 버전 고정** — `CDN_MODE.MAJOR_VERSION`으로 메이저 버전을 고정할 수 있습니다. 기본적으로는 항상 최신 버전을 가져오도록 설계되어 있습니다.
+6.  **업로드 후 테스트** — 페이지를 열고 기기를 로드한 뒤 공유 링크를 복사해 새 탭에서 열어 보세요. 공유 링크가 404라면 `BASE_PATH`부터 다시 확인하세요. 가장 흔한 설치 실수입니다.
+
+여기까지 입니다. 이후 배포되는 업데이트는 고정한 메이저 버전 안에서 사이트에 자동으로 반영됩니다.
+
+## 버전 고정
+
+기본적으로 CDN 로더는 사용 가능한 최신 버전으로 자동 업데이트됩니다. 사이트를 v2 상태에 유지하기를 희망하고, v3가 사전 공지 없이 적용되는 상황을 원치 않는다면 메이저 버전을 고정할 수 있습니다.
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+},
+```
+
+이렇게 하면 사이트는 v2.x.x에 머무릅니다. v2 안에서의 마이너·패치 릴리스는 그대로 반영되지만 v3 버전은 받지 않습니다. 추후 v3로 업데이트할 준비가 되었다면 숫자만 바꾸면 됩니다.
+
+:::note[버전 고정 기능은 마이너 버전까지 막지 않습니다]
+`MAJOR_VERSION`은 메이저 버전만 고정합니다. 고정한 메이저 안의 패치·마이너 업데이트(예: v2.1.0 → v2.2.0)는 계속 자동으로 반영됩니다. 특정 하위 버전을 고정해야 한다면 [사전 빌드된 파일](./prebuilt.mdx)을 사용하세요.
+:::
+
+## 업데이트
+
+운영자 입장에서 별도로 취할 작업이 없습니다. 고정한 메이저 버전 안에서는 업데이트가 자동으로 적용됩니다. 새 메이저 버전으로 올릴 준비가 되었다면 다음과 같이 합니다.
+
+1. `config.js`의 `CDN_MODE.MAJOR_VERSION`을 올립니다(예: `2` → `3`).
+2. `config.js`를 다시 업로드합니다.
+3. 사용자는 다음번 페이지 로드 시 새 메이저 버전을 받습니다.
+
+그 사이에 새로고침을 강제하고 싶은 사용자는 브라우저 캐시를 비우거나 하드 리로드를 하면 됩니다.
+
+## 문제 해결
+
+### 페이지가 404 오류와 함께 로드되지 않음
+
+**원인** — `BASE_PATH`가 빠졌거나 잘못 설정되어 있습니다.
+
+**해결** — `config.js`를 열어 `CDN_MODE.BASE_PATH`를 하위 디렉터리 경로(끝 슬래시 없이)로 설정하세요. `example.com/headphones/`라면 `"/headphones"`입니다. 수정 후에는 캐시 없이 다시 로드합니다. 자세한 설명은 [`BASE_PATH`가 거의 항상 필요한 이유](#why-base_path-is-almost-always-required)에서 확인하세요.
+
+### 새 릴리스가 나왔는데도 옛 버전에 머물러 있음
+
+**원인** — 브라우저 캐시, jsDelivr 엣지 캐시, 또는 잊고 있던 `MAJOR_VERSION` 고정.
+
+**해결**
+
+1. `CDN_MODE.MAJOR_VERSION`이 원하는 것보다 낮은 메이저 버전으로 고정되어 있지 않은지 확인합니다.
+2. 브라우저 캐시를 비우거나 하드 리로드(Ctrl+Shift+R / Cmd+Shift+R)를 합니다.
+3. `versions.json`이 아닌 파일은 jsDelivr 엣지 캐시가 풀릴 때까지 기다려야 합니다. POP에 따라 몇 분에서 몇 시간이 걸립니다.
+
+### 앱이 아예 로드되지 않음
+
+**원인** — 네트워크 접근성, 설정 구문 오류, 해당 지역의 CDN 차단 등.
+
+**해결**
+
+1. 브라우저 네트워크 탭을 열어 어떤 요청이 실패하는지 확인합니다.
+2. `versions.json`이나 `boot.json` 요청이 실패한다면, 그 위치에서 jsDelivr / GitHub raw에 닿을 수 없다는 뜻입니다. 대안으로 [사전 빌드 릴리스](./prebuilt.mdx)를 검토하세요.
+3. 아무것도 로드되지 않고 네트워크 활동도 없다면 `config.js`에 구문 오류가 있을 수 있습니다. 브라우저 콘솔을 확인하세요.
+
+### 개발에서는 되는데 프로덕션에서는 깨짐
+
+**원인** — 거의 항상 `BASE_PATH`입니다. 로컬 미리 보기는 보통 `localhost:5173/`에서 동작해 사실상 루트지만, 프로덕션 서버는 하위 디렉터리에 있는 경우가 많습니다.
+
+**해결** — 프로덕션 하위 디렉터리에 맞춰 `BASE_PATH`를 설정합니다.
+
+### `versions.json: HTTP 404`
+
+**원인** — `BASE`가 `versions.json` 파일이 없는 위치를 가리키고 있고, `VERSIONS_URL`도 명시적으로 재정의되어 있지 않습니다.
+
+**해결** — `BASE` 루트에 `versions.json`을 추가하거나, `VERSIONS_URL`을 올바른 URL로 직접 지정하세요.
+
+## 고급
+
+### 업데이트가 전파되는 방식 \{#how-updates-propagate\}
+
+메이저 버전을 특정 릴리스 번호와 매핑하는 파일인 `versions.json`은 jsDelivr가 **아닌** `raw.githubusercontent.com`에서 직접 가져옵니다. 의도된 동작입니다. jsDelivr 엣지 캐시는 오래된 응답을 몇 시간씩 잡아 둘 수 있는데, `versions.json`은 그 지연이 가장 크게 문제가 되는 유일한 파일입니다. GitHub raw에서 가져오면 캐시를 우회해 새 릴리스를 게시하고 몇 분 안에 사용자에게 전달할 수 있습니다.
+
+### `VERSIONS_URL` 재정의
+
+`VERSIONS_URL`은 기본적으로 `BASE`에서 유도된 `raw.githubusercontent.com` URL을 사용합니다. `BASE`가 인식 가능한 jsDelivr `gh/` URL이 아니라면(예: 직접 호스팅) 유도 결과가 `null`이 되고, 로더는 `${BASE}/versions.json`으로 폴백합니다. 두 경우 모두 맞지 않을 때 `VERSIONS_URL`을 직접 재정의하세요. 로더가 기대하는 URL 형태는 [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196)에 정리되어 있습니다.
+
+_그 외_ 모든 파일(앱 청크, CSS, preload)은 jsDelivr의 일반 캐시 동작에 따라 제공되며, 엣지 위치에 따라 몇 분에서 몇 시간이 걸립니다. 가장 최신 버전으로 강제 새로고침하고 싶다면 사용자 쪽에서 브라우저 캐시를 비우거나 하드 리로드를 하면 됩니다.
+
+### CDN 자산 직접 호스팅
+
+jsDelivr를 쓸 수 없는 상황(프라이빗 포크, 에어갭 미러, 대역폭 문제 등)이라면 CDN 자산을 직접 호스팅하고 `CDN_MODE.BASE`를 자신의 URL로 가리킬 수 있습니다.
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE: "https://my-mirror.example.com/moderngraphtool",
+  VERSIONS_URL: "https://my-mirror.example.com/moderngraphtool/versions.json",
+},
+```
+
+전체 구조를 미러링해야 합니다. 루트의 `versions.json`, 그리고 `v{version}/boot.json`과 그 안에서 참조하는 모든 청크를 모두 포함해야 하고, 기본 GitHub raw 유도는 `BASE`가 jsDelivr `gh/` URL을 가리킬 때만 동작하므로 `VERSIONS_URL`을 `BASE`와 함께 명시해야 합니다.
+
+:::caution[주의할 점]
+CDN 자산을 직접 호스팅하면 CDN 모드의 "수동 업데이트가 없다"라는 장점이 사라집니다. 사이트와 미러, 두 가지를 동시에 관리해야 하는 만큼, 대부분의 운영자에게는 [사전 빌드 릴리스](./prebuilt.mdx)가 더 단순한 선택입니다.
+:::
+
+### `BASE_PATH`가 거의 항상 필요한 이유 \{#why-base_path-is-almost-always-required\}
+
+로더는 URL에서 배포 경로를 자동으로 감지하려고 시도하지만, 자동 감지는 도메인 루트 배포에만 잘 들어맞습니다. 이유를 살펴보겠습니다.
+
+방문자가 `https://example.com/headphones/`를 열면 브라우저의 `window.location.pathname`은 `/headphones/`입니다. `/headphones/index.html`이 **아닙니다**. 서버가 기본으로 `index.html`을 제공하더라도 URL 바에는 디렉터리가 표시되죠. 로더는 pathname이 `.html`로 끝나는지 확인하고, 그렇지 않으면 앱이 도메인 루트에 호스팅된다고 가정해 빈 base path를 씁니다. 이 전제는 `example.com/`에는 맞지만 `example.com/headphones/`에는 어긋나고, `example.com/headphones/share/abc` 같은 모든 공유 링크 딥 라우트에서도 어긋납니다.
+
+실제 결과는 다음과 같습니다.
+
+| 배포                                    | 자동 감지된 base | 정확한가?                       | 조치                                                                                              |
+| --------------------------------------- | ---------------- | ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `example.com/`                          | `""`             | 맞음                            | `BASE_PATH`를 비워 둠                                                                             |
+| `example.com/headphones/`               | `""`             | **아님 — `/headphones`여야 함** | `BASE_PATH: "/headphones"` 설정                                                                   |
+| `example.com/headphones/share/abc`      | `""`             | **아님 — `/headphones`여야 함** | `BASE_PATH: "/headphones"` 설정                                                                   |
+| `example.com/headphones/cdn-index.html` | `/headphones`    | 맞음                            | (다만 아무도 이 URL로 직접 들어오지는 않습니다. 설치 가이드는 파일 이름을 바꾸도록 안내하니까요.) |
+
+요약하면 **사이트가 도메인 루트에 있지 않다면 `BASE_PATH`를 설정하세요.** 이를 빠뜨렸을 때 흔히 나타나는 증상은, 홈 URL을 방문하면 페이지는 정상 로드되지만 공유 링크는 모조리 404가 되는 것입니다. 정확한 감지 규칙이 궁금하다면 로더 로직이 [cdn/loader.js:111-137](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L111-L137)에 들어 있습니다.
+
+:::tip[squig.link 운영자라면]
+squig.link 사용자에게는 각자 `<username>.squig.link` 서브도메인이 주어지며, 루트와 그 아래 만든 모든 하위 디렉터리에 자유롭게 접근할 수 있습니다. 흔한 패턴은 같은 서브도메인 위에 modernGraphTool 인스턴스 **두 개**를 운영하는 것입니다.
+
+- `<username>.squig.link/` — 보통 이어폰 데이터베이스. 서브도메인 루트에 있으니 이 인스턴스는 **`BASE_PATH`를 설정하지 않습니다**.
+- `<username>.squig.link/headphones/` — 하위 디렉터리에 두는 헤드폰 데이터베이스. 이 인스턴스는 자신의 `config.js`에 **`BASE_PATH: "/headphones"`**를 설정해야 합니다.
+
+각 인스턴스는 자체 `index.html`, `config.js`, `data/` 등을 가집니다. `BASE_PATH`는 인스턴스마다 따로 적용되니 `/headphones/` 쪽에만 설정하면 됩니다. 추가 하위 디렉터리(`/iems/`, `/speakers/` 등)를 만든다면 각각 자기 경로에 맞는 `BASE_PATH`가 필요합니다.
+:::

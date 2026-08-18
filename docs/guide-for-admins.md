@@ -1,0 +1,24 @@
+---
+title: Guide for Admins
+description: Learn how to build your own FR database using modernGraphTool.
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Learn how to build your own FR database using modernGraphTool.
+
+<CardGrid>
+	<LinkCard title="Setting Up Your Environment" href="./setup-env/" />
+	<LinkCard title="Deployment Options" href="./deployment/" />
+	<LinkCard title="Customizing the Page" href="./customize-page/" />
+	<LinkCard title="Preprocessing Measurement Data" href="./preprocessing-measurement/" />
+	<LinkCard title="Managing Data" href="./manage-data/" />
+</CardGrid>

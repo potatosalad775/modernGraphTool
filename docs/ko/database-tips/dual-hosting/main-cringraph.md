@@ -1,0 +1,172 @@
+---
+title: CrinGraph를 메인으로 두기
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 2
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+코드를 살짝만 손보면 modernGraphTool과 CrinGraph를 한 도메인에 함께 호스팅할 수 있습니다.
+
+이번 장에서는 두 그래프 도구를 같은 도메인에서 제공하는 방법을 설명합니다.
+
+## 개요
+
+한 도메인으로 두 서비스를 제공하는 방법은 여러 가지가 있습니다.
+
+여기서는 '폴더를 서브도메인처럼 다루는' 가장 기본적인 방식을 사용합니다.
+
+## 단계별 가이드
+
+### 1. 프로젝트 준비
+
+- **modernGraphTool** — [다른 장](../../../guide-for-admins/index.mdx)에서 설명한 절차에 따라 modernGraphTool 데이터베이스를 준비하세요.
+- **CrinGraph** — CrinGraph 프로젝트 파일을 준비합니다. 추가 기능이 들어간 커스텀 버전이어도 괜찮습니다.
+
+### 2. 파일 경로 설정
+
+폴더 최상단에는 CrinGraph용 `index.html`이 있어야 합니다.
+
+최상단에 modernGraphTool을 둘 새 폴더(예: `mGT`)를 만들고, modernGraphTool 프로젝트 파일을 모두 그 안으로 옮겨 넣습니다.
+
+`mGT` 안에도 modernGraphTool용 `index.html`이 함께 있어야 합니다.
+
+:::tip[데이터 폴더 구조]
+CrinGraph는 원래 `data` 폴더 하나에 측정치와 타겟 데이터를 함께 두도록 설계되어 있습니다. 다만 이 가이드에서는 관리 편의를 위해 둘을 별도 폴더로 분리하는 방식을 소개합니다.
+:::
+
+파일 구조 예시:
+
+```plaintext
+/project-root/
+├── data
+|   ├── phones          # 'phone' 측정 데이터 폴더
+|   |   ├── A8 L.txt      # 측정치 데이터
+|   |   └── A8 R.txt      # 측정치 데이터
+|   ├── target          # 'target' 측정 데이터 폴더
+|   |   └── Target.txt    # 타겟 데이터
+|   └── phone_book.json # 기기 목록 명단
+├── index.html          # CrinGraph 접속 포인트
+├── ...기타 CrinGraph 파일...
+└── mGT
+    ├── index.html      # modernGraphTool 접속 포인트
+    └── ...기타 modernGraphTool 파일...
+```
+
+### 3. CrinGraph 코드 수정
+
+측정치와 타겟 데이터를 별도 폴더로 분리했기 때문에, CrinGraph가 이를 제대로 찾아갈 수 있도록 `graphtool.js`를 손봐야 합니다.
+
+아래 예시는 [squiglink/labs 버전](https://github.com/squiglink/lab)의 CrinGraph를 기준으로 합니다.
+
+:::tip[다른 포크라도 적용 가능]
+다른 버전의 CrinGraph를 쓰더라도 대체로 같은 방식이 통합니다. 다만 수정해야 할 코드가 있는 라인 번호는 조금씩 다를 수 있습니다.
+:::
+
+#### graphtool.js
+
+787번 라인으로 이동해 `loadFiles` 함수를 수정합니다.
+
+```js
+// 수정 전
+let l = (f) => d3.text(DIR + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [l(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
+
+// 수정 후
+// 다른 이름을 가진 폴더에 측정치 데이터를 관리하고 있을 경우, 'phones', 'target' 대신 진짜 이름을 적용해야 합니다.
+let l = (f) => d3.text(DIR + 'phones/' + f + '.txt').catch(() => null);
+let lt = (f) => d3.text(DIR + 'target/' + f + '.txt').catch(() => null);
+let f = p.isTarget
+	? [lt(p.fileName)]
+	: d3.merge(LR.map((s) => sampnums.map((n) => l(p.fileName + ' ' + s + n))));
+```
+
+### 4. modernGraphTool 코드 수정
+
+같은 측정 데이터를 두 폴더에 중복으로 두는 건 비효율적입니다. modernGraphTool이 부모 경로의 데이터를 가져올 수 있도록 설정만 살짝 바꿉니다.
+
+#### config.js
+
+62번 라인으로 이동해 `PATH` 객체를 수정합니다.
+
+```js
+// 수정 전
+PATH: {
+  PHONE_MEASUREMENT: "./data/phones",
+  TARGET_MEASUREMENT: "./data/target",
+  PHONE_BOOK: "./data/phone_book.json",
+},
+
+// 수정 후
+// 다른 이름을 가진 폴더에 측정치 데이터를 관리하고 있을 경우, 'phones', 'target' 대신 진짜 이름을 적용해야 합니다.
+PATH: {
+  PHONE_MEASUREMENT: "../data/phones",
+  TARGET_MEASUREMENT: "../data/target",
+  PHONE_BOOK: "../data/phone_book.json",
+},
+```
+
+점이 하나에서 두 개로 바뀐 것이 보이실 겁니다. modernGraphTool에게 부모 경로를 탐색하라고 알려 주는 표기입니다.
+
+### 5. 내비게이션 버튼 추가하기
+
+여기까지 끝냈다면 다음 두 주소로 그래프 도구에 접근할 수 있어야 합니다.
+
+- CrinGraph — `https://yourdomain.com/`
+- modernGraphTool — `https://yourdomain.com/mGT/` (폴더 이름)
+
+두 도구를 쉽게 오갈 수 있도록 각각에 내비게이션 버튼을 추가해 둘 수 있습니다.
+
+#### CrinGraph
+
+`config.js`의 250번 라인으로 이동해 `headerLinks` 배열에 다음을 추가합니다.
+
+```js
+headerLinks = [
+	{
+		name: 'modernGraphTool 버전으로 보기',
+		url: 'https://yourdomain.com/mGT'
+	},
+	// or
+	{
+		name: 'modernGraphTool 버전으로 보기',
+		url: './mGT'
+	}
+];
+```
+
+#### modernGraphTool
+
+`config.js`의 114번 라인으로 이동해 `TOPBAR` 객체에 다음을 추가합니다.
+
+```js
+TOPBAR: {
+  LINK_LIST: { TITLE: "CrinGraph로 돌아가기", URL: "https://yourdomain.com/" },
+  // or
+  LINK_LIST: { TITLE: "CrinGraph로 돌아가기", URL: "../" },
+}
+```
+
+### 6. 배포
+
+지금까지 작업한 프로젝트를 웹 서버에 업로드합니다. 폴더 구조가 그대로 유지되었는지 한 번 확인해 보세요.
+
+여기까지 무사히 마쳤다면 두 그래프 도구를 위 안내대로 함께 사용할 수 있습니다.
+
+:::tip[squig.link 캐시]
+`squig.link` 데이터베이스에서 작업하는 경우, 파일 캐시 때문에 변경 사항이 바로 보이지 않을 수 있습니다.
+
+데이터베이스 주소 뒤에 `?cachebust`를 붙여 다시 접속하면 캐시를 새로고침할 수 있습니다.
+
+```plaintext
+예시) https://example.squig.link/?cachebust
+```
+
+:::

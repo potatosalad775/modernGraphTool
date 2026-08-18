@@ -1,0 +1,77 @@
+---
+title: squig.link 연동
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+modernGraphTool과 squig.link 서비스를 이어주는 내장 통합 기능입니다.
+
+## 개요
+
+squig.link 연동은 modernGraphTool을 squig.link 생태계와 자연스럽게 연결합니다. 쇼핑 링크, 분석 추적, 스폰서 배너를 함께 제공합니다.
+
+:::note
+squig.link 기능은 modernGraphTool이 `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
+:::
+
+## 주요 기능
+
+- **쇼핑 링크** — 일치하는 쇼핑 항목이 있을 때 "Buy Now" 링크 노출
+- **분석** — 다중 측정 ID를 지원하는 Google Analytics 연동
+- **스폰서 배너** — 첫 방문 시 스폰서 콘텐츠 표시
+- **유연한 설정** — 다양한 배포 환경에 맞춘 옵션 제공
+
+## 설정
+
+squig.link 연동은 `config.js`에서 설정합니다.
+
+```javascript
+// In config.js
+SQUIGLINK: {
+    ENABLED: true,
+    ANALYTICS_MEASUREMENT_IDS: [],
+    ANALYTICS_SITE: "",
+    LOG_ANALYTICS: true,
+    ENABLE_ANALYTICS: true,
+    ENABLE_CROSS_SITE_SEARCH: true,
+    ENABLE_SPONSOR: true,
+}
+```
+
+### 설정 옵션
+
+- **`ENABLED`** — 모든 squig.link 기능의 마스터 토글
+- **`ANALYTICS_MEASUREMENT_IDS`** — 다중 태그를 지원하는 Google Analytics 4 측정 ID 배열
+- **`ANALYTICS_SITE`** — 분석 이벤트에 붙일 사이트 이름
+- **`LOG_ANALYTICS`** — 디버깅용으로 분석 이벤트를 콘솔에 출력
+- **`ENABLE_ANALYTICS`** — 분석 추적 켜기/끄기
+- **`ENABLE_CROSS_SITE_SEARCH`** — 더 이상 사용하지 않습니다. `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 기존 설정 파일을 위해 대체값으로만 읽습니다.
+- **`ENABLE_SPONSOR`** — 스폰서 배너 표시 켜기/끄기
+
+:::note[크로스 사이트 검색은 이동했습니다]
+크로스 사이트 기기 검색은 더 이상 squig.link 전용 기능이 아닙니다. 이제 어떤 호스팅 환경에서도 동작하며,
+별도의 `CROSS_SITE_SEARCH` 섹션에서 설정합니다. [크로스 사이트 검색](./cross-site-search.mdx)을 참고하세요.
+
+squig.link 배포 환경에서는 인덱스를 받아오지 못했을 때 기존처럼 각 사이트의 `phone_book.json`을
+수집하는 방식으로 대체됩니다.
+:::
+
+## 사용법
+
+### 쇼핑 링크
+
+로드된 기기가 squig.link 쇼핑 링크 데이터베이스에 등록되어 있다면, 판매처로 연결되는 "Buy Now" 버튼이 함께 표시됩니다.
+
+### 분석
+
+활성화하면 사용자 상호작용이 Google Analytics 4(gtag.js)로 전송되어, 사이트 사용 현황을 분석할 수 있습니다.
+
+### 스폰서 배너
+
+첫 방문 시 squig.link 네트워크에서 받아 온 콘텐츠가 담긴 스폰서 다이얼로그가 표시될 수 있습니다.

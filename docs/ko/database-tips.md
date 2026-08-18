@@ -1,0 +1,20 @@
+---
+title: 데이터베이스 설정 팁
+description: 데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다.
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+데이터베이스를 설정할 때 유용한 팁과 요령을 정리해두었습니다.
+
+<CardGrid>
+	<LinkCard title="modernGraphTool & CrinGraph 동시 운영" href="./dual-hosting/" />
+</CardGrid>

@@ -1,0 +1,75 @@
+---
+title: Device PEQ
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+devicePEQ 프로젝트를 modernGraphTool에 들여와, 하드웨어 이퀄라이저와 오디오 기기를 직접 제어할 수 있게 해주는 기능입니다.
+
+## 개요
+
+Device PEQ는 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 modernGraphTool에 통합한 기능입니다. 호환되는 오디오 기기에 EQ 설정을 직접 전송할 수 있습니다.
+
+modernGraphTool의 측정 분석 기능과 실제 오디오 기기 제어를 잇는 다리 역할을 합니다.
+
+## 주요 기능
+
+- **하드웨어 통합** — 호환 오디오 기기에 직접 연결
+- **기기 관리** — 연결, 해제, 여러 기기의 관리
+- **PEQ 슬롯 관리** — 지원 기기의 파라메트릭 EQ 슬롯 다루기
+- **실시간 동기화** — modernGraphTool과 하드웨어의 EQ 설정을 즉시 일치
+- **고급 제어** — 선택적으로 활성화하는 고급 기기 조작 기능
+
+## 사용법
+
+### 기기 연결
+
+1. **기기 연결** — 연결 버튼으로 오디오 기기를 연결합니다.
+2. **기기 정보** — 연결된 기기의 정보와 지원 기능을 확인합니다.
+3. **슬롯 관리** — 사용 가능한 PEQ 슬롯을 골라 관리합니다.
+
+### EQ 전송
+
+1. **필터 설정** — 이퀄라이저 패널에서 원하는 EQ를 구성합니다.
+2. **기기로 전송** — Device PEQ 컨트롤로 설정을 하드웨어에 보냅니다.
+
+## 지원 기기
+
+이 기능은 devicePEQ 플러그인이 지원하는 기기에서 동작합니다.
+
+:::note[기기 호환성]
+지원 기기 목록은 devicePEQ 플러그인에 따라 결정됩니다. 최신 호환성 정보는 정보 다이얼로그나 [devicePEQ 프로젝트][DEVICEPEQ]에서 확인하세요.
+:::
+
+## 고급 기능
+
+`ADVANCED: true`로 설정하면 다음 기능을 사용할 수 있습니다.
+
+- 고급 기기 설정 다이얼로그
+- 확장된 기기 조작 기능
+- 추가 문제 해결 도구
+
+:::caution[고급 모드 주의]
+고급 기능은 기기를 손상시키거나 예기치 못한 동작을 일으킬 수 있습니다. 위험을 이해하고 오디오 기기 설정 경험이 있는 경우에만 사용하세요.
+:::
+
+## 브라우저 호환성
+
+- **Chrome / Edge** — 완전 지원 (권장)
+- **Firefox** — 미지원 (WebUSB 미지원)
+- **Safari** — 미지원 (WebUSB 미지원)
+
+## 서드파티 고지
+
+이 기능은 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 포함합니다.
+
+- **저장소** — https://github.com/jeromeof/devicePEQ
+- **라이선스** — 0BSD License
+
+[DEVICEPEQ]: https://github.com/jeromeof/devicePEQ

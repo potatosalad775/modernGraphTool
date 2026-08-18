@@ -1,0 +1,115 @@
+---
+title: Working with curves
+description: Per-curve controls — baseline, visibility, Y-offset, channels,
+  variations, sample selection, and color.
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 7
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+Every curve you load shows up as a row in the **selection list** inside the Graph panel. Switch to the Graph panel (second menu icon, or press **2** on desktop) whenever you want to adjust a specific curve. The layout of each row is identical on desktop and mobile.
+
+{/* TODO: screenshot of a selection-list row with the control cluster annotated */}
+
+This page walks through every control on a single row, from left to right and top to bottom. Targets get sorted to the top automatically so they're easy to find.
+
+## Row layout
+
+A single row contains:
+
+- **Top line:** a color picker, the device name (with a variant dropdown if the device has variants), and a cluster of action buttons on the right.
+- **Bottom line:** a channel selector (for devices that have channels) and a Y-offset control.
+
+## Color picker
+
+The small colored square on the left is the curve's **color on the graph**. Click it to open the [color picker](./appearance-and-language.mdx#per-curve-color) — a small popover with a native color field, HSL inputs, dash-pattern controls, and a randomize button. Use it when you have several curves in similar hues and want to make one stand out.
+
+New curves are assigned automatic colors from a palette, so you rarely need to set them manually.
+
+## Name and variant dropdown
+
+Most devices have a single measurement file and the name just sits there. Devices with **multiple variants** — different tips, pads, position — show a small chevron next to the name. Click the name to open a dropdown listing every variant, then click the one you want: picking a variant **replaces** the current curve on the graph.
+
+If you want to keep both variants visible at the same time, click the plus button at the right side of each row.
+
+Variants are configured per device in the site's measurement database — if a device doesn't have variants, the dropdown won't appear.
+
+## Baseline
+
+The **baseline** button (waveform icon, next to the visibility toggle) pins a curve as the zero reference and shows all _other_ curves as their difference from it. Useful for questions like "how does the FiiO differ from the Harman target at 3 kHz?" — instead of eyeballing two separate lines, you set the target as the baseline and read the difference directly off the graph.
+
+There are two flavors depending on what you baseline:
+
+**Baseline a headphone, or a target with no customization applied:** the button is a simple on/off toggle. Click once to enable, click again to disable.
+
+**Baseline a target that you've customized** (via the [Target Customizer](./targets-and-preferences.mdx)): the button cycles through three states, so you can see the effect of your customization independently from the device comparison itself.
+
+| State                  | What it means                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| **Off**                | Normal graph, no baseline.                                                           |
+| **Without adjustment** | Baselined against the target _as originally shipped_, before your customizer tweaks. |
+| **With adjustment**    | Baselined against the target _including_ your customizer tweaks.                     |
+
+The tooltip on the button tells you which state you're currently in. Click to advance to the next state.
+
+:::note[Baseline is a visual aid, not a data transformation]
+Turning baseline on doesn't change the underlying measurement files or the EQ pipeline — it just shifts how the existing curves are drawn. Turn it off and the original view comes right back.
+:::
+
+## Visibility
+
+The **eye icon** hides the curve from the graph without removing it from the list. The row dims to show it's hidden. Click again to bring it back. Useful when you want to see "what does the graph look like without _this_ one" without losing your loaded state.
+
+## Delete
+
+The **trash icon** removes the curve entirely. It's undoable with **Ctrl+Z**, so don't worry about misclicking.
+
+## Channel selector
+
+Below the row header you'll find a channel selector (only shown for devices — targets don't have channels). The options depend on what the measurement file contains:
+
+- **L** — left ear only
+- **R** — right ear only
+- **L+R** — both drawn as separate curves
+- **AVG** — the two channels averaged into one line
+
+`L+R` is the most detailed view; `AVG` is the least cluttered. If the measurement file only contains one channel, you'll only see that one option.
+
+The vertical gap you see between `L` and `R` is the device's true channel imbalance: [normalization](./graph-controls.mdx#normalize) moves both channels together, so the gap stays accurate no matter which normalization mode or frequency you pick.
+
+### Sample selector (for devices measured more than once)
+
+Some variants are a **sample set** — the same thing measured several times, whether that's repeat runs, a sweep of seating positions, or one measurement per ear pad. For those, a **Samples** section appears below the channel options with three independent toggles:
+
+- **Show all-sample average** — the single averaged curve across every run.
+- **Show Deviation Fill** — a shaded band spanning the highest and lowest run at each frequency.
+- **Per-sample curves** — a collapsible list of every run by name (e.g. "Center", "Front"), each with its own **L**, **R** and **AVG** boxes so you can pull out exactly the curve you want. `Select All L` / `Select All R` / `Select All` / `Deselect All` do the obvious thing. The list starts closed unless individual runs are already on the graph, and the number beside it counts how many are drawn.
+
+They compose freely: an averaged line with a variance band around it, or the band alone with no main curve, or every individual run and nothing else.
+
+The **Channel** options above still apply throughout — with the average switched off they steer which side the deviation band covers, so `L` narrows the band to the left ear alone while `AVG` and `L+R` span both.
+
+This is how you drill into "is this headphone a consistent performer across units or does it vary a lot". A narrow band is consistent; a wide band shifts around. When a run is drawn on its own, the on-graph label names it — `HD 600 Leather Pad (Center, R)`.
+
+## Y-offset
+
+To the right of the channel selector are **`−`** and **`+`** buttons with a **number input** between them. They shift the curve up or down by whole dB. The text input accepts decimals too if you want finer steps.
+
+Y-offset is useful when:
+
+- You're comparing tonal balance but the two headphones have very different overall loudness — nudge one up or down to make the midrange match, then compare the _shape_.
+- You want to stack several curves visually without them overlapping.
+
+## Target Customizer (targets only)
+
+Targets have one extra control that devices don't: a **Target Customizer** button (sliders icon). Clicking it opens a panel with Tilt, Bass, Treble, Ear sliders plus one-click presets. It only appears for targets that the site operator has marked as customizable. See [Targets and preferences](./targets-and-preferences.mdx) for the workflow.
+
+---
+
+That's every per-curve control. The next page covers the controls that apply to the _whole_ graph: normalization, smoothing, scale, and so on.

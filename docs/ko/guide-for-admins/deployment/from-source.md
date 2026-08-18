@@ -1,0 +1,144 @@
+---
+title: 소스에서 빌드
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 4
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+modernGraphTool 저장소를 클론해서 원하는 만큼 손본 뒤, 직접 `dist/` 폴더를 빌드하는 방식입니다. `config.js`에서 노출되는 범위를 넘어서는 변경이 필요한 개발자와 운영자를 위한 경로입니다.
+
+## 개요
+
+소스에서 빌드하면 앱 번들 자체를 완전히 통제할 수 있습니다. 컴포넌트를 수정하고, 기능을 추가하고, 빌드 파이프라인을 바꾸고, 커스텀 릴리스를 만들어 배포할 수 있죠. 그만큼 손이 가장 많이 가는 길이기도 합니다. Node.js와 `git`은 물론, 빌드 오류를 직접 디버깅할 수 있는 능력이 필요합니다.
+
+`config.js`, `theme.css`, `data/`, `assets/`만 손보면 충분하다면 소스에서 빌드할 필요가 없습니다. [CDN 배포](./cdn.mdx)나 [사전 빌드 릴리스](./prebuilt.mdx)를 사용하세요.
+
+## 추천 대상
+
+**추천**
+
+- 설정 파일로는 노출되지 않는 커스텀 기능이 필요한 포크
+- 업스트림에 기여하고 싶은 개발자
+- 앱 컴포넌트, 라우트, 빌드 설정을 직접 수정해야 하는 운영자
+
+**비추천**
+
+- 그냥 잘 동작하는 사이트만 원하는 경우 — CDN이나 사전 빌드 쪽이 낫습니다.
+- `node_modules`와 빌드 오류를 다루고 싶지 않은 경우
+
+## 사전 요구 사항
+
+- [Node.js](https://nodejs.org/) v20 이상
+- `git`
+- 기본적인 커맨드라인 사용법
+
+## 클론과 설치
+
+```bash
+git clone https://github.com/potatosalad775/modernGraphTool.git
+cd modernGraphTool
+npm install
+```
+
+## `defaults/`와 `static/`
+
+modernGraphTool은 두 계층 구조의 정적 자산 시스템을 사용합니다. 편집을 시작하기 전에 이 구조를 이해해 두면 시간을 많이 아낄 수 있습니다.
+
+- **`defaults/`** — 운영자가 직접 설정할 수 있는 템플릿이 들어 있습니다. `config.js`, `theme.css`, `data/`, `assets/` 같은 파일들이 여기에 해당하죠. git에 체크인되어 있고 모든 릴리스에 함께 포함됩니다.
+- **`static/`** — gitignore되는 오버라이드 레이어입니다. `static/`에 같은 경로로 둔 파일은 `defaults/`의 같은 경로 파일보다 우선합니다(`npm run dev`, `npm run build` 모두에서).
+
+**개발 중 커스터마이즈 패턴** — 수정하려는 파일을 `defaults/`에서 `static/`으로 복사한 뒤 `static/`의 사본을 편집하세요. 개인 커스터마이징이 git과 분리되고 `git pull`도 매끄러워집니다.
+
+폴백 동작은 [vite-plugin-defaults.ts](https://github.com/potatosalad775/modernGraphTool/blob/main/vite-plugin-defaults.ts)에 구현되어 있습니다. dev 중에는 `defaults/`를 폴백으로 제공하고, 빌드 후에는 `static/`의 파일을 덮지 않으면서 `dist/`로 복사합니다.
+
+:::caution[`defaults/`나 `static/`을 모듈로 import하지 마세요]
+이 두 폴더의 파일은 런타임에 로드되는 자산이지 번들 모듈이 아닙니다. 소스에서 `import`하지 말고 런타임에 `fetch()`로 읽어 오세요.
+:::
+
+## 로컬 개발
+
+```bash
+npm run dev
+```
+
+Vite dev 서버가 `http://localhost:5173`에서 HMR과 함께 시작됩니다. `.svelte`, `.ts`, `.css`, `defaults/` 파일을 수정하면 모두 실시간으로 반영됩니다.
+
+본인 측정 데이터로 테스트하고 싶다면 `data/` 폴더를 `static/data/`에 두세요. dev 서버가 기본 데이터 대신 그쪽 파일을 제공합니다.
+
+## 프로덕션 빌드 미리 보기
+
+```bash
+npm run build
+npm run preview
+```
+
+`npm run build`는 `dist/`를 생성하고, `npm run preview`는 그 폴더를 로컬에서 띄워 줍니다. 업로드 전에 프로덕션 번들을 점검하는 방법입니다. 미리 보기 서버는 기본적으로 `http://localhost:4173`에서 동작합니다.
+
+## 타입 체크와 품질 게이트
+
+```bash
+npm run check          # TypeScript + Svelte 타입 체크
+npm run lint           # Prettier + ESLint
+npm run test           # Vitest 단위 테스트
+npm run format         # 포매팅 자동 수정
+```
+
+커스텀 빌드를 배포하기 전에는 `npm run check`와 `npm run test`를 돌려보세요. 통합 문제 대부분이 사용자에게 닿기 전에 잡힙니다.
+
+## 빌드와 배포
+
+```bash
+npm run build
+```
+
+빌드 결과는 `dist/`에 생성됩니다. 이후 배포 방법은 [사전 빌드 릴리스](./prebuilt.mdx)와 동일합니다. 폴더를 웹 서버에 올리고, SPA 폴백(Apache는 `.htaccess`, 다른 서버는 그에 상응하는 설정)을 구성했는지 확인하세요.
+
+자체 미러용 CDN 모드 빌드가 필요하다면 다음을 실행합니다.
+
+```bash
+npm run build:cdn
+```
+
+이 명령은 CDN 로더가 기대하는 버전별 번들 구조를 담은 `dist-cdn/` 폴더를 만듭니다.
+
+## 업스트림 업데이트 받기
+
+```bash
+git pull
+npm install
+npm run build
+```
+
+`defaults/`의 파일을 `static/`으로 옮기지 않고 직접 편집해 왔다면 업스트림 업데이트 시 병합 충돌이 생길 수 있습니다. 깔끔한 해결책은 단 한 번 커스터마이징을 `static/`으로 옮기는 것입니다. 그 뒤로는 `git pull`이 더 이상 작업과 충돌하지 않습니다.
+
+## 문제 해결
+
+### TypeScript 오류로 빌드 실패
+
+**원인** — 보통 `git pull` 이후 `.svelte-kit/` 디렉터리가 오래되어 발생합니다.
+
+**해결** — `npm run prepare`(내부에서 `svelte-kit sync` 실행)를 돌린 뒤 `npm run build`를 다시 시도하세요. 그래도 실패한다면 `node_modules/`와 `.svelte-kit/`를 지우고 새로 설치합니다.
+
+### `npm run dev`가 포트 충돌로 실패
+
+**원인** — 포트 5173이 이미 사용 중입니다(다른 Vite 인스턴스 또는 다른 dev 서버).
+
+**해결** — 다른 프로세스를 종료하거나 Vite에 `--port`를 넘겨주세요. 예: `npm run dev -- --port 5174`.
+
+### `defaults/config.js`를 수정했는데 반영되지 않음
+
+**원인** — `static/config.js`가 같은 경로를 가리고 있습니다.
+
+**해결** — `static/config.js`를 대신 편집하거나, `defaults/`가 우선하도록 하려면 `static/config.js`를 삭제하세요.
+
+### 새로 클론한 상태에서 테스트가 실패
+
+**원인** — Paraglide i18n 코드 생성 단계가 빠졌습니다.
+
+**해결** — 테스트 실행 전에 `npm run prepare`를 돌리세요. `svelte-kit sync`가 실행되면서 Paraglide 컴파일 단계도 함께 작동합니다.

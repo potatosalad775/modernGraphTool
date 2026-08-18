@@ -1,0 +1,91 @@
+---
+title: v1에서 v2로 마이그레이션
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 4
+  label: v1에서 v2로 마이그레이션
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+기존 modernGraphTool v1 데이터베이스를 v2로 옮기기 위한 단계별 체크리스트입니다.
+
+:::tip[핵심만 보고 싶으시다면]
+무엇이 달라졌는지 기능 단위로 먼저 보고 싶다면 [v2의 새로운 기능](./whats-new-in-v2.mdx)을 참고하세요. 이 페이지는 데이터베이스를 전환하는 과정에만 집중하고 있습니다.
+:::
+
+## 호환성
+
+**기존 데이터는 그대로 사용할 수 있습니다.** 폴더 구조와 파일 형식 모두 그대로입니다.
+
+- `phone_book.json` — 구조와 위치 동일 (`data/phone_book.json`)
+- FR 측정 파일 — `data/phones/`에 있는 `.txt` 형식 그대로
+- 타겟 커브 파일 — `data/target/`에 있는 `.txt` 형식 그대로
+- 선호도 경계 파일 — `Bounds U.txt` / `Bounds D.txt`는 여전히 `.txt` 형식이지만 위치가 바뀌었습니다. v1의 `extensions/preference-bound/data/`에서 `data/` 바로 아래로 이동합니다 (자세한 내용은 아래 [마이그레이션 단계](#migration-steps) 참고).
+
+`config.js`의 전체 구조는 그대로입니다. v1의 모든 설정(`INITIAL_PHONES`, `INITIAL_TARGETS`, `NORMALIZATION`, `VISUALIZATION`, `INTERFACE`, `PATH`, `WATERMARK`, `TARGET_MANIFEST` 등)이 호환됩니다. v2는 몇 가지 선택 섹션을 새로 추가했습니다. [v2의 새로운 기능](./whats-new-in-v2.mdx#new-config-sections)을 참고하세요.
+
+배포 방식도 동일합니다. v2 역시 정적 SPA를 `dist/`로 출력하며, 폴더를 웹 서버에 복사하면 끝입니다. Apache용 SPA fallback `.htaccess`도 함께 들어 있습니다.
+
+## 마이그레이션 단계 \{#migration-steps\}
+
+1. **다운로드** — [최신 v2 릴리스](https://github.com/potatosalad775/modernGraphTool/releases)를 내려받습니다.
+2. **데이터 복사** — 기존 `data/` 폴더(phones, targets, `phone_book.json`)를 v2 릴리스 폴더로 옮깁니다.
+3. **선호도 경계 데이터 파일 이동** — v1에서는 `Bounds U.txt`, `Bounds D.txt`가 `extensions/preference-bound/data/`에 있었습니다. v2에서는 `data/` 바로 아래, `phones/`·`target/`과 같은 위치에 있어야 합니다. 이 단계를 빠뜨리면 선호도 경계 오버레이를 켜도 그래프에 아무것도 표시되지 않으니 주의하세요. 기준 DF 타겟 파일(예: `KEMAR DF (KB006x) Target.txt`)은 2단계를 거친 시점에서 이미 `data/target/`에 들어 있어야 합니다.
+4. **`config.js` 마이그레이션** — v1의 `config.js` 설정을 v2 `config.js` 템플릿에 옮깁니다. 핵심 설정은 동일하니 [새 섹션](./whats-new-in-v2.mdx#new-config-sections)(`SQUIGLINK`, `TARGET_CUSTOMIZER`, `PREFERENCE_BOUND`, `SAMPLES`, `CDN_MODE`)을 한 번 훑어보고 필요에 맞게 조정하세요. 예전 `MULTI_SAMPLE`·`HPTF` 섹션은 호환을 위해 계속 읽히지만 `SAMPLES`로 대체되었으니 이참에 옮기는 것을 권합니다. [Config Editor](/config-generator)를 쓰면 모든 설정을 한 번에 검토하고 옮길 수 있으며, `SAMPLES` 변환도 대신 처리해 줍니다.
+5. **`theme.css` 마이그레이션** — `theme.css`를 직접 손봤다면 색상 값을 v2 형식(그래프용 CSS 커스텀 속성과 OKLCH 기반 UI 변수)으로 옮겨야 합니다. [Theme Generator](/theme-generator)가 이 작업을 도와줍니다.
+6. **페이지 메타데이터 마이그레이션 (`index.html`)** — v2는 자체 `index.html`을 제공합니다. 따라서 v1 `index.html`에 가한 수정은 자동으로 따라오지 **않습니다**. 다음 항목을 v2 `index.html`에 다시 적용하세요.
+   - `<title>`, `<meta name="title">`
+   - `<meta name="description">`, `<meta name="keywords">`
+   - Open Graph 태그: `<meta property="og:title">`, `<meta property="og:description">`, `<meta property="og:url">`, `<meta property="og:image">`
+   - `<link rel="canonical">`
+   - 파비콘: `<link rel="icon">`, `<link rel="shortcut icon">`, `<link rel="apple-touch-icon">`
+   - `<meta name="apple-mobile-web-app-title">`
+   - 웹 앱 매니페스트: `<link rel="manifest">` (사용 중이라면)
+
+   필드별 상세 설명은 [페이지 커스터마이징 → 페이지 메타데이터 변경](./guide-for-admins/customize-page.mdx#changing-page-metadata-indexhtml)에서 확인할 수 있습니다.
+
+   :::note[소스 빌드를 사용 중이라면]
+   소스에서 빌드하는 경우 `index.html` 대신 `src/app.html`을 수정하세요. 빌드 결과인 `dist/index.html`은 이 템플릿에서 생성됩니다.
+   :::
+
+7. **Extension 삭제** — `extensions/` 폴더는 더 이상 쓰지 않습니다. 확장 관련 설정은 모두 `config.js`로 옮겨야 합니다.
+8. **로컬 테스트** — 브라우저로 페이지를 열어 데이터가 정상적으로 로드되는지 확인합니다.
+
+## 배포 옵션 선택
+
+v1은 사전 빌드된 배포 파일 한 가지 방식만 제공했습니다. 파일을 받아 업로드하면 끝이었죠. v2는 여기에 세 가지 옵션이 더 추가되었습니다.
+
+- **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx)** — v1과 유사한 방식입니다. 배포 파일을 내려받고 데이터·설정을 복사한 뒤 업로드하면 됩니다. 설정해야 할 `BASE_PATH`도 없습니다.
+- **[CDN 배포](./guide-for-admins/deployment/cdn.mdx)** — 가장 권장되는 방식입니다. 서버에는 `index.html`, `config.js`, `theme.css`, `data/`, `assets/`만 두고, 핵심 코드는 jsDelivr에서 받아 자동으로 적용하는 구조를 가집니다.
+- **[GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)** — CDN 배포를 GitHub에서 무료로 호스팅하는 방식입니다. 이 사이트 하나 때문에 웹 서버를 계속 운영하고 싶지 않다면 좋은 선택입니다.
+- **[소스에서 빌드](./guide-for-admins/deployment/from-source.mdx)** — 개발자와 포크 운영자를 위한 옵션입니다.
+
+:::tip[CDN을 권장합니다]
+사전 빌드된 파일을 통째로 올리는 대신 [CDN 배포 모드](./guide-for-admins/deployment/cdn.mdx)를 고려해보세요. 핵심 코드를 따로 관리할 필요가 없고, 추후 제공되는 업데이트도 자동으로 적용됩니다.
+:::
+
+### CDN 모드를 골랐다면 `BASE_PATH`를 잊지 마세요
+
+v2의 CDN 모드에서는 (서브)도메인 루트가 **아닌** 경로에 배포할 경우 `config.js`에 `CDN_MODE.BASE_PATH`가 반드시 필요합니다. 빠뜨리면 페이지는 정상 로드되지만, 모든 공유 링크가 404로 떨어집니다. 수정은 설정 한 줄이면 충분합니다. `example.com/headphones/`에 배포한 사이트라면 다음과 같이 설정합니다.
+
+```javascript
+CDN_MODE: {
+  MAJOR_VERSION: 2,
+  BASE_PATH: "/headphones",
+},
+```
+
+자세한 설명과 예시는 [`BASE_PATH`가 거의 항상 필요한 이유](./guide-for-admins/deployment/cdn.mdx#why-base_path-is-almost-always-required)에서 확인하세요.
+
+**squig.link 운영자**는 보통 같은 서브도메인 아래에 두 개의 인스턴스를 운영합니다. `<username>.squig.link/`는 이어폰용(서브도메인 루트, `BASE_PATH` 불필요), `<username>.squig.link/headphones/`는 헤드폰용(`BASE_PATH: "/headphones"` 필요)입니다. 인스턴스마다 별도의 `config.js`를 쓰니 `/headphones/` 쪽에만 `BASE_PATH`를 설정하면 됩니다. 루트의 이어폰 인스턴스는 그대로 두세요.
+
+**개인 데이터베이스**를 `example.com/headphones/` 같은 하위 디렉터리에 호스팅한다면 마찬가지로 `BASE_PATH`를 맞춰야 합니다. 도메인 루트(`example.com/`)에 배포한 데이터베이스라면 필요 없습니다.
+
+### 이후 CDN과 사전 빌드를 오가려면
+
+앱 번들을 뺀 나머지(데이터, 설정, 테마, 선호도 경계 파일)는 두 옵션 사이에서 동일합니다. `index.html`만 교체하고 필요에 따라 `config.js`의 `CDN_MODE` 섹션을 더하거나 빼면 두 방식을 자유롭게 오갈 수 있습니다. 잠금 같은 건 없습니다.

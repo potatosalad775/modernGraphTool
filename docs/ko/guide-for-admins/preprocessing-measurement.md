@@ -1,0 +1,79 @@
+---
+title: 측정 데이터 전처리
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 3
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+modernGraphTool에서 주파수 응답 데이터를 시각화하려면 데이터를 적절한 방식으로 전처리해 두어야 합니다.
+
+이 장에서는 modernGraphTool이 측정 데이터를 정확히 읽을 수 있도록 전처리하는 방법을 안내합니다.
+
+:::tip[CrinGraph 사용자라면]
+modernGraphTool은 CrinGraph와 같은 데이터 구조를 따릅니다. CrinGraph 사용에 익숙하다면 이 페이지는 건너뛰어도 됩니다.
+:::
+
+## 데이터 형식
+
+modernGraphTool은 txt 파일로 저장된 측정 데이터를 지원합니다.
+
+```
+Freq (Hz)   SPL (dB)
+--------------------
+20          100
+40          101
+...
+```
+
+txt 파일은 여러 줄로 구성되며, 각 줄에 두 개의 값이 들어 있습니다. 첫 번째 값은 주파수, 두 번째 값은 그 주파수에 해당하는 SPL(Sound Pressure Level)입니다.
+
+내보내기 설정에 따라 세 번째 값(Phase)이 함께 들어 있을 수 있습니다. Phase는 각 주파수의 SPL이 어느 방향으로 변화하는지를 나타내는 값인데, modernGraphTool은 이 값을 읽지 않으므로 있어도 무시됩니다.
+
+대다수의 측정 소프트웨어가 txt 형식의 내보내기 기능을 제공합니다. 내보내는 방식은 여러 가지가 있지만, 아래에서 소개하는 절차대로 데이터를 준비할 것을 권장합니다.
+
+## 데이터 내보내기
+
+<Tabs>
+  <TabItem label="REW">
+    REW(Room EQ Wizard)에서 측정한 데이터를 내보내는 방법입니다.
+
+    1. 내보낼 측정 데이터를 선택한 상태에서 `File` → `Export` → `Export measurement as Text`를 클릭합니다.
+    2. 다음과 같이 옵션을 설정합니다.
+
+      | 항목                    | 값              |
+      |------------------------|----------------|
+      | Use custom range       | 20 to 20000 Hz |
+      | Use custom resolution  | 96 PPO         |
+      | Use custom smoothing   | 1/48 smoothing |
+      | Use REW export format  | 선택            |
+      | Export units           | SPL            |
+      | Export text delimiter  | Tab            |
+
+    3. `Ok` 버튼을 눌러 데이터를 내보냅니다.
+
+    이렇게 내보낸 데이터는 modernGraphTool에서 곧바로 사용할 수 있습니다.
+
+    :::tip[원본 데이터도 가능]
+    Custom resolution / Custom smoothing 설정을 적용하지 않은 비스무딩 원본 데이터도 modernGraphTool이 처리할 수 있습니다.
+
+    다만 modernGraphTool은 내부적으로 1/48 스무딩을 적용해 연산 성능을 확보하도록 설계되어 있어, 1/48 옥타브 이상의 해상도를 가진 데이터를 써도 결과에는 차이가 없습니다.
+    :::
+
+  </TabItem>
+  <TabItem label="ARTA">
+    ARTA에서 측정한 데이터를 내보내는 방법입니다.
+
+    1. 내보낼 측정 데이터를 선택한 상태에서 `File` → `Export` → `CSV file`을 클릭합니다.
+    2. REW(Room EQ Wizard)를 실행하고 `File` → `Import` → `Import frequency response`로 ARTA에서 내보낸 CSV 데이터를 불러옵니다.
+    3. 이후 `REW` 탭에서 안내한 방법대로 REW에서 데이터를 내보냅니다.
+
+  </TabItem>
+</Tabs>

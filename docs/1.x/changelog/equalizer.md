@@ -1,0 +1,25 @@
+---
+title: Equalizer Extension Changelog
+editUrl: true
+head: []
+template: doc
+sidebar:
+  label: Equalizer Extension
+  hidden: false
+  attrs: {}
+banner:
+  content: These are the v1 docs and are no longer maintained. <a
+    href="/modernGraphTool/docs/">See the current docs</a>.
+pagefind: true
+draft: false
+---
+
+### v1.1.0
+
+- Enhanced filter optimization logic, including optional LSF / HSF filter support.
+- Implemented a new web worker for offloading AutoEQ computations to prevent UI freezing.
+- Fixed an issue where EQAudioPlayer kept trying to update filters even when it's not initialized.
+
+### v1.0.0
+
+- Initial Release

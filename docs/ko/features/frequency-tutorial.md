@@ -1,0 +1,51 @@
+---
+title: Frequency Tutorial
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+modernGraphTool에 내장된 기능으로, 오디오 주파수 대역의 특징을 학습할 수 있는 튜토리얼을 제공합니다.
+
+## 개요
+
+Frequency Tutorial은 modernGraphTool에 교육적 요소를 더해, 다양한 주파수 대역과 그 음향 특성을 이해하도록 돕습니다.
+
+각 주파수 대역에 대한 시각·텍스트 정보를 함께 보여줍니다.
+
+## 주요 기능
+
+- **인터랙티브 주파수 가이드** — 그래프 위에 주파수 대역을 시각적으로 오버레이
+- **다국어 지원** — 지원 언어 모두에서 튜토리얼 콘텐츠 제공
+- **시각적 통합** — modernGraphTool 그래프 인터페이스와 자연스럽게 결합
+
+## 사용법
+
+Frequency Tutorial은 그래프 위에 주파수 대역 정보를 오버레이합니다. Sub Bass, Bass, Lower Mids, Upper Mids, Presence, Brilliance 영역에 라벨을 붙이고, 각 대역의 음향 특성을 설명해 줍니다.
+
+튜토리얼은 **그래프 패널**의 도구 모음에서 켜고 끌 수 있습니다.
+
+### 튜토리얼 내용 편집
+
+튜토리얼 문자열은 [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) i18n 시스템으로 관리합니다. 내용을 수정하거나 다른 언어로 번역하려면 다음 메시지 파일을 편집하세요.
+
+- **영어** — `messages/en.json`
+- **한국어** — `messages/ko.json`
+
+관련 키는 `tutorial_freq_<범위>_name`과 `tutorial_freq_<범위>_desc` 형식을 따릅니다. 예시는 다음과 같습니다.
+
+```json
+{
+	"tutorial_freq_sub_bass_name": "Sub Bass",
+	"tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range...",
+	"tutorial_freq_bass_name": "Bass",
+	"tutorial_freq_bass_desc": "Determines how 'fat' or 'thin' the sound is..."
+}
+```
+
+새 언어를 추가하려면 새 메시지 파일(예: `messages/ja.json`)을 만들고 모든 튜토리얼 키에 대한 번역을 채워 넣으면 됩니다.

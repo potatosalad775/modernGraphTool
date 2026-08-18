@@ -1,0 +1,67 @@
+---
+title: Equalizer
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+A comprehensive parametric equalizer that provides real-time audio equalization capabilities for modernGraphTool.
+
+## Overview
+
+The Equalizer is a built-in panel in modernGraphTool that provides a full-featured parametric equalizer, allowing users to apply real-time audio filters to their headphone measurements.
+
+It supports multiple filter types, preamp control, and audio playback with EQ effect applied.
+
+## Features
+
+- **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
+- **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
+- **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
+- **Filter Management**: Add, remove, and modify EQ bands dynamically
+- **Phone Selection**: Quick selection and switching between different headphone measurements
+- **Auto EQ Generation**: Generate automatic EQ profiles based on target curves, now with low-shelf / high-shelf filter support
+- **Import/Export**: Support for importing and exporting EQ settings
+- **File Upload**: Upload custom frequency response and target files
+
+## Usage
+
+1. **Basic EQ**: Use the filter controls to adjust frequency, gain, and Q values
+2. **Phone Selection**: Use the phone selector to switch between different measurements
+3. **Audio Playback**: Enable audio playback to hear EQ changes in real-time
+4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
+5. **Import/Export**: Save and load EQ settings using the import/export functions
+
+## The Equalizer toggle
+
+Nothing in the panel reaches the graph or the audio player until the master **Equalizer** switch at
+the top of the panel is on. Actions that only make sense with EQ live turn it on for you:
+
+- Importing a filter file
+- Running AutoEQ
+- Pulling filters from a connected device (Device PEQ)
+- Adding the **first** band to an empty filter list
+
+Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
+curve while you tweak is a deliberate workflow — hold <kbd>\\</kbd> for a momentary A/B flip in
+either direction — so nothing re-enables it under you.
+
+## AutoEQ band count
+
+**Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before
+running is how you ask for a five-band result. With an empty list it falls back to **8** bands.
+
+Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see
+[Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). Either way, the active
+constraint preset's band cap wins: a connected 5-band device gets 5.
+
+## Notes
+
+- Requires a modern browser with Web Audio API support for audio features
+- Real-time audio processing may cause increased CPU usage
+- Large numbers of EQ bands may impact performance on older devices

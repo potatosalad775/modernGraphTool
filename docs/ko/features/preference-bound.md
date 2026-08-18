@@ -1,0 +1,98 @@
+---
+title: 선호도 경계
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+주파수 응답 그래프 위에 선호도 경계를 표시해, 주파수 응답에서 받아들일 만한 변화 폭을 한눈에 확인하도록 도와주는 시각화 기능입니다.
+
+## 개요
+
+선호도 경계 기능은 타겟 커브 주변에 선호도 경계를 그려주는 오버레이를 modernGraphTool에 추가합니다.
+
+이 경계는 연구 데이터와 청취 선호도를 바탕으로, 대다수 청취자가 만족스럽게 느끼는 주파수 응답 변화의 통계적 허용 범위를 나타냅니다.
+
+## 주요 기능
+
+- **선호도 경계** — 상한과 하한 경계를 동시에 표시
+- **외관 커스터마이징** — 색상, 투명도, 스타일 조정
+- **타겟 연동** — Diffuse Field 타겟과 함께 동작해 정확한 기준선 제공
+
+## 설정
+
+선호도 경계는 `config.js`에서 설정합니다.
+
+```javascript
+// In config.js
+PREFERENCE_BOUND: {
+    ENABLE_BOUND_ON_INITIAL_LOAD: false,
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+    COLOR_FILL: "rgba(180,180,180,0.2)",
+    COLOR_BORDER: "rgba(120,120,120,0.5)",
+}
+```
+
+### 설정 옵션
+
+- **`ENABLE_BOUND_ON_INITIAL_LOAD`** — modernGraphTool이 처음 로드될 때 선호도 경계를 표시할지 여부
+- **`BASE_DF_TARGET_FILE`** — 경계 계산의 기준선으로 쓸 Diffuse Field 타겟 파일명(`.txt` 확장자 제외). 이 파일은 이미 타겟 폴더 안에 있어야 합니다. 선호도 경계 로더가 `PATH.TARGET_MEASUREMENT`에서 직접 읽어 가므로 별도로 복사할 필요는 없습니다.
+- **`COLOR_FILL`** — 경계 내부를 채울 RGBA 색상
+- **`COLOR_BORDER`** — 경계선 RGBA 색상
+
+:::note[기준 타겟 파일 위치]
+기준 DF 타겟 파일은 다른 타겟 커브와 같은 폴더, 즉 `config.js`의 `PATH.TARGET_MEASUREMENT`에서 찾습니다. 자세한 내용은 [`PATH`](../guide-for-admins/customize-page.mdx#path) 설정 섹션을 참고하세요.
+:::
+
+## 데이터 파일 형식
+
+### 경계 데이터 파일
+
+이 기능을 사용하려면 `data/` 디렉터리(`phones/`, `target/`과 같은 위치)에 경계 데이터 파일 두 개가 필요합니다.
+
+#### 상한 경계 (`Bounds U.txt`)
+
+상한 선호도 경계의 주파수 응답 데이터를 담습니다.
+
+```
+20.0	2.5
+25.0	2.8
+31.5	3.1
+...
+```
+
+#### 하한 경계 (`Bounds D.txt`)
+
+하한 선호도 경계의 주파수 응답 데이터를 담습니다.
+
+```
+20.0	-2.5
+25.0	-2.8
+31.5	-3.1
+...
+```
+
+#### 기준 타겟 파일
+
+기준 DF 타겟 파일은 `config.js`의 **`PATH.TARGET_MEASUREMENT`**, 즉 다른 모든 타겟 커브가 들어 있는 폴더(기본값: `./data/target/`)에서 그대로 불러옵니다. 다른 폴더로 복사할 필요는 **없습니다**. 선호도 경계 로더가 `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`에 적힌 파일명을 가지고 일반 타겟 디렉터리에서 직접 읽어 갑니다.
+
+예를 들어 `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"`이라면 `./data/target/KEMAR DF (KB006x) Target.txt`(또는 `PATH.TARGET_MEASUREMENT`에 설정한 경로)를 불러옵니다.
+
+## 사용법
+
+### 기본 동작
+
+1. **표시 전환** — 토글 버튼으로 경계를 켜고 끕니다.
+2. **타겟 정렬** — 선택한 기준 타겟에 맞춰 경계가 자동으로 정렬됩니다.
+3. **실시간 갱신** — 타겟이나 측정값을 바꾸면 경계도 즉시 갱신됩니다.
+
+### 시각적 해석
+
+- **채워진 영역** — 상한과 하한 사이가 선호 범위에 해당합니다.
+- **타겟 기준선** — 경계는 선택한 Diffuse Field 타겟을 기준으로 그려집니다.
+- **측정값 오버레이** — 헤드폰 측정값을 선호도 경계와 직접 비교할 수 있습니다.

@@ -1,0 +1,98 @@
+---
+title: Preference Bound
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+An advanced visualization feature that displays preference boundaries on frequency response graphs, helping users understand the acceptable variation ranges in FR.
+
+## Overview
+
+The Preference Bound feature adds a sophisticated overlay to modernGraphTool that visualizes preference boundaries around target curves.
+
+These boundaries represent the statistically acceptable range of frequency response variations that most listeners find pleasant, based on research data and listening preferences.
+
+## Features
+
+- **Preference Bound**: Display upper and lower preference bounds
+- **Customizable Appearance**: Adjustable colors, transparency, and styling
+- **Target Integration**: Works with diffuse field targets for accurate baseline reference
+
+## Configuration
+
+Preference Bound is configured in `config.js`:
+
+```javascript
+// In config.js
+PREFERENCE_BOUND: {
+    ENABLE_BOUND_ON_INITIAL_LOAD: false,
+    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+    COLOR_FILL: "rgba(180,180,180,0.2)",
+    COLOR_BORDER: "rgba(120,120,120,0.5)",
+}
+```
+
+### Configuration Options
+
+- **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when modernGraphTool first loads
+- **`BASE_DF_TARGET_FILE`**: File name (without `.txt` extension) of the diffuse field target used as the baseline for boundary calculations. The file must already exist in your configured target folder — the preference bound loader reads it directly from `PATH.TARGET_MEASUREMENT`, so no duplicate copy is needed.
+- **`COLOR_FILL`**: RGBA color for the filled boundary area
+- **`COLOR_BORDER`**: RGBA color for the boundary outline
+
+:::note[Base target location]
+The base DF target file is resolved from the same folder your other target curves live in, defined by `PATH.TARGET_MEASUREMENT` in `config.js`. See the [`PATH`](../guide-for-admins/customize-page.mdx#path) config section.
+:::
+
+## Data File Format
+
+### Boundary Data Files
+
+The feature requires two boundary data files in the `data/` directory (alongside `phones/` and `target/`):
+
+#### Upper Boundary (`Bounds U.txt`)
+
+Contains frequency response data for the upper preference boundary:
+
+```
+20.0	2.5
+25.0	2.8
+31.5	3.1
+...
+```
+
+#### Lower Boundary (`Bounds D.txt`)
+
+Contains frequency response data for the lower preference boundary:
+
+```
+20.0	-2.5
+25.0	-2.8
+31.5	-3.1
+...
+```
+
+#### Base Target File
+
+The base DF target file is **resolved from `PATH.TARGET_MEASUREMENT`** in `config.js` — the same folder where every other target curve lives (default: `./data/target/`). You do **not** need to duplicate the target file into another folder; the preference bound loader reads it directly from the regular target directory using the file name you set in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`.
+
+For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data/target/KEMAR DF (KB006x) Target.txt` (or whichever path you've configured in `PATH.TARGET_MEASUREMENT`).
+
+## Usage
+
+### Basic Operation
+
+1. **Toggle Control**: Use the toggle button to show/hide boundaries
+2. **Target Alignment**: Boundaries automatically align with the selected base target
+3. **Real-time Updates**: Boundaries update when changing targets or measurements
+
+### Visual Interpretation
+
+- **Filled Area**: The area between upper and lower bounds represents the preference range
+- **Target Baseline**: Boundaries are relative to the selected diffuse field target
+- **Measurement Overlay**: Compare headphone measurements against preference boundaries

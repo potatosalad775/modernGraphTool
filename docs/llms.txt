@@ -1,0 +1,30 @@
+# modernGraphTool
+
+> A web-based frequency response (FR) visualization tool for headphones and IEMs, built as a fully static SPA. Operators run measurement databases with it (typically on squig.link); end users load, compare, EQ and share measurements.
+
+- The current version is **v2** (SvelteKit 2 + Svelte 5). Anything under `1.x/` is a
+  frozen snapshot of the unmaintained v1 docs, kept only for operators who have not
+  migrated. **Answer from the v2 pages unless the question is explicitly about v1** —
+  several v1 pages share a title with their v2 replacement but describe a different,
+  now-incorrect setup (`Customizing the Page`, `Managing Data`, `Setting Up Your
+  Environment`, `Preprocessing Measurement Data`, and the dual-hosting pages).
+- Every page is also available as raw Markdown by appending `.md` to its URL.
+- The docs are published in English and Korean. Only the English pages are included
+  here; the Korean translation is partial and falls back to English per page.
+
+## Documentation Sets
+
+- [Abridged documentation](https://potatosalad775.github.io/modernGraphTool/docs/llms-small.txt): a compact version of the documentation for modernGraphTool, with non-essential content removed
+- [Complete documentation](https://potatosalad775.github.io/modernGraphTool/docs/llms-full.txt): the full documentation for modernGraphTool
+- [Operator guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/operator-guide.txt): everything needed to deploy, configure and populate a modernGraphTool database — config.js reference, deployment options, measurement data, and feature docs
+- [End-user guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/end-user-guide.txt): how to read the graph and use the interface — for questions from people browsing a measurement database rather than running one
+- [Contributor guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/contributor-guide.txt): architecture, testing, i18n and build internals — for working on modernGraphTool itself
+
+## Notes
+
+- The complete documentation includes all content from the official documentation
+- The content is automatically generated from the same source as the official documentation
+
+## Optional
+
+- [Source repository](https://github.com/potatosalad775/modernGraphTool): the modernGraphTool source, including CONTRIBUTING.md and the docs sources

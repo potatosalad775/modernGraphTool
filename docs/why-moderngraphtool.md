@@ -1,0 +1,91 @@
+---
+title: Why modernGraphTool?
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 2
+  label: Why modernGraphTool?
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+The audio measurement community's needs have outgrown the tools that once served it well.
+
+modernGraphTool is a ground-up rewrite — built on modern web technologies with a modular architecture — designed to give measurement operators and enthusiasts a tool that can evolve with the community.
+
+## The CrinGraph Legacy
+
+[CrinGraph](https://github.com/mlochbaum/CrinGraph) appeared around 2019 and quickly became the de facto standard for frequency response visualization in the audio enthusiast community.
+
+It did its original job well: load measurements, overlay curves, compare headphones. Simple and effective.
+
+Most measurement databases in the squig.link network still run CrinGraph or a derivative of it, and its influence on how we visualize FR data is undeniable.
+
+:::note[Full data compatibility]
+modernGraphTool is not a 'rejection' of CrinGraph — it's a continuation.
+
+It uses the same data format, the same folder structure, and the same `phone_book.json`. Your existing measurement data works without any changes.
+:::
+
+## Where Things Got Difficult
+
+As the community grew, so did the demands on the tool — and CrinGraph's original design wasn't built to accommodate them.
+
+### A Single Script Does Everything
+
+CrinGraph's core functionality — data loading, graph rendering, UI construction, state management — lives in a single JavaScript file spanning thousands of lines. There is no separation between concerns.
+
+Even for experienced developers, making targeted changes without breaking something else is a challenge. For operators without programming experience, it's practically impossible.
+
+### Styling Is Scattered
+
+The visual appearance is spread across multiple CSS files without variables, combined with inline styles in dozens of `createElement` calls throughout the JavaScript. There is no single file you can edit to theme the entire tool.
+
+Changing a color scheme or adapting the look for yourself means hunting through both CSS and JS, hoping you catch every instance.
+
+### Forks Diverge, Features Fragment
+
+When enthusiasts wanted new capabilities — like preference adjustments for Diffuse Field targets — they had to fork the entire project and modify the core script.
+
+Each fork became its own island. Complexity of 'single script does everything' made it hard to port features across forks, and operators had to choose which subset of capabilities they wanted — with no way to combine them.
+
+## How modernGraphTool Is Different
+
+modernGraphTool is a completely new graph tool built on SvelteKit, TypeScript, and D3.js.
+
+Rather than patching an aging codebase, it was designed from the start for the features the community needs.
+
+|                       | CrinGraph / Forks                                                    | modernGraphTool                                                                                              |
+| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Architecture**      | Single JS script (thousands of lines)                                | Modular SvelteKit components (TypeScript)                                                                    |
+| **Theming**           | Multiple CSS files + inline styles                                   | Single `theme.css` with CSS variables + [Theme Generator](/theme-generator)                                  |
+| **Target adjustment** | Fork-dependent; one target, 3–4 hardcoded filters                    | [Per-target adjustments, configurable filters, filter presets](./features/target-customizer.mdx)                 |
+| **Parametric EQ**     | External plugin scripts, fragmented across forks                     | Built-in with [AutoEQ, real-time audio preview, and interactive EQ](./features/equalizer.mdx)                    |
+| **Device PEQ bridge** | [External plugin by jeromeof](https://github.com/jeromeof/devicePEQ) | [Imported and refactored](./features/device-peq.mdx) as a built-in component                                     |
+| **Multi-language**    | Not supported                                                        | English + Korean ([compile-time i18n](https://inlang.com/m/gerre34r/library-inlang-paraglideJs), extensible) |
+| **Performance**       | Unbundled vanilla JS                                                 | Bundled with tree-shaking and code splitting                                                                 |
+| **Updates**           | Manual file replacement                                              | CDN mode: auto-updates without re-uploading                                                                  |
+| **Data format**       | `phone_book.json` + FR text files                                    | Same format — drop-in compatible                                                                             |
+
+## Built for Operators
+
+modernGraphTool is designed so that measurement database operators can set up, customize, and maintain their site without touching source code.
+
+- **One file to configure** — [`config.js`](./guide-for-admins/customize-page.mdx) controls everything: initial devices, targets, normalization, watermarks, feature toggles, and more.
+- **One file to theme** — [`theme.css`](./guide-for-admins/customize-page.mdx) uses CSS custom properties for graph colors, UI accent, and more. The online [Theme Generator](/theme-generator) creates it for you.
+- **CDN deployment** — Point your page at a CDN and your site receives updates automatically. Your data and config stay on your server, untouched.
+- **Data compatibility** — Keep your existing `data/` folder and `phone_book.json`. No conversion, no migration scripts.
+- **Dual-hosting** — Run modernGraphTool alongside your existing CrinGraph on the same domain if you want to [transition gradually](./database-tips/dual-hosting/main-cringraph.mdx).
+
+## Actively Maintained
+
+CrinGraph and its major forks are no longer actively maintained. modernGraphTool is — the developer is a 'Squiggler' and audio reviewer, just like you.
+
+New features, bug fixes, and improvements will be released regularly. If you use CDN mode, they arrive automatically without any action on your part.
+
+:::note[Ready to get started?]
+Head to the [Setup Guide](./guide-for-admins/setup-env.mdx) to set up your environment, or jump to [Customizing the Page](./guide-for-admins/customize-page.mdx) if you already have modernGraphTool running.
+:::

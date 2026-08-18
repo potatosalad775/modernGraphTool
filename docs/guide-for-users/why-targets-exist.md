@@ -1,0 +1,76 @@
+---
+title: Why targets exist
+description: What a target curve represents, why "flat" is not the goal, and how
+  Harman, Diffuse Field, and reviewer targets differ.
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 4
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+The last page explained where a curve comes from and that what you see is raw SPL from the measurement rig. This page explains the dotted line drawn _across_ that curve — the **target** — and why it's the thing that turns a raw curve into a meaningful judgment.
+
+Targets trip up newcomers because the obvious expectation is wrong. Most people assume that a "good" headphone should measure as a flat line: equal loudness at every frequency. That sounds intuitive — and it's completely wrong, for two reasons stacked on top of each other.
+
+## Flat is not the goal
+
+First reason: even if you could play a perfectly flat signal straight to your eardrum, you'd hate it. It would sound **thin, shouty, and muddy**. No bass to speak of, very distant midrange, and sibilant highs.
+
+The reason is that your own anatomy isn't 'flat'. When you listen to a real speaker in a real room, the sound bounces off your shoulders, squeezes through your outer ear's folds, and travels down a curved canal before reaching your eardrum. By the time it arrives, your head has already added a broad boost around 2–4 kHz, and a roll-off at the very top. Everything you've ever heard in your life has been pre-shaped by that filtering, so neutral to a human ear does not look 'flat'.
+
+Second reason: the curve on screen isn't _at your eardrum_ anyway — it's at the **rig's microphone**. That rig has its own canal, its own eardrum simulator, its own natural resonances. A headphone that sounds a specific way to your ears will raw-measure on that rig as a _specific bumpy shape_ — the rig's own house curve plus whatever that sound translates to on that rig's mic.
+
+A **target** contains such transformations. It's the line that says _"this is what a headphone needs to look like on this specific rig in order to sound the way I've defined as good"_. Different targets encode different definitions of "good" — more on that in a moment. You don't need to do any translation in your head; the target does it for you, and you just look at how close the measurement sits to the target line.
+
+## What a target is
+
+In modernGraphTool, a target is exactly the same kind of file as a headphone measurement: a line on the graph. The difference is what it represents:
+
+- A **headphone curve** is a real measurement — raw SPL from the rig's mic for one specific headphone.
+- A **target curve** is a reference line designed for a specific rig, representing the raw shape a headphone is expected to measure on that rig in order to sound like whatever the target's author defines as "right".
+
+When you overlay a target on a headphone curve, you're asking: _how close does this headphone come to the reference encoded in this target, on this rig?_ The answer is the vertical distance between the two lines at each frequency. A headphone _on the target_ matches whatever the target represents. Anywhere they differ is where the headphone departs from that particular reference — brighter, warmer, bassier, whatever.
+
+What the target _represents_ depends on which target you loaded, and those definitions don't agree with each other. That's not a bug. The next section explains the main families you'll encounter.
+
+:::note[Use the target that matches the rig]
+Targets are rig-specific by design. A target drawn for a 711-style rig is a different file than a target drawn for a B&K 5128 rig. The site operator picks the targets that match the rig in use, which is part of why each deployment ships its own target list. Don't overlay a target from one rig onto a measurement from a different rig — the shapes won't line up, and the comparison will mislead you.
+:::
+
+## Different targets, different philosophies
+
+You'll see several target curves available in modernGraphTool, and they don't agree with each other. That's on purpose — they're answering different questions. Broadly there are two camps:
+
+**Neutrality targets** try to describe how a headphone should measure to sound _tonally neutral_ to a human listener — no deliberate bass boost, no treble sweetening, just the shape that corresponds to "nothing stands out".
+
+**Preference targets** describe how a headphone should measure to sound _enjoyable_ according to some listening panel or individual reviewer — often with a deliberate bass lift, a shaped upper midrange, and gentler treble than strict neutrality. They're not claiming to be neutral; they're claiming to be _liked_.
+
+Here are the families of targets you're most likely to encounter:
+
+- **Diffuse Field (DF)** — A **neutrality baseline** and the international standard for HATS calibration, grounded in a key psychoacoustic insight: headphones don't change their sound as you turn your head, so the brain interprets any frequency shaping as tonal color rather than as a localization cue. A diffuse field is a condition where sound arrives from all directions at equal power simultaneously, so measuring a rig's HRTF in that condition captures its full anatomical contribution without encoding any directional bias. Subtracting it from a raw headphone measurement calibrates out most of the rig's own response and leaves just the headphone — which is why it's less a "preference target" and more a necessary compensation target, and why it's the reference most modern measurement sites use as their starting point.
+- **Free Field** — Based on measuring the rig's response to a single flat speaker placed directly in front in an anechoic room. A single-angle measurement encodes direction-specific localization cues; in real-world listening the brain reads those as location rather than tone. Through headphones, which can't produce proper localization, those same cues appear as tonal coloration instead. Less common than DF, and largely superseded by it as a measurement baseline for this reason.
+- **Harman OE / IE** — **Preference targets** derived from a large blind-listening study run by Harman (the company that owns JBL, AKG, and others). Listeners were asked to EQ headphones until they sounded _best to them_, and the results were averaged. The Harman curves have deliberately boosted bass and a shaped upper midrange — they represent "what most people enjoy", not "what measures as neutral". Also available in dated revisions (2013, 2015, 2018) as the research evolved.
+- **Reviewer preference curves** — Some measurement sites publish their own preferred target based on the operator's listening taste and experience. These are honest statements of one person's preference. They're not neutrality claims and shouldn't be read as such.
+
+Which is "right"? None of them, not universally. A neutrality target tells you where a headphone stands vs tonal neutrality. A preference target tells you where it stands vs a specific definition of enjoyable. They're different questions; picking the wrong one doesn't make the graph lie, but it can make you draw the wrong conclusion. Most people end up keeping one neutrality reference (usually DF) and one preference reference (usually Harman or a reviewer's curve) and comparing headphones against both.
+
+## Nobody agrees, and that's fine
+
+If you load five different targets on the same graph, they'll be visibly different. Some are brighter, some are warmer, some have more bass. That's not a sign that the measurement industry is broken — it's a reminder that **"good sound" covers at least two different questions** (is it neutral, is it enjoyable) and reasonable people picking different listener panels, different rigs, and different definitions will arrive at different curves.
+
+modernGraphTool lets site operators configure which targets appear in the list, which means different deployments ship different lineups. If you bookmark two different measurement sites, don't be surprised if the available targets are different.
+
+## A range, not a line
+
+One last idea before we get into the buttons. Preference research also shows that there isn't a single "correct" curve — there's a **range**. Most listeners tolerate a few dB of variation in bass and treble around whatever they consider neutral, so a headphone doesn't have to hit the target line exactly to sound great; it just needs to stay inside the acceptable band.
+
+The tool can draw that band as a shaded region on top of the graph. It's called the **preference bound**, and it's explained alongside the target customizer on [Targets and preferences](./targets-and-preferences.mdx), with the deep dive at [Preference Bound](../features/preference-bound.mdx).
+
+---
+
+That's the last of the concept pages. From here on the guide is about the actual interface — starting with [Interface tour](./interface-tour.mdx).

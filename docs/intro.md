@@ -1,0 +1,86 @@
+---
+title: Overview
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 1
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+modernGraphTool is a web-based tool for visualizing and comparing frequency response (FR) measurements of headphones, and IEMs. Load measurements, overlay multiple curves, apply targets and EQ, and share results — all from the browser.
+
+Built with SvelteKit 2, Svelte 5, Tailwind CSS, and D3.js. Deployed as a fully static SPA — just upload the `dist/` folder to any web server, or use the CDN mode for automatic updates.
+
+If you're coming from modernGraphTool v1, see the [migration guide](./migrating-v1-to-v2.mdx) for what's changed. For background on why this project exists, see [Why modernGraphTool?](./why-moderngraphtool.mdx).
+
+:::tip[Using these docs with an AI assistant]
+Every page is also served as plain Markdown — add `.md` to any URL (this page is at
+[`/intro.md`](/intro.md)).
+
+For a whole-site context, point your assistant at [`/llms.txt`](/llms.txt). It indexes
+smaller, purpose-built bundles alongside the complete text, so you can hand over just the
+operator guide, the end-user guide, or the contributor guide instead of the entire site.
+:::
+
+## Features
+
+Everything is built-in and configurable through a single [`config.js`](./guide-for-admins/customize-page.mdx) file.
+
+For detailed documentation on individual features, see the [Features](features/index.mdx) section.
+
+### Visualization & Analysis
+
+- **Frequency response graph** — D3.js-powered SVG graph with log-scale frequency axis (20 Hz – 20 kHz) and configurable Y-axis scale (30–80 dB range)
+- **Multi-curve comparison** — Load and overlay multiple devices with per-curve color customization
+- **Target curves** — Select from built-in targets (Harman, DF, reviewer preferences) or add your own, organized into configurable groups
+- **Normalization** — Align curves by a specific frequency (Hz) or by midrange average (300 Hz – 3 kHz)
+- **Smoothing** — Adjustable from 1/48 octave (near-raw) to 1/3 octave
+- **Sample sets** — Devices measured more than once render as an averaged curve, per-run curves, a shaded min/max deviation band, or any combination
+- **[Average curves](./features/average-curves.mdx)** — Fold every visible measurement into one averaged curve.
+- **Inspection mode** — Hover over the graph to read precise frequency and dB values
+- **Baseline compensation** — Set any curve as a baseline to view other curves as relative differences
+- **Configurable aspect ratio** — Standard 16:9 or CrinGraph-style proportions
+
+### Equalization
+
+- **[Parametric EQ](./features/equalizer.mdx)** — Full-featured EQ panel with multiple filter types (PEQ, LSQ, HSQ), adjustable frequency/gain/Q, and preamp control
+- **AutoEQ** — Automatically generate EQ profiles to match a selected target curve, now with optional LSQ/HSQ filters for more flexible tuning
+- **Real-time audio preview** — Play audio through the browser with EQ filters applied in real-time
+- **Import / Export** — Save and load EQ settings for later use
+- **[Device PEQ bridge](./features/device-peq.mdx)** — Push EQ settings directly to 20+ compatible hardware devices via USB HID, Serial, BLE, or Network
+
+### Target Customization
+
+- **[Target Customizer](./features/target-customizer.mdx)** — Adjust target curves with parametric filters (Tilt, Bass, Treble, Ear Gain, and more) using slider controls
+- **Filter presets** — One-click presets for popular tuning profiles (Harman 2013, 2015, 2018)
+- **Per-target initial filters** — Automatically apply preferred adjustments when a target loads
+- **[Preference Bound](./features/preference-bound.mdx)** — Overlay a shaded upper/lower preference range on the graph, based on research data
+
+### Sharing & Export
+
+- **URL sharing** — Generate compressed shareable links that encode the full graph state (loaded devices, targets, normalization, EQ)
+- **Screenshot** — Save the current graph as an image, complete with labels and watermarks
+- **Watermarks** — Configurable text or image watermarks with adjustable position and opacity
+
+### User Interface
+
+- **Responsive layout** — Dedicated desktop and mobile UIs, not just a squeezed desktop view on small screens
+- **Dark mode** — Light, dark, or follow system preference
+- **Panel navigation** — Features organized into four panels: Device, Graph, Equalizer, and Misc
+- **Adjustable layout** — Drag the divider to resize the graph vs. panel areas (desktop)
+- **Multi-language** — English and Korean, with compile-time i18n (Paraglide JS)
+- **Configurable top bar** — Custom title (text, image, or HTML), navigation links, and branding
+- **[Frequency Tutorial](./features/frequency-tutorial.mdx)** — Interactive overlay showing frequency band names and descriptions, helpful for beginners
+
+### squig.link Integration
+
+When hosted on `*.squig.link` domains, modernGraphTool activates additional features for the [squig.link](https://squig.link) network. See [squig.link Integration](./features/squiglink-integration.mdx) for details.
+
+- **Cross-site search** — Search for devices across all sites in the squig.link network
+- **Shop links** — Display purchase links when a matching device is found in the shop database
+- **Analytics** — Google Analytics with multi-measurement-ID support for network-wide tracking
+- **Sponsor content** — First-visit sponsor banners for sites that opt in

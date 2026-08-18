@@ -1,0 +1,153 @@
+---
+title: Target Customizer
+editUrl: true
+head: []
+template: doc
+sidebar:
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+A powerful target curve customization feature that provides advanced adjustment capabilities for personalizing headphone target curves in modernGraphTool.
+
+## Overview
+
+The Target Customizer allows users to apply adjustments to target curves, enabling personalized tuning based on individual preferences.
+
+It provides a comprehensive set of adjustments including tilt, bass/treble shelves, and ear gain adjustments.
+
+## Features
+
+- **Advanced Filter Types**: Support for multiple parametric filter types (TILT, LSQ, HSQ, PK)
+- **Real-time Adjustments**: Live preview of target curve modifications
+- **Filter Presets**: Built-in presets for popular tuning styles (Harman 2013, 2015, 2018)
+- **Target Selection**: Customize specific target curves with individual filter settings
+- **Initial Load Filters**: Automatic application of preferred filters on startup
+
+## Configuration
+
+Target Customizer is configured in `config.js`:
+
+```javascript
+// In config.js
+TARGET_CUSTOMIZER: {
+    CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
+    FILTERS: [
+      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
+      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
+      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
+      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
+      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
+    ],
+    FILTER_PRESET: [
+      { name: "Harman 2013", filter: { bass: 6.6, treble: -1.4 } },
+      { name: "Harman 2015", filter: { bass: 6.6, treble: -3, ear: -1.8 } },
+      { name: "Harman 2018", filter: { bass: 4.8, treble: -4.4 } },
+    ],
+    INITIAL_TARGET_FILTERS: [
+      { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 } },
+    ],
+}
+```
+
+## Filter Types
+
+### Available Filter Types
+
+#### TILT Filter
+
+- **Purpose**: Overall tonal balance adjustment
+- **Behavior**: Applies a linear frequency-dependent gain change
+- **Use Case**: Adjust overall brightness or warmth of the target curve
+
+#### LSQ (Low Shelf)
+
+- **Purpose**: Bass frequency adjustment
+- **Use Case**: Boost or cut low-frequency content
+
+#### HSQ (High Shelf)
+
+- **Purpose**: Treble frequency adjustment
+- **Use Case**: Adjust high-frequency brightness and detail
+
+#### PK (Peaking)
+
+- **Purpose**: Specific frequency range adjustment
+- **Use Case**: Ear gain compensation and specific frequency targeting
+
+### Filter Configuration
+
+Each filter in the `FILTERS` array contains:
+
+- **`id`**: Unique identifier for the filter
+- **`name`**: Display name in the user interface
+- **`type`**: Filter type (TILT, LSQ, HSQ, PK)
+- **`freq`**: Center/corner frequency in Hz
+- **`q`**: Q factor (bandwidth control)
+
+## Usage
+
+### Basic Target Customization
+
+#### Selecting Targets
+
+1. **Target List**: Choose from available customizable targets
+2. **Filter Application**: Apply filters to selected targets
+3. **Real-time Preview**: See changes applied immediately to the graph
+
+#### Filter Adjustments
+
+1. **Individual Filters**: Adjust each filter type independently
+2. **Gain Control**: Set positive or negative gain values
+3. **Visual Feedback**: Watch target curve update in real-time
+
+#### Using Presets
+
+1. **Select Preset**: Choose from available preset options
+2. **Apply Filters**: Preset values are automatically applied
+
+## Customization and Extensibility
+
+### Adding Custom Filters
+
+```javascript
+{
+  id: "custom",
+  name: "Custom Filter",
+  type: "PK",
+  freq: 1000,
+  q: 2.0
+}
+```
+
+### Custom Preset Creation
+
+```javascript
+{
+  name: 'My Custom Preset',
+  filter: {
+    tilt: -1.0,
+    bass: 5.0,
+    treble: -2.0,
+    ear: -1.0
+  }
+}
+```
+
+### Initial Load Filters
+
+Automatically applies preferred filters when modernGraphTool loads:
+
+```javascript
+INITIAL_TARGET_FILTERS: [{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } }];
+```
+
+### Custom Target Support
+
+Add new targets to the customizable list:
+
+```javascript
+CUSTOMIZABLE_TARGETS: ['KEMAR DF (KB006x)', 'ISO 11904-2 DF', 'Custom Target Name'];
+```

@@ -1,11 +1,8 @@
-# modernGraphTool_v2_beta
+# modernGraphTool_v2
 
 A completely re-engineered graphtool for frequency response visualization, built with modern web technologies.
 
 You can discover more at the [modernGraphTool documentation page][DOCS].
-
-> _modernGraphTool\_**beta** is still in the early stages of development. \
-> Frequent breaking changes and design revisions may occur._
 
 ## Demo
 

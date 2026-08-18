@@ -99,7 +99,6 @@
 	<div class="mb-3 flex flex-col items-center gap-1 text-center">
 		<div class="flex items-baseline gap-2">
 			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
-			<span class="text-xs text-base-content/60">beta</span>
 		</div>
 		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">

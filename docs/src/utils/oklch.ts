@@ -307,9 +307,10 @@ function generateNeutral(
 	};
 }
 
-function generateNeutralContent(
-	base: { light: BaseColors; dark: BaseColors }
-): { light: OklchColor; dark: OklchColor } {
+function generateNeutralContent(base: { light: BaseColors; dark: BaseColors }): {
+	light: OklchColor;
+	dark: OklchColor;
+} {
 	// Text on `neutral` is the lightest surface in light mode and the base text
 	// colour in dark mode, so it follows the scale rather than restating it.
 	return {

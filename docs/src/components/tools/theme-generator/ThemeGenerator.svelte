@@ -202,8 +202,12 @@
 	}
 
 	function darkBase(lightness: number) {
-		return generateBaseScale(inputs.baseHue, inputs.baseSaturation, inputs.baseLightnessLight, lightness)
-			.dark;
+		return generateBaseScale(
+			inputs.baseHue,
+			inputs.baseSaturation,
+			inputs.baseLightnessLight,
+			lightness
+		).dark;
 	}
 
 	const HUE_TRACK = gradient(

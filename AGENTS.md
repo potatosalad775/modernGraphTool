@@ -63,6 +63,13 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
 - Target **WCAG AAA** accessibility
+- **CI enforces this** — `.github/workflows/ci.yml`'s `quality` job runs `npm run lint` on every PR
+  and push to main, then fails the build if that (or anything else in the job) leaves the working
+  tree dirty. Run `npm run lint` — or `npm run format` to fix — before committing, including inside
+  [docs/](docs/AGENTS.md): the root `npm run lint` reaches `docs/src/**` too (only
+  `docs/src/content/`, `docs/dist/` and `docs/.astro/` are excluded, per `.prettierignore` /
+  `eslint.config.js`), but `docs/`'s own `npm run lint` only runs ESLint, not Prettier — so
+  Prettier drift there is easy to miss if you only lint from inside `docs/`.
 
 ## Rules That Apply Everywhere
 

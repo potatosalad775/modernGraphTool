@@ -224,14 +224,14 @@ islands hydrate on these three routes only.
   This replaced an `--ifm-*` → `--sl-*` bridge carried over from Docusaurus, which described
   every colour as a translation of an Infima decision and had already sprouted hand-patched
   exceptions where the mapping landed light-on-light. The one deliberate raw-colour
-  exception is the theme generator's base-tone slider tracks, where the colour *is* the
+  exception is the theme generator's base-tone slider tracks, where the colour _is_ the
   content — each is painted with the palette that slider position actually produces.
 - **The theme generator's base tint is a share of the sRGB gamut, not an absolute chroma**
   (`src/utils/oklch.ts`). sRGB holds barely 0.01 chroma at L=0.98 and 0.16 at L=0.90, and the
   ceiling swings 6× with hue, so the old table of hand-picked constants could only ever
   produce a near-white surface — operators were hand-editing the exported `theme.css` to get
   a tinted one. `maxChromaFor` bisects for the ceiling and every base role takes a fraction of
-  it, which is also why the generator exposes a *Light Surface* / *Dark Surface* lightness
+  it, which is also why the generator exposes a _Light Surface_ / _Dark Surface_ lightness
   alongside saturation: at L=0.98 there is no saturated colour to reach. `DEFAULT_BASE_SATURATION`
   (0.3) is calibrated so the untouched defaults still reproduce the shipped `defaults/theme.css`
   — changing it silently re-skins every theme an operator generates.

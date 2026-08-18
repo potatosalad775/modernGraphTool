@@ -338,13 +338,8 @@ describe('generateFullPalette', () => {
 
 describe('DEFAULT_INPUTS', () => {
 	it('are six-digit hex colours', () => {
-		const {
-			baseHue,
-			baseSaturation,
-			baseLightnessLight,
-			baseLightnessDark,
-			...colors
-		} = DEFAULT_INPUTS;
+		const { baseHue, baseSaturation, baseLightnessLight, baseLightnessDark, ...colors } =
+			DEFAULT_INPUTS;
 		expect(baseHue).toBeGreaterThanOrEqual(0);
 		expect(baseHue).toBeLessThan(360);
 		expect(baseSaturation).toBeGreaterThan(0);

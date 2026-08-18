@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import StringArrayEditor from '../shared/StringArrayEditor.svelte';
@@ -75,7 +76,7 @@
 		<StringArrayEditor
 			bind:items={tc.CUSTOMIZABLE_TARGETS}
 			placeholder="Target file name"
-			addLabel="+ Add target"
+			addLabel="Add target"
 		/>
 	</div>
 
@@ -166,7 +167,8 @@
 			class="ceArrayAddBtn"
 			onclick={() => filters.push({ id: '', name: '', type: 'PK', freq: 0, q: 0 })}
 		>
-			+ Add filter
+			<Icon name="plus" />
+			Add filter
 		</button>
 	</div>
 
@@ -206,7 +208,8 @@
 			class="ceArrayAddBtn"
 			onclick={() => tc.FILTER_PRESET.push({ name: '', filter: {} })}
 		>
-			+ Add preset
+			<Icon name="plus" />
+			Add preset
 		</button>
 	</div>
 
@@ -246,7 +249,8 @@
 			class="ceArrayAddBtn"
 			onclick={() => tc.INITIAL_TARGET_FILTERS.push({ name: '', filter: {} })}
 		>
-			+ Add initial filter
+			<Icon name="plus" />
+			Add initial filter
 		</button>
 	</div>
 </AccordionSection>

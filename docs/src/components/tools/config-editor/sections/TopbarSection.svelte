@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import I18nWrapper from '../shared/I18nWrapper.svelte';
@@ -33,15 +34,16 @@
 						type="button"
 						class="ceArrayRemoveBtn"
 						onclick={() => items.splice(i, 1)}
-						title="Remove"
+						aria-label="Remove link {i + 1}"
 					>
-						&times;
+						<Icon name="close" />
 					</button>
 				</div>
 			{/each}
 		</div>
 		<button type="button" class="ceArrayAddBtn" onclick={() => items.push({ TITLE: '', URL: '' })}>
-			+ Add link
+			<Icon name="plus" />
+			Add link
 		</button>
 	</div>
 {/snippet}

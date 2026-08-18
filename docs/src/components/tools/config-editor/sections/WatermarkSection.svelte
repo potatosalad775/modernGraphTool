@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import WatermarkItemEditor from './WatermarkItemEditor.svelte';
@@ -31,5 +32,8 @@
 			onRemove={() => watermarks.splice(i, 1)}
 		/>
 	{/each}
-	<button type="button" class="ceArrayAddBtn" onclick={addItem}>+ Add watermark</button>
+	<button type="button" class="ceArrayAddBtn" onclick={addItem}>
+		<Icon name="plus" />
+		Add watermark
+	</button>
 </AccordionSection>

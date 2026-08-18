@@ -2,6 +2,7 @@
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import StringArrayEditor from '../shared/StringArrayEditor.svelte';
+	import Checkbox from '../../shared/Checkbox.svelte';
 
 	let config = $derived(configEditor.config);
 	const id = $props.id();
@@ -22,22 +23,14 @@
 	optional
 	bind:enabled={config.SQUIGLINK_ENABLED}
 >
-	<div class="ceToggleRow">
-		<input
-			type="checkbox"
-			class="ceCheckbox"
-			bind:checked={config.SQUIGLINK.ENABLED}
-			id="{id}-enabled"
-		/>
-		<label for="{id}-enabled" class="ceToggleLabel">Enabled</label>
-	</div>
+	<Checkbox bind:checked={config.SQUIGLINK.ENABLED} label="Enabled" />
 
 	<div class="ceFieldGroup">
 		<span class="ceLabel">Analytics Measurement IDs</span>
 		<StringArrayEditor
 			bind:items={config.SQUIGLINK.ANALYTICS_MEASUREMENT_IDS}
 			placeholder="G-XXXXXXXXXX"
-			addLabel="+ Add ID"
+			addLabel="Add ID"
 		/>
 	</div>
 
@@ -53,14 +46,6 @@
 	</div>
 
 	{#each TOGGLES as { key, label } (key)}
-		<div class="ceToggleRow">
-			<input
-				type="checkbox"
-				class="ceCheckbox"
-				bind:checked={config.SQUIGLINK[key]}
-				id="{id}-{key}"
-			/>
-			<label for="{id}-{key}" class="ceToggleLabel">{label}</label>
-		</div>
+		<Checkbox bind:checked={config.SQUIGLINK[key]} {label} />
 	{/each}
 </AccordionSection>

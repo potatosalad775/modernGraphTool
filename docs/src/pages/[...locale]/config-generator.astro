@@ -2,7 +2,7 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import ConfigEditor from '../../components/tools/config-editor/ConfigEditor.svelte';
 import { createTranslator, toToolLang } from '../../i18n/tools';
-import '../../styles/infima-compat.css';
+import '../../styles/tools.css';
 
 export function getStaticPaths() {
 	return [{ params: { locale: undefined } }, { params: { locale: 'ko' } }];
@@ -18,27 +18,18 @@ const description = t(
 ---
 
 <StarlightPage frontmatter={{ title, template: 'splash', tableOfContents: false }}>
-	<div class="cgPageHeader">
-		<p>{description}</p>
+	{/*
+		`.tool-root` carries the tools' design tokens AND Starlight's `.not-content`
+		escape hatch. Starlight wraps this slot in `.sl-markdown-content`, whose
+		prose rules add a 1rem top margin to every element that follows a sibling —
+		`button` included, which is what used to leave the second and third tab of a
+		tab strip sitting a row below the first. See `styles/tools.css`.
+
+		`template: 'splash'` only drops the sidebar and TOC; Starlight still renders
+		its own `<h1>{title}</h1>` above this, so there is no heading here.
+	*/}
+	<div class="tool-root not-content">
+		<p class="toolLead">{description}</p>
+		<ConfigEditor client:load />
 	</div>
-	<ConfigEditor client:load />
 </StarlightPage>
-
-<style>
-	/*
-	 * `template: 'splash'` only drops the sidebar and TOC — Starlight still
-	 * renders its own `<h1>{title}</h1>` above this. Adding a second one here
-	 * duplicated the heading; this block now only carries the lead-in paragraph
-	 * the Docusaurus page had.
-	 */
-	.cgPageHeader {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 1.5rem;
-	}
-
-	.cgPageHeader p {
-		color: var(--sl-color-gray-3);
-		margin-bottom: 1.5rem;
-	}
-</style>

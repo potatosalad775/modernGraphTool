@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
+	import Checkbox from '../../shared/Checkbox.svelte';
+	import Icon from '../../shared/Icon.svelte';
 
 	let config = $derived(configEditor.config);
 	let langList = $derived(config.LANGUAGE.LANGUAGE_LIST);
-	const id = $props.id();
 </script>
 
 <AccordionSection
@@ -24,7 +25,6 @@
 						bind:value={langList[i][0]}
 						placeholder="Code (e.g. en)"
 						aria-label="Language code {i + 1}"
-						style="width: 80px;"
 					/>
 					<input
 						type="text"
@@ -37,38 +37,27 @@
 						type="button"
 						class="ceArrayRemoveBtn"
 						onclick={() => langList.splice(i, 1)}
-						title="Remove"
+						aria-label="Remove language {i + 1}"
 					>
-						&times;
+						<Icon name="close" />
 					</button>
 				</div>
 			{/each}
 		</div>
 		<button type="button" class="ceArrayAddBtn" onclick={() => langList.push(['', ''])}>
-			+ Add language
+			<Icon name="plus" />
+			Add language
 		</button>
 	</div>
 
-	<div class="ceToggleRow">
-		<input
-			type="checkbox"
-			class="ceCheckbox"
-			bind:checked={config.LANGUAGE.ENABLE_I18N}
-			id="{id}-i18n"
-		/>
-		<label for="{id}-i18n" class="ceToggleLabel">
-			Enable internationalization
-			<span class="ceToggleHint">Adds language selector to Misc Panel</span>
-		</label>
-	</div>
+	<Checkbox
+		bind:checked={config.LANGUAGE.ENABLE_I18N}
+		label="Enable internationalization"
+		hint="adds a language selector to the Misc panel"
+	/>
 
-	<div class="ceToggleRow">
-		<input
-			type="checkbox"
-			class="ceCheckbox"
-			bind:checked={config.LANGUAGE.ENABLE_SYSTEM_LANG_DETECTION}
-			id="{id}-detect"
-		/>
-		<label for="{id}-detect" class="ceToggleLabel">Enable system language detection</label>
-	</div>
+	<Checkbox
+		bind:checked={config.LANGUAGE.ENABLE_SYSTEM_LANG_DETECTION}
+		label="Enable system language detection"
+	/>
 </AccordionSection>

@@ -9,6 +9,7 @@
 	import { createTranslator, type ToolLang } from '../../../i18n/tools';
 	import ColorField from './ColorField.svelte';
 	import DummyGraphPage from './DummyGraphPage.svelte';
+	import Icon from '../shared/Icon.svelte';
 
 	interface Props {
 		lang: ToolLang;
@@ -222,7 +223,7 @@
 
 		<section class="tgSourceColorSection">
 			<ColorField label="Primary" bind:value={inputs.primary} />
-			<button type="button" class="tgSourceColorRandomizerButton" onclick={handleRandomAll}>
+			<button type="button" class="ceBtn tgSourceColorRandomizerButton" onclick={handleRandomAll}>
 				{t('Random All')}
 			</button>
 		</section>
@@ -236,7 +237,8 @@
 			<ColorField {label} bind:value={inputs[key]} />
 		{/each}
 
-		<button type="button" class="tgExportButton" onclick={handleExport}>
+		<button type="button" class="ceBtn ceBtnPrimary tgExportButton" onclick={handleExport}>
+			<Icon name="download" />
 			{t('Export theme.css')}
 		</button>
 	</div>
@@ -248,106 +250,104 @@
 
 <style>
 	/*
-	 * Carried over from the Docusaurus `page-theme-generator.module.css`, minus
-	 * the `.tgPicker*` rules that only existed to position react-color's
-	 * popover. The `--ifm-*` variables resolve through `styles/infima-compat.css`.
+	 * Scoped: every class here is used by this component alone. The chrome —
+	 * panels, buttons, inputs — comes from `styles/tools.css` via the shared
+	 * class names, so what is left is only the layout and the hue slider.
 	 */
 	.tgContainer {
 		display: flex;
-		gap: 20px;
-		padding: 20px;
 		flex-wrap: wrap;
+		gap: 1.25rem;
 	}
 
 	.tgTools {
 		flex: 1;
-		min-width: 300px;
-		padding: 15px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 8px;
-		background-color: var(--ifm-background-color);
+		min-width: 19rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.875rem;
+		padding: 1rem;
+		border: 1px solid var(--tool-hairline);
+		border-radius: var(--tool-radius);
+		background: var(--tool-surface);
+		align-self: flex-start;
 	}
 
 	.tgTools h4 {
-		margin-bottom: 10px;
-		border-bottom: 1px solid var(--ifm-color-emphasis-200);
-		padding-bottom: 5px;
+		margin: 0.5rem 0 0;
+		padding-bottom: 0.375rem;
+		border-bottom: 1px solid var(--tool-hairline);
+		font-size: var(--sl-text-sm);
+		font-weight: 600;
+		color: var(--tool-text-strong);
+	}
+
+	.tgTools h4:first-child {
+		margin-top: 0;
 	}
 
 	.tgDescription {
-		font-size: 0.85rem;
-		color: var(--ifm-color-emphasis-600);
-		margin-bottom: 1rem;
+		margin: -0.5rem 0 0;
+		font-size: var(--sl-text-xs);
+		color: var(--tool-text-muted);
+		line-height: 1.5;
 	}
 
 	/*
-	 * The randomiser sits on the baseline of Primary's field, which is now three
-	 * rows tall rather than two, so it aligns to the bottom instead of being
-	 * nudged up by a fixed margin the way it was against the old swatch button.
+	 * The randomiser sits on the baseline of Primary's field, which is three rows
+	 * tall, so it aligns to the bottom rather than being nudged up by a fixed
+	 * margin the way it was against the old swatch button.
 	 */
 	.tgSourceColorSection {
 		display: flex;
-		flex-direction: row;
-		justify-content: center;
 		align-items: flex-end;
+		gap: 0.5rem;
 		width: 100%;
-		gap: 10px;
-	}
-
-	.tgSourceColorRandomizerButton {
-		padding: 8px 12px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 4px;
-		background-color: var(--ifm-color-emphasis-100);
-		color: var(--ifm-font-color-base);
-		cursor: pointer;
-		margin-bottom: 15px;
-		min-height: 38px;
-		white-space: nowrap;
 	}
 
 	.tgPreview {
 		flex: 2;
-		min-width: 400px;
+		min-width: 25rem;
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: 1.25rem;
 	}
 
 	/* ── Base hue controls ───────────────────────────────────────────────────── */
 
 	.tgBaseHueSection {
-		margin-bottom: 15px;
 		display: flex;
 		flex-direction: column;
+		gap: 0.375rem;
 		width: 100%;
 	}
 
 	.tgBaseHueSection label {
-		font-weight: bold;
-		font-size: 0.9rem;
-		margin-bottom: 4px;
+		font-size: var(--sl-text-xs);
+		font-weight: 500;
+		color: var(--tool-text-strong);
 	}
 
 	.tgBaseHueInputRow {
 		display: flex;
-		flex-direction: row;
 		align-items: center;
-		width: 100%;
-		gap: 10px;
-	}
-
-	.tgBaseHueInputRow input:first-child {
+		gap: 0.625rem;
 		width: 100%;
 	}
 
+	/*
+	 * The track is a literal hue wheel — the one place in the tools where a raw
+	 * colour is the content rather than the chrome, so it is exempt from the
+	 * "tokens only" rule. The thumb still is not: it borrows the surface and
+	 * border tokens so it reads correctly against either theme.
+	 */
 	.tgHueSlider {
 		-webkit-appearance: none;
 		appearance: none;
-		width: 100%;
-		height: 8px;
-		border-radius: 4px;
-		outline: none;
+		flex: 1;
+		min-width: 0;
+		height: 0.5rem;
+		border-radius: 999px;
 		background: linear-gradient(
 			to right,
 			hsl(0, 70%, 60%),
@@ -363,55 +363,27 @@
 	.tgHueSlider::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
-		width: 16px;
-		height: 16px;
+		width: 1rem;
+		height: 1rem;
 		border-radius: 50%;
-		background: white;
-		border: 2px solid var(--ifm-color-emphasis-400);
+		background: var(--tool-surface);
+		border: 2px solid var(--tool-text-muted);
 		cursor: pointer;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		box-shadow: var(--sl-shadow-sm);
 	}
 
 	.tgHueSlider::-moz-range-thumb {
-		width: 16px;
-		height: 16px;
+		width: 1rem;
+		height: 1rem;
 		border-radius: 50%;
-		background: white;
-		border: 2px solid var(--ifm-color-emphasis-400);
+		background: var(--tool-surface);
+		border: 2px solid var(--tool-text-muted);
 		cursor: pointer;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		box-shadow: var(--sl-shadow-sm);
 	}
 
-	.tgNumberInput {
-		width: 70px;
-		padding: 8px 12px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 4px;
-		background-color: var(--ifm-color-emphasis-100);
-		color: var(--ifm-font-color-base);
-	}
-
-	/* ── Export button ───────────────────────────────────────────────────────── */
-
-	/*
-	 * `bg-accent` / `text-invert` is Starlight's own solid-button pair and is
-	 * legible in both themes. The Infima original hardcoded white on
-	 * `primary-dark`, which Starlight's light-mode accent is too pale to carry.
-	 */
 	.tgExportButton {
-		margin-top: 1rem;
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--sl-color-bg-accent);
-		background-color: var(--sl-color-bg-accent);
-		color: var(--sl-color-text-invert);
-		border-radius: 4px;
 		width: 100%;
-		height: 38px;
-		cursor: pointer;
-		font-weight: bold;
-	}
-
-	.tgExportButton:hover {
-		filter: brightness(1.1);
+		margin-top: 0.5rem;
 	}
 </style>

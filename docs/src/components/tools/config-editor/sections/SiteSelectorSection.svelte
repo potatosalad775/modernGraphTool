@@ -43,7 +43,7 @@
 		<StringArrayEditor
 			bind:items={config.SITE_SELECTOR.INDEX_URLS}
 			placeholder="https://example.com/db-site-index.json"
-			addLabel="+ Add URL"
+			addLabel="Add URL"
 		/>
 	</div>
 </AccordionSection>

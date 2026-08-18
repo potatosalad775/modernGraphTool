@@ -1,6 +1,7 @@
 <script lang="ts">
-	import './config-editor.css';
-
+	// Styles come from `src/styles/tools.css`, imported by the .astro page rather
+	// than here: all three tools share one sheet, and the page also needs it for
+	// the `.tool-root` wrapper that sits outside this island.
 	import ImportPanel from './ImportPanel.svelte';
 	import ExportBar from './ExportBar.svelte';
 
@@ -58,7 +59,7 @@
 	}
 </script>
 
-<div class="ceContainer">
+<div class="toolContainer">
 	<ImportPanel />
 
 	<div class="ceLayout">

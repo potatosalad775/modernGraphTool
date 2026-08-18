@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { serializePhoneBook } from '../../../utils/phoneBookConverter';
 	import { phoneBook } from './phone-book-store.svelte';
+	import Icon from '../shared/Icon.svelte';
 
 	let showPreview = $state(false);
 	let copied = $state(false);
@@ -38,9 +39,11 @@
 <div>
 	<div class="ceExportBar">
 		<button type="button" class="ceBtn ceBtnPrimary" onclick={handleDownload}>
+			<Icon name="download" />
 			Download phone_book.json
 		</button>
 		<button type="button" class="ceBtn" onclick={handleCopy}>
+			<Icon name={copied ? 'check' : 'copy'} />
 			{copied ? 'Copied!' : 'Copy to clipboard'}
 		</button>
 		<button type="button" class="ceBtn" onclick={() => (showPreview = !showPreview)}>

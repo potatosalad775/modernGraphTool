@@ -144,7 +144,7 @@
 				<StringArrayEditor
 					bind:items={item.CONTENT}
 					placeholder="./assets/images/icon.png"
-					addLabel="+ Add image"
+					addLabel="Add image"
 				/>
 			{/if}
 		</div>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
+
 	interface Props {
 		/**
 		 * Bound directly and mutated in place. The React version took an
@@ -14,11 +16,11 @@
 	let {
 		items = $bindable(),
 		placeholder = 'Enter value...',
-		addLabel = '+ Add item'
+		addLabel = 'Add item'
 	}: Props = $props();
 </script>
 
-<div>
+<div class="ceArrayEditor">
 	<div class="ceArrayList">
 		<!--
 			Keyed by index on purpose: the values are free text and duplicates are
@@ -39,14 +41,15 @@
 					type="button"
 					class="ceArrayRemoveBtn"
 					onclick={() => items.splice(i, 1)}
-					title="Remove"
+					aria-label="Remove item {i + 1}"
 				>
-					&times;
+					<Icon name="close" />
 				</button>
 			</div>
 		{/each}
 	</div>
 	<button type="button" class="ceArrayAddBtn" onclick={() => items.push('')}>
+		<Icon name="plus" />
 		{addLabel}
 	</button>
 </div>

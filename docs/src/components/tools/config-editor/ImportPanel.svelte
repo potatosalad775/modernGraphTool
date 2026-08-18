@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Tabs } from 'bits-ui';
+	import Icon from '../shared/Icon.svelte';
 	import { configEditor } from './config-store.svelte';
 	import {
 		parseV2Config,
@@ -38,8 +40,13 @@
 		success = null;
 	}
 
-	function selectTab(tab: ImportTab) {
-		activeTab = tab;
+	/*
+	 * Tabs.Root drives `activeTab` through the binding, so this only has the
+	 * side effect left to do. It takes a `string` because that is what bits-ui
+	 * hands back; the value can only ever be one of the three trigger values.
+	 */
+	function selectTab(tab: string) {
+		activeTab = tab as ImportTab;
 		clearMessages();
 	}
 
@@ -100,70 +107,74 @@
 	}
 </script>
 
-<div class="ceImportPanel">
-	<div class="ceImportTabs">
+<!--
+	bits-ui Tabs replaces three hand-rolled <button>s. The visible difference is
+	small; the behavioural one is not — the tab strip is now a single tab stop
+	with Left/Right arrow navigation, and each panel is a real `tabpanel` bound
+	to its trigger. The panel holds only the textareas: the action row and the
+	result messages are shared across all three tabs, so duplicating them into
+	every panel would just mean three file inputs racing for one `bind:this`.
+-->
+<Tabs.Root class="ceImportPanel" value={activeTab} onValueChange={selectTab}>
+	<Tabs.List class="ceTabs">
 		{#each TABS as tab (tab.id)}
-			<button
-				type="button"
-				class="ceImportTab"
-				class:ceImportTabActive={activeTab === tab.id}
-				onclick={() => selectTab(tab.id)}
-			>
-				{tab.label}
-			</button>
+			<Tabs.Trigger class="ceTab" value={tab.id}>{tab.label}</Tabs.Trigger>
 		{/each}
-	</div>
+	</Tabs.List>
 
-	<div class="ceImportContent">
-		<textarea
-			class="ceImportTextarea"
-			placeholder={activePlaceholder}
-			aria-label={activePlaceholder}
-			bind:value={input}
-			spellcheck="false"></textarea>
-
-		{#if activeTab === 'v1'}
+	{#each TABS as tab (tab.id)}
+		<Tabs.Content class="ceTabContent" value={tab.id}>
 			<textarea
 				class="ceImportTextarea"
-				placeholder="Paste your v1 extensions.config.js content here (optional)..."
-				aria-label="v1 extensions.config.js content"
-				bind:value={v1Extensions}
-				spellcheck="false"
-				style="min-height: 120px;"></textarea>
-		{/if}
+				placeholder={activePlaceholder}
+				aria-label={activePlaceholder}
+				bind:value={input}
+				spellcheck="false"></textarea>
 
-		<div class="ceImportActions">
-			<button type="button" class="ceBtn ceBtnPrimary" onclick={handleImport}>
-				{activeTab === 'v2' ? 'Import' : 'Convert & Import'}
-			</button>
-			<label class="ceImportFileLabel">
-				Upload file
-				<input
-					bind:this={fileInput}
-					type="file"
-					accept=".js,.txt"
-					class="ceImportFileInput"
-					onchange={handleFileUpload}
-				/>
-			</label>
-			<button type="button" class="ceBtn" onclick={loadDefaults}>Start Fresh</button>
-		</div>
+			{#if tab.id === 'v1'}
+				<textarea
+					class="ceImportTextarea ceImportTextareaShort"
+					placeholder="Paste your v1 extensions.config.js content here (optional)..."
+					aria-label="v1 extensions.config.js content"
+					bind:value={v1Extensions}
+					spellcheck="false"></textarea>
+			{/if}
+		</Tabs.Content>
+	{/each}
 
-		{#if error}
-			<div class="ceError">{error}</div>
-		{/if}
-		{#if warnings.length > 0}
-			<div class="ceWarnings">
-				<strong>Warnings:</strong>
-				<ul>
-					{#each warnings as w, i (i)}
-						<li>{w}</li>
-					{/each}
-				</ul>
-			</div>
-		{/if}
-		{#if success}
-			<div class="ceSuccess">{success}</div>
-		{/if}
+	<div class="ceImportActions">
+		<button type="button" class="ceBtn ceBtnPrimary" onclick={handleImport}>
+			<Icon name="download" />
+			{activeTab === 'v2' ? 'Import' : 'Convert & Import'}
+		</button>
+		<label class="ceImportFileLabel">
+			<Icon name="upload" />
+			Upload file
+			<input
+				bind:this={fileInput}
+				type="file"
+				accept=".js,.txt"
+				class="ceImportFileInput"
+				onchange={handleFileUpload}
+			/>
+		</label>
+		<button type="button" class="ceBtn" onclick={loadDefaults}>Start Fresh</button>
 	</div>
-</div>
+
+	{#if error}
+		<p class="ceError">{error}</p>
+	{/if}
+	{#if warnings.length > 0}
+		<div class="ceWarnings">
+			<strong>Warnings:</strong>
+			<ul>
+				{#each warnings as w, i (i)}
+					<li>{w}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+	{#if success}
+		<p class="ceSuccess">{success}</p>
+	{/if}
+</Tabs.Root>

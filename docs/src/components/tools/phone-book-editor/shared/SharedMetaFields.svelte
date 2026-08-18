@@ -73,7 +73,7 @@
 				]}
 				createEmpty={(): PhoneLinkEntry => ({ label: '', url: '' })}
 				minRows={0}
-				addLabel="+ Add link"
+				addLabel="Add link"
 			/>
 		{/if}
 	</div>

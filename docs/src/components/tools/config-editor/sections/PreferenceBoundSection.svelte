@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
+	import Checkbox from '../../shared/Checkbox.svelte';
 
 	let config = $derived(configEditor.config);
 	const id = $props.id();
@@ -14,15 +15,10 @@
 	optional
 	bind:enabled={config.PREFERENCE_BOUND_ENABLED}
 >
-	<div class="ceToggleRow">
-		<input
-			type="checkbox"
-			class="ceCheckbox"
-			bind:checked={config.PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD}
-			id="{id}-initial"
-		/>
-		<label for="{id}-initial" class="ceToggleLabel">Show bounds on initial load</label>
-	</div>
+	<Checkbox
+		bind:checked={config.PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD}
+		label="Show bounds on initial load"
+	/>
 
 	<div class="ceFieldGroup">
 		<label class="ceLabel" for="{id}-base-df">Base DF Target File</label>

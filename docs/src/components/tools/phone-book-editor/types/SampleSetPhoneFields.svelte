@@ -6,6 +6,8 @@
 		type VariantEntry
 	} from '../../../../utils/phoneBookConverter';
 	import RowsEditor from '../shared/RowsEditor.svelte';
+	import Checkbox from '../../shared/Checkbox.svelte';
+	import Icon from '../../shared/Icon.svelte';
 
 	interface Props {
 		phone: PhoneState;
@@ -79,10 +81,10 @@
 					type="button"
 					class="ceArrayRemoveBtn"
 					onclick={() => set.variants.splice(index, 1)}
-					title="Remove variant"
+					aria-label="Remove {variantTitle(variant, index, set.variants.length)}"
 					disabled={set.variants.length <= 1}
 				>
-					&times;
+					<Icon name="close" />
 				</button>
 			</div>
 
@@ -102,21 +104,12 @@
 				/>
 			</div>
 
-			<div class="ceToggleRow">
-				<input
-					type="checkbox"
-					class="ceCheckbox"
-					id="{id}-{index}-named"
-					checked={named}
-					onchange={(e) => setNamed(variant, e.currentTarget.checked)}
-				/>
-				<label class="ceToggleLabel" for="{id}-{index}-named">
-					Name each run's file
-					<span class="ceToggleHint">
-						(uncheck for the numbered <code>L1/L2/L3</code> layout)
-					</span>
-				</label>
-			</div>
+			<Checkbox checked={named} onCheckedChange={(next) => setNamed(variant, next)}>
+				Name each run's file
+				<span class="ceToggleHint">
+					(uncheck for the numbered <code>L1/L2/L3</code> layout)
+				</span>
+			</Checkbox>
 
 			{#if named}
 				<div class="ceFieldGroup">
@@ -134,7 +127,7 @@
 						]}
 						createEmpty={() => ({ file: '', label: '' })}
 						minRows={2}
-						addLabel="+ Add run"
+						addLabel="Add run"
 					/>
 				</div>
 			{:else}
@@ -181,19 +174,12 @@
 						<span class="ceLabelHint">(seeds the toggles; users can still change them)</span>
 					</span>
 					{#each DISPLAY_MODES as mode (mode.value)}
-						<div class="ceToggleRow">
-							<input
-								type="checkbox"
-								class="ceCheckbox"
-								id="{id}-{index}-{mode.value}"
-								checked={variant.display.includes(mode.value)}
-								onchange={() => toggleMode(variant, mode.value)}
-							/>
-							<label class="ceToggleLabel" for="{id}-{index}-{mode.value}">
-								{mode.label}
-								<span class="ceToggleHint">({mode.hint})</span>
-							</label>
-						</div>
+						<Checkbox
+							checked={variant.display.includes(mode.value)}
+							onCheckedChange={() => toggleMode(variant, mode.value)}
+							label={mode.label}
+							hint={mode.hint}
+						/>
 					{/each}
 				</div>
 
@@ -215,6 +201,7 @@
 	{/each}
 
 	<button type="button" class="ceArrayAddBtn" onclick={() => set.variants.push(emptyVariant())}>
-		+ Add variant
+		<Icon name="plus" />
+		Add variant
 	</button>
 {/if}

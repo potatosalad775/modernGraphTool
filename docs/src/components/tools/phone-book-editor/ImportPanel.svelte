@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { parsePhoneBook } from '../../../utils/phoneBookConverter';
 	import { phoneBook } from './phone-book-store.svelte';
+	import Icon from '../shared/Icon.svelte';
 
 	let input = $state('');
 	let error = $state<string | null>(null);
@@ -50,44 +51,46 @@
 </script>
 
 <div class="ceImportPanel">
-	<div class="ceImportContent">
-		<textarea
-			class="ceImportTextarea"
-			placeholder="Paste your phone_book.json content here, or upload a file..."
-			aria-label="phone_book.json content"
-			bind:value={input}
-			spellcheck="false"></textarea>
+	<textarea
+		class="ceImportTextarea"
+		placeholder="Paste your phone_book.json content here, or upload a file..."
+		aria-label="phone_book.json content"
+		bind:value={input}
+		spellcheck="false"></textarea>
 
-		<div class="ceImportActions">
-			<button type="button" class="ceBtn ceBtnPrimary" onclick={handleImport}>Import</button>
-			<label class="ceImportFileLabel">
-				Upload file
-				<input
-					bind:this={fileInput}
-					type="file"
-					accept=".json"
-					class="ceImportFileInput"
-					onchange={handleFileUpload}
-				/>
-			</label>
-			<button type="button" class="ceBtn" onclick={handleReset}>Start Fresh</button>
-		</div>
-
-		{#if error}
-			<div class="ceError">{error}</div>
-		{/if}
-		{#if warnings.length > 0}
-			<div class="ceWarnings">
-				<strong>Warnings:</strong>
-				<ul>
-					{#each warnings as w, i (i)}
-						<li>{w}</li>
-					{/each}
-				</ul>
-			</div>
-		{/if}
-		{#if success}
-			<div class="ceSuccess">{success}</div>
-		{/if}
+	<div class="ceImportActions">
+		<button type="button" class="ceBtn ceBtnPrimary" onclick={handleImport}>
+			<Icon name="download" />
+			Import
+		</button>
+		<label class="ceImportFileLabel">
+			<Icon name="upload" />
+			Upload file
+			<input
+				bind:this={fileInput}
+				type="file"
+				accept=".json"
+				class="ceImportFileInput"
+				onchange={handleFileUpload}
+			/>
+		</label>
+		<button type="button" class="ceBtn" onclick={handleReset}>Start Fresh</button>
 	</div>
+
+	{#if error}
+		<p class="ceError">{error}</p>
+	{/if}
+	{#if warnings.length > 0}
+		<div class="ceWarnings">
+			<strong>Warnings:</strong>
+			<ul>
+				{#each warnings as w, i (i)}
+					<li>{w}</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+	{#if success}
+		<p class="ceSuccess">{success}</p>
+	{/if}
 </div>

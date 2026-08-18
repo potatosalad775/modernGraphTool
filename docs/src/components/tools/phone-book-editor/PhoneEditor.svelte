@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { Collapsible } from 'bits-ui';
 	import type { BrandState, PhoneKind, PhoneState } from '../../../utils/phoneBookConverter';
 	import { phoneBook, moveBy } from './phone-book-store.svelte';
+	import Icon from '../shared/Icon.svelte';
 	import SharedMetaFields from './shared/SharedMetaFields.svelte';
 	import SimplePhoneFields from './types/SimplePhoneFields.svelte';
 	import DetailedPhoneFields from './types/DetailedPhoneFields.svelte';
@@ -94,107 +96,96 @@
 	});
 </script>
 
-<div class="pbPhoneCard">
-	<!--
-		Stays a <div> with button semantics rather than a real <button>: the header
-		holds the move/remove buttons, and nesting a button inside a button is
-		invalid HTML.
-	-->
-	<div
-		class="pbPhoneHeader pbPhoneHeaderClickable"
-		role="button"
-		tabindex="0"
-		aria-expanded={isExpanded}
-		onclick={onToggleExpand}
-		onkeydown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				onToggleExpand();
-			}
-		}}
-	>
-		<span class="pbBrandChevron" class:pbBrandChevronOpen={isExpanded}>&#9654;</span>
-		<span class="pbPhoneKindBadge">{kindOption.label}</span>
-		<span class="pbPhoneSummary">{summary}</span>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="pbBrandActions" onclick={(e) => e.stopPropagation()}>
+<!--
+	The header was a <div role="button"> with a hand-rolled keydown handler and a
+	`stopPropagation` wrapper around the move/remove buttons, because those could
+	not be nested inside a real <button>. Collapsible.Trigger is a <button> that
+	fills the row and the actions sit beside it, so the click no longer has to be
+	stopped on its way out — and expansion state is now owned here rather than
+	lifted into the parent.
+-->
+<Collapsible.Root class="pbPhoneCard" open={isExpanded} onOpenChange={onToggleExpand}>
+	<div class="pbPhoneHeader">
+		<Collapsible.Trigger class="pbPhoneTrigger">
+			<Icon name="chevron" class="pbBrandChevron" />
+			<span class="pbPhoneKindBadge">{kindOption.label}</span>
+			<span class="pbPhoneSummary">{summary}</span>
+		</Collapsible.Trigger>
+		<div class="pbBrandActions">
 			<button
 				type="button"
 				class="pbIconBtn"
 				onclick={() => moveBy(brand.phones, phone, 'up')}
 				disabled={index === 0}
-				title="Move up"
+				aria-label="Move {summary} up"
 			>
-				↑
+				<Icon name="arrow-up" />
 			</button>
 			<button
 				type="button"
 				class="pbIconBtn"
 				onclick={() => moveBy(brand.phones, phone, 'down')}
 				disabled={index === count - 1}
-				title="Move down"
+				aria-label="Move {summary} down"
 			>
-				↓
+				<Icon name="arrow-down" />
 			</button>
 			<button
 				type="button"
 				class="pbIconBtn pbIconBtnDanger"
 				onclick={() => brand.phones.splice(index, 1)}
-				title="Remove phone"
+				aria-label="Remove {summary}"
 			>
-				×
+				<Icon name="trash" />
 			</button>
 		</div>
 	</div>
 
-	{#if isExpanded}
-		<div class="pbPhoneBody">
-			<div class="pbKindSelectRow">
-				<div class="pbKindSelectLabelRow">
-					<label for="{phone.id}-kind">Type</label>
-					<select
-						id="{phone.id}-kind"
-						class="ceSelect"
-						value={phone.kind}
-						onchange={(e) => phoneBook.switchKind(brand, phone, e.currentTarget.value as PhoneKind)}
-					>
-						{#each KIND_OPTIONS as o (o.value)}
-							<option value={o.value}>{o.label}</option>
-						{/each}
-					</select>
-				</div>
-				<div class="pbKindDescription">
-					{kindOption.description}
-					<a
-						href="{base}/{DOCS_BASE.replace(/^\.?\//, '')}{kindOption.docAnchor}"
-						target="_blank"
-						rel="noopener noreferrer">Learn more</a
-					>
-				</div>
+	<Collapsible.Content class="pbPhoneBody">
+		<div class="pbKindSelectRow">
+			<div class="pbKindSelectLabelRow">
+				<label for="{phone.id}-kind">Type</label>
+				<select
+					id="{phone.id}-kind"
+					class="ceSelect ceInputSmall"
+					value={phone.kind}
+					onchange={(e) => phoneBook.switchKind(brand, phone, e.currentTarget.value as PhoneKind)}
+				>
+					{#each KIND_OPTIONS as o (o.value)}
+						<option value={o.value}>{o.label}</option>
+					{/each}
+				</select>
 			</div>
-
-			{#if phone.kind === 'simple'}
-				<SimplePhoneFields bind:phone />
-			{:else if phone.kind === 'detailed'}
-				<DetailedPhoneFields bind:phone />
-			{:else if phone.kind === 'variations'}
-				<VariationsPhoneFields bind:phone />
-			{:else if phone.kind === 'prefix'}
-				<PrefixVariationsPhoneFields bind:phone />
-			{:else if phone.kind === 'sampleSet'}
-				<SampleSetPhoneFields bind:phone />
-			{/if}
-
-			{#if phone.kind !== 'simple'}
-				<SharedMetaFields bind:phone />
-			{/if}
-
-			{#if passthroughKeys.length > 0}
-				<div class="pbPassthroughWarning">
-					Preserved unknown keys from import: {passthroughKeys.join(', ')}
-				</div>
-			{/if}
+			<p class="pbKindDescription">
+				{kindOption.description}
+				<a
+					href="{base}/{DOCS_BASE.replace(/^\.?\//, '')}{kindOption.docAnchor}"
+					target="_blank"
+					rel="noopener noreferrer">Learn more</a
+				>
+			</p>
 		</div>
-	{/if}
-</div>
+
+		{#if phone.kind === 'simple'}
+			<SimplePhoneFields bind:phone />
+		{:else if phone.kind === 'detailed'}
+			<DetailedPhoneFields bind:phone />
+		{:else if phone.kind === 'variations'}
+			<VariationsPhoneFields bind:phone />
+		{:else if phone.kind === 'prefix'}
+			<PrefixVariationsPhoneFields bind:phone />
+		{:else if phone.kind === 'sampleSet'}
+			<SampleSetPhoneFields bind:phone />
+		{/if}
+
+		{#if phone.kind !== 'simple'}
+			<SharedMetaFields bind:phone />
+		{/if}
+
+		{#if passthroughKeys.length > 0}
+			<p class="pbPassthroughWarning">
+				Preserved unknown keys from import: {passthroughKeys.join(', ')}
+			</p>
+		{/if}
+	</Collapsible.Content>
+</Collapsible.Root>

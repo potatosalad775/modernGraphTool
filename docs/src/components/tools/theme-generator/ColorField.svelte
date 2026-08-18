@@ -102,24 +102,29 @@
 </div>
 
 <style>
+	/*
+	 * Scoped, because these classes belong to this one component — unlike the
+	 * `ce*` / `pb*` vocabulary, which is shared across ~50 files and therefore
+	 * lives in the global `styles/tools.css`. The `--tool-*` tokens are inherited
+	 * from `.tool-root` on the page, so scoping costs nothing here.
+	 */
 	.tgColorField {
-		margin-bottom: 15px;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 0.375rem;
 		width: 100%;
 	}
 
 	.tgColorField > label {
-		font-weight: bold;
-		font-size: 0.9rem;
+		font-size: var(--sl-text-xs);
+		font-weight: 500;
+		color: var(--tool-text-strong);
 	}
 
 	.tgColorRow {
 		display: flex;
-		flex-direction: row;
 		align-items: stretch;
-		gap: 8px;
+		gap: 0.5rem;
 	}
 
 	/*
@@ -129,12 +134,12 @@
 	 */
 	.tgColorSwatch {
 		flex-shrink: 0;
-		width: 48px;
-		min-height: 38px;
+		width: 3rem;
+		min-height: var(--tool-control-h);
 		padding: 2px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 4px;
-		background-color: var(--ifm-color-emphasis-100);
+		border: 1px solid var(--tool-border);
+		border-radius: var(--tool-radius-sm);
+		background: var(--tool-surface);
 		cursor: pointer;
 	}
 
@@ -152,37 +157,23 @@
 		border-radius: 2px;
 	}
 
-	.tgHexInput {
-		flex: 1;
-		min-width: 0;
-		min-height: 38px;
-		padding: 8px 12px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 4px;
-		background-color: var(--ifm-color-emphasis-100);
-		color: var(--ifm-font-color-base);
-		font-family: var(--ifm-font-family-monospace);
-	}
-
 	.tgLchRow {
 		display: flex;
-		flex-direction: row;
-		gap: 8px;
+		gap: 0.5rem;
 	}
 
 	.tgLchField {
 		flex: 1;
 		display: flex;
-		flex-direction: row;
 		align-items: center;
-		gap: 6px;
+		gap: 0.375rem;
 		min-width: 0;
 	}
 
 	.tgLchField label {
-		font-size: 0.75rem;
+		font-size: var(--sl-text-2xs);
 		font-weight: 600;
-		color: var(--ifm-color-content-secondary);
+		color: var(--tool-text-muted);
 		width: 0.75rem;
 		flex-shrink: 0;
 	}
@@ -190,12 +181,12 @@
 	.tgLchField input {
 		flex: 1;
 		min-width: 0;
-		padding: 4px 6px;
-		border: 1px solid var(--ifm-color-emphasis-300);
-		border-radius: 4px;
-		background-color: var(--ifm-color-emphasis-100);
-		color: var(--ifm-font-color-base);
-		font-size: 0.8rem;
-		font-family: var(--ifm-font-family-monospace);
+		padding: 0.25rem 0.375rem;
+		border: 1px solid var(--tool-border);
+		border-radius: var(--tool-radius-sm);
+		background: var(--tool-surface);
+		color: var(--tool-text-strong);
+		font-family: var(--tool-mono);
+		font-size: var(--sl-text-2xs);
 	}
 </style>

@@ -1,12 +1,15 @@
 <script lang="ts">
+	import { Collapsible } from 'bits-ui';
 	import { untrack, type Snippet } from 'svelte';
+	import Icon from '../../shared/Icon.svelte';
+	import Switch from '../../shared/Switch.svelte';
 
 	interface Props {
 		id: string;
 		title: string;
 		description?: string;
 		learnMoreHref?: string;
-		/** Show an enable/disable toggle in the header */
+		/** Show an enable/disable switch in the header */
 		optional?: boolean;
 		enabled?: boolean;
 		defaultOpen?: boolean;
@@ -28,7 +31,6 @@
 	// must not slam a section shut while someone is editing it. `untrack` says
 	// that deliberately, rather than leaving it as an accidental capture.
 	let open = $state(untrack(() => defaultOpen));
-	const contentId = $props.id();
 
 	/*
 	 * Resolve doc links against the site base. These are plain <a> tags, not
@@ -48,65 +50,45 @@
 	);
 </script>
 
-<div class="ceSection" {id}>
-	<!--
-		The header stays a <div> with button semantics rather than becoming a real
-		<button>: it contains the optional enable/disable checkbox, and nesting an
-		interactive control inside a <button> is invalid HTML.
-	-->
-	<div
-		class="ceSectionHeader"
-		role="button"
-		tabindex="0"
-		aria-expanded={open}
-		aria-controls={contentId}
-		onclick={() => (open = !open)}
-		onkeydown={(e) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				open = !open;
-			}
-		}}
-	>
-		<span class="ceSectionChevron" class:ceSectionChevronOpen={open}>&#9654;</span>
-		<span class="ceSectionTitle">{title}</span>
+<!--
+	The header was a <div role="button" tabindex="0"> with a hand-rolled
+	Enter/Space handler, because the enable checkbox lived inside it and a button
+	cannot contain another interactive control. Collapsible.Trigger is a real
+	<button> that fills the row, and the switch is now its *sibling* — same hit
+	area, valid HTML, and the keyboard and ARIA wiring comes from bits-ui rather
+	than from a keydown listener that had to be kept correct by hand.
+-->
+<Collapsible.Root class="ceSection" bind:open {id}>
+	<div class="ceSectionHeader">
+		<Collapsible.Trigger class="ceSectionTrigger">
+			<Icon name="chevron" class="ceSectionChevron" />
+			<span class="ceSectionTitle">{title}</span>
+		</Collapsible.Trigger>
 		{#if optional}
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-			<label class="ceSectionToggle" onclick={(e) => e.stopPropagation()}>
-				<input
-					type="checkbox"
-					class="ceCheckbox"
-					aria-label="Enable {title}"
-					bind:checked={enabled}
-				/>
-			</label>
+			<Switch bind:checked={enabled} ariaLabel="Enable {title}" />
 		{/if}
 	</div>
-	{#if open}
-		<div class="ceSectionBody" id={contentId}>
-			{#if description}
-				<div class="ceSectionDescription">
-					{description}
-					{#if learnMoreHref}
-						<!-- Svelte keeps the newline before this as a text node, so unlike
-						     JSX it needs no explicit {' '} to separate it from the text. -->
-						<a
-							href={resolvedLearnMoreHref}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="ceSectionLearnMore">Learn more</a
-						>
-					{/if}
-				</div>
-			{/if}
-			{#if optional && !enabled}
-				<div class="ceSectionDescription">
-					This section is disabled. Enable it to configure these settings.
-				</div>
-			{:else}
-				{@render children()}
-			{/if}
-		</div>
-	{/if}
-</div>
+
+	<Collapsible.Content class="ceSectionBody">
+		{#if description}
+			<p class="ceSectionDescription">
+				{description}
+				{#if learnMoreHref}
+					<a
+						href={resolvedLearnMoreHref}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="ceSectionLearnMore">Learn more</a
+					>
+				{/if}
+			</p>
+		{/if}
+		{#if optional && !enabled}
+			<p class="ceSectionDescription">
+				This section is disabled. Enable it to configure these settings.
+			</p>
+		{:else}
+			{@render children()}
+		{/if}
+	</Collapsible.Content>
+</Collapsible.Root>

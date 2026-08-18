@@ -1,0 +1,1306 @@
+/*
+ * The design layer for the three interactive tools (/config-generator,
+ * /phone-book-editor, /theme-generator).
+ *
+ * This replaces the old `infima-compat.css` + `config-editor.css` +
+ * `phone-book-editor.css` trio. Those were a straight port of the Docusaurus
+ * stylesheets with a `--ifm-*` → `--sl-*` bridge underneath, which meant every
+ * colour was a translation of an Infima decision rather than a Starlight one —
+ * and three parallel vocabularies (`ce*`, `pb*`, `tg*`) reinvented the same
+ * panel / field / button ideas at different radii and spacing units.
+ *
+ * Everything here is expressed in Starlight's own tokens, so the tools inherit
+ * an operator's theme and read as part of the docs site rather than as a
+ * transplanted app.
+ *
+ * ── Two rules for anyone editing this file ────────────────────────────────
+ *
+ * 1. NO RAW COLOURS. Every colour is a `--sl-*` token or a `--tool-*` alias of
+ *    one. Starlight's grey scale inverts between light and dark (`gray-1` is
+ *    the near-text end in both), so a token keeps its perceptual role in both
+ *    themes automatically and a hex value does not.
+ *
+ * 2. The markup must sit inside `.tool-root`, which also carries Starlight's
+ *    `.not-content` escape hatch. Starlight wraps every page slot — splash
+ *    template included — in `.sl-markdown-content`, whose prose rules put
+ *    `margin-top: var(--sl-content-gap-y)` on *every element that follows a
+ *    sibling*, `button` included. Without `.not-content` that lands 1rem
+ *    between every field, every card and every tab after the first, and also
+ *    drags in the prose `a` / `li` / `table` / `code` styling. The tokens below
+ *    are declared on the same element, so dropping the class breaks the
+ *    palette loudly instead of silently.
+ */
+
+.tool-root {
+	/* ── Surfaces ──────────────────────────────────────────────────────────
+	 * `gray-7` only exists in light mode; the fallback to `gray-6` is what
+	 * makes `--tool-surface-raised` land one step *away* from the page
+	 * background in both themes rather than only in one.
+	 */
+	--tool-surface: var(--sl-color-bg);
+	--tool-surface-raised: var(--sl-color-gray-7, var(--sl-color-gray-6));
+	--tool-surface-sunken: var(--sl-color-gray-6);
+
+	/* ── Lines ─────────────────────────────────────────────────────────────
+	 * `hairline` divides things that are already grouped; `border` outlines a
+	 * control the pointer can land on and needs to be visible on its own.
+	 */
+	--tool-hairline: var(--sl-color-hairline);
+	--tool-border: var(--sl-color-gray-5);
+
+	/* ── Text ──────────────────────────────────────────────────────────────*/
+	--tool-text: var(--sl-color-text);
+	--tool-text-strong: var(--sl-color-white);
+	--tool-text-muted: var(--sl-color-gray-3);
+
+	/* ── Accent ────────────────────────────────────────────────────────────
+	 * `text-accent` reads on the page background; `bg-accent` / `text-invert`
+	 * is Starlight's own solid-button pair and is the only combination that
+	 * stays legible in both themes.
+	 */
+	--tool-accent: var(--sl-color-text-accent);
+	--tool-accent-solid: var(--sl-color-bg-accent);
+	--tool-accent-on-solid: var(--sl-color-text-invert);
+	--tool-accent-tint: var(--sl-color-accent-low);
+
+	/* ── Geometry ──────────────────────────────────────────────────────────
+	 * Two radii and one control height, everywhere. The old sheets carried
+	 * 3px / 4px / 5px / 6px / 8px / 10px across the same kinds of element.
+	 */
+	--tool-radius: 0.5rem;
+	--tool-radius-sm: 0.25rem;
+	--tool-control-h: 2.125rem;
+
+	/* Sticky offset for anything pinned below Starlight's header. */
+	--tool-sticky-top: calc(var(--sl-nav-height) + 1rem);
+
+	--tool-mono: var(--__sl-font-mono, ui-monospace, monospace);
+
+	color: var(--tool-text);
+	font-size: var(--sl-text-sm);
+}
+
+/*
+ * `[hidden]` is how bits-ui closes a Collapsible.Content in the server-rendered
+ * markup, and the UA rule behind it is only `[hidden] { display: none }` — same
+ * specificity as a class, and an author sheet always beats the UA sheet at a
+ * tie. `.ceSectionBody` and `.pbPhoneBody` set `display: flex`, so without this
+ * every collapsed section would render fully expanded until hydration.
+ */
+.tool-root [hidden] {
+	display: none !important;
+}
+
+/*
+ * One focus treatment for the whole tool surface, matching Starlight's own.
+ * Individual controls do not redefine this — several of the ported rules used
+ * `outline: none` plus a bespoke box-shadow, which is invisible in forced-colors
+ * mode.
+ */
+.tool-root :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+	outline: 2px solid var(--tool-accent);
+	outline-offset: 2px;
+	border-radius: var(--tool-radius-sm);
+}
+
+/* ══ Page scaffolding ═══════════════════════════════════════════════════════ */
+
+.toolContainer {
+	max-width: 75rem;
+	margin: 0 auto;
+	padding: 0 1.5rem 1.5rem;
+}
+
+.toolLead {
+	max-width: 75rem;
+	margin: 0 auto 1.5rem;
+	padding: 0 1.5rem;
+	color: var(--tool-text-muted);
+	font-size: var(--sl-text-base);
+}
+
+/* ══ Section navigation (config editor sidebar) ═════════════════════════════ */
+
+.ceLayout {
+	display: flex;
+	gap: 2rem;
+	align-items: flex-start;
+}
+
+.ceNav {
+	position: sticky;
+	top: var(--tool-sticky-top);
+	width: 13.75rem;
+	min-width: 13.75rem;
+	max-height: calc(100vh - var(--tool-sticky-top) - 2rem);
+	overflow-y: auto;
+	padding-inline-end: 0.5rem;
+}
+
+.ceNavList {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	font-size: var(--sl-text-xs);
+	border-inline-start: 1px solid var(--tool-hairline);
+}
+
+.ceNavItem button {
+	display: block;
+	width: 100%;
+	padding: 0.3125rem 0.625rem;
+	border: 0;
+	border-inline-start: 2px solid transparent;
+	margin-inline-start: -1px;
+	background: none;
+	font: inherit;
+	text-align: start;
+	color: var(--tool-text-muted);
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition:
+		color 0.15s,
+		border-color 0.15s;
+}
+
+.ceNavItem button:hover {
+	color: var(--tool-text-strong);
+	border-inline-start-color: var(--tool-border);
+}
+
+.ceMain {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+/* ══ Panels ════════════════════════════════════════════════════════════════
+ * `.ceSection` (a collapsible config section), `.ceCard`, `.ceSubSection`,
+ * `.pbPhoneCard` and `.pbVariantEntry` were five near-identical bordered
+ * boxes. They share one definition now and differ only in nesting depth.
+ */
+
+.ceSection,
+.pbPhoneCard {
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	background: var(--tool-surface);
+	overflow: hidden;
+}
+
+.ceCard,
+.ceSubSection,
+.pbVariantEntry {
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius-sm);
+	padding: 0.75rem;
+	background: var(--tool-surface-raised);
+}
+
+.ceCard + .ceCard,
+.ceSubSection + .ceSubSection,
+.pbVariantEntry + .pbVariantEntry {
+	margin-top: 0.5rem;
+}
+
+/* ── Collapsible section header ─────────────────────────────────────────── */
+
+.ceSectionHeader {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding-inline-end: 0.875rem;
+	background: var(--tool-surface-raised);
+}
+
+.ceSectionTrigger {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 0;
+	padding: 0.625rem 0.875rem;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: var(--tool-text-strong);
+	text-align: start;
+	cursor: pointer;
+	transition: color 0.15s;
+}
+
+.ceSectionTrigger:hover {
+	color: var(--tool-accent);
+}
+
+.ceSectionTitle {
+	font-size: var(--sl-text-sm);
+	font-weight: 600;
+	flex: 1;
+	min-width: 0;
+}
+
+.ceSectionChevron {
+	flex-shrink: 0;
+	width: 0.75rem;
+	height: 0.75rem;
+	color: var(--tool-text-muted);
+	transition: transform 0.2s ease;
+}
+
+/* `data-state` comes off Collapsible.Root, which is `.ceSection` itself. */
+.ceSection[data-state='open'] .ceSectionChevron {
+	transform: rotate(90deg);
+}
+
+.ceSectionBody {
+	padding: 0.875rem;
+	border-top: 1px solid var(--tool-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+}
+
+.ceSectionDescription {
+	font-size: var(--sl-text-xs);
+	color: var(--tool-text-muted);
+	line-height: 1.5;
+}
+
+.ceSectionLearnMore,
+.pbKindDescription a {
+	color: var(--tool-accent);
+	text-underline-offset: 0.15em;
+}
+
+.ceSubSectionTitle,
+.pbVariantEntryTitle,
+.ceCardTitle {
+	font-size: var(--sl-text-xs);
+	font-weight: 600;
+	color: var(--tool-text-strong);
+}
+
+.ceSubSectionTitle,
+.ceCardTitle {
+	display: block;
+}
+
+/*
+ * A sub-section stacks its own controls, so it owns the rhythm between them —
+ * `.ceSectionBody`'s gap only reaches its direct children.
+ */
+.ceSubSection {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+}
+
+/* ══ Form controls ═════════════════════════════════════════════════════════ */
+
+.ceFieldGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3125rem;
+	min-width: 0;
+}
+
+.ceLabel,
+.pbMetaField label,
+.pbMetaField .pbMetaFieldLabel,
+.pbRowsHeader,
+.pbKindSelectLabelRow label {
+	display: block;
+	font-size: var(--sl-text-xs);
+	font-weight: 500;
+	color: var(--tool-text-strong);
+}
+
+.ceLabelHint,
+.ceToggleHint {
+	font-weight: 400;
+	color: var(--tool-text-muted);
+	margin-inline-start: 0.375rem;
+}
+
+.ceInput,
+.ceTextarea,
+.ceSelect,
+.ceNumberInline,
+.ceImportTextarea,
+.ceExportTextarea,
+.tgNumberInput,
+.tgHexInput {
+	width: 100%;
+	padding: 0.4375rem 0.625rem;
+	border: 1px solid var(--tool-border);
+	border-radius: var(--tool-radius-sm);
+	background: var(--tool-surface);
+	color: var(--tool-text-strong);
+	font-family: inherit;
+	font-size: var(--sl-text-sm);
+	line-height: 1.4;
+	transition:
+		border-color 0.15s,
+		background-color 0.15s;
+}
+
+.ceInput::placeholder,
+.ceTextarea::placeholder,
+.ceImportTextarea::placeholder {
+	color: var(--tool-text-muted);
+}
+
+.ceInput:hover,
+.ceTextarea:hover,
+.ceSelect:hover {
+	border-color: var(--tool-text-muted);
+}
+
+/*
+ * Starlight styles its own language picker as a native <select> rather than a
+ * scripted popup, so these stay native too — same chrome, and no JS on a
+ * control the platform already gets right. Only the caret is ours.
+ */
+.ceSelect {
+	appearance: none;
+	cursor: pointer;
+	padding-inline-end: 1.75rem;
+	background-image:
+		linear-gradient(45deg, transparent 50%, currentColor 50%),
+		linear-gradient(135deg, currentColor 50%, transparent 50%);
+	background-position:
+		calc(100% - 1rem) calc(50% + 0.1em),
+		calc(100% - 0.7rem) calc(50% + 0.1em);
+	background-size:
+		0.3rem 0.3rem,
+		0.3rem 0.3rem;
+	background-repeat: no-repeat;
+}
+
+.ceSelect option {
+	background: var(--sl-color-bg-nav);
+	color: var(--sl-color-gray-1);
+}
+
+.ceTextarea,
+.ceImportTextarea,
+.ceExportTextarea {
+	font-family: var(--tool-mono);
+	font-size: var(--sl-text-code-sm);
+	line-height: 1.6;
+	resize: vertical;
+}
+
+.ceTextarea {
+	min-height: 5rem;
+}
+
+.ceImportTextarea {
+	min-height: 11rem;
+}
+
+.ceExportTextarea {
+	min-height: 18rem;
+	background: var(--tool-surface-raised);
+}
+
+.ceInputSmall,
+.ceNumberInline,
+.tgNumberInput {
+	width: auto;
+	min-width: 4.5rem;
+	max-width: 100%;
+}
+
+.ceNumberInline,
+.tgNumberInput {
+	width: 4.5rem;
+	text-align: center;
+}
+
+/* Theme generator's hex field: shares the input chrome, fills its row, mono. */
+.tgHexInput {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--tool-mono);
+}
+
+/* ── Checkbox / switch rows ─────────────────────────────────────────────── */
+
+.ceToggleRow,
+.pbKindSelectLabelRow {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.ceToggleLabel {
+	font-size: var(--sl-text-xs);
+	color: var(--tool-text);
+	cursor: pointer;
+}
+
+/*
+ * bits-ui Checkbox. The visual box is the trigger button itself, so there is
+ * no hidden input to keep in sync and the state comes off `data-state`.
+ */
+.ceCheckbox {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 1rem;
+	height: 1rem;
+	padding: 0;
+	border: 1px solid var(--tool-border);
+	border-radius: var(--tool-radius-sm);
+	background: var(--tool-surface);
+	color: var(--tool-accent-on-solid);
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
+}
+
+.ceCheckbox:hover {
+	border-color: var(--tool-accent);
+}
+
+.ceCheckbox[data-state='checked'] {
+	background: var(--tool-accent-solid);
+	border-color: var(--tool-accent-solid);
+}
+
+.ceCheckboxIcon {
+	width: 0.75rem;
+	height: 0.75rem;
+}
+
+/* bits-ui Switch — used for the enable/disable control on optional sections. */
+.ceSwitch {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	width: 1.875rem;
+	height: 1.0625rem;
+	padding: 0.125rem;
+	border: 1px solid var(--tool-border);
+	border-radius: 999px;
+	background: var(--tool-surface);
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s;
+}
+
+.ceSwitch[data-state='checked'] {
+	background: var(--tool-accent-solid);
+	border-color: var(--tool-accent-solid);
+}
+
+.ceSwitchThumb {
+	display: block;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: 999px;
+	background: var(--tool-text-muted);
+	transition:
+		transform 0.15s ease,
+		background-color 0.15s;
+}
+
+.ceSwitch[data-state='checked'] .ceSwitchThumb {
+	transform: translateX(0.8125rem);
+	background: var(--tool-accent-on-solid);
+}
+
+.ceRadioGroup {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.ceRadioLabel {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-size: var(--sl-text-xs);
+	cursor: pointer;
+}
+
+.ceRadio {
+	accent-color: var(--tool-accent-solid);
+}
+
+.ceRangeRow {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.ceRange {
+	flex: 1;
+	accent-color: var(--tool-accent-solid);
+}
+
+/* ══ Buttons ═══════════════════════════════════════════════════════════════
+ * One base, three variants, two sizes. `.pbIconBtn` and `.pbIconBtnMini` are
+ * the same button constrained to a square.
+ */
+
+.ceBtn,
+.ceImportFileLabel,
+.pbIconBtn,
+.pbIconBtnMini,
+.tgSourceColorRandomizerButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
+	height: var(--tool-control-h);
+	padding: 0 0.75rem;
+	border: 1px solid var(--tool-border);
+	border-radius: var(--tool-radius-sm);
+	background: var(--tool-surface);
+	color: var(--tool-text-strong);
+	font-family: inherit;
+	font-size: var(--sl-text-xs);
+	font-weight: 500;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s,
+		color 0.15s;
+}
+
+.ceBtn:hover:not(:disabled),
+.ceImportFileLabel:hover,
+.pbIconBtn:hover:not(:disabled),
+.pbIconBtnMini:hover:not(:disabled),
+.tgSourceColorRandomizerButton:hover {
+	background: var(--tool-surface-raised);
+	border-color: var(--tool-text-muted);
+}
+
+.ceBtn:disabled,
+.pbIconBtn:disabled,
+.pbIconBtnMini:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.ceBtnPrimary,
+.tgExportButton {
+	background: var(--tool-accent-solid);
+	border-color: var(--tool-accent-solid);
+	color: var(--tool-accent-on-solid);
+}
+
+.ceBtnPrimary:hover:not(:disabled),
+.tgExportButton:hover {
+	background: var(--tool-accent);
+	border-color: var(--tool-accent);
+}
+
+.ceBtnDanger {
+	color: var(--sl-color-red);
+}
+
+.ceBtnDanger:hover:not(:disabled),
+.pbIconBtnDanger:hover:not(:disabled) {
+	background: var(--sl-color-red-low);
+	border-color: var(--sl-color-red);
+	color: var(--sl-color-red-high);
+}
+
+.ceBtnSmall {
+	height: 1.75rem;
+	padding: 0 0.5rem;
+	font-size: var(--sl-text-2xs);
+}
+
+.pbIconBtn {
+	width: var(--tool-control-h);
+	padding: 0;
+	flex-shrink: 0;
+}
+
+.pbIconBtnMini {
+	width: 1.375rem;
+	height: 1.375rem;
+	padding: 0;
+	font-size: var(--sl-text-2xs);
+	flex-shrink: 0;
+}
+
+.ceIcon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+}
+
+.pbIconBtnMini .ceIcon {
+	width: 0.75rem;
+	height: 0.75rem;
+}
+
+/* ── Dashed "add another" button ────────────────────────────────────────── */
+
+.ceArrayAddBtn,
+.pbBrandAddBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
+	width: 100%;
+	height: var(--tool-control-h);
+	padding: 0 0.75rem;
+	border: 1px dashed var(--tool-border);
+	border-radius: var(--tool-radius-sm);
+	background: none;
+	color: var(--tool-text-muted);
+	font-family: inherit;
+	font-size: var(--sl-text-xs);
+	cursor: pointer;
+	transition:
+		border-color 0.15s,
+		color 0.15s,
+		background-color 0.15s;
+}
+
+.ceArrayAddBtn:hover,
+.pbBrandAddBtn:hover {
+	border-color: var(--tool-accent);
+	color: var(--tool-accent);
+	background: var(--tool-accent-tint);
+}
+
+/*
+ * The brand adder is the picker's footer, not a free-standing button: it sits
+ * flush inside the panel's rounded, clipped box, so it keeps only the divider
+ * above it.
+ */
+.pbBrandAddBtn {
+	flex-shrink: 0;
+	border: 0;
+	border-top: 1px solid var(--tool-hairline);
+	border-radius: 0;
+}
+
+.pbBrandAddBtn:hover {
+	border-color: var(--tool-hairline);
+	background: var(--tool-surface-raised);
+}
+
+/* The phone adder closes the workspace list rather than a panel. */
+.pbAddPhoneBtn {
+	margin-top: 0.5rem;
+}
+
+.ceArrayRemoveBtn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--tool-control-h);
+	height: var(--tool-control-h);
+	padding: 0;
+	border: 0;
+	border-radius: var(--tool-radius-sm);
+	background: none;
+	color: var(--tool-text-muted);
+	cursor: pointer;
+	flex-shrink: 0;
+	transition:
+		background-color 0.15s,
+		color 0.15s;
+}
+
+.ceArrayRemoveBtn:hover {
+	background: var(--sl-color-red-low);
+	color: var(--sl-color-red-high);
+}
+
+/* ══ Tabs (bits-ui) ════════════════════════════════════════════════════════ */
+
+.ceTabs {
+	display: flex;
+	gap: 0.25rem;
+	border-bottom: 1px solid var(--tool-hairline);
+}
+
+.ceTab {
+	position: relative;
+	padding: 0.4375rem 0.75rem;
+	border: 0;
+	background: none;
+	color: var(--tool-text-muted);
+	font-family: inherit;
+	font-size: var(--sl-text-xs);
+	font-weight: 500;
+	cursor: pointer;
+	transition: color 0.15s;
+}
+
+.ceTab::after {
+	content: '';
+	position: absolute;
+	inset-inline: 0.25rem;
+	bottom: -1px;
+	height: 2px;
+	border-radius: 2px 2px 0 0;
+	background: transparent;
+	transition: background-color 0.15s;
+}
+
+.ceTab:hover {
+	color: var(--tool-text-strong);
+}
+
+.ceTab[data-state='active'] {
+	color: var(--tool-accent);
+}
+
+.ceTab[data-state='active']::after {
+	background: var(--tool-accent);
+}
+
+/*
+ * `.ceTabsRoot` owns the gap between the strip and the panel so the panel does
+ * not carry a padding that would double up wherever the root is already a
+ * gapped flex column (the import panel).
+ */
+.ceTabsRoot,
+.ceTabContent {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.ceI18nWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+}
+
+/* ══ Repeating rows / grids ════════════════════════════════════════════════ */
+
+.ceArrayEditor,
+.ceArrayList {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+}
+
+.ceArrayItem {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.ceArrayInput {
+	flex: 1;
+	min-width: 0;
+}
+
+.ceCardGrid,
+.pbMetaGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+	gap: 0.75rem;
+}
+
+.ceCardHeader,
+.pbVariantEntryHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.625rem;
+}
+
+.pbBrandActions,
+.pbWorkspaceToolbarActions,
+.pbBrandHeaderActions {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	flex-shrink: 0;
+}
+
+/* ══ Callouts ══════════════════════════════════════════════════════════════
+ * Same shape as a Starlight aside: tinted background, a coloured leading rule,
+ * `-high` text so the contrast holds in both themes.
+ */
+
+.ceError,
+.ceWarnings,
+.ceSuccess {
+	border-inline-start: 3px solid var(--tool-callout-line);
+	border-radius: var(--tool-radius-sm);
+	padding: 0.625rem 0.75rem;
+	background: var(--tool-callout-bg);
+	color: var(--tool-callout-text);
+	font-size: var(--sl-text-xs);
+	line-height: 1.5;
+}
+
+.ceError {
+	--tool-callout-line: var(--sl-color-red);
+	--tool-callout-bg: var(--sl-color-red-low);
+	--tool-callout-text: var(--sl-color-red-high);
+}
+
+.ceWarnings {
+	--tool-callout-line: var(--sl-color-orange);
+	--tool-callout-bg: var(--sl-color-orange-low);
+	--tool-callout-text: var(--sl-color-orange-high);
+}
+
+.ceSuccess {
+	--tool-callout-line: var(--sl-color-green);
+	--tool-callout-bg: var(--sl-color-green-low);
+	--tool-callout-text: var(--sl-color-green-high);
+}
+
+.ceWarnings ul {
+	margin: 0.25rem 0 0;
+	padding-inline-start: 1.25rem;
+}
+
+.pbPassthroughWarning {
+	font-size: var(--sl-text-2xs);
+	color: var(--sl-color-orange);
+}
+
+/* ══ Import panel / export bar ═════════════════════════════════════════════ */
+
+.ceImportPanel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+	padding: 1rem;
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	background: var(--tool-surface-raised);
+}
+
+.ceImportTextareaShort {
+	min-height: 7.5rem;
+}
+
+.ceImportActions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.ceImportFileInput {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.ceExportBar {
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	background: var(--tool-surface-raised);
+	box-shadow: var(--sl-shadow-md);
+}
+
+.ceExportPreview {
+	margin-top: 0.75rem;
+}
+
+/* ══ Phone book: master / detail ═══════════════════════════════════════════ */
+
+.pbLayout {
+	display: flex;
+	gap: 1.25rem;
+	align-items: flex-start;
+}
+
+.pbPicker {
+	display: flex;
+	flex-direction: column;
+	width: 16.25rem;
+	min-width: 16.25rem;
+	position: sticky;
+	top: var(--tool-sticky-top);
+	max-height: calc(100vh - var(--tool-sticky-top) - 2rem);
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	background: var(--tool-surface);
+	overflow: hidden;
+}
+
+.pbPickerHeader {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 0.875rem;
+	border-bottom: 1px solid var(--tool-hairline);
+	background: var(--tool-surface-raised);
+}
+
+.pbPickerTitle {
+	flex: 1;
+	font-size: var(--sl-text-xs);
+	font-weight: 600;
+	color: var(--tool-text-strong);
+}
+
+.pbPickerCount,
+.pbBrandButtonCount {
+	font-size: var(--sl-text-2xs);
+	font-weight: 400;
+	color: var(--tool-text-muted);
+}
+
+.pbPickerList {
+	list-style: none;
+	padding: 0.25rem;
+	margin: 0;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+}
+
+.pbBrandButton {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+	padding: 0.4375rem 0.5rem;
+	border: 1px solid transparent;
+	border-radius: var(--tool-radius-sm);
+	color: var(--tool-text);
+	font-size: var(--sl-text-xs);
+	transition:
+		background-color 0.12s,
+		border-color 0.12s,
+		color 0.12s;
+}
+
+.pbBrandButtonSelect {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.pbBrandButton:hover {
+	background: var(--tool-surface-raised);
+}
+
+.pbBrandButtonSelected {
+	background: var(--tool-accent-tint);
+	border-color: var(--tool-accent);
+	color: var(--tool-text-strong);
+	font-weight: 600;
+}
+
+.pbBrandButtonSelected:hover {
+	background: var(--tool-accent-tint);
+}
+
+.pbBrandButtonLabel {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pbBrandButtonCount {
+	padding: 0.0625rem 0.375rem;
+	border-radius: 999px;
+	background: var(--tool-surface-sunken);
+	flex-shrink: 0;
+}
+
+/*
+ * The row actions stay in the layout at all times and only fade, so hovering a
+ * brand does not reflow the row and shift the label out from under the pointer.
+ */
+.pbBrandButtonActions {
+	display: inline-flex;
+	gap: 0.125rem;
+	flex-shrink: 0;
+	opacity: 0;
+	transition: opacity 0.12s;
+}
+
+.pbBrandButton:hover .pbBrandButtonActions,
+.pbBrandButtonSelected .pbBrandButtonActions,
+.pbBrandButton:focus-within .pbBrandButtonActions {
+	opacity: 1;
+}
+
+.pbWorkspace {
+	flex: 1;
+	min-width: 0;
+}
+
+.pbWorkspaceHeader {
+	padding: 0.875rem;
+	border: 1px solid var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	background: var(--tool-surface-raised);
+	margin-bottom: 0.875rem;
+}
+
+.pbBrandFields {
+	display: grid;
+	grid-template-columns: 2fr 1fr auto;
+	gap: 0.75rem;
+	align-items: end;
+}
+
+.pbWorkspaceToolbar {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.625rem;
+}
+
+.pbWorkspaceToolbarLabel {
+	flex: 1;
+	font-size: var(--sl-text-xs);
+	font-weight: 600;
+	color: var(--tool-text-strong);
+}
+
+/* ── Phone card ─────────────────────────────────────────────────────────── */
+
+.pbPhoneCard + .pbPhoneCard {
+	margin-top: 0.5rem;
+}
+
+.pbPhoneHeader {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding-inline-end: 0.75rem;
+}
+
+.pbPhoneTrigger {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 0;
+	padding: 0.4375rem 0.75rem;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.pbPhoneTrigger:hover {
+	background: var(--tool-surface-raised);
+}
+
+.pbPhoneSummary {
+	flex: 1;
+	min-width: 0;
+	font-size: var(--sl-text-xs);
+	color: var(--tool-text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.pbPhoneKindBadge {
+	flex-shrink: 0;
+	padding: 0.0625rem 0.375rem;
+	border-radius: var(--tool-radius-sm);
+	background: var(--tool-surface-sunken);
+	color: var(--tool-text-muted);
+	font-size: var(--sl-text-2xs);
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.pbBrandChevron {
+	flex-shrink: 0;
+	width: 0.6875rem;
+	height: 0.6875rem;
+	color: var(--tool-text-muted);
+	transition: transform 0.2s ease;
+}
+
+.pbPhoneCard[data-state='open'] .pbBrandChevron {
+	transform: rotate(90deg);
+}
+
+.pbPhoneBody {
+	padding: 0.875rem;
+	border-top: 1px solid var(--tool-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: 0.875rem;
+}
+
+.pbKindSelectRow {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	padding-bottom: 0.875rem;
+	border-bottom: 1px solid var(--tool-hairline);
+}
+
+.pbKindDescription {
+	font-size: var(--sl-text-2xs);
+	color: var(--tool-text-muted);
+	line-height: 1.5;
+}
+
+/* ── Parallel-row editor ────────────────────────────────────────────────── */
+
+.pbRowsTable {
+	display: grid;
+	gap: 0.375rem;
+}
+
+.pbRowsHeader {
+	display: grid;
+	gap: 0.375rem;
+	color: var(--tool-text-muted);
+	padding-inline: 0.125rem;
+}
+
+.pbRow {
+	display: grid;
+	gap: 0.375rem;
+	align-items: center;
+}
+
+.pbRowTwoCol {
+	grid-template-columns: 1fr 1fr auto;
+}
+
+.pbRowOneCol {
+	grid-template-columns: 1fr auto;
+}
+
+.pbMetaGrid {
+	padding-top: 0.875rem;
+	border-top: 1px solid var(--tool-hairline);
+}
+
+/* ── Empty states ───────────────────────────────────────────────────────── */
+
+.pbWorkspaceEmpty,
+.pbEmptyList,
+.pbEmptyPicker {
+	padding: 2rem 1.5rem;
+	text-align: center;
+	border: 1px dashed var(--tool-hairline);
+	border-radius: var(--tool-radius);
+	color: var(--tool-text-muted);
+	font-size: var(--sl-text-xs);
+}
+
+.pbEmptyPicker {
+	border: 0;
+	padding: 1.5rem 1rem;
+}
+
+.pbEmptyList {
+	margin-bottom: 0.5rem;
+}
+
+/* ══ Responsive ════════════════════════════════════════════════════════════ */
+
+@media (max-width: 56.25rem) {
+	.toolContainer,
+	.toolLead {
+		padding-inline: 1rem;
+	}
+
+	.ceLayout,
+	.pbLayout {
+		flex-direction: column;
+	}
+
+	.ceNav,
+	.pbPicker {
+		position: static;
+		width: 100%;
+		min-width: 0;
+		max-height: none;
+		overflow: visible;
+		padding-inline-end: 0;
+	}
+
+	.ceNavList {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0.25rem;
+		border-inline-start: 0;
+	}
+
+	.ceNavItem button {
+		border-inline-start: 0;
+		border: 1px solid var(--tool-hairline);
+		border-radius: 999px;
+		margin-inline-start: 0;
+		padding: 0.25rem 0.625rem;
+		font-size: var(--sl-text-2xs);
+	}
+
+	.ceNavItem button:hover {
+		border-color: var(--tool-border);
+	}
+
+	.pbPickerList {
+		max-height: 16rem;
+	}
+
+	.ceCardGrid,
+	.pbMetaGrid,
+	.pbBrandFields {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tool-root *,
+	.tool-root *::after {
+		transition-duration: 0.01ms !important;
+	}
+}

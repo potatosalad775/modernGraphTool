@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import I18nWrapper from '../shared/I18nWrapper.svelte';
@@ -56,7 +57,8 @@
 			class="ceArrayAddBtn"
 			onclick={() => items.push({ TYPE: 'HTML', CONTENT: '' })}
 		>
-			+ Add description item
+			<Icon name="plus" />
+			Add description item
 		</button>
 	</div>
 {/snippet}

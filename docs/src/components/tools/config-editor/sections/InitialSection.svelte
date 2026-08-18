@@ -20,7 +20,7 @@
 		<StringArrayEditor
 			bind:items={config.INITIAL_PHONES}
 			placeholder="Brand Model (Suffix)"
-			addLabel="+ Add phone"
+			addLabel="Add phone"
 		/>
 	</div>
 
@@ -29,7 +29,7 @@
 		<StringArrayEditor
 			bind:items={config.INITIAL_TARGETS}
 			placeholder="Target Name"
-			addLabel="+ Add target"
+			addLabel="Add target"
 		/>
 	</div>
 

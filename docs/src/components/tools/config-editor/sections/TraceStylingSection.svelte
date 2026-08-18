@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 
@@ -66,15 +67,16 @@
 						type="button"
 						class="ceArrayRemoveBtn"
 						onclick={() => dashes.splice(i, 1)}
-						title="Remove"
+						aria-label="Remove dash pattern {i + 1}"
 					>
-						&times;
+						<Icon name="close" />
 					</button>
 				</div>
 			{/each}
 		</div>
 		<button type="button" class="ceArrayAddBtn" onclick={() => dashes.push({ name: '', dash: '' })}>
-			+ Add dash pattern
+			<Icon name="plus" />
+			Add dash pattern
 		</button>
 	</div>
 </AccordionSection>

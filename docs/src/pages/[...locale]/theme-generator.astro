@@ -2,7 +2,7 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import ThemeGenerator from '../../components/tools/theme-generator/ThemeGenerator.svelte';
 import { createTranslator, toToolLang } from '../../i18n/tools';
-import '../../styles/infima-compat.css';
+import '../../styles/tools.css';
 
 /**
  * Both locales are built from this one file. Starlight only localises sidebar
@@ -31,26 +31,9 @@ const description = t(
 		tableOfContents: false
 	}}
 >
-	<div class="tgPageHeader">
-		<p>{description}</p>
+	{/* See config-generator.astro for why `.tool-root not-content` is required. */}
+	<div class="tool-root not-content">
+		<p class="toolLead">{description}</p>
+		<ThemeGenerator {lang} client:load />
 	</div>
-	<ThemeGenerator {lang} client:load />
 </StarlightPage>
-
-<style>
-	/*
-	 * Matches `.cgPageHeader` / `.pbPageHeader` on the other two tool pages: a
-	 * lead-in paragraph under Starlight's own `<h1>{title}</h1>` (`template:
-	 * 'splash'` only drops the sidebar and TOC, it does not suppress the title).
-	 */
-	.tgPageHeader {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 1.5rem;
-	}
-
-	.tgPageHeader p {
-		color: var(--sl-color-gray-3);
-		margin-bottom: 1.5rem;
-	}
-</style>

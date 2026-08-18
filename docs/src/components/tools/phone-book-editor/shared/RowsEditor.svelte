@@ -1,4 +1,6 @@
 <script lang="ts" generics="Row extends Record<string, string>">
+	import Icon from '../../shared/Icon.svelte';
+
 	export interface RowsEditorColumn {
 		key: string;
 		label: string;
@@ -18,7 +20,7 @@
 		columns,
 		createEmpty,
 		minRows = 1,
-		addLabel = '+ Add row'
+		addLabel = 'Add row'
 	}: Props = $props();
 
 	let twoCol = $derived(columns.length === 2);
@@ -29,7 +31,7 @@
 	}
 </script>
 
-<div>
+<div class="ceArrayEditor">
 	<div class="pbRowsTable">
 		<div class="pbRowsHeader" class:pbRowTwoCol={twoCol} class:pbRowOneCol={!twoCol}>
 			{#each columns as c (c.key)}
@@ -53,15 +55,16 @@
 					type="button"
 					class="ceArrayRemoveBtn"
 					onclick={() => remove(i)}
-					title="Remove row"
+					aria-label="Remove row {i + 1}"
 					disabled={rows.length <= minRows}
 				>
-					&times;
+					<Icon name="close" />
 				</button>
 			</div>
 		{/each}
 	</div>
 	<button type="button" class="ceArrayAddBtn" onclick={() => rows.push(createEmpty())}>
+		<Icon name="plus" />
 		{addLabel}
 	</button>
 </div>

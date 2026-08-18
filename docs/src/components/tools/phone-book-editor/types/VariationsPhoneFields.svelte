@@ -39,7 +39,7 @@
 			]}
 			createEmpty={() => ({ file: '', suffix: '' })}
 			minRows={1}
-			addLabel="+ Add variant"
+			addLabel="Add variant"
 		/>
 	</div>
 {/if}

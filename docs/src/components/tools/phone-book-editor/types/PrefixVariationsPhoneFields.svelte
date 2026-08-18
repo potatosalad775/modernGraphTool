@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import type { PhoneState } from '../../../../utils/phoneBookConverter';
 
 	interface Props {
@@ -71,16 +72,17 @@
 							type="button"
 							class="ceArrayRemoveBtn"
 							onclick={() => files.splice(i, 1)}
-							title="Remove row"
+							aria-label="Remove part {i + 1}"
 							disabled={files.length <= 1}
 						>
-							&times;
+							<Icon name="close" />
 						</button>
 					</div>
 				{/each}
 			</div>
 			<button type="button" class="ceArrayAddBtn" onclick={() => files.push('')}>
-				+ Add part
+				<Icon name="plus" />
+				Add part
 			</button>
 		</div>
 	</div>

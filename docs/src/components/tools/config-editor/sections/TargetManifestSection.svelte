@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Icon from '../../shared/Icon.svelte';
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import I18nWrapper from '../shared/I18nWrapper.svelte';
@@ -40,7 +41,7 @@
 							<StringArrayEditor
 								bind:items={entry.files}
 								placeholder="Target file name"
-								addLabel="+ Add file"
+								addLabel="Add file"
 							/>
 						{/if}
 					</div>
@@ -48,7 +49,8 @@
 			</div>
 		{/each}
 		<button type="button" class="ceArrayAddBtn" onclick={() => items.push({ type: '', files: [] })}>
-			+ Add group
+			<Icon name="plus" />
+			Add group
 		</button>
 	</div>
 {/snippet}

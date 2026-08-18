@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEmptyBrand } from '../../../utils/phoneBookConverter';
 	import { phoneBook, moveBy } from './phone-book-store.svelte';
+	import Icon from '../shared/Icon.svelte';
 
 	interface Props {
 		selectedBrandId: string | null;
@@ -31,18 +32,19 @@
 			type="button"
 			class="pbIconBtn"
 			onclick={() => phoneBook.sortBrandsAlpha()}
-			title="Sort brands A → Z"
+			aria-label="Sort brands A to Z"
 			disabled={brands.length < 2}
 		>
-			A↓
+			<Icon name="sort" />
 		</button>
 	</div>
 
 	{#if brands.length === 0}
-		<div class="pbEmptyPicker">No brands yet.</div>
+		<p class="pbEmptyPicker">No brands yet.</p>
 	{:else}
 		<ul class="pbPickerList">
 			{#each brands as brand, i (brand.id)}
+				{@const label = [brand.name || '(unnamed)', brand.suffix].filter(Boolean).join(' ')}
 				<li>
 					<!--
 						The row is a <div>, not a <button>: it carries the move-up/down
@@ -57,9 +59,7 @@
 							onclick={() => onSelect(brand.id)}
 							aria-current={brand.id === selectedBrandId}
 						>
-							<span class="pbBrandButtonLabel">
-								{[brand.name || '(unnamed)', brand.suffix].filter(Boolean).join(' ')}
-							</span>
+							<span class="pbBrandButtonLabel">{label}</span>
 							<span class="pbBrandButtonCount">{brand.phones.length}</span>
 						</button>
 						<span class="pbBrandButtonActions">
@@ -68,18 +68,18 @@
 								class="pbIconBtnMini"
 								onclick={() => moveBy(brands, brand, 'up')}
 								disabled={i === 0}
-								title="Move up"
+								aria-label="Move {label} up"
 							>
-								↑
+								<Icon name="arrow-up" />
 							</button>
 							<button
 								type="button"
 								class="pbIconBtnMini"
 								onclick={() => moveBy(brands, brand, 'down')}
 								disabled={i === brands.length - 1}
-								title="Move down"
+								aria-label="Move {label} down"
 							>
-								↓
+								<Icon name="arrow-down" />
 							</button>
 						</span>
 					</div>
@@ -88,5 +88,8 @@
 		</ul>
 	{/if}
 
-	<button type="button" class="pbBrandAddBtn" onclick={handleAdd}>+ Add brand</button>
+	<button type="button" class="pbBrandAddBtn" onclick={handleAdd}>
+		<Icon name="plus" />
+		Add brand
+	</button>
 </aside>

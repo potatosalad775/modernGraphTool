@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
+	import Checkbox from '../../shared/Checkbox.svelte';
 
 	type DisplayMode = 'avg' | 'curves' | 'fill';
 
@@ -62,19 +63,12 @@
 	<div class="ceFieldGroup">
 		<span class="ceLabel">Default Display</span>
 		{#each MODES as mode (mode.value)}
-			<div class="ceToggleRow">
-				<input
-					type="checkbox"
-					class="ceCheckbox"
-					checked={selected.includes(mode.value)}
-					onchange={() => toggle(mode.value)}
-					id="{id}-display-{mode.value}"
-				/>
-				<label for="{id}-display-{mode.value}" class="ceToggleLabel">
-					{mode.label}
-					<span class="ceLabelHint">{mode.hint}</span>
-				</label>
-			</div>
+			<Checkbox
+				checked={selected.includes(mode.value)}
+				onCheckedChange={() => toggle(mode.value)}
+				label={mode.label}
+				hint={mode.hint}
+			/>
 		{/each}
 	</div>
 

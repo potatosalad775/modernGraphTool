@@ -2,6 +2,7 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createEmptyPhone, type BrandState } from '../../../utils/phoneBookConverter';
 	import { phoneBook } from './phone-book-store.svelte';
+	import Icon from '../shared/Icon.svelte';
 	import PhoneEditor from './PhoneEditor.svelte';
 
 	interface Props {
@@ -55,9 +56,9 @@
 -->
 <section class="pbWorkspace">
 	{#if !brand}
-		<div class="pbWorkspaceEmpty">
+		<p class="pbWorkspaceEmpty">
 			Select a brand from the list to edit its phones, or add a new brand.
-		</div>
+		</p>
 	{:else}
 		<div class="pbWorkspaceHeader">
 			<div class="pbBrandFields">
@@ -88,12 +89,8 @@
 					/>
 				</div>
 				<div class="pbBrandHeaderActions">
-					<button
-						type="button"
-						class="ceBtn ceBtnDanger"
-						onclick={handleDeleteBrand}
-						title="Delete this brand"
-					>
+					<button type="button" class="ceBtn ceBtnDanger" onclick={handleDeleteBrand}>
+						<Icon name="trash" />
 						Delete brand
 					</button>
 				</div>
@@ -110,9 +107,9 @@
 					class="ceBtn"
 					onclick={() => phoneBook.sortPhonesAlpha(brand)}
 					disabled={brand.phones.length < 2}
-					title="Sort phones A → Z"
 				>
-					Sort A→Z
+					<Icon name="sort" />
+					Sort A–Z
 				</button>
 				<button
 					type="button"
@@ -134,7 +131,7 @@
 		</div>
 
 		{#if brand.phones.length === 0}
-			<div class="pbEmptyList">No phones in this brand yet. Click "Add phone" to get started.</div>
+			<p class="pbEmptyList">No phones in this brand yet. Add one to get started.</p>
 		{:else}
 			{#each brand.phones as phone, i (phone.id)}
 				<PhoneEditor
@@ -148,6 +145,9 @@
 			{/each}
 		{/if}
 
-		<button type="button" class="ceArrayAddBtn" onclick={handleAddPhone}>+ Add phone</button>
+		<button type="button" class="ceArrayAddBtn pbAddPhoneBtn" onclick={handleAddPhone}>
+			<Icon name="plus" />
+			Add phone
+		</button>
 	{/if}
 </section>

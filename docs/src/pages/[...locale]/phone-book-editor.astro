@@ -2,7 +2,7 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import PhoneBookEditor from '../../components/tools/phone-book-editor/PhoneBookEditor.svelte';
 import { createTranslator, toToolLang } from '../../i18n/tools';
-import '../../styles/infima-compat.css';
+import '../../styles/tools.css';
 
 export function getStaticPaths() {
 	return [{ params: { locale: undefined } }, { params: { locale: 'ko' } }];
@@ -18,27 +18,9 @@ const description = t(
 ---
 
 <StarlightPage frontmatter={{ title, template: 'splash', tableOfContents: false }}>
-	<div class="pbPageHeader">
-		<p>{description}</p>
+	{/* See config-generator.astro for why `.tool-root not-content` is required. */}
+	<div class="tool-root not-content">
+		<p class="toolLead">{description}</p>
+		<PhoneBookEditor client:load />
 	</div>
-	<PhoneBookEditor client:load />
 </StarlightPage>
-
-<style>
-	/*
-	 * `template: 'splash'` only drops the sidebar and TOC — Starlight still
-	 * renders its own `<h1>{title}</h1>` above this. Adding a second one here
-	 * duplicated the heading; this block now only carries the lead-in paragraph
-	 * the Docusaurus page had.
-	 */
-	.pbPageHeader {
-		max-width: 1200px;
-		margin: 0 auto;
-		padding: 0 1.5rem;
-	}
-
-	.pbPageHeader p {
-		color: var(--sl-color-gray-3);
-		margin-bottom: 1.5rem;
-	}
-</style>

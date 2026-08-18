@@ -50,13 +50,13 @@ src/
 │   ├── ko/                #   Korean → /ko/*
 │   └── 1.x/  ko/1.x/      #   frozen v1 snapshot → /1.x/*, /ko/1.x/*
 ├── pages/[...locale]/     # the three tool routes (see "The interactive tools")
-├── components/tools/      # their Svelte islands
+├── components/tools/      # their Svelte islands (+ shared/ — Icon, Checkbox, Switch)
 ├── utils/                 # framework-free converters + their specs
 ├── i18n/tools.ts          # the tools' own strings, keyed by English source
 ├── plugins/               # two small local remark plugins (see below)
 └── styles/
     ├── custom.css         # accent tokens only
-    └── infima-compat.css  # --ifm-* → --sl-* bridge, tool pages only
+    └── tools.css          # the tools' whole design layer, tool pages only
 public/                    # .nojekyll + img/ (favicon, social card)
 dist/                      # BUILD OUTPUT, gitignored — includes a .md twin of every page
                            # and llms*.txt. Never edit or cite; see "Machine-readable output"
@@ -199,22 +199,48 @@ islands hydrate on these three routes only.
 - **`template: 'splash'`** only drops the sidebar and TOC to give the tools full page width —
   it does **not** suppress Starlight's own `<h1>{title}</h1>`, which still renders
   unconditionally unless the page sets `hero` frontmatter. All three tool pages render a
-  `<p>{description}</p>` lead-in beneath it (`.cgPageHeader` / `.pbPageHeader` /
-  `.tgPageHeader`); adding a second `<h1>` there duplicates the title.
+  `<p class="toolLead">{description}</p>` beneath it; adding a second `<h1>` duplicates the
+  title.
+- **Every tool page wraps its content in `<div class="tool-root not-content">`.** This is not
+  cosmetic. Starlight wraps the page slot in `.sl-markdown-content`, whose prose rules put
+  `margin-top: var(--sl-content-gap-y)` on **every element that follows a sibling** —
+  `button` included — plus the prose `a` / `li` / `table` / `code` styling. Without
+  `.not-content` that lands 1rem between every field and every card, and leaves the second
+  and third tab of a tab strip sitting a row below the first. `.tool-root` also carries the
+  `--tool-*` design tokens, so dropping the class breaks the palette loudly rather than
+  letting the spacing bug come back quietly.
 - **Sidebar entries are `link`, not `slug`**, so Starlight cannot validate them. A typo 404s
   silently.
 - **State lives in a `.svelte.ts` store**, mutated in place. The React originals used
   `useReducer` + Context with immutable path helpers; deep `$state` made all of that
   unnecessary, and the field access is now type-checked rather than stringly-typed.
-- **Their CSS came from Docusaurus and still uses `--ifm-*` variables**, redefined in terms of
-  Starlight's `--sl-*` tokens by `styles/infima-compat.css`. That file explains the mapping —
-  it is not a colour-for-colour copy, because Starlight's scales flip between light and dark
-  and Infima's did not. Solid accent buttons are the exception and use `--sl-color-bg-accent`
-  / `--sl-color-text-invert` directly; the Infima pairing lands light-on-light here.
-- `config-editor.css` and `phone-book-editor.css` are **global, not scoped**: their classes
-  are shared across the section components, and Svelte scoping is per-component. The `ce` /
-  `pb` prefixes are what keep them apart. Single-component stylesheets (the theme generator)
-  use scoped `<style>` instead.
+- **All three tools share one stylesheet, `src/styles/tools.css`**, imported by the `.astro`
+  pages (not by the islands — the page needs it for the `.tool-root` wrapper too). It is
+  global rather than scoped because the `ce*` / `pb*` classes are shared across ~50
+  components and Svelte scoping is per-component; the prefixes are what keep them apart.
+  Single-component styles (the theme generator, `ColorField`) stay in a scoped `<style>` and
+  inherit the tokens.
+- **Colours go through `--sl-*` tokens or the `--tool-*` aliases of them — never raw values.**
+  This replaced an `--ifm-*` → `--sl-*` bridge carried over from Docusaurus, which described
+  every colour as a translation of an Infima decision and had already sprouted hand-patched
+  exceptions where the mapping landed light-on-light. The one deliberate raw-colour
+  exception is the theme generator's hue slider track, where the spectrum *is* the content.
+- **bits-ui supplies Collapsible, Tabs, Checkbox and Switch** (`shared/Checkbox.svelte`,
+  `shared/Switch.svelte`, and `Collapsible` / `Tabs` used directly). The ported markup
+  hand-rolled these as `<div role="button" tabindex="0">` with keydown listeners, because the
+  headers contain other controls and a `<button>` cannot nest one. The bits-ui trigger is a
+  real `<button>` that fills the row with the extra controls as siblings — valid HTML, and
+  arrow-key tab navigation and ARIA state come from the library. `<select>` stays **native**:
+  Starlight's own language picker is a native select, so a scripted popup would match the
+  site less, not more.
+- **A closed `Collapsible.Content` is server-rendered with `hidden`.** The UA rule behind that
+  is only `[hidden] { display: none }`, which an author `display: flex` beats on a tie, so
+  `tools.css` carries an explicit `.tool-root [hidden] { display: none !important }`. Remove
+  it and every collapsed section renders expanded until hydration.
+- **Icons are inline SVG from `shared/Icon.svelte`**, not the glyphs (`&#9654;`, `↑`, `×`,
+  `A↓`) the port inherited — those resolved through the reader's symbol-font fallback, so
+  weight and baseline drifted per platform and none of them centred in a square button.
+  Starlight's own `<Icon>` is an Astro component and cannot be called from a Svelte island.
 - **The tools' strings are keyed by their English source text** in `src/i18n/tools.ts`,
   mirroring the old `<Translate>` + `i18n/ko/code.json` setup so they stay greppable against
   it. Untranslated keys fall back to English and are simply absent from the dictionary. This

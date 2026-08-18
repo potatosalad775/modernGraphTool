@@ -1,9 +1,7 @@
 <script lang="ts">
-	// The phone_book editor reuses the config editor's form controls (.ceInput,
-	// .ceBtn, .ceLabel, …), so both stylesheets load here.
-	import '../config-editor/config-editor.css';
-	import './phone-book-editor.css';
-
+	// Styles come from `src/styles/tools.css`, imported by the .astro page — one
+	// sheet for all three tools, so the shared form controls are shared by
+	// definition rather than by importing the config editor's stylesheet here.
 	import { phoneBook } from './phone-book-store.svelte';
 	import ImportPanel from './ImportPanel.svelte';
 	import ExportBar from './ExportBar.svelte';
@@ -23,7 +21,7 @@
 	);
 </script>
 
-<div class="ceContainer">
+<div class="toolContainer">
 	<ImportPanel />
 	<div class="pbLayout">
 		<BrandList

@@ -70,6 +70,11 @@ Always use the Runes API. Never the legacy Options API or writable stores:
   `docs/src/content/`, `docs/dist/` and `docs/.astro/` are excluded, per `.prettierignore` /
   `eslint.config.js`), but `docs/`'s own `npm run lint` only runs ESLint, not Prettier — so
   Prettier drift there is easy to miss if you only lint from inside `docs/`.
+- **The root lint needs `docs/`'s dependencies installed** (`cd docs && npm ci`). ESLint 10 resolves
+  the config from each linted file, so files under `docs/` are linted through
+  `docs/eslint.config.js` and `docs/tsconfig.json` — and that tsconfig extends
+  `astro/tsconfigs/strict`. Without `docs/node_modules` the extends cannot resolve, and every
+  `.js`/`.mjs` file in `docs/` fails to parse rather than merely lint differently.
 
 ## Rules That Apply Everywhere
 

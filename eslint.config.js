@@ -27,11 +27,10 @@ export default defineConfig(
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
 			parserOptions: {
-				// Required, not optional: ESLint 10 resolves the config from each linted
-				// file, so a root run also loads docs/eslint.config.js. Both register a
-				// candidate `tsconfigRootDir` with the same typescript-eslint instance
-				// whenever docs/node_modules is absent (CI installs the root only), and
-				// two candidates make every unanchored parse a 0:0 parsing error.
+				// Anchored explicitly, not left to inference: ESLint 10 resolves the config
+				// from each linted file, so a root run also loads docs/eslint.config.js, and
+				// each config registers a candidate `tsconfigRootDir`. Two candidates on one
+				// typescript-eslint instance turn every unanchored parse into a 0:0 error.
 				tsconfigRootDir: import.meta.dirname
 			}
 		},

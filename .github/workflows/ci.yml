@@ -40,8 +40,20 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
 
       - name: Install dependencies
+        run: npm ci
+
+      # The root lint walks into docs/, and ESLint 10 resolves the config from each
+      # linted file, so docs/eslint.config.js runs there with its own typescript-eslint
+      # and its own tsconfig. Both have to resolve from docs/node_modules: without this
+      # install, `astro/tsconfigs/strict` is missing and every docs .js/.mjs file fails
+      # to parse.
+      - name: Install docs dependencies
+        working-directory: ./docs
         run: npm ci
 
       - name: Lint (Prettier + ESLint)

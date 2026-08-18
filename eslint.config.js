@@ -25,7 +25,15 @@ export default defineConfig(
 	svelte.configs.prettier,
 	{
 		languageOptions: {
-			globals: { ...globals.browser, ...globals.node }
+			globals: { ...globals.browser, ...globals.node },
+			parserOptions: {
+				// Required, not optional: ESLint 10 resolves the config from each linted
+				// file, so a root run also loads docs/eslint.config.js. Both register a
+				// candidate `tsconfigRootDir` with the same typescript-eslint instance
+				// whenever docs/node_modules is absent (CI installs the root only), and
+				// two candidates make every unanchored parse a 0:0 parsing error.
+				tsconfigRootDir: import.meta.dirname
+			}
 		},
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.

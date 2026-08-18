@@ -218,6 +218,12 @@
 		font-weight: 500;
 		border-radius: 8px;
 		overflow: hidden;
+		/*
+		 * The mock is a miniature of the real app, so it stacks on its own width
+		 * rather than the viewport's — it sits in a column roughly two thirds of
+		 * the page, and a viewport media query would flip it at the wrong moment.
+		 */
+		container-type: inline-size;
 	}
 
 	.dgpHeader {
@@ -278,7 +284,29 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		min-width: 280px;
+		min-width: min(280px, 100%);
+	}
+
+	/*
+	 * Below this the two columns can no longer both hold their content, so the
+	 * mock does what the app itself does on a phone: one column, and the divider
+	 * turns from a vertical rule into a horizontal one.
+	 */
+	@container (max-width: 30rem) {
+		.dgpContent {
+			flex-direction: column;
+		}
+
+		.dgpDivider {
+			width: auto;
+			height: 1px;
+		}
+
+		/* The toasts are absolutely positioned; centred label text runs into them
+		   once the graph area is no longer wide enough to sit beside them. */
+		.dgpGraph {
+			justify-content: flex-end;
+		}
 	}
 
 	.dgpToolsContent {

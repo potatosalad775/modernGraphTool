@@ -46,6 +46,16 @@ export interface ThemePalette {
 
 export interface PaletteInputs {
 	baseHue: number;
+	/**
+	 * 0–1. Share of the sRGB gamut's chroma that the base surfaces take at their
+	 * own lightness — see `maxChromaFor` for why this is a share and not an
+	 * absolute chroma. 0 is a pure neutral grey.
+	 */
+	baseSaturation: number;
+	/** Light-mode `base-100` lightness. `base-200` / `-300` step down from it. */
+	baseLightnessLight: number;
+	/** Dark-mode `base-100` lightness. `base-200` / `-300` step down from it. */
+	baseLightnessDark: number;
 	primary: string; // hex
 	secondary: string;
 	accent: string;
@@ -54,6 +64,14 @@ export interface PaletteInputs {
 	warning: string;
 	error: string;
 }
+
+/** Slider bounds for the base-tone inputs, shared with the UI so both agree. */
+export const BASE_LIGHTNESS_LIGHT_RANGE: [number, number] = [0.84, 0.99];
+export const BASE_LIGHTNESS_DARK_RANGE: [number, number] = [0.16, 0.46];
+
+export const DEFAULT_BASE_SATURATION = 0.3;
+export const DEFAULT_BASE_LIGHTNESS_LIGHT = 0.98;
+export const DEFAULT_BASE_LIGHTNESS_DARK = 0.31;
 
 // ── sRGB ↔ Linear sRGB ──────────────────────────────────────────────────────
 
@@ -175,6 +193,44 @@ export function generateDarkVariant(lightColor: OklchColor): OklchColor {
 	};
 }
 
+// ── sRGB gamut ───────────────────────────────────────────────────────────────
+
+function isInSrgbGamut(l: number, c: number, h: number): boolean {
+	const hRad = (h * Math.PI) / 180;
+	const [r, g, b] = oklabToLinearRgb(l, c * Math.cos(hRad), c * Math.sin(hRad));
+	const e = 1e-6;
+	return r >= -e && r <= 1 + e && g >= -e && g <= 1 + e && b >= -e && b <= 1 + e;
+}
+
+/**
+ * The largest chroma that still lands inside sRGB at this lightness and hue.
+ *
+ * OKLCH is not a box. At L=0.98 sRGB holds barely 0.010 chroma at blue hues but
+ * 0.058 at yellow-green, and at L=0.20 that flips — 0.131 at violet against
+ * 0.035 at cyan. So an absolute chroma means something different at every hue
+ * and every lightness, which is why the base scale used to be a table of
+ * hand-picked constants pinned to one hue: anything larger clipped to grey.
+ *
+ * Expressing the tint as a *share* of this value instead makes one "Base
+ * Saturation" control mean the same thing everywhere, and puts a genuinely
+ * tinted surface within reach rather than only the near-white end of it.
+ *
+ * Bisection, not a closed form: the cusp solution is long, and 24 halvings of
+ * [0, 0.4] resolve to well under a 24-bit step. The low end of the bracket is
+ * always in gamut, so the returned value is too.
+ */
+export function maxChromaFor(l: number, h: number): number {
+	if (!(l > 0) || l >= 1) return 0;
+	let lo = 0;
+	let hi = 0.4;
+	for (let i = 0; i < 24; i++) {
+		const mid = (lo + hi) / 2;
+		if (isInSrgbGamut(l, mid, h)) lo = mid;
+		else hi = mid;
+	}
+	return lo;
+}
+
 // ── Base & neutral scale ─────────────────────────────────────────────────────
 
 interface BaseColors {
@@ -184,34 +240,81 @@ interface BaseColors {
 	baseContent: OklchColor;
 }
 
-export function generateBaseScale(hue: number): { light: BaseColors; dark: BaseColors } {
+/**
+ * Per-role multipliers on the saturation input, in units of "share of the gamut
+ * at this role's own lightness".
+ *
+ * Measured against the shipped `defaults/theme.css`: at hue 248 every light
+ * role sits at ~0.30 of its gamut, so they are all 1.0 and the 0.30 default
+ * reproduces the shipped theme. Dark surfaces sit near 0.13 — the same share
+ * reads far stronger against a dark ground — so they carry 0.45, and dark text
+ * lands between the two.
+ */
+const TINT_SHARE = {
+	lightSurface: 1,
+	lightContent: 1,
+	darkSurface: 0.45,
+	darkContent: 0.88
+};
+
+/** Lightness steps from `base-100` down to `-200` / `-300`, per mode. */
+const SURFACE_STEPS = {
+	light: [0, -0.02, -0.06],
+	dark: [0, -0.03, -0.05]
+} as const;
+
+function tinted(l: number, h: number, share: number): OklchColor {
+	const hue = ((h % 360) + 360) % 360;
+	return { l, c: clamp(0, share, 1) * maxChromaFor(l, hue), h: hue };
+}
+
+export function generateBaseScale(
+	hue: number,
+	saturation: number = DEFAULT_BASE_SATURATION,
+	lightnessLight: number = DEFAULT_BASE_LIGHTNESS_LIGHT,
+	lightnessDark: number = DEFAULT_BASE_LIGHTNESS_DARK
+): { light: BaseColors; dark: BaseColors } {
+	const s = clamp(0, saturation, 1);
+	const [lMin, lMax] = BASE_LIGHTNESS_LIGHT_RANGE;
+	const [dMin, dMax] = BASE_LIGHTNESS_DARK_RANGE;
+	const lightL = clamp(lMin, lightnessLight, lMax);
+	const darkL = clamp(dMin, lightnessDark, dMax);
+
 	return {
 		light: {
-			base100: { l: 0.98, c: 0.003, h: hue },
-			base200: { l: 0.96, c: 0.007, h: hue },
-			base300: { l: 0.92, c: 0.013, h: hue + 8 },
-			baseContent: { l: 0.2, c: 0.042, h: hue + 18 }
+			base100: tinted(lightL + SURFACE_STEPS.light[0], hue, s * TINT_SHARE.lightSurface),
+			base200: tinted(lightL + SURFACE_STEPS.light[1], hue, s * TINT_SHARE.lightSurface),
+			base300: tinted(lightL + SURFACE_STEPS.light[2], hue + 8, s * TINT_SHARE.lightSurface),
+			baseContent: tinted(0.2, hue + 18, s * TINT_SHARE.lightContent)
 		},
 		dark: {
-			base100: { l: 0.31, c: 0.023, h: hue + 16 },
-			base200: { l: 0.28, c: 0.019, h: hue + 16 },
-			base300: { l: 0.26, c: 0.018, h: hue + 14 },
-			baseContent: { l: 0.83, c: 0.031, h: hue - 25 }
+			base100: tinted(darkL + SURFACE_STEPS.dark[0], hue + 16, s * TINT_SHARE.darkSurface),
+			base200: tinted(darkL + SURFACE_STEPS.dark[1], hue + 16, s * TINT_SHARE.darkSurface),
+			base300: tinted(darkL + SURFACE_STEPS.dark[2], hue + 14, s * TINT_SHARE.darkSurface),
+			baseContent: tinted(0.83, hue - 25, s * TINT_SHARE.darkContent)
 		}
 	};
 }
 
-function generateNeutral(hue: number): { light: OklchColor; dark: OklchColor } {
+function generateNeutral(
+	hue: number,
+	saturation: number = DEFAULT_BASE_SATURATION
+): { light: OklchColor; dark: OklchColor } {
+	const s = clamp(0, saturation, 1);
 	return {
-		light: { l: 0.44, c: 0.043, h: hue + 9 },
-		dark: { l: 0.25, c: 0.02, h: hue + 16 }
+		light: tinted(0.44, hue + 9, s * TINT_SHARE.lightSurface),
+		dark: tinted(0.25, hue + 16, s * TINT_SHARE.darkSurface)
 	};
 }
 
-function generateNeutralContent(hue: number): { light: OklchColor; dark: OklchColor } {
+function generateNeutralContent(
+	base: { light: BaseColors; dark: BaseColors }
+): { light: OklchColor; dark: OklchColor } {
+	// Text on `neutral` is the lightest surface in light mode and the base text
+	// colour in dark mode, so it follows the scale rather than restating it.
 	return {
-		light: { l: 0.98, c: 0.003, h: hue },
-		dark: { l: 0.83, c: 0.031, h: hue - 25 }
+		light: base.light.base100,
+		dark: base.dark.baseContent
 	};
 }
 
@@ -253,9 +356,14 @@ export function generateFullPalette(inputs: PaletteInputs): {
 	light: ThemePalette;
 	dark: ThemePalette;
 } {
-	const base = generateBaseScale(inputs.baseHue);
-	const neutral = generateNeutral(inputs.baseHue);
-	const neutralContent = generateNeutralContent(inputs.baseHue);
+	const base = generateBaseScale(
+		inputs.baseHue,
+		inputs.baseSaturation,
+		inputs.baseLightnessLight,
+		inputs.baseLightnessDark
+	);
+	const neutral = generateNeutral(inputs.baseHue, inputs.baseSaturation);
+	const neutralContent = generateNeutralContent(base);
 
 	function buildPalette(mode: 'light' | 'dark'): ThemePalette {
 		const b = mode === 'light' ? base.light : base.dark;
@@ -307,6 +415,9 @@ export function generateFullPalette(inputs: PaletteInputs): {
 
 export const DEFAULT_INPUTS: PaletteInputs = {
 	baseHue: 248,
+	baseSaturation: DEFAULT_BASE_SATURATION,
+	baseLightnessLight: DEFAULT_BASE_LIGHTNESS_LIGHT,
+	baseLightnessDark: DEFAULT_BASE_LIGHTNESS_DARK,
 	primary: oklchToHex({ l: 0.59, c: 0.145, h: 163.225 }),
 	secondary: oklchToHex({ l: 0.6, c: 0.126, h: 221.723 }),
 	accent: oklchToHex({ l: 0.44, c: 0.017, h: 285.786 }),

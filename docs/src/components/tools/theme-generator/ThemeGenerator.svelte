@@ -2,8 +2,12 @@
 	import {
 		type PaletteInputs,
 		type ThemePalette,
+		generateBaseScale,
 		generateFullPalette,
+		oklchToCssString,
 		oklchToHex,
+		BASE_LIGHTNESS_LIGHT_RANGE,
+		BASE_LIGHTNESS_DARK_RANGE,
 		DEFAULT_INPUTS
 	} from '../../../utils/oklch';
 	import { createTranslator, type ToolLang } from '../../../i18n/tools';
@@ -150,7 +154,12 @@
 
 	function handleRandomAll() {
 		inputs = {
+			...inputs,
 			baseHue: Math.floor(Math.random() * 360),
+			// Rolled too, or every random theme comes back on the same near-white
+			// surface. Bounded well short of 1: past ~0.7 the surfaces stop reading
+			// as chrome and start competing with the curves.
+			baseSaturation: 0.1 + Math.random() * 0.5,
 			primary: randomHex(),
 			secondary: randomHex(),
 			accent: randomSemanticHex(280, 60, [0.4, 0.55], [0.01, 0.06]),
@@ -161,10 +170,76 @@
 		};
 	}
 
-	function handleBaseHueChange(raw: number) {
-		if (Number.isNaN(raw)) return;
-		inputs.baseHue = Math.max(0, Math.min(360, raw));
+	function clamp(min: number, value: number, max: number): number {
+		return Math.max(min, Math.min(max, value));
 	}
+
+	/**
+	 * Every base-tone control is a percentage in the UI and a 0–1 fraction in the
+	 * palette, except the hue. `set` takes the already-converted value.
+	 */
+	function setNumber(raw: number, min: number, max: number, set: (value: number) => void) {
+		if (Number.isNaN(raw)) return;
+		set(clamp(min, raw, max));
+	}
+
+	const pct = (value: number) => Math.round(value * 100);
+
+	// ── Slider track gradients ─────────────────────────────────────────────────
+	/*
+	 * Each track is painted with the colours that slider position would actually
+	 * produce, by asking `generateBaseScale` for the ends of its own range. It
+	 * costs a few gamut bisections per keystroke and removes the guesswork from
+	 * controls whose effect is otherwise invisible until you release them.
+	 */
+
+	function gradient(...stops: string[]): string {
+		return `linear-gradient(to right, ${stops.join(', ')})`;
+	}
+
+	function lightBase(saturation: number, lightness: number) {
+		return generateBaseScale(inputs.baseHue, saturation, lightness, inputs.baseLightnessDark).light;
+	}
+
+	function darkBase(lightness: number) {
+		return generateBaseScale(inputs.baseHue, inputs.baseSaturation, inputs.baseLightnessLight, lightness)
+			.dark;
+	}
+
+	const HUE_TRACK = gradient(
+		'hsl(0, 70%, 60%)',
+		'hsl(60, 70%, 60%)',
+		'hsl(120, 70%, 60%)',
+		'hsl(180, 70%, 60%)',
+		'hsl(240, 70%, 60%)',
+		'hsl(300, 70%, 60%)',
+		'hsl(360, 70%, 60%)'
+	);
+
+	// Sampled at `base-300` rather than `base-100`: the tint is the same share of
+	// the gamut at every step of the scale, but only the darkest surface has
+	// enough room to show it at a glance.
+	let saturationTrack = $derived(
+		gradient(
+			oklchToCssString(lightBase(0, inputs.baseLightnessLight).base300),
+			oklchToCssString(lightBase(0.5, inputs.baseLightnessLight).base300),
+			oklchToCssString(lightBase(1, inputs.baseLightnessLight).base300)
+		)
+	);
+
+	let lightnessLightTrack = $derived(
+		gradient(
+			oklchToCssString(lightBase(inputs.baseSaturation, BASE_LIGHTNESS_LIGHT_RANGE[0]).base100),
+			oklchToCssString(lightBase(inputs.baseSaturation, BASE_LIGHTNESS_LIGHT_RANGE[1]).base100)
+		)
+	);
+
+	let lightnessDarkTrack = $derived(
+		gradient(
+			oklchToCssString(darkBase(BASE_LIGHTNESS_DARK_RANGE[0]).base100),
+			oklchToCssString(darkBase(BASE_LIGHTNESS_DARK_RANGE[1]).base100)
+		)
+	);
 
 	function handleExport() {
 		const css = generateThemeCssContent(palette.light, palette.dark);
@@ -180,55 +255,101 @@
 	}
 </script>
 
+{#snippet baseSlider(
+	id: string,
+	label: string,
+	min: number,
+	max: number,
+	value: number,
+	track: string,
+	set: (value: number) => void
+)}
+	<section class="tgSliderField">
+		<label for={id}>{label}</label>
+		<div class="tgSliderRow">
+			<input
+				{id}
+				type="range"
+				{min}
+				{max}
+				step="1"
+				class="tgSlider"
+				style="--tg-track: {track}"
+				{value}
+				oninput={(e) => setNumber(e.currentTarget.valueAsNumber, min, max, set)}
+			/>
+			<input
+				type="number"
+				aria-label={label}
+				{min}
+				{max}
+				step="1"
+				class="tgNumberInput"
+				{value}
+				oninput={(e) => setNumber(e.currentTarget.valueAsNumber, min, max, set)}
+			/>
+		</div>
+	</section>
+{/snippet}
+
 <div class="tgContainer">
 	<div class="tgTools">
 		<h4>{t('Base Tone')}</h4>
 		<p class="tgDescription">
 			{t(
-				'Controls the neutral base palette (backgrounds, text, borders). Adjust the hue to tint your UI surface.'
+				'Controls the base palette (backgrounds, text, borders). Hue and saturation tint every surface; the surface sliders set how light each mode starts. A near-white surface can only hold a faint tint, so lower Light Surface to push saturation further.'
 			)}
 		</p>
-		<section class="tgBaseHueSection">
-			<label for="baseHueSlider">{t('Base Hue')}</label>
-			<div class="tgBaseHueInputRow">
-				<input
-					id="baseHueSlider"
-					type="range"
-					min="0"
-					max="360"
-					step="1"
-					class="tgHueSlider"
-					value={inputs.baseHue}
-					oninput={(e) => handleBaseHueChange(e.currentTarget.valueAsNumber)}
-				/>
-				<input
-					type="number"
-					aria-label={t('Base Hue')}
-					min="0"
-					max="360"
-					step="1"
-					class="tgNumberInput"
-					value={inputs.baseHue}
-					oninput={(e) => handleBaseHueChange(e.currentTarget.valueAsNumber)}
-				/>
-			</div>
-		</section>
+		{@render baseSlider(
+			'tgBaseHue',
+			t('Base Hue'),
+			0,
+			360,
+			inputs.baseHue,
+			HUE_TRACK,
+			(v) => (inputs.baseHue = v)
+		)}
+		{@render baseSlider(
+			'tgBaseSaturation',
+			t('Base Saturation'),
+			0,
+			100,
+			pct(inputs.baseSaturation),
+			saturationTrack,
+			(v) => (inputs.baseSaturation = v / 100)
+		)}
+		{@render baseSlider(
+			'tgLightSurface',
+			t('Light Surface'),
+			pct(BASE_LIGHTNESS_LIGHT_RANGE[0]),
+			pct(BASE_LIGHTNESS_LIGHT_RANGE[1]),
+			pct(inputs.baseLightnessLight),
+			lightnessLightTrack,
+			(v) => (inputs.baseLightnessLight = v / 100)
+		)}
+		{@render baseSlider(
+			'tgDarkSurface',
+			t('Dark Surface'),
+			pct(BASE_LIGHTNESS_DARK_RANGE[0]),
+			pct(BASE_LIGHTNESS_DARK_RANGE[1]),
+			pct(inputs.baseLightnessDark),
+			lightnessDarkTrack,
+			(v) => (inputs.baseLightnessDark = v / 100)
+		)}
 
-		<h4>{t('Semantic Colors')}</h4>
+		<div class="tgSectionHeader">
+			<h4>{t('Semantic Colors')}</h4>
+			<button type="button" class="ceBtn tgSourceColorRandomizerButton" onclick={handleRandomAll}>
+				{t('Random All')}
+			</button>
+		</div>
 		<p class="tgDescription">
 			{t(
 				'Pick colors for each role. Content (text-on-color) and dark mode variants are auto-generated.'
 			)}
 		</p>
 
-		<section class="tgSourceColorSection">
-			<ColorField label="Primary" bind:value={inputs.primary} />
-			<button type="button" class="ceBtn tgSourceColorRandomizerButton" onclick={handleRandomAll}>
-				{t('Random All')}
-			</button>
-		</section>
-
-		{#each semanticFields.slice(1) as { key, label } (key)}
+		{#each semanticFields as { key, label } (key)}
 			<ColorField {label} bind:value={inputs[key]} />
 		{/each}
 
@@ -260,9 +381,15 @@
 		gap: 1.25rem;
 	}
 
+	/*
+	 * `min()` and not a bare `19rem`: a flex item's `min-width` is a hard floor,
+	 * so on a viewport narrower than the floor the panel — and most visibly the
+	 * randomiser sitting at its right edge — spills out of the page rather than
+	 * shrinking. The `100%` arm hands the floor back below that width.
+	 */
 	.tgTools {
 		flex: 1;
-		min-width: 19rem;
+		min-width: min(19rem, 100%);
 		display: flex;
 		flex-direction: column;
 		gap: 0.875rem;
@@ -294,41 +421,60 @@
 	}
 
 	/*
-	 * The randomiser sits on the baseline of Primary's field, which is three rows
-	 * tall, so it aligns to the bottom rather than being nudged up by a fixed
-	 * margin the way it was against the old swatch button.
+	 * The randomiser is a section action, not a Primary one — it rerolls the base
+	 * hue and saturation as well as all seven swatches — so it sits on the
+	 * heading rather than beside the first field. That is also the only place it
+	 * fits: sharing Primary's row squeezed the three L/C/H boxes until their
+	 * values truncated, and on a phone it left the button nowhere to go but off
+	 * the edge of the panel. It wraps under the heading if a locale's label is
+	 * long enough to need it.
 	 */
-	.tgSourceColorSection {
+	.tgSectionHeader {
 		display: flex;
-		align-items: flex-end;
-		gap: 0.5rem;
-		width: 100%;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem 0.75rem;
+		margin-top: 0.5rem;
+		padding-bottom: 0.375rem;
+		border-bottom: 1px solid var(--tool-hairline);
+	}
+
+	/* The rule above already draws the divider for the whole row. */
+	.tgSectionHeader h4 {
+		margin: 0;
+		padding-bottom: 0;
+		border-bottom: none;
+	}
+
+	.tgSourceColorRandomizerButton {
+		flex: 0 0 auto;
 	}
 
 	.tgPreview {
 		flex: 2;
-		min-width: 25rem;
+		min-width: min(25rem, 100%);
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
 	}
 
-	/* ── Base hue controls ───────────────────────────────────────────────────── */
+	/* ── Base tone controls ──────────────────────────────────────────────────── */
 
-	.tgBaseHueSection {
+	.tgSliderField {
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
 		width: 100%;
 	}
 
-	.tgBaseHueSection label {
+	.tgSliderField label {
 		font-size: var(--sl-text-xs);
 		font-weight: 500;
 		color: var(--tool-text-strong);
 	}
 
-	.tgBaseHueInputRow {
+	.tgSliderRow {
 		display: flex;
 		align-items: center;
 		gap: 0.625rem;
@@ -336,31 +482,25 @@
 	}
 
 	/*
-	 * The track is a literal hue wheel — the one place in the tools where a raw
-	 * colour is the content rather than the chrome, so it is exempt from the
-	 * "tokens only" rule. The thumb still is not: it borrows the surface and
-	 * border tokens so it reads correctly against either theme.
+	 * Each track is painted by its own control with the colours that position
+	 * produces — the one place in the tools where a raw colour is the content
+	 * rather than the chrome, so it is exempt from the "tokens only" rule. The
+	 * thumb still is not: it borrows the surface and border tokens so it reads
+	 * correctly against either theme, and a checkerboard behind the track keeps
+	 * a near-white surface visible on the light page.
 	 */
-	.tgHueSlider {
+	.tgSlider {
 		-webkit-appearance: none;
 		appearance: none;
 		flex: 1;
 		min-width: 0;
 		height: 0.5rem;
 		border-radius: 999px;
-		background: linear-gradient(
-			to right,
-			hsl(0, 70%, 60%),
-			hsl(60, 70%, 60%),
-			hsl(120, 70%, 60%),
-			hsl(180, 70%, 60%),
-			hsl(240, 70%, 60%),
-			hsl(300, 70%, 60%),
-			hsl(360, 70%, 60%)
-		);
+		border: 1px solid var(--tool-border);
+		background: var(--tg-track);
 	}
 
-	.tgHueSlider::-webkit-slider-thumb {
+	.tgSlider::-webkit-slider-thumb {
 		-webkit-appearance: none;
 		appearance: none;
 		width: 1rem;
@@ -372,7 +512,7 @@
 		box-shadow: var(--sl-shadow-sm);
 	}
 
-	.tgHueSlider::-moz-range-thumb {
+	.tgSlider::-moz-range-thumb {
 		width: 1rem;
 		height: 1rem;
 		border-radius: 50%;

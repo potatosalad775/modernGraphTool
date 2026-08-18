@@ -26,7 +26,14 @@ const ko: Record<string, string> = {
 
 	// ── Theme generator ──────────────────────────────────────────────────────
 	'Semantic Colors': 'Semantic 컬러',
-	'Random All': '전체 무작위'
+	'Random All': '전체 무작위',
+	'Base Tone': '기본 톤',
+	'Base Hue': '기본 색상(Hue)',
+	'Base Saturation': '기본 채도',
+	'Light Surface': '라이트 표면 밝기',
+	'Dark Surface': '다크 표면 밝기',
+	'Controls the base palette (backgrounds, text, borders). Hue and saturation tint every surface; the surface sliders set how light each mode starts. A near-white surface can only hold a faint tint, so lower Light Surface to push saturation further.':
+		'배경, 텍스트, 테두리에 쓰이는 기본 팔레트를 조정합니다. 색상과 채도는 모든 표면에 색조를 입히고, 표면 슬라이더는 각 모드의 밝기 기준을 정합니다. 흰색에 가까운 표면은 옅은 색조만 표현할 수 있으므로, 채도를 더 올리려면 라이트 표면 밝기를 낮추세요.'
 };
 
 const dictionaries: Record<ToolLang, Record<string, string> | undefined> = {

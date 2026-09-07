@@ -34,6 +34,17 @@ originals.
 - `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so
   `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
 
+## `GraphEqOverlay` and the channel scope
+
+Band nodes follow `eqStore.channelScope`. Scoped to one ear the overlay draws that ear's **effective**
+set — shared bands included, since they bend that curve too and hiding them would leave visible bumps
+with no handle. Shared bands render hollow there because dragging one moves both ears, and that has
+to be legible before the drag. `_pickChannelData` returns the scoped channel so nodes sit on the
+curve they edit; positioning them on AVG floats them off it as soon as L and R diverge.
+
+The d3 join key stays the band's index in the flat `eqStore.filters` array — narrowing the view must
+never renumber it, or a drag in the R bucket edits an L band.
+
 ## Testing this layer
 
 `GraphEngine` is driven through a real `<svg>` attached to the document and `init(svgEl)`; the

@@ -13,6 +13,7 @@ It supports multiple filter types, preamp control, and audio playback with EQ ef
 ## Features
 
 - **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
+- **Per-channel EQ**: Bands can apply to both ears or to the left or right channel alone, so channel imbalance and target matching can be corrected at the same time
 - **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
 - **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
 - **Filter Management**: Add, remove, and modify EQ bands dynamically
@@ -42,6 +43,35 @@ the top of the panel is on. Actions that only make sense with EQ live turn it on
 Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
 curve while you tweak is a deliberate workflow — hold <kbd>\\</kbd> for a momentary A/B flip in
 either direction — so nothing re-enables it under you.
+
+## Per-channel EQ
+
+At the top of the filter list is a **Channel** switch with three positions — **L+R**, **L** and **R**.
+It chooses which bands the list below is editing:
+
+- **L+R** — shared bands. They apply to both ears, which is how every EQ behaved before this
+  existed, and it preserves whatever channel imbalance the unit has.
+- **L** / **R** — bands for that ear alone, stacked on top of the shared ones.
+
+The count beside each label is how many bands live in that bucket. While scoped to one ear the list
+shows only that ear's bands, with a line underneath reporting how many shared bands also reach it.
+A band's **Applies to** control (expand the band to see it) moves it between buckets.
+
+What each ear actually plays is *shared + that ear's own bands*. The preamp is a single number sized
+for whichever ear needs the most headroom, and the on-graph average is recomputed as the mean of the
+two equalized channels — so a left-only correction visibly moves the average too.
+
+Two things to know:
+
+- **AutoEQ follows the switch.** In **L+R** it optimizes against the average, preserving the unit's
+  natural imbalance. Scoped to one ear it optimizes against that ear's measurement and replaces only
+  that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you
+  correct imbalance and match a target at the same time.
+- **Device PEQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
+  sends the shared bands and warns you about the left/right bands it had to skip. The graph, the
+  audio preview and file export all carry the full per-channel EQ.
+
+See [Equalizing audio](../guide-for-users/equalizing.mdx#per-channel-eq-l--r) for the workflow.
 
 ## AutoEQ band count
 

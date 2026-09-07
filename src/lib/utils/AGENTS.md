@@ -2,7 +2,26 @@
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`.
+`equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`,
+`html-sanitizer.ts`.
+
+## `eq-channel.ts` / `eq-apo.ts`
+
+`eq-channel.ts` owns the per-channel rule in one place: a band's `channel` is `'L' | 'R' | undefined`
+and **absent means shared**, so `effectiveFilters(filters, ch)` (shared ∪ that ear's) is what every
+consumer feeds to the filter math, the biquad chain or `calculatePreamp`. Don't re-derive that union
+inline. `countBandsPerOutput` is its `maxBands` counterpart — a shared band costs a slot on both ears
+— and every function degenerates to the whole list when nothing is per-channel, which is why the
+feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the store stays one flat array.
+
+`eq-apo.ts` is the Equalizer APO parametric text parser and serializer, extracted out of
+`EqFilterList.svelte` where it sat untested. Two contracts worth keeping:
+
+- **No `Channel:` line is emitted unless a band is pinned.** An ordinary EQ exports exactly what it
+  did before per-channel EQ existed, so operator presets and other tools are unaffected.
+- The parser is permissive by design: unknown `Channel:` layouts fall back to shared, unrepresentable
+  filter types (`BP`, `NO`, …) are skipped rather than imported as peaks, and `Preamp:` is ignored
+  because ours is derived from the filter set.
 
 ## `fr-average.ts` — average all visible
 

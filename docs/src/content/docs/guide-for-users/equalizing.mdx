@@ -21,7 +21,7 @@ Opening the Equalizer panel (third menu icon, or press **3** on desktop) shows y
 
 - A **master enable switch** at the top — flip it off to temporarily disable the whole EQ without losing your filters.
 - A **phone/target selector** next to the switch — tells the EQ which loaded curve to modify.
-- A **filter list** — the actual EQ bands.
+- A **filter list** — the actual EQ bands, headed by a **channel switch** (**L+R**, **L** or **R**) that chooses which ear the list edits.
 - Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Device PEQ**.
 
 ## Building an EQ by hand
@@ -42,6 +42,42 @@ The minimum viable workflow is:
 3. Add a filter, set it to Peaking, drag it to the frequency you want to fix, and set the gain.
 4. Check the graph to see the corrected curve land on (or close to) the target.
 
+## Per-channel EQ (L / R)
+
+No two drivers measure identically. Most of the time you want to leave that alone — the small
+left-to-right difference is part of how your unit sounds, and correcting the average is enough. But
+if one ear is noticeably quieter, or you want both ears to land on the target rather than merely
+their average, you need the two channels equalized separately.
+
+That's what the **channel switch** at the top of the filter list is for:
+
+- **L+R** — bands that apply to both ears. This is the default and what every EQ did before this
+  feature existed.
+- **L** or **R** — bands for that ear only, applied *on top of* the shared ones.
+
+Switching to **L** or **R** shows only that ear's bands, with a note underneath telling you how many
+shared bands also reach it. If the graph was showing the averaged curve, it expands to draw L and R
+separately so you can see what you're doing. To move an existing band between buckets, expand it and
+use **Applies to**.
+
+### Correcting channel imbalance
+
+1. Load your headphone and select it in the Equalizer panel.
+2. Pick a target in the **AutoEQ** section.
+3. Switch the channel selector to **L**, run AutoEQ. Switch to **R**, run it again.
+
+Each run only replaces its own bucket, so the two solutions coexist. Both ears now land on the
+target and the imbalance is gone.
+
+To keep the imbalance and just fix the overall tuning, stay on **L+R** — AutoEQ there works from the
+average, which leaves the difference between the channels untouched.
+
+:::note[Where per-channel EQ applies]
+The graph, the audio preview and the exported filter file all carry the full per-channel EQ. **Device
+PEQ does not** — hardware EQ slots have no channel concept, so a push sends the shared bands only and
+tells you how many left/right bands it skipped.
+:::
+
 ## AutoEQ
 
 If you don't want to hand-design filters, open the **AutoEQ** accordion section. It walks through three steps:
@@ -51,6 +87,8 @@ If you don't want to hand-design filters, open the **AutoEQ** accordion section.
 3. **Apply** the filters to the filter list. Tweak further from there if you want.
 
 AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands.
+
+AutoEQ follows the channel switch: on **L+R** it works from the averaged curve, and scoped to one ear it works from that ear's measurement and replaces only that ear's bands.
 
 ## Audio preview
 
@@ -83,6 +121,10 @@ You can **export** your current filter set as a text file (compatible with commo
 - Moving an EQ between modernGraphTool and a system-wide EQ application.
 
 The import/export controls live inside the filter list. See [Equalizer](../features/equalizer.mdx) for format details.
+
+Per-channel bands survive the round trip. The exported file uses Equalizer APO's `Channel:` syntax — a `Channel: ALL` section for the shared bands, then `Channel: L` and `Channel: R` — and import reads it back into the same buckets. An EQ with no per-channel bands exports without any `Channel:` lines at all, exactly as before, so existing presets and other tools are unaffected.
+
+The **Graphic EQ** export is a single curve with no channel syntax, so when you have per-channel bands it writes two files instead of one — an `L` and an `R`, each combining the shared bands with that ear's own.
 
 ---
 

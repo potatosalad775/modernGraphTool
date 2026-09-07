@@ -334,5 +334,84 @@ describe('eqCommands', () => {
 			expect(eqStore.filters).toHaveLength(1);
 			expect(eqStore.filters[0].gain).toBe(1);
 		});
+
+		// The cap is what one output has to realise. 2 shared bands fill a 2-band
+		// device; 1 shared + 1 L + 1 R also fills it, but 1 L + 1 R does not.
+		it('counts maxBands per output, not per list', () => {
+			expect(eqCommands.addBand(makeFilter({ freq: 500, channel: 'L' }))).toBe(true);
+			expect(eqCommands.addBand(makeFilter({ freq: 600, channel: 'R' }))).toBe(true);
+			expect(eqCommands.addBand(makeFilter({ freq: 700, channel: 'L' }))).toBe(true);
+			// Left now needs 2 slots; a shared band would push it to 3.
+			expect(eqCommands.addBand(makeFilter({ freq: 800 }))).toBe(false);
+			expect(eqStore.filters).toHaveLength(3);
+		});
+	});
+
+	describe('per-channel bands', () => {
+		it('treats a channel change as a real edit rather than a no-op burst', () => {
+			eqStore.filters = [makeFilter({ freq: 1000 })];
+
+			eqCommands.updateBand(0, { channel: 'L' });
+			eqCommands.flushBand(0);
+
+			expect(eqStore.filters[0].channel).toBe('L');
+			commandHistory.undo(frStore);
+			expect(eqStore.filters[0].channel).toBeUndefined();
+		});
+
+		it('applySnapshot applies a state that differs only by channel', () => {
+			eqStore.filters = [makeFilter({ freq: 1000 })];
+
+			eqCommands.applySnapshot([makeFilter({ freq: 1000, channel: 'R' })], 0);
+
+			expect(eqStore.filters[0].channel).toBe('R');
+		});
+
+		describe('replaceFiltersInScope', () => {
+			const shared = makeFilter({ freq: 100 });
+			const left = makeFilter({ freq: 200, channel: 'L' });
+			const right = makeFilter({ freq: 300, channel: 'R' });
+
+			beforeEach(() => {
+				eqStore.filters = [shared, left, right];
+			});
+
+			it('replaces one bucket and leaves the others intact', () => {
+				eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'L');
+
+				expect(eqStore.filters.map((f) => [f.channel ?? 'BOTH', f.freq])).toEqual([
+					['BOTH', 100],
+					['L', 900],
+					['R', 300]
+				]);
+			});
+
+			it('stamps the scope onto the incoming bands', () => {
+				// The producer (AutoEQ) is channel-blind and hands over bare filters.
+				eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'R');
+				expect(eqStore.filters.find((f) => f.freq === 900)?.channel).toBe('R');
+			});
+
+			it('replaces only the shared bucket in BOTH scope', () => {
+				eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'BOTH');
+
+				expect(eqStore.filters.map((f) => [f.channel ?? 'BOTH', f.freq])).toEqual([
+					['BOTH', 900],
+					['L', 200],
+					['R', 300]
+				]);
+			});
+
+			it('empties a bucket without touching the rest', () => {
+				eqCommands.replaceFiltersInScope([], 'L');
+				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 300]);
+			});
+
+			it('is one undo entry', () => {
+				eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'L');
+				commandHistory.undo(frStore);
+				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 200, 300]);
+			});
+		});
 	});
 });

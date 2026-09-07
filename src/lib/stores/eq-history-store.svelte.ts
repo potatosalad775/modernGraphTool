@@ -190,7 +190,10 @@ export function snapshotMatches(
 			a.type !== b.type ||
 			a.freq !== b.freq ||
 			a.q !== b.q ||
-			a.gain !== b.gain
+			a.gain !== b.gain ||
+			// Retargeting a band between ears changes nothing else about it, so
+			// without this the move never gets logged as its own snapshot.
+			(a.channel ?? null) !== (b.channel ?? null)
 		) {
 			return false;
 		}

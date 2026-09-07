@@ -49,9 +49,13 @@ export interface EqConstraintPreset {
 	qMin?: number;
 	qMax?: number;
 	/**
-	 * Forward-compat flag for per-channel L/R EQ. Always treated as `false`
-	 * by the current code; reserved so future presets don't need re-authoring
-	 * once 2-channel support lands.
+	 * Whether this **device** can store separate left/right filter banks.
+	 * Still always treated as `false`: no handler exposes a per-channel slot,
+	 * so `DevicePeq` pushes only the shared bands and warns about the rest.
+	 *
+	 * App-level per-channel EQ does not depend on this — the graph, the audio
+	 * preview and APO export all support L/R regardless. The flag is only
+	 * about what a given piece of hardware can be handed.
 	 */
 	twoChannelSupport?: boolean;
 }

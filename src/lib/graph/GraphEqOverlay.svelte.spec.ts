@@ -114,6 +114,7 @@ describe('GraphEqOverlay', () => {
 		eqStore.isEnabled = true;
 		eqStore.sourcePhoneUUID = null;
 		eqStore.eqCurveUUID = null;
+		eqStore.channelScope = 'BOTH';
 		eqConstraintsStore.setActive('default');
 
 		engine = makeEngine();
@@ -206,6 +207,105 @@ describe('GraphEqOverlay', () => {
 
 			// Only the shelf survives; it is positioned absolutely.
 			expect(nodes().size()).toBe(1);
+		});
+	});
+
+	// ── Channel scoping ──────────────────────────────────────────────────────
+
+	describe('channel scope', () => {
+		/** A phone with distinct L and R curves, so the pick is observable. */
+		function stereoPhone(uuid: string): FRDataObject {
+			return {
+				...makePhone(uuid),
+				channels: {
+					L: { data: curveData(80), metadata: { minFreq: 20, maxFreq: 20000 } },
+					R: { data: curveData(60), metadata: { minFreq: 20, maxFreq: 20000 } },
+					AVG: { data: curveData(70), metadata: { minFreq: 20, maxFreq: 20000 } }
+				},
+				dispChannel: ['L', 'R'],
+				colors: { L: '#ff0000', R: '#0000ff', AVG: '#00ff00' }
+			};
+		}
+
+		beforeEach(() => {
+			eqStore.sourcePhoneUUID = 'p';
+			frStore.set('p', stereoPhone('p'));
+			overlay.setEqPanelActive(true);
+		});
+
+		it('shows only the shared bands in BOTH scope', () => {
+			eqStore.filters = [pk(1000), { ...pk(2000), channel: 'L' }, { ...pk(4000), channel: 'R' }];
+			overlay.render();
+
+			expect(nodes().size()).toBe(1);
+		});
+
+		// Shared bands bend the scoped ear's curve too, so hiding them would leave
+		// visible bumps with no handle on them.
+		it('shows the shared bands plus that ear’s own when scoped', () => {
+			eqStore.filters = [pk(1000), { ...pk(2000), channel: 'L' }, { ...pk(4000), channel: 'R' }];
+			eqStore.channelScope = 'L';
+			overlay.render();
+
+			expect(nodes().size()).toBe(2);
+			expect(nodes().data()).toMatchObject([{ index: 0 }, { index: 1 }]);
+		});
+
+		it('renders a shared band hollow while scoped so a drag reads as two-eared', () => {
+			eqStore.filters = [pk(1000), { ...pk(2000), channel: 'L' }];
+			eqStore.channelScope = 'L';
+			overlay.render();
+
+			const dots = nodes()
+				.nodes()
+				.map((n) => (n as SVGGElement).querySelector('.eq-center-dot')!);
+			// Shared band first (flat-array order): outlined, filled with the graph
+			// background. The band the scope owns is filled with the curve colour.
+			expect(dots[0].getAttribute('stroke')).not.toBeNull();
+			expect(dots[0].getAttribute('fill')).toBe('var(--color-graph-bg)');
+			expect(dots[1].getAttribute('stroke')).toBeNull();
+			expect(dots[1].getAttribute('fill')).not.toBe('var(--color-graph-bg)');
+		});
+
+		it('takes the node colour from the scoped channel of the EQ curve', () => {
+			frStore.set('eq', {
+				...stereoPhone('eq'),
+				type: 'eq',
+				colors: { L: '#ff0000', R: '#0000ff', AVG: '#00ff00' }
+			});
+			eqStore.eqCurveUUID = 'eq';
+			eqStore.filters = [{ ...pk(1000), channel: 'R' }];
+			eqStore.channelScope = 'R';
+			overlay.render();
+
+			const dot = (nodes().nodes()[0] as SVGGElement).querySelector('.eq-center-dot')!;
+			expect(dot.getAttribute('fill')).toBe('#0000ff');
+		});
+
+		// With per-channel bands the two curves differ, so a node positioned on AVG
+		// would float off the curve it is actually editing.
+		it('positions nodes on the scoped channel’s curve', () => {
+			eqStore.filters = [pk(1000, 0)];
+			eqStore.channelScope = 'R';
+			overlay.render();
+
+			const onR = engine.baseYScale(60);
+			const t = (nodes().nodes()[0] as SVGGElement).getAttribute('transform')!;
+			const y = Number(/translate\([^,]+,([^)]+)\)/.exec(t)![1]);
+			expect(y).toBeCloseTo(onR, 3);
+		});
+
+		it('keeps the flat-array index so commands still address the right band', () => {
+			eqStore.filters = [
+				{ ...pk(1000), channel: 'L' },
+				{ ...pk(2000), channel: 'R' }
+			];
+			eqStore.channelScope = 'R';
+			overlay.render();
+
+			// One node, and it is the band at flat index 1.
+			expect(nodes().size()).toBe(1);
+			expect(nodes().datum()).toMatchObject({ index: 1 });
 		});
 	});
 

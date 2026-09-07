@@ -5,10 +5,20 @@
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
+	import {
+		compareByChannelThenFreq,
+		countBandsPerOutput,
+		countSharedFilters,
+		effectiveFilters,
+		hasPerChannelFilters,
+		indexedFiltersInScope
+	} from '$lib/utils/eq-channel.js';
+	import { formatApoFilters, parseApoFilters } from '$lib/utils/eq-apo.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
+	import EqChannelSelect from './EqChannelSelect.svelte';
 	import EqOptionButton from './EqOptionButton.svelte';
 	import { ArrowDown01, Download, Minus, Plus, Upload } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
@@ -16,16 +26,31 @@
 
 	let expandedIndex = $state<number | null>(null);
 
+	const scope = $derived(eqStore.channelScope);
+	/** Bands in the active bucket, still carrying their index in the flat array. */
+	const visibleBands = $derived(indexedFiltersInScope(eqStore.filters, scope));
+	/** Shared bands stack on top of whichever ear is being edited — say so. */
+	const sharedBandCount = $derived(
+		scope === 'BOTH' ? 0 : countSharedFilters(eqStore.filters.filter((f) => f.enabled))
+	);
+
 	const preamp = $derived.by(() => {
-		const filters = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
-		if (!filters.length) return 0;
+		const enabled = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+		if (!enabled.length) return 0;
 		const baseFreqs = Array.from(
 			{ length: 100 },
 			(_, i) => 20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
 		);
 		const baseFR: [number, number][] = baseFreqs.map((f) => [f, 0]);
 		const eq = new Equalizer();
-		return parseFloat(eq.calculatePreamp(baseFR, filters).toFixed(1));
+		// One global preamp, sized for the ear that needs the most headroom.
+		// Taking the worst case is what keeps the louder channel from clipping;
+		// with no per-channel bands both sides compute the same number, so this
+		// is the old value exactly.
+		const perEar = (['L', 'R'] as const).map((ch) =>
+			eq.calculatePreamp(baseFR, effectiveFilters(enabled, ch))
+		);
+		return parseFloat(Math.min(...perEar).toFixed(1));
 	});
 
 	$effect(() => {
@@ -43,7 +68,18 @@
 
 	const atMaxBands = $derived.by(() => {
 		const preset = eqConstraintsStore.active;
-		return preset && preset.maxBands > 0 && eqStore.filters.length >= preset.maxBands;
+		if (!preset || preset.maxBands <= 0) return false;
+		// A band added to the active bucket costs a slot on one ear (or both, in
+		// the shared bucket), so the cap is measured against the busiest output.
+		const probe: EQFilter = {
+			enabled: true,
+			type: 'PK',
+			freq: null,
+			q: null,
+			gain: null,
+			...(scope === 'BOTH' ? {} : { channel: scope })
+		};
+		return countBandsPerOutput([...eqStore.filters, probe]) > preset.maxBands;
 	});
 
 	/** Graphic mode: the band list is fixed, so add/remove/sort/import are no-ops. */
@@ -51,12 +87,14 @@
 
 	function addBand() {
 		const wasEmpty = eqStore.filters.length === 0;
+		// A new band joins the bucket the user is looking at.
 		const ok = eqCommands.addBand({
 			enabled: true,
 			type: 'PK',
 			freq: null,
 			q: null,
-			gain: null
+			gain: null,
+			...(scope === 'BOTH' ? {} : { channel: scope })
 		});
 		// Only the first band flips the master toggle. Adding a band to a stack
 		// the user has deliberately bypassed is an edit, not a fresh start.
@@ -72,16 +110,21 @@
 	}
 
 	function removeBand() {
-		if (eqStore.filters.length > 0) {
-			const lastIdx = eqStore.filters.length - 1;
-			if (expandedIndex === lastIdx) expandedIndex = null;
-			eqCommands.removeBand(lastIdx);
-		}
+		// Removes the last band *of the active bucket* — the one the button sits
+		// under. Popping the flat array's tail would delete another channel's band
+		// while the user is looking at this one.
+		const last = visibleBands.at(-1);
+		if (!last) return;
+		if (expandedIndex === last.index) expandedIndex = null;
+		else if (expandedIndex !== null && expandedIndex > last.index) expandedIndex--;
+		eqCommands.removeBand(last.index);
 	}
 
 	function sortBands() {
 		expandedIndex = null;
-		const sorted = [...eqStore.filters].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity));
+		// Sorts by frequency within each bucket and keeps the buckets contiguous,
+		// so the flat array's order still matches what each scope shows.
+		const sorted = [...eqStore.filters].sort(compareByChannelThenFreq);
 		eqCommands.replaceFilters(sorted);
 	}
 
@@ -109,7 +152,7 @@
 		const reader = new FileReader();
 		reader.onload = (ev) => {
 			const text = ev.target!.result as string;
-			const filters = parseFilterText(text);
+			const filters = parseApoFilters(text);
 			if (filters.length) {
 				// An imported parametric file is authored without a device
 				// constraint in mind — applying it under a graphic preset
@@ -133,28 +176,6 @@
 		reader.readAsText(file);
 	}
 
-	function parseFilterText(text: string): EQFilter[] {
-		const filters: EQFilter[] = [];
-		for (const line of text.split('\n')) {
-			if (line.includes('Filter')) {
-				const match = line.match(
-					/(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s+([+-]?\d*\.?\d+)\s+dB\s+Q\s+([+-]?\d*\.?\d+)/
-				);
-				if (match) {
-					const [, type, freq, gain, q] = match;
-					filters.push({
-						enabled: true,
-						type: type === 'LSC' ? 'LSQ' : type === 'HSC' ? 'HSQ' : (type as EQFilter['type']),
-						freq: parseFloat(freq),
-						gain: parseFloat(gain),
-						q: parseFloat(q)
-					});
-				}
-			}
-		}
-		return filters;
-	}
-
 	/** Sanitized "<device model>" for the export filename, or null with no EQ source selected. */
 	function sourceDeviceLabel(): string | null {
 		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
@@ -172,16 +193,17 @@
 			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
-		let text = `Preamp: ${preamp.toFixed(1)} dB\n`;
-		validFilters.forEach((f, i) => {
-			let type: string = f.type;
-			if (type === 'LSQ') type = 'LSC';
-			if (type === 'HSQ') type = 'HSC';
-			text += `Filter ${i + 1}: ON ${type} Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
-		});
 		const label = sourceDeviceLabel();
-		downloadText(text, label ? `${label} filters.txt` : 'filters.txt');
+		downloadText(
+			formatApoFilters(validFilters, preamp),
+			label ? `${label} filters.txt` : 'filters.txt'
+		);
 		toast.success(m.equalizer_filter_list_export());
+	}
+
+	function graphicEqText(filters: EQFilter[]): string {
+		const curve = new Equalizer().convertFilterAsGraphicEQ(filters);
+		return 'GraphicEQ: ' + curve.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
 	}
 
 	function exportGraphicEQ() {
@@ -189,17 +211,35 @@
 			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
-		const eq = new Equalizer();
-		const graphicEQ = eq.convertFilterAsGraphicEQ(eqStore.filters);
-		const text =
-			'GraphicEQ: ' + graphicEQ.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
 		const label = sourceDeviceLabel();
-		downloadText(text, label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt');
+		// A GraphicEQ line is one curve and has no channel syntax, so a
+		// per-channel EQ can only be expressed as two files — one per ear, each
+		// carrying that ear's shared + own bands. The `<name> <suffix>.txt`
+		// shape matches the per-channel naming the DOWNLOAD config already uses.
+		if (hasPerChannelFilters(eqStore.filters)) {
+			for (const ch of ['L', 'R'] as const) {
+				downloadText(
+					graphicEqText(effectiveFilters(eqStore.filters, ch)),
+					label ? `${label} GraphicEQ ${ch}.txt` : `graphic_eq_${ch.toLowerCase()}.txt`
+				);
+			}
+		} else {
+			downloadText(
+				graphicEqText(eqStore.filters),
+				label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt'
+			);
+		}
 		toast.success(m.equalizer_filter_list_export_graphic_eq());
 	}
 </script>
 
 <div class="flex flex-col gap-1.75">
+	<!--
+		Channel scope — heads the list because it scopes it: which bands are shown,
+		and which bucket `addBand` fills.
+	-->
+	<EqChannelSelect />
+
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
 		<span class="text-xs text-base-content/60">
@@ -247,23 +287,33 @@
 		</div>
 	</div>
 
-	<!-- Filter cards -->
+	<!--
+		Filter cards — only the active bucket's bands. `index` stays the band's
+		position in the flat `eqStore.filters` array, which is what every command
+		addresses; narrowing the view must never renumber it.
+	-->
 	<div class="flex flex-col gap-1.5">
-		{#each eqStore.filters as filter, i (i)}
+		{#each visibleBands as { filter, index } (index)}
 			<EqFilterCard
 				{filter}
-				index={i}
-				expanded={expandedIndex === i}
-				onToggle={() => (expandedIndex = expandedIndex === i ? null : i)}
-				onUpdate={(partial) => updateFilter(i, partial)}
+				{index}
+				expanded={expandedIndex === index}
+				onToggle={() => (expandedIndex = expandedIndex === index ? null : index)}
+				onUpdate={(partial) => updateFilter(index, partial)}
 				onRemove={() => {
-					if (expandedIndex === i) expandedIndex = null;
-					else if (expandedIndex !== null && expandedIndex > i) expandedIndex--;
-					eqCommands.removeBand(i);
+					if (expandedIndex === index) expandedIndex = null;
+					else if (expandedIndex !== null && expandedIndex > index) expandedIndex--;
+					eqCommands.removeBand(index);
 				}}
 			/>
 		{/each}
 	</div>
+
+	{#if scope !== 'BOTH' && sharedBandCount > 0}
+		<p class="text-xs text-base-content/60">
+			{m.eq_channel_shared_hint({ count: sharedBandCount })}
+		</p>
+	{/if}
 
 	<!-- Import/Export buttons -->
 	<div class="flex gap-1.5">

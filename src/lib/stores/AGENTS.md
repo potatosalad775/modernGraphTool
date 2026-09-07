@@ -63,6 +63,23 @@ than it helps, and with the picker not rendered the auto-select silently clamped
 with no way back. That's what the service is for. The picker (`EqOptionButton`) is commented out in
 `EqFilterList` and returns when the service lands.
 
+**`eq-store.svelte.ts` — per-channel EQ is one flat array plus an optional field.**
+`EQFilter.channel` is `'L' | 'R' | undefined`, and **absent means shared** (the band reaches both
+ears). Don't split `filters` into three arrays: every command in `services/eq-commands.ts`, the burst
+coalescer, `EqFilterCard`'s `index` prop and `GraphEqOverlay`'s d3 join key all address bands by
+their integer position in the one array, and a `{channel, index}` address buys nothing. The optional
+field is also what keeps `?state=`, history snapshots and device-PEQ mapping byte-identical for an
+ordinary EQ — `JSON.stringify` drops `undefined` — so old share links decode as shared bands.
+Read the effective set for an ear through `utils/eq-channel.ts` (`effectiveFilters`), never by
+re-deriving the union; `countBandsPerOutput` is the matching rule for `maxBands`, since a shared band
+costs a slot on both ears.
+
+**`eq-store.svelte.ts` — `channelScope` is UI state, deliberately outside undo and `?state=`.**
+It selects which bucket the band list shows. Nothing moves between buckets when it changes, so
+recording it would bury real edits under navigation, and a share link reopening on someone else's
+scope is noise. `EqualizerPanel` resets it to `'BOTH'` on a source-phone change — leaving it on `L`
+would open the next device on an empty list.
+
 **`eq-store.svelte.ts` — `momentaryRestore` is not derivable from `momentaryOverride`.**
 The two are set together by the `\` press-and-hold in `AppShell` and look redundant (`'bypass'`
 implies restore `true`, `'audition'` implies `false`). They stopped being redundant when

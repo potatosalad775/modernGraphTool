@@ -206,5 +206,12 @@
 	"eq_settings_autoeq_persist_session": "현재 탭에서만 유지",
 	"eq_settings_autoeq_persist_local": "브라우저에 계속 저장",
 	"eq_settings_link_eq_normalization_label": "EQ 그래프를 원본에 고정",
-	"eq_settings_link_eq_normalization_description": "정규화 설정과 무관하게, EQ 그래프가 원본 측정값 대비 상대 위치를 그대로 유지합니다."
+	"eq_settings_link_eq_normalization_description": "정규화 설정과 무관하게, EQ 그래프가 원본 측정값 대비 상대 위치를 그대로 유지합니다.",
+	"eq_channel_scope_label": "채널",
+	"eq_channel_both": "L+R",
+	"eq_channel_left": "L",
+	"eq_channel_right": "R",
+	"eq_channel_applies_to": "적용 채널",
+	"eq_channel_shared_hint": "+ {count}개의 공통 필터가 함께 적용됩니다.",
+	"eq_channel_device_peq_shared_only": "{count}개의 공통 필터를 전송했습니다. 해당 기기는 채널 별 EQ 기능을 지원하지 않기 때문에, {skipped}개의 독립 채널 필터가 생략되었습니다."
 }

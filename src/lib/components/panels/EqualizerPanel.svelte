@@ -29,6 +29,9 @@
 			untrack(() => {
 				dataProvider.rebuildEqCurve();
 				eqHistoryStore.clear();
+				// The scope is a view onto the previous device's bands. Leaving it
+				// on L would open the new device showing an empty list.
+				eqStore.channelScope = 'BOTH';
 			});
 		}
 	});

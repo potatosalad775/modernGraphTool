@@ -6,6 +6,7 @@ import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
+import { indexedEffectiveFilters, indexedFiltersInScope } from '$lib/utils/eq-channel.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
@@ -120,19 +121,29 @@ export class GraphEqOverlay {
 			this.selectedFilterIndex = null;
 		}
 
-		// Resolve curve color to match nodes with the visible EQ curve
+		// Resolve curve color to match nodes with the visible EQ curve. Scoped to
+		// one ear, that ear's curve colour — the nodes sit on it.
+		const scope = eqStore.channelScope;
 		const eqCurveObj = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
-		const curveColor = eqCurveObj?.colors?.AVG ?? 'var(--color-primary)';
+		const curveColor =
+			(scope !== 'BOTH' ? eqCurveObj?.colors?.[scope] : null) ??
+			eqCurveObj?.colors?.AVG ??
+			'var(--color-primary)';
 
-		// Data join for interactive nodes
-		const data: BandDatum[] = filters
-			.map((filter, index) => ({ filter, index }))
-			.filter((d) => {
-				if (!d.filter.enabled || d.filter.freq == null || d.filter.gain == null) return false;
-				// PK nodes require a source phone (we need curve data for positioning)
-				if (d.filter.type === 'PK' && !sourceUUID) return false;
-				return true;
-			});
+		// Data join for interactive nodes. Scoped to one ear this is that ear's
+		// *effective* set — shared bands shape its curve too, so hiding them would
+		// leave nodes missing from a curve they visibly bend. They render hollow
+		// (see `.eq-center-dot` below) because dragging one moves both ears.
+		const data: BandDatum[] = (
+			scope === 'BOTH'
+				? indexedFiltersInScope(filters, 'BOTH')
+				: indexedEffectiveFilters(filters, scope)
+		).filter((d) => {
+			if (!d.filter.enabled || d.filter.freq == null || d.filter.gain == null) return false;
+			// PK nodes require a source phone (we need curve data for positioning)
+			if (d.filter.type === 'PK' && !sourceUUID) return false;
+			return true;
+		});
 
 		const nodes = this.overlayGroup
 			.selectAll<SVGGElement, BandDatum>('.eq-band-node')
@@ -236,9 +247,15 @@ export class GraphEqOverlay {
 			.attr('stroke-width', (d) => (d.index === this.selectedFilterIndex ? 3 : 1.5))
 			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 0.9 : 0.5));
 
+		// A shared band shown while scoped to one ear renders hollow: it is on this
+		// curve, but dragging it moves the other ear too, and that has to be
+		// visible before the drag rather than discovered after it.
+		const isShownAsShared = (d: BandDatum) => scope !== 'BOTH' && d.filter.channel == null;
 		merged
 			.select<SVGCircleElement>('.eq-center-dot')
-			.attr('fill', curveColor)
+			.attr('fill', (d) => (isShownAsShared(d) ? 'var(--color-graph-bg)' : curveColor))
+			.attr('stroke', (d) => (isShownAsShared(d) ? curveColor : null))
+			.attr('stroke-width', (d) => (isShownAsShared(d) ? 2 : null))
 			.attr('r', (d) => (d.index === this.selectedFilterIndex ? 8 : 6))
 			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 1 : 0.9));
 
@@ -348,21 +365,28 @@ export class GraphEqOverlay {
 	}
 
 	/**
-	 * Pick the primary channel data from ParsedFRData.
-	 * Prefers AVG, then falls back to first displayed channel.
+	 * Pick the channel the band nodes should sit on.
+	 *
+	 * Scoped to one ear, that ear — with per-channel bands the two curves differ,
+	 * and a node positioned on AVG would float off the curve it is editing. In
+	 * `BOTH` scope it stays AVG-first, which is where a shared band's effect is
+	 * legible against both curves.
 	 */
 	private _pickChannelData(
 		channels: ParsedFRData,
 		dispChannelOverride?: string[]
 	): FRDataPoint[] | null {
+		const scope = eqStore.channelScope;
+		if (scope !== 'BOTH' && channels[scope]?.data?.length) {
+			return channels[scope]!.data;
+		}
+
 		const dispChannels = dispChannelOverride ??
 			frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel ??
 			frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel ?? ['AVG'];
 
 		let channelKey: 'L' | 'R' | 'AVG';
-		if (channels.AVG && dispChannels.includes('AVG')) {
-			channelKey = 'AVG';
-		} else if (channels.AVG) {
+		if (channels.AVG) {
 			channelKey = 'AVG';
 		} else {
 			channelKey = (dispChannels[0] ?? 'L') as 'L' | 'R' | 'AVG';
@@ -631,7 +655,17 @@ export class GraphEqOverlay {
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb !== null) {
 					const gain = parseFloat(Math.max(-40, Math.min(40, clickedDb - curveDb)).toFixed(1));
-					const added = eqCommands.addBand({ enabled: true, type: 'PK', freq, q: 1.0, gain });
+					// Lands in the bucket the panel is scoped to, matching the curve
+					// the user just clicked on.
+					const scope = eqStore.channelScope;
+					const added = eqCommands.addBand({
+						enabled: true,
+						type: 'PK',
+						freq,
+						q: 1.0,
+						gain,
+						...(scope === 'BOTH' ? {} : { channel: scope })
+					});
 					// Newly added band sits at the end — auto-select for immediate Delete
 					// affordance. Skipped when the active maxBands cap rejected the add,
 					// so the previous selection survives.

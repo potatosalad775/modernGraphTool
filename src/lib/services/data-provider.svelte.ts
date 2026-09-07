@@ -39,6 +39,7 @@ import { encodeFRDataForDownload } from '$lib/utils/fr-encoder.js';
 import { downloadText } from '$lib/utils/download-text.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
+import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import {
@@ -537,17 +538,41 @@ class DataProvider {
 
 		const eq = new Equalizer();
 		const modified: ParsedFRData = {};
+		const perChannel = hasPerChannelFilters(enabledFilters);
 		for (const ch of ['L', 'R', 'AVG'] as const) {
 			const chData = sourceData.channels[ch];
 			if (!chData) continue;
+			// Each ear gets the shared bands plus its own. AVG is handled below —
+			// averaging the source and then EQ-ing it would apply both ears'
+			// corrections to a single curve.
+			const chFilters =
+				ch === 'AVG'
+					? enabledFilters.filter((f) => f.channel == null)
+					: effectiveFilters(enabledFilters, ch);
 			let points = chData.data;
-			if (enabledFilters.length > 0) {
-				points = eq.applyFilters(points, enabledFilters);
+			if (chFilters.length > 0) {
+				points = eq.applyFilters(points, chFilters);
 			}
 			if (applyPreamp) {
 				points = points.map(([f, d]) => [f, d + preamp] as [number, number]);
 			}
 			modified[ch] = { data: points, metadata: { ...chData.metadata } };
+		}
+
+		// With per-channel bands the EQ'd average is the average of the EQ'd
+		// channels, not the shared bands laid over the source average — otherwise
+		// AVG silently ignores every single-ear correction. Same pointwise dB mean
+		// the rest of the pipeline uses (`anchorAndNormalizeSamples`).
+		// Needs both ears: a phone measured as one curve has no per-ear structure
+		// to average, and there the shared-only pass above is already right.
+		// Only ever rewrites an AVG the source already had — never invents one.
+		if (perChannel && modified.AVG && modified.L && modified.R) {
+			modified.AVG = {
+				data: modified.L.data.map(
+					([freq, lDb], i) => [freq, (lDb + modified.R!.data[i][1]) / 2] as [number, number]
+				),
+				metadata: { ...modified.AVG.metadata }
+			};
 		}
 		eqStore.eqModifiedData.set(sourceUUID, modified);
 

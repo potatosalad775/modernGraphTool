@@ -1,5 +1,6 @@
 import type { EQFilter } from './equalizer.js';
 import { Equalizer } from './equalizer.js';
+import { effectiveFilters } from './eq-channel.js';
 
 /**
  * K-weighted (ITU-R BS.1770-4) bypass-match — the gain applied to the bypass
@@ -134,8 +135,17 @@ export function computeBypassMatchDb(filters: EQFilter[], preampDb: number): num
 
 /**
  * Linear bypass-match gain — for direct application to a Web Audio
- * `GainNode.gain` value. Wrapper around {@link computeBypassMatchDb}.
+ * `GainNode.gain` value.
+ *
+ * With per-channel bands the two ears run different chains and so have
+ * different K-weighted levels; the stereo program level is the mean of the two,
+ * so that is what gets matched. Both ears compute the same number when nothing
+ * is per-channel, which makes this exactly {@link computeBypassMatchDb} for an
+ * ordinary EQ.
  */
 export function computeBypassMatchLinear(filters: EQFilter[], preampDb: number): number {
-	return Math.pow(10, computeBypassMatchDb(filters, preampDb) / 20);
+	const perEar = (['L', 'R'] as const).map((ch) =>
+		computeBypassMatchDb(effectiveFilters(filters, ch), preampDb)
+	);
+	return Math.pow(10, (perEar[0] + perEar[1]) / 2 / 20);
 }

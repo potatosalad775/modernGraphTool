@@ -9,6 +9,19 @@ export interface EQFilter {
 	freq: number | null;
 	q: number | null;
 	gain: number | null;
+	/**
+	 * Which ear this band applies to. **Absent means shared** — the band shapes
+	 * both channels, which is what every filter was before per-channel EQ landed.
+	 *
+	 * Keeping it optional is what makes the whole feature backwards-compatible:
+	 * `JSON.stringify` drops `undefined`, so a shared-only EQ produces the same
+	 * `?state=` payload, history snapshot and device-PEQ mapping it always did,
+	 * and an old share link decodes to shared bands — which is what it meant.
+	 *
+	 * The math below is channel-blind; callers hand it a set already narrowed by
+	 * `effectiveFilters()` in `eq-channel.ts`.
+	 */
+	channel?: 'L' | 'R';
 }
 
 type FreqPoint = [number, number];

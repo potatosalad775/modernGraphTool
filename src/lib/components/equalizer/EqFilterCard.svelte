@@ -7,6 +7,7 @@
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import {
 		clampFilterToConstraint,
 		getFilterViolation,
@@ -40,7 +41,9 @@
 	});
 	const inactive = $derived.by(() => {
 		const preset = eqConstraintsStore.active;
-		return preset ? isPastMaxBands(index, preset) : false;
+		// Passing the list makes the cap count per output — a band sitting past
+		// `maxBands` in the flat array can still fit on its own ear.
+		return preset ? isPastMaxBands(index, preset, eqStore.filters) : false;
 	});
 	/** Active preset is in graphic mode → freq + Q are locked, only gain edits. */
 	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
@@ -53,6 +56,13 @@
 		['PK', m.equalizer_filter_list_peak],
 		['LSQ', m.equalizer_filter_list_lowshelf],
 		['HSQ', m.equalizer_filter_list_highshelf]
+	];
+
+	/** `undefined` is the shared bucket — the band reaches both ears. */
+	const channelOptions: [EQFilter['channel'], () => string][] = [
+		[undefined, m.eq_channel_both],
+		['L', m.eq_channel_left],
+		['R', m.eq_channel_right]
 	];
 
 	// ── Slider computed values ───────────────────────────────────────────────
@@ -306,6 +316,28 @@
 							{label()}
 						</button>
 					{/each}
+				</div>
+
+				<!--
+					Channel target — moves the band between the shared / L / R buckets.
+					Hidden in graphic mode, where the preset fixes one row per band on a
+					single output and there is no per-ear structure to express.
+				-->
+				<div class="flex flex-col gap-1">
+					<span class="text-xs text-base-content/60">{m.eq_channel_applies_to()}</span>
+					<div class="flex rounded-md border border-base-content/20">
+						{#each channelOptions as [value, label] (value ?? 'BOTH')}
+							<button
+								onclick={() => onUpdate({ channel: value })}
+								class="flex-1 border-base-content/20 py-1 text-xs font-medium transition-colors first:rounded-l-md first:border-r last:rounded-r-md last:border-l {filter.channel ===
+								value
+									? 'bg-accent text-white'
+									: 'bg-base-200 text-base-content/70 hover:bg-base-300'}"
+							>
+								{label()}
+							</button>
+						{/each}
+					</div>
 				</div>
 
 				<!-- Frequency slider — hidden in graphic mode -->

@@ -102,6 +102,36 @@ describe('parseStateParam', () => {
 
 		expect(parseStateParam(Base62.encode(JSON.stringify(state)))).toEqual(state);
 	});
+
+	it('round-trips per-channel EQ bands', () => {
+		const state: URLState = {
+			eq: {
+				filters: [
+					{ enabled: true, type: 'PK', freq: 1000, q: 1.4, gain: -3 },
+					{ enabled: true, type: 'PK', freq: 6800, q: 2, gain: -1.4, channel: 'L' },
+					{ enabled: true, type: 'PK', freq: 6800, q: 2, gain: -2.1, channel: 'R' }
+				],
+				preamp: -2
+			}
+		} as URLState;
+
+		expect(parseStateParam(Base62.encode(JSON.stringify(state)))).toEqual(state);
+	});
+
+	// `channel` is optional and `JSON.stringify` drops `undefined`, which is what
+	// keeps an ordinary EQ's share link byte-identical to what it was before
+	// per-channel EQ existed — and what makes old links decode as shared bands.
+	it('writes no channel key for a shared-only EQ', () => {
+		const encoded = JSON.stringify({
+			eq: {
+				filters: [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3, channel: undefined }],
+				preamp: 0
+			}
+		});
+
+		expect(encoded).not.toContain('channel');
+		expect(parseStateParam(Base62.encode(encoded))!.eq!.filters[0].channel).toBeUndefined();
+	});
 });
 
 describe('encodeShareNames', () => {

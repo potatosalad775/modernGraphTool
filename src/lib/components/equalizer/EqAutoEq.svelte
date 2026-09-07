@@ -6,6 +6,7 @@
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
 	import { getConfigValue } from '$lib/utils/config.js';
+	import { countBandsPerOutput, filtersInScope } from '$lib/utils/eq-channel.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
@@ -26,16 +27,26 @@
 	 * single band and made AutoEQ look broken on first use.
 	 */
 	function resolveBandCount(): number {
-		let count = eqStore.filters.length;
+		const scope = eqStore.channelScope;
+		// Counted within the bucket being replaced — the shared bands aren't
+		// candidates for a run scoped to one ear, so they must not set its size.
+		let count = filtersInScope(eqStore.filters, scope).length;
 		if (count === 0) {
 			const raw = getConfigValue('EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT');
 			count = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : NaN;
 			if (!(count >= 1)) count = DEFAULT_BAND_COUNT;
 		}
-		// `replaceFilters` trims to the preset cap anyway, and truncating an
+		// `replaceFiltersInScope` trims to the preset cap anyway, and truncating an
 		// 8-band solution to 5 fits worse than optimizing for 5 in the first place.
+		// The budget is what the busiest output has left once the buckets this run
+		// won't touch are accounted for.
 		const preset = eqConstraintsStore.active;
-		if (preset && preset.maxBands > 0) count = Math.min(count, preset.maxBands);
+		if (preset && preset.maxBands > 0) {
+			const untouched = eqStore.filters.filter((f) =>
+				scope === 'BOTH' ? f.channel != null : f.channel !== scope
+			);
+			count = Math.min(count, Math.max(1, preset.maxBands - countBandsPerOutput(untouched)));
+		}
 		return count;
 	}
 
@@ -56,8 +67,16 @@
 			return;
 		}
 
+		// Optimize against the channel the user is editing. In `BOTH` scope that
+		// stays the average, which is what preserves the unit's natural L/R
+		// imbalance; scoping to one ear is how you correct it instead.
+		// A target measured as a single curve has no L/R, hence the AVG fallback.
+		const scope = eqStore.channelScope;
 		const getChannelData = (data: typeof sourceData) => {
-			return data?.channels?.AVG?.data ?? data?.channels?.L?.data ?? data?.channels?.R?.data ?? [];
+			const channels = data?.channels;
+			if (!channels) return [];
+			if (scope !== 'BOTH' && channels[scope]) return channels[scope]!.data;
+			return channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? [];
 		};
 
 		const sourcePoints = getChannelData(sourceData) as [number, number][];
@@ -79,7 +98,9 @@
 		isRunning = true;
 		try {
 			const filters = await runAutoEQInWorker(sourcePoints, targetPoints, options);
-			eqCommands.replaceFilters(filters);
+			// Scoped, so running AutoEQ on one ear doesn't wipe the shared bands
+			// or the other ear's solution.
+			eqCommands.replaceFiltersInScope(filters, scope);
 			// Nobody runs AutoEQ wanting the graph to stay put.
 			eqCommands.ensureEnabled();
 		} catch (err) {

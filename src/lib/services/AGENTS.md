@@ -28,6 +28,14 @@ silently and the graph never moves, which is the single most-reported EQ confusi
 - **Editing an existing band is deliberately excluded.** Toggling EQ off to compare against the raw
   curve while tweaking is a real workflow — the `\` momentary key exists for exactly that — so
   auto-enabling on every edit would fight the user.
+
+**Bulk producers use `replaceFiltersInScope`, not `replaceFilters`.** `replaceFilters` overwrites the
+whole array, so an AutoEQ run on the left ear would delete the shared bands and the right ear's
+solution along with it. The scoped form stamps the channel onto the incoming bands — producers stay
+channel-blind — and splices over one bucket, still as a single undo entry. `eqFiltersEqual` includes
+`channel` for the same reason the store note gives: retargeting a band changes nothing else about it,
+so omitting the field makes the coalescer read a real edit as a no-op burst and drop it.
+
 - It writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is active, otherwise
   keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
 
@@ -50,6 +58,12 @@ applyTargetAdjustment.
 - `applyTargetAdjustment` **normalizes only, never re-smooths.** `targetOriginalData` already holds
   smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off
   the cached original's frequency grid, which baseline compensation reads against.
+- `rebuildEqCurve` gives each ear `effectiveFilters(enabled, ch)` — the shared bands plus that
+  ear's own. **AVG is not just "the shared bands over the source average":** once any band is pinned,
+  it is recomputed as the pointwise dB mean of the EQ'd L and R (same mean as
+  `anchorAndNormalizeSamples`), or the average silently ignores every single-ear correction. That
+  branch requires the source to already have all three channels — it rewrites an AVG, never invents
+  one, so a phone measured as a single curve keeps the shared-only path.
 - `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve, installed once from
   `AppShell.onMount` and never disposed. It must **not** live in `EqualizerPanel.svelte`: that panel
   unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
@@ -65,6 +79,14 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 - **EQ bypass** is `eqStore.isEnabled && filtersEnabled` (the `#eqActive` predicate). The master
   "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have
   to reach the audio, and all have to pick up the K-weighted bypass-match trim.
+- **The splitter/merger stage is built only when a band is pinned to one ear.** Shared bands run
+  before the split as one serial chain — a `BiquadFilterNode` processes every channel it is handed —
+  so an ordinary EQ keeps exactly the graph it always had. Two things in `#buildPerChannelStage` are
+  not optional: the `stereoForce` `GainNode` (`channelCount = 2`, `channelCountMode = 'explicit'`),
+  because every generated source here is mono and a splitter fed one channel leaves output 1 silent,
+  which kills the right ear; and the unity `GainNode` on an ear with no bands, because an
+  unconnected merger input is silence, not passthrough. `#filterNodes` is the teardown bag, **not**
+  the chain in order — wire with local references.
 - **The listening-range bandpass is for broadband sources only** (`#rangeGatingApplies`). Tone and
   sweep carry energy at a single frequency, so filtering them can only attenuate. Both are
   constrained by **moving** them instead. One rule across every source — the band is the region

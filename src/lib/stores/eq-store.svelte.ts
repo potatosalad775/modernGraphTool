@@ -1,5 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { EqChannelScope } from '$lib/utils/eq-channel.js';
 import type { ParsedFRData } from '$lib/types/data-types.js';
 
 export type { EQFilter };
@@ -8,6 +9,17 @@ class EQStore {
 	filters = $state<EQFilter[]>([]);
 	preamp = $state(0);
 	isEnabled = $state(false);
+	/**
+	 * Which bucket the EQ panel is editing — the shared bands (`BOTH`) or one
+	 * ear's. Purely a view onto `filters`, which stays one flat array: no band
+	 * moves when this changes.
+	 *
+	 * Deliberately outside undo history and `?state=`. Scoping the list is
+	 * navigation, not an edit — an undo entry per switch would bury the real
+	 * edits, and a share link that reopened on someone else's scope would be
+	 * noise. `EqualizerPanel` resets it to `BOTH` when the source phone changes.
+	 */
+	channelScope = $state<EqChannelScope>('BOTH');
 	/** UUID of the phone to apply EQ to (EQ preview) */
 	sourcePhoneUUID = $state<string | null>(null);
 	/** UUID of the target curve used for AutoEQ calculation */

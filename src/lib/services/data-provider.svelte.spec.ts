@@ -3,6 +3,8 @@ import { dataProvider } from './data-provider.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import FRParser, { type FRParseResult } from '$lib/utils/fr-parser.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
@@ -1345,6 +1347,137 @@ describe('DataProvider', () => {
 			await dataProvider.updateVariant('p', 'v2');
 
 			expect(frStore.get('p')!.dispSamples).toEqual(['sample0_AVG']);
+		});
+	});
+
+	// ── Per-channel EQ ───────────────────────────────────────────────────────
+
+	describe('rebuildEqCurve', () => {
+		/** Flat 0 dB on every channel, so a band's effect is the whole reading. */
+		function seedEqSource(): void {
+			const flat = () => ({
+				data: makeFRPoints(0).map(([f]) => [f, 0] as FRDataPoint),
+				metadata: { minFreq: 20, maxFreq: 20000 }
+			});
+			frStore.set(
+				'src',
+				makeFRDataObject('src', {
+					channels: { L: flat(), R: flat(), AVG: flat() },
+					dispChannel: ['L', 'R']
+				})
+			);
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.isEnabled = true;
+			eqStore.preamp = 0;
+		}
+
+		function band(gain: number, channel?: 'L' | 'R') {
+			return {
+				enabled: true,
+				type: 'PK' as const,
+				freq: 1000,
+				q: 1,
+				gain,
+				...(channel ? { channel } : {})
+			};
+		}
+
+		/** The EQ curve's dB at 1 kHz, per channel. */
+		function eqDbAt1k(channel: 'L' | 'R' | 'AVG'): number {
+			const eqObj = frStore.get(eqStore.eqCurveUUID!)!;
+			const raw = eqObj._rawData!.channels[channel]!.data;
+			return raw.reduce((best, p) =>
+				Math.abs(p[0] - 1000) < Math.abs(best[0] - 1000) ? p : best
+			)[1];
+		}
+
+		beforeEach(() => {
+			eqStore.filters = [];
+			eqStore.preamp = 0;
+			eqStore.isEnabled = false;
+			eqStore.eqCurveUUID = null;
+			eqStore.channelScope = 'BOTH';
+			eqStore.eqModifiedData.clear();
+			settingsStore.linkEqNormalization = true;
+		});
+
+		afterEach(() => {
+			eqStore.filters = [];
+			eqStore.isEnabled = false;
+			eqStore.eqCurveUUID = null;
+			eqStore.sourcePhoneUUID = null;
+			eqStore.eqModifiedData.clear();
+		});
+
+		it('applies a shared band to both channels equally', () => {
+			seedEqSource();
+			eqStore.filters = [band(6)];
+
+			dataProvider.rebuildEqCurve();
+
+			expect(eqDbAt1k('L')).toBeCloseTo(eqDbAt1k('R'), 6);
+			expect(eqDbAt1k('L')).toBeGreaterThan(4);
+		});
+
+		it('applies a pinned band to its own ear only', () => {
+			seedEqSource();
+			eqStore.filters = [band(6, 'L')];
+
+			dataProvider.rebuildEqCurve();
+
+			expect(eqDbAt1k('L')).toBeGreaterThan(4);
+			expect(eqDbAt1k('R')).toBeCloseTo(0, 6);
+		});
+
+		it('gives each ear the shared bands plus its own', () => {
+			seedEqSource();
+			eqStore.filters = [band(3), band(3, 'L')];
+
+			dataProvider.rebuildEqCurve();
+
+			// Left gets both bands, right only the shared one.
+			expect(eqDbAt1k('L')).toBeGreaterThan(eqDbAt1k('R') + 2);
+			expect(eqDbAt1k('R')).toBeGreaterThan(2);
+		});
+
+		// Without this the average silently ignores every single-ear correction,
+		// so a user watching AVG sees no effect from half their EQ.
+		it('recomputes AVG as the mean of the EQd channels when a band is pinned', () => {
+			seedEqSource();
+			eqStore.filters = [band(6, 'L')];
+
+			dataProvider.rebuildEqCurve();
+
+			expect(eqDbAt1k('AVG')).toBeCloseTo((eqDbAt1k('L') + eqDbAt1k('R')) / 2, 6);
+		});
+
+		it('leaves AVG on the shared-band path when nothing is pinned', () => {
+			seedEqSource();
+			eqStore.filters = [band(6)];
+
+			dataProvider.rebuildEqCurve();
+
+			// All three channels are the same flat source under the same bands.
+			expect(eqDbAt1k('AVG')).toBeCloseTo(eqDbAt1k('L'), 6);
+		});
+
+		it('ignores per-channel bands on a source measured as a single curve', () => {
+			const flat = {
+				data: makeFRPoints(0).map(([f]) => [f, 0] as FRDataPoint),
+				metadata: { minFreq: 20, maxFreq: 20000 }
+			};
+			frStore.set(
+				'src',
+				makeFRDataObject('src', { channels: { AVG: flat }, dispChannel: ['AVG'] })
+			);
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.isEnabled = true;
+			eqStore.filters = [band(6, 'L')];
+
+			dataProvider.rebuildEqCurve();
+
+			// No L/R to bind the band to, so AVG keeps only the shared set (empty).
+			expect(eqDbAt1k('AVG')).toBeCloseTo(0, 6);
 		});
 	});
 });

@@ -688,15 +688,7 @@ CROSS_SITE_SEARCH: {
 }
 ```
 
-### Comma-separated queries
-
-Typing `hd 600, u12t` asks a different question: *which database has **both** of these?* Only databases carrying a match for every term are listed, and each one shows all of its matching devices — so a visitor comparing two devices can find a site that measured them on the same rig instead of stitching two sites’ graphs together.
-
-A term is only applied once it reaches two characters, so results don’t churn while the visitor is still typing the second one. A trailing comma is ignored.
-
-Your own site’s device list reads the same query, but unions the terms there — one device can’t be both, so it shows the devices matching either, ready to be loaded together.
-
-## Configuration Options
+### Configuration Options
 
 * **`ENABLED`**: Toggle cross-site search. Defaults to on.
 * **`INDEX_URLS`**: Index documents to try, in order. Leave empty to use the official GraphAggregator index (with its GitHub Pages mirror as an automatic backup).

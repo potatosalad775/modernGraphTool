@@ -115,6 +115,12 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
   `src/plugins/remark-heading-ids.mjs`, and the braces **must stay backslash-escaped** or
   MDX parses them as a JS expression and the build fails. They matter on the Korean pages,
   where the heading text is Korean but the anchor other pages link to is English.
+  **The id itself must not contain `--`.** Smartypants rewrites it to an em dash before
+  `remark-heading-ids` sees it, so the marker stops matching `[A-Za-z0-9_-]+` and ships as
+  literal `{#…}` text in the heading with the id auto-slugged instead — the build stays green
+  and `check-links.mjs` does not look at anchors. An English heading may still _auto_-slug to
+  `--` (`## Per-channel EQ (L / R)` → `per-channel-eq-l--r`); only the explicit marker is affected,
+  so a Korean twin of such a heading needs a shorter id and a matching link.
 - **Code fences are case-sensitive.** Shiki wants ` ```javascript `, not ` ```JavaScript `
   (Docusaurus used Prism, which did not care).
 - **Tabs** come from `@astrojs/starlight/components`, and `<TabItem>` takes `label` only —

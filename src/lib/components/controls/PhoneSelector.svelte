@@ -7,11 +7,14 @@
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { buildRankingUrl } from '$lib/utils/url-template.js';
 	import { sanitizeHtml, stripHtml } from '$lib/utils/html-sanitizer.js';
+	import { splitQueryTerms } from '$lib/utils/search-query.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
+	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import CrossSiteSearchResults from './CrossSiteSearchResults.svelte';
-	import { Search, X } from '@lucide/svelte';
+	import { getCrossSiteSearchConfig } from '$lib/services/aggregate-index-core.js';
+	import { Info, Search, X } from '@lucide/svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +23,9 @@
 	const switchPanelOnBrandClick =
 		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
 	const rankingUrlTemplate = (getConfigValue('RANKING_URL') as string) ?? '';
+	// The comma hint promises a cross-site behaviour, so only offer it where
+	// cross-site results can actually appear.
+	const crossSiteEnabled = getCrossSiteSearchConfig().ENABLED;
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
@@ -74,9 +80,15 @@
 			selectedBrands.size > 0
 				? fullPhoneList.filter((p) => selectedBrands.has(p.brand))
 				: fullPhoneList;
-		if (searchQuery.trim()) {
-			const q = searchQuery.toLowerCase();
-			list = list.filter((p) => p.identifier.toLowerCase().includes(q));
+		// `A,B` is an *and* across databases, but a single device can only ever be
+		// one of them — so locally the terms union instead, putting both sides of
+		// the comparison the query describes in front of the user at once.
+		const terms = splitQueryTerms(searchQuery);
+		if (terms.length > 0) {
+			list = list.filter((p) => {
+				const id = p.identifier.toLowerCase();
+				return terms.some((term) => id.includes(term));
+			});
 		}
 		if (pinnedIds.size === 0) return list;
 		// Sort is stable, so both groups keep their phone_book.json order.
@@ -146,7 +158,7 @@
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
 	<div
-		class="flex shrink-0 items-center gap-2 border-b border-base-content/15 bg-base-200 px-1.5 py-1.5"
+		class="flex shrink-0 items-center gap-1.5 border-b border-base-content/15 bg-base-200 px-1.5 py-1.5"
 	>
 		<!-- Brands toggle (shown when container is narrow) -->
 		{#if showPhonePane}
@@ -172,6 +184,48 @@
 				<Search class="h-4 w-4 text-base-content/60" aria-hidden="true" />
 			{/snippet}
 		</Input>
+
+		<!-- Search tips -->
+		<PopoverPanel side="bottom" align="end" contentClass="max-w-72 p-3">
+			{#snippet trigger({ props })}
+				<Button
+					{...props}
+					title={m.phone_selector_search_help_btn()}
+					variant="ghost"
+					size="icon-sm"
+					activeOnOpen
+					class="shrink-0 opacity-80 hover:opacity-100"
+				>
+					<Info class="size-4" />
+				</Button>
+			{/snippet}
+			<p class="mb-2 text-xs font-semibold text-base-content">
+				{m.phone_selector_search_help_title()}
+			</p>
+			<ul class="flex flex-col gap-2">
+				<li class="flex flex-col gap-1">
+					<!-- Examples stay literal in every locale: device names aren't translatable. -->
+					<code class="ps-help-code">hd 6</code>
+					<span class="text-xs leading-snug text-base-content/70">
+						{m.phone_selector_search_help_substring()}
+					</span>
+				</li>
+				<li class="flex flex-col gap-1">
+					<code class="ps-help-code">hd 600, u12t</code>
+					<span class="text-xs leading-snug text-base-content/70">
+						{m.phone_selector_search_help_commas()}
+					</span>
+					{#if crossSiteEnabled}
+						<span class="text-xs leading-snug text-base-content/60">
+							{m.phone_selector_search_help_cross_site()}
+						</span>
+					{/if}
+				</li>
+				<li class="text-xs leading-snug text-base-content/70">
+					{m.phone_selector_search_help_brands()}
+				</li>
+			</ul>
+		</PopoverPanel>
 
 		<!-- Devices toggle (shown when container is narrow) -->
 		{#if !showPhonePane}
@@ -367,6 +421,17 @@
 	}
 	.ps-description :global(a:hover) {
 		text-decoration: underline;
+	}
+
+	/* Example chips in the search-tips popover. */
+	.ps-help-code {
+		align-self: flex-start;
+		border-radius: 0.25rem;
+		background-color: var(--color-base-300);
+		padding: 0.125rem 0.375rem;
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 11px;
+		color: var(--color-base-content);
 	}
 
 	/* Wide container: show both panes side-by-side, hide nav buttons */

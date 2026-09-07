@@ -65,6 +65,47 @@ describe('PhoneSelector', () => {
 		vi.restoreAllMocks();
 	});
 
+	describe('search tips', () => {
+		it('opens the hint popover from the header button', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			await page.getByRole('button', { name: 'Search tips' }).click();
+
+			// The examples are literal, so they double as the popover's fingerprint.
+			await expect.element(page.getByText('hd 600, u12t')).toBeInTheDocument();
+			await expect
+				.element(page.getByText('Separate devices with commas', { exact: false }))
+				.toBeInTheDocument();
+		});
+
+		// The trigger is a sibling of the field, not the label's icon — clicking it
+		// must not pull focus into the input and fight the popover's focus trap.
+		it('leaves the search field unfocused when the hint is opened', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			await page.getByRole('button', { name: 'Search tips' }).click();
+
+			await expect.element(page.getByText('hd 600, u12t')).toBeInTheDocument();
+			const input = document.querySelector('input[type="search"]');
+			expect(document.activeElement).not.toBe(input);
+		});
+
+		// The narrow layout keeps the trigger alongside the Brands/Devices toggle;
+		// it is `shrink-0` and measurably costs the search field no width there.
+		it('shows the trigger alongside the nav toggle on a narrow container', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			const host = document.querySelector('[style*="container-type"]') as HTMLElement;
+			host.style.width = '420px';
+
+			await vi.waitFor(() => expect(host.querySelector('.ps-nav-btn')).toBeInstanceOf(HTMLElement));
+			await expect.element(page.getByRole('button', { name: 'Search tips' })).toBeInTheDocument();
+		});
+	});
+
 	describe('description', () => {
 		it('renders the allowed inline HTML as markup, not as literal text', async () => {
 			stubBook(

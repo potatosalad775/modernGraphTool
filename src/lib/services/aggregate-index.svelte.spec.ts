@@ -6,6 +6,7 @@ import {
 	deriveShareSlug,
 	getCrossSiteSearchConfig,
 	sortCrossSiteResults,
+	parseCrossSiteTerms,
 	MAX_RESULTS
 } from './aggregate-index-core.js';
 import type { AggregateIndex, CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
@@ -104,6 +105,22 @@ describe('cross-site search helpers', () => {
 			expect(buildShareUrl('https://bob.squig.link/headphones/', 'Sennheiser_HD_600')).toBe(
 				'https://bob.squig.link/headphones/?share=Sennheiser_HD_600'
 			);
+		});
+	});
+
+	describe('parseCrossSiteTerms', () => {
+		it('splits a comma-separated query into terms', () => {
+			expect(parseCrossSiteTerms('hd 600, u12t')).toEqual(['hd 600', 'u12t']);
+		});
+
+		// A half-typed term would otherwise list databases it goes on to exclude.
+		it('withholds the query while any term is shorter than the minimum', () => {
+			expect(parseCrossSiteTerms('hd 600,u')).toEqual([]);
+			expect(parseCrossSiteTerms('u')).toEqual([]);
+		});
+
+		it('ignores a trailing comma so the first term keeps searching', () => {
+			expect(parseCrossSiteTerms('hd 600,')).toEqual(['hd 600']);
 		});
 	});
 
@@ -351,6 +368,77 @@ describe('AggregateIndexService', () => {
 			const results = service.search('u12t').results;
 			expect(results).toHaveLength(1);
 			expect(results[0].siteId).toBe('bob');
+		});
+
+		describe('comma-separated queries', () => {
+			/**
+			 * Alice carries both devices, Bob only the HD 600 — so `u12t,hd 600`
+			 * should surface Alice alone, and both of her devices.
+			 */
+			function makeSharedIndex() {
+				return makeIndex({
+					dbs: [
+						{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
+						{ id: 'bob:iems', siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/' }
+					],
+					phones: [
+						{ db: 'alice:iems', b: 0, n: 'U12t', s: '64Audio_U12t' },
+						{ db: 'alice:iems', b: 1, n: 'HD 600', s: 'Sennheiser_HD_600' },
+						{ db: 'bob:iems', b: 1, n: 'HD 600', s: 'Sennheiser_HD_600' }
+					]
+				});
+			}
+
+			it('keeps only databases matching every term', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeSharedIndex() });
+				await service.load();
+
+				const hits = service.search('u12t,hd 600');
+				expect(hits.results.map((r) => r.dbId)).toEqual(['alice:iems', 'alice:iems']);
+				expect(hits.total).toBe(2);
+			});
+
+			it('lists every matching device of a database that qualified', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeSharedIndex() });
+				await service.load();
+
+				expect(service.search('u12t,hd 600').results.map((r) => r.phoneName)).toEqual([
+					'HD 600',
+					'U12t'
+				]);
+			});
+
+			it('returns nothing when no single database carries every term', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
+				await service.load();
+
+				// The stock index splits the two devices across Alice and Bob.
+				expect(service.search('u12t,hd 600')).toEqual({ results: [], total: 0 });
+			});
+
+			it('ignores a trailing comma', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
+				await service.load();
+
+				expect(service.search('u12t,').results.map((r) => r.phoneName)).toEqual(['U12t']);
+			});
+
+			it('withholds results while a term is still too short', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeSharedIndex() });
+				await service.load();
+
+				expect(service.search('u12t,h')).toEqual({ results: [], total: 0 });
+			});
+
+			it('counts a device matching several terms once', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeSharedIndex() });
+				await service.load();
+
+				// Both terms hit the same row; it must not be emitted twice.
+				const hits = service.search('hd 600,sennheiser');
+				expect(hits.results.map((r) => r.dbId)).toEqual(['alice:iems', 'bob:iems']);
+				expect(hits.total).toBe(2);
+			});
 		});
 
 		it('caps results and reports the uncapped total', async () => {

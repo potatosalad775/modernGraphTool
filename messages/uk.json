@@ -4,6 +4,12 @@
 	"phone_selector_header_brand_btn": "Бренди",
 	"phone_selector_header_device_btn": "Пристрої",
 	"phone_selector_header_search_bar_placeholder": "Пошук",
+	"phone_selector_search_help_btn": "Поради щодо пошуку",
+	"phone_selector_search_help_title": "Поради щодо пошуку",
+	"phone_selector_search_help_substring": "Пошук будь-якої частини назви бренду або пристрою.",
+	"phone_selector_search_help_commas": "Розділіть пристрої комами, щоб знайти одразу кілька.",
+	"phone_selector_search_help_cross_site": "У результатах з інших баз даних перелічено лише сайти, що містять усі пристрої, які ви вказали.",
+	"phone_selector_search_help_brands": "Пошук фільтрує результати за вашим вибором зі списку брендів.",
 	"phone_selector_item_review": "Огляд",
 	"phone_selector_item_shop": "Купити",
 	"phone_selector_clear_brands_btn": "Скинути бренди",
@@ -200,5 +206,12 @@
 	"eq_settings_autoeq_persist_session": "Тільки в цій вкладці",
 	"eq_settings_autoeq_persist_local": "Зберігати в цьому браузері",
 	"eq_settings_link_eq_normalization_label": "Прикріпити криву екв. до вихідної",
-	"eq_settings_link_eq_normalization_description": "Зберігати положення кривої еквалайзера відносно вихідного графіка незалежно від налаштувань нормалізації."
+	"eq_settings_link_eq_normalization_description": "Зберігати положення кривої еквалайзера відносно вихідного графіка незалежно від налаштувань нормалізації.",
+	"eq_channel_scope_label": "Канал",
+	"eq_channel_both": "Л+П",
+	"eq_channel_left": "Л",
+	"eq_channel_right": "П",
+	"eq_channel_applies_to": "Канал застосування",
+	"eq_channel_shared_hint": "+ {count} спільних смуг частот також застосовуються до цього каналу.",
+	"eq_channel_device_peq_shared_only": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено."
 }

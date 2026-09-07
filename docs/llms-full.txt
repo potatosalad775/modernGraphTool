@@ -782,6 +782,7 @@ It supports multiple filter types, preamp control, and audio playback with EQ ef
 ## Features
 
 * **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
+* **Per-channel EQ**: Bands can apply to both ears or to the left or right channel alone, so channel imbalance and target matching can be corrected at the same time
 * **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
 * **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
 * **Filter Management**: Add, remove, and modify EQ bands dynamically
@@ -808,6 +809,24 @@ Nothing in the panel reaches the graph or the audio player until the master **Eq
 * Adding the **first** band to an empty filter list
 
 Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you.
+
+## Per-channel EQ
+
+At the top of the filter list is a **Channel** switch with three positions — **L+R**, **L** and **R**. It chooses which bands the list below is editing:
+
+* **L+R** — shared bands. They apply to both ears, which is how every EQ behaved before this existed, and it preserves whatever channel imbalance the unit has.
+* **L** / **R** — bands for that ear alone, stacked on top of the shared ones.
+
+The count beside each label is how many bands live in that bucket. While scoped to one ear the list shows only that ear’s bands, with a line underneath reporting how many shared bands also reach it. A band’s **Applies to** control (expand the band to see it) moves it between buckets.
+
+What each ear actually plays is *shared + that ear’s own bands*. The preamp is a single number sized for whichever ear needs the most headroom, and the on-graph average is recomputed as the mean of the two equalized channels — so a left-only correction visibly moves the average too.
+
+Two things to know:
+
+* **AutoEQ follows the switch.** In **L+R** it optimizes against the average, preserving the unit’s natural imbalance. Scoped to one ear it optimizes against that ear’s measurement and replaces only that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you correct imbalance and match a target at the same time.
+* **Device PEQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device sends the shared bands and warns you about the left/right bands it had to skip. The graph, the audio preview and file export all carry the full per-channel EQ.
+
+See [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#per-channel-eq-l--r) for the workflow.
 
 ## AutoEQ band count
 
@@ -3631,7 +3650,7 @@ Opening the Equalizer panel (third menu icon, or press **3** on desktop) shows y
 
 * A **master enable switch** at the top — flip it off to temporarily disable the whole EQ without losing your filters.
 * A **phone/target selector** next to the switch — tells the EQ which loaded curve to modify.
-* A **filter list** — the actual EQ bands.
+* A **filter list** — the actual EQ bands, headed by a **channel switch** (**L+R**, **L** or **R**) that chooses which ear the list edits.
 * Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Device PEQ**.
 
 ## Building an EQ by hand
@@ -3652,6 +3671,31 @@ The minimum viable workflow is:
 3. Add a filter, set it to Peaking, drag it to the frequency you want to fix, and set the gain.
 4. Check the graph to see the corrected curve land on (or close to) the target.
 
+## Per-channel EQ (L / R)
+
+No two drivers measure identically. Most of the time you want to leave that alone — the small left-to-right difference is part of how your unit sounds, and correcting the average is enough. But if one ear is noticeably quieter, or you want both ears to land on the target rather than merely their average, you need the two channels equalized separately.
+
+That’s what the **channel switch** at the top of the filter list is for:
+
+* **L+R** — bands that apply to both ears. This is the default and what every EQ did before this feature existed.
+* **L** or **R** — bands for that ear only, applied *on top of* the shared ones.
+
+Switching to **L** or **R** shows only that ear’s bands, with a note underneath telling you how many shared bands also reach it. If the graph was showing the averaged curve, it expands to draw L and R separately so you can see what you’re doing. To move an existing band between buckets, expand it and use **Applies to**.
+
+### Correcting channel imbalance
+
+1. Load your headphone and select it in the Equalizer panel.
+2. Pick a target in the **AutoEQ** section.
+3. Switch the channel selector to **L**, run AutoEQ. Switch to **R**, run it again.
+
+Each run only replaces its own bucket, so the two solutions coexist. Both ears now land on the target and the imbalance is gone.
+
+To keep the imbalance and just fix the overall tuning, stay on **L+R** — AutoEQ there works from the average, which leaves the difference between the channels untouched.
+
+Where per-channel EQ applies
+
+The graph, the audio preview and the exported filter file all carry the full per-channel EQ. **Device PEQ does not** — hardware EQ slots have no channel concept, so a push sends the shared bands only and tells you how many left/right bands it skipped.
+
 ## AutoEQ
 
 If you don’t want to hand-design filters, open the **AutoEQ** accordion section. It walks through three steps:
@@ -3661,6 +3705,8 @@ If you don’t want to hand-design filters, open the **AutoEQ** accordion sectio
 3. **Apply** the filters to the filter list. Tweak further from there if you want.
 
 AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands.
+
+AutoEQ follows the channel switch: on **L+R** it works from the averaged curve, and scoped to one ear it works from that ear’s measurement and replaces only that ear’s bands.
 
 ## Audio preview
 
@@ -3693,6 +3739,10 @@ You can **export** your current filter set as a text file (compatible with commo
 * Moving an EQ between modernGraphTool and a system-wide EQ application.
 
 The import/export controls live inside the filter list. See [Equalizer](/modernGraphTool/docs/features/equalizer/) for format details.
+
+Per-channel bands survive the round trip. The exported file uses Equalizer APO’s `Channel:` syntax — a `Channel: ALL` section for the shared bands, then `Channel: L` and `Channel: R` — and import reads it back into the same buckets. An EQ with no per-channel bands exports without any `Channel:` lines at all, exactly as before, so existing presets and other tools are unaffected.
+
+The **Graphic EQ** export is a single curve with no channel syntax, so when you have per-channel bands it writes two files instead of one — an `L` and an `R`, each combining the shared bands with that ear’s own.
 
 ***
 

@@ -2,7 +2,12 @@
 
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`.
+`equalizer.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`search-query.ts`.
+
+`search-query.ts` is just `splitQueryTerms` — the comma split shared by the local device list and
+cross-site search, so both read `A,B` as the same two terms. What "and" means then differs per
+surface; see the cross-site search note in `services/AGENTS.md`.
 
 ## `fr-average.ts` — average all visible
 

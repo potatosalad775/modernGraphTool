@@ -34,6 +34,10 @@ If no brand is selected, the phone pane shows every device in the database. Most
 
 The search field in the header does a live substring match against device names. It works together with brand filtering: if you've picked two brands and then type into the search box, you'll only see matching devices from those brands.
 
+The **i** button beside the field opens a short list of search tips, so the syntax below is discoverable without leaving the panel.
+
+Separate several devices with commas — `hd 600, u12t` shows every device matching either one, so you can load both sides of a comparison without clearing the box in between. Commas mean something stronger in cross-site results, below.
+
 Clear the search box to get back to the full filtered list.
 
 ## Loading and unloading
@@ -52,9 +56,9 @@ The order is decided once, when the panel opens, and then stays put — loading 
 
 ## Cross-site search
 
-On **squig.link**-hosted sites, the phone pane also shows matching devices from _other_ squig.link sites underneath the local results. These appear only while a search query is active and let you jump to another site that has the device you're looking for. See [squig.link Integration](../features/squiglink-integration.mdx) for the full story.
+The phone pane also shows matching devices from _other_ measurement databases underneath the local results. These appear only while a search query is active and let you jump to another site that has the device you're looking for.
 
-Sites that aren't part of the squig.link network won't show cross-site results.
+A comma-separated query narrows this to databases carrying **all** of the devices you named — `hd 600, u12t` lists only the sites that measured both, which is what you want when you're after two curves from the same rig. See [Cross-Site Search](../features/cross-site-search.mdx) for the full story.
 
 ## Uploading your own measurement
 

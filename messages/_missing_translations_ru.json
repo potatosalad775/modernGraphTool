@@ -6,23 +6,10 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/ru.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
-	"phone_selector_search_help_btn": "Советы по поиску",
-	"phone_selector_search_help_title": "Советы по поиску",
-	"phone_selector_search_help_substring": "Поиск любой части названия бренда или устройства.",
-	"phone_selector_search_help_commas": "Разделите устройства запятыми, чтобы найти сразу несколько.",
-	"phone_selector_search_help_cross_site": "В результатах из других баз данных перечислены только сайты, содержащие все устройства, которые вы указали.",
-	"phone_selector_search_help_brands": "Поиск фильтрует результаты по вашему выбору из списка брендов.",
 	"eq_constraint_select_title": "EQ constraint preset — limits bands, filter types, and frequency / Q / gain ranges",
 	"eq_constraint_search_placeholder": "Search presets…",
 	"eq_constraint_group_builtin": "Built-in",
 	"eq_constraint_group_device": "Device",
 	"eq_constraint_no_results": "No matching preset",
-	"eq_constraint_max_bands_reached": "{label} preset only allows {max} bands",
-	"eq_channel_scope_label": "Канал",
-	"eq_channel_both": "Л+П",
-	"eq_channel_left": "Л",
-	"eq_channel_right": "П",
-	"eq_channel_applies_to": "Канал применения",
-	"eq_channel_shared_hint": "+ {count} общих полос частот также применимы к этому каналу.",
-	"eq_channel_device_peq_shared_only": "Отправлено {count} общих полос. У этого устройства нет поканального эквалайзера, поэтому {skipped} левых/правых полос были пропущены."
+	"eq_constraint_max_bands_reached": "{label} preset only allows {max} bands"
 }

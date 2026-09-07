@@ -667,6 +667,16 @@ This works on **any host** — squig.link is not required. Cross-site search rea
 
 The index comes from [GraphAggregator](https://github.com/HarutoHiroki/GraphAggregator), a community project that crawls known measurement databases and publishes their device lists as one JSON file. modernGraphTool ships with its official URLs built in, so there is nothing to set up.
 
+## Comma-separated queries
+
+Typing `hd 600, u12t` asks a different question: *which database has **both** of these?* Only databases carrying a match for every term are listed, and each one shows all of its matching devices — so a visitor comparing two devices can find a site that measured them on the same rig instead of stitching two sites’ graphs together.
+
+The **i** button next to the search field lists these tips in the UI, so visitors don’t have to guess the syntax.
+
+A term is only applied once it reaches two characters, so results don’t churn while the visitor is still typing the second one. A trailing comma is ignored.
+
+Your own site’s device list reads the same query, but unions the terms there — one device can’t be both, so it shows the devices matching either, ready to be loaded together.
+
 ## Configuration
 
 Configured in `config.js`:
@@ -678,7 +688,15 @@ CROSS_SITE_SEARCH: {
 }
 ```
 
-### Configuration Options
+### Comma-separated queries
+
+Typing `hd 600, u12t` asks a different question: *which database has **both** of these?* Only databases carrying a match for every term are listed, and each one shows all of its matching devices — so a visitor comparing two devices can find a site that measured them on the same rig instead of stitching two sites’ graphs together.
+
+A term is only applied once it reaches two characters, so results don’t churn while the visitor is still typing the second one. A trailing comma is ignored.
+
+Your own site’s device list reads the same query, but unions the terms there — one device can’t be both, so it shows the devices matching either, ready to be loaded together.
+
+## Configuration Options
 
 * **`ENABLED`**: Toggle cross-site search. Defaults to on.
 * **`INDEX_URLS`**: Index documents to try, in order. Leave empty to use the official GraphAggregator index (with its GitHub Pages mirror as an automatic backup).
@@ -4098,6 +4116,10 @@ If no brand is selected, the phone pane shows every device in the database. Most
 
 The search field in the header does a live substring match against device names. It works together with brand filtering: if you’ve picked two brands and then type into the search box, you’ll only see matching devices from those brands.
 
+The **i** button beside the field opens a short list of search tips, so the syntax below is discoverable without leaving the panel.
+
+Separate several devices with commas — `hd 600, u12t` shows every device matching either one, so you can load both sides of a comparison without clearing the box in between. Commas mean something stronger in cross-site results, below.
+
 Clear the search box to get back to the full filtered list.
 
 ## Loading and unloading
@@ -4116,9 +4138,9 @@ The order is decided once, when the panel opens, and then stays put — loading 
 
 ## Cross-site search
 
-On **squig.link**-hosted sites, the phone pane also shows matching devices from *other* squig.link sites underneath the local results. These appear only while a search query is active and let you jump to another site that has the device you’re looking for. See [squig.link Integration](/modernGraphTool/docs/features/squiglink-integration/) for the full story.
+The phone pane also shows matching devices from *other* measurement databases underneath the local results. These appear only while a search query is active and let you jump to another site that has the device you’re looking for.
 
-Sites that aren’t part of the squig.link network won’t show cross-site results.
+A comma-separated query narrows this to databases carrying **all** of the devices you named — `hd 600, u12t` lists only the sites that measured both, which is what you want when you’re after two curves from the same rig. See [Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/) for the full story.
 
 ## Uploading your own measurement
 

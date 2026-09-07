@@ -5,6 +5,7 @@
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { deriveDeviceConstraint } from '$lib/device-peq/derive-constraint.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { toast } from 'svelte-sonner';
 	import { Info } from '@lucide/svelte';
 	import { untrack } from 'svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
@@ -186,10 +187,16 @@
 		devicePeqStore.isWriting = true;
 		try {
 			const connector = await getConnector(device.connectionType);
+			// Hardware PEQ slots have no channel concept — `DeviceFilter` carries
+			// no channel and no handler exposes one — so only the shared bands can
+			// be represented. Pushing an L-only band to a mono slot would apply it
+			// to both ears, which is a different EQ from the one on screen; better
+			// to send the part that is faithful and say what was left behind.
+			const skipped = eqStore.filters.filter((f) => f.channel != null).length;
 			const filters = eqStore.filters
 				.filter(
 					(f): f is EQFilter & { freq: number; q: number; gain: number } =>
-						f.freq != null && f.q != null && f.gain != null
+						f.channel == null && f.freq != null && f.q != null && f.gain != null
 				)
 				.map((f) => ({
 					type: f.type,
@@ -206,6 +213,9 @@
 				filters
 			);
 			devicePeqStore.setStatus(`Wrote ${filters.length} filters to device`);
+			if (skipped > 0) {
+				toast.warning(m.eq_channel_device_peq_shared_only({ count: filters.length, skipped }));
+			}
 			if (shouldDisconnect) {
 				await disconnect();
 			}

@@ -1,4 +1,5 @@
 import type { EQFilter } from './equalizer.js';
+import { countBandsPerOutput, trimToBandsPerOutput } from './eq-channel.js';
 import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
 
 /**
@@ -134,9 +135,24 @@ export function getFilterViolation(filter: EQFilter, preset: EqConstraintPreset)
 	return result;
 }
 
-/** Whether `filter` index is past the preset's `maxBands` cap (0 = unlimited). */
-export function isPastMaxBands(index: number, preset: EqConstraintPreset): boolean {
-	return preset.maxBands > 0 && index >= preset.maxBands;
+/**
+ * Whether the band at `index` is past the preset's `maxBands` cap (0 = unlimited).
+ *
+ * Pass `filters` to count per output rather than by flat position: with
+ * per-channel bands the array is longer than any one ear has to realise, so
+ * position alone greys out rows a device can still take. Without it the answer
+ * is the plain positional one, which is what a shared-only EQ wants anyway.
+ */
+export function isPastMaxBands(
+	index: number,
+	preset: EqConstraintPreset,
+	filters?: EQFilter[]
+): boolean {
+	if (preset.maxBands <= 0) return false;
+	// A list that doesn't reach `index` isn't describing this band — fall back to
+	// the positional answer rather than reporting an empty list as "fits".
+	if (!filters || index >= filters.length) return index >= preset.maxBands;
+	return countBandsPerOutput(filters.slice(0, index + 1)) > preset.maxBands;
 }
 
 /**
@@ -149,7 +165,10 @@ export function isPastMaxBands(index: number, preset: EqConstraintPreset): boole
  * the band template by nearest-frequency match (in log space); bands with
  * no nearby source filter receive gain = 0. This keeps the 1:1 row-to-band
  * mapping the UI relies on, and avoids two parametric filters collapsing
- * onto the same band when their frequencies were close.
+ * onto the same band when their frequencies were close. It also flattens any
+ * per-channel bands into shared ones, which is correct: a graphic preset
+ * describes one fixed row per band on one output, so there is no per-ear
+ * structure left to preserve.
  */
 export function clampFiltersToConstraint(
 	filters: EQFilter[],
@@ -159,10 +178,10 @@ export function clampFiltersToConstraint(
 		return foldOntoGraphicBands(filters, preset);
 	}
 	const clamped = filters.map((f) => clampFilterToConstraint(f, preset));
-	if (preset.maxBands > 0 && clamped.length > preset.maxBands) {
-		return clamped.slice(0, preset.maxBands);
-	}
-	return clamped;
+	// The cap is per output, not per list — 4 shared + 3 L + 3 R is 7 bands on
+	// each ear, not 10. `trimToBandsPerOutput` collapses to the old
+	// `slice(0, maxBands)` whenever nothing is per-channel.
+	return trimToBandsPerOutput(clamped, preset.maxBands);
 }
 
 const GRAPHIC_FOLD_LOG_THRESHOLD = Math.log(2); // ±1 octave

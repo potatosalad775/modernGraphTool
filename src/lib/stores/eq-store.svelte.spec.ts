@@ -19,6 +19,7 @@ describe('EQStore', () => {
 		eqStore.isEnabled = false;
 		eqStore.sourcePhoneUUID = null;
 		eqStore.autoEqTargetUUID = null;
+		eqStore.channelScope = 'BOTH';
 	});
 
 	describe('initial state', () => {
@@ -37,6 +38,42 @@ describe('EQStore', () => {
 		it('starts with null UUIDs', () => {
 			expect(eqStore.sourcePhoneUUID).toBeNull();
 			expect(eqStore.autoEqTargetUUID).toBeNull();
+		});
+
+		it('starts scoped to the shared bucket', () => {
+			expect(eqStore.channelScope).toBe('BOTH');
+		});
+	});
+
+	describe('per-channel bands', () => {
+		// The channel rides on the filter object; the store keeps one flat array
+		// so every index address in the command layer stays valid.
+		it('stores a band with no channel as shared', () => {
+			eqStore.addBand(makeFilter());
+			expect(eqStore.filters[0].channel).toBeUndefined();
+		});
+
+		it('keeps a band pinned to one ear', () => {
+			eqStore.addBand(makeFilter({ channel: 'L' }));
+			expect(eqStore.filters[0].channel).toBe('L');
+		});
+
+		it('retargets a band through updateBandAt', () => {
+			eqStore.addBand(makeFilter({ channel: 'L' }));
+			eqStore.updateBandAt(0, { channel: 'R' });
+			expect(eqStore.filters[0].channel).toBe('R');
+		});
+
+		it('moves a band back to shared with an undefined channel', () => {
+			eqStore.addBand(makeFilter({ channel: 'L' }));
+			eqStore.updateBandAt(0, { channel: undefined });
+			expect(eqStore.filters[0].channel).toBeUndefined();
+		});
+
+		it('leaves the channel alone when another field is edited', () => {
+			eqStore.addBand(makeFilter({ channel: 'R' }));
+			eqStore.updateBandAt(0, { gain: -4 });
+			expect(eqStore.filters[0]).toMatchObject({ gain: -4, channel: 'R' });
 		});
 	});
 

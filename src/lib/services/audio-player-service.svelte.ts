@@ -4,6 +4,8 @@ import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
+import { hasPerChannelFilters } from '$lib/utils/eq-channel.js';
+import type { EQFilter } from '$lib/utils/equalizer.js';
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
@@ -256,26 +258,89 @@ class AudioPlayerService {
 		preampNode.gain.value = Math.pow(10, eqStore.preamp / 20);
 		this.#filterNodes.push(preampNode);
 
-		// Biquad filters
-		for (const f of filters) {
-			const node = ctx.createBiquadFilter();
-			if (f.type === 'PK') node.type = 'peaking';
-			else if (f.type === 'LSQ') node.type = 'lowshelf';
-			else if (f.type === 'HSQ') node.type = 'highshelf';
-			node.frequency.value = f.freq!;
-			node.Q.value = f.q!;
-			node.gain.value = f.gain!;
-			this.#filterNodes.push(node);
+		// Shared bands run before the split — a BiquadFilterNode processes every
+		// channel it is given, so one node per shared band covers both ears.
+		for (const f of filters.filter((f) => f.channel == null)) {
+			this.#filterNodes.push(this.#createBiquad(ctx, f));
 		}
 
-		// Chain: match → [bandpass pair if range mode] → preamp → filter[0] → ... → chainTail
+		// Chain so far: match → [bandpass pair if range mode] → preamp → shared bands
 		match.connect(this.#filterNodes[0]);
 		for (let i = 0; i < this.#filterNodes.length - 1; i++) {
 			this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
 		}
-		this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
+		let tail: AudioNode = this.#filterNodes[this.#filterNodes.length - 1];
+
+		if (hasPerChannelFilters(filters)) {
+			tail = this.#buildPerChannelStage(ctx, tail, filters);
+		}
+		tail.connect(chainTail);
 
 		this.#reconnectSource();
+	}
+
+	#createBiquad(ctx: AudioContext, f: EQFilter): BiquadFilterNode {
+		const node = ctx.createBiquadFilter();
+		if (f.type === 'PK') node.type = 'peaking';
+		else if (f.type === 'LSQ') node.type = 'lowshelf';
+		else if (f.type === 'HSQ') node.type = 'highshelf';
+		node.frequency.value = f.freq!;
+		node.Q.value = f.q!;
+		node.gain.value = f.gain!;
+		return node;
+	}
+
+	/**
+	 * Split into two mono chains, filter each ear separately, merge back.
+	 *
+	 * ```
+	 * input → stereoForce → splitter ─┬─ L bands ─→ merger.in(0) ┐
+	 *                                 └─ R bands ─→ merger.in(1) ┴→ (returned)
+	 * ```
+	 *
+	 * Built **only** when a band is pinned to one ear, so an ordinary EQ keeps
+	 * the single serial chain it always had — the split costs two extra nodes
+	 * and a forced upmix, and nothing about a shared-only EQ needs them.
+	 *
+	 * `stereoForce` is not optional. Every generated source here — the noise
+	 * buffer, the oscillator, a mono file — is one channel, and a splitter fed
+	 * one channel leaves output 1 silent, so the right ear would go dead the
+	 * moment the user pinned a band to the left. Declaring `channelCount = 2`
+	 * with an explicit count mode makes Web Audio upmix to stereo first.
+	 *
+	 * An ear with no bands of its own still gets a unity `GainNode`: a merger
+	 * input left unconnected is silence, not passthrough.
+	 */
+	#buildPerChannelStage(ctx: AudioContext, input: AudioNode, filters: EQFilter[]): AudioNode {
+		const stereoForce = ctx.createGain();
+		stereoForce.channelCount = 2;
+		stereoForce.channelCountMode = 'explicit';
+		stereoForce.channelInterpretation = 'speakers';
+
+		const splitter = ctx.createChannelSplitter(2);
+		const merger = ctx.createChannelMerger(2);
+		this.#filterNodes.push(stereoForce, splitter, merger);
+
+		input.connect(stereoForce);
+		stereoForce.connect(splitter);
+
+		(['L', 'R'] as const).forEach((ch, outputIndex) => {
+			const bands = filters.filter((f) => f.channel === ch);
+			const entry = ctx.createGain();
+			this.#filterNodes.push(entry);
+			splitter.connect(entry, outputIndex);
+
+			let sideTail: AudioNode = entry;
+			for (const f of bands) {
+				const node = this.#createBiquad(ctx, f);
+				this.#filterNodes.push(node);
+				sideTail.connect(node);
+				sideTail = node;
+			}
+			sideTail.connect(merger, 0, outputIndex);
+		});
+
+		return merger;
 	}
 
 	/**

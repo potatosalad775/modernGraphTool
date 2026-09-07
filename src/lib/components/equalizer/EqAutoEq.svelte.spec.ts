@@ -1,7 +1,7 @@
 /**
  * `EqAutoEq` is the AutoEQ control surface: four range fieldsets bound to
  * `settingsStore.autoEqOptions`, and a run button that assembles those into a
- * worker request and pushes the result through `eqCommands.replaceFilters`.
+ * worker request and pushes the result through `eqCommands.replaceFiltersInScope`.
  *
  * The worker is mocked — `autoeq.worker.spec.ts` covers the protocol and
  * `equalizer.spec.ts` the optimization. What matters here is the request this
@@ -95,6 +95,7 @@ describe('EqAutoEq', () => {
 	beforeEach(() => {
 		frStore.entries.clear();
 		eqStore.filters = [];
+		eqStore.channelScope = 'BOTH';
 		eqStore.sourcePhoneUUID = null;
 		eqStore.autoEqTargetUUID = null;
 		eqStore.isEnabled = false;
@@ -105,7 +106,7 @@ describe('EqAutoEq', () => {
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 		runInWorker.mockClear();
 		runInWorker.mockResolvedValue(RESULT);
-		replaceFilters = vi.spyOn(eqCommands, 'replaceFilters').mockImplementation(() => {});
+		replaceFilters = vi.spyOn(eqCommands, 'replaceFiltersInScope').mockImplementation(() => {});
 		alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 	});
 
@@ -341,6 +342,57 @@ describe('EqAutoEq', () => {
 			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(5);
 		});
 
+		// Scoped to one ear, AutoEQ has to optimize against that ear's curve —
+		// against AVG it would solve for a response neither channel has, and
+		// correcting channel imbalance (the point of per-channel EQ) becomes
+		// impossible.
+		it('optimizes against the scoped channel of both source and target', async () => {
+			frStore.set('src', {
+				uuid: 'src',
+				type: 'phone',
+				identifier: 'src',
+				channels: { L: { data: curve(6) }, R: { data: curve(9) }, AVG: { data: curve(7.5) } }
+			} as unknown as FRDataObject);
+			frStore.set('tgt', {
+				uuid: 'tgt',
+				type: 'target',
+				identifier: 'tgt',
+				channels: { L: { data: curve(1) }, R: { data: curve(2) }, AVG: { data: curve(1.5) } }
+			} as unknown as FRDataObject);
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.autoEqTargetUUID = 'tgt';
+			eqStore.channelScope = 'R';
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
+			expect(runInWorker.mock.calls[0][1]).toEqual(curve(2));
+		});
+
+		// A target measured as one curve is the common case, and it still has to
+		// be usable for a per-ear run.
+		it('falls back to the average when the scoped channel is missing', async () => {
+			frStore.set('src', {
+				uuid: 'src',
+				type: 'phone',
+				identifier: 'src',
+				channels: { L: { data: curve(6) }, R: { data: curve(9) } }
+			} as unknown as FRDataObject);
+			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.autoEqTargetUUID = 'tgt';
+			eqStore.channelScope = 'R';
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
+			expect(runInWorker.mock.calls[0][1]).toEqual(curve(0));
+		});
+
 		it('falls back to the L channel when there is no average', async () => {
 			frStore.set('src', {
 				uuid: 'src',
@@ -369,7 +421,19 @@ describe('EqAutoEq', () => {
 
 			await runButton().click();
 
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT));
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH'));
+		});
+
+		// Scoped, so a run on one ear can't delete the shared bands or the other
+		// ear's solution — `replaceFilters` would have wiped the whole array.
+		it('replaces only the scoped bucket', async () => {
+			seedPair();
+			eqStore.channelScope = 'L';
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'L'));
 		});
 
 		// Without this the run lands silently: filters appear in the list, the

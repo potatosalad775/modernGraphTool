@@ -3,6 +3,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
+import { sanitizeChannel } from './eq-channel.js';
 import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
 import {
@@ -151,7 +152,13 @@ class URLProvider {
 		}
 
 		if (eq && eq.filters.length > 0) {
-			eqStore.filters = eq.filters;
+			// `channel` comes from a hand-editable URL, so narrow it rather than
+			// trusting it — an unknown value would make a band belong to no ear
+			// and quietly vanish from every scoped view.
+			eqStore.filters = eq.filters.map((f) => {
+				const channel = sanitizeChannel(f.channel);
+				return channel ? { ...f, channel } : { ...f, channel: undefined };
+			});
 			eqStore.preamp = eq.preamp;
 			eqStore.isEnabled = true;
 		}

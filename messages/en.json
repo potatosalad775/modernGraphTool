@@ -206,5 +206,12 @@
 	"eq_settings_autoeq_persist_session": "Keep for this tab only",
 	"eq_settings_autoeq_persist_local": "Save to this browser",
 	"eq_settings_link_eq_normalization_label": "Lock EQ curve to original",
-	"eq_settings_link_eq_normalization_description": "Keep the EQ curve positioned relative to the original graph regardless of normalization settings."
+	"eq_settings_link_eq_normalization_description": "Keep the EQ curve positioned relative to the original graph regardless of normalization settings.",
+	"eq_channel_scope_label": "Channel",
+	"eq_channel_both": "L+R",
+	"eq_channel_left": "L",
+	"eq_channel_right": "R",
+	"eq_channel_applies_to": "Applies to",
+	"eq_channel_shared_hint": "+ {count} shared band(s) also apply to this channel.",
+	"eq_channel_device_peq_shared_only": "Sent {count} shared band(s). This device has no per-channel EQ, so {skipped} left/right band(s) were skipped."
 }

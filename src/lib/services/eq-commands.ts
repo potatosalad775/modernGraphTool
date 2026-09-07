@@ -10,6 +10,8 @@ import {
 	clampFilterToConstraint,
 	clampFiltersToConstraint
 } from '$lib/utils/eq-constraint-clamp.js';
+import { countBandsPerOutput } from '$lib/utils/eq-channel.js';
+import type { EqChannelScope } from '$lib/utils/eq-channel.js';
 
 /**
  * EQ-store commands — add/remove/update filter bands and bulk-replace the
@@ -26,13 +28,20 @@ import {
  */
 export const EQ_COMMAND_UUID = '__eq__';
 
+/**
+ * Full field-wise equality. `channel` has to be in here — retargeting a band
+ * from shared to one ear changes nothing else about it, so leaving the field
+ * out makes the coalescer read the edit as a no-op burst and drop it.
+ * Normalized because absent and `undefined` are the same bucket.
+ */
 function eqFiltersEqual(a: EQFilter, b: EQFilter): boolean {
 	return (
 		a.enabled === b.enabled &&
 		a.type === b.type &&
 		a.freq === b.freq &&
 		a.q === b.q &&
-		a.gain === b.gain
+		a.gain === b.gain &&
+		(a.channel ?? null) === (b.channel ?? null)
 	);
 }
 
@@ -335,8 +344,11 @@ export const eqCommands = {
 	addBand(filter: EQFilter): boolean {
 		coalescer.flushAll();
 		const preset = eqConstraintsStore.active;
-		if (preset && preset.maxBands > 0 && eqStore.filters.length >= preset.maxBands) {
-			return false;
+		// Counted per output: a shared band costs a slot on both ears, an L-only
+		// band only on the left. Same number as `filters.length` until the user
+		// pins a band to one ear.
+		if (preset && preset.maxBands > 0) {
+			if (countBandsPerOutput([...eqStore.filters, filter]) > preset.maxBands) return false;
 		}
 		const clamped = preset ? clampFilterToConstraint(filter, preset) : filter;
 		commandHistory.execute(new AddEqFilterCommand(clamped), frStore);
@@ -366,6 +378,39 @@ export const eqCommands = {
 	},
 
 	/**
+	 * Replace only one channel bucket, leaving the other two untouched.
+	 *
+	 * AutoEQ and any other bulk producer has to go through this rather than
+	 * `replaceFilters`: running AutoEQ on the left ear should not delete the
+	 * shared bands or the right ear's. The incoming filters are stamped with
+	 * the scope's channel, so a producer stays channel-blind and just hands
+	 * over the bands it computed.
+	 *
+	 * Still one command, so it is one undo entry. In `BOTH` scope with no
+	 * per-channel bands present it is exactly `replaceFilters`.
+	 */
+	replaceFiltersInScope(filters: EQFilter[], scope: EqChannelScope): void {
+		const channel = scope === 'BOTH' ? undefined : scope;
+		const stamped = filters.map((f) => ({ ...f, channel }));
+		const others = eqStore.filters.filter((f) =>
+			scope === 'BOTH' ? f.channel != null : f.channel !== scope
+		);
+		// Rebuilt in bucket order (shared, then L, then R) so the flat array's
+		// order keeps matching what the scoped list shows.
+		const next = [
+			...(scope === 'BOTH' ? stamped : others.filter((f) => f.channel == null)),
+			...(scope === 'L' ? stamped : others.filter((f) => f.channel === 'L')),
+			...(scope === 'R' ? stamped : others.filter((f) => f.channel === 'R'))
+		];
+		coalescer.clear();
+		const preset = eqConstraintsStore.active;
+		commandHistory.execute(
+			new ReplaceEqFiltersCommand(preset ? clampFiltersToConstraint(next, preset) : next),
+			frStore
+		);
+	},
+
+	/**
 	 * Apply a history snapshot's filters + preamp as one undoable command.
 	 * Used by the History & Compare UI's A/B switch. Skips when the live
 	 * state already matches the snapshot byte-for-byte.
@@ -378,14 +423,7 @@ export const eqCommands = {
 			sameLength &&
 			filters.every((f, i) => {
 				const c = eqStore.filters[i];
-				return (
-					c &&
-					c.enabled === f.enabled &&
-					c.type === f.type &&
-					c.freq === f.freq &&
-					c.q === f.q &&
-					c.gain === f.gain
-				);
+				return !!c && eqFiltersEqual(c, f);
 			});
 		if (samePreamp && sameContent) return;
 		eqHistoryStore.suppressNext();
@@ -405,16 +443,7 @@ export const eqCommands = {
 		// Skip if nothing actually changes.
 		if (
 			next.length === eqStore.filters.length &&
-			next.every((f, i) => {
-				const c = eqStore.filters[i];
-				return (
-					f.enabled === c.enabled &&
-					f.type === c.type &&
-					f.freq === c.freq &&
-					f.q === c.q &&
-					f.gain === c.gain
-				);
-			})
+			next.every((f, i) => eqFiltersEqual(f, eqStore.filters[i]))
 		) {
 			return;
 		}

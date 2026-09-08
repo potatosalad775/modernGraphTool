@@ -212,6 +212,6 @@
 	"eq_channel_left": "Л",
 	"eq_channel_right": "П",
 	"eq_channel_applies_to": "Канал застосування",
-	"eq_channel_shared_hint": "+ {count} спільних смуг частот також застосовуються до цього каналу.",
+	"eq_channel_shared_hint": "+ {count} спільних смуг також застосовані до цього каналу.",
 	"eq_channel_device_peq_shared_only": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено."
 }

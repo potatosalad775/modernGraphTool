@@ -212,6 +212,6 @@
 	"eq_channel_left": "Л",
 	"eq_channel_right": "П",
 	"eq_channel_applies_to": "Канал применения",
-	"eq_channel_shared_hint": "+ {count} общих полос частот также применимы к этому каналу.",
+	"eq_channel_shared_hint": "+ {count} общих полос частот также применены к этому каналу.",
 	"eq_channel_device_peq_shared_only": "Отправлено {count} общих полос. У этого устройства нет поканального эквалайзера, поэтому {skipped} левых/правых полос были пропущены."
 }

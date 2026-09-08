@@ -204,8 +204,13 @@
 			</p>
 			<ul class="flex flex-col gap-2">
 				<li class="flex flex-col gap-1">
-					<!-- Examples stay literal in every locale: device names aren't translatable. -->
-					<code class="ps-help-code">hd600</code>
+					<!--
+						Examples stay literal in every locale: device names aren't translatable. That makes
+						them the popover's fingerprint in PhoneSelector.svelte.spec.ts, which asserts on
+						`hd 600, u12t` verbatim — rephrasing a sample here breaks those tests, so update
+						the spec in the same change.
+					-->
+					<code class="ps-help-code">hd 6</code>
 					<span class="text-xs leading-snug text-base-content/70">
 						{m.phone_selector_search_help_substring()}
 					</span>
@@ -219,7 +224,7 @@
 					{/if}
 				</li>
 				<li class="flex flex-col gap-1">
-					<code class="ps-help-code">hd600, u12t</code>
+					<code class="ps-help-code">hd 600, u12t</code>
 					<span class="text-xs leading-snug text-base-content/70">
 						{m.phone_selector_search_help_commas()}
 					</span>

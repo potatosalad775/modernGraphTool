@@ -72,7 +72,9 @@ describe('PhoneSelector', () => {
 
 			await page.getByRole('button', { name: 'Search tips' }).click();
 
-			// The examples are literal, so they double as the popover's fingerprint.
+			// The examples are literal, so they double as the popover's fingerprint — every
+			// other line in there is a Paraglide string and moves with the locale. Mirrored
+			// in the `ps-help-code` samples in PhoneSelector.svelte; change both together.
 			await expect.element(page.getByText('hd 600, u12t')).toBeInTheDocument();
 			await expect
 				.element(page.getByText('Separate devices with commas', { exact: false }))

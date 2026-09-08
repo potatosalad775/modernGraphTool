@@ -64,7 +64,7 @@ jobs:
           MAJOR: ${{ steps.version.outputs.major }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          # Save build artifacts to /tmp/ before switching branches
+          # Stage the build artifacts outside the repo before touching branches.
           mkdir -p /tmp/cdn-assets
           cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
           cp dist-cdn/boot.json "/tmp/cdn-assets/boot.json"
@@ -74,14 +74,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Fetch or create cdn branch
+          # Publish from a dedicated worktree, never from the build tree.
+          # `git checkout cdn` in place would delete main's .gitignore (the cdn
+          # branch has its own), leaving node_modules/, .svelte-kit/ and dist*/
+          # untracked *and* unignored for `git add -A` to sweep up. That is how
+          # 288 MB of node_modules ended up on the branch, and it only surfaced
+          # once a dependency shipped a blob over GitHub's 100 MB file limit.
           git fetch origin cdn:cdn 2>/dev/null || true
           if git show-ref --verify --quiet refs/heads/cdn; then
-            git checkout cdn
+            git worktree add /tmp/cdn-branch cdn
           else
-            git checkout --orphan cdn
-            git rm -rf . 2>/dev/null || true
+            git worktree add --detach /tmp/cdn-branch
+            git -C /tmp/cdn-branch checkout --orphan cdn
+            git -C /tmp/cdn-branch rm -rf . 2>/dev/null || true
           fi
+
+          cd /tmp/cdn-branch
 
           # Copy versioned assets. Clean any pre-existing _app/ first so a
           # re-deploy of the same version doesn't nest into v${VERSION}/_app/_app/
@@ -115,8 +123,20 @@ jobs:
           echo "versions.json:"
           cat versions.json
 
-          # Commit and push
           git add -A
+
+          # Guard: the branch must only ever carry loader.js, versions.json,
+          # .gitignore and vX.Y.Z/ asset dirs. Anything else means the build
+          # tree leaked in again — fail loudly instead of pushing 300 MB.
+          UNEXPECTED=$(git diff --cached --name-only \
+            | awk -F/ '{print $1}' | sort -u \
+            | grep -Ev '^(loader\.js|versions\.json|\.gitignore|v[0-9]+\.[0-9]+\.[0-9]+)$' || true)
+          if [ -n "$UNEXPECTED" ]; then
+            echo "::error::Unexpected paths staged for the cdn branch:"
+            echo "$UNEXPECTED"
+            exit 1
+          fi
+
           git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
           git push origin cdn
 

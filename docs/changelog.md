@@ -12,6 +12,11 @@ pagefind: true
 draft: false
 ---
 
+### v2.1.9
+
+- Feat: Added per-channel equalizer features, allowing users to apply different EQ settings to the left and right channels independently.
+- Feat: Introduced a new comma-separated search feature in the device selector, enabling users to search for multiple devices at once. This could be useful for finding databases that contain all the devices you are interested in comparing. 
+
 ### v2.1.8
 
 - Feat: Added an "Average" option to combine all visible measurements into a single averaged curve.

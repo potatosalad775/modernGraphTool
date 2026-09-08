@@ -1,0 +1,1 @@
+function e(e,t=`PK`){let n=new Map;for(let[t,r]of Object.entries(e))n.set(r,t);let r=e[t];return{toCode:t=>e[t]??r,fromCode:e=>n.get(e)??t}}var t=e({PK:0,LSQ:1,HSQ:2}),n=e({PK:2,LSQ:1,HSQ:3}),r=e({PK:0,LSQ:3,HSQ:4});e({PK:13,LSQ:10,HSQ:11});var i=e({PK:1,LSQ:0,HSQ:2});export{i,r as n,n as r,t};

@@ -1,0 +1,11 @@
+node_modules
+.svelte-kit
+dist
+dist-cdn
+dist-cdn-package
+dist-site-template
+release-packages
+coverage
+docs
+src
+project.inlang

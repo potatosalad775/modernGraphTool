@@ -1,0 +1,17 @@
+{
+  "version": "2.1.0",
+  "assets_base": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0",
+  "global_name": "__sveltekit_g8kisz",
+  "start_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/entry/start.BlnwGfD0.js",
+  "app_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/entry/app.CuDlLWkZ.js",
+  "preloads": [
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/entry/start.BlnwGfD0.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/chunks/Cgx5Iux_.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/chunks/BQpEvC7X.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/entry/app.CuDlLWkZ.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/chunks/Dj6f-nJM.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/chunks/DXLwiZ0H.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.1.0/_app/immutable/chunks/BDsDqJh0.js"
+  ],
+  "css": []
+}

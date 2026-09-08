@@ -205,13 +205,21 @@
 			<ul class="flex flex-col gap-2">
 				<li class="flex flex-col gap-1">
 					<!-- Examples stay literal in every locale: device names aren't translatable. -->
-					<code class="ps-help-code">hd 6</code>
+					<code class="ps-help-code">hd600</code>
 					<span class="text-xs leading-snug text-base-content/70">
 						{m.phone_selector_search_help_substring()}
 					</span>
+					<span class="text-xs leading-snug text-base-content/60">
+						{m.phone_selector_search_help_brands()}
+					</span>
+					{#if crossSiteEnabled}
+						<span class="text-xs leading-snug text-base-content/60">
+							{m.phone_selector_search_help_brands_cross_site()}
+						</span>
+					{/if}
 				</li>
 				<li class="flex flex-col gap-1">
-					<code class="ps-help-code">hd 600, u12t</code>
+					<code class="ps-help-code">hd600, u12t</code>
 					<span class="text-xs leading-snug text-base-content/70">
 						{m.phone_selector_search_help_commas()}
 					</span>
@@ -220,9 +228,6 @@
 							{m.phone_selector_search_help_cross_site()}
 						</span>
 					{/if}
-				</li>
-				<li class="text-xs leading-snug text-base-content/70">
-					{m.phone_selector_search_help_brands()}
 				</li>
 			</ul>
 		</PopoverPanel>

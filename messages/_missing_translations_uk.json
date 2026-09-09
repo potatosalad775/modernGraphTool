@@ -6,7 +6,6 @@
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/uk.json.",
 		"Anything still missing afterwards simply renders in en at runtime."
 	],
-	"phone_selector_search_help_brands_cross_site": "However, brand filtering is not applied to results from other databases.",
 	"eq_constraint_select_title": "EQ constraint preset — limits bands, filter types, and frequency / Q / gain ranges",
 	"eq_constraint_search_placeholder": "Search presets…",
 	"eq_constraint_group_builtin": "Built-in",

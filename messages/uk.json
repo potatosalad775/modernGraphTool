@@ -8,6 +8,7 @@
 	"phone_selector_search_help_title": "Поради щодо пошуку",
 	"phone_selector_search_help_substring": "Пошук будь-якої частини назви бренду або пристрою.",
 	"phone_selector_search_help_brands": "Результати пошуку фільтруються з урахуванням значень, обраних зі списку брендів.",
+	"phone_selector_search_help_brands_cross_site": "Однак фільтрація за брендами не застосовується до результатів з інших баз даних.",
 	"phone_selector_search_help_commas": "Розділіть пристрої комами, щоб знайти одразу кілька.",
 	"phone_selector_search_help_cross_site": "У результатах з інших баз даних перелічено лише сайти, що містять усі пристрої, які ви вказали.",
 	"phone_selector_item_review": "Огляд",

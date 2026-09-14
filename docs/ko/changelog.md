@@ -12,6 +12,9 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.0
+- Feat: 기기 등급을 `phone_book.json` 대신 게시된 스프레드시트([squigRanking](https://potatosalad775.github.io/squigRanking/docs) 시트 또는 임의의 CSV)에서 읽어올 수 있게 되었습니다. 시트만 수정하면 재배포 없이 등급이 갱신됩니다. 등급 스케일이 정의된 경우 색상 배지로 표시됩니다. 새로운 `RANKING` 섹션에서 설정하며, 기존 `RANKING_URL`을 대체합니다(해당 키도 계속 동작합니다). 자세한 내용은 [RANKING 문서](./guide-for-admins/customize-page.mdx#ranking) 참조.
+
 ### v2.1.9
 
 - Feat: 채널 별 이퀄라이저 기능이 추가되어, 사용자가 좌우 채널에 대해 서로 다른 EQ 설정을 독립적으로 적용할 수 있게 되었습니다.

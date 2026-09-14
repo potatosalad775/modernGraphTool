@@ -12,6 +12,9 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.0
+- Feat: Device ranks can now be read from a published spreadsheet (a [squigRanking](https://potatosalad775.github.io/squigRanking/docs) sheet, or any CSV) instead of `phone_book.json`, so editing the sheet updates the tool with no redeploy. Ranks with a grade scale render as colored badges. Configured by the new `RANKING` section, which also replaces `RANKING_URL` — that key still works. See [RANKING documentation](./guide-for-admins/customize-page.mdx#ranking).
+
 ### v2.1.9
 
 - Feat: Added per-channel equalizer features, allowing users to apply different EQ settings to the left and right channels independently.

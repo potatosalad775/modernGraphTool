@@ -190,8 +190,22 @@ const CONFIG = {
 		INDEX_URLS: [] // Empty = official GAA index
 	},
 
-	// Link the review score in the phone list to your ranking page.
-	// Placeholders: {brand}, {model}, {slug}, {fullName}. → docs: RANKING_URL
+	// Device ranks in the phone list. Two independent halves — URL alone links the
+	// rank already in phone_book.json to wherever you keep your rankings (a
+	// spreadsheet, a blog, a squigRanking page); CONFIG_URL or SOURCE additionally
+	// *reads* the ranks from a published CSV, so the sheet is the source of truth
+	// and a device with no row falls back to its phone_book score. → docs: RANKING
+	// RANKING: {
+	//   URL: '/ranking/?type={type}#{slug}',    // {type} {brand} {model} {slug} {fullName}
+	//   TYPE: 'earphone',                       // which squigRanking `types` key this deploy is
+	//   CONFIG_URL: '/ranking/ranking-config.js', // squigRanking: sheet + grade scale, defined once
+	//   DISPLAY: 'auto',                        // 'auto' | 'badge' | 'stars' | 'text'
+	//   MATCH: 'strict',                        // 'loose' also matches partial device names
+	//   CACHE_TTL: 900,                         // seconds before an edited sheet is re-read
+	//   // Only for a plain CSV with no squigRanking page — ignored when CONFIG_URL is set:
+	//   SOURCE: { CSV_URL: '', RANK_COLUMN: 'Rank', SCALE: [{ value: 'S', color: '#6c63ff' }] },
+	// },
+	// Deprecated: read as a fallback for RANKING.URL.
 	// RANKING_URL: '',
 
 	// Per-curve download button in the selection list. Exports the curve exactly

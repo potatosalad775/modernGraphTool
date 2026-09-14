@@ -1653,42 +1653,116 @@ URL: {
   * When activated, the URL is compressed using the base62 algorithm.
   * Choose `true` or `false`.
 
-### `RANKING_URL`
+### `RANKING`
+
+Controls the rank indicator on an expanded row in the device selector. It has **two independent halves**, and most deploys only ever want the first:
+
+1. **Link the rank somewhere.** `URL` alone turns the `reviewScore` already in your `phone_book.json` into a link — to a spreadsheet, a review site, a [squigRanking](https://github.com/potatosalad775/squigRanking) page, anything. No sheet is fetched and nothing about the score changes.
+2. **Read the ranks from a published CSV.** `CONFIG_URL` or `SOURCE` makes a spreadsheet the source of truth for ranks, so editing the sheet updates the tool without touching `phone_book.json`. Opt-in, and only this half talks to the network.
 
 ```javascript
-// Default — no link, review score renders as plain text:
-RANKING_URL: "",
+// The whole feature is optional — omitting RANKING keeps today's behavior:
+// the phone_book.json score renders as plain text with no link.
 
 
-// Link to a squigRanking page on the same deploy, anchored to the device card:
-RANKING_URL: "/ranking/?type=earphone#{slug}",
+// 1. Link only. Works with any ranking page, spreadsheet or blog:
+RANKING: {
+  URL: "https://docs.google.com/spreadsheets/.../pubhtml",  // no placeholders → used verbatim
+},
 
 
-// External ranking page:
-RANKING_URL: "https://reviews.example.com/?type={type}#{slug}",
+// 2. A squigRanking page on the same deploy, with ranks read from its sheet:
+RANKING: {
+  URL: "/ranking/?type={type}#{slug}",
+  TYPE: "earphone",
+  CONFIG_URL: "/ranking/ranking-config.js",
+},
 
 
-// Raw URL with no per-device anchoring (no placeholders → used verbatim):
-RANKING_URL: "https://docs.google.com/spreadsheets/.../pubhtml",
+// 3. A plain published CSV, with no squigRanking page involved:
+RANKING: {
+  URL: "https://reviews.example.com/#{slug}",
+  SOURCE: {
+    CSV_URL: "https://docs.google.com/spreadsheets/d/e/.../pub?output=csv",
+    RANK_COLUMN: "Rank",
+    SCALE: [
+      { value: "S", color: "#6c63ff" },
+      { value: "A", color: "#00bfff" },
+      { value: "B", color: "#8bc34a" },
+    ],
+  },
+},
 ```
 
-Wraps the per-phone review score in the device selector with a clickable link to your ranking page (e.g. [squigRanking](https://github.com/potatosalad775/squigRanking)). When empty (the default), the score renders as plain text — there is no behavior change for existing deploys.
+| Option       | What it does                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `URL`        | Link template for the rank indicator. Empty or unset leaves the rank display-only.                                                         |
+| `TYPE`       | Which squigRanking `types` key this deploy measures (`earphone`, `headphone`, …). Picks the sheet, and fills `{type}`. Default `earphone`. |
+| `CONFIG_URL` | A squigRanking `ranking-config.js`. Read for the sheet URL, the rank column and its grade scale.                                           |
+| `SOURCE`     | A published CSV declared inline instead. Ignored when `CONFIG_URL` resolves.                                                               |
+| `DISPLAY`    | `auto` (default), `badge`, `stars` or `text`. See below.                                                                                   |
+| `MATCH`      | `strict` (default) or `loose`. See below.                                                                                                  |
+| `CACHE_TTL`  | Seconds a fetched sheet is reused before it is read again. Default `900` (15 minutes).                                                     |
 
-The value is a URL template. modernGraphTool substitutes the following placeholders per row at render time. Values are URL-encoded (except `{slug}`, which keeps `-` readable).
+#### Linking
+
+`URL` is a template. The following placeholders are substituted per row and URL-encoded (except `{slug}`, which keeps `-` readable):
 
 | Placeholder  | Expands to                                                                                     |
 | ------------ | ---------------------------------------------------------------------------------------------- |
-| `{brand}`    | The phone’s brand                                                                              |
-| `{model}`    | The phone’s model                                                                              |
+| `{brand}`    | The device’s brand                                                                             |
+| `{model}`    | The device’s model                                                                             |
 | `{slug}`     | `{brand}-{model}` lowercased, whitespace → `-` (matches squigRanking’s `deepLink` slug format) |
 | `{fullName}` | `{brand} {model}` joined                                                                       |
-| `{type}`     | Always `earphone` — see note below                                                             |
+| `{type}`     | The `TYPE` value                                                                               |
 
 If the template contains **no** placeholders (e.g. a Google Sheet URL), it is used verbatim — no slug or query string is appended.
 
-`{type}` on headphone deploys
+`{type}` is a setting, not a detection
 
-modernGraphTool’s `phone_book.json` does not record device type per phone, so `{type}` always resolves to the literal `earphone`. For a headphone-only deploy, hardcode the type instead — e.g. `RANKING_URL: "/ranking/?type=headphone#{slug}"`.
+`phone_book.json` records no device type, so `{type}` is simply whatever you put in `TYPE`. A headphone deploy needs `TYPE: "headphone"` — without it, `{type}` resolves to `earphone` and, if you also set `CONFIG_URL`, a multi-type ranking config will refuse to pick a sheet at all rather than show the wrong one.
+
+#### Reading ranks from a sheet
+
+Set **either** `CONFIG_URL` or `SOURCE`:
+
+* **`CONFIG_URL`** points at a squigRanking deploy’s `ranking-config.js`. It is loaded as a plain `<script>`, exactly as the ranking page loads it, and read for the sheet URL, the rank column, its `scale` and the card anchor format. Your grades stay defined in one place, and recoloring or renaming one on the ranking page updates the device list too. Only the keys listed above are read — anything else in that config is ignored, including a `configVersion` newer than this tool knows about.
+* **`SOURCE`** describes a CSV directly, for deploys with no ranking page. `CSV_URL` is required; `RANK_COLUMN`, `BRAND_COLUMN` and `MODEL_COLUMN` default to `Rank`, `Brand` and `Model`, and `SCALE` is an ordered list of `{ value, color, textColor, label, score }` steps. `ROW_FILTER: { FIELD, VALUES }` keeps only matching rows, for one sheet shared between an earphone and a headphone deploy.
+
+A few behaviors worth knowing:
+
+* **A device with no matching row keeps its `phone_book.json` score.** Turning this on can only add ranks, never remove ones that already showed. A blank rank cell counts as no row.
+* **A sheet that fails to load changes nothing** — the list renders from `phone_book.json` as if the feature were off, and the reason is logged to the browser console for you (a 404, or a CSV served without CORS headers, are the usual causes).
+* **The sheet is re-read, not snapshotted.** After `CACHE_TTL` seconds, the next time a visitor opens the device list the sheet is fetched again, so an edited grade appears without a redeploy. Note that Google Sheets caches its own published CSV for a few minutes on top of this.
+* **The link points at the row’s own card.** When a row matched, `{slug}` is built from the sheet’s spelling of the device rather than the phone book’s, so the deep link lands on the right card even where the two files spell a device differently.
+
+#### `DISPLAY`
+
+| Value   | Renders                                                                                                                    |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `auto`  | A colored badge when the scale describes the value, the 0–5 star row for a bare number, plain text otherwise. **Default.** |
+| `badge` | Always a badge. Values outside the scale get the neutral theme colors.                                                     |
+| `stars` | Always the star row, using the scale’s `score` for the step. Falls back to text for values with no number behind them.     |
+| `text`  | Always plain text.                                                                                                         |
+
+Badge text color is picked automatically for contrast against the scale’s `color` unless the scale sets `textColor` explicitly.
+
+A numeric scale changes the look
+
+With `auto`, a deploy that previously showed `reviewScore: 4` as ★★★★☆ will show a **badge** once a scale defines `4` as a step, because the scale is a more specific statement about the value than “it is a number”. Set `DISPLAY: "stars"` to keep the stars.
+
+#### `MATCH`
+
+Sheet rows are matched to devices by brand and model, since neither file carries an id for the other.
+
+* **`strict`** (default) accepts an exact match, before and after case, spacing and punctuation are normalized — so `True-Ear` / `Projekt.Wen` still matches `TrueEar` / `Projekt Wen`.
+* **`loose`** additionally accepts partial names, which matches more devices and also mismatches more of them: `Blessing 2` will match a `Blessing 2 Dusk` row and silently show its grade.
+
+Strict is the default deliberately — a device showing no rank is a visible gap you can fix in the sheet, while a device showing *someone else’s* rank looks entirely normal.
+
+Migrating from `RANKING_URL`
+
+`RANKING_URL` still works and is read as a fallback for `RANKING.URL`, so no existing deploy breaks. New deploys should use `RANKING.URL`; only the new object supports reading ranks from a sheet.
 
 ### `CDN_MODE`
 
@@ -4861,6 +4935,10 @@ Full explanation and worked examples: [Why `BASE_PATH` is almost always required
 Everything that isn’t the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There’s no lock-in.
 
 # modernGraphTool v2 Changelog
+
+### v2.2.0
+
+* Feat: Device ranks can now be read from a published spreadsheet (a [squigRanking](https://potatosalad775.github.io/squigRanking/docs) sheet, or any CSV) instead of `phone_book.json`, so editing the sheet updates the tool with no redeploy. Ranks with a grade scale render as colored badges. Configured by the new `RANKING` section, which also replaces `RANKING_URL` — that key still works. See [RANKING documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#ranking).
 
 ### v2.1.9
 

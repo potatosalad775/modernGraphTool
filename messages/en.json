@@ -11,6 +11,7 @@
 	"phone_selector_search_help_brands_cross_site": "However, brand filtering is not applied to results from other databases.",
 	"phone_selector_search_help_commas": "Separate devices with commas to look up several at once.",
 	"phone_selector_search_help_cross_site": "Results from other databases only list sites carrying every device you named.",
+	"phone_selector_item_rank": "Rank: {rank}",
 	"phone_selector_item_review": "Review",
 	"phone_selector_item_shop": "Shop",
 	"phone_selector_clear_brands_btn": "Unselect Brands",

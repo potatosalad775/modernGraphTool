@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages';
+	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
@@ -8,6 +9,12 @@
 	import { buildRankingUrl } from '$lib/utils/url-template.js';
 	import { sanitizeHtml, stripHtml } from '$lib/utils/html-sanitizer.js';
 	import { splitQueryTerms } from '$lib/utils/search-query.js';
+	import { rankingService } from '$lib/services/ranking-service.svelte.js';
+	import {
+		getRankingSettings,
+		resolveRankDisplay,
+		type RankDisplay
+	} from '$lib/services/ranking-core.js';
 	import type { PhoneMetadata } from '$lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
@@ -22,7 +29,7 @@
 		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
 	const switchPanelOnBrandClick =
 		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
-	const rankingUrlTemplate = (getConfigValue('RANKING_URL') as string) ?? '';
+	const ranking = getRankingSettings();
 	// The comma hint promises a cross-site behaviour, so only offer it where
 	// cross-site results can actually appear.
 	const crossSiteEnabled = getCrossSiteSearchConfig().ENABLED;
@@ -144,16 +151,64 @@
 		}
 	}
 
-	function renderScore(score: number | string): string {
-		const num = typeof score === 'number' ? score : parseFloat(score);
-		if (isNaN(num)) return String(score);
-		const clamped = Math.max(0, Math.min(5, num));
-		const full = Math.floor(clamped);
-		const half = clamped % 1 >= 0.5 ? 1 : 0;
-		const empty = 5 - full - half;
-		return '★'.repeat(full) + (half ? '⭐' : '') + '☆'.repeat(empty);
+	/**
+	 * The rank shown on an expanded row, and where it links.
+	 *
+	 * The ranking sheet wins where it has a row; everything else falls back to
+	 * the `reviewScore` in `phone_book.json`, so a deploy with no sheet — or one
+	 * whose sheet failed to load — shows exactly what it always showed.
+	 *
+	 * The link is built from the **sheet's** brand and model when a row matched.
+	 * Matching exists precisely because the two files spell devices differently,
+	 * so an anchor built from the phone book's spelling would point at a card
+	 * that doesn't exist on the ranking page.
+	 */
+	function rankOf(
+		phone: PhoneMetadata & { brand: string }
+	): { display: RankDisplay; href: string | null } | null {
+		const row = rankingService.lookup(phone.brand, phone.name);
+		const display = resolveRankDisplay(
+			row?.value ?? phone.reviewScore,
+			rankingService.scale,
+			ranking.display
+		);
+		if (!display) return null;
+		return {
+			display,
+			href: buildRankingUrl(ranking.url, {
+				type: ranking.type,
+				brand: row?.brand ?? phone.brand,
+				model: row?.model ?? phone.name,
+				slug: row?.slug
+			})
+		};
 	}
+
+	// Opt-in and self-guarding: returns immediately unless the operator configured
+	// a ranking sheet. Here rather than in a store because this is also what
+	// revalidates a stale sheet — the panel remounts on every panel switch.
+	onMount(() => {
+		rankingService.load();
+	});
 </script>
+
+{#snippet rankIndicator(display: RankDisplay)}
+	{#if display.kind === 'badge'}
+		<!-- Operator-supplied scale colors, so they can't come from the token
+		     palette; a scale step with no color falls back to one that can. -->
+		<span
+			class="rounded px-1.5 py-0.5 text-xs leading-none font-semibold
+			{display.color ? '' : 'bg-base-300 text-base-content'}"
+			style={display.color
+				? `background-color:${display.color};color:${display.textColor ?? '#ffffff'}`
+				: undefined}
+		>
+			{display.text}
+		</span>
+	{:else}
+		<span class="text-xs text-warning">{display.text}</span>
+	{/if}
+{/snippet}
 
 <div class="flex h-full flex-col overflow-hidden" style="container-type: inline-size;">
 	<!-- Header -->
@@ -303,6 +358,7 @@
 				{#each displayPhones as phone, i (phone.identifier)}
 					{@const isLoaded = loadedIds.has(phone.identifier)}
 					{@const isLoading = loadingIds.has(phone.identifier)}
+					{@const rank = isLoaded ? rankOf(phone) : null}
 					<!-- Last row of the pinned block carries the divider — but not when the
 					     whole visible list is pinned, since there is nothing to divide from. -->
 					{@const isPinBoundary = i === pinnedCount - 1 && pinnedCount < displayPhones.length}
@@ -338,27 +394,25 @@
 								</span>
 							{/if}
 
-							{#if isLoaded && (phone.reviewScore !== undefined || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
+							{#if isLoaded && (rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
 								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-									{#if phone.reviewScore !== undefined}
-										{@const rankingHref = buildRankingUrl(rankingUrlTemplate, {
-											type: 'earphone',
-											brand: phone.brand,
-											model: phone.name
-										})}
-										{#if rankingHref}
+									{#if rank}
+										{@const rankTitle = m.phone_selector_item_rank({ rank: rank.display.title })}
+										{#if rank.href}
 											<a
-												href={rankingHref}
+												href={rank.href}
 												target="_blank"
 												rel="external noopener noreferrer"
-												class="text-xs text-warning hover:underline"
-												title="Score: {phone.reviewScore}"
+												class="text-xs {rank.display.kind === 'badge'
+													? 'hover:opacity-80'
+													: 'hover:underline'}"
+												title={rankTitle}
 											>
-												{renderScore(phone.reviewScore)}
+												{@render rankIndicator(rank.display)}
 											</a>
 										{:else}
-											<span class="text-xs text-warning" title="Score: {phone.reviewScore}">
-												{renderScore(phone.reviewScore)}
+											<span class="text-xs" title={rankTitle}>
+												{@render rankIndicator(rank.display)}
 											</span>
 										{/if}
 									{/if}

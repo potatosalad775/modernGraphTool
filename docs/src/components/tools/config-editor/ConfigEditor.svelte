@@ -22,6 +22,7 @@
 	import TargetCustomizerSection from './sections/TargetCustomizerSection.svelte';
 	import CrossSiteSearchSection from './sections/CrossSiteSearchSection.svelte';
 	import SiteSelectorSection from './sections/SiteSelectorSection.svelte';
+	import RankingSection from './sections/RankingSection.svelte';
 	import DownloadSection from './sections/DownloadSection.svelte';
 	import EqualizerSection from './sections/EqualizerSection.svelte';
 	import SquiglinkSection from './sections/SquiglinkSection.svelte';
@@ -91,6 +92,7 @@
 			<TargetCustomizerSection />
 			<CrossSiteSearchSection />
 			<SiteSelectorSection />
+			<RankingSection />
 			<DownloadSection />
 			<EqualizerSection />
 			<SquiglinkSection />

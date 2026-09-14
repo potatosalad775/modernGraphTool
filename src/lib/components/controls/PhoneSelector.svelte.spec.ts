@@ -14,7 +14,10 @@ import PhoneSelector from './PhoneSelector.svelte';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { dataProvider } from '$lib/services/data-provider.svelte.js';
+import { rankingService } from '$lib/services/ranking-service.svelte.js';
 import type { BrandMetadata, FRDataObject, PhoneMetadata } from '$lib/types/data-types.js';
+
+type ConfigWindow = Window & { GRAPHTOOL_CONFIG?: Record<string, unknown> };
 
 function makePhone(overrides: Partial<PhoneMetadata> = {}): PhoneMetadata {
 	return {
@@ -62,6 +65,8 @@ describe('PhoneSelector', () => {
 	afterEach(() => {
 		MetadataParser.phoneMetadata = realBook;
 		frStore.delete('uuid-1');
+		delete (window as ConfigWindow).GRAPHTOOL_CONFIG;
+		rankingService.scale = [];
 		vi.restoreAllMocks();
 	});
 
@@ -300,6 +305,102 @@ describe('PhoneSelector', () => {
 			await vi.waitFor(() =>
 				expect(rowOrder()).toEqual(['Acme Charlie', 'Acme Alpha', 'Acme Bravo'])
 			);
+		});
+	});
+	/**
+	 * The rank indicator. `rankingService.lookup` is spied rather than fed a real
+	 * sheet — the fetch and the matching have their own specs in
+	 * `services/ranking-core.spec.ts`, and what is worth pinning here is that the
+	 * sheet wins over `phone_book.json`, that the fallback still looks like it
+	 * always did, and that a matched row links to *its own* card.
+	 */
+	describe('rank indicator', () => {
+		it('still renders a phone_book score as the star row, unlinked', async () => {
+			const phone = makePhone({ reviewScore: 4 });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			await expect.element(page.getByTitle('Rank: 4')).toBeInTheDocument();
+			expect(page.getByTitle('Rank: 4').element().textContent?.trim()).toBe('★★★★☆');
+			expect(page.getByTitle('Rank: 4').element().tagName).toBe('SPAN');
+		});
+
+		it('links the rank when RANKING.URL is configured', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = {
+				RANKING: { URL: '/ranking/?type={type}#{slug}', TYPE: 'headphone' }
+			};
+			const phone = makePhone({ reviewScore: 4 });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			const link = page.getByTitle('Rank: 4');
+			await expect.element(link).toBeInTheDocument();
+			expect(link.element().getAttribute('href')).toBe(
+				'/ranking/?type=headphone#sennheiser-hd-600'
+			);
+		});
+
+		it('still honors the deprecated flat RANKING_URL', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { RANKING_URL: '/ranking/#{slug}' };
+			const phone = makePhone({ reviewScore: 4 });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			const link = page.getByTitle('Rank: 4');
+			await expect.element(link).toBeInTheDocument();
+			expect(link.element().getAttribute('href')).toBe('/ranking/#sennheiser-hd-600');
+		});
+
+		it('prefers the sheet row over the phone book score, as a scale badge', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { RANKING: { URL: '/ranking/#{slug}' } };
+			vi.spyOn(rankingService, 'lookup').mockReturnValue({
+				value: 'S',
+				brand: 'Sennheiser',
+				model: 'HD600',
+				slug: 'sennheiser-hd600'
+			});
+			rankingService.scale = [{ value: 'S', color: '#b71c1c' }];
+			const phone = makePhone({ reviewScore: 4 });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			const link = page.getByTitle('Rank: S');
+			await expect.element(link).toBeInTheDocument();
+			expect(link.element().textContent?.trim()).toBe('S');
+			// The sheet spells it "HD600"; the phone book spells it "HD 600". The
+			// ranking page anchored its card with the sheet's spelling.
+			expect(link.element().getAttribute('href')).toBe('/ranking/#sennheiser-hd600');
+			const badge = link.element().querySelector('span');
+			expect(badge?.getAttribute('style')).toContain('background-color: rgb(183, 28, 28)');
+		});
+
+		it('shows a rank the sheet has even where the phone book has none', async () => {
+			vi.spyOn(rankingService, 'lookup').mockReturnValue({
+				value: 'A',
+				brand: 'Sennheiser',
+				model: 'HD 600',
+				slug: 'sennheiser-hd-600'
+			});
+			const phone = makePhone();
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			await expect.element(page.getByTitle('Rank: A')).toBeInTheDocument();
+		});
+
+		it('shows nothing when neither the sheet nor the phone book has a rank', async () => {
+			const phone = makePhone();
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			await expect.element(page.getByRole('button', { name: /HD 600/ })).toBeInTheDocument();
+			expect(document.querySelector('[title^="Rank:"]')).toBeNull();
 		});
 	});
 });

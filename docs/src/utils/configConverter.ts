@@ -776,6 +776,12 @@ const CONFIG = {`);
   SITE_SELECTOR: ${prettyPrint(config.SITE_SELECTOR, 1)},`);
 	}
 
+	// RANKING (optional)
+	if (config.RANKING) {
+		sections.push(`  // Ranking Settings
+  RANKING: ${prettyPrint(config.RANKING, 1)},`);
+	}
+
 	// DOWNLOAD (optional)
 	if (config.DOWNLOAD) {
 		sections.push(`  // Per-Curve Download Button
@@ -1057,6 +1063,17 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			ENABLED: raw.SITE_SELECTOR?.ENABLED ?? defaults.SITE_SELECTOR.ENABLED,
 			INDEX_URLS: raw.SITE_SELECTOR?.INDEX_URLS ?? defaults.SITE_SELECTOR.INDEX_URLS
 		},
+		// The deprecated flat RANKING_URL is a valid way to have configured this,
+		// so importing such a config must light the section up rather than drop it.
+		RANKING_ENABLED: !!raw.RANKING || !!raw.RANKING_URL,
+		RANKING: {
+			URL: raw.RANKING?.URL ?? raw.RANKING_URL ?? defaults.RANKING.URL,
+			TYPE: raw.RANKING?.TYPE ?? defaults.RANKING.TYPE,
+			CONFIG_URL: raw.RANKING?.CONFIG_URL ?? defaults.RANKING.CONFIG_URL,
+			DISPLAY: raw.RANKING?.DISPLAY ?? defaults.RANKING.DISPLAY,
+			MATCH: raw.RANKING?.MATCH ?? defaults.RANKING.MATCH,
+			CACHE_TTL: raw.RANKING?.CACHE_TTL ?? defaults.RANKING.CACHE_TTL
+		},
 		DOWNLOAD_ENABLED: !!raw.DOWNLOAD,
 		DOWNLOAD: {
 			ENABLED: raw.DOWNLOAD?.ENABLED ?? defaults.DOWNLOAD.ENABLED
@@ -1131,6 +1148,9 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	}
 	if (state.TARGET_CUSTOMIZER_ENABLED) {
 		config.TARGET_CUSTOMIZER = state.TARGET_CUSTOMIZER;
+	}
+	if (state.RANKING_ENABLED) {
+		config.RANKING = state.RANKING;
 	}
 	if (state.DOWNLOAD_ENABLED) {
 		config.DOWNLOAD = state.DOWNLOAD;

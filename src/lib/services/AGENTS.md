@@ -14,6 +14,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `audio-player-service.svelte.ts` — see below
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
+- `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
 
 ## `eq-commands.ts` — `ensureEnabled()`
 
@@ -166,6 +167,42 @@ verified**, so an aggregator-shaped document doesn't dim every row.
 
 This replaced a `squigsites.json` fetch in `squiglink-store`, along with its `urlType` / `altDomain` /
 lab-folder URL construction — GAA resolves all of that server-side into absolute URLs.
+
+## `ranking-core.ts` / `ranking-service.svelte.ts`
+
+The rank on an expanded device row. Two features in one config key, and **only the first is common**:
+
+- `RANKING.URL` alone links the `reviewScore` already in `phone_book.json` to wherever the operator
+  keeps their rankings — a spreadsheet, a blog, a review site. No fetch, no squigRanking, no schema.
+  The deprecated flat `RANKING_URL` is read as its fallback.
+- `RANKING.CONFIG_URL` / `RANKING.SOURCE` additionally read ranks **from a published CSV**. Opt-in;
+  with neither set, `load()` returns immediately and nothing here touches the network. Don't let this
+  half grow into the default path — plenty of deploys will only ever want the link.
+
+`CONFIG_URL` loads a squigRanking `ranking-config.js` as a plain `<script>` and reads
+`window.RANKING_CONFIG`. That file belongs to the ranking page, so `adaptSquigRankingConfig` reads a
+**narrow declared subset** (`types[TYPE].source.url`, `rowFilter`, the `role: 'rank'` column's
+`source` + `scale`, `deepLink`) and is deliberately tolerant of everything else — a `configVersion`
+from the future is not a warning, it is not ours to validate. The subset is listed in squigRanking's
+own `AGENTS.md` under Contracts; changing what's read here means changing it there too.
+
+- **The sheet never removes a rank.** A device with no matching row — or a sheet that failed to load
+  — falls back to `phone_book.reviewScore`, so enabling this can only add ranks. A blank rank cell
+  counts as no row, for the same reason.
+- **Matching is stricter than squigRanking's own.** The ranking page can afford loose substring
+  matching because a wrong measurement link is obvious the moment it's clicked; a wrong _grade_ is
+  silently wrong. `MATCH: 'loose'` opts back in. The index buckets by brand so a lookup scans one
+  brand's models, and memoizes misses as well as hits.
+- **A matched row's deep link is built from the sheet's spelling, not the phone book's**
+  (`buildCardSlug` mirrors squigRanking's `buildCardId`). Matching exists precisely because the two
+  disagree, so the phone book's spelling would anchor to a card that doesn't exist.
+- **`load()` is called from `PhoneSelector.onMount`, not AppShell.** The panel unmounting on every
+  panel switch is what revalidates a stale sheet — `CACHE_TTL` is checked there, and a failure counts
+  as fresh so an unreachable sheet isn't refetched on every switch.
+- `resolveRankDisplay`'s `'auto'` mode is what keeps pre-ranking deploys pixel-identical: with no
+  scale, a 0-5 number is still the old star row and anything else is still plain text. Badge text
+  color is contrast-picked against the scale color rather than squigRanking's flat white default,
+  which fails on the amber half of its own presets.
 
 ## squig.link integration
 

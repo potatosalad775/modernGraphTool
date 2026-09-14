@@ -63,15 +63,14 @@ export default defineConfig({
 			// which branches they reach — so a threshold pinned to the exact number
 			// would flap red without anything changing.
 			//
-			// Last measured after the sample-set unification: 68.73 / 60.01 / 73.35 /
-			// 68.51, up from 68.47 / 59.08 / 73.28 / 68.25. Only `branches` moved a
-			// full point, so only it is raised — the other three would lose the
-			// margin above if they followed a rise of a quarter point.
+			// Last measured after ranking-from-a-sheet landed: 71.00 / 64.09 / 75.90 /
+			// 70.66, up from 68.73 / 60.01 / 73.35 / 68.51. Every figure moved more
+			// than a point this time, so all four are raised.
 			thresholds: {
-				statements: 67,
-				branches: 59,
-				functions: 72,
-				lines: 67
+				statements: 70,
+				branches: 63,
+				functions: 74,
+				lines: 69
 			}
 		},
 		projects: [

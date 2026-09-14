@@ -3,13 +3,24 @@
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
 `equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
-`search-query.ts`.
+`search-query.ts`, `csv.ts`, `url-template.ts`.
 
 ## `search-query.ts`
 
 `search-query.ts` is just `splitQueryTerms` — the comma split shared by the local device list and
 cross-site search, so both read `A,B` as the same two terms. What "and" means then differs per
 surface; see the cross-site search note in `services/AGENTS.md`.
+
+## `csv.ts` / `url-template.ts`
+
+`csv.ts` is an RFC 4180 parser, ported from squigRanking's so both read the same published sheets
+identically. Quoted fields matter here rather than being pedantry — a ranking sheet's `Pros` / `Cons`
+cells routinely hold one item per line inside one quoted field, so `split(',')` mangles real
+operator data on the first row it meets.
+
+`url-template.ts` is `buildRankingUrl`. `{slug}` is derived from brand and model **unless the caller
+passes one** — a device matched to a ranking sheet passes the sheet's own anchor, because that is
+what the ranking page built its card id from. See the ranking note in `services/AGENTS.md`.
 
 ## `eq-channel.ts` / `eq-apo.ts`
 

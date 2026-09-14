@@ -94,6 +94,15 @@ export interface ConfigFormState {
 		ENABLED: 'auto' | boolean;
 		INDEX_URLS: string[];
 	};
+	RANKING_ENABLED: boolean;
+	RANKING: {
+		URL: string;
+		TYPE: string;
+		CONFIG_URL: string;
+		DISPLAY: 'auto' | 'badge' | 'stars' | 'text';
+		MATCH: 'strict' | 'loose';
+		CACHE_TTL: number;
+	};
 	DOWNLOAD_ENABLED: boolean;
 	DOWNLOAD: {
 		ENABLED: boolean;
@@ -376,6 +385,15 @@ export function createDefaultConfig(): ConfigFormState {
 		SITE_SELECTOR: {
 			ENABLED: 'auto',
 			INDEX_URLS: []
+		},
+		RANKING_ENABLED: false,
+		RANKING: {
+			URL: '',
+			TYPE: 'earphone',
+			CONFIG_URL: '',
+			DISPLAY: 'auto',
+			MATCH: 'strict',
+			CACHE_TTL: 900
 		},
 		DOWNLOAD_ENABLED: false,
 		DOWNLOAD: {

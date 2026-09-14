@@ -463,6 +463,93 @@ export interface TraceStylingConfig {
 	TARGET_TRACE_DASH: Array<{ name: string; dash: string }>;
 }
 
+/**
+ * One step of a rank scale, best first.
+ *
+ * Mirrors squigRanking's `RankScaleEntry`, which is the schema an operator
+ * already authors when they run a ranking page — a deploy pointing at one via
+ * `RANKING.CONFIG_URL` never writes this out by hand.
+ */
+export interface RankScaleEntry {
+	/** Cell value as written in the sheet, e.g. `'S'`, `'4.5'`, `'8'`. */
+	value: string;
+	/** Numeric worth of this step. Only used to render a star row. */
+	score?: number;
+	/** Badge background. Any CSS color; a hex value also gets a contrast-checked text color. */
+	color?: string;
+	/** Badge text color. Defaults to whichever of black/white contrasts better with `color`. */
+	textColor?: string;
+	/** Badge text. Defaults to `value`. */
+	label?: string | { default?: string; i18n?: Record<string, string> };
+}
+
+/**
+ * A ranking sheet declared inline, for deploys with no squigRanking page.
+ *
+ * Everything here is optional apart from the URL: the column names default to
+ * the ones squigRanking's own templates ship with, and a sheet with no `SCALE`
+ * still renders — as stars when the cells are numeric, as plain text otherwise.
+ */
+export interface RankingSourceConfig {
+	/** Published CSV URL. A Google Sheet "publish to web" CSV link, or any CSV endpoint. */
+	CSV_URL: string;
+	/** Header carrying the rank. Default `'Rank'`. */
+	RANK_COLUMN?: string;
+	/** Header carrying the brand. Default `'Brand'`. */
+	BRAND_COLUMN?: string;
+	/** Header carrying the model. Default `'Model'`. */
+	MODEL_COLUMN?: string;
+	/** Ordered rank steps, best first. Supplies badge colors and labels. */
+	SCALE?: RankScaleEntry[];
+	/** Keep only rows whose `FIELD` cell equals one of `VALUES` (case-insensitive). */
+	ROW_FILTER?: { FIELD: string; VALUES: string[] };
+}
+
+/**
+ * Ranking display in the device list, and the link out to a ranking page.
+ *
+ * Two independent halves, and the smaller one is the common case: `URL` alone
+ * turns the score already in `phone_book.json` into a link to wherever the
+ * operator keeps their rankings — a spreadsheet, a blog, anything. Reading the
+ * ranks *from* a published sheet is the opt-in half, and needs either
+ * `CONFIG_URL` (squigRanking) or `SOURCE` (any CSV).
+ */
+export interface RankingConfig {
+	/**
+	 * Link template for the rank indicator. Placeholders: `{type}`, `{brand}`,
+	 * `{model}`, `{slug}`, `{fullName}`. A template with no placeholder is used
+	 * verbatim. Empty or unset leaves the rank display-only.
+	 */
+	URL?: string;
+	/**
+	 * Which squigRanking `types` entry this deploy measures — `'earphone'`,
+	 * `'headphone'`, whatever the ranking config declares. Selects the sheet when
+	 * the ranking config has several, and fills `{type}` in `URL`.
+	 */
+	TYPE?: string;
+	/**
+	 * URL of a squigRanking `ranking-config.js`. Loaded as a plain script, exactly
+	 * as the ranking page loads it, and read for the sheet URL, the rank column
+	 * and its scale — so grades are defined once, on the ranking page.
+	 */
+	CONFIG_URL?: string;
+	/** A ranking sheet declared inline instead. Ignored when `CONFIG_URL` resolves. */
+	SOURCE?: RankingSourceConfig;
+	/**
+	 * How a rank renders. `'auto'` picks a badge when the scale describes the
+	 * value, stars for a bare 0-5 number, and plain text otherwise.
+	 */
+	DISPLAY?: 'auto' | 'badge' | 'stars' | 'text';
+	/**
+	 * Row matching strictness. `'strict'` (default) accepts only an exact brand
+	 * and model match, before and after punctuation is stripped. `'loose'` adds
+	 * substring passes, which match more devices and mismatch more of them.
+	 */
+	MATCH?: 'strict' | 'loose';
+	/** Seconds a fetched sheet is reused before it is refetched. Default 900. */
+	CACHE_TTL?: number;
+}
+
 /** Main application configuration (window.GRAPHTOOL_CONFIG) */
 export interface AppConfig {
 	SQUIGLINK?: import('./squiglink-types').SquiglinkConfig;
@@ -473,6 +560,8 @@ export interface AppConfig {
 	VISUALIZATION: VisualizationConfig;
 	INTERFACE: InterfaceConfig;
 	URL: URLConfig;
+	RANKING?: RankingConfig;
+	/** @deprecated Read as a fallback for `RANKING.URL`. */
 	RANKING_URL?: string;
 	LANGUAGE: LanguageConfig;
 	PATH: PathConfig;

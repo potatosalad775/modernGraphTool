@@ -219,25 +219,24 @@ describe('lookupRank', () => {
 });
 
 describe('readableTextColor', () => {
-	it('puts white on a dark badge and black on a light one', () => {
-		expect(readableTextColor('#b71c1c')).toBe('#ffffff');
-		expect(readableTextColor('#ffc107')).toBe('#000000');
+	it('puts white on a dark badge and near-black on a light one', () => {
+		expect(readableTextColor('#b71c1c')).toBe('#fff');
+		expect(readableTextColor('#ffc107')).toBe('#111');
 	});
 
-	// Mid-tone badge colors are the ones worth pinning: squigRanking's own
-	// `letter` preset runs through this purple, and white on it is the lower
-	// contrast of the two (4.31 against black's 4.87) despite looking like the
-	// obvious choice.
-	it('picks the higher contrast even where the darker text looks unexpected', () => {
-		expect(readableTextColor('#6c63ff')).toBe('#000000');
+	// Pinned because it is where a "better" contrast rule would diverge: this is
+	// the letter preset's top grade, and squigRanking draws it with white text.
+	// The device list has to agree with the ranking page about the same badge.
+	it('matches squigRanking on a mid-tone scale color', () => {
+		expect(readableTextColor('#6c63ff')).toBe('#fff');
 	});
 
 	it('expands three-digit hex', () => {
-		expect(readableTextColor('#fff')).toBe('#000000');
+		expect(readableTextColor('#fff')).toBe('#111');
 	});
 
-	it('keeps squigRanking documented default for a color it cannot measure', () => {
-		expect(readableTextColor('rebeccapurple')).toBe('#ffffff');
+	it('falls back to white for a color it cannot parse, as the ranking page does', () => {
+		expect(readableTextColor('rebeccapurple')).toBe('#fff');
 		expect(readableTextColor(undefined)).toBeUndefined();
 	});
 });
@@ -267,7 +266,7 @@ describe('resolveRankDisplay', () => {
 			kind: 'badge',
 			text: 'S',
 			color: '#6c63ff',
-			textColor: '#000000'
+			textColor: '#fff'
 		});
 	});
 

@@ -200,9 +200,9 @@ own `AGENTS.md` under Contracts; changing what's read here means changing it the
   panel switch is what revalidates a stale sheet — `CACHE_TTL` is checked there, and a failure counts
   as fresh so an unreachable sheet isn't refetched on every switch.
 - `resolveRankDisplay`'s `'auto'` mode is what keeps pre-ranking deploys pixel-identical: with no
-  scale, a 0-5 number is still the old star row and anything else is still plain text. Badge text
-  color is contrast-picked against the scale color rather than squigRanking's flat white default,
-  which fails on the amber half of its own presets.
+  scale, a 0-5 number is still the old star row and anything else is still plain text. Badge text color
+  mirrors squigRanking's `readableTextColor` (luminance > 0.5 → `#111`) on purpose — a "better"
+  contrast rule here alone would draw the same grade differently in the two tools.
 
 ## squig.link integration
 

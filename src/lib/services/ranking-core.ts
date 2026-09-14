@@ -397,12 +397,14 @@ function asNumber(value: string): number | null {
 }
 
 /**
- * Black or white, whichever contrasts better with a hex badge color.
+ * `#fff` or `#111`, whichever reads better on a hex badge color.
  *
- * squigRanking documents white as the default, which is wrong on the lighter
- * half of a rank scale — several of its own presets run through yellow and
- * amber — and this tool targets WCAG AAA. A non-hex color can't be measured
- * here, so it keeps that documented default.
+ * Mirrors squigRanking's `readableTextColor` exactly — same luminance formula,
+ * same 0.5 threshold, same white for a color it can't parse — so a badge drawn
+ * from a shared scale looks identical on the ranking page and in the device
+ * list. Don't retune the threshold here alone: a max-contrast rule flips
+ * mid-tones such as the letter preset's `#6c63ff` to dark text, and the two
+ * tools would then disagree about how the same grade looks.
  */
 export function readableTextColor(color: string | undefined): string | undefined {
 	if (!color) return undefined;
@@ -414,15 +416,14 @@ export function readableTextColor(color: string | undefined): string | undefined
 					.map((c) => c + c)
 					.join('')
 			: hex;
-	if (!/^[0-9a-f]{6}$/i.test(full)) return '#ffffff';
+	if (!/^[0-9a-f]{6}$/i.test(full)) return '#fff';
 
 	const channel = (start: number): number => {
 		const srgb = Number.parseInt(full.slice(start, start + 2), 16) / 255;
 		return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
 	};
 	const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
-	// WCAG contrast is (L1 + 0.05) / (L2 + 0.05); compare black's against white's.
-	return (luminance + 0.05) / 0.05 > 1.05 / (luminance + 0.05) ? '#000000' : '#ffffff';
+	return luminance > 0.5 ? '#111' : '#fff';
 }
 
 /** Today's star row: 0-5, halves included. */

@@ -76,11 +76,17 @@ applyTargetAdjustment.
 
 Config defaults, the phone book, then the `?share=` devices or `INITIAL_PHONES` / `INITIAL_TARGETS`.
 **`hooks.client.ts` starts it; don't move it back into `AppShell.onMount`.** The hook runs before
-the route's component code is even downloaded, so the phone book and FR files load in parallel with
-the app instead of after it has evaluated and mounted. On throttled 4G that moved the phone book
-request from ~700 ms to ~270 ms and the first drawn curves ~220 ms earlier. Keep the sequence free of
+the route's component code is evaluated, so the phone book and FR files load in parallel with the
+app instead of after it has evaluated and mounted. On throttled 4G that moved the phone book request
+from ~700 ms to ~270 ms and the first drawn curves ~220 ms earlier. Keep the sequence free of
 mounted-component dependencies: `GraphContainer` draws whatever `frStore` already holds when it
 initializes.
+
+The app chunk itself is modulepreloaded from `index.html`, because `+layout.svelte` imports
+`AppShell` for its side effect on the build. **That import looks unused — don't remove it.** Without
+it the 530 KB chunk is only a dependency of the page node and is fetched after the router starts, a
+second round trip that cost ~40–50 ms to the last initial curve on throttled 4G. Preloading downloads
+the chunk early but does not evaluate it, so the ordering above still holds.
 
 `AppShell.onMount` calls `claimInitialLoad()`, which takes the in-flight run or starts one. Claiming
 clears it, so the boot specs — which mount `AppShell` with no client hook — still get a fresh run

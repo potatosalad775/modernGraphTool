@@ -5,6 +5,11 @@ sidebar:
   order: 11
 ---
 
+### v2.2.1
+- Refactor: Preference Bound is now aligned by its band center, not the base (DF) target. This change should make graph alignment more intuitive, but may show some differences compared to the previous version.
+- Refactor: Adjusted Sample / Channel selector to occupy more width, improving usability on smaller screens.
+- Refactor: Implemented few performance optimizations throughout the codebase, resulting in faster load times.
+
 ### v2.2.0
 - Feat: Device ranks can now be read from a published spreadsheet (a [squigRanking](https://potatosalad775.github.io/squigRanking/docs) sheet, or any CSV) instead of `phone_book.json`, so editing the sheet updates the tool with no redeploy. Ranks with a grade scale render as colored badges. Configured by the new `RANKING` section, which also replaces `RANKING_URL` — that key still works. See [RANKING documentation](./guide-for-admins/customize-page.mdx#ranking).
 

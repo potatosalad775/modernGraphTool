@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages';
+	import { appStore } from '$lib/stores/app-store.svelte';
 	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
 	import { siteIndexService } from '$lib/services/site-index.svelte';
 	import { getSiteSelectorConfig } from '$lib/services/site-index-core';
@@ -9,8 +9,17 @@
 
 	const config = getSiteSelectorConfig();
 
-	onMount(() => {
-		if (config.ENABLED !== false) siteIndexService.load();
+	// The index isn't needed for the first graph, so it waits for the initial curves
+	// and an idle moment rather than competing with them from mount. Still loaded
+	// eagerly, not on open: in `auto` mode the entries decide whether this shows at all.
+	$effect(() => {
+		if (config.ENABLED === false || !appStore.isReady) return;
+		if (typeof requestIdleCallback === 'function') {
+			const id = requestIdleCallback(() => siteIndexService.load(), { timeout: 2000 });
+			return () => cancelIdleCallback(id);
+		}
+		const id = setTimeout(() => siteIndexService.load(), 0);
+		return () => clearTimeout(id);
 	});
 
 	/**

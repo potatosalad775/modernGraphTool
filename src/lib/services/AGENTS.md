@@ -164,7 +164,10 @@ unreachable, cross-site search returning nothing is the intended degradation.
 
 Fetches the GAA site index — a directory of every known site and database, with URLs already
 resolved and **no** device corpus, so it is ~4.5 KB gzip against the aggregate index's ~360 KB.
-Small enough to load on mount rather than lazily. Host-agnostic; exports `siteIndexService` plus
+Small enough to load eagerly rather than when the dropdown opens — and it has to be, since `auto`
+visibility depends on the entries. But **not from mount**: `SiteSelector` waits for
+`appStore.isReady` and then an idle callback, because the index plays no part in the first graph and
+its fetch and parse used to compete with it. Host-agnostic; exports `siteIndexService` plus
 `getSiteSelectorConfig`, `fetchSiteIndex`, `findCurrentDbId`, `buildSiteEntries` and
 `groupSiteEntries`. Schema: https://github.com/potatosalad775/GAA
 

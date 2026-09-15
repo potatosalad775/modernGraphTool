@@ -353,9 +353,11 @@
 
 	// Preference-bound overlay: driven from the store rather than from
 	// PreferenceBound.svelte, which unmounts with the mobile toolbar accordion.
-	// Loading is lazy — nothing is fetched unless an operator configured bounds.
+	// Loading waits until the overlay is first shown: the shipped config enables the
+	// feature but hides it on load, and fetching and smoothing three curves nobody
+	// sees used to land right before the first graph was drawn.
 	$effect(() => {
-		if (!preferenceBoundStore.isEnabled || !graphEngine.isInitialized) return;
+		if (!preferenceBoundStore.isVisible || !graphEngine.isInitialized) return;
 		preferenceBoundStore.load();
 	});
 

@@ -94,7 +94,9 @@ The store holds the preference-range overlay: `isEnabled`/`isVisible` plus the f
 curves, with smoothing/normalization applied as `$derived`. Hydrated from `AppShell.onMount`.
 That button renders inside `GraphToolbar`, which on mobile lives in a collapsed accordion that
 genuinely unmounts, so component-scoped visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default.
-`GraphContainer` owns the effects that call `load()` and push state into the overlay.
+`GraphContainer` owns the effects that call `load()` and push state into the overlay. `load()` runs
+on the first `isVisible`, not on `isEnabled` — the shipped config enables the feature with the
+overlay hidden, and loading eagerly put three fetches plus their smoothing ahead of the first graph.
 `dfNormalized` is aligned by the band's center, not the DF — see `preference-bound.ts` in
 `utils/AGENTS.md`.
 

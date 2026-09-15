@@ -70,6 +70,13 @@ first non-empty `loadedIds` for a `?share=` boot where the devices land a tick a
 the sort track `loadedIds` live looks like a simplification and re-sorts rows out from under the
 cursor mid-click; keeping a stale pin on a device the user just unloaded is the deliberate trade.
 
+**`graph/GraphContainer` — curve labels are measured in one batch per frame.** `measureLabel` only
+queues its node; a single rAF reads every `getBBox()` first and then writes every width. Writing each
+width as it is read lets Svelte resize a backdrop before the next read, which forces a layout per
+label. It re-measures on the `document.fonts` `loadingdone` event, not `fonts.ready`: the Pretendard
+stylesheet loads without blocking boot, so `ready` has usually resolved before the web font swaps in,
+which would leave the backdrops sized for the fallback font.
+
 ## Component tests
 
 Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy*` from
@@ -77,6 +84,11 @@ Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy
 
 - **bits-ui popovers render into a portal**, so they are outside the render result's container. Query
   the document via `page`, not the returned `container`.
+- **Component specs load no Tailwind.** `layout.css` comes in through `+layout.svelte`, which specs
+  never mount, so utility classes resolve to nothing — `truncate`, `overflow-y-auto`, `h-full` and
+  `focus-visible:*` don't apply and rows lay out unstyled. Assertions on computed styles that
+  utilities would set fail, and layout or paint timings taken there say nothing about the app;
+  measure those against a built `dist/`. A component's scoped `<style>` block does apply.
 - **`getByLabelText` is a substring match by default** and also matches `aria-label`, so a
   one-character label like the color picker's `L` collides with "Pick color". Pass `{ exact: true }`
   for short labels. Conversely, a `<label>` that wraps both the input and a unit span (`From … Hz`)

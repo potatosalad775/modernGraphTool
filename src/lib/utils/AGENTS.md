@@ -1,6 +1,6 @@
 # Utils
 
-`config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
+`config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
 `equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`.
@@ -46,6 +46,24 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
 - The parser is permissive by design: unknown `Channel:` layouts fall back to shared, unrepresentable
   filter types (`BP`, `NO`, …) are skipped rather than imported as peaks, and `Preamp:` is ignored
   because ours is derived from the filter set.
+
+## `fr-parser.ts` / `fr-smoother.ts` / `fr-normalizer.ts` — the FR pipeline
+
+Resampling and smoothing are single cursor passes. They replaced quadratic `findIndex` and per-band
+`filter` loops, and the equivalence specs pin the output as identical — the old code lives on in
+those specs as the reference implementation. Three things the passes depend on:
+
+- **Input is sorted by frequency.** `parseFRData` sorts before `_interpolateToStandard`, and every
+  smoother caller passes the parser's 1/48oct grid. An unsorted array gives wrong output silently.
+- **Band membership is inclusive at both ends**, and each band's upper edge is the next band's lower
+  edge, so a point exactly on an edge counts in both. On the 1/48oct grid that is _every_ point — the
+  first 1/48 smoothing averages neighbouring pairs. Don't "fix" it to half-open bands: every drawn
+  curve would shift.
+- **Smoothing is idempotent on its own output** at the same octave: band centres sit strictly inside
+  their bands, so a second pass returns the same array. That is what lets `GraphEngine` bind stored
+  channels without smoothing them again (`graph/AGENTS.md`).
+
+`_shiftChannel` copies with `map` rather than `structuredClone`; it must still never mutate its input.
 
 ## `fr-average.ts` — average all visible
 

@@ -230,6 +230,39 @@ it when coverage improves, never lower it to turn a red run green. See
 [guide-for-developers/testing.mdx](docs/src/content/docs/guide-for-developers/testing.mdx) for the full picture,
 and each area's `AGENTS.md` for its own test traps.
 
+## Performance
+
+Startup speed is judged against the CrinGraph forks, so a "faster" claim has to survive a side-by-side
+run. The harness is not checked in; rebuild it this way:
+
+- One local HTTP/2 + gzip server serving every tool with identical `data/`: squiglink `lab` (branch
+  `pink-eq`, not `main`) and HarutoHiroki's `PublicGraphTool` (`squiglink-(main)`), exported with
+  `git archive`. Abort every non-localhost request — live sites on different hosts are not comparable.
+- Playwright + CDP, fresh context per run, cache disabled. Throttled = 9 Mbps / 40 ms RTT + 4× CPU;
+  run unthrottled too. Metric: navigation → the last initial curve's long `<path>` in the DOM.
+- 10 runs, medians, **sites interleaved run by run and always in the same session** — absolute
+  numbers drift ~50 ms between sessions on one machine.
+- One phone + one target is too little FR work to show pipeline changes; add a multi-device
+  `?share=` scenario. Pass `locale: 'en-US'` to the context, or system language detection renders
+  whatever the machine's locale is.
+- Don't measure layout or paint in component specs — they load no Tailwind (`components/AGENTS.md`).
+
+Measured and rejected — don't retry without a new reason:
+
+- Lazy-loading panels through dynamic `import()`: the initial panel becomes an extra round trip.
+- `kit.output.bundleStrategy: 'single'`: one request instead of ~19, but ~160 ms slower throttled.
+- `content-visibility: auto` on `PhoneSelector` rows: ~110 ms _slower_ to paint a 1500-device panel
+  (DOM creation is the cost, not layout), and the paint containment clips the rows' focus outline.
+  List virtualization is the remaining lever.
+- Paraglide per-locale splitting: no option fits a static, runtime-switchable SPA.
+
+Boot-critical pieces that look removable but aren't: the initial load starting in `hooks.client.ts`
+and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), and the Pretendard
+stylesheet loading as `rel="preload"` + `onload` in `src/app.html`, `cdn/cdn-index.html` and
+`site-template/index.html`. A plain stylesheet link holds back every classic script after it —
+`config.js` and the boot script included — until jsDelivr answers. There is no `<noscript>` fallback
+because `ssr` is off, so the page is blank without JavaScript anyway.
+
 ## Built-in Features
 
 All active features are first-class Svelte components in `src/lib/components/features/` and

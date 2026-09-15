@@ -15,6 +15,22 @@ export function normalize(channelData: ChannelData, type: string, hzValue: numbe
 }
 
 /**
+ * Shift `channelData` by the offset that would normalize `reference` — for a curve
+ * whose alignment is defined by another curve rather than by its own values.
+ */
+export function normalizeAgainst(
+	channelData: ChannelData,
+	reference: ChannelData,
+	type: string,
+	hzValue: number
+): ChannelData {
+	if (!channelData?.data?.length || !reference?.data?.length) {
+		throw new Error('Cannot normalize - invalid data structure');
+	}
+	return _shiftChannel(channelData, _computeDelta(reference, type, hzValue));
+}
+
+/**
  * Normalize all channels in a ParsedFRData object with a single shared offset.
  *
  * The offset is computed once from a reference channel (AVG when present, else

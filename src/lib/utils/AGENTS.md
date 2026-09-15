@@ -3,7 +3,14 @@
 `config.ts`, `data-processor.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
 `equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
-`search-query.ts`, `csv.ts`, `url-template.ts`.
+`search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`.
+
+## `preference-bound.ts`
+
+`alignDFToBoundCenter` aligns the preference band by its **center** (DF + (U+D)/2), not by the
+DF's own value. Don't revert it to `normalize(df)`: the DF sits outside the band in the bass, so
+DF anchoring at a low alignment frequency pushed the band ~6 dB off every device aligned there.
+At a midrange anchor the two agree to a fraction of a dB, which is why the default look is unchanged.
 
 ## `search-query.ts`
 

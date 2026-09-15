@@ -95,6 +95,8 @@ curves, with smoothing/normalization applied as `$derived`. Hydrated from `AppSh
 That button renders inside `GraphToolbar`, which on mobile lives in a collapsed accordion that
 genuinely unmounts, so component-scoped visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default.
 `GraphContainer` owns the effects that call `load()` and push state into the overlay.
+`dfNormalized` is aligned by the band's center, not the DF — see `preference-bound.ts` in
+`utils/AGENTS.md`.
 
 **`target-adjustment-store.svelte.ts` — the state lives here, not in the component.**
 Target Customizer slider stacks keyed by FR-data UUID, plus the `TARGET_CUSTOMIZER` config (filters,

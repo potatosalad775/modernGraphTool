@@ -2,7 +2,7 @@ import { resolve } from '$app/paths';
 import { graphStore } from './graph-store.svelte.js';
 import FRParser from '$lib/utils/fr-parser.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
-import { normalize } from '$lib/utils/fr-normalizer.js';
+import { alignDFToBoundCenter } from '$lib/utils/preference-bound.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
 
@@ -46,15 +46,24 @@ class PreferenceBoundStore {
 		this.#parsedD ? FRSmoother.smooth(this.#parsedD.data, graphStore.smoothValue) : null
 	);
 
+	// Aligned by the band's center rather than the DF's own value — see alignDFToBoundCenter.
 	#dfNormalized = $derived.by((): ChannelData | null => {
 		const df = this.#parsedDF;
-		if (!df) return null;
+		const upper = this.#boundU;
+		const lower = this.#boundD;
+		if (!df || !upper || !lower) return null;
 		const smoothed: ChannelData = {
 			...df,
 			data: FRSmoother.smooth(df.data, graphStore.smoothValue)
 		};
 		try {
-			return normalize(smoothed, graphStore.normType, graphStore.normHzValue);
+			return alignDFToBoundCenter(
+				smoothed,
+				upper,
+				lower,
+				graphStore.normType,
+				graphStore.normHzValue
+			);
 		} catch {
 			return smoothed;
 		}

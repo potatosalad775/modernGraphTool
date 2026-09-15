@@ -11,6 +11,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
+- `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
@@ -70,6 +71,24 @@ applyTargetAdjustment.
   unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
   `<svelte:window>` and fires from any tab — a panel-scoped effect left the curve showing the EQ'd
   response until the user reopened the Equalizer tab.
+
+## `initial-load.ts` — boot data load
+
+Config defaults, the phone book, then the `?share=` devices or `INITIAL_PHONES` / `INITIAL_TARGETS`.
+**`hooks.client.ts` starts it; don't move it back into `AppShell.onMount`.** The hook runs before
+the route's component code is even downloaded, so the phone book and FR files load in parallel with
+the app instead of after it has evaluated and mounted. On throttled 4G that moved the phone book
+request from ~700 ms to ~270 ms and the first drawn curves ~220 ms earlier. Keep the sequence free of
+mounted-component dependencies: `GraphContainer` draws whatever `frStore` already holds when it
+initializes.
+
+`AppShell.onMount` calls `claimInitialLoad()`, which takes the in-flight run or starts one. Claiming
+clears it, so the boot specs — which mount `AppShell` with no client hook — still get a fresh run
+per test rather than a settled promise from the previous boot.
+
+**`appStore.isReady` is set by AppShell after the claim, not inside the run.** The run can now finish
+before mount; flipping `isReady` then makes AppShell's URL effect call `replaceState` while
+SvelteKit has no root component, which throws (`reading '$set'`). The smoke test catches it.
 
 ## `audio-player-service.svelte.ts`
 

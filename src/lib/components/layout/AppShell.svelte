@@ -4,8 +4,7 @@
 	import { appStore } from '$lib/stores/app-store.svelte';
 	import { settingsStore } from '$lib/stores/settings-store.svelte';
 	import { getConfigValue } from '$lib/utils/config';
-	import MetadataParser from '$lib/utils/metadata-parser';
-	import { analyticsService } from '$lib/services/analytics-service.svelte';
+	import { claimInitialLoad } from '$lib/services/initial-load';
 	import { dataProvider } from '$lib/services/data-provider.svelte';
 	import { commandHistory } from '$lib/services/command-history.svelte';
 	import { eqCommands } from '$lib/services/eq-commands';
@@ -19,7 +18,7 @@
 	import MenuCarousel from './MenuCarousel.svelte';
 	import GraphContainer from '$lib/components/graph/GraphContainer.svelte';
 	import GraphToolbar from '$lib/components/controls/GraphToolbar.svelte';
-	import { menuStore, MENU_PANELS, type MenuPanel } from '$lib/stores/menu-store.svelte';
+	import { menuStore } from '$lib/stores/menu-store.svelte';
 	import DevicePanel from '$lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '$lib/components/panels/GraphPanel.svelte';
 	import EqualizerPanel from '$lib/components/panels/EqualizerPanel.svelte';
@@ -44,84 +43,6 @@
 			? 'minmax(340px, 1fr) 5px minmax(400px, 65%)'
 			: 'minmax(400px, 65%) 5px minmax(340px, 1fr)'
 	);
-
-	/** Apply config defaults to stores before data loads */
-	function applyConfigDefaults() {
-		// INITIAL_PANEL: config uses "phone" but menuStore uses "device"
-		const cfgPanel = getConfigValue('INITIAL_PANEL') as string | undefined;
-		if (cfgPanel) {
-			const mapped = cfgPanel === 'phone' ? 'device' : cfgPanel;
-			if ((MENU_PANELS as readonly string[]).includes(mapped)) {
-				menuStore.currentPanel = mapped as MenuPanel;
-			}
-		}
-
-		// Normalization defaults
-		const normType = getConfigValue('NORMALIZATION.TYPE') as 'Hz' | 'Avg' | undefined;
-		if (normType === 'Hz' || normType === 'Avg') graphStore.normType = normType;
-		const normHz = getConfigValue('NORMALIZATION.HZ_VALUE') as number | undefined;
-		if (normHz != null) graphStore.normHzValue = normHz;
-
-		// Default Y scale
-		const yScale = getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as number | undefined;
-		if (yScale != null) graphStore.yScale = yScale;
-	}
-
-	/** Load initial phones/targets from URL params or config defaults */
-	async function loadInitialData(): Promise<void> {
-		const urlPhones = urlProvider.phoneDataFromURL;
-
-		if (urlPhones.length > 0) {
-			// URL share param takes priority — load phones/targets from URL
-			await Promise.all(
-				urlPhones.map(async (name) => {
-					const identifier = name.trim();
-					try {
-						const matchPhone = MetadataParser.searchFRInfoWithFullName(identifier);
-						await dataProvider.addFRData('phone', matchPhone.identifier, {
-							dispSuffix: matchPhone.dispSuffix
-						});
-					} catch {
-						// Not a phone — try as target
-						try {
-							const matchTarget = MetadataParser.searchTargetInfoWithFullName(identifier);
-							await dataProvider.addFRData('target', matchTarget.identifier);
-						} catch {
-							// Not found — skip silently
-						}
-					}
-				})
-			);
-			// Apply URL state (yScale, baseline, yOffsets, EQ) after data is loaded
-			urlProvider.applyStateFromURL();
-		} else {
-			// Fall back to config defaults
-			const initialPhones = (getConfigValue('INITIAL_PHONES') || []) as string[];
-			const initialTargets = (getConfigValue('INITIAL_TARGETS') || []) as string[];
-
-			await Promise.all([
-				...initialPhones.map(async (phone) => {
-					try {
-						const match = MetadataParser.searchFRInfoWithFullName(phone);
-						await dataProvider.addFRData('phone', match.identifier, {
-							dispSuffix: match.dispSuffix
-						});
-					} catch {
-						// Phone not found in metadata — skip silently
-					}
-				}),
-				...initialTargets.map(async (target) => {
-					try {
-						const targetName = target.includes(' Target') ? target : target + ' Target';
-						const match = MetadataParser.searchTargetInfoWithFullName(targetName);
-						await dataProvider.addFRData('target', match.identifier);
-					} catch {
-						// Target not found — skip silently
-					}
-				})
-			]);
-		}
-	}
 
 	function disableIOSZoom() {
 		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -173,18 +94,12 @@
 		updateMobile();
 		window.addEventListener('resize', updateMobile);
 
-		// Initialize analytics (no-op if not on squig.link or not configured)
-		analyticsService.init();
-
-		// Parse URL params (synchronous — reads ?share= and ?state=)
-		urlProvider.init();
-
-		// Apply config defaults to stores
-		applyConfigDefaults();
-
-		// Load phone/target metadata, then load initial data from URL or config
-		MetadataParser.init().then(async () => {
-			await loadInitialData();
+		// Config defaults, the phone book and the initial curves. Usually already in
+		// flight from hooks.client.ts; starts here when it isn't (the boot tests).
+		// `isReady` is set here, not in the run: the run can finish before mount, and
+		// flipping it mid-mount fires the URL effect below while SvelteKit's router
+		// has no root component yet, so `replaceState` throws.
+		claimInitialLoad().then(() => {
 			appStore.isReady = true;
 		});
 

@@ -122,6 +122,10 @@ They exist because a suite that only exercises stores cannot see a boot that nev
   mobile has its own file.
 - `AUTO_UPDATE_URL` is forced off in the harness: `urlProvider.autoUpdate()` calls SvelteKit's
   `replaceState`, which throws with no mounted router.
+- **These specs never run `hooks.client.ts`**, so they boot through `claimInitialLoad()` starting a
+  fresh run on mount. The production path — data already in flight, or finished, before mount — is
+  only exercised by `npm run test:smoke`. Run it after touching boot order (see
+  `services/AGENTS.md#initial-loadts--boot-data-load`).
 - The `client` project sets `optimizeDeps.exclude: ['bits-ui']`. Pre-bundling gives bits-ui its own
   copy of the Svelte client runtime, and a component rendered by one instance can't read the other's
   context. Dev and build are unaffected.

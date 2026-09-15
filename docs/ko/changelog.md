@@ -12,6 +12,11 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.1
+- Refactor: Preference Bound이 이제 기준 (DF) 타겟이 아닌, 밴드 중심에 맞춰 정렬됩니다. 이는 그래프 정렬을 보다 직관적으로 만들지만, 이전 버전과 비교했을 때 일부 차이가 나타날 수 있습니다.
+- Refactor: 샘플 / 채널 선택기가 더 넓은 폭을 차지하도록 조정되어, 작은 화면에서의 사용성을 개선했습니다.
+- Refactor: 코드베이스 전반에 걸친 여러 최적화 기법을 적용하여 로딩 시간을 단축했습니다.
+
 ### v2.2.0
 - Feat: 기기 등급을 `phone_book.json` 대신 게시된 스프레드시트([squigRanking](https://potatosalad775.github.io/squigRanking/docs) 시트 또는 임의의 CSV)에서 읽어올 수 있게 되었습니다. 시트만 수정하면 재배포 없이 등급이 갱신됩니다. 등급 스케일이 정의된 경우 색상 배지로 표시됩니다. 새로운 `RANKING` 섹션에서 설정하며, 기존 `RANKING_URL`을 대체합니다(해당 키도 계속 동작합니다). 자세한 내용은 [RANKING 문서](./guide-for-admins/customize-page.mdx#ranking) 참조.
 

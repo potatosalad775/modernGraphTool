@@ -88,11 +88,31 @@ For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data
 ### Basic Operation
 
 1. **Toggle Control**: Use the toggle button to show/hide boundaries
-2. **Target Alignment**: Boundaries automatically align with the selected base target
-3. **Real-time Updates**: Boundaries update when changing targets or measurements
+2. **Alignment**: Boundaries follow the graph's alignment setting (Hz or Avg), like every other curve
+3. **Real-time Updates**: Boundaries update when changing smoothing, alignment or baseline
 
 ### Visual Interpretation
 
 - **Filled Area**: The area between upper and lower bounds represents the preference range
-- **Target Baseline**: Boundaries are relative to the selected diffuse field target
+- **Target Baseline**: The boundary shape is defined relative to the base diffuse field target
 - **Measurement Overlay**: Compare headphone measurements against preference boundaries
+
+### How the Band Is Aligned
+
+The band is aligned by its **center** (the midpoint of the upper and lower bounds), not by the
+diffuse field target itself. This matters because the DF target does not sit inside the band
+everywhere — in the bass the preferred range lies several dB above it.
+
+Aligning the band the way you align a measurement means a headphone in the middle of the
+preference range lands in the middle of the band, whichever frequency you align at. At the
+default 500 Hz alignment the band's center and the DF target nearly coincide, so the band looks
+the same as it would if it were anchored to the DF.
+
+If you display the base DF target and align at a low frequency such as 50 Hz, the band will not
+sit where the DF-relative bound values would put it — the band keeps its alignment to the
+curves you're comparing, not to the DF.
+
+:::tip
+The band is widest in the bass (about 6 dB at 50 Hz versus 2 dB at 500 Hz). Aligning in the
+midrange gives the most reliable read of whether a measurement falls inside the preference range.
+:::

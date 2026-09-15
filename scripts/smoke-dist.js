@@ -184,15 +184,19 @@ async function main() {
 			check(`share link for "${shareName}" draws a curve`, drawn);
 		}
 
+		check('no uncaught exceptions', pageErrors.length === 0, pageErrors.join(' | '));
+		check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '));
+		check('no failed requests', failedRequests.length === 0, failedRequests.join(' | '));
+
 		// ── SPA fallback ─────────────────────────────────────────────────────
+		// Runs after the error checks: the app has no route here, so SvelteKit's router
+		// logs `Not found: /some/deep/route` by design. It lands shortly after
+		// domcontentloaded, so reading the console after this hop made the checks above
+		// pass or fail on boot timing alone.
 		const fallback = await page.goto(`${origin}/some/deep/route`, {
 			waitUntil: 'domcontentloaded'
 		});
 		check('unknown routes fall back to the app', fallback?.status() === 200);
-
-		check('no uncaught exceptions', pageErrors.length === 0, pageErrors.join(' | '));
-		check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '));
-		check('no failed requests', failedRequests.length === 0, failedRequests.join(' | '));
 	} finally {
 		await browser.close();
 		server.close();

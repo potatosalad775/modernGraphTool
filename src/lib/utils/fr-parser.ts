@@ -296,11 +296,16 @@ const FRParser = {
 		return num;
 	},
 
-	/** Interpolate raw data to standard 1/48oct frequencies */
+	/**
+	 * Interpolate raw data to standard 1/48oct frequencies. `rawData` must be sorted
+	 * by frequency (`parseFRData` sorts it), so one cursor follows the ascending targets.
+	 */
 	_interpolateToStandard(rawData: FRDataPoint[]): FRDataPoint[] {
+		let cursor = 0;
 		return this._standardFrequencies.map((targetFreq) => {
-			// Find surrounding points in raw data
-			const index = rawData.findIndex(([freq]) => freq > targetFreq);
+			// First raw point above the target, or rawData.length if there is none
+			while (cursor < rawData.length && rawData[cursor][0] <= targetFreq) cursor++;
+			const index = cursor === rawData.length ? -1 : cursor;
 
 			if (index === -1) {
 				// If beyond last point, return last value

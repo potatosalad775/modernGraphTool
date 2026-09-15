@@ -17,6 +17,15 @@ No Tailwind inside SVG — the graph reads CSS vars from `defaults/theme.css`
 (`--color-graph-bg`, `-grid-major`, `-grid-minor`, `-axis-label`, `-grid-text`, `-baseline`,
 `-watermark-opacity`).
 
+## Curves are drawn from stored data
+
+`frStore` channels and sample runs are stored **already smoothed** at `graphStore.smoothValue`:
+`DataProcessor` smooths on the way in, and `reSmoothAll` rebuilds from `_rawData` when the value
+changes. `GraphEngine` and `GraphEqOverlay` bind them as-is. Don't reintroduce a draw-time
+`FRSmoother.smooth` — on smoothed data it is an identity pass that cost every channel a full re-bin
+on every redraw. Preference bounds are the exception: they are parsed raw files, and
+`preference-bound-store` smooths them itself.
+
 ## Baseline
 
 `graphStore.baselineMode` cycles `off` → `withoutAdjustment` → `withAdjustment` → `off` on

@@ -13,9 +13,17 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { sampleFillOpacity } from '$lib/utils/sample-config.js';
+import FRParser from '$lib/utils/fr-parser.js';
+import FRSmoother from '$lib/utils/fr-smoother.js';
+import { dataProvider } from '$lib/services/data-provider.svelte.js';
 import type { FRDataObject, FRDataPoint, SampleEnvelope } from '$lib/types/data-types.js';
 
 let svgEl: SVGSVGElement;
+
+/** The datum d3 bound to a drawn path. */
+function datumOf(el: Element): FRDataPoint[] {
+	return (el as Element & { __data__: FRDataPoint[] }).__data__;
+}
 
 /** Log-spaced points at a constant level. */
 function flat(db = 80, from = 20, to = 20000): FRDataPoint[] {
@@ -75,8 +83,7 @@ function coords(d: string): Array<[number, number]> {
 describe('GraphEngine', () => {
 	beforeEach(() => {
 		frStore.clear();
-		// Any value outside OCTAVE_BANDS is a no-op in FRSmoother, which keeps the
-		// assertions reading the input data rather than a smoothed resampling of it.
+		// Drawing binds stored channels as-is; this only resets what a test changed.
 		graphStore.smoothValue = 'none';
 		graphStore.baselineMode = 'off';
 		graphStore.baselineUUID = null;
@@ -208,6 +215,73 @@ describe('GraphEngine', () => {
 			expect(paths('.fr-graph-phone-curve')[0].getAttribute('transform')).toMatch(
 				/^translate\(0, -?[\d.]+\)$/
 			);
+		});
+	});
+
+	// ── Stored data binding ──────────────────────────────────────────────────
+	//
+	// Every frStore channel is already smoothed at graphStore.smoothValue, so
+	// paths bind the stored arrays as-is. These guard both directions: no
+	// draw-time smoothing pass creeping back in, and no code assuming one exists.
+
+	describe('stored data binding', () => {
+		beforeEach(() => {
+			// A real octave, so a second smoothing pass would change the datum.
+			graphStore.smoothValue = '1/3';
+		});
+
+		it('binds each main channel array as its path datum', () => {
+			frStore.set('p', makePhone('p', { dispChannel: ['L', 'R'] }));
+			graphEngine.drawFRCurve('p');
+
+			const [l, r] = paths('.fr-graph-phone-curve').map(datumOf);
+			expect(l).toBe(frStore.get('p')!.channels.L!.data);
+			expect(r).toBe(frStore.get('p')!.channels.R!.data);
+		});
+
+		it('binds a sample run array as its path datum', () => {
+			frStore.set(
+				'p',
+				makePhone('p', {
+					samples: [{ L: channel(81) }],
+					dispSamples: ['sample0_L'],
+					showAvg: false
+				})
+			);
+			graphEngine.drawFRCurve('p');
+
+			expect(datumOf(paths('.fr-graph-sample-curve')[0])).toBe(
+				frStore.get('p')!.samples![0].L!.data
+			);
+		});
+
+		it('binds an EQ curve channel array as its path datum', () => {
+			frStore.set('eq', makePhone('eq', { type: 'eq' }));
+			graphEngine.drawFRCurve('eq');
+
+			expect(datumOf(paths('.fr-graph-eq-curve')[0])).toBe(frStore.get('eq')!.channels.AVG!.data);
+		});
+
+		it('draws at the new smoothing once reSmoothAll has rebuilt the store', async () => {
+			const raw = FRParser._standardFrequencies.map(
+				(f, i) => [f, 80 + Math.sin(i * 0.3) * 5] as FRDataPoint
+			);
+			frStore.set(
+				'p',
+				makePhone('p', {
+					_rawData: { channels: { AVG: { data: raw, metadata: { minFreq: 20, maxFreq: 20000 } } } }
+				})
+			);
+
+			for (const octave of ['1/3', '1/12']) {
+				graphStore.smoothValue = octave;
+				await dataProvider.reSmoothAll();
+				graphEngine.drawFRCurve('p');
+
+				const drawn = datumOf(paths('.fr-graph-phone-curve')[0]);
+				expect(drawn).toBe(frStore.get('p')!.channels.AVG!.data);
+				expect(drawn).toHaveLength(FRSmoother.smooth(raw, octave).length);
+			}
 		});
 	});
 

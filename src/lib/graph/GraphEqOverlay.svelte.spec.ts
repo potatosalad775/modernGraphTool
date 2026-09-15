@@ -107,8 +107,7 @@ describe('GraphEqOverlay', () => {
 
 	beforeEach(() => {
 		frStore.clear();
-		// Any value outside OCTAVE_BANDS is a no-op in FRSmoother, which keeps the
-		// assertions reading the input data rather than a smoothed resampling of it.
+		// Node positions read stored channels as-is; this only resets what a test changed.
 		graphStore.smoothValue = 'none';
 		eqStore.filters = [];
 		eqStore.isEnabled = true;
@@ -327,6 +326,38 @@ describe('GraphEqOverlay', () => {
 			eqStore.filters = [pk(1000)];
 			overlay.setEqPanelActive(true);
 			expect(transformOf().x).toBeCloseTo(engine.xScale(1000), 3);
+		});
+
+		// Stored channels are already smoothed. A second pass here would pull a node
+		// off the curve it is drawn on — the zigzag averages to a flat line at 1/3oct.
+		describe('reads the stored curve without re-smoothing it', () => {
+			const zigzag = curveData().map(([f], i) => [f, i % 2 ? 10 : -10] as FRDataPoint);
+			const [freq, db] = zigzag[101];
+
+			beforeEach(() => {
+				graphStore.smoothValue = '1/3';
+				eqStore.filters = [pk(freq, 0)];
+			});
+
+			it('from the source phone', () => {
+				frStore.set('p', {
+					...makePhone('p'),
+					channels: { AVG: { data: zigzag, metadata: { minFreq: 20, maxFreq: 20000 } } }
+				});
+				overlay.setEqPanelActive(true);
+				expect(transformOf().y).toBeCloseTo(engine.baseYScale(db), 3);
+			});
+
+			it('from the EQ curve when one exists', () => {
+				frStore.set('eq', {
+					...makePhone('eq'),
+					type: 'eq',
+					channels: { AVG: { data: zigzag, metadata: { minFreq: 20, maxFreq: 20000 } } }
+				});
+				eqStore.eqCurveUUID = 'eq';
+				overlay.setEqPanelActive(true);
+				expect(transformOf().y).toBeCloseTo(engine.baseYScale(db), 3);
+			});
 		});
 
 		it('places a shelf node at its absolute gain', () => {

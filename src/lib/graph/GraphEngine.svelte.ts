@@ -5,7 +5,6 @@ import type {
 	BaselineData,
 	SampleEnvelope
 } from '$lib/types/data-types.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '$lib/utils/config.js';
@@ -506,6 +505,8 @@ class GraphEngine {
 		// per-run curves, then the averaged main channels — each with its own
 		// toggle. An item with no set is just the third layer, which is why
 		// `showAvg` being absent has to mean "draw it".
+		// Channels and runs are stored already smoothed at `graphStore.smoothValue`
+		// (`reSmoothAll` rebuilds them when it changes), so paths bind them as-is.
 
 		// 1. Min/max envelope fill (behind everything)
 		if (obj.showFill && obj.envelope) {
@@ -549,7 +550,7 @@ class GraphEngine {
 
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(sample[channel]!.data, graphStore.smoothValue))
+					.datum(sample[channel]!.data)
 					.attr('class', 'fr-graph-phone-curve fr-graph-sample-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -570,7 +571,7 @@ class GraphEngine {
 				if (!obj.channels[channel]) return;
 				this.curveGroup
 					.append('path')
-					.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
+					.datum(obj.channels[channel]!.data)
 					.attr('class', 'fr-graph-phone-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
@@ -610,7 +611,7 @@ class GraphEngine {
 		channels.forEach((channel) => {
 			this.curveGroup
 				.append('path')
-				.datum(() => FRSmoother.smooth(obj.channels[channel]!.data, graphStore.smoothValue))
+				.datum(obj.channels[channel]!.data)
 				.attr('class', `fr-graph-${obj.type}-curve`)
 				.attr('uuid', obj.uuid)
 				.attr('type', obj.type)

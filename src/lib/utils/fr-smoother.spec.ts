@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import FRSmoother from './fr-smoother.js';
+import FRParser from './fr-parser.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 
 /** Generate synthetic FR data for testing */
@@ -164,9 +165,81 @@ describe('FRSmoother', () => {
 			expect(fine.length).toBeGreaterThan(coarse.length);
 		});
 	});
+
+	// The single-cursor pass has to reproduce the filter-per-band original exactly,
+	// boundary double-counting included — the drawn curves are made of its output.
+	describe('_smoothChannel — equivalence with the reference implementation', () => {
+		const octaves = Object.keys(FRSmoother.OCTAVE_BANDS);
+		const grid: FRDataPoint[] = FRParser._standardFrequencies.map(
+			(f, i) => [f, 80 + Math.sin(i * 0.3) * 5] as FRDataPoint
+		);
+
+		it.each(octaves)('matches on the 1/48oct parser grid at %s', (octave) => {
+			expect(FRSmoother.smooth(grid, octave)).toEqual(referenceSmooth(grid, octave));
+		});
+
+		it.each(octaves)('matches on a 1000-point log-spaced raw file at %s', (octave) => {
+			const raw = logSpaced(1000, 10, 24000);
+			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
+		});
+
+		it.each(octaves)('matches with duplicate frequencies at %s', (octave) => {
+			const raw = logSpaced(300).flatMap(([f, db]) => [
+				[f, db] as FRDataPoint,
+				[f, db - 3] as FRDataPoint
+			]);
+			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
+		});
+
+		it.each(octaves)('matches with points exactly on the band edges at %s', (octave) => {
+			const raw = FRSmoother._createOctaveBands(octave).map(
+				(band, i) => [band.lower, 70 + (i % 5)] as FRDataPoint
+			);
+			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
+		});
+
+		it('skips null holes the way the reference does', () => {
+			const holey = grid.map((p, i) => (i % 7 === 0 ? null : p)) as unknown as FRDataPoint[];
+			expect(FRSmoother.smooth(holey, '1/12')).toEqual(referenceSmooth(holey, '1/12'));
+		});
+
+		it('counts a grid point on a band edge in both adjacent bands', () => {
+			const [first] = FRSmoother.smooth(grid, '1/48');
+			expect(first[1]).toBe((grid[0][1] + grid[1][1]) / 2);
+		});
+
+		// GraphEngine binds stored channels without smoothing them again, which is
+		// only correct because a second pass at the same octave changes nothing.
+		it.each(octaves)('is idempotent on its own output at %s', (octave) => {
+			const once = FRSmoother.smooth(grid, octave);
+			expect(FRSmoother.smooth(once, octave)).toEqual(once);
+		});
+	});
 });
 
 function computeVariance(values: number[]): number {
 	const mean = values.reduce((a, b) => a + b, 0) / values.length;
 	return values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+}
+
+/** The original filter-per-band smoother, kept as the equivalence reference. */
+function referenceSmooth(points: FRDataPoint[], octave: string): FRDataPoint[] {
+	return FRSmoother._createOctaveBands(octave)
+		.map((band) => ({
+			...band,
+			values: points.filter((p) => p && p[0] >= band.lower && p[0] <= band.upper).map((p) => p[1])
+		}))
+		.filter((bin) => bin.values.length > 0)
+		.map(
+			(bin) =>
+				[bin.centerFreq, bin.values.reduce((a, b) => a + b, 0) / bin.values.length] as FRDataPoint
+		);
+}
+
+/** `count` log-spaced points from `from` to `to` Hz, off the 1/48oct grid. */
+function logSpaced(count: number, from = 20, to = 20000): FRDataPoint[] {
+	return Array.from({ length: count }, (_, i) => {
+		const f = from * Math.pow(to / from, i / (count - 1));
+		return [f, 75 + Math.sin(i * 0.05) * 8 + Math.cos(i * 1.7)] as FRDataPoint;
+	});
 }

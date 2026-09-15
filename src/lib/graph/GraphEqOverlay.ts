@@ -2,13 +2,11 @@ import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { indexedEffectiveFilters, indexedFiltersInScope } from '$lib/utils/eq-channel.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 
 interface BandDatum {
@@ -340,9 +338,10 @@ export class GraphEqOverlay {
 	// ── Curve lookup helpers ──────────────────────────────────────────────────
 
 	/**
-	 * Get the smoothed EQ-modified FR data for the source phone's primary displayed channel.
+	 * Get the EQ-modified FR data for the source phone's primary displayed channel.
 	 * Reads from the frStore EQ entry (post-normalization) to match the visible EQ curve.
 	 * Falls back to source phone data when no EQ curve exists yet (click-to-add first band).
+	 * Stored channels are already smoothed, so both are returned as-is.
 	 */
 	private _getSourceChannelData(): FRDataPoint[] | null {
 		// Prefer EQ curve data (post-normalization, matches visible curve)
@@ -351,7 +350,7 @@ export class GraphEqOverlay {
 			const eqEntry = frStore.get(eqCurveUUID);
 			if (eqEntry) {
 				const channelData = this._pickChannelData(eqEntry.channels);
-				if (channelData) return FRSmoother.smooth(channelData, graphStore.smoothValue);
+				if (channelData) return channelData;
 			}
 		}
 		// Fallback: source phone data (for click-to-add first band)
@@ -359,9 +358,7 @@ export class GraphEqOverlay {
 		if (!sourceUUID) return null;
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return null;
-		const channelData = this._pickChannelData(sourceData.channels);
-		if (!channelData) return null;
-		return FRSmoother.smooth(channelData, graphStore.smoothValue);
+		return this._pickChannelData(sourceData.channels);
 	}
 
 	/**

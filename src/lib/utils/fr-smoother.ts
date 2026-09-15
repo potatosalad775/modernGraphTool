@@ -6,9 +6,8 @@ interface OctaveBand {
 	centerFreq: number;
 }
 
-interface OctaveBandWithValues extends OctaveBand {
-	values: number[];
-}
+/** Bands per octave key — five keys, each computed once. */
+const bandCache = new Map<string, OctaveBand[]>();
 
 const FRSmoother = {
 	OCTAVE_BANDS: {
@@ -41,15 +40,42 @@ const FRSmoother = {
 		return smoothedData;
 	},
 
-	/** Smooth a single channel's data */
+	/**
+	 * Smooth a single channel's data: each non-empty band becomes one point at its
+	 * centre, carrying the mean of the points inside it.
+	 *
+	 * `dataPoints` must be sorted by frequency (every caller passes the parser's
+	 * 1/48oct grid), so one cursor walks the points and the bands together.
+	 */
 	_smoothChannel(dataPoints: FRDataPoint[], octave: string): FRDataPoint[] {
-		const bands = this._createOctaveBands(octave);
-		const binned = this._binData(dataPoints, bands);
+		let bands = bandCache.get(octave);
+		if (!bands) {
+			bands = this._createOctaveBands(octave);
+			bandCache.set(octave, bands);
+		}
 
-		return binned.map(
-			(bin) =>
-				[bin.centerFreq, bin.values.reduce((a, b) => a + b, 0) / bin.values.length] as FRDataPoint
-		);
+		const smoothed: FRDataPoint[] = [];
+		const count = dataPoints.length;
+		let start = 0;
+		for (const { lower, upper, centerFreq } of bands) {
+			// Membership is inclusive at both ends and each band's upper edge is the
+			// next band's lower edge, so a point exactly on a boundary counts in both —
+			// on the 1/48oct grid that is every point. Start from the first point at or
+			// above `lower`, which may be the previous band's last one.
+			while (start < count && (!dataPoints[start] || dataPoints[start][0] < lower)) start++;
+
+			let sum = 0;
+			let members = 0;
+			for (let i = start; i < count; i++) {
+				const point = dataPoints[i];
+				if (!point) continue;
+				if (point[0] > upper) break;
+				sum += point[1];
+				members++;
+			}
+			if (members > 0) smoothed.push([centerFreq, sum / members]);
+		}
+		return smoothed;
 	},
 
 	/** Create octave bands based on the specified octave division */
@@ -69,16 +95,6 @@ const FRSmoother = {
 		}
 
 		return bands;
-	},
-
-	/** Bin data points into octave bands */
-	_binData(points: FRDataPoint[], bands: OctaveBand[]): OctaveBandWithValues[] {
-		return bands
-			.map((band) => ({
-				...band,
-				values: points.filter((p) => p && p[0] >= band.lower && p[0] <= band.upper).map((p) => p[1])
-			}))
-			.filter((bin) => bin.values.length > 0); // Skip empty bins
 	}
 };
 

@@ -14,6 +14,32 @@ function makeChannelData(baseDb: number, count = 480): ChannelData {
 	return { data, metadata: { minFreq: 20, maxFreq: freq } };
 }
 
+/** The original `findIndex`-per-target interpolation, kept as the equivalence reference. */
+function referenceInterpolate(raw: FRDataPoint[]): FRDataPoint[] {
+	return FRParser._standardFrequencies.map((target) => {
+		const index = raw.findIndex(([freq]) => freq > target);
+		if (index === -1) return [target, raw[raw.length - 1][1]] as FRDataPoint;
+		if (index === 0) return [target, raw[0][1]] as FRDataPoint;
+		const [freq1, db1] = raw[index - 1];
+		const [freq2, db2] = raw[index];
+		return [target, db1 + (db2 - db1) * ((target - freq1) / (freq2 - freq1))] as FRDataPoint;
+	});
+}
+
+/** `count` log-spaced points from `from` to `to` Hz, off the 1/48oct grid. */
+function logSpaced(count: number, from = 20, to = 20000): FRDataPoint[] {
+	return Array.from({ length: count }, (_, i) => {
+		const f = from * Math.pow(to / from, i / (count - 1));
+		return [f, 75 + Math.sin(i * 0.05) * 8 + Math.cos(i * 1.7)] as FRDataPoint;
+	});
+}
+
+/** Deterministic pseudo-random numbers in [0, 1), so a failure reproduces. */
+function seeded(seed: number): () => number {
+	let state = seed;
+	return () => (state = (state * 1664525 + 1013904223) % 4294967296) / 4294967296;
+}
+
 describe('FRParser', () => {
 	describe('parseFRData', () => {
 		it('parses tab-separated frequency/dB data', async () => {
@@ -219,6 +245,40 @@ describe('FRParser', () => {
 			// Points after 10000 Hz should use the last value
 			const lastPoint = result[result.length - 1];
 			expect(lastPoint[1]).toBe(60);
+		});
+	});
+
+	describe('_interpolateToStandard — equivalence with the reference implementation', () => {
+		it('matches when the raw points are the standard grid itself', () => {
+			const raw = FRParser._standardFrequencies.map(
+				(f, i) => [f, 80 + Math.sin(i * 0.1) * 3] as FRDataPoint
+			);
+			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+		});
+
+		it('matches on a 1000-point log-spaced file that starts and ends inside the band', () => {
+			const raw = logSpaced(1000, 23.5, 19000);
+			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+		});
+
+		it('matches on a ragged raw file', () => {
+			const next = seeded(48);
+			const raw: FRDataPoint[] = [];
+			for (let f = 20; f <= 20000; f *= 1 + next() * 0.2) raw.push([f, 60 + next() * 30]);
+			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+		});
+
+		it('matches with duplicate frequencies', () => {
+			const raw = logSpaced(300).flatMap(([f, db]) => [
+				[f, db] as FRDataPoint,
+				[f, db + 2] as FRDataPoint
+			]);
+			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+		});
+
+		it('matches with a single raw point', () => {
+			const raw: FRDataPoint[] = [[1000, 85]];
+			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
 		});
 	});
 

@@ -3,7 +3,7 @@ import type { ChannelData, ParsedFRData, FRDataPoint } from '$lib/types/data-typ
 /**
  * Normalize a single channel's FR data.
  *
- * @param channelData - Deep-copied before mutation; original is never modified.
+ * @param channelData - Copied, never modified.
  * @param type        - 'Hz' | 'Avg'
  * @param hzValue     - Target frequency for Hz normalization (ignored for Avg).
  */
@@ -91,13 +91,14 @@ function _avgDelta(data: ChannelData): number {
 	return -avg;
 }
 
-/** Deep-copy a channel and shift every point by `delta` (clamped). */
+/** Copy a channel and shift every point by `delta` (clamped). The input is never mutated. */
 function _shiftChannel(channelData: ChannelData, delta: number): ChannelData {
-	const copy: ChannelData = structuredClone(channelData);
-	copy.data.forEach((point) => {
-		point[1] = clampDB(point[1] + delta);
-	});
-	return copy;
+	const { metadata } = channelData;
+	return {
+		...channelData,
+		data: channelData.data.map(([freq, db]) => [freq, clampDB(db + delta)] as FRDataPoint),
+		metadata: { ...metadata, ...(metadata.weights && { weights: [...metadata.weights] }) }
+	};
 }
 
 /**

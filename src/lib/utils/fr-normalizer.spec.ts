@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalize, normalizeChannels } from './fr-normalizer.js';
+import { normalize, normalizeAgainst, normalizeChannels, clampDB } from './fr-normalizer.js';
 import type { ChannelData, FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 
 /** Generate synthetic channel data spanning 20–20000 Hz */
@@ -262,6 +262,59 @@ describe('fr-normalizer', () => {
 			expect(idx).toBeGreaterThanOrEqual(0);
 			const gap = result.L!.data[idx][1] - result.R!.data[idx][1];
 			expect(Math.abs(gap)).toBeGreaterThan(0.5);
+		});
+	});
+
+	describe('copy semantics — equivalence with the structuredClone original', () => {
+		/** The original shift: deep copy, then shift the copy in place. */
+		function referenceShift(ch: ChannelData, delta: number): ChannelData {
+			const copy: ChannelData = structuredClone(ch);
+			copy.data.forEach((point) => {
+				point[1] = clampDB(point[1] + delta);
+			});
+			return copy;
+		}
+
+		/** The offset Avg normalization applies. */
+		function midrangeDelta(ch: ChannelData): number {
+			const mid = ch.data.filter((p) => p[0] >= 300 && p[0] <= 3000);
+			return -(mid.reduce((sum, p) => sum + p[1], 0) / mid.length);
+		}
+
+		function withWeights(ch: ChannelData): ChannelData {
+			return { ...ch, metadata: { ...ch.metadata, weights: ch.data.map((_, i) => i % 3) } };
+		}
+
+		it('matches on a 480-point grid carrying weights', () => {
+			const ch = withWeights(makeChannelData(80));
+			expect(normalize(ch, 'Avg', 0)).toEqual(referenceShift(ch, midrangeDelta(ch)));
+		});
+
+		it('matches for every channel of normalizeChannels', () => {
+			const { L, R, AVG } = makeLRChannels();
+			const delta = midrangeDelta(AVG);
+			expect(normalizeChannels({ L, R, AVG }, 'Avg', 0)).toEqual({
+				L: referenceShift(L, delta),
+				R: referenceShift(R, delta),
+				AVG: referenceShift(AVG, delta)
+			});
+		});
+
+		it('matches when the shift clamps at the dB ceiling', () => {
+			const ch = makeChannelData(100);
+			const reference = makeChannelData(-30);
+			expect(normalizeAgainst(ch, reference, 'Avg', 0)).toEqual(
+				referenceShift(ch, midrangeDelta(reference))
+			);
+		});
+
+		it('returns fresh point tuples, metadata and weights', () => {
+			const ch = withWeights(makeChannelData(80));
+			const result = normalize(ch, 'Avg', 0);
+			expect(result.data[0]).not.toBe(ch.data[0]);
+			expect(result.metadata).not.toBe(ch.metadata);
+			expect(result.metadata.weights).not.toBe(ch.metadata.weights);
+			expect(result.metadata.weights).toEqual(ch.metadata.weights);
 		});
 	});
 });

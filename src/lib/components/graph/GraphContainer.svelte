@@ -55,32 +55,75 @@
 	}
 
 	const labelTextWidths = new SvelteMap<string, number>();
+	// The two maps below are measurement bookkeeping that markup never reads, so
+	// they stay plain Maps; only `labelTextWidths` needs to be reactive.
+	/** Every mounted label node with its current key, for re-measuring after a font loads. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const labelNodes = new Map<SVGTextElement, string>();
+	/** Labels waiting for the next measurement batch. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const pendingLabels = new Map<SVGTextElement, string>();
+	let measureFrame = 0;
+
+	/**
+	 * Measure every pending label in one animation frame: all `getBBox()` reads
+	 * first, then all width writes. Measured one label per frame callback, each
+	 * write let Svelte resize a backdrop before the next read, forcing a layout per
+	 * label. The frame also keeps reads out of the microtask Svelte is mid-render in
+	 * (some browsers return a stale bbox there).
+	 */
+	function flushLabelMeasure() {
+		measureFrame = 0;
+		const widths: [string, number][] = [];
+		for (const [node, key] of pendingLabels) {
+			if (node.isConnected) widths.push([key, node.getBBox().width]);
+		}
+		pendingLabels.clear();
+		for (const [key, width] of widths) labelTextWidths.set(key, width);
+	}
+
+	function queueLabelMeasure(node: SVGTextElement, key: string) {
+		pendingLabels.set(node, key);
+		measureFrame ||= requestAnimationFrame(flushLabelMeasure);
+	}
 
 	function measureLabel(node: SVGTextElement, param: { key: string; text: string }) {
-		const measure = (k: string) => {
-			// requestAnimationFrame avoids measuring during the same microtask Svelte
-			// is mid-render in (some browsers return stale bbox in that window).
-			requestAnimationFrame(() => {
-				if (!node.isConnected) return;
-				labelTextWidths.set(k, node.getBBox().width);
-			});
-		};
 		let currentKey = param.key;
-		measure(currentKey);
+		labelNodes.set(node, currentKey);
+		queueLabelMeasure(node, currentKey);
 		return {
 			update(next: { key: string; text: string }) {
 				if (next.key !== currentKey) labelTextWidths.delete(currentKey);
 				currentKey = next.key;
+				labelNodes.set(node, currentKey);
 				// Re-measure on every update — key stays stable across text edits
 				// (e.g. TargetCustomizer adjustment label), so we can't rely on key
 				// change alone to trigger a recompute.
-				measure(currentKey);
+				queueLabelMeasure(node, currentKey);
 			},
 			destroy() {
+				labelNodes.delete(node);
+				pendingLabels.delete(node);
 				labelTextWidths.delete(currentKey);
 			}
 		};
 	}
+
+	// A web font that finishes loading after the first measurement (its faces use
+	// `font-display: swap`) changes every label's width, leaving the backdrops sized
+	// for the fallback font. `loadingdone` rather than `fonts.ready`: ready has often
+	// already resolved by mount, before the swapped-in face is requested.
+	$effect(() => {
+		const fonts = document.fonts;
+		const remeasure = () => {
+			for (const [node, key] of labelNodes) queueLabelMeasure(node, key);
+		};
+		fonts?.addEventListener('loadingdone', remeasure);
+		return () => {
+			fonts?.removeEventListener('loadingdone', remeasure);
+			cancelAnimationFrame(measureFrame);
+		};
+	});
 
 	function backdropX(width: number, anchor: string): number {
 		if (anchor === 'end') return -(width + labelBgPaddingX / 2);

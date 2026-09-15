@@ -9,6 +9,13 @@ const CDN_BASE = process.env.MGT_CDN_BASE || '';
 // Example: BASE_PATH=/modernGraphTool
 const BASE_PATH = process.env.BASE_PATH || '';
 
+// One version name per build. SvelteKit defaults it to `Date.now()` at each config load,
+// and a build loads this file more than once — again in the worker that writes the
+// fallback index.html. When two loads straddle a millisecond, index.html and the client
+// chunks disagree on the `__sveltekit_*` global and the page boots blank. Workers inherit
+// process.env, so the first load's value wins everywhere.
+process.env.MGT_BUILD_VERSION ??= Date.now().toString();
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	kit: {
@@ -22,7 +29,8 @@ const config = {
 			base: BASE_PATH,
 			assets: CDN_BASE
 		},
-		prerender: { handleHttpError: 'warn' }
+		prerender: { handleHttpError: 'warn' },
+		version: { name: process.env.MGT_BUILD_VERSION }
 	},
 	vitePlugin: {
 		dynamicCompileOptions: ({ filename }) =>

@@ -170,7 +170,8 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-54 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
+			align="end"
+			class="z-50 max-w-72 min-w-60 rounded-lg border border-base-content/15 bg-base-200 p-2 shadow-xl"
 		>
 			<!--
 				Section 1: Channel display.

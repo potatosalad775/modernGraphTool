@@ -10,66 +10,36 @@ pagefind: true
 draft: false
 ---
 
-devicePEQ 프로젝트를 modernGraphTool에 들여와, 하드웨어 이퀄라이저와 오디오 기기를 직접 제어할 수 있게 해주는 기능입니다.
+Device PEQ는 DAC, 동글, 스트리머, 일부 헤드폰 같은 지원 기기의 파라메트릭 EQ를 브라우저에서 바로 읽고 쓰는 기능입니다. 별도 소프트웨어는 필요 없습니다. 한 번 기록한 EQ는 기기 자체 메모리에 저장되므로 컴퓨터에서 분리해도 계속 적용됩니다.
 
-## 개요
+Equalizer 패널 맨 아래에 있습니다. 사용 흐름은 [오디오 이퀄라이징](../guide-for-users/equalizing.mdx#device-peq)을 참고하세요.
 
-Device PEQ는 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 modernGraphTool에 통합한 기능입니다. 호환되는 오디오 기기에 EQ 설정을 직접 전송할 수 있습니다.
+## 연결 방식
 
-modernGraphTool의 측정 분석 기능과 실제 오디오 기기 제어를 잇는 다리 역할을 합니다.
+| 연결 방식      | 브라우저 API  | 예시                                            |
+| -------------- | ------------- | ----------------------------------------------- |
+| **USB HID**    | WebHID        | FiiO, Moondrop, KTMicro 동글, DAC/앰프          |
+| **USB Serial** | Web Serial    | JDS Labs, Nothing, EarFun 등                    |
+| **Bluetooth**  | Web Bluetooth | 일부 FiiO 및 Airoha 칩셋 기기                   |
+| **네트워크**   | —             | WiiM 스트리머, Luxsin X9 같은 IP 주소 기반 기기 |
 
-## 주요 기능
+최신 지원 기기 목록은 패널 안의 **About Device PEQ** 대화상자(**New to Device PEQ?**)에서 확인할 수 있습니다.
 
-- **하드웨어 통합** — 호환 오디오 기기에 직접 연결
-- **기기 관리** — 연결, 해제, 여러 기기의 관리
-- **PEQ 슬롯 관리** — 지원 기기의 파라메트릭 EQ 슬롯 다루기
-- **실시간 동기화** — modernGraphTool과 하드웨어의 EQ 설정을 즉시 일치
-- **고급 제어** — 선택적으로 활성화하는 고급 기기 조작 기능
+## 브라우저 지원
 
-## 사용법
+Device PEQ는 **Chrome, Edge, Opera** 같은 Chromium 기반 브라우저에서만 동작합니다. Firefox와 Safari는 WebHID, Web Serial, Web Bluetooth를 모두 지원하지 않으므로, 연결 버튼 대신 호환성 안내가 표시됩니다.
 
-### 기기 연결
+## 보내기와 읽어오기
 
-1. **기기 연결** — 연결 버튼으로 오디오 기기를 연결합니다.
-2. **기기 정보** — 연결된 기기의 정보와 지원 기능을 확인합니다.
-3. **슬롯 관리** — 사용 가능한 PEQ 슬롯을 골라 관리합니다.
+- **보내기(Push)** 는 현재 필터 목록을 기기에 기록합니다. 슬롯이 여러 개인 기기는 선택한 슬롯에 기록합니다.
+- **읽어오기(Pull)** 는 기기의 현재 필터를 필터 목록으로 불러오고 Equalizer를 켭니다.
 
-### EQ 전송
+기기가 연결되어 있는 동안에는 밴드 개수, 게인 범위, 셸프 필터 지원 여부 같은 기기의 한계가 활성 EQ 제약 조건이 됩니다. 그래서 직접 편집하든 AutoEQ를 돌리든 기기가 받아들일 수 있는 결과가 나옵니다. 5밴드 기기에서는 AutoEQ도 5밴드로 계산합니다.
 
-1. **필터 설정** — 이퀄라이저 패널에서 원하는 EQ를 구성합니다.
-2. **기기로 전송** — Device PEQ 컨트롤로 설정을 하드웨어에 보냅니다.
-
-## 지원 기기
-
-이 기능은 devicePEQ 플러그인이 지원하는 기기에서 동작합니다.
-
-:::note[기기 호환성]
-지원 기기 목록은 devicePEQ 플러그인에 따라 결정됩니다. 최신 호환성 정보는 정보 다이얼로그나 [devicePEQ 프로젝트][DEVICEPEQ]에서 확인하세요.
+:::note[공용 밴드만 전송]
+하드웨어 EQ 슬롯에는 채널 개념이 없습니다. 보내기는 **L+R** 밴드만 전송하고, 건너뛴 좌·우 전용 밴드가 몇 개인지 알려 줍니다. [채널별 EQ](./equalizer.mdx#per-channel-eq)를 참고하세요.
 :::
 
-## 고급 기능
+## 감사의 말
 
-`ADVANCED: true`로 설정하면 다음 기능을 사용할 수 있습니다.
-
-- 고급 기기 설정 다이얼로그
-- 확장된 기기 조작 기능
-- 추가 문제 해결 도구
-
-:::caution[고급 모드 주의]
-고급 기능은 기기를 손상시키거나 예기치 못한 동작을 일으킬 수 있습니다. 위험을 이해하고 오디오 기기 설정 경험이 있는 경우에만 사용하세요.
-:::
-
-## 브라우저 호환성
-
-- **Chrome / Edge** — 완전 지원 (권장)
-- **Firefox** — 미지원 (WebUSB 미지원)
-- **Safari** — 미지원 (WebUSB 미지원)
-
-## 서드파티 고지
-
-이 기능은 [jeromeof의 devicePEQ 플러그인][DEVICEPEQ]을 포함합니다.
-
-- **저장소** — https://github.com/jeromeof/devicePEQ
-- **라이선스** — 0BSD License
-
-[DEVICEPEQ]: https://github.com/jeromeof/devicePEQ
+Device PEQ는 [jeromeof의 devicePEQ 프로젝트](https://github.com/jeromeof/devicePEQ)(0BSD 라이선스)를 기반으로 합니다.

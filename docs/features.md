@@ -1,10 +1,12 @@
 ---
 title: Features
-description: Learn about modernGraphTool's built-in features.
+description: Reference for every built-in modernGraphTool feature — what it does
+  and how it behaves.
 editUrl: true
 head: []
 template: doc
 sidebar:
+  label: Overview
   hidden: false
   attrs: {}
 pagefind: true
@@ -13,16 +15,69 @@ draft: false
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Learn about modernGraphTool's built-in features.
+Every feature is built in — there is nothing to install. These pages explain what each one does and how it behaves. For a walkthrough of the interface, see the [Guide for Users](../guide-for-users/index.mdx); for every configuration option, see [Customizing the Page](../guide-for-admins/customize-page.mdx#changing-basic-settings-configjs).
+
+## Graph
 
 <CardGrid>
-	<LinkCard title="Average Curves" href="./average-curves/" />
-	<LinkCard title="Cross-Site Search" href="./cross-site-search/" />
-	<LinkCard title="Device PEQ" href="./device-peq/" />
-	<LinkCard title="Equalizer" href="./equalizer/" />
-	<LinkCard title="Frequency Tutorial" href="./frequency-tutorial/" />
-	<LinkCard title="Preference Bound" href="./preference-bound/" />
-	<LinkCard title="Site Selector" href="./site-selector/" />
-	<LinkCard title="squig.link Integration" href="./squiglink-integration/" />
-	<LinkCard title="Target Customizer" href="./target-customizer/" />
+	<LinkCard
+		title="Average Curves"
+		href="./average-curves/"
+		description="Fold every visible measurement into one averaged curve."
+	/>
+	<LinkCard
+		title="Preference Bound"
+		href="./preference-bound/"
+		description="Shade the range of tunings most listeners prefer."
+	/>
+	<LinkCard
+		title="Target Customizer"
+		href="./target-customizer/"
+		description="Adjust a target with tilt, bass, treble and ear-gain filters."
+	/>
+	<LinkCard
+		title="Frequency Tutorial"
+		href="./frequency-tutorial/"
+		description="Label each region of the graph with what lives there."
+	/>
+</CardGrid>
+
+## Equalizer
+
+<CardGrid>
+	<LinkCard
+		title="Equalizer"
+		href="./equalizer/"
+		description="Parametric EQ with AutoEQ, per-channel bands and audio preview."
+	/>
+	<LinkCard
+		title="Device PEQ"
+		href="./device-peq/"
+		description="Push your EQ straight into a DAC, dongle or headphone."
+	/>
+	<LinkCard
+		title="AutoEQ Benchmarks"
+		href="./autoeq-benchmarks/"
+		description="How the AutoEQ optimizer compares on speed and fit quality."
+	/>
+</CardGrid>
+
+## Across Sites
+
+<CardGrid>
+	<LinkCard
+		title="Cross-Site Search"
+		href="./cross-site-search/"
+		description="Find a device in other measurement databases."
+	/>
+	<LinkCard
+		title="Site Selector"
+		href="./site-selector/"
+		description="Jump between measurement databases from the top bar."
+	/>
+	<LinkCard
+		title="squig.link Integration"
+		href="./squiglink-integration/"
+		description="Shop links, analytics and sponsor banners on squig.link."
+	/>
 </CardGrid>

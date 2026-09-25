@@ -12,7 +12,7 @@ pagefind: true
 draft: false
 ---
 
-Short answers to questions that come up a lot. If yours isn't here, check the [Features](../features/index.mdx) section for feature-specific deep dives, or the main [Overview](../intro.mdx) page.
+Short answers to questions that come up a lot. If yours isn't here, check the [Features](../features/index.mdx) section for feature-specific deep dives, or the [Introduction](../intro.mdx).
 
 ## Measurement and interpretation
 
@@ -76,7 +76,7 @@ If you boost a frequency by +6 dB digitally, the whole signal is 6 dB closer to 
 
 ### Can I send an EQ directly to my DAC/headphone hardware?
 
-If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. Best support is in Chrome and Edge. Safari and Firefox doesn't support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](../features/device-peq.mdx).
+If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. It needs a Chromium-based browser (Chrome, Edge or Opera); Safari and Firefox don't support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](../features/device-peq.mdx).
 
 ## squig.link
 

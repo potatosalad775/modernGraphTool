@@ -1,11 +1,11 @@
 ---
-title: 왜 modernGraphTool인가?
+title: modernGraphTool이 뭔가요?
 editUrl: true
 head: []
 template: doc
 sidebar:
   order: 2
-  label: 왜 modernGraphTool인가?
+  label: modernGraphTool이 뭔가요?
   hidden: false
   attrs: {}
 pagefind: true
@@ -14,7 +14,7 @@ draft: false
 
 오디오 측정 커뮤니티의 눈높이는, 한때 제 몫을 충실히 해낸 도구들이 감당할 수 있는 선을 이미 넘어섰습니다.
 
-modernGraphTool은 최신 웹 기술과 모듈화된 아키텍처 위에 처음부터 새로 작성한 도구입니다. 측정 데이터베이스 운영자와 오디오 애호가를 비롯한 커뮤니티의 요구에 맞춰 함께 진화하도록 설계했습니다.
+modernGraphTool은 최신 웹 기술과 모듈화된 아키텍처 위에 처음부터 새로 작성한 도구입니다. 측정 데이터베이스 운영자와 오디오 애호가를 비롯한 커뮤니티의 요구에 맞춰 함께 진화하도록 설계되었습니다.
 
 ## CrinGraph의 유산
 
@@ -24,22 +24,16 @@ modernGraphTool은 최신 웹 기술과 모듈화된 아키텍처 위에 처음�
 
 squig.link 네트워크의 측정 데이터베이스 대부분은 지금도 CrinGraph나 그 파생 버전을 씁니다. CrinGraph가 FR 데이터 시각화 방식에 남긴 영향은 누구도 부정하기 어렵습니다.
 
-:::note[완전한 데이터 호환]
-modernGraphTool은 CrinGraph를 '부정'하는 도구가 아닙니다. 오히려 **계승**하는 도구에 가깝습니다.
-
-데이터 형식, 폴더 구조, `phone_book.json`을 비롯한 데이터 구조를 그대로 유지했습니다. 기존 측정 데이터를 변환할 필요 없이 곧바로 사용할 수 있습니다.
-:::
-
 ## 한눈에 비교하기
 
-오늘날 'CrinGraph'라고 하면 보통 세 가지 코드베이스 중 하나를 가리킵니다. [Vanilla CrinGraph](https://github.com/mlochbaum/CrinGraph)는 원조 버전이고, [squiglink lab](https://github.com/squiglink/lab)은 squig.link 데이터베이스 대부분이 쓰는 가벼운 포크입니다. [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool)은 커뮤니티의 추가 기능을 가장 많이 담은 포크입니다.
+오늘날 'CrinGraph'라고 하면 보통 세 가지 코드베이스 중 하나를 가리킵니다. [Vanilla CrinGraph](https://github.com/mlochbaum/CrinGraph)는 원조 버전이고, [squiglink lab](https://github.com/squiglink/lab)은 squig.link 데이터베이스 대부분이 쓰는 가벼운 파생 버전입니다. [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool)은 커뮤니티의 추가 기능을 가장 많이 담은 파생 버전이죠.
 
 |                            | Vanilla CrinGraph         | squiglink lab             | PublicGraphTool                      | modernGraphTool                                                                                    |
 | -------------------------- | ------------------------- | ------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | **코드베이스**             | 약 2,500줄 단일 스크립트  | 스크립트 3개, 약 4,100줄  | 번들링 없는 스크립트 40여 개, 약 14,400줄 | 번들링된 TypeScript 컴포넌트                                                                  |
 | **파라메트릭 EQ + AutoEQ** | —                         | ✓                         | ✓                                    | ✓ [실행 취소/다시 실행 지원](./features/equalizer.mdx)                                             |
 | **EQ A/B 테스트**         | —                         | —                         | —                                    | ✓ 이력 및 비교 패널, 누르는 동안만 우회하는 단축키                                                 |
-| **채널별(L / R) EQ**       | —                         | —                         | 밸런스 슬라이더만 제공               | ✓ [공통 밴드 + 좌우 개별 밴드](./features/equalizer.mdx#채널별-eq)                            |
+| **채널별(L / R) EQ**       | —                         | —                         | 밸런스 슬라이더만 제공               | ✓ [공통 밴드 + 좌우 개별 밴드](./features/equalizer.mdx#per-channel-eq)                            |
 | **실시간 EQ 미리 듣기**    | —                         | 톤 제너레이터             | ✓                                    | ✓ 오디오 파일, 노이즈, 톤, 사인 스윕                                                    |
 | **Preference Bound**       | —                         | —                         | ✓                                    | ✓ [기본 내장](./features/preference-bound.mdx)                                                     |
 | **타겟 커스터마이징**      | —                         | —                         | 틸트, 저음, 이어 게인, 고음          | ✓ [필터 구성, 프리셋, 타겟별 기본값 설정 가능](./features/target-customizer.mdx)                   |
@@ -53,12 +47,12 @@ modernGraphTool은 CrinGraph를 '부정'하는 도구가 아닙니다. 오히려
 
 ## 모든 기능을 한곳에
 
-CrinGraph 생태계에서 기능은 포크마다 흩어져 있습니다. Preference Bound와 Device PEQ 브리지는 PublicGraphTool에 있고, 대부분의 사이트는 squiglink lab을 씁니다. 내 포크에 없는 기능이 필요하면 직접 옮겨와야 합니다. 애초에 합쳐질 것을 고려하지 않은 수천 줄의 JavaScript를 손으로 병합하면서, 다른 곳이 망가지지 않기를 바라야 하죠.
+CrinGraph 생태계에서 기능은 파생 버전마다 흩어져 있습니다. Preference Bound와 Device PEQ 브리지는 PublicGraphTool에 있고, 대부분의 사이트는 squiglink lab을 씁니다. 내 포크에 없는 기능이 필요하면 직접 옮겨와야 합니다. 애초에 합쳐질 것을 고려하지 않은 수천 줄의 JavaScript를 손으로 병합하면서, 다른 곳이 망가지지 않기를 바라야 하죠.
 
 modernGraphTool은 모든 기능을 하나의 빌드에 담았고, 각각 `config.js`에서 켜고 끌 수 있습니다.
 
-- **[이퀄라이저](./features/equalizer.mdx)** — AutoEQ, 채널별 밴드, 실행 취소/다시 실행, 수정 이력을 A/B로 비교하는 이력 및 비교 패널, 가져오기/내보내기를 갖춘 파라메트릭 EQ.
-- **실시간 미리 듣기** — 직접 올린 오디오 파일, 화이트·핑크 노이즈, 테스트 톤, 사인 스윕을 EQ를 적용한 채 재생하며, 패널을 옮겨도 재생이 끊기지 않습니다.
+- **[이퀄라이저](./features/equalizer.mdx)** — AutoEQ, 채널별 EQ, 실행 취소/다시 실행, 수정 이력 및 A/B 테스트 기능, 가져오기/내보내기를 갖춘 파라메트릭 EQ.
+- **실시간 미리 듣기** — 음원 업로드 기능, 화이트·핑크 노이즈, 테스트 톤, 사인 스윕, EQ 미리 듣기.
 - **[Device PEQ](./features/device-peq.mdx)** — USB, 시리얼, 블루투스, 네트워크로 연결된 20여 종의 기기에 필터를 바로 전송합니다.
 - **[타겟 커스터마이저](./features/target-customizer.mdx)** — 모든 타겟에 틸트, 저음, 고음, 이어 게인 필터를 적용하고, 프리셋과 타겟별 기본값을 설정할 수 있습니다. 운영자가 필터 구성을 통째로 바꿀 수도 있습니다.
 - **[Preference Bound](./features/preference-bound.mdx)**, **[평균 곡선](./features/average-curves.mdx)**, 그리고 평균·회차별·최소/최대 범위로 표시되는 다중 샘플 측정값.
@@ -67,7 +61,7 @@ modernGraphTool은 모든 기능을 하나의 빌드에 담았고, 각각 `confi
 
 ## 코드를 건드리지 않는 업데이트
 
-CrinGraph 사이트는 업로드한 날의 모습에서 멈춰 있습니다. 버그 수정이나 새 기능을 반영하려면 파일을 받고, 직접 수정했던 부분을 다시 적용한 뒤, 또 업로드해야 합니다. 대부분의 사이트가 아예 업데이트하지 않는 이유입니다.
+CrinGraph 사이트는 업로드한 날의 모습에서 멈춰 있습니다. 버그 수정이나 새 기능을 반영하려면 업데이트된 파일을 내려받고, 직접 수정했던 부분을 다시 적용한 뒤, 재차 업로드해야 합니다. 대부분의 사이트가 수년째 업데이트되지 못하는 이유입니다.
 
 [CDN 모드](./guide-for-admins/deployment/cdn.mdx)에서는 운영자 서버에 데이터, `config.js`, `theme.css`만 남습니다. 앱 자체는 CDN에서 불러오기 때문에, 새 릴리스가 나오면 몇 분 안에 아무 작업 없이 사이트에 반영됩니다.
 
@@ -76,6 +70,7 @@ CrinGraph 사이트는 업로드한 날의 모습에서 멈춰 있습니다. 버
 - **채널별 EQ** — 좌우 귀에 별도 밴드를 적용해, AutoEQ로 채널 불균형 보정과 타겟 맞추기를 한 번에 할 수 있습니다.
 - **이력 및 비교** — EQ 수정 이력 간 A/B 비교와 완전한 실행 취소/다시 실행.
 - **새 인터페이스 언어 3종** — 커뮤니티가 기여한 체코어, 러시아어, 우크라이나어.
+- **turboEQ** — 주파수 응답 데이터에 지능적으로 적응하는 매우 빠른 AutoEQ.
 
 나머지 내용은 [변경 기록](./changelog.mdx)에서 확인하세요.
 
@@ -99,5 +94,5 @@ modernGraphTool은 관심사마다 한 곳에 모아 두었고, 텍스트 편집
 - **배포 방식 선택** — 자동 업데이트를 원하면 CDN 모드, 버전 교체 시점을 직접 정하고 싶다면 [사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx), 서버가 없다면 [GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)를 고르세요.
 
 :::note[시작해 볼까요?]
-CrinGraph에서 넘어오신다면 [CrinGraph에서 마이그레이션하기](./migrating-from-cringraph.mdx)를, 새로 시작한다면 [환경 구성 가이드](./guide-for-admins/setup-env.mdx)를 참고하세요.
+CrinGraph에서 넘어오신다면 [CrinGraph에서 마이그레이션하기](./migrating-from-cringraph.mdx)를, 새로 시작한다면 [배포 방식 고르기](./guide-for-admins/setup-env.mdx)를 참고하세요.
 :::

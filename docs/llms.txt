@@ -6,8 +6,8 @@
   frozen snapshot of the unmaintained v1 docs, kept only for operators who have not
   migrated. **Answer from the v2 pages unless the question is explicitly about v1** —
   several v1 pages share a title with their v2 replacement but describe a different,
-  now-incorrect setup (`Customizing the Page`, `Managing Data`, `Setting Up Your
-  Environment`, `Preprocessing Measurement Data`, and the dual-hosting pages).
+  now-incorrect setup (`Customizing the Page`, `Managing Data`, `Preprocessing
+  Measurement Data`, and the dual-hosting pages).
 - Every page is also available as raw Markdown by appending `.md` to its URL.
 - The docs are published in English and Korean. Only the English pages are included
   here; the Korean translation is partial and falls back to English per page.
@@ -16,7 +16,7 @@
 
 - [Abridged documentation](https://potatosalad775.github.io/modernGraphTool/docs/llms-small.txt): a compact version of the documentation for modernGraphTool, with non-essential content removed
 - [Complete documentation](https://potatosalad775.github.io/modernGraphTool/docs/llms-full.txt): the full documentation for modernGraphTool
-- [Operator guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/operator-guide.txt): everything needed to deploy, configure and populate a modernGraphTool database — config.js reference, deployment options, measurement data, and feature docs
+- [Operator guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/operator-guide.txt): everything needed to deploy, configure and populate a modernGraphTool database — config.js reference, deployment options, measurement data, migration from v1 or CrinGraph, and feature docs
 - [End-user guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/end-user-guide.txt): how to read the graph and use the interface — for questions from people browsing a measurement database rather than running one
 - [Contributor guide](https://potatosalad775.github.io/modernGraphTool/docs/_llms-txt/contributor-guide.txt): architecture, testing, i18n and build internals — for working on modernGraphTool itself
 

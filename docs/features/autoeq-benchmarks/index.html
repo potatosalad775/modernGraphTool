@@ -1,0 +1,544 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-vdxcvpsm"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>AutoEQ Benchmarks | modernGraphTool Docs</title><link rel="canonical" href="https://potatosalad775.github.io/modernGraphTool/docs/features/autoeq-benchmarks/"/><link rel="alternate" hreflang="en" href="https://potatosalad775.github.io/modernGraphTool/docs/features/autoeq-benchmarks/"/><link rel="alternate" hreflang="ko" href="https://potatosalad775.github.io/modernGraphTool/docs/ko/features/autoeq-benchmarks/"/><link rel="alternate" hreflang="x-default" href="https://potatosalad775.github.io/modernGraphTool/docs/features/autoeq-benchmarks/"/><link rel="sitemap" href="/modernGraphTool/docs/sitemap-index.xml"/><link rel="shortcut icon" href="/modernGraphTool/docs/img/favicon.ico" type="image/x-icon"/><meta name="generator" content="Astro v7.3.5"/><meta name="generator" content="Starlight v0.41.11"/><meta property="og:title" content="AutoEQ Benchmarks"/><meta property="og:type" content="article"/><meta property="og:url" content="https://potatosalad775.github.io/modernGraphTool/docs/features/autoeq-benchmarks/"/><meta property="og:locale" content="en"/><meta property="og:description" content="How turboEQ compares with the CrinGraph optimizer, the older TypeScript one and upstream AutoEq, under the same constraints and on real measurements."/><meta property="og:site_name" content="modernGraphTool Docs"/><meta name="twitter:card" content="summary_large_image"/><meta name="description" content="How turboEQ compares with the CrinGraph optimizer, the older TypeScript one and upstream AutoEq, under the same constraints and on real measurements."/><meta property="og:image" content="https://potatosalad775.github.io/modernGraphTool/docs/img/mGT-social-card.png"/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/modernGraphTool/docs/_astro/print.ehPL0gv-.css" media="print"><link rel="stylesheet" href="/modernGraphTool/docs/_astro/middleware.BreGSRLx.css"><style>@layer starlight.components{.card-grid:where(.astro-lmor3ela){grid-template-columns:100%;gap:1rem;display:grid}.card-grid:where(.astro-lmor3ela)>*{margin-top:0!important}@media (width>=50rem){.card-grid:where(.astro-lmor3ela){grid-template-columns:1fr 1fr;gap:1.5rem}.stagger:where(.astro-lmor3ela){--stagger-height:5rem;padding-bottom:var(--stagger-height)}.stagger:where(.astro-lmor3ela)>:nth-child(2n){transform:translateY(var(--stagger-height))}}.sl-link-card:where(.astro-vodiqeol){border:1px solid var(--sl-color-gray-5);box-shadow:var(--sl-shadow-sm);border-radius:.5rem;grid-template-columns:1fr auto;gap:.5rem;padding:1rem;display:grid;position:relative}a:where(.astro-vodiqeol){line-height:var(--sl-line-height-headings);text-decoration:none}a:where(.astro-vodiqeol):before{content:"";position:absolute;inset:0}.stack:where(.astro-vodiqeol){flex-direction:column;gap:.5rem}.title:where(.astro-vodiqeol){color:var(--sl-color-white);font-weight:600;font-size:var(--sl-text-lg)}.description:where(.astro-vodiqeol){color:var(--sl-color-gray-3);line-height:1.5}.icon:where(.astro-vodiqeol){color:var(--sl-color-gray-3)}.sl-link-card:where(.astro-vodiqeol):hover{background:var(--sl-color-gray-7,var(--sl-color-gray-6));border-color:var(--sl-color-gray-2)}.sl-link-card:where(.astro-vodiqeol):hover .icon:where(.astro-vodiqeol){color:var(--sl-color-white)}}
+@layer starlight.components{svg:where(.astro-n5k4ipy7){color:var(--sl-icon-color);font-size:var(--sl-icon-size,1em);width:1em;height:1em}}
+@layer starlight.components{starlight-tabs:where(.astro-hbt4ddzs){display:block}.tablist-wrapper:where(.astro-hbt4ddzs){overflow-x:auto}:where(.astro-hbt4ddzs)[role=tablist]{border-bottom:2px solid var(--sl-color-gray-5);padding:0;list-style:none;display:flex}.tab:where(.astro-hbt4ddzs){display:flex}.tab:where(.astro-hbt4ddzs)>:where(.astro-hbt4ddzs)[role=tab]{--sl-tab-color-border:var(--sl-color-gray-5);line-height:var(--sl-line-height-headings);box-shadow:0 2px 0 var(--sl-tab-color-border);color:var(--sl-color-gray-3);outline-offset:var(--sl-outline-offset-inside);overflow-wrap:initial;align-items:center;gap:.5rem;padding:.275rem 1.25rem;text-decoration:none;display:flex}.tab:where(.astro-hbt4ddzs) :where(.astro-hbt4ddzs)[role=tab][aria-selected=true]{--sl-tab-color-border:var(--sl-color-text-accent);color:var(--sl-color-white);font-weight:600}.tablist-wrapper:where(.astro-hbt4ddzs)~[role=tabpanel]{margin-top:1rem}}
+</style><script type="module" src="/modernGraphTool/docs/_astro/page.Dwipeu-R.js"></script></head><body class="astro-vdxcvpsm"><a class="sl-skip-link astro-vxeigawq" href="#_top">Skip to content</a><div class="page sl-flex astro-gqpr5s5a"><header class="header astro-gqpr5s5a"><div class="header astro-nczgtkxc"><div class="title-wrapper sl-flex astro-nczgtkxc"><a href="/modernGraphTool/docs/" class="site-title sl-flex astro-clw6ags5"><span class="astro-clw6ags5" translate="no">modernGraphTool Docs</span></a></div><div class="sl-flex print:hidden astro-nczgtkxc"><site-search class="astro-nczgtkxc astro-r5ar4xm7" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-r5ar4xm7"><svg aria-hidden="true" class="astro-r5ar4xm7 astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-r5ar4xm7" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-r5ar4xm7" style="display: none;"><kbd class="astro-r5ar4xm7">Ctrl</kbd><kbd class="astro-r5ar4xm7">K</kbd></kbd></button><dialog style="padding:0" aria-label="Search" class="astro-r5ar4xm7"><div class="dialog-frame sl-flex astro-r5ar4xm7"><button data-close-modal class="sl-flex md:sl-hidden astro-r5ar4xm7">Cancel</button><div class="search-container astro-r5ar4xm7"><div id="starlight__search" class="astro-r5ar4xm7"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/modernGraphTool/docs/_astro/Search.astro_astro_type_script_index_0_lang.CDQwrvf9.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-nczgtkxc"><div class="sl-flex social-icons astro-nczgtkxc"><a href="https://github.com/potatosalad775/modernGraphTool" rel="me" class="sl-flex astro-cg55etiy"><span class="sr-only astro-cg55etiy">GitHub</span><svg aria-hidden="true" class="astro-cg55etiy astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-r2p65idu"><span class="sr-only astro-r2p65idu">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-r2p65idu"><option value="dark" class="astro-r2p65idu">Dark</option><option value="light" class="astro-r2p65idu">Light</option><option value="auto" selected class="astro-r2p65idu">Auto</option></select><svg aria-hidden="true" class="icon caret astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><starlight-lang-select><label style="--sl-select-width: 7em" class="astro-r2p65idu"><span class="sr-only astro-r2p65idu">Select language</span><svg aria-hidden="true" class="icon label-icon astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path fill-rule="evenodd" d="M8.516 3a.94.94 0 0 0-.941.94v1.15H2.94a.94.94 0 1 0 0 1.882h7.362a7.422 7.422 0 0 1-1.787 3.958 7.42 7.42 0 0 1-1.422-2.425.94.94 0 1 0-1.774.627 9.303 9.303 0 0 0 1.785 3.043 7.422 7.422 0 0 1-4.164 1.278.94.94 0 1 0 0 1.881 9.303 9.303 0 0 0 5.575-1.855 9.303 9.303 0 0 0 4.11 1.74l-.763 1.525a.968.968 0 0 0-.016.034l-1.385 2.77a.94.94 0 1 0 1.683.841l1.133-2.267h5.806l1.134 2.267a.94.94 0 0 0 1.683-.841l-1.385-2.769a.95.95 0 0 0-.018-.036l-3.476-6.951a.94.94 0 0 0-1.682 0l-1.82 3.639a7.423 7.423 0 0 1-3.593-1.256 9.303 9.303 0 0 0 2.27-5.203h1.894a.94.94 0 0 0 0-1.881H9.456V3.94A.94.94 0 0 0 8.516 3Zm6.426 11.794a1.068 1.068 0 0 1-.02.039l-.703 1.407h3.924l-1.962-3.924-1.24 2.478Z" clip-rule="evenodd"/></svg><select autocomplete="off" class="astro-r2p65idu"><option value="/modernGraphTool/docs/features/autoeq-benchmarks/" class="astro-r2p65idu">English</option><option value="/modernGraphTool/docs/ko/features/autoeq-benchmarks/" class="astro-r2p65idu">한국어</option></select><svg aria-hidden="true" class="icon caret astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-lang-select><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-gqpr5s5a" aria-label="Main"><starlight-menu-button class="print:hidden astro-vvx7mffu"><button aria-expanded="false" aria-label="Menu" aria-controls="starlight__sidebar" class="sl-flex md:sl-hidden astro-vvx7mffu"><svg aria-hidden="true" class="open-menu astro-vvx7mffu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-vvx7mffu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg></button></starlight-menu-button><script type="module">var e=class extends HTMLElement{btn=this.querySelector(`button`);constructor(){super(),this.btn.addEventListener(`click`,()=>this.toggleExpanded());let e=this.closest(`nav`);e&&e.addEventListener(`keyup`,e=>this.closeOnEscape(e)),matchMedia(`(min-width: 50em)`).addEventListener(`change`,()=>this.setExpanded(!1))}setExpanded(e){this.setAttribute(`aria-expanded`,String(e)),document.body.toggleAttribute(`data-mobile-menu-expanded`,e),document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}toggleExpanded(){this.setExpanded(this.getAttribute(`aria-expanded`)!==`true`)}closeOnEscape(e){e.code===`Escape`&&(this.setExpanded(!1),this.btn.focus())}};customElements.define(`starlight-menu-button`,e);</script><div id="starlight__sidebar" class="sidebar-pane astro-gqpr5s5a"><div class="sidebar-content sl-flex astro-gqpr5s5a"><sl-sidebar-state-persist data-hash="18rdtjk" class="astro-f5yvicm7"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/intro/" class="large astro-ojxuodky"><span class="astro-ojxuodky">Introduction</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/why-moderngraphtool/" class="large astro-ojxuodky"><span class="astro-ojxuodky">Why modernGraphTool?</span></a></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Users</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Basics</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/what-is-this/" class="astro-ojxuodky"><span class="astro-ojxuodky">What is this tool?</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/reading-the-graph/" class="astro-ojxuodky"><span class="astro-ojxuodky">Reading the graph</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/how-measurements-work/" class="astro-ojxuodky"><span class="astro-ojxuodky">How measurements work</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/why-targets-exist/" class="astro-ojxuodky"><span class="astro-ojxuodky">Why targets exist</span></a></li></ul></details></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Using the Tool</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/interface-tour/" class="astro-ojxuodky"><span class="astro-ojxuodky">Interface tour</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/loading-devices/" class="astro-ojxuodky"><span class="astro-ojxuodky">Loading devices</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/working-with-curves/" class="astro-ojxuodky"><span class="astro-ojxuodky">Working with curves</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/graph-controls/" class="astro-ojxuodky"><span class="astro-ojxuodky">Graph controls</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/targets-and-preferences/" class="astro-ojxuodky"><span class="astro-ojxuodky">Targets and preferences</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/equalizing/" class="astro-ojxuodky"><span class="astro-ojxuodky">Equalizing audio</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/sharing-and-exporting/" class="astro-ojxuodky"><span class="astro-ojxuodky">Sharing and exporting</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/appearance-and-language/" class="astro-ojxuodky"><span class="astro-ojxuodky">Appearance and language</span></a></li></ul></details></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-users/faq/" class="astro-ojxuodky"><span class="astro-ojxuodky">FAQ</span></a></li></ul></details></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Features</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Graph</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/average-curves/" class="astro-ojxuodky"><span class="astro-ojxuodky">Average Curves</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/preference-bound/" class="astro-ojxuodky"><span class="astro-ojxuodky">Preference Bound</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/target-customizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Target Customizer</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/frequency-tutorial/" class="astro-ojxuodky"><span class="astro-ojxuodky">Frequency Tutorial</span></a></li></ul></details></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Equalizer</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="5"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/equalizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Equalizer</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/device-peq/" class="astro-ojxuodky"><span class="astro-ojxuodky">Device PEQ</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/autoeq-benchmarks/" aria-current="page" class="astro-ojxuodky"><span class="astro-ojxuodky">AutoEQ Benchmarks</span></a></li></ul></details></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Across Sites</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="6"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/cross-site-search/" class="astro-ojxuodky"><span class="astro-ojxuodky">Cross-Site Search</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/site-selector/" class="astro-ojxuodky"><span class="astro-ojxuodky">Site Selector</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/features/squiglink-integration/" class="astro-ojxuodky"><span class="astro-ojxuodky">squig.link Integration</span></a></li></ul></details></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Operators</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="7"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Deployment</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="8"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/setup-env/" class="astro-ojxuodky"><span class="astro-ojxuodky">Choosing a Deployment</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/deployment/github-pages/" class="astro-ojxuodky"><span class="astro-ojxuodky">GitHub Pages</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/deployment/cdn/" class="astro-ojxuodky"><span class="astro-ojxuodky">CDN Deployment</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/" class="astro-ojxuodky"><span class="astro-ojxuodky">Pre-built Release</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/deployment/from-source/" class="astro-ojxuodky"><span class="astro-ojxuodky">Building from Source</span></a></li></ul></details></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/preprocessing-measurement/" class="astro-ojxuodky"><span class="astro-ojxuodky">Preprocessing Measurement Data</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/manage-data/" class="astro-ojxuodky"><span class="astro-ojxuodky">Managing Data</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-admins/customize-page/" class="astro-ojxuodky"><span class="astro-ojxuodky">Customizing the Page</span></a></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Tools</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="9"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/config-generator" class="astro-ojxuodky"><span class="astro-ojxuodky">Config Editor</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/phone-book-editor" class="astro-ojxuodky"><span class="astro-ojxuodky">phone_book.json Editor</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/theme-generator" class="astro-ojxuodky"><span class="astro-ojxuodky">Theme Generator</span></a></li></ul></details></li><li class="astro-ojxuodky"><details open class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Migrating</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="10"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/whats-new-in-v2/" class="astro-ojxuodky"><span class="astro-ojxuodky">What&#39;s New in v2</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/migrating-v1-to-v2/" class="astro-ojxuodky"><span class="astro-ojxuodky">Migrating from v1 to v2</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/migrating-from-cringraph/" class="astro-ojxuodky"><span class="astro-ojxuodky">Migrating from CrinGraph</span></a></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Dual-Hosting with CrinGraph</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="11"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/database-tips/dual-hosting/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/database-tips/dual-hosting/main-mgt/" class="astro-ojxuodky"><span class="astro-ojxuodky">Use modernGraphTool as main</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/database-tips/dual-hosting/main-cringraph/" class="astro-ojxuodky"><span class="astro-ojxuodky">Use CrinGraph as main</span></a></li></ul></details></li></ul></details></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Developers</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="12"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-developers/overview/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-developers/testing/" class="astro-ojxuodky"><span class="astro-ojxuodky">Testing</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-developers/build-and-deploy/" class="astro-ojxuodky"><span class="astro-ojxuodky">Build &amp; Deployment Internals</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/guide-for-developers/i18n/" class="astro-ojxuodky"><span class="astro-ojxuodky">Internationalization</span></a></li></ul></details></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/changelog/" class="large astro-ojxuodky"><span class="astro-ojxuodky">Changelog</span></a></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">v1 (unmaintained)</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="13"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/intro/" class="astro-ojxuodky"><span class="astro-ojxuodky">Overview</span></a></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Users</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="14"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-users/understanding-ui/" class="astro-ojxuodky"><span class="astro-ojxuodky">Understanding the User Interface</span></a></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Tool Guide</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="15"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-users/tool-instructions/ti-graph/" class="astro-ojxuodky"><span class="astro-ojxuodky">&#39;Graph&#39; Tool</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-users/tool-instructions/ti-list/" class="astro-ojxuodky"><span class="astro-ojxuodky">&#39;Device List&#39; Tool</span></a></li></ul></details></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Admins</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="16"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-admins/setup-env/" class="astro-ojxuodky"><span class="astro-ojxuodky">Setting Up Your Environment</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-admins/customize-page/" class="astro-ojxuodky"><span class="astro-ojxuodky">Customizing the Page</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-admins/preprocessing-measurement/" class="astro-ojxuodky"><span class="astro-ojxuodky">Preprocessing Measurement Data</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-admins/manage-data/" class="astro-ojxuodky"><span class="astro-ojxuodky">Managing Data</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-admins/use-extensions/" class="astro-ojxuodky"><span class="astro-ojxuodky">Using Extensions</span></a></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Guide for Developers</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="17"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/guide-for-developers/coming-soon/" class="astro-ojxuodky"><span class="astro-ojxuodky">Coming Soon</span></a></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Database Setup Tips</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="18"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/database-tips/dual-hosting/main-mgt/" class="astro-ojxuodky"><span class="astro-ojxuodky">Use modernGraphTool as main</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/database-tips/dual-hosting/main-cringraph/" class="astro-ojxuodky"><span class="astro-ojxuodky">Use CrinGraph as main</span></a></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Extensions</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="19"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/device-peq/" class="astro-ojxuodky"><span class="astro-ojxuodky">Device PEQ Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/equalizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Equalizer Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/frequency-tutorial/" class="astro-ojxuodky"><span class="astro-ojxuodky">Frequency Tutorial Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/graph-color-wheel/" class="astro-ojxuodky"><span class="astro-ojxuodky">Graph Color Wheel Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/preference-bound/" class="astro-ojxuodky"><span class="astro-ojxuodky">Preference Bound Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/squiglink-integration/" class="astro-ojxuodky"><span class="astro-ojxuodky">Squiglink Integration Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/target-customizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Target Customizer Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/extensions/template/" class="astro-ojxuodky"><span class="astro-ojxuodky">Template Extension</span></a></li></ul></details></li><li class="astro-ojxuodky"><details class="astro-ojxuodky"><summary class="astro-ojxuodky"><span class="group-label astro-ojxuodky"><span class="large astro-ojxuodky">Changelog</span></span><svg aria-hidden="true" class="caret astro-ojxuodky astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="20"></sl-sidebar-restore><ul class="astro-ojxuodky"><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/core/" class="astro-ojxuodky"><span class="astro-ojxuodky">modernGraphTool core</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/device-peq/" class="astro-ojxuodky"><span class="astro-ojxuodky">Device PEQ Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/equalizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Equalizer Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/frequency-tutorial/" class="astro-ojxuodky"><span class="astro-ojxuodky">Frequency Tutorial Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/graph-color-wheel/" class="astro-ojxuodky"><span class="astro-ojxuodky">Graph Color Wheel Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/preference-bound/" class="astro-ojxuodky"><span class="astro-ojxuodky">Preference Bound Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/squiglink-integration/" class="astro-ojxuodky"><span class="astro-ojxuodky">Squiglink Integration Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/target-customizer/" class="astro-ojxuodky"><span class="astro-ojxuodky">Target Customizer Extension</span></a></li><li class="astro-ojxuodky"><a href="/modernGraphTool/docs/1.x/changelog/template/" class="astro-ojxuodky"><span class="astro-ojxuodky">Template Extension</span></a></li></ul></details></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-b5gddk54"><div class="social-icons astro-b5gddk54"><a href="https://github.com/potatosalad775/modernGraphTool" rel="me" class="sl-flex astro-cg55etiy"><span class="sr-only astro-cg55etiy">GitHub</span><svg aria-hidden="true" class="astro-cg55etiy astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-r2p65idu"><span class="sr-only astro-r2p65idu">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-r2p65idu"><option value="dark" class="astro-r2p65idu">Dark</option><option value="light" class="astro-r2p65idu">Light</option><option value="auto" selected class="astro-r2p65idu">Auto</option></select><svg aria-hidden="true" class="icon caret astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><starlight-lang-select><label style="--sl-select-width: 7em" class="astro-r2p65idu"><span class="sr-only astro-r2p65idu">Select language</span><svg aria-hidden="true" class="icon label-icon astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path fill-rule="evenodd" d="M8.516 3a.94.94 0 0 0-.941.94v1.15H2.94a.94.94 0 1 0 0 1.882h7.362a7.422 7.422 0 0 1-1.787 3.958 7.42 7.42 0 0 1-1.422-2.425.94.94 0 1 0-1.774.627 9.303 9.303 0 0 0 1.785 3.043 7.422 7.422 0 0 1-4.164 1.278.94.94 0 1 0 0 1.881 9.303 9.303 0 0 0 5.575-1.855 9.303 9.303 0 0 0 4.11 1.74l-.763 1.525a.968.968 0 0 0-.016.034l-1.385 2.77a.94.94 0 1 0 1.683.841l1.133-2.267h5.806l1.134 2.267a.94.94 0 0 0 1.683-.841l-1.385-2.769a.95.95 0 0 0-.018-.036l-3.476-6.951a.94.94 0 0 0-1.682 0l-1.82 3.639a7.423 7.423 0 0 1-3.593-1.256 9.303 9.303 0 0 0 2.27-5.203h1.894a.94.94 0 0 0 0-1.881H9.456V3.94A.94.94 0 0 0 8.516 3Zm6.426 11.794a1.068 1.068 0 0 1-.02.039l-.703 1.407h3.924l-1.962-3.924-1.24 2.478Z" clip-rule="evenodd"/></svg><select autocomplete="off" class="astro-r2p65idu"><option value="/modernGraphTool/docs/features/autoeq-benchmarks/" class="astro-r2p65idu">English</option><option value="/modernGraphTool/docs/ko/features/autoeq-benchmarks/" class="astro-r2p65idu">한국어</option></select><svg aria-hidden="true" class="icon caret astro-r2p65idu astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-lang-select></div></div></div></div></nav><div class="main-frame astro-gqpr5s5a"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-abfeecmu"><aside class="right-sidebar-container print:hidden astro-abfeecmu"><div class="right-sidebar astro-abfeecmu"><div class="lg:sl-hidden astro-q5mffni3"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-5ulgm6bh"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-5ulgm6bh"><details id="starlight__mobile-toc" class="astro-5ulgm6bh"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-5ulgm6bh"><span class="toggle sl-flex astro-5ulgm6bh">On this page<svg aria-hidden="true" class="caret astro-5ulgm6bh astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-5ulgm6bh"></span></summary><div class="dropdown astro-5ulgm6bh"><ul class="isMobile astro-cxyftcne" style="--depth: 0;"><li style="--depth: 0;" class="astro-cxyftcne"><a href="#_top" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Overview</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#summary" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Summary</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#the-constraints" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">The constraints</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#speed" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Speed</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#fit-quality" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Fit quality</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#where-turboeq-loses" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Where turboEQ loses</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#distance-from-autoeq" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Distance from AutoEq</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#headphones" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Headphones</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#feature-comparison" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Feature comparison</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#how-this-was-measured" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">How this was measured</span></a><ul class="isMobile astro-cxyftcne" style="--depth: 1;"><li style="--depth: 1;" class="astro-cxyftcne"><a href="#reproducing" style="--depth: 1;" class="astro-cxyftcne"><span style="--depth: 1;" class="astro-cxyftcne">Reproducing</span></a></li></ul></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/modernGraphTool/docs/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.BcSo_yiZ.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-q5mffni3"><div class="sl-container astro-q5mffni3"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-cxyftcne" style="--depth: 0;"><li style="--depth: 0;" class="astro-cxyftcne"><a href="#_top" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Overview</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#summary" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Summary</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#the-constraints" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">The constraints</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#speed" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Speed</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#fit-quality" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Fit quality</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#where-turboeq-loses" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Where turboEQ loses</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#distance-from-autoeq" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Distance from AutoEq</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#headphones" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Headphones</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#feature-comparison" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">Feature comparison</span></a></li><li style="--depth: 0;" class="astro-cxyftcne"><a href="#how-this-was-measured" style="--depth: 0;" class="astro-cxyftcne"><span style="--depth: 0;" class="astro-cxyftcne">How this was measured</span></a><ul class="astro-cxyftcne" style="--depth: 1;"><li style="--depth: 1;" class="astro-cxyftcne"><a href="#reproducing" style="--depth: 1;" class="astro-cxyftcne"><span style="--depth: 1;" class="astro-cxyftcne">Reproducing</span></a></li></ul></li></ul></nav></starlight-toc><script type="module" src="/modernGraphTool/docs/_astro/TableOfContents.astro_astro_type_script_index_0_lang.Csloo1VZ.js"></script></div></div></div></aside><div class="main-pane astro-abfeecmu"><main data-pagefind-body class="astro-vdxcvpsm" lang="en" dir="ltr"><div class="content-panel astro-oil7k7jf"><div class="sl-container astro-oil7k7jf"><h1 id="_top" class="astro-2sm4b3ln">AutoEQ Benchmarks</h1></div></div><div class="content-panel astro-oil7k7jf"><div class="sl-container astro-oil7k7jf"><div class="sl-markdown-content"><p>modernGraphTool’s AutoEQ runs <a href="https://github.com/potatosalad775/turboEQ">turboEQ</a>, a WebAssembly
+port of <a href="https://github.com/jaakkopasanen/AutoEq">AutoEq</a>’s optimizer. This page compares it, as
+an algorithm, with the optimizers it replaces and with the one it was ported from. Every engine
+fits the same 176 real IEM measurements under the same constraints.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="summary">Summary</h2><a class="sl-anchor-link" href="#summary"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Summary”</span></a></div>
+<ul>
+<li><strong>It is two orders of magnitude faster.</strong> With eight bands, turboEQ’s median run is 6.2 ms.
+CrinGraph’s optimizer takes 807 ms and modernGraphTool’s old TypeScript one 1.41 s.</li>
+<li><strong>It returns the number of bands you ask for, every time.</strong> Asked for eight, CrinGraph returned
+eight for 87% of the measurements and the old optimizer for 22%.</li>
+<li><strong>Exact match fits closest from eight bands up.</strong> At ten bands, its median error across
+20 Hz–20 kHz is 0.48 dB, against 0.74 for the old optimizer and 1.24 for CrinGraph. At eight
+it leads by less (0.77 against 0.82), and its bad cases are less bad (1.59 against 1.90 at the
+90th percentile). On headphones it leads at every band count.</li>
+<li><strong>With five bands on IEMs, the old optimizer scores better, mostly on level.</strong> It reaches
+1.16 dB against exact match’s 1.27. <a href="#where-turboeq-loses">Where turboEQ loses</a> explains why.</li>
+<li><strong>Treble-safe stays close to AutoEq.</strong> Given the same constraints, its EQ lands 0.17 dB (median)
+from AutoEq’s when both run to convergence. For comparison, AutoEq’s own early stopping moves
+AutoEq’s answer by 0.07 dB.</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="the-constraints">The constraints</h2><a class="sl-anchor-link" href="#the-constraints"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “The constraints”</span></a></div>
+<p>Every engine got the same limits on each band:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Limit</th><th>Value</th></tr></thead><tbody><tr><td>Q</td><td>0.1–10</td></tr><tr><td>Gain</td><td>−20 to +20 dB</td></tr><tr><td>Where a band may sit</td><td>20 Hz–20 kHz</td></tr><tr><td>Largest total boost</td><td>20 dB</td></tr></tbody></table>
+<p>Some differences between the engines are part of the method and stay:</p>
+<ul>
+<li><strong>CrinGraph has no shelf filters</strong>, so all of its bands are peaking. The others use a low and a
+high shelf once there are four bands or more, and place them themselves. turboEQ and AutoEq keep
+shelf Q between 0.4 and 0.7.</li>
+<li><strong>Treble-safe places no band above 10 kHz</strong>, because above that it scores only the overall
+level, not the shape.</li>
+<li><strong>The limit on total boost</strong> only means something to the AutoEq family, which caps the whole
+EQ. CrinGraph and the TypeScript optimizer limit each band on its own.</li>
+</ul>
+<p>Band counts below are totals, shelves included. Ten bands is the layout of AutoEq’s
+<code dir="auto">8_PEAKING_WITH_SHELVES</code> preset.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="speed">Speed</h2><a class="sl-anchor-link" href="#speed"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Speed”</span></a></div>
+<p>Median time for one fit, in milliseconds. The last column is the 90th percentile at ten bands.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th align="right">5 bands</th><th align="right">8 bands</th><th align="right">10 bands</th><th align="right">10 bands, p90</th></tr></thead><tbody><tr><td>CrinGraph</td><td align="right">482</td><td align="right">807</td><td align="right">993</td><td align="right">1,080</td></tr><tr><td>mGT TypeScript</td><td align="right">598</td><td align="right">1,410</td><td align="right">2,100</td><td align="right">2,440</td></tr><tr><td>turboEQ · Exact match</td><td align="right">1.8</td><td align="right">6.2</td><td align="right">12</td><td align="right">24</td></tr><tr><td>turboEQ · Treble-safe</td><td align="right">2.1</td><td align="right">8.2</td><td align="right">19</td><td align="right">39</td></tr><tr><td>AutoEq (Python)</td><td align="right">30</td><td align="right">74</td><td align="right">124</td><td align="right">180</td></tr></tbody></table>
+<p>At eight bands, turboEQ is about 130× faster than CrinGraph and 230× faster than the old optimizer.
+On the same work as AutoEq itself, the curve processing plus the fit, treble-safe is about 9×
+faster than the Python original.</p>
+<p>CrinGraph runs on the page’s main thread, so the page freezes for as long as the fit takes.
+modernGraphTool runs AutoEQ in a web worker, and the TypeScript fallback runs there too.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="fit-quality">Fit quality</h2><a class="sl-anchor-link" href="#fit-quality"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Fit quality”</span></a></div>
+<p>How close the equalized curve lands to the target, as RMS error in dB after removing the overall
+level offset. Lower is better. Without any EQ, the median error is 3.03 dB across 20 Hz–20 kHz
+and 2.23 dB below 10 kHz.</p>
+<p><strong>Across 20 Hz–20 kHz</strong>, median with the 90th percentile in parentheses:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th>5 bands</th><th>8 bands</th><th>10 bands</th></tr></thead><tbody><tr><td>CrinGraph</td><td>2.01 (3.04)</td><td>1.47 (2.84)</td><td>1.24 (2.60)</td></tr><tr><td>mGT TypeScript</td><td><strong>1.16</strong> (2.28)</td><td>0.82 (1.90)</td><td>0.74 (1.85)</td></tr><tr><td>turboEQ · Exact match</td><td>1.27 (2.26)</td><td><strong>0.77</strong> (1.59)</td><td><strong>0.48</strong> (1.13)</td></tr><tr><td>turboEQ · Treble-safe</td><td>1.72 (2.54)</td><td>1.63 (2.43)</td><td>1.63 (2.38)</td></tr><tr><td>AutoEq (Python)</td><td>1.74 (2.52)</td><td>1.69 (2.47)</td><td>1.70 (2.45)</td></tr></tbody></table>
+<p><strong>Below 10 kHz</strong>, median. This leaves out the region AutoEq deliberately does not shape:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th align="right">5 bands</th><th align="right">8 bands</th><th align="right">10 bands</th></tr></thead><tbody><tr><td>CrinGraph</td><td align="right">0.81</td><td align="right"><strong>0.37</strong></td><td align="right"><strong>0.27</strong></td></tr><tr><td>mGT TypeScript</td><td align="right"><strong>0.67</strong></td><td align="right">0.49</td><td align="right">0.44</td></tr><tr><td>turboEQ · Exact match</td><td align="right">0.84</td><td align="right">0.45</td><td align="right"><strong>0.27</strong></td></tr><tr><td>turboEQ · Treble-safe</td><td align="right">0.88</td><td align="right">0.79</td><td align="right">0.78</td></tr><tr><td>AutoEq (Python)</td><td align="right">0.92</td><td align="right">0.81</td><td align="right">0.80</td></tr></tbody></table>
+<p><strong>How often the requested band count came back:</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th align="right">5 bands</th><th align="right">8 bands</th><th align="right">10 bands</th></tr></thead><tbody><tr><td>CrinGraph</td><td align="right">94%</td><td align="right">87%</td><td align="right">64%</td></tr><tr><td>mGT TypeScript</td><td align="right">60%</td><td align="right">22%</td><td align="right">6%</td></tr><tr><td>turboEQ (both modes) and AutoEq</td><td align="right">100%</td><td align="right">100%</td><td align="right">100%</td></tr></tbody></table>
+<p>CrinGraph’s search stops once it runs out of candidate peaks and dips. The TypeScript optimizer
+also drops bands it judges ineffective, so its numbers above often come from fewer bands than
+asked.</p>
+<p>Treble-safe scores worse on purpose. It smooths the treble, scores only the level above 10 kHz and
+places no band there. That gives up matching the graph in exchange for a correction that holds up
+when the treble measurement can’t be trusted.</p>
+<p>Exact match, like the TypeScript optimizer, will use narrow, deep bands when they fit. Whether
+those are an improvement you can hear is a separate question. The error here is measured against
+the same measurement the EQ was fitted to, and narrow features in the treble move with fit and
+seating, so a band aimed exactly at one may miss it on your head.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="where-turboeq-loses">Where turboEQ loses</h2><a class="sl-anchor-link" href="#where-turboeq-loses"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Where turboEQ loses”</span></a></div>
+<p>With five bands on IEMs, the old TypeScript optimizer scores 1.16 dB against exact match’s 1.27.
+Almost all of that is level. The scores on this page remove the overall level offset, the most
+generous way to line two curves up, and the TypeScript optimizer’s answers lean on it. Line the
+curves up the way AutoEq does instead, by the mean error between 100 Hz and 10 kHz before any EQ,
+and it scores 1.74 while exact match stays at 1.27. turboEQ fits at a fixed level, so its score
+does not move.</p>
+<p>What is left is the optimizer itself. With so few bands, turboEQ sometimes settles in a local
+minimum from the layout AutoEq’s <code dir="auto">init()</code> starts it in. Its own objective rates the TypeScript
+answer better on 48 of the 176 curves at five bands, 16 at eight and one at ten.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="distance-from-autoeq">Distance from AutoEq</h2><a class="sl-anchor-link" href="#distance-from-autoeq"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Distance from AutoEq”</span></a></div>
+<p>How different each engine’s EQ is from what upstream AutoEq by jaakkopasanen produces for the
+same measurement, under the same constraints: the RMS difference between the two EQ curves
+over 20 Hz–20 kHz, level offset removed. Median, with the 90th percentile in parentheses.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th>8 bands</th><th>10 bands</th></tr></thead><tbody><tr><td>CrinGraph</td><td>1.32 (2.13)</td><td>1.33 (2.13)</td></tr><tr><td>mGT TypeScript</td><td>1.39 (1.97)</td><td>1.42 (1.96)</td></tr><tr><td>turboEQ · Exact match</td><td>1.39 (2.03)</td><td>1.57 (2.10)</td></tr><tr><td>turboEQ · Treble-safe</td><td><strong>0.22</strong> (0.52)</td><td><strong>0.24</strong> (0.53)</td></tr><tr><td>AutoEq, run to convergence</td><td>0.07 (0.24)</td><td>0.08 (0.21)</td></tr></tbody></table>
+<p>The last row compares AutoEq with itself, with and without the preset’s early stopping (<code dir="auto">min_std</code>).
+turboEQ always runs to convergence. Measured against converged AutoEq instead, treble-safe is
+0.17 dB away at eight bands and 0.19 at ten. With the shelves pinned where AutoEq’s presets put
+them, the same comparison gives 0.10: letting the shelves move gives two optimizers more places to
+settle apart.</p>
+<p>Exact match is as far from AutoEq as the other engines are, and that is intended. It fits a
+different target: the curve as the graph shows it.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="headphones">Headphones</h2><a class="sl-anchor-link" href="#headphones"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Headphones”</span></a></div>
+<p>The headphone set is small: nine curves from two headphones, most of them one headphone in
+different EQ modes. Treat it as a consistency check rather than a second result. At eight bands:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Engine</th><th align="right">Median time</th><th align="right">Band count</th><th align="right">20 Hz–20 kHz</th><th align="right">Below 10 kHz</th></tr></thead><tbody><tr><td>CrinGraph</td><td align="right">947 ms</td><td align="right">100%</td><td align="right">3.22</td><td align="right">0.87</td></tr><tr><td>mGT TypeScript</td><td align="right">1.48 s</td><td align="right">22%</td><td align="right">1.38</td><td align="right">0.96</td></tr><tr><td>turboEQ · Exact match</td><td align="right">5.8 ms</td><td align="right">100%</td><td align="right"><strong>1.26</strong></td><td align="right"><strong>0.82</strong></td></tr><tr><td>turboEQ · Treble-safe</td><td align="right">6.8 ms</td><td align="right">100%</td><td align="right">1.67</td><td align="right">0.90</td></tr><tr><td>AutoEq (Python)</td><td align="right">99 ms</td><td align="right">100%</td><td align="right">1.88</td><td align="right">1.03</td></tr></tbody></table>
+<p>Exact match leads at five and ten bands too, across the full band (1.60 against 1.81, and 1.14
+against 1.31). The treble of these headphones is a row of narrow peaks and notches, which exact
+match can now follow: the penalty on steep bands and the extra smoothing AutoEq applies to its
+target no longer apply in exact mode.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="feature-comparison">Feature comparison</h2><a class="sl-anchor-link" href="#feature-comparison"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Feature comparison”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>CrinGraph</th><th>mGT TypeScript (fallback)</th><th>turboEQ in modernGraphTool</th><th>AutoEq (Python)</th></tr></thead><tbody><tr><td>Optimizer</td><td>Greedy candidate search, then grid refinement</td><td>CrinGraph lineage, plus shelves and pruning</td><td>All parameters at once, with analytic gradients</td><td>All parameters at once, SciPy SLSQP</td></tr><tr><td>Filter types</td><td>Peaking</td><td>Peaking, low and high shelf</td><td>Peaking, low and high shelf placed by the fit</td><td>Peaking, shelves (its presets pin them)</td></tr><tr><td>Returns the band count</td><td>Often fewer</td><td>Often fewer</td><td>Always</td><td>Always</td></tr><tr><td>Ranges</td><td>Clamped after the fit</td><td>Limit the search</td><td>Bounds inside the optimizer</td><td>Bounds inside the optimizer</td></tr><tr><td>Sharp filters</td><td>Allowed</td><td>Allowed</td><td>Exact match: allowed. Treble-safe: penalized</td><td>Penalized above ~18 dB/octave</td></tr><tr><td>Level alignment</td><td>Whatever the graph’s normalization gives</td><td>Pinned at 1 kHz</td><td>Minimum mean error, 100 Hz–10 kHz</td><td>Minimum mean error, 100 Hz–10 kHz</td></tr><tr><td>Treble</td><td>First pass skips above 7 kHz</td><td>Fitted like everything else</td><td>Exact match: full shape. Treble-safe: AutoEq’s handling</td><td>Smoothed, level only above 10 kHz</td></tr><tr><td>Boost limit</td><td>Per band</td><td>Per band</td><td>Whole EQ, set by the gain range’s maximum</td><td>Whole EQ, 6 dB by default</td></tr><tr><td>Graphic EQ presets</td><td>No</td><td>No</td><td>Yes, gain only on the preset’s bands</td><td>Yes, fixed-band EQ</td></tr><tr><td>Runs</td><td>Page’s main thread</td><td>Web worker</td><td>Web worker, WebAssembly (about 37 KB gzipped)</td><td>Python</td></tr></tbody></table>
+<div class="sl-heading-wrapper level-h2"><h2 id="how-this-was-measured">How this was measured</h2><a class="sl-anchor-link" href="#how-this-was-measured"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “How this was measured”</span></a></div>
+<ul>
+<li><strong>Data.</strong> The measurements of <a href="https://silicagel.squig.link">silicagel.squig.link</a> database.
+One measurement per device, the first file of each <code dir="auto">phone_book.json</code> entry, left and right
+averaged: 176 IEM curves. All nine headphone curves were used, because there were so few.
+Targets were Harman IE 2019v2 for IEMs and Harman 2018 for headphones.</li>
+<li><strong>Inputs.</strong> Each engine got its curves the way its own app prepares them. CrinGraph: its
+1/48-octave grid and 60-phon loudness normalization. modernGraphTool: 1/48-octave smoothing and
+500 Hz normalization. AutoEq: the raw average, as its command line takes it.</li>
+<li><strong>Scoring.</strong> Every engine’s filters went through the same biquads at 48 kHz, were added to the
+raw measurement, and were compared with the raw target on a 1/48-octave grid.</li>
+<li><strong>Timing.</strong> The engine call alone, one fit after another, after a warm-up fit. The JavaScript
+engines ran under Node 24.18 on V8, which is the engine Chrome runs. In the app, a run also pays
+a message round trip to the worker. AutoEq ran under Python 3.14.7, NumPy 2.5.3 and SciPy 1.18.1.</li>
+<li><strong>Versions.</strong> turboEQ 0.2.0, CrinGraph from <code dir="auto">squiglink/lab</code> <code dir="auto">main</code> at <code dir="auto">9ff842c</code>, AutoEq v4.1.2.</li>
+<li><strong>Machine.</strong> Mac mini, Apple M4, 16 GB, macOS 27.2. Measured 2026-09-25.</li>
+</ul>
+<p>Timings don’t carry over to other machines. The ratios between rows should.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="reproducing">Reproducing</h3><a class="sl-anchor-link" href="#reproducing"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Reproducing”</span></a></div>
+<p>The harness lives in
+<a href="https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-autoeq"><code dir="auto">scripts/bench-autoeq/</code></a>.
+It needs a checkout of <code dir="auto">squiglink/lab</code>, a checkout of AutoEq, and a measurement folder with a
+<code dir="auto">phone_book.json</code>. The constraints default to the ones above and can be changed with <code dir="auto">--q</code>,
+<code dir="auto">--gain</code> and <code dir="auto">--fc</code>:</p>
+<div class="expressive-code"><link rel="stylesheet" href="/modernGraphTool/docs/_astro/ec.w36nc.css"><script type="module" src="/modernGraphTool/docs/_astro/ec.0vx5m.js"></script><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="sh"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">node</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">scripts/bench-autoeq/run.mjs</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--data</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">DATA_DIR</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--target</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">TARGET.txt</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">\</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#82AAFF;--1:#3B61B0">--lab</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">LAB_REPO</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--out</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem.jsonl</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">python</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">scripts/bench-autoeq/upstream.py</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--autoeq</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">AUTOEQ_REPO</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">\</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#82AAFF;--1:#3B61B0">--curves</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem.curves.json</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--out</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem-upstream.jsonl</span></div></div><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">node</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">scripts/bench-autoeq/score.mjs</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">--curves</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem.curves.json</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem.jsonl</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">iem-upstream.jsonl</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="node scripts/bench-autoeq/run.mjs --data DATA_DIR --target TARGET.txt \    --lab LAB_REPO --out iem.jsonlpython scripts/bench-autoeq/upstream.py --autoeq AUTOEQ_REPO \    --curves iem.curves.json --out iem-upstream.jsonlnode scripts/bench-autoeq/score.mjs --curves iem.curves.json iem.jsonl iem-upstream.jsonl"><div></div></button></div></figure></div>
+<p><code dir="auto">upstream.py</code> reads the constraints from <code dir="auto">iem.curves.json</code>, so AutoEq runs under the same ones.
+It needs NumPy, SciPy, Matplotlib, tabulate and PyYAML, since AutoEq imports all of them.</p></div><footer class="sl-flex astro-xhxjzfa7"><div class="meta sl-flex astro-xhxjzfa7"><a href="https://github.com/potatosalad775/modernGraphTool/tree/main/docs/src/content/docs/features/autoeq-benchmarks.mdx" class="sl-flex print:hidden astro-xk5gmzsg"><svg aria-hidden="true" class="astro-xk5gmzsg astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-jgq3vlii" dir="ltr"><a href="/modernGraphTool/docs/features/device-peq/" rel="prev" class="astro-jgq3vlii"><svg aria-hidden="true" class="astro-jgq3vlii astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-jgq3vlii">Previous<br class="astro-jgq3vlii"><span class="link-title astro-jgq3vlii">Device PEQ</span></span></a><a href="/modernGraphTool/docs/features/cross-site-search/" rel="next" class="astro-jgq3vlii"><svg aria-hidden="true" class="astro-jgq3vlii astro-n5k4ipy7" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-jgq3vlii">Next<br class="astro-jgq3vlii"><span class="link-title astro-jgq3vlii">Cross-Site Search</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>

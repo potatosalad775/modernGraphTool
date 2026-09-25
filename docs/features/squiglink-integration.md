@@ -10,72 +10,14 @@ pagefind: true
 draft: false
 ---
 
-A built-in integration feature that connects modernGraphTool with the squig.link service.
+Deployments hosted on a `*.squig.link` domain get a few network-wide features on top of the usual ones. They switch on automatically there and stay dormant on any other host.
 
-## Overview
+- **Shop links** — when a loaded device has an entry in the squig.link shop database, a **Buy Now** button links to the sponsor's listing.
+- **Sponsor banner** — a sponsor dialog on a visitor's first visit, with content served by the squig.link network.
+- **Analytics** — Google Analytics 4 (gtag.js), sending to several measurement IDs at once so a site can report both to squig.link and to its own property.
 
-The squig.link Integration enhances modernGraphTool by providing seamless integration with the squig.link ecosystem. It enables shop links, analytics tracking, and sponsor banners.
+Each can be switched off, and the analytics IDs set, under [`SQUIGLINK`](../guide-for-admins/customize-page.mdx#squiglink) in `config.js`.
 
-:::note
-squig.link features are only active when modernGraphTool is hosted on \*.squig.link domains.
+:::note[Cross-site search and the site selector work anywhere]
+Cross-site search used to be squig.link-only. It and the site selector now run on any host, each with its own config section — see [Cross-Site Search](./cross-site-search.mdx) and [Site Selector](./site-selector.mdx). On squig.link, cross-site search still falls back to crawling each site's `phone_book.json` if the aggregate index can't be reached.
 :::
-
-## Features
-
-- **Shop Links**: Display "Buy Now" links for devices with matching shop entries
-- **Analytics**: Google Analytics integration with multi-measurement-ID support
-- **Sponsor Banners**: Display sponsor content on first visit
-- **Configurable Options**: Flexible configuration for different deployment scenarios
-
-## Configuration
-
-squig.link Integration is configured in `config.js`:
-
-```javascript
-// In config.js
-SQUIGLINK: {
-    ENABLED: true,
-    ANALYTICS_MEASUREMENT_IDS: [],
-    ANALYTICS_SITE: "",
-    LOG_ANALYTICS: true,
-    ENABLE_ANALYTICS: true,
-    ENABLE_CROSS_SITE_SEARCH: true,
-    ENABLE_SPONSOR: true,
-}
-```
-
-### Configuration Options
-
-- **`ENABLED`**: Master toggle for all squig.link features
-- **`ANALYTICS_MEASUREMENT_IDS`**: Array of Google Analytics 4 measurement IDs for multi-tag support
-- **`ANALYTICS_SITE`**: Site name used for analytics event attribution
-- **`LOG_ANALYTICS`**: Log analytics events to console for debugging
-- **`ENABLE_ANALYTICS`**: Toggle analytics tracking on or off
-- **`ENABLE_CROSS_SITE_SEARCH`**: Deprecated — use `CROSS_SITE_SEARCH.ENABLED` instead. Still read as a fallback for existing configs.
-- **`ENABLE_SPONSOR`**: Toggle sponsor banner display
-
-:::note[Cross-site search moved]
-Cross-site device search is no longer a squig.link-only feature — it now works on any host and is
-configured under its own `CROSS_SITE_SEARCH` section. See [Cross-Site Search](./cross-site-search.mdx).
-
-On squig.link deployments it still falls back to crawling each site's `phone_book.json` if the
-aggregate index can't be reached.
-:::
-
-## Usage
-
-### Cross-site Search
-
-Search for headphone measurements across all participating squig.link sites. Results link directly to the matching site's graph tool with the device loaded.
-
-### Shop Links
-
-When a loaded device has a matching entry in the squig.link shop links database, a "Buy Now" button is displayed linking to the sponsor.
-
-### Analytics
-
-When enabled, user interactions are tracked via Google Analytics 4 (gtag.js) for site usage insights.
-
-### Sponsor Banners
-
-On first visit, a sponsor dialog may be displayed with content loaded from the squig.link network.

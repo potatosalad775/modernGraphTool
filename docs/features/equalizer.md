@@ -10,33 +10,9 @@ pagefind: true
 draft: false
 ---
 
-A comprehensive parametric equalizer that provides real-time audio equalization capabilities for modernGraphTool.
+The Equalizer panel is a parametric EQ that works on loaded measurements: Peaking, Low Shelf and High Shelf bands with automatic preamp, AutoEQ against any target, per-channel bands, an in-browser audio preview, and filter import/export. [Device PEQ](./device-peq.mdx) pushes the result to hardware.
 
-## Overview
-
-The Equalizer is a built-in panel in modernGraphTool that provides a full-featured parametric equalizer, allowing users to apply real-time audio filters to their headphone measurements.
-
-It supports multiple filter types, preamp control, and audio playback with EQ effect applied.
-
-## Features
-
-- **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
-- **Per-channel EQ**: Bands can apply to both ears or to the left or right channel alone, so channel imbalance and target matching can be corrected at the same time
-- **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
-- **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
-- **Filter Management**: Add, remove, and modify EQ bands dynamically
-- **Phone Selection**: Quick selection and switching between different headphone measurements
-- **Auto EQ Generation**: Generate automatic EQ profiles based on target curves, now with low-shelf / high-shelf filter support
-- **Import/Export**: Support for importing and exporting EQ settings
-- **File Upload**: Upload custom frequency response and target files
-
-## Usage
-
-1. **Basic EQ**: Use the filter controls to adjust frequency, gain, and Q values
-2. **Phone Selection**: Use the phone selector to switch between different measurements
-3. **Audio Playback**: Enable audio playback to hear EQ changes in real-time
-4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
-5. **Import/Export**: Save and load EQ settings using the import/export functions
+This page covers the behavior worth knowing in detail. For a walkthrough of the panel, see [Equalizing audio](../guide-for-users/equalizing.mdx); operators can set defaults under [`EQUALIZER`](../guide-for-admins/customize-page.mdx#equalizer).
 
 ## The Equalizer toggle
 
@@ -88,10 +64,82 @@ running is how you ask for a five-band result. With an empty list it falls back 
 
 Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see
 [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). Either way, the active
-constraint preset's band cap wins: a connected 5-band device gets 5.
+constraint preset's band cap wins: a connected 5-band device gets 5, and a preset with no cap at
+all is held to 32.
 
-## Notes
+The count is the total. With **Use shelf filters** on, two of those bands are the low and high
+shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped,
+because spending the whole budget on them corrects nothing but overall tilt.
 
-- Requires a modern browser with Web Audio API support for audio features
-- Real-time audio processing may cause increased CPU usage
-- Large numbers of EQ bands may impact performance on older devices
+## Auto-apply
+
+Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply** switch beside it
+keeps the result current. While it is on, AutoEQ runs again whenever the source or target curve
+changes — a tilt or bass shelf from the target customizer, say — or when an AutoEQ option does.
+Switching it on runs once straight away.
+
+- It re-runs with the band count and channel it was switched on with. Scoping the list to one ear
+  doesn't change what it fits; to change the band count, add or remove bands and press
+  **Recalculate**.
+- The re-runs fold into one undo entry, so a single undo returns to the filters from before AutoEQ.
+- An auto-applied run leaves the Equalizer toggle alone, so you can switch EQ off to compare while
+  nudging the target.
+- It keeps running from other panels, which is how you tilt a target in the Graph panel and watch
+  the EQ follow.
+
+It switches itself off, and says why, rather than overwrite something it can no longer vouch for:
+
+- the filters are edited by hand — adding, removing or dragging a band, undo, import, or a History &
+  Compare switch;
+- a different source device or target is selected, or the target is removed;
+- the EQ preset changes;
+- the fallback optimizer answered (see [The optimizer](#the-optimizer)). It is too slow to follow
+  every change, so the switch stays unavailable until a run succeeds with turboEQ.
+
+## The optimizer
+
+AutoEQ runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of
+[AutoEq](https://github.com/jaakkopasanen/AutoEq)'s optimizer, which fits every filter at once. A
+run with the default eight bands takes a few milliseconds, over a hundred times faster than the
+optimizer it replaced, and returns exactly the bands it was asked for. See
+[AutoEQ Benchmarks](./autoeq-benchmarks.mdx) for measurements against CrinGraph and AutoEq itself.
+
+### Fit mode
+
+**Exact match** is the default. It fits the curve the way the graph shows it: the full shape up to
+20 kHz, with bands allowed anywhere in the frequency range. Narrow, deep bands are allowed when the
+curve calls for them, up to the Q range you set.
+
+**Treble-safe** is jaakkopasanen AutoEQ's own, more cautious fit. AutoEq smooths the treble above about 8 kHz, judges
+only its overall level above 10 kHz and places no band above 10 kHz. Treble measurements can vary a lot depending
+on a fit, seating, and physical characteristic of every rig, so this corrects only what a measurement can be trusted for. 
+Choose it when you don't trust your treble data, or when the EQ is for listening rather than for matching the exact graph.
+
+In either mode, the gain range's maximum caps the largest boost the whole EQ may apply, not only
+each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping.
+Lower the maximum if you would rather keep the level up.
+
+The frequency, Q and gain ranges are **bounds the fit works within**, exactly as you set them, not
+a clamp applied to the result afterwards: narrowing them changes what the optimizer looks for rather
+than trimming what it found. The frequency range says where a band may sit — the fit is still judged across the whole
+axis, so a narrow range leaves the rest of the curve alone instead of pretending it is already
+correct.
+
+With **Use shelf filters** on, the fit places the low and high shelf itself, choosing their
+frequency and Q as well as their gain. Shelf Q stays between 0.4 and 0.7, since a steeper shelf
+overshoots into a bump that a peaking band does better.
+
+Graphic-EQ presets fit too. Frequency and Q come from the preset's own bands and only gain is
+optimized, so every band lands exactly on its slider.
+
+If the module cannot load for any reason, the older JavaScript optimizer answers instead, and the
+AutoEQ panel says so. It is slower and fits less well, and it sometimes returns fewer bands than 
+it was asked for, but a failed load never costs you a working AutoEQ. It has only one way to fit,
+the same as Exact match, so the fit mode is hidden until turboEQ loads again. It cannot keep bands
+on a graphic EQ's sliders, so with a graphic-EQ preset AutoEQ leaves the filters as they are and
+says why.
+
+turboEQ can also turn down a particular request while loading fine — Treble-safe with a frequency
+range entirely above 10 kHz, for example, since that mode places no band there. The older optimizer
+answers that request too, and the panel says the settings were the problem; the fit mode stays, so
+you can switch to Exact match.

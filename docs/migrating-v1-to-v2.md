@@ -58,16 +58,7 @@ Deployment is also the same — v2 outputs a fully static SPA to `dist/`. Copy t
 
 ## Picking a Deployment Option
 
-v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds three more:
-
-- **[Pre-built Release](./guide-for-admins/deployment/prebuilt.mdx)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no `BASE_PATH` to set, works exactly like v1 did.
-- **[CDN Deployment](./guide-for-admins/deployment/cdn.mdx)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
-- **[GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)** — CDN deployment hosted on GitHub for free, if you'd rather not keep running a web server for this.
-- **[Building from Source](./guide-for-admins/deployment/from-source.mdx)** — For developers and forks.
-
-:::tip[CDN Alternative]
-Instead of hosting the full pre-built release, consider the [CDN deployment mode](./guide-for-admins/deployment/cdn.mdx). You don't need to manage the app code, and future updates apply automatically with it.
-:::
+v1 shipped only as a pre-built drop. v2 keeps that as the **[Pre-built Release](./guide-for-admins/deployment/prebuilt.mdx)** — the one-for-one replacement for your v1 setup, with no `BASE_PATH` to set — and adds CDN deployment (recommended: the app bundle loads from jsDelivr and updates itself), GitHub Pages, and building from source. [Choosing a Deployment](./guide-for-admins/setup-env.mdx) compares all four.
 
 ### If you pick CDN mode, watch out for `BASE_PATH`
 

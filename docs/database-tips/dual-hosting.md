@@ -1,23 +1,23 @@
 ---
-title: Dual-Hosting modernGraphTool & CrinGraph
-description: This section covers tips and tricks for dual-hosting
-  modernGraphTool and CrinGraph together, allowing users to leverage the
-  strengths of both tools in a single environment.
+title: Dual-Hosting with CrinGraph
+description: Run modernGraphTool and CrinGraph side by side on one domain,
+  sharing a single measurement database.
 editUrl: true
 head: []
 template: doc
 sidebar:
+  label: Overview
   hidden: false
   attrs: {}
 pagefind: true
 draft: false
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+You can serve modernGraphTool and CrinGraph from the same domain, with both reading one `data/` folder — handy while you migrate, or to keep offering the classic interface to visitors who prefer it.
 
-This section covers tips and tricks for dual-hosting modernGraphTool and CrinGraph together, allowing users to leverage the strengths of both tools in a single environment.
+The layout is "folder as subpath": one tool sits at the domain root, the other in a subfolder with its own `index.html`. Pick the guide for whichever tool should be the front page:
 
-<CardGrid>
-	<LinkCard title="Use modernGraphTool as main" href="./main-mgt/" />
-	<LinkCard title="Use CrinGraph as main" href="./main-cringraph/" />
-</CardGrid>
+- **[modernGraphTool as main](./main-mgt.mdx)** — modernGraphTool at the root, CrinGraph in a subfolder such as `/cringraph/`.
+- **[CrinGraph as main](./main-cringraph.mdx)** — CrinGraph stays at the root, modernGraphTool in a subfolder such as `/mGT/`.
+
+This works because both tools read the same `phone_book.json` dialect. modernGraphTool-only keys such as `variants[]` sit alongside the `file` key CrinGraph reads, so one file serves both — see [Managing Data](../../guide-for-admins/manage-data.mdx).

@@ -94,7 +94,13 @@ If you don't want to hand-design filters, open the **AutoEQ** accordion section.
 2. **Click the AutoEQ button**, which analyzes the difference between the device and the target and generates a set of filters that minimizes it.
 3. **Apply** the filters to the filter list. Tweak further from there if you want.
 
-AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands.
+AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands. The two shelves count against the band total, so a ten-band run with shelves on is eight peaking filters plus the pair.
+
+The fit mode picks between **Exact match**, the default, which fits the curve's full shape up to 20 kHz the way the graph shows it, and **Treble-safe**, a careful approach that broadly adjusts the high-frequency range, minimizing errors caused by fit conditions and physical anatomy. See [Fit mode](../features/equalizer.mdx#fit-mode) for when to choose which.
+
+After the first run the button reads **Recalculate**, and the **Auto-apply** switch beside it re-runs AutoEQ whenever the target or the options change — handy while tilting a target to taste. Editing the filters by hand switches it off. See [Auto-apply](../features/equalizer.mdx#auto-apply).
+
+With a graphic-EQ preset active, AutoEQ optimizes the gain of each fixed band — the frequency and Q inputs disappear, because the preset already sets them.
 
 AutoEQ follows the channel switch: on **L+R** it works from the averaged curve, and scoped to one ear it works from that ear's measurement and replaces only that ear's bands.
 
@@ -112,13 +118,9 @@ Playback continues across panel switches — switching to the Graph or Device pa
 
 ## Device PEQ — push EQ to hardware
 
-Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices over WebUSB / WebSerial / WebHID / WebBluetooth and push your filter list into the device's own EQ memory. Unplug your computer and the EQ stays loaded.
+Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device's own EQ memory, or pull the device's current EQ into the filter list. Unplug your computer and the EQ stays loaded.
 
-Supported devices, connection instructions, and troubleshooting all live in [Device PEQ](../features/device-peq.mdx). In brief:
-
-- **Chrome and Edge** have the best support for the Web APIs this feature uses.
-- **Firefox** works for some device classes but not others.
-- **Safari** doesn't support WebUSB at all, so Device PEQ doesn't work there.
+It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Device PEQ](../features/device-peq.mdx).
 
 ## Import and export
 

@@ -58,16 +58,7 @@ draft: false
 
 ## 배포 옵션 선택
 
-v1은 사전 빌드된 배포 파일 한 가지 방식만 제공했습니다. 파일을 받아 업로드하면 끝이었죠. v2는 여기에 세 가지 옵션이 더 추가되었습니다.
-
-- **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx)** — v1과 유사한 방식입니다. 배포 파일을 내려받고 데이터·설정을 복사한 뒤 업로드하면 됩니다. 설정해야 할 `BASE_PATH`도 없습니다.
-- **[CDN 배포](./guide-for-admins/deployment/cdn.mdx)** — 가장 권장되는 방식입니다. 서버에는 `index.html`, `config.js`, `theme.css`, `data/`, `assets/`만 두고, 핵심 코드는 jsDelivr에서 받아 자동으로 적용하는 구조를 가집니다.
-- **[GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)** — CDN 배포를 GitHub에서 무료로 호스팅하는 방식입니다. 이 사이트 하나 때문에 웹 서버를 계속 운영하고 싶지 않다면 좋은 선택입니다.
-- **[소스에서 빌드](./guide-for-admins/deployment/from-source.mdx)** — 개발자와 포크 운영자를 위한 옵션입니다.
-
-:::tip[CDN을 권장합니다]
-사전 빌드된 파일을 통째로 올리는 대신 [CDN 배포 모드](./guide-for-admins/deployment/cdn.mdx)를 고려해보세요. 핵심 코드를 따로 관리할 필요가 없고, 추후 제공되는 업데이트도 자동으로 적용됩니다.
-:::
+v1은 사전 빌드된 배포 파일 한 가지 방식만 제공했습니다. v2는 이 방식을 **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx)** 로 그대로 유지하며(기존 v1 구성을 그대로 대체하고, 설정할 `BASE_PATH`도 없습니다), 여기에 CDN 배포(권장: 앱 번들을 jsDelivr에서 받아 자동으로 업데이트), GitHub Pages, 소스에서 빌드를 더했습니다. 네 가지 방식의 비교는 [배포 방식 고르기](./guide-for-admins/setup-env.mdx)를 참고하세요.
 
 ### CDN 모드를 골랐다면 `BASE_PATH`를 잊지 마세요
 

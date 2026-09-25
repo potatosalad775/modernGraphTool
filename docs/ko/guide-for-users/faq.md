@@ -12,7 +12,7 @@ pagefind: true
 draft: false
 ---
 
-자주 묻는 질문(FAQ)에 대한 간략한 답변입니다. 원하는 내용이 없다면 기능별 심층 설명이 있는 [기능](../../features/index.mdx) 섹션이나 메인 [개요](../intro.mdx) 페이지를 확인하십시오.
+자주 묻는 질문(FAQ)에 대한 간략한 답변입니다. 원하는 내용이 없다면 기능별 심층 설명이 있는 [기능](../features/index.mdx) 섹션이나 [소개](../intro.mdx) 페이지를 확인하십시오.
 
 ## 측정 및 해석
 
@@ -76,7 +76,7 @@ URL에 그래프 상태가 모두 저장되도록 설계된 만큼, URL이 다�
 
 ### DAC나 헤드폰 하드웨어에 직접 이퀄라이저를 전송할 수 있나요?
 
-현재 지원되는 기기라면 가능합니다. 이퀄라이저 패널 안의 **Device PEQ** 섹션을 여십시오. Chrome과 Edge 환경에서 가장 원활하게 작동합니다. Safari 및 Firefox는 기반이 되는 웹 API를 전혀 지원하지 않습니다. 지원 기기 목록 등 자세한 내용은 [기기 PEQ](../features/device-peq.mdx)에서 확인하십시오.
+현재 지원되는 기기라면 가능합니다. 이퀄라이저 패널 안의 **Device PEQ** 섹션을 여십시오. Chrome, Edge, Opera 같은 Chromium 기반 브라우저가 필요하며, Safari와 Firefox는 기반이 되는 웹 API를 전혀 지원하지 않습니다. 지원 기기 목록 등 자세한 내용은 [기기 PEQ](../features/device-peq.mdx)에서 확인하십시오.
 
 ## squig.link 통합
 
@@ -90,4 +90,4 @@ squig.link 연동 사이트에서는 가능합니다. 기기 패널의 검색창
 
 ---
 
-질문에 대한 답을 찾지 못하셨나요? 상세 기능 설명은 [기능](../../features/index.mdx) 섹션을 확인하시거나, [GitHub](https://github.com/potatosalad775/modernGraphTool/discussions)에 질문을 남겨주십시오.
+질문에 대한 답을 찾지 못하셨나요? 상세 기능 설명은 [기능](../features/index.mdx) 섹션을 확인하시거나, [GitHub](https://github.com/potatosalad775/modernGraphTool/discussions)에 질문을 남겨주십시오.

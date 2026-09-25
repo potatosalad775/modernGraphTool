@@ -68,4 +68,4 @@ v2에는 v1에 없던 설정 항목이 `config.js`에 새로 추가되었습니�
 
 - v1에서 넘어오시나요? → [v1에서 v2로 마이그레이션](./migrating-v1-to-v2.mdx)
 - CrinGraph, squiglink lab, PublicGraphTool, 기타 CrinGraph 파생 도구에서 넘어오시나요? → [CrinGraph에서 마이그레이션](./migrating-from-cringraph.mdx)
-- 새로 설치하시나요? → [배포 옵션](./guide-for-admins/deployment/prebuilt.mdx)
+- 새로 설치하시나요? → [배포 방식 고르기](./guide-for-admins/setup-env.mdx)

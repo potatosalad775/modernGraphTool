@@ -86,7 +86,7 @@ On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don'
 
 ## Preference Bound toggle
 
-The **preference bound** button toggles a shaded region that represents a statistical range of "acceptable" tunings rather than a single target line. See [Preference Bound](../features/preference-bound.mdx) for the full story. The button is enabled only when the site has configured bound data files — if it's missing, the feature isn't available for that deployment.
+The **preference bound** button toggles a shaded region that represents a statistical range of "acceptable" tunings rather than a single target line. See [Preference Bound](../features/preference-bound.mdx) for the full story. The button only appears when the site has configured the bound data files — if it's missing, the feature isn't available on that deployment.
 
 ## Frequency Tutorial
 
@@ -104,4 +104,4 @@ See [Sharing and exporting](./sharing-and-exporting.mdx).
 
 ---
 
-Next up, the two features that build on the target concept from page 04: [Targets and preferences](./targets-and-preferences.mdx).
+Next up, the two features that build on the target concept from [Why targets exist](./why-targets-exist.mdx): [Targets and preferences](./targets-and-preferences.mdx).

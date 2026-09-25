@@ -10,109 +10,35 @@ pagefind: true
 draft: false
 ---
 
-An advanced visualization feature that displays preference boundaries on frequency response graphs, helping users understand the acceptable variation ranges in FR.
+The Preference Bound draws a shaded band on the graph showing the range of frequency responses most listeners prefer, based on listening-preference research. It answers "how far from the middle of the road is this tuning" rather than "does it match one exact line".
 
-## Overview
+Visitors toggle it from the graph toolbar. For how to read it, see [Targets and preferences](../guide-for-users/targets-and-preferences.mdx#preference-bound).
 
-The Preference Bound feature adds a sophisticated overlay to modernGraphTool that visualizes preference boundaries around target curves.
+## How the band is aligned
 
-These boundaries represent the statistically acceptable range of frequency response variations that most listeners find pleasant, based on research data and listening preferences.
+The band follows the graph's alignment setting (Hz or Avg), smoothing and baseline, like every other curve. It is aligned by its **center** — the midpoint of the upper and lower bounds — not by the diffuse field target it is defined against. This matters because the DF target does not sit inside the band everywhere: in the bass, the preferred range lies several dB above it.
 
-## Features
+Aligning the band the way you align a measurement means a headphone in the middle of the preference range lands in the middle of the band, whichever frequency you align at. At the default 500 Hz alignment the band's center and the DF target nearly coincide, so the band looks the same as it would if it were anchored to the DF.
 
-- **Preference Bound**: Display upper and lower preference bounds
-- **Customizable Appearance**: Adjustable colors, transparency, and styling
-- **Target Integration**: Works with diffuse field targets for accurate baseline reference
-
-## Configuration
-
-Preference Bound is configured in `config.js`:
-
-```javascript
-// In config.js
-PREFERENCE_BOUND: {
-    ENABLE_BOUND_ON_INITIAL_LOAD: false,
-    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
-    COLOR_FILL: "rgba(180,180,180,0.2)",
-    COLOR_BORDER: "rgba(120,120,120,0.5)",
-}
-```
-
-### Configuration Options
-
-- **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when modernGraphTool first loads
-- **`BASE_DF_TARGET_FILE`**: File name (without `.txt` extension) of the diffuse field target used as the baseline for boundary calculations. The file must already exist in your configured target folder — the preference bound loader reads it directly from `PATH.TARGET_MEASUREMENT`, so no duplicate copy is needed.
-- **`COLOR_FILL`**: RGBA color for the filled boundary area
-- **`COLOR_BORDER`**: RGBA color for the boundary outline
-
-:::note[Base target location]
-The base DF target file is resolved from the same folder your other target curves live in, defined by `PATH.TARGET_MEASUREMENT` in `config.js`. See the [`PATH`](../guide-for-admins/customize-page.mdx#path) config section.
-:::
-
-## Data File Format
-
-### Boundary Data Files
-
-The feature requires two boundary data files in the `data/` directory (alongside `phones/` and `target/`):
-
-#### Upper Boundary (`Bounds U.txt`)
-
-Contains frequency response data for the upper preference boundary:
-
-```
-20.0	2.5
-25.0	2.8
-31.5	3.1
-...
-```
-
-#### Lower Boundary (`Bounds D.txt`)
-
-Contains frequency response data for the lower preference boundary:
-
-```
-20.0	-2.5
-25.0	-2.8
-31.5	-3.1
-...
-```
-
-#### Base Target File
-
-The base DF target file is **resolved from `PATH.TARGET_MEASUREMENT`** in `config.js` — the same folder where every other target curve lives (default: `./data/target/`). You do **not** need to duplicate the target file into another folder; the preference bound loader reads it directly from the regular target directory using the file name you set in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`.
-
-For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data/target/KEMAR DF (KB006x) Target.txt` (or whichever path you've configured in `PATH.TARGET_MEASUREMENT`).
-
-## Usage
-
-### Basic Operation
-
-1. **Toggle Control**: Use the toggle button to show/hide boundaries
-2. **Alignment**: Boundaries follow the graph's alignment setting (Hz or Avg), like every other curve
-3. **Real-time Updates**: Boundaries update when changing smoothing, alignment or baseline
-
-### Visual Interpretation
-
-- **Filled Area**: The area between upper and lower bounds represents the preference range
-- **Target Baseline**: The boundary shape is defined relative to the base diffuse field target
-- **Measurement Overlay**: Compare headphone measurements against preference boundaries
-
-### How the Band Is Aligned
-
-The band is aligned by its **center** (the midpoint of the upper and lower bounds), not by the
-diffuse field target itself. This matters because the DF target does not sit inside the band
-everywhere — in the bass the preferred range lies several dB above it.
-
-Aligning the band the way you align a measurement means a headphone in the middle of the
-preference range lands in the middle of the band, whichever frequency you align at. At the
-default 500 Hz alignment the band's center and the DF target nearly coincide, so the band looks
-the same as it would if it were anchored to the DF.
-
-If you display the base DF target and align at a low frequency such as 50 Hz, the band will not
-sit where the DF-relative bound values would put it — the band keeps its alignment to the
-curves you're comparing, not to the DF.
+If you display the base DF target and align at a low frequency such as 50 Hz, the band will not sit where the DF-relative bound values would put it — the band keeps its alignment to the curves you're comparing, not to the DF.
 
 :::tip
-The band is widest in the bass (about 6 dB at 50 Hz versus 2 dB at 500 Hz). Aligning in the
-midrange gives the most reliable read of whether a measurement falls inside the preference range.
+The band is widest in the bass (about 6 dB at 50 Hz versus 2 dB at 500 Hz). Aligning in the midrange gives the most reliable read of whether a measurement falls inside the preference range.
 :::
+
+## Setting it up
+
+The toolbar button only appears once the operator has shipped the data and configured it under [`PREFERENCE_BOUND`](../guide-for-admins/customize-page.mdx#preference_bound).
+
+It needs three files:
+
+- **`Bounds U.txt`** and **`Bounds D.txt`** — the upper and lower bounds, as offsets in dB from the base target. They sit directly in `data/`, alongside `phones/` and `target/`:
+
+  ```
+  20.0	2.5
+  25.0	2.8
+  31.5	3.1
+  ...
+  ```
+
+- **The base diffuse field target**, named by `BASE_DF_TARGET_FILE` without its `.txt` extension. It is read from your regular target folder (`PATH.TARGET_MEASUREMENT`, `./data/target/` by default), so don't copy it anywhere else. `"KEMAR DF (KB006x) Target"` loads `./data/target/KEMAR DF (KB006x) Target.txt`.

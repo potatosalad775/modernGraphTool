@@ -171,16 +171,7 @@ If you're migrating from a dual-instance CrinGraph setup, treat it as two separa
 
 ## Picking a Deployment Option
 
-modernGraphTool v2 offers four deployment paths:
-
-- **[Pre-built Release](./guide-for-admins/deployment/prebuilt.mdx)** — Closest to how you deploy CrinGraph today. Download the release, drop your `data/`, `config.js`, and `theme.css` in, upload. No `BASE_PATH` to worry about.
-- **[CDN Deployment](./guide-for-admins/deployment/cdn.mdx)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle loads from jsDelivr and auto-updates with new v2 releases.
-- **[GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)** — CDN deployment hosted on GitHub for free, if you'd rather stop maintaining a web server as part of this migration.
-- **[Building from Source](./guide-for-admins/deployment/from-source.mdx)** — For developers and forks.
-
-:::tip[CDN Alternative]
-Instead of hosting the full pre-built release, consider the [CDN deployment mode](./guide-for-admins/deployment/cdn.mdx). You don't need to manage the app code, and future updates apply automatically with it.
-:::
+The **[Pre-built Release](./guide-for-admins/deployment/prebuilt.mdx)** is closest to how you deploy CrinGraph today: download it, drop your `data/`, `config.js` and `theme.css` in, and upload. CDN deployment (recommended: the app bundle loads from jsDelivr and updates itself) and GitHub Pages (free hosting, if you'd rather stop running a web server) are the alternatives — [Choosing a Deployment](./guide-for-admins/setup-env.mdx) compares all four.
 
 ### If you pick CDN mode, watch out for `BASE_PATH`
 

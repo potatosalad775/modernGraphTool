@@ -1,10 +1,11 @@
 ---
 title: 기능
-description: modernGraphTool의 내장 기능에 대해 알아보세요.
+description: modernGraphTool에 내장된 모든 기능이 무엇을 하고 어떻게 동작하는지 정리한 참고 문서입니다.
 editUrl: true
 head: []
 template: doc
 sidebar:
+  label: 개요
   hidden: false
   attrs: {}
 pagefind: true
@@ -13,16 +14,69 @@ draft: false
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-modernGraphTool의 내장 기능에 대해 알아보세요.
+모든 기능은 내장되어 있어 따로 설치할 것이 없습니다. 이 문서들은 각 기능이 무엇을 하고 어떻게 동작하는지 설명합니다. 화면 사용법은 [사용자 가이드](../guide-for-users/index.mdx)에서, 모든 설정 옵션은 [페이지 커스터마이징](../guide-for-admins/customize-page.mdx#changing-basic-settings-configjs)에서 확인하세요.
+
+## 그래프
 
 <CardGrid>
-	<LinkCard title="그래프 평균화" href="./average-curves/" />
-	<LinkCard title="사이트 선택기" href="./site-selector/" />
-	<LinkCard title="선호도 경계" href="./preference-bound/" />
-	<LinkCard title="크로스 사이트 검색" href="./cross-site-search/" />
-	<LinkCard title="Device PEQ" href="./device-peq/" />
-	<LinkCard title="Equalizer" href="./equalizer/" />
-	<LinkCard title="Frequency Tutorial" href="./frequency-tutorial/" />
-	<LinkCard title="squig.link 연동" href="./squiglink-integration/" />
-	<LinkCard title="Target Customizer" href="./target-customizer/" />
+	<LinkCard
+		title="그래프 평균화"
+		href="./average-curves/"
+		description="화면에 보이는 측정값을 하나의 평균 커브로 합칩니다."
+	/>
+	<LinkCard
+		title="선호도 경계"
+		href="./preference-bound/"
+		description="대부분의 청취자가 선호하는 튜닝 범위를 음영으로 표시합니다."
+	/>
+	<LinkCard
+		title="Target Customizer"
+		href="./target-customizer/"
+		description="Tilt, 저음, 고음, Ear Gain 필터로 타겟을 조정합니다."
+	/>
+	<LinkCard
+		title="Frequency Tutorial"
+		href="./frequency-tutorial/"
+		description="그래프의 각 대역에 어떤 소리가 담기는지 라벨로 보여 줍니다."
+	/>
+</CardGrid>
+
+## 이퀄라이저
+
+<CardGrid>
+	<LinkCard
+		title="Equalizer"
+		href="./equalizer/"
+		description="AutoEQ, 채널별 밴드, 오디오 미리 듣기를 갖춘 파라메트릭 EQ."
+	/>
+	<LinkCard
+		title="Device PEQ"
+		href="./device-peq/"
+		description="만든 EQ를 DAC, 동글, 헤드폰에 바로 전송합니다."
+	/>
+	<LinkCard
+		title="AutoEQ 벤치마크"
+		href="./autoeq-benchmarks/"
+		description="AutoEQ 최적화 엔진의 속도와 맞춤 품질을 비교합니다."
+	/>
+</CardGrid>
+
+## 사이트 간 기능
+
+<CardGrid>
+	<LinkCard
+		title="크로스 사이트 검색"
+		href="./cross-site-search/"
+		description="다른 측정 데이터베이스에서 기기를 찾습니다."
+	/>
+	<LinkCard
+		title="사이트 선택기"
+		href="./site-selector/"
+		description="상단 바에서 다른 측정 데이터베이스로 이동합니다."
+	/>
+	<LinkCard
+		title="squig.link 연동"
+		href="./squiglink-integration/"
+		description="squig.link의 쇼핑 링크, 분석, 스폰서 배너."
+	/>
 </CardGrid>

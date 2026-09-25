@@ -12,7 +12,7 @@ draft: false
 ---
 
 How the three build outputs are produced. If you only want to _deploy_ modernGraphTool, see
-[Guide for Admins → Deployment](../guide-for-admins/deployment/prebuilt.mdx) instead — this page is
+[Guide for Operators → Choosing a Deployment](../guide-for-admins/setup-env.mdx) instead — this page is
 about how the build itself works.
 
 ## Outputs

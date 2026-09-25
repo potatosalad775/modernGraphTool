@@ -14,78 +14,31 @@ Visual editors and generators that help you set up modernGraphTool — no hand-e
 
 [Theme Generator](/modernGraphTool/docs/theme-generator/)Pick colors, preview the graph and UI in light and dark mode, and download a ready-to-drop theme.css file.
 
-# Overview
+# Introduction
 
-modernGraphTool is a web-based tool for visualizing and comparing frequency response (FR) measurements of headphones, and IEMs. Load measurements, overlay multiple curves, apply targets and EQ, and share results — all from the browser.
+modernGraphTool is a web-based tool for visualizing and comparing frequency response (FR) measurements of headphones and IEMs. Load measurements, overlay multiple curves, apply targets and EQ, and share results — all from the browser.
 
-Built with SvelteKit 2, Svelte 5, Tailwind CSS, and D3.js. Deployed as a fully static SPA — just upload the `dist/` folder to any web server, or use the CDN mode for automatic updates.
+It ships as a fully static site: upload one folder to any web server, or use the CDN mode and receive updates automatically. Everything is built in and configured through a single `config.js` file, and it reads the same data format as CrinGraph.
 
-If you’re coming from modernGraphTool v1, see the [migration guide](/modernGraphTool/docs/migrating-v1-to-v2/) for what’s changed. For background on why this project exists, see [Why modernGraphTool?](/modernGraphTool/docs/why-moderngraphtool/).
+For the project’s background, see [Why modernGraphTool?](/modernGraphTool/docs/why-moderngraphtool/)
+
+## Where to start
+
+[Guide for Users](/modernGraphTool/docs/guide-for-users/)Browsing a measurement database? Learn to read the graph, compare devices, and EQ.
+
+[Guide for Operators](/modernGraphTool/docs/guide-for-admins/)Running a measurement database? Deploy it, add your data, and customize the page.
+
+[Features](/modernGraphTool/docs/features/)What each built-in feature does, from the equalizer to cross-site search.
+
+[Guide for Developers](/modernGraphTool/docs/guide-for-developers/overview/)Contributing to modernGraphTool: architecture, testing, and build internals.
+
+Already running v1 or a CrinGraph site? See [What’s New in v2](/modernGraphTool/docs/whats-new-in-v2/) and the migration guides linked from it.
 
 Using these docs with an AI assistant
 
 Every page is also served as plain Markdown — add `.md` to any URL (this page is at [`/intro.md`](/modernGraphTool/docs/intro.md)).
 
 For a whole-site context, point your assistant at [`/llms.txt`](/modernGraphTool/docs/llms.txt). It indexes smaller, purpose-built bundles alongside the complete text, so you can hand over just the operator guide, the end-user guide, or the contributor guide instead of the entire site.
-
-## Features
-
-Everything is built-in and configurable through a single [`config.js`](/modernGraphTool/docs/guide-for-admins/customize-page/) file.
-
-For detailed documentation on individual features, see the [Features](/modernGraphTool/docs/features/) section.
-
-### Visualization & Analysis
-
-* **Frequency response graph** — D3.js-powered SVG graph with log-scale frequency axis (20 Hz – 20 kHz) and configurable Y-axis scale (30–80 dB range)
-* **Multi-curve comparison** — Load and overlay multiple devices with per-curve color customization
-* **Target curves** — Select from built-in targets (Harman, DF, reviewer preferences) or add your own, organized into configurable groups
-* **Normalization** — Align curves by a specific frequency (Hz) or by midrange average (300 Hz – 3 kHz)
-* **Smoothing** — Adjustable from 1/48 octave (near-raw) to 1/3 octave
-* **Sample sets** — Devices measured more than once render as an averaged curve, per-run curves, a shaded min/max deviation band, or any combination
-* **[Average curves](/modernGraphTool/docs/features/average-curves/)** — Fold every visible measurement into one averaged curve.
-* **Inspection mode** — Hover over the graph to read precise frequency and dB values
-* **Baseline compensation** — Set any curve as a baseline to view other curves as relative differences
-* **Configurable aspect ratio** — Standard 16:9 or CrinGraph-style proportions
-
-### Equalization
-
-* **[Parametric EQ](/modernGraphTool/docs/features/equalizer/)** — Full-featured EQ panel with multiple filter types (PEQ, LSQ, HSQ), adjustable frequency/gain/Q, and preamp control
-* **AutoEQ** — Automatically generate EQ profiles to match a selected target curve, now with optional LSQ/HSQ filters for more flexible tuning
-* **Real-time audio preview** — Play audio through the browser with EQ filters applied in real-time
-* **Import / Export** — Save and load EQ settings for later use
-* **[Device PEQ bridge](/modernGraphTool/docs/features/device-peq/)** — Push EQ settings directly to 20+ compatible hardware devices via USB HID, Serial, BLE, or Network
-
-### Target Customization
-
-* **[Target Customizer](/modernGraphTool/docs/features/target-customizer/)** — Adjust target curves with parametric filters (Tilt, Bass, Treble, Ear Gain, and more) using slider controls
-* **Filter presets** — One-click presets for popular tuning profiles (Harman 2013, 2015, 2018)
-* **Per-target initial filters** — Automatically apply preferred adjustments when a target loads
-* **[Preference Bound](/modernGraphTool/docs/features/preference-bound/)** — Overlay a shaded upper/lower preference range on the graph, based on research data
-
-### Sharing & Export
-
-* **URL sharing** — Generate compressed shareable links that encode the full graph state (loaded devices, targets, normalization, EQ)
-* **Screenshot** — Save the current graph as an image, complete with labels and watermarks
-* **Watermarks** — Configurable text or image watermarks with adjustable position and opacity
-
-### User Interface
-
-* **Responsive layout** — Dedicated desktop and mobile UIs, not just a squeezed desktop view on small screens
-* **Dark mode** — Light, dark, or follow system preference
-* **Panel navigation** — Features organized into four panels: Device, Graph, Equalizer, and Misc
-* **Adjustable layout** — Drag the divider to resize the graph vs. panel areas (desktop)
-* **Multi-language** — English and Korean, with compile-time i18n (Paraglide JS)
-* **Configurable top bar** — Custom title (text, image, or HTML), navigation links, and branding
-* **[Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/)** — Interactive overlay showing frequency band names and descriptions, helpful for beginners
-
-### squig.link Integration
-
-When hosted on `*.squig.link` domains, modernGraphTool activates additional features for the [squig.link](https://squig.link) network. See [squig.link Integration](/modernGraphTool/docs/features/squiglink-integration/) for details.
-
-* **Cross-site search** — Search for devices across all sites in the squig.link network
-* **Shop links** — Display purchase links when a matching device is found in the shop database
-* **Analytics** — Google Analytics with multi-measurement-ID support for network-wide tracking
-* **Sponsor content** — First-visit sponsor banners for sites that opt in
 
 # Why modernGraphTool?
 
@@ -98,14 +51,6 @@ modernGraphTool is a ground-up rewrite — built on modern web technologies with
 [CrinGraph](https://github.com/mlochbaum/CrinGraph) appeared around 2019 and quickly became the de facto standard for frequency response visualization in the audio enthusiast community.
 
 It did its original job well: load measurements, overlay curves, compare headphones. Simple and effective.
-
-Most measurement databases in the squig.link network still run CrinGraph or a derivative of it, and its influence on how we visualize FR data is undeniable.
-
-Full data compatibility
-
-modernGraphTool is not a ‘rejection’ of CrinGraph — it’s a continuation.
-
-It uses the same data format, the same folder structure, and the same `phone_book.json`. Your existing measurement data works without any changes.
 
 ## At a Glance
 
@@ -153,6 +98,7 @@ And there is a steady stream of releases. modernGraphTool has been in active dev
 * **Per-channel EQ** — separate bands for each ear, so AutoEQ can fix channel imbalance and match a target in one go.
 * **History & Compare** — A/B between EQ revisions, with full undo/redo.
 * **Three new interface languages** — Czech, Russian and Ukrainian, contributed by the community.
+* **turboEQ** — an extremely fast AutoEQ that dynamically adapts to the frequency response.
 
 See the [changelog](/modernGraphTool/docs/changelog/) for everything else.
 
@@ -177,7 +123,7 @@ Switching doesn’t lock you in.
 
 Ready to get started?
 
-Coming from CrinGraph? Follow [Migrating from CrinGraph](/modernGraphTool/docs/migrating-from-cringraph/). Starting fresh? Head to the [Setup Guide](/modernGraphTool/docs/guide-for-admins/setup-env/).
+Coming from CrinGraph? Follow [Migrating from CrinGraph](/modernGraphTool/docs/migrating-from-cringraph/). Starting fresh? Head to [Choosing a Deployment](/modernGraphTool/docs/guide-for-admins/setup-env/).
 
 # What's New in v2
 
@@ -237,43 +183,30 @@ Beyond the rewrite itself, v2 introduces capabilities that weren’t available i
 
 * Coming from v1? → [Migrating from v1 to v2](/modernGraphTool/docs/migrating-v1-to-v2/)
 * Coming from CrinGraph, squiglink lab, PublicGraphTool, or another CrinGraph derivative? → [Migrating from CrinGraph](/modernGraphTool/docs/migrating-from-cringraph/)
-* New installation? → [Deployment options](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)
+* New installation? → [Choosing a Deployment](/modernGraphTool/docs/guide-for-admins/setup-env/)
 
-# Database Setup Tips
+# Dual-Hosting with CrinGraph
 
-> Useful tips and tricks for setting up your database.
+> Run modernGraphTool and CrinGraph side by side on one domain, sharing a single measurement database.
 
-Useful tips and tricks for setting up your database.
+You can serve modernGraphTool and CrinGraph from the same domain, with both reading one `data/` folder — handy while you migrate, or to keep offering the classic interface to visitors who prefer it.
 
-[Dual-Hosting modernGraphTool & CrinGraph](/modernGraphTool/docs/database-tips/dual-hosting/)
+The layout is “folder as subpath”: one tool sits at the domain root, the other in a subfolder with its own `index.html`. Pick the guide for whichever tool should be the front page:
 
-# Dual-Hosting modernGraphTool & CrinGraph
+* **[modernGraphTool as main](/modernGraphTool/docs/database-tips/dual-hosting/main-mgt/)** — modernGraphTool at the root, CrinGraph in a subfolder such as `/cringraph/`.
+* **[CrinGraph as main](/modernGraphTool/docs/database-tips/dual-hosting/main-cringraph/)** — CrinGraph stays at the root, modernGraphTool in a subfolder such as `/mGT/`.
 
-> This section covers tips and tricks for dual-hosting modernGraphTool and CrinGraph together, allowing users to leverage the strengths of both tools in a single environment.
-
-This section covers tips and tricks for dual-hosting modernGraphTool and CrinGraph together, allowing users to leverage the strengths of both tools in a single environment.
-
-[Use modernGraphTool as main](/modernGraphTool/docs/database-tips/dual-hosting/main-mgt/)
-
-[Use CrinGraph as main](/modernGraphTool/docs/database-tips/dual-hosting/main-cringraph/)
+This works because both tools read the same `phone_book.json` dialect. modernGraphTool-only keys such as `variants[]` sit alongside the `file` key CrinGraph reads, so one file serves both — see [Managing Data](/modernGraphTool/docs/guide-for-admins/manage-data/).
 
 # Use CrinGraph as main
 
-You can host modernGraphTool and CrinGraph together with slight change of code!
-
-This chapter showcases how to dual-host 2 graphtools in 1 domain, using CrinGraph as main forefront page.
-
-## Overview
-
-There are several ways to host two services on a single domain.
-
-Here, we showcase the classic “folder as subdomain” approach, which is simple and effective for static sites or web apps.
+This layout keeps **CrinGraph** at the domain root as the front page and serves modernGraphTool from a subfolder. Both read the same `data/` folder. See [Dual-Hosting with CrinGraph](/modernGraphTool/docs/database-tips/dual-hosting/) for the other layout.
 
 ## Step-by-Step Guide
 
 ### 1. Prepare Your Projects
 
-* **modernGraphTool**: Set up the modernGraphTool database and files as described in the [other documentation chapters](/modernGraphTool/docs/guide-for-admins/).
+* **modernGraphTool**: Set up the modernGraphTool database and files as described in the [Guide for Operators](/modernGraphTool/docs/guide-for-admins/).
 * **CrinGraph**: Prepare the CrinGraph project files. You can use any variant of CrinGraphs.
 
 ### 2. Organize Your Directory Structure
@@ -437,21 +370,13 @@ e.g) https://example.squig.link/?cachebust
 
 # Use modernGraphTool as main
 
-You can host modernGraphTool and CrinGraph together with slight change of code!
-
-This chapter showcases how to dual-host 2 graphtools in 1 domain, using modernGraphTool as main forefront page.
-
-## Overview
-
-There are several ways to host two services on a single domain.
-
-Here, we showcase the classic “folder as subdomain” approach, which is simple and effective for static sites or web apps.
+This layout keeps **modernGraphTool** at the domain root as the front page and serves CrinGraph from a subfolder. Both read the same `data/` folder. See [Dual-Hosting with CrinGraph](/modernGraphTool/docs/database-tips/dual-hosting/) for the other layout.
 
 ## Step-by-Step Guide
 
 ### 1. Prepare Your Projects
 
-* **modernGraphTool**: Set up the modernGraphTool database and files as described in the [other documentation chapters](/modernGraphTool/docs/guide-for-admins/).
+* **modernGraphTool**: Set up the modernGraphTool database and files as described in the [Guide for Operators](/modernGraphTool/docs/guide-for-admins/).
 * **CrinGraph**: Prepare the CrinGraph project files. You can use any variant of CrinGraphs.
 
 ### 2. Organize Your Directory Structure
@@ -604,27 +529,198 @@ e.g) https://example.squig.link/?cachebust
 
 # Features
 
-> Learn about modernGraphTool's built-in features.
+> Reference for every built-in modernGraphTool feature — what it does and how it behaves.
 
-Learn about modernGraphTool’s built-in features.
+Every feature is built in — there is nothing to install. These pages explain what each one does and how it behaves. For a walkthrough of the interface, see the [Guide for Users](/modernGraphTool/docs/guide-for-users/); for every configuration option, see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#changing-basic-settings-configjs).
 
-[Average Curves](/modernGraphTool/docs/features/average-curves/)
+## Graph
 
-[Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/)
+[Average Curves](/modernGraphTool/docs/features/average-curves/)Fold every visible measurement into one averaged curve.
 
-[Device PEQ](/modernGraphTool/docs/features/device-peq/)
+[Preference Bound](/modernGraphTool/docs/features/preference-bound/)Shade the range of tunings most listeners prefer.
 
-[Equalizer](/modernGraphTool/docs/features/equalizer/)
+[Target Customizer](/modernGraphTool/docs/features/target-customizer/)Adjust a target with tilt, bass, treble and ear-gain filters.
 
-[Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/)
+[Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/)Label each region of the graph with what lives there.
 
-[Preference Bound](/modernGraphTool/docs/features/preference-bound/)
+## Equalizer
 
-[Site Selector](/modernGraphTool/docs/features/site-selector/)
+[Equalizer](/modernGraphTool/docs/features/equalizer/)Parametric EQ with AutoEQ, per-channel bands and audio preview.
 
-[squig.link Integration](/modernGraphTool/docs/features/squiglink-integration/)
+[Device PEQ](/modernGraphTool/docs/features/device-peq/)Push your EQ straight into a DAC, dongle or headphone.
 
-[Target Customizer](/modernGraphTool/docs/features/target-customizer/)
+[AutoEQ Benchmarks](/modernGraphTool/docs/features/autoeq-benchmarks/)How the AutoEQ optimizer compares on speed and fit quality.
+
+## Across Sites
+
+[Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/)Find a device in other measurement databases.
+
+[Site Selector](/modernGraphTool/docs/features/site-selector/)Jump between measurement databases from the top bar.
+
+[squig.link Integration](/modernGraphTool/docs/features/squiglink-integration/)Shop links, analytics and sponsor banners on squig.link.
+
+# AutoEQ Benchmarks
+
+> How turboEQ compares with the CrinGraph optimizer, the older TypeScript one and upstream AutoEq, under the same constraints and on real measurements.
+
+modernGraphTool’s AutoEQ runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [AutoEq](https://github.com/jaakkopasanen/AutoEq)’s optimizer. This page compares it, as an algorithm, with the optimizers it replaces and with the one it was ported from. Every engine fits the same 176 real IEM measurements under the same constraints.
+
+## Summary
+
+* **It is two orders of magnitude faster.** With eight bands, turboEQ’s median run is 6.2 ms. CrinGraph’s optimizer takes 807 ms and modernGraphTool’s old TypeScript one 1.41 s.
+* **It returns the number of bands you ask for, every time.** Asked for eight, CrinGraph returned eight for 87% of the measurements and the old optimizer for 22%.
+* **Exact match fits closest from eight bands up.** At ten bands, its median error across 20 Hz–20 kHz is 0.48 dB, against 0.74 for the old optimizer and 1.24 for CrinGraph. At eight it leads by less (0.77 against 0.82), and its bad cases are less bad (1.59 against 1.90 at the 90th percentile). On headphones it leads at every band count.
+* **With five bands on IEMs, the old optimizer scores better, mostly on level.** It reaches 1.16 dB against exact match’s 1.27. [Where turboEQ loses](#where-turboeq-loses) explains why.
+* **Treble-safe stays close to AutoEq.** Given the same constraints, its EQ lands 0.17 dB (median) from AutoEq’s when both run to convergence. For comparison, AutoEq’s own early stopping moves AutoEq’s answer by 0.07 dB.
+
+## The constraints
+
+Every engine got the same limits on each band:
+
+| Limit                | Value         |
+| -------------------- | ------------- |
+| Q                    | 0.1–10        |
+| Gain                 | −20 to +20 dB |
+| Where a band may sit | 20 Hz–20 kHz  |
+| Largest total boost  | 20 dB         |
+
+Some differences between the engines are part of the method and stay:
+
+* **CrinGraph has no shelf filters**, so all of its bands are peaking. The others use a low and a high shelf once there are four bands or more, and place them themselves. turboEQ and AutoEq keep shelf Q between 0.4 and 0.7.
+* **Treble-safe places no band above 10 kHz**, because above that it scores only the overall level, not the shape.
+* **The limit on total boost** only means something to the AutoEq family, which caps the whole EQ. CrinGraph and the TypeScript optimizer limit each band on its own.
+
+Band counts below are totals, shelves included. Ten bands is the layout of AutoEq’s `8_PEAKING_WITH_SHELVES` preset.
+
+## Speed
+
+Median time for one fit, in milliseconds. The last column is the 90th percentile at ten bands.
+
+| Engine                | 5 bands | 8 bands | 10 bands | 10 bands, p90 |
+| --------------------- | ------: | ------: | -------: | ------------: |
+| CrinGraph             |     482 |     807 |      993 |         1,080 |
+| mGT TypeScript        |     598 |   1,410 |    2,100 |         2,440 |
+| turboEQ · Exact match |     1.8 |     6.2 |       12 |            24 |
+| turboEQ · Treble-safe |     2.1 |     8.2 |       19 |            39 |
+| AutoEq (Python)       |      30 |      74 |      124 |           180 |
+
+At eight bands, turboEQ is about 130× faster than CrinGraph and 230× faster than the old optimizer. On the same work as AutoEq itself, the curve processing plus the fit, treble-safe is about 9× faster than the Python original.
+
+CrinGraph runs on the page’s main thread, so the page freezes for as long as the fit takes. modernGraphTool runs AutoEQ in a web worker, and the TypeScript fallback runs there too.
+
+## Fit quality
+
+How close the equalized curve lands to the target, as RMS error in dB after removing the overall level offset. Lower is better. Without any EQ, the median error is 3.03 dB across 20 Hz–20 kHz and 2.23 dB below 10 kHz.
+
+**Across 20 Hz–20 kHz**, median with the 90th percentile in parentheses:
+
+| Engine                | 5 bands         | 8 bands         | 10 bands        |
+| --------------------- | --------------- | --------------- | --------------- |
+| CrinGraph             | 2.01 (3.04)     | 1.47 (2.84)     | 1.24 (2.60)     |
+| mGT TypeScript        | **1.16** (2.28) | 0.82 (1.90)     | 0.74 (1.85)     |
+| turboEQ · Exact match | 1.27 (2.26)     | **0.77** (1.59) | **0.48** (1.13) |
+| turboEQ · Treble-safe | 1.72 (2.54)     | 1.63 (2.43)     | 1.63 (2.38)     |
+| AutoEq (Python)       | 1.74 (2.52)     | 1.69 (2.47)     | 1.70 (2.45)     |
+
+**Below 10 kHz**, median. This leaves out the region AutoEq deliberately does not shape:
+
+| Engine                |  5 bands |  8 bands | 10 bands |
+| --------------------- | -------: | -------: | -------: |
+| CrinGraph             |     0.81 | **0.37** | **0.27** |
+| mGT TypeScript        | **0.67** |     0.49 |     0.44 |
+| turboEQ · Exact match |     0.84 |     0.45 | **0.27** |
+| turboEQ · Treble-safe |     0.88 |     0.79 |     0.78 |
+| AutoEq (Python)       |     0.92 |     0.81 |     0.80 |
+
+**How often the requested band count came back:**
+
+| Engine                          | 5 bands | 8 bands | 10 bands |
+| ------------------------------- | ------: | ------: | -------: |
+| CrinGraph                       |     94% |     87% |      64% |
+| mGT TypeScript                  |     60% |     22% |       6% |
+| turboEQ (both modes) and AutoEq |    100% |    100% |     100% |
+
+CrinGraph’s search stops once it runs out of candidate peaks and dips. The TypeScript optimizer also drops bands it judges ineffective, so its numbers above often come from fewer bands than asked.
+
+Treble-safe scores worse on purpose. It smooths the treble, scores only the level above 10 kHz and places no band there. That gives up matching the graph in exchange for a correction that holds up when the treble measurement can’t be trusted.
+
+Exact match, like the TypeScript optimizer, will use narrow, deep bands when they fit. Whether those are an improvement you can hear is a separate question. The error here is measured against the same measurement the EQ was fitted to, and narrow features in the treble move with fit and seating, so a band aimed exactly at one may miss it on your head.
+
+## Where turboEQ loses
+
+With five bands on IEMs, the old TypeScript optimizer scores 1.16 dB against exact match’s 1.27. Almost all of that is level. The scores on this page remove the overall level offset, the most generous way to line two curves up, and the TypeScript optimizer’s answers lean on it. Line the curves up the way AutoEq does instead, by the mean error between 100 Hz and 10 kHz before any EQ, and it scores 1.74 while exact match stays at 1.27. turboEQ fits at a fixed level, so its score does not move.
+
+What is left is the optimizer itself. With so few bands, turboEQ sometimes settles in a local minimum from the layout AutoEq’s `init()` starts it in. Its own objective rates the TypeScript answer better on 48 of the 176 curves at five bands, 16 at eight and one at ten.
+
+## Distance from AutoEq
+
+How different each engine’s EQ is from what upstream AutoEq by jaakkopasanen produces for the same measurement, under the same constraints: the RMS difference between the two EQ curves over 20 Hz–20 kHz, level offset removed. Median, with the 90th percentile in parentheses.
+
+| Engine                     | 8 bands         | 10 bands        |
+| -------------------------- | --------------- | --------------- |
+| CrinGraph                  | 1.32 (2.13)     | 1.33 (2.13)     |
+| mGT TypeScript             | 1.39 (1.97)     | 1.42 (1.96)     |
+| turboEQ · Exact match      | 1.39 (2.03)     | 1.57 (2.10)     |
+| turboEQ · Treble-safe      | **0.22** (0.52) | **0.24** (0.53) |
+| AutoEq, run to convergence | 0.07 (0.24)     | 0.08 (0.21)     |
+
+The last row compares AutoEq with itself, with and without the preset’s early stopping (`min_std`). turboEQ always runs to convergence. Measured against converged AutoEq instead, treble-safe is 0.17 dB away at eight bands and 0.19 at ten. With the shelves pinned where AutoEq’s presets put them, the same comparison gives 0.10: letting the shelves move gives two optimizers more places to settle apart.
+
+Exact match is as far from AutoEq as the other engines are, and that is intended. It fits a different target: the curve as the graph shows it.
+
+## Headphones
+
+The headphone set is small: nine curves from two headphones, most of them one headphone in different EQ modes. Treat it as a consistency check rather than a second result. At eight bands:
+
+| Engine                | Median time | Band count | 20 Hz–20 kHz | Below 10 kHz |
+| --------------------- | ----------: | ---------: | -----------: | -----------: |
+| CrinGraph             |      947 ms |       100% |         3.22 |         0.87 |
+| mGT TypeScript        |      1.48 s |        22% |         1.38 |         0.96 |
+| turboEQ · Exact match |      5.8 ms |       100% |     **1.26** |     **0.82** |
+| turboEQ · Treble-safe |      6.8 ms |       100% |         1.67 |         0.90 |
+| AutoEq (Python)       |       99 ms |       100% |         1.88 |         1.03 |
+
+Exact match leads at five and ten bands too, across the full band (1.60 against 1.81, and 1.14 against 1.31). The treble of these headphones is a row of narrow peaks and notches, which exact match can now follow: the penalty on steep bands and the extra smoothing AutoEq applies to its target no longer apply in exact mode.
+
+## Feature comparison
+
+|                        | CrinGraph                                     | mGT TypeScript (fallback)                   | turboEQ in modernGraphTool                              | AutoEq (Python)                         |
+| ---------------------- | --------------------------------------------- | ------------------------------------------- | ------------------------------------------------------- | --------------------------------------- |
+| Optimizer              | Greedy candidate search, then grid refinement | CrinGraph lineage, plus shelves and pruning | All parameters at once, with analytic gradients         | All parameters at once, SciPy SLSQP     |
+| Filter types           | Peaking                                       | Peaking, low and high shelf                 | Peaking, low and high shelf placed by the fit           | Peaking, shelves (its presets pin them) |
+| Returns the band count | Often fewer                                   | Often fewer                                 | Always                                                  | Always                                  |
+| Ranges                 | Clamped after the fit                         | Limit the search                            | Bounds inside the optimizer                             | Bounds inside the optimizer             |
+| Sharp filters          | Allowed                                       | Allowed                                     | Exact match: allowed. Treble-safe: penalized            | Penalized above \~18 dB/octave          |
+| Level alignment        | Whatever the graph’s normalization gives      | Pinned at 1 kHz                             | Minimum mean error, 100 Hz–10 kHz                       | Minimum mean error, 100 Hz–10 kHz       |
+| Treble                 | First pass skips above 7 kHz                  | Fitted like everything else                 | Exact match: full shape. Treble-safe: AutoEq’s handling | Smoothed, level only above 10 kHz       |
+| Boost limit            | Per band                                      | Per band                                    | Whole EQ, set by the gain range’s maximum               | Whole EQ, 6 dB by default               |
+| Graphic EQ presets     | No                                            | No                                          | Yes, gain only on the preset’s bands                    | Yes, fixed-band EQ                      |
+| Runs                   | Page’s main thread                            | Web worker                                  | Web worker, WebAssembly (about 37 KB gzipped)           | Python                                  |
+
+## How this was measured
+
+* **Data.** The measurements of [silicagel.squig.link](https://silicagel.squig.link) database. One measurement per device, the first file of each `phone_book.json` entry, left and right averaged: 176 IEM curves. All nine headphone curves were used, because there were so few. Targets were Harman IE 2019v2 for IEMs and Harman 2018 for headphones.
+* **Inputs.** Each engine got its curves the way its own app prepares them. CrinGraph: its 1/48-octave grid and 60-phon loudness normalization. modernGraphTool: 1/48-octave smoothing and 500 Hz normalization. AutoEq: the raw average, as its command line takes it.
+* **Scoring.** Every engine’s filters went through the same biquads at 48 kHz, were added to the raw measurement, and were compared with the raw target on a 1/48-octave grid.
+* **Timing.** The engine call alone, one fit after another, after a warm-up fit. The JavaScript engines ran under Node 24.18 on V8, which is the engine Chrome runs. In the app, a run also pays a message round trip to the worker. AutoEq ran under Python 3.14.7, NumPy 2.5.3 and SciPy 1.18.1.
+* **Versions.** turboEQ 0.2.0, CrinGraph from `squiglink/lab` `main` at `9ff842c`, AutoEq v4.1.2.
+* **Machine.** Mac mini, Apple M4, 16 GB, macOS 27.2. Measured 2026-09-25.
+
+Timings don’t carry over to other machines. The ratios between rows should.
+
+### Reproducing
+
+The harness lives in [`scripts/bench-autoeq/`](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-autoeq). It needs a checkout of `squiglink/lab`, a checkout of AutoEq, and a measurement folder with a `phone_book.json`. The constraints default to the ones above and can be changed with `--q`, `--gain` and `--fc`:
+
+```sh
+node scripts/bench-autoeq/run.mjs --data DATA_DIR --target TARGET.txt \
+    --lab LAB_REPO --out iem.jsonl
+python scripts/bench-autoeq/upstream.py --autoeq AUTOEQ_REPO \
+    --curves iem.curves.json --out iem-upstream.jsonl
+node scripts/bench-autoeq/score.mjs --curves iem.curves.json iem.jsonl iem-upstream.jsonl
+```
+
+`upstream.py` reads the constraints from `iem.curves.json`, so AutoEq runs under the same ones. It needs NumPy, SciPy, Matplotlib, tabulate and PyYAML, since AutoEq imports all of them.
 
 # Average Curves
 
@@ -729,97 +825,45 @@ Each URL is tried in order and the first one that returns a valid document wins,
 
 # Device PEQ
 
-A modernGraphTool feature that wraps the devicePEQ project, enabling direct integration with hardware equalizers and audio devices.
+Device PEQ reads and writes parametric EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device’s own memory and keeps working away from the computer.
 
-## Overview
+It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#device-peq--push-eq-to-hardware).
 
-The Device PEQ feature integrates the powerful [devicePEQ plugin by jeromeof](https://github.com/jeromeof/devicePEQ) into modernGraphTool, allowing users to send equalizer settings directly to compatible audio devices.
+## Connections
 
-This feature provides a bridge between modernGraphTool’s measurement visualization capabilities and audio device control.
+| Connection     | Browser API   | Examples                                                    |
+| -------------- | ------------- | ----------------------------------------------------------- |
+| **USB HID**    | WebHID        | FiiO, Moondrop and KTMicro dongles, DAC/amps                |
+| **USB Serial** | Web Serial    | JDS Labs, Nothing, EarFun, and more                         |
+| **Bluetooth**  | Web Bluetooth | Select FiiO and Airoha-chipset devices                      |
+| **Network**    | —             | IP-addressable devices such as WiiM streamers and Luxsin X9 |
 
-## Features
+The full, current device list is in the **About Device PEQ** dialog inside the panel (**New to Device PEQ?**).
 
-* **Hardware Integration**: Direct connection to compatible audio devices
-* **Device Management**: Connect, disconnect, and manage multiple audio devices
-* **PEQ Slot Management**: Manage parametric EQ slots on supported devices
-* **Real-time Sync**: Synchronize EQ settings between modernGraphTool and hardware
-* **Advanced Controls**: Optional advanced device manipulation features
+## Browser support
 
-## Usage
+Device PEQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
 
-### Device Connection
+## Pushing and pulling
 
-1. **Connect Device**: Use the connect button to establish connection with your audio device
-2. **Device Info**: View device information and capabilities
-3. **Slot Management**: Select and manage available PEQ slots on your device
+* **Push** writes the current filter list to the device, into the selected slot on devices that have several.
+* **Pull** reads the device’s current filters into the filter list and turns the Equalizer on.
 
-### EQ Transfer
+While a device is connected, its limits — band count, gain range, and whether it accepts shelf filters — become the active EQ constraint, so hand edits and AutoEQ produce something the device can hold. A 5-band device gets a 5-band AutoEQ.
 
-1. **Set Filters**: Configure your EQ settings in the equalizer panel
-2. **Transfer to Device**: Use the Device PEQ controls to send settings to hardware
+Shared bands only
 
-## Supported Devices
+Hardware EQ slots have no channel concept. A push sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](/modernGraphTool/docs/features/equalizer/#per-channel-eq).
 
-This feature works with devices supported by the devicePEQ plugin.
+## Acknowledgments
 
-Device Compatibility
-
-Device support depends on the underlying devicePEQ plugin. Check the info dialog or [devicePEQ project](https://github.com/jeromeof/devicePEQ) for the latest compatibility information.
-
-## Advanced Features
-
-When `ADVANCED: true` is enabled in config:
-
-* Access to advanced device configuration dialogs
-* Extended device manipulation capabilities
-* Additional troubleshooting tools
-
-Advanced Mode
-
-Advanced features can potentially damage your device or cause unexpected behavior. Use only if you understand the risks and have experience with audio device configuration.
-
-## Browser Compatibility
-
-* **Chrome/Edge**: Full support (recommended)
-* **Firefox**: Not supported (lacks WebUSB support)
-* **Safari**: Not supported (lacks WebUSB support)
-
-## Third-party Acknowledgments
-
-This feature includes and wraps the [devicePEQ plugin by jeromeof](https://github.com/jeromeof/devicePEQ).
-
-* **Repository**: <https://github.com/jeromeof/devicePEQ>
-* **License**: 0BSD License
+Device PEQ is built on the [devicePEQ project by jeromeof](https://github.com/jeromeof/devicePEQ) (0BSD license).
 
 # Equalizer
 
-A comprehensive parametric equalizer that provides real-time audio equalization capabilities for modernGraphTool.
+The Equalizer panel is a parametric EQ that works on loaded measurements: Peaking, Low Shelf and High Shelf bands with automatic preamp, AutoEQ against any target, per-channel bands, an in-browser audio preview, and filter import/export. [Device PEQ](/modernGraphTool/docs/features/device-peq/) pushes the result to hardware.
 
-## Overview
-
-The Equalizer is a built-in panel in modernGraphTool that provides a full-featured parametric equalizer, allowing users to apply real-time audio filters to their headphone measurements.
-
-It supports multiple filter types, preamp control, and audio playback with EQ effect applied.
-
-## Features
-
-* **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
-* **Per-channel EQ**: Bands can apply to both ears or to the left or right channel alone, so channel imbalance and target matching can be corrected at the same time
-* **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
-* **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
-* **Filter Management**: Add, remove, and modify EQ bands dynamically
-* **Phone Selection**: Quick selection and switching between different headphone measurements
-* **Auto EQ Generation**: Generate automatic EQ profiles based on target curves, now with low-shelf / high-shelf filter support
-* **Import/Export**: Support for importing and exporting EQ settings
-* **File Upload**: Upload custom frequency response and target files
-
-## Usage
-
-1. **Basic EQ**: Use the filter controls to adjust frequency, gain, and Q values
-2. **Phone Selection**: Use the phone selector to switch between different measurements
-3. **Audio Playback**: Enable audio playback to hear EQ changes in real-time
-4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
-5. **Import/Export**: Save and load EQ settings using the import/export functions
+This page covers the behavior worth knowing in detail. For a walkthrough of the panel, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/); operators can set defaults under [`EQUALIZER`](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer).
 
 ## The Equalizer toggle
 
@@ -854,148 +898,65 @@ See [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#per-cha
 
 **Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before running is how you ask for a five-band result. With an empty list it falls back to **8** bands.
 
-Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer). Either way, the active constraint preset’s band cap wins: a connected 5-band device gets 5.
+Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer). Either way, the active constraint preset’s band cap wins: a connected 5-band device gets 5, and a preset with no cap at all is held to 32.
 
-## Notes
+The count is the total. With **Use shelf filters** on, two of those bands are the low and high shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped, because spending the whole budget on them corrects nothing but overall tilt.
 
-* Requires a modern browser with Web Audio API support for audio features
-* Real-time audio processing may cause increased CPU usage
-* Large numbers of EQ bands may impact performance on older devices
+## Auto-apply
+
+Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply** switch beside it keeps the result current. While it is on, AutoEQ runs again whenever the source or target curve changes — a tilt or bass shelf from the target customizer, say — or when an AutoEQ option does. Switching it on runs once straight away.
+
+* It re-runs with the band count and channel it was switched on with. Scoping the list to one ear doesn’t change what it fits; to change the band count, add or remove bands and press **Recalculate**.
+* The re-runs fold into one undo entry, so a single undo returns to the filters from before AutoEQ.
+* An auto-applied run leaves the Equalizer toggle alone, so you can switch EQ off to compare while nudging the target.
+* It keeps running from other panels, which is how you tilt a target in the Graph panel and watch the EQ follow.
+
+It switches itself off, and says why, rather than overwrite something it can no longer vouch for:
+
+* the filters are edited by hand — adding, removing or dragging a band, undo, import, or a History & Compare switch;
+* a different source device or target is selected, or the target is removed;
+* the EQ preset changes;
+* the fallback optimizer answered (see [The optimizer](#the-optimizer)). It is too slow to follow every change, so the switch stays unavailable until a run succeeds with turboEQ.
+
+## The optimizer
+
+AutoEQ runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [AutoEq](https://github.com/jaakkopasanen/AutoEq)’s optimizer, which fits every filter at once. A run with the default eight bands takes a few milliseconds, over a hundred times faster than the optimizer it replaced, and returns exactly the bands it was asked for. See [AutoEQ Benchmarks](/modernGraphTool/docs/features/autoeq-benchmarks/) for measurements against CrinGraph and AutoEq itself.
+
+### Fit mode
+
+**Exact match** is the default. It fits the curve the way the graph shows it: the full shape up to 20 kHz, with bands allowed anywhere in the frequency range. Narrow, deep bands are allowed when the curve calls for them, up to the Q range you set.
+
+**Treble-safe** is jaakkopasanen AutoEQ’s own, more cautious fit. AutoEq smooths the treble above about 8 kHz, judges only its overall level above 10 kHz and places no band above 10 kHz. Treble measurements can vary a lot depending on a fit, seating, and physical characteristic of every rig, so this corrects only what a measurement can be trusted for. Choose it when you don’t trust your treble data, or when the EQ is for listening rather than for matching the exact graph.
+
+In either mode, the gain range’s maximum caps the largest boost the whole EQ may apply, not only each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping. Lower the maximum if you would rather keep the level up.
+
+The frequency, Q and gain ranges are **bounds the fit works within**, exactly as you set them, not a clamp applied to the result afterwards: narrowing them changes what the optimizer looks for rather than trimming what it found. The frequency range says where a band may sit — the fit is still judged across the whole axis, so a narrow range leaves the rest of the curve alone instead of pretending it is already correct.
+
+With **Use shelf filters** on, the fit places the low and high shelf itself, choosing their frequency and Q as well as their gain. Shelf Q stays between 0.4 and 0.7, since a steeper shelf overshoots into a bump that a peaking band does better.
+
+Graphic-EQ presets fit too. Frequency and Q come from the preset’s own bands and only gain is optimized, so every band lands exactly on its slider.
+
+If the module cannot load for any reason, the older JavaScript optimizer answers instead, and the AutoEQ panel says so. It is slower and fits less well, and it sometimes returns fewer bands than it was asked for, but a failed load never costs you a working AutoEQ. It has only one way to fit, the same as Exact match, so the fit mode is hidden until turboEQ loads again. It cannot keep bands on a graphic EQ’s sliders, so with a graphic-EQ preset AutoEQ leaves the filters as they are and says why.
+
+turboEQ can also turn down a particular request while loading fine — Treble-safe with a frequency range entirely above 10 kHz, for example, since that mode places no band there. The older optimizer answers that request too, and the panel says the settings were the problem; the fit mode stays, so you can switch to Exact match.
 
 # Frequency Tutorial
 
-A built-in feature that provides frequency range tutorials for understanding audio frequency characteristics in modernGraphTool.
+The Frequency Tutorial overlays the graph with labeled frequency regions — Sub Bass, Bass, Lower Mids, Upper Mids, Presence and Brilliance — each with a short description of what it contributes to the sound. It’s an aid for visitors still learning to read FR graphs. For how to use it, see [Appearance and language](/modernGraphTool/docs/guide-for-users/appearance-and-language/#frequency-tutorial).
 
-## Overview
+Visitors toggle it from the area above the graph toolbar. The labels are UI strings, so they follow the visitor’s chosen language.
 
-The Frequency Tutorial adds an educational component to modernGraphTool, helping users understand different frequency ranges and their audio characteristics.
-
-It provides visual and textual information about frequency bands and their typical audio content.
-
-## Features
-
-* **Interactive Frequency Guide**: Visual representation of frequency ranges overlaid on the graph
-* **Multi-language Support**: Tutorial content is available in all supported languages
-* **Visual Integration**: Seamlessly integrates with modernGraphTool’s graph interface
-
-## Usage
-
-The Frequency Tutorial overlays frequency band information on the graph, showing labeled regions for Sub Bass, Bass, Lower Mids, Upper Mids, Presence, and Brilliance along with descriptions of their audio characteristics.
-
-Toggle the tutorial from the **Graph Panel** toolbar.
-
-### Editing Tutorial Content
-
-Tutorial strings are managed through the [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) i18n system. To customize or translate tutorial content, edit the message files:
-
-* **English**: `messages/en.json`
-* **Korean**: `messages/ko.json`
-
-The relevant keys follow the pattern `tutorial_freq_<range>_name` and `tutorial_freq_<range>_desc`, for example:
-
-```json
-{
-  "tutorial_freq_sub_bass_name": "Sub Bass",
-  "tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range...",
-  "tutorial_freq_bass_name": "Bass",
-  "tutorial_freq_bass_desc": "Determines how 'fat' or 'thin' the sound is..."
-}
-```
-
-To add a new language, create a new message file (e.g., `messages/ja.json`) and add translations for all tutorial keys.
+Operators have nothing to configure. The text ships with the app’s translations, so changing it means a source build — see [Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/#frequency-tutorial-text).
 
 # Preference Bound
 
-An advanced visualization feature that displays preference boundaries on frequency response graphs, helping users understand the acceptable variation ranges in FR.
+The Preference Bound draws a shaded band on the graph showing the range of frequency responses most listeners prefer, based on listening-preference research. It answers “how far from the middle of the road is this tuning” rather than “does it match one exact line”.
 
-## Overview
+Visitors toggle it from the graph toolbar. For how to read it, see [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/#preference-bound).
 
-The Preference Bound feature adds a sophisticated overlay to modernGraphTool that visualizes preference boundaries around target curves.
+## How the band is aligned
 
-These boundaries represent the statistically acceptable range of frequency response variations that most listeners find pleasant, based on research data and listening preferences.
-
-## Features
-
-* **Preference Bound**: Display upper and lower preference bounds
-* **Customizable Appearance**: Adjustable colors, transparency, and styling
-* **Target Integration**: Works with diffuse field targets for accurate baseline reference
-
-## Configuration
-
-Preference Bound is configured in `config.js`:
-
-```javascript
-// In config.js
-PREFERENCE_BOUND: {
-    ENABLE_BOUND_ON_INITIAL_LOAD: false,
-    BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
-    COLOR_FILL: "rgba(180,180,180,0.2)",
-    COLOR_BORDER: "rgba(120,120,120,0.5)",
-}
-```
-
-### Configuration Options
-
-* **`ENABLE_BOUND_ON_INITIAL_LOAD`**: Whether to show boundaries when modernGraphTool first loads
-* **`BASE_DF_TARGET_FILE`**: File name (without `.txt` extension) of the diffuse field target used as the baseline for boundary calculations. The file must already exist in your configured target folder — the preference bound loader reads it directly from `PATH.TARGET_MEASUREMENT`, so no duplicate copy is needed.
-* **`COLOR_FILL`**: RGBA color for the filled boundary area
-* **`COLOR_BORDER`**: RGBA color for the boundary outline
-
-Base target location
-
-The base DF target file is resolved from the same folder your other target curves live in, defined by `PATH.TARGET_MEASUREMENT` in `config.js`. See the [`PATH`](/modernGraphTool/docs/guide-for-admins/customize-page/#path) config section.
-
-## Data File Format
-
-### Boundary Data Files
-
-The feature requires two boundary data files in the `data/` directory (alongside `phones/` and `target/`):
-
-#### Upper Boundary (`Bounds U.txt`)
-
-Contains frequency response data for the upper preference boundary:
-
-```plaintext
-20.0  2.5
-25.0  2.8
-31.5  3.1
-...
-```
-
-#### Lower Boundary (`Bounds D.txt`)
-
-Contains frequency response data for the lower preference boundary:
-
-```plaintext
-20.0  -2.5
-25.0  -2.8
-31.5  -3.1
-...
-```
-
-#### Base Target File
-
-The base DF target file is **resolved from `PATH.TARGET_MEASUREMENT`** in `config.js` — the same folder where every other target curve lives (default: `./data/target/`). You do **not** need to duplicate the target file into another folder; the preference bound loader reads it directly from the regular target directory using the file name you set in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`.
-
-For example, `BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target"` will load `./data/target/KEMAR DF (KB006x) Target.txt` (or whichever path you’ve configured in `PATH.TARGET_MEASUREMENT`).
-
-## Usage
-
-### Basic Operation
-
-1. **Toggle Control**: Use the toggle button to show/hide boundaries
-2. **Alignment**: Boundaries follow the graph’s alignment setting (Hz or Avg), like every other curve
-3. **Real-time Updates**: Boundaries update when changing smoothing, alignment or baseline
-
-### Visual Interpretation
-
-* **Filled Area**: The area between upper and lower bounds represents the preference range
-* **Target Baseline**: The boundary shape is defined relative to the base diffuse field target
-* **Measurement Overlay**: Compare headphone measurements against preference boundaries
-
-### How the Band Is Aligned
-
-The band is aligned by its **center** (the midpoint of the upper and lower bounds), not by the diffuse field target itself. This matters because the DF target does not sit inside the band everywhere — in the bass the preferred range lies several dB above it.
+The band follows the graph’s alignment setting (Hz or Avg), smoothing and baseline, like every other curve. It is aligned by its **center** — the midpoint of the upper and lower bounds — not by the diffuse field target it is defined against. This matters because the DF target does not sit inside the band everywhere: in the bass, the preferred range lies several dB above it.
 
 Aligning the band the way you align a measurement means a headphone in the middle of the preference range lands in the middle of the band, whichever frequency you align at. At the default 500 Hz alignment the band’s center and the DF target nearly coincide, so the band looks the same as it would if it were anchored to the DF.
 
@@ -1004,6 +965,23 @@ If you display the base DF target and align at a low frequency such as 50 Hz, th
 Tip
 
 The band is widest in the bass (about 6 dB at 50 Hz versus 2 dB at 500 Hz). Aligning in the midrange gives the most reliable read of whether a measurement falls inside the preference range.
+
+## Setting it up
+
+The toolbar button only appears once the operator has shipped the data and configured it under [`PREFERENCE_BOUND`](/modernGraphTool/docs/guide-for-admins/customize-page/#preference_bound).
+
+It needs three files:
+
+* **`Bounds U.txt`** and **`Bounds D.txt`** — the upper and lower bounds, as offsets in dB from the base target. They sit directly in `data/`, alongside `phones/` and `target/`:
+
+  ```plaintext
+  20.0  2.5
+  25.0  2.8
+  31.5  3.1
+  ...
+  ```
+
+* **The base diffuse field target**, named by `BASE_DF_TARGET_FILE` without its `.txt` extension. It is read from your regular target folder (`PATH.TARGET_MEASUREMENT`, `./data/target/` by default), so don’t copy it anywhere else. `"KEMAR DF (KB006x) Target"` loads `./data/target/KEMAR DF (KB006x) Target.txt`.
 
 # Site Selector
 
@@ -1071,233 +1049,65 @@ Each URL is tried in order and the first valid document wins, so a mirror can be
 
 # squig.link Integration
 
-A built-in integration feature that connects modernGraphTool with the squig.link service.
+Deployments hosted on a `*.squig.link` domain get a few network-wide features on top of the usual ones. They switch on automatically there and stay dormant on any other host.
 
-## Overview
+* **Shop links** — when a loaded device has an entry in the squig.link shop database, a **Buy Now** button links to the sponsor’s listing.
+* **Sponsor banner** — a sponsor dialog on a visitor’s first visit, with content served by the squig.link network.
+* **Analytics** — Google Analytics 4 (gtag.js), sending to several measurement IDs at once so a site can report both to squig.link and to its own property.
 
-The squig.link Integration enhances modernGraphTool by providing seamless integration with the squig.link ecosystem. It enables shop links, analytics tracking, and sponsor banners.
+Each can be switched off, and the analytics IDs set, under [`SQUIGLINK`](/modernGraphTool/docs/guide-for-admins/customize-page/#squiglink) in `config.js`.
 
-Note
+Cross-site search and the site selector work anywhere
 
-squig.link features are only active when modernGraphTool is hosted on \*.squig.link domains.
-
-## Features
-
-* **Shop Links**: Display “Buy Now” links for devices with matching shop entries
-* **Analytics**: Google Analytics integration with multi-measurement-ID support
-* **Sponsor Banners**: Display sponsor content on first visit
-* **Configurable Options**: Flexible configuration for different deployment scenarios
-
-## Configuration
-
-squig.link Integration is configured in `config.js`:
-
-```javascript
-// In config.js
-SQUIGLINK: {
-    ENABLED: true,
-    ANALYTICS_MEASUREMENT_IDS: [],
-    ANALYTICS_SITE: "",
-    LOG_ANALYTICS: true,
-    ENABLE_ANALYTICS: true,
-    ENABLE_CROSS_SITE_SEARCH: true,
-    ENABLE_SPONSOR: true,
-}
-```
-
-### Configuration Options
-
-* **`ENABLED`**: Master toggle for all squig.link features
-* **`ANALYTICS_MEASUREMENT_IDS`**: Array of Google Analytics 4 measurement IDs for multi-tag support
-* **`ANALYTICS_SITE`**: Site name used for analytics event attribution
-* **`LOG_ANALYTICS`**: Log analytics events to console for debugging
-* **`ENABLE_ANALYTICS`**: Toggle analytics tracking on or off
-* **`ENABLE_CROSS_SITE_SEARCH`**: Deprecated — use `CROSS_SITE_SEARCH.ENABLED` instead. Still read as a fallback for existing configs.
-* **`ENABLE_SPONSOR`**: Toggle sponsor banner display
-
-Cross-site search moved
-
-Cross-site device search is no longer a squig.link-only feature — it now works on any host and is configured under its own `CROSS_SITE_SEARCH` section. See [Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/).
-
-On squig.link deployments it still falls back to crawling each site’s `phone_book.json` if the aggregate index can’t be reached.
-
-## Usage
-
-### Cross-site Search
-
-Search for headphone measurements across all participating squig.link sites. Results link directly to the matching site’s graph tool with the device loaded.
-
-### Shop Links
-
-When a loaded device has a matching entry in the squig.link shop links database, a “Buy Now” button is displayed linking to the sponsor.
-
-### Analytics
-
-When enabled, user interactions are tracked via Google Analytics 4 (gtag.js) for site usage insights.
-
-### Sponsor Banners
-
-On first visit, a sponsor dialog may be displayed with content loaded from the squig.link network.
+Cross-site search used to be squig.link-only. It and the site selector now run on any host, each with its own config section — see [Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/) and [Site Selector](/modernGraphTool/docs/features/site-selector/). On squig.link, cross-site search still falls back to crawling each site’s `phone_book.json` if the aggregate index can’t be reached.
 
 # Target Customizer
 
-A powerful target curve customization feature that provides advanced adjustment capabilities for personalizing headphone target curves in modernGraphTool.
+The Target Customizer lets visitors reshape a target curve to their own taste with a handful of filter sliders — tilt, bass, treble, ear gain — and one-click presets such as the Harman 2013, 2015 and 2018 tunings. Adjustments sit on top of the original target: the file on disk never changes, and the adjusted curve is carried in share links.
 
-## Overview
+Customizable targets show a sliders icon in their selection-list row. For the walkthrough, see [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/#customizing-a-target).
 
-The Target Customizer allows users to apply adjustments to target curves, enabling personalized tuning based on individual preferences.
+## Filter types
 
-It provides a comprehensive set of adjustments including tilt, bass/treble shelves, and ear gain adjustments.
+Each slider is one filter, defined by the operator with a type, a frequency and a Q:
 
-## Features
+| Type   | Shape                                        | Typical use                      |
+| ------ | -------------------------------------------- | -------------------------------- |
+| `TILT` | Linear gain change across the whole spectrum | Overall warmth or brightness     |
+| `LSQ`  | Low shelf below the corner frequency         | Bass boost or cut                |
+| `HSQ`  | High shelf above the corner frequency        | Treble brightness                |
+| `PK`   | Peaking filter centred on the frequency      | Ear-gain region, a specific band |
 
-* **Advanced Filter Types**: Support for multiple parametric filter types (TILT, LSQ, HSQ, PK)
-* **Real-time Adjustments**: Live preview of target curve modifications
-* **Filter Presets**: Built-in presets for popular tuning styles (Harman 2013, 2015, 2018)
-* **Target Selection**: Customize specific target curves with individual filter settings
-* **Initial Load Filters**: Automatic application of preferred filters on startup
+The default set is **Tilt**, **Bass** (`LSQ`, 105 Hz), **Treble** (`HSQ`, 2.5 kHz) and **Ear** (`PK`, 2.75 kHz).
 
-## Configuration
+## What operators control
 
-Target Customizer is configured in `config.js`:
+All of it is set under [`TARGET_CUSTOMIZER`](/modernGraphTool/docs/guide-for-admins/customize-page/#target_customizer) in `config.js`:
 
-```javascript
-// In config.js
-TARGET_CUSTOMIZER: {
-    CUSTOMIZABLE_TARGETS: ["KEMAR DF (KB006x) Target", "ISO 11904-2 DF"],
-    FILTERS: [
-      { id: "tilt", name: "Tilt", type: "TILT", freq: 0, q: 0 },
-      { id: "bass", name: "Bass", type: "LSQ", freq: 105, q: 0.707 },
-      { id: "treble", name: "Treble", type: "HSQ", freq: 2500, q: 0.42 },
-      { id: "ear", name: "Ear", type: "PK", freq: 2750, q: 1 },
-      { id: "pssr", name: "PSSR", type: "HSQ", freq: 500, q: 0.4 },
-    ],
-    FILTER_PRESET: [
-      { name: "Harman 2013", filter: { bass: 6.6, treble: -1.4 } },
-      { name: "Harman 2015", filter: { bass: 6.6, treble: -3, ear: -1.8 } },
-      { name: "Harman 2018", filter: { bass: 4.8, treble: -4.4 } },
-    ],
-    INITIAL_TARGET_FILTERS: [
-      { name: "KEMAR DF (KB006x)", filter: { tilt: -0.8, bass: 6 } },
-    ],
-}
-```
+* **Which targets are customizable.** Only targets listed in `CUSTOMIZABLE_TARGETS` get the sliders, so reference targets can stay locked.
+* **The filters.** `FILTERS` defines the sliders. Setting it **replaces** the default set rather than extending it.
+* **The presets.** `FILTER_PRESET` maps preset names to slider values.
+* **Initial adjustments.** `INITIAL_TARGET_FILTERS` applies slider values to a target as soon as it loads, so a deployment can ship its preferred variant of a target by default.
 
-## Filter Types
+# Guide for Operators
 
-### Available Filter Types
+> Run your own frequency response database with modernGraphTool: deploy it, add measurements, and customize the page.
 
-#### TILT Filter
+This guide is for people who **run** a measurement database — deploying modernGraphTool, adding measurements to it, and making the page their own. If you’re browsing someone else’s database, the [Guide for Users](/modernGraphTool/docs/guide-for-users/) is the one you want.
 
-* **Purpose**: Overall tonal balance adjustment
-* **Behavior**: Applies a linear frequency-dependent gain change
-* **Use Case**: Adjust overall brightness or warmth of the target curve
+A new database takes four steps, in this order:
 
-#### LSQ (Low Shelf)
+1. **[Choose a deployment](/modernGraphTool/docs/guide-for-admins/setup-env/)** — GitHub Pages, CDN, a pre-built release, or a source build. Each option has its own setup page.
+2. **[Prepare your measurements](/modernGraphTool/docs/guide-for-admins/preprocessing-measurement/)** — export FR data in the plain `.txt` format modernGraphTool reads. Skip this if you already have CrinGraph data.
+3. **[Add them to the database](/modernGraphTool/docs/guide-for-admins/manage-data/)** — the `data/` folder layout and `phone_book.json`, which lists every device and its variants.
+4. **[Customize the page](/modernGraphTool/docs/guide-for-admins/customize-page/)** — page metadata, `theme.css`, and every `config.js` option.
 
-* **Purpose**: Bass frequency adjustment
-* **Use Case**: Boost or cut low-frequency content
+The [Config Editor](/modernGraphTool/docs/config-generator/), [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) let you build those three files visually instead of editing them by hand.
 
-#### HSQ (High Shelf)
+## Already running a database?
 
-* **Purpose**: Treble frequency adjustment
-* **Use Case**: Adjust high-frequency brightness and detail
-
-#### PK (Peaking)
-
-* **Purpose**: Specific frequency range adjustment
-* **Use Case**: Ear gain compensation and specific frequency targeting
-
-### Filter Configuration
-
-Each filter in the `FILTERS` array contains:
-
-* **`id`**: Unique identifier for the filter
-* **`name`**: Display name in the user interface
-* **`type`**: Filter type (TILT, LSQ, HSQ, PK)
-* **`freq`**: Center/corner frequency in Hz
-* **`q`**: Q factor (bandwidth control)
-
-## Usage
-
-### Basic Target Customization
-
-#### Selecting Targets
-
-1. **Target List**: Choose from available customizable targets
-2. **Filter Application**: Apply filters to selected targets
-3. **Real-time Preview**: See changes applied immediately to the graph
-
-#### Filter Adjustments
-
-1. **Individual Filters**: Adjust each filter type independently
-2. **Gain Control**: Set positive or negative gain values
-3. **Visual Feedback**: Watch target curve update in real-time
-
-#### Using Presets
-
-1. **Select Preset**: Choose from available preset options
-2. **Apply Filters**: Preset values are automatically applied
-
-## Customization and Extensibility
-
-### Adding Custom Filters
-
-```javascript
-{
-  id: "custom",
-  name: "Custom Filter",
-  type: "PK",
-  freq: 1000,
-  q: 2.0
-}
-```
-
-### Custom Preset Creation
-
-```javascript
-{
-  name: 'My Custom Preset',
-  filter: {
-    tilt: -1.0,
-    bass: 5.0,
-    treble: -2.0,
-    ear: -1.0
-  }
-}
-```
-
-### Initial Load Filters
-
-Automatically applies preferred filters when modernGraphTool loads:
-
-```javascript
-INITIAL_TARGET_FILTERS: [{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } }];
-```
-
-### Custom Target Support
-
-Add new targets to the customizable list:
-
-```javascript
-CUSTOMIZABLE_TARGETS: ['KEMAR DF (KB006x)', 'ISO 11904-2 DF', 'Custom Target Name'];
-```
-
-# Guide for Admins
-
-> Learn how to build your own FR database using modernGraphTool.
-
-Learn how to build your own FR database using modernGraphTool.
-
-[Setting Up Your Environment](/modernGraphTool/docs/guide-for-admins/setup-env/)
-
-[Deployment Options](/modernGraphTool/docs/guide-for-admins/deployment/)
-
-[Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/)
-
-[Preprocessing Measurement Data](/modernGraphTool/docs/guide-for-admins/preprocessing-measurement/)
-
-[Managing Data](/modernGraphTool/docs/guide-for-admins/manage-data/)
+* **On modernGraphTool v1** — see [What’s New in v2](/modernGraphTool/docs/whats-new-in-v2/), then [Migrating from v1 to v2](/modernGraphTool/docs/migrating-v1-to-v2/).
+* **On CrinGraph or one of its forks** — see [Migrating from CrinGraph](/modernGraphTool/docs/migrating-from-cringraph/). To run both tools side by side instead, see [Dual-Hosting with CrinGraph](/modernGraphTool/docs/database-tips/dual-hosting/).
 
 # Customizing the Page
 
@@ -2240,20 +2050,6 @@ For multilingual support items, objects written in the default language (English
 
 * The `i18n` field must have an object that matches the language code registered in the `LANGUAGE_LIST` item within the `LANGUAGE` item.
 * If you don’t need multilingual support, you can use the simpler flat array format (without `default` and `i18n` wrappers).
-
-# Deployment Options
-
-> Four ways to deploy modernGraphTool: GitHub Pages (free hosting, no server needed), CDN (recommended if you already have a server), pre-built release, or building from source. Pick one based on the hosting you have and how much control you need over updates.
-
-Four ways to deploy modernGraphTool: GitHub Pages (free hosting, no server needed), CDN (recommended if you already have a server), pre-built release, or building from source. Pick one based on the hosting you have and how much control you need over updates.
-
-[GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/)
-
-[CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)
-
-[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)
-
-[Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)
 
 # CDN Deployment
 
@@ -3361,18 +3157,9 @@ Most measurement software provides a feature to export data in txt file format. 
   2. Run REW (Room EQ Wizard), and import the CSV data exported from ARTA via `File` - `Import` - `Import frequency response`.
   3. Then, export the data using REW (Room EQ Wizard) as described in the `REW` tab.
 
-# Setting Up Your Environment
+# Choosing a Deployment
 
-This page frames the setup decision and points you at the right deployment option. Each option has its own dedicated guide linked from the table below.
-
-## Prerequisites
-
-1. **modernGraphTool project files** — either a [pre-built release](https://github.com/potatosalad775/modernGraphTool/releases) or a clone of the source repository, depending on which deployment option you pick.
-2. **Text editor** — for modifying `config.js`, `theme.css`, and other configuration files. [Visual Studio Code](https://code.visualstudio.com/) is recommended for its syntax highlighting and auto-completion.
-
-Neither is required for the [GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/) option, which starts from a template repository and is edited in the browser.
-
-## Deployment Options
+> Four ways to deploy modernGraphTool: GitHub Pages (free hosting, no server needed), CDN (recommended if you already have a server), pre-built release, or building from source.
 
 modernGraphTool supports four deployment paths. The first question is whether you already have a web server — if not, GitHub Pages gives you one for free. After that, pick based on how much control you need over updates and customization:
 
@@ -3383,53 +3170,40 @@ modernGraphTool supports four deployment paths. The first question is whether yo
 | **[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)**       | Controlled rollouts, airgapped | Manual (re-download)      | Config, theme, data, HTML metadata | Works out of the box                   |
 | **[Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)** | Developers, forks              | Manual (git pull + build) | Everything                         | Works out of the box                   |
 
-### [GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/)
+Everything that isn’t the app bundle itself — data, config, theme — is identical across the options, so switching later is a matter of swapping `index.html`, not redoing your database.
+
+## [GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/)
 
 Free hosting from GitHub, set up entirely in your browser — no server, no FTP, and nothing to install. You copy a [template repository](https://github.com/potatosalad775/modernGraphTool_site) that already contains a working site, switch Pages on, and replace the demo measurements with your own. Under the hood it’s CDN deployment, so updates are automatic and the `BASE_PATH` problem below is solved for you.
 
-Note that this requires a public repository, so it isn’t an option for a private database.
+This requires a public repository, so it isn’t an option for a private database.
 
-### [CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)
+## [CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)
 
 Your server hosts only a minimal `index.html` loader plus your `config.js`, `theme.css`, `data/`, and `assets/`. The application code itself comes from jsDelivr and auto-updates when new versions ship. This is the simplest path — no manual updates, no re-uploads.
 
 If your site lives under a subdirectory like `/headphones/` (common on squig.link, where operators often run a root earphones database plus a `/headphones/` headphones database on the same subdomain), you’ll need to set `CDN_MODE.BASE_PATH` in your config — it’s a one-line change, but easy to miss. See the [CDN deployment guide](/modernGraphTool/docs/guide-for-admins/deployment/cdn/#why-base_path-is-almost-always-required) for details.
 
-### [Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)
+## [Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)
 
 Download a full `dist/` folder and upload it to your server. You control exactly which version runs and when it changes — no runtime dependency on jsDelivr, works in airgapped environments, subdirectory hosting works without any extra config. The tradeoff is that updating to a new release means re-downloading and re-uploading.
 
-### [Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)
+## [Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)
 
 Clone the repository, customize anything you like, and build your own `dist/` folder. This is the developer path — use it if you need changes that go beyond what `config.js` exposes.
 
-## Installing a Text Editor
+## What you’ll need
 
-While various text editors are available, [Visual Studio Code](https://code.visualstudio.com/) is recommended for its convenient features like code highlighting and auto-completion.
+Apart from GitHub Pages, which is edited in the browser, every option needs:
 
-VS Code can be downloaded for free by anyone and supports Windows, macOS, and Linux.
+1. **The project files** — a [release](https://github.com/potatosalad775/modernGraphTool/releases) or a clone of the repository, depending on the option.
+2. **A text editor** for `config.js`, `theme.css` and `phone_book.json`. [Visual Studio Code](https://code.visualstudio.com/) is free on Windows, macOS and Linux, and highlights mistakes as you type.
 
-1. Go to the [VS Code website](https://code.visualstudio.com/), download the installer for your operating system, and install it.
-2. Open the modernGraphTool project folder (or the extracted release folder) in VS Code.
-3. You can now edit configuration files and manage your data.
-
-# Guide for Developers
-
-> Contributing to and building on modernGraphTool.
-
-Contributing to and building on modernGraphTool.
-
-[Developer Guide](/modernGraphTool/docs/guide-for-developers/overview/)
-
-[Testing](/modernGraphTool/docs/guide-for-developers/testing/)
-
-[Build & Deployment Internals](/modernGraphTool/docs/guide-for-developers/build-and-deploy/)
-
-[Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/)
+The [Config Editor](/modernGraphTool/docs/config-generator/), [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) cover most edits without hand-writing any of these files.
 
 # Build & Deployment Internals
 
-How the three build outputs are produced. If you only want to *deploy* modernGraphTool, see [Guide for Admins → Deployment](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/) instead — this page is about how the build itself works.
+How the three build outputs are produced. If you only want to *deploy* modernGraphTool, see [Guide for Operators → Choosing a Deployment](/modernGraphTool/docs/guide-for-admins/setup-env/) instead — this page is about how the build itself works.
 
 ## Outputs
 
@@ -3517,75 +3291,86 @@ Translators never touch `messages/<locale>.json` directly. They edit a generated
 
 Paraglide ignores `_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
 
+## Frequency Tutorial text
+
+The [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/) overlay’s labels are ordinary UI strings, one `_name` / `_desc` pair per band, keyed `tutorial_freq_<band>_name` and `tutorial_freq_<band>_desc`, where the bands are `sub_bass`, `bass`, `lower_mids`, `upper_mids`, `presence` and `brilliance`:
+
+```json
+{
+  "tutorial_freq_sub_bass_name": "Sub Bass",
+  "tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range...",
+  "tutorial_freq_bass_name": "Bass",
+  "tutorial_freq_bass_desc": "Determines how 'fat' or 'thin' the sound is..."
+}
+```
+
+Because they compile into the bundle, operators on a CDN or pre-built deployment cannot change them — rewording one is a source build, or a PR.
+
 Note
 
 Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en.json`. It is informational and non-blocking, but it is the fastest way to see what a change costs translators.
 
-# Developer Guide
+# Guide for Developers
 
-This guide provides an overview of modernGraphTool’s architecture for developers who want to contribute or build upon the project.
+> Architecture, project layout and build commands for contributing to modernGraphTool.
+
+This guide is for working on modernGraphTool itself. To run a database with it, see the [Guide for Operators](/modernGraphTool/docs/guide-for-admins/) instead.
+
+Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) has the code style and PR guidelines. The rest of this section covers:
+
+* **[Testing](/modernGraphTool/docs/guide-for-developers/testing/)** — the two Vitest projects, coverage, and the smoke test.
+* **[Build & Deployment Internals](/modernGraphTool/docs/guide-for-developers/build-and-deploy/)** — the build outputs and how `defaults/` reaches them.
+* **[Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/)** — UI strings, adding a language, and the translation flow.
 
 ## Tech Stack
 
-* **Language**: TypeScript
+* **Language**: TypeScript (strict)
 * **Framework**: SvelteKit 2 + Svelte 5 (Runes)
 * **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
 * **Graph Rendering**: D3.js (SVG-based)
 * **i18n**: Paraglide JS (compile-time internationalization)
-* **Testing**: Vitest (unit) + Playwright (E2E)
+* **Testing**: Vitest, with Playwright browser mode for component specs
 * **Build Output**: Static SPA via `adapter-static` → `dist/`
 
 ## Project Structure
 
 ```plaintext
 src/
-├── routes/              # SvelteKit page routes (single-page SPA)
+├── routes/              # SvelteKit routes (single-page SPA) + layout.css (Tailwind entry)
 ├── lib/
-│   ├── components/      # UI components
-│   │   ├── atoms/       # Base UI primitives (Button, Input, Accordion)
-│   │   ├── controls/    # Interactive controls (selectors, toolbar buttons)
-│   │   ├── equalizer/   # Equalizer sub-components (filters, AutoEQ, player)
-│   │   ├── features/    # Feature modules (DevicePEQ, Tutorial, etc.)
-│   │   ├── graph/       # Graph container (Svelte bridge to D3 engine)
-│   │   ├── layout/      # App shell, navigation, panels
-│   │   └── panels/      # Major UI sections (Device, Graph, EQ, Misc)
-│   ├── stores/          # Reactive state management (.svelte.ts)
-│   ├── services/        # Data provider, command history, analytics
+│   ├── components/      # UI: atoms, controls, equalizer, features, graph, layout, panels
+│   ├── stores/          # Reactive state as class instances (.svelte.ts)
+│   ├── services/        # Data provider, commands, cross-site index, audio, analytics
 │   ├── graph/           # D3.js graph engine and overlays
-│   ├── device-peq/      # Hardware EQ device connectors and handlers
-│   ├── utils/           # Parsing, normalization, smoothing, URL encoding
+│   ├── device-peq/      # Hardware EQ transports and per-device handlers
+│   ├── workers/         # AutoEQ off the main thread (turboEQ wasm + fallback)
+│   ├── utils/           # Parsing, normalization, smoothing, URL encoding, config
 │   ├── types/           # TypeScript type definitions
-│   └── paraglide/       # Generated i18n functions (do not edit manually)
-├── app.html             # HTML template (loads config.js and theme.css)
-└── app.css              # Tailwind CSS entry point
-defaults/                # Default config, theme, and sample data
-├── config.js            # User-editable configuration
-├── theme.css            # Graph theme variables
-└── data/                # Sample measurement data and targets
-cdn/                     # CDN deployment templates
-├── cdn-index.html       # Thin index.html for CDN-hosted mode
-└── loader.js            # CDN bootstrap loader
-scripts/                 # Build utilities
-├── build-cdn.js         # CDN build orchestrator
-└── generate-boot-manifest.js
+│   └── paraglide/       # Generated i18n functions (do not edit)
+└── app.html             # HTML template (loads config.js and theme.css)
+defaults/                # Operator-editable config.js, theme.css, sample data
+messages/                # Paraglide sources, one JSON file per locale
+cdn/                     # CDN deployment templates (thin index.html + loader.js)
+scripts/                 # CDN and site-template builds, boot manifest, i18n tooling
+site-template/           # Sources for the GitHub Pages template repo
+docs/                    # This documentation site (Astro + Starlight)
 ```
+
+Most directories under `src/lib/` carry their own `AGENTS.md` with the invariants specific to that area — read it before changing code there.
 
 ## Build Commands
 
-| Command             | Description                                        |
-| ------------------- | -------------------------------------------------- |
-| `npm run dev`       | Start development server (<http://localhost:5173>) |
-| `npm run build`     | Production build to `dist/`                        |
-| `npm run build:cdn` | Build CDN-optimized distribution to `dist-cdn/`    |
-| `npm run preview`   | Preview the built output                           |
-| `npm run check`     | TypeScript + Svelte type checking                  |
-| `npm run test`      | Run all Vitest tests                               |
-| `npm run lint`      | ESLint + Prettier check                            |
-| `npm run format`    | Auto-format code                                   |
-
-## Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) for code style, testing, and PR guidelines.
+| Command                       | Description                                              |
+| ----------------------------- | -------------------------------------------------------- |
+| `npm run dev`                 | Start development server (<http://localhost:5173>)       |
+| `npm run build`               | Production build to `dist/`                              |
+| `npm run build:cdn`           | Build CDN-optimized distribution to `dist-cdn/`          |
+| `npm run build:site-template` | Build the GitHub Pages template to `dist-site-template/` |
+| `npm run preview`             | Preview the built output                                 |
+| `npm run check`               | TypeScript + Svelte type checking                        |
+| `npm run test`                | Run all Vitest tests                                     |
+| `npm run lint`                | Prettier + ESLint check                                  |
+| `npm run format`              | Auto-format code                                         |
 
 # Testing
 
@@ -3650,7 +3435,10 @@ The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in i
 
 > A complete walkthrough of the interface. Start here if you're new to frequency response graphs — the first four pages teach the concepts from scratch, then the rest maps those concepts to everything you see on screen.
 
-A complete walkthrough of the interface. Start here if you’re new to frequency response graphs — the first four pages teach the concepts from scratch, then the rest maps those concepts to everything you see on screen.
+A complete walkthrough of the interface, for anyone browsing a measurement database. It comes in two parts:
+
+* **Basics** — four short pages that teach frequency response graphs from scratch. Start here if you’ve never read one.
+* **Using the Tool** — every panel and control on screen, in the order you’re likely to reach them.
 
 [What is this tool?](/modernGraphTool/docs/guide-for-users/what-is-this/)
 
@@ -3694,10 +3482,7 @@ Theme is purely a visual choice — dark mode doesn’t affect graph data, color
 
 ## Language
 
-If the site has enabled internationalization, a **language selector** appears next to the theme toggle. modernGraphTool currently supports:
-
-* **English**
-* **한국어 (Korean)**
+If the site has enabled internationalization, a **language selector** appears next to the theme toggle. modernGraphTool currently ships in **English**, **Čeština (Czech)**, **한국어 (Korean)**, **Русский (Russian)** and **Українська (Ukrainian)**. Some translations are partial; anything not yet translated shows in English.
 
 Pick one and the UI strings switch immediately. Device names, target names, and any operator-supplied description text are *not* translated — they’re whatever the site operator entered into the database. Only UI strings (button labels, panel names, help text) are affected.
 
@@ -3728,7 +3513,7 @@ Toggle it from the area above the graph toolbar. It’s a particularly useful ai
 * Explaining a headphone’s sound to someone who doesn’t yet have the vocabulary.
 * Trying to place a particular instrument on the X axis (“ok, the kick drum’s fundamentals are roughly *here*”).
 
-The labels and descriptions come from the site’s i18n files, so they’ll switch language along with the rest of the UI. For more detail on what the feature does and how operators customize the label text, see [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/).
+The labels and descriptions come from the site’s i18n files, so they’ll switch language along with the rest of the UI. See [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/) for the feature reference.
 
 ## Operator-supplied content
 
@@ -3812,7 +3597,13 @@ If you don’t want to hand-design filters, open the **AutoEQ** accordion sectio
 2. **Click the AutoEQ button**, which analyzes the difference between the device and the target and generates a set of filters that minimizes it.
 3. **Apply** the filters to the filter list. Tweak further from there if you want.
 
-AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands.
+AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands. The two shelves count against the band total, so a ten-band run with shelves on is eight peaking filters plus the pair.
+
+The fit mode picks between **Exact match**, the default, which fits the curve’s full shape up to 20 kHz the way the graph shows it, and **Treble-safe**, a careful approach that broadly adjusts the high-frequency range, minimizing errors caused by fit conditions and physical anatomy. See [Fit mode](/modernGraphTool/docs/features/equalizer/#fit-mode) for when to choose which.
+
+After the first run the button reads **Recalculate**, and the **Auto-apply** switch beside it re-runs AutoEQ whenever the target or the options change — handy while tilting a target to taste. Editing the filters by hand switches it off. See [Auto-apply](/modernGraphTool/docs/features/equalizer/#auto-apply).
+
+With a graphic-EQ preset active, AutoEQ optimizes the gain of each fixed band — the frequency and Q inputs disappear, because the preset already sets them.
 
 AutoEQ follows the channel switch: on **L+R** it works from the averaged curve, and scoped to one ear it works from that ear’s measurement and replaces only that ear’s bands.
 
@@ -3830,13 +3621,9 @@ Playback continues across panel switches — switching to the Graph or Device pa
 
 ## Device PEQ — push EQ to hardware
 
-Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices over WebUSB / WebSerial / WebHID / WebBluetooth and push your filter list into the device’s own EQ memory. Unplug your computer and the EQ stays loaded.
+Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device’s own EQ memory, or pull the device’s current EQ into the filter list. Unplug your computer and the EQ stays loaded.
 
-Supported devices, connection instructions, and troubleshooting all live in [Device PEQ](/modernGraphTool/docs/features/device-peq/). In brief:
-
-* **Chrome and Edge** have the best support for the Web APIs this feature uses.
-* **Firefox** works for some device classes but not others.
-* **Safari** doesn’t support WebUSB at all, so Device PEQ doesn’t work there.
+It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Device PEQ](/modernGraphTool/docs/features/device-peq/).
 
 ## Import and export
 
@@ -3860,7 +3647,7 @@ Next: [Sharing and exporting](/modernGraphTool/docs/guide-for-users/sharing-and-
 
 > Common questions and quick troubleshooting for people using modernGraphTool.
 
-Short answers to questions that come up a lot. If yours isn’t here, check the [Features](/modernGraphTool/docs/features/) section for feature-specific deep dives, or the main [Overview](/modernGraphTool/docs/intro/) page.
+Short answers to questions that come up a lot. If yours isn’t here, check the [Features](/modernGraphTool/docs/features/) section for feature-specific deep dives, or the [Introduction](/modernGraphTool/docs/intro/).
 
 ## Measurement and interpretation
 
@@ -3924,7 +3711,7 @@ If you boost a frequency by +6 dB digitally, the whole signal is 6 dB closer to 
 
 ### Can I send an EQ directly to my DAC/headphone hardware?
 
-If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. Best support is in Chrome and Edge. Safari and Firefox doesn’t support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](/modernGraphTool/docs/features/device-peq/).
+If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. It needs a Chromium-based browser (Chrome, Edge or Opera); Safari and Firefox don’t support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](/modernGraphTool/docs/features/device-peq/).
 
 ## squig.link
 
@@ -4015,7 +3802,7 @@ On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don�
 
 ## Preference Bound toggle
 
-The **preference bound** button toggles a shaded region that represents a statistical range of “acceptable” tunings rather than a single target line. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/) for the full story. The button is enabled only when the site has configured bound data files — if it’s missing, the feature isn’t available for that deployment.
+The **preference bound** button toggles a shaded region that represents a statistical range of “acceptable” tunings rather than a single target line. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/) for the full story. The button only appears when the site has configured the bound data files — if it’s missing, the feature isn’t available on that deployment.
 
 ## Frequency Tutorial
 
@@ -4033,7 +3820,7 @@ See [Sharing and exporting](/modernGraphTool/docs/guide-for-users/sharing-and-ex
 
 ***
 
-Next up, the two features that build on the target concept from page 04: [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/).
+Next up, the two features that build on the target concept from [Why targets exist](/modernGraphTool/docs/guide-for-users/why-targets-exist/): [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/).
 
 # How measurements work
 
@@ -4050,7 +3837,8 @@ Imagine you put a headphone on a mannequin head, the head has a microphone where
 So the line on screen isn’t “the headphone”. It’s:
 
 > **What this particular headphone sounds like**\
-> **through this particular rig** **as recorded by this particular method**
+> **through this particular rig**\
+> **as recorded by this particular method**
 
 The curve you’ll typically see in modernGraphTool is **raw**: it’s the microphone’s recording, in SPL, plotted against frequency. No correction, no compensation whatsoever. Most measurement sites — including most CrinGraph-era squig.link sites — default to this raw view. That’s the data you’re looking at.
 
@@ -4490,7 +4278,7 @@ The curve you see is typically **raw** — it’s literally what the measurement
 
 To make sense of the shape, most sites let you overlay a **target**: a reference curve designed for *that specific rig* that represents some chosen definition of “good sound” — sometimes neutrality, sometimes a research-backed preference like Harman, sometimes a reviewer’s personal taste.
 
-A headphone whose raw curve sits close to a target matches whatever that target represents; anywhere they differ is where the headphone departs from it. Pages 03 and 04 explain this properly — for now, just know that what’s drawn is raw, and a target is how you turn it into a judgment against a chosen reference.
+A headphone whose raw curve sits close to a target matches whatever that target represents; anywhere they differ is where the headphone departs from it. [How measurements work](/modernGraphTool/docs/guide-for-users/how-measurements-work/) and [Why targets exist](/modernGraphTool/docs/guide-for-users/why-targets-exist/) explain this properly — for now, just know that what’s drawn is raw, and a target is how you turn it into a judgment against a chosen reference.
 
 ## What you can do here
 
@@ -4841,16 +4629,7 @@ If you’re migrating from a dual-instance CrinGraph setup, treat it as two sepa
 
 ## Picking a Deployment Option
 
-modernGraphTool v2 offers four deployment paths:
-
-* **[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)** — Closest to how you deploy CrinGraph today. Download the release, drop your `data/`, `config.js`, and `theme.css` in, upload. No `BASE_PATH` to worry about.
-* **[CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle loads from jsDelivr and auto-updates with new v2 releases.
-* **[GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/)** — CDN deployment hosted on GitHub for free, if you’d rather stop maintaining a web server as part of this migration.
-* **[Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)** — For developers and forks.
-
-CDN Alternative
-
-Instead of hosting the full pre-built release, consider the [CDN deployment mode](/modernGraphTool/docs/guide-for-admins/deployment/cdn/). You don’t need to manage the app code, and future updates apply automatically with it.
+The **[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)** is closest to how you deploy CrinGraph today: download it, drop your `data/`, `config.js` and `theme.css` in, and upload. CDN deployment (recommended: the app bundle loads from jsDelivr and updates itself) and GitHub Pages (free hosting, if you’d rather stop running a web server) are the alternatives — [Choosing a Deployment](/modernGraphTool/docs/guide-for-admins/setup-env/) compares all four.
 
 ### If you pick CDN mode, watch out for `BASE_PATH`
 
@@ -4926,16 +4705,7 @@ Deployment is also the same — v2 outputs a fully static SPA to `dist/`. Copy t
 
 ## Picking a Deployment Option
 
-v1 shipped as a pre-built drop — you downloaded a release, uploaded it, and that was the only path. v2 adds three more:
-
-* **[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)** — The one-for-one replacement for your v1 setup. Download the release, copy your data and config in, upload. No surprises, no `BASE_PATH` to set, works exactly like v1 did.
-* **[CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)** — Recommended, and a thinner drop: only your `index.html`, `config.js`, `theme.css`, `data/`, and `assets/` live on your server; the app bundle itself loads from jsDelivr and auto-updates.
-* **[GitHub Pages](/modernGraphTool/docs/guide-for-admins/deployment/github-pages/)** — CDN deployment hosted on GitHub for free, if you’d rather not keep running a web server for this.
-* **[Building from Source](/modernGraphTool/docs/guide-for-admins/deployment/from-source/)** — For developers and forks.
-
-CDN Alternative
-
-Instead of hosting the full pre-built release, consider the [CDN deployment mode](/modernGraphTool/docs/guide-for-admins/deployment/cdn/). You don’t need to manage the app code, and future updates apply automatically with it.
+v1 shipped only as a pre-built drop. v2 keeps that as the **[Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/)** — the one-for-one replacement for your v1 setup, with no `BASE_PATH` to set — and adds CDN deployment (recommended: the app bundle loads from jsDelivr and updates itself), GitHub Pages, and building from source. [Choosing a Deployment](/modernGraphTool/docs/guide-for-admins/setup-env/) compares all four.
 
 ### If you pick CDN mode, watch out for `BASE_PATH`
 
@@ -4959,6 +4729,12 @@ Full explanation and worked examples: [Why `BASE_PATH` is almost always required
 Everything that isn’t the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There’s no lock-in.
 
 # modernGraphTool v2 Changelog
+
+### v2.2.2
+
+* Feat: AutoEQ now runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [jaakkopasanen’s AutoEq](https://github.com/jaakkopasanen/AutoEq) optimizer. An eight-band run takes a few milliseconds — over a hundred times faster than before. See [AutoEQ Benchmarks](/modernGraphTool/docs/features/autoeq-benchmarks/).
+* Feat: Added an AutoEQ fit mode. **Exact match** (default) fits the full curve up to 20 kHz as the graph shows it; **Treble-safe** follows AutoEq’s own approach, smoothing the treble and placing no band above 10 kHz. See [Fit mode](/modernGraphTool/docs/features/equalizer/#fit-mode).
+* Feat: Added an **Auto-apply** switch that re-runs AutoEQ whenever the device curve, target or AutoEQ options change — e.g. while tilting a target in the Target Customizer. Editing the filters by hand, or switching device, target or EQ preset, turns it off. See [Auto-apply](/modernGraphTool/docs/features/equalizer/#auto-apply).
 
 ### v2.2.1
 

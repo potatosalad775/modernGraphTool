@@ -11,21 +11,13 @@ pagefind: true
 draft: false
 ---
 
-You can host modernGraphTool and CrinGraph together with slight change of code!
-
-This chapter showcases how to dual-host 2 graphtools in 1 domain, using CrinGraph as main forefront page.
-
-## Overview
-
-There are several ways to host two services on a single domain.
-
-Here, we showcase the classic "folder as subdomain" approach, which is simple and effective for static sites or web apps.
+This layout keeps **CrinGraph** at the domain root as the front page and serves modernGraphTool from a subfolder. Both read the same `data/` folder. See [Dual-Hosting with CrinGraph](./index.mdx) for the other layout.
 
 ## Step-by-Step Guide
 
 ### 1. Prepare Your Projects
 
-- **modernGraphTool**: Set up the modernGraphTool database and files as described in the [other documentation chapters](../../guide-for-admins/index.mdx).
+- **modernGraphTool**: Set up the modernGraphTool database and files as described in the [Guide for Operators](../../guide-for-admins/index.mdx).
 - **CrinGraph**: Prepare the CrinGraph project files. You can use any variant of CrinGraphs.
 
 ### 2. Organize Your Directory Structure

@@ -68,4 +68,4 @@ Beyond the rewrite itself, v2 introduces capabilities that weren't available in 
 
 - Coming from v1? → [Migrating from v1 to v2](./migrating-v1-to-v2.mdx)
 - Coming from CrinGraph, squiglink lab, PublicGraphTool, or another CrinGraph derivative? → [Migrating from CrinGraph](./migrating-from-cringraph.mdx)
-- New installation? → [Deployment options](./guide-for-admins/deployment/prebuilt.mdx)
+- New installation? → [Choosing a Deployment](./guide-for-admins/setup-env.mdx)

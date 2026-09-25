@@ -5,6 +5,11 @@ sidebar:
   order: 11
 ---
 
+### v2.2.2
+- Feat: AutoEQ가 이제 [jaakkopasanen의 AutoEq](https://github.com/jaakkopasanen/AutoEq) 옵티마이저를 WebAssembly로 이식한 [turboEQ](https://github.com/potatosalad775/turboEQ)로 동작합니다. 8밴드 기준 수 밀리초 만에 완료되어 이전보다 100배 이상 빠르며, 요청한 밴드 수를 항상 정확히 반환합니다. 자세한 내용은 [AutoEQ 벤치마크](./features/autoeq-benchmarks.mdx) 참조.
+- Feat: AutoEQ 맞춤 방식이 추가되었습니다. **완전 일치**(기본값)는 그래프에 표시된 그대로 20 kHz까지의 전체 곡선을 맞추고, **고음 보존**은 AutoEq 본래의 방식을 따라 고역을 스무딩하며 10 kHz 이상에는 밴드를 배치하지 않습니다. 자세한 내용은 [맞춤 방식](./features/equalizer.mdx#fit-mode) 참조.
+- Feat: 기기 곡선, 타겟, AutoEQ 옵션이 바뀔 때마다 AutoEQ를 다시 실행하는 **자동 적용** 스위치가 추가되었습니다. 예를 들어 Target Customizer에서 타겟 기울기를 조정하는 동안 유용합니다. 필터를 직접 수정하거나 기기, 타겟, EQ 프리셋을 바꾸면 자동으로 꺼집니다. 자세한 내용은 [자동 적용](./features/equalizer.mdx#auto-apply) 참조.
+
 ### v2.2.1
 - Refactor: Preference Bound이 이제 기준 (DF) 타겟이 아닌, 밴드 중심에 맞춰 정렬됩니다. 이는 그래프 정렬을 보다 직관적으로 만들지만, 이전 버전과 비교했을 때 일부 차이가 나타날 수 있습니다.
 - Refactor: 샘플 / 채널 선택기가 더 넓은 폭을 차지하도록 조정되어, 작은 화면에서의 사용성을 개선했습니다.

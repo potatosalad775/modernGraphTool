@@ -5,6 +5,11 @@ sidebar:
   order: 11
 ---
 
+### v2.2.2
+- Feat: AutoEQ now runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [jaakkopasanen's AutoEq](https://github.com/jaakkopasanen/AutoEq) optimizer. An eight-band run takes a few milliseconds — over a hundred times faster than before. See [AutoEQ Benchmarks](./features/autoeq-benchmarks.mdx).
+- Feat: Added an AutoEQ fit mode. **Exact match** (default) fits the full curve up to 20 kHz as the graph shows it; **Treble-safe** follows AutoEq's own approach, smoothing the treble and placing no band above 10 kHz. See [Fit mode](./features/equalizer.mdx#fit-mode).
+- Feat: Added an **Auto-apply** switch that re-runs AutoEQ whenever the device curve, target or AutoEQ options change — e.g. while tilting a target in the Target Customizer. Editing the filters by hand, or switching device, target or EQ preset, turns it off. See [Auto-apply](./features/equalizer.mdx#auto-apply).
+
 ### v2.2.1
 - Refactor: Preference Bound is now aligned by its band center, not the base (DF) target. This change should make graph alignment more intuitive, but may show some differences compared to the previous version.
 - Refactor: Adjusted Sample / Channel selector to occupy more width, improving usability on smaller screens.

@@ -1,0 +1,21 @@
+{
+  "version": "2.2.2",
+  "assets_base": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2",
+  "global_name": "__sveltekit_197b55p",
+  "start_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/entry/start.R7cSdNvc.js",
+  "app_url": "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/entry/app.BnWBjAmT.js",
+  "preloads": [
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/entry/start.R7cSdNvc.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/chunks/DjvgpkfG.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/entry/app.BnWBjAmT.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/chunks/Bnu_PqK2.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/chunks/xihTtKlq.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/nodes/0.98-ArQUs.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/chunks/B1b9qvBl.js",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/chunks/C3Ul8Dhf.js"
+  ],
+  "css": [
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/assets/AppShell.jgkOGWfn.css",
+    "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.2.2/_app/immutable/assets/0.DV-J2PHJ.css"
+  ]
+}

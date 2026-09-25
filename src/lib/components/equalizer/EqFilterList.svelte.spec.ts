@@ -11,7 +11,7 @@
  * `eqCommands.ensureEnabled` itself — including its momentary-hold redirect —
  * is unit-tested in `services/eq-commands.spec.ts`.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqFilterList from './EqFilterList.svelte';
@@ -22,6 +22,13 @@ import {
 	DEFAULT_CONSTRAINT_ID
 } from '$lib/stores/eq-constraints-store.svelte.js';
 import { commandHistory } from '$lib/services/command-history.svelte.js';
+import { dataProvider } from '$lib/services/data-provider.svelte.js';
+import { toast } from 'svelte-sonner';
+
+vi.mock('svelte-sonner', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte-sonner')>()),
+	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
+}));
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
@@ -31,6 +38,10 @@ const addButton = () => page.getByRole('button', { name: 'Add EQ Band' });
 const removeButton = () => page.getByRole('button', { name: 'Remove EQ Band' });
 
 describe('EqFilterList', () => {
+	// The preamp is derived by the page-lifetime sync AppShell installs, not by
+	// this component; the readout and the toast only follow it.
+	beforeAll(() => dataProvider.installEqCurveSync());
+
 	beforeEach(() => {
 		eqStore.filters = [];
 		eqStore.preamp = 0;
@@ -48,6 +59,49 @@ describe('EqFilterList', () => {
 		eqStore.filters = [];
 		eqStore.isEnabled = false;
 		eqStore.channelScope = 'BOTH';
+	});
+
+	describe('the preamp', () => {
+		it('covers the full peak of a narrow boost that falls between grid points', async () => {
+			// 2070 Hz sits halfway between two points of the old 100-point grid,
+			// which read this +6 dB, Q 6 peak as about +5.1 dB and let it clip.
+			eqStore.filters = [makeFilter({ freq: 2070, q: 6, gain: 6 })];
+			render(EqFilterList);
+
+			await vi.waitFor(() => expect(eqStore.preamp).toBe(-6));
+		});
+
+		/** Walks one band's gain through `gains` the way a slider drag would. */
+		async function drag(gains: number[]) {
+			for (const gain of gains) {
+				eqStore.filters = [makeFilter({ gain })];
+				await new Promise((resolve) => setTimeout(resolve, 30));
+			}
+		}
+
+		it('announces a reduction once, after the edits stop', async () => {
+			// Every step of a drag lowers the preamp; one toast should say where it
+			// ended, not one per step.
+			vi.mocked(toast.info).mockClear();
+			render(EqFilterList);
+
+			await drag([1, 2, 3, 4, 5, 6]);
+
+			expect(eqStore.preamp).toBe(-6);
+			expect(toast.info).not.toHaveBeenCalled();
+			await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
+			expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-6.0');
+		});
+
+		it('stays quiet when a drag dips and comes back', async () => {
+			vi.mocked(toast.info).mockClear();
+			render(EqFilterList);
+
+			await drag([3, 6, 3, 0]);
+			await new Promise((resolve) => setTimeout(resolve, 1200));
+
+			expect(toast.info).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('the master toggle', () => {
@@ -93,9 +147,9 @@ describe('EqFilterList', () => {
 		/** Number-input triples, one per rendered band card. */
 		const cardCount = () => document.querySelectorAll('input[type="number"]').length / 3;
 
-		/** The scope segments are the only aria-pressed buttons in this component. */
+		/** The scope segments are the only radio items in this component. */
 		const scopeButton = (label: string) =>
-			[...document.querySelectorAll<HTMLButtonElement>('button[aria-pressed]')].find((b) =>
+			[...document.querySelectorAll<HTMLButtonElement>('button[role="radio"]')].find((b) =>
 				b.textContent!.trim().startsWith(label)
 			)!;
 
@@ -106,8 +160,8 @@ describe('EqFilterList', () => {
 			render(EqFilterList);
 
 			await vi.waitFor(() => expect(scopeButton('L+R')).toBeTruthy());
-			expect(scopeButton('L+R').getAttribute('aria-pressed')).toBe('true');
-			expect(scopeButton('R').getAttribute('aria-pressed')).toBe('false');
+			expect(scopeButton('L+R').getAttribute('aria-checked')).toBe('true');
+			expect(scopeButton('R').getAttribute('aria-checked')).toBe('false');
 		});
 
 		it('switches scope from the list and shows each bucket count', async () => {

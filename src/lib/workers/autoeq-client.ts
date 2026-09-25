@@ -1,4 +1,4 @@
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { AutoEqOutcome, AutoEqRequest } from './autoeq-request.js';
 import autoeqWorkerUrl from './autoeq.worker.ts?worker&url';
 
 let worker: Worker | null = null;
@@ -31,21 +31,26 @@ function getWorker(): Worker {
 	return worker;
 }
 
+/**
+ * Fit `source` to `target` off the main thread.
+ *
+ * `request` is in turboEQ's terms — peaking bands with the shelves outside the
+ * count, per-band bounds the fit lands inside, and a graphic EQ as a pinned
+ * bank rather than a free fit snapped onto the grid. See `autoeq-engine.ts`.
+ *
+ * The result says which optimizer produced it. `engine: 'typescript'` means
+ * turboEQ failed and the fallback answered, which is a working EQ fitted by a
+ * worse algorithm rather than an error.
+ */
 export function runAutoEQInWorker(
 	source: [number, number][],
 	target: [number, number][],
-	options: {
-		maxFilters?: number;
-		freqRange?: [number, number];
-		qRange?: [number, number];
-		gainRange?: [number, number];
-		useShelfFilter?: boolean;
-	}
-): Promise<EQFilter[]> {
+	request: AutoEqRequest
+): Promise<AutoEqOutcome> {
 	const w = getWorker();
 	const id = ++nextId;
 
-	return new Promise<EQFilter[]>((resolve, reject) => {
+	return new Promise<AutoEqOutcome>((resolve, reject) => {
 		function handler(e: MessageEvent) {
 			const data = e.data;
 			if (data.id !== id) return;
@@ -53,9 +58,23 @@ export function runAutoEQInWorker(
 			w.removeEventListener('error', errorHandler);
 			if (data.type === 'autoeq-result') {
 				if (typeof data.elapsedMs === 'number') {
-					console.debug('[autoEQ] %dms', data.elapsedMs.toFixed(1));
+					console.debug(
+						'[autoEQ] %s %sms%s',
+						data.engine,
+						data.elapsedMs.toFixed(1),
+						typeof data.rmse === 'number' ? ` RMSE ${data.rmse.toFixed(3)}` : ''
+					);
 				}
-				resolve(data.filters);
+				if (data.fallbackReason) {
+					console.warn('[autoEQ] turboEQ failed, used the TypeScript engine:', data.fallbackReason);
+				}
+				resolve({
+					filters: data.filters,
+					engine: data.engine,
+					rmse: data.rmse,
+					preamp: data.preamp,
+					fallbackReason: data.fallbackReason
+				});
 			} else if (data.type === 'autoeq-error') {
 				reject(new Error(data.error));
 			}
@@ -69,6 +88,6 @@ export function runAutoEQInWorker(
 
 		w.addEventListener('message', handler);
 		w.addEventListener('error', errorHandler);
-		w.postMessage({ type: 'run-autoeq', id, source, target, options });
+		w.postMessage({ type: 'run-autoeq', id, source, target, request });
 	});
 }

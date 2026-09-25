@@ -1,6 +1,7 @@
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 import defaultsPlugin from './vite-plugin-defaults.js';
@@ -10,6 +11,30 @@ import { fileURLToPath } from 'node:url';
 const pkg = JSON.parse(
 	readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8')
 );
+
+/**
+ * turboEQ's wasm is ported from AutoEq (MIT) and SciPy (BSD-3-Clause), whose
+ * licences require their notices to accompany every copy of the binary. The
+ * file goes beside the wasm, so it travels wherever `_app/` is hosted — the
+ * CDN build included.
+ */
+function turboEqNotice(): Plugin {
+	return {
+		name: 'turboeq-notice',
+		apply: 'build',
+		generateBundle() {
+			if (this.environment.name !== 'client') return;
+			this.emitFile({
+				type: 'asset',
+				fileName: '_app/immutable/workers/assets/NOTICE-turboeq.txt',
+				source: readFileSync(
+					fileURLToPath(new URL('./node_modules/@potatosalad775/turboeq/NOTICE', import.meta.url)),
+					'utf-8'
+				)
+			});
+		}
+	};
+}
 
 export default defineConfig({
 	define: {
@@ -26,7 +51,8 @@ export default defineConfig({
 			outdir: './src/lib/paraglide',
 			strategy: ['localStorage', 'preferredLanguage', 'baseLocale']
 		}),
-		defaultsPlugin()
+		defaultsPlugin(),
+		turboEqNotice()
 	],
 	worker: {
 		format: 'es'

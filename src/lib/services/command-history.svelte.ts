@@ -48,6 +48,11 @@ class CommandHistory {
 		return command;
 	}
 
+	/** Whether `command` is the one `undo` would reverse next, with no redo branch past it. */
+	isLatest(command: Command): boolean {
+		return this.#pointer === this.#history.length - 1 && this.#history[this.#pointer] === command;
+	}
+
 	get canUndo(): boolean {
 		return this.#pointer >= 0;
 	}

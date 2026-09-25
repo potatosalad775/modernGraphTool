@@ -5,6 +5,7 @@
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
+	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 
 	/**
 	 * Channel scope for the band list — shared bands, left ear, or right ear.
@@ -21,11 +22,18 @@
 	 * words for an unrelated job.
 	 */
 
-	const options: [EqChannelScope, () => string][] = [
+	const labels: [EqChannelScope, () => string][] = [
 		['BOTH', m.eq_channel_both],
 		['L', m.eq_channel_left],
 		['R', m.eq_channel_right]
 	];
+
+	const options = $derived(
+		labels.map(([value, label]) => {
+			const count = filtersInScope(eqStore.filters, value).length;
+			return { value, label: `${label()}${count > 0 ? ` (${count})` : ''}` };
+		})
+	);
 
 	/**
 	 * A graphic preset fixes one row per band on a single output, so there is no
@@ -55,21 +63,12 @@
 -->
 <div class="flex items-center gap-2">
 	<span class="shrink-0 text-xs text-base-content/60">{m.eq_channel_scope_label()}</span>
-	<div class="flex flex-1 rounded-md border border-base-content/20" role="group">
-		{#each options as [value, label] (value)}
-			{@const count = filtersInScope(eqStore.filters, value).length}
-			<button
-				type="button"
-				aria-pressed={eqStore.channelScope === value}
-				disabled={isGraphic}
-				onclick={() => select(value)}
-				class="flex-1 border-base-content/20 px-2 py-1 text-xs font-medium transition-colors first:rounded-l-md first:border-r last:rounded-r-md last:border-l disabled:cursor-not-allowed disabled:opacity-50 {eqStore.channelScope ===
-				value
-					? 'bg-accent text-white'
-					: 'bg-base-100 text-base-content/70 hover:bg-base-content/5'}"
-			>
-				{label()}{count > 0 ? ` (${count})` : ''}
-			</button>
-		{/each}
-	</div>
+	<SegmentedControl
+		class="flex-1"
+		label={m.eq_channel_scope_label()}
+		{options}
+		value={eqStore.channelScope}
+		onValueChange={select}
+		disabled={isGraphic}
+	/>
 </div>

@@ -80,7 +80,70 @@ running is how you ask for a five-band result. With an empty list it falls back 
 
 Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see
 [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). Either way, the active
-constraint preset's band cap wins: a connected 5-band device gets 5.
+constraint preset's band cap wins: a connected 5-band device gets 5, and a preset with no cap at
+all is held to 32.
+
+The count is the total. With **Use shelf filters** on, two of those bands are the low and high
+shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped,
+because spending the whole budget on them corrects nothing but overall tilt.
+
+## Auto-apply
+
+Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply** switch beside it
+keeps the result current. While it is on, AutoEQ runs again whenever the source or target curve
+changes — a tilt or bass shelf from the target customizer, say — or when an AutoEQ option does.
+Switching it on runs once straight away.
+
+- It re-runs with the band count and channel it was switched on with. Scoping the list to one ear
+  doesn't change what it fits; to change the band count, add or remove bands and press
+  **Recalculate**.
+- The re-runs fold into one undo entry, so a single undo returns to the filters from before AutoEQ.
+- An auto-applied run leaves the Equalizer toggle alone, so you can switch EQ off to compare while
+  nudging the target.
+- It keeps running from other panels, which is how you tilt a target in the Graph panel and watch
+  the EQ follow.
+
+It switches itself off, and says why, rather than overwrite something it can no longer vouch for:
+
+- the filters are edited by hand — adding, removing or dragging a band, undo, import, or a History &
+  Compare switch;
+- a different source device or target is selected, or the target is removed;
+- the EQ preset changes;
+- the fallback optimizer answered (see [The optimizer](#the-optimizer)). It is too slow to follow
+  every change, so the switch stays unavailable until a run succeeds with turboEQ.
+
+## The optimizer
+
+AutoEQ runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of
+[AutoEq](https://github.com/jaakkopasanen/AutoEq)'s optimizer, which fits every filter at once. A
+typical run takes about 10 to 20 ms.
+
+### Fit mode
+
+**Exact match** is the default. It fits the curve the way the graph shows it: the full shape up to
+20 kHz, with bands allowed anywhere in the frequency range.
+
+**Treble-safe** is jaakkopasanen AutoEQ's own, more cautious fit. AutoEq smooths the treble above about 8 kHz, judges
+only its overall level above 10 kHz and places no band above 10 kHz. Treble measurements can vary a lot depending
+on a fit, seating, and physical characteristic of every rig, so this corrects only what a measurement can be trusted for. 
+Choose it when you don't trust your treble data, or when the EQ is for listening rather than for matching the exact graph.
+
+In either mode, the gain range's maximum caps the largest boost the whole EQ may apply, not only
+each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping.
+Lower the maximum if you would rather keep the level up.
+
+The frequency, Q and gain ranges are **bounds the fit works within**, not a clamp applied to the
+result afterwards: narrowing them changes what the optimizer looks for rather than trimming what it
+found. The frequency range says where a band may sit — the fit is still judged across the whole
+axis, so a narrow range leaves the rest of the curve alone instead of pretending it is already
+correct.
+
+Graphic-EQ presets fit too. Frequency and Q come from the preset's own bands and only gain is
+optimized, so every band lands exactly on its slider.
+
+If the module cannot load for any reason, the older JavaScript optimizer answers instead, and the
+AutoEQ panel says so. It is slower and fits less well, and it sometimes returns fewer bands than 
+it was asked for, but a failed load never costs you a working AutoEQ.
 
 ## Notes
 

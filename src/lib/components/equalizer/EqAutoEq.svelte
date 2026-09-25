@@ -1,229 +1,232 @@
 <script lang="ts">
+	import { CircleAlert } from '@lucide/svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
-	import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
-	import { getConfigValue } from '$lib/utils/config.js';
-	import { countBandsPerOutput, filtersInScope } from '$lib/utils/eq-channel.js';
+	import { autoEqService, activeGraphicBands } from '$lib/services/autoeq-service.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { getLocale } from '$lib/paraglide/runtime.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
+	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 
 	const opts = $derived(settingsStore.autoEqOptions);
-	let isRunning = $state(false);
-	/** AutoEQ has no place in graphic mode — gain-only edits, freq/Q locked. */
-	const isGraphicMode = $derived(eqConstraintsStore.active?.mode === 'graphic');
+	const graphicBands = $derived(activeGraphicBands());
+	const isGraphicMode = $derived(graphicBands.length > 0);
 
-	/** Bands generated when the filter list is empty. Operator-overridable via
-	 *  `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT`, which ships commented out. */
-	const DEFAULT_BAND_COUNT = 8;
+	type FitMode = 'exact' | 'autoeq';
+	const fitOptions = $derived<{ value: FitMode; label: string }[]>([
+		{ value: 'exact', label: m.equalizer_autoeq_exact_match() },
+		{ value: 'autoeq', label: m.equalizer_autoeq_treble_safe() }
+	]);
 
-	/**
-	 * How many bands to ask the optimizer for. A non-empty stack still wins, so
-	 * "add five bands, then Run" keeps working as the way to pick a count by
-	 * hand; the default only covers the empty case, which used to resolve to a
-	 * single band and made AutoEQ look broken on first use.
-	 */
-	function resolveBandCount(): number {
-		const scope = eqStore.channelScope;
-		// Counted within the bucket being replaced — the shared bands aren't
-		// candidates for a run scoped to one ear, so they must not set its size.
-		let count = filtersInScope(eqStore.filters, scope).length;
-		if (count === 0) {
-			const raw = getConfigValue('EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT');
-			count = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : NaN;
-			if (!(count >= 1)) count = DEFAULT_BAND_COUNT;
-		}
-		// `replaceFiltersInScope` trims to the preset cap anyway, and truncating an
-		// 8-band solution to 5 fits worse than optimizing for 5 in the first place.
-		// The budget is what the busiest output has left once the buckets this run
-		// won't touch are accounted for.
-		const preset = eqConstraintsStore.active;
-		if (preset && preset.maxBands > 0) {
-			const untouched = eqStore.filters.filter((f) =>
-				scope === 'BOTH' ? f.channel != null : f.channel !== scope
-			);
-			count = Math.min(count, Math.max(1, preset.maxBands - countBandsPerOutput(untouched)));
-		}
-		return count;
-	}
+	/** The docs site only carries a Korean translation besides English. */
+	const fitDocsUrl = $derived(
+		`https://potatosalad775.github.io/modernGraphTool/docs/${getLocale() === 'ko' ? 'ko/' : ''}features/equalizer/#fit-mode`
+	);
 
-	async function runAutoEQ() {
-		const sourceUUID = eqStore.sourcePhoneUUID;
-		const targetUUID = eqStore.autoEqTargetUUID;
+	const runLabel = $derived(
+		autoEqService.hasResult ? m.equalizer_autoeq_recalc_button() : m.equalizer_autoeq_run_button()
+	);
 
-		if (!sourceUUID || !targetUUID) {
-			alert('Please select both a source device and target in the phone select above.');
-			return;
-		}
+	const stopNotices = {
+		edited: m.equalizer_autoeq_auto_apply_stopped_edited,
+		input: m.equalizer_autoeq_auto_apply_stopped_input,
+		preset: m.equalizer_autoeq_auto_apply_stopped_preset
+	} as const;
 
-		const sourceData = frStore.get(sourceUUID);
-		const targetData = frStore.get(targetUUID);
-
-		if (!sourceData || !targetData) {
-			alert('Source or target data not found.');
-			return;
-		}
-
-		// Optimize against the channel the user is editing. In `BOTH` scope that
-		// stays the average, which is what preserves the unit's natural L/R
-		// imbalance; scoping to one ear is how you correct it instead.
-		// A target measured as a single curve has no L/R, hence the AVG fallback.
-		const scope = eqStore.channelScope;
-		const getChannelData = (data: typeof sourceData) => {
-			const channels = data?.channels;
-			if (!channels) return [];
-			if (scope !== 'BOTH' && channels[scope]) return channels[scope]!.data;
-			return channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? [];
-		};
-
-		const sourcePoints = getChannelData(sourceData) as [number, number][];
-		const targetPoints = getChannelData(targetData) as [number, number][];
-
-		if (!sourcePoints.length || !targetPoints.length) {
-			alert('Could not retrieve frequency response data.');
-			return;
-		}
-
-		const options = {
-			maxFilters: resolveBandCount(),
-			freqRange: [opts.freqMin, opts.freqMax] as [number, number],
-			qRange: [opts.qMin, opts.qMax] as [number, number],
-			gainRange: [opts.gainMin, opts.gainMax] as [number, number],
-			useShelfFilter: opts.useShelfFilter
-		};
-
-		isRunning = true;
-		try {
-			const filters = await runAutoEQInWorker(sourcePoints, targetPoints, options);
-			// Scoped, so running AutoEQ on one ear doesn't wipe the shared bands
-			// or the other ear's solution.
-			eqCommands.replaceFiltersInScope(filters, scope);
-			// Nobody runs AutoEQ wanting the graph to stay put.
-			eqCommands.ensureEnabled();
-		} catch (err) {
-			console.error('AutoEQ failed:', err);
-		} finally {
-			isRunning = false;
-		}
-	}
+	const statusText = $derived(
+		autoEqService.fellBack
+			? m.equalizer_autoeq_fallback_notice()
+			: autoEqService.stopReason
+				? stopNotices[autoEqService.stopReason]()
+				: ''
+	);
 </script>
 
 <div class="flex flex-col gap-2 text-sm">
+	{#if isGraphicMode}
+		<p class="text-xs text-base-content/60">
+			Fitting {graphicBands.length} fixed bands — frequency and Q come from the preset, so only gain is
+			optimized.
+		</p>
+	{/if}
+
 	<!-- Filter settings fieldset -->
-	<fieldset class="rounded border border-base-content/15 px-3 py-2">
+	<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
 		<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_filter_setting()}</legend>
-		<Switch
-			labelText={m.equalizer_autoeq_use_shelf_filter()}
-			size="sm"
-			labelClass="text-xs font-normal"
-			bind:checked={settingsStore.autoEqOptions.useShelfFilter}
-		/>
+		<div class="-mr-1.25 flex items-center gap-1">
+			<SegmentedControl
+				class="flex-1"
+				label={m.equalizer_autoeq_fit_mode()}
+				options={fitOptions}
+				value={opts.exactMatch ? 'exact' : 'autoeq'}
+				onValueChange={(mode) => (settingsStore.autoEqOptions.exactMatch = mode === 'exact')}
+			/>
+			<PopoverPanel align="end">
+				{#snippet trigger({ props })}
+					<Button
+						{...props}
+						title={m.equalizer_autoeq_fit_help()}
+						variant="ghost"
+						size="icon-xs"
+						activeOnOpen
+						class="opacity-80 hover:opacity-100"
+					>
+						<CircleAlert class="h-3.5 w-3.5" />
+					</Button>
+				{/snippet}
+				<div class="flex max-w-xs flex-col gap-2 p-1 text-xs text-base-content">
+					<p>
+						<span class="font-semibold">{m.equalizer_autoeq_exact_match()}</span>
+						— {m.equalizer_autoeq_exact_match_hint()}
+					</p>
+					<p>
+						<span class="font-semibold">{m.equalizer_autoeq_treble_safe()}</span>
+						— {m.equalizer_autoeq_treble_safe_hint()}
+					</p>
+					<a
+						href={fitDocsUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="self-start text-accent underline underline-offset-2"
+					>
+						{m.equalizer_autoeq_learn_more()}
+					</a>
+				</div>
+			</PopoverPanel>
+		</div>
+		{#if !isGraphicMode}
+			<Switch
+				labelText={m.equalizer_autoeq_use_shelf_filter()}
+				size="sm"
+				labelClass="text-xs font-normal"
+				bind:checked={settingsStore.autoEqOptions.useShelfFilter}
+			/>
+		{/if}
 	</fieldset>
 
-	<!-- Frequency Range -->
-	<fieldset class="rounded border border-base-content/15 px-3 py-2">
-		<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_freq_range()}</legend>
-		<div class="flex items-center gap-2">
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.freqMin}
-				min="20"
-				max="20000"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.freqMin =
-						parseInt((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.freqMin)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.freqMax}
-				min="20"
-				max="20000"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.freqMax =
-						parseInt((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.freqMax)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-		</div>
-	</fieldset>
+	{#if !isGraphicMode}
+		<!-- Frequency Range -->
+		<fieldset class="rounded border border-base-content/15 px-3 py-2">
+			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_freq_range()}</legend>
+			<div class="flex items-center gap-2">
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.freqMin}
+					min="20"
+					max="20000"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.freqMin =
+							parseInt((e.target as HTMLInputElement).value) ||
+							settingsStore.autoEqOptions.freqMin)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.freqMax}
+					min="20"
+					max="20000"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.freqMax =
+							parseInt((e.target as HTMLInputElement).value) ||
+							settingsStore.autoEqOptions.freqMax)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+			</div>
+		</fieldset>
 
-	<!-- Gain Range -->
-	<fieldset class="rounded border border-base-content/15 px-3 py-2">
-		<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_gain_range()}</legend>
-		<div class="flex items-center gap-2">
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.gainMin}
-				min="-40"
-				max="0"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.gainMin =
-						parseFloat((e.target as HTMLInputElement).value) ??
-						settingsStore.autoEqOptions.gainMin)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.gainMax}
-				min="0"
-				max="40"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.gainMax =
-						parseFloat((e.target as HTMLInputElement).value) ??
-						settingsStore.autoEqOptions.gainMax)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-		</div>
-	</fieldset>
+		<!-- Gain Range -->
+		<fieldset class="rounded border border-base-content/15 px-3 py-2">
+			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_gain_range()}</legend>
+			<div class="flex items-center gap-2">
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.gainMin}
+					min="-40"
+					max="0"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.gainMin =
+							parseFloat((e.target as HTMLInputElement).value) ??
+							settingsStore.autoEqOptions.gainMin)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.gainMax}
+					min="0"
+					max="40"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.gainMax =
+							parseFloat((e.target as HTMLInputElement).value) ??
+							settingsStore.autoEqOptions.gainMax)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+			</div>
+		</fieldset>
 
-	<!-- Q Range -->
-	<fieldset class="rounded border border-base-content/15 px-3 py-2">
-		<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_q_range()}</legend>
-		<div class="flex items-center gap-2">
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.qMin}
-				min="0.1"
-				max="10"
-				step="0.1"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.qMin =
-						parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMin)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-			<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-			<input
-				type="number"
-				value={settingsStore.autoEqOptions.qMax}
-				min="0.1"
-				max="10"
-				step="0.1"
-				oninput={(e) =>
-					(settingsStore.autoEqOptions.qMax =
-						parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMax)}
-				class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-			/>
-		</div>
-	</fieldset>
+		<!-- Q Range -->
+		<fieldset class="rounded border border-base-content/15 px-3 py-2">
+			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_q_range()}</legend>
+			<div class="flex items-center gap-2">
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.qMin}
+					min="0.1"
+					max="10"
+					step="0.1"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.qMin =
+							parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMin)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
+				<input
+					type="number"
+					value={settingsStore.autoEqOptions.qMax}
+					min="0.1"
+					max="10"
+					step="0.1"
+					oninput={(e) =>
+						(settingsStore.autoEqOptions.qMax =
+							parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMax)}
+					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+				/>
+			</div>
+		</fieldset>
+	{/if}
 
 	<p class="text-xs text-base-content/60">{m.equalizer_autoeq_description()}</p>
 
-	<Button
-		title={isGraphicMode
-			? 'AutoEQ is unavailable in graphic mode (frequency and Q are locked per band)'
-			: m.equalizer_autoeq_run_button()}
-		onclick={runAutoEQ}
-		disabled={isRunning || isGraphicMode}
-		variant="primary"
-	>
-		{isRunning ? '...' : m.equalizer_autoeq_run_button()}
-	</Button>
+	<!--
+		One button element throughout, relabelled rather than swapped out, so
+		keyboard focus survives the first run.
+	-->
+	<div class="flex items-center gap-3">
+		<Switch
+			labelText={m.equalizer_autoeq_auto_apply()}
+			title={m.equalizer_autoeq_auto_apply_hint()}
+			size="sm"
+			labelClass="text-xs font-normal"
+			disabled={autoEqService.fellBack || !eqStore.sourcePhoneUUID || !eqStore.autoEqTargetUUID}
+			bind:checked={() => autoEqService.autoApply, (on) => autoEqService.setAutoApply(on)}
+		/>
+		<Button
+			title={runLabel}
+			onclick={() => autoEqService.run()}
+			disabled={autoEqService.isRunning}
+			variant="primary"
+			size="sm"
+			class="flex-1"
+		>
+			{autoEqService.isRunning ? '...' : runLabel}
+		</Button>
+	</div>
+
+	<p role="status" class="text-xs text-base-content/70 empty:hidden">{statusText}</p>
 </div>

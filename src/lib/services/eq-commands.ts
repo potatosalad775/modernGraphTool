@@ -135,7 +135,7 @@ export class RemoveEqFilterCommand implements Command {
 
 export class ReplaceEqFiltersCommand implements Command {
 	readonly uuid = EQ_COMMAND_UUID;
-	readonly #newFilters: EQFilter[];
+	#newFilters: EQFilter[];
 	#oldFilters: EQFilter[] | null = null;
 
 	constructor(newFilters: EQFilter[]) {
@@ -150,6 +150,15 @@ export class ReplaceEqFiltersCommand implements Command {
 	undo(_store: FRStoreWriteAPI): void {
 		if (!this.#oldFilters) return;
 		eqStore.filters = this.#oldFilters.map((f) => ({ ...f }));
+	}
+
+	/**
+	 * Swap in a newer result while keeping what undo restores. Only valid while
+	 * this command is the latest in history — the caller checks that.
+	 */
+	amend(newFilters: EQFilter[]): void {
+		this.#newFilters = newFilters.map((f) => ({ ...f }));
+		eqStore.filters = this.#newFilters.map((f) => ({ ...f }));
 	}
 }
 
@@ -388,8 +397,17 @@ export const eqCommands = {
 	 *
 	 * Still one command, so it is one undo entry. In `BOTH` scope with no
 	 * per-channel bands present it is exactly `replaceFilters`.
+	 *
+	 * `amend` folds the result into an earlier replace instead of pushing a new
+	 * entry, as long as that one is still the latest in history. AutoEQ's
+	 * auto-apply re-runs on every tilt nudge, and an undo entry per nudge would
+	 * bury everything else; this way one undo returns to before AutoEQ ran.
 	 */
-	replaceFiltersInScope(filters: EQFilter[], scope: EqChannelScope): void {
+	replaceFiltersInScope(
+		filters: EQFilter[],
+		scope: EqChannelScope,
+		amend?: ReplaceEqFiltersCommand | null
+	): ReplaceEqFiltersCommand {
 		const channel = scope === 'BOTH' ? undefined : scope;
 		const stamped = filters.map((f) => ({ ...f, channel }));
 		const others = eqStore.filters.filter((f) =>
@@ -404,10 +422,14 @@ export const eqCommands = {
 		];
 		coalescer.clear();
 		const preset = eqConstraintsStore.active;
-		commandHistory.execute(
-			new ReplaceEqFiltersCommand(preset ? clampFiltersToConstraint(next, preset) : next),
-			frStore
-		);
+		const clamped = preset ? clampFiltersToConstraint(next, preset) : next;
+		if (amend && commandHistory.isLatest(amend)) {
+			amend.amend(clamped);
+			return amend;
+		}
+		const command = new ReplaceEqFiltersCommand(clamped);
+		commandHistory.execute(command, frStore);
+		return command;
 	},
 
 	/**

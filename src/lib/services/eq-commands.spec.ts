@@ -412,6 +412,29 @@ describe('eqCommands', () => {
 				commandHistory.undo(frStore);
 				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 200, 300]);
 			});
+
+			// Auto-applied AutoEQ re-runs fold into the run that started them, so one
+			// undo returns to before AutoEQ rather than to the previous nudge.
+			it('folds an amended result into the same undo entry', () => {
+				const first = eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'L');
+				const second = eqCommands.replaceFiltersInScope([makeFilter({ freq: 950 })], 'L', first);
+
+				expect(second).toBe(first);
+				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 950, 300]);
+				commandHistory.undo(frStore);
+				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 200, 300]);
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			it('pushes a new entry once something else has landed on top', () => {
+				const first = eqCommands.replaceFiltersInScope([makeFilter({ freq: 900 })], 'L');
+				eqCommands.addBand(makeFilter({ freq: 5000 }));
+				const second = eqCommands.replaceFiltersInScope([makeFilter({ freq: 950 })], 'L', first);
+
+				expect(second).not.toBe(first);
+				commandHistory.undo(frStore);
+				expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 900, 300, 5000]);
+			});
 		});
 	});
 });

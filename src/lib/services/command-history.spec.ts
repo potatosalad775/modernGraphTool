@@ -185,6 +185,27 @@ describe('CommandHistory', () => {
 		});
 	});
 
+	describe('isLatest', () => {
+		it('is true only for the command undo would reverse next', () => {
+			const a = createTestCommand('a', 'A');
+			const b = createTestCommand('b', 'B');
+			history.execute(a, store);
+			history.execute(b, store);
+
+			expect(history.isLatest(b)).toBe(true);
+			expect(history.isLatest(a)).toBe(false);
+		});
+
+		it('is false while a redo branch sits past it', () => {
+			const a = createTestCommand('a', 'A');
+			history.execute(a, store);
+			history.execute(createTestCommand('b', 'B'), store);
+			history.undo(store);
+
+			expect(history.isLatest(a)).toBe(false);
+		});
+	});
+
 	describe('canUndo / canRedo', () => {
 		it('both false initially', () => {
 			expect(history.canUndo).toBe(false);

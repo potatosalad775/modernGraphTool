@@ -40,6 +40,7 @@ import { downloadText } from '$lib/utils/download-text.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
+import { derivePreamp } from '$lib/utils/eq-preamp.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import {
@@ -75,6 +76,11 @@ class DataProvider {
 	 * the audio while the curve on screen kept showing the EQ'd response, and only
 	 * caught up the next time the user opened the Equalizer panel.
 	 *
+	 * The preamp is derived here too, for the same reason: it lived in
+	 * `EqFilterList`, so filters changed from another panel — a global undo, or
+	 * AutoEQ's auto-apply following a target tilted in the Graph panel — kept
+	 * the old preamp, which offset the curve and could let the audio clip.
+	 *
 	 * Installed once from `AppShell.onMount` and never disposed — same shape as
 	 * `audioPlayerService`, which owns its filter chain the same way and for the
 	 * same reason.
@@ -84,6 +90,14 @@ class DataProvider {
 		this.#eqCurveSyncInstalled = true;
 
 		$effect.root(() => {
+			// Declared first, so the curve effect below sees this pass's preamp.
+			$effect(() => {
+				const next = derivePreamp(eqStore.filters);
+				untrack(() => {
+					if (eqStore.preamp !== next) eqStore.preamp = next;
+				});
+			});
+
 			$effect(() => {
 				// Track the inputs; the curve math itself is untracked so its writes
 				// to frStore can't feed back into this effect.

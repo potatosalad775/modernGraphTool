@@ -24,6 +24,7 @@ This file covers what applies everywhere. Anything specific to one area lives in
 | [src/lib/graph/](src/lib/graph/AGENTS.md)           | D3 engine, overlays, baseline modes, d3/rAF test traps      |
 | [src/lib/utils/](src/lib/utils/AGENTS.md)           | Sanitizer, URL state, sample sets                           |
 | [src/lib/device-peq/](src/lib/device-peq/AGENTS.md) | Hardware EQ transports, fake-device fixtures                |
+| [src/lib/workers/](src/lib/workers/AGENTS.md)       | AutoEQ off the main thread: turboEQ wasm, the fallback      |
 
 Each of those directories also holds a one-line `CLAUDE.md` (`@AGENTS.md`) — that shim is what makes
 the guide load. **If you add a new area guide, add the shim too**, or nothing will read it.

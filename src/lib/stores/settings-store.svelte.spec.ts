@@ -14,7 +14,8 @@ const DEFAULT_AUTOEQ = {
 	qMax: 2.0,
 	gainMin: -12,
 	gainMax: 12,
-	useShelfFilter: true
+	useShelfFilter: true,
+	exactMatch: true
 };
 
 /** Put the singleton back to its constructed state between tests. */
@@ -207,6 +208,14 @@ describe('SettingsStore', () => {
 			expect(settingsStore.autoEqOptions.qMax).toBe(3.5);
 			expect(settingsStore.autoEqOptions.freqMin).toBe(DEFAULT_AUTOEQ.freqMin);
 			expect(settingsStore.autoEqOptions.useShelfFilter).toBe(true);
+		});
+
+		it('gives options saved before exact match existed the exact-match default', () => {
+			const { exactMatch: _, ...saved } = DEFAULT_AUTOEQ;
+			sessionStorage.setItem(KEY_AUTOEQ, JSON.stringify(saved));
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions.exactMatch).toBe(true);
 		});
 
 		it('keeps the defaults when the stored AutoEQ options are malformed', () => {

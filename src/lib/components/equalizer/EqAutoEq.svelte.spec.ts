@@ -21,18 +21,22 @@ import {
 	DEFAULT_CONSTRAINT_ID
 } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
+import { autoEqService } from '$lib/services/autoeq-service.svelte.js';
+import { commandHistory } from '$lib/services/command-history.svelte.js';
 import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import * as m from '$lib/paraglide/messages.js';
 
 vi.mock('$lib/workers/autoeq-client.js', () => ({
-	runAutoEQInWorker: vi.fn(async () => [] as EQFilter[])
+	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
 }));
 
 const runInWorker = vi.mocked(runAutoEQInWorker);
 
 const RESULT: EQFilter[] = [{ type: 'PK', freq: 1000, gain: -3, q: 1, enabled: true }];
+/** What the worker hands back: the bands, plus which optimizer found them. */
+const OUTCOME = { filters: RESULT, engine: 'turboeq' as const, rmse: 0.42, preamp: -3 };
 
 const DEFAULT_OPTS = {
 	freqMin: 20,
@@ -41,7 +45,8 @@ const DEFAULT_OPTS = {
 	qMax: 2.0,
 	gainMin: -12,
 	gainMax: 12,
-	useShelfFilter: true
+	useShelfFilter: true,
+	exactMatch: true
 };
 
 function curve(level: number): [number, number][] {
@@ -102,15 +107,20 @@ describe('EqAutoEq', () => {
 		eqStore.momentaryOverride = null;
 		eqStore.momentaryRestore = null;
 		settingsStore.autoEqOptions = { ...DEFAULT_OPTS };
+		autoEqService.reset();
+		commandHistory.clear();
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 		runInWorker.mockClear();
-		runInWorker.mockResolvedValue(RESULT);
-		replaceFilters = vi.spyOn(eqCommands, 'replaceFiltersInScope').mockImplementation(() => {});
+		runInWorker.mockResolvedValue(OUTCOME);
+		replaceFilters = vi
+			.spyOn(eqCommands, 'replaceFiltersInScope')
+			.mockImplementation(() => undefined as never);
 		alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 	});
 
 	afterEach(() => {
+		autoEqService.reset();
 		vi.restoreAllMocks();
 		frStore.entries.clear();
 		eqStore.filters = [];
@@ -164,6 +174,45 @@ describe('EqAutoEq', () => {
 			await page.elementLocator(field('freqMin')).fill('');
 
 			expect(settingsStore.autoEqOptions.freqMin).toBe(20);
+		});
+
+		it('picks the fit mode through the store', async () => {
+			render(EqAutoEq);
+
+			await page.getByRole('radio', { name: m.equalizer_autoeq_treble_safe() }).click();
+
+			expect(settingsStore.autoEqOptions.exactMatch).toBe(false);
+			await expect
+				.element(page.getByRole('radio', { name: m.equalizer_autoeq_treble_safe() }))
+				.toHaveAttribute('aria-checked', 'true');
+		});
+
+		// A single toggle group clears its value when the pressed item is pressed
+		// again; a fit mode can't be "neither".
+		it('keeps the fit mode when the selected one is pressed again', async () => {
+			render(EqAutoEq);
+			const exact = page.getByRole('radio', { name: m.equalizer_autoeq_exact_match() });
+
+			await exact.click();
+
+			expect(settingsStore.autoEqOptions.exactMatch).toBe(true);
+			await expect.element(exact).toHaveAttribute('aria-checked', 'true');
+		});
+
+		it('explains both fit modes and links the docs from the help popover', async () => {
+			render(EqAutoEq);
+
+			await page.getByRole('button', { name: m.equalizer_autoeq_fit_help() }).click();
+
+			await expect
+				.element(page.getByText(m.equalizer_autoeq_exact_match_hint()))
+				.toBeInTheDocument();
+			await expect
+				.element(page.getByText(m.equalizer_autoeq_treble_safe_hint()))
+				.toBeInTheDocument();
+			await expect
+				.element(page.getByRole('link', { name: m.equalizer_autoeq_learn_more() }))
+				.toHaveAttribute('href', expect.stringMatching(/\/features\/equalizer\/#fit-mode$/));
 		});
 
 		it('toggles the shelf-filter switch through the store', async () => {
@@ -224,19 +273,47 @@ describe('EqAutoEq', () => {
 			expect(runInWorker).not.toHaveBeenCalled();
 		});
 
-		it('is disabled in graphic mode, and says why', async () => {
-			// Graphic EQ locks frequency and Q per band, so an AutoEQ result has
-			// nowhere to land. `Button` mirrors `title` into `aria-label`, so the
-			// explanation is also the accessible name here — hence the different
-			// query from the enabled case.
+		// Graphic mode used to be refused outright, because a freely fitted filter
+		// had to be dragged onto the nearest slider afterwards. The optimizer now
+		// takes the grid as pinned fc and Q, so the fit lands on it to begin with.
+		it('runs in graphic mode, against the preset own bands', async () => {
 			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
 			eqConstraintsStore.activeId = graphic!.id;
 			seedPair();
 			render(EqAutoEq);
 
-			await expect
-				.element(page.getByRole('button', { name: /unavailable in graphic mode/ }))
-				.toBeDisabled();
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			const request = runInWorker.mock.calls[0][2];
+			expect(request.kind).toBe('graphic');
+			expect(request.kind === 'graphic' && request.bands.map((b) => b.freq)).toEqual(
+				graphic!.graphicBands!.map((b) => b.freq)
+			);
+		});
+
+		it('offers exact match in graphic mode too', async () => {
+			// A slider at 16 kHz is only scored on shape when the fit is exact.
+			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
+			eqConstraintsStore.activeId = graphic!.id;
+			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, exactMatch: false };
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ kind: 'graphic', fit: 'autoeq' });
+		});
+
+		it('hides the frequency and Q fields in graphic mode', async () => {
+			// They would say nothing: the grid is the preset's.
+			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
+			eqConstraintsStore.activeId = graphic!.id;
+			seedPair();
+			render(EqAutoEq);
+
+			expect(numberInputs().length).toBe(0);
 		});
 	});
 
@@ -255,7 +332,9 @@ describe('EqAutoEq', () => {
 			expect(target).toEqual(curve(0));
 		});
 
-		it('maps the stored options onto the optimizer ranges', async () => {
+		// The ranges are bounds the fit lands inside, not a clamp applied to the
+		// answer, so a wrong mapping here is silent: the run still returns bands.
+		it('maps the stored options onto per-band bounds', async () => {
 			settingsStore.autoEqOptions = {
 				freqMin: 30,
 				freqMax: 16000,
@@ -263,7 +342,8 @@ describe('EqAutoEq', () => {
 				qMax: 5,
 				gainMin: -9,
 				gainMax: 9,
-				useShelfFilter: false
+				useShelfFilter: false,
+				exactMatch: true
 			};
 			seedPair();
 			render(EqAutoEq);
@@ -272,10 +352,91 @@ describe('EqAutoEq', () => {
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
 			expect(runInWorker.mock.calls[0][2]).toMatchObject({
-				freqRange: [30, 16000],
-				qRange: [0.4, 5],
-				gainRange: [-9, 9],
-				useShelfFilter: false
+				kind: 'parametric',
+				shelves: false,
+				limits: { minFc: 30, maxFc: 16000, minQ: 0.4, maxQ: 5, minGain: -9, maxGain: 9 },
+				fit: 'exact'
+			});
+		});
+
+		it('asks for AutoEq fitting when exact match is off', async () => {
+			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, exactMatch: false };
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ fit: 'autoeq' });
+		});
+
+		it('says so when the fallback optimizer answered', async () => {
+			// A worse fit with no indication would be dishonest; the reply names
+			// the engine, so the panel can.
+			runInWorker.mockResolvedValue({ ...OUTCOME, engine: 'typescript' });
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await expect
+				.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
+				.toBeInTheDocument();
+		});
+
+		it('stays quiet when turboEQ answered', async () => {
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledOnce());
+			expect(page.getByRole('status').element().textContent).toBe('');
+		});
+
+		// mGT counts rows; turboEQ counts peaking bands with the shelves outside
+		// that number. Ten rows is eight peaking plus two shelves, and getting it
+		// wrong produces a plausible EQ with the wrong band count.
+		it('splits the row budget into peaking bands and shelves', async () => {
+			eqStore.filters = Array.from({ length: 10 }, () => ({ ...RESULT[0] }));
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 8, shelves: true });
+		});
+
+		it('drops the shelves when the preset forbids them', async () => {
+			eqConstraintsStore.presets = [
+				...BUILTIN_PRESETS,
+				{ ...BUILTIN_PRESETS[0], id: 'pk-only', label: 'PK only', allowLsq: false, allowHsq: false }
+			];
+			eqConstraintsStore.activeId = 'pk-only';
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 8, shelves: false });
+		});
+
+		it('narrows the requested window to what the preset allows', async () => {
+			eqConstraintsStore.presets = [
+				...BUILTIN_PRESETS,
+				{ ...BUILTIN_PRESETS[0], id: 'tight', label: 'Tight', gainMin: -6, gainMax: 6, qMax: 3 }
+			];
+			eqConstraintsStore.activeId = 'tight';
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({
+				limits: { minGain: -6, maxGain: 6, maxQ: 2 }
 			});
 		});
 
@@ -287,7 +448,7 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(5);
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
 		});
 
 		// This used to resolve to a single band, which made AutoEQ look broken to
@@ -300,7 +461,7 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(8);
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 6, shelves: true });
 		});
 
 		it('honours EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT for the empty stack', async () => {
@@ -311,7 +472,7 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(12);
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 10, shelves: true });
 		});
 
 		it('ignores a nonsensical configured band count', async () => {
@@ -322,7 +483,7 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(8);
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 6, shelves: true });
 		});
 
 		// Generating 8 and letting `replaceFilters` trim to 5 fits worse than
@@ -339,7 +500,7 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2].maxFilters).toBe(5);
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
 		});
 
 		// Scoped to one ear, AutoEQ has to optimize against that ear's curve —
@@ -421,7 +582,7 @@ describe('EqAutoEq', () => {
 
 			await runButton().click();
 
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH'));
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH', null));
 		});
 
 		// Scoped, so a run on one ear can't delete the shared bands or the other
@@ -433,7 +594,7 @@ describe('EqAutoEq', () => {
 
 			await runButton().click();
 
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'L'));
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'L', null));
 		});
 
 		// Without this the run lands silently: filters appear in the list, the
@@ -475,9 +636,9 @@ describe('EqAutoEq', () => {
 		});
 
 		it('disables the button while a run is in flight', async () => {
-			let release: (v: EQFilter[]) => void = () => {};
+			let release: (v: typeof OUTCOME) => void = () => {};
 			runInWorker.mockReturnValue(
-				new Promise<EQFilter[]>((resolve) => {
+				new Promise<typeof OUTCOME>((resolve) => {
 					release = resolve;
 				})
 			);
@@ -486,8 +647,256 @@ describe('EqAutoEq', () => {
 
 			await runButton().click();
 
-			await vi.waitFor(() => expect(page.getByRole('button').element()).toBeDisabled());
-			release(RESULT);
+			await vi.waitFor(() => expect(runButton().element()).toBeDisabled());
+			release(OUTCOME);
+		});
+	});
+
+	// ── Auto-apply ───────────────────────────────────────────────────────────
+
+	describe('auto-apply', () => {
+		const autoSwitch = () => page.getByRole('switch', { name: m.equalizer_autoeq_auto_apply() });
+		const recalcButton = () =>
+			page.getByRole('button', { name: m.equalizer_autoeq_recalc_button() });
+
+		/** Waits out the debounce, then asserts nothing else was queued. */
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 400));
+
+		beforeEach(() => {
+			// These need the real command layer: the guard compares the array a run
+			// wrote against the live one, and undo has to see the entries.
+			replaceFilters.mockRestore();
+			replaceFilters = vi.spyOn(eqCommands, 'replaceFiltersInScope');
+		});
+
+		/** Switches auto-apply on and waits for the run that doing so starts. */
+		async function enable() {
+			await autoSwitch().click();
+			await vi.waitFor(() => expect(eqStore.filters).toHaveLength(1));
+			expect(autoEqService.autoApply).toBe(true);
+		}
+
+		// Same element, relabelled — swapping it out would drop keyboard focus.
+		it('relabels Run as Recalculate once a result lands', async () => {
+			seedPair();
+			render(EqAutoEq);
+			const before = runButton().element();
+
+			await runButton().click();
+
+			await expect.element(recalcButton()).toBeInTheDocument();
+			expect(recalcButton().element()).toBe(before);
+		});
+
+		it('is unavailable until a device and a target are picked', async () => {
+			render(EqAutoEq);
+
+			await expect.element(autoSwitch()).toBeDisabled();
+		});
+
+		it('runs as soon as it is switched on', async () => {
+			seedPair();
+			render(EqAutoEq);
+
+			await enable();
+
+			expect(runInWorker).toHaveBeenCalledOnce();
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		it('re-runs when the target curve changes, as one undo entry', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			// A tilt rewrites the target's channels under the same uuid.
+			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
+			expect(runInWorker.mock.calls[1][1]).toEqual(curve(3));
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters).toEqual([]);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('coalesces a burst of option edits into one run', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			settingsStore.autoEqOptions.freqMin = 30;
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			settingsStore.autoEqOptions.freqMin = 40;
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
+			await settle();
+			expect(runInWorker).toHaveBeenCalledTimes(2);
+			expect(runInWorker.mock.calls[1][2]).toMatchObject({ limits: { minFc: 40 } });
+		});
+
+		it('ignores changes that leave the curves and options as they were', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			// Same channel arrays under a new item, the way a recolor lands.
+			const item = frStore.get('src')!;
+			frStore.set('src', { ...item, colors: {} } as unknown as FRDataObject);
+			await settle();
+
+			expect(runInWorker).toHaveBeenCalledOnce();
+		});
+
+		// Opening the Graph panel re-applies the stored tilt, which hands the
+		// target fresh arrays holding the same numbers.
+		it('ignores a target rebuilt with the same numbers', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
+			await settle();
+
+			expect(runInWorker).toHaveBeenCalledOnce();
+		});
+
+		// Pinned when it was switched on: the list being scoped to L is a view, and
+		// the band count is the one the user ran with.
+		it('keeps the scope and band count it started with', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			eqStore.channelScope = 'L';
+			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
+			expect(replaceFilters.mock.calls[1][1]).toBe('BOTH');
+			expect(runInWorker.mock.calls[1][2]).toMatchObject({ peaking: 6, shelves: true });
+		});
+
+		it('keeps running with the panel closed', async () => {
+			seedPair();
+			const view = await render(EqAutoEq);
+			await enable();
+			view.unmount();
+
+			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
+		});
+
+		// Switching EQ off to compare is a real workflow; an answer nobody asked
+		// for must not undo it.
+		it('leaves the EQ toggle alone on an auto-applied run', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+			eqStore.isEnabled = false;
+
+			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		describe('switches itself off', () => {
+			it('when the filters are edited by hand', async () => {
+				seedPair();
+				render(EqAutoEq);
+				await enable();
+
+				eqCommands.addBand({ type: 'PK', freq: 5000, gain: 2, q: 1, enabled: true });
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_auto_apply_stopped_edited()))
+					.toBeInTheDocument();
+				expect(autoEqService.autoApply).toBe(false);
+
+				frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
+				await settle();
+				expect(runInWorker).toHaveBeenCalledOnce();
+				expect(eqStore.filters).toHaveLength(2);
+			});
+
+			it('when the target is swapped for another', async () => {
+				seedPair();
+				frStore.set('tgt2', makeItem('tgt2', 'target', curve(1)));
+				render(EqAutoEq);
+				await enable();
+
+				eqStore.autoEqTargetUUID = 'tgt2';
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_auto_apply_stopped_input()))
+					.toBeInTheDocument();
+				// A result for another target is no result for this one.
+				await expect.element(runButton()).toBeInTheDocument();
+			});
+
+			it('when the target is removed', async () => {
+				seedPair();
+				render(EqAutoEq);
+				await enable();
+
+				frStore.delete('tgt');
+
+				await vi.waitFor(() => expect(autoEqService.stopReason).toBe('input'));
+				expect(autoEqService.autoApply).toBe(false);
+			});
+
+			it('when the source device changes', async () => {
+				seedPair();
+				frStore.set('src2', makeItem('src2', 'phone', curve(4)));
+				render(EqAutoEq);
+				await enable();
+
+				eqStore.sourcePhoneUUID = 'src2';
+
+				await vi.waitFor(() => expect(autoEqService.stopReason).toBe('input'));
+			});
+
+			it('when the EQ preset changes', async () => {
+				seedPair();
+				render(EqAutoEq);
+				await enable();
+
+				eqConstraintsStore.activeId = BUILTIN_PRESETS.find(
+					(p) => p.id !== DEFAULT_CONSTRAINT_ID
+				)!.id;
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_auto_apply_stopped_preset()))
+					.toBeInTheDocument();
+			});
+
+			// Too slow to chase every nudge — and the notice already says why.
+			it('and stays unavailable once the fallback optimizer answered', async () => {
+				runInWorker.mockResolvedValue({ ...OUTCOME, engine: 'typescript' });
+				seedPair();
+				render(EqAutoEq);
+
+				await autoSwitch().click();
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
+					.toBeInTheDocument();
+				expect(autoEqService.autoApply).toBe(false);
+				await expect.element(autoSwitch()).toBeDisabled();
+			});
+		});
+
+		it('says nothing when the user switches it off', async () => {
+			seedPair();
+			render(EqAutoEq);
+			await enable();
+
+			await autoSwitch().click();
+
+			expect(autoEqService.autoApply).toBe(false);
+			expect(page.getByRole('status').element().textContent).toBe('');
 		});
 	});
 });

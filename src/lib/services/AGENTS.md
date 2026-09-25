@@ -13,6 +13,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `data-provider.svelte.ts` — see below
 - `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
+- `autoeq-service.svelte.ts` — AutoEQ runs and auto-apply; see below
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
 - `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
@@ -66,8 +67,10 @@ applyTargetAdjustment.
   `anchorAndNormalizeSamples`), or the average silently ignores every single-ear correction. That
   branch requires the source to already have all three channels — it rewrites an AVG, never invents
   one, so a phone measured as a single curve keeps the shared-only path.
-- `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve, installed once from
-  `AppShell.onMount` and never disposed. It must **not** live in `EqualizerPanel.svelte`: that panel
+- `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
+  `eqStore.preamp`** (`utils/eq-preamp.ts`), installed once from `AppShell.onMount` and never
+  disposed. The preamp used to be derived in `EqFilterList`, so filters changed from another panel —
+  a global undo, AutoEQ auto-apply following a tilt — kept a stale preamp. It must **not** live in `EqualizerPanel.svelte`: that panel
   unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
   `<svelte:window>` and fires from any tab — a panel-scoped effect left the curve showing the EQ'd
   response until the user reopened the Equalizer tab.
@@ -130,6 +133,32 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 - **`play()` applies both constraints synchronously before starting the oscillator.** The `$effect`
   that normally does it flushes on a microtask, so a band drawn before the first play would
   otherwise reach the sweep a cycle late.
+
+## `autoeq-service.svelte.ts` — AutoEQ runs and auto-apply
+
+Builds the worker request (band count, bounds, fit mode), runs it and lands the result through
+`replaceFiltersInScope`. `EqAutoEq` is only the view. It is a service because auto-apply has to
+outlive the Equalizer panel — tilting the target from the Graph panel is what it exists for. Its
+two effects install lazily on the first switch-on and are never disposed.
+
+- **A run pins a session**: source, target, scope, band count, preset. Auto-apply re-runs against
+  the session, never the live panel, so scoping the list to L doesn't start fitting that ear.
+  **Recalculate** (the same button, relabelled) re-pins from the current state.
+- **It fails closed.** A different source or target, a removed curve, a preset change, the
+  fallback optimizer, or _any_ other write to `eqStore.filters` switches it off with a reason. "Any
+  other write" is detected by identity: the session keeps the array its own run wrote, and every
+  edit path (add, drag, undo, import, A/B snapshot) assigns a new one. Don't try to whitelist edits.
+- **The guard must read `eqStore.filters` unconditionally.** `written` is null until the first
+  result lands; reading the list only behind that check leaves it untracked and the guard never
+  fires again.
+- **The trigger is blind to `eqStore.filters`**, which every run writes — tracking it loops. It
+  compares the serialized request, then the source/target curves by identity and **then by value**:
+  `TargetCustomizer` re-applies the stored tilt whenever the Graph panel mounts, handing the target
+  fresh arrays with the same numbers, and identity alone re-ran AutoEQ on every panel switch. A `#landed` counter re-checks once a run finishes, which
+  catches input that moved while it was in flight.
+- **Auto-applied results `amend` the session's undo entry** while it is still `isLatest`, so one
+  undo returns to before AutoEQ. They also skip `ensureEnabled()`: an A/B bypass held while nudging
+  the target must survive.
 
 ## `aggregate-index.svelte.ts` — cross-site search
 

@@ -1,14 +1,23 @@
 /**
  * The AutoEQ worker is a message shim: it unwraps a `run-autoeq` request, hands
- * it to `Equalizer.autoEQ` and posts one of two replies back. The optimization
- * itself is covered by `utils/equalizer.spec.ts` — what is asserted here is the
- * protocol, because it is the half `autoeq-client.spec.ts` has to fake.
+ * it to `runAutoEq` and posts one of two replies back. The mapping is covered by
+ * `autoeq-engine.spec.ts` and the optimization by `utils/equalizer.spec.ts` —
+ * what is asserted here is the protocol, because it is the half
+ * `autoeq-client.spec.ts` has to fake.
+ *
+ * turboEQ is stubbed to fail loading, so every reply here comes from the
+ * fallback. That is itself worth pinning — the worker must answer either way —
+ * and it lets a case stand in for the fallback's own failure below.
  *
  * `self` does not exist in the node project, so it is stubbed before the module
  * is imported: the shim installs its handler at module scope, and `resetModules`
  * gives each case a fresh install against its own stub.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('@potatosalad775/turboeq', () => ({
+	TurboEQ: { load: () => Promise.reject(new Error('stubbed out')) }
+}));
 
 interface WorkerScope {
 	onmessage: ((e: MessageEvent) => void) | null;
@@ -65,6 +74,7 @@ describe('autoeq.worker', () => {
 		await loadWorker();
 
 		post({ type: 'something-else', id: 1 });
+		await Promise.resolve();
 
 		expect(scope.postMessage).not.toHaveBeenCalled();
 	});
@@ -79,19 +89,26 @@ describe('autoeq.worker', () => {
 				id: 7,
 				source: sloped(),
 				target: flat(),
-				options: { maxFilters: 3 }
+				request: { kind: 'parametric', peaking: 3, shelves: false }
 			});
+			await vi.waitFor(() => expect(scope.postMessage).toHaveBeenCalled());
 		});
 
 		it('replies with a result carrying the request id', () => {
 			expect(lastReply()).toMatchObject({ type: 'autoeq-result', id: 7 });
 		});
 
-		it('returns filters that honour the maxFilters option', () => {
+		it('returns no more filters than the request asked for', () => {
 			const filters = lastReply().filters as unknown[];
 
 			expect(filters.length).toBeGreaterThan(0);
 			expect(filters.length).toBeLessThanOrEqual(3);
+		});
+
+		it('says which optimizer answered', () => {
+			// The client logs it and the UI can tell the user the fit came from
+			// the slower engine; a reply without it reads as turboEQ silently.
+			expect(lastReply().engine).toBeTypeOf('string');
 		});
 
 		it('reports how long the optimization took', () => {
@@ -108,7 +125,14 @@ describe('autoeq.worker', () => {
 		// care reject it earlier — `EqAutoEq` checks `sourcePoints.length`.
 		await loadWorker();
 
-		post({ type: 'run-autoeq', id: 8, source: null, target: flat(), options: {} });
+		post({
+			type: 'run-autoeq',
+			id: 8,
+			source: null,
+			target: flat(),
+			request: { kind: 'parametric', peaking: 3, shelves: false }
+		});
+		await vi.waitFor(() => expect(scope.postMessage).toHaveBeenCalled());
 
 		expect(lastReply()).toMatchObject({ type: 'autoeq-result', id: 8 });
 	});
@@ -121,7 +145,14 @@ describe('autoeq.worker', () => {
 			// `_interpolatePoints` spreads `points` once it is past the empty guard.
 			await loadWorker();
 
-			post({ type: 'run-autoeq', id: 9, source: 42, target: flat(), options: {} });
+			post({
+				type: 'run-autoeq',
+				id: 9,
+				source: 42,
+				target: flat(),
+				request: { kind: 'parametric', peaking: 3, shelves: false }
+			});
+			await vi.waitFor(() => expect(scope.postMessage).toHaveBeenCalled());
 
 			expect(lastReply()).toMatchObject({ type: 'autoeq-error', id: 9 });
 			expect(lastReply().error).toBeTypeOf('string');
@@ -130,7 +161,7 @@ describe('autoeq.worker', () => {
 		it('stringifies a throw that is not an Error', async () => {
 			// The real Equalizer only ever throws Errors, so the `String(err)` arm is
 			// unreachable without standing in for it.
-			vi.doMock('../utils/equalizer.js', () => ({
+			vi.doMock('$lib/utils/equalizer.js', () => ({
 				Equalizer: class {
 					autoEQ(): never {
 						throw 'boom';
@@ -139,10 +170,17 @@ describe('autoeq.worker', () => {
 			}));
 			await loadWorker();
 
-			post({ type: 'run-autoeq', id: 10, source: flat(), target: flat(), options: {} });
+			post({
+				type: 'run-autoeq',
+				id: 10,
+				source: flat(),
+				target: flat(),
+				request: { kind: 'parametric', peaking: 3, shelves: false }
+			});
+			await vi.waitFor(() => expect(scope.postMessage).toHaveBeenCalled());
 
 			expect(lastReply()).toMatchObject({ type: 'autoeq-error', id: 10, error: 'boom' });
-			vi.doUnmock('../utils/equalizer.js');
+			vi.doUnmock('$lib/utils/equalizer.js');
 		});
 	});
 });

@@ -3,7 +3,7 @@
 ## Reach for the Atoms First
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element
+`AccordionItem`, `PopoverPanel`, `SegmentedControl`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element
 — they carry the focus-visible ring, the `transition-colors`, the disabled styling and the
 semantic-token palette, and a raw `<button>` silently opts out of all four.
 
@@ -33,6 +33,14 @@ semantic-token palette, and a raw `<button>` silently opts out of all four.
 - Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
   `aria-controls` and `disabled` work as written.
 
+`SegmentedControl` is the one-of-N picker (the EQ channel scope, the AutoEQ fit mode):
+
+- **bits-ui `ToggleGroup` (`type="single"`), not `Tabs`.** Tabs announce "tab 1 of 2" and expect a
+  tab panel to switch; these pick a value. Items come out as `role="radio"` with `aria-checked`, so
+  query them with `getByRole('radio')` — there is no `aria-pressed` on a single group.
+- **The value can't be cleared.** A single toggle group sets `''` when the pressed item is pressed
+  again; the atom's function binding drops that, so a segmented control always holds one value.
+
 Only `Button` merges its classes. On a raw element — the inputs in `EqFilterCard`, say — two
 conflicting utilities still tie on specificity, so `!` remains the way to force one.
 
@@ -47,7 +55,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, ScrollArea, Skeleton, Switch
+- `atoms/` — Button, Input, Accordion, PopoverPanel, SegmentedControl, ScrollArea, Skeleton, Switch
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect
@@ -69,6 +77,13 @@ sort to the head of the list. That snapshot then freezes — on the first user t
 first non-empty `loadedIds` for a `?share=` boot where the devices land a tick after mount. Making
 the sort track `loadedIds` live looks like a simplification and re-sorts rows out from under the
 cursor mid-click; keeping a stale pin on a device the user just unloaded is the deliberate trade.
+
+**The preamp samples every band's own centre** (`utils/eq-preamp.ts`, written to `eqStore` by
+`dataProvider.installEqCurveSync`; `EqFilterList` only shows it and toasts a reduction). It is minus
+the largest boost the enabled filters apply, read on a 1/48-octave grid _plus_ each band's `freq`. A narrow
+boost peaks at its centre, and a grid that straddles it under-reads the peak: the 100-point grid
+this replaced missed up to 0.9 dB at Q 6, and the output clipped by exactly that. AutoEQ leaves the
+preamp to this derivation, so it has to be right for any filter a fit can return.
 
 **`graph/GraphContainer` — curve labels are measured in one batch per frame.** `measureLabel` only
 queues its node; a single rAF reads every `getBBox()` first and then writes every width. Writing each
@@ -103,8 +118,8 @@ Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy
   (the Svelte plugin matches `*.svelte.ts`, which `*.svelte.spec.ts` is not). See the Escape-reverts
   case in `equalizer/EqFilterCard.svelte.spec.ts`.
 - **`Button` mirrors `title` into `aria-label`**, which overrides its text content. A button whose
-  title changes with state (AutoEQ's run button in graphic mode) changes accessible name too, so
-  `getByRole('button', { name })` has to follow the title, not the label you see.
+  title changes with state changes accessible name too, so `getByRole('button', { name })` has to
+  follow the title, not the label you see.
 - **Do not wait on something the handler does first.** `GraphUploader` clears `input.value` on its
   opening line, long before it has parsed anything, so waiting on that let in-flight uploads spill
   their calls into the next test. Poll the observable effect — spy calls, a toast — until it stops

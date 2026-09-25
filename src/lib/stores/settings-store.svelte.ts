@@ -17,6 +17,8 @@ export type AutoEqOptions = {
 	gainMin: number;
 	gainMax: number;
 	useShelfFilter: boolean;
+	/** Fit the curve's shape to 20 kHz rather than AutoEq's smoothed treble. */
+	exactMatch: boolean;
 };
 
 export type AutoEqPersistMode = 'session' | 'local';
@@ -28,7 +30,8 @@ const DEFAULT_AUTOEQ: AutoEqOptions = {
 	qMax: 2.0,
 	gainMin: -12,
 	gainMax: 12,
-	useShelfFilter: true
+	useShelfFilter: true,
+	exactMatch: true
 };
 
 class SettingsStore {

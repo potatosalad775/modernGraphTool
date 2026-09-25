@@ -86,7 +86,13 @@ If you don't want to hand-design filters, open the **AutoEQ** accordion section.
 2. **Click the AutoEQ button**, which analyzes the difference between the device and the target and generates a set of filters that minimizes it.
 3. **Apply** the filters to the filter list. Tweak further from there if you want.
 
-AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands.
+AutoEQ can optionally include Low Shelf / High Shelf filters in its output as well as Peaking, which usually produces a flatter match with fewer bands. The two shelves count against the band total, so a ten-band run with shelves on is eight peaking filters plus the pair.
+
+The fit mode picks between **Exact match**, the default, which fits the curve's full shape up to 20 kHz the way the graph shows it, and **Treble-safe**, a careful approach that broadly adjusts the high-frequency range, minimizing errors caused by fit conditions and physical anatomy. See [Fit mode](../features/equalizer.mdx#fit-mode) for when to choose which.
+
+After the first run the button reads **Recalculate**, and the **Auto-apply** switch beside it re-runs AutoEQ whenever the target or the options change — handy while tilting a target to taste. Editing the filters by hand switches it off. See [Auto-apply](../features/equalizer.mdx#auto-apply).
+
+With a graphic-EQ preset active, AutoEQ optimizes the gain of each fixed band — the frequency and Q inputs disappear, because the preset already sets them.
 
 AutoEQ follows the channel switch: on **L+R** it works from the averaged curve, and scoped to one ear it works from that ear's measurement and replaces only that ear's bands.
 

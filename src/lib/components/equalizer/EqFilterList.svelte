@@ -24,6 +24,9 @@
 	import Button from '../atoms/Button.svelte';
 	import { downloadText } from '$lib/utils/download-text.js';
 
+	/** Quiet time after the last edit before the preamp toast may fire, ms. */
+	const PREAMP_TOAST_SETTLE_MS = 800;
+
 	let expandedIndex = $state<number | null>(null);
 
 	const scope = $derived(eqStore.channelScope);
@@ -34,37 +37,42 @@
 		scope === 'BOTH' ? 0 : countSharedFilters(eqStore.filters.filter((f) => f.enabled))
 	);
 
-	const preamp = $derived.by(() => {
-		const enabled = eqStore.filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
-		if (!enabled.length) return 0;
-		const baseFreqs = Array.from(
-			{ length: 100 },
-			(_, i) => 20 * Math.pow(10, (i * Math.log10(20000 / 20)) / 99)
-		);
-		const baseFR: [number, number][] = baseFreqs.map((f) => [f, 0]);
-		const eq = new Equalizer();
-		// One global preamp, sized for the ear that needs the most headroom.
-		// Taking the worst case is what keeps the louder channel from clipping;
-		// with no per-channel bands both sides compute the same number, so this
-		// is the old value exactly.
-		const perEar = (['L', 'R'] as const).map((ch) =>
-			eq.calculatePreamp(baseFR, effectiveFilters(enabled, ch))
-		);
-		return parseFloat(Math.min(...perEar).toFixed(1));
-	});
+	/** Derived from the filters by `dataProvider.installEqCurveSync`, not here. */
+	const preamp = $derived(eqStore.preamp);
+
+	/**
+	 * The preamp before the current burst of edits, or null when none is
+	 * pending. A slider drag or a held arrow key moves the preamp dozens of
+	 * times, so the toast waits for the edits to settle and compares where the
+	 * burst ended with where it began: one toast per burst, and none for a burst
+	 * that dipped and came back.
+	 */
+	let preampBeforeEdits: number | null = null;
+	let preampToastTimer: ReturnType<typeof setTimeout> | undefined;
+	/** The last value seen, so the first pass after mount starts no burst. */
+	let lastPreamp = untrack(() => eqStore.preamp);
 
 	$effect(() => {
 		const next = preamp;
-		// The effect writes eqStore.preamp; reading it untracked keeps that write
-		// from re-triggering this effect.
-		untrack(() => {
-			const prev = eqStore.preamp;
-			if (next < prev - 0.05) {
-				toast.info(m.eq_preamp_auto_reduced({ value: next.toFixed(1) }));
-			}
-			eqStore.preamp = next;
-		});
+		if (next === lastPreamp) return;
+		preampBeforeEdits ??= lastPreamp;
+		lastPreamp = next;
+		clearTimeout(preampToastTimer);
+		preampToastTimer = setTimeout(announcePreamp, PREAMP_TOAST_SETTLE_MS);
 	});
+
+	// Not in the effect above: its cleanup would run on every re-run, including
+	// ones that change nothing, and drop a toast that is still owed.
+	$effect(() => () => clearTimeout(preampToastTimer));
+
+	function announcePreamp() {
+		const before = preampBeforeEdits;
+		preampBeforeEdits = null;
+		const now = eqStore.preamp;
+		if (before !== null && now < before - 0.05) {
+			toast.info(m.eq_preamp_auto_reduced({ value: now.toFixed(1) }));
+		}
+	}
 
 	const atMaxBands = $derived.by(() => {
 		const preset = eqConstraintsStore.active;

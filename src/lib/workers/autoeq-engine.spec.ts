@@ -59,42 +59,45 @@ describe('planBands', () => {
 });
 
 describe('buildBanks', () => {
-	it('intersects a wider host range with AutoEq own defaults', () => {
-		// A device profile allows Q 0.1 to 10; AutoEq allows 0.18248 to 6.
-		// Passing the profile straight through would quietly loosen the defaults.
-		const defaults = engine.defaultLimits('peaking');
-		const [bank] = buildBanks(engine, {
-			kind: 'parametric',
-			peaking: 4,
-			shelves: false,
-			fit: 'autoeq',
-			limits: { minQ: 0.1, maxQ: 10, minFc: 20, maxFc: 20000 }
-		});
+	it('takes the user Q and gain windows as given in either mode', () => {
+		// A device profile allows Q 0.1 to 10 and AutoEq 0.18248 to 6. The user's
+		// window is the constraint; narrowing it to AutoEq's used to turn Q 10
+		// into 6 without a word.
+		for (const fit of ['exact', 'autoeq'] as const) {
+			const [bank] = buildBanks(engine, {
+				kind: 'parametric',
+				peaking: 4,
+				shelves: false,
+				fit,
+				limits: { minQ: 0.1, maxQ: 10, minGain: -40, maxGain: 40, minFc: 20, maxFc: 20000 }
+			});
 
-		expect(bank.filters).toHaveLength(4);
-		expect(bank.filters[0].maxQ).toBe(defaults.maxQ);
-		expect(bank.filters[0].maxFc).toBe(defaults.maxFc);
+			expect(bank.filters).toHaveLength(4);
+			expect(bank.filters[0]).toMatchObject({ minQ: 0.1, maxQ: 10, minGain: -40, maxGain: 40 });
+		}
 	});
 
-	it('lets an exact-match band reach past 10 kHz, and nothing else loosens', () => {
-		// AutoEq's fc window stops at 10 kHz because its loss stops seeing shape
-		// there. Exact match scores shape to the top, so the user's window stands;
-		// Q and gain are still held to AutoEq's.
-		const defaults = engine.defaultLimits('peaking');
-		const [bank] = buildBanks(engine, {
+	it('keeps treble-safe bands at or below 10 kHz and lets exact-match ones past it', () => {
+		// AutoEq's loss sees only the level above 10 kHz, so bands up there
+		// would cancel each other. Exact match scores the shape to the top.
+		const limits = { minFc: 20, maxFc: 16000 };
+		const [safe] = buildBanks(engine, {
 			kind: 'parametric',
-			peaking: 4,
-			shelves: true,
+			peaking: 2,
+			shelves: false,
+			fit: 'autoeq',
+			limits
+		});
+		const [exact] = buildBanks(engine, {
+			kind: 'parametric',
+			peaking: 2,
+			shelves: false,
 			fit: 'exact',
-			limits: { minQ: 0.1, maxQ: 10, minGain: -40, maxGain: 40, minFc: 20, maxFc: 16000 }
+			limits
 		});
 
-		const peak = bank.filters.find((f) => f.type === 'peaking')!;
-		expect(peak).toMatchObject({ minFc: 20, maxFc: 16000 });
-		expect(peak).toMatchObject({ minQ: defaults.minQ, maxQ: defaults.maxQ });
-		expect(peak).toMatchObject({ minGain: defaults.minGain, maxGain: defaults.maxGain });
-		const shelf = bank.filters.find((f) => f.type === 'low_shelf')!;
-		expect(shelf).toMatchObject({ minGain: defaults.minGain, maxGain: defaults.maxGain });
+		expect(safe.filters[0]).toMatchObject({ minFc: 20, maxFc: 10000 });
+		expect(exact.filters[0]).toMatchObject({ minFc: 20, maxFc: 16000 });
 	});
 
 	it('fits exactly unless told otherwise', () => {
@@ -114,12 +117,41 @@ describe('buildBanks', () => {
 		expect(bank.filters[0]).toMatchObject({ minGain: -6, maxGain: 6 });
 	});
 
-	it('pins the two shelves and leaves only their gain free', () => {
-		const [bank] = buildBanks(engine, { kind: 'parametric', peaking: 3, shelves: true });
+	it('lets both shelves move, inside AutoEq shelf Q window', () => {
+		// Pinned at 105 Hz and 10 kHz, the shelves were two fixed bands out of
+		// every budget: 40% of five.
+		const [bank] = buildBanks(engine, {
+			kind: 'parametric',
+			peaking: 3,
+			shelves: true,
+			limits: { minFc: 20, maxFc: 18000, minQ: 0.1, maxQ: 10, minGain: -15, maxGain: 15 }
+		});
 
 		expect(bank.filters).toHaveLength(5);
-		expect(bank.filters[0]).toMatchObject({ type: 'low_shelf', fc: 105, q: 0.7 });
-		expect(bank.filters[1]).toMatchObject({ type: 'high_shelf', fc: 10000, q: 0.7 });
+		for (const [i, type] of (['low_shelf', 'high_shelf'] as const).entries()) {
+			expect(bank.filters[i]).toMatchObject({
+				type,
+				minFc: 20,
+				maxFc: 18000,
+				minQ: 0.4,
+				maxQ: 0.7,
+				minGain: -15,
+				maxGain: 15
+			});
+			expect(bank.filters[i].fc).toBeUndefined();
+			expect(bank.filters[i].q).toBeUndefined();
+		}
+	});
+
+	it('pins shelf Q at the nearest value the user allows when the windows miss', () => {
+		const [bank] = buildBanks(engine, {
+			kind: 'parametric',
+			peaking: 3,
+			shelves: true,
+			limits: { minQ: 1, maxQ: 4 }
+		});
+
+		expect(bank.filters[0]).toMatchObject({ minQ: 1, maxQ: 1 });
 	});
 
 	it('pins a graphic grid band by band, each with its own Q', () => {

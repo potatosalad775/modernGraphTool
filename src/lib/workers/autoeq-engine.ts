@@ -8,8 +8,8 @@
  * once, behind a perceptual stage that smooths, protects narrow dips, limits
  * slope to 18 dB/oct and caps the correction's largest boost.
  *
- * turboEQ fits better at every band count and runs ~100x faster: 22 ms p50 over
- * 1,310 real measurements against 1,677 ms for eight bands here. It is also the
+ * turboEQ runs two orders of magnitude faster, and from eight bands up it fits
+ * closer; the numbers are in the docs' autoeq-benchmarks page. It is also the
  * only one of the two that returns the band count it was asked for — the
  * TypeScript one drops bands in its prune pass, so "ask 8, get 7" is normal
  * there and impossible in turboEQ.
@@ -23,9 +23,10 @@
  *
  * **Exact match is the default.** AutoEq reads the treble cautiously — smoothed
  * over two octaves, slope-limited, scored on its mean level only above 10 kHz —
- * which is right for a rig nobody trusts up there and wrong for a user lining
- * the EQ'd curve up against the target on the graph. `'exact'` turns all three
- * off, which is also what the CrinGraph-lineage engine always did. See
+ * and its objective also penalizes steep bands, smooths the target a fifth of
+ * an octave and pins the level before fitting. That is right for a rig nobody
+ * trusts up there and wrong for a user lining the EQ'd curve up against the
+ * target on the graph. turboEQ's `fit: 'exact'` turns all of it off; see
  * `FitMode`.
  *
  * **The fallback fires on any failure, not just a missing module.** The
@@ -54,7 +55,6 @@ import type {
 	TurboEQ as TurboEQClass,
 	TurboEQBankSpec,
 	TurboEQFilter,
-	TurboEQOptions,
 	TurboEQRunOptions
 } from '@potatosalad775/turboeq';
 
@@ -63,16 +63,6 @@ const SAMPLE_RATE = 48000;
 
 /** turboEQ's filter kinds against mGT's. */
 const TYPE_OF = { peaking: 'PK', low_shelf: 'LSQ', high_shelf: 'HSQ' } as const;
-
-/**
- * What `'exact'` switches off, per turboEQ's exact-match guide: the mean-only
- * loss above 10 kHz, the two-octave treble smoothing and the slope limit.
- */
-const EXACT_MATCH: TurboEQOptions = {
-	lossFlattenF: Infinity,
-	trebleWindowSize: 1 / 12,
-	maxSlope: Infinity
-};
 
 /**
  * The run options a request adds beyond its banks.
@@ -90,10 +80,10 @@ const EXACT_MATCH: TurboEQOptions = {
  * derives it from whatever filters are in the store, so a fit needs to do
  * nothing about it here.
  */
-function runOptions(request: AutoEqRequest): TurboEQOptions {
+function runOptions(request: AutoEqRequest): TurboEQRunOptions {
 	const ceiling = request.kind === 'graphic' ? request.gain?.max : request.limits?.maxGain;
 	return {
-		...(fitMode(request) === 'exact' ? EXACT_MATCH : {}),
+		fit: fitMode(request),
 		...(typeof ceiling === 'number' && Number.isFinite(ceiling)
 			? { maxGain: Math.max(0, ceiling) }
 			: {})
@@ -148,32 +138,30 @@ export function buildBanks(eq: TurboEQClass, request: AutoEqRequest): TurboEQBan
 		];
 	}
 
-	if (fitMode(request) === 'autoeq') {
-		const bank = eq.peakingBank({
-			peaking: request.peaking,
-			shelves: request.shelves,
-			limits: request.limits ?? {},
-			shelfLimits: request.shelfLimits
-		});
-		return [{ ...bank, ...lossBand(request.loss) }];
-	}
-
-	// Exact match lets a band sit anywhere the user allows, 20 kHz included;
-	// AutoEq's own window stops at 10 kHz because its loss stops seeing shape
-	// there, and exact match is the mode where it does not. Q and gain are
-	// still held to AutoEq's windows, so only frequency is taken as given.
+	// The user's Q and gain windows are the bounds, as given. turboEQ's helpers
+	// narrow a host's range to AutoEq's defaults unless told otherwise, which
+	// turned a Q 0.1 to 10 request into 0.18 to 6 and a ±40 dB one into ±20
+	// without a word. Only fc differs by mode: treble-safe keeps AutoEq's
+	// 10 kHz ceiling, because its loss sees only the level above it and bands
+	// up there would cancel each other; exact match scores the shape to the
+	// top, so the user's window stands, 20 kHz by default.
 	const peak = eq.defaultLimits('peaking');
-	const shelf = eq.defaultLimits('low_shelf');
+	const limits = request.limits ?? {};
+	const exact = fitMode(request) === 'exact';
+	const bandLimits: Required<BandLimits> = {
+		minFc: limits.minFc ?? peak.minFc,
+		maxFc: exact ? (limits.maxFc ?? GRID_MAX_F) : Math.min(limits.maxFc ?? peak.maxFc, peak.maxFc),
+		minQ: limits.minQ ?? peak.minQ,
+		maxQ: limits.maxQ ?? peak.maxQ,
+		minGain: limits.minGain ?? peak.minGain,
+		maxGain: limits.maxGain ?? peak.maxGain
+	};
 	const bank = eq.peakingBank({
 		peaking: request.peaking,
 		shelves: request.shelves,
-		limits: {
-			minFc: request.limits?.minFc ?? peak.minFc,
-			maxFc: request.limits?.maxFc ?? GRID_MAX_F,
-			...intersect(request.limits, peak, 'Q'),
-			...intersect(request.limits, peak, 'Gain')
-		},
-		shelfLimits: intersect(request.shelfLimits ?? request.limits, shelf, 'Gain'),
+		shelfPlacement: 'free',
+		limits: bandLimits,
+		shelfLimits: shelfWindow(eq, bandLimits, request.shelfLimits),
 		bounds: 'as-given'
 	});
 	return [{ ...bank, ...lossBand(request.loss) }];
@@ -182,17 +170,35 @@ export function buildBanks(eq: TurboEQClass, request: AutoEqRequest): TurboEQBan
 /** The top of turboEQ's fitting grid, Hz. */
 const GRID_MAX_F = 20000;
 
-/** `limits`' window for one parameter, narrowed to `defaults`'. */
-function intersect(
-	limits: BandLimits | undefined,
-	defaults: Required<BandLimits>,
-	what: 'Q' | 'Gain'
+/**
+ * Where the shelves may go. They are always free to move: pinning them at
+ * 105 Hz and 10 kHz, as every AutoEq preset does, spends two bands on fixed
+ * places, which is 40% of a five-band budget.
+ *
+ * fc takes the peaking bands' window. Q stays inside AutoEq's shelf window,
+ * 0.4 to 0.7, narrowed by the user's: past 0.707 a shelf overshoots into a
+ * bump, which is a peaking band's job. A user window that misses it
+ * altogether pins Q at the nearest value the user allows.
+ */
+function shelfWindow(
+	eq: TurboEQClass,
+	band: Required<BandLimits>,
+	given: BandLimits | undefined
 ): BandLimits {
-	const lo = `min${what}` as const;
-	const hi = `max${what}` as const;
+	const shelf = eq.defaultLimits('low_shelf');
+	let minQ = Math.max(shelf.minQ, band.minQ);
+	let maxQ = Math.min(shelf.maxQ, band.maxQ);
+	if (minQ > maxQ) {
+		const q = Math.min(Math.max(shelf.maxQ, band.minQ), band.maxQ);
+		minQ = maxQ = q;
+	}
 	return {
-		[lo]: Math.max(limits?.[lo] ?? defaults[lo], defaults[lo]),
-		[hi]: Math.min(limits?.[hi] ?? defaults[hi], defaults[hi])
+		minFc: band.minFc,
+		maxFc: band.maxFc,
+		minQ,
+		maxQ,
+		minGain: given?.minGain ?? band.minGain,
+		maxGain: given?.maxGain ?? band.maxGain
 	};
 }
 

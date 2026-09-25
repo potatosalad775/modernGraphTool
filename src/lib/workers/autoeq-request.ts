@@ -23,8 +23,8 @@ import type { EQFilter } from '$lib/utils/equalizer.js';
 export const MAX_BANDS = 32;
 
 /**
- * Per-band bounds. Q and gain are intersected with AutoEq's own defaults;
- * frequency is too, except in exact-match mode, which lets a band reach 20 kHz.
+ * Per-band bounds, taken as given. Only frequency is narrowed, and only in
+ * treble-safe mode, which places no band above 10 kHz.
  */
 export type BandLimits = TurboEQBandLimits;
 
@@ -37,17 +37,20 @@ export interface LossBand {
 /**
  * How the curve is read before it is fitted.
  *
- * - `'exact'` fits the shape of the curve on the graph, to 20 kHz: no treble
- *   smoothing, no slope limit, error scored at every frequency. This is what
- *   the CrinGraph-lineage engine always did, and what a user comparing the
- *   EQ'd curve against the target on screen expects.
- * - `'autoeq'` is AutoEq's own caution: the treble smoothed over two octaves,
- *   the correction held to 18 dB/oct, only the mean level scored above
- *   10 kHz, and no band placed above 10 kHz — because bands up there, scored
- *   on the mean alone, cancel each other at extreme gains.
+ * - `'exact'` fits the shape of the curve on the graph, to 20 kHz: turboEQ's
+ *   `fit: 'exact'`, which drops every AutoEq choice that keeps a fit from
+ *   following it — the treble smoothing, the slope limit, the mean-only loss
+ *   above 10 kHz, the penalty on steep bands, the fifth-octave smoothing of
+ *   the target, and the level pinned before fitting (the preamp takes care of
+ *   level). This is what a user comparing the EQ'd curve against the target
+ *   on screen expects.
+ * - `'autoeq'` is AutoEq's own caution, objective and all, with no band
+ *   placed above 10 kHz — because bands up there, scored on the mean alone,
+ *   cancel each other at extreme gains.
  *
- * In both, the correction's largest boost is capped at the gain range's
- * maximum — AutoEq's own 6 dB only when no maximum is given.
+ * In both, the user's Q and gain windows are taken as given, the shelves are
+ * free to move, and the correction's largest boost is capped at the gain
+ * range's maximum — AutoEq's own 6 dB only when no maximum is given.
  */
 export type FitMode = 'exact' | 'autoeq';
 
@@ -60,7 +63,7 @@ export type AutoEqRequest =
 			kind: 'parametric';
 			/** Peaking bands. The shelves below are **not** counted here. */
 			peaking: number;
-			/** Add a low shelf at 105 Hz and a high shelf at 10 kHz, gain free. */
+			/** Add a low and a high shelf, each free to move. */
 			shelves: boolean;
 			/** Where a band may sit and how far it may go. */
 			limits?: BandLimits;

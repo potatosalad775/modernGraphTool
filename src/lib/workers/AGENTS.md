@@ -17,9 +17,9 @@ quantized frequency grid, no perceptual stage. turboEQ is a Zig port of the orig
 gradient-based joint optimization of every parameter at once, behind a perceptual stage that
 smooths, protects narrow dips, limits slope to 18 dB/oct and caps positive gain at 6 dB.
 
-turboEQ fits better at every band count and is ~100x faster: 22 ms p50 over 1,310 real
-measurements against 1,677 ms for eight bands here. It also returns the band count it was asked
-for — the TypeScript one drops bands in its prune pass, so "ask 8, get 7" is normal there and
+turboEQ is two orders of magnitude faster and fits closer from eight bands up; the TypeScript engine
+still wins at five on IEMs (see "Benchmarks" and "Open items" below). turboEQ also returns the band
+count it was asked for — the TypeScript one drops bands in its prune pass, so "ask 8, get 7" is normal there and
 impossible in turboEQ. **That exact count is the cheapest proof in a browser test that the wasm
 actually loaded**, which is what `autoeq-client.svelte.spec.ts` leans on.
 
@@ -58,13 +58,25 @@ that empty list would wipe the EQ.
 
 turboEQ fits AutoEq's objective by default, and AutoEq is cautious in the treble: it smooths over two
 octaves above ~8 kHz, limits the correction to 18 dB/oct, scores only the mean level above 10 kHz,
-keeps every band below 10 kHz and caps the correction's largest boost at 6 dB. That is right for a
-rig nobody trusts up there and wrong for a user lining the EQ'd curve up against the target on the
-graph — which is what mGT is, and what the CrinGraph-lineage engine always did.
+keeps every band below 10 kHz and caps the correction's largest boost at 6 dB. Its objective also
+penalizes peaking bands steeper than ~18 dB/oct and smooths the target a fifth of an octave after
+the slope limit. That is right for a rig nobody trusts up there and wrong for a user lining the
+EQ'd curve up against the target on the graph — which is what mGT is, and what the
+CrinGraph-lineage engine always did.
 
-`fit: 'exact'` (the default; `settingsStore.autoEqOptions.exactMatch`) turns that off:
-`lossFlattenF: Infinity`, `trebleWindowSize: 1/12`, `maxSlope: Infinity`, and the user's fc window
-taken as given so a band can reach 20 kHz.
+`fit: 'exact'` (the default; `settingsStore.autoEqOptions.exactMatch`) is passed straight to turboEQ,
+whose `EXACT_MATCH_OPTIONS` turn all of that off: `lossFlattenF: Infinity`, `trebleWindowSize: 1/12`,
+`maxSlope: Infinity`, `sharpnessPenalty: false`, `equalizationWindowSize: 0`. The user's fc window
+is taken as given, so a band can reach 20 kHz. **Don't spell the list out here again** — turboEQ
+owns it, and a copy drifts.
+
+On headphones the penalty and the fifth-octave smoothing were what kept exact match out of the
+treble: on six of nine curves it placed no band above 10 kHz, and 8-band error went from 1.94 to
+1.26 dB with both gone. On IEMs they cost almost nothing either way.
+
+A free level — scoring the residual after removing its mean, since the preamp absorbs a constant —
+was tried in turboEQ and removed. The two shelves together can then lift the whole curve at no cost,
+so the fit drifted past the user's boost ceiling (5.4 dB against a 3 dB cap) for a 0.02 dB gain.
 
 **The boost cap is the user's gain ceiling in both modes** (`maxGain` in `runOptions`). Otherwise
 the gain range's maximum is a number the fit silently ignores past 6 dB. It is also what closes the
@@ -75,13 +87,18 @@ trailed it; with the cap at the user's 12 dB it beat it on seven of eight (e.g. 
 whatever filters are in the store — so nothing here touches the preamp, and the reply's `preamp`
 is diagnostic only.
 
-Only fc is taken as given. Q and gain are still intersected with AutoEq's windows by hand before
-`peakingBank(..., bounds: 'as-given')`, so a device's Q 10 still arrives as 6.
+**Q and gain are the user's, as given, in both modes** (`bounds: 'as-given'`). turboEQ's helpers
+narrow a host's range to AutoEq's defaults otherwise, which turned the UI's Q 0.1–10 into 0.18–6 and
+±40 dB into ±20 without a word.
 
-`fit: 'autoeq'` is the faithful path. It must keep bands at or below 10 kHz: with the mean-only
-loss, bands up there cancel each other at extreme gains (turboEQ's exact-match guide has a +20 dB
-example). `peakingBank`'s default intersection is what enforces it, so a user fc window entirely
-above 10 kHz throws and lands on the fallback.
+**The shelves are free in both modes** (`shelfPlacement: 'free'`): fc in the bands' window, Q inside
+AutoEq's shelf window 0.4–0.7 narrowed by the user's (`shelfWindow`). Pinned at 105 Hz and 10 kHz,
+as every AutoEq preset has them, they are two fixed bands out of every budget — 40% of five.
+
+`fit: 'autoeq'` is otherwise the faithful path. It must keep bands at or below 10 kHz: with the
+mean-only loss, bands up there cancel each other at extreme gains (turboEQ's exact-match guide has
+a +20 dB example). `buildBanks` caps its fc window there by hand, so a user fc window entirely above
+10 kHz throws and lands on the fallback.
 
 The frequency window is _where a band may sit_, which is not the same as the band the error is
 scored over. turboEQ separates them (`limits` versus `loss`); the old engine conflated them. Only
@@ -112,23 +129,28 @@ pin the fallback. `autoeq-client.svelte.spec.ts` proves the browser path. Bumpin
 npm package ships them together, so there is nothing to keep in step by hand. A failed ABI check
 lands as a fallback, so run the client spec after a bump.
 
-## Measured against the TypeScript engine
+## Benchmarks
 
-One synthetic curve, 480 points at 1/48 octave, both engines fitting the same error target. Band
-counts are totals, shelves inside. The AutoEq column is upstream Python, not turboEQ — even that
-beats the TypeScript at every count.
+`scripts/bench-autoeq/` compares the algorithms — CrinGraph's, this fallback, turboEQ in both fit
+modes, and upstream AutoEq in Python — over a squig.link database, **all under one constraint set**
+(`--q`, `--gain`, `--fc`; Q 0.1–10 and ±20 dB by default). It is not a comparison of each tool's
+shipped defaults. The results and the method are in
+[autoeq-benchmarks.mdx](../../../docs/src/content/docs/features/autoeq-benchmarks.mdx); re-run it
+after anything that could move a fit, and update that page with the numbers.
 
-| Total bands | TypeScript RMSE | TypeScript time | AutoEq (Python) RMSE | AutoEq (Python) time |
-| ----------- | --------------- | --------------- | -------------------- | -------------------- |
-| 3           | 2.36 dB         | 338 ms          | 2.05 dB              | 10 ms                |
-| 5           | 1.68 dB         | 793 ms          | 1.27 dB              | 78 ms                |
-| 8           | 1.26 dB         | 1677 ms         | 1.18 dB              | 116 ms               |
-| 10          | 0.70 dB         | 2469 ms         | 0.65 dB              | 376 ms               |
+The turboEQ rows go through `runAutoEq`, so they measure exactly what the panel runs. That only
+holds while `buildBanks` passes the user's ranges through; if it ever narrows one again, the
+constraint under test narrows with it, silently.
+
+It imports the shipped modules, not copies: Node strips the types and `ts-hooks.mjs` resolves
+`$lib/`. **That only works while `autoeq-engine.ts`, `utils/data-processor.ts` and what they import stay
+free of `$app/` and Svelte runes** — `utils/config.ts` is the one import that would break it, which is why the
+harness averages channels itself instead of going through `fr-parser`.
 
 Two defects of the TypeScript engine worth knowing while it remains the fallback:
 
-- **It ignores its band budget.** Ask for 8, get 7; ask for 12 or 16, get 11 either way. Both its
-  candidate search and its prune pass drop bands.
+- **It ignores its band budget.** Over 176 real IEMs at the app's default ranges it returned the
+  count asked for 33% of the time at eight bands and 22% at ten. Both its candidate search and its prune pass drop bands.
 - **It is non-monotonic in band count.** With shelves off, 10 bands scored worse than 8 (1.203 vs
   1.170 RMSE).
 
@@ -141,11 +163,17 @@ unit with a wiggle at 1 kHz gets a different level from each.
 
 ## Open items
 
+- **At five bands the TypeScript engine still fits IEMs closer** (1.16 against 1.27 dB, level
+  removed), and nearly all of it is level: held to AutoEq's alignment it scores 1.74, while
+  turboEQ, which fits at a fixed level, stays at 1.27. What is left is turboEQ settling in a local
+  minimum from AutoEq's `init()` layout: its own objective rates the TypeScript answer better on
+  48 of 176 curves at five bands, 16 at eight, one at ten. Multiple starts, or a greedy seed,
+  belong in turboEQ.
+
 - **`EqConstraintPreset` is still hand-written.** The fit no longer depends on it — `planBands`
   owns the only conversion — and it is being replaced anyway.
-- **Device ranges should be overridable.** turboEQ's `peakingBank` and `graphicBank` intersect a
-  device's ranges with AutoEq's defaults unless given `bounds: 'as-given'`. mGT should expose that
-  choice rather than hard-code either.
+- **Graphic EQ gain is still intersected with AutoEq's ±20 dB.** Parametric fits take the user's
+  gain as given; the graphic path was left alone.
 - **"Unlimited bands" caps at 32**, turboEQ's `MAX_FILTERS`.
 - **mGT pre-smooths to 1/48 octave**, so turboEQ's own curve preparation partly repeats work. If
   that ever matters, ask turboEQ for an opt-in fast path; it will not become the default.

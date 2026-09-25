@@ -57,7 +57,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.42.0",
-		"@potatosalad775/turboeq": "^0.1.0",
+		"@potatosalad775/turboeq": "^0.2.0",
 		"bits-ui": "^2.19.0",
 		"d3": "^7.9.0",
 		"svelte-sonner": "^1.2.1",

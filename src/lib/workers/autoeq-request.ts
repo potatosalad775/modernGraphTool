@@ -81,15 +81,33 @@ export type AutoEqRequest =
 			fit?: FitMode;
 	  };
 
+/**
+ * Why turboEQ did not answer. The two call for different things from the UI.
+ *
+ * - `'unavailable'`: the module never loaded. Nothing turboEQ-only means
+ *   anything until it does, so the fit-mode control goes away.
+ * - `'rejected'`: it loaded and refused this request — treble-safe with a
+ *   frequency window entirely above 10 kHz, say. The control has to stay:
+ *   switching it is often how the user gets turboEQ back.
+ */
+export type FallbackCause = 'unavailable' | 'rejected';
+
 export interface AutoEqOutcome {
+	/** Empty, and not to be written anywhere, when `engine` is `'none'`. */
 	filters: EQFilter[];
-	/** Which optimizer produced them. `'typescript'` means turboEQ failed. */
-	engine: 'turboeq' | 'typescript';
+	/**
+	 * Which optimizer produced them. `'typescript'` means turboEQ failed and the
+	 * fallback fitted instead; `'none'` means turboEQ failed on a request the
+	 * fallback cannot express — a graphic EQ, whose fc and Q it would not keep.
+	 */
+	engine: 'turboeq' | 'typescript' | 'none';
 	/** Fit error against the equalization curve, dB. turboEQ only. */
 	rmse?: number;
 	/** What a player's preamp should be set to, dB. Never positive. */
 	preamp?: number;
-	/** Why the fallback fired, when it did. */
+	/** Set whenever `engine` is not `'turboeq'`. */
+	fallback?: FallbackCause;
+	/** turboEQ's own error message, when it failed. */
 	fallbackReason?: string;
 }
 

@@ -29,6 +29,17 @@ throwing — and callers depend on that. A reply carries `engine`, and `EqAutoEq
 notice when it says `'typescript'`, so a worse fit never arrives unannounced. It also switches
 auto-apply off (`services/autoeq-service.svelte.ts`) — ~1.7 s per run can't chase a tilt slider.
 
+**A fallback says why: `fallback: 'unavailable' | 'rejected'`.** Load failure versus turboEQ
+refusing this request. Only `'unavailable'` hides the fit-mode control — the TypeScript engine
+ignores `fit` and always fits the way exact match does. **Don't hide it on any fallback:**
+treble-safe with an fc window above 10 kHz is `'rejected'`, and switching to exact match is the
+user's way out; hiding the control that caused the fallback strands them.
+
+**The fallback does not fit graphic EQs.** It places bands freely, so its answer would sit off the
+sliders — which is why AutoEQ was unavailable in graphic mode before turboEQ. A graphic request that
+turboEQ fails comes back `engine: 'none'` with empty `filters`, and the service must not write them:
+that empty list would wipe the EQ.
+
 ## The three things that used to be wrong here
 
 - **Band count.** mGT counts rows, shelves included; turboEQ counts peaking bands with the shelves

@@ -293,8 +293,70 @@ describe('runAutoEq', () => {
 		);
 
 		expect(outcome.engine).toBe('typescript');
+		expect(outcome.fallback).toBe('unavailable');
 		expect(outcome.fallbackReason).toMatch(/no wasm here/);
 		expect(outcome.filters.length).toBeGreaterThan(0);
+	});
+
+	it('fits the same way in either fit mode once it has fallen back', async () => {
+		// The old engine has one mode, and it is the one exact match reproduces.
+		// Treble-safe is turboEQ's, so without it the request gets what it always got.
+		const unavailable = () => Promise.reject(new Error('no wasm here'));
+		const request = { kind: 'parametric', peaking: 4, shelves: false } as const;
+
+		const exact = await runAutoEq(
+			BUMPED,
+			FLAT,
+			{ ...request, fit: 'exact' },
+			{
+				loadEngine: unavailable
+			}
+		);
+		const trebleSafe = await runAutoEq(
+			BUMPED,
+			FLAT,
+			{ ...request, fit: 'autoeq' },
+			{
+				loadEngine: unavailable
+			}
+		);
+
+		expect(trebleSafe.filters).toEqual(exact.filters);
+	});
+
+	it('says turboEQ refused, not that it failed to load, when a request is out of its reach', async () => {
+		// Treble-safe keeps every band at or below 10 kHz, so a window above it
+		// has no answer there. The UI keeps the fit mode for this case, since
+		// switching to exact match is what brings turboEQ back.
+		const outcome = await runAutoEq(
+			BUMPED,
+			FLAT,
+			{
+				kind: 'parametric',
+				peaking: 2,
+				shelves: false,
+				limits: { minFc: 12000, maxFc: 20000 },
+				fit: 'autoeq'
+			},
+			{ loadEngine }
+		);
+
+		expect(outcome.engine).toBe('typescript');
+		expect(outcome.fallback).toBe('rejected');
+	});
+
+	it('fits no graphic EQ without turboEQ', async () => {
+		// The old engine places bands freely, so its answer would sit off the
+		// preset's sliders. AutoEQ was unavailable in graphic mode before turboEQ,
+		// and without it that is still the answer.
+		const outcome = await runAutoEq(
+			BUMPED,
+			FLAT,
+			{ kind: 'graphic', bands: [125, 1000, 8000].map((freq) => ({ freq })) },
+			{ loadEngine: () => Promise.reject(new Error('no wasm here')) }
+		);
+
+		expect(outcome).toMatchObject({ engine: 'none', fallback: 'unavailable', filters: [] });
 	});
 
 	it('falls back on input turboEQ refuses but the old engine tolerates', async () => {
@@ -310,6 +372,7 @@ describe('runAutoEq', () => {
 		// Against silence there is nothing to correct, so the answer is an empty
 		// EQ rather than an error — which is exactly the tolerance callers rely on.
 		expect(outcome.engine).toBe('typescript');
+		expect(outcome.fallback).toBe('rejected');
 		expect(outcome.filters).toEqual([]);
 	});
 

@@ -40,7 +40,9 @@ function getWorker(): Worker {
  *
  * The result says which optimizer produced it. `engine: 'typescript'` means
  * turboEQ failed and the fallback answered, which is a working EQ fitted by a
- * worse algorithm rather than an error.
+ * worse algorithm rather than an error. `engine: 'none'` means nothing could
+ * fit it — a graphic EQ without turboEQ — and its empty `filters` are not a
+ * result to write. `fallback` says whether turboEQ failed to load or refused.
  */
 export function runAutoEQInWorker(
 	source: [number, number][],
@@ -65,14 +67,21 @@ export function runAutoEQInWorker(
 						typeof data.rmse === 'number' ? ` RMSE ${data.rmse.toFixed(3)}` : ''
 					);
 				}
-				if (data.fallbackReason) {
-					console.warn('[autoEQ] turboEQ failed, used the TypeScript engine:', data.fallbackReason);
+				if (data.fallback) {
+					console.warn(
+						data.engine === 'none'
+							? '[autoEQ] turboEQ %s, and the TypeScript engine cannot fit this request:'
+							: '[autoEQ] turboEQ %s, used the TypeScript engine:',
+						data.fallback,
+						data.fallbackReason
+					);
 				}
 				resolve({
 					filters: data.filters,
 					engine: data.engine,
 					rmse: data.rmse,
 					preamp: data.preamp,
+					fallback: data.fallback,
 					fallbackReason: data.fallbackReason
 				});
 			} else if (data.type === 'autoeq-error') {

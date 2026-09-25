@@ -24,6 +24,7 @@ import { eqCommands } from '$lib/services/eq-commands.js';
 import { autoEqService } from '$lib/services/autoeq-service.svelte.js';
 import { commandHistory } from '$lib/services/command-history.svelte.js';
 import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
+import type { AutoEqOutcome } from '$lib/workers/autoeq-request.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import * as m from '$lib/paraglide/messages.js';
@@ -370,20 +371,6 @@ describe('EqAutoEq', () => {
 			expect(runInWorker.mock.calls[0][2]).toMatchObject({ fit: 'autoeq' });
 		});
 
-		it('says so when the fallback optimizer answered', async () => {
-			// A worse fit with no indication would be dishonest; the reply names
-			// the engine, so the panel can.
-			runInWorker.mockResolvedValue({ ...OUTCOME, engine: 'typescript' });
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await expect
-				.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
-				.toBeInTheDocument();
-		});
-
 		it('stays quiet when turboEQ answered', async () => {
 			seedPair();
 			render(EqAutoEq);
@@ -574,6 +561,150 @@ describe('EqAutoEq', () => {
 	});
 
 	// ── Result handling ──────────────────────────────────────────────────────
+
+	// ── When turboEQ fails ───────────────────────────────────────────────────
+
+	describe('when turboEQ fails', () => {
+		const UNAVAILABLE: AutoEqOutcome = {
+			filters: RESULT,
+			engine: 'typescript',
+			fallback: 'unavailable'
+		};
+		const REJECTED: AutoEqOutcome = { filters: RESULT, engine: 'typescript', fallback: 'rejected' };
+
+		function fitModeRadios() {
+			return page.getByRole('radio', { name: m.equalizer_autoeq_treble_safe() });
+		}
+
+		// A worse fit with no indication would be dishonest; the reply names
+		// the engine, so the panel can.
+		it('says the fast optimizer could not load', async () => {
+			runInWorker.mockResolvedValue(UNAVAILABLE);
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await expect
+				.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
+				.toBeInTheDocument();
+			expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH', null);
+		});
+
+		it('hides the fit mode once the module has failed to load', async () => {
+			// The fallback has one mode; a treble-safe switch that changes nothing
+			// would be a control that lies.
+			runInWorker.mockResolvedValue(UNAVAILABLE);
+			seedPair();
+			render(EqAutoEq);
+			await expect.element(fitModeRadios()).toBeInTheDocument();
+
+			await runButton().click();
+
+			await expect.element(fitModeRadios()).not.toBeInTheDocument();
+			// The shelf switch shares the fieldset and has nothing to do with turboEQ.
+			await expect
+				.element(page.getByRole('switch', { name: m.equalizer_autoeq_use_shelf_filter() }))
+				.toBeInTheDocument();
+		});
+
+		it('keeps the fit mode when turboEQ only refused the request', async () => {
+			// Treble-safe with a window above 10 kHz is refused; switching to exact
+			// match is how the user gets turboEQ back, so the switch must stay.
+			runInWorker.mockResolvedValue(REJECTED);
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await expect
+				.element(page.getByText(m.equalizer_autoeq_fallback_rejected_notice()))
+				.toBeInTheDocument();
+			await expect.element(fitModeRadios()).toBeInTheDocument();
+		});
+
+		it('brings the fit mode back when a later run loads turboEQ', async () => {
+			// A failed load is not cached, so a transient fetch error clears.
+			runInWorker.mockResolvedValueOnce(UNAVAILABLE);
+			seedPair();
+			render(EqAutoEq);
+			await runButton().click();
+			await expect.element(fitModeRadios()).not.toBeInTheDocument();
+
+			await page.getByRole('button', { name: m.equalizer_autoeq_recalc_button() }).click();
+
+			await expect.element(fitModeRadios()).toBeInTheDocument();
+			expect(page.getByRole('status').element().textContent).toBe('');
+		});
+
+		describe('on a graphic preset', () => {
+			const NONE: AutoEqOutcome = { filters: [], engine: 'none', fallback: 'unavailable' };
+
+			beforeEach(() => {
+				eqConstraintsStore.activeId = BUILTIN_PRESETS.find((p) => p.mode === 'graphic')!.id;
+			});
+
+			it('leaves the filters alone when nothing could fit it', async () => {
+				// The old engine would place bands off the sliders, so there is no
+				// answer — and an empty list written as one would wipe the EQ.
+				runInWorker.mockResolvedValue(NONE);
+				eqStore.filters = [{ type: 'PK', freq: 1000, gain: 2, q: 1.4, enabled: true }];
+				seedPair();
+				render(EqAutoEq);
+
+				await runButton().click();
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_graphic_unavailable_notice()))
+					.toBeInTheDocument();
+				expect(replaceFilters).not.toHaveBeenCalled();
+				expect(eqStore.isEnabled).toBe(false);
+			});
+
+			it('says turboEQ refused the bands when it only refused', async () => {
+				runInWorker.mockResolvedValue({ ...NONE, fallback: 'rejected' });
+				seedPair();
+				render(EqAutoEq);
+
+				await runButton().click();
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_graphic_rejected_notice()))
+					.toBeInTheDocument();
+				await expect.element(fitModeRadios()).toBeInTheDocument();
+			});
+
+			it('hides the whole settings fieldset when the module failed to load', async () => {
+				// Graphic mode has no shelf switch, so without the fit mode the
+				// fieldset would be an empty box.
+				runInWorker.mockResolvedValue(NONE);
+				seedPair();
+				render(EqAutoEq);
+
+				await runButton().click();
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_filter_setting()))
+					.not.toBeInTheDocument();
+			});
+
+			it('drops the graphic notice once the preset is parametric again', async () => {
+				runInWorker.mockResolvedValue(NONE);
+				seedPair();
+				render(EqAutoEq);
+				await runButton().click();
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_graphic_unavailable_notice()))
+					.toBeInTheDocument();
+
+				eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+
+				await expect
+					.element(page.getByText(m.equalizer_autoeq_graphic_unavailable_notice()))
+					.not.toBeInTheDocument();
+			});
+		});
+	});
 
 	describe('the result', () => {
 		it('replaces the filter stack through the command layer', async () => {
@@ -874,7 +1005,11 @@ describe('EqAutoEq', () => {
 
 			// Too slow to chase every nudge — and the notice already says why.
 			it('and stays unavailable once the fallback optimizer answered', async () => {
-				runInWorker.mockResolvedValue({ ...OUTCOME, engine: 'typescript' });
+				runInWorker.mockResolvedValue({
+					...OUTCOME,
+					engine: 'typescript',
+					fallback: 'unavailable'
+				});
 				seedPair();
 				render(EqAutoEq);
 

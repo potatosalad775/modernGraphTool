@@ -35,9 +35,31 @@
 		preset: m.equalizer_autoeq_auto_apply_stopped_preset
 	} as const;
 
+	/**
+	 * Fit mode is turboEQ's alone — the fallback has one mode, which is what
+	 * exact match reproduces. Hidden only once the module has failed to load:
+	 * when turboEQ merely refused a request, switching the mode is often what
+	 * gets it back.
+	 */
+	const showFitMode = $derived(autoEqService.fallback !== 'unavailable');
+
+	function fallbackNotice(): string {
+		const unavailable = autoEqService.fallback === 'unavailable';
+		if (!autoEqService.unfitted) {
+			return unavailable
+				? m.equalizer_autoeq_fallback_notice()
+				: m.equalizer_autoeq_fallback_rejected_notice();
+		}
+		// Only a graphic EQ goes unfitted, and the notice is about that preset.
+		if (!isGraphicMode) return '';
+		return unavailable
+			? m.equalizer_autoeq_graphic_unavailable_notice()
+			: m.equalizer_autoeq_graphic_rejected_notice();
+	}
+
 	const statusText = $derived(
 		autoEqService.fellBack
-			? m.equalizer_autoeq_fallback_notice()
+			? fallbackNotice()
 			: autoEqService.stopReason
 				? stopNotices[autoEqService.stopReason]()
 				: ''
@@ -53,58 +75,64 @@
 	{/if}
 
 	<!-- Filter settings fieldset -->
-	<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
-		<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_filter_setting()}</legend>
-		<div class="-mr-1.25 flex items-center gap-1">
-			<SegmentedControl
-				class="flex-1"
-				label={m.equalizer_autoeq_fit_mode()}
-				options={fitOptions}
-				value={opts.exactMatch ? 'exact' : 'autoeq'}
-				onValueChange={(mode) => (settingsStore.autoEqOptions.exactMatch = mode === 'exact')}
-			/>
-			<PopoverPanel align="end">
-				{#snippet trigger({ props })}
-					<Button
-						{...props}
-						title={m.equalizer_autoeq_fit_help()}
-						variant="ghost"
-						size="icon-xs"
-						activeOnOpen
-						class="opacity-80 hover:opacity-100"
-					>
-						<CircleAlert class="h-3.5 w-3.5" />
-					</Button>
-				{/snippet}
-				<div class="flex max-w-xs flex-col gap-2 p-1 text-xs text-base-content">
-					<p>
-						<span class="font-semibold">{m.equalizer_autoeq_exact_match()}</span>
-						— {m.equalizer_autoeq_exact_match_hint()}
-					</p>
-					<p>
-						<span class="font-semibold">{m.equalizer_autoeq_treble_safe()}</span>
-						— {m.equalizer_autoeq_treble_safe_hint()}
-					</p>
-					<a
-						href={fitDocsUrl}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="self-start text-accent underline underline-offset-2"
-					>
-						{m.equalizer_autoeq_learn_more()}
-					</a>
+	{#if showFitMode || !isGraphicMode}
+		<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
+			<legend class="px-1 text-xs text-base-content/60"
+				>{m.equalizer_autoeq_filter_setting()}</legend
+			>
+			{#if showFitMode}
+				<div class="-mr-1.25 flex items-center gap-1">
+					<SegmentedControl
+						class="flex-1"
+						label={m.equalizer_autoeq_fit_mode()}
+						options={fitOptions}
+						value={opts.exactMatch ? 'exact' : 'autoeq'}
+						onValueChange={(mode) => (settingsStore.autoEqOptions.exactMatch = mode === 'exact')}
+					/>
+					<PopoverPanel align="end">
+						{#snippet trigger({ props })}
+							<Button
+								{...props}
+								title={m.equalizer_autoeq_fit_help()}
+								variant="ghost"
+								size="icon-xs"
+								activeOnOpen
+								class="opacity-80 hover:opacity-100"
+							>
+								<CircleAlert class="h-3.5 w-3.5" />
+							</Button>
+						{/snippet}
+						<div class="flex max-w-xs flex-col gap-2 p-1 text-xs text-base-content">
+							<p>
+								<span class="font-semibold">{m.equalizer_autoeq_exact_match()}</span>
+								— {m.equalizer_autoeq_exact_match_hint()}
+							</p>
+							<p>
+								<span class="font-semibold">{m.equalizer_autoeq_treble_safe()}</span>
+								— {m.equalizer_autoeq_treble_safe_hint()}
+							</p>
+							<a
+								href={fitDocsUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="self-start text-accent underline underline-offset-2"
+							>
+								{m.equalizer_autoeq_learn_more()}
+							</a>
+						</div>
+					</PopoverPanel>
 				</div>
-			</PopoverPanel>
-		</div>
-		{#if !isGraphicMode}
-			<Switch
-				labelText={m.equalizer_autoeq_use_shelf_filter()}
-				size="sm"
-				labelClass="text-xs font-normal"
-				bind:checked={settingsStore.autoEqOptions.useShelfFilter}
-			/>
-		{/if}
-	</fieldset>
+			{/if}
+			{#if !isGraphicMode}
+				<Switch
+					labelText={m.equalizer_autoeq_use_shelf_filter()}
+					size="sm"
+					labelClass="text-xs font-normal"
+					bind:checked={settingsStore.autoEqOptions.useShelfFilter}
+				/>
+			{/if}
+		</fieldset>
+	{/if}
 
 	{#if !isGraphicMode}
 		<!-- Frequency Range -->

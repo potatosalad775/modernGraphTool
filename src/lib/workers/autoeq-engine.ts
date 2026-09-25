@@ -31,7 +31,13 @@
  * **The fallback fires on any failure, not just a missing module.** The
  * TypeScript engine tolerates input turboEQ rejects outright — a null source
  * curve optimizes against silence rather than throwing — and callers here
- * depend on that.
+ * depend on that. The outcome says which of the two failures it was
+ * (`FallbackCause`), because the UI answers them differently.
+ *
+ * **The fallback does not fit graphic EQs.** It has no pinned bank: it would
+ * place bands freely and leave them off the preset's sliders, which is why
+ * AutoEQ was unavailable in graphic mode before turboEQ. It still is whenever
+ * turboEQ fails, and the outcome says so with `engine: 'none'`.
  */
 
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
@@ -40,6 +46,7 @@ import {
 	type AutoEqOutcome,
 	type AutoEqRequest,
 	type BandLimits,
+	type FallbackCause,
 	type FitMode,
 	type LossBand
 } from './autoeq-request.js';
@@ -211,8 +218,13 @@ export async function runAutoEq(
 	request: AutoEqRequest,
 	deps: { loadEngine?: () => Promise<TurboEQClass> } = {}
 ): Promise<AutoEqOutcome> {
+	let eq: TurboEQClass;
 	try {
-		const eq = await (deps.loadEngine ?? loadTurboEq)();
+		eq = await (deps.loadEngine ?? loadTurboEq)();
+	} catch (err) {
+		return runFallback(source, target, request, 'unavailable', err);
+	}
+	try {
 		const options: TurboEQRunOptions = {
 			sampleRate: SAMPLE_RATE,
 			...runOptions(request),
@@ -226,8 +238,7 @@ export async function runAutoEq(
 			preamp: result.preamp
 		};
 	} catch (err) {
-		const reason = err instanceof Error ? err.message : String(err);
-		return { ...runFallback(source, target, request), fallbackReason: reason };
+		return runFallback(source, target, request, 'rejected', err);
 	}
 }
 
@@ -257,28 +268,33 @@ function toFilters(filters: TurboEQFilter[], request: AutoEqRequest): EQFilter[]
  * The CrinGraph-lineage optimizer, asked for the same thing in the only terms
  * it has: one band count with the shelves inside it, and one frequency range
  * that means both "place no bands here" and "ignore error here".
+ *
+ * `fit` is not among them. The old engine has one mode, which is what exact
+ * match reproduces, so a treble-safe request gets the fit it always got.
  */
 function runFallback(
 	source: [number, number][],
 	target: [number, number][],
-	request: AutoEqRequest
+	request: AutoEqRequest,
+	cause: FallbackCause,
+	err: unknown
 ): AutoEqOutcome {
-	const equalizer = new Equalizer();
-	const limits = request.kind === 'parametric' ? (request.limits ?? {}) : {};
-	const gain =
-		request.kind === 'graphic'
-			? { min: request.gain?.min, max: request.gain?.max }
-			: { min: limits.minGain, max: limits.maxGain };
+	const failed = {
+		fallback: cause,
+		fallbackReason: err instanceof Error ? err.message : String(err)
+	};
+	if (request.kind === 'graphic') return { filters: [], engine: 'none', ...failed };
 
-	const filters = equalizer.autoEQ(source, target, {
+	const limits = request.limits ?? {};
+	const filters = new Equalizer().autoEQ(source, target, {
 		maxFilters: bandCount(request),
 		freqRange: [
 			limits.minFc ?? request.loss?.minF ?? 20,
 			limits.maxFc ?? request.loss?.maxF ?? 20000
 		],
 		qRange: [limits.minQ ?? 0.5, limits.maxQ ?? 2],
-		gainRange: [gain.min ?? -12, gain.max ?? 12],
-		useShelfFilter: request.kind === 'parametric' && request.shelves
+		gainRange: [limits.minGain ?? -12, limits.maxGain ?? 12],
+		useShelfFilter: request.shelves
 	});
-	return { filters, engine: 'typescript' };
+	return { filters, engine: 'typescript', ...failed };
 }

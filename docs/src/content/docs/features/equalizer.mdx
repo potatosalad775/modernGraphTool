@@ -143,7 +143,15 @@ optimized, so every band lands exactly on its slider.
 
 If the module cannot load for any reason, the older JavaScript optimizer answers instead, and the
 AutoEQ panel says so. It is slower and fits less well, and it sometimes returns fewer bands than 
-it was asked for, but a failed load never costs you a working AutoEQ.
+it was asked for, but a failed load never costs you a working AutoEQ. It has only one way to fit,
+the same as Exact match, so the fit mode is hidden until turboEQ loads again. It cannot keep bands
+on a graphic EQ's sliders, so with a graphic-EQ preset AutoEQ leaves the filters as they are and
+says why.
+
+turboEQ can also turn down a particular request while loading fine — Treble-safe with a frequency
+range entirely above 10 kHz, for example, since that mode places no band there. The older optimizer
+answers that request too, and the panel says the settings were the problem; the fit mode stays, so
+you can switch to Exact match.
 
 ## Notes
 

@@ -156,6 +156,8 @@ two effects install lazily on the first switch-on and are never disposed.
   `TargetCustomizer` re-applies the stored tilt whenever the Graph panel mounts, handing the target
   fresh arrays with the same numbers, and identity alone re-ran AutoEQ on every panel switch. A `#landed` counter re-checks once a run finishes, which
   catches input that moved while it was in flight.
+- **`fallback` is a cause, not a flag** (`FallbackCause`, see `workers/AGENTS.md`); `fellBack` is
+  derived from it. An `engine: 'none'` outcome sets `unfitted` and writes nothing.
 - **Auto-applied results `amend` the session's undo entry** while it is still `isLatest`, so one
   undo returns to before AutoEQ. They also skip `ensureEnabled()`: an A/B bypass held while nudging
   the target must survive.

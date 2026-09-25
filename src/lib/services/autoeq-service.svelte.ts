@@ -5,7 +5,12 @@ import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqCommands, type ReplaceEqFiltersCommand } from '$lib/services/eq-commands.js';
 import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
-import { MAX_BANDS, planBands, type AutoEqRequest } from '$lib/workers/autoeq-request.js';
+import {
+	MAX_BANDS,
+	planBands,
+	type AutoEqRequest,
+	type FallbackCause
+} from '$lib/workers/autoeq-request.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -190,8 +195,14 @@ function sameInputs(a: RunInputs, b: RunInputs): boolean {
 class AutoEqService {
 	/** A manual run is in flight. Auto-applied runs don't set it — the button would flicker. */
 	isRunning = $state(false);
-	/** The last run came from the TypeScript fallback, i.e. the wasm failed. */
-	fellBack = $state(false);
+	/**
+	 * Why the last run did not come from turboEQ, or null when it did. Only
+	 * `'unavailable'` hides the fit mode: a `'rejected'` run is often fixed by
+	 * switching it.
+	 */
+	fallback = $state<FallbackCause | null>(null);
+	/** The last run fitted nothing — turboEQ failed on a graphic EQ, which the fallback can't fit. */
+	unfitted = $state(false);
 	autoApply = $state(false);
 	stopReason = $state<AutoApplyStop | null>(null);
 
@@ -201,6 +212,11 @@ class AutoEqService {
 	#token = 0;
 	#timer: ReturnType<typeof setTimeout> | null = null;
 	#installed = false;
+
+	/** The last run came from the TypeScript fallback, or from nothing at all. */
+	get fellBack(): boolean {
+		return this.fallback !== null;
+	}
 
 	/** A result for the current device and target is on screen, so Run means Recalculate. */
 	get hasResult(): boolean {
@@ -273,7 +289,8 @@ class AutoEqService {
 		this.#stop(null);
 		this.#session = null;
 		this.isRunning = false;
-		this.fellBack = false;
+		this.fallback = null;
+		this.unfitted = false;
 	}
 
 	async #execute(inputs: RunInputs, session: Session, auto: boolean): Promise<void> {
@@ -289,7 +306,14 @@ class AutoEqService {
 		if (token !== this.#token || this.#session !== session) return;
 		if (auto && !this.autoApply) return;
 
-		this.fellBack = outcome.engine === 'typescript';
+		this.fallback = outcome.engine === 'turboeq' ? null : (outcome.fallback ?? 'rejected');
+		this.unfitted = outcome.engine === 'none';
+		if (this.unfitted) {
+			// Its empty list is not an answer; writing it would wipe the EQ.
+			if (this.autoApply) this.#stop(null);
+			this.#landed++;
+			return;
+		}
 		// Scoped, so running AutoEQ on one ear doesn't wipe the shared bands
 		// or the other ear's solution.
 		const command = eqCommands.replaceFiltersInScope(

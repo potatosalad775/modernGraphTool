@@ -1,13 +1,15 @@
 ---
-title: 'modernGraphTool & CrinGraph 동시 운영'
-description: '이 섹션에서는 modernGraphTool과 CrinGraph를 함께 운영하기 위한 팁과 요령을 다루며, 사용자가 하나의 환경에서 두 도구를 활용할 수 있도록 하는 것을 목표로 합니다.'
+title: 'CrinGraph와 동시 운영'
+description: '하나의 도메인에서 modernGraphTool과 CrinGraph를 나란히 운영하고, 측정 데이터베이스 하나를 함께 쓰는 방법입니다.'
+sidebar:
+  label: '개요'
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+modernGraphTool과 CrinGraph를 같은 도메인에서 서비스하면서, 두 도구가 `data/` 폴더 하나를 함께 읽게 할 수 있습니다. 마이그레이션하는 동안이나, 기존 인터페이스를 선호하는 방문자를 위해 계속 제공하고 싶을 때 유용합니다.
 
-이 섹션에서는 modernGraphTool과 CrinGraph를 함께 운영하기 위한 팁과 요령을 다루며, 사용자가 하나의 환경에서 두 도구를 활용할 수 있도록 하는 것을 목표로 합니다.
+구성 방식은 "폴더를 하위 경로로 쓰기"입니다. 한 도구는 도메인 루트에, 다른 도구는 자체 `index.html`을 가진 하위 폴더에 둡니다. 어느 쪽을 첫 화면으로 둘지에 따라 가이드를 고르세요.
 
-<CardGrid>
-	<LinkCard title="modernGraphTool을 메인으로 두기" href="./main-mgt/" />
-	<LinkCard title="CrinGraph를 메인으로 두기" href="./main-cringraph/" />
-</CardGrid>
+- **[modernGraphTool을 메인으로 두기](./main-mgt.mdx)** — modernGraphTool은 루트에, CrinGraph는 `/cringraph/` 같은 하위 폴더에 둡니다.
+- **[CrinGraph를 메인으로 두기](./main-cringraph.mdx)** — CrinGraph는 루트에 그대로 두고, modernGraphTool을 `/mGT/` 같은 하위 폴더에 둡니다.
+
+두 도구가 같은 `phone_book.json` 형식을 읽기 때문에 가능한 구성입니다. `variants[]` 같은 modernGraphTool 전용 키는 CrinGraph가 읽는 `file` 키와 함께 놓이므로, 파일 하나로 두 도구를 모두 지원합니다. 자세한 내용은 [데이터 관리](../../guide-for-admins/manage-data.mdx)를 참고하세요.

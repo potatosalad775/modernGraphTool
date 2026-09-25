@@ -1,16 +1,22 @@
 ---
-title: '관리자 가이드'
-description: 'modernGraphTool을 사용하여 나만의 FR 데이터베이스를 구축하는 방법을 배워보세요.'
+title: '운영자 가이드'
+description: 'modernGraphTool로 나만의 주파수 응답 데이터베이스를 운영하세요. 배포하고, 측정 데이터를 추가하고, 페이지를 꾸미는 방법을 다룹니다.'
+sidebar:
+  label: '개요'
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+이 가이드는 측정 데이터베이스를 **운영하는** 분들을 위한 것입니다. modernGraphTool을 배포하고, 측정 데이터를 추가하고, 페이지를 원하는 대로 꾸미는 방법을 다룹니다. 다른 사람의 데이터베이스를 둘러보는 중이라면 [사용자 가이드](../guide-for-users/index.mdx)를 보시면 됩니다.
 
-modernGraphTool을 사용하여 나만의 FR 데이터베이스를 구축하는 방법을 배워보세요.
+새 데이터베이스는 다음 네 단계를 순서대로 거칩니다.
 
-<CardGrid>
-	<LinkCard title="환경 구성" href="./setup-env/" />
-	<LinkCard title="배포 방법" href="./deployment/" />
-	<LinkCard title="측정 데이터 전처리" href="./preprocessing-measurement/" />
-	<LinkCard title="페이지 커스터마이징" href="./customize-page/" />
-	<LinkCard title="데이터 관리" href="./manage-data/" />
-</CardGrid>
+1. **[배포 방식 고르기](./setup-env.mdx)** — GitHub Pages, CDN, 사전 빌드 릴리스, 소스 빌드 중에서 고릅니다. 옵션마다 설치 페이지가 따로 있습니다.
+2. **[측정 데이터 준비하기](./preprocessing-measurement.mdx)** — FR 데이터를 modernGraphTool이 읽는 `.txt` 형식으로 내보냅니다. 이미 CrinGraph 데이터가 있다면 건너뛰어도 됩니다.
+3. **[데이터베이스에 추가하기](./manage-data.mdx)** — `data/` 폴더 구조와, 모든 기기와 그 변형을 나열하는 `phone_book.json`을 다룹니다.
+4. **[페이지 커스터마이징](./customize-page.mdx)** — 페이지 메타데이터, `theme.css`, 그리고 모든 `config.js` 옵션을 설명합니다.
+
+[설정 파일 편집기](/config-generator), [phone_book.json 편집기](/phone-book-editor), [테마 생성기](/theme-generator)를 쓰면 이 세 파일을 직접 편집하는 대신 화면에서 만들 수 있습니다.
+
+## 이미 데이터베이스를 운영 중이라면
+
+- **modernGraphTool v1을 쓰는 중이라면** — [v2의 새로운 기능](../whats-new-in-v2.mdx)을 먼저 보고, [v1에서 v2로 마이그레이션](../migrating-v1-to-v2.mdx)을 따라가세요.
+- **CrinGraph나 그 포크를 쓰는 중이라면** — [CrinGraph에서 마이그레이션](../migrating-from-cringraph.mdx)을 참고하세요. 두 도구를 나란히 운영하고 싶다면 [CrinGraph와 동시 운영](../database-tips/dual-hosting/index.mdx)을 보시면 됩니다.

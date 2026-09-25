@@ -1,69 +1,65 @@
 ---
-title: 'Developer Guide'
+title: 'Guide for Developers'
+description: 'Architecture, project layout and build commands for contributing to modernGraphTool.'
 sidebar:
+  label: 'Overview'
   order: 1
 ---
 
-This guide provides an overview of modernGraphTool's architecture for developers who want to contribute or build upon the project.
+This guide is for working on modernGraphTool itself. To run a database with it, see the [Guide for Operators](../guide-for-admins/index.mdx) instead.
+
+Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) has the code style and PR guidelines. The rest of this section covers:
+
+- **[Testing](./testing.mdx)** — the two Vitest projects, coverage, and the smoke test.
+- **[Build & Deployment Internals](./build-and-deploy.mdx)** — the build outputs and how `defaults/` reaches them.
+- **[Internationalization](./i18n.mdx)** — UI strings, adding a language, and the translation flow.
 
 ## Tech Stack
 
-- **Language**: TypeScript
+- **Language**: TypeScript (strict)
 - **Framework**: SvelteKit 2 + Svelte 5 (Runes)
 - **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
 - **Graph Rendering**: D3.js (SVG-based)
 - **i18n**: Paraglide JS (compile-time internationalization)
-- **Testing**: Vitest (unit) + Playwright (E2E)
+- **Testing**: Vitest, with Playwright browser mode for component specs
 - **Build Output**: Static SPA via `adapter-static` → `dist/`
 
 ## Project Structure
 
 ```
 src/
-├── routes/              # SvelteKit page routes (single-page SPA)
+├── routes/              # SvelteKit routes (single-page SPA) + layout.css (Tailwind entry)
 ├── lib/
-│   ├── components/      # UI components
-│   │   ├── atoms/       # Base UI primitives (Button, Input, Accordion)
-│   │   ├── controls/    # Interactive controls (selectors, toolbar buttons)
-│   │   ├── equalizer/   # Equalizer sub-components (filters, AutoEQ, player)
-│   │   ├── features/    # Feature modules (DevicePEQ, Tutorial, etc.)
-│   │   ├── graph/       # Graph container (Svelte bridge to D3 engine)
-│   │   ├── layout/      # App shell, navigation, panels
-│   │   └── panels/      # Major UI sections (Device, Graph, EQ, Misc)
-│   ├── stores/          # Reactive state management (.svelte.ts)
-│   ├── services/        # Data provider, command history, analytics
+│   ├── components/      # UI: atoms, controls, equalizer, features, graph, layout, panels
+│   ├── stores/          # Reactive state as class instances (.svelte.ts)
+│   ├── services/        # Data provider, commands, cross-site index, audio, analytics
 │   ├── graph/           # D3.js graph engine and overlays
-│   ├── device-peq/      # Hardware EQ device connectors and handlers
-│   ├── utils/           # Parsing, normalization, smoothing, URL encoding
+│   ├── device-peq/      # Hardware EQ transports and per-device handlers
+│   ├── workers/         # AutoEQ off the main thread (turboEQ wasm + fallback)
+│   ├── utils/           # Parsing, normalization, smoothing, URL encoding, config
 │   ├── types/           # TypeScript type definitions
-│   └── paraglide/       # Generated i18n functions (do not edit manually)
-├── app.html             # HTML template (loads config.js and theme.css)
-└── app.css              # Tailwind CSS entry point
-defaults/                # Default config, theme, and sample data
-├── config.js            # User-editable configuration
-├── theme.css            # Graph theme variables
-└── data/                # Sample measurement data and targets
-cdn/                     # CDN deployment templates
-├── cdn-index.html       # Thin index.html for CDN-hosted mode
-└── loader.js            # CDN bootstrap loader
-scripts/                 # Build utilities
-├── build-cdn.js         # CDN build orchestrator
-└── generate-boot-manifest.js
+│   └── paraglide/       # Generated i18n functions (do not edit)
+└── app.html             # HTML template (loads config.js and theme.css)
+defaults/                # Operator-editable config.js, theme.css, sample data
+messages/                # Paraglide sources, one JSON file per locale
+cdn/                     # CDN deployment templates (thin index.html + loader.js)
+scripts/                 # CDN and site-template builds, boot manifest, i18n tooling
+site-template/           # Sources for the GitHub Pages template repo
+docs/                    # This documentation site (Astro + Starlight)
 ```
+
+Most directories under `src/lib/` carry their own `AGENTS.md` with the invariants specific to that area — read it before changing code there.
 
 ## Build Commands
 
-| Command             | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| `npm run dev`       | Start development server (http://localhost:5173) |
-| `npm run build`     | Production build to `dist/`                      |
-| `npm run build:cdn` | Build CDN-optimized distribution to `dist-cdn/`  |
-| `npm run preview`   | Preview the built output                         |
-| `npm run check`     | TypeScript + Svelte type checking                |
-| `npm run test`      | Run all Vitest tests                             |
-| `npm run lint`      | ESLint + Prettier check                          |
-| `npm run format`    | Auto-format code                                 |
-
-## Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) for code style, testing, and PR guidelines.
+| Command                       | Description                                             |
+| ----------------------------- | ------------------------------------------------------- |
+| `npm run dev`                 | Start development server (http://localhost:5173)        |
+| `npm run build`               | Production build to `dist/`                             |
+| `npm run build:cdn`           | Build CDN-optimized distribution to `dist-cdn/`         |
+| `npm run build:site-template` | Build the GitHub Pages template to `dist-site-template/` |
+| `npm run preview`             | Preview the built output                                |
+| `npm run check`               | TypeScript + Svelte type checking                       |
+| `npm run test`                | Run all Vitest tests                                    |
+| `npm run lint`                | Prettier + ESLint check                                 |
+| `npm run format`              | Auto-format code                                        |

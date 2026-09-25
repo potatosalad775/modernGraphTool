@@ -2,33 +2,9 @@
 title: 'Equalizer'
 ---
 
-A comprehensive parametric equalizer that provides real-time audio equalization capabilities for modernGraphTool.
+The Equalizer panel is a parametric EQ that works on loaded measurements: Peaking, Low Shelf and High Shelf bands with automatic preamp, AutoEQ against any target, per-channel bands, an in-browser audio preview, and filter import/export. [Device PEQ](./device-peq.mdx) pushes the result to hardware.
 
-## Overview
-
-The Equalizer is a built-in panel in modernGraphTool that provides a full-featured parametric equalizer, allowing users to apply real-time audio filters to their headphone measurements.
-
-It supports multiple filter types, preamp control, and audio playback with EQ effect applied.
-
-## Features
-
-- **Parametric EQ**: Support for multiple filter types (Peaking, Low Shelf, High Shelf) with adjustable frequency, gain, and Q values
-- **Per-channel EQ**: Bands can apply to both ears or to the left or right channel alone, so channel imbalance and target matching can be corrected at the same time
-- **Preamp Calculation**: Automatically calculates preamp gain to prevent clipping when applying EQ
-- **Real-time Audio**: Toggle EQ filters to integrated audio player in real-time
-- **Filter Management**: Add, remove, and modify EQ bands dynamically
-- **Phone Selection**: Quick selection and switching between different headphone measurements
-- **Auto EQ Generation**: Generate automatic EQ profiles based on target curves, now with low-shelf / high-shelf filter support
-- **Import/Export**: Support for importing and exporting EQ settings
-- **File Upload**: Upload custom frequency response and target files
-
-## Usage
-
-1. **Basic EQ**: Use the filter controls to adjust frequency, gain, and Q values
-2. **Phone Selection**: Use the phone selector to switch between different measurements
-3. **Audio Playback**: Enable audio playback to hear EQ changes in real-time
-4. **Auto EQ**: Generate automatic EQ profiles based on selected target curves
-5. **Import/Export**: Save and load EQ settings using the import/export functions
+This page covers the behavior worth knowing in detail. For a walkthrough of the panel, see [Equalizing audio](../guide-for-users/equalizing.mdx); operators can set defaults under [`EQUALIZER`](../guide-for-admins/customize-page.mdx#equalizer).
 
 ## The Equalizer toggle
 
@@ -159,9 +135,3 @@ turboEQ can also turn down a particular request while loading fine — Treble-sa
 range entirely above 10 kHz, for example, since that mode places no band there. The older optimizer
 answers that request too, and the panel says the settings were the problem; the fit mode stays, so
 you can switch to Exact match.
-
-## Notes
-
-- Requires a modern browser with Web Audio API support for audio features
-- Real-time audio processing may cause increased CPU usage
-- Large numbers of EQ bands may impact performance on older devices

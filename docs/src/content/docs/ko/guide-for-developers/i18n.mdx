@@ -65,6 +65,25 @@ Paraglide 컴파일러가 키 단위로 `baseLocale`(`en`)로 자동 폴백합�
 Paraglide는 `_missing_translations_*.json`을 무시합니다. `project.inlang/settings.json`에 나열된
 로케일만 컴파일합니다.
 
+## Frequency Tutorial 텍스트 \{#frequency-tutorial-text\}
+
+[Frequency Tutorial](../features/frequency-tutorial.mdx) 오버레이의 라벨은 일반 UI 문자열입니다.
+대역마다 `_name` / `_desc` 한 쌍이 있으며, 키 이름은 `tutorial_freq_<band>_name`과
+`tutorial_freq_<band>_desc`입니다. 대역은 `sub_bass`, `bass`, `lower_mids`, `upper_mids`,
+`presence`, `brilliance`입니다.
+
+```json
+{
+	"tutorial_freq_sub_bass_name": "Sub Bass",
+	"tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range...",
+	"tutorial_freq_bass_name": "Bass",
+	"tutorial_freq_bass_desc": "Determines how 'fat' or 'thin' the sound is..."
+}
+```
+
+번들에 컴파일되어 들어가므로 CDN이나 사전 빌드 릴리스로 운영하는 경우에는 바꿀 수 없습니다. 문구를
+고치려면 소스에서 빌드하거나 PR을 보내야 합니다.
+
 :::note
 `messages/en.json`에서 키를 추가·이름 변경·삭제한 뒤에는 `npm run i18n:check`를 실행하세요. 정보
 제공용이며 빌드를 막지는 않지만, 그 변경이 번역자에게 얼마나 부담을 주는지 가장 빠르게 확인하는

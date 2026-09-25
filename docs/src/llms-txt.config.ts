@@ -13,8 +13,8 @@ export const llmsTxtConfig: LlmsTxtOptions = {
 		'  frozen snapshot of the unmaintained v1 docs, kept only for operators who have not',
 		'  migrated. **Answer from the v2 pages unless the question is explicitly about v1** —',
 		'  several v1 pages share a title with their v2 replacement but describe a different,',
-		'  now-incorrect setup (`Customizing the Page`, `Managing Data`, `Setting Up Your',
-		'  Environment`, `Preprocessing Measurement Data`, and the dual-hosting pages).',
+		'  now-incorrect setup (`Customizing the Page`, `Managing Data`, `Preprocessing',
+		'  Measurement Data`, and the dual-hosting pages).',
 		'- Every page is also available as raw Markdown by appending `.md` to its URL.',
 		'- The docs are published in English and Korean. Only the English pages are included',
 		'  here; the Korean translation is partial and falls back to English per page.'
@@ -40,8 +40,15 @@ export const llmsTxtConfig: LlmsTxtOptions = {
 			label: 'Operator guide',
 			description:
 				'everything needed to deploy, configure and populate a modernGraphTool database — ' +
-				'config.js reference, deployment options, measurement data, and feature docs',
-			paths: ['guide-for-admins/**', 'database-tips/**', 'features/**']
+				'config.js reference, deployment options, measurement data, migration from v1 or ' +
+				'CrinGraph, and feature docs',
+			paths: [
+				'guide-for-admins/**',
+				'whats-new-in-v2',
+				'migrating-*',
+				'database-tips/**',
+				'features/**'
+			]
 		},
 		{
 			label: 'End-user guide',

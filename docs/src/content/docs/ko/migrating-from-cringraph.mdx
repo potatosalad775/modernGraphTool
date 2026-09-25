@@ -164,16 +164,7 @@ squig.link 서비스 모델은 이어폰과 헤드폰 데이터베이스를 같�
 
 ## 배포 옵션 선택
 
-modernGraphTool v2는 네 가지 배포 방식을 제공합니다.
-
-- **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx)** — v1과 비슷한 방식입니다. 배포 파일을 내려받고 데이터·설정을 복사한 뒤 업로드하면 됩니다. 따로 설정할 `BASE_PATH`도 없습니다.
-- **[CDN 배포](./guide-for-admins/deployment/cdn.mdx)** — 가장 권장하는 방식입니다. 서버에는 `index.html`, `config.js`, `theme.css`, `data/`, `assets/`만 두고, 핵심 코드는 jsDelivr에서 받아 자동으로 적용하는 방식입니다.
-- **[GitHub Pages](./guide-for-admins/deployment/github-pages.mdx)** — CDN 배포를 GitHub에서 무료로 호스팅하는 방식입니다. 이참에 웹 서버 관리에서 벗어나고 싶다면 좋은 선택입니다.
-- **[소스에서 빌드](./guide-for-admins/deployment/from-source.mdx)** — 개발자와 포크 운영자를 위한 옵션입니다.
-
-:::tip[CDN을 권장합니다]
-사전 빌드된 파일을 통째로 올리는 대신 [CDN 배포 모드](./guide-for-admins/deployment/cdn.mdx)를 살펴보세요. 핵심 코드를 따로 관리할 필요가 없고, 이후 나오는 업데이트도 자동으로 적용됩니다.
-:::
+지금의 CrinGraph 배포 방식과 가장 비슷한 것은 **[사전 빌드 릴리스](./guide-for-admins/deployment/prebuilt.mdx)** 입니다. 내려받아 `data/`, `config.js`, `theme.css`를 넣고 업로드하면 됩니다. 대안으로는 CDN 배포(권장: 앱 번들을 jsDelivr에서 받아 자동으로 업데이트)와, 웹 서버 운영에서 벗어나고 싶을 때 쓰는 GitHub Pages(무료 호스팅)가 있습니다. 네 가지 방식의 비교는 [배포 방식 고르기](./guide-for-admins/setup-env.mdx)를 참고하세요.
 
 ### CDN 모드를 골랐다면 `BASE_PATH`를 잊지 마세요 \{#if-you-pick-cdn-mode-watch-out-for-base_path\}
 
@@ -194,4 +185,4 @@ CDN_MODE: {
 
 ### 이미 CrinGraph를 다른 도구와 함께 운영 중이라면
 
-CrinGraph를 메인 페이지로 두고 modernGraphTool을 하위 폴더에서 함께 운영하고 싶다면(또는 그 반대의 경우), [이중 호스팅 가이드](./database-tips/dual-hosting/main-cringraph.mdx)에서 해당 구조를 처음부터 끝까지 다룹니다. 두 도구가 단일 `data/` 폴더를 공유하도록 설정하는 방법까지 들어 있습니다.
+CrinGraph를 메인 페이지로 두고 modernGraphTool을 하위 폴더에서 함께 운영하고 싶다면(또는 그 반대의 경우), [동시 운영 가이드](./database-tips/dual-hosting/main-cringraph.mdx)에서 해당 구조를 처음부터 끝까지 다룹니다. 두 도구가 단일 `data/` 폴더를 공유하도록 설정하는 방법까지 들어 있습니다.

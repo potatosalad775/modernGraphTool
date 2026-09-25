@@ -80,10 +80,13 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
   applies `base` to the redirect's own route but not to the target it writes into the
   meta-refresh. The loop at the top of the config does this — 30 `/category/*` routes
   depend on it.
-- **The sidebar (`src/sidebar.ts`) is explicit, not `autogenerate`.** Section order and
-  group labels came from Docusaurus `_category_.json` files and are not alphabetical.
-  Adding a page means adding a sidebar entry. Group labels carry their Korean via
-  `translations: { ko: … }`.
+- **The sidebar (`src/sidebar.ts`) is explicit, not `autogenerate`.** It groups pages by
+  audience — users, features, operators, developers — and **those groups do not follow the
+  folder layout**: pages were regrouped without moving, so their URLs survived. The migration
+  pages and `database-tips/dual-hosting/` sit under the operator guide, and "Guide for
+  Operators" is served from `guide-for-admins/`. Don't move a file to match its sidebar group;
+  a move is a URL change and needs a redirect. Adding a page means adding a sidebar entry.
+  Group labels carry their Korean via `translations: { ko: … }`.
 - **`markdown.processor` in `astro.config.mjs` uses `unified({...})` from
   `@astrojs/markdown-remark`, not the top-level `markdown.remarkPlugins`.** The
   top-level form still works but is deprecated as of Astro 7.2 and logs a build
@@ -121,6 +124,10 @@ The old Docusaurus site published ~178 routes that are linked from the app, from
   and `check-links.mjs` does not look at anchors. An English heading may still _auto_-slug to
   `--` (`## Per-channel EQ (L / R)` → `per-channel-eq-l--r`); only the explicit marker is affected,
   so a Korean twin of such a heading needs a shorter id and a matching link.
+- **One home per fact.** A `features/` page says what a feature does and how it behaves; how to
+  click through it belongs in `guide-for-users/`, and its `config.js` options in
+  `guide-for-admins/customize-page.mdx`. Link across instead of restating — the config blocks
+  used to be copied into both and had drifted apart.
 - **Code fences are case-sensitive.** Shiki wants ` ```javascript `, not ` ```JavaScript `
   (Docusaurus used Prism, which did not care).
 - **Tabs** come from `@astrojs/starlight/components`, and `<TabItem>` takes `label` only —
@@ -176,7 +183,7 @@ Three things about that config are easy to get wrong:
 - **Patterns are micromatch, so `'1.x'` matches only a page whose slug is exactly `1.x`.**
   The v1 tree needs `'1.x/**'`. The wrong form fails silently: the build succeeds and the
   file just still contains everything.
-- **The frozen v1 tree is the main hazard in this output.** Seven v1 pages share a title
+- **The frozen v1 tree is the main hazard in this output.** Five v1 pages share a title
   with their v2 replacement while describing a setup that no longer works, and a flattened
   text dump carries neither the URL nor the "unmaintained" banner that disambiguates them
   on the site. They are excluded from `llms-small.txt`, sorted to the bottom of

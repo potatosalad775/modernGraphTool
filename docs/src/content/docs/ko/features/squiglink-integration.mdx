@@ -2,72 +2,14 @@
 title: 'squig.link 연동'
 ---
 
-modernGraphTool과 squig.link 서비스를 이어주는 내장 통합 기능입니다.
+`*.squig.link` 도메인에서 운영하는 사이트에는 기본 기능 외에 네트워크 전체를 위한 기능이 몇 가지 더해집니다. squig.link에서는 자동으로 켜지고, 다른 호스트에서는 동작하지 않습니다.
 
-## 개요
+- **쇼핑 링크** — 불러온 기기가 squig.link 쇼핑 데이터베이스에 있으면 스폰서 판매 페이지로 가는 **Buy Now** 버튼을 표시합니다.
+- **스폰서 배너** — 첫 방문 시 squig.link 네트워크가 제공하는 스폰서 대화상자를 띄웁니다.
+- **분석** — Google Analytics 4(gtag.js)로, 여러 측정 ID에 동시에 전송하므로 squig.link와 사이트 자체 속성 양쪽에 보고할 수 있습니다.
 
-squig.link 연동은 modernGraphTool을 squig.link 생태계와 자연스럽게 연결합니다. 쇼핑 링크, 분석 추적, 스폰서 배너를 함께 제공합니다.
+각 기능을 끄거나 분석 ID를 지정하는 것은 `config.js`의 [`SQUIGLINK`](../guide-for-admins/customize-page.mdx#squiglink)에서 합니다.
 
-:::note
-squig.link 기능은 modernGraphTool이 `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
+:::note[크로스 사이트 검색과 사이트 선택기는 어디서나 동작합니다]
+크로스 사이트 검색은 예전에는 squig.link 전용이었습니다. 지금은 사이트 선택기와 함께 어떤 호스트에서나 동작하며, 각자 별도의 설정 섹션이 있습니다. [크로스 사이트 검색](./cross-site-search.mdx)과 [사이트 선택기](./site-selector.mdx)를 참고하세요. squig.link에서는 통합 인덱스에 접근할 수 없을 때 여전히 각 사이트의 `phone_book.json`을 직접 수집하는 방식으로 대체합니다.
 :::
-
-## 주요 기능
-
-- **쇼핑 링크** — 일치하는 쇼핑 항목이 있을 때 "Buy Now" 링크 노출
-- **분석** — 다중 측정 ID를 지원하는 Google Analytics 연동
-- **스폰서 배너** — 첫 방문 시 스폰서 콘텐츠 표시
-- **유연한 설정** — 다양한 배포 환경에 맞춘 옵션 제공
-
-## 설정
-
-squig.link 연동은 `config.js`에서 설정합니다.
-
-```javascript
-// In config.js
-SQUIGLINK: {
-    ENABLED: true,
-    ANALYTICS_MEASUREMENT_IDS: [],
-    ANALYTICS_SITE: "",
-    LOG_ANALYTICS: true,
-    ENABLE_ANALYTICS: true,
-    ENABLE_CROSS_SITE_SEARCH: true,
-    ENABLE_SPONSOR: true,
-}
-```
-
-### 설정 옵션
-
-- **`ENABLED`** — 모든 squig.link 기능의 마스터 토글
-- **`ANALYTICS_MEASUREMENT_IDS`** — 다중 태그를 지원하는 Google Analytics 4 측정 ID 배열
-- **`ANALYTICS_SITE`** — 분석 이벤트에 붙일 사이트 이름
-- **`LOG_ANALYTICS`** — 디버깅용으로 분석 이벤트를 콘솔에 출력
-- **`ENABLE_ANALYTICS`** — 분석 추적 켜기/끄기
-- **`ENABLE_CROSS_SITE_SEARCH`** — 더 이상 사용하지 않습니다. `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 기존 설정 파일을 위해 대체값으로만 읽습니다.
-- **`ENABLE_SPONSOR`** — 스폰서 배너 표시 켜기/끄기
-
-:::note[크로스 사이트 검색은 이동했습니다]
-크로스 사이트 기기 검색은 더 이상 squig.link 전용 기능이 아닙니다. 이제 어떤 호스팅 환경에서도 동작하며,
-별도의 `CROSS_SITE_SEARCH` 섹션에서 설정합니다. [크로스 사이트 검색](./cross-site-search.mdx)을 참고하세요.
-
-squig.link 배포 환경에서는 인덱스를 받아오지 못했을 때 기존처럼 각 사이트의 `phone_book.json`을
-수집하는 방식으로 대체됩니다.
-:::
-
-## 사용법
-
-### 크로스 사이트 검색
-
-참여 중인 모든 squig.link 사이트에서 헤드폰 측정값을 검색합니다. 결과를 누르면 해당 사이트의 그래프 툴로 기기가 로드된 상태로 바로 이동합니다.
-
-### 쇼핑 링크
-
-로드된 기기가 squig.link 쇼핑 링크 데이터베이스에 등록되어 있다면, 판매처로 연결되는 "Buy Now" 버튼이 함께 표시됩니다.
-
-### 분석
-
-활성화하면 사용자 상호작용이 Google Analytics 4(gtag.js)로 전송되어, 사이트 사용 현황을 분석할 수 있습니다.
-
-### 스폰서 배너
-
-첫 방문 시 squig.link 네트워크에서 받아 온 콘텐츠가 담긴 스폰서 다이얼로그가 표시될 수 있습니다.

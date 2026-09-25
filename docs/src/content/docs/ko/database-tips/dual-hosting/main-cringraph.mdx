@@ -4,21 +4,13 @@ sidebar:
   order: 2
 ---
 
-코드를 살짝만 손보면 modernGraphTool과 CrinGraph를 한 도메인에 함께 호스팅할 수 있습니다.
-
-이번 장에서는 두 그래프 도구를 같은 도메인에서 제공하는 방법을 설명합니다.
-
-## 개요
-
-한 도메인으로 두 서비스를 제공하는 방법은 여러 가지가 있습니다.
-
-여기서는 '폴더를 서브도메인처럼 다루는' 가장 기본적인 방식을 사용합니다.
+이 구성에서는 **CrinGraph를** 도메인 루트에 첫 화면으로 두고, modernGraphTool은 하위 폴더에서 제공합니다. 두 도구 모두 같은 `data/` 폴더를 읽습니다. 반대 구성은 [CrinGraph와 동시 운영](./index.mdx)을 참고하세요.
 
 ## 단계별 가이드
 
 ### 1. 프로젝트 준비
 
-- **modernGraphTool** — [다른 장](../../../guide-for-admins/index.mdx)에서 설명한 절차에 따라 modernGraphTool 데이터베이스를 준비하세요.
+- **modernGraphTool** — [운영자 가이드](../../guide-for-admins/index.mdx)에서 설명한 절차에 따라 modernGraphTool 데이터베이스를 준비하세요.
 - **CrinGraph** — CrinGraph 프로젝트 파일을 준비합니다. 추가 기능이 들어간 커스텀 버전이어도 괜찮습니다.
 
 ### 2. 파일 경로 설정

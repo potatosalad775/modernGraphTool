@@ -24,10 +24,15 @@ const rawRedirects = {
 	'/category/features': '/features/',
 	'/category/guide-for-users': '/guide-for-users/',
 	'/category/guide-for-admins': '/guide-for-admins/',
-	'/category/guide-for-developers': '/guide-for-developers/',
-	'/category/database-setup-tips': '/database-tips/',
-	'/category/deployment-options': '/guide-for-admins/deployment/',
+	'/category/guide-for-developers': '/guide-for-developers/overview/',
+	'/category/database-setup-tips': '/database-tips/dual-hosting/',
+	'/category/deployment-options': '/guide-for-admins/setup-env/',
 	'/category/dual-hosting-moderngraphtool--cringraph': '/database-tips/dual-hosting/',
+
+	// Card-only section indexes, folded away when the sidebar was regrouped by audience.
+	'/guide-for-admins/deployment': '/guide-for-admins/setup-env/',
+	'/database-tips': '/database-tips/dual-hosting/',
+	'/guide-for-developers': '/guide-for-developers/overview/',
 
 	'/1.x/category/guide-for-users': '/1.x/guide-for-users/understanding-ui/',
 	'/1.x/category/tool-guide': '/1.x/guide-for-users/tool-instructions/ti-graph/',

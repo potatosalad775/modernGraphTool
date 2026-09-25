@@ -15,6 +15,7 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 		collapsed: true,
 		items: [
 			{ slug: 'features' },
+			{ slug: 'features/autoeq-benchmarks' },
 			{ slug: 'features/average-curves' },
 			{ slug: 'features/cross-site-search' },
 			{ slug: 'features/device-peq' },

@@ -116,12 +116,15 @@ It switches itself off, and says why, rather than overwrite something it can no 
 
 AutoEQ runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of
 [AutoEq](https://github.com/jaakkopasanen/AutoEq)'s optimizer, which fits every filter at once. A
-typical run takes about 10 to 20 ms.
+run with the default eight bands takes a few milliseconds, over a hundred times faster than the
+optimizer it replaced, and returns exactly the bands it was asked for. See
+[AutoEQ Benchmarks](./autoeq-benchmarks.mdx) for measurements against CrinGraph and AutoEq itself.
 
 ### Fit mode
 
 **Exact match** is the default. It fits the curve the way the graph shows it: the full shape up to
-20 kHz, with bands allowed anywhere in the frequency range.
+20 kHz, with bands allowed anywhere in the frequency range. Narrow, deep bands are allowed when the
+curve calls for them, up to the Q range you set.
 
 **Treble-safe** is jaakkopasanen AutoEQ's own, more cautious fit. AutoEq smooths the treble above about 8 kHz, judges
 only its overall level above 10 kHz and places no band above 10 kHz. Treble measurements can vary a lot depending
@@ -132,11 +135,15 @@ In either mode, the gain range's maximum caps the largest boost the whole EQ may
 each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping.
 Lower the maximum if you would rather keep the level up.
 
-The frequency, Q and gain ranges are **bounds the fit works within**, not a clamp applied to the
-result afterwards: narrowing them changes what the optimizer looks for rather than trimming what it
-found. The frequency range says where a band may sit — the fit is still judged across the whole
+The frequency, Q and gain ranges are **bounds the fit works within**, exactly as you set them, not
+a clamp applied to the result afterwards: narrowing them changes what the optimizer looks for rather
+than trimming what it found. The frequency range says where a band may sit — the fit is still judged across the whole
 axis, so a narrow range leaves the rest of the curve alone instead of pretending it is already
 correct.
+
+With **Use shelf filters** on, the fit places the low and high shelf itself, choosing their
+frequency and Q as well as their gain. Shelf Q stays between 0.4 and 0.7, since a steeper shelf
+overshoots into a bump that a peaking band does better.
 
 Graphic-EQ presets fit too. Frequency and Q come from the preset's own bands and only gain is
 optimized, so every band lands exactly on its slider.

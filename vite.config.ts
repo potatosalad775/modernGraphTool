@@ -57,6 +57,14 @@ export default defineConfig({
 	worker: {
 		format: 'es'
 	},
+	// turboEQ is only reached through a dynamic import inside the AutoEQ worker,
+	// which the optimizer's startup scan never crawls. Discovered later, it forces
+	// a re-optimize and a full reload: in dev that reloads the page the first time
+	// the Equalizer tab opens, and in browser tests it breaks whichever spec file
+	// is importing at that moment ("Cannot read properties of undefined (reading
+	// 'config')"). It is plain ESM with no dependencies, so there is nothing to gain
+	// from pre-bundling it anyway.
+	optimizeDeps: { exclude: ['@potatosalad775/turboeq'] },
 	test: {
 		expect: { requireAssertions: true },
 		coverage: {

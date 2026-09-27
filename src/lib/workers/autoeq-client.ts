@@ -32,6 +32,19 @@ function getWorker(): Worker {
 }
 
 /**
+ * Boot the worker and instantiate turboEQ ahead of the first run.
+ *
+ * Spawning the worker, fetching its chunk and compiling the wasm otherwise all
+ * land on the first click of Run, which is a visible stall. Nothing comes back:
+ * a failed load is not cached in the worker, so the run that follows retries it
+ * and falls back from there as usual. Cheap to repeat — the worker and the
+ * module are both instantiated once.
+ */
+export function prewarmAutoEQ(): void {
+	getWorker().postMessage({ type: 'prewarm' });
+}
+
+/**
  * Fit `source` to `target` off the main thread.
  *
  * `request` is in turboEQ's terms — peaking bands with the shelves outside the

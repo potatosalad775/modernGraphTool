@@ -13,7 +13,7 @@
  * not have come from anywhere else.
  */
 import { describe, it, expect } from 'vitest';
-import { runAutoEQInWorker } from './autoeq-client.js';
+import { prewarmAutoEQ, runAutoEQInWorker } from './autoeq-client.js';
 
 /** A log-spaced curve, 1/12-octave from 20 Hz to 20 kHz. */
 function curve(shape: (freq: number) => number): [number, number][] {
@@ -138,6 +138,17 @@ describe('runAutoEQInWorker', () => {
 
 		expect(three.filters).toHaveLength(3);
 		expect(six.filters).toHaveLength(6);
+	});
+
+	it('answers a run normally after a prewarm', async () => {
+		// The prewarm gets no reply; one that did would carry no id and could be
+		// taken for the run's answer by a looser handler.
+		prewarmAutoEQ();
+		prewarmAutoEQ();
+
+		const outcome = await runAutoEQInWorker(BUMPED, FLAT, THREE);
+		expect(outcome.engine).toBe('turboeq');
+		expect(outcome.filters).toHaveLength(3);
 	});
 
 	it('stays usable after a rejected run — the worker is reused, not torn down', async () => {

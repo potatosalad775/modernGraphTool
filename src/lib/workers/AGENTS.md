@@ -6,7 +6,7 @@ package:
 | File                | What it is                                                                      |
 | ------------------- | ------------------------------------------------------------------------------- |
 | `autoeq-client.ts`  | `runAutoEQInWorker(source, target, request)` — the only entry point callers use |
-| `autoeq.worker.ts`  | Message shim. `run-autoeq` in, `autoeq-result` / `autoeq-error` out             |
+| `autoeq.worker.ts`  | Message shim. `run-autoeq` in, `autoeq-result` / `autoeq-error` out; `prewarm`  |
 | `autoeq-request.ts` | The request vocabulary, `FitMode` and `planBands`. No engine behind it          |
 | `autoeq-engine.ts`  | turboEQ (wasm) with `utils/equalizer.ts` as the fallback                        |
 
@@ -108,9 +108,21 @@ scored over. turboEQ separates them (`limits` versus `loss`); the old engine con
 
 The package ships two bit-identical wasm builds, `turboeq-simd.wasm` and a scalar `turboeq.wasm` for
 engines without SIMD. `loadTurboEq` calls `TurboEQ.load()`, which picks one and resolves it with
-`new URL(..., import.meta.url)`. Vite emits both from that pattern and rewrites the path when it
-pre-bundles the dependency in dev, so nothing here names a wasm URL. The URL is relative to the
-worker chunk, which is what keeps the CDN build fetching it from jsDelivr.
+`new URL(..., import.meta.url)`. Vite emits both from that pattern, so nothing here names a wasm
+URL. The URL is relative to the worker chunk, which is what keeps the CDN build fetching it from
+jsDelivr.
+
+**The package is excluded from `optimizeDeps`** (top level of `vite.config.ts`). Its only importer
+is the dynamic `import()` in the worker, which the optimizer's startup scan doesn't crawl, so it was
+discovered late and forced a re-optimize plus full reload — a page reload in dev, and in browser
+tests a spec file failing to import with `reading 'config'`. Don't move it to `include` without
+re-running the client project from an empty `node_modules/.vite`.
+
+**`EqualizerPanel` prewarms on mount** (`prewarmAutoEQ()` → a `prewarm` message → `loadTurboEq()`).
+Worker boot, chunk fetch and wasm compile used to land on the first click of Run as a visible stall.
+It gets no reply and swallows a failed load; since `loadTurboEq` doesn't cache a failure, the run
+that follows retries and falls back as usual. Don't make the prewarm reply — a message without an
+`id` would be one more thing the run handlers have to ignore.
 
 **Import only types from the package outside the worker.** Any value import — even `MAX_FILTERS` —
 drags `TurboEQ.load()`'s `new URL(...)` into the main build, and Vite emits both wasm files as

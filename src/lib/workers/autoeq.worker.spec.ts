@@ -15,9 +15,11 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-vi.mock('@potatosalad775/turboeq', () => ({
-	TurboEQ: { load: () => Promise.reject(new Error('stubbed out')) }
+const { load } = vi.hoisted(() => ({
+	load: vi.fn(() => Promise.reject(new Error('stubbed out')))
 }));
+
+vi.mock('@potatosalad775/turboeq', () => ({ TurboEQ: { load } }));
 
 interface WorkerScope {
 	onmessage: ((e: MessageEvent) => void) | null;
@@ -58,6 +60,7 @@ function lastReply(): Record<string, unknown> {
 describe('autoeq.worker', () => {
 	beforeEach(() => {
 		vi.resetModules();
+		load.mockClear();
 	});
 
 	afterEach(() => {
@@ -75,6 +78,18 @@ describe('autoeq.worker', () => {
 
 		post({ type: 'something-else', id: 1 });
 		await Promise.resolve();
+
+		expect(scope.postMessage).not.toHaveBeenCalled();
+	});
+
+	it('loads turboEQ on prewarm without replying', async () => {
+		// The Equalizer panel sends this on mount so the first Run doesn't pay for
+		// the wasm. Nobody awaits it, so a failed load must be swallowed here —
+		// and left uncached, so the run that follows retries it.
+		await loadWorker();
+
+		post({ type: 'prewarm' });
+		await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
 
 		expect(scope.postMessage).not.toHaveBeenCalled();
 	});

@@ -4,7 +4,7 @@
  * messages across the boundary.
  */
 
-import { runAutoEq } from './autoeq-engine.js';
+import { loadTurboEq, runAutoEq } from './autoeq-engine.js';
 import type { AutoEqRequest } from './autoeq-request.js';
 
 self.onmessage = async (e: MessageEvent) => {
@@ -15,6 +15,11 @@ self.onmessage = async (e: MessageEvent) => {
 		target: [number, number][];
 		request: AutoEqRequest;
 	};
+	if (type === 'prewarm') {
+		// No reply: a failed load is not cached, so the next run retries it.
+		loadTurboEq().catch(() => {});
+		return;
+	}
 	if (type !== 'run-autoeq') return;
 
 	try {

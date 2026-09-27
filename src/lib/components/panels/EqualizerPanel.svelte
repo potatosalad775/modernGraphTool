@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import { prewarmAutoEQ } from '$lib/workers/autoeq-client.js';
 
 	import EqPhoneSelect from '$lib/components/equalizer/EqPhoneSelect.svelte';
 	import EqFilterList from '$lib/components/equalizer/EqFilterList.svelte';
@@ -16,6 +17,11 @@
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
+
+	// Load turboEQ while the user is still picking a source and target, so the
+	// first Run doesn't pay for the worker boot and wasm compile. Idempotent, so
+	// remounting on every panel switch costs a message and nothing more.
+	onMount(prewarmAutoEQ);
 
 	let prevSourceUUID: string | null = null;
 

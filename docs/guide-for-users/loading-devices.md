@@ -45,6 +45,8 @@ The **i** button beside the field opens a short list of search tips, so the synt
 
 Separate several devices with commas — `hd 600, u12t` shows every device matching either one, so you can load both sides of a comparison without clearing the box in between. Commas mean something stronger in cross-site results, below.
 
+If a device goes by more than one name, separate the spellings with a double slash — `lyro // lyrö` matches either. A single `/` is searched as typed, since some device names contain one.
+
 Clear the search box to get back to the full filtered list.
 
 ## Loading and unloading

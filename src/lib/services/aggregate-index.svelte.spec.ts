@@ -6,7 +6,7 @@ import {
 	deriveShareSlug,
 	getCrossSiteSearchConfig,
 	sortCrossSiteResults,
-	parseCrossSiteTerms,
+	parseCrossSiteGroups,
 	MAX_RESULTS
 } from './aggregate-index-core.js';
 import type { AggregateIndex, CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
@@ -108,19 +108,25 @@ describe('cross-site search helpers', () => {
 		});
 	});
 
-	describe('parseCrossSiteTerms', () => {
+	describe('parseCrossSiteGroups', () => {
 		it('splits a comma-separated query into terms', () => {
-			expect(parseCrossSiteTerms('hd 600, u12t')).toEqual(['hd 600', 'u12t']);
+			expect(parseCrossSiteGroups('hd 600, u12t')).toEqual([['hd 600'], ['u12t']]);
 		});
 
 		// A half-typed term would otherwise list databases it goes on to exclude.
 		it('withholds the query while any term is shorter than the minimum', () => {
-			expect(parseCrossSiteTerms('hd 600,u')).toEqual([]);
-			expect(parseCrossSiteTerms('u')).toEqual([]);
+			expect(parseCrossSiteGroups('hd 600,u')).toEqual([]);
+			expect(parseCrossSiteGroups('u')).toEqual([]);
 		});
 
 		it('ignores a trailing comma so the first term keeps searching', () => {
-			expect(parseCrossSiteTerms('hd 600,')).toEqual(['hd 600']);
+			expect(parseCrossSiteGroups('hd 600,')).toEqual([['hd 600']]);
+		});
+
+		// `lyro // l` would otherwise list nearly every device while the second is typed.
+		it('withholds the query while any alternative is shorter than the minimum', () => {
+			expect(parseCrossSiteGroups('lyro // l')).toEqual([]);
+			expect(parseCrossSiteGroups('lyro // lyrö')).toEqual([['lyro', 'lyrö']]);
 		});
 	});
 
@@ -438,6 +444,46 @@ describe('AggregateIndexService', () => {
 				const hits = service.search('hd 600,sennheiser');
 				expect(hits.results.map((r) => r.dbId)).toEqual(['alice:iems', 'bob:iems']);
 				expect(hits.total).toBe(2);
+			});
+		});
+
+		describe('`//` alternatives', () => {
+			/**
+			 * Alice spells it "Lyro", Bob "Lyrö", and only Bob also has the HD 600 —
+			 * so the two spellings together should find both, and pairing them with
+			 * `hd 600` should narrow to Bob.
+			 */
+			function makeAliasIndex() {
+				return makeIndex({
+					brands: ['Kinera', 'Sennheiser'],
+					dbs: [
+						{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
+						{ id: 'bob:iems', siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/' }
+					],
+					phones: [
+						{ db: 'alice:iems', b: 0, n: 'Lyro', s: 'Kinera_Lyro' },
+						{ db: 'bob:iems', b: 0, n: 'Lyrö', s: 'Kinera_Lyrö' },
+						{ db: 'bob:iems', b: 1, n: 'HD 600', s: 'Sennheiser_HD_600' }
+					]
+				});
+			}
+
+			it('lists devices matching any alternative, across databases', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeAliasIndex() });
+				await service.load();
+
+				const hits = service.search('lyro // lyrö');
+				expect(hits.results.map((r) => r.phoneName).sort()).toEqual(['Lyro', 'Lyrö']);
+				expect(hits.total).toBe(2);
+			});
+
+			it('counts a group met when a database carries any one of its alternatives', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeAliasIndex() });
+				await service.load();
+
+				const hits = service.search('lyro // lyrö, hd 600');
+				expect(hits.results.map((r) => r.dbId)).toEqual(['bob:iems', 'bob:iems']);
+				expect(hits.results.map((r) => r.phoneName)).toEqual(['HD 600', 'Lyrö']);
 			});
 		});
 

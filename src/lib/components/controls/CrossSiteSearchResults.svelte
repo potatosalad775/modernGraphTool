@@ -4,7 +4,7 @@
 	import { aggregateIndexService } from '$lib/services/aggregate-index.svelte.js';
 	import {
 		getCrossSiteSearchConfig,
-		parseCrossSiteTerms
+		parseCrossSiteGroups
 	} from '$lib/services/aggregate-index-core.js';
 	import type { CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
 	import { ArrowUpRight } from '@lucide/svelte';
@@ -38,19 +38,19 @@
 		}
 	}
 
-	/** Empty until every comma-separated term is long enough to search on. */
-	const terms = $derived(parseCrossSiteTerms(searchQuery));
+	/** Empty until every term of every comma-separated group is long enough to search on. */
+	const groups = $derived(parseCrossSiteGroups(searchQuery));
 
 	// Trigger cross-site data load once when enabled and the query is searchable
 	$effect(() => {
-		if (crossSiteEnabled && terms.length > 0 && !crossSiteLoadStarted) {
+		if (crossSiteEnabled && groups.length > 0 && !crossSiteLoadStarted) {
 			crossSiteLoadStarted = true;
 			loadCrossSiteData();
 		}
 	});
 
 	const hits = $derived.by(() => {
-		if (!crossSiteEnabled || terms.length === 0) return { results: [], total: 0 };
+		if (!crossSiteEnabled || groups.length === 0) return { results: [], total: 0 };
 		return aggregateIndexService.search(searchQuery);
 	});
 
@@ -71,7 +71,7 @@
 		return map;
 	});
 
-	const showCrossSiteSection = $derived(crossSiteEnabled && terms.length > 0);
+	const showCrossSiteSection = $derived(crossSiteEnabled && groups.length > 0);
 
 	// Sync bindable props with internal state
 	$effect(() => {

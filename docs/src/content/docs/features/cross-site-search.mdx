@@ -34,6 +34,19 @@ is still typing the second one. A trailing comma is ignored.
 Your own site's device list reads the same query, but unions the terms there — one device can't
 be both, so it shows the devices matching either, ready to be loaded together.
 
+## Alternative spellings
+
+The same model is often written differently from one database to the next — `Lyro` on one site,
+`Lyrö` on another. Separate the spellings with a double slash to match any of them:
+`lyro // lyrö` lists every database carrying either.
+
+`//` binds tighter than the comma, so each comma-separated group is one device and its `//`
+alternatives are other names for it. `lyro // lyrö, hd 600` lists the databases that carry the
+HD 600 *and* either spelling of the Lyro.
+
+A single `/` is still part of the search term — plenty of device names contain one, such as
+`16/Cosmos` or `HD650/HD6XX`, and none contain two.
+
 ## Configuration
 
 Configured in `config.js`:

@@ -8,7 +8,7 @@
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { buildRankingUrl } from '$lib/utils/url-template.js';
 	import { sanitizeHtml, stripHtml } from '$lib/utils/html-sanitizer.js';
-	import { splitQueryTerms } from '$lib/utils/search-query.js';
+	import { splitQueryGroups } from '$lib/utils/search-query.js';
 	import { rankingService } from '$lib/services/ranking-service.svelte.js';
 	import {
 		getRankingSettings,
@@ -89,8 +89,9 @@
 				: fullPhoneList;
 		// `A,B` is an *and* across databases, but a single device can only ever be
 		// one of them — so locally the terms union instead, putting both sides of
-		// the comparison the query describes in front of the user at once.
-		const terms = splitQueryTerms(searchQuery);
+		// the comparison the query describes in front of the user at once. `//`
+		// alternatives are an *or* already, so every term simply joins the union.
+		const terms = splitQueryGroups(searchQuery).flat();
 		if (terms.length > 0) {
 			list = list.filter((p) => {
 				const id = p.identifier.toLowerCase();
@@ -262,7 +263,7 @@
 					<!--
 						Examples stay literal in every locale: device names aren't translatable. That makes
 						them the popover's fingerprint in PhoneSelector.svelte.spec.ts, which asserts on
-						`hd 600, u12t` verbatim — rephrasing a sample here breaks those tests, so update
+						`hd 600, u12t` and `lyro // lyrö` verbatim — rephrasing a sample here breaks those tests, so update
 						the spec in the same change.
 					-->
 					<code class="ps-help-code">hd 6</code>
@@ -288,6 +289,12 @@
 							{m.phone_selector_search_help_cross_site()}
 						</span>
 					{/if}
+				</li>
+				<li class="flex flex-col gap-1">
+					<code class="ps-help-code">lyro // lyrö</code>
+					<span class="text-xs leading-snug text-base-content/70">
+						{m.phone_selector_search_help_alternatives()}
+					</span>
 				</li>
 			</ul>
 		</PopoverPanel>

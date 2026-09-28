@@ -14,9 +14,14 @@ At a midrange anchor the two agree to a fraction of a dB, which is why the defau
 
 ## `search-query.ts`
 
-`search-query.ts` is just `splitQueryTerms` — the comma split shared by the local device list and
-cross-site search, so both read `A,B` as the same two terms. What "and" means then differs per
+`search-query.ts` is just `splitQueryGroups` — the query parser shared by the local device list and
+cross-site search, so both read `A,B` as the same two groups. What "and" means then differs per
 surface; see the cross-site search note in `services/AGENTS.md`.
+
+Each group is a list of `//`-separated alternatives (other spellings of one device). The separator
+is a _double_ slash on purpose: 67 names in the aggregate index contain a single `/` (`16/Cosmos`,
+`HD650/HD6XX`) and none contain `//`, so don't "simplify" it to `/` or to `|` (collision-free too,
+but buried on mobile keyboards).
 
 ## `csv.ts` / `url-template.ts`
 

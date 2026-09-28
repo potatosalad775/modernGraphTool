@@ -84,6 +84,7 @@ describe('PhoneSelector', () => {
 			await expect
 				.element(page.getByText('Separate devices with commas', { exact: false }))
 				.toBeInTheDocument();
+			await expect.element(page.getByText('lyro // lyrö')).toBeInTheDocument();
 		});
 
 		// The trigger is a sibling of the field, not the label's icon — clicking it
@@ -276,6 +277,22 @@ describe('PhoneSelector', () => {
 			expect(rows[0].className).toContain('border-b-2');
 			expect(rows[1].className).not.toContain('border-b-2');
 			expect(rows[2].className).not.toContain('border-b-2');
+		});
+
+		// Commas and `//` both union locally: one device can't be two of them.
+		it('lists devices matching any comma group or `//` alternative', async () => {
+			// Typing would otherwise lazy-load the real aggregate index.
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			stubBigBook();
+			render(PhoneSelector);
+
+			await page.getByRole('searchbox').fill('alpha // charlie');
+			await vi.waitFor(() => expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Charlie']));
+
+			await page.getByRole('searchbox').fill('bravo, alpha // charlie');
+			await vi.waitFor(() =>
+				expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Bravo', 'Acme Charlie'])
+			);
 		});
 
 		it('does not reorder the list when a device is selected', async () => {

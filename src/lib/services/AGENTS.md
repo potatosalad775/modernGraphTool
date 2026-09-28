@@ -167,18 +167,23 @@ two effects install lazily on the first switch-on and are never disposed.
 Fetches the GraphAggregator index (one JSON doc listing every known site/database/device), normalizes
 both `flat` and `collapsed` phone formats, and answers queries against a prebuilt lowercase row set.
 Host-agnostic — **not** squig.link-gated. Exports `aggregateIndexService`, plus
-`getCrossSiteSearchConfig`, `parseCrossSiteTerms`, `buildShareUrl`, `deriveShareSlug`,
+`getCrossSiteSearchConfig`, `parseCrossSiteGroups`, `buildShareUrl`, `deriveShareSlug`,
 `sortCrossSiteResults` and `rankDbType`.
 
 **A comma-separated query is an AND over databases, not over rows.** `A,B` asks which database
 carries both devices, so `searchRows` groups by `dbId`, keeps the databases that matched every
 term, and then emits _all_ of their matching rows — a row can't match both terms itself. Filtering
 rows by every term instead would return nothing for the query the feature exists to answer.
-`parseCrossSiteTerms` returns `[]` while any term is still under `MIN_QUERY_LENGTH`, which is what
+`parseCrossSiteGroups` returns `[]` while any term is still under `MIN_QUERY_LENGTH`, which is what
 keeps a half-typed second term from listing databases it is about to exclude; `CrossSiteSearchResults`
 gates the lazy index load and the whole section on that, so don't reintroduce a
 `searchQuery.length >= 2` check alongside it. The local device list in `PhoneSelector` unions the
-same terms (`splitQueryTerms` in `utils/search-query.ts`) — one device is never both.
+same terms (`splitQueryGroups` in `utils/search-query.ts`) — one device is never both.
+
+**`//` alternatives are an OR _inside_ a comma group.** `lyro // lyrö, hd 600` is
+`(lyro OR lyrö) AND hd 600`: a database meets a group when any row matches any of its alternatives,
+so the per-database bookkeeping counts groups, not terms. A short alternative withholds the query
+like a short term does — `lyro // l` would otherwise match nearly the whole index.
 
 One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars — so it costs nothing
 for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the

@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { getConfigValue } from '$lib/utils/config.js';
-import { splitQueryTerms } from '$lib/utils/search-query.js';
+import { splitQueryGroups } from '$lib/utils/search-query.js';
 import type {
 	AggregateDb,
 	AggregateIndex,
@@ -210,30 +210,35 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 }
 
 /**
- * Terms a cross-site query is searchable with, or `[]` when it isn't yet.
+ * Groups a cross-site query is searchable with, or `[]` when it isn't yet.
  *
- * Every term has to be met for a database to match, so a term still below
+ * Every group has to be met for a database to match, so a term still below
  * `MIN_QUERY_LENGTH` isn't a filter — it's a half-typed one. The whole query
  * waits rather than listing databases that the finished term would rule out.
+ * A short alternative waits too: it would match nearly every device.
  */
-export function parseCrossSiteTerms(query: string): string[] {
-	const terms = splitQueryTerms(query);
-	if (terms.length === 0) return [];
-	return terms.some((term) => term.length < MIN_QUERY_LENGTH) ? [] : terms;
+export function parseCrossSiteGroups(query: string): string[][] {
+	const groups = splitQueryGroups(query);
+	if (groups.length === 0) return [];
+	return groups.some((group) => group.some((term) => term.length < MIN_QUERY_LENGTH)) ? [] : groups;
+}
+
+function matchesGroup(row: SearchRow, group: string[]): boolean {
+	return group.some((term) => row.displayLower.includes(term));
 }
 
 /**
  * `A,B` asks which databases carry *both* devices, so a row survives only when
- * its database matched every term — and then all of that database's matching
+ * its database matched every group — and then all of that database's matching
  * rows are kept, since the answer is the set of devices, not one of them.
  */
-function matchEveryTerm(rows: SearchRow[], terms: string[]): CrossSiteSearchResult[] {
+function matchEveryGroup(rows: SearchRow[], groups: string[][]): CrossSiteSearchResult[] {
 	const byDb = new Map<string, { matched: Set<number>; results: CrossSiteSearchResult[] }>();
 
 	for (const row of rows) {
 		let entry: { matched: Set<number>; results: CrossSiteSearchResult[] } | undefined;
-		for (const [i, term] of terms.entries()) {
-			if (!row.displayLower.includes(term)) continue;
+		for (const [i, group] of groups.entries()) {
+			if (!matchesGroup(row, group)) continue;
 			if (!entry) {
 				entry = byDb.get(row.result.dbId);
 				if (!entry) {
@@ -248,19 +253,19 @@ function matchEveryTerm(rows: SearchRow[], terms: string[]): CrossSiteSearchResu
 
 	const matches: CrossSiteSearchResult[] = [];
 	for (const entry of byDb.values()) {
-		if (entry.matched.size === terms.length) matches.push(...entry.results);
+		if (entry.matched.size === groups.length) matches.push(...entry.results);
 	}
 	return matches;
 }
 
 export function searchRows(rows: SearchRow[], query: string): CrossSiteSearchHits {
-	const terms = parseCrossSiteTerms(query);
-	if (terms.length === 0) return { results: [], total: 0 };
+	const groups = parseCrossSiteGroups(query);
+	if (groups.length === 0) return { results: [], total: 0 };
 
 	const matches =
-		terms.length === 1
-			? rows.filter((row) => row.displayLower.includes(terms[0])).map((row) => row.result)
-			: matchEveryTerm(rows, terms);
+		groups.length === 1
+			? rows.filter((row) => matchesGroup(row, groups[0])).map((row) => row.result)
+			: matchEveryGroup(rows, groups);
 
 	return { results: sortCrossSiteResults(matches).slice(0, MAX_RESULTS), total: matches.length };
 }

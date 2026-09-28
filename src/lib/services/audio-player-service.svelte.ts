@@ -653,7 +653,6 @@ class AudioPlayerService {
 			this.#sweepFadeNode.connect(sourceTarget);
 			this.#oscillatorNode.start();
 			this.#scheduleSweepCycle();
-			this.#tickSweepDisplay();
 		} else if (this.#audioSource === 'file' && this.#audioBuffer) {
 			this.#sourceNode = ctx.createBufferSource();
 			this.#sourceNode.buffer = this.#audioBuffer;
@@ -675,7 +674,9 @@ class AudioPlayerService {
 		this.#startTime = ctx.currentTime;
 		this.#isPlaying = true;
 
+		// Both display loops bail out on `!#isPlaying`, so they can only start here.
 		if (this.#audioSource === 'file') this.#tickTimeDisplay();
+		else if (this.#audioSource === 'sweep') this.#tickSweepDisplay();
 	}
 
 	pause(): void {

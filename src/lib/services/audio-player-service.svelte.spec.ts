@@ -556,6 +556,22 @@ describe('AudioPlayerService', () => {
 			expect([...fade.outputs][0]).toBe(bypassMatchNode());
 		});
 
+		it('tracks the live sweep frequency for the readout', () => {
+			// Regression: the display loop started before `isPlaying` was set, saw the
+			// player as stopped on its first tick and never rescheduled — the readout
+			// sat at its initial 20 Hz for the whole sweep.
+			audioPlayerService.setAudioSource('sweep');
+			audioPlayerService.setSweepFromHz(100);
+			audioPlayerService.setSweepToHz(5000);
+			settle();
+			audioPlayerService.play();
+
+			// The fake ramp lands on its target at once, so a live readout shows `to`.
+			const osc = ctx.nodes.find((n) => n.kind === 'oscillator')!;
+			expect(osc.frequency.value).toBe(5000);
+			expect(audioPlayerService.sweepCurrentHz).toBe(5000);
+		});
+
 		it('does nothing on play when no source is selected', () => {
 			audioPlayerService.setAudioSource('');
 			settle();

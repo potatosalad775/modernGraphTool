@@ -8,7 +8,7 @@
 
 Visual editors and generators that help you set up modernGraphTool — no hand-editing required.
 
-[phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/)Build or edit your phone\_book.json visually — import an existing file, adjust brands and phones, and export the result.
+[phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/)Build or edit your phone_book.json visually — import an existing file, adjust brands and phones, and export the result.
 
 [Config Editor](/modernGraphTool/docs/config-generator/)Build or edit config.js with a visual editor — import an existing config, adjust settings, and export the result.
 
@@ -56,20 +56,20 @@ It did its original job well: load measurements, overlay curves, compare headpho
 
 “CrinGraph” today usually means one of three codebases. [Vanilla CrinGraph](https://github.com/mlochbaum/CrinGraph) is the original. [squiglink lab](https://github.com/squiglink/lab) is the lightweight fork most squig.link databases run. [PublicGraphTool](https://github.com/HarutoHiroki/PublicGraphTool) is the most feature-rich fork, carrying most of the community’s add-ons.
 
-|                                 | Vanilla CrinGraph             | squiglink lab                  | PublicGraphTool                         | modernGraphTool                                                                                                                                      |
-| ------------------------------- | ----------------------------- | ------------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Codebase**                    | One \~2,500-line script       | \~4,100 lines in three scripts | \~14,400 lines in 40+ unbundled scripts | Bundled TypeScript components                                                                                                                        |
-| **Parametric EQ + AutoEQ**      | —                             | ✓                              | ✓                                       | ✓ [with undo/redo](/modernGraphTool/docs/features/equalizer/)                                                                                        |
-| **A/B compare of EQ revisions** | —                             | —                              | —                                       | ✓ History & Compare panel, momentary bypass key                                                                                                      |
-| **Per-channel (L / R) EQ**      | —                             | —                              | Balance slider only                     | ✓ [Shared + per-ear bands](/modernGraphTool/docs/features/equalizer/#per-channel-eq)                                                                 |
-| **Audio preview with live EQ**  | —                             | Tone generator                 | ✓                                       | ✓ Your own audio files, noise, tones, sine sweep                                                                                                     |
-| **Preference Bound**            | —                             | —                              | ✓                                       | ✓ [Built in](/modernGraphTool/docs/features/preference-bound/)                                                                                       |
-| **Target customization**        | —                             | —                              | Tilt, bass, ear gain, treble            | ✓ [Configurable filters, presets, per-target defaults](/modernGraphTool/docs/features/target-customizer/)                                            |
-| **Interface languages**         | English                       | English                        | English                                 | English, Korean, Czech, Russian, Ukrainian                                                                                                           |
-| **Theming**                     | Edit CSS + JS                 | Edit several CSS files         | Edit several CSS files                  | One `theme.css` + [Theme Generator](/modernGraphTool/docs/theme-generator/)                                                                          |
-| **Configuration**               | Hand-edit `config.js`         | Hand-edit `config.js`          | Hand-edit `config.js`                   | Structured `config.js` + [Config Editor](/modernGraphTool/docs/config-generator/) and [phone\_book Editor](/modernGraphTool/docs/phone-book-editor/) |
-| **Updates**                     | Re-upload files               | Re-upload files                | Re-upload files                         | Automatic in [CDN mode](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)                                                                      |
-| **Data format**                 | `phone_book.json` + FR `.txt` | Same                           | Same                                    | Same — drop-in compatible                                                                                                                            |
+|                                 | Vanilla CrinGraph             | squiglink lab                  | PublicGraphTool                         | modernGraphTool                                                                                                                                     |
+| ------------------------------- | ----------------------------- | ------------------------------ | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Codebase**                    | One \~2,500-line script       | \~4,100 lines in three scripts | \~14,400 lines in 40+ unbundled scripts | Bundled TypeScript components                                                                                                                       |
+| **Parametric EQ + AutoEQ**      | —                             | ✓                              | ✓                                       | ✓ [with undo/redo](/modernGraphTool/docs/features/equalizer/)                                                                                       |
+| **A/B compare of EQ revisions** | —                             | —                              | —                                       | ✓ History & Compare panel, momentary bypass key                                                                                                     |
+| **Per-channel (L / R) EQ**      | —                             | —                              | Balance slider only                     | ✓ [Shared + per-ear bands](/modernGraphTool/docs/features/equalizer/#per-channel-eq)                                                                |
+| **Audio preview with live EQ**  | —                             | Tone generator                 | ✓                                       | ✓ Your own audio files, noise, tones, sine sweep                                                                                                    |
+| **Preference Bound**            | —                             | —                              | ✓                                       | ✓ [Built in](/modernGraphTool/docs/features/preference-bound/)                                                                                      |
+| **Target customization**        | —                             | —                              | Tilt, bass, ear gain, treble            | ✓ [Configurable filters, presets, per-target defaults](/modernGraphTool/docs/features/target-customizer/)                                           |
+| **Interface languages**         | English                       | English                        | English                                 | English, Korean, Czech, Russian, Ukrainian                                                                                                          |
+| **Theming**                     | Edit CSS + JS                 | Edit several CSS files         | Edit several CSS files                  | One `theme.css` + [Theme Generator](/modernGraphTool/docs/theme-generator/)                                                                         |
+| **Configuration**               | Hand-edit `config.js`         | Hand-edit `config.js`          | Hand-edit `config.js`                   | Structured `config.js` + [Config Editor](/modernGraphTool/docs/config-generator/) and [phone_book Editor](/modernGraphTool/docs/phone-book-editor/) |
+| **Updates**                     | Re-upload files               | Re-upload files                | Re-upload files                         | Automatic in [CDN mode](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)                                                                     |
+| **Data format**                 | `phone_book.json` + FR `.txt` | Same                           | Same                                    | Same — drop-in compatible                                                                                                                           |
 
 The sections below walk through what these differences mean in practice.
 
@@ -111,7 +111,7 @@ modernGraphTool keeps each concern in one place, and gives you tools so you rare
 * **[`config.js`](/modernGraphTool/docs/guide-for-admins/customize-page/)** — one structured object covering initial devices and targets, normalization, labels, watermarks, panel layout, rankings, languages, and every feature toggle.
 * **[Config Editor](/modernGraphTool/docs/config-generator/)** — a form for every option. Import your current file, change what you need, export it back.
 * **[Theme Generator](/modernGraphTool/docs/theme-generator/)** — pick a few colors and get a complete light and dark `theme.css`.
-* **[phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/)** — manage brands, devices and variants without hand-writing JSON.
+* **[phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/)** — manage brands, devices and variants without hand-writing JSON.
 
 ## Keep Your Data, and Your Options
 
@@ -1110,7 +1110,7 @@ A new database takes four steps, in this order:
 3. **[Add them to the database](/modernGraphTool/docs/guide-for-admins/manage-data/)** — the `data/` folder layout and `phone_book.json`, which lists every device and its variants.
 4. **[Customize the page](/modernGraphTool/docs/guide-for-admins/customize-page/)** — page metadata, `theme.css`, and every `config.js` option.
 
-The [Config Editor](/modernGraphTool/docs/config-generator/), [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) let you build those three files visually instead of editing them by hand.
+The [Config Editor](/modernGraphTool/docs/config-generator/), [phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) let you build those three files visually instead of editing them by hand.
 
 ## Already running a database?
 
@@ -2383,7 +2383,7 @@ This is [CDN deployment](/modernGraphTool/docs/guide-for-admins/deployment/cdn/)
 
 Everything is editable through github.com’s web interface. Git and a local editor are useful once your database grows, but nothing here requires them.
 
-**Template repository:** [potatosalad775/modernGraphTool\_site](https://github.com/potatosalad775/modernGraphTool_site)
+**Template repository:** [potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site)
 
 ## When to pick this
 
@@ -2408,7 +2408,7 @@ Then plain [CDN Deployment](/modernGraphTool/docs/guide-for-admins/deployment/cd
 
 ### 1. Copy the template
 
-Open [potatosalad775/modernGraphTool\_site](https://github.com/potatosalad775/modernGraphTool_site) and click **Use this template** → **Create a new repository**.
+Open [potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site) and click **Use this template** → **Create a new repository**.
 
 You’ll be asked for a repository name, and that name decides your site’s URL. Both of the following work, and neither needs different configuration:
 
@@ -2469,7 +2469,7 @@ The web uploader takes up to 100 files at a time and 25 MB per file. Measurement
 
 The `file` value is the filename **without** the `L.txt` / `R.txt` ending. Full schema, including variants and sample sets, is in [Managing Data](/modernGraphTool/docs/guide-for-admins/manage-data/).
 
-Editing JSON by hand is easy to get wrong, and a single missing comma blanks the device list. The [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) is a visual editor for this file — import the one from your repository, edit it, export, and paste the result back.
+Editing JSON by hand is easy to get wrong, and a single missing comma blanks the device list. The [phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/) is a visual editor for this file — import the one from your repository, edit it, export, and paste the result back.
 
 ### 5. Customize
 
@@ -2704,7 +2704,7 @@ modernGraphTool is designed to use the same data structure as CrinGraph. Therefo
 
 GUI editor
 
-Prefer a form? Use the [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Sample Sets).
+Prefer a form? Use the [phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/) to import, edit, and export `phone_book.json` without touching raw JSON. It includes inline explanations for every phone type (Simple, Detailed, Variations, Sample Sets).
 
 It also **converts**: import an existing phone book in any older format and export it in the current one. Worth a round-trip if yours still uses [`hptfs[]`](#deprecated-hptfs), which is deprecated.
 
@@ -2900,7 +2900,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
   * `name` (Array of Strings, Required): An array containing a single string, which will be the base name for all variations.
   * `file` (Array of Strings, Required): An array of base file names for each variation.
-  * `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand\_name + name + suffix\[i] .
+  * `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand_name + name + suffix\[i] .
   * This will create entries like “BrandVariations Model V1 (Foam Tip)”, “BrandVariations Model V1 (Silicone Tip)”, etc.
   * The lengths of file and suffix arrays must be the same. Other optional keys like reviewLink , price , etc., can be added and will apply to all variations.
 
@@ -2923,7 +2923,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
   * `name` (Array of Strings, Required): An array containing a single string, the base display name.
   * `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
   * `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file\[i] .
-  * The display name will be brand\_name + name + file\[i]. (e.g, “BrandPrefix Model P1 (Foam Tip)”, “BrandPrefix Model P1 (Silicone Tip)”)
+  * The display name will be brand_name + name + file\[i]. (e.g, “BrandPrefix Model P1 (Foam Tip)”, “BrandPrefix Model P1 (Silicone Tip)”)
   * This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
 #### Sample Sets
@@ -3074,7 +3074,7 @@ Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fil
 
 Convert automatically
 
-You don’t have to do this by hand. Load your existing `phone_book.json` into the [**phone\_book.json Editor**](/modernGraphTool/docs/phone-book-editor/) and export it again — import reads every legacy form, and export always writes canonical `variants[]`. It converts the whole file in one pass, `hptfs[]` entries included.
+You don’t have to do this by hand. Load your existing `phone_book.json` into the [**phone_book.json Editor**](/modernGraphTool/docs/phone-book-editor/) and export it again — import reads every legacy form, and export always writes canonical `variants[]`. It converts the whole file in one pass, `hptfs[]` entries included.
 
 The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated alongside it; see [`SAMPLES`](/modernGraphTool/docs/guide-for-admins/customize-page/#samples) for the replacement keys.
 
@@ -3207,7 +3207,7 @@ Apart from GitHub Pages, which is edited in the browser, every option needs:
 1. **The project files** — a [release](https://github.com/potatosalad775/modernGraphTool/releases) or a clone of the repository, depending on the option.
 2. **A text editor** for `config.js`, `theme.css` and `phone_book.json`. [Visual Studio Code](https://code.visualstudio.com/) is free on Windows, macOS and Linux, and highlights mistakes as you type.
 
-The [Config Editor](/modernGraphTool/docs/config-generator/), [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) cover most edits without hand-writing any of these files.
+The [Config Editor](/modernGraphTool/docs/config-generator/), [phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and [Theme Generator](/modernGraphTool/docs/theme-generator/) cover most edits without hand-writing any of these files.
 
 # Build & Deployment Internals
 
@@ -3235,7 +3235,7 @@ Caution
 
 ## GitHub Pages template
 
-[potatosalad775/modernGraphTool\_site](https://github.com/potatosalad775/modernGraphTool_site) is a separate repository that operators copy with “Use this template”.
+[potatosalad775/modernGraphTool_site](https://github.com/potatosalad775/modernGraphTool_site) is a separate repository that operators copy with “Use this template”.
 
 It is **generated output, not a hand-maintained repo.** `npm run build:site-template` assembles it, and `.github/workflows/sync-site-template.yml` force-syncs the result on every push to `main` that touches `defaults/`, `site-template/`, or the script. Edit the sources in the main repo — anything committed straight to the template repo is overwritten on the next sync.
 
@@ -4740,6 +4740,12 @@ Everything that isn’t the app bundle itself (data, config, theme, Preference B
 
 # modernGraphTool v2 Changelog
 
+### v2.2.3
+
+* Feat: Added OR operator (//) for search feature.
+* Refactor: Improved initial load time of turboEQ WASM.
+* Fix: Fixed an issue where sweep signal frequency number in EQ tab’s audio player was stuck at 20Hz.
+
 ### v2.2.2
 
 * Feat: AutoEQ now runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [jaakkopasanen’s AutoEq](https://github.com/jaakkopasanen/AutoEq) optimizer. An eight-band run takes a few milliseconds — over a hundred times faster than before. See [AutoEQ Benchmarks](/modernGraphTool/docs/features/autoeq-benchmarks/).
@@ -4784,7 +4790,7 @@ Everything that isn’t the app bundle itself (data, config, theme, Preference B
 * Feat: Added a new `DOWNLOAD` option to the `config.js` that allows users to export measurement curves. Disabled by default. See more at [DOWNLOAD documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#download).
 * Fix: The on-graph label now updates as individual runs are toggled, and the hover readout reports runs from every kind of sample set.
 * Fix: The averaged curve of a multi-sample device can now be hidden, and individual runs keep their true spread at the normalization frequency instead of being flattened onto it.
-* Deprecated: The modernGraphTool-specific `hptfs[]` key and the `MULTI_SAMPLE` / `HPTF` config sections still load, but will be removed in a future release. Convert your files by importing and re-exporting them in the [phone\_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and the [Config Editor](/modernGraphTool/docs/config-generator/). See [Deprecated: `hptfs[]`](/modernGraphTool/docs/guide-for-admins/manage-data/#deprecated-hptfs).
+* Deprecated: The modernGraphTool-specific `hptfs[]` key and the `MULTI_SAMPLE` / `HPTF` config sections still load, but will be removed in a future release. Convert your files by importing and re-exporting them in the [phone_book.json Editor](/modernGraphTool/docs/phone-book-editor/) and the [Config Editor](/modernGraphTool/docs/config-generator/). See [Deprecated: `hptfs[]`](/modernGraphTool/docs/guide-for-admins/manage-data/#deprecated-hptfs).
 
 ### v2.1.5
 
@@ -4814,8 +4820,8 @@ Everything that isn’t the app bundle itself (data, config, theme, Preference B
 
 ### v2.1.1
 
-* Feat: Added a new “CURVE\_COLOR\_PALETTE” field in the `config.js` that allows users to customize the color palette used for device curves. See more at [TRACE\_STYLING documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#trace_styling).
-* Feat: Added a new “PANEL\_POSITION” field in the `config.js` that allows users to customize the position of the menu panel on the desktop interface. See more at [INTERFACE documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#interface).
+* Feat: Added a new “CURVE_COLOR_PALETTE” field in the `config.js` that allows users to customize the color palette used for device curves. See more at [TRACE_STYLING documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#trace_styling).
+* Feat: Added a new “PANEL_POSITION” field in the `config.js` that allows users to customize the position of the menu panel on the desktop interface. See more at [INTERFACE documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#interface).
 * Refactor: Updated audio player to keep the same instance across navigations, allowing it to maintain playback state and position when switching between various panels.
 * Change: Menu panel is now positioned on the left side of the desktop interface by default, following common UI conventions from CrinGraph.
 * Change: Added a toast notification that is shown when a new version of modernGraphTool is loaded.
@@ -4823,7 +4829,7 @@ Everything that isn’t the app bundle itself (data, config, theme, Preference B
 
 ### v2.1.0
 
-* Feat: Added a new “RANKING\_URL” field in the `config.js` that changes the ranking indicator in the device selector to link to a custom URL. See more at [RANKING\_URL documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#ranking_url)
+* Feat: Added a new “RANKING_URL” field in the `config.js` that changes the ranking indicator in the device selector to link to a custom URL. See more at [RANKING_URL documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#ranking_url)
 * Fix: Fixed an issue where y-axis scale button was not properly initialized with configured default value on page load.
 * Fix: Fixed an issue where entire devices went missing when single entry in the phone book had an invalid format, instead of just that entry being skipped.
 
@@ -4859,7 +4865,7 @@ Everything that isn’t the app bundle itself (data, config, theme, Preference B
 
 ### v2.0.4
 
-* Refactor: Replaced singular `hptf` phone\_book field with `hptfs` array. Each hptfs entry becomes its own independent variant
+* Refactor: Replaced singular `hptf` phone_book field with `hptfs` array. Each hptfs entry becomes its own independent variant
 * Refactor: Multi-sample variants now fall back to unnumbered L.txt/R.txt when L1.txt/R1.txt don’t exist.
 * Refactor: Dropped translation for target adjustment label, as it’s user-defined value, not system parameter.
 * Fix: HpTF deviation fill now uses the combined L+R envelope when AVG is displayed
@@ -6051,7 +6057,7 @@ The template extension showcases usage of modernGraphTool’s core APIs:
 ### Utility APIs
 
 * **GtToast**: Displaying toast notifications to users
-* **StringLoader**: Internationalization and string management (if I18N\_ENABLED)
+* **StringLoader**: Internationalization and string management (if I18N_ENABLED)
 * **CoreEvent**: Event system integration
 
 ### Example API Usage
@@ -6306,7 +6312,7 @@ Sets the default display range for the Y-axis (dB).
 Sets the position, size, weight, etc., of the Phone/Target name labels displayed on the graph.
 
 * `LOCATION` : Name label position
-  * Choose from ‘BOTTOM\_LEFT’, ‘BOTTOM\_RIGHT’, ‘TOP\_LEFT’, ‘TOP\_RIGHT’.
+  * Choose from ‘BOTTOM_LEFT’, ‘BOTTOM_RIGHT’, ‘TOP_LEFT’, ‘TOP_RIGHT’.
 * `POSITION` : Fine-tune name label position
   * Adjustable values for ‘LEFT’, ‘RIGHT’, ‘TOP’, ‘BOTTOM’ items (numbers).
 * `TEXT_SIZE` : Name label size (in px).
@@ -6819,7 +6825,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
 
   * `name` (Array of Strings, Required): An array containing a single string, which will be the base name for all variations.
   * `file` (Array of Strings, Required): An array of base file names for each variation.
-  * `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand\_name + name + suffix\[i] .
+  * `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand_name + name + suffix\[i] .
   * This will create entries like “BrandVariations Model V1 (Foam Tip)”, “BrandVariations Model V1 (Silicone Tip)”, etc.
   * The lengths of file and suffix arrays must be the same. Other optional keys like reviewLink , price , etc., can be added and will apply to all variations.
 
@@ -6842,7 +6848,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
   * `name` (Array of Strings, Required): An array containing a single string, the base display name.
   * `file` (Array of Strings, Required): An array of the distinguishing parts of the file names.
   * `prefix` (String, Required): The common prefix for the actual data file names. The tool will look for files named prefix + file\[i] .
-  * The display name will be brand\_name + name + file\[i]. (e.g, “BrandPrefix Model P1 (Foam Tip)”, “BrandPrefix Model P1 (Silicone Tip)”)
+  * The display name will be brand_name + name + file\[i]. (e.g, “BrandPrefix Model P1 (Foam Tip)”, “BrandPrefix Model P1 (Silicone Tip)”)
   * This is useful for grouping data from measurements with different eartips/earpads or wearing positions.
 
 ## How to Add/Modify Measurement Data
@@ -6932,7 +6938,7 @@ This guide explains the basic environment setup for using and managing modernGra
 
 ## Preparing Project Files
 
-1. Download the [latest version of modernGraphTool\_full zip file](https://github.com/potatosalad775/modernGraphTool/releases) from the [modernGraphTool Github Release Page](https://github.com/potatosalad775/modernGraphTool/releases).
+1. Download the [latest version of modernGraphTool_full zip file](https://github.com/potatosalad775/modernGraphTool/releases) from the [modernGraphTool Github Release Page](https://github.com/potatosalad775/modernGraphTool/releases).
 2. Extract the downloaded zip file.
 
 ## Installing a Text Editor (VS Code Recommended)
@@ -7012,7 +7018,7 @@ export const EXTENSION_CONFIG = [
 
 * **NAME** (Required): The name of the Extension. It **must be identical** to the Extension folder name within the `/extensions` folder.
 * **ENABLED** (Required): Determines whether to use the Extension. Set to `true` to enable, `false` to disable.
-* **I18N\_ENABLED** (Optional): Sets whether the Extension will use modernGraphTool’s multilingual features. This item may not exist if the extension does not support multilingual features.
+* **I18N_ENABLED** (Optional): Sets whether the Extension will use modernGraphTool’s multilingual features. This item may not exist if the extension does not support multilingual features.
 * **CONFIG** (Optional): An object for detailed settings specific to the Extension. The configurable items vary for each Extension. You can change the settings by referring to the comments within each Extension’s `CONFIG` object or related documentation.
 
 ### How to Enable/Disable Extensions
@@ -7172,7 +7178,7 @@ Therefore, you can load the data from your existing CrinGraph directly into mode
 
 * Search headphones by name or brand
 * Headphone / target compensation (set as baseline)
-* Compatible with CrinGraph file structure (phone\_book & target\_manifest)
+* Compatible with CrinGraph file structure (phone_book & target_manifest)
 
 ### Graph Tools
 

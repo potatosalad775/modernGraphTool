@@ -12,6 +12,11 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.3
+- Feat: 검색 기능을 위한 OR 연산자 (//)를 추가했습니다.
+- Refactor: turboEQ WASM을 최초로 불러오는데 걸리는 시간을 조정했습니다.
+- Fix: EQ 탭의 오디오 플레이어에서 스윕 시그널의 주파수 숫자가 20Hz로 고정되는 이슈를 수정했습니다.
+
 ### v2.2.2
 - Feat: AutoEQ가 이제 [jaakkopasanen의 AutoEq](https://github.com/jaakkopasanen/AutoEq) 옵티마이저를 WebAssembly로 이식한 [turboEQ](https://github.com/potatosalad775/turboEQ)로 동작합니다. 8밴드 기준 수 밀리초 만에 완료되어 이전보다 100배 이상 빠르며, 요청한 밴드 수를 항상 정확히 반환합니다. 자세한 내용은 [AutoEQ 벤치마크](./features/autoeq-benchmarks.mdx) 참조.
 - Feat: AutoEQ 맞춤 방식이 추가되었습니다. **완전 일치**(기본값)는 그래프에 표시된 그대로 20 kHz까지의 전체 곡선을 맞추고, **고음 보존**은 AutoEq 본래의 방식을 따라 고역을 스무딩하며 10 kHz 이상에는 밴드를 배치하지 않습니다. 자세한 내용은 [맞춤 방식](./features/equalizer.mdx#fit-mode) 참조.

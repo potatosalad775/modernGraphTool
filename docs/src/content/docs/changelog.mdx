@@ -5,6 +5,11 @@ sidebar:
   order: 11
 ---
 
+### v2.2.3
+- Feat: Added OR operator (//) for search feature.
+- Refactor: Improved initial load time of turboEQ WASM.
+- Fix: Fixed an issue where sweep signal frequency number in EQ tab's audio player was stuck at 20Hz.
+
 ### v2.2.2
 - Feat: AutoEQ now runs [turboEQ](https://github.com/potatosalad775/turboEQ), a WebAssembly port of [jaakkopasanen's AutoEq](https://github.com/jaakkopasanen/AutoEq) optimizer. An eight-band run takes a few milliseconds — over a hundred times faster than before. See [AutoEQ Benchmarks](./features/autoeq-benchmarks.mdx).
 - Feat: Added an AutoEQ fit mode. **Exact match** (default) fits the full curve up to 20 kHz as the graph shows it; **Treble-safe** follows AutoEq's own approach, smoothing the treble and placing no band above 10 kHz. See [Fit mode](./features/equalizer.mdx#fit-mode).

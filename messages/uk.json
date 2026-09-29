@@ -11,6 +11,7 @@
 	"phone_selector_search_help_brands_cross_site": "Однак фільтрація за брендами не застосовується до результатів з інших баз даних.",
 	"phone_selector_search_help_commas": "Розділіть пристрої комами, щоб знайти одразу кілька.",
 	"phone_selector_search_help_cross_site": "У результатах з інших баз даних перелічено лише сайти, що містять усі пристрої, які ви вказали.",
+	"phone_selector_search_help_alternatives": "Розділіть різні варіанти написання назви одного пристрою символами //, щоб знайти будь-який із них.",
 	"phone_selector_item_rank": "Оцінка: {rank}",
 	"phone_selector_item_review": "Огляд",
 	"phone_selector_item_shop": "Купити",

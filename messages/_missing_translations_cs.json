@@ -13,7 +13,7 @@
 	"phone_selector_search_help_brands_cross_site": "However, brand filtering is not applied to results from other databases.",
 	"phone_selector_search_help_commas": "Separate devices with commas to look up several at once.",
 	"phone_selector_search_help_cross_site": "Results from other databases only list sites carrying every device you named.",
-	"phone_selector_search_help_alternatives": "Separate different spellings of one device with // to match any of them.",
+	"phone_selector_search_help_alternatives": "Separate different keywords with // to match any of them.",
 	"phone_selector_item_rank": "Rank: {rank}",
 	"selection_list_channel_header": "Channel",
 	"selection_list_samples_run": "Sample",

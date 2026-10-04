@@ -8,12 +8,15 @@
 	import Button from '../atoms/Button.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { domainBounds, type Domain } from '@potatosalad775/eqcaps-core';
 	import {
-		clampFilterToConstraint,
-		getFilterViolation,
+		appTypesOf,
 		isPastMaxBands,
+		projectFilter,
+		slotOf,
 		type FilterViolation
-	} from '$lib/utils/eq-constraint-clamp.js';
+	} from '$lib/utils/eq-constraint.js';
+	import { domainHint } from '$lib/utils/eq-domain-hint.js';
 
 	let {
 		filter,
@@ -31,32 +34,42 @@
 		onRemove: () => void;
 	} = $props();
 
-	// Constraint-driven UI state. `violation` flags out-of-range fields with a
-	// red ring; `inactive` greys the whole row when its index sits past the
-	// active preset's `maxBands` cap.
-	const violation: FilterViolation = $derived.by(() => {
-		const preset = eqConstraintsStore.active;
-		if (!preset) return { type: false, freq: false, q: false, gain: false };
-		return getFilterViolation(filter, preset);
-	});
-	const inactive = $derived.by(() => {
-		const preset = eqConstraintsStore.active;
+	// Constraint-driven UI state, all from the active eqcaps profile. `violation`
+	// flags fields the profile doesn't accept with a red ring; `inactive` greys
+	// the whole row when it sits past the band cap; `slot` is the domains of the
+	// slot this band occupies, which bound every input and slider below.
+	const PASS: FilterViolation = { type: false, freq: false, q: false, gain: false };
+	const violation: FilterViolation = $derived(eqConstraintsStore.violations[index] ?? PASS);
+	const inactive = $derived(
 		// Passing the list makes the cap count per output — a band sitting past
-		// `maxBands` in the flat array can still fit on its own ear.
-		return preset ? isPastMaxBands(index, preset, eqStore.filters) : false;
-	});
-	/** Active preset is in graphic mode → freq + Q are locked, only gain edits. */
-	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+		// the cap in the flat array can still fit on its own ear.
+		isPastMaxBands(index, eqConstraintsStore.profile, eqStore.filters)
+	);
+	const slotIndex = $derived(eqConstraintsStore.slots[index] ?? index);
+	const slot = $derived(slotOf(eqConstraintsStore.profile, slotIndex, filter));
+	const constraintLabel = $derived(eqConstraintsStore.active.label);
+	/** The fixed bands of a graphic EQ: one row each, never added or removed. */
+	const isGraphic = $derived(eqConstraintsStore.isGraphic);
+	const freqLocked = $derived(slot.locked.freq);
+	const qLocked = $derived(slot.locked.q);
+	const gainLocked = $derived(slot.locked.gain);
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
 	const typeShortLabels: Record<EQFilter['type'], string> = { PK: 'PK', LSQ: 'LS', HSQ: 'HS' };
 
-	const typeOptions: [EQFilter['type'], () => string][] = [
+	const allTypeOptions: [EQFilter['type'], () => string][] = [
 		['PK', m.equalizer_filter_list_peak],
 		['LSQ', m.equalizer_filter_list_lowshelf],
 		['HSQ', m.equalizer_filter_list_highshelf]
 	];
+
+	/** The types this slot takes, plus the band's own so a violation stays visible. */
+	const typeOptions = $derived.by(() => {
+		const allowed = appTypesOf(slot.types);
+		return allTypeOptions.filter(([value]) => allowed.includes(value) || value === filter.type);
+	});
+	const typeLocked = $derived(appTypesOf(slot.types).length <= 1 && !violation.type);
 
 	/** `undefined` is the shared bucket — the band reaches both ears. */
 	const channelOptions: [EQFilter['channel'], () => string][] = [
@@ -65,12 +78,62 @@
 		['R', m.eq_channel_right]
 	];
 
+	/** What an input defaults to stepping by, before the slot's own grid. */
+	const BASE_STEP = { freq: 1, gain: 0.1, q: 0.01 } as const;
+
+	function bounds(field: 'freq' | 'gain' | 'q'): { min: number; max: number } {
+		return domainBounds(slot[field]);
+	}
+
+	/** The slot's grid step when it has one coarser than the input's default. */
+	function stepOf(field: 'freq' | 'gain' | 'q'): number {
+		const d: Domain = slot[field];
+		return 'step' in d && d.step > BASE_STEP[field] ? d.step : BASE_STEP[field];
+	}
+
+	/**
+	 * `current` moved `steps` steps: along the slot's value list when it has one
+	 * (one listed value per step), otherwise by the input's step.
+	 */
+	function steppedValue(field: 'freq' | 'gain' | 'q', current: number, steps: number): number {
+		const d: Domain = slot[field];
+		if ('values' in d) {
+			const values = d.values;
+			const eps = 1e-9 * Math.max(1, Math.abs(current));
+			let i: number;
+			if (steps > 0) {
+				i = values.findIndex((v) => v > current + eps);
+				i = i < 0 ? values.length - 1 : i + steps - 1;
+			} else {
+				i = values.findLastIndex((v) => v < current - eps);
+				i = i < 0 ? 0 : i + steps + 1;
+			}
+			return values[Math.min(values.length - 1, Math.max(0, i))];
+		}
+		return current + steps * stepOf(field);
+	}
+
+	/** Tooltip for a field: what's allowed, and whether the value breaks it. */
+	function fieldTitle(field: 'freq' | 'gain' | 'q', unit: string): string {
+		const allowed = domainHint(slot[field], unit);
+		return violation[field]
+			? m.eq_constraint_field_violation({ label: constraintLabel, allowed })
+			: m.eq_constraint_field_allowed({ allowed });
+	}
+
 	// ── Slider computed values ───────────────────────────────────────────────
 
-	let freqSliderValue = $derived(filter.freq != null ? logToLinear(filter.freq, 20, 20000) : 500);
+	const freqRange = $derived(bounds('freq'));
+	const gainRange = $derived(bounds('gain'));
+	const qRange = $derived(bounds('q'));
+	let freqSliderValue = $derived(
+		filter.freq != null ? logToLinear(filter.freq, freqRange.min, freqRange.max) : 500
+	);
 	let gainSliderValue = $derived(filter.gain != null ? Math.round(filter.gain * 10) : 0);
 	let qSliderValue = $derived(
-		filter.q != null ? logToLinear(filter.q, 0.1, 10) : logToLinear(1, 0.1, 10)
+		filter.q != null
+			? logToLinear(filter.q, qRange.min, qRange.max)
+			: logToLinear(1, qRange.min, qRange.max)
 	);
 
 	// ── Number input handling ────────────────────────────────────────────────
@@ -85,17 +148,19 @@
 	function clampField(field: 'freq' | 'gain' | 'q', val: number): number {
 		const widest =
 			field === 'freq'
-				? Math.max(20, Math.min(20000, Math.round(val)))
+				? Math.max(1, Math.min(48000, Math.round(val)))
 				: field === 'gain'
 					? Math.max(-30, Math.min(30, Math.round(val * 10) / 10))
-					: Math.max(0.1, Math.min(10, Math.round(val * 100) / 100));
-		// `eqCommands.updateBand` clamps again against the active preset (tighter
-		// ranges, graphic-band snapping). Apply the same boundary here so the
-		// number input shows the value that actually lands in the store.
-		const preset = eqConstraintsStore.active;
-		if (!preset) return widest;
-		const clamped = clampFilterToConstraint({ ...filter, [field]: widest }, preset)[field];
-		return clamped ?? widest;
+					: Math.max(0.01, Math.min(100, Math.round(val * 100) / 100));
+		// `eqCommands.updateBand` projects again onto the band's slot (its range,
+		// grid step or value list). Apply the same here so the number input shows
+		// the value that actually lands in the store.
+		const projected = projectFilter(
+			{ ...filter, [field]: widest },
+			eqConstraintsStore.profile,
+			slotIndex
+		)[field];
+		return projected ?? widest;
 	}
 
 	function commitNumberInput(e: Event, field: 'freq' | 'gain' | 'q') {
@@ -139,12 +204,11 @@
 			// Override browser's default step so we can apply a Shift multiplier and
 			// commit to the store immediately (the inputs are one-way bound).
 			e.preventDefault();
-			const baseStep = field === 'freq' ? 1 : field === 'gain' ? 0.1 : 0.01;
 			const multiplier = e.shiftKey ? 10 : 1;
 			const dir = e.key === 'ArrowUp' ? 1 : -1;
 			const fallback = field === 'freq' ? 1000 : field === 'gain' ? 0 : 1;
 			const current = filter[field] ?? fallback;
-			const next = clampField(field, current + dir * baseStep * multiplier);
+			const next = clampField(field, steppedValue(field, current, dir * multiplier));
 			onUpdate({ [field]: next });
 			(e.currentTarget as HTMLInputElement).value = String(next);
 		}
@@ -156,7 +220,10 @@
 		? 'border-base-content/15 opacity-50'
 		: 'border-base-content/20'}"
 	title={inactive
-		? 'Past the active constraint preset’s maxBands cap. Remove or switch preset to edit.'
+		? m.eq_constraint_past_max_bands({
+				label: constraintLabel,
+				max: eqConstraintsStore.maxBands
+			})
 		: undefined}
 >
 	<!-- Collapsed row (always visible) -->
@@ -169,30 +236,35 @@
 			onCheckedChange={(checked) => onUpdate({ enabled: checked })}
 		/>
 
-		<!-- Type badge — disabled in graphic mode (PK is forced) -->
+		<!-- Type badge — disabled where the slot takes a single type -->
 		<Button
-			title={isGraphic ? 'Filter type locked by graphic preset' : 'Change filter type'}
+			title={typeLocked
+				? m.eq_constraint_locked({ label: constraintLabel })
+				: violation.type
+					? m.eq_constraint_type_violation({ label: constraintLabel })
+					: 'Change filter type'}
 			onclick={(e: MouseEvent) => {
 				e.stopPropagation();
-				if (isGraphic) return;
-				// Cycle through types on click
-				const currentIndex = typeOptions.findIndex(([value]) => value === filter.type);
-				const nextType = typeOptions[(currentIndex + 1) % typeOptions.length][0];
-				onUpdate({ type: nextType });
+				const allowed = appTypesOf(slot.types);
+				if (typeLocked || allowed.length === 0) return;
+				// Cycle through the types this slot takes on click
+				const next = allowed[(allowed.indexOf(filter.type) + 1) % allowed.length];
+				onUpdate({ type: next });
 			}}
 			variant="muted"
 			size="xs"
-			disabled={isGraphic}
+			class={violation.type ? 'ring-1 ring-error' : ''}
+			disabled={typeLocked}
 		>
 			{typeShortLabels[filter.type]}
 		</Button>
 
-		<!-- Freq — read-only chip in graphic mode -->
+		<!-- Freq — read-only chip where the slot locks it (graphic EQs) -->
 		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
-			{#if isGraphic}
+			{#if freqLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
-					title="Frequency locked by graphic preset"
+					title={m.eq_constraint_locked({ label: constraintLabel })}
 				>
 					{filter.freq ?? '—'}
 				</span>
@@ -200,15 +272,15 @@
 				<input
 					type="number"
 					value={filter.freq}
-					min={20}
-					max={20000}
-					step={1}
+					min={freqRange.min}
+					max={freqRange.max}
+					step={stepOf('freq')}
 					onfocus={() => handleInputFocus('freq')}
 					onblur={handleInputBlur}
 					onchange={(e) => commitNumberInput(e, 'freq')}
 					onkeydown={(e) => handleInputKeydown(e, 'freq')}
 					class="w-full {inputBase} {violation.freq ? 'ring-error!' : ''}"
-					title={violation.freq ? 'Out of constraint preset range' : undefined}
+					title={fieldTitle('freq', 'Hz')}
 				/>
 			{/if}
 			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
@@ -216,31 +288,40 @@
 
 		<!-- Gain -->
 		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
-			<input
-				type="number"
-				value={filter.gain}
-				min={-30}
-				max={30}
-				step={0.1}
-				onfocus={() => handleInputFocus('gain')}
-				onblur={handleInputBlur}
-				onchange={(e) => commitNumberInput(e, 'gain')}
-				onkeydown={(e) => handleInputKeydown(e, 'gain')}
-				class="w-full {inputBase} {violation.gain ? 'ring-error!' : ''}"
-				title={violation.gain ? 'Out of constraint preset range' : undefined}
-			/>
+			{#if gainLocked}
+				<span
+					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
+					title={m.eq_constraint_locked({ label: constraintLabel })}
+				>
+					{filter.gain ?? '—'}
+				</span>
+			{:else}
+				<input
+					type="number"
+					value={filter.gain}
+					min={gainRange.min}
+					max={gainRange.max}
+					step={stepOf('gain')}
+					onfocus={() => handleInputFocus('gain')}
+					onblur={handleInputBlur}
+					onchange={(e) => commitNumberInput(e, 'gain')}
+					onkeydown={(e) => handleInputKeydown(e, 'gain')}
+					class="w-full {inputBase} {violation.gain ? 'ring-error!' : ''}"
+					title={fieldTitle('gain', 'dB')}
+				/>
+			{/if}
 			<span class="text-[12px] text-base-content/60 select-none">dB</span>
 		</label>
 
 		<span class="text-[12px] text-base-content/60 select-none">-</span>
 
-		<!-- Q — read-only chip in graphic mode -->
+		<!-- Q — read-only chip where the slot locks it (graphic EQs) -->
 		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
 			<span class="text-[12px] text-base-content/60 select-none">Q</span>
-			{#if isGraphic}
+			{#if qLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
-					title="Q locked by graphic preset"
+					title={m.eq_constraint_locked({ label: constraintLabel })}
 				>
 					{filter.q ?? '—'}
 				</span>
@@ -248,15 +329,15 @@
 				<input
 					type="number"
 					value={filter.q}
-					min={0.1}
-					max={10}
-					step={0.01}
+					min={qRange.min}
+					max={qRange.max}
+					step={stepOf('q')}
 					onfocus={() => handleInputFocus('q')}
 					onblur={handleInputBlur}
 					onchange={(e) => commitNumberInput(e, 'q')}
 					onkeydown={(e) => handleInputKeydown(e, 'q')}
 					class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"
-					title={violation.q ? 'Out of constraint preset range' : undefined}
+					title={fieldTitle('q', '')}
 				/>
 			{/if}
 		</label>
@@ -302,8 +383,14 @@
 			class="flex flex-col gap-3 px-3 pt-0.5 pb-4"
 			class:opacity-50={!filter.enabled}
 		>
-			{#if !isGraphic}
-				<!-- Type selector (segmented buttons) — hidden in graphic mode -->
+			{#if slot.label}
+				<!-- What the constraint calls this slot ("Lowshelf 1", "Peaking") -->
+				<span class="text-xs text-base-content/60">
+					{m.eq_constraint_slot_label({ slot: slotIndex + 1, label: slot.label })}
+				</span>
+			{/if}
+			{#if !typeLocked}
+				<!-- Type selector (segmented buttons) — only the types this slot takes -->
 				<div class="flex rounded-md border border-base-content/20">
 					{#each typeOptions as [value, label] (value)}
 						<button
@@ -317,7 +404,8 @@
 						</button>
 					{/each}
 				</div>
-
+			{/if}
+			{#if !isGraphic}
 				<!--
 					Channel target — moves the band between the shared / L / R buckets.
 					Hidden in graphic mode, where the preset fixes one row per band on a
@@ -339,8 +427,9 @@
 						{/each}
 					</div>
 				</div>
-
-				<!-- Frequency slider — hidden in graphic mode -->
+			{/if}
+			{#if !freqLocked}
+				<!-- Frequency slider — hidden where the slot locks it -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
 						<span class="text-xs text-base-content/60">
@@ -350,9 +439,10 @@
 							<input
 								type="number"
 								value={filter.freq}
-								min={20}
-								max={20000}
-								step={1}
+								min={freqRange.min}
+								max={freqRange.max}
+								step={stepOf('freq')}
+								title={fieldTitle('freq', 'Hz')}
 								onchange={(e) => commitNumberInput(e, 'freq')}
 								onkeydown={(e) => handleInputKeydown(e, 'freq')}
 								class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
@@ -367,7 +457,11 @@
 						step="1"
 						value={freqSliderValue}
 						oninput={(e) => {
-							const hz = linearToLog(parseFloat(e.currentTarget.value), 20, 20000);
+							const hz = linearToLog(
+								parseFloat(e.currentTarget.value),
+								freqRange.min,
+								freqRange.max
+							);
 							onUpdate({ freq: Math.round(hz) });
 						}}
 						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
@@ -375,41 +469,44 @@
 				</div>
 			{/if}
 
-			<!-- Gain slider -->
-			<div class="flex flex-col gap-1">
-				<div class="flex items-center justify-between">
-					<span class="text-xs text-base-content/60">
-						{m.equalizer_filter_list_gain()}
-					</span>
-					<label class="inline-flex items-baseline gap-1">
-						<input
-							type="number"
-							value={filter.gain}
-							min={-30}
-							max={30}
-							step={0.1}
-							onchange={(e) => commitNumberInput(e, 'gain')}
-							onkeydown={(e) => handleInputKeydown(e, 'gain')}
-							class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
-						/>
-						<span class="text-[10px] text-base-content/40 select-none">dB</span>
-					</label>
+			{#if !gainLocked}
+				<!-- Gain slider -->
+				<div class="flex flex-col gap-1">
+					<div class="flex items-center justify-between">
+						<span class="text-xs text-base-content/60">
+							{m.equalizer_filter_list_gain()}
+						</span>
+						<label class="inline-flex items-baseline gap-1">
+							<input
+								type="number"
+								value={filter.gain}
+								min={gainRange.min}
+								max={gainRange.max}
+								step={stepOf('gain')}
+								title={fieldTitle('gain', 'dB')}
+								onchange={(e) => commitNumberInput(e, 'gain')}
+								onkeydown={(e) => handleInputKeydown(e, 'gain')}
+								class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
+							/>
+							<span class="text-[10px] text-base-content/40 select-none">dB</span>
+						</label>
+					</div>
+					<input
+						type="range"
+						min={Math.round(gainRange.min * 10)}
+						max={Math.round(gainRange.max * 10)}
+						step="1"
+						value={gainSliderValue}
+						oninput={(e) => {
+							onUpdate({ gain: parseFloat(e.currentTarget.value) / 10 });
+						}}
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+					/>
 				</div>
-				<input
-					type="range"
-					min="-300"
-					max="300"
-					step="1"
-					value={gainSliderValue}
-					oninput={(e) => {
-						onUpdate({ gain: parseFloat(e.currentTarget.value) / 10 });
-					}}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
-				/>
-			</div>
+			{/if}
 
-			{#if !isGraphic}
-				<!-- Q slider — hidden in graphic mode -->
+			{#if !qLocked}
+				<!-- Q slider — hidden where the slot locks it -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
 						<span class="text-xs text-base-content/60">
@@ -420,9 +517,10 @@
 							<input
 								type="number"
 								value={filter.q}
-								min={0.1}
-								max={10}
-								step={0.01}
+								min={qRange.min}
+								max={qRange.max}
+								step={stepOf('q')}
+								title={fieldTitle('q', '')}
 								onchange={(e) => commitNumberInput(e, 'q')}
 								onkeydown={(e) => handleInputKeydown(e, 'q')}
 								class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
@@ -436,7 +534,7 @@
 						step="1"
 						value={qSliderValue}
 						oninput={(e) => {
-							const q = linearToLog(parseFloat(e.currentTarget.value), 0.1, 10);
+							const q = linearToLog(parseFloat(e.currentTarget.value), qRange.min, qRange.max);
 							onUpdate({ q: parseFloat(q.toFixed(2)) });
 						}}
 						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"

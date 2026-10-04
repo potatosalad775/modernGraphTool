@@ -1,15 +1,12 @@
 /**
- * `EqOptionButton` is the constraint-preset picker: a popover with a search box
- * and two groups — the built-ins baked into the binary, and the profile derived
- * from a connected hardware device.
+ * `EqOptionButton` is the constraint picker: a popover with a search box over
+ * the built-ins baked into the binary, the connected device's profile, recent
+ * picks, and the eqcaps database's software and hardware profiles.
  *
- * The picker is currently not rendered (see EqFilterList) — it comes back when
- * a shared constraints service exists to supply device profiles. The component
- * and this spec stay so it works the day it is re-enabled.
- *
- * `eqConstraintsStore.presets` is written directly to seed the catalog under
- * test. `reclampToActiveConstraint` is spied on: picking a preset must re-clamp
- * the live stack, but the clamping itself belongs to `eq-commands.spec.ts`.
+ * `eqConstraintsStore.presets` is written directly to seed the local presets,
+ * and the eqcaps client is mocked to serve a small index. `reclampToActiveConstraint`
+ * is spied on: picking a preset must fold the live stack, but the folding
+ * itself belongs to `eq-commands.spec.ts`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -21,24 +18,30 @@ import {
 	DEFAULT_CONSTRAINT_ID
 } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+import type { IndexEntry } from '@potatosalad775/eqcaps-core';
 import * as m from '$lib/paraglide/messages.js';
+import { hardwareProfile, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 
-const DEVICE_PRESET: EqConstraintPreset = {
-	id: 'fiio-jm21',
+const DEVICE_PRESET = parametricPreset('fiio-jm21', {
 	label: 'FiiO JM21',
-	mode: 'parametric',
 	maxBands: 10,
-	allowPk: true,
-	allowLsq: true,
-	allowHsq: true,
-	freqMin: 20,
-	freqMax: 20000,
-	gainMin: -12,
-	gainMax: 12,
-	qMin: 0.3,
-	qMax: 10
-};
+	source: 'device'
+});
+
+const indexEntry = (id: string, extra: Partial<IndexEntry>): IndexEntry => ({
+	id,
+	kind: 'hardware',
+	brand: 'Brand',
+	model: id,
+	status: 'community-verified',
+	path: `profiles/${id}.json`,
+	sha256: '',
+	bytes: 0,
+	...extra
+});
+
+const client = vi.hoisted(() => ({ loadIndex: vi.fn(), loadProfile: vi.fn() }));
+vi.mock('$lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
 
 async function open() {
 	render(EqOptionButton);
@@ -62,7 +65,28 @@ describe('EqOptionButton', () => {
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS, DEVICE_PRESET];
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 		setActive = vi.spyOn(eqConstraintsStore, 'setActive');
-		reclamp = vi.spyOn(eqCommands, 'reclampToActiveConstraint').mockImplementation(() => {});
+		reclamp = vi.spyOn(eqCommands, 'reclampToActiveConstraint').mockImplementation(() => false);
+		client.loadIndex.mockResolvedValue({
+			profiles: [
+				indexEntry('poweramp-equalizer', {
+					kind: 'software',
+					brand: 'Poweramp',
+					model: 'Equalizer'
+				}),
+				indexEntry('moondrop-quark2', {
+					brand: 'Moondrop',
+					model: 'Quark2',
+					status: 'draft',
+					aliases: ['Quark 2']
+				}),
+				indexEntry('old-thing', { status: 'deprecated' })
+			]
+		});
+		client.loadProfile.mockImplementation(async (id: string) => ({
+			...hardwareProfile(id, { bandCount: 5 }),
+			device: { brand: 'Moondrop', model: 'Quark2' }
+		}));
+		localStorage.removeItem('gt-eq-constraint-catalog');
 	});
 
 	afterEach(() => {
@@ -112,6 +136,61 @@ describe('EqOptionButton', () => {
 		await expect
 			.element(presetOption(DEVICE_PRESET.label))
 			.toHaveAttribute('aria-pressed', 'false');
+	});
+
+	// ── The eqcaps database ──────────────────────────────────────────────────
+
+	describe('database profiles', () => {
+		it('lists software EQs and devices once the index arrives, without deprecated ones', async () => {
+			await open();
+
+			await expect.element(page.getByText(m.eq_constraint_group_software())).toBeInTheDocument();
+			await expect.element(presetOption('Poweramp Equalizer')).toBeInTheDocument();
+			await expect.element(page.getByText(m.eq_constraint_group_hardware())).toBeInTheDocument();
+			expect(page.getByText('old-thing').elements()).toHaveLength(0);
+		});
+
+		it('marks unverified profiles as drafts', async () => {
+			await open();
+			await expect
+				.element(page.getByTitle(m.eq_constraint_draft_title()))
+				.toHaveTextContent(m.eq_constraint_draft());
+		});
+
+		it('finds a device by its aliases', async () => {
+			await open();
+			await search().fill('quark 2');
+			await expect
+				.element(page.getByRole('button', { name: /Moondrop Quark2/ }))
+				.toBeInTheDocument();
+		});
+
+		it('fetches a picked profile, selects it and folds the live stack onto it', async () => {
+			await open();
+			await page.getByRole('button', { name: /Moondrop Quark2/ }).click();
+
+			await vi.waitFor(() => expect(reclamp).toHaveBeenCalledOnce());
+			expect(client.loadProfile).toHaveBeenCalledWith('moondrop-quark2');
+			expect(eqConstraintsStore.activeId).toBe('eqcaps:moondrop-quark2');
+			expect(eqConstraintsStore.maxBands).toBe(5);
+		});
+
+		it('keeps the current constraint when the profile can’t be fetched', async () => {
+			client.loadProfile.mockResolvedValue(null);
+			await open();
+			await page.getByRole('button', { name: /Moondrop Quark2/ }).click();
+
+			await vi.waitFor(() => expect(client.loadProfile).toHaveBeenCalled());
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(reclamp).not.toHaveBeenCalled();
+		});
+
+		it('says so when the database is unreachable, and keeps the built-ins', async () => {
+			client.loadIndex.mockResolvedValue(null);
+			await open();
+			await expect.element(page.getByText(m.eq_constraint_catalog_failed())).toBeInTheDocument();
+			await expect.element(presetOption(BUILTIN_PRESETS[0].label)).toBeInTheDocument();
+		});
 	});
 
 	// ── Search ───────────────────────────────────────────────────────────────

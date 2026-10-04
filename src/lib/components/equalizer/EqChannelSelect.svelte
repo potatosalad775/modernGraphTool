@@ -39,7 +39,7 @@
 	 * A graphic preset fixes one row per band on a single output, so there is no
 	 * per-ear structure to edit — same reason add / remove / sort are disabled.
 	 */
-	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+	const isGraphic = $derived(eqConstraintsStore.isGraphic);
 
 	function select(scope: EqChannelScope) {
 		eqStore.channelScope = scope;

@@ -13,7 +13,6 @@
 	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
 	import EqSettings from '$lib/components/equalizer/EqSettings.svelte';
 	import EqHistoryAndCompare from '$lib/components/equalizer/EqHistoryAndCompare.svelte';
-	import DevicePeq from '$lib/components/features/DevicePeq.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
@@ -109,10 +108,16 @@
 					</div>
 				</AccordionItem>
 				<div class="my-1 h-px w-full bg-base-content/20"></div>
-				<!-- Device PEQ — USB/Network hardware EQ bridge -->
+				<!--
+					Device PEQ — hardware EQ. Loaded when the section is first opened: it
+					only renders open, and its UI and strings are ~10 KB gzip most visitors
+					never use. Not the initial-panel case measured and rejected in AGENTS.md.
+				-->
 				<AccordionItem value="device-peq" title={m.equalizer_device_peq_label()} class="px-1">
 					<div class="p-2 pt-1">
-						<DevicePeq />
+						{#await import('$lib/components/features/DevicePeq.svelte') then { default: DevicePeq }}
+							<DevicePeq />
+						{/await}
 					</div>
 				</AccordionItem>
 				<div class="my-1 h-px w-full bg-base-content/20"></div>

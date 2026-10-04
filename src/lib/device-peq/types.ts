@@ -1,180 +1,86 @@
 /**
- * Device PEQ Types — shared across handlers, connectors, config, store, and UI.
+ * Device PEQ types — the app's view of a connected EQ device.
+ *
+ * USB HID, USB / Bluetooth serial and BLE devices are driven by `@potatosalad775/eqcaps-device-bridge`
+ * and described by their eqcaps profile. Network devices (WiiM, Luxsin) aren't in eqcaps yet, so
+ * `network.ts` drives them itself behind the same `PeqDevice` shape. The UI never needs to know
+ * which.
  */
+import type { Profile } from '@potatosalad775/eqcaps-core';
+import type {
+	DeviceCapabilities,
+	DeviceIdentity,
+	PullRequest,
+	PullResult,
+	PushRequest,
+	PushResult
+} from '@potatosalad775/eqcaps-device-bridge';
 
-/** Standard filter type codes used across all device handlers */
-export type DeviceFilterType = 'PK' | 'LSQ' | 'HSQ';
-
-/** A single PEQ filter as exchanged between handlers and the UI */
-export interface DeviceFilter {
-	type: DeviceFilterType;
-	freq: number;
-	q: number;
-	gain: number;
-	disabled?: boolean;
-}
-
-/** Result from pulling filters from a device */
-export interface PullResult {
-	filters: DeviceFilter[];
-	globalGain: number;
-}
-
-/** An EQ preset slot on a device */
-export interface DeviceSlot {
-	id: number;
-	name: string;
-}
-
-/** Default filter values used to reset unused filter slots */
-export interface DefaultResetFilter {
-	gain: number;
-	freq: number;
-	q: number;
-	filterType: string;
-}
-
-/** Per-model hardware capabilities and configuration */
-export interface DeviceModelConfig {
-	minGain: number;
-	maxGain: number;
-	maxFilters: number;
-	firstWritableEQSlot: number;
-	maxWritableEQSlots: number;
-	disconnectOnSave: boolean;
-	disabledPresetId: number;
-	experimental: boolean;
-	supportsPregain?: boolean;
-	supportsLSHSFilters?: boolean;
-	defaultResetFiltersValues?: DefaultResetFilter[];
-	availableSlots: DeviceSlot[];
-	/** HID report ID (FiiO-specific) */
-	reportId?: number;
-	/** Walkplay scheme number */
-	schemeNo?: number;
-	/** KTMicro frequency doubling compensation */
-	compensate2X?: boolean;
-	/** Walkplay default index override */
-	defaultIndex?: number;
-	/** Serial baud rate override */
-	baudRate?: number;
-	/** Read-only device flag */
-	readOnly?: boolean;
-	/** Write-only device flag (device does not return EQ data) */
-	writeOnly?: boolean;
-	/** Auto-apply global gain offset (Walkplay) */
-	autoGlobalGain?: boolean;
-	/** Reference FR measurement name for flat-EQ comparison (UI hint, not yet implemented) */
-	flatEQPhoneMeasurement?: string;
-}
+export type { PullResult, PushRequest, PushResult, DeviceIdentity };
 
 /** Connection type for device communication */
-export type ConnectionType = 'hid' | 'serial' | 'network' | 'ble';
+export type ConnectionType = 'hid' | 'serial' | 'ble' | 'network';
+
+/** What a device can do: the bridge's capability flags, minus what only the bridge reads. */
+export type PeqCapabilities = Pick<
+	DeviceCapabilities,
+	| 'canRead'
+	| 'canWrite'
+	| 'readsPreamp'
+	| 'readsSlot'
+	| 'writesPreamp'
+	| 'writesSlot'
+	| 'readsCurrentSlot'
+	| 'canEnable'
+	| 'slots'
+	| 'disconnectOnSave'
+	| 'experimental'
+>;
 
 /**
- * Handler interface that each device-specific handler must implement.
- * All methods receive a ConnectedDevice object from a connector.
+ * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
+ * written value in eqcaps units (Hz, dB, RBJ Q, `LSC`/`HSC`); pushes are `fit` + `complete`d
+ * first, since the bridge never clamps or pads (`push-plan.ts`).
  */
-export interface DeviceHandler {
-	getCurrentSlot(device: ConnectedDevice): Promise<number>;
-	pullFromDevice(device: ConnectedDevice, slot: number): Promise<PullResult>;
-	pushToDevice(
-		device: ConnectedDevice,
-		slot: number,
-		preamp: number,
-		filters: DeviceFilter[]
-	): Promise<boolean>;
-	enablePEQ(device: ConnectedDevice, enabled: boolean, slotId: number): Promise<void>;
+export interface PeqDevice {
+	readonly capabilities: PeqCapabilities;
+	pull(request?: PullRequest): Promise<PullResult>;
+	push(request: PushRequest): Promise<PushResult>;
+	/** The active preset slot; null when EQ is off or the protocol can't say. */
+	currentSlot(): Promise<number | null>;
+	setEnabled(enabled: boolean, slot?: number): Promise<void>;
+	close(): Promise<void>;
 }
 
-/** A connected device returned by a connector */
-export interface ConnectedDevice {
-	rawDevice: HIDDevice | SerialPort | BluetoothDevice | null;
-	manufacturer: string;
-	model: string;
-	handler: DeviceHandler;
-	modelConfig: DeviceModelConfig;
+/**
+ * How sure we are about what the device accepts.
+ *
+ * - `device`: its own eqcaps profile.
+ * - `group`: a profile for a family of devices its identity can't tell apart (a chipset scheme).
+ * - `guess`: no profile; the vendor's usual protocol, with limits from what that protocol's write
+ *   frames can carry. Experimental.
+ * - `builtin`: a network device described in this repo.
+ */
+export type ProfileSource = 'device' | 'group' | 'guess' | 'builtin';
+
+export interface DeviceConnection {
+	device: PeqDevice;
 	connectionType: ConnectionType;
-	/** Serial port info (serial only) */
-	info?: SerialPortInfo;
-	/** Read/write shims for serial devices */
-	readable?: { read(): Promise<ReadableStreamReadResult<Uint8Array>> };
-	writable?: { write(data: Uint8Array): Promise<void> };
-	/** Network device IP (network only) */
-	ip?: string;
-	/** Firmware version (populated by some handlers) */
-	version?: number | null;
-	/** BLE GATT TX characteristic (ble only) */
-	txChar?: BluetoothRemoteGATTCharacteristic;
-	/** BLE GATT RX characteristic (ble only) */
-	rxChar?: BluetoothRemoteGATTCharacteristic;
-	/** BLE notification reader — returns next notification chunk or null on timeout (ble only) */
-	readNotification?: (timeoutMs?: number) => Promise<Uint8Array | null>;
+	/** "FiiO KA17", or the USB product name for a guessed device. */
+	name: string;
+	/** What the device accepts. Always present: a guessed device gets one from its protocol. */
+	profile: Profile;
+	profileSource: ProfileSource;
+	/** The eqcaps id of `profile`, when it came from the database. */
+	profileId: string | null;
+	/** What the device reported about itself, for an issue report. */
+	identity: DeviceIdentity;
+	/** Re-open the same device without the browser's chooser, after it dropped (HID only). */
+	reopen?: () => Promise<DeviceConnection | null>;
 }
 
-/** Per-device entry within a vendor config */
-export interface DeviceEntry {
-	manufacturer?: string;
-	handler?: DeviceHandler;
-	/** String key to resolve a handler from another registration module (e.g. 'fiio-usb-hid'). */
-	handlerRef?: string;
-	modelConfig?: Partial<DeviceModelConfig>;
-	supportsLSHSFilters?: boolean;
-	supportsPregain?: boolean;
-}
-
-/** ProductId-based device group for fallback matching when productName is unknown */
-export interface DeviceGroup {
-	productIds: number[];
-	modelConfig: Partial<DeviceModelConfig>;
-}
-
-/** USB HID device vendor configuration entry */
-export interface UsbHidVendorConfig {
-	vendorIds: number[];
-	manufacturer: string;
-	handler: DeviceHandler;
-	defaultModelConfig: DeviceModelConfig;
-	devices: Record<string, DeviceEntry>;
-	/** Fallback matching by USB productId when productName doesn't match any device entry */
-	deviceGroups?: Record<string, DeviceGroup>;
-}
-
-/** Bluetooth SPP filter configuration for serial devices */
-export interface BluetoothFilters {
-	usbVendorId: number | null;
-	allowedBluetoothServiceClassIds: string[];
-	bluetoothServiceClassId: string;
-}
-
-/** BLE GATT configuration for a device family */
-export interface BleGattConfig {
-	serviceUuid: string;
-	txCharacteristicUuid: string;
-	rxCharacteristicUuid: string;
-}
-
-/** Bluetooth BLE device configuration entry */
-export interface BleDeviceConfig {
-	manufacturer: string;
-	handler: DeviceHandler;
-	filters: { namePrefix?: string; services?: string[] };
-	gatt: BleGattConfig;
-	defaultModelConfig?: DeviceModelConfig;
-	devices: Record<string, { modelConfig: Partial<DeviceModelConfig> }>;
-}
-
-/** USB Serial device vendor configuration entry */
-export interface UsbSerialVendorConfig {
-	vendorId?: number;
-	manufacturer: string;
-	handler: DeviceHandler;
-	filters?: BluetoothFilters;
-	devices: Record<
-		string,
-		{
-			usbProductId?: number;
-			modelConfig: DeviceModelConfig;
-		}
-	>;
+/** A profile the user can pick when a device's identity matched several, or none (serial ports). */
+export interface DeviceCandidate {
+	id: string;
+	label: string;
 }

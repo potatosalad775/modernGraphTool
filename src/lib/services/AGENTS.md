@@ -17,6 +17,8 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
 - `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
+- `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
+  `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
 ## `eq-commands.ts` — `ensureEnabled()`
 

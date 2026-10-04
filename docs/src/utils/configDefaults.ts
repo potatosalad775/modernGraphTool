@@ -110,6 +110,8 @@ export interface ConfigFormState {
 	EQUALIZER_ENABLED: boolean;
 	EQUALIZER: {
 		AUTOEQ_DEFAULT_BAND_COUNT: number;
+		/** Mirror of the eqcaps `/v1/` channel. Empty = the official one. */
+		EQCAPS_URL: string;
 	};
 	SQUIGLINK_ENABLED: boolean;
 	SQUIGLINK: {
@@ -401,7 +403,8 @@ export function createDefaultConfig(): ConfigFormState {
 		},
 		EQUALIZER_ENABLED: false,
 		EQUALIZER: {
-			AUTOEQ_DEFAULT_BAND_COUNT: 8
+			AUTOEQ_DEFAULT_BAND_COUNT: 8,
+			EQCAPS_URL: ''
 		},
 		SQUIGLINK_ENABLED: false,
 		SQUIGLINK: {

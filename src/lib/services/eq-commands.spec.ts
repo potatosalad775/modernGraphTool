@@ -7,7 +7,7 @@ import {
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
 } from '$lib/stores/eq-constraints-store.svelte.js';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+import { graphicPreset, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { eqCommands } from './eq-commands.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
@@ -255,21 +255,14 @@ describe('eqCommands', () => {
 	});
 
 	describe('active constraint enforcement', () => {
-		const strict: EqConstraintPreset = {
-			id: 'strict',
+		const strict = parametricPreset('strict', {
 			label: 'Strict 2-band',
-			mode: 'parametric',
 			maxBands: 2,
-			allowPk: true,
-			allowLsq: false,
-			allowHsq: false,
-			freqMin: 100,
-			freqMax: 10000,
-			gainMin: -6,
-			gainMax: 6,
-			qMin: 0.5,
-			qMax: 5
-		};
+			types: ['PK'],
+			freq: { min: 100, max: 10000 },
+			gain: { min: -6, max: 6 },
+			q: { min: 0.5, max: 5 }
+		});
 
 		beforeEach(() => {
 			eqConstraintsStore.presets = [strict];
@@ -333,6 +326,44 @@ describe('eqCommands', () => {
 			commandHistory.undo(frStore);
 			expect(eqStore.filters).toHaveLength(1);
 			expect(eqStore.filters[0].gain).toBe(1);
+		});
+
+		it('updateBand snaps onto a stepped grid', () => {
+			eqConstraintsStore.presets = [
+				parametricPreset('stepped', { gain: { min: -12, max: 12, step: 0.5 } })
+			];
+			eqConstraintsStore.activeId = 'stepped';
+			eqStore.filters = [makeFilter()];
+			eqCommands.updateBand(0, { gain: 3.3 });
+			eqCommands.flushBand(0);
+			expect(eqStore.filters[0].gain).toBe(3.5);
+		});
+
+		it('reclampToActiveConstraint folds the list in one undo entry, and says whether it did', () => {
+			eqStore.filters = [makeFilter({ gain: 9 }), makeFilter({ freq: 2000, gain: 1 })];
+			expect(eqCommands.reclampToActiveConstraint()).toBe(true);
+			expect(eqStore.filters[0].gain).toBe(6);
+			expect(eqCommands.reclampToActiveConstraint()).toBe(false);
+			commandHistory.undo(frStore);
+			expect(eqStore.filters[0].gain).toBe(9);
+		});
+
+		it('reclampToActiveConstraint lays a graphic EQ over the list, one row per band', () => {
+			eqConstraintsStore.presets = [
+				graphicPreset('three', [
+					{ freq: 100, q: 1.4 },
+					{ freq: 1000, q: 1.4 },
+					{ freq: 10000, q: 1.4 }
+				])
+			];
+			eqConstraintsStore.activeId = 'three';
+			eqStore.filters = [makeFilter({ freq: 900, gain: 4 })];
+			eqCommands.reclampToActiveConstraint();
+			expect(eqStore.filters.map((f) => [f.freq, f.gain])).toEqual([
+				[100, 0],
+				[1000, 4],
+				[10000, 0]
+			]);
 		});
 
 		// The cap is what one output has to realise. 2 shared bands fill a 2-band

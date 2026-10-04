@@ -1,61 +1,24 @@
-/**
- * EQ constraint preset — describes the limits of an EQ editing context.
- *
- * Three orthogonal kinds, expressed by a single shape:
- *   - "Default" (unlimited parametric): no bands cap, full ranges. The starting
- *     preset for general-purpose EQ work.
- *   - Hardware parametric (e.g. Fiio EH11): caps maxBands and clamps freq / Q
- *     / gain to the device's allowed ranges.
- *   - Graphic EQ (e.g. generic 10-band): a fixed list of `graphicBands` where
- *     only `gain` is user-editable; `freq` and `q` are locked per band.
- *     Different bands can carry different Q values.
- *
- * Presets come from two places only: `BUILTIN_PRESETS` in eq-constraints-store
- * (Default unlimited PEQ + Generic 10-band), and a profile derived from a
- * hardware device the user connected. There is deliberately no operator-authored
- * catalog — see the note on `BUILTIN_PRESETS`.
- */
-export interface EqConstraintGraphicBand {
-	/** Center frequency (Hz). Locked — not user-editable in graphic mode. */
-	freq: number;
-	/** Per-band Q. Optional; falls back to the preset's `qDefault`, then 1.0. */
-	q?: number;
-}
+import type { Profile } from '@potatosalad775/eqcaps-core';
 
+/**
+ * One entry in the EQ constraint picker: an eqcaps profile plus where it came from.
+ *
+ * The limits themselves are an eqcaps `Profile` (format v1, `@potatosalad775/eqcaps-core`): band
+ * count, filter types per slot, frequency / Q / gain domains with steps and value sets, cross-band
+ * rules and the preamp. Nothing here restates them. Graphic EQs need no mode either — a profile
+ * whose every slot has a locked frequency is one (`isGraphicProfile`).
+ *
+ * Entries come from three places:
+ *   - `builtin`: the unlimited default and a generic 10-band graphic EQ, baked into the binary.
+ *   - `device`: the profile of the hardware the user connected, while it stays connected.
+ *   - `catalog`: a profile the user picked from the eqcaps database (a software EQ, or hardware
+ *     they want to plan an EQ for without plugging it in).
+ */
 export interface EqConstraintPreset {
-	/** Unique ID. Later sources overriding the same id replace the earlier one. */
+	/** Unique id. `__device-peq__` for the connected device, `eqcaps:<id>` for catalog picks. */
 	id: string;
 	/** Human-readable label shown in the picker. */
 	label: string;
-	/** "graphic" locks freq + q per band; "parametric" allows free editing within ranges. */
-	mode: 'graphic' | 'parametric';
-	/** Cap on filter rows. 0 = unlimited (parametric only). */
-	maxBands: number;
-	/** Allowed filter types (parametric only — graphic bands always behave as PK). */
-	allowPk: boolean;
-	allowLsq: boolean;
-	allowHsq: boolean;
-	/** Parametric mode — frequency range in Hz. Ignored when mode is graphic. */
-	freqMin?: number;
-	freqMax?: number;
-	/** Graphic mode — fixed (freq, q) bands. Ignored when mode is parametric. */
-	graphicBands?: EqConstraintGraphicBand[];
-	/** Default Q used when a graphic band omits its `q`, or for parametric clamping. */
-	qDefault?: number;
-	/** Gain range in dB (always applies). */
-	gainMin: number;
-	gainMax: number;
-	/** Parametric mode — Q range. Ignored when mode is graphic. */
-	qMin?: number;
-	qMax?: number;
-	/**
-	 * Whether this **device** can store separate left/right filter banks.
-	 * Still always treated as `false`: no handler exposes a per-channel slot,
-	 * so `DevicePeq` pushes only the shared bands and warns about the rest.
-	 *
-	 * App-level per-channel EQ does not depend on this — the graph, the audio
-	 * preview and APO export all support L/R regardless. The flag is only
-	 * about what a given piece of hardware can be handed.
-	 */
-	twoChannelSupport?: boolean;
+	source: 'builtin' | 'device' | 'catalog';
+	profile: Profile;
 }

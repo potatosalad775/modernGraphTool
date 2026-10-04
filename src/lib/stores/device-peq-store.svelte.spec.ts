@@ -1,100 +1,118 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { devicePeqStore } from './device-peq-store.svelte.js';
-import type { ConnectedDevice, DeviceSlot } from '$lib/device-peq/types.js';
+import {
+	BUILTIN_PRESETS,
+	DEFAULT_CONSTRAINT_ID,
+	DEVICE_CONSTRAINT_ID,
+	eqConstraintsStore
+} from './eq-constraints-store.svelte.js';
+import type { DeviceConnection, PeqCapabilities } from '$lib/device-peq/types.js';
+import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
 
-const SLOTS: DeviceSlot[] = [
-	{ id: 0, name: 'Slot 1' },
-	{ id: 1, name: 'Slot 2' }
-];
+const CAPS: PeqCapabilities = {
+	canRead: true,
+	canWrite: true,
+	readsPreamp: false,
+	readsSlot: false,
+	writesPreamp: true,
+	writesSlot: false,
+	readsCurrentSlot: true,
+	canEnable: true,
+	slots: [
+		{ id: 0, name: 'Jazz' },
+		{ id: 160, name: 'USER1' },
+		{ id: 240, name: 'BYPASS', bypass: true }
+	],
+	disconnectOnSave: false,
+	experimental: false
+};
 
-function fakeDevice(overrides: Partial<ConnectedDevice> = {}): ConnectedDevice {
+function makeConnection(overrides: Partial<DeviceConnection> = {}): DeviceConnection {
 	return {
-		rawDevice: null,
-		manufacturer: 'FiiO',
-		model: 'BTR7',
+		device: {
+			capabilities: CAPS,
+			pull: vi.fn(),
+			push: vi.fn(),
+			currentSlot: vi.fn(),
+			setEnabled: vi.fn(),
+			close: vi.fn()
+		},
 		connectionType: 'hid',
-		handler: {} as ConnectedDevice['handler'],
-		modelConfig: {} as ConnectedDevice['modelConfig'],
+		name: 'FiiO KA17',
+		profile: hardwareProfile('fiio-ka17', { bandCount: 10 }),
+		profileSource: 'device',
+		profileId: 'fiio-ka17',
+		identity: {},
 		...overrides
-	} as ConnectedDevice;
+	};
 }
 
-describe('DevicePeqStore', () => {
+describe('devicePeqStore', () => {
 	beforeEach(() => {
 		devicePeqStore.setDisconnected();
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 	});
 
-	it('starts disconnected with no device metadata', () => {
+	it('starts disconnected', () => {
 		expect(devicePeqStore.isConnected).toBe(false);
-		expect(devicePeqStore.device).toBeNull();
 		expect(devicePeqStore.deviceName).toBeNull();
 		expect(devicePeqStore.slots).toEqual([]);
 	});
 
-	describe('setConnected', () => {
-		it('mirrors the device metadata onto the store', () => {
-			const device = fakeDevice();
-			devicePeqStore.setConnected(device, SLOTS, 1);
-
-			expect(devicePeqStore.isConnected).toBe(true);
-			// `$state` deep-proxies what it stores, so compare by value, not identity.
-			expect(devicePeqStore.device).toEqual(device);
-			expect(devicePeqStore.deviceName).toBe('BTR7');
-			expect(devicePeqStore.manufacturer).toBe('FiiO');
-			expect(devicePeqStore.connectionType).toBe('hid');
-			expect(devicePeqStore.slots).toEqual(SLOTS);
-			expect(devicePeqStore.activeSlot).toBe(1);
-		});
-
-		it('clears the connecting flag and reports the model in the status line', () => {
-			devicePeqStore.isConnecting = true;
-			devicePeqStore.setConnected(fakeDevice({ model: 'Qudelix 5K' }), SLOTS, 0);
-
-			expect(devicePeqStore.isConnecting).toBe(false);
-			expect(devicePeqStore.statusMessage).toBe('Connected: Qudelix 5K');
-		});
-
-		it('accepts slot 0 as an active slot rather than treating it as unset', () => {
-			devicePeqStore.setConnected(fakeDevice(), SLOTS, 0);
-			expect(devicePeqStore.activeSlot).toBe(0);
-		});
+	it('connecting makes the device’s profile the active constraint', () => {
+		devicePeqStore.setConnected(makeConnection(), 160);
+		expect(devicePeqStore.isConnected).toBe(true);
+		expect(devicePeqStore.deviceName).toBe('FiiO KA17');
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+		expect(eqConstraintsStore.active.label).toBe('FiiO KA17');
+		expect(eqConstraintsStore.maxBands).toBe(10);
 	});
 
-	describe('setDisconnected', () => {
-		it('clears every field, including in-flight read/write flags', () => {
-			devicePeqStore.setConnected(fakeDevice(), SLOTS, 1);
-			devicePeqStore.isReading = true;
-			devicePeqStore.isWriting = true;
-
-			devicePeqStore.setDisconnected();
-
-			expect(devicePeqStore.isConnected).toBe(false);
-			expect(devicePeqStore.isConnecting).toBe(false);
-			expect(devicePeqStore.device).toBeNull();
-			expect(devicePeqStore.deviceName).toBeNull();
-			expect(devicePeqStore.manufacturer).toBeNull();
-			expect(devicePeqStore.connectionType).toBeNull();
-			expect(devicePeqStore.activeSlot).toBeNull();
-			expect(devicePeqStore.slots).toEqual([]);
-			expect(devicePeqStore.isReading).toBe(false);
-			expect(devicePeqStore.isWriting).toBe(false);
-			expect(devicePeqStore.statusMessage).toBeNull();
-		});
-
-		it('is safe to call when already disconnected', () => {
-			devicePeqStore.setDisconnected();
-			devicePeqStore.setDisconnected();
-			expect(devicePeqStore.isConnected).toBe(false);
-		});
+	it('lists the EQ memories without the bypass preset', () => {
+		devicePeqStore.setConnected(makeConnection(), 160);
+		expect(devicePeqStore.slots.map((s) => s.name)).toEqual(['Jazz', 'USER1']);
+		expect(devicePeqStore.activeSlot).toBe(160);
+		expect(devicePeqStore.eqEnabled).toBe(true);
 	});
 
-	describe('setStatus', () => {
-		it('replaces the status message without touching connection state', () => {
-			devicePeqStore.setConnected(fakeDevice(), SLOTS, 0);
-			devicePeqStore.setStatus('Reading slot 1…');
+	it('reads a device sitting on its bypass preset as EQ off, targeting the first memory', () => {
+		devicePeqStore.setConnected(makeConnection(), 240);
+		expect(devicePeqStore.eqEnabled).toBe(false);
+		expect(devicePeqStore.activeSlot).toBe(0);
+	});
 
-			expect(devicePeqStore.statusMessage).toBe('Reading slot 1…');
-			expect(devicePeqStore.isConnected).toBe(true);
-		});
+	it('does not know whether EQ is on when the device can’t say', () => {
+		devicePeqStore.setConnected(makeConnection(), null);
+		expect(devicePeqStore.eqEnabled).toBeNull();
+		expect(devicePeqStore.activeSlot).toBe(0);
+	});
+
+	it('disconnecting clears everything and restores the user’s constraint', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		devicePeqStore.setConnected(makeConnection(), 0);
+		devicePeqStore.isReading = true;
+		devicePeqStore.needsReconnect = true;
+		devicePeqStore.setStatus('busy');
+
+		devicePeqStore.setDisconnected();
+		expect(devicePeqStore.connection).toBeNull();
+		expect(devicePeqStore.isReading).toBe(false);
+		expect(devicePeqStore.needsReconnect).toBe(false);
+		expect(devicePeqStore.statusMessage).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe('generic-10-band');
+	});
+
+	it('a fresh connection clears a pending reconnect', () => {
+		devicePeqStore.setConnected(makeConnection(), 0);
+		devicePeqStore.needsReconnect = true;
+		devicePeqStore.setConnected(makeConnection(), 0);
+		expect(devicePeqStore.needsReconnect).toBe(false);
+	});
+
+	it('is busy while connecting, reading or writing', () => {
+		expect(devicePeqStore.isBusy).toBe(false);
+		devicePeqStore.isWriting = true;
+		expect(devicePeqStore.isBusy).toBe(true);
 	});
 });

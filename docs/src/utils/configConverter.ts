@@ -1081,7 +1081,8 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 		EQUALIZER_ENABLED: !!raw.EQUALIZER,
 		EQUALIZER: {
 			AUTOEQ_DEFAULT_BAND_COUNT:
-				raw.EQUALIZER?.AUTOEQ_DEFAULT_BAND_COUNT ?? defaults.EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT
+				raw.EQUALIZER?.AUTOEQ_DEFAULT_BAND_COUNT ?? defaults.EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT,
+			EQCAPS_URL: raw.EQUALIZER?.EQCAPS_URL ?? defaults.EQUALIZER.EQCAPS_URL
 		},
 		SQUIGLINK_ENABLED: !!raw.SQUIGLINK,
 		SQUIGLINK: {
@@ -1156,7 +1157,11 @@ export function formStateToConfigString(state: ConfigFormState): string {
 		config.DOWNLOAD = state.DOWNLOAD;
 	}
 	if (state.EQUALIZER_ENABLED) {
-		config.EQUALIZER = state.EQUALIZER;
+		// An empty mirror URL means "the official channel": leave the key out.
+		const { EQCAPS_URL, ...equalizer } = state.EQUALIZER;
+		config.EQUALIZER = EQCAPS_URL.trim()
+			? { ...equalizer, EQCAPS_URL: EQCAPS_URL.trim() }
+			: equalizer;
 	}
 	if (state.SQUIGLINK_ENABLED) {
 		config.SQUIGLINK = state.SQUIGLINK;

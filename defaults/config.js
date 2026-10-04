@@ -219,9 +219,12 @@ const CONFIG = {
 	// Equalizer defaults. AUTOEQ_DEFAULT_BAND_COUNT is how many bands "Run AutoEQ"
 	// generates when the filter list is empty (default 8). Users who want a
 	// different count still just add or remove bands before running — a non-empty
-	// list always wins. → docs: EQUALIZER
+	// list always wins. EQCAPS_URL points Device PEQ and the constraint picker at a
+	// mirror of the eqcaps EQ database (default: the official /v1/ channel).
+	// → docs: EQUALIZER
 	// EQUALIZER: {
 	//   AUTOEQ_DEFAULT_BAND_COUNT: 8,
+	//   EQCAPS_URL: 'https://potatosalad775.github.io/eqcaps/v1/',
 	// },
 
 	// Only active on *.squig.link domains: analytics, sponsor banner, shop links.

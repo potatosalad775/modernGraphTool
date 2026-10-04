@@ -23,7 +23,7 @@ This file covers what applies everywhere. Anything specific to one area lives in
 | [src/lib/services/](src/lib/services/AGENTS.md)     | DataProvider, audio player, cross-site search, squig.link   |
 | [src/lib/graph/](src/lib/graph/AGENTS.md)           | D3 engine, overlays, baseline modes, d3/rAF test traps      |
 | [src/lib/utils/](src/lib/utils/AGENTS.md)           | Sanitizer, URL state, sample sets                           |
-| [src/lib/device-peq/](src/lib/device-peq/AGENTS.md) | Hardware EQ transports, fake-device fixtures                |
+| [src/lib/device-peq/](src/lib/device-peq/AGENTS.md) | Device PEQ over the eqcaps bridge, push plans               |
 | [src/lib/workers/](src/lib/workers/AGENTS.md)       | AutoEQ off the main thread: turboEQ wasm, the fallback      |
 
 Each of those directories also holds a one-line `CLAUDE.md` (`@AGENTS.md`) — that shim is what makes
@@ -40,6 +40,8 @@ Deeper contributor documentation lives in the docs site:
 - **TypeScript** (strict)
 - **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`; **tailwind-merge** resolves class conflicts in the `Button` atom
 - **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
+- **eqcaps** (`@potatosalad775/eqcaps-{core,client,device-bridge}`) for EQ constraints and hardware
+  EQ: what a device or app EQ accepts, and the protocols to write it. Sibling repo `../eqcaps`
 - **D3.js** for SVG graph rendering (no Tailwind inside SVG — uses CSS vars from `defaults/theme.css`)
 - **Paraglide JS** for compile-time i18n (`en`, `cs`, `ko`, `ru`, `uk`)
 - **Vitest + Playwright** (browser mode) for tests, co-located as `*.spec.ts`
@@ -117,7 +119,7 @@ src/
     ├── stores/          # → AGENTS.md · reactive class instances in .svelte.ts
     ├── services/        # → AGENTS.md · DataProvider, commands, aggregate index, audio, analytics
     ├── graph/           # → AGENTS.md · D3 engine + overlays
-    ├── device-peq/      # → AGENTS.md · hardware EQ bridge (WebHID/WebSerial/BLE/Network)
+    ├── device-peq/      # → AGENTS.md · Device PEQ on the eqcaps bridge (+ local network devices)
     ├── utils/           # → AGENTS.md · parsing, normalization, smoothing, URL encoding, config
     ├── workers/         # Web workers for heavy FR processing
     ├── types/           # data-types.ts, squiglink-types.ts

@@ -42,7 +42,9 @@ export const frStore = new FRDataStore();
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound
   directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by
   `GraphContainer`/`GraphSpectrumOverlay`
-- `device-peq-store.svelte.ts` — hardware EQ device connection state
+- `device-peq-store.svelte.ts` — the connected EQ device (`DeviceConnection`), target preset, busy flags
+- `eq-constraints-store.svelte.ts` — active EQ constraint (an eqcaps `Profile`) + picker entries, and the
+  per-band slot/violation analysis of `eqStore.filters`
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
 - `squiglink-store.svelte.ts` — squig.link domain guard, sponsor content and shop links. The site
   registry and phone-book crawl it used to own moved to `services/site-index.svelte.ts` and
@@ -50,18 +52,25 @@ export const frStore = new FRDataStore();
 
 ## Invariants worth keeping
 
-**`eq-constraints-store.svelte.ts` — don't reintroduce a bundled or config-authored catalog.**
-It holds the active EQ constraint preset plus the catalog. Two general-purpose presets (Default
-unlimited PEQ, Generic 10-band Graphic EQ) are baked in as `BUILTIN_PRESETS`; the only other entry
-is the profile derived from a hardware device the user connected (`setDeviceConstraint`). Nothing is
-fetched and there is **no operator config** — the store is fully resolved from construction.
+**`eq-constraints-store.svelte.ts` — constraints are eqcaps profiles; the catalog is eqcaps'.**
+Each entry (`EqConstraintPreset`) wraps an eqcaps `Profile` — per-slot types and domains, steps and
+value sets, rules, preamp — and every check goes through `utils/eq-constraint.ts` onto
+`@potatosalad775/eqcaps-core`. Entries come from three places: `BUILTIN_PRESETS` (unlimited, generic
+10-band graphic), the connected device (`setDeviceConstraint`, session-only), and a profile picked
+from the eqcaps database in `EqOptionButton` (`addCatalogProfile`, stored with its profile under
+`gt-eq-constraint-catalog` so a saved `eqcaps:` id resolves on first paint, offline, with nothing
+fetched at boot).
 
-A curated device dictionary used to sit on top of this (a bundled `eq-constraints.json`, an `EQ`
-config section, and a `matchPhones` auto-selector keyed on the source phone's name). It was removed
-pending a shared constraints service: a device list hand-maintained in this repo goes stale faster
-than it helps, and with the picker not rendered the auto-select silently clamped the user's filters
-with no way back. That's what the service is for. The picker (`EqOptionButton`) is commented out in
-`EqFilterList` and returns when the service lands.
+- **Don't reintroduce a bundled or config-authored device list.** One used to exist (a bundled
+  `eq-constraints.json`, an `EQ` config section, a phone-name auto-match) and was removed: it went
+  stale faster than it helped, and the auto-match silently clamped filters with the picker hidden.
+  eqcaps is the shared service that replaced it; device data is fixed there.
+- **Activating a constraint never edits the filters by itself.** The picker folds the list
+  (`eqCommands.reclampToActiveConstraint`, one undo entry) because the user asked; a connected device
+  only flags. Keep `setDeviceConstraint` free of filter writes.
+- **`slots` / `violations` are one class-field `$derived` over `eqStore.filters`**, so every
+  `EqFilterCard` reads one assignment instead of running eqcaps' `assign` per card. Cards therefore
+  only show violations for bands that are in `eqStore` — specs mount the filter there too.
 
 **`eq-store.svelte.ts` — per-channel EQ is one flat array plus an optional field.**
 `EQFilter.channel` is `'L' | 'R' | undefined`, and **absent means shared** (the band reaches both

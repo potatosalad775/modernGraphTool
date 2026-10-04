@@ -6,10 +6,7 @@ import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
-import {
-	clampFilterToConstraint,
-	clampFiltersToConstraint
-} from '$lib/utils/eq-constraint-clamp.js';
+import { assignSlots, conformFilters, projectFilter } from '$lib/utils/eq-constraint.js';
 import { countBandsPerOutput } from '$lib/utils/eq-channel.js';
 import type { EqChannelScope } from '$lib/utils/eq-channel.js';
 
@@ -261,6 +258,18 @@ class EqEditCoalescer {
 
 const coalescer = new EqEditCoalescer();
 
+/**
+ * `band` projected onto the slot it would occupy at `index` of `filters` in the
+ * active constraint. The slot is the one eqcaps' assignment gives it among the
+ * bands of its output, so a band in a low-shelf-only slot stays a low shelf.
+ */
+function projectInPlace(filters: EQFilter[], index: number, band: EQFilter): EQFilter {
+	const profile = eqConstraintsStore.profile;
+	const list = [...filters];
+	list[index] = band;
+	return projectFilter(band, profile, assignSlots(list, profile)[index]);
+}
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 export const eqCommands = {
@@ -269,24 +278,24 @@ export const eqCommands = {
 	 * ~400 ms coalesce into a single undo entry. Drag/scroll/slider flows
 	 * should call this and then `flushBand(index)` on release.
 	 *
-	 * The partial is clamped against the active constraint preset before
-	 * application — out-of-range entries get pinned to the bound rather
-	 * than silently letting the store hold an invalid value.
+	 * The partial is projected onto the band's slot in the active constraint
+	 * before application — out-of-range entries get pinned to the bound (or
+	 * the nearest grid step / listed value) rather than silently letting the
+	 * store hold a value the target can't take.
 	 */
 	updateBand(index: number, partial: Partial<EQFilter>): void {
 		const cur = eqStore.filters[index];
 		if (!cur) return;
-		const preset = eqConstraintsStore.active;
 		const merged: EQFilter = { ...cur, ...partial };
-		const clamped = preset ? clampFilterToConstraint(merged, preset) : merged;
+		const clamped = projectInPlace(eqStore.filters, index, merged);
 		// Translate the clamped result back into a partial diff so the coalescer
 		// only commits what actually changed.
 		const diff: Partial<EQFilter> = {};
 		(Object.keys(partial) as (keyof EQFilter)[]).forEach((k) => {
 			if (clamped[k] !== cur[k]) (diff[k] as unknown) = clamped[k];
 		});
-		// Also include any field that clamping moved beyond the original partial
-		// (e.g. graphic-mode freq edit also pins Q to the band's locked Q).
+		// Also include any field that projection moved beyond the original partial
+		// (e.g. a type change onto a slot whose Q is locked).
 		(['type', 'freq', 'q', 'gain'] as (keyof EQFilter)[]).forEach((k) => {
 			if (clamped[k] !== cur[k] && diff[k] === undefined) {
 				(diff[k] as unknown) = clamped[k];
@@ -346,20 +355,19 @@ export const eqCommands = {
 
 	/**
 	 * Append a new filter band. Pushes immediately to history. The filter
-	 * is clamped against the active constraint, and the call is rejected
-	 * (no command pushed) if it would exceed the preset's `maxBands` cap.
+	 * is projected onto its slot in the active constraint, and the call is
+	 * rejected (no command pushed) if it would exceed the band cap.
 	 * Returns whether the band was added.
 	 */
 	addBand(filter: EQFilter): boolean {
 		coalescer.flushAll();
-		const preset = eqConstraintsStore.active;
+		const max = eqConstraintsStore.maxBands;
 		// Counted per output: a shared band costs a slot on both ears, an L-only
 		// band only on the left. Same number as `filters.length` until the user
 		// pins a band to one ear.
-		if (preset && preset.maxBands > 0) {
-			if (countBandsPerOutput([...eqStore.filters, filter]) > preset.maxBands) return false;
-		}
-		const clamped = preset ? clampFilterToConstraint(filter, preset) : filter;
+		if (max > 0 && countBandsPerOutput([...eqStore.filters, filter]) > max) return false;
+		const next = [...eqStore.filters, filter];
+		const clamped = projectInPlace(next, next.length - 1, filter);
 		commandHistory.execute(new AddEqFilterCommand(clamped), frStore);
 		return true;
 	},
@@ -375,14 +383,13 @@ export const eqCommands = {
 	 * Pushes immediately to history. Discards any pending burst-coalesced
 	 * mid-edits since they would point at indices in the old list.
 	 *
-	 * The new list is clamped against the active constraint and trimmed to
-	 * `maxBands`, so importing more filters than the preset allows silently
-	 * drops the trailing rows rather than leaving them in an invalid state.
+	 * The new list is folded onto the active constraint and trimmed to its
+	 * band cap, so importing more filters than the preset allows drops the
+	 * trailing rows rather than leaving them in an invalid state.
 	 */
 	replaceFilters(filters: EQFilter[]): void {
 		coalescer.clear();
-		const preset = eqConstraintsStore.active;
-		const clamped = preset ? clampFiltersToConstraint(filters, preset) : filters;
+		const clamped = conformFilters(filters, eqConstraintsStore.profile);
 		commandHistory.execute(new ReplaceEqFiltersCommand(clamped), frStore);
 	},
 
@@ -421,8 +428,7 @@ export const eqCommands = {
 			...(scope === 'R' ? stamped : others.filter((f) => f.channel === 'R'))
 		];
 		coalescer.clear();
-		const preset = eqConstraintsStore.active;
-		const clamped = preset ? clampFiltersToConstraint(next, preset) : next;
+		const clamped = conformFilters(next, eqConstraintsStore.profile);
 		if (amend && commandHistory.isLatest(amend)) {
 			amend.amend(clamped);
 			return amend;
@@ -453,22 +459,22 @@ export const eqCommands = {
 	},
 
 	/**
-	 * Re-clamp every existing filter against the currently active preset and
-	 * push the result as one undoable command. Called when the user switches
-	 * to a different preset — folds in-place rather than rejecting changes.
+	 * Fold every existing filter onto the active constraint and push the
+	 * result as one undoable command. Called when the user picks a preset, and
+	 * by "Fit to device" — folds in place rather than rejecting changes.
+	 * Returns whether anything changed.
 	 */
-	reclampToActiveConstraint(): void {
+	reclampToActiveConstraint(): boolean {
 		coalescer.clear();
-		const preset = eqConstraintsStore.active;
-		if (!preset) return;
-		const next = clampFiltersToConstraint(eqStore.filters, preset);
+		const next = conformFilters(eqStore.filters, eqConstraintsStore.profile);
 		// Skip if nothing actually changes.
 		if (
 			next.length === eqStore.filters.length &&
 			next.every((f, i) => eqFiltersEqual(f, eqStore.filters[i]))
 		) {
-			return;
+			return false;
 		}
 		commandHistory.execute(new ReplaceEqFiltersCommand(next), frStore);
+		return true;
 	}
 };

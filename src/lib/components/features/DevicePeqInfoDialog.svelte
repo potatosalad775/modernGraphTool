@@ -12,41 +12,46 @@
 	let deviceGroups = $state<VendorGroup[] | null>(null);
 	let loading = $state(false);
 
+	/**
+	 * The device list is the eqcaps database's: every hardware profile with a protocol the bridge
+	 * speaks, grouped by brand under each transport its handler runs over. Network devices are
+	 * driven from this repo and listed by hand.
+	 */
 	async function loadDevices() {
 		if (deviceGroups || loading) return;
 		loading = true;
 		try {
-			const { getHidConfig, getSerialConfig, getBleConfig, getNetworkHandlers } =
-				await import('$lib/device-peq/registry.js');
-			const [hid, serial, ble, network] = await Promise.all([
-				getHidConfig(),
-				getSerialConfig(),
-				getBleConfig(),
-				getNetworkHandlers()
+			const [{ eqcapsClient }, bridge, { NETWORK_DEVICE_TYPES }] = await Promise.all([
+				import('$lib/services/eqcaps-client.js'),
+				import('@potatosalad775/eqcaps-device-bridge'),
+				import('$lib/device-peq/network-types.js')
 			]);
+			const index = await eqcapsClient().loadIndex();
 			// Throwaway accumulator — the grouped result is copied into the `deviceGroups`
 			// $state below, so this Map is never read reactively. SvelteMap would only add
 			// proxy overhead here.
 			// eslint-disable-next-line svelte/prefer-svelte-reactivity
 			const byKey = new Map<string, VendorGroup>();
-			const add = (category: Category, vendor: string, models: string[]) => {
+			const add = (category: Category, vendor: string, model: string | null) => {
 				const key = `${category}:${vendor}`;
-				const existing = byKey.get(key);
-				if (existing) {
-					for (const model of models) {
-						if (!existing.models.includes(model)) existing.models.push(model);
-					}
-				} else {
-					byKey.set(key, { category, vendor, models: [...models] });
-				}
+				const group = byKey.get(key) ?? { category, vendor, models: [] };
+				if (model && !group.models.includes(model)) group.models.push(model);
+				byKey.set(key, group);
 			};
-			for (const cfg of hid) add('hid', cfg.manufacturer, Object.keys(cfg.devices));
-			for (const cfg of serial) add('serial', cfg.manufacturer, Object.keys(cfg.devices));
-			for (const cfg of ble) add('ble', cfg.manufacturer, Object.keys(cfg.devices));
-			for (const deviceType of Object.keys(network)) add('network', deviceType, []);
+			const entries = (index?.profiles ?? [])
+				.filter((e) => e.kind === 'hardware' && e.status !== 'deprecated')
+				.sort((a, b) => `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`));
+			for (const e of entries) {
+				const protocol = bridge.protocolOf(e);
+				if (!protocol) continue;
+				for (const kind of bridge.transportsOf(bridge.HANDLERS[protocol.handler])) {
+					add(kind, e.brand, e.model);
+				}
+			}
+			for (const t of NETWORK_DEVICE_TYPES) add('network', t.label, null);
 			deviceGroups = Array.from(byKey.values());
 		} catch (e) {
-			console.error('Failed to load device registry for info dialog:', e);
+			console.error('Failed to load device list for info dialog:', e);
 			deviceGroups = [];
 		} finally {
 			loading = false;

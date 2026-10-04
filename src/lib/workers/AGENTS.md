@@ -46,9 +46,11 @@ that empty list would wipe the EQ.
   outside that number. `planBands` is the one place the subtraction happens. Getting it wrong is
   silent — the result is still a plausible EQ, just not the size that was asked for.
 - **Ranges are bounds, not a clamp.** The user's frequency, Q and gain windows are handed over as
-  per-band bounds, so the fit lands inside them. Clamping the answer afterwards
-  (`eq-constraint-clamp.ts`) is for hand-edited filters; against an AutoEQ result it is a no-op,
-  which is the point.
+  per-band bounds, so the fit lands inside them. Folding the answer onto the constraint
+  afterwards (`conformFilters` in `utils/eq-constraint.ts`) is for hand-edited filters and per-slot
+  domains turboEQ can't express (a shelf-only band, a gain grid); against an ordinary AutoEQ result
+  it is a no-op or a snap onto the grid. The request carries the constraint's envelope over its
+  peaking slots as `limits`, and its shelf slots' gain range as `shelfLimits` where they differ.
 - **A graphic EQ is a pinned bank.** fc and Q come from the preset's own bands and only gain is
   optimized, so nothing has to be snapped onto the grid afterwards — snapping moves every filter
   off the frequency it was optimized at. AutoEQ is therefore available in graphic mode, which it

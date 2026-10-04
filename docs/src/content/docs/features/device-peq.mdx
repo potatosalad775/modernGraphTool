@@ -6,32 +6,53 @@ Device PEQ reads and writes parametric EQ directly on supported audio hardware �
 
 It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](../guide-for-users/equalizing.mdx#device-peq--push-eq-to-hardware).
 
-## Connections
+## Connecting
 
-| Connection    | Browser API   | Examples                                              |
-| ------------- | ------------- | ----------------------------------------------------- |
-| **USB HID**   | WebHID        | FiiO, Moondrop and KTMicro dongles, DAC/amps          |
-| **USB Serial** | Web Serial    | JDS Labs, Nothing, EarFun, and more                   |
-| **Bluetooth** | Web Bluetooth | Select FiiO and Airoha-chipset devices                |
-| **Network**   | —             | IP-addressable devices such as WiiM streamers and Luxsin X9 |
+**Connect USB device** is the way in for most dongles and DACs. The other connections sit right under it:
+
+| Connection     | Browser API   | Examples                                                    |
+| -------------- | ------------- | ----------------------------------------------------------- |
+| **USB**        | WebHID        | FiiO, Moondrop, Walkplay and KT Micro dongles, DAC/amps     |
+| **USB serial** | Web Serial    | JDS Labs, Nothing, FiiO, and Bluetooth serial ports         |
+| **Bluetooth**  | Web Bluetooth | Select FiiO and Airoha-chipset devices                      |
+| **Network**    | —             | IP-addressable devices such as WiiM streamers and Luxsin X9 |
+
+The browser's device picker only lists devices Device PEQ knows how to drive. Once you pick one, it is looked up in [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each EQ engine accepts — band count, filter types per band, frequency, Q and gain ranges with their step sizes, and the preamp — and how to talk to it.
+
+- **Several devices fit.** Some devices report the same identity (a Bluetooth serial port names no device at all). You're asked which one it is.
+- **Shared profile.** Some devices are only known as a family that shares a chipset's firmware. The panel says your exact model isn't listed; the family's limits still apply.
+- **Not in the database.** A device from a known maker is connected on that maker's usual protocol, with limits taken from what the protocol can carry, and marked experimental. A device nothing can drive gets a **Help add it** link to the [eqcaps inspector](https://potatosalad775.github.io/eqcaps/connect), which turns a connected device into a database entry.
 
 The full, current device list is in the **About Device PEQ** dialog inside the panel (**New to Device PEQ?**).
+
+## The device's limits
+
+While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
+
+Profiles that haven't been checked against a real device yet are marked as such, with a **Report wrong limits** link.
+
+## Reading and writing
+
+- **Read from device** loads the device's EQ into the band list and turns the Equalizer on. On devices with several presets, it reads the one selected under **Preset**.
+- **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Unused bands are written flat.
+- **Device EQ** switches the device's EQ off and on, where the device has a switch. Picking a preset doesn't write anything by itself.
+
+Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.
+
+The preamp goes to devices that take one. A device that can't lower its own level gets a clipping warning when the bands boost.
+
+:::note[Shared bands only]
+Hardware EQ slots have no channel concept. A write sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](./equalizer.mdx#per-channel-eq).
+:::
 
 ## Browser support
 
 Device PEQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
 
-## Pushing and pulling
+## Operators
 
-- **Push** writes the current filter list to the device, into the selected slot on devices that have several.
-- **Pull** reads the device's current filters into the filter list and turns the Equalizer on.
-
-While a device is connected, its limits — band count, gain range, and whether it accepts shelf filters — become the active EQ constraint, so hand edits and AutoEQ produce something the device can hold. A 5-band device gets a 5-band AutoEQ.
-
-:::note[Shared bands only]
-Hardware EQ slots have no channel concept. A push sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](./equalizer.mdx#per-channel-eq).
-:::
+The device database is read from the eqcaps `/v1/` channel on GitHub Pages. `EQUALIZER.EQCAPS_URL` points it at a mirror or a self-hosted copy — see [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). If the database can't be reached, Device PEQ still connects devices from known makers, on their protocol's own limits.
 
 ## Acknowledgments
 
-Device PEQ is built on the [devicePEQ project by jeromeof](https://github.com/jeromeof/devicePEQ) (0BSD license).
+Device protocols come from the [devicePEQ project by jeromeof](https://github.com/jeromeof/devicePEQ) (0BSD license), by way of the eqcaps device bridge.

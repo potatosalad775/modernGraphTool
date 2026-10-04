@@ -1,80 +1,98 @@
 /**
- * `DevicePeq` is the hardware-EQ bridge panel: connect over HID/Serial/BLE/network,
- * pick a slot, pull the device's filters into `eqStore` or push the current stack
- * out to it.
+ * `DevicePeq` is the hardware-EQ panel: connect, pick a preset, read the device's EQ into
+ * `eqStore` or write the band list out to it.
  *
- * Every connector is loaded through a dynamic `import()`, so the spec mocks the
- * four connector modules and the registry rather than touching WebHID/WebSerial —
- * a permission prompt has no place in a test run. The `navigator.*` feature flags
- * the component branches on are stubbed per test so both the supported and the
- * unsupported-browser layouts are exercised on the same Chromium.
+ * The connect flows live in `device-peq/connect.ts` (and `network.ts`), reached through dynamic
+ * `import()`s, so the spec mocks those modules and hands the component fake devices — a permission
+ * prompt has no place in a test run. The `navigator.*` feature flags the component branches on
+ * are stubbed per test so both the supported and the unsupported-browser layouts are exercised on
+ * the same Chromium.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import DevicePeq from './DevicePeq.svelte';
 import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { eqCommands } from '$lib/services/eq-commands.js';
-import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { DEVICE_PEQ_CONSTRAINT_ID } from '$lib/device-peq/derive-constraint.js';
-import type { ConnectedDevice, DeviceSlot } from '$lib/device-peq/types.js';
+import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import {
+	BUILTIN_PRESETS,
+	DEFAULT_CONSTRAINT_ID,
+	DEVICE_CONSTRAINT_ID,
+	eqConstraintsStore
+} from '$lib/stores/eq-constraints-store.svelte.js';
+import type { ConnectResult } from '$lib/device-peq/connect.js';
+import type { DeviceConnection, PeqCapabilities, PeqDevice } from '$lib/device-peq/types.js';
+import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
 
-/** Each connector module needs its own mock set — sharing them would make an
- *  assertion about "which transport was used" pass for the wrong one. */
-function makeConnectorMocks() {
-	return {
-		getDeviceConnected: vi.fn(),
-		getAvailableSlots: vi.fn(),
-		getCurrentSlot: vi.fn(),
-		pullFromDevice: vi.fn(),
-		pushToDevice: vi.fn(),
-		disconnectDevice: vi.fn(),
-		enablePEQ: vi.fn()
-	};
-}
-const hid = makeConnectorMocks();
-const serial = makeConnectorMocks();
-const ble = makeConnectorMocks();
-const network = makeConnectorMocks();
-
-vi.mock('$lib/device-peq/connectors/usb-hid-connector.js', () => hid);
-vi.mock('$lib/device-peq/connectors/usb-serial-connector.js', () => serial);
-vi.mock('$lib/device-peq/connectors/bluetooth-ble-connector.js', () => ble);
-vi.mock('$lib/device-peq/connectors/network-connector.js', () => network);
-vi.mock('$lib/device-peq/registry.js', () => ({
-	getHidConfig: vi.fn(async () => ({})),
-	getSerialConfig: vi.fn(async () => ({})),
-	getBleConfig: vi.fn(async () => ({}))
+const connect = vi.hoisted(() => ({
+	connectHid: vi.fn(),
+	connectSerial: vi.fn(),
+	connectBle: vi.fn(),
+	warmUp: vi.fn(async () => [])
 }));
+vi.mock('$lib/device-peq/connect.js', () => connect);
 
-const SLOTS: DeviceSlot[] = [
-	{ id: 0, name: 'Slot A' },
-	{ id: 1, name: 'Slot B' }
-];
+const network = vi.hoisted(() => ({ connectNetworkDevice: vi.fn() }));
+vi.mock('$lib/device-peq/network.js', () => network);
 
-function makeDevice(overrides: Partial<ConnectedDevice> = {}): ConnectedDevice {
-	return {
-		rawDevice: null,
-		manufacturer: 'Moondrop',
-		model: 'Dawn Pro',
-		handler: {} as ConnectedDevice['handler'],
+const CAPS: PeqCapabilities = {
+	canRead: true,
+	canWrite: true,
+	readsPreamp: false,
+	readsSlot: true,
+	writesPreamp: true,
+	writesSlot: true,
+	readsCurrentSlot: true,
+	canEnable: true,
+	slots: [
+		{ id: 0, name: 'Slot A' },
+		{ id: 1, name: 'Slot B' },
+		{ id: 9, name: 'Off', bypass: true }
+	],
+	disconnectOnSave: false,
+	experimental: false
+};
+
+/** Six PK bands, -12 to 12 dB on a 0.5 dB grid, preamp -12 to 0. */
+const PROFILE = hardwareProfile('moondrop-dawn-pro', {
+	bandCount: 6,
+	band: {
+		types: ['PK', 'LSC', 'HSC'],
+		freq: { min: 20, max: 20000, step: 1 },
+		q: { min: 0.1, max: 10, step: 0.01 },
+		gain: { min: -12, max: 12, step: 0.5 }
+	}
+});
+
+function makeConnection(
+	overrides: Partial<DeviceConnection> = {},
+	caps: Partial<PeqCapabilities> = {}
+) {
+	const device = {
+		capabilities: { ...CAPS, ...caps },
+		pull: vi.fn<PeqDevice['pull']>(async () => ({ filters: [] })),
+		push: vi.fn<PeqDevice['push']>(async () => ({ reconnect: false })),
+		currentSlot: vi.fn<PeqDevice['currentSlot']>(async () => 1),
+		setEnabled: vi.fn<PeqDevice['setEnabled']>(async () => {}),
+		close: vi.fn<PeqDevice['close']>(async () => {})
+	};
+	const connection: DeviceConnection = {
+		device,
 		connectionType: 'hid',
-		modelConfig: {
-			minGain: -12,
-			maxGain: 12,
-			maxFilters: 6,
-			firstWritableEQSlot: 0,
-			maxWritableEQSlots: 2,
-			disconnectOnSave: false,
-			disabledPresetId: -1,
-			experimental: false,
-			supportsLSHSFilters: true,
-			availableSlots: SLOTS
-		},
+		name: 'Moondrop Dawn Pro',
+		profile: PROFILE,
+		profileSource: 'device',
+		profileId: 'moondrop-dawn-pro',
+		identity: {},
 		...overrides
-	} as ConnectedDevice;
+	};
+	return { connection, device };
 }
+
+const connected = (connection: DeviceConnection): ConnectResult => ({
+	kind: 'connected',
+	connection
+});
 
 /**
  * Toggle the `navigator` feature flags the component reads at setup time.
@@ -117,36 +135,41 @@ function restoreApis() {
 	saved.clear();
 }
 
+const band = (freq: number, gain: number, extra: Partial<EQFilter> = {}): EQFilter => ({
+	enabled: true,
+	type: 'PK',
+	freq,
+	q: 1,
+	gain,
+	...extra
+});
+
 describe('DevicePeq', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		devicePeqStore.setDisconnected();
 		eqStore.filters = [];
-		eqConstraintsStore.setActive('default');
-		hid.getAvailableSlots.mockReturnValue(SLOTS);
-		hid.getCurrentSlot.mockResolvedValue(1);
-		serial.getAvailableSlots.mockReturnValue(SLOTS);
-		serial.getCurrentSlot.mockResolvedValue(0);
-		ble.getAvailableSlots.mockReturnValue(SLOTS);
-		ble.getCurrentSlot.mockResolvedValue(0);
-		network.getCurrentSlot.mockResolvedValue(0);
+		eqStore.preamp = 0;
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 	});
 
 	afterEach(() => {
 		restoreApis();
 		devicePeqStore.setDisconnected();
-		vi.restoreAllMocks();
 	});
 
 	// ── Feature detection ────────────────────────────────────────────────────
 
 	describe('browser support', () => {
-		it('offers a button per supported transport, plus Network', async () => {
+		it('leads with USB and keeps the other connections one step back', async () => {
 			stubApis('hid', 'serial', 'bluetooth');
 			render(DevicePeq);
 
-			await expect.element(page.getByRole('button', { name: 'USB (HID)' })).toBeInTheDocument();
-			await expect.element(page.getByRole('button', { name: 'USB (Serial)' })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('button', { name: 'Connect USB device' }))
+				.toBeInTheDocument();
+			await expect.element(page.getByRole('button', { name: 'USB serial' })).toBeInTheDocument();
 			await expect.element(page.getByRole('button', { name: 'Bluetooth' })).toBeInTheDocument();
 			await expect.element(page.getByRole('button', { name: 'Network' })).toBeInTheDocument();
 		});
@@ -156,9 +179,19 @@ describe('DevicePeq', () => {
 			hideApis('serial', 'bluetooth');
 			render(DevicePeq);
 
-			await expect.element(page.getByRole('button', { name: 'USB (HID)' })).toBeInTheDocument();
-			expect(await page.getByRole('button', { name: 'USB (Serial)' }).all()).toHaveLength(0);
+			await expect
+				.element(page.getByRole('button', { name: 'Connect USB device' }))
+				.toBeInTheDocument();
+			expect(await page.getByRole('button', { name: 'USB serial' }).all()).toHaveLength(0);
 			expect(await page.getByRole('button', { name: 'Bluetooth' }).all()).toHaveLength(0);
+		});
+
+		it('promotes serial when there is no WebHID', async () => {
+			stubApis('serial');
+			hideApis('hid', 'bluetooth');
+			render(DevicePeq);
+			await expect.element(page.getByRole('button', { name: 'USB serial' })).toBeInTheDocument();
+			expect(await page.getByRole('button', { name: 'Connect USB device' }).all()).toHaveLength(0);
 		});
 
 		it('shows the incompatible-browser notice when no device API exists at all', async () => {
@@ -176,57 +209,117 @@ describe('DevicePeq', () => {
 	describe('connecting', () => {
 		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
 
-		it('stores the device, its slots and the slot it reports as current', async () => {
-			const device = makeDevice();
-			hid.getDeviceConnected.mockResolvedValue(device);
+		it('connects, names the device and its limits, and takes its current preset', async () => {
+			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
 			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'USB (HID)' }).click();
-			await expect.element(page.getByText('Dawn Pro', { exact: true })).toBeInTheDocument();
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect
+				.element(page.getByText('Moondrop Dawn Pro', { exact: true }))
+				.toBeInTheDocument();
+			await expect.element(page.getByText('6 bands · -12 to 12 dB')).toBeInTheDocument();
 
 			expect(devicePeqStore.isConnected).toBe(true);
-			expect(devicePeqStore.slots).toEqual(SLOTS);
 			expect(devicePeqStore.activeSlot).toBe(1);
+			expect(devicePeqStore.slots.map((s) => s.name)).toEqual(['Slot A', 'Slot B']);
 		});
 
-		it('goes through the serial connector for the serial button', async () => {
-			serial.getDeviceConnected.mockResolvedValue(makeDevice({ connectionType: 'serial' }));
+		it('makes the device the active constraint without touching the bands', async () => {
+			eqStore.filters = [band(1000, 15)];
+			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
 			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'USB (Serial)' }).click();
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-
-			expect(serial.getDeviceConnected).toHaveBeenCalledTimes(1);
-			expect(hid.getDeviceConnected).not.toHaveBeenCalled();
+			expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+			expect(eqStore.filters[0].gain).toBe(15);
+			expect(eqConstraintsStore.violationCount).toBe(1);
 		});
 
-		it('goes through the BLE connector for the Bluetooth button', async () => {
-			ble.getDeviceConnected.mockResolvedValue(makeDevice({ connectionType: 'ble' }));
+		it('uses the serial flow for the serial button', async () => {
+			connect.connectSerial.mockResolvedValue(
+				connected(makeConnection({ connectionType: 'serial' }).connection)
+			);
 			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'Bluetooth' }).click();
+			await page.getByRole('button', { name: 'USB serial' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-
-			expect(ble.getDeviceConnected).toHaveBeenCalledTimes(1);
+			expect(connect.connectSerial).toHaveBeenCalledTimes(1);
+			expect(connect.connectHid).not.toHaveBeenCalled();
 		});
 
-		it('clears the connecting flag when the user dismisses the picker', async () => {
-			hid.getDeviceConnected.mockResolvedValue(null);
+		it('clears the connecting flag when the user dismisses the chooser', async () => {
+			connect.connectHid.mockResolvedValue({ kind: 'cancelled' });
 			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'USB (HID)' }).click();
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await vi.waitFor(() => expect(devicePeqStore.isConnecting).toBe(false));
 			expect(devicePeqStore.isConnected).toBe(false);
 		});
 
-		it('reports a failed connection instead of throwing', async () => {
-			hid.getDeviceConnected.mockRejectedValue(new Error('no permission'));
-			vi.spyOn(console, 'error').mockImplementation(() => {});
+		it('asks which device it is when several fit, then connects the pick', async () => {
+			const { connection } = makeConnection({ name: 'Model B' });
+			const finish = vi.fn(async () => connected(connection));
+			connect.connectHid.mockResolvedValue({
+				kind: 'choose',
+				candidates: [
+					{ id: 'model-a', label: 'Model A' },
+					{ id: 'model-b', label: 'Model B' }
+				],
+				finish,
+				cancel: vi.fn(async () => {})
+			});
 			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'USB (HID)' }).click();
-			await expect.element(page.getByText('Connection failed')).toBeInTheDocument();
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await page.getByRole('combobox').selectOptions('model-b');
+			await page.getByRole('button', { name: 'Connect', exact: true }).click();
+			await expect.element(page.getByText('Model B', { exact: true })).toBeInTheDocument();
+			expect(finish).toHaveBeenCalledWith('model-b');
+		});
+
+		it('points an unsupported device at the database', async () => {
+			connect.connectHid.mockResolvedValue({ kind: 'unsupported', identity: {} });
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect
+				.element(page.getByText("This device isn't in the EQ database yet."))
+				.toBeInTheDocument();
+			await expect.element(page.getByRole('link', { name: 'Help add it' })).toBeInTheDocument();
+		});
+
+		it('reports a failed connection instead of throwing', async () => {
+			const error = Object.assign(new Error('gone'), { name: 'BridgeError', code: 'timeout' });
+			connect.connectHid.mockRejectedValue(error);
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect
+				.element(page.getByRole('status'))
+				.toHaveTextContent("The device didn't answer. Check the cable and try again.");
 			expect(devicePeqStore.isConnecting).toBe(false);
+		});
+
+		it('warns that a guessed device runs on borrowed limits', async () => {
+			connect.connectHid.mockResolvedValue(
+				connected(makeConnection({ profileSource: 'guess', profileId: null }).connection)
+			);
+			render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByText(/Not in the EQ database/)).toBeInTheDocument();
+		});
+
+		it('offers a wrong-limits report for a draft profile', async () => {
+			const { connection } = makeConnection({
+				profile: hardwareProfile('moondrop-dawn-pro', { bandCount: 6, status: 'draft' })
+			});
+			connect.connectHid.mockResolvedValue(connected(connection));
+			render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			const link = page.getByRole('link', { name: 'Report wrong limits' });
+			await expect.element(link).toBeInTheDocument();
+			expect(link.element().getAttribute('href')).toContain('profile=moondrop-dawn-pro');
 		});
 	});
 
@@ -236,208 +329,139 @@ describe('DevicePeq', () => {
 		it('reveals the address form only after Network is pressed', async () => {
 			render(DevicePeq);
 			expect(await page.getByPlaceholder('Device IP').all()).toHaveLength(0);
-
 			await page.getByRole('button', { name: 'Network' }).click();
 			await expect.element(page.getByPlaceholder('Device IP')).toBeInTheDocument();
 		});
 
-		it('does nothing while the address field is blank', async () => {
-			render(DevicePeq);
-			await page.getByRole('button', { name: 'Network' }).click();
-			await page.getByRole('button', { name: 'Connect' }).click();
-
-			expect(network.getDeviceConnected).not.toHaveBeenCalled();
-		});
-
 		it('connects with the typed address and the chosen device type', async () => {
-			network.getDeviceConnected.mockResolvedValue(
-				makeDevice({ connectionType: 'network', ip: '192.168.1.5' })
+			network.connectNetworkDevice.mockReturnValue(
+				makeConnection({ connectionType: 'network', name: 'Luxsin X9' }).connection
 			);
 			render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Network' }).click();
-			await page.getByPlaceholder('Device IP').fill('192.168.1.5');
-			await page.getByRole('button', { name: 'Connect' }).click();
+			await page.getByRole('combobox', { name: 'Network device type' }).selectOptions('LuxsinX9');
+			await page.getByPlaceholder('Device IP').fill('192.168.1.20');
+			await page.getByRole('button', { name: 'Connect', exact: true }).click();
+
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-
-			expect(network.getDeviceConnected).toHaveBeenCalledWith('192.168.1.5', 'WiiM');
-		});
-
-		it('takes the slot list from the device config rather than a connector call', async () => {
-			network.getDeviceConnected.mockResolvedValue(makeDevice({ connectionType: 'network' }));
-			render(DevicePeq);
-
-			await page.getByRole('button', { name: 'Network' }).click();
-			await page.getByPlaceholder('Device IP').fill('10.0.0.2');
-			await page.getByRole('button', { name: 'Connect' }).click();
-			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-
-			expect(devicePeqStore.slots).toEqual(SLOTS);
+			await expect.element(page.getByText('Luxsin X9', { exact: true })).toBeInTheDocument();
+			expect(network.connectNetworkDevice).toHaveBeenCalledWith('192.168.1.20', 'LuxsinX9');
 		});
 	});
 
-	// ── Connected state ──────────────────────────────────────────────────────
+	// ── Connected ────────────────────────────────────────────────────────────
 
 	describe('while connected', () => {
-		beforeEach(async () => {
-			stubApis('hid', 'serial', 'bluetooth');
-			devicePeqStore.setConnected(makeDevice(), SLOTS, 0);
-		});
+		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
 
-		it('names the device and offers a slot per available preset', async () => {
+		async function mountConnected(caps: Partial<PeqCapabilities> = {}) {
+			const made = makeConnection({}, caps);
+			connect.connectHid.mockResolvedValue(connected(made.connection));
 			render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			return made.device;
+		}
 
-			await expect.element(page.getByText('Dawn Pro', { exact: true })).toBeInTheDocument();
-			expect(await page.getByRole('option').all()).toHaveLength(2);
-		});
-
-		it('pulls the device filters into the EQ stack', async () => {
-			hid.pullFromDevice.mockResolvedValue({
+		it('reads the device’s bands from the chosen preset into the band list', async () => {
+			const device = await mountConnected();
+			device.pull.mockResolvedValue({
 				filters: [
-					{ type: 'PK', freq: 1000, q: 1, gain: 3, disabled: false },
-					{ type: 'LSQ', freq: 100, q: 0.7, gain: -2, disabled: true }
+					{ type: 'LSC', freq: 100, q: 0.7, gain: 3 },
+					null,
+					{ type: 'PK', freq: 2000, q: 2, gain: -2 }
 				]
 			});
-			const replace = vi.spyOn(eqCommands, 'replaceFilters').mockImplementation(() => {});
-			render(DevicePeq);
 
-			await page.getByRole('button', { name: 'Pull from Device' }).click();
-			await expect.element(page.getByText(/Read 2 filters/)).toBeInTheDocument();
-
-			expect(replace).toHaveBeenCalledWith([
-				{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 },
-				{ enabled: false, type: 'LSQ', freq: 100, q: 0.7, gain: -2 }
-			]);
+			await page
+				.getByRole('button', { name: "Replace the band list with the device's EQ" })
+				.click();
+			await vi.waitFor(() => expect(eqStore.filters).toHaveLength(2));
+			expect(device.pull).toHaveBeenCalledWith({ slot: 1 });
+			expect(eqStore.filters[0]).toMatchObject({ type: 'LSQ', freq: 100, gain: 3 });
+			expect(eqStore.isEnabled).toBe(true);
 		});
 
-		it('reports a failed read without clearing the connection', async () => {
-			hid.pullFromDevice.mockRejectedValue(new Error('timeout'));
-			vi.spyOn(console, 'error').mockImplementation(() => {});
-			render(DevicePeq);
+		it('writes straight away when the device can hold the EQ exactly', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 3)];
+			eqStore.preamp = -3;
 
-			await page.getByRole('button', { name: 'Pull from Device' }).click();
-			await expect.element(page.getByText('Read failed')).toBeInTheDocument();
-			expect(devicePeqStore.isReading).toBe(false);
-			expect(devicePeqStore.isConnected).toBe(true);
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			const request = device.push.mock.calls[0][0];
+			expect(request.filters).toHaveLength(6);
+			expect(request.filters[0]).toEqual({ type: 'PK', freq: 1000, q: 1, gain: 3 });
+			expect(request.preamp).toBe(-3);
+			expect(request.slot).toBe(1);
 		});
 
-		it('pushes the current stack with a preamp that cancels the largest boost', async () => {
-			hid.pushToDevice.mockResolvedValue(false);
-			eqStore.filters = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 4 },
-				{ enabled: false, type: 'PK', freq: 3000, q: 2, gain: 6 }
-			];
-			render(DevicePeq);
+		it('shows what will change before writing an EQ the device can’t hold', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 15)];
+			eqStore.preamp = -15;
 
-			await page.getByRole('button', { name: 'Push to Device' }).click();
-			await expect.element(page.getByText(/Wrote 2 filters/)).toBeInTheDocument();
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
+			expect(device.push).not.toHaveBeenCalled();
 
-			const [, slot, preamp, filters] = hid.pushToDevice.mock.calls[0];
-			expect(slot).toBe(0);
-			expect(preamp).toBe(-6);
-			expect(filters).toEqual([
-				{ type: 'PK', freq: 1000, q: 1, gain: 4, disabled: false },
-				{ type: 'PK', freq: 3000, q: 2, gain: 6, disabled: true }
-			]);
+			await page.getByRole('button', { name: 'Write', exact: true }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.push.mock.calls[0][0].filters[0].gain).toBe(12);
 		});
 
-		it('skips filters that are missing freq, q or gain', async () => {
-			hid.pushToDevice.mockResolvedValue(false);
-			eqStore.filters = [
-				{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 },
-				{ enabled: true, type: 'PK', freq: null, q: 1, gain: 3 }
-			];
-			render(DevicePeq);
-
-			await page.getByRole('button', { name: 'Push to Device' }).click();
-			await expect.element(page.getByText(/Wrote 1 filters/)).toBeInTheDocument();
+		it('writes nothing when the review is cancelled', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 15)];
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Cancel' }).click();
+			expect(device.push).not.toHaveBeenCalled();
 		});
 
-		it('disconnects afterwards when the device demands it', async () => {
-			hid.pushToDevice.mockResolvedValue(true);
-			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
-			render(DevicePeq);
+		it('offers to reconnect after a device that restarts to save', async () => {
+			const device = await mountConnected();
+			device.push.mockResolvedValue({ reconnect: true });
+			eqStore.filters = [band(1000, 3)];
+			eqStore.preamp = -3;
 
-			await page.getByRole('button', { name: 'Push to Device' }).click();
-			await vi.waitFor(() => expect(devicePeqStore.isConnected).toBe(false));
-			expect(hid.disconnectDevice).toHaveBeenCalled();
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await expect.element(page.getByRole('button', { name: 'Reconnect' })).toBeInTheDocument();
+			expect(device.close).toHaveBeenCalled();
 		});
 
-		it('reports a failed write', async () => {
-			hid.pushToDevice.mockRejectedValue(new Error('nack'));
-			vi.spyOn(console, 'error').mockImplementation(() => {});
-			render(DevicePeq);
-
-			await page.getByRole('button', { name: 'Push to Device' }).click();
-			await expect.element(page.getByText('Write failed')).toBeInTheDocument();
-			expect(devicePeqStore.isWriting).toBe(false);
+		it('hides Read on a write-only device and says why', async () => {
+			await mountConnected({ canRead: false });
+			expect(
+				await page.getByRole('button', { name: "Replace the band list with the device's EQ" }).all()
+			).toHaveLength(0);
+			await expect
+				.element(page.getByText('This device can be written to but not read back.'))
+				.toBeInTheDocument();
 		});
 
-		it('enables the newly picked slot on the device', async () => {
-			render(DevicePeq);
-
-			await page.getByRole('combobox').selectOptions('1');
-			await vi.waitFor(() => expect(hid.enablePEQ).toHaveBeenCalled());
-
-			expect(devicePeqStore.activeSlot).toBe(1);
-			expect(hid.enablePEQ.mock.calls[0].slice(1)).toEqual([true, 1]);
+		it('switches the device EQ off through its bypass, and back on to the chosen preset', async () => {
+			const device = await mountConnected();
+			await page.getByRole('switch', { name: 'Device EQ' }).click();
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false, undefined));
+			await page.getByRole('switch', { name: 'Device EQ' }).click();
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 1));
 		});
 
-		it('keeps the slot selected even if the device rejects the change', async () => {
-			hid.enablePEQ.mockRejectedValue(new Error('busy'));
-			vi.spyOn(console, 'error').mockImplementation(() => {});
-			render(DevicePeq);
-
-			await page.getByRole('combobox').selectOptions('1');
-			await vi.waitFor(() => expect(hid.enablePEQ).toHaveBeenCalled());
-
-			expect(devicePeqStore.activeSlot).toBe(1);
+		it('picking a preset writes nothing to the device', async () => {
+			const device = await mountConnected();
+			await page.getByRole('combobox').selectOptions('0');
+			expect(devicePeqStore.activeSlot).toBe(0);
+			expect(device.setEnabled).not.toHaveBeenCalled();
+			expect(device.push).not.toHaveBeenCalled();
 		});
 
-		it('drops the connection on Disconnect', async () => {
-			render(DevicePeq);
-
+		it('drops the connection and the device constraint on Disconnect', async () => {
+			const device = await mountConnected();
 			await page.getByRole('button', { name: 'Disconnect' }).click();
 			await vi.waitFor(() => expect(devicePeqStore.isConnected).toBe(false));
-
-			expect(hid.disconnectDevice).toHaveBeenCalled();
-			expect(devicePeqStore.device).toBeNull();
-		});
-
-		it('disconnects locally even when the connector throws', async () => {
-			hid.disconnectDevice.mockRejectedValue(new Error('gone'));
-			vi.spyOn(console, 'error').mockImplementation(() => {});
-			render(DevicePeq);
-
-			await page.getByRole('button', { name: 'Disconnect' }).click();
-			await vi.waitFor(() => expect(devicePeqStore.isConnected).toBe(false));
-		});
-	});
-
-	// ── Constraint sync ──────────────────────────────────────────────────────
-
-	describe('constraint sync', () => {
-		beforeEach(() => stubApis('hid'));
-
-		it('installs and selects the device constraint while connected', async () => {
-			devicePeqStore.setConnected(makeDevice(), SLOTS, 0);
-			render(DevicePeq);
-
-			await vi.waitFor(() => expect(eqConstraintsStore.active?.id).toBe(DEVICE_PEQ_CONSTRAINT_ID));
-			expect(eqConstraintsStore.active?.maxBands).toBe(6);
-			expect(eqConstraintsStore.active?.gainMin).toBe(-12);
-		});
-
-		it('drops the device constraint again on disconnect', async () => {
-			devicePeqStore.setConnected(makeDevice(), SLOTS, 0);
-			render(DevicePeq);
-			await vi.waitFor(() => expect(eqConstraintsStore.active?.id).toBe(DEVICE_PEQ_CONSTRAINT_ID));
-
-			devicePeqStore.setDisconnected();
-
-			await vi.waitFor(() =>
-				expect(eqConstraintsStore.active?.id).not.toBe(DEVICE_PEQ_CONSTRAINT_ID)
-			);
+			expect(device.close).toHaveBeenCalled();
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
 		});
 	});
 });

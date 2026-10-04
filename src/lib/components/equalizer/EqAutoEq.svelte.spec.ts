@@ -28,6 +28,7 @@ import type { AutoEqOutcome } from '$lib/workers/autoeq-request.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import * as m from '$lib/paraglide/messages.js';
+import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 
 vi.mock('$lib/workers/autoeq-client.js', () => ({
 	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
@@ -278,7 +279,7 @@ describe('EqAutoEq', () => {
 		// had to be dragged onto the nearest slider afterwards. The optimizer now
 		// takes the grid as pinned fc and Q, so the fit lands on it to begin with.
 		it('runs in graphic mode, against the preset own bands', async () => {
-			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
+			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
 			eqConstraintsStore.activeId = graphic!.id;
 			seedPair();
 			render(EqAutoEq);
@@ -288,14 +289,14 @@ describe('EqAutoEq', () => {
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
 			const request = runInWorker.mock.calls[0][2];
 			expect(request.kind).toBe('graphic');
-			expect(request.kind === 'graphic' && request.bands.map((b) => b.freq)).toEqual(
-				graphic!.graphicBands!.map((b) => b.freq)
-			);
+			expect(request.kind === 'graphic' && request.bands.map((b) => b.freq)).toEqual([
+				31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000
+			]);
 		});
 
 		it('offers exact match in graphic mode too', async () => {
 			// A slider at 16 kHz is only scored on shape when the fit is exact.
-			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
+			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
 			eqConstraintsStore.activeId = graphic!.id;
 			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, exactMatch: false };
 			seedPair();
@@ -309,7 +310,7 @@ describe('EqAutoEq', () => {
 
 		it('hides the frequency and Q fields in graphic mode', async () => {
 			// They would say nothing: the grid is the preset's.
-			const graphic = BUILTIN_PRESETS.find((p) => p.mode === 'graphic');
+			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
 			eqConstraintsStore.activeId = graphic!.id;
 			seedPair();
 			render(EqAutoEq);
@@ -398,7 +399,7 @@ describe('EqAutoEq', () => {
 		it('drops the shelves when the preset forbids them', async () => {
 			eqConstraintsStore.presets = [
 				...BUILTIN_PRESETS,
-				{ ...BUILTIN_PRESETS[0], id: 'pk-only', label: 'PK only', allowLsq: false, allowHsq: false }
+				parametricPreset('pk-only', { types: ['PK'], gain: { min: -20, max: 20 } })
 			];
 			eqConstraintsStore.activeId = 'pk-only';
 			seedPair();
@@ -413,7 +414,7 @@ describe('EqAutoEq', () => {
 		it('narrows the requested window to what the preset allows', async () => {
 			eqConstraintsStore.presets = [
 				...BUILTIN_PRESETS,
-				{ ...BUILTIN_PRESETS[0], id: 'tight', label: 'Tight', gainMin: -6, gainMax: 6, qMax: 3 }
+				parametricPreset('tight', { gain: { min: -6, max: 6 }, q: { min: 0.1, max: 3 } })
 			];
 			eqConstraintsStore.activeId = 'tight';
 			seedPair();
@@ -424,6 +425,43 @@ describe('EqAutoEq', () => {
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
 			expect(runInWorker.mock.calls[0][2]).toMatchObject({
 				limits: { minGain: -6, maxGain: 6, maxQ: 2 }
+			});
+		});
+
+		it('gives the shelves their own gain window where the profile does', async () => {
+			eqConstraintsStore.presets = [
+				...BUILTIN_PRESETS,
+				{
+					id: 'split',
+					label: 'Split',
+					source: 'catalog',
+					profile: {
+						...parametricPreset('split').profile,
+						bandCount: 4,
+						band: {
+							types: ['PK'],
+							freq: { min: 20, max: 20000 },
+							q: { min: 0.1, max: 10 },
+							gain: { min: -10, max: 10 }
+						},
+						bands: [
+							{ index: 0, types: ['LSC'], gain: { min: -6, max: 6 } },
+							{ index: 3, types: ['HSC'], gain: { min: -6, max: 6 } }
+						]
+					}
+				}
+			];
+			eqConstraintsStore.activeId = 'split';
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({
+				shelves: true,
+				limits: { minGain: -10, maxGain: 10 },
+				shelfLimits: { minGain: -6, maxGain: 6 }
 			});
 		});
 
@@ -478,7 +516,7 @@ describe('EqAutoEq', () => {
 		it('caps the default at the active preset maxBands', async () => {
 			eqConstraintsStore.presets = [
 				...BUILTIN_PRESETS,
-				{ ...BUILTIN_PRESETS[0], id: 'five-band', label: 'Five Band', maxBands: 5 }
+				parametricPreset('five-band', { maxBands: 5, gain: { min: -20, max: 20 } })
 			];
 			eqConstraintsStore.activeId = 'five-band';
 			seedPair();
@@ -641,7 +679,7 @@ describe('EqAutoEq', () => {
 			const NONE: AutoEqOutcome = { filters: [], engine: 'none', fallback: 'unavailable' };
 
 			beforeEach(() => {
-				eqConstraintsStore.activeId = BUILTIN_PRESETS.find((p) => p.mode === 'graphic')!.id;
+				eqConstraintsStore.activeId = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band')!.id;
 			});
 
 			it('leaves the filters alone when nothing could fit it', async () => {

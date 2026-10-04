@@ -1,73 +1,71 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
-	DEFAULT_CONSTRAINT_ID
+	CATALOG_PREFIX,
+	DEFAULT_CONSTRAINT_ID,
+	DEVICE_CONSTRAINT_ID,
+	profileLabel
 } from './eq-constraints-store.svelte.js';
+import { eqStore } from './eq-store.svelte.js';
+import { hardwareProfile, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 
-function preset(id: string, overrides: Partial<EqConstraintPreset> = {}): EqConstraintPreset {
-	return {
-		id,
-		label: id,
-		mode: 'parametric',
-		maxBands: 0,
-		allowPk: true,
-		allowLsq: true,
-		allowHsq: true,
-		freqMin: 20,
-		freqMax: 20000,
-		gainMin: -12,
-		gainMax: 12,
-		qMin: 0.1,
-		qMax: 10,
-		...overrides
-	};
-}
+const deviceProfile = (model = 'Connected Device') => ({
+	...hardwareProfile('spec-device', {
+		bandCount: 5,
+		band: {
+			types: ['PK'],
+			freq: { min: 20, max: 20000 },
+			q: { min: 0.1, max: 10 },
+			gain: { min: -6, max: 6 }
+		}
+	}),
+	device: { brand: 'Spec', model }
+});
 
 describe('eqConstraintsStore device preset', () => {
-	const devicePreset = (overrides: Partial<EqConstraintPreset> = {}): EqConstraintPreset =>
-		preset('will-be-overridden', {
-			label: 'Connected Device',
-			maxBands: 5,
-			gainMin: -6,
-			gainMax: 6,
-			...overrides
-		});
-
 	beforeEach(() => {
 		// Seed a small catalog and a known active id
-		eqConstraintsStore.presets = [preset('default', { label: 'Default' }), preset('alt')];
+		eqConstraintsStore.presets = [
+			parametricPreset('default', { label: 'Default' }),
+			parametricPreset('alt')
+		];
 		eqConstraintsStore.activeId = 'alt';
 		// Drop any leftover device preset from a previous test
 		eqConstraintsStore.clearDeviceConstraint();
 	});
 
 	it('appends the device preset under the sentinel id and auto-selects it', () => {
-		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Connected Device');
 		const ids = eqConstraintsStore.presets.map((p) => p.id);
-		expect(ids).toContain('__device-peq__');
-		expect(eqConstraintsStore.activeId).toBe('__device-peq__');
-		expect(eqConstraintsStore.active?.label).toBe('Connected Device');
+		expect(ids).toContain(DEVICE_CONSTRAINT_ID);
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+		expect(eqConstraintsStore.active.label).toBe('Connected Device');
+		expect(eqConstraintsStore.maxBands).toBe(5);
+	});
+
+	it('labels the device by its profile when no name is given', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile('KA17'));
+		expect(eqConstraintsStore.active.label).toBe('Spec KA17');
 	});
 
 	it('replaces a prior device preset on reconnect under a different model', () => {
-		eqConstraintsStore.setDeviceConstraint(devicePreset({ label: 'Device A' }));
-		eqConstraintsStore.setDeviceConstraint(devicePreset({ label: 'Device B' }));
-		const matches = eqConstraintsStore.presets.filter((p) => p.id === '__device-peq__');
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device A');
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device B');
+		const matches = eqConstraintsStore.presets.filter((p) => p.id === DEVICE_CONSTRAINT_ID);
 		expect(matches).toHaveLength(1);
 		expect(matches[0].label).toBe('Device B');
 	});
 
 	it('restores the user’s prior selection on disconnect', () => {
-		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
 		eqConstraintsStore.clearDeviceConstraint();
 		expect(eqConstraintsStore.activeId).toBe('alt');
-		expect(eqConstraintsStore.presets.find((p) => p.id === '__device-peq__')).toBeUndefined();
+		expect(eqConstraintsStore.presets.find((p) => p.id === DEVICE_CONSTRAINT_ID)).toBeUndefined();
 	});
 
 	it('falls back to first preset if the prior id is gone', () => {
-		eqConstraintsStore.setDeviceConstraint(devicePreset());
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
 		// Simulate the prior preset disappearing while the device was connected
 		eqConstraintsStore.presets = eqConstraintsStore.presets.filter((p) => p.id !== 'alt');
 		eqConstraintsStore.clearDeviceConstraint();
@@ -75,44 +73,86 @@ describe('eqConstraintsStore device preset', () => {
 	});
 
 	it('does not persist the device preset — it is session-scoped, not a user pick', () => {
-		try {
-			localStorage.removeItem('gt-eq-constraint-active-id');
-		} catch {
-			/* ignore */
-		}
-		eqConstraintsStore.setDeviceConstraint(devicePreset());
-		expect(eqConstraintsStore.activeId).toBe('__device-peq__');
-		try {
-			expect(localStorage.getItem('gt-eq-constraint-active-id')).toBeNull();
-		} catch {
-			/* ignore in environments without localStorage */
-		}
+		localStorage.removeItem('gt-eq-constraint-active-id');
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+		expect(localStorage.getItem('gt-eq-constraint-active-id')).toBeNull();
+	});
+
+	it('never edits the filters on connect — bands that do not fit are only flagged', () => {
+		eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 9 }];
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
+		expect(eqStore.filters[0].gain).toBe(9);
+		expect(eqConstraintsStore.violations[0].gain).toBe(true);
+		expect(eqConstraintsStore.violationCount).toBe(1);
+		eqStore.filters = [];
 	});
 });
 
-describe('eqConstraintsStore catalog', () => {
+describe('eqConstraintsStore catalog picks', () => {
+	beforeEach(() => {
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		localStorage.removeItem('gt-eq-constraint-catalog');
+	});
+
+	it('adds a database profile under its eqcaps id, selects it and remembers it', () => {
+		const profile = {
+			...deviceProfile('Poweramp'),
+			id: 'poweramp-equalizer',
+			kind: 'software' as const
+		};
+		const id = eqConstraintsStore.addCatalogProfile(profile);
+		expect(id).toBe(`${CATALOG_PREFIX}poweramp-equalizer`);
+		expect(eqConstraintsStore.activeId).toBe(id);
+		expect(eqConstraintsStore.active.source).toBe('catalog');
+		const stored = JSON.parse(localStorage.getItem('gt-eq-constraint-catalog') ?? 'null');
+		expect(stored.profile.id).toBe('poweramp-equalizer');
+		expect(localStorage.getItem('gt-eq-constraint-active-id')).toBe(id);
+	});
+
+	it('replaces the stored copy when the same profile is picked again', () => {
+		eqConstraintsStore.addCatalogProfile({ ...deviceProfile('A'), id: 'same' });
+		eqConstraintsStore.addCatalogProfile({ ...deviceProfile('B'), id: 'same' });
+		const picks = eqConstraintsStore.presets.filter((p) => p.id === `${CATALOG_PREFIX}same`);
+		expect(picks).toHaveLength(1);
+		expect(picks[0].label).toBe('Spec B');
+	});
+});
+
+describe('eqConstraintsStore built-ins', () => {
 	it('exports built-in presets containing default + generic-10-band', () => {
 		const ids = BUILTIN_PRESETS.map((p) => p.id);
 		expect(ids).toContain(DEFAULT_CONSTRAINT_ID);
 		expect(ids).toContain('generic-10-band');
 	});
 
-	it('default constraint id is "default"', () => {
-		expect(DEFAULT_CONSTRAINT_ID).toBe('default');
+	it('default is unlimited and generic-10-band is a graphic EQ', () => {
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		expect(eqConstraintsStore.maxBands).toBe(0);
+		expect(eqConstraintsStore.isGraphic).toBe(false);
+		expect(eqConstraintsStore.isLimiting).toBe(false);
+		eqConstraintsStore.activeId = 'generic-10-band';
+		expect(eqConstraintsStore.maxBands).toBe(10);
+		expect(eqConstraintsStore.isGraphic).toBe(true);
+		expect(eqConstraintsStore.isLimiting).toBe(true);
 	});
 
-	it('is fully resolved from construction — no fetched sources to wait on', () => {
-		// Regression guard: the catalog used to be hydrated from a bundled
-		// eq-constraints.json plus an EQ config section. Nothing is fetched now,
-		// so a fresh store already offers every preset it will ever offer.
-		expect(BUILTIN_PRESETS.length).toBeGreaterThan(0);
-		expect('hydrate' in eqConstraintsStore).toBe(false);
+	it('labels profiles by brand, model and engine', () => {
+		expect(profileLabel({ device: { brand: 'RME', model: 'ADI-2' }, engine: 'PEQ' })).toBe(
+			'RME ADI-2 · PEQ'
+		);
+		expect(profileLabel({ device: { brand: 'FiiO', model: 'KA17' } })).toBe('FiiO KA17');
 	});
 });
 
 describe('eqConstraintsStore setActive', () => {
 	beforeEach(() => {
-		eqConstraintsStore.presets = [preset('default', { label: 'Default' }), preset('alt')];
+		eqConstraintsStore.presets = [
+			parametricPreset('default', { label: 'Default' }),
+			parametricPreset('alt')
+		];
 		eqConstraintsStore.activeId = 'default';
 	});
 
@@ -122,17 +162,9 @@ describe('eqConstraintsStore setActive', () => {
 	});
 
 	it('persists explicit picks to localStorage', () => {
-		try {
-			localStorage.removeItem('gt-eq-constraint-active-id');
-		} catch {
-			/* ignore */
-		}
+		localStorage.removeItem('gt-eq-constraint-active-id');
 		eqConstraintsStore.setActive('alt');
 		expect(eqConstraintsStore.activeId).toBe('alt');
-		try {
-			expect(localStorage.getItem('gt-eq-constraint-active-id')).toBe('alt');
-		} catch {
-			/* ignore */
-		}
+		expect(localStorage.getItem('gt-eq-constraint-active-id')).toBe('alt');
 	});
 });

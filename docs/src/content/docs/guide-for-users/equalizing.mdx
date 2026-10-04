@@ -112,6 +112,8 @@ Playback continues across panel switches — switching to the Graph or Device pa
 
 Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device's own EQ memory, or pull the device's current EQ into the filter list. Unplug your computer and the EQ stays loaded.
 
+Once connected, the device's limits — band count, gain range and so on — become the EQ constraint: bands it can't hold are marked, and before anything is written you see what the device will actually get.
+
 It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Device PEQ](../features/device-peq.mdx).
 
 ## Import and export

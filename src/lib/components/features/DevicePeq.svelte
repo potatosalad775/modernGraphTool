@@ -1,39 +1,24 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
-	import { deriveDeviceConstraint } from '$lib/device-peq/derive-constraint.js';
+	import { fromCapsFilter, envelopeOf } from '$lib/utils/eq-constraint.js';
+	import { needsConfirmation, planPush, type PushPlan } from '$lib/device-peq/push-plan.js';
+	import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
+	import type { ConnectResult } from '$lib/device-peq/connect.js';
+	import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
+	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { toast } from 'svelte-sonner';
 	import { Info } from '@lucide/svelte';
-	import { untrack } from 'svelte';
+	import Button from '../atoms/Button.svelte';
+	import Switch from '../atoms/Switch.svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
+	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
 
-	// Sync the connected device's hardware capabilities into the constraint
-	// store as a synthetic preset, auto-selected while the device is
-	// connected. Disconnect restores whichever preset the user had picked.
-	// Re-clamping is pushed as a single undoable command in eqCommands.
-	//
-	// The body must stay untracked. `setDeviceConstraint()` assigns
-	// `eqConstraintsStore.presets` and `.activeId`, and `reclampToActiveConstraint()`
-	// reads both back through `eqConstraintsStore.active` — so a tracked body
-	// reads and writes the same state and re-runs itself forever the moment a
-	// device is connected (`effect_update_depth_exceeded`). Only the device
-	// identity should re-trigger this, which is also the right granularity:
-	// a device swap replaces the whole object. Same shape as the untracked
-	// curve math in `dataProvider.installEqCurveSync()`.
-	$effect(() => {
-		const dev = devicePeqStore.device;
-		untrack(() => {
-			if (dev) {
-				eqConstraintsStore.setDeviceConstraint(deriveDeviceConstraint(dev));
-			} else {
-				eqConstraintsStore.clearDeviceConstraint();
-			}
-			eqCommands.reclampToActiveConstraint();
-		});
-	});
+	/** The eqcaps inspector: identifies a device and turns it into a profile. */
+	const INSPECTOR_URL = 'https://potatosalad775.github.io/eqcaps/connect';
+	const ISSUES_URL = 'https://github.com/potatosalad775/eqcaps/issues/new';
 
 	// ── Feature detection ─────────────────────────────────────────────────────
 
@@ -42,368 +27,547 @@
 	const hasBluetooth = typeof navigator !== 'undefined' && 'bluetooth' in navigator;
 	const hasDeviceApi = hasHid || hasSerial || hasBluetooth;
 
+	type Kind = 'hid' | 'serial' | 'ble';
+	const KIND_LABEL: Record<Kind, () => string> = {
+		hid: m.equalizer_device_peq_connect_usb,
+		serial: m.equalizer_device_peq_connect_serial,
+		ble: m.equalizer_device_peq_connect_bluetooth
+	};
+	/** USB HID covers most dongles and DACs, so it leads; the rest sit one step back. */
+	const available: Kind[] = [
+		...(hasHid ? (['hid'] as const) : []),
+		...(hasSerial ? (['serial'] as const) : []),
+		...(hasBluetooth ? (['ble'] as const) : [])
+	];
+	const primaryKind = available[0];
+	const otherKinds = available.slice(1);
+
 	// ── State ─────────────────────────────────────────────────────────────────
 
 	let showNetworkPanel = $state(false);
 	let networkIP = $state('');
-	let networkDeviceType = $state('WiiM');
+	let networkDeviceType = $state<NetworkDeviceType>('WiiM');
 	let showInfo = $state(false);
+	/** The device's identity fit several profiles, or none: the user says which it is. */
+	let choice = $state.raw<{
+		candidates: DeviceCandidate[];
+		finish: (id: string) => Promise<ConnectResult>;
+		cancel: () => Promise<void>;
+	} | null>(null);
+	let chosenId = $state('');
+	/** The last device that had no profile and no protocol, for the "help add it" notice. */
+	let unsupported = $state(false);
+	let pendingPlan = $state.raw<PushPlan | null>(null);
+	let showPushDialog = $state(false);
 
-	// ── Connection handlers ───────────────────────────────────────────────────
+	const connection = $derived(devicePeqStore.connection);
+	const caps = $derived(connection?.device.capabilities);
 
-	async function connectHid() {
+	/** "10 bands · -12 to 12 dB" — what the profile allows, at a glance. */
+	const limitsSummary = $derived.by(() => {
+		if (!connection) return '';
+		const gain = envelopeOf(connection.profile, 'gain');
+		return m.equalizer_device_peq_limits({
+			bands: connection.profile.bandCount ?? '∞',
+			min: gain?.min ?? '',
+			max: gain?.max ?? ''
+		});
+	});
+
+	const isDraft = $derived(
+		connection?.profileSource !== 'guess' && connection?.profile.meta.status === 'draft'
+	);
+
+	const reportUrl = $derived.by(() => {
+		if (!connection?.profileId) return null;
+		const url = new URL(ISSUES_URL);
+		url.searchParams.set('template', 'wrong-constraint.yml');
+		url.searchParams.set('title', `Wrong constraint: ${connection.profileId}`);
+		url.searchParams.set('profile', connection.profileId);
+		url.searchParams.set('app', 'modernGraphTool');
+		return url.href;
+	});
+
+	// ── Connecting ────────────────────────────────────────────────────────────
+
+	/** Load the connect module and the device database before the click needs them. */
+	function warm() {
+		void import('$lib/device-peq/connect.js').then((mod) => mod.warmUp());
+	}
+
+	async function connect(kind: Kind) {
+		unsupported = false;
+		choice = null;
 		devicePeqStore.isConnecting = true;
+		devicePeqStore.setStatus(null);
 		try {
-			const { getHidConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
-				await import('$lib/device-peq/connectors/usb-hid-connector.js');
-			const config = await getHidConfig();
-			const device = await getDeviceConnected(config);
-			if (!device) {
-				devicePeqStore.isConnecting = false;
-				return;
-			}
-			const slots = getAvailableSlots(device);
-			const currentSlot = await getCurrentSlot(device);
-			devicePeqStore.setConnected(device, slots, currentSlot);
+			const mod = await import('$lib/device-peq/connect.js');
+			const run =
+				kind === 'hid' ? mod.connectHid : kind === 'serial' ? mod.connectSerial : mod.connectBle;
+			await handleResult(await run());
 		} catch (e) {
-			console.error('Failed to connect HID device:', e);
+			fail(e, 'connect');
+		} finally {
 			devicePeqStore.isConnecting = false;
-			devicePeqStore.setStatus('Connection failed');
 		}
 	}
 
-	async function connectSerial() {
+	async function handleResult(result: ConnectResult) {
+		if (result.kind === 'connected') await finishConnect(result.connection);
+		else if (result.kind === 'choose') {
+			choice = result;
+			chosenId = result.candidates[0]?.id ?? '';
+		} else if (result.kind === 'unsupported') unsupported = true;
+	}
+
+	async function confirmChoice() {
+		const pending = choice;
+		if (!pending || !chosenId) return;
+		choice = null;
 		devicePeqStore.isConnecting = true;
 		try {
-			const { getSerialConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
-				await import('$lib/device-peq/connectors/usb-serial-connector.js');
-			const config = await getSerialConfig();
-			const device = await getDeviceConnected(config);
-			if (!device) {
-				devicePeqStore.isConnecting = false;
-				return;
-			}
-			const slots = getAvailableSlots(device);
-			const currentSlot = await getCurrentSlot(device);
-			devicePeqStore.setConnected(device, slots, currentSlot);
+			await handleResult(await pending.finish(chosenId));
 		} catch (e) {
-			console.error('Failed to connect serial device:', e);
+			fail(e, 'connect');
+		} finally {
 			devicePeqStore.isConnecting = false;
-			devicePeqStore.setStatus('Connection failed');
 		}
 	}
 
-	async function connectBle() {
-		devicePeqStore.isConnecting = true;
-		try {
-			const { getBleConfig } = await import('$lib/device-peq/registry.js');
-			const { getDeviceConnected, getAvailableSlots, getCurrentSlot } =
-				await import('$lib/device-peq/connectors/bluetooth-ble-connector.js');
-			const config = await getBleConfig();
-			const device = await getDeviceConnected(config);
-			if (!device) {
-				devicePeqStore.isConnecting = false;
-				return;
-			}
-			const slots = getAvailableSlots(device);
-			const currentSlot = await getCurrentSlot(device);
-			devicePeqStore.setConnected(device, slots, currentSlot);
-		} catch (e) {
-			console.error('Failed to connect BLE device:', e);
-			devicePeqStore.isConnecting = false;
-			devicePeqStore.setStatus('Connection failed');
-		}
+	async function cancelChoice() {
+		const pending = choice;
+		choice = null;
+		await pending?.cancel();
+	}
+
+	async function finishConnect(conn: DeviceConnection) {
+		const slot = await conn.device.currentSlot().catch(() => null);
+		devicePeqStore.setConnected(conn, slot);
+		devicePeqStore.setStatus(m.equalizer_device_peq_status_connected({ device: conn.name }));
 	}
 
 	async function connectNetwork() {
 		if (!networkIP.trim()) return;
+		const { connectNetworkDevice } = await import('$lib/device-peq/network.js');
+		await finishConnect(connectNetworkDevice(networkIP, networkDeviceType));
+		showNetworkPanel = false;
+	}
+
+	async function reconnect() {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
 		devicePeqStore.isConnecting = true;
 		try {
-			const { getDeviceConnected, getCurrentSlot } =
-				await import('$lib/device-peq/connectors/network-connector.js');
-			const device = await getDeviceConnected(networkIP.trim(), networkDeviceType);
-			if (!device) {
-				devicePeqStore.isConnecting = false;
-				return;
+			const again = conn.reopen ? await conn.reopen() : null;
+			if (again) await finishConnect(again);
+			else {
+				devicePeqStore.setDisconnected();
+				devicePeqStore.setStatus(m.equalizer_device_peq_status_reconnect_manual());
 			}
-			const slots = device.modelConfig.availableSlots;
-			const currentSlot = await getCurrentSlot(device);
-			devicePeqStore.setConnected(device, slots, currentSlot);
 		} catch (e) {
-			console.error('Failed to connect network device:', e);
+			fail(e, 'connect');
+		} finally {
 			devicePeqStore.isConnecting = false;
-			devicePeqStore.setStatus('Connection failed');
 		}
 	}
 
-	// ── Connector resolver ────────────────────────────────────────────────────
-
-	async function getConnector(connectionType: string) {
-		if (connectionType === 'hid') {
-			return await import('$lib/device-peq/connectors/usb-hid-connector.js');
-		}
-		if (connectionType === 'serial') {
-			return await import('$lib/device-peq/connectors/usb-serial-connector.js');
-		}
-		if (connectionType === 'ble') {
-			return await import('$lib/device-peq/connectors/bluetooth-ble-connector.js');
-		}
-		return await import('$lib/device-peq/connectors/network-connector.js');
+	async function disconnect() {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		await conn.device.close().catch(() => {});
+		devicePeqStore.setDisconnected();
 	}
 
-	// ── Pull / Push / Disconnect ──────────────────────────────────────────────
+	// ── Read / write ──────────────────────────────────────────────────────────
+
+	function fail(e: unknown, op: string) {
+		console.error(`Device PEQ ${op} failed:`, e);
+		const message = describeDeviceError(e);
+		devicePeqStore.setStatus(message);
+		toast.error(message);
+		if (isConnectionLost(e) && devicePeqStore.connection) devicePeqStore.needsReconnect = true;
+	}
 
 	async function pullFromDevice() {
-		const device = devicePeqStore.device;
-		if (!device) return;
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
 		devicePeqStore.isReading = true;
 		try {
-			const connector = await getConnector(device.connectionType);
-			const result = await connector.pullFromDevice(device, devicePeqStore.activeSlot ?? 0);
-			eqCommands.replaceFilters(
-				result.filters.map((f) => ({
-					enabled: !f.disabled,
-					type: f.type,
-					freq: f.freq,
-					q: f.q,
-					gain: f.gain
-				}))
+			const slot = devicePeqStore.activeSlot;
+			const result = await conn.device.pull(
+				conn.device.capabilities.readsSlot && slot !== null ? { slot } : {}
 			);
+			const bands = result.filters.filter((f) => f !== null);
+			const filters = bands.map(fromCapsFilter).filter((f) => f !== null);
+			eqCommands.replaceFilters(filters);
 			eqCommands.ensureEnabled();
-			devicePeqStore.setStatus(`Read ${result.filters.length} filters from device`);
+			devicePeqStore.setStatus(m.equalizer_device_peq_status_read({ count: filters.length }));
+			if (filters.length < bands.length) {
+				toast.warning(
+					m.equalizer_device_peq_read_skipped({ count: bands.length - filters.length })
+				);
+			}
 		} catch (e) {
-			console.error('Failed to pull from device:', e);
-			devicePeqStore.setStatus('Read failed');
+			fail(e, 'read');
 		} finally {
 			devicePeqStore.isReading = false;
 		}
 	}
 
-	async function pushToDevice() {
-		const device = devicePeqStore.device;
-		if (!device) return;
+	function pushToDevice() {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		const plan = planPush(eqStore.filters, eqStore.preamp, conn.profile, conn.device.capabilities);
+		if (needsConfirmation(plan)) {
+			pendingPlan = plan;
+			showPushDialog = true;
+		} else {
+			void writePlan(plan);
+		}
+	}
+
+	async function writePlan(plan: PushPlan) {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
 		devicePeqStore.isWriting = true;
 		try {
-			const connector = await getConnector(device.connectionType);
-			// Hardware PEQ slots have no channel concept — `DeviceFilter` carries
-			// no channel and no handler exposes one — so only the shared bands can
-			// be represented. Pushing an L-only band to a mono slot would apply it
-			// to both ears, which is a different EQ from the one on screen; better
-			// to send the part that is faithful and say what was left behind.
-			const skipped = eqStore.filters.filter((f) => f.channel != null).length;
-			const filters = eqStore.filters
-				.filter(
-					(f): f is EQFilter & { freq: number; q: number; gain: number } =>
-						f.channel == null && f.freq != null && f.q != null && f.gain != null
-				)
-				.map((f) => ({
-					type: f.type,
-					freq: f.freq,
-					q: f.q,
-					gain: f.gain,
-					disabled: !f.enabled
-				}));
-			const preamp = -Math.max(0, ...filters.map((f) => f.gain));
-			const shouldDisconnect = await connector.pushToDevice(
-				device,
-				devicePeqStore.activeSlot ?? 0,
-				preamp,
-				filters
-			);
-			devicePeqStore.setStatus(`Wrote ${filters.length} filters to device`);
-			if (skipped > 0) {
-				toast.warning(m.eq_channel_device_peq_shared_only({ count: filters.length, skipped }));
+			const slot = devicePeqStore.activeSlot;
+			const result = await conn.device.push({
+				filters: plan.filters,
+				...(plan.preamp !== undefined ? { preamp: plan.preamp } : {}),
+				...(conn.device.capabilities.writesSlot && slot !== null ? { slot } : {})
+			});
+			if (result.reconnect) {
+				// The device restarts to save. Its transport is gone; `reopen` finds it again.
+				await conn.device.close().catch(() => {});
+				devicePeqStore.needsReconnect = true;
+				devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+			} else {
+				devicePeqStore.setStatus(
+					m.equalizer_device_peq_status_written({ count: plan.filters.length })
+				);
 			}
-			if (shouldDisconnect) {
-				await disconnect();
+			if (plan.skippedChannel > 0) {
+				toast.warning(
+					m.eq_channel_device_peq_shared_only({
+						count: eqStore.filters.length - plan.skippedChannel,
+						skipped: plan.skippedChannel
+					})
+				);
 			}
 		} catch (e) {
-			console.error('Failed to push to device:', e);
-			devicePeqStore.setStatus('Write failed');
+			fail(e, 'write');
 		} finally {
 			devicePeqStore.isWriting = false;
 		}
 	}
 
-	async function disconnect() {
-		const device = devicePeqStore.device;
-		if (!device) return;
+	// ── Presets and the EQ switch ─────────────────────────────────────────────
+
+	async function setDeviceEq(on: boolean) {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
 		try {
-			const connector = await getConnector(device.connectionType);
-			await connector.disconnectDevice();
+			await conn.device.setEnabled(on, on ? (devicePeqStore.activeSlot ?? undefined) : undefined);
+			devicePeqStore.eqEnabled = on;
 		} catch (e) {
-			console.error('Failed to disconnect:', e);
+			fail(e, 'switch');
 		}
-		devicePeqStore.setDisconnected();
-	}
-
-	// ── Slot change ───────────────────────────────────────────────────────────
-
-	async function onSlotChange(slotId: number) {
-		const device = devicePeqStore.device;
-		if (!device) return;
-		devicePeqStore.activeSlot = slotId;
-		try {
-			const connector = await getConnector(device.connectionType);
-			await connector.enablePEQ(device, true, slotId);
-		} catch (e) {
-			console.error('Failed to change slot:', e);
-		}
-	}
-
-	// ── UI helpers ────────────────────────────────────────────────────────────
-
-	function toggleNetworkPanel() {
-		showNetworkPanel = !showNetworkPanel;
 	}
 </script>
+
+{#snippet infoButton()}
+	<Button
+		title={m.equalizer_device_peq_info_trigger_label()}
+		variant="ghost"
+		size="icon-xs"
+		class="shrink-0 text-base-content/60 hover:text-base-content"
+		onclick={() => (showInfo = true)}
+	>
+		<Info class="h-4 w-4" />
+	</Button>
+{/snippet}
 
 {#if hasDeviceApi}
 	<div class="flex flex-col gap-2">
 		<div class="flex items-center justify-between text-xs text-base-content/60">
 			<span>{m.equalizer_device_peq_info_prompt()}</span>
-			<button
-				type="button"
-				onclick={() => (showInfo = true)}
-				aria-label={m.equalizer_device_peq_info_trigger_label()}
-				class="rounded p-1 text-base-content/60 transition-colors hover:bg-base-content/10 hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-			>
-				<Info class="h-4 w-4" />
-			</button>
+			{@render infoButton()}
 		</div>
-		{#if !devicePeqStore.isConnected}
-			<!-- Connect buttons -->
-			<div class="flex gap-1">
-				{#if hasHid}
-					<button
-						onclick={connectHid}
-						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-					>
-						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (HID)'}
-					</button>
-				{/if}
-				{#if hasSerial}
-					<button
-						onclick={connectSerial}
-						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-					>
-						{devicePeqStore.isConnecting ? 'Connecting...' : 'USB (Serial)'}
-					</button>
-				{/if}
-				{#if hasBluetooth}
-					<button
-						onclick={connectBle}
-						disabled={devicePeqStore.isConnecting}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-					>
-						{devicePeqStore.isConnecting ? 'Connecting...' : 'Bluetooth'}
-					</button>
-				{/if}
-				<button
-					onclick={toggleNetworkPanel}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-				>
-					Network
-				</button>
-			</div>
 
-			{#if showNetworkPanel}
-				<div class="flex gap-1">
-					<select
-						value={networkDeviceType}
-						onchange={(e) => (networkDeviceType = (e.target as HTMLSelectElement).value)}
-						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
-					>
-						<option value="WiiM">WiiM</option>
-						<option value="LuxsinX9">Luxsin X9</option>
-					</select>
-					<input
-						type="text"
-						placeholder="Device IP"
-						value={networkIP}
-						oninput={(e) => (networkIP = (e.target as HTMLInputElement).value)}
-						class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
-					/>
-					<button
-						onclick={connectNetwork}
-						disabled={devicePeqStore.isConnecting}
-						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-					>
-						Connect
-					</button>
+		{#if !connection}
+			{#if choice}
+				<!-- Several profiles fit this device's identity, or a serial port named none -->
+				<div class="flex flex-col gap-1.5 rounded-md border border-base-content/15 p-2">
+					<label class="flex flex-col gap-1 text-xs text-base-content/70">
+						{m.equalizer_device_peq_choose_prompt()}
+						<select
+							bind:value={chosenId}
+							class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content"
+						>
+							{#each choice.candidates as c (c.id)}
+								<option value={c.id}>{c.label}</option>
+							{/each}
+						</select>
+					</label>
+					<div class="flex justify-end gap-1">
+						<Button
+							title={m.equalizer_device_peq_push_cancel()}
+							variant="ghost"
+							size="xs"
+							onclick={cancelChoice}
+						>
+							{m.equalizer_device_peq_push_cancel()}
+						</Button>
+						<Button
+							title={m.equalizer_device_peq_choose_confirm()}
+							variant="primary"
+							size="xs"
+							disabled={!chosenId || devicePeqStore.isConnecting}
+							onclick={confirmChoice}
+						>
+							{m.equalizer_device_peq_choose_confirm()}
+						</Button>
+					</div>
 				</div>
+			{:else}
+				<!-- Connect: one obvious way in; the other transports one step back -->
+				<div
+					class="flex flex-col gap-1.5"
+					role="group"
+					aria-label={m.equalizer_device_peq_label()}
+					onpointerenter={warm}
+					onfocusin={warm}
+				>
+					{#if primaryKind}
+						<Button
+							title={KIND_LABEL[primaryKind]()}
+							variant="primary"
+							size="sm"
+							class="w-full"
+							disabled={devicePeqStore.isConnecting}
+							onclick={() => connect(primaryKind)}
+						>
+							{devicePeqStore.isConnecting
+								? m.equalizer_device_peq_connecting()
+								: KIND_LABEL[primaryKind]()}
+						</Button>
+					{/if}
+					<div class="flex flex-wrap items-center gap-1 text-xs text-base-content/60">
+						<span>{m.equalizer_device_peq_other_connections()}</span>
+						{#each otherKinds as kind (kind)}
+							<Button
+								title={KIND_LABEL[kind]()}
+								variant="ghost"
+								size="xs"
+								disabled={devicePeqStore.isConnecting}
+								onclick={() => connect(kind)}
+							>
+								{KIND_LABEL[kind]()}
+							</Button>
+						{/each}
+						<Button
+							title={m.equalizer_device_peq_connect_network()}
+							variant="ghost"
+							size="xs"
+							aria-expanded={showNetworkPanel}
+							onclick={() => (showNetworkPanel = !showNetworkPanel)}
+						>
+							{m.equalizer_device_peq_connect_network()}
+						</Button>
+					</div>
+				</div>
+
+				{#if showNetworkPanel}
+					<div class="flex gap-1">
+						<select
+							bind:value={networkDeviceType}
+							aria-label={m.equalizer_device_peq_network_type()}
+							class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
+						>
+							{#each NETWORK_DEVICE_TYPES as t (t.id)}
+								<option value={t.id}>{t.label}</option>
+							{/each}
+						</select>
+						<input
+							type="text"
+							placeholder={m.equalizer_device_peq_network_ip()}
+							aria-label={m.equalizer_device_peq_network_ip()}
+							bind:value={networkIP}
+							class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
+						/>
+						<Button
+							title={m.equalizer_device_peq_network_connect()}
+							variant="outline"
+							size="xs"
+							disabled={!networkIP.trim()}
+							onclick={connectNetwork}
+						>
+							{m.equalizer_device_peq_network_connect()}
+						</Button>
+					</div>
+				{/if}
+
+				{#if unsupported}
+					<p class="text-xs text-base-content/70">
+						{m.equalizer_device_peq_unsupported()}
+						<a
+							href={INSPECTOR_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary underline-offset-4 hover:underline"
+						>
+							{m.equalizer_device_peq_help_add()}
+						</a>
+					</p>
+				{/if}
 			{/if}
 		{:else}
-			<!-- Connected state -->
-			<div class="flex items-center justify-between text-xs">
-				<span class="font-medium" title={devicePeqStore.manufacturer ?? ''}>
-					{devicePeqStore.deviceName}
-				</span>
-				<button
+			<!-- Connected -->
+			<div class="flex items-start justify-between gap-2">
+				<div class="min-w-0">
+					<p class="truncate text-xs font-medium text-base-content">{connection.name}</p>
+					<p class="text-xs text-base-content/60">{limitsSummary}</p>
+				</div>
+				<Button
+					title={m.equalizer_device_peq_disconnect()}
+					variant="outline"
+					size="xs"
+					class="shrink-0 text-error ring-error/40 hover:bg-error/10"
 					onclick={disconnect}
-					class="rounded border border-error/40 px-2 py-0.5 text-xs text-error hover:bg-error/10"
 				>
-					Disconnect
-				</button>
+					{m.equalizer_device_peq_disconnect()}
+				</Button>
 			</div>
 
-			<!-- Slot selector -->
-			{#if devicePeqStore.slots.length > 0}
-				<select
-					value={devicePeqStore.activeSlot ?? ''}
-					onchange={(e) => onSlotChange(Number((e.target as HTMLSelectElement).value))}
-					class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
-				>
-					{#each devicePeqStore.slots as slot (slot.id)}
-						<option value={slot.id}>{slot.name}</option>
-					{/each}
-				</select>
+			{#if connection.profileSource === 'guess'}
+				<p class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs">
+					{m.equalizer_device_peq_guess_notice()}
+					<a
+						href={INSPECTOR_URL}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-primary underline-offset-4 hover:underline"
+					>
+						{m.equalizer_device_peq_help_add()}
+					</a>
+				</p>
+			{:else if connection.profileSource === 'group'}
+				<p class="text-xs text-base-content/60">{m.equalizer_device_peq_group_notice()}</p>
+			{/if}
+			{#if isDraft}
+				<p class="text-xs text-base-content/60">
+					{m.equalizer_device_peq_draft_notice()}
+					{#if reportUrl}
+						<a
+							href={reportUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="text-primary underline-offset-4 hover:underline"
+						>
+							{m.equalizer_device_peq_report_limits()}
+						</a>
+					{/if}
+				</p>
+			{/if}
+			{#if caps?.experimental && connection.profileSource !== 'guess'}
+				<p class="text-xs text-base-content/60">{m.equalizer_device_peq_experimental()}</p>
 			{/if}
 
-			<!-- Pull / Push buttons -->
-			<div class="flex gap-1">
-				<button
-					onclick={pullFromDevice}
-					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-				>
-					{devicePeqStore.isReading ? 'Reading...' : 'Pull from Device'}
-				</button>
-				<button
-					onclick={pushToDevice}
-					disabled={devicePeqStore.isReading || devicePeqStore.isWriting}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-50"
-				>
-					{devicePeqStore.isWriting ? 'Writing...' : 'Push to Device'}
-				</button>
-			</div>
+			{#if devicePeqStore.needsReconnect}
+				<div class="flex items-center justify-between gap-2">
+					<span class="text-xs text-base-content/70">
+						{m.equalizer_device_peq_reconnect_prompt()}
+					</span>
+					<Button
+						title={m.equalizer_device_peq_reconnect()}
+						variant="primary"
+						size="xs"
+						disabled={devicePeqStore.isConnecting}
+						onclick={reconnect}
+					>
+						{m.equalizer_device_peq_reconnect()}
+					</Button>
+				</div>
+			{:else}
+				{#if devicePeqStore.slots.length > 0 && (caps?.readsSlot || caps?.writesSlot || caps?.canEnable)}
+					<label class="flex items-center gap-2 text-xs text-base-content/70">
+						<span class="shrink-0">{m.equalizer_device_peq_preset()}</span>
+						<select
+							bind:value={devicePeqStore.activeSlot}
+							class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content"
+						>
+							{#each devicePeqStore.slots as slot (slot.id)}
+								<option value={slot.id}>{slot.name}</option>
+							{/each}
+						</select>
+					</label>
+				{/if}
+
+				{#if caps?.canEnable}
+					<Switch
+						size="sm"
+						checked={devicePeqStore.eqEnabled ?? true}
+						onCheckedChange={setDeviceEq}
+						labelText={m.equalizer_device_peq_eq_switch()}
+						labelClass="text-xs text-base-content/70"
+					/>
+				{/if}
+
+				<div class="flex gap-1">
+					{#if caps?.canRead}
+						<Button
+							title={m.equalizer_device_peq_read_title()}
+							variant="outline"
+							size="sm"
+							class="flex-1"
+							disabled={devicePeqStore.isBusy}
+							onclick={pullFromDevice}
+						>
+							{devicePeqStore.isReading
+								? m.equalizer_device_peq_reading()
+								: m.equalizer_device_peq_read()}
+						</Button>
+					{/if}
+					{#if caps?.canWrite}
+						<Button
+							title={m.equalizer_device_peq_write_title()}
+							variant="primary"
+							size="sm"
+							class="flex-1"
+							disabled={devicePeqStore.isBusy}
+							onclick={pushToDevice}
+						>
+							{devicePeqStore.isWriting
+								? m.equalizer_device_peq_writing()
+								: m.equalizer_device_peq_write()}
+						</Button>
+					{/if}
+				</div>
+				{#if caps && !caps.canRead}
+					<p class="text-xs text-base-content/60">{m.equalizer_device_peq_write_only()}</p>
+				{/if}
+			{/if}
 		{/if}
 
 		<!-- Status message -->
 		{#if devicePeqStore.statusMessage}
-			<p class="text-xs text-base-content/60">{devicePeqStore.statusMessage}</p>
+			<p class="text-xs text-base-content/60" role="status">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
 {:else}
-	<div class="flex flex-col gap-2">
-		<div class="flex items-start justify-between gap-2">
-			<p class="text-xs text-base-content/60">
-				{m.equalizer_device_peq_incompatible_browser_alert()}
-			</p>
-			<button
-				type="button"
-				onclick={() => (showInfo = true)}
-				aria-label={m.equalizer_device_peq_info_trigger_label()}
-				class="shrink-0 rounded p-1 text-base-content/60 transition-colors hover:bg-base-content/10 hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-			>
-				<Info class="h-4 w-4" />
-			</button>
-		</div>
+	<div class="flex items-start justify-between gap-2">
+		<p class="text-xs text-base-content/60">
+			{m.equalizer_device_peq_incompatible_browser_alert()}
+		</p>
+		{@render infoButton()}
 	</div>
 {/if}
 
 <DevicePeqInfoDialog bind:open={showInfo} />
+<DevicePeqPushDialog
+	bind:open={showPushDialog}
+	plan={pendingPlan}
+	deviceName={connection?.name ?? ''}
+	onConfirm={() => pendingPlan && writePlan(pendingPlan)}
+/>

@@ -14,6 +14,7 @@ import {
 import { getConfigValue } from '$lib/utils/config.js';
 import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import { allowsShelves, envelopeOf, graphicBandsOf } from '$lib/utils/eq-constraint.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 
 /** Bands generated when the filter list is empty. Operator-overridable via
@@ -62,9 +63,8 @@ interface Session {
  * and dragged onto the nearest one. Only the frequency and Q inputs go away
  * with it — the grid is the preset's, not the user's.
  */
-export function activeGraphicBands() {
-	const preset = eqConstraintsStore.active;
-	return preset?.mode === 'graphic' ? (preset.graphicBands ?? []) : [];
+export function activeGraphicBands(): { freq: number; q: number }[] {
+	return graphicBandsOf(eqConstraintsStore.profile);
 }
 
 /**
@@ -86,12 +86,12 @@ function resolveBandCount(scope: EqChannelScope): number {
 	// 8-band solution to 5 fits worse than optimizing for 5 in the first place.
 	// The budget is what the busiest output has left once the buckets this run
 	// won't touch are accounted for.
-	const preset = eqConstraintsStore.active;
-	if (preset && preset.maxBands > 0) {
+	const max = eqConstraintsStore.maxBands;
+	if (max > 0) {
 		const untouched = eqStore.filters.filter((f) =>
 			scope === 'BOTH' ? f.channel != null : f.channel !== scope
 		);
-		count = Math.min(count, Math.max(1, preset.maxBands - countBandsPerOutput(untouched)));
+		count = Math.min(count, Math.max(1, max - countBandsPerOutput(untouched)));
 	}
 	// A preset saying "unlimited" still has to name a number here: every band
 	// is three more variables for the solver, and past this the fit stops
@@ -111,31 +111,55 @@ function resolveBandCount(scope: EqChannelScope): number {
  */
 function buildRequest(bandCount: number): AutoEqRequest {
 	const opts = settingsStore.autoEqOptions;
-	const preset = eqConstraintsStore.active;
+	const profile = eqConstraintsStore.profile;
 	const fit = opts.exactMatch ? 'exact' : 'autoeq';
 	const graphicBands = activeGraphicBands();
 	if (graphicBands.length > 0) {
+		const gain = envelopeOf(profile, 'gain');
 		return {
 			kind: 'graphic',
-			bands: graphicBands.map((band) => ({ freq: band.freq, q: band.q ?? preset?.qDefault })),
-			gain: { min: preset?.gainMin, max: preset?.gainMax },
+			bands: graphicBands,
+			gain: { min: gain?.min, max: gain?.max },
 			fit
 		};
 	}
 
+	// The envelope over every slot that takes a peaking band. A profile whose
+	// slots differ (a shelf-only first band, a treble-only last one) is
+	// narrowed per slot afterwards, when the result is folded onto it.
+	const freq = envelopeOf(profile, 'freq', ['PK']) ?? envelopeOf(profile, 'freq');
+	const q = envelopeOf(profile, 'q', ['PK']) ?? envelopeOf(profile, 'q');
+	const gain = envelopeOf(profile, 'gain', ['PK']) ?? envelopeOf(profile, 'gain');
 	const limits = {
-		minFc: Math.max(opts.freqMin, preset?.freqMin ?? 20),
-		maxFc: Math.min(opts.freqMax, preset?.freqMax ?? 20000),
-		minQ: Math.max(opts.qMin, preset?.qMin ?? opts.qMin),
-		maxQ: Math.min(opts.qMax, preset?.qMax ?? opts.qMax),
-		minGain: Math.max(opts.gainMin, preset?.gainMin ?? opts.gainMin),
-		maxGain: Math.min(opts.gainMax, preset?.gainMax ?? opts.gainMax)
+		minFc: Math.max(opts.freqMin, freq?.min ?? 20),
+		maxFc: Math.min(opts.freqMax, freq?.max ?? 20000),
+		minQ: Math.max(opts.qMin, q?.min ?? opts.qMin),
+		maxQ: Math.min(opts.qMax, q?.max ?? opts.qMax),
+		minGain: Math.max(opts.gainMin, gain?.min ?? opts.gainMin),
+		maxGain: Math.min(opts.gainMax, gain?.max ?? opts.gainMax)
 	};
-	// A preset that forbids shelves gets none, whatever the switch says.
-	const shelvesAllowed =
-		opts.useShelfFilter && (preset?.allowLsq ?? true) && (preset?.allowHsq ?? true);
+	// A profile with nowhere to put a low and a high shelf gets none, whatever
+	// the switch says.
+	const shelvesAllowed = opts.useShelfFilter && allowsShelves(profile);
 	const { peaking, shelves } = planBands(bandCount, shelvesAllowed);
-	return { kind: 'parametric', peaking, shelves, limits, fit };
+	// Only where the shelves' gain window differs from the peaking bands'.
+	const shelfGain = envelopeOf(profile, 'gain', ['LSC', 'HSC']);
+	const shelfLimits =
+		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain?.max)
+			? {
+					...limits,
+					minGain: Math.max(opts.gainMin, shelfGain.min),
+					maxGain: Math.min(opts.gainMax, shelfGain.max)
+				}
+			: undefined;
+	return {
+		kind: 'parametric',
+		peaking,
+		shelves,
+		limits,
+		...(shelfLimits ? { shelfLimits } : {}),
+		fit
+	};
 }
 
 /**

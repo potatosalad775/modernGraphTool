@@ -309,7 +309,7 @@ export class GraphEqOverlay {
 					const filter = eqStore.filters[idx];
 					if (!filter) return;
 					const multiplier = e.shiftKey ? 10 : 1;
-					const isGraphicNow = eqConstraintsStore.active?.mode === 'graphic';
+					const isGraphicNow = eqConstraintsStore.isGraphic;
 					if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 						const dir = e.key === 'ArrowUp' ? 1 : -1;
 						const newGain = Math.max(
@@ -495,7 +495,7 @@ export class GraphEqOverlay {
 					}
 				}
 
-				const isGraphic = eqConstraintsStore.active?.mode === 'graphic';
+				const isGraphic = eqConstraintsStore.isGraphic;
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 				// Graphic mode: frequency is pinned to the band's preset position.
 				if (isGraphic) freq = d.filter.freq!;
@@ -578,7 +578,7 @@ export class GraphEqOverlay {
 
 				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
-				if (eqConstraintsStore.active?.mode === 'graphic') freq = d.filter.freq!;
+				if (eqConstraintsStore.isGraphic) freq = d.filter.freq!;
 
 				let gain: number;
 

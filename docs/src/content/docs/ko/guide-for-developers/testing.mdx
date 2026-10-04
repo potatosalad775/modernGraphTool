@@ -27,7 +27,7 @@ modernGraphTool은 **Vitest**와 **Playwright 브라우저 모드**를 사용합
 
 :::tip[함정은 어디에 문서화되어 있나요]
 계층별 테스트 함정은 코드 옆의 디렉터리별 `AGENTS.md` 파일에 있습니다. 컴포넌트와 부팅 테스트 관련
-함정은 `src/lib/components/`, d3/rAF 관련 함정은 `src/lib/graph/`, 가짜 기기 픽스처는
+함정은 `src/lib/components/`, d3/rAF 관련 함정은 `src/lib/graph/`, 연결 흐름 모킹 방식은
 `src/lib/device-peq/`에 있습니다. 코드가 옮겨져도 내용이 정확하게 유지되도록 이 문서가 아니라 해당
 위치에 두고 있습니다.
 :::
@@ -37,8 +37,9 @@ modernGraphTool은 **Vitest**와 **Playwright 브라우저 모드**를 사용합
 설정은 `vite.config.ts`의 `test.coverage` 아래에 있으며, 그중 두 항목이 핵심입니다.
 
 - **`src` 전체를 포괄하는 `include` 글로브**가 있어야 어떤 테스트도 불러오지 않는 파일이 집계에
-  포함됩니다. 이것이 없으면 약 25개의 `device-peq/handlers` 및 `connectors` 모듈이 0%로 표시되는
-  대신 분모에서 아예 사라져, 보고되는 수치가 약 10포인트 낙관적으로 나왔습니다. (Vitest 4에서 기존
+  포함됩니다. 이것이 없으면 테스트되지 않은 모듈이 0%로 표시되는 대신 분모에서 아예 사라집니다.
+  eqcaps bridge로 대체되기 전 `device-peq/`에 있던 약 25개의 기기 핸들러·커넥터 모듈 때문에 보고되는
+  수치가 그렇게 약 10포인트 낙관적으로 나왔습니다. (Vitest 4에서 기존
   `coverage.all` 플래그가 제거되었습니다. 이제 `include`가 그 역할을 하며, `all`을 넘기면 타입
   오류입니다.)
 - **`exclude`는 Paraglide 산출물을 제외합니다.** `src/lib/paraglide/`는 Paraglide Vite 플러그인이
@@ -86,8 +87,7 @@ Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. *
 이 문제의 재발을 막습니다. 체크아웃과 설치만 했는데 무언가 수정된 상태로 남거나 CRLF가 인덱스에
 들어가면 실패합니다.
 
-`npm run lint`는 0으로 종료해야 합니다. ESLint _경고_(대부분 참고용으로 남겨둔 device-peq 프로토콜
-상수)는 빌드를 실패시키지 않습니다. 규칙 재정의는 `eslint.config.js`에 있으며 각각 이유를 주석으로
+`npm run lint`는 0으로 종료해야 합니다. ESLint _경고_는 빌드를 실패시키지 않습니다. 규칙 재정의는 `eslint.config.js`에 있으며 각각 이유를 주석으로
 달아 두었습니다. 특히 `no-useless-assignment`는 `$bindable()` prop 기본값을 잘못 읽기 때문에
 `*.svelte`에서 꺼져 있고, `no-explicit-any`는 설정 마이그레이션 도구가 운영자가 작성한 임의의 설정을
 파싱하기 때문에 `docs/` 아래에서 꺼져 있습니다.

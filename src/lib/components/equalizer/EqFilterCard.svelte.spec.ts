@@ -3,13 +3,15 @@
  * edit leaves through the `onUpdate` / `onRemove` / `onToggle` callbacks — but
  * the number inputs carry real behaviour worth pinning:
  *
- *  - values are clamped twice, once to the widest sane range and again to the
- *    active constraint preset, so the box shows what actually reaches the store;
+ *  - values are clamped twice, once to the widest sane range and again onto the
+ *    band's slot in the active constraint, so the box shows what reaches the store;
  *  - arrow keys commit immediately (the inputs are one-way bound), which is why
  *    Escape needs a focus snapshot to revert to;
  *  - graphic mode locks frequency, Q and type, leaving gain the only edit.
  *
  * Callbacks are plain spies here — the command layer is `eq-commands.spec.ts`.
+ * The filter is also put in `eqStore` at its index: violations and slots come
+ * from the constraint store's reading of the live list, as they do in the app.
  */
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -20,27 +22,20 @@ import {
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
 } from '$lib/stores/eq-constraints-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 
 const GRAPHIC_ID = 'generic-10-band';
 
 /** A preset far tighter than the widest ranges, to prove the second clamp runs. */
-const TIGHT: EqConstraintPreset = {
-	id: 'tight',
+const TIGHT = parametricPreset('tight', {
 	label: 'Tight',
-	mode: 'parametric',
 	maxBands: 2,
-	allowPk: true,
-	allowLsq: true,
-	allowHsq: true,
-	freqMin: 100,
-	freqMax: 10000,
-	gainMin: -6,
-	gainMax: 6,
-	qMin: 0.5,
-	qMax: 4
-};
+	freq: { min: 100, max: 10000 },
+	gain: { min: -6, max: 6 },
+	q: { min: 0.5, max: 4 }
+});
 
 function pk(over: Partial<EQFilter> = {}): EQFilter {
 	return { type: 'PK', freq: 1000, gain: 3, q: 1, enabled: true, ...over } as EQFilter;
@@ -55,9 +50,13 @@ interface Handlers {
 let handlers: Handlers;
 
 function mount(filter: EQFilter = pk(), opts: { index?: number; expanded?: boolean } = {}) {
+	const index = opts.index ?? 0;
+	eqStore.filters = Array.from({ length: index + 1 }, (_, i) =>
+		i === index ? filter : pk({ freq: 100 * (i + 1) })
+	);
 	return render(EqFilterCard, {
 		filter,
-		index: opts.index ?? 0,
+		index,
 		expanded: opts.expanded ?? false,
 		...handlers
 	});
@@ -97,6 +96,7 @@ describe('EqFilterCard', () => {
 	afterEach(() => {
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		eqStore.filters = [];
 		vi.restoreAllMocks();
 	});
 
@@ -206,7 +206,7 @@ describe('EqFilterCard', () => {
 
 			await commit(gainBox(), '15');
 
-			expect(handlers.onUpdate).toHaveBeenCalledWith({ gain: TIGHT.gainMax });
+			expect(handlers.onUpdate).toHaveBeenCalledWith({ gain: 6 });
 		});
 
 		it('writes the clamped value back into the box', async () => {
@@ -215,7 +215,7 @@ describe('EqFilterCard', () => {
 
 			await commit(freqBox(), '30');
 
-			expect(freqBox().value).toBe(String(TIGHT.freqMin));
+			expect(freqBox().value).toBe('100');
 		});
 	});
 
@@ -308,14 +308,47 @@ describe('EqFilterCard', () => {
 
 			await expect
 				.element(page.elementLocator(gainBox()))
-				.toHaveAttribute('title', 'Out of constraint preset range');
+				.toHaveAttribute('title', "Tight doesn't accept this value. Allowed: -6 – 6 dB");
 		});
 
-		it('leaves an in-range field unflagged', () => {
+		it('leaves an in-range field unflagged, but says what is allowed', () => {
 			eqConstraintsStore.activeId = TIGHT.id;
 			mount(pk({ gain: 3 }));
 
-			expect(gainBox().getAttribute('title')).toBeNull();
+			expect(gainBox().getAttribute('title')).toBe('Allowed: -6 – 6 dB');
+		});
+
+		it('describes a stepped domain with its step', () => {
+			eqConstraintsStore.presets = [
+				parametricPreset('stepped', { gain: { min: -12, max: 12, step: 0.5 } })
+			];
+			eqConstraintsStore.activeId = 'stepped';
+			mount(pk({ gain: 3 }));
+
+			expect(gainBox().getAttribute('title')).toBe('Allowed: -12 – 12 dB, step 0.5');
+			expect(gainBox().step).toBe('0.5');
+		});
+
+		it('steps along a value list one listed value at a time', () => {
+			eqConstraintsStore.presets = [
+				parametricPreset('set', { freq: { values: [100, 250, 1000, 4000] } })
+			];
+			eqConstraintsStore.activeId = 'set';
+			mount(pk({ freq: 1000 }));
+
+			key(freqBox(), { key: 'ArrowUp' });
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ freq: 4000 });
+			key(freqBox(), { key: 'ArrowDown' });
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ freq: 250 });
+		});
+
+		it('offers only the filter types the slot takes', async () => {
+			eqConstraintsStore.presets = [parametricPreset('pk-only', { types: ['PK'] })];
+			eqConstraintsStore.activeId = 'pk-only';
+			mount(pk(), { expanded: true });
+
+			expect(page.getByRole('button', { name: 'High Shelf' }).elements()).toHaveLength(0);
+			await expect.element(page.getByRole('button', { name: 'Fixed by pk-only' })).toBeDisabled();
 		});
 
 		it('greys a row past the preset maxBands cap', async () => {
@@ -324,14 +357,14 @@ describe('EqFilterCard', () => {
 			eqConstraintsStore.activeId = TIGHT.id;
 			mount(pk(), { index: 2 });
 
-			await expect.element(page.getByTitle(/maxBands cap/)).toBeInTheDocument();
+			await expect.element(page.getByTitle(/Past the 2-band limit of Tight/)).toBeInTheDocument();
 		});
 
 		it('leaves rows inside the cap active', () => {
 			eqConstraintsStore.activeId = TIGHT.id;
 			mount(pk(), { index: 1 });
 
-			expect(page.getByTitle(/maxBands cap/).elements()).toHaveLength(0);
+			expect(page.getByTitle(/Past the/).elements()).toHaveLength(0);
 		});
 	});
 
@@ -352,17 +385,17 @@ describe('EqFilterCard', () => {
 		it('still shows the locked values', async () => {
 			mount(pk({ freq: 125, q: 1.4 }));
 
-			await expect
-				.element(page.getByTitle('Frequency locked by graphic preset'))
-				.toHaveTextContent('125');
-			await expect.element(page.getByTitle('Q locked by graphic preset')).toHaveTextContent('1.4');
+			// The type badge carries the same title, ahead of the two chips.
+			const fixed = page.getByTitle('Fixed by Generic 10-band Graphic EQ');
+			await expect.element(fixed.nth(1)).toHaveTextContent('125');
+			await expect.element(fixed.nth(2)).toHaveTextContent('1.4');
 		});
 
 		it('disables the type badge', async () => {
 			mount();
 
 			await expect
-				.element(page.getByRole('button', { name: 'Filter type locked by graphic preset' }))
+				.element(page.getByRole('button', { name: 'Fixed by Generic 10-band Graphic EQ' }))
 				.toBeDisabled();
 		});
 

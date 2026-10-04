@@ -50,6 +50,15 @@ describe('v2 round trip', () => {
 		expect(roundTrip(original)).toEqual(original);
 	});
 
+	it('writes an eqcaps mirror only when one is set', () => {
+		const state = { ...createDefaultConfig(), EQUALIZER_ENABLED: true };
+		expect(formStateToConfigString(state)).not.toContain('EQCAPS_URL');
+
+		state.EQUALIZER = { ...state.EQUALIZER, EQCAPS_URL: 'https://mirror.example/v1/' };
+		expect(formStateToConfigString(state)).toContain('EQCAPS_URL: "https://mirror.example/v1/"');
+		expect(roundTrip(state)).toEqual(state);
+	});
+
 	it('drops optional sections when disabled and restores them as disabled', () => {
 		const original = createDefaultConfig();
 		const source = formStateToConfigString(original);

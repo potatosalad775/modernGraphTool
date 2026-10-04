@@ -2,7 +2,10 @@
 	import { untrack } from 'svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import {
+		DEFAULT_CONSTRAINT_ID,
+		eqConstraintsStore
+	} from '$lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '$lib/utils/equalizer.js';
 	import { Equalizer } from '$lib/utils/equalizer.js';
 	import {
@@ -20,7 +23,7 @@
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';
 	import EqOptionButton from './EqOptionButton.svelte';
-	import { ArrowDown01, Download, Minus, Plus, Upload } from '@lucide/svelte';
+	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import { downloadText } from '$lib/utils/download-text.js';
 
@@ -75,8 +78,8 @@
 	}
 
 	const atMaxBands = $derived.by(() => {
-		const preset = eqConstraintsStore.active;
-		if (!preset || preset.maxBands <= 0) return false;
+		const max = eqConstraintsStore.maxBands;
+		if (max <= 0) return false;
 		// A band added to the active bucket costs a slot on one ear (or both, in
 		// the shared bucket), so the cap is measured against the busiest output.
 		const probe: EQFilter = {
@@ -87,11 +90,11 @@
 			gain: null,
 			...(scope === 'BOTH' ? {} : { channel: scope })
 		};
-		return countBandsPerOutput([...eqStore.filters, probe]) > preset.maxBands;
+		return countBandsPerOutput([...eqStore.filters, probe]) > max;
 	});
 
 	/** Graphic mode: the band list is fixed, so add/remove/sort/import are no-ops. */
-	const isGraphic = $derived(eqConstraintsStore.active?.mode === 'graphic');
+	const isGraphic = $derived(eqConstraintsStore.isGraphic);
 
 	function addBand() {
 		const wasEmpty = eqStore.filters.length === 0;
@@ -107,14 +110,28 @@
 		// Only the first band flips the master toggle. Adding a band to a stack
 		// the user has deliberately bypassed is an edit, not a fresh start.
 		if (ok && wasEmpty) eqCommands.ensureEnabled();
-		if (!ok) {
-			const preset = eqConstraintsStore.active;
-			if (preset && preset.maxBands > 0) {
-				toast.warning(
-					m.eq_constraint_max_bands_reached({ label: preset.label, max: preset.maxBands })
-				);
-			}
+		if (!ok && eqConstraintsStore.maxBands > 0) {
+			toast.warning(
+				m.eq_constraint_max_bands_reached({
+					label: eqConstraintsStore.active.label,
+					max: eqConstraintsStore.maxBands
+				})
+			);
 		}
+	}
+
+	/** Fold every band onto the active constraint, as one undo entry. */
+	function fitToConstraint() {
+		expandedIndex = null;
+		const label = eqConstraintsStore.active.label;
+		if (eqCommands.reclampToActiveConstraint()) {
+			toast.success(m.eq_constraint_fitted({ label }));
+		}
+	}
+
+	/** Back to unlimited. Nothing to fold: every band fits the default. */
+	function clearConstraint() {
+		eqConstraintsStore.setActive(DEFAULT_CONSTRAINT_ID);
 	}
 
 	function removeBand() {
@@ -166,8 +183,8 @@
 				// constraint in mind — applying it under a graphic preset
 				// (e.g. Sony 10-band) would fold the filters into the wrong
 				// shape. Reset to unlimited PEQ so the import lands faithfully.
-				if (eqConstraintsStore.activeId !== 'default') {
-					eqConstraintsStore.setActive('default');
+				if (eqConstraintsStore.isLimiting) {
+					eqConstraintsStore.setActive(DEFAULT_CONSTRAINT_ID);
 				}
 				eqCommands.replaceFilters(filters);
 				eqCommands.ensureEnabled();
@@ -289,11 +306,44 @@
 			>
 				<ArrowDown01 class="size-3.25" />
 			</Button>
-			<!-- Disabled EqOption (Constraints) button until shared constraint infra is ready -->
-			<!--div class="h-6 w-px mx-1 bg-base-content/20"></div-->
-			<!--EqOptionButton /-->
+			<div class="mx-1 h-6 w-px bg-base-content/20"></div>
+			<EqOptionButton />
 		</div>
 	</div>
+
+	<!--
+		Active constraint — always visible while one limits the list, so filters
+		that won't move past a bound are never a mystery. Unlimited is one click.
+	-->
+	{#if eqConstraintsStore.isLimiting}
+		<div
+			class="flex items-center gap-2 rounded-md border border-base-content/15 bg-base-200 px-2 py-1 text-xs"
+		>
+			<span class="min-w-0 flex-1 truncate text-base-content/70">
+				{m.eq_constraint_active({ label: eqConstraintsStore.active.label })}
+			</span>
+			{#if eqConstraintsStore.violationCount > 0}
+				<Button
+					title={m.eq_constraint_fit_title({ label: eqConstraintsStore.active.label })}
+					variant="outline"
+					size="xs"
+					class="border-error/40 text-error"
+					onclick={fitToConstraint}
+				>
+					{m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
+				</Button>
+			{/if}
+			<Button
+				title={m.eq_constraint_clear()}
+				variant="ghost"
+				size="icon-xs"
+				class="text-base-content/50 hover:text-base-content"
+				onclick={clearConstraint}
+			>
+				<X class="size-3" />
+			</Button>
+		</div>
+	{/if}
 
 	<!--
 		Filter cards — only the active bucket's bands. `index` stays the band's

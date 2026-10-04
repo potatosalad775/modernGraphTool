@@ -2,7 +2,7 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`.
 
 ## `preference-bound.ts`
@@ -51,6 +51,27 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
 - The parser is permissive by design: unknown `Channel:` layouts fall back to shared, unrepresentable
   filter types (`BP`, `NO`, …) are skipped rather than imported as peaks, and `Preamp:` is ignored
   because ours is derived from the filter set.
+
+## `eq-constraint.ts` / `eq-domain-hint.ts`
+
+`eq-constraint.ts` translates between the band list and an eqcaps `Profile`; the engine itself
+(`assign`, `validateList`, `resolveSlot`, `project`, `fit`) is `@potatosalad775/eqcaps-core`'s.
+
+- **Types convert at this boundary only:** the app writes `LSQ`/`HSQ`, eqcaps `LSC`/`HSC`. A slot
+  whose types are all gainless (`LPQ`, `NO`, …) holds nothing the app can express.
+- **Every check runs per output** (`effectiveFilters`' rule): a profile describes one ear's slots,
+  so shared + L and shared + R are assigned and validated separately; a shared band takes the slot
+  it gets on the left.
+- **Edits project, bulk changes conform.** `projectFilter` moves one band onto its slot's domains
+  (type first, then freq/Q/gain, each resolved against the fields already settled so conditional
+  domains apply). `conformFilters` trims to the cap and projects every band — or, for a graphic
+  profile, lays one row per band and takes the nearest source gain within an octave. Neither drops
+  a band for going flat, unlike `fit`; that is the push path's job (`device-peq/push-plan.ts`).
+- Bands without a slot from `assign` (inactive, incomplete, disabled) are placed by position, which
+  is exact for every uniform profile.
+
+`eq-domain-hint.ts` formats a domain for a tooltip. eqcaps' own `describeDomain` is English-only,
+so this one keeps the words in Paraglide.
 
 ## `fr-parser.ts` / `fr-smoother.ts` / `fr-normalizer.ts` — the FR pipeline
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
+	import { eqCommands, eqFiltersEqual } from '$lib/services/eq-commands.js';
 	import { fromCapsFilter, envelopeOf } from '$lib/utils/eq-constraint.js';
 	import {
 		needsConfirmation,
@@ -9,6 +9,7 @@
 		readLayout,
 		type PushPlan
 	} from '$lib/device-peq/push-plan.js';
+	import { readRequest, writeRequest } from '$lib/device-peq/preset.js';
 	import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
 	import type { Filter } from '@potatosalad775/eqcaps-core';
 	import type { ConnectResult } from '$lib/device-peq/connect.js';
@@ -16,7 +17,7 @@
 	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { toast } from 'svelte-sonner';
-	import { Info } from '@lucide/svelte';
+	import { Check, Info } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
@@ -68,6 +69,71 @@
 
 	const connection = $derived(devicePeqStore.connection);
 	const caps = $derived(connection?.device.capabilities);
+
+	// ── Device EQ: what the device plays, and what Read and Write reach ───────
+
+	/**
+	 * One control for what the device plays: its presets, plus Off where the EQ can be switched off.
+	 * Picking an entry switches the device. A device that can't switch only gets a target picker,
+	 * shown when there is more than one preset to pick from.
+	 */
+	const eqOptions = $derived.by(() => {
+		if (!caps) return [];
+		const out: { value: string; label: string; disabled?: boolean }[] = [];
+		const selection = devicePeqStore.selection;
+		if (selection === null && caps.canEnable) {
+			out.push({ value: 'unknown', label: m.equalizer_device_peq_eq_unknown(), disabled: true });
+		}
+		if (selection === 'other') {
+			out.push({ value: 'other', label: m.equalizer_device_peq_eq_other(), disabled: true });
+		}
+		for (const slot of devicePeqStore.slots) out.push({ value: `p${slot.id}`, label: slot.name });
+		if (caps.canEnable) out.push({ value: 'off', label: m.equalizer_device_peq_eq_off() });
+		return out;
+	});
+	/**
+	 * Several memories: a dropdown that picks what the device plays (or Off). One memory or none (a
+	 * Walkplay dongle keeps a single set of bands): just the EQ on or off, since a "preset" picker
+	 * with one entry reads as a choice that isn't there.
+	 */
+	const hasPresets = $derived(
+		!!caps &&
+			devicePeqStore.slots.length > 1 &&
+			(caps.canEnable || caps.readsSlot || caps.writesSlot)
+	);
+	const hasOnOff = $derived(!!caps?.canEnable && devicePeqStore.slots.length <= 1);
+	const eqValue = $derived.by(() => {
+		const selection = devicePeqStore.selection;
+		if (selection === null) return caps?.canEnable ? 'unknown' : '';
+		if (selection === 'off' || selection === 'other') return selection;
+		return `p${selection}`;
+	});
+
+	/** Read follows the control: the preset it shows, or whatever unlisted one the device is on. */
+	const readTarget = $derived(
+		caps && devicePeqStore.selection === 'other'
+			? caps.canRead
+				? {}
+				: null
+			: caps
+				? readRequest(caps, devicePeqStore.activeSlot, devicePeqStore.deviceSlot)
+				: null
+	);
+	const writeTarget = $derived(
+		caps ? writeRequest(caps, devicePeqStore.activeSlot, devicePeqStore.deviceSlot) : null
+	);
+
+	/** Whether the list still matches what was last read from or written to the device. */
+	const inSync = $derived.by(() => {
+		const synced = devicePeqStore.synced;
+		if (!synced) return null;
+		const preampMatters = caps?.writesPreamp ?? false;
+		return (
+			synced.filters.length === eqStore.filters.length &&
+			synced.filters.every((f, i) => eqFiltersEqual(f, eqStore.filters[i])) &&
+			(!preampMatters || synced.preamp === eqStore.preamp)
+		);
+	});
 
 	/** "10 bands · -12 to 12 dB" — what the profile allows, at a glance. */
 	const limitsSummary = $derived.by(() => {
@@ -196,17 +262,16 @@
 
 	async function pullFromDevice() {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		const request = readTarget;
+		if (!conn || !request) return;
 		devicePeqStore.isReading = true;
 		try {
-			const slot = devicePeqStore.activeSlot;
-			const result = await conn.device.pull(
-				conn.device.capabilities.readsSlot && slot !== null ? { slot } : {}
-			);
+			const result = await conn.device.pull(request);
 			const bands = result.filters.filter((f) => f !== null);
 			const filters = bands.map(fromCapsFilter).filter((f) => f !== null);
 			eqCommands.replaceFilters(filters);
 			eqCommands.ensureEnabled();
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
 			devicePeqStore.setStatus(m.equalizer_device_peq_status_read({ count: filters.length }));
 			if (filters.length < bands.length) {
 				toast.warning(
@@ -222,14 +287,19 @@
 
 	async function pushToDevice() {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		if (!conn || !writeTarget) return;
 		let hints: (Filter | null)[] | undefined;
 		const plan = () =>
 			planPush(eqStore.filters, eqStore.preamp, conn.profile, conn.device.capabilities, hints);
 		if (plan().emptySlots > 0) {
 			// Read the preset first, so the bands the list leaves empty keep the device's layout.
 			devicePeqStore.isWriting = true;
-			hints = (await readLayout(conn.device, devicePeqStore.activeSlot)) ?? undefined;
+			const request = readRequest(
+				conn.device.capabilities,
+				devicePeqStore.activeSlot,
+				devicePeqStore.deviceSlot
+			);
+			hints = (await readLayout(conn.device, request)) ?? undefined;
 			devicePeqStore.isWriting = false;
 			if (devicePeqStore.connection !== conn) return;
 		}
@@ -244,23 +314,39 @@
 
 	async function writePlan(plan: PushPlan) {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		const request = writeTarget;
+		if (!conn || !request) return;
+		const snapshot = { filters: eqStore.filters, preamp: eqStore.preamp };
 		devicePeqStore.isWriting = true;
 		try {
-			const slot = devicePeqStore.activeSlot;
 			const result = await conn.device.push({
 				filters: plan.filters,
 				...(plan.preamp !== undefined ? { preamp: plan.preamp } : {}),
-				...(conn.device.capabilities.writesSlot && slot !== null ? { slot } : {})
+				...request
 			});
+			devicePeqStore.synced = snapshot;
+			const count = plan.filters.length - plan.emptySlots;
 			if (result.reconnect) {
 				// The device restarts to save. Its transport is gone; `reopen` finds it again.
 				await conn.device.close().catch(() => {});
 				devicePeqStore.needsReconnect = true;
 				devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
 			} else {
+				// Written to a listed preset while the device sits on a built-in one: switch to it,
+				// so what was written is what plays.
+				const slot = devicePeqStore.activeSlot;
+				if (
+					devicePeqStore.selection === 'other' &&
+					conn.device.capabilities.canEnable &&
+					slot !== null
+				) {
+					await conn.device.setEnabled(true, slot);
+					devicePeqStore.played(slot);
+				}
 				devicePeqStore.setStatus(
-					m.equalizer_device_peq_status_written({ count: plan.filters.length })
+					devicePeqStore.eqEnabled === false
+						? m.equalizer_device_peq_status_written_off({ count })
+						: m.equalizer_device_peq_status_written({ count })
 				);
 			}
 			if (plan.skippedChannel > 0) {
@@ -278,16 +364,35 @@
 		}
 	}
 
-	// ── Presets and the EQ switch ─────────────────────────────────────────────
+	// ── Device EQ ─────────────────────────────────────────────────────────────
 
-	async function setDeviceEq(on: boolean) {
+	/** Switch the device to what the control picked: a preset, the EQ on, or off. */
+	async function chooseEq(value: string) {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
+		const slot = value.startsWith('p')
+			? Number(value.slice(1))
+			: value === 'on'
+				? devicePeqStore.slots[0]?.id
+				: undefined;
+		if (!conn.device.capabilities.canEnable) {
+			// Nothing to switch: the control only picks what Read and Write reach.
+			if (slot !== undefined) devicePeqStore.target(slot);
+			return;
+		}
+		devicePeqStore.isSwitching = true;
 		try {
-			await conn.device.setEnabled(on, on ? (devicePeqStore.activeSlot ?? undefined) : undefined);
-			devicePeqStore.eqEnabled = on;
+			if (value === 'off') {
+				await conn.device.setEnabled(false);
+				devicePeqStore.played('off');
+			} else {
+				await conn.device.setEnabled(true, slot);
+				devicePeqStore.played(slot);
+			}
 		} catch (e) {
 			fail(e, 'switch');
+		} finally {
+			devicePeqStore.isSwitching = false;
 		}
 	}
 </script>
@@ -506,38 +611,64 @@
 					</Button>
 				</div>
 			{:else}
-				{#if devicePeqStore.slots.length > 0 && (caps?.readsSlot || caps?.writesSlot || caps?.canEnable)}
-					<label class="flex items-center gap-2 text-xs text-base-content/70">
-						<span class="shrink-0">{m.equalizer_device_peq_preset()}</span>
-						<select
-							bind:value={devicePeqStore.activeSlot}
-							class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content"
-						>
-							{#each devicePeqStore.slots as slot (slot.id)}
-								<option value={slot.id}>{slot.name}</option>
-							{/each}
-						</select>
-					</label>
-				{/if}
-
-				{#if caps?.canEnable}
-					<Switch
-						size="sm"
-						checked={devicePeqStore.eqEnabled ?? true}
-						onCheckedChange={setDeviceEq}
-						labelText={m.equalizer_device_peq_eq_switch()}
-						labelClass="text-xs text-base-content/70"
-					/>
+				{#if hasPresets}
+					<div class="flex flex-col gap-1">
+						<label class="flex items-center gap-2 text-xs text-base-content/70">
+							<span class="shrink-0">
+								{caps?.canEnable
+									? m.equalizer_device_peq_eq_label()
+									: m.equalizer_device_peq_preset()}
+							</span>
+							<select
+								value={eqValue}
+								disabled={devicePeqStore.isBusy}
+								onchange={(e) => {
+									const select = e.currentTarget;
+									// A failed switch leaves the device as it was: show that again.
+									void chooseEq(select.value).then(() => (select.value = eqValue));
+								}}
+								class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content disabled:opacity-60"
+							>
+								{#each eqOptions as option (option.value)}
+									<option value={option.value} disabled={option.disabled}>{option.label}</option>
+								{/each}
+							</select>
+						</label>
+						<p class="text-xs text-base-content/60">
+							{caps?.canEnable
+								? m.equalizer_device_peq_eq_hint()
+								: m.equalizer_device_peq_preset_hint()}
+						</p>
+					</div>
+				{:else if hasOnOff}
+					<div class="flex flex-col gap-1">
+						<Switch
+							size="sm"
+							bind:checked={
+								() => devicePeqStore.eqEnabled !== false, (on) => void chooseEq(on ? 'on' : 'off')
+							}
+							disabled={devicePeqStore.isBusy}
+							labelText={m.equalizer_device_peq_eq_label()}
+							labelClass="text-xs text-base-content/70"
+						/>
+						<p class="text-xs text-base-content/60">
+							{devicePeqStore.eqEnabled === null
+								? m.equalizer_device_peq_eq_switch_unknown()
+								: m.equalizer_device_peq_eq_switch_hint()}
+						</p>
+					</div>
 				{/if}
 
 				<div class="flex gap-1">
 					{#if caps?.canRead}
 						<Button
-							title={m.equalizer_device_peq_read_title()}
+							title={readTarget
+								? m.equalizer_device_peq_read_title()
+								: m.equalizer_device_peq_unreachable()}
 							variant="outline"
 							size="sm"
 							class="flex-1"
-							disabled={devicePeqStore.isBusy}
+							disabled={devicePeqStore.isBusy || !readTarget}
 							onclick={pullFromDevice}
 						>
 							{devicePeqStore.isReading
@@ -547,11 +678,13 @@
 					{/if}
 					{#if caps?.canWrite}
 						<Button
-							title={m.equalizer_device_peq_write_title()}
+							title={writeTarget
+								? m.equalizer_device_peq_write_title()
+								: m.equalizer_device_peq_unreachable()}
 							variant="primary"
 							size="sm"
 							class="flex-1"
-							disabled={devicePeqStore.isBusy}
+							disabled={devicePeqStore.isBusy || !writeTarget}
 							onclick={pushToDevice}
 						>
 							{devicePeqStore.isWriting
@@ -560,6 +693,16 @@
 						</Button>
 					{/if}
 				</div>
+				{#if caps?.canWrite && (!writeTarget || (caps.canRead && !readTarget))}
+					<p class="text-xs text-base-content/60">{m.equalizer_device_peq_unreachable()}</p>
+				{:else if inSync === true}
+					<p class="flex items-center gap-1 text-xs text-base-content/60">
+						<Check class="h-3.5 w-3.5 text-success" aria-hidden="true" />
+						{m.equalizer_device_peq_synced()}
+					</p>
+				{:else if inSync === false}
+					<p class="text-xs text-base-content/70">{m.equalizer_device_peq_unsynced()}</p>
+				{/if}
 				{#if caps && !caps.canRead}
 					<p class="text-xs text-base-content/60">{m.equalizer_device_peq_write_only()}</p>
 				{/if}

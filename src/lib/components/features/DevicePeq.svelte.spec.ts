@@ -355,8 +355,9 @@ describe('DevicePeq', () => {
 	describe('while connected', () => {
 		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
 
-		async function mountConnected(caps: Partial<PeqCapabilities> = {}) {
+		async function mountConnected(caps: Partial<PeqCapabilities> = {}, current: number | null = 1) {
 			const made = makeConnection({}, caps);
+			made.device.currentSlot.mockResolvedValue(current);
 			connect.connectHid.mockResolvedValue(connected(made.connection));
 			render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
@@ -475,20 +476,87 @@ describe('DevicePeq', () => {
 				.toBeInTheDocument();
 		});
 
-		it('switches the device EQ off through its bypass, and back on to the chosen preset', async () => {
+		it('switches the device to the preset picked under Device EQ, or off', async () => {
 			const device = await mountConnected();
-			await page.getByRole('switch', { name: 'Device EQ' }).click();
-			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false, undefined));
-			await page.getByRole('switch', { name: 'Device EQ' }).click();
-			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 1));
+			const control = page.getByRole('combobox', { name: 'Device EQ' });
+			await expect.element(control).toHaveValue('p1');
+
+			await control.selectOptions('Slot A');
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 0));
+			expect(devicePeqStore.activeSlot).toBe(0);
+
+			await control.selectOptions('Off (EQ bypassed)');
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
+			await expect.element(control).toHaveValue('off');
 		});
 
-		it('picking a preset writes nothing to the device', async () => {
+		it('shows the switch as it was when the device refuses it', async () => {
 			const device = await mountConnected();
-			await page.getByRole('combobox').selectOptions('0');
-			expect(devicePeqStore.activeSlot).toBe(0);
-			expect(device.setEnabled).not.toHaveBeenCalled();
-			expect(device.push).not.toHaveBeenCalled();
+			device.setEnabled.mockRejectedValue(new Error('nope'));
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const control = page.getByRole('combobox', { name: 'Device EQ' });
+			await control.selectOptions('Slot A');
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalled());
+			await expect.element(control).toHaveValue('p1');
+			expect(devicePeqStore.activeSlot).toBe(1);
+		});
+
+		it('only reads and writes the preset the device plays, where it can’t name one', async () => {
+			const device = await mountConnected({ readsSlot: false, writesSlot: false });
+			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+			eqStore.preamp = -1;
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.push.mock.calls[0][0].slot).toBeUndefined();
+
+			// Off sits on the bypass preset: writing now would overwrite it.
+			await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('Off (EQ bypassed)');
+			await expect.element(page.getByText('Write to device', { exact: true })).toBeDisabled();
+			await expect
+				.element(
+					page.getByText('This device can only read and write the preset it is playing.', {
+						exact: false
+					})
+				)
+				.toBeInTheDocument();
+		});
+
+		it('writes a device on a built-in preset to its first memory, and switches to it', async () => {
+			const device = await mountConnected({}, 5);
+			const control = page.getByRole('combobox', { name: 'Device EQ' });
+			await expect.element(control).toHaveValue('other');
+			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+			eqStore.preamp = -1;
+
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 0));
+			expect(device.push.mock.calls[0][0].slot).toBe(0);
+			await expect.element(control).toHaveValue('p0');
+		});
+
+		it('gives a device with one memory an on/off switch, not a preset picker', async () => {
+			const device = await mountConnected({ slots: [{ id: 101, name: 'Custom' }] }, 101);
+			expect(await page.getByRole('combobox').all()).toHaveLength(0);
+			const toggle = page.getByRole('switch', { name: 'Device EQ' });
+			await expect.element(toggle).toBeChecked();
+			await toggle.click();
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
+			await expect.element(toggle).not.toBeChecked();
+			await toggle.click();
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 101));
+		});
+
+		it('says whether the device still has the list', async () => {
+			await mountConnected();
+			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+			eqStore.preamp = -1;
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await expect.element(page.getByText('The device has this EQ')).toBeInTheDocument();
+
+			eqStore.filters = [band(1000, 3)];
+			await expect
+				.element(page.getByText('The list has changed since the last read or write'))
+				.toBeInTheDocument();
 		});
 
 		it('drops the connection and the device constraint on Disconnect', async () => {

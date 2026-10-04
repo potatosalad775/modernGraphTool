@@ -11,6 +11,7 @@
 import { complete, fit, type Filter, type Profile } from '@potatosalad775/eqcaps-core';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { toCapsFilter } from '$lib/utils/eq-constraint.js';
+import type { PresetRequest } from './preset.js';
 import type { PeqCapabilities, PeqDevice } from './types.js';
 
 export type PlanChange =
@@ -112,31 +113,29 @@ export function planPush(
 	};
 }
 
-/**
- * What the preset a push will write holds now, as `planPush` hints, so the bands the push leaves
- * empty keep the device's own frequencies and Qs instead of reading back as neutral fillers. Null
- * when the device can't read that preset (write-only, or it writes a chosen preset it can't read),
- * or the read fails: the push then goes ahead with neutral fillers.
- */
-export async function readLayout(
-	device: Pick<PeqDevice, 'capabilities' | 'pull'>,
-	slot: number | null
-): Promise<(Filter | null)[] | null> {
-	const { canRead, readsSlot, writesSlot } = device.capabilities;
-	const chosen = writesSlot && slot !== null;
-	if (!canRead || (chosen && !readsSlot)) return null;
-	try {
-		return (await device.pull(chosen ? { slot } : {})).filters;
-	} catch (e) {
-		console.warn('Device PEQ: could not read the layout to keep, writing neutral fillers:', e);
-		return null;
-	}
-}
-
 /** Send a preamp when the device takes one we control and the protocol can write it. */
 function sendsPreamp(
 	mode: Profile['preamp']['mode'],
 	capabilities: Pick<PeqCapabilities, 'writesPreamp'>
 ): boolean {
 	return capabilities.writesPreamp && (mode === 'manual' || mode === 'unknown');
+}
+
+/**
+ * What the preset a push will write holds now, as `planPush` hints, so the bands the push leaves
+ * empty keep the device's own frequencies and Qs instead of reading back as neutral fillers.
+ * `request` is `readRequest` for that preset: null when the device can't read it from where it is.
+ * A failed read is null too, and the push goes ahead with neutral fillers.
+ */
+export async function readLayout(
+	device: Pick<PeqDevice, 'pull'>,
+	request: PresetRequest | null
+): Promise<(Filter | null)[] | null> {
+	if (!request) return null;
+	try {
+		return (await device.pull(request)).filters;
+	} catch (e) {
+		console.warn('Device PEQ: could not read the layout to keep, writing neutral fillers:', e);
+		return null;
+	}
 }

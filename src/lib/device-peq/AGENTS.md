@@ -14,6 +14,7 @@ file, not here.
 | ------------------ | --------------------------------------------------------------------- |
 | `connect.ts`       | chooser → `matchDevice` → protocol + profile → `openDevice`; `warmUp` |
 | `push-plan.ts`     | `fit` + `complete` before every write, with the changes the UI shows  |
+| `preset.ts`        | which request reaches the target preset, or none                      |
 | `network.ts`       | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts` | the network device list, without the code that talks to them          |
 | `errors.ts`        | `BridgeError.code` → a user-facing sentence                           |
@@ -53,8 +54,16 @@ needs it at boot); keep it the only one.
 - **The chooser needs the click's user activation.** `warmUp()` (on hover/focus of the connect
   buttons) starts the index load early, and a click waits at most `INDEX_WAIT_MS` for it before
   opening the chooser with the bridge's guessable vendors only.
-- **The bypass preset is an off switch, not a memory.** `devicePeqStore.slots` hides it; the
-  **Device EQ** switch calls `setEnabled`. Picking a preset writes nothing.
+- **Device EQ is what the device plays.** With two or more memories it's one dropdown (the
+  memories plus Off), and picking an entry switches the device (`setEnabled`) at once; with one
+  memory or none (a Walkplay dongle) it's an on/off switch. It replaced a Preset dropdown that
+  only retargeted Read/Write plus an on/off switch that also, invisibly, switched to that
+  preset: you could write a preset the device wasn't playing and hear nothing. The bypass preset
+  is the off switch, not a memory: `devicePeqStore.slots` hides it.
+- **Read and write only the preset they can reach** (`preset.ts`). Protocols without `readsSlot` /
+  `writesSlot` act on whatever the device is on, so `devicePeqStore.deviceSlot` (reported on
+  connect, updated on every switch) must equal the target; otherwise the button is disabled
+  rather than reading the wrong memory or writing over a built-in or bypass preset.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).

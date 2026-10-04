@@ -31,11 +31,20 @@ While a device is connected, its limits are the active [EQ constraint](./equaliz
 
 Profiles that haven't been checked against a real device yet are marked as such, with a **Report wrong limits** link.
 
+## Device EQ
+
+**Device EQ** is what the device plays, and it changes the device as soon as you change it:
+
+- **On a device with several presets**, it's a dropdown of those presets plus **Off (EQ bypassed)**. Picking a preset switches the device to it, and **Read** and **Write** use that preset. If the device is on one of its own built-in presets, the dropdown says so; **Write** then saves to its first editable preset and switches to it.
+- **On a device that keeps a single set of bands** (most dongles), it's an on/off switch. Off bypasses the EQ inside the device; the bands stay saved on it.
+
+Some devices can only read and write the preset they're playing. While they're on another one, or switched off, **Read** and **Write** are unavailable and the panel says why.
+
 ## Reading and writing
 
-- **Read from device** loads the device's EQ into the band list and turns the Equalizer on. On devices with several presets, it reads the one selected under **Preset**.
+- **Read from device** loads the device's EQ into the band list and turns the Equalizer on.
 - **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors' apps do, so reading the device back shows the same layout. Device bands the list doesn't fill are written flat too. On a device that can be read back, the preset is read first, so those bands keep the frequency and Q they already had.
-- **Device EQ** switches the device's EQ off and on, where the device has a switch. Picking a preset doesn't write anything by itself.
+- After a read or a write, the panel shows whether the device still has the band list, or whether you've changed it since.
 
 Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.
 

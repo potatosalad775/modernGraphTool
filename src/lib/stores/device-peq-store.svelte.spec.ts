@@ -88,6 +88,35 @@ describe('devicePeqStore', () => {
 		expect(devicePeqStore.activeSlot).toBe(0);
 	});
 
+	it('shows a device on a preset it doesn’t list as on a built-in one, targeting the first memory', () => {
+		devicePeqStore.setConnected(makeConnection(), 5);
+		expect(devicePeqStore.selection).toBe('other');
+		expect(devicePeqStore.deviceSlot).toBe(5);
+		expect(devicePeqStore.activeSlot).toBe(0);
+	});
+
+	it('shows what the device plays: a memory, off, or unknown', () => {
+		devicePeqStore.setConnected(makeConnection(), 160);
+		expect(devicePeqStore.selection).toBe(160);
+		devicePeqStore.setConnected(makeConnection(), 240);
+		expect(devicePeqStore.selection).toBe('off');
+		devicePeqStore.setConnected(makeConnection(), null);
+		expect(devicePeqStore.selection).toBeNull();
+	});
+
+	it('follows a switch, and forgets what it knew of the old preset', () => {
+		devicePeqStore.setConnected(makeConnection(), 0);
+		devicePeqStore.synced = { filters: [], preamp: 0 };
+		devicePeqStore.played('off');
+		expect(devicePeqStore.selection).toBe('off');
+		expect(devicePeqStore.deviceSlot).toBe(240);
+		expect(devicePeqStore.synced).not.toBeNull();
+		devicePeqStore.played(160);
+		expect(devicePeqStore.selection).toBe(160);
+		expect(devicePeqStore.deviceSlot).toBe(160);
+		expect(devicePeqStore.synced).toBeNull();
+	});
+
 	it('disconnecting clears everything and restores the user’s constraint', () => {
 		eqConstraintsStore.activeId = 'generic-10-band';
 		devicePeqStore.setConnected(makeConnection(), 0);

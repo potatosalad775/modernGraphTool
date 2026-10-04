@@ -3,7 +3,7 @@ import type { EQFilter } from '$lib/utils/equalizer.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { needsConfirmation, planPush, readLayout } from './push-plan.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
-import type { PeqCapabilities, PeqDevice } from './types.js';
+import type { PeqDevice } from './types.js';
 
 const pk = (freq: number, gain: number, extra: Partial<EQFilter> = {}): EQFilter => ({
 	enabled: true,
@@ -145,53 +145,26 @@ describe('planPush with the device’s layout', () => {
 });
 
 describe('readLayout', () => {
-	const CAN_READ: PeqCapabilities = {
-		canRead: true,
-		canWrite: true,
-		readsPreamp: false,
-		readsSlot: true,
-		writesPreamp: true,
-		writesSlot: true,
-		readsCurrentSlot: true,
-		canEnable: false,
-		slots: [],
-		disconnectOnSave: false,
-		experimental: false
-	};
 	const HELD: (Filter | null)[] = [{ type: 'PK', freq: 100, q: 1, gain: 2 }, null];
+	const device = () => ({ pull: vi.fn<PeqDevice['pull']>(async () => ({ filters: HELD })) });
 
-	function device(caps: Partial<PeqCapabilities> = {}) {
-		return {
-			capabilities: { ...CAN_READ, ...caps },
-			pull: vi.fn<PeqDevice['pull']>(async () => ({ filters: HELD }))
-		};
-	}
-
-	it('reads the preset the push will write', async () => {
+	it('reads the preset the request reaches', async () => {
 		const d = device();
-		expect(await readLayout(d, 1)).toEqual(HELD);
+		expect(await readLayout(d, { slot: 1 })).toEqual(HELD);
 		expect(d.pull).toHaveBeenCalledWith({ slot: 1 });
 	});
 
-	it('reads the current preset when the push writes that one', async () => {
-		const d = device({ writesSlot: false });
-		expect(await readLayout(d, 1)).toEqual(HELD);
-		expect(d.pull).toHaveBeenCalledWith({});
-	});
-
-	it('reads nothing from a write-only device, or a chosen preset it can’t read', async () => {
-		for (const caps of [{ canRead: false }, { readsSlot: false }]) {
-			const d = device(caps);
-			expect(await readLayout(d, 1)).toBeNull();
-			expect(d.pull).not.toHaveBeenCalled();
-		}
+	it('reads nothing when the preset can’t be reached', async () => {
+		const d = device();
+		expect(await readLayout(d, null)).toBeNull();
+		expect(d.pull).not.toHaveBeenCalled();
 	});
 
 	it('gives up quietly when the read fails', async () => {
 		const d = device();
 		d.pull.mockRejectedValue(new Error('timeout'));
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		expect(await readLayout(d, 1)).toBeNull();
+		expect(await readLayout(d, {})).toBeNull();
 		warn.mockRestore();
 	});
 });

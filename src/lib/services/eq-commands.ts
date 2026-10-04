@@ -36,7 +36,7 @@ export const EQ_COMMAND_UUID = '__eq__';
  * out makes the coalescer read the edit as a no-op burst and drop it.
  * Normalized because absent and `undefined` are the same bucket.
  */
-function eqFiltersEqual(a: EQFilter, b: EQFilter): boolean {
+export function eqFiltersEqual(a: EQFilter, b: EQFilter): boolean {
 	return (
 		a.enabled === b.enabled &&
 		a.type === b.type &&

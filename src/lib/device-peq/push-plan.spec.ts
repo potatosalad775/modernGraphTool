@@ -67,18 +67,34 @@ describe('planPush', () => {
 		expect(plan.filters).toHaveLength(5);
 	});
 
-	it('sends neither disabled nor per-channel bands, and counts the latter', () => {
+	it('sends a disabled band flat in its own slot, and skips per-channel bands', () => {
 		const plan = planPush(
 			[pk(1000, 3, { enabled: false }), pk(2000, 2, { channel: 'L' }), pk(4000, 1)],
 			-1,
 			FIVE_BAND,
 			WRITES_PREAMP
 		);
-		expect(plan.filters.filter((f) => f.gain !== 0)).toEqual([
+		expect(plan.filters.slice(0, 2)).toEqual([
+			{ type: 'PK', freq: 1000, q: 1, gain: 0 },
 			{ type: 'PK', freq: 4000, q: 1, gain: 1 }
 		]);
+		expect(plan.changes).toEqual([]);
 		expect(plan.skippedChannel).toBe(1);
 		expect(needsConfirmation(plan)).toBe(true);
+	});
+
+	it('writes flat bands as they are, in list order', () => {
+		const bands = [31, 62, 125, 250, 500];
+		const plan = planPush(
+			bands.map((f, i) => pk(f, i === 0 ? 3 : 0, { q: 0.75 })),
+			-3,
+			FIVE_BAND,
+			WRITES_PREAMP
+		);
+		expect(plan.filters.map((f) => [f.freq, f.q, f.gain])).toEqual(
+			bands.map((f, i) => [f, 0.75, i === 0 ? 3 : 0])
+		);
+		expect(needsConfirmation(plan)).toBe(false);
 	});
 
 	it('leaves the preamp out where the protocol can’t write it, and warns of clipping', () => {

@@ -354,6 +354,42 @@ export function conformFilters(filters: EQFilter[], profile: Profile): EQFilter[
 	return kept.map((f, i) => projectFilter(f, profile, slots[i]));
 }
 
+/**
+ * Fill a hardware device's list up to its band count with flat bands, so the list holds one row
+ * per band the device has and a push reads back as it was written. Each new band is a 0 dB PK at
+ * Q 1, at the log centre of the widest gap between the bands already there (or the frequency
+ * range's ends), projected onto its slot. They are appended, so existing rows keep their place.
+ * Software presets and graphic EQs come back unchanged: a preset's cap is a limit, not a layout,
+ * and a graphic fold already has one row per band.
+ */
+export function padToBandCount(filters: EQFilter[], profile: Profile): EQFilter[] {
+	if (profile.kind !== 'hardware' || profile.bandCount === null || isGraphicProfile(profile)) {
+		return filters;
+	}
+	const missing = profile.bandCount - countBandsPerOutput(filters);
+	if (missing <= 0) return filters;
+	const { min, max } = domainBounds(slotOf(profile, 0).freq);
+	const taken = filters.flatMap((f) =>
+		f.freq != null && f.freq > min && f.freq < max ? [f.freq] : []
+	);
+	const added: EQFilter[] = [];
+	for (let n = 0; n < missing; n++) {
+		const edges = [min, ...taken, max].sort((a, b) => a - b);
+		let widest = 0;
+		for (let i = 1; i + 1 < edges.length; i++) {
+			if (edges[i + 1] / edges[i] > edges[widest + 1] / edges[widest]) widest = i;
+		}
+		const freq = Math.sqrt(edges[widest] * edges[widest + 1]);
+		taken.push(freq);
+		added.push({ enabled: true, type: 'PK', freq, q: 1, gain: 0 });
+	}
+	const slots = assignSlots([...filters, ...added], profile);
+	const flat = added
+		.map((f, k) => projectFilter(f, profile, slots[filters.length + k]))
+		.filter((f) => f.gain === 0);
+	return [...filters, ...flat];
+}
+
 const GRAPHIC_FOLD_LOG_THRESHOLD = Math.log(2); // ±1 octave
 
 function foldOntoGraphicBands(filters: EQFilter[], profile: Profile): EQFilter[] {

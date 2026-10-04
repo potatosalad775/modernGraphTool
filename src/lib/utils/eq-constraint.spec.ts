@@ -13,6 +13,7 @@ import {
 	isGraphicProfile,
 	isPastMaxBands,
 	maxBandsOf,
+	padToBandCount,
 	projectFilter,
 	toCapsFilter,
 	toCapsType
@@ -165,6 +166,60 @@ describe('conformFilters', () => {
 
 	it('clamps folded gains to the graphic EQ’s gain range', () => {
 		expect(conformFilters([pk(1000, 30)], GRAPHIC)[1].gain).toBe(10);
+	});
+});
+
+describe('padToBandCount', () => {
+	const DEVICE = hardwareProfile('device', {
+		bandCount: 5,
+		band: {
+			types: ['PK'],
+			freq: { min: 20, max: 20000, step: 1 },
+			q: { min: 0.1, max: 10, step: 0.01 },
+			gain: { min: -12, max: 12, step: 0.5 }
+		}
+	});
+
+	it('appends flat bands in the widest log-frequency gaps until every device band has a row', () => {
+		const out = padToBandCount([pk(1000, 3)], DEVICE);
+		expect(out).toHaveLength(5);
+		expect(out[0]).toEqual(pk(1000, 3));
+		expect(out.slice(1).map((f) => [f.freq, f.q, f.gain])).toEqual([
+			[141, 1, 0],
+			[4472, 1, 0],
+			[53, 1, 0],
+			[376, 1, 0]
+		]);
+	});
+
+	it('counts per output, so per-channel bands leave fewer to add', () => {
+		const filters = [pk(1000, 3), pk(200, 1, 1, { channel: 'L' }), pk(300, 1, 1, { channel: 'R' })];
+		expect(padToBandCount(filters, DEVICE)).toHaveLength(6);
+	});
+
+	it('leaves presets, graphic EQs and full lists alone', () => {
+		const five = [100, 200, 400, 800, 1600].map((f) => pk(f, 1));
+		expect(padToBandCount(five, DEVICE)).toBe(five);
+		expect(padToBandCount([pk(1000, 3)], PARAM)).toHaveLength(1);
+		const graphic = hardwareProfile('geq', {
+			bandCount: 2,
+			band: { types: ['PK'], freq: { value: 100 }, q: { value: 1 }, gain: { min: -6, max: 6 } },
+			bands: [{ index: 1, freq: { value: 1000 } }]
+		});
+		expect(padToBandCount([pk(100, 3)], graphic)).toHaveLength(1);
+	});
+
+	it('adds nothing a slot can only hold active', () => {
+		const noZero = hardwareProfile('no-zero', {
+			bandCount: 3,
+			band: {
+				types: ['PK'],
+				freq: { min: 20, max: 20000 },
+				q: { min: 0.1, max: 10 },
+				gain: { min: 1, max: 6 }
+			}
+		});
+		expect(padToBandCount([pk(1000, 3)], noZero)).toHaveLength(1);
 	});
 });
 

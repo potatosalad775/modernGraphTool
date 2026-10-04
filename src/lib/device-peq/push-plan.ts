@@ -21,7 +21,7 @@ export type PlanChange =
 			wanted: number | string;
 			written: number | string;
 	  }
-	/** The band has no slot left on the device, or its gain projected to 0: not sent. */
+	/** The band has no slot left on the device, or the device's rules left no room for it: not sent. */
 	| { kind: 'dropped'; band: number }
 	| { kind: 'preamp'; wanted: number; written: number };
 
@@ -47,8 +47,9 @@ export function needsConfirmation(plan: PushPlan): boolean {
 /**
  * Plan a push of the app's filter list to a device described by `profile`.
  *
- * Only shared, enabled, complete bands are wanted: a hardware slot has no channel, so an L-only
- * band pushed as is would reach both ears, which is a different EQ from the one on screen.
+ * Only shared, complete bands are wanted: a hardware slot has no channel, so an L-only band pushed
+ * as is would reach both ears, which is a different EQ from the one on screen. A disabled band is
+ * sent flat (0 dB at its own Fc and Q), so it keeps its slot the way vendor apps keep theirs.
  */
 export function planPush(
 	filters: EQFilter[],
@@ -59,8 +60,8 @@ export function planPush(
 	const wanted: Filter[] = [];
 	const bandOf: number[] = [];
 	filters.forEach((f, i) => {
-		if (f.channel != null || !f.enabled) return;
-		const c = toCapsFilter(f);
+		if (f.channel != null) return;
+		const c = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
 		if (!c) return;
 		wanted.push(c);
 		bandOf.push(i + 1);

@@ -30,6 +30,10 @@ needs it at boot); keep it the only one.
   given and refuses what the wire can't carry; it never clamps or pads. This replaced
   `normalizeFiltersForDevice`, which moved out-of-range frequencies to 100 Hz and turned shelves
   into flat peaks with a `console.warn`. Don't reintroduce a silent rewrite anywhere on this path.
+- **A push writes the layout on screen.** A disabled band goes out as 0 dB at its own Fc and Q,
+  and eqcaps' `fit` (≥ 0.2.1) writes 0 dB bands into the slots the active ones leave, as vendor apps
+  do, so a read-back matches the list. Before 0.2.1 they became `complete`'s fillers (log centre of
+  the range, Q 1: nine bands at 632 Hz on a 10-band device). Per-channel bands are still not sent.
 - **Connecting never edits the filters.** `devicePeqStore.setConnected` makes the device's profile
   the active constraint, which only flags what doesn't fit; the user folds it with **Fit**. The old
   connect re-clamped the list from a panel `$effect` (and needed `untrack` to stop it looping).

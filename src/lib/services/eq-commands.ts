@@ -6,7 +6,12 @@ import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
-import { assignSlots, conformFilters, projectFilter } from '$lib/utils/eq-constraint.js';
+import {
+	assignSlots,
+	conformFilters,
+	padToBandCount,
+	projectFilter
+} from '$lib/utils/eq-constraint.js';
 import { countBandsPerOutput } from '$lib/utils/eq-channel.js';
 import type { EqChannelScope } from '$lib/utils/eq-channel.js';
 
@@ -461,12 +466,15 @@ export const eqCommands = {
 	/**
 	 * Fold every existing filter onto the active constraint and push the
 	 * result as one undoable command. Called when the user picks a preset, and
-	 * by "Fit to device" — folds in place rather than rejecting changes.
+	 * by "Fit to device" — folds in place rather than rejecting changes. A
+	 * hardware device's list is also filled up to its band count with flat
+	 * bands, so it holds what the device will after a push.
 	 * Returns whether anything changed.
 	 */
 	reclampToActiveConstraint(): boolean {
 		coalescer.clear();
-		const next = conformFilters(eqStore.filters, eqConstraintsStore.profile);
+		const profile = eqConstraintsStore.profile;
+		const next = padToBandCount(conformFilters(eqStore.filters, profile), profile);
 		// Skip if nothing actually changes.
 		if (
 			next.length === eqStore.filters.length &&

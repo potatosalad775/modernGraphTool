@@ -65,8 +65,10 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
 - **Edits project, bulk changes conform.** `projectFilter` moves one band onto its slot's domains
   (type first, then freq/Q/gain, each resolved against the fields already settled so conditional
   domains apply). `conformFilters` trims to the cap and projects every band — or, for a graphic
-  profile, lays one row per band and takes the nearest source gain within an octave. Neither drops
-  a band for going flat, unlike `fit`; that is the push path's job (`device-peq/push-plan.ts`).
+  profile, lays one row per band and takes the nearest source gain within an octave.
+  `padToBandCount` (Fit only, via `reclampToActiveConstraint`) then fills a **hardware** profile's
+  list up to its band count with flat bands, so the list is what the device holds after a push.
+  Software presets aren't padded: their cap is a limit, not a layout.
 - Bands without a slot from `assign` (inactive, incomplete, disabled) are placed by position, which
   is exact for every uniform profile.
 

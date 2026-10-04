@@ -27,14 +27,14 @@ The full, current device list is in the **About Device PEQ** dialog inside the p
 
 ## The device's limits
 
-While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
+While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. If you have fewer bands than the device, Fit also adds flat (0 dB) bands until there is one row per device band, so the list shows exactly what the device will hold. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
 
 Profiles that haven't been checked against a real device yet are marked as such, with a **Report wrong limits** link.
 
 ## Reading and writing
 
 - **Read from device** loads the device's EQ into the band list and turns the Equalizer on. On devices with several presets, it reads the one selected under **Preset**.
-- **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Unused bands are written flat.
+- **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors' apps do, so reading the device back shows the same layout. Bands the list doesn't fill are written flat.
 - **Device EQ** switches the device's EQ off and on, where the device has a switch. Picking a preset doesn't write anything by itself.
 
 Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.

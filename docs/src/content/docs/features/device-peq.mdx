@@ -34,7 +34,7 @@ Profiles that haven't been checked against a real device yet are marked as such,
 ## Reading and writing
 
 - **Read from device** loads the device's EQ into the band list and turns the Equalizer on. On devices with several presets, it reads the one selected under **Preset**.
-- **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors' apps do, so reading the device back shows the same layout. Bands the list doesn't fill are written flat.
+- **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors' apps do, so reading the device back shows the same layout. Device bands the list doesn't fill are written flat too. On a device that can be read back, the preset is read first, so those bands keep the frequency and Q they already had.
 - **Device EQ** switches the device's EQ off and on, where the device has a switch. Picking a preset doesn't write anything by itself.
 
 Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.

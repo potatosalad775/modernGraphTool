@@ -3,8 +3,14 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { fromCapsFilter, envelopeOf } from '$lib/utils/eq-constraint.js';
-	import { needsConfirmation, planPush, type PushPlan } from '$lib/device-peq/push-plan.js';
+	import {
+		needsConfirmation,
+		planPush,
+		readLayout,
+		type PushPlan
+	} from '$lib/device-peq/push-plan.js';
 	import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
+	import type { Filter } from '@potatosalad775/eqcaps-core';
 	import type { ConnectResult } from '$lib/device-peq/connect.js';
 	import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
 	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
@@ -214,15 +220,25 @@
 		}
 	}
 
-	function pushToDevice() {
+	async function pushToDevice() {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
-		const plan = planPush(eqStore.filters, eqStore.preamp, conn.profile, conn.device.capabilities);
-		if (needsConfirmation(plan)) {
-			pendingPlan = plan;
+		let hints: (Filter | null)[] | undefined;
+		const plan = () =>
+			planPush(eqStore.filters, eqStore.preamp, conn.profile, conn.device.capabilities, hints);
+		if (plan().emptySlots > 0) {
+			// Read the preset first, so the bands the list leaves empty keep the device's layout.
+			devicePeqStore.isWriting = true;
+			hints = (await readLayout(conn.device, devicePeqStore.activeSlot)) ?? undefined;
+			devicePeqStore.isWriting = false;
+			if (devicePeqStore.connection !== conn) return;
+		}
+		const final = plan();
+		if (needsConfirmation(final)) {
+			pendingPlan = final;
 			showPushDialog = true;
 		} else {
-			void writePlan(plan);
+			void writePlan(final);
 		}
 	}
 

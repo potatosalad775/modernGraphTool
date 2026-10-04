@@ -397,6 +397,41 @@ describe('DevicePeq', () => {
 			expect(request.slot).toBe(1);
 		});
 
+		it('keeps the preset’s own bands, flat, where the list leaves them empty', async () => {
+			const device = await mountConnected();
+			device.pull.mockResolvedValue({
+				filters: [31, 62, 125, 250, 500, 1000].map((freq) => ({
+					type: 'PK',
+					freq,
+					q: 0.75,
+					gain: 2
+				}))
+			});
+			eqStore.filters = [band(4000, 3)];
+			eqStore.preamp = -3;
+
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.pull).toHaveBeenCalledWith({ slot: 1 });
+			expect(device.push.mock.calls[0][0].filters.map((f) => [f.freq, f.q, f.gain])).toEqual([
+				[4000, 1, 3],
+				[62, 0.75, 0],
+				[125, 0.75, 0],
+				[250, 0.75, 0],
+				[500, 0.75, 0],
+				[1000, 0.75, 0]
+			]);
+		});
+
+		it('reads nothing before writing a list that fills every band', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+			eqStore.preamp = -1;
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.pull).not.toHaveBeenCalled();
+		});
+
 		it('shows what will change before writing an EQ the device can’t hold', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [band(1000, 15)];

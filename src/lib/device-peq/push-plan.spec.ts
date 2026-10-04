@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
-import { needsConfirmation, planPush } from './push-plan.js';
+import { needsConfirmation, planPush, readLayout } from './push-plan.js';
+import type { Filter } from '@potatosalad775/eqcaps-core';
+import type { PeqCapabilities, PeqDevice } from './types.js';
 
 const pk = (freq: number, gain: number, extra: Partial<EQFilter> = {}): EQFilter => ({
 	enabled: true,
@@ -113,5 +115,83 @@ describe('planPush', () => {
 	it('does not count a band that was flat to begin with as dropped', () => {
 		const plan = planPush([pk(1000, 0), pk(2000, 3)], -3, FIVE_BAND, WRITES_PREAMP);
 		expect(plan.changes.filter((c) => c.kind === 'dropped')).toEqual([]);
+	});
+});
+
+describe('planPush with the device’s layout', () => {
+	it('counts the device bands the list leaves empty', () => {
+		expect(planPush([pk(1000, 3)], 0, FIVE_BAND, WRITES_PREAMP).emptySlots).toBe(4);
+		const full = [100, 200, 400, 800, 1600].map((f) => pk(f, 1));
+		expect(planPush(full, 0, FIVE_BAND, WRITES_PREAMP).emptySlots).toBe(0);
+	});
+
+	it('writes what the device held in each empty band, flat', () => {
+		const held = [31, 62, 125, 250, 500].map((freq): Filter => ({
+			type: 'PK',
+			freq,
+			q: 0.7,
+			gain: 4
+		}));
+		const plan = planPush([pk(1000, 3)], -3, FIVE_BAND, WRITES_PREAMP, held);
+		expect(plan.filters.map((f) => [f.freq, f.q, f.gain])).toEqual([
+			[1000, 1, 3],
+			[62, 0.7, 0],
+			[125, 0.7, 0],
+			[250, 0.7, 0],
+			[500, 0.7, 0]
+		]);
+		expect(needsConfirmation(plan)).toBe(false);
+	});
+});
+
+describe('readLayout', () => {
+	const CAN_READ: PeqCapabilities = {
+		canRead: true,
+		canWrite: true,
+		readsPreamp: false,
+		readsSlot: true,
+		writesPreamp: true,
+		writesSlot: true,
+		readsCurrentSlot: true,
+		canEnable: false,
+		slots: [],
+		disconnectOnSave: false,
+		experimental: false
+	};
+	const HELD: (Filter | null)[] = [{ type: 'PK', freq: 100, q: 1, gain: 2 }, null];
+
+	function device(caps: Partial<PeqCapabilities> = {}) {
+		return {
+			capabilities: { ...CAN_READ, ...caps },
+			pull: vi.fn<PeqDevice['pull']>(async () => ({ filters: HELD }))
+		};
+	}
+
+	it('reads the preset the push will write', async () => {
+		const d = device();
+		expect(await readLayout(d, 1)).toEqual(HELD);
+		expect(d.pull).toHaveBeenCalledWith({ slot: 1 });
+	});
+
+	it('reads the current preset when the push writes that one', async () => {
+		const d = device({ writesSlot: false });
+		expect(await readLayout(d, 1)).toEqual(HELD);
+		expect(d.pull).toHaveBeenCalledWith({});
+	});
+
+	it('reads nothing from a write-only device, or a chosen preset it can’t read', async () => {
+		for (const caps of [{ canRead: false }, { readsSlot: false }]) {
+			const d = device(caps);
+			expect(await readLayout(d, 1)).toBeNull();
+			expect(d.pull).not.toHaveBeenCalled();
+		}
+	});
+
+	it('gives up quietly when the read fails', async () => {
+		const d = device();
+		d.pull.mockRejectedValue(new Error('timeout'));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		expect(await readLayout(d, 1)).toBeNull();
+		warn.mockRestore();
 	});
 });

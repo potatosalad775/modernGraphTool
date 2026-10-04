@@ -3,14 +3,15 @@
  *
  * The bridge writes exactly what it is given — no clamping, padding or type conversion — so every
  * push goes through eqcaps' `fit` (the wanted bands, moved onto the device's slots and domains)
- * and `complete` (every slot filled, unused ones with neutral filters). Whatever `fit` had to
+ * and `complete` (every slot filled: unused ones with what the device held there, written flat,
+ * when it could be read first — `readLayout` — otherwise with neutral filters). Whatever `fit` had to
  * change is listed here, so the UI can show it before writing instead of the device quietly
  * holding a different EQ from the one on screen.
  */
 import { complete, fit, type Filter, type Profile } from '@potatosalad775/eqcaps-core';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { toCapsFilter } from '$lib/utils/eq-constraint.js';
-import type { PeqCapabilities } from './types.js';
+import type { PeqCapabilities, PeqDevice } from './types.js';
 
 export type PlanChange =
 	| {
@@ -37,6 +38,8 @@ export interface PushPlan {
 	clipRisk: boolean;
 	/** Something can't be met at all (a cross-band rule); the result breaks it. */
 	infeasible: boolean;
+	/** Device bands nothing on screen fills: `complete` writes them flat, from `hints` if given. */
+	emptySlots: number;
 }
 
 /** Whether the plan differs from the EQ on screen in a way the user should see first. */
@@ -55,7 +58,8 @@ export function planPush(
 	filters: EQFilter[],
 	preamp: number,
 	profile: Profile,
-	capabilities: Pick<PeqCapabilities, 'writesPreamp'>
+	capabilities: Pick<PeqCapabilities, 'writesPreamp'>,
+	hints?: readonly (Filter | null)[]
 ): PushPlan {
 	const wanted: Filter[] = [];
 	const bandOf: number[] = [];
@@ -98,13 +102,35 @@ export function planPush(
 
 	const boosts = result.slots.some((f) => f !== null && f.gain > 0);
 	return {
-		filters: complete(profile, result.slots).filters,
+		filters: complete(profile, result.slots, hints ? { hints } : {}).filters,
 		...(sendsPreamp(mode, capabilities) ? { preamp: result.preamp } : {}),
 		changes,
 		skippedChannel,
 		clipRisk: boosts && mode !== 'auto' && !sendsPreamp(mode, capabilities),
-		infeasible: !result.feasible
+		infeasible: !result.feasible,
+		emptySlots: profile.bandCount === null ? 0 : result.slots.filter((f) => f === null).length
 	};
+}
+
+/**
+ * What the preset a push will write holds now, as `planPush` hints, so the bands the push leaves
+ * empty keep the device's own frequencies and Qs instead of reading back as neutral fillers. Null
+ * when the device can't read that preset (write-only, or it writes a chosen preset it can't read),
+ * or the read fails: the push then goes ahead with neutral fillers.
+ */
+export async function readLayout(
+	device: Pick<PeqDevice, 'capabilities' | 'pull'>,
+	slot: number | null
+): Promise<(Filter | null)[] | null> {
+	const { canRead, readsSlot, writesSlot } = device.capabilities;
+	const chosen = writesSlot && slot !== null;
+	if (!canRead || (chosen && !readsSlot)) return null;
+	try {
+		return (await device.pull(chosen ? { slot } : {})).filters;
+	} catch (e) {
+		console.warn('Device PEQ: could not read the layout to keep, writing neutral fillers:', e);
+		return null;
+	}
 }
 
 /** Send a preamp when the device takes one we control and the protocol can write it. */

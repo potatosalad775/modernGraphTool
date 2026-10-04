@@ -57,9 +57,9 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.42.0",
-		"@potatosalad775/eqcaps-client": "^0.2.1",
-		"@potatosalad775/eqcaps-core": "^0.2.1",
-		"@potatosalad775/eqcaps-device-bridge": "^0.2.1",
+		"@potatosalad775/eqcaps-client": "^0.2.2",
+		"@potatosalad775/eqcaps-core": "^0.2.2",
+		"@potatosalad775/eqcaps-device-bridge": "^0.2.2",
 		"@potatosalad775/turboeq": "^0.2.0",
 		"bits-ui": "^2.19.0",
 		"d3": "^7.9.0",

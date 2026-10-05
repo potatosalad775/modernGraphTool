@@ -126,7 +126,7 @@
 		'flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none';
 </script>
 
-<PopoverPanel bind:open contentClass="w-72 p-2">
+<PopoverPanel bind:open contentClass="w-72 p-0!">
 	{#snippet trigger({ props })}
 		<Button
 			{...props}
@@ -139,23 +139,25 @@
 		</Button>
 	{/snippet}
 
-	<div class="flex flex-col gap-2">
-		<div class="flex flex-col">
-			<span class="text-xs font-medium text-base-content/80">
-				{m.eq_constraint_select_label()}
-			</span>
-			<span class="truncate text-xs text-base-content/60">
-				{eqConstraintsStore.active.label}
-			</span>
-		</div>
+	<div class="flex flex-col">
+		<div class="flex flex-col gap-2 border-b border-base-content/15 p-2">
+			<div class="flex flex-col">
+				<span class="text-xs font-medium text-base-content/80">
+					{m.eq_constraint_select_label()}
+				</span>
+				<span class="truncate text-xs text-base-content/60">
+					{eqConstraintsStore.active.label}
+				</span>
+			</div>
 
-		<input
-			type="search"
-			bind:value={query}
-			placeholder={m.eq_constraint_search_placeholder()}
-			aria-label={m.eq_constraint_search_placeholder()}
-			class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-none placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
-		/>
+			<input
+				type="search"
+				bind:value={query}
+				placeholder={m.eq_constraint_search_placeholder()}
+				aria-label={m.eq_constraint_search_placeholder()}
+				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-none placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
+			/>
+		</div>
 
 		<div class="max-h-72 overflow-y-auto">
 			{#each groups as group (group.id)}

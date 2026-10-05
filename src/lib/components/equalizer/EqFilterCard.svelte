@@ -260,7 +260,7 @@
 		</Button>
 
 		<!-- Freq — read-only chip where the slot locks it (graphic EQs) -->
-		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
+		<label class="inline-flex flex-3 shrink-0 items-baseline gap-0.5">
 			{#if freqLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -287,7 +287,7 @@
 		</label>
 
 		<!-- Gain -->
-		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
+		<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
 			{#if gainLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -313,10 +313,8 @@
 			<span class="text-[12px] text-base-content/60 select-none">dB</span>
 		</label>
 
-		<span class="text-[12px] text-base-content/60 select-none">-</span>
-
 		<!-- Q — read-only chip where the slot locks it (graphic EQs) -->
-		<label class="inline-flex flex-1 shrink-0 items-baseline gap-0.5">
+		<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
 			<span class="text-[12px] text-base-content/60 select-none">Q</span>
 			{#if qLocked}
 				<span
@@ -342,7 +340,7 @@
 			{/if}
 		</label>
 
-		<div class="flex items-center">
+		<div class="-ml-0.75 flex items-center">
 			<Button
 				title="Expand filter {index + 1} options"
 				onclick={onToggle}
@@ -391,7 +389,7 @@
 			{/if}
 			{#if !typeLocked}
 				<!-- Type selector (segmented buttons) — only the types this slot takes -->
-				<div class="flex rounded-md border border-base-content/20">
+				<div class="-mx-1 mt-1 flex rounded-md border border-base-content/20">
 					{#each typeOptions as [value, label] (value)}
 						<button
 							onclick={() => onUpdate({ type: value })}

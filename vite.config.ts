@@ -127,6 +127,10 @@ export default defineConfig({
 						// every component test silently runs the mobile layout. Default to
 						// desktop and let mobile tests opt in via `page.viewport()`.
 						viewport: { width: 1280, height: 800 },
+						// Vitest 5 made text locators exact by default. The specs were written
+						// against substring matching (a hint inside "Label — hint", a label
+						// inside a longer curve name), so keep it.
+						locators: { exact: false },
 						instances: [{ browser: 'chromium', headless: true }]
 					},
 					// Pins the UI language. Without it the suite renders in whatever

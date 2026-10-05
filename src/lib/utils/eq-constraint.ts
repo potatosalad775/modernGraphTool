@@ -357,10 +357,12 @@ export function conformFilters(filters: EQFilter[], profile: Profile): EQFilter[
 /**
  * Fill a hardware device's list up to its band count with flat bands, so the list holds one row
  * per band the device has and a push reads back as it was written. Each new band is a 0 dB PK at
- * Q 1, at the log centre of the widest gap between the bands already there (or the frequency
- * range's ends), projected onto its slot. They are appended, so existing rows keep their place.
- * Software presets and graphic EQs come back unchanged: a preset's cap is a limit, not a layout,
- * and a graphic fold already has one row per band.
+ * Q 1. The new bands are shared out among the gaps between the bands already there (or the
+ * frequency range's ends), widest gap first, spread evenly in log frequency within each, and moved
+ * to the nearest one-third-octave nominal frequency, so they read 40, 100, 200 Hz rather than
+ * 47, 112, 173. They are appended in ascending order and projected onto their slots, so existing
+ * rows keep their place. Software presets and graphic EQs come back unchanged: a preset's cap is a
+ * limit, not a layout, and a graphic fold already has one row per band.
  */
 export function padToBandCount(filters: EQFilter[], profile: Profile): EQFilter[] {
 	if (profile.kind !== 'hardware' || profile.bandCount === null || isGraphicProfile(profile)) {
@@ -372,22 +374,58 @@ export function padToBandCount(filters: EQFilter[], profile: Profile): EQFilter[
 	const taken = filters.flatMap((f) =>
 		f.freq != null && f.freq > min && f.freq < max ? [f.freq] : []
 	);
-	const added: EQFilter[] = [];
+	const edges = [...new Set([min, ...taken, max])].sort((a, b) => a - b);
+	const counts = edges.slice(1).map(() => 0);
+	const width = (g: number) => Math.log(edges[g + 1] / edges[g]);
 	for (let n = 0; n < missing; n++) {
-		const edges = [min, ...taken, max].sort((a, b) => a - b);
 		let widest = 0;
-		for (let i = 1; i + 1 < edges.length; i++) {
-			if (edges[i + 1] / edges[i] > edges[widest + 1] / edges[widest]) widest = i;
+		for (let g = 1; g < counts.length; g++) {
+			if (width(g) / (counts[g] + 1) > width(widest) / (counts[widest] + 1)) widest = g;
 		}
-		const freq = Math.sqrt(edges[widest] * edges[widest + 1]);
-		taken.push(freq);
-		added.push({ enabled: true, type: 'PK', freq, q: 1, gain: 0 });
+		counts[widest]++;
 	}
+	const added: EQFilter[] = counts.flatMap((count, g) =>
+		spreadNominal(edges[g], edges[g + 1], count).map((freq) => ({
+			enabled: true,
+			type: 'PK' as const,
+			freq,
+			q: 1,
+			gain: 0
+		}))
+	);
 	const slots = assignSlots([...filters, ...added], profile);
 	const flat = added
 		.map((f, k) => projectFilter(f, profile, slots[filters.length + k]))
 		.filter((f) => f.gain === 0);
 	return [...filters, ...flat];
+}
+
+/** ISO 266 one-third-octave nominal frequencies, 10 Hz – 20 kHz. */
+const NOMINAL_FREQS = [
+	10, 12.5, 16, 20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+	1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
+];
+
+/**
+ * `count` frequencies strictly between `lo` and `hi`, ascending: evenly spaced in log frequency,
+ * each moved to the nearest nominal frequency within a third of an octave that keeps the order.
+ * Ties go to the lower one, as in eqcaps' own fillers.
+ */
+function spreadNominal(lo: number, hi: number, count: number): number[] {
+	const out: number[] = [];
+	let prev = lo;
+	for (let k = 1; k <= count; k++) {
+		const target = lo * (hi / lo) ** (k / (count + 1));
+		const distance = (f: number) => Math.abs(Math.log(f / target));
+		let best: number | null = null;
+		for (const f of NOMINAL_FREQS) {
+			if (f <= prev || f >= hi || distance(f) > Math.LN2 / 3) continue;
+			if (best === null || distance(f) < distance(best) - 1e-9) best = f;
+		}
+		prev = best ?? (target > prev ? target : Math.sqrt(prev * hi));
+		out.push(prev);
+	}
+	return out;
 }
 
 const GRAPHIC_FOLD_LOG_THRESHOLD = Math.log(2); // ±1 octave

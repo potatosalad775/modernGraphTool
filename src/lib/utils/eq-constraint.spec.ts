@@ -185,11 +185,26 @@ describe('padToBandCount', () => {
 		expect(out).toHaveLength(5);
 		expect(out[0]).toEqual(pk(1000, 3));
 		expect(out.slice(1).map((f) => [f.freq, f.q, f.gain])).toEqual([
-			[141, 1, 0],
-			[4472, 1, 0],
-			[53, 1, 0],
-			[376, 1, 0]
+			[80, 1, 0],
+			[250, 1, 0],
+			[2500, 1, 0],
+			[8000, 1, 0]
 		]);
+	});
+
+	it('fills an empty list with ascending nominal frequencies', () => {
+		const eight = hardwareProfile('eight', { bandCount: 8, band: DEVICE.band });
+		expect(padToBandCount([], eight).map((f) => f.freq)).toEqual([
+			40, 100, 200, 400, 1000, 2000, 4000, 10000
+		]);
+	});
+
+	it('keeps the order where nominal frequencies run out', () => {
+		const narrow = hardwareProfile('narrow', {
+			bandCount: 3,
+			band: { ...DEVICE.band, freq: { min: 100, max: 140, step: 1 } }
+		});
+		expect(padToBandCount([], narrow).map((f) => f.freq)).toEqual([125, 132, 136]);
 	});
 
 	it('counts per output, so per-channel bands leave fewer to add', () => {

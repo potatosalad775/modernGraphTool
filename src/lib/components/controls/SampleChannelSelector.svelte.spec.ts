@@ -330,7 +330,7 @@ describe('SampleChannelSelector', () => {
 			await openRuns(); // starts open here, so this collapses it
 			await expect
 				.element(page.getByRole('button', { name: /Per-sample curves/ }))
-				.toHaveTextContent('2');
+				.toMatchTextContent('2');
 		});
 	});
 

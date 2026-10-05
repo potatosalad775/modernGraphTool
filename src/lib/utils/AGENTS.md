@@ -72,8 +72,9 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
 - Bands without a slot from `assign` (inactive, incomplete, disabled) are placed by position, which
   is exact for every uniform profile.
 
-`eq-domain-hint.ts` formats a domain for a tooltip. eqcaps' own `describeDomain` is English-only,
-so this one keeps the words in Paraglide.
+`eq-domain-hint.ts` formats a domain for a tooltip, and `limitsSummaryOf` a profile's one-line
+summary (shared by the Device PEQ panel and the band list's constraint row). eqcaps' own
+`describeDomain` is English-only, so this one keeps the words in Paraglide.
 
 ## `fr-parser.ts` / `fr-smoother.ts` / `fr-normalizer.ts` — the FR pipeline
 

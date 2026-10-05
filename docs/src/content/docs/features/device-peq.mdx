@@ -1,10 +1,10 @@
 ---
-title: 'Device PEQ'
+title: 'Hardware EQ'
 ---
 
-Device PEQ reads and writes parametric EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device's own memory and keeps working away from the computer.
+Hardware EQ (formerly Device PEQ) reads and writes EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device's own memory and keeps working away from the computer.
 
-It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](../guide-for-users/equalizing.mdx#device-peq--push-eq-to-hardware).
+It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](../guide-for-users/equalizing.mdx#device-peq).
 
 ## Connecting
 
@@ -17,19 +17,19 @@ It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing 
 | **Bluetooth**  | Web Bluetooth | Select FiiO and Airoha-chipset devices                      |
 | **Network**    | —             | IP-addressable devices such as WiiM streamers and Luxsin X9 |
 
-The browser's device picker only lists devices Device PEQ knows how to drive. Once you pick one, it is looked up in [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each EQ engine accepts — band count, filter types per band, frequency, Q and gain ranges with their step sizes, and the preamp — and how to talk to it.
+The browser's device picker only lists devices Hardware EQ knows how to drive. Once you pick one, it is looked up in [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each EQ engine accepts — band count, filter types per band, frequency, Q and gain ranges with their step sizes, and the preamp — and how to talk to it.
 
 - **Several devices fit.** Some devices report the same identity (a Bluetooth serial port names no device at all). You're asked which one it is.
 - **Shared profile.** Some devices are only known as a family that shares a chipset's firmware. The panel says your exact model isn't listed; the family's limits still apply.
 - **Not in the database.** A device from a known maker is connected on that maker's usual protocol, with limits taken from what the protocol can carry, and marked experimental. A device nothing can drive gets a **Help add it** link to the [eqcaps inspector](https://potatosalad775.github.io/eqcaps/connect), which turns a connected device into a database entry.
 
-The full, current device list is in the **About Device PEQ** dialog inside the panel (**New to Device PEQ?**).
+**Supported devices**, under the connect buttons, opens the [eqcaps catalog](https://potatosalad775.github.io/eqcaps/?kind=hardware): every device and device family in the database, searchable and always current. Network devices aren't in eqcaps; the **Network** connection lists them. The **?** beside the connections says what each one is for.
 
 ## The device's limits
 
 While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. If you have fewer bands than the device, Fit also adds flat (0 dB) bands until there is one row per device band, so the list shows exactly what the device will hold. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
 
-Profiles that haven't been checked against a real device yet are marked as such, with a **Report wrong limits** link.
+When there is something to know about the device's profile — a shared or guessed profile, limits that haven't been checked against a real device yet (with a **Report wrong limits** link), experimental support, a device that can't be read back — an icon appears beside its name. A warning triangle means the limits themselves may be off; click it for the details.
 
 ## Device EQ
 
@@ -44,7 +44,18 @@ Some devices can only read and write the preset they're playing. While they're o
 
 - **Read from device** loads the device's EQ into the band list and turns the Equalizer on.
 - **Write to device** sends the band list. If the device can't hold it exactly as shown — a gain past its range, a band its grid can't place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors' apps do, so reading the device back shows the same layout. Device bands the list doesn't fill are written flat too. On a device that can be read back, the preset is read first, so those bands keep the frequency and Q they already had.
-- After a read or a write, the panel shows whether the device still has the band list, or whether you've changed it since.
+- One status line under the buttons says where things stand: what the last read or write did, and once you edit, that the list has changed since. A failed operation, a paused auto-write or a preset the buttons can't reach takes that line over until it's dealt with.
+
+### Writing automatically
+
+Turn on **Write changes automatically** and the device follows the band list: each change — a dragged band, an AutoEQ run, an undo, an import — is written a moment after you stop editing, even with the Equalizer panel closed. Turning it on writes the current list straight away; connecting a device with it already on writes nothing until you change something.
+
+- If a change would reach the device differently from what's on screen — a value it can't hold, a left- or right-only band — auto-write pauses and offers **Review and write**. It carries on by itself once the list fits again.
+- After switching **Device EQ** to another preset, your next change is written into that preset.
+- If a write fails, auto-write turns itself off until you switch it back on or connect again. The saved setting stays on, so one dropped connection doesn't turn it off for later visits.
+- Devices that restart after every save don't offer it.
+
+Many devices store each write in flash memory, which wears with use. Auto-write sends one write per pause in editing, not one per movement, but it's off by default for that reason.
 
 Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.
 
@@ -56,11 +67,11 @@ Hardware EQ slots have no channel concept. A write sends the **L+R** bands and t
 
 ## Browser support
 
-Device PEQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
+Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
 
 ## Operators
 
-The device database is read from the eqcaps `/v1/` channel on GitHub Pages. `EQUALIZER.EQCAPS_URL` points it at a mirror or a self-hosted copy — see [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). If the database can't be reached, Device PEQ still connects devices from known makers, on their protocol's own limits.
+The device database is read from the eqcaps `/v1/` channel on GitHub Pages. `EQUALIZER.EQCAPS_URL` points it at a mirror or a self-hosted copy — see [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). If the database can't be reached, Hardware EQ still connects devices from known makers, on their protocol's own limits.
 
 ## Acknowledgments
 

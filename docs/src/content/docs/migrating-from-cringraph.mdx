@@ -98,7 +98,7 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
    | `headerLinks = [...]`                                                 | `TOPBAR.LINK_LIST: [...]`                                              |
    | `page_title`, `page_description`                                      | Set in `index.html` `<title>` / `<meta>` (step 6)                      |
    | `themingEnabled`, `alt_layout`, `alt_*` flags                         | Not needed — v2's theme and layout are always on                       |
-   | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Device PEQ             |
+   | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Hardware EQ            |
    | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/`      |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
@@ -147,7 +147,7 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
    - `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` (folder), `extra.css`, any CrinGraph-specific theme CSS
    - `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (keep your own branding images)
    - `90inclusion.js`, audio asset files if they were only used by the old `<audio>` tags
-   - `devicePEQ/` plugin folder — v2 has built-in Device PEQ
+   - `devicePEQ/` plugin folder — v2 has built-in Hardware EQ
    - Old `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
 
    Keep your `data/` folder, your new `config.js`, your new `theme.css`, your favicon/watermark images, and v2's own files.

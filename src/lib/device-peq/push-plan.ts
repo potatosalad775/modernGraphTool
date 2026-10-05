@@ -43,9 +43,18 @@ export interface PushPlan {
 	emptySlots: number;
 }
 
+/**
+ * Whether the plan sends something other than the EQ on screen, so only a reviewed write may send
+ * it. Auto-write pauses on this; clip risk isn't part of it, or every device that takes no preamp
+ * would pause for good.
+ */
+export function needsReview(plan: PushPlan): boolean {
+	return plan.changes.length > 0 || plan.skippedChannel > 0 || plan.infeasible;
+}
+
 /** Whether the plan differs from the EQ on screen in a way the user should see first. */
 export function needsConfirmation(plan: PushPlan): boolean {
-	return plan.changes.length > 0 || plan.skippedChannel > 0 || plan.clipRisk || plan.infeasible;
+	return needsReview(plan) || plan.clipRisk;
 }
 
 /**

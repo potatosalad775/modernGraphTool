@@ -17,6 +17,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
 - `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
+- `device-peq-service.svelte.ts` — Device PEQ read / write / switch, and auto-write; see below
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
@@ -43,6 +44,28 @@ so omitting the field makes the coalescer read a real edit as a no-op burst and 
 
 - It writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is active, otherwise
   keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
+
+## `device-peq-service.svelte.ts` — Device PEQ actions and auto-write
+
+The panel's Read, Write and Device EQ actions, moved out of `DevicePeq.svelte` because auto-write
+has to outlive the panel: an AutoEQ run or a graph drag with the Equalizer closed still reaches the
+device. The panel keeps the review dialog and the controls. One `$effect.root`, installed on connect,
+never disposed.
+
+- **Connecting is a baseline, never an edit.** The effect compares `eqStore.filters` / `preamp` by
+  identity with what it last saw, and a new connection resets that, so a device connecting with
+  auto-write already on is never overwritten until the user changes something.
+- **It never writes what the screen doesn't show.** A plan that `needsReview` (changed values,
+  dropped or per-channel bands, a broken rule) sets `autoPaused` instead; clip risk alone does not,
+  or devices without a preamp could never auto-write. `needsReview` lives in `push-plan.ts` beside
+  `needsConfirmation` (which adds clip risk), so the two can't drift.
+- **A failed write stops auto-write for that connection only** (`devicePeqStore.autoStopped`,
+  cleared by switching it back on or connecting). Don't write it to the saved setting: one dropped
+  Bluetooth packet would turn it off in every later session.
+- **One write in flight, the latest list next.** Edits during a write set `#again`; `inSync` skips
+  writes that would change nothing, which is what stops a Read from echoing back.
+- **The target preset's layout is read once** (`devicePeqStore.layout`, dropped on any preset
+  change), not before every automatic write.
 
 ## `data-provider.svelte.ts`
 

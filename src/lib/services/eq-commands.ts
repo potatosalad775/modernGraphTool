@@ -5,7 +5,7 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import { eqFiltersEqual, type EQFilter } from '$lib/utils/equalizer.js';
 import {
 	assignSlots,
 	conformFilters,
@@ -29,23 +29,6 @@ import type { EqChannelScope } from '$lib/utils/eq-channel.js';
  * change is not user-initiated and shouldn't enter undo history.
  */
 export const EQ_COMMAND_UUID = '__eq__';
-
-/**
- * Full field-wise equality. `channel` has to be in here — retargeting a band
- * from shared to one ear changes nothing else about it, so leaving the field
- * out makes the coalescer read the edit as a no-op burst and drop it.
- * Normalized because absent and `undefined` are the same bucket.
- */
-export function eqFiltersEqual(a: EQFilter, b: EQFilter): boolean {
-	return (
-		a.enabled === b.enabled &&
-		a.type === b.type &&
-		a.freq === b.freq &&
-		a.q === b.q &&
-		a.gain === b.gain &&
-		(a.channel ?? null) === (b.channel ?? null)
-	);
-}
 
 // ─── Update a single filter ──────────────────────────────────────────────────
 

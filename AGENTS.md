@@ -271,7 +271,7 @@ because `ssr` is off, so the page is blank without JavaScript anyway.
 
 All active features are first-class Svelte components in `src/lib/components/features/` and
 `src/lib/components/equalizer/` — **not** separate extensions, and not fork-based: Parametric EQ
-(AutoEQ, live audio preview, import/export), Device PEQ Bridge, Sample Sets, Average Curves, Target
+(AutoEQ, live audio preview, import/export), Hardware EQ, Sample Sets, Average Curves, Target
 Customizer, Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site
 Search, and the squig.link-gated Sponsor Banner / Shop Link.
 

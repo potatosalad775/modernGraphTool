@@ -24,6 +24,23 @@ export interface EQFilter {
 	channel?: 'L' | 'R';
 }
 
+/**
+ * Full field-wise equality. `channel` has to be in here — retargeting a band
+ * from shared to one ear changes nothing else about it, so leaving the field
+ * out makes the coalescer read the edit as a no-op burst and drop it.
+ * Normalized because absent and `undefined` are the same bucket.
+ */
+export function eqFiltersEqual(a: EQFilter, b: EQFilter): boolean {
+	return (
+		a.enabled === b.enabled &&
+		a.type === b.type &&
+		a.freq === b.freq &&
+		a.q === b.q &&
+		a.gain === b.gain &&
+		(a.channel ?? null) === (b.channel ?? null)
+	);
+}
+
 type FreqPoint = [number, number];
 
 interface EqualizerConfig {

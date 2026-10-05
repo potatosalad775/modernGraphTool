@@ -1,7 +1,13 @@
 # Device PEQ
 
-Reads and writes EQ on hardware. Connection state lives in `stores/device-peq-store.svelte.ts`; the
-UI is `components/features/DevicePeq.svelte` (+ `DevicePeqPushDialog`, `DevicePeqInfoDialog`).
+Reads and writes EQ on hardware. Users see it as **Hardware EQ** (the Equalizer panel section, the
+docs page); the code, message keys and the docs slug `features/device-peq` keep the old name, so
+translations and inbound links survive. Don't rename them to match.
+
+Connection state lives in `stores/device-peq-store.svelte.ts`; the actions (read, write, Device EQ, auto-write) in `services/device-peq-service.svelte.ts`, so
+auto-write outlives the panel; the UI is `components/features/DevicePeq.svelte` (+
+`DevicePeqPushDialog`). The supported-device list is the eqcaps inspector's catalog, linked from
+the panel, not a copy kept here.
 
 The protocols are **not here**: USB HID, serial and BLE devices are driven by
 `@potatosalad775/eqcaps-device-bridge`, identified and described by the eqcaps database through
@@ -18,6 +24,7 @@ file, not here.
 | `network.ts`       | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts` | the network device list, without the code that talks to them          |
 | `errors.ts`        | `BridgeError.code` → a user-facing sentence                           |
+| `panel-status.ts`  | the panel's single status line, picked by priority                    |
 | `types.ts`         | `PeqDevice` (a `BridgeDevice` satisfies it), `DeviceConnection`       |
 
 `connect.ts`, `network.ts` and everything they import are reached through dynamic `import()`, so
@@ -64,6 +71,11 @@ needs it at boot); keep it the only one.
   `writesSlot` act on whatever the device is on, so `devicePeqStore.deviceSlot` (reported on
   connect, updated on every switch) must equal the target; otherwise the button is disabled
   rather than reading the wrong memory or writing over a built-in or bypass preset.
+- **The connected panel has one status line**, chosen by `panelStatus` (failure › auto-write
+  paused › unreachable preset › clip risk › sync). Don't add another conditional `<p>` beside it:
+  the old panel stacked one per state and showed "Wrote 6 bands" next to "The device has this EQ".
+  Fixed facts about the profile (shared, guessed, draft, experimental, write-only) go in the
+  device row's popover instead, which renders only when one applies.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).

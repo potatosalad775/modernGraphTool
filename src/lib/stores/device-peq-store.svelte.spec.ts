@@ -117,6 +117,15 @@ describe('devicePeqStore', () => {
 		expect(devicePeqStore.synced).toBeNull();
 	});
 
+	it('drops the last message when Read and Write move to another preset', () => {
+		devicePeqStore.setConnected(makeConnection(), 0);
+		devicePeqStore.setStatus('Wrote 6 band(s) to the device');
+		devicePeqStore.target(0);
+		expect(devicePeqStore.statusMessage).not.toBeNull();
+		devicePeqStore.target(160);
+		expect(devicePeqStore.statusMessage).toBeNull();
+	});
+
 	it('disconnecting clears everything and restores the user’s constraint', () => {
 		eqConstraintsStore.activeId = 'generic-10-band';
 		devicePeqStore.setConnected(makeConnection(), 0);

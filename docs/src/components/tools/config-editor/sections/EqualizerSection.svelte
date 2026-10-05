@@ -59,7 +59,7 @@
 		/>
 	</div>
 	<div class="ceSectionDescription">
-		Where Device PEQ and the constraint picker read device and app EQ limits from: a copy of the
+		Where Hardware EQ and the constraint picker read device and app EQ limits from: a copy of the
 		<a href="https://github.com/potatosalad775/eqcaps" target="_blank" rel="noopener">eqcaps</a>
 		<code>/v1/</code> channel, for a mirror or a self-hosted copy.
 	</div>

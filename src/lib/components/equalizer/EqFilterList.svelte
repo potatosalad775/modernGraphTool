@@ -18,6 +18,7 @@
 	} from '$lib/utils/eq-channel.js';
 	import { formatApoFilters, parseApoFilters } from '$lib/utils/eq-apo.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
+	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
 	import { toast } from 'svelte-sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
@@ -95,6 +96,10 @@
 
 	/** Graphic mode: the band list is fixed, so add/remove/sort/import are no-ops. */
 	const isGraphic = $derived(eqConstraintsStore.isGraphic);
+
+	const limitsSummary = $derived(
+		eqConstraintsStore.isLimiting ? limitsSummaryOf(eqConstraintsStore.profile) : ''
+	);
 
 	function addBand() {
 		const wasEmpty = eqStore.filters.length === 0;
@@ -319,9 +324,14 @@
 		<div
 			class="flex items-center gap-2 rounded-md border border-base-content/15 bg-base-200 px-2 py-1 text-xs"
 		>
-			<span class="min-w-0 flex-1 truncate text-base-content/70">
-				{m.eq_constraint_active({ label: eqConstraintsStore.active.label })}
-			</span>
+			<div class="min-w-0 flex-1">
+				<p class="truncate text-base-content/70">
+					{m.eq_constraint_active({ label: eqConstraintsStore.active.label })}
+				</p>
+				{#if limitsSummary}
+					<p class="truncate text-base-content/50">{limitsSummary}</p>
+				{/if}
+			</div>
 			{#if eqConstraintsStore.violationCount > 0}
 				<Button
 					title={m.eq_constraint_fit_title({ label: eqConstraintsStore.active.label })}

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
-import { needsConfirmation, planPush, readLayout } from './push-plan.js';
+import { needsConfirmation, needsReview, planPush, readLayout } from './push-plan.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { PeqDevice } from './types.js';
 
@@ -103,6 +103,9 @@ describe('planPush', () => {
 		const plan = planPush([pk(1000, 3)], -3, FIVE_BAND, { writesPreamp: false });
 		expect(plan.preamp).toBeUndefined();
 		expect(plan.clipRisk).toBe(true);
+		// Shown before a button write, but not a reason for auto-write to pause.
+		expect(needsConfirmation(plan)).toBe(true);
+		expect(needsReview(plan)).toBe(false);
 	});
 
 	it('trusts a device that sets its own headroom', () => {

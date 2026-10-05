@@ -858,7 +858,7 @@ EQUALIZER: {
 Defaults for the Equalizer panel. See [Equalizer](../features/equalizer.mdx).
 
 - `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active EQ constraint's band cap still applies — a connected 5-band device gets 5.
-- `EQCAPS_URL`: Where [Device PEQ](../features/device-peq.mdx) and the [EQ constraint](../features/equalizer.mdx#eq-constraints) picker read device and app EQ limits from — a copy of the [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` channel. Defaults to the official one on GitHub Pages; set it for a mirror or a self-hosted copy. The URL must serve `index.json` and `profiles/` with CORS. If it can't be reached, the built-in constraints still work and devices from known makers still connect.
+- `EQCAPS_URL`: Where [Hardware EQ](../features/device-peq.mdx) and the [EQ constraint](../features/equalizer.mdx#eq-constraints) picker read device and app EQ limits from — a copy of the [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` channel. Defaults to the official one on GitHub Pages; set it for a mirror or a self-hosted copy. The URL must serve `index.json` and `profiles/` with CORS. If it can't be reached, the built-in constraints still work and devices from known makers still connect.
 
 ### `SQUIGLINK`
 

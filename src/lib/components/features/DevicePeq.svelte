@@ -1,30 +1,23 @@
 <script lang="ts">
 	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { eqCommands, eqFiltersEqual } from '$lib/services/eq-commands.js';
-	import { fromCapsFilter, envelopeOf } from '$lib/utils/eq-constraint.js';
-	import {
-		needsConfirmation,
-		planPush,
-		readLayout,
-		type PushPlan
-	} from '$lib/device-peq/push-plan.js';
-	import { readRequest, writeRequest } from '$lib/device-peq/preset.js';
-	import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
-	import type { Filter } from '@potatosalad775/eqcaps-core';
+	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
+	import { needsConfirmation, type PushPlan } from '$lib/device-peq/push-plan.js';
+	import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
 	import type { ConnectResult } from '$lib/device-peq/connect.js';
 	import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
 	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
 	import * as m from '$lib/paraglide/messages.js';
-	import { toast } from 'svelte-sonner';
-	import { Check, Info } from '@lucide/svelte';
+	import { Check, CircleAlert, Info, TriangleAlert, Unplug } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
-	import DevicePeqInfoDialog from './DevicePeqInfoDialog.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
+	import { panelStatus } from '$lib/device-peq/panel-status.js';
 
 	/** The eqcaps inspector: identifies a device and turns it into a profile. */
 	const INSPECTOR_URL = 'https://potatosalad775.github.io/eqcaps/connect';
+	/** The inspector's catalog, narrowed to hardware: the devices this panel can look up. */
+	const CATALOG_URL = 'https://potatosalad775.github.io/eqcaps/?kind=hardware';
 	const ISSUES_URL = 'https://github.com/potatosalad775/eqcaps/issues/new';
 
 	// ── Feature detection ─────────────────────────────────────────────────────
@@ -54,7 +47,6 @@
 	let showNetworkPanel = $state(false);
 	let networkIP = $state('');
 	let networkDeviceType = $state<NetworkDeviceType>('WiiM');
-	let showInfo = $state(false);
 	/** The device's identity fit several profiles, or none: the user says which it is. */
 	let choice = $state.raw<{
 		candidates: DeviceCandidate[];
@@ -102,6 +94,9 @@
 			(caps.canEnable || caps.readsSlot || caps.writesSlot)
 	);
 	const hasOnOff = $derived(!!caps?.canEnable && devicePeqStore.slots.length <= 1);
+	const eqLabel = $derived(
+		caps?.canEnable ? m.equalizer_device_peq_eq_label() : m.equalizer_device_peq_preset()
+	);
 	const eqValue = $derived.by(() => {
 		const selection = devicePeqStore.selection;
 		if (selection === null) return caps?.canEnable ? 'unknown' : '';
@@ -109,45 +104,37 @@
 		return `p${selection}`;
 	});
 
-	/** Read follows the control: the preset it shows, or whatever unlisted one the device is on. */
-	const readTarget = $derived(
-		caps && devicePeqStore.selection === 'other'
-			? caps.canRead
-				? {}
-				: null
-			: caps
-				? readRequest(caps, devicePeqStore.activeSlot, devicePeqStore.deviceSlot)
-				: null
-	);
-	const writeTarget = $derived(
-		caps ? writeRequest(caps, devicePeqStore.activeSlot, devicePeqStore.deviceSlot) : null
-	);
+	const readTarget = $derived(devicePeqStore.readTarget);
+	const writeTarget = $derived(devicePeqStore.writeTarget);
+	const inSync = $derived(devicePeqStore.inSync);
+	/** Auto-write needs a device that can be written without restarting after each save. */
+	const canAutoWrite = $derived(!!caps?.canWrite && !caps.disconnectOnSave);
 
-	/** Whether the list still matches what was last read from or written to the device. */
-	const inSync = $derived.by(() => {
-		const synced = devicePeqStore.synced;
-		if (!synced) return null;
-		const preampMatters = caps?.writesPreamp ?? false;
-		return (
-			synced.filters.length === eqStore.filters.length &&
-			synced.filters.every((f, i) => eqFiltersEqual(f, eqStore.filters[i])) &&
-			(!preampMatters || synced.preamp === eqStore.preamp)
-		);
-	});
+	const limitsSummary = $derived(connection ? limitsSummaryOf(connection.profile) : '');
 
-	/** "10 bands · -12 to 12 dB" — what the profile allows, at a glance. */
-	const limitsSummary = $derived.by(() => {
-		if (!connection) return '';
-		const gain = envelopeOf(connection.profile, 'gain');
-		return m.equalizer_device_peq_limits({
-			bands: connection.profile.bandCount ?? '∞',
-			min: gain?.min ?? '',
-			max: gain?.max ?? ''
-		});
-	});
+	// ── What's worth knowing about the profile: one popover in the device row ──
 
 	const isDraft = $derived(
 		connection?.profileSource !== 'guess' && connection?.profile.meta.status === 'draft'
+	);
+	/** A guessed device already says it's experimental. */
+	const isExperimental = $derived(!!caps?.experimental && connection?.profileSource !== 'guess');
+	const isWriteOnly = $derived(!!caps && !caps.canRead);
+	/** Limits that may be wrong get a warning; the rest is only worth knowing. */
+	const noticesWarn = $derived(connection?.profileSource === 'guess' || isDraft || isExperimental);
+	const hasNotices = $derived(noticesWarn || connection?.profileSource === 'group' || isWriteOnly);
+
+	/** The one line under Read and Write. */
+	const status = $derived(
+		panelStatus({
+			message: devicePeqStore.statusMessage,
+			messageIsError: devicePeqStore.statusIsError,
+			autoWriting: devicePeqService.autoWriting,
+			autoPaused: devicePeqStore.autoPaused,
+			autoClipRisk: devicePeqStore.autoClipRisk,
+			unreachable: !!caps?.canWrite && (!writeTarget || (caps.canRead && !readTarget)),
+			inSync
+		})
 	);
 
 	const reportUrl = $derived.by(() => {
@@ -215,7 +202,7 @@
 	async function finishConnect(conn: DeviceConnection) {
 		const slot = await conn.device.currentSlot().catch(() => null);
 		devicePeqStore.setConnected(conn, slot);
-		devicePeqStore.setStatus(m.equalizer_device_peq_status_connected({ device: conn.name }));
+		devicePeqService.install();
 	}
 
 	async function connectNetwork() {
@@ -253,169 +240,40 @@
 	// ── Read / write ──────────────────────────────────────────────────────────
 
 	function fail(e: unknown, op: string) {
-		console.error(`Device PEQ ${op} failed:`, e);
-		const message = describeDeviceError(e);
-		devicePeqStore.setStatus(message);
-		toast.error(message);
-		if (isConnectionLost(e) && devicePeqStore.connection) devicePeqStore.needsReconnect = true;
+		devicePeqService.fail(e, op);
 	}
 
-	async function pullFromDevice() {
-		const conn = devicePeqStore.connection;
-		const request = readTarget;
-		if (!conn || !request) return;
-		devicePeqStore.isReading = true;
-		try {
-			const result = await conn.device.pull(request);
-			const bands = result.filters.filter((f) => f !== null);
-			const filters = bands.map(fromCapsFilter).filter((f) => f !== null);
-			eqCommands.replaceFilters(filters);
-			eqCommands.ensureEnabled();
-			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
-			devicePeqStore.setStatus(m.equalizer_device_peq_status_read({ count: filters.length }));
-			if (filters.length < bands.length) {
-				toast.warning(
-					m.equalizer_device_peq_read_skipped({ count: bands.length - filters.length })
-				);
-			}
-		} catch (e) {
-			fail(e, 'read');
-		} finally {
-			devicePeqStore.isReading = false;
-		}
-	}
+	const pullFromDevice = () => devicePeqService.read();
 
+	/** Write now: straight away when the device holds the list exactly, else after a review. */
 	async function pushToDevice() {
-		const conn = devicePeqStore.connection;
-		if (!conn || !writeTarget) return;
-		let hints: (Filter | null)[] | undefined;
-		const plan = () =>
-			planPush(eqStore.filters, eqStore.preamp, conn.profile, conn.device.capabilities, hints);
-		if (plan().emptySlots > 0) {
-			// Read the preset first, so the bands the list leaves empty keep the device's layout.
-			devicePeqStore.isWriting = true;
-			const request = readRequest(
-				conn.device.capabilities,
-				devicePeqStore.activeSlot,
-				devicePeqStore.deviceSlot
-			);
-			hints = (await readLayout(conn.device, request)) ?? undefined;
-			devicePeqStore.isWriting = false;
-			if (devicePeqStore.connection !== conn) return;
-		}
-		const final = plan();
-		if (needsConfirmation(final)) {
-			pendingPlan = final;
+		const plan = await devicePeqService.prepare();
+		if (!plan) return;
+		if (needsConfirmation(plan)) {
+			pendingPlan = plan;
 			showPushDialog = true;
 		} else {
-			void writePlan(final);
+			void devicePeqService.write(plan);
 		}
 	}
 
-	async function writePlan(plan: PushPlan) {
-		const conn = devicePeqStore.connection;
-		const request = writeTarget;
-		if (!conn || !request) return;
-		const snapshot = { filters: eqStore.filters, preamp: eqStore.preamp };
-		devicePeqStore.isWriting = true;
-		try {
-			const result = await conn.device.push({
-				filters: plan.filters,
-				...(plan.preamp !== undefined ? { preamp: plan.preamp } : {}),
-				...request
-			});
-			devicePeqStore.synced = snapshot;
-			const count = plan.filters.length - plan.emptySlots;
-			if (result.reconnect) {
-				// The device restarts to save. Its transport is gone; `reopen` finds it again.
-				await conn.device.close().catch(() => {});
-				devicePeqStore.needsReconnect = true;
-				devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
-			} else {
-				// Written to a listed preset while the device sits on a built-in one: switch to it,
-				// so what was written is what plays.
-				const slot = devicePeqStore.activeSlot;
-				if (
-					devicePeqStore.selection === 'other' &&
-					conn.device.capabilities.canEnable &&
-					slot !== null
-				) {
-					await conn.device.setEnabled(true, slot);
-					devicePeqStore.played(slot);
-				}
-				devicePeqStore.setStatus(
-					devicePeqStore.eqEnabled === false
-						? m.equalizer_device_peq_status_written_off({ count })
-						: m.equalizer_device_peq_status_written({ count })
-				);
-			}
-			if (plan.skippedChannel > 0) {
-				toast.warning(
-					m.eq_channel_device_peq_shared_only({
-						count: eqStore.filters.length - plan.skippedChannel,
-						skipped: plan.skippedChannel
-					})
-				);
-			}
-		} catch (e) {
-			fail(e, 'write');
-		} finally {
-			devicePeqStore.isWriting = false;
-		}
-	}
-
-	// ── Device EQ ─────────────────────────────────────────────────────────────
-
-	/** Switch the device to what the control picked: a preset, the EQ on, or off. */
-	async function chooseEq(value: string) {
-		const conn = devicePeqStore.connection;
-		if (!conn) return;
-		const slot = value.startsWith('p')
-			? Number(value.slice(1))
-			: value === 'on'
-				? devicePeqStore.slots[0]?.id
-				: undefined;
-		if (!conn.device.capabilities.canEnable) {
-			// Nothing to switch: the control only picks what Read and Write reach.
-			if (slot !== undefined) devicePeqStore.target(slot);
-			return;
-		}
-		devicePeqStore.isSwitching = true;
-		try {
-			if (value === 'off') {
-				await conn.device.setEnabled(false);
-				devicePeqStore.played('off');
-			} else {
-				await conn.device.setEnabled(true, slot);
-				devicePeqStore.played(slot);
-			}
-		} catch (e) {
-			fail(e, 'switch');
-		} finally {
-			devicePeqStore.isSwitching = false;
-		}
-	}
+	const writePlan = (plan: PushPlan) => devicePeqService.write(plan);
+	const chooseEq = (value: string) => devicePeqService.choose(value);
 </script>
 
-{#snippet infoButton()}
-	<Button
-		title={m.equalizer_device_peq_info_trigger_label()}
-		variant="ghost"
-		size="icon-xs"
-		class="shrink-0 text-base-content/60 hover:text-base-content"
-		onclick={() => (showInfo = true)}
+{#snippet catalogLink()}
+	<a
+		href={CATALOG_URL}
+		target="_blank"
+		rel="noopener noreferrer"
+		class="self-start text-xs text-primary underline-offset-4 hover:underline"
 	>
-		<Info class="h-4 w-4" />
-	</Button>
+		{m.equalizer_device_peq_supported_devices()}
+	</a>
 {/snippet}
 
 {#if hasDeviceApi}
-	<div class="flex flex-col gap-2">
-		<div class="flex items-center justify-between text-xs text-base-content/60">
-			<span>{m.equalizer_device_peq_info_prompt()}</span>
-			{@render infoButton()}
-		</div>
-
+	<div class="-mb-1 flex flex-col gap-2">
 		{#if !connection}
 			{#if choice}
 				<!-- Several profiles fit this device's identity, or a serial port named none -->
@@ -496,6 +354,18 @@
 						>
 							{m.equalizer_device_peq_connect_network()}
 						</Button>
+						<InfoPopover
+							label={m.info_popover_about({ topic: m.equalizer_device_peq_connections_topic() })}
+							align="end"
+						>
+							<p>{m.equalizer_device_peq_transport_hid()}</p>
+							<p>{m.equalizer_device_peq_transport_serial()}</p>
+							<p>{m.equalizer_device_peq_transport_ble()}</p>
+							<p>{m.equalizer_device_peq_transport_network()}</p>
+
+							<!-- Before a device is picked: whether it is one this panel can drive -->
+							{@render catalogLink()}
+						</InfoPopover>
 					</div>
 				</div>
 
@@ -543,67 +413,97 @@
 					</p>
 				{/if}
 			{/if}
+
+			{#if devicePeqStore.statusMessage}
+				<p class="text-xs text-base-content/70" role="status">{devicePeqStore.statusMessage}</p>
+			{/if}
 		{:else}
-			<!-- Connected -->
+			<!-- The device: what it is, and what's worth knowing about its profile -->
 			<div class="flex items-start justify-between gap-2">
 				<div class="min-w-0">
 					<p class="truncate text-xs font-medium text-base-content">{connection.name}</p>
 					<p class="text-xs text-base-content/60">{limitsSummary}</p>
 				</div>
-				<Button
-					title={m.equalizer_device_peq_disconnect()}
-					variant="outline"
-					size="xs"
-					class="shrink-0 text-error ring-error/40 hover:bg-error/10"
-					onclick={disconnect}
-				>
-					{m.equalizer_device_peq_disconnect()}
-				</Button>
+				<div class="-mr-1 flex shrink-0 items-center">
+					{#if hasNotices}
+						<InfoPopover
+							label={m.info_popover_about({ topic: m.equalizer_device_peq_profile_notes() })}
+							size="sm"
+							align="end"
+						>
+							{#snippet icon()}
+								{#if noticesWarn}
+									<TriangleAlert class="size-4 text-warning" />
+								{:else}
+									<Info class="size-4" />
+								{/if}
+							{/snippet}
+							{#if connection.profileSource === 'guess'}
+								<p>
+									{m.equalizer_device_peq_guess_notice()}
+									<a
+										href={INSPECTOR_URL}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-primary underline-offset-4 hover:underline"
+									>
+										{m.equalizer_device_peq_help_add()}
+									</a>
+								</p>
+							{:else if connection.profileSource === 'group'}
+								<p>{m.equalizer_device_peq_group_notice()}</p>
+							{/if}
+							{#if isDraft}
+								<p>
+									{m.equalizer_device_peq_draft_notice()}
+									{#if reportUrl}
+										<a
+											href={reportUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-primary underline-offset-4 hover:underline"
+										>
+											{m.equalizer_device_peq_report_limits()}
+										</a>
+									{/if}
+								</p>
+							{/if}
+							{#if isExperimental}
+								<p>{m.equalizer_device_peq_experimental()}</p>
+							{/if}
+							{#if isWriteOnly}
+								<p>{m.equalizer_device_peq_write_only()}</p>
+							{/if}
+						</InfoPopover>
+					{/if}
+					<Button
+						title={m.equalizer_device_peq_disconnect()}
+						variant="ghost"
+						size="icon-sm"
+						class="hover:text-error"
+						onclick={disconnect}
+					>
+						<Unplug class="size-4" aria-hidden="true" />
+					</Button>
+				</div>
 			</div>
 
-			{#if connection.profileSource === 'guess'}
-				<p class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs">
-					{m.equalizer_device_peq_guess_notice()}
-					<a
-						href={INSPECTOR_URL}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-primary underline-offset-4 hover:underline"
-					>
-						{m.equalizer_device_peq_help_add()}
-					</a>
-				</p>
-			{:else if connection.profileSource === 'group'}
-				<p class="text-xs text-base-content/60">{m.equalizer_device_peq_group_notice()}</p>
-			{/if}
-			{#if isDraft}
-				<p class="text-xs text-base-content/60">
-					{m.equalizer_device_peq_draft_notice()}
-					{#if reportUrl}
-						<a
-							href={reportUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="text-primary underline-offset-4 hover:underline"
-						>
-							{m.equalizer_device_peq_report_limits()}
-						</a>
-					{/if}
-				</p>
-			{/if}
-			{#if caps?.experimental && connection.profileSource !== 'guess'}
-				<p class="text-xs text-base-content/60">{m.equalizer_device_peq_experimental()}</p>
-			{/if}
-
 			{#if devicePeqStore.needsReconnect}
+				<!-- Nothing below works until the device is back -->
 				<div class="flex items-center justify-between gap-2">
-					<span class="text-xs text-base-content/70">
-						{m.equalizer_device_peq_reconnect_prompt()}
-					</span>
+					<p
+						class="text-xs {devicePeqStore.statusIsError
+							? 'text-base-content'
+							: 'text-base-content/70'}"
+						role="status"
+					>
+						{devicePeqStore.statusMessage ?? m.equalizer_device_peq_reconnect_prompt()}
+					</p>
 					<Button
 						title={m.equalizer_device_peq_reconnect()}
 						variant="primary"
 						size="xs"
+						class="shrink-0"
 						disabled={devicePeqStore.isConnecting}
 						onclick={reconnect}
 					>
@@ -611,37 +511,39 @@
 					</Button>
 				</div>
 			{:else}
-				{#if hasPresets}
-					<div class="flex flex-col gap-1">
-						<label class="flex items-center gap-2 text-xs text-base-content/70">
-							<span class="shrink-0">
-								{caps?.canEnable
-									? m.equalizer_device_peq_eq_label()
-									: m.equalizer_device_peq_preset()}
-							</span>
-							<select
-								value={eqValue}
-								disabled={devicePeqStore.isBusy}
-								onchange={(e) => {
-									const select = e.currentTarget;
-									// A failed switch leaves the device as it was: show that again.
-									void chooseEq(select.value).then(() => (select.value = eqValue));
-								}}
-								class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content disabled:opacity-60"
-							>
-								{#each eqOptions as option (option.value)}
-									<option value={option.value} disabled={option.disabled}>{option.label}</option>
-								{/each}
-							</select>
-						</label>
-						<p class="text-xs text-base-content/60">
-							{caps?.canEnable
-								? m.equalizer_device_peq_eq_hint()
-								: m.equalizer_device_peq_preset_hint()}
-						</p>
-					</div>
-				{:else if hasOnOff}
-					<div class="flex flex-col gap-1">
+				<!-- Device EQ: what the device plays -->
+				<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
+					<legend class="px-1 text-xs text-base-content/60">
+						{m.equalizer_device_peq_hardware_setting()}
+					</legend>
+					{#if hasPresets}
+						<div class="flex items-center gap-1">
+							<label class="flex min-w-0 flex-1 items-center gap-2 text-xs text-base-content/70">
+								<span class="shrink-0">{eqLabel}</span>
+								<select
+									value={eqValue}
+									disabled={devicePeqStore.isBusy}
+									onchange={(e) => {
+										const select = e.currentTarget;
+										// A failed switch leaves the device as it was: show that again.
+										void chooseEq(select.value).then(() => (select.value = eqValue));
+									}}
+									class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content disabled:opacity-60"
+								>
+									{#each eqOptions as option (option.value)}
+										<option value={option.value} disabled={option.disabled}>{option.label}</option>
+									{/each}
+								</select>
+							</label>
+							<InfoPopover label={m.info_popover_about({ topic: eqLabel })} class="-mr-1">
+								<p>
+									{caps?.canEnable
+										? m.equalizer_device_peq_eq_hint()
+										: m.equalizer_device_peq_preset_hint()}
+								</p>
+							</InfoPopover>
+						</div>
+					{:else if hasOnOff}
 						<Switch
 							size="sm"
 							bind:checked={
@@ -650,15 +552,22 @@
 							disabled={devicePeqStore.isBusy}
 							labelText={m.equalizer_device_peq_eq_label()}
 							labelClass="text-xs text-base-content/70"
-						/>
-						<p class="text-xs text-base-content/60">
-							{devicePeqStore.eqEnabled === null
-								? m.equalizer_device_peq_eq_switch_unknown()
-								: m.equalizer_device_peq_eq_switch_hint()}
-						</p>
-					</div>
-				{/if}
+						>
+							<InfoPopover
+								label={m.info_popover_about({ topic: m.equalizer_device_peq_eq_label() })}
+								class="ml-0.5"
+							>
+								<p>
+									{devicePeqStore.eqEnabled === null
+										? m.equalizer_device_peq_eq_switch_unknown()
+										: m.equalizer_device_peq_eq_switch_hint()}
+								</p>
+							</InfoPopover>
+						</Switch>
+					{/if}
+				</fieldset>
 
+				<!-- Sync: Read and Write, auto-write, and one line saying where things stand -->
 				<div class="flex gap-1">
 					{#if caps?.canRead}
 						<Button
@@ -693,37 +602,67 @@
 						</Button>
 					{/if}
 				</div>
-				{#if caps?.canWrite && (!writeTarget || (caps.canRead && !readTarget))}
-					<p class="text-xs text-base-content/60">{m.equalizer_device_peq_unreachable()}</p>
-				{:else if inSync === true}
-					<p class="flex items-center gap-1 text-xs text-base-content/60">
-						<Check class="h-3.5 w-3.5 text-success" aria-hidden="true" />
-						{m.equalizer_device_peq_synced()}
-					</p>
-				{:else if inSync === false}
-					<p class="text-xs text-base-content/70">{m.equalizer_device_peq_unsynced()}</p>
-				{/if}
-				{#if caps && !caps.canRead}
-					<p class="text-xs text-base-content/60">{m.equalizer_device_peq_write_only()}</p>
-				{/if}
-			{/if}
-		{/if}
 
-		<!-- Status message -->
-		{#if devicePeqStore.statusMessage}
-			<p class="text-xs text-base-content/60" role="status">{devicePeqStore.statusMessage}</p>
+				{#if canAutoWrite}
+					<Switch
+						size="sm"
+						bind:checked={
+							() => devicePeqService.autoWriteOn, (on) => devicePeqService.setAutoWrite(on)
+						}
+						labelText={m.equalizer_device_peq_auto_write()}
+						labelClass="text-xs text-base-content/70"
+					>
+						<InfoPopover
+							label={m.info_popover_about({ topic: m.equalizer_device_peq_auto_write() })}
+							class="ml-0.5"
+						>
+							<p>{m.equalizer_device_peq_auto_write_hint()}</p>
+						</InfoPopover>
+					</Switch>
+				{/if}
+
+				<!-- Always rendered: a live region has to exist before its text changes -->
+				<div class="flex items-center gap-2">
+					<p
+						class="flex min-w-0 flex-1 items-start gap-1 text-xs {status?.tone === 'muted'
+							? 'text-base-content/60'
+							: 'text-base-content'}"
+						role="status"
+					>
+						{#if status?.tone === 'success'}
+							<Check class="mt-px size-3.5 shrink-0 text-success" aria-hidden="true" />
+						{:else if status?.tone === 'warning'}
+							<TriangleAlert class="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
+						{:else if status?.tone === 'error'}
+							<CircleAlert class="mt-px size-3.5 shrink-0 text-error" aria-hidden="true" />
+						{/if}
+						<span>{status?.text ?? ''}</span>
+					</p>
+					{#if status?.action === 'review'}
+						<Button
+							title={m.equalizer_device_peq_auto_review()}
+							variant="outline"
+							size="xs"
+							class="shrink-0"
+							disabled={devicePeqStore.isBusy}
+							onclick={pushToDevice}
+						>
+							{m.equalizer_device_peq_auto_review()}
+						</Button>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 {:else}
-	<div class="flex items-start justify-between gap-2">
+	<div class="flex flex-col gap-2">
 		<p class="text-xs text-base-content/60">
 			{m.equalizer_device_peq_incompatible_browser_alert()}
 		</p>
-		{@render infoButton()}
+		{@render catalogLink()}
 	</div>
 {/if}
 
-<DevicePeqInfoDialog bind:open={showInfo} />
 <DevicePeqPushDialog
 	bind:open={showPushDialog}
 	plan={pendingPlan}

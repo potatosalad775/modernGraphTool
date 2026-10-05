@@ -13,7 +13,7 @@ the top of the panel is on. Actions that only make sense with EQ live turn it on
 
 - Importing a filter file
 - Running AutoEQ
-- Pulling filters from a connected device (Device PEQ)
+- Pulling filters from a connected device (Hardware EQ)
 - Adding the **first** band to an empty filter list
 
 Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
@@ -43,7 +43,7 @@ Two things to know:
   natural imbalance. Scoped to one ear it optimizes against that ear's measurement and replaces only
   that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you
   correct imbalance and match a target at the same time.
-- **Device PEQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
+- **Hardware EQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
   sends the shared bands and warns you about the left/right bands it had to skip. The graph, the
   audio preview and file export all carry the full per-channel EQ.
 
@@ -56,7 +56,7 @@ a music player's equalizer, a fixed 10-band graphic EQ. The **constraint** butto
 band list's toolbar picks one:
 
 - **Built-in** — *Default (unlimited)*, which constrains nothing, and a generic 10-band graphic EQ.
-- **Connected device** — the device [Device PEQ](./device-peq.mdx) is connected to, while it is.
+- **Connected device** — the device [Hardware EQ](./device-peq.mdx) is connected to, while it is.
 - **Recently picked**, **Software EQs** and **Hardware** — profiles from
   [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of EQ limits, for planning an
   EQ for an app or a device you don't have plugged in. Profiles not yet checked against the real

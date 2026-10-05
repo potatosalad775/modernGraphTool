@@ -16,7 +16,7 @@ Also available in Squiglink: https://silicagel.squig.link
 - **Parametric Equalizer** — Full PEQ editor with auto EQ generation and audio preview
 - **Target Customizer** — Custom HRTF target curves with tilt, bass, and treble adjustment
 - **squig.link Integration** — Cross-site device search, shop links, and sponsor content
-- **Built-in Device PEQ Bridge** — Write EQ settings directly to 20+ supported devices, originally by jeromeof
+- **Built-in Hardware EQ** — Write EQ settings directly to 20+ supported devices, described by the [eqcaps][EQCAPS] database
 - **Internationalization** — 5+ Language support (See [CONTRIBUTING.md][CONTRIBUTING_I18N] for contribution guide)
 - **Light & Dark Mode** — Colorful UI with operator-customizable theme system
 
@@ -52,11 +52,12 @@ Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 modernGraphTool is open source software licensed under the MIT License.
 
 <sup>The `defaults/` folder contains sample measurement data from the [Squiglink Lab][SQUIGLINK_LAB] project.</sup>  
-<sup>The Device PEQ bridge is based on work by [jeromeof][DEVICE_PEQ].</sup>
+<sup>The hardware EQ bridge is based on [devicePEQ][DEVICE_PEQ] by jeromeof.</sup>
 
 [DOCS]: https://potatosalad775.github.io/modernGraphTool/docs
 [DEPLOY]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/setup-env
 [RELEASE]: https://github.com/potatosalad775/modernGraphTool/releases
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DEVICE_PEQ]: https://github.com/jeromeof/devicePEQ
+[EQCAPS]: https://github.com/potatosalad775/eqcaps
 [CONTRIBUTING_I18N]: CONTRIBUTING.md#translating-no-code-required

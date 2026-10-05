@@ -22,7 +22,10 @@ import {
 } from '$lib/stores/eq-constraints-store.svelte.js';
 import type { ConnectResult } from '$lib/device-peq/connect.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '$lib/device-peq/types.js';
+import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+
+const PROFILE_NOTES = "About this device's profile";
 
 const connect = vi.hoisted(() => ({
 	connectHid: vi.fn(),
@@ -150,6 +153,7 @@ describe('DevicePeq', () => {
 		devicePeqStore.setDisconnected();
 		eqStore.filters = [];
 		eqStore.preamp = 0;
+		settingsStore.devicePeqAutoWrite = false;
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
 		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 	});
@@ -172,6 +176,17 @@ describe('DevicePeq', () => {
 			await expect.element(page.getByRole('button', { name: 'USB serial' })).toBeInTheDocument();
 			await expect.element(page.getByRole('button', { name: 'Bluetooth' })).toBeInTheDocument();
 			await expect.element(page.getByRole('button', { name: 'Network' })).toBeInTheDocument();
+		});
+
+		it('explains the connections and links to the supported devices', async () => {
+			stubApis('hid', 'serial', 'bluetooth');
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'About connection types' }).click();
+			await expect.element(page.getByText(/including Bluetooth serial ports/)).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('link', { name: 'Supported devices' }))
+				.toHaveAttribute('href', 'https://potatosalad775.github.io/eqcaps/?kind=hardware');
 		});
 
 		it('hides the transports the browser lacks', async () => {
@@ -198,9 +213,11 @@ describe('DevicePeq', () => {
 			hideApis('hid', 'serial', 'bluetooth');
 			render(DevicePeq);
 
-			expect(await page.getByRole('button', { name: 'Network' }).all()).toHaveLength(0);
-			// The info trigger is the only button left in this branch.
-			expect(await page.getByRole('button').all()).toHaveLength(1);
+			expect(await page.getByRole('button').all()).toHaveLength(0);
+			// Whether the device would work in another browser is still worth knowing.
+			await expect
+				.element(page.getByRole('link', { name: 'Supported devices' }))
+				.toBeInTheDocument();
 		});
 	});
 
@@ -217,7 +234,7 @@ describe('DevicePeq', () => {
 			await expect
 				.element(page.getByText('Moondrop Dawn Pro', { exact: true }))
 				.toBeInTheDocument();
-			await expect.element(page.getByText('6 bands · -12 to 12 dB')).toBeInTheDocument();
+			await expect.element(page.getByText('6 bands · -12 to +12 dB')).toBeInTheDocument();
 
 			expect(devicePeqStore.isConnected).toBe(true);
 			expect(devicePeqStore.activeSlot).toBe(1);
@@ -284,7 +301,7 @@ describe('DevicePeq', () => {
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect
-				.element(page.getByText("This device isn't in the EQ database yet."))
+				.element(page.getByText("This device isn't in the EQ database."))
 				.toBeInTheDocument();
 			await expect.element(page.getByRole('link', { name: 'Help add it' })).toBeInTheDocument();
 		});
@@ -307,7 +324,16 @@ describe('DevicePeq', () => {
 			);
 			render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
-			await expect.element(page.getByText(/Not in the EQ database/)).toBeInTheDocument();
+			await page.getByRole('button', { name: PROFILE_NOTES }).click();
+			await expect.element(page.getByText(/experimental compatible protocol/)).toBeInTheDocument();
+		});
+
+		it('has nothing to flag about an exact, checked profile', async () => {
+			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
+			render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			expect(await page.getByRole('button', { name: PROFILE_NOTES }).all()).toHaveLength(0);
 		});
 
 		it('offers a wrong-limits report for a draft profile', async () => {
@@ -317,6 +343,7 @@ describe('DevicePeq', () => {
 			connect.connectHid.mockResolvedValue(connected(connection));
 			render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			const link = page.getByRole('link', { name: 'Report wrong limits' });
 			await expect.element(link).toBeInTheDocument();
 			expect(link.element().getAttribute('href')).toContain('profile=moondrop-dawn-pro');
@@ -471,6 +498,7 @@ describe('DevicePeq', () => {
 			expect(
 				await page.getByRole('button', { name: "Replace the band list with the device's EQ" }).all()
 			).toHaveLength(0);
+			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			await expect
 				.element(page.getByText('This device can be written to but not read back.'))
 				.toBeInTheDocument();
@@ -514,7 +542,7 @@ describe('DevicePeq', () => {
 			await expect.element(page.getByText('Write to device', { exact: true })).toBeDisabled();
 			await expect
 				.element(
-					page.getByText('This device can only read and write the preset it is playing.', {
+					page.getByText("This device can only read and write the preset it's using.", {
 						exact: false
 					})
 				)
@@ -546,17 +574,64 @@ describe('DevicePeq', () => {
 			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 101));
 		});
 
+		it('offers auto-write to a device that can take it', async () => {
+			await mountConnected();
+			await expect
+				.element(page.getByRole('switch', { name: 'Write changes automatically' }))
+				.toBeInTheDocument();
+		});
+
+		it('has no auto-write for a device that restarts after every save', async () => {
+			await mountConnected({ disconnectOnSave: true });
+			expect(
+				await page.getByRole('switch', { name: 'Write changes automatically' }).all()
+			).toHaveLength(0);
+		});
+
 		it('says whether the device still has the list', async () => {
 			await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
 			eqStore.preamp = -1;
 			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
-			await expect.element(page.getByText('The device has this EQ')).toBeInTheDocument();
+			// The write's own message stands for "in sync": one line, not two saying the same.
+			const status = page.getByRole('status');
+			await expect.element(status).toHaveTextContent('Wrote 6 band(s) to the device');
+			expect(await page.getByText('The EQ shown matches the device.').all()).toHaveLength(0);
 
 			eqStore.filters = [band(1000, 3)];
 			await expect
-				.element(page.getByText('The list has changed since the last read or write'))
-				.toBeInTheDocument();
+				.element(status)
+				.toHaveTextContent('The EQ has changed since the last read or write.');
+		});
+
+		it('puts a failure above the sync state until the next operation', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+			eqStore.preamp = -1;
+			device.push.mockRejectedValueOnce(
+				Object.assign(new Error('gone'), { name: 'BridgeError', code: 'timeout' })
+			);
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			const status = page.getByRole('status');
+			await expect
+				.element(status)
+				.toHaveTextContent("The device didn't answer. Check the cable and try again.");
+
+			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await expect.element(status).toHaveTextContent('Wrote 6 band(s) to the device');
+		});
+
+		it('offers a reviewed write when auto-write pauses', async () => {
+			await mountConnected();
+			devicePeqStore.autoPaused = true;
+			// Paused only matters while auto-write is on.
+			expect(await page.getByRole('button', { name: 'Review and write' }).all()).toHaveLength(0);
+			settingsStore.devicePeqAutoWrite = true;
+			await expect
+				.element(page.getByRole('status'))
+				.toHaveTextContent("Auto-write paused: some EQ settings don't fit this device.");
+			await expect.element(page.getByRole('button', { name: 'Review and write' })).toBeVisible();
 		});
 
 		it('drops the connection and the device constraint on Disconnect', async () => {

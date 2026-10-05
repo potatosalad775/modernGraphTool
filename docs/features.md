@@ -51,7 +51,7 @@ Every feature is built in — there is nothing to install. These pages explain w
 		description="Parametric EQ with AutoEQ, per-channel bands and audio preview."
 	/>
 	<LinkCard
-		title="Device PEQ"
+		title="Hardware EQ"
 		href="./device-peq/"
 		description="Push your EQ straight into a DAC, dongle or headphone."
 	/>

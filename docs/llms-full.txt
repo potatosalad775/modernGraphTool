@@ -81,7 +81,7 @@ modernGraphTool ships every feature in the same build, each one switchable from 
 
 * **[Equalizer](/modernGraphTool/docs/features/equalizer/)** — interactive parametric EQ, AutoEQ with shelf filters, per-channel bands, undo/redo, a History & Compare panel for A/B-ing revisions, and import/export.
 * **Live audio preview** — play your own audio file, white or pink noise, a test tone or a sine sweep through your EQ.
-* **[Device PEQ](/modernGraphTool/docs/features/device-peq/)** — push filters straight to 20+ hardware devices over USB, Serial, Bluetooth or the network.
+* **[Hardware EQ](/modernGraphTool/docs/features/device-peq/)** — push filters straight to the hardware in the [eqcaps](https://github.com/potatosalad775/eqcaps) device database over USB, Serial, Bluetooth or the network, after showing what the device can’t hold.
 * **[Target Customizer](/modernGraphTool/docs/features/target-customizer/)** — tilt, bass, treble and ear-gain filters on any target, with presets and per-target starting values. Operators can add more filters to the set.
 * **[Preference Bound](/modernGraphTool/docs/features/preference-bound/)**, **[Average Curves](/modernGraphTool/docs/features/average-curves/)**, and multi-sample measurements drawn as averaged, per-run, min/max-band curves, or HpTF range.
 * **[Cross-Site Search](/modernGraphTool/docs/features/cross-site-search/)** and the **[Site Selector](/modernGraphTool/docs/features/site-selector/)** — find a device across every database in the network, and jump between them.
@@ -176,7 +176,7 @@ Beyond the rewrite itself, v2 introduces capabilities that weren’t available i
 * **Interactive EQ** — Create and adjust EQ filters directly on the graph. Click to add a peaking filter, drag to change frequency and gain, scroll to adjust Q, and double-click to remove. The graph shows the EQ response curve and a ghost of the original FR in real-time.
 * **Configurable graph aspect ratio** — Choose between 16:9 or CrinGraph-style proportions via `VISUALIZATION.ASPECT_RATIO`.
 * **Native squig.link integration** — Cross-site search, sponsor banner, shop links, and multi-GA4 analytics are built in and activate automatically on `*.squig.link` domains. No more `squigsites.js` script tag.
-* **Device PEQ (hardware EQ)** — USB-connected hardware EQ devices (via WebHID/WebSerial) are supported out of the box.
+* **Hardware EQ (formerly Device PEQ)** — USB-connected hardware EQ devices (via WebHID/WebSerial) are supported out of the box.
 * **Unified theming** — A single `theme.css` drives both the D3 graph and the surrounding UI, with automatic light/dark mode. The [Theme Generator](/modernGraphTool/docs/theme-generator/) lets you build one visually.
 
 ## Where to Next
@@ -547,7 +547,7 @@ Every feature is built in — there is nothing to install. These pages explain w
 
 [Equalizer](/modernGraphTool/docs/features/equalizer/)Parametric EQ with AutoEQ, per-channel bands and audio preview.
 
-[Device PEQ](/modernGraphTool/docs/features/device-peq/)Push your EQ straight into a DAC, dongle or headphone.
+[Hardware EQ](/modernGraphTool/docs/features/device-peq/)Push your EQ straight into a DAC, dongle or headphone.
 
 [AutoEQ Benchmarks](/modernGraphTool/docs/features/autoeq-benchmarks/)How the AutoEQ optimizer compares on speed and fit quality.
 
@@ -831,41 +831,82 @@ Each URL is tried in order and the first one that returns a valid document wins,
 * Results are capped at 100 per query. When more match, a hint invites the visitor to refine the search.
 * The index is fetched once, lazily, the first time a visitor types at least two characters — it costs nothing for visitors who never search.
 
-# Device PEQ
+# Hardware EQ
 
-Device PEQ reads and writes parametric EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device’s own memory and keeps working away from the computer.
+Hardware EQ (formerly Device PEQ) reads and writes EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device’s own memory and keeps working away from the computer.
 
-It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#device-peq--push-eq-to-hardware).
+It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#device-peq).
 
-## Connections
+## Connecting
+
+**Connect USB device** is the way in for most dongles and DACs. The other connections sit right under it:
 
 | Connection     | Browser API   | Examples                                                    |
 | -------------- | ------------- | ----------------------------------------------------------- |
-| **USB HID**    | WebHID        | FiiO, Moondrop and KTMicro dongles, DAC/amps                |
-| **USB Serial** | Web Serial    | JDS Labs, Nothing, EarFun, and more                         |
+| **USB**        | WebHID        | FiiO, Moondrop, Walkplay and KT Micro dongles, DAC/amps     |
+| **USB serial** | Web Serial    | JDS Labs, Nothing, FiiO, and Bluetooth serial ports         |
 | **Bluetooth**  | Web Bluetooth | Select FiiO and Airoha-chipset devices                      |
 | **Network**    | —             | IP-addressable devices such as WiiM streamers and Luxsin X9 |
 
-The full, current device list is in the **About Device PEQ** dialog inside the panel (**New to Device PEQ?**).
+The browser’s device picker only lists devices Hardware EQ knows how to drive. Once you pick one, it is looked up in [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each EQ engine accepts — band count, filter types per band, frequency, Q and gain ranges with their step sizes, and the preamp — and how to talk to it.
 
-## Browser support
+* **Several devices fit.** Some devices report the same identity (a Bluetooth serial port names no device at all). You’re asked which one it is.
+* **Shared profile.** Some devices are only known as a family that shares a chipset’s firmware. The panel says your exact model isn’t listed; the family’s limits still apply.
+* **Not in the database.** A device from a known maker is connected on that maker’s usual protocol, with limits taken from what the protocol can carry, and marked experimental. A device nothing can drive gets a **Help add it** link to the [eqcaps inspector](https://potatosalad775.github.io/eqcaps/connect), which turns a connected device into a database entry.
 
-Device PEQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
+**Supported devices**, under the connect buttons, opens the [eqcaps catalog](https://potatosalad775.github.io/eqcaps/?kind=hardware): every device and device family in the database, searchable and always current. Network devices aren’t in eqcaps; the **Network** connection lists them. The **?** beside the connections says what each one is for.
 
-## Pushing and pulling
+## The device’s limits
 
-* **Push** writes the current filter list to the device, into the selected slot on devices that have several.
-* **Pull** reads the device’s current filters into the filter list and turns the Equalizer on.
+While a device is connected, its limits are the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). Connecting never changes your bands: the ones the device can’t hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. If you have fewer bands than the device, Fit also adds flat (0 dB) bands until there is one row per device band, so the list shows exactly what the device will hold. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
 
-While a device is connected, its limits — band count, gain range, and whether it accepts shelf filters — become the active EQ constraint, so hand edits and AutoEQ produce something the device can hold. A 5-band device gets a 5-band AutoEQ.
+When there is something to know about the device’s profile — a shared or guessed profile, limits that haven’t been checked against a real device yet (with a **Report wrong limits** link), experimental support, a device that can’t be read back — an icon appears beside its name. A warning triangle means the limits themselves may be off; click it for the details.
+
+## Device EQ
+
+**Device EQ** is what the device plays, and it changes the device as soon as you change it:
+
+* **On a device with several presets**, it’s a dropdown of those presets plus **Off (EQ bypassed)**. Picking a preset switches the device to it, and **Read** and **Write** use that preset. If the device is on one of its own built-in presets, the dropdown says so; **Write** then saves to its first editable preset and switches to it.
+* **On a device that keeps a single set of bands** (most dongles), it’s an on/off switch. Off bypasses the EQ inside the device; the bands stay saved on it.
+
+Some devices can only read and write the preset they’re playing. While they’re on another one, or switched off, **Read** and **Write** are unavailable and the panel says why.
+
+## Reading and writing
+
+* **Read from device** loads the device’s EQ into the band list and turns the Equalizer on.
+* **Write to device** sends the band list. If the device can’t hold it exactly as shown — a gain past its range, a band its grid can’t place, more bands than it has — you first see what will change, band by band, and nothing is written until you confirm. Flat and disabled bands are written as 0 dB at their own frequency and Q, as the vendors’ apps do, so reading the device back shows the same layout. Device bands the list doesn’t fill are written flat too. On a device that can be read back, the preset is read first, so those bands keep the frequency and Q they already had.
+* One status line under the buttons says where things stand: what the last read or write did, and once you edit, that the list has changed since. A failed operation, a paused auto-write or a preset the buttons can’t reach takes that line over until it’s dealt with.
+
+### Writing automatically
+
+Turn on **Write changes automatically** and the device follows the band list: each change — a dragged band, an AutoEQ run, an undo, an import — is written a moment after you stop editing, even with the Equalizer panel closed. Turning it on writes the current list straight away; connecting a device with it already on writes nothing until you change something.
+
+* If a change would reach the device differently from what’s on screen — a value it can’t hold, a left- or right-only band — auto-write pauses and offers **Review and write**. It carries on by itself once the list fits again.
+* After switching **Device EQ** to another preset, your next change is written into that preset.
+* If a write fails, auto-write turns itself off until you switch it back on or connect again. The saved setting stays on, so one dropped connection doesn’t turn it off for later visits.
+* Devices that restart after every save don’t offer it.
+
+Many devices store each write in flash memory, which wears with use. Auto-write sends one write per pause in editing, not one per movement, but it’s off by default for that reason.
+
+Some devices restart to save what they’re sent. The panel then offers **Reconnect**, which finds the device again without the browser’s picker.
+
+The preamp goes to devices that take one. A device that can’t lower its own level gets a clipping warning when the bands boost.
 
 Shared bands only
 
-Hardware EQ slots have no channel concept. A push sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](/modernGraphTool/docs/features/equalizer/#per-channel-eq).
+Hardware EQ slots have no channel concept. A write sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](/modernGraphTool/docs/features/equalizer/#per-channel-eq).
+
+## Browser support
+
+Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
+
+## Operators
+
+The device database is read from the eqcaps `/v1/` channel on GitHub Pages. `EQUALIZER.EQCAPS_URL` points it at a mirror or a self-hosted copy — see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer). If the database can’t be reached, Hardware EQ still connects devices from known makers, on their protocol’s own limits.
 
 ## Acknowledgments
 
-Device PEQ is built on the [devicePEQ project by jeromeof](https://github.com/jeromeof/devicePEQ) (0BSD license).
+Device protocols come from the [devicePEQ project by jeromeof](https://github.com/jeromeof/devicePEQ) (0BSD license), by way of the eqcaps device bridge.
 
 # Equalizer
 
@@ -879,7 +920,7 @@ Nothing in the panel reaches the graph or the audio player until the master **Eq
 
 * Importing a filter file
 * Running AutoEQ
-* Pulling filters from a connected device (Device PEQ)
+* Pulling filters from a connected device (Hardware EQ)
 * Adding the **first** band to an empty filter list
 
 Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you.
@@ -898,15 +939,32 @@ What each ear actually plays is *shared + that ear’s own bands*. The preamp is
 Two things to know:
 
 * **AutoEQ follows the switch.** In **L+R** it optimizes against the average, preserving the unit’s natural imbalance. Scoped to one ear it optimizes against that ear’s measurement and replaces only that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you correct imbalance and match a target at the same time.
-* **Device PEQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device sends the shared bands and warns you about the left/right bands it had to skip. The graph, the audio preview and file export all carry the full per-channel EQ.
+* **Hardware EQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device sends the shared bands and warns you about the left/right bands it had to skip. The graph, the audio preview and file export all carry the full per-channel EQ.
 
 See [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#per-channel-eq-l--r) for the workflow.
+
+## EQ constraints
+
+An EQ constraint limits the band list to what a particular EQ engine accepts — a DAC’s hardware EQ, a music player’s equalizer, a fixed 10-band graphic EQ. The **constraint** button at the end of the band list’s toolbar picks one:
+
+* **Built-in** — *Default (unlimited)*, which constrains nothing, and a generic 10-band graphic EQ.
+* **Connected device** — the device [Hardware EQ](/modernGraphTool/docs/features/device-peq/) is connected to, while it is.
+* **Recently picked**, **Software EQs** and **Hardware** — profiles from [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of EQ limits, for planning an EQ for an app or a device you don’t have plugged in. Profiles not yet checked against the real thing are marked *draft*. The database is fetched the first time the picker opens; the built-ins work without it.
+
+A constraint can do more than cap the band count. Each band slot has its own filter types and its own frequency, Q and gain range — a device whose first band is a low shelf from 20 to 300 Hz, say — and ranges can be stepped (gain in 0.5 dB steps) or a list of allowed values. The band list follows the slot each band sits in: number boxes and sliders span its range and step by its grid, only its filter types are offered, and a value it fixes is shown read-only. Hover a box to see what is allowed.
+
+* **Picking a constraint** folds the bands onto it, as one undoable step: values move to the nearest allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band.
+* **Connecting a device** doesn’t touch the bands. Whatever the device can’t hold is marked, and **Fit** in the bar above the list folds them when you choose to.
+* **Editing** snaps each value onto what its slot allows, as you type or drag.
+* While a constraint is active, a bar above the band list names it; its **×** returns to unlimited.
+
+Importing a filter file switches back to *Default (unlimited)* first, so the file lands as written.
 
 ## AutoEQ band count
 
 **Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before running is how you ask for a five-band result. With an empty list it falls back to **8** bands.
 
-Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer). Either way, the active constraint preset’s band cap wins: a connected 5-band device gets 5, and a preset with no cap at all is held to 32.
+Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer). Either way, the active [constraint](#eq-constraints)’s band cap wins: a connected 5-band device gets 5, and a constraint with no cap at all is held to 32. AutoEQ also stays inside the constraint’s frequency, Q and gain ranges, gives the shelves their own gain range where the constraint does, and leaves the shelves out where it has no slot for them.
 
 The count is the total. With **Use shelf filters** on, two of those bands are the low and high shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped, because spending the whole budget on them corrects nothing but overall tilt.
 
@@ -1966,12 +2024,14 @@ Adds a per-curve download button to the selection list. Exports the curve exactl
 ```javascript
 EQUALIZER: {
   AUTOEQ_DEFAULT_BAND_COUNT: 8,
+  EQCAPS_URL: 'https://potatosalad775.github.io/eqcaps/v1/',
 },
 ```
 
 Defaults for the Equalizer panel. See [Equalizer](/modernGraphTool/docs/features/equalizer/).
 
-* `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active constraint preset’s band cap still applies — a connected 5-band device gets 5.
+* `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active EQ constraint’s band cap still applies — a connected 5-band device gets 5.
+* `EQCAPS_URL`: Where [Hardware EQ](/modernGraphTool/docs/features/device-peq/) and the [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints) picker read device and app EQ limits from — a copy of the [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` channel. Defaults to the official one on GitHub Pages; set it for a mirror or a self-hosted copy. The URL must serve `index.json` and `profiles/` with CORS. If it can’t be reached, the built-in constraints still work and devices from known makers still connect.
 
 ### `SQUIGLINK`
 
@@ -3350,7 +3410,7 @@ src/
 │   ├── stores/          # Reactive state as class instances (.svelte.ts)
 │   ├── services/        # Data provider, commands, cross-site index, audio, analytics
 │   ├── graph/           # D3.js graph engine and overlays
-│   ├── device-peq/      # Hardware EQ transports and per-device handlers
+│   ├── device-peq/      # Hardware EQ: connect flow over the eqcaps bridge, push plans
 │   ├── workers/         # AutoEQ off the main thread (turboEQ wasm + fallback)
 │   ├── utils/           # Parsing, normalization, smoothing, URL encoding, config
 │   ├── types/           # TypeScript type definitions
@@ -3403,13 +3463,13 @@ Most specs drive stores and services directly. Component specs mount with `rende
 
 Where the gotchas are documented
 
-Layer-specific testing traps live next to the code, in per-directory `AGENTS.md` files — component and boot-test traps in `src/lib/components/`, d3/rAF traps in `src/lib/graph/`, and the fake-device fixtures in `src/lib/device-peq/`. They are kept there rather than here so they stay accurate as the code moves.
+Layer-specific testing traps live next to the code, in per-directory `AGENTS.md` files — component and boot-test traps in `src/lib/components/`, d3/rAF traps in `src/lib/graph/`, and the connect-flow mocking pattern in `src/lib/device-peq/`. They are kept there rather than here so they stay accurate as the code moves.
 
 ## Coverage
 
 The configuration lives in `vite.config.ts` under `test.coverage`, and two settings there are load-bearing:
 
-* **The `include` glob covering all of `src`** is what makes files that no test imports count at all. Without it the \~25 `device-peq/handlers` and `connectors` modules vanish from the denominator entirely rather than showing as the 0% they were, which made the reported number about 10 points optimistic. (Vitest 4 removed the old `coverage.all` flag — `include` now does that job, and passing `all` is a type error.)
+* **The `include` glob covering all of `src`** is what makes files that no test imports count at all. Without it an untested module vanishes from the denominator rather than showing as the 0% it is — the \~25 device handler and connector modules that lived in `device-peq/` before the eqcaps bridge replaced them made the reported number about 10 points optimistic that way. (Vitest 4 removed the old `coverage.all` flag — `include` now does that job, and passing `all` is a type error.)
 * **`exclude` omits the Paraglide output.** `src/lib/paraglide/` is generated by the Paraglide Vite plugin and is gitignored; counting it added \~3800 machine-written statements — a third of the total — and dragged the figure well below what the hand-written source actually is. `src/lib/types/**` (type-only) and `src/routes/**` (shells covered by the boot tests) are excluded for the same “not meaningfully coverable” reason.
 
 `thresholds` is a ratchet, not a target
@@ -3437,7 +3497,7 @@ Two things to keep in mind when extending it:
 
 The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in its system config, so before `.gitattributes` pinned every text file to `eol=lf`, the same commit was Prettier-clean on macOS and dirty on Windows. The **Working tree must be clean** step guards against that regressing: it fails if a checkout plus install leaves anything modified, or if CRLF ever reaches the index.
 
-`npm run lint` must exit 0. ESLint *warnings* (mostly device-peq protocol constants kept for reference) do not fail the build. Rule overrides live in `eslint.config.js` and each carries a comment explaining why — notably `no-useless-assignment` is off for `*.svelte` because it misreads `$bindable()` prop defaults, and `no-explicit-any` is off under `docs/` because the config migration tool parses arbitrary operator-authored config.
+`npm run lint` must exit 0. ESLint *warnings* do not fail the build. Rule overrides live in `eslint.config.js` and each carries a comment explaining why — notably `no-useless-assignment` is off for `*.svelte` because it misreads `$bindable()` prop defaults, and `no-explicit-any` is off under `docs/` because the config migration tool parses arbitrary operator-authored config.
 
 # Guide for Users
 
@@ -3535,7 +3595,7 @@ One more page: [FAQ](/modernGraphTool/docs/guide-for-users/faq/).
 
 # Equalizing audio
 
-> An overview of the Equalizer panel — parametric filters, AutoEQ, audio preview, and hardware device PEQ.
+> An overview of the Equalizer panel — parametric filters, AutoEQ, audio preview, and hardware EQ.
 
 The **Equalizer panel** lets you design a parametric EQ, preview it with real audio, and optionally send it to a compatible hardware device. This page is the user-guide-level introduction. The full feature reference lives at [Equalizer](/modernGraphTool/docs/features/equalizer/), and hardware bridging is documented at [Device PEQ](/modernGraphTool/docs/features/device-peq/).
 
@@ -3552,7 +3612,7 @@ Opening the Equalizer panel (third menu icon, or press **3** on desktop) shows y
 * A **master enable switch** at the top — flip it off to temporarily disable the whole EQ without losing your filters.
 * A **phone/target selector** next to the switch — tells the EQ which loaded curve to modify.
 * A **filter list** — the actual EQ bands, headed by a **channel switch** (**L+R**, **L** or **R**) that chooses which ear the list edits.
-* Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Device PEQ**.
+* Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Hardware EQ**.
 
 ## Building an EQ by hand
 
@@ -3627,11 +3687,13 @@ The player uses the Web Audio API, so CPU usage goes up slightly while it’s ru
 
 Playback continues across panel switches — switching to the Graph or Device panel won’t stop the audio. Return to the Equalizer panel and use the player’s stop button when you’re done.
 
-## Device PEQ — push EQ to hardware
+## Hardware EQ — push EQ to a device
 
-Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device’s own EQ memory, or pull the device’s current EQ into the filter list. Unplug your computer and the EQ stays loaded.
+Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Hardware EQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device’s own EQ memory, or pull the device’s current EQ into the filter list. Unplug your computer and the EQ stays loaded.
 
-It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Device PEQ](/modernGraphTool/docs/features/device-peq/).
+Once connected, the device’s limits — band count, gain range and so on — become the EQ constraint: bands it can’t hold are marked, and before anything is written you see what the device will actually get.
+
+It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Hardware EQ](/modernGraphTool/docs/features/device-peq/).
 
 ## Import and export
 
@@ -3719,7 +3781,7 @@ If you boost a frequency by +6 dB digitally, the whole signal is 6 dB closer to 
 
 ### Can I send an EQ directly to my DAC/headphone hardware?
 
-If the device is supported, yes — open the **Device PEQ** section inside the Equalizer panel. It needs a Chromium-based browser (Chrome, Edge or Opera); Safari and Firefox don’t support the underlying Web APIs at all. Full details, including a list of supported devices, at [Device PEQ](/modernGraphTool/docs/features/device-peq/).
+If the device is supported, yes — open the **Hardware EQ** section inside the Equalizer panel. It needs a Chromium-based browser (Chrome, Edge or Opera); Safari and Firefox don’t support the underlying Web APIs at all. Full details, including a list of supported devices, at [Hardware EQ](/modernGraphTool/docs/features/device-peq/).
 
 ## squig.link
 
@@ -4573,7 +4635,7 @@ If your fork isn’t listed here, it almost certainly behaves like one of these 
    | `headerLinks = [...]`                                                 | `TOPBAR.LINK_LIST: [...]`                                              |
    | `page_title`, `page_description`                                      | Set in `index.html` `<title>` / `<meta>` (step 6)                      |
    | `themingEnabled`, `alt_layout`, `alt_*` flags                         | Not needed — v2’s theme and layout are always on                       |
-   | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Device PEQ             |
+   | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Hardware EQ            |
    | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/`      |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
@@ -4622,7 +4684,7 @@ If your fork isn’t listed here, it almost certainly behaves like one of these 
    * `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` (folder), `extra.css`, any CrinGraph-specific theme CSS
    * `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (keep your own branding images)
    * `90inclusion.js`, audio asset files if they were only used by the old `<audio>` tags
-   * `devicePEQ/` plugin folder — v2 has built-in Device PEQ
+   * `devicePEQ/` plugin folder — v2 has built-in Hardware EQ
    * Old `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
 
    Keep your `data/` folder, your new `config.js`, your new `theme.css`, your favicon/watermark images, and v2’s own files.

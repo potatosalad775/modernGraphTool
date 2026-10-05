@@ -21,7 +21,7 @@ the top of the panel is on. Actions that only make sense with EQ live turn it on
 
 - Importing a filter file
 - Running AutoEQ
-- Pulling filters from a connected device (Device PEQ)
+- Pulling filters from a connected device (Hardware EQ)
 - Adding the **first** band to an empty filter list
 
 Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
@@ -51,11 +51,40 @@ Two things to know:
   natural imbalance. Scoped to one ear it optimizes against that ear's measurement and replaces only
   that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you
   correct imbalance and match a target at the same time.
-- **Device PEQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
+- **Hardware EQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
   sends the shared bands and warns you about the left/right bands it had to skip. The graph, the
   audio preview and file export all carry the full per-channel EQ.
 
 See [Equalizing audio](../guide-for-users/equalizing.mdx#per-channel-eq-l--r) for the workflow.
+
+## EQ constraints
+
+An EQ constraint limits the band list to what a particular EQ engine accepts — a DAC's hardware EQ,
+a music player's equalizer, a fixed 10-band graphic EQ. The **constraint** button at the end of the
+band list's toolbar picks one:
+
+- **Built-in** — *Default (unlimited)*, which constrains nothing, and a generic 10-band graphic EQ.
+- **Connected device** — the device [Hardware EQ](./device-peq.mdx) is connected to, while it is.
+- **Recently picked**, **Software EQs** and **Hardware** — profiles from
+  [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of EQ limits, for planning an
+  EQ for an app or a device you don't have plugged in. Profiles not yet checked against the real
+  thing are marked *draft*. The database is fetched the first time the picker opens; the built-ins
+  work without it.
+
+A constraint can do more than cap the band count. Each band slot has its own filter types and its own
+frequency, Q and gain range — a device whose first band is a low shelf from 20 to 300 Hz, say — and
+ranges can be stepped (gain in 0.5 dB steps) or a list of allowed values. The band list follows the
+slot each band sits in: number boxes and sliders span its range and step by its grid, only its filter
+types are offered, and a value it fixes is shown read-only. Hover a box to see what is allowed.
+
+- **Picking a constraint** folds the bands onto it, as one undoable step: values move to the nearest
+  allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band.
+- **Connecting a device** doesn't touch the bands. Whatever the device can't hold is marked, and
+  **Fit** in the bar above the list folds them when you choose to.
+- **Editing** snaps each value onto what its slot allows, as you type or drag.
+- While a constraint is active, a bar above the band list names it; its **×** returns to unlimited.
+
+Importing a filter file switches back to *Default (unlimited)* first, so the file lands as written.
 
 ## AutoEQ band count
 
@@ -64,8 +93,10 @@ running is how you ask for a five-band result. With an empty list it falls back 
 
 Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` — see
 [Customizing the Page](../guide-for-admins/customize-page.mdx#equalizer). Either way, the active
-constraint preset's band cap wins: a connected 5-band device gets 5, and a preset with no cap at
-all is held to 32.
+[constraint](#eq-constraints)'s band cap wins: a connected 5-band device gets 5, and a constraint
+with no cap at all is held to 32. AutoEQ also stays inside the constraint's frequency, Q and gain
+ranges, gives the shelves their own gain range where the constraint does, and leaves the shelves
+out where it has no slot for them.
 
 The count is the total. With **Use shelf filters** on, two of those bands are the low and high
 shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped,

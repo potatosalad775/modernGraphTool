@@ -1,7 +1,7 @@
 ---
 title: Equalizing audio
 description: An overview of the Equalizer panel — parametric filters, AutoEQ,
-  audio preview, and hardware device PEQ.
+  audio preview, and hardware EQ.
 editUrl: true
 head: []
 template: doc
@@ -30,7 +30,7 @@ Opening the Equalizer panel (third menu icon, or press **3** on desktop) shows y
 - A **master enable switch** at the top — flip it off to temporarily disable the whole EQ without losing your filters.
 - A **phone/target selector** next to the switch — tells the EQ which loaded curve to modify.
 - A **filter list** — the actual EQ bands, headed by a **channel switch** (**L+R**, **L** or **R**) that chooses which ear the list edits.
-- Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Device PEQ**.
+- Three collapsible sections underneath: **AutoEQ**, **Audio player**, and **Hardware EQ**.
 
 ## Building an EQ by hand
 
@@ -116,11 +116,13 @@ The player uses the Web Audio API, so CPU usage goes up slightly while it's runn
 
 Playback continues across panel switches — switching to the Graph or Device panel won't stop the audio. Return to the Equalizer panel and use the player's stop button when you're done.
 
-## Device PEQ — push EQ to hardware
+## Hardware EQ — push EQ to a device \{#device-peq\}
 
-Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Device PEQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device's own EQ memory, or pull the device's current EQ into the filter list. Unplug your computer and the EQ stays loaded.
+Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Hardware EQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device's own EQ memory, or pull the device's current EQ into the filter list. Unplug your computer and the EQ stays loaded.
 
-It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Device PEQ](../features/device-peq.mdx).
+Once connected, the device's limits — band count, gain range and so on — become the EQ constraint: bands it can't hold are marked, and before anything is written you see what the device will actually get.
+
+It needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari lack the device APIs it relies on, so the section shows a compatibility notice there instead. Supported devices and connection types are in [Hardware EQ](../features/device-peq.mdx).
 
 ## Import and export
 

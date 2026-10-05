@@ -41,7 +41,7 @@ src/
 │   ├── stores/          # 클래스 인스턴스 형태의 반응형 상태 (.svelte.ts)
 │   ├── services/        # 데이터 제공자, 명령, 크로스 사이트 인덱스, 오디오, 분석
 │   ├── graph/           # D3.js 그래프 엔진과 오버레이
-│   ├── device-peq/      # 하드웨어 EQ 전송 계층과 기기별 핸들러
+│   ├── device-peq/      # 하드웨어 EQ: eqcaps bridge 기반 연결 흐름, 쓰기 계획
 │   ├── workers/         # 메인 스레드 밖에서 도는 AutoEQ (turboEQ wasm + 대체 엔진)
 │   ├── utils/           # 파싱, 정규화, 스무딩, URL 인코딩, 설정
 │   ├── types/           # TypeScript 타입 정의

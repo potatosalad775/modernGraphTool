@@ -105,7 +105,7 @@ CrinGraph는 오랜 역사를 거쳐오면서 지금도 여러 포크가 활발�
    | `headerLinks = [...]`                                                 | `TOPBAR.LINK_LIST: [...]`                                              |
    | `page_title`, `page_description`                                      | `index.html`의 `<title>` / `<meta>`에 설정 (6단계)                     |
    | `themingEnabled`, `alt_layout`, `alt_*` 플래그                        | 필요 없음 — v2는 테마와 레이아웃이 항상 켜져 있음                      |
-   | `extraEQBands`, `extraEQplugins`                                      | 필요 없음 — v2는 Interactive EQ와 Device PEQ를 내장                    |
+   | `extraEQBands`, `extraEQplugins`                                      | 필요 없음 — v2는 Interactive EQ와 하드웨어 EQ를 내장                    |
    | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + `data/` 내 파일 위치          |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
@@ -154,7 +154,7 @@ CrinGraph는 오랜 역사를 거쳐오면서 지금도 여러 포크가 활발�
    - `style.css`, `style-alt.css`, `style-alt-theme.css`, `styles/` 폴더, `extra.css`, 그 밖의 CrinGraph 전용 테마 CSS
    - `cringraph-favicon.png`, `cringraph-icon*.png`, `cringraph-logo.svg` (본인 브랜딩 이미지는 유지)
    - `90inclusion.js`, 그리고 옛 `<audio>` 태그에서만 쓰던 오디오 자산 파일
-   - `devicePEQ/` 플러그인 폴더 — v2는 Device PEQ가 내장
+   - `devicePEQ/` 플러그인 폴더 — v2는 하드웨어 EQ가 내장
    - 기존 `config.js`, `config_hp.js`, `headphones.html`, `graph_*.html`, `iframe.html`
 
    `data/` 폴더, 새 `config.js`, 새 `theme.css`, 파비콘·워터마크 이미지, v2 자체 파일은 그대로 남겨 두세요.

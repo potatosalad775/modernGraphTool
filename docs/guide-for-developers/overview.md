@@ -42,7 +42,7 @@ src/
 │   ├── stores/          # Reactive state as class instances (.svelte.ts)
 │   ├── services/        # Data provider, commands, cross-site index, audio, analytics
 │   ├── graph/           # D3.js graph engine and overlays
-│   ├── device-peq/      # Hardware EQ transports and per-device handlers
+│   ├── device-peq/      # Hardware EQ: connect flow over the eqcaps bridge, push plans
 │   ├── workers/         # AutoEQ off the main thread (turboEQ wasm + fallback)
 │   ├── utils/           # Parsing, normalization, smoothing, URL encoding, config
 │   ├── types/           # TypeScript type definitions

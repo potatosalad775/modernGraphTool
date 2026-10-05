@@ -10,8 +10,9 @@
 	import type { FRDataObject, ParsedFRData } from '$lib/types/data-types.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import Button from '../atoms/Button.svelte';
-	import { CircleAlert, Settings2, X } from '@lucide/svelte';
+	import { Settings2, X } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
@@ -144,21 +145,9 @@
 									{def.name}
 								</label>
 								{#if def.description}
-									<PopoverPanel>
-										{#snippet trigger({ props })}
-											<Button
-												{...props}
-												title="Open target filter description"
-												variant="ghost"
-												size="icon-xs"
-												activeOnOpen
-												class="ml-0.5 opacity-80 hover:opacity-100"
-											>
-												<CircleAlert class="h-3 w-3" />
-											</Button>
-										{/snippet}
-										<p class="max-w-xs text-sm text-base-content">{def.description}</p>
-									</PopoverPanel>
+									<InfoPopover label={m.info_popover_about({ topic: def.name })} class="ml-0.5">
+										<p>{def.description}</p>
+									</InfoPopover>
 								{/if}
 							</div>
 							<span class="w-8 text-right text-xs tabular-nums">

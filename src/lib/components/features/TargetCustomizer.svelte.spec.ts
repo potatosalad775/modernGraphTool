@@ -229,7 +229,9 @@ describe('TargetCustomizer', () => {
 
 		it('explains a filter that carries a description', async () => {
 			await open();
-			await page.getByRole('button', { name: 'Open target filter description' }).click();
+			await page
+				.getByRole('button', { name: m.info_popover_about({ topic: 'Bass (dB)' }) })
+				.click();
 
 			await expect.element(page.getByText('Low shelf at 105 Hz')).toBeInTheDocument();
 		});

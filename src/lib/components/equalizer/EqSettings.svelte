@@ -1,11 +1,9 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import { CircleAlert } from '@lucide/svelte';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
-	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	function handlePersistModeChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
@@ -42,23 +40,12 @@
 			<span class="flex-1 text-xs font-medium text-base-content/80"
 				>{m.eq_settings_link_eq_normalization_label()}</span
 			>
-			<PopoverPanel>
-				{#snippet trigger({ props })}
-					<Button
-						{...props}
-						title="Open 'Link EQ curve to original' option description"
-						variant="ghost"
-						size="icon-xs"
-						activeOnOpen
-						class="ml-0.5 opacity-80 hover:opacity-100"
-					>
-						<CircleAlert class="h-3 w-3" />
-					</Button>
-				{/snippet}
-				<p class="max-w-xs text-xs text-base-content">
-					{m.eq_settings_link_eq_normalization_description()}
-				</p>
-			</PopoverPanel>
+			<InfoPopover
+				label={m.info_popover_about({ topic: m.eq_settings_link_eq_normalization_label() })}
+				class="ml-0.5"
+			>
+				<p>{m.eq_settings_link_eq_normalization_description()}</p>
+			</InfoPopover>
 		</div>
 		<Switch
 			labelClass="text-xs font-normal"

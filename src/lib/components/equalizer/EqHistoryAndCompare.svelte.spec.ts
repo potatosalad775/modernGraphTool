@@ -226,7 +226,7 @@ describe('EqHistoryAndCompare', () => {
 
 	it('explains the A/B workflow from the info popover', async () => {
 		render(EqHistoryAndCompare);
-		await button("Open 'Frequency range' option description").click();
+		await button(m.info_popover_about({ topic: m.eq_history_accordion_title() })).click();
 
 		await expect.element(page.getByText(m.eq_history_help_text())).toBeInTheDocument();
 	});

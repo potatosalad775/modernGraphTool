@@ -233,6 +233,7 @@
 	"eq_settings_autoeq_persist_local": "Save to this browser",
 	"eq_settings_link_eq_normalization_label": "Lock EQ curve to original",
 	"eq_settings_link_eq_normalization_description": "Keep the EQ curve positioned relative to the original graph regardless of normalization settings.",
+	"info_popover_about": "About {topic}",
 	"eq_channel_scope_label": "Channel",
 	"eq_channel_both": "L+R",
 	"eq_channel_left": "L",

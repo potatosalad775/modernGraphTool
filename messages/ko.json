@@ -233,6 +233,7 @@
 	"eq_settings_autoeq_persist_local": "브라우저에 계속 저장",
 	"eq_settings_link_eq_normalization_label": "EQ 그래프를 원본에 고정",
 	"eq_settings_link_eq_normalization_description": "정규화 설정과 무관하게, EQ 그래프가 원본 측정값 대비 상대 위치를 그대로 유지합니다.",
+	"info_popover_about": "{topic} 설명",
 	"eq_channel_scope_label": "채널",
 	"eq_channel_both": "L+R",
 	"eq_channel_left": "L",

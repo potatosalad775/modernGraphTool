@@ -3,9 +3,10 @@
 ## Reach for the Atoms First
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `SegmentedControl`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element
-— they carry the focus-visible ring, the `transition-colors`, the disabled styling and the
-semantic-token palette, and a raw `<button>` silently opts out of all four.
+`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `ScrollArea`, `Skeleton`. Use
+them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
+the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
+four.
 
 `Button` specifically:
 
@@ -41,6 +42,15 @@ semantic-token palette, and a raw `<button>` silently opts out of all four.
 - **The value can't be cleared.** A single toggle group sets `''` when the pressed item is pressed
   again; the atom's function binding drops that, so a segmented control always holds one value.
 
+`InfoPopover` is the `?` button that explains an option beside its label:
+
+- **`label` is required and becomes the trigger's accessible name.** Build it with
+  `m.info_popover_about({ topic })`, passing the option's own translated label as `topic`. Five
+  hand-rolled copies preceded it and three carried hardcoded English titles, one of them pasted from
+  another option.
+- `size="sm"` for a row of `icon-sm` buttons, the `xs` default beside a text label. Spacing against
+  the layout (`ml-0.5`) goes in `class`; the body wrapper supplies the text size and paragraph gap.
+
 Only `Button` merges its classes. On a raw element — the inputs in `EqFilterCard`, say — two
 conflicting utilities still tie on specificity, so `!` remains the way to force one.
 
@@ -55,7 +65,8 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, SegmentedControl, ScrollArea, Skeleton, Switch
+- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, ScrollArea,
+  Skeleton, Switch
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect

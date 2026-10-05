@@ -4,8 +4,8 @@
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Button from '../atoms/Button.svelte';
-	import { Info, Trash2 } from '@lucide/svelte';
-	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import { Trash2 } from '@lucide/svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	function timeStr(ts: number): string {
 		const d = new Date(ts);
@@ -65,23 +65,9 @@
 				B
 			</Button>
 		</div>
-		<PopoverPanel>
-			{#snippet trigger({ props })}
-				<Button
-					{...props}
-					title="Open 'Frequency range' option description"
-					variant="ghost"
-					size="icon-sm"
-					activeOnOpen
-					class="opacity-80 hover:opacity-100"
-				>
-					<Info class="size-4" />
-				</Button>
-			{/snippet}
-			<p class="max-w-xs text-xs text-base-content">
-				{m.eq_history_help_text()}
-			</p>
-		</PopoverPanel>
+		<InfoPopover label={m.info_popover_about({ topic: m.eq_history_accordion_title() })} size="sm">
+			<p>{m.eq_history_help_text()}</p>
+		</InfoPopover>
 		<Button
 			title={m.eq_history_clear()}
 			onclick={() => eqHistoryStore.clear()}

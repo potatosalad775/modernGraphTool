@@ -127,7 +127,9 @@ describe('EqSettings', () => {
 			render(EqSettings);
 
 			await page
-				.getByRole('button', { name: "Open 'Link EQ curve to original' option description" })
+				.getByRole('button', {
+					name: m.info_popover_about({ topic: m.eq_settings_link_eq_normalization_label() })
+				})
 				.click();
 
 			await expect

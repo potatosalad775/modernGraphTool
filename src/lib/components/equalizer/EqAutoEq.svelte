@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { CircleAlert } from '@lucide/svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 	import { autoEqService, activeGraphicBands } from '$lib/services/autoeq-service.svelte.js';
@@ -7,7 +6,7 @@
 	import { getLocale } from '$lib/paraglide/runtime.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
-	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 
 	const opts = $derived(settingsStore.autoEqOptions);
@@ -77,9 +76,9 @@
 	<!-- Filter settings fieldset -->
 	{#if showFitMode || !isGraphicMode}
 		<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60"
-				>{m.equalizer_autoeq_filter_setting()}</legend
-			>
+			<legend class="px-1 text-xs text-base-content/60">
+				{m.equalizer_autoeq_filter_setting()}
+			</legend>
 			{#if showFitMode}
 				<div class="-mr-1.25 flex items-center gap-1">
 					<SegmentedControl
@@ -89,38 +88,24 @@
 						value={opts.exactMatch ? 'exact' : 'autoeq'}
 						onValueChange={(mode) => (settingsStore.autoEqOptions.exactMatch = mode === 'exact')}
 					/>
-					<PopoverPanel align="end">
-						{#snippet trigger({ props })}
-							<Button
-								{...props}
-								title={m.equalizer_autoeq_fit_help()}
-								variant="ghost"
-								size="icon-xs"
-								activeOnOpen
-								class="opacity-80 hover:opacity-100"
-							>
-								<CircleAlert class="h-3.5 w-3.5" />
-							</Button>
-						{/snippet}
-						<div class="flex max-w-xs flex-col gap-2 p-1 text-xs text-base-content">
-							<p>
-								<span class="font-semibold">{m.equalizer_autoeq_exact_match()}</span>
-								— {m.equalizer_autoeq_exact_match_hint()}
-							</p>
-							<p>
-								<span class="font-semibold">{m.equalizer_autoeq_treble_safe()}</span>
-								— {m.equalizer_autoeq_treble_safe_hint()}
-							</p>
-							<a
-								href={fitDocsUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="self-start text-accent underline underline-offset-2"
-							>
-								{m.equalizer_autoeq_learn_more()}
-							</a>
-						</div>
-					</PopoverPanel>
+					<InfoPopover label={m.equalizer_autoeq_fit_help()} align="end">
+						<p>
+							<span class="font-semibold">{m.equalizer_autoeq_exact_match()}</span>
+							— {m.equalizer_autoeq_exact_match_hint()}
+						</p>
+						<p>
+							<span class="font-semibold">{m.equalizer_autoeq_treble_safe()}</span>
+							— {m.equalizer_autoeq_treble_safe_hint()}
+						</p>
+						<a
+							href={fitDocsUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="self-start text-accent underline underline-offset-2"
+						>
+							{m.equalizer_autoeq_learn_more()}
+						</a>
+					</InfoPopover>
 				</div>
 			{/if}
 			{#if !isGraphicMode}

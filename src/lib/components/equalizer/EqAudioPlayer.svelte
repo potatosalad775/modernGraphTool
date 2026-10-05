@@ -8,18 +8,9 @@
 	} from '$lib/services/audio-player-service.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import Button from '$lib/components/atoms/Button.svelte';
-	import {
-		FileUp,
-		Pause,
-		Play,
-		Square,
-		VolumeX,
-		Volume2,
-		CircleAlert,
-		Trash2
-	} from '@lucide/svelte';
+	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
-	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
 
@@ -90,23 +81,12 @@
 			size="sm"
 			bind:checked={audioRangeStore.isFrequencySelectionMode}
 		>
-			<PopoverPanel>
-				{#snippet trigger({ props })}
-					<Button
-						{...props}
-						title="Open 'Frequency range' option description"
-						variant="ghost"
-						size="icon-xs"
-						activeOnOpen
-						class="ml-0.5 opacity-80 hover:opacity-100"
-					>
-						<CircleAlert class="h-3 w-3" />
-					</Button>
-				{/snippet}
-				<p class="max-w-xs text-xs text-base-content">
-					{m.equalizer_player_freq_select_hint()}
-				</p>
-			</PopoverPanel>
+			<InfoPopover
+				label={m.info_popover_about({ topic: m.equalizer_player_freq_select_toggle() })}
+				class="-mr-1 ml-0.5"
+			>
+				<p>{m.equalizer_player_freq_select_hint()}</p>
+			</InfoPopover>
 		</Switch>
 	</div>
 

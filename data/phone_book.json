@@ -77,9 +77,15 @@
 				"name": ["Sample Sets"],
 				"variants": [
 					{ "suffix": "Stock", "file": "Combo Variant 1" },
-					{ "suffix": "Repeat Runs", "file": "Multi Sample", "samples": 3 },
+					{
+						"suffix": "Repeat Runs",
+						"file": "Multi Sample",
+						"description": "Same fit, reseated between runs",
+						"samples": 3
+					},
 					{
 						"suffix": "Pad Positions",
+						"description": "Pad shifted around the ear: center, front, back, up and down",
 						"samples": {
 							"files": [
 								"HpTF Demo Center",

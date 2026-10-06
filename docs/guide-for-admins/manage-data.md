@@ -285,6 +285,7 @@ Sample sets are declared per variant, inside a `variants` array:
 		{
 			"suffix": "Leather Pad",
 			"file": "HD600 Leather",
+			"description": "Dekoni Elite Hybrid pads, reseated between runs",
 			"samples": {
 				"count": 5,
 				"labels": ["Center", "Front", "Back", "Up", "Down"],
@@ -310,6 +311,10 @@ Each entry of `variants` takes:
 - `suffix` (String, Optional): The variant label shown in the device selector dropdown.
 - `file` (String, Optional): Base filename for the main L/R pair — `{file} L.txt` / `{file} R.txt`.
   Can be omitted when `samples.files` names the measurements instead.
+- `description` (String, Optional): A plain-text note about the variant, shown under its
+  suffix in the variant picker, e.g. `"Foam tips, deep insertion"`. Use it for anything
+  that explains the variant; it never appears on the graph. Plain variants can have one
+  too, with no sample set.
 - `samples` (Number or Object, Optional): The sample set. A bare number is shorthand
   for `{ "count": n }`.
 
@@ -325,8 +330,18 @@ And `samples`, in object form:
 - `display` (Array of Strings, Optional): Any combination of `avg`, `curves` and `fill`.
   Seeds the toggles; the user can still change them per curve. Defaults to
   `SAMPLES.DEFAULT_DISPLAY` in `config.js`.
-- `description` (String, Optional): A short note shown beside the device name describing
-  what varies, e.g. `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`.
+- `description` (String, Optional): A short caption for the set, describing what varies,
+  e.g. `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`. It is shown beside
+  the device name and added to the graph label while the deviation fill is on, so keep it
+  short.
+
+:::note[Two descriptions, two places]
+A variant's own `description` and its `samples.description` don't merge. The variant
+picker shows the variant's `description`, falling back to `samples.description` when the
+variant has none. The device row and the graph label only ever show
+`samples.description`. Set both when you want a longer explanation in the picker
+and a short tag on the graph.
+:::
 
 `count` versus `files` is only a **filename convention**, not a feature difference —
 labels, fills and per-run curves all work with either.

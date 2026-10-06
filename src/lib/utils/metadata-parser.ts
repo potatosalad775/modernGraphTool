@@ -447,6 +447,10 @@ const MetadataParser = {
 	 * matching how `hptfs[]` — the key `variants[]` supersedes — has always
 	 * combined with `file[]`.
 	 *
+	 * Only legacy entries are matched, and each at most once. Explicit entries
+	 * never replace each other: two sample sets drawn from the same first file
+	 * share a `fileName`, and both belong in the selector.
+	 *
 	 * The point is dual-hosting: `variants[]` is modernGraphTool's own key, so a
 	 * phone that declared its measurements only there is invisible to CrinGraph,
 	 * which reads `file` and nothing else. Composing lets both keys coexist on one
@@ -454,10 +458,17 @@ const MetadataParser = {
 	 */
 	_mergeVariants(legacy: PhoneFileVariant[], explicit: PhoneFileVariant[]): PhoneFileVariant[] {
 		const merged = [...legacy];
+		const claimed = new Set<number>();
 		explicit.forEach((variant) => {
-			const at = merged.findIndex((existing) => existing.fileName === variant.fileName);
-			if (at === -1) merged.push(variant);
-			else merged[at] = variant;
+			const at = legacy.findIndex(
+				(existing, i) => !claimed.has(i) && existing.fileName === variant.fileName
+			);
+			if (at === -1) {
+				merged.push(variant);
+			} else {
+				claimed.add(at);
+				merged[at] = variant;
+			}
 		});
 		return merged;
 	},

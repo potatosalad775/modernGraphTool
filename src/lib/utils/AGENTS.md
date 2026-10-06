@@ -151,8 +151,9 @@ for this, with parallel state, fetch, process and render paths; they are now one
   `PhoneFileVariant[]` from either form, so **nothing downstream branches on which form was
   authored**.
 - **`variants[]` composes with the terse form, it does not replace it** (`_mergeVariants`). Matching
-  is by `fileName`: an entry naming an already-declared file replaces that variant **in place**,
-  anything else appends. Two invariants ride on this — position 0 is the phone's default curve
+  is by `fileName`, against legacy entries only and each at most once: an entry naming a
+  legacy-declared file replaces that variant **in place**, anything else appends. Explicit entries
+  never replace each other — two sample sets with the same first file share a `fileName`. Two invariants ride on this — position 0 is the phone's default curve
   (`fr-parser` loads `files[0]` when no suffix is requested, `searchFRInfoWithFullName` reports
   `files[0].suffix` as `dispSuffix`), and `_parseLegacyVariants`' name-derived fallback must stay
   suppressed when `variants[]` is present or every such phone grows a phantom variant.

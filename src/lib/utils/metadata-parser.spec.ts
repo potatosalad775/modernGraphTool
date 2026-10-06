@@ -686,6 +686,48 @@ describe('MetadataParser', () => {
 			expect(files[1].sampleFiles).toBeUndefined();
 		});
 
+		it('keeps variants[] entries that share a first sample file', async () => {
+			// Both sets derive fileName from samples.files[0]; the second must not
+			// overwrite the first.
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							variants: [
+								{ suffix: 'Pads', samples: { files: ['Center', 'Front', 'Back'] } },
+								{ suffix: 'Pads (Curves)', samples: { files: ['Center', 'Front'] } }
+							]
+						}
+					]
+				}
+			]);
+			expect(result[0].phones[0].files.map((f) => f.suffix)).toEqual(['Pads', 'Pads (Curves)']);
+		});
+
+		it('lets each legacy variant be replaced only once', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							file: ['X Stock'],
+							suffix: ['Stock'],
+							variants: [
+								{ suffix: 'Stock', file: 'X Stock', samples: 3 },
+								{ suffix: 'Stock Again', file: 'X Stock' }
+							]
+						}
+					]
+				}
+			]);
+			const files = result[0].phones[0].files;
+			expect(files.map((f) => f.suffix)).toEqual(['Stock', 'Stock Again']);
+			expect(files[0].sampleFiles).toHaveLength(3);
+		});
+
 		it('keeps a variant description apart from the set caption', async () => {
 			const result = await parse([
 				{

@@ -12,6 +12,15 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.4
+- Feat: Device PEQ is now **Hardware EQ**, rebuilt on [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each device's EQ accepts. See [Hardware EQ](./features/device-peq.mdx).
+- Feat: Added a **Device EQ** control that switches the device's preset, or bypasses its EQ, the moment you change it.
+- Feat: Added **Auto-write changes** for Hardware EQ, which writes each edit to the connected device a moment after you stop editing. Off by default. See [Writing automatically](./features/device-peq.mdx#writing-automatically).
+- Feat: The EQ constraint picker is back, now with software and hardware EQ profiles from eqcaps alongside the built-in ones. Constraints cover per-band filter types and frequency, Q and gain ranges and steps, and AutoEQ stays inside them. See [EQ constraints](./features/equalizer.mdx#eq-constraints).
+- Feat: Added `EQUALIZER.EQCAPS_URL` to point Hardware EQ and the constraint picker at a mirror of the eqcaps database. See [EQUALIZER documentation](./guide-for-admins/customize-page.mdx#equalizer).
+- Feat: Added `variants[].description`, a plain-text note shown under the variant's suffix in the variant picker. Long suffixes now wrap there instead of being cut off. See [Sample Sets](./guide-for-admins/manage-data.mdx#sample-sets).
+- Fix: Two sample sets drawn from the same first file no longer overwrite each other when `variants[]` is merged with the phone-level `file` form.
+
 ### v2.2.3
 - Feat: Added OR operator (//) for search feature.
 - Refactor: Improved initial load time of turboEQ WASM.

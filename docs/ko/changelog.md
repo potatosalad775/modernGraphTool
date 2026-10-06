@@ -12,6 +12,15 @@ pagefind: true
 draft: false
 ---
 
+### v2.2.4
+- Feat: Device PEQ가 **하드웨어 EQ**로 이름을 바꾸고, 기기 EQ가 받아들이는 값을 정리한 오픈 데이터베이스 [eqcaps](https://github.com/potatosalad775/eqcaps)를 기반으로 새로 만들어졌습니다. 자세한 내용은 [하드웨어 EQ](./features/device-peq.mdx) 참조.
+- Feat: 기기의 프리셋을 전환하거나 EQ를 우회하는 **기기 내장 EQ** 컨트롤이 추가되었습니다. 바꾸는 즉시 기기에 적용됩니다.
+- Feat: 하드웨어 EQ를 위한 **변경 사항 자동 쓰기** 기능이 추가되었습니다. 편집을 멈추고 잠시 뒤에 각 변경 사항을 연결된 기기에 기록하며, 기본값은 꺼짐입니다. 자세한 내용은 [하드웨어 EQ](./features/device-peq.mdx) 참조.
+- Feat: EQ 제약 조건 선택기가 돌아왔습니다. 기본 제공 항목과 함께 eqcaps의 소프트웨어 및 하드웨어 EQ 프로필을 고를 수 있습니다. 제약 조건은 밴드별 필터 종류와 주파수, Q, 게인의 범위 및 단위까지 다루며, AutoEQ도 그 안에서 계산합니다. 자세한 내용은 [EQ 제약 조건](./features/equalizer.mdx#eq-constraints) 참조.
+- Feat: 하드웨어 EQ와 제약 조건 선택기가 eqcaps 데이터베이스의 미러를 사용하도록 지정하는 `EQUALIZER.EQCAPS_URL` 설정이 추가되었습니다. 자세한 내용은 [EQUALIZER 문서](./guide-for-admins/customize-page.mdx#equalizer) 참조.
+- Feat: variant 선택기에서 suffix 아래에 표시되는 일반 텍스트 메모 `variants[].description`이 추가되었습니다. 긴 suffix도 이제 잘리지 않고 줄바꿈됩니다. 자세한 내용은 [샘플 세트 문서](./guide-for-admins/manage-data.mdx#sample-sets) 참조.
+- Fix: `variants[]`를 phone 레벨의 `file` 형식과 합칠 때, 같은 첫 파일을 쓰는 두 샘플 세트가 서로를 덮어쓰던 문제를 수정했습니다.
+
 ### v2.2.3
 - Feat: 검색 기능을 위한 OR 연산자 (//)를 추가했습니다.
 - Refactor: turboEQ WASM을 최초로 불러오는데 걸리는 시간을 조정했습니다.

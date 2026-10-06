@@ -5,7 +5,7 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import { getConfigValue } from '$lib/utils/config.js';
-	import type { FRDataObject } from '$lib/types/data-types.js';
+	import type { FRDataObject, PhoneFileVariant } from '$lib/types/data-types.js';
 	import GraphColorPicker from '$lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
@@ -173,7 +173,7 @@
 		{@const channelOpts = getChannelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const variantFiles =
-			(!isTarget(item) && (item.meta as { files?: { suffix: string }[] })?.files) || []}
+			(!isTarget(item) && (item.meta as { files?: PhoneFileVariant[] })?.files) || []}
 		{@const hasVariants = variantFiles.length > 1}
 
 		<div
@@ -207,12 +207,15 @@
 									<span class="truncate text-sm font-medium text-base-content">
 										{item.identifier}
 									</span>
-									<span class="flex flex-row items-center gap-0.5">
-										<span class="truncate text-xs text-base-content/60"
-											>{item.dispSuffix || '(default)'}</span
+									<!-- Suffixes can run long and either end may carry the meaning, so
+										 clamp to two lines rather than cutting one end off. -->
+									<span class="flex flex-row items-start gap-0.5">
+										<span
+											class="line-clamp-2 text-xs wrap-break-word text-base-content/60"
+											title={item.dispSuffix || undefined}>{item.dispSuffix || '(default)'}</span
 										>
 										<ChevronDown
-											class="h-3 w-3 shrink-0 text-base-content/65 transition-transform
+											class="mt-0.5 h-3 w-3 shrink-0 text-base-content/65 transition-transform
 											group-data-[state=open]:rotate-180"
 										/>
 									</span>
@@ -235,17 +238,29 @@
 							{#each variantFiles as variant (variant.suffix)}
 								{@const isSelected = item.dispSuffix === variant.suffix}
 								{@const isLoaded = dataProvider.isFRDataLoaded(item.identifier, variant.suffix)}
+								<!-- The variant's own note wins; the set caption fills in for
+									 entries that only have one (e.g. legacy hptfs[]). -->
+								{@const description = variant.description ?? variant.sampleDescription}
 								<div
-									class="flex w-full items-center gap-1 rounded-md transition-colors
+									class="flex w-full items-start gap-1 rounded-md transition-colors
 										{isSelected ? 'bg-accent/10' : 'hover:bg-base-content/5'}"
 								>
 									<button
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
-										class="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors
+										class="flex min-w-0 flex-1 items-start gap-2 px-2 py-1.5 text-left text-sm transition-colors
 											{isSelected ? 'font-medium text-accent' : 'text-base-content/70'}"
 									>
-										<Check class="h-4 w-4 shrink-0 {isSelected ? 'opacity-100' : 'opacity-0'}" />
-										<span class="truncate">{variant.suffix || '(default)'}</span>
+										<Check
+											class="mt-0.5 h-4 w-4 shrink-0 {isSelected ? 'opacity-100' : 'opacity-0'}"
+										/>
+										<span class="flex min-w-0 flex-col">
+											<span class="wrap-break-word">{variant.suffix || '(default)'}</span>
+											{#if description}
+												<span class="text-xs font-normal wrap-break-word text-base-content/60"
+													>{description}</span
+												>
+											{/if}
+										</span>
 									</button>
 									<button
 										onclick={() => handleVariantAdd(item.identifier, variant.suffix)}
@@ -256,7 +271,7 @@
 										aria-label={isLoaded
 											? m.selection_list_variant_already_loaded()
 											: m.selection_list_variant_add()}
-										class="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded
+										class="mt-0.5 mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded
 											text-base-content/60 transition-colors
 											hover:bg-base-content/10 hover:text-base-content
 											disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-base-content/60"

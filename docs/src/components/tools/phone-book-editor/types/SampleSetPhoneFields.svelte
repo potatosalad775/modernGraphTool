@@ -104,6 +104,20 @@
 				/>
 			</div>
 
+			<div class="ceFieldGroup">
+				<label class="ceLabel" for="{id}-{index}-desc">
+					Variant Description
+					<span class="ceLabelHint">(optional — plain text, shown under the suffix)</span>
+				</label>
+				<input
+					id="{id}-{index}-desc"
+					type="text"
+					class="ceInput"
+					bind:value={variant.description}
+					placeholder="e.g. Dekoni pads, measured on a 5128"
+				/>
+			</div>
+
 			<Checkbox checked={named} onCheckedChange={(next) => setNamed(variant, next)}>
 				Name each run's file
 				<span class="ceToggleHint">
@@ -184,15 +198,15 @@
 				</div>
 
 				<div class="ceFieldGroup">
-					<label class="ceLabel" for="{id}-{index}-desc">
-						Description
-						<span class="ceLabelHint">(shown beside the device name)</span>
+					<label class="ceLabel" for="{id}-{index}-caption">
+						Set Caption
+						<span class="ceLabelHint">(short — shown beside the device name and graph label)</span>
 					</label>
 					<input
-						id="{id}-{index}-desc"
+						id="{id}-{index}-caption"
 						type="text"
 						class="ceInput"
-						bind:value={variant.description}
+						bind:value={variant.sampleDescription}
 						placeholder="(Positional Variance)"
 					/>
 				</div>

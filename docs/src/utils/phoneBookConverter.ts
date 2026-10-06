@@ -58,6 +58,9 @@ export interface VariantEntry {
 	/** Run labels for the numbered (`count`) layout, where there are no rows. */
 	labels: string[];
 	display: SampleDisplayMode[];
+	/** Short set caption (`samples.description`) — also lands on the graph label. */
+	sampleDescription?: string;
+	/** Plain-text note about the variant itself (`variants[].description`). */
 	description?: string;
 }
 
@@ -397,7 +400,7 @@ function parsePhone(
 				labels: [],
 				// `fillOnly` meant "no per-run curve toggles", nothing more.
 				display: (fillOnly ? ['avg', 'fill'] : ['avg', 'curves', 'fill']) as SampleDisplayMode[],
-				description: typeof h.description === 'string' ? h.description : undefined
+				sampleDescription: typeof h.description === 'string' ? h.description : undefined
 			};
 		});
 		return withShared({
@@ -521,7 +524,8 @@ function parseVariant(raw: unknown, where: string, warnings: string[]): VariantE
 		rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
 		labels: files.length === 0 && Array.isArray(set.labels) ? set.labels.map(String) : [],
 		display,
-		description: typeof set.description === 'string' ? set.description : undefined
+		sampleDescription: typeof set.description === 'string' ? set.description : undefined,
+		description: typeof v.description === 'string' ? v.description : undefined
 	};
 }
 
@@ -535,6 +539,7 @@ function serializeVariant(entry: VariantEntry): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	if (entry.suffix) out.suffix = entry.suffix;
 	if (entry.file) out.file = entry.file;
+	if (entry.description) out.description = entry.description;
 
 	const hasRows = entry.rows.length > 0;
 	const hasCount = !hasRows && entry.count > 0;
@@ -544,7 +549,7 @@ function serializeVariant(entry: VariantEntry): Record<string, unknown> {
 	const countLabelled = entry.labels.some((l) => l);
 	const defaultDisplay = entry.display.length === 1 && entry.display[0] === 'avg';
 
-	if (hasCount && defaultDisplay && !countLabelled && !entry.description) {
+	if (hasCount && defaultDisplay && !countLabelled && !entry.sampleDescription) {
 		out.samples = entry.count;
 		return out;
 	}
@@ -558,7 +563,7 @@ function serializeVariant(entry: VariantEntry): Record<string, unknown> {
 		if (countLabelled) set.labels = entry.labels;
 	}
 	if (!defaultDisplay) set.display = entry.display;
-	if (entry.description) set.description = entry.description;
+	if (entry.sampleDescription) set.description = entry.sampleDescription;
 	out.samples = set;
 	return out;
 }

@@ -686,6 +686,41 @@ describe('MetadataParser', () => {
 			expect(files[1].sampleFiles).toBeUndefined();
 		});
 
+		it('keeps a variant description apart from the set caption', async () => {
+			const result = await parse([
+				{
+					name: 'Demo',
+					phones: [
+						{
+							name: ['X'],
+							file: ['X Stock', 'X Mod'],
+							suffix: ['Stock', 'Mod'],
+							variants: [
+								{
+									suffix: 'Stock',
+									file: 'X Stock',
+									description: '  Foam tips, deep insertion  ',
+									samples: { count: 3, description: '(Insertion Depth)' }
+								},
+								{ suffix: 'Bass Port Taped', file: 'X Taped', description: 'Port fully sealed' },
+								{ suffix: 'Blank', file: 'X Blank', description: '   ' }
+							]
+						}
+					]
+				}
+			]);
+
+			const [stock, mod, taped, blank] = result[0].phones[0].files;
+			// The in-place upgrade carries the description along with the set.
+			expect(stock.description).toBe('Foam tips, deep insertion');
+			expect(stock.sampleDescription).toBe('(Insertion Depth)');
+			expect(mod.description).toBeUndefined();
+			// A plain pair has no set caption but can still describe itself.
+			expect(taped.description).toBe('Port fully sealed');
+			expect(taped.sampleDescription).toBeUndefined();
+			expect(blank.description).toBeUndefined();
+		});
+
 		it('composes variants[] with hptfs[] entries too', async () => {
 			const result = await parse([
 				{

@@ -279,6 +279,7 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 		{
 			"suffix": "Leather Pad",
 			"file": "HD600 Leather",
+			"description": "Dekoni Elite Hybrid pads, reseated between runs",
 			"samples": {
 				"count": 5,
 				"labels": ["Center", "Front", "Back", "Up", "Down"],
@@ -304,6 +305,9 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 - `suffix` (문자열, 선택) — 기기 선택기 드롭다운에 표시되는 variant 라벨.
 - `file` (문자열, 선택) — 대표 L/R 쌍의 기본 파일 이름 — `{file} L.txt` / `{file} R.txt`.
   `samples.files`로 측정 파일을 직접 나열한다면 생략해도 됩니다.
+- `description` (문자열, 선택) — variant 자체에 대한 일반 텍스트 메모로, variant 선택기에서
+  suffix 아래에 표시됩니다(예: `"Foam tips, deep insertion"`). variant를 설명하는 내용은
+  여기에 쓰세요. 그래프에는 나타나지 않으며, 샘플 세트가 없는 일반 variant에도 쓸 수 있습니다.
 - `samples` (숫자 또는 객체, 선택) — 샘플 세트. 숫자만 쓰면 `{ "count": n }`의 축약형입니다.
 
 `samples`를 객체로 쓸 때의 키:
@@ -318,8 +322,16 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 - `display` (문자열 배열, 선택) — `avg`, `curves`, `fill`의 조합. 초기 토글 상태를
   정할 뿐이고 사용자는 여전히 곡선별로 바꿀 수 있습니다. 생략하면 `config.js`의
   `SAMPLES.DEFAULT_DISPLAY`를 따릅니다.
-- `description` (문자열, 선택) — 무엇이 달라지는지 설명하는 짧은 메모로, 기기 이름
-  옆에 표시됩니다(예: `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`).
+- `description` (문자열, 선택) — 무엇이 달라지는지 나타내는 세트의 짧은 캡션입니다(예:
+  `"(Fit Position)"`, `"(Rig Variance)"`, `"(Insertion Depth)"`). 기기 이름 옆에 표시되고,
+  편차 음영이 켜져 있으면 그래프 라벨에도 붙으므로 짧게 쓰세요.
+
+:::note[두 가지 description, 두 곳]
+variant의 `description`과 `samples.description`은 합쳐지지 않습니다. variant 선택기는
+variant의 `description`을 보여주고, 없으면 `samples.description`을 대신 보여줍니다. 기기
+행과 그래프 라벨에는 항상 `samples.description`만 나타납니다. 선택기에는 긴 설명을,
+그래프에는 짧은 태그를 원한다면 둘 다 지정하세요.
+:::
 
 `count`와 `files`의 차이는 **파일 이름 규칙**일 뿐이며 기능 차이가 아닙니다. 라벨,
 음영, 개별 곡선은 어느 쪽에서도 똑같이 동작합니다.

@@ -125,12 +125,52 @@ describe('round trip per phone kind', () => {
 								],
 								labels: [],
 								display: ['avg', 'curves', 'fill'],
+								sampleDescription: '(Unit Variance)',
 								description: 'Five units, leather pads'
 							}
 						]
 					}
 				}
 			])
+		]);
+	});
+
+	it('keeps a variant description apart from the set caption', () => {
+		const json = JSON.stringify([
+			{
+				name: 'Sennheiser',
+				phones: [
+					{
+						name: 'HD 600',
+						variants: [
+							{ suffix: 'Taped', file: 'HD600 Taped', description: 'Port sealed' },
+							{
+								suffix: 'Leather',
+								file: 'HD600 Leather',
+								description: 'Dekoni pads',
+								samples: { count: 3, description: '(Positional Variance)' }
+							}
+						]
+					}
+				]
+			}
+		]);
+		const [taped, leather] = parsePhoneBook(json).state[0].phones[0].sampleSet!.variants;
+		expect(taped).toMatchObject({ description: 'Port sealed', sampleDescription: undefined });
+		expect(leather).toMatchObject({
+			description: 'Dekoni pads',
+			sampleDescription: '(Positional Variance)'
+		});
+
+		const emitted = JSON.parse(serializePhoneBook(parsePhoneBook(json).state));
+		expect(emitted[0].phones[0].variants).toEqual([
+			{ suffix: 'Taped', file: 'HD600 Taped', description: 'Port sealed' },
+			{
+				suffix: 'Leather',
+				file: 'HD600 Leather',
+				description: 'Dekoni pads',
+				samples: { count: 3, description: '(Positional Variance)' }
+			}
 		]);
 	});
 

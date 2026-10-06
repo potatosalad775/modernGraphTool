@@ -160,6 +160,8 @@ export interface PhoneFileVariant {
 	sampleDisplay?: SampleDisplayMode[];
 	/** Curator caption shown with the set (e.g. "(Positional Variance)"). */
 	sampleDescription?: string;
+	/** Plain-text note about the variant itself, shown in the variant picker. */
+	description?: string;
 }
 
 /**
@@ -187,6 +189,12 @@ export interface RawVariant {
 	file?: string;
 	/** Sample set for this variant. A number is shorthand for `{ count: n }`. */
 	samples?: number | RawSampleSet;
+	/**
+	 * Plain-text note about the variant, shown under its suffix in the variant
+	 * picker. Distinct from `samples.description`, the short set caption that also
+	 * lands on the graph label — the picker falls back to that one when this is absent.
+	 */
+	description?: string;
 }
 
 /** Single HpTF measurement set declared in phone_book.json (legacy schema) */

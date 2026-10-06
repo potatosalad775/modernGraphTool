@@ -428,6 +428,9 @@ const MetadataParser = {
 					if (raw?.description) variant.sampleDescription = raw.description;
 				}
 
+				const description = typeof entry.description === 'string' ? entry.description.trim() : '';
+				if (description) variant.description = description;
+
 				return variant;
 			});
 	},

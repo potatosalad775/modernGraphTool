@@ -1,7 +1,7 @@
 {
 	"name": "modern_graph_tool",
 	"private": true,
-	"version": "2.2.3",
+	"version": "2.2.4",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -75,8 +75,8 @@
 		]
 	},
 	"overrides": {
-		"uuid": "^14.0.0",
-		"cookie": "^0.7.2"
+		"cookie": "^0.7.2",
+		"postcss-selector-parser": "^7.1.6"
 	},
 	"allowScripts": {
 		"fsevents@2.3.3": true

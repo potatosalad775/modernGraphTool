@@ -13,7 +13,7 @@ draft: false
 Deployments hosted on a `*.squig.link` domain get a few network-wide features on top of the usual ones. They switch on automatically there and stay dormant on any other host.
 
 - **Shop links** — when a loaded device has an entry in the squig.link shop database, a **Buy Now** button links to the sponsor's listing.
-- **Sponsor banner** — a sponsor dialog on a visitor's first visit, with content served by the squig.link network.
+- **Sponsor banner** — a sponsor dialog with content served by the squig.link network. Dismissing it hides that sponsor for a day across every squig.link site, CrinGraph-based ones included; a new sponsorship appears straight away.
 - **Analytics** — Google Analytics 4 (gtag.js), sending to several measurement IDs at once so a site can report both to squig.link and to its own property.
 
 Each can be switched off, and the analytics IDs set, under [`SQUIGLINK`](../guide-for-admins/customize-page.mdx#squiglink) in `config.js`.

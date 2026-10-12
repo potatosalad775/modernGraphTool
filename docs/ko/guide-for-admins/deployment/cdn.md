@@ -135,7 +135,7 @@ CDN_MODE: {
 
 `VERSIONS_URL`은 기본적으로 `BASE`에서 유도된 `raw.githubusercontent.com` URL을 사용합니다. `BASE`가 인식 가능한 jsDelivr `gh/` URL이 아니라면(예: 직접 호스팅) 유도 결과가 `null`이 되고, 로더는 `${BASE}/versions.json`으로 폴백합니다. 두 경우 모두 맞지 않을 때 `VERSIONS_URL`을 직접 재정의하세요. 로더가 기대하는 URL 형태는 [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196)에 정리되어 있습니다.
 
-_그 외_ 모든 파일(앱 청크, CSS, preload)은 jsDelivr의 일반 캐시 동작에 따라 제공되며, 엣지 위치에 따라 몇 분에서 몇 시간이 걸립니다. 가장 최신 버전으로 강제 새로고침하고 싶다면 사용자 쪽에서 브라우저 캐시를 비우거나 하드 리로드를 하면 됩니다.
+`boot.json`은 jsDelivr에서 받아오며 릴리스마다 캐시를 비웁니다. `boot.json`이 가리키는 앱 청크와 CSS는 그 파일을 게시한 커밋에 고정되어 있어(`…@<commit>/v{version}/_app/…`) 오래된 내용이 남지 않습니다. jsDelivr와 브라우저가 1년 동안 캐시하고, 새 릴리스는 언제나 새 URL로 나가기 때문입니다. 덕분에 사용자도 방문할 때마다 jsDelivr 캐시가 식은 상태를 만나지 않습니다. 움직이는 `@cdn` 브랜치 아래의 파일은 jsDelivr 엣지에 12시간만 머뭅니다.
 
 ### CDN 자산 직접 호스팅
 

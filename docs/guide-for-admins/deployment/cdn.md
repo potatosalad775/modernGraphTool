@@ -135,7 +135,7 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 
 `VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn't a recognizable jsDelivr `gh/` URL (because you're self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196).
 
-All the _other_ files (app chunks, CSS, preloads) still come from jsDelivr with its normal cache behavior, which is minutes to hours depending on the edge location. Users who want to force-refresh to the newest version can clear their browser cache or hard-reload.
+`boot.json` comes from jsDelivr and is purged on every release. The app chunks and CSS it lists are pinned to the commit that published them (`…@<commit>/v{version}/_app/…`), so they never go stale: jsDelivr and browsers cache them for a year, and a new release always ships under new URLs. That's also why your users don't pay for a cold jsDelivr cache on every visit — files under the moving `@cdn` branch only stay at jsDelivr's edge for 12 hours.
 
 ### Self-hosting the CDN assets
 

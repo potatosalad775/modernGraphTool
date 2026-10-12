@@ -7,6 +7,7 @@ import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
 export const init: ClientInit = () => {
 	startInitialLoad();
 	// On a first squig.link visit the sponsor creative is the LCP element; start
-	// its chain now rather than from SponsorBanner's onMount.
-	if (squiglinkStore.isSponsorEligible) void squiglinkStore.fetchSponsorContent();
+	// its chain now rather than from SponsorBanner's onMount. Returning visitors
+	// load it too: only the payload's sponsorId says whether they dismissed it.
+	if (squiglinkStore.isSponsorEnabled) void squiglinkStore.fetchSponsorContent();
 };

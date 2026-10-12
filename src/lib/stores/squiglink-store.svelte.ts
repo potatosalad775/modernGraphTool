@@ -9,7 +9,16 @@ import type {
 
 const SQUIGLINK_DOMAIN = 'squig.link';
 
-export const SPONSOR_DISMISSED_KEY = 'squiglink-sponsor-dismissed';
+/** One day, as in the legacy script: a dismissed sponsor comes back the next day. */
+const SPONSOR_DISMISS_SECONDS = 86400;
+
+/**
+ * The legacy `squiglink-intro.js` cookie, shared on purpose: set on the `squig.link`
+ * domain, one dismissal covers every squig.link site, CrinGraph and modernGraphTool alike.
+ */
+export function sponsorDismissedCookie(sponsorId: string): string {
+	return `squiglink-sponsor-${sponsorId}-closed`;
+}
 
 const OPT_OUT_SITES = new Set([
 	'64audio',
@@ -82,15 +91,30 @@ export class SquiglinkStore {
 		return username !== null && OPT_OUT_SITES.has(username);
 	}
 
-	/** Whether the landing sponsor dialog should be fetched and shown on this visit. */
-	get isSponsorEligible(): boolean {
+	/** Whether the landing sponsor dialog runs on this site at all. */
+	get isSponsorEnabled(): boolean {
 		if (!this.isEnabled || this.isCurrentSiteOptedOut) return false;
-		if (getConfigValue('SQUIGLINK.ENABLE_SPONSOR') === false) return false;
-		try {
-			return !localStorage.getItem(SPONSOR_DISMISSED_KEY);
-		} catch {
-			return true;
-		}
+		return getConfigValue('SQUIGLINK.ENABLE_SPONSOR') !== false;
+	}
+
+	/**
+	 * Dismissal is per sponsor, so a new sponsorship shows straight away — which
+	 * sponsor is live is only known after `squiglink-intro.js` loads.
+	 */
+	isSponsorDismissed(sponsorId: string): boolean {
+		const name = sponsorDismissedCookie(sponsorId) + '=';
+		return document.cookie.split(';').some((c) => c.trim().startsWith(name));
+	}
+
+	dismissSponsor(): void {
+		if (!this.sponsorContent) return;
+		// No domain attribute on a DEBUG host — a cookie naming another domain is rejected
+		const host = window.location.hostname;
+		const onSquiglink = host === SQUIGLINK_DOMAIN || host.endsWith('.' + SQUIGLINK_DOMAIN);
+		const domain = onSquiglink ? `;domain=${SQUIGLINK_DOMAIN}` : '';
+		document.cookie =
+			`${sponsorDismissedCookie(this.sponsorContent.sponsorId)}=true` +
+			`;max-age=${SPONSOR_DISMISS_SECONDS};path=/${domain}`;
 	}
 
 	// ── Data fetching ────────────────────────────────────────────────────────
@@ -173,9 +197,10 @@ export class SquiglinkStore {
 			const data = (window as unknown as Record<string, unknown>).contentSponsor;
 			if (Array.isArray(data) && data.length > 0) {
 				this.sponsorContent = data[0] as SponsorContent;
-				// Start the creative download now instead of when the dialog mounts.
-				const creative = this.sponsorContent.creative;
-				if (creative) {
+				// Start the creative download now instead of when the dialog mounts —
+				// unless this sponsor was dismissed and the dialog will not open.
+				const { creative, sponsorId } = this.sponsorContent;
+				if (creative && !this.isSponsorDismissed(sponsorId)) {
 					const img = new Image();
 					img.fetchPriority = 'high';
 					img.src = creative;

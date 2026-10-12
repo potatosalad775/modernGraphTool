@@ -305,3 +305,9 @@ the sponsor creative is the page's LCP element, and waiting for mount put the im
 later than CrinGraph's. `fetchSponsorContent()` therefore returns one shared promise — an
 early-return guard would let the banner's own call resolve before the data lands, and the dialog
 would never open.
+
+**Dismissal is the legacy script's own cookie**, `squiglink-sponsor-<sponsorId>-closed` on the
+`squig.link` domain for one day — so one dismissal covers CrinGraph and modernGraphTool sites alike,
+and a new sponsorship shows straight away. Don't move it to localStorage: that is per-subdomain.
+Because the `sponsorId` lives in the payload, dismissal can't gate the fetch — returning visitors
+load `squiglink-intro.js` too. Only the creative preload is skipped for a dismissed sponsor.

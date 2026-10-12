@@ -2,35 +2,31 @@
 	import { onMount } from 'svelte';
 	import { Dialog } from 'bits-ui';
 	import * as m from '$lib/paraglide/messages';
-	import { getConfigValue } from '$lib/utils/config';
-	import { squiglinkStore, SPONSOR_DISMISSED_KEY } from '$lib/stores/squiglink-store.svelte';
+	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
 	import { ExternalLink } from '@lucide/svelte';
 
 	let open = $state(false);
 
-	const configEnabled = $derived(
-		squiglinkStore.isEnabled &&
-			(getConfigValue('SQUIGLINK.ENABLE_SPONSOR') as boolean) !== false &&
-			!squiglinkStore.isCurrentSiteOptedOut
+	const showDialog = $derived(
+		squiglinkStore.isSponsorEnabled && squiglinkStore.sponsorContent !== null
 	);
 
-	const showDialog = $derived(configEnabled && squiglinkStore.sponsorContent !== null);
-
 	onMount(async () => {
-		if (!squiglinkStore.isSponsorEligible) return;
+		if (!squiglinkStore.isSponsorEnabled) return;
 
 		// Joins the load hooks.client.ts started before mount
 		await squiglinkStore.fetchSponsorContent();
 
-		// Open dialog after data is loaded (reactivity will handle the rest)
-		if (squiglinkStore.sponsorContent) {
+		// Open only for a sponsor the visitor has not dismissed yet
+		const sponsor = squiglinkStore.sponsorContent;
+		if (sponsor && !squiglinkStore.isSponsorDismissed(sponsor.sponsorId)) {
 			open = true;
 		}
 	});
 
 	function dismiss() {
 		open = false;
-		localStorage.setItem(SPONSOR_DISMISSED_KEY, 'true');
+		squiglinkStore.dismissSponsor();
 	}
 
 	function buildUtmUrl(baseUrl: string, sponsorId: string): string {

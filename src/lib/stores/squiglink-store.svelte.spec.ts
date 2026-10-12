@@ -6,7 +6,11 @@
  * develop off-domain (see `enabledStore` below).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { squiglinkStore, SquiglinkStore, SPONSOR_DISMISSED_KEY } from './squiglink-store.svelte.js';
+import {
+	squiglinkStore,
+	SquiglinkStore,
+	sponsorDismissedCookie
+} from './squiglink-store.svelte.js';
 import type { ShopLinkEntry } from '$lib/types/squiglink-types.js';
 
 function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
@@ -277,24 +281,84 @@ describe('SquiglinkStore (enabled)', () => {
 		});
 	});
 
-	describe('isSponsorEligible', () => {
-		afterEach(() => localStorage.removeItem(SPONSOR_DISMISSED_KEY));
-
-		it('is eligible on an enabled host with nothing dismissed', () => {
-			expect(store.isSponsorEligible).toBe(true);
-		});
-
-		it('respects a previous dismissal', () => {
-			localStorage.setItem(SPONSOR_DISMISSED_KEY, 'true');
-			expect(store.isSponsorEligible).toBe(false);
+	describe('isSponsorEnabled', () => {
+		it('is enabled on an enabled host', () => {
+			expect(store.isSponsorEnabled).toBe(true);
 		});
 
 		it('respects ENABLE_SPONSOR: false', () => {
-			expect(enabledStore({ DEBUG: true, ENABLE_SPONSOR: false }).isSponsorEligible).toBe(false);
+			expect(enabledStore({ DEBUG: true, ENABLE_SPONSOR: false }).isSponsorEnabled).toBe(false);
 		});
 
-		it('is never eligible while the integration is disabled', () => {
-			expect(squiglinkStore.isSponsorEligible).toBe(false);
+		it('is never enabled while the integration is disabled', () => {
+			expect(squiglinkStore.isSponsorEnabled).toBe(false);
+		});
+	});
+
+	describe('sponsor dismissal', () => {
+		function setCookie(sponsorId: string, maxAge = 60) {
+			document.cookie = `${sponsorDismissedCookie(sponsorId)}=true;max-age=${maxAge};path=/`;
+		}
+
+		afterEach(() => {
+			for (const id of ['spring-sale', 'summer-launch']) setCookie(id, 0);
+		});
+
+		async function loadSponsor(id: string) {
+			fetchMock.mockResolvedValue(jsonResponse(`let contentSponsor = [{ sponsorId: '${id}' }];`));
+			await store.fetchSponsorContent();
+		}
+
+		it('remembers the dismissed sponsor for a day', async () => {
+			await loadSponsor('spring-sale');
+
+			store.dismissSponsor();
+
+			expect(store.isSponsorDismissed('spring-sale')).toBe(true);
+		});
+
+		it('shows a new sponsor after an earlier one was dismissed', () => {
+			setCookie('spring-sale');
+
+			expect(store.isSponsorDismissed('summer-launch')).toBe(false);
+		});
+
+		it('honours a dismissal written by the legacy CrinGraph script', () => {
+			// squiglink-intro.js writes the same name with no path
+			document.cookie = 'squiglink-sponsor-spring-sale-closed=true;max-age=60';
+
+			expect(store.isSponsorDismissed('spring-sale')).toBe(true);
+			document.cookie = 'squiglink-sponsor-spring-sale-closed=;max-age=0';
+		});
+
+		it('does not match a sponsorId that is only a prefix of the dismissed one', () => {
+			setCookie('summer-launch');
+
+			expect(store.isSponsorDismissed('summer')).toBe(false);
+		});
+
+		it('skips the creative download for a dismissed sponsor', async () => {
+			const images: HTMLImageElement[] = [];
+			const RealImage = window.Image;
+			vi.stubGlobal(
+				'Image',
+				class extends RealImage {
+					constructor() {
+						super();
+						images.push(this);
+					}
+				}
+			);
+			setCookie('spring-sale');
+			fetchMock.mockResolvedValue(
+				jsonResponse(
+					"let contentSponsor = [{ sponsorId: 'spring-sale', creative: 'https://squig.link/s.jpg' }];"
+				)
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(images).toHaveLength(0);
 		});
 	});
 

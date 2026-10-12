@@ -1,12 +1,12 @@
 /**
- * `TutorialModal` is the first-visit walkthrough: it opens itself 800 ms after
- * mount unless `gt-tutorial-dismissed` is already set, then steps through a
- * deck whose contents depend on whether the layout is mobile.
+ * `TutorialModal` is the first-visit walkthrough: it opens itself on mount
+ * unless `gt-tutorial-dismissed` is already set, then steps through a deck
+ * whose contents depend on whether the layout is mobile.
  *
- * The 800 ms open delay is waited out for real rather than faked: bits-ui's
- * presence layer and the spotlight effect both schedule their own work, and
- * swapping the timer implementation underneath them leaves the dialog mounted
- * but frozen. The cost is a longer matcher timeout on the open and close.
+ * Timers are left real: bits-ui's presence layer and the spotlight effect both
+ * schedule their own work, and swapping the timer implementation underneath
+ * them leaves the dialog mounted but frozen. The cost is a longer matcher
+ * timeout on the open and close.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -17,10 +17,10 @@ import * as m from '$lib/paraglide/messages.js';
 
 const STORAGE_KEY = 'gt-tutorial-dismissed';
 
-/** Longer than the 800 ms auto-open delay plus the dialog's 300 ms transition. */
+/** Comfortably longer than the dialog's 300 ms transition. */
 const OPEN_TIMEOUT = 3000;
 
-/** Mount and wait out the auto-open delay. */
+/** Mount and wait for the dialog to appear. */
 async function openModal() {
 	const result = render(TutorialModal);
 	await expect.element(page.getByRole('dialog'), { timeout: OPEN_TIMEOUT }).toBeInTheDocument();
@@ -84,16 +84,17 @@ describe('TutorialModal', () => {
 		it('stays shut once dismissed', async () => {
 			localStorage.setItem(STORAGE_KEY, 'true');
 			render(TutorialModal);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 300));
 
 			expect(page.getByRole('dialog').elements()).toHaveLength(0);
 		});
 
-		it('does not open before the delay elapses', async () => {
+		it('opens without a settle-in delay', async () => {
+			// On a first visit this dialog is the LCP element; any delay before it
+			// opens is added to LCP in full.
 			render(TutorialModal);
-			await new Promise((resolve) => setTimeout(resolve, 300));
 
-			expect(page.getByRole('dialog').elements()).toHaveLength(0);
+			await expect.element(page.getByRole('dialog'), { timeout: 200 }).toBeInTheDocument();
 		});
 	});
 

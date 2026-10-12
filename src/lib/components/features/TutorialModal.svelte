@@ -140,12 +140,11 @@
 		};
 	});
 
+	// Open straight away: on a first visit this text block is the LCP element, so a
+	// settle-in delay counts against LCP in full. Spotlight steps track their own
+	// late-mounting targets (the effect above).
 	onMount(() => {
-		if (localStorage.getItem(STORAGE_KEY)) return;
-		const timer = setTimeout(() => {
-			open = true;
-		}, 800);
-		return () => clearTimeout(timer);
+		if (!localStorage.getItem(STORAGE_KEY)) open = true;
 	});
 
 	function dismiss() {

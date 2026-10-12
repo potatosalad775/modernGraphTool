@@ -24,11 +24,14 @@ import {
 import { commandHistory } from '$lib/services/command-history.svelte.js';
 import { dataProvider } from '$lib/services/data-provider.svelte.js';
 import { toast } from 'svelte-sonner';
+import { downloadText } from '$lib/utils/download-text.js';
 
 vi.mock('svelte-sonner', async (importOriginal) => ({
 	...(await importOriginal<typeof import('svelte-sonner')>()),
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
+
+vi.mock('$lib/utils/download-text.js', () => ({ downloadText: vi.fn() }));
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
@@ -142,6 +145,90 @@ describe('EqFilterList', () => {
 	});
 
 	// ── Channel scoping ──────────────────────────────────────────────────────
+
+	describe('the Graphic EQ export', () => {
+		const exportButton = () =>
+			page.getByRole('button', { name: 'Export filters as Graphic EQ File' });
+
+		/** The `<freq> <gain>` pairs of the one file written. */
+		function exportedCurve(): [number, number][] {
+			expect(downloadText).toHaveBeenCalledOnce();
+			const text = vi.mocked(downloadText).mock.calls[0][0];
+			expect(text.startsWith('GraphicEQ: ')).toBe(true);
+			return text
+				.slice('GraphicEQ: '.length)
+				.split('; ')
+				.map((pair) => pair.split(' ').map(Number) as [number, number]);
+		}
+
+		/** Peak-to-trough of a curve, dB. Flat is 0 — the export normalizes its top to 0. */
+		const spread = (curve: [number, number][]) =>
+			Math.max(...curve.map(([, g]) => g)) - Math.min(...curve.map(([, g]) => g));
+
+		beforeEach(() => {
+			vi.mocked(downloadText).mockClear();
+			vi.mocked(toast.warning).mockClear();
+		});
+
+		// A GraphicEQ line has no per-band ON/OFF, so a disabled band can only be
+		// honoured by leaving it out of the summed curve.
+		it('leaves disabled bands out of the curve', async () => {
+			eqStore.filters = [
+				makeFilter({ freq: 1000, gain: 6 }),
+				makeFilter({ freq: 100, gain: -12, enabled: false })
+			];
+			render(EqFilterList);
+			await exportButton().click();
+
+			const curve = exportedCurve();
+			// Only the +6 dB peak remains: well short of the 18 dB a −12 dB
+			// band would add, and the bass sits at the flat floor of the curve.
+			expect(spread(curve)).toBeCloseTo(6, 0);
+			const bass = curve.find(([f]) => f >= 100)!;
+			expect(bass[1]).toBeCloseTo(-6, 0);
+		});
+
+		it('is unavailable while no shared band is on', async () => {
+			eqStore.filters = [makeFilter({ gain: 6, enabled: false })];
+			render(EqFilterList);
+			await expect.element(exportButton()).toBeDisabled();
+
+			eqStore.filters = [makeFilter({ gain: 6, enabled: false }), makeFilter({ gain: 3 })];
+			await expect.element(exportButton()).toBeEnabled();
+		});
+
+		// Wavelet applies one curve to both ears, so an L/R-only band has nowhere
+		// to go. It is dropped — with a warning — rather than split into files.
+		it('writes one file of the shared bands and warns about L/R-only ones', async () => {
+			eqStore.filters = [
+				makeFilter({ freq: 1000, gain: 6 }),
+				makeFilter({ freq: 100, gain: -12, channel: 'L' }),
+				makeFilter({ freq: 5000, gain: 4, channel: 'R', enabled: false })
+			];
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(spread(exportedCurve())).toBeCloseTo(6, 0);
+			expect(toast.warning).toHaveBeenCalledOnce();
+			// The disabled R band was never going to be written; only the live L one counts.
+			expect(vi.mocked(toast.warning).mock.calls[0][0]).toContain('1');
+		});
+
+		it('stays unavailable when every live band is per-channel', async () => {
+			eqStore.filters = [makeFilter({ gain: 6, channel: 'L' })];
+			render(EqFilterList);
+			await expect.element(exportButton()).toBeDisabled();
+		});
+
+		it('does not warn when there is nothing per-channel to drop', async () => {
+			eqStore.filters = [makeFilter({ gain: 6 })];
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(downloadText).toHaveBeenCalledOnce();
+			expect(toast.warning).not.toHaveBeenCalled();
+		});
+	});
 
 	describe('channel scope', () => {
 		/** Number-input triples, one per rendered band card. */

@@ -40,6 +40,7 @@
 	"equalizer_filter_list_import": "Import EQ",
 	"equalizer_filter_list_export": "Export EQ",
 	"equalizer_filter_list_export_graphic_eq": "Export as Graphic EQ (Wavelet)",
+	"equalizer_filter_list_graphic_eq_channel_omitted": "Left out {count} left/right-only band(s): a Graphic EQ is one curve for both ears.",
 	"equalizer_filter_list_peak": "Peak",
 	"equalizer_filter_list_lowshelf": "Low Shelf",
 	"equalizer_filter_list_highshelf": "High Shelf",

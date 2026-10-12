@@ -12,8 +12,6 @@
 		compareByChannelThenFreq,
 		countBandsPerOutput,
 		countSharedFilters,
-		effectiveFilters,
-		hasPerChannelFilters,
 		indexedFiltersInScope
 	} from '$lib/utils/eq-channel.js';
 	import { formatApoFilters, parseApoFilters } from '$lib/utils/eq-apo.js';
@@ -39,6 +37,16 @@
 	/** Shared bands stack on top of whichever ear is being edited — say so. */
 	const sharedBandCount = $derived(
 		scope === 'BOTH' ? 0 : countSharedFilters(eqStore.filters.filter((f) => f.enabled))
+	);
+
+	/**
+	 * What the Graphic EQ export writes. A `GraphicEQ:` line is one summed curve
+	 * with no per-band ON/OFF and no channel syntax — Wavelet applies it to both
+	 * ears — so disabled bands and L/R-only bands are left out rather than baked in.
+	 */
+	const graphicEqBands = $derived(eqStore.filters.filter((f) => f.enabled && f.channel == null));
+	const omittedChannelBandCount = $derived(
+		eqStore.filters.filter((f) => f.enabled && f.channel != null).length
 	);
 
 	/** Derived from the filters by `dataProvider.installEqCurveSync`, not here. */
@@ -237,29 +245,18 @@
 	}
 
 	function exportGraphicEQ() {
-		if (!eqStore.filters.length) {
-			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
-			return;
-		}
+		if (!graphicEqBands.length) return;
 		const label = sourceDeviceLabel();
-		// A GraphicEQ line is one curve and has no channel syntax, so a
-		// per-channel EQ can only be expressed as two files — one per ear, each
-		// carrying that ear's shared + own bands. The `<name> <suffix>.txt`
-		// shape matches the per-channel naming the DOWNLOAD config already uses.
-		if (hasPerChannelFilters(eqStore.filters)) {
-			for (const ch of ['L', 'R'] as const) {
-				downloadText(
-					graphicEqText(effectiveFilters(eqStore.filters, ch)),
-					label ? `${label} GraphicEQ ${ch}.txt` : `graphic_eq_${ch.toLowerCase()}.txt`
-				);
-			}
-		} else {
-			downloadText(
-				graphicEqText(eqStore.filters),
-				label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt'
+		downloadText(
+			graphicEqText(graphicEqBands),
+			label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt'
+		);
+		toast.success(m.equalizer_filter_list_export_graphic_eq());
+		if (omittedChannelBandCount > 0) {
+			toast.warning(
+				m.equalizer_filter_list_graphic_eq_channel_omitted({ count: omittedChannelBandCount })
 			);
 		}
-		toast.success(m.equalizer_filter_list_export_graphic_eq());
 	}
 </script>
 
@@ -410,6 +407,7 @@
 		<Button
 			title="Export filters as Graphic EQ File"
 			onclick={exportGraphicEQ}
+			disabled={!graphicEqBands.length}
 			variant="muted"
 			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"

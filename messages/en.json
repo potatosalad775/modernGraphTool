@@ -38,6 +38,7 @@
 	"equalizer_phone_select_option_target": "Select target for AutoEQ",
 	"equalizer_filter_list_preamp": "Preamp",
 	"equalizer_filter_list_import": "Import EQ",
+	"equalizer_filter_list_import_skipped": "Skipped {count} filter line(s) that can’t be represented here, such as band-pass or notch filters.",
 	"equalizer_filter_list_export": "Export EQ",
 	"equalizer_filter_list_export_graphic_eq": "Export as Graphic EQ (Wavelet)",
 	"equalizer_filter_list_graphic_eq_channel_omitted": "Left out {count} left/right-only band(s): a Graphic EQ is one curve for both ears.",

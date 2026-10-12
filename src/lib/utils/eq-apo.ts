@@ -44,16 +44,19 @@ function apoTypeName(type: EQFilter['type']): string {
 
 /**
  * Read a `Channel:` directive. `ALL`, an empty list, or naming both ears all
- * mean shared; a lone `L` or `R` pins the section to that ear. Anything we
- * don't recognise falls back to shared rather than silently dropping the
- * filters that follow it.
+ * mean shared; a lone `L` or `R` pins the section to that ear. APO also takes
+ * positions by number, counted from 1 in the device's layout — on the stereo
+ * output a headphone EQ targets that is `1` = L, `2` = R. Anything we don't
+ * recognise falls back to shared rather than silently dropping the filters
+ * that follow it.
  */
 function parseChannelDirective(value: string): EqChannel | undefined {
 	const tokens = value
 		.trim()
 		.toUpperCase()
 		.split(/[\s,]+/)
-		.filter(Boolean);
+		.filter(Boolean)
+		.map((t) => (t === '1' ? 'L' : t === '2' ? 'R' : t));
 	if (tokens.length === 0) return undefined;
 	if (tokens.includes('ALL')) return undefined;
 	const hasL = tokens.includes('L');
@@ -63,55 +66,131 @@ function parseChannelDirective(value: string): EqChannel | undefined {
 	return undefined;
 }
 
+/**
+ * The sample rate the bandwidth conversion assumes. APO's `BW Oct` is RBJ's
+ * digital bandwidth, so the equivalent Q depends on the rate; 48 kHz is what
+ * our own filter math runs at (`Equalizer.config.DefaultSampleRate`).
+ */
+const BW_SAMPLE_RATE = 48000;
+
+/** A `Filter` command, numbered or not — APO does not interpret the number. */
+const FILTER_COMMAND = /^Filter\s*\d*\s*:\s*(.*)$/i;
 // `Fc` is matched as a decimal: APO writes integers but AutoEq and several
-// vendor exports write `Fc 105.5 Hz`, and the old integer-only pattern made the
-// whole line fail to match rather than rounding.
-const FILTER_LINE =
-	/^\s*Filter\s+\d+\s*:\s*(ON|OFF)?\s*([A-Za-z]+)\s+Fc\s+([\d.]+)\s*Hz\s+Gain\s+([+-]?[\d.]+)\s*dB\s+Q\s+([+-]?[\d.]+)/i;
+// vendor exports write `Fc 105.5 Hz`.
+const FC = /\bFc\s+(\d+(?:\.\d+)?)/i;
+const GAIN = /\bGain\s+([+-]?\d+(?:\.\d+)?)/i;
+const Q = /\bQ\s+(\d+(?:\.\d+)?)/i;
+const BW_OCT = /\bBW\s+Oct\s+(\d+(?:\.\d+)?)/i;
+/** `LSC 12 dB Fc …` — a shelf slope in dB per octave, written before `Fc`. */
+const SHELF_SLOPE = /^(\d+(?:\.\d+)?)\s*dB\b/i;
+/** `LS 6dB` / `HS 12dB` — corner-frequency shelves, a different filter. */
+const CORNER_SHELF = /^\d+dB\b/i;
+
+/** Q for a bandwidth in octaves, as APO computes it: RBJ's digital form, `w0 / sin(w0)` included. */
+function qFromBandwidth(bw: number, freq: number): number {
+	const w0 = (2 * Math.PI * freq) / BW_SAMPLE_RATE;
+	return 1 / (2 * Math.sinh(((Math.LN2 / 2) * bw * w0) / Math.sin(w0)));
+}
 
 /**
- * Parse an Equalizer APO parametric config into filters.
- *
- * Unparseable lines are skipped, so a config carrying `Convolution:`,
- * `Include:` or comments still yields its filters. `Preamp:` is deliberately
- * ignored — ours is derived from the filter set, so honouring an imported one
- * would be overwritten on the next render anyway.
+ * Q for an RBJ shelf slope S, where APO's `x dB` per octave is `S = x / 12`.
+ * NaN when the slope is too steep for the gain — RBJ's S has an upper bound.
  */
-export function parseApoFilters(text: string): EQFilter[] {
+function qFromShelfSlope(slopeDb: number, gain: number): number {
+	const a = Math.pow(10, gain / 40);
+	const s = slopeDb / 12;
+	return 1 / Math.sqrt((a + 1 / a) * (1 / s - 1) + 2);
+}
+
+/** Three decimals, what the exporter writes — a converted Q needn't carry float noise. */
+const roundQ = (q: number) => Math.round(q * 1000) / 1000;
+
+/**
+ * Read the body of one `Filter` command into a band, or null when it describes
+ * something we cannot represent. Bandwidth and shelf slope convert to Q
+ * exactly, since our filters are the same RBJ biquads APO builds; a shelf with
+ * neither gets APO's default of 12 dB/oct (S = 1, Q = 1/√2).
+ */
+function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
+	const head = body
+		.replace(/#.*$/, '')
+		.trim()
+		.match(/^(?:(ON|OFF)\s+)?([A-Za-z]+)\s*(.*)$/i);
+	if (!head) return null;
+	const [, onOff, rawType, params] = head;
+	const type = TYPE_FROM_APO[rawType.toUpperCase()];
+	// An unknown filter type (APO has BP, NO, AP, …) has no representation
+	// here; skipping beats importing it as a peak that reshapes the curve.
+	// So does a corner-frequency shelf: it is not the RBJ shelf we model.
+	if (!type || CORNER_SHELF.test(params)) return null;
+
+	const fc = params.match(FC);
+	const gainMatch = params.match(GAIN);
+	if (!fc || !gainMatch) return null;
+	const freq = parseFloat(fc[1]);
+	const gain = parseFloat(gainMatch[1]);
+
+	const qMatch = params.match(Q);
+	const bwMatch = params.match(BW_OCT);
+	const slopeMatch = type === 'PK' ? null : params.match(SHELF_SLOPE);
+	let q: number;
+	if (qMatch) q = parseFloat(qMatch[1]);
+	else if (bwMatch) q = roundQ(qFromBandwidth(parseFloat(bwMatch[1]), freq));
+	else if (slopeMatch) q = roundQ(qFromShelfSlope(parseFloat(slopeMatch[1]), gain));
+	else if (type !== 'PK') q = roundQ(Math.SQRT1_2);
+	else return null;
+	if (!(freq > 0) || !(q > 0) || !Number.isFinite(q)) return null;
+
+	return {
+		// APO's `OFF` is a real state users rely on to park a band.
+		enabled: onOff?.toUpperCase() !== 'OFF',
+		type,
+		freq,
+		gain,
+		q
+	};
+}
+
+/**
+ * Parse an Equalizer APO parametric config into filters, counting the
+ * `Filter` lines that could not be imported so the caller can say so.
+ *
+ * Other lines are skipped without counting, so a config carrying
+ * `Convolution:`, `Include:` or comments still yields its filters. `Preamp:`
+ * is deliberately ignored — ours is derived from the filter set, so honouring
+ * an imported one would be overwritten on the next render anyway.
+ */
+export function parseApoConfig(text: string): { filters: EQFilter[]; skipped: number } {
 	const filters: EQFilter[] = [];
+	let skipped = 0;
 	let channel: EqChannel | undefined = undefined;
 
 	for (const rawLine of text.split(/\r?\n/)) {
 		const line = rawLine.trim();
 		if (!line) continue;
 
-		const channelMatch = line.match(/^Channel\s*:\s*(.*)$/i);
+		const channelMatch = line.match(/^Channel\s*:\s*([^#]*)/i);
 		if (channelMatch) {
 			channel = parseChannelDirective(channelMatch[1]);
 			continue;
 		}
 
-		const match = line.match(FILTER_LINE);
-		if (!match) continue;
-		const [, onOff, rawType, freq, gain, q] = match;
-		const type = TYPE_FROM_APO[rawType.toUpperCase()];
-		// An unknown filter type (APO has BP, NO, AP, …) has no representation
-		// here; skipping beats importing it as a peak that reshapes the curve.
-		if (!type) continue;
-
-		filters.push({
-			// APO's `OFF` is a real state users rely on to park a band. The old
-			// parser ignored the token and imported everything enabled.
-			enabled: onOff?.toUpperCase() !== 'OFF',
-			type,
-			freq: parseFloat(freq),
-			gain: parseFloat(gain),
-			q: parseFloat(q),
-			...(channel ? { channel } : {})
-		});
+		const command = line.match(FILTER_COMMAND);
+		if (!command) continue;
+		const band = parseFilterBody(command[1]);
+		if (!band) {
+			skipped++;
+			continue;
+		}
+		filters.push({ ...band, ...(channel ? { channel } : {}) });
 	}
 
-	return filters;
+	return { filters, skipped };
+}
+
+/** {@link parseApoConfig} without the skip count. */
+export function parseApoFilters(text: string): EQFilter[] {
+	return parseApoConfig(text).filters;
 }
 
 /**

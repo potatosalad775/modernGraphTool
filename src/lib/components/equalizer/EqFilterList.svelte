@@ -14,7 +14,7 @@
 		countSharedFilters,
 		indexedFiltersInScope
 	} from '$lib/utils/eq-channel.js';
-	import { formatApoFilters, parseApoFilters } from '$lib/utils/eq-apo.js';
+	import { formatApoFilters, parseApoConfig } from '$lib/utils/eq-apo.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
 	import { toast } from 'svelte-sonner';
@@ -190,7 +190,7 @@
 		const reader = new FileReader();
 		reader.onload = (ev) => {
 			const text = ev.target!.result as string;
-			const filters = parseApoFilters(text);
+			const { filters, skipped } = parseApoConfig(text);
 			if (filters.length) {
 				// An imported parametric file is authored without a device
 				// constraint in mind — applying it under a graphic preset
@@ -204,6 +204,11 @@
 				toast.success(m.equalizer_filter_list_import(), {
 					description: `${filters.length} filters`
 				});
+				// A filter type we can't model (band-pass, notch, …) is left out;
+				// say so, or the EQ silently differs from the file.
+				if (skipped > 0) {
+					toast.warning(m.equalizer_filter_list_import_skipped({ count: skipped }));
+				}
 			} else {
 				toast.error(m.equalizer_filter_list_import(), {
 					description: 'No valid filters found in file'

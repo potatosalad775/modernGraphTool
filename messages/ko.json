@@ -38,6 +38,7 @@
 	"equalizer_phone_select_option_target": "AutoEQ 목표 선택",
 	"equalizer_filter_list_preamp": "프리앰프",
 	"equalizer_filter_list_import": "EQ 불러오기",
+	"equalizer_filter_list_import_skipped": "이곳에서 표현할 수 없는 필터 {count}개(밴드패스, 노치 필터 등)는 건너뛰었습니다.",
 	"equalizer_filter_list_export": "EQ 내보내기",
 	"equalizer_filter_list_export_graphic_eq": "그래픽 EQ로 내보내기 (Wavelet)",
 	"equalizer_filter_list_graphic_eq_channel_omitted": "좌/우 전용 밴드 {count}개는 제외되었습니다. 그래픽 EQ는 양쪽 귀에 같은 곡선 하나만 적용합니다.",

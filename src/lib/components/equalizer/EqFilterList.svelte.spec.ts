@@ -230,6 +230,48 @@ describe('EqFilterList', () => {
 		});
 	});
 
+	describe('importing a filter file', () => {
+		/** Hand the hidden file input a file, the way the picker would. */
+		function importText(text: string) {
+			const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+			const transfer = new DataTransfer();
+			transfer.items.add(new File([text], 'filters.txt', { type: 'text/plain' }));
+			input.files = transfer.files;
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+		}
+
+		beforeEach(() => {
+			vi.mocked(toast.success).mockClear();
+			vi.mocked(toast.warning).mockClear();
+		});
+
+		// A band the EQ can't model is left out; without a word, the EQ on
+		// screen would quietly differ from the file the user chose.
+		it('warns how many filter lines it had to skip', async () => {
+			render(EqFilterList);
+			importText(
+				[
+					'Filter: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000',
+					'Filter: ON NO Fc 200 Hz',
+					'Filter: ON BP Fc 300 Hz Q 1.000'
+				].join('\n')
+			);
+
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(eqStore.filters).toHaveLength(1);
+			expect(toast.warning).toHaveBeenCalledOnce();
+			expect(vi.mocked(toast.warning).mock.calls[0][0]).toContain('2');
+		});
+
+		it('does not warn when the whole file imports', async () => {
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
+
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(toast.warning).not.toHaveBeenCalled();
+		});
+	});
+
 	describe('channel scope', () => {
 		/** Number-input triples, one per rendered band card. */
 		const cardCount = () => document.querySelectorAll('input[type="number"]').length / 3;

@@ -86,6 +86,28 @@ types are offered, and a value it fixes is shown read-only. Hover a box to see w
 
 Importing a filter file switches back to *Default (unlimited)* first, so the file lands as written.
 
+## Importing filter files
+
+**Import EQ** reads Equalizer APO's parametric format, the text AutoEq, squig.link tools and APO
+itself write:
+
+```
+Preamp: -6.0 dB
+Channel: L
+Filter 1: ON PK Fc 40 Hz Gain 5.0 dB Q 1.41
+Channel: R
+Filter: ON PK Fc 45 Hz BW Oct 0.7 Gain 4.5 dB
+```
+
+- **Channels** — `Channel: L` or `Channel: 1` sends the filters that follow to the left ear,
+  `R` or `2` to the right; `ALL`, `L R` and `1 2` mean both. Other layouts import as both ears.
+- **Filters** — `PK`, plus low and high shelves (`LSC`/`LS`, `HSC`/`HS`). Bandwidth (`BW Oct`) and a
+  shelf slope (`LSC 12 dB Fc …`) convert to Q exactly; a shelf with neither gets APO's default
+  12 dB/oct. The filter number is optional, as in APO, and `OFF` imports as a disabled band.
+- **Skipped** — filter types the equalizer can't model (band-pass, notch, all-pass, low/high-pass,
+  the corner-frequency `LS 6dB` / `HS 12dB` shelves) are left out, and a warning says how many.
+  `Preamp:` is ignored; the preamp is always derived from the filters.
+
 ## AutoEQ band count
 
 **Run AutoEQ** generates as many bands as the filter list already holds, so adding five bands before

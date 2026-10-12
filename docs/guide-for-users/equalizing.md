@@ -132,11 +132,11 @@ You can **export** your current filter set as a text file (compatible with commo
 - Keeping a library of presets for different headphones.
 - Moving an EQ between modernGraphTool and a system-wide EQ application.
 
-The import/export controls live inside the filter list. See [Equalizer](../features/equalizer.mdx) for format details.
+The import/export controls live inside the filter list. See [Importing filter files](../features/equalizer.mdx#importing-filter-files) for format details.
 
 Per-channel bands survive the round trip. The exported file uses Equalizer APO's `Channel:` syntax — a `Channel: ALL` section for the shared bands, then `Channel: L` and `Channel: R` — and import reads it back into the same buckets. An EQ with no per-channel bands exports without any `Channel:` lines at all, exactly as before, so existing presets and other tools are unaffected.
 
-The **Graphic EQ** export is a single curve with no channel syntax, so when you have per-channel bands it writes two files instead of one — an `L` and an `R`, each combining the shared bands with that ear's own.
+The **Graphic EQ** export is a single curve for both ears, with no channel syntax and no way to switch a band off. It writes only the shared bands that are turned on: disabled bands are left out, and so are `L` / `R` bands, with a warning saying how many were dropped. The button is unavailable until at least one shared band is on.
 
 ---
 

@@ -59,15 +59,23 @@ jobs:
           du -sh dist-cdn/_app/
 
       # ── Deploy CDN assets to cdn branch ──────────────────────────────
+      # Two commits: the assets first, then boot.json pointing at that commit's SHA.
+      # jsDelivr keeps commit-pinned files at its edge for a year (`immutable`) but
+      # branch (`@cdn`) files for only 12 hours, and an uncached file costs ~1 s —
+      # the blank screen after every release. boot.json, loader.js and versions.json
+      # stay on `@cdn` because they must move with each release.
+      # Never rewrite the cdn branch's history: every published boot.json pins a
+      # commit on it.
       - name: Deploy to cdn branch
+        id: deploy
         env:
           MAJOR: ${{ steps.version.outputs.major }}
           VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
           # Stage the build artifacts outside the repo before touching branches.
           mkdir -p /tmp/cdn-assets
           cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
-          cp dist-cdn/boot.json "/tmp/cdn-assets/boot.json"
           cp cdn/loader.js "/tmp/cdn-assets/loader.js"
 
           # Configure git
@@ -89,15 +97,40 @@ jobs:
             git -C /tmp/cdn-branch rm -rf . 2>/dev/null || true
           fi
 
+          # Guard: the branch must only ever carry loader.js, versions.json,
+          # .gitignore and vX.Y.Z/ asset dirs. Anything else means the build
+          # tree leaked in again — fail loudly instead of pushing 300 MB.
+          check_staged() {
+            UNEXPECTED=$(git diff --cached --name-only \
+              | awk -F/ '{print $1}' | sort -u \
+              | grep -Ev '^(loader\.js|versions\.json|\.gitignore|v[0-9]+\.[0-9]+\.[0-9]+)$' || true)
+            if [ -n "$UNEXPECTED" ]; then
+              echo "::error::Unexpected paths staged for the cdn branch:"
+              echo "$UNEXPECTED"
+              exit 1
+            fi
+          }
+
           cd /tmp/cdn-branch
 
-          # Copy versioned assets. Clean any pre-existing _app/ first so a
+          # Commit 1: versioned assets. Clean any pre-existing _app/ first so a
           # re-deploy of the same version doesn't nest into v${VERSION}/_app/_app/
           # (cp -r src existing-dir copies src *inside* existing-dir).
           mkdir -p "v${VERSION}"
           rm -rf "v${VERSION}/_app"
           cp -r "/tmp/cdn-assets/_app" "v${VERSION}/_app"
-          cp "/tmp/cdn-assets/boot.json" "v${VERSION}/boot.json"
+          git add -A
+          check_staged
+          # An identical re-deploy has nothing to commit; HEAD then already holds these files.
+          git commit -m "cdn: publish v${VERSION} assets" || echo "Assets unchanged"
+          ASSETS_SHA=$(git rev-parse HEAD)
+          echo "assets_sha=${ASSETS_SHA}" >> "$GITHUB_OUTPUT"
+
+          # Commit 2: boot.json pinned to commit 1, plus the moving pointers.
+          node "${GITHUB_WORKSPACE}/scripts/generate-boot-manifest.js" \
+            "${GITHUB_WORKSPACE}/dist-cdn" "${VERSION}" \
+            --assets-base "https://cdn.jsdelivr.net/gh/${REPO}@${ASSETS_SHA}/v${VERSION}"
+          cp "${GITHUB_WORKSPACE}/dist-cdn/boot.json" "v${VERSION}/boot.json"
 
           # Always update loader.js to latest
           cp "/tmp/cdn-assets/loader.js" loader.js
@@ -124,19 +157,7 @@ jobs:
           cat versions.json
 
           git add -A
-
-          # Guard: the branch must only ever carry loader.js, versions.json,
-          # .gitignore and vX.Y.Z/ asset dirs. Anything else means the build
-          # tree leaked in again — fail loudly instead of pushing 300 MB.
-          UNEXPECTED=$(git diff --cached --name-only \
-            | awk -F/ '{print $1}' | sort -u \
-            | grep -Ev '^(loader\.js|versions\.json|\.gitignore|v[0-9]+\.[0-9]+\.[0-9]+)$' || true)
-          if [ -n "$UNEXPECTED" ]; then
-            echo "::error::Unexpected paths staged for the cdn branch:"
-            echo "$UNEXPECTED"
-            exit 1
-          fi
-
+          check_staged
           git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
           git push origin cdn
 
@@ -151,6 +172,33 @@ jobs:
           curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json" || true
           echo "Done."
 
+      # ── Warm jsDelivr ────────────────────────────────────────────────
+      # The first request for each new file makes jsDelivr fetch it from GitHub
+      # (~1 s). Pay that here rather than in the first visitor's boot sequence.
+      # This warms jsDelivr's origin cache and the edges near the runner, not
+      # every edge, so a far-away first visitor still misses — but only as far
+      # as jsDelivr's own cache.
+      - name: Warm jsDelivr cache
+        continue-on-error: true
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          REPO: ${{ github.repository }}
+          ASSETS_SHA: ${{ steps.deploy.outputs.assets_sha }}
+        run: |
+          BASE="https://cdn.jsdelivr.net/gh/${REPO}@${ASSETS_SHA}/v${VERSION}"
+          warm() {
+            for attempt in 1 2 3; do
+              CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Accept-Encoding: br, gzip' "$1")
+              [ "$CODE" = "200" ] && return 0
+              sleep 5
+            done
+            echo "::warning::Could not warm $1 (HTTP $CODE)"
+          }
+          warm "https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
+          FILES=$(cd dist-cdn && find _app -type f)
+          for f in $FILES; do warm "${BASE}/${f}"; done
+          echo "Warmed $(echo "$FILES" | wc -l) assets under ${BASE}"
+
       # ── Summary ──────────────────────────────────────────────────────
       - name: Summary
         run: |
@@ -162,3 +210,4 @@ jobs:
           echo "CDN loader: https://cdn.jsdelivr.net/gh/${REPO}@cdn/loader.js"
           echo "CDN boot:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
           echo "Versions:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/versions.json"
+          echo "Assets:     https://cdn.jsdelivr.net/gh/${REPO}@${{ steps.deploy.outputs.assets_sha }}/v${VERSION}/"

@@ -6,7 +6,7 @@
  * develop off-domain (see `enabledStore` below).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { squiglinkStore, SquiglinkStore } from './squiglink-store.svelte.js';
+import { squiglinkStore, SquiglinkStore, SPONSOR_DISMISSED_KEY } from './squiglink-store.svelte.js';
 import type { ShopLinkEntry } from '$lib/types/squiglink-types.js';
 
 function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
@@ -236,6 +236,65 @@ describe('SquiglinkStore (enabled)', () => {
 			await store.fetchSponsorContent();
 
 			expect(store.sponsorContent).toBeNull();
+		});
+
+		it('hands a second caller the in-flight load', async () => {
+			// hooks.client.ts starts the load and SponsorBanner awaits it again on
+			// mount — the second await must see the data, not return early.
+			let resolve!: (r: unknown) => void;
+			fetchMock.mockReturnValue(new Promise((r) => (resolve = r)));
+
+			const early = store.fetchSponsorContent();
+			const onMount = store.fetchSponsorContent();
+			resolve(jsonResponse("let contentSponsor = [{ name: 'First' }];"));
+			await onMount;
+
+			expect(store.sponsorContent).toEqual({ name: 'First' });
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+			await early;
+		});
+
+		it('starts the creative download as soon as the content lands', async () => {
+			const images: HTMLImageElement[] = [];
+			const RealImage = window.Image;
+			vi.stubGlobal(
+				'Image',
+				class extends RealImage {
+					constructor() {
+						super();
+						images.push(this);
+					}
+				}
+			);
+			fetchMock.mockResolvedValue(
+				jsonResponse("let contentSponsor = [{ creative: 'https://squig.link/s.jpg' }];")
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(images).toHaveLength(1);
+			expect(images[0].src).toBe('https://squig.link/s.jpg');
+		});
+	});
+
+	describe('isSponsorEligible', () => {
+		afterEach(() => localStorage.removeItem(SPONSOR_DISMISSED_KEY));
+
+		it('is eligible on an enabled host with nothing dismissed', () => {
+			expect(store.isSponsorEligible).toBe(true);
+		});
+
+		it('respects a previous dismissal', () => {
+			localStorage.setItem(SPONSOR_DISMISSED_KEY, 'true');
+			expect(store.isSponsorEligible).toBe(false);
+		});
+
+		it('respects ENABLE_SPONSOR: false', () => {
+			expect(enabledStore({ DEBUG: true, ENABLE_SPONSOR: false }).isSponsorEligible).toBe(false);
+		});
+
+		it('is never eligible while the integration is disabled', () => {
+			expect(squiglinkStore.isSponsorEligible).toBe(false);
 		});
 	});
 

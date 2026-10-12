@@ -299,3 +299,9 @@ Active **only** when hosted on a `*.squig.link` domain (domain guard in `squigli
 shop links from squig.link JSON endpoints and loads `squiglink-intro.js` for sponsor content. All UI
 is Svelte-native — no external DOM manipulation. Toggled via the `SQUIGLINK` section in
 `defaults/config.js`.
+
+**The sponsor load starts in `hooks.client.ts`, not in `SponsorBanner.onMount`.** On a first visit
+the sponsor creative is the page's LCP element, and waiting for mount put the image request seconds
+later than CrinGraph's. `fetchSponsorContent()` therefore returns one shared promise — an
+early-return guard would let the banner's own call resolve before the data lands, and the dialog
+would never open.

@@ -3,7 +3,7 @@
 	import { Dialog } from 'bits-ui';
 	import * as m from '$lib/paraglide/messages';
 	import { getConfigValue } from '$lib/utils/config';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
+	import { squiglinkStore, SPONSOR_DISMISSED_KEY } from '$lib/stores/squiglink-store.svelte';
 	import { ExternalLink } from '@lucide/svelte';
 
 	let open = $state(false);
@@ -17,9 +17,9 @@
 	const showDialog = $derived(configEnabled && squiglinkStore.sponsorContent !== null);
 
 	onMount(async () => {
-		if (!configEnabled || localStorage.getItem('squiglink-sponsor-dismissed')) return;
+		if (!squiglinkStore.isSponsorEligible) return;
 
-		// Load the sponsor content from squiglink-intro.js
+		// Joins the load hooks.client.ts started before mount
 		await squiglinkStore.fetchSponsorContent();
 
 		// Open dialog after data is loaded (reactivity will handle the rest)
@@ -30,7 +30,7 @@
 
 	function dismiss() {
 		open = false;
-		localStorage.setItem('squiglink-sponsor-dismissed', 'true');
+		localStorage.setItem(SPONSOR_DISMISSED_KEY, 'true');
 	}
 
 	function buildUtmUrl(baseUrl: string, sponsorId: string): string {
@@ -66,7 +66,12 @@
 						class="mt-4 flex flex-1 justify-center overflow-hidden rounded-lg"
 						style:background-color={sponsor.creativeBgColor || 'var(--color-base-300)'}
 					>
-						<img src={sponsor.creative} alt={sponsor.sponsorshipName} class="object-contain" />
+						<img
+							src={sponsor.creative}
+							alt={sponsor.sponsorshipName}
+							fetchpriority="high"
+							class="object-contain"
+						/>
 					</div>
 				{/if}
 

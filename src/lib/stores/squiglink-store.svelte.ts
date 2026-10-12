@@ -9,6 +9,8 @@ import type {
 
 const SQUIGLINK_DOMAIN = 'squig.link';
 
+export const SPONSOR_DISMISSED_KEY = 'squiglink-sponsor-dismissed';
+
 const OPT_OUT_SITES = new Set([
 	'64audio',
 	'cammyfi',
@@ -43,7 +45,7 @@ export class SquiglinkStore {
 
 	#shopLinksFetched = false;
 	#sponsorDetailFetched = false;
-	#sponsorFetched = false;
+	#sponsorContentLoad: Promise<void> | null = null;
 
 	constructor() {
 		if (!browser) {
@@ -78,6 +80,17 @@ export class SquiglinkStore {
 	get isCurrentSiteOptedOut(): boolean {
 		const username = this.currentSiteUsername;
 		return username !== null && OPT_OUT_SITES.has(username);
+	}
+
+	/** Whether the landing sponsor dialog should be fetched and shown on this visit. */
+	get isSponsorEligible(): boolean {
+		if (!this.isEnabled || this.isCurrentSiteOptedOut) return false;
+		if (getConfigValue('SQUIGLINK.ENABLE_SPONSOR') === false) return false;
+		try {
+			return !localStorage.getItem(SPONSOR_DISMISSED_KEY);
+		} catch {
+			return true;
+		}
 	}
 
 	// ── Data fetching ────────────────────────────────────────────────────────
@@ -126,10 +139,19 @@ export class SquiglinkStore {
 		}
 	}
 
-	async fetchSponsorContent(): Promise<void> {
-		if (this.#sponsorFetched || !this.isEnabled) return;
-		this.#sponsorFetched = true;
+	/**
+	 * Load the landing sponsor from `squiglink-intro.js`. `hooks.client.ts` starts
+	 * this before the app mounts — on a first visit the sponsor creative is the
+	 * page's LCP element — and `SponsorBanner` awaits the same run, so every
+	 * caller shares one promise rather than returning before the data lands.
+	 */
+	fetchSponsorContent(): Promise<void> {
+		if (!this.isEnabled) return Promise.resolve();
+		this.#sponsorContentLoad ??= this.#loadSponsorContent();
+		return this.#sponsorContentLoad;
+	}
 
+	async #loadSponsorContent(): Promise<void> {
 		try {
 			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squiglink-intro.js`);
 			if (!res.ok) return;
@@ -151,6 +173,13 @@ export class SquiglinkStore {
 			const data = (window as unknown as Record<string, unknown>).contentSponsor;
 			if (Array.isArray(data) && data.length > 0) {
 				this.sponsorContent = data[0] as SponsorContent;
+				// Start the creative download now instead of when the dialog mounts.
+				const creative = this.sponsorContent.creative;
+				if (creative) {
+					const img = new Image();
+					img.fetchPriority = 'high';
+					img.src = creative;
+				}
 			}
 		} catch {
 			// Silently skip if sponsor script is unavailable

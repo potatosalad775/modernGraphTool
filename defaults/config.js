@@ -210,7 +210,8 @@ const CONFIG = {
 
 	// Per-curve download button in the selection list. Exports the curve exactly
 	// as displayed — smoothing, normalization, target adjustments and EQ are
-	// baked in — as CrinGraph-style "Frequency dB" .txt files. Off by default.
+	// baked in — as CrinGraph-style "Frequency dB" .txt files (several go out as one
+	// .zip). On a sample set it offers every run alongside the average. Off by default.
 	// → docs: DOWNLOAD
 	// DOWNLOAD: {
 	//   ENABLED: true,

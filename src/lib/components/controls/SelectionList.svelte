@@ -9,7 +9,8 @@
 	import GraphColorPicker from '$lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
-	import { Check, ChevronDown, Download, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
+	import DownloadButton from '$lib/components/controls/DownloadButton.svelte';
+	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
 	import PopoverPanel from '$lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 	import GraphUploader from './GraphUploader.svelte';
@@ -360,15 +361,7 @@
 
 					<!-- Download button -->
 					{#if downloadEnabled}
-						<Button
-							title="Download"
-							onclick={() => dataProvider.downloadFRDataWithUUID(uuid)}
-							aria-label="Download"
-							variant="ghost"
-							size="icon"
-						>
-							<Download class="h-4 w-4" aria-hidden="true" />
-						</Button>
+						<DownloadButton {uuid} {item} />
 					{/if}
 
 					<!-- Delete button -->

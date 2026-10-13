@@ -8,7 +8,7 @@
 <AccordionSection
 	id="section-download"
 	title="Download"
-	description="Adds a per-curve download button to the selection list, exporting the curve exactly as displayed — smoothing, normalization, target adjustments and EQ included — as .txt files."
+	description="Adds a per-curve download button to the selection list, exporting the curve exactly as displayed — smoothing, normalization, target adjustments and EQ included — as .txt files. Sample sets can export every run as a .zip."
 	learnMoreHref="./guide-for-admins/customize-page#download"
 	optional
 	bind:enabled={config.DOWNLOAD_ENABLED}

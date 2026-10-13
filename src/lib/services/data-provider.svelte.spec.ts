@@ -1566,4 +1566,59 @@ describe('DataProvider', () => {
 			expect(eqDbAt1k('AVG')).toBeCloseTo(0, 6);
 		});
 	});
+
+	// ── Download ─────────────────────────────────────────────────────────────
+
+	describe('downloadFRDataWithUUID', () => {
+		let saved: { name: string; blob: Blob }[];
+
+		beforeEach(() => {
+			saved = [];
+			let pending: Blob | null = null;
+			vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+				pending = blob as Blob;
+				return 'blob:test';
+			});
+			vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+			vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+				this: HTMLAnchorElement
+			) {
+				saved.push({ name: this.download, blob: pending! });
+			});
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		const runs: SampleData[] = [
+			{ L: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } } },
+			{ L: { data: [[1000, 81]], metadata: { minFreq: 20, maxFreq: 20000 } } }
+		];
+
+		it('saves a single displayed channel as a plain .txt', async () => {
+			frStore.set('a', makeFRDataObject('a'));
+			await dataProvider.downloadFRDataWithUUID('a');
+			expect(saved.map((s) => s.name)).toEqual(['Brand Phone-a AVG.txt']);
+		});
+
+		it('bundles several files into one .zip rather than a burst of downloads', async () => {
+			frStore.set('a', makeFRDataObject('a', { dispChannel: ['L', 'R'] }));
+			await dataProvider.downloadFRDataWithUUID('a');
+			expect(saved.map((s) => s.name)).toEqual(['Brand Phone-a.zip']);
+			expect(saved[0].blob.type).toBe('application/zip');
+		});
+
+		it("leaves a sample set's runs out unless asked", async () => {
+			frStore.set('a', makeFRDataObject('a', { dispChannel: ['L'], samples: runs }));
+			await dataProvider.downloadFRDataWithUUID('a');
+			expect(saved.map((s) => s.name)).toEqual(['Brand Phone-a L.txt']);
+		});
+
+		it('adds every run when asked, as a .zip', async () => {
+			frStore.set('a', makeFRDataObject('a', { dispChannel: ['L'], samples: runs }));
+			await dataProvider.downloadFRDataWithUUID('a', { runs: true });
+			expect(saved.map((s) => s.name)).toEqual(['Brand Phone-a.zip']);
+		});
+	});
 });

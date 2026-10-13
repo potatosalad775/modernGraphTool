@@ -31,7 +31,7 @@ vi.mock('svelte-sonner', async (importOriginal) => ({
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 
-vi.mock('$lib/utils/download-text.js', () => ({ downloadText: vi.fn() }));
+vi.mock('$lib/utils/download-text.js', () => ({ downloadText: vi.fn(), downloadBlob: vi.fn() }));
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };

@@ -36,8 +36,14 @@ import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
 import { averageChannels, isAveragable } from '$lib/utils/fr-average.js';
 import { DataProcessor, anchorAndNormalizeSamples } from '$lib/utils/data-processor.js';
 import { defaultSampleDisplay } from '$lib/utils/sample-config.js';
-import { encodeFRDataForDownload } from '$lib/utils/fr-encoder.js';
-import { downloadText } from '$lib/utils/download-text.js';
+import {
+	downloadBaseName,
+	encodeFRDataForDownload,
+	encodeSampleRunsForDownload
+} from '$lib/utils/fr-encoder.js';
+import { downloadBlob, downloadText } from '$lib/utils/download-text.js';
+import { zipTextFiles } from '$lib/utils/zip-text.js';
+import * as m from '$lib/paraglide/messages.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
@@ -230,14 +236,25 @@ class DataProvider {
 	 * Download a curve as displayed — smoothing, normalization, target adjustments
 	 * and EQ are already baked into `frStore`'s `channels` by the time this reads
 	 * it, so no separate "apply the modifications" step is needed here. One .txt
-	 * file per available channel (see fr-encoder.ts).
+	 * file per displayed channel (see fr-encoder.ts); for a sample set that is the
+	 * average, plus every run when `runs` is set. More than one file goes out as a
+	 * single .zip.
 	 */
-	downloadFRDataWithUUID(uuid: string): void {
+	async downloadFRDataWithUUID(uuid: string, { runs = false } = {}): Promise<void> {
 		const item = frStore.get(uuid);
 		if (!item) return;
-		for (const { filename, text } of encodeFRDataForDownload(item)) {
-			downloadText(text, filename);
+		const files = encodeFRDataForDownload(item);
+		if (runs) {
+			files.push(
+				...encodeSampleRunsForDownload(item, (i) => `${m.selection_list_samples_run()} ${i + 1}`)
+			);
 		}
+		if (files.length === 0) return;
+		if (files.length === 1) {
+			downloadText(files[0].text, files[0].filename);
+			return;
+		}
+		downloadBlob(await zipTextFiles(files), `${downloadBaseName(item)}.zip`);
 	}
 
 	async toggleFRData(

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { flushSync } from 'svelte';
 import { audioPlayerService } from './audio-player-service.svelte.js';
+import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
 import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
@@ -159,6 +160,8 @@ function settle() {
 
 describe('AudioPlayerService', () => {
 	beforeAll(() => {
+		// The volume warning has its own specs; here play() starts at once.
+		settingsStore.setVolumeWarning(false);
 		originalAudioContext = (globalThis as Record<string, unknown>).AudioContext;
 		ctx = new FakeAudioContext();
 		(globalThis as Record<string, unknown>).AudioContext = function () {
@@ -181,6 +184,7 @@ describe('AudioPlayerService', () => {
 
 	afterAll(() => {
 		(globalThis as Record<string, unknown>).AudioContext = originalAudioContext;
+		settingsStore.setVolumeWarning(true);
 		audioPlayerService.stop();
 	});
 

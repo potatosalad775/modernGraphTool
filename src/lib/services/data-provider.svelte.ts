@@ -92,7 +92,12 @@ class DataProvider {
 		$effect.root(() => {
 			// Declared first, so the curve effect below sees this pass's preamp.
 			$effect(() => {
-				const next = derivePreamp(eqStore.filters);
+				const filters = eqStore.filters;
+				const linked = eqStore.linkedPreamp;
+				const next =
+					linked && (!linked.auto || linked.filters === filters)
+						? linked.preamp
+						: derivePreamp(filters);
 				untrack(() => {
 					if (eqStore.preamp !== next) eqStore.preamp = next;
 				});

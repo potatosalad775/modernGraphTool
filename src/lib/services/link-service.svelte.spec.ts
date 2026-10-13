@@ -9,6 +9,7 @@ import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { BUILTIN_PRESETS, DEFAULT_CONSTRAINT_ID } from '$lib/stores/eq-constraints-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands } from './eq-commands.js';
+import { dataProvider } from './data-provider.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import type { DeviceConnection } from '$lib/device-peq/types.js';
@@ -56,8 +57,12 @@ class FakeHost {
 	 * uniPEQ's `eq`, as the client hands it on: an `eq` event only when it differs from this
 	 * page's list, and the raw message either way.
 	 */
-	eq(filters: LinkEq['filters'], extra: Partial<Adopt> = {}) {
-		const eq: LinkEq = { filters, preamp: -2, autoPreamp: true };
+	eq(
+		filters: LinkEq['filters'],
+		extra: Partial<Adopt> = {},
+		preamp: Pick<LinkEq, 'preamp' | 'autoPreamp'> = { preamp: -2, autoPreamp: true }
+	) {
+		const eq: LinkEq = { filters, ...preamp };
 		const rev = ++this.#rev;
 		const local = this.options.local();
 		const same =
@@ -297,6 +302,32 @@ describe('linkService', () => {
 		host.emit('device', DEVICE);
 		expect(devicePeqStore.connection?.connectionType).toBe('hid');
 		devicePeqStore.connection = null;
+	});
+
+	it('plays uniPEQ’s fixed preamp whatever the bands do, and turns Auto back on through the link', async () => {
+		dataProvider.installEqCurveSync();
+		await linked();
+		host.eq([wire(100, 3)], {}, { preamp: -5, autoPreamp: false });
+		flushSync();
+		expect(eqStore.preamp).toBe(-5);
+		eqCommands.addBand(pk(2000, 6));
+		flushSync();
+		expect(eqStore.preamp).toBe(-5);
+
+		linkService.autoPreamp();
+		expect(host.edit).toHaveBeenLastCalledWith([{ op: 'auto-preamp', on: true }], { settle: true });
+	});
+
+	it('takes uniPEQ’s Auto value for the list it came with, and derives its own after an edit', async () => {
+		dataProvider.installEqCurveSync();
+		await linked();
+		// uniPEQ's Auto on a 1 dB grid: -4, where this page would derive -3.
+		host.eq([wire(100, 3)], {}, { preamp: -4, autoPreamp: true });
+		flushSync();
+		expect(eqStore.preamp).toBe(-4);
+		eqCommands.addBand(pk(2000, 6));
+		flushSync();
+		expect(eqStore.preamp).toBeLessThanOrEqual(-6);
 	});
 
 	it('drops the device and stops sending when the link ends', async () => {

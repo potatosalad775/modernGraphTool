@@ -25,6 +25,7 @@ import { fromCapsFilter } from '$lib/utils/eq-constraint.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import { eqCommands } from './eq-commands.js';
+import { volumeWarning } from './volume-warning.svelte.js';
 
 /** How long after the last edit auto-write waits: one slider drag is one write, not dozens. */
 export const AUTO_WRITE_DELAY_MS = 700;
@@ -220,6 +221,9 @@ class DevicePeqService {
 			if (slot !== undefined) devicePeqStore.target(slot);
 			return;
 		}
+		// Another preset, or the EQ on or off, changes what plays as much as a write does. Over the
+		// link uniPEQ warns for its own device.
+		if (!this.linkDevice && volumeWarning.ask(() => void this.choose(value))) return;
 		devicePeqStore.isSwitching = true;
 		try {
 			if (value === 'off') {
@@ -318,6 +322,9 @@ class DevicePeqService {
 					devicePeqStore.autoPaused = false;
 					continue;
 				}
+				// Not now stops auto-write on this connection, or every edit would ask again.
+				const stop = () => (devicePeqStore.autoStopped = true);
+				if (volumeWarning.ask(() => void this.#flush(), stop)) return;
 				const plan = await this.prepare();
 				if (!plan) return;
 				devicePeqStore.autoClipRisk = plan.clipRisk;

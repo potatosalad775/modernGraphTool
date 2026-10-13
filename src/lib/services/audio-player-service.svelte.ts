@@ -6,6 +6,7 @@ import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '$lib/utils/eq-channel.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import { volumeWarning } from './volume-warning.svelte.js';
 
 const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 	PK: 'peaking',
@@ -610,6 +611,9 @@ class AudioPlayerService {
 
 	// --- Playback ---
 	play(): void {
+		// A test signal can start loud: the volume warning first, once per page. Its Continue is a
+		// click, so the AudioContext still starts from a user gesture.
+		if (volumeWarning.ask(() => this.play())) return;
 		this.#installFilterEffectRoot();
 		// The effects above flush asynchronously, so a band drawn before the very
 		// first play has not reached the tone/sweep fields yet — and the oscillator

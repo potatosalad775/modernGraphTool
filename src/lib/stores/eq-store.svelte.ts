@@ -8,6 +8,12 @@ export type { EQFilter };
 class EQStore {
 	filters = $state<EQFilter[]>([]);
 	preamp = $state(0);
+	/**
+	 * While linked: uniPEQ's preamp, which is the link's (uniPEQ writes the device, on its grid).
+	 * `filters` is the list it came with. A fixed one holds whatever the bands do; under Auto, an
+	 * edit since then derives its own until uniPEQ's echo. Null when not linked.
+	 */
+	linkedPreamp = $state.raw<{ preamp: number; auto: boolean; filters: EQFilter[] } | null>(null);
 	isEnabled = $state(false);
 	/**
 	 * Which bucket the EQ panel is editing — the shared bands (`BOTH`) or one

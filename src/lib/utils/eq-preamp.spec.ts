@@ -16,6 +16,14 @@ describe('derivePreamp', () => {
 		expect(derivePreamp([makeFilter({ gain: 6 })])).toBe(-6);
 	});
 
+	it('gives no make-up gain to a cut-only list', () => {
+		expect(derivePreamp([makeFilter({ gain: -6 })])).toBe(0);
+	});
+
+	it('rounds the peak up, never giving back headroom', () => {
+		expect(derivePreamp([makeFilter({ gain: 6.04 })])).toBe(-6.1);
+	});
+
 	// 2070 Hz sits halfway between two points of the old 100-point grid, which
 	// read this +6 dB, Q 6 peak as about +5.1 dB and let it clip.
 	it('covers the full peak of a narrow boost that falls between grid points', () => {

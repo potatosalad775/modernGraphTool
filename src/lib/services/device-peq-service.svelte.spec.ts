@@ -7,6 +7,7 @@ import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
+import { volumeWarning } from './volume-warning.svelte.js';
 
 const CAPS: PeqCapabilities = {
 	canRead: true,
@@ -71,6 +72,13 @@ async function edit(filters: EQFilter[]) {
 	flushSync();
 	await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS);
 }
+
+// The volume warning has its own specs (volume-warning.svelte.spec.ts); here nothing waits on it.
+beforeEach(() => settingsStore.setVolumeWarning(false));
+afterEach(() => {
+	settingsStore.setVolumeWarning(true);
+	volumeWarning.reset();
+});
 
 describe('devicePeqService auto-write', () => {
 	beforeEach(() => {
@@ -186,5 +194,46 @@ describe('devicePeqService auto-write', () => {
 		connect({ disconnectOnSave: true });
 		settingsStore.setDevicePeqAutoWrite(true);
 		expect(devicePeqService.autoWriting).toBe(false);
+	});
+});
+
+describe('devicePeqService volume warning', () => {
+	beforeEach(() => {
+		settingsStore.setVolumeWarning(true);
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		flushSync();
+	});
+
+	afterEach(() => {
+		devicePeqService.setAutoWrite(false);
+		devicePeqStore.setDisconnected();
+	});
+
+	it('holds auto-write until the user goes on, then writes', async () => {
+		const device = connect();
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(volumeWarning.open).toBe(true));
+		expect(device.push).not.toHaveBeenCalled();
+
+		volumeWarning.answer(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+	});
+
+	it('stops auto-write on this connection on Not now', async () => {
+		const device = connect();
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(volumeWarning.open).toBe(true));
+		volumeWarning.answer(false);
+		expect(devicePeqService.autoWriteOn).toBe(false);
+		expect(device.push).not.toHaveBeenCalled();
+	});
+
+	it('asks before switching presets, and switches once the user goes on', async () => {
+		const device = connect();
+		await devicePeqService.choose('off');
+		expect(device.setEnabled).not.toHaveBeenCalled();
+		volumeWarning.answer(true);
+		await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
 	});
 });

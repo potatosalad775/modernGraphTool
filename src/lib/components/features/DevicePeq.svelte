@@ -3,6 +3,7 @@
 	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
 	import { needsConfirmation, type PushPlan } from '$lib/device-peq/push-plan.js';
 	import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
+	import { volumeWarning } from '$lib/services/volume-warning.svelte.js';
 	import type { ConnectResult } from '$lib/device-peq/connect.js';
 	import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
 	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
@@ -203,6 +204,10 @@
 		const slot = await conn.device.currentSlot().catch(() => null);
 		devicePeqStore.setConnected(conn, slot);
 		devicePeqService.install();
+		// Auto-write writes without a press, so its volume warning comes now, before any edit.
+		if (devicePeqService.autoWriting) {
+			volumeWarning.ask(undefined, () => (devicePeqStore.autoStopped = true));
+		}
 	}
 
 	async function connectNetwork() {
@@ -252,6 +257,7 @@
 	async function pushToDevice() {
 		// uniPEQ plans the write; a review comes back as `status.review`, shown by `LinkDialogs`.
 		if (devicePeqService.linkDevice) return devicePeqService.writeLinked();
+		if (volumeWarning.ask(() => void pushToDevice())) return;
 		const plan = await devicePeqService.prepare();
 		if (!plan) return;
 		if (needsConfirmation(plan)) {

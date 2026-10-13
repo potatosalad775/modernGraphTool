@@ -160,6 +160,14 @@ export class LinkPeqDevice implements PeqDevice {
 		return run(this.#link.command('reconnect'));
 	}
 
+	/**
+	 * The answer to uniPEQ's volume warning (`status.consent`); `quiet` turns uniPEQ's off for later
+	 * connections. Either side's answer closes both.
+	 */
+	consent(accept: boolean, quiet: boolean): Promise<void> {
+		return run(this.#link.command('consent', { accept, quiet }));
+	}
+
 	/** uniPEQ's auto-write setting: one setting, kept in uniPEQ. */
 	setAutoWrite(on: boolean): Promise<void> {
 		return run(this.#link.command('auto-write', { on }));

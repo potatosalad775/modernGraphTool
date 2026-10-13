@@ -52,6 +52,12 @@
 
 	/** Derived from the filters by `dataProvider.installEqCurveSync`, not here. */
 	const preamp = $derived(eqStore.preamp);
+	/** Linked, with uniPEQ's preamp fixed rather than Auto. */
+	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);
+
+	function useAutoPreamp() {
+		void import('$lib/services/link-service.svelte.js').then((mod) => mod.linkService.autoPreamp());
+	}
 
 	/**
 	 * The preamp before the current burst of edits, or null when none is
@@ -278,6 +284,18 @@
 		<span class="text-xs text-base-content/60">
 			{m.equalizer_filter_list_preamp()}:
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
+			{#if preampFixed}
+				<!-- A device's own preamp, read in uniPEQ: the bands don't move it. -->
+				· {m.link_preamp_fixed()}
+				<button
+					type="button"
+					class="ml-1 font-medium text-primary underline-offset-2 hover:underline"
+					disabled={linkStore.readOnly}
+					onclick={useAutoPreamp}
+				>
+					{m.link_preamp_use_auto()}
+				</button>
+			{/if}
 		</span>
 		<div class="flex gap-1">
 			<Button

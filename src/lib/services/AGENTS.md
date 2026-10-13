@@ -19,6 +19,9 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
 - `device-peq-service.svelte.ts` — Device PEQ read / write / switch, and auto-write; see below
 - `link-service.svelte.ts` / `link-config.ts` — the uniPEQ link; see below
+- `volume-warning.svelte.ts` — asks the user to pause or lower the volume before this page first
+  changes what plays (a hardware EQ write or switch, the audio player), once per page session.
+  A device linked from uniPEQ is uniPEQ's to warn about (`status.consent`, in `LinkDialogs`)
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 

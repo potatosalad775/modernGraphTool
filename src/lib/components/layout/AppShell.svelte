@@ -27,6 +27,8 @@
 	import MiscPanel from '$lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
+	import VolumeWarningDialog from '$lib/components/features/VolumeWarningDialog.svelte';
+	import { volumeWarning } from '$lib/services/volume-warning.svelte';
 	import { Toaster, toast } from 'svelte-sonner';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '$lib/components/controls/KeyboardShortcutBar.svelte';
@@ -326,8 +328,14 @@
 <SponsorBanner />
 <TutorialModal />
 
+<!-- Before this page first changes what plays: a hardware EQ write, or the audio player. -->
+<VolumeWarningDialog
+	open={volumeWarning.open}
+	onAnswer={(go, quiet) => volumeWarning.answer(go, quiet)}
+/>
+
 <!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
-{#if linkStore.choice || linkStore.status?.review}
+{#if linkStore.choice || linkStore.status?.review || linkStore.status?.consent}
 	{#await import('$lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
 		<LinkDialogs />
 	{/await}

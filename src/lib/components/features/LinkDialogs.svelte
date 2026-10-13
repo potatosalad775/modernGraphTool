@@ -8,6 +8,7 @@
 	import type { PushPlan } from '$lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
+	import VolumeWarningDialog from './VolumeWarningDialog.svelte';
 
 	/**
 	 * The uniPEQ link's two questions. Mounted from AppShell rather than a panel: uniPEQ may
@@ -17,6 +18,7 @@
 	 *   dismissed: until it is answered this page hasn't joined the shared list.
 	 * - uniPEQ's review of a write it can't make exactly. It shows on both sides, and either
 	 *   side's answer closes both.
+	 * - uniPEQ's volume warning before its first write to the device, likewise on both sides.
 	 */
 
 	const choice = $derived(linkStore.choice);
@@ -44,6 +46,19 @@
 		if (!review) return;
 		answered = review.rev;
 		void devicePeqService.answerReview(review.rev, accept);
+	}
+
+	const link = $derived(devicePeqService.linkDevice);
+	/** Closed here once answered, while uniPEQ catches up; open again if uniPEQ asks again. */
+	let consentAnswered = $state(false);
+	const consent = $derived(!!link && !!linkStore.status?.consent);
+	$effect(() => {
+		if (!consent) consentAnswered = false;
+	});
+
+	function answerConsent(go: boolean, quiet: boolean) {
+		consentAnswered = true;
+		void link?.consent(go, quiet).catch((e) => devicePeqService.fail(e, 'write'));
 	}
 </script>
 
@@ -92,6 +107,12 @@
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
+
+<VolumeWarningDialog
+	open={consent && !consentAnswered}
+	device={devicePeqStore.connection?.name ?? ''}
+	onAnswer={answerConsent}
+/>
 
 <DevicePeqPushDialog
 	bind:open={reviewOpen}

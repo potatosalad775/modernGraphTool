@@ -5,7 +5,8 @@ const LS_KEYS = {
 	persistMode: 'gt-settings-autoeq-persist-mode',
 	linkNorm: 'gt-settings-link-eq-normalization',
 	autoEqOpts: 'gt-settings-autoeq-options',
-	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write'
+	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write',
+	volumeWarning: 'gt-settings-volume-warning'
 } as const;
 
 const LEGACY_THEME_KEY = 'gt-theme';
@@ -42,6 +43,8 @@ class SettingsStore {
 	autoEqOptions = $state<AutoEqOptions>({ ...DEFAULT_AUTOEQ });
 	/** Write EQ changes to a connected device on their own, a moment after the last edit. */
 	devicePeqAutoWrite = $state(false);
+	/** Ask the user to lower the volume before this page first changes what plays. */
+	volumeWarning = $state(true);
 
 	hydrate(): void {
 		if (typeof window === 'undefined') return;
@@ -74,6 +77,7 @@ class SettingsStore {
 		if (link === 'true') this.linkEqNormalization = true;
 
 		if (localStorage.getItem(LS_KEYS.devicePeqAutoWrite) === 'true') this.devicePeqAutoWrite = true;
+		if (localStorage.getItem(LS_KEYS.volumeWarning) === 'false') this.volumeWarning = false;
 
 		const raw = this.#activeStorage().getItem(LS_KEYS.autoEqOpts);
 		if (raw) {
@@ -114,6 +118,11 @@ class SettingsStore {
 	setDevicePeqAutoWrite(v: boolean): void {
 		this.devicePeqAutoWrite = v;
 		localStorage.setItem(LS_KEYS.devicePeqAutoWrite, String(v));
+	}
+
+	setVolumeWarning(v: boolean): void {
+		this.volumeWarning = v;
+		localStorage.setItem(LS_KEYS.volumeWarning, String(v));
 	}
 
 	persistAutoEqOptions(): void {

@@ -24,6 +24,7 @@ import type { ConnectResult } from '$lib/device-peq/connect.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '$lib/device-peq/types.js';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+import { volumeWarning } from '$lib/services/volume-warning.svelte.js';
 
 const PROFILE_NOTES = "About this device's profile";
 
@@ -145,6 +146,13 @@ const band = (freq: number, gain: number, extra: Partial<EQFilter> = {}): EQFilt
 	q: 1,
 	gain,
 	...extra
+});
+
+// The volume warning has its own specs (volume-warning.svelte.spec.ts); here nothing waits on it.
+beforeEach(() => settingsStore.setVolumeWarning(false));
+afterEach(() => {
+	settingsStore.setVolumeWarning(true);
+	volumeWarning.reset();
 });
 
 describe('DevicePeq', () => {

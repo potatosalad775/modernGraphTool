@@ -95,6 +95,11 @@ class LinkService {
 		link.replaceAll({ filters: this.#shared, preamp: eqStore.preamp, autoPreamp: true });
 	}
 
+	/** Turn uniPEQ's preamp back to Auto: a fixed one came from the device, read in uniPEQ. */
+	autoPreamp(): void {
+		this.#link?.edit([{ op: 'auto-preamp', on: true }], { settle: true });
+	}
+
 	/** `local` for the client: this page's list, with uniPEQ's preamp, which this page doesn't own. */
 	#local(): LinkEq {
 		return {
@@ -131,6 +136,7 @@ class LinkService {
 		this.#link = link;
 		this.#shared = [];
 		this.#remote = null;
+		eqStore.linkedPreamp = null;
 		this.#joined = false;
 		this.#askOnFresh = false;
 		this.#pending = null;
@@ -157,6 +163,12 @@ class LinkService {
 			if (message.t !== 'eq' || !linkStore.linked) return;
 			this.#remote = message.eq;
 			if (!this.#joined && !linkStore.choice) this.#join();
+			// uniPEQ's preamp, for the list as adopted. Not while this page has edits it hasn't seen:
+			// that preamp is for an older list.
+			if (this.#joined && !link.dirty) {
+				const { preamp, autoPreamp } = message.eq;
+				eqStore.linkedPreamp = { preamp, auto: autoPreamp, filters: eqStore.filters };
+			}
 		});
 		link.on('device', (device) => this.#device(link, device));
 		link.on('status', (status) => this.#status(status));
@@ -169,6 +181,7 @@ class LinkService {
 			this.#pending = null;
 			linkStore.choice = null;
 			linkStore.ended = ended;
+			eqStore.linkedPreamp = null;
 			if (devicePeqStore.connection?.connectionType === 'link') devicePeqStore.setDisconnected();
 		});
 	}

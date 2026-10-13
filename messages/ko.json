@@ -34,7 +34,7 @@
 	"selection_list_download_average": "평균",
 	"selection_list_download_average_hint": "그래프에 표시된 평균 곡선",
 	"selection_list_download_all": "전체 샘플",
-	"selection_list_download_all_hint": ".zip으로 압축된 전체 샘플",
+	"selection_list_download_all_hint": ".zip으로 압축된 평균 포함 전체 샘플",
 	"menu_item_device_label": "기기",
 	"menu_item_graph_label": "그래프",
 	"menu_item_equalizer_label": "이퀄라이저",

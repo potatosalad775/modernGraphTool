@@ -18,7 +18,13 @@ import { getConfigValue } from '$lib/utils/config.js';
 import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
 import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { allowsShelves, envelopeOf, graphicBandsOf } from '$lib/utils/eq-constraint.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { ParsedFRData } from '$lib/types/data-types.js';
+import {
+	eqSourceChannels,
+	eqSourceRun,
+	sameEqSourceSample,
+	type EqSourceSample
+} from '$lib/utils/eq-source.js';
 
 /** Bands generated when the filter list is empty. Operator-overridable via
  *  `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT`, which ships commented out. */
@@ -48,6 +54,8 @@ interface RunInputs {
  */
 interface Session {
 	source: string;
+	/** The run of a sample set fitted to, or null for its average. */
+	sample: EqSourceSample | null;
 	target: string;
 	scope: EqChannelScope;
 	/** Bands of types AutoEQ doesn't make: fitted around, and put back where they were. */
@@ -177,8 +185,7 @@ function buildRequest(bandCount: number): AutoEqRequest {
  * imbalance; scoping to one ear is how you correct it instead.
  * A target measured as a single curve has no L/R, hence the AVG fallback.
  */
-function channelPoints(data: FRDataObject | null | undefined, scope: EqChannelScope): Points {
-	const channels = data?.channels;
+function channelPoints(channels: ParsedFRData | undefined, scope: EqChannelScope): Points {
 	if (!channels) return [];
 	if (scope !== 'BOTH' && channels[scope]) return channels[scope]!.data as Points;
 	return (channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? []) as Points;
@@ -194,8 +201,10 @@ function withKept(source: Points, kept: KeptBand[]): Points {
 }
 
 function collectInputs(session: Session): RunInputs | null {
-	const source = withKept(channelPoints(frStore.get(session.source), session.scope), session.kept);
-	const target = channelPoints(frStore.get(session.target), session.scope);
+	const sourceItem = frStore.get(session.source);
+	const sourceChannels = sourceItem ? eqSourceChannels(sourceItem, session.sample) : undefined;
+	const source = withKept(channelPoints(sourceChannels, session.scope), session.kept);
+	const target = channelPoints(frStore.get(session.target)?.channels, session.scope);
 	if (!source.length || !target.length) return null;
 	const request = buildRequest(session.bandCount);
 	return { source, target, request, key: JSON.stringify(request) };
@@ -267,6 +276,7 @@ class AutoEqService {
 		return (
 			session?.inputs != null &&
 			session.source === eqStore.sourcePhoneUUID &&
+			sameEqSourceSample(session.sample, eqStore.sourceSample) &&
 			session.target === eqStore.autoEqTargetUUID
 		);
 	}
@@ -294,6 +304,7 @@ class AutoEqService {
 			activeGraphicBands().length > 0 ? [] : keptBands(filtersInScope(eqStore.filters, scope));
 		const session: Session = {
 			source: sourceUUID,
+			sample: eqStore.sourceSample,
 			target: targetUUID,
 			scope,
 			kept,
@@ -417,6 +428,10 @@ class AutoEqService {
 				if (
 					!session ||
 					eqStore.sourcePhoneUUID !== session.source ||
+					!sameEqSourceSample(eqStore.sourceSample, session.sample) ||
+					// A variant switch retires the fitted run; refitting would quietly
+					// move the EQ onto the average instead.
+					(session.sample && !eqSourceRun(frStore.get(session.source), session.sample)) ||
 					eqStore.autoEqTargetUUID !== session.target ||
 					!frStore.get(session.source) ||
 					!frStore.get(session.target)

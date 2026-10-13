@@ -334,6 +334,25 @@ describe('EqAutoEq', () => {
 			expect(target).toEqual(curve(0));
 		});
 
+		// The average of several insertion depths is a fit nobody wears.
+		it('fits the picked run of a sample set, not its average', async () => {
+			seedPair();
+			const src = frStore.get('src')!;
+			frStore.set('src', {
+				...src,
+				samples: [
+					{ label: 'Deep', AVG: { data: curve(9), metadata: { minFreq: 20, maxFreq: 20000 } } }
+				]
+			});
+			eqStore.sourceSample = { index: 0, variant: '' };
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
+		});
+
 		// The ranges are bounds the fit lands inside, not a clamp applied to the
 		// answer, so a wrong mapping here is silent: the run still returns bands.
 		it('maps the stored options onto per-band bounds', async () => {

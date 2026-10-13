@@ -1,6 +1,7 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import type { EqChannelScope } from '$lib/utils/eq-channel.js';
+import type { EqSourceSample } from '$lib/utils/eq-source.js';
 import type { ParsedFRData } from '$lib/types/data-types.js';
 
 export type { EQFilter };
@@ -26,8 +27,23 @@ class EQStore {
 	 * noise. `EqualizerPanel` resets it to `BOTH` when the source phone changes.
 	 */
 	channelScope = $state<EqChannelScope>('BOTH');
+	#sourcePhoneUUID = $state<string | null>(null);
 	/** UUID of the phone to apply EQ to (EQ preview) */
-	sourcePhoneUUID = $state<string | null>(null);
+	get sourcePhoneUUID(): string | null {
+		return this.#sourcePhoneUUID;
+	}
+	/** A run picked on one device means nothing on another, so changing device drops it. */
+	set sourcePhoneUUID(uuid: string | null) {
+		if (uuid !== this.#sourcePhoneUUID) this.sourceSample = null;
+		this.#sourcePhoneUUID = uuid;
+	}
+	/**
+	 * One run of the source's sample set to EQ instead of its average, or null
+	 * for the average. Read it through `eqSourceChannels` (`utils/eq-source.ts`),
+	 * which also decides when a pick has gone stale. Outside `?state=`, like the
+	 * source itself.
+	 */
+	sourceSample = $state.raw<EqSourceSample | null>(null);
 	/** UUID of the target curve used for AutoEQ calculation */
 	autoEqTargetUUID = $state<string | null>(null);
 	/** UUID of the EQ-modified FRDataObject in frStore */

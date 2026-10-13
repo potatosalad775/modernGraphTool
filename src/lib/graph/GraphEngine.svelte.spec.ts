@@ -208,6 +208,32 @@ describe('GraphEngine', () => {
 			expect(paths('.fr-graph-phone-curve')[0].getAttribute('opacity')).toBe('0.35');
 		});
 
+		// The EQ'd curve is the run plus the bands, so the "before" has to be the run.
+		it('ghosts the EQ source run in place of the average', () => {
+			const run = { label: 'Deep', L: channel(70), R: channel(70), AVG: channel(70) };
+			eqStore.isEnabled = true;
+			eqStore.sourcePhoneUUID = 'p';
+			eqStore.sourceSample = { index: 0, variant: '' };
+			frStore.set('p', makePhone('p', { samples: [run], showAvg: false, dispSamples: [] }));
+			graphEngine.drawFRCurve('p');
+
+			const drawn = paths('.fr-graph-phone-curve');
+			expect(drawn).toHaveLength(1);
+			expect(datumOf(drawn[0])).toBe(run.AVG.data);
+			expect(drawn[0].getAttribute('opacity')).toBe('0.35');
+		});
+
+		it('draws the average again with EQ off', () => {
+			const run = { label: 'Deep', AVG: channel(70) };
+			const phone = makePhone('p', { samples: [run], dispSamples: [] });
+			eqStore.sourcePhoneUUID = 'p';
+			eqStore.sourceSample = { index: 0, variant: '' };
+			frStore.set('p', phone);
+			graphEngine.drawFRCurve('p');
+
+			expect(datumOf(paths('.fr-graph-phone-curve')[0])).toBe(phone.channels.AVG!.data);
+		});
+
 		it('applies a stored y-offset as a transform', () => {
 			frStore.set('p', makePhone('p', { yOffset: 5 }));
 			graphEngine.drawFRCurve('p');

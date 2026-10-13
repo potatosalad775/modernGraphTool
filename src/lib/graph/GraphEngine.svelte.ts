@@ -12,6 +12,7 @@ import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { sampleFillOpacity } from '$lib/utils/sample-config.js';
+import { eqSourceChannels, eqSourceRun } from '$lib/utils/eq-source.js';
 import { resolveBaselineChannelData } from './baseline.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 
@@ -500,6 +501,10 @@ class GraphEngine {
 			(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
 		);
 		const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
+		// EQ'ing one run of a set makes that run the "before" curve, so the ghost
+		// draws it in place of the average — even with the average toggled off.
+		const sourceRun = isEqSource ? eqSourceRun(obj, eqStore.sourceSample) : null;
+		const mainChannels = sourceRun ? eqSourceChannels(obj, eqStore.sourceSample) : obj.channels;
 
 		// A sample set draws as three independent layers — envelope fill behind,
 		// per-run curves, then the averaged main channels — each with its own
@@ -565,13 +570,13 @@ class GraphEngine {
 			}
 		}
 
-		// 3. Averaged main channels
-		if (obj.showAvg !== false) {
+		// 3. Averaged main channels (or the EQ source's run)
+		if (obj.showAvg !== false || sourceRun) {
 			channels.forEach((channel) => {
-				if (!obj.channels[channel]) return;
+				if (!mainChannels[channel]) return;
 				this.curveGroup
 					.append('path')
-					.datum(obj.channels[channel]!.data)
+					.datum(mainChannels[channel]!.data)
 					.attr('class', 'fr-graph-phone-curve')
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)

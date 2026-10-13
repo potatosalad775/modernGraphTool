@@ -41,6 +41,7 @@ import { downloadText } from '$lib/utils/download-text.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
+import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '$lib/utils/eq-source.js';
 import { derivePreamp, headroomPreamp } from '$lib/utils/eq-preamp.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
@@ -121,6 +122,7 @@ class DataProvider {
 				// Track the inputs; the curve math itself is untracked so its writes
 				// to frStore can't feed back into this effect.
 				const sourceUUID = eqStore.sourcePhoneUUID;
+				void eqStore.sourceSample;
 				void eqStore.isEnabled;
 				void eqStore.filters;
 				void eqStore.preamp;
@@ -572,8 +574,9 @@ class DataProvider {
 		const eq = new Equalizer();
 		const modified: ParsedFRData = {};
 		const perChannel = hasPerChannelFilters(enabledFilters);
+		const sourceChannels = eqSourceChannels(sourceData, eqStore.sourceSample);
 		for (const ch of ['L', 'R', 'AVG'] as const) {
-			const chData = sourceData.channels[ch];
+			const chData = sourceChannels[ch];
 			if (!chData) continue;
 			// Each ear gets the shared bands plus its own. AVG is handled below —
 			// averaging the source and then EQ-ing it would apply both ears'
@@ -624,6 +627,9 @@ class DataProvider {
 
 		const existingUUID = eqStore.eqCurveUUID;
 		const existing = existingUUID ? frStore.get(existingUUID) : null;
+		// Name the run in the label: an EQ'd run and the EQ'd average are different curves.
+		const run = eqSourceRun(sourceData, eqStore.sourceSample);
+		const dispSuffix = run ? `(EQ · ${sampleRunLabel(run, eqStore.sourceSample!.index)})` : '(EQ)';
 
 		if (existing && existingUUID) {
 			frStore.set(existingUUID, {
@@ -633,6 +639,7 @@ class DataProvider {
 					...(processed.R && { R: processed.R }),
 					...(processed.AVG && { AVG: processed.AVG })
 				},
+				dispSuffix,
 				dispChannel: this.#eqCurveDispChannel(sourceUUID, sourceData, existing, processed),
 				colors: { ...sourceData.colors },
 				_rawData: { channels: modified }
@@ -643,7 +650,7 @@ class DataProvider {
 				uuid,
 				type: 'eq',
 				identifier: sourceData.identifier,
-				dispSuffix: '(EQ)',
+				dispSuffix,
 				channels: {
 					...(processed.L && { L: processed.L }),
 					...(processed.R && { R: processed.R }),

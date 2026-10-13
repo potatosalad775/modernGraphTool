@@ -1,5 +1,16 @@
 <script lang="ts" module>
-	export type SelectMenuItem = { value: string; label: string };
+	export type SelectMenuItem = {
+		value: string;
+		label: string;
+		/** Muted text after the label, in the row and in the trigger. */
+		detail?: string;
+		/** Drawn nested under the row above it. */
+		indent?: boolean;
+		/** What the trigger shows when this item is picked, if not `label` / `detail`. */
+		trigger?: { label: string; detail?: string };
+		/** Accessible name, when the visible label leans on the rows around it. */
+		ariaLabel?: string;
+	};
 	export type SelectMenuGroup = { id: string; heading: string; items: SelectMenuItem[] };
 </script>
 
@@ -20,6 +31,10 @@
 	 * the accessible name, so a screen reader would never hear what is selected.
 	 *
 	 * Empty groups are skipped, so callers can pass every group unconditionally.
+	 *
+	 * In the trigger the label truncates and the detail doesn't, so on a narrow
+	 * header the part that tells two choices apart — "Front" vs "Back" under one
+	 * device — stays visible.
 	 */
 	let {
 		value,
@@ -45,18 +60,25 @@
 
 	const visibleGroups = $derived(groups.filter((g) => g.items.length > 0));
 	const items = $derived(visibleGroups.flatMap((g) => g.items));
-	const selectedLabel = $derived(items.find((i) => i.value === value)?.label ?? '');
+	const current = $derived(items.find((i) => i.value === value));
+	const selectedLabel = $derived(current?.trigger?.label ?? current?.label ?? '');
+	const selectedDetail = $derived(current?.trigger?.detail ?? current?.detail);
 </script>
 
 <Select.Root type="single" {value} {onValueChange} {items} {disabled}>
 	<span id="{uid}-label" class="sr-only">{label}</span>
 	<Select.Trigger
 		aria-labelledby="{uid}-label {uid}-value"
-		title={selectedLabel || placeholder}
+		title={selectedLabel
+			? [selectedLabel, selectedDetail].filter(Boolean).join(' · ')
+			: placeholder}
 		class="flex min-w-16 cursor-pointer items-center justify-between gap-1 rounded border border-base-content/20 bg-base-100 px-2 py-1 text-left text-sm transition-colors hover:bg-base-content/5 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 {className}"
 	>
-		<span id="{uid}-value" class="truncate {selectedLabel ? '' : 'text-base-content/60'}">
-			{selectedLabel || placeholder}
+		<span id="{uid}-value" class="flex min-w-0 gap-1 {selectedLabel ? '' : 'text-base-content/60'}">
+			<span class="truncate">{selectedLabel || placeholder}</span>
+			{#if selectedLabel && selectedDetail}
+				<span class="shrink-0 text-base-content/60">· {selectedDetail}</span>
+			{/if}
 		</span>
 		<ChevronDown class="size-3.5 shrink-0 text-base-content/60" aria-hidden="true" />
 	</Select.Trigger>
@@ -77,10 +99,18 @@
 							<Select.Item
 								value={item.value}
 								label={item.label}
-								class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-sm text-base-content outline-none data-highlighted:bg-base-300 data-selected:font-medium data-selected:text-accent"
+								aria-label={item.ariaLabel}
+								class="flex cursor-pointer items-center gap-2 rounded py-1 pr-2 text-sm text-base-content outline-none data-highlighted:bg-base-300 data-selected:font-medium data-selected:text-accent {item.indent
+									? 'pl-5'
+									: 'pl-2'}"
 							>
 								{#snippet children({ selected })}
-									<span class="truncate">{item.label}</span>
+									<span class="min-w-0 flex-1 truncate">{item.label}</span>
+									{#if item.detail}
+										<span class="shrink-0 text-xs font-normal text-base-content/60">
+											{item.detail}
+										</span>
+									{/if}
 									{#if selected}
 										<Check class="size-3.5 shrink-0" aria-hidden="true" />
 									{/if}

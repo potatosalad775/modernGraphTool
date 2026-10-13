@@ -5,6 +5,7 @@
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
+	import { eqSourceChannels } from '$lib/utils/eq-source.js';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 	import { linkStore } from '$lib/stores/link-store.svelte.js';
 
@@ -55,7 +56,12 @@
 		for (const uuid of [eqStore.sourcePhoneUUID, eqStore.eqCurveUUID]) {
 			const item = uuid ? frStore.get(uuid) : null;
 			if (!uuid || !item) continue;
-			if (item.dispChannel.length === 1 && item.dispChannel[0] === 'AVG' && item.channels.L) {
+			// The source is judged by the curves the EQ applies to — an EQ'd run may lack an ear.
+			const channels =
+				uuid === eqStore.sourcePhoneUUID
+					? eqSourceChannels(item, eqStore.sourceSample)
+					: item.channels;
+			if (item.dispChannel.length === 1 && item.dispChannel[0] === 'AVG' && channels.L) {
 				dataProvider.updateDisplayChannel(uuid, ['L', 'R']);
 				return;
 			}

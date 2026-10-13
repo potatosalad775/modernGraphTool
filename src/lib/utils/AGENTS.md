@@ -2,7 +2,7 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-apo.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`.
 
 ## `preference-bound.ts`
@@ -52,6 +52,15 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
   filter types (APO's fixed-Q `LP`, `LS 6dB`, …) are skipped rather than imported as peaks, and
   `Preamp:` is ignored because ours is derived from the filter set. The gainless types (`LPQ`,
   `HPQ`, `BP`, `NO`, `AP`) are read and written without a `Gain` field, as APO writes them.
+
+## `eq-source.ts`
+
+What "the EQ source" means: the device's channels, or one run of its sample set
+(`eqStore.sourceSample`). **Every reader goes through `eqSourceChannels` / `eqSourceRun`** — the EQ
+curve, AutoEQ's inputs, the overlay's fallback, `EqChannelSelect`, the graph's ghost and the hover
+readout. Reading `frStore.get(source).channels` directly silently EQs the average again. A pick is
+stale when the source's `dispSuffix` no longer matches the variant it recorded; stale reads as the
+average rather than being reset, so no variant-changing path has to remember it.
 
 ## `eq-constraint.ts` / `eq-domain-hint.ts`
 

@@ -7,6 +7,7 @@ import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 import { linkStore } from '$lib/stores/link-store.svelte.js';
 import { Equalizer, usesGain, type EQFilter } from '$lib/utils/equalizer.js';
 import { indexedEffectiveFilters, indexedFiltersInScope } from '$lib/utils/eq-channel.js';
+import { eqSourceChannels } from '$lib/utils/eq-source.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
 
@@ -359,7 +360,7 @@ export class GraphEqOverlay {
 		if (!sourceUUID) return null;
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return null;
-		return this._pickChannelData(sourceData.channels);
+		return this._pickChannelData(eqSourceChannels(sourceData, eqStore.sourceSample));
 	}
 
 	/**

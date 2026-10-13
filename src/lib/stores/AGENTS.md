@@ -91,6 +91,12 @@ recording it would bury real edits under navigation, and a share link reopening 
 scope is noise. `EqualizerPanel` resets it to `'BOTH'` on a source-phone change — leaving it on `L`
 would open the next device on an empty list.
 
+**`eq-store.svelte.ts` — `sourceSample` is reset by the `sourcePhoneUUID` setter, and only there.**
+A run index means nothing on another device, so changing device drops it inside the store rather
+than in each caller. A variant switch is _not_ reset anywhere: the pick records its variant and
+`eqSourceRun` (`utils/eq-source.ts`) treats a mismatch as the average, which also covers undoing a
+switch — a path no reset hook would see.
+
 **`eq-store.svelte.ts` — `momentaryRestore` is not derivable from `momentaryOverride`.**
 The two are set together by the `\` press-and-hold in `AppShell` and look redundant (`'bypass'`
 implies restore `true`, `'audition'` implies `false`). They stopped being redundant when

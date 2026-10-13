@@ -1488,6 +1488,65 @@ describe('DataProvider', () => {
 			expect(frStore.get(eqUUID)!.dispChannel).toEqual(['AVG']);
 		});
 
+		describe('with a run as the source', () => {
+			/** The flat source plus two runs at +3 / +6 dB, so each is identifiable. */
+			function seedRuns(): void {
+				seedEqSource();
+				const at = (db: number) => ({
+					data: makeFRPoints(0).map(([f]) => [f, db] as FRDataPoint),
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				});
+				const src = frStore.get('src')!;
+				frStore.set('src', {
+					...src,
+					dispSuffix: 'Depths',
+					samples: [
+						{ label: 'Shallow', L: at(3), R: at(3), AVG: at(3) },
+						{ label: 'Deep', L: at(6), R: at(6), AVG: at(6) }
+					]
+				});
+			}
+
+			afterEach(() => {
+				eqStore.sourceSample = null;
+			});
+
+			it('EQs the picked run instead of the average', () => {
+				seedRuns();
+				eqStore.sourceSample = { index: 1, variant: 'Depths' };
+				eqStore.filters = [band(6)];
+
+				dataProvider.rebuildEqCurve();
+
+				// The run sits 6 dB up, the band adds roughly 6 more at 1 kHz.
+				expect(eqDbAt1k('AVG')).toBeGreaterThan(10);
+			});
+
+			it('names the run in the EQ curve label', () => {
+				seedRuns();
+				eqStore.sourceSample = { index: 0, variant: 'Depths' };
+				eqStore.filters = [band(6)];
+
+				dataProvider.rebuildEqCurve();
+				expect(frStore.get(eqStore.eqCurveUUID!)!.dispSuffix).toBe('(EQ · Shallow)');
+
+				eqStore.sourceSample = null;
+				dataProvider.rebuildEqCurve();
+				expect(frStore.get(eqStore.eqCurveUUID!)!.dispSuffix).toBe('(EQ)');
+			});
+
+			it('falls back to the average once the source shows another variant', () => {
+				seedRuns();
+				eqStore.sourceSample = { index: 1, variant: 'Repeat Runs' };
+				eqStore.filters = [band(6)];
+
+				dataProvider.rebuildEqCurve();
+
+				expect(eqDbAt1k('AVG')).toBeLessThan(7);
+				expect(frStore.get(eqStore.eqCurveUUID!)!.dispSuffix).toBe('(EQ)');
+			});
+		});
+
 		it('ignores per-channel bands on a source measured as a single curve', () => {
 			const flat = {
 				data: makeFRPoints(0).map(([f]) => [f, 0] as FRDataPoint),

@@ -26,6 +26,7 @@
 	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import { downloadText } from '$lib/utils/download-text.js';
+	import { eqSourceRun, sampleRunLabel } from '$lib/utils/eq-source.js';
 
 	/** Quiet time after the last edit before the preamp toast may fire, ms. */
 	const PREAMP_TOAST_SETTLE_MS = 800;
@@ -230,7 +231,9 @@
 	function sourceDeviceLabel(): string | null {
 		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
 		if (!source) return null;
-		const label = `${source.identifier} ${source.dispSuffix || ''}`.trim();
+		const run = eqSourceRun(source, eqStore.sourceSample);
+		const runLabel = run ? sampleRunLabel(run, eqStore.sourceSample!.index) : '';
+		const label = `${source.identifier} ${source.dispSuffix || ''} ${runLabel}`.trim();
 		const sanitized = label.replace(/[\\/:*?"<>|]/g, '').trim();
 		return sanitized || null;
 	}

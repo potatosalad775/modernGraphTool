@@ -1,6 +1,8 @@
 import * as d3 from 'd3';
 import type { FRDataPoint } from '$lib/types/data-types.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
+import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { eqSourceChannels } from '$lib/utils/eq-source.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { curveDisplayName, sampleKeyParts } from './curve-label.js';
 
@@ -162,9 +164,14 @@ class GraphInspection {
 			.sort(([, a], [, b]) => (a.type === 'target' ? -1 : 1))
 			.forEach(([, obj]) => {
 				const channels = obj.type === 'target' ? ['AVG'] : [...obj.dispChannel];
+				// An EQ'd run stands in for the source's average on the graph (`_drawPhoneCurve`).
+				const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
+				const mainChannels = isEqSource
+					? eqSourceChannels(obj, eqStore.sourceSample)
+					: obj.channels;
 
 				channels.forEach((channel) => {
-					const channelData = obj.channels[channel as keyof typeof obj.channels]?.data;
+					const channelData = mainChannels[channel as keyof typeof mainChannels]?.data;
 					if (!channelData) return;
 
 					const splValue = this._interpolateSPL(channelData, frequency);

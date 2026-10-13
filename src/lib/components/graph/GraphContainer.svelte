@@ -328,6 +328,7 @@
 		// Track EQ state so curves re-render with ghost opacity when EQ is toggled
 		const _eqEnabled = eqStore.isEnabled;
 		const _eqSource = eqStore.sourcePhoneUUID;
+		const _eqSourceSample = eqStore.sourceSample;
 		if (graphEngine.isInitialized) {
 			graphEngine.refreshEveryFRCurves();
 		}

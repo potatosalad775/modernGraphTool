@@ -167,6 +167,17 @@ describe('EQStore', () => {
 			expect(eqStore.sourcePhoneUUID).toBe('uuid-123');
 		});
 
+		it('drops the run pick when the source device changes', () => {
+			eqStore.sourcePhoneUUID = 'a';
+			eqStore.sourceSample = { index: 1, variant: '' };
+
+			eqStore.sourcePhoneUUID = 'a';
+			expect(eqStore.sourceSample).toEqual({ index: 1, variant: '' });
+
+			eqStore.sourcePhoneUUID = 'b';
+			expect(eqStore.sourceSample).toBeNull();
+		});
+
 		it('allows setting autoEqTargetUUID', () => {
 			eqStore.autoEqTargetUUID = 'target-uuid';
 			expect(eqStore.autoEqTargetUUID).toBe('target-uuid');

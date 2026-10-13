@@ -43,6 +43,14 @@ originals.
 - `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so
   `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
 
+## The EQ source ghost
+
+While EQ is on, `_drawPhoneCurve` dims the source to 0.35 as the "before" curve. With a sample run as
+the source (`eqStore.sourceSample`) the ghost is that run, drawn in place of the average and even
+with the average toggled off — the EQ curve is the run plus the bands, so ghosting the average would
+compare it against a curve it was never built from. `GraphInspection` reads the same channels for the
+same reason.
+
 ## `GraphEqOverlay` and the channel scope
 
 Band nodes follow `eqStore.channelScope`. Scoped to one ear the overlay draws that ear's **effective**

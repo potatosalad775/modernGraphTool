@@ -49,12 +49,16 @@
 		if (scope === 'BOTH') return;
 		// Editing one ear is pointless if the graph is drawing the average. Only
 		// expand from AVG — a user who deliberately picked a single channel keeps it.
-		const uuid = eqStore.sourcePhoneUUID;
-		if (!uuid) return;
-		const source = frStore.get(uuid);
-		if (!source) return;
-		if (source.dispChannel.length === 1 && source.dispChannel[0] === 'AVG' && source.channels.L) {
-			dataProvider.updateDisplayChannel(uuid, ['L', 'R']);
+		// The EQ curve keeps its own channel choice but follows a source whose choice
+		// changes, so widening the source carries it along; it is widened directly
+		// only when the source needs nothing — one undo entry either way.
+		for (const uuid of [eqStore.sourcePhoneUUID, eqStore.eqCurveUUID]) {
+			const item = uuid ? frStore.get(uuid) : null;
+			if (!uuid || !item) continue;
+			if (item.dispChannel.length === 1 && item.dispChannel[0] === 'AVG' && item.channels.L) {
+				dataProvider.updateDisplayChannel(uuid, ['L', 'R']);
+				return;
+			}
 		}
 	}
 </script>

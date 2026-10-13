@@ -123,6 +123,9 @@ applyTargetAdjustment.
   `anchorAndNormalizeSamples`), or the average silently ignores every single-ear correction. That
   branch requires the source to already have all three channels — it rewrites an AVG, never invents
   one, so a phone measured as a single curve keeps the shared-only path.
+- The EQ curve owns its `dispChannel`; `#eqCurveDispChannel` copies the source's only when the
+  source's choice changes. Copying it on every rebuild made the EQ curve's channel picker revert on
+  the next filter edit.
 - `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
   `eqStore.preamp`** (`utils/eq-preamp.ts`), installed once from `AppShell.onMount` and never
   disposed. With a device connected here, Auto's value is rounded down onto the device's preamp

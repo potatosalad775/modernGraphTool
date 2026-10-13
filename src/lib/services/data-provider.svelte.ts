@@ -56,6 +56,8 @@ import { untrack } from 'svelte';
 
 class DataProvider {
 	#eqCurveSyncInstalled = false;
+	/** Source uuid + `dispChannel` the EQ curve last followed; see `#eqCurveDispChannel`. */
+	#eqSourceChannelKey: string | null = null;
 
 	/** Current processing params from graph store */
 	get #processingParams() {
@@ -631,7 +633,7 @@ class DataProvider {
 					...(processed.R && { R: processed.R }),
 					...(processed.AVG && { AVG: processed.AVG })
 				},
-				dispChannel: [...sourceData.dispChannel],
+				dispChannel: this.#eqCurveDispChannel(sourceUUID, sourceData, existing, processed),
 				colors: { ...sourceData.colors },
 				_rawData: { channels: modified }
 			});
@@ -647,7 +649,7 @@ class DataProvider {
 					...(processed.R && { R: processed.R }),
 					...(processed.AVG && { AVG: processed.AVG })
 				},
-				dispChannel: [...sourceData.dispChannel],
+				dispChannel: this.#eqCurveDispChannel(sourceUUID, sourceData, null, processed),
 				colors: { ...sourceData.colors },
 				dash: sourceData.dash || '1 0',
 				hidden: false,
@@ -659,12 +661,37 @@ class DataProvider {
 		}
 	}
 
+	/**
+	 * The EQ curve's displayed channels: its own, unless the source's just changed.
+	 *
+	 * Copying the source's `dispChannel` on every rebuild made the EQ curve's own
+	 * channel picker undo itself on the next filter edit. Following the source only
+	 * when the source's choice changes keeps both: switching the source still
+	 * carries the EQ curve along, and a channel picked on the EQ curve sticks.
+	 * A choice naming a channel the curve no longer has falls back to the source.
+	 */
+	#eqCurveDispChannel(
+		sourceUUID: string,
+		sourceData: FRDataObject,
+		existing: FRDataObject | null,
+		channels: ParsedFRData
+	): ('L' | 'R' | 'AVG')[] {
+		const key = `${sourceUUID}:${sourceData.dispChannel.join('+')}`;
+		const sourceChanged = key !== this.#eqSourceChannelKey;
+		this.#eqSourceChannelKey = key;
+		if (existing && !sourceChanged && existing.dispChannel.every((ch) => channels[ch])) {
+			return existing.dispChannel;
+		}
+		return [...sourceData.dispChannel];
+	}
+
 	#removeEqCurve(): void {
 		const uuid = eqStore.eqCurveUUID;
 		if (uuid) {
 			frStore.delete(uuid);
 			eqStore.eqCurveUUID = null;
 		}
+		this.#eqSourceChannelKey = null;
 		eqStore.eqModifiedData.clear();
 	}
 

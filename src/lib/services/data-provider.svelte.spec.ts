@@ -1461,6 +1461,33 @@ describe('DataProvider', () => {
 			expect(eqDbAt1k('AVG')).toBeCloseTo(eqDbAt1k('L'), 6);
 		});
 
+		it('keeps a channel picked on the EQ curve across a filter edit', () => {
+			seedEqSource();
+			eqStore.filters = [band(6)];
+			dataProvider.rebuildEqCurve();
+			const eqUUID = eqStore.eqCurveUUID!;
+			expect(frStore.get(eqUUID)!.dispChannel).toEqual(['L', 'R']);
+
+			dataProvider.updateDisplayChannel(eqUUID, ['R']);
+			eqStore.filters = [band(3)];
+			dataProvider.rebuildEqCurve();
+
+			expect(frStore.get(eqUUID)!.dispChannel).toEqual(['R']);
+		});
+
+		it('follows the source when the source channel changes', () => {
+			seedEqSource();
+			eqStore.filters = [band(6)];
+			dataProvider.rebuildEqCurve();
+			const eqUUID = eqStore.eqCurveUUID!;
+			dataProvider.updateDisplayChannel(eqUUID, ['R']);
+
+			dataProvider.updateDisplayChannel('src', ['AVG']);
+			dataProvider.rebuildEqCurve();
+
+			expect(frStore.get(eqUUID)!.dispChannel).toEqual(['AVG']);
+		});
+
 		it('ignores per-channel bands on a source measured as a single curve', () => {
 			const flat = {
 				data: makeFRPoints(0).map(([f]) => [f, 0] as FRDataPoint),

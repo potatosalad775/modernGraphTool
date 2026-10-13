@@ -257,9 +257,9 @@
 <style>
 	/* Dark modules on a light ground in both themes: not every camera app reads an inverted code. */
 	.qr-light {
-		fill: var(--color-qr-light, var(--color-base-100));
+		fill: var(--color-qr-light, oklch(100% 0 0));
 	}
 	.qr-dark {
-		fill: var(--color-qr-dark, var(--color-base-content));
+		fill: var(--color-qr-dark, oklch(20% 0.042 265.755));
 	}
 </style>

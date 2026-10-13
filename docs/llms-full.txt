@@ -943,6 +943,14 @@ Two things to know:
 
 See [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#per-channel-eq-l--r) for the workflow.
 
+## EQ one run of a sample set
+
+A [sample set](/modernGraphTool/docs/guide-for-admins/manage-data/#sample-sets) draws as the average of its runs, and by default that average is what the EQ applies to. When the runs are different fits — insertion depths, pad positions — the average is a fit nobody actually wears: it blurs the treble peaks that move with depth into one gentle bump, and AutoEQ fits to that blur.
+
+The source picker at the top of the panel lists a sample set’s runs under it. Pick one and the EQ curve, AutoEQ, the band handles and the hover readout all use that run; the device row itself (marked **Average**) goes back to the average. While EQ is on, the dimmed “before” curve is the picked run, and the EQ curve’s label names it — `IEM (EQ · Deep)`.
+
+The pick belongs to the variant it was made on. Switch the device to another variant and the EQ returns to the average, since run 2 of one set has nothing to do with run 2 of another. Share links don’t record the source at all, so a shared EQ opens on the average.
+
 ## EQ constraints
 
 An EQ constraint limits the band list to what a particular EQ engine accepts — a DAC’s hardware EQ, a music player’s equalizer, a fixed 10-band graphic EQ. The **constraint** button at the end of the band list’s toolbar picks one:
@@ -998,7 +1006,8 @@ Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply**
 It switches itself off, and says why, rather than overwrite something it can no longer vouch for:
 
 * the filters are edited by hand — adding, removing or dragging a band, undo, import, or a History & Compare switch;
-* a different source device or target is selected, or the target is removed;
+* a different source device, sample run or target is selected, or the target is removed;
+* the source switches to another variant while a sample run was being fitted;
 * the EQ preset changes;
 * the fallback optimizer answered (see [The optimizer](#the-optimizer)). It is too slow to follow every change, so the switch stays unavailable until a run succeeds with turboEQ.
 
@@ -2074,7 +2083,9 @@ DOWNLOAD: {
 },
 ```
 
-Adds a per-curve download button to the selection list. Exports the curve exactly as displayed — smoothing, normalization, target adjustments and parametric EQ are all baked in — as one tab-separated `Frequency` / `dB` `.txt` file per channel (`Name Suffix L.txt`, `Name Suffix R.txt`, …).
+Adds a per-curve download button to the selection list. Exports the curve exactly as displayed — smoothing, normalization, target adjustments and parametric EQ are all baked in — as one tab-separated `Frequency` / `dB` `.txt` file per displayed channel (`Name Suffix L.txt`, `Name Suffix R.txt`, …). More than one file is saved as a single `.zip`.
+
+For a [sample set](/modernGraphTool/docs/guide-for-admins/manage-data/#sample-sets) the button asks first: **Average only** exports the averaged curve, and **All samples** adds every run on the same channels (`Name Suffix - Sample 1 L.txt`, or the run’s label in place of `Sample 1`).
 
 * `ENABLED`: Shows the download button. Off by default.
 

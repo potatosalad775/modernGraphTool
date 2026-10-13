@@ -858,7 +858,9 @@ DOWNLOAD: {
 },
 ```
 
-Adds a per-curve download button to the selection list. Exports the curve exactly as displayed — smoothing, normalization, target adjustments and parametric EQ are all baked in — as one tab-separated `Frequency` / `dB` `.txt` file per channel (`Name Suffix L.txt`, `Name Suffix R.txt`, …).
+Adds a per-curve download button to the selection list. Exports the curve exactly as displayed — smoothing, normalization, target adjustments and parametric EQ are all baked in — as one tab-separated `Frequency` / `dB` `.txt` file per displayed channel (`Name Suffix L.txt`, `Name Suffix R.txt`, …). More than one file is saved as a single `.zip`.
+
+For a [sample set](./manage-data.mdx#sample-sets) the button asks first: **Average only** exports the averaged curve, and **All samples** adds every run on the same channels (`Name Suffix - Sample 1 L.txt`, or the run's label in place of `Sample 1`).
 
 - `ENABLED`: Shows the download button. Off by default.
 

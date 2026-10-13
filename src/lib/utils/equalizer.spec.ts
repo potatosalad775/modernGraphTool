@@ -113,6 +113,38 @@ describe('Equalizer', () => {
 			const gains = eq.calculateGainsFromFilter(freqs, filters);
 			expect(gains[0]).toBeCloseTo(0, 4);
 		});
+
+		it('draws the gainless types, whose gain is 0', () => {
+			eq = makeEq();
+			const band = (type: EQFilter['type'], freq: number, q: number): EQFilter[] => [
+				{ enabled: true, type, freq, q, gain: 0 }
+			];
+			const [hpBelow, hpAt, hpAbove] = eq.calculateGainsFromFilter(
+				[25, 100, 4000],
+				band('HPQ', 100, Math.SQRT1_2)
+			);
+			expect(hpBelow).toBeLessThan(-20);
+			expect(hpAt).toBeCloseTo(-3.01, 1);
+			expect(hpAbove).toBeCloseTo(0, 1);
+
+			const [lpBelow, lpAt] = eq.calculateGainsFromFilter([100, 4000], band('LPQ', 4000, 0.7071));
+			expect(lpBelow).toBeCloseTo(0, 1);
+			expect(lpAt).toBeCloseTo(-3.01, 1);
+
+			const [bpAt, bpOff] = eq.calculateGainsFromFilter([1000, 10000], band('BP', 1000, 1));
+			expect(bpAt).toBeCloseTo(0, 2);
+			expect(bpOff).toBeLessThan(-15);
+
+			// A notch's centre is an exact zero: floored, never -Infinity.
+			const [notchAt, notchOff] = eq.calculateGainsFromFilter([1000, 100], band('NO', 1000, 4));
+			expect(Number.isFinite(notchAt)).toBe(true);
+			expect(notchAt).toBeLessThan(-60);
+			expect(notchOff).toBeCloseTo(0, 1);
+
+			for (const g of eq.calculateGainsFromFilter([30, 1000, 15000], band('AP', 1000, 1))) {
+				expect(g).toBeCloseTo(0, 6);
+			}
+		});
 	});
 
 	describe('applyFilters', () => {

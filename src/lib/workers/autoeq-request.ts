@@ -4,11 +4,11 @@
  *
  * Separate from `autoeq-engine.ts` so the UI can describe a run without
  * pulling the wasm module into the main bundle: only the worker ever loads
- * that. Everything here is data plus one pure function.
+ * that. Everything here is data plus pure functions.
  */
 
 import type { TurboEQBandLimits } from '@potatosalad775/turboeq';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import { AUTOEQ_TYPES, type EQFilter } from '$lib/utils/equalizer.js';
 
 /**
  * The cap for a preset that says "unlimited": a fit has to be asked for a
@@ -141,4 +141,29 @@ export function bandCount(request: AutoEqRequest): number {
 	return request.kind === 'graphic'
 		? request.bands.length
 		: request.peaking + (request.shelves ? 2 : 0);
+}
+
+/** A band AutoEQ can't make, with its position in the list the run replaces. */
+export interface KeptBand {
+	index: number;
+	filter: EQFilter;
+}
+
+/**
+ * The bands a run keeps: any type AutoEQ doesn't produce (a device's high pass, a notch from an
+ * imported config). A run replaces the list, and dropping one of these would silently change what
+ * the device or the config was doing. Their response counts as part of the source, so the fit
+ * corrects around it.
+ */
+export function keptBands(filters: EQFilter[]): KeptBand[] {
+	return filters.flatMap((filter, index) =>
+		AUTOEQ_TYPES.includes(filter.type) ? [] : [{ index, filter }]
+	);
+}
+
+/** The fitted bands with the kept ones back at their own positions, as far as the list reaches. */
+export function keepInPlace(fitted: EQFilter[], kept: KeptBand[]): EQFilter[] {
+	const out = [...fitted];
+	for (const { index, filter } of kept) out.splice(Math.min(index, out.length), 0, filter);
+	return out;
 }

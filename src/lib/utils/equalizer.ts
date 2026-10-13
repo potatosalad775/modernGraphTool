@@ -3,9 +3,25 @@
  * Ported from legacy src/features/equalizer/util/equalizer.ts
  */
 
+/**
+ * eqcaps' filter types, with the app's own shelf spelling (`LSQ`/`HSQ` for eqcaps' `LSC`/`HSC`;
+ * `eq-constraint.ts` converts at the boundary). The gainless ones (`LPQ HPQ BP NO AP`) come from
+ * devices and imported configs; AutoEQ never makes them and keeps them in place.
+ */
+export const EQ_FILTER_TYPES = ['PK', 'LSQ', 'HSQ', 'LPQ', 'HPQ', 'BP', 'NO', 'AP'] as const;
+export type EQFilterType = (typeof EQ_FILTER_TYPES)[number];
+
+/** The types AutoEQ produces. Any other band is kept as it is, and fitted around. */
+export const AUTOEQ_TYPES: readonly EQFilterType[] = ['PK', 'LSQ', 'HSQ'];
+
+/** Whether the type takes `gain`. A gainless band's gain is always 0. */
+export function usesGain(type: EQFilterType): boolean {
+	return type === 'PK' || type === 'LSQ' || type === 'HSQ';
+}
+
 export interface EQFilter {
 	enabled: boolean;
-	type: 'PK' | 'LSQ' | 'HSQ';
+	type: EQFilterType;
 	freq: number | null;
 	q: number | null;
 	gain: number | null;
@@ -175,6 +191,28 @@ export class Equalizer {
 		return [1.0, a1 / a0, a2 / a0, b0 / a0, b1 / a0, b2 / a0];
 	}
 
+	/** The gainless RBJ cookbook filters: low/high pass, band pass (0 dB peak), notch, all pass. */
+	_gainless(type: EQFilterType, freq: number, q: number): number[] {
+		freq = freq / this.config.DefaultSampleRate;
+		freq = Math.max(1e-6, Math.min(freq, 1));
+		q = Math.max(1e-4, Math.min(q, 1000));
+
+		const w0 = 2 * Math.PI * freq;
+		const cos = Math.cos(w0);
+		const alpha = Math.sin(w0) / (2 * q);
+		const a0 = 1 + alpha;
+		const a1 = -2 * cos;
+		const a2 = 1 - alpha;
+		let b: [number, number, number];
+		if (type === 'LPQ') b = [(1 - cos) / 2, 1 - cos, (1 - cos) / 2];
+		else if (type === 'HPQ') b = [(1 + cos) / 2, -(1 + cos), (1 + cos) / 2];
+		else if (type === 'BP') b = [alpha, 0, -alpha];
+		else if (type === 'NO') b = [1, -2 * cos, 1];
+		else b = [1 - alpha, -2 * cos, 1 + alpha];
+
+		return [1.0, a1 / a0, a2 / a0, b[0] / a0, b[1] / a0, b[2] / a0];
+	}
+
 	_calculateGains(freqs: number[], coeffs: number[][]): number[] {
 		const n = freqs.length;
 		const gains = new Array(n).fill(0);
@@ -204,7 +242,9 @@ export class Equalizer {
 				const p = phi[j];
 				const num = bSum2 + (bLinear + bQuad * p) * p;
 				const den = aSum2 + (aLinear + aQuad * p) * p;
-				gains[j] += inv10ln10 * Math.log(num / den);
+				// Floored at -200 dB: a notch's centre or a low pass at Nyquist is an exact zero,
+				// and -Infinity would break every curve it is summed into.
+				gains[j] += inv10ln10 * Math.log(Math.max(num / den, 1e-20));
 			}
 		}
 		return gains;
@@ -236,7 +276,11 @@ export class Equalizer {
 	_filtersToCoeffs(filters: EQFilter[]): number[][] {
 		return filters
 			.map((f) => {
-				if (!f.freq || !f.gain || !f.q) {
+				if (!f.freq || !f.q) {
+					return null;
+				} else if (!usesGain(f.type)) {
+					return this._gainless(f.type, f.freq, f.q);
+				} else if (!f.gain) {
 					return null;
 				} else if (f.type === 'LSQ') {
 					return this._lowshelf(f.freq, f.q, f.gain);

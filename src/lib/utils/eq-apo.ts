@@ -1,4 +1,4 @@
-import type { EQFilter } from './equalizer.js';
+import { usesGain, type EQFilter } from './equalizer.js';
 import type { EqChannel } from './eq-channel.js';
 import { hasPerChannelFilters } from './eq-channel.js';
 
@@ -33,13 +33,18 @@ const TYPE_FROM_APO: Record<string, EQFilter['type']> = {
 	LSQ: 'LSQ',
 	HSC: 'HSQ',
 	HS: 'HSQ',
-	HSQ: 'HSQ'
+	HSQ: 'HSQ',
+	LPQ: 'LPQ',
+	HPQ: 'HPQ',
+	BP: 'BP',
+	NO: 'NO',
+	AP: 'AP'
 };
 
 function apoTypeName(type: EQFilter['type']): string {
 	if (type === 'LSQ') return 'LSC';
 	if (type === 'HSQ') return 'HSC';
-	return 'PK';
+	return type;
 }
 
 /**
@@ -119,25 +124,27 @@ function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
 	if (!head) return null;
 	const [, onOff, rawType, params] = head;
 	const type = TYPE_FROM_APO[rawType.toUpperCase()];
-	// An unknown filter type (APO has BP, NO, AP, …) has no representation
+	// An unknown filter type (APO's fixed-Q `LP`, `HP`, …) has no representation
 	// here; skipping beats importing it as a peak that reshapes the curve.
 	// So does a corner-frequency shelf: it is not the RBJ shelf we model.
 	if (!type || CORNER_SHELF.test(params)) return null;
 
+	// The gainless types (`LPQ`, `HPQ`, `BP`, `NO`, `AP`) are written without a `Gain`.
 	const fc = params.match(FC);
 	const gainMatch = params.match(GAIN);
-	if (!fc || !gainMatch) return null;
+	if (!fc || (!gainMatch && usesGain(type))) return null;
 	const freq = parseFloat(fc[1]);
-	const gain = parseFloat(gainMatch[1]);
+	const gain = gainMatch && usesGain(type) ? parseFloat(gainMatch[1]) : 0;
 
 	const qMatch = params.match(Q);
 	const bwMatch = params.match(BW_OCT);
-	const slopeMatch = type === 'PK' ? null : params.match(SHELF_SLOPE);
+	const shelf = type === 'LSQ' || type === 'HSQ';
+	const slopeMatch = shelf ? params.match(SHELF_SLOPE) : null;
 	let q: number;
 	if (qMatch) q = parseFloat(qMatch[1]);
 	else if (bwMatch) q = roundQ(qFromBandwidth(parseFloat(bwMatch[1]), freq));
 	else if (slopeMatch) q = roundQ(qFromShelfSlope(parseFloat(slopeMatch[1]), gain));
-	else if (type !== 'PK') q = roundQ(Math.SQRT1_2);
+	else if (shelf) q = roundQ(Math.SQRT1_2);
 	else return null;
 	if (!(freq > 0) || !(q > 0) || !Number.isFinite(q)) return null;
 
@@ -231,7 +238,9 @@ export function formatApoFilters(filters: EQFilter[], preamp: number): string {
 			n++;
 			text +=
 				`Filter ${n}: ${f.enabled ? 'ON' : 'OFF'} ${apoTypeName(f.type)} ` +
-				`Fc ${f.freq!.toFixed(0)} Hz Gain ${f.gain!.toFixed(1)} dB Q ${f.q!.toFixed(3)}\n`;
+				`Fc ${f.freq!.toFixed(0)} Hz ` +
+				(usesGain(f.type) ? `Gain ${f.gain!.toFixed(1)} dB ` : '') +
+				`Q ${f.q!.toFixed(3)}\n`;
 		}
 	}
 	return text;

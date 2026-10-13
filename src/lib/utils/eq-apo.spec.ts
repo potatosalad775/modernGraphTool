@@ -91,13 +91,30 @@ describe('parseApoFilters', () => {
 
 	it('skips filter types it cannot represent rather than importing them as peaks', () => {
 		const filters = parseApoFilters(
-			[
-				'Filter 1: ON BP Fc 100 Hz Gain 1.0 dB Q 1.000',
-				'Filter 2: ON PK Fc 200 Hz Gain 1.0 dB Q 1.000'
-			].join('\n')
+			['Filter 1: ON LP Fc 100 Hz', 'Filter 2: ON PK Fc 200 Hz Gain 1.0 dB Q 1.000'].join('\n')
 		);
 		expect(filters).toHaveLength(1);
 		expect(filters[0].freq).toBe(200);
+	});
+
+	it('reads and writes the gainless types without a Gain field', () => {
+		const text = [
+			'Filter 1: ON HPQ Fc 30 Hz Q 0.707',
+			'Filter 2: OFF NO Fc 6000 Hz Q 4.000',
+			'Filter 3: ON BP Fc 100 Hz Gain 1.0 dB Q 1.000'
+		].join('\n');
+		const filters = parseApoFilters(text);
+		expect(filters).toEqual([
+			{ enabled: true, type: 'HPQ', freq: 30, gain: 0, q: 0.707 },
+			{ enabled: false, type: 'NO', freq: 6000, gain: 0, q: 4 },
+			{ enabled: true, type: 'BP', freq: 100, gain: 0, q: 1 }
+		]);
+		expect(formatApoFilters(filters, 0)).toContain('Filter 1: ON HPQ Fc 30 Hz Q 0.707\n');
+		expect(parseApoFilters(formatApoFilters(filters, 0))).toEqual(filters);
+	});
+
+	it('skips a gain type written without a gain', () => {
+		expect(parseApoFilters('Filter 1: ON PK Fc 100 Hz Q 1.000')).toEqual([]);
 	});
 
 	it('ignores directives and blank lines it has no use for', () => {
@@ -204,6 +221,7 @@ describe('parseApoFilters', () => {
 				[
 					'Preamp: -3.0 dB',
 					'# Filter 9: ON PK Fc 100 Hz Gain 1.0 dB Q 1.000',
+					// A gainless type imports; without a Q it has nothing to build.
 					'Filter 1: ON BP Fc 100 Hz Q 1.000',
 					'Filter 2: ON NO Fc 200 Hz',
 					// Corner-frequency shelves are a different filter from the RBJ shelf.
@@ -214,8 +232,8 @@ describe('parseApoFilters', () => {
 					'Filter 6: ON PK Fc 1000 Hz Gain 1.0 dB Q 1.000'
 				].join('\n')
 			);
-			expect(filters).toHaveLength(1);
-			expect(skipped).toBe(5);
+			expect(filters.map((f) => f.type)).toEqual(['BP', 'PK']);
+			expect(skipped).toBe(4);
 		});
 
 		it('is zero for a file that imports whole', () => {

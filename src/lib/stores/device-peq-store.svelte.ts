@@ -67,6 +67,11 @@ class DevicePeqStore {
 	 * needs a fresh one. The connection itself is kept for its name and `reopen`.
 	 */
 	needsReconnect = $state(false);
+	/**
+	 * Whether the device holds the list, as uniPEQ reports it over the link: it writes the device,
+	 * so only it knows. Undefined when this page writes the device and works it out from `synced`.
+	 */
+	reportedInSync = $state<boolean | null | undefined>(undefined);
 
 	get isConnected(): boolean {
 		return this.connection !== null;
@@ -102,6 +107,7 @@ class DevicePeqStore {
 
 	/** Whether the list still matches the last read or write; null before either. */
 	get inSync(): boolean | null {
+		if (this.reportedInSync !== undefined) return this.reportedInSync;
 		const synced = this.synced;
 		if (!synced) return null;
 		const preampMatters = this.connection?.device.capabilities.writesPreamp ?? false;
@@ -138,6 +144,7 @@ class DevicePeqStore {
 		this.autoStopped = false;
 		this.statusMessage = null;
 		this.statusIsError = false;
+		this.reportedInSync = undefined;
 		eqConstraintsStore.setDeviceConstraint(connection.profile, connection.name);
 	}
 
@@ -187,6 +194,7 @@ class DevicePeqStore {
 		this.statusMessage = null;
 		this.statusIsError = false;
 		this.needsReconnect = false;
+		this.reportedInSync = undefined;
 		eqConstraintsStore.clearDeviceConstraint();
 	}
 

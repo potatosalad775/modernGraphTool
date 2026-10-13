@@ -13,12 +13,15 @@
 		open = $bindable(false),
 		plan,
 		deviceName,
-		onConfirm
+		onConfirm,
+		onCancel
 	}: {
 		open?: boolean;
 		plan: PushPlan | null;
 		deviceName: string;
 		onConfirm: () => void;
+		/** Closed without writing: Cancel, Escape or a click outside. uniPEQ's review needs the no. */
+		onCancel?: () => void;
 	} = $props();
 
 	const FIELD_LABEL: Record<'type' | 'freq' | 'q' | 'gain', () => string> = {
@@ -54,9 +57,15 @@
 		open = false;
 		onConfirm();
 	}
+
+	function cancel() {
+		open = false;
+		onCancel?.();
+	}
 </script>
 
-<Dialog.Root bind:open>
+<!-- `onOpenChange` fires for Escape and outside clicks only, not for the assignments above. -->
+<Dialog.Root bind:open onOpenChange={(next) => !next && onCancel?.()}>
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
 		<Dialog.Content
@@ -99,7 +108,7 @@
 					title={m.equalizer_device_peq_push_cancel()}
 					variant="ghost"
 					size="sm"
-					onclick={() => (open = false)}
+					onclick={cancel}
 				>
 					{m.equalizer_device_peq_push_cancel()}
 				</Button>

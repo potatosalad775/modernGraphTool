@@ -13,7 +13,8 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { MAX_FILTERS, TurboEQ } from '@potatosalad775/turboeq';
 import { buildBanks, runAutoEq } from './autoeq-engine.js';
-import { bandCount, planBands, MAX_BANDS } from './autoeq-request.js';
+import { bandCount, keepInPlace, keptBands, planBands, MAX_BANDS } from './autoeq-request.js';
+import type { EQFilter } from '$lib/utils/equalizer.js';
 
 let engine: TurboEQ;
 const loadEngine = () => Promise.resolve(engine);
@@ -55,6 +56,37 @@ describe('planBands', () => {
 	it('never asks for nothing', () => {
 		expect(planBands(0, true)).toEqual({ peaking: 1, shelves: false });
 		expect(planBands(-5, false)).toEqual({ peaking: 1, shelves: false });
+	});
+});
+
+describe('kept bands', () => {
+	const band = (type: EQFilter['type'], freq: number): EQFilter => ({
+		enabled: true,
+		type,
+		freq,
+		q: 0.7,
+		gain: type === 'PK' ? 2 : 0
+	});
+
+	it('keeps every type AutoEQ does not make, by position', () => {
+		const list = [band('HPQ', 20), band('PK', 100), band('NO', 3000), band('LSQ', 105)];
+		expect(keptBands(list)).toEqual([
+			{ index: 0, filter: list[0] },
+			{ index: 2, filter: list[2] }
+		]);
+	});
+
+	it('puts them back where they were, or at the end of a shorter list', () => {
+		const hp = band('HPQ', 20);
+		const notch = band('NO', 3000);
+		const fitted = [band('PK', 200), band('PK', 400)];
+		expect(
+			keepInPlace(fitted, [
+				{ index: 0, filter: hp },
+				{ index: 2, filter: notch }
+			])
+		).toEqual([hp, fitted[0], notch, fitted[1]]);
+		expect(keepInPlace([], [{ index: 5, filter: notch }])).toEqual([notch]);
 	});
 });
 

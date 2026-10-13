@@ -4,16 +4,22 @@
  * Out of `DevicePeq.svelte` because auto-write has to outlive the panel: panels unmount on every
  * switch, and a change made in the graph or by AutoEQ with the EQ panel closed still has to reach
  * the device. The panel keeps only what needs it: the review dialog and the controls.
+ *
+ * A device connected in uniPEQ (`connectionType: 'link'`) is written by uniPEQ from the shared
+ * list, so for it Write, Device EQ and the auto-write switch are commands to uniPEQ, and this
+ * page's own auto-write stays out of the way.
  */
 import { untrack } from 'svelte';
 import { toast } from 'svelte-sonner';
 import * as m from '$lib/paraglide/messages.js';
 import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
+import { LinkPeqDevice } from '$lib/device-peq/link.js';
 import { readRequest } from '$lib/device-peq/preset.js';
 import { needsReview, planPush, readLayout, type PushPlan } from '$lib/device-peq/push-plan.js';
 import type { DeviceConnection } from '$lib/device-peq/types.js';
 import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { linkStore } from '$lib/stores/link-store.svelte.js';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { fromCapsFilter } from '$lib/utils/eq-constraint.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -33,13 +39,27 @@ class DevicePeqService {
 	#again = false;
 	#seen: Seen | null = null;
 
-	/** The auto-write switch: the saved setting, unless a failed write stopped it on this connection. */
+	/** The connected device when it is uniPEQ's, reached over the link. */
+	get linkDevice(): LinkPeqDevice | null {
+		const device = devicePeqStore.connection?.device;
+		return device instanceof LinkPeqDevice ? device : null;
+	}
+
+	/**
+	 * The auto-write switch: the saved setting, unless a failed write stopped it on this connection.
+	 * Over the link it is uniPEQ's setting, which uniPEQ keeps.
+	 */
 	get autoWriteOn(): boolean {
+		if (this.linkDevice) {
+			const auto = linkStore.status?.auto;
+			return !!auto?.on && !auto.stopped;
+		}
 		return settingsStore.devicePeqAutoWrite && !devicePeqStore.autoStopped;
 	}
 
 	/** Auto-write is on, and this device can take it. */
 	get autoWriting(): boolean {
+		if (this.linkDevice) return this.autoWriteOn;
 		const caps = devicePeqStore.connection?.device.capabilities;
 		return this.autoWriteOn && !!caps?.canWrite && !caps.disconnectOnSave;
 	}
@@ -58,6 +78,12 @@ class DevicePeqService {
 		const conn = devicePeqStore.connection;
 		const request = devicePeqStore.readTarget;
 		if (!conn || !request) return;
+		const link = this.linkDevice;
+		if (link) {
+			// uniPEQ reads into the shared list, which arrives as an `eq`; `status` says it's busy.
+			await link.pull().catch((e) => this.fail(e, 'read'));
+			return;
+		}
 		devicePeqStore.isReading = true;
 		try {
 			const result = await conn.device.pull(request);
@@ -103,6 +129,19 @@ class DevicePeqService {
 		if (devicePeqStore.connection !== conn) return null;
 		if (devicePeqStore.activeSlot === slot) devicePeqStore.layout = { slot, hints };
 		return plan(hints);
+	}
+
+	/**
+	 * Ask uniPEQ to write the shared list. It plans the write itself, and one that needs review
+	 * comes back as `status.review`, which opens the same review dialog here as in uniPEQ.
+	 */
+	async writeLinked(): Promise<void> {
+		await this.linkDevice?.write().catch((e) => this.fail(e, 'write'));
+	}
+
+	/** This page's answer to uniPEQ's review; either side's answer closes both dialogs. */
+	async answerReview(rev: number, accept: boolean): Promise<void> {
+		await this.linkDevice?.review(rev, accept).catch((e) => this.fail(e, 'write'));
 	}
 
 	/**
@@ -204,6 +243,11 @@ class DevicePeqService {
 	 * every change. Off drops an edit still waiting.
 	 */
 	setAutoWrite(on: boolean): void {
+		const link = this.linkDevice;
+		if (link) {
+			void link.setAutoWrite(on).catch((e) => this.fail(e, 'auto-write'));
+			return;
+		}
 		devicePeqStore.autoStopped = false;
 		settingsStore.setDevicePeqAutoWrite(on);
 		if (!on) {
@@ -238,8 +282,10 @@ class DevicePeqService {
 	#changed(now: Seen): void {
 		const before = this.#seen;
 		this.#seen = now;
-		// A new connection is a new baseline, never an edit: connecting must not write.
+		// A new connection is a new baseline, never an edit: connecting must not write. uniPEQ writes
+		// its own device from the shared list, on the `settle` the link sends.
 		if (!before || before.conn !== now.conn || !now.conn) return this.#cancelPending();
+		if (now.conn.connectionType === 'link') return;
 		if (before.filters === now.filters && before.preamp === now.preamp) return;
 		if (!this.autoWriting) return;
 		this.#cancelPending();
@@ -262,7 +308,7 @@ class DevicePeqService {
 		try {
 			do {
 				this.#again = false;
-				if (!this.autoWriting || devicePeqStore.needsReconnect) return;
+				if (!this.autoWriting || devicePeqStore.needsReconnect || this.linkDevice) return;
 				if (devicePeqStore.isBusy) {
 					// A read, a switch or a button write is under way: try again after it.
 					this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);

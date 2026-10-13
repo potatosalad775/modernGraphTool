@@ -7,13 +7,16 @@ import { eqCommands, type ReplaceEqFiltersCommand } from '$lib/services/eq-comma
 import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
 import {
 	MAX_BANDS,
+	keepInPlace,
+	keptBands,
 	planBands,
 	type AutoEqRequest,
-	type FallbackCause
+	type FallbackCause,
+	type KeptBand
 } from '$lib/workers/autoeq-request.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { allowsShelves, envelopeOf, graphicBandsOf } from '$lib/utils/eq-constraint.js';
 import type { FRDataObject } from '$lib/types/data-types.js';
 
@@ -47,6 +50,9 @@ interface Session {
 	source: string;
 	target: string;
 	scope: EqChannelScope;
+	/** Bands of types AutoEQ doesn't make: fitted around, and put back where they were. */
+	kept: KeptBand[];
+	/** The bands to fit, the kept ones not counted. */
 	bandCount: number;
 	presetId: string;
 	/** The inputs behind the result on screen; null until the first one lands. */
@@ -73,10 +79,10 @@ export function activeGraphicBands(): { freq: number; q: number }[] {
  * hand; the default only covers the empty case, which used to resolve to a
  * single band and made AutoEQ look broken on first use.
  */
-function resolveBandCount(scope: EqChannelScope): number {
+function resolveBandCount(scope: EqChannelScope, kept: KeptBand[]): number {
 	// Counted within the bucket being replaced — the shared bands aren't
 	// candidates for a run scoped to one ear, so they must not set its size.
-	let count = filtersInScope(eqStore.filters, scope).length;
+	let count = filtersInScope(eqStore.filters, scope).length - kept.length;
 	if (count === 0) {
 		const raw = getConfigValue('EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT');
 		count = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : NaN;
@@ -85,12 +91,15 @@ function resolveBandCount(scope: EqChannelScope): number {
 	// `replaceFiltersInScope` trims to the preset cap anyway, and truncating an
 	// 8-band solution to 5 fits worse than optimizing for 5 in the first place.
 	// The budget is what the busiest output has left once the buckets this run
-	// won't touch are accounted for.
+	// won't touch, and the bands it keeps, are accounted for.
 	const max = eqConstraintsStore.maxBands;
 	if (max > 0) {
-		const untouched = eqStore.filters.filter((f) =>
-			scope === 'BOTH' ? f.channel != null : f.channel !== scope
-		);
+		const untouched = [
+			...eqStore.filters.filter((f) =>
+				scope === 'BOTH' ? f.channel != null : f.channel !== scope
+			),
+			...kept.map((k) => k.filter)
+		];
 		count = Math.min(count, Math.max(1, max - countBandsPerOutput(untouched)));
 	}
 	// A preset saying "unlimited" still has to name a number here: every band
@@ -175,8 +184,17 @@ function channelPoints(data: FRDataObject | null | undefined, scope: EqChannelSc
 	return (channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? []) as Points;
 }
 
+const equalizer = new Equalizer();
+
+/** The source as the kept bands leave it: what the fitted bands have to correct. */
+function withKept(source: Points, kept: KeptBand[]): Points {
+	const live = kept.map((k) => k.filter).filter((f) => f.enabled);
+	if (!live.length) return source;
+	return equalizer.applyFilters(source, live);
+}
+
 function collectInputs(session: Session): RunInputs | null {
-	const source = channelPoints(frStore.get(session.source), session.scope);
+	const source = withKept(channelPoints(frStore.get(session.source), session.scope), session.kept);
 	const target = channelPoints(frStore.get(session.target), session.scope);
 	if (!source.length || !target.length) return null;
 	const request = buildRequest(session.bandCount);
@@ -271,11 +289,15 @@ class AutoEqService {
 		}
 
 		const scope = eqStore.channelScope;
+		// A graphic EQ's run fills its own fixed bands; there is nothing to keep beside them.
+		const kept =
+			activeGraphicBands().length > 0 ? [] : keptBands(filtersInScope(eqStore.filters, scope));
 		const session: Session = {
 			source: sourceUUID,
 			target: targetUUID,
 			scope,
-			bandCount: resolveBandCount(scope),
+			kept,
+			bandCount: resolveBandCount(scope, kept),
 			presetId: eqConstraintsStore.activeId,
 			inputs: null,
 			written: null,
@@ -341,7 +363,7 @@ class AutoEqService {
 		// Scoped, so running AutoEQ on one ear doesn't wipe the shared bands
 		// or the other ear's solution.
 		const command = eqCommands.replaceFiltersInScope(
-			outcome.filters,
+			keepInPlace(outcome.filters, session.kept),
 			session.scope,
 			auto ? session.command : null
 		);

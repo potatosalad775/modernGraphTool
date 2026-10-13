@@ -5,6 +5,7 @@
 	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { prewarmAutoEQ } from '$lib/workers/autoeq-client.js';
+	import { linkConfig } from '$lib/services/link-config.js';
 
 	import EqPhoneSelect from '$lib/components/equalizer/EqPhoneSelect.svelte';
 	import EqFilterList from '$lib/components/equalizer/EqFilterList.svelte';
@@ -21,6 +22,9 @@
 	// first Run doesn't pay for the worker boot and wasm compile. Idempotent, so
 	// remounting on every panel switch costs a message and nothing more.
 	onMount(prewarmAutoEQ);
+
+	/** `UNIPEQ_LINK.ENABLE: false` hides the link. */
+	const linkEnabled = linkConfig().enabled;
 
 	let prevSourceUUID: string | null = null;
 
@@ -121,6 +125,17 @@
 					</div>
 				</AccordionItem>
 				<div class="my-1 h-px w-full bg-base-content/20"></div>
+				{#if linkEnabled}
+					<!-- uniPEQ link — loaded on first open, like Hardware EQ above -->
+					<AccordionItem value="unipeq-link" title={m.link_label()} class="px-1">
+						<div class="p-2 pt-1">
+							{#await import('$lib/components/features/UnipeqLink.svelte') then { default: UnipeqLink }}
+								<UnipeqLink />
+							{/await}
+						</div>
+					</AccordionItem>
+					<div class="my-1 h-px w-full bg-base-content/20"></div>
+				{/if}
 				<!-- EQ Settings — AutoEQ persist + Link-EQ-normalization -->
 				<AccordionItem value="eq-settings" title={m.eq_settings_accordion_title()} class="px-1">
 					<div class="p-2 pt-1">

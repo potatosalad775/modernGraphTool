@@ -215,6 +215,9 @@
 	async function reconnect() {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
+		// uniPEQ holds the device: it reconnects, and says so in `status`.
+		const link = devicePeqService.linkDevice;
+		if (link) return link.reconnect().catch((e) => fail(e, 'connect'));
 		devicePeqStore.isConnecting = true;
 		try {
 			const again = conn.reopen ? await conn.reopen() : null;
@@ -247,6 +250,8 @@
 
 	/** Write now: straight away when the device holds the list exactly, else after a review. */
 	async function pushToDevice() {
+		// uniPEQ plans the write; a review comes back as `status.review`, shown by `LinkDialogs`.
+		if (devicePeqService.linkDevice) return devicePeqService.writeLinked();
 		const plan = await devicePeqService.prepare();
 		if (!plan) return;
 		if (needsConfirmation(plan)) {
@@ -272,7 +277,8 @@
 	</a>
 {/snippet}
 
-{#if hasDeviceApi}
+<!-- A device linked from uniPEQ needs none of this browser's device APIs -->
+{#if hasDeviceApi || connection}
 	<div class="-mb-1 flex flex-col gap-2">
 		{#if !connection}
 			{#if choice}

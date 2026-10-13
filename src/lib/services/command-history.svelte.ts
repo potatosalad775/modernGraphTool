@@ -22,6 +22,12 @@ class CommandHistory {
 	/** Index of the last executed command (-1 = empty) */
 	#pointer = $state(-1);
 
+	/**
+	 * Bumped by every execute, undo and redo. A change to the EQ that moves it is a finished step,
+	 * not a gesture still under way: the uniPEQ link settles on it (`link-service.svelte.ts`).
+	 */
+	revision = $state(0);
+
 	/** Execute a command and push it onto the history stack. Discards redo branch. */
 	execute(command: Command, store: FRStoreWriteAPI): Command {
 		// Truncate the redo branch
@@ -29,6 +35,7 @@ class CommandHistory {
 		command.execute(store);
 		this.#history.push(command);
 		this.#pointer++;
+		this.revision++;
 		return command;
 	}
 
@@ -37,6 +44,7 @@ class CommandHistory {
 		if (this.#pointer < 0) return null;
 		const command = this.#history[this.#pointer--];
 		command.undo(store);
+		this.revision++;
 		return command;
 	}
 
@@ -45,6 +53,7 @@ class CommandHistory {
 		if (this.#pointer >= this.#history.length - 1) return null;
 		const command = this.#history[++this.#pointer];
 		command.execute(store);
+		this.revision++;
 		return command;
 	}
 

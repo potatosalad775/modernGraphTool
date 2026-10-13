@@ -116,6 +116,11 @@ The count is the total. With **Use shelf filters** on, two of those bands are th
 shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped,
 because spending the whole budget on them corrects nothing but overall tilt.
 
+AutoEQ makes peaking and shelf filters only. Any other band in the list — a high or low pass, a
+band pass, a notch or an all-pass, from an imported config or read from a device — stays where it
+is, and the fit corrects around it: its response counts as part of the source curve, and its slot
+comes out of the band count.
+
 ## Auto-apply
 
 Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply** switch beside it

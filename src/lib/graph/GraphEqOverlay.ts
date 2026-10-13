@@ -4,7 +4,8 @@ import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
 import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
+import { linkStore } from '$lib/stores/link-store.svelte.js';
+import { Equalizer, usesGain, type EQFilter } from '$lib/utils/equalizer.js';
 import { indexedEffectiveFilters, indexedFiltersInScope } from '$lib/utils/eq-channel.js';
 import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
 import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
@@ -138,8 +139,8 @@ export class GraphEqOverlay {
 				: indexedEffectiveFilters(filters, scope)
 		).filter((d) => {
 			if (!d.filter.enabled || d.filter.freq == null || d.filter.gain == null) return false;
-			// PK nodes require a source phone (we need curve data for positioning)
-			if (d.filter.type === 'PK' && !sourceUUID) return false;
+			// On-curve nodes require a source phone (we need curve data for positioning)
+			if (onCurve(d.filter) && !sourceUUID) return false;
 			return true;
 		});
 
@@ -226,8 +227,8 @@ export class GraphEqOverlay {
 			const freq = Math.max(20, Math.min(20000, d.filter.freq!));
 			const x = xScale(freq);
 
-			if (d.filter.type === 'PK') {
-				// PK: position on the EQ-modified FR curve
+			if (onCurve(d.filter)) {
+				// PK and gainless: position on the EQ-modified FR curve
 				const curveDb = this._getCurveDbAtFreq(freq);
 				if (curveDb === null) return 'translate(-100,-100)';
 				return `translate(${x},${yScale(curveDb)})`;
@@ -447,173 +448,182 @@ export class GraphEqOverlay {
 			axisLock: 'h' | 'v' | null;
 		} | null = null;
 
-		return d3
-			.drag<SVGGElement, BandDatum>()
-			.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const nodeEl = d3.select(
-					(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element) ??
-						_event.sourceEvent.currentTarget
-				);
-				nodeEl.style('cursor', 'grabbing').raise();
-				nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
-				nodeEl.select('.eq-q-ring').attr('opacity', 0.8);
-
-				const isPK = d.filter.type === 'PK';
-				const common = {
-					shiftOriginX: _event.x,
-					shiftOriginY: _event.y,
-					lockedFreq: d.filter.freq!,
-					lockedGain: d.filter.gain!,
-					axisLock: null as 'h' | 'v' | null
-				};
-				if (isPK) {
-					const baseCurveDb = this._getCurveDbExcludingFilter(d.filter.freq!, d.index);
-					dragState = { isPK: true, baseCurveDb, ...common };
-				} else {
-					dragState = { isPK: false, baseCurveDb: null, ...common };
-				}
-			})
-			.on('drag', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const xs = this.graphEngine.xScale;
-				const ys = this.graphEngine.baseYScale;
-
-				// Shift+Drag axis lock detection
-				const shiftHeld = !!(event.sourceEvent as MouseEvent)?.shiftKey;
-				if (dragState) {
-					if (shiftHeld && dragState.axisLock === null) {
-						const dx = Math.abs(event.x - dragState.shiftOriginX);
-						const dy = Math.abs(event.y - dragState.shiftOriginY);
-						if (dx > 3 || dy > 3) {
-							dragState.axisLock = dx >= dy ? 'h' : 'v';
-						}
-					} else if (!shiftHeld && dragState.axisLock !== null) {
-						dragState.axisLock = null;
-						dragState.shiftOriginX = event.x;
-						dragState.shiftOriginY = event.y;
-						dragState.lockedFreq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-						dragState.lockedGain = d.filter.gain ?? 0;
-					}
-				}
-
-				const isGraphic = eqConstraintsStore.isGraphic;
-				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-				// Graphic mode: frequency is pinned to the band's preset position.
-				if (isGraphic) freq = d.filter.freq!;
-				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
-
-				let gain: number;
-				let visualY: number;
-
-				if (dragState?.isPK && dragState.baseCurveDb !== null) {
-					// PK on curve: gain = cursor dB position minus base curve value
-					const targetDb = ys.invert(event.y);
-					gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
-					// Node follows the cursor directly (it's on the curve)
-					visualY = event.y;
-
-					// Recompute baseCurveDb at new freq if frequency changed significantly
-					// (the base curve shape varies across frequency) — skipped in graphic
-					// mode since freq is frozen.
-					const origFreq = d.filter.freq!;
-					if (!isGraphic && Math.abs(freq - origFreq) / origFreq > 0.05) {
-						const newBase = this._getCurveDbExcludingFilter(freq, d.index);
-						if (newBase !== null) {
-							dragState.baseCurveDb = newBase;
-							gain = Math.max(-40, Math.min(40, targetDb - newBase));
-						}
-					}
-				} else {
-					// LSQ/HSQ: absolute gain positioning (unchanged)
-					gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
-					visualY = ys(gain);
-				}
-
-				if (dragState?.axisLock === 'h') {
-					gain = dragState.lockedGain;
-					visualY =
-						dragState.isPK && dragState.baseCurveDb !== null
-							? ys(gain + dragState.baseCurveDb)
-							: ys(gain);
-				}
-
-				// Move node visually with zero latency
-				this.overlayGroup
-					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
-					.filter((n) => n.index === d.index)
-					.attr('transform', `translate(${xs(freq)},${visualY})`);
-
-				// Throttle state update to ~60fps. Mid-drag updates flow through the
-				// coalescer, which mutates the store directly *and* tracks the burst
-				// — so a whole drag becomes one undo entry once dragend flushes.
-				if (!this._dragThrottleTimers.has(d.index)) {
-					this._dragThrottleTimers.set(
-						d.index,
-						setTimeout(() => {
-							this._dragThrottleTimers.delete(d.index);
-							eqCommands.updateBand(d.index, {
-								freq: Math.round(freq),
-								gain: parseFloat(gain.toFixed(1))
-							});
-						}, 16)
+		return (
+			d3
+				.drag<SVGGElement, BandDatum>()
+				// d3's default filter, plus: linked uniPEQ takes no edits now and would put the band back.
+				.filter(
+					(event: MouseEvent) =>
+						(!event.ctrlKey || event.type === 'wheel') && !event.button && !linkStore.readOnly
+				)
+				.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
+					const nodeEl = d3.select(
+						(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element) ??
+							_event.sourceEvent.currentTarget
 					);
-				}
-			})
-			.on('end', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-				const xs = this.graphEngine.xScale;
-				const ys = this.graphEngine.baseYScale;
+					nodeEl.style('cursor', 'grabbing').raise();
+					nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
+					nodeEl.select('.eq-q-ring').attr('opacity', 0.8);
 
-				// Click vs drag: if the pointer barely moved between start and end,
-				// treat as a click — toggle selection without committing position.
-				const moved = dragState
-					? Math.hypot(event.x - dragState.shiftOriginX, event.y - dragState.shiftOriginY)
-					: 0;
-				const isClick = moved < GraphEqOverlay.CLICK_DRAG_THRESHOLD;
+					const isPK = onCurve(d.filter);
+					const common = {
+						shiftOriginX: _event.x,
+						shiftOriginY: _event.y,
+						lockedFreq: d.filter.freq!,
+						lockedGain: d.filter.gain!,
+						axisLock: null as 'h' | 'v' | null
+					};
+					if (isPK) {
+						const baseCurveDb = this._getCurveDbExcludingFilter(d.filter.freq!, d.index);
+						dragState = { isPK: true, baseCurveDb, ...common };
+					} else {
+						dragState = { isPK: false, baseCurveDb: null, ...common };
+					}
+				})
+				.on('drag', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
+					const xs = this.graphEngine.xScale;
+					const ys = this.graphEngine.baseYScale;
 
-				if (isClick) {
-					this.selectedFilterIndex = this.selectedFilterIndex === d.index ? null : d.index;
+					// Shift+Drag axis lock detection
+					const shiftHeld = !!(event.sourceEvent as MouseEvent)?.shiftKey;
+					if (dragState) {
+						if (shiftHeld && dragState.axisLock === null) {
+							const dx = Math.abs(event.x - dragState.shiftOriginX);
+							const dy = Math.abs(event.y - dragState.shiftOriginY);
+							if (dx > 3 || dy > 3) {
+								dragState.axisLock = dx >= dy ? 'h' : 'v';
+							}
+						} else if (!shiftHeld && dragState.axisLock !== null) {
+							dragState.axisLock = null;
+							dragState.shiftOriginX = event.x;
+							dragState.shiftOriginY = event.y;
+							dragState.lockedFreq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+							dragState.lockedGain = d.filter.gain ?? 0;
+						}
+					}
+
+					const isGraphic = eqConstraintsStore.isGraphic;
+					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+					// Graphic mode: frequency is pinned to the band's preset position.
+					if (isGraphic) freq = d.filter.freq!;
+					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+
+					let gain: number;
+					let visualY: number;
+
+					if (dragState?.isPK && dragState.baseCurveDb !== null) {
+						// PK on curve: gain = cursor dB position minus base curve value
+						const targetDb = ys.invert(event.y);
+						gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
+						// Node follows the cursor directly (it's on the curve)
+						visualY = event.y;
+
+						// Recompute baseCurveDb at new freq if frequency changed significantly
+						// (the base curve shape varies across frequency) — skipped in graphic
+						// mode since freq is frozen.
+						const origFreq = d.filter.freq!;
+						if (!isGraphic && Math.abs(freq - origFreq) / origFreq > 0.05) {
+							const newBase = this._getCurveDbExcludingFilter(freq, d.index);
+							if (newBase !== null) {
+								dragState.baseCurveDb = newBase;
+								gain = Math.max(-40, Math.min(40, targetDb - newBase));
+							}
+						}
+					} else {
+						// LSQ/HSQ: absolute gain positioning (unchanged)
+						gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
+						visualY = ys(gain);
+					}
+
+					// A gainless band has no gain to drag: it only moves along the curve.
+					if (dragState && (dragState.axisLock === 'h' || !usesGain(d.filter.type))) {
+						gain = usesGain(d.filter.type) ? dragState.lockedGain : 0;
+						visualY =
+							dragState.isPK && dragState.baseCurveDb !== null
+								? ys(gain + dragState.baseCurveDb)
+								: ys(gain);
+					}
+
+					// Move node visually with zero latency
+					this.overlayGroup
+						.selectAll<SVGGElement, BandDatum>('.eq-band-node')
+						.filter((n) => n.index === d.index)
+						.attr('transform', `translate(${xs(freq)},${visualY})`);
+
+					// Throttle state update to ~60fps. Mid-drag updates flow through the
+					// coalescer, which mutates the store directly *and* tracks the burst
+					// — so a whole drag becomes one undo entry once dragend flushes.
+					if (!this._dragThrottleTimers.has(d.index)) {
+						this._dragThrottleTimers.set(
+							d.index,
+							setTimeout(() => {
+								this._dragThrottleTimers.delete(d.index);
+								eqCommands.updateBand(d.index, {
+									freq: Math.round(freq),
+									gain: parseFloat(gain.toFixed(1))
+								});
+							}, 16)
+						);
+					}
+				})
+				.on('end', (event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
+					const xs = this.graphEngine.xScale;
+					const ys = this.graphEngine.baseYScale;
+
+					// Click vs drag: if the pointer barely moved between start and end,
+					// treat as a click — toggle selection without committing position.
+					const moved = dragState
+						? Math.hypot(event.x - dragState.shiftOriginX, event.y - dragState.shiftOriginY)
+						: 0;
+					const isClick = moved < GraphEqOverlay.CLICK_DRAG_THRESHOLD;
+
+					if (isClick) {
+						this.selectedFilterIndex = this.selectedFilterIndex === d.index ? null : d.index;
+						this.render();
+						dragState = null;
+						return;
+					}
+
+					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
+					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
+					if (eqConstraintsStore.isGraphic) freq = d.filter.freq!;
+
+					let gain: number;
+
+					if (dragState?.isPK && dragState.baseCurveDb !== null) {
+						const targetDb = ys.invert(event.y);
+						gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
+					} else {
+						gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
+					}
+					if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
+					if (!usesGain(d.filter.type)) gain = 0;
+
+					// Cancel pending throttle and commit final position to the store
+					// (still through the coalescer so the whole drag stays one entry).
+					const pending = this._dragThrottleTimers.get(d.index);
+					if (pending !== undefined) {
+						clearTimeout(pending);
+						this._dragThrottleTimers.delete(d.index);
+					}
+					eqCommands.updateBand(d.index, {
+						freq: Math.round(freq),
+						gain: parseFloat(gain.toFixed(1))
+					});
+					// Flush the burst now so undo immediately undoes the whole drag.
+					eqCommands.flushBand(d.index);
+
+					const endNode = this.overlayGroup
+						.selectAll<SVGGElement, BandDatum>('.eq-band-node')
+						.filter((n) => n.index === d.index);
+					endNode.style('cursor', 'grab');
+					// Reset transient hover sizing — the real selected/unselected
+					// styling is applied on next render().
 					this.render();
+
 					dragState = null;
-					return;
-				}
-
-				let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-				if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
-				if (eqConstraintsStore.isGraphic) freq = d.filter.freq!;
-
-				let gain: number;
-
-				if (dragState?.isPK && dragState.baseCurveDb !== null) {
-					const targetDb = ys.invert(event.y);
-					gain = Math.max(-40, Math.min(40, targetDb - dragState.baseCurveDb));
-				} else {
-					gain = Math.max(-40, Math.min(40, ys.invert(event.y)));
-				}
-				if (dragState?.axisLock === 'h') gain = dragState.lockedGain;
-
-				// Cancel pending throttle and commit final position to the store
-				// (still through the coalescer so the whole drag stays one entry).
-				const pending = this._dragThrottleTimers.get(d.index);
-				if (pending !== undefined) {
-					clearTimeout(pending);
-					this._dragThrottleTimers.delete(d.index);
-				}
-				eqCommands.updateBand(d.index, {
-					freq: Math.round(freq),
-					gain: parseFloat(gain.toFixed(1))
-				});
-				// Flush the burst now so undo immediately undoes the whole drag.
-				eqCommands.flushBand(d.index);
-
-				const endNode = this.overlayGroup
-					.selectAll<SVGGElement, BandDatum>('.eq-band-node')
-					.filter((n) => n.index === d.index);
-				endNode.style('cursor', 'grab');
-				// Reset transient hover sizing — the real selected/unselected
-				// styling is applied on next render().
-				this.render();
-
-				dragState = null;
-			});
+				})
+		);
 	}
 
 	// ── Click-to-add ───────────────────────────────────────────────────────────
@@ -639,7 +649,7 @@ export class GraphEqOverlay {
 			.attr('fill', 'transparent')
 			.style('cursor', 'crosshair')
 			.on('click', (event: MouseEvent) => {
-				if (!eqStore.isEnabled || !eqStore.sourcePhoneUUID) return;
+				if (!eqStore.isEnabled || !eqStore.sourcePhoneUUID || linkStore.readOnly) return;
 				// Don't fire when clicking on a node
 				if ((event.target as Element).closest?.('.eq-band-node')) return;
 				const xScale = this.graphEngine.xScale;
@@ -688,4 +698,9 @@ export class GraphEqOverlay {
 		if (freq >= 1000) return `${(freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1)}k`;
 		return String(Math.round(freq));
 	}
+}
+
+/** Nodes drawn on the EQ'd curve rather than at their absolute gain: peaks, and gainless bands. */
+function onCurve(filter: EQFilter): boolean {
+	return filter.type === 'PK' || !usesGain(filter.type);
 }

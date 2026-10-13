@@ -3,8 +3,8 @@
  *
  * USB HID, USB / Bluetooth serial and BLE devices are driven by `@potatosalad775/eqcaps-device-bridge`
  * and described by their eqcaps profile. Network devices (WiiM, Luxsin) aren't in eqcaps yet, so
- * `network.ts` drives them itself behind the same `PeqDevice` shape. The UI never needs to know
- * which.
+ * `network.ts` drives them itself behind the same `PeqDevice` shape, and a device connected in
+ * uniPEQ is reached over the link (`link.ts`). The UI never needs to know which.
  */
 import type { Profile } from '@potatosalad775/eqcaps-core';
 import type {
@@ -19,7 +19,7 @@ import type {
 export type { PullResult, PushRequest, PushResult, DeviceIdentity };
 
 /** Connection type for device communication */
-export type ConnectionType = 'hid' | 'serial' | 'ble' | 'network';
+export type ConnectionType = 'hid' | 'serial' | 'ble' | 'network' | 'link';
 
 /** What a device can do: the bridge's capability flags, minus what only the bridge reads. */
 export type PeqCapabilities = Pick<
@@ -60,8 +60,9 @@ export interface PeqDevice {
  * - `guess`: no profile; the vendor's usual protocol, with limits from what that protocol's write
  *   frames can carry. Experimental.
  * - `builtin`: a network device described in this repo.
+ * - `demo`: uniPEQ's demo device, over the link.
  */
-export type ProfileSource = 'device' | 'group' | 'guess' | 'builtin';
+export type ProfileSource = 'device' | 'group' | 'guess' | 'builtin' | 'demo';
 
 export interface DeviceConnection {
 	device: PeqDevice;

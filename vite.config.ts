@@ -64,7 +64,12 @@ export default defineConfig({
 	// is importing at that moment ("Cannot read properties of undefined (reading
 	// 'config')"). It is plain ESM with no dependencies, so there is nothing to gain
 	// from pre-bundling it anyway.
-	optimizeDeps: { exclude: ['@potatosalad775/turboeq'] },
+	optimizeDeps: {
+		exclude: ['@potatosalad775/turboeq'],
+		// Reached only through `import()` in lazily loaded components, so the startup scan misses
+		// them: found late, they forced a re-optimize and a dev page reload on the first Link press.
+		include: ['uqr', 'peq-link/client']
+	},
 	test: {
 		expect: { requireAssertions: true },
 		coverage: {

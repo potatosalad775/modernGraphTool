@@ -49,16 +49,19 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
 - **No `Channel:` line is emitted unless a band is pinned.** An ordinary EQ exports exactly what it
   did before per-channel EQ existed, so operator presets and other tools are unaffected.
 - The parser is permissive by design: unknown `Channel:` layouts fall back to shared, unrepresentable
-  filter types (`BP`, `NO`, …) are skipped rather than imported as peaks, and `Preamp:` is ignored
-  because ours is derived from the filter set.
+  filter types (APO's fixed-Q `LP`, `LS 6dB`, …) are skipped rather than imported as peaks, and
+  `Preamp:` is ignored because ours is derived from the filter set. The gainless types (`LPQ`,
+  `HPQ`, `BP`, `NO`, `AP`) are read and written without a `Gain` field, as APO writes them.
 
 ## `eq-constraint.ts` / `eq-domain-hint.ts`
 
 `eq-constraint.ts` translates between the band list and an eqcaps `Profile`; the engine itself
 (`assign`, `validateList`, `resolveSlot`, `project`, `fit`) is `@potatosalad775/eqcaps-core`'s.
 
-- **Types convert at this boundary only:** the app writes `LSQ`/`HSQ`, eqcaps `LSC`/`HSC`. A slot
-  whose types are all gainless (`LPQ`, `NO`, …) holds nothing the app can express.
+- **Types convert at this boundary only:** the app writes `LSQ`/`HSQ`, eqcaps `LSC`/`HSC`; every
+  other eqcaps v1 type is spelled the same, and an `x-` type has no app row. A gainless band's gain
+  is 0 (`usesGain` in `equalizer.ts`), and `projectFilter` keeps it 0 whatever the slot's gain
+  domain says.
 - **Every check runs per output** (`effectiveFilters`' rule): a profile describes one ear's slots,
   so shared + L and shared + R are assigned and validated separately; a shared band takes the slot
   it gets on the left.

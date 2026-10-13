@@ -7,6 +7,17 @@ import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listeni
 import { hasPerChannelFilters } from '$lib/utils/eq-channel.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 
+const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
+	PK: 'peaking',
+	LSQ: 'lowshelf',
+	HSQ: 'highshelf',
+	LPQ: 'lowpass',
+	HPQ: 'highpass',
+	BP: 'bandpass',
+	NO: 'notch',
+	AP: 'allpass'
+};
+
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
 /**
@@ -281,11 +292,10 @@ class AudioPlayerService {
 
 	#createBiquad(ctx: AudioContext, f: EQFilter): BiquadFilterNode {
 		const node = ctx.createBiquadFilter();
-		if (f.type === 'PK') node.type = 'peaking';
-		else if (f.type === 'LSQ') node.type = 'lowshelf';
-		else if (f.type === 'HSQ') node.type = 'highshelf';
+		node.type = BIQUAD_TYPE[f.type];
 		node.frequency.value = f.freq!;
-		node.Q.value = f.q!;
+		// Web Audio reads a low or high pass's Q as resonance in dB; every other type's is linear.
+		node.Q.value = f.type === 'LPQ' || f.type === 'HPQ' ? 20 * Math.log10(f.q!) : f.q!;
 		node.gain.value = f.gain!;
 		return node;
 	}

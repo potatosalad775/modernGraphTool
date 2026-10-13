@@ -25,6 +25,7 @@
 	import RankingSection from './sections/RankingSection.svelte';
 	import DownloadSection from './sections/DownloadSection.svelte';
 	import EqualizerSection from './sections/EqualizerSection.svelte';
+	import UnipeqLinkSection from './sections/UnipeqLinkSection.svelte';
 	import SquiglinkSection from './sections/SquiglinkSection.svelte';
 	import DescriptionSection from './sections/DescriptionSection.svelte';
 
@@ -51,6 +52,7 @@
 		{ id: 'section-site-selector', label: 'Site Selector' },
 		{ id: 'section-download', label: 'Download' },
 		{ id: 'section-equalizer', label: 'Equalizer' },
+		{ id: 'section-unipeq-link', label: 'uniPEQ Link' },
 		{ id: 'section-squiglink', label: 'squig.link' },
 		{ id: 'section-description', label: 'Description' }
 	];
@@ -95,6 +97,7 @@
 			<RankingSection />
 			<DownloadSection />
 			<EqualizerSection />
+			<UnipeqLinkSection />
 			<SquiglinkSection />
 			<DescriptionSection />
 		</div>

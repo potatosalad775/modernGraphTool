@@ -43,6 +43,8 @@ export const frStore = new FRDataStore();
   directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by
   `GraphContainer`/`GraphSpectrumOverlay`
 - `device-peq-store.svelte.ts` — the connected EQ device (`DeviceConnection`), target preset, busy flags
+- `link-store.svelte.ts` — the uniPEQ link as the UI sees it: phase, room, uniPEQ's device and status,
+  the start dialog's question. Written only by `services/link-service.svelte.ts`
 - `eq-constraints-store.svelte.ts` — active EQ constraint (an eqcaps `Profile`) + picker entries, and the
   per-band slot/violation analysis of `eqStore.filters`
 - `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids

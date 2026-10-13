@@ -1,6 +1,7 @@
 import {
 	assign,
 	domainBounds,
+	isKnownType,
 	isGraphic,
 	isLockedDomain,
 	project,
@@ -12,7 +13,7 @@ import {
 	type FilterType,
 	type Profile
 } from '@potatosalad775/eqcaps-core';
-import type { EQFilter } from './equalizer.js';
+import { usesGain, type EQFilter } from './equalizer.js';
 import { countBandsPerOutput, hasPerChannelFilters, trimToBandsPerOutput } from './eq-channel.js';
 
 /**
@@ -21,8 +22,8 @@ import { countBandsPerOutput, hasPerChannelFilters, trimToBandsPerOutput } from 
  * The engine (`fit`, `validateList`, `resolveSlot`, `project`) is eqcaps core's; this module only
  * translates. Two things need translating:
  *
- * - **Types.** The app writes `LSQ`/`HSQ`, eqcaps (Equalizer APO codes) `LSC`/`HSC`. The app has
- *   no gainless types, so a slot that only takes `LPQ` or `NO` holds nothing the app can express.
+ * - **Types.** The app writes `LSQ`/`HSQ`, eqcaps (Equalizer APO codes) `LSC`/`HSC`; every other
+ *   eqcaps v1 type is spelled the same. An `x-` type has no app row.
  * - **Lists.** A profile describes one output's slots. With per-channel bands each ear realizes
  *   the shared bands plus its own, so every check runs once per ear.
  *
@@ -31,19 +32,18 @@ import { countBandsPerOutput, hasPerChannelFilters, trimToBandsPerOutput } from 
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-const TO_CAPS: Record<EQFilter['type'], FilterType> = { PK: 'PK', LSQ: 'LSC', HSQ: 'HSC' };
-
 /** App type → eqcaps type. */
 export function toCapsType(type: EQFilter['type']): FilterType {
-	return TO_CAPS[type];
+	if (type === 'LSQ') return 'LSC';
+	if (type === 'HSQ') return 'HSC';
+	return type;
 }
 
-/** eqcaps type → app type, or null for a type the app has no row for. */
+/** eqcaps type → app type, or null for a type the app has no row for (an `x-` type). */
 export function fromCapsType(type: FilterType): EQFilter['type'] | null {
-	if (type === 'PK') return 'PK';
 	if (type === 'LSC') return 'LSQ';
 	if (type === 'HSC') return 'HSQ';
-	return null;
+	return isKnownType(type) ? type : null;
 }
 
 /** A complete band in eqcaps units, or null while any field is still unset. */
@@ -56,7 +56,7 @@ export function toCapsFilter(f: EQFilter): Filter | null {
 export function fromCapsFilter(f: Filter): EQFilter | null {
 	const type = fromCapsType(f.type);
 	if (!type) return null;
-	return { enabled: true, type, freq: f.freq, q: f.q, gain: f.gain };
+	return { enabled: true, type, freq: f.freq, q: f.q, gain: usesGain(type) ? f.gain : 0 };
 }
 
 /** The app types a slot accepts, in the slot's preference order. */
@@ -335,6 +335,11 @@ export function projectFilter(filter: EQFilter, profile: Profile, slot: number):
 	for (const field of ['freq', 'q', 'gain'] as const) {
 		const value = out[field];
 		if (value == null) continue;
+		// A gainless band's gain is 0 by definition, whatever the slot's gain domain says.
+		if (field === 'gain' && !usesGain(out.type)) {
+			out.gain = 0;
+			continue;
+		}
 		out[field] = project(value, slotOf(profile, slot, out)[field], field);
 	}
 	return out;

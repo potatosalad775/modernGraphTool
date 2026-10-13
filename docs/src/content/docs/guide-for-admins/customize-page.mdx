@@ -134,6 +134,15 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 }
 ```
 
+The [uniPEQ Link](../features/unipeq-link.mdx) QR code has two more. They have no `.dark` value on purpose: the code stays dark on light in both modes, since not every camera app reads an inverted one. A `theme.css` without them falls back to the base content and background colors.
+
+```css
+:root {
+	--color-qr-dark: oklch(20% 0.042 265.755); /* QR code modules */
+	--color-qr-light: oklch(100% 0 0); /* QR code background */
+}
+```
+
 ### Base UI Variables
 
 The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:
@@ -859,6 +868,22 @@ Defaults for the Equalizer panel. See [Equalizer](../features/equalizer.mdx).
 
 - `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active EQ constraint's band cap still applies — a connected 5-band device gets 5.
 - `EQCAPS_URL`: Where [Hardware EQ](../features/device-peq.mdx) and the [EQ constraint](../features/equalizer.mdx#eq-constraints) picker read device and app EQ limits from — a copy of the [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` channel. Defaults to the official one on GitHub Pages; set it for a mirror or a self-hosted copy. The URL must serve `index.json` and `profiles/` with CORS. If it can't be reached, the built-in constraints still work and devices from known makers still connect.
+
+### `UNIPEQ_LINK`
+
+```javascript
+UNIPEQ_LINK: {
+  ENABLE: true,
+  SERVER: 'https://link.unipeq.com',
+},
+```
+
+The **Link with uniPEQ** section of the Equalizer panel. See [uniPEQ Link](../features/unipeq-link.mdx). Leaving the whole section out is the same as the block above: the link is on, through uniPEQ's own server.
+
+- `ENABLE`: Set `false` to hide the section.
+- `SERVER`: The link's signaling server, a [uniPEQ_link](https://github.com/potatosalad775/uniPEQ_link) Worker. It only introduces the two apps; the EQ then travels directly between them. On your own server, the QR code and **Open uniPEQ** still work, but a code typed into uniPEQ looks on uniPEQ's server and won't find yours (the panel says so next to the code), and the QR code opens the server's web page first rather than uniPEQ itself, since uniPEQ's App Link is verified for `link.unipeq.com` only.
+
+The link opens a WebSocket to `SERVER` and a WebRTC connection to the other app. A site with a `Content-Security-Policy` must allow `SERVER` (and its `wss:` form) in `connect-src`.
 
 ### `SQUIGLINK`
 

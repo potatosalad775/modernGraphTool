@@ -18,6 +18,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `site-index.svelte.ts` — see below
 - `ranking-core.ts` / `ranking-service.svelte.ts` — device ranks from a published CSV; see below
 - `device-peq-service.svelte.ts` — Device PEQ read / write / switch, and auto-write; see below
+- `link-service.svelte.ts` / `link-config.ts` — the uniPEQ link; see below
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
@@ -66,6 +67,32 @@ never disposed.
   writes that would change nothing, which is what stops a Read from echoing back.
 - **The target preset's layout is read once** (`devicePeqStore.layout`, dropped on any preset
   change), not before every automatic write.
+
+## `link-service.svelte.ts` — the uniPEQ link
+
+This page hosts a room, uniPEQ joins and approves, and the band list is then shared: uniPEQ holds
+it and writes its device, this page edits optimistically and adopts what uniPEQ echoes. The
+protocol, liveness, reconnecting and resuming after a reload are all the `peq-link` client's
+(`github:potatosalad775/uniPEQ_link`, design in its `docs/design.md`). **Don't reimplement any of
+them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then both apps bump.
+
+- **Neither the service nor the client is in the boot bundle.** The Link accordion imports the
+  service; `AppShell.onMount` imports it only when `link-config.ts` finds a saved session to
+  resume. The client and `uqr` follow by `import()`. Both are in `optimizeDeps.include`: found
+  late, they re-optimized and reloaded the dev page on the first Link press, dropping the room.
+- **Edits are diffed, not instrumented.** One effect compares `eqStore.filters` (as the link
+  carries it: `toLinkFilters`) with the last shared list: one changed band is a `band` op,
+  anything else a `list` op. `commandHistory.revision` moving means a command landed, so the
+  gesture settles now (a drag's release); otherwise it settles after `AUTO_WRITE_DELAY_MS` idle.
+  Every edit path is covered without touching it, the way auto-write's effect does.
+- **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
+  `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
+  a fold that came out different from uniPEQ's projection would go straight back as an edit.
+- **Nothing goes out before the first list is settled** (`#joined`): adopted, found equal (the
+  raw `eq` listener, since the client emits nothing for an equal list), or answered in the start
+  dialog. The dialog compares bands only: this page derives its own preamp, so the two preamps
+  always differ.
+- The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it.
 
 ## `data-provider.svelte.ts`
 

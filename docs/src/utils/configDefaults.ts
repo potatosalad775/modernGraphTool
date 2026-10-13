@@ -113,6 +113,12 @@ export interface ConfigFormState {
 		/** Mirror of the eqcaps `/v1/` channel. Empty = the official one. */
 		EQCAPS_URL: string;
 	};
+	UNIPEQ_LINK_ENABLED: boolean;
+	UNIPEQ_LINK: {
+		ENABLE: boolean;
+		/** The link's signaling Worker. Empty = uniPEQ's own. */
+		SERVER: string;
+	};
 	SQUIGLINK_ENABLED: boolean;
 	SQUIGLINK: {
 		ENABLED: boolean;
@@ -405,6 +411,11 @@ export function createDefaultConfig(): ConfigFormState {
 		EQUALIZER: {
 			AUTOEQ_DEFAULT_BAND_COUNT: 8,
 			EQCAPS_URL: ''
+		},
+		UNIPEQ_LINK_ENABLED: false,
+		UNIPEQ_LINK: {
+			ENABLE: true,
+			SERVER: ''
 		},
 		SQUIGLINK_ENABLED: false,
 		SQUIGLINK: {

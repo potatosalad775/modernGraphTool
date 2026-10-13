@@ -227,6 +227,14 @@ const CONFIG = {
 	//   EQCAPS_URL: 'https://potatosalad775.github.io/eqcaps/v1/',
 	// },
 
+	// "Link with uniPEQ" in the Equalizer panel: edit the EQ live with the uniPEQ
+	// app, which writes it to the device connected there. On by default, through
+	// uniPEQ's own server. → docs: UNIPEQ_LINK
+	// UNIPEQ_LINK: {
+	//   ENABLE: true,
+	//   SERVER: 'https://link.unipeq.com',
+	// },
+
 	// Only active on *.squig.link domains: analytics, sponsor banner, shop links.
 	// → docs: SQUIGLINK
 	// SQUIGLINK: {

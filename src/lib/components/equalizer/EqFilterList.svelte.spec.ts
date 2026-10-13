@@ -252,8 +252,9 @@ describe('EqFilterList', () => {
 			importText(
 				[
 					'Filter: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000',
+					// No Q: nothing to build. A notch with one would import.
 					'Filter: ON NO Fc 200 Hz',
-					'Filter: ON BP Fc 300 Hz Q 1.000'
+					'Filter: ON LS 6dB Fc 300 Hz Gain 3.0 dB'
 				].join('\n')
 			);
 

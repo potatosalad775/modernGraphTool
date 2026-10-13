@@ -60,17 +60,26 @@ describe('type mapping', () => {
 		expect(toCapsType('LSQ')).toBe('LSC');
 		expect(toCapsType('HSQ')).toBe('HSC');
 		expect(fromCapsType('HSC')).toBe('HSQ');
-		expect(fromCapsType('LPQ')).toBeNull();
+		expect(toCapsType('LPQ')).toBe('LPQ');
+		expect(fromCapsType('LPQ')).toBe('LPQ');
+		expect(fromCapsType('x-vendor')).toBeNull();
 	});
 
 	it('converts complete bands only', () => {
 		expect(toCapsFilter(pk(1000, 3))).toEqual({ type: 'PK', freq: 1000, q: 1, gain: 3 });
 		expect(toCapsFilter({ ...pk(1000, 3), gain: null })).toBeNull();
-		expect(fromCapsFilter({ type: 'NO', freq: 1000, q: 1, gain: 0 })).toBeNull();
+		expect(fromCapsFilter({ type: 'NO', freq: 1000, q: 1, gain: 2 })).toEqual({
+			enabled: true,
+			type: 'NO',
+			freq: 1000,
+			q: 1,
+			gain: 0
+		});
+		expect(fromCapsFilter({ type: 'x-vendor', freq: 1000, q: 1, gain: 0 })).toBeNull();
 	});
 
 	it('lists the app types a slot takes, in its order', () => {
-		expect(appTypesOf(['HSC', 'LPQ', 'PK'])).toEqual(['HSQ', 'PK']);
+		expect(appTypesOf(['HSC', 'LPQ', 'PK'])).toEqual(['HSQ', 'LPQ', 'PK']);
 	});
 });
 

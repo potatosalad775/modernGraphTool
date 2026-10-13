@@ -427,6 +427,35 @@ export const eqCommands = {
 	},
 
 	/**
+	 * Take the list the uniPEQ link holds (`link-service.svelte.ts`). Not folded onto the
+	 * constraint: uniPEQ already projected it onto its device's slots, and a fold here that came out
+	 * different would go straight back to uniPEQ as an edit.
+	 *
+	 * A remote change is one undo step: `amend` folds the rest of the same burst into it while it
+	 * is still the latest entry. A `fresh` list (uniPEQ read its device, or switched preset) is an
+	 * undo barrier, so history is cleared: undoing past it would hand the device another device's
+	 * or preset's bands.
+	 */
+	adoptLinked(
+		filters: EQFilter[],
+		{ amend, fresh = false }: { amend?: ReplaceEqFiltersCommand | null; fresh?: boolean } = {}
+	): ReplaceEqFiltersCommand | null {
+		coalescer.clear();
+		if (fresh) {
+			eqStore.filters = filters.map((f) => ({ ...f }));
+			commandHistory.clear();
+			return null;
+		}
+		if (amend && commandHistory.isLatest(amend)) {
+			amend.amend(filters);
+			return amend;
+		}
+		const command = new ReplaceEqFiltersCommand(filters);
+		commandHistory.execute(command, frStore);
+		return command;
+	},
+
+	/**
 	 * Apply a history snapshot's filters + preamp as one undoable command.
 	 * Used by the History & Compare UI's A/B switch. Skips when the live
 	 * state already matches the snapshot byte-for-byte.

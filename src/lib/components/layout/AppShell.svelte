@@ -12,6 +12,8 @@
 	import { frStore } from '$lib/stores/fr-store.svelte';
 	import { eqStore } from '$lib/stores/eq-store.svelte';
 	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte';
+	import { linkStore } from '$lib/stores/link-store.svelte';
+	import { hasSavedLinkSession, linkConfig } from '$lib/services/link-config';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
@@ -86,6 +88,14 @@
 		// page. EqualizerPanel unmounts on every panel switch, but the `\` A/B key
 		// below is global — so this can't live in the panel.
 		dataProvider.installEqCurveSync();
+
+		// A reload in a linked tab rejoins the session; uniPEQ keeps its approval. Loaded only then,
+		// so the link costs the boot nothing.
+		if (linkConfig().enabled && hasSavedLinkSession()) {
+			void import('$lib/services/link-service.svelte').then(({ linkService }) =>
+				linkService.resume()
+			);
+		}
 
 		// Mobile detection
 		const updateMobile = () => {
@@ -315,3 +325,10 @@
 
 <SponsorBanner />
 <TutorialModal />
+
+<!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
+{#if linkStore.choice || linkStore.status?.review}
+	{#await import('$lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
+		<LinkDialogs />
+	{/await}
+{/if}

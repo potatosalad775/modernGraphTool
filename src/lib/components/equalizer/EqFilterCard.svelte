@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { EQFilter } from '$lib/utils/equalizer.js';
+	import { usesGain, type EQFilter } from '$lib/utils/equalizer.js';
 	import { logToLinear, linearToLog } from '$lib/utils/log-scale.js';
 	import { ChevronDown, X } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
@@ -8,6 +8,7 @@
 	import Button from '../atoms/Button.svelte';
 	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { linkStore } from '$lib/stores/link-store.svelte.js';
 	import { domainBounds, type Domain } from '@potatosalad775/eqcaps-core';
 	import {
 		appTypesOf,
@@ -53,15 +54,36 @@
 	const freqLocked = $derived(slot.locked.freq);
 	const qLocked = $derived(slot.locked.q);
 	const gainLocked = $derived(slot.locked.gain);
+	/**
+	 * Linked with uniPEQ, every band is a band its device plays, on both ears: no per-band on/off
+	 * and no one-ear bands, as in uniPEQ itself.
+	 */
+	const linked = $derived(linkStore.linked);
+	/** Pass, notch and all-pass bands have no gain: the field reads "—". */
+	const gainless = $derived(!usesGain(filter.type));
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
-	const typeShortLabels: Record<EQFilter['type'], string> = { PK: 'PK', LSQ: 'LS', HSQ: 'HS' };
+	const typeShortLabels: Record<EQFilter['type'], string> = {
+		PK: 'PK',
+		LSQ: 'LS',
+		HSQ: 'HS',
+		LPQ: 'LP',
+		HPQ: 'HP',
+		BP: 'BP',
+		NO: 'NO',
+		AP: 'AP'
+	};
 
 	const allTypeOptions: [EQFilter['type'], () => string][] = [
 		['PK', m.equalizer_filter_list_peak],
 		['LSQ', m.equalizer_filter_list_lowshelf],
-		['HSQ', m.equalizer_filter_list_highshelf]
+		['HSQ', m.equalizer_filter_list_highshelf],
+		['LPQ', m.equalizer_filter_list_lowpass],
+		['HPQ', m.equalizer_filter_list_highpass],
+		['BP', m.equalizer_filter_list_bandpass],
+		['NO', m.equalizer_filter_list_notch],
+		['AP', m.equalizer_filter_list_allpass]
 	];
 
 	/** The types this slot takes, plus the band's own so a violation stays visible. */
@@ -228,13 +250,15 @@
 >
 	<!-- Collapsed row (always visible) -->
 	<div class="flex min-h-8 items-center gap-2 py-0.5 pr-1 pl-2">
-		<!-- Switch -->
-		<Switch
-			size="sm"
-			variant="muted"
-			checked={filter.enabled}
-			onCheckedChange={(checked) => onUpdate({ enabled: checked })}
-		/>
+		<!-- Switch — hidden while linked: uniPEQ's bands have no on/off -->
+		{#if !linked}
+			<Switch
+				size="sm"
+				variant="muted"
+				checked={filter.enabled}
+				onCheckedChange={(checked) => onUpdate({ enabled: checked })}
+			/>
+		{/if}
 
 		<!-- Type badge — disabled where the slot takes a single type -->
 		<Button
@@ -288,7 +312,13 @@
 
 		<!-- Gain -->
 		<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
-			{#if gainLocked}
+			{#if gainless}
+				<span
+					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
+				>
+					—
+				</span>
+			{:else if gainLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
 					title={m.eq_constraint_locked({ label: constraintLabel })}
@@ -389,7 +419,7 @@
 			{/if}
 			{#if !typeLocked}
 				<!-- Type selector (segmented buttons) — only the types this slot takes -->
-				<div class="-mx-1 mt-1 flex rounded-md border border-base-content/20">
+				<div class="-mx-1 mt-1 flex flex-wrap rounded-md border border-base-content/20">
 					{#each typeOptions as [value, label] (value)}
 						<button
 							onclick={() => onUpdate({ type: value })}
@@ -403,7 +433,7 @@
 					{/each}
 				</div>
 			{/if}
-			{#if !isGraphic}
+			{#if !isGraphic && !linked}
 				<!--
 					Channel target — moves the band between the shared / L / R buckets.
 					Hidden in graphic mode, where the preset fixes one row per band on a
@@ -467,7 +497,7 @@
 				</div>
 			{/if}
 
-			{#if !gainLocked}
+			{#if !gainLocked && !gainless}
 				<!-- Gain slider -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">

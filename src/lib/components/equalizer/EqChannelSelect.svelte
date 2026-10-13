@@ -6,6 +6,7 @@
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
+	import { linkStore } from '$lib/stores/link-store.svelte.js';
 
 	/**
 	 * Channel scope for the band list — shared bands, left ear, or right ear.
@@ -40,6 +41,8 @@
 	 * per-ear structure to edit — same reason add / remove / sort are disabled.
 	 */
 	const isGraphic = $derived(eqConstraintsStore.isGraphic);
+	/** Linked with uniPEQ, the list is one list for both ears, as a device's is. */
+	const linked = $derived(linkStore.linked);
 
 	function select(scope: EqChannelScope) {
 		eqStore.channelScope = scope;
@@ -69,6 +72,6 @@
 		{options}
 		value={eqStore.channelScope}
 		onValueChange={select}
-		disabled={isGraphic}
+		disabled={isGraphic || linked}
 	/>
 </div>

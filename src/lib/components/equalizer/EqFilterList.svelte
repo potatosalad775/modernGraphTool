@@ -21,6 +21,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';
+	import { linkStore } from '$lib/stores/link-store.svelte.js';
 	import EqOptionButton from './EqOptionButton.svelte';
 	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
@@ -288,7 +289,7 @@
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
-				disabled={atMaxBands || isGraphic}
+				disabled={atMaxBands || isGraphic || linkStore.readOnly}
 				onclick={addBand}
 			>
 				<Plus class="size-3" />
@@ -298,7 +299,7 @@
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
-				disabled={isGraphic}
+				disabled={isGraphic || linkStore.readOnly}
 				onclick={removeBand}
 			>
 				<Minus class="size-3" />
@@ -308,7 +309,7 @@
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
-				disabled={isGraphic}
+				disabled={isGraphic || linkStore.readOnly}
 				onclick={sortBands}
 			>
 				<ArrowDown01 class="size-3.25" />
@@ -361,8 +362,15 @@
 		Filter cards — only the active bucket's bands. `index` stays the band's
 		position in the flat `eqStore.filters` array, which is what every command
 		addresses; narrowing the view must never renumber it.
+
+		A fieldset, so one `disabled` stops every card while linked uniPEQ takes no edits.
 	-->
-	<div class="flex flex-col gap-1.5">
+	{#if linkStore.readOnly}
+		<p class="text-xs text-base-content/70" role="status">
+			{linkStore.device ? m.link_read_only() : m.link_read_only_no_device()}
+		</p>
+	{/if}
+	<fieldset class="m-0 flex min-w-0 flex-col gap-1.5 border-0 p-0" disabled={linkStore.readOnly}>
 		{#each visibleBands as { filter, index } (index)}
 			<EqFilterCard
 				{filter}
@@ -377,7 +385,7 @@
 				}}
 			/>
 		{/each}
-	</div>
+	</fieldset>
 
 	{#if scope !== 'BOTH' && sharedBandCount > 0}
 		<p class="text-xs text-base-content/60">

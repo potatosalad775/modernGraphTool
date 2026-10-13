@@ -794,6 +794,12 @@ const CONFIG = {`);
   EQUALIZER: ${prettyPrint(config.EQUALIZER, 1)},`);
 	}
 
+	// UNIPEQ_LINK (optional)
+	if (config.UNIPEQ_LINK) {
+		sections.push(`  // Link with uniPEQ
+  UNIPEQ_LINK: ${prettyPrint(config.UNIPEQ_LINK, 1)},`);
+	}
+
 	// SQUIGLINK (optional)
 	if (config.SQUIGLINK) {
 		sections.push(`  // squig.link Integration Settings
@@ -1084,6 +1090,11 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 				raw.EQUALIZER?.AUTOEQ_DEFAULT_BAND_COUNT ?? defaults.EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT,
 			EQCAPS_URL: raw.EQUALIZER?.EQCAPS_URL ?? defaults.EQUALIZER.EQCAPS_URL
 		},
+		UNIPEQ_LINK_ENABLED: !!raw.UNIPEQ_LINK,
+		UNIPEQ_LINK: {
+			ENABLE: raw.UNIPEQ_LINK?.ENABLE ?? defaults.UNIPEQ_LINK.ENABLE,
+			SERVER: raw.UNIPEQ_LINK?.SERVER ?? defaults.UNIPEQ_LINK.SERVER
+		},
 		SQUIGLINK_ENABLED: !!raw.SQUIGLINK,
 		SQUIGLINK: {
 			ENABLED: raw.SQUIGLINK?.ENABLED ?? defaults.SQUIGLINK.ENABLED,
@@ -1162,6 +1173,14 @@ export function formStateToConfigString(state: ConfigFormState): string {
 		config.EQUALIZER = EQCAPS_URL.trim()
 			? { ...equalizer, EQCAPS_URL: EQCAPS_URL.trim() }
 			: equalizer;
+	}
+	if (state.UNIPEQ_LINK_ENABLED) {
+		// An empty server means uniPEQ's own: leave the key out.
+		const server = state.UNIPEQ_LINK.SERVER.trim();
+		config.UNIPEQ_LINK = {
+			ENABLE: state.UNIPEQ_LINK.ENABLE,
+			...(server ? { SERVER: server } : {})
+		};
 	}
 	if (state.SQUIGLINK_ENABLED) {
 		config.SQUIGLINK = state.SQUIGLINK;

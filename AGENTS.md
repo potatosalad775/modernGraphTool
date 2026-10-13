@@ -42,6 +42,9 @@ Deeper contributor documentation lives in the docs site:
 - **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
 - **eqcaps** (`@potatosalad775/eqcaps-{core,client,device-bridge}`) for EQ constraints and hardware
   EQ: what a device or app EQ accepts, and the protocols to write it. Sibling repo `../eqcaps`
+- **peq-link** (`github:potatosalad775/uniPEQ_link`, a git dependency pinned by semver tag, never a
+  `file:` link) for the live link with the uniPEQ app. Sibling repo `../uniPEQ_link`; a protocol
+  change lands there first
 - **D3.js** for SVG graph rendering (no Tailwind inside SVG — uses CSS vars from `defaults/theme.css`)
 - **Paraglide JS** for compile-time i18n (`en`, `cs`, `ko`, `ru`, `uk`)
 - **Vitest + Playwright** (browser mode) for tests, co-located as `*.spec.ts`
@@ -273,7 +276,7 @@ All active features are first-class Svelte components in `src/lib/components/fea
 `src/lib/components/equalizer/` — **not** separate extensions, and not fork-based: Parametric EQ
 (AutoEQ, live audio preview, import/export), Hardware EQ, Sample Sets, Average Curves, Target
 Customizer, Graph Color Wheel, Preference Bound, Frequency Tutorial, Tutorial Modal, Cross-Site
-Search, and the squig.link-gated Sponsor Banner / Shop Link.
+Search, uniPEQ Link, and the squig.link-gated Sponsor Banner / Shop Link.
 
 Per-feature user docs: [docs/src/content/docs/features/](docs/src/content/docs/features/).
 

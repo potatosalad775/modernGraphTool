@@ -23,6 +23,7 @@ file, not here.
 | `preset.ts`        | which request reaches the target preset, or none                      |
 | `network.ts`       | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts` | the network device list, without the code that talks to them          |
+| `link.ts`          | a device connected in uniPEQ, over the uniPEQ link; list conversions  |
 | `errors.ts`        | `BridgeError.code` → a user-facing sentence                           |
 | `panel-status.ts`  | the panel's single status line, picked by priority                    |
 | `types.ts`         | `PeqDevice` (a `BridgeDevice` satisfies it), `DeviceConnection`       |
@@ -76,6 +77,14 @@ needs it at boot); keep it the only one.
   the old panel stacked one per state and showed "Wrote 6 bands" next to "The device has this EQ".
   Fixed facts about the profile (shared, guessed, draft, experimental, write-only) go in the
   device row's popover instead, which renders only when one applies.
+- **A device in uniPEQ is a `'link'` connection** (`link.ts`, bound by
+  `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
+  `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to
+  uniPEQ, `devicePeqStore`'s flags (and `reportedInSync`) are mirrored from its `status`, and its
+  review shows in `DevicePeqPushDialog` through `LinkDialogs`. `devicePeqService`'s own auto-write
+  skips a link connection. A device connected here stays connected: the link never replaces it.
+  The profile arrives over the wire, so `acceptProfile` refuses one eqcaps can't use rather than
+  letting `resolveSlot` throw in every band card.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+	import { linkStore } from '$lib/stores/link-store.svelte.js';
 	import { autoEqService, activeGraphicBands } from '$lib/services/autoeq-service.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime.js';
@@ -232,7 +233,7 @@
 		<Button
 			title={runLabel}
 			onclick={() => autoEqService.run()}
-			disabled={autoEqService.isRunning}
+			disabled={autoEqService.isRunning || linkStore.readOnly}
 			variant="primary"
 			size="sm"
 			class="flex-1"

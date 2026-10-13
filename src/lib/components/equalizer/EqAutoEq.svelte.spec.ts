@@ -511,6 +511,25 @@ describe('EqAutoEq', () => {
 			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 6, shelves: true });
 		});
 
+		// A device's high pass is not something AutoEQ can make: it stays where it
+		// was, its slot comes out of the budget, and the fit corrects around it.
+		it('keeps the bands it cannot make in place and fits around them', async () => {
+			const hp: EQFilter = { enabled: true, type: 'HPQ', freq: 100, q: 0.7071, gain: 0 };
+			eqStore.filters = [hp, ...Array.from({ length: 5 }, () => ({ ...RESULT[0] }))];
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledOnce());
+			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
+			// The source the fit sees already carries the high pass.
+			const source = runInWorker.mock.calls[0][0];
+			expect(source[0][1]).toBeLessThan(6 - 20);
+			expect(source[source.length - 1][1]).toBeCloseTo(6, 1);
+			expect(replaceFilters.mock.calls[0][0]).toEqual([hp, ...RESULT]);
+		});
+
 		// Generating 8 and letting `replaceFilters` trim to 5 fits worse than
 		// optimizing for 5 up front, so the cap is applied before the run.
 		it('caps the default at the active preset maxBands', async () => {

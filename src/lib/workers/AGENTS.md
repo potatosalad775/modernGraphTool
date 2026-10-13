@@ -51,6 +51,12 @@ that empty list would wipe the EQ.
   domains turboEQ can't express (a shelf-only band, a gain grid); against an ordinary AutoEQ result
   it is a no-op or a snap onto the grid. The request carries the constraint's envelope over its
   peaking slots as `limits`, and its shelf slots' gain range as `shelfLimits` where they differ.
+- **A run keeps the bands it can't make.** AutoEQ makes `PK`, `LSQ` and `HSQ` (`AUTOEQ_TYPES`); a
+  high pass from a device or a notch from an imported config would otherwise vanish with every
+  run. `autoeq-service` pins them in the session (`keptBands`), folds their response into the
+  source curve so the fit corrects around them, takes their slots out of the band budget, and
+  puts them back at their own positions (`keepInPlace`). Engine-agnostic, so neither optimizer
+  knows about them.
 - **A graphic EQ is a pinned bank.** fc and Q come from the preset's own bands and only gain is
   optimized, so nothing has to be snapped onto the grid afterwards — snapping moves every filter
   off the frequency it was optimized at. AutoEQ is therefore available in graphic mode, which it

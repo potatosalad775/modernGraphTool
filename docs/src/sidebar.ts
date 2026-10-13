@@ -61,6 +61,7 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 				items: [
 					{ slug: 'features/equalizer' },
 					{ slug: 'features/device-peq' },
+					{ slug: 'features/unipeq-link' },
 					{ slug: 'features/autoeq-benchmarks' }
 				]
 			},

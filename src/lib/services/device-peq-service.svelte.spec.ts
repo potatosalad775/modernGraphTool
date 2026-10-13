@@ -8,6 +8,7 @@ import type { EQFilter } from '$lib/utils/equalizer.js';
 import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
 import { volumeWarning } from './volume-warning.svelte.js';
+import { dataProvider } from './data-provider.svelte.js';
 
 const CAPS: PeqCapabilities = {
 	canRead: true,
@@ -235,5 +236,43 @@ describe('devicePeqService volume warning', () => {
 		expect(device.setEnabled).not.toHaveBeenCalled();
 		volumeWarning.answer(true);
 		await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
+	});
+});
+
+describe('devicePeqService preamp on a device grid', () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		dataProvider.installEqCurveSync();
+		devicePeqStore.setDisconnected();
+		// On the band's 0.5 dB grid, so only the preamp could need a review.
+		eqStore.filters = [band(1000, 6.5)];
+		flushSync();
+	});
+
+	afterEach(() => {
+		devicePeqService.setAutoWrite(false);
+		devicePeqStore.setDisconnected();
+		vi.useRealTimers();
+	});
+
+	it("rounds Auto down onto the device's grid, so auto-write sends it without a review", async () => {
+		expect(eqStore.preamp).toBe(-6.5);
+		const device = connect();
+		const profile = {
+			...PROFILE,
+			preamp: { mode: 'manual' as const, gain: { min: -12, max: 0, step: 1 } }
+		};
+		devicePeqStore.connection = { ...devicePeqStore.connection!, profile };
+		flushSync();
+		expect(eqStore.preamp).toBe(-7);
+
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+		expect(device.push.mock.calls[0][0]).toMatchObject({ preamp: -7 });
+		expect(devicePeqStore.autoPaused).toBe(false);
+
+		devicePeqStore.setDisconnected();
+		flushSync();
+		expect(eqStore.preamp).toBe(-6.5);
 	});
 });

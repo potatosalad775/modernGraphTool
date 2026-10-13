@@ -93,9 +93,10 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   a fold that came out different from uniPEQ's projection would go straight back as an edit.
 - **Nothing goes out before the first list is settled** (`#joined`): adopted, found equal (the
   raw `eq` listener, since the client emits nothing for an equal list), or answered in the start
-  dialog. The dialog compares bands only: this page derives its own preamp, so the two preamps
-  always differ.
-- The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it.
+  dialog. The dialog compares bands only: the preamp is uniPEQ's either way.
+- The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it,
+  and every `eq` sets `eqStore.linkedPreamp`, which `installEqCurveSync` shows and plays (a fixed
+  one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
 
 ## `data-provider.svelte.ts`
 
@@ -124,7 +125,9 @@ applyTargetAdjustment.
   one, so a phone measured as a single curve keeps the shared-only path.
 - `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
   `eqStore.preamp`** (`utils/eq-preamp.ts`), installed once from `AppShell.onMount` and never
-  disposed. The preamp used to be derived in `EqFilterList`, so filters changed from another panel —
+  disposed. With a device connected here, Auto's value is rounded down onto the device's preamp
+  grid (`headroomPreamp`): nearest would hand back headroom, and the difference would pause
+  auto-write for review. Linked, uniPEQ's `linkedPreamp` wins. The preamp used to be derived in `EqFilterList`, so filters changed from another panel —
   a global undo, AutoEQ auto-apply following a tilt — kept a stale preamp. It must **not** live in `EqualizerPanel.svelte`: that panel
   unmounts on every panel switch, while the `\` momentary A/B key is bound on AppShell's
   `<svelte:window>` and fires from any tab — a panel-scoped effect left the curve showing the EQ'd

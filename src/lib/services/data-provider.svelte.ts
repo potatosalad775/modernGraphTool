@@ -14,6 +14,7 @@ import type {
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
@@ -40,7 +41,7 @@ import { downloadText } from '$lib/utils/download-text.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
 import { Equalizer } from '$lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
-import { derivePreamp } from '$lib/utils/eq-preamp.js';
+import { derivePreamp, headroomPreamp } from '$lib/utils/eq-preamp.js';
 import MetadataParser from '$lib/utils/metadata-parser.js';
 import { getConfigValue } from '$lib/utils/config.js';
 import {
@@ -94,10 +95,21 @@ class DataProvider {
 			$effect(() => {
 				const filters = eqStore.filters;
 				const linked = eqStore.linkedPreamp;
+				// A device connected here takes Auto's value on its own grid, rounded down: what is
+				// shown and played is what a write sends. Over the link, uniPEQ's value already is.
+				const conn = devicePeqStore.connection;
+				const local = conn && conn.connectionType !== 'link' ? conn : null;
+				const derived = derivePreamp(filters);
 				const next =
 					linked && (!linked.auto || linked.filters === filters)
 						? linked.preamp
-						: derivePreamp(filters);
+						: local
+							? headroomPreamp(
+									derived,
+									local.profile.preamp,
+									local.device.capabilities.writesPreamp
+								)
+							: derived;
 				untrack(() => {
 					if (eqStore.preamp !== next) eqStore.preamp = next;
 				});

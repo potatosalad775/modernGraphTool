@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { derivePreamp } from './eq-preamp.js';
+import type { Profile } from '@potatosalad775/eqcaps-core';
+import { derivePreamp, headroomPreamp } from './eq-preamp.js';
 import type { EQFilter } from './equalizer.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
@@ -37,5 +38,32 @@ describe('derivePreamp', () => {
 
 		expect(derivePreamp([shared, rightOnly])).toBe(rightEar);
 		expect(rightEar).toBeLessThan(derivePreamp([shared]));
+	});
+});
+
+describe('headroomPreamp', () => {
+	const manual = (gain: (Profile['preamp'] & { mode: 'manual' })['gain']): Profile['preamp'] => ({
+		mode: 'manual',
+		gain
+	});
+
+	it('moves down onto a coarse grid, never up', () => {
+		const grid = manual({ min: -12, max: 0, step: 1 });
+		expect(headroomPreamp(-6.1, grid, true)).toBe(-7);
+		expect(headroomPreamp(-6, grid, true)).toBe(-6);
+		expect(headroomPreamp(-0.3, grid, true)).toBe(-1);
+	});
+
+	it("stops at the device's range, and picks from a set", () => {
+		expect(headroomPreamp(-20, manual({ min: -12, max: 0, step: 0.5 }), true)).toBe(-12);
+		expect(headroomPreamp(-4, manual({ values: [-9, -6, -3, 0] }), true)).toBe(-6);
+		expect(headroomPreamp(-2.34, manual({ min: -12, max: 0 }), true)).toBe(-2.34);
+	});
+
+	it('leaves the value alone where no preamp is written', () => {
+		const grid = manual({ min: -12, max: 0, step: 1 });
+		expect(headroomPreamp(-6.1, grid, false)).toBe(-6.1);
+		expect(headroomPreamp(-6.1, { mode: 'none' }, true)).toBe(-6.1);
+		expect(headroomPreamp(-6.1, { mode: 'auto' }, true)).toBe(-6.1);
 	});
 });

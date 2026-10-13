@@ -141,6 +141,15 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 }
 ```
 
+[uniPEQ 연결](../features/unipeq-link.mdx)의 QR 코드에는 변수가 두 개 더 있습니다. 일부러 `.dark` 값을 두지 않았습니다. 반전된 QR 코드를 모든 카메라 앱이 읽지는 못하므로, 두 모드 모두에서 밝은 바탕에 어두운 코드로 유지합니다. 이 변수가 없는 `theme.css`에서는 기본 콘텐츠 색과 배경색을 사용합니다.
+
+```css
+:root {
+	--color-qr-dark: oklch(20% 0.042 265.755); /* QR code modules */
+	--color-qr-light: oklch(100% 0 0); /* QR code background */
+}
+```
+
 ### 기본 UI 변수
 
 배경, 텍스트, 버튼, 액센트 같은 UI 크롬은 DaisyUI 스타일의 기본 팔레트로 구동됩니다. 모든 변수는 라이트(`:root`)와 다크(`.dark`) 값을 함께 가집니다.
@@ -851,6 +860,22 @@ EQUALIZER: {
 
 - `AUTOEQ_DEFAULT_BAND_COUNT` — 필터 목록이 비어 있을 때 **AutoEQ 실행**이 생성할 필터 밴드 수입니다. 기본값은 `8`입니다. 목록에 밴드가 하나라도 있으면 그 개수가 우선하므로, 사용자는 실행 전에 밴드를 추가하거나 제거해 원하는 개수를 직접 정할 수 있습니다. `1` 미만의 값은 무시되며, 활성화된 EQ 제약 조건의 밴드 상한도 그대로 적용됩니다. 5밴드 기기가 연결되어 있다면 5개가 생성됩니다.
 - `EQCAPS_URL` — [하드웨어 EQ](../features/device-peq.mdx)와 [EQ 제약 조건](../features/equalizer.mdx#eq-constraints) 선택 창이 기기·앱의 EQ 제약 조건을 읽어오는 곳으로, [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` 채널의 사본입니다. 기본값은 GitHub Pages의 공식 채널이며, 미러나 직접 호스팅한 사본을 쓸 때 지정합니다. 이 URL은 CORS와 함께 `index.json`과 `profiles/`를 제공해야 합니다. 접근할 수 없어도 Built-in 제약 조건은 동작하고, 알려진 제조사의 기기도 연결됩니다.
+
+### `UNIPEQ_LINK`
+
+```javascript
+UNIPEQ_LINK: {
+  ENABLE: true,
+  SERVER: 'https://link.unipeq.com',
+},
+```
+
+이퀄라이저 패널의 **uniPEQ와 연결** 섹션입니다. [uniPEQ 연결](../features/unipeq-link.mdx)을 참고하세요. 섹션 전체를 생략하면 위 블록과 같습니다. 즉 연결 기능이 켜지고 uniPEQ의 공식 서버를 사용합니다.
+
+- `ENABLE` — `false`로 설정하면 섹션을 숨깁니다.
+- `SERVER` — 연결에 필요한 시그널링 서버 주소로, [uniPEQ_link](https://github.com/potatosalad775/uniPEQ_link) Worker입니다. 두 앱을 서로 소개하는 역할만 하며, 실제 EQ 데이터는 두 앱 사이를 직접 오갑니다. 자체 서버를 사용해도 QR 코드와 **uniPEQ 열기**는 동작합니다. 다만 uniPEQ에 입력한 코드는 uniPEQ의 서버에서 찾기 때문에 자체 서버의 연결을 찾지 못하며(패널의 코드 옆에 이 안내가 표시됩니다), uniPEQ의 App Link는 `link.unipeq.com`에 대해서만 검증되어 있으므로 QR 코드는 uniPEQ 대신 서버의 웹 페이지를 먼저 엽니다.
+
+연결은 `SERVER`로 WebSocket을, 상대 앱으로 WebRTC 연결을 엽니다. `Content-Security-Policy`를 사용하는 사이트는 `connect-src`에 `SERVER`(와 그 `wss:` 형태)를 허용해야 합니다.
 
 ### `SQUIGLINK`
 

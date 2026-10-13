@@ -1,6 +1,6 @@
 /**
  * `EqAutoEqSelect` picks the curve AutoEQ optimizes towards. Two behaviours are
- * load-bearing beyond rendering a `<select>`: EQ curves are excluded (optimizing
+ * load-bearing beyond rendering a picker: EQ curves are excluded (optimizing
  * towards an EQ result is meaningless), and an effect keeps the stored uuid
  * honest — clearing it when the curve is removed, and auto-selecting when the
  * choice is unambiguous.
@@ -24,15 +24,18 @@ function add(uuid: string, type: FRDataType, identifier = uuid, dispSuffix?: str
 	} as unknown as FRDataObject);
 }
 
+/** The trigger: bits-ui renders it as a button with `aria-haspopup="listbox"`. */
 function select() {
-	return page.getByRole('combobox');
+	return page.getByRole('button');
 }
 
-/** Option labels in document order, minus the leading placeholder. */
-function optionLabels(): string[] {
-	return Array.from(document.querySelectorAll('option'))
-		.map((o) => o.textContent?.trim() ?? '')
-		.slice(1);
+/** Opens the picker and returns its option labels in document order. */
+async function optionLabels(): Promise<string[]> {
+	await select().click();
+	await expect.element(page.getByRole('listbox')).toBeInTheDocument();
+	return Array.from(document.querySelectorAll('[role="option"]')).map(
+		(o) => o.textContent?.trim() ?? ''
+	);
 }
 
 describe('EqAutoEqSelect', () => {
@@ -49,11 +52,10 @@ describe('EqAutoEqSelect', () => {
 	// ── Options ──────────────────────────────────────────────────────────────
 
 	describe('options', () => {
-		it('offers the placeholder when nothing is loaded', async () => {
+		it('shows the placeholder when nothing is loaded', async () => {
 			render(EqAutoEqSelect);
 
-			await expect.element(select()).toBeInTheDocument();
-			expect(optionLabels()).toEqual([]);
+			await expect.element(select()).toHaveTextContent(m.equalizer_phone_select_option_target());
 		});
 
 		it('lists phones and targets', async () => {
@@ -61,8 +63,9 @@ describe('EqAutoEqSelect', () => {
 			add('b', 'phone', 'HD600');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toContain('Harman');
-			expect(optionLabels()).toContain('HD600');
+			const labels = await optionLabels();
+			expect(labels).toContain('Harman');
+			expect(labels).toContain('HD600');
 		});
 
 		it('omits EQ curves', async () => {
@@ -73,15 +76,20 @@ describe('EqAutoEqSelect', () => {
 			add('ins', 'inserted-eq', 'Imported EQ');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toEqual(['HD600']);
+			expect(await optionLabels()).toEqual(['HD600']);
 		});
 
-		it('puts targets ahead of phones', async () => {
+		it('puts targets ahead of phones, under group headings', async () => {
 			add('p', 'phone', 'AAA Phone');
 			add('t', 'target', 'ZZZ Target');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toEqual(['ZZZ Target', 'AAA Phone']);
+			expect(await optionLabels()).toEqual(['ZZZ Target', 'AAA Phone']);
+			const headings = Array.from(document.querySelectorAll('[data-select-group-label]'));
+			expect(headings.map((h) => h.textContent?.trim())).toEqual([
+				m.equalizer_phone_select_group_targets(),
+				m.equalizer_phone_select_group_devices()
+			]);
 		});
 
 		it('sorts alphabetically within a group', async () => {
@@ -89,21 +97,21 @@ describe('EqAutoEqSelect', () => {
 			add('p1', 'phone', 'Alpha');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toEqual(['Alpha', 'Beta']);
+			expect(await optionLabels()).toEqual(['Alpha', 'Beta']);
 		});
 
 		it('appends the display suffix to the label', async () => {
 			add('p', 'phone', 'HD600', '(sample 2)');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toEqual(['HD600 (sample 2)']);
+			expect(await optionLabels()).toEqual(['HD600 (sample 2)']);
 		});
 
 		it('trims the label when there is no suffix', async () => {
 			add('p', 'phone', 'HD600');
 			render(EqAutoEqSelect);
 
-			expect(optionLabels()).toEqual(['HD600']);
+			expect(await optionLabels()).toEqual(['HD600']);
 		});
 	});
 
@@ -115,20 +123,21 @@ describe('EqAutoEqSelect', () => {
 			add('t2', 'target', 'Diffuse Field');
 			render(EqAutoEqSelect);
 
-			await select().selectOptions('Harman');
+			await select().click();
+			await page.getByRole('option', { name: 'Harman' }).click();
 
-			expect(eqStore.autoEqTargetUUID).toBe('t');
+			await expect.poll(() => eqStore.autoEqTargetUUID).toBe('t');
 		});
 
-		it('clears the selection when the placeholder is picked', async () => {
+		it('names the trigger by its label and the current choice', async () => {
+			// An aria-label alone would replace the shown value as the accessible
+			// name, so a screen reader would never hear what is selected.
 			add('t', 'target', 'Harman');
-			add('t2', 'target', 'Diffuse Field');
-			eqStore.autoEqTargetUUID = 't';
 			render(EqAutoEqSelect);
 
-			await select().selectOptions(m.equalizer_phone_select_option_target());
-
-			expect(eqStore.autoEqTargetUUID).toBeNull();
+			await expect
+				.element(select())
+				.toHaveAccessibleName(`${m.equalizer_phone_select_target_label()} Harman`);
 		});
 
 		it('shows the stored uuid as the current value', async () => {
@@ -137,7 +146,7 @@ describe('EqAutoEqSelect', () => {
 			eqStore.autoEqTargetUUID = 't2';
 			render(EqAutoEqSelect);
 
-			await expect.element(select()).toHaveValue('t2');
+			await expect.element(select()).toHaveTextContent('Diffuse Field');
 		});
 	});
 

@@ -3,7 +3,7 @@
 ## Reach for the Atoms First
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `ScrollArea`, `Skeleton`. Use
+`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `SelectMenu`, `ScrollArea`, `Skeleton`. Use
 them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
@@ -42,6 +42,15 @@ four.
 - **The value can't be cleared.** A single toggle group sets `''` when the pressed item is pressed
   again; the atom's function binding drops that, so a segmented control always holds one value.
 
+`SelectMenu` is the styled `<select>` with grouped options (the EQ source and AutoEQ target):
+
+- **bits-ui `Select`, not a `PopoverPanel` of buttons.** It keeps the listbox semantics, arrow
+  keys and typeahead the native element had. The trigger comes out as a `button` with
+  `aria-haspopup="listbox"`, not `role="combobox"` — query it with `getByRole('button')`.
+- **The trigger is named through `aria-labelledby` (label + current value).** An `aria-label`
+  would replace the shown value as the accessible name.
+- There is no "none" row; picking the placeholder to clear a choice is gone with the native element.
+
 `InfoPopover` is the `?` button that explains an option beside its label:
 
 - **`label` is required and becomes the trigger's accessible name.** Build it with
@@ -65,7 +74,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, ScrollArea,
+- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, SelectMenu, ScrollArea,
   Skeleton, Switch
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …

@@ -984,6 +984,8 @@ Operators can change that fallback with `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT` �
 
 The count is the total. With **Use shelf filters** on, two of those bands are the low and high shelf: ten bands is eight peaking filters plus the pair. Below four bands the shelves are dropped, because spending the whole budget on them corrects nothing but overall tilt.
 
+AutoEQ makes peaking and shelf filters only. Any other band in the list — a high or low pass, a band pass, a notch or an all-pass, from an imported config or read from a device — stays where it is, and the fit corrects around it: its response counts as part of the source curve, and its slot comes out of the band count.
+
 ## Auto-apply
 
 Once a run lands, **Run AutoEQ** becomes **Recalculate**, and the **Auto-apply** switch beside it keeps the result current. While it is on, AutoEQ runs again whenever the source or target curve changes — a tilt or bass shelf from the target customizer, say — or when an AutoEQ option does. Switching it on runs once straight away.
@@ -1171,6 +1173,38 @@ All of it is set under [`TARGET_CUSTOMIZER`](/modernGraphTool/docs/guide-for-adm
 * **The presets.** `FILTER_PRESET` maps preset names to slider values.
 * **Initial adjustments.** `INITIAL_TARGET_FILTERS` applies slider values to a target as soon as it loads, so a deployment can ship its preferred variant of a target by default.
 
+# uniPEQ Link
+
+**Link with uniPEQ** shares the Equalizer panel’s band list with [uniPEQ](https://unipeq.com), an EQ app for Android and the web that writes EQ to a device connected to it. You edit with the graph and AutoEQ here, and uniPEQ writes every change to the device: a phone dongle you can’t plug into the computer, say, or a device the browser can’t reach.
+
+It sits in the Equalizer panel, below [Hardware EQ](/modernGraphTool/docs/features/device-peq/).
+
+## Linking
+
+**Link with uniPEQ** shows a code and a QR code. Then, in uniPEQ:
+
+* **On the same Android phone**, press **Open uniPEQ**. uniPEQ opens and joins.
+* **On another phone**, scan the QR code with the camera. It opens uniPEQ, or a page that links to it when uniPEQ isn’t installed.
+* **On a computer**, press **Open uniPEQ**. uniPEQ on the web opens in a new tab and joins. Keep this tab open while you’re linked.
+* **Anywhere else**, type the code in uniPEQ’s **Link with modernGraphTool**.
+
+uniPEQ then asks whether to link with this site, by its address. Nothing reaches the device until you say yes there. If the two apps hold different EQs, this page asks which one to keep: **Use uniPEQ’s EQ**, or **Send this EQ to uniPEQ**. Sending turns switched-off bands into 0 dB bands and leaves left- or right-only bands out, and the question says how many of each. An empty band list here takes uniPEQ’s without asking.
+
+## While linked
+
+There is one band list, and both apps edit it live. uniPEQ holds it and writes the device; this page shows each change it makes, and the last change wins when both apps edit the same band at once. Each app keeps its own undo history, and a change made in the other app is one step in it.
+
+* The list is one list for both ears, as a device’s is: the channel picker stays on **L+R**, and bands have no on/off switch.
+* uniPEQ’s device shows in [Hardware EQ](/modernGraphTool/docs/features/device-peq/) as the connected device, with its limits as the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). **Read**, **Write**, **Device EQ** and **Auto-write** there act on uniPEQ, and a write uniPEQ can’t make exactly asks for review in both apps; either app’s answer closes both.
+* While uniPEQ’s device is reconnecting, the list can’t be edited.
+* If uniPEQ stops answering — the phone asleep, uniPEQ closed — the panel says so, and the link picks up again by itself when it answers. If Android paused uniPEQ in the background, the panel says for how long.
+
+Reloading this page keeps the link without asking uniPEQ again. **Unlink** in either app ends it, and so does ten minutes of silence.
+
+## Privacy
+
+The link server only introduces the two apps. The EQ, the device’s name and its limits travel between them over an encrypted WebRTC connection — directly, or through a relay that can’t read it when a network blocks direct connections — and nothing is kept once the link ends. Operators can point the link at their own server, or turn it off: see [Customizing the Page](/modernGraphTool/docs/guide-for-admins/customize-page/#unipeq_link).
+
 # Guide for Operators
 
 > Run your own frequency response database with modernGraphTool: deploy it, add measurements, and customize the page.
@@ -1317,6 +1351,15 @@ These drive the SVG rendering where Tailwind classes cannot be used:
   --color-graph-axis-label: rgba(255, 255, 255, 0.6);
   --color-graph-grid-text: rgba(255, 255, 255, 0.5);
   --color-graph-baseline: rgba(255, 255, 255, 0.25);
+}
+```
+
+The [uniPEQ Link](/modernGraphTool/docs/features/unipeq-link/) QR code has two more. They have no `.dark` value on purpose: the code stays dark on light in both modes, since not every camera app reads an inverted one. A `theme.css` without them falls back to the base content and background colors.
+
+```css
+:root {
+  --color-qr-dark: oklch(20% 0.042 265.755); /* QR code modules */
+  --color-qr-light: oklch(100% 0 0); /* QR code background */
 }
 ```
 
@@ -2048,6 +2091,22 @@ Defaults for the Equalizer panel. See [Equalizer](/modernGraphTool/docs/features
 
 * `AUTOEQ_DEFAULT_BAND_COUNT`: How many filter bands **Run AutoEQ** generates when the filter list is empty. Defaults to `8`. A non-empty list always wins, so users can still pick a count by adding or removing bands before running. Values below `1` are ignored, and the active EQ constraint’s band cap still applies — a connected 5-band device gets 5.
 * `EQCAPS_URL`: Where [Hardware EQ](/modernGraphTool/docs/features/device-peq/) and the [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints) picker read device and app EQ limits from — a copy of the [eqcaps](https://github.com/potatosalad775/eqcaps) `/v1/` channel. Defaults to the official one on GitHub Pages; set it for a mirror or a self-hosted copy. The URL must serve `index.json` and `profiles/` with CORS. If it can’t be reached, the built-in constraints still work and devices from known makers still connect.
+
+### `UNIPEQ_LINK`
+
+```javascript
+UNIPEQ_LINK: {
+  ENABLE: true,
+  SERVER: 'https://link.unipeq.com',
+},
+```
+
+The **Link with uniPEQ** section of the Equalizer panel. See [uniPEQ Link](/modernGraphTool/docs/features/unipeq-link/). Leaving the whole section out is the same as the block above: the link is on, through uniPEQ’s own server.
+
+* `ENABLE`: Set `false` to hide the section.
+* `SERVER`: The link’s signaling server, a [uniPEQ_link](https://github.com/potatosalad775/uniPEQ_link) Worker. It only introduces the two apps; the EQ then travels directly between them. On your own server, the QR code and **Open uniPEQ** still work, but a code typed into uniPEQ looks on uniPEQ’s server and won’t find yours (the panel says so next to the code), and the QR code opens the server’s web page first rather than uniPEQ itself, since uniPEQ’s App Link is verified for `link.unipeq.com` only.
+
+The link opens a WebSocket to `SERVER` and a WebRTC connection to the other app. A site with a `Content-Security-Policy` must allow `SERVER` (and its `wss:` form) in `connect-src`.
 
 ### `SQUIGLINK`
 

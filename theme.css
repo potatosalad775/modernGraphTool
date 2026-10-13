@@ -20,6 +20,12 @@
 	--color-graph-grid-text: rgba(0, 0, 0, 0.5);
 	--color-graph-baseline: rgba(0, 0, 0, 0.25);
 
+	/* ── uniPEQ link QR code ───────────────────────────────────────────────
+	 * Dark on light in both themes (no .dark override below): not every camera
+	 * app reads an inverted code. */
+	--color-qr-dark: oklch(20% 0.042 265.755);
+	--color-qr-light: oklch(100% 0 0);
+
 	/* ── Base ──────────────────────────────────────────────────────────── */
 	--color-base-100: oklch(98% 0.003 247.858);
 	--color-base-200: oklch(96% 0.007 247.896);

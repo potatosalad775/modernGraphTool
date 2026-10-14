@@ -317,6 +317,18 @@ export function isPastMaxBands(index: number, profile: Profile, filters?: EQFilt
 	return countBandsPerOutput(filters.slice(0, index + 1)) > max;
 }
 
+/**
+ * Whether a whole saved EQ (a history entry, a bookmark) can be used as it is under `profile`:
+ * no band out of its domains, and no output over the band cap. Disabled bands cost nothing, as on
+ * a device. Used to gate A/B instead of reshaping the bands — that would silently change what the
+ * user saved.
+ */
+export function fitsProfile(filters: EQFilter[], profile: Profile): boolean {
+	if (hasViolations(filterViolations(filters, profile))) return false;
+	const max = maxBandsOf(profile);
+	return max <= 0 || countBandsPerOutput(filters.filter((f) => f.enabled)) <= max;
+}
+
 // ─── Projection ─────────────────────────────────────────────────────────────
 
 /**

@@ -7,6 +7,7 @@ import {
 	conformFilters,
 	envelopeOf,
 	filterViolations,
+	fitsProfile,
 	fromCapsFilter,
 	fromCapsType,
 	graphicBandsOf,
@@ -302,5 +303,43 @@ describe('isPastMaxBands', () => {
 
 	it('returns false when unlimited', () => {
 		expect(isPastMaxBands(99, parametricPreset('free').profile)).toBe(false);
+	});
+});
+
+describe('fitsProfile', () => {
+	it('accepts a list inside every domain and the cap', () => {
+		expect(fitsProfile([pk(200, 1), pk(1000, -3)], PARAM)).toBe(true);
+	});
+
+	it('rejects a band outside its domains', () => {
+		expect(fitsProfile([pk(1000, 9)], PARAM)).toBe(false);
+	});
+
+	it('rejects more bands than the cap', () => {
+		expect(fitsProfile([pk(200, 1), pk(400, 1), pk(800, 1), pk(1600, 1)], PARAM)).toBe(false);
+	});
+
+	it('does not count disabled bands against the cap', () => {
+		const filters = [pk(200, 1), pk(400, 1), pk(800, 1), pk(1600, 1, 1, { enabled: false })];
+		expect(fitsProfile(filters, PARAM)).toBe(true);
+	});
+
+	it('counts the cap per output', () => {
+		const filters = [
+			pk(200, 1),
+			pk(400, 1),
+			pk(800, 1, 1, { channel: 'L' }),
+			pk(1600, 1, 1, { channel: 'R' })
+		];
+		expect(fitsProfile(filters, PARAM)).toBe(true);
+	});
+
+	it('has no band cap under an unlimited profile', () => {
+		const many = Array.from({ length: 40 }, (_, i) => pk(100 + i * 100, 1));
+		expect(fitsProfile(many, parametricPreset('free').profile)).toBe(true);
+	});
+
+	it('rejects an off-band frequency on a graphic EQ', () => {
+		expect(fitsProfile([pk(900, 3)], GRAPHIC)).toBe(false);
 	});
 });

@@ -1,6 +1,9 @@
 <script module lang="ts">
 	const listClass =
 		'flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded border border-base-content/20';
+	/** Looks disabled while staying focusable (`aria-disabled`, not `disabled`). */
+	const blockedClass = 'cursor-not-allowed opacity-50';
+	const fitReasonId = (id: string) => `eq-entry-fit-${id}`;
 	const rowClass =
 		'flex items-center gap-1.5 border-b border-base-content/20 px-1.5 py-1 last:border-b-0 hover:bg-base-200';
 </script>
@@ -9,7 +12,7 @@
 	import { tick, type Component } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Ellipsis, Pencil, Star, Trash2 } from '@lucide/svelte';
+	import { Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
 	import {
 		bandSummary,
 		eqHistoryStore,
@@ -25,6 +28,9 @@
 		type EqBookmarkDevice
 	} from '$lib/stores/eq-bookmark-store.svelte.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
+	import { fitsProfile } from '$lib/utils/eq-constraint.js';
+	import type { EqState } from '$lib/utils/eq-snapshot.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime.js';
@@ -70,6 +76,16 @@
 		bEntry !== null && snapshotMatches(bEntry, eqStore.filters, eqStore.preamp)
 	);
 
+	// An entry that breaks the active constraint can't be applied as it is, and
+	// is never reshaped to fit — its A/B buttons say why instead. Reactive, so a
+	// constraint change re-gates entries already picked.
+	const constraintLabel = $derived(eqConstraintsStore.active.label);
+	function fits(entry: EqState): boolean {
+		return fitsProfile(entry.filters, eqConstraintsStore.profile);
+	}
+	const aBlocked = $derived(aEntry !== null && !fits(aEntry));
+	const bBlocked = $derived(bEntry !== null && !fits(bEntry));
+
 	function isPicked(id: string): boolean {
 		return eqHistoryStore.aSnapshotId === id || eqHistoryStore.bSnapshotId === id;
 	}
@@ -79,7 +95,7 @@
 
 	function applySide(side: 'a' | 'b') {
 		const entry = side === 'a' ? aEntry : bEntry;
-		if (!entry) return;
+		if (!entry || !fits(entry)) return;
 		eqCommands.applySnapshot(entry.filters, entry.preamp);
 	}
 
@@ -134,25 +150,49 @@
 	}
 </script>
 
-{#snippet abButtons(id: string)}
+<!-- `aria-disabled`, not `disabled`: the button stays focusable and points at the
+     reason. Unsetting a pick that stopped fitting is still allowed. -->
+{#snippet abButtons(id: string, fit: boolean)}
 	{@const isA = eqHistoryStore.aSnapshotId === id}
 	{@const isB = eqHistoryStore.bSnapshotId === id}
 	<Button
 		title={isA ? m.eq_history_unset_a() : m.eq_history_set_a()}
-		onclick={() => eqHistoryStore.setA(isA ? null : id)}
+		onclick={() => {
+			if (isA) eqHistoryStore.setA(null);
+			else if (fit) eqHistoryStore.setA(id);
+		}}
+		aria-disabled={!fit && !isA ? true : undefined}
+		aria-describedby={fit ? undefined : fitReasonId(id)}
 		variant={isA ? 'accent' : 'muted'}
 		size="sm"
+		class={!fit && !isA ? blockedClass : ''}
 	>
 		A
 	</Button>
 	<Button
 		title={isB ? m.eq_history_unset_b() : m.eq_history_set_b()}
-		onclick={() => eqHistoryStore.setB(isB ? null : id)}
+		onclick={() => {
+			if (isB) eqHistoryStore.setB(null);
+			else if (fit) eqHistoryStore.setB(id);
+		}}
+		aria-disabled={!fit && !isB ? true : undefined}
+		aria-describedby={fit ? undefined : fitReasonId(id)}
 		variant={isB ? 'accent' : 'muted'}
 		size="sm"
+		class={!fit && !isB ? blockedClass : ''}
 	>
 		B
 	</Button>
+{/snippet}
+
+{#snippet notFit(id: string)}
+	<span
+		id={id ? fitReasonId(id) : undefined}
+		class="flex items-center gap-1 text-[10px] text-base-content/70"
+	>
+		<TriangleAlert class="size-3 shrink-0" aria-hidden="true" />
+		<span class="truncate">{m.eq_history_not_fit({ constraint: constraintLabel })}</span>
+	</span>
 {/snippet}
 
 {#snippet entryMenu(id: string, name: string, items: MenuItem[])}
@@ -202,22 +242,32 @@
 		<span class="mr-1 text-xs text-base-content/60">{m.eq_history_compare_label()}</span>
 		<div class="flex flex-1 gap-1">
 			<Button
-				title={aEntry ? m.eq_history_apply_a_title() : m.eq_history_pick_a_first()}
+				title={aBlocked
+					? m.eq_history_apply_blocked({ side: 'A', constraint: constraintLabel })
+					: aEntry
+						? m.eq_history_apply_a_title()
+						: m.eq_history_pick_a_first()}
 				onclick={() => applySide('a')}
 				variant={aActive ? 'primary' : 'outline'}
 				size="sm"
 				disabled={aEntry === null}
-				class="flex-1"
+				aria-disabled={aBlocked || undefined}
+				class="flex-1 {aBlocked ? blockedClass : ''}"
 			>
 				A
 			</Button>
 			<Button
-				title={bEntry ? m.eq_history_apply_b_title() : m.eq_history_pick_b_first()}
+				title={bBlocked
+					? m.eq_history_apply_blocked({ side: 'B', constraint: constraintLabel })
+					: bEntry
+						? m.eq_history_apply_b_title()
+						: m.eq_history_pick_b_first()}
 				onclick={() => applySide('b')}
 				variant={bActive ? 'primary' : 'outline'}
 				size="sm"
 				disabled={bEntry === null}
-				class="flex-1"
+				aria-disabled={bBlocked || undefined}
+				class="flex-1 {bBlocked ? blockedClass : ''}"
 			>
 				B
 			</Button>
@@ -265,6 +315,7 @@
 		<ul class={listClass}>
 			{#each history as snap (snap.id)}
 				{@const saved = eqBookmarkStore.findMatch(snap.filters, snap.preamp) !== null}
+				{@const fit = fits(snap)}
 				<li class="{rowClass} {isPicked(snap.id) ? 'bg-base-200' : ''}">
 					<!-- Only adds: removing a bookmark is done in its own tab, so a stray
 					     click here can't lose a name. -->
@@ -285,8 +336,9 @@
 						<span class="text-[10px] text-base-content/50 tabular-nums">
 							{timeStr(snap.timestamp)}
 						</span>
+						{#if !fit}{@render notFit(snap.id)}{/if}
 					</div>
-					{@render abButtons(snap.id)}
+					{@render abButtons(snap.id, fit)}
 					{@render entryMenu(snap.id, snap.summary, [
 						{
 							label: m.eq_history_menu_delete(),
@@ -307,6 +359,7 @@
 	{:else}
 		<ul class={listClass}>
 			{#each bookmarks as bookmark (bookmark.id)}
+				{@const fit = fits(bookmark)}
 				<li class="{rowClass} {isPicked(bookmark.id) ? 'bg-base-200' : ''}">
 					<div class="flex min-w-0 flex-1 flex-col">
 						{#if renamingId === bookmark.id}
@@ -325,8 +378,9 @@
 								? `${deviceLabel(bookmark.device)} · ${dateStr(bookmark.createdAt)}`
 								: dateStr(bookmark.createdAt)}
 						</span>
+						{#if !fit}{@render notFit(bookmark.id)}{/if}
 					</div>
-					{@render abButtons(bookmark.id)}
+					{@render abButtons(bookmark.id, fit)}
 					{@render entryMenu(bookmark.id, bookmark.name, [
 						{
 							label: m.eq_history_menu_rename(),

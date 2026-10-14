@@ -17,6 +17,12 @@ import {
 	eqBookmarkStore,
 	type EqBookmark
 } from '$lib/stores/eq-bookmark-store.svelte.js';
+import {
+	BUILTIN_PRESETS,
+	DEFAULT_CONSTRAINT_ID,
+	eqConstraintsStore
+} from '$lib/stores/eq-constraints-store.svelte.js';
+import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { toast } from 'svelte-sonner';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
@@ -72,7 +78,18 @@ function reset() {
 	eqHistoryStore.aSnapshotId = null;
 	eqHistoryStore.bSnapshotId = null;
 	eqBookmarkStore.items = [];
+	eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+	eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
 	localStorage.clear();
+}
+
+/** Activate a ±6 dB, 2-band constraint labelled "Tight". */
+function activateTight() {
+	eqConstraintsStore.presets = [
+		...BUILTIN_PRESETS,
+		parametricPreset('tight', { label: 'Tight', maxBands: 2, gain: { min: -6, max: 6 } })
+	];
+	eqConstraintsStore.activeId = 'tight';
 }
 
 describe('EqHistoryAndCompare', () => {
@@ -408,6 +425,63 @@ describe('EqHistoryAndCompare', () => {
 			expect(eqHistoryStore.aSnapshotId).toBe(bookmark.id);
 			expect(eqHistoryStore.bSnapshotId).toBe('h-1');
 			expect(applySnapshot).toHaveBeenCalledWith(bookmark.filters, bookmark.preamp);
+		});
+	});
+
+	// ── Constraint fit ───────────────────────────────────────────────────────
+
+	describe('constraint fit', () => {
+		const loud = () => makeSnapshot({ id: 'loud', filters: [makeFilter({ gain: 9 })] });
+		const notFit = () => m.eq_history_not_fit({ constraint: 'Tight' });
+
+		it('marks a history entry that breaks the constraint and blocks picking it', async () => {
+			activateTight();
+			eqHistoryStore.snapshots = [loud()];
+			render(EqHistoryAndCompare);
+
+			await expect.element(page.getByText(notFit())).toBeInTheDocument();
+			const setA = button(m.eq_history_set_a());
+			await expect.element(setA).toHaveAttribute('aria-disabled', 'true');
+			await expect.element(setA).toHaveAccessibleDescription(notFit());
+			await setA.click({ force: true });
+
+			expect(eqHistoryStore.aSnapshotId).toBeNull();
+		});
+
+		it('counts the band cap per output', async () => {
+			activateTight();
+			const three = [makeFilter(), makeFilter({ freq: 2000 }), makeFilter({ freq: 4000 })];
+			eqBookmarkStore.items = [makeBookmark({ filters: three })];
+			render(EqHistoryAndCompare);
+			await page.getByRole('tab', { name: m.eq_history_tab_bookmarks({ count: 1 }) }).click();
+
+			await expect.element(page.getByText(notFit())).toBeInTheDocument();
+		});
+
+		it('leaves fitting entries alone', async () => {
+			activateTight();
+			eqHistoryStore.snapshots = [makeSnapshot()];
+			render(EqHistoryAndCompare);
+
+			await expect.element(button(m.eq_history_set_a())).not.toHaveAttribute('aria-disabled');
+			expect(page.getByText(notFit()).elements()).toHaveLength(0);
+		});
+
+		it('blocks applying a pick once a constraint change makes it not fit', async () => {
+			eqHistoryStore.snapshots = [loud()];
+			eqHistoryStore.setA('loud');
+			render(EqHistoryAndCompare);
+			await expect.element(button(m.eq_history_apply_a_title())).toBeEnabled();
+
+			activateTight();
+			const apply = button(m.eq_history_apply_blocked({ side: 'A', constraint: 'Tight' }));
+			await expect.element(apply).toHaveAttribute('aria-disabled', 'true');
+			await apply.click({ force: true });
+
+			expect(applySnapshot).not.toHaveBeenCalled();
+			// The pick itself survives and can still be unset.
+			await button(m.eq_history_unset_a()).click();
+			expect(eqHistoryStore.aSnapshotId).toBeNull();
 		});
 	});
 

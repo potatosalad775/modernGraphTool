@@ -485,6 +485,37 @@ describe('EqHistoryAndCompare', () => {
 		});
 	});
 
+	// ── Comparison options ───────────────────────────────────────────────────
+
+	describe('comparison options', () => {
+		afterEach(() => {
+			eqHistoryStore.matchLoudness = true;
+		});
+
+		it('shows Match loudness only once A and B are both picked', async () => {
+			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
+			eqHistoryStore.setA('a');
+			render(EqHistoryAndCompare);
+			const toggle = page.getByRole('switch', { name: m.eq_history_match_loudness() });
+
+			await expect.element(toggle).not.toBeInTheDocument();
+			eqHistoryStore.setB('b');
+			await expect.element(toggle).toBeInTheDocument();
+		});
+
+		it('defaults to on and writes the store, where the audio player reads it', async () => {
+			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
+			eqHistoryStore.setA('a');
+			eqHistoryStore.setB('b');
+			render(EqHistoryAndCompare);
+			const toggle = page.getByRole('switch', { name: m.eq_history_match_loudness() });
+
+			await expect.element(toggle).toBeChecked();
+			await toggle.click();
+			expect(eqHistoryStore.matchLoudness).toBe(false);
+		});
+	});
+
 	// ── Help popover ─────────────────────────────────────────────────────────
 
 	it('explains the A/B workflow from the info popover', async () => {

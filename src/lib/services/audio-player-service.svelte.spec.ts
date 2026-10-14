@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { flushSync } from 'svelte';
 import { audioPlayerService } from './audio-player-service.svelte.js';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
+import { computeAbMatchDb, computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
+import { derivePreamp } from '$lib/utils/eq-preamp.js';
+import type { EQFilter } from '$lib/utils/equalizer.js';
+import { eqHistoryStore, type EqSnapshot } from '$lib/stores/eq-history-store.svelte.js';
 import { rangeMakeupGain, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
 
 /**
@@ -308,6 +311,103 @@ describe('AudioPlayerService', () => {
 			const biquads = downstreamOfMatch().filter((n) => n.kind === 'biquad');
 			expect(biquads).toHaveLength(1);
 			expect(biquads[0].frequency.value).toBe(2000);
+		});
+	});
+
+	// ── Loudness-matched A/B ─────────────────────────────────────────────────
+
+	describe('loudness-matched A/B', () => {
+		// A big bass boost and a mild one. Each plays with its derived preamp, so the
+		// big boost is cut harder and B is the louder side.
+		const A = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 8 }];
+		const B = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 2 }];
+		const snap = (id: string, filters: typeof FILTERS) =>
+			({
+				id,
+				timestamp: 0,
+				filters: structuredClone(filters),
+				preamp: derivePreamp(filters as EQFilter[]),
+				summary: id
+			}) as EqSnapshot;
+
+		/** Pick A and B, then play `live` with its derived preamp. */
+		function compare(live: typeof FILTERS, a = A, b = B) {
+			eqHistoryStore.snapshots = [snap('h-a', a), snap('h-b', b)];
+			eqHistoryStore.aSnapshotId = 'h-a';
+			eqHistoryStore.bSnapshotId = 'h-b';
+			setFilters(live, derivePreamp(live as EQFilter[]));
+			settle();
+			audioPlayerService.play();
+			settle();
+		}
+
+		const expectedTrim = (live: typeof FILTERS, a = A, b = B) =>
+			Math.pow(
+				10,
+				computeAbMatchDb(
+					{ filters: live as EQFilter[], preamp: derivePreamp(live as EQFilter[]) },
+					a as EQFilter[],
+					b as EQFilter[]
+				) / 20
+			);
+
+		beforeEach(() => {
+			eqHistoryStore.matchLoudness = true;
+		});
+
+		afterEach(() => {
+			eqHistoryStore.clear();
+			eqHistoryStore.matchLoudness = true;
+		});
+
+		it('turns the louder side down to the quieter one on the EQ path', () => {
+			compare(B);
+			const trim = expectedTrim(B);
+			expect(trim).toBeLessThan(1);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(trim, 6);
+			expect(downstreamOfMatch().some((n) => n.kind === 'biquad')).toBe(true);
+		});
+
+		it('leaves the quieter side at unity', () => {
+			compare(A);
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('ends the comparison on an edit, and with the toggle off', () => {
+			compare(B);
+			setFilters([{ ...B[0], gain: 2.5 }], -2.5);
+			settle();
+			expect(bypassMatchNode().gain.value).toBe(1);
+
+			setFilters(B, derivePreamp(B as EQFilter[]));
+			settle();
+			expect(bypassMatchNode().gain.value).toBeLessThan(1);
+			eqHistoryStore.matchLoudness = false;
+			settle();
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('needs both sides set', () => {
+			compare(B);
+			eqHistoryStore.aSnapshotId = null;
+			settle();
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('matches a flat side too, which plays through the bypass path', () => {
+			compare([], [], B);
+			expect(downstreamOfMatch().some((n) => n.kind === 'biquad')).toBe(false);
+			const trim = expectedTrim([], [], B);
+			expect(trim).toBeLessThan(1);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(trim, 6);
+		});
+
+		it('keeps the bypass trim on top when EQ is switched off mid-comparison', () => {
+			compare(B);
+			eqStore.isEnabled = false;
+			settle();
+			const bypass = computeBypassMatchLinear(eqStore.filters, eqStore.preamp);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(bypass * expectedTrim(B), 6);
 		});
 	});
 

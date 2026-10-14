@@ -51,6 +51,12 @@ class EqHistoryStore {
 	 */
 	aSnapshotId = $state<string | null>(null);
 	bSnapshotId = $state<string | null>(null);
+	/**
+	 * Play the in-browser A/B at the quieter side's level (`abLoudnessTrimDb`).
+	 * Here, not in the component, because the audio player reads it with the
+	 * Equalizer panel unmounted.
+	 */
+	matchLoudness = $state(true);
 
 	get aEntry(): EqCompareEntry | null {
 		return this.aSnapshotId ? this.findEntry(this.aSnapshotId) : null;

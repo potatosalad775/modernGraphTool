@@ -1,8 +1,9 @@
 import { untrack } from 'svelte';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
 import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-import { computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
+import { abLoudnessTrimDb, computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '$lib/utils/eq-channel.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -39,6 +40,16 @@ class AudioPlayerService {
 	// K-weighted bypass-match trim when EQ is toggled off so the bypass path
 	// matches the EQ-on path's perceived loudness. Stays at unity when EQ is on.
 	#bypassMatchNode: GainNode | null = null;
+	/**
+	 * The match stage's gain is `#pathTrimLinear × #abTrimLinear`: the bypass
+	 * trim (unity on the EQ path), times the loudness-matched A/B trim while a
+	 * comparison runs (unity otherwise). The A/B part applies on both paths — a
+	 * flat side has nothing to apply, so it plays through the bypass path. It is
+	 * kept by its own effect, so a history commit (which changes what A/B
+	 * resolve to) only ramps a gain instead of rebuilding the chain.
+	 */
+	#pathTrimLinear = 1;
+	#abTrimLinear = 1;
 	#sourceNode: AudioBufferSourceNode | null = null;
 	#oscillatorNode: OscillatorNode | null = null;
 	#filterNodes: AudioNode[] = [];
@@ -246,8 +257,10 @@ class AudioPlayerService {
 			// Bypass path. When EQ is toggled off but there is something to bypass,
 			// apply the K-weighted bypass-match trim so listening A/B doesn't
 			// change level.
-			const trim = hasEqToApply ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
-			this.#rampGain(match.gain, trim);
+			this.#pathTrimLinear = hasEqToApply
+				? computeBypassMatchLinear(eqStore.filters, eqStore.preamp)
+				: 1;
+			this.#rampGain(match.gain, this.#pathTrimLinear * this.#abTrimLinear);
 			// A range-mode bandpass may still sit downstream even with EQ off.
 			if (this.#filterNodes.length === 0) {
 				match.connect(chainTail);
@@ -262,8 +275,10 @@ class AudioPlayerService {
 			return;
 		}
 
-		// EQ path — match stage is unity, the EQ chain produces the eq-on level.
-		this.#rampGain(match.gain, 1);
+		// EQ path — the EQ chain produces the eq-on level; the match stage is unity
+		// unless a loudness-matched A/B comparison is running.
+		this.#pathTrimLinear = 1;
+		this.#rampGain(match.gain, this.#abTrimLinear);
 
 		// Preamp node
 		const preampNode = ctx.createGain();
@@ -578,6 +593,21 @@ class AudioPlayerService {
 		if (this.#filterEffectRootInstalled) return;
 		this.#filterEffectRootInstalled = true;
 		$effect.root(() => {
+			// Declared before the chain rebuild below, so a rebuild in the same flush
+			// already ramps to this pass's trim.
+			$effect(() => {
+				const db = abLoudnessTrimDb({
+					enabled: eqHistoryStore.matchLoudness,
+					a: eqHistoryStore.aEntry,
+					b: eqHistoryStore.bEntry,
+					live: { filters: eqStore.filters, preamp: eqStore.preamp }
+				});
+				this.#abTrimLinear = Math.pow(10, db / 20);
+				untrack(() => {
+					if (!this.#bypassMatchNode) return;
+					this.#rampGain(this.#bypassMatchNode.gain, this.#pathTrimLinear * this.#abTrimLinear);
+				});
+			});
 			$effect(() => {
 				void eqStore.filters;
 				void eqStore.preamp;

@@ -1,6 +1,8 @@
 import type { EQFilter } from './equalizer.js';
 import { Equalizer } from './equalizer.js';
 import { effectiveFilters } from './eq-channel.js';
+import { derivePreamp } from './eq-preamp.js';
+import { filtersMatch, type EqState } from './eq-snapshot.js';
 
 /**
  * K-weighted (ITU-R BS.1770-4) bypass-match — the gain applied to the bypass
@@ -148,4 +150,45 @@ export function computeBypassMatchLinear(filters: EQFilter[], preampDb: number):
 		computeBypassMatchDb(effectiveFilters(filters, ch), preampDb)
 	);
 	return Math.pow(10, (perEar[0] + perEar[1]) / 2 / 20);
+}
+
+/** K-weighted level of an EQ path in dB relative to flat, averaged over the two ears. */
+function stereoLevelDb(filters: EQFilter[], preampDb: number): number {
+	const perEar = (['L', 'R'] as const).map((ch) =>
+		computeBypassMatchDb(effectiveFilters(filters, ch), preampDb)
+	);
+	return (perEar[0] + perEar[1]) / 2;
+}
+
+/**
+ * Trim (dB) that plays the live EQ at the level of the quieter of A and B, so
+ * an A/B switch compares tone rather than loudness — louder nearly always
+ * sounds "better".
+ *
+ * Each side is measured with the preamp its filters derive (`derivePreamp`),
+ * not the preamp stored with it: the preamp is recomputed the moment a
+ * snapshot is applied, so the stored one can be stale. The live side uses the
+ * preamp actually playing. Never positive — only ever turns down, so it can't
+ * clip.
+ */
+export function computeAbMatchDb(current: EqState, a: EQFilter[], b: EQFilter[]): number {
+	const target = Math.min(stereoLevelDb(a, derivePreamp(a)), stereoLevelDb(b, derivePreamp(b)));
+	return Math.min(0, target - stereoLevelDb(current.filters, current.preamp));
+}
+
+/**
+ * The A/B trim for the in-browser player, or 0 when no comparison is running:
+ * matching switched off, a side unset, or the live filters equal to neither
+ * side — an edit ends the comparison, so the level goes back to normal.
+ */
+export function abLoudnessTrimDb(opts: {
+	enabled: boolean;
+	a: EqState | null;
+	b: EqState | null;
+	live: EqState;
+}): number {
+	const { enabled, a, b, live } = opts;
+	if (!enabled || !a || !b) return 0;
+	if (!filtersMatch(a, live.filters) && !filtersMatch(b, live.filters)) return 0;
+	return computeAbMatchDb(live, a.filters, b.filters);
 }

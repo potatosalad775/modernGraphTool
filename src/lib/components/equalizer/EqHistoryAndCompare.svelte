@@ -38,6 +38,7 @@
 	import Input from '../atoms/Input.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import Tabs from '../atoms/Tabs.svelte';
+	import Switch from '../atoms/Switch.svelte';
 
 	type ListTab = 'history' | 'bookmarks';
 	type MenuItem = {
@@ -274,6 +275,7 @@
 		</div>
 		<InfoPopover label={m.info_popover_about({ topic: m.eq_history_accordion_title() })} size="sm">
 			<p>{m.eq_history_help_text()}</p>
+			<p>{m.eq_history_help_loudness()}</p>
 		</InfoPopover>
 		<!-- Clears History only; bookmarks are deleted one at a time. -->
 		<Button
@@ -286,6 +288,18 @@
 			<Trash2 class="size-4" />
 		</Button>
 	</div>
+
+	<!-- Comparison options — only meaningful once both sides are picked. -->
+	{#if aEntry && bEntry}
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+			<Switch
+				size="sm"
+				labelText={m.eq_history_match_loudness()}
+				labelClass="text-xs"
+				bind:checked={eqHistoryStore.matchLoudness}
+			/>
+		</div>
+	{/if}
 
 	<Tabs
 		bind:value={tab}

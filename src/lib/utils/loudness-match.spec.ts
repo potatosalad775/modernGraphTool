@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { computeBypassMatchDb, computeBypassMatchLinear } from './loudness-match.js';
+import {
+	abLoudnessTrimDb,
+	computeAbMatchDb,
+	computeBypassMatchDb,
+	computeBypassMatchLinear
+} from './loudness-match.js';
+import { derivePreamp } from './eq-preamp.js';
+import { effectiveFilters } from './eq-channel.js';
 import type { EQFilter } from './equalizer.js';
 
 function pk(freq: number, gain: number, q = 1.0): EQFilter {
@@ -81,5 +88,66 @@ describe('computeBypassMatchDb', () => {
 		// in magnitude on the dB scale.
 		expect(up * down).toBeLessThan(0);
 		expect(Math.abs(up + down)).toBeLessThan(Math.abs(up));
+	});
+});
+
+describe('computeAbMatchDb / abLoudnessTrimDb', () => {
+	const band = (gain: number, o: Partial<EQFilter> = {}): EQFilter => ({
+		enabled: true,
+		type: 'LSQ',
+		freq: 105,
+		q: 0.7,
+		gain,
+		...o
+	});
+	// A is a big bass boost, B a mild one. The derived preamp cuts A by its whole
+	// 8 dB peak, so A is the *quieter* side overall and B the one turned down.
+	const A = [band(8)];
+	const B = [band(2)];
+	const live = (filters: EQFilter[]) => ({ filters, preamp: derivePreamp(filters) });
+
+	it('turns the louder side down to the quieter one', () => {
+		const trim = computeAbMatchDb(live(B), A, B);
+		expect(trim).toBeLessThan(0);
+		// Playing B with the trim lands on A's level.
+		const levelB = computeBypassMatchDb(B, derivePreamp(B)) + trim;
+		expect(levelB).toBeCloseTo(computeBypassMatchDb(A, derivePreamp(A)), 6);
+	});
+
+	it('leaves the quieter side alone and never turns anything up', () => {
+		expect(computeAbMatchDb(live(A), A, B)).toBe(0);
+	});
+
+	it('measures each side with its derived preamp, not a stale stored one', () => {
+		// Only filters go in for the sides; a stale stored preamp can't skew them.
+		expect(computeAbMatchDb(live(B), A, B)).toBeCloseTo(
+			computeBypassMatchDb(A, derivePreamp(A)) - computeBypassMatchDb(B, derivePreamp(B)),
+			6
+		);
+	});
+
+	it('averages the ears for per-channel bands', () => {
+		const split = [band(8, { channel: 'L' })];
+		const trim = computeAbMatchDb(live(B), split, B);
+		const ears = (['L', 'R'] as const).map((ch) =>
+			computeBypassMatchDb(effectiveFilters(split, ch), derivePreamp(split))
+		);
+		const expected = (ears[0] + ears[1]) / 2 - computeBypassMatchDb(B, derivePreamp(B));
+		expect(expected).toBeLessThan(0);
+		expect(trim).toBeCloseTo(expected, 6);
+	});
+
+	it('is 0 unless matching is on, both sides are set and the live filters equal one', () => {
+		const on = { enabled: true, a: live(A), b: live(B), live: live(B) };
+		expect(abLoudnessTrimDb(on)).toBeLessThan(0);
+		expect(abLoudnessTrimDb({ ...on, enabled: false })).toBe(0);
+		expect(abLoudnessTrimDb({ ...on, b: null })).toBe(0);
+		// An edit ends the comparison.
+		expect(abLoudnessTrimDb({ ...on, live: live([band(7.5)]) })).toBe(0);
+	});
+
+	it('matches the live side by its filters even when its stored preamp is stale', () => {
+		const b = { filters: B, preamp: -99 };
+		expect(abLoudnessTrimDb({ enabled: true, a: live(A), b, live: live(B) })).toBeLessThan(0);
 	});
 });

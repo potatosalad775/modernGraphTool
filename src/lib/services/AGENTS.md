@@ -169,6 +169,13 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 - **EQ bypass** is `eqStore.isEnabled && filtersEnabled` (the `#eqActive` predicate). The master
   "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have
   to reach the audio, and all have to pick up the K-weighted bypass-match trim.
+- **Loudness-matched A/B** (`abLoudnessTrimDb` in `utils/loudness-match.ts`) multiplies into the
+  same match-stage gain: `pathTrim × abTrim`, where `pathTrim` is the bypass trim (unity on the EQ
+  path). It runs only while `eqHistoryStore.matchLoudness` is on, A and B are both set and the live
+  filters equal one of them (filters only — the stored preamp may be stale), and only ever turns
+  down. It has to reach the bypass path too: a flat side has nothing to apply and plays through it.
+  Its own effect ramps the gain, so a history commit never rebuilds the chain. It is ours alone —
+  Device PEQ and the uniPEQ link never see it.
 - **The splitter/merger stage is built only when a band is pinned to one ear.** Shared bands run
   before the split as one serial chain — a `BiquadFilterNode` processes every channel it is handed —
   so an ordinary EQ keeps exactly the graph it always had. Two things in `#buildPerChannelStage` are

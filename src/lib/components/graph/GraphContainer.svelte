@@ -6,6 +6,10 @@
 	import { GraphSpectrumOverlay } from '$lib/graph/GraphSpectrumOverlay.js';
 	import { GraphPreferenceBoundOverlay } from '$lib/graph/GraphPreferenceBoundOverlay.js';
 	import { GraphSoundRangeOverlay } from '$lib/graph/GraphSoundRangeOverlay.js';
+	import { GraphCompareOverlay } from '$lib/graph/GraphCompareOverlay.js';
+	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
+	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import { compareGhostSide } from '$lib/utils/eq-snapshot.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
 	import { appStore } from '$lib/stores/app-store.svelte.js';
 	import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -315,6 +319,7 @@
 	let spectrumOverlay = $state<GraphSpectrumOverlay | null>(null);
 	let prefBoundOverlay = $state<GraphPreferenceBoundOverlay | null>(null);
 	let soundRangeOverlay = $state<GraphSoundRangeOverlay | null>(null);
+	let compareOverlay = $state<GraphCompareOverlay | null>(null);
 
 	onMount(() => {
 		if (svgEl) {
@@ -325,6 +330,8 @@
 			prefBoundOverlay = new GraphPreferenceBoundOverlay(graphEngine);
 			graphEngine.preferenceBoundOverlay = prefBoundOverlay;
 			soundRangeOverlay = new GraphSoundRangeOverlay(graphEngine);
+			compareOverlay = new GraphCompareOverlay(graphEngine);
+			graphEngine.compareOverlay = compareOverlay;
 		}
 	});
 
@@ -338,6 +345,9 @@
 		graphEngine.preferenceBoundOverlay = null;
 		soundRangeOverlay?.destroy();
 		soundRangeOverlay = null;
+		compareOverlay?.destroy();
+		compareOverlay = null;
+		graphEngine.compareOverlay = null;
 	});
 
 	$effect(() => {
@@ -434,6 +444,44 @@
 			rawBoundU: preferenceBoundStore.boundU,
 			rawBoundD: preferenceBoundStore.boundD,
 			dfNormalized: preferenceBoundStore.dfNormalized,
+			baselineChannelData: resolveBaselineChannelData(
+				graphStore.baselineUUID,
+				graphStore.baselineMode
+			)
+		});
+	});
+
+	// History & Compare ghost: while A and B are both picked and the live EQ is one
+	// of them, the other is drawn faintly — built by the same math as the live EQ
+	// curve, in the channels that curve shows, offset and baseline-compensated
+	// like it. Driven from here, not from the History panel, which unmounts.
+	$effect(() => {
+		if (!graphEngine.isInitialized || !compareOverlay) return;
+		void graphStore.yScale;
+		const a = eqHistoryStore.aEntry;
+		const b = eqHistoryStore.bEntry;
+		const side =
+			eqStore.isEnabled && eqHistoryStore.showOnGraph
+				? compareGhostSide(a, b, eqStore.filters)
+				: null;
+		const entry = side === 'A' ? a : side === 'B' ? b : null;
+		const built = entry ? dataProvider.eqChannelsFor(entry.filters) : null;
+		const eqCurve = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
+		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
+		// With nothing to apply there is no EQ curve; the source stands in for it.
+		const shownBy = eqCurve ?? source;
+		const curves =
+			built && shownBy && !shownBy.hidden
+				? shownBy.dispChannel.flatMap((ch) =>
+						built.processed[ch] ? [built.processed[ch].data] : []
+					)
+				: [];
+		compareOverlay.update({
+			visible: curves.length > 0,
+			// English on purpose, like the other graph labels.
+			label: side ? `${side} (compare)` : null,
+			curves,
+			yOffset: eqCurve?.yOffset ?? 0,
 			baselineChannelData: resolveBaselineChannelData(
 				graphStore.baselineUUID,
 				graphStore.baselineMode

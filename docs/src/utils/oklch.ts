@@ -42,6 +42,7 @@ export interface ThemePalette {
 	graphAxisLabel: string;
 	graphGridText: string;
 	graphBaseline: string;
+	graphCompare: string;
 }
 
 export interface PaletteInputs {
@@ -328,7 +329,8 @@ const GRAPH_LIGHT = {
 	graphGridMinor: 'rgba(0, 0, 0, 0.06)',
 	graphAxisLabel: 'rgba(0, 0, 0, 0.6)',
 	graphGridText: 'rgba(0, 0, 0, 0.5)',
-	graphBaseline: 'rgba(0, 0, 0, 0.25)'
+	graphBaseline: 'rgba(0, 0, 0, 0.25)',
+	graphCompare: 'rgba(0, 0, 0, 0.55)'
 };
 
 const GRAPH_DARK = {
@@ -338,7 +340,8 @@ const GRAPH_DARK = {
 	graphGridMinor: 'rgba(255, 255, 255, 0.06)',
 	graphAxisLabel: 'rgba(255, 255, 255, 0.6)',
 	graphGridText: 'rgba(255, 255, 255, 0.5)',
-	graphBaseline: 'rgba(255, 255, 255, 0.25)'
+	graphBaseline: 'rgba(255, 255, 255, 0.25)',
+	graphCompare: 'rgba(255, 255, 255, 0.55)'
 };
 
 // ── Full palette generation ──────────────────────────────────────────────────

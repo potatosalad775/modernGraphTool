@@ -121,6 +121,9 @@ picks through `aEntry` / `bEntry` — a deleted bookmark leaves its id resolving
 - **Recording and the device-change clear are page-lifetime effects** (`eqHistoryStore.install()`).
   They used to live in `EqualizerPanel`, which unmounts on every panel switch, so edits and device
   changes made from another panel were never seen.
+- **`matchLoudness` / `showOnGraph` live on `eqHistoryStore`, not in the component.** The audio
+  player and `GraphContainer` read them with the Equalizer panel unmounted. Both default to on and
+  are not persisted.
 - **Clearing history (the trash button, a device change) keeps a bookmark pick.** Whether a
   bookmark still fits the active constraint is decided where it is used, never by dropping it.
 - **A bookmark's device is saved by `identifier` + `variant`, not UUID** — UUIDs are minted per

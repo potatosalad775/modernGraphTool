@@ -46,6 +46,7 @@
 \t--color-graph-axis-label: ${light.graphAxisLabel};
 \t--color-graph-grid-text: ${light.graphGridText};
 \t--color-graph-baseline: ${light.graphBaseline};
+\t--color-graph-compare: ${light.graphCompare};
 
 \t/* ── Base ──────────────────────────────────────────────────────────── */
 \t--color-base-100: ${light.base100};
@@ -77,6 +78,7 @@
 \t--color-graph-axis-label: ${dark.graphAxisLabel};
 \t--color-graph-grid-text: ${dark.graphGridText};
 \t--color-graph-baseline: ${dark.graphBaseline};
+\t--color-graph-compare: ${dark.graphCompare};
 
 \t/* ── Base ──────────────────────────────────────────────────────────── */
 \t--color-base-100: ${dark.base100};

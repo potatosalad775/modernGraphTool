@@ -26,6 +26,7 @@ import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
 import { toast } from 'svelte-sonner';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
+import { dataProvider } from '$lib/services/data-provider.svelte.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import * as m from '$lib/paraglide/messages.js';
 
@@ -490,6 +491,7 @@ describe('EqHistoryAndCompare', () => {
 	describe('comparison options', () => {
 		afterEach(() => {
 			eqHistoryStore.matchLoudness = true;
+			eqHistoryStore.showOnGraph = true;
 		});
 
 		it('shows Match loudness only once A and B are both picked', async () => {
@@ -513,6 +515,63 @@ describe('EqHistoryAndCompare', () => {
 			await expect.element(toggle).toBeChecked();
 			await toggle.click();
 			expect(eqHistoryStore.matchLoudness).toBe(false);
+		});
+
+		it('Show on graph defaults to on and writes the store, where the graph reads it', async () => {
+			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
+			eqHistoryStore.setA('a');
+			eqHistoryStore.setB('b');
+			render(EqHistoryAndCompare);
+			const toggle = page.getByRole('switch', { name: m.eq_history_show_on_graph() });
+
+			await expect.element(toggle).toBeChecked();
+			await toggle.click();
+			expect(eqHistoryStore.showOnGraph).toBe(false);
+		});
+	});
+
+	// ── Add to graph ─────────────────────────────────────────────────────────
+
+	describe('add to graph', () => {
+		afterEach(() => {
+			eqStore.sourcePhoneUUID = null;
+		});
+
+		it('inserts a history entry as a curve, named by its summary', async () => {
+			const insert = vi.spyOn(dataProvider, 'insertEqCurve').mockReturnValue(true);
+			eqStore.sourcePhoneUUID = 'src';
+			const snap = makeSnapshot();
+			eqHistoryStore.snapshots = [snap];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_menu_title({ name: snap.summary })).click();
+			await menuItem(m.eq_history_menu_add_to_graph()).click();
+
+			expect(insert).toHaveBeenCalledWith(snap.filters, snap.summary);
+		});
+
+		it('inserts a bookmark under its name', async () => {
+			const insert = vi.spyOn(dataProvider, 'insertEqCurve').mockReturnValue(true);
+			eqStore.sourcePhoneUUID = 'src';
+			const bookmark = makeBookmark();
+			eqBookmarkStore.items = [bookmark];
+			render(EqHistoryAndCompare);
+			await page.getByRole('tab', { name: m.eq_history_tab_bookmarks({ count: 1 }) }).click();
+
+			await button(m.eq_history_menu_title({ name: bookmark.name })).click();
+			await menuItem(m.eq_history_menu_add_to_graph()).click();
+
+			expect(insert).toHaveBeenCalledWith(bookmark.filters, bookmark.name);
+		});
+
+		it('is unavailable with no EQ source to build the curve on', async () => {
+			eqHistoryStore.snapshots = [makeSnapshot()];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_menu_title({ name: makeSnapshot().summary })).click();
+			await expect
+				.element(menuItem(m.eq_history_menu_add_to_graph()))
+				.toHaveAttribute('aria-disabled', 'true');
 		});
 	});
 

@@ -36,7 +36,8 @@
 		graphGridMinor: 'rgba(0, 0, 0, 0.06)',
 		graphAxisLabel: 'rgba(0, 0, 0, 0.6)',
 		graphGridText: 'rgba(0, 0, 0, 0.5)',
-		graphBaseline: 'rgba(0, 0, 0, 0.25)'
+		graphBaseline: 'rgba(0, 0, 0, 0.25)',
+		graphCompare: 'rgba(0, 0, 0, 0.55)'
 	};
 
 	const defaultDark: ThemePalette = {
@@ -66,7 +67,8 @@
 		graphGridMinor: 'rgba(255, 255, 255, 0.06)',
 		graphAxisLabel: 'rgba(255, 255, 255, 0.6)',
 		graphGridText: 'rgba(255, 255, 255, 0.5)',
-		graphBaseline: 'rgba(255, 255, 255, 0.25)'
+		graphBaseline: 'rgba(255, 255, 255, 0.25)',
+		graphCompare: 'rgba(255, 255, 255, 0.55)'
 	};
 
 	let t = $derived(theme ?? (colorMode === 'dark' ? defaultDark : defaultLight));

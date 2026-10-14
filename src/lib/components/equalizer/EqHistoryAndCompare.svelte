@@ -12,7 +12,7 @@
 	import { tick, type Component } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
 	import { toast } from 'svelte-sonner';
-	import { Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
+	import { ChartLine, Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
 	import {
 		bandSummary,
 		eqHistoryStore,
@@ -32,6 +32,7 @@
 	import { fitsProfile } from '$lib/utils/eq-constraint.js';
 	import type { EqState } from '$lib/utils/eq-snapshot.js';
 	import { eqCommands } from '$lib/services/eq-commands.js';
+	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
@@ -46,6 +47,7 @@
 		icon: Component<{ class?: string }>;
 		onSelect: () => void;
 		destructive?: boolean;
+		disabled?: boolean;
 	};
 
 	// Which list is showing. Component state is enough: losing it on a panel
@@ -108,6 +110,17 @@
 			device: currentEqDevice()
 		});
 		if (!added) toast.warning(m.eq_history_bookmark_full({ count: BOOKMARK_CAP }));
+	}
+
+	/** "Add to graph": the current source with the entry's bands, as a curve of its own. */
+	function addToGraphItem(filters: EqState['filters'], name: string): MenuItem {
+		return {
+			label: m.eq_history_menu_add_to_graph(),
+			icon: ChartLine,
+			onSelect: () => dataProvider.insertEqCurve(filters, name),
+			// The curve is built on the EQ source; without one there is nothing to draw.
+			disabled: eqStore.sourcePhoneUUID === null
+		};
 	}
 
 	// ── Inline rename ────────────────────────────────────────────────────────
@@ -224,7 +237,8 @@
 				{#each items as item (item.label)}
 					<DropdownMenu.Item
 						onSelect={item.onSelect}
-						class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-hidden transition-colors data-highlighted:bg-base-content/10 {item.destructive
+						disabled={item.disabled}
+						class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 outline-hidden transition-colors data-disabled:cursor-not-allowed data-disabled:opacity-50 data-highlighted:bg-base-content/10 {item.destructive
 							? 'text-error'
 							: 'text-base-content'}"
 					>
@@ -276,6 +290,7 @@
 		<InfoPopover label={m.info_popover_about({ topic: m.eq_history_accordion_title() })} size="sm">
 			<p>{m.eq_history_help_text()}</p>
 			<p>{m.eq_history_help_loudness()}</p>
+			<p>{m.eq_history_help_graph()}</p>
 		</InfoPopover>
 		<!-- Clears History only; bookmarks are deleted one at a time. -->
 		<Button
@@ -297,6 +312,12 @@
 				labelText={m.eq_history_match_loudness()}
 				labelClass="text-xs"
 				bind:checked={eqHistoryStore.matchLoudness}
+			/>
+			<Switch
+				size="sm"
+				labelText={m.eq_history_show_on_graph()}
+				labelClass="text-xs"
+				bind:checked={eqHistoryStore.showOnGraph}
 			/>
 		</div>
 	{/if}
@@ -354,6 +375,7 @@
 					</div>
 					{@render abButtons(snap.id, fit)}
 					{@render entryMenu(snap.id, snap.summary, [
+						addToGraphItem(snap.filters, snap.summary),
 						{
 							label: m.eq_history_menu_delete(),
 							icon: Trash2,
@@ -401,6 +423,7 @@
 							icon: Pencil,
 							onSelect: () => startRename(bookmark)
 						},
+						addToGraphItem(bookmark.filters, bookmark.name),
 						{
 							label: m.eq_history_menu_delete(),
 							icon: Trash2,

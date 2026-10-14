@@ -14,6 +14,7 @@
 		'--color-graph-axis-label': 'rgba(0, 0, 0, 0.6)',
 		'--color-graph-grid-text': 'rgba(0, 0, 0, 0.5)',
 		'--color-graph-baseline': 'rgba(0, 0, 0, 0.25)',
+		'--color-graph-compare': 'rgba(0, 0, 0, 0.55)',
 		'--color-graph-bg': 'transparent',
 		'--color-base-100': 'oklch(98% 0.003 247.858)',
 		'--color-base-200': 'oklch(96% 0.007 247.896)',

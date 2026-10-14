@@ -57,6 +57,8 @@ class EqHistoryStore {
 	 * Equalizer panel unmounted.
 	 */
 	matchLoudness = $state(true);
+	/** Draw the side that isn't live as a ghost trace (`GraphCompareOverlay`). */
+	showOnGraph = $state(true);
 
 	get aEntry(): EqCompareEntry | null {
 		return this.aSnapshotId ? this.findEntry(this.aSnapshotId) : null;

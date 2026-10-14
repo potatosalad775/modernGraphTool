@@ -45,7 +45,7 @@ import { downloadBlob, downloadText } from '$lib/utils/download-text.js';
 import { zipTextFiles } from '$lib/utils/zip-text.js';
 import * as m from '$lib/paraglide/messages.js';
 import FRSmoother from '$lib/utils/fr-smoother.js';
-import { Equalizer } from '$lib/utils/equalizer.js';
+import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
 import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '$lib/utils/eq-source.js';
 import { derivePreamp, headroomPreamp } from '$lib/utils/eq-preamp.js';
@@ -581,66 +581,11 @@ class DataProvider {
 			return;
 		}
 
-		// Linked mode treats preamp as a pure playback gain (audio player + hardware
-		// PEQ export both read eqStore.preamp directly). The on-screen EQ curve only
-		// visualizes the filter response so peak/dip filters stay anchored to the
-		// source ghost regardless of whether the user added headroom compensation.
 		const linked = settingsStore.linkEqNormalization;
-		const applyPreamp = preamp !== 0 && !linked;
-
-		const eq = new Equalizer();
-		const modified: ParsedFRData = {};
-		const perChannel = hasPerChannelFilters(enabledFilters);
-		const sourceChannels = eqSourceChannels(sourceData, eqStore.sourceSample);
-		for (const ch of ['L', 'R', 'AVG'] as const) {
-			const chData = sourceChannels[ch];
-			if (!chData) continue;
-			// Each ear gets the shared bands plus its own. AVG is handled below —
-			// averaging the source and then EQ-ing it would apply both ears'
-			// corrections to a single curve.
-			const chFilters =
-				ch === 'AVG'
-					? enabledFilters.filter((f) => f.channel == null)
-					: effectiveFilters(enabledFilters, ch);
-			let points = chData.data;
-			if (chFilters.length > 0) {
-				points = eq.applyFilters(points, chFilters);
-			}
-			if (applyPreamp) {
-				points = points.map(([f, d]) => [f, d + preamp] as [number, number]);
-			}
-			modified[ch] = { data: points, metadata: { ...chData.metadata } };
-		}
-
-		// With per-channel bands the EQ'd average is the average of the EQ'd
-		// channels, not the shared bands laid over the source average — otherwise
-		// AVG silently ignores every single-ear correction. Same pointwise dB mean
-		// the rest of the pipeline uses (`anchorAndNormalizeSamples`).
-		// Needs both ears: a phone measured as one curve has no per-ear structure
-		// to average, and there the shared-only pass above is already right.
-		// Only ever rewrites an AVG the source already had — never invents one.
-		if (perChannel && modified.AVG && modified.L && modified.R) {
-			modified.AVG = {
-				data: modified.L.data.map(
-					([freq, lDb], i) => [freq, (lDb + modified.R!.data[i][1]) / 2] as [number, number]
-				),
-				metadata: { ...modified.AVG.metadata }
-			};
-		}
+		const modified = this.#eqModifiedChannels(sourceData, enabledFilters, preamp, linked);
 		eqStore.eqModifiedData.set(sourceUUID, modified);
 
-		const params = {
-			smoothValue: graphStore.smoothValue,
-			normType: graphStore.normType,
-			normHz: graphStore.normHzValue
-		};
-
-		// Linked mode: smooth only. The absolute dB values in `modified` already
-		// encode "source_normalized + filter_effect" — skipping normalization
-		// preserves that relationship. Unlinked mode: smooth + renormalize.
-		const processed = linked
-			? FRSmoother.smoothChannels(modified, params.smoothValue)
-			: DataProcessor.processChannels(modified, params);
+		const processed = this.#processEqChannels(modified, linked);
 
 		const existingUUID = eqStore.eqCurveUUID;
 		const existing = existingUUID ? frStore.get(existingUUID) : null;
@@ -683,6 +628,117 @@ class DataProvider {
 			frStore.set(uuid, frObject);
 			eqStore.eqCurveUUID = uuid;
 		}
+	}
+
+	/**
+	 * The current EQ source with `filters` applied, built exactly like the live EQ
+	 * curve: `raw` is the unsmoothed result (what `_rawData` caches), `processed`
+	 * what gets drawn. The preamp is the one these filters derive. `null` with no
+	 * source picked. Used by History & Compare for the A/B ghost trace and for
+	 * "Add to graph".
+	 */
+	eqChannelsFor(filters: EQFilter[]): { raw: ParsedFRData; processed: ParsedFRData } | null {
+		const sourceUUID = eqStore.sourcePhoneUUID;
+		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
+		if (!sourceData) return null;
+		const enabled = filters.filter(
+			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
+		);
+		const linked = settingsStore.linkEqNormalization;
+		const raw = this.#eqModifiedChannels(sourceData, enabled, derivePreamp(enabled), linked);
+		return { raw, processed: this.#processEqChannels(raw, linked) };
+	}
+
+	/**
+	 * Insert the current EQ source with `filters` applied as a frozen curve, like
+	 * `averageVisiblePhones`: an `inserted-phone`, so hiding, recoloring and undo
+	 * come for free. Returns false with no source picked.
+	 */
+	insertEqCurve(filters: EQFilter[], name: string): boolean {
+		const sourceUUID = eqStore.sourcePhoneUUID;
+		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
+		const built = this.eqChannelsFor(filters);
+		if (!sourceData || !built) return false;
+		const channels = Object.keys(built.raw) as ('L' | 'R' | 'AVG')[];
+		if (channels.length === 0) return false;
+		this.insertRawFRData('phone', sourceData.identifier, built.raw, {
+			dispChannel: sourceData.dispChannel.filter((ch) => channels.includes(ch)),
+			dispSuffix: `(EQ · ${name})`
+		});
+		return true;
+	}
+
+	/**
+	 * The source's channels with `filters` (already narrowed to complete, enabled
+	 * bands) applied — the unsmoothed half of the EQ curve.
+	 */
+	#eqModifiedChannels(
+		sourceData: FRDataObject,
+		enabledFilters: EQFilter[],
+		preamp: number,
+		linked: boolean
+	): ParsedFRData {
+		// Linked mode treats preamp as a pure playback gain (audio player + hardware
+		// PEQ export both read eqStore.preamp directly). The on-screen EQ curve only
+		// visualizes the filter response so peak/dip filters stay anchored to the
+		// source ghost regardless of whether the user added headroom compensation.
+		const applyPreamp = preamp !== 0 && !linked;
+
+		const eq = new Equalizer();
+		const modified: ParsedFRData = {};
+		const perChannel = hasPerChannelFilters(enabledFilters);
+		const sourceChannels = eqSourceChannels(sourceData, eqStore.sourceSample);
+		for (const ch of ['L', 'R', 'AVG'] as const) {
+			const chData = sourceChannels[ch];
+			if (!chData) continue;
+			// Each ear gets the shared bands plus its own. AVG is handled below —
+			// averaging the source and then EQ-ing it would apply both ears'
+			// corrections to a single curve.
+			const chFilters =
+				ch === 'AVG'
+					? enabledFilters.filter((f) => f.channel == null)
+					: effectiveFilters(enabledFilters, ch);
+			let points = chData.data;
+			if (chFilters.length > 0) {
+				points = eq.applyFilters(points, chFilters);
+			}
+			if (applyPreamp) {
+				points = points.map(([f, d]) => [f, d + preamp] as [number, number]);
+			}
+			modified[ch] = { data: points, metadata: { ...chData.metadata } };
+		}
+
+		// With per-channel bands the EQ'd average is the average of the EQ'd
+		// channels, not the shared bands laid over the source average — otherwise
+		// AVG silently ignores every single-ear correction. Same pointwise dB mean
+		// the rest of the pipeline uses (`anchorAndNormalizeSamples`).
+		// Needs both ears: a phone measured as one curve has no per-ear structure
+		// to average, and there the shared-only pass above is already right.
+		// Only ever rewrites an AVG the source already had — never invents one.
+		if (perChannel && modified.AVG && modified.L && modified.R) {
+			modified.AVG = {
+				data: modified.L.data.map(
+					([freq, lDb], i) => [freq, (lDb + modified.R!.data[i][1]) / 2] as [number, number]
+				),
+				metadata: { ...modified.AVG.metadata }
+			};
+		}
+		return modified;
+	}
+
+	/**
+	 * Linked mode: smooth only. The absolute dB values already encode
+	 * "source_normalized + filter_effect" — skipping normalization preserves that
+	 * relationship. Unlinked mode: smooth + renormalize.
+	 */
+	#processEqChannels(modified: ParsedFRData, linked: boolean): ParsedFRData {
+		return linked
+			? FRSmoother.smoothChannels(modified, graphStore.smoothValue)
+			: DataProcessor.processChannels(modified, {
+					smoothValue: graphStore.smoothValue,
+					normType: graphStore.normType,
+					normHz: graphStore.normHzValue
+				});
 	}
 
 	/**

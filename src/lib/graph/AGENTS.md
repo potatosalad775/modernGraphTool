@@ -6,6 +6,7 @@ D3.js lives in `GraphEngine.svelte.ts` with overlays:
 - `GraphInspection.ts` — hover inspection overlay
 - `GraphEqOverlay.ts` — EQ curve rendering
 - `GraphSpectrumOverlay.ts` — live audio spectrum
+- `GraphCompareOverlay.ts` — History & Compare A/B ghost trace
 
 Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using
 `bind:this={svgEl}`. **Never** `d3.select('#fr-graph')` — always pass the bound SVG element.
@@ -61,6 +62,19 @@ curve they edit; positioning them on AVG floats them off it as soon as L and R d
 
 The d3 join key stays the band's index in the flat `eqStore.filters` array — narrowing the view must
 never renumber it, or a drag in the R bucket edits an L band.
+
+## The A/B ghost (`GraphCompareOverlay`)
+
+While A and B are both picked and the live filters equal one of them (`compareGhostSide`), the other
+side is drawn as a dashed trace. `GraphContainer` builds its curves with
+`dataProvider.eqChannelsFor` — the same `#eqModifiedChannels` / `#processEqChannels` path as the
+live EQ curve, so the two can't drift — in the channels the EQ curve shows, and pushes them in with
+the EQ curve's `yOffset` and the `resolveBaselineChannelData` baseline. Nothing goes into `frStore`:
+the ghost has no list row, no undo and no color of its own. Its stroke is `--color-graph-compare`,
+falling back to `--color-graph-axis-label` for operator themes written before the token existed.
+`repositionCurves` re-renders it with the other overlays. Its label is English, like every graph
+label. "Add to graph" is the persistent counterpart: `dataProvider.insertEqCurve` inserts the same
+curve as an `inserted-phone`.
 
 ## Testing this layer
 

@@ -1547,6 +1547,57 @@ describe('DataProvider', () => {
 			});
 		});
 
+		describe('History & Compare: eqChannelsFor / insertEqCurve', () => {
+			afterEach(() => {
+				for (const [uuid, obj] of [...frStore.entries]) {
+					if (obj.type === 'inserted-phone') frStore.delete(uuid);
+				}
+			});
+
+			it('builds the same curve the live EQ would, without touching the stores', () => {
+				seedEqSource();
+				const filters = [band(6), band(-3, 'R')];
+				const before = frStore.size;
+
+				const built = dataProvider.eqChannelsFor(filters)!;
+				expect(frStore.size).toBe(before);
+				expect(eqStore.eqCurveUUID).toBeNull();
+
+				eqStore.filters = filters;
+				dataProvider.rebuildEqCurve();
+				const live = frStore.get(eqStore.eqCurveUUID!)!;
+				for (const ch of ['L', 'R', 'AVG'] as const) {
+					expect(built.raw[ch]!.data).toEqual(live._rawData!.channels[ch]!.data);
+					expect(built.processed[ch]!.data).toEqual(live.channels[ch]!.data);
+				}
+			});
+
+			it('is null with no EQ source', () => {
+				eqStore.sourcePhoneUUID = null;
+				expect(dataProvider.eqChannelsFor([band(6)])).toBeNull();
+				expect(dataProvider.insertEqCurve([band(6)], 'x')).toBe(false);
+			});
+
+			it('inserts a frozen curve named after the source and the entry', () => {
+				seedEqSource();
+				const source = frStore.get('src')!;
+
+				expect(dataProvider.insertEqCurve([band(6)], 'Bass-light v2')).toBe(true);
+
+				const inserted = [...frStore.entries.values()].find((o) => o.type === 'inserted-phone')!;
+				expect(inserted.identifier).toBe(source.identifier);
+				expect(inserted.dispSuffix).toBe('(EQ · Bass-light v2)');
+				expect(inserted.dispChannel).toEqual(['L', 'R']);
+				const raw = inserted._rawData!.channels.L!.data;
+				const at1k = raw.reduce((best, p) =>
+					Math.abs(p[0] - 1000) < Math.abs(best[0] - 1000) ? p : best
+				)[1];
+				expect(at1k).toBeGreaterThan(4);
+				// Frozen: the live EQ curve is not involved.
+				expect(eqStore.eqCurveUUID).toBeNull();
+			});
+		});
+
 		it('ignores per-channel bands on a source measured as a single curve', () => {
 			const flat = {
 				data: makeFRPoints(0).map(([f]) => [f, 0] as FRDataPoint),

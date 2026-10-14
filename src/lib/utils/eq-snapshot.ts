@@ -7,6 +7,22 @@ export interface EqState {
 }
 
 /**
+ * Which A/B side to ghost on the graph: the one that isn't live. `null` unless
+ * both are set and the live filters equal one of them — after an edit there is
+ * no "other side" to compare against.
+ */
+export function compareGhostSide(
+	a: EqState | null,
+	b: EqState | null,
+	live: EQFilter[]
+): 'A' | 'B' | null {
+	if (!a || !b) return null;
+	if (filtersMatch(a, live)) return 'B';
+	if (filtersMatch(b, live)) return 'A';
+	return null;
+}
+
+/**
  * Whether `snapshot` holds exactly this filter list and preamp. Used to skip
  * duplicate history entries, to tell which A/B side is live, and to tell
  * whether a history entry is already bookmarked.

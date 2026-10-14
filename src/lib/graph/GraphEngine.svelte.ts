@@ -15,6 +15,7 @@ import { sampleFillOpacity } from '$lib/utils/sample-config.js';
 import { eqSourceChannels, eqSourceRun } from '$lib/utils/eq-source.js';
 import { resolveBaselineChannelData } from './baseline.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
+import type { CompareOverlayApi } from './GraphCompareOverlay.js';
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
@@ -42,6 +43,8 @@ class GraphEngine {
 	/** Preference-bound overlay reference — set by GraphContainer. `$state` so effects that
 	 *  push into it re-run once this is assigned (cf. `eqOverlay`, which is not reactive). */
 	preferenceBoundOverlay = $state<PreferenceBoundOverlayApi | null>(null);
+	/** History & Compare ghost trace — set by GraphContainer, `$state` for the same reason. */
+	compareOverlay = $state<CompareOverlayApi | null>(null);
 	isInitialized = $state(false);
 
 	constructor() {
@@ -398,6 +401,7 @@ class GraphEngine {
 		this._transitionFillPaths(false);
 		this.eqOverlay?.render();
 		this.preferenceBoundOverlay?.render();
+		this.compareOverlay?.render();
 	}
 
 	getBaselineData(): BaselineData {

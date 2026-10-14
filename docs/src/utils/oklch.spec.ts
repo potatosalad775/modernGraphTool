@@ -52,7 +52,8 @@ const PALETTE_KEYS: Array<keyof ThemePalette> = [
 	'graphGridMinor',
 	'graphAxisLabel',
 	'graphGridText',
-	'graphBaseline'
+	'graphBaseline',
+	'graphCompare'
 ];
 
 function expectWellFormedPalette(palette: ThemePalette, label: string) {

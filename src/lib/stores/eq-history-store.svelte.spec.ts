@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { flushSync } from 'svelte';
 import type { EQFilter } from '$lib/utils/equalizer.js';
 import { eqHistoryStore, summarize, snapshotMatches } from './eq-history-store.svelte.js';
+import { eqBookmarkStore } from './eq-bookmark-store.svelte.js';
+import { eqStore } from './eq-store.svelte.js';
 
 function pk(o: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1, gain: 0, ...o };
@@ -47,9 +50,35 @@ describe('snapshotMatches', () => {
 	});
 });
 
+/** Back to an empty log, no picks and no bookmarks. */
+function reset() {
+	eqHistoryStore.clear();
+	eqHistoryStore.aSnapshotId = null;
+	eqHistoryStore.bSnapshotId = null;
+	eqBookmarkStore.items = [];
+	localStorage.clear();
+}
+
+/** Commit one snapshot past the min-gap window and return its id. */
+function commit(gain: number): string {
+	vi.advanceTimersByTime(2000);
+	eqHistoryStore.record([pk({ gain })], 0);
+	vi.advanceTimersByTime(600);
+	return eqHistoryStore.snapshots.at(-1)!.id;
+}
+
+function bookmark(gain: number): string {
+	return eqBookmarkStore.add({
+		name: `b${gain}`,
+		filters: [pk({ gain })],
+		preamp: 0,
+		device: null
+	})!.id;
+}
+
 describe('eqHistoryStore.record', () => {
 	beforeEach(() => {
-		eqHistoryStore.clear();
+		reset();
 		vi.useFakeTimers();
 	});
 
@@ -162,5 +191,133 @@ describe('eqHistoryStore.record', () => {
 		expect(eqHistoryStore.aSnapshotId).toBe(realId);
 		eqHistoryStore.setA(null); // null is the "unset" sentinel and is allowed
 		expect(eqHistoryStore.aSnapshotId).toBeNull();
+	});
+});
+
+describe('eqHistoryStore.remove', () => {
+	beforeEach(() => {
+		reset();
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('drops one entry and keeps the rest', () => {
+		const first = commit(1);
+		const second = commit(2);
+		eqHistoryStore.remove(first);
+		expect(eqHistoryStore.snapshots.map((s) => s.id)).toEqual([second]);
+	});
+
+	it('clears an A or B pick that pointed at the removed entry', () => {
+		const first = commit(1);
+		const second = commit(2);
+		eqHistoryStore.setA(first);
+		eqHistoryStore.setB(second);
+		eqHistoryStore.remove(first);
+		expect(eqHistoryStore.aSnapshotId).toBeNull();
+		expect(eqHistoryStore.bSnapshotId).toBe(second);
+	});
+
+	it('ignores an unknown id', () => {
+		commit(1);
+		eqHistoryStore.remove('h-nope');
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
+	});
+});
+
+describe('A/B across history and bookmarks', () => {
+	beforeEach(() => {
+		reset();
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('never mints a history id that looks like a bookmark id', () => {
+		const h = commit(1);
+		const b = bookmark(2);
+		expect(h).not.toBe(b);
+		expect(eqHistoryStore.findEntry(h)).toBe(eqHistoryStore.snapshots[0]);
+		expect(eqHistoryStore.findEntry(b)).toBe(eqBookmarkStore.items[0]);
+	});
+
+	it('lets A be a bookmark and B a history entry', () => {
+		const h = commit(1);
+		const b = bookmark(2);
+		eqHistoryStore.setA(b);
+		eqHistoryStore.setB(h);
+		expect(eqHistoryStore.aEntry?.filters[0].gain).toBe(2);
+		expect(eqHistoryStore.bEntry?.filters[0].gain).toBe(1);
+	});
+
+	it('clear() drops history picks but keeps a bookmark pick', () => {
+		const h = commit(1);
+		const b = bookmark(2);
+		eqHistoryStore.setA(b);
+		eqHistoryStore.setB(h);
+		eqHistoryStore.clear();
+		expect(eqHistoryStore.aSnapshotId).toBe(b);
+		expect(eqHistoryStore.bSnapshotId).toBeNull();
+	});
+
+	it('a deleted bookmark resolves to no entry', () => {
+		const b = bookmark(2);
+		eqHistoryStore.setA(b);
+		eqBookmarkStore.remove(b);
+		expect(eqHistoryStore.aEntry).toBeNull();
+	});
+});
+
+// Last: `install()` is page-lifetime, so its effects keep running for the
+// rest of this file.
+describe('eqHistoryStore.install', () => {
+	beforeEach(() => {
+		reset();
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		eqStore.sourcePhoneUUID = null;
+		eqStore.filters = [];
+	});
+
+	it('records edits without any panel mounted', () => {
+		eqHistoryStore.install();
+		eqStore.filters = [pk({ gain: 5 })];
+		flushSync();
+		vi.advanceTimersByTime(600);
+		expect(eqHistoryStore.snapshots.at(-1)?.filters[0].gain).toBe(5);
+	});
+
+	it('clears the log on a device change but keeps a bookmark pick', () => {
+		eqHistoryStore.install();
+		eqStore.sourcePhoneUUID = 'device-a';
+		flushSync();
+		const h = commit(1);
+		const b = bookmark(2);
+		eqHistoryStore.setA(b);
+		eqHistoryStore.setB(h);
+
+		eqStore.sourcePhoneUUID = 'device-b';
+		flushSync();
+		expect(eqHistoryStore.snapshots).toEqual([]);
+		expect(eqHistoryStore.aSnapshotId).toBe(b);
+		expect(eqHistoryStore.bSnapshotId).toBeNull();
+	});
+
+	it('does not clear when the first device is picked', () => {
+		eqHistoryStore.install();
+		eqStore.sourcePhoneUUID = null;
+		flushSync();
+		commit(1);
+		eqStore.sourcePhoneUUID = 'device-a';
+		flushSync();
+		expect(eqHistoryStore.snapshots).toHaveLength(1);
 	});
 });

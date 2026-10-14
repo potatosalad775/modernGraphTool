@@ -178,6 +178,18 @@ describe('EQStore', () => {
 			expect(eqStore.sourceSample).toBeNull();
 		});
 
+		it('resets the channel scope when the device changes, not when the first is picked', () => {
+			eqStore.channelScope = 'L';
+			eqStore.sourcePhoneUUID = 'a';
+			expect(eqStore.channelScope).toBe('L');
+
+			eqStore.sourcePhoneUUID = 'a';
+			expect(eqStore.channelScope).toBe('L');
+
+			eqStore.sourcePhoneUUID = 'b';
+			expect(eqStore.channelScope).toBe('BOTH');
+		});
+
 		it('allows setting autoEqTargetUUID', () => {
 			eqStore.autoEqTargetUUID = 'target-uuid';
 			expect(eqStore.autoEqTargetUUID).toBe('target-uuid');

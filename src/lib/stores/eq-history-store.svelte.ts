@@ -1,4 +1,14 @@
+import { untrack } from 'svelte';
 import type { EQFilter } from '$lib/utils/equalizer.js';
+import { snapshotMatches } from '$lib/utils/eq-snapshot.js';
+import { eqStore } from './eq-store.svelte.js';
+import {
+	BOOKMARK_ID_PREFIX,
+	eqBookmarkStore,
+	type EqBookmark
+} from './eq-bookmark-store.svelte.js';
+
+export { snapshotMatches };
 
 /**
  * One frozen EQ state at a point in time. The list is independent of the
@@ -9,7 +19,8 @@ import type { EQFilter } from '$lib/utils/equalizer.js';
  * Snapshots are session-scoped: not persisted to localStorage, cleared
  * when the source phone changes. The 1:1 fineness vs the command stack is
  * intentional — Cmd-Z handles "undo this gain tick", the snapshot list
- * handles "rewind 5 minutes".
+ * handles "rewind 5 minutes". Bookmarks (`eq-bookmark-store`) are the
+ * persistent, named counterpart.
  */
 export interface EqSnapshot {
 	id: string;
@@ -24,16 +35,32 @@ const RECORD_DEBOUNCE_MS = 500;
 const RECORD_MIN_GAP_MS = 1000;
 const SNAPSHOT_CAP = 100;
 
+/** Either list an A/B pick can point into. */
+export type EqCompareEntry = EqSnapshot | EqBookmark;
+
+export function isBookmarkId(id: string): boolean {
+	return id.startsWith(BOOKMARK_ID_PREFIX);
+}
+
 class EqHistoryStore {
 	snapshots = $state<EqSnapshot[]>([]);
-	/** A-side selection. `null` falls back to "first snapshot in this session". */
-	aSnapshotId = $state<string | null>(null);
 	/**
-	 * B-side selection. `null` is the sentinel "current state", i.e. don't pin
-	 * to a specific snapshot — the live `eqStore.filters` is the B value.
+	 * A/B selection: an id into the history **or** the bookmarks (`findEntry`),
+	 * so A can be a bookmark and B a history entry. `null` is unset. A deleted
+	 * bookmark leaves the id resolving to nothing, so read `aEntry` / `bEntry`.
 	 */
+	aSnapshotId = $state<string | null>(null);
 	bSnapshotId = $state<string | null>(null);
 
+	get aEntry(): EqCompareEntry | null {
+		return this.aSnapshotId ? this.findEntry(this.aSnapshotId) : null;
+	}
+
+	get bEntry(): EqCompareEntry | null {
+		return this.bSnapshotId ? this.findEntry(this.bSnapshotId) : null;
+	}
+
+	#installed = false;
 	#pendingTimer: ReturnType<typeof setTimeout> | null = null;
 	#pending: { filters: EQFilter[]; preamp: number } | null = null;
 	#lastCommitTimestamp = 0;
@@ -91,25 +118,75 @@ class EqHistoryStore {
 		this.#pending = null;
 	}
 
-	/** Drop every snapshot (e.g. on source phone change). */
+	/**
+	 * Drop every snapshot (e.g. on source phone change). A/B picks of a
+	 * bookmark survive — bookmarks outlive the history, and whether one still
+	 * fits the active constraint is decided where it is used.
+	 */
 	clear(): void {
 		// Discard rather than flush — a pending record belongs to the state
 		// being cleared, so committing it would resurrect it into the empty log.
 		this.cancelPending();
 		this.snapshots = [];
-		this.aSnapshotId = null;
-		this.bSnapshotId = null;
+		if (this.aSnapshotId !== null && !isBookmarkId(this.aSnapshotId)) this.aSnapshotId = null;
+		if (this.bSnapshotId !== null && !isBookmarkId(this.bSnapshotId)) this.bSnapshotId = null;
 		this.#lastCommitTimestamp = 0;
 	}
 
+	/** Drop one snapshot, and any A/B pick pointing at it. */
+	remove(id: string): void {
+		const next = this.snapshots.filter((s) => s.id !== id);
+		if (next.length === this.snapshots.length) return;
+		this.snapshots = next;
+		if (this.aSnapshotId === id) this.aSnapshotId = null;
+		if (this.bSnapshotId === id) this.bSnapshotId = null;
+	}
+
+	/** Resolve an A/B id against the history and the bookmarks. */
+	findEntry(id: string): EqCompareEntry | null {
+		if (isBookmarkId(id)) return eqBookmarkStore.get(id);
+		return this.snapshots.find((s) => s.id === id) ?? null;
+	}
+
 	setA(id: string | null): void {
-		if (id !== null && !this.snapshots.some((s) => s.id === id)) return;
+		if (id !== null && !this.findEntry(id)) return;
 		this.aSnapshotId = id;
 	}
 
 	setB(id: string | null): void {
-		if (id !== null && !this.snapshots.some((s) => s.id === id)) return;
+		if (id !== null && !this.findEntry(id)) return;
 		this.bSnapshotId = id;
+	}
+
+	/**
+	 * Record the EQ state and clear the log on a source-device change, for the
+	 * lifetime of the page. Installed once from `AppShell.onMount`: the
+	 * Equalizer panel unmounts on every panel switch, so effects there missed
+	 * edits and device changes made while another panel was open.
+	 */
+	install(): void {
+		if (this.#installed) return;
+		this.#installed = true;
+
+		let prevSourceUUID: string | null = eqStore.sourcePhoneUUID;
+		$effect.root(() => {
+			// Declared before the recorder, so a device change clears the old
+			// device's log before the new device's first state is recorded.
+			$effect(() => {
+				const current = eqStore.sourcePhoneUUID;
+				const prev = prevSourceUUID;
+				prevSourceUUID = current;
+				if (prev && prev !== current) untrack(() => this.clear());
+			});
+
+			// Debounced and min-gapped inside `record`, so a slider drag becomes
+			// one entry, not 60.
+			$effect(() => {
+				const filters = eqStore.filters;
+				const preamp = eqStore.preamp;
+				untrack(() => this.record(filters, preamp));
+			});
+		});
 	}
 
 	#commit(filters: EQFilter[], preamp: number): void {
@@ -122,7 +199,7 @@ class EqHistoryStore {
 		if (last && snapshotMatches(last, filters, preamp)) return;
 
 		const entry: EqSnapshot = {
-			id: makeId(now),
+			id: `h-${now}-${Math.random().toString(36).slice(2, 8)}`,
 			timestamp: now,
 			filters,
 			preamp,
@@ -157,10 +234,6 @@ class EqHistoryStore {
 	}
 }
 
-function makeId(now: number): string {
-	return `${now}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
 export function summarize(filters: EQFilter[], preamp: number): string {
 	const enabled = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
 	const preampStr = `preamp ${preamp.toFixed(1)} dB`;
@@ -173,32 +246,6 @@ export function summarize(filters: EQFilter[], preamp: number): string {
 	const gainStr = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`;
 	const tail = enabled.length > 1 ? ` +${enabled.length - 1}` : '';
 	return `${dominant.type} ${hz} Hz ${gainStr}${tail}, ${preampStr}`;
-}
-
-export function snapshotMatches(
-	snapshot: EqSnapshot,
-	filters: EQFilter[],
-	preamp: number
-): boolean {
-	if (snapshot.filters.length !== filters.length) return false;
-	if (snapshot.preamp !== preamp) return false;
-	for (let i = 0; i < filters.length; i++) {
-		const a = snapshot.filters[i];
-		const b = filters[i];
-		if (
-			a.enabled !== b.enabled ||
-			a.type !== b.type ||
-			a.freq !== b.freq ||
-			a.q !== b.q ||
-			a.gain !== b.gain ||
-			// Retargeting a band between ears changes nothing else about it, so
-			// without this the move never gets logged as its own snapshot.
-			(a.channel ?? null) !== (b.channel ?? null)
-		) {
-			return false;
-		}
-	}
-	return true;
 }
 
 export const eqHistoryStore = new EqHistoryStore();

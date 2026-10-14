@@ -24,7 +24,7 @@ class EQStore {
 	 * Deliberately outside undo history and `?state=`. Scoping the list is
 	 * navigation, not an edit — an undo entry per switch would bury the real
 	 * edits, and a share link that reopened on someone else's scope would be
-	 * noise. `EqualizerPanel` resets it to `BOTH` when the source phone changes.
+	 * noise. The `sourcePhoneUUID` setter resets it to `BOTH` when the device changes.
 	 */
 	channelScope = $state<EqChannelScope>('BOTH');
 	#sourcePhoneUUID = $state<string | null>(null);
@@ -32,9 +32,16 @@ class EQStore {
 	get sourcePhoneUUID(): string | null {
 		return this.#sourcePhoneUUID;
 	}
-	/** A run picked on one device means nothing on another, so changing device drops it. */
+	/**
+	 * A run picked on one device means nothing on another, so changing device
+	 * drops it. The scope is a view onto the previous device's bands: left on L,
+	 * the next device would open on an empty list.
+	 */
 	set sourcePhoneUUID(uuid: string | null) {
-		if (uuid !== this.#sourcePhoneUUID) this.sourceSample = null;
+		if (uuid !== this.#sourcePhoneUUID) {
+			this.sourceSample = null;
+			if (this.#sourcePhoneUUID !== null) this.channelScope = 'BOTH';
+		}
 		this.#sourcePhoneUUID = uuid;
 	}
 	/**

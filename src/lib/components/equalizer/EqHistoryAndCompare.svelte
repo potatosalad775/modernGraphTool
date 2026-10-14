@@ -15,16 +15,8 @@
 		)}:${String(d.getSeconds()).padStart(2, '0')}`;
 	}
 
-	const aSnap = $derived(
-		eqHistoryStore.aSnapshotId
-			? (eqHistoryStore.snapshots.find((s) => s.id === eqHistoryStore.aSnapshotId) ?? null)
-			: null
-	);
-	const bSnap = $derived(
-		eqHistoryStore.bSnapshotId
-			? (eqHistoryStore.snapshots.find((s) => s.id === eqHistoryStore.bSnapshotId) ?? null)
-			: null
-	);
+	const aSnap = $derived(eqHistoryStore.aEntry);
+	const bSnap = $derived(eqHistoryStore.bEntry);
 	const aActive = $derived(
 		aSnap !== null && snapshotMatches(aSnap, eqStore.filters, eqStore.preamp)
 	);

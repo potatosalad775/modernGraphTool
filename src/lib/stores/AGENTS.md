@@ -48,7 +48,10 @@ export const frStore = new FRDataStore();
   the start dialog's question. Written only by `services/link-service.svelte.ts`
 - `eq-constraints-store.svelte.ts` — active EQ constraint (an eqcaps `Profile`) + picker entries, and the
   per-band slot/violation analysis of `eqStore.filters`
-- `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids
+- `eq-history-store.svelte.ts` — session-scoped snapshots for the History & Compare panel; A/B selection ids.
+  Records and clears itself through `install()`, called once from `AppShell.onMount`
+- `eq-bookmark-store.svelte.ts` — named EQ states the user kept, persisted under `gt-eq-bookmarks`.
+  Hydrated once from `AppShell.onMount`
 - `squiglink-store.svelte.ts` — squig.link domain guard, sponsor content and shop links. The site
   registry and phone-book crawl it used to own moved to `services/site-index.svelte.ts` and
   `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`
@@ -89,8 +92,9 @@ costs a slot on both ears.
 **`eq-store.svelte.ts` — `channelScope` is UI state, deliberately outside undo and `?state=`.**
 It selects which bucket the band list shows. Nothing moves between buckets when it changes, so
 recording it would bury real edits under navigation, and a share link reopening on someone else's
-scope is noise. `EqualizerPanel` resets it to `'BOTH'` on a source-phone change — leaving it on `L`
-would open the next device on an empty list.
+scope is noise. The `sourcePhoneUUID` setter resets it to `'BOTH'` when the device changes (not when the
+first one is picked) — leaving it on `L` would open the next device on an empty list. It used to be
+an `EqualizerPanel` effect, which missed a device change made while another panel was open.
 
 **`eq-store.svelte.ts` — `sourceSample` is reset by the `sourcePhoneUUID` setter, and only there.**
 A run index means nothing on another device, so changing device drops it inside the store rather
@@ -106,6 +110,25 @@ AutoEQ run started mid-hold writes `momentaryRestore = true` and leaves the over
 result survives keyup instead of being reverted by it. Collapsing the field back into a `$derived`
 re-breaks that. The restore value also has to live on the store rather than in `AppShell`, since
 `eqCommands` is where the redirect happens.
+
+**`eq-history-store.svelte.ts` / `eq-bookmark-store.svelte.ts` — one A/B pick, two lists.**
+History is an automatic, session-only log of the current device; bookmarks are named, kept in
+localStorage (`{ v: 1, items }`, every read and write in try/catch) and listed for every device.
+A and B are ids resolved by `eqHistoryStore.findEntry` against both, so A can be a bookmark and B a
+history entry; ids can't collide because bookmark ids carry `bm-` and history ids `h-`. Read the
+picks through `aEntry` / `bEntry` — a deleted bookmark leaves its id resolving to nothing.
+
+- **Recording and the device-change clear are page-lifetime effects** (`eqHistoryStore.install()`).
+  They used to live in `EqualizerPanel`, which unmounts on every panel switch, so edits and device
+  changes made from another panel were never seen.
+- **Clearing history (the trash button, a device change) keeps a bookmark pick.** Whether a
+  bookmark still fits the active constraint is decided where it is used, never by dropping it.
+- **A bookmark's device is saved by `identifier` + `variant`, not UUID** — UUIDs are minted per
+  page load. `hydrate` drops a stored UUID for that reason; `sortBookmarks` matches by name.
+- **Past `BOOKMARK_CAP` an add is refused (`add` returns `null`) and the caller tells the user.**
+  Don't evict: every bookmark carries a name the user chose.
+- `snapshotMatches` lives in `utils/eq-snapshot.ts` so the bookmark store can use it without an
+  import cycle (the history store imports the bookmark store for `findEntry`).
 
 **`preference-bound-store.svelte.ts` — state must not move into the selector row.**
 The store holds the preference-range overlay: the configured `entries`, the `selectedName` (at most

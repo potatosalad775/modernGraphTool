@@ -9,6 +9,7 @@
  * Not imported by any production module.
  */
 
+import { eqBookmarkStore } from '$lib/stores/eq-bookmark-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { frStore } from '$lib/stores/fr-store.svelte.js';
 import { graphStore } from '$lib/stores/graph-store.svelte.js';
@@ -162,7 +163,8 @@ function writeTargets(): readonly WriteTarget[] {
 			methods: ['set', 'delete']
 		},
 		{ label: 'eqStore', target: eqStore, accessors: true },
-		{ label: 'eqModifiedData', target: eqStore.eqModifiedData, methods: ['set', 'delete'] }
+		{ label: 'eqModifiedData', target: eqStore.eqModifiedData, methods: ['set', 'delete'] },
+		{ label: 'eqBookmarkStore', target: eqBookmarkStore, accessors: true }
 	];
 }
 

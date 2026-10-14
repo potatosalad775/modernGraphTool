@@ -13,6 +13,8 @@
 	import { eqStore } from '$lib/stores/eq-store.svelte';
 	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte';
 	import { linkStore } from '$lib/stores/link-store.svelte';
+	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte';
+	import { eqBookmarkStore } from '$lib/stores/eq-bookmark-store.svelte';
 	import { hasSavedLinkSession, linkConfig } from '$lib/services/link-config';
 	import { urlProvider } from '$lib/utils/url-provider';
 	import TopNavBar from './TopNavBar.svelte';
@@ -90,6 +92,9 @@
 		// page. EqualizerPanel unmounts on every panel switch, but the `\` A/B key
 		// below is global — so this can't live in the panel.
 		dataProvider.installEqCurveSync();
+		// History & Compare: the session log, and the saved bookmarks A/B can pick.
+		eqBookmarkStore.hydrate();
+		eqHistoryStore.install();
 
 		// A reload in a linked tab rejoins the session; uniPEQ keeps its approval. Loaded only then,
 		// so the link costs the boot nothing.

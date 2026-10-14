@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { prewarmAutoEQ } from '$lib/workers/autoeq-client.js';
 	import { linkConfig } from '$lib/services/link-config.js';
 
@@ -26,40 +24,11 @@
 	/** `UNIPEQ_LINK.ENABLE: false` hides the link. */
 	const linkEnabled = linkConfig().enabled;
 
-	let prevSourceUUID: string | null = null;
-
-	// Cleanup when sourcePhoneUUID changes — also drop the EQ snapshot history
-	// since snapshots are session-scoped to a particular source phone.
-	$effect(() => {
-		const currentUUID = eqStore.sourcePhoneUUID;
-		const prev = prevSourceUUID;
-		prevSourceUUID = currentUUID;
-		if (prev && prev !== currentUUID) {
-			untrack(() => {
-				dataProvider.rebuildEqCurve();
-				eqHistoryStore.clear();
-				// The scope is a view onto the previous device's bands. Leaving it
-				// on L would open the new device showing an empty list.
-				eqStore.channelScope = 'BOTH';
-			});
-		}
-	});
-
-	// The EQ preview curve is NOT rebuilt from here. This panel unmounts on every
-	// panel switch, and the `\` momentary A/B key is global — so a panel-scoped
-	// effect left the on-graph curve stale whenever the key was pressed from
-	// another tab. `dataProvider.installEqCurveSync()`, installed once from
-	// AppShell, owns that now.
-
-	// Record snapshots of the EQ state for the History & Compare UI.
-	// Debounced + min-gapped inside the store so a slider drag becomes one
-	// entry, not 60. Doesn't fire on phone-source change since clear() above
-	// resets the log first.
-	$effect(() => {
-		void eqStore.filters;
-		void eqStore.preamp;
-		untrack(() => eqHistoryStore.record(eqStore.filters, eqStore.preamp));
-	});
+	// Nothing here reacts to the EQ state: this panel unmounts on every panel
+	// switch, so a panel-scoped effect misses whatever happens while another
+	// panel is open. The on-graph EQ curve (`dataProvider.installEqCurveSync()`)
+	// and the History log (`eqHistoryStore.install()`) are installed once from
+	// AppShell, and the `sourcePhoneUUID` setter resets `channelScope`.
 </script>
 
 <div class="@container/eq flex h-full flex-col">

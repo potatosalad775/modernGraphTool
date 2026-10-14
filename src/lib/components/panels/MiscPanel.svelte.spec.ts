@@ -3,8 +3,7 @@
  * operator-authored description blocks and the footer links.
  *
  * Almost everything it renders is driven by `window.GRAPHTOOL_CONFIG`, so each
- * test sets the config it needs before rendering. `PREFERENCE_BOUND` is read at
- * component init rather than in a `$derived`, so it can only be set up front.
+ * test sets the config it needs before rendering.
  *
  * `setLocale` is stubbed — the real one reloads the page, which would tear the
  * test runner's iframe down mid-run.
@@ -15,7 +14,6 @@ import { page } from 'vitest/browser';
 import MiscPanel from './MiscPanel.svelte';
 import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 import { setLocale, locales } from '$lib/paraglide/runtime.js';
-import * as m from '$lib/paraglide/messages.js';
 
 vi.mock('$lib/paraglide/runtime.js', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('$lib/paraglide/runtime.js')>();
@@ -149,27 +147,6 @@ describe('MiscPanel', () => {
 			render(MiscPanel);
 
 			expect(page.getByText('ignored content').elements()).toHaveLength(0);
-		});
-	});
-
-	// ── Preference bound note ────────────────────────────────────────────────
-
-	describe('preference bound note', () => {
-		it('names the configured base target', async () => {
-			setConfig({ PREFERENCE_BOUND: { BASE_DF_TARGET_FILE: 'KEMAR DF' } });
-			render(MiscPanel);
-
-			await expect
-				.element(page.getByText(`${m.pref_bound_description_label()}: KEMAR DF`))
-				.toBeInTheDocument();
-		});
-
-		it('is omitted when no base target is configured', async () => {
-			render(MiscPanel);
-
-			expect(
-				page.getByText(m.pref_bound_description_label(), { exact: false }).elements()
-			).toHaveLength(0);
 		});
 	});
 

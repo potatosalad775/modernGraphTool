@@ -79,8 +79,8 @@ uses the atom, and touching a raw one is a good moment to convert it.
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect
-- `features/` — DevicePeq, TargetCustomizer, GraphColorPicker, PreferenceBound, FrequencyTutorial,
-  TutorialModal, SponsorBanner, ShopLink
+- `features/` — DevicePeq, TargetCustomizer, GraphColorPicker, FrequencyTutorial, TutorialModal,
+  SponsorBanner, ShopLink. The preference-bound selector is a row in `controls/TargetSelector`.
 - `graph/` — GraphContainer, GraphXAxis, GraphWatermark (Svelte ↔ D3 bridge; the engine itself is in
   `lib/graph/`)
 - `layout/` — AppShell, TopNavBar, MenuCarousel, DragDivider

@@ -7,7 +7,6 @@
 	import AverageButton from '$lib/components/controls/AverageButton.svelte';
 	import ScreenshotButton from '$lib/components/controls/ScreenshotButton.svelte';
 	import ShareButton from '$lib/components/controls/ShareButton.svelte';
-	import PreferenceBound from '$lib/components/features/PreferenceBound.svelte';
 	import ShopLink from '$lib/components/features/ShopLink.svelte';
 </script>
 
@@ -16,8 +15,7 @@
 	<NormalizerInput />
 	<SmoothingButton />
 	<YAxisScaleButton />
-	<!-- Graph features: preference bound, inspection, frequency guide -->
-	<PreferenceBound />
+	<!-- Graph features: inspection, frequency guide -->
 	<InspectionToggle />
 	<FrequencyTutorialToggle />
 	<!-- Actions: average, screenshot, share, shop -->

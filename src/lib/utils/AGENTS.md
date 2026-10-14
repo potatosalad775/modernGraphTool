@@ -12,6 +12,11 @@ DF's own value. Don't revert it to `normalize(df)`: the DF sits outside the band
 DF anchoring at a low alignment frequency pushed the band ~6 dB off every device aligned there.
 At a midrange anchor the two agree to a fraction of a dB, which is why the default look is unchanged.
 
+`resolvePreferenceBoundEntries` turns `PREFERENCE_BOUND` into the selectable list. The legacy
+`BASE_DF_TARGET_FILE` string must keep resolving to one entry when `BOUND_LIST` is absent — shipped
+configs predate the list. It resolves an i18n `name` itself rather than importing `config.ts`, so
+it stays a plain node-testable module.
+
 ## `search-query.ts`
 
 `search-query.ts` is just `splitQueryGroups` — the query parser shared by the local device list and

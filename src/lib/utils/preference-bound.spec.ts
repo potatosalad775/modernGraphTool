@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { alignDFToBoundCenter } from './preference-bound.js';
+import { describe, it, expect, vi } from 'vitest';
+import { alignDFToBoundCenter, resolvePreferenceBoundEntries } from './preference-bound.js';
 import { normalize } from './fr-normalizer.js';
 import { lookupFRValueAtFreq } from './fr-lookup.js';
 import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
@@ -73,5 +73,77 @@ describe('alignDFToBoundCenter', () => {
 		alignDFToBoundCenter(df, upper, lower, 'Hz', 50);
 		expect(df).toEqual(dfBefore);
 		expect(upper).toEqual(upperBefore);
+	});
+});
+
+describe('resolvePreferenceBoundEntries', () => {
+	it('is empty when nothing is configured', () => {
+		expect(resolvePreferenceBoundEntries(undefined, 'en')).toEqual([]);
+		expect(resolvePreferenceBoundEntries({ BASE_DF_TARGET_FILE: '' }, 'en')).toEqual([]);
+		expect(resolvePreferenceBoundEntries({ BOUND_LIST: [] }, 'en')).toEqual([]);
+	});
+
+	it('turns the legacy BASE_DF_TARGET_FILE into a single default entry', () => {
+		expect(
+			resolvePreferenceBoundEntries({ BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target' }, 'en')
+		).toEqual([
+			{
+				name: 'KEMAR DF (KB006x)',
+				target: 'KEMAR DF (KB006x) Target',
+				upper: 'Bounds U.txt',
+				lower: 'Bounds D.txt'
+			}
+		]);
+	});
+
+	it('prefers BOUND_LIST over the legacy key', () => {
+		const entries = resolvePreferenceBoundEntries(
+			{ BOUND_LIST: [{ target: '5128 DF' }], BASE_DF_TARGET_FILE: 'KEMAR DF' },
+			'en'
+		);
+		expect(entries.map((e) => e.target)).toEqual(['5128 DF Target']);
+	});
+
+	it('normalizes the target and keeps custom names and bound files', () => {
+		const [entry] = resolvePreferenceBoundEntries(
+			{
+				BOUND_LIST: [
+					{ name: 'Wide', target: 'KEMAR DF.txt', upper: 'wide/U.txt', lower: 'wide/D.txt' }
+				]
+			},
+			'en'
+		);
+		expect(entry).toEqual({
+			name: 'Wide',
+			target: 'KEMAR DF Target',
+			upper: 'wide/U.txt',
+			lower: 'wide/D.txt'
+		});
+	});
+
+	it('resolves an i18n-wrapped name, falling back to the default', () => {
+		const config = {
+			BOUND_LIST: [{ name: { default: 'Wide', i18n: { ko: '넓게' } }, target: 'KEMAR DF' }]
+		};
+		expect(resolvePreferenceBoundEntries(config, 'ko')[0].name).toBe('넓게');
+		expect(resolvePreferenceBoundEntries(config, 'cs')[0].name).toBe('Wide');
+	});
+
+	it('drops entries without a target and repeated names', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const entries = resolvePreferenceBoundEntries(
+			{
+				BOUND_LIST: [
+					{ name: 'No target' },
+					{ target: 'KEMAR DF' },
+					{ target: 'KEMAR DF Target', upper: 'Other U.txt' },
+					{ name: 'KEMAR wide', target: 'KEMAR DF', upper: 'Other U.txt' }
+				]
+			},
+			'en'
+		);
+		expect(entries.map((e) => e.name)).toEqual(['KEMAR DF', 'KEMAR wide']);
+		expect(warn).toHaveBeenCalledTimes(2);
+		warn.mockRestore();
 	});
 });

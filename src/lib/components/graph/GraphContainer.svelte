@@ -270,23 +270,45 @@
 		(getConfigValue('VISUALIZATION.BASELINE_LABEL.POSITION.UP') as string) || '0'
 	);
 
-	const baselineLabel = $derived.by(() => {
-		if (!graphEngine.isInitialized || !graphStore.baselineUUID) return null;
-		const data = frStore.get(graphStore.baselineUUID);
-		if (!data) return null;
+	/** Where the first line of the baseline-label stack sits, and which way it grows. */
+	const blAnchor = $derived.by(() => {
+		if (!graphEngine.isInitialized) return null;
 		const pos = graphEngine.labelPosition[blLabelLoc];
 		if (!pos) return null;
+		const baseY = pos.y + blOffsetDown - blOffsetUp;
+		return {
+			x: pos.x + blOffsetRight - blOffsetLeft,
+			y: pos.growUp ? baseY : baseY + blFontPx,
+			step: Math.round(blFontPx * 1.3) * (pos.growUp ? -1 : 1),
+			anchor: pos.anchor
+		};
+	});
+
+	const baselineLabel = $derived.by(() => {
+		if (!blAnchor || !graphStore.baselineUUID) return null;
+		const data = frStore.get(graphStore.baselineUUID);
+		if (!data) return null;
 		const identifier = data.identifier;
 		const text =
 			graphStore.baselineMode === 'withAdjustment'
 				? `${identifier} (with Adjustment) Compensated`
 				: `${identifier} Compensated`;
-		const baseY = pos.y + blOffsetDown - blOffsetUp;
+		return { x: blAnchor.x, y: blAnchor.y, anchor: blAnchor.anchor, text };
+	});
+
+	// Names the active preference bound, one line past the baseline label so the two never
+	// collide. English on purpose, like the baseline label: screenshots get shared beyond the
+	// site's own locale. Only with 2+ configured bounds: a single one leaves nothing to tell apart, and
+	// skipping it keeps the graph of a single-bound deployment as it was.
+	const boundLabel = $derived.by(() => {
+		const name = preferenceBoundStore.selectedName;
+		if (!blAnchor || !name || preferenceBoundStore.entries.length < 2) return null;
+		if (!preferenceBoundStore.isLoaded) return null;
 		return {
-			x: pos.x + blOffsetRight - blOffsetLeft,
-			y: pos.growUp ? baseY : baseY + blFontPx,
-			anchor: pos.anchor,
-			text
+			x: blAnchor.x,
+			y: baselineLabel ? blAnchor.y + blAnchor.step : blAnchor.y,
+			anchor: blAnchor.anchor,
+			text: `Preference Bound: ${name}`
 		};
 	});
 	let overlay = $state<GraphEqOverlay | null>(null);
@@ -395,8 +417,8 @@
 		);
 	});
 
-	// Preference-bound overlay: driven from the store rather than from
-	// PreferenceBound.svelte, which unmounts with the mobile toolbar accordion.
+	// Preference-bound overlay: driven from the store rather than from the selector row in
+	// TargetSelector, which unmounts with the target list.
 	// Loading waits until the overlay is first shown: the shipped config enables the
 	// feature but hides it on load, and fetching and smoothing three curves nobody
 	// sees used to land right before the first graph was drawn.
@@ -488,6 +510,18 @@
 			font-size={blFontSize}
 			font-weight={blFontWeight}
 			opacity="0.6">{baselineLabel.text}</text
+		>
+	{/if}
+	{#if boundLabel}
+		<text
+			class="fr-graph-baseline-text"
+			x={boundLabel.x}
+			y={boundLabel.y}
+			text-anchor={boundLabel.anchor}
+			fill="var(--color-graph-axis-label)"
+			font-size={blFontSize}
+			font-weight={blFontWeight}
+			opacity="0.6">{boundLabel.text}</text
 		>
 	{/if}
 </svg>

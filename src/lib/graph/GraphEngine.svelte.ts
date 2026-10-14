@@ -39,9 +39,8 @@ class GraphEngine {
 	curveGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	/** Optional EQ overlay reference — set by GraphContainer for handle-drag coordination */
 	eqOverlay: { render(): void } | null = null;
-	/** Preference-bound overlay reference — set by GraphContainer. `$state` so the
-	 *  separately-mounted PreferenceBound toolbar component re-runs its push effect
-	 *  once this is assigned (cf. `eqOverlay`, which lives in the same component). */
+	/** Preference-bound overlay reference — set by GraphContainer. `$state` so effects that
+	 *  push into it re-run once this is assigned (cf. `eqOverlay`, which is not reactive). */
 	preferenceBoundOverlay = $state<PreferenceBoundOverlayApi | null>(null);
 	isInitialized = $state(false);
 

@@ -68,9 +68,9 @@
 		// Hydrate user preferences (theme, AutoEQ options, EQ-normalization link, …)
 		settingsStore.hydrate();
 
-		// Read PREFERENCE_BOUND config — the initial-visibility default has to be
-		// applied here, not in the toolbar button, which is unmounted on mobile
-		// until the graph-controls accordion is expanded.
+		// Read PREFERENCE_BOUND config — the initial-selection default has to be
+		// applied here, not in the selector row, which unmounts with the target list
+		// (collapsed accordion, panel switch).
 		preferenceBoundStore.hydrate();
 
 		// Notify the user when the app version has changed since their last visit.

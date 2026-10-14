@@ -76,7 +76,7 @@ export interface ConfigFormState {
 	PREFERENCE_BOUND_ENABLED: boolean;
 	PREFERENCE_BOUND: {
 		ENABLE_BOUND_ON_INITIAL_LOAD: boolean;
-		BASE_DF_TARGET_FILE: string;
+		BOUND_LIST: PreferenceBoundForm[];
 		COLOR_FILL: string;
 		COLOR_BORDER: string;
 	};
@@ -170,6 +170,14 @@ export interface FilterForm {
 	freq: number;
 	q: number;
 	description?: string;
+}
+
+/** `name`, `upper` and `lower` are optional in config.js; `''` means "use the default". */
+export interface PreferenceBoundForm {
+	name: string;
+	target: string;
+	upper: string;
+	lower: string;
 }
 
 export interface FilterPresetForm {
@@ -321,7 +329,7 @@ export function createDefaultConfig(): ConfigFormState {
 		PREFERENCE_BOUND_ENABLED: false,
 		PREFERENCE_BOUND: {
 			ENABLE_BOUND_ON_INITIAL_LOAD: false,
-			BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target',
+			BOUND_LIST: [{ name: '', target: 'KEMAR DF (KB006x)', upper: '', lower: '' }],
 			COLOR_FILL: 'rgba(180,180,180,0.2)',
 			COLOR_BORDER: 'rgba(120,120,120,0.5)'
 		},

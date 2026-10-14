@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
-	import * as m from '$lib/paraglide/messages.js';
 	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
 	import { getLocale, locales, setLocale, type Locale } from '$lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
@@ -26,8 +25,6 @@
 	const description = $derived(getConfigValue('DESCRIPTION') as DescriptionItem[] | undefined);
 
 	const hideDonate = $derived(!!getConfigValue('INTERFACE.HIDE_DEV_DONATE_BUTTON'));
-	const prefBoundTarget =
-		(getConfigValue('PREFERENCE_BOUND.BASE_DF_TARGET_FILE') as string | undefined) ?? '';
 
 	function handleLocaleChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
@@ -83,13 +80,6 @@
 				{/if}
 			{/each}
 		</div>
-	{/if}
-
-	<!-- Preference bound description (auto-generated) -->
-	{#if prefBoundTarget}
-		<p class="px-4 text-sm text-base-content/70">
-			{m.pref_bound_description_label()}: {prefBoundTarget}
-		</p>
 	{/if}
 
 	<!-- Spacer to push info to bottom -->

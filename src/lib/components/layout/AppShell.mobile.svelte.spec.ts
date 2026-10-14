@@ -17,11 +17,12 @@ import { loadDefaultConfig, installWriteBudget } from './app-boot-harness.js';
  * assertion sharing a file with the desktop tests would read whatever the first
  * boot left behind rather than what a mobile visitor actually gets.
  *
- * What this covers: on mobile the graph toolbar lives inside a collapsed
- * accordion, and bits-ui renders accordion content under `{#if open}` — it
- * genuinely unmounts. Any initial-load default owned by a component in there
- * silently never applies. That is why the preference-bound state lives in a store
- * hydrated from `AppShell.onMount` instead.
+ * What this covers: the preference-bound selector sits in the target list, and
+ * bits-ui renders accordion content under `{#if open}` — when collapsed it
+ * genuinely unmounts, and on mobile the list is off-screen in another panel as
+ * often as not. Any initial-load default owned by a component in there silently
+ * never applies. That is why the preference-bound state lives in a store hydrated
+ * from `AppShell.onMount` instead.
  */
 
 const ADJUSTED_LABEL = '(Tilt: -0.8dB/oct, Bass: +6.0dB)';
@@ -48,17 +49,16 @@ describe('AppShell boot (mobile)', () => {
 		budget.restore();
 	});
 
-	it('applies the preference-bound initial-load default with the toolbar collapsed', async () => {
+	it('applies the preference-bound initial-load default without the selector mounted', async () => {
 		render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		expect(appStore.isMobile).toBe(true);
 
-		// The toggle button itself is inside the collapsed accordion, so it is not in
-		// the document — which is exactly the condition that used to swallow the
-		// default. The store must carry it regardless.
+		// Whether or not the selector row is rendered, the store must carry the
+		// default — the first configured bound.
 		expect(preferenceBoundStore.isEnabled).toBe(true);
-		expect(preferenceBoundStore.isVisible).toBe(true);
+		expect(preferenceBoundStore.selectedName).toBe(preferenceBoundStore.entries[0].name);
 	}, 30000);
 
 	it('renders the operator defaults on a phone-sized viewport', async () => {

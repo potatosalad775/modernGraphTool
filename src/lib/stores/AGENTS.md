@@ -107,14 +107,18 @@ result survives keyup instead of being reverted by it. Collapsing the field back
 re-breaks that. The restore value also has to live on the store rather than in `AppShell`, since
 `eqCommands` is where the redirect happens.
 
-**`preference-bound-store.svelte.ts` — state must not move back into `PreferenceBound.svelte`.**
-The store holds the preference-range overlay: `isEnabled`/`isVisible` plus the fetched bound + DF-target
-curves, with smoothing/normalization applied as `$derived`. Hydrated from `AppShell.onMount`.
-That button renders inside `GraphToolbar`, which on mobile lives in a collapsed accordion that
-genuinely unmounts, so component-scoped visibility broke the `ENABLE_BOUND_ON_INITIAL_LOAD` default.
+**`preference-bound-store.svelte.ts` — state must not move into the selector row.**
+The store holds the preference-range overlay: the configured `entries`, the `selectedName` (at most
+one; `null` hides the overlay) and the selected entry's parsed curves, with smoothing/normalization
+applied as `$derived`. Hydrated from `AppShell.onMount`. The selector is a row in `TargetSelector`,
+which unmounts with a collapsed target list and on every panel switch, so component-scoped state
+would break the `ENABLE_BOUND_ON_INITIAL_LOAD` default (it selects the first entry).
 `GraphContainer` owns the effects that call `load()` and push state into the overlay. `load()` runs
-on the first `isVisible`, not on `isEnabled` — the shipped config enables the feature with the
-overlay hidden, and loading eagerly put three fetches plus their smoothing ahead of the first graph.
+on selection, not on `isEnabled` — the shipped config enables the feature with the overlay hidden,
+and loading eagerly put three fetches plus their smoothing ahead of the first graph. Curves are
+cached per URL, so entries sharing a target or bound file fetch it once. The parsed curves are
+tagged with their entry's name and only used while that entry is selected, so a slow fetch for a
+previous selection never draws under the new one.
 `dfNormalized` is aligned by the band's center, not the DF — see `preference-bound.ts` in
 `utils/AGENTS.md`.
 

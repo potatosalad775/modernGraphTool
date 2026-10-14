@@ -11,7 +11,7 @@ export interface PreferenceBoundState {
 	baselineChannelData: FRDataPoint[] | null;
 }
 
-/** Public surface the engine + PreferenceBound component depend on. */
+/** Public surface the engine + GraphContainer depend on. */
 export interface PreferenceBoundOverlayApi {
 	update(state: PreferenceBoundState): void;
 	render(): void;
@@ -23,10 +23,10 @@ export interface PreferenceBoundOverlayApi {
  * filled D3 path inside the engine's curve group.
  *
  * Reactive data (smoothed bounds, normalized DF target, baseline channel data, visibility)
- * lives in PreferenceBound.svelte and is pushed in via update(). render() recomputes the
- * path from stored state against the engine's *current* scales, so an imperative reposition
- * (handle drag → GraphEngine.repositionCurves) repaints the bounds at the new position
- * without any store change.
+ * lives in preference-bound-store and GraphContainer pushes it in via update(). render()
+ * recomputes the path from stored state against the engine's *current* scales, so an
+ * imperative reposition (handle drag → GraphEngine.repositionCurves) repaints the bounds at
+ * the new position without any store change.
  */
 export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 	private graphEngine: GraphEngine;

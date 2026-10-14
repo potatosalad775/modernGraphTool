@@ -50,6 +50,32 @@ describe('v2 round trip', () => {
 		expect(roundTrip(original)).toEqual(original);
 	});
 
+	it('writes preference bounds without their blank optional fields', () => {
+		const state = { ...createDefaultConfig(), PREFERENCE_BOUND_ENABLED: true };
+		state.PREFERENCE_BOUND = {
+			...state.PREFERENCE_BOUND,
+			BOUND_LIST: [
+				{ name: '', target: 'KEMAR DF (KB006x)', upper: '', lower: '' },
+				{ name: 'Wide', target: '5128 DF', upper: 'U wide.txt', lower: 'D wide.txt' }
+			]
+		};
+		const raw = parseV2Config(formStateToConfigString(state));
+		expect(raw.PREFERENCE_BOUND.BOUND_LIST).toEqual([
+			{ target: 'KEMAR DF (KB006x)' },
+			{ name: 'Wide', target: '5128 DF', upper: 'U wide.txt', lower: 'D wide.txt' }
+		]);
+		expect(roundTrip(state)).toEqual(state);
+	});
+
+	it('imports a legacy BASE_DF_TARGET_FILE as a single bound', () => {
+		const state = configToFormState({
+			PREFERENCE_BOUND: { BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target' }
+		});
+		expect(state.PREFERENCE_BOUND.BOUND_LIST).toEqual([
+			{ name: '', target: 'KEMAR DF (KB006x) Target', upper: '', lower: '' }
+		]);
+	});
+
 	it('writes an eqcaps mirror only when one is set', () => {
 		const state = { ...createDefaultConfig(), EQUALIZER_ENABLED: true };
 		expect(formStateToConfigString(state)).not.toContain('EQCAPS_URL');

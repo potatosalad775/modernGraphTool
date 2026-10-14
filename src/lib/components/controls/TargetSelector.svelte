@@ -3,6 +3,7 @@
 	import { getConfigValue } from '$lib/utils/config.js';
 	import { dataProvider } from '$lib/services/data-provider.svelte.js';
 	import { frStore } from '$lib/stores/fr-store.svelte.js';
+	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
 	import type { TargetManifestEntry } from '$lib/types/data-types.js';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
@@ -70,7 +71,38 @@
 	</div>
 {/snippet}
 
-{#if targets.length > 0}
+<!--
+	Single-select, unlike the target rows above: one bound at most, and picking the active one
+	again turns the overlay off. The tint sets it apart without spending a divider's height.
+-->
+{#snippet boundRow()}
+	<div
+		class="mt-0.5 mb-1 overflow-x-auto rounded-md border border-base-content/7 bg-base-content/5 px-1 py-1.5"
+	>
+		<div class="flex w-max items-center gap-2">
+			<span class="shrink-0 pl-px text-xs font-medium text-base-content/80">
+				{m.pref_bound_row_label()}
+			</span>
+			<div class="flex gap-1.5">
+				{#each preferenceBoundStore.entries as entry (entry.name)}
+					{@const isSelected = preferenceBoundStore.selectedName === entry.name}
+					<Button
+						title={entry.name}
+						onclick={() => preferenceBoundStore.toggle(entry.name)}
+						aria-pressed={isSelected}
+						variant={isSelected ? 'primary' : 'outline'}
+						size="sm"
+						class="whitespace-nowrap {isSelected ? '' : 'ring-base-content/30'}"
+					>
+						{entry.name}
+					</Button>
+				{/each}
+			</div>
+		</div>
+	</div>
+{/snippet}
+
+{#if targets.length > 0 || preferenceBoundStore.isEnabled}
 	{#if allowMultiLine}
 		<Accordion type="single" value={collapseOnInitial ? '' : 'targets'}>
 			<AccordionItem value="targets" title={m.target_selector_label()}>
@@ -78,6 +110,9 @@
 					{#each targets as group (group.type)}
 						{@render targetRow(group)}
 					{/each}
+					{#if preferenceBoundStore.isEnabled}
+						{@render boundRow()}
+					{/if}
 				</div>
 			</AccordionItem>
 		</Accordion>
@@ -85,5 +120,8 @@
 		{#each targets as group (group.type)}
 			{@render targetRow(group)}
 		{/each}
+		{#if preferenceBoundStore.isEnabled}
+			{@render boundRow()}
+		{/if}
 	{/if}
 {/if}

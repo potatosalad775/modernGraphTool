@@ -94,11 +94,14 @@ const CONFIG = {
 		]
 	},
 
-	// Shaded upper/lower preference-range overlay. Needs Bounds U.txt and
-	// Bounds D.txt in your data/ folder. → docs: PREFERENCE_BOUND
+	// Shaded upper/lower preference-range overlay, picked from a row in the target
+	// list. Each BOUND_LIST entry is a base target from your target folder, with an
+	// optional `name` and `upper` / `lower` bound files in data/ (default
+	// 'Bounds U.txt' / 'Bounds D.txt'). An empty list disables the feature.
+	// → docs: PREFERENCE_BOUND
 	PREFERENCE_BOUND: {
-		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Show the bounds immediately on page load
-		BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target', // Reference DF target; "" disables the feature
+		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Select the first bound on page load
+		BOUND_LIST: [{ target: 'KEMAR DF (KB006x)' }],
 		COLOR_FILL: 'rgba(180,180,180,0.2)',
 		COLOR_BORDER: 'rgba(120,120,120,0.5)'
 	},

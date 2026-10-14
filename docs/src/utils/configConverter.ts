@@ -16,7 +16,8 @@ import {
 	type WatermarkFormState,
 	type FilterForm,
 	type FilterPresetForm,
-	type InitialTargetFilterForm
+	type InitialTargetFilterForm,
+	type PreferenceBoundForm
 } from './configDefaults';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -281,7 +282,7 @@ export function convertV1ToV2(
 		if (pb?.ENABLED && pb.CONFIG) {
 			v2.PREFERENCE_BOUND = {
 				ENABLE_BOUND_ON_INITIAL_LOAD: pb.CONFIG.ENABLE_BOUND_ON_INITIAL_LOAD ?? false,
-				BASE_DF_TARGET_FILE: pb.CONFIG.BASE_DF_TARGET_FILE ?? 'KEMAR DF (KB006x) Target',
+				BOUND_LIST: [{ target: pb.CONFIG.BASE_DF_TARGET_FILE ?? 'KEMAR DF (KB006x)' }],
 				COLOR_FILL: pb.CONFIG.COLOR_FILL ?? 'rgba(180,180,180,0.2)',
 				COLOR_BORDER: pb.CONFIG.COLOR_BORDER ?? 'rgba(120,120,120,0.5)'
 			};
@@ -527,10 +528,9 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 	// PREFERENCE_BOUND — only emit if relevant fields present
 	if (crin.preference_bounds_startup !== undefined || crin.default_DF_name) {
 		const dfName = crin.default_DF_name || 'KEMAR DF (KB006x)';
-		const dfTarget = dfName.endsWith(' Target') ? dfName : dfName + ' Target';
 		v2.PREFERENCE_BOUND = {
 			ENABLE_BOUND_ON_INITIAL_LOAD: crin.preference_bounds_startup ?? false,
-			BASE_DF_TARGET_FILE: dfTarget,
+			BOUND_LIST: [{ target: dfName }],
 			COLOR_FILL: 'rgba(180,180,180,0.2)',
 			COLOR_BORDER: 'rgba(120,120,120,0.5)'
 		};
@@ -1028,8 +1028,7 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			ENABLE_BOUND_ON_INITIAL_LOAD:
 				raw.PREFERENCE_BOUND?.ENABLE_BOUND_ON_INITIAL_LOAD ??
 				defaults.PREFERENCE_BOUND.ENABLE_BOUND_ON_INITIAL_LOAD,
-			BASE_DF_TARGET_FILE:
-				raw.PREFERENCE_BOUND?.BASE_DF_TARGET_FILE ?? defaults.PREFERENCE_BOUND.BASE_DF_TARGET_FILE,
+			BOUND_LIST: toBoundListForm(raw.PREFERENCE_BOUND, defaults.PREFERENCE_BOUND.BOUND_LIST),
 			COLOR_FILL: raw.PREFERENCE_BOUND?.COLOR_FILL ?? defaults.PREFERENCE_BOUND.COLOR_FILL,
 			COLOR_BORDER: raw.PREFERENCE_BOUND?.COLOR_BORDER ?? defaults.PREFERENCE_BOUND.COLOR_BORDER
 		},
@@ -1120,6 +1119,33 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 }
 
 /** Convert I18nArrayFormState back to raw config format (plain array or i18n wrapper) */
+/**
+ * `PREFERENCE_BOUND` → form rows. `BOUND_LIST` wins; a legacy `BASE_DF_TARGET_FILE` becomes a
+ * single row, matching how the app reads it. An i18n-wrapped name keeps only its default.
+ */
+function toBoundListForm(raw: any, fallback: PreferenceBoundForm[]): PreferenceBoundForm[] {
+	let list: any[] = [];
+	if (!raw) list = fallback;
+	else if (Array.isArray(raw.BOUND_LIST)) list = raw.BOUND_LIST;
+	else if (raw.BASE_DF_TARGET_FILE) list = [{ target: raw.BASE_DF_TARGET_FILE }];
+	return list.map((e: any) => ({
+		name: (typeof e?.name === 'object' ? e?.name?.default : e?.name) ?? '',
+		target: e?.target ?? '',
+		upper: e?.upper ?? '',
+		lower: e?.lower ?? ''
+	}));
+}
+
+/** Form row → config entry, leaving out the optional fields left blank. */
+function fromBoundForm(row: PreferenceBoundForm): Record<string, string> {
+	const entry: Record<string, string> = {};
+	if (row.name) entry.name = row.name;
+	entry.target = row.target;
+	if (row.upper) entry.upper = row.upper;
+	if (row.lower) entry.lower = row.lower;
+	return entry;
+}
+
 function fromI18nArrayState<T>(state: I18nArrayFormState<T>): any {
 	if (!state.useI18n) return state.items;
 	return { default: state.items, i18n: state.i18n };
@@ -1161,7 +1187,10 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	config.SITE_SELECTOR = state.SITE_SELECTOR;
 
 	if (state.PREFERENCE_BOUND_ENABLED) {
-		config.PREFERENCE_BOUND = state.PREFERENCE_BOUND;
+		config.PREFERENCE_BOUND = {
+			...state.PREFERENCE_BOUND,
+			BOUND_LIST: state.PREFERENCE_BOUND.BOUND_LIST.map(fromBoundForm)
+		};
 	}
 	if (state.TARGET_CUSTOMIZER_ENABLED) {
 		config.TARGET_CUSTOMIZER = state.TARGET_CUSTOMIZER;

@@ -38,7 +38,7 @@ originals.
 - `withAdjustment` — baseline = current (adjusted) channels from `frStore`. The target line snaps
   flat; other curves shift with adjustments.
 - Single source of truth: `baseline.ts` `resolveBaselineChannelData(uuid, mode)`. Both
-  `GraphEngine.refreshBaselineData` and `PreferenceBound` go through it — **do not branch on
+  `GraphEngine.refreshBaselineData` and the preference-bound push in `GraphContainer` go through it — **do not branch on
   `baselineMode` elsewhere**.
 - `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so
   `withoutAdjustment` baselines stay at the same reference as the rest of the curves.

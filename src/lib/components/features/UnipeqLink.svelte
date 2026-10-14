@@ -6,7 +6,9 @@
 	import { linkStore } from '$lib/stores/link-store.svelte.js';
 	import { linkService } from '$lib/services/link-service.svelte.js';
 	import { DEFAULT_LINK_SERVER } from '$lib/services/link-config.js';
+	import { getLocale } from '$lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	/**
 	 * "Link with uniPEQ": start a link, show the code and QR code until uniPEQ joins and approves,
@@ -32,6 +34,11 @@
 	const landing = $derived(room && server ? landingUrl(server, room) : null);
 	/** A typed code joins uniPEQ's default server only. */
 	const otherServer = $derived(!!server && new URL(server).origin !== DEFAULT_LINK_SERVER);
+
+	/** The docs site only carries a Korean translation besides English. */
+	const docsUrl = $derived(
+		`https://potatosalad775.github.io/modernGraphTool/docs/${getLocale() === 'ko' ? 'ko/' : ''}features/unipeq-link/`
+	);
 
 	let starting = $state(false);
 	async function start() {
@@ -241,16 +248,42 @@
 		{#if linkStore.failed}
 			<p class="text-xs text-base-content" role="status">{m.link_failed_start()}</p>
 		{/if}
-		<Button
-			title={linkStore.ended ? m.link_again() : m.link_start()}
-			variant="primary"
-			size="sm"
-			class="w-full"
-			disabled={starting}
-			onclick={start}
-		>
-			{linkStore.ended ? m.link_again() : m.link_start()}
-		</Button>
+		<div class="flex items-center gap-1">
+			<Button
+				title={linkStore.ended ? m.link_again() : m.link_start()}
+				variant="primary"
+				size="sm"
+				class="flex-1"
+				disabled={starting}
+				onclick={start}
+			>
+				{linkStore.ended ? m.link_again() : m.link_start()}
+			</Button>
+			<!-- uniPEQ is new: say what it is and why linking is worth it, before anyone links -->
+			<InfoPopover label={m.info_popover_about({ topic: 'uniPEQ' })} size="sm" align="end">
+				<p>{m.link_help_what()}</p>
+				<p>{m.link_help_why()}</p>
+				<p>{m.link_help_phone()}</p>
+				<div class="flex gap-3">
+					<a
+						href="https://unipeq.com"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-accent underline underline-offset-2"
+					>
+						{m.link_help_get()}
+					</a>
+					<a
+						href={docsUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-accent underline underline-offset-2"
+					>
+						{m.equalizer_autoeq_learn_more()}
+					</a>
+				</div>
+			</InfoPopover>
+		</div>
 	{/if}
 </div>
 

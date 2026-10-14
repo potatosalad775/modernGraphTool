@@ -12,7 +12,18 @@ draft: false
 
 **uniPEQ와 연결**은 Equalizer 패널의 밴드 목록을 [uniPEQ](https://unipeq.com)와 공유합니다. uniPEQ는 Android와 웹에서 동작하는 EQ 앱으로, 자신에게 연결된 기기에 EQ를 기록합니다. 편집은 이곳의 그래프와 AutoEQ로 하고, 바뀐 내용은 uniPEQ가 모두 기기에 기록합니다. 컴퓨터에 꽂을 수 없는 휴대폰용 동글이나 브라우저가 닿을 수 없는 기기에 유용합니다.
 
-Equalizer 패널에서 [하드웨어 EQ](./device-peq.mdx) 아래에 있습니다.
+Equalizer 패널의 [하드웨어 EQ](./device-peq.mdx) 섹션에서 연결 버튼 아래에 있습니다. 하드웨어 EQ는 한 번에 하나의 연결만 사용하므로, 이 브라우저에서 기기를 연결하면 uniPEQ 연결이 숨겨지고 uniPEQ와 연결된 동안에는 연결 버튼이 숨겨집니다. 다른 쪽을 쓰려면 **연결 해제**를 누르세요.
+
+## uniPEQ란
+
+uniPEQ는 여러 USB DAC, 동글, 헤드폰, 이어폰에 내장된 파라메트릭 EQ를 위한 무료 오픈소스 앱입니다. 기기에 저장된 EQ를 읽고, 그래프에서 편집하고, 다시 기기에 기록합니다. [하드웨어 EQ](./device-peq.mdx)와 같은 [eqcaps](https://github.com/potatosalad775/eqcaps)를 사용하므로 지원 기기도 같습니다.
+
+- **컴퓨터에서는** Chrome, Edge 등 Chromium 기반 브라우저로 [unipeq.com](https://unipeq.com)에 접속해 사용합니다.
+- **Android에서는** 앱으로 사용합니다. APK는 [GitHub Releases](https://github.com/potatosalad775/uniPEQ/releases/latest)에서 받을 수 있습니다.
+
+컴퓨터의 Chromium 기반 브라우저라면 이 페이지의 하드웨어 EQ로도 기기에 바로 기록할 수 있습니다. 연결이 필요한 건 이 브라우저가 기기에 닿을 수 없을 때입니다. 대표적인 경우가 휴대폰입니다. 휴대폰 브라우저는 USB 기기에 접근할 수 없어서, 측정치를 보며 EQ를 맞추려면 컴퓨터가 필요했습니다. 이제는 휴대폰에서 이 사이트를 열고 uniPEQ와 연결하면, 이곳에서 만든 EQ가 그 휴대폰에 꽂힌 기기에서 바로 재생됩니다. 컴퓨터의 Firefox나 Safari도 휴대폰의 uniPEQ와 연결하면 마찬가지입니다.
+
+기기가 없다면 uniPEQ의 **데모 기기**로 연결을 체험해 볼 수 있습니다.
 
 ## 연결하기
 

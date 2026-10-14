@@ -835,7 +835,7 @@ Each URL is tried in order and the first one that returns a valid document wins,
 
 Hardware EQ (formerly Device PEQ) reads and writes EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device’s own memory and keeps working away from the computer.
 
-It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#device-peq).
+It sits in the Equalizer panel, together with [Link with uniPEQ](/modernGraphTool/docs/features/unipeq-link/), which reaches a device through the uniPEQ app instead. Hardware EQ holds one connection at a time: once you connect a device here or start a link, the other way in is hidden until you disconnect or unlink. For the workflow, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/#device-peq).
 
 ## Connecting
 
@@ -898,7 +898,7 @@ Hardware EQ slots have no channel concept. A write sends the **L+R** bands and t
 
 ## Browser support
 
-Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
+Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons. [Link with uniPEQ](/modernGraphTool/docs/features/unipeq-link/) still works there.
 
 ## Operators
 
@@ -1241,7 +1241,18 @@ All of it is set under [`TARGET_CUSTOMIZER`](/modernGraphTool/docs/guide-for-adm
 
 **Link with uniPEQ** shares the Equalizer panel’s band list with [uniPEQ](https://unipeq.com), an EQ app for Android and the web that writes EQ to a device connected to it. You edit with the graph and AutoEQ here, and uniPEQ writes every change to the device: a phone dongle you can’t plug into the computer, say, or a device the browser can’t reach.
 
-It sits in the Equalizer panel, below [Hardware EQ](/modernGraphTool/docs/features/device-peq/).
+It sits in the Equalizer panel’s [Hardware EQ](/modernGraphTool/docs/features/device-peq/) section, under the connect buttons. Hardware EQ holds one connection at a time, so the link is hidden while a device is connected in this browser, and the connect buttons are hidden while the link is on. **Disconnect** or **Unlink** to switch.
+
+## What uniPEQ is
+
+uniPEQ is a free, open-source companion app for the parametric EQ built into many USB DACs, dongles, headphones and IEMs. It reads the EQ a device holds, lets you edit it on a graph, and writes it back. It knows the same devices as [Hardware EQ](/modernGraphTool/docs/features/device-peq/), since both run on [eqcaps](https://github.com/potatosalad775/eqcaps).
+
+* **On a computer**, it runs at [unipeq.com](https://unipeq.com) in Chrome, Edge or another Chromium-based browser.
+* **On Android**, it is an app: the APK is on [GitHub Releases](https://github.com/potatosalad775/uniPEQ/releases/latest).
+
+In a Chromium-based browser on a computer, Hardware EQ already writes to a device from this page. The link matters where this browser can’t reach the device. The main case is a phone: a phone’s browser can’t reach USB devices, so tuning against a measurement used to need a computer. Open this site on the phone, link it with uniPEQ, and the EQ you build here plays on the device plugged into that phone. The same goes for Firefox or Safari on a computer, linked with uniPEQ on a phone.
+
+No device at hand? uniPEQ’s **demo device** lets you try the link without one.
 
 ## Linking
 

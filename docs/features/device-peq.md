@@ -12,7 +12,7 @@ draft: false
 
 Hardware EQ (formerly Device PEQ) reads and writes EQ directly on supported audio hardware — DACs, dongles, streamers and some headphones — from the browser, with no extra software. Once written, the EQ lives in the device's own memory and keeps working away from the computer.
 
-It sits at the bottom of the Equalizer panel. For the workflow, see [Equalizing audio](../guide-for-users/equalizing.mdx#device-peq).
+It sits in the Equalizer panel, together with [Link with uniPEQ](./unipeq-link.mdx), which reaches a device through the uniPEQ app instead. Hardware EQ holds one connection at a time: once you connect a device here or start a link, the other way in is hidden until you disconnect or unlink. For the workflow, see [Equalizing audio](../guide-for-users/equalizing.mdx#device-peq).
 
 ## Connecting
 
@@ -75,7 +75,7 @@ Hardware EQ slots have no channel concept. A write sends the **L+R** bands and t
 
 ## Browser support
 
-Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons.
+Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons. [Link with uniPEQ](./unipeq-link.mdx) still works there.
 
 ## Operators
 

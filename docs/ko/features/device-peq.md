@@ -12,7 +12,7 @@ draft: false
 
 하드웨어 EQ(이전 이름 Device PEQ)는 DAC, 동글, 스트리머, 일부 헤드폰 같은 지원 기기의 EQ를 브라우저에서 바로 읽고 쓰는 기능입니다. 별도 소프트웨어는 필요 없습니다. 한 번 기록한 EQ는 기기 자체 메모리에 저장되므로 컴퓨터에서 분리해도 계속 적용됩니다.
 
-Equalizer 패널 맨 아래에 있습니다. 사용 흐름은 [오디오 이퀄라이징](../guide-for-users/equalizing.mdx#device-peq)을 참고하세요.
+Equalizer 패널에서 [uniPEQ와 연결](./unipeq-link.mdx)과 함께 있습니다. uniPEQ와 연결은 uniPEQ 앱을 거쳐 기기에 닿는 방법입니다. 하드웨어 EQ는 한 번에 하나의 연결만 사용하므로, 이곳에서 기기를 연결하거나 uniPEQ와 연결하면 연결을 끊거나 해제할 때까지 다른 쪽은 숨겨집니다. 사용 흐름은 [오디오 이퀄라이징](../guide-for-users/equalizing.mdx#device-peq)을 참고하세요.
 
 ## 연결하기
 
@@ -75,7 +75,7 @@ Equalizer 패널 맨 아래에 있습니다. 사용 흐름은 [오디오 이퀄�
 
 ## 브라우저 지원
 
-하드웨어 EQ는 **Chrome, Edge, Opera** 같은 Chromium 기반 브라우저에서만 동작합니다. Firefox와 Safari는 WebHID, Web Serial, Web Bluetooth를 모두 지원하지 않으므로, 연결 버튼 대신 호환성 안내가 표시됩니다.
+하드웨어 EQ는 **Chrome, Edge, Opera** 같은 Chromium 기반 브라우저에서만 동작합니다. Firefox와 Safari는 WebHID, Web Serial, Web Bluetooth를 모두 지원하지 않으므로, 연결 버튼 대신 호환성 안내가 표시됩니다. [uniPEQ와 연결](./unipeq-link.mdx)은 이런 브라우저에서도 사용할 수 있습니다.
 
 ## 운영자
 

@@ -13,6 +13,8 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import DevicePeq from './DevicePeq.svelte';
 import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
+import { linkStore } from '$lib/stores/link-store.svelte.js';
+import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
 import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
 import {
 	BUILTIN_PRESETS,
@@ -169,6 +171,7 @@ describe('DevicePeq', () => {
 	afterEach(() => {
 		restoreApis();
 		devicePeqStore.setDisconnected();
+		linkStore.reset();
 	});
 
 	// ── Feature detection ────────────────────────────────────────────────────
@@ -221,7 +224,14 @@ describe('DevicePeq', () => {
 			hideApis('hid', 'serial', 'bluetooth');
 			render(DevicePeq);
 
-			expect(await page.getByRole('button').all()).toHaveLength(0);
+			await expect
+				.element(page.getByText(/does not support the necessary APIs/))
+				.toBeInTheDocument();
+			expect(await page.getByRole('button', { name: /Connect/ }).all()).toHaveLength(0);
+			// uniPEQ reaches the device instead: the link needs none of the browser's device APIs.
+			await expect
+				.element(page.getByRole('button', { name: 'Link with uniPEQ' }))
+				.toBeInTheDocument();
 			// Whether the device would work in another browser is still worth knowing.
 			await expect
 				.element(page.getByRole('link', { name: 'Supported devices' }))
@@ -648,6 +658,72 @@ describe('DevicePeq', () => {
 			await vi.waitFor(() => expect(devicePeqStore.isConnected).toBe(false));
 			expect(device.close).toHaveBeenCalled();
 			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+		});
+	});
+	// ── One connection at a time ─────────────────────────────────────────────
+
+	describe('one connection at a time', () => {
+		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
+
+		const connectButton = () => page.getByRole('button', { name: 'Connect USB device' });
+		const linkButton = () => page.getByRole('button', { name: 'Link with uniPEQ' });
+
+		/** A link uniPEQ hasn't joined yet, set on the store: starting one would reach the server. */
+		function waitingLink() {
+			linkStore.phase = 'waiting';
+			linkStore.room = 'ABCD2345';
+			linkStore.server = 'https://link.unipeq.com';
+		}
+
+		it('offers both ways in before either is used', async () => {
+			render(DevicePeq);
+			await expect.element(connectButton()).toBeInTheDocument();
+			await expect.element(linkButton()).toBeInTheDocument();
+		});
+
+		it('hides the link while a device connects here, and once it has', async () => {
+			let finish!: (result: ConnectResult) => void;
+			connect.connectHid.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+			render(DevicePeq);
+			await connectButton().click();
+			await expect.element(linkButton()).not.toBeInTheDocument();
+
+			finish(connected(makeConnection().connection));
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			await expect.element(linkButton()).not.toBeInTheDocument();
+
+			await page.getByRole('button', { name: 'Disconnect' }).click();
+			await expect.element(linkButton()).toBeInTheDocument();
+		});
+
+		it('hides connecting here while the link is active, and offers it again once it ends', async () => {
+			waitingLink();
+			render(DevicePeq);
+			await expect.element(page.getByText('ABCD-2345')).toBeInTheDocument();
+			await expect.element(connectButton()).not.toBeInTheDocument();
+
+			linkStore.reset();
+			await expect.element(connectButton()).toBeInTheDocument();
+		});
+
+		it('refuses to connect here while the link is active', async () => {
+			waitingLink();
+			await devicePeqService.connect('hid');
+			expect(connect.connectHid).not.toHaveBeenCalled();
+			expect(devicePeqStore.isConnecting).toBe(false);
+		});
+
+		it('shows uniPEQ’s device under the link, with Unlink in place of Disconnect', async () => {
+			linkStore.phase = 'linked';
+			const { connection } = makeConnection({ connectionType: 'link', name: 'Linked DAC' });
+			linkStore.device = { name: 'Linked DAC' } as typeof linkStore.device;
+			devicePeqStore.setConnected(connection, 1);
+			render(DevicePeq);
+			await expect.element(page.getByRole('button', { name: 'Unlink' })).toBeInTheDocument();
+			await expect.element(page.getByText('Linked DAC')).toBeInTheDocument();
+			await expect.element(page.getByText('Device Setting')).toBeInTheDocument();
+			expect(await page.getByRole('button', { name: 'Disconnect' }).all()).toHaveLength(0);
+			expect(await connectButton().all()).toHaveLength(0);
 		});
 	});
 });

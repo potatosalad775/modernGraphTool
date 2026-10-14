@@ -2,7 +2,7 @@
  * Connecting a device: the browser's chooser, then the eqcaps database says which device it is
  * (`matchDevice`), what it accepts (its profile) and how to drive it (the profile's `protocol`).
  *
- * Only ever reached through a dynamic `import()` from `DevicePeq.svelte`, so neither the bridge nor
+ * Only ever reached through a dynamic `import()` from `devicePeqService`, so neither the bridge nor
  * the client is in the boot bundle.
  */
 import type { IndexEntry, Profile } from '@potatosalad775/eqcaps-core';

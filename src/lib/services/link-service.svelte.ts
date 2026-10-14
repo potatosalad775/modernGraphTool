@@ -6,9 +6,11 @@
  * The protocol, liveness, reconnecting and resuming after a reload are all `peq-link`'s client.
  * What lives here is the binding: local edits turned into ops, echoes adopted as undo steps, the
  * start dialog's question, and uniPEQ's device mirrored into Hardware EQ as a `'link'` connection.
+ * Hardware EQ holds one connection at a time, so the link doesn't start while a device is
+ * connected or connecting in this browser (`devicePeqStore.localActive`).
  *
  * A page-lifetime singleton, because panels unmount on every switch. It is itself loaded lazily:
- * by the Link accordion, or from `AppShell.onMount` only when this tab has a session to resume
+ * by Hardware EQ, or from `AppShell.onMount` only when this tab has a session to resume
  * (`link-config.ts`). The client follows with `import()` on the first Link press or that resume,
  * so a visitor who never links downloads neither.
  */
@@ -66,7 +68,7 @@ class LinkService {
 		return this.#open(true);
 	}
 
-	/** Link with uniPEQ: a new room, its code shown until uniPEQ joins. */
+	/** Link with uniPEQ: a new room, its code shown until uniPEQ joins. Not with a device here. */
 	start(): Promise<void> {
 		return this.#open(false);
 	}
@@ -110,7 +112,7 @@ class LinkService {
 	}
 
 	async #open(resume: boolean): Promise<void> {
-		if (this.#link) return;
+		if (this.#link || devicePeqStore.localActive) return;
 		const { server } = linkConfig();
 		let client: typeof import('peq-link/client');
 		try {
@@ -120,7 +122,8 @@ class LinkService {
 			if (!resume) linkStore.failed = true;
 			return;
 		}
-		if (this.#link) return;
+		// A device may have connected here while the client loaded.
+		if (this.#link || devicePeqStore.localActive) return;
 		const options: HostOptions = {
 			server,
 			version: __APP_VERSION__,
@@ -281,7 +284,7 @@ class LinkService {
 		this.#joined = true;
 	}
 
-	/** uniPEQ's device, as Hardware EQ's connection. A local device, if one is connected, stays. */
+	/** uniPEQ's device, as Hardware EQ's connection: nothing else is connected while the link is. */
 	#device(link: HostLink, device: LinkDevice | null): void {
 		linkStore.device = device;
 		const key = JSON.stringify(device);
@@ -290,12 +293,10 @@ class LinkService {
 		this.#deviceKey = key;
 		// A device connected in uniPEQ mid-link reads its bands into the list: ask again then.
 		if (first && this.#joined) this.#askOnFresh = true;
-		const mine = devicePeqStore.connection;
-		if (mine && mine.connectionType !== 'link') return;
 		const connection = device && linkConnection(link, device);
 		linkStore.deviceRejected = device !== null && !connection;
 		if (!connection) {
-			if (mine) devicePeqStore.setDisconnected();
+			if (devicePeqStore.connection) devicePeqStore.setDisconnected();
 			return;
 		}
 		devicePeqStore.setConnected(connection, link.status?.deviceSlot ?? null);

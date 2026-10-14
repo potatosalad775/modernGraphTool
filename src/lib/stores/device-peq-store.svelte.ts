@@ -2,12 +2,13 @@
  * Device PEQ Store — the connected EQ device and what the panel is doing with it.
  *
  * Connecting makes the device's eqcaps profile the active EQ constraint, and disconnecting
- * restores the user's own pick. Here rather than in `DevicePeq.svelte`, so it holds however the
+ * restores the user's own pick. Here rather than in the Hardware EQ panel, so it holds however the
  * connection ends and whether or not the panel is mounted. It never edits the filters: bands that
  * don't fit are flagged, and the user fits them when they choose to.
  */
+import type { ConnectResult } from '$lib/device-peq/connect.js';
 import { readRequest, writeRequest, type PresetRequest } from '$lib/device-peq/preset.js';
-import type { DeviceConnection } from '$lib/device-peq/types.js';
+import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '$lib/utils/equalizer.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
@@ -19,6 +20,13 @@ import { eqStore } from './eq-store.svelte.js';
  * on that isn't listed (a built-in one), or null when the device can't say.
  */
 export type DeviceEqSelection = number | 'off' | 'other' | null;
+
+/** The device's identity fit several profiles, or none: the user says which it is. */
+export interface DeviceChoice {
+	candidates: DeviceCandidate[];
+	finish: (id: string) => Promise<ConnectResult>;
+	cancel: () => Promise<void>;
+}
 
 /** The band list and preamp as they were when last read from or written to the device. */
 export interface DeviceSnapshot {
@@ -32,6 +40,8 @@ class DevicePeqStore {
 	isReading = $state(false);
 	isWriting = $state(false);
 	isSwitching = $state(false);
+	/** A connection waiting on the user to say which profile the device is. */
+	choice = $state.raw<DeviceChoice | null>(null);
 	/** The listed preset reads and writes target; null when the device lists none. */
 	activeSlot = $state<number | null>(null);
 	/**
@@ -75,6 +85,18 @@ class DevicePeqStore {
 
 	get isConnected(): boolean {
 		return this.connection !== null;
+	}
+
+	/**
+	 * A connection made in this browser is under way or in place: connecting, waiting on a profile
+	 * choice, or connected. A device uniPEQ holds over the link doesn't count. Hardware EQ holds one
+	 * connection at a time, so the uniPEQ link doesn't start while this is true, and nothing connects
+	 * here while the link is active.
+	 */
+	get localActive(): boolean {
+		const conn = this.connection;
+		if (conn) return conn.connectionType !== 'link';
+		return this.isConnecting || this.choice !== null;
 	}
 
 	get isBusy(): boolean {

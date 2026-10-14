@@ -51,7 +51,7 @@ so omitting the field makes the coalescer read a real edit as a no-op burst and 
 
 ## `device-peq-service.svelte.ts` — Device PEQ actions and auto-write
 
-The panel's Read, Write and Device EQ actions, moved out of `DevicePeq.svelte` because auto-write
+The panel's Connect, Read, Write and Device EQ actions, moved out of the components because auto-write
 has to outlive the panel: an AutoEQ run or a graph drag with the Equalizer closed still reaches the
 device. The panel keeps the review dialog and the controls. One `$effect.root`, installed on connect,
 never disposed.
@@ -79,7 +79,7 @@ protocol, liveness, reconnecting and resuming after a reload are all the `peq-li
 (`github:potatosalad775/uniPEQ_link`, design in its `docs/design.md`). **Don't reimplement any of
 them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then both apps bump.
 
-- **Neither the service nor the client is in the boot bundle.** The Link accordion imports the
+- **Neither the service nor the client is in the boot bundle.** Hardware EQ imports the
   service; `AppShell.onMount` imports it only when `link-config.ts` finds a saved session to
   resume. The client and `uqr` follow by `import()`. Both are in `optimizeDeps.include`: found
   late, they re-optimized and reloaded the dev page on the first Link press, dropping the room.

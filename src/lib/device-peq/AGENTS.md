@@ -4,10 +4,19 @@ Reads and writes EQ on hardware. Users see it as **Hardware EQ** (the Equalizer 
 docs page); the code, message keys and the docs slug `features/device-peq` keep the old name, so
 translations and inbound links survive. Don't rename them to match.
 
-Connection state lives in `stores/device-peq-store.svelte.ts`; the actions (read, write, Device EQ, auto-write) in `services/device-peq-service.svelte.ts`, so
-auto-write outlives the panel; the UI is `components/features/DevicePeq.svelte` (+
-`DevicePeqPushDialog`). The supported-device list is the eqcaps inspector's catalog, linked from
-the panel, not a copy kept here.
+Connection state lives in `stores/device-peq-store.svelte.ts`; the actions (connect, read, write,
+Device EQ, auto-write) in `services/device-peq-service.svelte.ts`, so auto-write outlives the panel.
+The UI is `components/features/DevicePeq.svelte`, the Hardware EQ section, which shows
+`DeviceConnect` (the ways in), `UnipeqLink` and `DeviceControls` (+ `DevicePeqPushDialog`) by state.
+The supported-device list is the eqcaps inspector's catalog, linked from the panel, not a copy kept
+here.
+
+**Hardware EQ holds one connection at a time**: one made in this browser, or uniPEQ's over the link.
+Idle, the section offers both; anything past that hides the other until it ends. The services
+enforce it, not just the markup: `devicePeqService.connect` refuses while `linkStore.active`, and
+`linkService` won't open a room while `devicePeqStore.localActive` (connecting, choosing a profile,
+or connected here). Nothing downstream has to arbitrate between a local device and a linked one —
+keep it that way rather than reintroducing a precedence rule.
 
 The protocols are **not here**: USB HID, serial and BLE devices are driven by
 `@potatosalad775/eqcaps-device-bridge`, identified and described by the eqcaps database through
@@ -82,7 +91,8 @@ needs it at boot); keep it the only one.
   `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to
   uniPEQ, `devicePeqStore`'s flags (and `reportedInSync`) are mirrored from its `status`, and its
   review shows in `DevicePeqPushDialog` through `LinkDialogs`. `devicePeqService`'s own auto-write
-  skips a link connection. A device connected here stays connected: the link never replaces it.
+  skips a link connection. Its Unplug button is hidden: closing it unlinks, which **Unlink** above
+  it already does.
   The profile arrives over the wire, so `acceptProfile` refuses one eqcaps can't use rather than
   letting `resolveSlot` throw in every band card.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles

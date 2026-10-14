@@ -1,9 +1,14 @@
 /**
- * Device PEQ service — reads, writes and switches the connected device, and auto-write.
+ * Device PEQ service — connects, reads, writes and switches the device, and auto-write.
  *
- * Out of `DevicePeq.svelte` because auto-write has to outlive the panel: panels unmount on every
+ * Out of the Hardware EQ panel because auto-write has to outlive it: panels unmount on every
  * switch, and a change made in the graph or by AutoEQ with the EQ panel closed still has to reach
  * the device. The panel keeps only what needs it: the review dialog and the controls.
+ *
+ * Hardware EQ holds one connection at a time: one made here, or uniPEQ's over the link. Nothing
+ * connects here while the link is active (`linkStore.active`), and the link doesn't start while
+ * something is connected or connecting here (`devicePeqStore.localActive`, checked by
+ * `linkService`).
  *
  * A device connected in uniPEQ (`connectionType: 'link'`) is written by uniPEQ from the shared
  * list, so for it Write, Device EQ and the auto-write switch are commands to uniPEQ, and this
@@ -16,6 +21,8 @@ import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js
 import { LinkPeqDevice } from '$lib/device-peq/link.js';
 import { readRequest } from '$lib/device-peq/preset.js';
 import { needsReview, planPush, readLayout, type PushPlan } from '$lib/device-peq/push-plan.js';
+import type { ConnectResult } from '$lib/device-peq/connect.js';
+import type { NetworkDeviceType } from '$lib/device-peq/network-types.js';
 import type { DeviceConnection } from '$lib/device-peq/types.js';
 import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
@@ -29,6 +36,9 @@ import { volumeWarning } from './volume-warning.svelte.js';
 
 /** How long after the last edit auto-write waits: one slider drag is one write, not dozens. */
 export const AUTO_WRITE_DELAY_MS = 700;
+
+/** The transports a browser connects through its own device APIs. */
+export type DeviceKind = 'hid' | 'serial' | 'ble';
 
 /** What the auto-writer last saw, to tell an edit from a reconnect or a toggle. */
 type Seen = { filters: EQFilter[]; preamp: number; conn: DeviceConnection | null };
@@ -73,6 +83,116 @@ class DevicePeqService {
 		toast.error(message, note ? { description: note } : undefined);
 		if (isConnectionLost(e) && devicePeqStore.connection) devicePeqStore.needsReconnect = true;
 	}
+
+	// ── Connecting ────────────────────────────────────────────────────────────
+
+	/** Load the connect module and the device database before the click needs them. */
+	warm(): void {
+		void import('$lib/device-peq/connect.js').then((mod) => mod.warmUp());
+	}
+
+	/**
+	 * Connect a device over `kind`. `'unsupported'` when it has no profile and no protocol; a device
+	 * several profiles fit waits in `devicePeqStore.choice` for `pick`.
+	 */
+	async connect(kind: DeviceKind): Promise<'unsupported' | void> {
+		if (linkStore.active || devicePeqStore.localActive) return;
+		devicePeqStore.isConnecting = true;
+		devicePeqStore.setStatus(null);
+		try {
+			const mod = await import('$lib/device-peq/connect.js');
+			const run =
+				kind === 'hid' ? mod.connectHid : kind === 'serial' ? mod.connectSerial : mod.connectBle;
+			return await this.#settle(await run());
+		} catch (e) {
+			this.fail(e, 'connect');
+		} finally {
+			devicePeqStore.isConnecting = false;
+		}
+	}
+
+	/** The profile the user picked for the device waiting in `devicePeqStore.choice`. */
+	async pick(id: string): Promise<'unsupported' | void> {
+		const pending = devicePeqStore.choice;
+		if (!pending) return;
+		devicePeqStore.choice = null;
+		devicePeqStore.isConnecting = true;
+		try {
+			return await this.#settle(await pending.finish(id));
+		} catch (e) {
+			this.fail(e, 'connect');
+		} finally {
+			devicePeqStore.isConnecting = false;
+		}
+	}
+
+	/** Give up on the device waiting in `devicePeqStore.choice`. */
+	async cancelPick(): Promise<void> {
+		const pending = devicePeqStore.choice;
+		devicePeqStore.choice = null;
+		await pending?.cancel();
+	}
+
+	async connectNetwork(ip: string, type: NetworkDeviceType): Promise<void> {
+		if (linkStore.active || devicePeqStore.localActive || !ip.trim()) return;
+		devicePeqStore.isConnecting = true;
+		try {
+			const { connectNetworkDevice } = await import('$lib/device-peq/network.js');
+			await this.#connected(connectNetworkDevice(ip, type));
+		} catch (e) {
+			this.fail(e, 'connect');
+		} finally {
+			devicePeqStore.isConnecting = false;
+		}
+	}
+
+	/** Find a device again after it dropped the connection, or restarted to save. */
+	async reconnect(): Promise<void> {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		// uniPEQ holds the device: it reconnects, and says so in `status`.
+		const link = this.linkDevice;
+		if (link) return link.reconnect().catch((e) => this.fail(e, 'connect'));
+		devicePeqStore.isConnecting = true;
+		try {
+			const again = conn.reopen ? await conn.reopen() : null;
+			if (again) await this.#connected(again);
+			else {
+				devicePeqStore.setDisconnected();
+				devicePeqStore.setStatus(m.equalizer_device_peq_status_reconnect_manual());
+			}
+		} catch (e) {
+			this.fail(e, 'connect');
+		} finally {
+			devicePeqStore.isConnecting = false;
+		}
+	}
+
+	/** Close the connection. A device uniPEQ holds closes by unlinking. */
+	async disconnect(): Promise<void> {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		await conn.device.close().catch(() => {});
+		devicePeqStore.setDisconnected();
+	}
+
+	async #settle(result: ConnectResult): Promise<'unsupported' | void> {
+		if (result.kind === 'connected') await this.#connected(result.connection);
+		else if (result.kind === 'choose') devicePeqStore.choice = result;
+		else if (result.kind === 'unsupported') return 'unsupported';
+	}
+
+	async #connected(conn: DeviceConnection): Promise<void> {
+		const slot = await conn.device.currentSlot().catch(() => null);
+		devicePeqStore.setConnected(conn, slot);
+		this.install();
+		// Auto-write writes without a press, so its volume warning comes now, before any edit.
+		if (this.autoWriting) {
+			volumeWarning.ask(undefined, () => (devicePeqStore.autoStopped = true));
+		}
+	}
+
+	// ── Read / write ──────────────────────────────────────────────────────────
 
 	/** Replace the band list with what Device EQ shows. */
 	async read(): Promise<void> {

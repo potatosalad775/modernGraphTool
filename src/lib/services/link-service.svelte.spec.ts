@@ -296,12 +296,16 @@ describe('linkService', () => {
 		expect(linkStore.device).toBeNull();
 	});
 
-	it('leaves a device connected here alone', async () => {
+	it('doesn’t start while a device is connected or connecting here', async () => {
 		devicePeqStore.connection = { connectionType: 'hid', name: 'Local DAC' } as DeviceConnection;
-		await linked();
-		host.emit('device', DEVICE);
-		expect(devicePeqStore.connection?.connectionType).toBe('hid');
+		await linkService.start();
+		expect(linkStore.phase).toBe('idle');
 		devicePeqStore.connection = null;
+
+		devicePeqStore.isConnecting = true;
+		await linkService.start();
+		expect(linkStore.phase).toBe('idle');
+		devicePeqStore.isConnecting = false;
 	});
 
 	it('plays uniPEQ’s fixed preamp whatever the bands do, and turns Auto back on through the link', async () => {

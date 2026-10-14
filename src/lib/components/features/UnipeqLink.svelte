@@ -4,6 +4,7 @@
 	import { CircleAlert, Link2, TriangleAlert } from '@lucide/svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { linkStore } from '$lib/stores/link-store.svelte.js';
+	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
 	import { linkService } from '$lib/services/link-service.svelte.js';
 	import { DEFAULT_LINK_SERVER } from '$lib/services/link-config.js';
 	import { getLocale } from '$lib/paraglide/runtime.js';
@@ -206,7 +207,8 @@
 					<p class="text-xs text-base-content">
 						{linkStore.device ? m.link_linked_device() : m.link_no_device()}
 					</p>
-					{#if linkStore.device?.name != undefined}
+					<!-- Hardware EQ names a device it shows in its own row, below -->
+					{#if linkStore.device?.name != undefined && !devicePeqStore.connection}
 						<p class="text-[11px] text-base-content/70">{linkStore.device.name}</p>
 					{/if}
 				</div>

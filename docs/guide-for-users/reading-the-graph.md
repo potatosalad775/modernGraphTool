@@ -50,7 +50,7 @@ Roughly speaking, here's what different regions of the X axis correspond to by e
 | Presence   | 2 – 5 kHz    | Consonants, bite, "forwardness"                     |
 | Brilliance | 5 – 20 kHz   | Cymbal shimmer, air, top-end sparkle                |
 
-modernGraphTool has an interactive version of this table built in. Turn on the [Frequency Tutorial](../features/frequency-tutorial.mdx) overlay from the Graph panel and labels appear directly on the graph.
+modernGraphTool has an interactive version of this table built in. Turn on the [Frequency Tutorial](../features/frequency-tutorial.mdx) overlay with the **Freq. Guide** button in the graph toolbar and labels appear directly on the graph.
 
 ## The bumps aren't noise
 

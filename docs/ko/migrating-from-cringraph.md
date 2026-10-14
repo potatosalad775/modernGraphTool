@@ -87,7 +87,7 @@ CrinGraph는 오랜 역사를 거쳐오면서 지금도 여러 포크가 활발�
    - `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
    - `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
 
-   이와 함께, 보정 기준선(보통 KEMAR DF 계열)이 `data/target/`에 있는지 확인하고 확장자를 뺀 파일명을 적어 두세요. 다음 단계에서 `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`에 입력합니다.
+   이와 함께, 보정 기준선(보통 KEMAR DF 계열)이 `data/target/`에 있는지 확인하고 확장자를 뺀 파일명을 적어 두세요. 다음 단계에서 `PREFERENCE_BOUND.BOUND_LIST` 항목의 `target`으로 입력합니다.
 
 4. **새 `config.js` 만들기** — CrinGraph의 설정 형식은 v2와 호환되지 않으니, 가장 깔끔한 길은 [**Config Editor**](/config-generator)에서 처음부터 새로 짜면서 기존 설정 값을 참고해 옮기는 것입니다. 자주 쓰이는 필드 매핑은 다음과 같습니다.
 
@@ -106,11 +106,11 @@ CrinGraph는 오랜 역사를 거쳐오면서 지금도 여러 포크가 활발�
    | `page_title`, `page_description`                                      | `index.html`의 `<title>` / `<meta>`에 설정 (6단계)                     |
    | `themingEnabled`, `alt_layout`, `alt_*` 플래그                        | 필요 없음 — v2는 테마와 레이아웃이 항상 켜져 있음                      |
    | `extraEQBands`, `extraEQplugins`                                      | 필요 없음 — v2는 Interactive EQ와 하드웨어 EQ를 내장                    |
-   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + `data/` 내 파일 위치          |
+   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BOUND_LIST` + `data/` 내 파일 위치                   |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
    | `allowSquigDownload`, `analyticsEnabled`                              | `SQUIGLINK.ENABLE_*` 필드                                              |
-   | `default_DF_name`                                                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`에서 이름으로 사용               |
+   | `default_DF_name`                                                     | `PREFERENCE_BOUND.BOUND_LIST`의 `target`으로 사용                      |
 
    v2의 모든 옵션을 필드별로 설명한 내용은 [페이지 커스터마이징 → `config.js`](./guide-for-admins/customize-page.mdx#changing-basic-settings-configjs)에서 확인하세요.
 

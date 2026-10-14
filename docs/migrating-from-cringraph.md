@@ -87,7 +87,7 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
    - `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
    - `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
 
-   Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you'll set `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` to it in the next step.
+   Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you'll set it as the `target` of a `PREFERENCE_BOUND.BOUND_LIST` entry in the next step.
 
 4. **Generate a new `config.js`** — CrinGraph's config format is incompatible with v2, so the cleanest approach is to build a fresh one using the [**Config Editor**](/config-generator), referencing your old config for the values. A few common field mappings to speed you along:
 
@@ -106,11 +106,11 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
    | `page_title`, `page_description`                                      | Set in `index.html` `<title>` / `<meta>` (step 6)                      |
    | `themingEnabled`, `alt_layout`, `alt_*` flags                         | Not needed — v2's theme and layout are always on                       |
    | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Hardware EQ            |
-   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/`      |
+   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BOUND_LIST` + file location in `data/`               |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
    | `allowSquigDownload`, `analyticsEnabled`                              | `SQUIGLINK.ENABLE_*` fields                                            |
-   | `default_DF_name`                                                     | Used as the name in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`             |
+   | `default_DF_name`                                                     | Used as the `target` in `PREFERENCE_BOUND.BOUND_LIST`                  |
 
    For the field-by-field reference of every v2 option, see [Customizing the Page → `config.js`](./guide-for-admins/customize-page.mdx#changing-basic-settings-configjs).
 

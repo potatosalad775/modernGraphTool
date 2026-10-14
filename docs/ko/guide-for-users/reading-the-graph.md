@@ -49,7 +49,7 @@ draft: false
 | 존재감 (Presence)      | 2 – 5 kHz    | 자음의 날카로움, 선명함, "앞으로 튀어나오는 느낌" |
 | 개방감 (Brilliance)    | 5 – 20 kHz   | 심벌즈의 반짝임과 고음 대역의 보컬 에어(Air)      |
 
-modernGraphTool에는 이 표가 도움말 기능 형태로 내장되어 있습니다. 그래프 패널에서 [Frequency Tutorial](../features/frequency-tutorial.mdx) 오버레이를 켜면 차트 위에 명칭 라벨이 직접 나타납니다.
+modernGraphTool에는 이 표가 도움말 기능 형태로 내장되어 있습니다. 그래프 툴바의 **주파수 가이드** 버튼으로 [Frequency Tutorial](../features/frequency-tutorial.mdx) 오버레이를 켜면 차트 위에 명칭 라벨이 직접 나타납니다.
 
 ## 울퉁불퉁한 굴곡은 노이즈가 아닙니다
 

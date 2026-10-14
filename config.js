@@ -42,6 +42,7 @@ const CONFIG = {
 		ALLOW_REMOVING_PHONE_FROM_SELECTOR: true, // Setting it to false will prevent user from removing phone from selector.
 		SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true, // Switch to phone list when brand button is clicked (in mobile UI)
 		HIDE_DEV_DONATE_BUTTON: false, // This option determines whether to hide "Donate" button on Misc Panel or not.
+		// SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false, // Show the Frequency Tutorial strip to first-time visitors
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: true, // Display targets in multiple lines by 'type'. Adds a collapse button.
 			OMIT_TARGET_SUFFIX: true, // Omit the 'Target' suffix to save some space.
@@ -93,11 +94,14 @@ const CONFIG = {
 		]
 	},
 
-	// Shaded upper/lower preference-range overlay. Needs Bounds U.txt and
-	// Bounds D.txt in your data/ folder. → docs: PREFERENCE_BOUND
+	// Shaded upper/lower preference-range overlay, picked from a row in the target
+	// list. Each BOUND_LIST entry is a base target from your target folder, with an
+	// optional `name` and `upper` / `lower` bound files in data/ (default
+	// 'Bounds U.txt' / 'Bounds D.txt'). An empty list disables the feature.
+	// → docs: PREFERENCE_BOUND
 	PREFERENCE_BOUND: {
-		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Show the bounds immediately on page load
-		BASE_DF_TARGET_FILE: 'KEMAR DF (KB006x) Target', // Reference DF target; "" disables the feature
+		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Select the first bound on page load
+		BOUND_LIST: [{ target: 'KEMAR DF (KB006x)' }],
 		COLOR_FILL: 'rgba(180,180,180,0.2)',
 		COLOR_BORDER: 'rgba(120,120,120,0.5)'
 	},

@@ -62,7 +62,7 @@ The full feature doc with all the config options is at [Target Customizer](../fe
 
 In addition to a single target line, research says there's usually a **range** of tunings most listeners find acceptable — not one exact curve. modernGraphTool can draw that range as a shaded region on top of the graph, called the **preference bound**.
 
-Toggle the preference bound from the graph toolbar. When it's on:
+Turn the preference bound on from the **Pref. Bound** row at the bottom of the target list. Some sites offer more than one bound — for example one per measurement rig — and only one shows at a time; click the active one again to hide it. When it's on:
 
 - A **shaded area** appears, representing the upper and lower limits of the acceptable region.
 - The area is anchored to a configured **base target** — usually a diffuse-field target — so the bound moves sensibly as you change the target selection.
@@ -70,7 +70,7 @@ Toggle the preference bound from the graph toolbar. When it's on:
 
 This isn't a pass/fail test. A headphone that ducks outside the bound in one region might still be enjoyable — it just means it's an opinionated tuning rather than a safely neutral one. Treat the bound as "how far from the middle of the road" rather than "right or wrong".
 
-The preference bound needs data files the operator has to ship, so on sites that haven't configured it the toggle button doesn't appear. See [Preference Bound](../features/preference-bound.mdx) for the full feature doc.
+The preference bound needs data files the operator has to ship, so on sites that haven't configured it the row doesn't appear. See [Preference Bound](../features/preference-bound.mdx) for the full feature doc.
 
 ## Recommended workflow
 

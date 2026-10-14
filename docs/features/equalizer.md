@@ -102,6 +102,44 @@ types are offered, and a value it fixes is shown read-only. Hover a box to see w
 
 Importing a filter file switches back to *Default (unlimited)* first, so the file lands as written.
 
+## History & Compare \{#history-and-compare\}
+
+The **History & Compare** section of the panel keeps earlier versions of your EQ so you can go back
+to one, keep it, or listen to two side by side.
+
+- **History** logs your edits automatically. A burst of changes — dragging a slider — becomes one
+  entry. It lasts for the session and starts over when you pick another source device. The trash
+  button clears it; an entry's **⋯** menu deletes just that one.
+- **Bookmarks** keep an entry for good. Star a History entry to bookmark it; it is named after its
+  strongest band and the date, and **⋯ → Rename** changes that. Bookmarks are stored in this browser
+  only, separately on each site, and are listed for every device — your current device's come first.
+  They are removed one at a time from the Bookmarks tab, never by clearing History, and a browser
+  keeps at most 200.
+
+### A/B comparison
+
+Press **A** or **B** on any two entries — in either tab, so A can be a bookmark and B a recent edit —
+then switch between them with the **A** and **B** buttons at the top. Two options appear once both
+are picked:
+
+- **Match loudness** plays the louder of the two at the quieter one's level, so you compare tone
+  rather than volume. It measures loudness the way streaming services do (K-weighted) and only ever
+  turns the sound down. It applies to the audio player on this page only — not to
+  [Hardware EQ](./device-peq.mdx) or the uniPEQ link, where the device or app owns the preamp — and
+  it stops as soon as you edit a band, since you are no longer comparing A with B.
+- **Show on graph** draws the side that isn't playing as a dashed line on top of the graph, so you
+  can see what a switch changes.
+
+To keep an entry on the graph for longer, **⋯ → Add to graph** inserts it as a curve of its own: the
+current source device with that entry's bands, which you can hide, recolor or remove like any other.
+
+### Entries that don't fit the constraint
+
+An entry made under a looser [EQ constraint](#eq-constraints) — more bands, or values outside the
+active one's ranges — is marked **Doesn't fit** with the constraint's name, and its A/B buttons are
+unavailable. Nothing reshapes it to fit: applying it would silently change what you saved. Switch
+back to a constraint it fits, or rebuild it under the new one.
+
 ## Importing filter files
 
 **Import EQ** reads Equalizer APO's parametric format, the text AutoEq, squig.link tools and APO

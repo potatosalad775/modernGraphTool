@@ -12,7 +12,7 @@ draft: false
 
 선호도 경계는 청취 선호도 연구를 바탕으로, 대부분의 청취자가 선호하는 주파수 응답 범위를 그래프에 음영 띠로 그려 줍니다. "정확히 한 선에 맞는가"가 아니라 "이 튜닝이 무난한 범위에서 얼마나 벗어나 있는가"에 답하는 기능입니다.
 
-방문자는 그래프 툴바에서 켜고 끕니다. 해석하는 방법은 [타겟과 선호도](../guide-for-users/targets-and-preferences.mdx#preference-bound)를 참고하세요.
+방문자는 타겟 목록 맨 아래의 **선호도 경계** 줄에서 고릅니다. 한 번에 하나만 선택되며, 선택된 경계를 다시 누르면 띠가 꺼집니다. 해석하는 방법은 [타겟과 선호도](../guide-for-users/targets-and-preferences.mdx#preference-bound)를 참고하세요.
 
 ## 띠의 정렬 방식
 
@@ -28,7 +28,7 @@ draft: false
 
 ## 설정하기
 
-툴바 버튼은 운영자가 데이터를 넣고 [`PREFERENCE_BOUND`](../guide-for-admins/customize-page.mdx#preference_bound)를 설정해야 나타납니다.
+이 줄은 운영자가 데이터를 넣고 [`PREFERENCE_BOUND`](../guide-for-admins/customize-page.mdx#preference_bound)를 설정해야 나타납니다.
 
 파일 세 개가 필요합니다.
 
@@ -41,4 +41,39 @@ draft: false
   ...
   ```
 
-- **기준 Diffuse Field 타겟** — `BASE_DF_TARGET_FILE`에 `.txt` 확장자를 뺀 이름으로 지정합니다. 일반 타겟 폴더(`PATH.TARGET_MEASUREMENT`, 기본값 `./data/target/`)에서 그대로 읽으므로 다른 곳에 복사하지 마세요. `"KEMAR DF (KB006x) Target"`은 `./data/target/KEMAR DF (KB006x) Target.txt`를 불러옵니다.
+- **기준 Diffuse Field 타겟** — `BOUND_LIST` 항목의 `target`에 `.txt` 확장자를 뺀 이름으로 지정합니다. 일반 타겟 폴더(`PATH.TARGET_MEASUREMENT`, 기본값 `./data/target/`)에서 그대로 읽으므로 다른 곳에 복사하지 마세요. `"KEMAR DF (KB006x)"`는 `./data/target/KEMAR DF (KB006x) Target.txt`를 불러옵니다. `TARGET_MANIFEST`와 마찬가지로 ` Target`이 없으면 자동으로 붙습니다.
+
+```javascript
+PREFERENCE_BOUND: {
+  BOUND_LIST: [{ target: "KEMAR DF (KB006x)" }],
+},
+```
+
+## 여러 경계 제공하기 \{#offering-more-than-one-bound\}
+
+`BOUND_LIST`에는 항목을 여러 개 넣을 수 있고, 각 항목이 줄 안의 버튼 하나가 됩니다. 측정 장비가 둘 이상이라 장비마다 기준 타겟이 따로 필요할 때, 또는 같은 타겟에 서로 다른 경계 파일을 견줘 보게 하고 싶을 때 사용하세요.
+
+```javascript
+PREFERENCE_BOUND: {
+  ENABLE_BOUND_ON_INITIAL_LOAD: true, // 첫 항목을 선택
+  BOUND_LIST: [
+    { target: "KEMAR DF (KB006x)" },
+    { target: "5128 DF", upper: "Bounds U 5128.txt", lower: "Bounds D 5128.txt" },
+    { name: "KEMAR (wide)", target: "KEMAR DF (KB006x)", upper: "Bounds U wide.txt", lower: "Bounds D wide.txt" },
+  ],
+},
+```
+
+- `target` — 위에서 설명한 기준 타겟. 필수입니다.
+- `name` — 버튼에 표시할 이름. 기본값은 ` Target`을 뺀 타겟 이름입니다. 이름은 겹치면 안 되며, 겹치는 항목은 건너뜁니다. 다른 운영자 문자열처럼 `{ default, i18n }` 형식도 받습니다.
+- `upper` / `lower` — `data/` 기준 경계 파일 경로. 기본값은 `Bounds U.txt`, `Bounds D.txt`입니다.
+
+항목이 둘 이상이면 그래프 왼쪽 위, 기준선 라벨 바로 아래 줄에 현재 경계의 이름이 표시됩니다. 스크린샷만 보고도 어떤 경계였는지 알 수 있습니다.
+
+:::caution
+경계 파일은 그것을 도출할 때 쓴 기준 타겟에 대한 오프셋입니다. 경계를 관계없는 타겟(예: Diffuse Field 대신 Harman 커브)과 짝지으면, 그 경계를 만든 연구가 뒷받침하지 않는 띠가 그려집니다. 각 항목의 타겟은 그 경계를 만들 때 쓴 타겟으로 두세요.
+:::
+
+:::note[업그레이드]
+이전 설정의 `BASE_DF_TARGET_FILE`도 그대로 동작합니다. `BOUND_LIST`가 없으면 기본 경계 파일을 쓰는 단일 항목으로 처리됩니다.
+:::

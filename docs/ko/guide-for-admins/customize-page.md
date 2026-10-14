@@ -130,6 +130,7 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
 	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
 	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
+	--color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
 
 .dark {
@@ -138,6 +139,7 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
 	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
+	--color-graph-compare: rgba(255, 255, 255, 0.55);
 }
 ```
 
@@ -329,6 +331,7 @@ INTERFACE: {
   PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false,
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
@@ -363,6 +366,12 @@ Phone(측정 데이터) 선택기에서 이미 추가된 항목을 다시 선택
 모바일 UI에서 브랜드 버튼 클릭 시 자동으로 기기 목록으로 전환할지 여부를 설정합니다.
 
 - `true`, `false` 중 선택.
+
+#### `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`
+
+처음 방문한 사용자에게 [Frequency Tutorial](../features/frequency-tutorial.mdx) 띠를 그래프 아래에 표시할지 여부를 설정합니다. 방문자는 그래프 툴바의 **주파수 가이드** 버튼으로 켜고 끌 수 있으며, 방문자의 선택이 이 기본값보다 우선합니다.
+
+- `true`, `false` 중 선택 (기본값 `false` — 그래프와 패널 공간을 위해 숨김).
 
 #### `TARGET`
 
@@ -749,22 +758,29 @@ TOPBAR: {
 ```javascript
 PREFERENCE_BOUND: {
   ENABLE_BOUND_ON_INITIAL_LOAD: false,
-  BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+  BOUND_LIST: [
+    { target: "KEMAR DF (KB006x)" },
+    { name: "5128", target: "5128 DF", upper: "Bounds U 5128.txt", lower: "Bounds D 5128.txt" },
+  ],
   COLOR_FILL: "rgba(180,180,180,0.2)",
   COLOR_BORDER: "rgba(120,120,120,0.5)",
 },
 ```
 
-그래프에 음영으로 상·하한 선호 범위를 표시하는 선호도 경계(Preference Bound) 오버레이를 설정합니다.
+그래프에 음영으로 상·하한 선호 범위를 표시하는 선호도 경계(Preference Bound) 오버레이를 설정합니다. 방문자는 타겟 목록 맨 아래 줄에서 경계를 하나 고르거나, 아무것도 고르지 않을 수 있습니다.
 
-- `ENABLE_BOUND_ON_INITIAL_LOAD` — 페이지 로드 시 곧바로 선호도 경계를 표시할지 여부.
+- `ENABLE_BOUND_ON_INITIAL_LOAD` — 페이지 로드 시 `BOUND_LIST`의 첫 항목을 선택할지 여부.
   - `true` 또는 `false`.
-- `BASE_DF_TARGET_FILE` — 보정 기준선으로 쓸 DF 타겟 파일.
+- `BOUND_LIST` — 선택할 수 있는 경계 목록. 비어 있으면 기능이 꺼집니다. 각 항목은 다음 값을 받습니다.
+  - `target` (필수) — 기준 DF 타겟. 타겟 폴더에 있는 이름 그대로 적으며, ` Target`이 없으면 자동으로 붙습니다.
+  - `name` (선택) — 버튼에 표시할 이름. 기본값은 타겟 이름이며, 항목끼리 겹치면 안 됩니다. `{ default, i18n }` 형식도 받습니다.
+  - `upper` / `lower` (선택) — `data/` 기준 경계 파일 경로. 기본값은 `Bounds U.txt` / `Bounds D.txt`.
+- `BASE_DF_TARGET_FILE` (이전 방식) — `BOUND_LIST`가 없을 때만, 기본 경계 파일을 쓰는 단일 항목으로 사용됩니다.
 - `COLOR_FILL` — 음영 영역을 채울 색상 (CSS 색상 값).
 - `COLOR_BORDER` — 경계선 색상 (CSS 색상 값).
 
 :::note[데이터 파일]
-선호도 경계를 표시하려면 `data/` 폴더에 경계 데이터 파일(`Bounds U.txt` / `Bounds D.txt`)이 있어야 합니다.
+각 항목의 경계 파일(따로 지정하지 않으면 `Bounds U.txt` / `Bounds D.txt`)이 `data/` 폴더에 있어야 해당 경계가 표시됩니다. 여러 경계를 제공하는 경우는 [선호도 경계](../features/preference-bound.mdx#offering-more-than-one-bound)를 참조하십시오.
 :::
 
 ### `TARGET_CUSTOMIZER`

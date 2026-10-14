@@ -130,6 +130,7 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
 	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
 	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
+	--color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
 
 .dark {
@@ -138,6 +139,7 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
 	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
+	--color-graph-compare: rgba(255, 255, 255, 0.55);
 }
 ```
 
@@ -335,6 +337,7 @@ INTERFACE: {
   PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false,
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
@@ -369,6 +372,12 @@ Sets whether to remove an already added item from the graph when reselected in t
 Sets whether to automatically switch to the phone list when a brand button is clicked in the mobile UI.
 
 - Choose `true` or `false`.
+
+#### `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`
+
+Sets whether the [Frequency Tutorial](../features/frequency-tutorial.mdx) strip is shown under the graph on a visitor's first load. Visitors toggle it with the **Freq. Guide** button in the graph toolbar, and their choice is remembered over this default.
+
+- Choose `true` or `false` (default `false` — hidden, to keep the space for the graph and panels).
 
 #### `TARGET`
 
@@ -758,22 +767,29 @@ Sets the title and link list for the page's top bar.
 ```javascript
 PREFERENCE_BOUND: {
   ENABLE_BOUND_ON_INITIAL_LOAD: false,
-  BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+  BOUND_LIST: [
+    { target: "KEMAR DF (KB006x)" },
+    { name: "5128", target: "5128 DF", upper: "Bounds U 5128.txt", lower: "Bounds D 5128.txt" },
+  ],
   COLOR_FILL: "rgba(180,180,180,0.2)",
   COLOR_BORDER: "rgba(120,120,120,0.5)",
 },
 ```
 
-Configures the preference bound overlay that draws a shaded upper/lower preference range on the graph.
+Configures the preference bound overlay that draws a shaded upper/lower preference range on the graph. Visitors pick a bound from a row at the bottom of the target list — one at a time, or none.
 
-- `ENABLE_BOUND_ON_INITIAL_LOAD`: Shows bounds immediately on page load.
+- `ENABLE_BOUND_ON_INITIAL_LOAD`: Selects the first `BOUND_LIST` entry on page load.
   - Choose `true` or `false`.
-- `BASE_DF_TARGET_FILE`: The reference DF target file used for compensation.
+- `BOUND_LIST`: The selectable bounds. An empty list disables the feature. Each entry takes:
+  - `target` (required): The base DF target, as named in your target folder. ` Target` is appended when missing.
+  - `name` (optional): The chip label; defaults to the target name. Must be unique. Accepts `{ default, i18n }`.
+  - `upper` / `lower` (optional): Bound files relative to `data/`; default `Bounds U.txt` / `Bounds D.txt`.
+- `BASE_DF_TARGET_FILE` (legacy): Used only when `BOUND_LIST` is absent, as a single entry with the default bound files.
 - `COLOR_FILL`: Fill color of the shaded area (CSS color value).
 - `COLOR_BORDER`: Border color of the shaded area (CSS color value).
 
 :::note[Data Files]
-Bound data files (`Bounds U.txt` / `Bounds D.txt`) must exist in the `data/` folder for the preference bound to display.
+Each entry's bound files (`Bounds U.txt` / `Bounds D.txt` unless set) must exist in the `data/` folder for its bound to display. See [Preference Bound](../features/preference-bound.mdx#offering-more-than-one-bound) for when to offer several.
 :::
 
 ### `TARGET_CUSTOMIZER`

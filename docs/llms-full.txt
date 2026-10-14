@@ -968,6 +968,26 @@ A constraint can do more than cap the band count. Each band slot has its own fil
 
 Importing a filter file switches back to *Default (unlimited)* first, so the file lands as written.
 
+## History & Compare
+
+The **History & Compare** section of the panel keeps earlier versions of your EQ so you can go back to one, keep it, or listen to two side by side.
+
+* **History** logs your edits automatically. A burst of changes — dragging a slider — becomes one entry. It lasts for the session and starts over when you pick another source device. The trash button clears it; an entry’s **⋯** menu deletes just that one.
+* **Bookmarks** keep an entry for good. Star a History entry to bookmark it; it is named after its strongest band and the date, and **⋯ → Rename** changes that. Bookmarks are stored in this browser only, separately on each site, and are listed for every device — your current device’s come first. They are removed one at a time from the Bookmarks tab, never by clearing History, and a browser keeps at most 200.
+
+### A/B comparison
+
+Press **A** or **B** on any two entries — in either tab, so A can be a bookmark and B a recent edit — then switch between them with the **A** and **B** buttons at the top. Two options appear once both are picked:
+
+* **Match loudness** plays the louder of the two at the quieter one’s level, so you compare tone rather than volume. It measures loudness the way streaming services do (K-weighted) and only ever turns the sound down. It applies to the audio player on this page only — not to [Hardware EQ](/modernGraphTool/docs/features/device-peq/) or the uniPEQ link, where the device or app owns the preamp — and it stops as soon as you edit a band, since you are no longer comparing A with B.
+* **Show on graph** draws the side that isn’t playing as a dashed line on top of the graph, so you can see what a switch changes.
+
+To keep an entry on the graph for longer, **⋯ → Add to graph** inserts it as a curve of its own: the current source device with that entry’s bands, which you can hide, recolor or remove like any other.
+
+### Entries that don’t fit the constraint
+
+An entry made under a looser [EQ constraint](#eq-constraints) — more bands, or values outside the active one’s ranges — is marked **Doesn’t fit** with the constraint’s name, and its A/B buttons are unavailable. Nothing reshapes it to fit: applying it would silently change what you saved. Switch back to a constraint it fits, or rebuild it under the new one.
+
 ## Importing filter files
 
 **Import EQ** reads Equalizer APO’s parametric format, the text AutoEq, squig.link tools and APO itself write:
@@ -1037,15 +1057,15 @@ turboEQ can also turn down a particular request while loading fine — Treble-sa
 
 The Frequency Tutorial overlays the graph with labeled frequency regions — Sub Bass, Bass, Lower Mids, Upper Mids, Presence and Brilliance — each with a short description of what it contributes to the sound. It’s an aid for visitors still learning to read FR graphs. For how to use it, see [Appearance and language](/modernGraphTool/docs/guide-for-users/appearance-and-language/#frequency-tutorial).
 
-Visitors toggle it from the area above the graph toolbar. The labels are UI strings, so they follow the visitor’s chosen language.
+The strip is hidden by default to leave room for the graph — it matters most on mobile, where it would sit between the graph and every panel. Visitors show it with the **Freq. Guide** button in the graph toolbar (on mobile, in the Graph panel), and the choice is remembered on their device. Clicking a region’s button highlights it on the graph and shows its description. The labels are UI strings, so they follow the visitor’s chosen language.
 
-Operators have nothing to configure. The text ships with the app’s translations, so changing it means a source build — see [Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/#frequency-tutorial-text).
+Operators who want first-time visitors to see it can set [`INTERFACE.SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`](/modernGraphTool/docs/guide-for-admins/customize-page/#show_frequency_tutorial_on_initial_load) to `true`; a visitor who turns it off stays off. The text ships with the app’s translations, so changing it means a source build — see [Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/#frequency-tutorial-text).
 
 # Preference Bound
 
 The Preference Bound draws a shaded band on the graph showing the range of frequency responses most listeners prefer, based on listening-preference research. It answers “how far from the middle of the road is this tuning” rather than “does it match one exact line”.
 
-Visitors toggle it from the graph toolbar. For how to read it, see [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/#preference-bound).
+Visitors pick it from the **Pref. Bound** row at the bottom of the target list. The row is single-select: clicking a bound shows it, clicking the active one again hides the band. For how to read it, see [Targets and preferences](/modernGraphTool/docs/guide-for-users/targets-and-preferences/#preference-bound).
 
 ## How the band is aligned
 
@@ -1061,7 +1081,7 @@ The band is widest in the bass (about 6 dB at 50 Hz versus 2 dB at 500 Hz). Alig
 
 ## Setting it up
 
-The toolbar button only appears once the operator has shipped the data and configured it under [`PREFERENCE_BOUND`](/modernGraphTool/docs/guide-for-admins/customize-page/#preference_bound).
+The row only appears once the operator has shipped the data and configured it under [`PREFERENCE_BOUND`](/modernGraphTool/docs/guide-for-admins/customize-page/#preference_bound).
 
 It needs three files:
 
@@ -1074,7 +1094,42 @@ It needs three files:
   ...
   ```
 
-* **The base diffuse field target**, named by `BASE_DF_TARGET_FILE` without its `.txt` extension. It is read from your regular target folder (`PATH.TARGET_MEASUREMENT`, `./data/target/` by default), so don’t copy it anywhere else. `"KEMAR DF (KB006x) Target"` loads `./data/target/KEMAR DF (KB006x) Target.txt`.
+* **The base diffuse field target**, named by a `BOUND_LIST` entry’s `target` without its `.txt` extension. It is read from your regular target folder (`PATH.TARGET_MEASUREMENT`, `./data/target/` by default), so don’t copy it anywhere else. `"KEMAR DF (KB006x)"` loads `./data/target/KEMAR DF (KB006x) Target.txt` — the `Target` suffix is added when missing, as in `TARGET_MANIFEST`.
+
+```javascript
+PREFERENCE_BOUND: {
+  BOUND_LIST: [{ target: "KEMAR DF (KB006x)" }],
+},
+```
+
+## Offering more than one bound
+
+`BOUND_LIST` can hold several entries, and each becomes a chip in the row. Use it when your database spans more than one measurement rig — each rig’s measurements need a base target of their own — or to let visitors compare different bound files against the same target.
+
+```javascript
+PREFERENCE_BOUND: {
+  ENABLE_BOUND_ON_INITIAL_LOAD: true, // selects the first entry
+  BOUND_LIST: [
+    { target: "KEMAR DF (KB006x)" },
+    { target: "5128 DF", upper: "Bounds U 5128.txt", lower: "Bounds D 5128.txt" },
+    { name: "KEMAR (wide)", target: "KEMAR DF (KB006x)", upper: "Bounds U wide.txt", lower: "Bounds D wide.txt" },
+  ],
+},
+```
+
+* `target` — the base target, as above. Required.
+* `name` — the chip label. Defaults to the target name without `Target`. Names must be unique; a repeated one is skipped. Supports the same `{ default, i18n }` form as other operator strings.
+* `upper` / `lower` — the bound files, relative to `data/`. Default to `Bounds U.txt` and `Bounds D.txt`.
+
+With two or more entries, the graph names the active bound in its top-left corner, one line below the baseline label, so a screenshot shows which bound it was taken with.
+
+Caution
+
+The bound files are offsets from the base they were derived against. Pairing a set of bounds with an unrelated target — a Harman curve instead of a diffuse field target, say — draws a band the research behind those bounds doesn’t support. Keep each entry’s target the one its bounds were made for.
+
+Upgrading
+
+`BASE_DF_TARGET_FILE` from earlier configs still works: when `BOUND_LIST` is absent, it becomes a single entry with the default bound files.
 
 # Site Selector
 
@@ -1351,6 +1406,7 @@ These drive the SVG rendering where Tailwind classes cannot be used:
   --color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
   --color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
   --color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
+  --color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
 
 
@@ -1360,6 +1416,7 @@ These drive the SVG rendering where Tailwind classes cannot be used:
   --color-graph-axis-label: rgba(255, 255, 255, 0.6);
   --color-graph-grid-text: rgba(255, 255, 255, 0.5);
   --color-graph-baseline: rgba(255, 255, 255, 0.25);
+  --color-graph-compare: rgba(255, 255, 255, 0.55);
 }
 ```
 
@@ -1559,6 +1616,7 @@ INTERFACE: {
   PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false,
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
@@ -1593,6 +1651,12 @@ Sets whether to remove an already added item from the graph when reselected in t
 Sets whether to automatically switch to the phone list when a brand button is clicked in the mobile UI.
 
 * Choose `true` or `false`.
+
+#### `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`
+
+Sets whether the [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/) strip is shown under the graph on a visitor’s first load. Visitors toggle it with the **Freq. Guide** button in the graph toolbar, and their choice is remembered over this default.
+
+* Choose `true` or `false` (default `false` — hidden, to keep the space for the graph and panels).
 
 #### `TARGET`
 
@@ -1977,23 +2041,35 @@ Multilingual Support
 ```javascript
 PREFERENCE_BOUND: {
   ENABLE_BOUND_ON_INITIAL_LOAD: false,
-  BASE_DF_TARGET_FILE: "KEMAR DF (KB006x) Target",
+  BOUND_LIST: [
+    { target: "KEMAR DF (KB006x)" },
+    { name: "5128", target: "5128 DF", upper: "Bounds U 5128.txt", lower: "Bounds D 5128.txt" },
+  ],
   COLOR_FILL: "rgba(180,180,180,0.2)",
   COLOR_BORDER: "rgba(120,120,120,0.5)",
 },
 ```
 
-Configures the preference bound overlay that draws a shaded upper/lower preference range on the graph.
+Configures the preference bound overlay that draws a shaded upper/lower preference range on the graph. Visitors pick a bound from a row at the bottom of the target list — one at a time, or none.
 
-* `ENABLE_BOUND_ON_INITIAL_LOAD`: Shows bounds immediately on page load.
+* `ENABLE_BOUND_ON_INITIAL_LOAD`: Selects the first `BOUND_LIST` entry on page load.
   * Choose `true` or `false`.
-* `BASE_DF_TARGET_FILE`: The reference DF target file used for compensation.
+
+* `BOUND_LIST`: The selectable bounds. An empty list disables the feature. Each entry takes:
+
+  * `target` (required): The base DF target, as named in your target folder. `Target` is appended when missing.
+  * `name` (optional): The chip label; defaults to the target name. Must be unique. Accepts `{ default, i18n }`.
+  * `upper` / `lower` (optional): Bound files relative to `data/`; default `Bounds U.txt` / `Bounds D.txt`.
+
+* `BASE_DF_TARGET_FILE` (legacy): Used only when `BOUND_LIST` is absent, as a single entry with the default bound files.
+
 * `COLOR_FILL`: Fill color of the shaded area (CSS color value).
+
 * `COLOR_BORDER`: Border color of the shaded area (CSS color value).
 
 Data Files
 
-Bound data files (`Bounds U.txt` / `Bounds D.txt`) must exist in the `data/` folder for the preference bound to display.
+Each entry’s bound files (`Bounds U.txt` / `Bounds D.txt` unless set) must exist in the `data/` folder for its bound to display. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/#offering-more-than-one-bound) for when to offer several.
 
 ### `TARGET_CUSTOMIZER`
 
@@ -3667,7 +3743,7 @@ To reset a curve back to its auto-assigned color, remove it and reload it from t
 
 The **Frequency Tutorial** is an overlay that labels each region of the graph (sub-bass, bass, lower mids, upper mids, presence, brilliance) with a short description of what lives there musically.
 
-Toggle it from the area above the graph toolbar. It’s a particularly useful aid if you’re:
+It’s hidden by default. Turn it on with the **Freq. Guide** button in the graph toolbar (on mobile, in the Graph panel); the strip appears under the graph and stays on until you turn it off. It’s a particularly useful aid if you’re:
 
 * New to reading frequency response graphs.
 * Explaining a headphone’s sound to someone who doesn’t yet have the vocabulary.
@@ -3962,13 +4038,9 @@ Toggle **Inspection** (magnifier icon) on and a small readout follows your curso
 
 On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don’t need it — the cursor tracking gets in the way otherwise.
 
-## Preference Bound toggle
-
-The **preference bound** button toggles a shaded region that represents a statistical range of “acceptable” tunings rather than a single target line. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/) for the full story. The button only appears when the site has configured the bound data files — if it’s missing, the feature isn’t available on that deployment.
-
 ## Frequency Tutorial
 
-The **Frequency Tutorial** is a labeled overlay that names each region of the graph — sub-bass, bass, lower mids, upper mids, presence, brilliance — with a short description of what lives there. Toggle it from the area above the graph toolbar. If you’re still building intuition for which part of the graph corresponds to which part of a song, leave this on for a while. Full docs: [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/).
+The **Frequency Tutorial** is a labeled overlay that names each region of the graph — sub-bass, bass, lower mids, upper mids, presence, brilliance — with a short description of what lives there. It’s hidden by default — turn it on with the **Freq. Guide** button in the graph toolbar, and it stays on for your next visit. If you’re still building intuition for which part of the graph corresponds to which part of a song, leave this on for a while. Full docs: [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/).
 
 ## Screenshot, Share, and Shop Link
 
@@ -4093,7 +4165,7 @@ When your browser window is at least 1000 pixels wide, modernGraphTool uses the 
 * The graph area sits on the **left**, taking up most of the space.
 * The panel area sits on the **right**, fixed-width but resizable.
 * Between them is a thin **drag divider**. Grab it and drag left or right to change how much space each region gets.
-* Underneath the graph you’ll find the **graph toolbar** (normalize, smoothing, screenshot, and so on) along with the frequency-tutorial strip and a tiny **keyboard shortcut bar** at the very bottom of the graph column.
+* Underneath the graph you’ll find the **graph toolbar** (normalize, smoothing, screenshot, and so on) along with the frequency-tutorial strip (when turned on with **Freq. Guide**) and a tiny **keyboard shortcut bar** at the very bottom of the graph column.
 * The **selection list** (your loaded curves) lives inside the **Graph panel** on the right — not under the graph — so you switch to the Graph panel when you want to adjust a specific curve.
 
 ## Mobile layout
@@ -4256,7 +4328,7 @@ Roughly speaking, here’s what different regions of the X axis correspond to by
 | Presence   | 2 – 5 kHz    | Consonants, bite, “forwardness”                     |
 | Brilliance | 5 – 20 kHz   | Cymbal shimmer, air, top-end sparkle                |
 
-modernGraphTool has an interactive version of this table built in. Turn on the [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/) overlay from the Graph panel and labels appear directly on the graph.
+modernGraphTool has an interactive version of this table built in. Turn on the [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/) overlay with the **Freq. Guide** button in the graph toolbar and labels appear directly on the graph.
 
 ## The bumps aren’t noise
 
@@ -4402,7 +4474,7 @@ The full feature doc with all the config options is at [Target Customizer](/mode
 
 In addition to a single target line, research says there’s usually a **range** of tunings most listeners find acceptable — not one exact curve. modernGraphTool can draw that range as a shaded region on top of the graph, called the **preference bound**.
 
-Toggle the preference bound from the graph toolbar. When it’s on:
+Turn the preference bound on from the **Pref. Bound** row at the bottom of the target list. Some sites offer more than one bound — for example one per measurement rig — and only one shows at a time; click the active one again to hide it. When it’s on:
 
 * A **shaded area** appears, representing the upper and lower limits of the acceptable region.
 * The area is anchored to a configured **base target** — usually a diffuse-field target — so the bound moves sensibly as you change the target selection.
@@ -4410,7 +4482,7 @@ Toggle the preference bound from the graph toolbar. When it’s on:
 
 This isn’t a pass/fail test. A headphone that ducks outside the bound in one region might still be enjoyable — it just means it’s an opinionated tuning rather than a safely neutral one. Treat the bound as “how far from the middle of the road” rather than “right or wrong”.
 
-The preference bound needs data files the operator has to ship, so on sites that haven’t configured it the toggle button doesn’t appear. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/) for the full feature doc.
+The preference bound needs data files the operator has to ship, so on sites that haven’t configured it the row doesn’t appear. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/) for the full feature doc.
 
 ## Recommended workflow
 
@@ -4709,7 +4781,7 @@ If your fork isn’t listed here, it almost certainly behaves like one of these 
    * `assets/pref_bounds/Bounds L.txt` → `data/Bounds U.txt`
    * `assets/pref_bounds/Bounds R.txt` → `data/Bounds D.txt`
 
-   Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you’ll set `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` to it in the next step.
+   Also make sure your compensation baseline (usually a KEMAR DF or similar) is present in `data/target/`, and record its filename (without extension) — you’ll set it as the `target` of a `PREFERENCE_BOUND.BOUND_LIST` entry in the next step.
 
 4. **Generate a new `config.js`** — CrinGraph’s config format is incompatible with v2, so the cleanest approach is to build a fresh one using the [**Config Editor**](/modernGraphTool/docs/config-generator/), referencing your old config for the values. A few common field mappings to speed you along:
 
@@ -4728,11 +4800,11 @@ If your fork isn’t listed here, it almost certainly behaves like one of these 
    | `page_title`, `page_description`                                      | Set in `index.html` `<title>` / `<meta>` (step 6)                      |
    | `themingEnabled`, `alt_layout`, `alt_*` flags                         | Not needed — v2’s theme and layout are always on                       |
    | `extraEQBands`, `extraEQplugins`                                      | Not needed — v2 has built-in Interactive EQ and Hardware EQ            |
-   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BASE_DF_TARGET_FILE` + file location in `data/`      |
+   | `preference_bounds_dir`, `preference_bounds_name`                     | `PREFERENCE_BOUND.BOUND_LIST` + file location in `data/`               |
    | `tiltableTargets`, `compTargets`                                      | `TARGET_CUSTOMIZER.CUSTOMIZABLE_TARGETS`                               |
    | `default_tilt`, `default_bass_shelf`, `default_ear`, `default_treble` | `TARGET_CUSTOMIZER.INITIAL_TARGET_FILTERS`                             |
    | `allowSquigDownload`, `analyticsEnabled`                              | `SQUIGLINK.ENABLE_*` fields                                            |
-   | `default_DF_name`                                                     | Used as the name in `PREFERENCE_BOUND.BASE_DF_TARGET_FILE`             |
+   | `default_DF_name`                                                     | Used as the `target` in `PREFERENCE_BOUND.BOUND_LIST`                  |
 
    For the field-by-field reference of every v2 option, see [Customizing the Page → `config.js`](/modernGraphTool/docs/guide-for-admins/customize-page/#changing-basic-settings-configjs).
 

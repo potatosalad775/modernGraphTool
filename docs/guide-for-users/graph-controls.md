@@ -84,13 +84,9 @@ Toggle **Inspection** (magnifier icon) on and a small readout follows your curso
 
 On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don't need it — the cursor tracking gets in the way otherwise.
 
-## Preference Bound toggle
-
-The **preference bound** button toggles a shaded region that represents a statistical range of "acceptable" tunings rather than a single target line. See [Preference Bound](../features/preference-bound.mdx) for the full story. The button only appears when the site has configured the bound data files — if it's missing, the feature isn't available on that deployment.
-
 ## Frequency Tutorial
 
-The **Frequency Tutorial** is a labeled overlay that names each region of the graph — sub-bass, bass, lower mids, upper mids, presence, brilliance — with a short description of what lives there. Toggle it from the area above the graph toolbar. If you're still building intuition for which part of the graph corresponds to which part of a song, leave this on for a while. Full docs: [Frequency Tutorial](../features/frequency-tutorial.mdx).
+The **Frequency Tutorial** is a labeled overlay that names each region of the graph — sub-bass, bass, lower mids, upper mids, presence, brilliance — with a short description of what lives there. It's hidden by default — turn it on with the **Freq. Guide** button in the graph toolbar, and it stays on for your next visit. If you're still building intuition for which part of the graph corresponds to which part of a song, leave this on for a while. Full docs: [Frequency Tutorial](../features/frequency-tutorial.mdx).
 
 ## Screenshot, Share, and Shop Link
 

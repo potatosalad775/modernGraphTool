@@ -49,7 +49,7 @@ To reset a curve back to its auto-assigned color, remove it and reload it from t
 
 The **Frequency Tutorial** is an overlay that labels each region of the graph (sub-bass, bass, lower mids, upper mids, presence, brilliance) with a short description of what lives there musically.
 
-Toggle it from the area above the graph toolbar. It's a particularly useful aid if you're:
+It's hidden by default. Turn it on with the **Freq. Guide** button in the graph toolbar (on mobile, in the Graph panel); the strip appears under the graph and stays on until you turn it off. It's a particularly useful aid if you're:
 
 - New to reading frequency response graphs.
 - Explaining a headphone's sound to someone who doesn't yet have the vocabulary.

@@ -51,7 +51,7 @@ When your browser window is at least 1000 pixels wide, modernGraphTool uses the 
 - The graph area sits on the **left**, taking up most of the space.
 - The panel area sits on the **right**, fixed-width but resizable.
 - Between them is a thin **drag divider**. Grab it and drag left or right to change how much space each region gets.
-- Underneath the graph you'll find the **graph toolbar** (normalize, smoothing, screenshot, and so on) along with the frequency-tutorial strip and a tiny **keyboard shortcut bar** at the very bottom of the graph column.
+- Underneath the graph you'll find the **graph toolbar** (normalize, smoothing, screenshot, and so on) along with the frequency-tutorial strip (when turned on with **Freq. Guide**) and a tiny **keyboard shortcut bar** at the very bottom of the graph column.
 - The **selection list** (your loaded curves) lives inside the **Graph panel** on the right — not under the graph — so you switch to the Graph panel when you want to adjust a specific curve.
 
 ## Mobile layout

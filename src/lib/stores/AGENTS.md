@@ -37,7 +37,8 @@ export const frStore = new FRDataStore();
 - `menu-store.svelte.ts` — current panel + slide direction
 - `app-store.svelte.ts` — isMobile, isReady
 - `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
-  `linkEqNormalization` flag. Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
+  `linkEqNormalization` flag, `frequencyTutorialVisible` (the strip `AppShell` renders under the graph;
+  the toolbar button lives in `GraphPanel` on mobile and unmounts with it, so the flag can't). Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound
   directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by

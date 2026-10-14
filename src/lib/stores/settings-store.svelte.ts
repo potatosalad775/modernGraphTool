@@ -6,7 +6,8 @@ const LS_KEYS = {
 	linkNorm: 'gt-settings-link-eq-normalization',
 	autoEqOpts: 'gt-settings-autoeq-options',
 	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write',
-	volumeWarning: 'gt-settings-volume-warning'
+	volumeWarning: 'gt-settings-volume-warning',
+	frequencyTutorial: 'gt-settings-frequency-tutorial'
 } as const;
 
 const LEGACY_THEME_KEY = 'gt-theme';
@@ -45,6 +46,8 @@ class SettingsStore {
 	devicePeqAutoWrite = $state(false);
 	/** Ask the user to lower the volume before this page first changes what plays. */
 	volumeWarning = $state(true);
+	/** Show the Frequency Tutorial strip under the graph. Hidden unless the operator or user opts in. */
+	frequencyTutorialVisible = $state(false);
 
 	hydrate(): void {
 		if (typeof window === 'undefined') return;
@@ -78,6 +81,13 @@ class SettingsStore {
 
 		if (localStorage.getItem(LS_KEYS.devicePeqAutoWrite) === 'true') this.devicePeqAutoWrite = true;
 		if (localStorage.getItem(LS_KEYS.volumeWarning) === 'false') this.volumeWarning = false;
+
+		// The user's own choice wins; the operator's config only sets the first-visit default.
+		const tutorial = localStorage.getItem(LS_KEYS.frequencyTutorial);
+		this.frequencyTutorialVisible =
+			tutorial === 'true' ||
+			(tutorial !== 'false' &&
+				getConfigValue('INTERFACE.SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD') === true);
 
 		const raw = this.#activeStorage().getItem(LS_KEYS.autoEqOpts);
 		if (raw) {
@@ -123,6 +133,11 @@ class SettingsStore {
 	setVolumeWarning(v: boolean): void {
 		this.volumeWarning = v;
 		localStorage.setItem(LS_KEYS.volumeWarning, String(v));
+	}
+
+	setFrequencyTutorialVisible(v: boolean): void {
+		this.frequencyTutorialVisible = v;
+		localStorage.setItem(LS_KEYS.frequencyTutorial, String(v));
 	}
 
 	persistAutoEqOptions(): void {

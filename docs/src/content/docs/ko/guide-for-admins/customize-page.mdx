@@ -322,6 +322,7 @@ INTERFACE: {
   PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false,
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
@@ -356,6 +357,12 @@ Phone(측정 데이터) 선택기에서 이미 추가된 항목을 다시 선택
 모바일 UI에서 브랜드 버튼 클릭 시 자동으로 기기 목록으로 전환할지 여부를 설정합니다.
 
 - `true`, `false` 중 선택.
+
+#### `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`
+
+처음 방문한 사용자에게 [Frequency Tutorial](../features/frequency-tutorial.mdx) 띠를 그래프 아래에 표시할지 여부를 설정합니다. 방문자는 그래프 툴바의 **주파수 가이드** 버튼으로 켜고 끌 수 있으며, 방문자의 선택이 이 기본값보다 우선합니다.
+
+- `true`, `false` 중 선택 (기본값 `false` — 그래프와 패널 공간을 위해 숨김).
 
 #### `TARGET`
 

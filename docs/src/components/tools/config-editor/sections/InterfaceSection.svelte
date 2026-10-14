@@ -36,6 +36,11 @@
 		label="Switch to phone panel on brand click (mobile)"
 	/>
 
+	<Checkbox
+		bind:checked={config.INTERFACE.SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD}
+		label="Show Frequency Tutorial on first load"
+	/>
+
 	<div class="ceSubSection">
 		<span class="ceSubSectionTitle">Target Selector</span>
 

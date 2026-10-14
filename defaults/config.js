@@ -42,6 +42,7 @@ const CONFIG = {
 		ALLOW_REMOVING_PHONE_FROM_SELECTOR: true, // Setting it to false will prevent user from removing phone from selector.
 		SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true, // Switch to phone list when brand button is clicked (in mobile UI)
 		HIDE_DEV_DONATE_BUTTON: false, // This option determines whether to hide "Donate" button on Misc Panel or not.
+		// SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false, // Show the Frequency Tutorial strip to first-time visitors
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: true, // Display targets in multiple lines by 'type'. Adds a collapse button.
 			OMIT_TARGET_SUFFIX: true, // Omit the 'Target' suffix to save some space.

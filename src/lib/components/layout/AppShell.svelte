@@ -233,9 +233,11 @@
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
-				<div class="border-b border-base-content/15 bg-base-200">
-					<FrequencyTutorial />
-				</div>
+				{#if settingsStore.frequencyTutorialVisible}
+					<div class="border-b border-base-content/15 bg-base-200">
+						<FrequencyTutorial />
+					</div>
+				{/if}
 			</section>
 			<!-- Panel area fills remaining space -->
 			<section
@@ -274,9 +276,11 @@
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
-				<div class="border-b border-base-content/15 bg-base-200">
-					<FrequencyTutorial />
-				</div>
+				{#if settingsStore.frequencyTutorialVisible}
+					<div class="border-b border-base-content/15 bg-base-200">
+						<FrequencyTutorial />
+					</div>
+				{/if}
 				<GraphToolbar />
 				<KeyboardShortcutBar />
 			</section>

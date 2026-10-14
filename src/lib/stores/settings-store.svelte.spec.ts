@@ -6,6 +6,7 @@ const KEY_LEGACY_THEME = 'gt-theme';
 const KEY_PERSIST_MODE = 'gt-settings-autoeq-persist-mode';
 const KEY_LINK_NORM = 'gt-settings-link-eq-normalization';
 const KEY_AUTOEQ = 'gt-settings-autoeq-options';
+const KEY_FREQ_TUTORIAL = 'gt-settings-frequency-tutorial';
 
 const DEFAULT_AUTOEQ = {
 	freqMin: 20,
@@ -26,6 +27,7 @@ function resetStore() {
 	settingsStore.autoEqPersistMode = 'session';
 	settingsStore.linkEqNormalization = false;
 	settingsStore.autoEqOptions = { ...DEFAULT_AUTOEQ };
+	settingsStore.frequencyTutorialVisible = false;
 	document.documentElement.classList.remove('dark');
 }
 
@@ -87,6 +89,17 @@ describe('SettingsStore', () => {
 			settingsStore.setLinkEqNormalization(false);
 			expect(settingsStore.linkEqNormalization).toBe(false);
 			expect(localStorage.getItem(KEY_LINK_NORM)).toBe('false');
+		});
+	});
+
+	describe('setFrequencyTutorialVisible', () => {
+		it('persists true and false as strings', () => {
+			settingsStore.setFrequencyTutorialVisible(true);
+			expect(settingsStore.frequencyTutorialVisible).toBe(true);
+			expect(localStorage.getItem(KEY_FREQ_TUTORIAL)).toBe('true');
+
+			settingsStore.setFrequencyTutorialVisible(false);
+			expect(localStorage.getItem(KEY_FREQ_TUTORIAL)).toBe('false');
 		});
 	});
 
@@ -199,6 +212,30 @@ describe('SettingsStore', () => {
 			localStorage.setItem(KEY_LINK_NORM, 'true');
 			settingsStore.hydrate();
 			expect(settingsStore.linkEqNormalization).toBe(true);
+		});
+
+		it('hides the frequency tutorial when neither the user nor the config asks for it', () => {
+			setConfig({});
+			settingsStore.hydrate();
+			expect(settingsStore.frequencyTutorialVisible).toBe(false);
+		});
+
+		it('shows the frequency tutorial when the config asks for it on first load', () => {
+			setConfig({ INTERFACE: { SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: true } });
+			settingsStore.hydrate();
+			expect(settingsStore.frequencyTutorialVisible).toBe(true);
+		});
+
+		it("lets the user's saved frequency tutorial choice override the config", () => {
+			setConfig({ INTERFACE: { SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: true } });
+			localStorage.setItem(KEY_FREQ_TUTORIAL, 'false');
+			settingsStore.hydrate();
+			expect(settingsStore.frequencyTutorialVisible).toBe(false);
+
+			setConfig({});
+			localStorage.setItem(KEY_FREQ_TUTORIAL, 'true');
+			settingsStore.hydrate();
+			expect(settingsStore.frequencyTutorialVisible).toBe(true);
 		});
 
 		it('merges partial AutoEQ options over the defaults', () => {

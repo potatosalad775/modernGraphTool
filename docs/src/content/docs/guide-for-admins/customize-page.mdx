@@ -328,6 +328,7 @@ INTERFACE: {
   PANEL_POSITION: "left",
   ALLOW_REMOVING_PHONE_FROM_SELECTOR: true,
   SWITCH_PHONE_PANEL_ON_BRAND_CLICK: true,
+  SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD: false,
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
@@ -362,6 +363,12 @@ Sets whether to remove an already added item from the graph when reselected in t
 Sets whether to automatically switch to the phone list when a brand button is clicked in the mobile UI.
 
 - Choose `true` or `false`.
+
+#### `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD`
+
+Sets whether the [Frequency Tutorial](../features/frequency-tutorial.mdx) strip is shown under the graph on a visitor's first load. Visitors toggle it with the **Freq. Guide** button in the graph toolbar, and their choice is remembered over this default.
+
+- Choose `true` or `false` (default `false` — hidden, to keep the space for the graph and panels).
 
 #### `TARGET`
 

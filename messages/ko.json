@@ -129,6 +129,7 @@
 	"screenshot_button_label": "스크린샷",
 	"y_axis_scale_button_label": "Y축 스케일",
 	"inspection_toggle_label": "조사",
+	"freq_guide_btn_label": "주파수 가이드",
 	"share_button_label": "공유",
 	"share_button_on_click": "복사 완료!",
 	"average_button_label": "평균화",

@@ -3,7 +3,7 @@
 ## Reach for the Atoms First
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `SelectMenu`, `ScrollArea`, `Skeleton`. Use
+`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`, `SelectMenu`, `ScrollArea`, `Skeleton`. Use
 them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
@@ -42,6 +42,14 @@ four.
 - **The value can't be cleared.** A single toggle group sets `''` when the pressed item is pressed
   again; the atom's function binding drops that, so a segmented control always holds one value.
 
+`Tabs` is the tab strip that switches a panel (History / Bookmarks in `EqHistoryAndCompare`):
+
+- **bits-ui `Tabs` — the counterpart to `SegmentedControl`.** Reach for it only when the strip
+  swaps the content below; picking a value is `SegmentedControl`'s job.
+- **One `panel` snippet, called with each item's value.** Only the selected panel is rendered:
+  bits-ui merely hides inactive ones, which would leave their rows in `getByRole` queries.
+  Query the strip with `getByRole('tab', { name })`.
+
 `SelectMenu` is the styled `<select>` with grouped options (the EQ source and AutoEQ target):
 
 - **bits-ui `Select`, not a `PopoverPanel` of buttons.** It keeps the listbox semantics, arrow
@@ -74,7 +82,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, SelectMenu, ScrollArea,
+- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu, ScrollArea,
   Skeleton, Switch
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …

@@ -9,9 +9,15 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import EqHistoryAndCompare from './EqHistoryAndCompare.svelte';
 import { eqHistoryStore, type EqSnapshot } from '$lib/stores/eq-history-store.svelte.js';
+import {
+	BOOKMARK_CAP,
+	eqBookmarkStore,
+	type EqBookmark
+} from '$lib/stores/eq-bookmark-store.svelte.js';
+import { toast } from 'svelte-sonner';
 import { eqStore } from '$lib/stores/eq-store.svelte.js';
 import { eqCommands } from '$lib/services/eq-commands.js';
 import type { EQFilter } from '$lib/utils/equalizer.js';
@@ -40,15 +46,40 @@ function expectedTime(ts: number): string {
 		.join(':');
 }
 
+function makeBookmark(overrides: Partial<EqBookmark> = {}): EqBookmark {
+	return {
+		id: 'bm-1',
+		name: 'Bass-light v2',
+		createdAt: Date.UTC(2026, 9, 14, 12),
+		filters: [makeFilter({ gain: -2 })],
+		preamp: -1,
+		device: { identifier: 'Sennheiser HD 600' },
+		...overrides
+	};
+}
+
 function button(name: string) {
 	return page.getByRole('button', { name });
+}
+
+function menuItem(name: string) {
+	return page.getByRole('menuitem', { name });
+}
+
+/** Back to no history, no bookmarks and no A/B picks. */
+function reset() {
+	eqHistoryStore.clear();
+	eqHistoryStore.aSnapshotId = null;
+	eqHistoryStore.bSnapshotId = null;
+	eqBookmarkStore.items = [];
+	localStorage.clear();
 }
 
 describe('EqHistoryAndCompare', () => {
 	let applySnapshot: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
-		eqHistoryStore.clear();
+		reset();
 		eqStore.filters = [];
 		eqStore.preamp = 0;
 		applySnapshot = vi.spyOn(eqCommands, 'applySnapshot').mockImplementation(() => {});
@@ -56,7 +87,7 @@ describe('EqHistoryAndCompare', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		eqHistoryStore.clear();
+		reset();
 	});
 
 	// ── Empty state ──────────────────────────────────────────────────────────
@@ -220,6 +251,164 @@ describe('EqHistoryAndCompare', () => {
 
 		expect(eqHistoryStore.snapshots).toEqual([]);
 		await expect.element(page.getByText(m.eq_history_empty())).toBeInTheDocument();
+	});
+
+	it('Clear leaves the bookmarks alone', async () => {
+		eqHistoryStore.snapshots = [makeSnapshot()];
+		eqBookmarkStore.items = [makeBookmark()];
+		render(EqHistoryAndCompare);
+
+		await button(m.eq_history_clear()).click();
+
+		expect(eqBookmarkStore.items).toHaveLength(1);
+	});
+
+	// ── History row actions ──────────────────────────────────────────────────
+
+	describe('history row', () => {
+		it('deletes one entry from its menu', async () => {
+			eqHistoryStore.snapshots = [
+				makeSnapshot({ id: 'keep', summary: 'keep me' }),
+				makeSnapshot({ id: 'drop', summary: 'drop me' })
+			];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_menu_title({ name: 'drop me' })).click();
+			await menuItem(m.eq_history_menu_delete()).click();
+
+			expect(eqHistoryStore.snapshots.map((s) => s.id)).toEqual(['keep']);
+		});
+
+		it('bookmarks the entry from the star, named after its bands and date', async () => {
+			const snap = makeSnapshot({ filters: [makeFilter({ freq: 3200, gain: -4 })] });
+			eqHistoryStore.snapshots = [snap];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_bookmark_add()).click();
+
+			expect(eqBookmarkStore.items).toHaveLength(1);
+			const [bookmark] = eqBookmarkStore.items;
+			expect(bookmark.name).toMatch(/^PK 3\.2k Hz -4\.0 dB · /);
+			expect(bookmark.filters).toEqual(snap.filters);
+			expect(bookmark.preamp).toBe(snap.preamp);
+		});
+
+		it('shows an already-bookmarked entry as such, and a click adds nothing', async () => {
+			const snap = makeSnapshot();
+			eqHistoryStore.snapshots = [snap];
+			eqBookmarkStore.items = [makeBookmark({ filters: snap.filters, preamp: snap.preamp })];
+			render(EqHistoryAndCompare);
+
+			const star = button(m.eq_history_bookmark_exists());
+			await expect.element(star).toHaveAttribute('aria-disabled', 'true');
+			// Playwright treats aria-disabled as disabled; the handler must still no-op.
+			await star.click({ force: true });
+
+			expect(eqBookmarkStore.items).toHaveLength(1);
+		});
+
+		it('tells the user when the bookmark cap is reached, without evicting', async () => {
+			const warning = vi.spyOn(toast, 'warning');
+			eqBookmarkStore.items = Array.from({ length: BOOKMARK_CAP }, (_, i) =>
+				makeBookmark({ id: `bm-${i}`, preamp: i })
+			);
+			eqHistoryStore.snapshots = [makeSnapshot()];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_bookmark_add()).click();
+
+			expect(eqBookmarkStore.items).toHaveLength(BOOKMARK_CAP);
+			expect(warning).toHaveBeenCalledWith(m.eq_history_bookmark_full({ count: BOOKMARK_CAP }));
+		});
+	});
+
+	// ── Bookmarks tab ────────────────────────────────────────────────────────
+
+	describe('bookmarks tab', () => {
+		async function openBookmarks() {
+			await page
+				.getByRole('tab', {
+					name: m.eq_history_tab_bookmarks({ count: eqBookmarkStore.items.length })
+				})
+				.click();
+		}
+
+		it('counts the bookmarks in the tab label and lists them with their device', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			await expect.element(page.getByText('Bass-light v2')).toBeInTheDocument();
+			await expect.element(page.getByText(/^Sennheiser HD 600 · /)).toBeInTheDocument();
+		});
+
+		it('shows the empty placeholder with no bookmarks', async () => {
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			await expect.element(page.getByText(m.eq_history_bookmarks_empty())).toBeInTheDocument();
+		});
+
+		async function startRename(name: string) {
+			await button(m.eq_history_menu_title({ name })).click();
+			await menuItem(m.eq_history_menu_rename()).click();
+			const field = page.getByRole('textbox', { name: m.eq_history_rename_label() });
+			await expect.element(field).toHaveFocus();
+			return field;
+		}
+
+		it('renames inline: Enter saves and focus returns to the menu button', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			const field = await startRename('Bass-light v2');
+			await field.fill('Treble tame');
+			await userEvent.keyboard('{Enter}');
+
+			expect(eqBookmarkStore.items[0].name).toBe('Treble tame');
+			await expect.element(button(m.eq_history_menu_title({ name: 'Treble tame' }))).toHaveFocus();
+		});
+
+		it('renames inline: Escape restores the previous name', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			const field = await startRename('Bass-light v2');
+			await field.fill('scratch that');
+			await userEvent.keyboard('{Escape}');
+
+			expect(eqBookmarkStore.items[0].name).toBe('Bass-light v2');
+			await expect.element(page.getByText('Bass-light v2')).toBeInTheDocument();
+		});
+
+		it('deletes a bookmark from its menu', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			await button(m.eq_history_menu_title({ name: 'Bass-light v2' })).click();
+			await menuItem(m.eq_history_menu_delete()).click();
+
+			expect(eqBookmarkStore.items).toEqual([]);
+		});
+
+		it('lets A be a bookmark and B a history entry', async () => {
+			const bookmark = makeBookmark();
+			eqBookmarkStore.items = [bookmark];
+			eqHistoryStore.snapshots = [makeSnapshot({ id: 'h-1' })];
+			render(EqHistoryAndCompare);
+
+			await button(m.eq_history_set_b()).click();
+			await openBookmarks();
+			await button(m.eq_history_set_a()).click();
+			await button(m.eq_history_apply_a_title()).click();
+
+			expect(eqHistoryStore.aSnapshotId).toBe(bookmark.id);
+			expect(eqHistoryStore.bSnapshotId).toBe('h-1');
+			expect(applySnapshot).toHaveBeenCalledWith(bookmark.filters, bookmark.preamp);
+		});
 	});
 
 	// ── Help popover ─────────────────────────────────────────────────────────

@@ -235,9 +235,15 @@ class EqHistoryStore {
 }
 
 export function summarize(filters: EQFilter[], preamp: number): string {
-	const enabled = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
 	const preampStr = `preamp ${preamp.toFixed(1)} dB`;
-	if (!enabled.length) return `no bands, ${preampStr}`;
+	const bands = bandSummary(filters);
+	return bands ? `${bands}, ${preampStr}` : `no bands, ${preampStr}`;
+}
+
+/** The dominant band plus a count of the rest, e.g. "PK 3.2k Hz -4.0 dB +4". Empty with no bands. */
+export function bandSummary(filters: EQFilter[]): string {
+	const enabled = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
+	if (!enabled.length) return '';
 
 	const dominant = enabled.reduce((a, b) => (Math.abs(b.gain!) > Math.abs(a.gain!) ? b : a));
 	const f = dominant.freq!;
@@ -245,7 +251,7 @@ export function summarize(filters: EQFilter[], preamp: number): string {
 	const gain = dominant.gain!;
 	const gainStr = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`;
 	const tail = enabled.length > 1 ? ` +${enabled.length - 1}` : '';
-	return `${dominant.type} ${hz} Hz ${gainStr}${tail}, ${preampStr}`;
+	return `${dominant.type} ${hz} Hz ${gainStr}${tail}`;
 }
 
 export const eqHistoryStore = new EqHistoryStore();

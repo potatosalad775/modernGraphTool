@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
 	let {
 		icon,
@@ -16,7 +17,8 @@
 		value: string;
 		type?: string;
 		class?: string;
-	} = $props();
+		// Everything else lands on the <input>: aria-label, handlers, attachments.
+	} & Omit<HTMLInputAttributes, 'value' | 'type' | 'class' | 'placeholder'> = $props();
 </script>
 
 <label class="flex w-full gap-1 text-sm font-medium text-base-content {className}">

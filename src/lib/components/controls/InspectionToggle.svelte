@@ -3,7 +3,9 @@
 	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
-	let enabled = $state(false);
+	// GraphInspection outlives this button — on mobile it unmounts with GraphPanel — so start
+	// from the engine's state rather than assuming off.
+	let enabled = $state(graphEngine.graphInspection?.isEnabled ?? false);
 
 	function handleClick() {
 		enabled = !enabled;

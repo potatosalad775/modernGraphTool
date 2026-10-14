@@ -1,11 +1,11 @@
 <script module lang="ts">
-	const listClass =
-		'flex max-h-64 flex-col gap-0.5 overflow-y-auto rounded border border-base-content/20';
+	// The framed Tabs around it supplies the outer border.
+	const listClass = 'flex max-h-64 flex-col gap-0.5 overflow-y-auto';
 	/** Looks disabled while staying focusable (`aria-disabled`, not `disabled`). */
 	const blockedClass = 'cursor-not-allowed opacity-50';
 	const fitReasonId = (id: string) => `eq-entry-fit-${id}`;
 	const rowClass =
-		'flex items-center gap-1.5 border-b border-base-content/20 px-1.5 py-1 last:border-b-0 hover:bg-base-200';
+		'flex items-center gap-1.5 border-b border-base-content/20 p-1.5 last:border-b-0 hover:bg-base-200';
 </script>
 
 <script lang="ts">
@@ -323,6 +323,8 @@
 	{/if}
 
 	<Tabs
+		framed
+		expandTrigger
 		bind:value={tab}
 		label={m.eq_history_tabs_label()}
 		items={[
@@ -332,6 +334,7 @@
 				label: m.eq_history_tab_bookmarks({ count: eqBookmarkStore.items.length })
 			}
 		]}
+		class="-mx-px"
 	>
 		{#snippet panel(value)}
 			{#if value === 'history'}
@@ -438,7 +441,5 @@
 {/snippet}
 
 {#snippet empty(text: string)}
-	<div class="rounded border border-dashed border-base-content/15 p-3 text-center">
-		<p class="text-xs text-base-content/60">{text}</p>
-	</div>
+	<p class="p-3 text-center text-xs text-base-content/60">{text}</p>
 {/snippet}

@@ -120,7 +120,18 @@
 	"average_button_needs_two": "Зробіть видимими принаймні два вимірювання для усереднення",
 	"average_curve_name": "Усереднення",
 	"average_curve_suffix": "(з {count})",
-	"average_button_done": "Усереднено {count} вимірювання (-нь/-ня)",
+	"average_button_done": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Усереднено {count} вимірювання",
+				"countPlural=few": "Усереднено {count} вимірювання",
+				"countPlural=many": "Усереднено {count} вимірювань",
+				"countPlural=*": "Усереднено {count} вимірювань"
+			}
+		}
+	],
 	"version_update_toast_title": "Оновлено до версії {version}",
 	"version_update_toast_changelog": "Список змін",
 	"tutorial_modal_btn_prev": "Назад",
@@ -170,7 +181,30 @@
 	"crosssite_search_placeholder": "Пошук в інших базах даних...",
 	"crosssite_search_no_results": "Нічого не знайдено.",
 	"crosssite_search_loading": "Завантаження баз даних...",
-	"crosssite_search_truncated": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+	"crosssite_search_truncated": [
+		{
+			"declarations": ["input count", "input total", "local countPlural = count: plural", "local totalPlural = total: plural"],
+			"selectors": ["countPlural", "totalPlural"],
+			"match": {
+				"countPlural=one, totalPlural=one": "Показано перший {count} з {total} результату. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=one, totalPlural=few": "Показано перший {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=one, totalPlural=many": "Показано перший {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=one, totalPlural=*": "Показано перший {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=few, totalPlural=one": "Показано перші {count} з {total} результату. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=few, totalPlural=few": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=few, totalPlural=many": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=few, totalPlural=*": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=many, totalPlural=one": "Показано перші {count} з {total} результату. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=many, totalPlural=few": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=many, totalPlural=many": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=many, totalPlural=*": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=*, totalPlural=one": "Показано перші {count} з {total} результату. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=*, totalPlural=few": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=*, totalPlural=many": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
+				"countPlural=*, totalPlural=*": "Показано перші {count} з {total} результатів. Уточніть критерії пошуку, щоб скоротити кількість результатів."
+			}
+		}
+	],
 	"site_selector_label": "Обрати сайт",
 	"site_selector_unverified": "Під час останнього створення індексу доступ до цієї бази даних був неможливий. Посилання може не працювати.",
 	"sponsor_banner_dismiss": "Закрити",
@@ -215,14 +249,48 @@
 	"eq_settings_autoeq_persist_local": "Зберігати в цьому браузері",
 	"eq_settings_link_eq_normalization_label": "Прикріпити криву екв. до вихідної",
 	"eq_settings_link_eq_normalization_description": "Зберігати положення кривої еквалайзера відносно вихідного графіка незалежно від налаштувань нормалізації.",
-	"info_popover_about": "Про {topic}",
+	"info_popover_about": "Про «{topic}"»,
 	"eq_channel_scope_label": "Канал",
 	"eq_channel_both": "Л+П",
 	"eq_channel_left": "Л",
 	"eq_channel_right": "П",
 	"eq_channel_applies_to": "Канал застосування",
-	"eq_channel_shared_hint": "+ {count} спільних смуг також застосовані до цього каналу.",
-	"eq_channel_device_peq_shared_only": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+	"eq_channel_shared_hint": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "+ {count} спільна смуга також застосована до цього каналу.",
+				"countPlural=few": "+ {count} спільні смуги також застосовані до цього каналу.",
+				"countPlural=many": "+ {count} спільних смуг також застосовані до цього каналу.",
+				"countPlural=*": "+ {count} спільних смуг також застосовані до цього каналу."
+			}
+		}
+	],
+	"eq_channel_device_peq_shared_only": [
+		{
+			"declarations": ["input count", "input skipped", "local countPlural = count: plural", "local skippedPlural = skipped: plural"],
+			"selectors": ["countPlural", "skippedPlural"],
+			"match": {
+				"countPlural=one, skippedPlural=one": "Надіслано {count} спільну смугу. Цей пристрій не має поканального еквалайзера, тому {skipped} ліву/праву смугу було пропущено.",
+				"countPlural=one, skippedPlural=few": "Надіслано {count} спільну смугу. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуги було пропущено.",
+				"countPlural=one, skippedPlural=many": "Надіслано {count} спільну смугу. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=one, skippedPlural=*": "Надіслано {count} спільну смугу. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=few, skippedPlural=one": "Надіслано {count} спільні смуги. Цей пристрій не має поканального еквалайзера, тому {skipped} ліву/праву смугу було пропущено.",
+				"countPlural=few, skippedPlural=few": "Надіслано {count} спільні смуги. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуги було пропущено.",
+				"countPlural=few, skippedPlural=many": "Надіслано {count} спільні смуги. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=few, skippedPlural=*": "Надіслано {count} спільні смуги. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=many, skippedPlural=one": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} ліву/праву смугу було пропущено.",
+				"countPlural=many, skippedPlural=few": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуги було пропущено.",
+				"countPlural=many, skippedPlural=many": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=many, skippedPlural=*": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=*, skippedPlural=one": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} ліву/праву смугу було пропущено.",
+				"countPlural=*, skippedPlural=few": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуги було пропущено.",
+				"countPlural=*, skippedPlural=many": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено.",
+				"countPlural=*, skippedPlural=*": "Надіслано {count} спільних смуг. Цей пристрій не має поканального еквалайзера, тому {skipped} лівих/правих смуг було пропущено."
+			}
+		}
+	],
 	"eq_constraint_group_recent": "Нещодавно вибрані",
 	"eq_constraint_group_software": "Програмні еквалайзери",
 	"eq_constraint_group_hardware": "Апаратні",
@@ -239,12 +307,34 @@
 	"eq_constraint_type_violation": "{label} не приймає цей тип фільтра тут",
 	"eq_constraint_slot_label": "Смуга {slot}: {label}",
 	"eq_constraint_active": "Обмежено до {label}",
-	"eq_constraint_fit": "Підігнати {count} смуг(и)",
+	"eq_constraint_fit": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Підігнати {count} смугу",
+				"countPlural=few": "Підігнати {count} смуги",
+				"countPlural=many": "Підігнати {count} смуг",
+				"countPlural=*": "Підігнати {count} смуг"
+			}
+		}
+	],
 	"eq_constraint_fit_title": "Перемістити кожну смугу до найближчих значень, які приймає {label}. Можна скасувати.",
 	"eq_constraint_fitted": "Смуги підігнано під {label}",
 	"eq_constraint_clear": "Прибрати обмеження",
 	"eq_domain_step": "крок {step}",
-	"eq_domain_values": "{count} значень",
+	"eq_domain_values": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} значення",
+				"countPlural=few": "{count} значення",
+				"countPlural=many": "{count} значень",
+				"countPlural=*": "{count} значень"
+			}
+		}
+	],
 	"equalizer_device_peq_connect_usb": "Підключити USB-пристрій",
 	"equalizer_device_peq_connect_serial": "USB Serial",
 	"equalizer_device_peq_connect_bluetooth": "Bluetooth",
@@ -294,10 +384,54 @@
 	"equalizer_device_peq_writing": "Запис…",
 	"equalizer_device_peq_write_title": "Надіслати список смуг на пристрій",
 	"equalizer_device_peq_write_only": "На цей пристрій можна записувати, але не можна дізнатися поточний пресет.",
-	"equalizer_device_peq_read_skipped": "{count} смуг(и) використовують типи фільтрів, які еквалайзер не може відобразити, і були пропущені.",
-	"equalizer_device_peq_status_read": "Прочитано {count} смуг(и) з пристрою",
-	"equalizer_device_peq_status_written": "Записано {count} смуг(и) на пристрій",
-	"equalizer_device_peq_status_written_off": "Записано {count} смуг(и). Еквалайзер пристрою вимкнено: виберіть пресет, щоб почути його.",
+	"equalizer_device_peq_read_skipped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} смуга використовує тип фільтра, який еквалайзер не може відобразити, і була пропущена.",
+				"countPlural=few": "{count} смуги використовують типи фільтрів, які еквалайзер не може відобразити, і були пропущені.",
+				"countPlural=many": "{count} смуг використовують типи фільтрів, які еквалайзер не може відобразити, і були пропущені.",
+				"countPlural=*": "{count} смуг використовують типи фільтрів, які еквалайзер не може відобразити, і були пропущені."
+			}
+		}
+	],
+	"equalizer_device_peq_status_read": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Прочитано {count} смугу з пристрою",
+				"countPlural=few": "Прочитано {count} смуги з пристрою",
+				"countPlural=many": "Прочитано {count} смуг з пристрою",
+				"countPlural=*": "Прочитано {count} смуг з пристрою"
+			}
+		}
+	],
+	"equalizer_device_peq_status_written": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Записано {count} смугу на пристрій",
+				"countPlural=few": "Записано {count} смуги на пристрій",
+				"countPlural=many": "Записано {count} смуг на пристрій",
+				"countPlural=*": "Записано {count} смуг на пристрій"
+			}
+		}
+	],
+	"equalizer_device_peq_status_written_off": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Записано {count} смугу. Еквалайзер пристрою вимкнено: виберіть пресет, щоб почути її.",
+				"countPlural=few": "Записано {count} смуги. Еквалайзер пристрою вимкнено: виберіть пресет, щоб почути їх.",
+				"countPlural=many": "Записано {count} смуг. Еквалайзер пристрою вимкнено: виберіть пресет, щоб почути їх.",
+				"countPlural=*": "Записано {count} смуг. Еквалайзер пристрою вимкнено: виберіть пресет, щоб почути їх."
+			}
+		}
+	],
 	"equalizer_device_peq_status_saved_reconnect": "Збережено. Пристрій перезапускається після збереження; перепідключіться, щоб продовжити.",
 	"equalizer_device_peq_status_reconnect_manual": "Не вдалося знову знайти пристрій. Підключіть його та з'єднайтеся.",
 	"equalizer_device_peq_field_type": "Тип",
@@ -309,7 +443,18 @@
 	"equalizer_device_peq_push_change": "Смуга {band} · {field}: {wanted} → {written}",
 	"equalizer_device_peq_push_dropped": "Смуга {band}: на пристрої не залишилося слота, не надіслано",
 	"equalizer_device_peq_push_preamp": "Преамп: {wanted} → {written}",
-	"equalizer_device_peq_push_skipped_channel": "{count} смуг(и) лише для лівого/правого каналу не надіслано: на пристрої один еквалайзер для обох навушників",
+	"equalizer_device_peq_push_skipped_channel": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} смугу лише для лівого/правого каналу не надіслано: на пристрої один еквалайзер для обох навушників",
+				"countPlural=few": "{count} смуги лише для лівого/правого каналу не надіслано: на пристрої один еквалайзер для обох навушників",
+				"countPlural=many": "{count} смуг лише для лівого/правого каналу не надіслано: на пристрої один еквалайзер для обох навушників",
+				"countPlural=*": "{count} смуг лише для лівого/правого каналу не надіслано: на пристрої один еквалайзер для обох навушників"
+			}
+		}
+	],
 	"equalizer_device_peq_push_clip_risk": "Ці смуги підсилюють, а рівень сигналу цього пристрою не можна знизити звідси. Зменште гучність або знизьте підсилення, щоб уникнути кліпінгу.",
 	"equalizer_device_peq_push_infeasible": "Деякі смуги все ще порушують одне з правил пристрою (порядок або інтервал смуг), тому він може їх відхилити.",
 	"equalizer_device_peq_push_cancel": "Скасувати",
@@ -320,5 +465,164 @@
 	"device_peq_error_bad_response": "Пристрій відповів чимось несподіваним.",
 	"device_peq_error_unsupported": "Цей пристрій не підтримує таке.",
 	"device_peq_error_unrepresentable": "Значення не можна надіслати на цей пристрій.",
-	"device_peq_error_generic": "Щось пішло не так під час обміну з пристроєм."
+	"device_peq_error_generic": "Щось пішло не так під час обміну з пристроєм.",
+	"selection_list_download": "Завантажити",
+	"selection_list_download_average": "Лише усереднення",
+	"selection_list_download_average_hint": "Усереднена крива, як на графіку",
+	"selection_list_download_all": "Усі екземпляри",
+	"selection_list_download_all_hint": "Усереднення плюс усі екземпляри, в форматі .zip",
+	"equalizer_phone_select_source_label": "Пристрій для еквалізації",
+	"equalizer_phone_select_target_label": "Цільова AutoEQ",
+	"equalizer_phone_select_group_devices": "Пристрої",
+	"equalizer_phone_select_group_targets": "Цільові",
+	"equalizer_filter_list_import_skipped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Пропущено {count} рядок фільтрів, який тут неможливо представити, наприклад смуговий або режекторний фільтр.",
+				"countPlural=few": "Пропущено {count} рядки фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
+				"countPlural=many": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
+				"countPlural=*": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри."
+			}
+		}
+	],
+	"equalizer_filter_list_graphic_eq_channel_omitted": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Пропущено {count} смугу лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=few": "Пропущено {count} смуги лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=many": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=*": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників."
+			}
+		}
+	],
+	"equalizer_filter_list_lowpass": "Фільтр низьких частот",
+	"equalizer_filter_list_highpass": "Фільтр високих частот",
+	"equalizer_filter_list_bandpass": "Смуговий фільтр",
+	"equalizer_filter_list_notch": "Режекторний фільтр",
+	"equalizer_filter_list_allpass": "Фазовий фільтр",
+	"freq_guide_btn_label": "Гід по частотах",
+	"eq_history_tabs_label": "Історія та закладки",
+	"eq_history_tab_history": "Історія",
+	"eq_history_tab_bookmarks": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Закладки ({count})",
+				"countPlural=few": "Закладки ({count})",
+				"countPlural=many": "Закладки ({count})",
+				"countPlural=*": "Закладки ({count})"
+			}
+		}
+	],
+	"eq_history_bookmark_add": "Додати цей запис до закладок",
+	"eq_history_bookmark_exists": "Уже в закладках — перейменуйте або видаліть її в розділі «Закладки»",
+	"eq_history_bookmark_full": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Цей браузер уже зберігає {count} закладку — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=few": "Цей браузер уже зберігає {count} закладки — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=many": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=*": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову."
+			}
+		}
+	],
+	"eq_history_bookmarks_empty": "Закладок ще немає — позначте запис в історії зірочкою, щоб зберегти його.",
+	"eq_history_menu_title": "Додаткові дії для «{name}»",
+	"eq_history_menu_rename": "Перейменувати",
+	"eq_history_menu_delete": "Видалити",
+	"eq_history_rename_label": "Назва закладки",
+	"eq_history_not_fit": "Не відповідає {constraint}",
+	"eq_history_apply_blocked": "Не можна застосувати {side}: не відповідає {constraint}",
+	"eq_history_match_loudness": "Вирівняти гучність",
+	"eq_history_show_on_graph": "Показати на графіку",
+	"eq_history_menu_add_to_graph": "Додати на графік",
+	"eq_history_help_graph": "«Показати на графіку» малює неактивну, але вибрану для порівняння криву пунктирною лінією. «Додати на графік» у меню запису зберігає запис як окрему криву.",
+	"eq_history_help_loudness": "«Вирівняти гучність» відтворює гучніший з A і B на рівні тихішого, щоб ви порівнювали тембр, а не гучність. Це впливає лише на аудіоплеєр на цій сторінці — не на Device PEQ і не на зв'язок з uniPEQ — і припиняється, щойно ви відредагуєте смугу.",
+	"link_start": "Зв'язати з uniPEQ",
+	"link_start_hint": "Ви також можете редагувати цей еквалайзер використовуючи uniPEQ, який записує його на підключений до нього пристрій.",
+	"link_help_what": "uniPEQ — безкоштовний застосунок для Android і веббраузерів. Він читає та записує еквалайзер, вбудований у багато USB ЦАПів та навушників.",
+	"link_help_why": "При встановленні зв'язку еквалайзер, який ви створюєте тут за вимірюванням, вручну або за допомогою AutoEQ, надсилається на пристрій, підключений через uniPEQ.",
+	"link_help_phone": "Він може працювати й на Android-телефоні самостійно: браузер телефона не може отримати доступ до USB-пристроїв, а uniPEQ може.",
+	"link_help_get": "Отримати uniPEQ",
+	"link_waiting": "Відкрийте uniPEQ і введіть цей код або відскануйте QR-код телефоном з uniPEQ.",
+	"link_connecting": "uniPEQ знайшов код. Підключення…",
+	"link_code_label": "Код",
+	"link_qr_label": "QR-код, який відкриває uniPEQ і зв'язує його з цією сторінкою",
+	"link_other_server": "Цей сайт використовує власний сервер зв'язку, тому код, введений у uniPEQ, його не знайде. Відскануйте QR-код або скористайтеся «Відкрити uniPEQ».",
+	"link_open_unipeq": "Відкрити uniPEQ",
+	"link_cancel": "Скасувати",
+	"link_approve": "Підтвердьте зв'язок у uniPEQ.",
+	"link_linked_device": "Зв'язано з uniPEQ",
+	"link_no_device": "Зв'язано. До uniPEQ не підключено пристроїв",
+	"link_unlink": "Розірвати зв'язок",
+	"link_stalled": "uniPEQ не відповідає. Відкрийте його на телефоні.",
+	"link_read_only": "uniPEQ не приймає правки, поки його пристрій перепідключається.",
+	"link_read_only_no_device": "Підключіть пристрій до uniPEQ, щоб редагувати цей еквалайзер.",
+	"link_device_rejected": "Пристрій, підключений до uniPEQ, має обмеження, які ця сторінка не може прочитати, тому «Апаратний еквалайзер» його не показує.",
+	"link_paused": "uniPEQ було призупинено Android на {seconds} с",
+	"link_ended_unlink": "Зв'язок завершено.",
+	"link_ended_unlink_peer": "uniPEQ завершив зв'язок.",
+	"link_ended_denied": "uniPEQ відхилив зв'язок.",
+	"link_ended_version_unipeq": "uniPEQ старіший, ніж протокол зв'язку цього сайту. Оновіть uniPEQ для зв'язку.",
+	"link_ended_version_site": "Протокол зв'язку цього сайту старіший, ніж у uniPEQ. Сайту потрібно оновити modernGraphTool.",
+	"link_ended_timeout": "Зв'язок завершено: uniPEQ перестав відповідати.",
+	"link_ended_replaced": "uniPEQ зв'язався з іншою сторінкою.",
+	"link_ended_room_full": "Інший застосунок приєднався до цього коду першим.",
+	"link_ended_elsewhere": "Зв'язок перемістився на іншу вкладку.",
+	"link_again": "Зв'язати знову",
+	"link_failed_start": "Не вдалося почати зв'язок. Перевірте з'єднання та спробуйте знову.",
+	"link_start_title": "Який еквалайзер має використовувати зв'язок?",
+	"link_preamp_fixed": "зафіксовано в uniPEQ",
+	"link_preamp_use_auto": "Використовувати авто",
+	"volume_warning_title": "Спочатку зменште гучність",
+	"volume_warning_body": "Зміна еквалайзера пристрою або початок відтворення може спричинити клацання, переривання або різкий стрибок гучності. Призупиніть відтворення або зменште гучність, перш ніж продовжити.",
+	"volume_warning_body_unipeq": "uniPEQ збирається змінити еквалайзер на {device}. Запис може спричинити клацання, переривання або різкий стрибок гучності, тому призупиніть відтворення або зменште гучність, поки налаштовуєте еквалайзер.",
+	"volume_warning_quiet": "Більше не показувати",
+	"volume_warning_later": "Не зараз",
+	"volume_warning_continue": "Продовжити",
+	"link_start_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "У uniPEQ інший еквалайзер ({count} смуга). Виберіть той, який збережуть обидва застосунки.",
+				"countPlural=few": "У uniPEQ інший еквалайзер ({count} смуги). Виберіть той, який збережуть обидва застосунки.",
+				"countPlural=many": "У uniPEQ інший еквалайзер ({count} смуг). Виберіть той, який збережуть обидва застосунки.",
+				"countPlural=*": "У uniPEQ інший еквалайзер ({count} смуг). Виберіть той, який збережуть обидва застосунки."
+			}
+		}
+	],
+	"link_start_use_unipeq": "Використовувати еквалайзер uniPEQ",
+	"link_start_send": "Надіслати цей еквалайзер у uniPEQ",
+	"link_start_flattened": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} вимкнену смугу буде надіслано як смугу з 0 дБ.",
+				"countPlural=few": "{count} вимкнені смуги буде надіслано як смуги з 0 дБ.",
+				"countPlural=many": "{count} вимкнених смуг буде надіслано як смуги з 0 дБ.",
+				"countPlural=*": "{count} вимкнених смуг буде надіслано як смуги з 0 дБ."
+			}
+		}
+	],
+	"link_start_dropped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} смугу, яку uniPEQ не може вмістити (лише лівий або правий канал, або вимкнений пропуск чи режекторний фільтр), буде пропущено.",
+				"countPlural=few": "{count} смуги, які uniPEQ не може вмістити (лише лівий або правий канал, або вимкнений пропуск чи режекторний фільтр), буде пропущено.",
+				"countPlural=many": "{count} смуг, які uniPEQ не може вмістити (лише лівий або правий канал, або вимкнений пропуск чи режекторний фільтр), буде пропущено.",
+				"countPlural=*": "{count} смуг, які uniPEQ не може вмістити (лише лівий або правий канал, або вимкнений пропуск чи режекторний фільтр), буде пропущено."
+			}
+		}
+	]
 }

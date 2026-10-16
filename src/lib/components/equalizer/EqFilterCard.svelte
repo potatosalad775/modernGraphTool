@@ -92,6 +92,14 @@
 		return allTypeOptions.filter(([value]) => allowed.includes(value) || value === filter.type);
 	});
 	const typeLocked = $derived(appTypesOf(slot.types).length <= 1 && !violation.type);
+	/**
+	 * A graphic EQ's row is one gain to set, so its slider sits in the row rather than behind the
+	 * chevron: a graphic EQ is tuned in sweeps across neighbouring bands, not one band at a time.
+	 * The type badge and Q chip give way to it; both are fixed by the preset.
+	 */
+	const graphicRow = $derived(isGraphic && !gainLocked && !gainless);
+	/** Whether the chevron opens anything: in a graphic row, only an editable type or Q. */
+	const expandable = $derived(!graphicRow || !typeLocked || !qLocked);
 
 	/** `undefined` is the shared bucket — the band reaches both ears. */
 	const channelOptions: [EQFilter['channel'], () => string][] = [
@@ -261,30 +269,34 @@
 		{/if}
 
 		<!-- Type badge — disabled where the slot takes a single type -->
-		<Button
-			title={typeLocked
-				? m.eq_constraint_locked({ label: constraintLabel })
-				: violation.type
-					? m.eq_constraint_type_violation({ label: constraintLabel })
-					: 'Change filter type'}
-			onclick={(e: MouseEvent) => {
-				e.stopPropagation();
-				const allowed = appTypesOf(slot.types);
-				if (typeLocked || allowed.length === 0) return;
-				// Cycle through the types this slot takes on click
-				const next = allowed[(allowed.indexOf(filter.type) + 1) % allowed.length];
-				onUpdate({ type: next });
-			}}
-			variant="muted"
-			size="xs"
-			class={violation.type ? 'ring-1 ring-error' : ''}
-			disabled={typeLocked}
-		>
-			{typeShortLabels[filter.type]}
-		</Button>
+		{#if !graphicRow}
+			<Button
+				title={typeLocked
+					? m.eq_constraint_locked({ label: constraintLabel })
+					: violation.type
+						? m.eq_constraint_type_violation({ label: constraintLabel })
+						: 'Change filter type'}
+				onclick={(e: MouseEvent) => {
+					e.stopPropagation();
+					const allowed = appTypesOf(slot.types);
+					if (typeLocked || allowed.length === 0) return;
+					// Cycle through the types this slot takes on click
+					const next = allowed[(allowed.indexOf(filter.type) + 1) % allowed.length];
+					onUpdate({ type: next });
+				}}
+				variant="muted"
+				size="xs"
+				class={violation.type ? 'ring-1 ring-error' : ''}
+				disabled={typeLocked}
+			>
+				{typeShortLabels[filter.type]}
+			</Button>
+		{/if}
 
 		<!-- Freq — read-only chip where the slot locks it (graphic EQs) -->
-		<label class="inline-flex flex-3 shrink-0 items-baseline gap-0.5">
+		<label
+			class="inline-flex shrink-0 items-baseline gap-0.5 {graphicRow ? 'w-16 flex-none' : 'flex-3'}"
+		>
 			{#if freqLocked}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -310,8 +322,24 @@
 			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
 		</label>
 
+		{#if graphicRow}
+			<input
+				type="range"
+				min={Math.round(gainRange.min * 10)}
+				max={Math.round(gainRange.max * 10)}
+				step={Math.round(stepOf('gain') * 10)}
+				value={gainSliderValue}
+				oninput={(e) => onUpdate({ gain: parseFloat(e.currentTarget.value) / 10 })}
+				aria-label="{filter.freq} Hz · {m.equalizer_filter_list_gain()}"
+				class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+				class:opacity-50={!filter.enabled}
+			/>
+		{/if}
+
 		<!-- Gain -->
-		<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
+		<label
+			class="inline-flex shrink-0 items-baseline gap-0.5 {graphicRow ? 'w-16 flex-none' : 'flex-2'}"
+		>
 			{#if gainless}
 				<span
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -344,46 +372,50 @@
 		</label>
 
 		<!-- Q — read-only chip where the slot locks it (graphic EQs) -->
-		<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
-			<span class="text-[12px] text-base-content/60 select-none">Q</span>
-			{#if qLocked}
-				<span
-					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
-					title={m.eq_constraint_locked({ label: constraintLabel })}
-				>
-					{filter.q ?? '—'}
-				</span>
-			{:else}
-				<input
-					type="number"
-					value={filter.q}
-					min={qRange.min}
-					max={qRange.max}
-					step={stepOf('q')}
-					onfocus={() => handleInputFocus('q')}
-					onblur={handleInputBlur}
-					onchange={(e) => commitNumberInput(e, 'q')}
-					onkeydown={(e) => handleInputKeydown(e, 'q')}
-					class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"
-					title={fieldTitle('q', '')}
-				/>
-			{/if}
-		</label>
+		{#if !graphicRow}
+			<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
+				<span class="text-[12px] text-base-content/60 select-none">Q</span>
+				{#if qLocked}
+					<span
+						class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
+						title={m.eq_constraint_locked({ label: constraintLabel })}
+					>
+						{filter.q ?? '—'}
+					</span>
+				{:else}
+					<input
+						type="number"
+						value={filter.q}
+						min={qRange.min}
+						max={qRange.max}
+						step={stepOf('q')}
+						onfocus={() => handleInputFocus('q')}
+						onblur={handleInputBlur}
+						onchange={(e) => commitNumberInput(e, 'q')}
+						onkeydown={(e) => handleInputKeydown(e, 'q')}
+						class="w-full {inputBase} {violation.q ? 'ring-error!' : ''}"
+						title={fieldTitle('q', '')}
+					/>
+				{/if}
+			</label>
+		{/if}
 
 		<div class="-ml-0.75 flex items-center">
-			<Button
-				title="Expand filter {index + 1} options"
-				onclick={onToggle}
-				variant="ghost"
-				size="icon"
-				class="text-base-content/50 hover:text-accent"
-			>
-				<ChevronDown
-					class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
-						? 'rotate-180'
-						: ''}"
-				/>
-			</Button>
+			{#if expandable}
+				<Button
+					title="Expand filter {index + 1} options"
+					onclick={onToggle}
+					variant="ghost"
+					size="icon"
+					class="text-base-content/50 hover:text-accent"
+				>
+					<ChevronDown
+						class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
+							? 'rotate-180'
+							: ''}"
+					/>
+				</Button>
+			{/if}
 
 			<!-- Delete button — hidden in graphic mode (band slots are part of the preset template) -->
 			{#if !isGraphic}
@@ -497,8 +529,8 @@
 				</div>
 			{/if}
 
-			{#if !gainLocked && !gainless}
-				<!-- Gain slider -->
+			{#if !gainLocked && !gainless && !graphicRow}
+				<!-- Gain slider — in the row itself for a graphic EQ -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
 						<span class="text-xs text-base-content/60">

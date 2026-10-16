@@ -7,7 +7,8 @@
  *    band's slot in the active constraint, so the box shows what reaches the store;
  *  - arrow keys commit immediately (the inputs are one-way bound), which is why
  *    Escape needs a focus snapshot to revert to;
- *  - graphic mode locks frequency, Q and type, leaving gain the only edit.
+ *  - graphic mode locks frequency, Q and type, leaving gain the only edit, so the
+ *    row carries its gain slider instead of hiding it behind the chevron.
  *
  * Callbacks are plain spies here — the command layer is `eq-commands.spec.ts`.
  * The filter is also put in `eqStore` at its index: violations and slots come
@@ -382,21 +383,26 @@ describe('EqFilterCard', () => {
 			expect(rowInputs()).toHaveLength(1);
 		});
 
-		it('still shows the locked values', async () => {
+		it('shows the fixed frequency, and gives the fixed type and Q no room', async () => {
 			mount(pk({ freq: 125, q: 1.4 }));
 
-			// The type badge carries the same title, ahead of the two chips.
 			const fixed = page.getByTitle('Fixed by Generic 10-band Graphic EQ');
-			await expect.element(fixed.nth(1)).toHaveTextContent('125');
-			await expect.element(fixed.nth(2)).toHaveTextContent('1.4');
+			await expect.element(fixed).toHaveTextContent('125');
+			expect(page.getByRole('button', { name: 'PK' }).elements()).toHaveLength(0);
 		});
 
-		it('disables the type badge', async () => {
-			mount();
+		it('puts the gain slider in the row, with no chevron to open', async () => {
+			mount(pk({ freq: 125, gain: 0 }));
 
-			await expect
-				.element(page.getByRole('button', { name: 'Fixed by Generic 10-band Graphic EQ' }))
-				.toBeDisabled();
+			const slider = page.getByRole('slider', { name: '125 Hz · Gain (dB)' });
+			await expect.element(slider).toBeInTheDocument();
+			expect(page.getByRole('button', { name: 'Expand filter 1 options' }).elements()).toHaveLength(
+				0
+			);
+
+			(slider.element() as HTMLInputElement).value = '35';
+			slider.element().dispatchEvent(new Event('input', { bubbles: true }));
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ gain: 3.5 });
 		});
 
 		it('hides the remove button, because bands are preset slots', () => {
@@ -431,7 +437,7 @@ describe('EqFilterCard', () => {
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ type: 'HSQ' });
 		});
 
-		it('drops the frequency and Q sliders in graphic mode', () => {
+		it('keeps only the row slider in graphic mode', () => {
 			eqConstraintsStore.activeId = GRAPHIC_ID;
 			mount(pk(), { expanded: true });
 

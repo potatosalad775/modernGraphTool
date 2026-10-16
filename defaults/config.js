@@ -101,7 +101,10 @@ const CONFIG = {
 	// → docs: PREFERENCE_BOUND
 	PREFERENCE_BOUND: {
 		ENABLE_BOUND_ON_INITIAL_LOAD: false, // Select the first bound on page load
-		BOUND_LIST: [{ target: 'KEMAR DF (KB006x)' }],
+		BOUND_LIST: [
+			{ target: 'KEMAR DF (KB006x)' },
+			{ target: 'ISO 11904-2 DF', upper: 'Bounds U.txt', lower: 'Bounds D.txt' }
+		],
 		COLOR_FILL: 'rgba(180,180,180,0.2)',
 		COLOR_BORDER: 'rgba(120,120,120,0.5)'
 	},

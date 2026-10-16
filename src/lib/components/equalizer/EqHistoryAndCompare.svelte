@@ -291,6 +291,7 @@
 			<p>{m.eq_history_help_text()}</p>
 			<p>{m.eq_history_help_loudness()}</p>
 			<p>{m.eq_history_help_graph()}</p>
+			<p>{m.eq_history_help_add_graph()}</p>
 		</InfoPopover>
 		<!-- Clears History only; bookmarks are deleted one at a time. -->
 		<Button

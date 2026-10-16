@@ -152,6 +152,7 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 		collapsed: true,
 		items: [
 			{ slug: 'guide-for-developers/overview' },
+			{ slug: 'guide-for-developers/contributing' },
 			{ slug: 'guide-for-developers/testing' },
 			{ slug: 'guide-for-developers/build-and-deploy' },
 			{ slug: 'guide-for-developers/i18n' }

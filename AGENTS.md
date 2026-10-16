@@ -9,7 +9,8 @@ run measurement databases (e.g. sites on squig.link) as well as end users browsi
 
 **User-facing docs:** [docs/src/content/docs/](docs/src/content/docs/) (Astro + Starlight site). Start at
 `intro.mdx`, `why-moderngraphtool.mdx`, and `guide-for-developers/overview.mdx`.
-**Contributor rules:** [CONTRIBUTING.md](CONTRIBUTING.md).
+**Contributor rules:** [guide-for-developers/contributing.mdx](docs/src/content/docs/guide-for-developers/contributing.mdx).
+`CONTRIBUTING.md` is only a pointer to it.
 
 ## Where the Rest of This Guide Lives
 
@@ -67,7 +68,7 @@ Always use the Runes API. Never the legacy Options API or writable stores:
   `$effect.root(() => $effect(() => ...))`. Install lazily on first interaction; never
   dispose for page-lifetime singletons. Precedent: [audio-player-service.svelte.ts](src/lib/services/audio-player-service.svelte.ts).
 
-## Code Style (from CONTRIBUTING.md)
+## Code Style (from the contributor guide)
 
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
@@ -299,7 +300,9 @@ change — don't leave them for later. Pick the surface by scope:
   Update the relevant section (`guide-for-developers/`, `guide-for-admins/`, `features/`,
   `intro.mdx`, …) whenever a change affects what an operator configures, what a user sees, or how a
   developer contributes.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — only when contributor workflow or code-style rules change.
+- **[guide-for-developers/contributing.mdx](docs/src/content/docs/guide-for-developers/contributing.mdx)**
+  (and its `ko/` twin) — when contributor workflow or code-style rules change. `CONTRIBUTING.md`
+  just links there; touch it only if a docs page it links to moves.
 
 Prefer one home per fact and link to it rather than restating it. Drift is the main reason this
 guide had to be rewritten. If you're unsure whether a change warrants a doc update, ask.

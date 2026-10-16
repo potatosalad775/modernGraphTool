@@ -22,6 +22,7 @@ import {
 	messageKeys,
 	listLocales
 } from './i18n-shared.js';
+import { pluralCategories, toShorthand, exactMatchSupported } from './i18n-plural.js';
 
 const write = process.argv.includes('--write');
 
@@ -36,8 +37,27 @@ const info = (locale) => [
 	`The values below are the ${BASE_LOCALE} source text — replace them with ${locale} translations.`,
 	`You do not have to translate all of them; leave out what you are unsure about and open a PR.`,
 	`A maintainer then runs 'npm run i18n:apply' to merge this file into messages/${locale}.json.`,
-	`Anything still missing afterwards simply renders in ${BASE_LOCALE} at runtime.`
+	`Anything still missing afterwards simply renders in ${BASE_LOCALE} at runtime.`,
+	``,
+	...pluralHelp(locale)
 ];
+
+const pluralHelp = (locale) => {
+	const forms = pluralCategories(locale);
+	if (forms.length === 1) {
+		return [`Plurals — ${locale} has a single form, so "{count} band(s)" needs just one sentence.`];
+	}
+	return [
+		`Plurals — ${locale} uses the forms: ${forms.join(', ')}. "other" is required.`,
+		`Whole sentence: "key": { "one": "{count} band", "few": "{count} bands", "other": "..." }`,
+		`  (add "plural": "total" to count another input instead of {count}).`,
+		`Inside a sentence, # is the number: "Read {count, plural, one {# band} other {# bands}}"`,
+		...(exactMatchSupported()
+			? [`An exact number like "=0": "No bands" beats the forms above.`]
+			: []),
+		`Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/`
+	];
+};
 
 let anyGaps = false;
 
@@ -71,7 +91,8 @@ for (const locale of locales) {
 
 		if (write) {
 			const stub = { [INFO_KEY]: info(locale) };
-			for (const k of missing) stub[k] = base[k];
+			// An en plural is offered in the shorthand translators edit, when it fits one.
+			for (const k of missing) stub[k] = toShorthand(base[k]) ?? base[k];
 			writeJson(fileName, stub);
 			console.log(`  -> wrote messages/${fileName}`);
 		}

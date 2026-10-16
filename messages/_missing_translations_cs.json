@@ -4,7 +4,13 @@
 		"The values below are the en source text — replace them with cs translations.",
 		"You do not have to translate all of them; leave out what you are unsure about and open a PR.",
 		"A maintainer then runs 'npm run i18n:apply' to merge this file into messages/cs.json.",
-		"Anything still missing afterwards simply renders in en at runtime."
+		"Anything still missing afterwards simply renders in en at runtime.",
+		"",
+		"Plurals — cs uses the forms: one, few, many, other. \"other\" is required.",
+		"Whole sentence: \"key\": { \"one\": \"{count} band\", \"few\": \"{count} bands\", \"other\": \"...\" }",
+		"  (add \"plural\": \"total\" to count another input instead of {count}).",
+		"Inside a sentence, # is the number: \"Read {count, plural, one {# band} other {# bands}}\"",
+		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
 	"phone_selector_search_help_btn": "Search tips",
 	"phone_selector_search_help_title": "Search tips",

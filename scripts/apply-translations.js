@@ -10,6 +10,9 @@
  * sometimes leave a key untouched or a proper noun genuinely stays in English, but an unreviewed
  * copy shouldn't silently overwrite the fallback. Pass --force to import those too.
  *
+ * Plural shorthand in the staging files (see i18n-plural.js) is expanded into Paraglide's variant
+ * format on the way in, and a key that would use an input en.json doesn't is skipped.
+ *
  * Usage:
  *   node scripts/apply-translations.js            # merge and delete the staging files
  *   node scripts/apply-translations.js --dry-run  # report what would be merged, change nothing
@@ -28,6 +31,7 @@ import {
 	listLocales,
 	listMissingFiles
 } from './i18n-shared.js';
+import { toVariant, messageInputs, isVariant } from './i18n-plural.js';
 
 const dryRun = process.argv.includes('--dry-run');
 const force = process.argv.includes('--force');
@@ -60,7 +64,6 @@ for (const fileName of files) {
 
 	const merged = {};
 	const unknown = [];
-	const empty = [];
 	const sameAsEnglish = [];
 
 	for (const key of messageKeys(stub)) {
@@ -68,12 +71,32 @@ for (const fileName of files) {
 			unknown.push(key);
 			continue;
 		}
-		const value = stub[key];
-		if (typeof value !== 'string' || value.trim() === '') {
-			empty.push(key);
+		// Plural shorthand is expanded here; plain strings and full variant arrays pass through.
+		const { value, errors, warnings } = toVariant(stub[key], locale);
+		for (const w of warnings) console.warn(`  ${locale}: '${key}': ${w}.`);
+		if (errors.length > 0) {
+			for (const e of errors) {
+				console.warn(`  ${locale}: '${key}': ${e} — skipping (stays on fallback).`);
+			}
 			continue;
 		}
-		if (!force && value === base[key]) {
+		// An input en doesn't pass would render "undefined" and break the m.key() call types.
+		const allowed = messageInputs(base[key]);
+		const extra = [...messageInputs(value)].filter((name) => !allowed.has(name));
+		if (extra.length > 0) {
+			console.warn(
+				`  ${locale}: '${key}' uses {${extra.join('}, {')}}, which ${BASE_LOCALE}.json doesn't — skipping.`
+			);
+			continue;
+		}
+		// A staging file older than a hand-written plural would quietly flatten it back.
+		if (!force && typeof value === 'string' && isVariant(target[key])) {
+			console.warn(
+				`  ${locale}: '${key}' would replace a plural with a plain string — skipping (use --force to import anyway).`
+			);
+			continue;
+		}
+		if (!force && JSON.stringify(value) === JSON.stringify(base[key])) {
 			sameAsEnglish.push(key);
 			continue;
 		}
@@ -82,9 +105,6 @@ for (const fileName of files) {
 
 	for (const key of unknown) {
 		console.warn(`  ${locale}: '${key}' is not in ${BASE_LOCALE}.json — skipping.`);
-	}
-	for (const key of empty) {
-		console.warn(`  ${locale}: '${key}' has no translation — skipping (stays on fallback).`);
 	}
 	for (const key of sameAsEnglish) {
 		console.warn(

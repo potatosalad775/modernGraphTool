@@ -1,252 +1,48 @@
 # Contributing to modernGraphTool
 
-Contributions are always welcome, no matter how small or large! Thank you for your interest in helping improve modernGraphTool.
+Contributions are always welcome, no matter how small or large! Thank you for your interest in
+helping improve modernGraphTool.
 
-## Development Setup
+**The contributor guide lives in the docs:
+[Guide for Developers → Contributing][contributing].** Please read it before opening your first
+pull request. It covers setup, the code style CI enforces, the Svelte 5 conventions, the shared
+components, and the PR process.
 
-### Prerequisites
+The rest of the developer guide:
 
-- [Node.js](https://nodejs.org/) v22.17 or higher
-- npm (included with Node.js)
+- [Overview][overview]: tech stack, project layout, build commands
+- [Testing][testing]: the two Vitest projects, the coverage ratchet, CI
+- [Build & Deployment Internals][build]: build outputs and how `defaults/` reaches them
+- [Internationalization][i18n]: UI strings, adding a language, and the
+  [translation flow][translating] (no code required)
 
-### Getting Started
+## Quick start
+
+Node.js 22.17 or later:
 
 ```bash
-# Clone the repository
 git clone https://github.com/potatosalad775/modernGraphTool.git
 cd modernGraphTool
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-The dev server runs at `http://localhost:5173`.
-
-## Code Style
-
-This project uses **Prettier** and **ESLint** for consistent code formatting:
-
-- **Tabs** for indentation
-- **Single quotes**
-- **No trailing commas**
-- **100 character** line width
+Before opening a PR, run what CI runs:
 
 ```bash
-# Check for lint/format issues
-npm run lint
-
-# Auto-format code
-npm run format
+npm run check && npm run lint && npm run test
 ```
 
-`npm run lint` is enforced in CI on both Linux and Windows, so a PR that is not
-Prettier-clean will not merge.
-
-### Use the shared components
-
-Build UI out of the wrappers in [src/lib/components/atoms/](src/lib/components/atoms/) —
-`Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `ScrollArea`, `Skeleton` — rather
-than the bare HTML element. They carry the focus-visible ring, the transition, the disabled
-styling and the operator-customizable palette; a raw `<button>` quietly opts out of all of it
-and drifts as themes change.
-
-`Button` takes `variant` and `size` props instead of a class list — check whether a size
-already covers what you need (`toolbar`, `icon`, `icon-sm`, `icon-xs`) before writing padding
-classes by hand. Its required `title` also becomes the `aria-label`, so keep the title and the
-visible text saying the same thing.
-
-Anything you pass in `class` is merged with [tailwind-merge](https://github.com/dcastil/tailwind-merge),
-so an override beats the built-in style **without** a `!` modifier — write `class="rounded-full"`,
-not `class="rounded-full!"`. This only applies to `Button`; on a raw element, conflicting Tailwind
-utilities tie on specificity and `!` is still needed.
-
-Checkboxes and radios are the exception — no atom covers them, so they stay raw (`Input` is a
-labelled text field, `Switch` is the toggle-switch case). Elements bits-ui owns through a
-`child` snippet stay as bits-ui renders them.
-
-### Line endings
-
-All text files are **LF**, pinned by [.gitattributes](.gitattributes). This overrides
-`core.autocrlf`, which the Git for Windows installer turns on by default — you do not
-need to configure anything locally, and you should not commit CRLF.
-
-[.editorconfig](.editorconfig) tells your editor the same thing. Install the EditorConfig
-extension if your editor does not read it natively.
-
-### git blame
-
-One commit reformatted the whole repository. To keep `git blame` pointing at real
-authorship rather than that commit, run this once per clone:
-
-```bash
-git config blame.ignoreRevsFile .git-blame-ignore-revs
-```
-
-GitHub's blame view already honours the file automatically.
-
-## Svelte 5 Conventions
-
-This project uses **Svelte 5 with Runes** (enforced globally). Always use the Runes API:
-
-| Use                       | Don't use         |
-| ------------------------- | ----------------- |
-| `let x = $state(value)`   | `writable(value)` |
-| `let y = $derived(expr)`  | `$: y = expr`     |
-| `$effect(() => { ... })`  | `afterUpdate`     |
-| `let { prop } = $props()` | `export let prop` |
-
-Stores are reactive class instances in `.svelte.ts` files, not plain `.ts` files. See `CLAUDE.md` for detailed architecture and conventions.
-
-## Internationalization (i18n)
-
-UI strings are managed with [Paraglide JS](https://inlang.com/m/gerre34r/library-inlang-paraglideJs)
-(compile-time i18n). There is **no runtime translation** — message functions are generated at
-build time into `src/lib/paraglide/`, so adding strings or locales always means regenerating.
-
-### How it fits together
-
-| Piece           | Location                                  | Role                                                                           |
-| --------------- | ----------------------------------------- | ------------------------------------------------------------------------------ |
-| Locale list     | `project.inlang/settings.json`            | `baseLocale` + `locales` array — the source of truth for which languages exist |
-| Message sources | `messages/<locale>.json`                  | One file per locale; flat `key → string` map                                   |
-| Generated code  | `src/lib/paraglide/`                      | Auto-generated message functions + `runtime` — **never hand-edit**             |
-| Build hook      | `paraglideVitePlugin` in `vite.config.ts` | Regenerates `src/lib/paraglide/` on every `dev` / `build`                      |
-| Language picker | `MiscPanel.svelte`                        | Reads `locales` from the runtime — no per-language code needed                 |
-
-The picker dropdown derives its options from the generated `locales` array and labels each with
-the language's own endonym via `Intl.DisplayNames`, so a newly registered locale shows up
-automatically with no UI changes.
-
-The active locale is resolved by the strategy `['localStorage', 'preferredLanguage', 'baseLocale']`
-(see `vite.config.ts`): a saved choice wins, else the browser's preferred language, else `en`.
-
-### Conventions
-
-- Key format: `underscore_separated` (e.g., `menu_graph_panel`, not `menu.graphPanel`)
-- **A key missing from a non-`en` locale is fine.** Paraglide compiles it to a fallback on the
-  base locale (`en`) — not a build error, not a runtime crash. Partial translations are welcome;
-  untranslated strings just render in English until someone fills them in.
-- Every key **does** need to exist in `messages/en.json` — that's the source of truth.
-- Generated files in `src/lib/paraglide/` are auto-generated — **do not edit manually**
-
-### Using strings in components
-
-```svelte
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-</script>
-
-<span>{m.menu_graph_panel()}</span>
-```
-
-To read or change the locale programmatically, import from the generated runtime:
-
-```ts
-import { getLocale, setLocale, locales } from '$lib/paraglide/runtime';
-
-getLocale(); // 'en'
-setLocale('ko'); // switch (persists via localStorage strategy)
-```
-
-### Adding a new translation key
-
-1. Add the key to `messages/en.json`. Add it to other locales too if you can translate them —
-   otherwise leave them alone, they'll fall back to English.
-2. Run `npm run dev` (or `npm run build`) — the Vite plugin regenerates the message functions.
-3. Use it as `m.your_new_key()`.
-4. Run `npm run i18n:missing` so the translation staging files pick up the new key.
-
-### Translating (no code required)
-
-You don't edit `messages/<locale>.json` by hand. Instead:
-
-1. Open `messages/_missing_translations_<locale>.json` — it lists exactly the keys that locale is
-   missing, pre-filled with the English source text.
-2. Replace the English values with your translations. **Leave out any key you're unsure about** —
-   partial contributions are genuinely fine, and an untranslated key just shows English.
-3. Open a PR with only that file changed.
-
-A maintainer then runs `npm run i18n:apply`, which merges your file into `messages/<locale>.json`
-and deletes the staging file. You never have to touch the main dictionary or resolve conflicts in it.
-
-Maintainer-side commands:
-
-| Command                | What it does                                                        |
-| ---------------------- | ------------------------------------------------------------------- |
-| `npm run i18n:check`   | Reports missing / stale keys per locale. Changes nothing.           |
-| `npm run i18n:missing` | (Re)writes the `_missing_translations_<locale>.json` staging files. |
-| `npm run i18n:apply`   | Merges staging files into the locale dictionaries and removes them. |
-
-### Adding a new language option
-
-Example: adding Japanese (`ja`).
-
-1. **Register the locale.** Add it to `locales` in `project.inlang/settings.json`:
-   ```json
-   "baseLocale": "en",
-   "locales": ["en", "ko", "ja"]
-   ```
-2. **Create the message file.** Create `messages/ja.json` with at least `{ "$schema": "..." }` —
-   it does not have to be complete. Translate what you can; the rest falls back to English.
-   Run `npm run i18n:missing` to generate `messages/_missing_translations_ja.json` listing
-   everything still to do.
-3. **Regenerate + verify.** Run `npm run dev` (regenerates `src/lib/paraglide/`), then
-   `npm run i18n:check` to see what's still untranslated. The new language appears in the Misc
-   panel dropdown automatically (label resolved via `Intl.DisplayNames`) and is auto-selected for
-   visitors whose browser prefers it.
-
-> **No component edit needed.** The dropdown reads the `locales` array, so the locale code
-> (`ja`) is the only thing linking the two places: the `locales` entry in `settings.json` and the
-> `messages/<locale>.json` filename. Keep them identical.
->
-> `Intl.DisplayNames` covers all standard BCP-47 codes. If you ever need a custom label, add a
-> small code→label override in `MiscPanel.svelte`'s `localeLabel`.
-
-## Testing
-
-```bash
-# Run all tests
-npm run test
-
-# Run tests in watch mode
-npm run test:unit
-
-# Run all tests and report coverage (HTML report lands in coverage/)
-npm run test:coverage
-```
-
-- Tests are co-located with source files using `*.spec.ts` naming
-- Write tests for new utility functions and services
-- The test framework is [Vitest](https://vitest.dev/) with Playwright for browser testing
-- Coverage thresholds in `vite.config.ts` are a **ratchet**: raise them when coverage
-  improves, never lower them to make a red run green. Run `npm run test:coverage`
-  before opening a PR that adds code.
-
-## Pull Request Process
-
-1. **Branch** from the current development branch
-2. **Make your changes** — keep PRs focused on a single concern
-3. **Run checks** before submitting:
-   ```bash
-   npm run check    # TypeScript + Svelte type checking
-   npm run lint     # ESLint + Prettier
-   npm run test     # All tests
-   ```
-   The `CI` workflow runs exactly these on Linux and Windows, plus a build of the app,
-   the CDN distribution and the docs site. Running them locally first saves a round trip.
-4. **Open a PR** with a clear description of what changed and why
-
-## What to Contribute
-
-- **Bug fixes** — always welcome
-- **Accessibility improvements** — we aim for WCAG AAA compliance
-- **New language translations** — add a new JSON file in `messages/`
-- **Documentation improvements** — typo fixes, clarifications, new guides
-- **Feature requests** — please open an issue first to discuss the approach
+The docs sources are in [docs/src/content/docs/](docs/src/content/docs/), so a fix to this guide is a PR
+like any other.
 
 ## License
 
 By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+
+[contributing]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/contributing/
+[overview]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/overview/
+[testing]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/testing/
+[build]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/build-and-deploy/
+[i18n]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/
+[translating]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/#translation-contribution-flow

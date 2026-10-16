@@ -17,7 +17,7 @@ Also available in Squiglink: https://silicagel.squig.link
 - **Target Customizer** — Custom HRTF target curves with tilt, bass, and treble adjustment
 - **squig.link Integration** — Cross-site device search, shop links, and sponsor content
 - **Built-in Hardware EQ** — Write EQ settings directly to 20+ supported devices, described by the [eqcaps][EQCAPS] database
-- **Internationalization** — 5+ Language support (See [CONTRIBUTING.md][CONTRIBUTING_I18N] for contribution guide)
+- **Internationalization** — 5+ Language support (See the [translation guide][CONTRIBUTING_I18N] to contribute)
 - **Light & Dark Mode** — Colorful UI with operator-customizable theme system
 
 ## Documentation
@@ -45,7 +45,7 @@ npm run build
 
 Contributions are always welcome, no matter how small or large!
 
-Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+Please read the [contributor guide][CONTRIBUTING] in the docs before opening a pull request.
 
 ## License
 
@@ -60,4 +60,5 @@ modernGraphTool is open source software licensed under the MIT License.
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DEVICE_PEQ]: https://github.com/jeromeof/devicePEQ
 [EQCAPS]: https://github.com/potatosalad775/eqcaps
-[CONTRIBUTING_I18N]: CONTRIBUTING.md#translating-no-code-required
+[CONTRIBUTING_I18N]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/#translation-contribution-flow
+[CONTRIBUTING]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/contributing/

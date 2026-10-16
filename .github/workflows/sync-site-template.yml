@@ -54,7 +54,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
 
       # No `npm ci` — the script only uses node builtins, and installing the
       # full toolchain for a file copy is a minute we don't need to spend.

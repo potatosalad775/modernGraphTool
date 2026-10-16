@@ -255,6 +255,11 @@ function projectInPlace(filters: EQFilter[], index: number, band: EQFilter): EQF
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+/** Whether a band leaves the curve untouched: disabled, or no gain yet. */
+function isFlat(f: EQFilter): boolean {
+	return !f.enabled || !f.gain;
+}
+
 export const eqCommands = {
 	/**
 	 * Update a single filter band. Repeated calls to the same band within
@@ -285,7 +290,11 @@ export const eqCommands = {
 			}
 		});
 		if (Object.keys(diff).length === 0) return;
+		const wasFlat = eqStore.filters.every(isFlat);
 		coalescer.updateBand(index, diff);
+		// The first gain on an all-flat list is a fresh start, like the first band added to an
+		// empty one: a picked graphic preset leaves its bands flat, never an empty list.
+		if (wasFlat && !isFlat(clamped)) eqCommands.ensureEnabled();
 	},
 
 	/** Force-commit any pending burst for `index` (no-op if none pending). */
@@ -309,9 +318,11 @@ export const eqCommands = {
 	 * sort button and the History & Compare A/B switch all route through —
 	 * re-enabling EQ on an undo would be worse than the problem it fixes.
 	 *
-	 * Editing an existing band is not on the list either. Toggling EQ off to
-	 * compare against the raw curve while tweaking is a real workflow, and
-	 * re-enabling under the user there would fight them on every keystroke.
+	 * Editing an existing band is not on the list either, except the first
+	 * edit that gives an all-flat list some gain (`updateBand`), which is the
+	 * same fresh start as a first band. Toggling EQ off to compare against the
+	 * raw curve while tweaking is a real workflow, and re-enabling under the
+	 * user there would fight them on every keystroke.
 	 */
 	ensureEnabled(): void {
 		if (eqStore.momentaryRestore !== null) {

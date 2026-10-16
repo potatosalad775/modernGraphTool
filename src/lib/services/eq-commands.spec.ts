@@ -151,6 +151,36 @@ describe('eqCommands', () => {
 		});
 	});
 
+	describe('updateBand on an all-flat list', () => {
+		beforeEach(() => {
+			eqStore.filters = [makeFilter({ freq: 100 }), makeFilter({ freq: 1000 })];
+		});
+
+		it('switches EQ on with the first gain, as a first band does', () => {
+			eqCommands.updateBand(1, { gain: 3 });
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		it('leaves the toggle alone for an edit that stays flat', () => {
+			eqCommands.updateBand(1, { freq: 2000 });
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		// Bypassing EQ to compare while tweaking: once the list has gain, the
+		// toggle is the user's.
+		it('leaves the toggle alone once any band has gain', () => {
+			eqStore.filters = [makeFilter({ gain: -2 }), makeFilter({ freq: 2000 })];
+			eqCommands.updateBand(1, { gain: 3 });
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		it('counts a disabled band with gain as flat', () => {
+			eqStore.filters = [makeFilter({ gain: -2, enabled: false }), makeFilter({ freq: 2000 })];
+			eqCommands.updateBand(1, { gain: 3 });
+			expect(eqStore.isEnabled).toBe(true);
+		});
+	});
+
 	describe('updateBand coalescing', () => {
 		beforeEach(() => {
 			vi.useFakeTimers();

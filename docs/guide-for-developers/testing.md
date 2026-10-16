@@ -19,6 +19,7 @@ code they cover as `*.spec.ts`.
 | Command                 | What it does                                             |
 | ----------------------- | -------------------------------------------------------- |
 | `npm run test`          | Full suite — both the `client` and `server` projects     |
+| `npm run test:unit`     | Same suite in watch mode                                 |
 | `npm run test:coverage` | Full suite + v8 coverage report into `coverage/`         |
 | `npm run test:smoke`    | Boots the built `dist/` in a browser (run `build` first) |
 

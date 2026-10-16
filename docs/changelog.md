@@ -12,6 +12,29 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.0
+- Feat: Added **uniPEQ Link**, which edits the EQ live together with the [uniPEQ](https://unipeq.com) app and writes it to the device connected there. It lives inside Hardware EQ, with one connection (USB or linked) at a time. This change allows users to manipulate PEQ with graphs only using Android phone. Configured by the new `UNIPEQ_LINK` section; on by default. See [uniPEQ Link](./features/unipeq-link.mdx) and [UNIPEQ_LINK documentation](./guide-for-admins/customize-page.mdx#unipeq_link).
+- Feat: The Equalizer now handles low-pass, high-pass, band-pass, notch and all-pass filters alongside peaking and shelf filters, for EQ profiles and devices that use them. They are drawn on the EQ curve and can be picked as a band's type where the active EQ constraint allows it.
+- Feat: Added a one-time volume warning before the first hardware EQ write, preset switch or audio player playback, since a write can pop or jump in level mid-playback. It can be dismissed for good with **Don't show again**.
+- Feat: History & Compare now has **History** and **Bookmarks** tabs. Bookmark an EQ to keep it, delete single history entries, and add an entry to the graph as a ghost trace. History also records edits made while another panel is open. See [History & Compare](./features/equalizer.mdx#history-and-compare).
+- Feat: A/B comparison in the in-browser player is now loudness-matched, and is disabled for entries that don't fit the active EQ constraint. See [Entries that don't fit the constraint](./features/equalizer.mdx#entries-that-dont-fit-the-constraint).
+- Feat: The Equalizer can now target one run of a sample set instead of its average. See [EQ one run of a sample set](./features/equalizer.mdx#eq-one-run-of-a-sample-set).
+- Feat: `DOWNLOAD` now offers every run of a sample set alongside its average, and several files download as one `.zip`. See [DOWNLOAD documentation](./guide-for-admins/customize-page.mdx#download).
+- Feat: Preference Bound can now offer several bounds, picked from a row at the bottom of the target list. Configured by the new `PREFERENCE_BOUND.BOUND_LIST`, which replaces `BASE_DF_TARGET_FILE` — that key still works. See [Preference Bound](./features/preference-bound.mdx#offering-more-than-one-bound) and [PREFERENCE_BOUND documentation](./guide-for-admins/customize-page.mdx#preference_bound).
+- Feat: The Frequency Tutorial strip can now be toggled with the **Freq. Guide** button in the graph toolbar. Added `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD` to show it to first-time visitors; hidden by default. See [Frequency Tutorial](./features/frequency-tutorial.mdx).
+- Feat: Added a first-visit tour for the Equalizer panel, replayable with the **?** button in its top bar. See [The panel tour](./features/equalizer.mdx#the-panel-tour).
+- Feat: The EQ source and AutoEQ target pickers now group their entries.
+- Feat: Each graphic EQ band's gain slider now sits in its own row, and the first gain set on an all-flat band list switches the EQ on.
+- Fix: The Auto preamp now rounds down onto a connected device's preamp step, so it no longer gives back headroom or pauses Auto-write for review on coarse-grid devices.
+- Fix: Importing an Equalizer APO file now reads numbered channels (`Channel: 1`), unnumbered filters, bandwidth (`BW Oct`) and shelf slopes. See [Importing filter files](./features/equalizer.mdx#importing-filter-files).
+- Fix: Exporting as Graphic EQ now includes only enabled shared bands. (#85)
+- Fix: Picking a hardware EQ profile no longer pads the band list with flat bands at fixed frequencies.
+- Fix: A channel picked on the EQ curve now stays picked when the curve rebuilds.
+- Fix: The graph inspection toggle now starts in sync with the graph's state.
+- Fix (squig-link): The sponsor dialog shows again for a new sponsorship. Dismissal now lasts one day per sponsor and is shared with CrinGraph sites on squig.link.
+- Refactor: Faster startup, and Upgraded to SvelteKit 3.
+- Localization: Updated Russian and Ukrainian translations, now with plural forms. (by @reallystates)
+
 ### v2.2.4
 - Feat: Device PEQ is now **Hardware EQ**, rebuilt on [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each device's EQ accepts. See [Hardware EQ](./features/device-peq.mdx).
 - Feat: Added a **Device EQ** control that switches the device's preset, or bypasses its EQ, the moment you change it.

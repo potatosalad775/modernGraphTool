@@ -35,7 +35,7 @@ The browser's device picker only lists devices Hardware EQ knows how to drive. O
 
 ## The device's limits
 
-While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. If you have fewer bands than the device, Fit also adds flat (0 dB) bands until there is one row per device band, so the list shows exactly what the device will hold. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
+While a device is connected, its limits are the active [EQ constraint](./equalizer.mdx#eq-constraints). Connecting never changes your bands: the ones the device can't hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. Fit never adds bands: if you have fewer than the device, the rest are written flat when you write to the device (see below). Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
 
 When there is something to know about the device's profile — a shared or guessed profile, limits that haven't been checked against a real device yet (with a **Report wrong limits** link), experimental support, a device that can't be read back — an icon appears beside its name. A warning triangle means the limits themselves may be off; click it for the details.
 

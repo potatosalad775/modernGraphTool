@@ -15,8 +15,9 @@ draft: false
 
 이 가이드는 modernGraphTool 자체를 개발하는 분들을 위한 문서입니다. 데이터베이스를 운영하려는 것이라면 [운영자 가이드](../guide-for-admins/index.mdx)를 보세요.
 
-기여를 환영합니다. 코드 스타일과 PR 가이드라인은 [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md)에서 확인하세요. 이 섹션의 나머지 문서는 다음을 다룹니다.
+기여를 환영합니다. 이 섹션은 다음을 다룹니다.
 
+- **[기여하기](./contributing.mdx)** — 설정, 코드 스타일, 풀 리퀘스트 여는 방법. 여기서 시작하세요.
 - **[테스트](./testing.mdx)** — 두 개의 Vitest 프로젝트, 커버리지, 스모크 테스트.
 - **[빌드 및 배포 내부 구조](./build-and-deploy.mdx)** — 빌드 산출물과 `defaults/`가 그 안에 들어가는 방식.
 - **[국제화](./i18n.mdx)** — UI 문자열, 언어 추가, 번역 기여 흐름.
@@ -24,7 +25,7 @@ draft: false
 ## 기술 스택
 
 - **언어**: TypeScript (strict)
-- **프레임워크**: SvelteKit 2 + Svelte 5 (Runes)
+- **프레임워크**: SvelteKit 3 + Svelte 5 (Runes)
 - **스타일링**: Tailwind CSS 4 + bits-ui (헤드리스 접근성 컴포넌트)
 - **그래프 렌더링**: D3.js (SVG 기반)
 - **i18n**: Paraglide JS (컴파일 타임 국제화)

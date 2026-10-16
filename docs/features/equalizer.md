@@ -14,6 +14,13 @@ The Equalizer panel is a parametric EQ that works on loaded measurements: Peakin
 
 This page covers the behavior worth knowing in detail. For a walkthrough of the panel, see [Equalizing audio](../guide-for-users/equalizing.mdx); operators can set defaults under [`EQUALIZER`](../guide-for-admins/customize-page.mdx#equalizer).
 
+## The panel tour
+
+The first time the panel opens, a five-step tour points out the source picker, the band list,
+AutoEQ, the audio player with History & Compare, and Hardware EQ. If the welcome tour is still
+showing, it waits for that one to close. Replay it with the **?** button at the right end of the
+panel's top bar; **Show tutorial again** in the Misc panel replays the welcome tour.
+
 ## The Equalizer toggle
 
 Nothing in the panel reaches the graph or the audio player until the master **Equalizer** switch at
@@ -23,8 +30,10 @@ the top of the panel is on. Actions that only make sense with EQ live turn it on
 - Running AutoEQ
 - Pulling filters from a connected device (Hardware EQ)
 - Adding the **first** band to an empty filter list
+- Giving a band gain while every band is still flat — where a graphic-EQ preset leaves you, with
+  its bands laid out at 0 dB
 
-Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw
+Other edits to bands you already have do not touch the switch. Turning EQ off to compare against the raw
 curve while you tweak is a deliberate workflow — hold <kbd>\\</kbd> for a momentary A/B flip in
 either direction — so nothing re-enables it under you.
 
@@ -94,7 +103,8 @@ slot each band sits in: number boxes and sliders span its range and step by its 
 types are offered, and a value it fixes is shown read-only. Hover a box to see what is allowed.
 
 - **Picking a constraint** folds the bands onto it, as one undoable step: values move to the nearest
-  allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band.
+  allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band,
+  each with its gain slider in the row, ready to drag.
 - **Connecting a device** doesn't touch the bands. Whatever the device can't hold is marked, and
   **Fit** in the bar above the list folds them when you choose to.
 - **Editing** snaps each value onto what its slot allows, as you type or drag.

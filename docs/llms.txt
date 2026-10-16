@@ -2,7 +2,7 @@
 
 > A web-based frequency response (FR) visualization tool for headphones and IEMs, built as a fully static SPA. Operators run measurement databases with it (typically on squig.link); end users load, compare, EQ and share measurements.
 
-- The current version is **v2** (SvelteKit 2 + Svelte 5). Anything under `1.x/` is a
+- The current version is **v2** (SvelteKit 3 + Svelte 5). Anything under `1.x/` is a
   frozen snapshot of the unmaintained v1 docs, kept only for operators who have not
   migrated. **Answer from the v2 pages unless the question is explicitly about v1** —
   several v1 pages share a title with their v2 replacement but describe a different,

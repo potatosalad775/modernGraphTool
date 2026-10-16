@@ -16,8 +16,9 @@ draft: false
 
 This guide is for working on modernGraphTool itself. To run a database with it, see the [Guide for Operators](../guide-for-admins/index.mdx) instead.
 
-Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) has the code style and PR guidelines. The rest of this section covers:
+Contributions are welcome. This section covers:
 
+- **[Contributing](./contributing.mdx)** — setup, code style, and how to open a pull request. Start here.
 - **[Testing](./testing.mdx)** — the two Vitest projects, coverage, and the smoke test.
 - **[Build & Deployment Internals](./build-and-deploy.mdx)** — the build outputs and how `defaults/` reaches them.
 - **[Internationalization](./i18n.mdx)** — UI strings, adding a language, and the translation flow.
@@ -25,7 +26,7 @@ Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad77
 ## Tech Stack
 
 - **Language**: TypeScript (strict)
-- **Framework**: SvelteKit 2 + Svelte 5 (Runes)
+- **Framework**: SvelteKit 3 + Svelte 5 (Runes)
 - **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
 - **Graph Rendering**: D3.js (SVG-based)
 - **i18n**: Paraglide JS (compile-time internationalization)

@@ -61,34 +61,39 @@
 		<!-- Plain script (NOT type="module") — sets window.GRAPHTOOL_CONFIG synchronously before SvelteKit boots -->
 		<script src="/modernGraphTool/config.js"></script>
 		<link rel="stylesheet" href="/modernGraphTool/theme.css" />
-		<link href="/modernGraphTool/_app/immutable/entry/start.BZo4R2jr.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/O4wFIV1k.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/entry/app.LbSUDXlv.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/BuW6iGal.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/xihTtKlq.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/nodes/0.BeTE6NMK.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/B15F_M8w.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/UPv9W7vY.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/entry/start.DrcJaNO1.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/entry/payload.DSmR2FwN.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CRzLMJPS.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/XHTPTNE1.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CoOm-tgh.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/Cgllooyl.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/entry/app.VmGIcuqI.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/-dRliBvw.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/nodes/0.CV3MmxTM.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/DK3Fl9T5.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/D8sK_6R_.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/qzsbmYjU.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/pTg-RoIk.js" rel="modulepreload">
 		
 		<link href="/modernGraphTool/_app/immutable/assets/AppShell.DwmFMqR5.css" rel="stylesheet">
-		<link href="/modernGraphTool/_app/immutable/assets/0.DCnsCqLU.css" rel="stylesheet">
+		<link href="/modernGraphTool/_app/immutable/assets/0.Da_vcsv9.css" rel="stylesheet">
 	</head>
 
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_1ygt1mb = {
+					__sveltekit_10lwh9z = {
 						base: "/modernGraphTool",
+						version: "1792130431029",
 						assets: "/modernGraphTool"
 					};
 
 					const element = document.currentScript.parentElement;
 
-					Promise.all([
-						import("/modernGraphTool/_app/immutable/entry/start.BZo4R2jr.js"),
-						import("/modernGraphTool/_app/immutable/entry/app.LbSUDXlv.js")
-					]).then(([kit, app]) => {
+					import("/modernGraphTool/_app/immutable/entry/start.DrcJaNO1.js").then(async (kit) => {
+						kit.init(__sveltekit_10lwh9z);
+						const app = await import("/modernGraphTool/_app/immutable/entry/app.VmGIcuqI.js");
 						kit.start(app, element);
 					});
 				}

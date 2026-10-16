@@ -12,6 +12,29 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.0
+- Feat: [uniPEQ](https://unipeq.com) 앱과 함께 EQ를 실시간으로 편집하고, uniPEQ에 연결된 기기에 바로 기록하는 **uniPEQ 연결** 기능이 추가되었습니다. 하드웨어 EQ 안에 포함되어 있으며, USB 연결과 uniPEQ 연결 중 한 번에 하나만 사용할 수 있습니다. 이제 안드로이드 휴대폰 하나만으로 그래프를 보며 PEQ를 조작할 수 있습니다. 새 `UNIPEQ_LINK` 섹션으로 설정하며, 기본값은 켜짐입니다. 자세한 내용은 [uniPEQ 연결](./features/unipeq-link.mdx) 및 [UNIPEQ_LINK 문서](./guide-for-admins/customize-page.mdx#unipeq_link) 참조.
+- Feat: Equalizer가 피킹 필터와 셸빙 필터 외에 로우패스, 하이패스, 밴드패스, 노치, 올패스 필터도 지원합니다. 이 필터를 사용하는 EQ 프로필이나 기기를 위한 기능으로, EQ 곡선에 표시되며 활성화된 EQ 제약 조건이 허용하는 경우 밴드의 필터 종류로 선택할 수 있습니다.
+- Feat: 하드웨어 EQ에 처음 쓰거나 프리셋을 전환할 때, 또는 오디오 플레이어를 처음 재생할 때 볼륨 경고를 한 번 표시합니다. 재생 중에 EQ를 쓰면 팝 노이즈가 나거나 음량이 갑자기 바뀔 수 있기 때문입니다. **다시 보지 않기**로 영구히 끌 수 있습니다.
+- Feat: 편집 기록 & 비교에 **기록**과 **북마크** 탭이 추가되었습니다. EQ를 북마크해 보관하고, 기록 항목을 하나씩 삭제하고, 항목을 그래프에 고스트 트레이스로 추가할 수 있습니다. 다른 패널이 열려 있는 동안의 편집도 이제 기록됩니다. 자세한 내용은 [편집 기록 & 비교](./features/equalizer.mdx#history-and-compare) 참조.
+- Feat: 브라우저 내 플레이어의 A/B 비교가 이제 음량을 맞춰 재생하며, 활성화된 EQ 제약 조건에 맞지 않는 항목에서는 비활성화됩니다. 자세한 내용은 [제약 조건에 맞지 않는 항목](./features/equalizer.mdx#entries-that-dont-fit-the-constraint) 참조.
+- Feat: Equalizer가 샘플 세트의 평균 대신 측정 하나를 대상으로 EQ를 적용할 수 있습니다. 자세한 내용은 [샘플 세트의 측정 하나에 EQ 적용하기](./features/equalizer.mdx#eq-one-run-of-a-sample-set) 참조.
+- Feat: `DOWNLOAD`가 이제 샘플 세트의 평균과 함께 모든 측정을 내려받을 수 있게 하며, 여러 파일은 `.zip` 하나로 내려받습니다. 자세한 내용은 [DOWNLOAD 문서](./guide-for-admins/customize-page.mdx#download) 참조.
+- Feat: 선호도 경계를 여러 개 제공할 수 있으며, 타겟 목록 아래쪽의 행에서 고를 수 있습니다. 새 `PREFERENCE_BOUND.BOUND_LIST`로 설정하며, 이는 `BASE_DF_TARGET_FILE`을 대체합니다. 기존 키도 계속 동작합니다. 자세한 내용은 [선호도 경계](./features/preference-bound.mdx#offering-more-than-one-bound) 및 [PREFERENCE_BOUND 문서](./guide-for-admins/customize-page.mdx#preference_bound) 참조.
+- Feat: 그래프 툴바의 **주파수 가이드** 버튼으로 Frequency Tutorial 띠를 켜고 끌 수 있습니다. 처음 방문한 사용자에게 이를 표시하는 `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD` 설정이 추가되었으며, 기본값은 숨김입니다. 자세한 내용은 [Frequency Tutorial](./features/frequency-tutorial.mdx) 참조.
+- Feat: Equalizer 패널을 처음 열 때 보여주는 둘러보기가 추가되었습니다. 패널 상단 바의 **?** 버튼으로 다시 볼 수 있습니다. 자세한 내용은 [패널 둘러보기](./features/equalizer.mdx#the-panel-tour) 참조.
+- Feat: EQ 소스 선택기와 AutoEQ 타겟 선택기의 항목이 이제 그룹으로 묶여 표시됩니다.
+- Feat: 그래픽 EQ의 각 밴드 게인 슬라이더가 이제 해당 행 안에 표시되며, 모든 밴드가 평탄한 상태에서 처음 게인을 조정하면 EQ가 켜집니다.
+- Fix: 자동 프리앰프가 이제 연결된 기기의 프리앰프 단위에 맞춰 내림 처리되어, 헤드룸을 잃거나 단위가 큰 기기에서 자동 쓰기가 검토를 위해 멈추지 않습니다.
+- Fix: Equalizer APO 파일을 가져올 때 번호로 지정된 채널(`Channel: 1`), 번호 없는 필터, 대역폭(`BW Oct`), 셸프 기울기를 읽을 수 있습니다. 자세한 내용은 [필터 파일 가져오기](./features/equalizer.mdx#importing-filter-files) 참조.
+- Fix: 그래픽 EQ로 내보낼 때 활성화된 공용 밴드만 포함합니다. (#85)
+- Fix: 하드웨어 EQ 프로필을 선택해도 밴드 목록이 고정 주파수의 평탄한 밴드로 채워지지 않습니다.
+- Fix: EQ 곡선에서 선택한 채널이 곡선을 다시 그린 뒤에도 유지됩니다.
+- Fix: 그래프 검사 토글이 처음부터 그래프 상태와 일치합니다.
+- Fix (squig-link): 새로운 스폰서가 생기면 스폰서 안내창이 다시 표시됩니다. 닫으면 스폰서별로 하루 동안 표시되지 않으며, 이 설정은 squig.link의 CrinGraph 사이트와 공유됩니다.
+- Refactor: 초기 로딩 속도를 개선하고, SvelteKit 3으로 업그레이드했습니다.
+- Localization: 러시아어 및 우크라이나어 번역을 업데이트하고 복수형을 지원합니다. (by @reallystates)
+
 ### v2.2.4
 - Feat: Device PEQ가 **하드웨어 EQ**로 이름을 바꾸고, 기기 EQ가 받아들이는 값을 정리한 오픈 데이터베이스 [eqcaps](https://github.com/potatosalad775/eqcaps)를 기반으로 새로 만들어졌습니다. 자세한 내용은 [하드웨어 EQ](./features/device-peq.mdx) 참조.
 - Feat: 기기의 프리셋을 전환하거나 EQ를 우회하는 **기기 내장 EQ** 컨트롤이 추가되었습니다. 바꾸는 즉시 기기에 적용됩니다.

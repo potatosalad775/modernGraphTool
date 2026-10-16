@@ -858,7 +858,7 @@ The browser’s device picker only lists devices Hardware EQ knows how to drive.
 
 ## The device’s limits
 
-While a device is connected, its limits are the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). Connecting never changes your bands: the ones the device can’t hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. If you have fewer bands than the device, Fit also adds flat (0 dB) bands until there is one row per device band, so the list shows exactly what the device will hold. Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
+While a device is connected, its limits are the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). Connecting never changes your bands: the ones the device can’t hold are marked, and **Fit** above the band list moves them onto the nearest values it accepts, as one undoable step. Fit never adds bands: if you have fewer than the device, the rest are written flat when you write to the device (see below). Hand edits and AutoEQ stay inside the limits from then on — a 5-band device gets a 5-band AutoEQ. Disconnecting restores whatever constraint you had picked before.
 
 When there is something to know about the device’s profile — a shared or guessed profile, limits that haven’t been checked against a real device yet (with a **Report wrong limits** link), experimental support, a device that can’t be read back — an icon appears beside its name. A warning triangle means the limits themselves may be off; click it for the details.
 
@@ -914,6 +914,10 @@ The Equalizer panel is a parametric EQ that works on loaded measurements: Peakin
 
 This page covers the behavior worth knowing in detail. For a walkthrough of the panel, see [Equalizing audio](/modernGraphTool/docs/guide-for-users/equalizing/); operators can set defaults under [`EQUALIZER`](/modernGraphTool/docs/guide-for-admins/customize-page/#equalizer).
 
+## The panel tour
+
+The first time the panel opens, a five-step tour points out the source picker, the band list, AutoEQ, the audio player with History & Compare, and Hardware EQ. If the welcome tour is still showing, it waits for that one to close. Replay it with the **?** button at the right end of the panel’s top bar; **Show tutorial again** in the Misc panel replays the welcome tour.
+
 ## The Equalizer toggle
 
 Nothing in the panel reaches the graph or the audio player until the master **Equalizer** switch at the top of the panel is on. Actions that only make sense with EQ live turn it on for you:
@@ -922,8 +926,9 @@ Nothing in the panel reaches the graph or the audio player until the master **Eq
 * Running AutoEQ
 * Pulling filters from a connected device (Hardware EQ)
 * Adding the **first** band to an empty filter list
+* Giving a band gain while every band is still flat — where a graphic-EQ preset leaves you, with its bands laid out at 0 dB
 
-Editing bands you already have does not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you.
+Other edits to bands you already have do not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you.
 
 ## Per-channel EQ
 
@@ -961,7 +966,7 @@ An EQ constraint limits the band list to what a particular EQ engine accepts —
 
 A constraint can do more than cap the band count. Each band slot has its own filter types and its own frequency, Q and gain range — a device whose first band is a low shelf from 20 to 300 Hz, say — and ranges can be stepped (gain in 0.5 dB steps) or a list of allowed values. The band list follows the slot each band sits in: number boxes and sliders span its range and step by its grid, only its filter types are offered, and a value it fixes is shown read-only. Hover a box to see what is allowed.
 
-* **Picking a constraint** folds the bands onto it, as one undoable step: values move to the nearest allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band.
+* **Picking a constraint** folds the bands onto it, as one undoable step: values move to the nearest allowed ones and bands past the cap are dropped. A graphic EQ always gets one row per band, each with its gain slider in the row, ready to drag.
 * **Connecting a device** doesn’t touch the bands. Whatever the device can’t hold is marked, and **Fit** in the bar above the list folds them when you choose to.
 * **Editing** snaps each value onto what its slot allows, as you type or drag.
 * While a constraint is active, a bar above the band list names it; its **×** returns to unlimited.
@@ -3489,12 +3494,107 @@ It is **generated output, not a hand-maintained repo.** `npm run build:site-temp
 
 * The workflow needs a `SITE_TEMPLATE_TOKEN` secret (fine-grained PAT, `Contents: write` on the template repo) — `GITHUB_TOKEN` cannot push across repositories.
 
+# Contributing
+
+> Setting up modernGraphTool locally, the code style CI enforces, and how to open a pull request.
+
+Contributions are always welcome, no matter how small or large. This page covers what you need before your first pull request; the [Overview](/modernGraphTool/docs/guide-for-developers/overview/) has the architecture and project layout.
+
+## What to contribute
+
+* **Bug fixes** — always welcome.
+* **Accessibility improvements** — the target is WCAG AAA.
+* **Translations** — no code required. See the [translation flow](/modernGraphTool/docs/guide-for-developers/i18n/#translation-contribution-flow).
+* **Documentation** — typo fixes, clarifications, new guides. The sources live in `docs/src/content/docs/`.
+* **Features** — please [open an issue](https://github.com/potatosalad775/modernGraphTool/issues) first to discuss the approach.
+
+## Setup
+
+You need [Node.js](https://nodejs.org/) 24 or later (CI runs the latest 24.x) and npm, which ships with it.
+
+```bash
+git clone https://github.com/potatosalad775/modernGraphTool.git
+cd modernGraphTool
+npm install
+npm run dev        # http://localhost:5173
+```
+
+To run `npm run lint`, also install the docs site’s dependencies once with `cd docs && npm ci`. The root lint reaches files under `docs/`, and ESLint resolves their config through `docs/tsconfig.json`, which cannot load without `docs/node_modules`.
+
+## Code style
+
+**Prettier** and **ESLint** are authoritative: tabs, single quotes, no trailing commas, 100-character lines.
+
+```bash
+npm run lint       # check
+npm run format     # fix
+```
+
+CI runs `npm run lint` on Linux and Windows, so a PR that is not Prettier-clean will not merge.
+
+### Line endings
+
+Every text file is **LF**, pinned by `.gitattributes`. That overrides `core.autocrlf`, which the Git for Windows installer turns on by default, so there is nothing to configure locally. Just don’t commit CRLF. `.editorconfig` tells your editor the same thing; install the EditorConfig extension if your editor doesn’t read it natively.
+
+### git blame
+
+One commit reformatted the whole repository. To keep `git blame` pointing at real authorship rather than that commit, run this once per clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+GitHub’s blame view already honours the file.
+
+## Svelte 5 conventions
+
+The project uses **Svelte 5 runes**, enforced globally:
+
+| Use                       | Don’t use         |
+| ------------------------- | ----------------- |
+| `let x = $state(value)`   | `writable(value)` |
+| `let y = $derived(expr)`  | `$: y = expr`     |
+| `$effect(() => { ... })`  | `afterUpdate`     |
+| `let { prop } = $props()` | `export let prop` |
+
+Stores are reactive class instances in `.svelte.ts` files, not plain `.ts`. Most directories under `src/lib/` have an `AGENTS.md` with the rules specific to that area; read it before changing code there.
+
+## Shared components
+
+Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `ScrollArea` and `Skeleton`, rather than the bare HTML element. They carry the focus-visible ring, the transition, the disabled styling and the operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as themes change.
+
+* `Button` takes `variant` and `size` props instead of a class list. Check whether a size already covers what you need (`toolbar`, `icon`, `icon-sm`, `icon-xs`) before writing padding classes by hand. Its required `title` also becomes the `aria-label`, so keep the title and the visible text saying the same thing.
+* Anything passed to `Button` in `class` is merged with [tailwind-merge](https://github.com/dcastil/tailwind-merge), so an override beats the built-in style **without** a `!` modifier: write `class="rounded-full"`, not `class="rounded-full!"`. On a raw element, conflicting utilities tie on specificity and `!` is still needed.
+* Checkboxes and radios are the exception. No atom covers them, so they stay raw. Elements bits-ui owns through a `child` snippet stay as bits-ui renders them.
+
+Colors always go through the semantic tokens (`bg-base-100`, `text-base-content/60`, `text-primary`, …), never a literal palette value like `text-zinc-500`, so that operator themes stay coherent.
+
+## Pull requests
+
+1. **Branch** from `main`, and keep each PR to a single concern.
+
+2. **Run the checks** before pushing:
+
+   ```bash
+   npm run check    # TypeScript + Svelte type checking
+   npm run lint     # ESLint + Prettier
+   npm run test     # all tests
+   ```
+
+   CI runs exactly these on Linux and Windows, plus builds of the app, the CDN distribution and the docs site. See [Testing](/modernGraphTool/docs/guide-for-developers/testing/) for the two test projects and the coverage ratchet.
+
+3. **Update the docs** in the same PR when a change affects what users see, what operators configure, or how developers contribute.
+
+4. **Open the PR** with a clear description of what changed and why. Keep commit messages short; the reasoning belongs in the PR description.
+
+By contributing, you agree that your contributions will be licensed under the [MIT License](https://github.com/potatosalad775/modernGraphTool/blob/main/LICENSE).
+
 # Internationalization
 
 UI strings go through **Paraglide JS**, which compiles `messages/<locale>.json` into typed functions at build time.
 
 ```ts
-import * as m from '$lib/paraglide/messages';
+import * as m from '#lib/paraglide/messages.js';
 m.some_key();
 ```
 
@@ -3505,20 +3605,30 @@ This is separate from the *operator-facing* multilingual config values (`DESCRIP
 * Key format is `underscore_separated` — `menu_graph_panel`, not `menu.graphPanel`.
 * Generated code in `src/lib/paraglide/` is **never** hand-edited, and is gitignored.
 * Locales are registered in `project.inlang/settings.json` (`baseLocale` + `locales`). The Vite plugin regenerates `src/lib/paraglide/` on dev, build and test.
-* Switch language with `setLocale('ko')` (also `getLocale`, `locales`) from `$lib/paraglide/runtime`.
+* Switch language with `setLocale('ko')` (also `getLocale`, `locales`) from `#lib/paraglide/runtime.js`.
 
 Missing keys in a non-English locale are fine
 
 Paraglide’s compiler falls back to `baseLocale` (`en`) per key automatically — no build error, no runtime crash. Contributors can add partial translations; untranslated strings just render in English until someone fills them in.
 
-`npm run check` does **not** go through Vite, so on a fresh clone `$lib/paraglide/*` would have no type declarations. `check` therefore runs `npm run i18n:compile` first — the Paraglide CLI with the same options as the Vite plugin, so keep the two in sync. `prepare` runs it too, so a plain `npm ci` leaves the tree typecheckable.
+`npm run check` does **not** go through Vite, so on a fresh clone `#lib/paraglide/*` would have no type declarations. `check` therefore runs `npm run i18n:compile` first — the Paraglide CLI with the same options as the Vite plugin, so keep the two in sync. `prepare` runs it too, so a plain `npm ci` leaves the tree typecheckable.
+
+The active locale is resolved by the strategy `localStorage` → `preferredLanguage` → `baseLocale`: a saved choice wins, then the browser’s preferred language, then `en`.
+
+## Adding a key
+
+1. Add the key to `messages/en.json`, the source of truth. Add it to other locales too if you can translate it; otherwise leave them alone and they fall back to English.
+2. Run `npm run dev` (or `build`). The Vite plugin regenerates the message functions.
+3. Use it as `m.your_new_key()`.
+4. Run `npm run i18n:missing` so the translation staging files pick up the new key.
 
 ## Adding a language
 
 1. Add the locale code to `locales` in `project.inlang/settings.json`.
-2. Create `messages/<locale>.json`.
+2. Create `messages/<locale>.json`. It can hold as little as `{ "$schema": "..." }`; the rest falls back to English.
+3. Run `npm run i18n:missing` to generate `messages/_missing_translations_<locale>.json`, listing everything still to translate.
 
-That’s it — the `MiscPanel` picker reads `locales` and labels them via `Intl.DisplayNames`, so no component edit is needed. Keys fill in over time; see the fallback note above.
+That’s it — the `MiscPanel` picker reads `locales` and labels them via `Intl.DisplayNames`, so no component edit is needed, and visitors whose browser prefers the language get it automatically. The locale code is the only link between the `locales` entry and the `messages/<locale>.json` filename, so keep the two identical. For a custom label, add a code → label override to `localeLabel` in `MiscPanel.svelte`.
 
 ## Translation contribution flow
 
@@ -3534,7 +3644,29 @@ Translators never touch `messages/<locale>.json` directly. They edit a generated
 2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they’re unsure about can be left out entirely — those keep falling back to English.
 3. After merging the PR, run `npm run i18n:apply` and commit the result.
 
-`i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys rather than dropping them. Use `--dry-run` to preview.
+`i18n:apply` skips keys not present in `en.json` and keys left blank, and preserves stale keys rather than dropping them. It also skips a key whose text uses a `{placeholder}` that `en.json` doesn’t pass, and a plain string that would replace a plural already in the locale (`--force` overrides the latter). Use `--dry-run` to preview.
+
+### Plurals
+
+A count needs more than `{count} band(s)`: `en` splits 1 band from 2 bands, and many languages need a different word for 1, 2–4 and 5+. Write `en.json` counts as plurals too, never `(s)`. The staging files accept two short forms, and `i18n:apply` expands them into Paraglide’s [variant format](https://inlang.com/m/gerre34r/library-inlang-paraglideJs/variants):
+
+```json
+{
+  "eq_constraint_fit": {
+    "=0": "No bands to fit",
+    "one": "Fit {count} band",
+    "other": "Fit {count} bands"
+  },
+  "crosssite_search_truncated": "Showing {count} of {total, plural, one {# match} other {# matches}}."
+}
+```
+
+* **Whole-sentence object** — one key per plural form. It counts `{count}`; add `"plural": "total"` to count another input.
+* **Inline fragment** — ICU syntax inside the string, with `#` standing for the number. Use it when only a word or two changes, or when a message has two counters: the script writes out every combination, so the translator doesn’t have to.
+
+The forms are the locale’s [CLDR plural categories](https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html) (`zero`, `one`, `two`, `few`, `many`, `other`). `other` is required. Each staging file’s `@@info` lists the forms that locale uses, and `i18n:apply` drops any form the locale never selects, with a warning. An exact number such as `"=0": "No bands"` takes precedence over the categories, but needs Paraglide 2.27.0 or later. Below that, `i18n:apply` skips the key.
+
+A plural already in `en.json` appears in the staging file as the object form. Anything the short forms can’t express, such as ordinals or gender, can be written in Paraglide’s full array form, which passes through unchanged. The parsing lives in [scripts/i18n-plural.js](https://github.com/potatosalad775/modernGraphTool/blob/main/scripts/i18n-plural.js).
 
 Paraglide ignores `_missing_translations_*.json` — it only compiles the locales listed in `project.inlang/settings.json`.
 
@@ -3563,8 +3695,9 @@ Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en
 
 This guide is for working on modernGraphTool itself. To run a database with it, see the [Guide for Operators](/modernGraphTool/docs/guide-for-admins/) instead.
 
-Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad775/modernGraphTool/blob/main/CONTRIBUTING.md) has the code style and PR guidelines. The rest of this section covers:
+Contributions are welcome. This section covers:
 
+* **[Contributing](/modernGraphTool/docs/guide-for-developers/contributing/)** — setup, code style, and how to open a pull request. Start here.
 * **[Testing](/modernGraphTool/docs/guide-for-developers/testing/)** — the two Vitest projects, coverage, and the smoke test.
 * **[Build & Deployment Internals](/modernGraphTool/docs/guide-for-developers/build-and-deploy/)** — the build outputs and how `defaults/` reaches them.
 * **[Internationalization](/modernGraphTool/docs/guide-for-developers/i18n/)** — UI strings, adding a language, and the translation flow.
@@ -3572,7 +3705,7 @@ Contributions are welcome — [CONTRIBUTING.md](https://github.com/potatosalad77
 ## Tech Stack
 
 * **Language**: TypeScript (strict)
-* **Framework**: SvelteKit 2 + Svelte 5 (Runes)
+* **Framework**: SvelteKit 3 + Svelte 5 (Runes)
 * **Styling**: Tailwind CSS 4 + bits-ui (headless accessible components)
 * **Graph Rendering**: D3.js (SVG-based)
 * **i18n**: Paraglide JS (compile-time internationalization)
@@ -3628,6 +3761,7 @@ modernGraphTool uses **Vitest** with **Playwright browser mode**. Specs are co-l
 | Command                 | What it does                                             |
 | ----------------------- | -------------------------------------------------------- |
 | `npm run test`          | Full suite — both the `client` and `server` projects     |
+| `npm run test:unit`     | Same suite in watch mode                                 |
 | `npm run test:coverage` | Full suite + v8 coverage report into `coverage/`         |
 | `npm run test:smoke`    | Boots the built `dist/` in a browser (run `build` first) |
 
@@ -4976,6 +5110,30 @@ Full explanation and worked examples: [Why `BASE_PATH` is almost always required
 Everything that isn’t the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There’s no lock-in.
 
 # modernGraphTool v2 Changelog
+
+### v2.3.0
+
+* Feat: Added **uniPEQ Link**, which edits the EQ live together with the [uniPEQ](https://unipeq.com) app and writes it to the device connected there. It lives inside Hardware EQ, with one connection (USB or linked) at a time. This change allows users to manipulate PEQ with graphs only using Android phone. Configured by the new `UNIPEQ_LINK` section; on by default. See [uniPEQ Link](/modernGraphTool/docs/features/unipeq-link/) and [UNIPEQ_LINK documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#unipeq_link).
+* Feat: The Equalizer now handles low-pass, high-pass, band-pass, notch and all-pass filters alongside peaking and shelf filters, for EQ profiles and devices that use them. They are drawn on the EQ curve and can be picked as a band’s type where the active EQ constraint allows it.
+* Feat: Added a one-time volume warning before the first hardware EQ write, preset switch or audio player playback, since a write can pop or jump in level mid-playback. It can be dismissed for good with **Don’t show again**.
+* Feat: History & Compare now has **History** and **Bookmarks** tabs. Bookmark an EQ to keep it, delete single history entries, and add an entry to the graph as a ghost trace. History also records edits made while another panel is open. See [History & Compare](/modernGraphTool/docs/features/equalizer/#history-and-compare).
+* Feat: A/B comparison in the in-browser player is now loudness-matched, and is disabled for entries that don’t fit the active EQ constraint. See [Entries that don’t fit the constraint](/modernGraphTool/docs/features/equalizer/#entries-that-dont-fit-the-constraint).
+* Feat: The Equalizer can now target one run of a sample set instead of its average. See [EQ one run of a sample set](/modernGraphTool/docs/features/equalizer/#eq-one-run-of-a-sample-set).
+* Feat: `DOWNLOAD` now offers every run of a sample set alongside its average, and several files download as one `.zip`. See [DOWNLOAD documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#download).
+* Feat: Preference Bound can now offer several bounds, picked from a row at the bottom of the target list. Configured by the new `PREFERENCE_BOUND.BOUND_LIST`, which replaces `BASE_DF_TARGET_FILE` — that key still works. See [Preference Bound](/modernGraphTool/docs/features/preference-bound/#offering-more-than-one-bound) and [PREFERENCE_BOUND documentation](/modernGraphTool/docs/guide-for-admins/customize-page/#preference_bound).
+* Feat: The Frequency Tutorial strip can now be toggled with the **Freq. Guide** button in the graph toolbar. Added `SHOW_FREQUENCY_TUTORIAL_ON_INITIAL_LOAD` to show it to first-time visitors; hidden by default. See [Frequency Tutorial](/modernGraphTool/docs/features/frequency-tutorial/).
+* Feat: Added a first-visit tour for the Equalizer panel, replayable with the **?** button in its top bar. See [The panel tour](/modernGraphTool/docs/features/equalizer/#the-panel-tour).
+* Feat: The EQ source and AutoEQ target pickers now group their entries.
+* Feat: Each graphic EQ band’s gain slider now sits in its own row, and the first gain set on an all-flat band list switches the EQ on.
+* Fix: The Auto preamp now rounds down onto a connected device’s preamp step, so it no longer gives back headroom or pauses Auto-write for review on coarse-grid devices.
+* Fix: Importing an Equalizer APO file now reads numbered channels (`Channel: 1`), unnumbered filters, bandwidth (`BW Oct`) and shelf slopes. See [Importing filter files](/modernGraphTool/docs/features/equalizer/#importing-filter-files).
+* Fix: Exporting as Graphic EQ now includes only enabled shared bands. (#85)
+* Fix: Picking a hardware EQ profile no longer pads the band list with flat bands at fixed frequencies.
+* Fix: A channel picked on the EQ curve now stays picked when the curve rebuilds.
+* Fix: The graph inspection toggle now starts in sync with the graph’s state.
+* Fix (squig-link): The sponsor dialog shows again for a new sponsorship. Dismissal now lasts one day per sponsor and is shared with CrinGraph sites on squig.link.
+* Refactor: Faster startup, and Upgraded to SvelteKit 3.
+* Localization: Updated Russian and Ukrainian translations, now with plural forms. (by @reallystates)
 
 ### v2.2.4
 

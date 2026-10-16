@@ -19,6 +19,7 @@ modernGraphTool은 **Vitest**와 **Playwright 브라우저 모드**를 사용합
 | 명령어                  | 설명                                                       |
 | ----------------------- | ---------------------------------------------------------- |
 | `npm run test`          | 전체 스위트 — `client`와 `server` 두 프로젝트 모두         |
+| `npm run test:unit`     | 같은 스위트를 감시(watch) 모드로 실행                      |
 | `npm run test:coverage` | 전체 스위트 + v8 커버리지 리포트를 `coverage/`에 생성      |
 | `npm run test:smoke`    | 빌드된 `dist/`를 브라우저에서 부팅 (먼저 `build` 필요)     |
 

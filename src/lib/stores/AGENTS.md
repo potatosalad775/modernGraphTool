@@ -35,6 +35,8 @@ export const frStore = new FRDataStore();
 - `graph-store.svelte.ts` — yScale, baseline UUID, normalization type, smoothing, target-original data map
 - `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
 - `menu-store.svelte.ts` — current panel + slide direction
+- `tutorial-store.svelte.ts` — which guided tour is open + its step, per-tour dismissal keys. The
+  tours render in AppShell's one `TutorialModal`, never inside a panel (panels unmount)
 - `app-store.svelte.ts` — isMobile, isReady
 - `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
   `linkEqNormalization` flag, `frequencyTutorialVisible` (the strip `AppShell` renders under the graph;

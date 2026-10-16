@@ -4,85 +4,19 @@
 	import { Dialog } from 'bits-ui';
 	import * as m from '#lib/paraglide/messages.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import { menuStore } from '#lib/stores/menu-store.svelte.js';
+	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 	import Button from '../atoms/Button.svelte';
-	import {
-		ArrowRightLeft,
-		ArrowUpDown,
-		BookOpen,
-		ExternalLink,
-		Keyboard,
-		MoveHorizontal
-	} from '@lucide/svelte';
+	import { ExternalLink } from '@lucide/svelte';
+	import { tourSteps, type TutorialTarget } from './tutorial-steps.js';
 
-	const STORAGE_KEY = 'gt-tutorial-dismissed';
+	const steps = $derived(tourSteps(tutorialStore.tour, appStore.isMobile));
 
-	type TutorialTarget = 'menu' | 'graph_handle' | 'divider' | 'keyboard';
-
-	interface TutorialStep {
-		title?: () => string;
-		content: () => string;
-		extra?: () => string;
-		extra2?: () => string;
-		guideLinkLabel?: () => string;
-		icon: string | Component;
-		target?: TutorialTarget;
-	}
-
-	const steps: TutorialStep[] = $derived.by(() => {
-		const base: TutorialStep[] = [
-			{
-				title: m.tutorial_modal_intro_title,
-				content: m.tutorial_modal_intro_content,
-				icon: '👋'
-			},
-			{
-				content: m.tutorial_modal_menu_content,
-				icon: ArrowRightLeft,
-				target: 'menu'
-			},
-			{
-				content: m.tutorial_modal_graph_handle_content,
-				icon: ArrowUpDown,
-				target: 'graph_handle'
-			}
-		];
-
-		if (appStore.isMobile) {
-			base.push({
-				title: m.tutorial_modal_pwa_title,
-				content: m.tutorial_modal_pwa_content,
-				extra: m.tutorial_modal_pwa_inst_ios,
-				extra2: m.tutorial_modal_pwa_inst_android,
-				icon: '📱'
-			});
-		} else {
-			base.push({
-				content: m.tutorial_modal_divider_content,
-				icon: MoveHorizontal,
-				target: 'divider'
-			});
-			base.push({
-				content: m.tutorial_modal_shortcuts_content,
-				icon: Keyboard,
-				target: 'keyboard'
-			});
-		}
-
-		base.push({
-			title: m.tutorial_modal_guide_title,
-			content: m.tutorial_modal_guide_content,
-			guideLinkLabel: m.tutorial_modal_guide_link,
-			icon: BookOpen
-		});
-
-		return base;
-	});
-
-	let open = $state(false);
-	let currentStep = $state(0);
 	let targetRect = $state<DOMRect | null>(null);
-	let viewportSize = $state({ w: 0, h: 0 });
+	let innerHeight = $state(0);
+	let dialogHeight = $state(0);
 
+	const currentStep = $derived(Math.min(tutorialStore.step, steps.length - 1));
 	const isFirst = $derived(currentStep === 0);
 	const isLast = $derived(currentStep === steps.length - 1);
 	const currentTarget = $derived<TutorialTarget | null>(steps[currentStep]?.target ?? null);
@@ -99,33 +33,89 @@
 	});
 
 	const dialogStyle = $derived.by(() => {
-		if (!hasSpotlight || !targetRect || viewportSize.h === 0) {
+		if (!hasSpotlight || !targetRect || innerHeight === 0) {
 			return 'top:50%;left:50%;transform:translate(-50%,-50%);';
 		}
-		const targetCenterY = targetRect.top + targetRect.height / 2;
-		const placeBottom = targetCenterY < viewportSize.h / 2;
+		// Pinned 1rem from an edge, clear of the spotlight's 6 px padding.
+		const needed = dialogHeight + 16 + 12;
+		const spaceAbove = targetRect.top;
+		const spaceBelow = innerHeight - targetRect.bottom;
+		const fitsAbove = spaceAbove >= needed;
+		const fitsBelow = spaceBelow >= needed;
+		// The side the dialog fits on, the roomier one if both. If neither — a tall target,
+		// the band list on a phone — the bottom: the target was scrolled to its top, so the
+		// dialog covers its end and leaves the heading and first controls in view.
+		const placeBottom = fitsBelow && fitsAbove ? spaceBelow >= spaceAbove : !fitsAbove;
 		return placeBottom
 			? 'bottom:1rem;left:50%;transform:translateX(-50%);'
 			: 'top:1rem;left:50%;transform:translateX(-50%);';
 	});
 
+	/**
+	 * A short screen — a DAP's, a phone in landscape. The dialog tightens up, and on a
+	 * spotlight step drops its tip lines so it covers less of the target. A step without
+	 * a target keeps them: on the PWA step they are the install instructions.
+	 */
+	const compact = $derived(innerHeight > 0 && innerHeight < 600);
+	const showExtra = $derived(!(compact && hasSpotlight));
+
+	/** The bounding box of every element carrying the target, or null if none is laid out. */
+	function measure(elements: Element[]): DOMRect | null {
+		const rects = elements.map((el) => el.getBoundingClientRect()).filter((r) => r.width > 0);
+		if (rects.length === 0) return null;
+		const top = Math.min(...rects.map((r) => r.top));
+		const left = Math.min(...rects.map((r) => r.left));
+		const bottom = Math.max(...rects.map((r) => r.bottom));
+		const right = Math.max(...rects.map((r) => r.right));
+		return new DOMRect(left, top, right - left, bottom - top);
+	}
+
 	$effect(() => {
-		if (!open || !currentTarget) {
+		if (!tutorialStore.isOpen || !currentTarget) {
 			targetRect = null;
 			return;
 		}
 
 		const target = currentTarget;
+		const query = () => Array.from(document.querySelectorAll(`[data-tutorial-target="${target}"]`));
 		const update = () => {
-			viewportSize = { w: window.innerWidth, h: window.innerHeight };
-			const el = document.querySelector(`[data-tutorial-target="${target}"]`);
-			targetRect = el ? el.getBoundingClientRect() : null;
+			const rect = measure(query());
+			targetRect = rect;
+			return rect;
 		};
 
-		update();
-		// The graph handle is created after the SVG mounts; retry shortly in case
-		// the tutorial opens before the d3 group has been appended.
-		const retry = window.setTimeout(update, 120);
+		// On a phone the Equalizer panel is one scrolling column, so a later section's
+		// header can start below the fold. Scroll once per step; the scroll listener
+		// below then follows it there.
+		const first = query()[0];
+		if (first) {
+			const r = first.getBoundingClientRect();
+			if (r.top < 0 || r.bottom > window.innerHeight) {
+				const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+				first.scrollIntoView({
+					block: r.height > window.innerHeight / 2 ? 'start' : 'nearest',
+					behavior: reduce ? 'auto' : 'smooth'
+				});
+			}
+		}
+
+		// Follow the target frame by frame until it has held still for a while: the
+		// graph handle is created after the SVG mounts, and the Equalizer tour opens
+		// before that panel's slide-in has started. Svelte's Web Animations
+		// transitions fire no `animationend`, and a fixed delay misses a late landing.
+		let frame = 0;
+		let still = 0;
+		let last = '';
+		const follow = () => {
+			// The returned rect, not `targetRect`: reading that state here would make
+			// this effect depend on what it writes.
+			const r = update();
+			const key = r ? `${r.x},${r.y},${r.width},${r.height}` : '';
+			still = key === last ? still + 1 : 0;
+			last = key;
+			if (still < 20) frame = requestAnimationFrame(follow);
+		};
+		follow();
 
 		const ro = new ResizeObserver(update);
 		ro.observe(document.body);
@@ -133,7 +123,7 @@
 		window.addEventListener('scroll', update, true);
 
 		return () => {
-			window.clearTimeout(retry);
+			cancelAnimationFrame(frame);
 			ro.disconnect();
 			window.removeEventListener('resize', update);
 			window.removeEventListener('scroll', update, true);
@@ -144,30 +134,36 @@
 	// settle-in delay counts against LCP in full. Spotlight steps track their own
 	// late-mounting targets (the effect above).
 	onMount(() => {
-		if (!localStorage.getItem(STORAGE_KEY)) open = true;
+		if (!tutorialStore.isDismissed('welcome')) tutorialStore.open('welcome');
 	});
 
-	function dismiss() {
-		open = false;
-		currentStep = 0;
-		localStorage.setItem(STORAGE_KEY, 'true');
-	}
+	// The Equalizer tour, the first time that panel is opened. Waits out any tour
+	// already showing — and so follows straight on from the welcome tour when a
+	// visit starts on the Equalizer.
+	$effect(() => {
+		if (menuStore.currentPanel !== 'equalizer' || tutorialStore.isOpen) return;
+		if (!tutorialStore.isDismissed('equalizer')) tutorialStore.open('equalizer');
+	});
 
 	function next() {
-		if (isLast) dismiss();
-		else currentStep++;
+		if (isLast) tutorialStore.dismiss();
+		else tutorialStore.step = currentStep + 1;
 	}
 
 	function prev() {
-		if (!isFirst) currentStep--;
+		if (!isFirst) tutorialStore.step = currentStep - 1;
 	}
 </script>
 
+<svelte:window bind:innerHeight />
+
 <Dialog.Root
-	bind:open
-	onOpenChange={(v) => {
-		if (!v) dismiss();
-	}}
+	bind:open={
+		() => tutorialStore.isOpen,
+		(v) => {
+			if (!v) tutorialStore.dismiss();
+		}
+	}
 >
 	<Dialog.Portal>
 		<Dialog.Overlay
@@ -182,97 +178,114 @@
 				style={spotlightStyle}
 			></div>
 		{/if}
+		<!--
+			A tap outside is a mis-tap or a reach for the spotlit control, not a request
+			to end the tour — which would also mark it seen. Skip, Done and Escape close it.
+		-->
 		<Dialog.Content
+			interactOutsideBehavior="ignore"
 			class="fixed z-50 w-[calc(100%-2rem)] max-w-sm rounded-xl bg-base-200 shadow-2xl transition-[top,bottom,left,transform] duration-300 ease-out"
 			style={dialogStyle}
 		>
-			<div class="px-6 pt-6 pb-4">
-				<div
-					class="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg"
-				>
-					{#if typeof steps[currentStep].icon === 'string'}
-						{steps[currentStep].icon}
-					{:else}
-						{@const IconComponent = steps[currentStep].icon as Component}
-						<IconComponent size={20} />
-					{/if}
-				</div>
-
-				{#if steps[currentStep].title}
-					<Dialog.Title class="text-base font-semibold text-base-content">
-						{steps[currentStep].title?.()}
-					</Dialog.Title>
-				{:else}
-					<Dialog.Title class="sr-only">Tutorial step {currentStep + 1}</Dialog.Title>
-				{/if}
-
-				<Dialog.Description class="mt-1.5 text-sm leading-relaxed text-base-content/70">
-					{steps[currentStep].content()}
-				</Dialog.Description>
-
-				{#if steps[currentStep].extra}
-					<div class="mt-3 space-y-1.5 text-xs text-base-content/55">
-						<p>{steps[currentStep].extra?.()}</p>
-						{#if steps[currentStep].extra2}
-							<p>{steps[currentStep].extra2?.()}</p>
-						{/if}
-					</div>
-				{/if}
-
-				{#if steps[currentStep].guideLinkLabel}
-					<a
-						href="https://potatosalad775.github.io/modernGraphTool/docs/category/guide-for-users"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:underline"
-					>
-						{steps[currentStep].guideLinkLabel?.()}
-						<ExternalLink size={14} aria-hidden="true" />
-					</a>
-				{/if}
-			</div>
-
-			<div class="flex items-center justify-between border-t border-base-content/10 px-6 py-3">
-				<div class="flex gap-1.5">
-					{#each steps as _, i (i)}
-						<button
-							type="button"
-							class="h-1.5 rounded-full transition-all {i === currentStep
-								? 'w-4 bg-accent'
-								: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
-							onclick={() => (currentStep = i)}
-							aria-label="Go to step {i + 1}"
-						></button>
-					{/each}
-				</div>
-
-				<div class="flex items-center gap-2">
-					{#if !isLast}
-						<Button
-							title={m.tutorial_modal_btn_skip()}
-							variant="ghost"
-							size="sm"
-							class="text-base-content/50 hover:text-base-content/70"
-							onclick={dismiss}
+			<!-- Measured for placement: whether the dialog fits beside its target. -->
+			<div bind:clientHeight={dialogHeight}>
+				<div class={compact ? 'px-4 py-3' : 'px-6 py-4'}>
+					{#if steps[currentStep].icon}
+						{@const icon = steps[currentStep].icon}
+						<div
+							class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg {compact
+								? 'mb-2'
+								: 'mb-3'}"
 						>
-							{m.tutorial_modal_btn_skip()}
-						</Button>
+							{#if typeof icon === 'string'}
+								{icon}
+							{:else}
+								{@const IconComponent = icon as Component}
+								<IconComponent size={20} />
+							{/if}
+						</div>
 					{/if}
 
-					{#if !isFirst}
-						<Button title={m.tutorial_modal_btn_prev()} onclick={prev} variant="ghost" size="sm">
-							{m.tutorial_modal_btn_prev()}
-						</Button>
+					{#if steps[currentStep].title}
+						<Dialog.Title class="text-base font-semibold text-base-content">
+							{steps[currentStep].title?.()}
+						</Dialog.Title>
+					{:else}
+						<Dialog.Title class="sr-only">Tutorial step {currentStep + 1}</Dialog.Title>
 					{/if}
 
-					<Button
-						title={isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
-						onclick={next}
-						variant="primary"
-						size="sm"
-					>
-						{isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
-					</Button>
+					<Dialog.Description class="mt-1 text-sm leading-relaxed text-base-content/70">
+						{steps[currentStep].content()}
+					</Dialog.Description>
+
+					{#if steps[currentStep].extra && showExtra}
+						<div class="mt-3 space-y-1.5 text-xs text-base-content/55">
+							<p>{steps[currentStep].extra?.()}</p>
+							{#if steps[currentStep].extra2}
+								<p>{steps[currentStep].extra2?.()}</p>
+							{/if}
+						</div>
+					{/if}
+
+					{#if steps[currentStep].guideLinkLabel}
+						<a
+							href="https://potatosalad775.github.io/modernGraphTool/docs/category/guide-for-users"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:underline"
+						>
+							{steps[currentStep].guideLinkLabel?.()}
+							<ExternalLink size={14} aria-hidden="true" />
+						</a>
+					{/if}
+				</div>
+
+				<div
+					class="flex items-center justify-between border-t border-base-content/10 {compact
+						? 'px-4 py-2'
+						: 'px-6 py-3'}"
+				>
+					<div class="flex gap-1.5">
+						{#each steps as _, i (i)}
+							<button
+								type="button"
+								class="h-1.5 rounded-full transition-all {i === currentStep
+									? 'w-4 bg-accent'
+									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
+								onclick={() => (tutorialStore.step = i)}
+								aria-label="Go to step {i + 1}"
+							></button>
+						{/each}
+					</div>
+
+					<div class="flex items-center gap-2">
+						{#if !isLast}
+							<Button
+								title={m.tutorial_modal_btn_skip()}
+								variant="ghost"
+								size="sm"
+								class="text-base-content/50 hover:text-base-content/70"
+								onclick={() => tutorialStore.dismiss()}
+							>
+								{m.tutorial_modal_btn_skip()}
+							</Button>
+						{/if}
+
+						{#if !isFirst}
+							<Button title={m.tutorial_modal_btn_prev()} onclick={prev} variant="ghost" size="sm">
+								{m.tutorial_modal_btn_prev()}
+							</Button>
+						{/if}
+
+						<Button
+							title={isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
+							onclick={next}
+							variant="primary"
+							size="sm"
+						>
+							{isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
+						</Button>
+					</div>
 				</div>
 			</div>
 		</Dialog.Content>

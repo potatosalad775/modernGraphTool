@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { getConfigValue } from '#lib/utils/config.js';
-	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
+	import { BookOpen, Globe, GraduationCap, Heart, Moon, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import { getLocale, locales, setLocale, type Locale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 
@@ -91,6 +93,16 @@
 			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
 		</div>
 		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
+		<Button
+			title={m.tutorial_modal_replay_btn()}
+			variant="ghost"
+			size="xs"
+			class="gap-1 text-xs text-base-content/60"
+			onclick={() => tutorialStore.open('welcome')}
+		>
+			<GraduationCap class="h-3.5 w-3.5" aria-hidden="true" />
+			{m.tutorial_modal_replay_btn()}
+		</Button>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
 			<a

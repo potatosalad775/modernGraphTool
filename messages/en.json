@@ -47,10 +47,28 @@
 	"equalizer_phone_select_group_targets": "Targets",
 	"equalizer_filter_list_preamp": "Preamp",
 	"equalizer_filter_list_import": "Import EQ",
-	"equalizer_filter_list_import_skipped": "Skipped {count} filter line(s) that can’t be represented here, such as band-pass or notch filters.",
+	"equalizer_filter_list_import_skipped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Skipped {count} filter line that can’t be represented here, such as band-pass or notch filters.",
+				"countPlural=*": "Skipped {count} filter lines that can’t be represented here, such as band-pass or notch filters."
+			}
+		}
+	],
 	"equalizer_filter_list_export": "Export EQ",
 	"equalizer_filter_list_export_graphic_eq": "Export as Graphic EQ (Wavelet)",
-	"equalizer_filter_list_graphic_eq_channel_omitted": "Left out {count} left/right-only band(s): a Graphic EQ is one curve for both ears.",
+	"equalizer_filter_list_graphic_eq_channel_omitted": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Left out {count} left/right-only band: a Graphic EQ is one curve for both ears.",
+				"countPlural=*": "Left out {count} left/right-only bands: a Graphic EQ is one curve for both ears."
+			}
+		}
+	],
 	"equalizer_filter_list_peak": "Peak",
 	"equalizer_filter_list_lowshelf": "Low Shelf",
 	"equalizer_filter_list_highshelf": "High Shelf",
@@ -137,7 +155,16 @@
 	"average_button_needs_two": "Show at least two measurements to average",
 	"average_curve_name": "Average",
 	"average_curve_suffix": "(of {count})",
-	"average_button_done": "Averaged {count} measurements",
+	"average_button_done": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Averaged {count} measurement",
+				"countPlural=*": "Averaged {count} measurements"
+			}
+		}
+	],
 	"version_update_toast_title": "Updated to v{version}",
 	"version_update_toast_changelog": "Changelog",
 	"tutorial_modal_btn_prev": "Previous",
@@ -230,7 +257,16 @@
 	"eq_history_tab_bookmarks": "Bookmarks ({count})",
 	"eq_history_bookmark_add": "Bookmark this entry",
 	"eq_history_bookmark_exists": "Already bookmarked — rename or delete it in Bookmarks",
-	"eq_history_bookmark_full": "This browser already keeps {count} bookmarks, the most it can. Delete one to add another.",
+	"eq_history_bookmark_full": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "This browser already keeps {count} bookmark, the most it can. Delete it to add another.",
+				"countPlural=*": "This browser already keeps {count} bookmarks, the most it can. Delete one to add another."
+			}
+		}
+	],
 	"eq_history_bookmarks_empty": "No bookmarks yet — star a history entry to keep it.",
 	"eq_history_menu_title": "More actions for {name}",
 	"eq_history_menu_rename": "Rename",
@@ -256,8 +292,33 @@
 	"eq_channel_left": "L",
 	"eq_channel_right": "R",
 	"eq_channel_applies_to": "Applied Channel",
-	"eq_channel_shared_hint": "+ {count} shared band(s) also apply to this channel.",
-	"eq_channel_device_peq_shared_only": "Sent {count} shared band(s). This device has no per-channel EQ, so {skipped} left/right band(s) were skipped.",
+	"eq_channel_shared_hint": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "+ {count} shared band also applies to this channel.",
+				"countPlural=*": "+ {count} shared bands also apply to this channel."
+			}
+		}
+	],
+	"eq_channel_device_peq_shared_only": [
+		{
+			"declarations": [
+				"input count",
+				"input skipped",
+				"local countPlural = count: plural",
+				"local skippedPlural = skipped: plural"
+			],
+			"selectors": ["countPlural", "skippedPlural"],
+			"match": {
+				"countPlural=one, skippedPlural=one": "Sent {count} shared band. This device has no per-channel EQ, so {skipped} left/right band was skipped.",
+				"countPlural=one, skippedPlural=*": "Sent {count} shared band. This device has no per-channel EQ, so {skipped} left/right bands were skipped.",
+				"countPlural=*, skippedPlural=one": "Sent {count} shared bands. This device has no per-channel EQ, so {skipped} left/right band was skipped.",
+				"countPlural=*, skippedPlural=*": "Sent {count} shared bands. This device has no per-channel EQ, so {skipped} left/right bands were skipped."
+			}
+		}
+	],
 	"eq_constraint_group_recent": "Recently picked",
 	"eq_constraint_group_software": "Software EQs",
 	"eq_constraint_group_hardware": "Hardware",
@@ -274,12 +335,30 @@
 	"eq_constraint_type_violation": "{label} doesn't accept this filter type here",
 	"eq_constraint_slot_label": "Band {slot}: {label}",
 	"eq_constraint_active": "Limited to {label}",
-	"eq_constraint_fit": "Fit {count} band(s)",
+	"eq_constraint_fit": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Fit {count} band",
+				"countPlural=*": "Fit {count} bands"
+			}
+		}
+	],
 	"eq_constraint_fit_title": "Move every band onto the nearest values {label} accepts. Undoable.",
 	"eq_constraint_fitted": "Bands fitted to {label}",
 	"eq_constraint_clear": "Remove the constraint",
 	"eq_domain_step": "step {step}",
-	"eq_domain_values": "{count} values",
+	"eq_domain_values": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} value",
+				"countPlural=*": "{count} values"
+			}
+		}
+	],
 	"equalizer_device_peq_connect_usb": "Connect USB device",
 	"equalizer_device_peq_connect_serial": "USB serial",
 	"equalizer_device_peq_connect_bluetooth": "Bluetooth",
@@ -329,10 +408,46 @@
 	"equalizer_device_peq_writing": "Writing…",
 	"equalizer_device_peq_write_title": "Send the band list to the device",
 	"equalizer_device_peq_write_only": "This device can be written to but not read back.",
-	"equalizer_device_peq_read_skipped": "{count} band(s) use filter types the equalizer can't show and were left out.",
-	"equalizer_device_peq_status_read": "Read {count} band(s) from the device",
-	"equalizer_device_peq_status_written": "Wrote {count} band(s) to the device",
-	"equalizer_device_peq_status_written_off": "Wrote {count} band(s). The device's EQ is off: pick a preset to hear them.",
+	"equalizer_device_peq_read_skipped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} band uses a filter type the equalizer can't show and was left out.",
+				"countPlural=*": "{count} bands use filter types the equalizer can't show and were left out."
+			}
+		}
+	],
+	"equalizer_device_peq_status_read": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Read {count} band from the device",
+				"countPlural=*": "Read {count} bands from the device"
+			}
+		}
+	],
+	"equalizer_device_peq_status_written": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Wrote {count} band to the device",
+				"countPlural=*": "Wrote {count} bands to the device"
+			}
+		}
+	],
+	"equalizer_device_peq_status_written_off": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Wrote {count} band. The device's EQ is off: pick a preset to hear it.",
+				"countPlural=*": "Wrote {count} bands. The device's EQ is off: pick a preset to hear them."
+			}
+		}
+	],
 	"equalizer_device_peq_status_saved_reconnect": "Saved. The device restarts after saving; reconnect to carry on.",
 	"equalizer_device_peq_status_reconnect_manual": "Couldn't find the device again. Plug it in and connect.",
 	"equalizer_device_peq_field_type": "Type",
@@ -344,7 +459,16 @@
 	"equalizer_device_peq_push_change": "Band {band} · {field}: {wanted} → {written}",
 	"equalizer_device_peq_push_dropped": "Band {band}: no slot left on the device, not sent",
 	"equalizer_device_peq_push_preamp": "Preamp: {wanted} → {written}",
-	"equalizer_device_peq_push_skipped_channel": "{count} left/right-only band(s) not sent: the device has one EQ for both ears",
+	"equalizer_device_peq_push_skipped_channel": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} left/right-only band not sent: the device has one EQ for both ears",
+				"countPlural=*": "{count} left/right-only bands not sent: the device has one EQ for both ears"
+			}
+		}
+	],
 	"equalizer_device_peq_push_clip_risk": "These bands boost, and this device's level can't be lowered from here. Turn the volume down or reduce the boost to avoid clipping.",
 	"equalizer_device_peq_push_infeasible": "Some bands still break one of the device's rules (band order or spacing), so it may reject them.",
 	"equalizer_device_peq_push_cancel": "Cancel",
@@ -398,9 +522,36 @@
 	"volume_warning_quiet": "Don't show this again",
 	"volume_warning_later": "Not now",
 	"volume_warning_continue": "Continue",
-	"link_start_body": "uniPEQ has a different EQ ({count} band(s)). Pick the one both apps keep.",
+	"link_start_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "uniPEQ has a different EQ ({count} band). Pick the one both apps keep.",
+				"countPlural=*": "uniPEQ has a different EQ ({count} bands). Pick the one both apps keep."
+			}
+		}
+	],
 	"link_start_use_unipeq": "Use uniPEQ's EQ",
 	"link_start_send": "Send this EQ to uniPEQ",
-	"link_start_flattened": "{count} switched-off band(s) will be sent as 0 dB bands.",
-	"link_start_dropped": "{count} band(s) uniPEQ can't hold (left- or right-only, or a switched-off pass or notch) will be left out."
+	"link_start_flattened": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} switched-off band will be sent as a 0 dB band.",
+				"countPlural=*": "{count} switched-off bands will be sent as 0 dB bands."
+			}
+		}
+	],
+	"link_start_dropped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} band uniPEQ can't hold (left- or right-only, or a switched-off pass or notch) will be left out.",
+				"countPlural=*": "{count} bands uniPEQ can't hold (left- or right-only, or a switched-off pass or notch) will be left out."
+			}
+		}
+	]
 }

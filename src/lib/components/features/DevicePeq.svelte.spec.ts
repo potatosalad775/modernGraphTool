@@ -613,7 +613,7 @@ describe('DevicePeq', () => {
 			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
 			// The write's own message stands for "in sync": one line, not two saying the same.
 			const status = page.getByRole('status');
-			await expect.element(status).toHaveTextContent('Wrote 6 band(s) to the device');
+			await expect.element(status).toHaveTextContent('Wrote 6 bands to the device');
 			expect(await page.getByText('The EQ shown matches the device.').all()).toHaveLength(0);
 
 			eqStore.filters = [band(1000, 3)];
@@ -637,7 +637,7 @@ describe('DevicePeq', () => {
 				.toHaveTextContent("The device didn't answer. Check the cable and try again.");
 
 			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
-			await expect.element(status).toHaveTextContent('Wrote 6 band(s) to the device');
+			await expect.element(status).toHaveTextContent('Wrote 6 bands to the device');
 		});
 
 		it('offers a reviewed write when auto-write pauses', async () => {

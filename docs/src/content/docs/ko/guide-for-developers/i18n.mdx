@@ -83,8 +83,9 @@ Paraglide 컴파일러가 키 단위로 `baseLocale`(`en`)로 자동 폴백합�
 
 ### 복수형 \{#plurals\}
 
-`en`은 `{count} band(s)`로 넘어가는 경우가 많지만, 1, 2–4, 5 이상에 각기 다른 단어가 필요한 언어도
-많습니다. 스테이징 파일은 두 가지 간단한 형식을 받으며, `i18n:apply`가 이를 Paraglide의
+숫자를 세는 문장은 `{count} band(s)`로 때우지 않습니다. `en`도 1 band와 2 bands를 구분하고, 1, 2–4,
+5 이상에 각기 다른 단어가 필요한 언어도 많습니다. `en.json`의 개수 표현도 `(s)` 대신 복수형으로
+씁니다. 스테이징 파일은 두 가지 간단한 형식을 받으며, `i18n:apply`가 이를 Paraglide의
 [variant 형식](https://inlang.com/m/gerre34r/library-inlang-paraglideJs/variants)으로 펼칩니다.
 
 ```json

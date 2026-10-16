@@ -82,8 +82,9 @@ the latter). Use `--dry-run` to preview.
 
 ### Plurals
 
-`en` often gets away with `{count} band(s)`, but many languages need a different word for 1, 2–4
-and 5+. The staging files accept two short forms, and `i18n:apply` expands them into Paraglide's
+A count needs more than `{count} band(s)`: `en` splits 1 band from 2 bands, and many languages
+need a different word for 1, 2–4 and 5+. Write `en.json` counts as plurals too, never `(s)`. The
+staging files accept two short forms, and `i18n:apply` expands them into Paraglide's
 [variant format](https://inlang.com/m/gerre34r/library-inlang-paraglideJs/variants):
 
 ```json

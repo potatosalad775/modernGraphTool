@@ -83,9 +83,10 @@ average rather than being reset, so no variant-changing path has to remember it.
   (type first, then freq/Q/gain, each resolved against the fields already settled so conditional
   domains apply). `conformFilters` trims to the cap and projects every band — or, for a graphic
   profile, lays one row per band and takes the nearest source gain within an octave.
-  `padToBandCount` (Fit only, via `reclampToActiveConstraint`) then fills a **hardware** profile's
-  list up to its band count with flat bands, so the list is what the device holds after a push.
-  Software presets aren't padded: their cap is a limit, not a layout.
+  **Neither ever adds bands.** Picking a hardware profile once padded the list to its band count
+  with flat bands at one-third-octave nominals, which made a free parametric device look like a
+  graphic EQ with fixed frequencies. The push already fills empty slots flat from the device's own
+  preset (`device-peq/AGENTS.md`), so don't reintroduce padding on the list.
 - Bands without a slot from `assign` (inactive, incomplete, disabled) are placed by position, which
   is exact for every uniform profile.
 

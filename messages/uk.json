@@ -30,19 +30,57 @@
 	"selection_list_samples_all_r": "Вибрати всі праві",
 	"selection_list_samples_all": "Вибрати всі",
 	"selection_list_samples_none": "Зняти виділення",
+	"selection_list_download": "Завантажити",
+	"selection_list_download_average": "Лише усереднення",
+	"selection_list_download_average_hint": "Усереднена крива, як на графіку",
+	"selection_list_download_all": "Усі екземпляри",
+	"selection_list_download_all_hint": "Усереднення плюс усі екземпляри, в форматі .zip",
 	"menu_item_device_label": "ПРИСТРОЇ",
 	"menu_item_graph_label": "ГРАФІКИ",
 	"menu_item_equalizer_label": "ЕКВАЛАЙЗЕР",
 	"menu_item_misc_label": "РІЗНЕ",
 	"equalizer_phone_select_option_source": "Виберіть пристрій для еквалізації",
 	"equalizer_phone_select_option_target": "Виберіть цільову для AutoEQ",
+	"equalizer_phone_select_source_label": "Пристрій для еквалізації",
+	"equalizer_phone_select_target_label": "Цільова AutoEQ",
+	"equalizer_phone_select_group_devices": "Пристрої",
+	"equalizer_phone_select_group_targets": "Цільові",
 	"equalizer_filter_list_preamp": "Преамп",
 	"equalizer_filter_list_import": "Імпортувати екв.",
+	"equalizer_filter_list_import_skipped": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Пропущено {count} рядок фільтрів, який тут неможливо представити, наприклад смуговий або режекторний фільтр.",
+				"countPlural=few": "Пропущено {count} рядки фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
+				"countPlural=many": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
+				"countPlural=*": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри."
+			}
+		}
+	],
 	"equalizer_filter_list_export": "Експортувати екв.",
 	"equalizer_filter_list_export_graphic_eq": "Експортувати як графічний екв. (Wavelet)",
+	"equalizer_filter_list_graphic_eq_channel_omitted": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Пропущено {count} смугу лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=few": "Пропущено {count} смуги лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=many": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
+				"countPlural=*": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників."
+			}
+		}
+	],
 	"equalizer_filter_list_peak": "Піковий",
 	"equalizer_filter_list_lowshelf": "Low Shelf",
 	"equalizer_filter_list_highshelf": "High Shelf",
+	"equalizer_filter_list_lowpass": "Фільтр низьких частот",
+	"equalizer_filter_list_highpass": "Фільтр високих частот",
+	"equalizer_filter_list_bandpass": "Смуговий фільтр",
+	"equalizer_filter_list_notch": "Режекторний фільтр",
+	"equalizer_filter_list_allpass": "Фазовий фільтр",
 	"equalizer_filter_list_freq": "Частота (Гц)",
 	"equalizer_filter_list_q": "Q",
 	"equalizer_filter_list_gain": "Підсилення (дБ)",
@@ -113,6 +151,7 @@
 	"screenshot_button_label": "Скріншот",
 	"y_axis_scale_button_label": "Масштаб осі Y",
 	"inspection_toggle_label": "Інспекція",
+	"freq_guide_btn_label": "Гід по частотах",
 	"share_button_label": "Поділитися",
 	"share_button_on_click": "Скопійовано!",
 	"average_button_label": "Усереднити",
@@ -247,7 +286,48 @@
 	"eq_history_set_b": "Встановити як режим B",
 	"eq_history_unset_a": "Скасувати встановлення як режиму A",
 	"eq_history_unset_b": "Скасувати встановлення як режиму B",
+	"eq_history_tabs_label": "Історія та закладки",
+	"eq_history_tab_history": "Історія",
+	"eq_history_tab_bookmarks": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Закладки ({count})",
+				"countPlural=few": "Закладки ({count})",
+				"countPlural=many": "Закладки ({count})",
+				"countPlural=*": "Закладки ({count})"
+			}
+		}
+	],
+	"eq_history_bookmark_add": "Додати цей запис до закладок",
+	"eq_history_bookmark_exists": "Уже в закладках — перейменуйте або видаліть її в розділі «Закладки»",
+	"eq_history_bookmark_full": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Цей браузер уже зберігає {count} закладку — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=few": "Цей браузер уже зберігає {count} закладки — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=many": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову.",
+				"countPlural=*": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову."
+			}
+		}
+	],
+	"eq_history_bookmarks_empty": "Закладок ще немає — позначте запис в історії зірочкою, щоб зберегти його.",
+	"eq_history_menu_title": "Додаткові дії для «{name}»",
+	"eq_history_menu_rename": "Перейменувати",
+	"eq_history_menu_delete": "Видалити",
+	"eq_history_rename_label": "Назва закладки",
+	"eq_history_not_fit": "Не відповідає {constraint}",
+	"eq_history_apply_blocked": "Не можна застосувати {side}: не відповідає {constraint}",
+	"eq_history_match_loudness": "Вирівняти гучність",
+	"eq_history_show_on_graph": "Показати на графіку",
+	"eq_history_menu_add_to_graph": "Додати на графік",
 	"eq_history_help_text": "Призначте режими A і B записам з історії та використовуйте кнопки вище для перемикання між ними.",
+	"eq_history_help_graph": "«Показати на графіку» малює неактивну, але вибрану для порівняння криву пунктирною лінією.",
+	"eq_history_help_add_graph": "«Додати на графік» у меню запису зберігає запис як окрему криву.",
+	"eq_history_help_loudness": "«Вирівняти гучність» відтворює гучніший з A і B на рівні тихішого, щоб ви порівнювали тембр, а не гучність. Це впливає лише на аудіоплеєр на цій сторінці — не на Device PEQ і не на зв'язок з uniPEQ — і припиняється, щойно ви відредагуєте смугу.",
 	"eq_settings_accordion_title": "Налаштування",
 	"eq_settings_autoeq_persist_label": "Запам'ятовувати налаштування фільтрів AutoEQ",
 	"eq_settings_autoeq_persist_session": "Тільки в цій вкладці",
@@ -476,86 +556,6 @@
 	"device_peq_error_unsupported": "Цей пристрій не підтримує таке.",
 	"device_peq_error_unrepresentable": "Значення не можна надіслати на цей пристрій.",
 	"device_peq_error_generic": "Щось пішло не так під час обміну з пристроєм.",
-	"selection_list_download": "Завантажити",
-	"selection_list_download_average": "Лише усереднення",
-	"selection_list_download_average_hint": "Усереднена крива, як на графіку",
-	"selection_list_download_all": "Усі екземпляри",
-	"selection_list_download_all_hint": "Усереднення плюс усі екземпляри, в форматі .zip",
-	"equalizer_phone_select_source_label": "Пристрій для еквалізації",
-	"equalizer_phone_select_target_label": "Цільова AutoEQ",
-	"equalizer_phone_select_group_devices": "Пристрої",
-	"equalizer_phone_select_group_targets": "Цільові",
-	"equalizer_filter_list_import_skipped": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "Пропущено {count} рядок фільтрів, який тут неможливо представити, наприклад смуговий або режекторний фільтр.",
-				"countPlural=few": "Пропущено {count} рядки фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
-				"countPlural=many": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри.",
-				"countPlural=*": "Пропущено {count} рядків фільтрів, які тут неможливо представити, наприклад смугові або режекторні фільтри."
-			}
-		}
-	],
-	"equalizer_filter_list_graphic_eq_channel_omitted": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "Пропущено {count} смугу лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
-				"countPlural=few": "Пропущено {count} смуги лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
-				"countPlural=many": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників.",
-				"countPlural=*": "Пропущено {count} смуг лише для лівого/правого каналу: графічний еквалайзер — це одна крива для обох навушників."
-			}
-		}
-	],
-	"equalizer_filter_list_lowpass": "Фільтр низьких частот",
-	"equalizer_filter_list_highpass": "Фільтр високих частот",
-	"equalizer_filter_list_bandpass": "Смуговий фільтр",
-	"equalizer_filter_list_notch": "Режекторний фільтр",
-	"equalizer_filter_list_allpass": "Фазовий фільтр",
-	"freq_guide_btn_label": "Гід по частотах",
-	"eq_history_tabs_label": "Історія та закладки",
-	"eq_history_tab_history": "Історія",
-	"eq_history_tab_bookmarks": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "Закладки ({count})",
-				"countPlural=few": "Закладки ({count})",
-				"countPlural=many": "Закладки ({count})",
-				"countPlural=*": "Закладки ({count})"
-			}
-		}
-	],
-	"eq_history_bookmark_add": "Додати цей запис до закладок",
-	"eq_history_bookmark_exists": "Уже в закладках — перейменуйте або видаліть її в розділі «Закладки»",
-	"eq_history_bookmark_full": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "Цей браузер уже зберігає {count} закладку — це максимум. Видаліть одну, щоб додати нову.",
-				"countPlural=few": "Цей браузер уже зберігає {count} закладки — це максимум. Видаліть одну, щоб додати нову.",
-				"countPlural=many": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову.",
-				"countPlural=*": "Цей браузер уже зберігає {count} закладок — це максимум. Видаліть одну, щоб додати нову."
-			}
-		}
-	],
-	"eq_history_bookmarks_empty": "Закладок ще немає — позначте запис в історії зірочкою, щоб зберегти його.",
-	"eq_history_menu_title": "Додаткові дії для «{name}»",
-	"eq_history_menu_rename": "Перейменувати",
-	"eq_history_menu_delete": "Видалити",
-	"eq_history_rename_label": "Назва закладки",
-	"eq_history_not_fit": "Не відповідає {constraint}",
-	"eq_history_apply_blocked": "Не можна застосувати {side}: не відповідає {constraint}",
-	"eq_history_match_loudness": "Вирівняти гучність",
-	"eq_history_show_on_graph": "Показати на графіку",
-	"eq_history_menu_add_to_graph": "Додати на графік",
-	"eq_history_help_graph": "«Показати на графіку» малює неактивну, але вибрану для порівняння криву пунктирною лінією.",
-	"eq_history_help_add_graph": "«Додати на графік» у меню запису зберігає запис як окрему криву.",
-	"eq_history_help_loudness": "«Вирівняти гучність» відтворює гучніший з A і B на рівні тихішого, щоб ви порівнювали тембр, а не гучність. Це впливає лише на аудіоплеєр на цій сторінці — не на Device PEQ і не на зв'язок з uniPEQ — і припиняється, щойно ви відредагуєте смугу.",
 	"link_start": "Зв'язати з uniPEQ",
 	"link_start_hint": "Ви також можете редагувати цей еквалайзер використовуючи uniPEQ, який записує його на підключений до нього пристрій.",
 	"link_help_what": "uniPEQ — безкоштовний застосунок для Android і веббраузерів. Він читає та записує еквалайзер, вбудований у багато USB ЦАПів та навушників.",

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
 	// Visibility lives in settingsStore: on mobile this button sits in GraphPanel, which

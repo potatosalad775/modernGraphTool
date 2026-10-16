@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import * as m from '$lib/paraglide/messages.js';
-	import type { PlanChange, PushPlan } from '$lib/device-peq/push-plan.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import type { PlanChange, PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
 
 	/**

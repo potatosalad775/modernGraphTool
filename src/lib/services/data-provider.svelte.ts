@@ -10,13 +10,13 @@ import type {
 	SampleDisplayKey,
 	SampleEnvelope,
 	RawFRCache
-} from '$lib/types/data-types.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
+} from '#lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import {
 	AddFRDataCommand,
@@ -30,33 +30,33 @@ import {
 	UpdateYOffsetCommand,
 	UpdateSampleDisplayCommand
 } from './commands.js';
-import FRParser from '$lib/utils/fr-parser.js';
-import type { FRParseResult } from '$lib/utils/fr-parser.js';
-import { normalizeChannels } from '$lib/utils/fr-normalizer.js';
-import { averageChannels, isAveragable } from '$lib/utils/fr-average.js';
-import { DataProcessor, anchorAndNormalizeSamples } from '$lib/utils/data-processor.js';
-import { defaultSampleDisplay } from '$lib/utils/sample-config.js';
+import FRParser from '#lib/utils/fr-parser.js';
+import type { FRParseResult } from '#lib/utils/fr-parser.js';
+import { normalizeChannels } from '#lib/utils/fr-normalizer.js';
+import { averageChannels, isAveragable } from '#lib/utils/fr-average.js';
+import { DataProcessor, anchorAndNormalizeSamples } from '#lib/utils/data-processor.js';
+import { defaultSampleDisplay } from '#lib/utils/sample-config.js';
 import {
 	downloadBaseName,
 	encodeFRDataForDownload,
 	encodeSampleRunsForDownload
-} from '$lib/utils/fr-encoder.js';
-import { downloadBlob, downloadText } from '$lib/utils/download-text.js';
-import { zipTextFiles } from '$lib/utils/zip-text.js';
-import * as m from '$lib/paraglide/messages.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
-import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
-import { effectiveFilters, hasPerChannelFilters } from '$lib/utils/eq-channel.js';
-import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '$lib/utils/eq-source.js';
-import { derivePreamp, headroomPreamp } from '$lib/utils/eq-preamp.js';
-import MetadataParser from '$lib/utils/metadata-parser.js';
-import { getConfigValue } from '$lib/utils/config.js';
+} from '#lib/utils/fr-encoder.js';
+import { downloadBlob, downloadText } from '#lib/utils/download-text.js';
+import { zipTextFiles } from '#lib/utils/zip-text.js';
+import * as m from '#lib/paraglide/messages.js';
+import FRSmoother from '#lib/utils/fr-smoother.js';
+import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
+import { effectiveFilters, hasPerChannelFilters } from '#lib/utils/eq-channel.js';
+import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
+import { derivePreamp, headroomPreamp } from '#lib/utils/eq-preamp.js';
+import MetadataParser from '#lib/utils/metadata-parser.js';
+import { getConfigValue } from '#lib/utils/config.js';
 import {
 	nextCurveColor,
 	parseOklch,
 	formatOklch,
 	resolveCurvePalette
-} from '$lib/utils/curve-palette.js';
+} from '#lib/utils/curve-palette.js';
 import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
 import { untrack } from 'svelte';

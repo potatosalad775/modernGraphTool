@@ -11,7 +11,7 @@ import {
 	SquiglinkStore,
 	sponsorDismissedCookie
 } from './squiglink-store.svelte.js';
-import type { ShopLinkEntry } from '$lib/types/squiglink-types.js';
+import type { ShopLinkEntry } from '#lib/types/squiglink-types.js';
 
 function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
 	return {

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { frStore } from '$lib/stores/fr-store.svelte';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
-	import { analyticsService } from '$lib/services/analytics-service.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
+	import { analyticsService } from '#lib/services/analytics-service.svelte.js';
 	import { ShoppingBag } from '@lucide/svelte';
-	import type { SponsorProductData } from '$lib/types/squiglink-types';
+	import type { SponsorProductData } from '#lib/types/squiglink-types.js';
 
 	onMount(() => {
 		if (squiglinkStore.isEnabled) {
@@ -57,7 +57,7 @@
 	<a
 		href={shopLink.url}
 		target="_blank"
-		rel="noopener noreferrer"
+		rel="external noopener noreferrer"
 		onclick={handleClick}
 		class="flex h-(--toolbar-height) items-center gap-1.75 rounded-md bg-secondary px-2.5 py-1.5 text-xs
 			font-medium text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"

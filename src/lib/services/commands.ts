@@ -1,4 +1,4 @@
-import type { FRDataObject, FRColors, SampleDisplayKey } from '$lib/types/data-types.js';
+import type { FRDataObject, FRColors, SampleDisplayKey } from '#lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 
 /**

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as d3 from 'd3';
 import GraphInspection from './GraphInspection.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { ChannelData, FRDataObject, FRDataPoint } from '$lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { ChannelData, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
 
 /**
  * The inspection overlay reads `frStore` and writes SVG. It runs in the client

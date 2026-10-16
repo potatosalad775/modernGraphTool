@@ -11,8 +11,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import SampleChannelSelector from './SampleChannelSelector.svelte';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import type { FRDataObject, SampleData } from '$lib/types/data-types.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import type { FRDataObject, SampleData } from '#lib/types/data-types.js';
 
 function channel(db = 80) {
 	return { data: [[1000, db]] as [number, number][], metadata: { minFreq: 20, maxFreq: 20000 } };

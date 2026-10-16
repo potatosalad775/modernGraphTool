@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { dataProvider } from './data-provider.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
-import FRParser, { type FRParseResult } from '$lib/utils/fr-parser.js';
-import MetadataParser from '$lib/utils/metadata-parser.js';
+import FRParser, { type FRParseResult } from '#lib/utils/fr-parser.js';
+import MetadataParser from '#lib/utils/metadata-parser.js';
 import type {
 	FRDataObject,
 	FRDataPoint,
@@ -15,7 +15,7 @@ import type {
 	PhoneMetadata,
 	PhoneFileVariant,
 	SampleData
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 
 /** Generate synthetic FR data points spanning 20–20kHz at 1/48-octave spacing */
 function makeFRPoints(baseDb = 80, count = 480): FRDataPoint[] {

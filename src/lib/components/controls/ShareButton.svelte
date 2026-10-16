@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { toast } from 'svelte-sonner';
-	import { urlProvider } from '$lib/utils/url-provider';
+	import { urlProvider } from '#lib/utils/url-provider.js';
 	import { Share2 } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 

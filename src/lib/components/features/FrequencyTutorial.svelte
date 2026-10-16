@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import ScrollArea from '../atoms/ScrollArea.svelte';
 	import Button from '../atoms/Button.svelte';
 

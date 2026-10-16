@@ -11,24 +11,24 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
 import EqHistoryAndCompare from './EqHistoryAndCompare.svelte';
-import { eqHistoryStore, type EqSnapshot } from '$lib/stores/eq-history-store.svelte.js';
+import { eqHistoryStore, type EqSnapshot } from '#lib/stores/eq-history-store.svelte.js';
 import {
 	BOOKMARK_CAP,
 	eqBookmarkStore,
 	type EqBookmark
-} from '$lib/stores/eq-bookmark-store.svelte.js';
+} from '#lib/stores/eq-bookmark-store.svelte.js';
 import {
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID,
 	eqConstraintsStore
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { toast } from 'svelte-sonner';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { eqCommands } from '$lib/services/eq-commands.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import * as m from '$lib/paraglide/messages.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { eqCommands } from '#lib/services/eq-commands.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import * as m from '#lib/paraglide/messages.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3, ...overrides };

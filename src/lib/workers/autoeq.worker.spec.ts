@@ -176,7 +176,7 @@ describe('autoeq.worker', () => {
 		it('stringifies a throw that is not an Error', async () => {
 			// The real Equalizer only ever throws Errors, so the `String(err)` arm is
 			// unreachable without standing in for it.
-			vi.doMock('$lib/utils/equalizer.js', () => ({
+			vi.doMock('#lib/utils/equalizer.js', () => ({
 				Equalizer: class {
 					autoEQ(): never {
 						throw 'boom';
@@ -195,7 +195,7 @@ describe('autoeq.worker', () => {
 			await vi.waitFor(() => expect(scope.postMessage).toHaveBeenCalled());
 
 			expect(lastReply()).toMatchObject({ type: 'autoeq-error', id: 10, error: 'boom' });
-			vi.doUnmock('$lib/utils/equalizer.js');
+			vi.doUnmock('#lib/utils/equalizer.js');
 		});
 	});
 });

@@ -1,15 +1,15 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import type { FRDataObject, FRColors } from '$lib/types/data-types.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import type { FRDataObject, FRColors } from '#lib/types/data-types.js';
 	import {
 		parseOklch,
 		formatOklch,
 		hexToOklch,
 		oklchToHex,
 		randomCurveColor
-	} from '$lib/utils/curve-palette.js';
-	import { getConfigValue } from '$lib/utils/config.js';
+	} from '#lib/utils/curve-palette.js';
+	import { getConfigValue } from '#lib/utils/config.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { Shuffle } from '@lucide/svelte';

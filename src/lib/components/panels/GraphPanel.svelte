@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { appStore } from '$lib/stores/app-store.svelte';
-	import GraphToolbar from '$lib/components/controls/GraphToolbar.svelte';
-	import TargetSelector from '$lib/components/controls/TargetSelector.svelte';
-	import SelectionList from '$lib/components/controls/SelectionList.svelte';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import GraphToolbar from '#lib/components/controls/GraphToolbar.svelte';
+	import TargetSelector from '#lib/components/controls/TargetSelector.svelte';
+	import SelectionList from '#lib/components/controls/SelectionList.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
-	import * as m from '$lib/paraglide/messages.js';
+	import * as m from '#lib/paraglide/messages.js';
 </script>
 
 <div class="flex h-full flex-col overflow-hidden">

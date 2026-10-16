@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 import { eqHistoryStore, summarize, snapshotMatches } from './eq-history-store.svelte.js';
 import { eqBookmarkStore } from './eq-bookmark-store.svelte.js';
 import { eqStore } from './eq-store.svelte.js';

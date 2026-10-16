@@ -1,25 +1,25 @@
 /**
  * `URLProvider` is the half of share-URL handling that touches the browser —
- * `window.location`, `document`, `replaceState` and the stores. The pure
+ * `window.location`, `document`, `goto` and the stores. The pure
  * encode/decode half lives in `url-state.ts` and has its own spec.
  *
  * Runs in the `client` project because it needs a real `document`, a real
  * `history` to drive `window.location.search`, and real store reactivity.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+import { goto } from '$app/navigation';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 import Base62 from './base62.js';
 import { urlProvider } from './url-provider.js';
-import { replaceState } from '$app/navigation';
 import type { URLState } from './url-state.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
-// `replaceState` throws outside a mounted SvelteKit router, which no component
-// test has. Stubbing it lets the navigation branch be asserted directly.
-vi.mock('$app/navigation', () => ({ replaceState: vi.fn() }));
+// `goto` throws outside a mounted SvelteKit router, which no component test
+// has. Stubbing it lets the navigation branch be asserted directly.
+vi.mock('$app/navigation', () => ({ goto: vi.fn(() => Promise.resolve()) }));
 
 const ORIGINAL_SEARCH = window.location.search;
 // `init()` snapshots `document.title` as the base that device names get appended
@@ -54,7 +54,7 @@ function encodeState(state: URLState): string {
 
 describe('URLProvider', () => {
 	beforeEach(() => {
-		vi.mocked(replaceState).mockClear();
+		vi.mocked(goto).mockClear();
 		frStore.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
@@ -273,17 +273,18 @@ describe('URLProvider', () => {
 	describe('updateURL', () => {
 		beforeEach(() => urlProvider.init());
 
-		it('pushes the new query through replaceState', () => {
+		it('pushes the new query through a shallow goto', () => {
 			frStore.set('a', makeEntry('a'));
 			urlProvider.updateURL(true);
 
-			expect(replaceState).toHaveBeenCalledTimes(1);
-			expect(vi.mocked(replaceState).mock.calls[0][0]).toContain('share=Phone%20a');
+			expect(goto).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(goto).mock.calls[0][0]).toContain('share=Phone%20a');
+			expect(vi.mocked(goto).mock.calls[0][1]).toEqual({ shallow: true, replace: true });
 		});
 
 		it('does not navigate when the URL already matches', () => {
 			urlProvider.updateURL(true); // nothing loaded → path is already current
-			expect(replaceState).not.toHaveBeenCalled();
+			expect(goto).not.toHaveBeenCalled();
 		});
 
 		it('updates the document title with the loaded devices', () => {
@@ -302,7 +303,7 @@ describe('URLProvider', () => {
 		it('skips navigation entirely when called with changeURL=false', () => {
 			frStore.set('a', makeEntry('a'));
 			urlProvider.updateURL(false);
-			expect(replaceState).not.toHaveBeenCalled();
+			expect(goto).not.toHaveBeenCalled();
 		});
 
 		it('rewrites the canonical link and meta description when present', () => {
@@ -335,7 +336,7 @@ describe('URLProvider', () => {
 			urlProvider.init();
 			frStore.set('a', makeEntry('a'));
 			urlProvider.autoUpdate();
-			expect(replaceState).toHaveBeenCalled();
+			expect(goto).toHaveBeenCalled();
 		});
 
 		it('stays put when the operator disabled URL.AUTO_UPDATE_URL', () => {
@@ -346,7 +347,7 @@ describe('URLProvider', () => {
 			urlProvider.init();
 			frStore.set('a', makeEntry('a'));
 			urlProvider.autoUpdate();
-			expect(replaceState).not.toHaveBeenCalled();
+			expect(goto).not.toHaveBeenCalled();
 		});
 	});
 
@@ -396,9 +397,11 @@ describe('URLProvider', () => {
 		});
 
 		it('ignores a baseline whose device never loaded', () => {
-			initWith({ baseline: { key: 'Some Other Phone', mode: 'withoutAdjustment' } });
-			frStore.set('a', makeEntry('a'));
+			initWith({
+				baseline: { key: 'Some Other Phone', mode: 'withoutAdjustment' }
+			});
 
+			frStore.set('a', makeEntry('a'));
 			urlProvider.applyStateFromURL();
 
 			expect(graphStore.baselineUUID).toBeNull();
@@ -449,9 +452,11 @@ describe('URLProvider', () => {
 		});
 
 		it('restores a legacy hptfDisplay entry onto the sample fields', () => {
-			initWith({ hptfDisplay: { 'Phone a': { keys: ['sample0_AVG'], fill: true } } });
-			frStore.set('a', makeEntry('a', { samples: [{}] }));
+			initWith({
+				hptfDisplay: { 'Phone a': { keys: ['sample0_AVG'], fill: true } }
+			});
 
+			frStore.set('a', makeEntry('a', { samples: [{}] }));
 			urlProvider.applyStateFromURL();
 
 			expect(frStore.get('a')!.dispSamples).toEqual(['sample0_AVG']);

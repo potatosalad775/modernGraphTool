@@ -1,17 +1,17 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { graphStore } from '$lib/stores/graph-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
-	import { getConfigValue } from '$lib/utils/config.js';
-	import type { FRDataObject, PhoneFileVariant } from '$lib/types/data-types.js';
-	import GraphColorPicker from '$lib/components/features/GraphColorPicker.svelte';
-	import TargetCustomizer from '$lib/components/features/TargetCustomizer.svelte';
-	import SampleChannelSelector from '$lib/components/controls/SampleChannelSelector.svelte';
-	import DownloadButton from '$lib/components/controls/DownloadButton.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { graphStore } from '#lib/stores/graph-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+	import { getConfigValue } from '#lib/utils/config.js';
+	import type { FRDataObject, PhoneFileVariant } from '#lib/types/data-types.js';
+	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
+	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
+	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';
+	import DownloadButton from '#lib/components/controls/DownloadButton.svelte';
 	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
-	import PopoverPanel from '$lib/components/atoms/PopoverPanel.svelte';
+	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 	import GraphUploader from './GraphUploader.svelte';
 

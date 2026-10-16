@@ -9,9 +9,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import AverageButton from './AverageButton.svelte';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 function makeItem(uuid: string, overrides: Partial<FRDataObject> = {}): FRDataObject {
 	return {

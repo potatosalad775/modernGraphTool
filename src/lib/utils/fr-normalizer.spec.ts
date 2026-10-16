@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalize, normalizeAgainst, normalizeChannels, clampDB } from './fr-normalizer.js';
-import type { ChannelData, FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 /** Generate synthetic channel data spanning 20–20000 Hz */
 function makeChannelData(baseDb = 80, count = 480): ChannelData {

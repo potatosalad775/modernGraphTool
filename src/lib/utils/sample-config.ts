@@ -6,7 +6,7 @@
  * written before the two concepts were unified keeps behaving identically —
  * operators host these files themselves and are never forced to migrate.
  */
-import type { SampleDisplayMode } from '$lib/types/data-types.js';
+import type { SampleDisplayMode } from '#lib/types/data-types.js';
 import { getConfigValue } from './config.js';
 
 const VALID_MODES: SampleDisplayMode[] = ['avg', 'curves', 'fill'];

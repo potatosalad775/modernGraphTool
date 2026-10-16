@@ -1,10 +1,10 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { toast } from 'svelte-sonner';
 	import { Sigma } from '@lucide/svelte';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { isAveragable } from '$lib/utils/fr-average.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { isAveragable } from '#lib/utils/fr-average.js';
 	import Button from '../atoms/Button.svelte';
 
 	// Recomputed from the store rather than mirrored into local state — the button

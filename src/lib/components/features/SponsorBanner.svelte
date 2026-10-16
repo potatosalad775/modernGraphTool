@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Dialog } from 'bits-ui';
-	import * as m from '$lib/paraglide/messages';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 	import { ExternalLink } from '@lucide/svelte';
 
 	let open = $state(false);
@@ -76,7 +76,7 @@
 						<a
 							href={buildUtmUrl(sponsor.ctaLink, sponsor.sponsorId)}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
 								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
 						>
@@ -89,7 +89,7 @@
 						<a
 							href={buildUtmUrl(sponsor.cta2Link, sponsor.sponsorId)}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg border
 								border-base-content/20 px-4 py-2.5 text-center text-sm font-medium hover:bg-base-300"
 						>

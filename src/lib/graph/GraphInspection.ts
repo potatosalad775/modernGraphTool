@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
-import type { FRDataPoint } from '$lib/types/data-types.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { eqSourceChannels } from '$lib/utils/eq-source.js';
+import type { FRDataPoint } from '#lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { eqSourceChannels } from '#lib/utils/eq-source.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { curveDisplayName, sampleKeyParts } from './curve-label.js';
 

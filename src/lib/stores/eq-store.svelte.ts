@@ -1,8 +1,8 @@
 import { SvelteMap } from 'svelte/reactivity';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import type { EqChannelScope } from '$lib/utils/eq-channel.js';
-import type { EqSourceSample } from '$lib/utils/eq-source.js';
-import type { ParsedFRData } from '$lib/types/data-types.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import type { EqChannelScope } from '#lib/utils/eq-channel.js';
+import type { EqSourceSample } from '#lib/utils/eq-source.js';
+import type { ParsedFRData } from '#lib/types/data-types.js';
 
 export type { EQFilter };
 

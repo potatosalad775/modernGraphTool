@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { resolveBaselineChannelData } from './baseline.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import type { FRDataObject, FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import type { FRDataObject, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 function makeTarget(uuid: string, avg: FRDataPoint[]): FRDataObject {
 	return {

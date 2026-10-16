@@ -1,12 +1,12 @@
 import { untrack } from 'svelte';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
-import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
-import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-import { abLoudnessTrimDb, computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
-import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
-import { hasPerChannelFilters } from '$lib/utils/eq-channel.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
+import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
+import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
+import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
+import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 
 const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {

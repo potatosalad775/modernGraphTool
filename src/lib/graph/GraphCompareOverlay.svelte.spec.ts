@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as d3 from 'd3';
 import { GraphCompareOverlay, type CompareGhostState } from './GraphCompareOverlay.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import type { FRDataPoint } from '$lib/types/data-types.js';
+import type { FRDataPoint } from '#lib/types/data-types.js';
 
 // ── Minimal fake GraphEngine ──────────────────────────────────────────────────
 // The overlay only reads curveGroup + xScale + yScale.

@@ -1,26 +1,26 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import MetadataParser from '$lib/utils/metadata-parser.js';
-	import { getConfigValue } from '$lib/utils/config.js';
-	import { buildRankingUrl } from '$lib/utils/url-template.js';
-	import { sanitizeHtml, stripHtml } from '$lib/utils/html-sanitizer.js';
-	import { splitQueryGroups } from '$lib/utils/search-query.js';
-	import { rankingService } from '$lib/services/ranking-service.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import MetadataParser from '#lib/utils/metadata-parser.js';
+	import { getConfigValue } from '#lib/utils/config.js';
+	import { buildRankingUrl } from '#lib/utils/url-template.js';
+	import { sanitizeHtml, stripHtml } from '#lib/utils/html-sanitizer.js';
+	import { splitQueryGroups } from '#lib/utils/search-query.js';
+	import { rankingService } from '#lib/services/ranking-service.svelte.js';
 	import {
 		getRankingSettings,
 		resolveRankDisplay,
 		type RankDisplay
-	} from '$lib/services/ranking-core.js';
-	import type { PhoneMetadata } from '$lib/types/data-types.js';
+	} from '#lib/services/ranking-core.js';
+	import type { PhoneMetadata } from '#lib/types/data-types.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import CrossSiteSearchResults from './CrossSiteSearchResults.svelte';
-	import { getCrossSiteSearchConfig } from '$lib/services/aggregate-index-core.js';
+	import { getCrossSiteSearchConfig } from '#lib/services/aggregate-index-core.js';
 	import { Info, Search, X } from '@lucide/svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────

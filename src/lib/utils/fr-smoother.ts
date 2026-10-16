@@ -1,4 +1,4 @@
-import type { ParsedFRData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ParsedFRData, FRDataPoint } from '#lib/types/data-types.js';
 
 interface OctaveBand {
 	lower: number;

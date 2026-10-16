@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import * as m from '$lib/paraglide/messages.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { prewarmAutoEQ } from '$lib/workers/autoeq-client.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { prewarmAutoEQ } from '#lib/workers/autoeq-client.js';
 
-	import EqPhoneSelect from '$lib/components/equalizer/EqPhoneSelect.svelte';
-	import EqFilterList from '$lib/components/equalizer/EqFilterList.svelte';
-	import EqAutoEqSelect from '$lib/components/equalizer/EqAutoEqSelect.svelte';
-	import EqAutoEq from '$lib/components/equalizer/EqAutoEq.svelte';
-	import EqAudioPlayer from '$lib/components/equalizer/EqAudioPlayer.svelte';
-	import EqSettings from '$lib/components/equalizer/EqSettings.svelte';
-	import EqHistoryAndCompare from '$lib/components/equalizer/EqHistoryAndCompare.svelte';
+	import EqPhoneSelect from '#lib/components/equalizer/EqPhoneSelect.svelte';
+	import EqFilterList from '#lib/components/equalizer/EqFilterList.svelte';
+	import EqAutoEqSelect from '#lib/components/equalizer/EqAutoEqSelect.svelte';
+	import EqAutoEq from '#lib/components/equalizer/EqAutoEq.svelte';
+	import EqAudioPlayer from '#lib/components/equalizer/EqAudioPlayer.svelte';
+	import EqSettings from '#lib/components/equalizer/EqSettings.svelte';
+	import EqHistoryAndCompare from '#lib/components/equalizer/EqHistoryAndCompare.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
@@ -85,7 +85,7 @@
 				-->
 				<AccordionItem value="device-peq" title={m.equalizer_device_peq_label()} class="px-1">
 					<div class="p-2 pt-1">
-						{#await import('$lib/components/features/DevicePeq.svelte') then { default: DevicePeq }}
+						{#await import('#lib/components/features/DevicePeq.svelte') then { default: DevicePeq }}
 							<DevicePeq />
 						{/await}
 					</div>

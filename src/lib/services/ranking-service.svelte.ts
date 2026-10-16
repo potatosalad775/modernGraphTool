@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { csvToRows } from '$lib/utils/csv.js';
+import { browser } from '$app/env';
+import { csvToRows } from '#lib/utils/csv.js';
 import {
 	adaptInlineSource,
 	adaptSquigRankingConfig,
@@ -10,7 +10,7 @@ import {
 	type RankingSettings,
 	type ResolvedRank
 } from './ranking-core.js';
-import type { RankScaleEntry } from '$lib/types/data-types.js';
+import type { RankScaleEntry } from '#lib/types/data-types.js';
 
 /**
  * Device ranks read from a published CSV.

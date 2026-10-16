@@ -8,7 +8,7 @@ import {
 	getSiteSelectorConfig,
 	groupSiteEntries
 } from './site-index-core.js';
-import type { SiteIndex } from '$lib/types/site-index-types.js';
+import type { SiteIndex } from '#lib/types/site-index-types.js';
 
 /** Narrow view of the operator config global the tests write to. */
 type ConfigWindow = Window & { GRAPHTOOL_CONFIG?: Record<string, unknown> };

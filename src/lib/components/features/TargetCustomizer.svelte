@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { untrack, onDestroy } from 'svelte';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { graphStore } from '$lib/stores/graph-store.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { graphStore } from '#lib/stores/graph-store.svelte.js';
 	import {
 		targetAdjustmentStore,
 		type TargetFilterDef
-	} from '$lib/stores/target-adjustment-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import type { FRDataObject, ParsedFRData } from '$lib/types/data-types.js';
-	import * as m from '$lib/paraglide/messages.js';
+	} from '#lib/stores/target-adjustment-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import type { FRDataObject, ParsedFRData } from '#lib/types/data-types.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import Button from '../atoms/Button.svelte';

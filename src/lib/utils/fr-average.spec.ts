@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { averageChannels, isAveragable, type AverageSource } from './fr-average.js';
 import { DataProcessor } from './data-processor.js';
-import type { ChannelData, FRDataObject, FRDataType } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataObject, FRDataType } from '#lib/types/data-types.js';
 
 /** A flat channel at `db`, on the two-point grid the other utils' specs use. */
 function channel(db: number, freqs: number[] = [20, 1000, 20000]): ChannelData {

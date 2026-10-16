@@ -1,41 +1,41 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { appStore } from '$lib/stores/app-store.svelte';
-	import { settingsStore } from '$lib/stores/settings-store.svelte';
-	import { getConfigValue } from '$lib/utils/config';
-	import { claimInitialLoad } from '$lib/services/initial-load';
-	import { dataProvider } from '$lib/services/data-provider.svelte';
-	import { commandHistory } from '$lib/services/command-history.svelte';
-	import { eqCommands } from '$lib/services/eq-commands';
-	import { graphStore } from '$lib/stores/graph-store.svelte';
-	import { frStore } from '$lib/stores/fr-store.svelte';
-	import { eqStore } from '$lib/stores/eq-store.svelte';
-	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte';
-	import { linkStore } from '$lib/stores/link-store.svelte';
-	import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte';
-	import { eqBookmarkStore } from '$lib/stores/eq-bookmark-store.svelte';
-	import { hasSavedLinkSession, linkConfig } from '$lib/services/link-config';
-	import { urlProvider } from '$lib/utils/url-provider';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { getConfigValue } from '#lib/utils/config.js';
+	import { claimInitialLoad } from '#lib/services/initial-load.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { commandHistory } from '#lib/services/command-history.svelte.js';
+	import { eqCommands } from '#lib/services/eq-commands.js';
+	import { graphStore } from '#lib/stores/graph-store.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
+	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
+	import { eqBookmarkStore } from '#lib/stores/eq-bookmark-store.svelte.js';
+	import { hasSavedLinkSession, linkConfig } from '#lib/services/link-config.js';
+	import { urlProvider } from '#lib/utils/url-provider.js';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
 	import MenuCarousel from './MenuCarousel.svelte';
-	import GraphContainer from '$lib/components/graph/GraphContainer.svelte';
-	import GraphToolbar from '$lib/components/controls/GraphToolbar.svelte';
-	import { menuStore } from '$lib/stores/menu-store.svelte';
-	import DevicePanel from '$lib/components/panels/DevicePanel.svelte';
-	import GraphPanel from '$lib/components/panels/GraphPanel.svelte';
-	import EqualizerPanel from '$lib/components/panels/EqualizerPanel.svelte';
-	import MiscPanel from '$lib/components/panels/MiscPanel.svelte';
-	import SponsorBanner from '$lib/components/features/SponsorBanner.svelte';
-	import TutorialModal from '$lib/components/features/TutorialModal.svelte';
-	import VolumeWarningDialog from '$lib/components/features/VolumeWarningDialog.svelte';
-	import { volumeWarning } from '$lib/services/volume-warning.svelte';
+	import GraphContainer from '#lib/components/graph/GraphContainer.svelte';
+	import GraphToolbar from '#lib/components/controls/GraphToolbar.svelte';
+	import { menuStore } from '#lib/stores/menu-store.svelte.js';
+	import DevicePanel from '#lib/components/panels/DevicePanel.svelte';
+	import GraphPanel from '#lib/components/panels/GraphPanel.svelte';
+	import EqualizerPanel from '#lib/components/panels/EqualizerPanel.svelte';
+	import MiscPanel from '#lib/components/panels/MiscPanel.svelte';
+	import SponsorBanner from '#lib/components/features/SponsorBanner.svelte';
+	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
+	import VolumeWarningDialog from '#lib/components/features/VolumeWarningDialog.svelte';
+	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
 	import { Toaster, toast } from 'svelte-sonner';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
-	import KeyboardShortcutBar from '$lib/components/controls/KeyboardShortcutBar.svelte';
-	import { checkVersionUpdate } from '$lib/utils/version-update';
-	import * as m from '$lib/paraglide/messages';
+	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
+	import { checkVersionUpdate } from '#lib/utils/version-update.js';
+	import * as m from '#lib/paraglide/messages.js';
 
 	const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
 
@@ -99,7 +99,7 @@
 		// A reload in a linked tab rejoins the session; uniPEQ keeps its approval. Loaded only then,
 		// so the link costs the boot nothing.
 		if (linkConfig().enabled && hasSavedLinkSession()) {
-			void import('$lib/services/link-service.svelte').then(({ linkService }) =>
+			void import('#lib/services/link-service.svelte.js').then(({ linkService }) =>
 				linkService.resume()
 			);
 		}
@@ -115,7 +115,7 @@
 		// flight from hooks.client.ts; starts here when it isn't (the boot tests).
 		// `isReady` is set here, not in the run: the run can finish before mount, and
 		// flipping it mid-mount fires the URL effect below while SvelteKit's router
-		// has no root component yet, so `replaceState` throws.
+		// has no root component yet, so the shallow `goto` fails.
 		claimInitialLoad().then(() => {
 			appStore.isReady = true;
 		});
@@ -345,7 +345,7 @@
 
 <!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
 {#if linkStore.choice || linkStore.status?.review || linkStore.status?.consent}
-	{#await import('$lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
+	{#await import('#lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
 		<LinkDialogs />
 	{/await}
 {/if}

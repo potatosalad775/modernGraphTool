@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
-	import { linkConfig } from '$lib/services/link-config.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
+	import { linkConfig } from '#lib/services/link-config.js';
 	import DeviceConnect from './DeviceConnect.svelte';
 	import DeviceControls from './DeviceControls.svelte';
 	import UnipeqLink from './UnipeqLink.svelte';

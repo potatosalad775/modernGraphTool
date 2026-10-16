@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { frStore } from './fr-store.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 function makeFRDataObject(uuid: string, identifier = `Test ${uuid}`): FRDataObject {
 	return {

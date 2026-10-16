@@ -5,7 +5,7 @@ import {
 	getSiteSelectorConfig,
 	groupSiteEntries
 } from './site-index-core.js';
-import type { SiteIndexEntry, SiteIndexGroup } from '$lib/types/site-index-types.js';
+import type { SiteIndexEntry, SiteIndexGroup } from '#lib/types/site-index-types.js';
 
 /**
  * The site/database directory behind the site selector — one small JSON

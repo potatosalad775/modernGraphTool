@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { graphicPreset, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { graphicPreset, parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { eqCommands } from './eq-commands.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {

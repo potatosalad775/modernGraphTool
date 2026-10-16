@@ -1,8 +1,8 @@
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { menuStore, MENU_PANELS, type MenuPanel } from '$lib/stores/menu-store.svelte.js';
-import { getConfigValue } from '$lib/utils/config.js';
-import MetadataParser from '$lib/utils/metadata-parser.js';
-import { urlProvider } from '$lib/utils/url-provider.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { menuStore, MENU_PANELS, type MenuPanel } from '#lib/stores/menu-store.svelte.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import MetadataParser from '#lib/utils/metadata-parser.js';
+import { urlProvider } from '#lib/utils/url-provider.js';
 import { analyticsService } from './analytics-service.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
 

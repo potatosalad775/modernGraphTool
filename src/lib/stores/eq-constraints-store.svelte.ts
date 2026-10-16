@@ -1,5 +1,5 @@
 import type { Profile } from '@potatosalad775/eqcaps-core';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 import { eqStore } from './eq-store.svelte.js';
 import {
 	assignSlots,
@@ -9,7 +9,7 @@ import {
 	maxBandsOf,
 	uniformProfile,
 	type FilterViolation
-} from '$lib/utils/eq-constraint.js';
+} from '#lib/utils/eq-constraint.js';
 
 const ACTIVE_ID_LS_KEY = 'gt-eq-constraint-active-id';
 /** The last catalog profile picked, so a saved `eqcaps:` id resolves on first paint, offline. */

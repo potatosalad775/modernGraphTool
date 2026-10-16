@@ -1,8 +1,8 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { toast } from 'svelte-sonner';
-	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
-	import { analyticsService } from '$lib/services/analytics-service.svelte.js';
+	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+	import { analyticsService } from '#lib/services/analytics-service.svelte.js';
 	import Button from '../atoms/Button.svelte';
 	import { Camera } from '@lucide/svelte';
 

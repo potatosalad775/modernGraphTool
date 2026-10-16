@@ -9,10 +9,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqAutoEqSelect from './EqAutoEqSelect.svelte';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import type { FRDataObject, FRDataType } from '$lib/types/data-types.js';
-import * as m from '$lib/paraglide/messages.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import type { FRDataObject, FRDataType } from '#lib/types/data-types.js';
+import * as m from '#lib/paraglide/messages.js';
 
 function add(uuid: string, type: FRDataType, identifier = uuid, dispSuffix?: string): void {
 	frStore.set(uuid, {

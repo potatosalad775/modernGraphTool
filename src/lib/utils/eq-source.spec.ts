@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { eqSourceChannels, eqSourceRun, sameEqSourceSample, sampleRunLabel } from './eq-source.js';
-import type { ChannelData, FRDataObject } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
 
 function curve(db: number): ChannelData {
 	return { data: [[1000, db]], metadata: { minFreq: 20, maxFreq: 20000 } };

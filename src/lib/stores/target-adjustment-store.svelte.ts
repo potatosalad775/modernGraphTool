@@ -1,8 +1,8 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { SvelteMap } from 'svelte/reactivity';
-import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
-import { getConfigValue } from '$lib/utils/config.js';
-import type { ParsedFRData } from '$lib/types/data-types.js';
+import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import type { ParsedFRData } from '#lib/types/data-types.js';
 
 export interface TargetFilterDef {
 	id: string;

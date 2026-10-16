@@ -16,20 +16,20 @@
  */
 import { untrack } from 'svelte';
 import { toast } from 'svelte-sonner';
-import * as m from '$lib/paraglide/messages.js';
-import { describeDeviceError, isConnectionLost } from '$lib/device-peq/errors.js';
-import { LinkPeqDevice } from '$lib/device-peq/link.js';
-import { readRequest } from '$lib/device-peq/preset.js';
-import { needsReview, planPush, readLayout, type PushPlan } from '$lib/device-peq/push-plan.js';
-import type { ConnectResult } from '$lib/device-peq/connect.js';
-import type { NetworkDeviceType } from '$lib/device-peq/network-types.js';
-import type { DeviceConnection } from '$lib/device-peq/types.js';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { linkStore } from '$lib/stores/link-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { fromCapsFilter } from '$lib/utils/eq-constraint.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import * as m from '#lib/paraglide/messages.js';
+import { describeDeviceError, isConnectionLost } from '#lib/device-peq/errors.js';
+import { LinkPeqDevice } from '#lib/device-peq/link.js';
+import { readRequest } from '#lib/device-peq/preset.js';
+import { needsReview, planPush, readLayout, type PushPlan } from '#lib/device-peq/push-plan.js';
+import type { ConnectResult } from '#lib/device-peq/connect.js';
+import type { NetworkDeviceType } from '#lib/device-peq/network-types.js';
+import type { DeviceConnection } from '#lib/device-peq/types.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { fromCapsFilter } from '#lib/utils/eq-constraint.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import { eqCommands } from './eq-commands.js';
 import { volumeWarning } from './volume-warning.svelte.js';
@@ -88,7 +88,7 @@ class DevicePeqService {
 
 	/** Load the connect module and the device database before the click needs them. */
 	warm(): void {
-		void import('$lib/device-peq/connect.js').then((mod) => mod.warmUp());
+		void import('#lib/device-peq/connect.js').then((mod) => mod.warmUp());
 	}
 
 	/**
@@ -100,7 +100,7 @@ class DevicePeqService {
 		devicePeqStore.isConnecting = true;
 		devicePeqStore.setStatus(null);
 		try {
-			const mod = await import('$lib/device-peq/connect.js');
+			const mod = await import('#lib/device-peq/connect.js');
 			const run =
 				kind === 'hid' ? mod.connectHid : kind === 'serial' ? mod.connectSerial : mod.connectBle;
 			return await this.#settle(await run());
@@ -137,7 +137,7 @@ class DevicePeqService {
 		if (linkStore.active || devicePeqStore.localActive || !ip.trim()) return;
 		devicePeqStore.isConnecting = true;
 		try {
-			const { connectNetworkDevice } = await import('$lib/device-peq/network.js');
+			const { connectNetworkDevice } = await import('#lib/device-peq/network.js');
 			await this.#connected(connectNetworkDevice(ip, type));
 		} catch (e) {
 			this.fail(e, 'connect');

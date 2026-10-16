@@ -1,4 +1,4 @@
-import type { FRDataPoint } from '$lib/types/data-types.js';
+import type { FRDataPoint } from '#lib/types/data-types.js';
 
 /**
  * Look up the dB value at an arbitrary frequency from sorted FR data.

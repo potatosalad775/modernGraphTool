@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
-	import { autoEqService, activeGraphicBands } from '$lib/services/autoeq-service.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
-	import { getLocale } from '$lib/paraglide/runtime.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
+	import { autoEqService, activeGraphicBands } from '#lib/services/autoeq-service.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
@@ -101,7 +101,7 @@
 						<a
 							href={fitDocsUrl}
 							target="_blank"
-							rel="noopener noreferrer"
+							rel="external noopener noreferrer"
 							class="self-start text-accent underline underline-offset-2"
 						>
 							{m.equalizer_autoeq_learn_more()}

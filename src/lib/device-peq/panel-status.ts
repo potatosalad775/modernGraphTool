@@ -6,7 +6,7 @@
  * device has this EQ"). This picks the single one that matters most, so the panel shows one line
  * and screen readers hear one announcement.
  */
-import * as m from '$lib/paraglide/messages.js';
+import * as m from '#lib/paraglide/messages.js';
 
 export type PanelStatusTone = 'muted' | 'success' | 'warning' | 'error';
 

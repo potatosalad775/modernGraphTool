@@ -16,11 +16,11 @@ import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { eqCommands } from '$lib/services/eq-commands.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { eqCommands } from '#lib/services/eq-commands.js';
 import type { IndexEntry } from '@potatosalad775/eqcaps-core';
-import * as m from '$lib/paraglide/messages.js';
-import { hardwareProfile, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+import * as m from '#lib/paraglide/messages.js';
+import { hardwareProfile, parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const DEVICE_PRESET = parametricPreset('fiio-jm21', {
 	label: 'FiiO JM21',
@@ -41,7 +41,7 @@ const indexEntry = (id: string, extra: Partial<IndexEntry>): IndexEntry => ({
 });
 
 const client = vi.hoisted(() => ({ loadIndex: vi.fn(), loadProfile: vi.fn() }));
-vi.mock('$lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
+vi.mock('#lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
 
 async function open() {
 	render(EqOptionButton);

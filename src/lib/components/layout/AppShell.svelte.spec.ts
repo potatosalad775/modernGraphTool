@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import AppShell from './AppShell.svelte';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { menuStore } from '$lib/stores/menu-store.svelte.js';
-import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
-import { commandHistory } from '$lib/services/command-history.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
+import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { loadDefaultConfig, installWriteBudget, findTarget } from './app-boot-harness.js';
 
 /**

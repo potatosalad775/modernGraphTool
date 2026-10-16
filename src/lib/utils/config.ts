@@ -1,5 +1,5 @@
-import { browser } from '$app/environment';
-import { getLocale } from '$lib/paraglide/runtime';
+import { browser } from '$app/env';
+import { getLocale } from '#lib/paraglide/runtime.js';
 
 type I18nValue<T> = T | { default: T; i18n: Record<string, T> };
 

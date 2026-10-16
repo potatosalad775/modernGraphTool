@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { getConfigValue } from '$lib/utils/config.js';
-import { squiglinkStore } from '$lib/stores/squiglink-store.svelte.js';
+import { browser } from '$app/env';
+import { getConfigValue } from '#lib/utils/config.js';
+import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 
 declare global {
 	interface Window {
@@ -23,6 +23,7 @@ class AnalyticsService {
 
 		const measurementIds =
 			(getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS') as string[]) ?? [];
+
 		if (measurementIds.length === 0) return;
 
 		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string) ?? '';

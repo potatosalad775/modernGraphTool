@@ -4,15 +4,15 @@ import type {
 	FRDataPoint,
 	BaselineData,
 	SampleEnvelope
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
-import { getConfigValue } from '$lib/utils/config.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { sampleFillOpacity } from '$lib/utils/sample-config.js';
-import { eqSourceChannels, eqSourceRun } from '$lib/utils/eq-source.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { sampleFillOpacity } from '#lib/utils/sample-config.js';
+import { eqSourceChannels, eqSourceRun } from '#lib/utils/eq-source.js';
 import { resolveBaselineChannelData } from './baseline.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 import type { CompareOverlayApi } from './GraphCompareOverlay.js';

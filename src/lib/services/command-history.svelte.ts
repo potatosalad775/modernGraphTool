@@ -1,5 +1,5 @@
 import type { Command } from './commands.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /** Minimal write API that commands need from the FR store. */
 export interface FRStoreWriteAPI {

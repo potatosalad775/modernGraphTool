@@ -12,8 +12,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import TutorialModal from './TutorialModal.svelte';
-import { appStore } from '$lib/stores/app-store.svelte.js';
-import * as m from '$lib/paraglide/messages.js';
+import { appStore } from '#lib/stores/app-store.svelte.js';
+import * as m from '#lib/paraglide/messages.js';
 
 const STORAGE_KEY = 'gt-tutorial-dismissed';
 

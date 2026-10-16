@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { devicePeqService, type DeviceKind } from '$lib/services/device-peq-service.svelte.js';
-	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '$lib/device-peq/network-types.js';
-	import * as m from '$lib/paraglide/messages.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { devicePeqService, type DeviceKind } from '#lib/services/device-peq-service.svelte.js';
+	import { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from '#lib/device-peq/network-types.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import Button from '../atoms/Button.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 

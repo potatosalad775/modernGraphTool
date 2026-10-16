@@ -12,7 +12,7 @@ import type {
 	PhoneFileVariant,
 	PhoneLink,
 	SampleDisplayMode
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 import { getConfigValue } from './config.js';
 import { sanitizeUrl, stripHtml } from './html-sanitizer.js';
 import {

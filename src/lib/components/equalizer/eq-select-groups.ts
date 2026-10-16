@@ -1,7 +1,7 @@
-import * as m from '$lib/paraglide/messages.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
-import { sampleRunLabel } from '$lib/utils/eq-source.js';
+import * as m from '#lib/paraglide/messages.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
+import { sampleRunLabel } from '#lib/utils/eq-source.js';
 import type { SelectMenuGroup, SelectMenuItem } from '../atoms/SelectMenu.svelte';
 
 const isDevice = (item: FRDataObject) => item.type === 'phone' || item.type === 'inserted-phone';

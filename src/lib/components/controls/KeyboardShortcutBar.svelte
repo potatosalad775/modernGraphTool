@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { commandHistory } from '$lib/services/command-history.svelte';
-	import { menuStore } from '$lib/stores/menu-store.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { commandHistory } from '#lib/services/command-history.svelte.js';
+	import { menuStore } from '#lib/stores/menu-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let isMac = $state(false);
 

@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
+import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 
 /**
  * GraphSoundRangeOverlay — renders a translucent band on the FR graph showing

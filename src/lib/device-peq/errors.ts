@@ -1,4 +1,4 @@
-import * as m from '$lib/paraglide/messages.js';
+import * as m from '#lib/paraglide/messages.js';
 
 /** `BridgeError.code` values, restated so this module doesn't pull the bridge into the bundle. */
 type Code =

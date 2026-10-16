@@ -13,7 +13,7 @@ declare global {
 	interface Window {
 		/**
 		 * Operator config, set by `defaults/config.js` via a plain <script> tag in app.html.
-		 * Shape is operator-authored and only validated on read — see $lib/utils/config.
+		 * Shape is operator-authored and only validated on read — see #lib/utils/config.ts.
 		 */
 		GRAPHTOOL_CONFIG?: Record<string, unknown>;
 		/** IE/Edge-only marker; its absence is how we distinguish real iOS from Windows Phone. */

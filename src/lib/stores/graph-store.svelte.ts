@@ -1,5 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
-import type { ParsedFRData } from '$lib/types/data-types.js';
+import type { ParsedFRData } from '#lib/types/data-types.js';
 
 export type BaselineMode = 'off' | 'withoutAdjustment' | 'withAdjustment';
 

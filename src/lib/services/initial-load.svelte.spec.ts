@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import MetadataParser from '$lib/utils/metadata-parser.js';
+import MetadataParser from '#lib/utils/metadata-parser.js';
 import { startInitialLoad, claimInitialLoad } from './initial-load.js';
 
 describe('initial load hand-off', () => {

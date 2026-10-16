@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import SiteSelector from './SiteSelector.svelte';
-import { siteIndexService } from '$lib/services/site-index.svelte.js';
-import type { SiteIndex } from '$lib/types/site-index-types.js';
+import { siteIndexService } from '#lib/services/site-index.svelte.js';
+import type { SiteIndex } from '#lib/types/site-index-types.js';
 
 /**
  * `siteIndexService` is a page-lifetime singleton, so the index is fetched once

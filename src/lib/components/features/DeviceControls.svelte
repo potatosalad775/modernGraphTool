@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
-	import { needsConfirmation, type PushPlan } from '$lib/device-peq/push-plan.js';
-	import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
-	import { volumeWarning } from '$lib/services/volume-warning.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
+	import { needsConfirmation, type PushPlan } from '#lib/device-peq/push-plan.js';
+	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import { Check, CircleAlert, Info, TriangleAlert, Unplug } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
-	import { panelStatus } from '$lib/device-peq/panel-status.js';
+	import { panelStatus } from '#lib/device-peq/panel-status.js';
 
 	/**
 	 * Hardware EQ with a device connected, here or in uniPEQ over the link: what it plays, Read and
@@ -181,7 +181,7 @@
 									<a
 										href={reportUrl}
 										target="_blank"
-										rel="noopener noreferrer"
+										rel="external noopener noreferrer"
 										class="text-primary underline-offset-4 hover:underline"
 									>
 										{m.equalizer_device_peq_report_limits()}

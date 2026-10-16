@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import * as m from '$lib/paraglide/messages.js';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
-	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { linkService } from '$lib/services/link-service.svelte.js';
-	import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
-	import type { PushPlan } from '$lib/device-peq/push-plan.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { linkService } from '#lib/services/link-service.svelte.js';
+	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+	import type { PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
 	import VolumeWarningDialog from './VolumeWarningDialog.svelte';

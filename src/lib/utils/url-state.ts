@@ -3,13 +3,13 @@
  *
  * Split out of `url-provider.ts` so it can be tested without a DOM, a router or
  * the stores. `URLProvider` keeps everything that touches `window`, `document`,
- * `replaceState` and the FR/graph/EQ stores; everything below is a function of
+ * `goto` and the FR/graph/EQ stores; everything below is a function of
  * its arguments only.
  */
 import Base62 from './base62.js';
-import type { BaselineMode } from '$lib/stores/graph-store.svelte.js';
-import type { EQFilter } from '$lib/stores/eq-store.svelte.js';
-import type { SampleDisplayKey } from '$lib/types/data-types.js';
+import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
+import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
+import type { SampleDisplayKey } from '#lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

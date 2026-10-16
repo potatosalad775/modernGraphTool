@@ -157,8 +157,8 @@ clears it, so the boot specs — which mount `AppShell` with no client hook — 
 per test rather than a settled promise from the previous boot.
 
 **`appStore.isReady` is set by AppShell after the claim, not inside the run.** The run can now finish
-before mount; flipping `isReady` then makes AppShell's URL effect call `replaceState` while
-SvelteKit has no root component, which throws (`reading '$set'`). The smoke test catches it.
+before mount; flipping `isReady` then makes AppShell's URL effect call a shallow `goto` while
+SvelteKit has no root component, which fails (`reading '$set'`). The smoke test catches it.
 
 ## `audio-player-service.svelte.ts`
 

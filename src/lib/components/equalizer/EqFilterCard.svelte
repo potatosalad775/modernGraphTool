@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { usesGain, type EQFilter } from '$lib/utils/equalizer.js';
-	import { logToLinear, linearToLog } from '$lib/utils/log-scale.js';
+	import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
+	import { logToLinear, linearToLog } from '#lib/utils/log-scale.js';
 	import { ChevronDown, X } from '@lucide/svelte';
 	import { slide } from 'svelte/transition';
-	import * as m from '$lib/paraglide/messages.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
+	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { domainBounds, type Domain } from '@potatosalad775/eqcaps-core';
 	import {
 		appTypesOf,
@@ -16,8 +16,8 @@
 		projectFilter,
 		slotOf,
 		type FilterViolation
-	} from '$lib/utils/eq-constraint.js';
-	import { domainHint } from '$lib/utils/eq-domain-hint.js';
+	} from '#lib/utils/eq-constraint.js';
+	import { domainHint } from '#lib/utils/eq-domain-hint.js';
 
 	let {
 		filter,

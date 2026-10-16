@@ -9,7 +9,7 @@ import {
 	parseCrossSiteGroups,
 	MAX_RESULTS
 } from './aggregate-index-core.js';
-import type { AggregateIndex, CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
+import type { AggregateIndex, CrossSiteSearchResult } from '#lib/types/aggregate-index-types.js';
 
 const OFFICIAL_URLS = DEFAULT_INDEX_URLS;
 

@@ -9,14 +9,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { graphEngine } from './GraphEngine.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { sampleFillOpacity } from '$lib/utils/sample-config.js';
-import FRParser from '$lib/utils/fr-parser.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import type { FRDataObject, FRDataPoint, SampleEnvelope } from '$lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { sampleFillOpacity } from '#lib/utils/sample-config.js';
+import FRParser from '#lib/utils/fr-parser.js';
+import FRSmoother from '#lib/utils/fr-smoother.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import type { FRDataObject, FRDataPoint, SampleEnvelope } from '#lib/types/data-types.js';
 
 let svgEl: SVGSVGElement;
 

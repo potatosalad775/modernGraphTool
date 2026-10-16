@@ -1,4 +1,4 @@
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 import { lookupFRValueAtFreq } from './fr-lookup.js';
 import { normalizeAgainst } from './fr-normalizer.js';
 

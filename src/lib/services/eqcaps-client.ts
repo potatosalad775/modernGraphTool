@@ -6,7 +6,7 @@ import {
 	type CacheStore,
 	type EqcapsClient
 } from '@potatosalad775/eqcaps-client';
-import { getConfigValue } from '$lib/utils/config.js';
+import { getConfigValue } from '#lib/utils/config.js';
 
 /**
  * The eqcaps database client — EQ constraint profiles for hardware and software EQs, matched to a

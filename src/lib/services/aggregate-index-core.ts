@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { getConfigValue } from '$lib/utils/config.js';
-import { splitQueryGroups } from '$lib/utils/search-query.js';
+import { browser } from '$app/env';
+import { getConfigValue } from '#lib/utils/config.js';
+import { splitQueryGroups } from '#lib/utils/search-query.js';
 import type {
 	AggregateDb,
 	AggregateIndex,
@@ -8,7 +8,7 @@ import type {
 	AggregateSite,
 	CrossSiteSearchConfig,
 	CrossSiteSearchResult
-} from '$lib/types/aggregate-index-types.js';
+} from '#lib/types/aggregate-index-types.js';
 
 /**
  * Pure half of cross-site search: config resolution, index fetching, row
@@ -139,7 +139,9 @@ export async function fetchAggregateIndex(urls: string[]): Promise<AggregateInde
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 			if (!res.ok) return null;
+
 			const data = (await res.json()) as AggregateIndex;
+
 			if (
 				Array.isArray(data?.brands) &&
 				Array.isArray(data?.sites) &&

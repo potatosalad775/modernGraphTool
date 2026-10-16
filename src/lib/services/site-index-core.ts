@@ -1,12 +1,12 @@
-import { browser } from '$app/environment';
-import { getConfigValue } from '$lib/utils/config.js';
+import { browser } from '$app/env';
+import { getConfigValue } from '#lib/utils/config.js';
 import { rankDbType } from './aggregate-index-core.js';
 import type {
 	SiteIndex,
 	SiteIndexEntry,
 	SiteIndexGroup,
 	SiteSelectorConfig
-} from '$lib/types/site-index-types.js';
+} from '#lib/types/site-index-types.js';
 
 /**
  * Pure half of the site selector: config resolution, index fetching, flattening

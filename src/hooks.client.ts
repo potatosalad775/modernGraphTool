@@ -1,6 +1,6 @@
-import type { ClientInit } from '@sveltejs/kit';
-import { startInitialLoad } from '$lib/services/initial-load';
-import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
+import type { ClientInit } from '@sveltejs/kit/hooks';
+import { startInitialLoad } from '#lib/services/initial-load.js';
+import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 
 // Runs before the route's component code is loaded, so the phone book and the
 // initial FR files download in parallel with it. See initial-load.ts.

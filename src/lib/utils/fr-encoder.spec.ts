@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { encodeFRDataForDownload, encodeSampleRunsForDownload } from './fr-encoder.js';
-import type { ChannelData, FRDataObject } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
 
 function makeItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
 	return {

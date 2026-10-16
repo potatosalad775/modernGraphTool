@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { flushSync } from 'svelte';
 import { audioPlayerService } from './audio-player-service.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-import { computeAbMatchDb, computeBypassMatchLinear } from '$lib/utils/loudness-match.js';
-import { derivePreamp } from '$lib/utils/eq-preamp.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { eqHistoryStore, type EqSnapshot } from '$lib/stores/eq-history-store.svelte.js';
-import { rangeMakeupGain, RANGE_FILTER_Q } from '$lib/utils/listening-range.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+import { computeAbMatchDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
+import { derivePreamp } from '#lib/utils/eq-preamp.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { eqHistoryStore, type EqSnapshot } from '#lib/stores/eq-history-store.svelte.js';
+import { rangeMakeupGain, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 
 /**
  * The service is exercised against a recording fake AudioContext rather than the

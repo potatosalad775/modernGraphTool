@@ -2,17 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
 import type { Adopt, HostOptions, LinkEq, LinkStatus } from 'peq-link/client';
 import { linkService } from './link-service.svelte.js';
-import { linkStore } from '$lib/stores/link-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { BUILTIN_PRESETS, DEFAULT_CONSTRAINT_ID } from '$lib/stores/eq-constraints-store.svelte.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+import { BUILTIN_PRESETS, DEFAULT_CONSTRAINT_ID } from '#lib/stores/eq-constraints-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands } from './eq-commands.js';
 import { dataProvider } from './data-provider.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import type { DeviceConnection } from '$lib/device-peq/types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import type { DeviceConnection } from '#lib/device-peq/types.js';
 
 /** `HostLink` as far as the service uses it, driven by the test. */
 class FakeHost {

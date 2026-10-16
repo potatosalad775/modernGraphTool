@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { graphStore } from '$lib/stores/graph-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { graphStore } from '#lib/stores/graph-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
 	function onNormTypeChange(value: 'Hz' | 'Avg') {

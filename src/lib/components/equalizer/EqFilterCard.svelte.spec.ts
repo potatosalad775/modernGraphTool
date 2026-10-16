@@ -21,10 +21,10 @@ import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const GRAPHIC_ID = 'generic-10-band';
 

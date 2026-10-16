@@ -13,9 +13,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqSettings from './EqSettings.svelte';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import * as m from '$lib/paraglide/messages.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import * as m from '#lib/paraglide/messages.js';
 
 function persistSelect() {
 	return page.getByRole('combobox');

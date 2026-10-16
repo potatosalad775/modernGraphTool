@@ -1,7 +1,7 @@
-import type { FRDataObject, FRDataPoint } from '$lib/types/data-types.js';
-import type { BaselineMode } from '$lib/stores/graph-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
+import type { FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
+import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
 
 /**
  * Resolve the channel data to subtract from every curve for a given baseline UUID + mode.

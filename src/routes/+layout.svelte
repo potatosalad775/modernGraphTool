@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { locales, localizeHref } from '$lib/paraglide/runtime';
+	import { locales, localizeHref } from '#lib/paraglide/runtime.js';
 	import './layout.css';
-	import { settingsStore } from '$lib/stores/settings-store.svelte';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	// Imported for its side effect on the build, not used here. A static import from the
 	// layout makes the app chunk a dependency of a node `index.html` modulepreloads, so it
 	// downloads in parallel with the router. Imported only from +page.svelte, it was fetched
 	// after the router started — a second round trip on the critical path. Module evaluation
 	// still waits for the router, so `hooks.client.ts` starts the initial data load first.
-	import '$lib/components/layout/AppShell.svelte';
+	import '#lib/components/layout/AppShell.svelte';
 
 	let { children } = $props();
 
@@ -26,6 +26,8 @@
 
 <div style="display:none">
 	{#each locales as locale (locale)}
+		<!-- page.url.pathname already carries the base path, so resolve() would double it -->
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 		<a href={localizeHref(page.url.pathname, { locale })}>{locale}</a>
 	{/each}
 </div>

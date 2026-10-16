@@ -15,23 +15,23 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqFilterList from './EqFilterList.svelte';
-import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { commandHistory } from '$lib/services/command-history.svelte.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { commandHistory } from '#lib/services/command-history.svelte.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
 import { toast } from 'svelte-sonner';
-import { downloadText } from '$lib/utils/download-text.js';
+import { downloadText } from '#lib/utils/download-text.js';
 
 vi.mock('svelte-sonner', async (importOriginal) => ({
 	...(await importOriginal<typeof import('svelte-sonner')>()),
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 
-vi.mock('$lib/utils/download-text.js', () => ({ downloadText: vi.fn(), downloadBlob: vi.fn() }));
+vi.mock('#lib/utils/download-text.js', () => ({ downloadText: vi.fn(), downloadBlob: vi.fn() }));
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };

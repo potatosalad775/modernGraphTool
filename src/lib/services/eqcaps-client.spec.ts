@@ -13,7 +13,7 @@ vi.mock('@potatosalad775/eqcaps-client', async (importOriginal) => {
 });
 
 const config = vi.hoisted(() => ({ value: undefined as unknown }));
-vi.mock('$lib/utils/config.js', () => ({ getConfigValue: () => config.value }));
+vi.mock('#lib/utils/config.js', () => ({ getConfigValue: () => config.value }));
 
 const { eqcapsClient, resetEqcapsClient } = await import('./eqcaps-client.js');
 const { V1_URL } = await import('@potatosalad775/eqcaps-client');

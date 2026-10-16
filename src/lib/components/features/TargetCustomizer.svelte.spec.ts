@@ -16,12 +16,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import TargetCustomizer from './TargetCustomizer.svelte';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { targetAdjustmentStore } from '$lib/stores/target-adjustment-store.svelte.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
-import * as m from '$lib/paraglide/messages.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
+import * as m from '#lib/paraglide/messages.js';
 
 window.GRAPHTOOL_CONFIG = {
 	TARGET_CUSTOMIZER: {

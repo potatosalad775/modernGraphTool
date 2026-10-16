@@ -3,7 +3,7 @@ import type {
 	FRDataObject,
 	FRDataPoint,
 	ParsedFRData
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 
 /** Channels an average can be produced for, in the order they are written out. */
 const CHANNEL_ORDER = ['L', 'R', 'AVG'] as const;

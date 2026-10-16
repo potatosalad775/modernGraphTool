@@ -8,7 +8,7 @@
  */
 
 import type { TurboEQBandLimits } from '@potatosalad775/turboeq';
-import { AUTOEQ_TYPES, type EQFilter } from '$lib/utils/equalizer.js';
+import { AUTOEQ_TYPES, type EQFilter } from '#lib/utils/equalizer.js';
 
 /**
  * The cap for a preset that says "unlimited": a fit has to be asked for a

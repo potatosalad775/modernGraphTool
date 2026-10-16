@@ -1,6 +1,6 @@
 import { untrack } from 'svelte';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { snapshotMatches } from '$lib/utils/eq-snapshot.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { snapshotMatches } from '#lib/utils/eq-snapshot.js';
 import { eqStore } from './eq-store.svelte.js';
 import {
 	BOOKMARK_ID_PREFIX,

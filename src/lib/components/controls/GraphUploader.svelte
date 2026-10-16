@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import FRParser from '$lib/utils/fr-parser.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import FRParser from '#lib/utils/fr-parser.js';
 	import { toast } from 'svelte-sonner';
-	import * as m from '$lib/paraglide/messages.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import Button from '../atoms/Button.svelte';
 	import { FileUp } from '@lucide/svelte';
-	import type { ChannelData, ParsedFRData } from '$lib/types/data-types.js';
+	import type { ChannelData, ParsedFRData } from '#lib/types/data-types.js';
 
 	let phoneInputEl = $state<HTMLInputElement | undefined>(undefined);
 	let targetInputEl = $state<HTMLInputElement | undefined>(undefined);

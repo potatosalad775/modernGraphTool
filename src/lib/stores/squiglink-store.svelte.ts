@@ -1,11 +1,11 @@
-import { browser } from '$app/environment';
-import { getConfigValue } from '$lib/utils/config.js';
+import { browser } from '$app/env';
+import { getConfigValue } from '#lib/utils/config.js';
 import type {
 	ShopLinkEntry,
 	SponsorContent,
 	SponsorDetail,
 	SponsorProductData
-} from '$lib/types/squiglink-types.js';
+} from '#lib/types/squiglink-types.js';
 
 const SQUIGLINK_DOMAIN = 'squig.link';
 

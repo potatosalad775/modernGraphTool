@@ -1,13 +1,13 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
-	import { eqSourceChannels } from '$lib/utils/eq-source.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { filtersInScope, type EqChannelScope } from '#lib/utils/eq-channel.js';
+	import { eqSourceChannels } from '#lib/utils/eq-source.js';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
 
 	/**
 	 * Channel scope for the band list — shared bands, left ear, or right ear.

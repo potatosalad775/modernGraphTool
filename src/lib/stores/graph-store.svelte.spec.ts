@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { graphStore } from './graph-store.svelte.js';
-import type { ParsedFRData } from '$lib/types/data-types.js';
+import type { ParsedFRData } from '#lib/types/data-types.js';
 
 describe('GraphStore', () => {
 	beforeEach(() => {

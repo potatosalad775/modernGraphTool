@@ -2,12 +2,12 @@
 	import { formatRoomCode, intentLink, landingUrl, PROTO, webLink } from 'peq-link/client';
 	import type { Ended } from 'peq-link/client';
 	import { CircleAlert, Link2, TriangleAlert } from '@lucide/svelte';
-	import * as m from '$lib/paraglide/messages.js';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
-	import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-	import { linkService } from '$lib/services/link-service.svelte.js';
-	import { DEFAULT_LINK_SERVER } from '$lib/services/link-config.js';
-	import { getLocale } from '$lib/paraglide/runtime.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { linkService } from '#lib/services/link-service.svelte.js';
+	import { DEFAULT_LINK_SERVER } from '#lib/services/link-config.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 
@@ -278,7 +278,7 @@
 					<a
 						href={docsUrl}
 						target="_blank"
-						rel="noopener noreferrer"
+						rel="external noopener noreferrer"
 						class="text-accent underline underline-offset-2"
 					>
 						{m.equalizer_autoeq_learn_more()}

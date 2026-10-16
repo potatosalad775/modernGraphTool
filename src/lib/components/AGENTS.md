@@ -176,7 +176,7 @@ They exist because a suite that only exercises stores cannot see a boot that nev
   page, so a second scenario in the same file reads whatever the first boot left behind. That's why
   mobile has its own file.
 - `AUTO_UPDATE_URL` is forced off in the harness: `urlProvider.autoUpdate()` calls SvelteKit's
-  `replaceState`, which throws with no mounted router.
+  shallow `goto`, which fails with no mounted router.
 - **These specs never run `hooks.client.ts`**, so they boot through `claimInitialLoad()` starting a
   fresh run on mount. The production path — data already in flight, or finished, before mount — is
   only exercised by `npm run test:smoke`. Run it after touching boot order (see
@@ -189,6 +189,6 @@ They exist because a suite that only exercises stores cannot see a boot that nev
   the whole UI renders translated and every spec that queries an English string matches nothing —
   then burns its full retry timeout before failing. That was 34 failures and 200s of wall time
   locally against a green CI, which runs en-US. The pin writes `localStorage` directly:
-  `context.locale` doesn't reach the page in browser mode, and importing `$lib/paraglide/runtime.js`
+  `context.locale` doesn't reach the page in browser mode, and importing `#lib/paraglide/runtime.js`
   from a setup file caches the real module before a spec's `vi.mock` can intercept it (MiscPanel
   mocks `setLocale`).

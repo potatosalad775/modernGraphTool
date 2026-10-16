@@ -18,7 +18,7 @@
 		eqHistoryStore,
 		snapshotMatches,
 		type EqSnapshot
-	} from '$lib/stores/eq-history-store.svelte.js';
+	} from '#lib/stores/eq-history-store.svelte.js';
 	import {
 		BOOKMARK_CAP,
 		currentEqDevice,
@@ -26,15 +26,15 @@
 		sortBookmarks,
 		type EqBookmark,
 		type EqBookmarkDevice
-	} from '$lib/stores/eq-bookmark-store.svelte.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { fitsProfile } from '$lib/utils/eq-constraint.js';
-	import type { EqState } from '$lib/utils/eq-snapshot.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
-	import { getLocale } from '$lib/paraglide/runtime.js';
+	} from '#lib/stores/eq-bookmark-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+	import { fitsProfile } from '#lib/utils/eq-constraint.js';
+	import type { EqState } from '#lib/utils/eq-snapshot.js';
+	import { eqCommands } from '#lib/services/eq-commands.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';

@@ -17,7 +17,7 @@ import { register } from 'node:module';
 import { readFileSync } from 'node:fs';
 
 register(new URL('./ts-hooks.mjs', import.meta.url));
-const { Equalizer } = await import('$lib/utils/equalizer.js');
+const { Equalizer } = await import('#lib/utils/equalizer.js');
 
 const argv = process.argv.slice(2);
 const curvesPath = argv[argv.indexOf('--curves') + 1];

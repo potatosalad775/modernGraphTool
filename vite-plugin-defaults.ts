@@ -78,10 +78,12 @@ export default function defaultsPlugin(): Plugin {
 			});
 		},
 
-		closeBundle: {
-			sequential: true,
+		// SvelteKit 3 runs the adapter in its own `order: 'post'` buildApp hook, after every
+		// closeBundle. Same-order hooks run in plugin order, so this must stay listed after
+		// `sveltekit()` in vite.config.ts.
+		buildApp: {
 			order: 'post',
-			handler() {
+			async handler() {
 				const distDir = path.resolve(defaultsDir, '..', 'dist');
 				// Only run after adapter-static has written dist/index.html
 				if (!fs.existsSync(path.join(distDir, 'index.html'))) return;

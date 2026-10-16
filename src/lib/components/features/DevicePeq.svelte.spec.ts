@@ -12,21 +12,21 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import DevicePeq from './DevicePeq.svelte';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { linkStore } from '$lib/stores/link-store.svelte.js';
-import { devicePeqService } from '$lib/services/device-peq-service.svelte.js';
-import { eqStore, type EQFilter } from '$lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
+import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import {
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID,
 	DEVICE_CONSTRAINT_ID,
 	eqConstraintsStore
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import type { ConnectResult } from '$lib/device-peq/connect.js';
-import type { DeviceConnection, PeqCapabilities, PeqDevice } from '$lib/device-peq/types.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
-import { volumeWarning } from '$lib/services/volume-warning.svelte.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import type { ConnectResult } from '#lib/device-peq/connect.js';
+import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
 
 const PROFILE_NOTES = "About this device's profile";
 
@@ -36,10 +36,10 @@ const connect = vi.hoisted(() => ({
 	connectBle: vi.fn(),
 	warmUp: vi.fn(async () => [])
 }));
-vi.mock('$lib/device-peq/connect.js', () => connect);
+vi.mock('#lib/device-peq/connect.js', () => connect);
 
 const network = vi.hoisted(() => ({ connectNetworkDevice: vi.fn() }));
-vi.mock('$lib/device-peq/network.js', () => network);
+vi.mock('#lib/device-peq/network.js', () => network);
 
 const CAPS: PeqCapabilities = {
 	canRead: true,

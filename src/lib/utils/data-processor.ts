@@ -1,4 +1,4 @@
-import type { ChannelData, ParsedFRData, FRDataPoint, SampleData } from '$lib/types/data-types.js';
+import type { ChannelData, ParsedFRData, FRDataPoint, SampleData } from '#lib/types/data-types.js';
 import FRSmoother from './fr-smoother.js';
 import { normalizeChannels, normalize, clampDB } from './fr-normalizer.js';
 

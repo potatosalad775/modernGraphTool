@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import FRSmoother from './fr-smoother.js';
 import FRParser from './fr-parser.js';
-import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
+import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 /** Generate synthetic FR data for testing */
 function makeFRData(count: number, baseDb = 80): FRDataPoint[] {

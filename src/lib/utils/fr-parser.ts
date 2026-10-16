@@ -9,7 +9,7 @@ import type {
 	TargetMetadata,
 	SampleData,
 	SampleDisplayMode
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 
 /** Return type for getFRDataFromMetadata, carrying an optional sample set */
 export interface FRParseResult extends ParsedFRData {

@@ -1,4 +1,4 @@
-import { getConfigValue } from '$lib/utils/config.js';
+import { getConfigValue } from '#lib/utils/config.js';
 
 const LS_KEYS = {
 	theme: 'gt-settings-theme',

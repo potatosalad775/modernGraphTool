@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 
 describe('volumeWarning', () => {

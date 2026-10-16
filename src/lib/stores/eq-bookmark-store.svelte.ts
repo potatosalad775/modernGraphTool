@@ -1,7 +1,7 @@
-import { EQ_FILTER_TYPES, type EQFilter } from '$lib/utils/equalizer.js';
+import { EQ_FILTER_TYPES, type EQFilter } from '#lib/utils/equalizer.js';
 import { eqStore } from './eq-store.svelte.js';
 import { frStore } from './fr-store.svelte.js';
-import { snapshotMatches } from '$lib/utils/eq-snapshot.js';
+import { snapshotMatches } from '#lib/utils/eq-snapshot.js';
 
 /**
  * The device a bookmark was made on. Saved by name: a UUID is minted per load

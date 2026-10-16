@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { IndexEntry, Profile } from '@potatosalad775/eqcaps-core';
 import type { HidTransport, StreamTransport } from '@potatosalad775/eqcaps-device-bridge';
-import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const browser = vi.hoisted(() => ({
 	requestHidDevice: vi.fn(),
@@ -23,7 +23,7 @@ const client = vi.hoisted(() => ({
 	loadProfile: vi.fn(),
 	matchDevice: vi.fn()
 }));
-vi.mock('$lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
+vi.mock('#lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
 
 const { connectHid, connectSerial, guessedProfile } = await import('./connect.js');
 

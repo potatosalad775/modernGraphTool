@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { lookupFRValueAtFreq } from './fr-lookup.js';
-import type { FRDataPoint } from '$lib/types/data-types.js';
+import type { FRDataPoint } from '#lib/types/data-types.js';
 
 /** Generate linearly-spaced FR data points */
 function makePoints(startFreq: number, endFreq: number, count: number, db = 80): FRDataPoint[] {

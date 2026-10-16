@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
-	import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
+	import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
+	import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import {
 		audioPlayerService,
 		type AudioSource
-	} from '$lib/services/audio-player-service.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
-	import Button from '$lib/components/atoms/Button.svelte';
+	} from '#lib/services/audio-player-service.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import Button from '#lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';

@@ -1,19 +1,19 @@
 import type { Command } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { eqHistoryStore } from '$lib/stores/eq-history-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { eqFiltersEqual, type EQFilter } from '$lib/utils/equalizer.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
 import {
 	assignSlots,
 	conformFilters,
 	padToBandCount,
 	projectFilter
-} from '$lib/utils/eq-constraint.js';
-import { countBandsPerOutput } from '$lib/utils/eq-channel.js';
-import type { EqChannelScope } from '$lib/utils/eq-channel.js';
+} from '#lib/utils/eq-constraint.js';
+import { countBandsPerOutput } from '#lib/utils/eq-channel.js';
+import type { EqChannelScope } from '#lib/utils/eq-channel.js';
 
 /**
  * EQ-store commands — add/remove/update filter bands and bulk-replace the

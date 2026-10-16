@@ -7,8 +7,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import TargetSelector from './TargetSelector.svelte';
-import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
-import * as m from '$lib/paraglide/messages.js';
+import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
+import * as m from '#lib/paraglide/messages.js';
 
 const ENTRIES = [
 	{ name: 'KEMAR DF', target: 'KEMAR DF Target', upper: 'Bounds U.txt', lower: 'Bounds D.txt' },

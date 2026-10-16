@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
-	import { eqSourceRun } from '$lib/utils/eq-source.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { eqSourceRun } from '#lib/utils/eq-source.js';
 	import SelectMenu from '../atoms/SelectMenu.svelte';
 	import {
 		deviceUUIDs,

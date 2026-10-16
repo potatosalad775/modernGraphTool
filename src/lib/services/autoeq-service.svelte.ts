@@ -1,10 +1,10 @@
 import { untrack } from 'svelte';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { eqCommands, type ReplaceEqFiltersCommand } from '$lib/services/eq-commands.js';
-import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+import { eqCommands, type ReplaceEqFiltersCommand } from '#lib/services/eq-commands.js';
+import { runAutoEQInWorker } from '#lib/workers/autoeq-client.js';
 import {
 	MAX_BANDS,
 	keepInPlace,
@@ -13,18 +13,18 @@ import {
 	type AutoEqRequest,
 	type FallbackCause,
 	type KeptBand
-} from '$lib/workers/autoeq-request.js';
-import { getConfigValue } from '$lib/utils/config.js';
-import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '$lib/utils/eq-channel.js';
-import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
-import { allowsShelves, envelopeOf, graphicBandsOf } from '$lib/utils/eq-constraint.js';
-import type { ParsedFRData } from '$lib/types/data-types.js';
+} from '#lib/workers/autoeq-request.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import { countBandsPerOutput, filtersInScope, type EqChannelScope } from '#lib/utils/eq-channel.js';
+import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
+import { allowsShelves, envelopeOf, graphicBandsOf } from '#lib/utils/eq-constraint.js';
+import type { ParsedFRData } from '#lib/types/data-types.js';
 import {
 	eqSourceChannels,
 	eqSourceRun,
 	sameEqSourceSample,
 	type EqSourceSample
-} from '$lib/utils/eq-source.js';
+} from '#lib/utils/eq-source.js';
 
 /** Bands generated when the filter list is empty. Operator-overridable via
  *  `EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT`, which ships commented out. */

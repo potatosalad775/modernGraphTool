@@ -24,8 +24,8 @@ import type {
 	LinkDevice,
 	LinkStatus
 } from 'peq-link/client';
-import { fromCapsFilter, toCapsFilter } from '$lib/utils/eq-constraint.js';
-import { usesGain, type EQFilter } from '$lib/utils/equalizer.js';
+import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
+import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult } from './types.js';
 
 // ── Band lists ──────────────────────────────────────────────────────────────

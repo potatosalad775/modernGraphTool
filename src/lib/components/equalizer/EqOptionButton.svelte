@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
-	import * as m from '$lib/paraglide/messages.js';
+	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+	import { eqCommands } from '#lib/services/eq-commands.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import type { IndexEntry } from '@potatosalad775/eqcaps-core';
-	import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+	import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 	import { Check, Settings2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import Button from '../atoms/Button.svelte';
@@ -34,7 +34,7 @@
 
 	async function loadCatalog() {
 		catalogState = 'loading';
-		const { eqcapsClient } = await import('$lib/services/eqcaps-client.js');
+		const { eqcapsClient } = await import('#lib/services/eqcaps-client.js');
 		const index = await eqcapsClient().loadIndex();
 		catalog = index
 			? index.profiles
@@ -110,7 +110,7 @@
 	async function selectEntry(entry: IndexEntry) {
 		if (pendingId) return;
 		pendingId = entry.id;
-		const { eqcapsClient } = await import('$lib/services/eqcaps-client.js');
+		const { eqcapsClient } = await import('#lib/services/eqcaps-client.js');
 		const profile = await eqcapsClient().loadProfile(entry.id);
 		pendingId = null;
 		if (!profile) {

@@ -149,13 +149,14 @@ DOM) test project and the browser, and this is a static site operators self-host
 
 `url-state.ts` holds the **pure** share-URL encoding/decoding (`smartSplit`, `parseShareParam`,
 `parseStateParam`, `encodeShareNames`, `hasNonDefaultState`, `buildQueryString`); `URLProvider` keeps
-only what touches `window`, `document`, `replaceState` and the stores, and delegates the rest.
+only what touches `window`, `document`, `goto` and the stores, and delegates the rest.
 
 - Share names go through `encodeURIComponent`, **not** `encodeURI` — the latter leaves `&`, `+` and
   `#` untouched, and over a thousand device names contain one of them. Reading is unaffected either
   way, since `URLSearchParams` decodes both forms identically.
-- `url-provider.ts` uses SvelteKit's `replaceState` from `$app/navigation` directly — **not**
-  `goto()`.
+- `url-provider.ts` updates the URL with a **shallow** `goto(path, { shallow: true, replace: true })`
+  (SvelteKit 3's replacement for `replaceState`) — never a full `goto()`, which would run a
+  navigation. The path already carries the deployment base, so it is not passed through `resolve()`.
 
 ## Sample sets
 

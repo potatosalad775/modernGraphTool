@@ -12,25 +12,25 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqAutoEq from './EqAutoEq.svelte';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID
-} from '$lib/stores/eq-constraints-store.svelte.js';
-import { eqCommands } from '$lib/services/eq-commands.js';
-import { autoEqService } from '$lib/services/autoeq-service.svelte.js';
-import { commandHistory } from '$lib/services/command-history.svelte.js';
-import { runAutoEQInWorker } from '$lib/workers/autoeq-client.js';
-import type { AutoEqOutcome } from '$lib/workers/autoeq-request.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import * as m from '$lib/paraglide/messages.js';
-import { parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+} from '#lib/stores/eq-constraints-store.svelte.js';
+import { eqCommands } from '#lib/services/eq-commands.js';
+import { autoEqService } from '#lib/services/autoeq-service.svelte.js';
+import { commandHistory } from '#lib/services/command-history.svelte.js';
+import { runAutoEQInWorker } from '#lib/workers/autoeq-client.js';
+import type { AutoEqOutcome } from '#lib/workers/autoeq-request.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import * as m from '#lib/paraglide/messages.js';
+import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
-vi.mock('$lib/workers/autoeq-client.js', () => ({
+vi.mock('#lib/workers/autoeq-client.js', () => ({
 	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
 }));
 

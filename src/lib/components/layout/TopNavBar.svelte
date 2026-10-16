@@ -1,8 +1,8 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { getConfigValue } from '$lib/utils/config';
-	import { appStore } from '$lib/stores/app-store.svelte';
-	import SiteSelector from '$lib/components/controls/SiteSelector.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { getConfigValue } from '#lib/utils/config.js';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import SiteSelector from '#lib/components/controls/SiteSelector.svelte';
 	import Button from '../atoms/Button.svelte';
 	import { Menu, X } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';

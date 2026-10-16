@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import type { FRDataObject } from '$lib/types/data-types.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import type { FRDataObject } from '#lib/types/data-types.js';
 	import { Download } from '@lucide/svelte';
-	import PopoverPanel from '$lib/components/atoms/PopoverPanel.svelte';
+	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();

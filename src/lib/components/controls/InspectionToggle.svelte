@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
 	// GraphInspection outlives this button — on mobile it unmounts with GraphPanel — so start

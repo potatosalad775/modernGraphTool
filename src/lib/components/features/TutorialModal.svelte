@@ -2,8 +2,8 @@
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
 	import { Dialog } from 'bits-ui';
-	import * as m from '$lib/paraglide/messages';
-	import { appStore } from '$lib/stores/app-store.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import Button from '../atoms/Button.svelte';
 	import {
 		ArrowRightLeft,

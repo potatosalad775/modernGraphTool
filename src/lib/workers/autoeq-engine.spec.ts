@@ -14,7 +14,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { MAX_FILTERS, TurboEQ } from '@potatosalad775/turboeq';
 import { buildBanks, runAutoEq } from './autoeq-engine.js';
 import { bandCount, keepInPlace, keptBands, planBands, MAX_BANDS } from './autoeq-request.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 
 let engine: TurboEQ;
 const loadEngine = () => Promise.resolve(engine);

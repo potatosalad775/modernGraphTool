@@ -36,7 +36,10 @@ Deeper contributor documentation lives in the docs site:
 
 ## Tech Stack
 
-- **SvelteKit 2 + Svelte 5** (Runes API, enforced globally)
+- **SvelteKit 3 + Svelte 5** (Runes API, enforced globally). There is no `svelte.config.js`: Kit
+  options go to `sveltekit({ ... })` in [vite.config.ts](vite.config.ts), and `src/lib` is imported
+  as `#lib/…` (a `package.json` `imports` alias) with an explicit extension, e.g.
+  `#lib/utils/config.js`
 - **TypeScript** (strict)
 - **Tailwind CSS 4** — config is inlined via `@theme` in [src/routes/layout.css](src/routes/layout.css); no separate `tailwind.config.js`; **tailwind-merge** resolves class conflicts in the `Button` atom
 - **bits-ui** for headless accessible components (Combobox, Dialog, Popover, Slider, Switch, Tooltip, …)
@@ -142,7 +145,7 @@ static/                  # Project assets (local overrides; gitignored where not
 ## Config System
 
 `defaults/config.js` sets `window.GRAPHTOOL_CONFIG` via a plain `<script>` in `app.html`
-(NOT `type="module"`). Read it with `getConfigValue(path)` from `$lib/utils/config`.
+(NOT `type="module"`). Read it with `getConfigValue(path)` from `#lib/utils/config.js`.
 Operator-configured fields use `resolveI18nValue()` for inline multilingual values:
 `DESCRIPTION`, `TOPBAR.TITLE`, `TOPBAR.LINK_LIST`, `TARGET_MANIFEST`.
 This is separate from Paraglide UI-string i18n.
@@ -173,7 +176,7 @@ property, so stubs at the end of an object turn into a syntax error the moment o
 
 ## i18n
 
-UI strings go through Paraglide: `import * as m from '$lib/paraglide/messages'; m.some_key()`.
+UI strings go through Paraglide: `import * as m from '#lib/paraglide/messages.js'; m.some_key()`.
 Keys are `underscore_separated` (`menu_graph_panel`, not `menu.graphPanel`). Generated code in
 `src/lib/paraglide/` is gitignored and never hand-edited.
 

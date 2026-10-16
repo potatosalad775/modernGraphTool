@@ -5,7 +5,7 @@ import type {
 	TargetManifestEntry,
 	RawPhoneData,
 	FRDataType
-} from '$lib/types/data-types.js';
+} from '#lib/types/data-types.js';
 
 // ── Mock data factories ──────────────────────────────────────────────────────
 

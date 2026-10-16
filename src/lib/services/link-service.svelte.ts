@@ -17,10 +17,10 @@
 import { untrack } from 'svelte';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { Adopt, HostLink, HostOptions, LinkDevice, LinkEq, LinkStatus } from 'peq-link/client';
-import { linkStore } from '$lib/stores/link-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 import {
 	fromLinkFilters,
 	linkConnection,
@@ -28,7 +28,7 @@ import {
 	LinkCommandError,
 	sendLosses,
 	toLinkFilters
-} from '$lib/device-peq/link.js';
+} from '#lib/device-peq/link.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands, type ReplaceEqFiltersCommand } from './eq-commands.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';

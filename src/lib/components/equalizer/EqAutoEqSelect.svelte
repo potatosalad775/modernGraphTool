@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import * as m from '$lib/paraglide/messages.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import SelectMenu from '../atoms/SelectMenu.svelte';
 	import { eqSelectGroups, targetUUIDs } from './eq-select-groups.js';
 

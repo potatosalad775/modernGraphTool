@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import type { DeviceConnection, PeqCapabilities, PeqDevice } from '$lib/device-peq/types.js';
-import { devicePeqStore } from '$lib/stores/device-peq-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';

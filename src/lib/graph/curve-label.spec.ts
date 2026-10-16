@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { curveBaseName, curveDisplayName, sampleKeyParts } from './curve-label.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /**
  * The naming rules the on-graph labels and the inspection readout share. These

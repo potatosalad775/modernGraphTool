@@ -26,7 +26,7 @@ import {
 	requestHidDevice,
 	requestSerialPort
 } from '@potatosalad775/eqcaps-device-bridge/browser';
-import { eqcapsClient } from '$lib/services/eqcaps-client.js';
+import { eqcapsClient } from '#lib/services/eqcaps-client.js';
 import type { DeviceCandidate, DeviceConnection, ProfileSource } from './types.js';
 
 export type BridgeConnectionType = 'hid' | 'serial' | 'ble';

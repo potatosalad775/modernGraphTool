@@ -12,10 +12,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqAudioPlayer from './EqAudioPlayer.svelte';
-import { audioPlayerService } from '$lib/services/audio-player-service.svelte.js';
-import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
-import { audioSpectrumStore } from '$lib/stores/audio-spectrum-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { audioPlayerService } from '#lib/services/audio-player-service.svelte.js';
+import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
 
 function sourceSelect() {
 	return page.getByRole('combobox');

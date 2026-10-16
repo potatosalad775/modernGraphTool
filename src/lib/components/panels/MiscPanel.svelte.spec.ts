@@ -12,11 +12,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import MiscPanel from './MiscPanel.svelte';
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-import { setLocale, locales } from '$lib/paraglide/runtime.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { setLocale, locales } from '#lib/paraglide/runtime.js';
 
-vi.mock('$lib/paraglide/runtime.js', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('$lib/paraglide/runtime.js')>();
+vi.mock('#lib/paraglide/runtime.js', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#lib/paraglide/runtime.js')>();
 	return { ...actual, setLocale: vi.fn() };
 });
 

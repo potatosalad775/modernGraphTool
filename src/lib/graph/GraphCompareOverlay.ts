@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import type { FRDataPoint } from '$lib/types/data-types.js';
+import type { FRDataPoint } from '#lib/types/data-types.js';
 
 export interface CompareGhostState {
 	visible: boolean;

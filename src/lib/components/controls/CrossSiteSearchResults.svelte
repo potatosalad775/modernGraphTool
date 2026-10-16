@@ -1,12 +1,12 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+	import * as m from '#lib/paraglide/messages.js';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { aggregateIndexService } from '$lib/services/aggregate-index.svelte.js';
+	import { aggregateIndexService } from '#lib/services/aggregate-index.svelte.js';
 	import {
 		getCrossSiteSearchConfig,
 		parseCrossSiteGroups
-	} from '$lib/services/aggregate-index-core.js';
-	import type { CrossSiteSearchResult } from '$lib/types/aggregate-index-types.js';
+	} from '#lib/services/aggregate-index-core.js';
+	import type { CrossSiteSearchResult } from '#lib/types/aggregate-index-types.js';
 	import { ArrowUpRight } from '@lucide/svelte';
 
 	// ── Props ───────────────────────────────────────────────────────────────────

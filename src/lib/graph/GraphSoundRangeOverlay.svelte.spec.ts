@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as d3 from 'd3';
 import { GraphSoundRangeOverlay } from './GraphSoundRangeOverlay.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { audioRangeStore } from '$lib/stores/audio-range-store.svelte.js';
+import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 
 const VIEW_W = 800;
 const VIEW_H = 450;

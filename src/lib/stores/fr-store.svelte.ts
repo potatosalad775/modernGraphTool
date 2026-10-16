@@ -1,5 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 class FRDataStore {
 	// SvelteMap tracks .get(), .set(), .delete(), .size, iteration automatically

@@ -1,5 +1,5 @@
 import type { Domain, Profile } from '@potatosalad775/eqcaps-core';
-import * as m from '$lib/paraglide/messages.js';
+import * as m from '#lib/paraglide/messages.js';
 import { envelopeOf } from './eq-constraint.js';
 
 /**

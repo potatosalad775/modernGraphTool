@@ -6,10 +6,10 @@
  * connection ends and whether or not the panel is mounted. It never edits the filters: bands that
  * don't fit are flagged, and the user fits them when they choose to.
  */
-import type { ConnectResult } from '$lib/device-peq/connect.js';
-import { readRequest, writeRequest, type PresetRequest } from '$lib/device-peq/preset.js';
-import type { DeviceCandidate, DeviceConnection } from '$lib/device-peq/types.js';
-import { eqFiltersEqual, type EQFilter } from '$lib/utils/equalizer.js';
+import type { ConnectResult } from '#lib/device-peq/connect.js';
+import { readRequest, writeRequest, type PresetRequest } from '#lib/device-peq/preset.js';
+import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
+import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';

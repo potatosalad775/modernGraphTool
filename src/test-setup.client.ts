@@ -13,7 +13,7 @@
  *
  * - Playwright's `context.locale` does not reach the page in browser mode —
  *   `navigator.language` stays on the system locale.
- * - Calling `setLocale()` from `$lib/paraglide/runtime.js` works, but importing
+ * - Calling `setLocale()` from `#lib/paraglide/runtime.js` works, but importing
  *   that module *here* caches the real one before a spec's `vi.mock` can
  *   intercept it, which breaks MiscPanel's mocked `setLocale`. A setup file
  *   shares a module registry with the test file it precedes.

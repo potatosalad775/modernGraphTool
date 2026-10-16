@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { needsConfirmation, needsReview, planPush, readLayout } from './push-plan.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { PeqDevice } from './types.js';

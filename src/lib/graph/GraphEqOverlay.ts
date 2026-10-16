@@ -1,15 +1,15 @@
 import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { eqCommands } from '$lib/services/eq-commands.js';
-import { eqConstraintsStore } from '$lib/stores/eq-constraints-store.svelte.js';
-import { linkStore } from '$lib/stores/link-store.svelte.js';
-import { Equalizer, usesGain, type EQFilter } from '$lib/utils/equalizer.js';
-import { indexedEffectiveFilters, indexedFiltersInScope } from '$lib/utils/eq-channel.js';
-import { eqSourceChannels } from '$lib/utils/eq-source.js';
-import { lookupFRValueAtFreq } from '$lib/utils/fr-lookup.js';
-import type { FRDataPoint, ParsedFRData } from '$lib/types/data-types.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqCommands } from '#lib/services/eq-commands.js';
+import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
+import { Equalizer, usesGain, type EQFilter } from '#lib/utils/equalizer.js';
+import { indexedEffectiveFilters, indexedFiltersInScope } from '#lib/utils/eq-channel.js';
+import { eqSourceChannels } from '#lib/utils/eq-source.js';
+import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
+import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 interface BandDatum {
 	filter: EQFilter;

@@ -41,7 +41,7 @@
  * turboEQ fails, and the outcome says so with `engine: 'none'`.
  */
 
-import { Equalizer, type EQFilter } from '$lib/utils/equalizer.js';
+import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
 import {
 	bandCount,
 	type AutoEqOutcome,

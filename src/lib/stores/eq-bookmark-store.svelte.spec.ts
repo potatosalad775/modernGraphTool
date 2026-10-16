@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 import {
 	BOOKMARK_CAP,
 	BOOKMARK_LS_KEY,

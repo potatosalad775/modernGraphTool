@@ -1,11 +1,11 @@
-import { replaceState } from '$app/navigation';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
+import { goto } from '$app/navigation';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
 import { sanitizeChannel } from './eq-channel.js';
-import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
-import { resolveBaselineChannelData } from '$lib/graph/baseline.js';
+import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+import { resolveBaselineChannelData } from '#lib/graph/baseline.js';
 import {
 	buildQueryString,
 	normalizeSampleDisplay,
@@ -61,11 +61,13 @@ class URLProvider {
 			const currentPath = window.location.pathname + window.location.search;
 			if (newPath !== currentPath) {
 				// newPath is already an absolute path (pathname from #baseURL includes
-				// the deployment base). Pass it directly to replaceState instead of
-				// resolve(), which would prepend base a second time under subpath
-				// deployments like /cdn/.
+				// the deployment base). Pass it directly to goto instead of resolve(),
+				// which would prepend base a second time under subpath deployments
+				// like /cdn/.
 				// eslint-disable-next-line svelte/no-navigation-without-resolve
-				replaceState(newPath, {});
+				goto(newPath, { shallow: true, replace: true }).catch((err) =>
+					console.error('URLProvider: failed to update the URL', err)
+				);
 			}
 		}
 		document.title = title;
@@ -187,6 +189,7 @@ class URLProvider {
 
 		// Collect graph state from the stores; url-state decides what makes the URL.
 		const stateData: URLState = { yScale: graphStore.yScale };
+
 		const defaultYScale =
 			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
 

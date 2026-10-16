@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
-import { getConfigValue } from '$lib/utils/config.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
+import { getConfigValue } from '#lib/utils/config.js';
 
 export interface PreferenceBoundState {
 	visible: boolean;

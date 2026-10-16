@@ -8,7 +8,7 @@ import {
 	profileLabel
 } from './eq-constraints-store.svelte.js';
 import { eqStore } from './eq-store.svelte.js';
-import { hardwareProfile, parametricPreset } from '$lib/utils/__fixtures__/eq-profiles.js';
+import { hardwareProfile, parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const deviceProfile = (model = 'Connected Device') => ({
 	...hardwareProfile('spec-device', {

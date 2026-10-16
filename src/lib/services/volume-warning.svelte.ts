@@ -7,7 +7,7 @@
  * A device connected in uniPEQ is uniPEQ's to warn about (its `status.consent`, shown by
  * `LinkDialogs`), so writes over the link don't come through here.
  */
-import { settingsStore } from '$lib/stores/settings-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 
 class VolumeWarning {
 	/** The warning is up: what asked for it waits for the answer. */

@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
+import adapter from '@sveltejs/adapter-static';
 import defaultsPlugin from './vite-plugin-defaults.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -36,16 +37,46 @@ function turboEqNotice(): Plugin {
 	};
 }
 
+// CDN deployment: set MGT_CDN_BASE to rewrite _app/ URLs to a CDN origin.
+// Example: MGT_CDN_BASE=https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/v2.0.0
+// When unset, all assets are served locally (standard dist/ deployment).
+const CDN_BASE = (process.env.MGT_CDN_BASE || '') as '' | `https://${string}`;
+
+// Base path: set BASE_PATH for deployments under a subpath (e.g. GitHub Pages).
+// Example: BASE_PATH=/modernGraphTool
+const BASE_PATH = (process.env.BASE_PATH || '') as '' | `/${string}`;
+
+// One version name per build. SvelteKit defaults it to `Date.now()` at each config load,
+// and a build loads this file more than once — again in the worker that writes the
+// fallback index.html. When two loads straddle a millisecond, index.html and the client
+// chunks disagree on the `__sveltekit_*` global and the page boots blank. Workers inherit
+// process.env, so the first load's value wins everywhere.
+process.env.MGT_BUILD_VERSION ??= Date.now().toString();
+
 export default defineConfig({
 	define: {
 		__APP_VERSION__: JSON.stringify(pkg.version)
 	},
 	plugins: [
 		tailwindcss(),
-		sveltekit(),
+		sveltekit({
+			adapter: adapter({
+				pages: 'dist',
+				assets: 'dist',
+				fallback: 'index.html', // Apache serves index.html by default; also handles share-link URLs
+				precompress: false
+			}),
+			paths: { base: BASE_PATH, assets: CDN_BASE },
+			prerender: { handleHttpError: 'warn' },
+			// SvelteKit 3 polls `_app/version.json` hourly by default; nothing reads `updated`.
+			version: { name: process.env.MGT_BUILD_VERSION, pollInterval: 0 },
+			// Not a SvelteKit option: passed through to vite-plugin-svelte.
+			dynamicCompileOptions: ({ filename }) =>
+				filename.includes('node_modules') ? undefined : { runes: true }
+		}),
 		// Keep these options in sync with the `i18n:compile` script in package.json, which
 		// compiles the same output for `npm run check` — svelte-check does not run Vite, so
-		// without it $lib/paraglide/* has no type declarations on a fresh clone.
+		// without it #lib/paraglide/* has no type declarations on a fresh clone.
 		paraglideVitePlugin({
 			project: './project.inlang',
 			outdir: './src/lib/paraglide',

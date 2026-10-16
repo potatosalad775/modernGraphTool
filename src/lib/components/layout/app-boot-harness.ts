@@ -9,11 +9,11 @@
  * Not imported by any production module.
  */
 
-import { eqBookmarkStore } from '$lib/stores/eq-bookmark-store.svelte.js';
-import { eqStore } from '$lib/stores/eq-store.svelte.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { graphStore } from '$lib/stores/graph-store.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import { eqBookmarkStore } from '#lib/stores/eq-bookmark-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /**
  * Load the real `defaults/config.js` into `window.GRAPHTOOL_CONFIG`.
@@ -41,7 +41,7 @@ export async function loadDefaultConfig(
 		PHONE_BOOK: '/data/phone_book.json'
 	};
 
-	// `urlProvider.autoUpdate()` calls SvelteKit's `replaceState`, which throws
+	// `urlProvider.autoUpdate()` calls SvelteKit's shallow `goto`, which fails
 	// outside a mounted router. Component tests have no router.
 	cfg.URL = { ...(cfg.URL as object), AUTO_UPDATE_URL: false };
 

@@ -2,7 +2,7 @@
  * What AppShell needs to decide whether to load the uniPEQ link at boot, without loading it:
  * `link-service.svelte.ts` pulls in Hardware EQ's service and stores, which no boot path needs.
  */
-import { getConfigValue } from '$lib/utils/config.js';
+import { getConfigValue } from '#lib/utils/config.js';
 
 /** uniPEQ's own Worker. App Links (the QR code opening uniPEQ) are verified for it alone. */
 export const DEFAULT_LINK_SERVER = 'https://link.unipeq.com';

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DataProcessor, anchorAndNormalizeSamples } from './data-processor.js';
 import FRSmoother from './fr-smoother.js';
-import type { ChannelData, FRDataPoint, SampleData } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint, SampleData } from '#lib/types/data-types.js';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 

@@ -1,15 +1,16 @@
 import { resolve } from '$app/paths';
-import { getLocale } from '$lib/paraglide/runtime';
+import type { Path } from '$app/types';
+import { getLocale } from '#lib/paraglide/runtime.js';
 import { graphStore } from './graph-store.svelte.js';
-import FRParser from '$lib/utils/fr-parser.js';
-import FRSmoother from '$lib/utils/fr-smoother.js';
+import FRParser from '#lib/utils/fr-parser.js';
+import FRSmoother from '#lib/utils/fr-smoother.js';
 import {
 	alignDFToBoundCenter,
 	resolvePreferenceBoundEntries,
 	type PreferenceBoundEntry
-} from '$lib/utils/preference-bound.js';
-import { getConfigValue } from '$lib/utils/config.js';
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
+} from '#lib/utils/preference-bound.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 
 /** Parsed, unsmoothed curves for one entry, tagged with the entry they belong to. */
 interface ParsedBound {
@@ -136,8 +137,8 @@ class PreferenceBoundStore {
 		this.#pendingName = entry.name;
 
 		Promise.all([
-			this.#loadCurve(resolve(`/data/${entry.upper}` as '/', {})),
-			this.#loadCurve(resolve(`/data/${entry.lower}` as '/', {})),
+			this.#loadCurve(resolve(`data/${entry.upper}` as Path)),
+			this.#loadCurve(resolve(`data/${entry.lower}` as Path)),
 			this.#loadCurve(this.#targetUrl(entry.target))
 		])
 			.then(([upper, lower, df]) => {

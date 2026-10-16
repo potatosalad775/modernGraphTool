@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { graphStore } from '$lib/stores/graph-store.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { graphStore } from '#lib/stores/graph-store.svelte.js';
 	import Button from '../atoms/Button.svelte';
 
 	const options = [30, 40, 50, 60, 80] as const;

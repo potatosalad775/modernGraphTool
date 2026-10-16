@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { alignDFToBoundCenter, resolvePreferenceBoundEntries } from './preference-bound.js';
 import { normalize } from './fr-normalizer.js';
 import { lookupFRValueAtFreq } from './fr-lookup.js';
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 
 /** Synthetic DF target on the parser's 1/48oct grid, 20 Hz – ~20 kHz */
 function makeDF(): ChannelData {

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { getConfigValue } from '$lib/utils/config.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
-	import { preferenceBoundStore } from '$lib/stores/preference-bound-store.svelte.js';
-	import type { TargetManifestEntry } from '$lib/types/data-types.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { getConfigValue } from '#lib/utils/config.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
+	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
+	import type { TargetManifestEntry } from '#lib/types/data-types.js';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
 	import Button from '../atoms/Button.svelte';

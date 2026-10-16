@@ -1,4 +1,4 @@
-import type { ChannelData, FRDataObject } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
 
 const CHANNEL_ORDER = ['L', 'R', 'AVG'] as const;
 

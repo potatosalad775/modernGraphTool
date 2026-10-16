@@ -6,8 +6,8 @@ import {
 	DEVICE_CONSTRAINT_ID,
 	eqConstraintsStore
 } from './eq-constraints-store.svelte.js';
-import type { DeviceConnection, PeqCapabilities } from '$lib/device-peq/types.js';
-import { hardwareProfile } from '$lib/utils/__fixtures__/eq-profiles.js';
+import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const CAPS: PeqCapabilities = {
 	canRead: true,

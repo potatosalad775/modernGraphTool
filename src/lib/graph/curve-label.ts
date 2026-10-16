@@ -1,4 +1,4 @@
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /**
  * How a curve is named on screen.

@@ -11,8 +11,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { tick } from 'svelte';
 import GraphContainer from './GraphContainer.svelte';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /** `labelBgPaddingX` — a backdrop for a label not yet measured is exactly this wide. */
 const PADDING_X = 12;

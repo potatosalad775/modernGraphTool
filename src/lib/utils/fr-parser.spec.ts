@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import FRParser from './fr-parser.js';
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 
 /** Helper: create ChannelData with a given base dB and point count */
 function makeChannelData(baseDb: number, count = 480): ChannelData {

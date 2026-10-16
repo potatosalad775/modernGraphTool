@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { appStore } from '$lib/stores/app-store.svelte';
-	import { squiglinkStore } from '$lib/stores/squiglink-store.svelte';
-	import { siteIndexService } from '$lib/services/site-index.svelte';
-	import { getSiteSelectorConfig } from '$lib/services/site-index-core';
+	import * as m from '#lib/paraglide/messages.js';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
+	import { siteIndexService } from '#lib/services/site-index.svelte.js';
+	import { getSiteSelectorConfig } from '#lib/services/site-index-core.js';
 	import { Select } from 'bits-ui';
 	import { ChevronDown } from '@lucide/svelte';
 

@@ -163,7 +163,7 @@ holds while `buildBanks` passes the user's ranges through; if it ever narrows on
 constraint under test narrows with it, silently.
 
 It imports the shipped modules, not copies: Node strips the types and `ts-hooks.mjs` resolves
-`$lib/`. **That only works while `autoeq-engine.ts`, `utils/data-processor.ts` and what they import stay
+`#lib/`. **That only works while `autoeq-engine.ts`, `utils/data-processor.ts` and what they import stay
 free of `$app/` and Svelte runes** — `utils/config.ts` is the one import that would break it, which is why the
 harness averages channels itself instead of going through `fr-parser`.
 

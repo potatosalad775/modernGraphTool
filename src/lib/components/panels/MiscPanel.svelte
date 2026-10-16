@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getConfigValue } from '$lib/utils/config.js';
+	import { getConfigValue } from '#lib/utils/config.js';
 	import { BookOpen, Globe, Heart, Moon, Sun } from '@lucide/svelte';
-	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-	import { getLocale, locales, setLocale, type Locale } from '$lib/paraglide/runtime.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { getLocale, locales, setLocale, type Locale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 
 	const appVersion = __APP_VERSION__;

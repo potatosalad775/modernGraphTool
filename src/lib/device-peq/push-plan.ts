@@ -9,8 +9,8 @@
  * holding a different EQ from the one on screen.
  */
 import { complete, fit, type Filter, type Profile } from '@potatosalad775/eqcaps-core';
-import type { EQFilter } from '$lib/utils/equalizer.js';
-import { toCapsFilter } from '$lib/utils/eq-constraint.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { toCapsFilter } from '#lib/utils/eq-constraint.js';
 import type { PresetRequest } from './preset.js';
 import type { PeqCapabilities, PeqDevice } from './types.js';
 

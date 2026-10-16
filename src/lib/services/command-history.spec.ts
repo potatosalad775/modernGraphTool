@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import CommandHistory from './command-history.svelte.js';
 import type { Command } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 /** Simple in-memory store for testing */
 function createMockStore(): FRStoreWriteAPI & { data: Map<string, FRDataObject> } {

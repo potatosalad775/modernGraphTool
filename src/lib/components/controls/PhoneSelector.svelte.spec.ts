@@ -11,11 +11,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import PhoneSelector from './PhoneSelector.svelte';
-import MetadataParser from '$lib/utils/metadata-parser.js';
-import { frStore } from '$lib/stores/fr-store.svelte.js';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import { rankingService } from '$lib/services/ranking-service.svelte.js';
-import type { BrandMetadata, FRDataObject, PhoneMetadata } from '$lib/types/data-types.js';
+import MetadataParser from '#lib/utils/metadata-parser.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { rankingService } from '#lib/services/ranking-service.svelte.js';
+import type { BrandMetadata, FRDataObject, PhoneMetadata } from '#lib/types/data-types.js';
 
 type ConfigWindow = Window & { GRAPHTOOL_CONFIG?: Record<string, unknown> };
 

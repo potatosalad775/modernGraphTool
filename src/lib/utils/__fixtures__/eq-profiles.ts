@@ -2,7 +2,7 @@
  * Constraint presets for specs, built from eqcaps profiles the way the app's own are.
  */
 import type { Domain, FilterType, Profile } from '@potatosalad775/eqcaps-core';
-import type { EqConstraintPreset } from '$lib/types/eq-constraint.js';
+import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 import { graphicProfile, uniformProfile } from '../eq-constraint.js';
 
 export interface ParametricOptions {

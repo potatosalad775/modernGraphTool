@@ -16,10 +16,10 @@
  * renders exactly what it rendered before ranking existed.
  */
 
-import { getConfigValue } from '$lib/utils/config.js';
-import { getLocale } from '$lib/paraglide/runtime.js';
-import type { CsvRow } from '$lib/utils/csv.js';
-import type { RankScaleEntry, RankingSourceConfig } from '$lib/types/data-types.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import { getLocale } from '#lib/paraglide/runtime.js';
+import type { CsvRow } from '#lib/utils/csv.js';
+import type { RankScaleEntry, RankingSourceConfig } from '#lib/types/data-types.js';
 
 /** Default sheet headers — the ones squigRanking's own templates ship with. */
 const DEFAULT_RANK_COLUMN = 'Rank';

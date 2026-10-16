@@ -10,9 +10,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import GraphColorPicker from './GraphColorPicker.svelte';
-import { dataProvider } from '$lib/services/data-provider.svelte.js';
-import { parseOklch, oklchToHex } from '$lib/utils/curve-palette.js';
-import type { FRDataObject } from '$lib/types/data-types.js';
+import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { parseOklch, oklchToHex } from '#lib/utils/curve-palette.js';
+import type { FRDataObject } from '#lib/types/data-types.js';
 
 function makeItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
 	return {

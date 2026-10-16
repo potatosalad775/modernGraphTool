@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { appStore } from '$lib/stores/app-store.svelte';
-	import { menuStore, type MenuPanel } from '$lib/stores/menu-store.svelte';
+	import * as m from '#lib/paraglide/messages.js';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import { menuStore, type MenuPanel } from '#lib/stores/menu-store.svelte.js';
 
 	const MIN_W = 96; // px — floor, matches the previous w-24 width
 	const MAX_W = 144; // px — cap so a pathologically long label can't swallow the carousel

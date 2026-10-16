@@ -1,5 +1,5 @@
-import * as m from '$lib/paraglide/messages.js';
-import type { FRDataObject, ParsedFRData, SampleData } from '$lib/types/data-types.js';
+import * as m from '#lib/paraglide/messages.js';
+import type { FRDataObject, ParsedFRData, SampleData } from '#lib/types/data-types.js';
 
 /**
  * Which curves the EQ is applied to.

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { graphEngine } from '$lib/graph/GraphEngine.svelte.js';
-	import { getConfigValue } from '$lib/utils/config.js';
+	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+	import { getConfigValue } from '#lib/utils/config.js';
 
 	interface WatermarkObject {
 		LOCATION?: string;

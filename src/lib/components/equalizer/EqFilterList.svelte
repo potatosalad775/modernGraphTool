@@ -1,32 +1,32 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { eqStore } from '$lib/stores/eq-store.svelte.js';
-	import { frStore } from '$lib/stores/fr-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import {
 		DEFAULT_CONSTRAINT_ID,
 		eqConstraintsStore
-	} from '$lib/stores/eq-constraints-store.svelte.js';
-	import type { EQFilter } from '$lib/utils/equalizer.js';
-	import { Equalizer } from '$lib/utils/equalizer.js';
+	} from '#lib/stores/eq-constraints-store.svelte.js';
+	import type { EQFilter } from '#lib/utils/equalizer.js';
+	import { Equalizer } from '#lib/utils/equalizer.js';
 	import {
 		compareByChannelThenFreq,
 		countBandsPerOutput,
 		countSharedFilters,
 		indexedFiltersInScope
-	} from '$lib/utils/eq-channel.js';
-	import { formatApoFilters, parseApoConfig } from '$lib/utils/eq-apo.js';
-	import { eqCommands } from '$lib/services/eq-commands.js';
-	import { limitsSummaryOf } from '$lib/utils/eq-domain-hint.js';
+	} from '#lib/utils/eq-channel.js';
+	import { formatApoFilters, parseApoConfig } from '#lib/utils/eq-apo.js';
+	import { eqCommands } from '#lib/services/eq-commands.js';
+	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
 	import { toast } from 'svelte-sonner';
-	import * as m from '$lib/paraglide/messages.js';
+	import * as m from '#lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';
-	import { linkStore } from '$lib/stores/link-store.svelte.js';
+	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import EqOptionButton from './EqOptionButton.svelte';
 	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
-	import { downloadText } from '$lib/utils/download-text.js';
-	import { eqSourceRun, sampleRunLabel } from '$lib/utils/eq-source.js';
+	import { downloadText } from '#lib/utils/download-text.js';
+	import { eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 
 	/** Quiet time after the last edit before the preamp toast may fire, ms. */
 	const PREAMP_TOAST_SETTLE_MS = 800;
@@ -57,7 +57,7 @@
 	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);
 
 	function useAutoPreamp() {
-		void import('$lib/services/link-service.svelte.js').then((mod) => mod.linkService.autoPreamp());
+		void import('#lib/services/link-service.svelte.js').then((mod) => mod.linkService.autoPreamp());
 	}
 
 	/**

@@ -1,4 +1,4 @@
-import type { ChannelData, ParsedFRData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ChannelData, ParsedFRData, FRDataPoint } from '#lib/types/data-types.js';
 
 /**
  * Normalize a single channel's FR data.

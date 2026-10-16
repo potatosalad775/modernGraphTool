@@ -39,9 +39,9 @@ import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
 register(new URL('./ts-hooks.mjs', import.meta.url));
-const { runAutoEq } = await import('$lib/workers/autoeq-engine.js');
-const { planBands } = await import('$lib/workers/autoeq-request.js');
-const { DataProcessor } = await import('$lib/utils/data-processor.js');
+const { runAutoEq } = await import('#lib/workers/autoeq-engine.js');
+const { planBands } = await import('#lib/workers/autoeq-request.js');
+const { DataProcessor } = await import('#lib/utils/data-processor.js');
 
 const ENGINES = ['cringraph', 'mgt-typescript', 'turboeq-exact', 'turboeq-treble-safe'];
 

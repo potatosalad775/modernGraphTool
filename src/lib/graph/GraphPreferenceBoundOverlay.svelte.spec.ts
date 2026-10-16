@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import * as d3 from 'd3';
 import { GraphPreferenceBoundOverlay } from './GraphPreferenceBoundOverlay.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import type { ChannelData, FRDataPoint } from '$lib/types/data-types.js';
+import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 
 // ── Minimal fake GraphEngine ──────────────────────────────────────────────────
 // The overlay only reads curveGroup + xScale + yScale + transitionDuration.

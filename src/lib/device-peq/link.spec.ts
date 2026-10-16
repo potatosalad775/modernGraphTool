@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { CommandResult, LinkStatus } from 'peq-link/client';
-import type { EQFilter } from '$lib/utils/equalizer.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
 import { describeDeviceError } from './errors.js';
 import {
 	acceptCapabilities,

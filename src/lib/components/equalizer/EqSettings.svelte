@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as m from '$lib/paraglide/messages.js';
-	import { settingsStore } from '$lib/stores/settings-store.svelte.js';
-	import { dataProvider } from '$lib/services/data-provider.svelte.js';
+	import * as m from '#lib/paraglide/messages.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import Switch from '../atoms/Switch.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 

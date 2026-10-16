@@ -183,7 +183,12 @@
 	"crosssite_search_loading": "Загрузка баз данных...",
 	"crosssite_search_truncated": [
 		{
-			"declarations": ["input count", "input total", "local countPlural = count: plural", "local totalPlural = total: plural"],
+			"declarations": [
+				"input count",
+				"input total",
+				"local countPlural = count: plural",
+				"local totalPlural = total: plural"
+			],
 			"selectors": ["countPlural", "totalPlural"],
 			"match": {
 				"countPlural=one, totalPlural=one": "Показан первый {count} из {total} результата. Уточните критерии поиска, чтобы сократить количество результатов.",
@@ -249,7 +254,7 @@
 	"eq_settings_autoeq_persist_local": "Сохранять в этом браузере",
 	"eq_settings_link_eq_normalization_label": "Прикрепить кривую экв. к исходной",
 	"eq_settings_link_eq_normalization_description": "Сохранять положение кривой эквалайзера относительно исходного графика независимо от настроек нормализации.",
-	"info_popover_about": "О «{topic}"»,
+	"info_popover_about": "О «{topic}»",
 	"eq_channel_scope_label": "Канал",
 	"eq_channel_both": "Л+П",
 	"eq_channel_left": "Л",
@@ -269,7 +274,12 @@
 	],
 	"eq_channel_device_peq_shared_only": [
 		{
-			"declarations": ["input count", "input skipped", "local countPlural = count: plural", "local skippedPlural = skipped: plural"],
+			"declarations": [
+				"input count",
+				"input skipped",
+				"local countPlural = count: plural",
+				"local skippedPlural = skipped: plural"
+			],
 			"selectors": ["countPlural", "skippedPlural"],
 			"match": {
 				"countPlural=one, skippedPlural=one": "Отправлена {count} общая полоса. У этого устройства нет поканального эквалайзера, поэтому {skipped} левая/правая полоса была пропущена.",

@@ -183,7 +183,12 @@
 	"crosssite_search_loading": "Завантаження баз даних...",
 	"crosssite_search_truncated": [
 		{
-			"declarations": ["input count", "input total", "local countPlural = count: plural", "local totalPlural = total: plural"],
+			"declarations": [
+				"input count",
+				"input total",
+				"local countPlural = count: plural",
+				"local totalPlural = total: plural"
+			],
 			"selectors": ["countPlural", "totalPlural"],
 			"match": {
 				"countPlural=one, totalPlural=one": "Показано перший {count} з {total} результату. Уточніть критерії пошуку, щоб скоротити кількість результатів.",
@@ -249,7 +254,7 @@
 	"eq_settings_autoeq_persist_local": "Зберігати в цьому браузері",
 	"eq_settings_link_eq_normalization_label": "Прикріпити криву екв. до вихідної",
 	"eq_settings_link_eq_normalization_description": "Зберігати положення кривої еквалайзера відносно вихідного графіка незалежно від налаштувань нормалізації.",
-	"info_popover_about": "Про «{topic}"»,
+	"info_popover_about": "Про «{topic}»",
 	"eq_channel_scope_label": "Канал",
 	"eq_channel_both": "Л+П",
 	"eq_channel_left": "Л",
@@ -269,7 +274,12 @@
 	],
 	"eq_channel_device_peq_shared_only": [
 		{
-			"declarations": ["input count", "input skipped", "local countPlural = count: plural", "local skippedPlural = skipped: plural"],
+			"declarations": [
+				"input count",
+				"input skipped",
+				"local countPlural = count: plural",
+				"local skippedPlural = skipped: plural"
+			],
 			"selectors": ["countPlural", "skippedPlural"],
 			"match": {
 				"countPlural=one, skippedPlural=one": "Надіслано {count} спільну смугу. Цей пристрій не має поканального еквалайзера, тому {skipped} ліву/праву смугу було пропущено.",

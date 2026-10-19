@@ -7,6 +7,7 @@
 		type AudioSource
 	} from '#lib/services/audio-player-service.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
+	import { toast } from 'svelte-sonner';
 	import Button from '#lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
@@ -46,8 +47,17 @@
 	}
 
 	async function onFileChange(e: Event) {
-		const file = (e.target as HTMLInputElement).files?.[0];
-		if (file) await audioPlayerService.loadFile(file);
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		// Clear so picking the same file again (e.g. after a failed decode) still fires change
+		input.value = '';
+		if (!file) return;
+		try {
+			await audioPlayerService.loadFile(file);
+		} catch (err) {
+			console.error('Failed to decode audio file', err);
+			toast.error(m.equalizer_player_file_decode_error({ name: file.name }));
+		}
 	}
 </script>
 
@@ -264,7 +274,7 @@
 		<input
 			bind:this={fileInputEl}
 			type="file"
-			accept="audio/*"
+			accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.aif,.aiff,.ogg,.opus,.caf"
 			class="hidden"
 			onchange={onFileChange}
 		/>

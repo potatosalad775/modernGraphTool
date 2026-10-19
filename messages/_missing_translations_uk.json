@@ -13,6 +13,7 @@
 		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
+	"equalizer_player_file_decode_error": "Couldn't play {name}. This browser may not support its audio format.",
 	"tutorial_modal_replay_btn": "Show tutorial again",
 	"tutorial_eq_intro_title": "Equalizer",
 	"tutorial_eq_source_content": "Switch the EQ on and pick the device to equalize. The result is drawn on the graph.",

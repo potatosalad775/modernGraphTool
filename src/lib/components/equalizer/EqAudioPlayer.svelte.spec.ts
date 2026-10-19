@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import { toast } from 'svelte-sonner';
 import EqAudioPlayer from './EqAudioPlayer.svelte';
 import { audioPlayerService } from '#lib/services/audio-player-service.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
@@ -334,6 +335,33 @@ describe('EqAudioPlayer', () => {
 			// lucide renders the icon name onto the svg's class list.
 			await expect.element(page.getByRole('button', { name: 'Stop Audio' })).toBeInTheDocument();
 			expect(document.querySelector('.lucide-volume-x, .lucide-volume-off')).not.toBeNull();
+		});
+	});
+
+	// ── File upload ──────────────────────────────────────────────────────────
+
+	describe('file upload', () => {
+		function pick(file: File) {
+			const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+			const dt = new DataTransfer();
+			dt.items.add(file);
+			input.files = dt.files;
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+			return input;
+		}
+
+		it('toasts instead of rejecting when the file cannot be decoded', async () => {
+			vi.spyOn(audioPlayerService, 'loadFile').mockRejectedValue(new DOMException('bad'));
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const error = vi.spyOn(toast, 'error');
+			render(EqAudioPlayer);
+			await sourceSelect().selectOptions('file');
+
+			const input = pick(new File(['x'], 'song.opus', { type: 'audio/ogg' }));
+			await expect.poll(() => error.mock.calls.length).toBe(1);
+			expect(error.mock.calls[0][0]).toContain('song.opus');
+			// Cleared so re-picking the same file fires change again
+			expect(input.value).toBe('');
 		});
 	});
 });

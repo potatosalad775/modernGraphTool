@@ -72,6 +72,7 @@
 	"equalizer_player_freq_select_toggle": "Frequency Range",
 	"equalizer_player_freq_select_hint": "You can drag on the graph to set the range. EQ node cannot be modified while it's enabled.",
 	"equalizer_player_freq_select_reset": "Reset Frequency Range",
+	"equalizer_player_file_decode_error": "Couldn't play {name}. This browser may not support its audio format.",
 	"equalizer_device_peq_supported_devices": "Supported devices",
 	"equalizer_device_peq_connections_topic": "connection types",
 	"equalizer_device_peq_transport_serial": "USB Serial — for devices exposing a CDC / virtual COM interface (JDS Labs, Nothing, FiiO, and more), including Bluetooth serial ports.",

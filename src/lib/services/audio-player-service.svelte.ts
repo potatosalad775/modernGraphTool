@@ -8,6 +8,8 @@ import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listeni
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { volumeWarning } from './volume-warning.svelte.js';
+import { MediaSessionBridge } from './media-session.js';
+import * as m from '#lib/paraglide/messages.js';
 
 const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 	PK: 'peaking',
@@ -19,6 +21,10 @@ const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 	NO: 'notch',
 	AP: 'allpass'
 };
+
+function formatHz(hz: number): string {
+	return hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`;
+}
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
 
@@ -71,6 +77,14 @@ class AudioPlayerService {
 	#isSeeking = false;
 	#rafId: number | null = null;
 	#filterEffectRootInstalled = false;
+	// Remote controls (Control Center, media keys, headset buttons) drive the same commands as
+	// the view, so the OS and the page can never disagree about what is playing.
+	#media = new MediaSessionBridge({
+		play: () => this.play(),
+		pause: () => this.pause(),
+		stop: () => this.stop(),
+		seekTo: (t) => this.seekTo(t)
+	});
 
 	// --- Reactive view-bound state ---
 	#isPlaying = $state(false);
@@ -81,6 +95,8 @@ class AudioPlayerService {
 	#currentTime = $state(0);
 	#duration = $state(0);
 	#fileLoaded = $state(false);
+	// Reactive only so the OS now-playing title follows a newly loaded file.
+	#fileName = $state('');
 
 	// Sweep state — exponential sine sweep from `sweepFromHz` to `sweepToHz`
 	// over `sweepDurationSec`. `sweepLoop` repeats the cycle until stopped.
@@ -136,6 +152,7 @@ class AudioPlayerService {
 	setAudioSource(src: AudioSource): void {
 		if (this.#isPlaying) this.stop();
 		this.#audioSource = src;
+		this.#syncMediaPosition();
 	}
 
 	setFiltersEnabled(enabled: boolean): void {
@@ -170,7 +187,13 @@ class AudioPlayerService {
 	// --- Internals ---
 	#getAudioContext(): AudioContext {
 		if (!this.#audioContext) {
-			this.#audioContext = new AudioContext();
+			const ctx = new AudioContext();
+			// iOS interrupts the context for a call or Siri and does not resume it on its own.
+			// Pause rather than keep claiming to play into a dead context.
+			ctx.onstatechange = () => {
+				if (ctx.state !== 'running' && this.#isPlaying) this.pause();
+			};
+			this.#audioContext = ctx;
 		}
 		return this.#audioContext;
 	}
@@ -624,6 +647,9 @@ class AudioPlayerService {
 			// overlay — retune the existing biquads rather than re-entering
 			// #updateFilters() and rebuilding every node in the chain.
 			$effect(() => {
+				this.#media.setTitle(this.#mediaTitle);
+			});
+			$effect(() => {
 				this.#retuneRangeFilters(audioRangeStore.fromHz, audioRangeStore.toHz);
 			});
 			// Tone and sweep are gated by moving them rather than by filtering them, so
@@ -653,6 +679,9 @@ class AudioPlayerService {
 		this.#syncSweepToRange();
 
 		const ctx = this.#getAudioContext();
+		// `interrupted` is WebKit's, outside the standard AudioContextState union.
+		const state = ctx.state as string;
+		if (state === 'suspended' || state === 'interrupted') void ctx.resume();
 
 		if (!this.#gainNode) {
 			this.#gainNode = ctx.createGain();
@@ -711,12 +740,16 @@ class AudioPlayerService {
 						cancelAnimationFrame(this.#rafId);
 						this.#rafId = null;
 					}
+					this.#media.paused();
+					this.#syncMediaPosition();
 				}
 			};
 		} else return;
 
 		this.#startTime = ctx.currentTime;
 		this.#isPlaying = true;
+		this.#media.playing();
+		this.#syncMediaPosition();
 
 		// Both display loops bail out on `!#isPlaying`, so they can only start here.
 		if (this.#audioSource === 'file') this.#tickTimeDisplay();
@@ -742,12 +775,15 @@ class AudioPlayerService {
 			cancelAnimationFrame(this.#rafId);
 			this.#rafId = null;
 		}
+		this.#media.paused();
+		this.#syncMediaPosition();
 	}
 
 	stop(): void {
 		this.pause();
 		this.#pausedAt = 0;
 		this.#currentTime = 0;
+		this.#syncMediaPosition();
 	}
 
 	togglePlay(): void {
@@ -782,10 +818,13 @@ class AudioPlayerService {
 						cancelAnimationFrame(this.#rafId);
 						this.#rafId = null;
 					}
+					this.#media.paused();
+					this.#syncMediaPosition();
 				}
 			};
 			this.#startTime = ctx.currentTime;
 		}
+		this.#syncMediaPosition();
 	}
 
 	async loadFile(file: File): Promise<void> {
@@ -796,6 +835,35 @@ class AudioPlayerService {
 		this.#pausedAt = 0;
 		this.#currentTime = 0;
 		this.#fileLoaded = true;
+		this.#fileName = file.name;
+		this.#syncMediaPosition();
+	}
+
+	// --- Media session (OS now-playing surfaces) ---
+
+	get #mediaTitle(): string {
+		switch (this.#audioSource) {
+			case 'white':
+				return m.equalizer_player_option_white();
+			case 'pink':
+				return m.equalizer_player_option_pink();
+			case 'tone':
+				return `${m.equalizer_player_option_tone()} · ${formatHz(this.#toneFreq)}`;
+			case 'sweep':
+				return `${m.equalizer_player_option_sweep()} · ${formatHz(this.#sweepFromHz)}–${formatHz(this.#sweepToHz)}`;
+			case 'file':
+				return this.#fileName || m.equalizer_player_option_file();
+			default:
+				return '';
+		}
+	}
+
+	#syncMediaPosition(): void {
+		const buffer = this.#audioSource === 'file' ? this.#audioBuffer : null;
+		if (!buffer) return this.#media.setPosition(null);
+		const elapsed =
+			this.#isPlaying && this.#audioContext ? this.#audioContext.currentTime - this.#startTime : 0;
+		this.#media.setPosition({ duration: buffer.duration, position: this.#pausedAt + elapsed });
 	}
 }
 

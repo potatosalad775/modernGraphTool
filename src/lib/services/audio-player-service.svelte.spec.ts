@@ -96,6 +96,9 @@ class FakeAudioContext {
 	createBufferSource() {
 		return this.#make('buffersource');
 	}
+	async decodeAudioData() {
+		return { duration: 30 };
+	}
 	createBuffer(channels: number, length: number, sampleRate: number) {
 		return {
 			duration: length / sampleRate,
@@ -104,7 +107,26 @@ class FakeAudioContext {
 	}
 }
 
+/** Records what the service tells the OS, and hands the specs the OS-side buttons. */
+class FakeMediaSession {
+	metadata: MediaMetadata | null = null;
+	playbackState: MediaSessionPlaybackState = 'none';
+	position: MediaPositionState | undefined = undefined;
+	readonly handlers = new Map<string, MediaSessionActionHandler>();
+	setActionHandler(action: string, handler: MediaSessionActionHandler | null): void {
+		if (handler) this.handlers.set(action, handler);
+		else this.handlers.delete(action);
+	}
+	setPositionState(state?: MediaPositionState): void {
+		this.position = state;
+	}
+	press(action: string, details: Partial<MediaSessionActionDetails> = {}): void {
+		this.handlers.get(action)!({ action, ...details } as MediaSessionActionDetails);
+	}
+}
+
 let ctx: FakeAudioContext;
+let mediaSession: FakeMediaSession;
 let originalAudioContext: unknown;
 // The service caches these three for the page lifetime, so they are captured
 // once against a clean recording rather than searched for each test — creation
@@ -165,6 +187,9 @@ describe('AudioPlayerService', () => {
 	beforeAll(() => {
 		// The volume warning has its own specs; here play() starts at once.
 		settingsStore.setVolumeWarning(false);
+		// Before the priming play below: the bridge installs its action handlers once.
+		mediaSession = new FakeMediaSession();
+		Object.defineProperty(navigator, 'mediaSession', { value: mediaSession, configurable: true });
 		originalAudioContext = (globalThis as Record<string, unknown>).AudioContext;
 		ctx = new FakeAudioContext();
 		(globalThis as Record<string, unknown>).AudioContext = function () {
@@ -189,6 +214,8 @@ describe('AudioPlayerService', () => {
 		(globalThis as Record<string, unknown>).AudioContext = originalAudioContext;
 		settingsStore.setVolumeWarning(true);
 		audioPlayerService.stop();
+		// The own property shadows the real one on Navigator.prototype.
+		delete (navigator as unknown as Record<string, unknown>).mediaSession;
 	});
 
 	beforeEach(() => {
@@ -738,6 +765,81 @@ describe('AudioPlayerService', () => {
 			expect(audioPlayerService.sweepLoop).toBe(false);
 			audioPlayerService.setSweepLoop(true);
 			expect(audioPlayerService.sweepLoop).toBe(true);
+		});
+	});
+
+	// ── OS now-playing surfaces ──────────────────────────────────────────────
+
+	describe('media session', () => {
+		it('reports playing and paused to the OS', () => {
+			audioPlayerService.play();
+			settle();
+			expect(mediaSession.playbackState).toBe('playing');
+			expect(mediaSession.metadata?.title).toBe('White Noise');
+
+			audioPlayerService.pause();
+			expect(mediaSession.playbackState).toBe('paused');
+		});
+
+		it('remote play and pause drive the player', () => {
+			audioPlayerService.play();
+			settle();
+			mediaSession.press('pause');
+			expect(audioPlayerService.isPlaying).toBe(false);
+
+			mediaSession.press('play');
+			expect(audioPlayerService.isPlaying).toBe(true);
+
+			mediaSession.press('stop');
+			expect(audioPlayerService.isPlaying).toBe(false);
+		});
+
+		it('titles the tone by its frequency and follows the slider', () => {
+			audioPlayerService.setAudioSource('tone');
+			audioPlayerService.setToneFreq(1000);
+			audioPlayerService.play();
+			settle();
+			expect(mediaSession.metadata?.title).toBe('Tone Generator · 1 kHz');
+
+			audioPlayerService.setToneFreq(250);
+			settle();
+			expect(mediaSession.metadata?.title).toBe('Tone Generator · 250 Hz');
+		});
+
+		it('gives a file a timeline and seeks from the OS scrubber', async () => {
+			expect(mediaSession.handlers.has('seekto')).toBe(false);
+
+			audioPlayerService.setAudioSource('file');
+			await audioPlayerService.loadFile(new File([new Uint8Array(4)], 'song.flac'));
+			audioPlayerService.play();
+			settle();
+			expect(mediaSession.metadata?.title).toBe('song.flac');
+			expect(mediaSession.position).toEqual({ duration: 30, position: 0, playbackRate: 1 });
+
+			mediaSession.press('seekto', { seekTime: 12 });
+			expect(audioPlayerService.currentTime).toBe(12);
+			expect(mediaSession.position?.position).toBe(12);
+
+			// The skip buttons step from the anchor, which the seek above moved along.
+			audioPlayerService.pause();
+			mediaSession.press('seekforward', { seekOffset: 10 });
+			expect(audioPlayerService.currentTime).toBe(22);
+			mediaSession.press('seekbackward', {});
+			expect(audioPlayerService.currentTime).toBe(12);
+			mediaSession.press('seekforward', { seekOffset: 60 });
+			expect(audioPlayerService.currentTime).toBe(30);
+		});
+
+		it('plays a generated signal as live, without a scrubber', async () => {
+			audioPlayerService.setAudioSource('file');
+			await audioPlayerService.loadFile(new File([new Uint8Array(4)], 'song.flac'));
+			expect(mediaSession.handlers.has('seekto')).toBe(true);
+
+			audioPlayerService.setAudioSource('white');
+			for (const action of ['seekto', 'seekforward', 'seekbackward']) {
+				expect(mediaSession.handlers.has(action)).toBe(false);
+			}
+			expect(mediaSession.position?.duration).toBe(Infinity);
 		});
 	});
 });

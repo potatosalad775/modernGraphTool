@@ -13,6 +13,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `data-provider.svelte.ts` — see below
 - `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
+- `media-session.ts` — the audio player in OS media controls (Control Center, media keys)
 - `autoeq-service.svelte.ts` — AutoEQ runs and auto-apply; see below
 - `aggregate-index.svelte.ts` — see below
 - `site-index.svelte.ts` — see below
@@ -219,6 +220,19 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 - **`play()` applies both constraints synchronously before starting the oscillator.** The `$effect`
   that normally does it flushes on a microtask, so a band drawn before the first play would
   otherwise reach the sweep a cycle late.
+- **OS media controls go through `media-session.ts`** (`MediaSessionBridge`). Those surfaces only
+  attach to a playing media element, so a silent looping `<audio>` anchor plays alongside the
+  graph; the audio itself still goes straight to `ctx.destination`. Don't route the graph through
+  the element (`MediaStreamAudioDestinationNode`) — it adds latency the A/B toggle and spectrum
+  show. Every state change (`play`/`pause`/`stop`/`seekTo`/`onended`/`loadFile`/source switch)
+  must reach the bridge, or Control Center and the page disagree. The anchor's own `pause` event
+  follows OS interruptions; it is ignored once `anchor.paused` is false again, or a quick
+  pause → play would be paused by the stale event.
+- **For a file, the anchor is a silent clip as long as the file**, kept at the file's position.
+  WebKit draws the lock-screen scrubber from the element's own timeline, not from
+  `setPositionState` — with the 10 s loop it snapped back to 0:00 every pass. Generated signals
+  keep the loop and report `duration: Infinity`; iOS ignores that and shows the loop's 0:10 bar, but disabled, since no seek handler is set. The clip costs 8 kB/s, so
+  files over an hour fall back to live.
 
 ## `autoeq-service.svelte.ts` — AutoEQ runs and auto-apply
 

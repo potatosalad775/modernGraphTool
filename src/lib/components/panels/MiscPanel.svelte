@@ -93,16 +93,6 @@
 			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
 		</div>
 		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
-		<Button
-			title={m.tutorial_modal_replay_btn()}
-			variant="ghost"
-			size="xs"
-			class="gap-1 text-xs text-base-content/60"
-			onclick={() => tutorialStore.open('welcome')}
-		>
-			<GraduationCap class="h-3.5 w-3.5" aria-hidden="true" />
-			{m.tutorial_modal_replay_btn()}
-		</Button>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
 			<a
@@ -139,6 +129,17 @@
 			>
 				<BookOpen class="h-4 w-4" aria-hidden="true" />
 			</a>
+
+			<!-- Tutorial button -->
+			<Button
+				title={m.tutorial_modal_replay_btn()}
+				variant="ghost"
+				size="icon-xs"
+				class="text-base-content/60 hover:bg-base-300"
+				onclick={() => tutorialStore.open('welcome')}
+			>
+				<GraduationCap class="size-4.5" aria-hidden="true" />
+			</Button>
 
 			<!-- Donate button (conditional) -->
 			{#if !hideDonate}

@@ -69,7 +69,9 @@ describe('AppShell boot', () => {
 		// loaded, and the target customizer applied INITIAL_TARGET_FILTERS.
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
-		expect(frStore.size).toBe(2);
+		// Polled: INITIAL_PHONES and INITIAL_TARGETS load concurrently, so the label
+		// above can render before the phone has landed in the store.
+		await expect.poll(() => frStore.size).toBe(2);
 
 		const target = findTarget(DEMO_TARGET);
 		expect(target).toBeDefined();

@@ -134,7 +134,7 @@ for (const fileName of files) {
 		continue;
 	}
 
-	writeJson(`${locale}.json`, next);
+	await writeJson(`${locale}.json`, next);
 	unlinkSync(join(MESSAGES_DIR, fileName));
 	applied += added + updated;
 	console.log(`${locale}: added ${added}, updated ${updated} — merged and removed ${fileName}`);

@@ -93,7 +93,7 @@ for (const locale of locales) {
 			const stub = { [INFO_KEY]: info(locale) };
 			// An en plural is offered in the shorthand translators edit, when it fits one.
 			for (const k of missing) stub[k] = toShorthand(base[k]) ?? base[k];
-			writeJson(fileName, stub);
+			await writeJson(fileName, stub);
 			console.log(`  -> wrote messages/${fileName}`);
 		}
 	}

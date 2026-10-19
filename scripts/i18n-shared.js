@@ -4,6 +4,7 @@
 
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { format, resolveConfig } from 'prettier';
 
 export const MESSAGES_DIR = join(import.meta.dirname, '..', 'messages');
 export const BASE_LOCALE = 'en';
@@ -15,9 +16,17 @@ export const missingFileName = (locale) => `${MISSING_PREFIX}${locale}.json`;
 export const readJson = (fileName) =>
 	JSON.parse(readFileSync(join(MESSAGES_DIR, fileName), 'utf-8'));
 
-/** Written with tabs + trailing newline to match the existing message files. */
-export const writeJson = (fileName, obj) =>
-	writeFileSync(join(MESSAGES_DIR, fileName), JSON.stringify(obj, null, '\t') + '\n');
+/**
+ * Formatted through Prettier with the repo config, so the output passes `npm run lint` as
+ * written: `JSON.stringify` alone breaks every array across lines (plural `selectors`), which
+ * Prettier collapses. The input stays indented because Prettier keeps an object expanded only
+ * when its source already was.
+ */
+export const writeJson = async (fileName, obj) => {
+	const path = join(MESSAGES_DIR, fileName);
+	const options = { ...(await resolveConfig(path)), filepath: path };
+	writeFileSync(path, await format(JSON.stringify(obj, null, '\t'), options));
+};
 
 /** Message keys only — drops `$schema` and `@@info` metadata. */
 export const messageKeys = (obj) =>

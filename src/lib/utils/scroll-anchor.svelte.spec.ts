@@ -3,7 +3,7 @@
  * ResizeObserver. Styles are inline because specs load no Tailwind.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { anchorScroll, followReveal, revealInScrollParent } from './scroll-anchor.js';
+import { anchorScroll, followReveal, revealBox, revealInScrollParent } from './scroll-anchor.js';
 
 const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -139,6 +139,46 @@ describe('revealInScrollParent', () => {
 	it('does nothing when the section is already visible', () => {
 		const { container, section } = scroller(100, 50);
 		revealInScrollParent(section);
+		expect(container.scrollTop).toBe(0);
+	});
+});
+
+describe('revealBox', () => {
+	function scroller() {
+		const container = document.createElement('div');
+		container.style.cssText = 'height:300px;overflow-y:auto';
+		const filler = document.createElement('div');
+		filler.style.height = '2000px';
+		container.append(filler);
+		document.body.append(container);
+		/** A box `top` px down the content, in viewport coordinates. */
+		const box = (top: number, height: number) =>
+			new DOMRect(0, container.getBoundingClientRect().top + top - container.scrollTop, 10, height);
+		return { container, box };
+	}
+
+	it('scrolls down until the box and its margin fit', () => {
+		const { container, box } = scroller();
+		revealBox(container, box(250, 60), 6);
+		return expect.poll(() => container.scrollTop).toBe(16);
+	});
+
+	it('scrolls up to a box above the view', () => {
+		const { container, box } = scroller();
+		container.scrollTop = 500;
+		revealBox(container, box(200, 40), 6);
+		return expect.poll(() => container.scrollTop).toBe(194);
+	});
+
+	it('brings the top into view when the box is taller than the view', () => {
+		const { container, box } = scroller();
+		revealBox(container, box(400, 600));
+		return expect.poll(() => container.scrollTop).toBe(400);
+	});
+
+	it('does nothing when the box is already visible', () => {
+		const { container, box } = scroller();
+		revealBox(container, box(50, 100), 6);
 		expect(container.scrollTop).toBe(0);
 	});
 });

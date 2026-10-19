@@ -9,6 +9,7 @@
 	import Button from '../atoms/Button.svelte';
 	import { ExternalLink } from '@lucide/svelte';
 	import { tourSteps, type TutorialTarget } from './tutorial-steps.js';
+	import { revealBox, scrollParent } from '#lib/utils/scroll-anchor.js';
 
 	const steps = $derived(tourSteps(tutorialStore.tour, appStore.isMobile));
 
@@ -71,7 +72,10 @@
 	}
 
 	$effect(() => {
-		if (!tutorialStore.isOpen || !currentTarget) {
+		// Closing: keep the last rect. Clearing it re-centres the dialog and darkens the
+		// overlay, and bits-ui keeps the content mounted until those transitions finish.
+		if (!tutorialStore.isOpen) return;
+		if (!currentTarget) {
 			targetRect = null;
 			return;
 		}
@@ -86,18 +90,13 @@
 
 		// On a phone the Equalizer panel is one scrolling column, so a later section's
 		// header can start below the fold. Scroll once per step; the scroll listener
-		// below then follows it there.
-		const first = query()[0];
-		if (first) {
-			const r = first.getBoundingClientRect();
-			if (r.top < 0 || r.bottom > window.innerHeight) {
-				const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-				first.scrollIntoView({
-					block: r.height > window.innerHeight / 2 ? 'start' : 'nearest',
-					behavior: reduce ? 'auto' : 'smooth'
-				});
-			}
-		}
+		// below then follows it there. Every element the step frames, and against the
+		// scroller's own view: on a phone the menu bar sits below it, inside the window.
+		const elements = query();
+		const box = measure(elements);
+		const container = elements[0] && scrollParent(elements[0]);
+		// 6 px: the spotlight's padding, so its ring isn't clipped either.
+		if (box && container) revealBox(container, box, 6);
 
 		// Follow the target frame by frame until it has held still for a while: the
 		// graph handle is created after the SVG mounts, and the Equalizer tour opens

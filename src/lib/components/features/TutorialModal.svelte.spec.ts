@@ -236,6 +236,23 @@ describe('TutorialModal', () => {
 			expect(localStorage.getItem(STORAGE_KEY)).toBe('true');
 		});
 
+		it('closes in place from a spotlight step, without re-centring first', async () => {
+			// Dropping the spotlight on close re-centred the dialog, and bits-ui kept it
+			// mounted for that 300 ms slide — a visible jump before it vanished.
+			plantTarget('menu');
+			await openModal();
+			await click(button(m.tutorial_modal_btn_next()));
+			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
+
+			await click(button(m.tutorial_modal_btn_skip()));
+
+			const style = document.querySelector('[role="dialog"]')?.getAttribute('style') ?? '';
+			expect(style).not.toContain('top: 50%');
+			await vi.waitFor(() => expect(page.getByRole('dialog').elements()).toHaveLength(0), {
+				timeout: 200
+			});
+		});
+
 		it('still closes on Escape', async () => {
 			await openModal();
 			document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -444,6 +461,33 @@ describe('TutorialModal', () => {
 			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
 			// 40 → 132 px spans both boxes, plus 6 px of padding top and bottom.
 			expect(spotlight()!.style.height).toBe('104px');
+		});
+
+		it('scrolls every framed element into the scroller, not just the window', async () => {
+			// The phone layout: a 300 px panel scroller with the menu bar below it. The
+			// first header is in view and the second sits where the menu bar is — inside
+			// the window, but clipped by the scroller.
+			localStorage.setItem(STORAGE_KEY, 'true');
+			const container = document.createElement('div');
+			container.style.cssText =
+				'position:fixed;top:0;left:0;width:300px;height:300px;overflow-y:auto';
+			const header = (top: number) => {
+				const el = document.createElement('div');
+				el.setAttribute('data-tutorial-target', 'eq_listen');
+				el.style.cssText = `position:absolute;top:${top}px;left:0;width:120px;height:32px`;
+				return el;
+			};
+			const filler = document.createElement('div');
+			filler.style.height = '1000px';
+			container.append(filler, header(200), header(292));
+			document.body.append(container);
+			menuStore.currentPanel = 'equalizer';
+			await openModal();
+			await click(dots().nth(3));
+
+			// 292 + 32 + the spotlight's 6 px is 330: 30 px past the 300 px view.
+			await expect.poll(() => container.scrollTop).toBe(30);
+			container.remove();
 		});
 	});
 });

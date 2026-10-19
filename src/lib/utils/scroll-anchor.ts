@@ -72,7 +72,7 @@ export function anchorScroll(container: HTMLElement): () => void {
 	};
 }
 
-function scrollParent(el: Element): HTMLElement | null {
+export function scrollParent(el: Element): HTMLElement | null {
 	for (let node = el.parentElement; node; node = node.parentElement) {
 		const { overflowY } = getComputedStyle(node);
 		if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight)
@@ -93,6 +93,21 @@ export function revealInScrollParent(el: Element): void {
 	const box = el.getBoundingClientRect();
 	const distance = Math.min(box.bottom - view.bottom, box.top - view.top);
 	if (distance <= 0) return;
+	const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	container.scrollBy({ top: distance, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+/**
+ * Scroll `container` so `box` is in its view, or its top is when it can't all fit.
+ * Scrolls either way, unlike `revealInScrollParent`; a no-op when `box` is in view.
+ * `margin` keeps that much room around the box.
+ */
+export function revealBox(container: HTMLElement, box: DOMRect, margin = 0): void {
+	const view = container.getBoundingClientRect();
+	const above = box.top - margin - view.top;
+	const below = box.bottom + margin - view.bottom;
+	const distance = above < 0 ? above : Math.max(0, Math.min(below, above));
+	if (distance === 0) return;
 	const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 	container.scrollBy({ top: distance, behavior: reduce ? 'auto' : 'smooth' });
 }

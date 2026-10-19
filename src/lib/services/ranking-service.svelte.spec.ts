@@ -118,6 +118,12 @@ describe('RankingService', () => {
 	it('falls back when the ranking config script cannot be loaded', async () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
 		stubFetch(CSV);
+		// Fail the injected <script> in place: a real 404 from the test server can stall
+		// past the timeout on a loaded CI runner, and the network is not what's under test.
+		vi.spyOn(document.head, 'appendChild').mockImplementation(<T extends Node>(node: T): T => {
+			queueMicrotask(() => node.dispatchEvent(new Event('error')));
+			return node;
+		});
 		configure({ CONFIG_URL: '/does-not-exist/ranking-config.js' });
 
 		expect(await service.load()).toBe(false);

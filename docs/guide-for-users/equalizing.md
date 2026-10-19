@@ -116,6 +116,11 @@ The player uses the Web Audio API, so CPU usage goes up slightly while it's runn
 
 Playback continues across panel switches — switching to the Graph or Device panel won't stop the audio. Return to the Equalizer panel and use the player's stop button when you're done.
 
+The player also shows up in your system's media controls — Control Center and the lock screen on
+iOS, the media notification on Android, and the media overlay and media keys on desktop — so you
+can pause or resume it from there, or with your headphones' play/pause button. On iPhone and iPad
+it also plays with the silent switch on.
+
 ## Hardware EQ — push EQ to a device \{#device-peq\}
 
 Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Hardware EQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device's own EQ memory, or pull the device's current EQ into the filter list. Unplug your computer and the EQ stays loaded.

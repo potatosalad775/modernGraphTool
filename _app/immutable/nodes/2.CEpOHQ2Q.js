@@ -1,1 +1,0 @@
-import"../chunks/Cgllooyl.js";import{t as e}from"../chunks/SH-PNzXz.js";function t(t){e(t,{})}export{t as component};

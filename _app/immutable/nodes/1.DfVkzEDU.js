@@ -1,1 +1,0 @@
-import{Bt as e,Dt as t,Et as n,Ot as r,Vt as i,at as a,st as o,t as s,tt as c,xt as l}from"../chunks/Cgllooyl.js";import"../chunks/pTg-RoIk.js";var u=o(`<h1> </h1> <p> </p>`,1);function d(o,d){i(d,!0);var f=u(),p=n(f),m=t(p,!0),h=r(p,2),g=t(h,!0);l(()=>{c(m,s.status),c(g,s.error?.message)}),a(o,f),e()}export{d as component};

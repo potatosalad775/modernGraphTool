@@ -15,6 +15,8 @@
 		indexedFiltersInScope
 	} from '#lib/utils/eq-channel.js';
 	import { formatApoFilters, parseApoConfig } from '#lib/utils/eq-apo.js';
+	import { filtersMatch } from '#lib/utils/eq-snapshot.js';
+	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
 	import { toast } from 'svelte-sonner';
@@ -89,9 +91,19 @@
 		const before = preampBeforeEdits;
 		preampBeforeEdits = null;
 		const now = eqStore.preamp;
-		if (before !== null && now < before - 0.05) {
+		if (before !== null && now < before - 0.05 && !onCompareEntry()) {
 			toast.info(m.eq_preamp_auto_reduced({ value: now.toFixed(1) }));
 		}
+	}
+
+	/**
+	 * Whether the live bands are an A/B pick's. Switching sides restores a
+	 * finished EQ, preamp and all, so the drop is the profile's own, not a
+	 * correction to an edit. Filters only: the stored preamp may be stale.
+	 */
+	function onCompareEntry(): boolean {
+		const { aEntry, bEntry } = eqHistoryStore;
+		return [aEntry, bEntry].some((e) => e !== null && filtersMatch(e, eqStore.filters));
 	}
 
 	const atMaxBands = $derived.by(() => {

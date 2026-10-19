@@ -22,6 +22,8 @@ import {
 	DEFAULT_CONSTRAINT_ID
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
+import { eqCommands } from '#lib/services/eq-commands.js';
+import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
 import { toast } from 'svelte-sonner';
 import { downloadText } from '#lib/utils/download-text.js';
@@ -104,6 +106,30 @@ describe('EqFilterList', () => {
 			await new Promise((resolve) => setTimeout(resolve, 1200));
 
 			expect(toast.info).not.toHaveBeenCalled();
+		});
+
+		it('stays quiet when an A/B switch lowers it', async () => {
+			// Switching sides restores a finished EQ; its preamp is part of it.
+			const a = [makeFilter({ gain: 1 })];
+			const b = [makeFilter({ gain: 6 })];
+			eqHistoryStore.snapshots = [
+				{ id: 'h-a', timestamp: 1, filters: a, preamp: -1, summary: '' },
+				{ id: 'h-b', timestamp: 2, filters: b, preamp: -6, summary: '' }
+			];
+			eqHistoryStore.setA('h-a');
+			eqHistoryStore.setB('h-b');
+			eqStore.filters = a;
+			vi.mocked(toast.info).mockClear();
+			render(EqFilterList);
+
+			eqCommands.applySnapshot(b, -6);
+			await vi.waitFor(() => expect(eqStore.preamp).toBe(-6));
+			await new Promise((resolve) => setTimeout(resolve, 1200));
+
+			expect(toast.info).not.toHaveBeenCalled();
+			eqHistoryStore.snapshots = [];
+			eqHistoryStore.setA(null);
+			eqHistoryStore.setB(null);
 		});
 	});
 

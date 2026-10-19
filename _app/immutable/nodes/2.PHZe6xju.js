@@ -1,0 +1,1 @@
+import"../chunks/BezLyLmg.js";import{t as e}from"../chunks/BOIdmkZe.js";function t(t){e(t,{})}export{t as component};

@@ -1,7 +1,8 @@
 import type { Component } from 'svelte';
 import * as m from '#lib/paraglide/messages.js';
 import type { TourId } from '#lib/stores/tutorial-store.svelte.js';
-import { BookOpen } from '@lucide/svelte';
+import { withIcons, type InlineIcon, type StepText } from './tutorial-text.js';
+import { BookOpen, Settings2 } from '@lucide/svelte';
 
 /**
  * A `data-tutorial-target` value. Every element carrying it is spotlit together,
@@ -19,10 +20,10 @@ export type TutorialTarget =
 	| 'eq_hardware';
 
 export interface TutorialStep {
-	title?: () => string;
-	content: () => string;
-	extra?: () => string;
-	extra2?: () => string;
+	title?: StepText;
+	content: StepText;
+	/** Smaller lines under the content; dropped on a short screen when the step has a target. */
+	tips?: StepText[];
 	guideLinkLabel?: () => string;
 	/**
 	 * Left off the spotlight steps: the 40 px tile is height the dialog can't spare
@@ -47,8 +48,7 @@ function welcomeSteps(isMobile: boolean): TutorialStep[] {
 		steps.push({
 			title: m.tutorial_modal_pwa_title,
 			content: m.tutorial_modal_pwa_content,
-			extra: m.tutorial_modal_pwa_inst_ios,
-			extra2: m.tutorial_modal_pwa_inst_android,
+			tips: [m.tutorial_modal_pwa_inst_ios, m.tutorial_modal_pwa_inst_android],
 			icon: '📱'
 		});
 	} else {
@@ -67,6 +67,9 @@ function welcomeSteps(isMobile: boolean): TutorialStep[] {
 	return steps;
 }
 
+/** `EqOptionButton`'s trigger, which shows only its icon. */
+const constraintButton: InlineIcon = { icon: Settings2, label: m.eq_constraint_select_label };
+
 /**
  * Points at the section headers, not their contents — the sections start collapsed.
  * Kept to five steps on purpose: one per section would be long enough to get skipped.
@@ -80,19 +83,19 @@ function equalizerSteps(isMobile: boolean): TutorialStep[] {
 		},
 		{
 			content: m.tutorial_eq_filters_content,
-			extra: m.tutorial_eq_constraint_hint,
+			tips: [() => withIcons(m.tutorial_eq_constraint_hint, { icon: constraintButton })],
 			target: 'eq_filters'
 		},
 		{ content: m.tutorial_eq_autoeq_content, target: 'eq_autoeq' },
 		{
 			content: m.tutorial_eq_listen_content,
 			// The `\` hold is a keyboard shortcut; a phone has no key to hold.
-			extra: isMobile ? undefined : m.tutorial_eq_bypass_hint,
+			tips: isMobile ? undefined : [m.tutorial_eq_bypass_hint],
 			target: 'eq_listen'
 		},
 		{
 			content: m.tutorial_eq_hardware_content,
-			extra: m.tutorial_eq_replay_hint,
+			tips: [m.tutorial_eq_replay_hint],
 			target: 'eq_hardware'
 		}
 	];

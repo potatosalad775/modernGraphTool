@@ -9,6 +9,7 @@
 	import Button from '../atoms/Button.svelte';
 	import { ExternalLink } from '@lucide/svelte';
 	import { tourSteps, type TutorialTarget } from './tutorial-steps.js';
+	import TutorialText from './TutorialText.svelte';
 	import { revealBox, scrollParent } from '#lib/utils/scroll-anchor.js';
 
 	const steps = $derived(tourSteps(tutorialStore.tour, appStore.isMobile));
@@ -18,9 +19,10 @@
 	let dialogHeight = $state(0);
 
 	const currentStep = $derived(Math.min(tutorialStore.step, steps.length - 1));
+	const step = $derived(steps[currentStep]);
 	const isFirst = $derived(currentStep === 0);
 	const isLast = $derived(currentStep === steps.length - 1);
-	const currentTarget = $derived<TutorialTarget | null>(steps[currentStep]?.target ?? null);
+	const currentTarget = $derived<TutorialTarget | null>(step?.target ?? null);
 	const hasSpotlight = $derived(currentTarget !== null && targetRect !== null);
 
 	const spotlightStyle = $derived.by(() => {
@@ -58,7 +60,7 @@
 	 * a target keeps them: on the PWA step they are the install instructions.
 	 */
 	const compact = $derived(innerHeight > 0 && innerHeight < 600);
-	const showExtra = $derived(!(compact && hasSpotlight));
+	const showTips = $derived(!(compact && hasSpotlight));
 
 	/** The bounding box of every element carrying the target, or null if none is laid out. */
 	function measure(elements: Element[]): DOMRect | null {
@@ -189,8 +191,8 @@
 			<!-- Measured for placement: whether the dialog fits beside its target. -->
 			<div bind:clientHeight={dialogHeight}>
 				<div class={compact ? 'px-4 py-3' : 'px-6 py-4'}>
-					{#if steps[currentStep].icon}
-						{@const icon = steps[currentStep].icon}
+					{#if step.icon}
+						{@const icon = step.icon}
 						<div
 							class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-lg {compact
 								? 'mb-2'
@@ -205,35 +207,34 @@
 						</div>
 					{/if}
 
-					{#if steps[currentStep].title}
+					{#if step.title}
 						<Dialog.Title class="text-base font-semibold text-base-content">
-							{steps[currentStep].title?.()}
+							<TutorialText text={step.title()} />
 						</Dialog.Title>
 					{:else}
 						<Dialog.Title class="sr-only">Tutorial step {currentStep + 1}</Dialog.Title>
 					{/if}
 
 					<Dialog.Description class="mt-1 text-sm leading-relaxed text-base-content/70">
-						{steps[currentStep].content()}
+						<TutorialText text={step.content()} />
 					</Dialog.Description>
 
-					{#if steps[currentStep].extra && showExtra}
+					{#if step.tips && showTips}
 						<div class="mt-3 space-y-1.5 text-xs text-base-content/55">
-							<p>{steps[currentStep].extra?.()}</p>
-							{#if steps[currentStep].extra2}
-								<p>{steps[currentStep].extra2?.()}</p>
-							{/if}
+							{#each step.tips as tip, i (i)}
+								<p><TutorialText text={tip()} /></p>
+							{/each}
 						</div>
 					{/if}
 
-					{#if steps[currentStep].guideLinkLabel}
+					{#if step.guideLinkLabel}
 						<a
 							href="https://potatosalad775.github.io/modernGraphTool/docs/category/guide-for-users"
 							target="_blank"
 							rel="noopener noreferrer"
 							class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:underline"
 						>
-							{steps[currentStep].guideLinkLabel?.()}
+							{step.guideLinkLabel()}
 							<ExternalLink size={14} aria-hidden="true" />
 						</a>
 					{/if}

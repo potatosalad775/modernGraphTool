@@ -10,7 +10,6 @@
 		"Whole sentence: \"key\": { \"one\": \"{count} band\", \"few\": \"{count} bands\", \"other\": \"...\" }",
 		"  (add \"plural\": \"total\" to count another input instead of {count}).",
 		"Inside a sentence, # is the number: \"Read {count, plural, one {# band} other {# bands}}\"",
-		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
 	"phone_selector_search_help_btn": "Search tips",
@@ -90,7 +89,7 @@
 	"tutorial_eq_intro_title": "Equalizer",
 	"tutorial_eq_source_content": "Switch the EQ on and pick the device to equalize. The result is drawn on the graph.",
 	"tutorial_eq_filters_content": "Each row is a filter band. Set its frequency, gain and Q here, or drag its node on the graph.",
-	"tutorial_eq_constraint_hint": "Making an EQ for a specific app or device? Pick it under Constraint, and the bands only take settings it accepts.",
+	"tutorial_eq_constraint_hint": "Making an EQ for a specific app or device? Open {icon} at the end of the band toolbar and pick it there. The bands will then only accept settings it supports.",
 	"tutorial_eq_autoeq_content": "Rather not tune by hand? AutoEQ fits the bands to a target for you.",
 	"tutorial_eq_listen_content": "Hear the difference with the audio player, and keep earlier versions in History & Compare to A/B them.",
 	"tutorial_eq_bypass_hint": "Tip: hold the backslash (\\) key to flip the EQ on or off for a quick comparison.",

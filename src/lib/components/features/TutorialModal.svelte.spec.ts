@@ -18,6 +18,9 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
 import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 import * as m from '#lib/paraglide/messages.js';
 
+/** The constraint tip's text up to its icon chip, which splits it across nodes. */
+const constraintHint = () => m.tutorial_eq_constraint_hint({ icon: '\0' }).split('\0')[0];
+
 const STORAGE_KEY = 'gt-tutorial-dismissed';
 const EQ_STORAGE_KEY = 'gt-tutorial-eq-dismissed';
 
@@ -361,7 +364,7 @@ describe('TutorialModal', () => {
 			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
 
 			await expect.element(page.getByText(m.tutorial_eq_filters_content())).toBeInTheDocument();
-			expect(page.getByText(m.tutorial_eq_constraint_hint()).elements()).toHaveLength(0);
+			expect(page.getByText(constraintHint()).elements()).toHaveLength(0);
 		});
 
 		it('keeps the tip lines on a tall screen', async () => {
@@ -372,7 +375,25 @@ describe('TutorialModal', () => {
 			await click(dots().nth(1));
 			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
 
-			await expect.element(page.getByText(m.tutorial_eq_constraint_hint())).toBeInTheDocument();
+			await expect.element(page.getByText(constraintHint())).toBeInTheDocument();
+		});
+
+		it('draws the constraint button in its tip, named for screen readers', async () => {
+			localStorage.setItem(STORAGE_KEY, 'true');
+			plantTarget('eq_filters');
+			menuStore.currentPanel = 'equalizer';
+			await openModal();
+			await click(dots().nth(1));
+
+			const tip = page.getByText(constraintHint());
+			await expect.element(tip).toBeInTheDocument();
+			const p = tip.element();
+			expect(p.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+			expect(p.querySelector('.sr-only')?.textContent).toBe(m.eq_constraint_select_label());
+			// The sentence reads whole, with no stray markers or whitespace around the chip.
+			expect(p.textContent).toBe(
+				m.tutorial_eq_constraint_hint({ icon: m.eq_constraint_select_label() })
+			);
 		});
 
 		it('keeps the PWA install steps on a short screen', async () => {

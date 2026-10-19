@@ -164,7 +164,7 @@
 	"tutorial_eq_intro_title": "이퀄라이저",
 	"tutorial_eq_source_content": "EQ를 활성화하고, 이를 적용할 기기를 선택하세요. EQ 적용 결과가 그래프에 표시됩니다.",
 	"tutorial_eq_filters_content": "각 행이 필터 밴드 하나를 나타냅니다. 여기서 주파수, 게인, Q를 조절하거나, 그래프 위의 점을 직접 움직일 수도 있습니다.",
-	"tutorial_eq_constraint_hint": "특정 앱이나 기기에 쓸 EQ를 만드시나요? '제약 정보'에서 원하는 앱이나 기기를 고르면, 그것이 허용하는 값으로만 밴드를 설정할 수 있습니다.",
+	"tutorial_eq_constraint_hint": "특정 앱이나 기기에 쓸 EQ를 만드시나요? 밴드 도구 모음 끝의 {icon} 버튼을 눌러 원하는 앱이나 기기를 고르면, 그것이 지원하는 값으로만 밴드를 설정할 수 있습니다.",
 	"tutorial_eq_autoeq_content": "직접 조절하기 번거로우신가요? AutoEQ가 타겟에 맞춰 밴드를 자동으로 구성해 줍니다.",
 	"tutorial_eq_listen_content": "오디오 플레이어로 차이를 직접 들어 보고, 이전 버전을 편집 기록 & 비교에 남겨 A/B 테스트도 할 수 있어요.",
 	"tutorial_eq_bypass_hint": "팁: 백슬래시(\\) 키를 누르고 있으면 EQ 활성화 상태가 반전되어, 빠르게 소리 차이를 비교해 볼 수 있습니다.",

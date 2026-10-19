@@ -9,7 +9,7 @@
  * them leaves the dialog mounted but frozen. The cost is a longer matcher
  * timeout on the open and close.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import TutorialModal from './TutorialModal.svelte';
@@ -351,6 +351,7 @@ describe('TutorialModal', () => {
 			// Centred a little below the middle, so the old "opposite half" rule put the
 			// dialog on top — over the target's heading.
 			await page.viewport(400, 700);
+			appStore.isMobile = true;
 			plantBox('menu', 90, 560);
 			await openModal();
 			await click(button(m.tutorial_modal_btn_next()));
@@ -361,12 +362,30 @@ describe('TutorialModal', () => {
 
 		it('puts the dialog on the side it fits', async () => {
 			await page.viewport(400, 700);
+			appStore.isMobile = true;
 			plantBox('menu', 560, 40);
 			await openModal();
 			await click(button(m.tutorial_modal_btn_next()));
 			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
 
 			await vi.waitFor(() => expect(dialogStyle()).toContain('top: 1rem'));
+		});
+
+		it('sets the dialog beside its target on desktop, not against a far edge', async () => {
+			// `max-w-sm`, which specs don't load: unstyled, the dialog is as wide as the page.
+			const css = document.createElement('style');
+			css.textContent = '[role="dialog"] { position: fixed; width: 24rem; }';
+			document.head.appendChild(css);
+			onTestFinished(() => css.remove());
+			// A little below the middle: the edge rule would have pinned the dialog to the top.
+			plantBox('menu', 420, 40);
+			await openModal();
+			await click(button(m.tutorial_modal_btn_next()));
+			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
+
+			// The style, not the laid-out box: specs load no Tailwind, so `fixed` doesn't apply.
+			await vi.waitFor(() => expect(dialogStyle()).toContain(`left: ${140 + 16}px`));
+			expect(dialogStyle()).not.toContain('1rem');
 		});
 
 		it('drops the tip lines on a short screen, but only on spotlight steps', async () => {

@@ -12,12 +12,15 @@
 	import { tourSteps, type TutorialTarget } from './tutorial-steps.js';
 	import TutorialText from './TutorialText.svelte';
 	import { revealBox, scrollParent } from '#lib/utils/scroll-anchor.js';
+	import { placeBeside } from './tutorial-placement.js';
 
 	const steps = $derived(tourSteps(tutorialStore.tour, appStore.isMobile));
 
 	let targetRect = $state<DOMRect | null>(null);
 	let innerHeight = $state(0);
+	let innerWidth = $state(0);
 	let dialogHeight = $state(0);
+	let dialogWidth = $state(0);
 
 	const currentStep = $derived(Math.min(tutorialStore.step, steps.length - 1));
 	const step = $derived(steps[currentStep]);
@@ -39,6 +42,16 @@
 	const dialogStyle = $derived.by(() => {
 		if (!hasSpotlight || !targetRect || innerHeight === 0) {
 			return 'top:50%;left:50%;transform:translate(-50%,-50%);';
+		}
+		// On desktop, right beside the target: pinned to a far edge, a dialog for a target
+		// just below the middle of a tall screen landed nowhere near it.
+		if (!appStore.isMobile) {
+			const at = placeBeside(
+				targetRect,
+				{ width: dialogWidth, height: dialogHeight },
+				{ width: innerWidth, height: innerHeight }
+			);
+			if (at) return `top:${at.top}px;left:${at.left}px;`;
 		}
 		// Pinned 1rem from an edge, clear of the spotlight's 6 px padding.
 		const needed = dialogHeight + 16 + 12;
@@ -157,7 +170,7 @@
 	}
 </script>
 
-<svelte:window bind:innerHeight />
+<svelte:window bind:innerHeight bind:innerWidth />
 
 <Dialog.Root
 	bind:open={
@@ -195,7 +208,7 @@
 			style={dialogStyle}
 		>
 			<!-- Measured for placement: whether the dialog fits beside its target. -->
-			<div bind:clientHeight={dialogHeight}>
+			<div bind:clientHeight={dialogHeight} bind:clientWidth={dialogWidth}>
 				<div class={compact ? 'px-4 py-3' : 'px-6 py-4'}>
 					{#if step.icon}
 						{@const icon = step.icon}

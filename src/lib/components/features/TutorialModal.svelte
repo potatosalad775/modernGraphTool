@@ -226,7 +226,7 @@
 					</Dialog.Description>
 
 					{#if step.tips && showTips}
-						<div class="mt-3 space-y-1.5 text-xs text-base-content/55">
+						<div class="mt-3 space-y-1.5 text-xs leading-5 text-base-content/55">
 							{#each step.tips as tip, i (i)}
 								<p><TutorialText text={tip()} /></p>
 							{/each}

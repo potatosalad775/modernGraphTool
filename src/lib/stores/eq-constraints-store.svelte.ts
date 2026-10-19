@@ -72,8 +72,10 @@ export function profileLabel(profile: Pick<Profile, 'device' | 'engine'>): strin
  * resolves on first paint. A catalog pick is stored with its profile for the same reason.
  *
  * Activating a preset never edits the filters by itself. A preset the user picks is folded in by
- * `eqCommands.reclampToActiveConstraint()` (the picker calls it, as one undoable command); a
- * device's profile only flags what doesn't fit until the user asks to fit it.
+ * `eqCommands.reclampToActiveConstraint()` (the picker calls it through
+ * `eqChannelConflict.applyPreset`, as one undoable command); a device's profile only flags what
+ * doesn't fit until the user asks to fit it. Per-ear bands are the exception to both: no profile
+ * here can hold them, so `eqChannelConflict` asks to remove them or lift the restriction.
  */
 class EqConstraintsStore {
 	presets = $state<EqConstraintPreset[]>([...BUILTIN_PRESETS]);
@@ -97,6 +99,9 @@ class EqConstraintsStore {
 	constructor() {
 		this.restoreCatalog();
 		this.activeId = this.restoreActiveOrDefault(DEFAULT_CONSTRAINT_ID);
+		// A profile without per-ear EQ keeps the band list on the shared bucket. Per-ear bands never
+		// stay under one: `eqChannelConflict` asks to remove them or lift the restriction.
+		eqStore.lockChannelScopeWhile(() => !this.supportsPerChannel);
 	}
 
 	get active(): EqConstraintPreset {
@@ -135,6 +140,20 @@ class EqConstraintsStore {
 		return this.#analysis.violations.filter((v) => v.type || v.freq || v.q || v.gain).length;
 	}
 
+	/**
+	 * Whether the active profile can hold a different band list per ear. eqcaps v1 only knows
+	 * `channels: 'linked'` — one filter set drives both ears, `independent` is reserved (SPEC §9) —
+	 * so today that is the unlimited default alone. Extend this when eqcaps ships `independent`.
+	 */
+	get supportsPerChannel(): boolean {
+		return this.presetSupportsPerChannel(this.activeId);
+	}
+
+	/** `supportsPerChannel` for preset `id`, before it is active. */
+	presetSupportsPerChannel(id: string): boolean {
+		return id === DEFAULT_CONSTRAINT_ID;
+	}
+
 	/** Anything other than the unlimited default is limiting the filters. */
 	get isLimiting(): boolean {
 		return this.activeId !== DEFAULT_CONSTRAINT_ID;
@@ -149,9 +168,10 @@ class EqConstraintsStore {
 
 	/**
 	 * Add a profile picked from the eqcaps database and select it. Returns its preset id. Picking
-	 * one again replaces the stored copy, so a revised profile takes effect.
+	 * one again replaces the stored copy, so a revised profile takes effect. `select: false` only
+	 * adds it, for a caller that has to ask before the profile takes effect.
 	 */
-	addCatalogProfile(profile: Profile): string {
+	addCatalogProfile(profile: Profile, { select = true } = {}): string {
 		const preset: EqConstraintPreset = {
 			id: CATALOG_PREFIX + profile.id,
 			label: profileLabel(profile),
@@ -159,7 +179,7 @@ class EqConstraintsStore {
 			profile
 		};
 		this.upsert(preset);
-		this.setActive(preset.id);
+		if (select) this.setActive(preset.id);
 		try {
 			localStorage.setItem(CATALOG_LS_KEY, JSON.stringify(preset));
 		} catch {

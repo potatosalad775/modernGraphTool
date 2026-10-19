@@ -175,6 +175,44 @@ export class ApplyEqSnapshotCommand implements Command {
 	}
 }
 
+// ─── Apply a constraint, dropping per-ear bands ─────────────────────────────
+
+/**
+ * Make preset `id` the active constraint, removing the bands pinned to one ear (it drives both
+ * ears with one list) and folding the rest onto it. Unlike a plain preset pick, the constraint
+ * change is part of the command: undoing only the removal would bring per-ear bands back under a
+ * restriction that can't hold them.
+ */
+export class ApplyConstraintCommand implements Command {
+	readonly uuid = EQ_COMMAND_UUID;
+	readonly #id: string;
+	#prevId: string | null = null;
+	#oldFilters: EQFilter[] | null = null;
+	#newFilters: EQFilter[] | null = null;
+
+	constructor(id: string) {
+		this.#id = id;
+	}
+
+	execute(_store: FRStoreWriteAPI): void {
+		this.#prevId = eqConstraintsStore.activeId;
+		this.#oldFilters = eqStore.filters.map((f) => ({ ...f }));
+		eqConstraintsStore.setActive(this.#id);
+		// Computed once, so a redo lands the same list even if the profile has gone since.
+		this.#newFilters ??= conformFilters(
+			eqStore.filters.filter((f) => f.channel == null),
+			eqConstraintsStore.profile
+		);
+		eqStore.filters = this.#newFilters.map((f) => ({ ...f }));
+	}
+
+	undo(_store: FRStoreWriteAPI): void {
+		if (!this.#oldFilters || this.#prevId === null) return;
+		eqConstraintsStore.setActive(this.#prevId);
+		eqStore.filters = this.#oldFilters.map((f) => ({ ...f }));
+	}
+}
+
 // ─── Coalescing layer for rapid repeated edits ───────────────────────────────
 
 const COALESCE_WINDOW_MS = 400;
@@ -502,5 +540,19 @@ export const eqCommands = {
 		}
 		commandHistory.execute(new ReplaceEqFiltersCommand(next), frStore);
 		return true;
+	},
+
+	/** Activate preset `id` and drop the per-ear bands it can't hold, as one undo entry. */
+	applyConstraintDroppingPerChannel(id: string): void {
+		coalescer.clear();
+		commandHistory.execute(new ApplyConstraintCommand(id), frStore);
+	},
+
+	/** Remove every band pinned to one ear, as one undo entry. */
+	removePerChannelBands(): void {
+		coalescer.clear();
+		const next = eqStore.filters.filter((f) => f.channel == null);
+		if (next.length === eqStore.filters.length) return;
+		commandHistory.execute(new ReplaceEqFiltersCommand(next), frStore);
 	}
 };

@@ -2,7 +2,6 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
-	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { filtersInScope, type EqChannelScope } from '#lib/utils/eq-channel.js';
 	import { eqSourceChannels } from '#lib/utils/eq-source.js';
@@ -38,10 +37,14 @@
 	);
 
 	/**
-	 * A graphic preset fixes one row per band on a single output, so there is no
-	 * per-ear structure to edit — same reason add / remove / sort are disabled.
+	 * Any constraint but the unlimited default drives both ears with one filter
+	 * set (eqcaps v1 profiles are all `linked`), so there is no per-ear list to
+	 * edit. The store holds the scope on L+R while this is on
+	 * (`channelScopeLocked`), so a list left on one ear can't strand behind a
+	 * disabled picker. Per-ear bands never stay under a restriction: see
+	 * `services/eq-channel-conflict.svelte.ts`.
 	 */
-	const isGraphic = $derived(eqConstraintsStore.isGraphic);
+	const locked = $derived(eqStore.channelScopeLocked);
 	/** Linked with uniPEQ, the list is one list for both ears, as a device's is. */
 	const linked = $derived(linkStore.linked);
 
@@ -82,6 +85,6 @@
 		{options}
 		value={eqStore.channelScope}
 		onValueChange={select}
-		disabled={isGraphic || linked}
+		disabled={locked || linked}
 	/>
 </div>

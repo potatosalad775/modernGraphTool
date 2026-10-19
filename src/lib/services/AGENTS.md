@@ -22,6 +22,7 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `volume-warning.svelte.ts` — asks the user to pause or lower the volume before this page first
   changes what plays (a hardware EQ write or switch, the audio player), once per page session.
   A device linked from uniPEQ is uniPEQ's to warn about (`status.consent`, in `LinkDialogs`)
+- `eq-channel-conflict.svelte.ts` — left/right-only bands under a restriction; see below
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
@@ -48,6 +49,23 @@ so omitting the field makes the coalescer read a real edit as a no-op burst and 
 
 - It writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is active, otherwise
   keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
+
+## `eq-channel-conflict.svelte.ts` — per-ear bands under a restriction
+
+Every eqcaps v1 profile is `channels: 'linked'`, so a restriction and a left/right-only band never
+stand together: the band list would claim a restriction the EQ doesn't keep. The user is asked
+(`EqChannelConflictDialog`, in AppShell) to remove the bands or keep them without the restriction.
+Don't replace it with a warning beside the bands, or with a picker that stays open for them.
+
+- **A preset pick asks first** (`applyPreset`), so Cancel changes nothing. Remove is
+  `ApplyConstraintCommand`, whose undo restores the previous constraint _with_ the bands — undoing
+  only the removal would recreate the conflict.
+- **Everything else is caught after the fact** by the effect `install()` sets up: a device
+  connecting, an undo past an edit made before the pick, a `?share=` link opening on a saved
+  restriction. Keep there means the unlimited default; for a device, "don't restrict to it" (its
+  preset stays in the picker, and the push review already lists per-ear bands as not sent).
+- An import needs no question: `EqFilterList` drops back to unlimited before importing. A/B entries
+  with per-ear bands are gated as not fitting in `EqHistoryAndCompare`.
 
 ## `device-peq-service.svelte.ts` — Device PEQ actions and auto-write
 

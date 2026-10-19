@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
-	import { eqCommands } from '#lib/services/eq-commands.js';
+	import { eqChannelConflict } from '#lib/services/eq-channel-conflict.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import type { IndexEntry } from '@potatosalad775/eqcaps-core';
 	import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
@@ -103,8 +103,7 @@
 	function selectPreset(id: string) {
 		open = false;
 		if (!id || id === eqConstraintsStore.activeId) return;
-		eqConstraintsStore.setActive(id);
-		eqCommands.reclampToActiveConstraint();
+		eqChannelConflict.applyPreset(id);
 	}
 
 	async function selectEntry(entry: IndexEntry) {
@@ -118,8 +117,7 @@
 			return;
 		}
 		open = false;
-		eqConstraintsStore.addCatalogProfile(profile);
-		eqCommands.reclampToActiveConstraint();
+		eqChannelConflict.applyPreset(eqConstraintsStore.addCatalogProfile(profile, { select: false }));
 	}
 
 	const rowClass =

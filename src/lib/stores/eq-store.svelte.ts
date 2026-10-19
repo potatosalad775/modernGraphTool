@@ -25,8 +25,31 @@ class EQStore {
 	 * navigation, not an edit — an undo entry per switch would bury the real
 	 * edits, and a share link that reopened on someone else's scope would be
 	 * noise. The `sourcePhoneUUID` setter resets it to `BOTH` when the device changes.
+	 *
+	 * Reads `BOTH` while `channelScopeLocked` holds, whatever was picked: under a restriction there
+	 * is only the shared bucket, and a list left on `L` would show nothing with the picker that
+	 * leads back disabled. The pick is kept, so lifting the restriction reopens the ear the user was
+	 * on.
 	 */
-	channelScope = $state<EqChannelScope>('BOTH');
+	get channelScope(): EqChannelScope {
+		return this.channelScopeLocked ? 'BOTH' : this.#channelScope;
+	}
+	set channelScope(scope: EqChannelScope) {
+		this.#channelScope = scope;
+	}
+	#channelScope = $state<EqChannelScope>('BOTH');
+	/** Whether the band list is held on the shared bucket. See `lockChannelScopeWhile`. */
+	get channelScopeLocked(): boolean {
+		return this.#scopeLock();
+	}
+	#scopeLock: () => boolean = () => false;
+	/**
+	 * Hold the scope on `BOTH` while `predicate` is true. `eqConstraintsStore` installs it (a profile
+	 * without per-ear EQ); injected rather than imported, since that store imports this one.
+	 */
+	lockChannelScopeWhile(predicate: () => boolean): void {
+		this.#scopeLock = predicate;
+	}
 	#sourcePhoneUUID = $state<string | null>(null);
 	/** UUID of the phone to apply EQ to (EQ preview) */
 	get sourcePhoneUUID(): string | null {

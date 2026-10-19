@@ -30,6 +30,7 @@
 	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { fitsProfile } from '#lib/utils/eq-constraint.js';
+	import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
 	import type { EqState } from '#lib/utils/eq-snapshot.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
@@ -84,6 +85,8 @@
 	// constraint change re-gates entries already picked.
 	const constraintLabel = $derived(eqConstraintsStore.active.label);
 	function fits(entry: EqState): boolean {
+		// Left/right-only bands don't fit a restriction that drives both ears with one list.
+		if (!eqConstraintsStore.supportsPerChannel && hasPerChannelFilters(entry.filters)) return false;
 		return fitsProfile(entry.filters, eqConstraintsStore.profile);
 	}
 	const aBlocked = $derived(aEntry !== null && !fits(aEntry));

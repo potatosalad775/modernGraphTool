@@ -24,5 +24,14 @@
 	"tutorial_eq_bypass_hint": "Tip: hold the backslash (\\) key to flip the EQ on or off for a quick comparison.",
 	"tutorial_eq_hardware_content": "Happy with it? Hardware EQ writes your bands straight to a supported device.",
 	"tutorial_eq_replay_hint": "You can replay this tour anytime from the ? button at the top of this panel.",
-	"tutorial_eq_replay_btn": "Show equalizer tour"
+	"tutorial_eq_replay_btn": "Show equalizer tour",
+	"eq_channel_conflict_title": "Remove left/right-only bands?",
+	"eq_channel_conflict_body": {
+		"one": "{label} uses one band list for both ears, so it can't keep {count} left/right-only band.",
+		"other": "{label} uses one band list for both ears, so it can't keep {count} left/right-only bands."
+	},
+	"eq_channel_conflict_remove": "Remove bands",
+	"eq_channel_conflict_cancel": "Cancel",
+	"eq_channel_conflict_keep_device": "Don't restrict to device",
+	"eq_channel_conflict_keep_restriction": "Remove restriction"
 }

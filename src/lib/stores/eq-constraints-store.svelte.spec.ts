@@ -147,6 +147,37 @@ describe('eqConstraintsStore built-ins', () => {
 	});
 });
 
+describe('eqConstraintsStore channel scope lock', () => {
+	beforeEach(() => {
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		eqStore.filters = [];
+		eqStore.channelScope = 'L';
+	});
+
+	it('holds the list on L+R under any restriction — eqcaps v1 profiles are linked', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+		expect(eqStore.channelScope).toBe('BOTH');
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
+		expect(eqStore.channelScope).toBe('BOTH');
+		eqConstraintsStore.clearDeviceConstraint();
+	});
+
+	it('returns to the ear the user was on once the restriction is lifted', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		expect(eqStore.channelScope).toBe('L');
+	});
+
+	it('never locks under the unlimited default', () => {
+		expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+		expect(eqStore.channelScopeLocked).toBe(false);
+		expect(eqStore.channelScope).toBe('L');
+	});
+});
+
 describe('eqConstraintsStore setActive', () => {
 	beforeEach(() => {
 		eqConstraintsStore.presets = [

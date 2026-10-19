@@ -157,6 +157,15 @@
 		"one": "+ {count} shared band also applies to this channel.",
 		"other": "+ {count} shared bands also apply to this channel."
 	},
+	"eq_channel_conflict_title": "Remove left/right-only bands?",
+	"eq_channel_conflict_body": {
+		"one": "{label} uses one band list for both ears, so it can't keep {count} left/right-only band.",
+		"other": "{label} uses one band list for both ears, so it can't keep {count} left/right-only bands."
+	},
+	"eq_channel_conflict_remove": "Remove bands",
+	"eq_channel_conflict_cancel": "Cancel",
+	"eq_channel_conflict_keep_device": "Don't restrict to device",
+	"eq_channel_conflict_keep_restriction": "Remove restriction",
 	"eq_channel_device_peq_shared_only": [
 		{
 			"declarations": [

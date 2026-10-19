@@ -75,7 +75,8 @@ fetched at boot).
   eqcaps is the shared service that replaced it; device data is fixed there.
 - **Activating a constraint never edits the filters by itself.** The picker folds the list
   (`eqCommands.reclampToActiveConstraint`, one undo entry) because the user asked; a connected device
-  only flags. Keep `setDeviceConstraint` free of filter writes.
+  only flags. Keep `setDeviceConstraint` free of filter writes. Left/right-only bands are the one
+  thing neither path lets stand — see `eq-channel-conflict` in `services/AGENTS.md`.
 - **`slots` / `violations` are one class-field `$derived` over `eqStore.filters`**, so every
   `EqFilterCard` reads one assignment instead of running eqcaps' `assign` per card. Cards therefore
   only show violations for bands that are in `eqStore` — specs mount the filter there too.
@@ -97,6 +98,12 @@ recording it would bury real edits under navigation, and a share link reopening 
 scope is noise. The `sourcePhoneUUID` setter resets it to `'BOTH'` when the device changes (not when the
 first one is picked) — leaving it on `L` would open the next device on an empty list. It used to be
 an `EqualizerPanel` effect, which missed a device change made while another panel was open.
+It also **reads `BOTH` while `channelScopeLocked` holds** — a profile without per-ear EQ
+(`supportsPerChannel`: every eqcaps v1 profile is `channels: 'linked'`, so anything but the
+unlimited default), a predicate `eqConstraintsStore` injects. A restriction has only the shared
+bucket, so a list left on `L` showed nothing behind a disabled picker. Keep it a getter rather than
+resetting the field where a preset activates: redo and a device connecting reach that state without
+passing through the picker.
 
 **`eq-store.svelte.ts` — `sourceSample` is reset by the `sourcePhoneUUID` setter, and only there.**
 A run index means nothing on another device, so changing device drops it inside the store rather

@@ -31,6 +31,8 @@
 	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
 	import VolumeWarningDialog from '#lib/components/features/VolumeWarningDialog.svelte';
 	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
+	import EqChannelConflictDialog from '#lib/components/equalizer/EqChannelConflictDialog.svelte';
+	import { eqChannelConflict } from '#lib/services/eq-channel-conflict.svelte.js';
 	import { Toaster, toast } from 'svelte-sonner';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
@@ -95,6 +97,7 @@
 		// History & Compare: the session log, and the saved bookmarks A/B can pick.
 		eqBookmarkStore.hydrate();
 		eqHistoryStore.install();
+		eqChannelConflict.install();
 
 		// A reload in a linked tab rejoins the session; uniPEQ keeps its approval. Loaded only then,
 		// so the link costs the boot nothing.
@@ -342,6 +345,9 @@
 	open={volumeWarning.open}
 	onAnswer={(go, quiet) => volumeWarning.answer(go, quiet)}
 />
+
+<!-- Left/right-only bands under a restriction: a device can connect with the Equalizer closed. -->
+<EqChannelConflictDialog />
 
 <!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
 {#if linkStore.choice || linkStore.status?.review || linkStore.status?.consent}

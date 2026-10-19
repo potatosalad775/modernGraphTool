@@ -17,6 +17,7 @@
 	import Switch from '../atoms/Switch.svelte';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
+	import { anchorScroll } from '#lib/utils/scroll-anchor.js';
 
 	// Load turboEQ while the user is still picking a source and target, so the
 	// first Run doesn't pay for the worker boot and wasm compile. Idempotent, so
@@ -55,8 +56,11 @@
 			<CircleQuestionMark class="h-4 w-4" aria-hidden="true" />
 		</Button>
 	</div>
+	<!-- One scroller below 720px: applying an EQ from the accordion resizes the band
+	     list above it, and `anchorScroll` keeps the pressed control where it was. -->
 	<div
 		class="flex min-h-0 flex-1 flex-col overflow-y-auto @[720px]/eq:flex-row @[720px]/eq:overflow-hidden"
+		{@attach anchorScroll}
 	>
 		<!-- Filter band editor — left column when wide -->
 		<div
@@ -74,6 +78,7 @@
 					value="auto-eq"
 					title={m.equalizer_auto_eq_label()}
 					class="px-1"
+					revealOnOpen
 					data-tutorial-target="eq_autoeq"
 				>
 					<div class="flex flex-col gap-2 p-2 pt-1">
@@ -87,6 +92,7 @@
 					value="audio-player"
 					title={m.equalizer_player_label()}
 					class="px-1"
+					revealOnOpen
 					data-tutorial-target="eq_listen"
 				>
 					<div class="p-2 pt-1">
@@ -99,6 +105,7 @@
 					value="history-compare"
 					title={m.eq_history_accordion_title()}
 					class="px-1"
+					revealOnOpen
 					data-tutorial-target="eq_listen"
 				>
 					<div class="p-2 pt-1">
@@ -116,6 +123,7 @@
 					value="device-peq"
 					title={m.equalizer_device_peq_label()}
 					class="px-1"
+					revealOnOpen
 					data-tutorial-target="eq_hardware"
 				>
 					<div class="p-2 pt-1">
@@ -126,7 +134,12 @@
 				</AccordionItem>
 				<div class="my-1 h-px w-full bg-base-content/20"></div>
 				<!-- EQ Settings — AutoEQ persist + Link-EQ-normalization -->
-				<AccordionItem value="eq-settings" title={m.eq_settings_accordion_title()} class="px-1">
+				<AccordionItem
+					value="eq-settings"
+					title={m.eq_settings_accordion_title()}
+					class="px-1"
+					revealOnOpen
+				>
 					<div class="p-2 pt-1">
 						<EqSettings />
 					</div>

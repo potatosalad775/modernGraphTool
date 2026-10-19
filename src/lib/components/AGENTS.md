@@ -68,6 +68,19 @@ four.
 - `size="sm"` for a row of `icon-sm` buttons, the `xs` default beside a text label. Spacing against
   the layout (`ml-0.5`) goes in `class`; the body wrapper supplies the text size and paragraph gap.
 
+`AccordionItem` takes `revealOnOpen`: opening the section scrolls its nearest scroller just far
+enough to show it, never past its header (`revealInScrollParent` in `utils/scroll-anchor.ts`).
+It keeps following the section as it grows for 1.5 s (`followReveal`), until the user scrolls or
+touches anything: Hardware EQ's content is a lazy import, so a single reveal measured a placeholder.
+Opt-in, so accordions inside popovers and the graph controls don't move.
+
+**The EQ panel keeps the pressed control still (`anchorScroll`).** Below 720px the band list and
+the accordion share one scroller, so A/B, AutoEQ Run or a Device PEQ pull resizes the list _above_
+the button just pressed. iOS Safari has no CSS scroll anchoring, so the attachment does it by hand:
+it anchors to the last pointer-down or focus target and corrects `scrollTop` from a
+`ResizeObserver`. Its `scroll` handler must ignore the clamp a shrink causes near the end of the
+scroller — that event lands before the observer and would otherwise zero the correction.
+
 Only `Button` merges its classes. On a raw element — the inputs in `EqFilterCard`, say — two
 conflicting utilities still tie on specificity, so `!` remains the way to force one.
 

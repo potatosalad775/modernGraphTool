@@ -2,16 +2,26 @@
 	import { ChevronDown } from '@lucide/svelte';
 	import { Accordion, type WithChildren } from 'bits-ui';
 	import { fade } from 'svelte/transition';
+	import { followReveal } from '#lib/utils/scroll-anchor.js';
 
 	let {
 		duration = 200,
+		revealOnOpen = false,
 		title,
 		children,
 		...restProps
 	}: WithChildren<Accordion.ItemProps> & {
 		duration?: number;
+		/** Scroll the opened section into view, header kept on screen. */
+		revealOnOpen?: boolean;
 		title: string;
 	} = $props();
+
+	// Runs when the content mounts, i.e. on open, and follows content that
+	// loads in after it.
+	function reveal(node: HTMLElement) {
+		return followReveal(node, node.closest('[data-accordion-item]') ?? node);
+	}
 </script>
 
 <Accordion.Item {...restProps}>
@@ -26,7 +36,7 @@
 	<Accordion.Content>
 		{#snippet child({ props, open })}
 			{#if open}
-				<div {...props} transition:fade={{ duration }}>
+				<div {...props} transition:fade={{ duration }} {@attach revealOnOpen && reveal}>
 					{@render children?.()}
 				</div>
 			{/if}

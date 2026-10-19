@@ -15,6 +15,7 @@
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqBookmarkStore } from '#lib/stores/eq-bookmark-store.svelte.js';
+	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { hasSavedLinkSession, linkConfig } from '#lib/services/link-config.js';
 	import { urlProvider } from '#lib/utils/url-provider.js';
 	import TopNavBar from './TopNavBar.svelte';
@@ -98,6 +99,7 @@
 		eqBookmarkStore.hydrate();
 		eqHistoryStore.install();
 		eqChannelConflict.install();
+		eqConstraintsStore.install();
 
 		// A reload in a linked tab rejoins the session; uniPEQ keeps its approval. Loaded only then,
 		// so the link costs the boot nothing.

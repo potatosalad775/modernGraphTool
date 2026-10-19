@@ -80,6 +80,10 @@ fetched at boot).
 - **`slots` / `violations` are one class-field `$derived` over `eqStore.filters`**, so every
   `EqFilterCard` reads one assignment instead of running eqcaps' `assign` per card. Cards therefore
   only show violations for bands that are in `eqStore` — specs mount the filter there too.
+- **A graphic profile never sits over an empty list** — `install()` (from `AppShell.onMount`) seeds
+  its bands flat, outside undo. Add/remove are disabled under one, so an empty list had no way back,
+  and paths reach it without the picker: a reload (restriction from localStorage, no EQ in the URL),
+  an undo past the preset pick.
 
 **`eq-store.svelte.ts` — per-channel EQ is one flat array plus an optional field.**
 `EQFilter.channel` is `'L' | 'R' | undefined`, and **absent means shared** (the band reaches both

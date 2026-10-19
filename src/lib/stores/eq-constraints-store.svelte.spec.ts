@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { flushSync } from 'svelte';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
@@ -197,5 +198,43 @@ describe('eqConstraintsStore setActive', () => {
 		eqConstraintsStore.setActive('alt');
 		expect(eqConstraintsStore.activeId).toBe('alt');
 		expect(localStorage.getItem('gt-eq-constraint-active-id')).toBe('alt');
+	});
+});
+
+// Last in the file: `install()` is page-lifetime, so it stays on for anything after it.
+describe('eqConstraintsStore graphic rows', () => {
+	beforeEach(() => {
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		eqStore.filters = [];
+		eqConstraintsStore.install();
+		flushSync();
+	});
+
+	it('seeds flat fixed bands when a graphic profile comes back over an empty list', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		flushSync();
+		expect(eqStore.filters.map((f) => f.freq)).toEqual([
+			31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000
+		]);
+		expect(eqStore.filters.every((f) => f.gain === 0 && f.enabled)).toBe(true);
+	});
+
+	it('refills the rows when the list empties under a graphic profile', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		flushSync();
+		eqStore.filters = [];
+		flushSync();
+		expect(eqStore.filters).toHaveLength(10);
+	});
+
+	it('leaves an existing list and the unlimited default alone', () => {
+		flushSync();
+		expect(eqStore.filters).toEqual([]);
+		const filters = [{ enabled: true, type: 'PK' as const, freq: 1000, q: 1, gain: 3 }];
+		eqStore.filters = filters;
+		eqConstraintsStore.activeId = 'generic-10-band';
+		flushSync();
+		expect(eqStore.filters).toEqual(filters);
 	});
 });

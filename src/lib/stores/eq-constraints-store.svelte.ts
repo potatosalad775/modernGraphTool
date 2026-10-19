@@ -1,8 +1,10 @@
+import { untrack } from 'svelte';
 import type { Profile } from '@potatosalad775/eqcaps-core';
 import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 import { eqStore } from './eq-store.svelte.js';
 import {
 	assignSlots,
+	conformFilters,
 	filterViolations,
 	graphicProfile,
 	isGraphicProfile,
@@ -82,6 +84,7 @@ class EqConstraintsStore {
 	activeId = $state<string>(DEFAULT_CONSTRAINT_ID);
 	/** Active id snapshot before a device's preset took over — restored on disconnect. */
 	#preDeviceActiveId: string | null = null;
+	#installed = false;
 
 	/**
 	 * The live band list read against the active profile, computed once per change and shared by
@@ -102,6 +105,27 @@ class EqConstraintsStore {
 		// A profile without per-ear EQ keeps the band list on the shared bucket. Per-ear bands never
 		// stay under one: `eqChannelConflict` asks to remove them or lift the restriction.
 		eqStore.lockChannelScopeWhile(() => !this.supportsPerChannel);
+	}
+
+	/**
+	 * Keep a graphic profile's rows in the list. Its bands are fixed, so add/remove are disabled,
+	 * and an empty list leaves nothing to edit and no way to get rows back. Paths there: a reload
+	 * (the restriction comes back from localStorage, the URL carries no EQ), an undo past the
+	 * preset pick. Seeds the bands flat — sounds the same as no EQ, so outside undo history.
+	 * Installed once from `AppShell.onMount`, never disposed.
+	 */
+	install(): void {
+		if (this.#installed) return;
+		this.#installed = true;
+		$effect.root(() => {
+			$effect(() => {
+				if (!this.isGraphic || eqStore.filters.length > 0) return;
+				const profile = this.profile;
+				untrack(() => {
+					eqStore.filters = conformFilters([], profile);
+				});
+			});
+		});
 	}
 
 	get active(): EqConstraintPreset {

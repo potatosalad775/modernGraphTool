@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
 	import { Dialog } from 'bits-ui';
+	import { fade } from 'svelte/transition';
 	import * as m from '#lib/paraglide/messages.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { menuStore } from '#lib/stores/menu-store.svelte.js';
@@ -172,9 +173,14 @@
 				? ''
 				: 'bg-black/50 backdrop-blur-sm'}"
 		/>
-		{#if hasSpotlight}
+		<!--
+			Gated on `isOpen` too: the Portal renders its children whether or not the dialog
+			is open, and closing keeps the last rect, so `hasSpotlight` alone outlives it.
+		-->
+		{#if tutorialStore.isOpen && hasSpotlight}
 			<div
 				aria-hidden="true"
+				out:fade={{ duration: 150 }}
 				class="pointer-events-none fixed z-40 rounded-lg border-2 border-accent transition-all duration-300 ease-out"
 				style={spotlightStyle}
 			></div>

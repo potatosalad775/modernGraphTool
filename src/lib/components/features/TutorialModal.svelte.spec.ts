@@ -256,6 +256,21 @@ describe('TutorialModal', () => {
 			});
 		});
 
+		it('takes the cut-out down with it when Done is pressed on a spotlight step', async () => {
+			// The Equalizer tour ends on a targeted step, so a rect is still held at close.
+			localStorage.setItem(STORAGE_KEY, 'true');
+			menuStore.currentPanel = 'equalizer';
+			plantTarget('eq_hardware');
+			await openModal();
+			await goToLastStep();
+			await vi.waitFor(() => expect(spotlight()).not.toBeNull());
+
+			await click(button(m.tutorial_modal_btn_done()));
+
+			await expectClosed();
+			await vi.waitFor(() => expect(spotlight()).toBeNull());
+		});
+
 		it('still closes on Escape', async () => {
 			await openModal();
 			document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));

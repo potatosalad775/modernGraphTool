@@ -110,6 +110,7 @@ html {
 	overscroll-behavior-y: none;
 	touch-action: manipulation;
 	height: 100dvh;
+	overflow: hidden;
 }
 
 /* ─── User select ─────────────────────────────────────────────────────────── */

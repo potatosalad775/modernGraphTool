@@ -76,6 +76,12 @@ jobs:
             ' docs/src/content/docs/changelog.mdx > changelog-section.md || true
           fi
 
+          # Changelog links are relative to the docs site; make them absolute. On
+          # failure keep the unrewritten section rather than dropping it.
+          if [ -s changelog-section.md ] && node scripts/release-notes-links.js             < changelog-section.md > changelog-section.resolved.md; then
+            mv changelog-section.resolved.md changelog-section.md
+          fi
+
           if [ -s changelog-section.md ]; then
             {
               echo "## Changelog"
@@ -112,7 +118,7 @@ jobs:
           Lightweight package for auto-updating deployments. The core application is loaded from
           `cdn.jsdelivr.net` — you only host your config, theme, and data files.
 
-          See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs) for setup.
+          See [CDN deployment docs](https://potatosalad775.github.io/modernGraphTool/docs/guide-for-admins/deployment/cdn/) for setup.
           DOWNLOADS
 
       # ── Build full dist/ ──────────────────────────────────────────────

@@ -9,9 +9,7 @@ import remarkHeadingIds from './src/plugins/remark-heading-ids.mjs';
 import remarkDocsLinks from './src/plugins/remark-docs-links.mjs';
 import { sidebar } from './src/sidebar.ts';
 import { llmsTxtConfig } from './src/llms-txt.config.ts';
-
-const SITE = 'https://potatosalad775.github.io';
-const BASE = '/modernGraphTool/docs';
+import { SITE, BASE } from './site.mjs';
 
 /**
  * Docusaurus generated a `/category/<slug>` page for every sidebar category.

@@ -169,7 +169,11 @@
 	// --- Set SvelteKit global ---
 	// `base` is the deployment subpath (empty for root deployments).
 	// `assets` points to the CDN (for dynamic chunk imports).
-	window[boot.global_name] = { base: baseDir, assets: boot.assets_base };
+	// `version` is the build's app version; SvelteKit 3 reads it from this payload rather than
+	// baking it in, and compares it against _app/version.json.
+	const payload = { base: baseDir, assets: boot.assets_base };
+	if (boot.app_version != null) payload.version = boot.app_version;
+	window[boot.global_name] = payload;
 
 	// --- Boot SvelteKit ---
 	const appElement =
@@ -183,8 +187,14 @@
 	}
 
 	try {
-		const [kit, app] = await Promise.all([import(boot.start_url), import(boot.app_url)]);
-		kit.start(app, appElement);
+		// SvelteKit 3's start entry loads the client runtime only once `init(payload)` runs, and
+		// the app entry must evaluate after it ($app/paths reads the payload at import time). Both
+		// files are already modulepreloaded, so the sequencing costs no extra round trip.
+		// SvelteKit 2 builds (older pinned versions) have no `init` and read the global directly.
+		const kit = await import(boot.start_url);
+		if (typeof kit.init === 'function') kit.init(payload);
+		const app = await import(boot.app_url);
+		await kit.start(app, appElement);
 	} catch (err) {
 		showError(
 			'Failed to start the application.',

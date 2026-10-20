@@ -73,6 +73,14 @@ const assetsRegex = /assets:\s*"([^"]+)"/;
 const assetsMatch = html.match(assetsRegex);
 const assetsBase = assetsMatch ? assetsMatch[1] : '';
 
+// SvelteKit 3 passes the app version through the payload instead of baking it into the bundle,
+// so the loader has to supply it: version: "1792115803020"
+const appVersionMatch = html.match(/version:\s*"([^"]+)"/);
+if (!appVersionMatch) {
+	console.error('Could not find the SvelteKit app version in index.html');
+	process.exit(1);
+}
+
 // The fallback page knows no route, so index.html preloads only the root layout node. The
 // router then imports the page and error nodes once the entry chunks have run — one more
 // round trip, and a ~1 s one when jsDelivr's edge has not cached a new release yet. The app
@@ -91,6 +99,7 @@ const rebase = (url) =>
 const bootManifest = {
 	version,
 	assets_base: rebase(assetsBase),
+	app_version: appVersionMatch[1],
 	global_name: globalName,
 	start_url: rebase(startUrl),
 	app_url: rebase(appUrl),

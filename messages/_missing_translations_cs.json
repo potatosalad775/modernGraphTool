@@ -10,6 +10,7 @@
 		"Whole sentence: \"key\": { \"one\": \"{count} band\", \"few\": \"{count} bands\", \"other\": \"...\" }",
 		"  (add \"plural\": \"total\" to count another input instead of {count}).",
 		"Inside a sentence, # is the number: \"Read {count, plural, one {# band} other {# bands}}\"",
+		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
 	"phone_selector_search_help_btn": "Search tips",

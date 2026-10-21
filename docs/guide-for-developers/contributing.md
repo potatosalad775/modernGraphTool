@@ -20,7 +20,7 @@ your first pull request; the [Overview](./overview.mdx) has the architecture and
 
 - **Bug fixes** — always welcome.
 - **Accessibility improvements** — the target is WCAG AAA.
-- **Translations** — no code required. See the [translation flow](./i18n.mdx#translation-contribution-flow).
+- **Translations** — no code required. See [Translating](./translating.mdx).
 - **Documentation** — typo fixes, clarifications, new guides. The sources live in
   `docs/src/content/docs/`.
 - **Features** — please [open an issue](https://github.com/potatosalad775/modernGraphTool/issues)

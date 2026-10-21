@@ -19,7 +19,7 @@ draft: false
 
 - **버그 수정**: 언제나 환영합니다.
 - **접근성 개선**: 목표는 WCAG AAA입니다.
-- **번역**: 코드를 몰라도 됩니다. [번역 기여 흐름](./i18n.mdx#translation-contribution-flow)을 보세요.
+- **번역**: 코드를 몰라도 됩니다. [번역하기](./translating.mdx)를 보세요.
 - **문서**: 오타 수정, 설명 보완, 새 가이드. 소스는 `docs/src/content/docs/`에 있습니다.
 - **기능**: 먼저 [이슈를 열어](https://github.com/potatosalad775/modernGraphTool/issues) 접근 방식을
   논의해 주세요.

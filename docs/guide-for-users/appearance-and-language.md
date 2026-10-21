@@ -30,6 +30,8 @@ Pick one and the UI strings switch immediately. Device names, target names, and 
 
 If the site hasn't enabled i18n, the selector is hidden and the UI uses whatever the operator picked as the default language.
 
+Missing your language, or spotted a clumsy translation? You can fix it yourself in your browser, no code required. See [Translating](../guide-for-developers/translating.mdx).
+
 ## Per-curve color
 
 The color swatch at the start of each selection-list row opens a small **color picker** popover. Use it when the auto-assigned palette doesn't give you enough contrast — for example, two loaded headphones ended up in similar blues and you can't tell which line is which.

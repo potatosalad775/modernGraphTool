@@ -60,5 +60,5 @@ modernGraphTool is open source software licensed under the MIT License.
 [SQUIGLINK_LAB]: https://github.com/squiglink/lab
 [DEVICE_PEQ]: https://github.com/jeromeof/devicePEQ
 [EQCAPS]: https://github.com/potatosalad775/eqcaps
-[CONTRIBUTING_I18N]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/#translation-contribution-flow
+[CONTRIBUTING_I18N]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/translating/
 [CONTRIBUTING]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/contributing/

@@ -155,7 +155,8 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 			{ slug: 'guide-for-developers/contributing' },
 			{ slug: 'guide-for-developers/testing' },
 			{ slug: 'guide-for-developers/build-and-deploy' },
-			{ slug: 'guide-for-developers/i18n' }
+			{ slug: 'guide-for-developers/i18n' },
+			{ slug: 'guide-for-developers/translating' }
 		]
 	},
 	{ slug: 'changelog' },

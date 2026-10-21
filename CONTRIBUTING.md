@@ -13,8 +13,8 @@ The rest of the developer guide:
 - [Overview][overview]: tech stack, project layout, build commands
 - [Testing][testing]: the two Vitest projects, the coverage ratchet, CI
 - [Build & Deployment Internals][build]: build outputs and how `defaults/` reaches them
-- [Internationalization][i18n]: UI strings, adding a language, and the
-  [translation flow][translating] (no code required)
+- [Internationalization][i18n]: UI strings, plurals, and the translation tooling
+- [Translating][translating]: translate in your browser with Fink, no code required
 
 ## Quick start
 
@@ -45,4 +45,4 @@ By contributing, you agree that your contributions will be licensed under the [M
 [testing]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/testing/
 [build]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/build-and-deploy/
 [i18n]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/
-[translating]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/#translation-contribution-flow
+[translating]: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/translating/

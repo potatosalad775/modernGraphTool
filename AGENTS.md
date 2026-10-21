@@ -185,6 +185,10 @@ Keys are `underscore_separated` (`menu_graph_panel`, not `menu.graphPanel`). Gen
 partial translations are welcome and untranslated strings just render in English.
 
 Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en.json`.
+Translators contribute through [Fink](https://fink.inlang.com), which edits `messages/<locale>.json`
+straight from GitHub and lets them add a locale themselves; the `_missing_translations_*` staging
+files are the offline fallback. Translator walkthrough:
+[guide-for-developers/translating.mdx](docs/src/content/docs/guide-for-developers/translating.mdx).
 Full details — adding a locale, the `i18n:missing` / `i18n:apply` translator flow, why `check`
 compiles first — are in [guide-for-developers/i18n.mdx](docs/src/content/docs/guide-for-developers/i18n.mdx).
 

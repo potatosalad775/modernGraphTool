@@ -52,7 +52,7 @@ afterEach(() => {
 });
 
 /** The trigger's accessible name comes from its `aria-label`, which never varies. */
-const trigger = () => page.getByRole('button', { name: 'Select a site' });
+const trigger = () => page.getByRole('combobox', { name: 'Select a site' });
 
 /** Mounts and waits for the singleton's fetch to settle. */
 async function mount() {

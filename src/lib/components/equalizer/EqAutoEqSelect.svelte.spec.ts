@@ -24,9 +24,9 @@ function add(uuid: string, type: FRDataType, identifier = uuid, dispSuffix?: str
 	} as unknown as FRDataObject);
 }
 
-/** The trigger: bits-ui renders it as a button with `aria-haspopup="listbox"`. */
+/** The trigger: bits-ui renders it as a `role="combobox"` button with `aria-haspopup="listbox"`. */
 function select() {
-	return page.getByRole('button');
+	return page.getByRole('combobox');
 }
 
 /** Opens the picker and returns its option labels in document order. */

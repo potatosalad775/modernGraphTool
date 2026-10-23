@@ -36,7 +36,7 @@ function addPhone(uuid: string, identifier: string): void {
 }
 
 function trigger() {
-	return page.getByRole('button');
+	return page.getByRole('combobox');
 }
 
 async function open(): Promise<void> {

@@ -52,7 +52,7 @@ describe('SiteSelector on a listed deployment', () => {
 
 		// `aria-label` stays the generic string, so the site name has to be read off
 		// the trigger's text rather than its accessible name.
-		const trigger = page.getByRole('button', { name: 'Select a site' });
+		const trigger = page.getByRole('combobox', { name: 'Select a site' });
 		await expect.element(trigger).toHaveTextContent('This Deployment');
 	});
 });

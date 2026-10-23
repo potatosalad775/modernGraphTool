@@ -12,6 +12,7 @@
 	"phone_selector_search_help_commas": "Разделите устройства запятыми, чтобы найти сразу несколько.",
 	"phone_selector_search_help_cross_site": "В результатах из других баз данных перечислены только сайты, содержащие все устройства, которые вы указали.",
 	"phone_selector_search_help_alternatives": "Разделите различные варианты написания названия одного устройства символами //, чтобы найти любой из них.",
+	"phone_selector_search_help_exclude": "Поставьте знак «-» перед словом, чтобы исключить устройства, содержащие это слово.",
 	"phone_selector_item_rank": "Оценка: {rank}",
 	"phone_selector_item_review": "Обзор",
 	"phone_selector_item_shop": "Купить",
@@ -149,6 +150,8 @@
 	"normalizer_input_hz_btn": "Гц",
 	"normalizer_input_avg_btn": "Усредн.",
 	"smoothing_button_label": "Сглаживание",
+	"smoothing_variable_label": "Переменное сглаживание",
+	"smoothing_psychoacoustic_label": "Психоакустическое сглаживание",
 	"screenshot_button_label": "Скриншот",
 	"y_axis_scale_button_label": "Масштаб оси Y",
 	"inspection_toggle_label": "Инспекция",
@@ -425,7 +428,7 @@
 	"eq_constraint_locked": "Зафиксировано {label}",
 	"eq_constraint_type_violation": "{label} не принимает этот тип фильтра здесь",
 	"eq_constraint_slot_label": "Полоса {slot}: {label}",
-	"eq_constraint_active": "Ограничено до {label}",
+	"eq_constraint_active": "Применённые ограничения: {label}",
 	"eq_constraint_fit": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],

@@ -12,6 +12,7 @@
 	"phone_selector_search_help_commas": "Розділіть пристрої комами, щоб знайти одразу кілька.",
 	"phone_selector_search_help_cross_site": "У результатах з інших баз даних перелічено лише сайти, що містять усі пристрої, які ви вказали.",
 	"phone_selector_search_help_alternatives": "Розділіть різні варіанти написання назви одного пристрою символами //, щоб знайти будь-який із них.",
+	"phone_selector_search_help_exclude": "Поставте символ «-» перед словом, щоб виключити пристрої, які містять це слово.",
 	"phone_selector_item_rank": "Оцінка: {rank}",
 	"phone_selector_item_review": "Огляд",
 	"phone_selector_item_shop": "Купити",
@@ -149,6 +150,8 @@
 	"normalizer_input_hz_btn": "Гц",
 	"normalizer_input_avg_btn": "Усередн.",
 	"smoothing_button_label": "Згладжування",
+	"smoothing_variable_label": "Змінне згладжування",
+	"smoothing_psychoacoustic_label": "Психоакустичне згладжування",
 	"screenshot_button_label": "Скріншот",
 	"y_axis_scale_button_label": "Масштаб осі Y",
 	"inspection_toggle_label": "Інспекція",
@@ -425,7 +428,7 @@
 	"eq_constraint_locked": "Зафіксовано {label}",
 	"eq_constraint_type_violation": "{label} не приймає цей тип фільтра тут",
 	"eq_constraint_slot_label": "Смуга {slot}: {label}",
-	"eq_constraint_active": "Обмежено до {label}",
+	"eq_constraint_active": "Застосовані обмеження: {label}",
 	"eq_constraint_fit": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],

@@ -55,6 +55,24 @@ HD 600 *and* either spelling of the Lyro.
 A single `/` is still part of the search term — plenty of device names contain one, such as
 `16/Cosmos` or `HD650/HD6XX`, and none contain two.
 
+## Excluding words
+
+A model that shares its name with a larger family is hard to find on its own: searching
+`earphones` also lists the Earphones Pro, Plus and Max. Put `-` in front of a word to leave out
+every device carrying it: `earphones -pro -plus -max` lists the plain Earphones only.
+
+- An exclusion matches **whole words**, so `-pro` drops `Earphones Pro` but keeps a `Prodigy`.
+- It applies to its own comma group, alternatives included. `lyro // lyrö -mk2, hd 600` leaves
+  out the Lyro MK2 under either spelling, and doesn't touch the HD 600 side.
+- Only a `-` at the start of a word counts. `HE-400se` searches as typed, and so does a `-` with
+  spaces on both sides.
+- A group made of exclusions alone, such as `-pro`, names no device and is ignored.
+- Unlike search terms, an exclusion applies from its first character.
+
+A handful of device names have a word that itself starts with `-`, such as
+`Ocean (Reference Nozzle -6dB Bass)`. Search for those without the dash: `nozzle 6db` still finds
+it.
+
 ## Configuration
 
 Configured in `config.js`:

@@ -1,6 +1,6 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
-import { splitQueryGroups } from '#lib/utils/search-query.js';
+import { matchesQueryGroup, splitQueryGroups, type QueryGroup } from '#lib/utils/search-query.js';
 import type {
 	AggregateDb,
 	AggregateIndex,
@@ -217,16 +217,19 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
  * Every group has to be met for a database to match, so a term still below
  * `MIN_QUERY_LENGTH` isn't a filter — it's a half-typed one. The whole query
  * waits rather than listing databases that the finished term would rule out.
- * A short alternative waits too: it would match nearly every device.
+ * A short alternative waits too: it would match nearly every device. A short
+ * exclusion doesn't: it only drops names with that whole word.
  */
-export function parseCrossSiteGroups(query: string): string[][] {
+export function parseCrossSiteGroups(query: string): QueryGroup[] {
 	const groups = splitQueryGroups(query);
 	if (groups.length === 0) return [];
-	return groups.some((group) => group.some((term) => term.length < MIN_QUERY_LENGTH)) ? [] : groups;
+	return groups.some((group) => group.terms.some((term) => term.length < MIN_QUERY_LENGTH))
+		? []
+		: groups;
 }
 
-function matchesGroup(row: SearchRow, group: string[]): boolean {
-	return group.some((term) => row.displayLower.includes(term));
+function matchesGroup(row: SearchRow, group: QueryGroup): boolean {
+	return matchesQueryGroup(row.displayLower, group);
 }
 
 /**
@@ -234,7 +237,7 @@ function matchesGroup(row: SearchRow, group: string[]): boolean {
  * its database matched every group — and then all of that database's matching
  * rows are kept, since the answer is the set of devices, not one of them.
  */
-function matchEveryGroup(rows: SearchRow[], groups: string[][]): CrossSiteSearchResult[] {
+function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): CrossSiteSearchResult[] {
 	const byDb = new Map<string, { matched: Set<number>; results: CrossSiteSearchResult[] }>();
 
 	for (const row of rows) {

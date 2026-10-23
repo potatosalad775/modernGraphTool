@@ -29,6 +29,14 @@ is a _double_ slash on purpose: 67 names in the aggregate index contain a single
 `HD650/HD6XX`) and none contain `//`, so don't "simplify" it to `/` or to `|` (collision-free too,
 but buried on mobile keyboards).
 
+A word starting with `-` is an exclusion for its whole group (`QueryGroup.exclude`), matched as a
+**whole word** by `matchesQueryGroup`, which both surfaces call. Only a _leading_ `-` counts: 9 of
+~14.5k index names have a word starting with `-` (`Nozzle -6dB Bass`), while `!`, the other
+candidate, appears in 4 names and nobody expects it. Don't make it a substring match: with
+whole words, a one-character `-p` is safe to apply while typing, which is why exclusions skip
+`MIN_QUERY_LENGTH`. A group with only exclusions is dropped, not applied to everything: locally
+the groups union, so `hd 600, -pro` would otherwise list almost the whole book.
+
 ## `csv.ts` / `url-template.ts`
 
 `csv.ts` is an RFC 4180 parser, ported from squigRanking's so both read the same published sheets

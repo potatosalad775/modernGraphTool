@@ -85,6 +85,7 @@ describe('PhoneSelector', () => {
 				.element(page.getByText('Separate devices with commas', { exact: false }))
 				.toBeInTheDocument();
 			await expect.element(page.getByText('lyro // lyrö')).toBeInTheDocument();
+			await expect.element(page.getByText('earphones -pro -max')).toBeInTheDocument();
 		});
 
 		// The trigger is a sibling of the field, not the label's icon — clicking it
@@ -290,6 +291,21 @@ describe('PhoneSelector', () => {
 			await vi.waitFor(() => expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Charlie']));
 
 			await page.getByRole('searchbox').fill('bravo, alpha // charlie');
+			await vi.waitFor(() =>
+				expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Bravo', 'Acme Charlie'])
+			);
+		});
+
+		// An exclusion belongs to its comma group, so it can't hide another group's match.
+		it("applies a group's `-word` exclusions to that group only", async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			stubBigBook();
+			render(PhoneSelector);
+
+			await page.getByRole('searchbox').fill('acme -bravo');
+			await vi.waitFor(() => expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Charlie']));
+
+			await page.getByRole('searchbox').fill('acme -bravo, bravo');
 			await vi.waitFor(() =>
 				expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Bravo', 'Acme Charlie'])
 			);

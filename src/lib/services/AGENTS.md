@@ -283,7 +283,9 @@ same terms (`splitQueryGroups` in `utils/search-query.ts`) — one device is nev
 **`//` alternatives are an OR _inside_ a comma group.** `lyro // lyrö, hd 600` is
 `(lyro OR lyrö) AND hd 600`: a database meets a group when any row matches any of its alternatives,
 so the per-database bookkeeping counts groups, not terms. A short alternative withholds the query
-like a short term does — `lyro // l` would otherwise match nearly the whole index.
+like a short term does — `lyro // l` would otherwise match nearly the whole index. A short
+`-word` exclusion doesn't withhold anything (whole-word match; see `utils/AGENTS.md`), and it is
+applied per row, so a database whose only match was excluded stops meeting that group.
 
 One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars — so it costs nothing
 for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the

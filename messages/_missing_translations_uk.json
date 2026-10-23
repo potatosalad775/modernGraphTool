@@ -18,6 +18,7 @@
 		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
+	"phone_selector_search_help_exclude": "Put - before a word to leave out devices with that word.",
 	"smoothing_variable_label": "Variable smoothing",
 	"smoothing_psychoacoustic_label": "Psychoacoustic smoothing"
 }

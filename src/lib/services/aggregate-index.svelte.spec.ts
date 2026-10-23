@@ -110,7 +110,10 @@ describe('cross-site search helpers', () => {
 
 	describe('parseCrossSiteGroups', () => {
 		it('splits a comma-separated query into terms', () => {
-			expect(parseCrossSiteGroups('hd 600, u12t')).toEqual([['hd 600'], ['u12t']]);
+			expect(parseCrossSiteGroups('hd 600, u12t')).toEqual([
+				{ terms: ['hd 600'], exclude: [] },
+				{ terms: ['u12t'], exclude: [] }
+			]);
 		});
 
 		// A half-typed term would otherwise list databases it goes on to exclude.
@@ -120,13 +123,20 @@ describe('cross-site search helpers', () => {
 		});
 
 		it('ignores a trailing comma so the first term keeps searching', () => {
-			expect(parseCrossSiteGroups('hd 600,')).toEqual([['hd 600']]);
+			expect(parseCrossSiteGroups('hd 600,')).toEqual([{ terms: ['hd 600'], exclude: [] }]);
 		});
 
 		// `lyro // l` would otherwise list nearly every device while the second is typed.
 		it('withholds the query while any alternative is shorter than the minimum', () => {
 			expect(parseCrossSiteGroups('lyro // l')).toEqual([]);
-			expect(parseCrossSiteGroups('lyro // lyrö')).toEqual([['lyro', 'lyrö']]);
+			expect(parseCrossSiteGroups('lyro // lyrö')).toEqual([
+				{ terms: ['lyro', 'lyrö'], exclude: [] }
+			]);
+		});
+
+		// Whole-word matching keeps `-p` from hiding everything starting with "p".
+		it('searches while an exclusion is still short', () => {
+			expect(parseCrossSiteGroups('hd 600 -p')).toEqual([{ terms: ['hd 600'], exclude: ['p'] }]);
 		});
 	});
 
@@ -444,6 +454,41 @@ describe('AggregateIndexService', () => {
 				const hits = service.search('hd 600,sennheiser');
 				expect(hits.results.map((r) => r.dbId)).toEqual(['alice:iems', 'bob:iems']);
 				expect(hits.total).toBe(2);
+			});
+		});
+
+		describe('`-word` exclusions', () => {
+			function makeFamilyIndex() {
+				return makeIndex({
+					brands: ['Acme'],
+					dbs: [
+						{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
+						{ id: 'bob:iems', siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/' }
+					],
+					phones: [
+						{ db: 'alice:iems', b: 0, n: 'Earphones', s: 'Acme_Earphones' },
+						{ db: 'alice:iems', b: 0, n: 'Earphones Pro', s: 'Acme_Earphones_Pro' },
+						{ db: 'bob:iems', b: 0, n: 'Earphones Pro Plus Max', s: 'Acme_Earphones_PPM' }
+					]
+				});
+			}
+
+			it('drops devices carrying an excluded word', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeFamilyIndex() });
+				await service.load();
+
+				const hits = service.search('earphones -pro -plus -max');
+				expect(hits.results.map((r) => r.phoneName)).toEqual(['Earphones']);
+				expect(hits.total).toBe(1);
+			});
+
+			// A database whose only match was excluded no longer meets the group.
+			it('rules out a database left with no match for a group', async () => {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeFamilyIndex() });
+				await service.load();
+
+				const hits = service.search('earphones -max, earphones pro');
+				expect(hits.results.map((r) => r.dbId)).toEqual(['alice:iems', 'alice:iems']);
 			});
 		});
 

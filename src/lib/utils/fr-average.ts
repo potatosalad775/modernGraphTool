@@ -40,14 +40,13 @@ export function isAveragable(item: FRDataObject): boolean {
  * it has data for — each over its own contributor count.
  *
  * Feed this **raw** (unsmoothed, unnormalized) channels and process the result
- * afterwards, rather than averaging the processed curves. Smoothing and
- * normalization are both linear in the curve, so `process(mean(x))` and
- * `mean(process(x))` describe the same curve — they differ only by the 0.01 dB
- * quantum `clampDB` rounds every stored value to, which is why the spec asserts
- * agreement to that tolerance rather than exactly. Only the raw order leaves the
- * average with a genuine `_rawData` cache, though, which is what lets
- * `reSmoothAll` rebuild it alongside everything else instead of stranding it at
- * whatever smoothing was active when it was made.
+ * afterwards, rather than averaging the processed curves. Smoothing averages power,
+ * so `process(mean(x))` and `mean(process(x))` differ wherever the curves have
+ * sharp features in different places; the raw order is the one `reSmoothAll`
+ * repeats, so the average never jumps between the two. It also leaves the average
+ * with a genuine `_rawData` cache, which is what lets `reSmoothAll` rebuild it
+ * alongside everything else instead of stranding it at whatever smoothing was
+ * active when it was made.
  *
  * A channel with fewer than two contributors is omitted: averaging one curve
  * with itself is a no-op worth refusing rather than silently performing.

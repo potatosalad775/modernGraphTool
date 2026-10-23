@@ -138,7 +138,8 @@ defaults/                # Operator-editable templates, copied to dist/ by a Vit
 └── data/                # Sample phone_book.json + FR files + targets
 messages/                # Paraglide sources: en.json, cs.json, ko.json, ru.json, uk.json
 scripts/                 # build-cdn.js, build-site-template.js, generate-boot-manifest.js,
-                         # bench-autoeq/ (AutoEQ engine benchmarks → workers/AGENTS.md)
+                         # bench-autoeq/ (AutoEQ engine benchmarks → workers/AGENTS.md),
+                         # rew-smoothing-fixture.mjs (REW reference for FRSmoother → utils/AGENTS.md)
 site-template/           # Sources for the GitHub Pages template repo
 static/                  # Project assets (local overrides; gitignored where noted)
 ```

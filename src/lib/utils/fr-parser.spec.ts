@@ -210,13 +210,13 @@ describe('FRParser', () => {
 		});
 	});
 
-	describe('_interpolateToStandard', () => {
+	describe('_resampleToStandard', () => {
 		it('interpolates between two points', () => {
 			const raw: [number, number][] = [
 				[20, 80],
 				[20000, 60]
 			];
-			const result = FRParser._interpolateToStandard(raw);
+			const result = FRParser._resampleToStandard(raw);
 			expect(result.length).toBeGreaterThan(2);
 			// First point should be at 20 Hz
 			expect(result[0][0]).toBeCloseTo(20, 0);
@@ -231,7 +231,7 @@ describe('FRParser', () => {
 				[100, 80],
 				[20000, 60]
 			];
-			const result = FRParser._interpolateToStandard(raw);
+			const result = FRParser._resampleToStandard(raw);
 			// Points before 100 Hz should use the first value
 			expect(result[0][1]).toBe(80);
 		});
@@ -241,44 +241,95 @@ describe('FRParser', () => {
 				[20, 80],
 				[10000, 60]
 			];
-			const result = FRParser._interpolateToStandard(raw);
+			const result = FRParser._resampleToStandard(raw);
 			// Points after 10000 Hz should use the last value
 			const lastPoint = result[result.length - 1];
 			expect(lastPoint[1]).toBe(60);
 		});
 	});
 
-	describe('_interpolateToStandard — equivalence with the reference implementation', () => {
+	// Data no denser than the grid — at most one raw point per 1/48oct cell — is still
+	// interpolated exactly as the original `findIndex` pass did.
+	describe('_resampleToStandard — sparse input matches the reference interpolation', () => {
 		it('matches when the raw points are the standard grid itself', () => {
 			const raw = FRParser._standardFrequencies.map(
 				(f, i) => [f, 80 + Math.sin(i * 0.1) * 3] as FRDataPoint
 			);
-			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+			expect(FRParser._resampleToStandard(raw)).toEqual(referenceInterpolate(raw));
 		});
 
-		it('matches on a 1000-point log-spaced file that starts and ends inside the band', () => {
-			const raw = logSpaced(1000, 23.5, 19000);
-			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+		it('matches on a 300-point log-spaced file that starts and ends inside the band', () => {
+			const raw = logSpaced(300, 23.5, 19000);
+			expect(FRParser._resampleToStandard(raw)).toEqual(referenceInterpolate(raw));
 		});
 
 		it('matches on a ragged raw file', () => {
 			const next = seeded(48);
 			const raw: FRDataPoint[] = [];
-			for (let f = 20; f <= 20000; f *= 1 + next() * 0.2) raw.push([f, 60 + next() * 30]);
-			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
-		});
-
-		it('matches with duplicate frequencies', () => {
-			const raw = logSpaced(300).flatMap(([f, db]) => [
-				[f, db] as FRDataPoint,
-				[f, db + 2] as FRDataPoint
-			]);
-			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+			// Every step wider than a 1/48oct cell (×1.0146)
+			for (let f = 20; f <= 20000; f *= 1.015 + next() * 0.2) raw.push([f, 60 + next() * 30]);
+			expect(FRParser._resampleToStandard(raw)).toEqual(referenceInterpolate(raw));
 		});
 
 		it('matches with a single raw point', () => {
 			const raw: FRDataPoint[] = [[1000, 85]];
-			expect(FRParser._interpolateToStandard(raw)).toEqual(referenceInterpolate(raw));
+			expect(FRParser._resampleToStandard(raw)).toEqual(referenceInterpolate(raw));
+		});
+	});
+
+	describe('_resampleToStandard — dense input', () => {
+		const grid = FRParser._standardFrequencies;
+		const powerMean = (...db: number[]) =>
+			10 * Math.log10(db.reduce((sum, d) => sum + Math.pow(10, d / 10), 0) / db.length);
+
+		it('takes the power mean of the raw points in a cell', () => {
+			const k = 240;
+			const raw: FRDataPoint[] = [
+				[20, 60],
+				[grid[k] * 0.999, 80],
+				[grid[k] * 1.001, 70],
+				[20000, 60]
+			];
+			expect(FRParser._resampleToStandard(raw)[k][1]).toBeCloseTo(powerMean(80, 70), 10);
+		});
+
+		// Plain interpolation at the grid frequencies would read only every other sample
+		// here and draw a flat 80 dB line.
+		it('uses every sample of a 96ppo file', () => {
+			const raw: FRDataPoint[] = [];
+			// Half a step off the grid, so no sample sits on a cell boundary
+			for (let i = 0; 20 * Math.pow(2, (i + 0.5) / 96) <= 20000; i++) {
+				raw.push([20 * Math.pow(2, (i + 0.5) / 96), i % 2 === 0 ? 80 : 70]);
+			}
+			const result = FRParser._resampleToStandard(raw);
+			for (const [, db] of result.slice(1, -1)) expect(db).toBeCloseTo(powerMean(80, 70), 6);
+		});
+
+		it('averages duplicate frequencies', () => {
+			const raw = logSpaced(300).flatMap(([f, db]) => [
+				[f, db] as FRDataPoint,
+				[f, db + 2] as FRDataPoint
+			]);
+			const result = FRParser._resampleToStandard(raw);
+			const exact = result.findIndex(([f]) => raw.some(([r]) => Math.abs(r / f - 1) < 1e-3));
+			const [rawFreq, rawDb] = raw.find(([r]) => Math.abs(r / result[exact][0] - 1) < 1e-3)!;
+			expect(rawFreq).toBeGreaterThan(0);
+			expect(result[exact][1]).toBeCloseTo(powerMean(rawDb, rawDb + 2), 10);
+		});
+
+		it('counts a raw point on a cell boundary in one cell only', () => {
+			const k = 240;
+			const edge = grid[k] * Math.pow(2, 1 / 96); // upper edge of cell k, lower of k+1
+			const raw: FRDataPoint[] = [
+				[20, 60],
+				[grid[k], 70],
+				[edge, 90],
+				[grid[k + 1], 80],
+				[20000, 60]
+			];
+			const result = FRParser._resampleToStandard(raw);
+			expect(result[k][1]).toBe(70); // alone in its cell: interpolated, i.e. itself
+			expect(result[k + 1][1]).toBeCloseTo(powerMean(90, 80), 10);
 		});
 	});
 

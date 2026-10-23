@@ -257,8 +257,8 @@ const FRParser = {
 			// Sort data by frequency
 			parsed.data.sort((a, b) => a[0] - b[0]);
 
-			// Interpolate to standard frequencies (1/48oct)
-			parsed.data = this._interpolateToStandard(parsed.data);
+			// Resample to standard frequencies (1/48oct)
+			parsed.data = this._resampleToStandard(parsed.data);
 
 			// Update metadata with standard frequency range
 			parsed.metadata.minFreq = this._standardFrequencies[0];
@@ -297,12 +297,30 @@ const FRParser = {
 	},
 
 	/**
-	 * Interpolate raw data to standard 1/48oct frequencies. `rawData` must be sorted
-	 * by frequency (`parseFRData` sorts it), so one cursor follows the ascending targets.
+	 * Resample raw data onto the standard 1/48oct frequencies. `rawData` must be sorted
+	 * by frequency (`parseFRData` sorts it), so the cursors follow the ascending targets.
+	 *
+	 * Where the source is denser than the grid — REW exports and FFT data usually are —
+	 * each grid point takes the power mean of the raw points in its 1/48oct cell, so no
+	 * sample is skipped. Sparser stretches are linearly interpolated.
 	 */
-	_interpolateToStandard(rawData: FRDataPoint[]): FRDataPoint[] {
+	_resampleToStandard(rawData: FRDataPoint[]): FRDataPoint[] {
+		const halfStep = Math.pow(2, 1 / 96);
+		let cellStart = 0;
 		let cursor = 0;
 		return this._standardFrequencies.map((targetFreq) => {
+			// The cell is half-open, so a raw point on a boundary counts in one cell only
+			const lower = targetFreq / halfStep;
+			const upper = targetFreq * halfStep;
+			while (cellStart < rawData.length && rawData[cellStart][0] < lower) cellStart++;
+			let power = 0;
+			let members = 0;
+			for (let i = cellStart; i < rawData.length && rawData[i][0] < upper; i++) {
+				power += Math.pow(10, rawData[i][1] / 10);
+				members++;
+			}
+			if (members > 1) return [targetFreq, 10 * Math.log10(power / members)] as FRDataPoint;
+
 			// First raw point above the target, or rawData.length if there is none
 			while (cursor < rawData.length && rawData[cursor][0] <= targetFreq) cursor++;
 			const index = cursor === rawData.length ? -1 : cursor;

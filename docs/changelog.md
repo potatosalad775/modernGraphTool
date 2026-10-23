@@ -12,6 +12,12 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.1
+- Feat: Added REW's **Var** (Variable) and **Psy** (Psychoacoustic) smoothing to the smoothing button, after the fixed fractional-octave values. They match the same smoothing in REW. See [Smoothing](./guide-for-users/graph-controls.mdx#smoothing).
+- Feat: Search now leaves out devices that contain a word starting with `-`. For example, `earphones -pro -plus -max` lists only the plain Earphones. See [Excluding words](./features/cross-site-search.mdx#excluding-words).
+- Feat: Smoothing now matches REW's fractional-octave smoothing. Before, each band was reduced to a single point, which could put narrow peaks and dips several dB off compared to REW.
+- Fix: Files denser than 1/48 octave are now power-averaged onto the 1/48 octave grid, so no samples are skipped.
+
 ### v2.3.0
 - Feat: Added **uniPEQ Link**, which edits the EQ live together with the [uniPEQ](https://unipeq.com) app and writes it to the device connected there. It lives inside Hardware EQ, with one connection (USB or linked) at a time. This change allows users to manipulate PEQ with graphs only using Android phone. Configured by the new `UNIPEQ_LINK` section; on by default. See [uniPEQ Link](./features/unipeq-link.mdx) and [UNIPEQ_LINK documentation](./guide-for-admins/customize-page.mdx#unipeq_link).
 - Feat: The Equalizer now handles low-pass, high-pass, band-pass, notch and all-pass filters alongside peaking and shelf filters, for EQ profiles and devices that use them. They are drawn on the EQ curve and can be picked as a band's type where the active EQ constraint allows it.

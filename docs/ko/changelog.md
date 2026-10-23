@@ -12,6 +12,12 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.1
+- Feat: 스무딩 버튼에 REW의 **Var**(가변)와 **Psy**(심리음향) 스무딩이 추가되었습니다. 고정 옥타브 값들 다음에 나오며, REW의 같은 스무딩과 일치합니다. 자세한 내용은 [스무딩](./guide-for-users/graph-controls.mdx#스무딩) 참조.
+- Feat: 검색어에서 `-`로 시작하는 단어가 들어간 기기를 결과에서 제외합니다. 예를 들어 `earphones -pro -plus -max`로 검색하면 Earphones 기본 모델만 표시됩니다. 자세한 내용은 [특정 단어 제외하기](./features/cross-site-search.mdx#특정-단어-제외하기) 참조.
+- Feat: 스무딩이 이제 REW의 옥타브 스무딩과 일치합니다. 이전에는 밴드마다 점 하나로 줄어들어, REW의 결과값과 비교했을 때 폭이 좁은 피크와 딥이 몇 dB씩 틀어질 수 있었습니다.
+- Fix: REW 내보내기 파일처럼 1/48 옥타브보다 촘촘한 데이터를 이제 1/48 옥타브 격자에 파워 평균으로 맞추므로, 빠지는 샘플이 없습니다.
+
 ### v2.3.0
 - Feat: [uniPEQ](https://unipeq.com) 앱과 함께 EQ를 실시간으로 편집하고, uniPEQ에 연결된 기기에 바로 기록하는 **uniPEQ 연결** 기능이 추가되었습니다. 하드웨어 EQ 안에 포함되어 있으며, USB 연결과 uniPEQ 연결 중 한 번에 하나만 사용할 수 있습니다. 이제 안드로이드 휴대폰 하나만으로 그래프를 보며 PEQ를 조작할 수 있습니다. 새 `UNIPEQ_LINK` 섹션으로 설정하며, 기본값은 켜짐입니다. 자세한 내용은 [uniPEQ 연결](./features/unipeq-link.mdx) 및 [UNIPEQ_LINK 문서](./guide-for-admins/customize-page.mdx#unipeq_link) 참조.
 - Feat: Equalizer가 피킹 필터와 셸빙 필터 외에 로우패스, 하이패스, 밴드패스, 노치, 올패스 필터도 지원합니다. 이 필터를 사용하는 EQ 프로필이나 기기를 위한 기능으로, EQ 곡선에 표시되며 활성화된 EQ 제약 조건이 허용하는 경우 밴드의 필터 종류로 선택할 수 있습니다.

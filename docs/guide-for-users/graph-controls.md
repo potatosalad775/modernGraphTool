@@ -64,9 +64,14 @@ The smoothing button cycles through fractional-octave values from **1/48 octave*
 - **1/24** is the most common "give me the shape with the fine detail" setting.
 - **1/6 or 1/3** turn the curve into a broad outline, useful when comparing several headphones at once because ripples don't visually clash.
 
+After the fixed values come REW's two variable smoothings, labelled as REW labels them:
+
+- **Var** (Variable) smooths lightly in the bass and more in the treble: 1/48 octave below 100 Hz, 1/6 octave at 1 kHz and 1/3 octave above 10 kHz. REW recommends it for responses you are going to equalize, since it keeps bass detail but doesn't chase narrow treble features.
+- **Psy** (Psychoacoustic) uses 1/3 octave below 100 Hz and 1/6 octave above 1 kHz, and gives peaks more weight than dips. The result is closer to how the response is perceived.
+
 There's no "correct" setting. Pick whichever makes the thing you're trying to see easiest to see. Smoothing is purely a view setting — the underlying file is untouched.
 
-Smoothing works the same way as in [REW (Room EQ Wizard)](https://www.roomeqwizard.com), so a curve here at 1/6 octave matches the same measurement smoothed at 1/6 octave in REW. Like REW, it averages sound power rather than decibels, so a narrow dip fills in more than a narrow peak of the same size flattens.
+Smoothing works the same way as in [REW (Room EQ Wizard)](https://www.roomeqwizard.com), so a curve here at 1/6 octave, Var or Psy matches the same measurement smoothed the same way in REW. Like REW, it averages sound power rather than decibels, so a narrow dip fills in more than a narrow peak of the same size flattens.
 
 ## Y-axis scale
 

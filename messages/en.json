@@ -145,6 +145,8 @@
 	"normalizer_input_hz_btn": "Hz",
 	"normalizer_input_avg_btn": "Avg.",
 	"smoothing_button_label": "Smoothing",
+	"smoothing_variable_label": "Variable smoothing",
+	"smoothing_psychoacoustic_label": "Psychoacoustic smoothing",
 	"screenshot_button_label": "Screenshot",
 	"y_axis_scale_button_label": "Y-Axis Scale",
 	"inspection_toggle_label": "Inspect",

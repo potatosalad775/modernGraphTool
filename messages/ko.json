@@ -127,6 +127,8 @@
 	"normalizer_input_hz_btn": "Hz",
 	"normalizer_input_avg_btn": "평균",
 	"smoothing_button_label": "스무딩",
+	"smoothing_variable_label": "가변 스무딩",
+	"smoothing_psychoacoustic_label": "심리음향 스무딩",
 	"screenshot_button_label": "스크린샷",
 	"y_axis_scale_button_label": "Y축 스케일",
 	"inspection_toggle_label": "조사",

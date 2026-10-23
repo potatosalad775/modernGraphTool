@@ -112,6 +112,14 @@ Every curve is resampled onto one 1/48oct grid (20 Hz–20 kHz, 479 points), the
   `scripts/rew-smoothing-fixture.mjs` (needs REW 5.40 beta's API). Don't swap in a true Gaussian —
   REW's kernel has heavier tails, and a notch reads up to 2.4 dB apart at 1/3oct. Don't zero-start
   the recursions either: the ends drop by up to 13 dB.
+- **`Var` and `Psy` are REW's too, and a different filter.** Not the recursion above with a varying
+  σ: a bilinear (Tustin) first-order section, τ = 0.139472 × the local octave fraction, run six times
+  forward and only then six times backward. The fraction eases between anchors in log width
+  (`B₀·(B₁/B₀)^(t(2−t))`). `Psy` averages power^1.5 — the cubic mean. All of it was measured off
+  REW's API (its EULA bars decompiling) and matches to 0.0002 dB on every curve in `defaults/data`;
+  the same fixture covers both. Keep the pass order — alternating passes only differ at the top edge,
+  which is exactly where they would stop matching. Var's 1/48 has τ < 0.5, a negative pole: an
+  extreme spike can drive a point below zero power, hence the floor at the input's minimum.
 - **1/48 is not floored to 1/24.** On a 48ppo grid REW smooths no narrower than two points, so its
   1/48 equals its 1/24 there. Unfloored is closer to REW's 1/48 on the dense source data, so the
   fixture has no 1/48 entry.

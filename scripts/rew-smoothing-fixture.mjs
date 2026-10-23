@@ -37,10 +37,14 @@ const DEFAULTS = ['B27 L.txt', 'HpTF Demo Up L.txt', 'CE L.txt'].map((f) => new 
 const files = process.argv.length > 2 ? process.argv.slice(2) : DEFAULTS;
 // REW never smooths narrower than two of the data's points, so on this 48ppo grid its 1/48 comes
 // back identical to its 1/24. The app doesn't copy that floor — unclamped 1/48 tracks REW's
-// 1/48 on denser source data more closely — so 1/48 has no fixture.
-const SMOOTHINGS = Object.entries(FRSmoother.OCTAVE_BANDS)
-	.filter(([, fraction]) => fraction >= 2 / 48)
-	.map(([smoothing]) => smoothing);
+// 1/48 on denser source data more closely — so 1/48 has no fixture. REW's Var and Psy are
+// requested by those same labels.
+const SMOOTHINGS = [
+	...Object.entries(FRSmoother.OCTAVE_BANDS)
+		.filter(([, fraction]) => fraction >= 2 / 48)
+		.map(([smoothing]) => smoothing),
+	...Object.keys(FRSmoother.VARIABLE)
+];
 const round = (v) => Math.round(v * 1e4) / 1e4;
 
 async function api(method, path, body) {

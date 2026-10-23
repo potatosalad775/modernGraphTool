@@ -5,6 +5,7 @@ import rewFixture from './__fixtures__/rew-smoothing.json';
 import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 const octaves = Object.keys(FRSmoother.OCTAVE_BANDS);
+const variables = Object.keys(FRSmoother.VARIABLE);
 
 /** Synthetic FR data on the parser's 1/48oct grid. */
 function makeFRData(count = FRParser._standardFrequencies.length, baseDb = 80): FRDataPoint[] {
@@ -44,7 +45,10 @@ describe('FRSmoother', () => {
 
 		it('covers every smoothing but 1/48', () => {
 			for (const curve of rewFixture.curves) {
-				expect(Object.keys(curve.smoothed)).toEqual(octaves.filter((o) => o !== '1/48'));
+				expect(Object.keys(curve.smoothed)).toEqual([
+					...octaves.filter((o) => o !== '1/48'),
+					...variables
+				]);
 			}
 		});
 
@@ -65,14 +69,16 @@ describe('FRSmoother', () => {
 	describe('smooth', () => {
 		it('keeps the input frequencies', () => {
 			const data = makeFRData();
-			for (const octave of octaves) {
-				expect(FRSmoother.smooth(data, octave).map(([f]) => f)).toEqual(data.map(([f]) => f));
+			for (const smoothing of [...octaves, ...variables]) {
+				expect(FRSmoother.smooth(data, smoothing).map(([f]) => f)).toEqual(data.map(([f]) => f));
 			}
 		});
 
 		it('leaves a flat curve flat, ends included', () => {
 			const flat = makeFRData().map(([f]) => [f, 72] as FRDataPoint);
-			for (const [, db] of FRSmoother.smooth(flat, '1/3')) expect(db).toBeCloseTo(72, 10);
+			for (const smoothing of ['1/3', ...variables]) {
+				for (const [, db] of FRSmoother.smooth(flat, smoothing)) expect(db).toBeCloseTo(72, 10);
+			}
 		});
 
 		it('reduces variance more with heavier smoothing', () => {
@@ -117,6 +123,54 @@ describe('FRSmoother', () => {
 
 		it('handles null/undefined data gracefully', () => {
 			expect(FRSmoother.smooth(null as unknown as FRDataPoint[], '1/6')).toBeNull();
+		});
+	});
+
+	describe('variable smoothing', () => {
+		const at = (key: string, freq: number) =>
+			FRSmoother._variableFraction(FRSmoother.VARIABLE[key].anchors, freq);
+
+		it('holds the documented widths outside the transitions', () => {
+			expect(at('Var', 50)).toBe(1 / 48);
+			expect(at('Var', 1000)).toBeCloseTo(1 / 6, 12);
+			expect(at('Var', 15000)).toBe(1 / 3);
+			expect(at('Psy', 50)).toBe(1 / 3);
+			expect(at('Psy', 5000)).toBe(1 / 6);
+		});
+
+		// Halfway through a transition in log frequency, three quarters of the way in log width
+		it('eases between anchors along log width', () => {
+			expect(at('Psy', Math.sqrt(100 * 1000))).toBeCloseTo((1 / 3) * 0.5 ** 0.75, 12);
+		});
+
+		it('weights peaks more in Psy, through the cubic mean', () => {
+			const grid = makeFRData().map(([f]) => [f, 70] as FRDataPoint);
+			const mid = grid.findIndex(([f]) => f >= 4000);
+			const peak = grid.map(([f], i) => [f, i === mid ? 90 : 70] as FRDataPoint);
+			const psy = FRSmoother.smooth(peak, 'Psy')[mid][1];
+			const powerMean = FRSmoother._smoothVariable(peak, {
+				...FRSmoother.VARIABLE.Psy,
+				power: 1
+			})[mid][1];
+			expect(psy).toBeGreaterThan(powerMean + 1);
+		});
+
+		// Var's 1/48 rings; a big enough spike drives its neighbours below zero power.
+		it('keeps an extreme spike finite and no lower than the input', () => {
+			const grid = makeFRData().map(([f]) => [f, 0] as FRDataPoint);
+			const spike = grid.map(([f], i) => [f, i === 60 ? 80 : 0] as FRDataPoint);
+			for (const [, db] of FRSmoother.smooth(spike, 'Var')) {
+				expect(Number.isFinite(db)).toBe(true);
+				expect(db).toBeGreaterThanOrEqual(-1e-9);
+			}
+		});
+
+		it('tags smoothed channels with its label', () => {
+			const result = FRSmoother.smoothChannels(
+				{ L: { data: makeFRData(), metadata: { minFreq: 20, maxFreq: 20000 } } },
+				'Psy'
+			);
+			expect(result.L!.metadata.smoothing).toBe('Psy');
 		});
 	});
 

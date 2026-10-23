@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { averageChannels, isAveragable, type AverageSource } from './fr-average.js';
 import { DataProcessor } from './data-processor.js';
+import FRParser from './fr-parser.js';
+import { normalizeChannels } from './fr-normalizer.js';
 import type { ChannelData, FRDataObject, FRDataType } from '#lib/types/data-types.js';
 
 /** A flat channel at `db`, on the two-point grid the other utils' specs use. */
@@ -127,41 +129,49 @@ describe('averageChannels', () => {
 });
 
 describe('averaging order', () => {
-	// The reason DataProvider can average raw channels and process afterwards:
-	// if the two orders disagreed, the average would visibly jump the first time
-	// the user changed smoothing and reSmoothAll rebuilt it from `_rawData`.
-	//
-	// Both stages are linear, so the only gap is `clampDB` rounding every stored
-	// value to 0.01 dB — rounding each curve before the mean lands up to half a
-	// quantum away from rounding the mean. Tightening this tolerance means the
-	// pipeline gained a genuinely non-linear stage, and averaging raw would no
-	// longer be equivalent to averaging what's drawn.
-	it('commutes with smoothing and normalization, to within the 0.01 dB quantum', () => {
-		const params = { smoothValue: '1/12', normType: 'Hz' as const, normHz: 500 };
-		const freqs = [20, 50, 125, 315, 800, 2000, 5000, 12500];
-		const shapeA: ChannelData = {
-			data: freqs.map((f, i) => [f, 80 + i * 1.5] as [number, number]),
-			metadata: { minFreq: 20, maxFreq: 12500 }
-		};
-		const shapeB: ChannelData = {
-			data: freqs.map((f, i) => [f, 95 - i * 2.25] as [number, number]),
-			metadata: { minFreq: 20, maxFreq: 12500 }
-		};
+	const freqs = FRParser._standardFrequencies;
+	/** A flat curve with one sharp notch, at a different place per curve. */
+	const notched = (base: number, at: number): ChannelData => ({
+		data: freqs.map((f, i) => [f, Math.abs(i - at) < 3 ? base - 20 : base] as [number, number]),
+		metadata: { minFreq: 20, maxFreq: 20000 }
+	});
+	const worstGap = (a: ChannelData, b: ChannelData) =>
+		a.data.reduce((max, [, db], i) => Math.max(max, Math.abs(db - b.data[i][1])), 0);
 
+	// Normalization is a constant dB offset per curve, so it commutes with the mean —
+	// up to `clampDB` rounding every stored value to 0.01 dB: rounding each curve
+	// before the mean lands up to half a quantum away from rounding the mean.
+	it('commutes with normalization, to within the 0.01 dB quantum', () => {
+		const [a, b] = [notched(80, 200), notched(92, 260)];
+		const averageThenNormalize = normalizeChannels(
+			averageChannels([source({ AVG: a }, ['AVG']), source({ AVG: b }, ['AVG'])]),
+			'Hz',
+			500
+		);
+		const normalizeThenAverage = averageChannels([
+			source({ AVG: normalizeChannels({ AVG: a }, 'Hz', 500).AVG! }, ['AVG']),
+			source({ AVG: normalizeChannels({ AVG: b }, 'Hz', 500).AVG! }, ['AVG'])
+		]);
+		expect(worstGap(averageThenNormalize.AVG!, normalizeThenAverage.AVG!)).toBeLessThanOrEqual(
+			0.01
+		);
+	});
+
+	// Smoothing averages power, so it does not commute with the dB mean: two notches in
+	// different places each fill in on their own, but not once averaged together. Which
+	// is why DataProvider averages raw channels and processes the mean — at creation and
+	// again on every reSmoothAll, so the average never jumps between the two orders.
+	it('does not commute with smoothing', () => {
+		const params = { smoothValue: '1/6', normType: 'Hz' as const, normHz: 500 };
+		const [a, b] = [notched(80, 200), notched(80, 260)];
 		const averageThenProcess = DataProcessor.processChannels(
-			averageChannels([source({ AVG: shapeA }, ['AVG']), source({ AVG: shapeB }, ['AVG'])]),
+			averageChannels([source({ AVG: a }, ['AVG']), source({ AVG: b }, ['AVG'])]),
 			params
 		);
 		const processThenAverage = averageChannels([
-			source({ AVG: DataProcessor.processChannels({ AVG: shapeA }, params).AVG! }, ['AVG']),
-			source({ AVG: DataProcessor.processChannels({ AVG: shapeB }, params).AVG! }, ['AVG'])
+			source({ AVG: DataProcessor.processChannels({ AVG: a }, params).AVG! }, ['AVG']),
+			source({ AVG: DataProcessor.processChannels({ AVG: b }, params).AVG! }, ['AVG'])
 		]);
-
-		expect(averageThenProcess.AVG!.data).toHaveLength(processThenAverage.AVG!.data.length);
-		const worst = averageThenProcess.AVG!.data.reduce(
-			(max, [, db], i) => Math.max(max, Math.abs(db - processThenAverage.AVG!.data[i][1])),
-			0
-		);
-		expect(worst).toBeLessThanOrEqual(0.01);
+		expect(worstGap(averageThenProcess.AVG!, processThenAverage.AVG!)).toBeGreaterThan(0.5);
 	});
 });

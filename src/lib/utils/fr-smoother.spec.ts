@@ -1,18 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import FRSmoother from './fr-smoother.js';
 import FRParser from './fr-parser.js';
+import rewFixture from './__fixtures__/rew-smoothing.json';
 import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
-/** Generate synthetic FR data for testing */
-function makeFRData(count: number, baseDb = 80): FRDataPoint[] {
-	const step = Math.pow(2, 1 / 48);
-	let freq = 20;
-	const data: FRDataPoint[] = [];
-	for (let i = 0; i < count; i++) {
-		data.push([freq, baseDb + Math.sin(i * 0.3) * 5]);
-		freq *= step;
-	}
-	return data;
+const octaves = Object.keys(FRSmoother.OCTAVE_BANDS);
+
+/** Synthetic FR data on the parser's 1/48oct grid. */
+function makeFRData(count = FRParser._standardFrequencies.length, baseDb = 80): FRDataPoint[] {
+	return FRParser._standardFrequencies
+		.slice(0, count)
+		.map((f, i) => [f, baseDb + Math.sin(i * 0.3) * 5] as FRDataPoint);
 }
 
 describe('FRSmoother', () => {
@@ -26,193 +24,158 @@ describe('FRSmoother', () => {
 		});
 	});
 
+	// The fixture is REW's own output for the same 1/48oct grids, fetched over its API by
+	// scripts/rew-smoothing-fixture.mjs. Both sides store float32-ish values, hence the
+	// tolerance; the algorithm itself matches exactly. There is no 1/48 entry — on a 48ppo
+	// grid REW floors 1/48 to 1/24, which the app deliberately doesn't (see the script).
+	describe('matches REW', () => {
+		const cases = rewFixture.curves.flatMap((curve) =>
+			Object.entries(curve.smoothed).map(
+				([octave, expected]) => [curve.name, octave, curve.input, expected] as const
+			)
+		);
+
+		it.each(cases)('%s at %s', (_name, octave, input, expected) => {
+			const grid = input.map((db, i) => [FRParser._standardFrequencies[i], db] as FRDataPoint);
+			const result = FRSmoother.smooth(grid, octave);
+			const worst = Math.max(...result.map(([, db], i) => Math.abs(db - expected[i])));
+			expect(worst).toBeLessThan(0.002);
+		});
+
+		it('covers every smoothing but 1/48', () => {
+			for (const curve of rewFixture.curves) {
+				expect(Object.keys(curve.smoothed)).toEqual(octaves.filter((o) => o !== '1/48'));
+			}
+		});
+
+		it('keeps 1/48 lighter than 1/24 rather than flooring it the way REW does', () => {
+			const grid = rewFixture.curves[0].input.map(
+				(db, i) => [FRParser._standardFrequencies[i], db] as FRDataPoint
+			);
+			const dev = (octave: string) =>
+				FRSmoother.smooth(grid, octave).reduce(
+					(sum, [, db], i) => sum + Math.abs(db - grid[i][1]),
+					0
+				);
+			expect(dev('1/48')).toBeGreaterThan(0);
+			expect(dev('1/48')).toBeLessThan(dev('1/24') / 2);
+		});
+	});
+
 	describe('smooth', () => {
-		it('returns original data when smoothing is at minimum (1/48)', () => {
-			const data = makeFRData(100);
-			const result = FRSmoother.smooth(data, '1/48');
-			// At 1/48, each band has ~1 point, so result should be similar length
-			expect(result.length).toBeGreaterThan(0);
+		it('keeps the input frequencies', () => {
+			const data = makeFRData();
+			for (const octave of octaves) {
+				expect(FRSmoother.smooth(data, octave).map(([f]) => f)).toEqual(data.map(([f]) => f));
+			}
 		});
 
-		it('reduces data variance with heavier smoothing', () => {
-			const data = makeFRData(200);
-			const smoothed = FRSmoother.smooth(data, '1/3');
-
-			// Smoothed data should have less variance
-			const originalVariance = computeVariance(data.map((p) => p[1]));
-			const smoothedVariance = computeVariance(smoothed.map((p) => p[1]));
-			expect(smoothedVariance).toBeLessThanOrEqual(originalVariance);
+		it('leaves a flat curve flat, ends included', () => {
+			const flat = makeFRData().map(([f]) => [f, 72] as FRDataPoint);
+			for (const [, db] of FRSmoother.smooth(flat, '1/3')) expect(db).toBeCloseTo(72, 10);
 		});
 
-		it('returns fewer points with wider bands', () => {
-			const data = makeFRData(200);
+		it('reduces variance more with heavier smoothing', () => {
+			const data = makeFRData();
+			const variance = (points: FRDataPoint[]) => computeVariance(points.map((p) => p[1]));
+			const fine = variance(FRSmoother.smooth(data, '1/24'));
+			const coarse = variance(FRSmoother.smooth(data, '1/3'));
+			expect(fine).toBeLessThan(variance(data));
+			expect(coarse).toBeLessThan(fine);
+		});
 
-			const fine = FRSmoother.smooth(data, '1/48');
-			const coarse = FRSmoother.smooth(data, '1/3');
+		// Averaging power, a narrow notch fills in from its neighbours; a peak keeps more
+		// of its height than the same notch keeps of its depth.
+		it('averages in power, not dB', () => {
+			const base = makeFRData().map(([f]) => [f, 70] as FRDataPoint);
+			const mid = Math.floor(base.length / 2);
+			const notch = base.map(([f], i) => [f, i === mid ? 50 : 70] as FRDataPoint);
+			const peak = base.map(([f], i) => [f, i === mid ? 90 : 70] as FRDataPoint);
+			const notchDepth = 70 - FRSmoother.smooth(notch, '1/6')[mid][1];
+			const peakHeight = FRSmoother.smooth(peak, '1/6')[mid][1] - 70;
+			expect(peakHeight).toBeGreaterThan(notchDepth);
+		});
 
-			expect(coarse.length).toBeLessThan(fine.length);
+		it('does not mutate its input', () => {
+			const data = makeFRData();
+			const copy = data.map((p) => [...p]);
+			FRSmoother.smooth(data, '1/3');
+			expect(data).toEqual(copy);
+		});
+
+		it('copies a single point through', () => {
+			const one: FRDataPoint[] = [[1000, 80]];
+			const result = FRSmoother.smooth(one, '1/3');
+			expect(result).toEqual(one);
+			expect(result[0]).not.toBe(one[0]);
 		});
 
 		it('returns input unchanged for invalid smooth value', () => {
 			const data = makeFRData(50);
-			const result = FRSmoother.smooth(data, 'invalid');
-			expect(result).toBe(data);
+			expect(FRSmoother.smooth(data, 'invalid')).toBe(data);
 		});
 
 		it('handles null/undefined data gracefully', () => {
-			const result = FRSmoother.smooth(null as unknown as FRDataPoint[], '1/6');
-			expect(result).toBeNull();
-		});
-	});
-
-	describe('smooth — output range', () => {
-		it('output frequencies are within input frequency range', () => {
-			const data = makeFRData(200);
-			const inputMin = data[0][0];
-			const inputMax = data[data.length - 1][0];
-			const result = FRSmoother.smooth(data, '1/6');
-			for (const [freq] of result) {
-				expect(freq).toBeGreaterThanOrEqual(inputMin - 1);
-				expect(freq).toBeLessThanOrEqual(inputMax + 1);
-			}
-		});
-	});
-
-	describe('smoothChannels — metadata', () => {
-		it('preserves channel metadata after smoothing', () => {
-			const data: ParsedFRData = {
-				AVG: {
-					data: makeFRData(100),
-					metadata: { minFreq: 20, maxFreq: 20000, weights: [1, 2, 3] }
-				}
-			};
-			const result = FRSmoother.smoothChannels(data, '1/6');
-			expect(result.AVG!.metadata.minFreq).toBe(20);
-			expect(result.AVG!.metadata.maxFreq).toBe(20000);
-		});
-
-		it('does not mutate the original channel data', () => {
-			const data: ParsedFRData = {
-				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
-			};
-			const originalLen = data.AVG!.data.length;
-			FRSmoother.smoothChannels(data, '1/6');
-			expect(data.AVG!.data.length).toBe(originalLen);
-		});
-	});
-
-	describe('_createOctaveBands — upper range', () => {
-		it('reaches at least 20000 Hz', () => {
-			const bands = FRSmoother._createOctaveBands('1/3');
-			const lastBand = bands[bands.length - 1];
-			expect(lastBand.upper).toBeGreaterThanOrEqual(20000);
+			expect(FRSmoother.smooth(null as unknown as FRDataPoint[], '1/6')).toBeNull();
 		});
 	});
 
 	describe('smoothChannels', () => {
-		it('smooths all available channels', () => {
-			const data: ParsedFRData = {
-				L: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } },
-				R: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } },
-				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
-			};
-			const result = FRSmoother.smoothChannels(data, '1/6');
-			expect(result.L).toBeDefined();
-			expect(result.R).toBeDefined();
-			expect(result.AVG).toBeDefined();
-			expect(result.L!.data.length).toBeGreaterThan(0);
+		const channels = (): ParsedFRData => ({
+			L: { data: makeFRData(), metadata: { minFreq: 20, maxFreq: 20000 } },
+			R: { data: makeFRData(), metadata: { minFreq: 20, maxFreq: 20000 } },
+			AVG: { data: makeFRData(), metadata: { minFreq: 20, maxFreq: 20000, weights: [1, 2, 3] } }
+		});
+
+		it('smooths every available channel and tags it with the smoothing', () => {
+			const result = FRSmoother.smoothChannels(channels(), '1/6');
+			for (const ch of ['L', 'R', 'AVG'] as const) {
+				expect(result[ch]!.data).toEqual(FRSmoother.smooth(makeFRData(), '1/6'));
+				expect(result[ch]!.metadata.smoothing).toBe('1/6');
+			}
+		});
+
+		it('preserves the rest of the metadata', () => {
+			const result = FRSmoother.smoothChannels(channels(), '1/6');
+			expect(result.AVG!.metadata).toMatchObject({
+				minFreq: 20,
+				maxFreq: 20000,
+				weights: [1, 2, 3]
+			});
+		});
+
+		it('does not mutate the original channels', () => {
+			const data = channels();
+			FRSmoother.smoothChannels(data, '1/6');
+			expect(data.L!.data).toEqual(makeFRData());
+			expect(data.L!.metadata.smoothing).toBeUndefined();
 		});
 
 		it('skips missing channels', () => {
-			const data: ParsedFRData = {
-				AVG: { data: makeFRData(100), metadata: { minFreq: 20, maxFreq: 20000 } }
-			};
-			const result = FRSmoother.smoothChannels(data, '1/6');
+			const { AVG } = channels();
+			const result = FRSmoother.smoothChannels({ AVG }, '1/6');
 			expect(result.L).toBeUndefined();
 			expect(result.R).toBeUndefined();
 			expect(result.AVG).toBeDefined();
 		});
 
 		it('returns input for invalid smooth value', () => {
-			const data: ParsedFRData = {
-				AVG: { data: makeFRData(50), metadata: { minFreq: 20, maxFreq: 20000 } }
-			};
-			const result = FRSmoother.smoothChannels(data, 'invalid');
-			expect(result).toBe(data);
-		});
-	});
-
-	describe('_createOctaveBands', () => {
-		it('creates contiguous bands from 20 Hz', () => {
-			const bands = FRSmoother._createOctaveBands('1/3');
-			expect(bands[0].lower).toBeCloseTo(20, 0);
-			// Each band's upper should equal the next band's lower
-			for (let i = 0; i < bands.length - 1; i++) {
-				expect(bands[i].upper).toBeCloseTo(bands[i + 1].lower, 4);
-			}
+			const data = channels();
+			expect(FRSmoother.smoothChannels(data, 'invalid')).toBe(data);
 		});
 
-		it('has center frequency as geometric mean', () => {
-			const bands = FRSmoother._createOctaveBands('1/3');
-			for (const band of bands) {
-				expect(band.centerFreq).toBeCloseTo(Math.sqrt(band.lower * band.upper), 2);
-			}
+		// Stored channels and the live EQ curve are already smoothed; sending them through
+		// again at the same value must not blur them a second time.
+		it('passes a channel already smoothed at the same value through', () => {
+			const once = FRSmoother.smoothChannels(channels(), '1/3');
+			const twice = FRSmoother.smoothChannels(once, '1/3');
+			expect(twice.L).toBe(once.L);
+			expect(twice.AVG).toBe(once.AVG);
 		});
 
-		it('creates more bands for finer resolution', () => {
-			const fine = FRSmoother._createOctaveBands('1/48');
-			const coarse = FRSmoother._createOctaveBands('1/3');
-			expect(fine.length).toBeGreaterThan(coarse.length);
-		});
-	});
-
-	// The single-cursor pass has to reproduce the filter-per-band original exactly,
-	// boundary double-counting included — the drawn curves are made of its output.
-	describe('_smoothChannel — equivalence with the reference implementation', () => {
-		const octaves = Object.keys(FRSmoother.OCTAVE_BANDS);
-		const grid: FRDataPoint[] = FRParser._standardFrequencies.map(
-			(f, i) => [f, 80 + Math.sin(i * 0.3) * 5] as FRDataPoint
-		);
-
-		it.each(octaves)('matches on the 1/48oct parser grid at %s', (octave) => {
-			expect(FRSmoother.smooth(grid, octave)).toEqual(referenceSmooth(grid, octave));
-		});
-
-		it.each(octaves)('matches on a 1000-point log-spaced raw file at %s', (octave) => {
-			const raw = logSpaced(1000, 10, 24000);
-			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
-		});
-
-		it.each(octaves)('matches with duplicate frequencies at %s', (octave) => {
-			const raw = logSpaced(300).flatMap(([f, db]) => [
-				[f, db] as FRDataPoint,
-				[f, db - 3] as FRDataPoint
-			]);
-			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
-		});
-
-		it.each(octaves)('matches with points exactly on the band edges at %s', (octave) => {
-			const raw = FRSmoother._createOctaveBands(octave).map(
-				(band, i) => [band.lower, 70 + (i % 5)] as FRDataPoint
-			);
-			expect(FRSmoother.smooth(raw, octave)).toEqual(referenceSmooth(raw, octave));
-		});
-
-		it('skips null holes the way the reference does', () => {
-			const holey = grid.map((p, i) => (i % 7 === 0 ? null : p)) as unknown as FRDataPoint[];
-			expect(FRSmoother.smooth(holey, '1/12')).toEqual(referenceSmooth(holey, '1/12'));
-		});
-
-		it('counts a grid point on a band edge in both adjacent bands', () => {
-			const [first] = FRSmoother.smooth(grid, '1/48');
-			expect(first[1]).toBe((grid[0][1] + grid[1][1]) / 2);
-		});
-
-		// GraphEngine binds stored channels without smoothing them again, which is
-		// only correct because a second pass at the same octave changes nothing.
-		it.each(octaves)('is idempotent on its own output at %s', (octave) => {
-			const once = FRSmoother.smooth(grid, octave);
-			expect(FRSmoother.smooth(once, octave)).toEqual(once);
+		it('throws in dev on data already smoothed at another value', () => {
+			const once = FRSmoother.smoothChannels(channels(), '1/48');
+			expect(() => FRSmoother.smoothChannels(once, '1/3')).toThrow(/already smoothed at 1\/48/);
 		});
 	});
 });
@@ -220,26 +183,4 @@ describe('FRSmoother', () => {
 function computeVariance(values: number[]): number {
 	const mean = values.reduce((a, b) => a + b, 0) / values.length;
 	return values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
-}
-
-/** The original filter-per-band smoother, kept as the equivalence reference. */
-function referenceSmooth(points: FRDataPoint[], octave: string): FRDataPoint[] {
-	return FRSmoother._createOctaveBands(octave)
-		.map((band) => ({
-			...band,
-			values: points.filter((p) => p && p[0] >= band.lower && p[0] <= band.upper).map((p) => p[1])
-		}))
-		.filter((bin) => bin.values.length > 0)
-		.map(
-			(bin) =>
-				[bin.centerFreq, bin.values.reduce((a, b) => a + b, 0) / bin.values.length] as FRDataPoint
-		);
-}
-
-/** `count` log-spaced points from `from` to `to` Hz, off the 1/48oct grid. */
-function logSpaced(count: number, from = 20, to = 20000): FRDataPoint[] {
-	return Array.from({ length: count }, (_, i) => {
-		const f = from * Math.pow(to / from, i / (count - 1));
-		return [f, 75 + Math.sin(i * 0.05) * 8 + Math.cos(i * 1.7)] as FRDataPoint;
-	});
 }

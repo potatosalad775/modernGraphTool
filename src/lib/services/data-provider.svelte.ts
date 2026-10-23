@@ -390,10 +390,10 @@ class DataProvider {
 	 * Normalizes but does NOT re-smooth. `targetOriginalData` is a snapshot of channels
 	 * that already went through smooth → normalize, and the tilt/shelf stack on top is a
 	 * smooth analytic curve with nothing to filter out. Sending the result back through
-	 * `updateFRDataWithRawData` would smooth it a second time, blurring the target and —
-	 * because the smoother resamples — leaving the curve on a different frequency grid
-	 * than the cached original that baseline compensation reads. Normalization is kept
-	 * so a shelf adjustment can't drag the target off the anchor point.
+	 * `updateFRDataWithRawData` would smooth it a second time and blur the target — the
+	 * channels carry their smoothing marker, so `FRSmoother` passes them through rather
+	 * than doing that. Normalization is kept so a shelf adjustment can't drag the target
+	 * off the anchor point.
 	 */
 	applyTargetAdjustment(uuid: string): void {
 		const existing = frStore.get(uuid);
@@ -582,7 +582,12 @@ class DataProvider {
 		}
 
 		const linked = settingsStore.linkEqNormalization;
-		const modified = this.#eqModifiedChannels(sourceData, enabledFilters, preamp, linked);
+		const modified = this.#eqModifiedChannels(
+			eqSourceChannels(sourceData, eqStore.sourceSample),
+			enabledFilters,
+			preamp,
+			linked
+		);
 		eqStore.eqModifiedData.set(sourceUUID, modified);
 
 		const processed = this.#processEqChannels(modified, linked);
@@ -632,10 +637,10 @@ class DataProvider {
 
 	/**
 	 * The current EQ source with `filters` applied, built exactly like the live EQ
-	 * curve: `raw` is the unsmoothed result (what `_rawData` caches), `processed`
-	 * what gets drawn. The preamp is the one these filters derive. `null` with no
-	 * source picked. Used by History & Compare for the A/B ghost trace and for
-	 * "Add to graph".
+	 * curve: `raw` is the filtered source before EQ processing (what the live curve's
+	 * `_rawData` caches — already smoothed, since the source's drawn channels are),
+	 * `processed` what gets drawn. The preamp is the one these filters derive. `null`
+	 * with no source picked. Used by History & Compare for the A/B ghost trace.
 	 */
 	eqChannelsFor(filters: EQFilter[]): { raw: ParsedFRData; processed: ParsedFRData } | null {
 		const sourceUUID = eqStore.sourcePhoneUUID;
@@ -645,7 +650,12 @@ class DataProvider {
 			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
 		);
 		const linked = settingsStore.linkEqNormalization;
-		const raw = this.#eqModifiedChannels(sourceData, enabled, derivePreamp(enabled), linked);
+		const raw = this.#eqModifiedChannels(
+			eqSourceChannels(sourceData, eqStore.sourceSample),
+			enabled,
+			derivePreamp(enabled),
+			linked
+		);
 		return { raw, processed: this.#processEqChannels(raw, linked) };
 	}
 
@@ -653,19 +663,48 @@ class DataProvider {
 	 * Insert the current EQ source with `filters` applied as a frozen curve, like
 	 * `averageVisiblePhones`: an `inserted-phone`, so hiding, recoloring and undo
 	 * come for free. Returns false with no source picked.
+	 *
+	 * Built from the source's raw cache, not its drawn channels: the frozen curve
+	 * re-smooths with everything else, and smoothing already-smoothed data would
+	 * blur it twice. The drawn channels are only a fallback for a source that
+	 * somehow lost its cache.
 	 */
 	insertEqCurve(filters: EQFilter[], name: string): boolean {
 		const sourceUUID = eqStore.sourcePhoneUUID;
 		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
-		const built = this.eqChannelsFor(filters);
-		if (!sourceData || !built) return false;
-		const channels = Object.keys(built.raw) as ('L' | 'R' | 'AVG')[];
+		if (!sourceData) return false;
+		const enabled = filters.filter(
+			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
+		);
+		const raw = this.#eqModifiedChannels(
+			this.#eqRawSourceChannels(sourceData) ?? eqSourceChannels(sourceData, eqStore.sourceSample),
+			enabled,
+			derivePreamp(enabled),
+			settingsStore.linkEqNormalization
+		);
+		const channels = Object.keys(raw) as ('L' | 'R' | 'AVG')[];
 		if (channels.length === 0) return false;
-		this.insertRawFRData('phone', sourceData.identifier, built.raw, {
+		this.insertRawFRData('phone', sourceData.identifier, raw, {
 			dispChannel: sourceData.dispChannel.filter((ch) => channels.includes(ch)),
 			dispSuffix: `(EQ · ${name})`
 		});
 		return true;
+	}
+
+	/** `eqSourceChannels`, read from the source's raw cache; null when it has none. */
+	#eqRawSourceChannels(sourceData: FRDataObject): ParsedFRData | null {
+		const cache = sourceData._rawData;
+		if (!cache) return null;
+		if (!eqSourceRun(sourceData, eqStore.sourceSample)) return cache.channels;
+		const run = cache.samples?.[eqStore.sourceSample!.index];
+		if (!run) return null;
+		// Raw runs carry no AVG — processing derives it — so derive it the same way
+		const avg = run.AVG ?? (run.L && run.R ? FRParser._computeAvgChannel(run.L, run.R) : null);
+		return {
+			...(run.L && { L: run.L }),
+			...(run.R && { R: run.R }),
+			...(avg && { AVG: avg })
+		};
 	}
 
 	/**
@@ -673,7 +712,7 @@ class DataProvider {
 	 * bands) applied — the unsmoothed half of the EQ curve.
 	 */
 	#eqModifiedChannels(
-		sourceData: FRDataObject,
+		sourceChannels: ParsedFRData,
 		enabledFilters: EQFilter[],
 		preamp: number,
 		linked: boolean
@@ -687,7 +726,6 @@ class DataProvider {
 		const eq = new Equalizer();
 		const modified: ParsedFRData = {};
 		const perChannel = hasPerChannelFilters(enabledFilters);
-		const sourceChannels = eqSourceChannels(sourceData, eqStore.sourceSample);
 		for (const ch of ['L', 'R', 'AVG'] as const) {
 			const chData = sourceChannels[ch];
 			if (!chData) continue;
@@ -780,10 +818,10 @@ class DataProvider {
 	async reSmoothAll(): Promise<void> {
 		const eqUUID = eqStore.eqCurveUUID;
 		for (const [uuid, data] of frStore.entries) {
-			// Skip the linked EQ curve — it will be rebuilt from the source below,
-			// same as renormalizeAll. Otherwise it gets independently re-smoothed
-			// here and detaches from the source ghost when linkEqNormalization is on.
-			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
+			// Skip the EQ curve — it is rebuilt from the re-smoothed source below. Its
+			// `_rawData` is the filtered source's drawn (already smoothed) channels, so
+			// re-smoothing that would smooth twice.
+			if (uuid === eqUUID) continue;
 
 			const rawCache = data._rawData;
 

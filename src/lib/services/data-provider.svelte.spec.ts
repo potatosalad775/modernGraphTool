@@ -1596,6 +1596,70 @@ describe('DataProvider', () => {
 				// Frozen: the live EQ curve is not involved.
 				expect(eqStore.eqCurveUUID).toBeNull();
 			});
+
+			describe('smoothing', () => {
+				afterEach(() => {
+					graphStore.smoothValue = '1/48';
+				});
+
+				/**
+				 * The flat source, drawn at 0 dB (smoothed, as drawn channels are) but cached
+				 * raw 10 dB up — so the two are told apart.
+				 */
+				function seedWithRawCache(): void {
+					seedEqSource();
+					const at = (db: number, smoothing?: string) => ({
+						data: makeFRPoints(0).map(([f]) => [f, db] as FRDataPoint),
+						metadata: { minFreq: 20, maxFreq: 20000, ...(smoothing && { smoothing }) }
+					});
+					frStore.set('src', {
+						...frStore.get('src')!,
+						channels: { L: at(0, '1/48'), R: at(0, '1/48'), AVG: at(0, '1/48') },
+						_rawData: { channels: { L: at(10), R: at(10), AVG: at(10) } }
+					});
+				}
+
+				// The drawn channels are already smoothed; freezing them as the inserted
+				// curve's "raw" would smooth them a second time.
+				it('freezes the source raw cache, not its drawn channels', () => {
+					seedWithRawCache();
+					dataProvider.insertEqCurve([band(6)], 'x');
+
+					const inserted = [...frStore.entries.values()].find((o) => o.type === 'inserted-phone')!;
+					const raw = inserted._rawData!.channels.L!;
+					expect(raw.metadata.smoothing).toBeUndefined();
+					const at1k = raw.data.reduce((best, p) =>
+						Math.abs(p[0] - 1000) < Math.abs(best[0] - 1000) ? p : best
+					)[1];
+					expect(at1k).toBeGreaterThan(14);
+				});
+
+				it('re-smooths a frozen curve when the smoothing changes', async () => {
+					seedWithRawCache();
+					dataProvider.insertEqCurve([band(6)], 'x');
+
+					graphStore.smoothValue = '1/3';
+					await dataProvider.reSmoothAll();
+
+					const inserted = [...frStore.entries.values()].find((o) => o.type === 'inserted-phone')!;
+					expect(inserted.channels.L!.metadata.smoothing).toBe('1/3');
+				});
+
+				// Unlinked, the live curve used to go through reSmoothAll's own loop and be
+				// re-smoothed from `_rawData` — the source's drawn, already-smoothed channels.
+				it('rebuilds an unlinked live EQ curve from the source instead of re-smoothing it', async () => {
+					settingsStore.linkEqNormalization = false;
+					seedWithRawCache();
+					eqStore.filters = [band(6)];
+					dataProvider.rebuildEqCurve();
+
+					graphStore.smoothValue = '1/3';
+					await expect(dataProvider.reSmoothAll()).resolves.toBeUndefined();
+
+					const live = frStore.get(eqStore.eqCurveUUID!)!;
+					expect(live.channels.L!.metadata.smoothing).toBe('1/3');
+				});
+			});
 		});
 
 		it('ignores per-channel bands on a source measured as a single curve', () => {

@@ -97,19 +97,33 @@ summary (shared by the Device PEQ panel and the band list's constraint row). eqc
 
 ## `fr-parser.ts` / `fr-smoother.ts` / `fr-normalizer.ts` — the FR pipeline
 
-Resampling and smoothing are single cursor passes. They replaced quadratic `findIndex` and per-band
-`filter` loops, and the equivalence specs pin the output as identical — the old code lives on in
-those specs as the reference implementation. Three things the passes depend on:
+Every curve is resampled onto one 1/48oct grid (20 Hz–20 kHz, 479 points), then smoothed on it.
 
-- **Input is sorted by frequency.** `parseFRData` sorts before `_interpolateToStandard`, and every
-  smoother caller passes the parser's 1/48oct grid. An unsorted array gives wrong output silently.
-- **Band membership is inclusive at both ends**, and each band's upper edge is the next band's lower
-  edge, so a point exactly on an edge counts in both. On the 1/48oct grid that is _every_ point — the
-  first 1/48 smoothing averages neighbouring pairs. Don't "fix" it to half-open bands: every drawn
-  curve would shift.
-- **Smoothing is idempotent on its own output** at the same octave: band centres sit strictly inside
-  their bands, so a second pass returns the same array. That is what lets `GraphEngine` bind stored
-  channels without smoothing them again (`graph/AGENTS.md`).
+- **Input is sorted by frequency.** `parseFRData` sorts before `_resampleToStandard`, whose cursors
+  depend on it. An unsorted array gives wrong output silently.
+- **Resampling averages dense data.** A grid point whose half-open 1/48oct cell holds two or more raw
+  points takes their power mean; otherwise it is linearly interpolated, exactly as the original
+  `findIndex` pass did (the spec keeps that pass as the reference for sparse input). Plain
+  interpolation at the grid frequencies used to skip most samples of an REW export.
+- **The smoother is REW's, not an approximation of it.** Four forward/backward first-order
+  recursions over power (Alvarez–Mazorra), σ = 0.375 × the octave fraction, steady-state starts at
+  both ends. `fr-smoother.spec.ts` checks it against REW's own output in
+  `__fixtures__/rew-smoothing.json` to 0.002 dB; regenerate that with
+  `scripts/rew-smoothing-fixture.mjs` (needs REW 5.40 beta's API). Don't swap in a true Gaussian —
+  REW's kernel has heavier tails, and a notch reads up to 2.4 dB apart at 1/3oct. Don't zero-start
+  the recursions either: the ends drop by up to 13 dB.
+- **1/48 is not floored to 1/24.** On a 48ppo grid REW smooths no narrower than two points, so its
+  1/48 equals its 1/24 there. Unfloored is closer to REW's 1/48 on the dense source data, so the
+  fixture has no 1/48 entry.
+- **The smoother needs evenly log-spaced input** and reads the spacing off the endpoints. Every
+  caller passes the parser's grid; anything else gives the wrong width silently. The output keeps
+  the input's frequencies.
+- **Smoothing always starts from raw data.** It is not idempotent: every pass blurs further.
+  `smoothChannels` tags its output `metadata.smoothing`; a channel tagged with the requested value
+  passes through untouched (stored channels, the live EQ curve built on them), and one tagged with
+  another value throws in dev and passes through with a warning in production. A path that hits that
+  throw is caching smoothed data as raw — fix the cache, not the guard. `smooth()` (bare arrays, for
+  preference bounds) has no tag and no guard.
 
 `_shiftChannel` copies with `map` rather than `structuredClone`; it must still never mutate its input.
 
@@ -121,12 +135,12 @@ eligibility rule — visible phones and inserted phones only — and `averageCha
 - **A channel is averaged only over the items currently displaying it.** A device shown as AVG does
   not contribute to L/R. Channels are averaged independently and each over its own contributor
   count, and one with fewer than two contributors is dropped rather than passed through.
-- **Feed it raw channels, process afterwards.** Both pipeline stages are linear, so averaging raw and
-  averaging the drawn curves describe the same curve — they differ only by the 0.01 dB quantum
-  `clampDB` rounds to, which is what `fr-average.spec.ts` pins. Averaging raw is what gives the
-  result a real `_rawData`, so `reSmoothAll` rebuilds it with everything else instead of stranding it
-  at the smoothing that was active when it was made. If a non-linear stage ever enters the pipeline
-  that spec fails, and the choice has to be revisited.
+- **Feed it raw channels, process afterwards.** Smoothing averages power, so averaging raw and
+  averaging the drawn curves differ wherever the curves have sharp features in different places
+  (`fr-average.spec.ts` pins both that and normalization still commuting). The raw order is the one
+  `reSmoothAll` repeats, so the average never jumps between the two, and it gives the result a real
+  `_rawData`, so it is rebuilt with everything else instead of stranded at the smoothing that was
+  active when it was made.
 - **`yOffset` is deliberately ignored.** It is a frequency-independent constant, so it survives the
   mean as a constant and normalization strips it straight back off — it cannot change the result's
   shape.

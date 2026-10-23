@@ -1,13 +1,17 @@
-import type { ParsedFRData, FRDataPoint } from '#lib/types/data-types.js';
+import type { ParsedFRData, FRDataPoint, ChannelData } from '#lib/types/data-types.js';
 
-interface OctaveBand {
-	lower: number;
-	upper: number;
-	centerFreq: number;
-}
-
-/** Bands per octave key — five keys, each computed once. */
-const bandCache = new Map<string, OctaveBand[]>();
+/**
+ * Fractional-octave smoothing, matching REW's to within float rounding.
+ *
+ * REW documents its kernel as "multiple forward and backward passes of first order IIR
+ * filters" approximating a Gaussian (Alvarez–Mazorra). The constants below were fitted
+ * against REW 5.40's own output over its API and reproduce it exactly, edges included:
+ * four passes, σ = 3/8 of the octave fraction, averaged in power rather than dB.
+ * A true Gaussian is not a substitute — REW's kernel has heavier tails, which decide
+ * how deep a narrow notch reads (up to 2.4 dB apart at 1/3oct).
+ */
+const PASSES = 4;
+const SIGMA_PER_FRACTION = 0.375;
 
 const FRSmoother = {
 	OCTAVE_BANDS: {
@@ -21,80 +25,82 @@ const FRSmoother = {
 	/** Smooth a single data array using the given octave smoothing value. */
 	smooth(data: FRDataPoint[], smoothValue: string): FRDataPoint[] {
 		if (!this.OCTAVE_BANDS[smoothValue] || !data) return data;
-		return this._smoothChannel(data, smoothValue);
+		return this._smoothChannel(data, this.OCTAVE_BANDS[smoothValue]);
 	},
 
-	/** Smooth all channels in a ParsedFRData using the given octave smoothing value. */
+	/**
+	 * Smooth all channels in a ParsedFRData using the given octave smoothing value, and
+	 * tag each with it (`metadata.smoothing`).
+	 *
+	 * Smoothing always starts from raw data. A channel already smoothed at this value
+	 * passes through unchanged; one smoothed at another value is a pipeline bug — every
+	 * extra pass blurs the curve further — so it throws in dev and passes through in
+	 * production.
+	 */
 	smoothChannels(data: ParsedFRData, smoothValue: string): ParsedFRData {
-		if (!this.OCTAVE_BANDS[smoothValue]) return data;
+		const fraction = this.OCTAVE_BANDS[smoothValue];
+		if (!fraction) return data;
 
 		const smoothedData: ParsedFRData = {};
 		for (const channel of ['L', 'R', 'AVG'] as ('L' | 'R' | 'AVG')[]) {
-			if (data[channel]) {
-				smoothedData[channel] = {
-					...data[channel]!,
-					data: this._smoothChannel(data[channel]!.data, smoothValue)
-				};
-			}
+			const source = data[channel];
+			if (!source) continue;
+			smoothedData[channel] = this._isSmoothed(source, smoothValue)
+				? source
+				: {
+						...source,
+						data: this._smoothChannel(source.data, fraction),
+						metadata: { ...source.metadata, smoothing: smoothValue }
+					};
 		}
 		return smoothedData;
 	},
 
-	/**
-	 * Smooth a single channel's data: each non-empty band becomes one point at its
-	 * centre, carrying the mean of the points inside it.
-	 *
-	 * `dataPoints` must be sorted by frequency (every caller passes the parser's
-	 * 1/48oct grid), so one cursor walks the points and the bands together.
-	 */
-	_smoothChannel(dataPoints: FRDataPoint[], octave: string): FRDataPoint[] {
-		let bands = bandCache.get(octave);
-		if (!bands) {
-			bands = this._createOctaveBands(octave);
-			bandCache.set(octave, bands);
+	/** Whether `channel` already carries smoothing; throws (dev) if it is not `smoothValue`. */
+	_isSmoothed(channel: ChannelData, smoothValue: string): boolean {
+		const applied = channel.metadata.smoothing;
+		if (applied === undefined) return false;
+		if (applied !== smoothValue) {
+			const message = `FRSmoother: asked for ${smoothValue} smoothing on data already smoothed at ${applied}`;
+			if (import.meta.env.DEV) throw new Error(message);
+			console.warn(message);
 		}
-
-		const smoothed: FRDataPoint[] = [];
-		const count = dataPoints.length;
-		let start = 0;
-		for (const { lower, upper, centerFreq } of bands) {
-			// Membership is inclusive at both ends and each band's upper edge is the
-			// next band's lower edge, so a point exactly on a boundary counts in both —
-			// on the 1/48oct grid that is every point. Start from the first point at or
-			// above `lower`, which may be the previous band's last one.
-			while (start < count && (!dataPoints[start] || dataPoints[start][0] < lower)) start++;
-
-			let sum = 0;
-			let members = 0;
-			for (let i = start; i < count; i++) {
-				const point = dataPoints[i];
-				if (!point) continue;
-				if (point[0] > upper) break;
-				sum += point[1];
-				members++;
-			}
-			if (members > 0) smoothed.push([centerFreq, sum / members]);
-		}
-		return smoothed;
+		return true;
 	},
 
-	/** Create octave bands based on the specified octave division */
-	_createOctaveBands(octave: string): OctaveBand[] {
-		const bands: OctaveBand[] = [];
-		let f = 20;
-		const fraction = this.OCTAVE_BANDS[octave];
+	/**
+	 * Smooth one channel: four forward/backward first-order recursions over the power
+	 * values. The output keeps the input's frequencies.
+	 *
+	 * `dataPoints` must be sorted and evenly spaced in log frequency — the parser's
+	 * 1/48oct grid, which every caller passes. The spacing is read off the endpoints.
+	 */
+	_smoothChannel(dataPoints: FRDataPoint[], fraction: number): FRDataPoint[] {
+		const count = dataPoints.length;
+		if (count < 2) return dataPoints.map(([f, db]) => [f, db] as FRDataPoint);
 
-		while (f < 20000) {
-			const upper = f * Math.pow(2, fraction);
-			bands.push({
-				lower: f,
-				upper: upper,
-				centerFreq: Math.sqrt(f * upper)
-			});
-			f = upper;
+		const pointsPerOctave = (count - 1) / Math.log2(dataPoints[count - 1][0] / dataPoints[0][0]);
+		const sigma = SIGMA_PER_FRACTION * fraction * pointsPerOctave; // in samples
+		// Each pass is a two-sided exponential nu^|n|, with variance 2nu/(1-nu)^2; the
+		// passes split σ² between them evenly.
+		const variance = (sigma * sigma) / PASSES;
+		const nu = (variance + 1 - Math.sqrt(2 * variance + 1)) / variance;
+		const gain = (1 - nu) * (1 - nu); // undoes one pass's DC gain of 1/(1-nu)^2
+
+		const power = new Float64Array(count);
+		for (let i = 0; i < count; i++) power[i] = Math.pow(10, dataPoints[i][1] / 10);
+
+		for (let pass = 0; pass < PASSES; pass++) {
+			// Steady-state starts: the data is treated as continuing flat past each end.
+			// Starting from zero instead drags the ends down by up to 13 dB at 1/3oct.
+			power[0] /= 1 - nu;
+			for (let i = 1; i < count; i++) power[i] += nu * power[i - 1];
+			power[count - 1] /= 1 - nu;
+			for (let i = count - 2; i >= 0; i--) power[i] += nu * power[i + 1];
+			for (let i = 0; i < count; i++) power[i] *= gain;
 		}
 
-		return bands;
+		return dataPoints.map(([f], i) => [f, 10 * Math.log10(power[i])] as FRDataPoint);
 	}
 };
 

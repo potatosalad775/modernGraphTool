@@ -64,7 +64,7 @@ Most measurement software provides a feature to export data in txt file format. 
     :::tip[Tip]
     modernGraphTool can also process non-smoothed original data that has not had Custom resolution / Custom smoothing settings applied.
 
-    However, modernGraphTool is designed to internally apply 1/48 smoothing to ensure adequate processing performance. Therefore, using data with a resolution higher than 1/48 oct will not affect the result.
+    However, modernGraphTool resamples every file onto a 1/48 octave grid to ensure adequate processing performance. Data with a resolution higher than 1/48 oct still ends up as one point per 1/48 octave, but no samples are dropped: each point is the power average of every sample in its 1/48 octave cell, so the extra samples do shape the values drawn.
     :::
 
   </TabItem>

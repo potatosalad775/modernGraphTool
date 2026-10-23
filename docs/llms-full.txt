@@ -3399,7 +3399,7 @@ Most measurement software provides a feature to export data in txt file format. 
 
   modernGraphTool can also process non-smoothed original data that has not had Custom resolution / Custom smoothing settings applied.
 
-  However, modernGraphTool is designed to internally apply 1/48 smoothing to ensure adequate processing performance. Therefore, using data with a resolution higher than 1/48 oct will not affect the result.
+  However, modernGraphTool resamples every file onto a 1/48 octave grid to ensure adequate processing performance. Data with a resolution higher than 1/48 oct still ends up as one point per 1/48 octave, but no samples are dropped: each point is the power average of every sample in its 1/48 octave cell, so the extra samples do shape the values drawn.
 
 * ARTA
 
@@ -4235,6 +4235,8 @@ The smoothing button cycles through fractional-octave values from **1/48 octave*
 * **1/6 or 1/3** turn the curve into a broad outline, useful when comparing several headphones at once because ripples don’t visually clash.
 
 There’s no “correct” setting. Pick whichever makes the thing you’re trying to see easiest to see. Smoothing is purely a view setting — the underlying file is untouched.
+
+Smoothing works the same way as in [REW (Room EQ Wizard)](https://www.roomeqwizard.com), so a curve here at 1/6 octave matches the same measurement smoothed at 1/6 octave in REW. Like REW, it averages sound power rather than decibels, so a narrow dip fills in more than a narrow peak of the same size flattens.
 
 ## Y-axis scale
 

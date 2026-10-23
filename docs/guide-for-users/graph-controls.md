@@ -66,6 +66,8 @@ The smoothing button cycles through fractional-octave values from **1/48 octave*
 
 There's no "correct" setting. Pick whichever makes the thing you're trying to see easiest to see. Smoothing is purely a view setting — the underlying file is untouched.
 
+Smoothing works the same way as in [REW (Room EQ Wizard)](https://www.roomeqwizard.com), so a curve here at 1/6 octave matches the same measurement smoothed at 1/6 octave in REW. Like REW, it averages sound power rather than decibels, so a narrow dip fills in more than a narrow peak of the same size flattens.
+
 ## Y-axis scale
 
 The **Y scale button** (vertical double-arrow) controls how many dB the Y axis covers. A smaller range zooms in on the curves; a larger range zooms out and gives you more headroom for stacking multiple offset curves.

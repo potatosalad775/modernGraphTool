@@ -15,7 +15,7 @@ export interface ChannelData {
 		weights?: number[];
 		minFreq: number;
 		maxFreq: number;
-		/** Octave smoothing already applied (`'1/6'`, …); absent on raw data. Set by `FRSmoother`. */
+		/** Smoothing already applied (`'1/6'`, `'Var'`, …); absent on raw data. Set by `FRSmoother`. */
 		smoothing?: string;
 	};
 }

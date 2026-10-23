@@ -768,6 +768,12 @@ class DataProvider {
 	 * Linked mode: smooth only. The absolute dB values already encode
 	 * "source_normalized + filter_effect" — skipping normalization preserves that
 	 * relationship. Unlinked mode: smooth + renormalize.
+	 *
+	 * For the live curve "smooth" is a pass-through: it is built on the source's drawn
+	 * channels, already smoothed and tagged at the current value, so the EQ'd curve is
+	 * the drawn source plus the exact filter response. Smoothing it again would blur
+	 * the source twice. A frozen curve (`insertEqCurve`) starts from raw, so it is
+	 * smoothed here for real.
 	 */
 	#processEqChannels(modified: ParsedFRData, linked: boolean): ParsedFRData {
 		return linked

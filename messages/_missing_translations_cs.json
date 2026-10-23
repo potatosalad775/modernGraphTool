@@ -1,5 +1,10 @@
 {
 	"@@info": [
+		"Prefer translating in your browser? Fink edits messages/cs.json directly — no code or git:",
+		"  https://fink.inlang.com/?repo=potatosalad775/modernGraphTool&project=project.inlang",
+		"  Walkthrough: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/translating/",
+		"This file is the offline alternative.",
+		"",
 		"Keys that exist in <en> but not in <cs>.",
 		"The values below are the en source text — replace them with cs translations.",
 		"You do not have to translate all of them; leave out what you are unsure about and open a PR.",
@@ -76,6 +81,8 @@
 	"equalizer_device_peq_supported_devices": "Supported devices",
 	"equalizer_device_peq_connections_topic": "connection types",
 	"equalizer_device_peq_transport_serial": "USB Serial — for devices exposing a CDC / virtual COM interface (JDS Labs, Nothing, FiiO, and more), including Bluetooth serial ports.",
+	"smoothing_variable_label": "Variable smoothing",
+	"smoothing_psychoacoustic_label": "Psychoacoustic smoothing",
 	"freq_guide_btn_label": "Freq. Guide",
 	"average_button_label": "Average",
 	"average_button_hint": "Average all visible measurements into a new curve",

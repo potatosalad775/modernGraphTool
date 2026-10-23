@@ -33,6 +33,11 @@ const baseKeySet = new Set(baseKeys);
 const locales = listLocales().filter((l) => l !== BASE_LOCALE);
 
 const info = (locale) => [
+	`Prefer translating in your browser? Fink edits messages/${locale}.json directly — no code or git:`,
+	`  https://fink.inlang.com/?repo=potatosalad775/modernGraphTool&project=project.inlang`,
+	`  Walkthrough: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/translating/`,
+	`This file is the offline alternative.`,
+	``,
 	`Keys that exist in <${BASE_LOCALE}> but not in <${locale}>.`,
 	`The values below are the ${BASE_LOCALE} source text — replace them with ${locale} translations.`,
 	`You do not have to translate all of them; leave out what you are unsure about and open a PR.`,

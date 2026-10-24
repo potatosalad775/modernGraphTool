@@ -24,6 +24,8 @@ draft: false
 
 [설정 파일 편집기](/config-generator), [phone_book.json 편집기](/phone-book-editor), [테마 생성기](/theme-generator)를 쓰면 이 세 파일을 직접 편집하는 대신 화면에서 만들 수 있습니다.
 
+사이트를 연 뒤에는 [데이터 무단 수집 방지](./protect-data.mdx)에서 측정 데이터를 한꺼번에 내려받기 어렵게 만드는 서버 규칙을 확인하세요.
+
 ## 이미 데이터베이스를 운영 중이라면
 
 - **modernGraphTool v1을 쓰는 중이라면** — [v2의 새로운 기능](../whats-new-in-v2.mdx)을 먼저 보고, [v1에서 v2로 마이그레이션](../migrating-v1-to-v2.mdx)을 따라가세요.

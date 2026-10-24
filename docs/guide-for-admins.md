@@ -24,6 +24,8 @@ A new database takes four steps, in this order:
 
 The [Config Editor](/config-generator), [phone_book.json Editor](/phone-book-editor) and [Theme Generator](/theme-generator) let you build those three files visually instead of editing them by hand.
 
+Once the site is live, [Deterring Data Scraping](./protect-data.mdx) covers server rules that make bulk-downloading your measurements harder.
+
 ## Already running a database?
 
 - **On modernGraphTool v1** — see [What's New in v2](../whats-new-in-v2.mdx), then [Migrating from v1 to v2](../migrating-v1-to-v2.mdx).

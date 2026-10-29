@@ -1,0 +1,1 @@
+function e(e,t){let n=e=>e.split(/\D+/).filter(Boolean).map(Number),r=n(e),i=n(t);for(let e=0;e<Math.max(r.length,i.length);e++){let t=(r[e]??0)-(i[e]??0);if(t!==0)return t}return 0}export{e as t};

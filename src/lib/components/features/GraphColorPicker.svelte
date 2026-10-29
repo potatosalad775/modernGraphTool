@@ -7,9 +7,11 @@
 		formatOklch,
 		hexToOklch,
 		oklchToHex,
-		randomCurveColor
+		randomCurveColor,
+		graphBackgroundLightness
 	} from '#lib/utils/curve-palette.js';
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { Shuffle } from '@lucide/svelte';
@@ -110,7 +112,16 @@
 
 	function onRandom(): void {
 		const palette = getConfigValue('TRACE_STYLING.CURVE_COLOR_PALETTE') as string[] | undefined;
-		const [L, C, H] = parseOklch(randomCurveColor(palette, item.colors.AVG));
+		const used = [...frStore.entries.values()]
+			.filter((e) => e.uuid !== uuid && !e.hidden)
+			.flatMap((e) => [e.colors.AVG, e.colors.L, e.colors.R].filter((c): c is string => !!c));
+		const [L, C, H] = parseOklch(
+			randomCurveColor(palette, {
+				current: item.colors.AVG,
+				used,
+				backgroundL: graphBackgroundLightness()
+			})
+		);
 		localL = round2(L);
 		localC = round2(C);
 		localH = Math.round(H);

@@ -506,8 +506,7 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 			'#CC79A7',
 			'#56B4E9',
 			'#D55E00',
-			'#F0E442',
-			'#000000'
+			'#F0E442'
 		],
 		CURVE_COLOR_PALETTE_RANDOMIZE: false,
 		TARGET_TRACE_DASH: crin.targetDashed ? [] : []

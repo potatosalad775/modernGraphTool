@@ -11,7 +11,8 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import GraphColorPicker from './GraphColorPicker.svelte';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
-import { parseOklch, oklchToHex } from '#lib/utils/curve-palette.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { parseOklch, oklchToHex, readableLightnessBand } from '#lib/utils/curve-palette.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 
 function makeItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
@@ -166,6 +167,42 @@ describe('GraphColorPicker', () => {
 			await vi.waitFor(() => expect(updateColors).toHaveBeenCalled());
 			const [, colors] = updateColors.mock.calls.at(-1)!;
 			expect(colors.AVG).not.toBe('oklch(0.68 0.16 30)');
+		});
+
+		it('skips palette colours already used by another visible curve on Random', async () => {
+			frStore.set('other', makeItem({ uuid: 'other', colors: { AVG: 'oklch(0.7 0.2 120)' } }));
+			frStore.set(
+				'hidden',
+				makeItem({ uuid: 'hidden', hidden: true, colors: { AVG: 'oklch(0.7 0.2 240)' } })
+			);
+			try {
+				await open(makeItem());
+				await page.getByRole('button', { name: 'Random' }).click();
+
+				await vi.waitFor(() => expect(updateColors).toHaveBeenCalled());
+				// The hidden curve doesn't hold its colour, so 240 is still free.
+				expect(updateColors.mock.calls.at(-1)![1].AVG).toBe('oklch(0.7 0.2 240)');
+			} finally {
+				frStore.clear();
+			}
+		});
+
+		it('generates a colour readable on the theme background once the palette is used up', async () => {
+			window.GRAPHTOOL_CONFIG = {} as never;
+			const root = document.documentElement;
+			root.style.setProperty('--color-graph-bg', 'transparent');
+			root.style.setProperty('--color-base-100', 'oklch(30% 0.02 264)');
+			try {
+				await open(makeItem());
+				await page.getByRole('button', { name: 'Random' }).click();
+
+				await vi.waitFor(() => expect(updateColors).toHaveBeenCalled());
+				const [L] = parseOklch(updateColors.mock.calls.at(-1)![1].AVG!);
+				expect(L).toBeGreaterThanOrEqual(readableLightnessBand(0.3)[0]);
+			} finally {
+				root.style.removeProperty('--color-graph-bg');
+				root.style.removeProperty('--color-base-100');
+			}
 		});
 
 		it('writes the randomly picked colour back into the OKLCH fields', async () => {

@@ -18,8 +18,7 @@ const OKABE_ITO_HEX = [
 	'#CC79A7',
 	'#56B4E9',
 	'#D55E00',
-	'#F0E442',
-	'#000000'
+	'#F0E442'
 ] as const;
 
 const GOLDEN_ANGLE_DEG = 137.508;
@@ -108,11 +107,15 @@ export function formatOklch(L: number, C: number, H: number): string {
 	return `oklch(${rL} ${rC} ${rH})`;
 }
 
-const OKLCH_RE = /oklch\(\s*([0-9.+-]+)\s+([0-9.+-]+)\s+([0-9.+-]+)/i;
+// L may be written as a percentage (`oklch(98% …)`), which is how theme.css spells it.
+const OKLCH_RE = /oklch\(\s*([0-9.+-]+)(%?)\s+([0-9.+-]+)\s+([0-9.+-]+)/i;
 
 export function parseOklch(color: string): [number, number, number] {
 	const m = color.match(OKLCH_RE);
-	if (m) return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+	if (m) {
+		const L = parseFloat(m[1]);
+		return [m[2] ? L / 100 : L, parseFloat(m[3]), parseFloat(m[4])];
+	}
 	if (color.startsWith('#')) return hexToOklch(color);
 	// Fallback: round-trip through a canvas for hsl()/rgb()/named colors.
 	const hex = anyColorToHex(color);
@@ -168,28 +171,104 @@ export function resolveCurvePalette(
 	return shuffled;
 }
 
-// ── randomCurveColor ───────────────────────────────────────────────────────
+// ── Readable lightness ─────────────────────────────────────────────────────
 
 /**
- * Pick a genuinely random color for the color-picker "Random" button.
+ * Curve lightness that stays legible against the graph background: mid-dark
+ * on a light background, mid-light on a dark one. Without a known background
+ * (no DOM) the band stays around the default generation lightness.
+ */
+export function readableLightnessBand(backgroundL?: number): [number, number] {
+	if (backgroundL === undefined || !Number.isFinite(backgroundL)) return [0.6, 0.75];
+	return backgroundL >= 0.5 ? [0.45, 0.7] : [0.65, 0.88];
+}
+
+/**
+ * OKLCH lightness of the surface curves are drawn on: `--color-graph-bg`, or
+ * `--color-base-100` behind it when the graph background is transparent (the
+ * shipped default). Read live, so it follows the theme toggle and operator themes.
+ */
+export function graphBackgroundLightness(): number | undefined {
+	if (typeof document === 'undefined') return undefined;
+	const style = getComputedStyle(document.documentElement);
+	let bg = style.getPropertyValue('--color-graph-bg').trim();
+	if (!bg || bg === 'transparent') bg = style.getPropertyValue('--color-base-100').trim();
+	return bg ? parseOklch(bg)[0] : undefined;
+}
+
+function inSrgbGamut(L: number, C: number, H: number): boolean {
+	const eps = 1e-4;
+	return oklabToLinearRgb(...oklchToOklab(L, C, H)).every((c) => c >= -eps && c <= 1 + eps);
+}
+
+/** Lower chroma until the color fits sRGB, so the hex field shows what is drawn. */
+function fitChroma(L: number, C: number, H: number): number {
+	let c = C;
+	while (c > 0 && !inSrgbGamut(L, c, H)) c = Math.max(0, c - 0.005);
+	return c;
+}
+
+// ── randomCurveColor ───────────────────────────────────────────────────────
+
+export interface RandomCurveColorOptions {
+	/** The curve's own color — never picked again on the next click. */
+	current?: string;
+	/** Colors of the other curves on the graph, avoided while anything else is free. */
+	used?: string[];
+	/** OKLCH lightness of the graph background; see {@link graphBackgroundLightness}. */
+	backgroundL?: number;
+}
+
+const RANDOM_MIN_DIST = 0.12;
+const RANDOM_CANDIDATES = 48;
+const RANDOM_C_RANGE: [number, number] = [0.1, 0.19];
+
+/**
+ * Pick a random color for the color-picker "Random" button.
  *
  * Unlike {@link nextCurveColor} (deterministic auto-assignment on add), this
- * returns a fresh random pick on every call:
- *  - With a configured palette: a random entry, avoiding `current` when the
- *    palette has more than one option so repeated clicks visibly change.
- *  - Otherwise: a random hue at the default generation L/C.
+ * returns a fresh random pick on every call, avoiding `current` and `used` by
+ * OKLab distance rather than by string, since palette entries come in any notation:
+ *  - With a configured palette: a random entry far enough from all of them.
+ *    The operator's entries are used as written — no lightness clamp.
+ *  - Otherwise, or once every palette entry is taken: a random color across
+ *    lightness, chroma and hue, within {@link readableLightnessBand}.
  *
  * Output is always an `oklch(L C H)` string.
  */
-export function randomCurveColor(palette?: string[], current?: string): string {
+export function randomCurveColor(palette?: string[], opts: RandomCurveColorOptions = {}): string {
+	const avoid = [...(opts.current ? [opts.current] : []), ...(opts.used ?? [])].map(parseOklch);
+	const minDist = (c: [number, number, number]) =>
+		avoid.length ? Math.min(...avoid.map((a) => oklabDistance(c, a))) : Infinity;
+
 	if (palette && palette.length > 0) {
-		const candidates =
-			palette.length > 1 && current ? palette.filter((c) => c !== current) : palette;
-		const pick = candidates[Math.floor(Math.random() * candidates.length)];
-		return formatOklch(...parseOklch(pick));
+		const free = palette.map(parseOklch).filter((c) => minDist(c) > PALETTE_DEDUP_THRESHOLD);
+		if (free.length > 0) return formatOklch(...free[Math.floor(Math.random() * free.length)]);
 	}
-	const H = Math.floor(Math.random() * 360);
-	return formatOklch(DEFAULT_GEN_L, DEFAULT_GEN_C, H);
+
+	// Take the first random candidate clear of everything in use; if none is,
+	// the farthest one seen. Stopping at the first keeps picks varied — always
+	// taking the farthest would bounce between near-complementary colors.
+	const [minL, maxL] = readableLightnessBand(opts.backgroundL);
+	const [minC, maxC] = RANDOM_C_RANGE;
+	let best: [number, number, number] | null = null;
+	let bestDist = -Infinity;
+	for (let i = 0; i < RANDOM_CANDIDATES; i++) {
+		const L = minL + Math.random() * (maxL - minL);
+		const H = Math.random() * 360;
+		const candidate: [number, number, number] = [
+			L,
+			fitChroma(L, minC + Math.random() * (maxC - minC), H),
+			H
+		];
+		const d = minDist(candidate);
+		if (d > RANDOM_MIN_DIST) return formatOklch(...candidate);
+		if (d > bestDist) {
+			bestDist = d;
+			best = candidate;
+		}
+	}
+	return formatOklch(...best!);
 }
 
 // ── nextCurveColor ─────────────────────────────────────────────────────────

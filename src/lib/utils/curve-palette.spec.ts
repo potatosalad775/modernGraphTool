@@ -5,14 +5,17 @@ import {
 	resolveCurvePalette,
 	parseOklch,
 	formatOklch,
-	hexToOklch
+	hexToOklch,
+	oklchToHex,
+	readableLightnessBand
 } from './curve-palette.js';
 
 describe('randomCurveColor', () => {
 	const palette = ['#0072B2', '#E69F00', '#009E73', '#CC79A7'];
+	const norm = (c: string) => formatOklch(...parseOklch(c));
 
 	it('always returns a valid oklch() string', () => {
-		const out = randomCurveColor(palette, palette[0]);
+		const out = randomCurveColor(palette, { current: palette[0] });
 		expect(out).toMatch(/^oklch\(/);
 		const [L, C, H] = parseOklch(out);
 		expect(Number.isFinite(L)).toBe(true);
@@ -20,53 +23,122 @@ describe('randomCurveColor', () => {
 		expect(Number.isFinite(H)).toBe(true);
 	});
 
-	it('never returns the current color when the palette has alternatives', () => {
-		// Regression: onRandom used to reuse the deterministic nextCurveColor,
-		// which returned the same color every click — so clicking "Random"
-		// re-set the curve to the value it already had (no visible change).
-		const current = formatOklch(...parseOklch(palette[0]));
+	it('never returns the current color, whatever notation the palette uses', () => {
+		// Regression: the current color is stored normalized (oklch) while
+		// palette entries are hex, so a string comparison never excluded it and
+		// roughly one click in N left the curve unchanged.
 		for (let i = 0; i < 200; i++) {
-			expect(randomCurveColor(palette, palette[0])).not.toBe(current);
+			expect(randomCurveColor(palette, { current: norm(palette[0]) })).not.toBe(norm(palette[0]));
 		}
 	});
 
-	it('produces more than one distinct color across many calls (actually random)', () => {
-		const seen = new Set<string>();
+	it('never repeats itself on consecutive calls', () => {
+		let current = randomCurveColor(palette);
 		for (let i = 0; i < 200; i++) {
-			seen.add(randomCurveColor(palette, palette[0]));
+			const next = randomCurveColor(palette, { current });
+			expect(next).not.toBe(current);
+			current = next;
 		}
-		expect(seen.size).toBeGreaterThan(1);
 	});
 
 	it('eventually covers every non-current palette entry', () => {
-		const current = palette[0];
-		const expected = new Set(palette.slice(1).map((c) => formatOklch(...parseOklch(c))));
+		const expected = new Set(palette.slice(1).map(norm));
 		const seen = new Set<string>();
 		for (let i = 0; i < 500; i++) {
-			seen.add(randomCurveColor(palette, current));
+			seen.add(randomCurveColor(palette, { current: palette[0] }));
 		}
 		for (const c of expected) {
 			expect(seen.has(c)).toBe(true);
 		}
 	});
 
-	it('returns the only entry when the palette has a single color', () => {
-		const single = ['#0072B2'];
-		const expected = formatOklch(...parseOklch(single[0]));
-		expect(randomCurveColor(single, single[0])).toBe(expected);
+	it('skips palette entries other curves already use', () => {
+		const used = [norm(palette[1]), norm(palette[2])];
+		for (let i = 0; i < 100; i++) {
+			expect(randomCurveColor(palette, { current: palette[0], used })).toBe(norm(palette[3]));
+		}
 	});
 
-	it('generates a random hue at the default L/C when no palette is configured', () => {
-		const hues = new Set<number>();
+	it('generates a color once every palette entry is taken', () => {
+		const out = randomCurveColor(palette, { current: palette[0], used: palette.slice(1) });
+		expect(palette.map(norm)).not.toContain(out);
+	});
+
+	it('generates rather than repeating a single-entry palette', () => {
+		const single = ['#0072B2'];
+		expect(randomCurveColor(single, { current: single[0] })).not.toBe(norm(single[0]));
+	});
+
+	it('varies lightness and chroma as well as hue when no palette is configured', () => {
+		const Ls = new Set<number>();
+		const Cs = new Set<number>();
 		for (let i = 0; i < 200; i++) {
-			const [L, C, H] = parseOklch(randomCurveColor(undefined, undefined));
-			expect(L).toBeCloseTo(0.68, 5);
-			expect(C).toBeCloseTo(0.16, 5);
+			const [L, C, H] = parseOklch(randomCurveColor(undefined));
 			expect(H).toBeGreaterThanOrEqual(0);
 			expect(H).toBeLessThan(360);
-			hues.add(H);
+			Ls.add(L);
+			Cs.add(C);
 		}
-		expect(hues.size).toBeGreaterThan(1);
+		expect(Ls.size).toBeGreaterThan(10);
+		expect(Cs.size).toBeGreaterThan(10);
+	});
+
+	it('stays clear of the other curves when generating', () => {
+		const used = [0, 90, 180, 270].map((h) => formatOklch(0.68, 0.16, h));
+		for (let i = 0; i < 100; i++) {
+			const [L, C, H] = parseOklch(randomCurveColor(undefined, { used }));
+			for (const u of used) {
+				const [uL, uC, uH] = parseOklch(u);
+				const da = C * Math.cos((H * Math.PI) / 180) - uC * Math.cos((uH * Math.PI) / 180);
+				const db = C * Math.sin((H * Math.PI) / 180) - uC * Math.sin((uH * Math.PI) / 180);
+				// Four colors leave room, so every pick clears the minimum distance.
+				expect(Math.hypot(L - uL, da, db)).toBeGreaterThan(0.1);
+			}
+		}
+	});
+
+	it('keeps generated colors dark enough on a light background and light enough on a dark one', () => {
+		for (let i = 0; i < 200; i++) {
+			expect(parseOklch(randomCurveColor(undefined, { backgroundL: 0.98 }))[0]).toBeLessThanOrEqual(
+				readableLightnessBand(0.98)[1]
+			);
+			expect(
+				parseOklch(randomCurveColor(undefined, { backgroundL: 0.31 }))[0]
+			).toBeGreaterThanOrEqual(readableLightnessBand(0.31)[0]);
+		}
+	});
+
+	it('keeps generated colors inside sRGB, so the hex field shows what is drawn', () => {
+		for (let i = 0; i < 200; i++) {
+			const out = randomCurveColor(undefined, { backgroundL: 0.31 });
+			const back = norm(oklchToHex(...parseOklch(out)));
+			const [L1, C1] = parseOklch(out);
+			const [L2, C2] = parseOklch(back);
+			expect(Math.abs(L1 - L2)).toBeLessThan(0.01);
+			expect(Math.abs(C1 - C2)).toBeLessThan(0.01);
+		}
+	});
+
+	it('leaves operator palette entries as written, even outside the band', () => {
+		const pale = ['#F0E442', '#FFC0CB'];
+		const out = randomCurveColor(pale, { current: pale[0], backgroundL: 0.98 });
+		expect(out).toBe(norm(pale[1]));
+	});
+});
+
+describe('readableLightnessBand', () => {
+	it('picks a darker band for light backgrounds and a lighter one for dark', () => {
+		const [, lightMax] = readableLightnessBand(0.98);
+		const [darkMin] = readableLightnessBand(0.31);
+		expect(lightMax).toBeLessThan(darkMin + 0.1);
+		expect(lightMax).toBeLessThan(0.98 - 0.25);
+		expect(darkMin).toBeGreaterThan(0.31 + 0.3);
+	});
+
+	it('falls back to a middle band when the background is unknown', () => {
+		const [min, max] = readableLightnessBand(undefined);
+		expect(min).toBeLessThan(0.68);
+		expect(max).toBeGreaterThan(0.68);
 	});
 });
 
@@ -77,6 +149,10 @@ describe('parseOklch', () => {
 
 	it('tolerates extra whitespace and an alpha component', () => {
 		expect(parseOklch('oklch(  0.5   0.1   30 / 0.5)')).toEqual([0.5, 0.1, 30]);
+	});
+
+	it('reads a percentage lightness, as theme.css writes it', () => {
+		expect(parseOklch('oklch(98% 0.003 247.858)')).toEqual([0.98, 0.003, 247.858]);
 	});
 
 	it('converts a hex color', () => {

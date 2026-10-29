@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as m from '#lib/paraglide/messages.js';
-	import { getConfigValue } from '#lib/utils/config.js';
+	import { foldTargetManifest, getConfigValue } from '#lib/utils/config.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
@@ -19,8 +19,7 @@
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
-	const targets: TargetManifestEntry[] =
-		(getConfigValue('TARGET_MANIFEST') as TargetManifestEntry[] | undefined) ?? [];
+	const targets: TargetManifestEntry[] = foldTargetManifest(getConfigValue('TARGET_MANIFEST'));
 
 	function getIdentifier(file: string): string {
 		return file.includes(' Target') ? file : file + ' Target';

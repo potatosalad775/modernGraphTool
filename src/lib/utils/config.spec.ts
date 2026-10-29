@@ -1,5 +1,63 @@
-import { describe, it, expect } from 'vitest';
-import { resolveI18nValue, getNestedValue } from './config.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { resolveI18nValue, getNestedValue, uniqueBy, foldTargetManifest } from './config.js';
+
+describe('uniqueBy', () => {
+	let warnSpy: ReturnType<typeof vi.spyOn>;
+	beforeEach(() => {
+		warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	});
+	afterEach(() => warnSpy.mockRestore());
+
+	it('keeps the first entry for each key, in order', () => {
+		const links = [
+			{ URL: 'a', TITLE: 'A' },
+			{ URL: 'b', TITLE: 'B' },
+			{ URL: 'a', TITLE: 'A again' }
+		];
+		expect(uniqueBy(links, (link) => link.URL, 'link')).toEqual(links.slice(0, 2));
+		expect(warnSpy).toHaveBeenCalledOnce();
+	});
+
+	it('passes a list without repeats through silently', () => {
+		expect(uniqueBy([1, 2, 3], (n) => n, 'n')).toEqual([1, 2, 3]);
+		expect(warnSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('foldTargetManifest', () => {
+	let warnSpy: ReturnType<typeof vi.spyOn>;
+	beforeEach(() => {
+		warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	});
+	afterEach(() => warnSpy.mockRestore());
+
+	it('folds groups sharing a type into the first one', () => {
+		expect(
+			foldTargetManifest([
+				{ type: 'IEM', files: ['A'] },
+				{ type: 'Headphone', files: ['B'] },
+				{ type: 'IEM', files: ['C'] }
+			])
+		).toEqual([
+			{ type: 'IEM', files: ['A', 'C'] },
+			{ type: 'Headphone', files: ['B'] }
+		]);
+	});
+
+	it('drops a repeated file, counting "X" and "X Target" as one', () => {
+		expect(foldTargetManifest([{ type: 'IEM', files: ['Harman', 'A', 'Harman Target'] }])).toEqual([
+			{ type: 'IEM', files: ['Harman', 'A'] }
+		]);
+		expect(warnSpy).toHaveBeenCalledOnce();
+	});
+
+	it('skips a group without a files array, and a non-array manifest', () => {
+		expect(foldTargetManifest([{ type: 'IEM' }, { type: 'HP', files: ['A'] }])).toEqual([
+			{ type: 'HP', files: ['A'] }
+		]);
+		expect(foldTargetManifest(undefined)).toEqual([]);
+	});
+});
 
 describe('resolveI18nValue', () => {
 	it('returns plain string as-is', () => {

@@ -1,7 +1,7 @@
 import { browser } from '$app/env';
 import { SvelteMap } from 'svelte/reactivity';
 import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
-import { getConfigValue } from '#lib/utils/config.js';
+import { getConfigValue, uniqueBy } from '#lib/utils/config.js';
 import type { ParsedFRData } from '#lib/types/data-types.js';
 
 export interface TargetFilterDef {
@@ -106,8 +106,16 @@ class TargetAdjustmentStore {
 			| undefined;
 
 		this.#customizableTargets = (cfg?.CUSTOMIZABLE_TARGETS ?? []).map(normalizeTargetName);
-		this.#availableFilters = cfg?.FILTERS ?? DEFAULT_FILTERS;
-		this.#filterPresets = cfg?.FILTER_PRESET ?? DEFAULT_FILTER_PRESETS;
+		this.#availableFilters = uniqueBy(
+			cfg?.FILTERS ?? DEFAULT_FILTERS,
+			(def) => def.id,
+			'TARGET_CUSTOMIZER.FILTERS id'
+		);
+		this.#filterPresets = uniqueBy(
+			cfg?.FILTER_PRESET ?? DEFAULT_FILTER_PRESETS,
+			(preset) => preset.name,
+			'TARGET_CUSTOMIZER.FILTER_PRESET name'
+		);
 		this.#initialFilters = cfg?.INITIAL_TARGET_FILTERS ?? [];
 	}
 

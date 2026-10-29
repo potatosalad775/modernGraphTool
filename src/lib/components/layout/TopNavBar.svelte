@@ -13,6 +13,8 @@
 	const titleContent = $derived(
 		(getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? 'modernGraphTool'
 	);
+	// Rows are keyed by position, not URL: two buttons to one URL is a legitimate config,
+	// and the list never reorders.
 	const linkList = $derived(
 		(getConfigValue('TOPBAR.LINK_LIST') as { URL: string; TITLE: string }[]) ?? []
 	);
@@ -90,7 +92,7 @@
 				class="ml-4 flex min-w-0 flex-1 items-center justify-end gap-1"
 				bind:clientWidth={available}
 			>
-				{#each visibleLinks as link (link.URL)}
+				{#each visibleLinks as link, i (i)}
 					<a
 						href={link.URL}
 						target="_blank"
@@ -114,7 +116,7 @@
 								{@render moreLabel()}
 							</Button>
 						{/snippet}
-						{#each overflowLinks as link (link.URL)}
+						{#each overflowLinks as link, i (i)}
 							<a
 								href={link.URL}
 								target="_blank"
@@ -132,7 +134,7 @@
 			<!-- Measuring copy of the full row: invisible, so neither focusable nor announced -->
 			<div class="invisible absolute h-0 w-0 overflow-hidden" aria-hidden="true">
 				<div class="flex w-max gap-1">
-					{#each linkList as link, i (link.URL)}
+					{#each linkList as link, i (i)}
 						<span class={linkClass} bind:offsetWidth={linkWidths[i]}>{link.TITLE}</span>
 					{/each}
 					<span class="inline-flex" bind:offsetWidth={moreWidth}>
@@ -184,7 +186,7 @@
 			</Button>
 		</div>
 		<nav class="flex flex-col gap-0.5 p-2">
-			{#each linkList as link (link.URL)}
+			{#each linkList as link, i (i)}
 				<a
 					href={link.URL}
 					target="_blank"

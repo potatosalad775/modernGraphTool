@@ -13,7 +13,7 @@ import type {
 	PhoneLink,
 	SampleDisplayMode
 } from '#lib/types/data-types.js';
-import { getConfigValue } from './config.js';
+import { foldTargetManifest, getConfigValue } from './config.js';
 import { sanitizeUrl, stripHtml } from './html-sanitizer.js';
 import {
 	defaultSampleCount,
@@ -270,12 +270,16 @@ const MetadataParser = {
 				// downstream can tell which form was authored.
 				const explicit = Array.isArray(phone.variants) ? phone.variants : null;
 				const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
-				const files = explicit
-					? this._mergeVariants(
-							legacy,
-							this._parseVariants(brandName, baseName, explicit, brandDefaults)
-						)
-					: legacy;
+				const files = this._uniqueSuffixes(
+					brandName,
+					baseName,
+					explicit
+						? this._mergeVariants(
+								legacy,
+								this._parseVariants(brandName, baseName, explicit, brandDefaults)
+							)
+						: legacy
+				);
 
 				phoneEntries.push({
 					...basePhone,
@@ -336,17 +340,14 @@ const MetadataParser = {
 
 	/** Fetch target_manifest metadata from (config.js). */
 	_fetchTargetObject(): TargetManifestEntry[] {
-		const manifest = (getConfigValue('TARGET_MANIFEST') || []) as TargetManifestEntry[];
-		return manifest
-			.filter((obj) => Array.isArray(obj.files))
-			.map((obj) => {
-				return {
-					type: obj.type,
-					files: obj.files.map((identifier) => {
-						return identifier.includes(' Target') ? identifier : `${identifier} Target`;
-					})
-				};
-			});
+		return foldTargetManifest(getConfigValue('TARGET_MANIFEST')).map((obj) => {
+			return {
+				type: obj.type,
+				files: obj.files.map((identifier) => {
+					return identifier.includes(' Target') ? identifier : `${identifier} Target`;
+				})
+			};
+		});
 	},
 
 	// ── Variant parsing ───────────────────────────────────────────────────────
@@ -471,6 +472,43 @@ const MetadataParser = {
 			}
 		});
 		return merged;
+	},
+
+	/**
+	 * Make every variant's suffix distinct within its phone.
+	 *
+	 * The suffix is how a variant is addressed — `fr-parser` looks it up by suffix and
+	 * the variant picker keys its rows on it — and a repeat is easy to author: `file[]`
+	 * with no `suffix` or `prefix` leaves every entry at `""`, as does a `variants[]`
+	 * list without suffixes. A repeat used to crash the picker and was unloadable
+	 * anyway, so renaming it breaks nothing that worked: the first keeps its suffix,
+	 * later ones get a counter (`"2"`, `"Foam 2"`).
+	 */
+	_uniqueSuffixes(
+		brandName: string,
+		baseName: string,
+		variants: PhoneFileVariant[]
+	): PhoneFileVariant[] {
+		const taken = new Set<string>();
+		return variants.map((variant) => {
+			if (!taken.has(variant.suffix)) {
+				taken.add(variant.suffix);
+				return variant;
+			}
+			let n = 2;
+			const suffixFor = (i: number) => (variant.suffix ? `${variant.suffix} ${i}` : String(i));
+			while (taken.has(suffixFor(n))) n++;
+			const suffix = suffixFor(n);
+			taken.add(suffix);
+			console.warn(
+				`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" repeats suffix "${variant.suffix}" — showing it as "${suffix}".`
+			);
+			return {
+				...variant,
+				suffix,
+				fullName: (brandName + ' ' + baseName + ' ' + suffix).trim()
+			};
+		});
 	},
 
 	/**

@@ -211,6 +211,10 @@ for this, with parallel state, fetch, process and render paths; they are now one
   compatibility: `variants[]` is mGT's own key, so a phone declared only there is invisible to
   CrinGraph. `hptfs[]` — which `variants[]` supersedes — has always been additive with `file[]`, so
   precedence also made the advertised `hptfs[]` → `variants[]` conversion silently reorder selectors.
+- **Suffixes are unique per phone** (`_uniqueSuffixes`, after the merge). The suffix addresses a
+  variant — `fr-parser` loads by it and `SelectionList` keys its picker rows on it — so a repeat
+  (`file[]` with no `suffix`/`prefix` leaves every entry at `""`) crashed the picker. Later repeats
+  get a counter; the first keeps its suffix, so `files[0]` and existing share links are unchanged.
 - **The CrinGraph dialect stays readable permanently** — `file` / `suffix` / `prefix` arrays and the
   phone-level `samples: N`. Operators hand-author `phone_book.json`, and most existing databases
   predate `variants[]`; those files have to keep loading untouched. Cross-site search is _not_ the

@@ -70,7 +70,8 @@
 	<!-- Description (conditional) -->
 	{#if description && description.length > 0}
 		<div class="flex flex-col gap-2 px-4 text-sm">
-			{#each description as item (item.CONTENT)}
+			<!-- By index: the list never reorders, and a repeated block may be deliberate -->
+			{#each description as item, i (i)}
 				{#if item.TYPE.toUpperCase() === 'TEXT'}
 					<p>{item.CONTENT}</p>
 				{:else if item.TYPE.toUpperCase() === 'IMAGE'}

@@ -65,7 +65,8 @@
 
 <!-- Custom watermarks -->
 <g class="watermark-group">
-	{#each watermarkData as watermarkObj (watermarkObj.CONTENT)}
+	<!-- By index: the list never reorders, and two layers may share their content -->
+	{#each watermarkData as watermarkObj, i (i)}
 		{@const pos = resolvePosition(watermarkObj)}
 		{#if watermarkObj.TYPE === 'IMAGE'}
 			<image

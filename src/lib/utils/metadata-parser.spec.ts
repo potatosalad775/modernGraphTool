@@ -1034,4 +1034,71 @@ describe('MetadataParser', () => {
 			expect(phone.description).toBe('B&K5128 unit available <a href="https://x.example">here</a>');
 		});
 	});
+
+	describe('_fetchBookObject — repeated suffixes', () => {
+		const realFetch = globalThis.fetch;
+		let warnSpy: ReturnType<typeof vi.spyOn>;
+
+		const parseVariants = async (phone: unknown) => {
+			globalThis.fetch = vi.fn(
+				async () =>
+					new Response(JSON.stringify([{ name: 'Sennheiser', phones: [phone] }]), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			) as unknown as typeof fetch;
+			const result = await MetadataParser._fetchBookObject();
+			return result[0].phones[0].files.map((v) => [v.suffix, v.fullName, v.fileName]);
+		};
+
+		beforeEach(() => {
+			warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			globalThis.fetch = realFetch;
+			warnSpy.mockRestore();
+		});
+
+		it('numbers a file[] with neither suffix nor prefix, keeping the first as is', async () => {
+			expect(await parseVariants({ name: 'HD 600', file: ['A', 'B', 'C'] })).toEqual([
+				['', 'Sennheiser HD 600', 'A'],
+				['2', 'Sennheiser HD 600 2', 'B'],
+				['3', 'Sennheiser HD 600 3', 'C']
+			]);
+			expect(warnSpy).toHaveBeenCalledTimes(2);
+		});
+
+		it('appends the counter to a repeated non-empty suffix', async () => {
+			expect(
+				await parseVariants({
+					name: 'HD 600',
+					file: ['A', 'B'],
+					suffix: ['Foam', 'Foam']
+				})
+			).toEqual([
+				['Foam', 'Sennheiser HD 600 Foam', 'A'],
+				['Foam 2', 'Sennheiser HD 600 Foam 2', 'B']
+			]);
+		});
+
+		it('skips a counter another variant already uses', async () => {
+			const suffixes = (
+				await parseVariants({ name: 'HD 600', file: ['A', 'B', 'C'], suffix: ['', '2', ''] })
+			).map(([suffix]) => suffix);
+			expect(suffixes).toEqual(['', '2', '3']);
+		});
+
+		it('covers variants[] entries without a suffix', async () => {
+			const suffixes = (
+				await parseVariants({ name: 'HD 600', variants: [{ file: 'A' }, { file: 'B' }] })
+			).map(([suffix]) => suffix);
+			expect(suffixes).toEqual(['', '2']);
+		});
+
+		it('leaves distinct suffixes untouched', async () => {
+			await parseVariants({ name: 'HD 600', file: ['A', 'B'], suffix: ['Stock', 'Modded'] });
+			expect(warnSpy).not.toHaveBeenCalled();
+		});
+	});
 });

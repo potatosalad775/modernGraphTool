@@ -159,7 +159,7 @@ class DataProvider {
 				metaData,
 				inputMetadata.dispSuffix ?? ''
 			);
-		} catch (err) {
+		} catch {
 			const label = identifier.replace(/ Target$/, '');
 			toast.error(`Failed to load ${sourceType === 'target' ? 'target' : 'device'}: ${label}`);
 			return;

@@ -14,7 +14,7 @@
  */
 
 import { execSync } from 'child_process';
-import { readFileSync, copyFileSync, existsSync, mkdirSync, renameSync, rmSync, cpSync } from 'fs';
+import { readFileSync, copyFileSync, existsSync, renameSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 

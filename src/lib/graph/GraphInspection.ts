@@ -161,7 +161,7 @@ class GraphInspection {
 
 		Array.from(frStore.entries)
 			.filter(([, obj]) => !obj.hidden)
-			.sort(([, a], [, b]) => (a.type === 'target' ? -1 : 1))
+			.sort(([, a], [, b]) => Number(b.type === 'target') - Number(a.type === 'target'))
 			.forEach(([, obj]) => {
 				const channels = obj.type === 'target' ? ['AVG'] : [...obj.dispChannel];
 				// An EQ'd run stands in for the source's average on the graph (`_drawPhoneCurve`).

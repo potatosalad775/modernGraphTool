@@ -243,7 +243,7 @@
 		</Input>
 
 		<!-- Search tips -->
-		<PopoverPanel side="bottom" align="end" contentClass="max-w-72 p-3">
+		<PopoverPanel side="left" align="center" contentClass="max-w-72 p-3">
 			{#snippet trigger({ props })}
 				<Button
 					{...props}

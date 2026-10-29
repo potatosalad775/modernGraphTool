@@ -97,6 +97,7 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 			{ slug: 'guide-for-admins/preprocessing-measurement' },
 			{ slug: 'guide-for-admins/manage-data' },
 			{ slug: 'guide-for-admins/customize-page' },
+			{ slug: 'guide-for-admins/protect-data' },
 			{
 				// `link` rather than `slug` because they are Astro pages under src/pages/, not
 				// docs-collection entries, so Starlight cannot validate them — a typo here 404s

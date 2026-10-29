@@ -18,6 +18,8 @@
 		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
+	"top_nav_bar_more": "More",
+	"top_nav_bar_more_links": "More links",
 	"phone_selector_search_help_btn": "Search tips",
 	"phone_selector_search_help_title": "Search tips",
 	"phone_selector_search_help_substring": "Matches any part of the brand or device name.",

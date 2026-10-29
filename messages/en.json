@@ -1,6 +1,8 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"top_nav_bar_sidebar_link_title": "LINKS",
+	"top_nav_bar_more": "More",
+	"top_nav_bar_more_links": "More links",
 	"phone_selector_header_brand_btn": "Brands",
 	"phone_selector_header_device_btn": "Devices",
 	"phone_selector_header_search_bar_placeholder": "Search",

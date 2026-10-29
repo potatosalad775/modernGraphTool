@@ -700,7 +700,7 @@ TRACE_STYLING: {
   TARGET_TRACE_THICKNESS: 1,
   CURVE_COLOR_PALETTE: [
     "#0072B2", "#E69F00", "#009E73", "#CC79A7",
-    "#56B4E9", "#D55E00", "#F0E442", "#000000",
+    "#56B4E9", "#D55E00", "#F0E442",
   ],
   CURVE_COLOR_PALETTE_RANDOMIZE: false,
   TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
@@ -714,7 +714,8 @@ Sets the thickness, dash style, color palette, etc., of graph lines. You can als
 - `CURVE_COLOR_PALETTE` : Curated palette consumed in order when assigning a color to a newly added curve.
   - Accepts any CSS color string (`#hex`, `oklch(...)`, `hsl(...)`, `rgb(...)`).
   - Once exhausted (or every preset is too close to a color the user already manually picked), modernGraphTool falls back to OKLCH-based generation that picks the next color farthest in perceptual distance from every color already on the graph.
-  - Leave empty or omit to use the built-in [Okabe-Ito](https://jfly.uni-koeln.de/color/) default (8 colorblind-safe colors).
+  - Leave empty or omit to use the built-in [Okabe-Ito](https://jfly.uni-koeln.de/color/) default (7 colorblind-safe colors; its black is left out, since it disappears on a dark theme).
+  - The color picker's **Random** button picks a palette entry that differs from the curve's current color and from every other visible curve. Once none is left, or with no palette configured, it generates a color whose lightness stays readable against the graph background (`--color-graph-bg`, or `--color-base-100` when that is transparent). Your palette entries are always used as written.
 - `CURVE_COLOR_PALETTE_RANDOMIZE` : When `true`, `CURVE_COLOR_PALETTE` is shuffled once per page load so each session starts from a different color.
   - The shuffled order stays stable within the session, so add / undo / redo remain consistent.
   - Has no effect when `CURVE_COLOR_PALETTE` is empty or omitted.
@@ -757,6 +758,7 @@ Sets the title and link list for the page's top bar.
   - The `TITLE` field specifies the link's title.
   - The `URL` field specifies the link's URL.
   - You must include `http(s)://` for external URLs.
+  - Links that don't fit in the top bar move into a **More** menu, starting from the end of the list, so put the most important links first.
 
 :::tip[Multilingual Support]
 `LINK_LIST` supports multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.

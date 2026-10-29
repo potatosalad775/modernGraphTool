@@ -235,6 +235,7 @@ EQ 설정이나 이어팁에 따라 여러 버전의 측정값이 있다면, 이
   - `suffix` (문자열 배열, 필수) — 각 파일에 대응하는 접미사 배열. UI에는 `brand_name + name + suffix[i]` 형태로 표시됩니다.
   - 위 예시는 "BrandVariations Model V1 (Foam Tip)", "BrandVariations Model V1 (Silicone Tip)" 같은 항목으로 만들어집니다.
   - `file`과 `suffix` 배열 길이는 가급적 같아야 합니다. 다른 선택 키(`reviewLink`, `price` 등)를 추가하면 모든 Variation에 똑같이 적용됩니다.
+  - 접미사는 Variation마다 달라야 합니다. 같은 접미사가 겹치면(`suffix`나 `prefix` 없이 `file` 배열만 쓰면 모든 항목의 접미사가 빈 문자열이 됩니다) 첫 항목만 그대로 두고 나머지에는 번호가 붙습니다: `""`, `"2"`, `"3"` 또는 `"(Foam Tip)"`, `"(Foam Tip) 2"`. 어느 기기인지는 브라우저 콘솔에 표시됩니다.
 
 ```json
 {

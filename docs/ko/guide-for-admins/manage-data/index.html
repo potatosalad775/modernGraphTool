@@ -172,6 +172,7 @@
 <li><code dir="auto">suffix</code> (문자열 배열, 필수) — 각 파일에 대응하는 접미사 배열. UI에는 <code dir="auto">brand_name + name + suffix[i]</code> 형태로 표시됩니다.</li>
 <li>위 예시는 “BrandVariations Model V1 (Foam Tip)”, “BrandVariations Model V1 (Silicone Tip)” 같은 항목으로 만들어집니다.</li>
 <li><code dir="auto">file</code>과 <code dir="auto">suffix</code> 배열 길이는 가급적 같아야 합니다. 다른 선택 키(<code dir="auto">reviewLink</code>, <code dir="auto">price</code> 등)를 추가하면 모든 Variation에 똑같이 적용됩니다.</li>
+<li>접미사는 Variation마다 달라야 합니다. 같은 접미사가 겹치면(<code dir="auto">suffix</code>나 <code dir="auto">prefix</code> 없이 <code dir="auto">file</code> 배열만 쓰면 모든 항목의 접미사가 빈 문자열이 됩니다) 첫 항목만 그대로 두고 나머지에는 번호가 붙습니다: <code dir="auto">""</code>, <code dir="auto">"2"</code>, <code dir="auto">"3"</code> 또는 <code dir="auto">"(Foam Tip)"</code>, <code dir="auto">"(Foam Tip) 2"</code>. 어느 기기인지는 브라우저 콘솔에 표시됩니다.</li>
 </ul>
 </li>
 </ul>

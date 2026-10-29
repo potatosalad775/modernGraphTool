@@ -236,6 +236,7 @@ You can group multiple measurement versions (e.g., different eartips, EQ setting
   - `suffix` (Array of Strings, Required): An array of suffixes corresponding to each file. The display name will be brand_name + name + suffix[i] .
   - This will create entries like "BrandVariations Model V1 (Foam Tip)", "BrandVariations Model V1 (Silicone Tip)", etc.
   - The lengths of file and suffix arrays must be the same. Other optional keys like reviewLink , price , etc., can be added and will apply to all variations.
+  - Each suffix should be different. If two variations end up with the same one (a `file` array with no `suffix` or `prefix` gives every entry an empty suffix), the first keeps it and later ones get a number: `""`, `"2"`, `"3"`, or `"(Foam Tip)"`, `"(Foam Tip) 2"`. The browser console names the device.
 
 ```json
 {

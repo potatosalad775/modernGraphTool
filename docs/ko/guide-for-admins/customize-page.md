@@ -691,7 +691,7 @@ TRACE_STYLING: {
   TARGET_TRACE_THICKNESS: 1,
   CURVE_COLOR_PALETTE: [
     "#0072B2", "#E69F00", "#009E73", "#CC79A7",
-    "#56B4E9", "#D55E00", "#F0E442", "#000000",
+    "#56B4E9", "#D55E00", "#F0E442",
   ],
   CURVE_COLOR_PALETTE_RANDOMIZE: false,
   TARGET_TRACE_DASH: [{ name: "KEMAR DF (KB006x)", dash: "10 10" }],
@@ -705,7 +705,8 @@ TRACE_STYLING: {
 - `CURVE_COLOR_PALETTE` : 새 그래프 선에 색을 할당할 때 순서대로 사용되는 색상 팔레트.
   - 모든 CSS 색상 표기를 입력받습니다 (`#hex`, `oklch(...)`, `hsl(...)`, `rgb(...)`).
   - 팔레트가 모두 소진되었거나 사용자가 직접 고른 색과 너무 가까운 경우, modernGraphTool은 OKLCH 기반 자동 생성으로 전환하여 그래프에 이미 표시된 모든 색과 시각적으로 가장 거리가 먼 색을 선택합니다.
-  - 비워 두거나 생략하면 기본 [Okabe-Ito](https://jfly.uni-koeln.de/color/) 팔레트(색맹 친화적인 8가지 색)가 사용됩니다.
+  - 비워 두거나 생략하면 기본 [Okabe-Ito](https://jfly.uni-koeln.de/color/) 팔레트(색맹 친화적인 7가지 색, 어두운 테마에서 보이지 않는 검은색은 제외)가 사용됩니다.
+  - 색상 선택기의 **랜덤** 버튼은 현재 선의 색, 그리고 그래프에 표시된 다른 모든 선의 색과 다른 팔레트 색을 고릅니다. 남은 색이 없거나 팔레트가 설정되지 않은 경우, 그래프 배경(`--color-graph-bg`, 투명이면 `--color-base-100`)에서 잘 보이는 밝기의 색을 생성합니다. 팔레트에 지정한 색은 항상 그대로 사용됩니다.
 - `CURVE_COLOR_PALETTE_RANDOMIZE` : `true`로 설정하면 페이지가 로드될 때마다 `CURVE_COLOR_PALETTE` 순서가 한 번 무작위로 섞여, 매 세션이 서로 다른 색으로 시작합니다.
   - 섞인 순서는 한 세션 내에서는 그대로 유지되므로 추가 / 실행취소 / 다시실행이 일관되게 동작합니다.
   - `CURVE_COLOR_PALETTE`가 비어 있거나 생략된 경우에는 효과가 없습니다.
@@ -748,6 +749,7 @@ TOPBAR: {
   - `TITLE` 필드는 링크의 제목을 지정합니다.
   - `URL` 필드는 링크의 URL을 지정합니다.
   - 외부 URL에는 반드시 `http(s)://`를 포함해야 합니다.
+  - 상단 바에 다 들어가지 않는 링크는 목록의 끝에서부터 **더보기** 메뉴로 옮겨지므로, 중요한 링크를 앞쪽에 두세요.
 
 :::tip[다국어 지원]
 `LINK_LIST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.

@@ -5,6 +5,13 @@ sidebar:
   order: 11
 ---
 
+### v2.3.2
+- Feat: Top bar links that don't fit now move into a **More** menu, starting from the end of `TOPBAR.LINK_LIST`, so list the most important links first. See [TOPBAR documentation](./guide-for-admins/customize-page.mdx#topbar).
+- Fix: The color picker's **Random** button no longer picks the curve's current color again, and skips colors already used by other visible curves. Once the palette runs out, it generates colors that stay readable against the theme's graph background. The built-in Okabe-Ito palette drops its black, which disappeared on dark themes. See [TRACE_STYLING documentation](./guide-for-admins/customize-page.mdx#trace_styling).
+- Fix: Duplicate entries in `config.js` (such as a target listed twice in `TARGET_MANIFEST`) or repeated variant suffixes in `phone_book.json` no longer crash the page. The first entry is kept, later duplicate suffixes get a number, and the browser console names what was skipped. See [Variations](./guide-for-admins/manage-data.mdx#variations-grouping-multiple-data-files-under-one-phone-name).
+- Fix: The search tip popover no longer overflows the screen.
+- Docs: Added a [Deterring Data Scraping](./guide-for-admins/protect-data.mdx) guide with server rules that make bulk-downloading measurement files harder.
+
 ### v2.3.1
 - Feat: Added REW's **Var** (Variable) and **Psy** (Psychoacoustic) smoothing to the smoothing button, after the fixed fractional-octave values. They match the same smoothing in REW. See [Smoothing](./guide-for-users/graph-controls.mdx#smoothing).
 - Feat: Search now leaves out devices that contain a word starting with `-`. For example, `earphones -pro -plus -max` lists only the plain Earphones. See [Excluding words](./features/cross-site-search.mdx#excluding-words).

@@ -46,7 +46,7 @@ const CONFIG = {
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: true, // Display targets in multiple lines by 'type'. Adds a collapse button.
 			OMIT_TARGET_SUFFIX: true, // Omit the 'Target' suffix to save some space.
-			COLLAPSE_TARGET_LIST_ON_INITIAL: true // Whether the target list starts collapsed.
+			COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true } // Whether the target list starts collapsed. A single true/false applies to both.
 		}
 	},
 

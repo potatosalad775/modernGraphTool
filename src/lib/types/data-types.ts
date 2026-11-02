@@ -373,7 +373,8 @@ export interface VisualizationConfig {
 export interface TargetInterfaceConfig {
 	ALLOW_MULTIPLE_LINE_PER_TYPE: boolean;
 	OMIT_TARGET_SUFFIX: boolean;
-	COLLAPSE_TARGET_LIST_ON_INITIAL: boolean;
+	/** One value for every device, or one per layout (mobile = the `< 1000px` UI). */
+	COLLAPSE_TARGET_LIST_ON_INITIAL: boolean | { DESKTOP?: boolean; MOBILE?: boolean };
 }
 
 /** Interface configuration */

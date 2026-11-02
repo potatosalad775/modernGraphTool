@@ -55,8 +55,13 @@
 		/>
 
 		<Checkbox
-			bind:checked={config.INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL}
-			label="Collapse target list on initial load"
+			bind:checked={config.INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL.DESKTOP}
+			label="Collapse target list on initial load (desktop)"
+		/>
+
+		<Checkbox
+			bind:checked={config.INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL.MOBILE}
+			label="Collapse target list on initial load (mobile)"
 		/>
 	</div>
 

@@ -26,7 +26,7 @@ export interface ConfigFormState {
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: boolean;
 			OMIT_TARGET_SUFFIX: boolean;
-			COLLAPSE_TARGET_LIST_ON_INITIAL: boolean;
+			COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: boolean; MOBILE: boolean };
 		};
 		HIDE_DEV_DONATE_BUTTON: boolean;
 	};
@@ -242,7 +242,7 @@ export function createDefaultConfig(): ConfigFormState {
 			TARGET: {
 				ALLOW_MULTIPLE_LINE_PER_TYPE: true,
 				OMIT_TARGET_SUFFIX: true,
-				COLLAPSE_TARGET_LIST_ON_INITIAL: true
+				COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true }
 			},
 			HIDE_DEV_DONATE_BUTTON: false
 		},

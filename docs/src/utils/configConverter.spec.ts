@@ -99,6 +99,17 @@ describe('v2 round trip', () => {
 		expect(back.SQUIGLINK_ENABLED).toBe(false);
 	});
 
+	it('imports a boolean target-list collapse as the same value for both layouts', () => {
+		const state = configToFormState({
+			INTERFACE: { TARGET: { COLLAPSE_TARGET_LIST_ON_INITIAL: true } }
+		});
+		expect(state.INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL).toEqual({
+			DESKTOP: true,
+			MOBILE: true
+		});
+		expect(roundTrip(state)).toEqual(state);
+	});
+
 	it('round-trips CDN_MODE with only MAJOR_VERSION set', () => {
 		// formStateToConfigString omits empty BASE/BASE_PATH/VERSIONS_URL, so this
 		// is the asymmetric case: emitted narrow, re-imported wide.

@@ -227,7 +227,7 @@ export function convertV1ToV2(
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: true,
 			OMIT_TARGET_SUFFIX: true,
-			COLLAPSE_TARGET_LIST_ON_INITIAL: true
+			COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true }
 		},
 		HIDE_DEV_DONATE_BUTTON: false
 	};
@@ -428,7 +428,7 @@ export function convertCrinGraphToV2(crin: Record<string, any>): ConversionResul
 		TARGET: {
 			ALLOW_MULTIPLE_LINE_PER_TYPE: true,
 			OMIT_TARGET_SUFFIX: true,
-			COLLAPSE_TARGET_LIST_ON_INITIAL: true
+			COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true }
 		},
 		HIDE_DEV_DONATE_BUTTON: false
 	};
@@ -947,9 +947,10 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 					defaults.INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE,
 				OMIT_TARGET_SUFFIX:
 					raw.INTERFACE?.TARGET?.OMIT_TARGET_SUFFIX ?? defaults.INTERFACE.TARGET.OMIT_TARGET_SUFFIX,
-				COLLAPSE_TARGET_LIST_ON_INITIAL:
-					raw.INTERFACE?.TARGET?.COLLAPSE_TARGET_LIST_ON_INITIAL ??
+				COLLAPSE_TARGET_LIST_ON_INITIAL: toCollapseForm(
+					raw.INTERFACE?.TARGET?.COLLAPSE_TARGET_LIST_ON_INITIAL,
 					defaults.INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL
+				)
 			},
 			HIDE_DEV_DONATE_BUTTON:
 				raw.INTERFACE?.HIDE_DEV_DONATE_BUTTON ?? defaults.INTERFACE.HIDE_DEV_DONATE_BUTTON
@@ -1122,6 +1123,18 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
  * `PREFERENCE_BOUND` → form rows. `BOUND_LIST` wins; a legacy `BASE_DF_TARGET_FILE` becomes a
  * single row, matching how the app reads it. An i18n-wrapped name keeps only its default.
  */
+/** A single boolean applies to both layouts; the form always edits the per-layout pair. */
+function toCollapseForm(
+	raw: any,
+	fallback: { DESKTOP: boolean; MOBILE: boolean }
+): { DESKTOP: boolean; MOBILE: boolean } {
+	if (typeof raw === 'boolean') return { DESKTOP: raw, MOBILE: raw };
+	if (raw && typeof raw === 'object') {
+		return { DESKTOP: raw.DESKTOP ?? false, MOBILE: raw.MOBILE ?? false };
+	}
+	return { ...fallback };
+}
+
 function toBoundListForm(raw: any, fallback: PreferenceBoundForm[]): PreferenceBoundForm[] {
 	let list: any[] = [];
 	if (!raw) list = fallback;

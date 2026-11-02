@@ -37,7 +37,8 @@ export const frStore = new FRDataStore();
 - `menu-store.svelte.ts` — current panel + slide direction
 - `tutorial-store.svelte.ts` — which guided tour is open + its step, per-tour dismissal keys. The
   tours render in AppShell's one `TutorialModal`, never inside a panel (panels unmount)
-- `app-store.svelte.ts` — isMobile, isReady
+- `app-store.svelte.ts` — isMobile, isReady, `targetListOpen` (the user's session-only toggle of
+  `TargetSelector`'s accordion, which unmounts with its panel; `null` defers to the config default)
 - `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
   `linkEqNormalization` flag, `frequencyTutorialVisible` (the strip `AppShell` renders under the graph;
   the toolbar button lives in `GraphPanel` on mobile and unmounts with it, so the flag can't). Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for

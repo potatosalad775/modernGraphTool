@@ -4,7 +4,8 @@
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
-	import type { TargetManifestEntry } from '#lib/types/data-types.js';
+	import { appStore } from '#lib/stores/app-store.svelte.js';
+	import type { TargetInterfaceConfig, TargetManifestEntry } from '#lib/types/data-types.js';
 	import Accordion from '../atoms/Accordion.svelte';
 	import AccordionItem from '../atoms/AccordionItem.svelte';
 	import Button from '../atoms/Button.svelte';
@@ -14,10 +15,18 @@
 	const allowMultiLine =
 		(getConfigValue('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE') as boolean) ?? true;
 	const omitSuffix = (getConfigValue('INTERFACE.TARGET.OMIT_TARGET_SUFFIX') as boolean) ?? false;
+	// Read once at mount: following `isMobile` live would fold the list under the user mid-use
+	// whenever a resize or rotation crossed the breakpoint.
+	const collapseConfig = getConfigValue('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL') as
+		TargetInterfaceConfig['COLLAPSE_TARGET_LIST_ON_INITIAL'] | undefined;
 	const collapseOnInitial =
-		(getConfigValue('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL') as boolean) ?? false;
+		typeof collapseConfig === 'object' && collapseConfig !== null
+			? ((appStore.isMobile ? collapseConfig.MOBILE : collapseConfig.DESKTOP) ?? false)
+			: (collapseConfig ?? false);
 
 	// ── State ───────────────────────────────────────────────────────────────────
+
+	const isOpen = $derived(appStore.targetListOpen ?? !collapseOnInitial);
 
 	const targets: TargetManifestEntry[] = foldTargetManifest(getConfigValue('TARGET_MANIFEST'));
 
@@ -103,7 +112,11 @@
 
 {#if targets.length > 0 || preferenceBoundStore.isEnabled}
 	{#if allowMultiLine}
-		<Accordion type="single" value={collapseOnInitial ? '' : 'targets'}>
+		<Accordion
+			type="single"
+			value={isOpen ? 'targets' : ''}
+			onValueChange={(value) => (appStore.targetListOpen = value === 'targets')}
+		>
 			<AccordionItem value="targets" title={m.target_selector_label()}>
 				<div class="-mb-0.75 flex flex-col gap-0.5 pt-1">
 					{#each targets as group (group.type)}

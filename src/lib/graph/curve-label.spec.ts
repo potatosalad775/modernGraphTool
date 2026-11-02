@@ -45,6 +45,12 @@ describe('curveDisplayName', () => {
 		expect(curveDisplayName(obj({ type: 'target', identifier: 'Harman' }), 'AVG')).toBe('Harman');
 	});
 
+	it('gives uploaded targets no channel tag either', () => {
+		expect(curveDisplayName(obj({ type: 'inserted-target', identifier: 'Mine' }), 'AVG')).toBe(
+			'Mine'
+		);
+	});
+
 	it('appends the adjustment summary on targets', () => {
 		const target = obj({
 			type: 'target',

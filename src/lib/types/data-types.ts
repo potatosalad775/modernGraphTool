@@ -83,6 +83,11 @@ export interface FRColors {
 export type FRDataType =
 	'phone' | 'target' | 'eq' | 'inserted-phone' | 'inserted-target' | 'inserted-eq';
 
+/** A target curve, whether from the target manifest or uploaded by the user. */
+export function isTargetType(item: { type: FRDataType }): boolean {
+	return item.type === 'target' || item.type === 'inserted-target';
+}
+
 /** Complete frequency response data object stored in DataProvider */
 export interface FRDataObject {
 	uuid: string;

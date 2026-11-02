@@ -5,7 +5,7 @@
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import { getConfigValue } from '#lib/utils/config.js';
-	import type { FRDataObject, PhoneFileVariant } from '#lib/types/data-types.js';
+	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
 	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';
@@ -20,11 +20,7 @@
 	const sortedEntries = $derived.by((): [string, FRDataObject][] => {
 		const _size = frStore.size; // subscribe to size changes
 		const entries = [...frStore.entries.entries()];
-		return entries.sort(([, a], [, b]) => {
-			if (a.type === 'target' && b.type !== 'target') return -1;
-			if (b.type === 'target' && a.type !== 'target') return 1;
-			return 0;
-		});
+		return entries.sort(([, a], [, b]) => Number(isTargetType(b)) - Number(isTargetType(a)));
 	});
 
 	// ── Per-item state (keyed by uuid) ──────────────────────────────────────────
@@ -101,7 +97,7 @@
 	function handleBaselineClick(uuid: string) {
 		const item = frStore.get(uuid);
 		const hasOriginal = graphStore.targetOriginalData.has(uuid);
-		const isTargetItem = item && isTarget(item);
+		const isTargetItem = item && isTargetType(item);
 
 		if (!isTargetItem || !hasOriginal) {
 			// Simple toggle for phones / targets without adjustments
@@ -157,11 +153,6 @@
 			console.error(e);
 		}
 	}
-
-	// ── Type guard ───────────────────────────────────────────────────────────────
-	function isTarget(item: FRDataObject): boolean {
-		return item.type === 'target' || item.type === 'inserted-target';
-	}
 </script>
 
 <div class="flex flex-1 flex-col gap-0 overflow-y-auto pb-2">
@@ -174,7 +165,7 @@
 		{@const channelOpts = getChannelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const variantFiles =
-			(!isTarget(item) && (item.meta as { files?: PhoneFileVariant[] })?.files) || []}
+			(!isTargetType(item) && (item.meta as { files?: PhoneFileVariant[] })?.files) || []}
 		{@const hasVariants = variantFiles.length > 1}
 
 		<div
@@ -302,7 +293,7 @@
 
 				<div class="-mt-1 -mr-1 mb-2 flex items-center justify-end gap-1">
 					<!-- Target Customizer (for target items only) -->
-					{#if isTarget(item)}
+					{#if isTargetType(item)}
 						<TargetCustomizer {uuid} {item} />
 					{/if}
 
@@ -382,7 +373,7 @@
 			<div class="-mt-2 flex flex-col">
 				<div class="flex flex-wrap items-center justify-end gap-3">
 					<!-- Channel select (not for targets) -->
-					{#if !isTarget(item) && channelOpts.length > 0}
+					{#if !isTargetType(item) && channelOpts.length > 0}
 						{#if item.samples?.length}
 							<SampleChannelSelector {uuid} {item} />
 						{:else}

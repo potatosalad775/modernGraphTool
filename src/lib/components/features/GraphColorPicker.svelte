@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '#lib/paraglide/messages.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
-	import type { FRDataObject, FRColors } from '#lib/types/data-types.js';
+	import { isTargetType, type FRDataObject, type FRColors } from '#lib/types/data-types.js';
 	import {
 		parseOklch,
 		formatOklch,
@@ -58,12 +58,8 @@
 	let colorTimer: ReturnType<typeof setTimeout> | null = null;
 	let dashTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function isTargetType(): boolean {
-		return item.type === 'target' || item.type === 'inserted-target';
-	}
-
 	function buildColors(L: number, C: number, H: number): FRColors {
-		if (isTargetType()) {
+		if (isTargetType(item)) {
 			return { AVG: formatOklch(L, C, H) };
 		}
 		return {

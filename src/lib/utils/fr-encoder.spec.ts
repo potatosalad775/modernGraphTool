@@ -69,6 +69,19 @@ describe('encodeFRDataForDownload', () => {
 		expect(payloads[0].filename).toBe('Foo Bar AVG.txt');
 	});
 
+	it.each(['target', 'inserted-target'] as const)('gives a %s no channel tag', (type) => {
+		const payloads = encodeFRDataForDownload(
+			makeItem({
+				type,
+				identifier: 'Harman',
+				dispSuffix: '',
+				dispChannel: ['AVG'],
+				channels: { AVG: { data: [[20, 50]], metadata: { minFreq: 20, maxFreq: 20 } } }
+			})
+		);
+		expect(payloads.map((p) => p.filename)).toEqual(['Harman.txt']);
+	});
+
 	it('encodes as tab-separated Frequency/dB text, one point per line, rounded to 2 decimals', () => {
 		const payloads = encodeFRDataForDownload(
 			makeItem({

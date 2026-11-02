@@ -1,4 +1,4 @@
-import type { FRDataObject } from '#lib/types/data-types.js';
+import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
 
 /**
  * How a curve is named on screen.
@@ -35,7 +35,7 @@ export function curveBaseName(obj: FRDataObject): string {
  */
 export function curveDisplayName(obj: FRDataObject, channel: string, sampleLabel?: string): string {
 	const base = curveBaseName(obj);
-	if (obj.type === 'target') {
+	if (isTargetType(obj)) {
 		return obj.adjustmentLabel ? `${base} ${obj.adjustmentLabel}` : base;
 	}
 	return sampleLabel ? `${base} (${sampleLabel}, ${channel})` : `${base} (${channel})`;

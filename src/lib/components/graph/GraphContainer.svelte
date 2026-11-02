@@ -21,6 +21,7 @@
 	import { resolveBaselineChannelData } from '#lib/graph/baseline.js';
 	import { curveBaseName, curveDisplayName, sampleKeyParts } from '#lib/graph/curve-label.js';
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { isTargetType } from '#lib/types/data-types.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
 
@@ -158,11 +159,7 @@
 		let counter = 0;
 
 		Array.from(frStore.entries)
-			.sort(([, a], [, b]) => {
-				if (a.type === 'target' && b.type !== 'target') return -1;
-				if (b.type === 'target' && a.type !== 'target') return 1;
-				return 0;
-			})
+			.sort(([, a], [, b]) => Number(isTargetType(b)) - Number(isTargetType(a)))
 			.forEach(([, obj]) => {
 				if (obj.hidden) return;
 				const channels = [...obj.dispChannel];

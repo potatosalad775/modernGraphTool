@@ -1,4 +1,4 @@
-import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
+import { isTargetType, type ChannelData, type FRDataObject } from '#lib/types/data-types.js';
 
 const CHANNEL_ORDER = ['L', 'R', 'AVG'] as const;
 
@@ -35,12 +35,14 @@ export function downloadBaseName(item: FRDataObject): string {
  * so smoothing, normalization, target adjustments and EQ are already baked in.
  * For a sample set that is the average across runs. Filenames follow the
  * "Name Suffix L.txt" convention the phone_book.json dialect itself uses.
+ * Targets are always one AVG curve, so they get no channel tag: "Name.txt".
  */
 export function encodeFRDataForDownload(item: FRDataObject): DownloadPayload[] {
 	const base = downloadBaseName(item);
+	const target = isTargetType(item);
 	return CHANNEL_ORDER.filter((ch) => item.dispChannel.includes(ch) && item.channels[ch]).map(
 		(ch) => ({
-			filename: `${base} ${ch}.txt`,
+			filename: target ? `${base}.txt` : `${base} ${ch}.txt`,
 			text: encodeChannel(item.channels[ch]!.data)
 		})
 	);

@@ -1,11 +1,10 @@
 import * as m from '#lib/paraglide/messages.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
-import type { FRDataObject } from '#lib/types/data-types.js';
+import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
 import { sampleRunLabel } from '#lib/utils/eq-source.js';
 import type { SelectMenuGroup, SelectMenuItem } from '../atoms/SelectMenu.svelte';
 
 const isDevice = (item: FRDataObject) => item.type === 'phone' || item.type === 'inserted-phone';
-const isTarget = (item: FRDataObject) => item.type === 'target' || item.type === 'inserted-target';
 
 const labelOf = (item: FRDataObject) => `${item.identifier} ${item.dispSuffix || ''}`.trim();
 
@@ -76,7 +75,7 @@ export function eqSelectGroups(first: 'devices' | 'targets'): SelectMenuGroup[] 
 	const targets: SelectMenuGroup = {
 		id: 'targets',
 		heading: m.equalizer_phone_select_group_targets(),
-		items: rowsOf(itemsOf(isTarget), false)
+		items: rowsOf(itemsOf(isTargetType), false)
 	};
 	return first === 'devices' ? [devices, targets] : [targets, devices];
 }
@@ -88,5 +87,5 @@ export function deviceUUIDs(): string[] {
 
 /** UUIDs of loaded targets. */
 export function targetUUIDs(): string[] {
-	return itemsOf(isTarget).map((i) => i.uuid);
+	return itemsOf(isTargetType).map((i) => i.uuid);
 }

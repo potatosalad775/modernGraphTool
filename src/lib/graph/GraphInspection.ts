@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import type { FRDataPoint } from '#lib/types/data-types.js';
+import { isTargetType, type FRDataPoint } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqSourceChannels } from '#lib/utils/eq-source.js';
@@ -161,9 +161,9 @@ class GraphInspection {
 
 		Array.from(frStore.entries)
 			.filter(([, obj]) => !obj.hidden)
-			.sort(([, a], [, b]) => Number(b.type === 'target') - Number(a.type === 'target'))
+			.sort(([, a], [, b]) => Number(isTargetType(b)) - Number(isTargetType(a)))
 			.forEach(([, obj]) => {
-				const channels = obj.type === 'target' ? ['AVG'] : [...obj.dispChannel];
+				const channels = isTargetType(obj) ? ['AVG'] : [...obj.dispChannel];
 				// An EQ'd run stands in for the source's average on the graph (`_drawPhoneCurve`).
 				const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
 				const mainChannels = isEqSource

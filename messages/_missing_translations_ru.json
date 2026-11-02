@@ -61,5 +61,13 @@
 	"selection_list_remove": "Remove",
 	"selection_list_y_offset": "Y offset",
 	"selection_list_y_offset_decrease": "Decrease Y offset",
-	"selection_list_y_offset_increase": "Increase Y offset"
+	"selection_list_y_offset_increase": "Increase Y offset",
+	"equalizer_device_peq_unreachable_off": "The device's EQ is off. Turn it on first.",
+	"equalizer_device_peq_builtin": "This built-in preset can't be written. Pick another preset under Device EQ to write.",
+	"equalizer_device_peq_candidate_firmware": "{name} (firmware {range})",
+	"equalizer_device_peq_status_saved_reconnecting": "Saved. The device restarts after saving; reconnecting…",
+	"equalizer_device_peq_status_saved_reconnected": {
+		"one": "Wrote {count} band. The device restarted to save and is connected again.",
+		"other": "Wrote {count} bands. The device restarted to save and is connected again."
+	}
 }

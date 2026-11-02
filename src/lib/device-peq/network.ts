@@ -53,6 +53,7 @@ const BASE_CAPS: PeqCapabilities = {
 	writesPreamp: false,
 	writesSlot: false,
 	readsCurrentSlot: false,
+	readsEnabled: false,
 	canEnable: true,
 	slots: [],
 	disconnectOnSave: false,
@@ -105,6 +106,9 @@ function wiimDevice(ip: string): PeqDevice {
 			return { reconnect: false };
 		},
 		async currentSlot() {
+			return null;
+		},
+		async eqEnabled() {
 			return null;
 		},
 		async setEnabled(enabled) {
@@ -228,6 +232,9 @@ function luxsinDevice(ip: string): PeqDevice {
 		},
 		async currentSlot() {
 			return (await state()).select;
+		},
+		async eqEnabled() {
+			return null;
 		},
 		async setEnabled(enabled) {
 			await luxPost(ip, { peqEnable: enabled ? 1 : 0 });

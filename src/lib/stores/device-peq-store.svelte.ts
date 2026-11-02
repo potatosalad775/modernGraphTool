@@ -112,6 +112,22 @@ class DevicePeqStore {
 		return (this.connection?.device.capabilities.slots ?? []).filter((s) => !s.bypass);
 	}
 
+	/**
+	 * The memories a write may target: the user presets eqcaps marks `writable`, not the built-in
+	 * curves. A profile that marks none (all memories, a guessed device) leaves every preset but the
+	 * bypass one writable (eqcaps SPEC §9). The bridge doesn't enforce the marks.
+	 */
+	get writableSlots(): Slot[] {
+		const marked = this.slots.filter((s) => s.writable);
+		return marked.length ? marked : this.slots;
+	}
+
+	/** Whether the target preset is one a write may reach; true for a device without presets. */
+	get targetWritable(): boolean {
+		const slot = this.activeSlot;
+		return slot === null || this.writableSlots.some((s) => s.id === slot);
+	}
+
 	/** How Read reaches what Device EQ shows, or null when it can't from where the device is. */
 	get readTarget(): PresetRequest | null {
 		const caps = this.connection?.device.capabilities;
@@ -121,10 +137,14 @@ class DevicePeqStore {
 		return readRequest(caps, this.activeSlot, this.deviceSlot);
 	}
 
-	/** How Write reaches the target preset, or null when it can't from where the device is. */
+	/**
+	 * How Write reaches the target preset, or null when it can't from where the device is, or the
+	 * target is a built-in preset. Never retargets: picking another preset is the user's call.
+	 */
 	get writeTarget(): PresetRequest | null {
 		const caps = this.connection?.device.capabilities;
-		return caps ? writeRequest(caps, this.activeSlot, this.deviceSlot) : null;
+		if (!caps || !this.targetWritable) return null;
+		return writeRequest(caps, this.activeSlot, this.deviceSlot);
 	}
 
 	/** Whether the list still matches the last read or write; null before either. */
@@ -148,7 +168,15 @@ class DevicePeqStore {
 		return this.activeSlot;
 	}
 
-	setConnected(connection: DeviceConnection, currentSlot: number | null): void {
+	/**
+	 * `enabled` is the device's EQ switch where it reads one (`readsEnabled`); otherwise whether the
+	 * EQ is on follows from the preset.
+	 */
+	setConnected(
+		connection: DeviceConnection,
+		currentSlot: number | null,
+		enabled: boolean | null = null
+	): void {
 		this.connection = connection;
 		this.isConnecting = false;
 		this.needsReconnect = false;
@@ -157,8 +185,8 @@ class DevicePeqStore {
 		const onBypass = bypass !== undefined && currentSlot === bypass.id;
 		const listed = this.slots.some((s) => s.id === currentSlot);
 		this.deviceSlot = currentSlot;
-		this.activeSlot = listed ? currentSlot : (this.slots[0]?.id ?? null);
-		this.eqEnabled = onBypass ? false : currentSlot !== null ? true : null;
+		this.activeSlot = listed ? currentSlot : (this.writableSlots[0]?.id ?? null);
+		this.eqEnabled = enabled ?? (onBypass ? false : currentSlot !== null ? true : null);
 		this.synced = null;
 		this.layout = null;
 		this.autoPaused = false;

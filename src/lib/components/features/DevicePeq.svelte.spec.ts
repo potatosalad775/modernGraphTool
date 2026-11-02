@@ -49,6 +49,7 @@ const CAPS: PeqCapabilities = {
 	writesPreamp: true,
 	writesSlot: true,
 	readsCurrentSlot: true,
+	readsEnabled: false,
 	canEnable: true,
 	slots: [
 		{ id: 0, name: 'Slot A' },
@@ -79,6 +80,7 @@ function makeConnection(
 		pull: vi.fn<PeqDevice['pull']>(async () => ({ filters: [] })),
 		push: vi.fn<PeqDevice['push']>(async () => ({ reconnect: false })),
 		currentSlot: vi.fn<PeqDevice['currentSlot']>(async () => 1),
+		eqEnabled: vi.fn<PeqDevice['eqEnabled']>(async () => null),
 		setEnabled: vi.fn<PeqDevice['setEnabled']>(async () => {}),
 		close: vi.fn<PeqDevice['close']>(async () => {})
 	};
@@ -557,7 +559,51 @@ describe('DevicePeq', () => {
 			await expect.element(write).toBeDisabled();
 			await expect
 				.element(write)
-				.toHaveAccessibleDescription(/This device can only read and write the preset it's using\./);
+				.toHaveAccessibleDescription(/The device's EQ is off\. Turn it on first\./);
+		});
+
+		describe('a preset list that marks the writable ones', () => {
+			const MARKED = [
+				{ id: 0, name: 'Jazz' },
+				{ id: 1, name: 'USER1', writable: true }
+			];
+
+			it('won’t write a built-in preset, and says so, but still reads it', async () => {
+				const device = await mountConnected({ slots: MARKED }, 0);
+				eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+				eqStore.preamp = -1;
+
+				const write = page.getByRole('button', { name: 'Write to device' });
+				await expect.element(write).toBeDisabled();
+				await expect.element(write).toHaveAccessibleDescription(/built-in preset can't be written/);
+				await expect
+					.element(page.getByRole('status'))
+					.toHaveTextContent(
+						"This built-in preset can't be written. Pick another preset under Device EQ to write."
+					);
+				await expect.element(page.getByRole('button', { name: 'Read from device' })).toBeEnabled();
+				expect(device.push).not.toHaveBeenCalled();
+			});
+
+			it('writes once a writable preset is picked', async () => {
+				const device = await mountConnected({ slots: MARKED }, 0);
+				eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
+				eqStore.preamp = -1;
+
+				await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('USER1');
+				await page.getByRole('button', { name: 'Write to device' }).click();
+				await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+				expect(device.push.mock.calls[0][0].slot).toBe(1);
+			});
+		});
+
+		it('shows Off when the device says its EQ is off, whatever preset it is on', async () => {
+			const made = makeConnection({}, { readsEnabled: true });
+			made.device.eqEnabled.mockResolvedValue(false);
+			connect.connectHid.mockResolvedValue(connected(made.connection));
+			render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toHaveValue('off');
 		});
 
 		it('writes a device on a built-in preset to its first memory, and switches to it', async () => {

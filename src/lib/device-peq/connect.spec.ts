@@ -14,7 +14,8 @@ const browser = vi.hoisted(() => ({
 	requestHidDevice: vi.fn(),
 	requestSerialPort: vi.fn(),
 	requestBleDevice: vi.fn(),
-	grantedHidDevice: vi.fn()
+	grantedHidDevice: vi.fn(),
+	waitForGrantedHidDevice: vi.fn()
 }));
 vi.mock('@potatosalad775/eqcaps-device-bridge/browser', () => browser);
 
@@ -127,6 +128,71 @@ describe('connectHid', () => {
 		expect(done.kind === 'connected' && done.connection.profileId).toBe('model-b');
 	});
 
+	describe('profiles that only the firmware tells apart', () => {
+		const fosi = { handler: 'fosi-audio-usb-hid' } as const;
+		const old = entry('ds3-8-band', {
+			model: 'DS3',
+			protocol: fosi,
+			match: { firmware: { max: '1.4.15' } }
+		});
+		const current = entry('ds3', {
+			model: 'DS3',
+			protocol: fosi,
+			match: { firmware: { min: '1.4.15' } }
+		});
+		const tie = { best: null, matches: [match(current), match(old)], ambiguous: true };
+
+		/** A DS3 that answers Fosi's firmware command (0xA6) with `version`, BCD per part. */
+		function ds3(version: number[] | null): HidTransport {
+			const t = hid(0x152a, 0x889b, 'Fosi Audio DS3');
+			t.receiveFeatureReport = vi.fn(async () =>
+				version ? new Uint8Array([1, 0x77, 0xa6, ...version]) : new Uint8Array(63)
+			);
+			return t;
+		}
+
+		it('reads the firmware and connects the profile it falls in', async () => {
+			browser.requestHidDevice.mockResolvedValue(ds3([0x01, 0x06, 0x10]));
+			client.matchDevice.mockImplementation(async (identity: { firmware?: string }) =>
+				identity.firmware === '1.6.10'
+					? { best: match(current), matches: [match(current)], ambiguous: false }
+					: tie
+			);
+
+			const result = await connectHid();
+			expect(result.kind === 'connected' && result.connection.profileId).toBe('ds3');
+			expect(client.matchDevice).toHaveBeenLastCalledWith({
+				usb: { vendorId: '0x152a', productId: '0x889b', productName: 'Fosi Audio DS3' },
+				firmware: '1.6.10'
+			});
+		});
+
+		it('asks, saying which firmware each is for, when the device doesn’t say', async () => {
+			browser.requestHidDevice.mockResolvedValue(ds3(null));
+			client.matchDevice.mockResolvedValue(tie);
+
+			const result = await connectHid();
+			expect(result.kind).toBe('choose');
+			if (result.kind !== 'choose') return;
+			expect(result.candidates).toEqual([
+				{ id: 'ds3', label: 'Spec DS3 (firmware ≥ 1.4.15)' },
+				{ id: 'ds3-8-band', label: 'Spec DS3 (firmware < 1.4.15)' }
+			]);
+			expect(client.matchDevice).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it('doesn’t ask for the firmware when no matched profile depends on it', async () => {
+		const e = entry('crinear-protocol-micro');
+		const t = hid(0x3302, 0xc20f, 'Protocol Micro');
+		browser.requestHidDevice.mockResolvedValue(t);
+		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+
+		expect((await connectHid()).kind).toBe('connected');
+		expect(t.sendReport).not.toHaveBeenCalled();
+		expect(t.sendFeatureReport).not.toHaveBeenCalled();
+	});
+
 	it('guesses a known vendor’s protocol, with limits from what it can carry', async () => {
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x9999, 'Mystery DSP '));
 		client.matchDevice.mockResolvedValue({ best: null, matches: [], ambiguous: false });
@@ -174,6 +240,66 @@ describe('connectHid', () => {
 			productId: 0xc20f,
 			productName: 'Protocol Micro'
 		});
+	});
+
+	describe('a device that restarts to save', () => {
+		const IDENTITY = { vendorId: 0x3302, productId: 0xc20f, productName: 'Protocol Micro' };
+
+		async function connected() {
+			const e = entry('crinear-protocol-micro');
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
+			client.matchDevice.mockResolvedValue({
+				best: match(e),
+				matches: [match(e)],
+				ambiguous: false
+			});
+			const result = await connectHid();
+			if (result.kind !== 'connected') throw new Error('expected a connection');
+			return result.connection;
+		}
+
+		it('can be reopened after every save, not only the first', async () => {
+			const first = await connected();
+			browser.grantedHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
+			const second = await first.reopen?.();
+			const third = await second?.reopen?.();
+			expect(third?.profileId).toBe('crinear-protocol-micro');
+			expect(third?.reopen).toBeTypeOf('function');
+		});
+
+		it('waits for it to come back, skipping the handle it had', async () => {
+			const first = await connected();
+			browser.waitForGrantedHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
+			const again = await first.reopen?.({ timeoutMs: 5000 });
+			expect(again?.profileId).toBe('crinear-protocol-micro');
+			expect(browser.waitForGrantedHidDevice).toHaveBeenCalledWith(IDENTITY, {
+				timeoutMs: 5000,
+				ignoreCurrent: true,
+				reuseAfterMs: 1500
+			});
+			expect(browser.grantedHidDevice).not.toHaveBeenCalled();
+		});
+
+		it('is null when it doesn’t come back', async () => {
+			const first = await connected();
+			browser.waitForGrantedHidDevice.mockResolvedValue(null);
+			expect(await first.reopen?.({ timeoutMs: 5000 })).toBeNull();
+		});
+	});
+
+	it('follows the device going, where its transport reports it', async () => {
+		const e = entry('crinear-protocol-micro');
+		const off = vi.fn();
+		const t = hid(0x3302, 0xc20f, 'Protocol Micro');
+		t.onDisconnect = vi.fn(() => off);
+		browser.requestHidDevice.mockResolvedValue(t);
+		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+
+		const result = await connectHid();
+		if (result.kind !== 'connected') throw new Error('expected a connection');
+		const listener = vi.fn();
+		expect(result.connection.onLost?.(listener)).toBe(off);
+		expect(t.onDisconnect).toHaveBeenCalledWith(listener);
 	});
 });
 

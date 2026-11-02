@@ -135,6 +135,11 @@ export class LinkPeqDevice implements PeqDevice {
 		return this.#link.status?.deviceSlot ?? null;
 	}
 
+	/** uniPEQ reports it in `status`, which the link service mirrors into the store. */
+	async eqEnabled(): Promise<boolean | null> {
+		return this.#link.status?.eqEnabled ?? null;
+	}
+
 	async setEnabled(enabled: boolean, slot?: number): Promise<void> {
 		const value = !enabled ? 'off' : slot !== undefined ? `p${slot}` : 'on';
 		await run(this.#link.command('switch', { value }));
@@ -208,7 +213,14 @@ export function acceptCapabilities(value: unknown): PeqCapabilities {
 	const slots = Array.isArray(c.slots)
 		? c.slots.flatMap((s) =>
 				isRecord(s) && Number.isInteger(s.id) && typeof s.name === 'string'
-					? [{ id: s.id as number, name: s.name, ...(s.bypass === true ? { bypass: true } : {}) }]
+					? [
+							{
+								id: s.id as number,
+								name: s.name,
+								...(s.bypass === true ? { bypass: true } : {}),
+								...(s.writable === true ? { writable: true } : {})
+							}
+						]
 					: []
 			)
 		: [];
@@ -220,6 +232,8 @@ export function acceptCapabilities(value: unknown): PeqCapabilities {
 		writesPreamp: flag('writesPreamp'),
 		writesSlot: flag('writesSlot'),
 		readsCurrentSlot: flag('readsCurrentSlot'),
+		// uniPEQ reads the switch and says what it found in `status`.
+		readsEnabled: false,
 		canEnable: flag('canEnable'),
 		slots,
 		disconnectOnSave: flag('disconnectOnSave'),

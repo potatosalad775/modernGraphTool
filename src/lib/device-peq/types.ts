@@ -31,6 +31,7 @@ export type PeqCapabilities = Pick<
 	| 'writesPreamp'
 	| 'writesSlot'
 	| 'readsCurrentSlot'
+	| 'readsEnabled'
 	| 'canEnable'
 	| 'slots'
 	| 'disconnectOnSave'
@@ -46,8 +47,14 @@ export interface PeqDevice {
 	readonly capabilities: PeqCapabilities;
 	pull(request?: PullRequest): Promise<PullResult>;
 	push(request: PushRequest): Promise<PushResult>;
-	/** The active preset slot; null when EQ is off or the protocol can't say. */
+	/**
+	 * The active preset slot; null when the protocol can't say, or on some bypass-preset protocols
+	 * when the EQ is off. Where the EQ switch is its own state (`readsEnabled`), the preset whether
+	 * the EQ is on or off.
+	 */
 	currentSlot(): Promise<number | null>;
+	/** Whether the EQ is on (`readsEnabled`); null when the protocol or device doesn't say. */
+	eqEnabled(): Promise<boolean | null>;
 	setEnabled(enabled: boolean, slot?: number): Promise<void>;
 	close(): Promise<void>;
 }
@@ -76,8 +83,22 @@ export interface DeviceConnection {
 	profileId: string | null;
 	/** What the device reported about itself, for an issue report. */
 	identity: DeviceIdentity;
-	/** Re-open the same device without the browser's chooser, after it dropped (HID only). */
-	reopen?: () => Promise<DeviceConnection | null>;
+	/**
+	 * Re-open the same device without the browser's chooser, after it dropped (HID only). With
+	 * `wait`, for a device restarting to save: the handle it had is skipped, and it gets until the
+	 * timeout to come back. Null if it isn't there, or the browser no longer grants it.
+	 */
+	reopen?: (wait?: ReopenWait) => Promise<DeviceConnection | null>;
+	/**
+	 * Calls `listener` once when the device goes on its own (unplugged, out of range), where the
+	 * browser reports it; returns the unsubscribe.
+	 */
+	onLost?: (listener: () => void) => () => void;
+}
+
+/** How `reopen` waits for a device that restarts to save. */
+export interface ReopenWait {
+	timeoutMs: number;
 }
 
 /** A profile the user can pick when a device's identity matched several, or none (serial ports). */

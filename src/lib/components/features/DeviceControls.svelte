@@ -73,6 +73,12 @@
 
 	const readTarget = $derived(devicePeqStore.readTarget);
 	const writeTarget = $derived(devicePeqStore.writeTarget);
+	/** Device EQ shows a built-in preset: Write is off by design, not because of where it is. */
+	const builtIn = $derived(!!caps?.canWrite && !devicePeqStore.targetWritable);
+	const eqOff = $derived(devicePeqStore.selection === 'off');
+	const unreachableHint = $derived(
+		eqOff ? m.equalizer_device_peq_unreachable_off() : m.equalizer_device_peq_unreachable()
+	);
 	const inSync = $derived(devicePeqStore.inSync);
 	/** Auto-write needs a device that can be written without restarting after each save. */
 	const canAutoWrite = $derived(!!caps?.canWrite && !caps.disconnectOnSave);
@@ -99,7 +105,10 @@
 			autoWriting: devicePeqService.autoWriting,
 			autoPaused: devicePeqStore.autoPaused,
 			autoClipRisk: devicePeqStore.autoClipRisk,
-			unreachable: !!caps?.canWrite && (!writeTarget || (caps.canRead && !readTarget)),
+			builtIn,
+			unreachable:
+				(!!caps?.canWrite && !builtIn && !writeTarget) || (!!caps?.canRead && !readTarget),
+			eqOff,
 			inSync
 		})
 	);
@@ -296,9 +305,7 @@
 						label={devicePeqStore.isReading
 							? m.equalizer_device_peq_reading()
 							: m.equalizer_device_peq_read()}
-						hint={readTarget
-							? m.equalizer_device_peq_read_title()
-							: m.equalizer_device_peq_unreachable()}
+						hint={readTarget ? m.equalizer_device_peq_read_title() : unreachableHint}
 						variant="outline"
 						size="sm"
 						class="flex-1"
@@ -313,7 +320,9 @@
 							: m.equalizer_device_peq_write()}
 						hint={writeTarget
 							? m.equalizer_device_peq_write_title()
-							: m.equalizer_device_peq_unreachable()}
+							: builtIn
+								? m.equalizer_device_peq_builtin()
+								: unreachableHint}
 						variant="primary"
 						size="sm"
 						class="flex-1"

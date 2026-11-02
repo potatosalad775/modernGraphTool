@@ -24,10 +24,13 @@ import {
 	grantedHidDevice,
 	requestBleDevice,
 	requestHidDevice,
-	requestSerialPort
+	requestSerialPort,
+	waitForGrantedHidDevice,
+	type HidIdentity
 } from '@potatosalad775/eqcaps-device-bridge/browser';
+import * as m from '#lib/paraglide/messages.js';
 import { eqcapsClient } from '#lib/services/eqcaps-client.js';
-import type { DeviceCandidate, DeviceConnection, ProfileSource } from './types.js';
+import type { DeviceCandidate, DeviceConnection, ProfileSource, ReopenWait } from './types.js';
 
 export type BridgeConnectionType = 'hid' | 'serial' | 'ble';
 
@@ -56,6 +59,20 @@ function entryLabel(e: Pick<IndexEntry, 'brand' | 'model' | 'engine'>): string {
 	return e.engine ? `${name} · ${e.engine}` : name;
 }
 
+/**
+ * Labels for the profiles a tie offers. Profiles that only the firmware tells apart share a brand
+ * and model, so a label that would repeat says which firmware its profile is for.
+ */
+function candidateLabels(entries: IndexEntry[]): string[] {
+	const labels = entries.map(entryLabel);
+	return entries.map((e, i) => {
+		const fw = e.match?.firmware;
+		if (!fw || labels.indexOf(labels[i]) === labels.lastIndexOf(labels[i])) return labels[i];
+		const range = [fw.min && `≥ ${fw.min}`, fw.max && `< ${fw.max}`].filter(Boolean).join(', ');
+		return m.equalizer_device_peq_candidate_firmware({ name: labels[i], range });
+	});
+}
+
 /** Hardware entries a transport kind can drive, for the user to pick from. */
 function drivable(entries: IndexEntry[], kind: Transport['kind']): IndexEntry[] {
 	return entries.filter((e) => {
@@ -70,6 +87,30 @@ function topTies(matches: DeviceMatch<IndexEntry>[]): DeviceMatch<IndexEntry>[] 
 	const top = matches[0];
 	if (!top) return [];
 	return matches.filter((m) => m.specificity === top.specificity && m.group === top.group);
+}
+
+/**
+ * The device's firmware version, when it can decide the match: a matched profile has a firmware
+ * range (the Fosi DS3's 8- and 32-band firmware share one USB identity) and the protocol the top
+ * matches share reads one. Only then, since a device that doesn't answer costs the handler's
+ * timeout. Null otherwise, or when the device doesn't say.
+ */
+async function readFirmware(
+	matches: DeviceMatch<IndexEntry>[],
+	open: (protocol: Protocol) => Promise<Transport>
+): Promise<string | null> {
+	if (!matches.some((x) => x.entry.match?.firmware)) return null;
+	const protocols = topTies(matches).map(
+		(x) => protocolOf(x.entry) ?? protocolForMatches(matches)?.protocol
+	);
+	const protocol = protocols[0];
+	if (!protocol || protocols.some((p) => p?.handler !== protocol.handler)) return null;
+	try {
+		const device = openDevice(await open(protocol), protocol);
+		return device.capabilities.readsFirmware ? await device.firmware() : null;
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -156,7 +197,7 @@ function connection(
 	transportKind: BridgeConnectionType,
 	transport: Transport,
 	r: Resolved,
-	reopen?: () => Promise<DeviceConnection | null>
+	reopen?: DeviceConnection['reopen']
 ): DeviceConnection {
 	const device = openDevice(transport, r.protocol, { profile: { bandCount: r.profile.bandCount } });
 	return {
@@ -167,7 +208,8 @@ function connection(
 		profileSource: r.profileSource,
 		profileId: r.profileId,
 		identity: device.identity,
-		...(reopen ? { reopen } : {})
+		...(reopen ? { reopen } : {}),
+		...(transport.onDisconnect ? { onLost: transport.onDisconnect.bind(transport) } : {})
 	};
 }
 
@@ -184,9 +226,17 @@ async function identify(opts: {
 	open: (protocol: Protocol) => Promise<Transport>;
 	close: () => Promise<void>;
 	pickFrom: IndexEntry[];
-	reopen?: (r: Resolved) => () => Promise<DeviceConnection | null>;
+	reopen?: (r: Resolved) => DeviceConnection['reopen'];
 }): Promise<ConnectResult> {
-	const { best, matches, ambiguous } = await eqcapsClient().matchDevice(opts.identity);
+	let found = await eqcapsClient().matchDevice(opts.identity);
+	// Serial and BLE ports open on the protocol they are driven with, so only an open HID device is
+	// asked. A firmware no profile covers keeps the match without it.
+	const firmware = opts.kind === 'hid' ? await readFirmware(found.matches, opts.open) : null;
+	if (firmware) {
+		const again = await eqcapsClient().matchDevice({ ...opts.identity, firmware });
+		if (again.matches.length > 0) found = again;
+	}
+	const { best, matches, ambiguous } = found;
 
 	const finishWith = async (chosen: IndexEntry | null): Promise<ConnectResult> => {
 		const r = await resolve(matches, chosen, opts.fallbackName, opts.vendorId);
@@ -206,7 +256,7 @@ async function identify(opts: {
 	if (offer.length > 0 && (ambiguous || opts.vendorId === null || !guessProtocol(opts.vendorId))) {
 		return {
 			kind: 'choose',
-			candidates: offer.map((e) => ({ id: e.id, label: entryLabel(e) })),
+			candidates: candidateLabels(offer).map((label, i) => ({ id: offer[i].id, label })),
 			finish: (id) => finishWith(offer.find((e) => e.id === id) ?? null),
 			cancel: opts.close
 		};
@@ -258,16 +308,43 @@ export async function connectHid(): Promise<ConnectResult> {
 		open: async () => transport,
 		close: () => transport.close().catch(() => {}),
 		pickFrom: [],
-		reopen: (r) => async () => {
-			if (!usb?.productId || usb.productName === undefined) return null;
-			const again = await grantedHidDevice({
-				vendorId: parseInt(usb.vendorId, 16),
-				productId: parseInt(usb.productId, 16),
-				productName: usb.productName
-			});
-			return again ? connection('hid', again, r) : null;
+		reopen: (r) => {
+			if (!usb?.productId || usb.productName === undefined) return undefined;
+			return reopenHid(
+				{
+					vendorId: parseInt(usb.vendorId, 16),
+					productId: parseInt(usb.productId, 16),
+					productName: usb.productName
+				},
+				r
+			);
 		}
 	});
+}
+
+/**
+ * How long after a save the old WebHID handle, if the browser never dropped it, is taken as the
+ * device back, ms. The Tanchjim FOLA on macOS keeps its HID interface through the restart, and its
+ * old handle opens again; this gives a device that does drop it time to go first.
+ */
+const REUSE_HANDLE_MS = 1500;
+
+/**
+ * Finds a granted WebHID device again, and gives the connection it comes back as the same `reopen`,
+ * so a device that restarts on every save can be reopened after each one.
+ */
+function reopenHid(identity: HidIdentity, r: Resolved): NonNullable<DeviceConnection['reopen']> {
+	const reopen = async (wait?: ReopenWait) => {
+		const again = wait
+			? await waitForGrantedHidDevice(identity, {
+					timeoutMs: wait.timeoutMs,
+					ignoreCurrent: true,
+					reuseAfterMs: REUSE_HANDLE_MS
+				})
+			: await grantedHidDevice(identity);
+		return again ? connection('hid', again, r, reopen) : null;
+	};
+	return reopen;
 }
 
 /**

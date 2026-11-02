@@ -17,6 +17,7 @@ const CAPS: PeqCapabilities = {
 	writesPreamp: true,
 	writesSlot: false,
 	readsCurrentSlot: true,
+	readsEnabled: false,
 	canEnable: true,
 	slots: [
 		{ id: 0, name: 'Jazz' },
@@ -34,6 +35,7 @@ function makeConnection(overrides: Partial<DeviceConnection> = {}): DeviceConnec
 			pull: vi.fn(),
 			push: vi.fn(),
 			currentSlot: vi.fn(),
+			eqEnabled: vi.fn(),
 			setEnabled: vi.fn(),
 			close: vi.fn()
 		},
@@ -102,6 +104,78 @@ describe('devicePeqStore', () => {
 		expect(devicePeqStore.selection).toBe('off');
 		devicePeqStore.setConnected(makeConnection(), null);
 		expect(devicePeqStore.selection).toBeNull();
+	});
+
+	describe('an EQ switch of its own', () => {
+		it('shows Off on the preset the device stays on, and Read still reaches it', () => {
+			devicePeqStore.setConnected(makeConnection(), 160, false);
+			expect(devicePeqStore.selection).toBe('off');
+			expect(devicePeqStore.eqEnabled).toBe(false);
+			expect(devicePeqStore.deviceSlot).toBe(160);
+			expect(devicePeqStore.activeSlot).toBe(160);
+			expect(devicePeqStore.readTarget).toEqual({});
+		});
+
+		it('takes the switch over what the preset would say', () => {
+			devicePeqStore.setConnected(makeConnection(), 240, true);
+			expect(devicePeqStore.eqEnabled).toBe(true);
+		});
+
+		it('falls back on the preset when the switch is unknown', () => {
+			devicePeqStore.setConnected(makeConnection(), 160, null);
+			expect(devicePeqStore.eqEnabled).toBe(true);
+			devicePeqStore.setConnected(makeConnection(), 240, null);
+			expect(devicePeqStore.eqEnabled).toBe(false);
+		});
+	});
+
+	describe('built-in presets', () => {
+		const marked = (): DeviceConnection => {
+			const connection = makeConnection();
+			return {
+				...connection,
+				device: {
+					...connection.device,
+					capabilities: {
+						...CAPS,
+						writesSlot: true,
+						slots: [
+							{ id: 0, name: 'Jazz' },
+							{ id: 160, name: 'USER1', writable: true },
+							{ id: 161, name: 'USER2', writable: true },
+							{ id: 240, name: 'BYPASS', bypass: true }
+						]
+					}
+				}
+			};
+		};
+
+		it('won’t write the built-in preset the device is on, but still reads it', () => {
+			devicePeqStore.setConnected(marked(), 0);
+			expect(devicePeqStore.activeSlot).toBe(0);
+			expect(devicePeqStore.targetWritable).toBe(false);
+			expect(devicePeqStore.writeTarget).toBeNull();
+			expect(devicePeqStore.readTarget).toEqual({});
+		});
+
+		it('writes once the user picks one of their own', () => {
+			devicePeqStore.setConnected(marked(), 0);
+			devicePeqStore.target(161);
+			expect(devicePeqStore.writeTarget).toEqual({ slot: 161 });
+		});
+
+		it('targets the first writable preset when the device is on none it lists', () => {
+			devicePeqStore.setConnected(marked(), 240);
+			expect(devicePeqStore.activeSlot).toBe(160);
+			expect(devicePeqStore.writeTarget).toEqual({ slot: 160 });
+		});
+
+		it('treats every preset but the bypass as writable when the profile marks none', () => {
+			devicePeqStore.setConnected(makeConnection(), 0);
+			expect(devicePeqStore.writableSlots.map((s) => s.id)).toEqual([0, 160]);
+			expect(devicePeqStore.targetWritable).toBe(true);
+			expect(devicePeqStore.writeTarget).toEqual({});
+		});
 	});
 
 	it('follows a switch, and forgets what it knew of the old preset', () => {

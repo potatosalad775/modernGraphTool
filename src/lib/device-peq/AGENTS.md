@@ -68,6 +68,11 @@ needs it at boot); keep it the only one.
 - **Ties and nameless ports ask the user.** `matchDevice` refuses to pick between equal matches,
   and a Bluetooth serial port names no device; `connect.ts` returns `kind: 'choose'` with
   candidates rather than guessing.
+- **The firmware is read only when it can decide the match.** The Fosi DS3's 8- and 32-band
+  firmware share a USB identity, and `matchDevice` ignores firmware ranges unless it is given a
+  version. So `identify` asks the open HID device when a matched profile has a range and the top
+  matches share a handler that reads one, then matches again. Only then: a device that doesn't
+  answer costs the handler's timeout. Unanswered, the tie's labels say which firmware each is for.
 - **The chooser needs the click's user activation.** `warmUp()` (on hover/focus of the connect
   buttons) starts the index load early, and a click waits at most `INDEX_WAIT_MS` for it before
   opening the chooser with the bridge's guessable vendors only.
@@ -77,12 +82,27 @@ needs it at boot); keep it the only one.
   only retargeted Read/Write plus an on/off switch that also, invisibly, switched to that
   preset: you could write a preset the device wasn't playing and hear nothing. The bypass preset
   is the off switch, not a memory: `devicePeqStore.slots` hides it.
+- **The EQ switch can be its own state** (`readsEnabled`): the DS3 reports the preset it is on
+  whether its EQ is on or off, so a slot no longer implies the EQ is on. `devicePeqService` reads
+  the switch where the protocol has one and `setConnected` takes it over the bypass-preset rule.
+  With the EQ off, Device EQ shows Off and Read still reaches that preset.
+- **Built-in presets aren't written.** eqcaps marks the user memories of a list that mixes them with
+  built-in curves (`writable`, format 1.1), and the bridge doesn't enforce the marks, so
+  `writeTarget` has to. Read and Device EQ still reach a built-in preset. A list with no marks is all
+  memories. `acceptCapabilities` keeps the marks, so a linked device behaves the same.
 - **Read and write only the preset they can reach** (`preset.ts`). Protocols without `readsSlot` /
   `writesSlot` act on whatever the device is on, so `devicePeqStore.deviceSlot` (reported on
   connect, updated on every switch) must equal the target; otherwise the button is disabled
   rather than reading the wrong memory or writing over a built-in or bypass preset.
+- **A device that restarts to save is reopened by itself** (`#awaitRestart`, `RESTART_WAIT_MS`);
+  Reconnect is only what's left if it doesn't come back. Every reopened connection carries `reopen`
+  again, or the second save would strand it. `#reopened` keeps `synced` while the device is on the
+  same preset: connecting never reads, so nothing else would say the list still matches.
+- **A device that goes is disconnected at once** (`onLost`, where the browser reports it), which
+  lifts its limits and stops auto-write. It's kept when it is expected to go: `needsReconnect`, or
+  a write under way on a `disconnectOnSave` device, which can drop before the write returns.
 - **The connected panel has one status line**, chosen by `panelStatus` (failure › auto-write
-  paused › unreachable preset › clip risk › sync). Don't add another conditional `<p>` beside it:
+  paused › built-in preset › unreachable preset › clip risk › sync). Don't add another conditional `<p>` beside it:
   the old panel stacked one per state and showed "Wrote 6 bands" next to "The device has this EQ".
   Fixed facts about the profile (shared, guessed, draft, experimental, write-only) go in the
   device row's popover instead, which renders only when one applies.

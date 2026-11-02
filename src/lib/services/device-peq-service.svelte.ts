@@ -37,6 +37,24 @@ import { volumeWarning } from './volume-warning.svelte.js';
 /** How long after the last edit auto-write waits: one slider drag is one write, not dozens. */
 export const AUTO_WRITE_DELAY_MS = 700;
 
+/**
+ * How long a device that restarts to save gets to come back before Reconnect is offered, ms: a USB
+ * re-enumeration takes a second or two, and a grant the browser dropped never comes back.
+ */
+const RESTART_WAIT_MS = 5000;
+
+/**
+ * The preset the device plays and, where its EQ switch is its own state, whether that is on. A
+ * failed read is unknown rather than an error: the connection works without it.
+ */
+async function playing(conn: DeviceConnection) {
+	const slot = await conn.device.currentSlot().catch(() => null);
+	const enabled = conn.device.capabilities.readsEnabled
+		? await conn.device.eqEnabled().catch(() => null)
+		: null;
+	return { slot, enabled };
+}
+
 /** The transports a browser connects through its own device APIs. */
 export type DeviceKind = 'hid' | 'serial' | 'ble';
 
@@ -49,6 +67,7 @@ class DevicePeqService {
 	#running = false;
 	#again = false;
 	#seen: Seen | null = null;
+	#unwatchLost: () => void = () => {};
 
 	/** The connected device when it is uniPEQ's, reached over the link. */
 	get linkDevice(): LinkPeqDevice | null {
@@ -156,7 +175,7 @@ class DevicePeqService {
 		devicePeqStore.isConnecting = true;
 		try {
 			const again = conn.reopen ? await conn.reopen() : null;
-			if (again) await this.#connected(again);
+			if (again) await this.#reopened(again);
 			else {
 				devicePeqStore.setDisconnected();
 				devicePeqStore.setStatus(m.equalizer_device_peq_status_reconnect_manual());
@@ -172,6 +191,8 @@ class DevicePeqService {
 	async disconnect(): Promise<void> {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
+		this.#unwatchLost();
+		this.#unwatchLost = () => {};
 		await conn.device.close().catch(() => {});
 		devicePeqStore.setDisconnected();
 	}
@@ -183,12 +204,76 @@ class DevicePeqService {
 	}
 
 	async #connected(conn: DeviceConnection): Promise<void> {
-		const slot = await conn.device.currentSlot().catch(() => null);
-		devicePeqStore.setConnected(conn, slot);
+		const { slot, enabled } = await playing(conn);
+		devicePeqStore.setConnected(conn, slot, enabled);
+		this.#unwatchLost();
+		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? (() => {});
 		this.install();
 		// Auto-write writes without a press, so its volume warning comes now, before any edit.
 		if (this.autoWriting) {
 			volumeWarning.ask(undefined, () => (devicePeqStore.autoStopped = true));
+		}
+	}
+
+	/**
+	 * The same device, opened again. It still holds what was last read or written while it is on the
+	 * same preset, so the list is still in sync: connecting never reads, so nothing else would say so.
+	 */
+	async #reopened(again: DeviceConnection): Promise<void> {
+		const { synced, activeSlot } = devicePeqStore;
+		await this.#connected(again);
+		if (devicePeqStore.activeSlot === activeSlot) devicePeqStore.synced = synced;
+	}
+
+	/**
+	 * The device went on its own: disconnected now, not at the next failed operation, so its limits
+	 * stop applying and nothing tries to write to it. One that restarts to save is expected to go and
+	 * kept for its return, and it can go before the write that saved has returned.
+	 */
+	async #lost(conn: DeviceConnection): Promise<void> {
+		if (devicePeqStore.connection !== conn) return;
+		const saving = devicePeqStore.isWriting && conn.device.capabilities.disconnectOnSave;
+		if (devicePeqStore.needsReconnect || saving) return;
+		await this.disconnect();
+		const message = m.equalizer_device_peq_reconnect_prompt();
+		devicePeqStore.setStatus(message);
+		toast.warning(message);
+	}
+
+	/**
+	 * A device that restarted to save is reopened as soon as it is back. Not back in time, or no
+	 * longer granted to the site, Reconnect stays on offer.
+	 */
+	async #awaitRestart(conn: DeviceConnection, count: number): Promise<void> {
+		if (!conn.reopen) {
+			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+			return;
+		}
+		devicePeqStore.isConnecting = true;
+		devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnecting());
+		let again: DeviceConnection | null = null;
+		try {
+			again = await conn.reopen({ timeoutMs: RESTART_WAIT_MS });
+		} catch (e) {
+			console.warn('Device PEQ: reopening after a restart failed:', e);
+		}
+		// Disconnected meanwhile: what came back is no longer wanted.
+		if (devicePeqStore.connection !== conn) {
+			await again?.device.close().catch(() => {});
+			return;
+		}
+		if (!again) {
+			devicePeqStore.isConnecting = false;
+			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+			return;
+		}
+		try {
+			await this.#reopened(again);
+			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnected({ count }));
+		} catch (e) {
+			this.fail(e, 'connect');
+		} finally {
+			devicePeqStore.isConnecting = false;
 		}
 	}
 
@@ -287,8 +372,11 @@ class DevicePeqService {
 			if (result.reconnect) {
 				// The device restarts to save. Its transport is gone; `reopen` finds it again.
 				await conn.device.close().catch(() => {});
-				devicePeqStore.needsReconnect = true;
-				devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+				// Unless the user disconnected while it wrote.
+				if (devicePeqStore.connection === conn) {
+					devicePeqStore.needsReconnect = true;
+					void this.#awaitRestart(conn, count);
+				}
 			} else {
 				// Written to a listed preset while the device sits on a built-in one: switch to it,
 				// so what was written is what plays.

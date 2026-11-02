@@ -7,7 +7,9 @@ const idle: PanelStatusInput = {
 	autoWriting: false,
 	autoPaused: false,
 	autoClipRisk: false,
+	builtIn: false,
 	unreachable: false,
+	eqOff: false,
 	inSync: null
 };
 const status = (over: Partial<PanelStatusInput>) => panelStatus({ ...idle, ...over });
@@ -48,6 +50,18 @@ describe('panelStatus', () => {
 			/only read and write the preset it's using/
 		);
 		expect(status({ autoWriting: true, autoClipRisk: true })?.tone).toBe('warning');
+	});
+
+	it('says a built-in preset is why Write is off, ahead of the sync state', () => {
+		expect(status({ builtIn: true, unreachable: true, inSync: true })?.text).toMatch(
+			/built-in preset can't be written/
+		);
+	});
+
+	it('points at the EQ switch when that is what keeps a preset out of reach', () => {
+		expect(status({ unreachable: true, eqOff: true })?.text).toBe(
+			"The device's EQ is off. Turn it on first."
+		);
 	});
 
 	it('lets the last operation stand for "in sync", and drops it once the list moves', () => {

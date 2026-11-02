@@ -472,6 +472,9 @@
 	"equalizer_device_peq_eq_unknown": "Unknown",
 	"equalizer_device_peq_preset_hint": "Pick the preset to read and write. Picking one here doesn't change the preset the device plays.",
 	"equalizer_device_peq_unreachable": "This device can only read and write the preset it's using. Switch the device to the preset you want first.",
+	"equalizer_device_peq_unreachable_off": "The device's EQ is off. Turn it on first.",
+	"equalizer_device_peq_builtin": "This built-in preset can't be written. Pick another preset under Device EQ to write.",
+	"equalizer_device_peq_candidate_firmware": "{name} (firmware {range})",
 	"equalizer_device_peq_synced": "The EQ shown matches the device.",
 	"equalizer_device_peq_unsynced": "The EQ has changed since the last read or write.",
 	"equalizer_device_peq_auto_write": "Write changes automatically",
@@ -527,6 +530,17 @@
 		}
 	],
 	"equalizer_device_peq_status_saved_reconnect": "Saved. The device restarts after saving; reconnect to carry on.",
+	"equalizer_device_peq_status_saved_reconnecting": "Saved. The device restarts after saving; reconnecting…",
+	"equalizer_device_peq_status_saved_reconnected": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Wrote {count} band. The device restarted to save and is connected again.",
+				"countPlural=*": "Wrote {count} bands. The device restarted to save and is connected again."
+			}
+		}
+	],
 	"equalizer_device_peq_status_reconnect_manual": "Couldn't find the device again. Plug it in and connect.",
 	"equalizer_device_peq_field_type": "Type",
 	"equalizer_device_peq_field_freq": "Frequency",

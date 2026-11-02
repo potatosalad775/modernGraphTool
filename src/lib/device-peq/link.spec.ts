@@ -98,12 +98,18 @@ describe('what uniPEQ says about its device', () => {
 		const caps = acceptCapabilities({
 			canRead: true,
 			canWrite: 'yes',
-			slots: [{ id: 1, name: 'P1' }, { id: 'x' }, { id: 9, name: 'Off', bypass: true }]
+			slots: [
+				{ id: 1, name: 'P1', writable: true },
+				{ id: 'x' },
+				{ id: 2, name: 'Jazz', writable: 'yes' },
+				{ id: 9, name: 'Off', bypass: true }
+			]
 		});
 		expect(caps.canRead).toBe(true);
 		expect(caps.canWrite).toBe(false);
 		expect(caps.slots).toEqual([
-			{ id: 1, name: 'P1' },
+			{ id: 1, name: 'P1', writable: true },
+			{ id: 2, name: 'Jazz' },
 			{ id: 9, name: 'Off', bypass: true }
 		]);
 		expect(acceptCapabilities(undefined).slots).toEqual([]);
@@ -138,7 +144,7 @@ function fakePort(status: Partial<LinkStatus> | null = null) {
 
 describe('LinkPeqDevice', () => {
 	it('turns each device action into uniPEQ’s command', async () => {
-		const port = fakePort({ deviceSlot: 2 });
+		const port = fakePort({ deviceSlot: 2, eqEnabled: false });
 		const device = new LinkPeqDevice(port, acceptCapabilities({}));
 		await device.pull();
 		await device.setEnabled(true, 3);
@@ -159,6 +165,7 @@ describe('LinkPeqDevice', () => {
 			['reconnect']
 		]);
 		expect(await device.currentSlot()).toBe(2);
+		expect(await device.eqEnabled()).toBe(false);
 		await device.close();
 		expect(port.unlink).toHaveBeenCalledOnce();
 	});

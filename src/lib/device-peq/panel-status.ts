@@ -25,8 +25,15 @@ export interface PanelStatusInput {
 	autoWriting: boolean;
 	autoPaused: boolean;
 	autoClipRisk: boolean;
+	/** Device EQ shows a built-in preset, which Write won't overwrite. */
+	builtIn: boolean;
 	/** Read or Write can't reach the preset Device EQ shows from where the device is. */
 	unreachable: boolean;
+	/**
+	 * The device's EQ is off. Then a device that reads or writes only where it is reaches no preset,
+	 * and what brings it back is the EQ switch, not picking another preset.
+	 */
+	eqOff: boolean;
 	inSync: boolean | null;
 }
 
@@ -36,7 +43,15 @@ export function panelStatus(s: PanelStatusInput): PanelStatus | null {
 	if (s.autoWriting && s.autoPaused) {
 		return { tone: 'warning', text: m.equalizer_device_peq_auto_paused(), action: 'review' };
 	}
-	if (s.unreachable) return { tone: 'muted', text: m.equalizer_device_peq_unreachable() };
+	if (s.builtIn) return { tone: 'muted', text: m.equalizer_device_peq_builtin() };
+	if (s.unreachable) {
+		return {
+			tone: 'muted',
+			text: s.eqOff
+				? m.equalizer_device_peq_unreachable_off()
+				: m.equalizer_device_peq_unreachable()
+		};
+	}
 	if (s.autoWriting && s.autoClipRisk) {
 		return { tone: 'warning', text: m.equalizer_device_peq_push_clip_risk() };
 	}

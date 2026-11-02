@@ -557,14 +557,11 @@ describe('DevicePeq', () => {
 
 			// Off sits on the bypass preset: writing now would overwrite it.
 			await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('Off (EQ bypassed)');
-			await expect.element(page.getByText('Write to device', { exact: true })).toBeDisabled();
+			const write = page.getByRole('button', { name: 'Send the band list to the device' });
+			await expect.element(write).toBeDisabled();
 			await expect
-				.element(
-					page.getByText("This device can only read and write the preset it's using.", {
-						exact: false
-					})
-				)
-				.toBeInTheDocument();
+				.element(write)
+				.toHaveAccessibleDescription(/This device can only read and write the preset it's using\./);
 		});
 
 		it('writes a device on a built-in preset to its first memory, and switches to it', async () => {

@@ -137,7 +137,7 @@
 		};
 		img.onerror = () => {
 			URL.revokeObjectURL(svgUrl);
-			toast.error('Screenshot failed');
+			toast.error(m.screenshot_button_failed());
 		};
 		img.src = svgUrl;
 	}

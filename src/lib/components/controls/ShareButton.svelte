@@ -11,7 +11,7 @@
 			await navigator.clipboard.writeText(url);
 			toast.success(m.share_button_on_click());
 		} catch {
-			toast.error('Failed to copy URL');
+			toast.error(m.share_button_copy_failed());
 		}
 	}
 </script>

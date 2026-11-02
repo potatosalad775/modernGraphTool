@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as m from '#lib/paraglide/messages.js';
+
 	let {
 		class: className = '',
 		width = '100%',
@@ -15,5 +17,5 @@
 	style:width
 	style:height
 	role="status"
-	aria-label="Loading"
+	aria-label={m.skeleton_loading()}
 ></div>

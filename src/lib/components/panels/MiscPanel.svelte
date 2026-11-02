@@ -39,7 +39,9 @@
 	<div class="flex items-center gap-2 border-b border-base-content/15 bg-base-200 px-3 py-2">
 		<Button
 			onclick={() => settingsStore.toggleTheme()}
-			title={settingsStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+			title={settingsStore.theme === 'dark'
+				? m.misc_panel_theme_light()
+				: m.misc_panel_theme_dark()}
 			class="h-8 w-8"
 			variant="outline"
 			size="icon"
@@ -96,12 +98,14 @@
 		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
-			<a
+			<Button
 				href="https://github.com/potatosalad775/modernGraphTool"
 				target="_blank"
 				rel="noopener noreferrer"
 				title="GitHub"
-				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
+				variant="ghost"
+				size="icon-sm"
+				class="text-base-content/60 hover:bg-base-300"
 			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -118,18 +122,20 @@
 						d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
 					/>
 				</svg>
-			</a>
+			</Button>
 
 			<!-- Docs button -->
-			<a
+			<Button
 				href="https://potatosalad775.github.io/modernGraphTool/docs"
 				target="_blank"
 				rel="noopener noreferrer"
-				title="Documentation"
-				class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
+				title={m.misc_panel_docs()}
+				variant="ghost"
+				size="icon-sm"
+				class="text-base-content/60 hover:bg-base-300"
 			>
 				<BookOpen class="h-4 w-4" aria-hidden="true" />
-			</a>
+			</Button>
 
 			<!-- Tutorial button -->
 			<Button
@@ -144,15 +150,17 @@
 
 			<!-- Donate button (conditional) -->
 			{#if !hideDonate}
-				<a
+				<Button
 					href="https://ko-fi.com/potatosalad775"
 					target="_blank"
 					rel="noopener noreferrer"
-					title="Support on Ko-fi"
-					class="rounded-md p-1.5 text-base-content/60 hover:bg-base-300"
+					title={m.misc_panel_donate()}
+					variant="ghost"
+					size="icon-sm"
+					class="text-base-content/60 hover:bg-base-300"
 				>
 					<Heart class="h-4 w-4" aria-hidden="true" />
-				</a>
+				</Button>
 			{/if}
 		</div>
 	</div>

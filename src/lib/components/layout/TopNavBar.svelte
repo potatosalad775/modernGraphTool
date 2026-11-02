@@ -148,7 +148,7 @@
 
 		<!-- Mobile: hamburger button -->
 		{#if appStore.isMobile && linkList.length > 0}
-			<Button title="Open menu" onclick={openSidebar} variant="ghost" size="icon">
+			<Button title={m.top_nav_bar_open_menu()} onclick={openSidebar} variant="ghost" size="icon">
 				<Menu class="h-5 w-5" />
 			</Button>
 		{/if}
@@ -181,7 +181,7 @@
 			<h2 class="text-sm font-semibold">
 				{m.top_nav_bar_sidebar_link_title()}
 			</h2>
-			<Button title="Close menu" onclick={closeSidebar} variant="ghost" size="icon">
+			<Button title={m.top_nav_bar_close_menu()} onclick={closeSidebar} variant="ghost" size="icon">
 				<X class="h-5 w-5" aria-hidden="true" />
 			</Button>
 		</div>

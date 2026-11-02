@@ -40,9 +40,9 @@ describe('SmoothingButton', () => {
 		for (let i = 0; i < 5; i++) await button().click();
 
 		await expect.poll(label).toMatch(/Var\s*$/);
-		await expect.element(button()).toHaveAttribute('title', 'Variable smoothing');
+		await expect.element(button()).toHaveAccessibleName('Variable smoothing');
 		await button().click();
 		await expect.poll(label).toMatch(/Psy\s*$/);
-		await expect.element(button()).toHaveAttribute('title', 'Psychoacoustic smoothing');
+		await expect.element(button()).toHaveAccessibleName('Psychoacoustic smoothing');
 	});
 });

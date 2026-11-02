@@ -161,7 +161,11 @@ class DataProvider {
 			);
 		} catch {
 			const label = identifier.replace(/ Target$/, '');
-			toast.error(`Failed to load ${sourceType === 'target' ? 'target' : 'device'}: ${label}`);
+			toast.error(
+				sourceType === 'target'
+					? m.selection_list_load_failed_target({ label })
+					: m.selection_list_load_failed_device({ label })
+			);
 			return;
 		}
 		const rawCache = this.#buildRawCache(rawData);
@@ -432,7 +436,7 @@ class DataProvider {
 		try {
 			rawData = await FRParser.getFRDataFromMetadata('phone', data.meta, dispSuffix);
 		} catch {
-			toast.error(`Failed to load variant: ${dispSuffix || data.identifier}`);
+			toast.error(m.selection_list_load_failed_variant({ label: dispSuffix || data.identifier }));
 			return;
 		}
 		const variantRawCache = this.#buildRawCache(rawData);

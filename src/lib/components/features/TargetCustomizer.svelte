@@ -169,7 +169,7 @@
 						</div>
 					</div>
 					<Button
-						title="Remove"
+						title={m.target_customizer_btn_remove()}
 						onclick={() => targetAdjustmentStore.removeFilter(uuid, def.id)}
 						variant="ghost"
 						size="icon"

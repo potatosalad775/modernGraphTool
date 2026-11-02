@@ -24,6 +24,7 @@
 	import { isTargetType } from '#lib/types/data-types.js';
 	import GraphWatermark from './GraphWatermark.svelte';
 	import GraphXAxis from './GraphXAxis.svelte';
+	import * as m from '#lib/paraglide/messages.js';
 
 	let svgEl = $state<SVGSVGElement | undefined>(undefined);
 
@@ -498,7 +499,7 @@
 	});
 </script>
 
-<svg bind:this={svgEl} class="h-full w-full" role="img" aria-label="Frequency response graph">
+<svg bind:this={svgEl} class="h-full w-full" role="img" aria-label={m.app_shell_graph_label()}>
 	<!-- Static elements (Svelte-managed, rendered before D3 content) -->
 	{#if graphEngine.isInitialized}
 		<GraphWatermark />

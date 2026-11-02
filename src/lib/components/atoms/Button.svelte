@@ -1,12 +1,20 @@
 <script lang="ts">
 	import { Button, type WithChildren } from 'bits-ui';
 	import { twMerge } from 'tailwind-merge';
+	import Tooltip from './Tooltip.svelte';
+	import { mergeTooltipProps } from './tooltip-tether.js';
 
 	// Not `Omit<Button.RootProps, 'class'>` — `RootProps` is a discriminated union over
 	// bits-ui's `child` snippet variants, and omitting across it produces a union
 	// TypeScript refuses to represent.
 	type Props = WithChildren<Button.RootProps> & {
+		/** Shown as the tooltip and used as the accessible name. Keep it a short label. */
 		title: string;
+		/**
+		 * A sentence the label can't carry — why the button is disabled, what it will do.
+		 * Shown as the tooltip's second line and exposed as the accessible description.
+		 */
+		hint?: string;
 		variant?:
 			'primary' | 'secondary' | 'accent' | 'muted' | 'destructive' | 'outline' | 'ghost' | 'link';
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'toolbar' | 'icon' | 'icon-sm' | 'icon-xs';
@@ -23,9 +31,28 @@
 		size = 'md',
 		activeOnOpen = false,
 		title,
+		hint,
 		children,
 		...restProps
 	}: Props = $props();
+
+	const hintId = $props.id();
+
+	/**
+	 * No tooltip when the visible label already reads the same as the title — Share,
+	 * Screenshot, a target's name. Judged as the tooltip is about to open, not on mount,
+	 * because some labels change with state (AutoEQ's Run shows `...` while running).
+	 * A hint still shows: it says something the label doesn't.
+	 */
+	let labelSaysIt = $state(false);
+	const normalize = (text: string | null) => (text ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+	function judgeLabel(e: Event) {
+		labelSaysIt =
+			!hint && normalize((e.currentTarget as HTMLElement).textContent) === normalize(title);
+	}
+	const ownProps = $derived(
+		mergeTooltipProps(restProps, { onpointerenter: judgeLabel, onfocus: judgeLabel })
+	);
 
 	const variantClasses = {
 		primary: 'bg-primary text-primary-content hover:bg-primary/90',
@@ -77,6 +104,21 @@
 	);
 </script>
 
-<Button.Root {...restProps} class={className} {title} aria-label={restProps['aria-label'] || title}>
-	{@render children?.()}
-</Button.Root>
+<!--
+	No native `title`: the tooltip replaces it, and both would show at once. A hidden
+	element still counts for `aria-describedby`, so the hint reaches screen readers
+	without waiting for the tooltip to open.
+-->
+<Tooltip text={labelSaysIt ? undefined : title} {hint}>
+	{#snippet trigger({ props })}
+		<Button.Root
+			{...mergeTooltipProps(ownProps, props)}
+			class={className}
+			aria-label={restProps['aria-label'] || title}
+			aria-describedby={hint ? hintId : restProps['aria-describedby']}
+		>
+			{@render children?.()}
+			{#if hint}<span id={hintId} hidden>{hint}</span>{/if}
+		</Button.Root>
+	{/snippet}
+</Tooltip>

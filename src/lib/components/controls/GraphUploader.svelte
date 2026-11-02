@@ -76,7 +76,7 @@
 			} catch (err) {
 				console.error(`GraphUploader: failed to upload ${base}`, err);
 				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : 'Invalid format'
+					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
 				});
 			}
 		}
@@ -98,7 +98,7 @@
 			} catch (err) {
 				console.error(`GraphUploader: failed to upload ${base}`, err);
 				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : 'Invalid format'
+					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
 				});
 			}
 		}
@@ -130,7 +130,7 @@
 			} catch (err) {
 				console.error(`GraphUploader: failed to upload ${base}`, err);
 				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : 'Invalid format'
+					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
 				});
 			}
 		}

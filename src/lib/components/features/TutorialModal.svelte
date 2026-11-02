@@ -272,7 +272,7 @@
 									? 'w-4 bg-accent'
 									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
 								onclick={() => (tutorialStore.step = i)}
-								aria-label="Go to step {i + 1}"
+								aria-label={m.tutorial_modal_go_to_step({ step: i + 1 })}
 							></button>
 						{/each}
 					</div>

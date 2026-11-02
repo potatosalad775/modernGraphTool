@@ -291,17 +291,17 @@ describe('EqAudioPlayer', () => {
 		it('keeps play and stop disabled until a source is chosen', async () => {
 			render(EqAudioPlayer);
 
-			await expect.element(page.getByRole('button', { name: 'Play Audio' })).toBeDisabled();
-			await expect.element(page.getByRole('button', { name: 'Stop Audio' })).toBeDisabled();
+			await expect.element(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
+			await expect.element(page.getByRole('button', { name: 'Stop', exact: true })).toBeDisabled();
 		});
 
 		it('keeps play disabled for the file source until a file is loaded', async () => {
 			render(EqAudioPlayer);
 			await sourceSelect().selectOptions('file');
 
-			await expect.element(page.getByRole('button', { name: 'Play Audio' })).toBeDisabled();
+			await expect.element(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
 			// Stop only needs a source, so it comes back straight away.
-			await expect.element(page.getByRole('button', { name: 'Stop Audio' })).toBeEnabled();
+			await expect.element(page.getByRole('button', { name: 'Stop', exact: true })).toBeEnabled();
 		});
 
 		it('starts playback through the service', async () => {
@@ -309,7 +309,7 @@ describe('EqAudioPlayer', () => {
 			render(EqAudioPlayer);
 			await sourceSelect().selectOptions('white');
 
-			await page.getByRole('button', { name: 'Play Audio' }).click();
+			await page.getByRole('button', { name: 'Play', exact: true }).click();
 			expect(toggle).toHaveBeenCalledTimes(1);
 		});
 
@@ -318,7 +318,7 @@ describe('EqAudioPlayer', () => {
 			render(EqAudioPlayer);
 			await sourceSelect().selectOptions('white');
 
-			await page.getByRole('button', { name: 'Stop Audio' }).click();
+			await page.getByRole('button', { name: 'Stop', exact: true }).click();
 			expect(stop).toHaveBeenCalledTimes(1);
 		});
 
@@ -333,7 +333,9 @@ describe('EqAudioPlayer', () => {
 			await volumeSlider().fill('0');
 			expect(audioPlayerService.volume).toBe(0);
 			// lucide renders the icon name onto the svg's class list.
-			await expect.element(page.getByRole('button', { name: 'Stop Audio' })).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('button', { name: 'Stop', exact: true }))
+				.toBeInTheDocument();
 			expect(document.querySelector('.lucide-volume-x, .lucide-volume-off')).not.toBeNull();
 		});
 	});

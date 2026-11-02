@@ -2,9 +2,9 @@
 
 ## Reach for the Atoms First
 
-`atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`, `SelectMenu`, `ScrollArea`, `Skeleton`. Use
-them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
+`atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Tooltip`,
+`Accordion` / `AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`,
+`SelectMenu`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
 
@@ -31,6 +31,10 @@ four.
 - **`title` is required and mirrors into `aria-label`**, which overrides the button's text content as
   the accessible name. Keep the two saying the same thing, and note that anything rendered inside — a
   count, a badge — is then _not_ part of the accessible name.
+- **`title` is the tooltip, not a native `title` attribute** (see Tooltips below), so it must be a
+  Paraglide message and a short label — a few words. A sentence goes in **`hint`**: the tooltip's
+  second line and the accessible description. Put _why a button is disabled_ in `hint` and keep
+  `title` constant, so the accessible name doesn't change with state.
 - Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
   `aria-controls` and `disabled` work as written.
 
@@ -68,6 +72,28 @@ four.
 - `size="sm"` for a row of `icon-sm` buttons, the `xs` default beside a text label. Spacing against
   the layout (`ml-0.5`) goes in `class`; the body wrapper supplies the text size and paragraph gap.
 
+### Tooltips
+
+`Button` and `Switch` show their `title` through our own tooltip, not the browser's: it translates,
+opens on keyboard focus, closes on Escape, follows the theme, and opens after 300 ms rather than
+the browser's second or so.
+
+- **One root for the whole app.** `TooltipHost` (mounted once in `AppShell`) owns the only
+  `Tooltip.Root`; every trigger reaches it through `tooltipTether` in `atoms/tooltip-tether.ts`. A
+  root per button would mean a floating layer per button, and there are over a hundred.
+- **Wrap anything else with the `Tooltip` atom** and spread `mergeTooltipProps(ownProps, props)`
+  onto the element. It drops the trigger's `disabled` on purpose: bits-ui won't open a disabled
+  trigger, and most long titles explain why their button is disabled. A disabled `<button>` still
+  gets pointer events in Chromium (covered by `Tooltip.svelte.spec.ts`); Firefox and Safari aren't
+  covered.
+- **A text button whose label reads the same as its title shows none** (Share, Screenshot, a
+  target's name). `Button` compares its text content with `title` when the tooltip is about to
+  open, not on mount, since some labels change with state. A `hint` overrides that. So a text
+  button can pass its own label as `title` without a redundant tooltip appearing.
+- **Touch never opens one.** Nothing may live only in a tooltip — `InfoPopover` is for that.
+- Raw elements with a native `title` (truncated names, the `SiteSelector` rows) keep it. Native is
+  right for "show the whole text", and those strings already go through Paraglide.
+
 `AccordionItem` takes `revealOnOpen`: opening the section scrolls its nearest scroller just far
 enough to show it, never past its header (`revealInScrollParent` in `utils/scroll-anchor.ts`).
 It keeps following the section as it grows for 1.5 s (`followReveal`), until the user scrolls or
@@ -95,8 +121,8 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu, ScrollArea,
-  Skeleton, Switch
+- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu,
+  ScrollArea, Skeleton, Switch, Tooltip / TooltipHost
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect
@@ -161,6 +187,10 @@ Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy
 - **`Button` mirrors `title` into `aria-label`**, which overrides its text content. A button whose
   title changes with state changes accessible name too, so `getByRole('button', { name })` has to
   follow the title, not the label you see.
+- **`Button` and `Switch` carry no `title` attribute**, so `getByTitle` won't find them — query by
+  role and name. A `hint` renders as a hidden span _inside_ the button, so it is in the button's text
+  content: `getByText('Label', { exact: true })` stops matching. Assert the hint with
+  `toHaveAccessibleDescription`. To see a tooltip, render `TooltipHost` beside the component.
 - **Do not wait on something the handler does first.** `GraphUploader` clears `input.value` on its
   opening line, long before it has parsed anything, so waiting on that let in-flight uploads spill
   their calls into the next test. Poll the observable effect — spy calls, a toast — until it stops

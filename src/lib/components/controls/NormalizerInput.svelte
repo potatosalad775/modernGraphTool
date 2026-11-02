@@ -23,7 +23,7 @@
 	<!-- Segmented Hz/Avg toggle -->
 	<div class="flex h-full items-center gap-0.5 p-0.5">
 		<Button
-			title="Normalize at average"
+			title={m.normalizer_input_avg_title()}
 			variant={graphStore.normType === 'Avg' ? 'primary' : 'ghost'}
 			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Avg')}
@@ -31,7 +31,7 @@
 			{m.normalizer_input_avg_btn()}
 		</Button>
 		<Button
-			title="Normalize at specific frequency"
+			title={m.normalizer_input_hz_title()}
 			variant={graphStore.normType === 'Hz' ? 'primary' : 'ghost'}
 			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Hz')}

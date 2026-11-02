@@ -128,7 +128,8 @@
 	{#snippet trigger({ props })}
 		<Button
 			{...props}
-			title={m.eq_constraint_select_title()}
+			title={m.eq_constraint_button()}
+			hint={m.eq_constraint_button_hint()}
 			variant="outline"
 			size="icon"
 			class="size-6 p-px {eqConstraintsStore.isLimiting ? 'border-accent text-accent' : ''}"

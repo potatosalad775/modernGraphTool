@@ -295,9 +295,8 @@
 			<div class="flex gap-1">
 				{#if caps?.canRead}
 					<Button
-						title={readTarget
-							? m.equalizer_device_peq_read_title()
-							: m.equalizer_device_peq_unreachable()}
+						title={m.equalizer_device_peq_read_title()}
+						hint={readTarget ? undefined : m.equalizer_device_peq_unreachable()}
 						variant="outline"
 						size="sm"
 						class="flex-1"
@@ -311,9 +310,8 @@
 				{/if}
 				{#if caps?.canWrite}
 					<Button
-						title={writeTarget
-							? m.equalizer_device_peq_write_title()
-							: m.equalizer_device_peq_unreachable()}
+						title={m.equalizer_device_peq_write_title()}
+						hint={writeTarget ? undefined : m.equalizer_device_peq_unreachable()}
 						variant="primary"
 						size="sm"
 						class="flex-1"

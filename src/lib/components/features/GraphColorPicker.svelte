@@ -133,7 +133,7 @@
 				{...props}
 				class="h-5 w-5 shrink-0 cursor-pointer rounded-sm border-0 transition-opacity hover:opacity-80"
 				style="background-color: {hexColor};"
-				aria-label="Pick color"
+				aria-label={m.graph_color_picker_pick()}
 			></button>
 		{/snippet}
 	</Popover.Trigger>

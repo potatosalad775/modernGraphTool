@@ -341,7 +341,7 @@ INTERFACE: {
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
-    COLLAPSE_TARGET_LIST_ON_INITIAL: true,
+    COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true },
   },
   HIDE_DEV_DONATE_BUTTON: false,
 },
@@ -381,10 +381,27 @@ Sets whether the [Frequency Tutorial](../features/frequency-tutorial.mdx) strip 
 
 #### `TARGET`
 
-Specifies settings related to the Target selector. ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
-Sets whether to display the Target list in multiple lines per type. - Choose `true` or `false`. ##### `OMIT_TARGET_SUFFIX`
-Sets whether to omit the 'Target' suffix for each target item. - Choose `true` or `false`. ##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
-Sets whether the target list is collapsed on initial page load. - Choose `true` or `false`.
+Specifies settings related to the Target selector.
+
+##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+
+Sets whether to display the Target list in multiple lines per type. This also wraps the list in a collapsible section.
+
+- Choose `true` or `false`.
+
+##### `OMIT_TARGET_SUFFIX`
+
+Sets whether to omit the 'Target' suffix for each target item.
+
+- Choose `true` or `false`.
+
+##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
+
+Sets whether the target list starts collapsed. Only applies when `ALLOW_MULTIPLE_LINE_PER_TYPE` is `true`, since that is what makes the list collapsible.
+
+- Choose `true` or `false` to use the same setting on every device, or `{ DESKTOP: …, MOBILE: … }` to set the desktop and mobile layouts separately (the mobile layout is used below 1000px wide). A layout left out of the object starts expanded.
+- When the key is omitted, the list starts expanded.
+- The setting is read once when the page opens. Once a visitor expands or collapses the list themselves, their choice is kept for the rest of the visit.
 
 #### `HIDE_DEV_DONATE_BUTTON`
 

@@ -335,7 +335,7 @@ INTERFACE: {
   TARGET: {
     ALLOW_MULTIPLE_LINE_PER_TYPE: true,
     OMIT_TARGET_SUFFIX: true,
-    COLLAPSE_TARGET_LIST_ON_INITIAL: true,
+    COLLAPSE_TARGET_LIST_ON_INITIAL: { DESKTOP: false, MOBILE: true },
   },
   HIDE_DEV_DONATE_BUTTON: false,
 },
@@ -375,10 +375,27 @@ Phone(측정 데이터) 선택기에서 이미 추가된 항목을 다시 선택
 
 #### `TARGET`
 
-Target 선택기 관련 설정을 지정합니다. ##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
-타입별로 Target 목록을 여러 줄로 표시할지 여부를 설정합니다. - `true`, `false` 중 선택. ##### `OMIT_TARGET_SUFFIX`
-각 타겟 항목마다 'Target' 접미어를 생략할지 여부를 설정합니다. - `true`, `false` 중 선택. ##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
-초기 페이지 로드 시 타겟 목록을 접어서 표시할지 여부를 설정합니다. - `true`, `false` 중 선택.
+Target 선택기 관련 설정을 지정합니다.
+
+##### `ALLOW_MULTIPLE_LINE_PER_TYPE`
+
+타입별로 Target 목록을 여러 줄로 표시할지 여부를 설정합니다. 이 경우 목록을 접을 수 있는 섹션으로 감쌉니다.
+
+- `true`, `false` 중 선택.
+
+##### `OMIT_TARGET_SUFFIX`
+
+각 타겟 항목마다 'Target' 접미어를 생략할지 여부를 설정합니다.
+
+- `true`, `false` 중 선택.
+
+##### `COLLAPSE_TARGET_LIST_ON_INITIAL`
+
+타겟 목록을 접힌 상태로 시작할지 여부를 설정합니다. 목록을 접을 수 있게 만드는 `ALLOW_MULTIPLE_LINE_PER_TYPE`가 `true`일 때만 적용됩니다.
+
+- 모든 기기에 같은 설정을 쓰려면 `true`, `false` 중 선택하고, 데스크톱과 모바일 레이아웃을 따로 지정하려면 `{ DESKTOP: …, MOBILE: … }`를 사용합니다 (모바일 레이아웃은 너비 1000px 미만에서 사용됩니다). 객체에서 빠진 레이아웃은 펼친 상태로 시작합니다.
+- 키를 생략하면 목록은 펼친 상태로 시작합니다.
+- 이 설정은 페이지를 열 때 한 번만 읽습니다. 방문자가 직접 목록을 펼치거나 접으면, 그 선택이 방문 동안 유지됩니다.
 
 #### `HIDE_DEV_DONATE_BUTTON`
 

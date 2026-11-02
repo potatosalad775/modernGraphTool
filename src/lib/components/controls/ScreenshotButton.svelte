@@ -137,18 +137,17 @@
 		};
 		img.onerror = () => {
 			URL.revokeObjectURL(svgUrl);
-			toast.error('Screenshot failed');
+			toast.error(m.screenshot_button_failed());
 		};
 		img.src = svgUrl;
 	}
 </script>
 
 <Button
-	title={m.screenshot_button_label()}
+	label={m.screenshot_button_label()}
 	onclick={downloadScreenshot}
 	variant="muted"
 	size="toolbar"
 >
-	<Camera class="h-4 w-4" aria-hidden="true" />
-	{m.screenshot_button_label()}
+	{#snippet icon()}<Camera class="h-4 w-4" aria-hidden="true" />{/snippet}
 </Button>

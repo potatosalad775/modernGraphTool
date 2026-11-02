@@ -271,11 +271,12 @@
 		<!-- Type badge — disabled where the slot takes a single type -->
 		{#if !graphicRow}
 			<Button
-				title={typeLocked
+				label={typeShortLabels[filter.type]}
+				hint={typeLocked
 					? m.eq_constraint_locked({ label: constraintLabel })
 					: violation.type
 						? m.eq_constraint_type_violation({ label: constraintLabel })
-						: 'Change filter type'}
+						: m.equalizer_filter_card_change_type()}
 				onclick={(e: MouseEvent) => {
 					e.stopPropagation();
 					const allowed = appTypesOf(slot.types);
@@ -288,9 +289,7 @@
 				size="xs"
 				class={violation.type ? 'ring-1 ring-error' : ''}
 				disabled={typeLocked}
-			>
-				{typeShortLabels[filter.type]}
-			</Button>
+			/>
 		{/if}
 
 		<!-- Freq — read-only chip where the slot locks it (graphic EQs) -->
@@ -403,7 +402,7 @@
 		<div class="-ml-0.75 flex items-center">
 			{#if expandable}
 				<Button
-					title="Expand filter {index + 1} options"
+					title={m.equalizer_filter_card_expand({ index: index + 1 })}
 					onclick={onToggle}
 					variant="ghost"
 					size="icon"
@@ -420,7 +419,7 @@
 			<!-- Delete button — hidden in graphic mode (band slots are part of the preset template) -->
 			{#if !isGraphic}
 				<Button
-					title="Remove filter {index + 1}"
+					title={m.equalizer_filter_card_remove({ index: index + 1 })}
 					onclick={(e: MouseEvent) => {
 						e.stopPropagation();
 						onRemove();

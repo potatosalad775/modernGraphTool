@@ -42,21 +42,17 @@
 			</label>
 			<div class="flex justify-end gap-2">
 				<Button
-					title={m.volume_warning_later()}
+					label={m.volume_warning_later()}
 					variant="ghost"
 					size="sm"
 					onclick={() => onAnswer(false, false)}
-				>
-					{m.volume_warning_later()}
-				</Button>
+				/>
 				<Button
-					title={m.volume_warning_continue()}
+					label={m.volume_warning_continue()}
 					variant="primary"
 					size="sm"
 					onclick={() => onAnswer(true, quiet)}
-				>
-					{m.volume_warning_continue()}
-				</Button>
+				/>
 			</div>
 		</Dialog.Content>
 	</Dialog.Portal>

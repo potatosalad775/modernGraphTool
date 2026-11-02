@@ -37,7 +37,12 @@
 		data-tutorial-target="eq_source"
 	>
 		<!-- EQ Enable toggle -->
-		<Switch aria-label={m.menu_item_equalizer_label()} size="md" bind:checked={eqStore.isEnabled} />
+		<Switch
+			aria-label={m.menu_item_equalizer_label()}
+			title={m.equalizer_toggle_title()}
+			size="md"
+			bind:checked={eqStore.isEnabled}
+		/>
 		{#if eqStore.momentaryOverride}
 			<span class="rounded bg-warning/20 px-1.5 py-0.5 text-xs font-medium text-warning">
 				{eqStore.momentaryOverride === 'bypass' ? m.eq_bypassed_label() : m.eq_auditioned_label()}

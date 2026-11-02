@@ -84,14 +84,12 @@
 		<div class="flex justify-center gap-1.5 px-3 py-2">
 			{#each FREQ_RANGES as { key } (key)}
 				<Button
-					title={getRangeName(key)}
+					label={getRangeName(key)}
 					onclick={() => toggleRange(key)}
 					variant={activeKey === key ? 'primary' : 'outline'}
 					size="sm"
 					class="line-clamp-1 whitespace-nowrap"
-				>
-					{getRangeName(key)}
-				</Button>
+				/>
 			{/each}
 		</div>
 	</ScrollArea>

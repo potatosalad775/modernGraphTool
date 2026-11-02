@@ -133,7 +133,7 @@
 				{...props}
 				class="h-5 w-5 shrink-0 cursor-pointer rounded-sm border-0 transition-opacity hover:opacity-80"
 				style="background-color: {hexColor};"
-				aria-label="Pick color"
+				aria-label={m.graph_color_picker_pick()}
 			></button>
 		{/snippet}
 	</Popover.Trigger>
@@ -237,20 +237,17 @@
 			<!-- Action buttons -->
 			<div class="flex items-center justify-between gap-2">
 				<Button
-					title={m.graph_color_picker_btn_random()}
+					label={m.graph_color_picker_btn_random()}
 					onclick={onRandom}
 					variant="muted"
 					size="sm"
 				>
-					{m.graph_color_picker_btn_random()}
 					<Shuffle class="ml-1 h-3 w-3" aria-hidden="true" />
 				</Button>
 
 				<Popover.Close>
 					{#snippet child({ props })}
-						<Button {...props} title={m.graph_color_picker_btn_close()} variant="muted" size="sm">
-							{m.graph_color_picker_btn_close()}
-						</Button>
+						<Button {...props} label={m.graph_color_picker_btn_close()} variant="muted" size="sm" />
 					{/snippet}
 				</Popover.Close>
 			</div>

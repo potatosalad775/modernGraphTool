@@ -1,12 +1,21 @@
 <script lang="ts">
 	import { Button, type WithChildren } from 'bits-ui';
+	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
+	import Tooltip from './Tooltip.svelte';
+	import { mergeTooltipProps } from './tooltip-tether.js';
 
 	// Not `Omit<Button.RootProps, 'class'>` — `RootProps` is a discriminated union over
 	// bits-ui's `child` snippet variants, and omitting across it produces a union
 	// TypeScript refuses to represent.
 	type Props = WithChildren<Button.RootProps> & {
-		title: string;
+		/** Rendered before `label`. */
+		icon?: Snippet;
+		/**
+		 * A sentence the label can't carry — why the button is disabled, what it will do.
+		 * Exposed as the accessible description, and shown as the tooltip.
+		 */
+		hint?: string;
 		variant?:
 			'primary' | 'secondary' | 'accent' | 'muted' | 'destructive' | 'outline' | 'ghost' | 'link';
 		size?: 'xs' | 'sm' | 'md' | 'lg' | 'toolbar' | 'icon' | 'icon-sm' | 'icon-xs';
@@ -16,16 +25,39 @@
 		 * all want the accent treatment rather than the muted default below.
 		 */
 		activeOnOpen?: boolean;
-	};
+	} & (
+			| {
+					/**
+					 * A text button. The visible label is the accessible name, so voice control
+					 * can say what it reads (WCAG 2.5.3), and there is no tooltip unless a `hint`
+					 * adds something the label doesn't.
+					 */
+					label: string;
+					title?: never;
+			  }
+			| {
+					/**
+					 * An icon-only button, or one with custom `children`. The title is the
+					 * accessible name and the tooltip, so keep it to a few words.
+					 */
+					title: string;
+					label?: never;
+			  }
+		);
 
 	let {
 		variant = 'primary',
 		size = 'md',
 		activeOnOpen = false,
+		label,
 		title,
+		icon,
+		hint,
 		children,
 		...restProps
 	}: Props = $props();
+
+	const hintId = $props.id();
 
 	const variantClasses = {
 		primary: 'bg-primary text-primary-content hover:bg-primary/90',
@@ -77,6 +109,23 @@
 	);
 </script>
 
-<Button.Root {...restProps} class={className} {title} aria-label={restProps['aria-label'] || title}>
-	{@render children?.()}
-</Button.Root>
+<!--
+	No native `title`: the tooltip replaces it, and both would show at once. A hidden
+	element still counts for `aria-describedby`, so the hint reaches screen readers
+	without waiting for the tooltip to open.
+-->
+<Tooltip text={label === undefined ? title : hint} hint={label === undefined ? hint : undefined}>
+	{#snippet trigger({ props })}
+		<Button.Root
+			{...mergeTooltipProps(restProps, props)}
+			class={className}
+			aria-label={restProps['aria-label'] || title}
+			aria-describedby={hint ? hintId : restProps['aria-describedby']}
+		>
+			{@render icon?.()}
+			{label}
+			{@render children?.()}
+			{#if hint}<span id={hintId} hidden>{hint}</span>{/if}
+		</Button.Root>
+	{/snippet}
+</Tooltip>

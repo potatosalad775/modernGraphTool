@@ -2,9 +2,9 @@
 
 ## Reach for the Atoms First
 
-`atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Accordion` /
-`AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`, `SelectMenu`, `ScrollArea`, `Skeleton`. Use
-them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
+`atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Tooltip`,
+`Accordion` / `AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`,
+`SelectMenu`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
 
@@ -28,9 +28,17 @@ four.
   caller's class to the end of the string never did anything on its own, and the winner was whichever
   utility Tailwind happened to emit later in the stylesheet. `twMerge` drops the losing class
   outright, so `class="px-3"` beats the size's `px-4`. Write plain utilities; don't add `!`.
-- **`title` is required and mirrors into `aria-label`**, which overrides the button's text content as
-  the accessible name. Keep the two saying the same thing, and note that anything rendered inside — a
-  count, a badge — is then _not_ part of the accessible name.
+- **Two modes, and the types enforce one or the other:**
+  - **`label` for a text button** (optional `icon` snippet before it, `children` after it — a
+    divider and value, a trailing chevron). The visible label is the accessible name, so voice
+    control can say what the button reads (WCAG 2.5.3). It shows no tooltip unless it has a `hint`.
+  - **`title` for an icon-only button**, or one whose `children` don't fit the label shape (the A/B
+    letters in `EqHistoryAndCompare`). `title` becomes `aria-label` and the tooltip, so keep it to a
+    few words.
+- **A sentence goes in `hint`**: the accessible description, and the tooltip (as a second line
+  under a `title`). Put _why a button is disabled_ there and keep the name constant, so the name
+  doesn't change with state. A label that changes visibly with state (AutoEQ's Run shows `...`)
+  can pin its name with an explicit `aria-label`.
 - Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
   `aria-controls` and `disabled` work as written.
 
@@ -68,6 +76,24 @@ four.
 - `size="sm"` for a row of `icon-sm` buttons, the `xs` default beside a text label. Spacing against
   the layout (`ml-0.5`) goes in `class`; the body wrapper supplies the text size and paragraph gap.
 
+### Tooltips
+
+`Button` and `Switch` show their `title` and `hint` through our own tooltip, not the browser's: it translates,
+opens on keyboard focus, closes on Escape, follows the theme, and opens after 300 ms rather than
+the browser's second or so.
+
+- **One root for the whole app.** `TooltipHost` (mounted once in `AppShell`) owns the only
+  `Tooltip.Root`; every trigger reaches it through `tooltipTether` in `atoms/tooltip-tether.ts`. A
+  root per button would mean a floating layer per button, and there are over a hundred.
+- **Wrap anything else with the `Tooltip` atom** and spread `mergeTooltipProps(ownProps, props)`
+  onto the element. It drops the trigger's `disabled` on purpose: bits-ui won't open a disabled
+  trigger, and most long titles explain why their button is disabled. A disabled `<button>` still
+  gets pointer events in Chromium (covered by `Tooltip.svelte.spec.ts`); Firefox and Safari aren't
+  covered.
+- **Touch never opens one.** Nothing may live only in a tooltip — `InfoPopover` is for that.
+- Raw elements with a native `title` (truncated names, the `SiteSelector` rows) keep it. Native is
+  right for "show the whole text", and those strings already go through Paraglide.
+
 `AccordionItem` takes `revealOnOpen`: opening the section scrolls its nearest scroller just far
 enough to show it, never past its header (`revealInScrollParent` in `utils/scroll-anchor.ts`).
 It keeps following the section as it grows for 1.5 s (`followReveal`), until the user scrolls or
@@ -95,8 +121,8 @@ uses the atom, and touching a raw one is a good moment to convert it.
 
 ## Directory map
 
-- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu, ScrollArea,
-  Skeleton, Switch
+- `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu,
+  ScrollArea, Skeleton, Switch, Tooltip / TooltipHost
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect
@@ -158,9 +184,14 @@ Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy
   to test a component reacting to a changed prop, since a `.svelte.spec.ts` file is not a rune module
   (the Svelte plugin matches `*.svelte.ts`, which `*.svelte.spec.ts` is not). See the Escape-reverts
   case in `equalizer/EqFilterCard.svelte.spec.ts`.
-- **`Button` mirrors `title` into `aria-label`**, which overrides its text content. A button whose
-  title changes with state changes accessible name too, so `getByRole('button', { name })` has to
-  follow the title, not the label you see.
+- **Query a `Button` by what it shows when it has a `label`, by its `title` when it has one.** A
+  `title` overrides the text content, so a title that changes with state changes the name too. A
+  short label is a substring of other names (`PK`, `Stop`), so pass `{ exact: true }`.
+- **`Button` and `Switch` carry no `title` attribute**, so `getByTitle` won't find them — query by
+  role and name. A `hint` renders as a hidden span _inside_ the button, so it is in the button's
+  `textContent`: `getByText('Label', { exact: true })` stops matching. Read visible text with
+  `innerText`, and assert the hint with `toHaveAccessibleDescription`. To see a tooltip, render
+  `TooltipHost` beside the component.
 - **Do not wait on something the handler does first.** `GraphUploader` clears `input.value` on its
   opening line, long before it has parsed anything, so waiting on that let in-flight uploads spill
   their calls into the next test. Poll the observable effect — spy calls, a toast — until it stops

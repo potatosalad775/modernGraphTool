@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Switch, Label, useId, type WithoutChildrenOrChild } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import Tooltip from './Tooltip.svelte';
+	import { mergeTooltipProps } from './tooltip-tether.js';
 
 	let {
 		id = useId(),
@@ -11,6 +13,7 @@
 		children,
 		size = 'md',
 		variant = 'accent',
+		title,
 		...restProps
 	}: WithoutChildrenOrChild<Switch.RootProps> & {
 		labelText?: string | undefined;
@@ -18,7 +21,17 @@
 		children?: Snippet;
 		size?: 'sm' | 'md' | 'lg';
 		variant?: 'accent' | 'muted';
+		/**
+		 * Tooltip, and the accessible description when `labelText`, `aria-label` or
+		 * `aria-labelledby` already names the switch. With none, it becomes the name instead.
+		 */
+		title?: string;
 	} = $props();
+
+	const descriptionId = $props.id();
+	const describes = $derived(
+		!!title && !!(labelText || restProps['aria-label'] || restProps['aria-labelledby'])
+	);
 
 	const sizeClasses = {
 		sm: 'h-5 w-9',
@@ -46,21 +59,28 @@
 </script>
 
 <div class="flex items-center">
-	<Switch.Root
-		bind:checked
-		bind:ref
-		{id}
-		class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:shadow-inner {sizeClasses[
-			size
-		]} {variantRootClasses[variant]} {restProps.class}"
-		{...restProps}
-	>
-		<Switch.Thumb
-			class="pointer-events-none block shrink-0 rounded-full shadow-sm transition-transform data-[state=unchecked]:translate-x-0 {thumbSizeClasses[
-				size
-			]} {variantThumbClasses[variant]}"
-		/>
-	</Switch.Root>
+	<Tooltip text={title}>
+		{#snippet trigger({ props })}
+			<Switch.Root
+				bind:checked
+				bind:ref
+				{id}
+				class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:shadow-inner {sizeClasses[
+					size
+				]} {variantRootClasses[variant]} {restProps.class}"
+				{...mergeTooltipProps(restProps, props)}
+				aria-label={labelText ? restProps['aria-label'] : (restProps['aria-label'] ?? title)}
+				aria-describedby={describes ? descriptionId : restProps['aria-describedby']}
+			>
+				<Switch.Thumb
+					class="pointer-events-none block shrink-0 rounded-full shadow-sm transition-transform data-[state=unchecked]:translate-x-0 {thumbSizeClasses[
+						size
+					]} {variantThumbClasses[variant]}"
+				/>
+			</Switch.Root>
+		{/snippet}
+	</Tooltip>
+	{#if describes}<span id={descriptionId} hidden>{title}</span>{/if}
 	{#if labelText}
 		<Label.Root
 			for={id}

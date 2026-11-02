@@ -39,8 +39,8 @@ function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
 }
 
-const addButton = () => page.getByRole('button', { name: 'Add EQ Band' });
-const removeButton = () => page.getByRole('button', { name: 'Remove EQ Band' });
+const addButton = () => page.getByRole('button', { name: 'Add band' });
+const removeButton = () => page.getByRole('button', { name: 'Remove band' });
 
 describe('EqFilterList', () => {
 	// The preamp is derived by the page-lifetime sync AppShell installs, not by
@@ -173,8 +173,7 @@ describe('EqFilterList', () => {
 	// ── Channel scoping ──────────────────────────────────────────────────────
 
 	describe('the Graphic EQ export', () => {
-		const exportButton = () =>
-			page.getByRole('button', { name: 'Export filters as Graphic EQ File' });
+		const exportButton = () => page.getByRole('button', { name: 'Export as Graphic EQ (Wavelet)' });
 
 		/** The `<freq> <gain>` pairs of the one file written. */
 		function exportedCurve(): [number, number][] {

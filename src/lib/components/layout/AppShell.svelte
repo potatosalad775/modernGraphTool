@@ -35,6 +35,7 @@
 	import EqChannelConflictDialog from '#lib/components/equalizer/EqChannelConflictDialog.svelte';
 	import { eqChannelConflict } from '#lib/services/eq-channel-conflict.svelte.js';
 	import { Toaster, toast } from 'svelte-sonner';
+	import TooltipHost from '#lib/components/atoms/TooltipHost.svelte';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
 	import { checkVersionUpdate } from '#lib/utils/version-update.js';
@@ -239,7 +240,7 @@
 	{#if appStore.isMobile}
 		<main class="flex flex-1 flex-col overflow-hidden bg-base-100 text-base-content">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
-			<section aria-label="Frequency response graph" class="flex flex-col overflow-hidden">
+			<section aria-label={m.app_shell_graph_label()} class="flex flex-col overflow-hidden">
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
@@ -251,7 +252,7 @@
 			</section>
 			<!-- Panel area fills remaining space -->
 			<section
-				aria-label="Controls"
+				aria-label={m.app_shell_controls_label()}
 				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15"
 			>
 				<div class="relative min-h-0 flex-1 overflow-hidden">
@@ -280,7 +281,7 @@
 	{:else}
 		{#snippet graphSection()}
 			<section
-				aria-label="Frequency response graph"
+				aria-label={m.app_shell_graph_label()}
 				class="flex flex-col overflow-hidden bg-base-100"
 			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
@@ -296,7 +297,10 @@
 			</section>
 		{/snippet}
 		{#snippet controlsSection()}
-			<section aria-label="Controls" class="flex min-w-85 flex-col overflow-hidden bg-base-100">
+			<section
+				aria-label={m.app_shell_controls_label()}
+				class="flex min-w-85 flex-col overflow-hidden bg-base-100"
+			>
 				<MenuCarousel />
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
@@ -338,6 +342,7 @@
 </div>
 
 <Toaster position="top-center" richColors closeButton theme={settingsStore.theme} />
+<TooltipHost />
 
 <SponsorBanner />
 <TutorialModal />

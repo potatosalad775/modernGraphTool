@@ -9,10 +9,10 @@ import SmoothingButton from './SmoothingButton.svelte';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 
-// `Button` mirrors `title` into `aria-label`, and the title names the variable smoothings
-// in full, so match the word every title shares.
+// Named by what it reads — "Smoothing" plus the current value — so match the fixed word.
 const button = () => page.getByRole('button', { name: /smoothing/i });
-const label = () => button().element().textContent;
+// innerText, not textContent: the hint sits in the button as a hidden span.
+const label = () => (button().element() as HTMLElement).innerText;
 
 describe('SmoothingButton', () => {
 	afterEach(() => {
@@ -34,15 +34,15 @@ describe('SmoothingButton', () => {
 		expect(reSmooth).toHaveBeenCalledTimes(7);
 	});
 
-	it('shows REW labels without "oct" and names them in the title', async () => {
+	it('shows REW labels without "oct" and names them in the description', async () => {
 		vi.spyOn(dataProvider, 'reSmoothAll').mockResolvedValue(undefined);
 		render(SmoothingButton);
 		for (let i = 0; i < 5; i++) await button().click();
 
 		await expect.poll(label).toMatch(/Var\s*$/);
-		await expect.element(button()).toHaveAttribute('title', 'Variable smoothing');
+		await expect.element(button()).toHaveAccessibleDescription('Variable smoothing');
 		await button().click();
 		await expect.poll(label).toMatch(/Psy\s*$/);
-		await expect.element(button()).toHaveAttribute('title', 'Psychoacoustic smoothing');
+		await expect.element(button()).toHaveAccessibleDescription('Psychoacoustic smoothing');
 	});
 });

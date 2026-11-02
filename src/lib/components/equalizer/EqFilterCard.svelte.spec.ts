@@ -116,14 +116,14 @@ describe('EqFilterCard', () => {
 			mount(pk({ type: 'LSQ' }));
 
 			await expect
-				.element(page.getByRole('button', { name: 'Change filter type' }))
-				.toHaveTextContent('LS');
+				.element(page.getByRole('button', { name: 'LS', exact: true }))
+				.toHaveAccessibleDescription('Change filter type');
 		});
 
 		it('cycles the type on badge click', async () => {
 			mount(pk({ type: 'PK' }));
 
-			await page.getByRole('button', { name: 'Change filter type' }).click();
+			await page.getByRole('button', { name: 'PK', exact: true }).click();
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ type: 'LSQ' });
 		});
@@ -131,7 +131,7 @@ describe('EqFilterCard', () => {
 		it('wraps the type cycle back to PK', async () => {
 			mount(pk({ type: 'HSQ' }));
 
-			await page.getByRole('button', { name: 'Change filter type' }).click();
+			await page.getByRole('button', { name: 'HS', exact: true }).click();
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ type: 'PK' });
 		});
@@ -349,7 +349,9 @@ describe('EqFilterCard', () => {
 			mount(pk(), { expanded: true });
 
 			expect(page.getByRole('button', { name: 'High Shelf' }).elements()).toHaveLength(0);
-			await expect.element(page.getByRole('button', { name: 'Fixed by pk-only' })).toBeDisabled();
+			const badge = page.getByRole('button', { name: 'PK', exact: true });
+			await expect.element(badge).toBeDisabled();
+			await expect.element(badge).toHaveAccessibleDescription('Fixed by pk-only');
 		});
 
 		it('greys a row past the preset maxBands cap', async () => {

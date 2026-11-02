@@ -231,7 +231,7 @@
 				}
 			} else {
 				toast.error(m.equalizer_filter_list_import(), {
-					description: 'No valid filters found in file'
+					description: m.equalizer_filter_list_import_none()
 				});
 			}
 			(e.target as HTMLInputElement).value = '';
@@ -314,11 +314,12 @@
 		</span>
 		<div class="flex gap-1">
 			<Button
-				title={isGraphic
-					? 'Bands are fixed by the graphic preset'
+				title={m.equalizer_filter_list_add_band()}
+				hint={isGraphic
+					? m.equalizer_filter_list_graphic_fixed()
 					: atMaxBands
-						? 'Active constraint preset has reached its maxBands cap'
-						: 'Add EQ Band'}
+						? m.equalizer_filter_list_band_limit()
+						: undefined}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
@@ -328,7 +329,8 @@
 				<Plus class="size-3" />
 			</Button>
 			<Button
-				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Remove EQ Band'}
+				title={m.equalizer_filter_list_remove_band()}
+				hint={isGraphic ? m.equalizer_filter_list_graphic_fixed() : undefined}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
@@ -338,7 +340,8 @@
 				<Minus class="size-3" />
 			</Button>
 			<Button
-				title={isGraphic ? 'Bands are fixed by the graphic preset' : 'Sort EQ Bands'}
+				title={m.equalizer_filter_list_sort_bands()}
+				hint={isGraphic ? m.equalizer_filter_list_graphic_fixed() : undefined}
 				variant="outline"
 				size="icon"
 				class="size-6 p-px"
@@ -370,14 +373,13 @@
 			</div>
 			{#if eqConstraintsStore.violationCount > 0}
 				<Button
-					title={m.eq_constraint_fit_title({ label: eqConstraintsStore.active.label })}
+					label={m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
+					hint={m.eq_constraint_fit_title({ label: eqConstraintsStore.active.label })}
 					variant="outline"
 					size="xs"
 					class="border-error/40 text-error"
 					onclick={fitToConstraint}
-				>
-					{m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
-				</Button>
+				/>
 			{/if}
 			<Button
 				title={m.eq_constraint_clear()}
@@ -429,37 +431,33 @@
 	<!-- Import/Export buttons -->
 	<div class="flex gap-1.5">
 		<Button
-			title={m.equalizer_filter_list_import()}
+			label={m.equalizer_filter_list_import()}
 			onclick={importFilters}
 			variant="outline"
 			size="sm"
 			class="flex-1"
 		>
-			<Download class="mr-1.5 size-3.5" />
-			{m.equalizer_filter_list_import()}
+			{#snippet icon()}<Download class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 		<Button
-			title={m.equalizer_filter_list_export()}
+			label={m.equalizer_filter_list_export()}
 			onclick={exportFilters}
 			variant="outline"
 			size="sm"
 			class="flex-1"
 		>
-			<Upload class="mr-1.5 size-3.5" />
-			{m.equalizer_filter_list_export()}
+			{#snippet icon()}<Upload class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 	</div>
 	<div>
 		<Button
-			title="Export filters as Graphic EQ File"
+			label={m.equalizer_filter_list_export_graphic_eq()}
 			onclick={exportGraphicEQ}
 			disabled={!graphicEqBands.length}
 			variant="muted"
 			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
-		>
-			{m.equalizer_filter_list_export_graphic_eq()}
-		</Button>
+		/>
 	</div>
 
 	<input

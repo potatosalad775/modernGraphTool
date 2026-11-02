@@ -27,12 +27,11 @@
 </script>
 
 <Button
-	title={m.y_axis_scale_button_label()}
+	label={m.y_axis_scale_button_label()}
 	onclick={handleClick}
 	variant="outline"
 	size="toolbar"
 >
-	{m.y_axis_scale_button_label()}
 	<span class="h-5 w-px bg-base-content/20"></span>
 	<b>{options[currentIndex]}dB</b>
 </Button>

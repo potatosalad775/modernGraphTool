@@ -65,11 +65,7 @@
 	<!-- EQ toggle / spectrum toggle / range-mode toggle -->
 	<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 		<Switch
-			title={!eqStore.isEnabled
-				? 'Turn the Equalizer on to apply EQ filters to playback'
-				: audioPlayerService.filtersEnabled
-					? 'Disable EQ filters'
-					: 'Enable EQ filters'}
+			title={eqStore.isEnabled ? undefined : m.equalizer_player_filter_toggle_needs_eq()}
 			labelText={m.equalizer_player_filter_toggle()}
 			labelClass="text-xs"
 			size="sm"
@@ -78,14 +74,14 @@
 			onCheckedChange={(checked) => audioPlayerService.setFiltersEnabled(checked)}
 		/>
 		<Switch
-			title={audioSpectrumStore.isEnabled ? 'Hide audio spectrum' : 'Show audio spectrum'}
+			title={m.equalizer_player_spectrum_toggle_title()}
 			labelText={m.equalizer_player_spectrum_toggle()}
 			labelClass="text-xs"
 			size="sm"
 			bind:checked={audioSpectrumStore.isEnabled}
 		/>
 		<Switch
-			title="Drag a range on the graph to focus playback on a frequency band — noise and files are band-passed, a tone or sweep is clamped into it. Disables EQ-node interaction while active."
+			title={m.equalizer_player_freq_select_title()}
 			labelText={m.equalizer_player_freq_select_toggle()}
 			labelClass="text-xs"
 			size="sm"
@@ -262,14 +258,13 @@
 	<!-- File upload (only when file selected) -->
 	{#if audioPlayerService.audioSource === 'file'}
 		<Button
-			title={m.equalizer_player_file_upload()}
+			label={m.equalizer_player_file_upload()}
 			onclick={() => fileInputEl?.click()}
 			variant="outline"
 			size="sm"
 			class="w-full"
 		>
-			<FileUp class="mr-1.5 size-3.5" />
-			{m.equalizer_player_file_upload()}
+			{#snippet icon()}<FileUp class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 		<input
 			bind:this={fileInputEl}
@@ -299,7 +294,7 @@
 	<!-- Playback controls -->
 	<div class="flex items-center gap-1.5">
 		<Button
-			title="Stop Audio"
+			title={m.equalizer_player_stop()}
 			onclick={() => audioPlayerService.stop()}
 			disabled={!audioPlayerService.audioSource}
 			variant="muted"
@@ -308,7 +303,7 @@
 			<Square class="size-3.5" />
 		</Button>
 		<Button
-			title={audioPlayerService.isPlaying ? 'Pause Audio' : 'Play Audio'}
+			title={audioPlayerService.isPlaying ? m.equalizer_player_pause() : m.equalizer_player_play()}
 			onclick={() => audioPlayerService.togglePlay()}
 			disabled={!audioPlayerService.audioSource ||
 				(audioPlayerService.audioSource === 'file' && !audioPlayerService.fileLoaded)}

@@ -12,7 +12,7 @@
 	};
 	let currentIndex = $state(0);
 	const current = $derived(options[currentIndex]);
-	const title = $derived(titles[current]?.() ?? m.smoothing_button_label());
+	const fullName = $derived(titles[current]?.());
 
 	function handleClick() {
 		currentIndex = (currentIndex + 1) % options.length;
@@ -21,8 +21,13 @@
 	}
 </script>
 
-<Button {title} onclick={handleClick} variant="outline" size="toolbar">
-	{m.smoothing_button_label()}
+<Button
+	label={m.smoothing_button_label()}
+	hint={fullName}
+	onclick={handleClick}
+	variant="outline"
+	size="toolbar"
+>
 	<span class="h-5 w-px bg-base-content/20"></span>
 	<b>{current in titles ? current : `${current}oct`}</b>
 </Button>

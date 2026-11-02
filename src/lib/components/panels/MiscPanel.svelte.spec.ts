@@ -112,7 +112,7 @@ describe('MiscPanel', () => {
 		it('renders nothing when the config has no description', async () => {
 			render(MiscPanel);
 
-			await expect.element(page.getByTitle('GitHub')).toBeInTheDocument();
+			await expect.element(page.getByRole('link', { name: 'GitHub' })).toBeInTheDocument();
 			expect(document.querySelectorAll('img')).toHaveLength(0);
 		});
 
@@ -163,24 +163,26 @@ describe('MiscPanel', () => {
 			render(MiscPanel);
 
 			await expect
-				.element(page.getByTitle('GitHub'))
+				.element(page.getByRole('link', { name: 'GitHub' }))
 				.toHaveAttribute('href', 'https://github.com/potatosalad775/modernGraphTool');
 			await expect
-				.element(page.getByTitle('Documentation'))
+				.element(page.getByRole('link', { name: 'Documentation' }))
 				.toHaveAttribute('href', 'https://potatosalad775.github.io/modernGraphTool/docs');
 		});
 
 		it('shows the donate link by default', async () => {
 			render(MiscPanel);
 
-			await expect.element(page.getByTitle('Support on Ko-fi')).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('link', { name: 'Support on Ko-fi' }))
+				.toBeInTheDocument();
 		});
 
 		it('hides the donate link when the operator opts out', async () => {
 			setConfig({ INTERFACE: { HIDE_DEV_DONATE_BUTTON: true } });
 			render(MiscPanel);
 
-			expect(page.getByTitle('Support on Ko-fi').elements()).toHaveLength(0);
+			expect(page.getByRole('link', { name: 'Support on Ko-fi' }).elements()).toHaveLength(0);
 		});
 	});
 });

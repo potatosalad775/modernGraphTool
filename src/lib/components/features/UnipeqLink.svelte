@@ -152,25 +152,21 @@
 		<div class="flex justify-end gap-1">
 			{#if openUrl}
 				<Button
-					title={m.link_open_unipeq()}
+					label={m.link_open_unipeq()}
 					variant="primary"
 					size="sm"
 					class="flex-1"
 					href={openUrl}
 					target={openTarget}
 					rel={openTarget && 'noopener'}
-				>
-					{m.link_open_unipeq()}
-				</Button>
+				/>
 			{/if}
 			<Button
-				title={m.link_cancel()}
+				label={m.link_cancel()}
 				variant="destructive"
 				size="sm"
 				onclick={() => linkService.unlink()}
-			>
-				{m.link_cancel()}
-			</Button>
+			/>
 		</div>
 	{:else if phase === 'approval'}
 		<!-- uniPEQ has the channel and is asking its user -->
@@ -178,25 +174,21 @@
 		<div class="flex gap-1">
 			{#if openUrl}
 				<Button
-					title={m.link_open_unipeq()}
+					label={m.link_open_unipeq()}
 					variant="primary"
 					size="sm"
 					class="flex-1"
 					href={openUrl}
 					target={openTarget}
 					rel={openTarget && 'noopener'}
-				>
-					{m.link_open_unipeq()}
-				</Button>
+				/>
 			{/if}
 			<Button
-				title={m.link_cancel()}
+				label={m.link_cancel()}
 				variant="destructive"
 				size="sm"
 				onclick={() => linkService.unlink()}
-			>
-				{m.link_cancel()}
-			</Button>
+			/>
 		</div>
 	{:else if linkStore.linked}
 		<!-- Linked, or stalled: uniPEQ hasn't answered for a while -->
@@ -214,14 +206,12 @@
 				</div>
 			</div>
 			<Button
-				title={m.link_unlink()}
+				label={m.link_unlink()}
 				variant="destructive"
 				size="sm"
 				class="shrink-0"
 				onclick={() => linkService.unlink()}
-			>
-				{m.link_unlink()}
-			</Button>
+			/>
 		</div>
 		<!-- Always rendered: a live region has to exist before its text changes -->
 		{#if notice?.text != undefined}
@@ -252,15 +242,13 @@
 		{/if}
 		<div class="flex items-center gap-1">
 			<Button
-				title={linkStore.ended ? m.link_again() : m.link_start()}
+				label={linkStore.ended ? m.link_again() : m.link_start()}
 				variant="primary"
 				size="sm"
 				class="flex-1"
 				disabled={starting}
 				onclick={start}
-			>
-				{linkStore.ended ? m.link_again() : m.link_start()}
-			</Button>
+			/>
 			<!-- uniPEQ is new: say what it is and why linking is worth it, before anyone links -->
 			<InfoPopover label={m.info_popover_about({ topic: 'uniPEQ' })} size="sm" align="end">
 				<p>{m.link_help_what()}</p>

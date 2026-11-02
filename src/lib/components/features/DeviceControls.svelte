@@ -224,15 +224,13 @@
 					{devicePeqStore.statusMessage ?? m.equalizer_device_peq_reconnect_prompt()}
 				</p>
 				<Button
-					title={m.equalizer_device_peq_reconnect()}
+					label={m.equalizer_device_peq_reconnect()}
 					variant="primary"
 					size="xs"
 					class="shrink-0"
 					disabled={devicePeqStore.isConnecting}
 					onclick={() => devicePeqService.reconnect()}
-				>
-					{m.equalizer_device_peq_reconnect()}
-				</Button>
+				/>
 			</div>
 		{:else}
 			<!-- Device EQ: what the device plays -->
@@ -295,7 +293,10 @@
 			<div class="flex gap-1">
 				{#if caps?.canRead}
 					<Button
-						title={readTarget
+						label={devicePeqStore.isReading
+							? m.equalizer_device_peq_reading()
+							: m.equalizer_device_peq_read()}
+						hint={readTarget
 							? m.equalizer_device_peq_read_title()
 							: m.equalizer_device_peq_unreachable()}
 						variant="outline"
@@ -303,15 +304,14 @@
 						class="flex-1"
 						disabled={devicePeqStore.isBusy || !readTarget}
 						onclick={pullFromDevice}
-					>
-						{devicePeqStore.isReading
-							? m.equalizer_device_peq_reading()
-							: m.equalizer_device_peq_read()}
-					</Button>
+					/>
 				{/if}
 				{#if caps?.canWrite}
 					<Button
-						title={writeTarget
+						label={devicePeqStore.isWriting
+							? m.equalizer_device_peq_writing()
+							: m.equalizer_device_peq_write()}
+						hint={writeTarget
 							? m.equalizer_device_peq_write_title()
 							: m.equalizer_device_peq_unreachable()}
 						variant="primary"
@@ -319,11 +319,7 @@
 						class="flex-1"
 						disabled={devicePeqStore.isBusy || !writeTarget}
 						onclick={pushToDevice}
-					>
-						{devicePeqStore.isWriting
-							? m.equalizer_device_peq_writing()
-							: m.equalizer_device_peq_write()}
-					</Button>
+					/>
 				{/if}
 			</div>
 
@@ -364,15 +360,13 @@
 				</p>
 				{#if status?.action === 'review'}
 					<Button
-						title={m.equalizer_device_peq_auto_review()}
+						label={m.equalizer_device_peq_auto_review()}
 						variant="outline"
 						size="xs"
 						class="shrink-0"
 						disabled={devicePeqStore.isBusy}
 						onclick={pushToDevice}
-					>
-						{m.equalizer_device_peq_auto_review()}
-					</Button>
+					/>
 				{/if}
 			</div>
 		{/if}

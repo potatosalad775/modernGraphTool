@@ -64,15 +64,13 @@
 					{@const isLoaded = loadedIds.has(identifier)}
 					{@const isLoading = loading.has(identifier)}
 					<Button
-						title={getDisplayName(file)}
+						label={getDisplayName(file)}
 						onclick={() => toggleTarget(identifier, isLoaded)}
 						disabled={isLoading}
 						variant={isLoaded ? 'primary' : 'outline'}
 						size="sm"
 						class="whitespace-nowrap"
-					>
-						{getDisplayName(file)}
-					</Button>
+					/>
 				{/each}
 			</div>
 		</div>
@@ -95,15 +93,13 @@
 				{#each preferenceBoundStore.entries as entry (entry.name)}
 					{@const isSelected = preferenceBoundStore.selectedName === entry.name}
 					<Button
-						title={entry.name}
+						label={entry.name}
 						onclick={() => preferenceBoundStore.toggle(entry.name)}
 						aria-pressed={isSelected}
 						variant={isSelected ? 'primary' : 'outline'}
 						size="sm"
 						class="whitespace-nowrap {isSelected ? '' : 'ring-base-content/30'}"
-					>
-						{entry.name}
-					</Button>
+					/>
 				{/each}
 			</div>
 		</div>

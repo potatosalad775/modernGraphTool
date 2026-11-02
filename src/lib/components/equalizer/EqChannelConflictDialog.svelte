@@ -38,21 +38,17 @@
 			{/if}
 			<div class="flex flex-wrap justify-end gap-2">
 				<Button
-					title={keepLabel}
+					label={keepLabel}
 					variant="ghost"
 					size="sm"
 					onclick={() => eqChannelConflict.answer(false)}
-				>
-					{keepLabel}
-				</Button>
+				/>
 				<Button
-					title={m.eq_channel_conflict_remove()}
+					label={m.eq_channel_conflict_remove()}
 					variant="primary"
 					size="sm"
 					onclick={() => eqChannelConflict.answer(true)}
-				>
-					{m.eq_channel_conflict_remove()}
-				</Button>
+				/>
 			</div>
 		</Dialog.Content>
 	</Dialog.Portal>

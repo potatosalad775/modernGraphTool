@@ -204,7 +204,8 @@
 									<span class="flex flex-row items-start gap-0.5">
 										<span
 											class="line-clamp-2 text-xs wrap-break-word text-base-content/60"
-											title={item.dispSuffix || undefined}>{item.dispSuffix || '(default)'}</span
+											title={item.dispSuffix || undefined}
+											>{item.dispSuffix || m.selection_list_variant_default()}</span
 										>
 										<ChevronDown
 											class="mt-0.5 h-3 w-3 shrink-0 text-base-content/65 transition-transform
@@ -246,7 +247,9 @@
 											class="mt-0.5 h-4 w-4 shrink-0 {isSelected ? 'opacity-100' : 'opacity-0'}"
 										/>
 										<span class="flex min-w-0 flex-col">
-											<span class="wrap-break-word">{variant.suffix || '(default)'}</span>
+											<span class="wrap-break-word"
+												>{variant.suffix || m.selection_list_variant_default()}</span
+											>
 											{#if description}
 												<span class="text-xs font-normal wrap-break-word text-base-content/60"
 													>{description}</span
@@ -301,7 +304,6 @@
 					<Button
 						title={getBaselineTooltip(uuid)}
 						onclick={() => handleBaselineClick(uuid)}
-						aria-label={getBaselineTooltip(uuid)}
 						variant="ghost"
 						size="icon"
 					>
@@ -333,13 +335,12 @@
 
 					<!-- Visibility toggle -->
 					<Button
-						title={item.hidden ? 'Show' : 'Hide'}
+						title={item.hidden ? m.selection_list_show() : m.selection_list_hide()}
 						onclick={() => {
 							const willBeHidden = !item.hidden;
 							graphEngine.updateVisibility(uuid, !willBeHidden);
 							dataProvider.updateVisibility(uuid, willBeHidden);
 						}}
-						aria-label={item.hidden ? 'Show' : 'Hide'}
 						variant="ghost"
 						size="icon"
 					>
@@ -357,9 +358,8 @@
 
 					<!-- Delete button -->
 					<Button
-						title="Remove"
+						title={m.selection_list_remove()}
 						onclick={() => dataProvider.removeFRDataWithUUID(item.type, uuid)}
-						aria-label="Remove"
 						variant="ghost"
 						size="icon"
 						class="hover:bg-error/10 hover:text-error"
@@ -380,7 +380,7 @@
 							<select
 								value={currentChannelVal}
 								onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
-								aria-label="Channel"
+								aria-label={m.selection_list_channel_header()}
 								class="h-7 rounded border border-base-content/20 bg-base-200 px-1 text-xs
 									focus:ring-1 focus:ring-accent focus:outline-none"
 							>
@@ -394,11 +394,10 @@
 					<!-- Y-offset controls -->
 					<div class="flex items-center gap-1">
 						<Button
-							title="Decrease Y offset"
+							title={m.selection_list_y_offset_decrease()}
 							onmousedown={() => startYOffset(uuid, 'dec')}
 							onmouseup={stopYOffset}
 							onmouseleave={stopYOffset}
-							aria-label="Decrease Y offset"
 							variant="secondary"
 							size="icon-xs"
 							class="rounded-full"
@@ -412,17 +411,16 @@
 							id="yOffset_{uuid}"
 							value={item.yOffset ?? 0}
 							oninput={(e) => handleYOffsetInput(uuid, e.currentTarget.value)}
-							aria-label="Y offset"
+							aria-label={m.selection_list_y_offset()}
 							class="h-7 w-12 rounded border border-base-content/20 bg-base-200 text-center text-xs
 									focus:ring-1 focus:ring-accent focus:outline-none"
 						/>
 
 						<Button
-							title="Increase Y offset"
+							title={m.selection_list_y_offset_increase()}
 							onmousedown={() => startYOffset(uuid, 'inc')}
 							onmouseup={stopYOffset}
 							onmouseleave={stopYOffset}
-							aria-label="Increase Y offset"
 							variant="secondary"
 							size="icon-xs"
 							class="rounded-full"

@@ -272,7 +272,7 @@
 									? 'w-4 bg-accent'
 									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
 								onclick={() => (tutorialStore.step = i)}
-								aria-label="Go to step {i + 1}"
+								aria-label={m.tutorial_modal_go_to_step({ step: i + 1 })}
 							></button>
 						{/each}
 					</div>
@@ -280,30 +280,29 @@
 					<div class="flex items-center gap-2">
 						{#if !isLast}
 							<Button
-								title={m.tutorial_modal_btn_skip()}
+								label={m.tutorial_modal_btn_skip()}
 								variant="ghost"
 								size="sm"
 								class="text-base-content/50 hover:text-base-content/70"
 								onclick={() => tutorialStore.dismiss()}
-							>
-								{m.tutorial_modal_btn_skip()}
-							</Button>
+							/>
 						{/if}
 
 						{#if !isFirst}
-							<Button title={m.tutorial_modal_btn_prev()} onclick={prev} variant="ghost" size="sm">
-								{m.tutorial_modal_btn_prev()}
-							</Button>
+							<Button
+								label={m.tutorial_modal_btn_prev()}
+								onclick={prev}
+								variant="ghost"
+								size="sm"
+							/>
 						{/if}
 
 						<Button
-							title={isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
+							label={isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
 							onclick={next}
 							variant="primary"
 							size="sm"
-						>
-							{isLast ? m.tutorial_modal_btn_done() : m.tutorial_modal_btn_next()}
-						</Button>
+						/>
 					</div>
 				</div>
 			</div>

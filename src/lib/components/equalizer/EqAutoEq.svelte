@@ -69,8 +69,7 @@
 <div class="flex flex-col gap-2 text-sm">
 	{#if isGraphicMode}
 		<p class="text-xs text-base-content/60">
-			Fitting {graphicBands.length} fixed bands — frequency and Q come from the preset, so only gain is
-			optimized.
+			{m.equalizer_autoeq_graphic_note({ count: graphicBands.length })}
 		</p>
 	{/if}
 
@@ -231,15 +230,14 @@
 			bind:checked={() => autoEqService.autoApply, (on) => autoEqService.setAutoApply(on)}
 		/>
 		<Button
-			title={runLabel}
+			label={autoEqService.isRunning ? '...' : runLabel}
+			aria-label={runLabel}
 			onclick={() => autoEqService.run()}
 			disabled={autoEqService.isRunning || linkStore.readOnly}
 			variant="primary"
 			size="sm"
 			class="flex-1"
-		>
-			{autoEqService.isRunning ? '...' : runLabel}
-		</Button>
+		/>
 	</div>
 
 	<p role="status" class="text-xs text-base-content/70 empty:hidden">{statusText}</p>

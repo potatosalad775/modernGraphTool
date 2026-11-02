@@ -121,6 +121,8 @@ describe('AppShell boot', () => {
 	it('syncs the on-graph EQ curve when `\\` is pressed from another panel', async () => {
 		render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+		// The label can render before the phone lands; see the first case.
+		await expect.poll(() => frStore.size).toBe(2);
 
 		const phoneUUID = [...frStore.entries].find(([, d]) => d.type === 'phone')![0];
 

@@ -117,7 +117,9 @@ html {
 body {
 	color: var(--color-base-content);
 	background-color: var(--color-base-300);
-	height: 100dvh;
+	/* Not 100dvh: Chrome Android can keep a stale dvh (one that still counts the URL bar) on body
+	   after a reload, pushing the mobile menu bar off-screen. html resolves it correctly. */
+	height: 100%;
 	box-sizing: border-box;
 	-webkit-user-select: none;
 	user-select: none;

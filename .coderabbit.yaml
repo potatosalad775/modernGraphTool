@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+reviews:
+  high_level_summary: false
+  sequence_diagrams: false
+
+  # Excluded paths are also left out of CodeRabbit's sparse checkout, so it can't read them for
+  # context either. Keep anything source code depends on reviewable, including defaults/config.js,
+  # defaults/theme.css, defaults/data/phone_book.json and messages/*.json.
+  path_filters:
+    # Sample FR measurements and targets
+    - '!defaults/data/**/*.txt'
+
+    # Generated: scripts/rew-smoothing-fixture.mjs, npm run i18n:missing
+    - '!src/lib/utils/__fixtures__/rew-smoothing.json'
+    - '!messages/_missing_translations_*.json'
+
+    # Frozen v1 docs snapshot and the retired release workflow
+    - '!docs/src/content/docs/1.x/**'
+    - '!docs/src/content/docs/ko/1.x/**'
+    - '!.github/workflows/release.yml.legacy'
+
+    # Lockfiles and binary assets
+    - '!**/package-lock.json'
+    - '!**/*.png'
+    - '!**/*.ico'
+
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      - '**/AGENTS.md'
+      - 'docs/src/content/docs/guide-for-developers/contributing.mdx'

@@ -27,7 +27,7 @@ It sits in the Equalizer panel, together with [Link with uniPEQ](./unipeq-link.m
 
 The browser's device picker only lists devices Hardware EQ knows how to drive. Once you pick one, it is looked up in [eqcaps](https://github.com/potatosalad775/eqcaps), an open database of what each EQ engine accepts — band count, filter types per band, frequency, Q and gain ranges with their step sizes, and the preamp — and how to talk to it.
 
-- **Several devices fit.** Some devices report the same identity (a Bluetooth serial port names no device at all). You're asked which one it is.
+- **Several devices fit.** Some devices report the same identity (a Bluetooth serial port names no device at all). You're asked which one it is. Where only the firmware tells them apart, the device is asked first, so you're only asked if it doesn't say.
 - **Shared profile.** Some devices are only known as a family that shares a chipset's firmware. The panel says your exact model isn't listed; the family's limits still apply.
 - **Not in the database.** A device from a known maker is connected on that maker's usual protocol, with limits taken from what the protocol can carry, and marked experimental. A device nothing can drive gets a **Help add it** link to the [eqcaps inspector](https://potatosalad775.github.io/eqcaps/connect), which turns a connected device into a database entry.
 
@@ -43,7 +43,7 @@ When there is something to know about the device's profile — a shared or guess
 
 **Device EQ** is what the device plays, and it changes the device as soon as you change it:
 
-- **On a device with several presets**, it's a dropdown of those presets plus **Off (EQ bypassed)**. Picking a preset switches the device to it, and **Read** and **Write** use that preset. If the device is on one of its own built-in presets, the dropdown says so; **Write** then saves to its first editable preset and switches to it.
+- **On a device with several presets**, it's a dropdown of those presets plus **Off (EQ bypassed)**. Picking a preset switches the device to it, and **Read** and **Write** use that preset. If the device is on one of its own built-in presets, the dropdown says so; **Write** then saves to its first editable preset and switches to it. Presets the device lists as built-in can be played and read but not written: pick one of your own to write.
 - **On a device that keeps a single set of bands** (most dongles), it's an on/off switch. Off bypasses the EQ inside the device; the bands stay saved on it.
 
 Some devices can only read and write the preset they're playing. While they're on another one, or switched off, **Read** and **Write** are unavailable and the panel says why.
@@ -65,7 +65,9 @@ Turn on **Write changes automatically** and the device follows the band list: ea
 
 Many devices store each write in flash memory, which wears with use. Auto-write sends one write per pause in editing, not one per movement, but it's off by default for that reason.
 
-Some devices restart to save what they're sent. The panel then offers **Reconnect**, which finds the device again without the browser's picker.
+Some devices restart to save what they're sent. The panel waits a few seconds for the device and connects it again by itself. If it doesn't come back, the panel offers **Reconnect**, which finds it again without the browser's picker.
+
+If a device is unplugged or goes out of range, it's disconnected right away and your own constraint comes back; your bands stay as they are.
 
 The preamp goes to devices that take one. A device that can't lower its own level gets a clipping warning when the bands boost.
 

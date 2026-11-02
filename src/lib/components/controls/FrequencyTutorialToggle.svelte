@@ -8,11 +8,9 @@
 </script>
 
 <Button
-	title={m.freq_guide_btn_label()}
+	label={m.freq_guide_btn_label()}
 	onclick={() => settingsStore.setFrequencyTutorialVisible(!settingsStore.frequencyTutorialVisible)}
 	variant={settingsStore.frequencyTutorialVisible ? 'primary' : 'outline'}
 	size="toolbar"
 	aria-pressed={settingsStore.frequencyTutorialVisible}
->
-	{m.freq_guide_btn_label()}
-</Button>
+/>

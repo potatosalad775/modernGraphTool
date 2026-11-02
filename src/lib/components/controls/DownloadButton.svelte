@@ -48,16 +48,16 @@
 		{/snippet}
 
 		{#each options as option (option.runs)}
-			<!-- `title` becomes the accessible name, so the hint rides on aria-describedby -->
+			<!-- Named by the label alone; the line under it rides on aria-describedby -->
 			<Button
-				title={option.label}
+				label={option.label}
+				aria-label={option.label}
 				onclick={() => download(option.runs)}
 				aria-describedby="{uuid}-download-{option.runs ? 'all' : 'average'}"
 				variant="ghost"
 				size="sm"
-				class="flex-col items-start gap-0 px-2 py-1.5 text-left font-normal"
+				class="flex-col items-start gap-0 px-2 py-1.5 text-left text-sm font-normal"
 			>
-				<span class="text-sm">{option.label}</span>
 				<span
 					id="{uuid}-download-{option.runs ? 'all' : 'average'}"
 					class="text-xs text-base-content/60">{option.hint}</span

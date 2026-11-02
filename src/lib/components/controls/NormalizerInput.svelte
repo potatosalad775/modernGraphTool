@@ -23,21 +23,19 @@
 	<!-- Segmented Hz/Avg toggle -->
 	<div class="flex h-full items-center gap-0.5 p-0.5">
 		<Button
-			title={m.normalizer_input_avg_title()}
+			label={m.normalizer_input_avg_btn()}
+			hint={m.normalizer_input_avg_title()}
 			variant={graphStore.normType === 'Avg' ? 'primary' : 'ghost'}
 			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Avg')}
-		>
-			{m.normalizer_input_avg_btn()}
-		</Button>
+		/>
 		<Button
-			title={m.normalizer_input_hz_title()}
+			label={m.normalizer_input_hz_btn()}
+			hint={m.normalizer_input_hz_title()}
 			variant={graphStore.normType === 'Hz' ? 'primary' : 'ghost'}
 			class="h-full rounded-sm px-2.5 text-xs"
 			onclick={() => onNormTypeChange('Hz')}
-		>
-			{m.normalizer_input_hz_btn()}
-		</Button>
+		/>
 	</div>
 	<span class="h-5 w-px bg-base-content/20"></span>
 	<!-- Frequency value input -->

@@ -88,21 +88,17 @@
 			{/if}
 			<div class="flex flex-wrap justify-end gap-2">
 				<Button
-					title={m.link_start_send()}
+					label={m.link_start_send()}
 					variant="outline"
 					size="sm"
 					onclick={() => linkService.choose('mine')}
-				>
-					{m.link_start_send()}
-				</Button>
+				/>
 				<Button
-					title={m.link_start_use_unipeq()}
+					label={m.link_start_use_unipeq()}
 					variant="primary"
 					size="sm"
 					onclick={() => linkService.choose('theirs')}
-				>
-					{m.link_start_use_unipeq()}
-				</Button>
+				/>
 			</div>
 		</Dialog.Content>
 	</Dialog.Portal>

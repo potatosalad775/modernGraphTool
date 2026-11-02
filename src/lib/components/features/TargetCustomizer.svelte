@@ -211,13 +211,11 @@
 
 			<div class="ml-auto">
 				<Button
-					title={m.target_customizer_btn_reset()}
+					label={m.target_customizer_btn_reset()}
 					onclick={() => targetAdjustmentStore.reset(uuid)}
 					variant="destructive"
 					size="sm"
-				>
-					{m.target_customizer_btn_reset()}
-				</Button>
+				/>
 			</div>
 		</div>
 	</PopoverPanel>

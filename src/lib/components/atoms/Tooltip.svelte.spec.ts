@@ -12,7 +12,6 @@ import Switch from './Switch.svelte';
 import TooltipHost from './TooltipHost.svelte';
 
 const tooltip = () => page.getByRole('tooltip');
-const text = (label: string) => createRawSnippet(() => ({ render: () => `<span>${label}</span>` }));
 
 describe('Tooltip', () => {
 	it('shows the title on hover in place of the native one', async () => {
@@ -80,9 +79,9 @@ describe('Tooltip', () => {
 		expect(tooltip().elements()).toHaveLength(0);
 	});
 
-	it('stays quiet when the visible label already says the title', async () => {
+	it('shows nothing on a text button: the label already says it', async () => {
 		render(TooltipHost);
-		render(Button, { title: 'Share', children: text('Share') });
+		render(Button, { label: 'Share' });
 
 		await page.getByRole('button', { name: 'Share' }).hover();
 		await new Promise((r) => setTimeout(r, 500));
@@ -90,13 +89,18 @@ describe('Tooltip', () => {
 		expect(tooltip().elements()).toHaveLength(0);
 	});
 
-	it('still shows when the label differs from the title', async () => {
+	// WCAG 2.5.3: voice control says what the button reads.
+	it('names a text button by its label and shows only its hint', async () => {
 		render(TooltipHost);
-		render(Button, { title: 'Average all visible curves', children: text('Average') });
+		render(Button, { label: 'Average', hint: 'Average all visible curves' });
 
-		await page.getByRole('button', { name: 'Average all visible curves' }).hover();
+		const button = page.getByRole('button', { name: 'Average' });
+		await expect.element(button).not.toHaveAttribute('aria-label');
+		await expect.element(button).toHaveAccessibleDescription('Average all visible curves');
+		await button.hover();
 
 		await expect.element(tooltip()).toHaveTextContent('Average all visible curves');
+		expect(tooltip().getByText('Average', { exact: true }).elements()).toHaveLength(0);
 	});
 
 	it('gives a switch named by aria-label its title as tooltip and description', async () => {

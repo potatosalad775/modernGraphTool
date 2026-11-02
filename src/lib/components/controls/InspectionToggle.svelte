@@ -14,12 +14,11 @@
 </script>
 
 <Button
-	title={m.inspection_toggle_label()}
+	label={m.inspection_toggle_label()}
 	onclick={handleClick}
 	variant={enabled ? 'primary' : 'outline'}
 	size="toolbar"
 >
-	{m.inspection_toggle_label()}
 	<span class="h-5 w-px {enabled ? 'bg-accent-content/30' : 'bg-base-content/20'}"></span>
 	<span class="font-semibold">{enabled ? 'ON' : 'OFF'}</span>
 </Button>

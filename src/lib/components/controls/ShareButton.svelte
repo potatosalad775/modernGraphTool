@@ -16,7 +16,6 @@
 	}
 </script>
 
-<Button title={m.share_button_label()} onclick={handleClick} variant="muted" size="toolbar">
-	<Share2 class="h-4 w-4" aria-hidden="true" />
-	{m.share_button_label()}
+<Button label={m.share_button_label()} onclick={handleClick} variant="muted" size="toolbar">
+	{#snippet icon()}<Share2 class="h-4 w-4" aria-hidden="true" />{/snippet}
 </Button>

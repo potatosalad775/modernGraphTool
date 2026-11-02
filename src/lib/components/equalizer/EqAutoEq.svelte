@@ -230,15 +230,14 @@
 			bind:checked={() => autoEqService.autoApply, (on) => autoEqService.setAutoApply(on)}
 		/>
 		<Button
-			title={runLabel}
+			label={autoEqService.isRunning ? '...' : runLabel}
+			aria-label={runLabel}
 			onclick={() => autoEqService.run()}
 			disabled={autoEqService.isRunning || linkStore.readOnly}
 			variant="primary"
 			size="sm"
 			class="flex-1"
-		>
-			{autoEqService.isRunning ? '...' : runLabel}
-		</Button>
+		/>
 	</div>
 
 	<p role="status" class="text-xs text-base-content/70 empty:hidden">{statusText}</p>

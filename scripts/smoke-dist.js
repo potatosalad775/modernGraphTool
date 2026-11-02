@@ -91,7 +91,9 @@ async function main() {
 
 	const { server, origin } = await serve(DIST);
 	const browser = await chromium.launch({ headless: !HEADED });
-	const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+	// Pinned to English: the checks find elements by their English accessible names, and
+	// Paraglide otherwise follows the machine's language.
+	const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: 'en-US' });
 
 	const consoleErrors = [];
 	const pageErrors = [];

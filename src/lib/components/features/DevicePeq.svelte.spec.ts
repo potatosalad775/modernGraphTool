@@ -420,9 +420,7 @@ describe('DevicePeq', () => {
 				]
 			});
 
-			await page
-				.getByRole('button', { name: "Replace the band list with the device's EQ" })
-				.click();
+			await page.getByRole('button', { name: 'Read from device' }).click();
 			await vi.waitFor(() => expect(eqStore.filters).toHaveLength(2));
 			expect(device.pull).toHaveBeenCalledWith({ slot: 1 });
 			expect(eqStore.filters[0]).toMatchObject({ type: 'LSQ', freq: 100, gain: 3 });
@@ -434,7 +432,7 @@ describe('DevicePeq', () => {
 			eqStore.filters = [band(1000, 3)];
 			eqStore.preamp = -3;
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			const request = device.push.mock.calls[0][0];
 			expect(request.filters).toHaveLength(6);
@@ -456,7 +454,7 @@ describe('DevicePeq', () => {
 			eqStore.filters = [band(4000, 3)];
 			eqStore.preamp = -3;
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			expect(device.pull).toHaveBeenCalledWith({ slot: 1 });
 			expect(device.push.mock.calls[0][0].filters.map((f) => [f.freq, f.q, f.gain])).toEqual([
@@ -473,7 +471,7 @@ describe('DevicePeq', () => {
 			const device = await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
 			eqStore.preamp = -1;
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			expect(device.pull).not.toHaveBeenCalled();
 		});
@@ -483,7 +481,7 @@ describe('DevicePeq', () => {
 			eqStore.filters = [band(1000, 15)];
 			eqStore.preamp = -15;
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
 			expect(device.push).not.toHaveBeenCalled();
 
@@ -495,7 +493,7 @@ describe('DevicePeq', () => {
 		it('writes nothing when the review is cancelled', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [band(1000, 15)];
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await page.getByRole('button', { name: 'Cancel' }).click();
 			expect(device.push).not.toHaveBeenCalled();
 		});
@@ -506,16 +504,14 @@ describe('DevicePeq', () => {
 			eqStore.filters = [band(1000, 3)];
 			eqStore.preamp = -3;
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Reconnect' })).toBeInTheDocument();
 			expect(device.close).toHaveBeenCalled();
 		});
 
 		it('hides Read on a write-only device and says why', async () => {
 			await mountConnected({ canRead: false });
-			expect(
-				await page.getByRole('button', { name: "Replace the band list with the device's EQ" }).all()
-			).toHaveLength(0);
+			expect(await page.getByRole('button', { name: 'Read from device' }).all()).toHaveLength(0);
 			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			await expect
 				.element(page.getByText('This device can be written to but not read back.'))
@@ -551,13 +547,13 @@ describe('DevicePeq', () => {
 			const device = await mountConnected({ readsSlot: false, writesSlot: false });
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
 			eqStore.preamp = -1;
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			expect(device.push.mock.calls[0][0].slot).toBeUndefined();
 
 			// Off sits on the bypass preset: writing now would overwrite it.
 			await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('Off (EQ bypassed)');
-			const write = page.getByRole('button', { name: 'Send the band list to the device' });
+			const write = page.getByRole('button', { name: 'Write to device' });
 			await expect.element(write).toBeDisabled();
 			await expect
 				.element(write)
@@ -571,7 +567,7 @@ describe('DevicePeq', () => {
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
 			eqStore.preamp = -1;
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 0));
 			expect(device.push.mock.calls[0][0].slot).toBe(0);
 			await expect.element(control).toHaveValue('p0');
@@ -607,7 +603,7 @@ describe('DevicePeq', () => {
 			await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
 			eqStore.preamp = -1;
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			// The write's own message stands for "in sync": one line, not two saying the same.
 			const status = page.getByRole('status');
 			await expect.element(status).toHaveTextContent('Wrote 6 bands to the device');
@@ -627,13 +623,13 @@ describe('DevicePeq', () => {
 				Object.assign(new Error('gone'), { name: 'BridgeError', code: 'timeout' })
 			);
 			vi.spyOn(console, 'error').mockImplementation(() => {});
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			const status = page.getByRole('status');
 			await expect
 				.element(status)
 				.toHaveTextContent("The device didn't answer. Check the cable and try again.");
 
-			await page.getByRole('button', { name: 'Send the band list to the device' }).click();
+			await page.getByRole('button', { name: 'Write to device' }).click();
 			await expect.element(status).toHaveTextContent('Wrote 6 bands to the device');
 		});
 

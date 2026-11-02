@@ -156,12 +156,11 @@
 		{#snippet child({ props })}
 			<Button
 				{...props}
-				title={triggerLabel}
+				label={triggerLabel}
 				variant="outline"
 				size="sm"
 				class="h-7 min-w-14 justify-between gap-1 rounded-sm bg-base-200 px-2 hover:bg-base-content/10"
 			>
-				{triggerLabel}
 				<Ellipsis class="h-3 w-3 shrink-0 text-base-content/70" />
 			</Button>
 		{/snippet}
@@ -247,7 +246,7 @@
 						a set with a dozen runs used to push the popover past the viewport.
 					-->
 					<Button
-						title={m.selection_list_samples_runs_toggle()}
+						label={m.selection_list_samples_runs_toggle()}
 						onclick={() => (runsOpen = !runsOpen)}
 						aria-expanded={runsOpen}
 						aria-controls="{uuid}-sample-runs"
@@ -256,10 +255,11 @@
 						class="mt-1 w-full justify-start gap-1 rounded px-1.5 py-1 font-normal
 							 hover:bg-base-300"
 					>
-						<ChevronDown
-							class="h-3 w-3 shrink-0 transition-transform {runsOpen ? '' : '-rotate-90'}"
-						/>
-						<span class="truncate">{m.selection_list_samples_runs_toggle()}</span>
+						{#snippet icon()}
+							<ChevronDown
+								class="h-3 w-3 shrink-0 transition-transform {runsOpen ? '' : '-rotate-90'}"
+							/>
+						{/snippet}
 						{#if selectedRunCount > 0}
 							<span class="ml-auto shrink-0 text-base-content/60">{selectedRunCount}</span>
 						{/if}
@@ -300,43 +300,35 @@
 							<!-- Preset buttons -->
 							<div class="mt-1.5 flex gap-1 px-1">
 								<Button
-									title={m.selection_list_samples_all_l()}
+									label={m.selection_list_samples_all_l()}
 									onclick={() => handlePreset('allL')}
 									variant="muted"
 									size="sm"
 									class="flex-1"
-								>
-									{m.selection_list_samples_all_l()}
-								</Button>
+								/>
 								<Button
-									title={m.selection_list_samples_all_r()}
+									label={m.selection_list_samples_all_r()}
 									onclick={() => handlePreset('allR')}
 									variant="muted"
 									size="sm"
 									class="flex-1"
-								>
-									{m.selection_list_samples_all_r()}
-								</Button>
+								/>
 							</div>
 							<div class="mt-1.5 flex gap-1 px-1">
 								<Button
-									title={m.selection_list_samples_all()}
+									label={m.selection_list_samples_all()}
 									onclick={() => handlePreset('all')}
 									variant="muted"
 									size="sm"
 									class="flex-1"
-								>
-									{m.selection_list_samples_all()}
-								</Button>
+								/>
 								<Button
-									title={m.selection_list_samples_none()}
+									label={m.selection_list_samples_none()}
 									onclick={() => handlePreset('none')}
 									variant="muted"
 									size="sm"
 									class="flex-1"
-								>
-									{m.selection_list_samples_none()}
-								</Button>
+								/>
 							</div>
 						{/if}
 					</div>

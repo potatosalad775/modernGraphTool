@@ -221,12 +221,10 @@
 		{#if showPhonePane}
 			<div class="ps-nav-btn">
 				<Button
-					title={m.phone_selector_header_brand_btn()}
+					label={m.phone_selector_header_brand_btn()}
 					onclick={() => (showPhonePane = false)}
 					variant="primary"
-				>
-					{m.phone_selector_header_brand_btn()}
-				</Button>
+				/>
 			</div>
 		{/if}
 
@@ -310,12 +308,10 @@
 		{#if !showPhonePane}
 			<div class="ps-nav-btn">
 				<Button
-					title={m.phone_selector_header_device_btn()}
+					label={m.phone_selector_header_device_btn()}
 					onclick={() => (showPhonePane = true)}
 					variant="primary"
-				>
-					{m.phone_selector_header_device_btn()}
-				</Button>
+				/>
 			</div>
 		{/if}
 	</div>
@@ -324,13 +320,12 @@
 	{#if selectedBrands.size > 0}
 		<div class="shrink-0 p-1.5">
 			<Button
-				title={m.phone_selector_clear_brands_btn()}
+				label={m.phone_selector_clear_brands_btn()}
 				onclick={clearBrands}
 				variant="secondary"
 				class="w-full gap-2"
 			>
-				<X class="h-4 w-4" aria-hidden="true" />
-				{m.phone_selector_clear_brands_btn()}
+				{#snippet icon()}<X class="h-4 w-4" aria-hidden="true" />{/snippet}
 			</Button>
 		</div>
 	{/if}

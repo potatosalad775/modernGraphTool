@@ -105,21 +105,17 @@
 
 			<div class="flex justify-end gap-2">
 				<Button
-					title={m.equalizer_device_peq_push_cancel()}
+					label={m.equalizer_device_peq_push_cancel()}
 					variant="ghost"
 					size="sm"
 					onclick={cancel}
-				>
-					{m.equalizer_device_peq_push_cancel()}
-				</Button>
+				/>
 				<Button
-					title={m.equalizer_device_peq_push_confirm()}
+					label={m.equalizer_device_peq_push_confirm()}
 					variant="primary"
 					size="sm"
 					onclick={confirm}
-				>
-					{m.equalizer_device_peq_push_confirm()}
-				</Button>
+				/>
 			</div>
 		</Dialog.Content>
 	</Dialog.Portal>

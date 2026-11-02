@@ -141,24 +141,22 @@
 
 <div class="flex gap-2">
 	<Button
-		title={m.graph_uploader_upload_fr()}
+		label={m.graph_uploader_upload_fr()}
 		onclick={() => phoneInputEl?.click()}
 		variant="outline"
 		size="sm"
 		class="flex-1"
 	>
-		<FileUp class="mr-1.5 size-3.5" />
-		{m.graph_uploader_upload_fr()}
+		{#snippet icon()}<FileUp class="mr-1.5 size-3.5" />{/snippet}
 	</Button>
 	<Button
-		title={m.graph_uploader_upload_target()}
+		label={m.graph_uploader_upload_target()}
 		onclick={() => targetInputEl?.click()}
 		variant="outline"
 		size="sm"
 		class="flex-1"
 	>
-		<FileUp class="mr-1.5 size-3.5" />
-		{m.graph_uploader_upload_target()}
+		{#snippet icon()}<FileUp class="mr-1.5 size-3.5" />{/snippet}
 	</Button>
 	<input
 		bind:this={phoneInputEl}

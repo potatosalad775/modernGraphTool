@@ -64,7 +64,6 @@
 	"equalizer_filter_list_sort_bands": "Sort bands",
 	"equalizer_filter_list_graphic_fixed": "The graphic EQ preset fixes the bands",
 	"equalizer_filter_list_band_limit": "The EQ constraint allows no more bands",
-	"equalizer_filter_list_export_graphic_eq_title": "Export filters as a Graphic EQ file",
 	"equalizer_filter_card_change_type": "Change filter type",
 	"equalizer_filter_card_expand": "Expand filter {index} options",
 	"equalizer_filter_card_remove": "Remove filter {index}",

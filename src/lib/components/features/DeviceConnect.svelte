@@ -97,22 +97,18 @@
 				</label>
 				<div class="flex justify-end gap-1">
 					<Button
-						title={m.equalizer_device_peq_push_cancel()}
+						label={m.equalizer_device_peq_push_cancel()}
 						variant="ghost"
 						size="xs"
 						onclick={() => devicePeqService.cancelPick()}
-					>
-						{m.equalizer_device_peq_push_cancel()}
-					</Button>
+					/>
 					<Button
-						title={m.equalizer_device_peq_choose_confirm()}
+						label={m.equalizer_device_peq_choose_confirm()}
 						variant="primary"
 						size="xs"
 						disabled={!chosenId || devicePeqStore.isConnecting}
 						onclick={confirmChoice}
-					>
-						{m.equalizer_device_peq_choose_confirm()}
-					</Button>
+					/>
 				</div>
 			</div>
 		{:else}
@@ -126,40 +122,34 @@
 			>
 				{#if primaryKind}
 					<Button
-						title={KIND_LABEL[primaryKind]()}
+						label={devicePeqStore.isConnecting
+							? m.equalizer_device_peq_connecting()
+							: KIND_LABEL[primaryKind]()}
 						variant="primary"
 						size="sm"
 						class="w-full"
 						disabled={devicePeqStore.isConnecting}
 						onclick={() => connect(primaryKind)}
-					>
-						{devicePeqStore.isConnecting
-							? m.equalizer_device_peq_connecting()
-							: KIND_LABEL[primaryKind]()}
-					</Button>
+					/>
 				{/if}
 				<div class="flex flex-wrap items-center gap-1 text-xs text-base-content/60">
 					<span>{m.equalizer_device_peq_other_connections()}</span>
 					{#each otherKinds as kind (kind)}
 						<Button
-							title={KIND_LABEL[kind]()}
+							label={KIND_LABEL[kind]()}
 							variant="ghost"
 							size="xs"
 							disabled={devicePeqStore.isConnecting}
 							onclick={() => connect(kind)}
-						>
-							{KIND_LABEL[kind]()}
-						</Button>
+						/>
 					{/each}
 					<Button
-						title={m.equalizer_device_peq_connect_network()}
+						label={m.equalizer_device_peq_connect_network()}
 						variant="ghost"
 						size="xs"
 						aria-expanded={showNetworkPanel}
 						onclick={() => (showNetworkPanel = !showNetworkPanel)}
-					>
-						{m.equalizer_device_peq_connect_network()}
-					</Button>
+					/>
 					<InfoPopover
 						label={m.info_popover_about({ topic: m.equalizer_device_peq_connections_topic() })}
 						align="end"
@@ -194,14 +184,12 @@
 						class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
 					/>
 					<Button
-						title={m.equalizer_device_peq_network_connect()}
+						label={m.equalizer_device_peq_network_connect()}
 						variant="outline"
 						size="xs"
 						disabled={!networkIP.trim()}
 						onclick={connectNetwork}
-					>
-						{m.equalizer_device_peq_network_connect()}
-					</Button>
+					/>
 				</div>
 			{/if}
 

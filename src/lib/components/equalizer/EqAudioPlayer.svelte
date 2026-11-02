@@ -258,14 +258,13 @@
 	<!-- File upload (only when file selected) -->
 	{#if audioPlayerService.audioSource === 'file'}
 		<Button
-			title={m.equalizer_player_file_upload()}
+			label={m.equalizer_player_file_upload()}
 			onclick={() => fileInputEl?.click()}
 			variant="outline"
 			size="sm"
 			class="w-full"
 		>
-			<FileUp class="mr-1.5 size-3.5" />
-			{m.equalizer_player_file_upload()}
+			{#snippet icon()}<FileUp class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 		<input
 			bind:this={fileInputEl}

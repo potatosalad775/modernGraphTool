@@ -373,15 +373,13 @@
 			</div>
 			{#if eqConstraintsStore.violationCount > 0}
 				<Button
-					title={m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
+					label={m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
 					hint={m.eq_constraint_fit_title({ label: eqConstraintsStore.active.label })}
 					variant="outline"
 					size="xs"
 					class="border-error/40 text-error"
 					onclick={fitToConstraint}
-				>
-					{m.eq_constraint_fit({ count: eqConstraintsStore.violationCount })}
-				</Button>
+				/>
 			{/if}
 			<Button
 				title={m.eq_constraint_clear()}
@@ -433,37 +431,33 @@
 	<!-- Import/Export buttons -->
 	<div class="flex gap-1.5">
 		<Button
-			title={m.equalizer_filter_list_import()}
+			label={m.equalizer_filter_list_import()}
 			onclick={importFilters}
 			variant="outline"
 			size="sm"
 			class="flex-1"
 		>
-			<Download class="mr-1.5 size-3.5" />
-			{m.equalizer_filter_list_import()}
+			{#snippet icon()}<Download class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 		<Button
-			title={m.equalizer_filter_list_export()}
+			label={m.equalizer_filter_list_export()}
 			onclick={exportFilters}
 			variant="outline"
 			size="sm"
 			class="flex-1"
 		>
-			<Upload class="mr-1.5 size-3.5" />
-			{m.equalizer_filter_list_export()}
+			{#snippet icon()}<Upload class="mr-1.5 size-3.5" />{/snippet}
 		</Button>
 	</div>
 	<div>
 		<Button
-			title={m.equalizer_filter_list_export_graphic_eq_title()}
+			label={m.equalizer_filter_list_export_graphic_eq()}
 			onclick={exportGraphicEQ}
 			disabled={!graphicEqBands.length}
 			variant="muted"
 			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"
-		>
-			{m.equalizer_filter_list_export_graphic_eq()}
-		</Button>
+		/>
 	</div>
 
 	<input

@@ -271,7 +271,8 @@
 		<!-- Type badge — disabled where the slot takes a single type -->
 		{#if !graphicRow}
 			<Button
-				title={typeLocked
+				label={typeShortLabels[filter.type]}
+				hint={typeLocked
 					? m.eq_constraint_locked({ label: constraintLabel })
 					: violation.type
 						? m.eq_constraint_type_violation({ label: constraintLabel })
@@ -288,9 +289,7 @@
 				size="xs"
 				class={violation.type ? 'ring-1 ring-error' : ''}
 				disabled={typeLocked}
-			>
-				{typeShortLabels[filter.type]}
-			</Button>
+			/>
 		{/if}
 
 		<!-- Freq — read-only chip where the slot locks it (graphic EQs) -->

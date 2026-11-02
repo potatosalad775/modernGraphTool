@@ -173,8 +173,7 @@ describe('EqFilterList', () => {
 	// ── Channel scoping ──────────────────────────────────────────────────────
 
 	describe('the Graphic EQ export', () => {
-		const exportButton = () =>
-			page.getByRole('button', { name: 'Export filters as a Graphic EQ file' });
+		const exportButton = () => page.getByRole('button', { name: 'Export as Graphic EQ (Wavelet)' });
 
 		/** The `<freq> <gain>` pairs of the one file written. */
 		function exportedCurve(): [number, number][] {

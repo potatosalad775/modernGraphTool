@@ -77,7 +77,6 @@
 	"equalizer_filter_list_sort_bands": "밴드 정렬",
 	"equalizer_filter_list_graphic_fixed": "그래픽 EQ 프리셋에서는 밴드를 수정할 수 없습니다",
 	"equalizer_filter_list_band_limit": "EQ 제약 조건이 추가 밴드를 허용하지 않습니다",
-	"equalizer_filter_list_export_graphic_eq_title": "필터 목록을 그래픽 EQ 파일로 내보내기",
 	"equalizer_filter_card_change_type": "필터 유형 변경",
 	"equalizer_filter_card_expand": "필터 {index} 옵션 확장",
 	"equalizer_filter_card_remove": "필터 {index} 제거",

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, type WithChildren } from 'bits-ui';
+	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import Tooltip from './Tooltip.svelte';
 	import { mergeTooltipProps } from './tooltip-tether.js';
@@ -8,11 +9,11 @@
 	// bits-ui's `child` snippet variants, and omitting across it produces a union
 	// TypeScript refuses to represent.
 	type Props = WithChildren<Button.RootProps> & {
-		/** Shown as the tooltip and used as the accessible name. Keep it a short label. */
-		title: string;
+		/** Rendered before `label`. */
+		icon?: Snippet;
 		/**
 		 * A sentence the label can't carry — why the button is disabled, what it will do.
-		 * Shown as the tooltip's second line and exposed as the accessible description.
+		 * Exposed as the accessible description, and shown as the tooltip.
 		 */
 		hint?: string;
 		variant?:
@@ -24,35 +25,39 @@
 		 * all want the accent treatment rather than the muted default below.
 		 */
 		activeOnOpen?: boolean;
-	};
+	} & (
+			| {
+					/**
+					 * A text button. The visible label is the accessible name, so voice control
+					 * can say what it reads (WCAG 2.5.3), and there is no tooltip unless a `hint`
+					 * adds something the label doesn't.
+					 */
+					label: string;
+					title?: never;
+			  }
+			| {
+					/**
+					 * An icon-only button, or one with custom `children`. The title is the
+					 * accessible name and the tooltip, so keep it to a few words.
+					 */
+					title: string;
+					label?: never;
+			  }
+		);
 
 	let {
 		variant = 'primary',
 		size = 'md',
 		activeOnOpen = false,
+		label,
 		title,
+		icon,
 		hint,
 		children,
 		...restProps
 	}: Props = $props();
 
 	const hintId = $props.id();
-
-	/**
-	 * No tooltip when the visible label already reads the same as the title — Share,
-	 * Screenshot, a target's name. Judged as the tooltip is about to open, not on mount,
-	 * because some labels change with state (AutoEQ's Run shows `...` while running).
-	 * A hint still shows: it says something the label doesn't.
-	 */
-	let labelSaysIt = $state(false);
-	const normalize = (text: string | null) => (text ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
-	function judgeLabel(e: Event) {
-		labelSaysIt =
-			!hint && normalize((e.currentTarget as HTMLElement).textContent) === normalize(title);
-	}
-	const ownProps = $derived(
-		mergeTooltipProps(restProps, { onpointerenter: judgeLabel, onfocus: judgeLabel })
-	);
 
 	const variantClasses = {
 		primary: 'bg-primary text-primary-content hover:bg-primary/90',
@@ -109,14 +114,16 @@
 	element still counts for `aria-describedby`, so the hint reaches screen readers
 	without waiting for the tooltip to open.
 -->
-<Tooltip text={labelSaysIt ? undefined : title} {hint}>
+<Tooltip text={label === undefined ? title : hint} hint={label === undefined ? hint : undefined}>
 	{#snippet trigger({ props })}
 		<Button.Root
-			{...mergeTooltipProps(ownProps, props)}
+			{...mergeTooltipProps(restProps, props)}
 			class={className}
 			aria-label={restProps['aria-label'] || title}
 			aria-describedby={hint ? hintId : restProps['aria-describedby']}
 		>
+			{@render icon?.()}
+			{label}
 			{@render children?.()}
 			{#if hint}<span id={hintId} hidden>{hint}</span>{/if}
 		</Button.Root>

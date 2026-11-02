@@ -27,12 +27,12 @@
 </script>
 
 <Button
-	title={enabled ? m.average_button_hint() : m.average_button_needs_two()}
+	label={m.average_button_label()}
+	hint={enabled ? m.average_button_hint() : m.average_button_needs_two()}
 	onclick={handleClick}
 	disabled={!enabled}
 	variant="muted"
 	size="toolbar"
 >
-	<Sigma class="h-4 w-4" aria-hidden="true" />
-	{m.average_button_label()}
+	{#snippet icon()}<Sigma class="h-4 w-4" aria-hidden="true" />{/snippet}
 </Button>

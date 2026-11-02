@@ -22,14 +22,16 @@
 		size?: 'sm' | 'md' | 'lg';
 		variant?: 'accent' | 'muted';
 		/**
-		 * Tooltip, and the accessible description when `labelText` or `aria-label` already
-		 * names the switch. With neither, it becomes the name instead.
+		 * Tooltip, and the accessible description when `labelText`, `aria-label` or
+		 * `aria-labelledby` already names the switch. With none, it becomes the name instead.
 		 */
 		title?: string;
 	} = $props();
 
 	const descriptionId = $props.id();
-	const describes = $derived(!!title && !!(labelText || restProps['aria-label']));
+	const describes = $derived(
+		!!title && !!(labelText || restProps['aria-label'] || restProps['aria-labelledby'])
+	);
 
 	const sizeClasses = {
 		sm: 'h-5 w-9',

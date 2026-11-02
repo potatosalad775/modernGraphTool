@@ -2,7 +2,7 @@
  * Tooltips run through one root (`TooltipHost`) tethered to every `Button`, so each case
  * mounts the host beside the buttons it hovers, the way `AppShell` does.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, onTestFinished } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
 import { createRawSnippet } from 'svelte';
@@ -112,6 +112,19 @@ describe('Tooltip', () => {
 		await toggle.hover();
 
 		await expect.element(tooltip()).toHaveTextContent('Turn the equalizer on or off');
+	});
+
+	it('describes a switch named by aria-labelledby with its title', async () => {
+		const heading = document.createElement('span');
+		heading.id = 'switch-heading';
+		heading.textContent = 'EQUALIZER';
+		document.body.append(heading);
+		onTestFinished(() => heading.remove());
+
+		render(Switch, { 'aria-labelledby': heading.id, title: 'Turn the equalizer on or off' });
+
+		const toggle = page.getByRole('switch', { name: 'EQUALIZER' });
+		await expect.element(toggle).toHaveAccessibleDescription('Turn the equalizer on or off');
 	});
 
 	// A popover trigger hands `Button` its own `data-state` and handlers; the tooltip's

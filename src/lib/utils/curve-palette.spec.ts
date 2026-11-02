@@ -142,6 +142,13 @@ describe('readableLightnessBand', () => {
 	});
 });
 
+describe('formatOklch', () => {
+	it('wraps a hue that rounds up to 360 back to 0', () => {
+		expect(formatOklch(0.68, 0.16, 359.94)).toBe('oklch(0.68 0.16 359.9)');
+		expect(formatOklch(0.68, 0.16, 359.96)).toBe('oklch(0.68 0.16 0)');
+	});
+});
+
 describe('parseOklch', () => {
 	it('parses an oklch() string', () => {
 		expect(parseOklch('oklch(0.68 0.16 240)')).toEqual([0.68, 0.16, 240]);

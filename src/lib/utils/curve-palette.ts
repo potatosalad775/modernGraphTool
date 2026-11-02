@@ -103,7 +103,8 @@ export function oklchToHex(L: number, C: number, H: number): string {
 export function formatOklch(L: number, C: number, H: number): string {
 	const rL = Math.round(L * 1000) / 1000;
 	const rC = Math.round(C * 1000) / 1000;
-	const rH = Math.round(H * 10) / 10;
+	// Wrap after rounding: anything from 359.95 up would otherwise print as 360.
+	const rH = (Math.round(H * 10) / 10) % 360;
 	return `oklch(${rL} ${rC} ${rH})`;
 }
 

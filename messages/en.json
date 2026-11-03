@@ -645,5 +645,8 @@
 				"countPlural=*": "{count} bands uniPEQ can't hold (left- or right-only, or a switched-off pass or notch) will be left out."
 			}
 		}
-	]
+	],
+	"db_type_iems": "IEMs",
+	"db_type_headphones": "Headphones",
+	"db_type_earbuds": "Earbuds"
 }

@@ -476,5 +476,8 @@
 	"link_start_use_unipeq": "uniPEQ의 EQ 사용",
 	"link_start_send": "이 EQ를 uniPEQ로 보내기",
 	"link_start_flattened": "꺼진 밴드 {count}개는 0 dB 밴드로 보냅니다.",
-	"link_start_dropped": "uniPEQ가 담을 수 없는 밴드 {count}개(좌/우 한쪽 전용, 또는 꺼진 패스·노치 필터)는 제외됩니다."
+	"link_start_dropped": "uniPEQ가 담을 수 없는 밴드 {count}개(좌/우 한쪽 전용, 또는 꺼진 패스·노치 필터)는 제외됩니다.",
+	"db_type_iems": "이어폰",
+	"db_type_headphones": "헤드폰",
+	"db_type_earbuds": "이어버드"
 }

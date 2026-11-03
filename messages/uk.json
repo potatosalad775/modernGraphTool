@@ -186,7 +186,9 @@
 	"normalizer_input_hz_title": "Нормалізація за частотою",
 	"smoothing_button_label": "Згладжування",
 	"smoothing_variable_label": "Змінне згладжування",
+	"db_type_iems": "Внутрішньоканальні (IEM)",
 	"smoothing_psychoacoustic_label": "Психоакустичне згладжування",
+	"db_type_earbuds": "Вкладиші",
 	"screenshot_button_label": "Скріншот",
 	"screenshot_button_failed": "Не вдалося зробити скріншот",
 	"y_axis_scale_button_label": "Масштаб осі Y",
@@ -338,7 +340,7 @@
 	"keyboard_shortcut_delete_band": "Видалити вибрану смугу",
 	"eq_constraint_select_label": "Обмеження",
 	"eq_constraint_button": "Обмеження еквалайзера",
-	"eq_constraint_button_hint": "Обмежте смуги до того, що приймає пристрій або застосунок",
+	"eq_constraint_button_hint": "Застосуйте обмеження смуг відповідно до того, що здатний прийняти пристрій або застосунок",
 	"eq_constraint_search_placeholder": "Пошук пристроїв і застосунків…",
 	"eq_constraint_group_builtin": "Вбудовані",
 	"eq_constraint_group_device": "Підключений пристрій",
@@ -629,6 +631,7 @@
 			}
 		}
 	],
+	"db_type_headphones": "Повнорозміри",
 	"equalizer_device_peq_status_reconnect_manual": "Не вдалося знову знайти пристрій. Підключіть його та з'єднайтеся.",
 	"equalizer_device_peq_field_type": "Тип",
 	"equalizer_device_peq_field_freq": "Частота",

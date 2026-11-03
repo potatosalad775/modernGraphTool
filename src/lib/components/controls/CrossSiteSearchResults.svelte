@@ -3,6 +3,7 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { aggregateIndexService } from '#lib/services/aggregate-index.svelte.js';
 	import {
+		dbTypeLabel,
 		getCrossSiteSearchConfig,
 		parseCrossSiteGroups
 	} from '#lib/services/aggregate-index-core.js';
@@ -99,7 +100,7 @@
 				<span
 					class="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-content"
 				>
-					{results[0].dbType}
+					{dbTypeLabel(results[0].dbType)}
 				</span>
 				{#if results[0].deltaReady}
 					<span

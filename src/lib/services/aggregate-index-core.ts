@@ -1,4 +1,5 @@
 import { browser } from '$app/env';
+import * as m from '#lib/paraglide/messages.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import { matchesQueryGroup, splitQueryGroups, type QueryGroup } from '#lib/utils/search-query.js';
 import type {
@@ -36,6 +37,13 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 /** Databases are grouped by rig class in the result list, best measurements first. */
 const DB_TYPE_ORDER = ['5128', 'IEMs', 'Headphones', 'Earbuds'];
+
+/** `5128` is a rig's model number, so it has no message and always shows as is. */
+const DB_TYPE_LABELS = new Map<string, () => string>([
+	['IEMs', () => m.db_type_iems()],
+	['Headphones', () => m.db_type_headphones()],
+	['Earbuds', () => m.db_type_earbuds()]
+]);
 
 const SQUIGLINK_ROOT_HOST = 'squig.link';
 
@@ -89,6 +97,14 @@ export function buildShareUrl(dbUrl: string, slug: string): string {
 export function rankDbType(dbType: string): number {
 	const index = DB_TYPE_ORDER.indexOf(dbType);
 	return index === -1 ? DB_TYPE_ORDER.length : index;
+}
+
+/**
+ * Display name of a rig class. Types come from the index, so one without a
+ * message shows as published. Display only: grouping and ranking use the raw type.
+ */
+export function dbTypeLabel(dbType: string): string {
+	return DB_TYPE_LABELS.get(dbType)?.() ?? dbType;
 }
 
 /** True when `site` is the site this tool is currently served from. */

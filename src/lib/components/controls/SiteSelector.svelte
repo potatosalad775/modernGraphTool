@@ -3,6 +3,7 @@
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 	import { siteIndexService } from '#lib/services/site-index.svelte.js';
+	import { dbTypeLabel } from '#lib/services/aggregate-index-core.js';
 	import { getSiteSelectorConfig } from '#lib/services/site-index-core.js';
 	import { Select } from 'bits-ui';
 	import { ChevronDown } from '@lucide/svelte';
@@ -70,7 +71,7 @@
 						class="px-2 py-1 text-[12px] font-semibold tracking-wider text-base-content/50
 							uppercase"
 					>
-						{group.type}
+							{dbTypeLabel(group.type)}
 					</Select.GroupHeading>
 
 					{#each group.entries as entry (entry.dbId)}

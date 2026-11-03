@@ -268,7 +268,7 @@ Fetches the GraphAggregator index (one JSON doc listing every known site/databas
 both `flat` and `collapsed` phone formats, and answers queries against a prebuilt lowercase row set.
 Host-agnostic — **not** squig.link-gated. Exports `aggregateIndexService`, plus
 `getCrossSiteSearchConfig`, `parseCrossSiteGroups`, `buildShareUrl`, `deriveShareSlug`,
-`sortCrossSiteResults` and `rankDbType`.
+`sortCrossSiteResults`, `rankDbType` and `dbTypeLabel`.
 
 **A comma-separated query is an AND over databases, not over rows.** `A,B` asks which database
 carries both devices, so `searchRows` groups by `dbId`, keeps the databases that matched every
@@ -330,6 +330,9 @@ verified**, so an aggregator-shaped document doesn't dim every row.
   hosting both `/` and `/headphones/` would otherwise always resolve to the root database.
 - `rankDbType` is imported from `aggregate-index-core`, so search results and the site dropdown order
   rig classes identically. Don't copy the array.
+- `dbTypeLabel` translates a rig class for display only. Keep the raw `type` for grouping and
+  ranking: `rankDbType` matches the published English strings. A type with no message shows as
+  published.
 
 This replaced a `squigsites.json` fetch in `squiglink-store`, along with its `urlType` / `altDomain` /
 lab-folder URL construction — GAA resolves all of that server-side into absolute URLs.

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AggregateIndexService } from './aggregate-index.svelte.js';
 import {
 	buildShareUrl,
+	dbTypeLabel,
 	DEFAULT_INDEX_URLS,
 	deriveShareSlug,
 	getCrossSiteSearchConfig,
@@ -165,6 +166,20 @@ describe('cross-site search helpers', () => {
 				makeResult({ dbType: 'Earbuds', phoneName: 'Earbud' })
 			]);
 			expect(sorted.map((r) => r.dbType)).toEqual(['Earbuds', 'Speakers']);
+		});
+	});
+
+	describe('dbTypeLabel', () => {
+		it('names the rig classes that have a message', () => {
+			expect(dbTypeLabel('IEMs')).toBe('IEMs');
+			expect(dbTypeLabel('Headphones')).toBe('Headphones');
+			expect(dbTypeLabel('Earbuds')).toBe('Earbuds');
+		});
+
+		it('shows any other type as published', () => {
+			expect(dbTypeLabel('5128')).toBe('5128');
+			expect(dbTypeLabel('Speakers')).toBe('Speakers');
+			expect(dbTypeLabel('constructor')).toBe('constructor');
 		});
 	});
 

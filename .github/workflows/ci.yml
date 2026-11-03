@@ -73,6 +73,21 @@ jobs:
         continue-on-error: true
         run: npm run i18n:check
 
+      # A Fink PR from a fork behind main re-adds keys main already has, at a
+      # different spot, and git merges both copies without a conflict. On a PR
+      # this checkout is the merge result, so a duplicate here is one merging
+      # would ship. JSON.parse silently keeps one copy, so nothing else notices.
+      - name: No duplicate translation keys
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run i18n:tidy -- --check --duplicates-only
+
+      # Key order and stale staging entries: worth a note on the PR, not a red
+      # build for a translator. The maintainer runs `npm run i18n:tidy` before merging.
+      - name: Translation files tidy (informational)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: npm run i18n:tidy -- --check
+
       # Coverage runs the whole suite a second time, so it is Linux-only — the
       # Windows leg exists for the line-ending regression, which coverage cannot
       # see. Blocking: the thresholds in vite.config.ts are a ratchet, and a PR

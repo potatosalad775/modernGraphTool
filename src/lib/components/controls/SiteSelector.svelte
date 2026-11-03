@@ -65,36 +65,38 @@
 				bg-base-200 p-1 shadow-xl"
 			style="min-width: 12rem;"
 		>
-			{#each groups as group (group.type)}
-				<Select.Group>
-					<Select.GroupHeading
-						class="px-2 py-1 text-[12px] font-semibold tracking-wider text-base-content/50
-							uppercase"
-					>
+			<Select.Viewport class="scroll-pt-6.5">
+				{#each groups as group (group.type)}
+					<Select.Group>
+						<Select.GroupHeading
+							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-[12px] font-semibold tracking-wider
+								text-base-content/50 uppercase"
+						>
 							{dbTypeLabel(group.type)}
-					</Select.GroupHeading>
+						</Select.GroupHeading>
 
-					{#each group.entries as entry (entry.dbId)}
-						<Select.Item value={entry.dbId} label={entry.siteName}>
-							{#snippet child({ props, selected })}
-								<a
-									{...props}
-									href={entry.url}
-									target="_blank"
-									rel="external noopener noreferrer"
-									title={entry.verified ? undefined : m.site_selector_unverified()}
-									class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content
-										no-underline outline-none data-highlighted:bg-base-300
-										{selected ? 'font-medium text-accent' : ''}
-										{entry.verified ? '' : 'opacity-50'}"
-								>
-									{entry.siteName}
-								</a>
-							{/snippet}
-						</Select.Item>
-					{/each}
-				</Select.Group>
-			{/each}
+						{#each group.entries as entry (entry.dbId)}
+							<Select.Item value={entry.dbId} label={entry.siteName}>
+								{#snippet child({ props, selected })}
+									<a
+										{...props}
+										href={entry.url}
+										target="_blank"
+										rel="external noopener noreferrer"
+										title={entry.verified ? undefined : m.site_selector_unverified()}
+										class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content
+											no-underline outline-none data-highlighted:bg-base-300
+											{selected ? 'font-medium text-accent' : ''}
+											{entry.verified ? '' : 'opacity-50'}"
+									>
+										{entry.siteName}
+									</a>
+								{/snippet}
+							</Select.Item>
+						{/each}
+					</Select.Group>
+				{/each}
+			</Select.Viewport>
 		</Select.Content>
 	</Select.Root>
 {/if}

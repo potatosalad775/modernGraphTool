@@ -128,9 +128,29 @@ line byte for byte and drops empty translations rather than writing <code dir="a
 <li>A <code dir="auto">project.inlang/settings.json</code> change when the contributor added a language.</li>
 <li>Plurals already in Paraglide’s variant format, since Fink edits them natively.</li>
 </ul>
-<p>After merging one, run <code dir="auto">npm run i18n:missing</code> so the staging files stop listing what was just
-translated. <code dir="auto">i18n:apply</code> would skip those keys anyway while their staging value is still the
-untouched English text, but a stale file misleads the next offline translator.</p>
+<p>Before merging one, run <code dir="auto">npm run i18n:tidy -- --base origin/main</code> on the PR branch and push the
+result; fork PRs accept maintainer pushes by default. Fink adds a message to the end of the file
+whenever the contributor’s copy lacks it, and a fork that is behind <code dir="auto">main</code> lacks every key added
+since. A Russian translation can therefore arrive carrying English and Korean keys that <code dir="auto">main</code>
+already has elsewhere in the file. Git merges both copies without a conflict, and <code dir="auto">JSON.parse</code>
+silently keeps one of them. The tidy moves each key back to where <code dir="auto">main</code> has it, so the merge
+collapses the two into one.</p>
+<p>You don’t need a local checkout for this. Comment <code dir="auto">/tidy</code> on the PR, or run the <strong>i18n tidy</strong>
+workflow from the Actions tab with the PR number. It runs the same tidy against <code dir="auto">main</code> and pushes
+the result to the PR branch as a commit, then replies with what changed. Only the repository
+owner, members and collaborators can trigger it, and the PR must allow edits by maintainers. It
+runs nothing from the PR itself: <code dir="auto">main</code>’s script tidies a copy of the PR’s translation files. Like
+every comment-triggered workflow, it runs from the copy of the workflow file on <code dir="auto">main</code>.</p>
+<p>The workflow pushes with an <code dir="auto">I18N_TIDY_TOKEN</code> repository secret: a classic personal access token
+with the <code dir="auto">public_repo</code> scope, from an account with write access. <code dir="auto">GITHUB_TOKEN</code> cannot push to a
+fork, and a fine-grained token cannot reach a repository its owner doesn’t own, which a
+contributor’s fork is not.</p>
+<p>After merging, run <code dir="auto">npm run i18n:missing</code>, then <code dir="auto">npm run i18n:tidy</code>. <code dir="auto">i18n:missing</code> gives a
+language the PR just added its first staging file, which the tidy never creates. The tidy then
+drops the staging entries that were just translated and deletes a staging file with nothing left
+in it.</p>
+<p>CI checks both halves on every PR: a duplicate key in the merge result fails the build, and a file
+the tidy would still change is flagged without failing it.</p>
 <p><strong>Staging files (the offline fallback).</strong> For contributors who would rather work in a text editor,
 <code dir="auto">messages/&#x3C;locale>.json</code> stays untouched and the translator edits a generated staging file that
 contains only the keys still needing work:</p>
@@ -159,7 +179,12 @@ contains only the keys still needing work:</p>
 
 
 
-<table><thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead><tbody><tr><td><code dir="auto">npm run i18n:check</code></td><td>anyone</td><td>Reports missing / stale keys per locale. Changes nothing.</td></tr><tr><td><code dir="auto">npm run i18n:missing</code></td><td>maintainer</td><td>Writes <code dir="auto">messages/_missing_translations_&#x3C;locale>.json</code> — the gap keys, pre-filled with the <code dir="auto">en</code> source text.</td></tr><tr><td><code dir="auto">npm run i18n:apply</code></td><td>maintainer</td><td>Merges those staging files back into <code dir="auto">messages/&#x3C;locale>.json</code> (in <code dir="auto">en</code> key order) and deletes them.</td></tr></tbody></table>
+
+
+
+
+
+<table><thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead><tbody><tr><td><code dir="auto">npm run i18n:check</code></td><td>anyone</td><td>Reports missing / stale keys per locale. Changes nothing.</td></tr><tr><td><code dir="auto">npm run i18n:missing</code></td><td>maintainer</td><td>Writes <code dir="auto">messages/_missing_translations_&#x3C;locale>.json</code> — the gap keys, pre-filled with the <code dir="auto">en</code> source text.</td></tr><tr><td><code dir="auto">npm run i18n:apply</code></td><td>maintainer</td><td>Merges those staging files back into <code dir="auto">messages/&#x3C;locale>.json</code> (in <code dir="auto">en</code> key order) and deletes them.</td></tr><tr><td><code dir="auto">npm run i18n:tidy</code></td><td>maintainer</td><td>Collapses duplicate keys, puts every file in <code dir="auto">en</code> key order, and drops staging entries already translated.</td></tr></tbody></table>
 <ol>
 <li>A key is added to <code dir="auto">messages/en.json</code> → run <code dir="auto">npm run i18n:missing</code> to regenerate the staging files.</li>
 <li>A translator edits <code dir="auto">messages/_missing_translations_ko.json</code> and opens a PR. Keys they’re unsure
@@ -170,6 +195,10 @@ about can be left out entirely — those keep falling back to English.</li>
 than dropping them. It also skips a key whose text uses a <code dir="auto">{placeholder}</code> that <code dir="auto">en.json</code> doesn’t
 pass, and a plain string that would replace a plural already in the locale (<code dir="auto">--force</code> overrides
 the latter). Use <code dir="auto">--dry-run</code> to preview.</p>
+<p><code dir="auto">i18n:tidy</code> never decides between two different values. A duplicate key whose copies disagree
+leaves its file untouched and fails the run, and a staging entry someone has edited is kept with a
+warning even when the locale already has the key. <code dir="auto">--check</code> changes nothing and exits non-zero if
+anything needs tidying. <code dir="auto">--base &#x3C;ref></code> orders <code dir="auto">en.json</code> like that ref’s copy instead of its own.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="plurals">Plurals</h3><a class="sl-anchor-link" href="#plurals"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Plurals”</span></a></div>
 <p>A count needs more than <code dir="auto">{count} band(s)</code>: <code dir="auto">en</code> splits 1 band from 2 bands, and many languages
 need a different word for 1, 2–4 and 5+. Write <code dir="auto">en.json</code> counts as plurals too, never <code dir="auto">(s)</code>. The

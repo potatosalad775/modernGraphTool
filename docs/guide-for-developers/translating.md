@@ -60,6 +60,12 @@ own name, and visitors whose browser prefers it get it automatically.
 
 ## Sending your translation
 
+:::tip[Translated with Fink before?]
+Your fork from last time may be behind. Before you push, open it on GitHub and choose **Sync fork**,
+then **Update branch**. An out-of-date fork makes your pull request re-add messages that are
+already there, which the maintainer then has to clean up.
+:::
+
 1. Choose **Fork** in the bottom bar, if you haven't already. Fink creates your copy of the
    repository and moves your edits into it.
 2. Choose **Review** to check every change, then **Push**.

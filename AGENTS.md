@@ -186,6 +186,11 @@ Keys are `underscore_separated` (`menu_graph_panel`, not `menu.graphPanel`). Gen
 partial translations are welcome and untranslated strings just render in English.
 
 Run `npm run i18n:check` after adding, renaming or removing keys in `messages/en.json`.
+Every `messages/*.json` follows `en.json` key order, so two branches adding the same key put it in
+the same spot and git merges them as one. `npm run i18n:tidy` restores that order and collapses
+duplicate keys; CI fails on a duplicate. Tidy a translation PR from a stale fork before merging
+it: comment `/tidy` on the PR (`.github/workflows/i18n-tidy.yml`), or run
+`npm run i18n:tidy -- --base origin/main` on its branch.
 Translators contribute through [Fink](https://fink.inlang.com), which edits `messages/<locale>.json`
 straight from GitHub and lets them add a locale themselves; the `_missing_translations_*` staging
 files are the offline fallback. Translator walkthrough:

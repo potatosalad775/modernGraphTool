@@ -76,9 +76,33 @@ walkthrough is [Translating](./translating.mdx). What reaches you:
 - A `project.inlang/settings.json` change when the contributor added a language.
 - Plurals already in Paraglide's variant format, since Fink edits them natively.
 
-After merging one, run `npm run i18n:missing` so the staging files stop listing what was just
-translated. `i18n:apply` would skip those keys anyway while their staging value is still the
-untouched English text, but a stale file misleads the next offline translator.
+Before merging one, run `npm run i18n:tidy -- --base origin/main` on the PR branch and push the
+result; fork PRs accept maintainer pushes by default. Fink adds a message to the end of the file
+whenever the contributor's copy lacks it, and a fork that is behind `main` lacks every key added
+since. A Russian translation can therefore arrive carrying English and Korean keys that `main`
+already has elsewhere in the file. Git merges both copies without a conflict, and `JSON.parse`
+silently keeps one of them. The tidy moves each key back to where `main` has it, so the merge
+collapses the two into one.
+
+You don't need a local checkout for this. Comment `/tidy` on the PR, or run the **i18n tidy**
+workflow from the Actions tab with the PR number. It runs the same tidy against `main` and pushes
+the result to the PR branch as a commit, then replies with what changed. Only the repository
+owner, members and collaborators can trigger it, and the PR must allow edits by maintainers. It
+runs nothing from the PR itself: `main`'s script tidies a copy of the PR's translation files. Like
+every comment-triggered workflow, it runs from the copy of the workflow file on `main`.
+
+The workflow pushes with an `I18N_TIDY_TOKEN` repository secret: a classic personal access token
+with the `public_repo` scope, from an account with write access. `GITHUB_TOKEN` cannot push to a
+fork, and a fine-grained token cannot reach a repository its owner doesn't own, which a
+contributor's fork is not.
+
+After merging, run `npm run i18n:missing`, then `npm run i18n:tidy`. `i18n:missing` gives a
+language the PR just added its first staging file, which the tidy never creates. The tidy then
+drops the staging entries that were just translated and deletes a staging file with nothing left
+in it.
+
+CI checks both halves on every PR: a duplicate key in the merge result fails the build, and a file
+the tidy would still change is flagged without failing it.
 
 **Staging files (the offline fallback).** For contributors who would rather work in a text editor,
 `messages/<locale>.json` stays untouched and the translator edits a generated staging file that
@@ -89,6 +113,7 @@ contains only the keys still needing work:
 | `npm run i18n:check`   | anyone     | Reports missing / stale keys per locale. Changes nothing.                                                   |
 | `npm run i18n:missing` | maintainer | Writes `messages/_missing_translations_<locale>.json` — the gap keys, pre-filled with the `en` source text. |
 | `npm run i18n:apply`   | maintainer | Merges those staging files back into `messages/<locale>.json` (in `en` key order) and deletes them.         |
+| `npm run i18n:tidy`    | maintainer | Collapses duplicate keys, puts every file in `en` key order, and drops staging entries already translated.  |
 
 1. A key is added to `messages/en.json` → run `npm run i18n:missing` to regenerate the staging files.
 2. A translator edits `messages/_missing_translations_ko.json` and opens a PR. Keys they're unsure
@@ -99,6 +124,11 @@ contains only the keys still needing work:
 than dropping them. It also skips a key whose text uses a `{placeholder}` that `en.json` doesn't
 pass, and a plain string that would replace a plural already in the locale (`--force` overrides
 the latter). Use `--dry-run` to preview.
+
+`i18n:tidy` never decides between two different values. A duplicate key whose copies disagree
+leaves its file untouched and fails the run, and a staging entry someone has edited is kept with a
+warning even when the locale already has the key. `--check` changes nothing and exits non-zero if
+anything needs tidying. `--base <ref>` orders `en.json` like that ref's copy instead of its own.
 
 ### Plurals
 

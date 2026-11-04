@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the i18n scripts (check-translations.js, apply-translations.js).
+ * Shared helpers for the i18n scripts (check-, apply- and tidy-translations.js).
  */
 
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
@@ -22,11 +22,14 @@ export const readJson = (fileName) =>
  * Prettier collapses. The input stays indented because Prettier keeps an object expanded only
  * when its source already was.
  */
-export const writeJson = async (fileName, obj) => {
+export const formatJson = async (fileName, obj) => {
 	const path = join(MESSAGES_DIR, fileName);
 	const options = { ...(await resolveConfig(path)), filepath: path };
-	writeFileSync(path, await format(JSON.stringify(obj, null, '\t'), options));
+	return format(JSON.stringify(obj, null, '\t'), options);
 };
+
+export const writeJson = async (fileName, obj) =>
+	writeFileSync(join(MESSAGES_DIR, fileName), await formatJson(fileName, obj));
 
 /** Message keys only — drops `$schema` and `@@info` metadata. */
 export const messageKeys = (obj) =>

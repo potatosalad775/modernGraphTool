@@ -18,6 +18,7 @@
 		"i18n:missing": "node scripts/check-translations.js --write",
 		"i18n:apply": "node scripts/apply-translations.js && npm run i18n:missing",
 		"i18n:apply_force": "node scripts/apply-translations.js --force",
+		"i18n:tidy": "node scripts/tidy-translations.js",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",

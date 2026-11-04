@@ -84,8 +84,10 @@ already has elsewhere in the file. Git merges both copies without a conflict, an
 silently keeps one of them. The tidy moves each key back to where `main` has it, so the merge
 collapses the two into one.
 
-After merging, run `npm run i18n:tidy` once more. It drops the staging entries that were just
-translated, and deletes a staging file with nothing left in it.
+After merging, run `npm run i18n:missing`, then `npm run i18n:tidy`. `i18n:missing` gives a
+language the PR just added its first staging file, which the tidy never creates. The tidy then
+drops the staging entries that were just translated and deletes a staging file with nothing left
+in it.
 
 CI checks both halves on every PR: a duplicate key in the merge result fails the build, and a file
 the tidy would still change is flagged without failing it.

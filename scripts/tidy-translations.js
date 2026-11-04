@@ -15,9 +15,11 @@
  *    to main's position, so the PR stops touching them at all.
  *  - Every other locale follows en.json order (as `i18n:apply` writes it). Keys en.json lacks keep
  *    their place after their neighbour; `i18n:check` lists them as stale.
- *  - _missing_translations_*.json staging files drop entries the locale has since translated, or
- *    that en.json no longer has — but only while the entry is still the untouched English text.
- *    An edited entry is someone's work, so it's reported and kept. An emptied file is deleted.
+ *  - _missing_translations_*.json staging files drop entries the locale has since translated, but
+ *    only while the entry is still the untouched English text (plurals in the shorthand
+ *    `i18n:missing` writes). An edited entry is someone's work, so it's reported and kept. So is an
+ *    entry for a key en.json no longer has: nothing here records what its English used to be, so
+ *    "untouched" can't be proven. An emptied file is deleted.
  *
  * Usage:
  *   node scripts/tidy-translations.js                    # tidy in place
@@ -40,6 +42,7 @@ import {
 	listLocales,
 	listMissingFiles
 } from './i18n-shared.js';
+import { toShorthand } from './i18n-plural.js';
 
 const args = process.argv.slice(2);
 const check = args.includes('--check');
@@ -107,19 +110,26 @@ const scanEntries = (text) => {
 };
 
 /**
- * `keys` reordered to follow `reference`. Keys the reference lacks stay right after the key that
- * preceded them in `keys`, so a block of new keys keeps its place and its internal order.
+ * Every key of `reference` and `keys`, in `reference` order. Keys only `keys` has stay right after
+ * the key that preceded them there, so a block of new keys keeps its place and its internal order.
  */
-const orderLike = (keys, reference) => {
-	const present = new Set(keys);
+const unionOrder = (keys, reference) => {
 	const known = new Set(reference);
-	const out = reference.filter((k) => present.has(k));
+	const out = [...reference];
 	keys.forEach((key, i) => {
 		if (known.has(key)) return;
 		out.splice(i === 0 ? 0 : out.indexOf(keys[i - 1]) + 1, 0, key);
 	});
 	return out;
 };
+
+/** `keys` reordered to follow `reference`, as {@link unionOrder} places them. */
+const orderLike = (keys, reference) => {
+	const present = new Set(keys);
+	return unionOrder(keys, reference).filter((k) => present.has(k));
+};
+
+const has = (obj, key) => Object.hasOwn(obj, key);
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -129,12 +139,13 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
  */
 const load = (fileName) => {
 	const text = readFileSync(join(MESSAGES_DIR, fileName), 'utf-8');
-	const obj = {};
-	const firstLine = {};
+	// Null prototype: a key named `__proto__` or `constructor` is just a key here.
+	const obj = Object.create(null);
+	const firstLine = Object.create(null);
 	const duplicates = [];
 	const conflicts = [];
 	for (const { key, line, value } of scanEntries(text)) {
-		if (!(key in obj)) {
+		if (!has(obj, key)) {
 			obj[key] = value;
 			firstLine[key] = line;
 			continue;
@@ -148,7 +159,7 @@ const load = (fileName) => {
 /** `obj` rebuilt with its metadata keys first, then the message keys in `order`. */
 const rebuild = (obj, order) => {
 	const messages = new Set(messageKeys(obj));
-	const next = {};
+	const next = Object.create(null);
 	for (const key of Object.keys(obj)) if (!messages.has(key)) next[key] = obj[key];
 	for (const key of order) next[key] = obj[key];
 	return next;
@@ -193,7 +204,12 @@ if (duplicatesOnly) {
 // --- Canonical order. ------------------------------------------------------------------------
 
 const base = loaded.get(`${BASE_LOCALE}.json`);
-let enOrder = messageKeys(base.obj);
+const branchEnKeys = messageKeys(base.obj);
+// en.json holds only its own keys; the locales follow `canonical`, which with --base also places
+// keys only the ref's en.json has, so a translation of one lands where main will put it.
+let enOrder = branchEnKeys;
+let canonical = branchEnKeys;
+const enValues = Object.assign(Object.create(null), base.obj);
 if (baseRef) {
 	let refText;
 	try {
@@ -205,29 +221,39 @@ if (baseRef) {
 		console.error(`Can't read messages/${BASE_LOCALE}.json at '${baseRef}' — fetch it first?`);
 		process.exit(2);
 	}
-	enOrder = orderLike(enOrder, messageKeys(JSON.parse(refText)));
+	const ref = JSON.parse(refText);
+	enOrder = orderLike(branchEnKeys, messageKeys(ref));
+	canonical = unionOrder(branchEnKeys, messageKeys(ref));
+	for (const key of messageKeys(ref)) if (!has(enValues, key)) enValues[key] = ref[key];
 }
-const enValues = base.obj;
-const enKeySet = new Set(enOrder);
+const enKeySet = new Set(canonical);
+/** A staging value nobody has touched: the English text, as `i18n:missing` wrote it. */
+const untouched = (key, value) =>
+	same(value, toShorthand(enValues[key]) ?? enValues[key]) || same(value, enValues[key]);
 
 /** What the tidy writes for one file, or `null` to delete it. */
 const tidy = (fileName, obj) => {
 	if (fileName === `${BASE_LOCALE}.json`) return rebuild(obj, enOrder);
 
 	if (!fileName.startsWith(MISSING_PREFIX)) {
-		return rebuild(obj, orderLike(messageKeys(obj), enOrder));
+		return rebuild(obj, orderLike(messageKeys(obj), canonical));
 	}
 
 	const locale = fileName.slice(MISSING_PREFIX.length, -'.json'.length);
-	const target = loaded.get(`${locale}.json`)?.obj ?? {};
+	const target = loaded.get(`${locale}.json`)?.obj ?? Object.create(null);
 	const keep = messageKeys(obj).filter((key) => {
-		const done = key in target;
+		const done = has(target, key);
 		if (!done && enKeySet.has(key)) return true;
 		if (!enKeySet.has(key)) {
-			annotate('warning', fileName, null, `'${key}' is not in ${BASE_LOCALE}.json — kept.`);
+			annotate(
+				'warning',
+				fileName,
+				null,
+				`'${key}' is not in ${BASE_LOCALE}.json, and its old English is unknown — kept.`
+			);
 			return true;
 		}
-		if (same(obj[key], enValues[key])) return false; // untouched English: safe to drop
+		if (untouched(key, obj[key])) return false;
 		annotate(
 			'warning',
 			fileName,
@@ -237,7 +263,7 @@ const tidy = (fileName, obj) => {
 		return true;
 	});
 	if (keep.length === 0) return null;
-	return rebuild(obj, orderLike(keep, enOrder));
+	return rebuild(obj, orderLike(keep, canonical));
 };
 
 for (const fileName of fileNames) {

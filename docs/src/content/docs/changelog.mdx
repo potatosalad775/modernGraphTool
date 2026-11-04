@@ -5,6 +5,19 @@ sidebar:
   order: 11
 ---
 
+### v2.3.3
+- Feat: Button and switch tooltips now follow the theme and the selected language, open faster, and also open on keyboard focus. Buttons with a visible text label only show a tooltip when it adds something, and screen readers announce them by that label.
+- Feat: `COLLAPSE_TARGET_LIST_ON_INITIAL` can now be set separately for each layout with `{ DESKTOP: …, MOBILE: … }`; `true` or `false` still applies to both. The sample `config.js` now starts expanded on desktop and collapsed on mobile. A visitor's own toggle is kept for the rest of the visit. See [COLLAPSE_TARGET_LIST_ON_INITIAL documentation](./guide-for-admins/customize-page.mdx#collapse_target_list_on_initial).
+- Feat: The device type headings in the site selector and cross-site search results are now translated.
+- Fix: Hardware EQ no longer writes to presets the device lists as built-in. They can still be played and read, and the panel asks you to pick another preset to write. See [Device EQ](./features/device-peq.mdx#device-eq).
+- Fix: Hardware EQ now shows the right state on devices that keep their EQ switch separate from the current preset, such as the Fosi DS3. With the EQ off, **Device EQ** shows Off and **Read** still reaches that preset.
+- Fix: When only the firmware tells devices apart, such as the 8- and 32-band Fosi DS3, Hardware EQ now asks the device first and only asks you if it doesn't answer.
+- Fix: Devices that restart to save now reconnect by themselves. **Reconnect** only appears if the device doesn't come back. See [Writing automatically](./features/device-peq.mdx#writing-automatically).
+- Fix: A device that is unplugged or goes out of range is now disconnected right away. Your own EQ constraint comes back, and your bands stay as they are.
+- Fix: Uploaded targets now behave like other targets: they're listed first, and their labels no longer carry a channel tag. (#99)
+- Fix: The page no longer ends up taller than the screen on Android Chrome. (#98)
+- Fix: The site selector now supports keyboard navigation, and its group headings stay visible while scrolling a long list.
+
 ### v2.3.2
 - Feat: Top bar links that don't fit now move into a **More** menu, starting from the end of `TOPBAR.LINK_LIST`, so list the most important links first. See [TOPBAR documentation](./guide-for-admins/customize-page.mdx#topbar).
 - Fix: The color picker's **Random** button no longer picks the curve's current color again, and skips colors already used by other visible curves. Once the palette runs out, it generates colors that stay readable against the theme's graph background. The built-in Okabe-Ito palette drops its black, which disappeared on dark themes. See [TRACE_STYLING documentation](./guide-for-admins/customize-page.mdx#trace_styling).

@@ -186,9 +186,7 @@
 	"normalizer_input_hz_title": "Нормалізація за частотою",
 	"smoothing_button_label": "Згладжування",
 	"smoothing_variable_label": "Змінне згладжування",
-	"db_type_iems": "Внутрішньоканальні (IEM)",
 	"smoothing_psychoacoustic_label": "Психоакустичне згладжування",
-	"db_type_earbuds": "Вкладиші",
 	"screenshot_button_label": "Скріншот",
 	"screenshot_button_failed": "Не вдалося зробити скріншот",
 	"y_axis_scale_button_label": "Масштаб осі Y",
@@ -315,6 +313,9 @@
 	],
 	"site_selector_label": "Обрати сайт",
 	"site_selector_unverified": "Під час останнього створення індексу доступ до цієї бази даних був неможливий. Посилання може не працювати.",
+	"db_type_iems": "Внутрішньоканальні (IEM)",
+	"db_type_headphones": "Повнорозміри",
+	"db_type_earbuds": "Вкладиші",
 	"sponsor_banner_dismiss": "Закрити",
 	"shoplink_buy_now": "Купити зараз",
 	"selection_list_baseline_off": "Зробити базовою лінією",
@@ -631,7 +632,6 @@
 			}
 		}
 	],
-	"db_type_headphones": "Повнорозміри",
 	"equalizer_device_peq_status_reconnect_manual": "Не вдалося знову знайти пристрій. Підключіть його та з'єднайтеся.",
 	"equalizer_device_peq_field_type": "Тип",
 	"equalizer_device_peq_field_freq": "Частота",

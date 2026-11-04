@@ -108,12 +108,12 @@ jobs:
             exit 1
           fi
 
+      # No npm cache: comment-triggered runs can't save one, and a job holding a
+      # write token is better off not sharing a cache with other workflows.
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: trusted/package-lock.json
 
       # --ignore-scripts: the tidy only needs Prettier; `prepare` would compile
       # Paraglide and the browser installs are irrelevant here.

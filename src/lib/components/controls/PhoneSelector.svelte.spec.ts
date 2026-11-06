@@ -115,6 +115,50 @@ describe('PhoneSelector', () => {
 		});
 	});
 
+	describe('brand list', () => {
+		function stubTwoBrands(): void {
+			MetadataParser.phoneMetadata = [
+				{
+					brand: 'Acme',
+					phones: [makePhone({ brand: 'Acme', name: 'Pula', identifier: 'Acme Pula' })]
+				},
+				{
+					brand: 'Zeta',
+					phones: [makePhone({ brand: 'Zeta', name: 'One', identifier: 'Zeta One' })]
+				}
+			];
+		}
+
+		function brands(): string[] {
+			return [...document.querySelectorAll('.ps-brand-pane > button')].map((b) =>
+				b.textContent!.trim()
+			);
+		}
+
+		it('lists only brands with a device matching the search', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			stubTwoBrands();
+			render(PhoneSelector);
+
+			await vi.waitFor(() => expect(brands()).toEqual(['Acme', 'Zeta']));
+			await page.getByRole('searchbox').fill('pula');
+			await vi.waitFor(() => expect(brands()).toEqual(['Acme']));
+			await page.getByRole('searchbox').fill('');
+			await vi.waitFor(() => expect(brands()).toEqual(['Acme', 'Zeta']));
+		});
+
+		// Hiding a selected brand would leave its filter applied with no way to see it.
+		it('keeps a selected brand listed when none of its devices match', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			stubTwoBrands();
+			render(PhoneSelector);
+
+			await page.getByRole('button', { name: 'Zeta', exact: true }).click();
+			await page.getByRole('searchbox').fill('pula');
+			await vi.waitFor(() => expect(brands()).toEqual(['Acme', 'Zeta']));
+		});
+	});
+
 	describe('description', () => {
 		it('renders the allowed inline HTML as markup, not as literal text', async () => {
 			stubBook(

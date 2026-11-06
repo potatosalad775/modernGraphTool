@@ -55,9 +55,32 @@
 		);
 	});
 
+	// `A,B` is an *and* across databases, but a single device can only ever be
+	// one of them — so locally the terms union instead, putting both sides of
+	// the comparison the query describes in front of the user at once. `//`
+	// alternatives are an *or* already, so every term simply joins the union.
+	// A group's `-word` exclusions apply to that group's terms only.
+	const queryGroups = $derived(splitQueryGroups(searchQuery));
+
+	function matchesQuery(identifier: string): boolean {
+		const id = identifier.toLowerCase();
+		return queryGroups.some((group) => matchesQueryGroup(id, group));
+	}
+
+	/**
+	 * Brands with at least one device the search matches. A selected brand stays
+	 * listed even with no match, or its filter would keep applying with no way to
+	 * see or clear it short of "Clear brands".
+	 */
 	const brandListData = $derived.by((): string[] => {
 		if (!MetadataParser.phoneMetadata) return [];
-		return MetadataParser.phoneMetadata.map((b) => b.brand);
+		const book = MetadataParser.phoneMetadata;
+		if (queryGroups.length === 0) return book.map((b) => b.brand);
+		return book
+			.filter(
+				(b) => selectedBrands.has(b.brand) || b.phones.some((p) => matchesQuery(p.identifier))
+			)
+			.map((b) => b.brand);
 	});
 
 	const loadedIds = $derived(new Set([...frStore.entries.values()].map((e) => e.identifier)));
@@ -87,18 +110,7 @@
 			selectedBrands.size > 0
 				? fullPhoneList.filter((p) => selectedBrands.has(p.brand))
 				: fullPhoneList;
-		// `A,B` is an *and* across databases, but a single device can only ever be
-		// one of them — so locally the terms union instead, putting both sides of
-		// the comparison the query describes in front of the user at once. `//`
-		// alternatives are an *or* already, so every term simply joins the union.
-		// A group's `-word` exclusions apply to that group's terms only.
-		const groups = splitQueryGroups(searchQuery);
-		if (groups.length > 0) {
-			list = list.filter((p) => {
-				const id = p.identifier.toLowerCase();
-				return groups.some((group) => matchesQueryGroup(id, group));
-			});
-		}
+		if (queryGroups.length > 0) list = list.filter((p) => matchesQuery(p.identifier));
 		if (pinnedIds.size === 0) return list;
 		// Sort is stable, so both groups keep their phone_book.json order.
 		return [...list].sort(

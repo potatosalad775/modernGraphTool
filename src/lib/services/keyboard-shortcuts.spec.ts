@@ -22,6 +22,7 @@ type KeyInit = Partial<Omit<ShortcutKeyEvent, 'preventDefault'>>;
 function keyEvent(key: string, init: KeyInit = {}) {
 	return {
 		key,
+		code: key === '\\' ? 'Backslash' : `Key${key.toUpperCase()}`,
 		metaKey: false,
 		ctrlKey: false,
 		altKey: false,
@@ -221,6 +222,42 @@ describe('keyboard shortcuts', () => {
 			expect(eqStore.momentaryOverride).toBeNull();
 		});
 
+		it('releases on the keyup of the physical key even when Shift made it report "|"', () => {
+			eqStore.isEnabled = true;
+			press('\\', { code: 'Backslash' });
+
+			// Shift went down before `\` came up: the layout now reports `|`, the key is the same.
+			release('|', { code: 'Backslash', shiftKey: true });
+
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryOverride).toBeNull();
+			expect(eqStore.momentaryRestore).toBeNull();
+		});
+
+		it('does not release on the keyup of a different physical key during a hold', () => {
+			eqStore.isEnabled = true;
+			press('\\', { code: 'Backslash' });
+
+			release('|', { code: 'KeyA', shiftKey: true });
+
+			expect(eqStore.isEnabled).toBe(false);
+			expect(eqStore.momentaryOverride).toBe('bypass');
+		});
+
+		it('forgets the physical key once the hold is over', () => {
+			eqStore.isEnabled = true;
+			press('\\', { code: 'Backslash' });
+			onBlur();
+			// A hold begun by another physical key: the old key's code must not release it.
+			press('\\', { code: 'IntlBackslash' });
+
+			release('|', { code: 'Backslash', shiftKey: true });
+
+			expect(eqStore.momentaryOverride).toBe('bypass');
+			release('\\', { code: 'IntlBackslash' });
+			expect(eqStore.momentaryOverride).toBeNull();
+		});
+
 		it('ignores the keyup of other keys', () => {
 			eqStore.isEnabled = true;
 			press('\\');
@@ -356,6 +393,39 @@ describe('keyboard shortcuts', () => {
 
 			press('y', { metaKey: true });
 
+			expect(eqStore.filters).toHaveLength(1);
+		});
+
+		it.each([
+			['Ctrl', { ctrlKey: true }],
+			['Meta', { metaKey: true }]
+		])('%s+Shift+Z redoes (the browser reports "Z")', (_name, init) => {
+			eqCommands.addBand(makeFilter({ freq: 500 }));
+			press('z', init);
+			expect(eqStore.filters).toHaveLength(0);
+
+			const e = press('Z', { ...init, shiftKey: true });
+
+			expect(e.preventDefault).toHaveBeenCalledOnce();
+			expect(eqStore.filters).toHaveLength(1);
+		});
+
+		it('Ctrl+Z undoes with CapsLock on (key "Z", no Shift)', () => {
+			eqCommands.addBand(makeFilter());
+
+			const e = press('Z', { ctrlKey: true });
+
+			expect(e.preventDefault).toHaveBeenCalledOnce();
+			expect(eqStore.filters).toHaveLength(0);
+		});
+
+		it('Ctrl+Y redoes with CapsLock on (key "Y")', () => {
+			eqCommands.addBand(makeFilter());
+			press('z', { ctrlKey: true });
+
+			const e = press('Y', { ctrlKey: true });
+
+			expect(e.preventDefault).toHaveBeenCalledOnce();
 			expect(eqStore.filters).toHaveLength(1);
 		});
 

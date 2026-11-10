@@ -13,10 +13,13 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
  * contenteditable element.
  *
  * - `\` held — flips the equalizer until release (`eqStore.holdMomentary`): a bypass when it was
- *   on, an audition when it was off. Ignored with Ctrl, Meta or Alt (Shift is allowed), and with
- *   no EQ source phone. A repeat is swallowed. Released by keyup of `\` (whatever has focus then)
- *   and by window blur, which swallows the keyup.
- * - Ctrl/Cmd+Z — undo. Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y — redo.
+ *   on, an audition when it was off. Ignored with Ctrl, Meta or Alt, and with no EQ source phone.
+ *   A repeat is swallowed. Matched on `key`, so it follows the layout; with Shift down the key
+ *   reads `|` on a US layout, so a hold cannot start then. One that is running is released by
+ *   keyup of `\` (whatever has focus then) or of the physical key that started it (`code`), which
+ *   still counts when Shift made it read `|`, and by window blur, which swallows the keyup.
+ * - Ctrl/Cmd+Z — undo. Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y — redo. The letter is matched without
+ *   case: the browser reports `Z` with Shift or CapsLock down.
  * - `1`–`4` — switch to the Device, Graph, Equalizer or Misc panel. Ignored with Ctrl, Meta, Alt
  *   or Shift.
  */
@@ -27,6 +30,8 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
  */
 export interface ShortcutKeyEvent {
 	key: string;
+	/** The physical key (`'Backslash'`), which does not change with Shift or the layout. */
+	code: string;
 	metaKey: boolean;
 	ctrlKey: boolean;
 	altKey: boolean;
@@ -43,6 +48,17 @@ export interface EditableTarget {
 }
 
 const PANELS = ['device', 'graph', 'equalizer', 'misc'] as const;
+
+/**
+ * The physical key (`code`) that started the running `\` hold, or null. Handler bookkeeping,
+ * not state anything reads: it lets the keyup release a hold when Shift changed what the key reads.
+ */
+let holdCode: string | null = null;
+
+function releaseHold(): void {
+	holdCode = null;
+	eqStore.releaseMomentary();
+}
 
 function isEditable(target: ShortcutKeyEvent['target']): boolean {
 	const el = target as EditableTarget | null;
@@ -81,19 +97,26 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 			e.preventDefault();
 			return;
 		}
-		if (eqStore.holdMomentary()) e.preventDefault();
+		if (eqStore.holdMomentary()) {
+			holdCode = e.code || null;
+			e.preventDefault();
+		}
 		return;
 	}
 
 	if (inEditable) return;
 
-	if (mod && e.key === 'z' && !e.shiftKey) {
+	// The browser reports `Z` with Shift or CapsLock down, so compare the letter without case and
+	// let `shiftKey` alone tell undo from redo.
+	const letter = e.key.toLowerCase();
+
+	if (mod && letter === 'z' && !e.shiftKey) {
 		e.preventDefault();
 		undo();
 		return;
 	}
 
-	if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+	if (mod && ((letter === 'z' && e.shiftKey) || letter === 'y')) {
 		e.preventDefault();
 		redo();
 		return;
@@ -111,11 +134,12 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 export function onKeyup(e: ShortcutKeyEvent): void {
 	// Restore EQ regardless of focus target — the keyup may land in an input
 	// if the user tabbed during the hold.
-	if (e.key === '\\') eqStore.releaseMomentary();
+	// The physical key also counts: with Shift down before the release it reads `|`, not `\`.
+	if (e.key === '\\' || (holdCode !== null && e.code === holdCode)) releaseHold();
 }
 
 // Losing window focus mid-hold (alt-tab, devtools) swallows the keyup, which
 // would otherwise leave EQ bypassed indefinitely — restore on blur too.
 export function onBlur(): void {
-	eqStore.releaseMomentary();
+	releaseHold();
 }

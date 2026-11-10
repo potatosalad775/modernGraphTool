@@ -12,6 +12,7 @@ import type {
 	SampleEnvelope,
 	RawFRCache
 } from '#lib/types/data-types.js';
+import { isTargetType } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
@@ -495,7 +496,7 @@ class DataProvider {
 				frStore.set(uuid, updated);
 
 				// Update persisted original data so TargetCustomizer can re-apply adjustments
-				if (data.type === 'target' && graphStore.targetOriginalData.has(uuid)) {
+				if (isTargetType(data) && graphStore.targetOriginalData.has(uuid)) {
 					graphStore.targetOriginalData.set(uuid, {
 						...(processed.L && { L: processed.L }),
 						...(processed.R && { R: processed.R }),

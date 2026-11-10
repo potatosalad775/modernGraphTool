@@ -915,6 +915,44 @@ describe('DataProvider', () => {
 			expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
 		});
 
+		// An uploaded target is a target too: it has its own snapshot in targetOriginalData
+		// and goes through the same re-apply pass, so the snapshot must follow the smoothing.
+		it('re-smooths an uploaded target exactly like a manifest target', async () => {
+			const manifest = 'manifest-target';
+			const uploaded = 'uploaded-target';
+			targetAdjustmentStore.delete(manifest);
+			targetAdjustmentStore.delete(uploaded);
+			const previousSmooth = graphStore.smoothValue;
+			try {
+				graphStore.smoothValue = '1/48';
+				for (const [uuid, type] of [
+					[manifest, 'target'],
+					[uploaded, 'inserted-target']
+				] as const) {
+					seedTarget(uuid);
+					frStore.set(uuid, { ...frStore.get(uuid)!, type });
+					targetAdjustmentStore.ensure(uuid, 'Test Target');
+				}
+
+				await dataProvider.reSmoothAll();
+				const atFirstSmoothing = structuredClone(frStore.get(manifest)!.channels.AVG!.data);
+
+				graphStore.smoothValue = '1/3';
+				await dataProvider.reSmoothAll();
+
+				const drawnManifest = frStore.get(manifest)!.channels.AVG!.data;
+				const drawnUploaded = frStore.get(uploaded)!.channels.AVG!.data;
+				// Guard: the new smoothing really moved the curve.
+				expect(drawnManifest).not.toEqual(atFirstSmoothing);
+				expect(drawnUploaded).toEqual(drawnManifest);
+				expect(graphStore.targetOriginalData.get(uploaded)!.AVG!.data).toEqual(
+					graphStore.targetOriginalData.get(manifest)!.AVG!.data
+				);
+			} finally {
+				graphStore.smoothValue = previousSmooth;
+			}
+		});
+
 		it('leaves a registered but unadjusted target untouched', async () => {
 			seedTarget(ADJUSTED);
 			seedTarget(PLAIN);

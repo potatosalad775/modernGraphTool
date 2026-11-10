@@ -82,7 +82,7 @@ for (const file of files) {
 	await api('POST', '/import/frequency-response-data', {
 		identifier,
 		isImpedance: false,
-		startFreq: FRParser._standardFrequencies[0],
+		startFreq: FRParser.standardFrequencies[0],
 		ppo: 48,
 		magnitude: encode(input)
 	});

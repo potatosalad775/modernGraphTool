@@ -126,7 +126,7 @@ describe('averageChannels', () => {
 });
 
 describe('averaging order', () => {
-	const freqs = FRParser._standardFrequencies;
+	const freqs = FRParser.standardFrequencies;
 	/** A flat curve with one sharp notch, at a different place per curve. */
 	const notched = (base: number, at: number): ChannelData => ({
 		data: freqs.map((f, i) => [f, Math.abs(i - at) < 3 ? base - 20 : base] as [number, number]),

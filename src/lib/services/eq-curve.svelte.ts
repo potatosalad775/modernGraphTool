@@ -254,7 +254,7 @@ class EqCurve {
 		const run = cache.samples?.[eqStore.sourceSample!.index];
 		if (!run) return null;
 		// Raw runs carry no AVG — processing derives it — so derive it the same way
-		const avg = run.AVG ?? (run.L && run.R ? FRParser._computeAvgChannel(run.L, run.R) : null);
+		const avg = run.AVG ?? (run.L && run.R ? FRParser.computeAvgChannel(run.L, run.R) : null);
 		return {
 			...(run.L && { L: run.L }),
 			...(run.R && { R: run.R }),

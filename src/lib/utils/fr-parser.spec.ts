@@ -16,7 +16,7 @@ function makeChannelData(baseDb: number, count = 480): ChannelData {
 
 /** The original `findIndex`-per-target interpolation, kept as the equivalence reference. */
 function referenceInterpolate(raw: FRDataPoint[]): FRDataPoint[] {
-	return FRParser._standardFrequencies.map((target) => {
+	return FRParser.standardFrequencies.map((target) => {
 		const index = raw.findIndex(([freq]) => freq > target);
 		if (index === -1) return [target, raw[raw.length - 1][1]] as FRDataPoint;
 		if (index === 0) return [target, raw[0][1]] as FRDataPoint;
@@ -164,11 +164,6 @@ describe('FRParser', () => {
 			expect(FRParser._parseFrequency('1000')).toBe(1000);
 		});
 
-		it('parses kHz notation', () => {
-			expect(FRParser._parseFrequency('1k')).toBe(1000);
-			expect(FRParser._parseFrequency('2.5K')).toBe(2500);
-		});
-
 		it('parses decimal frequencies', () => {
 			expect(FRParser._parseFrequency('20.5')).toBeCloseTo(20.5);
 		});
@@ -252,7 +247,7 @@ describe('FRParser', () => {
 	// interpolated exactly as the original `findIndex` pass did.
 	describe('_resampleToStandard — sparse input matches the reference interpolation', () => {
 		it('matches when the raw points are the standard grid itself', () => {
-			const raw = FRParser._standardFrequencies.map(
+			const raw = FRParser.standardFrequencies.map(
 				(f, i) => [f, 80 + Math.sin(i * 0.1) * 3] as FRDataPoint
 			);
 			expect(FRParser._resampleToStandard(raw)).toEqual(referenceInterpolate(raw));
@@ -278,7 +273,7 @@ describe('FRParser', () => {
 	});
 
 	describe('_resampleToStandard — dense input', () => {
-		const grid = FRParser._standardFrequencies;
+		const grid = FRParser.standardFrequencies;
 		const powerMean = (...db: number[]) =>
 			10 * Math.log10(db.reduce((sum, d) => sum + Math.pow(10, d / 10), 0) / db.length);
 

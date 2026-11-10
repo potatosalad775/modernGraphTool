@@ -5017,6 +5017,8 @@ There are two flavors depending on what you baseline:
 
 The tooltip on the button tells you which state you’re currently in. Click to advance to the next state.
 
+If you remove the curve you baselined, the graph goes back to the normal view; undo the removal and the baseline comes back in the state it was in. Any curve can be a baseline, including an [averaged curve](/modernGraphTool/docs/features/average-curves/).
+
 Baseline is a visual aid, not a data transformation
 
 Turning baseline on doesn’t change the underlying measurement files or the EQ pipeline — it just shifts how the existing curves are drawn. Turn it off and the original view comes right back.

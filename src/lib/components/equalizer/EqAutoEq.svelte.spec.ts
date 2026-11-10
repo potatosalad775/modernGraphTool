@@ -1,12 +1,12 @@
 /**
  * `EqAutoEq` is the AutoEQ control surface: four range fieldsets bound to
- * `settingsStore.autoEqOptions`, and a run button that assembles those into a
- * worker request and pushes the result through `eqCommands.replaceFiltersInScope`.
+ * `settingsStore.autoEqOptions`, a Run button and an auto-apply switch over
+ * `autoEqService`, and the notices that explain what the service did.
  *
- * The worker is mocked — `autoeq.worker.spec.ts` covers the protocol and
- * `equalizer.spec.ts` the optimization. What matters here is the request this
- * component builds, since a wrong option mapping is silent: AutoEQ still returns
- * filters, just optimized against the wrong constraints.
+ * What the service does — the request it builds, what lands in the EQ, auto-apply and the
+ * guard that switches it off — is covered in `autoeq-service.svelte.spec.ts`. Here the worker
+ * is mocked and only the view is under test: the fields, the labels, which controls show and
+ * which notice is up.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -22,63 +22,25 @@ import {
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { autoEqService } from '#lib/services/autoeq-service.svelte.js';
-import { commandHistory } from '#lib/services/command-history.svelte.js';
+import {
+	DEFAULT_OPTS,
+	OUTCOME,
+	RESULT,
+	curve,
+	makeItem,
+	resetAutoEqStores,
+	seedPair
+} from '#lib/services/autoeq-service.fixtures.js';
 import { runAutoEQInWorker } from '#lib/workers/autoeq-client.js';
 import type { AutoEqOutcome } from '#lib/workers/autoeq-request.js';
-import type { FRDataObject } from '#lib/types/data-types.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import * as m from '#lib/paraglide/messages.js';
-import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 vi.mock('#lib/workers/autoeq-client.js', () => ({
 	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
 }));
 
 const runInWorker = vi.mocked(runAutoEQInWorker);
-
-const RESULT: EQFilter[] = [{ type: 'PK', freq: 1000, gain: -3, q: 1, enabled: true }];
-/** What the worker hands back: the bands, plus which optimizer found them. */
-const OUTCOME = { filters: RESULT, engine: 'turboeq' as const, rmse: 0.42, preamp: -3 };
-
-const DEFAULT_OPTS = {
-	freqMin: 20,
-	freqMax: 15000,
-	qMin: 0.5,
-	qMax: 2.0,
-	gainMin: -12,
-	gainMax: 12,
-	useShelfFilter: true,
-	exactMatch: true
-};
-
-function curve(level: number): [number, number][] {
-	return [
-		[20, level],
-		[1000, level],
-		[20000, level]
-	];
-}
-
-function makeItem(
-	uuid: string,
-	type: FRDataObject['type'],
-	data: [number, number][]
-): FRDataObject {
-	return {
-		uuid,
-		type,
-		identifier: uuid,
-		channels: { AVG: { data } }
-	} as unknown as FRDataObject;
-}
-
-/** Seeds a source phone and an AutoEQ target and points the store at both. */
-function seedPair(): void {
-	frStore.set('src', makeItem('src', 'phone', curve(6)));
-	frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
-	eqStore.sourcePhoneUUID = 'src';
-	eqStore.autoEqTargetUUID = 'tgt';
-}
 
 function runButton() {
 	return page.getByRole('button', { name: m.equalizer_autoeq_run_button() });
@@ -97,28 +59,15 @@ function field(name: (typeof FIELD_ORDER)[number]) {
 
 describe('EqAutoEq', () => {
 	let replaceFilters: ReturnType<typeof vi.spyOn>;
-	let alertSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
-		frStore.entries.clear();
-		eqStore.filters = [];
-		eqStore.channelScope = 'BOTH';
-		eqStore.sourcePhoneUUID = null;
-		eqStore.autoEqTargetUUID = null;
-		eqStore.isEnabled = false;
-		eqStore.momentaryOverride = null;
-		eqStore.momentaryRestore = null;
-		settingsStore.autoEqOptions = { ...DEFAULT_OPTS };
-		autoEqService.reset();
-		commandHistory.clear();
-		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
-		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		resetAutoEqStores();
 		runInWorker.mockClear();
 		runInWorker.mockResolvedValue(OUTCOME);
 		replaceFilters = vi
 			.spyOn(eqCommands, 'replaceFiltersInScope')
 			.mockImplementation(() => undefined as never);
-		alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
 	});
 
 	afterEach(() => {
@@ -226,88 +175,9 @@ describe('EqAutoEq', () => {
 		});
 	});
 
-	// ── Guards ───────────────────────────────────────────────────────────────
+	// ── Graphic mode ─────────────────────────────────────────────────────────
 
-	describe('guards', () => {
-		it('refuses to run with no source selected', async () => {
-			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
-			eqStore.autoEqTargetUUID = 'tgt';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			expect(alertSpy).toHaveBeenCalledOnce();
-			expect(runInWorker).not.toHaveBeenCalled();
-		});
-
-		it('refuses to run with no target selected', async () => {
-			frStore.set('src', makeItem('src', 'phone', curve(6)));
-			eqStore.sourcePhoneUUID = 'src';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			expect(alertSpy).toHaveBeenCalledOnce();
-			expect(runInWorker).not.toHaveBeenCalled();
-		});
-
-		it('refuses to run when a selected uuid is no longer in the store', async () => {
-			// Removing a curve leaves the id behind on eqStore until something clears
-			// it, so the lookup has to fail closed rather than pass undefined along.
-			seedPair();
-			frStore.delete('tgt');
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			expect(alertSpy).toHaveBeenCalledOnce();
-			expect(runInWorker).not.toHaveBeenCalled();
-		});
-
-		it('refuses to run when the selected curve carries no channel data', async () => {
-			seedPair();
-			frStore.set('src', makeItem('src', 'phone', []));
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			expect(alertSpy).toHaveBeenCalledOnce();
-			expect(runInWorker).not.toHaveBeenCalled();
-		});
-
-		// Graphic mode used to be refused outright, because a freely fitted filter
-		// had to be dragged onto the nearest slider afterwards. The optimizer now
-		// takes the grid as pinned fc and Q, so the fit lands on it to begin with.
-		it('runs in graphic mode, against the preset own bands', async () => {
-			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
-			eqConstraintsStore.activeId = graphic!.id;
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			const request = runInWorker.mock.calls[0][2];
-			expect(request.kind).toBe('graphic');
-			expect(request.kind === 'graphic' && request.bands.map((b) => b.freq)).toEqual([
-				31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000
-			]);
-		});
-
-		it('offers exact match in graphic mode too', async () => {
-			// A slider at 16 kHz is only scored on shape when the fit is exact.
-			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
-			eqConstraintsStore.activeId = graphic!.id;
-			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, exactMatch: false };
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ kind: 'graphic', fit: 'autoeq' });
-		});
-
+	describe('graphic mode', () => {
 		it('hides the frequency and Q fields in graphic mode', async () => {
 			// They would say nothing: the grid is the preset's.
 			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
@@ -318,325 +188,6 @@ describe('EqAutoEq', () => {
 			expect(numberInputs().length).toBe(0);
 		});
 	});
-
-	// ── Request assembly ─────────────────────────────────────────────────────
-
-	describe('the worker request', () => {
-		it('sends the source and target curves as point arrays', async () => {
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			const [source, target] = runInWorker.mock.calls[0];
-			expect(source).toEqual(curve(6));
-			expect(target).toEqual(curve(0));
-		});
-
-		// The average of several insertion depths is a fit nobody wears.
-		it('fits the picked run of a sample set, not its average', async () => {
-			seedPair();
-			const src = frStore.get('src')!;
-			frStore.set('src', {
-				...src,
-				samples: [
-					{ label: 'Deep', AVG: { data: curve(9), metadata: { minFreq: 20, maxFreq: 20000 } } }
-				]
-			});
-			eqStore.sourceSample = { index: 0, variant: '' };
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
-		});
-
-		// The ranges are bounds the fit lands inside, not a clamp applied to the
-		// answer, so a wrong mapping here is silent: the run still returns bands.
-		it('maps the stored options onto per-band bounds', async () => {
-			settingsStore.autoEqOptions = {
-				freqMin: 30,
-				freqMax: 16000,
-				qMin: 0.4,
-				qMax: 5,
-				gainMin: -9,
-				gainMax: 9,
-				useShelfFilter: false,
-				exactMatch: true
-			};
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({
-				kind: 'parametric',
-				shelves: false,
-				limits: { minFc: 30, maxFc: 16000, minQ: 0.4, maxQ: 5, minGain: -9, maxGain: 9 },
-				fit: 'exact'
-			});
-		});
-
-		it('asks for AutoEq fitting when exact match is off', async () => {
-			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, exactMatch: false };
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ fit: 'autoeq' });
-		});
-
-		it('stays quiet when turboEQ answered', async () => {
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledOnce());
-			expect(page.getByRole('status').element().textContent).toBe('');
-		});
-
-		// mGT counts rows; turboEQ counts peaking bands with the shelves outside
-		// that number. Ten rows is eight peaking plus two shelves, and getting it
-		// wrong produces a plausible EQ with the wrong band count.
-		it('splits the row budget into peaking bands and shelves', async () => {
-			eqStore.filters = Array.from({ length: 10 }, () => ({ ...RESULT[0] }));
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 8, shelves: true });
-		});
-
-		it('drops the shelves when the preset forbids them', async () => {
-			eqConstraintsStore.presets = [
-				...BUILTIN_PRESETS,
-				parametricPreset('pk-only', { types: ['PK'], gain: { min: -20, max: 20 } })
-			];
-			eqConstraintsStore.activeId = 'pk-only';
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 8, shelves: false });
-		});
-
-		it('narrows the requested window to what the preset allows', async () => {
-			eqConstraintsStore.presets = [
-				...BUILTIN_PRESETS,
-				parametricPreset('tight', { gain: { min: -6, max: 6 }, q: { min: 0.1, max: 3 } })
-			];
-			eqConstraintsStore.activeId = 'tight';
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({
-				limits: { minGain: -6, maxGain: 6, maxQ: 2 }
-			});
-		});
-
-		it('gives the shelves their own gain window where the profile does', async () => {
-			eqConstraintsStore.presets = [
-				...BUILTIN_PRESETS,
-				{
-					id: 'split',
-					label: 'Split',
-					source: 'catalog',
-					profile: {
-						...parametricPreset('split').profile,
-						bandCount: 4,
-						band: {
-							types: ['PK'],
-							freq: { min: 20, max: 20000 },
-							q: { min: 0.1, max: 10 },
-							gain: { min: -10, max: 10 }
-						},
-						bands: [
-							{ index: 0, types: ['LSC'], gain: { min: -6, max: 6 } },
-							{ index: 3, types: ['HSC'], gain: { min: -6, max: 6 } }
-						]
-					}
-				}
-			];
-			eqConstraintsStore.activeId = 'split';
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({
-				shelves: true,
-				limits: { minGain: -10, maxGain: 10 },
-				shelfLimits: { minGain: -6, maxGain: 6 }
-			});
-		});
-
-		it('asks for as many filters as the current stack holds', async () => {
-			eqStore.filters = Array.from({ length: 5 }, () => ({ ...RESULT[0] }));
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
-		});
-
-		// This used to resolve to a single band, which made AutoEQ look broken to
-		// anyone who pressed Run before adding filters by hand — the common case.
-		it('asks for eight filters when the stack is empty and no config is set', async () => {
-			expect(window.GRAPHTOOL_CONFIG).toBeUndefined();
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 6, shelves: true });
-		});
-
-		it('honours EQUALIZER.AUTOEQ_DEFAULT_BAND_COUNT for the empty stack', async () => {
-			window.GRAPHTOOL_CONFIG = { EQUALIZER: { AUTOEQ_DEFAULT_BAND_COUNT: 12 } } as never;
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 10, shelves: true });
-		});
-
-		it('ignores a nonsensical configured band count', async () => {
-			window.GRAPHTOOL_CONFIG = { EQUALIZER: { AUTOEQ_DEFAULT_BAND_COUNT: 0 } } as never;
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 6, shelves: true });
-		});
-
-		// A device's high pass is not something AutoEQ can make: it stays where it
-		// was, its slot comes out of the budget, and the fit corrects around it.
-		it('keeps the bands it cannot make in place and fits around them', async () => {
-			const hp: EQFilter = { enabled: true, type: 'HPQ', freq: 100, q: 0.7071, gain: 0 };
-			eqStore.filters = [hp, ...Array.from({ length: 5 }, () => ({ ...RESULT[0] }))];
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
-			// The source the fit sees already carries the high pass.
-			const source = runInWorker.mock.calls[0][0];
-			expect(source[0][1]).toBeLessThan(6 - 20);
-			expect(source[source.length - 1][1]).toBeCloseTo(6, 1);
-			expect(replaceFilters.mock.calls[0][0]).toEqual([hp, ...RESULT]);
-		});
-
-		// Generating 8 and letting `replaceFilters` trim to 5 fits worse than
-		// optimizing for 5 up front, so the cap is applied before the run.
-		it('caps the default at the active preset maxBands', async () => {
-			eqConstraintsStore.presets = [
-				...BUILTIN_PRESETS,
-				parametricPreset('five-band', { maxBands: 5, gain: { min: -20, max: 20 } })
-			];
-			eqConstraintsStore.activeId = 'five-band';
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][2]).toMatchObject({ peaking: 3, shelves: true });
-		});
-
-		// Scoped to one ear, AutoEQ has to optimize against that ear's curve —
-		// against AVG it would solve for a response neither channel has, and
-		// correcting channel imbalance (the point of per-channel EQ) becomes
-		// impossible.
-		it('optimizes against the scoped channel of both source and target', async () => {
-			frStore.set('src', {
-				uuid: 'src',
-				type: 'phone',
-				identifier: 'src',
-				channels: { L: { data: curve(6) }, R: { data: curve(9) }, AVG: { data: curve(7.5) } }
-			} as unknown as FRDataObject);
-			frStore.set('tgt', {
-				uuid: 'tgt',
-				type: 'target',
-				identifier: 'tgt',
-				channels: { L: { data: curve(1) }, R: { data: curve(2) }, AVG: { data: curve(1.5) } }
-			} as unknown as FRDataObject);
-			eqStore.sourcePhoneUUID = 'src';
-			eqStore.autoEqTargetUUID = 'tgt';
-			eqStore.channelScope = 'R';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
-			expect(runInWorker.mock.calls[0][1]).toEqual(curve(2));
-		});
-
-		// A target measured as one curve is the common case, and it still has to
-		// be usable for a per-ear run.
-		it('falls back to the average when the scoped channel is missing', async () => {
-			frStore.set('src', {
-				uuid: 'src',
-				type: 'phone',
-				identifier: 'src',
-				channels: { L: { data: curve(6) }, R: { data: curve(9) } }
-			} as unknown as FRDataObject);
-			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
-			eqStore.sourcePhoneUUID = 'src';
-			eqStore.autoEqTargetUUID = 'tgt';
-			eqStore.channelScope = 'R';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][0]).toEqual(curve(9));
-			expect(runInWorker.mock.calls[0][1]).toEqual(curve(0));
-		});
-
-		it('falls back to the L channel when there is no average', async () => {
-			frStore.set('src', {
-				uuid: 'src',
-				type: 'phone',
-				identifier: 'src',
-				channels: { L: { data: curve(4) } }
-			} as unknown as FRDataObject);
-			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
-			eqStore.sourcePhoneUUID = 'src';
-			eqStore.autoEqTargetUUID = 'tgt';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(runInWorker.mock.calls[0][0]).toEqual(curve(4));
-		});
-	});
-
-	// ── Result handling ──────────────────────────────────────────────────────
 
 	// ── When turboEQ fails ───────────────────────────────────────────────────
 
@@ -664,7 +215,6 @@ describe('EqAutoEq', () => {
 			await expect
 				.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
 				.toBeInTheDocument();
-			expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH', null);
 		});
 
 		it('hides the fit mode once the module has failed to load', async () => {
@@ -720,11 +270,10 @@ describe('EqAutoEq', () => {
 				eqConstraintsStore.activeId = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band')!.id;
 			});
 
-			it('leaves the filters alone when nothing could fit it', async () => {
+			it('says nothing could fit the graphic preset', async () => {
 				// The old engine would place bands off the sliders, so there is no
-				// answer — and an empty list written as one would wipe the EQ.
+				// answer — and the panel has to say so rather than show an empty fit.
 				runInWorker.mockResolvedValue(NONE);
-				eqStore.filters = [{ type: 'PK', freq: 1000, gain: 2, q: 1.4, enabled: true }];
 				seedPair();
 				render(EqAutoEq);
 
@@ -733,8 +282,6 @@ describe('EqAutoEq', () => {
 				await expect
 					.element(page.getByText(m.equalizer_autoeq_graphic_unavailable_notice()))
 					.toBeInTheDocument();
-				expect(replaceFilters).not.toHaveBeenCalled();
-				expect(eqStore.isEnabled).toBe(false);
 			});
 
 			it('says turboEQ refused the bands when it only refused', async () => {
@@ -782,51 +329,27 @@ describe('EqAutoEq', () => {
 		});
 	});
 
-	describe('the result', () => {
-		it('replaces the filter stack through the command layer', async () => {
-			seedPair();
-			render(EqAutoEq);
+	// ── The run button ───────────────────────────────────────────────────────
 
-			await runButton().click();
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'BOTH', null));
-		});
-
-		// Scoped, so a run on one ear can't delete the shared bands or the other
-		// ear's solution — `replaceFilters` would have wiped the whole array.
-		it('replaces only the scoped bucket', async () => {
-			seedPair();
-			eqStore.channelScope = 'L';
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledWith(RESULT, 'L', null));
-		});
-
-		// Without this the run lands silently: filters appear in the list, the
-		// graph does not move, and the toggle that would show it is off-screen
-		// unless the user is looking at the panel header.
-		it('switches the master EQ toggle on', async () => {
-			seedPair();
-			render(EqAutoEq);
-
-			await runButton().click();
-
-			await vi.waitFor(() => expect(eqStore.isEnabled).toBe(true));
-		});
-
-		it('leaves the stack alone when the worker rejects', async () => {
-			vi.spyOn(console, 'error').mockImplementation(() => {});
-			runInWorker.mockRejectedValue(new Error('worker died'));
+	describe('the run button', () => {
+		// The view's whole contract with the service: a click is a run.
+		it('starts a run through the service when clicked', async () => {
 			seedPair();
 			render(EqAutoEq);
 
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledOnce());
-			expect(replaceFilters).not.toHaveBeenCalled();
-			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		it('stays quiet when turboEQ answered', async () => {
+			seedPair();
+			render(EqAutoEq);
+
+			await runButton().click();
+
+			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledOnce());
+			expect(page.getByRole('status').element().textContent).toBe('');
 		});
 
 		it('re-enables the button after a failed run', async () => {
@@ -866,12 +389,9 @@ describe('EqAutoEq', () => {
 		const recalcButton = () =>
 			page.getByRole('button', { name: m.equalizer_autoeq_recalc_button() });
 
-		/** Waits out the debounce, then asserts nothing else was queued. */
-		const settle = () => new Promise((resolve) => setTimeout(resolve, 400));
-
 		beforeEach(() => {
-			// These need the real command layer: the guard compares the array a run
-			// wrote against the live one, and undo has to see the entries.
+			// The stop notices follow a real run, which has to land in the real command
+			// layer for the guard to see the array it wrote.
 			replaceFilters.mockRestore();
 			replaceFilters = vi.spyOn(eqCommands, 'replaceFiltersInScope');
 		});
@@ -901,89 +421,8 @@ describe('EqAutoEq', () => {
 			await expect.element(autoSwitch()).toBeDisabled();
 		});
 
-		it('runs as soon as it is switched on', async () => {
-			seedPair();
-			render(EqAutoEq);
-
-			await enable();
-
-			expect(runInWorker).toHaveBeenCalledOnce();
-			expect(eqStore.isEnabled).toBe(true);
-		});
-
-		it('re-runs when the target curve changes, as one undo entry', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-
-			// A tilt rewrites the target's channels under the same uuid.
-			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
-			expect(runInWorker.mock.calls[1][1]).toEqual(curve(3));
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
-
-			commandHistory.undo(frStore);
-			expect(eqStore.filters).toEqual([]);
-			expect(commandHistory.canUndo).toBe(false);
-		});
-
-		it('coalesces a burst of option edits into one run', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-
-			settingsStore.autoEqOptions.freqMin = 30;
-			await new Promise((resolve) => setTimeout(resolve, 50));
-			settingsStore.autoEqOptions.freqMin = 40;
-
-			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
-			await settle();
-			expect(runInWorker).toHaveBeenCalledTimes(2);
-			expect(runInWorker.mock.calls[1][2]).toMatchObject({ limits: { minFc: 40 } });
-		});
-
-		it('ignores changes that leave the curves and options as they were', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-
-			// Same channel arrays under a new item, the way a recolor lands.
-			const item = frStore.get('src')!;
-			frStore.set('src', { ...item, colors: {} } as unknown as FRDataObject);
-			await settle();
-
-			expect(runInWorker).toHaveBeenCalledOnce();
-		});
-
-		// Opening the Graph panel re-applies the stored tilt, which hands the
-		// target fresh arrays holding the same numbers.
-		it('ignores a target rebuilt with the same numbers', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-
-			frStore.set('tgt', makeItem('tgt', 'target', curve(0)));
-			await settle();
-
-			expect(runInWorker).toHaveBeenCalledOnce();
-		});
-
-		// Pinned when it was switched on: the list being scoped to L is a view, and
-		// the band count is the one the user ran with.
-		it('keeps the scope and band count it started with', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-
-			eqStore.channelScope = 'L';
-			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
-			expect(replaceFilters.mock.calls[1][1]).toBe('BOTH');
-			expect(runInWorker.mock.calls[1][2]).toMatchObject({ peaking: 6, shelves: true });
-		});
-
+		// The service owns the loop, so the panel being closed must not end it. The
+		// effects are installed from the service, not from the view the switch lives in.
 		it('keeps running with the panel closed', async () => {
 			seedPair();
 			const view = await render(EqAutoEq);
@@ -993,20 +432,6 @@ describe('EqAutoEq', () => {
 			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
 
 			await vi.waitFor(() => expect(runInWorker).toHaveBeenCalledTimes(2));
-		});
-
-		// Switching EQ off to compare is a real workflow; an answer nobody asked
-		// for must not undo it.
-		it('leaves the EQ toggle alone on an auto-applied run', async () => {
-			seedPair();
-			render(EqAutoEq);
-			await enable();
-			eqStore.isEnabled = false;
-
-			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
-
-			await vi.waitFor(() => expect(replaceFilters).toHaveBeenCalledTimes(2));
-			expect(eqStore.isEnabled).toBe(false);
 		});
 
 		describe('switches itself off', () => {
@@ -1020,12 +445,6 @@ describe('EqAutoEq', () => {
 				await expect
 					.element(page.getByText(m.equalizer_autoeq_auto_apply_stopped_edited()))
 					.toBeInTheDocument();
-				expect(autoEqService.autoApply).toBe(false);
-
-				frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
-				await settle();
-				expect(runInWorker).toHaveBeenCalledOnce();
-				expect(eqStore.filters).toHaveLength(2);
 			});
 
 			it('when the target is swapped for another', async () => {
@@ -1041,28 +460,6 @@ describe('EqAutoEq', () => {
 					.toBeInTheDocument();
 				// A result for another target is no result for this one.
 				await expect.element(runButton()).toBeInTheDocument();
-			});
-
-			it('when the target is removed', async () => {
-				seedPair();
-				render(EqAutoEq);
-				await enable();
-
-				frStore.delete('tgt');
-
-				await vi.waitFor(() => expect(autoEqService.stopReason).toBe('input'));
-				expect(autoEqService.autoApply).toBe(false);
-			});
-
-			it('when the source device changes', async () => {
-				seedPair();
-				frStore.set('src2', makeItem('src2', 'phone', curve(4)));
-				render(EqAutoEq);
-				await enable();
-
-				eqStore.sourcePhoneUUID = 'src2';
-
-				await vi.waitFor(() => expect(autoEqService.stopReason).toBe('input'));
 			});
 
 			it('when the EQ preset changes', async () => {
@@ -1094,7 +491,6 @@ describe('EqAutoEq', () => {
 				await expect
 					.element(page.getByText(m.equalizer_autoeq_fallback_notice()))
 					.toBeInTheDocument();
-				expect(autoEqService.autoApply).toBe(false);
 				await expect.element(autoSwitch()).toBeDisabled();
 			});
 		});

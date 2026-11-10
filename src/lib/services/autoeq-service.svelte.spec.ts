@@ -9,6 +9,7 @@
  * the optimization. Timers are real: auto-apply's debounce is 250 ms and the specs wait it out.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { toast } from 'svelte-sonner';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
@@ -24,6 +25,7 @@ import { runAutoEQInWorker } from '#lib/workers/autoeq-client.js';
 import type { AutoEqOutcome } from '#lib/workers/autoeq-request.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
+import * as m from '#lib/paraglide/messages.js';
 import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 import {
 	DEFAULT_OPTS,
@@ -39,11 +41,15 @@ vi.mock('#lib/workers/autoeq-client.js', () => ({
 	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
 }));
 
+vi.mock('svelte-sonner', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte-sonner')>()),
+	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
+}));
+
 const runInWorker = vi.mocked(runAutoEQInWorker);
 
 describe('autoEqService', () => {
 	let replaceFilters: ReturnType<typeof vi.spyOn>;
-	let alertSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
 		resetAutoEqStores();
@@ -52,7 +58,7 @@ describe('autoEqService', () => {
 		replaceFilters = vi
 			.spyOn(eqCommands, 'replaceFiltersInScope')
 			.mockImplementation(() => undefined as never);
-		alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.mocked(toast.error).mockClear();
 	});
 
 	afterEach(() => {
@@ -74,7 +80,8 @@ describe('autoEqService', () => {
 
 			autoEqService.run();
 
-			expect(alertSpy).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledWith(m.equalizer_autoeq_select_source_and_target());
 			expect(runInWorker).not.toHaveBeenCalled();
 		});
 
@@ -84,7 +91,8 @@ describe('autoEqService', () => {
 
 			autoEqService.run();
 
-			expect(alertSpy).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledWith(m.equalizer_autoeq_select_source_and_target());
 			expect(runInWorker).not.toHaveBeenCalled();
 		});
 
@@ -96,7 +104,8 @@ describe('autoEqService', () => {
 
 			autoEqService.run();
 
-			expect(alertSpy).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledWith(m.equalizer_autoeq_data_not_found());
 			expect(runInWorker).not.toHaveBeenCalled();
 		});
 
@@ -106,7 +115,8 @@ describe('autoEqService', () => {
 
 			autoEqService.run();
 
-			expect(alertSpy).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledOnce();
+			expect(toast.error).toHaveBeenCalledWith(m.equalizer_autoeq_no_response_data());
 			expect(runInWorker).not.toHaveBeenCalled();
 		});
 

@@ -67,7 +67,6 @@ describe('EqAutoEq', () => {
 		replaceFilters = vi
 			.spyOn(eqCommands, 'replaceFiltersInScope')
 			.mockImplementation(() => undefined as never);
-		vi.spyOn(window, 'alert').mockImplementation(() => {});
 	});
 
 	afterEach(() => {

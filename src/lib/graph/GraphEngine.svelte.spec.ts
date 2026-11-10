@@ -322,7 +322,7 @@ describe('GraphEngine', () => {
 		});
 
 		it('draws at the new smoothing once reSmoothAll has rebuilt the store', async () => {
-			const raw = FRParser._standardFrequencies.map(
+			const raw = FRParser.standardFrequencies.map(
 				(f, i) => [f, 80 + Math.sin(i * 0.3) * 5] as FRDataPoint
 			);
 			frStore.set(

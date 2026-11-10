@@ -67,7 +67,7 @@
 				if (L) channels.L = await parseFile(L);
 				if (R) channels.R = await parseFile(R);
 				if (channels.L && channels.R) {
-					channels.AVG = FRParser._computeAvgChannel(channels.L, channels.R);
+					channels.AVG = FRParser.computeAvgChannel(channels.L, channels.R);
 				}
 				// Let insertRawFRData derive dispChannel (both channels for the first phone,
 				// AVG thereafter — matching operator-hosted phones).

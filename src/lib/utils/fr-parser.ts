@@ -25,7 +25,7 @@ export interface FRParseResult extends ParsedFRData {
  * Handles parsing and processing of frequency response measurement files
  */
 const FRParser = {
-	_standardFrequencies: (function () {
+	standardFrequencies: (function () {
 		const frequencies = [20];
 		const step = Math.pow(2, 1 / 48); // 1/48 octave steps
 		while (frequencies[frequencies.length - 1] < 20000) {
@@ -72,7 +72,7 @@ const FRParser = {
 
 		// Add AVG channel for phone data if both L/R are available
 		if (isPhoneData && parsedChannels.L && parsedChannels.R) {
-			parsedChannels.AVG = this._computeAvgChannel(parsedChannels.L, parsedChannels.R);
+			parsedChannels.AVG = this.computeAvgChannel(parsedChannels.L, parsedChannels.R);
 		}
 
 		// Return structure matching input type
@@ -185,7 +185,7 @@ const FRParser = {
 
 		// Compute AVG from averaged L and R
 		if (averaged.L && averaged.R) {
-			averaged.AVG = this._computeAvgChannel(averaged.L, averaged.R);
+			averaged.AVG = this.computeAvgChannel(averaged.L, averaged.R);
 		}
 
 		return { samples, averaged };
@@ -206,7 +206,7 @@ const FRParser = {
 
 	/** Compute the AVG channel as the per-point mean of L and R. Both channels are
 	 *  interpolated to the same standard frequencies, so averaging by index is safe. */
-	_computeAvgChannel(left: ChannelData, right: ChannelData): ChannelData {
+	computeAvgChannel(left: ChannelData, right: ChannelData): ChannelData {
 		return {
 			data: left.data.map(
 				([freq, lDb], index) => [freq, (lDb + right.data[index][1]) / 2] as FRDataPoint
@@ -262,8 +262,8 @@ const FRParser = {
 			parsed.data = this._resampleToStandard(parsed.data);
 
 			// Update metadata with standard frequency range
-			parsed.metadata.minFreq = this._standardFrequencies[0];
-			parsed.metadata.maxFreq = this._standardFrequencies[this._standardFrequencies.length - 1];
+			parsed.metadata.minFreq = this.standardFrequencies[0];
+			parsed.metadata.maxFreq = this.standardFrequencies[this.standardFrequencies.length - 1];
 		}
 
 		return parsed;
@@ -290,11 +290,9 @@ const FRParser = {
 		}
 	},
 
-	/** Improved frequency parsing with unit detection */
+	/** The frequency column, already known to be numeric (`parseFRData` skips the line otherwise). */
 	_parseFrequency(value: string): number {
-		const num = parseFloat(value);
-		if (value.toLowerCase().includes('k')) return num * 1000;
-		return num;
+		return parseFloat(value);
 	},
 
 	/**
@@ -309,7 +307,7 @@ const FRParser = {
 		const halfStep = Math.pow(2, 1 / 96);
 		let cellStart = 0;
 		let cursor = 0;
-		return this._standardFrequencies.map((targetFreq) => {
+		return this.standardFrequencies.map((targetFreq) => {
 			// The cell is half-open, so a raw point on a boundary counts in one cell only
 			const lower = targetFreq / halfStep;
 			const upper = targetFreq * halfStep;

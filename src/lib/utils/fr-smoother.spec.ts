@@ -8,8 +8,8 @@ const octaves = Object.keys(FRSmoother.OCTAVE_BANDS);
 const variables = Object.keys(FRSmoother.VARIABLE);
 
 /** Synthetic FR data on the parser's 1/48oct grid. */
-function makeFRData(count = FRParser._standardFrequencies.length, baseDb = 80): FRDataPoint[] {
-	return FRParser._standardFrequencies
+function makeFRData(count = FRParser.standardFrequencies.length, baseDb = 80): FRDataPoint[] {
+	return FRParser.standardFrequencies
 		.slice(0, count)
 		.map((f, i) => [f, baseDb + Math.sin(i * 0.3) * 5] as FRDataPoint);
 }
@@ -37,7 +37,7 @@ describe('FRSmoother', () => {
 		);
 
 		it.each(cases)('%s at %s', (_name, octave, input, expected) => {
-			const grid = input.map((db, i) => [FRParser._standardFrequencies[i], db] as FRDataPoint);
+			const grid = input.map((db, i) => [FRParser.standardFrequencies[i], db] as FRDataPoint);
 			const result = FRSmoother.smooth(grid, octave);
 			const worst = Math.max(...result.map(([, db], i) => Math.abs(db - expected[i])));
 			expect(worst).toBeLessThan(0.002);
@@ -54,7 +54,7 @@ describe('FRSmoother', () => {
 
 		it('keeps 1/48 lighter than 1/24 rather than flooring it the way REW does', () => {
 			const grid = rewFixture.curves[0].input.map(
-				(db, i) => [FRParser._standardFrequencies[i], db] as FRDataPoint
+				(db, i) => [FRParser.standardFrequencies[i], db] as FRDataPoint
 			);
 			const dev = (octave: string) =>
 				FRSmoother.smooth(grid, octave).reduce(

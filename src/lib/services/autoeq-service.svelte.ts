@@ -1,4 +1,6 @@
 import { untrack } from 'svelte';
+import { toast } from 'svelte-sonner';
+import * as m from '#lib/paraglide/messages.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
@@ -290,11 +292,11 @@ class AutoEqService {
 		const targetUUID = eqStore.autoEqTargetUUID;
 
 		if (!sourceUUID || !targetUUID) {
-			alert('Please select both a source device and target in the phone select above.');
+			toast.error(m.equalizer_autoeq_select_source_and_target());
 			return false;
 		}
 		if (!frStore.get(sourceUUID) || !frStore.get(targetUUID)) {
-			alert('Source or target data not found.');
+			toast.error(m.equalizer_autoeq_data_not_found());
 			return false;
 		}
 
@@ -316,7 +318,7 @@ class AutoEqService {
 		};
 		const inputs = collectInputs(session);
 		if (!inputs) {
-			alert('Could not retrieve frequency response data.');
+			toast.error(m.equalizer_autoeq_no_response_data());
 			return false;
 		}
 

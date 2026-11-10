@@ -2,21 +2,22 @@ import type {
 	Channel,
 	FRDataType,
 	FRDataObject,
-	FRDataPoint,
 	FRColors,
 	ParsedFRData,
 	FRInputMetadata,
 	PhoneMetadata,
 	SampleData,
 	SampleDisplayKey,
-	SampleEnvelope,
 	RawFRCache
 } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
-import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
+import {
+	targetAdjustmentStore,
+	type TargetAdjustment
+} from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCurve } from './eq-curve.svelte.js';
 import {
@@ -26,14 +27,20 @@ import {
 	insertRawCurve
 } from './curve-insert.js';
 import {
+	curveDataFromRaw,
+	pickChannels,
+	renormalizedCurveData,
+	type CurveData
+} from './curve-data.js';
+import {
 	AddFRDataCommand,
+	ApplyTargetAdjustmentCommand,
 	RemoveFRDataCommand,
 	UpdateDisplayChannelCommand,
 	UpdateColorsCommand,
 	UpdateDashPatternCommand,
 	UpdateVisibilityCommand,
 	UpdateVariantCommand,
-	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
 	UpdateSampleDisplayCommand
 } from './commands.js';
@@ -43,7 +50,6 @@ import { sampleKey } from '#lib/utils/sample-key.js';
 import type { FRParseResult } from '#lib/utils/fr-parser.js';
 import { normalizeChannels } from '#lib/utils/fr-normalizer.js';
 import { averageChannels, isAveragable } from '#lib/utils/fr-average.js';
-import { DataProcessor, anchorAndNormalizeSamples } from '#lib/utils/data-processor.js';
 import { defaultSampleDisplay } from '#lib/utils/sample-config.js';
 import {
 	downloadBaseName,
@@ -58,14 +64,12 @@ import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
 
 class DataProvider {
-	/** Current processing params from graph store */
-	get #processingParams() {
-		return {
-			smoothValue: graphStore.smoothValue,
-			normType: graphStore.normType,
-			normHz: graphStore.normHzValue
-		};
-	}
+	/**
+	 * The slider record each target's curve was last drawn from (`undefined`: it had none). The
+	 * store is already edited by the time `applyTargetAdjustment` runs, so this is where "before"
+	 * comes from. Not reactive; nothing reads it but `applyTargetAdjustment`.
+	 */
+	readonly #appliedRecords = new Map<string, TargetAdjustment | undefined>();
 
 	// ─── Add ─────────────────────────────────────────────────────────────────────
 
@@ -95,8 +99,8 @@ class DataProvider {
 			return;
 		}
 		const rawCache = this.#buildRawCache(rawData);
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as Channel[];
+		const curve = curveDataFromRaw(rawCache, sourceType);
+		const channels = Object.keys(curve.channels) as Channel[];
 
 		const dispSuffix =
 			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
@@ -107,11 +111,8 @@ class DataProvider {
 			uuid: crypto.randomUUID(),
 			type: sourceType,
 			identifier: metaData.identifier,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: curve.channels,
+			...(curve.unadjustedChannels && { unadjustedChannels: curve.unadjustedChannels }),
 			dispChannel: getChannelValue(sourceType, channels),
 			dispSuffix,
 			colors,
@@ -120,7 +121,7 @@ class DataProvider {
 			_rawData: rawCache
 		};
 
-		Object.assign(frObject, this.#buildSampleFields(rawData, colors));
+		Object.assign(frObject, this.#buildSampleFields(rawData, colors, curve));
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
 		this.syncPhoneChannels();
@@ -203,7 +204,7 @@ class DataProvider {
 		rawData: ParsedFRData,
 		inputMetadata: FRInputMetadata = {}
 	): Promise<void> {
-		insertRawCurve(sourceType, identifier, rawData, inputMetadata, this.#processingParams);
+		insertRawCurve(sourceType, identifier, rawData, inputMetadata);
 	}
 
 	// ─── Average every visible phone ─────────────────────────────────────────
@@ -257,77 +258,92 @@ class DataProvider {
 		return sources.length;
 	}
 
-	// ─── Update raw data (EQ preview) ─────────────────────────────────────────
-
-	updateFRDataWithRawData(
-		uuid: string,
-		rawData: ParsedFRData,
-		opts: {
-			identifier?: string | null;
-			dispSuffix?: string | null;
-			adjustmentLabel?: string | null;
-		} = {}
-	): void {
-		const existing = frStore.get(uuid);
-		if (!existing) return;
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const updated: FRDataObject = {
-			...existing,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
-			identifier: opts.identifier ?? existing.identifier,
-			dispSuffix: opts.dispSuffix ?? existing.dispSuffix,
-			adjustmentLabel: 'adjustmentLabel' in opts ? opts.adjustmentLabel : existing.adjustmentLabel
-		};
-		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
-	}
-
 	// ─── Target customizer adjustments ────────────────────────────────────────
 
 	/**
-	 * Rebuild a customizable target's curve from its cached pre-adjustment channels
-	 * plus the current slider stack in `targetAdjustmentStore`.
+	 * Rebuild a target's curve from its unadjusted channels plus the current slider stack
+	 * in `targetAdjustmentStore`.
 	 *
 	 * Callable without a mounted `TargetCustomizer` — that component only drives the
 	 * UI now. `reSmoothAll()` in particular rebuilds targets from raw source data, and
-	 * used to rely on a mounted customizer noticing `targetOriginalVersion` and
-	 * re-applying; with the Graph tab closed the adjustment was dropped for good.
+	 * used to rely on a mounted customizer noticing and re-applying; with the Graph tab
+	 * closed the adjustment was dropped for good.
 	 *
-	 * Normalizes but does NOT re-smooth. `targetOriginalData` is a snapshot of channels
-	 * that already went through smooth → normalize, and the tilt/shelf stack on top is a
-	 * smooth analytic curve with nothing to filter out. Sending the result back through
-	 * `updateFRDataWithRawData` would smooth it a second time and blur the target — the
+	 * Normalizes but does NOT re-smooth. `unadjustedChannels` are channels that
+	 * already went through smooth → normalize, and the tilt/shelf stack on top is a
+	 * smooth analytic curve with nothing to filter out. Running the result through
+	 * `DataProcessor.processChannels` would smooth it a second time and blur the target — the
 	 * channels carry their smoothing marker, so `FRSmoother` passes them through rather
 	 * than doing that. Normalization is kept so a shelf adjustment can't drag the target
 	 * off the anchor point.
+	 *
+	 * `undoable: false` writes without an undo entry, for the customizer's first mount.
 	 */
-	applyTargetAdjustment(uuid: string): void {
+	applyTargetAdjustment(uuid: string, { undoable = true }: { undoable?: boolean } = {}): void {
 		const existing = frStore.get(uuid);
-		const original = graphStore.targetOriginalData.get(uuid);
-		if (!existing || !original) return;
+		const unadjusted = existing?.unadjustedChannels;
+		if (!existing || !unadjusted) {
+			this.#appliedRecords.delete(uuid);
+			return;
+		}
 
-		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, original);
+		// The store already holds the new record, so the one the curve was drawn from is what this
+		// remembered. Every path below, the "draws the same" return included, moves it forward: after
+		// an undo wrote a record back, the re-apply it triggers is what brings it up to date.
+		const prevRecord = this.#appliedRecords.get(uuid);
+		const nextRecord = targetAdjustmentStore.has(uuid)
+			? targetAdjustmentStore.get(uuid)
+			: undefined;
+		this.#appliedRecords.set(uuid, nextRecord);
+
+		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, unadjusted);
 		const processed = normalizeChannels(adjusted, graphStore.normType, graphStore.normHzValue);
 
 		const updated: FRDataObject = {
 			...existing,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: pickChannels(processed),
 			adjustmentLabel: targetAdjustmentStore.label(uuid)
 		};
-		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
+		// TargetCustomizer re-applies on every mount, i.e. on every panel switch. Landing an
+		// unchanged result would leave an undo entry that Ctrl+Z "reverses" to the same picture.
+		if (this.#drawsSame(existing, updated)) return;
+		// A registration (the customizer's first mount seeding the stored stack) is not an edit.
+		if (!undoable) frStore.set(uuid, updated);
+		else {
+			commandHistory.execute(
+				new ApplyTargetAdjustmentCommand(uuid, updated, prevRecord, nextRecord),
+				frStore
+			);
+		}
 	}
 
-	/** Re-apply every known target adjustment — used after a global re-process. */
+	/** Whether `next` draws exactly what `current` does: same channels, points and label. */
+	#drawsSame(current: FRDataObject, next: FRDataObject): boolean {
+		if (current.adjustmentLabel !== next.adjustmentLabel) return false;
+		const keys = Object.keys(current.channels) as Channel[];
+		if (keys.length !== Object.keys(next.channels).length) return false;
+		return keys.every((key) => {
+			const a = current.channels[key]?.data;
+			const b = next.channels[key]?.data;
+			return (
+				!!a &&
+				!!b &&
+				a.length === b.length &&
+				a.every(([f, d], i) => f === b[i][0] && d === b[i][1])
+			);
+		});
+	}
+
+	/**
+	 * Re-apply every target adjustment on record — used after a global re-process. A target the
+	 * user has no adjustment record for (`TargetCustomizer` registers one per target) has nothing
+	 * to put back on top of its freshly rebuilt curve.
+	 */
 	#reapplyTargetAdjustments(): void {
-		for (const uuid of graphStore.targetOriginalData.keys()) {
-			this.applyTargetAdjustment(uuid);
+		for (const [uuid, item] of [...frStore.entries]) {
+			if (item.unadjustedChannels && targetAdjustmentStore.has(uuid)) {
+				this.applyTargetAdjustment(uuid);
+			}
 		}
 	}
 
@@ -345,8 +361,8 @@ class DataProvider {
 			return;
 		}
 		const variantRawCache = this.#buildRawCache(rawData);
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as Channel[];
+		const curve = curveDataFromRaw(variantRawCache, data.type);
+		const channels = Object.keys(curve.channels) as Channel[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
 		) as Channel[];
@@ -354,11 +370,8 @@ class DataProvider {
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.
 		const newFields: Partial<FRDataObject> = {
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: curve.channels,
+			unadjustedChannels: curve.unadjustedChannels,
 			dispSuffix,
 			dispChannel,
 			_rawData: variantRawCache
@@ -370,7 +383,7 @@ class DataProvider {
 		// user's per-run curve picks survive, and only where they still resolve.
 		Object.assign(
 			newFields,
-			this.#buildSampleFields(rawData, data.colors, data.dispSamples ?? undefined)
+			this.#buildSampleFields(rawData, data.colors, curve, data.dispSamples ?? undefined)
 		);
 
 		commandHistory.execute(new UpdateVariantCommand(uuid, newFields), frStore);
@@ -403,43 +416,16 @@ class DataProvider {
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
 
 	renormalizeAll(): void {
-		const { normType, normHzValue } = graphStore;
 		const eqUUID = eqStore.eqCurveUUID;
-		let targetOriginalTouched = false;
 
 		for (const [uuid, data] of frStore.entries) {
 			// Skip the linked EQ curve — it will be rebuilt from the source below.
 			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
 
-			const processed = normalizeChannels(data.channels, normType, normHzValue);
-			const updated: FRDataObject = {
-				...data,
-				channels: {
-					...(processed.L && { L: processed.L }),
-					...(processed.R && { R: processed.R }),
-					...(processed.AVG && { AVG: processed.AVG })
-				}
-			};
-			// Re-anchor the sample set against the same pooled reference the main
-			// channels use, then rebuild the envelope from the shifted runs.
-			if (data.samples) {
-				const reNormed = anchorAndNormalizeSamples(data.samples, normType, normHzValue);
-				updated.samples = reNormed;
-				updated.envelope = this.#computeAllEnvelopes(reNormed);
-			}
-			frStore.set(uuid, updated);
-
-			// Keep the cached pre-adjustment target channels aligned with the new
-			// normalization so `withoutAdjustment` baselines remain correct and
-			// TargetCustomizer can re-apply filters on top of it.
-			const cachedOriginal = graphStore.targetOriginalData.get(uuid);
-			if (cachedOriginal) {
-				graphStore.targetOriginalData.set(
-					uuid,
-					normalizeChannels(cachedOriginal, normType, normHzValue)
-				);
-				targetOriginalTouched = true;
-			}
+			// Channels, a target's unadjusted channels (so `withoutAdjustment` baselines stay on
+			// the same reference) and the sample set (re-anchored against the same pooled
+			// reference, envelope rebuilt from the shifted runs) are normalized, never re-smoothed.
+			frStore.set(uuid, { ...data, ...renormalizedCurveData(data) });
 		}
 
 		// No re-apply pass here, unlike reSmoothAll: the loop above normalized each
@@ -447,7 +433,6 @@ class DataProvider {
 		// baked in. Re-applying would be a no-op anyway — normalization only subtracts a
 		// constant offset, so normalize(original + adjustment) lands on the same curve
 		// whether the original was normalized before the adjustment or after it.
-		if (targetOriginalTouched) graphStore.targetOriginalVersion++;
 
 		// Rebuild the EQ curve after the source phone has been renormalized.
 		// Reacts to the current `linkEqNormalization` setting: linked → smooth-only,
@@ -472,36 +457,7 @@ class DataProvider {
 
 			if (rawCache) {
 				// Re-smooth from cached raw data (no network fetch)
-				const processed = DataProcessor.processChannels(rawCache.channels, this.#processingParams);
-				const updated: FRDataObject = {
-					...data,
-					channels: {
-						...(processed.L && { L: processed.L }),
-						...(processed.R && { R: processed.R }),
-						...(processed.AVG && { AVG: processed.AVG })
-					}
-				};
-				// Re-process the sample set from cache. The envelope has to follow —
-				// a different smoothing window moves the runs, so a stale envelope
-				// would no longer bound them.
-				if (rawCache.samples) {
-					const processedSamples = DataProcessor.processSamples(
-						rawCache.samples,
-						this.#processingParams
-					);
-					updated.samples = processedSamples;
-					updated.envelope = this.#computeAllEnvelopes(processedSamples);
-				}
-				frStore.set(uuid, updated);
-
-				// Update persisted original data so TargetCustomizer can re-apply adjustments
-				if (data.type === 'target' && graphStore.targetOriginalData.has(uuid)) {
-					graphStore.targetOriginalData.set(uuid, {
-						...(processed.L && { L: processed.L }),
-						...(processed.R && { R: processed.R }),
-						...(processed.AVG && { AVG: processed.AVG })
-					});
-				}
+				frStore.set(uuid, { ...data, ...curveDataFromRaw(rawCache, data.type) });
 			} else if (data.meta && (data.type === 'phone' || data.type === 'target')) {
 				// Fallback: no cache, fetch from network
 				try {
@@ -510,29 +466,15 @@ class DataProvider {
 						data.meta,
 						data.dispSuffix ?? ''
 					);
-					const fallbackCache = this.#buildRawCache(rawData);
-					const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-					const updated: FRDataObject = {
-						...data,
-						channels: {
-							...(processed.L && { L: processed.L }),
-							...(processed.R && { R: processed.R }),
-							...(processed.AVG && { AVG: processed.AVG })
-						},
-						_rawData: fallbackCache
-					};
-					// Same as the cached branch above: the runs and their envelope have to
-					// be rebuilt at the new smoothing too, or a set fetched down this path
+					// Same builder as the cached branch: the runs and their envelope are
+					// rebuilt at the new smoothing too, or a set fetched down this path
 					// keeps run curves smoothed differently from its own average.
-					if (fallbackCache.samples) {
-						const processedSamples = DataProcessor.processSamples(
-							fallbackCache.samples,
-							this.#processingParams
-						);
-						updated.samples = processedSamples;
-						updated.envelope = this.#computeAllEnvelopes(processedSamples);
-					}
-					frStore.set(uuid, updated);
+					const fallbackCache = this.#buildRawCache(rawData);
+					frStore.set(uuid, {
+						...data,
+						...curveDataFromRaw(fallbackCache, data.type),
+						_rawData: fallbackCache
+					});
 				} catch {
 					// Keep existing data on failure
 				}
@@ -541,7 +483,6 @@ class DataProvider {
 		// Targets were rebuilt from raw (pre-adjustment) source data above, so their
 		// customizer stacks have to go back on top — this no longer depends on a
 		// mounted TargetCustomizer to happen.
-		graphStore.targetOriginalVersion++;
 		this.#reapplyTargetAdjustments();
 
 		// Rebuild the EQ curve from the newly re-smoothed source phone, same as
@@ -580,10 +521,6 @@ class DataProvider {
 
 	// ─── Reads ────────────────────────────────────────────────────────────────
 
-	getFRData(uuid: string): FRDataObject | null {
-		return frStore.get(uuid);
-	}
-
 	isFRDataLoaded(identifier: string, suffix?: string): boolean {
 		for (const data of frStore.entries.values()) {
 			if (data.identifier === identifier) {
@@ -591,13 +528,6 @@ class DataProvider {
 			}
 		}
 		return false;
-	}
-
-	getUUIDbyIdentifier(identifier: string): string | null {
-		for (const [uuid, data] of frStore.entries) {
-			if (data.identifier === identifier) return uuid;
-		}
-		return null;
 	}
 
 	/**
@@ -638,11 +568,7 @@ class DataProvider {
 	/** Cache the raw (unsmoothed, unnormalized) payload for `reSmoothAll`. */
 	#buildRawCache(rawData: FRParseResult): RawFRCache {
 		const cache: RawFRCache = {
-			channels: {
-				...(rawData.L && { L: rawData.L }),
-				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG })
-			}
+			channels: pickChannels(rawData)
 		};
 		if (rawData._samples?.length) {
 			cache.samples = rawData._samples;
@@ -661,13 +587,18 @@ class DataProvider {
 	 * Fields are always returned, `undefined` when the item has no set, so
 	 * `UpdateVariantCommand` clears them rather than leaving the previous
 	 * variant's set attached.
+	 *
+	 * Display decisions only: `curve` is the already-processed runs and envelope
+	 * (`curveDataFromRaw`), so this never processes anything itself.
 	 */
 	#buildSampleFields(
 		rawData: FRParseResult,
 		baseColors: FRColors,
+		curve: CurveData,
 		previousDispSamples?: SampleDisplayKey[]
 	): Partial<FRDataObject> {
-		if (!rawData._samples?.length) {
+		const { samples, envelope } = curve;
+		if (!rawData._samples?.length || !samples) {
 			return {
 				samples: undefined,
 				dispSamples: undefined,
@@ -678,7 +609,6 @@ class DataProvider {
 			};
 		}
 
-		const samples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
 		const display = rawData._sampleDisplay ?? defaultSampleDisplay();
 		const loadedKeys = this.#getLoadedSampleKeys(samples);
 
@@ -689,10 +619,10 @@ class DataProvider {
 		return {
 			samples,
 			colors: this.#addSampleColors(baseColors, samples),
-			// The envelope is computed whether or not `fill` is on: the user can turn
-			// the fill on at any time, and recomputing on toggle would mean threading
-			// the processing params through the UI.
-			envelope: this.#computeAllEnvelopes(samples),
+			// Computed whether or not `fill` is on: the user can turn the fill on at any
+			// time, and recomputing on toggle would mean threading the processing
+			// params through the UI.
+			envelope,
 			showAvg: display.includes('avg'),
 			showFill: display.includes('fill'),
 			dispSamples: carried?.length ? carried : display.includes('curves') ? loadedKeys : [],
@@ -725,35 +655,6 @@ class DataProvider {
 			else if (sample.R) keys.push(sampleKey(i, 'R'));
 		});
 		return keys;
-	}
-
-	/** Min/max envelope for a single channel across every run in the set */
-	#computeEnvelope(samples: SampleData[], channel: Channel): SampleEnvelope {
-		const sampleDataArrays = samples
-			.map((s) => s[channel]?.data)
-			.filter((d): d is FRDataPoint[] => !!d);
-
-		if (sampleDataArrays.length < 2) return { upper: [], lower: [] };
-
-		const upper: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
-			const max = Math.max(...sampleDataArrays.map((d) => d[idx][1]));
-			return [freq, max] as FRDataPoint;
-		});
-		const lower: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
-			const min = Math.min(...sampleDataArrays.map((d) => d[idx][1]));
-			return [freq, min] as FRDataPoint;
-		});
-
-		return { upper, lower };
-	}
-
-	/** Compute envelopes for all channels */
-	#computeAllEnvelopes(samples: SampleData[]): Record<Channel, SampleEnvelope> {
-		return {
-			L: this.#computeEnvelope(samples, 'L'),
-			R: this.#computeEnvelope(samples, 'R'),
-			AVG: this.#computeEnvelope(samples, 'AVG')
-		};
 	}
 }
 

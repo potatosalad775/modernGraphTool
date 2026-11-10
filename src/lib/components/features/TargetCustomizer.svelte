@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { untrack, onDestroy } from 'svelte';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
-	import { graphStore } from '#lib/stores/graph-store.svelte.js';
 	import {
 		targetAdjustmentStore,
 		type TargetFilterDef
 	} from '#lib/stores/target-adjustment-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
-	import type { FRDataObject, ParsedFRData } from '#lib/types/data-types.js';
+	import type { FRDataObject } from '#lib/types/data-types.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
@@ -39,10 +38,8 @@
 
 	// ── One-time registration ─────────────────────────────────────────────────
 	// Seeds the slider stack from INITIAL_TARGET_FILTERS (no-op if this UUID already
-	// has state from an earlier mount) and publishes the target's pre-adjustment
-	// curve to graphStore, which baseline compensation and DataProvider's re-apply
-	// path both read. Guarded by a plain flag — not $state — to avoid a cycle with
-	// the apply effect below.
+	// has state from an earlier mount). Guarded by a plain flag — not $state — to
+	// avoid a cycle with the apply effect below.
 
 	let initialized = false;
 
@@ -53,46 +50,36 @@
 
 		untrack(() => {
 			targetAdjustmentStore.ensure(uuid, item.identifier);
-
-			// A snapshot from a previous mount survives in graphStore — don't overwrite
-			// it with the already-adjusted channels currently in frStore.
-			if (graphStore.targetOriginalData.has(uuid)) return;
-
-			const snapshot: ParsedFRData = {};
-			for (const key of Object.keys(frObj.channels) as (keyof ParsedFRData)[]) {
-				const ch = frObj.channels[key];
-				if (ch) {
-					snapshot[key] = {
-						data: ch.data.map(([f, d]) => [f, d] as [number, number]),
-						metadata: { ...ch.metadata }
-					};
-				}
-			}
-			graphStore.targetOriginalData.set(uuid, snapshot);
 		});
 	});
 
 	onDestroy(() => {
 		// Only clean up if the FR data itself has been removed — a panel switch
 		// unmounts this component but must not discard the user's adjustments.
-		if (!frStore.get(uuid)) {
-			graphStore.targetOriginalData.delete(uuid);
-			targetAdjustmentStore.delete(uuid);
-		}
+		if (!frStore.get(uuid)) targetAdjustmentStore.delete(uuid);
 	});
 
 	// ── Push adjustments into the curve ───────────────────────────────────────
 	// Tracks the store record, which is replaced wholesale on every edit, and
-	// delegates the math to DataProvider — the same entry point reSmoothAll and
-	// renormalizeAll use, so the mounted and unmounted paths can't drift.
-	// `targetOriginalVersion` is deliberately NOT tracked: those two callers now
-	// re-apply adjustments themselves, so watching it here would double the work.
+	// delegates the math to DataProvider — the same entry point reSmoothAll uses,
+	// so the mounted and unmounted paths can't drift. A global re-smooth re-applies
+	// adjustments itself and a re-normalize keeps them baked in, so nothing here needs
+	// to watch for either.
+
+	// The first run after mount puts the stored stack on the curve: registration, not an edit,
+	// so it leaves no undo entry. Plain flag, like `initialized`.
+	let applied = false;
 
 	$effect(() => {
 		void adjustment;
 		untrack(() => {
-			if (!graphStore.targetOriginalData.has(uuid)) return;
-			dataProvider.applyTargetAdjustment(uuid);
+			if (!frStore.get(uuid)?.unadjustedChannels) return;
+			if (applied) {
+				dataProvider.applyTargetAdjustment(uuid);
+			} else {
+				applied = true;
+				dataProvider.applyTargetAdjustment(uuid, { undoable: false });
+			}
 		});
 	});
 

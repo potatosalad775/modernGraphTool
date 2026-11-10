@@ -6,8 +6,7 @@
  * `targetAdjustmentStore` so it survives the panel switches that unmount this
  * subtree. So the assertions here are about the two directions of that wiring —
  * what the store puts on screen, and what each control writes back — plus the
- * mount-time bookkeeping (the pre-adjustment snapshot in `graphStore`) that
- * baseline compensation depends on.
+ * mount-time bookkeeping (registering the target's slider record).
  *
  * `TARGET_CUSTOMIZER` config is read once and memoized inside the store, so it
  * is installed at module scope rather than per test.
@@ -17,9 +16,9 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import TargetCustomizer from './TargetCustomizer.svelte';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
-import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { commandHistory } from '#lib/services/command-history.svelte.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 import * as m from '#lib/paraglide/messages.js';
 
@@ -46,20 +45,23 @@ window.GRAPHTOOL_CONFIG = {
 const UUID = 'target-uuid';
 
 function makeTarget(overrides: Partial<FRDataObject> = {}): FRDataObject {
+	const channels = {
+		AVG: {
+			data: [
+				[20, 80],
+				[1000, 80],
+				[20000, 80]
+			] as [number, number][],
+			metadata: { minFreq: 20, maxFreq: 20000 }
+		}
+	};
 	return {
 		uuid: UUID,
 		type: 'target',
 		identifier: 'Harman',
-		channels: {
-			AVG: {
-				data: [
-					[20, 80],
-					[1000, 80],
-					[20000, 80]
-				],
-				metadata: { minFreq: 20, maxFreq: 20000 }
-			}
-		},
+		channels,
+		// As every target built by the curve builders carries it.
+		unadjustedChannels: channels,
 		dispChannel: ['AVG'],
 		dispSuffix: '',
 		colors: { AVG: 'oklch(0.7 0.1 30)' },
@@ -89,7 +91,6 @@ describe('TargetCustomizer', () => {
 	beforeEach(() => {
 		frStore.delete(UUID);
 		targetAdjustmentStore.delete(UUID);
-		graphStore.targetOriginalData.delete(UUID);
 		applyTargetAdjustment = vi
 			.spyOn(dataProvider, 'applyTargetAdjustment')
 			.mockImplementation(() => {});
@@ -99,7 +100,6 @@ describe('TargetCustomizer', () => {
 		vi.restoreAllMocks();
 		frStore.delete(UUID);
 		targetAdjustmentStore.delete(UUID);
-		graphStore.targetOriginalData.delete(UUID);
 	});
 
 	// ── Gating ───────────────────────────────────────────────────────────────
@@ -138,16 +138,11 @@ describe('TargetCustomizer', () => {
 	// ── Mount-time bookkeeping ───────────────────────────────────────────────
 
 	describe('registration', () => {
-		it('snapshots the pre-adjustment channels into graphStore', async () => {
+		it('registers an adjustment record for the target', async () => {
 			frStore.set(UUID, makeTarget());
 			render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
 
-			await vi.waitFor(() => expect(graphStore.targetOriginalData.has(UUID)).toBe(true));
-			expect(graphStore.targetOriginalData.get(UUID)!.AVG!.data).toEqual([
-				[20, 80],
-				[1000, 80],
-				[20000, 80]
-			]);
+			await vi.waitFor(() => expect(targetAdjustmentStore.has(UUID)).toBe(true));
 		});
 
 		it('seeds the sliders from INITIAL_TARGET_FILTERS', async () => {
@@ -156,14 +151,14 @@ describe('TargetCustomizer', () => {
 			await expect.element(slider('Bass')).toHaveValue('2');
 		});
 
-		it('does not overwrite a snapshot left by an earlier mount', async () => {
-			const stale = { AVG: { data: [[100, 1] as [number, number]], metadata: {} } };
-			graphStore.targetOriginalData.set(UUID, stale as never);
-			frStore.set(UUID, makeTarget());
-			render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
+		it('does not apply an adjustment to an item without unadjusted channels', async () => {
+			const item = makeTarget({ unadjustedChannels: undefined });
+			frStore.set(UUID, item);
+			await render(TargetCustomizer, { uuid: UUID, item });
+			// Registration lands in the same flush as the apply effect's first run.
+			await vi.waitFor(() => expect(targetAdjustmentStore.has(UUID)).toBe(true));
 
-			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalled());
-			expect(graphStore.targetOriginalData.get(UUID)).toBe(stale);
+			expect(applyTargetAdjustment).not.toHaveBeenCalled();
 		});
 
 		it('keeps the adjustments when the component unmounts but the curve stays', async () => {
@@ -173,7 +168,7 @@ describe('TargetCustomizer', () => {
 			unmount();
 
 			expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
-			expect(graphStore.targetOriginalData.has(UUID)).toBe(true);
+			expect(frStore.get(UUID)!.unadjustedChannels).toBeDefined();
 		});
 
 		it('cleans up once the curve itself is gone', async () => {
@@ -182,8 +177,158 @@ describe('TargetCustomizer', () => {
 
 			unmount();
 
-			expect(graphStore.targetOriginalData.has(UUID)).toBe(false);
 			expect(targetAdjustmentStore.has(UUID)).toBe(false);
+		});
+	});
+
+	// ── Undo history ─────────────────────────────────────────────────────────
+	// The apply effect runs on every mount, and the panel remounts on every panel
+	// switch. A mount that changes nothing must not leave an entry for Ctrl+Z to land on.
+
+	describe('undo history', () => {
+		it('adds no undo entry when the panel is reopened with nothing changed', async () => {
+			// The real implementation, still spied so the calls can be awaited.
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget();
+			frStore.set(UUID, item);
+
+			const first = await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+			first.unmount();
+			commandHistory.clear();
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(2));
+
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		// The first mount registers the target; it is not something the user did.
+		it('adds no undo entry on the first mount of a target with no initial filters', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget({ identifier: 'Diffuse Field' });
+			frStore.set(UUID, item);
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('applies the initial filters on the first mount without an undo entry', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget();
+			frStore.set(UUID, item);
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+
+			const applied = frStore.get(UUID)!;
+			expect(applied.adjustmentLabel).toBe('(Bass: +2.0dB)');
+			expect(applied.channels).not.toEqual(item.channels);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('records exactly one undo entry for a slider edit after mount', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			await open();
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+			expect(commandHistory.canUndo).toBe(false);
+
+			await slider('Bass').fill('5');
+			await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+			expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+
+			commandHistory.undo(frStore);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		// The entry carries the slider record, so the sliders follow the curve through undo and redo.
+		describe('undo and redo of a slider edit', () => {
+			beforeEach(() => {
+				applyTargetAdjustment.mockRestore();
+				applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			});
+
+			async function editBassTo5() {
+				await open();
+				await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+				const initial = frStore.get(UUID)!.channels;
+				await slider('Bass').fill('5');
+				await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+				return initial;
+			}
+
+			/** Undo, then wait for the apply effect's re-run on the record the undo wrote back. */
+			async function undoAndSettle() {
+				const calls = applyTargetAdjustment.mock.calls.length;
+				commandHistory.undo(frStore);
+				await vi.waitFor(() =>
+					expect(applyTargetAdjustment.mock.calls.length).toBeGreaterThan(calls)
+				);
+			}
+
+			it('shows the previous value on the slider and the previous curve after undo', async () => {
+				const initial = await editBassTo5();
+
+				commandHistory.undo(frStore);
+
+				await expect.element(slider('Bass')).toHaveValue('2');
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(2);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +2.0dB)');
+				expect(frStore.get(UUID)!.channels).toEqual(initial);
+			});
+
+			it('keeps the redo entry once the effect has re-applied the restored record', async () => {
+				await editBassTo5();
+
+				await undoAndSettle();
+
+				expect(commandHistory.canRedo).toBe(true);
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			it('shows the edited value on the slider and the edited curve after redo', async () => {
+				await editBassTo5();
+				const edited = frStore.get(UUID)!.channels;
+				await undoAndSettle();
+
+				const calls = applyTargetAdjustment.mock.calls.length;
+				commandHistory.redo(frStore);
+
+				await expect.element(slider('Bass')).toHaveValue('5');
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+				expect(frStore.get(UUID)!.channels).toEqual(edited);
+				// The effect re-applies the redone record; it must leave the entry as it was.
+				await vi.waitFor(() =>
+					expect(applyTargetAdjustment.mock.calls.length).toBeGreaterThan(calls)
+				);
+				expect(commandHistory.canUndo).toBe(true);
+				expect(commandHistory.canRedo).toBe(false);
+			});
+
+			it('restores the record and the curve when undone with the panel closed', async () => {
+				const { unmount } = await open();
+				await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+				const initial = frStore.get(UUID)!.channels;
+				await slider('Bass').fill('5');
+				await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+				unmount();
+
+				commandHistory.undo(frStore);
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(2);
+				expect(frStore.get(UUID)!.channels).toEqual(initial);
+
+				commandHistory.redo(frStore);
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+			});
 		});
 	});
 

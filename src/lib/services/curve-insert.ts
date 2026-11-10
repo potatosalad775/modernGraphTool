@@ -9,7 +9,7 @@ import type {
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { AddFRDataCommand } from './commands.js';
-import { DataProcessor } from '#lib/utils/data-processor.js';
+import { curveDataFromRaw } from './curve-data.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import {
 	nextCurveColor,
@@ -23,8 +23,6 @@ import {
  * Shared by `DataProvider` (add / insert) and `eqCurve` (a frozen EQ curve), which cannot import
  * each other: `DataProvider` calls `eqCurve.rebuild()`.
  */
-
-type ProcessingParams = Parameters<typeof DataProcessor.processChannels>[1];
 
 export function getChannelValue(sourceType: FRDataType, available: Channel[]): Channel[] {
 	const phoneCount = [...frStore.entries.values()].filter((e) => e.type === 'phone').length;
@@ -71,26 +69,26 @@ function randomDash(): string {
 	).join(' ');
 }
 
-/** Process `rawData` with `params` and add it to `frStore` as an undoable `inserted-*` curve. */
+/**
+ * Process `rawData` with the graph's current params and add it to `frStore` as an undoable
+ * `inserted-*` curve. It has no runs, so its raw cache is the channels alone.
+ */
 export function insertRawCurve(
 	sourceType: FRDataType,
 	identifier: string,
 	rawData: ParsedFRData,
-	inputMetadata: FRInputMetadata,
-	params: ProcessingParams
+	inputMetadata: FRInputMetadata
 ): void {
-	const processed = DataProcessor.processChannels(rawData, params);
+	const type = `inserted-${sourceType}` as FRDataType;
+	const { channels: processed, unadjustedChannels } = curveDataFromRaw({ channels: rawData }, type);
 	const channels = Object.keys(processed) as Channel[];
 
 	const frObject: FRDataObject = {
 		uuid: crypto.randomUUID(),
-		type: `inserted-${sourceType}` as FRDataType,
+		type,
 		identifier,
-		channels: {
-			...(processed.L && { L: processed.L }),
-			...(processed.R && { R: processed.R }),
-			...(processed.AVG && { AVG: processed.AVG })
-		},
+		channels: processed,
+		...(unadjustedChannels && { unadjustedChannels }),
 		dispChannel: inputMetadata.dispChannel ?? getChannelValue(sourceType, channels),
 		dispSuffix: inputMetadata.dispSuffix ?? '(Inserted)',
 		colors: getColorForType(sourceType),

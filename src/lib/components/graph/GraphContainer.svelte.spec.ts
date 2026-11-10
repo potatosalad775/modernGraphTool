@@ -198,7 +198,6 @@ describe('GraphContainer baseline', () => {
 		frStore.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 		await render(GraphContainer);
 		await tick();
 		graphEngine.transitionDuration = 0;
@@ -210,7 +209,6 @@ describe('GraphContainer baseline', () => {
 	afterEach(() => {
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 		frStore.clear();
 	});
 
@@ -231,13 +229,13 @@ describe('GraphContainer baseline', () => {
 		expect(baselineLabel()).toBeNull();
 	});
 
-	it('reaches the drawn curves when only targetOriginalData changes', async () => {
-		graphStore.targetOriginalData.set('t', { AVG: flat(5).AVG! });
+	it('reaches the drawn curves when only unadjustedChannels changes', async () => {
+		frStore.set('t', { ...frStore.get('t')!, unadjustedChannels: { AVG: flat(5).AVG! } });
 		baseline.cycle('t');
 		await settle();
 		const before = phonePath();
 
-		graphStore.targetOriginalData.set('t', { AVG: flat(12).AVG! });
+		frStore.set('t', { ...frStore.get('t')!, unadjustedChannels: { AVG: flat(12).AVG! } });
 		await settle();
 
 		expect(phonePath()).not.toBe(before);

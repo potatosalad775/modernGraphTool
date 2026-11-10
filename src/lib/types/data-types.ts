@@ -104,6 +104,11 @@ export interface FRDataObject {
 	dispSuffix?: string | null;
 	/** Short summary of TargetCustomizer adjustments, e.g. "(Tilt: -0.8dB/oct, Bass: +6.0dB)". */
 	adjustmentLabel?: string | null;
+	/**
+	 * A target's channels before the user's target adjustments; what the _without adjustment_
+	 * baseline mode subtracts. Present exactly on targets (`isTargetType`), absent on everything else.
+	 */
+	unadjustedChannels?: ParsedFRData;
 	colors: FRColors;
 	dash: string;
 	meta?: PhoneMetadata | TargetMetadata;

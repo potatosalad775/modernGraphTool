@@ -32,7 +32,7 @@ export const frStore = new FRDataStore();
 ## Inventory
 
 - `fr-store.svelte.ts` — `FRDataStore` wraps `SvelteMap<uuid, FRDataObject>` from `svelte/reactivity`
-- `graph-store.svelte.ts` — yScale, baseline UUID + mode (written only by `graph/baseline.ts`), normalization type, smoothing, target-original data map
+- `graph-store.svelte.ts` — yScale, baseline UUID + mode (written only by `graph/baseline.ts`), normalization type, smoothing
 - `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
 - `menu-store.svelte.ts` — current panel + slide direction
 - `tutorial-store.svelte.ts` — which guided tour is open + its step, per-tour dismissal keys. The
@@ -165,9 +165,12 @@ previous selection never draws under the new one.
 **`target-adjustment-store.svelte.ts` — the state lives here, not in the component.**
 Target Customizer slider stacks keyed by FR-data UUID, plus the `TARGET_CUSTOMIZER` config (filters,
 presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math (`adjustedChannels`, `label`).
-`TargetCustomizer.svelte` is UI only. Keeping the state here is what lets
-`DataProvider.applyTargetAdjustment()` rebuild a target with no component mounted — `GraphPanel` is
-torn down on every panel switch.
+`TargetCustomizer.svelte` is UI only: it registers the record (`ensure`) and drops it when the item
+is gone. Keeping the state here is what lets `DataProvider.applyTargetAdjustment()` rebuild a target
+with no component mounted — `GraphPanel` is torn down on every panel switch. What the sliders apply
+to is the item's own `unadjustedChannels` (in `frStore`), not anything held here. Records are
+replaced wholesale, never mutated, and `restore(uuid, record)` puts one back (`undefined` removes
+it): an adjustment's undo entry uses it so undo and redo move the sliders with the curve.
 
 ## Boot-time writes
 

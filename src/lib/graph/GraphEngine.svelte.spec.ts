@@ -88,7 +88,6 @@ describe('GraphEngine', () => {
 		graphStore.smoothValue = 'none';
 		graphStore.baselineMode = 'off';
 		graphStore.baselineUUID = null;
-		graphStore.targetOriginalData.clear();
 		eqStore.isEnabled = false;
 		eqStore.sourcePhoneUUID = null;
 

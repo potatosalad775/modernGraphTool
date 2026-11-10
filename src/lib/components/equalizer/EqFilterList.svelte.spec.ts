@@ -365,6 +365,27 @@ describe('EqFilterList', () => {
 			vi.mocked(toast.error).mockClear();
 		});
 
+		it('says how many filters it imported, singular for one', async () => {
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.success).mock.calls[0][1]).toMatchObject({
+				description: '1 filter'
+			});
+
+			vi.mocked(toast.success).mockClear();
+			importText(
+				[
+					'Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000',
+					'Filter 2: ON PK Fc 200 Hz Gain 2.0 dB Q 1.000'
+				].join('\n')
+			);
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.success).mock.calls[0][1]).toMatchObject({
+				description: '2 filters'
+			});
+		});
+
 		it('switches the equalizer on', async () => {
 			expect(eqStore.isEnabled).toBe(false);
 			render(EqFilterList);

@@ -53,7 +53,16 @@
 	"equalizer_phone_select_group_targets": "Targets",
 	"equalizer_filter_list_preamp": "Preamp",
 	"equalizer_filter_list_import": "Import EQ",
-	"equalizer_filter_list_import_count": "{count} filters",
+	"equalizer_filter_list_import_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} filter",
+				"countPlural=*": "{count} filters"
+			}
+		}
+	],
 	"equalizer_filter_list_import_none": "No valid filters found in file",
 	"equalizer_filter_list_import_skipped": [
 		{

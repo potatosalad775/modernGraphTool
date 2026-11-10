@@ -198,7 +198,7 @@
 
 	let importInputEl = $state<HTMLInputElement | undefined>(undefined);
 
-	function importFilters() {
+	function openImportDialog() {
 		importInputEl?.click();
 	}
 
@@ -409,7 +409,7 @@
 	<div class="flex gap-1.5">
 		<Button
 			label={m.equalizer_filter_list_import()}
-			onclick={importFilters}
+			onclick={openImportDialog}
 			variant="outline"
 			size="sm"
 			class="flex-1"

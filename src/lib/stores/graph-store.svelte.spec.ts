@@ -10,7 +10,6 @@ describe('GraphStore', () => {
 		graphStore.normType = 'Hz';
 		graphStore.normHzValue = 500;
 		graphStore.targetOriginalData.clear();
-		graphStore.targetOriginalVersion = 0;
 	});
 
 	describe('initial/default state', () => {
@@ -141,21 +140,6 @@ describe('GraphStore', () => {
 			});
 			graphStore.targetOriginalData.delete('target-1');
 			expect(graphStore.targetOriginalData.has('target-1')).toBe(false);
-		});
-	});
-
-	// ── Target original version counter ──────────────────────────────────
-
-	describe('targetOriginalVersion', () => {
-		it('starts at 0', () => {
-			expect(graphStore.targetOriginalVersion).toBe(0);
-		});
-
-		it('can be incremented', () => {
-			graphStore.targetOriginalVersion++;
-			expect(graphStore.targetOriginalVersion).toBe(1);
-			graphStore.targetOriginalVersion++;
-			expect(graphStore.targetOriginalVersion).toBe(2);
 		});
 	});
 });

@@ -112,23 +112,9 @@ describe('DataProvider', () => {
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
 		graphStore.targetOriginalData.clear();
-		graphStore.targetOriginalVersion = 0;
 	});
 
 	// ── Read helpers ─────────────────────────────────────────────────────────
-
-	describe('getFRData', () => {
-		it('returns data for existing UUID', () => {
-			frStore.set('a', makeFRDataObject('a'));
-			const result = dataProvider.getFRData('a');
-			expect(result).not.toBeNull();
-			expect(result!.uuid).toBe('a');
-		});
-
-		it('returns null for non-existent UUID', () => {
-			expect(dataProvider.getFRData('missing')).toBeNull();
-		});
-	});
 
 	describe('isFRDataLoaded', () => {
 		it('returns true when identifier matches', () => {
@@ -153,23 +139,6 @@ describe('DataProvider', () => {
 		it('returns true when suffix is not specified (any suffix matches)', () => {
 			frStore.set('a', makeFRDataObject('a', { dispSuffix: 'v2' }));
 			expect(dataProvider.isFRDataLoaded('Brand Phone-a')).toBe(true);
-		});
-	});
-
-	describe('getUUIDbyIdentifier', () => {
-		it('returns UUID for matching identifier', () => {
-			frStore.set('a', makeFRDataObject('a'));
-			expect(dataProvider.getUUIDbyIdentifier('Brand Phone-a')).toBe('a');
-		});
-
-		it('returns null when identifier not found', () => {
-			expect(dataProvider.getUUIDbyIdentifier('Nonexistent')).toBeNull();
-		});
-
-		it('returns first match when multiple entries exist', () => {
-			frStore.set('a', makeFRDataObject('a', { identifier: 'Same Phone' }));
-			frStore.set('b', makeFRDataObject('b', { identifier: 'Different Phone' }));
-			expect(dataProvider.getUUIDbyIdentifier('Same Phone')).toBe('a');
 		});
 	});
 
@@ -432,66 +401,6 @@ describe('DataProvider', () => {
 		});
 	});
 
-	// ── updateFRDataWithRawData (target customizer / EQ preview) ─────────────
-
-	describe('updateFRDataWithRawData', () => {
-		it('updates channel data while preserving other fields', () => {
-			frStore.set('t', makeTargetObject('t'));
-			const original = frStore.get('t')!;
-			const newChannels: ParsedFRData = {
-				AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } }
-			};
-			dataProvider.updateFRDataWithRawData('t', newChannels);
-			const updated = frStore.get('t')!;
-			expect(updated.channels.AVG!.data[0][1]).not.toBe(original.channels.AVG!.data[0][1]);
-			expect(updated.uuid).toBe('t');
-			expect(updated.type).toBe('target');
-			expect(updated.colors).toEqual(original.colors);
-			expect(updated.dash).toBe(original.dash);
-		});
-
-		it('does nothing for non-existent UUID', () => {
-			dataProvider.updateFRDataWithRawData('missing', {
-				AVG: { data: [[1000, 80]], metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
-			expect(frStore.size).toBe(0);
-		});
-
-		it('is undoable', () => {
-			frStore.set('t', makeTargetObject('t'));
-			const originalDb = frStore.get('t')!.channels.AVG!.data[0][1];
-			dataProvider.updateFRDataWithRawData('t', {
-				AVG: { data: makeFRPoints(999), metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
-			expect(frStore.get('t')!.channels.AVG!.data[0][1]).not.toBe(originalDb);
-			commandHistory.undo(frStore);
-			expect(frStore.get('t')!.channels.AVG!.data[0][1]).toBe(originalDb);
-		});
-
-		it('can update identifier and dispSuffix', () => {
-			frStore.set('t', makeTargetObject('t'));
-			dataProvider.updateFRDataWithRawData(
-				't',
-				{ AVG: { data: makeFRPoints(80), metadata: { minFreq: 20, maxFreq: 20000 } } },
-				{ identifier: 'New Name', dispSuffix: '(Modified)' }
-			);
-			expect(frStore.get('t')!.identifier).toBe('New Name');
-			expect(frStore.get('t')!.dispSuffix).toBe('(Modified)');
-		});
-
-		it('preserves the sample set when updating channels', () => {
-			frStore.set('p', makeFRDataObject('p', { ...makeSampleSet(), dispSamples: ['sample0_AVG'] }));
-			dataProvider.updateFRDataWithRawData('p', {
-				AVG: { data: makeFRPoints(99), metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
-			const updated = frStore.get('p')!;
-			expect(updated.samples).toHaveLength(2);
-			expect(updated.envelope).toBeDefined();
-			expect(updated.showFill).toBe(true);
-			expect(updated.dispSamples).toEqual(['sample0_AVG']);
-		});
-	});
-
 	// ── renormalizeAll ───────────────────────────────────────────────────
 
 	describe('renormalizeAll', () => {
@@ -586,29 +495,6 @@ describe('DataProvider', () => {
 				expect(normalizedOriginal[i][0]).toBe(normalizedFr[i][0]);
 				expect(normalizedOriginal[i][1]).toBeCloseTo(normalizedFr[i][1], 10);
 			}
-		});
-
-		it('bumps targetOriginalVersion when a target has cached original data', () => {
-			frStore.set(
-				't',
-				makeTargetObject('t', {
-					channels: { AVG: { data: makeFRPoints(75), metadata: { minFreq: 20, maxFreq: 20000 } } }
-				})
-			);
-			graphStore.targetOriginalData.set('t', {
-				AVG: { data: makeFRPoints(75), metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
-
-			const before = graphStore.targetOriginalVersion;
-			dataProvider.renormalizeAll();
-			expect(graphStore.targetOriginalVersion).toBe(before + 1);
-		});
-
-		it('does not bump targetOriginalVersion when no targets have cached original data', () => {
-			frStore.set('a', makeFRDataObject('a', { channels: makeFullChannelData() }));
-			const before = graphStore.targetOriginalVersion;
-			dataProvider.renormalizeAll();
-			expect(graphStore.targetOriginalVersion).toBe(before);
 		});
 
 		// Sample runs are anchored to a single pooled L+R mean, so every pairwise
@@ -777,10 +663,12 @@ describe('DataProvider', () => {
 			expect(graphStore.targetOriginalData.get('t')).toBe(targetData);
 
 			// Modifying frStore should not affect targetOriginalData
-			frStore.set('t', makeTargetObject('t'));
-			dataProvider.updateFRDataWithRawData('t', {
-				AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
+			frStore.set(
+				't',
+				makeTargetObject('t', {
+					channels: { AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } } }
+				})
+			);
 			expect(graphStore.targetOriginalData.get('t')!.AVG!.data[0][1]).toBe(
 				targetData.AVG!.data[0][1]
 			);
@@ -817,19 +705,13 @@ describe('DataProvider', () => {
 			expect(storedOriginal[1][1]).toBe(75);
 			expect(storedAdjusted[1][1]).toBe(77);
 		});
-
-		it('version counter starts at 0 and increments', () => {
-			expect(graphStore.targetOriginalVersion).toBe(0);
-			graphStore.targetOriginalVersion++;
-			expect(graphStore.targetOriginalVersion).toBe(1);
-		});
 	});
 
 	// ── reSmoothAll re-applies target adjustments ────────────────────────────
 	// reSmoothAll rebuilds every curve from its cached raw source, which is
-	// pre-adjustment data. It used to signal mounted TargetCustomizer instances via
-	// targetOriginalVersion and let them re-apply — so changing smoothing while the
-	// Graph tab was closed silently discarded the user's target adjustments, including
+	// pre-adjustment data. It used to signal mounted TargetCustomizer instances and let
+	// them re-apply — so changing smoothing while the Graph tab was closed silently
+	// discarded the user's target adjustments, including
 	// the operator's INITIAL_TARGET_FILTERS defaults. DataProvider now re-applies them
 	// itself; these tests run with no component mounted at all.
 
@@ -1067,10 +949,13 @@ describe('DataProvider', () => {
 			graphStore.baselineUUID = 't';
 			graphStore.baselineMode = 'withoutAdjustment';
 
-			// Update the target via updateFRDataWithRawData (simulates TargetCustomizer adjustment)
-			dataProvider.updateFRDataWithRawData('t', {
-				AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } }
-			});
+			// Replace the target's channels (simulates TargetCustomizer adjustment)
+			frStore.set(
+				't',
+				makeTargetObject('t', {
+					channels: { AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } } }
+				})
+			);
 
 			// Baseline entry should still exist and have updated data
 			const updated = frStore.get('t')!;

@@ -258,34 +258,6 @@ class DataProvider {
 		return sources.length;
 	}
 
-	// ─── Update raw data (EQ preview) ─────────────────────────────────────────
-
-	updateFRDataWithRawData(
-		uuid: string,
-		rawData: ParsedFRData,
-		opts: {
-			identifier?: string | null;
-			dispSuffix?: string | null;
-			adjustmentLabel?: string | null;
-		} = {}
-	): void {
-		const existing = frStore.get(uuid);
-		if (!existing) return;
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const updated: FRDataObject = {
-			...existing,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
-			identifier: opts.identifier ?? existing.identifier,
-			dispSuffix: opts.dispSuffix ?? existing.dispSuffix,
-			adjustmentLabel: 'adjustmentLabel' in opts ? opts.adjustmentLabel : existing.adjustmentLabel
-		};
-		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
-	}
-
 	// ─── Target customizer adjustments ────────────────────────────────────────
 
 	/**
@@ -294,13 +266,13 @@ class DataProvider {
 	 *
 	 * Callable without a mounted `TargetCustomizer` — that component only drives the
 	 * UI now. `reSmoothAll()` in particular rebuilds targets from raw source data, and
-	 * used to rely on a mounted customizer noticing `targetOriginalVersion` and
-	 * re-applying; with the Graph tab closed the adjustment was dropped for good.
+	 * used to rely on a mounted customizer noticing and re-applying; with the Graph tab
+	 * closed the adjustment was dropped for good.
 	 *
 	 * Normalizes but does NOT re-smooth. `targetOriginalData` is a snapshot of channels
 	 * that already went through smooth → normalize, and the tilt/shelf stack on top is a
-	 * smooth analytic curve with nothing to filter out. Sending the result back through
-	 * `updateFRDataWithRawData` would smooth it a second time and blur the target — the
+	 * smooth analytic curve with nothing to filter out. Running the result through
+	 * `DataProcessor.processChannels` would smooth it a second time and blur the target — the
 	 * channels carry their smoothing marker, so `FRSmoother` passes them through rather
 	 * than doing that. Normalization is kept so a shelf adjustment can't drag the target
 	 * off the anchor point.
@@ -426,7 +398,6 @@ class DataProvider {
 	renormalizeAll(): void {
 		const { normType, normHzValue } = graphStore;
 		const eqUUID = eqStore.eqCurveUUID;
-		let targetOriginalTouched = false;
 
 		for (const [uuid, data] of frStore.entries) {
 			// Skip the linked EQ curve — it will be rebuilt from the source below.
@@ -459,7 +430,6 @@ class DataProvider {
 					uuid,
 					normalizeChannels(cachedOriginal, normType, normHzValue)
 				);
-				targetOriginalTouched = true;
 			}
 		}
 
@@ -468,7 +438,6 @@ class DataProvider {
 		// baked in. Re-applying would be a no-op anyway — normalization only subtracts a
 		// constant offset, so normalize(original + adjustment) lands on the same curve
 		// whether the original was normalized before the adjustment or after it.
-		if (targetOriginalTouched) graphStore.targetOriginalVersion++;
 
 		// Rebuild the EQ curve after the source phone has been renormalized.
 		// Reacts to the current `linkEqNormalization` setting: linked → smooth-only,
@@ -562,7 +531,6 @@ class DataProvider {
 		// Targets were rebuilt from raw (pre-adjustment) source data above, so their
 		// customizer stacks have to go back on top — this no longer depends on a
 		// mounted TargetCustomizer to happen.
-		graphStore.targetOriginalVersion++;
 		this.#reapplyTargetAdjustments();
 
 		// Rebuild the EQ curve from the newly re-smoothed source phone, same as
@@ -601,10 +569,6 @@ class DataProvider {
 
 	// ─── Reads ────────────────────────────────────────────────────────────────
 
-	getFRData(uuid: string): FRDataObject | null {
-		return frStore.get(uuid);
-	}
-
 	isFRDataLoaded(identifier: string, suffix?: string): boolean {
 		for (const data of frStore.entries.values()) {
 			if (data.identifier === identifier) {
@@ -612,13 +576,6 @@ class DataProvider {
 			}
 		}
 		return false;
-	}
-
-	getUUIDbyIdentifier(identifier: string): string | null {
-		for (const [uuid, data] of frStore.entries) {
-			if (data.identifier === identifier) return uuid;
-		}
-		return null;
 	}
 
 	/**

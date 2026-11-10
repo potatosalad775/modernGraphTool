@@ -83,10 +83,10 @@
 
 	// ── Push adjustments into the curve ───────────────────────────────────────
 	// Tracks the store record, which is replaced wholesale on every edit, and
-	// delegates the math to DataProvider — the same entry point reSmoothAll and
-	// renormalizeAll use, so the mounted and unmounted paths can't drift.
-	// `targetOriginalVersion` is deliberately NOT tracked: those two callers now
-	// re-apply adjustments themselves, so watching it here would double the work.
+	// delegates the math to DataProvider — the same entry point reSmoothAll uses,
+	// so the mounted and unmounted paths can't drift. A global re-smooth re-applies
+	// adjustments itself and a re-normalize keeps them baked in, so nothing here needs
+	// to watch for either.
 
 	$effect(() => {
 		void adjustment;

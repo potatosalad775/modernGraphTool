@@ -4,6 +4,7 @@ import {
 	type ChannelData,
 	type FRDataObject
 } from '#lib/types/data-types.js';
+import { curveBaseName } from './curve-name.js';
 
 export interface DownloadPayload {
 	filename: string;
@@ -27,7 +28,7 @@ function safeFileName(name: string): string {
 
 /** "Name Suffix", the stem every file of `item` shares. */
 export function downloadBaseName(item: FRDataObject): string {
-	return safeFileName([item.identifier, item.dispSuffix].filter(Boolean).join(' ').trim());
+	return safeFileName(curveBaseName(item).trim());
 }
 
 /**

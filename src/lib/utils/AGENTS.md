@@ -6,6 +6,11 @@
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
+## `curve-name.ts`
+
+`curveBaseName` is the only composer of identifier + suffix; `shareKey`, the EQ source picker label and download
+file names (`downloadBaseName`) build on it, so don't join the two by hand.
+
 ## `preference-bound.ts`
 
 `alignDFToBoundCenter` aligns the preference band by its **center** (DF + (U+D)/2), not by the

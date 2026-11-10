@@ -1,5 +1,5 @@
 import type { FRDataObject } from '#lib/types/data-types.js';
-import { curveBaseName } from './curve-label.js';
+import { curveBaseName } from '#lib/utils/curve-name.js';
 import { listedTraces, type CurveTrace } from './curve-traces.js';
 
 /** One line of the on-graph legend. `key` is the trace key (`'fill'` for the combined row). */

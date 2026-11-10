@@ -5,9 +5,10 @@ import {
 	type FRDataPoint,
 	type SampleEnvelope
 } from '#lib/types/data-types.js';
+import { curveBaseName } from '#lib/utils/curve-name.js';
 import { eqSourceChannels, eqSourceRun, type EqSourceSample } from '#lib/utils/eq-source.js';
 import { sampleKey } from '#lib/utils/sample-key.js';
-import { curveBaseName, curveDisplayName, sampleKeyParts } from './curve-label.js';
+import { curveDisplayName, sampleKeyParts } from './curve-label.js';
 
 /**
  * What a curve item puts on the graph.

@@ -10,6 +10,7 @@ import Base62 from './base62.js';
 import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
 import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+import { curveBaseName } from './curve-name.js';
 import { parseSampleKey, sampleKey } from './sample-key.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ export interface URLState {
 
 /** How `state=` names a curve item: its identifier and variant, e.g. `Phone V2`. */
 export function shareKey(item: Pick<FRDataObject, 'identifier' | 'dispSuffix'>): string {
-	return (item.identifier + ' ' + (item.dispSuffix ?? '')).trim();
+	return curveBaseName(item).trim();
 }
 
 /** Prefix marking a Base62-compressed `share=` value. */

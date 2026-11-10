@@ -12,6 +12,10 @@ One entry in the list of things shown on the graph: a phone, a target, an upload
 an EQ curve.
 _Avoid_: Curve (ambiguous with trace), entry, FR object
 
+**Channel**:
+One of a curve item's main responses: left (L), right (R) or their average (AVG).
+_Avoid_: Side, ear (an EQ band's ear is L or R only)
+
 **Trace**:
 One line or area a curve item puts on the graph: a main channel (L, R or AVG), one run of a sample
 set, or the fill between a sample set's extremes. A curve item has zero or more traces.

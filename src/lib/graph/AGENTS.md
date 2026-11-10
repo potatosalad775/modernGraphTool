@@ -67,13 +67,13 @@ never renumber it, or a drag in the R bucket edits an L band.
 
 While A and B are both picked and the live filters equal one of them (`compareGhostSide`), the other
 side is drawn as a dashed trace. `GraphContainer` builds its curves with
-`dataProvider.eqChannelsFor` — the same `#eqModifiedChannels` / `#processEqChannels` path as the
+`eqCurve.channelsFor` — the same `#modifiedChannels` / `#processChannels` path as the
 live EQ curve, so the two can't drift — in the channels the EQ curve shows, and pushes them in with
 the EQ curve's `yOffset` and the `resolveBaselineChannelData` baseline. Nothing goes into `frStore`:
 the ghost has no list row, no undo and no color of its own. Its stroke is `--color-graph-compare`,
 falling back to `--color-graph-axis-label` for operator themes written before the token existed.
 `repositionCurves` re-renders it with the other overlays. Its label is English, like every graph
-label. "Add to graph" is the persistent counterpart: `dataProvider.insertEqCurve` inserts the same
+label. "Add to graph" is the persistent counterpart: `eqCurve.insertFrozen` inserts the same
 curve as an `inserted-phone`.
 
 ## Testing this layer

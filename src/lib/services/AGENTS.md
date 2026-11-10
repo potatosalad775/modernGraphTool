@@ -11,6 +11,9 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
+- `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
+- `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by
+  `DataProvider` and `eqCurve`, which can't import each other (`DataProvider` calls `eqCurve.rebuild()`)
 - `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `media-session.ts` — the audio player in OS media controls (Control Center, media keys)
@@ -114,7 +117,7 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   raw `eq` listener, since the client emits nothing for an equal list), or answered in the start
   dialog. The dialog compares bands only: the preamp is uniPEQ's either way.
 - The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it,
-  and every `eq` sets `eqStore.linkedPreamp`, which `installEqCurveSync` shows and plays (a fixed
+  and every `eq` sets `eqStore.linkedPreamp`, which `eqCurve.installSync` shows and plays (a fixed
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
 
 ## `data-provider.svelte.ts`
@@ -136,16 +139,24 @@ applyTargetAdjustment.
 - `applyTargetAdjustment` **normalizes only, never re-smooths.** `targetOriginalData` already holds
   smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off
   the cached original's frequency grid, which baseline compensation reads against.
-- `rebuildEqCurve` gives each ear `effectiveFilters(enabled, ch)` — the shared bands plus that
+
+## `eq-curve.svelte.ts` — the derived EQ curve
+
+The `frStore` item showing the EQ source with the current EQ applied, plus the preamp derivation.
+`dataProvider.renormalizeAll()` / `reSmoothAll()` call `eqCurve.rebuild()` after rebuilding the source
+phone. **It must not import `data-provider.svelte.ts`:** the frozen curve (`insertFrozen`) goes through
+`curve-insert.ts` instead. `channelsFor` (the A/B ghost) uses the same path as the live curve.
+
+- `rebuild` gives each ear `effectiveFilters(enabled, ch)` — the shared bands plus that
   ear's own. **AVG is not just "the shared bands over the source average":** once any band is pinned,
   it is recomputed as the pointwise dB mean of the EQ'd L and R (same mean as
   `anchorAndNormalizeSamples`), or the average silently ignores every single-ear correction. That
   branch requires the source to already have all three channels — it rewrites an AVG, never invents
   one, so a phone measured as a single curve keeps the shared-only path.
-- The EQ curve owns its `dispChannel`; `#eqCurveDispChannel` copies the source's only when the
+- The EQ curve owns its `dispChannel`; `#dispChannel` copies the source's only when the
   source's choice changes. Copying it on every rebuild made the EQ curve's channel picker revert on
   the next filter edit.
-- `installEqCurveSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
+- `installSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
   `eqStore.preamp`** (`utils/eq-preamp.ts`), installed once from `AppShell.onMount` and never
   disposed. With a device connected here, Auto's value is rounded down onto the device's preamp
   grid (`headroomPreamp`): nearest would hand back headroom, and the difference would pause

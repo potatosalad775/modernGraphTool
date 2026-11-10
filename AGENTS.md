@@ -331,6 +331,21 @@ guide had to be rewritten. If you're unsure whether a change warrants a doc upda
   changes. Working in this repo, the `.mdx` sources are always the answer. See
   [docs/AGENTS.md](docs/AGENTS.md) for how that output is generated and tuned.
 
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `potatosalad775/modernGraphTool`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Reuses existing labels: `pending` (needs-triage), `question` (needs-info), `wontfix`; plus
+`ready-for-agent` / `ready-for-human`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` + `docs/adr/`. See `docs/agents/domain.md`.
+
 ## Design Context
 
 Clean, restrained chrome with **operator-customizable theming** — the default palette is only a

@@ -19,6 +19,16 @@ export function usesGain(type: EQFilterType): boolean {
 	return type === 'PK' || type === 'LSQ' || type === 'HSQ';
 }
 
+/**
+ * Whether a band is a playable band: enabled, with every value filled in, so it shapes the graph,
+ * the audio and the preamp alike. `null` is a freshly added band's "not filled in yet". The test
+ * is `!= null`, not truthiness: a 0 dB band is a real filter, and a gainless type's gain is
+ * always 0.
+ */
+export function isPlayableBand(f: EQFilter): boolean {
+	return f.enabled && f.freq != null && f.q != null && f.gain != null;
+}
+
 export interface EQFilter {
 	enabled: boolean;
 	type: EQFilterType;

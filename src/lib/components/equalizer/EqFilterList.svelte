@@ -53,7 +53,7 @@
 		eqStore.filters.filter((f) => f.enabled && f.channel != null).length
 	);
 
-	/** Derived from the filters by `dataProvider.installEqCurveSync`, not here. */
+	/** Derived from the filters by `eqCurve.installSync`, not here. */
 	const preamp = $derived(eqStore.preamp);
 	/** Linked, with uniPEQ's preamp fixed rather than Auto. */
 	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);

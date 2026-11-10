@@ -26,7 +26,7 @@
 
 	// Nothing here reacts to the EQ state: this panel unmounts on every panel
 	// switch, so a panel-scoped effect misses whatever happens while another
-	// panel is open. The on-graph EQ curve (`dataProvider.installEqCurveSync()`)
+	// panel is open. The on-graph EQ curve (`eqCurve.installSync()`)
 	// and the History log (`eqHistoryStore.install()`) are installed once from
 	// AppShell, and the `sourcePhoneUUID` setter resets `channelScope`.
 </script>

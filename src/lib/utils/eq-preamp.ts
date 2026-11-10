@@ -1,5 +1,5 @@
 import type { Domain, Profile } from '@potatosalad775/eqcaps-core';
-import { Equalizer, type EQFilter } from './equalizer.js';
+import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
 import { effectiveFilters } from './eq-channel.js';
 
 /** 1/48 octave, 20 Hz to 20 kHz: where the preamp looks for the largest boost. */
@@ -16,7 +16,7 @@ const PREAMP_GRID = Array.from({ length: 480 }, (_, i) => 20 * Math.pow(1000, i 
  * list shows the same preamp on both sides (uniPEQ src/lib/eq/eq-preamp.ts).
  */
 export function derivePreamp(filters: EQFilter[]): number {
-	const enabled = filters.filter((f) => f.enabled && f.freq && f.q && f.gain);
+	const enabled = filters.filter(isPlayableBand);
 	if (!enabled.length) return 0;
 	// Every band's own centre is sampled too: a narrow boost peaks there, and
 	// a grid that straddles it under-reads the peak — by up to 0.9 dB at Q 6

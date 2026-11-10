@@ -8,7 +8,7 @@ import type { EQFilter } from '#lib/utils/equalizer.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
 import { volumeWarning } from './volume-warning.svelte.js';
-import { dataProvider } from './data-provider.svelte.js';
+import { eqCurve } from './eq-curve.svelte.js';
 
 const connectModule = vi.hoisted(() => ({
 	connectHid: vi.fn(),
@@ -478,7 +478,7 @@ describe('devicePeqService volume warning', () => {
 describe('devicePeqService preamp on a device grid', () => {
 	beforeEach(() => {
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-		dataProvider.installEqCurveSync();
+		eqCurve.installSync();
 		devicePeqStore.setDisconnected();
 		// On the band's 0.5 dB grid, so only the preamp could need a review.
 		eqStore.filters = [band(1000, 6.5)];

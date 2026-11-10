@@ -6,7 +6,7 @@ import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
-import type { EQFilter } from '#lib/utils/equalizer.js';
+import { isPlayableBand, type EQFilter } from '#lib/utils/equalizer.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 import { MediaSessionBridge } from './media-session.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -235,13 +235,9 @@ class AudioPlayerService {
 		this.#rangeLowpass = null;
 		this.#rangeMakeup = null;
 
-		// `!= null` — not truthiness — matching rebuildEqCurve, computeBypassMatchDb and
-		// the filter export. `null` is the "not filled in yet" state for a new band; a
-		// band with gain 0 is a real (if no-op) filter, and dropping it here used to
-		// make `filters.length` 0 and silently strip the preamp along with it.
-		const filters = eqStore.filters.filter(
-			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-		);
+		// A gain-0 band must stay in: dropping it here used to make `filters.length` 0 and
+		// silently strip the preamp along with it.
+		const filters = eqStore.filters.filter(isPlayableBand);
 		// A preamp with no filters is still something to apply — same rule the on-screen
 		// EQ curve uses — and the bypass path has to match its level.
 		const hasEqToApply = filters.length > 0 || eqStore.preamp !== 0;

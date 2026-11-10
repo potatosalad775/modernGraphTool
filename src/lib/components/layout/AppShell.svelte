@@ -6,6 +6,7 @@
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { claimInitialLoad } from '#lib/services/initial-load.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 	import { commandHistory } from '#lib/services/command-history.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { graphStore } from '#lib/stores/graph-store.svelte.js';
@@ -95,7 +96,7 @@
 		// Keep the on-graph EQ curve in step with eqStore for the lifetime of the
 		// page. EqualizerPanel unmounts on every panel switch, but the `\` A/B key
 		// below is global — so this can't live in the panel.
-		dataProvider.installEqCurveSync();
+		eqCurve.installSync();
 		// History & Compare: the session log, and the saved bookmarks A/B can pick.
 		eqBookmarkStore.hydrate();
 		eqHistoryStore.install();

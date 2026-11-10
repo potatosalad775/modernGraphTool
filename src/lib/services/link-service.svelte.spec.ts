@@ -9,7 +9,7 @@ import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 import { BUILTIN_PRESETS, DEFAULT_CONSTRAINT_ID } from '#lib/stores/eq-constraints-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands } from './eq-commands.js';
-import { dataProvider } from './data-provider.svelte.js';
+import { eqCurve } from './eq-curve.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import type { DeviceConnection } from '#lib/device-peq/types.js';
@@ -309,7 +309,7 @@ describe('linkService', () => {
 	});
 
 	it('plays uniPEQ’s fixed preamp whatever the bands do, and turns Auto back on through the link', async () => {
-		dataProvider.installEqCurveSync();
+		eqCurve.installSync();
 		await linked();
 		host.eq([wire(100, 3)], {}, { preamp: -5, autoPreamp: false });
 		flushSync();
@@ -323,7 +323,7 @@ describe('linkService', () => {
 	});
 
 	it('takes uniPEQ’s Auto value for the list it came with, and derives its own after an edit', async () => {
-		dataProvider.installEqCurveSync();
+		eqCurve.installSync();
 		await linked();
 		// uniPEQ's Auto on a 1 dB grid: -4, where this page would derive -3.
 		host.eq([wire(100, 3)], {}, { preamp: -4, autoPreamp: true });

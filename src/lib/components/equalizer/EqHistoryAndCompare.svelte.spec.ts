@@ -26,7 +26,7 @@ import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { toast } from 'svelte-sonner';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
-import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import * as m from '#lib/paraglide/messages.js';
 
@@ -538,7 +538,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('inserts a history entry as a curve, named by its summary', async () => {
-			const insert = vi.spyOn(dataProvider, 'insertEqCurve').mockReturnValue(true);
+			const insert = vi.spyOn(eqCurve, 'insertFrozen').mockReturnValue(true);
 			eqStore.sourcePhoneUUID = 'src';
 			const snap = makeSnapshot();
 			eqHistoryStore.snapshots = [snap];
@@ -551,7 +551,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('inserts a bookmark under its name', async () => {
-			const insert = vi.spyOn(dataProvider, 'insertEqCurve').mockReturnValue(true);
+			const insert = vi.spyOn(eqCurve, 'insertFrozen').mockReturnValue(true);
 			eqStore.sourcePhoneUUID = 'src';
 			const bookmark = makeBookmark();
 			eqBookmarkStore.items = [bookmark];

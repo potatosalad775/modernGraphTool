@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Equalizer, type EQFilter } from './equalizer.js';
+import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
 
 type FreqPoint = [number, number];
 
@@ -361,5 +361,38 @@ describe('Equalizer', () => {
 			eq = makeEq();
 			expect(eq._freqUnit(15000)).toBe(1000);
 		});
+	});
+});
+
+describe('isPlayableBand', () => {
+	const band = (overrides: Partial<EQFilter> = {}): EQFilter => ({
+		enabled: true,
+		type: 'PK',
+		freq: 1000,
+		q: 1,
+		gain: 3,
+		...overrides
+	});
+
+	it('accepts an enabled band with every value filled in', () => {
+		expect(isPlayableBand(band())).toBe(true);
+	});
+
+	it('rejects a disabled band', () => {
+		expect(isPlayableBand(band({ enabled: false }))).toBe(false);
+	});
+
+	it.each(['freq', 'q', 'gain'] as const)('rejects a band whose %s is not filled in', (field) => {
+		expect(isPlayableBand(band({ [field]: null }))).toBe(false);
+	});
+
+	it('keeps a 0 dB band and a gainless type, since 0 is a value', () => {
+		expect(isPlayableBand(band({ gain: 0 }))).toBe(true);
+		expect(isPlayableBand(band({ type: 'HPQ', q: 2, gain: 0 }))).toBe(true);
+	});
+
+	it('tests for null, not truthiness: a 0 freq or Q still counts as filled in', () => {
+		expect(isPlayableBand(band({ freq: 0 }))).toBe(true);
+		expect(isPlayableBand(band({ q: 0 }))).toBe(true);
 	});
 });

@@ -26,7 +26,7 @@ export interface CompareOverlayApi {
  * switch can be judged against the curve it replaced.
  *
  * Nothing goes into `frStore` — the ghost is not a device, has no list row and
- * no undo. GraphContainer builds the curves (`dataProvider.eqChannelsFor`, the
+ * no undo. GraphContainer builds the curves (`eqCurve.channelsFor`, the
  * same math as the live EQ curve) and pushes them in. render() recomputes the
  * paths against the engine's *current* scales and the baseline, so a handle
  * drag (GraphEngine.repositionCurves) repaints it in step with the real curves.

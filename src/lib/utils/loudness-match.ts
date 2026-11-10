@@ -1,5 +1,4 @@
-import type { EQFilter } from './equalizer.js';
-import { Equalizer } from './equalizer.js';
+import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
 import { effectiveFilters } from './eq-channel.js';
 import { derivePreamp } from './eq-preamp.js';
 import { filtersMatch, type EqState } from './eq-snapshot.js';
@@ -117,9 +116,7 @@ const eq = new Equalizer();
  * @param preampDb Preamp gain (dB) applied before the filter chain
  */
 export function computeBypassMatchDb(filters: EQFilter[], preampDb: number): number {
-	const active = filters.filter(
-		(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-	);
+	const active = filters.filter(isPlayableBand);
 	if (!active.length) return preampDb;
 
 	const eqGainsDb = eq.calculateGainsFromFilter(TEST_FREQS, active);

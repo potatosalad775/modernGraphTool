@@ -32,8 +32,13 @@ _Avoid_: Compensation, reference curve
 
 **Baseline mode**:
 Which shape of the baseline is subtracted: off, the baseline as measured (without adjustment), or
-the baseline with the user's target adjustments applied (with adjustment). Only a customized target
-has the third mode.
+the baseline with the user's target adjustments applied (with adjustment). Only a target has the
+third mode.
+
+**Unadjusted channels**:
+A target's channels before the user's target adjustments; what the _without adjustment_ baseline
+mode subtracts.
+_Avoid_: Original data, target original
 
 ### Equalizer
 
@@ -43,6 +48,10 @@ The phone the equalizer is applied to — its average, or one run of its sample 
 **EQ curve**:
 The curve item that shows the EQ source with the current EQ bands applied.
 _Avoid_: EQ'd phone, modified curve
+
+**Momentary override**:
+Holding `\` flips the equalizer until release: a bypass when it was on, an audition when it was off.
+_Avoid_: Momentary bypass (it is only one of the two directions)
 
 **Playable band**:
 An EQ band that is enabled and has every value filled in, so it shapes the graph, the audio and the

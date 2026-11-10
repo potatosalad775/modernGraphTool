@@ -144,7 +144,7 @@ class URLProvider {
 				return channel ? { ...f, channel } : { ...f, channel: undefined };
 			});
 			eqStore.preamp = eq.preamp;
-			eqStore.isEnabled = true;
+			eqStore.setEnabled(true);
 		}
 	}
 

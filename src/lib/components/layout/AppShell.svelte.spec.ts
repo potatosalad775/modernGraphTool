@@ -4,7 +4,6 @@ import { page } from 'vitest/browser';
 import AppShell from './AppShell.svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
-import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
@@ -33,7 +32,7 @@ const ADJUSTED_LABEL = '(Tilt: -0.8dB/oct, Bass: +6.0dB)';
 /**
  * A healthy desktop boot costs 11 instrumented writes: 5 to `frStore` (insert,
  * normalize, apply the customizer stack), 5 to `graphStore` from the config
- * defaults, 1 caching the pre-adjustment target. The budget only has to sit below
+ * defaults, 1 to `eqBookmarkStore`. The budget only has to sit below
  * "runaway", so there is plenty of headroom for legitimate growth; see
  * `installWriteBudget` for why this is a throwing breaker rather than a timeout.
  */
@@ -44,7 +43,6 @@ let budget: ReturnType<typeof installWriteBudget>;
 describe('AppShell boot', () => {
 	beforeEach(async () => {
 		frStore.clear();
-		graphStore.targetOriginalData.clear();
 		commandHistory.clear();
 		menuStore.currentPanel = 'graph';
 		eqStore.filters = [];

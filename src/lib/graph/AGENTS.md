@@ -36,17 +36,17 @@ The **baseline** is the curve item every trace is drawn relative to. `baseline.t
 `graphStore.baselineUUID` / `baselineMode` (`off` → `withoutAdjustment` → `withAdjustment`) are the
 only state, and **the module is their only writer** — `baseline.cycle(uuid)` (the click) and
 `baseline.restoreFromURL(saved)` (`?state=`). Nothing else assigns them, and there is no copy in the
-engine: the data to subtract is derived on demand from those fields, `frStore` and
-`targetOriginalData` (`baseline.channelData`), so it can't be stale and a baseline restored before
-the graph mounts compensates the curves like any other.
+engine: the data to subtract is derived on demand from those fields and `frStore`
+(`baseline.channelData`), so it can't be stale and a baseline restored before the graph mounts
+compensates the curves like any other.
 
-- **Click cycle.** A phone, or a target with no cached original: off ↔ `withoutAdjustment` (so phones
-  never reach `withAdjustment`). A customizable target (`targetOriginalData` has it): off →
-  `withoutAdjustment` → `withAdjustment` → off. Clicking another item always starts it at
-  `withoutAdjustment`, replacing the baseline.
-- `withoutAdjustment` — baseline = original pre-adjustment channels from
-  `graphStore.targetOriginalData`. Slider changes on the baseline target appear as a delta **on the
-  target line**; other curves stay stable.
+- **Click cycle.** A phone, or any item without `unadjustedChannels`: off ↔ `withoutAdjustment` (so
+  phones never reach `withAdjustment`). A target (the only items with `unadjustedChannels`, set where
+  the item is built, so from the moment it loads): off → `withoutAdjustment` → `withAdjustment` →
+  off. Clicking another item always starts it at `withoutAdjustment`, replacing the baseline.
+- `withoutAdjustment` — baseline = the target's `unadjustedChannels` (its channels before the user's
+  target adjustments) on the `frStore` item. Slider changes on the baseline target appear as a delta
+  **on the target line**; other curves stay stable.
 - `withAdjustment` — baseline = current (adjusted) channels from `frStore`. The target line snaps
   flat; other curves shift with adjustments.
 - **Read the _effective_ baseline, never the raw store fields.** `baseline.uuid` / `mode` /
@@ -65,12 +65,13 @@ the graph mounts compensates the curves like any other.
   `GraphContainer`.
 - **Redraws are `GraphContainer`'s.** One effect watches the effective baseline: a different
   selection (click, restore, dormant/back) animates the paths (`updateBaseline(true)`); the same
-  baseline with different data (re-smooth, re-normalize, target adjustment, `targetOriginalData` edit)
+  baseline with different data (re-smooth, re-normalize, target adjustment, `unadjustedChannels` edit)
   calls `refreshEveryFRCurves`, which the rAF coalesces with the `frStore` effect's own request. The
   EQ-nodes, compare and preference-bound effects read `baseline.channelData`, so they follow too. A
   caller changing the baseline needs to call nothing.
-- `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so
-  `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
+- `renormalizeAll` and `reSmoothAll` rebuild `unadjustedChannels` with the item's channels (the same
+  builders in `curve-data.ts`), so `withoutAdjustment` baselines stay at the same reference as the
+  rest of the curves.
 
 ## `curve-traces.ts` — what an item draws
 

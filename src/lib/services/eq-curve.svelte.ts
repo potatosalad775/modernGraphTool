@@ -17,6 +17,7 @@ import { effectiveFilters, hasPerChannelFilters } from '#lib/utils/eq-channel.js
 import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 import { derivePreamp, headroomPreamp } from '#lib/utils/eq-preamp.js';
 import { insertRawCurve } from './curve-insert.js';
+import { pickChannels, processingParams } from './curve-data.js';
 import { untrack } from 'svelte';
 
 /**
@@ -28,15 +29,6 @@ class EqCurve {
 	#syncInstalled = false;
 	/** Source uuid + `dispChannel` the EQ curve last followed; see `#dispChannel`. */
 	#sourceChannelKey: string | null = null;
-
-	/** Current processing params from graph store */
-	get #processingParams() {
-		return {
-			smoothValue: graphStore.smoothValue,
-			normType: graphStore.normType,
-			normHz: graphStore.normHzValue
-		};
-	}
 
 	/**
 	 * Keep the on-graph EQ curve in step with `eqStore`, for the lifetime of the page.
@@ -154,11 +146,7 @@ class EqCurve {
 		if (existing && existingUUID) {
 			frStore.set(existingUUID, {
 				...existing,
-				channels: {
-					...(processed.L && { L: processed.L }),
-					...(processed.R && { R: processed.R }),
-					...(processed.AVG && { AVG: processed.AVG })
-				},
+				channels: pickChannels(processed),
 				dispSuffix,
 				dispChannel: this.#dispChannel(sourceUUID, sourceData, existing, processed),
 				colors: { ...sourceData.colors },
@@ -171,11 +159,7 @@ class EqCurve {
 				type: 'eq',
 				identifier: sourceData.identifier,
 				dispSuffix,
-				channels: {
-					...(processed.L && { L: processed.L }),
-					...(processed.R && { R: processed.R }),
-					...(processed.AVG && { AVG: processed.AVG })
-				},
+				channels: pickChannels(processed),
 				dispChannel: this.#dispChannel(sourceUUID, sourceData, null, processed),
 				colors: { ...sourceData.colors },
 				dash: sourceData.dash || '1 0',
@@ -233,16 +217,10 @@ class EqCurve {
 		);
 		const channels = Object.keys(raw) as Channel[];
 		if (channels.length === 0) return false;
-		insertRawCurve(
-			'phone',
-			sourceData.identifier,
-			raw,
-			{
-				dispChannel: sourceData.dispChannel.filter((ch) => channels.includes(ch)),
-				dispSuffix: `(EQ · ${name})`
-			},
-			this.#processingParams
-		);
+		insertRawCurve('phone', sourceData.identifier, raw, {
+			dispChannel: sourceData.dispChannel.filter((ch) => channels.includes(ch)),
+			dispSuffix: `(EQ · ${name})`
+		});
 		return true;
 	}
 
@@ -255,11 +233,7 @@ class EqCurve {
 		if (!run) return null;
 		// Raw runs carry no AVG — processing derives it — so derive it the same way
 		const avg = run.AVG ?? (run.L && run.R ? FRParser.computeAvgChannel(run.L, run.R) : null);
-		return {
-			...(run.L && { L: run.L }),
-			...(run.R && { R: run.R }),
-			...(avg && { AVG: avg })
-		};
+		return pickChannels({ L: run.L, R: run.R, AVG: avg ?? undefined });
 	}
 
 	/**
@@ -333,7 +307,7 @@ class EqCurve {
 	#processChannels(modified: ParsedFRData, linked: boolean): ParsedFRData {
 		return linked
 			? FRSmoother.smoothChannels(modified, graphStore.smoothValue)
-			: DataProcessor.processChannels(modified, this.#processingParams);
+			: DataProcessor.processChannels(modified, processingParams());
 	}
 
 	/**

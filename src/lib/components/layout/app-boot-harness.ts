@@ -157,11 +157,6 @@ function writeTargets(): readonly WriteTarget[] {
 	return [
 		{ label: 'frStore', target: frStore, methods: ['set', 'delete'] },
 		{ label: 'graphStore', target: graphStore, accessors: true },
-		{
-			label: 'targetOriginalData',
-			target: graphStore.targetOriginalData,
-			methods: ['set', 'delete']
-		},
 		{ label: 'eqStore', target: eqStore, accessors: true },
 		{ label: 'eqModifiedData', target: eqStore.eqModifiedData, methods: ['set', 'delete'] },
 		{ label: 'eqBookmarkStore', target: eqBookmarkStore, accessors: true }

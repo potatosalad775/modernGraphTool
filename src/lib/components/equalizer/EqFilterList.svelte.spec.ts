@@ -27,6 +27,7 @@ import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { eqCurve } from '#lib/services/eq-curve.svelte.js';
+import { conformFilters } from '#lib/utils/eq-constraint.js';
 import { toast } from 'svelte-sonner';
 import { downloadText } from '#lib/utils/download-text.js';
 
@@ -299,6 +300,18 @@ describe('EqFilterList', () => {
 			frStore.clear();
 		});
 
+		it('warns and writes nothing when no band is complete', async () => {
+			vi.mocked(toast.warning).mockClear();
+			vi.mocked(toast.success).mockClear();
+			eqStore.filters = [makeFilter({ freq: null })];
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(toast.warning).toHaveBeenCalledOnce();
+			expect(downloadText).not.toHaveBeenCalled();
+			expect(toast.success).not.toHaveBeenCalled();
+		});
+
 		it('is a bare "filters.txt" with no EQ source', async () => {
 			render(EqFilterList);
 			await exportButton().click();
@@ -349,6 +362,108 @@ describe('EqFilterList', () => {
 		beforeEach(() => {
 			vi.mocked(toast.success).mockClear();
 			vi.mocked(toast.warning).mockClear();
+			vi.mocked(toast.error).mockClear();
+		});
+
+		it('says how many filters it imported, singular for one', async () => {
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.success).mock.calls[0][1]).toMatchObject({
+				description: '1 filter'
+			});
+
+			vi.mocked(toast.success).mockClear();
+			importText(
+				[
+					'Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000',
+					'Filter 2: ON PK Fc 200 Hz Gain 2.0 dB Q 1.000'
+				].join('\n')
+			);
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.success).mock.calls[0][1]).toMatchObject({
+				description: '2 filters'
+			});
+		});
+
+		it('switches the equalizer on', async () => {
+			expect(eqStore.isEnabled).toBe(false);
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
+
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		// An imported parametric file is authored without a device constraint in
+		// mind, so a limiting preset would fold it into the wrong shape.
+		it('drops a limiting constraint before replacing the bands', async () => {
+			eqConstraintsStore.setActive('generic-10-band');
+			expect(eqConstraintsStore.isLimiting).toBe(true);
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
+
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].freq).toBe(123);
+		});
+
+		// The drop is part of the import, so it has to come back with the old bands: undoing only
+		// the bands would leave the user's restriction silently lifted.
+		it('is one undo entry that restores the bands and the restriction it dropped', async () => {
+			eqConstraintsStore.setActive('generic-10-band');
+			eqStore.filters = conformFilters(
+				[makeFilter({ freq: 1000, gain: 3 })],
+				eqConstraintsStore.profile
+			);
+			const before = eqStore.filters.map((f) => ({ ...f }));
+			commandHistory.clear();
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+
+			eqCommands.flushAll();
+			commandHistory.undo(frStore);
+			expect(eqConstraintsStore.activeId).toBe('generic-10-band');
+			expect(eqStore.filters).toEqual(before);
+			expect(commandHistory.canUndo).toBe(false);
+
+			commandHistory.redo(frStore);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].freq).toBe(123);
+		});
+
+		it('is still one undo entry with no restriction in force', async () => {
+			eqStore.filters = [makeFilter({ freq: 500 })];
+			commandHistory.clear();
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+
+			eqCommands.flushAll();
+			commandHistory.undo(frStore);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([500]);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('reports a file with no usable filter and leaves the EQ alone', async () => {
+			eqStore.filters = [makeFilter({ freq: 500 })];
+			render(EqFilterList);
+			importText('Preamp: -3 dB\nFilter: ON NO Fc 200 Hz');
+
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toMatchObject({
+				description: 'No valid filters found in file'
+			});
+			expect(toast.success).not.toHaveBeenCalled();
+			expect(toast.warning).not.toHaveBeenCalled();
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].freq).toBe(500);
+			expect(eqStore.isEnabled).toBe(false);
 		});
 
 		// A band the EQ can't model is left out; without a word, the EQ on

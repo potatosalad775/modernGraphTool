@@ -317,7 +317,7 @@
 	// The baseline in effect. A different selection (a click, a URL restore, the item going
 	// dormant or coming back) animates the drawn paths to the new reference; the same
 	// baseline with different data (re-smooth, re-normalize, a target adjustment, a
-	// `targetOriginalData` edit) redraws the curves instead, which the rAF coalesces with
+	// `unadjustedChannels` edit) redraws the curves instead, which the rAF coalesces with
 	// the redraw the `frStore` effect above already asked for. The EQ, compare and
 	// preference-bound overlays track `baseline.channelData` in their own effects.
 	let drawnBaseline: { uuid: string | null; mode: string } | null = null;

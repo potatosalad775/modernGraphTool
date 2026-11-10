@@ -10,7 +10,8 @@
 		isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 	});
 
-	let modKey = $derived(isMac ? '\u2318' : 'Ctrl+');
+	let modKey = $derived(isMac ? '\u2318' : 'Ctrl');
+	let shiftKey = $derived(isMac ? '\u21e7' : 'Shift');
 </script>
 
 <div
@@ -28,7 +29,7 @@
 		class="inline-flex items-center gap-1.5 transition-opacity"
 		class:opacity-30={!commandHistory.canRedo}
 	>
-		<kbd>{modKey}+{isMac ? '\u21e7' : 'Shift+'}+Z</kbd>
+		<kbd>{modKey}+{shiftKey}+Z</kbd>
 		{m.keyboard_shortcut_redo()}
 	</span>
 	<span class="inline-flex items-center gap-1.5">
@@ -37,7 +38,7 @@
 	</span>
 	{#if menuStore.currentPanel === 'equalizer'}
 		<span class="inline-flex items-center gap-1.5">
-			<kbd>{isMac ? '\u21e7' : 'Shift'}+Drag</kbd>
+			<kbd>{shiftKey}+Drag</kbd>
 			{m.keyboard_shortcut_axis_lock()}
 		</span>
 		<span class="inline-flex items-center gap-1.5">

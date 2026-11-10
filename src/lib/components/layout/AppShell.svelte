@@ -5,14 +5,11 @@
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { claimInitialLoad } from '#lib/services/initial-load.js';
-	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
-	import { commandHistory } from '#lib/services/command-history.svelte.js';
-	import { eqCommands } from '#lib/services/eq-commands.js';
+	import { onKeydown, onKeyup, onBlur } from '#lib/services/keyboard-shortcuts.js';
 	import { graphStore } from '#lib/stores/graph-store.svelte.js';
 	import { baseline } from '#lib/graph/baseline.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
-	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
@@ -131,87 +128,6 @@
 		return () => window.removeEventListener('resize', updateMobile);
 	});
 
-	// The restore value lives on `eqStore` rather than here so that an action taken
-	// mid-hold — an import, an AutoEQ run — can redirect it via
-	// `eqCommands.ensureEnabled()` instead of being silently undone on keyup.
-
-	function handleKeydown(e: KeyboardEvent) {
-		const target = e.target as HTMLElement;
-		const inEditable =
-			target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-		const mod = e.metaKey || e.ctrlKey;
-
-		// `\` (backslash) — press-and-hold to flip the EQ state momentarily for A/B
-		// comparison. Bidirectional: it bypasses a live EQ and auditions a disabled
-		// one, so the comparison can be started from either side. Ignored inside text
-		// inputs, and when there is no EQ source phone to compare against.
-		if (!inEditable && !mod && !e.altKey && e.key === '\\') {
-			if (e.repeat) {
-				e.preventDefault();
-				return;
-			}
-			if (eqStore.momentaryRestore !== null) return;
-			if (!eqStore.sourcePhoneUUID) return;
-			e.preventDefault();
-			const wasEnabled = eqStore.isEnabled;
-			eqStore.momentaryRestore = wasEnabled;
-			eqStore.isEnabled = !wasEnabled;
-			eqStore.momentaryOverride = wasEnabled ? 'bypass' : 'audition';
-			return;
-		}
-
-		if (inEditable) return;
-
-		if (mod && e.key === 'z' && !e.shiftKey) {
-			e.preventDefault();
-			// Flush any pending EQ-edit burst so undo doesn't land between
-			// a coalescer's capture and its deferred commit.
-			eqCommands.flushAll();
-			commandHistory.undo(frStore);
-			// Add/Remove change the phone count that channel display depends on —
-			// re-sync since that derived display state isn't itself command-tracked.
-			dataProvider.syncPhoneChannels();
-			return;
-		}
-
-		if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
-			e.preventDefault();
-			eqCommands.flushAll();
-			commandHistory.redo(frStore);
-			dataProvider.syncPhoneChannels();
-			return;
-		}
-
-		if (!mod && !e.altKey && !e.shiftKey) {
-			const panels = ['device', 'graph', 'equalizer', 'misc'] as const;
-			const num = parseInt(e.key);
-			if (num >= 1 && num <= 4) {
-				e.preventDefault();
-				menuStore.setPanel(panels[num - 1]);
-			}
-		}
-	}
-
-	function releaseMomentaryBypass() {
-		if (eqStore.momentaryRestore === null) return;
-		eqStore.isEnabled = eqStore.momentaryRestore;
-		eqStore.momentaryOverride = null;
-		eqStore.momentaryRestore = null;
-	}
-
-	function handleKeyup(e: KeyboardEvent) {
-		// Restore EQ regardless of focus target — the keyup may land in an input
-		// if the user tabbed during the hold.
-		if (e.key === '\\') releaseMomentaryBypass();
-	}
-
-	// Losing window focus mid-hold (alt-tab, devtools) swallows the keyup, which
-	// would otherwise leave EQ bypassed indefinitely — restore on blur too.
-	function handleWindowBlur() {
-		releaseMomentaryBypass();
-	}
-
 	// Auto-update URL when store data changes (phones added/removed, graph state, etc.)
 	$effect(() => {
 		if (!appStore.isReady) return;
@@ -236,7 +152,8 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} onblur={handleWindowBlur} />
+<!-- Bound here, not in a panel: the shortcuts fire from any panel. See keyboard-shortcuts.ts. -->
+<svelte:window onkeydown={onKeydown} onkeyup={onKeyup} onblur={onBlur} />
 
 <div class="flex h-full flex-col">
 	<TopNavBar />

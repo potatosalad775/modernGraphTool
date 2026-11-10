@@ -32,7 +32,7 @@ export const frStore = new FRDataStore();
 ## Inventory
 
 - `fr-store.svelte.ts` — `FRDataStore` wraps `SvelteMap<uuid, FRDataObject>` from `svelte/reactivity`
-- `graph-store.svelte.ts` — yScale, baseline UUID + mode (written only by `graph/baseline.ts`), normalization type, smoothing, target-original data map
+- `graph-store.svelte.ts` — yScale, baseline UUID + mode (written only by `graph/baseline.ts`), normalization type, smoothing
 - `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
 - `menu-store.svelte.ts` — current panel + slide direction
 - `tutorial-store.svelte.ts` — which guided tour is open + its step, per-tour dismissal keys. The
@@ -117,13 +117,17 @@ than in each caller. A variant switch is _not_ reset anywhere: the pick records 
 switch — a path no reset hook would see.
 
 **`eq-store.svelte.ts` — `momentaryRestore` is not derivable from `momentaryOverride`.**
-The two are set together by the `\` press-and-hold in `AppShell` and look redundant (`'bypass'`
+The two are set together by `eqStore.holdMomentary()` and cleared by `releaseMomentary()` (the `\`
+press-and-hold, driven from `services/keyboard-shortcuts.ts`) and look redundant (`'bypass'`
 implies restore `true`, `'audition'` implies `false`). They stopped being redundant when
-`eqCommands.ensureEnabled()` gained the ability to redirect the post-release state: an import or
-AutoEQ run started mid-hold writes `momentaryRestore = true` and leaves the override alone, so the
-result survives keyup instead of being reverted by it. Collapsing the field back into a `$derived`
-re-breaks that. The restore value also has to live on the store rather than in `AppShell`, since
-`eqCommands` is where the redirect happens.
+`eqStore.setEnabled()` gained the ability to redirect the post-release state: an import, an AutoEQ
+run (`eqCommands.ensureEnabled()` calls it), the master switch or a `?state=` restore made mid-hold
+writes `momentaryRestore` and leaves `isEnabled` and the override alone, so the result survives
+keyup instead of being reverted by it. Collapsing the field back into a `$derived` re-breaks that.
+**Outside the hold itself (`holdMomentary` / `releaseMomentary`), nothing assigns
+`eqStore.isEnabled` directly** — go through `setEnabled`, or the write is reverted on release. The
+master switch binds with a function binding: it shows the live `isEnabled` (the flipped state during
+a hold) and writes through `setEnabled`.
 
 **`eq-history-store.svelte.ts` / `eq-bookmark-store.svelte.ts` — one A/B pick, two lists.**
 History is an automatic, session-only log of the current device; bookmarks are named, kept in
@@ -165,9 +169,12 @@ previous selection never draws under the new one.
 **`target-adjustment-store.svelte.ts` — the state lives here, not in the component.**
 Target Customizer slider stacks keyed by FR-data UUID, plus the `TARGET_CUSTOMIZER` config (filters,
 presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math (`adjustedChannels`, `label`).
-`TargetCustomizer.svelte` is UI only. Keeping the state here is what lets
-`DataProvider.applyTargetAdjustment()` rebuild a target with no component mounted — `GraphPanel` is
-torn down on every panel switch.
+`TargetCustomizer.svelte` is UI only: it registers the record (`ensure`) and drops it when the item
+is gone. Keeping the state here is what lets `DataProvider.applyTargetAdjustment()` rebuild a target
+with no component mounted — `GraphPanel` is torn down on every panel switch. What the sliders apply
+to is the item's own `unadjustedChannels` (in `frStore`), not anything held here. Records are
+replaced wholesale, never mutated, and `restore(uuid, record)` puts one back (`undefined` removes
+it): an adjustment's undo entry uses it so undo and redo move the sliders with the curve.
 
 ## Boot-time writes
 

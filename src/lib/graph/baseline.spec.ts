@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { baseline, compensateAt, resolveBaselineChannelData } from './baseline.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { curveDataFromRaw } from '#lib/services/curve-data.js';
 import type { Channel, FRDataObject, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 function makeTarget(uuid: string, avg: FRDataPoint[]): FRDataObject {
@@ -48,7 +49,6 @@ describe('resolveBaselineChannelData', () => {
 		frStore.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 	});
 
 	it('returns null when UUID is null', () => {
@@ -57,12 +57,11 @@ describe('resolveBaselineChannelData', () => {
 		expect(resolveBaselineChannelData(null, 'off')).toBeNull();
 	});
 
-	it('withoutAdjustment returns pre-adjustment target data from targetOriginalData', () => {
+	it('withoutAdjustment returns the target unadjustedChannels', () => {
 		const original: ParsedFRData = {
 			AVG: { data: ORIGINAL, metadata: { minFreq: 20, maxFreq: 20000 } }
 		};
-		graphStore.targetOriginalData.set('t', original);
-		frStore.set('t', makeTarget('t', ADJUSTED));
+		frStore.set('t', { ...makeTarget('t', ADJUSTED), unadjustedChannels: original });
 
 		const resolved = resolveBaselineChannelData('t', 'withoutAdjustment');
 		expect(resolved).toBe(ORIGINAL);
@@ -72,18 +71,15 @@ describe('resolveBaselineChannelData', () => {
 		const original: ParsedFRData = {
 			AVG: { data: ORIGINAL, metadata: { minFreq: 20, maxFreq: 20000 } }
 		};
-		graphStore.targetOriginalData.set('t', original);
-		frStore.set('t', makeTarget('t', ADJUSTED));
+		frStore.set('t', { ...makeTarget('t', ADJUSTED), unadjustedChannels: original });
 
 		const resolved = resolveBaselineChannelData('t', 'withAdjustment');
 		expect(resolved).toBe(ADJUSTED);
 	});
 
-	it('withoutAdjustment falls through to frStore when target has no cached original', () => {
-		// Simulates a customizable target whose TargetCustomizer has not mounted yet,
-		// or a target that never had adjustments applied.
+	it('withoutAdjustment falls through to frStore when the target has no unadjustedChannels', () => {
+		// A hand-built target-type item that never went through the curve builders.
 		frStore.set('t', makeTarget('t', ADJUSTED));
-		expect(graphStore.targetOriginalData.has('t')).toBe(false);
 
 		const resolved = resolveBaselineChannelData('t', 'withoutAdjustment');
 		expect(resolved).toBe(ADJUSTED);
@@ -91,7 +87,7 @@ describe('resolveBaselineChannelData', () => {
 
 	it('withoutAdjustment falls through to frStore for phones', () => {
 		// SelectionList sets baselineMode = 'withoutAdjustment' for phone baselines too,
-		// via the simple toggle branch. Phones never populate targetOriginalData.
+		// via the simple toggle branch. Phones never carry unadjustedChannels.
 		frStore.set('p', makePhone('p', ADJUSTED));
 
 		const resolved = resolveBaselineChannelData('p', 'withoutAdjustment');
@@ -126,13 +122,14 @@ function resetStores() {
 	frStore.clear();
 	graphStore.baselineUUID = null;
 	graphStore.baselineMode = 'off';
-	graphStore.targetOriginalData.clear();
 }
 
-/** A target with a cached original, i.e. one the Target Customizer has adjusted. */
+/** A target carrying unadjusted channels, as every target the app loads does. */
 function addCustomizableTarget(uuid: string) {
-	frStore.set(uuid, makeTarget(uuid, ADJUSTED));
-	graphStore.targetOriginalData.set(uuid, { AVG: { data: ORIGINAL, metadata: META } });
+	frStore.set(uuid, {
+		...makeTarget(uuid, ADJUSTED),
+		unadjustedChannels: { AVG: { data: ORIGINAL, metadata: META } }
+	});
 }
 
 describe('baseline.cycle', () => {
@@ -151,7 +148,7 @@ describe('baseline.cycle', () => {
 		expect(baseline.channelData).toBeNull();
 	});
 
-	describe('a phone, or a target without a cached original', () => {
+	describe('a phone, or a target-type item without unadjustedChannels', () => {
 		for (const uuid of ['p', 'plain']) {
 			it(`${uuid}: off → withoutAdjustment → off, never withAdjustment`, () => {
 				baseline.cycle(uuid);
@@ -192,7 +189,28 @@ describe('baseline.cycle', () => {
 		});
 	});
 
-	describe('a customizable target', () => {
+	describe('a target', () => {
+		it('built from raw data, never shown in a customizer, cycles through all three modes', () => {
+			const smoothing = graphStore.smoothValue;
+			graphStore.smoothValue = 'none';
+			try {
+				const { channels, unadjustedChannels } = curveDataFromRaw(
+					{ channels: { AVG: { data: ORIGINAL, metadata: META } } },
+					'target'
+				);
+				frStore.set('fresh', { ...makeTarget('fresh', ADJUSTED), channels, unadjustedChannels });
+			} finally {
+				graphStore.smoothValue = smoothing;
+			}
+
+			baseline.cycle('fresh');
+			expect(baseline.mode).toBe('withoutAdjustment');
+			baseline.cycle('fresh');
+			expect(baseline.mode).toBe('withAdjustment');
+			baseline.cycle('fresh');
+			expect(baseline.mode).toBe('off');
+		});
+
 		it('cycles off → withoutAdjustment → withAdjustment → off', () => {
 			baseline.cycle('t');
 			expect([graphStore.baselineUUID, graphStore.baselineMode]).toEqual([
@@ -378,13 +396,16 @@ describe('baseline.channelData', () => {
 		});
 	}
 
-	it('follows a targetOriginalData edit immediately', () => {
+	it('follows an unadjustedChannels edit immediately', () => {
 		addCustomizableTarget('t');
 		baseline.cycle('t');
 		expect(baseline.channelData).toBe(ORIGINAL);
 
 		const edited: FRDataPoint[] = [[1000, 1]];
-		graphStore.targetOriginalData.set('t', { AVG: { data: edited, metadata: META } });
+		frStore.set('t', {
+			...frStore.get('t')!,
+			unadjustedChannels: { AVG: { data: edited, metadata: META } }
+		});
 		expect(baseline.channelData).toBe(edited);
 	});
 

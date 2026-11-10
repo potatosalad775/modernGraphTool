@@ -1,5 +1,9 @@
 import type { Channel, FRDataObject, FRColors, SampleDisplayKey } from '#lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
+import {
+	targetAdjustmentStore,
+	type TargetAdjustment
+} from '#lib/stores/target-adjustment-store.svelte.js';
 
 /**
  * Command base interface:
@@ -255,6 +259,47 @@ export class UpdateFRDataWithRawDataCommand implements Command {
 
 	undo(store: FRStoreWriteAPI): void {
 		if (this.#snapshot) store.set(this.#uuid, this.#snapshot);
+	}
+
+	get uuid() {
+		return this.#uuid;
+	}
+}
+
+// ─── Apply target adjustment ─────────────────────────────────────────────────
+
+/**
+ * A target's rebuilt curve together with the slider record that produced it. Undo and redo move
+ * both, so the sliders never show a value the curve doesn't: the record is replaced wholesale on
+ * every edit, and the curve alone would leave it at the edited value. `undefined` for either
+ * record means the target had none.
+ */
+export class ApplyTargetAdjustmentCommand implements Command {
+	#uuid: string;
+	#curve: UpdateFRDataWithRawDataCommand;
+	#prev: TargetAdjustment | undefined;
+	#next: TargetAdjustment | undefined;
+
+	constructor(
+		uuid: string,
+		updated: FRDataObject,
+		prev: TargetAdjustment | undefined,
+		next: TargetAdjustment | undefined
+	) {
+		this.#uuid = uuid;
+		this.#curve = new UpdateFRDataWithRawDataCommand(uuid, updated);
+		this.#prev = prev && structuredClone(prev);
+		this.#next = next && structuredClone(next);
+	}
+
+	execute(store: FRStoreWriteAPI): void {
+		this.#curve.execute(store);
+		targetAdjustmentStore.restore(this.#uuid, this.#next);
+	}
+
+	undo(store: FRStoreWriteAPI): void {
+		this.#curve.undo(store);
+		targetAdjustmentStore.restore(this.#uuid, this.#prev);
 	}
 
 	get uuid() {

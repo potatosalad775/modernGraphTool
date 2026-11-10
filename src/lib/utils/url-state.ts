@@ -9,7 +9,7 @@
 import Base62 from './base62.js';
 import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
-import type { SampleDisplayKey } from '#lib/types/data-types.js';
+import type { FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +33,11 @@ export interface URLState {
 	sampleDisplay?: Record<string, SampleDisplayState | SampleDisplayKey[] | string[]>;
 	/** @deprecated Written by builds that kept HpTF separate. Read, never written. */
 	hptfDisplay?: Record<string, { keys: SampleDisplayKey[]; fill: boolean }>;
+}
+
+/** How `state=` names a curve item: its identifier and variant, e.g. `Phone V2`. */
+export function shareKey(item: Pick<FRDataObject, 'identifier' | 'dispSuffix'>): string {
+	return (item.identifier + ' ' + (item.dispSuffix ?? '')).trim();
 }
 
 /** Prefix marking a Base62-compressed `share=` value. */

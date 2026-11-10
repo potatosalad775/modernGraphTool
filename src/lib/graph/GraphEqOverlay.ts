@@ -9,6 +9,7 @@ import { Equalizer, usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { indexedEffectiveFilters, indexedFiltersInScope } from '#lib/utils/eq-channel.js';
 import { eqSourceChannels } from '#lib/utils/eq-source.js';
 import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
+import { baseline, compensateAt } from './baseline.js';
 import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 interface BandDatum {
@@ -407,18 +408,7 @@ export class GraphEqOverlay {
 		const curveDb = lookupFRValueAtFreq(smoothedData, freq);
 		if (curveDb === null) return null;
 
-		let compensatedDb = curveDb;
-
-		// Baseline compensation
-		const baselineData = this.graphEngine.baselineData;
-		if (Array.isArray(baselineData.channelData) && baselineData.channelData.length > 0) {
-			const baselineDb = lookupFRValueAtFreq(baselineData.channelData, freq);
-			if (baselineDb !== null) {
-				compensatedDb -= baselineDb;
-			}
-		}
-
-		return compensatedDb;
+		return compensateAt(curveDb, freq, baseline.channelData);
 	}
 
 	/**

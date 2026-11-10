@@ -4,6 +4,8 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { curveTraces, listedTraces } from './curve-traces.js';
 import { eqSourceContextFor } from './eq-source-context.js';
+import { baseline, compensateAt } from './baseline.js';
+import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
 
 /** How far the mouse tracker extends past the plot edges, in viewBox units.
  *  There are 15 units of margin on each side, so this stays inside the SVG. */
@@ -270,35 +272,11 @@ class GraphInspection {
 	}
 
 	_interpolateSPL(channelData: [number, number][], frequency: number): number | null {
-		if (!channelData || channelData.length === 0) return null;
-
-		const i = this.bisector(channelData, frequency);
-		const a = channelData[i - 1];
-		const b = channelData[i];
-
-		if (a && b) {
-			const t = (frequency - a[0]) / (b[0] - a[0]);
-			return a[1] + t * (b[1] - a[1]);
-		} else if (a) {
-			return a[1];
-		} else if (b) {
-			return b[1];
-		}
-
-		return null;
+		return lookupFRValueAtFreq(channelData, frequency);
 	}
 
 	_applyBaselineCompensation(splValue: number, frequency: number): number {
-		const baselineData = this.graphEngine.getBaselineData();
-
-		if (!baselineData.channelData || baselineData.channelData.length === 0) {
-			return splValue;
-		}
-
-		const baselineSPL = this._interpolateSPL(baselineData.channelData, frequency);
-		if (baselineSPL === null) return splValue;
-
-		return splValue - baselineSPL;
+		return compensateAt(splValue, frequency, baseline.channelData);
 	}
 
 	_hideLabels() {

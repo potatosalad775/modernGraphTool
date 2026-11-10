@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { graphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { baseline } from './baseline.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { sampleFillOpacity } from '#lib/utils/sample-config.js';
 import FRParser from '#lib/utils/fr-parser.js';
@@ -99,7 +100,6 @@ describe('GraphEngine', () => {
 		graphEngine.init(svgEl);
 		// Assertions read path attributes right after the call that writes them.
 		graphEngine.transitionDuration = 0;
-		graphEngine.updateBaselineData(false);
 	});
 
 	afterEach(() => {
@@ -549,65 +549,18 @@ describe('GraphEngine', () => {
 			frStore.set('t', makeTarget('t'));
 		});
 
-		it('resolves channel data from the store when enabled', () => {
-			graphStore.baselineMode = 'withoutAdjustment';
-			graphEngine.updateBaselineData(true, { uuid: 't' });
-
-			const data = graphEngine.getBaselineData();
-			expect(data.uuid).toBe('t');
-			expect(data.identifier).toBe('t Target');
-			expect(data.channelData!.length).toBeGreaterThan(0);
-			expect(graphStore.baselineUUID).toBe('t');
-		});
-
-		it('accepts an explicit channelData override for URL restoration', () => {
-			const snapshot: FRDataPoint[] = [
-				[100, 1],
-				[1000, 2]
-			];
-			graphEngine.updateBaselineData(true, { uuid: 't', channelData: snapshot });
-			expect(graphEngine.getBaselineData().channelData).toBe(snapshot);
-		});
-
-		it('clears everything when disabled', () => {
-			graphStore.baselineMode = 'withoutAdjustment';
-			graphEngine.updateBaselineData(true, { uuid: 't' });
-			graphEngine.updateBaselineData(false);
-
-			expect(graphEngine.getBaselineData()).toEqual({
-				uuid: null,
-				identifier: null,
-				channelData: null
-			});
-			expect(graphEngine.getBaselineUUID()).toBeNull();
-			expect(graphStore.baselineUUID).toBeNull();
-		});
-
-		it('refuses to enable without a UUID', () => {
-			graphEngine.updateBaselineData(true);
-			expect(graphEngine.getBaselineUUID()).toBeNull();
-		});
-
-		it('refuses to enable against a UUID the store does not have', () => {
-			graphEngine.updateBaselineData(true, { uuid: 'gone' });
-			expect(graphEngine.getBaselineUUID()).toBeNull();
-		});
-
 		it('subtracts the baseline from every drawn curve', () => {
 			graphEngine.drawFRCurve('p');
 			const before = paths('.fr-graph-phone-curve')[0].getAttribute('d');
 
-			graphEngine.updateBaselineData(true, {
-				uuid: 't',
-				channelData: flat(10)
-			});
+			baseline.cycle('t');
 			graphEngine.repositionCurves();
 
 			expect(paths('.fr-graph-phone-curve')[0].getAttribute('d')).not.toBe(before);
 		});
 
 		it('flattens a curve baselined against itself', () => {
-			graphEngine.updateBaselineData(true, { uuid: 'p', channelData: flat(79) });
+			baseline.cycle('p');
 			graphEngine.drawFRCurve('p');
 
 			// dispChannel is AVG at 79 dB against a 79 dB baseline → 0 dB everywhere.
@@ -617,30 +570,39 @@ describe('GraphEngine', () => {
 			for (const y of ys) expect(y).toBeCloseTo(zeroY, 2);
 		});
 
-		it('refreshBaselineData drops the baseline once its entry is removed', () => {
-			graphStore.baselineMode = 'withoutAdjustment';
-			graphEngine.updateBaselineData(true, { uuid: 't' });
+		it('compensates the curves of a baseline set before the graph was initialised', () => {
+			// The cold boot: `applyStateFromURL` runs before the graph mounts, so the
+			// store holds the baseline when `init` is called.
+			svgEl.remove();
+			baseline.cycle('p');
+			svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svgEl.style.width = '800px';
+			svgEl.style.height = '450px';
+			document.body.appendChild(svgEl);
+			graphEngine.init(svgEl);
+			graphEngine.transitionDuration = 0;
+
+			graphEngine.drawFRCurve('p');
+
+			const zeroY = graphEngine.getScales().yScale(0);
+			const ys = coords(paths('.fr-graph-phone-curve')[0].getAttribute('d')!).map(([, y]) => y);
+			expect(ys.length).toBeGreaterThan(0);
+			for (const y of ys) expect(y).toBeCloseTo(zeroY, 2);
+		});
+
+		it('draws a curve uncompensated while its baseline item is absent, and compensated again when it returns', () => {
+			baseline.cycle('t');
+			const target = frStore.get('t')!;
+			graphEngine.drawFRCurve('p');
+			const compensated = paths('.fr-graph-phone-curve')[0].getAttribute('d');
 
 			frStore.delete('t');
-			graphEngine.refreshBaselineData();
+			graphEngine.drawFRCurve('p');
+			expect(paths('.fr-graph-phone-curve')[0].getAttribute('d')).not.toBe(compensated);
 
-			expect(graphEngine.getBaselineUUID()).toBeNull();
-			expect(graphStore.baselineMode).toBe('off');
-		});
-
-		it('refreshBaselineData re-reads channel data after the entry changed', () => {
-			graphStore.baselineMode = 'withoutAdjustment';
-			graphEngine.updateBaselineData(true, { uuid: 't' });
-
-			frStore.set('t', makeTarget('t', { channels: { AVG: channel(50) } }));
-			graphEngine.refreshBaselineData();
-
-			expect(graphEngine.getBaselineData().channelData![0][1]).toBe(50);
-		});
-
-		it('refreshBaselineData is a no-op with no baseline set', () => {
-			graphEngine.refreshBaselineData();
-			expect(graphEngine.getBaselineUUID()).toBeNull();
+			frStore.set('t', target);
+			graphEngine.drawFRCurve('p');
+			expect(paths('.fr-graph-phone-curve')[0].getAttribute('d')).toBe(compensated);
 		});
 	});
 
@@ -663,21 +625,21 @@ describe('GraphEngine', () => {
 		});
 
 		it('interpolates the baseline between its surrounding points', () => {
-			graphEngine.updateBaselineData(true, {
-				uuid: 'x',
-				channelData: [
-					[100, 0],
-					[1000, 10]
-				]
-			});
-			frStore.set('x', makePhone('x'));
-			graphEngine.updateBaselineData(true, {
-				uuid: 'x',
-				channelData: [
-					[100, 0],
-					[1000, 10]
-				]
-			});
+			frStore.set(
+				'x',
+				makePhone('x', {
+					channels: {
+						AVG: {
+							data: [
+								[100, 0],
+								[1000, 10]
+							],
+							metadata: { minFreq: 20, maxFreq: 20000 }
+						}
+					}
+				})
+			);
+			baseline.cycle('x');
 
 			const { yScale } = graphEngine.getScales();
 			const d = graphEngine._getCompensatedPath([[1000, 10]])!;

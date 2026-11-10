@@ -1,9 +1,9 @@
 import * as d3 from 'd3';
+import { untrack } from 'svelte';
 import {
 	isTargetType,
 	type FRDataObject,
 	type FRDataPoint,
-	type BaselineData,
 	type SampleEnvelope
 } from '#lib/types/data-types.js';
 import GraphHandle from './GraphHandle.js';
@@ -12,7 +12,7 @@ import { getConfigValue } from '#lib/utils/config.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { sampleFillOpacity } from '#lib/utils/sample-config.js';
-import { resolveBaselineChannelData } from './baseline.js';
+import { baseline, compensateAt } from './baseline.js';
 import { combineEnvelopes, curveTraces, selectEnvelope } from './curve-traces.js';
 import { eqSourceContextFor } from './eq-source-context.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
@@ -27,7 +27,6 @@ class GraphEngine {
 		string,
 		{ x: number; y: number; anchor: string; growUp: boolean; style?: string }
 	>;
-	baselineData: BaselineData;
 	transitionDuration: number;
 	yScaleValue = 50;
 	svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -74,11 +73,6 @@ class GraphEngine {
 				growUp: false
 			}
 		};
-		this.baselineData = {
-			uuid: null,
-			identifier: null,
-			channelData: null
-		};
 		this.transitionDuration = 300;
 	}
 
@@ -111,7 +105,6 @@ class GraphEngine {
 		}
 
 		this._updateCurveRAF = requestAnimationFrame(() => {
-			this.refreshBaselineData();
 			this.curveGroup.attr('transform', 'translate(0,0)');
 
 			this.svg
@@ -149,65 +142,10 @@ class GraphEngine {
 		this._transitionFillPaths(true);
 	}
 
-	/** Refresh baseline channel data from latest frStore entry (after re-smooth, re-normalize, etc.) */
-	refreshBaselineData(): void {
-		if (!this.baselineData.uuid) return;
-		if (!frStore.get(this.baselineData.uuid)) {
-			// Baseline entry was removed
-			this.baselineData = { uuid: null, identifier: null, channelData: null };
-			graphStore.baselineUUID = null;
-			graphStore.baselineMode = 'off';
-			return;
-		}
-		this.baselineData.channelData = resolveBaselineChannelData(
-			this.baselineData.uuid,
-			graphStore.baselineMode
-		);
-	}
-
 	/**
-	 * Update Baseline Data.
-	 *
-	 * Callers must set `graphStore.baselineMode` before calling this with `enable: true` —
-	 * channel data is resolved via `resolveBaselineChannelData`, the single source of truth
-	 * for baseline resolution, which reads the mode from the store. An explicit
-	 * `channelData` override is still accepted for callers restoring a specific snapshot
-	 * (e.g. URL state restoration) that shouldn't re-derive it.
+	 * Move the drawn curves to the baseline now in effect. The baseline itself is
+	 * `baseline` (baseline.ts); this only re-draws paths against it.
 	 */
-	updateBaselineData(
-		enable: boolean,
-		{
-			uuid = null,
-			channelData = null
-		}: { uuid?: string | null; channelData?: FRDataPoint[] | null } = {}
-	): void {
-		if (!enable) {
-			this.baselineData = { uuid: null, identifier: null, channelData: null };
-		} else {
-			if (uuid === null) {
-				console.error('Baseline UUID is not defined');
-				return;
-			}
-			const baselineMetaData = frStore.get(uuid);
-			if (!baselineMetaData) {
-				console.error('Baseline data not found for UUID:', uuid);
-				return;
-			}
-			this.baselineData = {
-				uuid,
-				identifier: baselineMetaData.identifier,
-				channelData:
-					channelData !== null
-						? channelData
-						: resolveBaselineChannelData(uuid, graphStore.baselineMode)
-			};
-		}
-
-		graphStore.baselineUUID = this.baselineData.uuid;
-		this.updateBaseline(true);
-	}
-
-	/** Update Baseline on Graph */
 	updateBaseline(animate = false): void {
 		// Use self alias to access GraphEngine instance inside attrTween
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -234,37 +172,22 @@ class GraphEngine {
 			.attr('visibility', visible ? 'visible' : 'hidden');
 	}
 
+	/**
+	 * What to subtract from a path. Untracked: the engine is imperative, and some of
+	 * its callers run inside an effect (the y-scale one) that must not start
+	 * depending on the baseline. `GraphContainer` owns the effect that reacts to it.
+	 */
+	private _baselineData() {
+		return untrack(() => baseline.channelData);
+	}
+
 	/** Get compensated path for frequency response data */
 	_getCompensatedPath(originalData: FRDataPoint[]): string | null {
-		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
-		const isBaselineValid =
-			Array.isArray(this.baselineData.channelData) && this.baselineData.channelData.length > 0;
-
+		const baselineData = this._baselineData();
 		const lineGenerator = d3
 			.line<FRDataPoint>()
 			.x((d) => this.xScale(d[0]))
-			.y((d) => {
-				if (!isBaselineValid) {
-					return this.yScale(d[1]);
-				}
-
-				const channelData = this.baselineData.channelData!;
-				const i = bisect(channelData, d[0], 0);
-				const a = channelData[i - 1];
-				const b = channelData[i];
-
-				let baselineY = 0;
-				if (a && b) {
-					const t = (d[0] - a[0]) / (b[0] - a[0]);
-					baselineY = a[1] + t * (b[1] - a[1]);
-				} else if (a) {
-					baselineY = a[1];
-				} else if (b) {
-					baselineY = b[1];
-				}
-
-				return this.yScale(d[1] - baselineY);
-			})
+			.y((d) => this.yScale(compensateAt(d[1], d[0], baselineData)))
 			.curve(d3.curveMonotoneX);
 
 		return lineGenerator(originalData);
@@ -284,24 +207,9 @@ class GraphEngine {
 	_envelopePath(envelope: SampleEnvelope): string | null {
 		if (!envelope.upper.length) return null;
 
-		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
-		const isBaselineValid =
-			Array.isArray(this.baselineData.channelData) && this.baselineData.channelData.length > 0;
-
-		const computeY = (point: FRDataPoint): number => {
-			if (!isBaselineValid) return this.yScale(point[1]);
-			const channelData = this.baselineData.channelData!;
-			const i = bisect(channelData, point[0], 0);
-			const a = channelData[i - 1];
-			const b = channelData[i];
-			let baselineY = 0;
-			if (a && b) {
-				const t = (point[0] - a[0]) / (b[0] - a[0]);
-				baselineY = a[1] + t * (b[1] - a[1]);
-			} else if (a) baselineY = a[1];
-			else if (b) baselineY = b[1];
-			return this.yScale(point[1] - baselineY);
-		};
+		const baselineData = this._baselineData();
+		const computeY = (point: FRDataPoint): number =>
+			this.yScale(compensateAt(point[1], point[0], baselineData));
 
 		// Use curveMonotoneX instead of curveNatural to prevent overshoot —
 		// the envelope represents strict min/max bounds and must not extend beyond data points.
@@ -367,16 +275,8 @@ class GraphEngine {
 		this.compareOverlay?.render();
 	}
 
-	getBaselineData(): BaselineData {
-		return this.baselineData;
-	}
-
 	getYScale(): number {
 		return this.yScaleValue;
-	}
-
-	getBaselineUUID(): string | null {
-		return this.baselineData.uuid;
 	}
 
 	/** Apply a dB y-offset to all SVG paths for a given UUID */

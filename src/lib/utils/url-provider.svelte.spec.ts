@@ -12,6 +12,7 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+import { baseline } from '#lib/graph/baseline.js';
 import Base62 from './base62.js';
 import { urlProvider } from './url-provider.js';
 import type { URLState } from './url-state.js';
@@ -168,6 +169,24 @@ describe('URLProvider', () => {
 			expect(JSON.parse(Base62.decode(params.get('state')!)).baseline).toEqual({
 				key: 'Phone a V2',
 				mode: 'withoutAdjustment'
+			});
+		});
+
+		it('omits a baseline whose item has been removed, and writes it again when it returns', () => {
+			const item = makeEntry('a');
+			frStore.set('a', item);
+			frStore.set('b', makeEntry('b'));
+			graphStore.baselineUUID = 'a';
+			graphStore.baselineMode = 'withAdjustment';
+			frStore.delete('a');
+
+			expect(urlProvider.getCurrentURL()).not.toContain('state=');
+
+			frStore.set('a', item);
+			const params = new URLSearchParams(new URL(urlProvider.getCurrentURL()).search);
+			expect(JSON.parse(Base62.decode(params.get('state')!)).baseline).toEqual({
+				key: 'Phone a',
+				mode: 'withAdjustment'
 			});
 		});
 
@@ -382,18 +401,31 @@ describe('URLProvider', () => {
 			expect(graphStore.baselineUUID).toBe('a');
 		});
 
-		it('hands the baseline to the engine once it is initialized', () => {
+		it('puts the baseline in effect with its data whether or not the engine is initialized', () => {
 			initWith({ baseline: { key: 'Phone a', mode: 'withoutAdjustment' } });
 			frStore.set('a', makeEntry('a'));
-			graphEngine.isInitialized = true;
-			const spy = vi.spyOn(graphEngine, 'updateBaselineData').mockImplementation(() => {});
 
-			try {
+			for (const initialized of [false, true]) {
+				graphStore.baselineUUID = null;
+				graphStore.baselineMode = 'off';
+				graphEngine.isInitialized = initialized;
+
 				urlProvider.applyStateFromURL();
-				expect(spy).toHaveBeenCalledWith(true, expect.objectContaining({ uuid: 'a' }));
-			} finally {
-				spy.mockRestore();
+
+				expect(baseline.uuid).toBe('a');
+				expect(baseline.mode).toBe('withoutAdjustment');
+				expect(baseline.channelData).toEqual([[1000, 80]]);
 			}
+		});
+
+		it('ignores a baseline whose mode is not an active one', () => {
+			initWith({ baseline: { key: 'Phone a', mode: 'bogus' as never } });
+			frStore.set('a', makeEntry('a'));
+
+			urlProvider.applyStateFromURL();
+
+			expect(graphStore.baselineUUID).toBeNull();
+			expect(graphStore.baselineMode).toBe('off');
 		});
 
 		it('ignores a baseline whose device never loaded', () => {

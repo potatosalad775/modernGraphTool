@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import type { FRDataPoint } from '#lib/types/data-types.js';
+import { compensateAt } from './baseline.js';
 
 export interface CompareGhostState {
 	visible: boolean;
@@ -73,26 +74,10 @@ export class GraphCompareOverlay implements CompareOverlayApi {
 		this._remove();
 	}
 
-	private _interpolateAt(data: FRDataPoint[], freq: number): number {
-		const bisect = d3.bisector((d: FRDataPoint) => d[0]).left;
-		const i = bisect(data, freq, 0);
-		const a = data[i - 1];
-		const b = data[i];
-		if (a && b) {
-			const t = (freq - a[0]) / (b[0] - a[0]);
-			return a[1] + t * (b[1] - a[1]);
-		}
-		return a ? a[1] : b ? b[1] : 0;
-	}
-
 	/** The dB drawn at `point`: its own value, baseline-compensated and offset like the EQ curve. */
 	private _y(point: FRDataPoint): number {
 		const { baselineChannelData, yOffset } = this.state;
-		const baseline =
-			baselineChannelData && baselineChannelData.length > 0
-				? this._interpolateAt(baselineChannelData, point[0])
-				: 0;
-		return point[1] - baseline + yOffset;
+		return compensateAt(point[1], point[0], baselineChannelData) + yOffset;
 	}
 
 	private _draw(): void {

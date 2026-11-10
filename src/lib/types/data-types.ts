@@ -132,13 +132,6 @@ export interface FREventData {
 	type?: FRDataType;
 }
 
-/** Baseline data for graph compensation */
-export interface BaselineData {
-	uuid: string | null;
-	identifier: string | null;
-	channelData: FRDataPoint[] | null;
-}
-
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 /** File reference for phone measurements (L/R channel filenames) */

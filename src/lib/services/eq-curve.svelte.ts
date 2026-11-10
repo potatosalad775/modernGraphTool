@@ -7,7 +7,7 @@ import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import FRParser from '#lib/utils/fr-parser.js';
 import { DataProcessor } from '#lib/utils/data-processor.js';
 import FRSmoother from '#lib/utils/fr-smoother.js';
-import { Equalizer, type EQFilter } from '#lib/utils/equalizer.js';
+import { Equalizer, isPlayableBand, type EQFilter } from '#lib/utils/equalizer.js';
 import { effectiveFilters, hasPerChannelFilters } from '#lib/utils/eq-channel.js';
 import { eqSourceChannels, eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 import { derivePreamp, headroomPreamp } from '#lib/utils/eq-preamp.js';
@@ -122,9 +122,7 @@ class EqCurve {
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return;
 
-		const enabledFilters = eqStore.filters.filter(
-			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-		);
+		const enabledFilters = eqStore.filters.filter(isPlayableBand);
 		const preamp = eqStore.preamp;
 		if (enabledFilters.length === 0 && preamp === 0) {
 			this.#remove();
@@ -196,9 +194,7 @@ class EqCurve {
 		const sourceUUID = eqStore.sourcePhoneUUID;
 		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
 		if (!sourceData) return null;
-		const enabled = filters.filter(
-			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-		);
+		const enabled = filters.filter(isPlayableBand);
 		const linked = settingsStore.linkEqNormalization;
 		const raw = this.#modifiedChannels(
 			eqSourceChannels(sourceData, eqStore.sourceSample),
@@ -223,9 +219,7 @@ class EqCurve {
 		const sourceUUID = eqStore.sourcePhoneUUID;
 		const sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
 		if (!sourceData) return false;
-		const enabled = filters.filter(
-			(f) => f.enabled && f.freq != null && f.q != null && f.gain != null
-		);
+		const enabled = filters.filter(isPlayableBand);
 		const raw = this.#modifiedChannels(
 			this.#rawSourceChannels(sourceData) ?? eqSourceChannels(sourceData, eqStore.sourceSample),
 			enabled,

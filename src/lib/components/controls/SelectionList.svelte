@@ -1,9 +1,9 @@
 <script lang="ts">
 	import * as m from '#lib/paraglide/messages.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
-	import { graphStore } from '#lib/stores/graph-store.svelte.js';
-	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { baseline } from '#lib/graph/baseline.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
 	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
@@ -94,45 +94,11 @@
 	}
 
 	// ── Baseline ────────────────────────────────────────────────────────────────
-	function handleBaselineClick(uuid: string) {
-		const item = frStore.get(uuid);
-		const hasOriginal = graphStore.targetOriginalData.has(uuid);
-		const isTargetItem = item && isTargetType(item);
-
-		if (!isTargetItem || !hasOriginal) {
-			// Simple toggle for phones / targets without adjustments
-			const isActive = graphStore.baselineUUID === uuid;
-			graphStore.baselineMode = isActive ? 'off' : 'withoutAdjustment';
-			graphEngine.updateBaselineData(!isActive, { uuid });
-			return;
-		}
-
-		// Three-mode cycle for targets with adjustments: off → withoutAdjustment → withAdjustment → off
-		// baselineMode is set before calling updateBaselineData — it resolves channel
-		// data via resolveBaselineChannelData(uuid, graphStore.baselineMode), the single
-		// source of truth for baseline resolution (see baseline.ts).
-		const currentUUID = graphStore.baselineUUID;
-		const currentMode = graphStore.baselineMode;
-
-		if (currentUUID !== uuid) {
-			// Different UUID or no baseline: start with withoutAdjustment
-			graphStore.baselineMode = 'withoutAdjustment';
-			graphEngine.updateBaselineData(true, { uuid });
-		} else if (currentMode === 'withoutAdjustment') {
-			// withoutAdjustment -> withAdjustment
-			graphStore.baselineMode = 'withAdjustment';
-			graphEngine.updateBaselineData(true, { uuid });
-		} else {
-			// withAdjustment -> off
-			graphStore.baselineMode = 'off';
-			graphEngine.updateBaselineData(false);
-		}
-	}
-
+	// The cycle and the state behind it live in `baseline` (graph/baseline.ts).
 	function getBaselineTooltip(uuid: string): string {
-		if (graphStore.baselineUUID !== uuid) return m.selection_list_baseline_off();
-		if (graphStore.baselineMode === 'withAdjustment')
-			return m.selection_list_baseline_with_adjustment();
+		const mode = baseline.modeFor(uuid);
+		if (mode === 'off') return m.selection_list_baseline_off();
+		if (mode === 'withAdjustment') return m.selection_list_baseline_with_adjustment();
 		return m.selection_list_baseline_without_adjustment();
 	}
 
@@ -161,7 +127,7 @@
 	{/if}
 
 	{#each sortedEntries as [uuid, item] (uuid)}
-		{@const isBaseline = graphStore.baselineUUID === uuid}
+		{@const baselineMode = baseline.modeFor(uuid)}
 		{@const channelOpts = getChannelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const variantFiles =
@@ -303,7 +269,7 @@
 					<!-- Baseline button -->
 					<Button
 						title={getBaselineTooltip(uuid)}
-						onclick={() => handleBaselineClick(uuid)}
+						onclick={() => baseline.cycle(uuid)}
 						variant="ghost"
 						size="icon"
 					>
@@ -313,7 +279,7 @@
 							fill="currentColor"
 							class="h-4 w-4"
 						>
-							{#if isBaseline && graphStore.baselineMode === 'withoutAdjustment'}
+							{#if baselineMode === 'withoutAdjustment'}
 								<path
 									d="M12.5935 23.2578l-0.0116 0.0017 -0.071 0.0355 -0.019 0.0037 -0.0152 -0.0037 -0.071 -0.0355c-0.0099 -0.0031 -0.0187 -0.0005 -0.0236 0.0054l-0.0041 0.0109 -0.0171 0.4273 0.005 0.0204 0.011 0.0122 0.1036 0.074 0.0148 0.0039 0.0118 -0.0039 0.1036 -0.074 0.0126 -0.016 0.0034 -0.0166 -0.0171 -0.4273c-0.002 -0.0101 -0.0086 -0.0165 -0.0161 -0.018Zm0.2649 -0.1125 -0.0139 0.002 -0.1847 0.0924 -0.0099 0.0102 -0.0027 0.0112 0.0179 0.4295 0.0048 0.0128 0.0085 0.0071 0.2009 0.0927c0.0121 0.0037 0.0229 -0.0002 0.0285 -0.008l0.004 -0.014 -0.0341 -0.6147c-0.0024 -0.0119 -0.0103 -0.0195 -0.0193 -0.0212Zm-0.7154 0.002c-0.0098 -0.0049 -0.0208 -0.002 -0.0274 0.0053l-0.0057 0.0139 -0.0341 0.6147c-0.0007 0.0115 0.007 0.0207 0.0168 0.0234l0.0157 -0.0014 0.2009 -0.0927 0.0094 -0.0081 0.0039 -0.0118 0.0179 -0.4295 -0.0032 -0.0126 -0.0094 -0.0088 -0.1848 -0.0924Z"
 									stroke-width="5"
@@ -321,7 +287,7 @@
 									d="M20.7071 3.29289c0.3905 0.39053 0.3905 1.02369 0 1.41422L4.70711 20.7071c-0.39053 0.3905 -1.02369 0.3905 -1.41422 0 -0.39052 -0.3905 -0.39052 -1.0237 0 -1.4142L19.2929 3.29289c0.3905 -0.39052 1.0237 -0.39052 1.4142 0Z"
 									stroke-width="5"
 								></path>
-							{:else if isBaseline && graphStore.baselineMode === 'withAdjustment'}
+							{:else if baselineMode === 'withAdjustment'}
 								<path
 									d="M2 12C2 11.4477 2.44772 11 3 11H21C21.5523 11 22 11.4477 22 12C22 12.5523 21.5523 13 21 13H3C2.44772 13 2 12.5523 2 12Z"
 								></path>

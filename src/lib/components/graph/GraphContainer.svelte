@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import { GraphEqOverlay } from '#lib/graph/GraphEqOverlay.js';
@@ -18,7 +18,7 @@
 	import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 	import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
-	import { resolveBaselineChannelData } from '#lib/graph/baseline.js';
+	import { baseline } from '#lib/graph/baseline.js';
 	import { curveTraces } from '#lib/graph/curve-traces.js';
 	import { labelRows } from '#lib/graph/curve-label-rows.js';
 	import { eqSourceContextFor } from '#lib/graph/eq-source-context.js';
@@ -235,12 +235,14 @@
 	});
 
 	const baselineLabel = $derived.by(() => {
-		if (!blAnchor || !graphStore.baselineUUID) return null;
-		const data = frStore.get(graphStore.baselineUUID);
+		// The effective baseline: a dormant one (its item removed) shows no label.
+		const uuid = baseline.uuid;
+		if (!blAnchor || !uuid) return null;
+		const data = frStore.get(uuid);
 		if (!data) return null;
 		const identifier = data.identifier;
 		const text =
-			graphStore.baselineMode === 'withAdjustment'
+			baseline.mode === 'withAdjustment'
 				? `${identifier} (with Adjustment) Compensated`
 				: `${identifier} Compensated`;
 		return { x: blAnchor.x, y: blAnchor.y, anchor: blAnchor.anchor, text };
@@ -312,6 +314,28 @@
 		}
 	});
 
+	// The baseline in effect. A different selection (a click, a URL restore, the item going
+	// dormant or coming back) animates the drawn paths to the new reference; the same
+	// baseline with different data (re-smooth, re-normalize, a target adjustment, a
+	// `targetOriginalData` edit) redraws the curves instead, which the rAF coalesces with
+	// the redraw the `frStore` effect above already asked for. The EQ, compare and
+	// preference-bound overlays track `baseline.channelData` in their own effects.
+	let drawnBaseline: { uuid: string | null; mode: string } | null = null;
+	$effect(() => {
+		const uuid = baseline.uuid;
+		const mode = baseline.mode;
+		void baseline.channelData;
+		if (!graphEngine.isInitialized) return;
+		untrack(() => {
+			const previous = drawnBaseline;
+			drawnBaseline = { uuid, mode };
+			// First run: the full redraw above is already drawing against it.
+			if (!previous) return;
+			if (previous.uuid !== uuid || previous.mode !== mode) graphEngine.updateBaseline(true);
+			else graphEngine.refreshEveryFRCurves();
+		});
+	});
+
 	// Notify GraphInspection when labels change (hides labels when inspection is active)
 	$effect(() => {
 		const _labels = labelData.entries;
@@ -357,6 +381,8 @@
 		const _eqCurveData = eqCurveUUID ? frStore.get(eqCurveUUID) : null;
 		// Track source phone data for ghost opacity changes
 		const _sourceData = sourceUUID ? frStore.get(sourceUUID) : null;
+		// The nodes sit on the baseline-compensated curve, so a baseline change moves them.
+		const _baselineData = baseline.channelData;
 		if (graphEngine.isInitialized && overlay) {
 			overlay.render();
 		}
@@ -390,10 +416,7 @@
 			rawBoundU: preferenceBoundStore.boundU,
 			rawBoundD: preferenceBoundStore.boundD,
 			dfNormalized: preferenceBoundStore.dfNormalized,
-			baselineChannelData: resolveBaselineChannelData(
-				graphStore.baselineUUID,
-				graphStore.baselineMode
-			)
+			baselineChannelData: baseline.channelData
 		});
 	});
 
@@ -428,10 +451,7 @@
 			label: side ? `${side} (compare)` : null,
 			curves,
 			yOffset: eqCurve?.yOffset ?? 0,
-			baselineChannelData: resolveBaselineChannelData(
-				graphStore.baselineUUID,
-				graphStore.baselineMode
-			)
+			baselineChannelData: baseline.channelData
 		});
 	});
 

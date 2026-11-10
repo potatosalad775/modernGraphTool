@@ -4,6 +4,7 @@ import GraphInspection from './GraphInspection.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import type { ChannelData, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
 
 /**
@@ -18,14 +19,13 @@ interface FakeEngine {
 	svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 	graphGeometry: typeof GEOMETRY;
 	xScale: d3.ScaleLogarithmic<number, number>;
-	getBaselineData: () => { uuid: string | null; channelData: FRDataPoint[] | null };
 }
 
 let host: SVGSVGElement;
 let engine: FakeEngine;
 let inspection: GraphInspection;
 
-function makeEngine(baseline: FRDataPoint[] | null = null): FakeEngine {
+function makeEngine(): FakeEngine {
 	host = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 	host.setAttribute('width', '800');
 	host.setAttribute('height', '450');
@@ -34,8 +34,7 @@ function makeEngine(baseline: FRDataPoint[] | null = null): FakeEngine {
 	return {
 		svg: d3.select(host),
 		graphGeometry: GEOMETRY,
-		xScale: d3.scaleLog().domain([20, 20000]).range([GEOMETRY.xStart, GEOMETRY.xEnd]),
-		getBaselineData: () => ({ uuid: baseline ? 'baseline' : null, channelData: baseline })
+		xScale: d3.scaleLog().domain([20, 20000]).range([GEOMETRY.xStart, GEOMETRY.xEnd])
 	};
 }
 
@@ -83,6 +82,8 @@ function labels(): string[] {
 describe('GraphInspection', () => {
 	beforeEach(() => {
 		for (const uuid of [...frStore.entries.keys()]) frStore.delete(uuid);
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
 		engine = makeEngine();
 		inspection = makeInspection(engine);
 	});
@@ -90,6 +91,8 @@ describe('GraphInspection', () => {
 	afterEach(() => {
 		inspection.destroy();
 		host.remove();
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
 		eqStore.isEnabled = false;
 		eqStore.sourcePhoneUUID = null;
 	});
@@ -510,11 +513,11 @@ describe('GraphInspection', () => {
 
 	describe('baseline compensation', () => {
 		beforeEach(() => {
-			engine = makeEngine(
-				Array.from({ length: 50 }, (_, i) => [20 * Math.pow(1000, i / 49), 5] as FRDataPoint)
-			);
-			inspection = makeInspection(engine);
 			inspection.setEnabled(true);
+			// Hidden, so it has no row of its own — and a hidden baseline still compensates.
+			addPhone('baseline', 'Baseline', 6, { hidden: true });
+			graphStore.baselineUUID = 'baseline';
+			graphStore.baselineMode = 'withoutAdjustment';
 		});
 
 		it('subtracts the baseline from every reported value', () => {
@@ -524,12 +527,17 @@ describe('GraphInspection', () => {
 		});
 
 		it('reports raw values when no baseline is set', () => {
-			engine = makeEngine(null);
-			inspection.destroy();
-			inspection = makeInspection(engine);
-			inspection.setEnabled(true);
+			graphStore.baselineUUID = null;
+			graphStore.baselineMode = 'off';
 
 			addPhone('a', 'Phone A', 80);
+			hoverAt(1000);
+			expect(labels()[0]).toBe('Phone A (AVG): 79.0dB');
+		});
+
+		it('reports raw values while the baseline item is absent (dormant)', () => {
+			addPhone('a', 'Phone A', 80);
+			frStore.delete('baseline');
 			hoverAt(1000);
 			expect(labels()[0]).toBe('Phone A (AVG): 79.0dB');
 		});

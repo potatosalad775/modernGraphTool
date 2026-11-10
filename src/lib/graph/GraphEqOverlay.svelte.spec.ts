@@ -2,8 +2,8 @@
  * `GraphEqOverlay` renders the draggable EQ band nodes on top of the graph.
  *
  * Driven through a minimal fake `GraphEngine` — the overlay only reads `svg`,
- * `graphGeometry`, `xScale`, `baseYScale`, `baselineData` and
- * `orderOverlayLayers()`. Runs in the `client` project because it builds real
+ * `graphGeometry`, `xScale`, `baseYScale` and `orderOverlayLayers()`; the
+ * baseline comes from the `baseline` module, i.e. the stores. Runs in the `client` project because it builds real
  * SVG, attaches window key listeners and dispatches real pointer events; d3's
  * `pointer()` needs a laid-out element to invert against.
  */
@@ -28,11 +28,6 @@ interface FakeEngine {
 	graphGeometry: { xStart: number; xEnd: number; yTop: number; yBottom: number };
 	xScale: d3.ScaleLogarithmic<number, number>;
 	baseYScale: d3.ScaleLinear<number, number>;
-	baselineData: {
-		uuid: string | null;
-		identifier: string | null;
-		channelData: FRDataPoint[] | null;
-	};
 	orderOverlayLayers: () => void;
 }
 
@@ -63,7 +58,6 @@ function makeEngine(): FakeEngine {
 			.scaleLinear()
 			.domain([-25, 25])
 			.range([VIEW_H - MARGIN, MARGIN]),
-		baselineData: { uuid: null, identifier: null, channelData: null },
 		orderOverlayLayers: () => {}
 	};
 }
@@ -109,6 +103,8 @@ describe('GraphEqOverlay', () => {
 		frStore.clear();
 		// Node positions read stored channels as-is; this only resets what a test changed.
 		graphStore.smoothValue = 'none';
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
 		eqStore.filters = [];
 		eqStore.isEnabled = true;
 		eqStore.sourcePhoneUUID = null;
@@ -387,7 +383,10 @@ describe('GraphEqOverlay', () => {
 			overlay.setEqPanelActive(true);
 			const unbaselined = transformOf().y;
 
-			engine.baselineData.channelData = curveData(10);
+			// A hidden item is still the baseline.
+			frStore.set('base', { ...makePhone('base', 10), hidden: true });
+			graphStore.baselineUUID = 'base';
+			graphStore.baselineMode = 'withoutAdjustment';
 			overlay.render();
 
 			// 80 dB curve minus a flat 10 dB baseline = 70 dB, i.e. lower on screen

@@ -6,6 +6,7 @@ import {
 	type SampleEnvelope
 } from '#lib/types/data-types.js';
 import { eqSourceChannels, eqSourceRun, type EqSourceSample } from '#lib/utils/eq-source.js';
+import { sampleKey } from '#lib/utils/sample-key.js';
 import { curveBaseName, curveDisplayName, sampleKeyParts } from './curve-label.js';
 
 /**
@@ -205,7 +206,7 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 		for (const channel of obj.dispChannel) {
 			const data = mainChannels[channel]?.data;
 			if (!data) continue;
-			const runKey = runSample ? `sample${runSample.index}_${channel}` : null;
+			const runKey = runSample ? sampleKey(runSample.index, channel) : null;
 			const label = runKey ? sampleKeyParts(obj, runKey)?.label : undefined;
 			traces.push({
 				kind: 'main',

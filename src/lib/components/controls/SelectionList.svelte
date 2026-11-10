@@ -5,12 +5,12 @@
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { baseline } from '#lib/graph/baseline.js';
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
 	import {
-		isTargetType,
-		type Channel,
-		type FRDataObject,
-		type PhoneFileVariant
-	} from '#lib/types/data-types.js';
+		channelOptions,
+		dispChannelToSelectValue,
+		selectValueToDispChannel
+	} from './channel-choice.js';
 	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';
@@ -34,32 +34,6 @@
 
 	// Off by default — set DOWNLOAD.ENABLED in config.js to expose it.
 	const downloadEnabled = $derived(Boolean(getConfigValue('DOWNLOAD.ENABLED')));
-
-	// ── Channel helpers ──────────────────────────────────────────────────────────
-	type ChannelOption = { value: string; label: string };
-
-	function getChannelOptions(item: FRDataObject): ChannelOption[] {
-		const keys = Object.keys(item.channels) as Channel[];
-		const opts: ChannelOption[] = [];
-		const hasL = keys.includes('L');
-		const hasR = keys.includes('R');
-		const hasAVG = keys.includes('AVG');
-		if (hasL) opts.push({ value: 'L', label: m.selection_list_channel_left() });
-		if (hasR) opts.push({ value: 'R', label: m.selection_list_channel_right() });
-		if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
-		if (hasAVG) opts.push({ value: 'AVG', label: m.selection_list_channel_average() });
-		return opts;
-	}
-
-	function dispChannelToSelectValue(dispChannel: Channel[]): string {
-		if (dispChannel.includes('L') && dispChannel.includes('R')) return 'L+R';
-		return dispChannel[0] ?? 'AVG';
-	}
-
-	function selectValueToDispChannel(value: string): Channel[] {
-		if (value === 'L+R') return ['L', 'R'];
-		return [value as Channel];
-	}
 
 	function handleChannelChange(uuid: string, value: string) {
 		dataProvider.updateDisplayChannel(uuid, selectValueToDispChannel(value));
@@ -133,7 +107,7 @@
 
 	{#each sortedEntries as [uuid, item] (uuid)}
 		{@const baselineMode = baseline.modeFor(uuid)}
-		{@const channelOpts = getChannelOptions(item)}
+		{@const channelOpts = channelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const variantFiles =
 			(!isTargetType(item) && (item.meta as { files?: PhoneFileVariant[] })?.files) || []}

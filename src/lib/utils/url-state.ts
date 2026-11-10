@@ -9,7 +9,8 @@
 import Base62 from './base62.js';
 import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
-import type { FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+import { parseSampleKey, sampleKey } from './sample-key.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,8 +134,8 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 			const keys = value
 				.map((k) => {
 					const match = String(k).match(/^([LR])(\d+)$/);
-					if (match) return `sample${parseInt(match[2]) - 1}_${match[1]}` as SampleDisplayKey;
-					return /^sample\d+_(L|R|AVG)$/.test(String(k)) ? (String(k) as SampleDisplayKey) : null;
+					if (match) return sampleKey(parseInt(match[2]) - 1, match[1] as Channel);
+					return parseSampleKey(String(k)) ? (String(k) as SampleDisplayKey) : null;
 				})
 				.filter((k): k is SampleDisplayKey => k !== null);
 			out[key] = { keys, fill: false, avg: true };

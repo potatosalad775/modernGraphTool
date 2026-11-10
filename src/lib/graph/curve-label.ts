@@ -1,4 +1,5 @@
 import { isTargetType, type Channel, type FRDataObject } from '#lib/types/data-types.js';
+import { parseSampleKey } from '#lib/utils/sample-key.js';
 
 /**
  * How a curve is named on screen.
@@ -53,10 +54,9 @@ export function sampleKeyParts(
 	obj: FRDataObject,
 	key: string
 ): { label: string; channel: Channel; index: number } | null {
-	const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
-	if (!match) return null;
-	const index = parseInt(match[1]);
-	const channel = match[2] as Channel;
+	const parsed = parseSampleKey(key);
+	if (!parsed) return null;
+	const { index, channel } = parsed;
 	const label = obj.samples?.[index]?.label ?? `Sample ${index + 1}`;
 	return { label, channel, index };
 }

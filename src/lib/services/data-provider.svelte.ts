@@ -38,6 +38,8 @@ import {
 	UpdateSampleDisplayCommand
 } from './commands.js';
 import FRParser from '#lib/utils/fr-parser.js';
+import { sampleRunLabel } from '#lib/utils/eq-source.js';
+import { sampleKey } from '#lib/utils/sample-key.js';
 import type { FRParseResult } from '#lib/utils/fr-parser.js';
 import { normalizeChannels } from '#lib/utils/fr-normalizer.js';
 import { averageChannels, isAveragable } from '#lib/utils/fr-average.js';
@@ -173,9 +175,7 @@ class DataProvider {
 		if (!item) return;
 		const files = encodeFRDataForDownload(item);
 		if (runs) {
-			files.push(
-				...encodeSampleRunsForDownload(item, (i) => `${m.selection_list_samples_run()} ${i + 1}`)
-			);
+			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(item.samples![i], i)));
 		}
 		if (files.length === 0) return;
 		if (files.length === 1) {
@@ -705,9 +705,9 @@ class DataProvider {
 		const sampleColors: Record<string, string> = {};
 		samples.forEach((sample, i) => {
 			// Same color as the corresponding channel — rendered at reduced opacity.
-			if (sample.L) sampleColors[`sample${i}_L`] = baseColors.L ?? baseColors.AVG;
-			if (sample.R) sampleColors[`sample${i}_R`] = baseColors.R ?? baseColors.AVG;
-			if (sample.AVG) sampleColors[`sample${i}_AVG`] = baseColors.AVG;
+			if (sample.L) sampleColors[sampleKey(i, 'L')] = baseColors.L ?? baseColors.AVG;
+			if (sample.R) sampleColors[sampleKey(i, 'R')] = baseColors.R ?? baseColors.AVG;
+			if (sample.AVG) sampleColors[sampleKey(i, 'AVG')] = baseColors.AVG;
 		});
 		return { ...baseColors, samples: sampleColors };
 	}
@@ -720,9 +720,9 @@ class DataProvider {
 	#getLoadedSampleKeys(samples: SampleData[]): SampleDisplayKey[] {
 		const keys: SampleDisplayKey[] = [];
 		samples.forEach((sample, i) => {
-			if (sample.AVG) keys.push(`sample${i}_AVG`);
-			else if (sample.L) keys.push(`sample${i}_L`);
-			else if (sample.R) keys.push(`sample${i}_R`);
+			if (sample.AVG) keys.push(sampleKey(i, 'AVG'));
+			else if (sample.L) keys.push(sampleKey(i, 'L'));
+			else if (sample.R) keys.push(sampleKey(i, 'R'));
 		});
 		return keys;
 	}

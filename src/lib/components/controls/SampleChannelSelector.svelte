@@ -2,41 +2,28 @@
 	import { untrack } from 'svelte';
 	import * as m from '#lib/paraglide/messages.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
-	import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+	import {
+		CHANNELS,
+		type Channel,
+		type FRDataObject,
+		type SampleDisplayKey
+	} from '#lib/types/data-types.js';
+	import { sampleRunLabel } from '#lib/utils/eq-source.js';
+	import { sampleKey } from '#lib/utils/sample-key.js';
+	import {
+		channelOptions,
+		dispChannelToSelectValue,
+		selectValueToDispChannel
+	} from './channel-choice.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { ChevronDown, Ellipsis } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
 
-	// ── Channel helpers ──────────────────────────────────────────────────────────
-
-	function dispChannelToSelectValue(dispChannel: Channel[]): string {
-		if (dispChannel.includes('L') && dispChannel.includes('R')) return 'L+R';
-		return dispChannel[0] ?? 'AVG';
-	}
-
-	function selectValueToDispChannel(value: string): Channel[] {
-		if (value === 'L+R') return ['L', 'R'];
-		return [value as Channel];
-	}
-
 	// ── Channel options derived from item data ──────────────────────────────────
 
-	type ChannelOption = { value: string; label: string };
-
-	let channelOptions = $derived.by((): ChannelOption[] => {
-		const keys = Object.keys(item.channels) as Channel[];
-		const opts: ChannelOption[] = [];
-		const hasL = keys.includes('L');
-		const hasR = keys.includes('R');
-		const hasAVG = keys.includes('AVG');
-		if (hasL) opts.push({ value: 'L', label: m.selection_list_channel_left() });
-		if (hasR) opts.push({ value: 'R', label: m.selection_list_channel_right() });
-		if (hasL && hasR) opts.push({ value: 'L+R', label: m.selection_list_channel_left_and_right() });
-		if (hasAVG) opts.push({ value: 'AVG', label: m.selection_list_channel_average() });
-		return opts;
-	});
+	let options = $derived(channelOptions(item));
 
 	let currentChannelValue = $derived(dispChannelToSelectValue(item.dispChannel));
 
@@ -44,7 +31,7 @@
 
 	let triggerLabel = $derived.by((): string => {
 		const val = currentChannelValue;
-		const opt = channelOptions.find((o) => o.value === val);
+		const opt = options.find((o) => o.value === val);
 		return opt ? opt.label : val;
 	});
 
@@ -69,13 +56,11 @@
 		return (item.samples ?? [])
 			.map((run, index) => ({
 				index,
-				label: run.label ?? `${m.selection_list_samples_run()} ${index + 1}`,
-				boxes: (['L', 'R', 'AVG'] as const)
-					.filter((channel) => run[channel])
-					.map((channel) => {
-						const key = `sample${index}_${channel}` as SampleDisplayKey;
-						return { channel, key, checked: disp.includes(key) };
-					})
+				label: sampleRunLabel(run, index),
+				boxes: CHANNELS.filter((channel) => run[channel]).map((channel) => {
+					const key = sampleKey(index, channel);
+					return { channel, key, checked: disp.includes(key) };
+				})
 			}))
 			.filter((row) => row.boxes.length > 0);
 	});
@@ -120,11 +105,11 @@
 		dataProvider.updateSampleDisplay(uuid, current);
 	}
 
-	function keysFor(channels: Channel[]): SampleDisplayKey[] {
+	function keysFor(channels: readonly Channel[]): SampleDisplayKey[] {
 		const keys: SampleDisplayKey[] = [];
 		runsOf().forEach((run, i) => {
 			for (const ch of channels) {
-				if (run[ch]) keys.push(`sample${i}_${ch}` as SampleDisplayKey);
+				if (run[ch]) keys.push(sampleKey(i, ch));
 			}
 		});
 		return keys;
@@ -137,7 +122,7 @@
 				: preset === 'allR'
 					? keysFor(['R'])
 					: preset === 'all'
-						? keysFor(['L', 'R', 'AVG'])
+						? keysFor(CHANNELS)
 						: [];
 		dataProvider.updateSampleDisplay(uuid, next);
 	}
@@ -185,7 +170,7 @@
 					{m.selection_list_channel_header()}
 				</legend>
 				<div class="flex flex-wrap gap-x-1">
-					{#each channelOptions as opt (opt.value)}
+					{#each options as opt (opt.value)}
 						<label
 							class="flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-xs
 								 hover:bg-base-300"

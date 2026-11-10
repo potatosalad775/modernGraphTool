@@ -64,6 +64,8 @@ export interface MainTrace extends TraceBase {
 	data: FRDataPoint[];
 	/** This is the EQ source run, not the item's own channel; `name` is the run's. */
 	fromRun: boolean;
+	/** The run key (`sample1_L`) this trace stands for; null unless `fromRun`. */
+	runKey: string | null;
 }
 
 export type CurveTrace = FillTrace | RunTrace | MainTrace;
@@ -155,7 +157,8 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 				color: obj.colors.AVG || FALLBACK_COLOR,
 				name: curveDisplayName(obj, 'AVG'),
 				ghost: false,
-				fromRun: false
+				fromRun: false,
+				runKey: null
 			}
 		];
 	}
@@ -203,9 +206,8 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 		for (const channel of obj.dispChannel) {
 			const data = mainChannels[channel]?.data;
 			if (!data) continue;
-			const label = runSample
-				? sampleKeyParts(obj, `sample${runSample.index}_${channel}`)?.label
-				: undefined;
+			const runKey = runSample ? `sample${runSample.index}_${channel}` : null;
+			const label = runKey ? sampleKeyParts(obj, runKey)?.label : undefined;
 			traces.push({
 				kind: 'main',
 				key: channel,
@@ -214,7 +216,8 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 				color: obj.colors[channel] || avgColor,
 				name: curveDisplayName(obj, channel, label),
 				ghost,
-				fromRun: !!runSample
+				fromRun: !!runSample,
+				runKey
 			});
 		}
 	}
@@ -224,11 +227,15 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 
 /**
  * The traces that get a row — in a list or a hover readout — in the order those
- * lists read: main traces, then runs. The fill never gets a row of its own.
+ * lists read: main traces, then runs. The fill never gets a row of its own, and
+ * neither does the ghosted EQ source run when that same run is also drawn as a
+ * run trace: both are drawn, but listing them would repeat one name.
  */
 export function listedTraces(traces: CurveTrace[]): (RunTrace | MainTrace)[] {
-	return [
-		...traces.filter((t): t is MainTrace => t.kind === 'main'),
-		...traces.filter((t): t is RunTrace => t.kind === 'run')
-	];
+	const runs = traces.filter((t): t is RunTrace => t.kind === 'run');
+	const runKeys = new Set(runs.map((t) => t.key));
+	const mains = traces.filter(
+		(t): t is MainTrace => t.kind === 'main' && !(t.runKey && runKeys.has(t.runKey))
+	);
+	return [...mains, ...runs];
 }

@@ -354,6 +354,42 @@ describe('listedTraces', () => {
 		);
 		expect(summary(listedTraces(traces))).toEqual(['main:L', 'main:R', 'run:sample0_L']);
 	});
+
+	describe('when the EQ source run is also shown as a run', () => {
+		const pick = { sample: { index: 0, variant: '' } };
+
+		it('draws both traces but lists the run once', () => {
+			const traces = curveTraces(sampleSet({ dispSamples: ['sample0_AVG'] }), pick);
+
+			expect(summary(traces)).toEqual(['run:sample0_AVG', 'main:AVG']);
+			expect(summary(listedTraces(traces))).toEqual(['run:sample0_AVG']);
+		});
+
+		it('lists the ghost row when that run is not shown as a run', () => {
+			const traces = curveTraces(sampleSet({ dispSamples: ['sample1_AVG'] }), pick);
+
+			expect(summary(listedTraces(traces))).toEqual(['main:AVG', 'run:sample1_AVG']);
+		});
+
+		it('lists the ghost row when the run is shown on another channel only', () => {
+			const traces = curveTraces(sampleSet({ dispSamples: ['sample0_L'] }), pick);
+
+			expect(summary(listedTraces(traces))).toEqual(['main:AVG', 'run:sample0_L']);
+		});
+
+		it('drops only the channel that is also a run', () => {
+			const traces = curveTraces(
+				sampleSet({ dispChannel: ['L', 'R'], dispSamples: ['sample0_R'] }),
+				pick
+			);
+			expect(summary(listedTraces(traces))).toEqual(['main:L', 'run:sample0_R']);
+		});
+
+		it('keeps an ordinary average that merely shares a channel with a run', () => {
+			const traces = curveTraces(sampleSet({ dispSamples: ['sample0_AVG'] }), null);
+			expect(summary(listedTraces(traces))).toEqual(['main:AVG', 'run:sample0_AVG']);
+		});
+	});
 });
 
 describe('selectEnvelope', () => {

@@ -223,6 +223,40 @@ describe('GraphEngine', () => {
 			expect(drawn[0].getAttribute('opacity')).toBe('0.35');
 		});
 
+		it('draws an uploaded target as one AVG curve whatever dispChannel names', () => {
+			frStore.set(
+				't',
+				makeTarget('t', {
+					type: 'inserted-target',
+					channels: { AVG: channel(75), L: channel(70) },
+					dispChannel: ['L', 'R'],
+					dash: ''
+				})
+			);
+			graphEngine.drawFRCurve('t');
+
+			const drawn = paths('.fr-graph-inserted-target-curve');
+			expect(drawn).toHaveLength(1);
+			expect(drawn[0].getAttribute('channel')).toBe('AVG');
+			expect(drawn[0].getAttribute('stroke-dasharray')).toBe('1 0');
+		});
+
+		it('skips a displayed channel that has no data instead of throwing', () => {
+			frStore.set(
+				'e',
+				makePhone('e', {
+					type: 'eq',
+					dispChannel: ['AVG', 'L'],
+					channels: {
+						AVG: channel(79)
+					}
+				})
+			);
+			graphEngine.drawFRCurve('e');
+
+			expect(paths('.fr-graph-eq-curve')).toHaveLength(1);
+		});
+
 		it('draws the average again with EQ off', () => {
 			const run = { label: 'Deep', AVG: channel(70) };
 			const phone = makePhone('p', { samples: [run], dispSamples: [] });

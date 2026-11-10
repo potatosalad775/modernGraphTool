@@ -12,6 +12,7 @@ import { render } from 'vitest-browser-svelte';
 import { tick } from 'svelte';
 import GraphContainer from './GraphContainer.svelte';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 
 /** `labelBgPaddingX` — a backdrop for a label not yet measured is exactly this wide. */
@@ -134,5 +135,34 @@ describe('GraphContainer curve labels', () => {
 		await nextFrame();
 
 		expect(reads).toHaveLength(NAMES.length);
+	});
+});
+
+describe('GraphContainer labels for the EQ source run', () => {
+	beforeEach(async () => {
+		frStore.clear();
+		await render(GraphContainer);
+		await tick();
+	});
+
+	afterEach(() => {
+		eqStore.isEnabled = false;
+		eqStore.sourcePhoneUUID = null;
+		frStore.clear();
+	});
+
+	it('labels the ghosted run by its name, even with the average off', async () => {
+		const channel = phone('x', 'x').channels.AVG!;
+		frStore.set('p', {
+			...phone('p', 'Alpha'),
+			samples: [{ label: 'Center', AVG: channel }],
+			showAvg: false
+		});
+		eqStore.isEnabled = true;
+		eqStore.sourcePhoneUUID = 'p';
+		eqStore.sourceSample = { index: 0, variant: '' };
+		await tick();
+
+		expect(labelTexts().map((t) => t.textContent)).toEqual(['Alpha (Center, AVG)']);
 	});
 });

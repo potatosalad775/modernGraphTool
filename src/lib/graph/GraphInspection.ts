@@ -1,10 +1,9 @@
 import * as d3 from 'd3';
 import { isTargetType, type FRDataPoint } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
-import { eqStore } from '#lib/stores/eq-store.svelte.js';
-import { eqSourceChannels } from '#lib/utils/eq-source.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
-import { curveDisplayName, sampleKeyParts } from './curve-label.js';
+import { curveTraces, listedTraces } from './curve-traces.js';
+import { eqSourceContextFor } from './eq-source-context.js';
 
 /** How far the mouse tracker extends past the plot edges, in viewBox units.
  *  There are 15 units of margin on each side, so this stays inside the SVG. */
@@ -163,68 +162,24 @@ class GraphInspection {
 			.filter(([, obj]) => !obj.hidden)
 			.sort(([, a], [, b]) => Number(isTargetType(b)) - Number(isTargetType(a)))
 			.forEach(([, obj]) => {
-				const channels = isTargetType(obj) ? ['AVG'] : [...obj.dispChannel];
-				// An EQ'd run stands in for the source's average on the graph (`_drawPhoneCurve`).
-				const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
-				const mainChannels = isEqSource
-					? eqSourceChannels(obj, eqStore.sourceSample)
-					: obj.channels;
-
-				channels.forEach((channel) => {
-					const channelData = mainChannels[channel as keyof typeof mainChannels]?.data;
-					if (!channelData) return;
-
-					const splValue = this._interpolateSPL(channelData, frequency);
-					if (splValue === null) return;
+				// One row per trace the item draws: its main traces, then its runs. A run
+				// is indented under them. An EQ'd run stands in for the average on the
+				// graph, so it is a main trace here too (`curveTraces`).
+				for (const trace of listedTraces(curveTraces(obj, eqSourceContextFor(obj)))) {
+					const splValue = this._interpolateSPL(trace.data, frequency);
+					if (splValue === null) continue;
 
 					const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
-
-					const displayText = `${curveDisplayName(obj, channel)}: ${compensatedSPL.toFixed(1)}dB`;
+					const indent = trace.kind === 'run' ? '  ' : '';
 
 					deviceListData.push({
-						displayText,
+						displayText: `${indent}${trace.name}: ${compensatedSPL.toFixed(1)}dB`,
 						textWidth: 0,
-						color:
-							obj.colors[channel as 'L' | 'R' | 'AVG'] ||
-							obj.colors?.AVG ||
-							'var(--color-base-content)',
+						color: trace.color,
 						yOffset
 					});
 
 					yOffset += lineHeight;
-				});
-
-				// Per-run values from the sample set. Reads `dispSamples` for every
-				// item that has one — before the two sample concepts were unified,
-				// this branch only saw multi-sample items, so hovering never
-				// reported a run from an HpTF-style set.
-				if (obj.samples && obj.dispSamples?.length) {
-					for (const key of obj.dispSamples) {
-						const parts = sampleKeyParts(obj, key);
-						if (!parts) continue;
-						const sampleData = obj.samples[parts.index]?.[parts.channel]?.data;
-						if (!sampleData) continue;
-
-						const splValue = this._interpolateSPL(sampleData, frequency);
-						if (splValue === null) continue;
-
-						const compensatedSPL = this._applyBaselineCompensation(splValue, frequency);
-						const name = curveDisplayName(obj, parts.channel, parts.label);
-						const displayText = `  ${name}: ${compensatedSPL.toFixed(1)}dB`;
-
-						deviceListData.push({
-							displayText,
-							textWidth: 0,
-							color:
-								obj.colors.samples?.[key] ||
-								obj.colors[parts.channel] ||
-								obj.colors.AVG ||
-								'var(--color-base-content)',
-							yOffset
-						});
-
-						yOffset += lineHeight;
-					}
 				}
 			});
 

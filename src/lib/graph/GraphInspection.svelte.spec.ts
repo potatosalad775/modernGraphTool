@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import GraphInspection from './GraphInspection.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
+import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import type { ChannelData, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
 
 /**
@@ -89,6 +90,8 @@ describe('GraphInspection', () => {
 	afterEach(() => {
 		inspection.destroy();
 		host.remove();
+		eqStore.isEnabled = false;
+		eqStore.sourcePhoneUUID = null;
 	});
 
 	describe('setup', () => {
@@ -358,6 +361,66 @@ describe('GraphInspection', () => {
 
 			hoverAt(1000);
 			expect(labels()).toHaveLength(1);
+		});
+
+		it('lists no average row while the average is switched off', () => {
+			// The average is not drawn, so it is not read out either.
+			addPhone('a', 'Phone A', 80, {
+				samples: [{ label: 'Center', L: channel(81) }],
+				dispSamples: ['sample0_L'],
+				showAvg: false
+			} as Partial<FRDataObject>);
+
+			hoverAt(1000);
+			expect(labels()).toEqual(['  Phone A (Center, L): 81.0dB']);
+		});
+
+		it('lists nothing for a fill-only set', () => {
+			addPhone('a', 'Phone A', 80, { showFill: true, showAvg: false });
+
+			hoverAt(1000);
+			expect(labels()).toEqual([]);
+		});
+
+		it('reads the EQ source run in place of the average, named by the run', () => {
+			addPhone('a', 'Phone A', 80, {
+				samples: [{ label: 'Center', AVG: channel(70) }],
+				showAvg: false
+			} as Partial<FRDataObject>);
+			eqStore.isEnabled = true;
+			eqStore.sourcePhoneUUID = 'a';
+			eqStore.sourceSample = { index: 0, variant: '' };
+
+			hoverAt(1000);
+			// A ghosted run, not "(AVG)" — and not indented, as it stands in for the average.
+			expect(labels()).toEqual(['Phone A (Center, AVG): 70.0dB']);
+		});
+
+		it('still reads the average when the average is the EQ source', () => {
+			addPhone('a', 'Phone A', 80, {
+				samples: [{ label: 'Center', AVG: channel(70) }]
+			} as Partial<FRDataObject>);
+			eqStore.isEnabled = true;
+			eqStore.sourcePhoneUUID = 'a';
+			eqStore.sourceSample = null;
+
+			hoverAt(1000);
+			expect(labels()).toEqual(['Phone A (AVG): 79.0dB']);
+		});
+
+		it('reads one row per target channel regardless of dispChannel', () => {
+			frStore.set('t', {
+				uuid: 't',
+				type: 'inserted-target',
+				identifier: 'Mine',
+				channels: { AVG: channel(75), L: channel(70) },
+				dispChannel: ['L', 'R'],
+				colors: { AVG: '#888888' },
+				dash: ''
+			} as FRDataObject);
+
+			hoverAt(1000);
+			expect(labels()).toEqual(['Mine: 75.0dB']);
 		});
 
 		it('places the list to the right of the cursor when there is room', () => {

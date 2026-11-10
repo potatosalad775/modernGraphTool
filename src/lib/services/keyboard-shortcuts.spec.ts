@@ -135,10 +135,12 @@ describe('keyboard shortcuts', () => {
 			expect(eqStore.momentaryRestore).toBeNull();
 		});
 
+		// A real shortcut chord. Alt alone is not one: it can be how the layout types `\`.
 		it.each([
 			['Ctrl', { ctrlKey: true }],
 			['Meta', { metaKey: true }],
-			['Alt', { altKey: true }]
+			['Meta+Alt', { metaKey: true, altKey: true }],
+			['Ctrl+Meta+Alt', { ctrlKey: true, metaKey: true, altKey: true }]
 		])('is ignored with %s held', (_name, init) => {
 			eqStore.isEnabled = true;
 
@@ -147,6 +149,32 @@ describe('keyboard shortcuts', () => {
 			expect(e.preventDefault).not.toHaveBeenCalled();
 			expect(eqStore.isEnabled).toBe(true);
 			expect(eqStore.momentaryRestore).toBeNull();
+		});
+
+		// The match is on the produced character, so the modifier a layout types it with must not
+		// block it: AltGr reaches the browser as Ctrl+Alt on Windows, Option as Alt on macOS.
+		it.each([
+			['AltGr (Ctrl+Alt)', { ctrlKey: true, altKey: true }],
+			['Alt alone (Option)', { altKey: true }]
+		])('starts with %s held', (_name, init) => {
+			eqStore.isEnabled = true;
+
+			const e = press('\\', init);
+
+			expect(e.preventDefault).toHaveBeenCalledOnce();
+			expect(eqStore.isEnabled).toBe(false);
+			expect(eqStore.momentaryOverride).toBe('bypass');
+		});
+
+		it('releases an AltGr hold on the keyup of the same physical key, whatever it reads', () => {
+			eqStore.isEnabled = true;
+			press('\\', { code: 'KeyQ', ctrlKey: true, altKey: true });
+
+			// AltGr came up first, so the keyup reads as the plain letter.
+			release('q', { code: 'KeyQ' });
+
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryOverride).toBeNull();
 		});
 
 		it('is allowed with Shift held', () => {
@@ -503,6 +531,13 @@ describe('keyboard shortcuts', () => {
 			['Shift', { shiftKey: true }]
 		])('is ignored with %s held', (_name, init) => {
 			const e = press('3', init);
+
+			expect(e.preventDefault).not.toHaveBeenCalled();
+			expect(menuStore.currentPanel).toBe('graph');
+		});
+
+		it('is ignored with AltGr (Ctrl+Alt) held', () => {
+			const e = press('3', { ctrlKey: true, altKey: true });
 
 			expect(e.preventDefault).not.toHaveBeenCalled();
 			expect(menuStore.currentPanel).toBe('graph');

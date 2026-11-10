@@ -13,8 +13,9 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
  * contenteditable element.
  *
  * - `\` held — flips the equalizer until release (`eqStore.holdMomentary`): a bypass when it was
- *   on, an audition when it was off. Ignored with Ctrl, Meta or Alt, and with no EQ source phone.
- *   A repeat is swallowed. Matched on `key`, so it follows the layout; with Shift down the key
+ *   on, an audition when it was off. Ignored with Meta, or Ctrl without Alt (a chord), and with no
+ *   EQ source phone. Alt alone and Ctrl+Alt do not block it: they are how layouts type `\`
+ *   (Option on macOS, AltGr on Windows). A repeat is swallowed. Matched on `key`, so it follows the layout; with Shift down the key
  *   reads `|` on a US layout, so a hold cannot start then. One that is running is released by
  *   keyup of `\` (whatever has focus then) or of the physical key that started it (`code`), which
  *   still counts when Shift made it read `|`, and by window blur, which swallows the keyup.
@@ -65,6 +66,16 @@ function isEditable(target: ShortcutKeyEvent['target']): boolean {
 	return el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || !!el?.isContentEditable;
 }
 
+/**
+ * Whether the modifiers make a real shortcut chord rather than part of typing the character. The
+ * `\` hold matches the produced character (`key`), and layouts that type `\` with AltGr (German,
+ * …) report it on Windows as Ctrl and Alt both down; on macOS they type it with Option (Alt alone).
+ * So Alt alone, and Ctrl+Alt together, do not block it — Meta, or Ctrl without Alt, do.
+ */
+function isShortcutChord(e: Pick<ShortcutKeyEvent, 'metaKey' | 'ctrlKey' | 'altKey'>): boolean {
+	return e.metaKey || (e.ctrlKey && !e.altKey);
+}
+
 /** Undo the last command. Flushes pending EQ edits first, then re-syncs the phones' channels. */
 export function undo(): void {
 	// Flush any pending EQ-edit burst so undo doesn't land between
@@ -92,7 +103,7 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 	// comparison. Bidirectional: it bypasses a live EQ and auditions a disabled
 	// one, so the comparison can be started from either side. Ignored inside text
 	// inputs, and when there is no EQ source phone to compare against.
-	if (!inEditable && !mod && !e.altKey && e.key === '\\') {
+	if (!inEditable && !isShortcutChord(e) && e.key === '\\') {
 		if (e.repeat) {
 			e.preventDefault();
 			return;

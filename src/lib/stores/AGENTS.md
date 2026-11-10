@@ -117,7 +117,8 @@ than in each caller. A variant switch is _not_ reset anywhere: the pick records 
 switch — a path no reset hook would see.
 
 **`eq-store.svelte.ts` — `momentaryRestore` is not derivable from `momentaryOverride`.**
-The two are set together by the `\` press-and-hold in `AppShell` and look redundant (`'bypass'`
+The two are set together by `eqStore.holdMomentary()` and cleared by `releaseMomentary()` (the `\`
+press-and-hold, driven from `services/keyboard-shortcuts.ts`) and look redundant (`'bypass'`
 implies restore `true`, `'audition'` implies `false`). They stopped being redundant when
 `eqCommands.ensureEnabled()` gained the ability to redirect the post-release state: an import or
 AutoEQ run started mid-hold writes `momentaryRestore = true` and leaves the override alone, so the

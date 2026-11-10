@@ -91,6 +91,30 @@ class EQStore {
 	 * an import or AutoEQ run started mid-hold survives the release.
 	 */
 	momentaryRestore = $state<boolean | null>(null);
+
+	/**
+	 * Start the `\` momentary override: flip `isEnabled` until `releaseMomentary` — a bypass when
+	 * the EQ was on, an audition when it was off. Returns whether a hold started; false, with
+	 * nothing changed, when one is already active or there is no EQ source to compare against.
+	 */
+	holdMomentary(): boolean {
+		if (this.momentaryRestore !== null) return false;
+		if (!this.sourcePhoneUUID) return false;
+		const wasEnabled = this.isEnabled;
+		this.momentaryRestore = wasEnabled;
+		this.isEnabled = !wasEnabled;
+		this.momentaryOverride = wasEnabled ? 'bypass' : 'audition';
+		return true;
+	}
+
+	/** End the momentary override: `isEnabled` takes `momentaryRestore`. No-op without a hold. */
+	releaseMomentary(): void {
+		if (this.momentaryRestore === null) return;
+		this.isEnabled = this.momentaryRestore;
+		this.momentaryOverride = null;
+		this.momentaryRestore = null;
+	}
+
 	/** EQ-modified FR data (pre-normalization) — used for overlay node positioning */
 	readonly eqModifiedData = new SvelteMap<string, ParsedFRData>();
 

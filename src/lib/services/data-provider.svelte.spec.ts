@@ -1011,6 +1011,131 @@ describe('DataProvider', () => {
 			});
 		});
 
+		// An adjustment's undo entry carries the slider record next to the curve item, so undo and
+		// redo keep the sliders and the curve together. These run with no component mounted: the
+		// store record is put back by the entry itself, not by anything watching it.
+		describe('undoing and redoing an adjustment', () => {
+			/** A target whose slider stack is at `bass` dB and drawn that way (a first mount). */
+			function adjustedAt(bass: number): void {
+				seedTarget(ADJUSTED);
+				targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+				targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', bass);
+				dataProvider.applyTargetAdjustment(ADJUSTED, { undoable: false });
+			}
+
+			function edit(bass: number): void {
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', bass);
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+			}
+
+			it('restores the curve, the label and the slider record on undo', () => {
+				adjustedAt(2);
+				const before = frStore.get(ADJUSTED)!;
+				edit(5);
+
+				commandHistory.undo(frStore);
+
+				expect(frStore.get(ADJUSTED)!.channels).toEqual(before.channels);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +2.0dB)');
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(2);
+			});
+
+			it('puts the edited record and curve back on redo', () => {
+				adjustedAt(2);
+				edit(5);
+				const edited = frStore.get(ADJUSTED)!;
+				commandHistory.undo(frStore);
+
+				commandHistory.redo(frStore);
+
+				expect(frStore.get(ADJUSTED)!.channels).toEqual(edited.channels);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(5);
+			});
+
+			it('walks two edits back in order', () => {
+				adjustedAt(2);
+				edit(5);
+				edit(7);
+
+				commandHistory.undo(frStore);
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(5);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+
+				commandHistory.undo(frStore);
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(2);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +2.0dB)');
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			// TargetCustomizer's effect re-applies once undo writes the record back. That call has
+			// to find the curve already matching, or it would record an entry and wipe the redo branch.
+			it('keeps the redo branch when the restored record is re-applied', () => {
+				adjustedAt(2);
+				edit(5);
+				commandHistory.undo(frStore);
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canRedo).toBe(true);
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			it('keeps the redo branch when the redone record is re-applied', () => {
+				adjustedAt(2);
+				edit(5);
+				commandHistory.undo(frStore);
+				commandHistory.redo(frStore);
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(true);
+				expect(commandHistory.canRedo).toBe(false);
+				commandHistory.undo(frStore);
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(2);
+			});
+
+			it('remembers the undone record for the next edit', () => {
+				adjustedAt(2);
+				edit(5);
+				commandHistory.undo(frStore);
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				edit(7);
+				commandHistory.undo(frStore);
+
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(2);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +2.0dB)');
+			});
+
+			it('remembers a record applied without an undo entry', () => {
+				adjustedAt(2);
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', 4);
+				dataProvider.applyTargetAdjustment(ADJUSTED, { undoable: false });
+
+				edit(5);
+				commandHistory.undo(frStore);
+
+				expect(targetAdjustmentStore.get(ADJUSTED).values.bass).toBe(4);
+			});
+
+			it('drops the record when the edit was the first the provider saw', () => {
+				const FRESH = 'fresh-target';
+				seedTarget(FRESH);
+				targetAdjustmentStore.delete(FRESH);
+				targetAdjustmentStore.ensure(FRESH, 'Test Target');
+				targetAdjustmentStore.addFilter(FRESH, 'bass');
+				targetAdjustmentStore.setValue(FRESH, 'bass', 6);
+
+				dataProvider.applyTargetAdjustment(FRESH);
+				commandHistory.undo(frStore);
+
+				expect(targetAdjustmentStore.has(FRESH)).toBe(false);
+				expect(frStore.get(FRESH)!.adjustmentLabel).toBeUndefined();
+			});
+		});
+
 		it('leaves a registered but unadjusted target untouched', async () => {
 			seedTarget(ADJUSTED);
 			seedTarget(PLAIN);

@@ -168,7 +168,9 @@ presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math (`adjustedChannels`, 
 `TargetCustomizer.svelte` is UI only: it registers the record (`ensure`) and drops it when the item
 is gone. Keeping the state here is what lets `DataProvider.applyTargetAdjustment()` rebuild a target
 with no component mounted — `GraphPanel` is torn down on every panel switch. What the sliders apply
-to is the item's own `unadjustedChannels` (in `frStore`), not anything held here.
+to is the item's own `unadjustedChannels` (in `frStore`), not anything held here. Records are
+replaced wholesale, never mutated, and `restore(uuid, record)` puts one back (`undefined` removes
+it): an adjustment's undo entry uses it so undo and redo move the sliders with the curve.
 
 ## Boot-time writes
 

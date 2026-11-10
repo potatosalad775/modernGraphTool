@@ -246,6 +246,90 @@ describe('TargetCustomizer', () => {
 			commandHistory.undo(frStore);
 			expect(commandHistory.canUndo).toBe(false);
 		});
+
+		// The entry carries the slider record, so the sliders follow the curve through undo and redo.
+		describe('undo and redo of a slider edit', () => {
+			beforeEach(() => {
+				applyTargetAdjustment.mockRestore();
+				applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			});
+
+			async function editBassTo5() {
+				await open();
+				await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+				const initial = frStore.get(UUID)!.channels;
+				await slider('Bass').fill('5');
+				await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+				return initial;
+			}
+
+			/** Undo, then wait for the apply effect's re-run on the record the undo wrote back. */
+			async function undoAndSettle() {
+				const calls = applyTargetAdjustment.mock.calls.length;
+				commandHistory.undo(frStore);
+				await vi.waitFor(() =>
+					expect(applyTargetAdjustment.mock.calls.length).toBeGreaterThan(calls)
+				);
+			}
+
+			it('shows the previous value on the slider and the previous curve after undo', async () => {
+				const initial = await editBassTo5();
+
+				commandHistory.undo(frStore);
+
+				await expect.element(slider('Bass')).toHaveValue('2');
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(2);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +2.0dB)');
+				expect(frStore.get(UUID)!.channels).toEqual(initial);
+			});
+
+			it('keeps the redo entry once the effect has re-applied the restored record', async () => {
+				await editBassTo5();
+
+				await undoAndSettle();
+
+				expect(commandHistory.canRedo).toBe(true);
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			it('shows the edited value on the slider and the edited curve after redo', async () => {
+				await editBassTo5();
+				const edited = frStore.get(UUID)!.channels;
+				await undoAndSettle();
+
+				const calls = applyTargetAdjustment.mock.calls.length;
+				commandHistory.redo(frStore);
+
+				await expect.element(slider('Bass')).toHaveValue('5');
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+				expect(frStore.get(UUID)!.channels).toEqual(edited);
+				// The effect re-applies the redone record; it must leave the entry as it was.
+				await vi.waitFor(() =>
+					expect(applyTargetAdjustment.mock.calls.length).toBeGreaterThan(calls)
+				);
+				expect(commandHistory.canUndo).toBe(true);
+				expect(commandHistory.canRedo).toBe(false);
+			});
+
+			it('restores the record and the curve when undone with the panel closed', async () => {
+				const { unmount } = await open();
+				await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+				const initial = frStore.get(UUID)!.channels;
+				await slider('Bass').fill('5');
+				await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+				unmount();
+
+				commandHistory.undo(frStore);
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(2);
+				expect(frStore.get(UUID)!.channels).toEqual(initial);
+
+				commandHistory.redo(frStore);
+				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
+				expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+			});
+		});
 	});
 
 	// ── Sliders ──────────────────────────────────────────────────────────────

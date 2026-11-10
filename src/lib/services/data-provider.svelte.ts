@@ -14,7 +14,10 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
-import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
+import {
+	targetAdjustmentStore,
+	type TargetAdjustment
+} from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCurve } from './eq-curve.svelte.js';
 import {
@@ -31,13 +34,13 @@ import {
 } from './curve-data.js';
 import {
 	AddFRDataCommand,
+	ApplyTargetAdjustmentCommand,
 	RemoveFRDataCommand,
 	UpdateDisplayChannelCommand,
 	UpdateColorsCommand,
 	UpdateDashPatternCommand,
 	UpdateVisibilityCommand,
 	UpdateVariantCommand,
-	UpdateFRDataWithRawDataCommand,
 	UpdateYOffsetCommand,
 	UpdateSampleDisplayCommand
 } from './commands.js';
@@ -61,6 +64,13 @@ import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
 
 class DataProvider {
+	/**
+	 * The slider record each target's curve was last drawn from (`undefined`: it had none). The
+	 * store is already edited by the time `applyTargetAdjustment` runs, so this is where "before"
+	 * comes from. Not reactive; nothing reads it but `applyTargetAdjustment`.
+	 */
+	readonly #appliedRecords = new Map<string, TargetAdjustment | undefined>();
+
 	// ─── Add ─────────────────────────────────────────────────────────────────────
 
 	async addFRData(
@@ -272,7 +282,19 @@ class DataProvider {
 	applyTargetAdjustment(uuid: string, { undoable = true }: { undoable?: boolean } = {}): void {
 		const existing = frStore.get(uuid);
 		const unadjusted = existing?.unadjustedChannels;
-		if (!existing || !unadjusted) return;
+		if (!existing || !unadjusted) {
+			this.#appliedRecords.delete(uuid);
+			return;
+		}
+
+		// The store already holds the new record, so the one the curve was drawn from is what this
+		// remembered. Every path below, the "draws the same" return included, moves it forward: after
+		// an undo wrote a record back, the re-apply it triggers is what brings it up to date.
+		const prevRecord = this.#appliedRecords.get(uuid);
+		const nextRecord = targetAdjustmentStore.has(uuid)
+			? targetAdjustmentStore.get(uuid)
+			: undefined;
+		this.#appliedRecords.set(uuid, nextRecord);
 
 		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, unadjusted);
 		const processed = normalizeChannels(adjusted, graphStore.normType, graphStore.normHzValue);
@@ -287,7 +309,12 @@ class DataProvider {
 		if (this.#drawsSame(existing, updated)) return;
 		// A registration (the customizer's first mount seeding the stored stack) is not an edit.
 		if (!undoable) frStore.set(uuid, updated);
-		else commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
+		else {
+			commandHistory.execute(
+				new ApplyTargetAdjustmentCommand(uuid, updated, prevRecord, nextRecord),
+				frStore
+			);
+		}
 	}
 
 	/** Whether `next` draws exactly what `current` does: same channels, points and label. */

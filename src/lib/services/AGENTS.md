@@ -161,6 +161,12 @@ applyTargetAdjustment.
   every mount, and an empty entry would make Ctrl+Z after a panel switch look broken.
   Its `{ undoable: false }` option writes with no entry at all: the customizer's first mount passes it, since
   seeding the stored stack is registration, not an edit (Ctrl+Z must not strip it).
+- **An adjustment's undo entry (`ApplyTargetAdjustmentCommand`) carries the slider record** from
+  before and after next to the curve item, so undo and redo keep the sliders and the curve together.
+  The store is already edited when `applyTargetAdjustment` runs, so `DataProvider` remembers the
+  record each target was last drawn from (every path updates it, the "draws the same" return
+  included). That return is also what makes `TargetCustomizer`'s re-apply after an undo a no-op that
+  leaves the redo branch alone — keep it ahead of the command.
 
 ## `eq-curve.svelte.ts` — the derived EQ curve
 

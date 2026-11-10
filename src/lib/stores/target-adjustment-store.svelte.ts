@@ -149,6 +149,16 @@ class TargetAdjustmentStore {
 	}
 
 	/**
+	 * Put a record back as it was: undo and redo of an adjustment. `undefined` means the target had
+	 * none, so the record goes (reading it then gives the empty stack). Stores a copy, so the
+	 * command that handed it in keeps its own.
+	 */
+	restore(uuid: string, record: TargetAdjustment | undefined): void {
+		if (record) this.#byUuid.set(uuid, structuredClone(record));
+		else this.#byUuid.delete(uuid);
+	}
+
+	/**
 	 * Register a target on first sight, seeding it from `INITIAL_TARGET_FILTERS`.
 	 * Idempotent — a target that already has state (because the user adjusted it and
 	 * then switched panels) keeps it.

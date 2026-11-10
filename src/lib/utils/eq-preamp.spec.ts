@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Profile } from '@potatosalad775/eqcaps-core';
 import { derivePreamp, headroomPreamp } from './eq-preamp.js';
-import type { EQFilter } from './equalizer.js';
+import { Equalizer, type EQFilter } from './equalizer.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
@@ -29,6 +29,28 @@ describe('derivePreamp', () => {
 	// read this +6 dB, Q 6 peak as about +5.1 dB and let it clip.
 	it('covers the full peak of a narrow boost that falls between grid points', () => {
 		expect(derivePreamp([makeFilter({ freq: 2070, q: 6, gain: 6 })])).toBe(-6);
+	});
+
+	// A gainless band's gain is 0, yet a resonant one still peaks at its corner. The graph and the
+	// audio play it, so the preamp has to reserve its headroom too.
+	describe.each(['HPQ', 'LPQ'] as const)('a resonant %s (gain 0)', (type) => {
+		const band = (q: number) => makeFilter({ type, freq: 1000, q, gain: 0 });
+		const peakDb = (f: EQFilter) => {
+			const grid = Array.from({ length: 2000 }, (_, i) => 20 * Math.pow(1000, i / 1999));
+			return Math.max(...new Equalizer().calculateGainsFromFilter(grid, [f]));
+		};
+
+		it('reserves headroom for its peak', () => {
+			const peak = peakDb(band(2));
+			expect(peak).toBeGreaterThan(3);
+			const preamp = derivePreamp([band(2)]);
+			expect(preamp).toBeLessThan(-3);
+			expect(Math.abs(preamp + peak)).toBeLessThan(0.3);
+		});
+
+		it('reserves none when Q 0.707 does not peak', () => {
+			expect(derivePreamp([band(0.707)])).toBeGreaterThanOrEqual(-0.1);
+		});
 	});
 
 	it('sizes for the ear that needs the most headroom', () => {

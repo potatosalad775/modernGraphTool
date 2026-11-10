@@ -150,7 +150,8 @@ cursor mid-click; keeping a stale pin on a device the user just unloaded is the 
 the largest boost the enabled filters apply, read on a 1/48-octave grid _plus_ each band's `freq`. A narrow
 boost peaks at its centre, and a grid that straddles it under-reads the peak: the 100-point grid
 this replaced missed up to 0.9 dB at Q 6, and the output clipped by exactly that. AutoEQ leaves the
-preamp to this derivation, so it has to be right for any filter a fit can return.
+preamp to this derivation, so it has to be right for any filter a fit can return. It counts every
+playable band (`isPlayableBand`), gainless ones included: a resonant LPQ/HPQ peaks at its corner at gain 0.
 
 **`graph/GraphContainer` — curve labels are measured in one batch per frame.** `measureLabel` only
 queues its node; a single rAF reads every `getBBox()` first and then writes every width. Writing each

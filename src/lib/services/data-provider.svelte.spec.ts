@@ -7,6 +7,7 @@ import { commandHistory } from './command-history.svelte.js';
 import { baseline } from '#lib/graph/baseline.js';
 import FRParser, { type FRParseResult } from '#lib/utils/fr-parser.js';
 import MetadataParser from '#lib/utils/metadata-parser.js';
+import { DataProcessor } from '#lib/utils/data-processor.js';
 import type {
 	FRDataObject,
 	FRDataPoint,
@@ -904,6 +905,131 @@ describe('DataProvider', () => {
 
 			expect(bassLevel(ADJUSTED)).toBeCloseTo(bassLevel(PLAIN), 6);
 			expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBeNull();
+		});
+	});
+
+	// ── reSmoothAll: sample sets and the network fallback ────────────────────
+	// The cached branch and the fallback branch each rebuild channels, runs and envelope
+	// from raw. These pin what both leave behind so the shared builder can replace them.
+
+	describe('reSmoothAll rebuilds from raw', () => {
+		const SMOOTH = '1/3';
+		const PARAMS = { smoothValue: SMOOTH, normType: 'Hz', normHz: 1000 };
+		const META: PhoneMetadata = {
+			brand: 'Brand',
+			name: 'Phone',
+			identifier: 'Brand Phone',
+			files: [phoneFile('Brand Phone', '')]
+		};
+
+		function rawRuns(): SampleData[] {
+			return [0, 1, 2].map((i) => ({
+				label: `Run ${i}`,
+				L: { data: makeFRPoints(80 + i * 3), metadata: { minFreq: 20, maxFreq: 20000 } },
+				R: { data: makeFRPoints(78 - i * 2), metadata: { minFreq: 20, maxFreq: 20000 } }
+			}));
+		}
+
+		/** Stale processed runs, as left behind by an earlier smoothing. */
+		const STALE: Pick<FRDataObject, 'samples' | 'envelope'> = {
+			samples: [
+				{ label: 'stale', L: { data: [[1000, 1]], metadata: { minFreq: 20, maxFreq: 20000 } } }
+			],
+			envelope: {
+				L: { upper: [[1000, 1]], lower: [[1000, 1]] },
+				R: { upper: [], lower: [] },
+				AVG: { upper: [], lower: [] }
+			}
+		};
+
+		beforeEach(() => {
+			graphStore.normType = 'Hz';
+			graphStore.normHzValue = 1000;
+			graphStore.smoothValue = SMOOTH;
+		});
+
+		afterEach(() => {
+			graphStore.smoothValue = '1/48';
+			vi.restoreAllMocks();
+		});
+
+		/** Every run's L sits inside the envelope, index for index. */
+		function expectEnvelopeBounds(item: FRDataObject): void {
+			const { samples, envelope } = item;
+			expect(envelope!.L.upper.length).toBeGreaterThan(0);
+			samples!.forEach((run) => {
+				run.L!.data.forEach(([, db], k) => {
+					expect(envelope!.L.upper[k][1]).toBeGreaterThanOrEqual(db);
+					expect(envelope!.L.lower[k][1]).toBeLessThanOrEqual(db);
+				});
+			});
+		}
+
+		it('rebuilds the runs and envelope from the cached raw set', async () => {
+			const raw = rawRuns();
+			const rawChannels = makeFullChannelData(85);
+			frStore.set(
+				'p',
+				makeFRDataObject('p', {
+					...STALE,
+					channels: rawChannels,
+					_rawData: { channels: rawChannels, samples: raw }
+				})
+			);
+
+			await dataProvider.reSmoothAll();
+
+			const item = frStore.get('p')!;
+			const expected = DataProcessor.processSamples(raw, PARAMS);
+			expect(item.samples).toEqual(expected);
+			expect(item.samples!.map((s) => s.label)).toEqual(['Run 0', 'Run 1', 'Run 2']);
+			expect(item.samples![0].L!.metadata.smoothing).toBe(SMOOTH);
+			expect(item.channels).toEqual(DataProcessor.processChannels(rawChannels, PARAMS));
+			expectEnvelopeBounds(item);
+			// The cache itself is untouched: re-smoothing must always start from raw.
+			expect(item._rawData!.samples).toBe(raw);
+		});
+
+		it('leaves an item without runs without runs', async () => {
+			const rawChannels = makeFullChannelData(85);
+			frStore.set(
+				'p',
+				makeFRDataObject('p', { channels: rawChannels, _rawData: { channels: rawChannels } })
+			);
+
+			await dataProvider.reSmoothAll();
+
+			expect(frStore.get('p')!.samples).toBeUndefined();
+			expect(frStore.get('p')!.envelope).toBeUndefined();
+		});
+
+		it('fetches an item with no raw cache and rebuilds channels, runs, envelope and cache', async () => {
+			const raw = rawRuns();
+			const rawChannels = makeFullChannelData(90);
+			const spy = vi
+				.spyOn(FRParser, 'getFRDataFromMetadata')
+				.mockResolvedValue({ ...rawChannels, _samples: raw } as FRParseResult);
+			frStore.set('p', makeFRDataObject('p', { ...STALE, meta: META, dispSuffix: 'v2' }));
+
+			await dataProvider.reSmoothAll();
+
+			expect(spy).toHaveBeenCalledWith('phone', META, 'v2');
+			const item = frStore.get('p')!;
+			expect(item.channels).toEqual(DataProcessor.processChannels(rawChannels, PARAMS));
+			expect(item.samples).toEqual(DataProcessor.processSamples(raw, PARAMS));
+			expectEnvelopeBounds(item);
+			expect(item._rawData!.channels).toEqual(rawChannels);
+			expect(item._rawData!.samples).toBe(raw);
+		});
+
+		it('keeps the item as it was when the fallback fetch fails', async () => {
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockRejectedValue(new Error('404'));
+			const original = makeFRDataObject('p', { ...STALE, meta: META });
+			frStore.set('p', original);
+
+			await expect(dataProvider.reSmoothAll()).resolves.toBeUndefined();
+
+			expect(frStore.get('p')).toBe(original);
 		});
 	});
 

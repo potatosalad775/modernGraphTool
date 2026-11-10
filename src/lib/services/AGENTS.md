@@ -14,6 +14,9 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by
   `DataProvider` and `eqCurve`, which can't import each other (`DataProvider` calls `eqCurve.rebuild()`)
+- `curve-data.ts` — a curve item's drawn data from its source: `curveDataFromRaw` (smooth → normalize,
+  runs and envelope included), `renormalizedCurveData`, `pickChannels`, `processingParams`; imports
+  neither `DataProvider` nor `eqCurve`
 - `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `media-session.ts` — the audio player in OS media controls (Control Center, media keys)
@@ -128,6 +131,11 @@ applyTargetAdjustment.
 
 - `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it re-applies target
   adjustments itself afterwards.
+- **Two builders in `curve-data.ts`, and the three operations stay distinct.** `curveDataFromRaw`
+  (add, variant switch, `reSmoothAll`) takes **raw** channels and smooths; `renormalizedCurveData`
+  (`renormalizeAll`) only re-anchors what is drawn. `applyTargetAdjustment` uses neither, just
+  `pickChannels`. Smoothing is not idempotent, so never feed drawn channels to `curveDataFromRaw`.
+  Don't write the channels → runs → envelope sequence out a fourth time — one copy already lagged.
 - `averageVisiblePhones` inserts the mean of every visible phone as an `inserted-phone`, which is
   what makes it hideable / recolorable / EQ-able / undoable for free. It is a **snapshot** — later
   add/remove of a source does not update it, and the suffix carries the contributor count so a stale

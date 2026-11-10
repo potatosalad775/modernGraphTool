@@ -2,14 +2,12 @@ import type {
 	Channel,
 	FRDataType,
 	FRDataObject,
-	FRDataPoint,
 	FRColors,
 	ParsedFRData,
 	FRInputMetadata,
 	PhoneMetadata,
 	SampleData,
 	SampleDisplayKey,
-	SampleEnvelope,
 	RawFRCache
 } from '#lib/types/data-types.js';
 import { isTargetType } from '#lib/types/data-types.js';
@@ -26,6 +24,12 @@ import {
 	getDashForType,
 	insertRawCurve
 } from './curve-insert.js';
+import {
+	curveDataFromRaw,
+	pickChannels,
+	renormalizedCurveData,
+	type CurveData
+} from './curve-data.js';
 import {
 	AddFRDataCommand,
 	RemoveFRDataCommand,
@@ -44,7 +48,6 @@ import { sampleKey } from '#lib/utils/sample-key.js';
 import type { FRParseResult } from '#lib/utils/fr-parser.js';
 import { normalizeChannels } from '#lib/utils/fr-normalizer.js';
 import { averageChannels, isAveragable } from '#lib/utils/fr-average.js';
-import { DataProcessor, anchorAndNormalizeSamples } from '#lib/utils/data-processor.js';
 import { defaultSampleDisplay } from '#lib/utils/sample-config.js';
 import {
 	downloadBaseName,
@@ -59,15 +62,6 @@ import { analyticsService } from './analytics-service.svelte.js';
 import { toast } from 'svelte-sonner';
 
 class DataProvider {
-	/** Current processing params from graph store */
-	get #processingParams() {
-		return {
-			smoothValue: graphStore.smoothValue,
-			normType: graphStore.normType,
-			normHz: graphStore.normHzValue
-		};
-	}
-
 	// ─── Add ─────────────────────────────────────────────────────────────────────
 
 	async addFRData(
@@ -96,8 +90,8 @@ class DataProvider {
 			return;
 		}
 		const rawCache = this.#buildRawCache(rawData);
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as Channel[];
+		const curve = curveDataFromRaw(rawCache);
+		const channels = Object.keys(curve.channels) as Channel[];
 
 		const dispSuffix =
 			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
@@ -108,11 +102,7 @@ class DataProvider {
 			uuid: crypto.randomUUID(),
 			type: sourceType,
 			identifier: metaData.identifier,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: curve.channels,
 			dispChannel: getChannelValue(sourceType, channels),
 			dispSuffix,
 			colors,
@@ -121,7 +111,7 @@ class DataProvider {
 			_rawData: rawCache
 		};
 
-		Object.assign(frObject, this.#buildSampleFields(rawData, colors));
+		Object.assign(frObject, this.#buildSampleFields(rawData, colors, curve));
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
 		this.syncPhoneChannels();
@@ -204,7 +194,7 @@ class DataProvider {
 		rawData: ParsedFRData,
 		inputMetadata: FRInputMetadata = {}
 	): Promise<void> {
-		insertRawCurve(sourceType, identifier, rawData, inputMetadata, this.#processingParams);
+		insertRawCurve(sourceType, identifier, rawData, inputMetadata);
 	}
 
 	// ─── Average every visible phone ─────────────────────────────────────────
@@ -287,11 +277,7 @@ class DataProvider {
 
 		const updated: FRDataObject = {
 			...existing,
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: pickChannels(processed),
 			adjustmentLabel: targetAdjustmentStore.label(uuid)
 		};
 		// TargetCustomizer re-applies on every mount, i.e. on every panel switch. Landing an
@@ -338,8 +324,8 @@ class DataProvider {
 			return;
 		}
 		const variantRawCache = this.#buildRawCache(rawData);
-		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as Channel[];
+		const curve = curveDataFromRaw(variantRawCache);
+		const channels = Object.keys(curve.channels) as Channel[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
 		) as Channel[];
@@ -347,11 +333,7 @@ class DataProvider {
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.
 		const newFields: Partial<FRDataObject> = {
-			channels: {
-				...(processed.L && { L: processed.L }),
-				...(processed.R && { R: processed.R }),
-				...(processed.AVG && { AVG: processed.AVG })
-			},
+			channels: curve.channels,
 			dispSuffix,
 			dispChannel,
 			_rawData: variantRawCache
@@ -363,7 +345,7 @@ class DataProvider {
 		// user's per-run curve picks survive, and only where they still resolve.
 		Object.assign(
 			newFields,
-			this.#buildSampleFields(rawData, data.colors, data.dispSamples ?? undefined)
+			this.#buildSampleFields(rawData, data.colors, curve, data.dispSamples ?? undefined)
 		);
 
 		commandHistory.execute(new UpdateVariantCommand(uuid, newFields), frStore);
@@ -403,23 +385,9 @@ class DataProvider {
 			// Skip the linked EQ curve — it will be rebuilt from the source below.
 			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
 
-			const processed = normalizeChannels(data.channels, normType, normHzValue);
-			const updated: FRDataObject = {
-				...data,
-				channels: {
-					...(processed.L && { L: processed.L }),
-					...(processed.R && { R: processed.R }),
-					...(processed.AVG && { AVG: processed.AVG })
-				}
-			};
-			// Re-anchor the sample set against the same pooled reference the main
-			// channels use, then rebuild the envelope from the shifted runs.
-			if (data.samples) {
-				const reNormed = anchorAndNormalizeSamples(data.samples, normType, normHzValue);
-				updated.samples = reNormed;
-				updated.envelope = this.#computeAllEnvelopes(reNormed);
-			}
-			frStore.set(uuid, updated);
+			// Channels and the sample set (re-anchored against the same pooled reference,
+			// envelope rebuilt from the shifted runs) are normalized, never re-smoothed.
+			frStore.set(uuid, { ...data, ...renormalizedCurveData(data) });
 
 			// Keep the cached pre-adjustment target channels aligned with the new
 			// normalization so `withoutAdjustment` baselines remain correct and
@@ -462,35 +430,12 @@ class DataProvider {
 
 			if (rawCache) {
 				// Re-smooth from cached raw data (no network fetch)
-				const processed = DataProcessor.processChannels(rawCache.channels, this.#processingParams);
-				const updated: FRDataObject = {
-					...data,
-					channels: {
-						...(processed.L && { L: processed.L }),
-						...(processed.R && { R: processed.R }),
-						...(processed.AVG && { AVG: processed.AVG })
-					}
-				};
-				// Re-process the sample set from cache. The envelope has to follow —
-				// a different smoothing window moves the runs, so a stale envelope
-				// would no longer bound them.
-				if (rawCache.samples) {
-					const processedSamples = DataProcessor.processSamples(
-						rawCache.samples,
-						this.#processingParams
-					);
-					updated.samples = processedSamples;
-					updated.envelope = this.#computeAllEnvelopes(processedSamples);
-				}
-				frStore.set(uuid, updated);
+				const curve = curveDataFromRaw(rawCache);
+				frStore.set(uuid, { ...data, ...curve });
 
 				// Update persisted original data so TargetCustomizer can re-apply adjustments
 				if (isTargetType(data) && graphStore.targetOriginalData.has(uuid)) {
-					graphStore.targetOriginalData.set(uuid, {
-						...(processed.L && { L: processed.L }),
-						...(processed.R && { R: processed.R }),
-						...(processed.AVG && { AVG: processed.AVG })
-					});
+					graphStore.targetOriginalData.set(uuid, pickChannels(curve.channels));
 				}
 			} else if (data.meta && (data.type === 'phone' || data.type === 'target')) {
 				// Fallback: no cache, fetch from network
@@ -500,29 +445,15 @@ class DataProvider {
 						data.meta,
 						data.dispSuffix ?? ''
 					);
-					const fallbackCache = this.#buildRawCache(rawData);
-					const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-					const updated: FRDataObject = {
-						...data,
-						channels: {
-							...(processed.L && { L: processed.L }),
-							...(processed.R && { R: processed.R }),
-							...(processed.AVG && { AVG: processed.AVG })
-						},
-						_rawData: fallbackCache
-					};
-					// Same as the cached branch above: the runs and their envelope have to
-					// be rebuilt at the new smoothing too, or a set fetched down this path
+					// Same builder as the cached branch: the runs and their envelope are
+					// rebuilt at the new smoothing too, or a set fetched down this path
 					// keeps run curves smoothed differently from its own average.
-					if (fallbackCache.samples) {
-						const processedSamples = DataProcessor.processSamples(
-							fallbackCache.samples,
-							this.#processingParams
-						);
-						updated.samples = processedSamples;
-						updated.envelope = this.#computeAllEnvelopes(processedSamples);
-					}
-					frStore.set(uuid, updated);
+					const fallbackCache = this.#buildRawCache(rawData);
+					frStore.set(uuid, {
+						...data,
+						...curveDataFromRaw(fallbackCache),
+						_rawData: fallbackCache
+					});
 				} catch {
 					// Keep existing data on failure
 				}
@@ -616,11 +547,7 @@ class DataProvider {
 	/** Cache the raw (unsmoothed, unnormalized) payload for `reSmoothAll`. */
 	#buildRawCache(rawData: FRParseResult): RawFRCache {
 		const cache: RawFRCache = {
-			channels: {
-				...(rawData.L && { L: rawData.L }),
-				...(rawData.R && { R: rawData.R }),
-				...(rawData.AVG && { AVG: rawData.AVG })
-			}
+			channels: pickChannels(rawData)
 		};
 		if (rawData._samples?.length) {
 			cache.samples = rawData._samples;
@@ -639,13 +566,18 @@ class DataProvider {
 	 * Fields are always returned, `undefined` when the item has no set, so
 	 * `UpdateVariantCommand` clears them rather than leaving the previous
 	 * variant's set attached.
+	 *
+	 * Display decisions only: `curve` is the already-processed runs and envelope
+	 * (`curveDataFromRaw`), so this never processes anything itself.
 	 */
 	#buildSampleFields(
 		rawData: FRParseResult,
 		baseColors: FRColors,
+		curve: CurveData,
 		previousDispSamples?: SampleDisplayKey[]
 	): Partial<FRDataObject> {
-		if (!rawData._samples?.length) {
+		const { samples, envelope } = curve;
+		if (!rawData._samples?.length || !samples) {
 			return {
 				samples: undefined,
 				dispSamples: undefined,
@@ -656,7 +588,6 @@ class DataProvider {
 			};
 		}
 
-		const samples = DataProcessor.processSamples(rawData._samples, this.#processingParams);
 		const display = rawData._sampleDisplay ?? defaultSampleDisplay();
 		const loadedKeys = this.#getLoadedSampleKeys(samples);
 
@@ -667,10 +598,10 @@ class DataProvider {
 		return {
 			samples,
 			colors: this.#addSampleColors(baseColors, samples),
-			// The envelope is computed whether or not `fill` is on: the user can turn
-			// the fill on at any time, and recomputing on toggle would mean threading
-			// the processing params through the UI.
-			envelope: this.#computeAllEnvelopes(samples),
+			// Computed whether or not `fill` is on: the user can turn the fill on at any
+			// time, and recomputing on toggle would mean threading the processing
+			// params through the UI.
+			envelope,
 			showAvg: display.includes('avg'),
 			showFill: display.includes('fill'),
 			dispSamples: carried?.length ? carried : display.includes('curves') ? loadedKeys : [],
@@ -703,35 +634,6 @@ class DataProvider {
 			else if (sample.R) keys.push(sampleKey(i, 'R'));
 		});
 		return keys;
-	}
-
-	/** Min/max envelope for a single channel across every run in the set */
-	#computeEnvelope(samples: SampleData[], channel: Channel): SampleEnvelope {
-		const sampleDataArrays = samples
-			.map((s) => s[channel]?.data)
-			.filter((d): d is FRDataPoint[] => !!d);
-
-		if (sampleDataArrays.length < 2) return { upper: [], lower: [] };
-
-		const upper: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
-			const max = Math.max(...sampleDataArrays.map((d) => d[idx][1]));
-			return [freq, max] as FRDataPoint;
-		});
-		const lower: FRDataPoint[] = sampleDataArrays[0].map(([freq], idx) => {
-			const min = Math.min(...sampleDataArrays.map((d) => d[idx][1]));
-			return [freq, min] as FRDataPoint;
-		});
-
-		return { upper, lower };
-	}
-
-	/** Compute envelopes for all channels */
-	#computeAllEnvelopes(samples: SampleData[]): Record<Channel, SampleEnvelope> {
-		return {
-			L: this.#computeEnvelope(samples, 'L'),
-			R: this.#computeEnvelope(samples, 'R'),
-			AVG: this.#computeEnvelope(samples, 'AVG')
-		};
 	}
 }
 

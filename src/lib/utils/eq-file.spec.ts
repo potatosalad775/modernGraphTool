@@ -102,6 +102,24 @@ describe('graphicEqBands / omittedPerEarCount', () => {
 	it('counts only the enabled per-ear bands as omitted', () => {
 		expect(omittedPerEarCount(filters)).toBe(2);
 	});
+
+	// A band not filled in yet is never written, so it is neither exported nor left out.
+	it('does not count an incomplete per-ear band as omitted', () => {
+		expect(
+			omittedPerEarCount([
+				band({ channel: 'L' }),
+				band({ channel: 'L', freq: null }),
+				band({ channel: 'R', q: null }),
+				band({ channel: 'R', gain: null })
+			])
+		).toBe(1);
+	});
+
+	it('leaves an incomplete shared band out', () => {
+		expect(graphicEqBands([band({ freq: null }), band({ q: null }), band({ gain: null })])).toEqual(
+			[]
+		);
+	});
 });
 
 describe('graphicEqExport', () => {
@@ -109,6 +127,20 @@ describe('graphicEqExport', () => {
 		expect(graphicEqExport([], null)).toBeNull();
 		expect(graphicEqExport([band({ enabled: false })], null)).toBeNull();
 		expect(graphicEqExport([band({ channel: 'L' })], null)).toBeNull();
+	});
+
+	it('writes the same text with or without an incomplete shared band', () => {
+		const alone = graphicEqExport([band()], null)!;
+		for (const incomplete of [band({ freq: null }), band({ q: null }), band({ gain: null })]) {
+			const out = graphicEqExport([band(), incomplete], null)!;
+			expect(out.text).toBe(alone.text);
+			expect(out.text).not.toContain('NaN');
+		}
+	});
+
+	it('is null when the only enabled shared band is incomplete', () => {
+		expect(graphicEqExport([band({ freq: null })], null)).toBeNull();
+		expect(graphicEqExport([band({ q: null }), band({ channel: 'L' })], null)).toBeNull();
 	});
 
 	it('leaves disabled bands out of the curve', () => {

@@ -82,8 +82,10 @@ band pickers `graphicEqBands` / `omittedPerEarCount`), and what an imported file
 - **`parametricExport`'s band filter has no `enabled` check, on purpose.** A disabled band is exported
   and written `OFF`, so the file matches the EQ on screen and round-trips. It is not `isPlayableBand`;
   folding it in drops every parked band from the file.
-- The Graphic EQ export takes enabled, shared bands only (a `GraphicEQ:` line has no ON/OFF and no
-  channel syntax); `omitted` counts the live per-ear bands it leaves out, not the disabled ones.
+- The Graphic EQ export takes playable, shared bands only — `isPlayableBand(f) && f.channel == null`
+  (a `GraphicEQ:` line has no ON/OFF and no channel syntax). A band not filled in yet is left out:
+  the curve maths skips it, but without the check a list of only such bands exported a flat curve.
+  `omitted` counts the playable per-ear bands it leaves out, not the disabled or incomplete ones.
 - `importOutcome` is `none` when no filter parsed, even if lines were skipped.
 
 ## `eq-source.ts`

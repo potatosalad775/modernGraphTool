@@ -1,7 +1,7 @@
 import type { FRDataObject } from '#lib/types/data-types.js';
 import { curveBaseName } from './curve-name.js';
 import { formatApoFilters, parseApoConfig } from './eq-apo.js';
-import { Equalizer, type EQFilter } from './equalizer.js';
+import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
 
 /**
  * What an EQ file import or export decides, apart from doing it: which bands a file carries, what
@@ -60,20 +60,26 @@ export function parametricExport(
 /**
  * The bands a Graphic EQ export writes. A `GraphicEQ:` line is one summed curve with no per-band
  * ON/OFF and no channel syntax — Wavelet applies it to both ears — so disabled bands and
- * left/right-only bands are left out rather than baked in.
+ * left/right-only bands are left out rather than baked in. So is a band not filled in yet: the
+ * curve maths skips it, but a list of only such bands would still export a flat file.
+ *
+ * Playable and shared. This is {@link isPlayableBand}; the parametric export deliberately is not.
  */
 export function graphicEqBands(filters: EQFilter[]): EQFilter[] {
-	return filters.filter((f) => f.enabled && f.channel == null);
-}
-
-/** How many live left/right-only bands {@link graphicEqBands} leaves out. Disabled ones don't count. */
-export function omittedPerEarCount(filters: EQFilter[]): number {
-	return filters.filter((f) => f.enabled && f.channel != null).length;
+	return filters.filter((f) => isPlayableBand(f) && f.channel == null);
 }
 
 /**
- * The Wavelet `GraphicEQ:` file for `filters`, or `null` when no enabled shared band is left.
- * `omitted` is the number of live per-ear bands the file does not carry.
+ * How many playable left/right-only bands {@link graphicEqBands} leaves out. Disabled and
+ * incomplete ones don't count: they were never going to be written.
+ */
+export function omittedPerEarCount(filters: EQFilter[]): number {
+	return filters.filter((f) => isPlayableBand(f) && f.channel != null).length;
+}
+
+/**
+ * The Wavelet `GraphicEQ:` file for `filters`, or `null` when no playable shared band is left.
+ * `omitted` is the number of playable per-ear bands the file does not carry.
  */
 export function graphicEqExport(
 	filters: EQFilter[],

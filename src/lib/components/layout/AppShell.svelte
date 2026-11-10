@@ -9,6 +9,7 @@
 	import { commandHistory } from '#lib/services/command-history.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { graphStore } from '#lib/stores/graph-store.svelte.js';
+	import { baseline } from '#lib/graph/baseline.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
@@ -218,7 +219,9 @@
 			/* track all FR data mutations */
 		}
 		const _yScale = graphStore.yScale;
-		const _baseline = graphStore.baselineUUID;
+		// The effective baseline, so a mode change (not only a new item) rewrites the URL.
+		const _baselineUUID = baseline.uuid;
+		const _baselineMode = baseline.mode;
 		urlProvider.autoUpdate();
 	});
 

@@ -13,6 +13,9 @@ import { tick } from 'svelte';
 import GraphContainer from './GraphContainer.svelte';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { graphStore } from '#lib/stores/graph-store.svelte.js';
+import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
+import { baseline } from '#lib/graph/baseline.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 
 /** `labelBgPaddingX` — a backdrop for a label not yet measured is exactly this wide. */
@@ -45,6 +48,10 @@ function phone(uuid: string, identifier: string): FRDataObject {
 async function nextFrame() {
 	await new Promise((resolve) => requestAnimationFrame(resolve));
 	await tick();
+}
+
+function baselineLabel() {
+	return document.querySelector('.fr-graph-baseline-text')?.textContent ?? null;
 }
 
 function labelTexts() {
@@ -164,5 +171,130 @@ describe('GraphContainer labels for the EQ source run', () => {
 		await tick();
 
 		expect(labelTexts().map((t) => t.textContent)).toEqual(['Alpha (Center, AVG)']);
+	});
+});
+
+describe('GraphContainer baseline', () => {
+	const flat = (db: number): FRDataObject['channels'] => ({
+		AVG: {
+			data: [
+				[20, db],
+				[20000, db]
+			],
+			metadata: { minFreq: 20, maxFreq: 20000 }
+		}
+	});
+
+	const phonePath = () => document.querySelector('.fr-graph-phone-curve')?.getAttribute('d') ?? '';
+
+	/** Wait for the rAF redraw and any path transition (duration 0) to settle. */
+	async function settle() {
+		await nextFrame();
+		await nextFrame();
+		await nextFrame();
+	}
+
+	beforeEach(async () => {
+		frStore.clear();
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
+		graphStore.targetOriginalData.clear();
+		await render(GraphContainer);
+		await tick();
+		graphEngine.transitionDuration = 0;
+		frStore.set('p', phone('p', 'Alpha'));
+		frStore.set('t', { ...phone('t', 'Tgt'), type: 'target', channels: flat(5) });
+		await settle();
+	});
+
+	afterEach(() => {
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
+		graphStore.targetOriginalData.clear();
+		frStore.clear();
+	});
+
+	it('moves the drawn curves when the baseline is cycled, and labels it', async () => {
+		const before = phonePath();
+		expect(baselineLabel()).toBeNull();
+
+		baseline.cycle('t');
+		await tick();
+		await settle();
+
+		expect(phonePath()).not.toBe(before);
+		expect(baselineLabel()).toBe('Tgt Compensated');
+
+		baseline.cycle('t');
+		await settle();
+		expect(phonePath()).toBe(before);
+		expect(baselineLabel()).toBeNull();
+	});
+
+	it('reaches the drawn curves when only targetOriginalData changes', async () => {
+		graphStore.targetOriginalData.set('t', { AVG: flat(5).AVG! });
+		baseline.cycle('t');
+		await settle();
+		const before = phonePath();
+
+		graphStore.targetOriginalData.set('t', { AVG: flat(12).AVG! });
+		await settle();
+
+		expect(phonePath()).not.toBe(before);
+	});
+
+	it('goes dormant when the baseline item is removed and returns with it', async () => {
+		const before = phonePath();
+		baseline.cycle('t');
+		await settle();
+		const compensated = phonePath();
+		const target = frStore.get('t')!;
+
+		frStore.delete('t');
+		await settle();
+		expect(phonePath()).toBe(before);
+		expect(baselineLabel()).toBeNull();
+
+		frStore.set('t', target);
+		await settle();
+		expect(phonePath()).toBe(compensated);
+		expect(baselineLabel()).toBe('Tgt Compensated');
+	});
+});
+
+describe('GraphContainer with a baseline restored before it mounts', () => {
+	afterEach(() => {
+		graphStore.baselineUUID = null;
+		graphStore.baselineMode = 'off';
+		frStore.clear();
+	});
+
+	it('draws the curves compensated, as the URL restore of a cold boot needs', async () => {
+		frStore.clear();
+		frStore.set('p', phone('p', 'Alpha'));
+		frStore.set('t', {
+			...phone('t', 'Tgt'),
+			type: 'target',
+			channels: {
+				AVG: {
+					data: [
+						[20, 5],
+						[20000, 5]
+					],
+					metadata: { minFreq: 20, maxFreq: 20000 }
+				}
+			}
+		});
+		baseline.restoreFromURL({ key: 'Tgt', mode: 'withoutAdjustment' });
+
+		await render(GraphContainer);
+		await tick();
+		for (let i = 0; i < 3; i++) await nextFrame();
+
+		const d = document.querySelector('.fr-graph-phone-curve')!.getAttribute('d')!;
+		const y = Number(/^M[-\d.]+,([-\d.]+)/.exec(d)![1]);
+		// A flat 0 dB curve against a flat 5 dB baseline sits at -5 dB.
+		expect(y).toBeCloseTo(graphEngine.getScales().yScale(-5), 2);
+		expect(baselineLabel()).toBe('Tgt Compensated');
 	});
 });

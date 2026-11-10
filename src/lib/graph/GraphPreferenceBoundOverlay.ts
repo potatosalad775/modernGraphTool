@@ -2,6 +2,8 @@ import * as d3 from 'd3';
 import type { GraphEngine } from './GraphEngine.svelte.js';
 import type { ChannelData, FRDataPoint } from '#lib/types/data-types.js';
 import { getConfigValue } from '#lib/utils/config.js';
+import { compensateAt } from './baseline.js';
+import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
 
 export interface PreferenceBoundState {
 	visible: boolean;
@@ -81,20 +83,6 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 		this._removeBounds();
 	}
 
-	// ── Interpolation helper ───────────────────────────────────────────────────
-
-	private _interpolateAt(data: FRDataPoint[], freq: number): number {
-		const bisect = d3.bisector((d: FRDataPoint) => d[0]).left;
-		const i = bisect(data, freq, 0);
-		const a = data[i - 1];
-		const b = data[i];
-		if (a && b) {
-			const t = (freq - a[0]) / (b[0] - a[0]);
-			return a[1] + t * (b[1] - a[1]);
-		}
-		return a ? a[1] : b ? b[1] : 0;
-	}
-
 	// ── Path building ──────────────────────────────────────────────────────────
 
 	private _buildPathString(): string | null {
@@ -105,12 +93,8 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 		const dfData = dfNormalized.data;
 
 		const computeY = (freq: number, offset: number): number => {
-			const dfY = this._interpolateAt(dfData, freq);
-			if (baselineChannelData) {
-				const baselineY = this._interpolateAt(baselineChannelData, freq);
-				return yScale(dfY + offset - baselineY);
-			}
-			return yScale(dfY + offset);
+			const dfY = lookupFRValueAtFreq(dfData, freq) ?? 0;
+			return yScale(compensateAt(dfY + offset, freq, baselineChannelData));
 		};
 
 		const lineGen = (pts: FRDataPoint[]) =>

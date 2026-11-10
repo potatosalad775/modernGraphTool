@@ -4,13 +4,13 @@ import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
 import { sanitizeChannel } from './eq-channel.js';
-import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
-import { resolveBaselineChannelData } from '#lib/graph/baseline.js';
+import { baseline } from '#lib/graph/baseline.js';
 import {
 	buildQueryString,
 	normalizeSampleDisplay,
 	parseShareParam,
 	parseStateParam,
+	shareKey,
 	type EQStateSnapshot,
 	type SampleDisplayState,
 	type URLState
@@ -105,34 +105,17 @@ class URLProvider {
 
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
-		const { yScale, baseline, yOffsets, eq } = this.#stateFromURL;
+		const { yScale, baseline: savedBaseline, yOffsets, eq } = this.#stateFromURL;
 		const sampleDisplay = normalizeSampleDisplay(this.#stateFromURL);
 
 		if (yScale != null) graphStore.yScale = yScale;
 
-		if (baseline) {
-			let matchedUUID: string | null = null;
-			for (const [uuid, data] of frStore.entries) {
-				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
-				if (key === baseline.key) {
-					matchedUUID = uuid;
-					break;
-				}
-			}
-			if (matchedUUID) {
-				graphStore.baselineMode = baseline.mode;
-				const channelData = resolveBaselineChannelData(matchedUUID, baseline.mode);
-				if (graphEngine.isInitialized) {
-					graphEngine.updateBaselineData(true, { uuid: matchedUUID, channelData });
-				} else {
-					graphStore.baselineUUID = matchedUUID;
-				}
-			}
-		}
+		// `mode` is hand-editable, so the baseline module validates it.
+		if (savedBaseline) baseline.restoreFromURL(savedBaseline);
 
 		if (yOffsets) {
 			for (const [uuid, data] of frStore.entries) {
-				const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+				const key = shareKey(data);
 				if (key in yOffsets) {
 					// Direct store update (no command history for URL restore)
 					frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
@@ -141,8 +124,7 @@ class URLProvider {
 		}
 
 		for (const [uuid, data] of frStore.entries) {
-			const key = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
-			const entry = sampleDisplay[key];
+			const entry = sampleDisplay[shareKey(data)];
 			if (entry && data.samples) {
 				frStore.set(uuid, {
 					...data,
@@ -177,7 +159,7 @@ class URLProvider {
 	#buildURL(eq?: EQStateSnapshot): { url: string; title: string; namesCombined: string } {
 		const activeNames: string[] = [];
 		for (const [, data] of frStore.entries) {
-			const name = (data.identifier + ' ' + (data.dispSuffix ?? '')).trim();
+			const name = shareKey(data);
 			if (name) activeNames.push(name);
 		}
 
@@ -193,18 +175,15 @@ class URLProvider {
 		const defaultYScale =
 			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
 
-		if (graphStore.baselineUUID) {
-			const baselineData = frStore.get(graphStore.baselineUUID);
-			if (baselineData) {
-				const key = (baselineData.identifier + ' ' + (baselineData.dispSuffix ?? '')).trim();
-				stateData.baseline = { key, mode: graphStore.baselineMode };
-			}
-		}
+		// A dormant baseline (its item removed) is not in effect, so it is not written.
+		const baselineUUID = baseline.uuid;
+		const baselineItem = baselineUUID ? frStore.get(baselineUUID) : null;
+		if (baselineItem) stateData.baseline = { key: shareKey(baselineItem), mode: baseline.mode };
 
 		const yOffsets: Record<string, number> = {};
 		for (const [, data] of frStore.entries) {
 			if (data.yOffset) {
-				yOffsets[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = data.yOffset;
+				yOffsets[shareKey(data)] = data.yOffset;
 			}
 		}
 		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
@@ -214,7 +193,7 @@ class URLProvider {
 		const sampleDisplay: Record<string, SampleDisplayState> = {};
 		for (const [, data] of frStore.entries) {
 			if (!data.samples?.length) continue;
-			sampleDisplay[(data.identifier + ' ' + (data.dispSuffix ?? '')).trim()] = {
+			sampleDisplay[shareKey(data)] = {
 				keys: data.dispSamples ?? [],
 				fill: data.showFill ?? false,
 				avg: data.showAvg ?? true

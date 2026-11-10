@@ -32,7 +32,7 @@ export const frStore = new FRDataStore();
 ## Inventory
 
 - `fr-store.svelte.ts` — `FRDataStore` wraps `SvelteMap<uuid, FRDataObject>` from `svelte/reactivity`
-- `graph-store.svelte.ts` — yScale, baseline UUID, normalization type, smoothing, target-original data map
+- `graph-store.svelte.ts` — yScale, baseline UUID + mode (written only by `graph/baseline.ts`), normalization type, smoothing, target-original data map
 - `eq-store.svelte.ts` — filters, preamp, enable flag, source/target UUIDs, modified-data map
 - `menu-store.svelte.ts` — current panel + slide direction
 - `tutorial-store.svelte.ts` — which guided tour is open + its step, per-tour dismissal keys. The

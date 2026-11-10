@@ -6,6 +6,7 @@ import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelt
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
+import { baseline } from '#lib/graph/baseline.js';
 import FRParser, { type FRParseResult } from '#lib/utils/fr-parser.js';
 import MetadataParser from '#lib/utils/metadata-parser.js';
 import type {
@@ -943,16 +944,26 @@ describe('DataProvider', () => {
 			expect(graphStore.baselineMode).toBe('off');
 		});
 
-		it('removing baseline entry clears baseline state when refreshed', () => {
+		it('removing the baseline entry makes it dormant, and undoing the removal restores it', () => {
 			frStore.set('t', makeTargetObject('t'));
-			graphStore.baselineUUID = 't';
-			graphStore.baselineMode = 'withoutAdjustment';
+			baseline.cycle('t');
+			expect(baseline.uuid).toBe('t');
+			expect(baseline.channelData).not.toBeNull();
 
 			// Remove the baseline source
 			dataProvider.removeFRDataWithUUID('target', 't');
 			expect(frStore.has('t')).toBe(false);
-			// graphStore still has the UUID — GraphEngine.refreshBaselineData() handles cleanup
+			// Not in effect, but the selection is kept for the undo.
+			expect(baseline.uuid).toBeNull();
+			expect(baseline.channelData).toBeNull();
 			expect(graphStore.baselineUUID).toBe('t');
+			expect(graphStore.baselineMode).toBe('withoutAdjustment');
+
+			commandHistory.undo(frStore);
+			expect(frStore.has('t')).toBe(true);
+			expect(baseline.uuid).toBe('t');
+			expect(baseline.mode).toBe('withoutAdjustment');
+			expect(baseline.channelData).not.toBeNull();
 		});
 
 		it('frStore update does not lose baseline-relevant data', () => {

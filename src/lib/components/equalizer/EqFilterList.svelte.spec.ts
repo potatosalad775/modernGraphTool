@@ -16,6 +16,8 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import EqFilterList from './EqFilterList.svelte';
 import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
+import { frStore } from '#lib/stores/fr-store.svelte.js';
+import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
 import {
 	eqConstraintsStore,
 	BUILTIN_PRESETS,
@@ -252,6 +254,85 @@ describe('EqFilterList', () => {
 
 			expect(downloadText).toHaveBeenCalledOnce();
 			expect(toast.warning).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('the EQ export file name', () => {
+		const exportButton = () => page.getByRole('button', { name: 'Export EQ', exact: true });
+
+		const channel: ChannelData = {
+			data: [
+				[20, 0],
+				[20000, 0]
+			],
+			metadata: { minFreq: 20, maxFreq: 20000 }
+		};
+
+		function sourceItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
+			return {
+				uuid: 'src',
+				type: 'phone',
+				identifier: 'Name',
+				channels: { AVG: channel },
+				dispChannel: ['AVG'],
+				dispSuffix: '',
+				colors: { AVG: '#000' },
+				dash: '1 0',
+				samples: [{ label: 'Center', AVG: channel }],
+				...overrides
+			};
+		}
+
+		function exportedName(): string {
+			expect(downloadText).toHaveBeenCalledOnce();
+			return vi.mocked(downloadText).mock.calls[0][1];
+		}
+
+		beforeEach(() => {
+			vi.mocked(downloadText).mockClear();
+			eqStore.filters = [makeFilter({ gain: 3 })];
+		});
+
+		afterEach(() => {
+			eqStore.sourcePhoneUUID = null;
+			eqStore.sourceSample = null;
+			frStore.clear();
+		});
+
+		it('is a bare "filters.txt" with no EQ source', async () => {
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(exportedName()).toBe('filters.txt');
+		});
+
+		it('names the source and its variant', async () => {
+			frStore.set('src', sourceItem({ dispSuffix: 'Suffix' }));
+			eqStore.sourcePhoneUUID = 'src';
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(exportedName()).toBe('Name Suffix filters.txt');
+		});
+
+		it('adds a picked run after the variant', async () => {
+			frStore.set('src', sourceItem({ dispSuffix: 'Suffix' }));
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.sourceSample = { index: 0, variant: 'Suffix' };
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(exportedName()).toBe('Name Suffix Center filters.txt');
+		});
+
+		it('uses single spaces for a picked run when the source has no variant', async () => {
+			frStore.set('src', sourceItem());
+			eqStore.sourcePhoneUUID = 'src';
+			eqStore.sourceSample = { index: 0, variant: '' };
+			render(EqFilterList);
+			await exportButton().click();
+
+			expect(exportedName()).toBe('Name Center filters.txt');
 		});
 	});
 

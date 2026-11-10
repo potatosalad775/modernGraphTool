@@ -953,6 +953,66 @@ describe('DataProvider', () => {
 			}
 		});
 
+		// TargetCustomizer re-applies on every mount, so a re-apply that changes nothing must
+		// not leave an undo entry behind — Ctrl+Z after a panel switch would do nothing visible.
+		describe('re-applying an unchanged adjustment', () => {
+			function adjustedTarget(): void {
+				seedTarget(ADJUSTED);
+				targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+				targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+				commandHistory.clear();
+			}
+
+			it('adds no undo entry', () => {
+				adjustedTarget();
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
+			it('leaves the drawn curve and label as they were', () => {
+				adjustedTarget();
+				const before = frStore.get(ADJUSTED)!;
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(frStore.get(ADJUSTED)!.channels).toEqual(before.channels);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
+			});
+
+			it('still records an entry when the stack changed', () => {
+				adjustedTarget();
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', 3);
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(true);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +3.0dB)');
+			});
+
+			it('still records an entry when only the label differs', () => {
+				adjustedTarget();
+				frStore.set(ADJUSTED, { ...frStore.get(ADJUSTED)!, adjustmentLabel: 'stale' });
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(true);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
+			});
+
+			it('still records an entry when the normalization changed', () => {
+				adjustedTarget();
+				graphStore.normHzValue = 500;
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(true);
+			});
+		});
+
 		it('leaves a registered but unadjusted target untouched', async () => {
 			seedTarget(ADJUSTED);
 			seedTarget(PLAIN);

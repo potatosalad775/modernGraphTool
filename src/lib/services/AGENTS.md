@@ -139,6 +139,9 @@ applyTargetAdjustment.
 - `applyTargetAdjustment` **normalizes only, never re-smooths.** `targetOriginalData` already holds
   smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off
   the cached original's frequency grid, which baseline compensation reads against.
+- `applyTargetAdjustment` **pushes no undo entry (and writes nothing) when the result draws what the
+  item already does** — same channels, points and `adjustmentLabel`. `TargetCustomizer` re-applies on
+  every mount, and an empty entry would make Ctrl+Z after a panel switch look broken.
 
 ## `eq-curve.svelte.ts` — the derived EQ curve
 

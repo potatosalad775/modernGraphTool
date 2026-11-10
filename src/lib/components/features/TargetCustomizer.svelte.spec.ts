@@ -20,6 +20,7 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { commandHistory } from '#lib/services/command-history.svelte.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 import * as m from '#lib/paraglide/messages.js';
 
@@ -184,6 +185,30 @@ describe('TargetCustomizer', () => {
 
 			expect(graphStore.targetOriginalData.has(UUID)).toBe(false);
 			expect(targetAdjustmentStore.has(UUID)).toBe(false);
+		});
+	});
+
+	// ── Undo history ─────────────────────────────────────────────────────────
+	// The apply effect runs on every mount, and the panel remounts on every panel
+	// switch. A mount that changes nothing must not leave an entry for Ctrl+Z to land on.
+
+	describe('undo history', () => {
+		it('adds no undo entry when the panel is reopened with nothing changed', async () => {
+			// The real implementation, still spied so the calls can be awaited.
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget();
+			frStore.set(UUID, item);
+
+			const first = await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+			first.unmount();
+			commandHistory.clear();
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(2));
+
+			expect(commandHistory.canUndo).toBe(false);
 		});
 	});
 

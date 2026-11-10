@@ -322,7 +322,27 @@ class DataProvider {
 			},
 			adjustmentLabel: targetAdjustmentStore.label(uuid)
 		};
+		// TargetCustomizer re-applies on every mount, i.e. on every panel switch. Landing an
+		// unchanged result would leave an undo entry that Ctrl+Z "reverses" to the same picture.
+		if (this.#drawsSame(existing, updated)) return;
 		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
+	}
+
+	/** Whether `next` draws exactly what `current` does: same channels, points and label. */
+	#drawsSame(current: FRDataObject, next: FRDataObject): boolean {
+		if (current.adjustmentLabel !== next.adjustmentLabel) return false;
+		const keys = Object.keys(current.channels) as Channel[];
+		if (keys.length !== Object.keys(next.channels).length) return false;
+		return keys.every((key) => {
+			const a = current.channels[key]?.data;
+			const b = next.channels[key]?.data;
+			return (
+				!!a &&
+				!!b &&
+				a.length === b.length &&
+				a.every(([f, d], i) => f === b[i][0] && d === b[i][1])
+			);
+		});
 	}
 
 	/** Re-apply every known target adjustment — used after a global re-process. */

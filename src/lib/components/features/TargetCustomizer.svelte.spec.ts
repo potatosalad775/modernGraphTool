@@ -203,6 +203,49 @@ describe('TargetCustomizer', () => {
 
 			expect(commandHistory.canUndo).toBe(false);
 		});
+
+		// The first mount registers the target; it is not something the user did.
+		it('adds no undo entry on the first mount of a target with no initial filters', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget({ identifier: 'Diffuse Field' });
+			frStore.set(UUID, item);
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('applies the initial filters on the first mount without an undo entry', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			const item = makeTarget();
+			frStore.set(UUID, item);
+
+			await render(TargetCustomizer, { uuid: UUID, item });
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+
+			const applied = frStore.get(UUID)!;
+			expect(applied.adjustmentLabel).toBe('(Bass: +2.0dB)');
+			expect(applied.channels).not.toEqual(item.channels);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('records exactly one undo entry for a slider edit after mount', async () => {
+			applyTargetAdjustment.mockRestore();
+			applyTargetAdjustment = vi.spyOn(dataProvider, 'applyTargetAdjustment');
+			await open();
+			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
+			expect(commandHistory.canUndo).toBe(false);
+
+			await slider('Bass').fill('5');
+			await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
+			expect(frStore.get(UUID)!.adjustmentLabel).toBe('(Bass: +5.0dB)');
+
+			commandHistory.undo(frStore);
+			expect(commandHistory.canUndo).toBe(false);
+		});
 	});
 
 	// ── Sliders ──────────────────────────────────────────────────────────────

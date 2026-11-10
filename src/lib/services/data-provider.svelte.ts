@@ -266,8 +266,10 @@ class DataProvider {
 	 * channels carry their smoothing marker, so `FRSmoother` passes them through rather
 	 * than doing that. Normalization is kept so a shelf adjustment can't drag the target
 	 * off the anchor point.
+	 *
+	 * `undoable: false` writes without an undo entry, for the customizer's first mount.
 	 */
-	applyTargetAdjustment(uuid: string): void {
+	applyTargetAdjustment(uuid: string, { undoable = true }: { undoable?: boolean } = {}): void {
 		const existing = frStore.get(uuid);
 		const unadjusted = existing?.unadjustedChannels;
 		if (!existing || !unadjusted) return;
@@ -283,7 +285,9 @@ class DataProvider {
 		// TargetCustomizer re-applies on every mount, i.e. on every panel switch. Landing an
 		// unchanged result would leave an undo entry that Ctrl+Z "reverses" to the same picture.
 		if (this.#drawsSame(existing, updated)) return;
-		commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
+		// A registration (the customizer's first mount seeding the stored stack) is not an edit.
+		if (!undoable) frStore.set(uuid, updated);
+		else commandHistory.execute(new UpdateFRDataWithRawDataCommand(uuid, updated), frStore);
 	}
 
 	/** Whether `next` draws exactly what `current` does: same channels, points and label. */

@@ -66,11 +66,20 @@
 	// adjustments itself and a re-normalize keeps them baked in, so nothing here needs
 	// to watch for either.
 
+	// The first run after mount puts the stored stack on the curve: registration, not an edit,
+	// so it leaves no undo entry. Plain flag, like `initialized`.
+	let applied = false;
+
 	$effect(() => {
 		void adjustment;
 		untrack(() => {
 			if (!frStore.get(uuid)?.unadjustedChannels) return;
-			dataProvider.applyTargetAdjustment(uuid);
+			if (applied) {
+				dataProvider.applyTargetAdjustment(uuid);
+			} else {
+				applied = true;
+				dataProvider.applyTargetAdjustment(uuid, { undoable: false });
+			}
 		});
 	});
 

@@ -159,6 +159,8 @@ applyTargetAdjustment.
 - `applyTargetAdjustment` **pushes no undo entry (and writes nothing) when the result draws what the
   item already does** — same channels, points and `adjustmentLabel`. `TargetCustomizer` re-applies on
   every mount, and an empty entry would make Ctrl+Z after a panel switch look broken.
+  Its `{ undoable: false }` option writes with no entry at all: the customizer's first mount passes it, since
+  seeding the stored stack is registration, not an edit (Ctrl+Z must not strip it).
 
 ## `eq-curve.svelte.ts` — the derived EQ curve
 

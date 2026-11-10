@@ -938,6 +938,31 @@ describe('DataProvider', () => {
 				commandHistory.clear();
 			}
 
+			it('records an undo entry by default', () => {
+				seedTarget(ADJUSTED);
+				targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+				targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+
+				dataProvider.applyTargetAdjustment(ADJUSTED);
+
+				expect(commandHistory.canUndo).toBe(true);
+			});
+
+			it('changes the curve and label without an undo entry when undoable is false', () => {
+				seedTarget(ADJUSTED);
+				const before = frStore.get(ADJUSTED)!.channels;
+				targetAdjustmentStore.ensure(ADJUSTED, 'Test Target');
+				targetAdjustmentStore.addFilter(ADJUSTED, 'bass');
+				targetAdjustmentStore.setValue(ADJUSTED, 'bass', 6);
+
+				dataProvider.applyTargetAdjustment(ADJUSTED, { undoable: false });
+
+				expect(frStore.get(ADJUSTED)!.channels).not.toEqual(before);
+				expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
+				expect(commandHistory.canUndo).toBe(false);
+			});
+
 			it('adds no undo entry', () => {
 				adjustedTarget();
 

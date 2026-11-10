@@ -91,6 +91,47 @@ class EQStore {
 	 * an import or AutoEQ run started mid-hold survives the release.
 	 */
 	momentaryRestore = $state<boolean | null>(null);
+
+	/**
+	 * Deliberately switch the equalizer on or off — the master switch, a `?state=` restore, an
+	 * import. Outside a `\` hold it sets `isEnabled`. During one it sets what the release restores
+	 * (`momentaryRestore`) and leaves `isEnabled` and `momentaryOverride` alone, so what is shown
+	 * and heard stays as the hold made it and the release lands on the requested state.
+	 *
+	 * Nothing outside the hold itself (`holdMomentary` / `releaseMomentary`) assigns `isEnabled`:
+	 * a direct write mid-hold is reverted on release.
+	 */
+	setEnabled(on: boolean): void {
+		if (this.momentaryRestore !== null) {
+			this.momentaryRestore = on;
+			return;
+		}
+		this.isEnabled = on;
+	}
+
+	/**
+	 * Start the `\` momentary override: flip `isEnabled` until `releaseMomentary` — a bypass when
+	 * the EQ was on, an audition when it was off. Returns whether a hold started; false, with
+	 * nothing changed, when one is already active or there is no EQ source to compare against.
+	 */
+	holdMomentary(): boolean {
+		if (this.momentaryRestore !== null) return false;
+		if (!this.sourcePhoneUUID) return false;
+		const wasEnabled = this.isEnabled;
+		this.momentaryRestore = wasEnabled;
+		this.isEnabled = !wasEnabled;
+		this.momentaryOverride = wasEnabled ? 'bypass' : 'audition';
+		return true;
+	}
+
+	/** End the momentary override: `isEnabled` takes `momentaryRestore`. No-op without a hold. */
+	releaseMomentary(): void {
+		if (this.momentaryRestore === null) return;
+		this.isEnabled = this.momentaryRestore;
+		this.momentaryOverride = null;
+		this.momentaryRestore = null;
+	}
+
 	/** EQ-modified FR data (pre-normalization) — used for overlay node positioning */
 	readonly eqModifiedData = new SvelteMap<string, ParsedFRData>();
 

@@ -9,6 +9,8 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
+- `keyboard-shortcuts.ts` — the global shortcuts (`\` hold, undo/redo, `1`–`4` panels); `AppShell`
+  only binds them on `<svelte:window>`
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
@@ -44,9 +46,13 @@ silently and the graph never moves, which is the single most-reported EQ confusi
   History & Compare A/B switch all route through `replaceFilters`; hooking it there re-enables EQ on
   an _undo_.
 - **Not a command.** Undo restores filters, not toggle state.
-- **Editing an existing band is deliberately excluded.** Toggling EQ off to compare against the raw
-  curve while tweaking is a real workflow — the `\` momentary key exists for exactly that — so
-  auto-enabling on every edit would fight the user.
+- **Editing an existing band is deliberately excluded**, bar one case: `updateBand` also calls it
+  when the first non-flat gain lands on an all-flat list (a picked graphic preset leaves its bands
+  flat). Toggling EQ off to compare against the raw curve while tweaking is a real workflow — the
+  `\` momentary key exists for exactly that — so auto-enabling on every edit would fight the user.
+- **`ensureEnabled()` is `eqStore.setEnabled(true)`**, which sets `momentaryRestore` instead of
+  `isEnabled` while a `\` hold is active, otherwise keyup would revert the enable. Don't assign
+  `eqStore.isEnabled` directly; see the eq-store note in `stores/AGENTS.md`.
 
 **Bulk producers use `replaceFiltersInScope`, not `replaceFilters`.** `replaceFilters` overwrites the
 whole array, so an AutoEQ run on the left ear would delete the shared bands and the right ear's
@@ -54,9 +60,6 @@ solution along with it. The scoped form stamps the channel onto the incoming ban
 channel-blind — and splices over one bucket, still as a single undo entry. `eqFiltersEqual` includes
 `channel` for the same reason the store note gives: retargeting a band changes nothing else about it,
 so omitting the field makes the coalescer read a real edit as a no-op burst and drop it.
-
-- It writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is active, otherwise
-  keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
 
 ## `eq-channel-conflict.svelte.ts` — per-ear bands under a restriction
 

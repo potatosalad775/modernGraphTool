@@ -41,7 +41,7 @@
 			aria-label={m.menu_item_equalizer_label()}
 			title={m.equalizer_toggle_title()}
 			size="md"
-			bind:checked={eqStore.isEnabled}
+			bind:checked={() => eqStore.isEnabled, (on) => eqStore.setEnabled(on)}
 		/>
 		{#if eqStore.momentaryOverride}
 			<span class="rounded bg-warning/20 px-1.5 py-0.5 text-xs font-medium text-warning">

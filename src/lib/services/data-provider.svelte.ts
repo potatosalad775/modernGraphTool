@@ -533,8 +533,8 @@ class DataProvider {
 	/**
 	 * Sync channel display across all loaded phones so it matches the current phone
 	 * count (single phone shows L+R when available; multiple phones collapse to AVG).
-	 * Called after adding a phone, and after undo/redo (from AppShell's keyboard
-	 * handler) since undoing/redoing an Add or Remove changes the phone count these
+	 * Called after adding a phone, and after undo/redo (from `undo()` / `redo()` in
+	 * `keyboard-shortcuts.ts`) since undoing/redoing an Add or Remove changes the phone count these
 	 * writes depend on but isn't itself tracked through command history — the writes
 	 * here are a derived display convention, not user-editable state, so they're
 	 * idempotently re-applied rather than snapshotted/undone.

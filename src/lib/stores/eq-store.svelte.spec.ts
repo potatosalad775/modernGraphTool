@@ -17,6 +17,8 @@ describe('EQStore', () => {
 		eqStore.filters = [];
 		eqStore.preamp = 0;
 		eqStore.isEnabled = false;
+		eqStore.momentaryOverride = null;
+		eqStore.momentaryRestore = null;
 		eqStore.sourcePhoneUUID = null;
 		eqStore.autoEqTargetUUID = null;
 		eqStore.channelScope = 'BOTH';
@@ -193,6 +195,68 @@ describe('EQStore', () => {
 		it('allows setting autoEqTargetUUID', () => {
 			eqStore.autoEqTargetUUID = 'target-uuid';
 			expect(eqStore.autoEqTargetUUID).toBe('target-uuid');
+		});
+	});
+
+	describe('setEnabled', () => {
+		beforeEach(() => {
+			eqStore.sourcePhoneUUID = 'source';
+		});
+
+		it('sets isEnabled with no hold', () => {
+			eqStore.setEnabled(true);
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryRestore).toBeNull();
+
+			eqStore.setEnabled(false);
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		it('during a bypass hold keeps bypassing and lands off on release', () => {
+			eqStore.isEnabled = true;
+			eqStore.holdMomentary();
+
+			eqStore.setEnabled(false);
+
+			expect(eqStore.isEnabled).toBe(false);
+			expect(eqStore.momentaryOverride).toBe('bypass');
+			eqStore.releaseMomentary();
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		it('during an audition hold keeps auditioning and lands on on release', () => {
+			eqStore.isEnabled = false;
+			eqStore.holdMomentary();
+
+			eqStore.setEnabled(true);
+
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryOverride).toBe('audition');
+			eqStore.releaseMomentary();
+			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		it('is a no-op after release when it matches the state from before the hold', () => {
+			eqStore.isEnabled = true;
+			eqStore.holdMomentary();
+
+			eqStore.setEnabled(true);
+			eqStore.releaseMomentary();
+
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryOverride).toBeNull();
+			expect(eqStore.momentaryRestore).toBeNull();
+		});
+
+		it('leaves momentaryOverride and the live isEnabled alone during a hold', () => {
+			eqStore.isEnabled = false;
+			eqStore.holdMomentary();
+
+			eqStore.setEnabled(false);
+
+			expect(eqStore.momentaryOverride).toBe('audition');
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryRestore).toBe(false);
 		});
 	});
 });

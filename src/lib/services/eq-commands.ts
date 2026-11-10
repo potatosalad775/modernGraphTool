@@ -363,13 +363,8 @@ export const eqCommands = {
 	 * user there would fight them on every keystroke.
 	 */
 	ensureEnabled(): void {
-		if (eqStore.momentaryRestore !== null) {
-			// The momentary A/B key is held: `isEnabled` is mid-flip and keyup
-			// will overwrite whatever we write now. Set the post-release state.
-			eqStore.momentaryRestore = true;
-			return;
-		}
-		eqStore.isEnabled = true;
+		// Mid-hold of the momentary A/B key, `setEnabled` sets the post-release state instead.
+		eqStore.setEnabled(true);
 	},
 
 	/**

@@ -1,4 +1,6 @@
-import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
+import { isTargetType, type Channel, type FRDataObject } from '#lib/types/data-types.js';
+import { curveBaseName } from '#lib/utils/curve-name.js';
+import { parseSampleKey } from '#lib/utils/sample-key.js';
 
 /**
  * How a curve is named on screen.
@@ -9,19 +11,6 @@ import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
  * the target-adjustment summary, so two variants of the same headphone were
  * indistinguishable while hovering. Both go through here now.
  */
-
-/**
- * `identifier` plus its variant suffix — "HD600 Stock".
- *
- * The suffix is appended conditionally rather than interpolated: `dispSuffix`
- * is an empty string for any device with no variants (and `null`/`undefined`
- * on a few `updateFRData` paths), so interpolating it unconditionally leaves a
- * trailing space, a double space before the channel tag, or a literal
- * "undefined" in the label.
- */
-export function curveBaseName(obj: FRDataObject): string {
-	return obj.dispSuffix ? `${obj.identifier} ${obj.dispSuffix}` : obj.identifier;
-}
 
 /**
  * The name for one curve row: base name, plus the TargetCustomizer adjustment
@@ -52,11 +41,10 @@ export function curveDisplayName(obj: FRDataObject, channel: string, sampleLabel
 export function sampleKeyParts(
 	obj: FRDataObject,
 	key: string
-): { label: string; channel: 'L' | 'R' | 'AVG'; index: number } | null {
-	const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
-	if (!match) return null;
-	const index = parseInt(match[1]);
-	const channel = match[2] as 'L' | 'R' | 'AVG';
+): { label: string; channel: Channel; index: number } | null {
+	const parsed = parseSampleKey(key);
+	if (!parsed) return null;
+	const { index, channel } = parsed;
 	const label = obj.samples?.[index]?.label ?? `Sample ${index + 1}`;
 	return { label, channel, index };
 }

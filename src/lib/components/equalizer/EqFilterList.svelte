@@ -28,6 +28,7 @@
 	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import { downloadText } from '#lib/utils/download-text.js';
+	import { curveBaseName } from '#lib/utils/curve-name.js';
 	import { eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 
 	/** Quiet time after the last edit before the preamp toast may fire, ms. */
@@ -245,7 +246,7 @@
 		if (!source) return null;
 		const run = eqSourceRun(source, eqStore.sourceSample);
 		const runLabel = run ? sampleRunLabel(run, eqStore.sourceSample!.index) : '';
-		const label = `${source.identifier} ${source.dispSuffix || ''} ${runLabel}`.trim();
+		const label = [curveBaseName(source), runLabel].filter(Boolean).join(' ');
 		const sanitized = label.replace(/[\\/:*?"<>|]/g, '').trim();
 		return sanitized || null;
 	}

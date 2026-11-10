@@ -1,6 +1,10 @@
-import { isTargetType, type ChannelData, type FRDataObject } from '#lib/types/data-types.js';
-
-const CHANNEL_ORDER = ['L', 'R', 'AVG'] as const;
+import {
+	CHANNELS,
+	isTargetType,
+	type ChannelData,
+	type FRDataObject
+} from '#lib/types/data-types.js';
+import { curveBaseName } from './curve-name.js';
 
 export interface DownloadPayload {
 	filename: string;
@@ -24,7 +28,7 @@ function safeFileName(name: string): string {
 
 /** "Name Suffix", the stem every file of `item` shares. */
 export function downloadBaseName(item: FRDataObject): string {
-	return safeFileName([item.identifier, item.dispSuffix].filter(Boolean).join(' ').trim());
+	return safeFileName(curveBaseName(item).trim());
 }
 
 /**
@@ -40,12 +44,10 @@ export function downloadBaseName(item: FRDataObject): string {
 export function encodeFRDataForDownload(item: FRDataObject): DownloadPayload[] {
 	const base = downloadBaseName(item);
 	const target = isTargetType(item);
-	return CHANNEL_ORDER.filter((ch) => item.dispChannel.includes(ch) && item.channels[ch]).map(
-		(ch) => ({
-			filename: target ? `${base}.txt` : `${base} ${ch}.txt`,
-			text: encodeChannel(item.channels[ch]!.data)
-		})
-	);
+	return CHANNELS.filter((ch) => item.dispChannel.includes(ch) && item.channels[ch]).map((ch) => ({
+		filename: target ? `${base}.txt` : `${base} ${ch}.txt`,
+		text: encodeChannel(item.channels[ch]!.data)
+	}));
 }
 
 /**
@@ -62,7 +64,7 @@ export function encodeSampleRunsForDownload(
 	const base = downloadBaseName(item);
 	return (item.samples ?? []).flatMap((run, i) => {
 		const label = safeFileName(run.label ?? fallbackLabel(i));
-		return CHANNEL_ORDER.filter((ch) => item.dispChannel.includes(ch) && run[ch]).map((ch) => ({
+		return CHANNELS.filter((ch) => item.dispChannel.includes(ch) && run[ch]).map((ch) => ({
 			filename: `${base} - ${label} ${ch}.txt`,
 			text: encodeChannel(run[ch]!.data)
 		}));

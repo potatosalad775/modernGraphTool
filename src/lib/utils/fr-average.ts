@@ -1,13 +1,11 @@
-import type {
-	ChannelData,
-	FRDataObject,
-	FRDataPoint,
-	ParsedFRData
+import {
+	CHANNELS,
+	type Channel,
+	type ChannelData,
+	type FRDataObject,
+	type FRDataPoint,
+	type ParsedFRData
 } from '#lib/types/data-types.js';
-
-/** Channels an average can be produced for, in the order they are written out. */
-const CHANNEL_ORDER = ['L', 'R', 'AVG'] as const;
-type Channel = (typeof CHANNEL_ORDER)[number];
 
 /** The subset of an `FRDataObject` the averaging math actually reads. */
 export interface AverageSource {
@@ -27,7 +25,7 @@ export interface AverageSource {
 export function isAveragable(item: FRDataObject): boolean {
 	if (item.hidden) return false;
 	if (item.type !== 'phone' && item.type !== 'inserted-phone') return false;
-	return CHANNEL_ORDER.some((ch) => item.dispChannel.includes(ch) && item.channels[ch]);
+	return CHANNELS.some((ch) => item.dispChannel.includes(ch) && item.channels[ch]);
 }
 
 /**
@@ -54,7 +52,7 @@ export function isAveragable(item: FRDataObject): boolean {
 export function averageChannels(sources: AverageSource[]): ParsedFRData {
 	const averaged: ParsedFRData = {};
 
-	for (const ch of CHANNEL_ORDER) {
+	for (const ch of CHANNELS) {
 		const contributors = sources.filter((s) => s.dispChannel.includes(ch) && s.channels[ch]);
 		if (contributors.length < 2) continue;
 		averaged[ch] = meanOf(contributors.map((s) => s.channels[ch]!));

@@ -6,6 +6,11 @@
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
+## `curve-name.ts`
+
+`curveBaseName` is the only composer of identifier + suffix; `shareKey`, the EQ source picker label and download
+file names (`downloadBaseName`) build on it, so don't join the two by hand.
+
 ## `preference-bound.ts`
 
 `alignDFToBoundCenter` aligns the preference band by its **center** (DF + (U+D)/2), not by the
@@ -230,6 +235,9 @@ for this, with parallel state, fetch, process and render paths; they are now one
   `sample{n}_{ch}` (zero-based — legacy `?state=` URLs already use this shape), plus `showAvg` /
   `showFill` / `envelope` / `sampleDescription`. `showAvg` absent means **drawn**; an item with no
   set is just the averaged-channels layer.
+- **`sample-key.ts` is the one builder and parser of `sample{n}_{ch}`** (`sampleKey`,
+  `parseSampleKey`). The zero-based shape is fixed by legacy `?state=` URLs, so don't spell the
+  template or the regex out elsewhere.
 - **`display` is a set, not an enum:** `avg` · `curves` · `fill` compose. `['avg','fill']` is an
   averaged line with a variance band, which neither old schema could express.
 - **Processing anchor-normalizes** (`anchorAndNormalizeSamples`): every run shares one pooled offset,

@@ -8,7 +8,8 @@ D3.js lives in `GraphEngine.svelte.ts` with overlays:
 - `GraphSpectrumOverlay.ts` — live audio spectrum
 - `GraphCompareOverlay.ts` — History & Compare A/B ghost trace
 - `baseline.ts` — the baseline state machine, data and compensation (below)
-- `curve-traces.ts` — what a curve item draws (below); `curve-label.ts` names it
+- `curve-traces.ts` — what a curve item draws (below); `curve-label.ts` names it (the identifier + suffix
+  composer itself is `curveBaseName` in `utils/curve-name.ts`)
 
 Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using
 `bind:this={svgEl}`. **Never** `d3.select('#fr-graph')` — always pass the bound SVG element.

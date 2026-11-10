@@ -6,7 +6,7 @@ import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
-import type { FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
+import type { Channel, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
 
 /** Generate synthetic FR data points spanning 20–20kHz at 1/48-octave spacing */
 function makeFRPoints(baseDb = 80, count = 480): FRDataPoint[] {
@@ -81,7 +81,7 @@ describe('eqCurve', () => {
 		}
 
 		/** The EQ curve's dB at 1 kHz, per channel. */
-		function eqDbAt1k(channel: 'L' | 'R' | 'AVG'): number {
+		function eqDbAt1k(channel: Channel): number {
 			const eqObj = frStore.get(eqStore.eqCurveUUID!)!;
 			const raw = eqObj._rawData!.channels[channel]!.data;
 			return raw.reduce((best, p) =>

@@ -7,6 +7,7 @@ import {
 	hasNonDefaultState,
 	normalizeSampleDisplay,
 	buildQueryString,
+	shareKey,
 	BASE62_PREFIX,
 	type URLState
 } from './url-state.js';
@@ -23,6 +24,22 @@ function roundTrip(names: string[], useBase62 = false): string[] {
 	const query = buildQueryString(names, {}, DEFAULT_Y_SCALE, useBase62);
 	return parseShareParam(new URLSearchParams(query).get('share'));
 }
+
+describe('shareKey', () => {
+	it.each([
+		['identifier and suffix', 'Phone A', 'Stock', 'Phone A Stock'],
+		['empty suffix', 'Phone A', '', 'Phone A'],
+		['null suffix', 'Phone A', null, 'Phone A'],
+		['absent suffix', 'Phone A', undefined, 'Phone A'],
+		['whitespace-only suffix', 'Phone A', '  ', 'Phone A'],
+		['padded identifier', ' Phone A ', 'Stock', 'Phone A  Stock'],
+		['padded suffix', 'Phone A', ' Stock ', 'Phone A  Stock'],
+		['empty identifier with a suffix', '', 'Stock', 'Stock'],
+		['empty identifier and suffix', '', '', '']
+	])('%s', (_label, identifier, dispSuffix, expected) => {
+		expect(shareKey({ identifier, dispSuffix })).toBe(expected);
+	});
+});
 
 describe('smartSplit', () => {
 	it('splits simple comma-separated names', () => {

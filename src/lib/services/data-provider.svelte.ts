@@ -1,4 +1,5 @@
 import type {
+	Channel,
 	FRDataType,
 	FRDataObject,
 	FRDataPoint,
@@ -37,6 +38,8 @@ import {
 	UpdateSampleDisplayCommand
 } from './commands.js';
 import FRParser from '#lib/utils/fr-parser.js';
+import { sampleRunLabel } from '#lib/utils/eq-source.js';
+import { sampleKey } from '#lib/utils/sample-key.js';
 import type { FRParseResult } from '#lib/utils/fr-parser.js';
 import { normalizeChannels } from '#lib/utils/fr-normalizer.js';
 import { averageChannels, isAveragable } from '#lib/utils/fr-average.js';
@@ -93,7 +96,7 @@ class DataProvider {
 		}
 		const rawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(processed) as Channel[];
 
 		const dispSuffix =
 			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
@@ -172,9 +175,7 @@ class DataProvider {
 		if (!item) return;
 		const files = encodeFRDataForDownload(item);
 		if (runs) {
-			files.push(
-				...encodeSampleRunsForDownload(item, (i) => `${m.selection_list_samples_run()} ${i + 1}`)
-			);
+			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(item.samples![i], i)));
 		}
 		if (files.length === 0) return;
 		if (files.length === 1) {
@@ -242,7 +243,7 @@ class DataProvider {
 			}))
 		);
 
-		const channels = Object.keys(averaged) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(averaged) as Channel[];
 		if (channels.length === 0) return 0;
 
 		this.insertRawFRData('phone', labels.identifier, averaged, {
@@ -345,10 +346,10 @@ class DataProvider {
 		}
 		const variantRawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(processed) as Channel[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
-		) as ('L' | 'R' | 'AVG')[];
+		) as Channel[];
 
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.
@@ -552,7 +553,7 @@ class DataProvider {
 
 	// ─── Field updates ────────────────────────────────────────────────────────
 
-	updateDisplayChannel(uuid: string, channel: ('L' | 'R' | 'AVG')[]): void {
+	updateDisplayChannel(uuid: string, channel: Channel[]): void {
 		if (!frStore.has(uuid)) return;
 		commandHistory.execute(new UpdateDisplayChannelCommand(uuid, channel), frStore);
 	}
@@ -614,18 +615,18 @@ class DataProvider {
 			for (const phone of phones) {
 				const dispChannel = Object.keys(phone.channels).includes('AVG')
 					? (['AVG'] as const)
-					: ([Object.keys(phone.channels)[0]] as ('L' | 'R' | 'AVG')[]);
+					: ([Object.keys(phone.channels)[0]] as Channel[]);
 				frStore.set(phone.uuid, { ...phone, dispChannel: [...dispChannel] });
 			}
 		} else if (phones.length === 1) {
 			const phone = phones[0];
 			const keys = Object.keys(phone.channels);
-			const dispChannel: ('L' | 'R' | 'AVG')[] =
+			const dispChannel: Channel[] =
 				keys.includes('L') && keys.includes('R')
 					? ['L', 'R']
 					: keys.includes('AVG')
 						? ['AVG']
-						: [keys[0] as 'L' | 'R' | 'AVG'];
+						: [keys[0] as Channel];
 			frStore.set(phone.uuid, { ...phone, dispChannel });
 		}
 	}
@@ -704,9 +705,9 @@ class DataProvider {
 		const sampleColors: Record<string, string> = {};
 		samples.forEach((sample, i) => {
 			// Same color as the corresponding channel — rendered at reduced opacity.
-			if (sample.L) sampleColors[`sample${i}_L`] = baseColors.L ?? baseColors.AVG;
-			if (sample.R) sampleColors[`sample${i}_R`] = baseColors.R ?? baseColors.AVG;
-			if (sample.AVG) sampleColors[`sample${i}_AVG`] = baseColors.AVG;
+			if (sample.L) sampleColors[sampleKey(i, 'L')] = baseColors.L ?? baseColors.AVG;
+			if (sample.R) sampleColors[sampleKey(i, 'R')] = baseColors.R ?? baseColors.AVG;
+			if (sample.AVG) sampleColors[sampleKey(i, 'AVG')] = baseColors.AVG;
 		});
 		return { ...baseColors, samples: sampleColors };
 	}
@@ -719,15 +720,15 @@ class DataProvider {
 	#getLoadedSampleKeys(samples: SampleData[]): SampleDisplayKey[] {
 		const keys: SampleDisplayKey[] = [];
 		samples.forEach((sample, i) => {
-			if (sample.AVG) keys.push(`sample${i}_AVG`);
-			else if (sample.L) keys.push(`sample${i}_L`);
-			else if (sample.R) keys.push(`sample${i}_R`);
+			if (sample.AVG) keys.push(sampleKey(i, 'AVG'));
+			else if (sample.L) keys.push(sampleKey(i, 'L'));
+			else if (sample.R) keys.push(sampleKey(i, 'R'));
 		});
 		return keys;
 	}
 
 	/** Min/max envelope for a single channel across every run in the set */
-	#computeEnvelope(samples: SampleData[], channel: 'L' | 'R' | 'AVG'): SampleEnvelope {
+	#computeEnvelope(samples: SampleData[], channel: Channel): SampleEnvelope {
 		const sampleDataArrays = samples
 			.map((s) => s[channel]?.data)
 			.filter((d): d is FRDataPoint[] => !!d);
@@ -747,7 +748,7 @@ class DataProvider {
 	}
 
 	/** Compute envelopes for all channels */
-	#computeAllEnvelopes(samples: SampleData[]): Record<'L' | 'R' | 'AVG', SampleEnvelope> {
+	#computeAllEnvelopes(samples: SampleData[]): Record<Channel, SampleEnvelope> {
 		return {
 			L: this.#computeEnvelope(samples, 'L'),
 			R: this.#computeEnvelope(samples, 'R'),

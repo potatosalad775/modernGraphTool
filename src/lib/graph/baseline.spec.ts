@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { baseline, compensateAt, resolveBaselineChannelData } from './baseline.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
-import type { FRDataObject, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
+import type { Channel, FRDataObject, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 function makeTarget(uuid: string, avg: FRDataPoint[]): FRDataObject {
 	return {
@@ -331,7 +331,7 @@ describe('baseline.channelData', () => {
 	for (const type of ['phone', 'inserted-phone'] as const) {
 		describe(type, () => {
 			const make = (
-				dispChannel: ('L' | 'R' | 'AVG')[],
+				dispChannel: Channel[],
 				ch: FRDataObject['channels'] = channels
 			): FRDataObject => ({
 				...makePhone('x', AVG),

@@ -1,4 +1,9 @@
-import type { ParsedFRData, FRDataPoint, ChannelData } from '#lib/types/data-types.js';
+import {
+	CHANNELS,
+	type ParsedFRData,
+	type FRDataPoint,
+	type ChannelData
+} from '#lib/types/data-types.js';
 
 /**
  * Fractional-octave smoothing, matching REW's to within float rounding.
@@ -83,7 +88,7 @@ const FRSmoother = {
 		if (!smoother) return data;
 
 		const smoothedData: ParsedFRData = {};
-		for (const channel of ['L', 'R', 'AVG'] as ('L' | 'R' | 'AVG')[]) {
+		for (const channel of CHANNELS) {
 			const source = data[channel];
 			if (!source) continue;
 			smoothedData[channel] = this._isSmoothed(source, smoothValue)

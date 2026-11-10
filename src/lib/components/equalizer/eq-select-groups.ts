@@ -1,12 +1,13 @@
 import * as m from '#lib/paraglide/messages.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
+import { curveBaseName } from '#lib/utils/curve-name.js';
 import { sampleRunLabel } from '#lib/utils/eq-source.js';
 import type { SelectMenuGroup, SelectMenuItem } from '../atoms/SelectMenu.svelte';
 
 const isDevice = (item: FRDataObject) => item.type === 'phone' || item.type === 'inserted-phone';
 
-const labelOf = (item: FRDataObject) => `${item.identifier} ${item.dispSuffix || ''}`.trim();
+const labelOf = (item: FRDataObject) => curveBaseName(item).trim();
 
 function itemsOf(match: (item: FRDataObject) => boolean): FRDataObject[] {
 	const items: FRDataObject[] = [];

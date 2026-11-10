@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { encodeFRDataForDownload, encodeSampleRunsForDownload } from './fr-encoder.js';
+import {
+	downloadBaseName,
+	encodeFRDataForDownload,
+	encodeSampleRunsForDownload
+} from './fr-encoder.js';
 import type { ChannelData, FRDataObject } from '#lib/types/data-types.js';
 
 function makeItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
@@ -30,6 +34,28 @@ function makeItem(overrides: Partial<FRDataObject> = {}): FRDataObject {
 		...overrides
 	};
 }
+
+describe('downloadBaseName', () => {
+	it.each([
+		['identifier and suffix', 'Foo', 'Bar', 'Foo Bar'],
+		['empty suffix', 'Foo', '', 'Foo'],
+		['null suffix', 'Foo', null, 'Foo'],
+		['absent suffix', 'Foo', undefined, 'Foo'],
+		['whitespace-only suffix', 'Foo', '  ', 'Foo'],
+		['padded identifier', ' Foo ', 'Bar', 'Foo  Bar'],
+		['padded suffix', 'Foo', ' Bar ', 'Foo  Bar'],
+		['empty identifier with a suffix', '', 'Bar', 'Bar'],
+		['empty identifier and suffix', '', '', '']
+	])('%s', (_label, identifier, dispSuffix, expected) => {
+		expect(downloadBaseName(makeItem({ identifier, dispSuffix }))).toBe(expected);
+	});
+
+	it('replaces characters a filename cannot hold', () => {
+		expect(downloadBaseName(makeItem({ identifier: 'HD650/HD6XX', dispSuffix: 'a:b' }))).toBe(
+			'HD650_HD6XX a_b'
+		);
+	});
+});
 
 describe('encodeFRDataForDownload', () => {
 	it('emits one payload per displayed channel, in L/R/AVG order', () => {

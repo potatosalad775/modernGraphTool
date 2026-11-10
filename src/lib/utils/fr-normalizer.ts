@@ -1,4 +1,9 @@
-import type { ChannelData, ParsedFRData, FRDataPoint } from '#lib/types/data-types.js';
+import {
+	CHANNELS,
+	type ChannelData,
+	type ParsedFRData,
+	type FRDataPoint
+} from '#lib/types/data-types.js';
 
 /**
  * Normalize a single channel's FR data.
@@ -51,7 +56,7 @@ export function normalizeChannels(
 	if (!reference) return result;
 
 	const delta = _computeDelta(reference, type, hzValue);
-	for (const channel of ['L', 'R', 'AVG'] as ('L' | 'R' | 'AVG')[]) {
+	for (const channel of CHANNELS) {
 		const ch = rawData[channel];
 		if (ch?.data?.length) {
 			result[channel] = _shiftChannel(ch, delta);

@@ -10,7 +10,7 @@ import { indexedEffectiveFilters, indexedFiltersInScope } from '#lib/utils/eq-ch
 import { eqSourceChannels } from '#lib/utils/eq-source.js';
 import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
 import { baseline, compensateAt } from './baseline.js';
-import type { FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
+import type { Channel, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 interface BandDatum {
 	filter: EQFilter;
@@ -385,11 +385,11 @@ export class GraphEqOverlay {
 			frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel ??
 			frStore.get(eqStore.sourcePhoneUUID ?? '')?.dispChannel ?? ['AVG'];
 
-		let channelKey: 'L' | 'R' | 'AVG';
+		let channelKey: Channel;
 		if (channels.AVG) {
 			channelKey = 'AVG';
 		} else {
-			channelKey = (dispChannels[0] ?? 'L') as 'L' | 'R' | 'AVG';
+			channelKey = (dispChannels[0] ?? 'L') as Channel;
 		}
 
 		const ch = channels[channelKey];

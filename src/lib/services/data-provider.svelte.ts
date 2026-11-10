@@ -1,4 +1,5 @@
 import type {
+	Channel,
 	FRDataType,
 	FRDataObject,
 	FRDataPoint,
@@ -93,7 +94,7 @@ class DataProvider {
 		}
 		const rawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(processed) as Channel[];
 
 		const dispSuffix =
 			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
@@ -242,7 +243,7 @@ class DataProvider {
 			}))
 		);
 
-		const channels = Object.keys(averaged) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(averaged) as Channel[];
 		if (channels.length === 0) return 0;
 
 		this.insertRawFRData('phone', labels.identifier, averaged, {
@@ -345,10 +346,10 @@ class DataProvider {
 		}
 		const variantRawCache = this.#buildRawCache(rawData);
 		const processed = DataProcessor.processChannels(rawData, this.#processingParams);
-		const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(processed) as Channel[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
-		) as ('L' | 'R' | 'AVG')[];
+		) as Channel[];
 
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.
@@ -552,7 +553,7 @@ class DataProvider {
 
 	// ─── Field updates ────────────────────────────────────────────────────────
 
-	updateDisplayChannel(uuid: string, channel: ('L' | 'R' | 'AVG')[]): void {
+	updateDisplayChannel(uuid: string, channel: Channel[]): void {
 		if (!frStore.has(uuid)) return;
 		commandHistory.execute(new UpdateDisplayChannelCommand(uuid, channel), frStore);
 	}
@@ -614,18 +615,18 @@ class DataProvider {
 			for (const phone of phones) {
 				const dispChannel = Object.keys(phone.channels).includes('AVG')
 					? (['AVG'] as const)
-					: ([Object.keys(phone.channels)[0]] as ('L' | 'R' | 'AVG')[]);
+					: ([Object.keys(phone.channels)[0]] as Channel[]);
 				frStore.set(phone.uuid, { ...phone, dispChannel: [...dispChannel] });
 			}
 		} else if (phones.length === 1) {
 			const phone = phones[0];
 			const keys = Object.keys(phone.channels);
-			const dispChannel: ('L' | 'R' | 'AVG')[] =
+			const dispChannel: Channel[] =
 				keys.includes('L') && keys.includes('R')
 					? ['L', 'R']
 					: keys.includes('AVG')
 						? ['AVG']
-						: [keys[0] as 'L' | 'R' | 'AVG'];
+						: [keys[0] as Channel];
 			frStore.set(phone.uuid, { ...phone, dispChannel });
 		}
 	}
@@ -727,7 +728,7 @@ class DataProvider {
 	}
 
 	/** Min/max envelope for a single channel across every run in the set */
-	#computeEnvelope(samples: SampleData[], channel: 'L' | 'R' | 'AVG'): SampleEnvelope {
+	#computeEnvelope(samples: SampleData[], channel: Channel): SampleEnvelope {
 		const sampleDataArrays = samples
 			.map((s) => s[channel]?.data)
 			.filter((d): d is FRDataPoint[] => !!d);
@@ -747,7 +748,7 @@ class DataProvider {
 	}
 
 	/** Compute envelopes for all channels */
-	#computeAllEnvelopes(samples: SampleData[]): Record<'L' | 'R' | 'AVG', SampleEnvelope> {
+	#computeAllEnvelopes(samples: SampleData[]): Record<Channel, SampleEnvelope> {
 		return {
 			L: this.#computeEnvelope(samples, 'L'),
 			R: this.#computeEnvelope(samples, 'R'),

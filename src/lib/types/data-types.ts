@@ -8,6 +8,12 @@
 /** Frequency response data point [frequency_hz, amplitude_db] */
 export type FRDataPoint = [number, number];
 
+/** A main channel of a curve item. */
+export type Channel = 'L' | 'R' | 'AVG';
+
+/** Every main channel in canonical order: left, right, average. */
+export const CHANNELS = ['L', 'R', 'AVG'] as const satisfies readonly Channel[];
+
 /** Channel data containing frequency response measurements */
 export interface ChannelData {
 	data: FRDataPoint[];
@@ -68,7 +74,7 @@ export type SampleDisplayMode = 'avg' | 'curves' | 'fill';
 
 /** Display key for one run's curve, e.g. "sample0_AVG", "sample1_L".
  *  Zero-based to match the keys already present in legacy `?state=` URLs. */
-export type SampleDisplayKey = `sample${number}_${'L' | 'R' | 'AVG'}`;
+export type SampleDisplayKey = `sample${number}_${Channel}`;
 
 /** Color scheme for frequency response traces */
 export interface FRColors {
@@ -94,7 +100,7 @@ export interface FRDataObject {
 	type: FRDataType;
 	identifier: string;
 	channels: ParsedFRData;
-	dispChannel: ('L' | 'R' | 'AVG')[];
+	dispChannel: Channel[];
 	dispSuffix?: string | null;
 	/** Short summary of TargetCustomizer adjustments, e.g. "(Tilt: -0.8dB/oct, Bass: +6.0dB)". */
 	adjustmentLabel?: string | null;
@@ -112,7 +118,7 @@ export interface FRDataObject {
 	/** Whether the min/max envelope fill is drawn. */
 	showFill?: boolean;
 	/** Min/max envelope across the set, per channel. Present when the set can be filled. */
-	envelope?: Record<'L' | 'R' | 'AVG', SampleEnvelope>;
+	envelope?: Record<Channel, SampleEnvelope>;
 	/** Curator caption describing what the set's deviation represents. */
 	sampleDescription?: string;
 	/** Cached raw (unsmoothed, unnormalized) data for re-smoothing without re-fetching. */
@@ -122,7 +128,7 @@ export interface FRDataObject {
 /** Input metadata for adding FR data */
 export interface FRInputMetadata {
 	dispSuffix?: string;
-	dispChannel?: ('L' | 'R' | 'AVG')[];
+	dispChannel?: Channel[];
 }
 
 /** Event data for FR-related events */

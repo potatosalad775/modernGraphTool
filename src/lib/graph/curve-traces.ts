@@ -1,5 +1,6 @@
 import {
 	isTargetType,
+	type Channel,
 	type FRDataObject,
 	type FRDataPoint,
 	type SampleEnvelope
@@ -19,8 +20,6 @@ import { curveBaseName, curveDisplayName, sampleKeyParts } from './curve-label.j
  * context and keep everything about presentation — opacity, thickness, dash,
  * `yOffset`, baseline compensation, `hidden`, sort order.
  */
-
-export type TraceChannel = 'L' | 'R' | 'AVG';
 
 /**
  * Passed when the item is the enabled EQ source (`eqStore.isEnabled` and its
@@ -53,14 +52,14 @@ export interface FillTrace extends TraceBase {
 /** One run of a sample set. */
 export interface RunTrace extends TraceBase {
 	kind: 'run';
-	channel: TraceChannel;
+	channel: Channel;
 	data: FRDataPoint[];
 }
 
 /** An averaged channel, a target's curve, or the EQ source run standing in for the average. */
 export interface MainTrace extends TraceBase {
 	kind: 'main';
-	channel: TraceChannel;
+	channel: Channel;
 	data: FRDataPoint[];
 	/** This is the EQ source run, not the item's own channel; `name` is the run's. */
 	fromRun: boolean;
@@ -111,7 +110,7 @@ export function combineEnvelopes(envelopes: SampleEnvelope[]): SampleEnvelope {
 export function selectEnvelope(obj: FRDataObject): SampleEnvelope {
 	const envelope = obj.envelope;
 	if (!envelope) return { upper: [], lower: [] };
-	let pick: TraceChannel[];
+	let pick: Channel[];
 	const single = obj.dispChannel.length === 1 ? obj.dispChannel[0] : null;
 	if (single === 'L') {
 		pick = ['L'];

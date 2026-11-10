@@ -3,7 +3,7 @@ import { averageChannels, isAveragable, type AverageSource } from './fr-average.
 import { DataProcessor } from './data-processor.js';
 import FRParser from './fr-parser.js';
 import { normalizeChannels } from './fr-normalizer.js';
-import type { ChannelData, FRDataObject, FRDataType } from '#lib/types/data-types.js';
+import type { Channel, ChannelData, FRDataObject, FRDataType } from '#lib/types/data-types.js';
 
 /** A flat channel at `db`, on the two-point grid the other utils' specs use. */
 function channel(db: number, freqs: number[] = [20, 1000, 20000]): ChannelData {
@@ -13,10 +13,7 @@ function channel(db: number, freqs: number[] = [20, 1000, 20000]): ChannelData {
 	};
 }
 
-function source(
-	channels: Record<string, ChannelData>,
-	dispChannel: ('L' | 'R' | 'AVG')[]
-): AverageSource {
+function source(channels: Record<string, ChannelData>, dispChannel: Channel[]): AverageSource {
 	return { channels, dispChannel };
 }
 

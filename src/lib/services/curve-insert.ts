@@ -1,4 +1,5 @@
 import type {
+	Channel,
 	FRDataType,
 	FRDataObject,
 	FRColors,
@@ -25,10 +26,7 @@ import {
 
 type ProcessingParams = Parameters<typeof DataProcessor.processChannels>[1];
 
-export function getChannelValue(
-	sourceType: FRDataType,
-	available: ('L' | 'R' | 'AVG')[]
-): ('L' | 'R' | 'AVG')[] {
+export function getChannelValue(sourceType: FRDataType, available: Channel[]): Channel[] {
 	const phoneCount = [...frStore.entries.values()].filter((e) => e.type === 'phone').length;
 	if (sourceType !== 'phone') return ['AVG'];
 	if (phoneCount < 1) return available.filter((ch) => ch !== 'AVG');
@@ -82,7 +80,7 @@ export function insertRawCurve(
 	params: ProcessingParams
 ): void {
 	const processed = DataProcessor.processChannels(rawData, params);
-	const channels = Object.keys(processed) as ('L' | 'R' | 'AVG')[];
+	const channels = Object.keys(processed) as Channel[];
 
 	const frObject: FRDataObject = {
 		uuid: crypto.randomUUID(),

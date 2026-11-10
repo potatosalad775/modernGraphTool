@@ -1,4 +1,9 @@
-import type { FRDataObject, ParsedFRData } from '#lib/types/data-types.js';
+import {
+	CHANNELS,
+	type Channel,
+	type FRDataObject,
+	type ParsedFRData
+} from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
@@ -226,7 +231,7 @@ class EqCurve {
 			derivePreamp(enabled),
 			settingsStore.linkEqNormalization
 		);
-		const channels = Object.keys(raw) as ('L' | 'R' | 'AVG')[];
+		const channels = Object.keys(raw) as Channel[];
 		if (channels.length === 0) return false;
 		insertRawCurve(
 			'phone',
@@ -276,7 +281,7 @@ class EqCurve {
 		const eq = new Equalizer();
 		const modified: ParsedFRData = {};
 		const perChannel = hasPerChannelFilters(enabledFilters);
-		for (const ch of ['L', 'R', 'AVG'] as const) {
+		for (const ch of CHANNELS) {
 			const chData = sourceChannels[ch];
 			if (!chData) continue;
 			// Each ear gets the shared bands plus its own. AVG is handled below —
@@ -345,7 +350,7 @@ class EqCurve {
 		sourceData: FRDataObject,
 		existing: FRDataObject | null,
 		channels: ParsedFRData
-	): ('L' | 'R' | 'AVG')[] {
+	): Channel[] {
 		const key = `${sourceUUID}:${sourceData.dispChannel.join('+')}`;
 		const sourceChanged = key !== this.#sourceChannelKey;
 		this.#sourceChannelKey = key;

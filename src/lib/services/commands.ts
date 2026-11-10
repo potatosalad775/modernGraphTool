@@ -1,4 +1,4 @@
-import type { FRDataObject, FRColors, SampleDisplayKey } from '#lib/types/data-types.js';
+import type { Channel, FRDataObject, FRColors, SampleDisplayKey } from '#lib/types/data-types.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 
 /**
@@ -81,10 +81,10 @@ export class RemoveFRDataCommand implements Command {
 
 export class UpdateDisplayChannelCommand implements Command {
 	#uuid: string;
-	#newChannel: ('L' | 'R' | 'AVG')[];
-	#oldChannel: ('L' | 'R' | 'AVG')[] | null = null;
+	#newChannel: Channel[];
+	#oldChannel: Channel[] | null = null;
 
-	constructor(uuid: string, newChannel: ('L' | 'R' | 'AVG')[]) {
+	constructor(uuid: string, newChannel: Channel[]) {
 		this.#uuid = uuid;
 		this.#newChannel = [...newChannel];
 	}

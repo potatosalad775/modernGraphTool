@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import * as m from '#lib/paraglide/messages.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
-	import type { FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+	import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { ChevronDown, Ellipsis } from '@lucide/svelte';
@@ -11,14 +11,14 @@
 
 	// ── Channel helpers ──────────────────────────────────────────────────────────
 
-	function dispChannelToSelectValue(dispChannel: ('L' | 'R' | 'AVG')[]): string {
+	function dispChannelToSelectValue(dispChannel: Channel[]): string {
 		if (dispChannel.includes('L') && dispChannel.includes('R')) return 'L+R';
 		return dispChannel[0] ?? 'AVG';
 	}
 
-	function selectValueToDispChannel(value: string): ('L' | 'R' | 'AVG')[] {
+	function selectValueToDispChannel(value: string): Channel[] {
 		if (value === 'L+R') return ['L', 'R'];
-		return [value as 'L' | 'R' | 'AVG'];
+		return [value as Channel];
 	}
 
 	// ── Channel options derived from item data ──────────────────────────────────
@@ -26,7 +26,7 @@
 	type ChannelOption = { value: string; label: string };
 
 	let channelOptions = $derived.by((): ChannelOption[] => {
-		const keys = Object.keys(item.channels) as ('L' | 'R' | 'AVG')[];
+		const keys = Object.keys(item.channels) as Channel[];
 		const opts: ChannelOption[] = [];
 		const hasL = keys.includes('L');
 		const hasR = keys.includes('R');
@@ -120,7 +120,7 @@
 		dataProvider.updateSampleDisplay(uuid, current);
 	}
 
-	function keysFor(channels: ('L' | 'R' | 'AVG')[]): SampleDisplayKey[] {
+	function keysFor(channels: Channel[]): SampleDisplayKey[] {
 		const keys: SampleDisplayKey[] = [];
 		runsOf().forEach((run, i) => {
 			for (const ch of channels) {

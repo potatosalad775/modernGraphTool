@@ -5,7 +5,12 @@
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { baseline } from '#lib/graph/baseline.js';
 	import { getConfigValue } from '#lib/utils/config.js';
-	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
+	import {
+		isTargetType,
+		type Channel,
+		type FRDataObject,
+		type PhoneFileVariant
+	} from '#lib/types/data-types.js';
 	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';
@@ -34,7 +39,7 @@
 	type ChannelOption = { value: string; label: string };
 
 	function getChannelOptions(item: FRDataObject): ChannelOption[] {
-		const keys = Object.keys(item.channels) as ('L' | 'R' | 'AVG')[];
+		const keys = Object.keys(item.channels) as Channel[];
 		const opts: ChannelOption[] = [];
 		const hasL = keys.includes('L');
 		const hasR = keys.includes('R');
@@ -46,14 +51,14 @@
 		return opts;
 	}
 
-	function dispChannelToSelectValue(dispChannel: ('L' | 'R' | 'AVG')[]): string {
+	function dispChannelToSelectValue(dispChannel: Channel[]): string {
 		if (dispChannel.includes('L') && dispChannel.includes('R')) return 'L+R';
 		return dispChannel[0] ?? 'AVG';
 	}
 
-	function selectValueToDispChannel(value: string): ('L' | 'R' | 'AVG')[] {
+	function selectValueToDispChannel(value: string): Channel[] {
 		if (value === 'L+R') return ['L', 'R'];
-		return [value as 'L' | 'R' | 'AVG'];
+		return [value as Channel];
 	}
 
 	function handleChannelChange(uuid: string, value: string) {

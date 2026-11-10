@@ -17,7 +17,7 @@ import { sampleFillOpacity } from '#lib/utils/sample-config.js';
 import FRParser from '#lib/utils/fr-parser.js';
 import FRSmoother from '#lib/utils/fr-smoother.js';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
-import type { FRDataObject, FRDataPoint, SampleEnvelope } from '#lib/types/data-types.js';
+import type { Channel, FRDataObject, FRDataPoint, SampleEnvelope } from '#lib/types/data-types.js';
 
 let svgEl: SVGSVGElement;
 
@@ -492,8 +492,8 @@ describe('GraphEngine', () => {
 
 	describe('_buildEnvelopePath channel selection', () => {
 		function withEnvelopes(
-			dispChannel: ('L' | 'R' | 'AVG')[],
-			env: Partial<Record<'L' | 'R' | 'AVG', SampleEnvelope>>
+			dispChannel: Channel[],
+			env: Partial<Record<Channel, SampleEnvelope>>
 		): FRDataObject {
 			return makePhone('p', {
 				dispChannel,

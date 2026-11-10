@@ -1,5 +1,6 @@
 import { getConfigValue } from './config.js';
 import type {
+	Channel,
 	FRDataType,
 	FRDataPoint,
 	ChannelData,
@@ -43,7 +44,7 @@ const FRParser = {
 		files: PhoneFileReference | string
 	): Promise<ParsedFRData> {
 		const isPhoneData = sourceType === 'phone';
-		const channels: ('L' | 'R' | 'AVG')[] = isPhoneData ? ['L', 'R'] : ['AVG'];
+		const channels: Channel[] = isPhoneData ? ['L', 'R'] : ['AVG'];
 
 		const parsedChannels: ParsedFRData = {};
 

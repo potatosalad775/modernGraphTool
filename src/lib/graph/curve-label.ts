@@ -1,4 +1,4 @@
-import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
+import { isTargetType, type Channel, type FRDataObject } from '#lib/types/data-types.js';
 
 /**
  * How a curve is named on screen.
@@ -52,11 +52,11 @@ export function curveDisplayName(obj: FRDataObject, channel: string, sampleLabel
 export function sampleKeyParts(
 	obj: FRDataObject,
 	key: string
-): { label: string; channel: 'L' | 'R' | 'AVG'; index: number } | null {
+): { label: string; channel: Channel; index: number } | null {
 	const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
 	if (!match) return null;
 	const index = parseInt(match[1]);
-	const channel = match[2] as 'L' | 'R' | 'AVG';
+	const channel = match[2] as Channel;
 	const label = obj.samples?.[index]?.label ?? `Sample ${index + 1}`;
 	return { label, channel, index };
 }

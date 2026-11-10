@@ -15,8 +15,9 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by
   `DataProvider` and `eqCurve`, which can't import each other (`DataProvider` calls `eqCurve.rebuild()`)
 - `curve-data.ts` — a curve item's drawn data from its source: `curveDataFromRaw` (smooth → normalize,
-  runs and envelope included), `renormalizedCurveData`, `pickChannels`, `processingParams`; imports
-  neither `DataProvider` nor `eqCurve`
+  runs and envelope included; takes the item's type, for a target's `unadjustedChannels`),
+  `renormalizedCurveData`, `pickChannels`, `processingParams`; imports neither `DataProvider` nor
+  `eqCurve`
 - `initial-load.ts` — see below
 - `audio-player-service.svelte.ts` — see below
 - `media-session.ts` — the audio player in OS media controls (Control Center, media keys)
@@ -130,7 +131,14 @@ updateVariant / DisplayChannel / Colors / Visibility / YOffset, renormalizeAll, 
 applyTargetAdjustment.
 
 - `reSmoothAll` rebuilds curves from cached **raw** (pre-adjustment) data, so it re-applies target
-  adjustments itself afterwards.
+  adjustments itself afterwards — for each target that has `unadjustedChannels` and a record in
+  `targetAdjustmentStore`.
+- **A target's `unadjustedChannels` live on the curve item** and come from the same two builders as
+  its channels (`curveDataFromRaw` sets them, `renormalizedCurveData` normalizes them), so add,
+  upload, re-smooth (the network fallback too) and re-normalize keep them without hand-written
+  alignment, and they follow the item through remove and undo. A fresh target shares one object
+  between `channels` and `unadjustedChannels`; that is safe because channel data is replaced, never
+  edited in place — keep it that way.
 - **Two builders in `curve-data.ts`, and the three operations stay distinct.** `curveDataFromRaw`
   (add, variant switch, `reSmoothAll`) takes **raw** channels and smooths; `renormalizedCurveData`
   (`renormalizeAll`) only re-anchors what is drawn. `applyTargetAdjustment` uses neither, just
@@ -144,9 +152,10 @@ applyTargetAdjustment.
 - `renormalizeAll` normalizes the already-adjusted channels in place and must **not** re-apply — it
   would be a no-op, since normalization only removes a constant offset, so the adjustment lands on
   the same curve either way.
-- `applyTargetAdjustment` **normalizes only, never re-smooths.** `targetOriginalData` already holds
-  smoothed+normalized channels, so a second smoothing pass would blur the target and resample it off
-  the cached original's frequency grid, which baseline compensation reads against.
+- `applyTargetAdjustment` **normalizes only, never re-smooths.** `unadjustedChannels` are already
+  smoothed+normalized, so a second smoothing pass would blur the target and resample it off the
+  unadjusted channels' frequency grid, which baseline compensation reads against. It returns when
+  the item is missing or has none.
 - `applyTargetAdjustment` **pushes no undo entry (and writes nothing) when the result draws what the
   item already does** — same channels, points and `adjustmentLabel`. `TargetCustomizer` re-applies on
   every mount, and an empty entry would make Ctrl+Z after a panel switch look broken.

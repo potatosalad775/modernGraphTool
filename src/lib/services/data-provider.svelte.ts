@@ -10,7 +10,6 @@ import type {
 	SampleDisplayKey,
 	RawFRCache
 } from '#lib/types/data-types.js';
-import { isTargetType } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
@@ -90,7 +89,7 @@ class DataProvider {
 			return;
 		}
 		const rawCache = this.#buildRawCache(rawData);
-		const curve = curveDataFromRaw(rawCache);
+		const curve = curveDataFromRaw(rawCache, sourceType);
 		const channels = Object.keys(curve.channels) as Channel[];
 
 		const dispSuffix =
@@ -103,6 +102,7 @@ class DataProvider {
 			type: sourceType,
 			identifier: metaData.identifier,
 			channels: curve.channels,
+			...(curve.unadjustedChannels && { unadjustedChannels: curve.unadjustedChannels }),
 			dispChannel: getChannelValue(sourceType, channels),
 			dispSuffix,
 			colors,
@@ -251,16 +251,16 @@ class DataProvider {
 	// ─── Target customizer adjustments ────────────────────────────────────────
 
 	/**
-	 * Rebuild a customizable target's curve from its cached pre-adjustment channels
-	 * plus the current slider stack in `targetAdjustmentStore`.
+	 * Rebuild a target's curve from its unadjusted channels plus the current slider stack
+	 * in `targetAdjustmentStore`.
 	 *
 	 * Callable without a mounted `TargetCustomizer` — that component only drives the
 	 * UI now. `reSmoothAll()` in particular rebuilds targets from raw source data, and
 	 * used to rely on a mounted customizer noticing and re-applying; with the Graph tab
 	 * closed the adjustment was dropped for good.
 	 *
-	 * Normalizes but does NOT re-smooth. `targetOriginalData` is a snapshot of channels
-	 * that already went through smooth → normalize, and the tilt/shelf stack on top is a
+	 * Normalizes but does NOT re-smooth. `unadjustedChannels` are channels that
+	 * already went through smooth → normalize, and the tilt/shelf stack on top is a
 	 * smooth analytic curve with nothing to filter out. Running the result through
 	 * `DataProcessor.processChannels` would smooth it a second time and blur the target — the
 	 * channels carry their smoothing marker, so `FRSmoother` passes them through rather
@@ -269,10 +269,10 @@ class DataProvider {
 	 */
 	applyTargetAdjustment(uuid: string): void {
 		const existing = frStore.get(uuid);
-		const original = graphStore.targetOriginalData.get(uuid);
-		if (!existing || !original) return;
+		const unadjusted = existing?.unadjustedChannels;
+		if (!existing || !unadjusted) return;
 
-		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, original);
+		const adjusted = targetAdjustmentStore.adjustedChannels(uuid, unadjusted);
 		const processed = normalizeChannels(adjusted, graphStore.normType, graphStore.normHzValue);
 
 		const updated: FRDataObject = {
@@ -303,10 +303,16 @@ class DataProvider {
 		});
 	}
 
-	/** Re-apply every known target adjustment — used after a global re-process. */
+	/**
+	 * Re-apply every target adjustment on record — used after a global re-process. A target the
+	 * user has no adjustment record for (`TargetCustomizer` registers one per target) has nothing
+	 * to put back on top of its freshly rebuilt curve.
+	 */
 	#reapplyTargetAdjustments(): void {
-		for (const uuid of graphStore.targetOriginalData.keys()) {
-			this.applyTargetAdjustment(uuid);
+		for (const [uuid, item] of [...frStore.entries]) {
+			if (item.unadjustedChannels && targetAdjustmentStore.has(uuid)) {
+				this.applyTargetAdjustment(uuid);
+			}
 		}
 	}
 
@@ -324,7 +330,7 @@ class DataProvider {
 			return;
 		}
 		const variantRawCache = this.#buildRawCache(rawData);
-		const curve = curveDataFromRaw(variantRawCache);
+		const curve = curveDataFromRaw(variantRawCache, data.type);
 		const channels = Object.keys(curve.channels) as Channel[];
 		const dispChannel = (
 			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
@@ -334,6 +340,7 @@ class DataProvider {
 		// stays atomic — see UpdateVariantCommand doc comment.
 		const newFields: Partial<FRDataObject> = {
 			channels: curve.channels,
+			unadjustedChannels: curve.unadjustedChannels,
 			dispSuffix,
 			dispChannel,
 			_rawData: variantRawCache
@@ -378,27 +385,16 @@ class DataProvider {
 	// ─── Re-normalize all loaded data ─────────────────────────────────────────
 
 	renormalizeAll(): void {
-		const { normType, normHzValue } = graphStore;
 		const eqUUID = eqStore.eqCurveUUID;
 
 		for (const [uuid, data] of frStore.entries) {
 			// Skip the linked EQ curve — it will be rebuilt from the source below.
 			if (settingsStore.linkEqNormalization && uuid === eqUUID) continue;
 
-			// Channels and the sample set (re-anchored against the same pooled reference,
-			// envelope rebuilt from the shifted runs) are normalized, never re-smoothed.
+			// Channels, a target's unadjusted channels (so `withoutAdjustment` baselines stay on
+			// the same reference) and the sample set (re-anchored against the same pooled
+			// reference, envelope rebuilt from the shifted runs) are normalized, never re-smoothed.
 			frStore.set(uuid, { ...data, ...renormalizedCurveData(data) });
-
-			// Keep the cached pre-adjustment target channels aligned with the new
-			// normalization so `withoutAdjustment` baselines remain correct and
-			// TargetCustomizer can re-apply filters on top of it.
-			const cachedOriginal = graphStore.targetOriginalData.get(uuid);
-			if (cachedOriginal) {
-				graphStore.targetOriginalData.set(
-					uuid,
-					normalizeChannels(cachedOriginal, normType, normHzValue)
-				);
-			}
 		}
 
 		// No re-apply pass here, unlike reSmoothAll: the loop above normalized each
@@ -430,13 +426,7 @@ class DataProvider {
 
 			if (rawCache) {
 				// Re-smooth from cached raw data (no network fetch)
-				const curve = curveDataFromRaw(rawCache);
-				frStore.set(uuid, { ...data, ...curve });
-
-				// Update persisted original data so TargetCustomizer can re-apply adjustments
-				if (isTargetType(data) && graphStore.targetOriginalData.has(uuid)) {
-					graphStore.targetOriginalData.set(uuid, pickChannels(curve.channels));
-				}
+				frStore.set(uuid, { ...data, ...curveDataFromRaw(rawCache, data.type) });
 			} else if (data.meta && (data.type === 'phone' || data.type === 'target')) {
 				// Fallback: no cache, fetch from network
 				try {
@@ -451,7 +441,7 @@ class DataProvider {
 					const fallbackCache = this.#buildRawCache(rawData);
 					frStore.set(uuid, {
 						...data,
-						...curveDataFromRaw(fallbackCache),
+						...curveDataFromRaw(fallbackCache, data.type),
 						_rawData: fallbackCache
 					});
 				} catch {

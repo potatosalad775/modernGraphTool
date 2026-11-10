@@ -59,7 +59,6 @@ describe('URLProvider', () => {
 		frStore.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 		graphStore.yScale = 50;
 		eqStore.filters = [];
 		eqStore.preamp = 0;

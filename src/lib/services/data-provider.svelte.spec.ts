@@ -112,7 +112,6 @@ describe('DataProvider', () => {
 		commandHistory.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 	});
 
 	// ── Read helpers ─────────────────────────────────────────────────────────
@@ -466,32 +465,31 @@ describe('DataProvider', () => {
 			expect(commandHistory.canUndo).toBe(false);
 		});
 
-		// Once Bug 1 is fixed and 'withoutAdjustment' baselines read from
-		// targetOriginalData, the cached original must also track the current
-		// normalization — otherwise the baseline and the curves would sit at
-		// different reference points, producing a constant-dB drift after any
-		// normalization change.
-		it('keeps targetOriginalData aligned with the current normalization', () => {
+		// 'withoutAdjustment' baselines read the target's unadjustedChannels, which must
+		// also track the current normalization — otherwise the baseline and the curves
+		// would sit at different reference points, producing a constant-dB drift after
+		// any normalization change.
+		it('keeps unadjustedChannels aligned with the current normalization', () => {
 			const originalAvg = makeFRPoints(75);
 			frStore.set(
 				't',
 				makeTargetObject('t', {
-					channels: { AVG: { data: originalAvg, metadata: { minFreq: 20, maxFreq: 20000 } } }
+					channels: { AVG: { data: originalAvg, metadata: { minFreq: 20, maxFreq: 20000 } } },
+					unadjustedChannels: {
+						AVG: {
+							data: originalAvg.map(([f, d]) => [f, d]),
+							metadata: { minFreq: 20, maxFreq: 20000 }
+						}
+					}
 				})
 			);
-			graphStore.targetOriginalData.set('t', {
-				AVG: {
-					data: originalAvg.map(([f, d]) => [f, d]),
-					metadata: { minFreq: 20, maxFreq: 20000 }
-				}
-			});
 
 			graphStore.normType = 'Hz';
 			graphStore.normHzValue = 1000;
 			dataProvider.renormalizeAll();
 
 			const normalizedFr = frStore.get('t')!.channels.AVG!.data;
-			const normalizedOriginal = graphStore.targetOriginalData.get('t')!.AVG!.data;
+			const normalizedOriginal = frStore.get('t')!.unadjustedChannels!.AVG!.data;
 			for (let i = 0; i < normalizedFr.length; i++) {
 				expect(normalizedOriginal[i][0]).toBe(normalizedFr[i][0]);
 				expect(normalizedOriginal[i][1]).toBeCloseTo(normalizedFr[i][1], 10);
@@ -653,29 +651,27 @@ describe('DataProvider', () => {
 		});
 	});
 
-	// ── Target original data coordination ───────────────────────────────
+	// ── Unadjusted channels coordination ────────────────────────────────
 
-	describe('target original data coordination', () => {
-		it('targetOriginalData stores independent copy of target base data', () => {
+	describe('unadjusted channels coordination', () => {
+		it('unadjustedChannels is independent of the drawn channels', () => {
 			const targetData: ParsedFRData = {
 				AVG: { data: makeFRPoints(75), metadata: { minFreq: 20, maxFreq: 20000 } }
 			};
-			graphStore.targetOriginalData.set('t', targetData);
-			expect(graphStore.targetOriginalData.get('t')).toBe(targetData);
+			frStore.set('t', makeTargetObject('t', { unadjustedChannels: targetData }));
+			expect(frStore.get('t')!.unadjustedChannels).toBe(targetData);
 
-			// Modifying frStore should not affect targetOriginalData
-			frStore.set(
-				't',
-				makeTargetObject('t', {
-					channels: { AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } } }
-				})
-			);
-			expect(graphStore.targetOriginalData.get('t')!.AVG!.data[0][1]).toBe(
+			// Replacing the drawn channels should not affect unadjustedChannels
+			frStore.set('t', {
+				...frStore.get('t')!,
+				channels: { AVG: { data: makeFRPoints(90), metadata: { minFreq: 20, maxFreq: 20000 } } }
+			});
+			expect(frStore.get('t')!.unadjustedChannels!.AVG!.data[0][1]).toBe(
 				targetData.AVG!.data[0][1]
 			);
 		});
 
-		it('targetOriginalData is used for original baseline compensation', () => {
+		it('unadjustedChannels is used for original baseline compensation', () => {
 			const original: ParsedFRData = {
 				AVG: {
 					data: [
@@ -686,7 +682,6 @@ describe('DataProvider', () => {
 					metadata: { minFreq: 20, maxFreq: 20000 }
 				}
 			};
-			graphStore.targetOriginalData.set('t', original);
 
 			const adjusted: ParsedFRData = {
 				AVG: {
@@ -698,13 +693,108 @@ describe('DataProvider', () => {
 					metadata: { minFreq: 20, maxFreq: 20000 }
 				}
 			};
-			frStore.set('t', makeTargetObject('t', { channels: adjusted }));
+			frStore.set('t', makeTargetObject('t', { channels: adjusted, unadjustedChannels: original }));
 
 			// Original and adjusted should differ (adjustments were applied)
-			const storedOriginal = graphStore.targetOriginalData.get('t')!.AVG!.data;
+			const storedOriginal = frStore.get('t')!.unadjustedChannels!.AVG!.data;
 			const storedAdjusted = frStore.get('t')!.channels.AVG!.data;
 			expect(storedOriginal[1][1]).toBe(75);
 			expect(storedAdjusted[1][1]).toBe(77);
+		});
+	});
+
+	// ── Where the unadjusted channels come from ──────────────────────────────
+	// The item carries them from the moment it is built, so nothing depends on a
+	// mounted TargetCustomizer, and they follow the item through remove and undo.
+
+	describe('unadjusted channels on a loaded item', () => {
+		const META: PhoneMetadata = {
+			brand: 'Brand',
+			name: 'Thing',
+			identifier: 'Brand Thing',
+			files: [phoneFile('Brand Thing', '')]
+		};
+
+		beforeEach(() => {
+			vi.spyOn(MetadataParser, 'getFRMetadata').mockReturnValue(META);
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(
+				makeFullChannelData() as FRParseResult
+			);
+		});
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+		});
+
+		it('addFRData gives a target its unadjustedChannels, equal to its drawn channels', async () => {
+			await dataProvider.addFRData('target', 'Brand Thing');
+
+			const item = [...frStore.entries.values()][0];
+			expect(item.unadjustedChannels).toBeDefined();
+			expect(item.unadjustedChannels).toEqual(item.channels);
+		});
+
+		it('addFRData gives a phone no unadjustedChannels', async () => {
+			await dataProvider.addFRData('phone', 'Brand Thing');
+
+			expect([...frStore.entries.values()][0].unadjustedChannels).toBeUndefined();
+		});
+
+		it('insertRawFRData gives an uploaded target its unadjustedChannels', async () => {
+			await dataProvider.insertRawFRData('target', 'My Target', makeFullChannelData());
+
+			const item = [...frStore.entries.values()][0];
+			expect(item.type).toBe('inserted-target');
+			expect(item.unadjustedChannels).toEqual(item.channels);
+		});
+
+		it('insertRawFRData gives an uploaded phone no unadjustedChannels', async () => {
+			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+
+			expect([...frStore.entries.values()][0].unadjustedChannels).toBeUndefined();
+		});
+
+		it('keeps unadjustedChannels through remove → undo', async () => {
+			await dataProvider.addFRData('target', 'Brand Thing');
+			const [uuid, added] = [...frStore.entries][0];
+			const unadjusted = added.unadjustedChannels;
+
+			dataProvider.removeFRDataWithUUID('target', uuid);
+			expect(frStore.has(uuid)).toBe(false);
+			commandHistory.undo(frStore);
+
+			expect(frStore.get(uuid)!.unadjustedChannels).toBe(unadjusted);
+		});
+
+		it('applyTargetAdjustment changes the drawn channels and leaves unadjustedChannels as they were', async () => {
+			await dataProvider.addFRData('target', 'Brand Thing');
+			const [uuid, added] = [...frStore.entries][0];
+			const unadjusted = structuredClone(added.unadjustedChannels);
+			targetAdjustmentStore.delete(uuid);
+			targetAdjustmentStore.ensure(uuid, 'Brand Thing');
+			targetAdjustmentStore.addFilter(uuid, 'bass');
+			targetAdjustmentStore.setValue(uuid, 'bass', 6);
+
+			dataProvider.applyTargetAdjustment(uuid);
+
+			const item = frStore.get(uuid)!;
+			expect(item.channels).not.toEqual(unadjusted);
+			expect(item.unadjustedChannels).toEqual(unadjusted);
+			targetAdjustmentStore.delete(uuid);
+		});
+
+		it('applyTargetAdjustment does nothing for an item without unadjustedChannels', () => {
+			frStore.set('p', makeFRDataObject('p'));
+			targetAdjustmentStore.ensure('p', 'Brand Phone');
+			targetAdjustmentStore.addFilter('p', 'bass');
+			targetAdjustmentStore.setValue('p', 'bass', 6);
+			const before = frStore.get('p');
+
+			dataProvider.applyTargetAdjustment('p');
+
+			expect(frStore.get('p')).toBe(before);
+			expect(commandHistory.canUndo).toBe(false);
+			targetAdjustmentStore.delete('p');
 		});
 	});
 
@@ -720,24 +810,24 @@ describe('DataProvider', () => {
 		const ADJUSTED = 'adjusted-target';
 		const PLAIN = 'plain-target';
 
-		/** A target with cached raw data and a published pre-adjustment snapshot. */
+		/** A target with cached raw data and its unadjusted channels. */
 		function seedTarget(uuid: string): void {
 			const raw = makeFRPoints(75);
 			frStore.set(
 				uuid,
 				makeTargetObject(uuid, {
 					channels: { AVG: { data: raw, metadata: { minFreq: 20, maxFreq: 20000 } } },
+					unadjustedChannels: {
+						AVG: {
+							data: raw.map(([f, d]) => [f, d] as FRDataPoint),
+							metadata: { minFreq: 20, maxFreq: 20000 }
+						}
+					},
 					_rawData: {
 						channels: { AVG: { data: raw, metadata: { minFreq: 20, maxFreq: 20000 } } }
 					}
 				})
 			);
-			graphStore.targetOriginalData.set(uuid, {
-				AVG: {
-					data: raw.map(([f, d]) => [f, d] as FRDataPoint),
-					metadata: { minFreq: 20, maxFreq: 20000 }
-				}
-			});
 		}
 
 		/** Mean dB below 100 Hz — where a +6 dB low shelf shows up unambiguously. */
@@ -753,9 +843,9 @@ describe('DataProvider', () => {
 			graphStore.normHzValue = 1000;
 		});
 
-		// targetOriginalData is a snapshot of already-smoothed channels, so re-running
+		// unadjustedChannels are already-smoothed channels, so re-running
 		// the adjusted result through the smoother would blur the target twice and
-		// resample it onto a different grid than the cached original that baseline
+		// resample it onto a different grid than the unadjusted channels that baseline
 		// compensation reads against. applyTargetAdjustment normalizes only.
 		it('keeps the adjusted curve on the cached original frequency grid', () => {
 			seedTarget(ADJUSTED);
@@ -766,7 +856,7 @@ describe('DataProvider', () => {
 			dataProvider.applyTargetAdjustment(ADJUSTED);
 
 			const adjusted = frStore.get(ADJUSTED)!.channels.AVG!.data;
-			const original = graphStore.targetOriginalData.get(ADJUSTED)!.AVG!.data;
+			const original = frStore.get(ADJUSTED)!.unadjustedChannels!.AVG!.data;
 			expect(adjusted).toHaveLength(original.length);
 			for (let i = 0; i < original.length; i++) {
 				expect(adjusted[i][0]).toBe(original[i][0]);
@@ -798,8 +888,8 @@ describe('DataProvider', () => {
 			expect(frStore.get(ADJUSTED)!.adjustmentLabel).toBe('(Bass: +6.0dB)');
 		});
 
-		// An uploaded target is a target too: it has its own snapshot in targetOriginalData
-		// and goes through the same re-apply pass, so the snapshot must follow the smoothing.
+		// An uploaded target is a target too: it has its own unadjustedChannels
+		// and goes through the same re-apply pass, so they must follow the smoothing.
 		it('re-smooths an uploaded target exactly like a manifest target', async () => {
 			const manifest = 'manifest-target';
 			const uploaded = 'uploaded-target';
@@ -828,8 +918,8 @@ describe('DataProvider', () => {
 				// Guard: the new smoothing really moved the curve.
 				expect(drawnManifest).not.toEqual(atFirstSmoothing);
 				expect(drawnUploaded).toEqual(drawnManifest);
-				expect(graphStore.targetOriginalData.get(uploaded)!.AVG!.data).toEqual(
-					graphStore.targetOriginalData.get(manifest)!.AVG!.data
+				expect(frStore.get(uploaded)!.unadjustedChannels!.AVG!.data).toEqual(
+					frStore.get(manifest)!.unadjustedChannels!.AVG!.data
 				);
 			} finally {
 				graphStore.smoothValue = previousSmooth;
@@ -1020,6 +1110,25 @@ describe('DataProvider', () => {
 			expectEnvelopeBounds(item);
 			expect(item._rawData!.channels).toEqual(rawChannels);
 			expect(item._rawData!.samples).toBe(raw);
+		});
+
+		it('refreshes a target unadjustedChannels when it fetches an item with no raw cache', async () => {
+			const rawChannels = makeFullChannelData(90);
+			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue(rawChannels as FRParseResult);
+			const stale: ParsedFRData = {
+				AVG: { data: [[1000, 1]], metadata: { minFreq: 20, maxFreq: 20000 } }
+			};
+			frStore.set(
+				't',
+				makeTargetObject('t', { meta: META, dispSuffix: 'v2', unadjustedChannels: stale })
+			);
+
+			await dataProvider.reSmoothAll();
+
+			const item = frStore.get('t')!;
+			const processed = DataProcessor.processChannels(rawChannels, PARAMS);
+			expect(item.unadjustedChannels).toEqual(processed);
+			expect(item.unadjustedChannels).toEqual(item.channels);
 		});
 
 		it('keeps the item as it was when the fallback fetch fails', async () => {

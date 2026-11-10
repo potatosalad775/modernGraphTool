@@ -1,4 +1,4 @@
-import { isTargetType, type FRDataObject, type FRDataPoint } from '#lib/types/data-types.js';
+import type { FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
 import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
@@ -12,7 +12,7 @@ import { shareKey } from '#lib/utils/url-state.js';
  * `graphStore.baselineUUID` / `baselineMode` are the only state, and this module
  * is the only writer of them (`baseline.cycle`, `baseline.restoreFromURL`). It
  * has no state of its own: the channel data to subtract is derived on demand
- * from those two fields, `frStore` and `graphStore.targetOriginalData`, so it
+ * from those two fields and `frStore` (including a target's `unadjustedChannels`), so it
  * cannot go stale and a baseline restored before the graph exists compensates
  * the curves like any other. Every reader outside this module goes through the
  * *effective* baseline below, never the raw store fields.
@@ -31,10 +31,10 @@ export function isActiveBaselineMode(mode: unknown): mode is ActiveBaselineMode 
  * Resolve the channel data to subtract from every curve for a given baseline UUID + mode.
  * The single resolver — nothing else may branch on the mode to pick data.
  *
- * - `'withoutAdjustment'` → original (pre-adjustment) target channels from `graphStore.targetOriginalData`,
- *   so slider changes on the baseline target appear as a delta on the target line.
- *   Phones / targets without cached original data fall through to `frStore` — they have no
- *   "original" vs "adjusted" distinction.
+ * - `'withoutAdjustment'` → the target's `unadjustedChannels` (before the user's target
+ *   adjustments), so slider changes on the baseline target appear as a delta on the target line.
+ *   Phones / items without unadjusted channels fall through to their drawn channels — they have no
+ *   "unadjusted" vs "adjusted" distinction.
  * - `'withAdjustment'` (and the phone fallback) → current channels from `frStore`, so the
  *   target line is flat and other curves shift with adjustments.
  * - `'off'` → nothing.
@@ -48,10 +48,9 @@ export function resolveBaselineChannelData(
 	if (!uuid || mode === 'off') return null;
 
 	if (mode === 'withoutAdjustment') {
-		const original = graphStore.targetOriginalData.get(uuid);
-		const data = original?.AVG?.data;
+		const data = frStore.get(uuid)?.unadjustedChannels?.AVG?.data;
 		if (data) return data;
-		// Phones / targets without cached original data fall through to frStore.
+		// Items without unadjusted channels fall through to their drawn channels.
 	}
 
 	const data = frStore.get(uuid);
@@ -125,21 +124,21 @@ class Baseline {
 	/**
 	 * One click on an item's baseline button.
 	 *
-	 * - A phone, or a target with no cached original: this item is the baseline →
+	 * - A phone, or any item without unadjusted channels: this item is the baseline →
 	 *   off; otherwise it becomes the baseline in `withoutAdjustment`, replacing any
 	 *   other.
-	 * - A customizable target (`targetOriginalData` has it): not the baseline →
-	 *   `withoutAdjustment`; → `withAdjustment`; → off.
+	 * - A target (the only items with `unadjustedChannels`): not the baseline → `withoutAdjustment`;
+	 *   → `withAdjustment`; → off.
 	 */
 	cycle(uuid: string): void {
 		const item = frStore.get(uuid);
 		if (!item) return;
 
 		const current = this.modeFor(uuid);
-		const customizable = isTargetType(item) && graphStore.targetOriginalData.has(uuid);
+		const adjustable = !!item.unadjustedChannels;
 
 		if (current === 'off') this.#set(uuid, 'withoutAdjustment');
-		else if (customizable && current === 'withoutAdjustment') this.#set(uuid, 'withAdjustment');
+		else if (adjustable && current === 'withoutAdjustment') this.#set(uuid, 'withAdjustment');
 		else this.#set(null, 'off');
 	}
 

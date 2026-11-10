@@ -44,7 +44,6 @@ describe('eqCurve', () => {
 		commandHistory.clear();
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
-		graphStore.targetOriginalData.clear();
 	});
 
 	// ── Per-channel EQ ───────────────────────────────────────────────────────

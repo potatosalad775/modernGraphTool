@@ -133,7 +133,7 @@ describe('curve-data', () => {
 	describe('curveDataFromRaw', () => {
 		it('smooths and normalizes the channels', () => {
 			const channels = rawChannels();
-			const curve = curveDataFromRaw({ channels });
+			const curve = curveDataFromRaw({ channels }, 'phone');
 
 			expect(curve.channels).toEqual(DataProcessor.processChannels(channels, processingParams()));
 			expect(curve.channels.AVG!.metadata.smoothing).toBe('1/12');
@@ -148,13 +148,13 @@ describe('curve-data', () => {
 		it('leaves the raw cache untouched', () => {
 			const channels = rawChannels();
 			const runs = rawRuns();
-			curveDataFromRaw({ channels, samples: runs });
+			curveDataFromRaw({ channels, samples: runs }, 'phone');
 			expect(channels.AVG!.metadata.smoothing).toBeUndefined();
 			expect(runs[0].L!.metadata.smoothing).toBeUndefined();
 		});
 
 		it('has explicitly undefined runs and envelope when the cache has no runs', () => {
-			const curve = curveDataFromRaw({ channels: rawChannels() });
+			const curve = curveDataFromRaw({ channels: rawChannels() }, 'phone');
 			expect(Object.keys(curve)).toEqual(['channels', 'samples', 'envelope']);
 			expect(curve.samples).toBeUndefined();
 			expect(curve.envelope).toBeUndefined();
@@ -162,7 +162,7 @@ describe('curve-data', () => {
 
 		it('smooths and anchors the runs, keeping their labels', () => {
 			const runs = rawRuns();
-			const curve = curveDataFromRaw({ channels: rawChannels(), samples: runs });
+			const curve = curveDataFromRaw({ channels: rawChannels(), samples: runs }, 'phone');
 
 			expect(curve.samples).toEqual(DataProcessor.processSamples(runs, processingParams()));
 			expect(curve.samples!.map((s) => s.label)).toEqual(['Run 0', 'Run 1', 'Run 2']);
@@ -170,17 +170,33 @@ describe('curve-data', () => {
 		});
 
 		it('builds an envelope that bounds every processed run', () => {
-			const curve = curveDataFromRaw({ channels: rawChannels(), samples: rawRuns() });
+			const curve = curveDataFromRaw({ channels: rawChannels(), samples: rawRuns() }, 'phone');
 			expectEnvelopeBounds(curve.samples!, curve.envelope!);
 			// Three distinct runs: the band has real width.
 			expect(curve.envelope!.L.upper[0][1]).toBeGreaterThan(curve.envelope!.L.lower[0][1]);
 		});
 
+		for (const type of ['target', 'inserted-target'] as const) {
+			it(`sets unadjustedChannels for ${type}, equal to the processed channels`, () => {
+				const curve = curveDataFromRaw({ channels: rawChannels() }, type);
+				expect(curve.unadjustedChannels).toBeDefined();
+				expect(curve.unadjustedChannels).toEqual(curve.channels);
+			});
+		}
+
+		for (const type of ['phone', 'inserted-phone', 'eq', 'inserted-eq'] as const) {
+			it(`sets no unadjustedChannels for ${type}`, () => {
+				const curve = curveDataFromRaw({ channels: rawChannels() }, type);
+				expect(curve.unadjustedChannels).toBeUndefined();
+				expect('unadjustedChannels' in curve).toBe(false);
+			});
+		}
+
 		it('follows the smoothing and normalization asked for now', () => {
 			const raw = { channels: rawChannels(), samples: rawRuns() };
-			const at12 = curveDataFromRaw(raw);
+			const at12 = curveDataFromRaw(raw, 'phone');
 			graphStore.smoothValue = '1/3';
-			const at3 = curveDataFromRaw(raw);
+			const at3 = curveDataFromRaw(raw, 'phone');
 
 			expect(at3.channels.AVG!.metadata.smoothing).toBe('1/3');
 			expect(at3.samples![0].L!.metadata.smoothing).toBe('1/3');
@@ -192,10 +208,10 @@ describe('curve-data', () => {
 	describe('renormalizedCurveData', () => {
 		/** An item as `curveDataFromRaw` leaves it, at the current normalization. */
 		function drawn(withRuns: boolean): FRDataObject {
-			const curve = curveDataFromRaw({
-				channels: rawChannels(),
-				samples: withRuns ? rawRuns() : undefined
-			});
+			const curve = curveDataFromRaw(
+				{ channels: rawChannels(), samples: withRuns ? rawRuns() : undefined },
+				'phone'
+			);
 			return item({ ...curve });
 		}
 
@@ -211,6 +227,36 @@ describe('curve-data', () => {
 				expect(db - before.channels.L!.data[k][1]).toBeCloseTo(delta, 1);
 			});
 			expect(curve.channels.L!.metadata.smoothing).toBe('1/12');
+		});
+
+		it('normalizes a target’s unadjustedChannels the same way as its channels', () => {
+			const before = item({
+				type: 'target',
+				...curveDataFromRaw({ channels: rawChannels() }, 'target')
+			});
+			graphStore.normHzValue = 4000;
+			const curve = renormalizedCurveData(before);
+
+			expect(curve.unadjustedChannels).toEqual(curve.channels);
+			expect(curve.unadjustedChannels).not.toEqual(before.unadjustedChannels);
+		});
+
+		it('normalizes unadjustedChannels on their own, not against the adjusted channels', () => {
+			const unadjusted = { AVG: channel(() => 70) };
+			const adjusted = { AVG: channel(() => 75) };
+			graphStore.normHzValue = 1000;
+			const curve = renormalizedCurveData(
+				item({ type: 'target', channels: adjusted, unadjustedChannels: unadjusted })
+			);
+
+			// Both land on 0 dB at the reference: the adjustment is a shape, not a level.
+			expect(curve.unadjustedChannels!.AVG!.data[0][1]).toBeCloseTo(0, 6);
+			expect(curve.channels.AVG!.data[0][1]).toBeCloseTo(0, 6);
+		});
+
+		it('has no unadjustedChannels for an item that has none', () => {
+			const curve = renormalizedCurveData(drawn(false));
+			expect(curve.unadjustedChannels).toBeUndefined();
 		});
 
 		it('hands back the item’s own runs and envelope when it has none', () => {

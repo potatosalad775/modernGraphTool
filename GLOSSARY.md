@@ -32,8 +32,13 @@ _Avoid_: Compensation, reference curve
 
 **Baseline mode**:
 Which shape of the baseline is subtracted: off, the baseline as measured (without adjustment), or
-the baseline with the user's target adjustments applied (with adjustment). Only a customized target
-has the third mode.
+the baseline with the user's target adjustments applied (with adjustment). Only a target has the
+third mode.
+
+**Unadjusted channels**:
+A target's channels before the user's target adjustments; what the _without adjustment_ baseline
+mode subtracts.
+_Avoid_: Original data, target original
 
 ### Equalizer
 

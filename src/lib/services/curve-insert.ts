@@ -9,8 +9,7 @@ import type {
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { AddFRDataCommand } from './commands.js';
-import { pickChannels, processingParams } from './curve-data.js';
-import { DataProcessor } from '#lib/utils/data-processor.js';
+import { curveDataFromRaw } from './curve-data.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import {
 	nextCurveColor,
@@ -80,14 +79,16 @@ export function insertRawCurve(
 	rawData: ParsedFRData,
 	inputMetadata: FRInputMetadata
 ): void {
-	const processed = pickChannels(DataProcessor.processChannels(rawData, processingParams()));
+	const type = `inserted-${sourceType}` as FRDataType;
+	const { channels: processed, unadjustedChannels } = curveDataFromRaw({ channels: rawData }, type);
 	const channels = Object.keys(processed) as Channel[];
 
 	const frObject: FRDataObject = {
 		uuid: crypto.randomUUID(),
-		type: `inserted-${sourceType}` as FRDataType,
+		type,
 		identifier,
 		channels: processed,
+		...(unadjustedChannels && { unadjustedChannels }),
 		dispChannel: inputMetadata.dispChannel ?? getChannelValue(sourceType, channels),
 		dispSuffix: inputMetadata.dispSuffix ?? '(Inserted)',
 		colors: getColorForType(sourceType),

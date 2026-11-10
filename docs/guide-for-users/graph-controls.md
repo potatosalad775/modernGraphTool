@@ -87,7 +87,7 @@ Beware of over-zooming: a 5 dB difference that looks enormous on a 20 dB range i
 
 ## Inspection mode
 
-Toggle **Inspection** (magnifier icon) on and a small readout follows your cursor as it moves across the graph, showing the exact frequency and dB value at that position. Every loaded curve gets its own line in the readout, so you can compare all of them at a single frequency at once.
+Toggle **Inspection** (magnifier icon) on and a small readout follows your cursor as it moves across the graph, showing the exact frequency and dB value at that position. Every loaded curve gets its own line in the readout, so you can compare all of them at a single frequency at once. The values are the measured levels, so a curve with a [Y-offset](./working-with-curves.mdx#y-offset) shows the offset after its value, such as `72.4dB (+1)`.
 
 On mobile, tap-and-drag instead of hovering. Toggle inspection off when you don't need it — the cursor tracking gets in the way otherwise.
 

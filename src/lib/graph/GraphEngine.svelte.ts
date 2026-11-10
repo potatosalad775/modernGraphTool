@@ -1,19 +1,20 @@
 import * as d3 from 'd3';
-import type {
-	FRDataObject,
-	FRDataPoint,
-	BaselineData,
-	SampleEnvelope
+import {
+	isTargetType,
+	type FRDataObject,
+	type FRDataPoint,
+	type BaselineData,
+	type SampleEnvelope
 } from '#lib/types/data-types.js';
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
-import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { sampleFillOpacity } from '#lib/utils/sample-config.js';
-import { eqSourceChannels, eqSourceRun } from '#lib/utils/eq-source.js';
 import { resolveBaselineChannelData } from './baseline.js';
+import { combineEnvelopes, curveTraces, selectEnvelope } from './curve-traces.js';
+import { eqSourceContextFor } from './eq-source-context.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 import type { CompareOverlayApi } from './GraphCompareOverlay.js';
 
@@ -269,56 +270,18 @@ class GraphEngine {
 		return lineGenerator(originalData);
 	}
 
-	/** Merge multiple per-channel envelopes into one by taking the widest spread
-	 *  at each frequency index. Used when dispChannel covers more than one channel
-	 *  (e.g. L+R) so the fill area reflects every underlying run's extremes. */
+	/** Merge several per-channel envelopes into one (the widest spread at each index). */
 	_combineEnvelopes(envelopes: SampleEnvelope[]): SampleEnvelope {
-		const valid = envelopes.filter((e) => e?.upper.length && e?.lower.length);
-		if (valid.length === 0) return { upper: [], lower: [] };
-		if (valid.length === 1) return valid[0];
-		const base = valid[0];
-		const upper: FRDataPoint[] = base.upper.map(([freq], i) => {
-			let max = -Infinity;
-			for (const e of valid) {
-				const v = e.upper[i]?.[1];
-				if (v !== undefined && v > max) max = v;
-			}
-			return [freq, max] as FRDataPoint;
-		});
-		const lower: FRDataPoint[] = base.lower.map(([freq], i) => {
-			let min = Infinity;
-			for (const e of valid) {
-				const v = e.lower[i]?.[1];
-				if (v !== undefined && v < min) min = v;
-			}
-			return [freq, min] as FRDataPoint;
-		});
-		return { upper, lower };
+		return combineEnvelopes(envelopes);
 	}
 
 	/** Build closed SVG path for a sample set's min/max envelope */
 	_buildEnvelopePath(obj: FRDataObject): string | null {
-		if (!obj.envelope) return null;
+		return this._envelopePath(selectEnvelope(obj));
+	}
 
-		// Fill envelope rules:
-		//   dispChannel = ['L']         → envelope.L only
-		//   dispChannel = ['R']         → envelope.R only
-		//   dispChannel = ['AVG']       → combined L+R envelope (NOT envelope.AVG — that hides true spread)
-		//   dispChannel = ['L','R'] etc → combined L+R envelope
-		let pickChannels: ('L' | 'R' | 'AVG')[];
-		const single = obj.dispChannel.length === 1 ? obj.dispChannel[0] : null;
-		if (single === 'L') {
-			pickChannels = ['L'];
-		} else if (single === 'R') {
-			pickChannels = ['R'];
-		} else {
-			const available: ('L' | 'R')[] = [];
-			if (obj.envelope.L?.upper.length) available.push('L');
-			if (obj.envelope.R?.upper.length) available.push('R');
-			pickChannels =
-				available.length > 0 ? available : obj.envelope.AVG?.upper.length ? ['AVG'] : [];
-		}
-		const envelope = this._combineEnvelopes(pickChannels.map((c) => obj.envelope![c]));
+	/** Closed SVG path for one envelope, baseline-compensated; null when it is empty. */
+	_envelopePath(envelope: SampleEnvelope): string | null {
 		if (!envelope.upper.length) return null;
 
 		const bisect = d3.bisector<FRDataPoint, number>((point) => point[0]).left;
@@ -484,157 +447,71 @@ class GraphEngine {
 		const object = frStore.get(uuid);
 		if (!object) return;
 
-		if (object.type === 'phone') {
-			this._drawPhoneCurve(object);
-		} else if (object.type === 'target') {
-			this._drawTargetCurve(object);
-		} else {
-			this._drawUnknownCurve(object);
-		}
+		this._drawTraces(object);
 
 		if (object.yOffset) {
 			this.applyYOffset(uuid, object.yOffset);
 		}
 	}
 
-	/** Draw Phone curve */
-	_drawPhoneCurve(obj: FRDataObject): void {
-		const channels = [...obj.dispChannel];
-		const baseThickness = parseFloat(
-			(getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
-		);
-		const isEqSource = eqStore.isEnabled && obj.uuid === eqStore.sourcePhoneUUID;
-		// EQ'ing one run of a set makes that run the "before" curve, so the ghost
-		// draws it in place of the average — even with the average toggled off.
-		const sourceRun = isEqSource ? eqSourceRun(obj, eqStore.sourceSample) : null;
-		const mainChannels = sourceRun ? eqSourceChannels(obj, eqStore.sourceSample) : obj.channels;
+	/**
+	 * Draw whatever `curveTraces` says the item puts on the graph; labels and the
+	 * hover readout read the same list. Channels and runs are stored already
+	 * smoothed at `graphStore.smoothValue` (`reSmoothAll` rebuilds them when it
+	 * changes), so paths bind them as-is.
+	 */
+	_drawTraces(obj: FRDataObject): void {
+		const isTarget = isTargetType(obj);
+		const phoneThickness = (getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2';
+		const baseThickness = parseFloat(phoneThickness);
+		const mainThickness = isTarget
+			? (getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1'
+			: phoneThickness;
+		const itemClass = `fr-graph-${obj.type}-curve`;
 
-		// A sample set draws as three independent layers — envelope fill behind,
-		// per-run curves, then the averaged main channels — each with its own
-		// toggle. An item with no set is just the third layer, which is why
-		// `showAvg` being absent has to mean "draw it".
-		// Channels and runs are stored already smoothed at `graphStore.smoothValue`
-		// (`reSmoothAll` rebuilds them when it changes), so paths bind them as-is.
-
-		// 1. Min/max envelope fill (behind everything)
-		if (obj.showFill && obj.envelope) {
-			const fillPath = this._buildEnvelopePath(obj);
-			if (fillPath) {
+		for (const trace of curveTraces(obj, eqSourceContextFor(obj))) {
+			if (trace.kind === 'fill') {
+				const fillPath = this._envelopePath(trace.envelope);
+				if (!fillPath) continue;
 				// Transparency goes through `fill-opacity` / `stroke-opacity` rather than
 				// being folded into the color string. Rewriting the color only worked for
 				// the `oklch()` and `hsl()` notations — a hex from CURVE_COLOR_PALETTE fell
 				// through unchanged and the band drew fully opaque, hiding the curves it
 				// is supposed to sit behind.
 				const opacity = sampleFillOpacity();
-				const color = obj.colors.AVG;
 				this.curveGroup
 					.insert('path', ':first-child')
-					.attr('class', 'fr-graph-phone-curve fr-graph-sample-fill')
+					.attr('class', `${itemClass} fr-graph-sample-fill`)
 					.attr('uuid', obj.uuid)
 					.attr('type', obj.type)
 					.attr('identifier', obj.identifier)
 					.attr('d', fillPath)
-					.attr('fill', color)
+					.attr('fill', trace.color)
 					.attr('fill-opacity', String(opacity))
-					.attr('stroke', color)
+					.attr('stroke', trace.color)
 					.attr('stroke-opacity', String(opacity))
 					.attr('stroke-width', String(baseThickness / 2))
-					.attr('opacity', isEqSource ? 0.35 : null)
+					.attr('opacity', trace.ghost ? 0.35 : null)
 					.style('pointer-events', 'none');
+				continue;
 			}
-		}
 
-		// 2. Individual run curves
-		if (obj.samples && obj.dispSamples?.length) {
-			const sampleThickness = baseThickness * 0.6;
-
-			for (const key of obj.dispSamples) {
-				const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
-				if (!match) continue;
-				const sampleIndex = parseInt(match[1]);
-				const channel = match[2] as 'L' | 'R' | 'AVG';
-				const sample = obj.samples[sampleIndex];
-				if (!sample?.[channel]) continue;
-
-				this.curveGroup
-					.append('path')
-					.datum(sample[channel]!.data)
-					.attr('class', 'fr-graph-phone-curve fr-graph-sample-curve')
-					.attr('uuid', obj.uuid)
-					.attr('type', obj.type)
-					.attr('channel', key)
-					.attr('sample', 'true')
-					.attr('identifier', obj.identifier)
-					.attr('stroke', obj.colors.samples?.[key] || obj.colors.AVG)
-					.attr('stroke-width', String(sampleThickness))
-					.attr('stroke-dasharray', obj.dash || '1 0')
-					.attr('opacity', '0.5')
-					.attr('d', (d) => this._getCompensatedPath(d));
-			}
-		}
-
-		// 3. Averaged main channels (or the EQ source's run)
-		if (obj.showAvg !== false || sourceRun) {
-			channels.forEach((channel) => {
-				if (!mainChannels[channel]) return;
-				this.curveGroup
-					.append('path')
-					.datum(mainChannels[channel]!.data)
-					.attr('class', 'fr-graph-phone-curve')
-					.attr('uuid', obj.uuid)
-					.attr('type', obj.type)
-					.attr('channel', channel)
-					.attr('identifier', obj.identifier)
-					.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-					.attr('stroke-width', String(baseThickness))
-					.attr('stroke-dasharray', obj.dash || '1 0')
-					.attr('opacity', isEqSource ? 0.35 : null)
-					.attr('d', (d) => this._getCompensatedPath(d));
-			});
-		}
-	}
-
-	/** Draw Target curve */
-	_drawTargetCurve(obj: FRDataObject): void {
-		this.curveGroup
-			.append('path')
-			.datum(obj.channels['AVG']!.data)
-			.attr('class', 'fr-graph-target-curve')
-			.attr('uuid', obj.uuid)
-			.attr('type', obj.type)
-			.attr('identifier', obj.identifier)
-			.attr('stroke', `${obj.colors['AVG'] || 'var(--color-base-content)'}`)
-			.attr(
-				'stroke-width',
-				(getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1'
-			)
-			.attr('stroke-dasharray', obj.dash || '4 4')
-			.attr('d', (d) => this._getCompensatedPath(d));
-	}
-
-	/** Draw Unknown curve */
-	_drawUnknownCurve(obj: FRDataObject): void {
-		const channels = [...obj.dispChannel];
-
-		channels.forEach((channel) => {
+			const isRun = trace.kind === 'run';
 			this.curveGroup
 				.append('path')
-				.datum(obj.channels[channel]!.data)
-				.attr('class', `fr-graph-${obj.type}-curve`)
+				.datum(trace.data)
+				.attr('class', isRun ? `${itemClass} fr-graph-sample-curve` : itemClass)
 				.attr('uuid', obj.uuid)
 				.attr('type', obj.type)
-				.attr('channel', channel)
+				.attr('channel', trace.key)
+				.attr('sample', isRun ? 'true' : null)
 				.attr('identifier', obj.identifier)
-				.attr('stroke', `${obj.colors[channel as 'L' | 'R' | 'AVG'] || obj.colors['AVG']}`)
-				.attr(
-					'stroke-width',
-					obj.type === 'inserted-target'
-						? (getConfigValue('TRACE_STYLING.TARGET_TRACE_THICKNESS') as string) || '1'
-						: (getConfigValue('TRACE_STYLING.PHONE_TRACE_THICKNESS') as string) || '2'
-				)
-				.attr('stroke-dasharray', obj.dash || '1 0')
+				.attr('stroke', trace.color)
+				.attr('stroke-width', isRun ? String(baseThickness * 0.6) : mainThickness)
+				.attr('stroke-dasharray', obj.dash || (obj.type === 'target' ? '4 4' : '1 0'))
+				.attr('opacity', isRun ? '0.5' : trace.ghost ? 0.35 : null)
 				.attr('d', (d) => this._getCompensatedPath(d));
-		});
+		}
 	}
 
 	/** Erase FR Curve */
@@ -777,11 +654,7 @@ class GraphEngine {
 		this.curveGroup.selectAll(`.fr-graph-${type}-curve[uuid="${uuid}"]`).remove();
 		const frData = frStore.get(uuid);
 		if (!frData) return;
-		if (type === 'phone') {
-			this._drawPhoneCurve(frData);
-		} else {
-			this._drawUnknownCurve(frData);
-		}
+		this._drawTraces(frData);
 	}
 }
 

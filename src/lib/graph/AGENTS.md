@@ -7,6 +7,7 @@ D3.js lives in `GraphEngine.svelte.ts` with overlays:
 - `GraphEqOverlay.ts` — EQ curve rendering
 - `GraphSpectrumOverlay.ts` — live audio spectrum
 - `GraphCompareOverlay.ts` — History & Compare A/B ghost trace
+- `curve-traces.ts` — what a curve item draws (below); `curve-label.ts` names it
 
 Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using
 `bind:this={svgEl}`. **Never** `d3.select('#fr-graph')` — always pass the bound SVG element.
@@ -44,13 +45,27 @@ originals.
 - `renormalizeAll` and `reSmoothAll` keep `targetOriginalData` aligned with `frStore.channels` so
   `withoutAdjustment` baselines stay at the same reference as the rest of the curves.
 
+## `curve-traces.ts` — what an item draws
+
+`curveTraces(obj, eqSource)` is the single answer to "which traces does this item put on screen?"
+(a fill, runs, main channels — plain data, no stores or d3). **The engine, the labels
+(`curve-label-rows.ts`) and the hover readout all consume it; don't re-derive a rule in a reader.**
+Callers keep `hidden`, sort order and everything presentational: opacity, thickness, dash, `yOffset`,
+baseline compensation. `listedTraces` is the order rows read in (main, then runs).
+
+- Targets (`isTargetType`, so uploads too): one AVG trace, whatever `dispChannel` says. Everything
+  else follows the phone rule; a `dispChannel` entry with no data is skipped.
+- `eqSource` is `{ sample }` while the item is the enabled EQ source (`eqSourceContextFor` builds it
+  from `eqStore`), else `null`.
+- Run colours are `colors.samples[key] || colors.AVG`, in the legend and hover too.
+
 ## The EQ source ghost
 
-While EQ is on, `_drawPhoneCurve` dims the source to 0.35 as the "before" curve. With a sample run as
-the source (`eqStore.sourceSample`) the ghost is that run, drawn in place of the average and even
-with the average toggled off — the EQ curve is the run plus the bands, so ghosting the average would
-compare it against a curve it was never built from. `GraphInspection` reads the same channels for the
-same reason.
+While EQ is on, the source's fill and main traces are `ghost` and the engine dims them to 0.35 as
+the "before" curve. With a sample run as the source (`eqStore.sourceSample`) the ghost is that run,
+drawn in place of the average and even with the average toggled off — the EQ curve is the run plus
+the bands, so ghosting the average would compare it against a curve it was never built from. Labels
+and hover list it too, named by the run (`Phone (Center, AVG)`), not as the average.
 
 ## `GraphEqOverlay` and the channel scope
 

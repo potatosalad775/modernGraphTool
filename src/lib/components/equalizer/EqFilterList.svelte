@@ -213,11 +213,9 @@
 				// An imported parametric file is authored without a device
 				// constraint in mind — applying it under a graphic preset
 				// (e.g. Sony 10-band) would fold the filters into the wrong
-				// shape. Reset to unlimited PEQ so the import lands faithfully.
-				if (eqConstraintsStore.isLimiting) {
-					eqConstraintsStore.setActive(DEFAULT_CONSTRAINT_ID);
-				}
-				eqCommands.replaceFilters(filters);
+				// shape. `importFilters` drops to unlimited PEQ so the import lands
+				// faithfully, and undo brings the restriction back with the bands.
+				eqCommands.importFilters(filters);
 				eqCommands.ensureEnabled();
 				toast.success(m.equalizer_filter_list_import(), {
 					description: m.equalizer_filter_list_import_count({ count: filters.length })

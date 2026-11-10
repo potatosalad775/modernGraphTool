@@ -27,6 +27,7 @@ import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { eqCurve } from '#lib/services/eq-curve.svelte.js';
+import { conformFilters } from '#lib/utils/eq-constraint.js';
 import { toast } from 'svelte-sonner';
 import { downloadText } from '#lib/utils/download-text.js';
 
@@ -385,6 +386,47 @@ describe('EqFilterList', () => {
 			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
 			expect(eqStore.filters).toHaveLength(1);
 			expect(eqStore.filters[0].freq).toBe(123);
+		});
+
+		// The drop is part of the import, so it has to come back with the old bands: undoing only
+		// the bands would leave the user's restriction silently lifted.
+		it('is one undo entry that restores the bands and the restriction it dropped', async () => {
+			eqConstraintsStore.setActive('generic-10-band');
+			eqStore.filters = conformFilters(
+				[makeFilter({ freq: 1000, gain: 3 })],
+				eqConstraintsStore.profile
+			);
+			const before = eqStore.filters.map((f) => ({ ...f }));
+			commandHistory.clear();
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+
+			eqCommands.flushAll();
+			commandHistory.undo(frStore);
+			expect(eqConstraintsStore.activeId).toBe('generic-10-band');
+			expect(eqStore.filters).toEqual(before);
+			expect(commandHistory.canUndo).toBe(false);
+
+			commandHistory.redo(frStore);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].freq).toBe(123);
+		});
+
+		it('is still one undo entry with no restriction in force', async () => {
+			eqStore.filters = [makeFilter({ freq: 500 })];
+			commandHistory.clear();
+			render(EqFilterList);
+			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
+			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
+
+			eqCommands.flushAll();
+			commandHistory.undo(frStore);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([500]);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(commandHistory.canUndo).toBe(false);
 		});
 
 		it('reports a file with no usable filter and leaves the EQ alone', async () => {

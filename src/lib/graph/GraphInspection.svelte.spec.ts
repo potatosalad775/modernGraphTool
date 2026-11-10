@@ -423,6 +423,71 @@ describe('GraphInspection', () => {
 			expect(labels()).toEqual(['Mine: 75.0dB']);
 		});
 
+		describe('y-offset note', () => {
+			it('appends a signed offset after the value for a positive offset', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: 1 });
+				hoverAt(1000);
+				expect(labels()).toEqual(['Phone A (AVG): 79.0dB (+1)']);
+			});
+
+			it('appends a negative offset', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: -3 });
+				hoverAt(1000);
+				expect(labels()).toEqual(['Phone A (AVG): 79.0dB (-3)']);
+			});
+
+			it('keeps a fractional offset, without float noise or trailing zeros', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: -2.5 });
+				addPhone('b', 'Phone B', 80, { yOffset: 0.1 + 0.2 });
+				hoverAt(1000);
+				expect(labels()).toEqual(['Phone A (AVG): 79.0dB (-2.5)', 'Phone B (AVG): 79.0dB (+0.3)']);
+			});
+
+			it.each([0, undefined])('adds nothing for an offset of %s', (yOffset) => {
+				addPhone('a', 'Phone A', 80, { yOffset });
+				hoverAt(1000);
+				expect(labels()).toEqual(['Phone A (AVG): 79.0dB']);
+			});
+
+			it('adds nothing for an offset too small to show', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: 0.001 });
+				hoverAt(1000);
+				expect(labels()).toEqual(['Phone A (AVG): 79.0dB']);
+			});
+
+			it('rides on every row of the item, runs included, and only that item', () => {
+				addPhone('a', 'Phone A', 80, {
+					yOffset: 2,
+					samples: [{ label: 'Center', L: channel(81) }],
+					dispSamples: ['sample0_L']
+				} as Partial<FRDataObject>);
+				addPhone('b', 'Phone B', 70);
+				hoverAt(1000);
+				expect(labels()).toEqual([
+					'Phone A (AVG): 79.0dB (+2)',
+					'  Phone A (Center, L): 81.0dB (+2)',
+					'Phone B (AVG): 69.0dB'
+				]);
+			});
+
+			it('leaves the value itself unshifted', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: 5 });
+				hoverAt(1000);
+				expect(labels()[0]).toMatch(/^Phone A \(AVG\): 79\.0dB/);
+			});
+
+			it('sizes the backdrop for the longer text', () => {
+				addPhone('a', 'Phone A', 80, { yOffset: -12.5 });
+				hoverAt(1000);
+				const backdrop = host.querySelector('.inspection-values g rect') as SVGRectElement;
+				const text = host.querySelector('.inspection-values g text') as SVGTextElement;
+				// Padding is 10 each side; the box must cover the whole string, suffix included.
+				expect(Number(backdrop.getAttribute('width'))).toBeGreaterThanOrEqual(
+					text.getBBox().width + 20 - 0.5
+				);
+			});
+		});
+
 		it('places the list to the right of the cursor when there is room', () => {
 			addPhone('a', 'Phone A', 80);
 			hoverAt(30);

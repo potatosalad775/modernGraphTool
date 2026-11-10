@@ -9,6 +9,19 @@ import { eqSourceContextFor } from './eq-source-context.js';
  *  There are 15 units of margin on each side, so this stays inside the SVG. */
 const TRACKER_OVERHANG = 4;
 
+/**
+ * The item's Y-offset as a suffix, e.g. ` (+1)` / ` (-2.5)`; empty for none.
+ * The readout reports the true level, but the curve is drawn shifted by this
+ * much, so the note says why the two disagree on screen. Rounded to 2 decimals
+ * (the offset box takes any decimal) with trailing zeros dropped. Plain ASCII
+ * and numeric on purpose, like every graph label.
+ */
+function yOffsetNote(yOffset: number | undefined): string {
+	const magnitude = Number(Math.abs(yOffset ?? 0).toFixed(2));
+	if (!magnitude) return '';
+	return ` (${yOffset! > 0 ? '+' : '-'}${magnitude})`;
+}
+
 class GraphInspection {
 	graphEngine: GraphEngine;
 	isEnabled: boolean;
@@ -165,6 +178,7 @@ class GraphInspection {
 				// One row per trace the item draws: its main traces, then its runs. A run
 				// is indented under them. An EQ'd run stands in for the average on the
 				// graph, so it is a main trace here too (`curveTraces`).
+				const offsetNote = yOffsetNote(obj.yOffset);
 				for (const trace of listedTraces(curveTraces(obj, eqSourceContextFor(obj)))) {
 					const splValue = this._interpolateSPL(trace.data, frequency);
 					if (splValue === null) continue;
@@ -173,7 +187,7 @@ class GraphInspection {
 					const indent = trace.kind === 'run' ? '  ' : '';
 
 					deviceListData.push({
-						displayText: `${indent}${trace.name}: ${compensatedSPL.toFixed(1)}dB`,
+						displayText: `${indent}${trace.name}: ${compensatedSPL.toFixed(1)}dB${offsetNote}`,
 						textWidth: 0,
 						color: trace.color,
 						yOffset

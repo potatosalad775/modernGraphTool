@@ -2,7 +2,10 @@ import type { Command } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
-import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
+import {
+	DEFAULT_CONSTRAINT_ID,
+	eqConstraintsStore
+} from '#lib/stores/eq-constraints-store.svelte.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
@@ -182,16 +185,21 @@ export class ApplyEqSnapshotCommand implements Command {
  * ears with one list) and folding the rest onto it. Unlike a plain preset pick, the constraint
  * change is part of the command: undoing only the removal would bring per-ear bands back under a
  * restriction that can't hold them.
+ *
+ * With `filters` it lands that list instead of the current shared bands (a file import). The
+ * constraint is set first, so the list is folded onto the new profile, never the one it replaces.
  */
 export class ApplyConstraintCommand implements Command {
 	readonly uuid = EQ_COMMAND_UUID;
 	readonly #id: string;
+	readonly #incoming: EQFilter[] | null;
 	#prevId: string | null = null;
 	#oldFilters: EQFilter[] | null = null;
 	#newFilters: EQFilter[] | null = null;
 
-	constructor(id: string) {
+	constructor(id: string, filters?: EQFilter[]) {
 		this.#id = id;
+		this.#incoming = filters ? filters.map((f) => ({ ...f })) : null;
 	}
 
 	execute(_store: FRStoreWriteAPI): void {
@@ -200,7 +208,7 @@ export class ApplyConstraintCommand implements Command {
 		eqConstraintsStore.setActive(this.#id);
 		// Computed once, so a redo lands the same list even if the profile has gone since.
 		this.#newFilters ??= conformFilters(
-			eqStore.filters.filter((f) => f.channel == null),
+			this.#incoming ?? eqStore.filters.filter((f) => f.channel == null),
 			eqConstraintsStore.profile
 		);
 		eqStore.filters = this.#newFilters.map((f) => ({ ...f }));
@@ -535,6 +543,23 @@ export const eqCommands = {
 		}
 		commandHistory.execute(new ReplaceEqFiltersCommand(next), frStore);
 		return true;
+	},
+
+	/**
+	 * Land an imported file's bands, as one undo entry. An imported parametric file is authored
+	 * without a device in mind, so a limiting restriction is dropped first rather than folding the
+	 * bands onto it; that drop is part of the entry, so undo brings back the old bands _and_ the
+	 * restriction, and redo re-applies both. With no restriction in force it is `replaceFilters`.
+	 *
+	 * Does not call `ensureEnabled()` — the caller does, right after (see there).
+	 */
+	importFilters(filters: EQFilter[]): void {
+		if (!eqConstraintsStore.isLimiting) {
+			eqCommands.replaceFilters(filters);
+			return;
+		}
+		coalescer.clear();
+		commandHistory.execute(new ApplyConstraintCommand(DEFAULT_CONSTRAINT_ID, filters), frStore);
 	},
 
 	/** Activate preset `id` and drop the per-ear bands it can't hold, as one undo entry. */

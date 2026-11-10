@@ -9,6 +9,8 @@ import {
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { graphicPreset, parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { eqCommands } from './eq-commands.js';
+import { eqChannelConflict } from './eq-channel-conflict.svelte.js';
+import { flushSync } from 'svelte';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
@@ -123,6 +125,114 @@ describe('eqCommands', () => {
 			commandHistory.undo(frStore);
 			expect(eqStore.filters.map((f) => f.freq)).toEqual([100, 200]);
 			expect(eqStore.filters[1].gain).toBe(2);
+		});
+	});
+
+	describe('importFilters', () => {
+		const strict = parametricPreset('strict', {
+			label: 'Strict 2-band',
+			maxBands: 2,
+			types: ['PK'],
+			freq: { min: 100, max: 10000 },
+			gain: { min: -6, max: 6 },
+			q: { min: 0.5, max: 5 }
+		});
+		const incoming = () => [
+			makeFilter({ freq: 50, gain: 12, q: 0.2 }),
+			makeFilter({ freq: 2000, gain: 3 }),
+			makeFilter({ freq: 15000, gain: -12, q: 8 })
+		];
+
+		beforeEach(() => {
+			eqConstraintsStore.presets = [...BUILTIN_PRESETS, strict];
+			eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		});
+
+		afterEach(() => {
+			eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+			eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		});
+
+		it('with no restriction is one undo entry, exactly replaceFilters', () => {
+			eqStore.filters = [makeFilter({ freq: 500, gain: 1 })];
+			const revision = commandHistory.revision;
+
+			eqCommands.importFilters(incoming());
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([50, 2000, 15000]);
+			expect(commandHistory.revision).toBe(revision + 1);
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([500]);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(commandHistory.canUndo).toBe(false);
+
+			commandHistory.redo(frStore);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([50, 2000, 15000]);
+		});
+
+		it('drops the restriction and lands the bands unfolded, as one undo entry', () => {
+			eqConstraintsStore.setActive('strict');
+			eqStore.filters = [makeFilter({ freq: 500, gain: 1 })];
+			const before = eqStore.filters.map((f) => ({ ...f }));
+			const revision = commandHistory.revision;
+
+			eqCommands.importFilters(incoming());
+
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			// Not clamped onto the restriction it replaced: out of its range, past its band cap.
+			expect(eqStore.filters.map((f) => [f.freq, f.gain, f.q])).toEqual([
+				[50, 12, 0.2],
+				[2000, 3, 1],
+				[15000, -12, 8]
+			]);
+			expect(commandHistory.revision).toBe(revision + 1);
+
+			commandHistory.undo(frStore);
+			expect(eqConstraintsStore.activeId).toBe('strict');
+			expect(eqStore.filters).toEqual(before);
+			expect(commandHistory.canUndo).toBe(false);
+
+			commandHistory.redo(frStore);
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+			expect(eqStore.filters.map((f) => f.freq)).toEqual([50, 2000, 15000]);
+			expect(commandHistory.canRedo).toBe(false);
+		});
+
+		it('leaves the master toggle to the caller', () => {
+			eqConstraintsStore.setActive('strict');
+			eqCommands.importFilters(incoming());
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		// The conflict watcher reacts to a restriction over per-ear bands. The command writes both
+		// in one tick, so it only ever sees the pre-import state or the imported one.
+		it('never shows the per-ear conflict question, through undo and redo', () => {
+			eqChannelConflict.install();
+			eqConstraintsStore.setActive('strict');
+			eqStore.filters = [makeFilter({ freq: 500 })];
+			flushSync();
+
+			eqCommands.importFilters([
+				makeFilter({ freq: 300 }),
+				makeFilter({ freq: 400, channel: 'L' })
+			]);
+			flushSync();
+			expect(eqChannelConflict.question).toBeNull();
+			expect(eqStore.filters.map((f) => f.channel)).toEqual([undefined, 'L']);
+
+			commandHistory.undo(frStore);
+			flushSync();
+			expect(eqChannelConflict.question).toBeNull();
+			expect(eqConstraintsStore.activeId).toBe('strict');
+
+			commandHistory.redo(frStore);
+			flushSync();
+			expect(eqChannelConflict.question).toBeNull();
+			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
+
+			eqChannelConflict.reset();
+			eqStore.filters = [];
+			flushSync();
 		});
 	});
 

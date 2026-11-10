@@ -75,8 +75,11 @@ Don't replace it with a warning beside the bands, or with a picker that stays op
   connecting, an undo past an edit made before the pick, a `?share=` link opening on a saved
   restriction. Keep there means the unlimited default; for a device, "don't restrict to it" (its
   preset stays in the picker, and the push review already lists per-ear bands as not sent).
-- An import needs no question: `EqFilterList` drops back to unlimited before importing. A/B entries
-  with per-ear bands are gated as not fitting in `EqHistoryAndCompare`.
+- An import needs no question: `EqFilterList` drops back to unlimited before importing, through
+  `eqCommands.importFilters`. The drop is part of the import's undo entry (`ApplyConstraintCommand`
+  given the file's bands), so one undo brings back the old bands _and_ the restriction and one redo
+  re-applies both; with no restriction it is plain `replaceFilters`. The caller still follows it with
+  `ensureEnabled()`. A/B entries with per-ear bands are gated as not fitting in `EqHistoryAndCompare`.
 
 ## `device-peq-service.svelte.ts` — Device PEQ actions and auto-write
 

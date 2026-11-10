@@ -8,7 +8,7 @@
 	import { GraphSoundRangeOverlay } from '#lib/graph/GraphSoundRangeOverlay.js';
 	import { GraphCompareOverlay } from '#lib/graph/GraphCompareOverlay.js';
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
-	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 	import { compareGhostSide } from '#lib/utils/eq-snapshot.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
@@ -463,11 +463,11 @@
 				? compareGhostSide(a, b, eqStore.filters)
 				: null;
 		const entry = side === 'A' ? a : side === 'B' ? b : null;
-		const built = entry ? dataProvider.eqChannelsFor(entry.filters) : null;
-		const eqCurve = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
+		const built = entry ? eqCurve.channelsFor(entry.filters) : null;
+		const liveCurve = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
 		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
 		// With nothing to apply there is no EQ curve; the source stands in for it.
-		const shownBy = eqCurve ?? source;
+		const shownBy = liveCurve ?? source;
 		const curves =
 			built && shownBy && !shownBy.hidden
 				? shownBy.dispChannel.flatMap((ch) =>
@@ -479,7 +479,7 @@
 			// English on purpose, like the other graph labels.
 			label: side ? `${side} (compare)` : null,
 			curves,
-			yOffset: eqCurve?.yOffset ?? 0,
+			yOffset: liveCurve?.yOffset ?? 0,
 			baselineChannelData: resolveBaselineChannelData(
 				graphStore.baselineUUID,
 				graphStore.baselineMode

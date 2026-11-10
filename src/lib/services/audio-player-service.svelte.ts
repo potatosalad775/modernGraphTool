@@ -235,7 +235,7 @@ class AudioPlayerService {
 		this.#rangeLowpass = null;
 		this.#rangeMakeup = null;
 
-		// `!= null` — not truthiness — matching rebuildEqCurve, computeBypassMatchDb and
+		// `!= null` — not truthiness — matching eqCurve.rebuild, computeBypassMatchDb and
 		// the filter export. `null` is the "not filled in yet" state for a new band; a
 		// band with gain 0 is a real (if no-op) filter, and dropping it here used to
 		// make `filters.length` 0 and silently strip the preamp along with it.

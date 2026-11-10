@@ -146,7 +146,7 @@ the sort track `loadedIds` live looks like a simplification and re-sorts rows ou
 cursor mid-click; keeping a stale pin on a device the user just unloaded is the deliberate trade.
 
 **The preamp samples every band's own centre** (`utils/eq-preamp.ts`, written to `eqStore` by
-`dataProvider.installEqCurveSync`; `EqFilterList` only shows it and toasts a reduction). It is minus
+`eqCurve.installSync`; `EqFilterList` only shows it and toasts a reduction). It is minus
 the largest boost the enabled filters apply, read on a 1/48-octave grid _plus_ each band's `freq`. A narrow
 boost peaks at its centre, and a grid that straddles it under-reads the peak: the 100-point grid
 this replaced missed up to 0.9 dB at Q 6, and the output clipped by exactly that. AutoEQ leaves the

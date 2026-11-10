@@ -135,7 +135,7 @@ describe('AppShell boot', () => {
 		expect(eqStore.eqCurveUUID).not.toBeNull();
 
 		// Leave the Equalizer tab. The panel unmounts, and with it the only reactive
-		// caller of rebuildEqCurve() this app used to have.
+		// caller of eqCurve.rebuild() this app used to have.
 		menuStore.currentPanel = 'graph';
 		await expect.poll(() => page.getByText(ADJUSTED_LABEL).elements().length).toBe(2);
 

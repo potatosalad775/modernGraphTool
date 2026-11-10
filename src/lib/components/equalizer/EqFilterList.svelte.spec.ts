@@ -24,7 +24,7 @@ import {
 import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
-import { dataProvider } from '#lib/services/data-provider.svelte.js';
+import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 import { toast } from 'svelte-sonner';
 import { downloadText } from '#lib/utils/download-text.js';
 
@@ -45,7 +45,7 @@ const removeButton = () => page.getByRole('button', { name: 'Remove band' });
 describe('EqFilterList', () => {
 	// The preamp is derived by the page-lifetime sync AppShell installs, not by
 	// this component; the readout and the toast only follow it.
-	beforeAll(() => dataProvider.installEqCurveSync());
+	beforeAll(() => eqCurve.installSync());
 
 	beforeEach(() => {
 		eqStore.filters = [];

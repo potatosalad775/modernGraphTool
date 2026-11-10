@@ -33,7 +33,7 @@
 	import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
 	import type { EqState } from '#lib/utils/eq-snapshot.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
-	import { dataProvider } from '#lib/services/data-provider.svelte.js';
+	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
@@ -120,7 +120,7 @@
 		return {
 			label: m.eq_history_menu_add_to_graph(),
 			icon: ChartLine,
-			onSelect: () => dataProvider.insertEqCurve(filters, name),
+			onSelect: () => eqCurve.insertFrozen(filters, name),
 			// The curve is built on the EQ source; without one there is nothing to draw.
 			disabled: eqStore.sourcePhoneUUID === null
 		};

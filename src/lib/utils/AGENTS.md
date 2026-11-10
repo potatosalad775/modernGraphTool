@@ -2,7 +2,7 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
@@ -71,6 +71,20 @@ feature changed nothing for existing EQs. See `stores/AGENTS.md` for why the sto
   filter types (APO's fixed-Q `LP`, `LS 6dB`, …) are skipped rather than imported as peaks, and
   `Preamp:` is ignored because ours is derived from the filter set. The gainless types (`LPQ`,
   `HPQ`, `BP`, `NO`, `AP`) are read and written without a `Gain` field, as APO writes them.
+
+## `eq-file.ts`
+
+What an EQ file import or export decides, pure so a node spec reaches it: the export file-name label
+(`eqFileLabel`), the parametric and Graphic EQ exports (`parametricExport`, `graphicEqExport`, with the
+band pickers `graphicEqBands` / `omittedPerEarCount`), and what an imported file amounts to
+(`importOutcome`). `EqFilterList` keeps the effects: the reader, toasts, download and store writes.
+
+- **`parametricExport`'s band filter has no `enabled` check, on purpose.** A disabled band is exported
+  and written `OFF`, so the file matches the EQ on screen and round-trips. It is not `isPlayableBand`;
+  folding it in drops every parked band from the file.
+- The Graphic EQ export takes enabled, shared bands only (a `GraphicEQ:` line has no ON/OFF and no
+  channel syntax); `omitted` counts the live per-ear bands it leaves out, not the disabled ones.
+- `importOutcome` is `none` when no filter parsed, even if lines were skipped.
 
 ## `eq-source.ts`
 

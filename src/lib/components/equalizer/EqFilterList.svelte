@@ -7,14 +7,19 @@
 		eqConstraintsStore
 	} from '#lib/stores/eq-constraints-store.svelte.js';
 	import type { EQFilter } from '#lib/utils/equalizer.js';
-	import { Equalizer } from '#lib/utils/equalizer.js';
 	import {
 		compareByChannelThenFreq,
 		countBandsPerOutput,
 		countSharedFilters,
 		indexedFiltersInScope
 	} from '#lib/utils/eq-channel.js';
-	import { formatApoFilters, parseApoConfig } from '#lib/utils/eq-apo.js';
+	import {
+		eqFileLabel,
+		graphicEqBands,
+		graphicEqExport,
+		importOutcome,
+		parametricExport
+	} from '#lib/utils/eq-file.js';
 	import { filtersMatch } from '#lib/utils/eq-snapshot.js';
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
@@ -28,7 +33,6 @@
 	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import { downloadText } from '#lib/utils/download-text.js';
-	import { curveBaseName } from '#lib/utils/curve-name.js';
 	import { eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 
 	/** Quiet time after the last edit before the preamp toast may fire, ms. */
@@ -44,15 +48,8 @@
 		scope === 'BOTH' ? 0 : countSharedFilters(eqStore.filters.filter((f) => f.enabled))
 	);
 
-	/**
-	 * What the Graphic EQ export writes. A `GraphicEQ:` line is one summed curve
-	 * with no per-band ON/OFF and no channel syntax — Wavelet applies it to both
-	 * ears — so disabled bands and L/R-only bands are left out rather than baked in.
-	 */
-	const graphicEqBands = $derived(eqStore.filters.filter((f) => f.enabled && f.channel == null));
-	const omittedChannelBandCount = $derived(
-		eqStore.filters.filter((f) => f.enabled && f.channel != null).length
-	);
+	/** Whether the Graphic EQ export has a band to write (see `eq-file.ts`). */
+	const canExportGraphicEq = $derived(graphicEqBands(eqStore.filters).length > 0);
 
 	/** Derived from the filters by `eqCurve.installSync`, not here. */
 	const preamp = $derived(eqStore.preamp);
@@ -210,9 +207,9 @@
 		if (!file) return;
 		const reader = new FileReader();
 		reader.onload = (ev) => {
-			const text = ev.target!.result as string;
-			const { filters, skipped } = parseApoConfig(text);
-			if (filters.length) {
+			const outcome = importOutcome(ev.target!.result as string);
+			if (outcome.kind === 'filters') {
+				const { filters, skipped } = outcome;
 				// An imported parametric file is authored without a device
 				// constraint in mind — applying it under a graphic preset
 				// (e.g. Sony 10-band) would fold the filters into the wrong
@@ -223,7 +220,7 @@
 				eqCommands.replaceFilters(filters);
 				eqCommands.ensureEnabled();
 				toast.success(m.equalizer_filter_list_import(), {
-					description: `${filters.length} filters`
+					description: m.equalizer_filter_list_import_count({ count: filters.length })
 				});
 				// A filter type we can't model (band-pass, notch, …) is left out;
 				// say so, or the EQ silently differs from the file.
@@ -240,50 +237,31 @@
 		reader.readAsText(file);
 	}
 
-	/** Sanitized "<device model>" for the export filename, or null with no EQ source selected. */
+	/** The export file name's device part, or null with no EQ source selected. */
 	function sourceDeviceLabel(): string | null {
 		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
-		if (!source) return null;
-		const run = eqSourceRun(source, eqStore.sourceSample);
-		const runLabel = run ? sampleRunLabel(run, eqStore.sourceSample!.index) : '';
-		const label = [curveBaseName(source), runLabel].filter(Boolean).join(' ');
-		const sanitized = label.replace(/[\\/:*?"<>|]/g, '').trim();
-		return sanitized || null;
+		const run = source ? eqSourceRun(source, eqStore.sourceSample) : null;
+		const runLabel = run ? sampleRunLabel(run, eqStore.sourceSample!.index) : null;
+		return eqFileLabel(source ?? null, runLabel);
 	}
 
 	function exportFilters() {
-		const validFilters = eqStore.filters.filter(
-			(f) => f.freq != null && f.q != null && f.gain != null
-		);
-		if (!validFilters.length) {
+		const file = parametricExport(eqStore.filters, preamp, sourceDeviceLabel());
+		if (!file) {
 			toast.warning(m.equalizer_filter_list_no_filter_export_alert());
 			return;
 		}
-		const label = sourceDeviceLabel();
-		downloadText(
-			formatApoFilters(validFilters, preamp),
-			label ? `${label} filters.txt` : 'filters.txt'
-		);
+		downloadText(file.text, file.filename);
 		toast.success(m.equalizer_filter_list_export());
 	}
 
-	function graphicEqText(filters: EQFilter[]): string {
-		const curve = new Equalizer().convertFilterAsGraphicEQ(filters);
-		return 'GraphicEQ: ' + curve.map(([f, g]) => `${f.toFixed(0)} ${g.toFixed(1)}`).join('; ');
-	}
-
 	function exportGraphicEQ() {
-		if (!graphicEqBands.length) return;
-		const label = sourceDeviceLabel();
-		downloadText(
-			graphicEqText(graphicEqBands),
-			label ? `${label} GraphicEQ.txt` : 'graphic_eq.txt'
-		);
+		const file = graphicEqExport(eqStore.filters, sourceDeviceLabel());
+		if (!file) return;
+		downloadText(file.text, file.filename);
 		toast.success(m.equalizer_filter_list_export_graphic_eq());
-		if (omittedChannelBandCount > 0) {
-			toast.warning(
-				m.equalizer_filter_list_graphic_eq_channel_omitted({ count: omittedChannelBandCount })
-			);
+		if (file.omitted > 0) {
+			toast.warning(m.equalizer_filter_list_graphic_eq_channel_omitted({ count: file.omitted }));
 		}
 	}
 </script>
@@ -454,7 +432,7 @@
 		<Button
 			label={m.equalizer_filter_list_export_graphic_eq()}
 			onclick={exportGraphicEQ}
-			disabled={!graphicEqBands.length}
+			disabled={!canExportGraphicEq}
 			variant="muted"
 			size="sm"
 			class="w-full ring-1 ring-base-content/20 hover:ring-base-content/40 focus:ring-base-content/40"

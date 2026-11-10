@@ -46,8 +46,9 @@ silently and the graph never moves, which is the single most-reported EQ confusi
   when the first non-flat gain lands on an all-flat list (a picked graphic preset leaves its bands
   flat). Toggling EQ off to compare against the raw curve while tweaking is a real workflow — the
   `\` momentary key exists for exactly that — so auto-enabling on every edit would fight the user.
-- **`ensureEnabled()` writes `eqStore.momentaryRestore` instead of `isEnabled` while a `\` hold is
-  active**, otherwise keyup would revert the enable. See the eq-store note in `stores/AGENTS.md`.
+- **`ensureEnabled()` is `eqStore.setEnabled(true)`**, which sets `momentaryRestore` instead of
+  `isEnabled` while a `\` hold is active, otherwise keyup would revert the enable. Don't assign
+  `eqStore.isEnabled` directly; see the eq-store note in `stores/AGENTS.md`.
 
 **Bulk producers use `replaceFiltersInScope`, not `replaceFilters`.** `replaceFilters` overwrites the
 whole array, so an AutoEQ run on the left ear would delete the shared bands and the right ear's

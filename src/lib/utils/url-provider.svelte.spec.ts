@@ -64,6 +64,9 @@ describe('URLProvider', () => {
 		eqStore.filters = [];
 		eqStore.preamp = 0;
 		eqStore.isEnabled = false;
+		eqStore.momentaryOverride = null;
+		eqStore.momentaryRestore = null;
+		eqStore.sourcePhoneUUID = null;
 		graphEngine.isInitialized = false;
 		window.GRAPHTOOL_CONFIG = {
 			URL: { AUTO_UPDATE_URL: true, COMPRESS_URL: false },
@@ -383,6 +386,21 @@ describe('URLProvider', () => {
 			graphStore.yScale = 50;
 			urlProvider.applyStateFromURL();
 			expect(graphStore.yScale).toBe(50);
+		});
+
+		it('switches the equalizer on for a restored EQ, and that survives a backslash hold in progress', () => {
+			initWith({
+				eq: { filters: [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }], preamp: -3 }
+			});
+			// The page opened with the key held while the EQ was still off: auditioning.
+			eqStore.sourcePhoneUUID = 'source';
+			eqStore.holdMomentary();
+
+			urlProvider.applyStateFromURL();
+			eqStore.releaseMomentary();
+
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.isEnabled).toBe(true);
 		});
 
 		it('restores yScale', () => {

@@ -28,6 +28,13 @@ class LinkStore {
 	server = $state<string | null>(null);
 	/** uniPEQ's version, from its `hello`. */
 	unipeqVersion = $state<string | null>(null);
+	/** The session's launch token, for the "Open uniPEQ" links this page opens itself. */
+	launch = $state<string | null>(null);
+	/**
+	 * uniPEQ's `hello` carried that token back: it was opened from this page, so it runs on this
+	 * machine. False for a QR code or a typed code, and for a uniPEQ older than protocol 1.2.
+	 */
+	launchedHere = $state(false);
 	/** uniPEQ's device, or null when it has none. */
 	device = $state.raw<LinkDevice | null>(null);
 	/** uniPEQ sent a device whose profile this page can't use, so Hardware EQ doesn't show it. */
@@ -63,6 +70,8 @@ class LinkStore {
 		this.room = null;
 		this.server = null;
 		this.unipeqVersion = null;
+		this.launch = null;
+		this.launchedHere = false;
 		this.device = null;
 		this.deviceRejected = false;
 		this.status = null;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 	import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import {
 		audioPlayerService,
@@ -14,6 +15,10 @@
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	let fileInputEl = $state<HTMLInputElement | undefined>(undefined);
+
+	// A device this sound plays through applies the EQ itself, so the player doesn't.
+	const onDevice = $derived(devicePeqStore.playsEq);
+	const deviceName = $derived(devicePeqStore.deviceName ?? '');
 
 	// In frequency-selection mode the single-frequency sources are constrained to the
 	// selected band — the range gates them by moving them, not by filtering them. The
@@ -65,12 +70,16 @@
 	<!-- EQ toggle / spectrum toggle / range-mode toggle -->
 	<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 		<Switch
-			title={eqStore.isEnabled ? undefined : m.equalizer_player_filter_toggle_needs_eq()}
+			title={onDevice
+				? m.equalizer_player_filter_toggle_on_device({ device: deviceName })
+				: eqStore.isEnabled
+					? undefined
+					: m.equalizer_player_filter_toggle_needs_eq()}
 			labelText={m.equalizer_player_filter_toggle()}
 			labelClass="text-xs"
 			size="sm"
-			disabled={!eqStore.isEnabled}
-			checked={audioPlayerService.filtersEnabled}
+			disabled={onDevice || !eqStore.isEnabled}
+			checked={audioPlayerService.filtersEnabled && !onDevice}
 			onCheckedChange={(checked) => audioPlayerService.setFiltersEnabled(checked)}
 		/>
 		<Switch
@@ -95,6 +104,34 @@
 			</InfoPopover>
 		</Switch>
 	</div>
+
+	<!-- Who applies the EQ while a hardware device is connected: it, or this player. Never both. -->
+	{#if devicePeqStore.isConnected}
+		{#if onDevice}
+			<p class="text-xs text-base-content/70">
+				{m.equalizer_player_device_eq({ device: deviceName })}
+				{#if devicePeqStore.inSync === false}
+					{m.equalizer_player_device_eq_unwritten()}
+				{/if}
+				<Button
+					variant="link"
+					size="xs"
+					label={m.equalizer_player_device_eq_here()}
+					onclick={() => devicePeqStore.setAudioThroughDevice(false)}
+				/>
+			</p>
+		{:else if !devicePeqStore.audioThroughDevice}
+			<p class="text-xs text-base-content/70">
+				{m.equalizer_player_device_ask({ device: deviceName })}
+				<Button
+					variant="link"
+					size="xs"
+					label={m.equalizer_player_device_eq_there()}
+					onclick={() => devicePeqStore.setAudioThroughDevice(true)}
+				/>
+			</p>
+		{/if}
+	{/if}
 
 	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
 	{#if audioRangeStore.isFrequencySelectionMode}

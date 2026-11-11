@@ -20,6 +20,8 @@ class FakeHost {
 	room = 'ABCD2345';
 	server = 'https://link.unipeq.com';
 	status: LinkStatus | null = null;
+	readonly launch = 'TESTTOKEN2345678';
+	launchedHere = false;
 	readonly options: HostOptions;
 	readonly edit = vi.fn();
 	readonly replaceAll = vi.fn();
@@ -166,6 +168,17 @@ describe('linkService', () => {
 		expect(linkStore.phase).toBe('waiting');
 		expect(linkStore.room).toBe('ABCD2345');
 		expect(host.options.server).toBe('https://link.unipeq.com');
+	});
+
+	it('offers the launch token, and says uniPEQ was opened here once its hello echoes it', async () => {
+		await linkService.start();
+		expect(linkStore.launch).toBe(host.launch);
+		host.emit('hello', { version: '1.4.0' });
+		expect(linkStore.launchedHere).toBe(false);
+		host.launchedHere = true;
+		host.emit('hello', { version: '1.4.0' });
+		expect(linkStore.launchedHere).toBe(true);
+		expect(linkStore.unipeqVersion).toBe('1.4.0');
 	});
 
 	it('takes uniPEQ’s list without asking when this one is empty, and sends nothing back', async () => {

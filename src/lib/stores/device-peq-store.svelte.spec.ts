@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { devicePeqStore } from './device-peq-store.svelte.js';
+import { linkStore } from './link-store.svelte.js';
 import {
 	BUILTIN_PRESETS,
 	DEFAULT_CONSTRAINT_ID,
@@ -226,5 +227,148 @@ describe('devicePeqStore', () => {
 		expect(devicePeqStore.isBusy).toBe(false);
 		devicePeqStore.isWriting = true;
 		expect(devicePeqStore.isBusy).toBe(true);
+	});
+
+	describe('whether this page’s sound plays the device’s EQ', () => {
+		const link = () => makeConnection({ connectionType: 'link', name: 'Moondrop Dawn Pro' });
+
+		beforeEach(() => {
+			devicePeqStore.audioPathChoice = null;
+		});
+
+		afterEach(() => {
+			devicePeqStore.audioPathChoice = null;
+		});
+
+		it('is false with no connection, whatever was answered', () => {
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.playsEq).toBe(false);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioPathChoice).toBeNull();
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it.each(['hid', 'serial', 'ble', 'network'] as const)(
+			'guesses yes for a device connected in this browser (%s)',
+			(connectionType) => {
+				devicePeqStore.setConnected(makeConnection({ connectionType }), 160);
+				expect(devicePeqStore.audioThroughDevice).toBe(true);
+				expect(devicePeqStore.playsEq).toBe(true);
+			}
+		);
+
+		it('guesses no for a device uniPEQ holds over the link', () => {
+			devicePeqStore.setConnected(link(), 160);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it('guesses yes for a linked device when uniPEQ was opened from this page', () => {
+			linkStore.launchedHere = true;
+			devicePeqStore.setConnected(link(), 160);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+			expect(devicePeqStore.playsEq).toBe(true);
+			// The user's answer still wins: Bluetooth multipoint, a second output.
+			devicePeqStore.setAudioThroughDevice(false);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			linkStore.launchedHere = false;
+		});
+
+		it('lets the user say a linked device is the one they listen through', () => {
+			devicePeqStore.setConnected(link(), 160);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+			expect(devicePeqStore.playsEq).toBe(true);
+		});
+
+		it('lets the user say a local device is not the one they listen through', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			devicePeqStore.setAudioThroughDevice(false);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it('records the answer under the connected device’s name', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			devicePeqStore.setAudioThroughDevice(false);
+			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: false });
+		});
+
+		it('does not play the EQ while the device’s EQ is off', () => {
+			devicePeqStore.setConnected(makeConnection(), 240);
+			expect(devicePeqStore.eqEnabled).toBe(false);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it('counts an EQ switch the device can’t report as on', () => {
+			devicePeqStore.setConnected(makeConnection(), null);
+			expect(devicePeqStore.eqEnabled).toBeNull();
+			expect(devicePeqStore.playsEq).toBe(true);
+		});
+
+		it('follows the device’s EQ switch as it flips', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			expect(devicePeqStore.playsEq).toBe(true);
+			devicePeqStore.played('off');
+			expect(devicePeqStore.playsEq).toBe(false);
+			devicePeqStore.played(160);
+			expect(devicePeqStore.playsEq).toBe(true);
+		});
+
+		it('needs the user’s yes as well as the device’s EQ being on', () => {
+			devicePeqStore.setConnected(link(), 240);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it('keeps the answer across a disconnect, for the same device coming back', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			devicePeqStore.setAudioThroughDevice(false);
+
+			devicePeqStore.setDisconnected();
+			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: false });
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+
+			devicePeqStore.setConnected(makeConnection(), 160);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.playsEq).toBe(false);
+		});
+
+		it('keeps a yes across a disconnect too, over the link default', () => {
+			devicePeqStore.setConnected(link(), 160);
+			devicePeqStore.setAudioThroughDevice(true);
+
+			devicePeqStore.setDisconnected();
+			devicePeqStore.setConnected(link(), 160);
+
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+		});
+
+		it('ignores an answer given for another device', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			devicePeqStore.setAudioThroughDevice(false);
+			devicePeqStore.setDisconnected();
+
+			devicePeqStore.setConnected(makeConnection({ name: 'Moondrop Dawn Pro' }), 160);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+
+			devicePeqStore.setDisconnected();
+			devicePeqStore.setConnected(
+				makeConnection({ name: 'Moondrop Dawn Pro', connectionType: 'link' }),
+				160
+			);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+		});
+
+		it('replaces the earlier answer when the user answers again', () => {
+			devicePeqStore.setConnected(makeConnection(), 160);
+			devicePeqStore.setAudioThroughDevice(false);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: true });
+			expect(devicePeqStore.playsEq).toBe(true);
+		});
 	});
 });

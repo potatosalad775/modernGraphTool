@@ -1,7 +1,10 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from 'vitest';
 import { flushSync } from 'svelte';
 import { audioPlayerService } from './audio-player-service.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { computeAbMatchDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
@@ -178,6 +181,26 @@ function setFilters(filters: typeof FILTERS, preamp = 0) {
 	eqStore.preamp = preamp;
 }
 
+/** A hardware device with a bypass preset, which `devicePeqStore` reads as "EQ off". */
+const DEVICE_CAPS: PeqCapabilities = {
+	canRead: true,
+	canWrite: true,
+	readsPreamp: false,
+	readsSlot: false,
+	writesPreamp: true,
+	writesSlot: false,
+	readsCurrentSlot: true,
+	readsEnabled: false,
+	canEnable: true,
+	slots: [
+		{ id: 0, name: 'Jazz' },
+		{ id: 160, name: 'USER1' },
+		{ id: 240, name: 'BYPASS', bypass: true }
+	],
+	disconnectOnSave: false,
+	experimental: false
+};
+
 /** Effects live in a `$effect.root`, so a write needs an explicit flush. */
 function settle() {
 	flushSync();
@@ -338,6 +361,187 @@ describe('AudioPlayerService', () => {
 			const biquads = downstreamOfMatch().filter((n) => n.kind === 'biquad');
 			expect(biquads).toHaveLength(1);
 			expect(biquads[0].frequency.value).toBe(2000);
+		});
+	});
+
+	// ── A device applying the EQ ─────────────────────────────────────────────
+
+	describe('a device that applies the EQ', () => {
+		const DEVICE = 'FiiO KA17';
+
+		function connectDevice(
+			opts: { connectionType?: DeviceConnection['connectionType']; slot?: number | null } = {}
+		) {
+			devicePeqStore.setConnected(
+				{
+					device: {
+						capabilities: DEVICE_CAPS,
+						pull: vi.fn(),
+						push: vi.fn(),
+						currentSlot: vi.fn(),
+						eqEnabled: vi.fn(),
+						setEnabled: vi.fn(),
+						close: vi.fn()
+					},
+					connectionType: opts.connectionType ?? 'hid',
+					name: DEVICE,
+					profile: hardwareProfile('fiio-ka17', { bandCount: 10 }),
+					profileSource: 'device',
+					profileId: 'fiio-ka17',
+					identity: {}
+				},
+				opts.slot === undefined ? 160 : opts.slot
+			);
+			settle();
+		}
+
+		function disconnectDevice() {
+			devicePeqStore.setDisconnected();
+			settle();
+		}
+
+		const biquadCount = () => downstreamOfMatch().filter((n) => n.kind === 'biquad').length;
+
+		beforeEach(() => {
+			devicePeqStore.audioPathChoice = null;
+			devicePeqStore.setDisconnected();
+			settle();
+		});
+
+		afterEach(() => {
+			devicePeqStore.audioPathChoice = null;
+			devicePeqStore.setDisconnected();
+			settle();
+		});
+
+		it('builds no EQ nodes and no preamp, even with a non-flat EQ', () => {
+			setFilters(FILTERS, -6);
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+
+			expect(devicePeqStore.playsEq).toBe(true);
+			expect(biquadCount()).toBe(0);
+			// The preamp is a gain node on the ordinary path; none may carry it here.
+			const preamp = Math.pow(10, -6 / 20);
+			expect(
+				downstreamOfMatch().some((n) => n.kind === 'gain' && Math.abs(n.gain.value - preamp) < 1e-6)
+			).toBe(false);
+		});
+
+		it('leaves the match stage at unity, not at the bypass-match trim', () => {
+			audioPlayerService.play();
+			settle();
+			// What an ordinary bypass would do to this EQ, so the assertion below has teeth.
+			eqStore.isEnabled = false;
+			settle();
+			const bypassTrim = computeBypassMatchLinear(eqStore.filters, eqStore.preamp);
+			expect(bypassTrim).not.toBe(1);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(bypassTrim, 6);
+			eqStore.isEnabled = true;
+			settle();
+
+			connectDevice();
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('wires the same downstream chain as an ordinary bypass', () => {
+			audioPlayerService.play();
+			settle();
+			eqStore.isEnabled = false;
+			settle();
+			const bypassKinds = kinds(downstreamOfMatch());
+			eqStore.isEnabled = true;
+			settle();
+
+			connectDevice();
+			expect(kinds(downstreamOfMatch())).toEqual(bypassKinds);
+		});
+
+		it('keeps unity even with the equalizer switched off, where a bypass would trim', () => {
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+			eqStore.isEnabled = false;
+			settle();
+
+			expect(bypassMatchNode().gain.value).toBe(1);
+			expect(biquadCount()).toBe(0);
+		});
+
+		it('builds no EQ nodes when playback starts after the device connected', () => {
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+
+			expect(biquadCount()).toBe(0);
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('takes the EQ off the chain mid-playback when a device connects', () => {
+			audioPlayerService.play();
+			settle();
+			expect(biquadCount()).toBe(FILTERS.length);
+
+			connectDevice();
+
+			expect(biquadCount()).toBe(0);
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('puts the EQ back mid-playback when the device disconnects', () => {
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+			expect(biquadCount()).toBe(0);
+
+			disconnectDevice();
+
+			expect(biquadCount()).toBe(FILTERS.length);
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('follows the device’s own EQ switch', () => {
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+			expect(biquadCount()).toBe(0);
+
+			devicePeqStore.played('off');
+			settle();
+			expect(biquadCount()).toBe(FILTERS.length);
+
+			devicePeqStore.played(160);
+			settle();
+			expect(biquadCount()).toBe(0);
+			expect(bypassMatchNode().gain.value).toBe(1);
+		});
+
+		it('follows the user saying the sound does not go through the device', () => {
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+			expect(biquadCount()).toBe(0);
+
+			devicePeqStore.setAudioThroughDevice(false);
+			settle();
+			expect(biquadCount()).toBe(FILTERS.length);
+
+			devicePeqStore.setAudioThroughDevice(true);
+			settle();
+			expect(biquadCount()).toBe(0);
+		});
+
+		it('keeps the EQ here for a device held over the link until the user says otherwise', () => {
+			connectDevice({ connectionType: 'link' });
+			audioPlayerService.play();
+			settle();
+			expect(biquadCount()).toBe(FILTERS.length);
+
+			devicePeqStore.setAudioThroughDevice(true);
+			settle();
+			expect(biquadCount()).toBe(0);
+			expect(bypassMatchNode().gain.value).toBe(1);
 		});
 	});
 

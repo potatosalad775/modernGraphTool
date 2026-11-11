@@ -62,6 +62,13 @@ once. Each app keeps its own undo history, and a change made in the other app is
   **Device EQ** and **Auto-write** there act on uniPEQ, and a write uniPEQ can't make exactly asks
   for review in both apps; either app's answer closes both.
 - While uniPEQ's device is reconnecting, the list can't be edited.
+- When you started uniPEQ with **Open uniPEQ**, it runs on this machine, so the
+  [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to its device.
+  **Apply it here instead** under the player's switches takes it back, for a device this browser's
+  sound doesn't play through.
+- When uniPEQ joined by QR code or typed code, it may be on another machine, so the player keeps
+  applying the EQ. If this browser's sound plays through the linked device, choose
+  **Leave the EQ to the device** there, or the EQ is applied twice.
 - If uniPEQ stops answering — the phone asleep, uniPEQ closed — the panel says so, and the link
   picks up again by itself when it answers. If Android paused uniPEQ in the background, the panel
   says for how long.

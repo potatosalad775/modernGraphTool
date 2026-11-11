@@ -3,6 +3,7 @@ import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
@@ -272,13 +273,16 @@ class AudioPlayerService {
 			this.#filterNodes.push(hp, lp, makeup);
 		}
 
-		if (!this.#eqActive || !hasEqToApply) {
+		// A device downstream is applying the EQ (`devicePeqStore.playsEq`): applying the list
+		// here too would play it twice. Not a bypass, so no bypass-match trim either — the
+		// device applies the bands and its own preamp.
+		const onDevice = devicePeqStore.playsEq;
+		if (onDevice || !this.#eqActive || !hasEqToApply) {
 			// Bypass path. When EQ is toggled off but there is something to bypass,
 			// apply the K-weighted bypass-match trim so listening A/B doesn't
 			// change level.
-			this.#pathTrimLinear = hasEqToApply
-				? computeBypassMatchLinear(eqStore.filters, eqStore.preamp)
-				: 1;
+			this.#pathTrimLinear =
+				hasEqToApply && !onDevice ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
 			this.#rampGain(match.gain, this.#pathTrimLinear * this.#abTrimLinear);
 			// A range-mode bandpass may still sit downstream even with EQ off.
 			if (this.#filterNodes.length === 0) {
@@ -634,6 +638,8 @@ class AudioPlayerService {
 				// `\` key — must retrigger the chain rebuild.
 				void eqStore.isEnabled;
 				void this.#filtersEnabled;
+				// A device taking over the EQ, or handing it back, rewires the chain too.
+				void devicePeqStore.playsEq;
 				void audioRangeStore.isFrequencySelectionMode;
 				// Whether the range bandpass applies at all depends on the source.
 				void this.#audioSource;

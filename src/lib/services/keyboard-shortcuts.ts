@@ -1,9 +1,13 @@
 import { commandHistory } from './command-history.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
 import { eqCommands } from './eq-commands.js';
+import { audioPlayerService } from './audio-player-service.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import * as m from '#lib/paraglide/messages.js';
+import { toast } from 'svelte-sonner';
 
 /**
  * The app's global keyboard shortcuts. `AppShell` only binds `onKeydown`, `onKeyup` and `onBlur`
@@ -14,7 +18,9 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
  *
  * - `\` held — flips the equalizer until release (`eqStore.holdMomentary`): a bypass when it was
  *   on, an audition when it was off. Ignored with Meta, or Ctrl without Alt (a chord), and with no
- *   EQ source phone. Alt alone and Ctrl+Alt do not block it: they are how layouts type `\`
+ *   EQ source phone, and while the audio player plays through a device that applies the EQ
+ *   (`devicePeqStore.playsEq`): the hold can't reach that sound, so it says so instead of flipping
+ *   the graph alone. Alt alone and Ctrl+Alt do not block it: they are how layouts type `\`
  *   (Option on macOS, AltGr on Windows). A repeat is swallowed. Matched on `key`, so it follows the layout; with Shift down the key
  *   reads `|` on a US layout, so a hold cannot start then. One that is running is released by
  *   keyup of `\` (whatever has focus then) or of the physical key that started it (`code`), which
@@ -106,6 +112,17 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 	if (!inEditable && !isShortcutChord(e) && e.key === '\\') {
 		if (e.repeat) {
 			e.preventDefault();
+			return;
+		}
+		// The device is applying the EQ to what is playing, and a hold here can't lift it: the
+		// graph would flip while the sound stayed the same.
+		// Only where a hold would have started: not mid-hold, and not without an EQ source.
+		const couldHold = eqStore.momentaryRestore === null && !!eqStore.sourcePhoneUUID;
+		if (couldHold && audioPlayerService.isPlaying && devicePeqStore.playsEq) {
+			e.preventDefault();
+			toast.info(m.eq_hold_on_device({ device: devicePeqStore.deviceName ?? '' }), {
+				id: 'eq-hold-on-device'
+			});
 			return;
 		}
 		if (eqStore.holdMomentary()) {

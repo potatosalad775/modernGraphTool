@@ -176,6 +176,19 @@ to is the item's own `unadjustedChannels` (in `frStore`), not anything held here
 replaced wholesale, never mutated, and `restore(uuid, record)` puts one back (`undefined` removes
 it): an adjustment's undo entry uses it so undo and redo move the sliders with the curve.
 
+**`device-peq-store.svelte.ts` — `playsEq` says a device is applying the EQ to this page's sound.**
+It is `audioThroughDevice && eqEnabled !== false`, and the audio player builds no EQ nodes while it
+holds (`services/AGENTS.md`). Nothing can detect the audio route, so `audioThroughDevice` is the
+user's answer (`audioPathChoice`) when there is one, else a guess from the connection: true for a
+device connected in this browser, **false for a `'link'` connection** — the link is WebRTC and uniPEQ
+can be on another machine, so nothing shows the browser's sound goes through that device. The one
+exception is `linkStore.launchedHere`: uniPEQ echoed the launch token (protocol 1.2) that only the
+"Open uniPEQ" link carries, so it runs on this machine and the guess is true. The QR code and the
+typed code never carry the token; don't add it to them. The
+choice is keyed by device name and deliberately survives `setDisconnected()`, so the same device
+reconnecting doesn't ask again; it is session-only. It lives in the store, not in `EqAudioPlayer`,
+because that view unmounts with its panel and the player service reads it with the panel gone.
+
 ## Boot-time writes
 
 `installWriteBudget()` in `components/layout/app-boot-harness.ts` instruments `frStore`, `graphStore`

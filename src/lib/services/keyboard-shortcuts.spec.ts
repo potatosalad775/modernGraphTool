@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { toast } from 'svelte-sonner';
+import * as m from '#lib/paraglide/messages.js';
+import type { DeviceConnection } from '#lib/device-peq/types.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
@@ -6,6 +11,7 @@ import type { FRDataObject } from '#lib/types/data-types.js';
 import { AddFRDataCommand } from './commands.js';
 import { commandHistory } from './command-history.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
+import { audioPlayerService } from './audio-player-service.svelte.js';
 import { eqCommands } from './eq-commands.js';
 import {
 	onBlur,
@@ -15,6 +21,11 @@ import {
 	undo,
 	type ShortcutKeyEvent
 } from './keyboard-shortcuts.js';
+
+vi.mock('svelte-sonner', async (importOriginal) => ({
+	...(await importOriginal<typeof import('svelte-sonner')>()),
+	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
+}));
 
 type KeyInit = Partial<Omit<ShortcutKeyEvent, 'preventDefault'>>;
 
@@ -57,6 +68,46 @@ const EDITABLES = [
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
+}
+
+/** A hardware device the store reads as connected, on `slot` (240 is its bypass preset). */
+function connectDevice(slot = 160, connectionType: DeviceConnection['connectionType'] = 'hid') {
+	devicePeqStore.setConnected(
+		{
+			device: {
+				capabilities: {
+					canRead: true,
+					canWrite: true,
+					readsPreamp: false,
+					readsSlot: false,
+					writesPreamp: true,
+					writesSlot: false,
+					readsCurrentSlot: true,
+					readsEnabled: false,
+					canEnable: true,
+					slots: [
+						{ id: 160, name: 'USER1' },
+						{ id: 240, name: 'BYPASS', bypass: true }
+					],
+					disconnectOnSave: false,
+					experimental: false
+				},
+				pull: vi.fn(),
+				push: vi.fn(),
+				currentSlot: vi.fn(),
+				eqEnabled: vi.fn(),
+				setEnabled: vi.fn(),
+				close: vi.fn()
+			},
+			connectionType,
+			name: 'FiiO KA17',
+			profile: hardwareProfile('fiio-ka17', { bandCount: 10 }),
+			profileSource: 'device',
+			profileId: 'fiio-ka17',
+			identity: {}
+		},
+		slot
+	);
 }
 
 function makePhone(uuid: string, dispChannel: FRDataObject['dispChannel']): FRDataObject {
@@ -350,6 +401,123 @@ describe('keyboard shortcuts', () => {
 			release('\\');
 
 			expect(eqStore.isEnabled).toBe(true);
+		});
+
+		describe('while a device applies the EQ', () => {
+			let playing: ReturnType<typeof vi.spyOn>;
+
+			beforeEach(() => {
+				playing = vi.spyOn(audioPlayerService, 'isPlaying', 'get').mockReturnValue(true);
+				devicePeqStore.audioPathChoice = null;
+				devicePeqStore.setDisconnected();
+				vi.mocked(toast.info).mockClear();
+			});
+
+			afterEach(() => {
+				playing.mockRestore();
+				devicePeqStore.audioPathChoice = null;
+				devicePeqStore.setDisconnected();
+			});
+
+			it('does not start the hold while the player plays, and says why', () => {
+				eqStore.isEnabled = true;
+				connectDevice();
+
+				const e = press('\\');
+
+				expect(e.preventDefault).toHaveBeenCalledOnce();
+				expect(eqStore.isEnabled).toBe(true);
+				expect(eqStore.momentaryOverride).toBeNull();
+				expect(eqStore.momentaryRestore).toBeNull();
+				expect(toast.info).toHaveBeenCalledOnce();
+				expect(toast.info).toHaveBeenCalledWith(m.eq_hold_on_device({ device: 'FiiO KA17' }), {
+					id: 'eq-hold-on-device'
+				});
+			});
+
+			it('refuses the audition of a disabled EQ the same way', () => {
+				eqStore.isEnabled = false;
+				connectDevice();
+
+				press('\\');
+
+				expect(eqStore.isEnabled).toBe(false);
+				expect(eqStore.momentaryOverride).toBeNull();
+				expect(toast.info).toHaveBeenCalledOnce();
+			});
+
+			it('leaves the keyup of a refused hold with nothing to release', () => {
+				eqStore.isEnabled = true;
+				connectDevice();
+				press('\\');
+
+				release('\\');
+
+				expect(eqStore.isEnabled).toBe(true);
+				expect(eqStore.momentaryOverride).toBeNull();
+			});
+
+			it('works as before when the player is not playing', () => {
+				playing.mockReturnValue(false);
+				eqStore.isEnabled = true;
+				connectDevice();
+
+				const e = press('\\');
+
+				expect(e.preventDefault).toHaveBeenCalledOnce();
+				expect(eqStore.isEnabled).toBe(false);
+				expect(eqStore.momentaryOverride).toBe('bypass');
+				expect(toast.info).not.toHaveBeenCalled();
+
+				release('\\');
+				expect(eqStore.isEnabled).toBe(true);
+			});
+
+			it('works as before with no device connected', () => {
+				eqStore.isEnabled = true;
+
+				press('\\');
+
+				expect(eqStore.momentaryOverride).toBe('bypass');
+				expect(toast.info).not.toHaveBeenCalled();
+			});
+
+			it('works as before when the device’s EQ is off', () => {
+				eqStore.isEnabled = true;
+				connectDevice(240);
+
+				press('\\');
+
+				expect(devicePeqStore.playsEq).toBe(false);
+				expect(eqStore.momentaryOverride).toBe('bypass');
+				expect(toast.info).not.toHaveBeenCalled();
+			});
+
+			it('works as before for a linked device until the user says they listen through it', () => {
+				eqStore.isEnabled = true;
+				connectDevice(160, 'link');
+
+				press('\\');
+				expect(eqStore.momentaryOverride).toBe('bypass');
+				expect(toast.info).not.toHaveBeenCalled();
+				release('\\');
+
+				devicePeqStore.setAudioThroughDevice(true);
+				press('\\');
+				expect(eqStore.momentaryOverride).toBeNull();
+				expect(toast.info).toHaveBeenCalledOnce();
+			});
+
+			it('works as before when the user says the sound does not go through the device', () => {
+				eqStore.isEnabled = true;
+				connectDevice();
+				devicePeqStore.setAudioThroughDevice(false);
+
+				press('\\');
+
+				expect(eqStore.momentaryOverride).toBe('bypass');
+				expect(toast.info).not.toHaveBeenCalled();
+			});
 		});
 	});
 

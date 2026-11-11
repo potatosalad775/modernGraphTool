@@ -17,6 +17,29 @@ import { audioPlayerService } from '#lib/services/audio-player-service.svelte.js
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js';
+import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+
+/** A hardware device with a bypass preset, so slot 240 reads as "EQ off". */
+const DEVICE_CAPS: PeqCapabilities = {
+	canRead: true,
+	canWrite: true,
+	readsPreamp: false,
+	readsSlot: false,
+	writesPreamp: true,
+	writesSlot: false,
+	readsCurrentSlot: true,
+	readsEnabled: false,
+	canEnable: true,
+	slots: [
+		{ id: 0, name: 'Jazz' },
+		{ id: 160, name: 'USER1' },
+		{ id: 240, name: 'BYPASS', bypass: true }
+	],
+	disconnectOnSave: false,
+	experimental: false
+};
 
 function sourceSelect() {
 	return page.getByRole('combobox');
@@ -282,6 +305,181 @@ describe('EqAudioPlayer', () => {
 			render(EqAudioPlayer);
 			await page.getByRole('switch', { name: 'Spectrum' }).click();
 			expect(audioSpectrumStore.isEnabled).toBe(true);
+		});
+	});
+
+	// ── A hardware device that applies the EQ ────────────────────────────────
+
+	describe('with a hardware EQ device connected', () => {
+		const eqSwitch = () => page.getByRole('switch', { name: 'EQ Effect' });
+		const applyHere = () => page.getByRole('button', { name: 'Apply it here instead' });
+		const leaveToDevice = () => page.getByRole('button', { name: 'Leave the EQ to the device' });
+
+		function connect(
+			opts: { connectionType?: DeviceConnection['connectionType']; slot?: number } = {}
+		) {
+			devicePeqStore.setConnected(
+				{
+					device: {
+						capabilities: DEVICE_CAPS,
+						pull: vi.fn(),
+						push: vi.fn(),
+						currentSlot: vi.fn(),
+						eqEnabled: vi.fn(),
+						setEnabled: vi.fn(),
+						close: vi.fn()
+					},
+					connectionType: opts.connectionType ?? 'hid',
+					name: 'FiiO KA17',
+					profile: hardwareProfile('fiio-ka17', { bandCount: 10 }),
+					profileSource: 'device',
+					profileId: 'fiio-ka17',
+					identity: {}
+				},
+				opts.slot ?? 160
+			);
+		}
+
+		beforeEach(() => {
+			devicePeqStore.audioPathChoice = null;
+			devicePeqStore.setDisconnected();
+		});
+
+		afterEach(() => {
+			devicePeqStore.audioPathChoice = null;
+			devicePeqStore.setDisconnected();
+		});
+
+		it('shows neither line with no device connected', async () => {
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).toBeEnabled();
+			expect(await applyHere().all()).toHaveLength(0);
+			expect(await leaveToDevice().all()).toHaveLength(0);
+			expect(await page.getByText(/applies the EQ|applied twice/).all()).toHaveLength(0);
+		});
+
+		it('turns the EQ Effect switch off and says who applies the EQ', async () => {
+			connect();
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).toBeDisabled();
+			await expect.element(eqSwitch()).not.toBeChecked();
+			await expect
+				.element(page.getByText('FiiO KA17 applies the EQ, so this player leaves it off.'))
+				.toBeInTheDocument();
+			await expect.element(applyHere()).toBeInTheDocument();
+			expect(await leaveToDevice().all()).toHaveLength(0);
+		});
+
+		it('shows the switch off even though the player’s own flag is on', async () => {
+			audioPlayerService.setFiltersEnabled(true);
+			connect();
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).not.toBeChecked();
+			expect(audioPlayerService.filtersEnabled).toBe(true);
+		});
+
+		it('says the device does not hold the latest changes yet when it is out of sync', async () => {
+			connect();
+			devicePeqStore.reportedInSync = false;
+			render(EqAudioPlayer);
+
+			await expect
+				.element(page.getByText(/It doesn't hold your latest changes yet\./))
+				.toBeInTheDocument();
+		});
+
+		it.each([
+			['in sync', true],
+			['unknown', null]
+		] as const)('leaves out the latest-changes note when sync is %s', async (_name, value) => {
+			connect();
+			devicePeqStore.reportedInSync = value;
+			render(EqAudioPlayer);
+
+			await expect.element(applyHere()).toBeInTheDocument();
+			expect(await page.getByText(/latest changes/).all()).toHaveLength(0);
+		});
+
+		it('hands the EQ back to this player from "Apply it here instead"', async () => {
+			connect();
+			render(EqAudioPlayer);
+
+			await applyHere().click();
+
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: false });
+			await expect.element(eqSwitch()).toBeEnabled();
+			await expect.element(eqSwitch()).toBeChecked();
+			await expect
+				.element(page.getByText('Listening through FiiO KA17? Then the EQ is applied twice.'))
+				.toBeInTheDocument();
+			await expect.element(leaveToDevice()).toBeInTheDocument();
+			expect(await applyHere().all()).toHaveLength(0);
+		});
+
+		it('gives the EQ to the device again from "Leave the EQ to the device"', async () => {
+			connect();
+			devicePeqStore.setAudioThroughDevice(false);
+			render(EqAudioPlayer);
+
+			await leaveToDevice().click();
+
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: true });
+			await expect.element(eqSwitch()).toBeDisabled();
+			await expect.element(applyHere()).toBeInTheDocument();
+			expect(await leaveToDevice().all()).toHaveLength(0);
+		});
+
+		it('asks about a device held over the link, and leaves the switch alone', async () => {
+			connect({ connectionType: 'link' });
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).toBeEnabled();
+			await expect
+				.element(page.getByText('Listening through FiiO KA17? Then the EQ is applied twice.'))
+				.toBeInTheDocument();
+			await expect.element(leaveToDevice()).toBeInTheDocument();
+			expect(await applyHere().all()).toHaveLength(0);
+
+			await leaveToDevice().click();
+			expect(devicePeqStore.playsEq).toBe(true);
+			await expect.element(eqSwitch()).toBeDisabled();
+		});
+
+		it('shows neither line, and a usable switch, while the device’s EQ is off', async () => {
+			connect({ slot: 240 });
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).toBeEnabled();
+			await expect.element(eqSwitch()).toBeChecked();
+			expect(await applyHere().all()).toHaveLength(0);
+			expect(await leaveToDevice().all()).toHaveLength(0);
+		});
+
+		it('follows the device connecting and disconnecting while mounted', async () => {
+			render(EqAudioPlayer);
+			await expect.element(eqSwitch()).toBeEnabled();
+
+			connect();
+			await expect.element(eqSwitch()).toBeDisabled();
+			await expect.element(applyHere()).toBeInTheDocument();
+
+			devicePeqStore.setDisconnected();
+			await expect.element(eqSwitch()).toBeEnabled();
+			expect(await applyHere().all()).toHaveLength(0);
+			expect(await leaveToDevice().all()).toHaveLength(0);
+		});
+
+		it('keeps the switch disabled with the equalizer off, whoever applies the EQ', async () => {
+			eqStore.isEnabled = false;
+			connect({ connectionType: 'link' });
+			render(EqAudioPlayer);
+
+			await expect.element(eqSwitch()).toBeDisabled();
 		});
 	});
 

@@ -26,8 +26,14 @@
 	const room = $derived(linkStore.room);
 	const server = $derived(linkStore.server);
 	const waiting = $derived(phase === 'waiting' || phase === 'connecting');
+	/** Only these two carry the launch token: the QR code and the typed code may be another machine. */
+	const launch = $derived(linkStore.launch ?? undefined);
 	const openUrl = $derived(
-		room && server ? (isAndroid ? intentLink(server, room) : webLink(server, room)) : null
+		room && server
+			? isAndroid
+				? intentLink(server, room, launch)
+				: webLink(server, room, undefined, launch)
+			: null
 	);
 	/** The web app opens beside this page, which has to stay open to keep the link. */
 	const openTarget = isAndroid ? undefined : '_blank';

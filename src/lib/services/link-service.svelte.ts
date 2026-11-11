@@ -158,7 +158,11 @@ class LinkService {
 			// One list for both ears while linked: the scope picker is locked on L+R.
 			if (state === 'linked') eqStore.channelScope = 'BOTH';
 		});
-		link.on('hello', (hello) => (linkStore.unipeqVersion = hello.version));
+		linkStore.launch = link.launch;
+		link.on('hello', (hello) => {
+			linkStore.unipeqVersion = hello.version;
+			linkStore.launchedHere = link.launchedHere;
+		});
 		link.on('eq', (adopt) => this.#receive(adopt));
 		// After the client's own handler: an `eq` it found equal to this list emitted nothing, and
 		// is still the session's first list settled.

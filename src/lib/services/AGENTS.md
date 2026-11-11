@@ -10,7 +10,10 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
 - `keyboard-shortcuts.ts` — the global shortcuts (`\` hold, undo/redo, `1`–`4` panels); `AppShell`
-  only binds them on `<svelte:window>`
+  only binds them on `<svelte:window>`. The `\` hold only toasts while the player plays and
+  `devicePeqStore.playsEq` holds: it can't lift a device's EQ, and flipping the graph alone would
+  misreport what is heard. It is not routed to the device's EQ switch — that is a hardware write
+  that affects all audio on the device
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
@@ -233,6 +236,12 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
 - **EQ bypass** is `eqStore.isEnabled && filtersEnabled` (the `#eqActive` predicate). The master
   "Equalizer" toggle, the `\` momentary-bypass key and the player's own "EQ Effect" switch all have
   to reach the audio, and all have to pick up the K-weighted bypass-match trim.
+- **A device applying the EQ is a third state, not a bypass** (`devicePeqStore.playsEq`, see
+  `stores/AGENTS.md`). `#updateFilters` builds no preamp or band nodes, or the sound would get the EQ
+  twice, and the path trim is **unity** — the device applies the bands _and_ its preamp, so there is
+  no level change to match. Keep it out of `#eqActive`: folding it in would hand it the bypass-match
+  trim. The chain-rebuild effect has to keep reading `playsEq`, or a device taking over mid-playback
+  leaves the old chain wired. `EqAudioPlayer` disables the "EQ Effect" switch to match.
 - **Loudness-matched A/B** (`abLoudnessTrimDb` in `utils/loudness-match.ts`) multiplies into the
   same match-stage gain: `pathTrim × abTrim`, where `pathTrim` is the bypass trim (unity on the EQ
   path). It runs only while `eqHistoryStore.matchLoudness` is on, A and B are both set and the live

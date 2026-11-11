@@ -115,6 +115,9 @@ needs it at boot); keep it the only one.
   it already does.
   The profile arrives over the wire, so `acceptProfile` refuses one eqcaps can't use rather than
   letting `resolveSlot` throw in every band card.
+  Unlike a device connected here, a link connection is not assumed to play this page's sound
+  (`devicePeqStore.audioThroughDevice`, in `stores/AGENTS.md`): the player keeps applying the EQ
+  until the user says otherwise, or uniPEQ was opened from this page (`linkStore.launchedHere`).
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).

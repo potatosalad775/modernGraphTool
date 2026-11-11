@@ -14,6 +14,7 @@ import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';
 import { eqStore } from './eq-store.svelte.js';
+import { linkStore } from './link-store.svelte.js';
 
 /**
  * What the Device EQ control shows: a listed preset (by id), the EQ off, a preset the device is
@@ -82,9 +83,41 @@ class DevicePeqStore {
 	 * so only it knows. Undefined when this page writes the device and works it out from `synced`.
 	 */
 	reportedInSync = $state<boolean | null | undefined>(undefined);
+	/**
+	 * The user's own answer to whether this page's sound plays through a device, by device name.
+	 * Kept across a dropped connection, so the same device coming back doesn't ask again.
+	 */
+	audioPathChoice = $state.raw<{ device: string; through: boolean } | null>(null);
 
 	get isConnected(): boolean {
 		return this.connection !== null;
+	}
+
+	/**
+	 * Whether this page's sound is taken to play through the connected device. Nothing can detect
+	 * the audio route, so it is the user's answer when they gave one, else a guess from the
+	 * connection: a device connected in this browser is on this machine; one uniPEQ holds over the
+	 * link may be anywhere, unless this page opened that uniPEQ itself (`linkStore.launchedHere`).
+	 */
+	get audioThroughDevice(): boolean {
+		const conn = this.connection;
+		if (!conn) return false;
+		const choice = this.audioPathChoice;
+		if (choice?.device === conn.name) return choice.through;
+		return conn.connectionType !== 'link' || linkStore.launchedHere;
+	}
+
+	/**
+	 * The device is applying its EQ to what this page plays, so the audio player must not apply the
+	 * list a second time. An EQ switch the device can't report counts as on.
+	 */
+	get playsEq(): boolean {
+		return this.audioThroughDevice && this.eqEnabled !== false;
+	}
+
+	setAudioThroughDevice(through: boolean): void {
+		const device = this.connection?.name;
+		if (device !== undefined) this.audioPathChoice = { device, through };
 	}
 
 	/**

@@ -1,0 +1,1 @@
+import{At as e,Gt as t,Mt as n,Tt as r,Wt as i,at as a,dt as o,jt as s,lt as c,t as l}from"../chunks/BaenPfMX.js";import"../chunks/DjVt4Ctd.js";var u=o(`<h1> </h1> <p> </p>`,1);function d(o,d){t(d,!0);var f=u(),p=e(f),m=s(p,!0),h=n(p,2),g=s(h,!0);r(()=>{a(m,l.status),a(g,l.error?.message)}),c(o,f),i()}export{d as component};

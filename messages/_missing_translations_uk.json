@@ -18,7 +18,18 @@
 		"An exact number like \"=0\": \"No bands\" beats the forms above.",
 		"Guide: https://potatosalad775.github.io/modernGraphTool/docs/guide-for-developers/i18n/"
 	],
-	"db_type_iems": "IEMs",
-	"db_type_headphones": "Headphones",
-	"db_type_earbuds": "Earbuds"
+	"equalizer_filter_list_import_count": {
+		"one": "{count} filter",
+		"other": "{count} filters"
+	},
+	"equalizer_autoeq_select_source_and_target": "Please select both a source device and target curve.",
+	"equalizer_autoeq_data_not_found": "Source or target data not found.",
+	"equalizer_autoeq_no_response_data": "Could not retrieve frequency response data.",
+	"equalizer_player_filter_toggle_on_device": "{device} is applying the EQ",
+	"equalizer_player_device_eq": "{device} applies the EQ, so this player leaves it off.",
+	"equalizer_player_device_eq_unwritten": "It doesn't hold your latest changes yet.",
+	"equalizer_player_device_eq_here": "Apply it here instead",
+	"equalizer_player_device_ask": "Listening through {device}? Then the EQ is applied twice.",
+	"equalizer_player_device_eq_there": "Leave the EQ to the device",
+	"eq_hold_on_device": "Holding \\ can't switch the EQ while {device} is applying it."
 }

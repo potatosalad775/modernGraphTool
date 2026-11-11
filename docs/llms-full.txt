@@ -883,6 +883,8 @@ When there is something to know about the device’s profile — a shared or gue
 
 Some devices can only read and write the preset they’re playing. While they’re on another one, or switched off, **Read** and **Write** are unavailable and the panel says why.
 
+While a device is connected here, the [audio player](/modernGraphTool/docs/guide-for-users/equalizing/#audio-preview) leaves the EQ to it, so what the device plays isn’t equalized twice.
+
 ## Reading and writing
 
 * **Read from device** loads the device’s EQ into the band list and turns the Equalizer on.
@@ -942,7 +944,7 @@ Nothing in the panel reaches the graph or the audio player until the master **Eq
 * Adding the **first** band to an empty filter list
 * Giving a band gain while every band is still flat — where a graphic-EQ preset leaves you, with its bands laid out at 0 dB
 
-Other edits to bands you already have do not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you.
+Other edits to bands you already have do not touch the switch. Turning EQ off to compare against the raw curve while you tweak is a deliberate workflow — hold `\` for a momentary A/B flip in either direction — so nothing re-enables it under you. While the audio player plays through a hardware device that is applying the EQ itself, the hold can’t reach that sound and only shows a message; see [Audio preview](/modernGraphTool/docs/guide-for-users/equalizing/#audio-preview).
 
 ## Per-channel EQ
 
@@ -1291,6 +1293,8 @@ There is one band list, and both apps edit it live. uniPEQ holds it and writes t
 * The list is one list for both ears, as a device’s is: the channel picker stays on **L+R**, and bands have no on/off switch.
 * uniPEQ’s device shows in [Hardware EQ](/modernGraphTool/docs/features/device-peq/) as the connected device, with its limits as the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). **Read**, **Write**, **Device EQ** and **Auto-write** there act on uniPEQ, and a write uniPEQ can’t make exactly asks for review in both apps; either app’s answer closes both.
 * While uniPEQ’s device is reconnecting, the list can’t be edited.
+* When you started uniPEQ with **Open uniPEQ**, it runs on this machine, so the [audio player](/modernGraphTool/docs/guide-for-users/equalizing/#audio-preview) leaves the EQ to its device. **Apply it here instead** under the player’s switches takes it back, for a device this browser’s sound doesn’t play through.
+* When uniPEQ joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ. If this browser’s sound plays through the linked device, choose **Leave the EQ to the device** there, or the EQ is applied twice.
 * If uniPEQ stops answering — the phone asleep, uniPEQ closed — the panel says so, and the link picks up again by itself when it answers. If Android paused uniPEQ in the background, the panel says for how long.
 
 Reloading this page keeps the link without asking uniPEQ again. **Unlink** in either app ends it, and so does ten minutes of silence.
@@ -4216,6 +4220,10 @@ The player uses the Web Audio API, so CPU usage goes up slightly while it’s ru
 Playback continues across panel switches — switching to the Graph or Device panel won’t stop the audio. Return to the Equalizer panel and use the player’s stop button when you’re done.
 
 The player also shows up in your system’s media controls — Control Center and the lock screen on iOS, the media notification on Android, and the media overlay and media keys on desktop — so you can pause or resume it from there, or with your headphones’ play/pause button. On iPhone and iPad it also plays with the silent switch on.
+
+When a [Hardware EQ](/modernGraphTool/docs/features/device-peq/) device is connected in this browser, the player leaves the EQ to it: the device already applies the list to whatever it plays, and applying it here too would play it twice. The player’s **EQ Effect** switch turns off, and a line under the switches names the device. **Apply it here instead** takes the EQ back for the player, for when your sound doesn’t go through that device. If the device doesn’t hold your latest edits yet, the line says so, and what you hear is what the device holds. Holding `\` can’t lift the device’s EQ, so while the player plays it only shows a message; use **Device EQ** to hear the sound without it.
+
+A device linked through [uniPEQ](/modernGraphTool/docs/features/unipeq-link/) is treated the same way when you started uniPEQ with **Open uniPEQ**, since it then runs on this machine. Joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ and asks whether you’re listening through it. Choose **Leave the EQ to the device** if you are. The answer is remembered for that device until you reload the page.
 
 ## Hardware EQ — push EQ to a device
 

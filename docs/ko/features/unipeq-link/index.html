@@ -96,6 +96,13 @@
 <li>기기와 마찬가지로 목록은 양쪽 귀에 공통인 하나의 목록입니다. 채널 선택은 <strong>L+R</strong>로 고정되고, 밴드에는 켜기/끄기 스위치가 없습니다.</li>
 <li>uniPEQ의 기기는 <a href="/modernGraphTool/docs/ko/features/device-peq/">하드웨어 EQ</a>에 연결된 기기로 표시되며, 그 기기의 제약 조건이 활성 <a href="/modernGraphTool/docs/ko/features/equalizer/#eq-constraints">EQ 제약 조건</a>이 됩니다. 그곳의 <strong>기기에서 읽기</strong>, <strong>기기에 쓰기</strong>, <strong>기기 내장 EQ</strong>, <strong>변경 사항 자동으로 쓰기</strong>는 uniPEQ를 대상으로 동작합니다. uniPEQ가 그대로 기록할 수 없는 쓰기는 두 앱 모두에서 검토를 요청하며, 어느 앱에서 답하든 양쪽 모두 닫힙니다.</li>
 <li>uniPEQ의 기기가 다시 연결되는 동안에는 목록을 편집할 수 없습니다.</li>
+<li><strong>uniPEQ 열기</strong>로 uniPEQ를 시작했다면 uniPEQ가 이 기기에서 실행 중이므로,
+<a href="/modernGraphTool/docs/ko/guide-for-users/equalizing/#audio-preview">오디오 플레이어</a>는 EQ를 그 기기에 맡깁니다.
+이 브라우저의 소리가 그 기기로 재생되지 않는다면 플레이어 스위치 아래의
+<strong>Apply it here instead</strong>로 되돌릴 수 있습니다.</li>
+<li>QR 코드나 코드 입력으로 참여했다면 uniPEQ가 다른 기기에 있을 수 있으므로 플레이어는 EQ를 계속
+적용합니다. 이 브라우저의 소리가 연결된 기기로 재생된다면 그곳의
+<strong>Leave the EQ to the device</strong>를 고르세요. 그러지 않으면 EQ가 두 번 적용됩니다.</li>
 <li>휴대폰이 잠들었거나 uniPEQ가 닫혀 uniPEQ가 응답하지 않으면 패널에 그렇게 표시되고, 다시 응답하면 연결이 저절로 이어집니다. Android가 백그라운드에서 uniPEQ를 일시 정지했다면 얼마나 오래인지도 패널에 표시됩니다.</li>
 </ul>
 <p>이 페이지를 새로 고쳐도 uniPEQ에 다시 묻지 않고 연결이 유지됩니다. 어느 앱에서든 <strong>연결 해제</strong>를 누르면 연결이 끝나며, 10분 동안 아무 응답이 없어도 끝납니다.</p>

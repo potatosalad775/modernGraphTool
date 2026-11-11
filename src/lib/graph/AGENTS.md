@@ -14,6 +14,10 @@ D3.js lives in `GraphEngine.svelte.ts` with overlays:
 Initialize in `GraphContainer.svelte`'s `onMount` via `graphEngine.init(svgEl)` using
 `bind:this={svgEl}`. **Never** `d3.select('#fr-graph')` — always pass the bound SVG element.
 
+**Keep `import 'd3-transition'` in `GraphEngine.svelte.ts`.** d3 ≥ 7.9.2 ships `sideEffects: false`,
+so the production build prunes its `export * from 'd3-transition'` and `.transition()` disappears from
+selections. Dev and Vitest don't tree-shake, so only `npm run test:smoke` catches it.
+
 Viewbox 800×450. X: log 20–20000 Hz. Y: linear dB, configurable scale. React to store changes with
 `$effect(() => frStore.size)` (SvelteMap is reactive).
 

@@ -1,4 +1,7 @@
 import * as d3 from 'd3';
+// Side-effect import: installs selection.prototype.transition. d3 >= 7.9.2 is marked
+// `sideEffects: false`, so the production bundle drops its `export * from 'd3-transition'`.
+import 'd3-transition';
 import { untrack } from 'svelte';
 import {
 	isTargetType,

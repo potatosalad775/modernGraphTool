@@ -1,0 +1,1 @@
+function e(e,t){let n=e=>e.split(/\D+/).filter(Boolean).map(Number),r=n(e),i=n(t);for(let e=0;e<Math.max(r.length,i.length);e++){let t=(r[e]??0)-(i[e]??0);if(t!==0)return t}return 0}function t(t,n){return n===void 0||t.min!==void 0&&e(n,t.min)<0?!1:t.max===void 0||e(n,t.max)<0}export{t as n,e as t};

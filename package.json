@@ -45,7 +45,7 @@
 		"eslint-plugin-svelte": "^3.24.1",
 		"globals": "^17.14.0",
 		"playwright": "^1.65.0",
-		"prettier": "^3.9.10",
+		"prettier": "^3.10.0",
 		"prettier-plugin-svelte": "^4.1.1",
 		"prettier-plugin-tailwindcss": "^0.8.1",
 		"svelte": "^5.57.3",
@@ -58,10 +58,10 @@
 		"vitest-browser-svelte": "^3.1.0"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.71.0",
-		"@potatosalad775/eqcaps-client": "^0.4.1",
-		"@potatosalad775/eqcaps-core": "^0.4.1",
-		"@potatosalad775/eqcaps-device-bridge": "^0.4.1",
+		"@lucide/svelte": "^1.72.0",
+		"@potatosalad775/eqcaps-client": "^0.4.2",
+		"@potatosalad775/eqcaps-core": "^0.4.2",
+		"@potatosalad775/eqcaps-device-bridge": "^0.4.2",
 		"@potatosalad775/turboeq": "^0.2.0",
 		"bits-ui": "^2.21.0",
 		"d3": "^7.9.2",

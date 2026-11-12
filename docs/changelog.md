@@ -12,6 +12,21 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.4
+- Feat: While a Hardware EQ device is connected, the audio player leaves the EQ to the device, so what it plays isn't equalized twice. **Apply it here instead** takes the EQ back for the player when your sound doesn't go through that device. A device linked through uniPEQ is treated the same way if you started uniPEQ with **Open uniPEQ**. If uniPEQ joined by QR code or typed code, the player asks whether you're listening through the device. See [Audio preview](./guide-for-users/equalizing.mdx#audio-preview).
+- Feat: The hover readout now shows a curve's Y-offset after its value, such as `72.4dB (+1)`. See [Inspection mode](./guide-for-users/graph-controls.mdx#inspection-mode).
+- Fix: Searching now also narrows the brand list to brands with a matching device. A selected brand stays listed. (#106)
+- Fix: Removing the curve you baselined now returns the graph to the normal view, and undoing the removal brings the baseline back as it was.
+- Fix: Undoing a Target Customizer adjustment now restores the sliders along with the curve. Opening the customizer or switching panels no longer adds undo entries that change nothing.
+- Fix: Redo now works with Shift+Z and with Caps Lock on. Holding <kbd>\\</kbd> now works on keyboard layouts that type a backslash with AltGr or Option, and ends properly when Shift is released first.
+- Fix: Switching the Equalizer on or off during a <kbd>\\</kbd> hold now sticks after you release the key, and no longer ends the hold.
+- Fix: Undoing an EQ file import now also brings back the EQ constraint that the import turned off.
+- Fix: Graphic EQ export now skips bands that aren't filled in, and is no longer offered for a list that only has incomplete bands.
+- Fix: Resonant low-pass and high-pass bands (Q above 0.707) now get preamp headroom for the peak at their corner frequency.
+- Fix: When AutoEQ can't run, the reason now shows as a translated notification instead of a browser alert.
+- Fix: The hover readout no longer lists a hidden average curve, and lists an EQ source run only once. A ghosted EQ source run now has its graph label.
+- Fix: Shortcut labels in the keyboard shortcut bar no longer show a doubled `+`.
+
 ### v2.3.3
 - Feat: Button and switch tooltips now follow the theme and the selected language, open faster, and also open on keyboard focus. Buttons with a visible text label only show a tooltip when it adds something, and screen readers announce them by that label.
 - Feat: `COLLAPSE_TARGET_LIST_ON_INITIAL` can now be set separately for each layout with `{ DESKTOP: …, MOBILE: … }`; `true` or `false` still applies to both. The sample `config.js` now starts expanded on desktop and collapsed on mobile. A visitor's own toggle is kept for the rest of the visit. See [COLLAPSE_TARGET_LIST_ON_INITIAL documentation](./guide-for-admins/customize-page.mdx#collapse_target_list_on_initial).

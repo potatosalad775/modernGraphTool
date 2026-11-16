@@ -5,7 +5,7 @@
 	import type { IndexEntry } from '@potatosalad775/eqcaps-core';
 	import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 	import { Check, Settings2 } from '@lucide/svelte';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import Button from '../atoms/Button.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 

@@ -5,6 +5,7 @@
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import MetadataParser from '#lib/utils/metadata-parser.js';
+	import { trustedHtml } from '#lib/utils/trusted-types.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { buildRankingUrl } from '#lib/utils/url-template.js';
 	import { sanitizeHtml, stripHtml } from '#lib/utils/html-sanitizer.js';
@@ -495,7 +496,7 @@
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
 								>
 									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-									{@html phone.descHtml}
+									{@html trustedHtml(phone.descHtml)}
 								</div>
 							</div>
 						{/if}

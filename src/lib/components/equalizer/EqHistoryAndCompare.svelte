@@ -11,7 +11,7 @@
 <script lang="ts">
 	import { tick, type Component } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import { ChartLine, Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
 	import {
 		bandSummary,

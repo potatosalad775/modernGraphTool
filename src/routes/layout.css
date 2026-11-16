@@ -78,6 +78,9 @@
 
 	/* Graph */
 	--color-graph-grid-text: var(--color-graph-grid-text);
+
+	/* Overlay: the dialog / menu / tour veil. Carries its own alpha, so `bg-scrim` with no modifier. */
+	--color-scrim: var(--color-scrim);
 }
 
 /* ─── Graph toolbar row ───────────────────────────────────────────────────── */
@@ -149,6 +152,9 @@
 		--color-error: oklch(45% 0.175 16.439);
 		--color-error-content: oklch(98% 0.008 12.422);
 
+		/* Overlay */
+		--color-scrim: oklch(0% 0 0 / 40%);
+
 		/* Native controls (form fields, scrollbars) follow the theme, not the OS */
 		color-scheme: light;
 
@@ -189,6 +195,9 @@
 		--color-warning-content: oklch(22% 0.05 60);
 		--color-error: oklch(78% 0.13 13.428);
 		--color-error-content: oklch(20% 0.05 12.094);
+
+		/* Overlay */
+		--color-scrim: oklch(0% 0 0 / 40%);
 
 		color-scheme: dark;
 	}

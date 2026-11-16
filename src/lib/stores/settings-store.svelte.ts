@@ -1,4 +1,5 @@
 import { getConfigValue } from '#lib/utils/config.js';
+import { AUTOEQ_RANGE_FIELDS } from '#lib/utils/autoeq-ranges.js';
 
 const LS_KEYS = {
 	theme: 'gt-settings-theme',
@@ -49,7 +50,9 @@ const AUTOEQ_PAIRS = [
 /**
  * Folds a stored AutoEQ options blob over the defaults. A key whose stored value has the wrong
  * type — `null` from a persisted `NaN`, a string, a non-finite number — falls back to its own
- * default rather than overriding it, and a pair stored with min above max resets both ends.
+ * default rather than overriding it, a number is clamped into its field's range (the one the
+ * AutoEQ form enforces, `AUTOEQ_RANGE_FIELDS`), and a pair stored with min above max resets both
+ * ends.
  */
 function sanitizeAutoEqOptions(stored: unknown): AutoEqOptions {
 	const out: AutoEqOptions = { ...DEFAULT_AUTOEQ };
@@ -57,7 +60,10 @@ function sanitizeAutoEqOptions(stored: unknown): AutoEqOptions {
 	const src = stored as Record<string, unknown>;
 	for (const key of NUMERIC_AUTOEQ_KEYS) {
 		const v = src[key];
-		if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
+		if (typeof v === 'number' && Number.isFinite(v)) {
+			const f = AUTOEQ_RANGE_FIELDS[key];
+			out[key] = Math.min(f.max, Math.max(f.min, f.integer ? Math.round(v) : v));
+		}
 	}
 	for (const key of BOOLEAN_AUTOEQ_KEYS) {
 		const v = src[key];

@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import EqAudioPlayer from './EqAudioPlayer.svelte';
 import { audioPlayerService } from '#lib/services/audio-player-service.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';

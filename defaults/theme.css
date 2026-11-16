@@ -51,6 +51,11 @@
 	--color-warning-content: oklch(24% 0.05 80);
 	--color-error: oklch(45% 0.175 16.439);
 	--color-error-content: oklch(98% 0.008 12.422);
+
+	/* ── Overlay ───────────────────────────────────────────────────────────
+	 * The veil behind dialogs, the mobile menu and the guided tour. Carries its
+	 * own alpha: use it as `bg-scrim`, not with an opacity modifier. */
+	--color-scrim: oklch(0% 0 0 / 40%);
 }
 
 .dark {
@@ -83,6 +88,9 @@
 	--color-warning-content: oklch(22% 0.05 60);
 	--color-error: oklch(78% 0.13 13.428);
 	--color-error-content: oklch(20% 0.05 12.094);
+
+	/* ── Overlay ───────────────────────────────────────────────────────── */
+	--color-scrim: oklch(0% 0 0 / 40%);
 }
 
 /* ── Increased contrast ──────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
 
 <script lang="ts">
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { trustedHtml } from '#lib/utils/trusted-types.js';
 	import { BookOpen, Globe, GraduationCap, Heart, Moon, ScrollText, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
@@ -161,7 +162,7 @@
 				{:else if item.TYPE.toUpperCase() === 'HTML'}
 					<!-- operator-supplied config content — trusted by definition -->
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html item.CONTENT}
+					{@html trustedHtml(item.CONTENT)}
 				{/if}
 			{/each}
 		</div>

@@ -28,11 +28,10 @@ import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 import { eqCurve } from '#lib/services/eq-curve.svelte.js';
 import { conformFilters } from '#lib/utils/eq-constraint.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import { downloadText } from '#lib/utils/download-text.js';
 
-vi.mock('svelte-sonner', async (importOriginal) => ({
-	...(await importOriginal<typeof import('svelte-sonner')>()),
+vi.mock('#lib/services/toast.js', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 

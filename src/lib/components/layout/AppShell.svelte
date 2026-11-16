@@ -1,25 +1,6 @@
-<script module lang="ts">
-	import { toast } from 'svelte-sonner';
-
-	// An error or a warning tells the user something went wrong or was left out, and a few
-	// seconds is not enough to read it, let alone act on it (WCAG 2.2.1): both stay until the
-	// close button dismisses them. Done here, once, rather than at every call site; a call
-	// that passes its own `duration` still wins. With no `id` of its own a toast is keyed by
-	// its type and text, so repeating the same failure (a button pressed again, an effect
-	// firing twice) updates the toast already on screen instead of stacking another beside it.
-	for (const type of ['error', 'warning'] as const) {
-		const original = toast[type];
-		toast[type] = (message, data) =>
-			original(message, {
-				duration: Infinity,
-				id: typeof message === 'string' ? `${type}:${message}` : undefined,
-				...data
-			});
-	}
-</script>
-
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
+	import { toast } from '#lib/services/toast.js';
 	import { flyOrFade } from '#lib/utils/motion.svelte.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';

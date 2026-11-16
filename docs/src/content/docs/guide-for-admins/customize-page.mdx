@@ -145,6 +145,18 @@ The [uniPEQ Link](../features/unipeq-link.mdx) QR code has two more. They have n
 }
 ```
 
+The veil behind dialogs, the mobile menu and the guided tour has its own token. It carries its own alpha, so set the opacity in the value itself. A `theme.css` without it falls back to 40% black.
+
+```css
+:root {
+	--color-scrim: oklch(0% 0 0 / 40%); /* Overlay behind dialogs, menu and tour */
+}
+
+.dark {
+	--color-scrim: oklch(0% 0 0 / 40%);
+}
+```
+
 ### Base UI Variables
 
 The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:

@@ -23,7 +23,7 @@ import {
 	eqConstraintsStore
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqCurve } from '#lib/services/eq-curve.svelte.js';

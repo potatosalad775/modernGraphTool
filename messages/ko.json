@@ -306,6 +306,7 @@
 	"crosssite_search_truncated": "{total}개의 전체 검색 결과 중 {count}개를 표시하고 있습니다. 다른 검색어로 검색 결과를 좁혀보세요.",
 	"site_selector_label": "사이트 선택",
 	"site_selector_unverified": "해당 데이터베이스는 최근 사이트 목록을 갱신하는 과정에서 접근할 수 없었습니다. 링크가 작동하지 않을 수 있습니다.",
+	"site_selector_unverified_badge": "미확인",
 	"site_selector_filter_label": "사이트 검색",
 	"site_selector_no_results": "일치하는 사이트가 없습니다.",
 	"site_selector_result_count": "{count}개 사이트 발견",

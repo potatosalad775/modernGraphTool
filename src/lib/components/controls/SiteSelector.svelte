@@ -82,6 +82,11 @@
 					.filter((group) => group.entries.length > 0)
 	);
 
+	const noteId = `${uid}-unverified-note`;
+	const hasUnverified = $derived(
+		visibleGroups.some((group) => group.entries.some((entry) => !entry.verified))
+	);
+
 	const visibleCount = $derived(
 		visibleGroups.reduce((sum, group) => sum + group.entries.length, 0)
 	);
@@ -173,6 +178,14 @@
 	}
 </script>
 
+{#snippet unverifiedBadge()}
+	<span
+		class="shrink-0 rounded border border-base-content/30 px-1 text-xs font-normal text-base-content/80"
+	>
+		{m.site_selector_unverified_badge()}
+	</span>
+{/snippet}
+
 {#if isVisible}
 	<!--
 		A popover of plain links, not a Select: the entries navigate, so they must be real
@@ -247,16 +260,19 @@
 										target="_blank"
 										rel="external noopener noreferrer"
 										aria-current={current ? 'page' : undefined}
-										title={entry.verified ? undefined : m.site_selector_unverified()}
+										aria-describedby={entry.verified ? undefined : noteId}
 										onclick={() => (open = false)}
 										{@attach current ? revealCurrent : undefined}
-										class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content no-underline
-											hover:bg-base-300 focus-visible:bg-base-300 focus-visible:ring-1
-											focus-visible:ring-accent focus-visible:outline-hidden
-											{current ? 'font-medium text-accent' : ''}
-											{entry.verified ? '' : 'opacity-50'}"
+										class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1
+											text-sm text-base-content no-underline hover:bg-base-300
+											focus-visible:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent
+											focus-visible:outline-hidden
+											{current ? 'font-medium text-accent' : ''}"
 									>
 										{entry.siteName}
+										{#if !entry.verified}
+											{@render unverifiedBadge()}
+										{/if}
 									</a>
 								</li>
 							{/each}
@@ -268,6 +284,18 @@
 					</p>
 				{/each}
 			</div>
+
+			<!--
+				The explanation for the badge, once, in view and not in a tooltip (a `title` never
+				opens from the keyboard or by touch). Each unverified link points at it with
+				`aria-describedby`, so a screen reader reads it on focus.
+			-->
+			{#if hasUnverified}
+				<p class="shrink-0 border-t border-base-content/15 px-3 py-2 text-xs text-base-content/80">
+					{@render unverifiedBadge()}
+					<span id={noteId}>{m.site_selector_unverified()}</span>
+				</p>
+			{/if}
 		</div>
 	</PopoverPanel>
 {/if}

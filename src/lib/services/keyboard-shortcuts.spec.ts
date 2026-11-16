@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import type { DeviceConnection } from '#lib/device-peq/types.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
@@ -23,8 +23,7 @@ import {
 	type ShortcutKeyEvent
 } from './keyboard-shortcuts.js';
 
-vi.mock('svelte-sonner', async (importOriginal) => ({
-	...(await importOriginal<typeof import('svelte-sonner')>()),
+vi.mock('#lib/services/toast.js', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 

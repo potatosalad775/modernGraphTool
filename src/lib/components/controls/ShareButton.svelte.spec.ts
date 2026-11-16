@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import ShareButton from './ShareButton.svelte';
 import { urlProvider } from '#lib/utils/url-provider.js';
 

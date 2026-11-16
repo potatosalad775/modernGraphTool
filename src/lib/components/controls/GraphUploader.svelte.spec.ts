@@ -14,7 +14,7 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import GraphUploader from './GraphUploader.svelte';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 
 /** Two decades of points — enough that the parser keeps them. */

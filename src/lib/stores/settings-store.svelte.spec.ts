@@ -401,6 +401,55 @@ describe('SettingsStore', () => {
 			expect(settingsStore.autoEqOptions.freqMax).toBe(DEFAULT_AUTOEQ.freqMax);
 		});
 
+		it('clamps stored AutoEQ numbers into the ranges the form enforces', () => {
+			sessionStorage.setItem(
+				KEY_AUTOEQ,
+				JSON.stringify({
+					freqMin: 1,
+					freqMax: 99999,
+					qMin: 0,
+					qMax: 50,
+					gainMin: -500,
+					gainMax: 500
+				})
+			);
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions).toMatchObject({
+				freqMin: 20,
+				freqMax: 20000,
+				qMin: 0.1,
+				qMax: 10,
+				gainMin: -40,
+				gainMax: 40
+			});
+		});
+
+		it('rounds a stored frequency bound the way the form does', () => {
+			sessionStorage.setItem(KEY_AUTOEQ, JSON.stringify({ freqMin: 100.6, freqMax: 9000.4 }));
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions.freqMin).toBe(101);
+			expect(settingsStore.autoEqOptions.freqMax).toBe(9000);
+		});
+
+		it('leaves in-range stored numbers alone, boundaries included', () => {
+			const stored = { freqMin: 20, freqMax: 20000, qMin: 0.1, qMax: 10, gainMin: -40, gainMax: 0 };
+			sessionStorage.setItem(KEY_AUTOEQ, JSON.stringify(stored));
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions).toMatchObject(stored);
+		});
+
+		it('resets a pair that is still inverted after clamping', () => {
+			// 50000 clamps to 20000, which is still above freqMax 100.
+			sessionStorage.setItem(KEY_AUTOEQ, JSON.stringify({ freqMin: 50000, freqMax: 100 }));
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions.freqMin).toBe(DEFAULT_AUTOEQ.freqMin);
+			expect(settingsStore.autoEqOptions.freqMax).toBe(DEFAULT_AUTOEQ.freqMax);
+		});
+
 		it('reads AutoEQ options from localStorage once the persist mode is local', () => {
 			localStorage.setItem(KEY_PERSIST_MODE, 'local');
 			localStorage.setItem(KEY_AUTOEQ, JSON.stringify({ gainMin: -6 }));

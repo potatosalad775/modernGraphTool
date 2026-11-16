@@ -69,6 +69,11 @@
 \t--color-warning-content: ${light.warningContent};
 \t--color-error: ${light.error};
 \t--color-error-content: ${light.errorContent};
+
+\t/* ── Overlay ───────────────────────────────────────────────────────────
+\t * The veil behind dialogs, the mobile menu and the guided tour. Carries its
+\t * own alpha: use it as \`bg-scrim\`, not with an opacity modifier. */
+\t--color-scrim: ${light.scrim};
 }
 
 .dark {
@@ -101,6 +106,9 @@
 \t--color-warning-content: ${dark.warningContent};
 \t--color-error: ${dark.error};
 \t--color-error-content: ${dark.errorContent};
+
+\t/* ── Overlay ───────────────────────────────────────────────────────── */
+\t--color-scrim: ${dark.scrim};
 }
 
 /* ── Increased contrast ──────────────────────────────────────────────────────

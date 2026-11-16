@@ -44,7 +44,7 @@
 		}}
 	>
 		<Dialog.Portal>
-			<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
+			<Dialog.Overlay class="fixed inset-0 z-40 bg-scrim" />
 			<Dialog.Content
 				class="fixed top-1/2 left-1/2 z-50 flex max-h-11/12 w-11/12 max-w-md -translate-x-1/2
 					-translate-y-1/2 flex-col rounded-xl bg-base-200 p-6 shadow-2xl"

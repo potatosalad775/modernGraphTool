@@ -9,7 +9,7 @@ import { menuStore } from '#lib/stores/menu-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { isWidgetFocused } from '#lib/utils/widget-focus.js';
 import * as m from '#lib/paraglide/messages.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 
 /**
  * The app's global keyboard shortcuts. `AppShell` only binds `onKeydown`, `onKeyup` and `onBlur`

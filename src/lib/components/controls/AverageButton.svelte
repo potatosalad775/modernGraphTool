@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as m from '#lib/paraglide/messages.js';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import { Sigma } from '@lucide/svelte';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';

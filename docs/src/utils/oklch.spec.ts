@@ -54,7 +54,8 @@ const PALETTE_KEYS: Array<keyof ThemePalette> = [
 	'graphAxisLabel',
 	'graphGridText',
 	'graphBaseline',
-	'graphCompare'
+	'graphCompare',
+	'scrim'
 ];
 
 function expectWellFormedPalette(palette: ThemePalette, label: string) {
@@ -368,6 +369,12 @@ describe('generateFullPalette', () => {
 		expect(light.graphBg).toBeDefined();
 		expect(dark.graphBg).toBeDefined();
 		expect(light.graphGridMajor).not.toBe(dark.graphGridMajor);
+	});
+
+	it('emits the scrim as the shipped 40% black in both modes', () => {
+		const { light, dark } = generateFullPalette(DEFAULT_INPUTS);
+		expect(light.scrim).toBe('oklch(0% 0 0 / 40%)');
+		expect(dark.scrim).toBe('oklch(0% 0 0 / 40%)');
 	});
 });
 

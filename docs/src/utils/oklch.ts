@@ -43,6 +43,8 @@ export interface ThemePalette {
 	graphGridText: string;
 	graphBaseline: string;
 	graphCompare: string;
+	// Overlay (fixed per mode)
+	scrim: string;
 }
 
 export interface PaletteInputs {
@@ -362,6 +364,11 @@ const GRAPH_DARK = {
 	graphCompare: 'rgba(255, 255, 255, 0.55)'
 };
 
+// ── Overlay token (fixed) ────────────────────────────────────────────────────
+
+/** The veil behind dialogs, the mobile menu and the guided tour: 40% black in both modes. */
+const SCRIM = 'oklch(0% 0 0 / 40%)';
+
 // ── Full palette generation ──────────────────────────────────────────────────
 
 function semanticPair(hex: string, mode: 'light' | 'dark'): { color: string; content: string } {
@@ -423,7 +430,8 @@ export function generateFullPalette(inputs: PaletteInputs): {
 			warningContent: warning.content,
 			error: error.color,
 			errorContent: error.content,
-			...graph
+			...graph,
+			scrim: SCRIM
 		};
 	}
 

@@ -378,6 +378,7 @@
 	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down.",
 	"site_selector_label": "Select a site",
 	"site_selector_unverified": "This database was unreachable when the index was last built. The link may not work.",
+	"site_selector_unverified_badge": "Unverified",
 	"site_selector_filter_label": "Filter sites",
 	"site_selector_no_results": "No sites match.",
 	"site_selector_result_count": [

@@ -48,7 +48,7 @@
 
 <DialogPrimitive.Root {open} onOpenChange={handleOpenChange}>
 	<DialogPrimitive.Portal>
-		<DialogPrimitive.Overlay class="fixed inset-0 z-40 bg-black/40" />
+		<DialogPrimitive.Overlay class="fixed inset-0 z-40 bg-scrim" />
 		<DialogPrimitive.Content
 			interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
 			escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}

@@ -54,6 +54,10 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   changes what plays (a hardware EQ write or switch, the audio player), once per page session.
   A device linked from uniPEQ is uniPEQ's to warn about (`status.consent`, in `LinkDialogs`)
 - `eq-channel-conflict.svelte.ts` — left/right-only bands under a restriction; see below
+- `toast.ts` — the app's `toast`, a thin wrapper over svelte-sonner that keeps `error` and `warning`
+  toasts until dismissed (a `duration` of the caller's still wins) and folds a repeat into one. **New
+  code imports `toast` from here, never from `svelte-sonner`**; only `AppShell` takes the `Toaster`
+  component from the library. Specs mock `#lib/services/toast.js`, not the library
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
@@ -402,8 +406,10 @@ its fetch and parse used to compete with it. Host-agnostic; exports `siteIndexSe
 GAA unions GraphAggregator's index with squig.link's registry, which is the point: the aggregator
 drops any database whose phone book failed its nightly crawl, and a site that 502'd at 06:00 UTC
 disappearing from the site switcher for a day is wrong for navigation even though it's right for
-search. Union entries carry `verified: false` and render dimmed. **A missing `verified` field means
-verified**, so an aggregator-shaped document doesn't dim every row.
+search. Union entries carry `verified: false` and render at full strength with an "Unverified" badge and one visible
+explanation under the list (each such link points at it with `aria-describedby`; a `title` alone
+never reaches keyboard or touch, and half opacity fails contrast). **A missing `verified` field
+means verified**, so an aggregator-shaped document doesn't badge every row.
 
 - **`SITE_SELECTOR.ENABLED` defaults to `'auto'`**, not `true`: show the switcher only where the
   deployment is in the index or is on squig.link. An unregistered standalone site would otherwise get

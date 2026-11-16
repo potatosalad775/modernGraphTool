@@ -36,7 +36,7 @@
 		const left = targetRect.left - pad;
 		const width = targetRect.width + pad * 2;
 		const height = targetRect.height + pad * 2;
-		return `top:${top}px;left:${left}px;width:${width}px;height:${height}px;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);`;
+		return `top:${top}px;left:${left}px;width:${width}px;height:${height}px;box-shadow:0 0 0 9999px var(--color-scrim);`;
 	});
 
 	const dialogStyle = $derived.by(() => {
@@ -184,7 +184,7 @@
 		<Dialog.Overlay
 			class="fixed inset-0 z-40 transition-colors duration-300 {hasSpotlight
 				? ''
-				: 'bg-black/50 backdrop-blur-sm'}"
+				: 'bg-scrim backdrop-blur-sm'}"
 		/>
 		<!--
 			Gated on `isOpen` too: the Portal renders its children whether or not the dialog

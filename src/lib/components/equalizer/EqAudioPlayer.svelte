@@ -8,7 +8,7 @@
 		type AudioSource
 	} from '#lib/services/audio-player-service.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import Button from '#lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';

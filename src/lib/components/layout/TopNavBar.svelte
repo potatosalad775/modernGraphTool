@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { trustedHtml } from '#lib/utils/trusted-types.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
@@ -82,7 +83,7 @@
 			>
 				{#if titleType === 'HTML'}
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html titleContent}
+					{@html trustedHtml(titleContent)}
 				{:else if titleType === 'IMAGE'}
 					{#if titleAlt}
 						<!-- The link is named by its content: the site name, then where it goes. -->
@@ -183,7 +184,7 @@
 							{#if open}
 								<div
 									{...props}
-									class="fixed inset-0 z-40 bg-black/40"
+									class="fixed inset-0 z-40 bg-scrim"
 									transition:fade={{ duration: 200 }}
 								></div>
 							{/if}

@@ -226,6 +226,48 @@ describe('SiteSelector', () => {
 		});
 	});
 
+	describe('an unverified database', () => {
+		const note =
+			'This database was unreachable when the index was last built. The link may not work.';
+
+		async function open() {
+			setConfig({ ENABLED: true });
+			await mount();
+			await trigger().click();
+		}
+
+		it('is a full-strength link that says so in its name and in view', async () => {
+			await open();
+
+			const bob = page.getByRole('link', { name: 'Bob Audio Unverified' });
+			await expect.element(bob).toBeVisible();
+			expect(bob.element().className).not.toMatch(/opacity/);
+			// Plain text, not a tooltip: the badge and the explanation are both on screen.
+			await expect.element(page.getByText('Unverified', { exact: true }).first()).toBeVisible();
+			await expect.element(page.getByText(note)).toBeVisible();
+		});
+
+		it('is described by the explanation, which a verified link does not carry', async () => {
+			await open();
+
+			await expect
+				.element(page.getByRole('link', { name: 'Bob Audio Unverified' }))
+				.toHaveAccessibleDescription(note);
+			const alice = page.getByRole('link', { name: 'Alice Audio', exact: true });
+			await expect.element(alice).toBeVisible();
+			expect(alice.element().hasAttribute('aria-describedby')).toBe(false);
+			expect(alice.element().hasAttribute('title')).toBe(false);
+		});
+
+		it('drops the explanation once the filter leaves only verified sites', async () => {
+			await open();
+			await page.getByRole('searchbox', { name: 'Filter sites' }).fill('alice');
+
+			await expect.element(page.getByRole('link', { name: 'Alice Audio' })).toBeVisible();
+			expect(page.getByText(note).elements()).toHaveLength(0);
+		});
+	});
+
 	it('stays hidden when the operator turns it off', async () => {
 		setConfig({ ENABLED: false });
 

@@ -9,7 +9,7 @@
  * the optimization. Timers are real: auto-apply's debounce is 250 ms and the specs wait it out.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
@@ -41,8 +41,7 @@ vi.mock('#lib/workers/autoeq-client.js', () => ({
 	runAutoEQInWorker: vi.fn(async () => ({ filters: [] as EQFilter[], engine: 'turboeq' as const }))
 }));
 
-vi.mock('svelte-sonner', async (importOriginal) => ({
-	...(await importOriginal<typeof import('svelte-sonner')>()),
+vi.mock('#lib/services/toast.js', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 

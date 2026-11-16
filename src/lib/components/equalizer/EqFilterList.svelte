@@ -24,7 +24,7 @@
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';

@@ -212,6 +212,8 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
   — each with a `-content` counterpart for text-on-color
 - **Graph-only (D3 SVG where Tailwind can't reach):** `--color-graph-bg`, `-grid-major`, `-grid-minor`,
   `-axis-label`, `-grid-text`, `-baseline`, `-watermark-opacity`
+- **Overlay:** `--color-scrim` — the veil behind dialogs, menu and tour. It carries its own alpha
+  (shipped as 40% black), so it is `bg-scrim`, never `bg-scrim/50`
 
 **UI chrome uses opacity modifiers on `base-content`**, e.g. `text-base-content/60` for secondary
 text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
@@ -296,6 +298,11 @@ page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/s
 - **No inline event handlers, no new `eval`, no `javascript:` URLs** anywhere in the shells or the
   app. An inline `<script>` in a shell is fine (it gets hashed), but keep the ones shared by
   `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` byte-identical.
+- **Markup and script URLs go through `utils/trusted-types.ts`.** `{@html}` takes
+  `trustedHtml(...)`; a script's `src` and the `Worker` constructor take `trustedScriptUrl(...)`.
+  A plain string at one of those sinks throws under `require-trusted-types-for 'script'`, which
+  the smoke test enforces (operators opt in). Don't add `innerHTML`, `outerHTML`,
+  `insertAdjacentHTML` or d3's `.html()`: build nodes, or use `textContent`.
 - **A new third-party origin is a policy change.** Scripts, stylesheets and fonts are allowed by
   origin; `fetch` targets only by scheme (`https:` / `wss:`), since operators configure those.
   Add the origin in `scripts/csp.js`, or to the "what to add" table on the operator page when only

@@ -10,6 +10,7 @@
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 	import { parseBounded } from '#lib/utils/number-field.js';
+	import { AUTOEQ_RANGE_FIELDS, type AutoEqRangeKey } from '#lib/utils/autoeq-ranges.js';
 
 	const uid = $props.id();
 	const opts = $derived(settingsStore.autoEqOptions);
@@ -59,20 +60,10 @@
 			: m.equalizer_autoeq_graphic_rejected_notice();
 	}
 
-	type RangeKey = 'freqMin' | 'freqMax' | 'gainMin' | 'gainMax' | 'qMin' | 'qMax';
+	type RangeKey = AutoEqRangeKey;
 
-	/** Each bound's field limits (kept in step with the inputs' min/max) and its pair partner. */
-	const RANGE_FIELDS: Record<
-		RangeKey,
-		{ min: number; max: number; step?: number; integer?: boolean; partner: RangeKey }
-	> = {
-		freqMin: { min: 20, max: 20000, integer: true, partner: 'freqMax' },
-		freqMax: { min: 20, max: 20000, integer: true, partner: 'freqMin' },
-		gainMin: { min: -40, max: 0, partner: 'gainMax' },
-		gainMax: { min: 0, max: 40, partner: 'gainMin' },
-		qMin: { min: 0.1, max: 10, step: 0.1, partner: 'qMax' },
-		qMax: { min: 0.1, max: 10, step: 0.1, partner: 'qMin' }
-	};
+	/** Each bound's field limits and pair partner, shared with the store's hydrate clamp. */
+	const RANGE_FIELDS = AUTOEQ_RANGE_FIELDS;
 
 	/**
 	 * Commits on `change`, not per keystroke: typing `5` on the way to `500` must not set a

@@ -12,14 +12,12 @@
 		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 
 	/*
-	 * Steps below `text-xs` (12px) that components used to spell `text-[10px]` / `text-[11px]`.
+	 * The step below `text-xs` (12px) that components used to spell `text-[10px]`.
 	 * The line-heights are the unitless 1.5 that `html` inherits from Tailwind's preflight, so
-	 * swapping an arbitrary size for one of these leaves the row height as it was.
+	 * swapping the arbitrary size for it leaves the row height as it was.
 	 */
 	--text-2xs: 0.625rem;
 	--text-2xs--line-height: 1.5;
-	--text-2xs-plus: 0.6875rem;
-	--text-2xs-plus--line-height: 1.5;
 }
 
 /*
@@ -212,6 +210,35 @@
 			border-color 0.15s ease,
 			color 0.15s ease,
 			box-shadow 0.15s ease;
+	}
+
+	/* ─── Range slider thumb ──────────────────────────────────────────────────── */
+	/*
+	 * The thin sliders (`h-1 appearance-none` in the EQ band card and the target customizer) drop
+	 * the native track, which leaves the thumb to each engine's default. One thumb for all three
+	 * engines, in the accent colour, plus a focus ring that hugs the control instead of a 4px bar.
+	 */
+	input[type='range'].appearance-none::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 1rem;
+		height: 1rem;
+		border: 0;
+		border-radius: 9999px;
+		background: var(--color-accent);
+	}
+
+	input[type='range'].appearance-none::-moz-range-thumb {
+		width: 1rem;
+		height: 1rem;
+		border: 0;
+		border-radius: 9999px;
+		background: var(--color-accent);
+	}
+
+	input[type='range'].appearance-none:focus-visible {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 6px;
 	}
 
 	/* ─── Select element styling ──────────────────────────────────────────────── */

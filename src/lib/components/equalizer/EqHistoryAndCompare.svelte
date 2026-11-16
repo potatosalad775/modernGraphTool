@@ -207,7 +207,7 @@
 {#snippet notFit(id: string)}
 	<span
 		id={id ? fitReasonId(id) : undefined}
-		class="flex items-center gap-1 text-[10px] text-base-content/70"
+		class="flex items-center gap-1 text-2xs text-base-content/70"
 	>
 		<TriangleAlert class="size-3 shrink-0" aria-hidden="true" />
 		<span class="truncate">{m.eq_history_not_fit({ constraint: constraintLabel })}</span>
@@ -377,7 +377,7 @@
 					</Button>
 					<div class="flex min-w-0 flex-1 flex-col">
 						<span class="truncate text-xs text-base-content">{snap.summary}</span>
-						<span class="text-[10px] text-base-content/50 tabular-nums">
+						<span class="text-2xs text-base-content/50 tabular-nums">
 							{timeStr(snap.timestamp)}
 						</span>
 						{#if !fit}{@render notFit(snap.id)}{/if}
@@ -423,7 +423,7 @@
 						{:else}
 							<span class="truncate text-xs text-base-content">{bookmark.name}</span>
 						{/if}
-						<span class="truncate text-[10px] text-base-content/50">
+						<span class="truncate text-2xs text-base-content/50">
 							{bookmark.device
 								? `${deviceLabel(bookmark.device)} · ${dateStr(bookmark.createdAt)}`
 								: dateStr(bookmark.createdAt)}

@@ -470,7 +470,7 @@
 							aria-describedby={phone.description ? descId : undefined}
 							title={phone.descText || undefined}
 							class="flex w-full flex-col items-start px-3 pt-1.5 text-left text-sm after:absolute
-								after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent
+								after:inset-0 focus-visible:outline-hidden focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent
 								{hasMeta || phone.description ? 'pb-0' : 'min-h-8 pb-1.5'}
 								{isLoaded ? 'font-medium text-base-content' : ''}
 								{isLoading ? 'opacity-50' : ''}

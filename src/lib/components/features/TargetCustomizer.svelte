@@ -153,7 +153,7 @@
 								{value}
 								oninput={(e) =>
 									targetAdjustmentStore.setValue(uuid, def.id, parseFloat(e.currentTarget.value))}
-								class="h-1 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+								class="h-1 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 							/>
 						</div>
 					</div>
@@ -179,7 +179,7 @@
 					aria-label={m.target_customizer_add_filter()}
 					onchange={handleAddFilterChange}
 					class="flex-1 rounded border border-base-content/20 bg-base-100 py-1 pl-1.5
-						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-hidden"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
@@ -194,7 +194,7 @@
 					value={adjustment.preset}
 					onchange={handlePresetChange}
 					class="flex-1 rounded border border-base-content/20 bg-base-100 py-1 pl-1.5
-						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-hidden"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
 					{#each filterPresets as preset (preset.name)}

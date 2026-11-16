@@ -29,7 +29,7 @@
 				aria-labelledby="{uid}-persist"
 				value={settingsStore.autoEqPersistMode}
 				onchange={handlePersistModeChange}
-				class="h-7 w-full rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
+				class="h-7 w-full rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-hidden"
 			>
 				<option value="session">{m.eq_settings_autoeq_persist_session()}</option>
 				<option value="local">{m.eq_settings_autoeq_persist_local()}</option>

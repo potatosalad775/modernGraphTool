@@ -148,9 +148,9 @@
 						const v = parseInt((e.target as HTMLInputElement).value);
 						if (!isNaN(v)) audioRangeStore.setRange(v, audioRangeStore.toHz);
 					}}
-					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 				/>
-				<span class="text-[10px]">Hz</span>
+				<span class="text-2xs">Hz</span>
 			</label>
 			<label class="flex items-baseline gap-1">
 				{m.equalizer_player_sweep_to_label()}
@@ -164,9 +164,9 @@
 						const v = parseInt((e.target as HTMLInputElement).value);
 						if (!isNaN(v)) audioRangeStore.setRange(audioRangeStore.fromHz, v);
 					}}
-					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 				/>
-				<span class="text-[10px]">Hz</span>
+				<span class="text-2xs">Hz</span>
 			</label>
 			<div class="h-px flex-1 bg-base-content/20"></div>
 			<Button
@@ -242,9 +242,9 @@
 								const v = parseInt((e.target as HTMLInputElement).value);
 								if (!isNaN(v)) audioPlayerService.setSweepFromHz(v);
 							}}
-							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 						/>
-						<span class="text-[10px]">Hz</span>
+						<span class="text-2xs">Hz</span>
 					</label>
 					<label class="flex items-baseline gap-1">
 						{m.equalizer_player_sweep_to_label()}
@@ -258,9 +258,9 @@
 								const v = parseInt((e.target as HTMLInputElement).value);
 								if (!isNaN(v)) audioPlayerService.setSweepToHz(v);
 							}}
-							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 						/>
-						<span class="text-[10px]">Hz</span>
+						<span class="text-2xs">Hz</span>
 					</label>
 				{/if}
 				<label class="flex items-baseline gap-1">
@@ -275,9 +275,9 @@
 							const v = parseFloat((e.target as HTMLInputElement).value);
 							if (!isNaN(v)) audioPlayerService.setSweepDurationSec(v);
 						}}
-						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
-					<span class="text-[10px]">s</span>
+					<span class="text-2xs">s</span>
 				</label>
 				<Switch
 					labelText={m.equalizer_player_sweep_loop_label()}

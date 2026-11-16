@@ -122,7 +122,7 @@
 		max={f.max}
 		step={f.step}
 		onchange={(e) => commitRange(e, key)}
-		class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+		class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 	/>
 {/snippet}
 

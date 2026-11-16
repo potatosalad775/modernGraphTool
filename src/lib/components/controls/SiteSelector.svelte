@@ -233,7 +233,7 @@
 					<section aria-labelledby="{uid}-{group.type}">
 						<h3
 							id="{uid}-{group.type}"
-							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-[12px] font-semibold tracking-wider
+							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-xs font-semibold tracking-wider
 								text-base-content/50 uppercase"
 						>
 							{dbTypeLabel(group.type)}
@@ -252,7 +252,7 @@
 										{@attach current ? revealCurrent : undefined}
 										class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content no-underline
 											hover:bg-base-300 focus-visible:bg-base-300 focus-visible:ring-1
-											focus-visible:ring-accent focus-visible:outline-none
+											focus-visible:ring-accent focus-visible:outline-hidden
 											{current ? 'font-medium text-accent' : ''}
 											{entry.verified ? '' : 'opacity-50'}"
 									>

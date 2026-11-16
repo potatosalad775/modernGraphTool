@@ -71,7 +71,7 @@
 	};
 
 	const sizeClasses = {
-		xs: 'px-1.5 py-0.5 text-[10px]',
+		xs: 'px-1.5 py-0.5 text-2xs',
 		sm: 'px-2.5 py-1.5 text-xs',
 		md: 'px-4 py-2 text-sm',
 		lg: 'px-6 py-3 text-base',
@@ -85,7 +85,7 @@
 	};
 
 	const base =
-		'inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100';
+		'inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors select-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100';
 
 	const activeOnOpenClasses = 'data-[state=open]:bg-accent data-[state=open]:text-accent-content';
 

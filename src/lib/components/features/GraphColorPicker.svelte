@@ -204,7 +204,7 @@
 						bind:value={localL}
 						oninput={onLchInput}
 						onchange={onLchCommit}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
@@ -220,7 +220,7 @@
 						bind:value={localC}
 						oninput={onLchInput}
 						onchange={onLchCommit}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
@@ -235,7 +235,7 @@
 						bind:value={localH}
 						oninput={onLchInput}
 						onchange={onLchCommit}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 			</div>
@@ -254,7 +254,7 @@
 						bind:value={localTick}
 						oninput={onDashInput}
 						onchange={onDashCommit}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
@@ -269,7 +269,7 @@
 						bind:value={localSpace}
 						oninput={onDashInput}
 						onchange={onDashCommit}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 			</div>

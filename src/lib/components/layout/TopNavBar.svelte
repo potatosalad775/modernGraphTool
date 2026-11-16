@@ -61,7 +61,7 @@
 	}
 </script>
 
-<header class="flex h-12 items-center border-b border-base-content/15 bg-base-300 px-4">
+<header class="flex h-12 items-center border-b border-base-content/15 bg-base-300 px-4 select-none">
 	<nav aria-label={m.top_nav_bar_nav_label()} class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
 		<div class="flex shrink-0 items-center gap-4">

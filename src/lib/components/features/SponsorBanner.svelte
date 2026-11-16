@@ -78,7 +78,7 @@
 							target="_blank"
 							rel="external noopener noreferrer"
 							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
-								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden"
 						>
 							<ExternalLink class="h-4 w-4" />
 							{sponsor.ctaText}
@@ -100,7 +100,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-none"
+					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-hidden"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

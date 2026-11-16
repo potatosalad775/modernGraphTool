@@ -275,7 +275,7 @@
 							-->
 							<button
 								type="button"
-								class="relative h-1.5 rounded-full transition-all after:absolute after:top-1/2 after:left-1/2 after:size-6 after:-translate-x-1/2 after:-translate-y-1/2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 focus-visible:outline-none {i ===
+								class="relative h-1.5 rounded-full transition-all after:absolute after:top-1/2 after:left-1/2 after:size-6 after:-translate-x-1/2 after:-translate-y-1/2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 focus-visible:outline-hidden {i ===
 								currentStep
 									? 'w-4 bg-accent'
 									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"

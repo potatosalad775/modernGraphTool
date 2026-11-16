@@ -72,7 +72,7 @@
 		title={selectedLabel
 			? [selectedLabel, selectedDetail].filter(Boolean).join(' · ')
 			: placeholder}
-		class="flex min-w-16 cursor-pointer items-center justify-between gap-1 rounded border border-base-content/20 bg-base-100 px-2 py-1 text-left text-sm transition-colors hover:bg-base-content/5 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 {className}"
+		class="flex min-w-16 cursor-pointer items-center justify-between gap-1 rounded border border-base-content/20 bg-base-100 px-2 py-1 text-left text-sm transition-colors hover:bg-base-content/5 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 {className}"
 	>
 		<span id="{uid}-value" class="flex min-w-0 gap-1 {selectedLabel ? '' : 'text-base-content/60'}">
 			<span class="truncate">{selectedLabel || placeholder}</span>
@@ -91,7 +91,7 @@
 				{#each visibleGroups as group (group.id)}
 					<Select.Group>
 						<Select.GroupHeading
-							class="px-2 py-1 text-[10px] font-semibold tracking-wider text-base-content/50 uppercase"
+							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/50 uppercase"
 						>
 							{group.heading}
 						</Select.GroupHeading>
@@ -100,7 +100,7 @@
 								value={item.value}
 								label={item.label}
 								aria-label={item.ariaLabel}
-								class="flex cursor-pointer items-center gap-2 rounded py-1 pr-2 text-sm text-base-content outline-none data-highlighted:bg-base-300 data-selected:font-medium data-selected:text-accent {item.indent
+								class="flex cursor-pointer items-center gap-2 rounded py-1 pr-2 text-sm text-base-content outline-hidden data-highlighted:bg-base-300 data-selected:font-medium data-selected:text-accent {item.indent
 									? 'pl-5'
 									: 'pl-2'}"
 							>

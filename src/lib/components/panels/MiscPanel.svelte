@@ -72,7 +72,7 @@
 					value={getLocale()}
 					aria-label={m.misc_panel_language_label()}
 					onchange={handleLocaleChange}
-					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
+					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-hidden"
 				>
 					{#each languages as lang (lang.value)}
 						<option value={lang.value}>{lang.label}</option>

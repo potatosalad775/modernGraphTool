@@ -121,7 +121,7 @@
 	}
 
 	const rowClass =
-		'flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none';
+		'flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-hidden';
 </script>
 
 <PopoverPanel bind:open label={m.eq_constraint_button()} contentClass="flex w-72 flex-col p-0!">
@@ -159,7 +159,7 @@
 				autocapitalize="none"
 				spellcheck={false}
 				enterkeyhint="search"
-				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-none placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
+				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-hidden placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
 			/>
 		</div>
 
@@ -169,7 +169,7 @@
 					<div role="group" aria-labelledby="{group.id}-heading">
 						<div
 							id="{group.id}-heading"
-							class="px-2 py-1 text-[10px] font-semibold tracking-wider text-base-content/50 uppercase"
+							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/50 uppercase"
 						>
 							{group.heading}
 						</div>
@@ -198,12 +198,12 @@
 								>
 									<span class="truncate">{entryLabel(row.entry)}</span>
 									{#if pendingId === row.entry.id}
-										<span class="shrink-0 text-[10px] text-base-content/50">
+										<span class="shrink-0 text-2xs text-base-content/50">
 											{m.eq_constraint_loading()}
 										</span>
 									{:else if row.entry.status === 'draft'}
 										<span
-											class="shrink-0 rounded border border-base-content/20 px-1 text-[10px] text-base-content/50"
+											class="shrink-0 rounded border border-base-content/20 px-1 text-2xs text-base-content/50"
 											title={m.eq_constraint_draft_title()}
 										>
 											{m.eq_constraint_draft()}

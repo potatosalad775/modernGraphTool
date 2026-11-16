@@ -235,7 +235,7 @@
 	<a
 		href="#{id}"
 		onclick={(e: MouseEvent) => skipTo(e, id)}
-		class="sr-only rounded-md border border-base-content/40 bg-base-100 px-4 py-2 text-sm font-semibold text-base-content shadow-xl focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:ring-2 focus:ring-accent focus:outline-none"
+		class="sr-only rounded-md border border-base-content/40 bg-base-100 px-4 py-2 text-sm font-semibold text-base-content shadow-xl focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:ring-2 focus:ring-accent focus:outline-hidden"
 	>
 		{label}
 	</a>
@@ -266,7 +266,7 @@
 				id={GRAPH_REGION_ID}
 				tabindex="-1"
 				aria-label={m.app_shell_graph_label()}
-				class="flex flex-col overflow-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+				class="flex flex-col overflow-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
@@ -282,7 +282,7 @@
 				id={CONTROLS_REGION_ID}
 				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				{@render panelHeading()}
 				<div class="relative min-h-0 flex-1 overflow-hidden">
@@ -314,7 +314,7 @@
 				id={GRAPH_REGION_ID}
 				tabindex="-1"
 				aria-label={m.app_shell_graph_label()}
-				class="flex flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+				class="flex flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
@@ -333,7 +333,7 @@
 				id={CONTROLS_REGION_ID}
 				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-w-85 flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+				class="flex min-w-85 flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				<MenuCarousel />
 				{@render panelHeading()}

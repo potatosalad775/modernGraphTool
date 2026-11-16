@@ -69,6 +69,6 @@
 		aria-label={m.normalizer_input_hz_label()}
 		disabled={graphStore.normType === 'Avg'}
 		onchange={onHzValueChange}
-		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+		class="h-full w-16 bg-transparent px-2 text-center tabular-nums focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-40"
 	/>
 </div>

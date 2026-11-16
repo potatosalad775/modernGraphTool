@@ -375,7 +375,7 @@
 								onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
 								aria-label={m.selection_list_channel_named({ name })}
 								class="h-7 rounded border border-base-content/20 bg-base-200 pl-1 text-xs
-									focus:ring-1 focus:ring-accent focus:outline-none"
+									focus:ring-1 focus:ring-accent focus:outline-hidden"
 							>
 								{#each channelOpts as opt (opt.value)}
 									<option value={opt.value}>{opt.label}</option>
@@ -410,7 +410,7 @@
 							onchange={(e) => handleYOffsetChange(uuid, e.currentTarget)}
 							aria-label={m.selection_list_y_offset_named({ name })}
 							class="h-7 w-12 rounded border border-base-content/20 bg-base-200 text-center text-xs
-									focus:ring-1 focus:ring-accent focus:outline-none"
+									focus:ring-1 focus:ring-accent focus:outline-hidden"
 						/>
 
 						<Button

@@ -209,7 +209,7 @@
 	let focusSnapshot: number | null = null;
 
 	const inputBase =
-		'bg-transparent text-xs tabular-nums text-base-content text-right outline-none rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+		'bg-transparent text-xs tabular-nums text-base-content text-right outline-hidden rounded px-1 py-0.5 ring-1 ring-base-content/30 hover:bg-base-content/5 focus:bg-base-200 focus:ring-accent/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
 	function clampField(field: 'freq' | 'gain' | 'q', val: number): number {
 		const widest =
@@ -359,7 +359,7 @@
 					aria-describedby={violation.freq ? noteIds.freq : undefined}
 				/>
 			{/if}
-			<span class="text-[12px] text-base-content/60 select-none">Hz</span>
+			<span class="text-xs text-base-content/60 select-none">Hz</span>
 		</label>
 
 		{#if graphicRow}
@@ -372,7 +372,7 @@
 				oninput={(e) => onUpdate({ gain: parseFloat(e.currentTarget.value) / 10 })}
 				aria-label="{filter.freq} Hz · {m.equalizer_filter_list_gain()}"
 				aria-valuetext={gainValueText}
-				class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+				class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 				class:opacity-50={!filter.enabled}
 			/>
 		{/if}
@@ -412,13 +412,13 @@
 					aria-describedby={violation.gain ? noteIds.gain : undefined}
 				/>
 			{/if}
-			<span class="text-[12px] text-base-content/60 select-none">dB</span>
+			<span class="text-xs text-base-content/60 select-none">dB</span>
 		</label>
 
 		<!-- Q — read-only chip where the slot locks it (graphic EQs) -->
 		{#if !graphicRow}
 			<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
-				<span class="text-[12px] text-base-content/60 select-none">Q</span>
+				<span class="text-xs text-base-content/60 select-none">Q</span>
 				{#if qLocked}
 					<span
 						class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -555,7 +555,7 @@
 								onkeydown={(e) => handleInputKeydown(e, 'freq')}
 								class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
 							/>
-							<span class="text-[10px] text-base-content/40 select-none">Hz</span>
+							<span class="text-2xs text-base-content/40 select-none">Hz</span>
 						</label>
 					</div>
 					<input
@@ -574,7 +574,7 @@
 							);
 							onUpdate({ freq: Math.round(hz) });
 						}}
-						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 					/>
 				</div>
 			{/if}
@@ -601,7 +601,7 @@
 								onkeydown={(e) => handleInputKeydown(e, 'gain')}
 								class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
 							/>
-							<span class="text-[10px] text-base-content/40 select-none">dB</span>
+							<span class="text-2xs text-base-content/40 select-none">dB</span>
 						</label>
 					</div>
 					<input
@@ -615,7 +615,7 @@
 						oninput={(e) => {
 							onUpdate({ gain: parseFloat(e.currentTarget.value) / 10 });
 						}}
-						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 					/>
 				</div>
 			{/if}
@@ -628,7 +628,7 @@
 							{m.equalizer_filter_list_q()}
 						</span>
 						<label class="inline-flex items-baseline gap-1">
-							<span class="text-[10px] text-base-content/40 select-none">Q</span>
+							<span class="text-2xs text-base-content/40 select-none">Q</span>
 							<input
 								type="number"
 								value={filter.q}
@@ -657,7 +657,7 @@
 							const q = linearToLog(parseFloat(e.currentTarget.value), qRange.min, qRange.max);
 							onUpdate({ q: parseFloat(q.toFixed(2)) });
 						}}
-						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+						class="h-1 w-full cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 					/>
 				</div>
 			{/if}

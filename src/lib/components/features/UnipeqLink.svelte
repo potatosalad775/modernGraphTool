@@ -207,7 +207,7 @@
 					</p>
 					<!-- Hardware EQ names a device it shows in its own row, below -->
 					{#if linkStore.device?.name != undefined && !devicePeqStore.connection}
-						<p class="text-[11px] text-base-content/70">{linkStore.device.name}</p>
+						<p class="text-xs text-base-content/70">{linkStore.device.name}</p>
 					{/if}
 				</div>
 			</div>

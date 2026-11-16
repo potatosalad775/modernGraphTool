@@ -124,10 +124,11 @@ const CONFIG = {
 		]
 	},
 
-	// Topbar title. 'TEXT', 'HTML' and 'IMAGE' types are supported.
+	// Topbar title. 'TEXT', 'HTML' and 'IMAGE' types are supported. Do not use heading tags
+	// (<h1>–<h6>) in an HTML title: the page already has its own headings.
 	// LINK_LIST adds links next to it, and supports i18n — see docs → TOPBAR.
 	TOPBAR: {
-		TITLE: { TYPE: 'HTML', CONTENT: '<h2>modernGraphTool</h2>' },
+		TITLE: { TYPE: 'HTML', CONTENT: '<span>modernGraphTool</span>' },
 		LINK_LIST: [
 			{ TITLE: 'Github', URL: 'https://www.github.com' },
 			{ TITLE: 'Docs', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }

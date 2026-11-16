@@ -735,7 +735,7 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+    TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
     { TITLE: "Home", URL: "/" },
@@ -754,7 +754,7 @@ TOPBAR: {
   - `CONTENT` : 제목의 내용을 설정합니다.
     - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 제목을 설정합니다.
     - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
-    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다.
+    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다. 제목에는 제목 태그(`<h1>`–`<h6>`)를 쓰지 마세요. 페이지에 이미 자체 제목이 있고, 이 제목은 홈 링크 안에 들어갑니다.
 - `LINK_LIST` : 페이지 상단 바의 링크 목록을 설정합니다.
   - `TITLE` 필드는 링크의 제목을 지정합니다.
   - `URL` 필드는 링크의 URL을 지정합니다.

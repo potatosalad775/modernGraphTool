@@ -744,7 +744,7 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+    TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
     { TITLE: "Home", URL: "/" },
@@ -763,7 +763,7 @@ Sets the title and link list for the page's top bar.
   - `CONTENT` : Sets the title content.
     - If `TYPE` is `TEXT`, sets a text-formatted title.
     - If `TYPE` is `IMAGE`, sets an image file path.
-    - If `TYPE` is `HTML`, sets an HTML-formatted title.
+    - If `TYPE` is `HTML`, sets an HTML-formatted title. Don't use heading tags (`<h1>`–`<h6>`) in it: the page already has its own headings, and the title sits inside the home link.
 - `LINK_LIST` : Sets the link list for the page's top bar.
   - The `TITLE` field specifies the link's title.
   - The `URL` field specifies the link's URL.

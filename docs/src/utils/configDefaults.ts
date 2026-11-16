@@ -314,7 +314,7 @@ export function createDefaultConfig(): ConfigFormState {
 		TOPBAR: {
 			TITLE: {
 				TYPE: 'HTML',
-				CONTENT: '<h2>modernGraphTool</h2>'
+				CONTENT: '<span>modernGraphTool</span>'
 			},
 			LINK_LIST: {
 				useI18n: false,

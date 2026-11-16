@@ -40,7 +40,7 @@ dist/                     # (또는 압축을 푼 릴리스 폴더)
 ├── config.js             # 애플리케이션 설정 — 사용자 편집
 ├── theme.css             # 그래프 색상 테마 — 사용자 편집
 ├── index.html            # HTML 진입점 — 메타데이터 편집 가능
-├── .htaccess             # Apache SPA 폴백
+├── .htaccess             # Apache SPA 폴백, 캐시, 압축
 ├── data/
 │   ├── phones/           # 측정 데이터 파일 (.txt) — 사용자 편집
 │   ├── target/           # 타겟 커브 데이터 파일 (.txt) — 사용자 편집
@@ -52,6 +52,58 @@ dist/                     # (또는 압축을 푼 릴리스 폴더)
 ```
 
 **사용자 편집** 표시가 붙은 파일은 자유롭게 수정해도 됩니다. `_app/` 폴더에는 빌드된 애플리케이션이 들어 있으니 손대지 마세요. 릴리스를 갱신할 때마다 통째로 덮어써집니다.
+
+## 캐시와 압축 \{#caching-and-compression\}
+
+Apache에서는 함께 들어 있는 `.htaccess`가 캐시 기간과 압축도 설정합니다. 모든 규칙이 `<IfModule>` 가드 안에 있으므로 해당 모듈이 없는 호스트는 그냥 무시하며, SPA 폴백은 그대로입니다.
+
+- **`_app/immutable/`** 는 1년간 캐시됩니다(`public, max-age=31536000, immutable`). 파일 이름에 내용 해시가 들어 있어, 새 릴리스는 새 URL이 됩니다.
+- **`index.html`, `config.js`, `theme.css`, `_app/version.json`, `data/`** 는 `Cache-Control: no-cache`로 내려갑니다. 브라우저가 사본을 보관하되 매번 서버에 먼저 확인하므로, 업로드한 수정 사항이 다음 로드에 바로 반영되고 바뀌지 않은 파일은 `304` 응답만 받습니다.
+- **텍스트 형식**(HTML, CSS, JavaScript, JSON, SVG, WebAssembly)은 `mod_brotli` / `mod_deflate`가 있으면 Brotli와 gzip으로 압축됩니다.
+
+다른 서버에서도 같은 세 가지가 필요합니다. 경로는 배포하는 폴더 기준입니다.
+
+| 경로                                                                | `Cache-Control`                       |
+| ------------------------------------------------------------------- | ------------------------------------- |
+| `_app/immutable/*`                                                  | `public, max-age=31536000, immutable` |
+| `index.html`, `config.js`, `theme.css`, `_app/version.json`, `data/*` | `no-cache`                            |
+
+nginx에서는 `root`로 사이트를 서빙하는 `server` 블록 안에 다음을 넣습니다.
+
+```nginx
+gzip on;
+gzip_types text/css text/plain application/javascript application/json image/svg+xml application/wasm;
+
+location /_app/immutable/ {
+  add_header Cache-Control "public, max-age=31536000, immutable";
+}
+location ~ ^/(index\.html|config\.js|theme\.css|_app/version\.json)$ {
+  add_header Cache-Control "no-cache";
+}
+location /data/ {
+  add_header Cache-Control "no-cache";
+}
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+헤더 파일을 지원하는 정적 호스팅(Netlify, Cloudflare Pages)에서는 같은 내용의 `_headers` 파일을 사용합니다.
+
+```text
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+/index.html
+  Cache-Control: no-cache
+/config.js
+  Cache-Control: no-cache
+/theme.css
+  Cache-Control: no-cache
+/data/*
+  Cache-Control: no-cache
+```
+
+이런 호스팅은 이미 텍스트 응답을 압축합니다. GitHub Pages는 자체적으로 짧은 캐시 기간을 지정하며 바꿀 수 없습니다.
 
 ## 앱 업데이트
 

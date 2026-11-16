@@ -57,7 +57,15 @@ export const frStore = new FRDataStore();
   Hydrated once from `AppShell.onMount`
 - `squiglink-store.svelte.ts` — squig.link domain guard, sponsor content and shop links. The site
   registry and phone-book crawl it used to own moved to `services/site-index.svelte.ts` and
-  `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`
+  `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`.
+  **Nothing fetched from squig.link is executed.** `squiglink-intro.js` / `shoplinks.js` are CrinGraph
+  scripts declaring `let contentSponsor = [ … ]` / `let sponsorDetails = { … }`; the store reads only
+  that literal through `utils/js-literal.ts` (which rejects anything but plain data, never `eval`s),
+  so no CSP needs `'unsafe-eval'`. Every value then passes a checker in the store before it reaches
+  a component: URLs through `sanitizeHttpUrl` (a failure drops the field — `''` for required ones),
+  `sponsorId` limited to `[A-Za-z0-9_.-]` (it names a cookie), `utmParams` to a plain query string.
+  So `ShopLink` / `SponsorBanner` never re-check. Keep it that way when adding a field. Shop-link
+  fetches are `priority: 'low'`; `squiglink-intro.js` and the creative are boot-critical and are not
 
 ## Invariants worth keeping
 

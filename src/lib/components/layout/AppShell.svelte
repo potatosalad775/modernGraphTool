@@ -108,42 +108,9 @@
 	// everything beyond it inert, so one shown at boot is unreachable (and its link unusable)
 	// until the dialog is gone, and may time out before that.
 	let pendingUpdate = $state<VersionUpdate | null>(null);
-	// The squig.link sponsor dialog is not in the DOM until its script has loaded:
-	// 'loading' is not knowing yet, 'expected' is that it opens and has not shown so far.
-	let sponsor = $state<'none' | 'loading' | 'expected'>('none');
-	let modalOpen = $state(false);
-	let modalSeen = $state(false);
-	let modalWatcher: MutationObserver | undefined;
-
-	const OPEN_DIALOG =
-		'[data-dialog-content][data-state="open"], [data-alert-dialog-content][data-state="open"]';
-
-	/**
-	 * Track whether a modal dialog is open, from the DOM: the tour has a store, but the sponsor
-	 * dialog's open state is local to `SponsorBanner`. Popovers are not counted (they carry
-	 * `role="dialog"` too, but leave the page usable). Runs only until the toast has been shown.
-	 */
-	function watchForModals() {
-		const sync = () => {
-			modalOpen = document.querySelector(OPEN_DIALOG) !== null;
-			if (modalOpen) modalSeen = true;
-		};
-		sync();
-		modalWatcher = new MutationObserver(sync);
-		modalWatcher.observe(document.body, {
-			childList: true,
-			subtree: true,
-			attributes: true,
-			attributeFilter: ['data-state']
-		});
-	}
 
 	const updateToastReady = $derived(
-		pendingUpdate !== null &&
-			!tutorialStore.isOpen &&
-			!modalOpen &&
-			sponsor !== 'loading' &&
-			!(sponsor === 'expected' && !modalSeen)
+		pendingUpdate !== null && !tutorialStore.isOpen && !squiglinkStore.sponsorBlocking
 	);
 
 	// In the component, not in a panel: panels unmount on every switch.
@@ -152,7 +119,6 @@
 		const update = untrack(() => pendingUpdate);
 		if (!update) return;
 		pendingUpdate = null;
-		modalWatcher?.disconnect();
 		toast.message(m.version_update_toast_title({ version: update.current }), {
 			duration: 10000,
 			action: {
@@ -191,16 +157,9 @@
 		// Skipped on first visit (no stored version) and on same/downgraded versions.
 		const update = checkVersionUpdate(__APP_VERSION__);
 		if (update) {
-			watchForModals();
-			if (squiglinkStore.isSponsorEnabled) {
-				// The sponsor dialog opens once its script has loaded, after this mount.
-				sponsor = 'loading';
-				void squiglinkStore.fetchSponsorContent().then(() => {
-					const content = squiglinkStore.sponsorContent;
-					sponsor =
-						content && !squiglinkStore.isSponsorDismissed(content.sponsorId) ? 'expected' : 'none';
-				});
-			}
+			// The sponsor dialog opens once its script has loaded, after this mount; the
+			// store's `sponsorBlocking` covers the wait, so make sure the load is running.
+			if (squiglinkStore.isSponsorEnabled) void squiglinkStore.fetchSponsorContent();
 			pendingUpdate = update;
 		}
 
@@ -240,7 +199,6 @@
 
 		return () => {
 			window.removeEventListener('resize', updateMobile);
-			modalWatcher?.disconnect();
 		};
 	});
 

@@ -445,7 +445,8 @@ own `AGENTS.md` under Contracts; changing what's read here means changing it the
 ## squig.link integration
 
 Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`). Fetches
-shop links from squig.link JSON endpoints and loads `squiglink-intro.js` for sponsor content. All UI
+shop links from squig.link JSON endpoints and reads sponsor content out of `squiglink-intro.js` as data
+(never executed — `utils/js-literal.ts`; see `stores/AGENTS.md`). All UI
 is Svelte-native — no external DOM manipulation. Toggled via the `SQUIGLINK` section in
 `defaults/config.js`.
 

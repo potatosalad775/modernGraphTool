@@ -210,6 +210,7 @@
 	}
 
 	let importInputEl = $state<HTMLInputElement | undefined>(undefined);
+	const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 	function openImportDialog() {
 		importInputEl?.click();
@@ -220,6 +221,14 @@
 		const file = input.files?.[0];
 		if (!file) return;
 		try {
+			// An EQ preset is a few KB of text; anything this large is the wrong file, and
+			// reading it would hold the whole thing in memory to find no filters.
+			if (file.size > MAX_IMPORT_BYTES) {
+				toast.error(
+					m.graph_uploader_too_large({ name: file.name, size: MAX_IMPORT_BYTES / (1024 * 1024) })
+				);
+				return;
+			}
 			const outcome = importOutcome(await file.text());
 			if (outcome.kind === 'filters') {
 				const { filters, skipped } = outcome;

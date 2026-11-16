@@ -144,6 +144,9 @@ export class SquiglinkStore {
 	shopLinks = $state<ShopLinkEntry[]>([]);
 	sponsorDetail = $state<SponsorDetail | null>(null);
 	sponsorContent = $state<SponsorContent | null>(null);
+	/** The sponsor script has answered (with a sponsor or without one). */
+	#sponsorSettled = $state(false);
+	#sponsorDismissedNow = $state(false);
 
 	#shopLinksFetched = false;
 	#sponsorDetailFetched = false;
@@ -199,7 +202,23 @@ export class SquiglinkStore {
 		return document.cookie.split(';').some((c) => c.trim().startsWith(name));
 	}
 
+	/**
+	 * True while the landing sponsor dialog is still to come or is on screen: the sponsor
+	 * script has not answered yet, or it named a sponsor this visitor has not dismissed.
+	 * `AppShell` holds the version toast back on it — a toast shown behind a modal is
+	 * unreachable. The dismissal cookie is not reactive, so `#sponsorSettled` and
+	 * `#sponsorDismissedNow` are what make this re-evaluate.
+	 */
+	get sponsorBlocking(): boolean {
+		if (!this.isSponsorEnabled) return false;
+		if (!this.#sponsorSettled) return true;
+		const sponsor = this.sponsorContent;
+		if (!sponsor || this.#sponsorDismissedNow) return false;
+		return !this.isSponsorDismissed(sponsor.sponsorId);
+	}
+
 	dismissSponsor(): void {
+		this.#sponsorDismissedNow = true;
 		if (!this.sponsorContent) return;
 		// No domain attribute on a DEBUG host — a cookie naming another domain is rejected
 		const host = window.location.hostname;
@@ -279,6 +298,8 @@ export class SquiglinkStore {
 			}
 		} catch {
 			// Silently skip if sponsor script is unavailable
+		} finally {
+			this.#sponsorSettled = true;
 		}
 	}
 

@@ -100,7 +100,7 @@ describe('AppShell boot', () => {
 		render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
-		// The default title is `<h2>modernGraphTool</h2>` as HTML: the <h1> carries its text only.
+		// The default title is `<span>modernGraphTool</span>` as HTML: the <h1> carries its text only.
 		await expect
 			.element(page.getByRole('heading', { level: 1 }))
 			.toHaveTextContent('modernGraphTool');

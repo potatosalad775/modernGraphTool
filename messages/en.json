@@ -103,6 +103,20 @@
 	"equalizer_filter_list_add_band": "Add band",
 	"equalizer_filter_list_remove_band": "Remove band",
 	"equalizer_filter_list_sort_bands": "Sort bands",
+	"equalizer_filter_list_delete_all": "Delete all bands",
+	"equalizer_filter_list_delete_all_title": "Delete all bands?",
+	"equalizer_filter_list_delete_all_body": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "This deletes the {count} band in the list. You can bring it back with undo.",
+				"countPlural=*": "This deletes all {count} bands, including any set for one ear only. You can bring them back with undo."
+			}
+		}
+	],
+	"equalizer_filter_list_delete_all_confirm": "Delete all",
+	"equalizer_filter_list_delete_all_cancel": "Cancel",
 	"equalizer_filter_list_graphic_fixed": "The graphic EQ preset fixes the bands",
 	"equalizer_filter_list_band_limit": "The EQ constraint allows no more bands",
 	"equalizer_filter_card_change_type": "Change filter type",

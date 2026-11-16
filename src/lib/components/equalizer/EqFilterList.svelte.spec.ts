@@ -608,4 +608,51 @@ describe('EqFilterList', () => {
 			expect(eqStore.filters[0].freq).toBe(100);
 		});
 	});
+
+	describe('deleting all bands', () => {
+		const deleteAllButton = () => page.getByRole('button', { name: 'Delete all bands' });
+		const mixedBands = () => [
+			makeFilter({ freq: 100 }),
+			makeFilter({ freq: 200, channel: 'L' }),
+			makeFilter({ freq: 300, channel: 'R' })
+		];
+
+		it('is disabled with no bands to delete', async () => {
+			render(EqFilterList);
+
+			await expect.element(deleteAllButton()).toBeDisabled();
+		});
+
+		// Unlike the minus button, this one is not scoped: it clears the buckets
+		// the channel switch is hiding too, and the dialog states the full count.
+		it('asks first, then deletes every bucket as one undo entry', async () => {
+			eqStore.filters = mixedBands();
+			eqStore.channelScope = 'L';
+			render(EqFilterList);
+
+			await deleteAllButton().click();
+			await expect.element(page.getByRole('dialog', { name: 'Delete all bands?' })).toBeVisible();
+			await expect.element(page.getByText(/all 3 bands/)).toBeVisible();
+			expect(eqStore.filters).toHaveLength(3);
+
+			await page.getByRole('button', { name: 'Delete all', exact: true }).click();
+
+			await vi.waitFor(() => expect(eqStore.filters).toHaveLength(0));
+			await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+
+			commandHistory.undo(frStore);
+			expect(eqStore.filters).toHaveLength(3);
+		});
+
+		it('deletes nothing on Cancel', async () => {
+			eqStore.filters = mixedBands();
+			render(EqFilterList);
+
+			await deleteAllButton().click();
+			await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+
+			await expect.element(page.getByRole('dialog')).not.toBeInTheDocument();
+			expect(eqStore.filters).toHaveLength(3);
+		});
+	});
 });

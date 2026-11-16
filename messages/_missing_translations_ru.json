@@ -22,6 +22,14 @@
 		"one": "{count} filter",
 		"other": "{count} filters"
 	},
+	"equalizer_filter_list_delete_all": "Delete all bands",
+	"equalizer_filter_list_delete_all_title": "Delete all bands?",
+	"equalizer_filter_list_delete_all_body": {
+		"one": "This deletes the {count} band in the list. You can bring it back with undo.",
+		"other": "This deletes all {count} bands, including any set for one ear only. You can bring them back with undo."
+	},
+	"equalizer_filter_list_delete_all_confirm": "Delete all",
+	"equalizer_filter_list_delete_all_cancel": "Cancel",
 	"equalizer_autoeq_select_source_and_target": "Please select both a source device and target curve.",
 	"equalizer_autoeq_data_not_found": "Source or target data not found.",
 	"equalizer_autoeq_no_response_data": "Could not retrieve frequency response data.",

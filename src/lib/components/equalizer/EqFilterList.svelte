@@ -30,8 +30,9 @@
 	import EqChannelSelect from './EqChannelSelect.svelte';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import EqOptionButton from './EqOptionButton.svelte';
-	import { ArrowDown01, Download, Minus, Plus, Upload, X } from '@lucide/svelte';
+	import { ArrowDown01, Download, Minus, Plus, Trash2, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
+	import Dialog from '../atoms/Dialog.svelte';
 	import { downloadText } from '#lib/utils/download-text.js';
 	import { eqSourceRun, sampleRunLabel } from '#lib/utils/eq-source.js';
 
@@ -184,6 +185,18 @@
 		eqCommands.replaceFilters(sorted);
 	}
 
+	let deleteAllOpen = $state(false);
+
+	/**
+	 * Every band in every bucket, not just the one in view: the request this
+	 * answers is clearing what a dropped constraint left behind. One undo entry.
+	 */
+	function deleteAllBands() {
+		deleteAllOpen = false;
+		expandedIndex = null;
+		eqCommands.replaceFilters([]);
+	}
+
 	function updateFilter(index: number, partial: Partial<EQFilter>) {
 		// enabled-only toggle bypasses the coalescer so it's always its own undo
 		// entry — a gain drag starting within 400 ms can't swallow the toggle.
@@ -316,6 +329,7 @@
 			>
 				<Minus class="size-3" />
 			</Button>
+			<div class="mx-1 h-6 w-px bg-base-content/20"></div>
 			<Button
 				title={m.equalizer_filter_list_sort_bands()}
 				hint={isGraphic ? m.equalizer_filter_list_graphic_fixed() : undefined}
@@ -326,6 +340,17 @@
 				onclick={sortBands}
 			>
 				<ArrowDown01 class="size-3.25" />
+			</Button>
+			<Button
+				title={m.equalizer_filter_list_delete_all()}
+				hint={isGraphic ? m.equalizer_filter_list_graphic_fixed() : undefined}
+				variant="outline"
+				size="icon"
+				class="size-6 p-px"
+				disabled={isGraphic || linkStore.readOnly || eqStore.filters.length === 0}
+				onclick={() => (deleteAllOpen = true)}
+			>
+				<Trash2 class="size-3" />
 			</Button>
 			<div class="mx-1 h-6 w-px bg-base-content/20"></div>
 			<EqOptionButton />
@@ -445,3 +470,24 @@
 		onchange={handleImportFile}
 	/>
 </div>
+
+<Dialog
+	bind:open={deleteAllOpen}
+	title={m.equalizer_filter_list_delete_all_title()}
+	description={m.equalizer_filter_list_delete_all_body({ count: eqStore.filters.length })}
+>
+	{#snippet actions()}
+		<Button
+			label={m.equalizer_filter_list_delete_all_cancel()}
+			variant="ghost"
+			size="sm"
+			onclick={() => (deleteAllOpen = false)}
+		/>
+		<Button
+			label={m.equalizer_filter_list_delete_all_confirm()}
+			variant="destructive"
+			size="sm"
+			onclick={deleteAllBands}
+		/>
+	{/snippet}
+</Dialog>

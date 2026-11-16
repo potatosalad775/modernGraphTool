@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import * as m from '#lib/paraglide/messages.js';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
@@ -7,6 +6,7 @@
 	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
 	import type { PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
+	import Dialog from '../atoms/Dialog.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
 	import VolumeWarningDialog from './VolumeWarningDialog.svelte';
 
@@ -62,47 +62,37 @@
 	}
 </script>
 
-<Dialog.Root open={choice !== null}>
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
-		<Dialog.Content
-			interactOutsideBehavior="ignore"
-			escapeKeydownBehavior="ignore"
-			class="fixed top-1/2 left-1/2 z-50 flex w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-xl bg-base-200 p-6 shadow-2xl"
-		>
-			<Dialog.Title class="text-lg font-semibold text-base-content">
-				{m.link_start_title()}
-			</Dialog.Title>
-			<Dialog.Description class="text-sm text-base-content/70">
-				{m.link_start_body({ count: choice?.theirs ?? 0 })}
-			</Dialog.Description>
-			{#if choice && (choice.flattened > 0 || choice.dropped > 0)}
-				<ul class="list-disc space-y-1 pl-5 text-sm text-base-content/80">
-					{#if choice.flattened > 0}
-						<li>{m.link_start_flattened({ count: choice.flattened })}</li>
-					{/if}
-					{#if choice.dropped > 0}
-						<li>{m.link_start_dropped({ count: choice.dropped })}</li>
-					{/if}
-				</ul>
+<Dialog
+	open={choice !== null}
+	dismissible={false}
+	title={m.link_start_title()}
+	description={m.link_start_body({ count: choice?.theirs ?? 0 })}
+>
+	{#if choice && (choice.flattened > 0 || choice.dropped > 0)}
+		<ul class="list-disc space-y-1 pl-5 text-sm text-base-content/80">
+			{#if choice.flattened > 0}
+				<li>{m.link_start_flattened({ count: choice.flattened })}</li>
 			{/if}
-			<div class="flex flex-wrap justify-end gap-2">
-				<Button
-					label={m.link_start_send()}
-					variant="outline"
-					size="sm"
-					onclick={() => linkService.choose('mine')}
-				/>
-				<Button
-					label={m.link_start_use_unipeq()}
-					variant="primary"
-					size="sm"
-					onclick={() => linkService.choose('theirs')}
-				/>
-			</div>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+			{#if choice.dropped > 0}
+				<li>{m.link_start_dropped({ count: choice.dropped })}</li>
+			{/if}
+		</ul>
+	{/if}
+	{#snippet actions()}
+		<Button
+			label={m.link_start_send()}
+			variant="outline"
+			size="sm"
+			onclick={() => linkService.choose('mine')}
+		/>
+		<Button
+			label={m.link_start_use_unipeq()}
+			variant="primary"
+			size="sm"
+			onclick={() => linkService.choose('theirs')}
+		/>
+	{/snippet}
+</Dialog>
 
 <VolumeWarningDialog
 	open={consent && !consentAnswered}

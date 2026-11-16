@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import * as m from '#lib/paraglide/messages.js';
 	import Button from '../atoms/Button.svelte';
+	import Dialog from '../atoms/Dialog.svelte';
 
 	/**
 	 * The volume warning: a write to a hardware EQ can pop, drop out or jump in level mid-playback,
@@ -24,36 +24,28 @@
 	let quiet = $state(false);
 </script>
 
-<Dialog.Root {open} onOpenChange={(next) => !next && onAnswer(false, false)}>
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
-		<Dialog.Content
-			class="fixed top-1/2 left-1/2 z-50 flex w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-xl bg-base-200 p-6 shadow-2xl"
-		>
-			<Dialog.Title class="text-lg font-semibold text-base-content">
-				{m.volume_warning_title()}
-			</Dialog.Title>
-			<Dialog.Description class="text-sm text-base-content/70">
-				{device === null ? m.volume_warning_body() : m.volume_warning_body_unipeq({ device })}
-			</Dialog.Description>
-			<label class="flex items-center gap-2 text-sm text-base-content/80">
-				<input type="checkbox" class="size-4 accent-primary" bind:checked={quiet} />
-				{m.volume_warning_quiet()}
-			</label>
-			<div class="flex justify-end gap-2">
-				<Button
-					label={m.volume_warning_later()}
-					variant="ghost"
-					size="sm"
-					onclick={() => onAnswer(false, false)}
-				/>
-				<Button
-					label={m.volume_warning_continue()}
-					variant="primary"
-					size="sm"
-					onclick={() => onAnswer(true, quiet)}
-				/>
-			</div>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+<Dialog
+	{open}
+	onOpenChange={(next) => !next && onAnswer(false, false)}
+	title={m.volume_warning_title()}
+	description={device === null ? m.volume_warning_body() : m.volume_warning_body_unipeq({ device })}
+>
+	<label class="flex items-center gap-2 text-sm text-base-content/80">
+		<input type="checkbox" class="size-4 accent-primary" bind:checked={quiet} />
+		{m.volume_warning_quiet()}
+	</label>
+	{#snippet actions()}
+		<Button
+			label={m.volume_warning_later()}
+			variant="ghost"
+			size="sm"
+			onclick={() => onAnswer(false, false)}
+		/>
+		<Button
+			label={m.volume_warning_continue()}
+			variant="primary"
+			size="sm"
+			onclick={() => onAnswer(true, quiet)}
+		/>
+	{/snippet}
+</Dialog>

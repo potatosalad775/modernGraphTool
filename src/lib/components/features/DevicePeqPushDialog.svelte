@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import * as m from '#lib/paraglide/messages.js';
 	import type { PlanChange, PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
+	import Dialog from '../atoms/Dialog.svelte';
 
 	/**
 	 * Shown before a push whenever the device can't hold the EQ on screen as it is: what eqcaps'
@@ -65,58 +65,49 @@
 </script>
 
 <!-- `onOpenChange` fires for Escape and outside clicks only, not for the assignments above. -->
-<Dialog.Root bind:open onOpenChange={(next) => !next && onCancel?.()}>
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
-		<Dialog.Content
-			class="fixed top-1/2 left-1/2 z-50 flex max-h-[85vh] w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-xl bg-base-200 p-6 shadow-2xl"
-		>
-			<Dialog.Title class="text-lg font-semibold text-base-content">
-				{m.equalizer_device_peq_push_title({ device: deviceName })}
-			</Dialog.Title>
-			<Dialog.Description class="text-sm text-base-content/70">
-				{m.equalizer_device_peq_push_intro()}
-			</Dialog.Description>
-
-			{#if plan}
-				<ul class="flex-1 space-y-1 overflow-y-auto text-sm text-base-content/80">
-					{#each plan.changes as change, i (i)}
-						<li>{describe(change)}</li>
-					{/each}
-					{#if plan.skippedChannel > 0}
-						<li>{m.equalizer_device_peq_push_skipped_channel({ count: plan.skippedChannel })}</li>
-					{/if}
-				</ul>
-				{#if plan.clipRisk}
-					<p
-						class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs text-base-content"
-					>
-						{m.equalizer_device_peq_push_clip_risk()}
-					</p>
-				{/if}
-				{#if plan.infeasible}
-					<p
-						class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs text-base-content"
-					>
-						{m.equalizer_device_peq_push_infeasible()}
-					</p>
-				{/if}
+<Dialog
+	bind:open
+	onOpenChange={(next) => !next && onCancel?.()}
+	title={m.equalizer_device_peq_push_title({ device: deviceName })}
+	description={m.equalizer_device_peq_push_intro()}
+	class="max-h-[85vh]"
+>
+	{#if plan}
+		<ul class="flex-1 space-y-1 overflow-y-auto text-sm text-base-content/80">
+			{#each plan.changes as change, i (i)}
+				<li>{describe(change)}</li>
+			{/each}
+			{#if plan.skippedChannel > 0}
+				<li>{m.equalizer_device_peq_push_skipped_channel({ count: plan.skippedChannel })}</li>
 			{/if}
-
-			<div class="flex justify-end gap-2">
-				<Button
-					label={m.equalizer_device_peq_push_cancel()}
-					variant="ghost"
-					size="sm"
-					onclick={cancel}
-				/>
-				<Button
-					label={m.equalizer_device_peq_push_confirm()}
-					variant="primary"
-					size="sm"
-					onclick={confirm}
-				/>
-			</div>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+		</ul>
+		{#if plan.clipRisk}
+			<p
+				class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs text-base-content"
+			>
+				{m.equalizer_device_peq_push_clip_risk()}
+			</p>
+		{/if}
+		{#if plan.infeasible}
+			<p
+				class="rounded-md border border-warning/40 bg-warning/10 px-2 py-1 text-xs text-base-content"
+			>
+				{m.equalizer_device_peq_push_infeasible()}
+			</p>
+		{/if}
+	{/if}
+	{#snippet actions()}
+		<Button
+			label={m.equalizer_device_peq_push_cancel()}
+			variant="ghost"
+			size="sm"
+			onclick={cancel}
+		/>
+		<Button
+			label={m.equalizer_device_peq_push_confirm()}
+			variant="primary"
+			size="sm"
+			onclick={confirm}
+		/>
+	{/snippet}
+</Dialog>

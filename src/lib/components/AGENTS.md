@@ -4,7 +4,7 @@
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Tooltip`,
 `Accordion` / `AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`,
-`SelectMenu`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
+`SelectMenu`, `Dialog`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
 
@@ -67,6 +67,17 @@ four.
   would replace the shown value as the accessible name.
 - There is no "none" row; picking the placeholder to clear a choice is gone with the native element.
 
+`Dialog` is the confirmation-sized modal: a title, an optional description and body, and a footer
+row of `actions` buttons:
+
+- **A new modal uses it, not a raw bits-ui `Dialog`.** The shell (overlay, centred card) lives in
+  one place. `onOpenChange` fires for Escape and outside clicks only, never when the parent assigns
+  `open` — `DevicePeqPushDialog` relies on that.
+- **`dismissible={false}` ignores Escape and outside clicks**, so only an action closes it. For a
+  question that must be answered (`LinkDialogs`' start choice).
+- `SponsorBanner` and `TutorialModal` stay raw bits-ui on purpose: one has a creative image and
+  link buttons laid out by hand, the other positions itself beside a spotlight.
+
 `InfoPopover` is the `?` button that explains an option beside its label:
 
 - **`label` is required and becomes the trigger's accessible name.** Build it with
@@ -122,7 +133,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 ## Directory map
 
 - `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu,
-  ScrollArea, Skeleton, Switch, Tooltip / TooltipHost
+  Dialog, ScrollArea, Skeleton, Switch, Tooltip / TooltipHost
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect

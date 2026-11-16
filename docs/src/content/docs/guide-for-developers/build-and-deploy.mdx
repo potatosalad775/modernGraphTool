@@ -24,7 +24,8 @@ with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml`
 `cdn` branch in three commits and never rewrites its history:
 
 1. the release's `_app/` files, which `boot.json` then addresses by that commit;
-2. `v{version}/boot.json`, `loader.js` and `versions.json`. `versions.json` maps each major to its
+2. `v{version}/boot.json`, `loader.js` (minified by `scripts/minify-loader.js`; `cdn/loader.js`
+   stays the readable source) and `versions.json`. `versions.json` maps each major to its
    release and, under `boot`, embeds that release's manifest so the loader needs one request
    instead of two;
 3. `pins.json`, which records commit 2 and the hashes of `loader.js` and `boot.json` for operators

@@ -77,7 +77,7 @@ jobs:
           # Stage the build artifacts outside the repo before touching branches.
           mkdir -p /tmp/cdn-assets
           cp -r dist-cdn/_app "/tmp/cdn-assets/_app"
-          cp cdn/loader.js "/tmp/cdn-assets/loader.js"
+          node scripts/minify-loader.js "/tmp/cdn-assets/loader.js"
 
           # Configure git
           git config user.name "github-actions[bot]"

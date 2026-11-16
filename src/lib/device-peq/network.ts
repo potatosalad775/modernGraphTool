@@ -27,6 +27,49 @@ export class NetworkAccessError extends Error {
 	}
 }
 
+/** A device's answer was larger than any real one: refused, not read to the end. */
+export class NetworkResponseError extends Error {
+	constructor(readonly limit: number) {
+		super(`Network device response over ${limit} bytes`);
+		this.name = 'NetworkResponseError';
+	}
+}
+
+/** The largest body read from a device. A real answer is a few KB; the cap stops a bogus one. */
+export const MAX_RESPONSE_BYTES = 1024 * 1024;
+
+/**
+ * The body as text, refused past `limit` bytes. `Content-Length` is checked first, so an honest
+ * oversized answer is never downloaded; the bytes are also counted while reading, since the header
+ * can be missing (chunked) or wrong. The rest of the stream is cancelled on a refusal.
+ */
+export async function readBoundedText(
+	response: Response,
+	limit = MAX_RESPONSE_BYTES
+): Promise<string> {
+	const declared = Number(response.headers.get('Content-Length'));
+	if (Number.isFinite(declared) && declared > limit) {
+		await response.body?.cancel().catch(() => {});
+		throw new NetworkResponseError(limit);
+	}
+	if (!response.body) return '';
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let received = 0;
+	let text = '';
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		received += value.byteLength;
+		if (received > limit) {
+			await reader.cancel().catch(() => {});
+			throw new NetworkResponseError(limit);
+		}
+		text += decoder.decode(value, { stream: true });
+	}
+	return text + decoder.decode();
+}
+
 /** `RequestInit` with Local Network Access's `targetAddressSpace` (Chrome and Edge 145+). */
 type LocalRequestInit = RequestInit & { targetAddressSpace?: 'local' | 'loopback' };
 
@@ -121,7 +164,7 @@ async function wiimCommand(ip: string, command: string, payload: object): Promis
 	const full = encodeURIComponent(`${command}:${JSON.stringify(payload)}`);
 	const response = await netFetch('https', ip, `/httpapi.asp?command=${full}`);
 	if (!response.ok) throw new Error(`WiiM: HTTP ${response.status} ${response.statusText}`);
-	return response.text();
+	return readBoundedText(response);
 }
 
 function wiimDevice(ip: string): PeqDevice {
@@ -214,7 +257,7 @@ interface LuxProfile {
 async function luxGet(ip: string, action: string): Promise<Record<string, unknown>> {
 	const response = await netFetch('http', ip, `/dev/info.cgi?action=${action}`);
 	if (!response.ok) throw new Error(`Luxsin: HTTP ${response.status} ${response.statusText}`);
-	return JSON.parse(luxDecode(await response.text()));
+	return JSON.parse(luxDecode(await readBoundedText(response)));
 }
 
 async function luxPost(ip: string, payload: object): Promise<void> {

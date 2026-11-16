@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import SiteSelector from './SiteSelector.svelte';
 import { siteIndexService } from '#lib/services/site-index.svelte.js';
 import type { SiteIndex } from '#lib/types/site-index-types.js';
@@ -17,12 +17,18 @@ import type { SiteIndex } from '#lib/types/site-index-types.js';
  */
 type ConfigWindow = Window & { GRAPHTOOL_CONFIG?: Record<string, unknown> };
 
+// Ten entries in two groups, so the list is long enough to earn the filter field (the
+// threshold is more than eight). The small-index half lives in the sibling spec.
+const FILLER = ['Delta Labs', 'Echo Ears', 'Foxtrot FR', 'Golf Graphs', 'Hotel Hz', 'Ivory IEMs'];
+
 const INDEX: SiteIndex = {
 	v: 1,
 	generatedAt: '2026-08-13T08:00:00.000Z',
 	sites: [
 		{ id: 'alice', name: 'Alice Audio', url: 'https://alice.squig.link' },
-		{ id: 'bob', name: 'Bob Audio', url: 'https://bob.squig.link' }
+		{ id: 'bob', name: 'Bob Audio', url: 'https://bob.squig.link' },
+		{ id: 'ecole', name: 'École Sonore', url: 'https://ecole.squig.link' },
+		...FILLER.map((name, i) => ({ id: `f${i}`, name, url: `https://f${i}.squig.link` }))
 	],
 	dbs: [
 		{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
@@ -32,7 +38,14 @@ const INDEX: SiteIndex = {
 			type: 'Headphones',
 			url: 'https://bob.squig.link/headphones/',
 			verified: false
-		}
+		},
+		{ id: 'ecole:iems', siteId: 'ecole', type: 'IEMs', url: 'https://ecole.squig.link/' },
+		...FILLER.map((_, i) => ({
+			id: `f${i}:iems`,
+			siteId: `f${i}`,
+			type: 'IEMs',
+			url: `https://f${i}.squig.link/`
+		}))
 	]
 };
 
@@ -89,6 +102,128 @@ describe('SiteSelector', () => {
 			.element(panel)
 			.toHaveClass('max-h-[min(20rem,var(--bits-popover-content-available-height))]');
 		await expect.element(panel).not.toHaveClass('max-h-(--bits-popover-content-available-height)');
+	});
+
+	describe('filter and keyboard', () => {
+		const filter = () => page.getByRole('searchbox', { name: 'Filter sites' });
+		const link = (name: string) => page.getByRole('link', { name });
+		const focused = () => document.activeElement;
+
+		async function open() {
+			setConfig({ ENABLED: true });
+			await mount();
+			await trigger().click();
+		}
+
+		it('shows a labelled search field, focused, with the mobile-keyboard hints', async () => {
+			await open();
+
+			await expect.element(filter()).toBeVisible();
+			await expect.element(filter()).toHaveFocus();
+			await expect.element(filter()).toHaveAttribute('type', 'search');
+			await expect.element(filter()).toHaveAttribute('autocomplete', 'off');
+			await expect.element(filter()).toHaveAttribute('autocapitalize', 'none');
+			await expect.element(filter()).toHaveAttribute('spellcheck', 'false');
+		});
+
+		it('narrows by name, ignoring case and accents, and drops empty groups', async () => {
+			await open();
+			await expect.element(link('Bob Audio')).toBeVisible();
+
+			await filter().fill('ecole');
+
+			await expect.element(link('École Sonore')).toBeVisible();
+			expect(link('Alice Audio').elements()).toHaveLength(0);
+			// Bob is the only Headphones entry, so its whole group goes with it.
+			expect(page.getByRole('heading', { name: 'Headphones' }).elements()).toHaveLength(0);
+			await expect.element(page.getByRole('heading', { name: 'IEMs' })).toBeVisible();
+
+			await filter().fill('BOB');
+			await expect.element(link('Bob Audio')).toBeVisible();
+			expect(page.getByRole('heading', { name: 'IEMs' }).elements()).toHaveLength(0);
+		});
+
+		it('shows an empty state when nothing matches', async () => {
+			await open();
+
+			await filter().fill('zzzz');
+
+			await expect.element(page.getByText('No sites match.', { exact: true })).toBeVisible();
+			expect(page.getByRole('link').elements()).toHaveLength(0);
+		});
+
+		it('announces the result count politely once typing settles', async () => {
+			await open();
+			const status = page.getByRole('status');
+			await expect.element(status).toHaveAttribute('aria-live', 'polite');
+			await expect.element(status).toHaveTextContent('');
+
+			await filter().fill('audio');
+			await expect.element(status, { timeout: 3000 }).toHaveTextContent('2 sites found');
+
+			await filter().fill('ecole');
+			await expect.element(status, { timeout: 3000 }).toHaveTextContent('1 site found');
+
+			await filter().fill('zzzz');
+			await expect.element(status, { timeout: 3000 }).toHaveTextContent('No sites match.');
+		});
+
+		it('moves between links with the arrow keys, Home and End', async () => {
+			await open();
+			const all = () => page.getByRole('link').elements();
+
+			// Down from the field lands on the first link; headings are skipped.
+			await userEvent.keyboard('{ArrowDown}');
+			expect(focused()).toBe(all()[0]);
+
+			await userEvent.keyboard('{ArrowDown}');
+			expect(focused()).toBe(all()[1]);
+			await userEvent.keyboard('{ArrowUp}');
+			expect(focused()).toBe(all()[0]);
+
+			await userEvent.keyboard('{End}');
+			expect(focused()).toBe(all()[all().length - 1]);
+			// Down on the last link stays put rather than wrapping.
+			await userEvent.keyboard('{ArrowDown}');
+			expect(focused()).toBe(all()[all().length - 1]);
+
+			await userEvent.keyboard('{Home}');
+			expect(focused()).toBe(all()[0]);
+
+			// Up from the first link returns to the field.
+			await userEvent.keyboard('{ArrowUp}');
+			await expect.element(filter()).toHaveFocus();
+		});
+
+		it('hands a typed character from a link back to the field', async () => {
+			await open();
+			await userEvent.keyboard('{ArrowDown}');
+
+			await userEvent.keyboard('z');
+
+			await expect.element(filter()).toHaveFocus();
+			await expect.element(filter()).toHaveValue('z');
+		});
+
+		it('leaves Enter and clicks to the browser: only the arrows are intercepted', async () => {
+			await open();
+			const anchor = link('Alice Audio').element();
+			anchor.focus();
+
+			const press = (key: string) => {
+				const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+				anchor.dispatchEvent(event);
+				return event.defaultPrevented;
+			};
+
+			expect(press('Enter')).toBe(false);
+			expect(press('Tab')).toBe(false);
+			expect(press('ArrowDown')).toBe(true);
+			// Still a real link, so open-in-new-tab and middle-click are the browser's.
+			await expect
+				.element(link('Alice Audio'))
+				.toHaveAttribute('href', 'https://alice.squig.link/');
+		});
 	});
 
 	it('stays hidden when the operator turns it off', async () => {

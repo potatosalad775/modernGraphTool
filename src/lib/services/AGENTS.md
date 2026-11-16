@@ -8,7 +8,13 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
-- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
+- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton. A command may
+  define `mergeWith(previous)`: if the top entry was pushed or merged into within `MERGE_WINDOW_MS`
+  (400 ms) and the command returns true, the new command **replaces** that entry instead of
+  stacking (`UpdateYOffsetCommand`: a held +/- button or arrow-key run is one undo step; it
+  inherits the earlier command's starting offset). Undo, redo and `clear()` reset the window, so an
+  edit never folds into an entry the user has stepped over. This is the after-the-fact sibling of
+  `EqEditCoalescer` (which defers the push); use it where each tick must apply and record at once
 - `keyboard-shortcuts.ts` — the global shortcuts (`\` hold, undo/redo, `1`–`4` panels); `AppShell`
   only binds them on `<svelte:window>`. The `\` hold only toasts while the player plays and
   `devicePeqStore.playsEq` holds: it can't lift a device's EQ, and flipping the graph alone would
@@ -17,7 +23,10 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   a widget that takes character keys has focus (`isWidgetFocused` in `utils/widget-focus.ts`, shared
   with `GraphEqOverlay`) and when `settingsStore.singleKeyShortcuts` is off (WCAG 2.1.4); the
   modifier shortcuts and the `\` release are never gated
-- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
+- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments. IDs must
+  match `/^G-[A-Z0-9]+$/` (the value goes into a script URL; others are skipped with a warning);
+  `navigator.globalPrivacyControl === true` loads nothing; the gtag script is `fetchPriority = 'low'`
+  but is still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by

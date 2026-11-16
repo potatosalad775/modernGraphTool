@@ -187,7 +187,7 @@
 		value={audioPlayerService.audioSource}
 		onchange={(e) =>
 			audioPlayerService.setAudioSource((e.target as HTMLSelectElement).value as AudioSource)}
-		class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
+		class="w-full rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-sm"
 	>
 		<option value="">{m.equalizer_player_option_init()}</option>
 		<option value="white">{m.equalizer_player_option_white()}</option>

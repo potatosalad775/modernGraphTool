@@ -9,6 +9,16 @@ declare global {
 	}
 }
 
+/** A GA4 measurement ID. The value goes into a script URL, so nothing else gets through. */
+const MEASUREMENT_ID = /^G-[A-Z0-9]+$/;
+
+/** Global Privacy Control: the visitor's browser says "do not sell or share my data". */
+function privacyControlOn(): boolean {
+	return (
+		(navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true
+	);
+}
+
 class AnalyticsService {
 	#initialized = false;
 	#siteName = '';
@@ -21,18 +31,27 @@ class AnalyticsService {
 		const enableAnalytics = getConfigValue('SQUIGLINK.ENABLE_ANALYTICS') as boolean | undefined;
 		if (enableAnalytics === false) return;
 
-		const measurementIds =
-			(getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS') as string[]) ?? [];
+		// A visitor who sends the signal loads no analytics at all: no script, no events.
+		if (privacyControlOn()) return;
+
+		const configured = getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS');
+		const measurementIds: string[] = [];
+		for (const id of Array.isArray(configured) ? configured : []) {
+			if (typeof id === 'string' && MEASUREMENT_ID.test(id)) measurementIds.push(id);
+			else console.warn('[Analytics] Skipping an invalid measurement ID:', id);
+		}
 
 		if (measurementIds.length === 0) return;
 
 		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string) ?? '';
 		this.#logEvents = (getConfigValue('SQUIGLINK.LOG_ANALYTICS') as boolean) !== false;
 
-		// Inject gtag.js with the first measurement ID
+		// Inject gtag.js with the first measurement ID. Low priority: the script has no part in
+		// the first graph, and it should not compete with the phone book and the first curves.
 		const primaryId = measurementIds[0];
 		const script = document.createElement('script');
 		script.async = true;
+		script.fetchPriority = 'low';
 		script.src = `https://www.googletagmanager.com/gtag/js?id=${primaryId}`;
 		document.head.appendChild(script);
 

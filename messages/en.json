@@ -313,6 +313,8 @@
 	"tutorial_modal_step_title": "Tutorial step {step}",
 	"misc_panel_theme_light": "Switch to light mode",
 	"misc_panel_theme_dark": "Switch to dark mode",
+	"misc_panel_theme_hint_following": "Following your device's light or dark setting. Switching overrides it.",
+	"misc_panel_theme_hint_resume": "This matches your device's setting, so the page follows it again.",
 	"misc_panel_docs": "Documentation",
 	"misc_panel_donate": "Support on Ko-fi",
 	"misc_panel_language_label": "Language",
@@ -370,6 +372,18 @@
 	"crosssite_search_truncated": "Showing first {count} of {total} matches. Refine your search to narrow it down.",
 	"site_selector_label": "Select a site",
 	"site_selector_unverified": "This database was unreachable when the index was last built. The link may not work.",
+	"site_selector_filter_label": "Filter sites",
+	"site_selector_no_results": "No sites match.",
+	"site_selector_result_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} site found",
+				"countPlural=*": "{count} sites found"
+			}
+		}
+	],
 	"db_type_iems": "IEMs",
 	"db_type_headphones": "Headphones",
 	"db_type_earbuds": "Earbuds",

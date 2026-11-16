@@ -49,6 +49,11 @@
 			title={settingsStore.theme === 'dark'
 				? m.misc_panel_theme_light()
 				: m.misc_panel_theme_dark()}
+			hint={settingsStore.followsSystem
+				? m.misc_panel_theme_hint_following()
+				: settingsStore.toggleResumesSystem
+					? m.misc_panel_theme_hint_resume()
+					: undefined}
 			class="h-8 w-8"
 			variant="outline"
 			size="icon"
@@ -67,7 +72,7 @@
 					value={getLocale()}
 					aria-label={m.misc_panel_language_label()}
 					onchange={handleLocaleChange}
-					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 px-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
+					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
 				>
 					{#each languages as lang (lang.value)}
 						<option value={lang.value}>{lang.label}</option>

@@ -6,6 +6,28 @@
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `channel-choice.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
+## `light-theme.ts` — the PNG export's palette
+
+The screenshot always exports in light mode. `.dark` is on `<html>` and custom properties inherit, so
+nothing under it can be asked for its light value, and toggling the class for a moment would start
+transitions and wake the theme observers. `resolveLightTheme` instead reads the `:root` rules'
+`--color-*` declarations from `document.styleSheets` (`theme.css` is a same-origin relative link on
+the static and the CDN build; an unreadable sheet is skipped), resolves `var()` among them, and
+`ScreenshotButton` sets the result inline on its off-screen container. Unlayered rules beat Tailwind's
+`@layer theme` `--x: var(--x)` stubs. `FALLBACK_LIGHT_THEME` (the shipped light palette) fills any
+token the sheet lacks and is the whole answer if nothing is readable. The background stays white;
+a light `--color-graph-bg` that is not transparent is painted over it.
+
+## `motion.svelte.ts` — reduced motion for JS-driven motion
+
+The `prefers-reduced-motion` CSS rule can't reach a Svelte transition (it runs through
+`element.animate()`) or a d3 tween. `flyOrFade` / `slideOrFade` are drop-in transition functions that
+swap the spatial movement for a ≤120 ms opacity fade; `motionDuration(ms)` is 0 under the setting
+(the d3 engine). All read `prefersReducedMotion` from `svelte/motion` at call time, so a changed OS
+setting applies from the next transition, and it is plain `false` in the node test project. Only
+spatial motion goes: plain opacity `fade` and colour transitions stay (the `motion` guide warns
+against zeroing everything). Use `flyOrFade`/`slideOrFade` instead of `fly`/`slide` in new code.
+
 ## `curve-name.ts`
 
 `curveBaseName` is the only composer of identifier + suffix; `shareKey`, the EQ source picker label and download

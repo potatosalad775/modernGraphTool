@@ -259,7 +259,7 @@
 									// A failed switch leaves the device as it was: show that again.
 									void chooseEq(select.value).then(() => (select.value = eqValue));
 								}}
-								class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content disabled:opacity-60"
+								class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs text-base-content disabled:opacity-60"
 							>
 								{#each eqOptions as option (option.value)}
 									<option value={option.value} disabled={option.disabled}>{option.label}</option>

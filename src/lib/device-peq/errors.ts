@@ -43,6 +43,9 @@ export function describeDeviceError(error: unknown): string {
 	if (error instanceof Error && error.name === 'NetworkAccessError') {
 		return m.device_peq_error_network_blocked();
 	}
+	if (error instanceof Error && error.name === 'NetworkResponseError') {
+		return m.device_peq_error_bad_response();
+	}
 	if (error instanceof Error && error.name === 'NetworkHostError' && 'problem' in error) {
 		return describeNetworkHostProblem(
 			error.problem as Parameters<typeof describeNetworkHostProblem>[0]

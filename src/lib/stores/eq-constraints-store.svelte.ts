@@ -1,5 +1,5 @@
 import { untrack } from 'svelte';
-import type { Profile } from '@potatosalad775/eqcaps-core';
+import { resolveSlot, validateProfile, type Profile } from '@potatosalad775/eqcaps-core';
 import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 import { eqStore } from './eq-store.svelte.js';
 import {
@@ -16,6 +16,31 @@ import {
 const ACTIVE_ID_LS_KEY = 'gt-eq-constraint-active-id';
 /** The last catalog profile picked, so a saved `eqcaps:` id resolves on first paint, offline. */
 const CATALOG_LS_KEY = 'gt-eq-constraint-catalog';
+
+/** `validateProfile` codes that mean a profile can't be used to fit or check a band at all. */
+const BROKEN_PROFILE =
+	/^(schema|domain-|bands-|band-index-|slot-incomplete|dependency-cycle|variant-)/;
+
+/**
+ * Whether a profile read back from localStorage is one eqcaps can use. That storage is shared by
+ * every app on the origin and can hold anything, and a profile that throws in `resolveSlot` would
+ * break every band card. Mirrors `acceptProfile` in `device-peq/link.ts`, which is not imported
+ * here: it belongs to the lazily loaded Hardware EQ code.
+ */
+function isUsableProfile(value: unknown): value is Profile {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+	const profile = value as Profile;
+	if (typeof profile.band !== 'object' || profile.band === null) return false;
+	const count = profile.bandCount;
+	if (count !== null && !(Number.isInteger(count) && count >= 0)) return false;
+	try {
+		if (validateProfile(profile).some((issue) => BROKEN_PROFILE.test(issue.code))) return false;
+		resolveSlot(profile, 0);
+	} catch {
+		return false;
+	}
+	return true;
+}
 
 /** Synthetic preset id reserved for the currently-connected device. */
 export const DEVICE_CONSTRAINT_ID = '__device-peq__';
@@ -268,14 +293,24 @@ class EqConstraintsStore {
 				preset.id.startsWith(CATALOG_PREFIX) &&
 				preset.source === 'catalog' &&
 				typeof preset.label === 'string' &&
-				preset.profile &&
-				typeof preset.profile === 'object' &&
-				preset.profile.band
+				isUsableProfile(preset.profile)
 			) {
 				this.presets = [...this.presets, preset];
+			} else {
+				this.discardCatalog();
 			}
 		} catch {
 			/* Malformed or unavailable — start without it. */
+			this.discardCatalog();
+		}
+	}
+
+	/** Drop a stored catalog pick that can't be trusted, so it is not re-read every load. */
+	private discardCatalog(): void {
+		try {
+			localStorage.removeItem(CATALOG_LS_KEY);
+		} catch {
+			/* localStorage unavailable — nothing to drop. */
 		}
 	}
 

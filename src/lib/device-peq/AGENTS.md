@@ -134,6 +134,9 @@ needs it at boot); keep it the only one.
   the browser, and a wrong declaration makes it abort the request. A `TypeError` from fetch
   (mixed content, a denied Local Network Access prompt, nothing there) becomes `NetworkAccessError`,
   which `errors.ts` matches by name.
+- **A device's answer is read through `readBoundedText`** (1 MB: `Content-Length` first, then the
+  bytes counted while reading), never `response.text()`. Past the cap it throws
+  `NetworkResponseError`, which `errors.ts` shows as "unexpected answer". Keep new device fetches on it.
 
 ## Testing
 

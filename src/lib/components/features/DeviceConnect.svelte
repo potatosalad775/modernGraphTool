@@ -109,7 +109,7 @@
 					{m.equalizer_device_peq_choose_prompt()}
 					<select
 						bind:value={chosenId}
-						class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs text-base-content"
+						class="rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs text-base-content"
 					>
 						{#each choice.candidates as c (c.id)}
 							<option value={c.id}>{c.label}</option>
@@ -192,7 +192,7 @@
 						<select
 							bind:value={networkDeviceType}
 							aria-label={m.equalizer_device_peq_network_type()}
-							class="rounded border border-base-content/20 bg-base-200 px-2 py-1 text-xs"
+							class="rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs"
 						>
 							{#each NETWORK_DEVICE_TYPES as t (t.id)}
 								<option value={t.id}>{t.label}</option>

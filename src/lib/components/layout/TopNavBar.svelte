@@ -7,7 +7,8 @@
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import { Dialog } from 'bits-ui';
 	import { ChevronDown, Menu, X } from '@lucide/svelte';
-	import { fade, fly } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
+	import { flyOrFade } from '#lib/utils/motion.svelte.js';
 	import { cubicOut } from 'svelte/easing';
 
 	const titleType = $derived((getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT');
@@ -196,7 +197,7 @@
 									{...props}
 									bind:this={drawerEl}
 									class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl outline-hidden"
-									transition:fly={{ x: 256, duration: 250, easing: cubicOut }}
+									transition:flyOrFade={{ x: 256, duration: 250, easing: cubicOut }}
 								>
 									<div
 										class="flex h-12 items-center justify-between border-b border-base-content/15 bg-base-300 px-4 py-3"

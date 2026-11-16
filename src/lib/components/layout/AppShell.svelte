@@ -20,7 +20,7 @@
 
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { flyOrFade } from '#lib/utils/motion.svelte.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
@@ -289,8 +289,8 @@
 					{#key menuStore.currentPanel}
 						<div
 							class="absolute inset-0 flex flex-col overflow-hidden"
-							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
-							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+							in:flyOrFade={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:flyOrFade={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>
 							{#if menuStore.currentPanel === 'device'}
 								<DevicePanel />
@@ -341,8 +341,8 @@
 					{#key menuStore.currentPanel}
 						<div
 							class="absolute inset-0"
-							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
-							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+							in:flyOrFade={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:flyOrFade={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>
 							{#if menuStore.currentPanel === 'device'}
 								<DevicePanel />

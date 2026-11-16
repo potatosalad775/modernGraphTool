@@ -28,6 +28,8 @@ describe('MiscPanel', () => {
 	beforeEach(() => {
 		setConfig({});
 		settingsStore.theme = 'light';
+		settingsStore.followsSystem = false;
+		settingsStore.osTheme = 'light';
 		vi.mocked(setLocale).mockClear();
 	});
 
@@ -64,6 +66,25 @@ describe('MiscPanel', () => {
 			await page.getByRole('button', { name: 'Switch to light mode' }).click();
 
 			expect(settingsStore.theme).toBe('light');
+		});
+
+		it('says so while the theme follows the system', async () => {
+			settingsStore.followsSystem = true;
+			render(MiscPanel);
+
+			await expect
+				.element(page.getByRole('button', { name: 'Switch to dark mode' }))
+				.toHaveAccessibleDescription(/Following your device/);
+		});
+
+		it('says a click back to the system theme resumes following it', async () => {
+			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'system' } });
+			settingsStore.theme = 'dark';
+			render(MiscPanel);
+
+			await expect
+				.element(page.getByRole('button', { name: 'Switch to light mode' }))
+				.toHaveAccessibleDescription(/follows it again/);
 		});
 	});
 

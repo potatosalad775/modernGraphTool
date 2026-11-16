@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { NetworkAccessError, connectNetworkDevice, luxDecode, luxEncode } from './network.js';
+import {
+	MAX_RESPONSE_BYTES,
+	NetworkAccessError,
+	NetworkResponseError,
+	connectNetworkDevice,
+	luxDecode,
+	luxEncode,
+	readBoundedText
+} from './network.js';
 import { NetworkHostError } from './network-host.js';
 
 type Call = { url: string; init?: RequestInit };
@@ -13,7 +21,7 @@ beforeEach(() => {
 		'fetch',
 		vi.fn(async (url: string, init?: RequestInit) => {
 			calls.push({ url, init });
-			return { ok: true, status: 200, statusText: 'OK', text: async () => responses.shift() ?? '' };
+			return new Response(responses.shift() ?? '');
 		})
 	);
 });
@@ -52,6 +60,45 @@ describe('the device address', () => {
 		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
 		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(
 			NetworkAccessError
+		);
+	});
+});
+
+describe('a device answer that is too large', () => {
+	const big = 'x'.repeat(MAX_RESPONSE_BYTES + 1);
+
+	it('is refused by its Content-Length without reading the body', async () => {
+		const cancel = vi.fn();
+		const body = new ReadableStream({ cancel });
+		const response = new Response(body, { headers: { 'Content-Length': String(big.length) } });
+		await expect(readBoundedText(response)).rejects.toBeInstanceOf(NetworkResponseError);
+		expect(cancel).toHaveBeenCalled();
+	});
+
+	it('is refused by counting bytes when no length is declared', async () => {
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				const chunk = new Uint8Array(256 * 1024);
+				for (let i = 0; i < 5; i++) controller.enqueue(chunk);
+				controller.close();
+			}
+		});
+		await expect(readBoundedText(new Response(stream))).rejects.toBeInstanceOf(
+			NetworkResponseError
+		);
+	});
+
+	it('reads an ordinary answer, multi-byte text included', async () => {
+		expect(await readBoundedText(new Response('{"name":"Ü-profile"}'))).toBe(
+			'{"name":"Ü-profile"}'
+		);
+		expect(await readBoundedText(new Response(null))).toBe('');
+	});
+
+	it('fails a device read rather than parsing it', async () => {
+		responses.push(big);
+		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(
+			NetworkResponseError
 		);
 	});
 });

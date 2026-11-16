@@ -44,7 +44,7 @@
 			{/if}
 		</Button>
 	{/snippet}
-	<div class="flex max-w-xs flex-col gap-2 text-xs text-base-content">
+	<div class="flex max-w-xs flex-col gap-2 text-xs text-pretty text-base-content">
 		{@render children()}
 	</div>
 </PopoverPanel>

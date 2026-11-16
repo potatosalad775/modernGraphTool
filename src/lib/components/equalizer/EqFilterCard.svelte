@@ -3,7 +3,7 @@
 	import { logToLinear, linearToLog } from '#lib/utils/log-scale.js';
 	import { isImeComposing } from '#lib/utils/ime.js';
 	import { ChevronDown, X } from '@lucide/svelte';
-	import { slide } from 'svelte/transition';
+	import { slideOrFade } from '#lib/utils/motion.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import Switch from '../atoms/Switch.svelte';
 	import Button from '../atoms/Button.svelte';
@@ -496,7 +496,7 @@
 	{#if expanded}
 		<div
 			id={panelId}
-			transition:slide={{ duration: 150 }}
+			transition:slideOrFade={{ duration: 150 }}
 			class="flex flex-col gap-3 px-3 pt-0.5 pb-4"
 			class:opacity-50={!filter.enabled}
 		>

@@ -54,11 +54,11 @@
 			escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
 			class={contentClasses}
 		>
-			<DialogPrimitive.Title class="text-lg font-semibold text-base-content">
+			<DialogPrimitive.Title class="text-lg font-semibold text-balance text-base-content">
 				{title}
 			</DialogPrimitive.Title>
 			{#if description !== undefined}
-				<DialogPrimitive.Description class="text-sm text-base-content/70">
+				<DialogPrimitive.Description class="text-sm text-pretty text-base-content/70">
 					{description}
 				</DialogPrimitive.Description>
 			{/if}

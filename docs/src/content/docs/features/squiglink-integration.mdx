@@ -10,6 +10,8 @@ Deployments hosted on a `*.squig.link` domain get a few network-wide features on
 
 Each can be switched off, and the analytics IDs set, under [`SQUIGLINK`](../guide-for-admins/customize-page.mdx#squiglink) in `config.js`.
 
+Analytics sends the site name, which devices (brand, model, variant) are added to or removed from the graph, and two click events (screenshot download, shop link) to the measurement IDs in `ANALYTICS_MEASUREMENT_IDS`; IDs that are not of the form `G-XXXXXXXX` are skipped with a console warning. Visitors whose browser sends the [Global Privacy Control](https://globalprivacycontrol.org/) signal load no analytics at all. To switch analytics off for everyone, set `ENABLE_ANALYTICS: false` or leave `ANALYTICS_MEASUREMENT_IDS` empty. Operators who collect from visitors in regions that require consent are responsible for obtaining it.
+
 :::note[Cross-site search and the site selector work anywhere]
 Cross-site search used to be squig.link-only. It and the site selector now run on any host, each with its own config section — see [Cross-Site Search](./cross-site-search.mdx) and [Site Selector](./site-selector.mdx). On squig.link, cross-site search still falls back to crawling each site's `phone_book.json` if the aggregate index can't be reached.
 :::

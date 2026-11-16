@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import SiteSelector from './SiteSelector.svelte';
 import { siteIndexService } from '#lib/services/site-index.svelte.js';
 import type { SiteIndex } from '#lib/types/site-index-types.js';
@@ -76,5 +76,34 @@ describe('SiteSelector on a listed deployment', () => {
 		await expect
 			.element(page.getByRole('link', { name: 'This Deployment' }))
 			.toHaveAttribute('aria-current', 'page');
+	});
+
+	it('skips the filter for a short list, but the arrow keys still rove the links', async () => {
+		(window as ConfigWindow).GRAPHTOOL_CONFIG = {
+			SITE_SELECTOR: { ENABLED: 'auto', INDEX_URLS: ['https://index.test/i.json'] }
+		};
+
+		render(SiteSelector);
+		await siteIndexService.load();
+		await page.getByRole('button', { name: 'Select a site' }).click();
+
+		// Two entries: a filter field would be clutter.
+		await expect.element(page.getByRole('link', { name: 'Alice Audio' })).toBeVisible();
+		expect(page.getByRole('searchbox').elements()).toHaveLength(0);
+
+		const [alice, home] = page.getByRole('link').elements();
+		alice.focus();
+
+		await userEvent.keyboard('{ArrowDown}');
+		expect(document.activeElement).toBe(home);
+		await userEvent.keyboard('{ArrowUp}');
+		expect(document.activeElement).toBe(alice);
+		// No field to return to, so Up on the first link stays put.
+		await userEvent.keyboard('{ArrowUp}');
+		expect(document.activeElement).toBe(alice);
+		await userEvent.keyboard('{End}');
+		expect(document.activeElement).toBe(home);
+		await userEvent.keyboard('{Home}');
+		expect(document.activeElement).toBe(alice);
 	});
 });

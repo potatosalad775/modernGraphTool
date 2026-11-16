@@ -3696,7 +3696,7 @@ Stores are reactive class instances in `.svelte.ts` files, not plain `.ts`. Most
 
 ## Shared components
 
-Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `ScrollArea` and `Skeleton`, rather than the bare HTML element. They carry the focus-visible ring, the transition, the disabled styling and the operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as themes change.
+Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `Dialog`, `ScrollArea` and `Skeleton`, rather than the bare HTML element. They carry the focus-visible ring, the transition, the disabled styling and the operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as themes change.
 
 * `Button` takes `variant` and `size` props instead of a class list. Check whether a size already covers what you need (`toolbar`, `icon`, `icon-sm`, `icon-xs`) before writing padding classes by hand. Its required `title` also becomes the `aria-label`, so keep the title and the visible text saying the same thing.
 * Anything passed to `Button` in `class` is merged with [tailwind-merge](https://github.com/dcastil/tailwind-merge), so an override beats the built-in style **without** a `!` modifier: write `class="rounded-full"`, not `class="rounded-full!"`. On a raw element, conflicting utilities tie on specificity and `!` is still needed.
@@ -4154,6 +4154,8 @@ In the filter list, click to add a filter. Each filter has:
 * **Frequency** — where on the X axis the filter is centered.
 * **Gain** — positive values boost, negative values cut (in dB).
 * **Q** — how wide or narrow the effect is. Higher Q = narrower.
+
+The buttons above the list add a band, remove the last one, sort the bands by frequency, and delete all of them at once. Deleting all bands asks first, and removes the left- and right-only bands along with the shared ones; undo brings them back.
 
 As you adjust, the graph updates live — you’ll see a new curve appear showing the device-plus-EQ combination, so you can compare the corrected curve against your target in real time. Preamp gain is calculated automatically to prevent digital clipping when you add lots of boosts.
 

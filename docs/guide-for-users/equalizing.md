@@ -41,6 +41,8 @@ In the filter list, click to add a filter. Each filter has:
 - **Gain** — positive values boost, negative values cut (in dB).
 - **Q** — how wide or narrow the effect is. Higher Q = narrower.
 
+The buttons above the list add a band, remove the last one, sort the bands by frequency, and delete all of them at once. Deleting all bands asks first, and removes the left- and right-only bands along with the shared ones; undo brings them back.
+
 As you adjust, the graph updates live — you'll see a new curve appear showing the device-plus-EQ combination, so you can compare the corrected curve against your target in real time. Preamp gain is calculated automatically to prevent digital clipping when you add lots of boosts.
 
 The minimum viable workflow is:

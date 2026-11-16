@@ -193,6 +193,8 @@ phone. **It must not import `data-provider.svelte.ts`:** the frozen curve (`inse
 - The EQ curve owns its `dispChannel`; `#dispChannel` copies the source's only when the
   source's choice changes. Copying it on every rebuild made the EQ curve's channel picker revert on
   the next filter edit.
+- A new EQ curve starts at the source's `yOffset`, so "before" and "after" line up; from then on
+  its own list row owns the offset and a later nudge of the source is not followed.
 - `installSync()` owns the reactive rebuild of the on-graph EQ curve **and derives
   `eqStore.preamp`** (`utils/eq-preamp.ts`), installed once from `AppShell.onMount` and never
   disposed. With a device connected here, Auto's value is rounded down onto the device's preamp

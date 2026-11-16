@@ -108,6 +108,8 @@ set — shared bands included, since they bend that curve too and hiding them wo
 with no handle. Shared bands render hollow there because dragging one moves both ears, and that has
 to be legible before the drag. `_pickChannelData` returns the scoped channel so nodes sit on the
 curve they edit; positioning them on AVG floats them off it as soon as L and R diverge.
+`_getCurveDbAtFreq` adds the `yOffset` of the item it read (the EQ curve, or the source before one
+exists): node positions, drag and click-to-add all compare against where the curve is drawn.
 
 The d3 join key stays the band's index in the flat `eqStore.filters` array — narrowing the view must
 never renumber it, or a drag in the R bucket edits an L band.

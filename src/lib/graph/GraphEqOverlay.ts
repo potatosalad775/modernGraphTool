@@ -345,15 +345,17 @@ export class GraphEqOverlay {
 	 * Reads from the frStore EQ entry (post-normalization) to match the visible EQ curve.
 	 * Falls back to source phone data when no EQ curve exists yet (click-to-add first band).
 	 * Stored channels are already smoothed, so both are returned as-is.
+	 * Returns the chosen item's own `yOffset` with the data, so a caller positions against the
+	 * curve as drawn (the engine translates each item by its offset).
 	 */
-	private _getSourceChannelData(): FRDataPoint[] | null {
+	private _getSourceChannelData(): { data: FRDataPoint[]; yOffset: number } | null {
 		// Prefer EQ curve data (post-normalization, matches visible curve)
 		const eqCurveUUID = eqStore.eqCurveUUID;
 		if (eqCurveUUID) {
 			const eqEntry = frStore.get(eqCurveUUID);
 			if (eqEntry) {
 				const channelData = this._pickChannelData(eqEntry.channels);
-				if (channelData) return channelData;
+				if (channelData) return { data: channelData, yOffset: eqEntry.yOffset ?? 0 };
 			}
 		}
 		// Fallback: source phone data (for click-to-add first band)
@@ -361,7 +363,8 @@ export class GraphEqOverlay {
 		if (!sourceUUID) return null;
 		const sourceData = frStore.get(sourceUUID);
 		if (!sourceData) return null;
-		return this._pickChannelData(eqSourceChannels(sourceData, eqStore.sourceSample));
+		const channelData = this._pickChannelData(eqSourceChannels(sourceData, eqStore.sourceSample));
+		return channelData ? { data: channelData, yOffset: sourceData.yOffset ?? 0 } : null;
 	}
 
 	/**
@@ -399,16 +402,16 @@ export class GraphEqOverlay {
 
 	/**
 	 * Get the dB value of the displayed EQ curve at a given frequency.
-	 * Accounts for smoothing and baseline compensation.
+	 * Accounts for baseline compensation and the curve's own y-offset, so it matches the drawn line.
 	 */
 	private _getCurveDbAtFreq(freq: number): number | null {
-		const smoothedData = this._getSourceChannelData();
-		if (!smoothedData) return null;
+		const source = this._getSourceChannelData();
+		if (!source) return null;
 
-		const curveDb = lookupFRValueAtFreq(smoothedData, freq);
+		const curveDb = lookupFRValueAtFreq(source.data, freq);
 		if (curveDb === null) return null;
 
-		return compensateAt(curveDb, freq, baseline.channelData);
+		return compensateAt(curveDb, freq, baseline.channelData) + source.yOffset;
 	}
 
 	/**

@@ -184,6 +184,31 @@ describe('eqCurve', () => {
 			expect(frStore.get(eqUUID)!.dispChannel).toEqual(['AVG']);
 		});
 
+		it('starts a new EQ curve at the source offset', () => {
+			seedEqSource();
+			frStore.set('src', { ...frStore.get('src')!, yOffset: 5 });
+			eqStore.filters = [band(6)];
+
+			eqCurve.rebuild();
+
+			expect(frStore.get(eqStore.eqCurveUUID!)!.yOffset).toBe(5);
+		});
+
+		// The offset is seeded once and not followed afterwards, since the EQ curve has its own row.
+		it('keeps the EQ curve own offset once it exists', () => {
+			seedEqSource();
+			eqStore.filters = [band(6)];
+			eqCurve.rebuild();
+			const eqUUID = eqStore.eqCurveUUID!;
+			dataProvider.updateYOffset(eqUUID, 2);
+
+			frStore.set('src', { ...frStore.get('src')!, yOffset: 5 });
+			eqStore.filters = [band(3)];
+			eqCurve.rebuild();
+
+			expect(frStore.get(eqUUID)!.yOffset).toBe(2);
+		});
+
 		describe('with a run as the source', () => {
 			/** The flat source plus two runs at +3 / +6 dB, so each is identifiable. */
 			function seedRuns(): void {

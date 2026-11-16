@@ -395,6 +395,43 @@ describe('GraphEqOverlay', () => {
 			expect(transformOf().y).not.toBeCloseTo(unbaselined, 3);
 		});
 
+		it('follows the EQ curve own y-offset', () => {
+			frStore.set('eq', { ...makePhone('eq'), type: 'eq', yOffset: 5 });
+			eqStore.eqCurveUUID = 'eq';
+			eqStore.filters = [pk(1000)];
+			overlay.setEqPanelActive(true);
+
+			expect(transformOf().y).toBeCloseTo(engine.baseYScale(85), 3);
+		});
+
+		it('uses the source offset while no EQ curve exists yet', () => {
+			frStore.set('p', { ...makePhone('p'), yOffset: -4 });
+			eqStore.filters = [pk(1000)];
+			overlay.setEqPanelActive(true);
+
+			expect(transformOf().y).toBeCloseTo(engine.baseYScale(76), 3);
+		});
+
+		it('ignores the source offset once the EQ curve exists', () => {
+			frStore.set('p', { ...makePhone('p'), yOffset: -4 });
+			// The nodes sit on the EQ curve, which has its own offset.
+			frStore.set('eq', { ...makePhone('eq'), type: 'eq', yOffset: 0 });
+			eqStore.eqCurveUUID = 'eq';
+			eqStore.filters = [pk(1000)];
+			overlay.setEqPanelActive(true);
+
+			expect(transformOf().y).toBeCloseTo(engine.baseYScale(80), 3);
+		});
+
+		it('leaves a shelf node at its absolute gain under an offset', () => {
+			frStore.set('eq', { ...makePhone('eq'), type: 'eq', yOffset: 5 });
+			eqStore.eqCurveUUID = 'eq';
+			eqStore.filters = [shelf('HSQ', 8000, 6)];
+			overlay.setEqPanelActive(true);
+
+			expect(transformOf().y).toBeCloseTo(engine.baseYScale(6), 3);
+		});
+
 		it('sizes the Q ring inversely to Q, clamped to [8, 40]', () => {
 			eqStore.filters = [pk(1000, 3, 0.1), pk(2000, 3, 1), pk(4000, 3, 4), pk(8000, 3, 10)];
 			overlay.setEqPanelActive(true);

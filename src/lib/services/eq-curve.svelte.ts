@@ -164,7 +164,9 @@ class EqCurve {
 				colors: { ...sourceData.colors },
 				dash: sourceData.dash || '1 0',
 				hidden: false,
-				yOffset: 0,
+				// Starts at the source's offset so the two curves stay comparable; after that the
+				// EQ curve's own row owns it (later rebuilds keep `existing`).
+				yOffset: sourceData.yOffset ?? 0,
 				_rawData: { channels: modified }
 			};
 			frStore.set(uuid, frObject);

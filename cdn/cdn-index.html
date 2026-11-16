@@ -27,6 +27,8 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="referrer" content="strict-origin-when-cross-origin" />
 		<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 
 		<title>modernGraphTool</title>
@@ -66,6 +68,8 @@
 			rel="preload"
 			as="style"
 			crossorigin
+			referrerpolicy="no-referrer"
+			integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j"
 			href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
 			onload="
 				this.onload = null;
@@ -74,6 +78,38 @@
 		/>
 		<!-- Local config and theme (your customizations) -->
 		<script src="./config.js"></script>
+		<!--
+			Dark mode before first paint, so a dark-mode visitor never sees a light flash. Same
+			precedence as settings-store.svelte.ts (stored choice, then
+			INTERFACE.PREFERRED_DARK_MODE_THEME, then the OS): change them together. This script is
+			byte-identical in src/app.html, cdn/cdn-index.html and site-template/index.html so one CSP
+			script hash covers all three: edit all three or none.
+		-->
+		<script>
+			(function () {
+				var t = null;
+				try {
+					var k = ['gt-settings-theme', 'gt-theme'];
+					for (var n = 0; n < 2 && !t; n++) {
+						var v = localStorage.getItem(k[n]);
+						if (v === 'light' || v === 'dark') t = v;
+					}
+				} catch (e) {}
+				try {
+					if (!t) {
+						var i = (window.GRAPHTOOL_CONFIG || {}).INTERFACE;
+						var c = i && i.PREFERRED_DARK_MODE_THEME;
+						if (c == null) c = 'system';
+						t =
+							c === 'dark' ||
+							(c === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+								? 'dark'
+								: 'light';
+					}
+					document.documentElement.classList.toggle('dark', t === 'dark');
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="stylesheet" href="./theme.css" />
 	</head>
 

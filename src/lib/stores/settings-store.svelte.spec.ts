@@ -25,6 +25,8 @@ function resetStore() {
 	localStorage.clear();
 	sessionStorage.clear();
 	settingsStore.theme = 'light';
+	settingsStore.followsSystem = false;
+	settingsStore.osTheme = 'light';
 	settingsStore.autoEqPersistMode = 'session';
 	settingsStore.linkEqNormalization = false;
 	settingsStore.autoEqOptions = { ...DEFAULT_AUTOEQ };
@@ -35,6 +37,25 @@ function resetStore() {
 
 function setConfig(value: unknown) {
 	(window as unknown as { GRAPHTOOL_CONFIG: unknown }).GRAPHTOOL_CONFIG = value;
+}
+
+/** Pretend the OS asks for dark or light; returns the listeners the store registered. */
+function mockSystem(dark: boolean) {
+	const listeners: ((e: { matches: boolean }) => void)[] = [];
+	vi.spyOn(window, 'matchMedia').mockReturnValue({
+		matches: dark,
+		addEventListener: (_: string, fn: (e: { matches: boolean }) => void) => listeners.push(fn),
+		removeEventListener: (_: string, fn: (e: { matches: boolean }) => void) => {
+			const at = listeners.indexOf(fn);
+			if (at >= 0) listeners.splice(at, 1);
+		}
+	} as unknown as MediaQueryList);
+	return {
+		listeners,
+		flip(to: boolean) {
+			for (const fn of listeners) fn({ matches: to });
+		}
+	};
 }
 
 describe('SettingsStore', () => {
@@ -60,11 +81,21 @@ describe('SettingsStore', () => {
 		});
 
 		it('removes the html class when switching back to light', () => {
+			mockSystem(true);
 			settingsStore.setTheme('dark');
 			settingsStore.setTheme('light');
 
 			expect(document.documentElement.classList.contains('dark')).toBe(false);
 			expect(localStorage.getItem(KEY_THEME)).toBe('light');
+		});
+
+		it('always stores the choice when the operator default is not system', () => {
+			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'light' } });
+			mockSystem(false);
+			settingsStore.setTheme('light');
+
+			expect(localStorage.getItem(KEY_THEME)).toBe('light');
+			expect(settingsStore.followsSystem).toBe(false);
 		});
 	});
 
@@ -76,9 +107,86 @@ describe('SettingsStore', () => {
 			expect(settingsStore.theme).toBe('light');
 		});
 
-		it('persists each flip', () => {
+		it('persists a flip that differs from the OS', () => {
+			mockSystem(false);
 			settingsStore.toggleTheme();
 			expect(localStorage.getItem(KEY_THEME)).toBe('dark');
+			expect(settingsStore.followsSystem).toBe(false);
+		});
+
+		it('clears the stored choice when it lands on the OS theme, and follows the OS again', () => {
+			const os = mockSystem(false);
+			settingsStore.hydrate();
+			settingsStore.toggleTheme(); // dark, against the OS
+			expect(settingsStore.toggleResumesSystem).toBe(true);
+			settingsStore.toggleTheme(); // light, the OS's own
+
+			expect(localStorage.getItem(KEY_THEME)).toBeNull();
+			expect(settingsStore.followsSystem).toBe(true);
+			os.flip(true);
+			expect(settingsStore.theme).toBe('dark');
+		});
+	});
+
+	describe('system theme', () => {
+		beforeEach(() => {
+			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'system' } });
+		});
+
+		it('follows the OS while no choice is stored', () => {
+			const os = mockSystem(false);
+			settingsStore.hydrate();
+			expect(settingsStore.followsSystem).toBe(true);
+			expect(settingsStore.theme).toBe('light');
+
+			os.flip(true);
+			expect(settingsStore.theme).toBe('dark');
+			expect(document.documentElement.classList.contains('dark')).toBe(true);
+			os.flip(false);
+			expect(settingsStore.theme).toBe('light');
+		});
+
+		it('ignores the OS once the user has chosen', () => {
+			localStorage.setItem(KEY_THEME, 'light');
+			const os = mockSystem(false);
+			settingsStore.hydrate();
+			expect(settingsStore.followsSystem).toBe(false);
+
+			os.flip(true);
+			expect(settingsStore.theme).toBe('light');
+			expect(settingsStore.osTheme).toBe('dark');
+		});
+
+		it('registers one set of listeners however often it hydrates', () => {
+			const os = mockSystem(false);
+			settingsStore.hydrate();
+			settingsStore.hydrate();
+			expect(os.listeners).toHaveLength(1);
+		});
+
+		it('adopts another tab’s choice, and its reset, from the storage event', () => {
+			mockSystem(false);
+			settingsStore.hydrate();
+
+			localStorage.setItem(KEY_THEME, 'dark');
+			window.dispatchEvent(new StorageEvent('storage', { key: KEY_THEME, newValue: 'dark' }));
+			expect(settingsStore.theme).toBe('dark');
+			expect(settingsStore.followsSystem).toBe(false);
+
+			localStorage.removeItem(KEY_THEME);
+			window.dispatchEvent(new StorageEvent('storage', { key: KEY_THEME, newValue: null }));
+			expect(settingsStore.theme).toBe('light');
+			expect(settingsStore.followsSystem).toBe(true);
+		});
+
+		it('does not follow the OS when the operator default is a fixed theme', () => {
+			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'light' } });
+			const os = mockSystem(true);
+			settingsStore.hydrate();
+			os.flip(true);
+
+			expect(settingsStore.followsSystem).toBe(false);
+			expect(settingsStore.theme).toBe('light');
 		});
 	});
 

@@ -526,6 +526,40 @@ describe('EqAudioPlayer', () => {
 			expect(audioPlayerService.volume).toBeCloseTo(0.25, 5);
 		});
 
+		it('names the source select and the volume slider, and reads the volume as a percentage', async () => {
+			render(EqAudioPlayer);
+			await expect
+				.element(page.getByRole('combobox', { name: 'Audio source' }))
+				.toBeInTheDocument();
+
+			const volume = page.getByRole('slider', { name: 'Volume' });
+			await expect.element(volume).toHaveAttribute('aria-valuetext', '50%');
+			await volume.fill('0.25');
+			await expect.element(volume).toHaveAttribute('aria-valuetext', '25%');
+		});
+
+		it('names the tone slider and reads its position as Hz', async () => {
+			render(EqAudioPlayer);
+			await sourceSelect().selectOptions('tone');
+
+			const tone = page.getByRole('slider', { name: 'Tone frequency' });
+			await expect.element(tone).toHaveAttribute('aria-valuetext', '1000 Hz');
+			audioPlayerService.setToneFreq(250);
+			await expect.element(tone).toHaveAttribute('aria-valuetext', '250 Hz');
+		});
+
+		it('names the seek slider and reads it as elapsed of total time', async () => {
+			vi.spyOn(audioPlayerService, 'fileLoaded', 'get').mockReturnValue(true);
+			vi.spyOn(audioPlayerService, 'currentTime', 'get').mockReturnValue(65);
+			vi.spyOn(audioPlayerService, 'duration', 'get').mockReturnValue(200);
+			render(EqAudioPlayer);
+			await sourceSelect().selectOptions('file');
+
+			await expect
+				.element(page.getByRole('slider', { name: 'Seek' }))
+				.toHaveAttribute('aria-valuetext', '1:05 of 3:20');
+		});
+
 		it('swaps in the muted icon at zero volume', async () => {
 			render(EqAudioPlayer);
 			await volumeSlider().fill('0');

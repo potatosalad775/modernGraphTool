@@ -31,6 +31,7 @@
 	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { fitsProfile } from '#lib/utils/eq-constraint.js';
 	import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
+	import { isImeComposing } from '#lib/utils/ime.js';
 	import type { EqState } from '#lib/utils/eq-snapshot.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
@@ -147,6 +148,7 @@
 	}
 
 	function onRenameKeydown(e: KeyboardEvent) {
+		if (isImeComposing(e)) return;
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			void endRename(true);

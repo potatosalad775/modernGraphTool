@@ -171,6 +171,7 @@
 		<div class="mt-2 flex flex-wrap items-center gap-1.5">
 			{#if inactiveFilters.length > 0}
 				<select
+					aria-label={m.target_customizer_add_filter()}
 					onchange={handleAddFilterChange}
 					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1
 						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
@@ -184,6 +185,7 @@
 
 			{#if filterPresets.length > 0}
 				<select
+					aria-label={m.target_customizer_preset()}
 					value={adjustment.preset}
 					onchange={handlePresetChange}
 					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1

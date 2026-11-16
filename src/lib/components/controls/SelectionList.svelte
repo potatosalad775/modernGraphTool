@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import * as m from '#lib/paraglide/messages.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { baseline } from '#lib/graph/baseline.js';
+	import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
 	import {
@@ -42,22 +44,33 @@
 	// ── Y-offset long-press ──────────────────────────────────────────────────────
 	// Timer lives at component level to survive re-renders triggered by frStore updates.
 	// Per-render closures (via {@const}) would lose the timer reference on each re-render,
-	// causing the interval to keep running after mouseup (runaway increment).
+	// causing the interval to keep running after release (runaway increment).
+	// Pointer events, not mouse events: a touch press gets the same hold-to-repeat, and pointer
+	// capture keeps the release coming to the button even after the finger or cursor drifts off.
+	// A keyboard activation has no pointer, so `onclick` (detail 0) steps once instead.
 	let yOffsetTimer: ReturnType<typeof setInterval> | null = null;
 
-	function startYOffset(uuid: string, direction: 'inc' | 'dec') {
+	function stepYOffset(uuid: string, direction: 'inc' | 'dec'): boolean {
+		const item = frStore.get(uuid);
+		if (!item) return false;
+		const next = (item.yOffset ?? 0) + (direction === 'inc' ? 1 : -1);
+		dataProvider.updateYOffset(uuid, next);
+		return true;
+	}
+
+	function startYOffset(e: PointerEvent, uuid: string, direction: 'inc' | 'dec') {
+		// Primary pointer, primary button only: a right-click must not start a repeat.
+		if (!e.isPrimary || e.button !== 0) return;
 		stopYOffset();
-		const perform = () => {
-			const item = frStore.get(uuid);
-			if (!item) {
-				stopYOffset();
-				return;
-			}
-			const next = (item.yOffset ?? 0) + (direction === 'inc' ? 1 : -1);
-			dataProvider.updateYOffset(uuid, next);
-		};
-		perform();
-		yOffsetTimer = setInterval(perform, 150);
+		try {
+			(e.currentTarget as Element).setPointerCapture(e.pointerId);
+		} catch {
+			// The pointer is already gone; the step below still runs and pointerup cleans up.
+		}
+		if (!stepYOffset(uuid, direction)) return;
+		yOffsetTimer = setInterval(() => {
+			if (!stepYOffset(uuid, direction)) stopYOffset();
+		}, 150);
 	}
 
 	function stopYOffset() {
@@ -67,18 +80,39 @@
 		}
 	}
 
-	function handleYOffsetInput(uuid: string, raw: string) {
-		const val = parseFloat(raw);
-		if (!isNaN(val)) dataProvider.updateYOffset(uuid, val);
+	// Enter / Space on a focused button. A pointer click has `detail >= 1` and was already
+	// stepped by `pointerdown`.
+	function handleYOffsetClick(e: MouseEvent, uuid: string, direction: 'inc' | 'dec') {
+		if (e.detail === 0) stepYOffset(uuid, direction);
+	}
+
+	onDestroy(stopYOffset);
+
+	// Commit on `change` (blur / Enter), so typing "-12" is one undo entry rather than three.
+	function handleYOffsetChange(uuid: string, input: HTMLInputElement) {
+		const current = frStore.get(uuid)?.yOffset ?? 0;
+		const val = parseFloat(input.value);
+		if (!Number.isFinite(val)) {
+			// Cleared or unparsable: the store did not change, so Svelte will not rewrite the DOM.
+			input.value = String(current);
+			return;
+		}
+		if (val !== current) dataProvider.updateYOffset(uuid, val);
 	}
 
 	// ── Baseline ────────────────────────────────────────────────────────────────
 	// The cycle and the state behind it live in `baseline` (graph/baseline.ts).
-	function getBaselineTooltip(uuid: string): string {
-		const mode = baseline.modeFor(uuid);
-		if (mode === 'off') return m.selection_list_baseline_off();
+	// The button is a toggle: its name stays "Set as baseline" and `aria-pressed` carries the
+	// state. Only a target can sit in a second mode, so that mode goes in the hint.
+	function getBaselineHint(mode: BaselineMode): string | undefined {
 		if (mode === 'withAdjustment') return m.selection_list_baseline_with_adjustment();
-		return m.selection_list_baseline_without_adjustment();
+		if (mode === 'withoutAdjustment') return m.selection_list_baseline_without_adjustment();
+		return undefined;
+	}
+
+	/** What a screen reader calls a curve: the device, plus the variant when it has one. */
+	function curveName(item: FRDataObject): string {
+		return item.dispSuffix ? `${item.identifier} ${item.dispSuffix}` : item.identifier;
 	}
 
 	// ── Variant dropdown ────────────────────────────────────────────────────────
@@ -102,7 +136,7 @@
 
 <div class="flex flex-1 flex-col gap-0 overflow-y-auto pb-2">
 	{#if sortedEntries.length === 0}
-		<p class="px-3 py-6 text-center text-xs text-base-content/60">No curves loaded.</p>
+		<p class="px-3 py-6 text-center text-xs text-base-content/60">{m.selection_list_empty()}</p>
 	{/if}
 
 	{#each sortedEntries as [uuid, item] (uuid)}
@@ -112,6 +146,7 @@
 		{@const variantFiles =
 			(!isTargetType(item) && (item.meta as { files?: PhoneFileVariant[] })?.files) || []}
 		{@const hasVariants = variantFiles.length > 1}
+		{@const name = curveName(item)}
 
 		<div
 			class="flex flex-col gap-2 border-b border-base-content/8 p-3
@@ -185,11 +220,13 @@
 								>
 									<button
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
+										aria-current={isSelected ? 'true' : undefined}
 										class="flex min-w-0 flex-1 items-start gap-2 px-2 py-1.5 text-left text-sm transition-colors
 											{isSelected ? 'font-medium text-accent' : 'text-base-content/70'}"
 									>
 										<Check
 											class="mt-0.5 h-4 w-4 shrink-0 {isSelected ? 'opacity-100' : 'opacity-0'}"
+											aria-hidden="true"
 										/>
 										<span class="flex min-w-0 flex-col">
 											<span class="wrap-break-word"
@@ -209,8 +246,12 @@
 											? m.selection_list_variant_already_loaded()
 											: m.selection_list_variant_add()}
 										aria-label={isLoaded
-											? m.selection_list_variant_already_loaded()
-											: m.selection_list_variant_add()}
+											? m.selection_list_variant_already_loaded_named({
+													variant: variant.suffix || m.selection_list_variant_default()
+												})
+											: m.selection_list_variant_add_named({
+													variant: variant.suffix || m.selection_list_variant_default()
+												})}
 										class="mt-0.5 mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded
 											text-base-content/60 transition-colors
 											hover:bg-base-content/10 hover:text-base-content
@@ -247,7 +288,10 @@
 
 					<!-- Baseline button -->
 					<Button
-						title={getBaselineTooltip(uuid)}
+						title={m.selection_list_baseline_off()}
+						hint={getBaselineHint(baselineMode)}
+						aria-label={m.selection_list_baseline_named({ name })}
+						aria-pressed={baselineMode !== 'off'}
 						onclick={() => baseline.cycle(uuid)}
 						variant="ghost"
 						size="icon"
@@ -281,6 +325,9 @@
 					<!-- Visibility toggle -->
 					<Button
 						title={item.hidden ? m.selection_list_show() : m.selection_list_hide()}
+						aria-label={item.hidden
+							? m.selection_list_show_named({ name })
+							: m.selection_list_hide_named({ name })}
 						onclick={() => {
 							const willBeHidden = !item.hidden;
 							graphEngine.updateVisibility(uuid, !willBeHidden);
@@ -304,6 +351,7 @@
 					<!-- Delete button -->
 					<Button
 						title={m.selection_list_remove()}
+						aria-label={m.selection_list_remove_named({ name })}
 						onclick={() => dataProvider.removeFRDataWithUUID(item.type, uuid)}
 						variant="ghost"
 						size="icon"
@@ -325,7 +373,7 @@
 							<select
 								value={currentChannelVal}
 								onchange={(e) => handleChannelChange(uuid, e.currentTarget.value)}
-								aria-label={m.selection_list_channel_header()}
+								aria-label={m.selection_list_channel_named({ name })}
 								class="h-7 rounded border border-base-content/20 bg-base-200 px-1 text-xs
 									focus:ring-1 focus:ring-accent focus:outline-none"
 							>
@@ -340,35 +388,42 @@
 					<div class="flex items-center gap-1">
 						<Button
 							title={m.selection_list_y_offset_decrease()}
-							onmousedown={() => startYOffset(uuid, 'dec')}
-							onmouseup={stopYOffset}
-							onmouseleave={stopYOffset}
+							aria-label={m.selection_list_y_offset_decrease_named({ name })}
+							onpointerdown={(e: PointerEvent) => startYOffset(e, uuid, 'dec')}
+							onpointerup={stopYOffset}
+							onpointercancel={stopYOffset}
+							onlostpointercapture={stopYOffset}
+							onclick={(e: MouseEvent) => handleYOffsetClick(e, uuid, 'dec')}
 							variant="secondary"
 							size="icon-xs"
-							class="rounded-full"
+							class="touch-none rounded-full"
 						>
 							<Minus class="h-4 w-4" aria-hidden="true" />
 						</Button>
 
 						<input
 							type="number"
+							step="any"
 							name="yOffset"
 							id="yOffset_{uuid}"
 							value={item.yOffset ?? 0}
-							oninput={(e) => handleYOffsetInput(uuid, e.currentTarget.value)}
-							aria-label={m.selection_list_y_offset()}
+							onchange={(e) => handleYOffsetChange(uuid, e.currentTarget)}
+							aria-label={m.selection_list_y_offset_named({ name })}
 							class="h-7 w-12 rounded border border-base-content/20 bg-base-200 text-center text-xs
 									focus:ring-1 focus:ring-accent focus:outline-none"
 						/>
 
 						<Button
 							title={m.selection_list_y_offset_increase()}
-							onmousedown={() => startYOffset(uuid, 'inc')}
-							onmouseup={stopYOffset}
-							onmouseleave={stopYOffset}
+							aria-label={m.selection_list_y_offset_increase_named({ name })}
+							onpointerdown={(e: PointerEvent) => startYOffset(e, uuid, 'inc')}
+							onpointerup={stopYOffset}
+							onpointercancel={stopYOffset}
+							onlostpointercapture={stopYOffset}
+							onclick={(e: MouseEvent) => handleYOffsetClick(e, uuid, 'inc')}
 							variant="secondary"
 							size="icon-xs"
-							class="rounded-full"
+							class="touch-none rounded-full"
 						>
 							<Plus class="h-4 w-4" aria-hidden="true" />
 						</Button>

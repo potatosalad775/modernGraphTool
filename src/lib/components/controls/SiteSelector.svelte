@@ -5,7 +5,8 @@
 	import { siteIndexService } from '#lib/services/site-index.svelte.js';
 	import { dbTypeLabel } from '#lib/services/aggregate-index-core.js';
 	import { getSiteSelectorConfig } from '#lib/services/site-index-core.js';
-	import { Select } from 'bits-ui';
+	import Button from '#lib/components/atoms/Button.svelte';
+	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
 	import { ChevronDown } from '@lucide/svelte';
 
 	const config = getSiteSelectorConfig();
@@ -38,65 +39,77 @@
 
 	const groups = $derived(siteIndexService.groups);
 
-	const flatItems = $derived(
-		groups.flatMap((group) =>
-			group.entries.map((entry) => ({ value: entry.dbId, label: entry.siteName }))
-		)
+	const triggerLabel = $derived(siteIndexService.currentEntry?.siteName ?? m.site_selector_label());
+	// The visible text is the site name, so the accessible name has to contain it (WCAG 2.5.3).
+	const triggerAriaLabel = $derived(
+		siteIndexService.currentEntry
+			? `${m.site_selector_label()}: ${siteIndexService.currentEntry.siteName}`
+			: m.site_selector_label()
 	);
 
-	const triggerLabel = $derived(siteIndexService.currentEntry?.siteName ?? m.site_selector_label());
+	const uid = $props.id();
+	let open = $state(false);
 </script>
 
 {#if isVisible}
-	<Select.Root type="single" value={siteIndexService.currentDbId ?? ''} items={flatItems}>
-		<Select.Trigger
-			aria-label={m.site_selector_label()}
-			class="inline-flex min-w-36 items-center justify-between gap-1 rounded border
-				border-base-content/20 bg-base-200 px-2 py-1 text-sm focus:ring-1 focus:ring-accent focus:outline-none"
-		>
-			{triggerLabel}
-			<ChevronDown class="h-3 w-3 shrink-0 text-base-content/60" />
-		</Select.Trigger>
+	<!--
+		A popover of plain links, not a Select: the entries navigate, so they must be real
+		anchors (Enter, announced as links, middle-click / open-in-new-tab). A Select's
+		items are `role="option"` and its keyboard activation only toggles the value, so
+		it never followed the link. The list is capped to the viewport and scrolls inside.
+	-->
+	<PopoverPanel
+		bind:open
+		side="bottom"
+		sideOffset={4}
+		contentClass="min-w-48 max-h-[min(20rem,var(--bits-popover-content-available-height))] overflow-y-auto"
+	>
+		{#snippet trigger({ props })}
+			<Button
+				{...props}
+				label={triggerLabel}
+				aria-label={triggerAriaLabel}
+				variant="ghost"
+				size="sm"
+				class="min-w-36 justify-between gap-1 rounded border border-base-content/20 bg-base-200 px-2
+					py-1 text-sm font-normal hover:bg-base-300"
+			>
+				<ChevronDown class="h-3 w-3 shrink-0 text-base-content/60" aria-hidden="true" />
+			</Button>
+		{/snippet}
 
-		<Select.Content
-			side="bottom"
-			sideOffset={4}
-			class="z-50 max-h-80 overflow-y-auto rounded-lg border border-base-content/15
-				bg-base-200 p-1 shadow-xl"
-			style="min-width: 12rem;"
-		>
-			<Select.Viewport class="scroll-pt-6.5">
-				{#each groups as group (group.type)}
-					<Select.Group>
-						<Select.GroupHeading
-							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-[12px] font-semibold tracking-wider
-								text-base-content/50 uppercase"
-						>
-							{dbTypeLabel(group.type)}
-						</Select.GroupHeading>
-
-						{#each group.entries as entry (entry.dbId)}
-							<Select.Item value={entry.dbId} label={entry.siteName}>
-								{#snippet child({ props, selected })}
-									<a
-										{...props}
-										href={entry.url}
-										target="_blank"
-										rel="external noopener noreferrer"
-										title={entry.verified ? undefined : m.site_selector_unverified()}
-										class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content
-											no-underline outline-none data-highlighted:bg-base-300
-											{selected ? 'font-medium text-accent' : ''}
-											{entry.verified ? '' : 'opacity-50'}"
-									>
-										{entry.siteName}
-									</a>
-								{/snippet}
-							</Select.Item>
-						{/each}
-					</Select.Group>
-				{/each}
-			</Select.Viewport>
-		</Select.Content>
-	</Select.Root>
+		{#each groups as group (group.type)}
+			<section aria-labelledby="{uid}-{group.type}">
+				<h3
+					id="{uid}-{group.type}"
+					class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-[12px] font-semibold tracking-wider
+						text-base-content/50 uppercase"
+				>
+					{dbTypeLabel(group.type)}
+				</h3>
+				<ul class="flex flex-col">
+					{#each group.entries as entry (entry.dbId)}
+						{@const current = entry.dbId === siteIndexService.currentDbId}
+						<li>
+							<a
+								href={entry.url}
+								target="_blank"
+								rel="external noopener noreferrer"
+								aria-current={current ? 'page' : undefined}
+								title={entry.verified ? undefined : m.site_selector_unverified()}
+								onclick={() => (open = false)}
+								class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content no-underline
+									hover:bg-base-300 focus-visible:bg-base-300 focus-visible:ring-1
+									focus-visible:ring-accent focus-visible:outline-none
+									{current ? 'font-medium text-accent' : ''}
+									{entry.verified ? '' : 'opacity-50'}"
+							>
+								{entry.siteName}
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/each}
+	</PopoverPanel>
 {/if}

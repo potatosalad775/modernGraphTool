@@ -183,6 +183,7 @@
 
 	<!-- Source select -->
 	<select
+		aria-label={m.equalizer_player_source_label()}
 		value={audioPlayerService.audioSource}
 		onchange={(e) =>
 			audioPlayerService.setAudioSource((e.target as HTMLSelectElement).value as AudioSource)}
@@ -209,6 +210,8 @@
 				min="0"
 				max="1000"
 				step="1"
+				aria-label={m.equalizer_player_tone_slider_label()}
+				aria-valuetext="{audioPlayerService.toneFreq} Hz"
 				value={toneSliderPos(audioPlayerService.toneFreq, bandMinHz, bandMaxHz)}
 				oninput={(e) =>
 					audioPlayerService.setToneFreq(
@@ -318,6 +321,11 @@
 					min="0"
 					max={audioPlayerService.duration}
 					step="0.1"
+					aria-label={m.equalizer_player_seek_label()}
+					aria-valuetext={m.equalizer_player_seek_valuetext({
+						current: formatTime(audioPlayerService.currentTime),
+						total: formatTime(audioPlayerService.duration)
+					})}
 					value={audioPlayerService.currentTime}
 					oninput={(e) =>
 						audioPlayerService.seekTo(parseFloat((e.target as HTMLInputElement).value))}
@@ -366,6 +374,8 @@
 				min="0"
 				max="1"
 				step="0.01"
+				aria-label={m.equalizer_player_volume_label()}
+				aria-valuetext="{Math.round(audioPlayerService.volume * 100)}%"
 				value={audioPlayerService.volume}
 				oninput={(e) =>
 					audioPlayerService.setVolume(parseFloat((e.target as HTMLInputElement).value))}

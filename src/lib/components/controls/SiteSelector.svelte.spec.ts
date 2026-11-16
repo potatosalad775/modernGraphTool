@@ -51,8 +51,8 @@ afterEach(() => {
 	delete (window as ConfigWindow).GRAPHTOOL_CONFIG;
 });
 
-/** The trigger's accessible name comes from its `aria-label`, which never varies. */
-const trigger = () => page.getByRole('combobox', { name: 'Select a site' });
+/** The trigger's accessible name starts with the generic label; a current site is appended. */
+const trigger = () => page.getByRole('button', { name: 'Select a site' });
 
 /** Mounts and waits for the singleton's fetch to settle. */
 async function mount() {

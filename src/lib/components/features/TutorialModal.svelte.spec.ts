@@ -210,6 +210,20 @@ describe('TutorialModal', () => {
 				.toBeInTheDocument();
 		});
 
+		it('marks only the current step dot with aria-current', async () => {
+			await openModal();
+			const current = () => document.querySelectorAll('[role="dialog"] [aria-current="step"]');
+
+			expect(current()).toHaveLength(1);
+			expect(dots().nth(0).element().getAttribute('aria-current')).toBe('step');
+
+			await click(dots().nth(2));
+
+			expect(current()).toHaveLength(1);
+			expect(dots().nth(2).element().getAttribute('aria-current')).toBe('step');
+			expect(dots().nth(0).element().hasAttribute('aria-current')).toBe(false);
+		});
+
 		it('swaps Next for Done and drops Skip on the last step', async () => {
 			await openModal();
 			await goToLastStep();

@@ -385,6 +385,17 @@ describe('TargetCustomizer', () => {
 	// ── Add / remove / preset / reset ────────────────────────────────────────
 
 	describe('filter stack', () => {
+		it('names both pickers', async () => {
+			await open();
+
+			await expect
+				.element(page.getByRole('combobox', { name: m.target_customizer_add_filter() }))
+				.toBeInTheDocument();
+			await expect
+				.element(page.getByRole('combobox', { name: m.target_customizer_preset() }))
+				.toBeInTheDocument();
+		});
+
 		it('shows the empty note when nothing is active', async () => {
 			const item = makeTarget({ identifier: 'Harman' });
 			frStore.set(UUID, item);

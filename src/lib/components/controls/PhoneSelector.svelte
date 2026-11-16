@@ -123,6 +123,34 @@
 		pinnedIds.size === 0 ? 0 : displayPhones.filter((p) => pinnedIds.has(p.identifier)).length
 	);
 
+	// ── Result count announcement ───────────────────────────────────────────────
+	// One polite live region for the whole list (nothing per row). Filtering changes the
+	// list silently for a screen reader, so the count is spoken once typing settles: the
+	// text is only swapped after a pause, so mid-word keystrokes never reach the region.
+	// Nothing is announced while no filter is active (initial mount, cleared search).
+
+	const ANNOUNCE_DELAY_MS = 600;
+	let resultAnnouncement = $state('');
+
+	$effect(() => {
+		const filtering = searchQuery.trim() !== '' || selectedBrands.size > 0;
+		const count = displayPhones.length;
+		const hasQuery = searchQuery.trim() !== '';
+		if (!filtering) {
+			resultAnnouncement = '';
+			return;
+		}
+		const timer = setTimeout(() => {
+			resultAnnouncement =
+				count === 0
+					? hasQuery
+						? m.phone_selector_no_results()
+						: m.phone_selector_no_devices()
+					: m.phone_selector_result_count({ count });
+		}, ANNOUNCE_DELAY_MS);
+		return () => clearTimeout(timer);
+	});
+
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
 	function toggleBrand(brand: string): void {
@@ -139,10 +167,10 @@
 	}
 
 	/**
-	 * Row clicks toggle the device — except on a link. The review / shop /
-	 * operator links and any anchor inside an HTML description all live inside
-	 * the row button, so guarding here covers every one of them at once (and
-	 * covers Enter on a focused link, which dispatches a click too).
+	 * Row clicks toggle the device — except on a link. The rank / review / shop /
+	 * operator links sit beside the row button, not in it; only the anchors inside
+	 * an HTML description (`{@html}`) are still inside the button, so this guard
+	 * covers those (and Enter on a focused link, which dispatches a click too).
 	 */
 	function onRowClick(event: MouseEvent, identifier: string, isLoaded: boolean): void {
 		if ((event.target as Element | null)?.closest('a')) return;
@@ -245,6 +273,12 @@
 			type="search"
 			bind:value={searchQuery}
 			placeholder={m.phone_selector_header_search_bar_placeholder()}
+			aria-label={m.phone_selector_search_label()}
+			autocomplete="off"
+			autocorrect="off"
+			autocapitalize="none"
+			spellcheck={false}
+			enterkeyhint="search"
 			class="flex-1 bg-base-100"
 		>
 			{#snippet icon()}
@@ -342,6 +376,11 @@
 		</div>
 	{/if}
 
+	<!-- Debounced result count for screen readers; see "Result count announcement". -->
+	<p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+		{resultAnnouncement}
+	</p>
+
 	<!-- Panes -->
 	<div class="relative min-h-0 flex-1">
 		<div class="flex h-full flex-row">
@@ -353,6 +392,7 @@
 				{#each brandListData as brand (brand)}
 					<button
 						onclick={() => toggleBrand(brand)}
+						aria-pressed={selectedBrands.has(brand)}
 						class="flex w-full cursor-pointer items-center border-b border-base-content/8 px-3 py-1.5 text-left text-sm transition-colors
 							{selectedBrands.has(brand)
 							? 'border-l-2 border-l-accent bg-accent/8 font-medium text-accent'
@@ -371,7 +411,7 @@
 				<!-- Empty state -->
 				{#if displayPhones.length === 0 && crossSiteResultCount === 0 && !crossSiteIsLoading}
 					<p class="px-3 py-6 text-center text-xs text-base-content/60">
-						{searchQuery.trim() ? 'No results.' : 'No devices.'}
+						{searchQuery.trim() ? m.phone_selector_no_results() : m.phone_selector_no_devices()}
 					</p>
 				{/if}
 
@@ -383,17 +423,29 @@
 					<!-- Last row of the pinned block carries the divider — but not when the
 					     whole visible list is pinned, since there is nothing to divide from. -->
 					{@const isPinBoundary = i === pinnedCount - 1 && pinnedCount < displayPhones.length}
+					{@const hasMeta =
+						isLoaded &&
+						!!(rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
+					<!-- The row is a container, not a button: the toggle button and the link row
+					     are siblings, because links nested in a button are invalid and hidden from
+					     assistive tech (and a disabled button disables them). The button's `::after`
+					     stretches over the whole row to keep the full-row click area; the link row
+					     sits above it (`z-10`) and lets clicks on its blank space fall through
+					     (`pointer-events-none`, re-enabled on the anchors). -->
 					<div
-						class="{isPinBoundary
+						class="relative transition-colors {isPinBoundary
 							? 'border-b-2 border-b-base-content/30'
 							: 'border-b border-base-content/8'}
-							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : ''}"
+							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : 'hover:bg-base-300'}"
 					>
 						<button
 							onclick={(e) => onRowClick(e, phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
-							class="flex min-h-8 w-full flex-col items-start gap-1 px-3 py-1.5 text-left text-sm transition-colors
-								{isLoaded ? 'font-medium text-base-content' : ' hover:bg-base-300'}
+							aria-pressed={isLoaded}
+							class="flex w-full flex-col items-start gap-1 px-3 pt-1.5 text-left text-sm after:absolute
+								after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent
+								{hasMeta ? 'pb-0' : 'min-h-8 pb-1.5'}
+								{isLoaded ? 'font-medium text-base-content' : ''}
 								{isLoading ? 'opacity-50' : ''}
 								cursor-pointer disabled:cursor-default"
 						>
@@ -406,7 +458,7 @@
 								     sanitizer drops everything else; `title` gets the flattened text
 								     because a tooltip would otherwise show raw markup. -->
 								<span
-									class="ps-description min-w-0 self-stretch text-xs leading-snug text-base-content/60
+									class="ps-description relative z-10 min-w-0 self-stretch text-xs leading-snug text-base-content/60
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
 									title={stripHtml(phone.description)}
 								>
@@ -414,71 +466,74 @@
 									{@html sanitizeHtml(phone.description)}
 								</span>
 							{/if}
-
-							{#if isLoaded && (rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
-								<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-									{#if rank}
-										{@const rankTitle = m.phone_selector_item_rank({ rank: rank.display.title })}
-										{#if rank.href}
-											<a
-												href={rank.href}
-												target="_blank"
-												rel="external noopener noreferrer"
-												class="text-xs {rank.display.kind === 'badge'
-													? 'hover:opacity-80'
-													: 'hover:underline'}"
-												title={rankTitle}
-											>
-												{@render rankIndicator(rank.display)}
-											</a>
-										{:else}
-											<span class="text-xs" title={rankTitle}>
-												{@render rankIndicator(rank.display)}
-											</span>
-										{/if}
-									{/if}
-
-									{#if phone.price}
-										<span class="text-xs text-base-content/60">{phone.price}</span>
-									{/if}
-
-									{#if phone.reviewLink}
-										<a
-											href={phone.reviewLink}
-											target="_blank"
-											rel="external noopener noreferrer"
-											class="text-xs text-info hover:underline"
-										>
-											{m.phone_selector_item_review()}
-										</a>
-									{/if}
-
-									{#if phone.shopLink}
-										<a
-											href={phone.shopLink}
-											target="_blank"
-											rel="external noopener noreferrer"
-											class="text-xs text-info hover:underline"
-										>
-											{m.phone_selector_item_shop()}
-										</a>
-									{/if}
-
-									<!-- Operator-defined extras — several shops, a manufacturer page,
-									     a measurement note. Labels come from phone_book.json as-is. -->
-									{#each phone.links ?? [] as link, i (link.url + ' ' + link.label + i)}
-										<a
-											href={link.url}
-											target="_blank"
-											rel="external noopener noreferrer"
-											class="text-xs text-info hover:underline"
-										>
-											{link.label}
-										</a>
-									{/each}
-								</div>
-							{/if}
 						</button>
+
+						{#if hasMeta}
+							<div
+								class="pointer-events-none relative z-10 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 pt-1 pb-1.5
+									{isLoading ? 'opacity-50' : ''}"
+							>
+								{#if rank}
+									{@const rankTitle = m.phone_selector_item_rank({ rank: rank.display.title })}
+									{#if rank.href}
+										<a
+											href={rank.href}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="pointer-events-auto text-xs {rank.display.kind === 'badge'
+												? 'hover:opacity-80'
+												: 'hover:underline'}"
+											title={rankTitle}
+										>
+											{@render rankIndicator(rank.display)}
+										</a>
+									{:else}
+										<span class="pointer-events-auto text-xs" title={rankTitle}>
+											{@render rankIndicator(rank.display)}
+										</span>
+									{/if}
+								{/if}
+
+								{#if phone.price}
+									<span class="text-xs text-base-content/60">{phone.price}</span>
+								{/if}
+
+								{#if phone.reviewLink}
+									<a
+										href={phone.reviewLink}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="pointer-events-auto text-xs text-info hover:underline"
+									>
+										{m.phone_selector_item_review()}
+									</a>
+								{/if}
+
+								{#if phone.shopLink}
+									<a
+										href={phone.shopLink}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="pointer-events-auto text-xs text-info hover:underline"
+									>
+										{m.phone_selector_item_shop()}
+									</a>
+								{/if}
+
+								<!-- Operator-defined extras — several shops, a manufacturer page,
+									     a measurement note. Labels come from phone_book.json as-is. -->
+								{#each phone.links ?? [] as link, i (link.url + ' ' + link.label + i)}
+									<a
+										href={link.url}
+										target="_blank"
+										rel="external noopener noreferrer"
+										class="pointer-events-auto text-xs text-info hover:underline"
+									>
+										{link.label}
+									</a>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/each}
 

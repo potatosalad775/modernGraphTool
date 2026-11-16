@@ -115,6 +115,77 @@ describe('PhoneSelector', () => {
 		});
 	});
 
+	describe('search field', () => {
+		it('has an accessible name and text-correction hints off', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			const input = page.getByRole('searchbox', { name: 'Search devices' });
+			await expect.element(input).toBeInTheDocument();
+			const el = input.element();
+			expect(el.getAttribute('autocomplete')).toBe('off');
+			expect(el.getAttribute('autocorrect')).toBe('off');
+			expect(el.getAttribute('autocapitalize')).toBe('none');
+			expect(el.getAttribute('spellcheck')).toBe('false');
+			expect(el.getAttribute('enterkeyhint')).toBe('search');
+		});
+	});
+
+	describe('pressed state', () => {
+		it('exposes a loaded device and a selected brand through aria-pressed', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			const phone = makePhone();
+			stubBook(phone);
+			render(PhoneSelector);
+
+			const row = page.getByRole('button', { name: /HD 600/ });
+			await expect.element(row).toHaveAttribute('aria-pressed', 'false');
+			markLoaded(phone);
+			await expect.element(row).toHaveAttribute('aria-pressed', 'true');
+
+			const brand = page.getByRole('button', { name: 'Sennheiser', exact: true });
+			await expect.element(brand).toHaveAttribute('aria-pressed', 'false');
+			await brand.click();
+			await expect.element(brand).toHaveAttribute('aria-pressed', 'true');
+		});
+	});
+
+	describe('result count announcement', () => {
+		function status(): string {
+			return document.querySelector('[role="status"]')?.textContent?.trim() ?? '';
+		}
+
+		it('says nothing until a filter is active, then speaks the count once typing settles', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			MetadataParser.phoneMetadata = [
+				{
+					brand: 'Acme',
+					phones: ['Alpha', 'Alpine'].map((name) =>
+						makePhone({ brand: 'Acme', name, identifier: `Acme ${name}` })
+					)
+				}
+			];
+			render(PhoneSelector);
+			expect(status()).toBe('');
+
+			const box = page.getByRole('searchbox');
+			await box.fill('alp');
+			// Still inside the debounce window: nothing yet.
+			expect(status()).toBe('');
+			await vi.waitFor(() => expect(status()).toBe('2 devices found'), { timeout: 3000 });
+
+			await box.fill('alpha');
+			await vi.waitFor(() => expect(status()).toBe('1 device found'), { timeout: 3000 });
+
+			await box.fill('zzz');
+			await vi.waitFor(() => expect(status()).toBe('No results.'), { timeout: 3000 });
+			expect(document.querySelector('.ps-phone-pane > p')?.textContent?.trim()).toBe('No results.');
+
+			await box.fill('');
+			await vi.waitFor(() => expect(status()).toBe(''), { timeout: 3000 });
+		});
+	});
+
 	describe('brand list', () => {
 		function stubTwoBrands(): void {
 			MetadataParser.phoneMetadata = [
@@ -246,6 +317,53 @@ describe('PhoneSelector', () => {
 			anchor.click();
 
 			expect(toggle).not.toHaveBeenCalled();
+		});
+
+		// Links nested in a button are invalid and drop out of the accessibility tree.
+		it('keeps the links beside the row button, not inside it', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { RANKING: { URL: '/ranking/#{slug}' } };
+			const phone = makePhone({
+				reviewLink: 'https://review.example/hd600',
+				shopLink: 'https://shop.example/hd600',
+				links: [{ label: 'Amazon', url: 'https://amazon.example/hd600' }],
+				reviewScore: 4
+			});
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			for (const name of ['Review', 'Shop', 'Amazon']) {
+				const link = page.getByRole('link', { name });
+				await expect.element(link).toBeInTheDocument();
+				const el = link.element();
+				expect(el.closest('button')).toBeNull();
+				expect(el.getAttribute('target')).toBe('_blank');
+				expect(el.getAttribute('rel')).toContain('noopener');
+				expect(el.getAttribute('rel')).toContain('noreferrer');
+			}
+			const rank = page.getByTitle('Rank: 4');
+			await expect.element(rank).toBeInTheDocument();
+			expect(rank.element().tagName).toBe('A');
+			expect(rank.element().closest('button')).toBeNull();
+		});
+
+		it('leaves the links out of the button that is disabled while loading', async () => {
+			let release!: () => void;
+			vi.spyOn(dataProvider, 'toggleFRData').mockImplementation(
+				() => new Promise<void>((resolve) => (release = resolve))
+			);
+			const phone = makePhone({ links: [{ label: 'Amazon', url: 'https://amazon.example' }] });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			const row = page.getByRole('button', { name: /HD 600/ });
+			await row.click();
+			await vi.waitFor(() => expect((row.element() as HTMLButtonElement).disabled).toBe(true));
+			const link = page.getByRole('link', { name: 'Amazon' }).element();
+			expect(link.closest('button')).toBeNull();
+			expect(link.closest('[disabled]')).toBeNull();
+			release();
 		});
 
 		it('keeps the meta row hidden until the device is loaded', async () => {

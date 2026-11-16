@@ -5,6 +5,7 @@ import AppShell from './AppShell.svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { loadDefaultConfig, installWriteBudget, findTarget } from './app-boot-harness.js';
@@ -92,6 +93,50 @@ describe('AppShell boot', () => {
 
 		// Boot settles instead of writing reactive state forever.
 		expect(budget.count).toBeLessThan(WRITE_BUDGET);
+	}, 30000);
+
+	it('has a site <h1>, one <h2> naming the open panel, and skip links to both regions', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		// The default title is `<h2>modernGraphTool</h2>` as HTML: the <h1> carries its text only.
+		await expect
+			.element(page.getByRole('heading', { level: 1 }))
+			.toHaveTextContent('modernGraphTool');
+		await expect
+			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
+			.toHaveTextContent('GRAPH');
+
+		// The heading follows the panel; the old one is not left behind.
+		menuStore.currentPanel = 'device';
+		await expect
+			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
+			.toHaveTextContent('DEVICES');
+
+		// Accordion headers (`AccordionItem`) sit one level under the panel's <h2>. The Graph
+		// panel is the one with accordions; switch back to it.
+		menuStore.currentPanel = 'graph';
+		await expect
+			.poll(() =>
+				[...document.querySelectorAll('[data-accordion-header]')].map((h) =>
+					h.getAttribute('aria-level')
+				)
+			)
+			.toSatisfy((levels: string[]) => levels.length > 0 && levels.every((l) => l === '3'));
+		menuStore.currentPanel = 'device';
+
+		// The skip links come first, and move focus onto their region.
+		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
+		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to controls', 'Skip to graph']);
+		expect(document.body.querySelector('a, button, input')).toBe(links[0]);
+		// A first visit opens the welcome tour, whose dialog traps focus; the skip links are for
+		// the page behind it.
+		tutorialStore.dismiss();
+		await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+		links[1].click();
+		expect(document.activeElement?.id).toBe('app-graph-region');
+		links[0].click();
+		expect(document.activeElement?.id).toBe('app-controls-region');
 	}, 30000);
 
 	it('keeps target customizer adjustments across a panel switch', async () => {

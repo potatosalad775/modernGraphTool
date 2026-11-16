@@ -5,6 +5,7 @@
 	import SiteSelector from '#lib/components/controls/SiteSelector.svelte';
 	import Button from '../atoms/Button.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import { Dialog } from 'bits-ui';
 	import { ChevronDown, Menu, X } from '@lucide/svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -49,16 +50,17 @@
 	const visibleLinks = $derived(linkList.slice(0, visibleCount));
 	const overflowLinks = $derived(linkList.slice(visibleCount));
 
-	function openSidebar() {
-		sidebarOpen = true;
-	}
+	// The drawer only exists on mobile: widening the viewport must not leave it open.
+	$effect(() => {
+		if (!appStore.isMobile) sidebarOpen = false;
+	});
 	function closeSidebar() {
 		sidebarOpen = false;
 	}
 </script>
 
 <header class="flex h-12 items-center border-b border-base-content/15 bg-base-300 px-4">
-	<nav class="flex w-full items-center justify-between">
+	<nav aria-label={m.top_nav_bar_nav_label()} class="flex w-full items-center justify-between">
 		<!-- Leading: title -->
 		<div class="flex shrink-0 items-center gap-4">
 			<!--
@@ -75,7 +77,7 @@
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html titleContent}
 				{:else if titleType === 'IMAGE'}
-					<img src={titleContent} alt="topbar title" class="h-8" />
+					<img src={titleContent} alt={m.top_nav_bar_home()} class="h-8" />
 				{:else}
 					<span class="text-base font-semibold text-base-content">{titleContent}</span>
 				{/if}
@@ -147,11 +149,76 @@
 			</div>
 		{/if}
 
-		<!-- Mobile: hamburger button -->
+		<!-- Mobile: hamburger button and the link drawer it opens (a modal dialog) -->
 		{#if appStore.isMobile && linkList.length > 0}
-			<Button title={m.top_nav_bar_open_menu()} onclick={openSidebar} variant="ghost" size="icon">
-				<Menu class="h-5 w-5" />
-			</Button>
+			<Dialog.Root bind:open={sidebarOpen}>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} title={m.top_nav_bar_open_menu()} variant="ghost" size="icon">
+							<Menu class="h-5 w-5" aria-hidden="true" />
+						</Button>
+					{/snippet}
+				</Dialog.Trigger>
+				<Dialog.Portal>
+					<Dialog.Overlay forceMount>
+						{#snippet child({ props, open })}
+							{#if open}
+								<div
+									{...props}
+									class="fixed inset-0 z-40 bg-black/40"
+									transition:fade={{ duration: 200 }}
+								></div>
+							{/if}
+						{/snippet}
+					</Dialog.Overlay>
+					<Dialog.Content forceMount>
+						{#snippet child({ props, open })}
+							{#if open}
+								<div
+									{...props}
+									class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl"
+									transition:fly={{ x: 256, duration: 250, easing: cubicOut }}
+								>
+									<div
+										class="flex h-12 items-center justify-between border-b border-base-content/15 bg-base-300 px-4 py-3"
+									>
+										<Dialog.Title class="text-sm font-semibold">
+											{m.top_nav_bar_sidebar_link_title()}
+										</Dialog.Title>
+										<Button
+											title={m.top_nav_bar_close_menu()}
+											onclick={closeSidebar}
+											variant="ghost"
+											size="icon"
+										>
+											<X class="h-5 w-5" aria-hidden="true" />
+										</Button>
+									</div>
+									<nav
+										aria-label={m.top_nav_bar_links_nav_label()}
+										class="flex flex-col gap-0.5 p-2"
+									>
+										{#each linkList as link, i (i)}
+											<a
+												href={link.URL}
+												target="_blank"
+												rel="external noopener noreferrer"
+												onclick={closeSidebar}
+												class="rounded-md p-2 text-sm hover:bg-base-300"
+											>
+												{link.TITLE}
+											</a>
+										{/each}
+									</nav>
+									<div class="mt-auto border-t border-base-content/15 p-4">
+										<SiteSelector />
+									</div>
+								</div>
+							{/if}
+						{/snippet}
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
 		{/if}
 	</nav>
 </header>
@@ -159,47 +226,3 @@
 {#snippet moreChevron()}
 	<ChevronDown class="h-4 w-4" aria-hidden="true" />
 {/snippet}
-
-<!-- Mobile sidebar -->
-{#if appStore.isMobile && sidebarOpen}
-	<!-- Backdrop -->
-	<div
-		role="presentation"
-		class="fixed inset-0 z-40 bg-black/40"
-		transition:fade={{ duration: 200 }}
-		onclick={closeSidebar}
-	></div>
-
-	<!-- Drawer -->
-	<div
-		class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl"
-		transition:fly={{ x: 256, duration: 250, easing: cubicOut }}
-	>
-		<div
-			class="flex h-12 items-center justify-between border-b border-base-content/15 bg-base-300 px-4 py-3"
-		>
-			<h2 class="text-sm font-semibold">
-				{m.top_nav_bar_sidebar_link_title()}
-			</h2>
-			<Button title={m.top_nav_bar_close_menu()} onclick={closeSidebar} variant="ghost" size="icon">
-				<X class="h-5 w-5" aria-hidden="true" />
-			</Button>
-		</div>
-		<nav class="flex flex-col gap-0.5 p-2">
-			{#each linkList as link, i (i)}
-				<a
-					href={link.URL}
-					target="_blank"
-					rel="external noopener noreferrer"
-					onclick={closeSidebar}
-					class="rounded-md p-2 text-sm hover:bg-base-300"
-				>
-					{link.TITLE}
-				</a>
-			{/each}
-		</nav>
-		<div class="mt-auto border-t border-base-content/15 p-4">
-			<SiteSelector />
-		</div>
-	</div>
-{/if}

@@ -38,9 +38,40 @@
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
 	import { checkVersionUpdate } from '#lib/utils/version-update.js';
+	import { stripHtml } from '#lib/utils/html-sanitizer.js';
 	import * as m from '#lib/paraglide/messages.js';
 
 	const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
+
+	// Targets of the skip links, and the regions that carry them.
+	const GRAPH_REGION_ID = 'app-graph-region';
+	const CONTROLS_REGION_ID = 'app-controls-region';
+
+	// The page's `<h1>`, as plain text: the top bar's title may be HTML or an image, and an
+	// operator's markup must not be injected a second time. An image title has no text to
+	// offer, so it falls back to the app name, the same default the top bar uses.
+	const siteTitle = $derived.by(() => {
+		const fallback = 'modernGraphTool';
+		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT';
+		if (type === 'IMAGE') return fallback;
+		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? fallback;
+		return (type === 'HTML' ? stripHtml(content) : content.trim()) || fallback;
+	});
+
+	// The panel's name, the same strings the menu shows.
+	const panelNames = {
+		device: m.menu_item_device_label,
+		graph: m.menu_item_graph_label,
+		equalizer: m.menu_item_equalizer_label,
+		misc: m.menu_item_misc_label
+	};
+
+	// A hash link would go through SvelteKit's router and rewrite the shareable URL; moving
+	// focus is all a skip link has to do.
+	function skipTo(e: MouseEvent, id: string) {
+		e.preventDefault();
+		document.getElementById(id)?.focus();
+	}
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	// Default: panel on the left (matches the legacy CrinGraph / vanilla modernGraphTool layout).
@@ -155,13 +186,45 @@
 <!-- Bound here, not in a panel: the shortcuts fire from any panel. See keyboard-shortcuts.ts. -->
 <svelte:window onkeydown={onKeydown} onkeyup={onKeyup} onblur={onBlur} />
 
+{#snippet skipLink(id: string, label: string)}
+	<!-- Hidden until focused, then pinned top-left over the top bar. Same spot for both links:
+		only one has focus at a time. A raw anchor, not `Button`: it needs sr-only. -->
+	<a
+		href="#{id}"
+		onclick={(e: MouseEvent) => skipTo(e, id)}
+		class="sr-only rounded-md border border-base-content/40 bg-base-100 px-4 py-2 text-sm font-semibold text-base-content shadow-xl focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:ring-2 focus:ring-accent focus:outline-none"
+	>
+		{label}
+	</a>
+{/snippet}
+
+{#snippet panelHeading()}
+	<!-- Outside the keyed panel, so the outline holds one panel heading through the transition. -->
+	<h2 class="sr-only">{panelNames[menuStore.currentPanel]()}</h2>
+{/snippet}
+
 <div class="flex h-full flex-col">
+	<!-- First focusable element. Order follows the layout: desktop with the panel on the left
+		reads controls before graph; the mobile column reads graph first. -->
+	{#if !appStore.isMobile && panelOnLeft}
+		{@render skipLink(CONTROLS_REGION_ID, m.app_shell_skip_to_controls())}
+		{@render skipLink(GRAPH_REGION_ID, m.app_shell_skip_to_graph())}
+	{:else}
+		{@render skipLink(GRAPH_REGION_ID, m.app_shell_skip_to_graph())}
+		{@render skipLink(CONTROLS_REGION_ID, m.app_shell_skip_to_controls())}
+	{/if}
+	<h1 class="sr-only">{siteTitle}</h1>
 	<TopNavBar />
 
 	{#if appStore.isMobile}
 		<main class="flex flex-1 flex-col overflow-hidden bg-base-100 text-base-content">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
-			<section aria-label={m.app_shell_graph_label()} class="flex flex-col overflow-hidden">
+			<section
+				id={GRAPH_REGION_ID}
+				tabindex="-1"
+				aria-label={m.app_shell_graph_label()}
+				class="flex flex-col overflow-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
+			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
@@ -173,9 +236,12 @@
 			</section>
 			<!-- Panel area fills remaining space -->
 			<section
+				id={CONTROLS_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15"
+				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
 			>
+				{@render panelHeading()}
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
@@ -202,8 +268,10 @@
 	{:else}
 		{#snippet graphSection()}
 			<section
+				id={GRAPH_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_graph_label()}
-				class="flex flex-col overflow-hidden bg-base-100"
+				class="flex flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
 			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
@@ -219,10 +287,13 @@
 		{/snippet}
 		{#snippet controlsSection()}
 			<section
+				id={CONTROLS_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-w-85 flex-col overflow-hidden bg-base-100"
+				class="flex min-w-85 flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none focus-visible:ring-inset"
 			>
 				<MenuCarousel />
+				{@render panelHeading()}
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div

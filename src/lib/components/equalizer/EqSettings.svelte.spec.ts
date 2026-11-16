@@ -18,11 +18,11 @@ import { dataProvider } from '#lib/services/data-provider.svelte.js';
 import * as m from '#lib/paraglide/messages.js';
 
 function persistSelect() {
-	return page.getByRole('combobox');
+	return page.getByRole('combobox', { name: m.eq_settings_autoeq_persist_label() });
 }
 
 function linkSwitch() {
-	return page.getByRole('switch');
+	return page.getByRole('switch', { name: m.eq_settings_link_eq_normalization_label() });
 }
 
 describe('EqSettings', () => {

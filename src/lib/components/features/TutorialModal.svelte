@@ -231,7 +231,9 @@
 							<TutorialText text={step.title()} />
 						</Dialog.Title>
 					{:else}
-						<Dialog.Title class="sr-only">Tutorial step {currentStep + 1}</Dialog.Title>
+						<Dialog.Title class="sr-only"
+							>{m.tutorial_modal_step_title({ step: currentStep + 1 })}</Dialog.Title
+						>
 					{/if}
 
 					<Dialog.Description class="mt-1 text-sm leading-relaxed text-base-content/70">
@@ -266,13 +268,20 @@
 				>
 					<div class="flex gap-1.5">
 						{#each steps as _, i (i)}
+							<!--
+								The button is the dot, so layout and spacing are unchanged; the 24x24 hit
+								area is an `::after` centred on it. Neighbouring areas overlap in the gaps
+								but never reach each other's centre.
+							-->
 							<button
 								type="button"
-								class="h-1.5 rounded-full transition-all {i === currentStep
+								class="relative h-1.5 rounded-full transition-all after:absolute after:top-1/2 after:left-1/2 after:size-6 after:-translate-x-1/2 after:-translate-y-1/2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 focus-visible:outline-none {i ===
+								currentStep
 									? 'w-4 bg-accent'
 									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
 								onclick={() => (tutorialStore.step = i)}
 								aria-label={m.tutorial_modal_go_to_step({ step: i + 1 })}
+								aria-current={i === currentStep ? 'step' : undefined}
 							></button>
 						{/each}
 					</div>

@@ -236,6 +236,64 @@ describe('GraphColorPicker', () => {
 		});
 	});
 
+	// ── Non-numeric input ────────────────────────────────────────────────────
+
+	describe('an emptied or out-of-range number field', () => {
+		it('names the native colour input', async () => {
+			await open(makeItem());
+			await expect.element(page.getByLabelText('Curve color')).toBeInTheDocument();
+		});
+
+		it.each(['L', 'C', 'H'])('writes nothing when %s is cleared', async (label) => {
+			await open(makeItem());
+			await numberField(label).fill('');
+
+			await new Promise((resolve) => setTimeout(resolve, 120));
+			expect(updateColors).not.toHaveBeenCalled();
+		});
+
+		it('puts the stored value back when a cleared field is left', async () => {
+			await open(makeItem());
+			await numberField('L').fill('');
+			(numberField('L').element() as HTMLInputElement).blur();
+
+			await expect.element(numberField('L')).toHaveValue(0.68);
+			expect(updateColors).not.toHaveBeenCalled();
+		});
+
+		it('clamps lightness, chroma and hue into their ranges', async () => {
+			await open(makeItem());
+			await numberField('L').fill('5');
+			await numberField('C').fill('9');
+			await numberField('H').fill('500');
+
+			await vi.waitFor(() => {
+				const [L, C, H] = parseOklch(updateColors.mock.calls.at(-1)![1].AVG!);
+				expect(L).toBeCloseTo(1, 5);
+				expect(C).toBeCloseTo(0.4, 5);
+				// 360° wraps to 0°
+				expect(H).toBeCloseTo(0, 5);
+			});
+		});
+
+		it('writes no dash pattern when tick or space is cleared', async () => {
+			await open(makeItem());
+			await numberField('Tick').fill('');
+			await numberField('Space').fill('');
+
+			await new Promise((resolve) => setTimeout(resolve, 120));
+			expect(updateDashPattern).not.toHaveBeenCalled();
+		});
+
+		it('clamps a negative dash value to zero', async () => {
+			await open(makeItem());
+			await numberField('Space').fill('-3');
+
+			await vi.waitFor(() => expect(updateDashPattern).toHaveBeenCalled());
+			expect(updateDashPattern.mock.calls.at(-1)).toEqual(['p', '5 0']);
+		});
+	});
+
 	// ── Re-open ──────────────────────────────────────────────────────────────
 
 	it('re-seeds from the item every time it opens', async () => {

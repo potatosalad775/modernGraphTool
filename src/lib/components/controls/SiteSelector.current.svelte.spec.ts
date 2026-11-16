@@ -52,7 +52,29 @@ describe('SiteSelector on a listed deployment', () => {
 
 		// `aria-label` stays the generic string, so the site name has to be read off
 		// the trigger's text rather than its accessible name.
-		const trigger = page.getByRole('combobox', { name: 'Select a site' });
+		const trigger = page.getByRole('button', { name: 'Select a site' });
 		await expect.element(trigger).toHaveTextContent('This Deployment');
+	});
+
+	it('lists the sites as real links and marks the current one', async () => {
+		(window as ConfigWindow).GRAPHTOOL_CONFIG = {
+			SITE_SELECTOR: { ENABLED: 'auto', INDEX_URLS: ['https://index.test/i.json'] }
+		};
+
+		render(SiteSelector);
+		await siteIndexService.load();
+
+		await page.getByRole('button', { name: 'Select a site' }).click();
+
+		// Plain anchors, so Enter follows them and they are announced as links, not options.
+		const alice = page.getByRole('link', { name: 'Alice Audio' });
+		await expect.element(alice).toHaveAttribute('href', 'https://alice.squig.link/');
+		await expect.element(alice).toHaveAttribute('target', '_blank');
+		await expect.element(alice).toHaveAttribute('rel', expect.stringContaining('noopener'));
+		await expect.element(alice).not.toHaveAttribute('aria-current');
+
+		await expect
+			.element(page.getByRole('link', { name: 'This Deployment' }))
+			.toHaveAttribute('aria-current', 'page');
 	});
 });

@@ -29,11 +29,16 @@
 	// Measured container width — reacts to window resize via bind:clientWidth
 	let containerWidth = $state(0);
 
-	// Drag state
+	// Drag state. A pointer is "pressed" from pointerdown; it only becomes a drag once it has
+	// travelled DRAG_THRESHOLD px, so a plain click or tap never moves the strip or loses its click.
+	const DRAG_THRESHOLD = 4; // px
+	let pressedPointerId: number | null = null;
 	let isDragging = $state(false);
-	let startX = $state(0);
-	let dragStartIndex = $state(0);
+	let startX = 0;
+	let dragStartIndex = 0;
 	let liveOffset = $state(0); // extra px offset during active drag
+	// A drag ends with a click on whatever is under the pointer; swallow that one.
+	let suppressClick = false;
 	// Wheel accumulator
 	let wheelAccumulator = $state(0);
 	const WHEEL_SENSITIVITY = 0.3;
@@ -49,47 +54,53 @@
 		menuStore.setPanel(panels[clamped].id);
 	}
 
-	function handleMouseDown(e: MouseEvent) {
-		isDragging = true;
-		startX = e.pageX;
+	function handlePointerDown(e: PointerEvent) {
+		if (pressedPointerId !== null) return;
+		if (e.pointerType === 'mouse' && e.button !== 0) return;
+		pressedPointerId = e.pointerId;
+		startX = e.clientX;
 		dragStartIndex = currentIndex;
 		liveOffset = 0;
-		e.preventDefault();
+		isDragging = false;
 	}
 
-	function handleTouchStart(e: TouchEvent) {
-		isDragging = true;
-		startX = e.touches[0].pageX;
-		dragStartIndex = currentIndex;
-		liveOffset = 0;
-		e.preventDefault();
-	}
-
-	function handleMouseMove(e: MouseEvent) {
-		if (!isDragging) return;
-		const x = e.pageX;
-		liveOffset = x - startX;
+	function handlePointerMove(e: PointerEvent) {
+		if (e.pointerId !== pressedPointerId) return;
+		const delta = e.clientX - startX;
+		if (!isDragging) {
+			if (Math.abs(delta) < DRAG_THRESHOLD) return;
+			isDragging = true;
+			// Keep receiving moves when the pointer leaves the strip (or the window).
+			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		}
+		liveOffset = delta;
 		const estimatedIndex = Math.round(-liveOffset / STRIDE) + dragStartIndex;
 		if (estimatedIndex !== currentIndex) {
 			goTo(estimatedIndex);
 		}
 	}
 
-	function handleTouchMove(e: TouchEvent) {
-		if (!isDragging) return;
-		e.preventDefault();
-		const x = e.touches[0].pageX;
-		liveOffset = x - startX;
-		const estimatedIndex = Math.round(-liveOffset / STRIDE) + dragStartIndex;
-		if (estimatedIndex !== currentIndex) {
-			goTo(estimatedIndex);
-		}
-	}
-
-	function handleDragEnd() {
+	function handlePointerEnd(e: PointerEvent) {
+		if (e.pointerId !== pressedPointerId) return;
+		pressedPointerId = null;
 		if (!isDragging) return;
 		isDragging = false;
 		liveOffset = 0;
+		// The click that follows pointerup fires in the same task; clear the flag right after it
+		// so a later keyboard activation is never swallowed.
+		suppressClick = true;
+		setTimeout(() => (suppressClick = false), 0);
+	}
+
+	// lostpointercapture bubbles: a touch pointer is implicitly captured by the button it landed
+	// on, and that capture is released when we take it over. Only our own release ends the drag.
+	function handleLostCapture(e: PointerEvent) {
+		if (e.target === e.currentTarget) handlePointerEnd(e);
+	}
+
+	function handleButtonClick(i: number) {
+		if (suppressClick) return;
+		goTo(i);
 	}
 
 	function handleWheel(e: WheelEvent) {
@@ -103,29 +114,21 @@
 	}
 </script>
 
-<svelte:window
-	onmousemove={handleMouseMove}
-	onmouseup={handleDragEnd}
-	onmouseleave={handleDragEnd}
-/>
-
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
 	bind:clientWidth={containerWidth}
+	aria-label={m.menu_carousel_nav_label()}
 	data-tutorial-target="menu"
-	class="relative flex h-12 items-center overflow-hidden border-base-content/15 bg-base-300 select-none {appStore.isMobile
+	class="relative flex h-12 touch-pan-y items-center overflow-hidden border-base-content/15 bg-base-300 select-none {appStore.isMobile
 		? 'border-t'
 		: 'border-b'}"
-	onmousedown={handleMouseDown}
-	ontouchstart={handleTouchStart}
-	ontouchmove={handleTouchMove}
-	ontouchend={handleDragEnd}
-	ontouchcancel={handleDragEnd}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerEnd}
+	onpointercancel={handlePointerEnd}
+	onlostpointercapture={handleLostCapture}
 	onwheel={handleWheel}
 >
 	<div
-		role="tablist"
-		aria-orientation="horizontal"
 		class="flex items-center gap-3 transition-transform duration-300 ease-in-out"
 		style:transform="translateX({scrollX}px)"
 		style:transition={isDragging ? 'none' : undefined}
@@ -133,8 +136,7 @@
 		{#each panels as panel, i (panel.id)}
 			<button
 				type="button"
-				role="tab"
-				aria-selected={menuStore.currentPanel === panel.id}
+				aria-current={menuStore.currentPanel === panel.id ? 'page' : undefined}
 				title={labelWidths[i] > MAX_W ? panel.label() : undefined}
 				style:width="{BUTTON_W}px"
 				class="relative shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold
@@ -145,14 +147,16 @@
 					: Math.abs(i - currentIndex) === 1
 						? 'text-base-content/60'
 						: 'text-base-content/25'}"
-				onclick={() => goTo(i)}
+				onclick={() => handleButtonClick(i)}
 			>
 				<span class="block overflow-hidden text-center text-ellipsis whitespace-nowrap">
 					{panel.label()}
 				</span>
 				{#if menuStore.currentPanel === panel.id}
+					<!-- A border, not a background: forced-colours mode keeps borders. Only drawn on the
+					     selected one, since forced colours would also paint a transparent border. -->
 					<span
-						class="absolute bottom-0 left-1/2 h-0.5 w-12 -translate-x-1/2 rounded-full bg-accent"
+						class="absolute bottom-0 left-1/2 h-0.5 w-12 -translate-x-1/2 rounded-full border-b-2 border-accent"
 					></span>
 				{/if}
 			</button>

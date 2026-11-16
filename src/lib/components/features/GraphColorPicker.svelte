@@ -11,12 +11,16 @@
 		graphBackgroundLightness
 	} from '#lib/utils/curve-palette.js';
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { parseBounded } from '#lib/utils/number-field.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { Shuffle } from '@lucide/svelte';
 
 	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+
+	// Upper bound for a dash tick / space, in px. A longer stroke pattern is not a dash any more.
+	const MAX_DASH = 1000;
 
 	function parseDash(dash: string): [number, number] {
 		const parts = dash.trim().split(/\s+/);
@@ -97,13 +101,41 @@
 		}
 	}
 
+	// The number fields commit on `input` for a live preview, and `bind:value` hands back `null` for
+	// an emptied box (or a lone `-`). Never write that on: clamp to the field's range, and when any
+	// field is not a number yet, leave the curve as it was and wait for the next keystroke.
+	function bounded(value: unknown, min: number, max: number): number | null {
+		return parseBounded(typeof value === 'number' ? String(value) : '', min, max);
+	}
+
 	function onLchInput(): void {
-		localHex = oklchToHex(localL, localC, localH);
-		scheduleColorUpdate(localL, localC, localH);
+		const L = bounded(localL, 0, 1);
+		const C = bounded(localC, 0, 0.4);
+		const H = bounded(localH, 0, 360);
+		if (L === null || C === null || H === null) return;
+		localHex = oklchToHex(L, C, H);
+		scheduleColorUpdate(L, C, H);
 	}
 
 	function onDashInput(): void {
-		scheduleDashUpdate(localTick, localSpace);
+		const tick = bounded(localTick, 0, MAX_DASH);
+		const space = bounded(localSpace, 0, MAX_DASH);
+		if (tick === null || space === null) return;
+		scheduleDashUpdate(tick, space);
+	}
+
+	// Leaving a field: put back what the curve actually uses (the last value that was valid) for an
+	// emptied box, and show the clamped number for one that was out of range.
+	function onLchCommit(): void {
+		localL = bounded(localL, 0, 1) ?? round2(parseOklch(item.colors.AVG)[0]);
+		localC = bounded(localC, 0, 0.4) ?? round2(parseOklch(item.colors.AVG)[1]);
+		localH = bounded(localH, 0, 360) ?? Math.round(parseOklch(item.colors.AVG)[2]);
+	}
+
+	function onDashCommit(): void {
+		const [tick, space] = parseDash(item.dash);
+		localTick = bounded(localTick, 0, MAX_DASH) ?? tick;
+		localSpace = bounded(localSpace, 0, MAX_DASH) ?? space;
 	}
 
 	function onRandom(): void {
@@ -148,6 +180,7 @@
 				<input
 					id="{uuid}-color-hex"
 					type="color"
+					aria-label={m.graph_color_picker_color_input()}
 					value={localHex}
 					oninput={onHexInput}
 					class="h-8 w-full cursor-pointer rounded border border-base-content/20 p-0.5"
@@ -168,6 +201,7 @@
 						step="0.01"
 						bind:value={localL}
 						oninput={onLchInput}
+						onchange={onLchCommit}
 						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
 					/>
 				</div>
@@ -183,6 +217,7 @@
 						step="0.01"
 						bind:value={localC}
 						oninput={onLchInput}
+						onchange={onLchCommit}
 						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
 					/>
 				</div>
@@ -197,6 +232,7 @@
 						max="360"
 						bind:value={localH}
 						oninput={onLchInput}
+						onchange={onLchCommit}
 						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
 					/>
 				</div>
@@ -215,6 +251,7 @@
 						step="0.5"
 						bind:value={localTick}
 						oninput={onDashInput}
+						onchange={onDashCommit}
 						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
 					/>
 				</div>
@@ -229,6 +266,7 @@
 						step="0.5"
 						bind:value={localSpace}
 						oninput={onDashInput}
+						onchange={onDashCommit}
 						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
 					/>
 				</div>

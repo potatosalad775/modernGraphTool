@@ -317,6 +317,20 @@ describe('EqFilterCard', () => {
 			mount(pk({ gain: 3 }));
 
 			expect(gainBox().getAttribute('title')).toBe('Allowed: -6 – 6 dB');
+			expect(gainBox().hasAttribute('aria-invalid')).toBe(false);
+			expect(gainBox().hasAttribute('aria-describedby')).toBe(false);
+		});
+
+		it('tells a screen reader which field is out of range, and why', async () => {
+			eqConstraintsStore.activeId = TIGHT.id;
+			mount(pk({ gain: 20 }));
+
+			const gain = page.getByRole('spinbutton', { name: 'Band 1 gain, dB' });
+			await expect.element(gain).toHaveAttribute('aria-invalid', 'true');
+			await expect
+				.element(gain)
+				.toHaveAccessibleDescription("Tight doesn't accept this value. Allowed: -6 – 6 dB");
+			expect(freqBox().hasAttribute('aria-invalid')).toBe(false);
 		});
 
 		it('describes a stepped domain with its step', () => {
@@ -348,7 +362,7 @@ describe('EqFilterCard', () => {
 			eqConstraintsStore.activeId = 'pk-only';
 			mount(pk(), { expanded: true });
 
-			expect(page.getByRole('button', { name: 'High Shelf' }).elements()).toHaveLength(0);
+			expect(page.getByRole('radio', { name: 'High Shelf' }).elements()).toHaveLength(0);
 			const badge = page.getByRole('button', { name: 'PK', exact: true });
 			await expect.element(badge).toBeDisabled();
 			await expect.element(badge).toHaveAccessibleDescription('Fixed by pk-only');
@@ -431,12 +445,91 @@ describe('EqFilterCard', () => {
 			expect(document.querySelectorAll('input[type="range"]')).toHaveLength(3);
 		});
 
-		it('sets the type from the segmented buttons', async () => {
+		it('sets the type from the segmented control', async () => {
 			mount(pk({ type: 'PK' }), { expanded: true });
 
-			await page.getByRole('button', { name: 'High Shelf' }).click();
+			await page.getByRole('radio', { name: 'High Shelf' }).click();
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ type: 'HSQ' });
+		});
+
+		it('says which type is selected, not just colours it', async () => {
+			mount(pk({ type: 'LSQ' }), { index: 1, expanded: true });
+
+			const group = page.getByRole('group', { name: 'Band 2 filter type' });
+			await expect.element(group).toBeInTheDocument();
+			await expect
+				.element(page.getByRole('radio', { name: 'Low Shelf' }))
+				.toHaveAttribute('aria-checked', 'true');
+			await expect
+				.element(page.getByRole('radio', { name: 'Peak' }))
+				.toHaveAttribute('aria-checked', 'false');
+		});
+
+		it('sets the channel from the segmented control, and maps L+R back to the shared bucket', async () => {
+			mount(pk({ channel: 'L' }), { expanded: true });
+
+			await expect
+				.element(page.getByRole('radio', { name: 'L', exact: true }))
+				.toHaveAttribute('aria-checked', 'true');
+			await page.getByRole('radio', { name: 'R', exact: true }).click();
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ channel: 'R' });
+
+			await page.getByRole('radio', { name: 'L+R' }).click();
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ channel: undefined });
+		});
+
+		it('exposes the expanded state on the chevron', async () => {
+			mount(pk(), { index: 2, expanded: true });
+
+			const chevron = page.getByRole('button', { name: 'Expand filter 3 options' });
+			await expect.element(chevron).toHaveAttribute('aria-expanded', 'true');
+			const panelId = chevron.element().getAttribute('aria-controls');
+			expect(panelId).toBeTruthy();
+			expect(document.getElementById(panelId!)).not.toBeNull();
+		});
+
+		it('marks the chevron collapsed while closed', async () => {
+			mount(pk());
+
+			const chevron = page.getByRole('button', { name: 'Expand filter 1 options' });
+			await expect.element(chevron).toHaveAttribute('aria-expanded', 'false');
+			expect(chevron.element().hasAttribute('aria-controls')).toBe(false);
+		});
+
+		it('names every field and slider after its band', async () => {
+			mount(pk(), { index: 2, expanded: true });
+
+			await expect.element(page.getByRole('switch', { name: 'Enable band 3' })).toBeInTheDocument();
+			expect(
+				page.getByRole('spinbutton', { name: 'Band 3 frequency, Hz' }).elements()
+			).toHaveLength(2);
+			expect(page.getByRole('slider', { name: 'Band 3 frequency, Hz' }).elements()).toHaveLength(1);
+			expect(page.getByRole('slider', { name: 'Band 3 gain, dB' }).elements()).toHaveLength(1);
+			expect(page.getByRole('slider', { name: 'Band 3 Q' }).elements()).toHaveLength(1);
+		});
+
+		it('reads the real value and unit off the sliders', async () => {
+			mount(pk({ freq: 440, gain: -2.5, q: 1.4 }), { expanded: true });
+
+			await expect
+				.element(page.getByRole('slider', { name: 'Band 1 frequency, Hz' }))
+				.toHaveAttribute('aria-valuetext', '440 Hz');
+			await expect
+				.element(page.getByRole('slider', { name: 'Band 1 gain, dB' }))
+				.toHaveAttribute('aria-valuetext', '-2.5 dB');
+			await expect
+				.element(page.getByRole('slider', { name: 'Band 1 Q' }))
+				.toHaveAttribute('aria-valuetext', '1.4');
+		});
+
+		it('reads the real gain off the graphic-mode row slider', async () => {
+			eqConstraintsStore.activeId = GRAPHIC_ID;
+			mount(pk({ freq: 125, gain: 3.5 }));
+
+			await expect
+				.element(page.getByRole('slider', { name: '125 Hz · Gain (dB)' }))
+				.toHaveAttribute('aria-valuetext', '3.5 dB');
 		});
 
 		it('keeps only the row slider in graphic mode', () => {

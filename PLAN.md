@@ -92,6 +92,22 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   deployments that set `'system'` or omit the key.
 - Reverted: a guessed 4:3 slot for the sponsor creative (P10) — the real dimensions are unknown.
 
+- **2026-11-16, component sweep (T1, T3 component side, T12, A10, N13, rest of T14 wrapping):**
+  `outline-none` → `outline-hidden` everywhere; `text-[10px]` → `text-2xs`, 11/12px → `text-xs`;
+  about 125 `text-base-content/NN` classes raised to `/80` (icons that carry meaning to `/60`,
+  placeholders to `/60`); `xs` / `icon-xs` buttons and the toast close button get a 24px hit
+  area; a themed range-slider thumb. `check` / `lint` / `test` green (2981 tests), committed,
+  screenshotted in both themes.
+- Visible consequences worth a maintainer look: the amber rank stars in the device list are now
+  the text colour (`text-warning` is 1.8:1 as text in light mode); the carousel's unselected
+  panel names are all `/80`, so selection reads from the underline and accent only; switched-off
+  EQ bands dim to 70% instead of 50%.
+- A10 stops at 24px. The 44px coarse-pointer size was not applied: it overlaps neighbours in the
+  dense rows (Y-offset +/-, band card, history rows, Misc footer). Callers with room can opt in
+  with `pointer-coarse:after:size-(--target-size)` (noted in `components/AGENTS.md`).
+- T1's "give background-only selected states a border" was not done as a separate pass; the
+  selected states touched in this audit (carousel, segmented controls, tabs) have a non-colour cue.
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -144,7 +160,16 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     a WiiM self-signed certificate (written from general knowledge, untested).
   - A squig.link host: the sponsor dialog, shop links and the version toast after it closes, now
     that `squiglink-intro.js` / `shoplinks.js` are read as data and never executed.
-- [ ] **N13. The sonner close button is about 20px with a faint focus ring** (S, with A10)
+- [x] **N13. The sonner close button is about 20px with a faint focus ring** (S, with A10)
+
+- [ ] **N14. Unverified sites are dimmed to 50% opacity in the site switcher** (S)
+  - Where: `controls/SiteSelector.svelte` (`opacity-50` on a live link, with a `title` only)
+  - Fix: full-strength text plus a small "unverified" label or icon with an accessible name.
+- [ ] **N15. A rating colour token** (S, optional)
+  - The rank stars lost their amber because no palette colour is readable as amber text on a
+    light surface. A dedicated `--color-rating` (darker amber, ≥ 4.5:1) would bring it back.
+- [ ] **N16. 44px touch targets in the dense rows** (M)
+  - Needs layout room first: see the A10 note in the progress log for the rows.
 
 ## 1. Confirmed bugs (start here)
 
@@ -293,7 +318,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     `tabindex="0"`, `aria-valuenow/min/max`, a name; arrow keys move it about 15px; wider hit area
     via a pseudo-element.
   - Guide: `drag`.
-- [ ] **A10. Touch targets below 24px** (M) — tutorial dots done; Button `xs`, range inputs and
+- [x] **A10. Touch targets below 24px** (M) — tutorial dots done; Button `xs`, range inputs and
       the token remain
   - Where: `features/TutorialModal.svelte:269-276` (6×6px dots); `atoms/Button.svelte:74, 84`
     (`xs` about 19px tall); `EqFilterCard.svelte` range inputs (`h-1`); `routes/layout.css:101`
@@ -424,7 +449,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
 
 ## 5. Theming, colour, typography, CSS
 
-- [ ] **T1. No focus indicator in forced-colours mode** (S for the class swap, M with the graph)
+- [x] **T1. No focus indicator in forced-colours mode** (S for the class swap, M with the graph)
   - Where: `atoms/Button.svelte:88`; `layout/MenuCarousel.svelte:142`; 36 `outline-none` uses
     across 21 component files
   - Problem: the ring is a `box-shadow`, which forced colours removes, and Tailwind 4's
@@ -444,7 +469,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     in `layout.css` (not `theme.css`); skip `theme-transition` on the effect's first run.
   - Note: the inline script interacts with a CSP (S2); it would need a hash.
   - Guide: `dark-mode`, `dark-mode-toggle`.
-- [ ] **T3. Default palette misses AAA, and often AA** (M, **approved**)
+- [x] **T3. Default palette misses AAA, and often AA** (M, **approved**)
   - Where: `defaults/theme.css:31-50, 63-82`. Usage: `text-base-content/60` ×74, `/70` ×28,
     `/50` ×21, `/80` ×14, `/40` ×4, `/25` ×1 (`MenuCarousel.svelte:147`)
   - Computed contrast of `base-content/NN` on base-100 (WCAG 2.x, alpha composited in sRGB):

@@ -139,6 +139,7 @@ defaults/                # Operator-editable templates, copied to dist/ by a Vit
 messages/                # Paraglide sources: en.json, cs.json, ko.json, ru.json, uk.json
 scripts/                 # build-cdn.js, build-site-template.js, generate-boot-manifest.js,
                          # bench-autoeq/ (AutoEQ engine benchmarks → workers/AGENTS.md),
+                         # bench-startup/ (startup comparison with the forks → Performance below),
                          # rew-smoothing-fixture.mjs (REW reference for FRSmoother → utils/AGENTS.md)
 site-template/           # Sources for the GitHub Pages template repo
 static/                  # Project assets (local overrides; gitignored where noted)
@@ -256,18 +257,29 @@ and each area's `AGENTS.md` for its own test traps.
 ## Performance
 
 Startup speed is judged against the CrinGraph forks, so a "faster" claim has to survive a side-by-side
-run. The harness is not checked in; rebuild it this way:
+run. The harness is [scripts/bench-startup/](scripts/bench-startup/):
 
-- One local HTTP/2 + gzip server serving every tool with identical `data/`: squiglink `lab` (branch
-  `pink-eq`, not `main`) and HarutoHiroki's `PublicGraphTool` (`squiglink-(main)`), exported with
-  `git archive`. Abort every non-localhost request — live sites on different hosts are not comparable.
-- Playwright + CDP, fresh context per run, cache disabled. Throttled = 9 Mbps / 40 ms RTT + 4× CPU;
-  run unthrottled too. Metric: navigation → the last initial curve's long `<path>` in the DOM.
+```
+node scripts/bench-startup/setup.mjs forks          # once: clones the forks, builds their sites
+npm run build && node scripts/bench-startup/setup.mjs mgt before   # on the commit to compare against
+npm run build && node scripts/bench-startup/setup.mjs mgt after    # on your change
+node scripts/bench-startup/bench.mjs --sites lab,pgt,before,after
+```
+
+- It serves every tool from one local HTTP/2 + gzip server with identical `data/`: squiglink `lab`
+  (branch `pink-eq`, not `main`) and HarutoHiroki's `PublicGraphTool` (`squiglink-(main)`). Every
+  other host fails at DNS — live sites on different hosts are not comparable.
+- Fresh context per run, cache disabled. Throttled = 9 Mbps / 40 ms + 4× CPU, then unthrottled.
+  Metric: navigation → the last initial curve's long `<path>` in the DOM.
 - 10 runs, medians, **sites interleaved run by run and always in the same session** — absolute
-  numbers drift ~50 ms between sessions on one machine.
-- One phone + one target is too little FR work to show pipeline changes; add a multi-device
-  `?share=` scenario. Pass `locale: 'en-US'` to the context, or system language detection renders
-  whatever the machine's locale is.
+  numbers drift ~50 ms between sessions on one machine, so never compare two invocations.
+- One phone + one target is too little FR work to show pipeline changes: add `--scenario share`
+  (five devices). `--big-book` serves a 1500-device phone book.
+- A fresh context is a **first visit**, which opens the welcome tour. `--returning` measures a
+  visitor who dismissed it; the two differ by more than most changes, so say which one a number is.
+- `trace.mjs` breaks a throttled startup down by main-thread event and names the script position
+  behind each forced layout; `bundle-report.mjs` says what a chunk is made of and resolves those
+  positions (both need `npx vite build --sourcemap`; rebuild without it afterwards).
 - Don't measure layout or paint in component specs — they load no Tailwind (`components/AGENTS.md`).
 
 Measured and rejected — don't retry without a new reason:
@@ -278,6 +290,11 @@ Measured and rejected — don't retry without a new reason:
   (DOM creation is the cost, not layout), and the paint containment clips the rows' focus outline.
   List virtualization is the remaining lever.
 - Paraglide per-locale splitting: no option fits a static, runtime-switchable SPA.
+- Starting the phone book request from an inline script in the shells: no change. The book and
+  the FR files already arrive before the app chunk does. Worth another look only if that chunk
+  stops being the last thing to arrive.
+- Preloading Pretendard's subset files: they would compete with the app chunk for the connection
+  (120 KB for English alone), so the font swaps sooner and the curves draw later.
 
 Boot-critical pieces that look removable but aren't: the initial load starting in `hooks.client.ts`
 and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), and the Pretendard

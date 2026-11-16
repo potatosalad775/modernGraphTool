@@ -45,7 +45,8 @@
 	// own grid string), so watch both the container and the left pane rather than only our moves.
 	$effect(() => {
 		if (!mainEl || !dividerEl || typeof ResizeObserver === 'undefined') return;
-		measure();
+		// No measure() of our own here: observing delivers a first callback once layout has
+		// run, while a direct read at mount forces a layout of the whole shell during boot.
 		const observer = new ResizeObserver(measure);
 		observer.observe(mainEl);
 		const leftPane = dividerEl.previousElementSibling;

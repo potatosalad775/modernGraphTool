@@ -180,6 +180,35 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   tutorial overlay is slightly lighter than its old 50% / 55%). The badge and the scrim were
   not looked at in a built page.
 
+- **2026-11-16, eighth wave (startup harness, P3, P13):** the harness is rebuilt and now lives
+  in `scripts/bench-startup/` (setup, bench, trace, bundle report); the Performance section of
+  the root `AGENTS.md` says how to run it. `check` / `lint` / `test` green (3023 tests),
+  `build` and `test:smoke` green. Not committed. All numbers below are throttled medians of
+  10 interleaved runs (9 Mbps, 40 ms, 4× CPU), one device plus one target, in ms.
+- **modernGraphTool is behind the forks again.** lab 894, PublicGraphTool 916, `main` 1081,
+  this branch 1107 (before this wave). Unthrottled: 121 / 136 / 152 / 153. The September
+  release (v2.2.1) measures 780 in the same session and v2.2.4 781, so the loss is between
+  v2.2.4 and v2.3.4 (1076), not in the harness. v2.3.0 and v2.3.2 could not be built (their
+  lock files disagree with `package.json` on `peq-link`), so it is not narrowed further.
+- Where it goes, as far as measured: about 135 is first visits only (a visitor who has
+  dismissed the welcome tour gets 939 on v2.3.4, 963 here, against 786 on v2.2.4); the initial
+  download grew from 258 to 306 KB gzip (326 on this branch), about 45–60 at 9 Mbps; the
+  rest is main-thread work. This branch adds about 25 over `main`.
+- With a 1500-device phone book the order flips: lab 1413, PublicGraphTool 1812,
+  modernGraphTool 1135. Five devices by share link: 1074 / 1105 / 1180.
+- **P3 measured and dropped:** 1097 without, 1103 with; 1180 / 1187 by share link; 1135 /
+  1144 with the big book. The phone book and the FR files already arrive before the app chunk
+  does (book at about 300, files by 435, chunk at 480), so starting the book at 200 moves
+  nothing. The change is not in the tree. CDN mode was not measured; its load has the same
+  shape (the app chunk is the last thing in), so the same result is expected there.
+- **P13 measured:** see the item. No action from any of the three.
+- Kept from this wave: `DragDivider` no longer measures at mount (the `ResizeObserver`'s first
+  callback does it), which removes a forced layout of about 30 under throttling. In curve
+  time that is 6–12, inside the noise. ARIA values checked in a built page: unchanged.
+- Tried on the tour and not kept: `preventScroll={false}` (1065 against 1085) and opening
+  it on `appStore.isReady` (1072): `isReady` comes before the curves are drawn, so the tour
+  still lands in front of them.
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -246,6 +275,25 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     light surface. A dedicated `--color-rating` (darker amber, ≥ 4.5:1) would bring it back.
 - [ ] **N16. 44px touch targets in the dense rows** (M)
   - Needs layout room first: see the A10 note in the progress log for the rows.
+
+- [ ] **N17. The welcome tour costs a first visit about 135 ms of curve time** (S–M, a decision)
+  - Where: `features/TutorialModal.svelte` (`onMount` opens it straight away, by design:
+    its text is the LCP element)
+  - Measured: first visit 1096, returning visitor 963 (throttled). Opening the dialog while
+    the graph is still mounting forces a layout of about 110 from bits-ui's scroll lock
+    (`body-scroll-lock.svelte.js`), and the tour's own mount is on top of that.
+  - Fix: open it after the first curves are drawn (not on `isReady`, which is earlier).
+    That trades a later LCP for earlier curves, so it is a maintainer call.
+- [ ] **N18. Startup lost about 150 ms for returning visitors since v2.2.4** (M–L)
+  - Measured: 786 → 939 (v2.3.4) → 963 (this branch). The preloaded JS and CSS went from
+    258 to 326 KB gzip; the app chunk alone from 160 to 220 KB gzip (559 → 795 KB raw).
+  - The bundle report attributes the app chunk as: Svelte component markup 31%, bits-ui
+    21%, graph 5%, equalizer components 5%, services 4%, controls 4%, tailwind-merge 4%,
+    features 2%, svelte-sonner 2%. It does not say what was added since v2.2.4; diff a
+    report of that tag against this one to find out.
+  - Lever not yet tried: loading features nobody uses on the first screen (Device PEQ,
+    uniPEQ link, the tour, cross-site search) on first use. This is not the rejected
+    "lazy panels" change, which made the initial panel a round trip.
 
 ## 1. Confirmed bugs (start here)
 
@@ -746,7 +794,8 @@ cold startup on one origin with cache off, so several items need an added scenar
   - Fix: preconnect to `raw.githubusercontent.com`; `fetchPriority = 'high'` on the injected
     loader script; publish the boot manifest inside `versions.json`; drop `?t=` from the
     version-pinned `boot.json` if a published version is never rewritten (maintainer call).
-- [ ] **P3. Phone book request waits for the app's entry modules** (M)
+- ~~**P3. Phone book request waits for the app's entry modules**~~ (M) — measured, no gain:
+  the book is not on the critical path (see the eighth wave)
   - Where: `src/app.html:62`; `utils/metadata-parser.ts:173-176`; `services/initial-load.ts:46`;
     `cdn/loader.js:26`
   - Fix: a small inline classic script after `config.js` that starts the fetch and stores the
@@ -796,11 +845,17 @@ cold startup on one origin with cache off, so several items need an added scenar
 - [x] **P12. Spectrum overlay allocates a generator and a point array every frame** (S)
   - Where: `graph/GraphSpectrumOverlay.ts:144-176`
   - Fix: create the generator once and reuse a preallocated array.
-- [ ] **P13. To measure before deciding**
-  - `SmoothingButton` → `reSmoothAll` (`services/data-provider.svelte.ts:448-492`) runs
-    synchronously in the click handler; unknown cost for many devices with sample sets.
-  - What the ~530 KB app chunk holds that the first curve does not need (needs a bundle report).
-  - Whether preloading the Latin subset files of Pretendard shortens the swap.
+- [x] **P13. To measure before deciding** — measured, no action
+  - `SmoothingButton` → `reSmoothAll`: with 14 curves drawn (12 devices, one a three-run
+    sample set, two targets) the click handler takes 22–39 ms at 4× CPU and 4–8 ms without,
+    click to next paint 80–112 ms, no long task. Fine as it is.
+  - The app chunk is 795 KB now, not 530 (220 KB gzip). Breakdown and follow-up in N18.
+  - Pretendard: the stylesheet is in by about 240 ms, but the subset files only start at
+    about 800, because no text exists until the app mounts. English needs four files
+    (120 KB), Korean at least eight. Preloading them would start them at 80 instead, on the
+    same 9 Mbps link the app chunk is using: an earlier swap paid for with later curves
+    (about 100 ms for the English set, estimated from the sizes, not measured). Not
+    recommended. Timings from the live jsDelivr, three runs per locale.
 
 ## Not covered by the audit
 

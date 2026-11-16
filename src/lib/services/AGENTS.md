@@ -26,7 +26,13 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments. IDs must
   match `/^G-[A-Z0-9]+$/` (the value goes into a script URL; others are skipped with a warning);
   `navigator.globalPrivacyControl === true` loads nothing; the gtag script is `fetchPriority = 'low'`
-  but is still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`
+  but is still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`.
+  **`window.gtag` must push `arguments`, not a rest-parameter array**: gtag.js ignores arrays in the
+  data layer without any error, which is how v2 shipped analytics that never sent a hit. Consent
+  Mode v2 defaults are queued ahead of `config` (ad signals always denied; `analytics_storage` from
+  the visitor's stored answer, else `SQUIGLINK.ANALYTICS_CONSENT`, else granted). The Misc panel
+  switch (`setConsent`) is shown while `available`; a visitor's stored "off" loads nothing on later
+  visits, like GPC, whereas the operator's `denied` default still loads gtag.js for cookieless pings
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by

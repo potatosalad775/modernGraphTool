@@ -19,6 +19,22 @@ about how the build itself works.
 The CDN build emits a thin `cdn-index.html` loader plus `cdn/loader.js`; set `MGT_CDN_BASE` to
 rewrite the `_app/` URLs.
 
+`scripts/generate-boot-manifest.js` writes `boot.json`: the entry URLs, plus an `integrity` map
+with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml` publishes to the
+`cdn` branch in three commits and never rewrites its history:
+
+1. the release's `_app/` files, which `boot.json` then addresses by that commit;
+2. `v{version}/boot.json`, `loader.js` and `versions.json`. `versions.json` maps each major to its
+   release and, under `boot`, embeds that release's manifest so the loader needs one request
+   instead of two;
+3. `pins.json`, which records commit 2 and the hashes of `loader.js` and `boot.json` for operators
+   who [pin a release](../guide-for-admins/deployment/cdn.mdx#pinning-a-release)
+   (`scripts/write-cdn-pins.js`; the same snippet lands in the workflow run's summary).
+
+`loader.js` reaches every unpinned CDN site the moment it is pushed, and pinned sites keep the
+loader they pinned, so a change to `boot.json` or `versions.json` has to stay readable by older
+loaders: add keys, never repurpose one.
+
 ## The `defaults/` mechanism
 
 A Vite plugin serves `defaults/` as a fallback during development and copies its contents into

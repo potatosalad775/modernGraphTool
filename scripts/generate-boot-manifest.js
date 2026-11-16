@@ -11,6 +11,7 @@
  * copy in the bundle is a fallback the loader always overrides via the SvelteKit global.
  */
 
+import { createHash } from 'crypto';
 import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -96,6 +97,24 @@ const rebase = (url) =>
 		? rebaseTo + url.slice(assetsBase.length)
 		: url;
 
+// A hash for every script and stylesheet under _app/, keyed by its path below assets_base. The
+// loader hands them to the browser (link attributes and an import map), which then refuses a
+// file the CDN serves with other bytes. Relative keys, so --assets-base does not touch them.
+const integrity = {};
+const hashDir = (dir, rel) => {
+	for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+		a.name < b.name ? -1 : 1
+	)) {
+		const path = `${rel}/${entry.name}`;
+		if (entry.isDirectory()) hashDir(join(dir, entry.name), path);
+		else if (/\.(m?js|css)$/.test(entry.name)) {
+			const digest = createHash('sha384').update(readFileSync(join(dir, entry.name)));
+			integrity[path] = `sha384-${digest.digest('base64')}`;
+		}
+	}
+};
+hashDir(join(distDir, '_app'), '_app');
+
 const bootManifest = {
 	version,
 	assets_base: rebase(assetsBase),
@@ -104,10 +123,17 @@ const bootManifest = {
 	start_url: rebase(startUrl),
 	app_url: rebase(appUrl),
 	preloads: preloads.map(rebase),
-	css: css.map(rebase)
+	css: css.map(rebase),
+	integrity
 };
 
 const outPath = join(distDir, 'boot.json');
 writeFileSync(outPath, JSON.stringify(bootManifest, null, 2));
 console.log(`Generated ${outPath}`);
-console.log(JSON.stringify(bootManifest, null, 2));
+console.log(
+	JSON.stringify(
+		{ ...bootManifest, integrity: `(${Object.keys(integrity).length} hashes)` },
+		null,
+		2
+	)
+);

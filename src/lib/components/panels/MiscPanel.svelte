@@ -8,6 +8,7 @@
 	import { BookOpen, Globe, GraduationCap, Heart, Moon, ScrollText, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
+	import { analyticsService } from '#lib/services/analytics-service.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import { getLocale, locales, setLocale, type Locale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
@@ -17,7 +18,9 @@
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	const appVersion = __APP_VERSION__;
-	const shortcutsHintId = $props.id();
+	const uid = $props.id();
+	const shortcutsLabelId = `${uid}-shortcuts`;
+	const analyticsLabelId = `${uid}-analytics`;
 
 	type DescriptionItem = { TYPE: string; CONTENT: string };
 
@@ -96,7 +99,7 @@
 		>
 			<div class="flex items-center justify-between p-2 pt-1">
 				<div class="flex items-center">
-					<span id={shortcutsHintId} class="flex-1 text-xs font-medium text-base-content/80"
+					<span id={shortcutsLabelId} class="flex-1 text-xs font-medium text-base-content/80"
 						>{m.misc_panel_single_key_shortcuts()}</span
 					>
 					<InfoPopover
@@ -109,7 +112,7 @@
 					</InfoPopover>
 				</div>
 				<Switch
-					aria-describedby={shortcutsHintId}
+					aria-labelledby={shortcutsLabelId}
 					labelClass="text-xs font-normal"
 					size="sm"
 					bind:checked={
@@ -117,6 +120,31 @@
 					}
 				/>
 			</div>
+			<!-- Only where this deployment has analytics for this visitor (squig.link hosts) -->
+			{#if analyticsService.available}
+				<div class="flex items-center justify-between p-2 pt-1">
+					<div class="flex items-center">
+						<span id={analyticsLabelId} class="flex-1 text-xs font-medium text-base-content/80"
+							>{m.misc_panel_analytics()}</span
+						>
+						<InfoPopover
+							label={m.info_popover_about({ topic: m.misc_panel_analytics() })}
+							class="ml-0.5"
+						>
+							<p>{m.misc_panel_analytics_what_hint()}</p>
+							<p>{m.misc_panel_analytics_off_hint()}</p>
+						</InfoPopover>
+					</div>
+					<Switch
+						aria-labelledby={analyticsLabelId}
+						labelClass="text-xs font-normal"
+						size="sm"
+						bind:checked={
+							() => analyticsService.consent === 'granted', (on) => analyticsService.setConsent(on)
+						}
+					/>
+				</div>
+			{/if}
 		</AccordionItem>
 		<div class="mt-1 h-px w-full bg-base-content/20"></div>
 	</Accordion>

@@ -854,6 +854,18 @@ function isI18nWrapped(val: any): val is { default: any[]; i18n: Record<string, 
 	return val && typeof val === 'object' && !Array.isArray(val) && 'default' in val;
 }
 
+/**
+ * TOPBAR.TITLE.ALT as the form's plain string. The key also accepts the
+ * { default, i18n } wrapper in config.js; the form has no editor for that, so
+ * an imported wrapper keeps its `default` text (the per-language texts are
+ * dropped on re-export and have to be re-added by hand).
+ */
+function toAltText(val: any): string {
+	if (typeof val === 'string') return val;
+	if (val && typeof val === 'object' && typeof val.default === 'string') return val.default;
+	return '';
+}
+
 /** Convert a raw config i18n-capable field to I18nArrayFormState */
 function toI18nArrayState<T>(val: any): I18nArrayFormState<T> {
 	if (isI18nWrapped(val)) {
@@ -964,7 +976,9 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			MAJOR_VERSION: raw.CDN_MODE?.MAJOR_VERSION ?? defaults.CDN_MODE.MAJOR_VERSION,
 			BASE: raw.CDN_MODE?.BASE ?? defaults.CDN_MODE.BASE,
 			BASE_PATH: raw.CDN_MODE?.BASE_PATH ?? defaults.CDN_MODE.BASE_PATH,
-			VERSIONS_URL: raw.CDN_MODE?.VERSIONS_URL ?? defaults.CDN_MODE.VERSIONS_URL
+			VERSIONS_URL: raw.CDN_MODE?.VERSIONS_URL ?? defaults.CDN_MODE.VERSIONS_URL,
+			VERSION: raw.CDN_MODE?.VERSION ?? defaults.CDN_MODE.VERSION,
+			BOOT_INTEGRITY: raw.CDN_MODE?.BOOT_INTEGRITY ?? defaults.CDN_MODE.BOOT_INTEGRITY
 		},
 		LANGUAGE: {
 			LANGUAGE_LIST: raw.LANGUAGE?.LANGUAGE_LIST ?? defaults.LANGUAGE.LANGUAGE_LIST,
@@ -1017,7 +1031,8 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 		TOPBAR: {
 			TITLE: {
 				TYPE: raw.TOPBAR?.TITLE?.TYPE ?? defaults.TOPBAR.TITLE.TYPE,
-				CONTENT: raw.TOPBAR?.TITLE?.CONTENT ?? defaults.TOPBAR.TITLE.CONTENT
+				CONTENT: raw.TOPBAR?.TITLE?.CONTENT ?? defaults.TOPBAR.TITLE.CONTENT,
+				ALT: toAltText(raw.TOPBAR?.TITLE?.ALT)
 			},
 			LINK_LIST: toI18nArrayState<TopbarLinkForm>(
 				raw.TOPBAR?.LINK_LIST ?? defaults.TOPBAR.LINK_LIST
@@ -1108,6 +1123,10 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 			ANALYTICS_SITE: raw.SQUIGLINK?.ANALYTICS_SITE ?? defaults.SQUIGLINK.ANALYTICS_SITE,
 			LOG_ANALYTICS: raw.SQUIGLINK?.LOG_ANALYTICS ?? defaults.SQUIGLINK.LOG_ANALYTICS,
 			ENABLE_ANALYTICS: raw.SQUIGLINK?.ENABLE_ANALYTICS ?? defaults.SQUIGLINK.ENABLE_ANALYTICS,
+			ANALYTICS_CONSENT:
+				raw.SQUIGLINK?.ANALYTICS_CONSENT === 'denied'
+					? 'denied'
+					: defaults.SQUIGLINK.ANALYTICS_CONSENT,
 			ENABLE_CROSS_SITE_SEARCH:
 				raw.SQUIGLINK?.ENABLE_CROSS_SITE_SEARCH ?? defaults.SQUIGLINK.ENABLE_CROSS_SITE_SEARCH,
 			ENABLE_SPONSOR: raw.SQUIGLINK?.ENABLE_SPONSOR ?? defaults.SQUIGLINK.ENABLE_SPONSOR
@@ -1182,6 +1201,13 @@ export function formStateToConfigString(state: ConfigFormState): string {
 		if (state.CDN_MODE.BASE) cdn.BASE = state.CDN_MODE.BASE;
 		if (state.CDN_MODE.BASE_PATH) cdn.BASE_PATH = state.CDN_MODE.BASE_PATH;
 		if (state.CDN_MODE.VERSIONS_URL) cdn.VERSIONS_URL = state.CDN_MODE.VERSIONS_URL;
+		// The loader rejects BOOT_INTEGRITY without VERSION, so never emit it alone.
+		const version = (state.CDN_MODE.VERSION ?? '').trim();
+		const bootIntegrity = (state.CDN_MODE.BOOT_INTEGRITY ?? '').trim();
+		if (version) {
+			cdn.VERSION = version;
+			if (bootIntegrity) cdn.BOOT_INTEGRITY = bootIntegrity;
+		}
 		config.CDN_MODE = cdn;
 	}
 
@@ -1191,8 +1217,10 @@ export function formStateToConfigString(state: ConfigFormState): string {
 	config.TARGET_MANIFEST = fromI18nArrayState(state.TARGET_MANIFEST);
 	config.SAMPLES = state.SAMPLES;
 	config.TRACE_STYLING = state.TRACE_STYLING;
+	const { ALT: titleAlt, ...titleRest } = state.TOPBAR.TITLE;
+	const altText = (titleAlt ?? '').trim();
 	config.TOPBAR = {
-		TITLE: state.TOPBAR.TITLE,
+		TITLE: altText ? { ...titleRest, ALT: altText } : titleRest,
 		LINK_LIST: fromI18nArrayState(state.TOPBAR.LINK_LIST)
 	};
 	config.CROSS_SITE_SEARCH = state.CROSS_SITE_SEARCH;

@@ -13,6 +13,7 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import MiscPanel, { CHANGELOG_URL } from './MiscPanel.svelte';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { analyticsService } from '#lib/services/analytics-service.svelte.js';
 import { setLocale, locales } from '#lib/paraglide/runtime.js';
 
 vi.mock('#lib/paraglide/runtime.js', async (importOriginal) => {
@@ -22,6 +23,11 @@ vi.mock('#lib/paraglide/runtime.js', async (importOriginal) => {
 
 function setConfig(cfg: Record<string, unknown>) {
 	window.GRAPHTOOL_CONFIG = cfg as never;
+}
+
+/** The switches sit in the Settings section, which starts closed and renders nothing until open. */
+async function openSettings() {
+	await page.getByRole('button', { name: 'Settings' }).click();
 }
 
 describe('MiscPanel', () => {
@@ -142,20 +148,53 @@ describe('MiscPanel', () => {
 			localStorage.removeItem('gt-settings-single-key-shortcuts');
 		});
 
-		it('is on by default and described by the hint', async () => {
+		it('is on by default and named by its label', async () => {
 			render(MiscPanel);
+			await openSettings();
 
 			const toggle = page.getByRole('switch', { name: 'Single-key shortcuts' });
 			await expect.element(toggle).toBeChecked();
-			await expect.element(toggle).toHaveAccessibleDescription(/Ctrl\+Z/);
 		});
 
 		it('turns the shortcuts off and persists the choice', async () => {
 			render(MiscPanel);
+			await openSettings();
 			await page.getByRole('switch', { name: 'Single-key shortcuts' }).click();
 
 			expect(settingsStore.singleKeyShortcuts).toBe(false);
 			expect(localStorage.getItem('gt-settings-single-key-shortcuts')).toBe('false');
+		});
+	});
+
+	// ── Analytics consent ────────────────────────────────────────────────────
+
+	describe('usage statistics switch', () => {
+		afterEach(() => {
+			analyticsService.available = false;
+			analyticsService.consent = 'granted';
+		});
+
+		it('is absent where the deployment has no analytics', async () => {
+			render(MiscPanel);
+			await openSettings();
+
+			await expect
+				.element(page.getByRole('switch', { name: 'Single-key shortcuts' }))
+				.toBeInTheDocument();
+			expect(page.getByRole('switch', { name: 'Usage statistics' }).query()).toBeNull();
+		});
+
+		it('shows the current answer and passes a change to the service', async () => {
+			analyticsService.available = true;
+			analyticsService.consent = 'denied';
+			const setConsent = vi.spyOn(analyticsService, 'setConsent').mockImplementation(() => {});
+			render(MiscPanel);
+			await openSettings();
+
+			const toggle = page.getByRole('switch', { name: 'Usage statistics' });
+			await expect.element(toggle).not.toBeChecked();
+			await toggle.click();
+			expect(setConsent).toHaveBeenCalledWith(true);
 		});
 	});
 

@@ -30,6 +30,8 @@
 		<meta name="color-scheme" content="light dark" />
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
 		<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+		<!-- The loader's first request (versions.json) goes to GitHub, not jsDelivr -->
+		<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
 
 		<title>modernGraphTool</title>
 		<meta name="title" content="modernGraphTool" />
@@ -125,6 +127,8 @@
 					: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js';
 				var s = document.createElement('script');
 				s.src = src;
+				// A script added from script loads at low priority; everything waits on this one.
+				s.fetchPriority = 'high';
 				document.body.appendChild(s);
 			})();
 		</script>

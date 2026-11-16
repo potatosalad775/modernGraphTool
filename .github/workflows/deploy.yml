@@ -59,7 +59,8 @@ jobs:
           du -sh dist-cdn/_app/
 
       # ── Deploy CDN assets to cdn branch ──────────────────────────────
-      # Two commits: the assets first, then boot.json pointing at that commit's SHA.
+      # Three commits: the assets, then boot.json pointing at that commit's SHA, then
+      # pins.json naming the second commit for operators who pin a release.
       # jsDelivr keeps commit-pinned files at its edge for a year (`immutable`) but
       # branch (`@cdn`) files for only 12 hours, and an uncached file costs ~1 s —
       # the blank screen after every release. boot.json, loader.js and versions.json
@@ -97,13 +98,13 @@ jobs:
             git -C /tmp/cdn-branch rm -rf . 2>/dev/null || true
           fi
 
-          # Guard: the branch must only ever carry loader.js, versions.json,
+          # Guard: the branch must only ever carry loader.js, versions.json, pins.json,
           # .gitignore and vX.Y.Z/ asset dirs. Anything else means the build
           # tree leaked in again — fail loudly instead of pushing 300 MB.
           check_staged() {
             UNEXPECTED=$(git diff --cached --name-only \
               | awk -F/ '{print $1}' | sort -u \
-              | grep -Ev '^(loader\.js|versions\.json|\.gitignore|v[0-9]+\.[0-9]+\.[0-9]+)$' || true)
+              | grep -Ev '^(loader\.js|versions\.json|pins\.json|\.gitignore|v[0-9]+\.[0-9]+\.[0-9]+)$' || true)
             if [ -n "$UNEXPECTED" ]; then
               echo "::error::Unexpected paths staged for the cdn branch:"
               echo "$UNEXPECTED"
@@ -135,7 +136,10 @@ jobs:
           # Always update loader.js to latest
           cp "/tmp/cdn-assets/loader.js" loader.js
 
-          # Update versions.json (self-heals if the existing file is missing or corrupt)
+          # Update versions.json (self-heals if the existing file is missing or corrupt).
+          # `boot` carries each major's boot manifest, so the loader gets it with the
+          # version and skips the boot.json round trip. Loaders older than that ignore
+          # the key: they only read the numeric ones.
           node -e "
             const fs = require('fs');
             const path = 'versions.json';
@@ -150,15 +154,32 @@ jobs:
               }
             }
             v[process.env.MAJOR] = process.env.VERSION;
+            if (v.boot === null || typeof v.boot !== 'object' || Array.isArray(v.boot)) v.boot = {};
+            v.boot[process.env.MAJOR] = JSON.parse(
+              fs.readFileSync('v' + process.env.VERSION + '/boot.json', 'utf-8')
+            );
             fs.writeFileSync(path, JSON.stringify(v, null, 2) + '\n');
           "
 
           echo "versions.json:"
-          cat versions.json
+          node -e "
+            const v = JSON.parse(require('fs').readFileSync('versions.json', 'utf-8'));
+            console.log(JSON.stringify({ ...v, boot: Object.keys(v.boot) }, null, 2));
+          "
 
           git add -A
           check_staged
           git commit -m "cdn: publish v${VERSION}" || echo "No changes to commit"
+          PIN_SHA=$(git rev-parse HEAD)
+          echo "pin_sha=${PIN_SHA}" >> "$GITHUB_OUTPUT"
+
+          # Commit 3: pins.json, what an operator needs to pin this release — the
+          # commit that holds loader.js and boot.json (commit 2, so it cannot name
+          # itself) and the hash of each. See the CDN deployment docs.
+          node "${GITHUB_WORKSPACE}/scripts/write-cdn-pins.js" "${VERSION}" "${PIN_SHA}" "${REPO}"
+          git add -A
+          check_staged
+          git commit -m "cdn: pins for v${VERSION}" || echo "Pins unchanged"
           git push origin cdn
 
       # ── Purge jsDelivr cache ─────────────────────────────────────────
@@ -169,6 +190,7 @@ jobs:
           echo "Purging jsDelivr cache..."
           curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/versions.json" || true
           curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/loader.js" || true
+          curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/pins.json" || true
           curl -s "https://purge.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json" || true
           echo "Done."
 
@@ -211,3 +233,4 @@ jobs:
           echo "CDN boot:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/v${VERSION}/boot.json"
           echo "Versions:   https://cdn.jsdelivr.net/gh/${REPO}@cdn/versions.json"
           echo "Assets:     https://cdn.jsdelivr.net/gh/${REPO}@${{ steps.deploy.outputs.assets_sha }}/v${VERSION}/"
+          echo "Pins:       https://cdn.jsdelivr.net/gh/${REPO}@cdn/pins.json (commit ${{ steps.deploy.outputs.pin_sha }})"

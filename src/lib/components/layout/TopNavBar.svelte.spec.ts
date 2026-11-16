@@ -28,6 +28,39 @@ describe('TopNavBar title', () => {
 		expect(document.querySelector('img[alt="topbar title"]')).toBeNull();
 	});
 
+	it('names an image title by TOPBAR.TITLE.ALT, then where the home link goes', async () => {
+		setConfig({ TYPE: 'IMAGE', CONTENT: '/logo.png', ALT: 'Acme Graphs' });
+		await render(TopNavBar);
+		const link = page.getByRole('link', { name: /Acme Graphs\s+Home/ });
+		await expect.element(link).toBeInTheDocument();
+		// One name for the link, not the site name and "Home" announced separately.
+		expect(link.element().querySelector('img')?.getAttribute('alt')).toBe('Acme Graphs');
+		expect(link.element().hasAttribute('aria-label')).toBe(false);
+	});
+
+	it('reads ALT in the current language when it is multilingual', async () => {
+		setConfig({
+			TYPE: 'IMAGE',
+			CONTENT: '/logo.png',
+			ALT: { default: 'Acme Graphs', i18n: { xx: 'Acme Grafy' } }
+		});
+		await render(TopNavBar);
+		// The suite pins the UI to `en`, so the default text applies.
+		await expect.element(page.getByRole('link', { name: /Acme Graphs/ })).toBeInTheDocument();
+	});
+
+	it('ignores a blank ALT', async () => {
+		setConfig({ TYPE: 'IMAGE', CONTENT: '/logo.png', ALT: '   ' });
+		await render(TopNavBar);
+		await expect.element(page.getByRole('link', { name: 'Home', exact: true })).toBeInTheDocument();
+	});
+
+	it('leaves a text title as it is when ALT is set', async () => {
+		setConfig({ TYPE: 'TEXT', CONTENT: 'Test Graphs', ALT: 'Acme Graphs' });
+		await render(TopNavBar);
+		await expect.element(page.getByRole('link', { name: 'Test Graphs' })).toBeInTheDocument();
+	});
+
 	it('labels the top bar navigation', async () => {
 		setConfig();
 		await render(TopNavBar);

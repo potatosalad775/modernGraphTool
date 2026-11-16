@@ -529,6 +529,8 @@ CDN_MODE: {
   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
   // BASE_PATH: "/headphones",
   // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
+  // VERSION: "2.3.4",
+  // BOOT_INTEGRITY: "sha384-…",
 },
 ```
 
@@ -537,6 +539,8 @@ CDN 배포 관련 설정을 구성합니다. **`cdn-index.html`로 배포할 때
 - `MAJOR_VERSION` — 앱을 특정 메이저 버전에 고정합니다(예: `2`는 v2.x.x 안에서 자동 업데이트).
 - `BASE` — 커스텀 CDN 기본 URL. CDN 자산을 직접 호스팅하는 고급 사용자만 바꿉니다.
 - `BASE_PATH` — 배포 하위 경로(예: `"/headphones"`). 끝에 슬래시는 붙이지 마세요. **(서브)도메인 루트가 아닌 모든 배포에 반드시 필요합니다.** `example.com/headphones/`나 `username.squig.link/headphones/`에 사이트가 있다면 `BASE_PATH: "/headphones"`로 설정하세요. 사이트가 (서브)도메인 루트(예: `example.com/`, `username.squig.link/`)에 있을 때만 설정 없이 둡니다. 빠뜨리면 홈 페이지는 정상 로드되지만 공유 링크 딥 라우트가 모두 404가 됩니다. 거의 항상 필요한 이유는 [CDN 배포 가이드](./deployment/cdn.mdx#why-base_path-is-almost-always-required)에서 자세히 다룹니다.
+- `VERSION` — 정확히 한 릴리스에 고정합니다(예: `"2.3.4"`). 사이트가 스스로 업데이트하지 않고, 로더도 더 이상 `versions.json`을 요청하지 않습니다. `MAJOR_VERSION`보다 우선합니다. [릴리스 고정하기](./deployment/cdn.mdx#pinning-a-release)를 참고하세요.
+- `BOOT_INTEGRITY` — 그 릴리스의 `boot.json`에 대한 `sha384-…` 해시로, `VERSION`이 필요합니다. 로더는 이 해시와 일치하지 않는 `boot.json`으로는 시작하지 않습니다. 릴리스별 값은 `pins.json`에 게시됩니다.
 - `VERSIONS_URL` — `versions.json`의 전체 URL. 기본적으로 로더는 `BASE`에서 `raw.githubusercontent.com` URL을 유도해 GitHub에서 직접 `versions.json`을 가져오며, jsDelivr를 거치지 **않습니다**. 의도된 동작입니다. jsDelivr 엣지 캐시는 오래된 `versions.json` 응답을 몇 시간씩 잡아 두는 일이 있어 새 릴리스가 사용자에게 닿는 시점이 늦어집니다. `versions.json`은 이 지연이 문제가 되는 유일한 파일이라 로더가 일부러 우회합니다. `cdn` 브랜치를 자체 포크로 호스팅하거나 GitHub이 아닌 출처에서 제공하는 경우에만 `VERSIONS_URL`을 재정의하세요.
 
 :::note[표준 배포라면]
@@ -737,6 +741,7 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
+    //ALT: "modernGraphTool",
     TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
@@ -757,6 +762,11 @@ TOPBAR: {
     - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 제목을 설정합니다.
     - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
     - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다. 제목에는 제목 태그(`<h1>`–`<h6>`)를 쓰지 마세요. 페이지에 이미 자체 제목이 있고, 이 제목은 홈 링크 안에 들어갑니다.
+  - `ALT` : 선택 사항입니다. 스크린 리더와 페이지의 숨겨진 메인 제목에 쓰이는, 사이트 이름을 나타내는 일반 텍스트입니다.
+    - 이미지에는 텍스트가 없고 HTML 제목은 마크업이므로, `TYPE`이 `IMAGE` 또는 `HTML`일 때 설정하세요. `TEXT` 제목은 그 자체가 이름이므로, `ALT`는 제목 내용이 비어 있을 때만 대신 쓰입니다.
+    - `IMAGE` 제목에서는 이미지의 대체 텍스트가 되며, 홈 링크는 사이트 이름 다음에 "홈"이 이어지는 형태로 읽힙니다. 설정하지 않으면 링크는 "홈"만 읽힙니다.
+    - `LINK_LIST`와 같은 다국어 형식(`{ default: "…", i18n: { ko: "…" } }`)을 쓸 수 있습니다.
+    - 생략하면 아무것도 달라지지 않습니다.
 - `LINK_LIST` : 페이지 상단 바의 링크 목록을 설정합니다.
   - `TITLE` 필드는 링크의 제목을 지정합니다.
   - `URL` 필드는 링크의 URL을 지정합니다.
@@ -764,7 +774,7 @@ TOPBAR: {
   - 상단 바에 다 들어가지 않는 링크는 목록의 끝에서부터 **더보기** 메뉴로 옮겨지므로, 중요한 링크를 앞쪽에 두세요.
 
 :::tip[다국어 지원]
-`LINK_LIST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
+`LINK_LIST`와 `TITLE.ALT`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
 :::
 
 ### `PREFERENCE_BOUND`
@@ -918,6 +928,7 @@ SQUIGLINK: {
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
   ENABLE_ANALYTICS: true,
+  ANALYTICS_CONSENT: "granted",
   ENABLE_CROSS_SITE_SEARCH: true,
   ENABLE_SPONSOR: true,
 },
@@ -930,6 +941,7 @@ squig.link 연동을 설정합니다. `*.squig.link` 도메인에서 호스팅�
 - `ANALYTICS_SITE` — 분석 이벤트에 붙일 사이트 이름.
 - `LOG_ANALYTICS` — 분석 이벤트를 브라우저 콘솔에 기록할지 여부.
 - `ENABLE_ANALYTICS` — 분석 추적의 마스터 토글.
+- `ANALYTICS_CONSENT` — 방문자가 기타 패널의 **사용 통계** 스위치로 선택하기 전까지, Google [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent)가 어떤 상태에서 시작할지 정합니다. `"granted"`(기본값)는 기존처럼 측정합니다. `"denied"`는 분석 쿠키를 저장하지 않고, 방문자가 스위치를 켜기 전까지 쿠키 없는 핑만 보냅니다. [squig.link 연동](../features/squiglink-integration.mdx#analytics-and-consent)을 참고하세요.
 - `ENABLE_CROSS_SITE_SEARCH` — **더 이상 사용하지 않습니다.** `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 해당 섹션이 없는 기존 설정 파일을 위해 대체값으로만 읽습니다.
 - `ENABLE_SPONSOR` — 스폰서 배너와 쇼핑 링크 활성화.
 
@@ -966,6 +978,7 @@ DESCRIPTION: [
 - 다국어 구성을 지원하는 항목은 다음과 같습니다.
   - `TARGET_MANIFEST`
   - `TOPBAR` → `LINK_LIST`
+  - `TOPBAR` → `TITLE` → `ALT` (단일 텍스트이며 `{ default: "…", i18n: { ko: "…" } }` 형식으로 작성합니다)
   - `DESCRIPTION`
 
 ```javascript

@@ -19,6 +19,22 @@ sidebar:
 CDN 빌드는 얇은 `cdn-index.html` 로더와 `cdn/loader.js`를 생성합니다. `_app/` URL을 바꾸려면
 `MGT_CDN_BASE`를 설정하세요.
 
+`scripts/generate-boot-manifest.js`는 `boot.json`을 만듭니다. 진입 URL과 함께, `_app/` 아래 모든
+스크립트와 스타일시트의 `sha384` 해시를 담은 `integrity` 맵이 들어 있습니다. `deploy.yml`은 `cdn`
+브랜치에 세 개의 커밋으로 게시하며 히스토리를 다시 쓰지 않습니다.
+
+1. 릴리스의 `_app/` 파일. `boot.json`은 이 파일들을 해당 커밋으로 지정해 가리킵니다.
+2. `v{version}/boot.json`, `loader.js`, `versions.json`. `versions.json`은 메이저별로 릴리스를
+   매핑하고, `boot` 아래에 그 릴리스의 매니페스트를 담고 있어 로더가 요청 두 번 대신 한 번만으로
+   끝납니다.
+3. `pins.json`. 2번 커밋과 `loader.js`, `boot.json`의 해시를 기록하며, [릴리스를
+   고정](../guide-for-admins/deployment/cdn.mdx#pinning-a-release)하는 운영자를 위한 것입니다
+   (`scripts/write-cdn-pins.js`. 같은 내용이 워크플로 실행 요약에도 남습니다).
+
+`loader.js`는 푸시하는 순간 고정하지 않은 모든 CDN 사이트에 전달되고, 고정한 사이트는 고정해 둔
+로더를 계속 씁니다. 그래서 `boot.json`이나 `versions.json`을 바꿀 때는 이전 로더도 읽을 수 있어야
+합니다. 키를 추가할 수는 있어도, 기존 키의 용도를 바꿔서는 안 됩니다.
+
 ## `defaults/` 메커니즘 \{#the-defaults-mechanism\}
 
 Vite 플러그인이 개발 중에는 `defaults/`를 폴백으로 서빙하고, 빌드 시에는 그 내용을 `dist/`로

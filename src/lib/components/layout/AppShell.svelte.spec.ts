@@ -140,6 +140,22 @@ describe('AppShell boot', () => {
 		expect(document.activeElement?.id).toBe('app-controls-region');
 	}, 30000);
 
+	it.each([
+		['an image title', { TYPE: 'IMAGE', CONTENT: '/logo.png', ALT: 'Acme Graphs' }, 'Acme Graphs'],
+		['an HTML title', { TYPE: 'HTML', CONTENT: '<b>Raw</b>', ALT: 'Acme Graphs' }, 'Acme Graphs'],
+		['a text title', { TYPE: 'TEXT', CONTENT: 'Own Name', ALT: 'Acme Graphs' }, 'Own Name'],
+		['an image title without ALT', { TYPE: 'IMAGE', CONTENT: '/logo.png' }, 'modernGraphTool']
+	])(
+		'names the <h1> for %s',
+		async (_case, title, expected) => {
+			const cfg = window.GRAPHTOOL_CONFIG as unknown as { TOPBAR: { TITLE: unknown } };
+			cfg.TOPBAR.TITLE = title;
+			render(AppShell);
+			await expect.element(page.getByRole('heading', { level: 1 })).toHaveTextContent(expected);
+		},
+		30000
+	);
+
 	it('keeps error and warning toasts until dismissed, and folds a repeat into one', async () => {
 		render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();

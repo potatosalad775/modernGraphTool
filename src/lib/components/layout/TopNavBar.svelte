@@ -15,6 +15,11 @@
 	const titleContent = $derived(
 		(getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? 'modernGraphTool'
 	);
+	// The site's name as text, for a title that has none of its own (an image). Optional.
+	const titleAlt = $derived.by(() => {
+		const alt = getConfigValue('TOPBAR.TITLE.ALT');
+		return typeof alt === 'string' ? alt.trim() : '';
+	});
 	// Rows are keyed by position, not URL: two buttons to one URL is a legitimate config,
 	// and the list never reorders.
 	const linkList = $derived(
@@ -79,7 +84,13 @@
 					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html titleContent}
 				{:else if titleType === 'IMAGE'}
-					<img src={titleContent} alt={m.top_nav_bar_home()} class="h-8" />
+					{#if titleAlt}
+						<!-- The link is named by its content: the site name, then where it goes. -->
+						<img src={titleContent} alt={titleAlt} class="h-8" />
+						<span class="sr-only">{` ${m.top_nav_bar_home()}`}</span>
+					{:else}
+						<img src={titleContent} alt={m.top_nav_bar_home()} class="h-8" />
+					{/if}
 				{:else}
 					<span class="text-base font-semibold text-base-content">{titleContent}</span>
 				{/if}

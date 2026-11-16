@@ -75,14 +75,19 @@
 		'size-6! focus-visible:ring-2! focus-visible:ring-accent! focus-visible:outline-hidden!';
 
 	// The page's `<h1>`, as plain text: the top bar's title may be HTML or an image, and an
-	// operator's markup must not be injected a second time. An image title has no text to
-	// offer, so it falls back to the app name, the same default the top bar uses.
+	// operator's markup must not be injected a second time. `TOPBAR.TITLE.ALT` is the site's name
+	// as text: it wins for an image (no text of its own) and for HTML (markup, not a clean name),
+	// but a TEXT title already is the name, so there it only backs up an empty one. Without it,
+	// an image title falls back to the app name, the same default the top bar uses.
 	const siteTitle = $derived.by(() => {
 		const fallback = 'modernGraphTool';
 		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT';
-		if (type === 'IMAGE') return fallback;
+		const rawAlt = getConfigValue('TOPBAR.TITLE.ALT');
+		const alt = typeof rawAlt === 'string' ? rawAlt.trim() : '';
+		if (type === 'IMAGE') return alt || fallback;
 		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? fallback;
-		return (type === 'HTML' ? stripHtml(content) : content.trim()) || fallback;
+		if (type === 'HTML') return alt || stripHtml(content) || fallback;
+		return content.trim() || alt || fallback;
 	});
 
 	// The panel's name, the same strings the menu shows.

@@ -75,13 +75,30 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   capped at 5 MB and 40 files; the network host check does not restrict IPv4 ranges (VPN users);
   P1 uses `SetEnvIf`, not `<If>`, so Apache 2.2 does not 500.
 
+- **2026-11-16, fourth wave (T2, T3 values, T6, T7, T9–T13, A11, S5, S7, S8, P9, N1, N2, F9,
+  parts of T1, T4, T14, S6):** fixed, `check` / `lint` / `test` green (2981 tests), committed.
+  In a browser: both themes screenshotted panel by panel, dark applied before first paint with no
+  fade, a held Y-offset undoing and redoing as one step, the site filter and its arrow keys,
+  reduced motion (only colour and ≤120 ms opacity animations run), select chevron clearance, and
+  a PNG exported from dark mode coming out in the light palette.
+- T3 numbers (script reproduced the original table first): text on base-100 17.1 → 18.1 light,
+  7.9 → 10.8 dark; `/80` 9.4 → 10.2 and 5.7 → 7.5; `/60` 4.7 → 5.0 and 3.9 → 5.0; every semantic
+  fill against its `-content` is now ≥ 7.3 (light warning keeps its amber with dark ink, 8.8).
+  Not met: light `text-warning` as text is 1.8 (fill kept; components changed instead) and dark
+  `text-error` is 6.25. Light fills are deeper and less saturated than before.
+- T6 revived `px-*` on nine `<select>`s, which removed the chevron clearance; they now use `pl-*`.
+- The analytics spec was loading the real gtag.js during test runs; it is inert now.
+- `PREFERRED_DARK_MODE_THEME` ships as `'light'`, so "follow the system" (T9) only applies to
+  deployments that set `'system'` or omit the key.
+- Reverted: a guessed 4:3 slot for the sponsor creative (P10) — the real dimensions are unknown.
+
 ## Found while fixing (new items)
 
-- [ ] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
+- [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
   - Where: `controls/SelectionList.svelte` (`stepYOffset`); `services/command-history.svelte.ts`
   - Problem: about 20 entries for a three-second hold. `CommandHistory` has no merge or amend.
   - Fix: a coalescing window keyed by uuid, or an amend API on `CommandHistory`.
-- [ ] **N2. Site switcher is Tab-only through about 150 links** (S)
+- [x] **N2. Site switcher is Tab-only through about 150 links** (S)
   - Where: `controls/SiteSelector.svelte`
   - Problem: after B6 the list is plain links with no arrow keys or typeahead; Escape closes it,
     but reaching a site near the end takes many Tab presses.
@@ -284,7 +301,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: a `--target-size` token (24px, 44px under `pointer: coarse`) applied as minimum sizes in
     the Button atom; `::after` inset hit areas for dots, sliders and compact icon buttons.
   - Guide: `form-factor-adaptation`.
-- [ ] **A11. JS-driven motion ignores reduced motion** (S–M)
+- [x] **A11. JS-driven motion ignores reduced motion** (S–M)
   - Where: `src/lib/graph/GraphEngine.svelte.ts:79` (`transitionDuration = 300`, used at
     141-469); `AppShell.svelte:183-184, 230-231`; `TopNavBar.svelte:169, 176`;
     `EqFilterCard.svelte:441`; `AccordionItem.svelte:39`; `TutorialModal.svelte:196`
@@ -398,7 +415,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
 - [x] **F8. Y-offset field records one undo entry per keystroke** (S)
   - Where: `controls/SelectionList.svelte:70-73, 353-362`
   - Fix: commit on `change`; add `step="any"` or `step="0.5"`.
-- [ ] **F9. Check the custom range slider rendering** (verify only)
+- [x] **F9. Check the custom range slider rendering** (verify only)
   - Where: `EqFilterCard.svelte:333, 526, 562, 599`; `TargetCustomizer.svelte:154`
   - Note: `h-1 appearance-none` with no `::-webkit-slider-thumb` / `::-moz-range-*` rules in
     `routes/layout.css`. Thumb size and focus visibility need a visual check.
@@ -416,7 +433,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     `@media (forced-colors: active)` block in `layout.css` mapping the graph tokens to system
     colours, and give background-only selected states a border.
   - Guide: `color`.
-- [ ] **T2. Dark theme is applied after mount; `color-scheme` is never declared** (S)
+- [x] **T2. Dark theme is applied after mount; `color-scheme` is never declared** (S)
   - Where: `stores/settings-store.svelte.ts:52-74`; `routes/+layout.svelte:15-22`;
     `src/app.html`, `cdn/cdn-index.html`, `site-template/index.html`
   - Problem: dark-mode visitors get a light flash, then a 0.3s fade, on every load. Native
@@ -454,7 +471,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     `/25` tab label; add a `@media (prefers-contrast: more)` block. Update the theme generator
     defaults and do a visual pass.
   - The numbers came from a throwaway script; recompute before and after the change.
-- [ ] **T4. Other off-token values** (S)
+- [ ] **T4. Other off-token values** (S) — Switch done; the scrim token remains
   - `atoms/Switch.svelte:50-57`: unchecked thumb `bg-white` on a `bg-base-content/20` track is
     1.63:1 in light mode, and the track is 1.53:1 against base-100. Use `bg-base-100` for the
     thumb and a stronger track or a ring.
@@ -471,7 +488,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     Pretendard load for them (depends on B5); or add a face with Latin Ext and Cyrillic coverage
     ahead of the system fonts.
   - Guide: `visually-stable-mixed-fonts`.
-- [ ] **T6. Global rules in `layout.css` are unlayered and beat Tailwind utilities** (S plus a
+- [x] **T6. Global rules in `layout.css` are unlayered and beat Tailwind utilities** (S plus a
       visual check)
   - Where: `routes/layout.css:88-98` (transition on `button, a, input, select`), `:144-163`
     (`select` padding), `:203-207`
@@ -481,7 +498,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     (`SelectionList.svelte:329`, `EqAudioPlayer.svelte:189`).
   - Fix: wrap the element-level rules in `@layer base { … }`, then check the five selects and the
     buttons that carry transition utilities.
-- [ ] **T7. Scrollbar styling** (S)
+- [x] **T7. Scrollbar styling** (S)
   - Where: `routes/layout.css:184-207`
   - Problems: thumb against track is 1.39:1 light / 1.43:1 dark; applied through `*`; the
     `::-webkit-scrollbar*` rules are not wrapped in `@supports not (scrollbar-color: auto)`.
@@ -493,32 +510,33 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
   - Fix: `document.startViewTransition()` around the class toggle, with a plain toggle when the
     API is missing or reduced motion is set; delete the `theme-transition` rule and timer.
   - Caveat: the live spectrum overlay would freeze for 0.3s during the transition.
-- [ ] **T9. System colour-scheme preference is read once and cannot be returned to** (S–M)
+- [x] **T9. System colour-scheme preference is read once and cannot be returned to** (S–M)
   - Where: `stores/settings-store.svelte.ts:71, 103-111`
   - Fix: a `'system'` state with a `matchMedia` `change` listener; clear the stored key when the
     toggle target equals the system scheme; handle the `storage` event.
-- [ ] **T10. `user-select: none` on `<body>`** (S)
+- [x] **T10. `user-select: none` on `<body>`** (S)
   - Where: `routes/layout.css:124-125`
   - Problem: device names, EQ values, error text and the changelog cannot be selected or copied.
   - Fix: drop it from `body`; keep `select-none` on chrome (nav, toolbar, divider, graph SVG).
   - Guide: `browser-ui-theming`.
-- [ ] **T11. `@theme` colour tokens are self-referential with no code-side default** (S–M)
+- [x] **T11. `@theme` colour tokens are self-referential with no code-side default** (S–M)
   - Where: `routes/layout.css:27-68`
   - Problem: an operator `theme.css` missing a token leaves it invalid, silently.
     `--color-graph-compare` already needed a hand-written fallback
     (`graph/GraphCompareOverlay.ts:107`).
   - Fix: `@theme inline { … }` plus shipped defaults for every token in an `@layer base` block in
     `layout.css`. Not built or tested; verify it compiles as described.
-- [ ] **T12. `px` font sizes outside the type scale** (S)
+- [x] **T12. `px` font sizes outside the type scale** (S)
   - Where: `text-[10px]` ×18 (including `atoms/Button.svelte:74`), `text-[11px]` ×2,
     `text-[12px]` ×6; `controls/PhoneSelector.svelte:518`
   - Fix: add `--text-2xs: 0.625rem` (and `0.6875rem`) to `@theme`; replace `text-[12px]` with
     `text-xs`.
-- [ ] **T13. Screenshot export hard-codes the default light palette** (S–M)
+- [x] **T13. Screenshot export hard-codes the default light palette** (S–M)
   - Where: `controls/ScreenshotButton.svelte:11-22, 105`
   - Problem: an operator's custom light theme is ignored in exported PNGs.
   - Fix: resolve the values at export time from the loaded `theme.css`.
-- [ ] **T14. Small items** (S each)
+- [ ] **T14. Small items** (S each) — `dvh` and text wrapping done; fixed heights, logical
+      properties and safe-area insets remain
   - `features/DevicePeqPushDialog.svelte:73`: `max-h-[85vh]` → `85dvh`.
   - `text-balance` on dialog and tutorial titles, `text-pretty` on descriptions and
     `InfoPopover` bodies.
@@ -569,23 +587,25 @@ gaps; the rest is hardening.
   - Fix: accept only an IP literal or a `.local` name; pass `targetAddressSpace: 'local'`; map the
     `TypeError` to a clear message; document the HTTPS limitation in the device PEQ docs.
   - Guide: `local-network-access` (Chrome/Edge 145 only; other browsers ignore it).
-- [ ] **S5. Uploads and remote JSON have no size or count limits** (S) — uploads, EQ import and
+- [x] **S5. Uploads and remote JSON have no size or count limits** (S) — uploads, EQ import and
       index rows done; `device-peq/network.ts` responses remain
   - Where: `controls/GraphUploader.svelte:30-34`; `services/aggregate-index-core.ts:159`;
     `services/site-index-core.ts:103`; `device-peq/network.ts:90, 175, 201`
   - Fix: reject files over about 5 MB and more than N files; check per-row field types when
     building rows and skip bad rows instead of throwing.
-- [ ] **S6. Google Analytics loads before any consent** (S, squig.link deployments only)
+- [ ] **S6. Google Analytics loads before any consent** (S, squig.link deployments only) — ID
+      validation, low priority, GPC opt-out and docs done; the `LOG_ANALYTICS` default and
+      Consent Mode are a maintainer decision
   - Where: `services/analytics-service.svelte.ts:30-69`; `services/initial-load.ts:41`
   - Fix: consent-mode defaults before `config`, or honour `navigator.globalPrivacyControl`;
     default `LOG_ANALYTICS` to false; document what is sent and how to switch it off; validate
     measurement IDs against `/^G-[A-Z0-9]+$/`.
-- [ ] **S7. Font stylesheet lacks `integrity` and `referrerpolicy`** (S)
+- [x] **S7. Font stylesheet lacks `integrity` and `referrerpolicy`** (S)
   - Where: `src/app.html:51-60`; `cdn/cdn-index.html:65-74`; `site-template/index.html:58-67`
   - Fix: `integrity="sha384-…"` and `referrerpolicy="no-referrer"` on the preload link;
     `<meta name="referrer" content="strict-origin-when-cross-origin">`. Check that jsDelivr
     serves the CORS header SRI needs.
-- [ ] **S8. Shared-origin storage and the sponsor cookie** (S) — cookie flags done; the cached
+- [x] **S8. Shared-origin storage and the sponsor cookie** (S) — cookie flags done; the cached
       catalog preset check and key prefixing remain
   - Where: `stores/squiglink-store.svelte.ts:115-117`;
     `stores/eq-constraints-store.svelte.ts:263-265`
@@ -651,14 +671,15 @@ cold startup on one origin with cache off, so several items need an added scenar
   - Where: `graph/GraphHandle.ts:65-73, 85-97`; `graph/GraphEngine.svelte.ts:269-279, 426-492`
   - Fix: record `yShift` in the handler and redraw in one `requestAnimationFrame`; skip
     `.transition()` when the duration is 0.
-- [ ] **P9. Analytics and shop-link requests compete with the first curves** (S, squig.link only)
+- [x] **P9. Analytics and shop-link requests compete with the first curves** (S, squig.link only)
       — shop-link fetches done; the gtag script remains (with S6)
   - Where: `services/analytics-service.svelte.ts:33-37`;
     `stores/squiglink-store.svelte.ts:126, 140`; `features/ShopLink.svelte:10-15`
   - Fix: `fetchPriority = 'low'` on the gtag script, or inject it after `appStore.isReady`;
     `{ priority: 'low' }` on the shop-link fetches. Leave `squiglink-intro.js` and the creative
     alone.
-- [ ] **P10. Images without reserved dimensions** (S)
+- [ ] **P10. Images without reserved dimensions** (S) — needs the sponsor creative's real
+      aspect ratio; a guessed 4:3 was reverted
   - Where: `features/SponsorBanner.svelte:65-70`; `layout/TopNavBar.svelte:78`;
     `panels/MiscPanel.svelte:80`
   - Fix: `aspect-ratio` on the creative container; `width` / `height` on the logo;

@@ -19,6 +19,13 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="color-scheme" content="light dark" />
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
+		<!--
+			Content-Security-Policy, switched off. To switch it on, remove the comment marks around
+			the <meta> below; it must stay above every script. The release build fills in the policy,
+			including a hash for each inline script on this page, so an inline script you add or
+			edit needs its own hash. → docs: guide-for-admins/deployment/security-headers
+		-->
+		<!-- <meta http-equiv="Content-Security-Policy" content="__CSP__" /> -->
 		<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 		<!-- The loader's first request (versions.json) goes to GitHub, not jsDelivr -->
 		<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
@@ -56,7 +63,7 @@
 
 		<!--
 			Pretendard Variable font (Korean-optimized, dynamic subset). Preloaded, then
-			swapped to a stylesheet on load: a pending stylesheet holds back every classic
+			swapped to a stylesheet on load (by the script after it): a pending stylesheet holds back every classic
 			script after it, config.js and the app boot included.
 		-->
 		<link
@@ -66,11 +73,19 @@
 			referrerpolicy="no-referrer"
 			integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j"
 			href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-			onload="
-				this.onload = null;
-				this.rel = 'stylesheet';
-			"
 		/>
+		<!--
+			Not an `onload` attribute: a Content-Security-Policy can allow a script by hash, but
+			not an inline handler. The script runs before the load event can fire. Byte-identical in
+			all three shells, like the dark-mode script below.
+		-->
+		<script>
+			(function (link) {
+				link.addEventListener('load', function () {
+					link.rel = 'stylesheet';
+				});
+			})(document.currentScript.previousElementSibling);
+		</script>
 
 		<!-- Your settings and colors -->
 		<script src="./config.js"></script>

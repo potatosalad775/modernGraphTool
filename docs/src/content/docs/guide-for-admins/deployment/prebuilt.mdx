@@ -124,6 +124,10 @@ Pre-built releases need manual updates. The safe procedure:
 The most common update mistake is extracting the new release directly over your live deployment. This overwrites `config.js`, `data/`, etc. with the default release templates. Always back up or copy out first.
 :::
 
+## Security headers (optional)
+
+The release's `.htaccess` also carries a recommended Content-Security-Policy and three other security headers, switched off. See [Security Headers](./security-headers.mdx) for what they do and how to switch them on. If you do, take the new `Content-Security-Policy` line from each release when you update: it is written for that release.
+
 ## Troubleshooting
 
 ### Data doesn't appear in the device selector

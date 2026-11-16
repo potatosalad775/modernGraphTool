@@ -15,6 +15,7 @@
 
 import { execSync } from 'child_process';
 import { readFileSync, copyFileSync, existsSync, renameSync, rmSync } from 'fs';
+import { writeHtaccessCsp, writeMetaCsp } from './csp.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -76,6 +77,12 @@ try {
 	if (existsSync(cdnIndexSrc)) {
 		copyFileSync(cdnIndexSrc, join(cdnOutDir, 'cdn-index.html'));
 		console.log('Copied cdn-index.html to dist-cdn/');
+
+		// The recommended CSP (shipped commented out) is for the page the operator serves, which
+		// in a CDN release is cdn-index.html, not the full build's index.html.
+		writeMetaCsp(join(cdnOutDir, 'cdn-index.html'));
+		writeHtaccessCsp(cdnOutDir, { page: 'cdn-index.html', cdn: true });
+		console.log('Wrote the recommended CSP into cdn-index.html and .htaccess (commented out)');
 	}
 
 	console.log(`\n--- CDN Build Complete ---`);

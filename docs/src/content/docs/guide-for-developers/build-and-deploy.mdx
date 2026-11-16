@@ -36,6 +36,22 @@ with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml`
 loader they pinned, so a change to `boot.json` or `versions.json` has to stay readable by older
 loaders: add keys, never repurpose one.
 
+## The recommended security headers
+
+`scripts/csp.js` builds the Content-Security-Policy that releases ship switched off. It hashes the
+inline scripts of the page an operator will serve and replaces the `__CSP__` token:
+
+| Build                         | Page hashed                | Written to                                     |
+| ----------------------------- | -------------------------- | ---------------------------------------------- |
+| `npm run build`               | `dist/index.html`          | `dist/.htaccess`                               |
+| `npm run build:cdn`           | `cdn-index.html`           | `dist-cdn/.htaccess`, `cdn-index.html`'s meta  |
+| `npm run build:site-template` | `site-template/index.html` | that page's meta                               |
+
+`npm run test:smoke` reads the commented `Header set` lines back out of `dist/.htaccess` and sends
+them, so the full build's policy is exercised on every CI run. The CDN shells' policy is not: it
+needs the published app on jsDelivr. What operators have to add for their own customizations is
+listed on [Security Headers](../guide-for-admins/deployment/security-headers.mdx).
+
 ## The `defaults/` mechanism
 
 A Vite plugin serves `defaults/` as a fallback during development and copies its contents into

@@ -279,10 +279,31 @@ Measured and rejected — don't retry without a new reason:
 
 Boot-critical pieces that look removable but aren't: the initial load starting in `hooks.client.ts`
 and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), and the Pretendard
-stylesheet loading as `rel="preload"` + `onload` in `src/app.html`, `cdn/cdn-index.html` and
+stylesheet loading as `rel="preload"` and swapped in by the inline script after it (a script, not
+an `onload` attribute: a CSP can hash a script but not a handler) in `src/app.html`, `cdn/cdn-index.html` and
 `site-template/index.html`. A plain stylesheet link holds back every classic script after it —
 `config.js` and the boot script included — until jsDelivr answers. There is no `<noscript>` fallback
 because `ssr` is off, so the page is blank without JavaScript anyway.
+
+## Security Headers (CSP)
+
+The recommended headers ship **switched off**, as commented lines in `defaults/.htaccess` and a
+commented `<meta>` in the two CDN shells; `scripts/csp.js` holds the policy and fills in `__CSP__`
+at build time, because it lists a hash for every inline script of the page. `npm run test:smoke`
+serves `dist/` with them switched on, so a change that needs a new source fails there. Operator
+page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/security-headers.mdx).
+
+- **No inline event handlers, no new `eval`, no `javascript:` URLs** anywhere in the shells or the
+  app. An inline `<script>` in a shell is fine (it gets hashed), but keep the ones shared by
+  `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` byte-identical.
+- **A new third-party origin is a policy change.** Scripts, stylesheets and fonts are allowed by
+  origin; `fetch` targets only by scheme (`https:` / `wss:`), since operators configure those.
+  Add the origin in `scripts/csp.js`, or to the "what to add" table on the operator page when only
+  some deployments use it.
+- **`worker-src` must list every origin a worker imports from.** A module worker's imports are
+  checked against `worker-src`, not `script-src`, and a miss reports no violation: the worker just
+  fails to load and AutoEQ returns nothing. The smoke test does not run AutoEQ, so check it by hand
+  (full build and CDN build) after touching the worker or the policy.
 
 ## Built-in Features
 

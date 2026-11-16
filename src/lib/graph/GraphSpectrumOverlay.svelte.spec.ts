@@ -208,6 +208,48 @@ describe('GraphSpectrumOverlay', () => {
 		});
 	});
 
+	// ── Reused point buffer ──────────────────────────────────────────────────
+
+	describe('the reused point buffer', () => {
+		/** A low sample rate: the log grid runs out of bins early, so the mapping is shorter. */
+		function lowRateAnalyser(sampleRate: number, fill: number): AnalyserNode {
+			return {
+				fftSize: FFT_SIZE,
+				frequencyBinCount: FFT_SIZE / 2,
+				context: { sampleRate },
+				getByteFrequencyData: (arr: Uint8Array) => arr.fill(fill)
+			} as unknown as AnalyserNode;
+		}
+
+		it('draws the same path for the same data on every frame', () => {
+			overlay.start(makeAnalyser(90));
+			step();
+			const first = path().getAttribute('d');
+			step();
+
+			expect(path().getAttribute('d')).toBe(first);
+		});
+
+		it('follows a change in bin count, shrinking and growing', () => {
+			overlay.start(makeAnalyser(128));
+			step();
+			const wide = pathYs().length;
+
+			overlay.start(lowRateAnalyser(8000, 128));
+			step();
+			const narrow = pathYs().length;
+			expect(narrow).toBeLessThan(wide);
+			expect(Math.min(...pathYs())).toBeCloseTo(
+				VIEW_H - MARGIN - (128 / 255) * (VIEW_H - 2 * MARGIN),
+				1
+			);
+
+			overlay.start(makeAnalyser(128));
+			step();
+			expect(pathYs().length).toBe(wide);
+		});
+	});
+
 	// ── Stopping ─────────────────────────────────────────────────────────────
 
 	describe('stop', () => {

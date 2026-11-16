@@ -433,12 +433,23 @@ class GraphEngine {
 			.selectAll<SVGGElement, number>('.y-grid-group')
 			.data(tickValues, (d) => d);
 
-		gridGroups
-			.exit()
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
-			.style('opacity', 0)
-			.remove();
+		// A zero-length d3 transition still defers its writes to the next tick, so a
+		// duration of 0 (every handle-drag frame) writes straight through instead —
+		// after `interrupt()`, so an animation already running can't overwrite it.
+		const duration = transition ? this.transitionDuration : 0;
+		const animated = <T extends d3.BaseType, D>(
+			selection: d3.Selection<T, D, d3.BaseType, unknown>
+		) =>
+			(duration > 0
+				? selection.transition().duration(duration)
+				: selection.interrupt()) as unknown as d3.Selection<T, D, d3.BaseType, unknown>;
+
+		const exiting = gridGroups.exit<number>();
+		if (duration > 0) {
+			exiting.transition().duration(duration).style('opacity', 0).remove();
+		} else {
+			exiting.interrupt().remove();
+		}
 
 		const enterGroups = gridGroups
 			.enter()
@@ -451,23 +462,15 @@ class GraphEngine {
 
 		const allGroups = enterGroups.merge(gridGroups);
 
-		allGroups
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
-			.style('opacity', 1);
+		animated(allGroups).style('opacity', 1);
 
-		allGroups
-			.selectAll<SVGLineElement, number>('.y-grid-line, .y-grid-line-major')
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
+		animated(allGroups.selectAll<SVGLineElement, number>('.y-grid-line, .y-grid-line-major'))
 			.attr('y1', (d) => yScale(d))
 			.attr('y2', (d) => yScale(d));
 
-		allGroups
-			.selectAll<SVGTextElement, number>('.y-grid-text')
-			.transition()
-			.duration(transition ? this.transitionDuration : 0)
-			.attr('y', (d) => yScale(d));
+		animated(allGroups.selectAll<SVGTextElement, number>('.y-grid-text')).attr('y', (d) =>
+			yScale(d)
+		);
 
 		let dbText = axis.select<SVGTextElement>('.y-grid-db-text');
 		if (dbText.empty()) {

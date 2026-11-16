@@ -127,6 +127,25 @@ falling back to `--color-graph-axis-label` for operator themes written before th
 label. "Add to graph" is the persistent counterpart: `eqCurve.insertFrozen` inserts the same
 curve as an `inserted-phone`.
 
+## Per-frame hot paths — don't undo
+
+None of these is a measured speed-up; they are shaped to avoid known costs, and the specs pin the behaviour.
+
+- **Hover readout renders once per frame.** `GraphInspection._onMouseMove` only keeps the latest
+  event and asks for a frame; `_renderAt` reads the pointer from that event then (it names the tracker
+  node, since `currentTarget` is null by then). `mouseleave` and disabling cancel the pending frame.
+  The row `<g>`s are kept and updated in place (`_syncRows`), and widths are batched: write every
+  row's text, read every `getBBox()`, then write positions. A hidden scratch text measured one label
+  at a time was one forced layout per row.
+- **Y handle redraws once per frame.** The drag handler moves the circle and records `yShift` at once,
+  but `_updateGraphPosition` (curves, axis, EQ/compare overlays) runs from one rAF and reads the latest
+  shift. `drag end` flushes synchronously and `resetHandle` cancels the pending frame, so the final
+  position is always drawn. `updateYAxis` with a duration of 0 writes straight through after
+  `interrupt()`: a zero-duration d3 transition still defers its write to the next tick.
+- **Spectrum overlay allocates nothing per frame.** The area generator is built once (its `y0` is a
+  function, so it follows `graphGeometry`) and the point tuples are overwritten in place, resized only
+  when the bin mapping changes length.
+
 ## Testing this layer
 
 `GraphEngine` is driven through a real `<svg>` attached to the document and `init(svgEl)`; the

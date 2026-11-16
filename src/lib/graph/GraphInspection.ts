@@ -24,6 +24,14 @@ function yOffsetNote(yOffset: number | undefined): string {
 	return ` (${yOffset! > 0 ? '+' : '-'}${magnitude})`;
 }
 
+interface ValueRow {
+	group: d3.Selection<SVGGElement, unknown, null, undefined>;
+	backdrop: d3.Selection<SVGRectElement, unknown, null, undefined>;
+	text: d3.Selection<SVGTextElement, unknown, null, undefined>;
+	/** What `text` currently holds, so an unchanged row is not rewritten. */
+	label: string;
+}
+
 class GraphInspection {
 	graphEngine: GraphEngine;
 	isEnabled: boolean;
@@ -33,6 +41,10 @@ class GraphInspection {
 	bisector: (array: ArrayLike<FRDataPoint>, x: number, lo?: number, hi?: number) => number;
 	frequencyText!: d3.Selection<SVGTextElement, unknown, null, undefined>;
 	mouseTracker: d3.Selection<SVGRectElement, unknown, null, undefined> | null;
+	/** The readout rows, kept between renders and reused rather than rebuilt. */
+	private _rows: ValueRow[] = [];
+	private _frame: number | null = null;
+	private _pendingEvent: MouseEvent | null = null;
 
 	constructor(graphEngine: GraphEngine) {
 		this.graphEngine = graphEngine;
@@ -116,27 +128,58 @@ class GraphInspection {
 	}
 
 	_disableMouseTracking() {
+		this._cancelFrame();
 		if (this.mouseTracker) {
 			this.mouseTracker.remove();
 			this.mouseTracker = null;
 		}
 	}
 
+	/**
+	 * A mousemove only records the latest event; the readout is rendered at most once
+	 * per animation frame. A mouse reports faster than the display refreshes, and each
+	 * render rebuilds the text of every row and measures it.
+	 */
 	_onMouseMove(event: MouseEvent) {
-		const [rawX] = d3.pointer(event);
+		this._pendingEvent = event;
+		if (this._frame !== null) return;
+		this._frame = requestAnimationFrame(() => {
+			this._frame = null;
+			const pending = this._pendingEvent;
+			this._pendingEvent = null;
+			if (pending) this._renderAt(pending);
+		});
+	}
+
+	_renderAt(event: MouseEvent) {
+		// The tracker is named explicitly: `currentTarget` is null once dispatch has
+		// finished, and this runs a frame later.
+		const [rawX] = d3.pointer(event, this.mouseTracker?.node() ?? undefined);
 		const g = this.graphEngine.graphGeometry;
 		// Clamp the overhang back onto the plot so the readout stays inside the
 		// 20 Hz–20 kHz domain and `_interpolateSPL` never extrapolates.
 		const mouseX = Math.min(Math.max(rawX, g.xStart), g.xEnd);
 		const frequency = this.graphEngine.xScale.invert(mouseX);
 
+		// Rows first: they hold the frame's only forced layout (the width reads).
+		this._updateValueDisplays(frequency, mouseX);
 		this.verticalLine.attr('x1', mouseX).attr('x2', mouseX);
 		this._updateFrequencyDisplay(frequency, mouseX);
-		this._updateValueDisplays(frequency, mouseX);
 	}
 
 	_onMouseLeave() {
+		// Drop the frame still waiting: it would paint a position the pointer has
+		// already left, after the readout dimmed.
+		this._cancelFrame();
 		this.inspectionGroup.style('opacity', 0.7);
+	}
+
+	_cancelFrame() {
+		if (this._frame !== null) {
+			cancelAnimationFrame(this._frame);
+			this._frame = null;
+		}
+		this._pendingEvent = null;
 	}
 
 	_updateFrequencyDisplay(frequency: number, mouseX: number) {
@@ -160,8 +203,6 @@ class GraphInspection {
 	}
 
 	_updateValueDisplays(frequency: number, mouseX: number) {
-		this.valueDisplay.selectAll('*').remove();
-
 		let yOffset = 0;
 		const lineHeight = 18;
 		const rectPadding = 10;
@@ -199,22 +240,25 @@ class GraphInspection {
 				}
 			});
 
-		// Pre-pass: measure each entry's actual rendered text width via a hidden
-		// scratch text node. Required for both backdrop sizing AND for the
-		// edge-fitting logic below — character-count heuristics misjudge layout
-		// for proportional fonts (Pretendard).
-		const scratch = this.valueDisplay
-			.append('text')
-			.attr('font-size', '14px')
-			.attr('font-weight', '500')
-			.style('visibility', 'hidden');
+		// Measure each entry's actual rendered text width. Required for both backdrop
+		// sizing AND for the edge-fitting logic below — character-count heuristics
+		// misjudge layout for proportional fonts (Pretendard). Batched like
+		// `GraphContainer.flushLabelMeasure`: every row's text is written first, then
+		// every width is read, then everything else is written. Interleaving a write
+		// between two `getBBox()` reads forces one layout per row.
+		const rows = this._syncRows(deviceListData.length);
+		deviceListData.forEach((item, i) => {
+			const row = rows[i];
+			if (row.label !== item.displayText) {
+				row.label = item.displayText;
+				row.text.text(item.displayText);
+			}
+		});
 		let maxTextWidth = 0;
-		for (const item of deviceListData) {
-			scratch.text(item.displayText);
-			item.textWidth = scratch.node()!.getBBox().width + rectPadding * 2;
+		deviceListData.forEach((item, i) => {
+			item.textWidth = rows[i].text.node()!.getBBox().width + rectPadding * 2;
 			if (item.textWidth > maxTextWidth) maxTextWidth = item.textWidth;
-		}
-		scratch.remove();
+		});
 
 		const listPadding = 15;
 		const rightEdgeSpace = this.graphEngine.graphGeometry.xEnd - mouseX;
@@ -237,38 +281,42 @@ class GraphInspection {
 			textAnchor = 'end';
 		}
 
-		deviceListData.forEach((item) => {
-			const valueGroup = this.valueDisplay
-				.append('g')
-				.attr(
-					'transform',
-					`translate(${listX}, ${this.graphEngine.graphGeometry.yTop + 32 + item.yOffset})`
-				);
+		deviceListData.forEach((item, i) => {
+			const row = rows[i];
+			row.group.attr(
+				'transform',
+				`translate(${listX}, ${this.graphEngine.graphGeometry.yTop + 32 + item.yOffset})`
+			);
+			row.backdrop
+				.attr('x', textAnchor === 'start' ? -rectPadding : -(item.textWidth - rectPadding))
+				.attr('width', item.textWidth);
+			row.text.attr('text-anchor', textAnchor).attr('fill', item.color);
+		});
 
-			const rectX = textAnchor === 'start' ? -rectPadding : -(item.textWidth - rectPadding);
+		this.inspectionGroup.style('opacity', 1);
+	}
 
-			valueGroup
+	/** Grow or trim the kept row nodes to `count`, returning them. */
+	private _syncRows(count: number): ValueRow[] {
+		while (this._rows.length > count) this._rows.pop()!.group.remove();
+		while (this._rows.length < count) {
+			const group = this.valueDisplay.append('g');
+			const backdrop = group
 				.append('rect')
-				.attr('x', rectX)
 				.attr('y', -16)
-				.attr('width', item.textWidth)
 				.attr('height', 18)
 				.attr('fill', 'var(--color-base-200)')
 				.attr('rx', 2)
 				.attr('opacity', 0.7);
-
-			valueGroup
+			const text = group
 				.append('text')
 				.attr('x', 0)
 				.attr('y', -2)
-				.attr('text-anchor', textAnchor)
 				.attr('font-size', '14px')
-				.attr('font-weight', '500')
-				.attr('fill', item.color)
-				.text(item.displayText);
-		});
-
-		this.inspectionGroup.style('opacity', 1);
+				.attr('font-weight', '500');
+			this._rows.push({ group, backdrop, text, label: '' });
+		}
+		return this._rows;
 	}
 
 	_interpolateSPL(channelData: [number, number][], frequency: number): number | null {

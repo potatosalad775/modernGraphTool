@@ -12,6 +12,9 @@
 	import { getLocale, locales, setLocale, type Locale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
+	import Accordion from '../atoms/Accordion.svelte';
+	import AccordionItem from '../atoms/AccordionItem.svelte';
+	import InfoPopover from '../atoms/InfoPopover.svelte';
 
 	const appVersion = __APP_VERSION__;
 	const shortcutsHintId = $props.id();
@@ -41,7 +44,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col gap-4 overflow-y-auto">
+<div class="flex h-full flex-col overflow-y-auto">
 	<!-- Theme + Language row -->
 	<div class="flex items-center gap-2 border-b border-base-content/15 bg-base-200 px-3 py-2">
 		<Button
@@ -82,24 +85,45 @@
 		{/if}
 	</div>
 
-	<!-- Single-key shortcuts (WCAG 2.1.4: a bare-key shortcut must be switchable off) -->
-	<div class="flex flex-col gap-1 px-4">
-		<Switch
-			labelText={m.misc_panel_single_key_shortcuts()}
-			aria-describedby={shortcutsHintId}
-			size="sm"
-			bind:checked={
-				() => settingsStore.singleKeyShortcuts, (on) => settingsStore.setSingleKeyShortcuts(on)
-			}
-		/>
-		<p id={shortcutsHintId} class="text-xs text-base-content/80">
-			{m.misc_panel_single_key_shortcuts_hint()}
-		</p>
-	</div>
+	<!-- Settings -->
+	<Accordion type="multiple" class="pt-1">
+		<!-- Single-key shortcuts (WCAG 2.1.4: a bare-key shortcut must be switchable off) -->
+		<AccordionItem
+			value="eq-settings"
+			title={m.misc_panel_settings_accordion_title()}
+			class="px-1"
+			revealOnOpen
+		>
+			<div class="flex items-center justify-between p-2 pt-1">
+				<div class="flex items-center">
+					<span id={shortcutsHintId} class="flex-1 text-xs font-medium text-base-content/80"
+						>{m.misc_panel_single_key_shortcuts()}</span
+					>
+					<InfoPopover
+						label={m.info_popover_about({ topic: m.misc_panel_single_key_shortcuts() })}
+						class="ml-0.5"
+					>
+						<p>{m.misc_panel_single_key_shortcuts_key_hint()}</p>
+						<p>{m.misc_panel_single_key_shortcuts_off_hint()}</p>
+						<p>{m.misc_panel_single_key_shortcuts_mod_hint()}</p>
+					</InfoPopover>
+				</div>
+				<Switch
+					aria-describedby={shortcutsHintId}
+					labelClass="text-xs font-normal"
+					size="sm"
+					bind:checked={
+						() => settingsStore.singleKeyShortcuts, (on) => settingsStore.setSingleKeyShortcuts(on)
+					}
+				/>
+			</div>
+		</AccordionItem>
+		<div class="mt-1 h-px w-full bg-base-content/20"></div>
+	</Accordion>
 
 	<!-- Description (conditional) -->
 	{#if description && description.length > 0}
-		<div class="flex flex-col gap-2 px-4 text-sm">
+		<div class="flex flex-col gap-2 p-4 text-sm">
 			<!-- By index: the list never reorders, and a repeated block may be deliberate -->
 			{#each description as item, i (i)}
 				{#if item.TYPE.toUpperCase() === 'TEXT'}

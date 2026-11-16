@@ -228,12 +228,12 @@
 				{resultAnnouncement}
 			</p>
 
-			<div bind:this={listEl} class="min-h-0 scroll-pt-7 overflow-y-auto p-1.5">
+			<div bind:this={listEl} class="min-h-0 scroll-pt-7 overflow-y-auto px-1.5">
 				{#each visibleGroups as group (group.type)}
 					<section aria-labelledby="{uid}-{group.type}">
 						<h3
 							id="{uid}-{group.type}"
-							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-xs font-semibold tracking-wider
+							class="sticky top-0 z-10 bg-base-200 p-2 text-xs font-semibold tracking-wider
 								text-base-content/80 uppercase"
 						>
 							{dbTypeLabel(group.type)}

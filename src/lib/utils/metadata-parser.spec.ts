@@ -1024,6 +1024,76 @@ describe('MetadataParser', () => {
 			expect(warnSpy).toHaveBeenCalled();
 		});
 
+		it('keeps safe reviewLink / shopLink, relative ones included (same policy as links[])', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				reviewLink: 'https://review.example/hd600',
+				shopLink: '/shop/hd600'
+			});
+
+			expect(phone.reviewLink).toBe('https://review.example/hd600');
+			expect(phone.shopLink).toBe('/shop/hd600');
+		});
+
+		it('drops an unsafe reviewLink / shopLink but keeps the entry and its other fields', async () => {
+			for (const bad of [
+				'javascript:alert(1)',
+				'JaVaScRiPt:alert(1)',
+				'  \tjavascript:alert(1)',
+				'java\nscript:alert(1)',
+				'data:text/html,<script>alert(1)</script>'
+			]) {
+				const phone = await parsePhone({
+					name: 'HD 600',
+					file: 'HD 600',
+					reviewLink: bad,
+					shopLink: bad,
+					price: '$400',
+					reviewScore: 4
+				});
+
+				expect(phone.reviewLink, bad).toBeUndefined();
+				expect(phone.shopLink, bad).toBeUndefined();
+				expect(phone.name).toBe('HD 600');
+				expect(phone.price).toBe('$400');
+				expect(phone.reviewScore).toBe(4);
+			}
+		});
+
+		it('drops a non-string reviewLink / shopLink', async () => {
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				reviewLink: { href: 'https://a.example' },
+				shopLink: ['https://a.example']
+			});
+
+			expect(phone.reviewLink).toBeUndefined();
+			expect(phone.shopLink).toBeUndefined();
+		});
+
+		it('keeps only a string or finite number for price and reviewScore', async () => {
+			const ok = await parsePhone({
+				name: 'A',
+				file: 'A',
+				price: '$99',
+				reviewScore: 'A+'
+			});
+			expect(ok.price).toBe('$99');
+			expect(ok.reviewScore).toBe('A+');
+
+			const numeric = await parsePhone({ name: 'B', file: 'B', price: 99, reviewScore: 4.5 });
+			expect(numeric.price).toBe('99');
+			expect(numeric.reviewScore).toBe(4.5);
+
+			for (const bad of [{ x: 1 }, ['a'], true, null, NaN, Infinity, '']) {
+				const phone = await parsePhone({ name: 'C', file: 'C', price: bad, reviewScore: bad });
+				expect(phone.price).toBeUndefined();
+				expect(phone.reviewScore).toBeUndefined();
+			}
+		});
+
 		it('leaves description untouched — sanitizing is a render-time concern', async () => {
 			const phone = await parsePhone({
 				name: 'HD 600',

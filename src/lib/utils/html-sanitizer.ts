@@ -145,6 +145,30 @@ export function sanitizeUrl(raw: string | null | undefined): string | null {
 	return SAFE_SCHEMES.has(scheme[1].toLowerCase()) ? cleaned : null;
 }
 
+/**
+ * Strict counterpart of `sanitizeUrl` for URLs that leave this site: returns the
+ * trimmed URL only when it is an absolute `http(s)` URL, otherwise `null`.
+ *
+ * Use it for values taken from a remote document (aggregate / site index) where
+ * a relative URL has no meaning and `mailto:` / `tel:` are out of place. Unlike
+ * `sanitizeUrl` it does not decode entities — the input is a plain URL, not
+ * HTML, so `?a=1&tab=2` must come back untouched. Anything with whitespace or
+ * control characters inside is rejected rather than repaired.
+ */
+export function sanitizeHttpUrl(raw: unknown): string | null {
+	if (typeof raw !== 'string') return null;
+	const trimmed = raw.trim();
+	// eslint-disable-next-line no-control-regex
+	if (!trimmed || /[\u0000- \u007f]/.test(trimmed)) return null;
+	if (!/^https?:\/\//i.test(trimmed)) return null;
+	try {
+		new URL(trimmed);
+	} catch {
+		return null;
+	}
+	return trimmed;
+}
+
 interface ParsedTag {
 	name: string;
 	closing: boolean;

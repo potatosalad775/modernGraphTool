@@ -1,5 +1,6 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
+import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
 import { rankDbType } from './aggregate-index-core.js';
 import type {
 	SiteIndex,
@@ -119,14 +120,16 @@ export function buildSiteEntries(index: SiteIndex, currentDbId: string | null): 
 	for (const db of index.dbs) {
 		const site = sitesById.get(db.siteId);
 		if (!site || typeof db.id !== 'string' || typeof db.type !== 'string') continue;
-		if (typeof db.url !== 'string' || !db.url) continue;
+		// The URL ends up in an `href`: absolute http(s) only, else the entry goes.
+		const url = sanitizeHttpUrl(db.url);
+		if (!url) continue;
 
 		entries.push({
 			dbId: db.id,
 			siteId: site.id,
 			siteName: site.name,
 			type: db.type,
-			url: db.url,
+			url,
 			deltaReady: db.deltaReady === true,
 			// Absent means verified — only GAA-style documents carry the flag, and a
 			// plain aggregator-shaped one has already been verified by definition.

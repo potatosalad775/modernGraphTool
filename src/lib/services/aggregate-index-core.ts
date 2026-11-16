@@ -1,6 +1,7 @@
 import { browser } from '$app/env';
 import * as m from '#lib/paraglide/messages.js';
 import { getConfigValue } from '#lib/utils/config.js';
+import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
 import { matchesQueryGroup, splitQueryGroups, type QueryGroup } from '#lib/utils/search-query.js';
 import type {
 	AggregateDb,
@@ -184,12 +185,17 @@ export async function fetchAggregateIndex(urls: string[]): Promise<AggregateInde
  */
 export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 	const sitesById = new Map(index.sites.map((site) => [site.id, site]));
-	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite }>();
+	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite; url: string }>();
 
 	for (const db of index.dbs) {
 		const site = sitesById.get(db.siteId);
 		if (!site || isCurrentSite(site)) continue;
-		dbsById.set(db.id, { db, site });
+		// The index is someone else's document and its URLs land in an `href`, so
+		// only an absolute http(s) URL gets through — a `javascript:` entry is
+		// dropped, along with every device it carried.
+		const url = sanitizeHttpUrl(db.url);
+		if (!url) continue;
+		dbsById.set(db.id, { db, site, url });
 	}
 
 	const collapsed = index.phonesFormat === 'collapsed';
@@ -206,7 +212,7 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 		for (const measurement of measurements) {
 			const entry = dbsById.get(measurement.db);
 			if (!entry) continue;
-			const { db, site } = entry;
+			const { db, site, url } = entry;
 
 			rows.push({
 				displayLower,
@@ -218,7 +224,7 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 					deltaReady: !!db.deltaReady,
 					brand,
 					phoneName: phone.n,
-					url: buildShareUrl(db.url, measurement.s ?? deriveShareSlug(brand, phone.n))
+					url: buildShareUrl(url, measurement.s ?? deriveShareSlug(brand, phone.n))
 				}
 			});
 		}

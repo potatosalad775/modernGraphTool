@@ -230,13 +230,22 @@ const MetadataParser = {
 						? this._parseLinks(phone.links, `brand "${brandName}" phone #${phoneIdx}`)
 						: undefined;
 
+				// These four go straight into the row UI, and `PATH.PHONE_BOOK` may point
+				// at a remote book — so each is checked here, dropping the field and
+				// never the entry. The links follow the `links[]` policy (`sanitizeUrl`:
+				// relative URLs stay readable, a dangerous scheme does not).
+				const reviewScore = typeof phone === 'object' ? this._parseScalar(phone.reviewScore) : null;
+				const price = typeof phone === 'object' ? this._parseScalar(phone.price) : null;
+				const reviewLink = typeof phone === 'object' ? this._parseHref(phone.reviewLink) : null;
+				const shopLink = typeof phone === 'object' ? this._parseHref(phone.shopLink) : null;
+
 				// Common properties for all phone types
 				const basePhone = {
 					brand: brandName,
-					...(typeof phone === 'object' && phone.reviewScore && { reviewScore: phone.reviewScore }),
-					...(typeof phone === 'object' && phone.reviewLink && { reviewLink: phone.reviewLink }),
-					...(typeof phone === 'object' && phone.shopLink && { shopLink: phone.shopLink }),
-					...(typeof phone === 'object' && phone.price && { price: phone.price }),
+					...(reviewScore !== null && { reviewScore }),
+					...(reviewLink && { reviewLink }),
+					...(shopLink && { shopLink }),
+					...(price !== null && { price: String(price) }),
 					...(typeof phone === 'object' && phone.description && { description: phone.description }),
 					...(links && { links })
 				};
@@ -296,6 +305,23 @@ const MetadataParser = {
 		});
 
 		return out;
+	},
+
+	/**
+	 * A display scalar (`reviewScore`, `price`): a non-empty string or a finite,
+	 * non-zero number survives, anything else (object, array, boolean, NaN, null)
+	 * is dropped. Empty / zero stay dropped, as they were when this was a plain
+	 * truthiness check.
+	 */
+	_parseScalar(raw: unknown): string | number | null {
+		if (typeof raw === 'string') return raw.trim() ? raw : null;
+		if (typeof raw === 'number') return Number.isFinite(raw) && raw !== 0 ? raw : null;
+		return null;
+	},
+
+	/** A phone-level link target, held to the same `sanitizeUrl` policy as `links[]`. */
+	_parseHref(raw: unknown): string | null {
+		return typeof raw === 'string' ? sanitizeUrl(raw) : null;
 	},
 
 	/**

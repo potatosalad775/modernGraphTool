@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AggregateIndexService } from './aggregate-index.svelte.js';
 import {
+	buildSearchRows,
 	buildShareUrl,
 	dbTypeLabel,
 	DEFAULT_INDEX_URLS,
@@ -106,6 +107,51 @@ describe('cross-site search helpers', () => {
 			expect(buildShareUrl('https://bob.squig.link/headphones/', 'Sennheiser_HD_600')).toBe(
 				'https://bob.squig.link/headphones/?share=Sennheiser_HD_600'
 			);
+		});
+	});
+
+	describe('buildSearchRows — database URL policy', () => {
+		const unsafe = [
+			'javascript:alert(1)',
+			'JaVaScRiPt:alert(1)',
+			'  javascript:alert(1)',
+			'\tjava\nscript:alert(1)',
+			'data:text/html,<script>alert(1)</script>',
+			'DATA:text/html;base64,AAAA',
+			'/relative/'
+		];
+
+		it('drops devices from a database whose URL is not http(s), keeping the rest', () => {
+			const index = makeIndex({
+				dbs: [
+					...unsafe.map((url, i) => ({ id: `evil${i}`, siteId: 'alice', type: 'IEMs', url })),
+					{ id: 'bob:hp', siteId: 'bob', type: 'Headphones', url: 'https://bob.squig.link/hp/' }
+				],
+				phones: [
+					...unsafe.map((_, i) => ({ db: `evil${i}`, b: 0, n: 'U12t', s: '64Audio_U12t' })),
+					{ db: 'bob:hp', b: 1, n: 'HD 600', s: 'Sennheiser_HD_600' }
+				]
+			});
+
+			const rows = buildSearchRows(index);
+
+			expect(rows.map((row) => row.result.dbId)).toEqual(['bob:hp']);
+			expect(rows[0].result.url).toBe('https://bob.squig.link/hp/?share=Sennheiser_HD_600');
+		});
+
+		it('trims a normal https URL and builds the share link from it', () => {
+			const rows = buildSearchRows(
+				makeIndex({
+					dbs: [
+						{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: ' https://alice.squig.link/ ' }
+					],
+					phones: [{ db: 'alice:iems', b: 0, n: 'U12t', s: '64Audio_U12t' }]
+				})
+			);
+
+			expect(rows.map((row) => row.result.url)).toEqual([
+				'https://alice.squig.link/?share=64Audio_U12t'
+			]);
 		});
 	});
 

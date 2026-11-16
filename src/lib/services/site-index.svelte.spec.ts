@@ -194,6 +194,35 @@ describe('buildSiteEntries', () => {
 
 		expect(buildSiteEntries(broken, null)).toEqual([]);
 	});
+
+	it('drops a database whose URL is not absolute http(s), keeping the rest', () => {
+		const unsafe = [
+			'javascript:alert(1)',
+			'JaVaScRiPt:alert(1)',
+			'  javascript:alert(1)',
+			'\tjava\nscript:alert(1)',
+			'data:text/html,<script>alert(1)</script>',
+			'DATA:text/html;base64,AAAA',
+			'/relative/',
+			'mailto:a@b.c'
+		];
+		const index = makeIndex({
+			dbs: [
+				...unsafe.map((url, i) => ({
+					id: `alice:bad${i}`,
+					siteId: 'alice',
+					type: 'IEMs',
+					url
+				})),
+				{ id: 'bob:5128', siteId: 'bob', type: '5128', url: ' https://bob.squig.link/ ' }
+			]
+		});
+
+		const entries = buildSiteEntries(index, null);
+
+		expect(entries.map((entry) => entry.dbId)).toEqual(['bob:5128']);
+		expect(entries[0].url).toBe('https://bob.squig.link/');
+	});
 });
 
 describe('groupSiteEntries', () => {

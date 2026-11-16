@@ -42,6 +42,22 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   `utils/document-locale.ts`, `utils/eq-filter-parse.ts` (`parseFilter`, moved out of the bookmark
   store), `sanitizeHttpUrl` in `utils/html-sanitizer.ts`.
 
+- **2026-11-16, section 2 (A1–A9, A13, A14, plus O2, F2, F5 and parts of F4, F6, A10):** every
+  claim held except the EqAudioPlayer part of F6 (its file input already accepts audio types and
+  already reports load errors). Fixed, `check` / `lint` / `test` green (2710 tests), committed.
+  In a browser: skip links, the heading outline, the splitter (keyboard and drag), device rows
+  (links outside the button, full-row click, focus ring), the search count announcement, the EQ
+  band card names and slider value text, the shortcut setting, the mobile carousel (tap and touch
+  drag) and the mobile drawer (dialog name, focus trap, Escape, site selector inside it).
+  No screen reader was used. Two regressions were caught there and fixed: the divider's wide grab
+  area took clicks at the pane edge (now coarse pointers only), and the drawer's close-button
+  tooltip widened a phone's layout viewport (initial focus now goes to the drawer).
+- Deviations from the proposed fixes: A5 became buttons with `aria-current` in a labelled `<nav>`
+  rather than real tabs (the panels unmount on every switch); A2's Avg/Hz pair kept its buttons
+  with `aria-pressed` (the `SegmentedControl` border doubles up inside the toolbar wrapper); A8's
+  setting does not gate the graph overlay's Delete / Escape / arrow keys (not character keys).
+- Still open in section 2: A10 (only the tutorial dots are done), A11, A12 (scope undecided).
+
 ## Found while fixing (new items)
 
 - [ ] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -59,6 +75,31 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - [ ] **N4. AutoEQ hydrate does not clamp stored numbers to the field range** (S, low value)
   - Where: `stores/settings-store.svelte.ts` (`sanitizeAutoEqOptions`). Type and pair order are
     fixed; an old out-of-range number survives until the field is edited.
+
+- [ ] **N5. The shipped top-bar title is an `<h2>`** (S, touches operator-facing defaults)
+  - Where: `defaults/config.js:130`; `docs/src/utils/configDefaults.ts:317`; the four
+    `customize-page.mdx` pages (current and 1.x, en and ko)
+  - Problem: AppShell now renders a hidden `<h1>` and a per-panel `<h2>`, so the default
+    `'<h2>modernGraphTool</h2>'` title is a stray second-level heading inside the home link.
+  - Fix: change the default to `TYPE: 'TEXT'` (or a `<span>`); existing deployments keep whatever
+    they wrote. Check the top bar still styles a non-heading title the same.
+- [ ] **N6. Image titles have no text name** (S–M, **open: new config key**)
+  - Where: `layout/TopNavBar.svelte` (image `alt` is now a translated "Home");
+    `layout/AppShell.svelte` (`<h1>` falls back to `modernGraphTool`)
+  - Fix: an optional `TOPBAR.TITLE.ALT` (i18n value) used for both; docs page and config generator.
+- [ ] **N7. Row controls in child components still have generic names** (S)
+  - Where: `controls/DownloadButton.svelte:41, 70`; `controls/SampleChannelSelector.svelte:142`;
+    `features/GraphColorPicker.svelte:136`; `features/TargetCustomizer.svelte:104, 159`
+  - Fix: a `name` prop from `SelectionList` (`curveName(item)`) used in each `aria-label`.
+- [ ] **N8. A description link is still nested in the device row button** (S–M)
+  - Where: `controls/PhoneSelector.svelte` (the `{@html}` description inside the toggle button)
+  - Fix: move the description out of the button like the link row, or strip links from it.
+- [ ] **N9. The `Skeleton` atom has no call sites** (S)
+  - Where: `atoms/Skeleton.svelte`. Now silent by default with an opt-in `status` prop. Delete it
+    or keep it for later.
+- [ ] **N10. A tooltip positioned off-screen widens a phone's layout viewport** (S, latent)
+  - Where: `atoms/TooltipHost.svelte`. Touch never opens one, but programmatic focus does (that
+    was the drawer bug). Consider not opening on focus that is not `:focus-visible`.
 
 ## 1. Confirmed bugs (start here)
 
@@ -133,20 +174,20 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 
 ## 2. Accessibility
 
-- [ ] **A1. Links nested inside the device row `<button>`** (M)
+- [x] **A1. Links nested inside the device row `<button>`** (M)
   - Where: `src/lib/components/controls/PhoneSelector.svelte:392-481` (anchors at 423, 446, 457, 470)
   - Problem: invalid interactive nesting; the rank, review and shop links are not exposed as
     links. Line 394 disables the button while loading, which disables everything inside it.
   - Fix: make the row a container with the toggle button and the link row as siblings; keep the
     full-row hit area with a stretched `::after` on the button.
-- [ ] **A2. Selected and expanded states are conveyed by colour only** (M)
+- [x] **A2. Selected and expanded states are conveyed by colour only** (M)
   - Where: `PhoneSelector.svelte:354` (brand filter), `:392` (device loaded);
     `SelectionList.svelte:186` (current variant), `:249` (baseline: name changes instead of a
     state); `EqFilterCard.svelte:455, 477` (type and channel segments), `:404` (expander);
     `NormalizerInput.svelte:25-38` (Avg/Hz); `TutorialModal.svelte:269` (step dot)
   - Fix: `aria-pressed` on toggles, `aria-expanded` on the expander, `aria-current="step"` on the
     dot. Replace the two EqFilterCard groups and Avg/Hz with the `SegmentedControl` atom.
-- [ ] **A3. Form controls with no accessible name** (S)
+- [x] **A3. Form controls with no accessible name** (S)
   - Where:
     - `panels/MiscPanel.svelte:59` (language select)
     - `controls/NormalizerInput.svelte:42` (Hz input)
@@ -162,12 +203,12 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: `aria-label`, `aria-labelledby` or a wrapping `<label>`. Include the band number on the
     per-band controls.
   - Guide: `accessibility`, `forms`.
-- [ ] **A4. Log-scaled sliders announce raw positions** (S)
+- [x] **A4. Log-scaled sliders announce raw positions** (S)
   - Where: `EqFilterCard.svelte:512-527` (freq), `:589-599` (Q), `:553` and `:325` (gain ×10);
     `EqAudioPlayer.svelte` tone and seek sliders
   - Fix: `aria-valuetext` with the real value and unit.
   - Guide: `slider`.
-- [ ] **A5. `MenuCarousel` declares tab roles without tab behaviour** (M)
+- [x] **A5. `MenuCarousel` declares tab roles without tab behaviour** (M)
   - Where: `src/lib/components/layout/MenuCarousel.svelte:52-160`; panels at
     `layout/AppShell.svelte:180-196, 227-243`
   - Problems: no arrow keys, no roving tabindex, no tablist name, no `role="tabpanel"`. The
@@ -179,14 +220,14 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     inside a labelled `<nav>`. Draw the underline with a border. Collapse the drag paths into
     pointer events with capture and `touch-action: pan-y`.
   - Guide: `tabs`.
-- [ ] **A6. Mobile link drawer is not a dialog** (S–M)
+- [x] **A6. Mobile link drawer is not a dialog** (S–M)
   - Where: `src/lib/components/layout/TopNavBar.svelte:152-154, 163-205`
   - Problem: no role or name, no Escape handler, focus not moved in or returned, background not
     inert, trigger has no `aria-expanded`.
   - Fix: render through bits-ui `Dialog` with drawer classes (or a native `<dialog>` with
     `showModal()`); add `aria-expanded`.
   - Guide: `navigation-drawer`.
-- [ ] **A7. No headings, no skip link, unlabelled navs** (M)
+- [x] **A7. No headings, no skip link, unlabelled navs** (M)
   - Where: `AppShell.svelte:158-263`, `TopNavBar.svelte:60-61, 188`, `MenuCarousel.svelte:113`,
     `atoms/AccordionItem.svelte:28`
   - Problem: the app has two `<h2>` and no `<h1>`; up to three `<nav>` have no `aria-label`; there
@@ -194,20 +235,21 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     bits-ui default was not checked).
   - Fix: visually hidden `<h1>` with the site title, an `<h2>` per panel, nav labels, a skip link
     to the graph or controls (target needs `tabindex="-1"`).
-- [ ] **A8. Single-key shortcuts cannot be turned off** (M)
+- [x] **A8. Single-key shortcuts cannot be turned off** (M)
   - Where: `src/lib/services/keyboard-shortcuts.ts:112, 153-158`; `graph/GraphEqOverlay.ts:292-331`
   - Problem: `1`–`4` and `\` are active everywhere except text fields (WCAG 2.1.4). A focused
     native `<select>` is not excluded, so typeahead "1" switches the panel.
   - Fix: add SELECT to the exclusion (reuse `isWidgetFocused` from `GraphEqOverlay.ts:25`); add a
     setting to disable shortcuts.
-- [ ] **A9. Resize divider is mouse-only and hidden from assistive tech** (S–M)
+- [x] **A9. Resize divider is mouse-only and hidden from assistive tech** (S–M)
   - Where: `src/lib/components/layout/DragDivider.svelte:12-47`
   - Problem: `role="none"`, `tabindex="-1"`, `onmousedown` only, 5px wide, no `touch-action`.
   - Fix: pointer events with capture; `role="separator"`, `aria-orientation="vertical"`,
     `tabindex="0"`, `aria-valuenow/min/max`, a name; arrow keys move it about 15px; wider hit area
     via a pseudo-element.
   - Guide: `drag`.
-- [ ] **A10. Touch targets below 24px** (M)
+- [ ] **A10. Touch targets below 24px** (M) — tutorial dots done; Button `xs`, range inputs and
+      the token remain
   - Where: `features/TutorialModal.svelte:269-276` (6×6px dots); `atoms/Button.svelte:74, 84`
     (`xs` about 19px tall); `EqFilterCard.svelte` range inputs (`h-1`); `routes/layout.css:101`
     (the only `pointer: coarse` rule)
@@ -229,11 +271,11 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     click only)
   - Note: this is separate from the skipped text alternative. It affects sighted keyboard users.
     The EQ band list already covers band editing; the Y shift has no keyboard equivalent.
-- [ ] **A13. Validation errors shown by colour and `title` only** (S–M)
+- [x] **A13. Validation errors shown by colour and `title` only** (S–M)
   - Where: `EqFilterCard.svelte:317-318, 366-367, 395-396`
   - Fix: `aria-invalid` plus `aria-describedby` pointing at a visually hidden message.
   - Guide: `accessible-error-announcement`.
-- [ ] **A14. Smaller items** (S each)
+- [x] **A14. Smaller items** (S each)
   - `atoms/Skeleton.svelte:19`: every skeleton is its own `role="status"`; use one per group and
     `aria-hidden` on the rest.
   - `equalizer/EqAutoEq.svelte:233`: running state has no `aria-busy`.
@@ -255,7 +297,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: `max-h-(--bits-popover-content-available-height) overflow-y-auto` plus
     `collisionPadding` in `PopoverPanel`; the `min()` pattern from `SelectMenu.svelte:88` in
     SiteSelector; `max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain` in Dialog.
-- [ ] **O2. Tutorial step dots** (S)
+- [x] **O2. Tutorial step dots** (S)
   - Where: `features/TutorialModal.svelte:268-277, 234`
   - Problem: raw 6px buttons with no focus ring; fallback title "Tutorial step {n}" is hard-coded
     English.
@@ -291,7 +333,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Where: `equalizer/EqAutoEq.svelte:133-148, 196-210`
   - Problem: typing `5` on the way to `500` sets `freqMin = 5` despite `min="20"`.
   - Fix: same as B1 (commit on `change`, clamp).
-- [ ] **F2. Normalisation Hz field commits per keystroke** (S)
+- [x] **F2. Normalisation Hz field commits per keystroke** (S)
   - Where: `controls/NormalizerInput.svelte:12-16, 42-51`
   - Problem: an empty field writes `0`; typing `1000` runs `dataProvider.renormalizeAll()` four
     times and ignores `min="20"`.
@@ -304,17 +346,19 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: wrap in a `<form>` with a submit button; add `autocomplete="off" autocapitalize="none"
 spellcheck="false" enterkeyhint="go"`; keep the panel open on failure. See S4 for host
     validation.
-- [ ] **F4. Search and rename fields lack text-correction hints** (S)
+- [ ] **F4. Search and rename fields lack text-correction hints** (S) — PhoneSelector part done;
+      `EqOptionButton` and `EqHistoryAndCompare` remain
   - Where: `controls/PhoneSelector.svelte:244-253`; `equalizer/EqOptionButton.svelte:152-158`;
     `equalizer/EqHistoryAndCompare.svelte:409-415`
   - Fix: `autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
 enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` through).
-- [ ] **F5. Colour picker writes a bad value when a number field is emptied** (S)
+- [x] **F5. Colour picker writes a bad value when a number field is emptied** (S)
   - Where: `features/GraphColorPicker.svelte:100-107, 163-233`; `utils/curve-palette.ts:103-108`
   - Problem: clearing L flashes the curve black and commits it; the dash field writes
     `"null 0"`.
   - Fix: skip the update when a value is not finite; clamp to the field's range.
-- [ ] **F6. File imports** (S, plus M for drag-and-drop)
+- [ ] **F6. File imports** (S, plus M for drag-and-drop) — ~~EqAudioPlayer part~~ (claim wrong:
+      already accepts audio types and reports errors); GraphUploader and EqFilterList remain
   - Where: `controls/GraphUploader.svelte:38-39, 78, 100, 132, 161-176`;
     `equalizer/EqFilterList.svelte:218-249, 465-471`; `equalizer/EqAudioPlayer.svelte:306-312`
   - Problems: `FileReader` has no `onerror` in the EQ import; `accept=".txt"` excludes other

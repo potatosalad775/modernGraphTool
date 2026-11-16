@@ -140,8 +140,9 @@ export function selectEnvelope(obj: FRDataObject): SampleEnvelope {
  * - **Main channels** are the EQ source run's when `eqSource` picks a run, else
  *   `obj.channels`. That run is the "before" curve, so those traces are named
  *   by the run, like the item's other runs, not "(AVG)".
- * - **Ghost** marks the fill and main traces of the EQ source. Only for `phone`
- *   items: an `inserted-phone` that is the source has never been dimmed.
+ * - **Ghost** marks the fill and main traces of the EQ source. Only for device
+ *   items, `phone` and `inserted-phone` (uploads, averages, frozen EQ curves);
+ *   a target is never ghosted.
  *
  * A trace for something that has no data is simply absent.
  */
@@ -166,7 +167,7 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 
 	const traces: CurveTrace[] = [];
 	const avgColor = obj.colors.AVG || FALLBACK_COLOR;
-	const ghost = eqSource !== null && obj.type === 'phone';
+	const ghost = eqSource !== null && (obj.type === 'phone' || obj.type === 'inserted-phone');
 	// EQ'ing one run of a set makes that run the "before" curve, drawn in place
 	// of the average — even with the average toggled off.
 	const runSample = eqSource?.sample && eqSourceRun(obj, eqSource.sample) ? eqSource.sample : null;

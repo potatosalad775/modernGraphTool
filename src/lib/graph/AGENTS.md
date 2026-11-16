@@ -94,10 +94,12 @@ baseline compensation. `listedTraces` is the order rows read in (main, then runs
 ## The EQ source ghost
 
 While EQ is on, the source's fill and main traces are `ghost` and the engine dims them to 0.35 as
-the "before" curve. With a sample run as the source (`eqStore.sourceSample`) the ghost is that run,
-drawn in place of the average and even with the average toggled off — the EQ curve is the run plus
-the bands, so ghosting the average would compare it against a curve it was never built from. Labels
-and hover list it too, named by the run (`Phone (Center, AVG)`), not as the average.
+the "before" curve. That holds for device items, `phone` and `inserted-phone` (uploads, averages,
+"Add to graph" curves); a target used as the source is not dimmed. With a sample run as the source
+(`eqStore.sourceSample`) the ghost is that run, drawn in place of the average and even with the
+average toggled off — the EQ curve is the run plus the bands, so ghosting the average would compare
+it against a curve it was never built from. Labels and hover list it too, named by the run
+(`Phone (Center, AVG)`), not as the average.
 
 ## `GraphEqOverlay` and the channel scope
 

@@ -255,8 +255,13 @@ describe('curveTraces', () => {
 			expect(traces.map((t) => t.ghost)).toEqual([false, true]);
 		});
 
-		it('never dims an inserted-phone, as the engine never has', () => {
+		it('ghosts an inserted-phone that is the source, like a phone', () => {
 			const [trace] = curveTraces(item({ type: 'inserted-phone' }), eqAvg);
+			expect(trace.ghost).toBe(true);
+		});
+
+		it('does not ghost an inserted-phone when it is not the source', () => {
+			const [trace] = curveTraces(item({ type: 'inserted-phone' }), null);
 			expect(trace.ghost).toBe(false);
 		});
 

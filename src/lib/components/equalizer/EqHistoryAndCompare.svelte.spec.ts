@@ -388,6 +388,20 @@ describe('EqHistoryAndCompare', () => {
 			await expect.element(button(m.eq_history_menu_title({ name: 'Treble tame' }))).toHaveFocus();
 		});
 
+		it('renames inline: the field opts out of text correction', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			const field = await startRename('Bass-light v2');
+			const el = field.element();
+			expect(el.getAttribute('autocomplete')).toBe('off');
+			expect(el.getAttribute('autocorrect')).toBe('off');
+			expect(el.getAttribute('autocapitalize')).toBe('none');
+			expect(el.getAttribute('spellcheck')).toBe('false');
+			expect(el.getAttribute('enterkeyhint')).toBe('done');
+		});
+
 		it('renames inline: Escape restores the previous name', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
 			render(EqHistoryAndCompare);

@@ -1,8 +1,30 @@
+<script module lang="ts">
+	import { toast } from 'svelte-sonner';
+
+	// An error or a warning tells the user something went wrong or was left out, and a few
+	// seconds is not enough to read it, let alone act on it (WCAG 2.2.1): both stay until the
+	// close button dismisses them. Done here, once, rather than at every call site; a call
+	// that passes its own `duration` still wins. With no `id` of its own a toast is keyed by
+	// its type and text, so repeating the same failure (a button pressed again, an effect
+	// firing twice) updates the toast already on screen instead of stacking another beside it.
+	for (const type of ['error', 'warning'] as const) {
+		const original = toast[type];
+		toast[type] = (message, data) =>
+			original(message, {
+				duration: Infinity,
+				id: typeof message === 'string' ? `${type}:${message}` : undefined,
+				...data
+			});
+	}
+</script>
+
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
+	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { claimInitialLoad } from '#lib/services/initial-load.js';
 	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
@@ -26,22 +48,20 @@
 	import DevicePanel from '#lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '#lib/components/panels/GraphPanel.svelte';
 	import EqualizerPanel from '#lib/components/panels/EqualizerPanel.svelte';
-	import MiscPanel from '#lib/components/panels/MiscPanel.svelte';
+	import MiscPanel, { CHANGELOG_URL } from '#lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '#lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
 	import VolumeWarningDialog from '#lib/components/features/VolumeWarningDialog.svelte';
 	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
 	import EqChannelConflictDialog from '#lib/components/equalizer/EqChannelConflictDialog.svelte';
 	import { eqChannelConflict } from '#lib/services/eq-channel-conflict.svelte.js';
-	import { Toaster, toast } from 'svelte-sonner';
+	import { Toaster } from 'svelte-sonner';
 	import TooltipHost from '#lib/components/atoms/TooltipHost.svelte';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
-	import { checkVersionUpdate } from '#lib/utils/version-update.js';
+	import { checkVersionUpdate, type VersionUpdate } from '#lib/utils/version-update.js';
 	import { stripHtml } from '#lib/utils/html-sanitizer.js';
 	import * as m from '#lib/paraglide/messages.js';
-
-	const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
 
 	// Targets of the skip links, and the regions that carry them.
 	const GRAPH_REGION_ID = 'app-graph-region';
@@ -84,6 +104,64 @@
 			: 'minmax(400px, 65%) 5px minmax(340px, 1fr)'
 	);
 
+	// The "updated to vX" toast waits its turn: it sits outside a modal dialog, which makes
+	// everything beyond it inert, so one shown at boot is unreachable (and its link unusable)
+	// until the dialog is gone, and may time out before that.
+	let pendingUpdate = $state<VersionUpdate | null>(null);
+	// The squig.link sponsor dialog is not in the DOM until its script has loaded:
+	// 'loading' is not knowing yet, 'expected' is that it opens and has not shown so far.
+	let sponsor = $state<'none' | 'loading' | 'expected'>('none');
+	let modalOpen = $state(false);
+	let modalSeen = $state(false);
+	let modalWatcher: MutationObserver | undefined;
+
+	const OPEN_DIALOG =
+		'[data-dialog-content][data-state="open"], [data-alert-dialog-content][data-state="open"]';
+
+	/**
+	 * Track whether a modal dialog is open, from the DOM: the tour has a store, but the sponsor
+	 * dialog's open state is local to `SponsorBanner`. Popovers are not counted (they carry
+	 * `role="dialog"` too, but leave the page usable). Runs only until the toast has been shown.
+	 */
+	function watchForModals() {
+		const sync = () => {
+			modalOpen = document.querySelector(OPEN_DIALOG) !== null;
+			if (modalOpen) modalSeen = true;
+		};
+		sync();
+		modalWatcher = new MutationObserver(sync);
+		modalWatcher.observe(document.body, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['data-state']
+		});
+	}
+
+	const updateToastReady = $derived(
+		pendingUpdate !== null &&
+			!tutorialStore.isOpen &&
+			!modalOpen &&
+			sponsor !== 'loading' &&
+			!(sponsor === 'expected' && !modalSeen)
+	);
+
+	// In the component, not in a panel: panels unmount on every switch.
+	$effect(() => {
+		if (!updateToastReady) return;
+		const update = untrack(() => pendingUpdate);
+		if (!update) return;
+		pendingUpdate = null;
+		modalWatcher?.disconnect();
+		toast.message(m.version_update_toast_title({ version: update.current }), {
+			duration: 10000,
+			action: {
+				label: m.version_update_toast_changelog(),
+				onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
+			}
+		});
+	});
+
 	function disableIOSZoom() {
 		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 		if (!isIOS) return;
@@ -113,13 +191,17 @@
 		// Skipped on first visit (no stored version) and on same/downgraded versions.
 		const update = checkVersionUpdate(__APP_VERSION__);
 		if (update) {
-			toast.message(m.version_update_toast_title({ version: update.current }), {
-				duration: 10000,
-				action: {
-					label: m.version_update_toast_changelog(),
-					onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
-				}
-			});
+			watchForModals();
+			if (squiglinkStore.isSponsorEnabled) {
+				// The sponsor dialog opens once its script has loaded, after this mount.
+				sponsor = 'loading';
+				void squiglinkStore.fetchSponsorContent().then(() => {
+					const content = squiglinkStore.sponsorContent;
+					sponsor =
+						content && !squiglinkStore.isSponsorDismissed(content.sponsorId) ? 'expected' : 'none';
+				});
+			}
+			pendingUpdate = update;
 		}
 
 		// Keep the on-graph EQ curve in step with eqStore for the lifetime of the
@@ -156,7 +238,10 @@
 			appStore.isReady = true;
 		});
 
-		return () => window.removeEventListener('resize', updateMobile);
+		return () => {
+			window.removeEventListener('resize', updateMobile);
+			modalWatcher?.disconnect();
+		};
 	});
 
 	// Auto-update URL when store data changes (phones added/removed, graph state, etc.)
@@ -333,7 +418,13 @@
 	{/if}
 </div>
 
-<Toaster position="top-center" richColors closeButton theme={settingsStore.theme} />
+<Toaster
+	position="top-center"
+	richColors
+	closeButton
+	closeButtonAriaLabel={m.toast_close()}
+	theme={settingsStore.theme}
+/>
 <TooltipHost />
 
 <SponsorBanner />

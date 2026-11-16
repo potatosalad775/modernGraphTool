@@ -13,7 +13,8 @@
 	import Button from '../atoms/Button.svelte';
 	import { Settings2, X } from '@lucide/svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; without it the buttons keep their generic names.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
 
 	// This component is UI only. Slider state lives in targetAdjustmentStore so it
 	// survives the panel switches that unmount GraphPanel, and so DataProvider can
@@ -102,6 +103,7 @@
 			<Button
 				{...props}
 				title={m.target_customizer_btn_view()}
+				aria-label={name ? m.target_customizer_btn_view_named({ name }) : undefined}
 				variant="outline"
 				size="icon"
 				activeOnOpen
@@ -157,6 +159,9 @@
 					</div>
 					<Button
 						title={m.target_customizer_btn_remove()}
+						aria-label={name
+							? m.target_customizer_btn_remove_named({ filter: def.name, name })
+							: undefined}
 						onclick={() => targetAdjustmentStore.removeFilter(uuid, def.id)}
 						variant="ghost"
 						size="icon"

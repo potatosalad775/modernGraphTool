@@ -215,12 +215,12 @@
 		importInputEl?.click();
 	}
 
-	function handleImportFile(e: Event) {
-		const file = (e.target as HTMLInputElement).files?.[0];
+	async function handleImportFile(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
 		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = (ev) => {
-			const outcome = importOutcome(ev.target!.result as string);
+		try {
+			const outcome = importOutcome(await file.text());
 			if (outcome.kind === 'filters') {
 				const { filters, skipped } = outcome;
 				// An imported parametric file is authored without a device
@@ -243,9 +243,16 @@
 					description: m.equalizer_filter_list_import_none()
 				});
 			}
-			(e.target as HTMLInputElement).value = '';
-		};
-		reader.readAsText(file);
+		} catch (err) {
+			// The file could not be read at all (moved, permission, a dead network share).
+			console.error('EqFilterList: failed to read the EQ file', err);
+			toast.error(m.equalizer_filter_list_import(), {
+				description: m.equalizer_filter_list_import_unreadable()
+			});
+		} finally {
+			// Reset so picking the same file again fires `change`.
+			input.value = '';
+		}
 	}
 
 	/** The export file name's device part, or null with no EQ source selected. */
@@ -465,7 +472,7 @@
 	<input
 		bind:this={importInputEl}
 		type="file"
-		accept=".txt"
+		accept=".txt,.cfg,.conf,text/plain"
 		class="hidden"
 		onchange={handleImportFile}
 	/>

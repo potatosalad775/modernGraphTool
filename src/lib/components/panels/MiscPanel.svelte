@@ -1,6 +1,11 @@
+<script module lang="ts">
+	/** The release notes: the version toast's action and the About block's link share it. */
+	export const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
+</script>
+
 <script lang="ts">
 	import { getConfigValue } from '#lib/utils/config.js';
-	import { BookOpen, Globe, GraduationCap, Heart, Moon, Sun } from '@lucide/svelte';
+	import { BookOpen, Globe, GraduationCap, Heart, Moon, ScrollText, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
@@ -153,6 +158,19 @@
 				class="text-base-content/60 hover:bg-base-300"
 			>
 				<BookOpen class="h-4 w-4" aria-hidden="true" />
+			</Button>
+
+			<!-- Changelog button: the version toast's link is gone within seconds -->
+			<Button
+				href={CHANGELOG_URL}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={m.version_update_toast_changelog()}
+				variant="ghost"
+				size="icon-sm"
+				class="text-base-content/60 hover:bg-base-300"
+			>
+				<ScrollText class="h-4 w-4" aria-hidden="true" />
 			</Button>
 
 			<!-- Tutorial button -->

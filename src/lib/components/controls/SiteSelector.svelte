@@ -62,7 +62,8 @@
 		bind:open
 		side="bottom"
 		sideOffset={4}
-		contentClass="min-w-48 max-h-[min(20rem,var(--bits-popover-content-available-height))] overflow-y-auto"
+		label={m.site_selector_label()}
+		contentClass="min-w-48 max-h-[min(20rem,var(--bits-popover-content-available-height))]"
 	>
 		{#snippet trigger({ props })}
 			<Button

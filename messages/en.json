@@ -52,6 +52,7 @@
 	"selection_list_samples_all": "Select All",
 	"selection_list_samples_none": "Deselect All",
 	"selection_list_download": "Download",
+	"selection_list_download_named": "Download {name}",
 	"selection_list_download_average": "Average only",
 	"selection_list_download_average_hint": "The averaged curve, as drawn",
 	"selection_list_download_all": "All samples",
@@ -82,6 +83,7 @@
 		}
 	],
 	"equalizer_filter_list_import_none": "No valid filters found in file",
+	"equalizer_filter_list_import_unreadable": "The file could not be read",
 	"equalizer_filter_list_import_skipped": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -223,6 +225,31 @@
 	"graph_uploader_upload_fr": "Upload FR",
 	"graph_uploader_upload_target": "Upload Target",
 	"graph_uploader_invalid_format": "Invalid format",
+	"graph_uploader_no_data": "No valid data points found in the file",
+	"graph_uploader_failed": "Failed to load {name}",
+	"graph_uploader_loaded_one": "Loaded {name}",
+	"graph_uploader_loaded_measurements": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Loaded {count} measurement",
+				"countPlural=*": "Loaded {count} measurements"
+			}
+		}
+	],
+	"graph_uploader_loaded_targets": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Loaded {count} target",
+				"countPlural=*": "Loaded {count} targets"
+			}
+		}
+	],
+	"graph_uploader_too_large": "{name} is larger than {size} MB and was not loaded.",
+	"graph_uploader_too_many": "{count} files selected. Pick at most {limit} at a time.",
 	"graph_controls_label": "Graph Controls",
 	"target_selector_label": "Target",
 	"normalizer_input_label": "Normalization",
@@ -242,6 +269,8 @@
 	"share_button_label": "Share",
 	"share_button_on_click": "Copied!",
 	"share_button_copy_failed": "Failed to copy URL",
+	"share_button_manual_copy": "Your browser blocked copying. Copy the link below yourself.",
+	"share_button_url_label": "Share link",
 	"average_button_label": "Average",
 	"average_button_hint": "Average all visible measurements into a new curve",
 	"average_button_needs_two": "Show at least two measurements to average",
@@ -259,6 +288,7 @@
 	],
 	"version_update_toast_title": "Updated to v{version}",
 	"version_update_toast_changelog": "Changelog",
+	"toast_close": "Dismiss notification",
 	"tutorial_modal_btn_prev": "Previous",
 	"tutorial_modal_btn_next": "Next",
 	"tutorial_modal_btn_done": "Done",
@@ -311,6 +341,7 @@
 	"graph_color_picker_btn_random": "Random",
 	"graph_color_picker_btn_close": "Close",
 	"graph_color_picker_pick": "Pick color",
+	"graph_color_picker_pick_named": "Pick color for {name}",
 	"graph_color_picker_color_input": "Curve color",
 	"tutorial_freq_sub_bass_name": "Sub Bass",
 	"tutorial_freq_sub_bass_desc": "The Rumble, usually out of human's hearing range and tend to be felt more than heard, providing a sense of power.",
@@ -326,8 +357,10 @@
 	"tutorial_freq_brilliance_desc": "The brilliance range is composed entirely of harmonics and is responsible for sparkle and air of a sound. Over-boosting can accentuate hiss and cause ear fatigue.",
 	"pref_bound_row_label": "Pref. Bound",
 	"target_customizer_btn_view": "Pref. Adjustment",
+	"target_customizer_btn_view_named": "Pref. Adjustment of {name}",
 	"target_customizer_btn_reset": "Reset",
 	"target_customizer_btn_remove": "Remove",
+	"target_customizer_btn_remove_named": "Remove {filter} from {name}",
 	"target_customizer_add_filter": "Add Filter",
 	"target_customizer_preset": "Preset",
 	"target_customizer_no_filters": "No filters active",
@@ -362,6 +395,7 @@
 	"selection_list_remove_named": "Remove {name}",
 	"selection_list_baseline_named": "Set {name} as baseline",
 	"selection_list_channel_named": "Channel of {name}",
+	"selection_list_channel_samples_named": "{channel}, channel and samples of {name}",
 	"selection_list_y_offset": "Y offset",
 	"selection_list_y_offset_named": "Y offset of {name}",
 	"selection_list_y_offset_decrease": "Decrease Y offset",
@@ -530,6 +564,10 @@
 	"equalizer_device_peq_network_type": "Network device type",
 	"equalizer_device_peq_network_ip": "Device IP",
 	"equalizer_device_peq_network_connect": "Connect",
+	"equalizer_device_peq_network_ip_hint": "An IP address or a .local name, with a port if it needs one",
+	"device_peq_network_host_invalid": "Enter only the device's IP address (192.168.1.20) or its .local name (wiim.local), with an optional port. No http://, paths or spaces.",
+	"device_peq_network_host_public": "That is a public hostname. Use the device's IP address or its .local name.",
+	"device_peq_network_host_port": "The port must be a number from 1 to 65535.",
 	"equalizer_device_peq_choose_prompt": "Several devices match. Pick the profile that fits yours.",
 	"equalizer_device_peq_choose_confirm": "Connect",
 	"equalizer_device_peq_unsupported": "This device isn't in the EQ database.",
@@ -656,6 +694,7 @@
 	"device_peq_error_unsupported": "This device doesn't support that.",
 	"device_peq_error_unrepresentable": "A value can't be sent to this device.",
 	"device_peq_error_generic": "Something went wrong talking to the device.",
+	"device_peq_error_network_blocked": "The browser couldn't reach the device. Check that it is on and on this network, and that this site is allowed to connect to devices on your local network. A site served over HTTPS can't reach a device that only answers over HTTP.",
 	"link_start": "Link with uniPEQ",
 	"link_start_hint": "You can also edit this EQ together with uniPEQ, which writes it to the device connected there.",
 	"link_help_what": "uniPEQ is a free app for Android and web browsers. It reads and writes the EQ built into many USB DACs, dongles, headphones and IEMs.",

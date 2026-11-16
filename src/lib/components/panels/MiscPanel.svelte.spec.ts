@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
-import MiscPanel from './MiscPanel.svelte';
+import MiscPanel, { CHANGELOG_URL } from './MiscPanel.svelte';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { setLocale, locales } from '#lib/paraglide/runtime.js';
 
@@ -200,6 +200,14 @@ describe('MiscPanel', () => {
 			await expect
 				.element(page.getByRole('link', { name: 'Documentation' }))
 				.toHaveAttribute('href', 'https://potatosalad775.github.io/modernGraphTool/docs');
+		});
+
+		it('links to the changelog, the same page the version toast opens', async () => {
+			render(MiscPanel);
+
+			await expect
+				.element(page.getByRole('link', { name: 'Changelog' }))
+				.toHaveAttribute('href', CHANGELOG_URL);
 		});
 
 		it('shows the donate link by default', async () => {

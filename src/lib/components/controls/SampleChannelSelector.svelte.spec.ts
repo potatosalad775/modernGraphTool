@@ -87,6 +87,17 @@ describe('SampleChannelSelector', () => {
 			await expect.element(page.getByRole('button').first()).toHaveTextContent('L + R');
 		});
 
+		it('names the trigger after the curve, led by the visible label, when given one', async () => {
+			render(SampleChannelSelector, {
+				uuid: 'p',
+				item: makeItem({ dispChannel: ['L', 'R'] }),
+				name: 'Brand Phone'
+			});
+			await expect
+				.element(page.getByRole('button', { name: 'L + R, channel and samples of Brand Phone' }))
+				.toBeInTheDocument();
+		});
+
 		it('falls back to the raw value when the channel has no option', async () => {
 			render(SampleChannelSelector, {
 				uuid: 'p',

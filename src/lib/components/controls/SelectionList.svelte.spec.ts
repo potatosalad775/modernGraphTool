@@ -74,6 +74,9 @@ describe('SelectionList', () => {
 			await expect
 				.element(page.getByRole('combobox', { name: `Channel of ${name}` }))
 				.toBeVisible();
+			await expect
+				.element(page.getByRole('button', { name: `Pick color for ${name}` }))
+				.toBeVisible();
 		}
 	});
 

@@ -36,6 +36,9 @@
 
 	// ── State ───────────────────────────────────────────────────────────────────
 
+	// Prefixes the ids that tie a row's button to its description.
+	const uid = $props.id();
+
 	const selectedBrands = new SvelteSet<string>();
 	let searchQuery = $state('');
 	let showPhonePane = $state(true);
@@ -48,11 +51,47 @@
 
 	// ── Derived ─────────────────────────────────────────────────────────────────
 
-	const fullPhoneList = $derived.by((): (PhoneMetadata & { brand: string })[] => {
+	/**
+	 * A device as the list uses it: the book entry plus what is derived from it once
+	 * rather than on every keystroke or row render. Kept off `PhoneMetadata`, which is
+	 * what `phone_book.json` parses into.
+	 */
+	type PhoneRow = PhoneMetadata & {
+		brand: string;
+		/** `identifier`, lowercased: what a query is matched against. */
+		searchKey: string;
+		/** The sanitised description markup and its flattened text (the tooltip). */
+		descHtml: string;
+		descText: string;
+	};
+
+	const phoneIndex = $derived.by((): { brand: string; rows: PhoneRow[] }[] => {
 		if (!MetadataParser.phoneMetadata) return [];
-		return MetadataParser.phoneMetadata.flatMap((b) =>
-			b.phones.map((p) => ({ ...p, brand: b.brand }))
-		);
+		return MetadataParser.phoneMetadata.map((b) => ({
+			brand: b.brand,
+			rows: b.phones.map((p) => ({
+				...p,
+				brand: b.brand,
+				searchKey: p.identifier.toLowerCase(),
+				descHtml: p.description ? sanitizeHtml(p.description) : '',
+				descText: p.description ? stripHtml(p.description) : ''
+			}))
+		}));
+	});
+
+	const fullPhoneList = $derived(phoneIndex.flatMap((b) => b.rows));
+
+	// The list follows the field a moment behind, so a keystroke repaints the input
+	// first and the filter plus up to ~1500 rows only once typing pauses. Everything
+	// the query decides (rows, brands, the empty state, the announced count) reads
+	// `listQuery`; only the field itself is bound to `searchQuery`.
+	const LIST_DEBOUNCE_MS = 80;
+	let listQuery = $state('');
+
+	$effect(() => {
+		const query = searchQuery;
+		const timer = setTimeout(() => (listQuery = query), LIST_DEBOUNCE_MS);
+		return () => clearTimeout(timer);
 	});
 
 	// `A,B` is an *and* across databases, but a single device can only ever be
@@ -60,11 +99,10 @@
 	// the comparison the query describes in front of the user at once. `//`
 	// alternatives are an *or* already, so every term simply joins the union.
 	// A group's `-word` exclusions apply to that group's terms only.
-	const queryGroups = $derived(splitQueryGroups(searchQuery));
+	const queryGroups = $derived(splitQueryGroups(listQuery));
 
-	function matchesQuery(identifier: string): boolean {
-		const id = identifier.toLowerCase();
-		return queryGroups.some((group) => matchesQueryGroup(id, group));
+	function matchesQuery(searchKey: string): boolean {
+		return queryGroups.some((group) => matchesQueryGroup(searchKey, group));
 	}
 
 	/**
@@ -73,13 +111,9 @@
 	 * see or clear it short of "Clear brands".
 	 */
 	const brandListData = $derived.by((): string[] => {
-		if (!MetadataParser.phoneMetadata) return [];
-		const book = MetadataParser.phoneMetadata;
-		if (queryGroups.length === 0) return book.map((b) => b.brand);
-		return book
-			.filter(
-				(b) => selectedBrands.has(b.brand) || b.phones.some((p) => matchesQuery(p.identifier))
-			)
+		if (queryGroups.length === 0) return phoneIndex.map((b) => b.brand);
+		return phoneIndex
+			.filter((b) => selectedBrands.has(b.brand) || b.rows.some((p) => matchesQuery(p.searchKey)))
 			.map((b) => b.brand);
 	});
 
@@ -105,12 +139,12 @@
 		pinsFrozen = true;
 	});
 
-	const displayPhones = $derived.by((): (PhoneMetadata & { brand: string })[] => {
+	const displayPhones = $derived.by((): PhoneRow[] => {
 		let list =
 			selectedBrands.size > 0
 				? fullPhoneList.filter((p) => selectedBrands.has(p.brand))
 				: fullPhoneList;
-		if (queryGroups.length > 0) list = list.filter((p) => matchesQuery(p.identifier));
+		if (queryGroups.length > 0) list = list.filter((p) => matchesQuery(p.searchKey));
 		if (pinnedIds.size === 0) return list;
 		// Sort is stable, so both groups keep their phone_book.json order.
 		return [...list].sort(
@@ -133,9 +167,9 @@
 	let resultAnnouncement = $state('');
 
 	$effect(() => {
-		const filtering = searchQuery.trim() !== '' || selectedBrands.size > 0;
+		const filtering = listQuery.trim() !== '' || selectedBrands.size > 0;
 		const count = displayPhones.length;
-		const hasQuery = searchQuery.trim() !== '';
+		const hasQuery = listQuery.trim() !== '';
 		if (!filtering) {
 			resultAnnouncement = '';
 			return;
@@ -166,17 +200,6 @@
 		selectedBrands.clear();
 	}
 
-	/**
-	 * Row clicks toggle the device — except on a link. The rank / review / shop /
-	 * operator links sit beside the row button, not in it; only the anchors inside
-	 * an HTML description (`{@html}`) are still inside the button, so this guard
-	 * covers those (and Enter on a focused link, which dispatches a click too).
-	 */
-	function onRowClick(event: MouseEvent, identifier: string, isLoaded: boolean): void {
-		if ((event.target as Element | null)?.closest('a')) return;
-		togglePhone(identifier, isLoaded);
-	}
-
 	async function togglePhone(identifier: string, isLoaded: boolean): Promise<void> {
 		// Whatever the list looks like now is what the user is aiming at — hold it.
 		pinsFrozen = true;
@@ -205,9 +228,7 @@
 	 * so an anchor built from the phone book's spelling would point at a card
 	 * that doesn't exist on the ranking page.
 	 */
-	function rankOf(
-		phone: PhoneMetadata & { brand: string }
-	): { display: RankDisplay; href: string | null } | null {
+	function rankOf(phone: PhoneRow): { display: RankDisplay; href: string | null } | null {
 		const row = rankingService.lookup(phone.brand, phone.name);
 		const display = resolveRankDisplay(
 			row?.value ?? phone.reviewScore,
@@ -411,7 +432,7 @@
 				<!-- Empty state -->
 				{#if displayPhones.length === 0 && crossSiteResultCount === 0 && !crossSiteIsLoading}
 					<p class="px-3 py-6 text-center text-xs text-base-content/60">
-						{searchQuery.trim() ? m.phone_selector_no_results() : m.phone_selector_no_devices()}
+						{listQuery.trim() ? m.phone_selector_no_results() : m.phone_selector_no_devices()}
 					</p>
 				{/if}
 
@@ -426,25 +447,31 @@
 					{@const hasMeta =
 						isLoaded &&
 						!!(rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
-					<!-- The row is a container, not a button: the toggle button and the link row
-					     are siblings, because links nested in a button are invalid and hidden from
-					     assistive tech (and a disabled button disables them). The button's `::after`
-					     stretches over the whole row to keep the full-row click area; the link row
-					     sits above it (`z-10`) and lets clicks on its blank space fall through
-					     (`pointer-events-none`, re-enabled on the anchors). -->
+					{@const descId = `${uid}-desc-${i}`}
+					<!-- The row is a container, not a button: the toggle button, the description and
+					     the link row are siblings, because links nested in a button are invalid and
+					     hidden from assistive tech (and a disabled button disables them). The
+					     button's `::after` stretches over the whole row to keep the full-row click
+					     area; the description and the link row sit above it (`z-10`) and let clicks
+					     on their blank space and plain text fall through (`pointer-events-none`,
+					     re-enabled on the anchors). -->
 					<div
 						class="relative transition-colors {isPinBoundary
 							? 'border-b-2 border-b-base-content/30'
 							: 'border-b border-base-content/8'}
 							{isLoaded ? 'border-l-2 border-l-accent bg-accent/8' : 'hover:bg-base-300'}"
 					>
+						<!-- `title` carries the flattened description as the row's tooltip: the
+						     description itself is click-through, so it can't show one. -->
 						<button
-							onclick={(e) => onRowClick(e, phone.identifier, isLoaded)}
+							onclick={() => togglePhone(phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 							aria-pressed={isLoaded}
-							class="flex w-full flex-col items-start gap-1 px-3 pt-1.5 text-left text-sm after:absolute
+							aria-describedby={phone.description ? descId : undefined}
+							title={phone.descText || undefined}
+							class="flex w-full flex-col items-start px-3 pt-1.5 text-left text-sm after:absolute
 								after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent
-								{hasMeta ? 'pb-0' : 'min-h-8 pb-1.5'}
+								{hasMeta || phone.description ? 'pb-0' : 'min-h-8 pb-1.5'}
 								{isLoaded ? 'font-medium text-base-content' : ''}
 								{isLoading ? 'opacity-50' : ''}
 								cursor-pointer disabled:cursor-default"
@@ -452,21 +479,26 @@
 							<span class="min-w-0 flex-1 truncate leading-snug">
 								{phone.identifier}
 							</span>
+						</button>
 
-							{#if phone.description}
-								<!-- Operator-authored, so a small inline HTML subset is honored. The
-								     sanitizer drops everything else; `title` gets the flattened text
-								     because a tooltip would otherwise show raw markup. -->
-								<span
-									class="ps-description relative z-10 min-w-0 self-stretch text-xs leading-snug text-base-content/60
+						{#if phone.description}
+							<!-- Operator-authored, so a small inline HTML subset is honored; the sanitizer
+							     drops everything else (done once per device, in `phoneIndex`). -->
+							<div
+								id={descId}
+								class="pointer-events-none relative z-10 px-3 pt-1 {hasMeta ? 'pb-0' : 'pb-1.5'}
+									{isLoaded ? 'font-medium' : ''}
+									{isLoading ? 'opacity-50' : ''}"
+							>
+								<div
+									class="ps-description min-w-0 text-xs leading-snug text-base-content/60
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
-									title={stripHtml(phone.description)}
 								>
 									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-									{@html sanitizeHtml(phone.description)}
-								</span>
-							{/if}
-						</button>
+									{@html phone.descHtml}
+								</div>
+							</div>
+						{/if}
 
 						{#if hasMeta}
 							<div
@@ -522,7 +554,7 @@
 
 								<!-- Operator-defined extras — several shops, a manufacturer page,
 									     a measurement note. Labels come from phone_book.json as-is. -->
-								{#each phone.links ?? [] as link, i (link.url + ' ' + link.label + i)}
+								{#each phone.links ?? [] as link, i (link.url + '\0' + link.label + i)}
 									<a
 										href={link.url}
 										target="_blank"
@@ -557,6 +589,7 @@
 	/* Links inside an HTML description are injected via {@html}, so they carry no
 	   Tailwind classes — style them here to match the review / shop links. */
 	.ps-description :global(a) {
+		pointer-events: auto;
 		color: var(--color-info);
 	}
 	.ps-description :global(a:hover) {

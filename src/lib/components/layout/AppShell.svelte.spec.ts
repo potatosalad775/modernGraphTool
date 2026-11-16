@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import { toast } from 'svelte-sonner';
 import AppShell from './AppShell.svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
-import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
+import { tutorialStore, TOUR_STORAGE_KEYS } from '#lib/stores/tutorial-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { loadDefaultConfig, installWriteBudget, findTarget } from './app-boot-harness.js';
@@ -137,6 +138,49 @@ describe('AppShell boot', () => {
 		expect(document.activeElement?.id).toBe('app-graph-region');
 		links[0].click();
 		expect(document.activeElement?.id).toBe('app-controls-region');
+	}, 30000);
+
+	it('keeps error and warning toasts until dismissed, and folds a repeat into one', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		toast.error('Something failed');
+		toast.error('Something failed');
+		toast.warning('Something was left out');
+		toast.success('Done');
+		const active = () => toast.getActiveToasts();
+		await expect.poll(() => active().length).toBe(3);
+		const byTitle = (title: string) => active().find((t) => t.title === title)!;
+		expect(byTitle('Something failed').duration).toBe(Infinity);
+		expect(byTitle('Something was left out').duration).toBe(Infinity);
+		expect(byTitle('Done').duration).toBeUndefined();
+
+		// The close button has a name, and it dismisses.
+		const close = page.getByRole('button', { name: 'Dismiss notification' });
+		await expect.poll(() => close.elements().length).toBeGreaterThan(0);
+		await close.first().click();
+		await expect.poll(() => active().length).toBe(2);
+		toast.dismiss();
+	}, 30000);
+
+	it('holds the version toast back until the welcome tour is closed', async () => {
+		tutorialStore.dismiss();
+		localStorage.removeItem(TOUR_STORAGE_KEYS.welcome);
+		localStorage.setItem('gt-settings-app-version', '0.0.1');
+		try {
+			render(AppShell);
+			await expect.poll(() => tutorialStore.isOpen).toBe(true);
+			await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+			const updated = () =>
+				toast.getActiveToasts().filter((t) => String(t.title).startsWith('Updated'));
+			expect(updated()).toHaveLength(0);
+
+			tutorialStore.dismiss();
+			await expect.poll(() => updated().length).toBe(1);
+		} finally {
+			toast.dismiss();
+			localStorage.removeItem('gt-settings-app-version');
+		}
 	}, 30000);
 
 	it('keeps target customizer adjustments across a panel switch', async () => {

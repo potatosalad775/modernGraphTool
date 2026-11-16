@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import { twMerge } from 'tailwind-merge';
 
 	/**
 	 * A modal with a title, an optional description and body, and a row of action buttons.
@@ -30,6 +31,15 @@
 		class?: string;
 	} = $props();
 
+	// Capped to the viewport and scrolling inside: `html` is `overflow: hidden`, so a tall body
+	// would otherwise be clipped. `class` is merged over this, so a caller's `max-h-*` wins.
+	const contentClasses = $derived(
+		twMerge(
+			'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 overflow-y-auto overscroll-contain rounded-xl bg-base-200 p-6 shadow-2xl',
+			className
+		)
+	);
+
 	function handleOpenChange(value: boolean) {
 		open = value;
 		onOpenChange?.(value);
@@ -42,7 +52,7 @@
 		<DialogPrimitive.Content
 			interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
 			escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
-			class="fixed top-1/2 left-1/2 z-50 flex w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-xl bg-base-200 p-6 shadow-2xl {className}"
+			class={contentClasses}
 		>
 			<DialogPrimitive.Title class="text-lg font-semibold text-base-content">
 				{title}

@@ -46,8 +46,20 @@ describe('DownloadButton', () => {
 		await expect.element(page.getByRole('button', { name: 'All samples' })).not.toBeInTheDocument();
 	});
 
+	it('names the plain button after the curve when it is given one', async () => {
+		render(DownloadButton, { uuid: 'p', item: makeItem(), name: 'Brand Phone' });
+		await page.getByRole('button', { name: 'Download Brand Phone' }).click();
+		expect(download).toHaveBeenCalledExactlyOnceWith('p', { runs: false });
+	});
+
 	describe('a sample set', () => {
 		const item = makeItem({ samples: [{ L: channel(80) }, { L: channel(81) }] });
+
+		it('names the menu trigger after the curve when it is given one', async () => {
+			render(DownloadButton, { uuid: 'p', item, name: 'Brand Phone' });
+			await page.getByRole('button', { name: 'Download Brand Phone' }).click();
+			await expect.element(page.getByRole('button', { name: 'Average only' })).toBeVisible();
+		});
 
 		it('asks before downloading', async () => {
 			render(DownloadButton, { uuid: 'p', item });

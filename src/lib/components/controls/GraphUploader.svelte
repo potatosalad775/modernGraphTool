@@ -26,24 +26,82 @@
 		return { base: stem, channel: null };
 	}
 
+	/**
+	 * A file over this size is rejected before it is read. A real FR export is a few tens of KB, so
+	 * 5 MB is generous; the cap is there so a wrong pick (a video, a disk image) cannot be loaded
+	 * into memory and tokenized on the main thread.
+	 */
+	const MAX_FILE_BYTES = 5 * 1024 * 1024;
+	const MAX_FILE_MB = MAX_FILE_BYTES / (1024 * 1024);
+
+	/**
+	 * Files per selection. An L/R pair is two files, so this is about twenty devices at once, well
+	 * past what anyone compares on one graph, and each file is still parsed in turn.
+	 */
+	const MAX_FILES = 40;
+
+	/** A file that parsed to no usable points; shown translated rather than by its message. */
+	class NoDataError extends Error {}
+
+	/** A file over {@link MAX_FILE_BYTES}; carries its name for the toast. */
+	class FileTooLargeError extends Error {
+		fileName: string;
+		constructor(fileName: string) {
+			super(`${fileName} is too large`);
+			this.fileName = fileName;
+		}
+	}
+
 	/** Parse a file's text into channel data, rejecting files with no usable points. */
 	async function parseFile(file: File): Promise<ChannelData> {
+		if (file.size > MAX_FILE_BYTES) throw new FileTooLargeError(file.name);
 		const parsed = await FRParser.parseFRData(await file.text());
-		if (!parsed.data.length) throw new Error('No valid data points');
+		if (!parsed.data.length) throw new NoDataError('No valid data points');
 		return parsed;
 	}
 
-	/** Pluralized success toast: keep the device name when only one was loaded. */
-	function reportLoaded(names: string[], noun: string) {
-		if (names.length === 1) toast.success(`Loaded ${names[0]}`);
-		else if (names.length > 1) toast.success(`Loaded ${names.length} ${noun}s`);
+	/** One toast per failed device, or per oversized file. */
+	function reportFailure(base: string, err: unknown) {
+		console.error(`GraphUploader: failed to upload ${base}`, err);
+		if (err instanceof FileTooLargeError) {
+			toast.error(m.graph_uploader_too_large({ name: err.fileName, size: MAX_FILE_MB }));
+			return;
+		}
+		toast.error(m.graph_uploader_failed({ name: base }), {
+			description:
+				err instanceof NoDataError
+					? m.graph_uploader_no_data()
+					: err instanceof Error
+						? err.message
+						: m.graph_uploader_invalid_format()
+		});
+	}
+
+	/** Success toast: keep the device name when only one was loaded. */
+	function reportLoaded(names: string[], kind: 'measurement' | 'target') {
+		if (names.length === 1) toast.success(m.graph_uploader_loaded_one({ name: names[0] }));
+		else if (names.length > 1) {
+			const count = names.length;
+			toast.success(
+				kind === 'target'
+					? m.graph_uploader_loaded_targets({ count })
+					: m.graph_uploader_loaded_measurements({ count })
+			);
+		}
+	}
+
+	/** Whether a selection is small enough to process; says so when it is not. */
+	function withinFileLimit(files: File[]): boolean {
+		if (files.length <= MAX_FILES) return true;
+		toast.error(m.graph_uploader_too_many({ count: files.length, limit: MAX_FILES }));
+		return false;
 	}
 
 	async function handlePhoneUpload(e: Event) {
 		const input = e.target as HTMLInputElement;
 		const files = Array.from(input.files ?? []);
 		input.value = '';
-		if (!files.length) return;
+		if (!files.length || !withinFileLimit(files)) return;
 
 		// Group channel-marked files by base name (e.g. "Foo L.txt" + "Foo R.txt" -> "Foo").
 		// Files without an L/R marker stay standalone and render as a single mono curve.
@@ -74,10 +132,7 @@
 				await dataProvider.insertRawFRData('phone', base, channels, { dispSuffix: 'Uploaded' });
 				loaded.push(base);
 			} catch (err) {
-				console.error(`GraphUploader: failed to upload ${base}`, err);
-				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
-				});
+				reportFailure(base, err);
 			}
 		}
 
@@ -96,10 +151,7 @@
 				);
 				loaded.push(base);
 			} catch (err) {
-				console.error(`GraphUploader: failed to upload ${base}`, err);
-				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
-				});
+				reportFailure(base, err);
 			}
 		}
 
@@ -110,7 +162,7 @@
 		const input = e.target as HTMLInputElement;
 		const files = Array.from(input.files ?? []);
 		input.value = '';
-		if (!files.length) return;
+		if (!files.length || !withinFileLimit(files)) return;
 
 		const loaded: string[] = [];
 		for (const file of files) {
@@ -128,10 +180,7 @@
 				);
 				loaded.push(base);
 			} catch (err) {
-				console.error(`GraphUploader: failed to upload ${base}`, err);
-				toast.error(`Failed to load ${base}`, {
-					description: err instanceof Error ? err.message : m.graph_uploader_invalid_format()
-				});
+				reportFailure(base, err);
 			}
 		}
 

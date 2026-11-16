@@ -17,7 +17,8 @@
 	import Button from '../atoms/Button.svelte';
 	import { Shuffle } from '@lucide/svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; without it the trigger keeps its generic name.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
 
 	// Upper bound for a dash tick / space, in px. A longer stroke pattern is not a dash any more.
 	const MAX_DASH = 1000;
@@ -165,7 +166,7 @@
 				{...props}
 				class="h-5 w-5 shrink-0 cursor-pointer rounded-sm border-0 transition-opacity hover:opacity-80"
 				style="background-color: {hexColor};"
-				aria-label={m.graph_color_picker_pick()}
+				aria-label={name ? m.graph_color_picker_pick_named({ name }) : m.graph_color_picker_pick()}
 			></button>
 		{/snippet}
 	</Popover.Trigger>
@@ -173,7 +174,8 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-56 rounded-lg border border-base-content/15 bg-base-200 p-3 shadow-xl"
+			collisionPadding={8}
+			class="z-50 max-h-(--bits-popover-content-available-height) w-56 overflow-y-auto rounded-lg border border-base-content/15 bg-base-200 p-3 shadow-xl"
 		>
 			<!-- Hex color input -->
 			<div class="mb-3">

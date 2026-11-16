@@ -78,6 +78,16 @@ row of `actions` buttons:
 - `SponsorBanner` and `TutorialModal` stay raw bits-ui on purpose: one has a creative image and
   link buttons laid out by hand, the other positions itself beside a spotlight.
 
+`PopoverPanel` (and `Dialog`) cap themselves to the viewport and scroll inside, because `html` is
+`overflow: hidden` and a taller panel would be clipped with no way to reach the rest:
+
+- **`contentClass` / `class` are merged with `tailwind-merge`**, so a caller's `max-h-*` replaces the
+  default cap (`SiteSelector` passes its own `min(20rem, …)`). A scrolling list inside a panel
+  should be `min-h-0` in a flex column so the header stays put (`EqOptionButton`).
+- **`label` names the panel and gives it `role="dialog"`.** bits-ui 2.21 puts no role on popover
+  content (only `aria-haspopup="dialog"` on the trigger), and a name on a bare `div` is ignored.
+  Pass a translated label for every panel that holds more than a sentence.
+
 `InfoPopover` is the `?` button that explains an option beside its label:
 
 - **`label` is required and becomes the trigger's accessible name.** Build it with

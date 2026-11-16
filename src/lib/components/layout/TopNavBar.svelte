@@ -106,7 +106,12 @@
 					</a>
 				{/each}
 				{#if overflowLinks.length > 0}
-					<PopoverPanel bind:open={moreOpen} align="end" contentClass="flex flex-col gap-0.5">
+					<PopoverPanel
+						bind:open={moreOpen}
+						align="end"
+						label={m.top_nav_bar_more_links()}
+						contentClass="flex flex-col gap-0.5"
+					>
 						{#snippet trigger({ props })}
 							<Button
 								{...props}

@@ -73,6 +73,13 @@ describe('GraphColorPicker', () => {
 		expect(expected).toMatch(/^#[0-9a-f]{6}$/i);
 	});
 
+	it('names the trigger after the curve when it is given one', async () => {
+		render(GraphColorPicker, { uuid: 'p', item: makeItem(), name: 'Brand Phone Foam' });
+		await expect
+			.element(page.getByRole('button', { name: 'Pick color for Brand Phone Foam' }))
+			.toBeInTheDocument();
+	});
+
 	// ── Seeding ──────────────────────────────────────────────────────────────
 
 	describe('opening', () => {

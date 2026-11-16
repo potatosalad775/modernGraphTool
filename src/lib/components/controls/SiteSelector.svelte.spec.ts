@@ -77,6 +77,20 @@ describe('SiteSelector', () => {
 		await expect.element(trigger()).toHaveTextContent('Select a site');
 	});
 
+	it('names the opened list, and caps it to the viewport', async () => {
+		setConfig({ ENABLED: true });
+
+		await mount();
+		await trigger().click();
+
+		const panel = page.getByRole('dialog', { name: 'Select a site' });
+		await expect.element(panel).toBeVisible();
+		await expect
+			.element(panel)
+			.toHaveClass('max-h-[min(20rem,var(--bits-popover-content-available-height))]');
+		await expect.element(panel).not.toHaveClass('max-h-(--bits-popover-content-available-height)');
+	});
+
 	it('stays hidden when the operator turns it off', async () => {
 		setConfig({ ENABLED: false });
 

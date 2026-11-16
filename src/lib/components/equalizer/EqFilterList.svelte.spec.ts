@@ -466,6 +466,32 @@ describe('EqFilterList', () => {
 			expect(eqStore.isEnabled).toBe(false);
 		});
 
+		it('reports a file that cannot be read, and still resets the input', async () => {
+			eqStore.filters = [makeFilter({ freq: 500 })];
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			render(EqFilterList);
+			const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+			const unreadable = new File(['x'], 'filters.txt', { type: 'text/plain' });
+			vi.spyOn(unreadable, 'text').mockRejectedValue(new DOMException('gone', 'NotFoundError'));
+			const transfer = new DataTransfer();
+			transfer.items.add(unreadable);
+			input.files = transfer.files;
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce());
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toMatchObject({
+				description: 'The file could not be read'
+			});
+			await vi.waitFor(() => expect(input.value).toBe(''));
+			expect(eqStore.filters).toHaveLength(1);
+		});
+
+		it('offers the extensions EQ files travel under', () => {
+			render(EqFilterList);
+			const accept = document.querySelector<HTMLInputElement>('input[type="file"]')!.accept;
+			expect(accept.split(',')).toEqual(expect.arrayContaining(['.txt', '.cfg', '.conf']));
+		});
+
 		// A band the EQ can't model is left out; without a word, the EQ on
 		// screen would quietly differ from the file the user chose.
 		it('warns how many filter lines it had to skip', async () => {

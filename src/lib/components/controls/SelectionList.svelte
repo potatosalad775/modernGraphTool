@@ -155,7 +155,7 @@
 			<!-- Row 1: color swatch + name + action buttons -->
 			<div class="flex flex-1 items-start gap-2">
 				<!-- Color swatch / picker -->
-				<GraphColorPicker {uuid} {item} />
+				<GraphColorPicker {uuid} {item} {name} />
 
 				<!-- Name + suffix / variant trigger -->
 				{#if hasVariants}
@@ -165,7 +165,7 @@
 							if (v) openVariantUUID = uuid;
 							else if (openVariantUUID === uuid) openVariantUUID = null;
 						}}
-						contentClass="min-w-60 max-w-72 max-h-64 overflow-y-auto"
+						contentClass="min-w-60 max-w-72 max-h-[min(16rem,var(--bits-popover-content-available-height))]"
 						trapFocus={false}
 					>
 						{#snippet trigger({ props })}
@@ -283,7 +283,7 @@
 				<div class="-mt-1 -mr-1 mb-2 flex items-center justify-end gap-1">
 					<!-- Target Customizer (for target items only) -->
 					{#if isTargetType(item)}
-						<TargetCustomizer {uuid} {item} />
+						<TargetCustomizer {uuid} {item} {name} />
 					{/if}
 
 					<!-- Baseline button -->
@@ -345,7 +345,7 @@
 
 					<!-- Download button -->
 					{#if downloadEnabled}
-						<DownloadButton {uuid} {item} />
+						<DownloadButton {uuid} {item} {name} />
 					{/if}
 
 					<!-- Delete button -->
@@ -368,7 +368,7 @@
 					<!-- Channel select (not for targets) -->
 					{#if !isTargetType(item) && channelOpts.length > 0}
 						{#if item.samples?.length}
-							<SampleChannelSelector {uuid} {item} />
+							<SampleChannelSelector {uuid} {item} {name} />
 						{:else}
 							<select
 								value={currentChannelVal}

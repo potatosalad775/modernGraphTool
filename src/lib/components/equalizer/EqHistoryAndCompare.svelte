@@ -411,6 +411,11 @@
 							<Input
 								bind:value={renameValue}
 								aria-label={m.eq_history_rename_label()}
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="none"
+								spellcheck={false}
+								enterkeyhint="done"
 								onkeydown={onRenameKeydown}
 								onblur={() => endRename(true)}
 								{@attach focusOnMount}

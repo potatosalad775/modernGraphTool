@@ -27,7 +27,7 @@
 	} = $props();
 </script>
 
-<PopoverPanel {side} {align}>
+<PopoverPanel {side} {align} {label}>
 	{#snippet trigger({ props })}
 		<Button
 			{...props}

@@ -21,6 +21,7 @@
 	);
 
 	let sidebarOpen = $state(false);
+	let drawerEl = $state<HTMLElement>();
 	let moreOpen = $state(false);
 
 	// Desktop links show as many as fit and hand the rest, from the end of the list, to a
@@ -171,12 +172,25 @@
 							{/if}
 						{/snippet}
 					</Dialog.Overlay>
-					<Dialog.Content forceMount>
+					<!--
+						Initial focus goes to the drawer itself, not its close button. Focusing the
+						button opens its tooltip while the drawer is still flying in from past the
+						right edge, and a tooltip out there widens a phone's layout viewport, which
+						then stays zoomed out.
+					-->
+					<Dialog.Content
+						forceMount
+						onOpenAutoFocus={(e: Event) => {
+							e.preventDefault();
+							drawerEl?.focus();
+						}}
+					>
 						{#snippet child({ props, open })}
 							{#if open}
 								<div
 									{...props}
-									class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl"
+									bind:this={drawerEl}
+									class="fixed top-0 right-0 z-50 flex h-full w-64 flex-col bg-base-200 shadow-xl outline-hidden"
 									transition:fly={{ x: 256, duration: 250, easing: cubicOut }}
 								>
 									<div

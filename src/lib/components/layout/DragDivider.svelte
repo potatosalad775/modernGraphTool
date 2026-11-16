@@ -128,7 +128,7 @@
 	aria-valuemax={valueMax}
 	tabindex="0"
 	data-tutorial-target="divider"
-	class="relative z-10 w-1.25 cursor-col-resize touch-none transition-colors before:absolute before:-inset-x-2.5 before:inset-y-0 before:content-[''] focus-visible:bg-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent {isDragging
+	class="relative z-10 w-1.25 cursor-col-resize touch-none transition-colors before:absolute before:inset-0 before:content-[''] focus-visible:bg-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent pointer-coarse:before:-inset-x-2.5 {isDragging
 		? 'bg-base-content/35'
 		: 'bg-base-content/20 hover:bg-base-content/35'}"
 	onpointerdown={startDrag}

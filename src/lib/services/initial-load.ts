@@ -95,7 +95,13 @@ async function loadInitialData(): Promise<void> {
 			})
 		);
 		// Apply URL state (yScale, baseline, yOffsets, EQ) after data is loaded
-		urlProvider.applyStateFromURL();
+		try {
+			urlProvider.applyStateFromURL();
+		} catch (err) {
+			// The state is hand-editable: a link we cannot restore must not stop the
+			// page from booting with the devices it did load.
+			console.warn('initial-load: ignoring an unreadable ?state=', err);
+		}
 	} else {
 		// Fall back to config defaults
 		const initialPhones = (getConfigValue('INITIAL_PHONES') || []) as string[];

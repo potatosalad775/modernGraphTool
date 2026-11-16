@@ -2,7 +2,7 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-filter-parse.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `channel-choice.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
@@ -207,6 +207,13 @@ only what touches `window`, `document`, `goto` and the stores, and delegates the
 - Share names go through `encodeURIComponent`, **not** `encodeURI` — the latter leaves `&`, `+` and
   `#` untouched, and over a thousand device names contain one of them. Reading is unaffected either
   way, since `URLSearchParams` decodes both forms identically.
+- **`state=` is untrusted input.** `parseStateParam` runs the decoded object through `sanitizeState`:
+  each part is checked on its own and an invalid one is dropped, never the whole state. Numbers must
+  be finite, EQ bands go through `parseFilter` (`eq-filter-parse.ts`, shared with the bookmark store)
+  and are capped at `MAX_BANDS`, and records keyed by device name skip `__proto__`. Lookups by
+  device name use `Object.hasOwn`, not `in` — a device called `constructor` exists. `initial-load`
+  also wraps `applyStateFromURL` in a try/catch so a state that still slips through can't stop boot.
+  Don't change what the encoder writes to suit this; the checks only narrow what is read.
 - `url-provider.ts` updates the URL with a **shallow** `goto(path, { shallow: true, replace: true })`
   (SvelteKit 3's replacement for `replaceState`) — never a full `goto()`, which would run a
   navigation. The path already carries the deployment base, so it is not passed through `resolve()`.

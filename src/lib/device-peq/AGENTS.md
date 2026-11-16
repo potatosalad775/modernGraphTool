@@ -32,6 +32,7 @@ file, not here.
 | `preset.ts`        | which request reaches the target preset, or none                      |
 | `network.ts`       | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts` | the network device list, without the code that talks to them          |
+| `network-host.ts`  | the typed address: what a network device may be addressed by          |
 | `link.ts`          | a device connected in uniPEQ, over the uniPEQ link; list conversions  |
 | `errors.ts`        | `BridgeError.code` → a user-facing sentence                           |
 | `panel-status.ts`  | the panel's single status line, picked by priority                    |
@@ -121,6 +122,18 @@ needs it at boot); keep it the only one.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).
+- **A network device's address is validated, twice.** The typed host goes into
+  `https://${host}/…`, so `parseNetworkHost` (`network-host.ts`) accepts only an IPv4 or IPv6
+  literal or a single-label / `.local` name, with an optional port, and refuses anything with a
+  scheme, path, query, `@` or whitespace and any other (public) hostname. `DeviceConnect` shows its
+  message beside the field; `connectNetworkDevice` and `netFetch` (the only place a URL is built)
+  check again and throw `NetworkHostError` before any fetch. **Private ranges are not enforced**:
+  devices are reached over VPNs and routed subnets, and a range says nothing about ownership; the
+  rule is "not a public name", not "a LAN address". For the same reason `targetAddressSpace` is
+  declared only where the text settles it (`addressSpaceOf`): a VPN or CGNAT address is "public" to
+  the browser, and a wrong declaration makes it abort the request. A `TypeError` from fetch
+  (mixed content, a denied Local Network Access prompt, nothing there) becomes `NetworkAccessError`,
+  which `errors.ts` matches by name.
 
 ## Testing
 

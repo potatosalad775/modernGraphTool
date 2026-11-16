@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import DevicePeq from './DevicePeq.svelte';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
@@ -394,6 +394,72 @@ describe('DevicePeq', () => {
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
 			await expect.element(page.getByText('Luxsin X9', { exact: true })).toBeInTheDocument();
 			expect(network.connectNetworkDevice).toHaveBeenCalledWith('192.168.1.20', 'LuxsinX9');
+		});
+
+		it('connects on Enter, and gives the field its keyboard hints', async () => {
+			network.connectNetworkDevice.mockReturnValue(
+				makeConnection({ connectionType: 'network', name: 'WiiM' }).connection
+			);
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'Network' }).click();
+			const field = page.getByRole('textbox', { name: 'Device IP' });
+			await expect.element(field).toHaveAttribute('autocomplete', 'off');
+			await expect.element(field).toHaveAttribute('autocapitalize', 'none');
+			await expect.element(field).toHaveAttribute('spellcheck', 'false');
+			await expect.element(field).toHaveAttribute('enterkeyhint', 'go');
+
+			await field.fill('wiim.local');
+			await userEvent.keyboard('{Enter}');
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			expect(network.connectNetworkDevice).toHaveBeenCalledWith('wiim.local', 'WiiM');
+		});
+
+		it('refuses an address that is not a device, beside the field and before connecting', async () => {
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'Network' }).click();
+			const field = page.getByRole('textbox', { name: 'Device IP' });
+			await field.fill('https://example.com/x');
+			await userEvent.keyboard('{Enter}');
+
+			await expect.element(page.getByRole('alert')).toBeVisible();
+			await expect
+				.poll(() => page.getByRole('alert').element().textContent)
+				.toContain('IP address');
+			await expect.element(field).toHaveAttribute('aria-invalid', 'true');
+			await expect.element(field).toHaveAccessibleDescription(/Enter only the device's IP address/);
+			expect(network.connectNetworkDevice).not.toHaveBeenCalled();
+
+			await field.fill('example.com');
+			await userEvent.keyboard('{Enter}');
+			await expect.element(page.getByRole('alert')).toBeVisible();
+			await expect
+				.poll(() => page.getByRole('alert').element().textContent)
+				.toContain('public hostname');
+
+			// Typing again clears the message.
+			await field.fill('192.168.1.20');
+			await expect.element(field).not.toHaveAttribute('aria-invalid');
+		});
+
+		it('keeps the form open and says why when the connection fails', async () => {
+			network.connectNetworkDevice.mockImplementationOnce(() => {
+				throw Object.assign(new Error('x'), { name: 'NetworkAccessError' });
+			});
+			render(DevicePeq);
+
+			await page.getByRole('button', { name: 'Network' }).click();
+			const field = page.getByRole('textbox', { name: 'Device IP' });
+			await field.fill('192.168.1.20');
+			await page.getByRole('button', { name: 'Connect', exact: true }).click();
+
+			await expect.element(page.getByRole('alert')).toBeVisible();
+			await expect
+				.poll(() => page.getByRole('alert').element().textContent)
+				.toContain("couldn't reach the device");
+			await expect.element(field).toBeInTheDocument();
+			await expect.element(field).toHaveAttribute('aria-invalid', 'true');
 		});
 	});
 

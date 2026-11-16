@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { connectNetworkDevice, luxDecode, luxEncode } from './network.js';
+import { NetworkAccessError, connectNetworkDevice, luxDecode, luxEncode } from './network.js';
+import { NetworkHostError } from './network-host.js';
 
 type Call = { url: string; init?: RequestInit };
 let calls: Call[];
@@ -17,6 +18,43 @@ beforeEach(() => {
 	);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe('the device address', () => {
+	it('is refused before anything is sent', async () => {
+		for (const bad of ['example.com', 'evil.example/x', 'user@10.0.0.2', 'http://10.0.0.2', '']) {
+			expect(() => connectNetworkDevice(bad, 'WiiM'), bad).toThrow(NetworkHostError);
+			expect(() => connectNetworkDevice(bad, 'LuxsinX9'), bad).toThrow(NetworkHostError);
+		}
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('keeps the port and brackets an IPv6 literal in the URL', async () => {
+		await connectNetworkDevice('[FD00::5]:8080', 'LuxsinX9').device.setEnabled(true);
+		expect(calls[0].url).toBe('http://[fd00::5]:8080/dev/info.cgi');
+	});
+
+	it('declares the local address space where the host settles it', async () => {
+		await connectNetworkDevice('192.168.0.9', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('wiim.local', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('127.0.0.1', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('100.64.1.2', 'LuxsinX9').device.setEnabled(true);
+		const space = (i: number) =>
+			(calls[i].init as { targetAddressSpace?: string }).targetAddressSpace;
+		expect([space(0), space(1), space(2), space(3)]).toEqual([
+			'local',
+			'local',
+			'loopback',
+			undefined
+		]);
+	});
+
+	it('turns a failed fetch (mixed content, a denied prompt, nothing there) into one error', async () => {
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(
+			NetworkAccessError
+		);
+	});
+});
 
 describe('WiiM', () => {
 	it('reads bands in eqcaps units, skipping bands that are off', async () => {

@@ -138,6 +138,28 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - The Misc panel's shortcut switch had lost its accessible name in the panel redesign
   (`aria-describedby` on the label); both switches there now use `aria-labelledby`.
 
+- **2026-11-16, sixth wave (S2, plus the loader minify step):** `deploy.yml` now publishes a
+  minified `loader.js` (16.4 → 6.2 KB raw, 5.3 → 2.4 KB Brotli; the 15 loader cases pass with
+  the minified file).
+- S2 as built: the headers ship **switched off**. `scripts/csp.js` holds the policy and fills a
+  `__CSP__` token at build time (commented `Header set` lines in `.htaccess`, a commented
+  `<meta>` in the two CDN shells), since the policy lists a hash per inline script and
+  SvelteKit's boot script changes every build. The font `onload` attribute became an inline
+  script. `test:smoke` now serves `dist/` with the headers on. New operator page:
+  `deployment/security-headers.mdx` (en and ko), linked from the three deployment pages.
+- Checked in Chromium with the headers on, full build: boot, share link, font swap, panels,
+  an AutoEQ run (worker and wasm), audio play, screenshot export, share: no violations. CDN
+  shell against the published app on jsDelivr, as `<meta>` and as header: boot and an AutoEQ
+  run, no violations.
+- **`worker-src` has to list the CDN.** A module worker's imports are checked against
+  `worker-src`, not `script-src`, and a miss reports nothing: under the first draft of the
+  policy AutoEQ on a CDN deployment silently returned no bands. Reproduced on a minimal page,
+  fixed in the policy, noted in the root `AGENTS.md`.
+- Not done in S2: `style-src` keeps `'unsafe-inline'`; `connect-src` is limited by scheme only;
+  no nginx / Caddy snippets; not tried on a real Apache, on GitHub Pages, in
+  Firefox or Safari, or on a squig.link host (analytics and sponsor content need extra sources,
+  listed on the docs page but untested).
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -185,6 +207,10 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Where: `layout/AppShell.svelte` (module script). A toast fired before AppShell loads keeps the
     4 s default. A thin `services/toast.ts` wrapper that call sites import would be cleaner.
 - [ ] **N12. Things only a real environment can confirm**
+  - The recommended security headers on a real Apache host and as the `<meta>` on GitHub Pages;
+    the extra sources a squig.link host needs (`www.googletagmanager.com`, sponsor content).
+  - The first run of `deploy.yml` with the three-commit publish, `pins.json` and the minified
+    loader.
   - `defaults/.htaccess` on an Apache host (2.4 and, if any operator still has it, 2.2).
   - The network device flow against a WiiM / Luxsin device, including the docs tip about accepting
     a WiiM self-signed certificate (written from general knowledge, untested).
@@ -617,7 +643,7 @@ gaps; the rest is hardening.
   - Fix: prefer JSON endpoints (`shoplinks.json` exists; a JSON form of the sponsor data needs
     squig.link's cooperation). Until then, extract the literal and `JSON.parse` it. Pass
     `ctaLink`, `cta2Link`, `hfg_com` and `creative` through an http(s)-only check.
-- [ ] **S2. No CSP or security headers shipped or documented** (M)
+- [x] **S2. No CSP or security headers shipped or documented** (M) — shipped switched off
   - Where: `src/app.html`, `cdn/cdn-index.html`, `site-template/index.html`, `defaults/.htaccess`;
     one `connect-src` line at `docs/src/content/docs/guide-for-admins/customize-page.mdx:923`
   - Fix: publish a recommended header set in the deployment docs and as a commented block in
@@ -677,7 +703,8 @@ gaps; the rest is hardening.
     is the stale part.
   - Fix: correct the AGENTS note. Keep the module if HTML descriptions may return; otherwise
     consider removing `sanitizeHtml` and keeping `sanitizeUrl` / `stripHtml`.
-- [ ] **S10. Trusted Types cannot be enabled yet** (M, after S1 and S2)
+- [ ] **S10. Trusted Types cannot be enabled yet** (M, after S1 and S2) — now unblocked on the
+      policy side; the remaining blockers below are all in app code
   - Blockers: ~~the two `eval` calls~~, ~~`innerHTML` in `cdn/loader.js`~~, dynamic `script.src` in
     `services/ranking-service.svelte.ts:135-136` and `analytics-service.svelte.ts:34-36`, the
     blob-URL worker in `workers/autoeq-client.ts:17-21`, and Svelte's `{@html}`.

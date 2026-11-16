@@ -6,8 +6,10 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { getLocale, locales, setLocale, type Locale } from '#lib/paraglide/runtime.js';
 	import Button from '../atoms/Button.svelte';
+	import Switch from '../atoms/Switch.svelte';
 
 	const appVersion = __APP_VERSION__;
+	const shortcutsHintId = $props.id();
 
 	type DescriptionItem = { TYPE: string; CONTENT: string };
 
@@ -58,6 +60,7 @@
 				<Globe class="-ml-0.5 h-4 w-4 text-base-content/70" aria-hidden="true" />
 				<select
 					value={getLocale()}
+					aria-label={m.misc_panel_language_label()}
 					onchange={handleLocaleChange}
 					class="h-8 flex-1 rounded-md border border-base-content/20 bg-base-100 px-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
 				>
@@ -67,6 +70,21 @@
 				</select>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Single-key shortcuts (WCAG 2.1.4: a bare-key shortcut must be switchable off) -->
+	<div class="flex flex-col gap-1 px-4">
+		<Switch
+			labelText={m.misc_panel_single_key_shortcuts()}
+			aria-describedby={shortcutsHintId}
+			size="sm"
+			bind:checked={
+				() => settingsStore.singleKeyShortcuts, (on) => settingsStore.setSingleKeyShortcuts(on)
+			}
+		/>
+		<p id={shortcutsHintId} class="text-xs text-base-content/70">
+			{m.misc_panel_single_key_shortcuts_hint()}
+		</p>
 	</div>
 
 	<!-- Description (conditional) -->
@@ -93,7 +111,7 @@
 	<!-- App info section -->
 	<div class="mb-3 flex flex-col items-center gap-1 text-center">
 		<div class="flex items-baseline gap-2">
-			<h2 class="text-base font-bold text-base-content">modernGraphTool v2</h2>
+			<h3 class="text-base font-bold text-base-content">modernGraphTool v2</h3>
 		</div>
 		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">

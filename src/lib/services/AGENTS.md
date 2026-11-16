@@ -13,7 +13,10 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   only binds them on `<svelte:window>`. The `\` hold only toasts while the player plays and
   `devicePeqStore.playsEq` holds: it can't lift a device's EQ, and flipping the graph alone would
   misreport what is heard. It is not routed to the device's EQ switch — that is a hardware write
-  that affects all audio on the device
+  that affects all audio on the device. The single-character keys (`\`, `1`–`4`) are skipped while
+  a widget that takes character keys has focus (`isWidgetFocused` in `utils/widget-focus.ts`, shared
+  with `GraphEqOverlay`) and when `settingsStore.singleKeyShortcuts` is off (WCAG 2.1.4); the
+  modifier shortcuts and the `\` release are never gated
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below

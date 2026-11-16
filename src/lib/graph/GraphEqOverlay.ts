@@ -9,26 +9,13 @@ import { Equalizer, usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { indexedEffectiveFilters, indexedFiltersInScope } from '#lib/utils/eq-channel.js';
 import { eqSourceChannels } from '#lib/utils/eq-source.js';
 import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';
+import { isWidgetFocused } from '#lib/utils/widget-focus.js';
 import { baseline, compensateAt } from './baseline.js';
 import type { Channel, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 interface BandDatum {
 	filter: EQFilter;
 	index: number;
-}
-
-/**
- * Composite/custom widgets that consume Delete/Backspace/arrow keys natively
- * (bits-ui Slider thumbs, listboxes, comboboxes, menus, spinbuttons).
- */
-const WIDGET_ROLE_SELECTOR =
-	'[role="slider"],[role="listbox"],[role="combobox"],[role="option"],[role="spinbutton"],[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]';
-
-/** True when the event target or the focused element is such a widget. */
-function isWidgetFocused(target: Element | null): boolean {
-	if (target?.closest?.(WIDGET_ROLE_SELECTOR)) return true;
-	const active = document.activeElement;
-	return !!(active && active !== target && active.closest?.(WIDGET_ROLE_SELECTOR));
 }
 
 /**

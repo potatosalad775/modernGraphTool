@@ -7,7 +7,8 @@ const LS_KEYS = {
 	autoEqOpts: 'gt-settings-autoeq-options',
 	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write',
 	volumeWarning: 'gt-settings-volume-warning',
-	frequencyTutorial: 'gt-settings-frequency-tutorial'
+	frequencyTutorial: 'gt-settings-frequency-tutorial',
+	singleKeyShortcuts: 'gt-settings-single-key-shortcuts'
 } as const;
 
 const LEGACY_THEME_KEY = 'gt-theme';
@@ -37,6 +38,40 @@ const DEFAULT_AUTOEQ: AutoEqOptions = {
 	exactMatch: true
 };
 
+const NUMERIC_AUTOEQ_KEYS = ['freqMin', 'freqMax', 'qMin', 'qMax', 'gainMin', 'gainMax'] as const;
+const BOOLEAN_AUTOEQ_KEYS = ['useShelfFilter', 'exactMatch'] as const;
+const AUTOEQ_PAIRS = [
+	['freqMin', 'freqMax'],
+	['qMin', 'qMax'],
+	['gainMin', 'gainMax']
+] as const;
+
+/**
+ * Folds a stored AutoEQ options blob over the defaults. A key whose stored value has the wrong
+ * type — `null` from a persisted `NaN`, a string, a non-finite number — falls back to its own
+ * default rather than overriding it, and a pair stored with min above max resets both ends.
+ */
+function sanitizeAutoEqOptions(stored: unknown): AutoEqOptions {
+	const out: AutoEqOptions = { ...DEFAULT_AUTOEQ };
+	if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return out;
+	const src = stored as Record<string, unknown>;
+	for (const key of NUMERIC_AUTOEQ_KEYS) {
+		const v = src[key];
+		if (typeof v === 'number' && Number.isFinite(v)) out[key] = v;
+	}
+	for (const key of BOOLEAN_AUTOEQ_KEYS) {
+		const v = src[key];
+		if (typeof v === 'boolean') out[key] = v;
+	}
+	for (const [lo, hi] of AUTOEQ_PAIRS) {
+		if (out[lo] > out[hi]) {
+			out[lo] = DEFAULT_AUTOEQ[lo];
+			out[hi] = DEFAULT_AUTOEQ[hi];
+		}
+	}
+	return out;
+}
+
 class SettingsStore {
 	theme = $state<'light' | 'dark'>('light');
 	autoEqPersistMode = $state<AutoEqPersistMode>('session');
@@ -48,6 +83,11 @@ class SettingsStore {
 	volumeWarning = $state(true);
 	/** Show the Frequency Tutorial strip under the graph. Hidden unless the operator or user opts in. */
 	frequencyTutorialVisible = $state(false);
+	/**
+	 * The shortcuts that are a bare character key (`1`–`4`, `\`; WCAG 2.1.4). Off leaves only the
+	 * modifier ones (Ctrl+Z …). On by default.
+	 */
+	singleKeyShortcuts = $state(true);
 
 	hydrate(): void {
 		if (typeof window === 'undefined') return;
@@ -81,6 +121,9 @@ class SettingsStore {
 
 		if (localStorage.getItem(LS_KEYS.devicePeqAutoWrite) === 'true') this.devicePeqAutoWrite = true;
 		if (localStorage.getItem(LS_KEYS.volumeWarning) === 'false') this.volumeWarning = false;
+		// Only an explicit 'false' turns it off; anything else stored keeps the default.
+		if (localStorage.getItem(LS_KEYS.singleKeyShortcuts) === 'false')
+			this.singleKeyShortcuts = false;
 
 		// The user's own choice wins; the operator's config only sets the first-visit default.
 		const tutorial = localStorage.getItem(LS_KEYS.frequencyTutorial);
@@ -92,8 +135,7 @@ class SettingsStore {
 		const raw = this.#activeStorage().getItem(LS_KEYS.autoEqOpts);
 		if (raw) {
 			try {
-				const parsed = JSON.parse(raw) as Partial<AutoEqOptions>;
-				this.autoEqOptions = { ...DEFAULT_AUTOEQ, ...parsed };
+				this.autoEqOptions = sanitizeAutoEqOptions(JSON.parse(raw));
 			} catch {
 				// malformed — keep defaults
 			}
@@ -133,6 +175,11 @@ class SettingsStore {
 	setVolumeWarning(v: boolean): void {
 		this.volumeWarning = v;
 		localStorage.setItem(LS_KEYS.volumeWarning, String(v));
+	}
+
+	setSingleKeyShortcuts(v: boolean): void {
+		this.singleKeyShortcuts = v;
+		localStorage.setItem(LS_KEYS.singleKeyShortcuts, String(v));
 	}
 
 	setFrequencyTutorialVisible(v: boolean): void {

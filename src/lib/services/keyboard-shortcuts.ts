@@ -6,6 +6,8 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { isWidgetFocused } from '#lib/utils/widget-focus.js';
 import * as m from '#lib/paraglide/messages.js';
 import { toast } from 'svelte-sonner';
 
@@ -14,7 +16,10 @@ import { toast } from 'svelte-sonner';
  * on `<svelte:window>`, so they fire from any panel; the logic lives here.
  *
  * Every shortcut except the `\` release is ignored while focus is in an INPUT, a TEXTAREA or a
- * contenteditable element.
+ * contenteditable element. The two bare-key ones (`\` and `1`–`4`) also stand down while a native
+ * select or a listbox/combobox/slider-style widget has focus (`isWidgetFocused`: its typeahead owns
+ * those characters), and when the user turned `settingsStore.singleKeyShortcuts` off (WCAG 2.1.4).
+ * Undo and redo are modifier chords and stay on either way. The `\` release is never gated.
  *
  * - `\` held — flips the equalizer until release (`eqStore.holdMomentary`): a bypass when it was
  *   on, an audition when it was off. Ignored with Meta, or Ctrl without Alt (a chord), and with no
@@ -110,6 +115,8 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 	// one, so the comparison can be started from either side. Ignored inside text
 	// inputs, and when there is no EQ source phone to compare against.
 	if (!inEditable && !isShortcutChord(e) && e.key === '\\') {
+		// A bare key: off with the setting, and not while a select or listbox has focus.
+		if (!settingsStore.singleKeyShortcuts || isWidgetFocused(e.target)) return;
 		if (e.repeat) {
 			e.preventDefault();
 			return;
@@ -150,7 +157,13 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 		return;
 	}
 
-	if (!mod && !e.altKey && !e.shiftKey) {
+	if (
+		!mod &&
+		!e.altKey &&
+		!e.shiftKey &&
+		settingsStore.singleKeyShortcuts &&
+		!isWidgetFocused(e.target)
+	) {
 		const num = parseInt(e.key);
 		if (num >= 1 && num <= 4) {
 			e.preventDefault();

@@ -97,12 +97,44 @@ describe('MiscPanel', () => {
 			expect(ko?.textContent).toBe('한국어');
 		});
 
+		it('names the picker for assistive tech', async () => {
+			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
+			render(MiscPanel);
+
+			await expect.element(page.getByRole('combobox', { name: 'Language' })).toBeInTheDocument();
+		});
+
 		it('switches locale on change', async () => {
 			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
 			render(MiscPanel);
 			await page.getByRole('combobox').selectOptions('ko');
 
 			expect(setLocale).toHaveBeenCalledWith('ko');
+		});
+	});
+
+	// ── Single-key shortcuts ─────────────────────────────────────────────────
+
+	describe('single-key shortcuts switch', () => {
+		afterEach(() => {
+			settingsStore.singleKeyShortcuts = true;
+			localStorage.removeItem('gt-settings-single-key-shortcuts');
+		});
+
+		it('is on by default and described by the hint', async () => {
+			render(MiscPanel);
+
+			const toggle = page.getByRole('switch', { name: 'Single-key shortcuts' });
+			await expect.element(toggle).toBeChecked();
+			await expect.element(toggle).toHaveAccessibleDescription(/Ctrl\+Z/);
+		});
+
+		it('turns the shortcuts off and persists the choice', async () => {
+			render(MiscPanel);
+			await page.getByRole('switch', { name: 'Single-key shortcuts' }).click();
+
+			expect(settingsStore.singleKeyShortcuts).toBe(false);
+			expect(localStorage.getItem('gt-settings-single-key-shortcuts')).toBe('false');
 		});
 	});
 

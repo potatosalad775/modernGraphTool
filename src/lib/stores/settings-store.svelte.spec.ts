@@ -7,6 +7,7 @@ const KEY_PERSIST_MODE = 'gt-settings-autoeq-persist-mode';
 const KEY_LINK_NORM = 'gt-settings-link-eq-normalization';
 const KEY_AUTOEQ = 'gt-settings-autoeq-options';
 const KEY_FREQ_TUTORIAL = 'gt-settings-frequency-tutorial';
+const KEY_SINGLE_KEY = 'gt-settings-single-key-shortcuts';
 
 const DEFAULT_AUTOEQ = {
 	freqMin: 20,
@@ -28,6 +29,7 @@ function resetStore() {
 	settingsStore.linkEqNormalization = false;
 	settingsStore.autoEqOptions = { ...DEFAULT_AUTOEQ };
 	settingsStore.frequencyTutorialVisible = false;
+	settingsStore.singleKeyShortcuts = true;
 	document.documentElement.classList.remove('dark');
 }
 
@@ -261,6 +263,36 @@ describe('SettingsStore', () => {
 			expect(settingsStore.autoEqOptions).toEqual(DEFAULT_AUTOEQ);
 		});
 
+		it('falls back to the default for a stored value of the wrong type', () => {
+			// A NaN written by the old number fields persisted as null.
+			sessionStorage.setItem(
+				KEY_AUTOEQ,
+				JSON.stringify({ gainMin: null, gainMax: '9', qMin: 0.8, useShelfFilter: 'yes' })
+			);
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions.gainMin).toBe(DEFAULT_AUTOEQ.gainMin);
+			expect(settingsStore.autoEqOptions.gainMax).toBe(DEFAULT_AUTOEQ.gainMax);
+			expect(settingsStore.autoEqOptions.useShelfFilter).toBe(true);
+			expect(settingsStore.autoEqOptions.qMin).toBe(0.8);
+		});
+
+		it('keeps the defaults when the stored AutoEQ options are not an object', () => {
+			for (const stored of ['null', '[1,2]', '7']) {
+				sessionStorage.setItem(KEY_AUTOEQ, stored);
+				settingsStore.hydrate();
+				expect(settingsStore.autoEqOptions).toEqual(DEFAULT_AUTOEQ);
+			}
+		});
+
+		it('resets a stored min/max pair whose min is above its max', () => {
+			sessionStorage.setItem(KEY_AUTOEQ, JSON.stringify({ freqMin: 9000, freqMax: 100 }));
+			settingsStore.hydrate();
+
+			expect(settingsStore.autoEqOptions.freqMin).toBe(DEFAULT_AUTOEQ.freqMin);
+			expect(settingsStore.autoEqOptions.freqMax).toBe(DEFAULT_AUTOEQ.freqMax);
+		});
+
 		it('reads AutoEQ options from localStorage once the persist mode is local', () => {
 			localStorage.setItem(KEY_PERSIST_MODE, 'local');
 			localStorage.setItem(KEY_AUTOEQ, JSON.stringify({ gainMin: -6 }));
@@ -268,6 +300,31 @@ describe('SettingsStore', () => {
 
 			settingsStore.hydrate();
 			expect(settingsStore.autoEqOptions.gainMin).toBe(-6);
+		});
+	});
+
+	describe('singleKeyShortcuts', () => {
+		it('is on by default and after a hydrate with nothing stored', () => {
+			settingsStore.hydrate();
+			expect(settingsStore.singleKeyShortcuts).toBe(true);
+		});
+
+		it('persists the choice and restores an explicit off', () => {
+			settingsStore.setSingleKeyShortcuts(false);
+			expect(localStorage.getItem(KEY_SINGLE_KEY)).toBe('false');
+
+			settingsStore.singleKeyShortcuts = true;
+			settingsStore.hydrate();
+			expect(settingsStore.singleKeyShortcuts).toBe(false);
+		});
+
+		it('ignores a stored value that is not exactly "false"', () => {
+			for (const stored of ['true', '0', 'off', '']) {
+				settingsStore.singleKeyShortcuts = true;
+				localStorage.setItem(KEY_SINGLE_KEY, stored);
+				settingsStore.hydrate();
+				expect(settingsStore.singleKeyShortcuts).toBe(true);
+			}
 		});
 	});
 });

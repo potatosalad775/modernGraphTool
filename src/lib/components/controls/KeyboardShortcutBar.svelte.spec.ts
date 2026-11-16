@@ -6,6 +6,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import KeyboardShortcutBar from './KeyboardShortcutBar.svelte';
+import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 
 /** The chord in the `kbd` of the row whose text ends in `label` ("Undo", "Redo"). */
 function chord(label: string): string {
@@ -16,6 +18,8 @@ function chord(label: string): string {
 describe('KeyboardShortcutBar', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
+		settingsStore.singleKeyShortcuts = true;
+		menuStore.currentPanel = 'graph';
 	});
 
 	it('spells the undo and redo chords with Ctrl on a non-Mac platform', async () => {
@@ -32,5 +36,21 @@ describe('KeyboardShortcutBar', () => {
 
 		await expect.poll(() => chord('Undo')).toBe('⌘+Z');
 		expect(chord('Redo')).toBe('⌘+⇧+Z');
+	});
+
+	it('advertises the bare-key shortcuts only while they are on', async () => {
+		menuStore.currentPanel = 'equalizer';
+		await render(KeyboardShortcutBar);
+
+		await expect.element(page.getByText('Switch Panels')).toBeInTheDocument();
+		await expect.element(page.getByText('Hold to A/B EQ')).toBeInTheDocument();
+
+		settingsStore.singleKeyShortcuts = false;
+
+		await expect.poll(() => page.getByText('Switch Panels').elements().length).toBe(0);
+		expect(page.getByText('Hold to A/B EQ').elements()).toHaveLength(0);
+		// The chords and the non-character keys stay.
+		await expect.element(page.getByText('Undo')).toBeInTheDocument();
+		await expect.element(page.getByText('Delete selected band')).toBeInTheDocument();
 	});
 });

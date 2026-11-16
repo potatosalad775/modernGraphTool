@@ -6,20 +6,7 @@
 	import Button from '../atoms/Button.svelte';
 	import { Camera } from '@lucide/svelte';
 
-	// Force light-theme values for SVG export so the PNG looks the same regardless
-	// of the active theme. Mirrors the `:root` block in defaults/theme.css.
-	const LIGHT_THEME_VARS: Record<string, string> = {
-		'--color-graph-grid-major': 'rgba(0, 0, 0, 0.15)',
-		'--color-graph-grid-minor': 'rgba(0, 0, 0, 0.06)',
-		'--color-graph-axis-label': 'rgba(0, 0, 0, 0.6)',
-		'--color-graph-grid-text': 'rgba(0, 0, 0, 0.5)',
-		'--color-graph-baseline': 'rgba(0, 0, 0, 0.25)',
-		'--color-graph-compare': 'rgba(0, 0, 0, 0.55)',
-		'--color-graph-bg': 'transparent',
-		'--color-base-100': 'oklch(98% 0.003 247.858)',
-		'--color-base-200': 'oklch(96% 0.007 247.896)',
-		'--color-base-content': 'oklch(20% 0.042 265.755)'
-	};
+	import { exportBackgroundFills, resolveLightTheme } from '#lib/utils/light-theme.js';
 
 	async function inlineImageHref(image: SVGImageElement): Promise<void> {
 		const href =
@@ -63,12 +50,15 @@
 		clone.setAttribute('width', String(vbWidth));
 		clone.setAttribute('height', String(vbHeight));
 
-		// Mount the clone in a hidden, light-themed container so var(--color-*)
-		// references resolve to light values regardless of the active theme.
+		// Mount the clone in a hidden container that carries the light palette inline, so
+		// var(--color-*) references resolve to light values regardless of the active theme
+		// (`.dark` on <html> would otherwise win by inheritance). The palette is read from the
+		// loaded theme.css, so an operator's own light theme is what gets exported.
+		const lightVars = resolveLightTheme();
 		const lightContainer = document.createElement('div');
 		lightContainer.style.cssText =
 			'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;';
-		for (const [name, value] of Object.entries(LIGHT_THEME_VARS)) {
+		for (const [name, value] of Object.entries(lightVars)) {
 			lightContainer.style.setProperty(name, value);
 		}
 		lightContainer.appendChild(clone);
@@ -98,12 +88,15 @@
 				}
 			});
 
-			// Always export with a pure white background.
-			const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-			bgRect.setAttribute('width', String(vbWidth));
-			bgRect.setAttribute('height', String(vbHeight));
-			bgRect.setAttribute('fill', '#ffffff');
-			clone.insertBefore(bgRect, clone.firstChild);
+			// Pure white, plus the light theme's own graph background when it sets one.
+			const bgRects = exportBackgroundFills(lightVars).map((fill) => {
+				const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+				rect.setAttribute('width', String(vbWidth));
+				rect.setAttribute('height', String(vbHeight));
+				rect.setAttribute('fill', fill);
+				return rect;
+			});
+			clone.prepend(...bgRects);
 
 			const svgData = new XMLSerializer().serializeToString(clone);
 			const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });

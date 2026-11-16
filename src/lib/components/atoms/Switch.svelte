@@ -45,16 +45,19 @@
 		lg: 'size-[22px] data-[state=checked]:translate-x-7'
 	} as const;
 
+	// The off track is base-content/60 and its thumb base-100: both the track against the surface
+	// (base-100..300) and the thumb against the track clear 3:1 (WCAG 1.4.11) in light and dark,
+	// with margin for a lighter dark `base-content`. Position, not colour, carries on/off.
 	const variantRootClasses = {
 		accent:
-			'focus-visible:ring-accent focus-visible:ring-offset-base-100 data-[state=checked]:bg-primary data-[state=unchecked]:bg-base-content/20',
+			'focus-visible:ring-accent focus-visible:ring-offset-base-100 data-[state=checked]:bg-primary data-[state=unchecked]:bg-base-content/60',
 		muted:
-			'focus-visible:ring-base-content focus-visible:ring-offset-base-100 data-[state=checked]:bg-base-content/80 data-[state=unchecked]:bg-base-content/20'
+			'focus-visible:ring-base-content focus-visible:ring-offset-base-100 data-[state=checked]:bg-base-content/80 data-[state=unchecked]:bg-base-content/60'
 	} as const;
 
 	const variantThumbClasses = {
-		accent: 'data-[state=checked]:bg-primary-content data-[state=unchecked]:bg-white',
-		muted: 'data-[state=checked]:bg-base-100 data-[state=unchecked]:bg-white'
+		accent: 'data-[state=checked]:bg-primary-content data-[state=unchecked]:bg-base-100',
+		muted: 'data-[state=checked]:bg-base-100 data-[state=unchecked]:bg-base-100'
 	} as const;
 </script>
 

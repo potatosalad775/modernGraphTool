@@ -348,8 +348,18 @@ applied per row, so a database whose only match was excluded stops meeting that 
 
 One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars — so it costs nothing
 for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the
-official URL plus its GitHub Pages mirror, tried in order.
+official URL plus its GitHub Pages mirror, in preference order. Every mirror is requested at once, but
+a later one is only read (its body parsed) once every earlier one has failed or answered with an
+invalid document, and the losers are aborted — a stalled primary still costs its timeout.
 Schema: https://github.com/HarutoHiroki/GraphAggregator
+
+**`buildSearchRows` returns the rows already in result order**, so a query only filters
+(`searchRows` never sorts). Rows carry `seq` (index order) and `tie` (an id shared by rows that
+compare equal) because two things hang on the old stable sort: equal rows keep index order, and in a
+multi-group query equal rows from different databases follow the database whose first matching row
+came first — `matchEveryGroup` reorders just those runs. The comparator uses one shared
+`Intl.Collator`; the order is pinned by the `result order` spec. The index is someone else's document:
+`buildSearchRows` and `buildSiteEntries` type-check each field and skip a bad row instead of throwing.
 
 Configured via `CROSS_SITE_SEARCH` in `defaults/config.js`; `SQUIGLINK.ENABLE_CROSS_SITE_SEARCH` is
 deprecated and read only as a fallback for configs that predate the new section.

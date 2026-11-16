@@ -225,6 +225,43 @@ describe('buildSiteEntries', () => {
 	});
 });
 
+describe('untrusted rows', () => {
+	const bad = (value: unknown) => value as never;
+
+	it('buildSiteEntries skips malformed sites and databases instead of throwing', () => {
+		const index = makeIndex({
+			sites: [
+				bad(null),
+				bad('x'),
+				{ id: 'alice', name: bad(4), url: 'https://alice.squig.link' },
+				{ id: 'bob', name: 'Bob', url: 'https://bob.squig.link' }
+			],
+			dbs: [
+				bad(null),
+				bad(1),
+				{ id: bad(null), siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/a/' },
+				{ id: 'bob:nosite', siteId: bad(2), type: 'IEMs', url: 'https://bob.squig.link/b/' },
+				{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
+				{ id: 'bob:5128', siteId: 'bob', type: '5128', url: 'https://bob.squig.link/' }
+			]
+		});
+
+		expect(buildSiteEntries(index, null).map((entry) => entry.dbId)).toEqual(['bob:5128']);
+	});
+
+	it('findCurrentDbId ignores malformed databases', () => {
+		const index = makeIndex({
+			dbs: [
+				bad(null),
+				{ id: 'x', siteId: 'alice', type: 'IEMs', url: bad(null) },
+				{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' }
+			]
+		});
+
+		expect(findCurrentDbId(index, 'https://alice.squig.link/?share=x')).toBe('alice:iems');
+	});
+});
+
 describe('groupSiteEntries', () => {
 	it('orders rig classes by measurement quality, not alphabetically', () => {
 		const groups = groupSiteEntries(buildSiteEntries(makeIndex(), null));

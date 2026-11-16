@@ -155,6 +155,61 @@ describe('cross-site search helpers', () => {
 		});
 	});
 
+	describe('buildSearchRows — untrusted field types', () => {
+		it('skips malformed rows instead of throwing, keeping the good ones', () => {
+			const bad = (value: unknown) => value as never;
+			const index = makeIndex({
+				phonesFormat: 'collapsed',
+				brands: ['64Audio', bad(null), bad(7)],
+				sites: [
+					bad(null),
+					bad('site'),
+					{ id: 'alice', name: bad(5), url: 'https://alice.squig.link' },
+					{ id: 'bob', name: 'Bob', url: 'https://bob.squig.link' }
+				],
+				dbs: [
+					bad(null),
+					bad(3),
+					{ id: bad(1), siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/a/' },
+					{ id: 'bob:badtype', siteId: 'bob', type: bad(null), url: 'https://bob.squig.link/b/' },
+					{ id: 'bob:iems', siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/' }
+				],
+				phones: [
+					bad(null),
+					bad('phone'),
+					{ b: 0, n: bad(null), m: [{ db: 'bob:iems' }] },
+					{ b: 1, n: 'Null brand', m: [{ db: 'bob:iems' }] },
+					{ b: 2, n: 'Number brand', m: [{ db: 'bob:iems' }] },
+					{ b: 0, n: 'Bad list', m: bad({ db: 'bob:iems' }) },
+					{
+						b: 0,
+						n: 'Mixed',
+						m: [bad(null), bad('x'), { db: bad(1) }, { db: 'bob:iems', s: bad(4) }]
+					},
+					{ b: 0, n: 'Good', m: [bad(null), { db: 'bob:iems', s: 'slug' }] }
+				]
+			});
+
+			const rows = buildSearchRows(index);
+
+			expect(rows.map((row) => row.result.phoneName)).toEqual(['Good']);
+			expect(rows[0].result.url).toBe('https://bob.squig.link/?share=slug');
+		});
+
+		it('skips a flat entry whose database is not a string', () => {
+			const rows = buildSearchRows(
+				makeIndex({
+					phones: [
+						{ db: 7 as never, b: 0, n: 'U12t' },
+						{ db: 'alice:iems', b: 0, n: 'U12t', s: '64Audio_U12t' }
+					]
+				})
+			);
+
+			expect(rows).toHaveLength(1);
+		});
+	});
+
 	describe('parseCrossSiteGroups', () => {
 		it('splits a comma-separated query into terms', () => {
 			expect(parseCrossSiteGroups('hd 600, u12t')).toEqual([
@@ -327,6 +382,75 @@ describe('AggregateIndexService', () => {
 
 			await expect(service.load()).resolves.toBe(true);
 			expect(service.generatedAt).toBe('primary');
+		});
+
+		it('parses only the winner and aborts the slower mirrors', async () => {
+			const signals: Record<string, AbortSignal | undefined> = {};
+			const parsed: string[] = [];
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+					const url = String(input);
+					signals[url] = init?.signal ?? undefined;
+					const res = new Response(JSON.stringify(makeIndex({ generatedAt: url })), {
+						status: 200
+					});
+					const json = res.json.bind(res);
+					res.json = () => {
+						parsed.push(url);
+						return json();
+					};
+					return res;
+				})
+			);
+
+			await expect(service.load()).resolves.toBe(true);
+			expect(service.generatedAt).toBe(OFFICIAL_URLS[0]);
+			expect(parsed).toEqual([OFFICIAL_URLS[0]]);
+			expect(signals[OFFICIAL_URLS[1]]?.aborted).toBe(true);
+		});
+
+		it('does not let a quick mirror win while the primary is still answering', async () => {
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(async (input: string | URL | Request) => {
+					const url = String(input);
+					if (url === OFFICIAL_URLS[0]) await new Promise((resolve) => setTimeout(resolve, 30));
+					return new Response(JSON.stringify(makeIndex({ generatedAt: url })), { status: 200 });
+				})
+			);
+
+			await expect(service.load()).resolves.toBe(true);
+			expect(service.generatedAt).toBe(OFFICIAL_URLS[0]);
+		});
+
+		it('moves on to the mirror when the primary stalls past the timeout', async () => {
+			vi.useFakeTimers();
+			try {
+				vi.stubGlobal(
+					'fetch',
+					vi.fn((input: string | URL | Request, init?: RequestInit) => {
+						if (String(input) !== OFFICIAL_URLS[0]) {
+							return Promise.resolve(
+								new Response(JSON.stringify(makeIndex({ generatedAt: 'mirror' })), { status: 200 })
+							);
+						}
+						return new Promise<Response>((_, reject) => {
+							init?.signal?.addEventListener('abort', () =>
+								reject(new DOMException('', 'AbortError'))
+							);
+						});
+					})
+				);
+
+				const loading = service.load();
+				await vi.advanceTimersByTimeAsync(10_000);
+
+				await expect(loading).resolves.toBe(true);
+				expect(service.generatedAt).toBe('mirror');
+			} finally {
+				vi.useRealTimers();
+			}
 		});
 
 		it('retries on the next load after every URL failed', async () => {
@@ -590,6 +714,111 @@ describe('AggregateIndexService', () => {
 				const hits = service.search('lyro // lyrö, hd 600');
 				expect(hits.results.map((r) => r.dbId)).toEqual(['bob:iems', 'bob:iems']);
 				expect(hits.results.map((r) => r.phoneName)).toEqual(['HD 600', 'Lyrö']);
+			});
+		});
+
+		describe('result order', () => {
+			/**
+			 * Rows are deliberately listed out of order, with ties the comparator can't
+			 * break: the same device name in two databases of one site and rig class,
+			 * and the same name under two brands in one database. Ties fall back to the
+			 * index's own order, so the expected lists below pin that too.
+			 */
+			function makeOrderIndex() {
+				return makeIndex({
+					brands: ['Acme', 'Beta'],
+					sites: [
+						{ id: 's1', name: 'Alpha Site', url: 'https://alpha.test' },
+						{ id: 's2', name: 'beta site', url: 'https://beta.test' },
+						{ id: 's3', name: 'Émile', url: 'https://emile.test' }
+					],
+					dbs: [
+						{ id: 'a:iems', siteId: 's1', type: 'IEMs', url: 'https://alpha.test/iems/' },
+						{ id: 'a:iems2', siteId: 's1', type: 'IEMs', url: 'https://alpha.test/iems2/' },
+						{
+							id: 'a:hp',
+							siteId: 's1',
+							type: 'Headphones',
+							url: 'https://alpha.test/hp/',
+							deltaReady: true
+						},
+						{ id: 'b:5128', siteId: 's2', type: '5128', url: 'https://beta.test/5128/' },
+						{
+							id: 'b:iems',
+							siteId: 's2',
+							type: 'IEMs',
+							url: 'https://beta.test/iems/',
+							deltaReady: true
+						},
+						{ id: 'e:buds', siteId: 's3', type: 'Earbuds', url: 'https://emile.test/buds/' },
+						{ id: 'e:odd', siteId: 's3', type: 'Speakers', url: 'https://emile.test/odd/' }
+					],
+					phones: [
+						{ db: 'e:odd', b: 0, n: 'Pro', s: 'odd_Pro' },
+						{ db: 'a:iems', b: 0, n: 'Zed One', s: 'iems_Zed_One' },
+						{ db: 'a:iems2', b: 0, n: 'Pro', s: 'iems2_Pro' },
+						{ db: 'a:iems', b: 0, n: 'Pro', s: 'iems_Pro_Acme' },
+						{ db: 'a:iems', b: 1, n: 'Pro', s: 'iems_Pro_Beta' },
+						{ db: 'a:iems2', b: 0, n: 'Zed Two', s: 'iems2_Zed_Two' },
+						{ db: 'e:buds', b: 0, n: 'Pro', s: 'buds_Pro' },
+						{ db: 'b:iems', b: 0, n: 'Pro', s: 'b_iems_Pro' },
+						{ db: 'b:5128', b: 0, n: 'Pro', s: '5128_Pro' },
+						{ db: 'a:hp', b: 1, n: 'Pro', s: 'hp_Pro' },
+						{ db: 'a:hp', b: 0, n: 'Zed One', s: 'hp_Zed_One' },
+						{ db: 'b:5128', b: 1, n: 'Zed One', s: '5128_Zed_One' },
+						{ db: 'e:buds', b: 0, n: 'Édith', s: 'buds_Edith' },
+						{ db: 'e:buds', b: 0, n: 'Eden', s: 'buds_Eden' },
+						{ db: 'e:buds', b: 0, n: 'edgar', s: 'buds_edgar' }
+					]
+				});
+			}
+
+			async function urlsFor(query: string): Promise<string[]> {
+				stubFetch({ [OFFICIAL_URLS[0]]: makeOrderIndex() });
+				await service.load();
+				return service.search(query).results.map((r) => r.url.split('?share=')[1]);
+			}
+
+			it('orders one term by rig class, delta-ready, site, device, then index order', async () => {
+				expect(await urlsFor('pro')).toEqual([
+					'5128_Pro',
+					'b_iems_Pro',
+					'iems2_Pro',
+					'iems_Pro_Acme',
+					'iems_Pro_Beta',
+					'hp_Pro',
+					'buds_Pro',
+					'odd_Pro'
+				]);
+			});
+
+			it('sorts accented and mixed-case names the way the locale does', async () => {
+				expect(await urlsFor('acme -pro -zed')).toEqual(['buds_Eden', 'buds_edgar', 'buds_Edith']);
+			});
+
+			// Ties between the two Alpha IEM databases follow the one whose first
+			// matching row came first, which is not the order a single term gives.
+			it('keeps tied databases in the order they first matched, for several terms', async () => {
+				expect(await urlsFor('pro, zed')).toEqual([
+					'5128_Pro',
+					'5128_Zed_One',
+					'iems_Pro_Acme',
+					'iems_Pro_Beta',
+					'iems2_Pro',
+					'iems_Zed_One',
+					'iems2_Zed_Two',
+					'hp_Pro',
+					'hp_Zed_One'
+				]);
+			});
+
+			it('orders alternatives the same way', async () => {
+				expect(await urlsFor('zed one // zed two')).toEqual([
+					'5128_Zed_One',
+					'iems_Zed_One',
+					'iems2_Zed_Two',
+					'hp_Zed_One'
+				]);
 			});
 		});
 

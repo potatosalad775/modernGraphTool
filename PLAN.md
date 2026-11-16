@@ -30,6 +30,11 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - **Skip the graph text alternative** (hidden summary or data table for the curves). Not planned.
 - The automated `legacy-scan` of `src` found nothing (0 findings, 35 rules), so there is no
   legacy-pattern work.
+- **Skip keyboard access to the graph for now** (A12). Not planned.
+- **Skip the fonts for Czech, Russian and Ukrainian for now** (T5, and P11 with it).
+- **Sponsor creatives have no fixed aspect ratio** (P10), so no slot is reserved.
+- **Consent Mode, not a changed `LOG_ANALYTICS` default** (S6). The Global Privacy Control skip
+  stays.
 
 ## Progress log
 
@@ -108,6 +113,31 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - T1's "give background-only selected states a border" was not done as a separate pass; the
   selected states touched in this audit (carousel, segmented controls, tabs) have a non-colour cue.
 
+- **2026-11-16, fifth wave (N6, S6, S3, P2; A12, T5, P11, P10 closed by decision):** `check`
+  / `lint` / `test` green (2998 tests), docs `npm test` and `npm run build` green. Not committed.
+- **Analytics never sent a hit in v2.** `window.gtag` pushed a rest-parameter array, and gtag.js
+  only reads `arguments` objects. Checked in Chromium against the real gtag.js with the collect
+  requests blocked: array form, no request and no cookie; `arguments` form, `page_view` and the
+  event go out. Fixed with S6, so squig.link's numbers for v2 sites go from nothing to real.
+- S6 as built: Consent Mode v2 defaults before `config` (ad signals always denied); a new
+  `SQUIGLINK.ANALYTICS_CONSENT` (`'granted'` default, `'denied'` for cookieless pings); a
+  "Usage statistics" switch in the Misc panel on deployments that have analytics. A visitor who
+  switches it off loads nothing on later visits. Same browser check: `denied` sends `gcs=G100`
+  and sets no cookie.
+- S3 as built: `boot.json` carries a sha384 for every script and stylesheet; the loader applies
+  them (link attributes plus an import map), refuses a manifest that names anything outside
+  BASE's repository, and accepts `CDN_MODE.VERSION` / `BOOT_INTEGRITY` for a pinned site.
+  `deploy.yml` adds a third commit with `pins.json`. The `cdn` branch already has a "no force
+  push" ruleset. Run in Chromium against a local two-origin setup (15 cases: boot, pinned boot,
+  wrong hash, foreign URL, tampered entry chunk, lazy chunk and stylesheet, a manifest without
+  hashes). Not run: the workflow itself, the jsDelivr path end to end, Firefox or Safari.
+- P2 as built: preconnect to `raw.githubusercontent.com`, high fetch priority on the injected
+  loader, and the boot manifest embedded in `versions.json` (one request instead of two). The
+  `?t=` on `boot.json` stays for unpinned sites. Unmeasured, like the rest of section 7.
+- `showError` in the loader no longer uses `innerHTML` (one S10 blocker gone).
+- The Misc panel's shortcut switch had lost its accessible name in the panel redesign
+  (`aria-describedby` on the label); both switches there now use `aria-labelledby`.
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -133,7 +163,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     `'<h2>modernGraphTool</h2>'` title is a stray second-level heading inside the home link.
   - Fix: change the default to `TYPE: 'TEXT'` (or a `<span>`); existing deployments keep whatever
     they wrote. Check the top bar still styles a non-heading title the same.
-- [ ] **N6. Image titles have no text name** (S–M, **open: new config key**)
+- [x] **N6. Image titles have no text name** (S–M)
   - Where: `layout/TopNavBar.svelte` (image `alt` is now a translated "Home");
     `layout/AppShell.svelte` (`<h1>` falls back to `modernGraphTool`)
   - Fix: an optional `TOPBAR.TITLE.ALT` (i18n value) used for both; docs page and config generator.
@@ -335,7 +365,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: one helper on `prefersReducedMotion` from `svelte/motion` that returns `duration: 0` (or
     swaps `fly` for a short `fade`); set the D3 duration to 0. Narrow the CSS rule to spatial
     motion and leave colour transitions on (the `motion` guide warns against the blanket form).
-- [ ] **A12. Graph interactions have no keyboard path** (M–L, **open: decide scope**)
+- ~~**A12. Graph interactions have no keyboard path**~~ (M–L) — skipped by decision
   - Where: `graph/GraphInspection.ts:113-115` (mousemove only); `graph/GraphHandle.ts:59-83, 119`
     (d3-drag and dblclick only); `graph/GraphEqOverlay.ts:157-223, 278-334` (band selection by
     click only)
@@ -504,7 +534,8 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     `features/SponsorBanner.svelte:47`), `bg-black/50` and `rgba(0,0,0,0.55)`
     (`features/TutorialModal.svelte:187, 39`). Acceptable for scrims, but they break the
     no-hard-coded-palette rule; consider a scrim token.
-- [ ] **T5. Pretendard subset has no Cyrillic and almost no Czech diacritics** (S or M)
+- ~~**T5. Pretendard subset has no Cyrillic and almost no Czech diacritics**~~ (S or M) —
+  skipped for now by decision
   - Where: `src/app.html:51-60` (and the CDN and site-template shells); `routes/layout.css:9-12`
   - Problem: the loaded dynamic-subset CSS covers 0 code points in U+0400–052F and 18 of 128 in
     Latin Extended-A. Czech words mix two fonts inside one word; Russian and Ukrainian render in
@@ -597,7 +628,10 @@ gaps; the rest is hardening.
     `<meta http-equiv>` CSP for GitHub Pages. Move the font `onload` swap and inline boot scripts
     into hashed or external scripts.
   - Depends on S1. Interacts with T2 and P3 (new inline scripts).
-- [ ] **S3. CDN and template builds run unpinned code with no integrity** (M)
+  - The CDN loader now injects an inline import map whose content changes per release, so it
+    cannot be hashed: under a CSP without `'unsafe-inline'` it is blocked and the lazily loaded
+    chunks go unchecked (stylesheets and preloaded scripts keep their hashes).
+- [x] **S3. CDN and template builds run unpinned code with no integrity** (M)
   - Where: `site-template/index.html:99`; `cdn/cdn-index.html:89`; `cdn/loader.js:41-55, 86,
 194-196`
   - Fix: document the trust chain in the CDN and GitHub Pages deployment docs; offer a pinned
@@ -618,9 +652,8 @@ gaps; the rest is hardening.
     `services/site-index-core.ts:103`; `device-peq/network.ts:90, 175, 201`
   - Fix: reject files over about 5 MB and more than N files; check per-row field types when
     building rows and skip bad rows instead of throwing.
-- [ ] **S6. Google Analytics loads before any consent** (S, squig.link deployments only) — ID
-      validation, low priority, GPC opt-out and docs done; the `LOG_ANALYTICS` default and
-      Consent Mode are a maintainer decision
+- [x] **S6. Google Analytics loads before any consent** (S, squig.link deployments only) —
+      Consent Mode added; the `LOG_ANALYTICS` default is unchanged
   - Where: `services/analytics-service.svelte.ts:30-69`; `services/initial-load.ts:41`
   - Fix: consent-mode defaults before `config`, or honour `navigator.globalPrivacyControl`;
     default `LOG_ANALYTICS` to false; document what is sent and how to switch it off; validate
@@ -645,7 +678,7 @@ gaps; the rest is hardening.
   - Fix: correct the AGENTS note. Keep the module if HTML descriptions may return; otherwise
     consider removing `sanitizeHtml` and keeping `sanitizeUrl` / `stripHtml`.
 - [ ] **S10. Trusted Types cannot be enabled yet** (M, after S1 and S2)
-  - Blockers: the two `eval` calls, `innerHTML` in `cdn/loader.js:256`, dynamic `script.src` in
+  - Blockers: ~~the two `eval` calls~~, ~~`innerHTML` in `cdn/loader.js`~~, dynamic `script.src` in
     `services/ranking-service.svelte.ts:135-136` and `analytics-service.svelte.ts:34-36`, the
     blob-URL worker in `workers/autoeq-client.ts:17-21`, and Svelte's `{@html}`.
 
@@ -660,7 +693,8 @@ cold startup on one origin with cache off, so several items need an added scenar
     `index.html`, `config.js`, `theme.css`, `data/` so operator edits still apply at once);
     guarded `mod_deflate` / `mod_brotli` block; mirror in the deployment docs.
   - Measure: a warm-cache second navigation, counting requests and bytes.
-- [ ] **P2. CDN loader makes three serial round trips** (S, M to merge manifests)
+- [x] **P2. CDN loader makes three serial round trips** (S, M to merge manifests) — `?t=` on
+      `boot.json` kept
   - Where: `cdn/loader.js:41-55, 84-91`; `cdn/cdn-index.html:30, 83-93`;
     `site-template/index.html:20`
   - Fix: preconnect to `raw.githubusercontent.com`; `fetchPriority = 'high'` on the injected
@@ -703,13 +737,13 @@ cold startup on one origin with cache off, so several items need an added scenar
   - Fix: `fetchPriority = 'low'` on the gtag script, or inject it after `appStore.isReady`;
     `{ priority: 'low' }` on the shop-link fetches. Leave `squiglink-intro.js` and the creative
     alone.
-- [ ] **P10. Images without reserved dimensions** (S) — needs the sponsor creative's real
-      aspect ratio; a guessed 4:3 was reverted
+- ~~**P10. Images without reserved dimensions**~~ (S) — the sponsor creative has no fixed
+  ratio, and the logo and Misc images are operator files of unknown size
   - Where: `features/SponsorBanner.svelte:65-70`; `layout/TopNavBar.svelte:78`;
     `panels/MiscPanel.svelte:80`
   - Fix: `aspect-ratio` on the creative container; `width` / `height` on the logo;
     `loading="lazy" decoding="async"` on the Misc panel image.
-- [ ] **P11. Font swap reflows the chrome** (S)
+- ~~**P11. Font swap reflows the chrome**~~ (S) — skipped with T5
   - Where: `routes/layout.css:9-10`; `src/app.html:51-60`
   - Fix: `font-size-adjust: from-font`, or a metric-matched fallback `@font-face`. Decide
     together with T5.

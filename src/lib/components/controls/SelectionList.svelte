@@ -10,7 +10,7 @@
 		channelOptions,
 		dispChannelToSelectValue,
 		selectValueToDispChannel
-	} from './channel-choice.js';
+	} from '#lib/utils/channel-choice.js';
 	import GraphColorPicker from '#lib/components/features/GraphColorPicker.svelte';
 	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';

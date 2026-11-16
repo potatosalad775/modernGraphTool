@@ -5,7 +5,7 @@ import {
 	channelOptions,
 	dispChannelToSelectValue,
 	selectValueToDispChannel
-} from './channel-choice.js';
+} from '#lib/utils/channel-choice.js';
 
 const channel: ChannelData = { data: [[1000, 0]], metadata: { minFreq: 20, maxFreq: 20000 } };
 

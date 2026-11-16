@@ -3,7 +3,7 @@
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
 `equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
-`search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `scroll-anchor.ts` (see
+`search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `channel-choice.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
 ## `curve-name.ts`

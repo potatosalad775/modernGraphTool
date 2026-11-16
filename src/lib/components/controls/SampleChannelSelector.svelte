@@ -14,7 +14,7 @@
 		channelOptions,
 		dispChannelToSelectValue,
 		selectValueToDispChannel
-	} from './channel-choice.js';
+	} from '#lib/utils/channel-choice.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { ChevronDown, Ellipsis } from '@lucide/svelte';

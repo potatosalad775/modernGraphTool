@@ -115,7 +115,7 @@
 
 		<!-- Active filters -->
 		{#if activeFilters.length === 0}
-			<p class="text-center text-xs text-base-content/60">
+			<p class="text-center text-xs text-base-content/80">
 				{m.target_customizer_no_filters()}
 			</p>
 		{/if}

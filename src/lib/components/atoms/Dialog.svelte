@@ -58,7 +58,7 @@
 				{title}
 			</DialogPrimitive.Title>
 			{#if description !== undefined}
-				<DialogPrimitive.Description class="text-sm text-pretty text-base-content/70">
+				<DialogPrimitive.Description class="text-sm text-pretty text-base-content/80">
 					{description}
 				</DialogPrimitive.Description>
 			{/if}

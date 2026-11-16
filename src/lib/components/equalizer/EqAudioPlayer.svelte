@@ -108,7 +108,7 @@
 	<!-- Who applies the EQ while a hardware device is connected: it, or this player. Never both. -->
 	{#if devicePeqStore.isConnected}
 		{#if onDevice}
-			<p class="text-xs text-base-content/70">
+			<p class="text-xs text-base-content/80">
 				{m.equalizer_player_device_eq({ device: deviceName })}
 				{#if devicePeqStore.inSync === false}
 					{m.equalizer_player_device_eq_unwritten()}
@@ -121,7 +121,7 @@
 				/>
 			</p>
 		{:else if !devicePeqStore.audioThroughDevice}
-			<p class="text-xs text-base-content/70">
+			<p class="text-xs text-base-content/80">
 				{m.equalizer_player_device_ask({ device: deviceName })}
 				<Button
 					variant="link"
@@ -135,7 +135,7 @@
 
 	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
 	{#if audioRangeStore.isFrequencySelectionMode}
-		<div class="flex items-center gap-2 text-xs text-base-content/60">
+		<div class="flex items-center gap-2 text-xs text-base-content/80">
 			<label class="flex items-baseline gap-1">
 				{m.equalizer_player_sweep_from_label()}
 				<input
@@ -200,7 +200,7 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioPlayerService.audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-base-content/60"
+			<span class="text-xs text-base-content/80"
 				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{audioPlayerService.toneFreq} Hz</span
 				></span
@@ -225,7 +225,7 @@
 	<!-- Sweep controls (only when sweep selected) -->
 	{#if audioPlayerService.audioSource === 'sweep'}
 		<div class="flex flex-col gap-2">
-			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/60">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/80">
 				<!-- In range mode the band *is* the sweep span, and the Range From/To pair
 				     above already edits it — a second pair here would carry the same labels
 				     and the same numbers. -->
@@ -288,7 +288,7 @@
 				/>
 			</div>
 			{#if audioPlayerService.isPlaying}
-				<span class="text-xs text-base-content/60 tabular-nums">
+				<span class="text-xs text-base-content/80 tabular-nums">
 					{audioPlayerService.sweepCurrentHz} Hz
 				</span>
 			{/if}
@@ -314,7 +314,7 @@
 			onchange={onFileChange}
 		/>
 		{#if audioPlayerService.fileLoaded}
-			<div class="flex items-center gap-2 text-xs text-base-content/60">
+			<div class="flex items-center gap-2 text-xs text-base-content/80">
 				<span class="tabular-nums">{formatTime(audioPlayerService.currentTime)}</span>
 				<input
 					type="range"

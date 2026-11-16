@@ -86,7 +86,7 @@
 
 {#if showCrossSiteSection}
 	{#if crossSiteLoading && hits.results.length === 0}
-		<p class="px-3 py-3 text-center text-xs text-base-content/60">
+		<p class="px-3 py-3 text-center text-xs text-base-content/80">
 			{m.crosssite_search_loading()}
 		</p>
 	{/if}
@@ -126,7 +126,7 @@
 		{/each}
 
 		{#if hits.total > hits.results.length}
-			<p class="px-3 py-2 text-center text-xs text-base-content/60">
+			<p class="px-3 py-2 text-center text-xs text-base-content/80">
 				{m.crosssite_search_truncated({ count: hits.results.length, total: hits.total })}
 			</p>
 		{/if}

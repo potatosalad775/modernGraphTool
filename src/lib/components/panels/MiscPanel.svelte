@@ -92,7 +92,7 @@
 				() => settingsStore.singleKeyShortcuts, (on) => settingsStore.setSingleKeyShortcuts(on)
 			}
 		/>
-		<p id={shortcutsHintId} class="text-xs text-base-content/70">
+		<p id={shortcutsHintId} class="text-xs text-base-content/80">
 			{m.misc_panel_single_key_shortcuts_hint()}
 		</p>
 	</div>
@@ -123,7 +123,7 @@
 		<div class="flex items-baseline gap-2">
 			<h3 class="text-base font-bold text-base-content">modernGraphTool v2</h3>
 		</div>
-		<p class="-mt-1 text-xs text-base-content/60">v{appVersion}</p>
+		<p class="-mt-1 text-xs text-base-content/80">v{appVersion}</p>
 		<div class="flex gap-2 pt-0.5">
 			<!-- GitHub button -->
 			<Button

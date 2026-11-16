@@ -77,7 +77,7 @@
 		<span id="{uid}-value" class="flex min-w-0 gap-1 {selectedLabel ? '' : 'text-base-content/60'}">
 			<span class="truncate">{selectedLabel || placeholder}</span>
 			{#if selectedLabel && selectedDetail}
-				<span class="shrink-0 text-base-content/60">· {selectedDetail}</span>
+				<span class="shrink-0 text-base-content/80">· {selectedDetail}</span>
 			{/if}
 		</span>
 		<ChevronDown class="size-3.5 shrink-0 text-base-content/60" aria-hidden="true" />
@@ -91,7 +91,7 @@
 				{#each visibleGroups as group (group.id)}
 					<Select.Group>
 						<Select.GroupHeading
-							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/50 uppercase"
+							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/80 uppercase"
 						>
 							{group.heading}
 						</Select.GroupHeading>
@@ -107,7 +107,7 @@
 								{#snippet children({ selected })}
 									<span class="min-w-0 flex-1 truncate">{item.label}</span>
 									{#if item.detail}
-										<span class="shrink-0 text-xs font-normal text-base-content/60">
+										<span class="shrink-0 text-xs font-normal text-base-content/80">
 											{item.detail}
 										</span>
 									{/if}

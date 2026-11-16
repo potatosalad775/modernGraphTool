@@ -269,7 +269,7 @@
 			{display.text}
 		</span>
 	{:else}
-		<span class="text-xs text-warning">{display.text}</span>
+		<span class="text-xs text-base-content">{display.text}</span>
 	{/if}
 {/snippet}
 
@@ -333,38 +333,38 @@
 						sample here breaks those tests, so update the spec in the same change.
 					-->
 					<code class="ps-help-code">hd 6</code>
-					<span class="text-xs leading-snug text-base-content/70">
+					<span class="text-xs leading-snug text-base-content/80">
 						{m.phone_selector_search_help_substring()}
 					</span>
-					<span class="text-xs leading-snug text-base-content/60">
+					<span class="text-xs leading-snug text-base-content/80">
 						{m.phone_selector_search_help_brands()}
 					</span>
 					{#if crossSiteEnabled}
-						<span class="text-xs leading-snug text-base-content/60">
+						<span class="text-xs leading-snug text-base-content/80">
 							{m.phone_selector_search_help_brands_cross_site()}
 						</span>
 					{/if}
 				</li>
 				<li class="flex flex-col gap-1">
 					<code class="ps-help-code">hd 600, u12t</code>
-					<span class="text-xs leading-snug text-base-content/70">
+					<span class="text-xs leading-snug text-base-content/80">
 						{m.phone_selector_search_help_commas()}
 					</span>
 					{#if crossSiteEnabled}
-						<span class="text-xs leading-snug text-base-content/60">
+						<span class="text-xs leading-snug text-base-content/80">
 							{m.phone_selector_search_help_cross_site()}
 						</span>
 					{/if}
 				</li>
 				<li class="flex flex-col gap-1">
 					<code class="ps-help-code">lyro // lyrö</code>
-					<span class="text-xs leading-snug text-base-content/70">
+					<span class="text-xs leading-snug text-base-content/80">
 						{m.phone_selector_search_help_alternatives()}
 					</span>
 				</li>
 				<li class="flex flex-col gap-1">
 					<code class="ps-help-code">earphones -pro -max</code>
-					<span class="text-xs leading-snug text-base-content/70">
+					<span class="text-xs leading-snug text-base-content/80">
 						{m.phone_selector_search_help_exclude()}
 					</span>
 				</li>
@@ -431,7 +431,7 @@
 			>
 				<!-- Empty state -->
 				{#if displayPhones.length === 0 && crossSiteResultCount === 0 && !crossSiteIsLoading}
-					<p class="px-3 py-6 text-center text-xs text-base-content/60">
+					<p class="px-3 py-6 text-center text-xs text-base-content/80">
 						{listQuery.trim() ? m.phone_selector_no_results() : m.phone_selector_no_devices()}
 					</p>
 				{/if}
@@ -491,7 +491,7 @@
 									{isLoading ? 'opacity-50' : ''}"
 							>
 								<div
-									class="ps-description min-w-0 text-xs leading-snug text-base-content/60
+									class="ps-description min-w-0 text-xs leading-snug text-base-content/80
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
 								>
 									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -527,7 +527,7 @@
 								{/if}
 
 								{#if phone.price}
-									<span class="text-xs text-base-content/60">{phone.price}</span>
+									<span class="text-xs text-base-content/80">{phone.price}</span>
 								{/if}
 
 								{#if phone.reviewLink}

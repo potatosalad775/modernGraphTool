@@ -21,6 +21,13 @@ four.
   deployments, so a height changed in the other two drifts invisibly in local dev. It stays a
   variable rather than an `@utility` so `h-(--toolbar-height)` remains a plain `h-` class that
   `tailwind-merge` can resolve against a caller's override.
+- **`xs` and `icon-xs` are under 24px, so they carry an invisible centred 24px hit area** (`relative`
+  plus an `::after` of `size-6`; WCAG 2.5.8). The visible button is unchanged. The area is capped at
+  24px because it is a positioned box and wins hit-testing over non-positioned neighbours: a coarse
+  pointer's 44px (`--target-size`) would swallow clicks on adjacent inputs in dense rows. A caller
+  with room opts in with `class="pointer-coarse:after:size-(--target-size)"` (tailwind-merge resolves
+  it against the atom's). A caller passing its own `absolute` / `fixed` replaces the atom's `relative`
+  and loses the area's anchor.
 - `activeOnOpen` highlights a popover trigger in the accent color while its surface is open,
   replacing a hand-written `data-[state=open]:bg-accent data-[state=open]:text-accent-content`.
 - **Classes are merged with `tailwind-merge`, so `class` overrides win without a `!` modifier.** This

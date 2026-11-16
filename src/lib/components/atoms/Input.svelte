@@ -35,7 +35,7 @@
 			{type}
 			bind:value
 			{placeholder}
-			class="block w-full rounded-md border border-base-content/20 px-3 py-2 focus:ring-1 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 {icon
+			class="block w-full rounded-md border border-base-content/20 px-3 py-2 placeholder:text-base-content/60 focus:ring-1 focus:ring-accent focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 {icon
 				? 'pl-9'
 				: ''}"
 			{...restProps}

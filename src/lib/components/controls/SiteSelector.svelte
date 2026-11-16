@@ -234,7 +234,7 @@
 						<h3
 							id="{uid}-{group.type}"
 							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-xs font-semibold tracking-wider
-								text-base-content/50 uppercase"
+								text-base-content/80 uppercase"
 						>
 							{dbTypeLabel(group.type)}
 						</h3>
@@ -263,7 +263,7 @@
 						</ul>
 					</section>
 				{:else}
-					<p class="px-2 py-2 text-center text-sm text-base-content/60">
+					<p class="px-2 py-2 text-center text-sm text-base-content/80">
 						{m.site_selector_no_results()}
 					</p>
 				{/each}

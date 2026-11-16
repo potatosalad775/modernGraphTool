@@ -192,7 +192,7 @@
 			<!-- OKLCH inputs -->
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-l" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-l" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_lightness()}</label
 					>
 					<input
@@ -208,7 +208,7 @@
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-c" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-c" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_chroma()}</label
 					>
 					<input
@@ -224,7 +224,7 @@
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-h" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-h" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_hue()}</label
 					>
 					<input
@@ -243,7 +243,7 @@
 			<!-- Dash inputs -->
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-dash-tick" class="text-xs text-base-content/60"
+					<label for="{uuid}-dash-tick" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_tick()}</label
 					>
 					<input
@@ -258,7 +258,7 @@
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-dash-space" class="text-xs text-base-content/60"
+					<label for="{uuid}-dash-space" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_space()}</label
 					>
 					<input

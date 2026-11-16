@@ -105,7 +105,7 @@
 </script>
 
 {#snippet rangeBound(key: RangeKey)}
-	<span id="{uid}-{key}" class="text-xs text-base-content/60">
+	<span id="{uid}-{key}" class="text-xs text-base-content/80">
 		{key.endsWith('Min') ? m.equalizer_autoeq_min() : m.equalizer_autoeq_max()}
 	</span>
 	{@render rangeInput(key)}
@@ -128,7 +128,7 @@
 
 <div class="flex flex-col gap-2 text-sm">
 	{#if isGraphicMode}
-		<p class="text-xs text-base-content/60">
+		<p class="text-xs text-base-content/80">
 			{m.equalizer_autoeq_graphic_note({ count: graphicBands.length })}
 		</p>
 	{/if}
@@ -136,7 +136,7 @@
 	<!-- Filter settings fieldset -->
 	{#if showFitMode || !isGraphicMode}
 		<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60">
+			<legend class="px-1 text-xs text-base-content/80">
 				{m.equalizer_autoeq_filter_setting()}
 			</legend>
 			{#if showFitMode}
@@ -182,7 +182,7 @@
 	{#if !isGraphicMode}
 		<!-- Frequency Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-freq-legend" class="px-1 text-xs text-base-content/60"
+			<legend id="{uid}-freq-legend" class="px-1 text-xs text-base-content/80"
 				>{m.equalizer_autoeq_freq_range()}</legend
 			>
 			<div class="flex items-center gap-2">
@@ -193,7 +193,7 @@
 
 		<!-- Gain Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-gain-legend" class="px-1 text-xs text-base-content/60"
+			<legend id="{uid}-gain-legend" class="px-1 text-xs text-base-content/80"
 				>{m.equalizer_autoeq_gain_range()}</legend
 			>
 			<div class="flex items-center gap-2">
@@ -204,7 +204,7 @@
 
 		<!-- Q Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-q-legend" class="px-1 text-xs text-base-content/60"
+			<legend id="{uid}-q-legend" class="px-1 text-xs text-base-content/80"
 				>{m.equalizer_autoeq_q_range()}</legend
 			>
 			<div class="flex items-center gap-2">
@@ -214,7 +214,7 @@
 		</fieldset>
 	{/if}
 
-	<p class="text-xs text-base-content/60">{m.equalizer_autoeq_description()}</p>
+	<p class="text-xs text-base-content/80">{m.equalizer_autoeq_description()}</p>
 
 	<!--
 		One button element throughout, relabelled rather than swapped out, so
@@ -244,7 +244,7 @@
 	<p
 		role="status"
 		aria-busy={autoEqService.isRunning}
-		class="text-xs text-base-content/70 empty:hidden"
+		class="text-xs text-base-content/80 empty:hidden"
 	>
 		{statusText}
 	</p>

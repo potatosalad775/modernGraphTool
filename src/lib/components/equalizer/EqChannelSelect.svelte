@@ -78,7 +78,7 @@
 	the readout and the add/remove/sort buttons for the same ~150px.
 -->
 <div class="flex items-center gap-2">
-	<span class="shrink-0 text-xs text-base-content/60">{m.eq_channel_scope_label()}</span>
+	<span class="shrink-0 text-xs text-base-content/80">{m.eq_channel_scope_label()}</span>
 	<SegmentedControl
 		class="flex-1"
 		label={m.eq_channel_scope_label()}

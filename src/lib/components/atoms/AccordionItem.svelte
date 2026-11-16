@@ -33,7 +33,7 @@
 <Accordion.Item {...restProps}>
 	<Accordion.Header {level}>
 		<Accordion.Trigger
-			class="flex w-full flex-1 cursor-pointer items-center gap-2 rounded-md p-2 text-sm font-medium text-base-content/70 transition-all select-none hover:bg-base-content/10 [&[data-state=open]>svg]:rotate-180"
+			class="flex w-full flex-1 cursor-pointer items-center gap-2 rounded-md p-2 text-sm font-medium text-base-content/80 transition-all select-none hover:bg-base-content/10 [&[data-state=open]>svg]:rotate-180"
 		>
 			<ChevronDown class="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
 			{title}

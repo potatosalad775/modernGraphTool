@@ -142,11 +142,7 @@
 				class="relative shrink-0 rounded-md px-2 py-1.5 text-sm font-semibold
 					tracking-wide transition-all hover:cursor-pointer hover:bg-base-content/5
 					focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden
-					{menuStore.currentPanel === panel.id
-					? 'text-accent'
-					: Math.abs(i - currentIndex) === 1
-						? 'text-base-content/60'
-						: 'text-base-content/25'}"
+					{menuStore.currentPanel === panel.id ? 'text-accent' : 'text-base-content/80'}"
 				onclick={() => handleButtonClick(i)}
 			>
 				<span class="block overflow-hidden text-center text-ellipsis whitespace-nowrap">

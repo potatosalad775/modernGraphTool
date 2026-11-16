@@ -595,6 +595,7 @@
 	"equalizer_device_peq_report_limits": "Report wrong limits",
 	"equalizer_device_peq_hardware_setting": "Device Setting",
 	"equalizer_device_peq_profile_notes": "this device's profile",
+	"equalizer_device_peq_profile_notes_warn": "this device's profile (has warnings)",
 	"equalizer_device_peq_experimental": "This device is connected with an experimental protocol.",
 	"equalizer_device_peq_reconnect_prompt": "The device disconnected.",
 	"equalizer_device_peq_reconnect": "Reconnect",

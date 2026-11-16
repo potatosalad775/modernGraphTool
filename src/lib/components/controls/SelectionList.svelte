@@ -136,7 +136,7 @@
 
 <div class="flex flex-1 flex-col gap-0 overflow-y-auto pb-2">
 	{#if sortedEntries.length === 0}
-		<p class="px-3 py-6 text-center text-xs text-base-content/60">{m.selection_list_empty()}</p>
+		<p class="px-3 py-6 text-center text-xs text-base-content/80">{m.selection_list_empty()}</p>
 	{/if}
 
 	{#each sortedEntries as [uuid, item] (uuid)}
@@ -183,7 +183,7 @@
 										 clamp to two lines rather than cutting one end off. -->
 									<span class="flex flex-row items-start gap-0.5">
 										<span
-											class="line-clamp-2 text-xs wrap-break-word text-base-content/60"
+											class="line-clamp-2 text-xs wrap-break-word text-base-content/80"
 											title={item.dispSuffix || undefined}
 											>{item.dispSuffix || m.selection_list_variant_default()}</span
 										>
@@ -193,13 +193,13 @@
 										/>
 									</span>
 									{#if item.adjustmentLabel}
-										<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span
+										<span class="truncate text-xs text-base-content/80">{item.adjustmentLabel}</span
 										>
 									{/if}
 									<!-- The caption describes the set, not the fill — a single-run set
 										 drawn as `avg` or `curves` still needs it. -->
 									{#if item.samples?.length && item.sampleDescription}
-										<span class="truncate text-xs text-base-content/50"
+										<span class="truncate text-xs text-base-content/80"
 											>{item.sampleDescription}</span
 										>
 									{/if}
@@ -222,7 +222,7 @@
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
 										aria-current={isSelected ? 'true' : undefined}
 										class="flex min-w-0 flex-1 items-start gap-2 px-2 py-1.5 text-left text-sm transition-colors
-											{isSelected ? 'font-medium text-accent' : 'text-base-content/70'}"
+											{isSelected ? 'font-medium text-accent' : 'text-base-content'}"
 									>
 										<Check
 											class="mt-0.5 h-4 w-4 shrink-0 {isSelected ? 'opacity-100' : 'opacity-0'}"
@@ -233,7 +233,7 @@
 												>{variant.suffix || m.selection_list_variant_default()}</span
 											>
 											{#if description}
-												<span class="text-xs font-normal wrap-break-word text-base-content/60"
+												<span class="text-xs font-normal wrap-break-word text-base-content/80"
 													>{description}</span
 												>
 											{/if}
@@ -269,13 +269,13 @@
 							{item.identifier}
 						</span>
 						{#if item.dispSuffix}
-							<span class="truncate text-xs text-base-content/60">{item.dispSuffix}</span>
+							<span class="truncate text-xs text-base-content/80">{item.dispSuffix}</span>
 						{/if}
 						{#if item.adjustmentLabel}
-							<span class="truncate text-xs text-base-content/50">{item.adjustmentLabel}</span>
+							<span class="truncate text-xs text-base-content/80">{item.adjustmentLabel}</span>
 						{/if}
 						{#if item.samples?.length && item.sampleDescription}
-							<span class="truncate text-xs text-base-content/50">{item.sampleDescription}</span>
+							<span class="truncate text-xs text-base-content/80">{item.sampleDescription}</span>
 						{/if}
 					</div>
 				{/if}

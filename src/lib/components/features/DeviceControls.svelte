@@ -152,18 +152,22 @@
 		<div class="flex items-start justify-between gap-2">
 			<div class="min-w-0">
 				<p class="truncate text-xs font-medium text-base-content">{connection.name}</p>
-				<p class="text-xs text-base-content/60">{limitsSummary}</p>
+				<p class="text-xs text-base-content/80">{limitsSummary}</p>
 			</div>
 			<div class="-mr-1 flex shrink-0 items-center">
 				{#if hasNotices}
 					<InfoPopover
-						label={m.info_popover_about({ topic: m.equalizer_device_peq_profile_notes() })}
+						label={m.info_popover_about({
+							topic: noticesWarn
+								? m.equalizer_device_peq_profile_notes_warn()
+								: m.equalizer_device_peq_profile_notes()
+						})}
 						size="sm"
 						align="end"
 					>
 						{#snippet icon()}
 							{#if noticesWarn}
-								<TriangleAlert class="size-4 text-warning" />
+								<TriangleAlert class="size-4 text-base-content" aria-hidden="true" />
 							{:else}
 								<Info class="size-4" />
 							{/if}
@@ -227,7 +231,7 @@
 				<p
 					class="text-xs {devicePeqStore.statusIsError
 						? 'text-base-content'
-						: 'text-base-content/70'}"
+						: 'text-base-content/80'}"
 					role="status"
 				>
 					{devicePeqStore.statusMessage ?? m.equalizer_device_peq_reconnect_prompt()}
@@ -244,12 +248,12 @@
 		{:else}
 			<!-- Device EQ: what the device plays -->
 			<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
-				<legend class="px-1 text-xs text-base-content/60">
+				<legend class="px-1 text-xs text-base-content/80">
 					{m.equalizer_device_peq_hardware_setting()}
 				</legend>
 				{#if hasPresets}
 					<div class="flex items-center gap-1">
-						<label class="flex min-w-0 flex-1 items-center gap-2 text-xs text-base-content/70">
+						<label class="flex min-w-0 flex-1 items-center gap-2 text-xs text-base-content/80">
 							<span class="shrink-0">{eqLabel}</span>
 							<select
 								value={eqValue}
@@ -282,7 +286,7 @@
 						}
 						disabled={devicePeqStore.isBusy}
 						labelText={m.equalizer_device_peq_eq_label()}
-						labelClass="text-xs text-base-content/70"
+						labelClass="text-xs text-base-content/80"
 					>
 						<InfoPopover
 							label={m.info_popover_about({ topic: m.equalizer_device_peq_eq_label() })}
@@ -339,7 +343,7 @@
 						() => devicePeqService.autoWriteOn, (on) => devicePeqService.setAutoWrite(on)
 					}
 					labelText={m.equalizer_device_peq_auto_write()}
-					labelClass="text-xs text-base-content/70"
+					labelClass="text-xs text-base-content/80"
 				>
 					<InfoPopover
 						label={m.info_popover_about({ topic: m.equalizer_device_peq_auto_write() })}
@@ -354,7 +358,7 @@
 			<div class="flex items-center gap-2">
 				<p
 					class="flex min-w-0 flex-1 items-start gap-1 text-xs {status?.tone === 'muted'
-						? 'text-base-content/60'
+						? 'text-base-content/80'
 						: 'text-base-content'}"
 					role="status"
 				>

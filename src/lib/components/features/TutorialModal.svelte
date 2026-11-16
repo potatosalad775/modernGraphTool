@@ -227,7 +227,7 @@
 					{/if}
 
 					{#if step.title}
-						<Dialog.Title class="text-base font-semibold text-base-content">
+						<Dialog.Title class="text-base font-semibold text-balance text-base-content">
 							<TutorialText text={step.title()} />
 						</Dialog.Title>
 					{:else}
@@ -236,12 +236,12 @@
 						>
 					{/if}
 
-					<Dialog.Description class="mt-1 text-sm leading-relaxed text-base-content/70">
+					<Dialog.Description class="mt-1 text-sm leading-relaxed text-pretty text-base-content/80">
 						<TutorialText text={step.content()} />
 					</Dialog.Description>
 
 					{#if step.tips && showTips}
-						<div class="mt-3 space-y-1.5 text-xs leading-5 text-base-content/55">
+						<div class="mt-3 space-y-1.5 text-xs leading-5 text-pretty text-base-content/80">
 							{#each step.tips as tip, i (i)}
 								<p><TutorialText text={tip()} /></p>
 							{/each}
@@ -292,7 +292,7 @@
 								label={m.tutorial_modal_btn_skip()}
 								variant="ghost"
 								size="sm"
-								class="text-base-content/50 hover:text-base-content/70"
+								class="text-base-content/80 hover:text-base-content"
 								onclick={() => tutorialStore.dismiss()}
 							/>
 						{/if}

@@ -144,7 +144,7 @@
 				<span class="text-xs font-medium text-base-content/80">
 					{m.eq_constraint_select_label()}
 				</span>
-				<span class="truncate text-xs text-base-content/60">
+				<span class="truncate text-xs text-base-content/80">
 					{eqConstraintsStore.active.label}
 				</span>
 			</div>
@@ -159,7 +159,7 @@
 				autocapitalize="none"
 				spellcheck={false}
 				enterkeyhint="search"
-				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-hidden placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
+				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-hidden placeholder:text-base-content/60 focus:ring-1 focus:ring-accent"
 			/>
 		</div>
 
@@ -169,7 +169,7 @@
 					<div role="group" aria-labelledby="{group.id}-heading">
 						<div
 							id="{group.id}-heading"
-							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/50 uppercase"
+							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/80 uppercase"
 						>
 							{group.heading}
 						</div>
@@ -198,12 +198,12 @@
 								>
 									<span class="truncate">{entryLabel(row.entry)}</span>
 									{#if pendingId === row.entry.id}
-										<span class="shrink-0 text-2xs text-base-content/50">
+										<span class="shrink-0 text-2xs text-base-content/80">
 											{m.eq_constraint_loading()}
 										</span>
 									{:else if row.entry.status === 'draft'}
 										<span
-											class="shrink-0 rounded border border-base-content/20 px-1 text-2xs text-base-content/50"
+											class="shrink-0 rounded border border-base-content/20 px-1 text-2xs text-base-content/80"
 											title={m.eq_constraint_draft_title()}
 										>
 											{m.eq_constraint_draft()}
@@ -216,15 +216,15 @@
 				{/if}
 			{/each}
 			{#if catalogState === 'loading'}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_catalog_loading()}
 				</div>
 			{:else if catalogState === 'failed'}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_catalog_failed()}
 				</div>
 			{:else if isEmpty}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_no_results()}
 				</div>
 			{/if}

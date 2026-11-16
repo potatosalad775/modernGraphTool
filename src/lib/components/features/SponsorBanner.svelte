@@ -49,11 +49,11 @@
 				class="fixed top-1/2 left-1/2 z-50 flex max-h-11/12 w-11/12 max-w-md -translate-x-1/2
 					-translate-y-1/2 flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
 			>
-				<Dialog.Title class="text-lg font-semibold text-base-content">
+				<Dialog.Title class="text-lg font-semibold text-balance text-base-content">
 					{sponsor.heading}
 				</Dialog.Title>
 
-				<Dialog.Description class="mt-1 text-sm text-base-content/60">
+				<Dialog.Description class="mt-1 text-sm text-pretty text-base-content/80">
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
@@ -100,7 +100,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-hidden"
+					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/80 transition-colors hover:bg-base-300 hover:text-base-content focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-hidden"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

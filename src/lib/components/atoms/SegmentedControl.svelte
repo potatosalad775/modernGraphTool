@@ -49,7 +49,7 @@
 		<ToggleGroup.Item
 			value={option.value}
 			title={option.title}
-			class="relative flex-1 border-base-content/20 bg-base-100 px-2 py-1 text-xs font-medium text-base-content/70 transition-colors not-first:border-l first:rounded-l-md last:rounded-r-md hover:bg-base-content/5 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-content"
+			class="relative flex-1 border-base-content/20 bg-base-100 px-2 py-1 text-xs font-medium text-base-content/80 transition-colors not-first:border-l first:rounded-l-md last:rounded-r-md hover:bg-base-content/5 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-content"
 		>
 			{option.label}
 		</ToggleGroup.Item>

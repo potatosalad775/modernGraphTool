@@ -174,7 +174,7 @@
 				the hover readout and the EQ overlay.
 			-->
 			<fieldset class="mb-0">
-				<legend class="mb-1 px-1.5 text-xs font-medium text-base-content/60">
+				<legend class="mb-1 px-1.5 text-xs font-medium text-base-content/80">
 					{m.selection_list_channel_header()}
 				</legend>
 				<div class="flex flex-wrap gap-x-1">
@@ -200,7 +200,7 @@
 			<!-- Section 2: Sample set — one section for every kind of set -->
 			{#if sampleRows.length > 0}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/80">
 						{m.selection_list_samples_header()} ({sampleRows.length})
 					</p>
 
@@ -254,7 +254,7 @@
 							/>
 						{/snippet}
 						{#if selectedRunCount > 0}
-							<span class="ml-auto shrink-0 text-base-content/60">{selectedRunCount}</span>
+							<span class="ml-auto shrink-0 text-base-content/80">{selectedRunCount}</span>
 						{/if}
 					</Button>
 

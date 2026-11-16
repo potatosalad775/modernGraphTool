@@ -67,6 +67,13 @@
 	const GRAPH_REGION_ID = 'app-graph-region';
 	const CONTROLS_REGION_ID = 'app-controls-region';
 
+	// svelte-sonner styles its close button at specificity (0,3,0) — 20px, with a faint grey
+	// box-shadow on focus — so a plain class loses and every utility here needs `!`. 24px is the
+	// WCAG 2.5.8 minimum; the focus ring comes from the accent token. Not 44px under a coarse
+	// pointer: the button sits on the toast's corner, over its content.
+	const TOAST_CLOSE_CLASS =
+		'size-6! focus-visible:ring-2! focus-visible:ring-accent! focus-visible:outline-hidden!';
+
 	// The page's `<h1>`, as plain text: the top bar's title may be HTML or an image, and an
 	// operator's markup must not be injected a second time. An image title has no text to
 	// offer, so it falls back to the app name, the same default the top bar uses.
@@ -382,6 +389,7 @@
 	closeButton
 	closeButtonAriaLabel={m.toast_close()}
 	theme={settingsStore.theme}
+	toastOptions={{ classes: { closeButton: TOAST_CLOSE_CLASS } }}
 />
 <TooltipHost />
 

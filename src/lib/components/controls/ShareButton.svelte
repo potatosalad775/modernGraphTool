@@ -86,7 +86,7 @@
 		</Button>
 	{/snippet}
 	<div class="flex flex-col gap-2">
-		<p class="text-sm text-base-content/70">{m.share_button_manual_copy()}</p>
+		<p class="text-sm text-base-content/80">{m.share_button_manual_copy()}</p>
 		<Input
 			label={m.share_button_url_label()}
 			value={manualUrl}

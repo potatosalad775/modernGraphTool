@@ -302,7 +302,7 @@
 
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
-		<span class="text-xs text-base-content/60">
+		<span class="text-xs text-base-content/80">
 			{m.equalizer_filter_list_preamp()}:
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 			{#if preampFixed}
@@ -382,11 +382,11 @@
 			class="flex items-center gap-2 rounded-md border border-base-content/15 bg-base-200 px-2 py-1 text-xs"
 		>
 			<div class="min-w-0 flex-1">
-				<p class="truncate text-base-content/70">
+				<p class="truncate text-base-content">
 					{m.eq_constraint_active({ label: eqConstraintsStore.active.label })}
 				</p>
 				{#if limitsSummary}
-					<p class="truncate text-base-content/50">{limitsSummary}</p>
+					<p class="truncate text-base-content/80">{limitsSummary}</p>
 				{/if}
 			</div>
 			{#if eqConstraintsStore.violationCount > 0}
@@ -403,7 +403,7 @@
 				title={m.eq_constraint_clear()}
 				variant="ghost"
 				size="icon-xs"
-				class="text-base-content/50 hover:text-base-content"
+				class="text-base-content/60 hover:text-base-content"
 				onclick={clearConstraint}
 			>
 				<X class="size-3" />
@@ -419,7 +419,7 @@
 		A fieldset, so one `disabled` stops every card while linked uniPEQ takes no edits.
 	-->
 	{#if linkStore.readOnly}
-		<p class="text-xs text-base-content/70" role="status">
+		<p class="text-xs text-base-content/80" role="status">
 			{linkStore.device ? m.link_read_only() : m.link_read_only_no_device()}
 		</p>
 	{/if}
@@ -441,7 +441,7 @@
 	</fieldset>
 
 	{#if scope !== 'BOTH' && sharedBandCount > 0}
-		<p class="text-xs text-base-content/60">
+		<p class="text-xs text-base-content/80">
 			{m.eq_channel_shared_hint({ count: sharedBandCount })}
 		</p>
 	{/if}

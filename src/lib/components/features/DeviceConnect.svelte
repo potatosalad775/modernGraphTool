@@ -105,7 +105,7 @@
 		{#if choice}
 			<!-- Several profiles fit this device's identity, or a serial port named none -->
 			<div class="flex flex-col gap-1.5 rounded-md border border-base-content/15 p-2">
-				<label class="flex flex-col gap-1 text-xs text-base-content/70">
+				<label class="flex flex-col gap-1 text-xs text-base-content/80">
 					{m.equalizer_device_peq_choose_prompt()}
 					<select
 						bind:value={chosenId}
@@ -153,7 +153,7 @@
 						onclick={() => connect(primaryKind)}
 					/>
 				{/if}
-				<div class="flex flex-wrap items-center gap-1 text-xs text-base-content/60">
+				<div class="flex flex-wrap items-center gap-1 text-xs text-base-content/80">
 					<span>{m.equalizer_device_peq_other_connections()}</span>
 					{#each otherKinds as kind (kind)}
 						<Button
@@ -232,7 +232,7 @@
 							<span>{networkError}</span>
 						</p>
 					{:else}
-						<p id="{networkFieldId}-hint" class="text-xs text-base-content/60">
+						<p id="{networkFieldId}-hint" class="text-xs text-base-content/80">
 							{m.equalizer_device_peq_network_ip_hint()}
 						</p>
 					{/if}
@@ -240,7 +240,7 @@
 			{/if}
 
 			{#if unsupported}
-				<p class="text-xs text-base-content/70">
+				<p class="text-xs text-base-content/80">
 					{m.equalizer_device_peq_unsupported()}
 					<a
 						href={INSPECTOR_URL}
@@ -255,12 +255,12 @@
 		{/if}
 
 		{#if devicePeqStore.statusMessage && devicePeqStore.statusMessage !== networkError}
-			<p class="text-xs text-base-content/70" role="status">{devicePeqStore.statusMessage}</p>
+			<p class="text-xs text-base-content/80" role="status">{devicePeqStore.statusMessage}</p>
 		{/if}
 	</div>
 {:else}
 	<div class="flex flex-col gap-2">
-		<p class="text-xs text-base-content/60">
+		<p class="text-xs text-base-content/80">
 			{m.equalizer_device_peq_incompatible_browser_alert()}
 		</p>
 		{@render catalogLink()}

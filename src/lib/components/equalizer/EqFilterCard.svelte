@@ -284,7 +284,7 @@
 
 <div
 	class="overflow-hidden rounded-lg border transition-colors {inactive
-		? 'border-base-content/15 opacity-50'
+		? 'border-base-content/15 opacity-70'
 		: 'border-base-content/20'}"
 	title={inactive
 		? m.eq_constraint_past_max_bands({
@@ -359,7 +359,7 @@
 					aria-describedby={violation.freq ? noteIds.freq : undefined}
 				/>
 			{/if}
-			<span class="text-xs text-base-content/60 select-none">Hz</span>
+			<span class="text-xs text-base-content/80 select-none">Hz</span>
 		</label>
 
 		{#if graphicRow}
@@ -373,7 +373,7 @@
 				aria-label="{filter.freq} Hz · {m.equalizer_filter_list_gain()}"
 				aria-valuetext={gainValueText}
 				class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
-				class:opacity-50={!filter.enabled}
+				class:opacity-70={!filter.enabled}
 			/>
 		{/if}
 
@@ -412,13 +412,13 @@
 					aria-describedby={violation.gain ? noteIds.gain : undefined}
 				/>
 			{/if}
-			<span class="text-xs text-base-content/60 select-none">dB</span>
+			<span class="text-xs text-base-content/80 select-none">dB</span>
 		</label>
 
 		<!-- Q — read-only chip where the slot locks it (graphic EQs) -->
 		{#if !graphicRow}
 			<label class="inline-flex flex-2 shrink-0 items-baseline gap-0.5">
-				<span class="text-xs text-base-content/60 select-none">Q</span>
+				<span class="text-xs text-base-content/80 select-none">Q</span>
 				{#if qLocked}
 					<span
 						class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
@@ -456,10 +456,10 @@
 					onclick={onToggle}
 					variant="ghost"
 					size="icon"
-					class="text-base-content/50 hover:text-accent"
+					class="text-base-content/60 hover:text-accent"
 				>
 					<ChevronDown
-						class="h-4 w-4 shrink-0 text-base-content/50 transition-transform duration-150 {expanded
+						class="h-4 w-4 shrink-0 transition-transform duration-150 {expanded
 							? 'rotate-180'
 							: ''}"
 					/>
@@ -476,7 +476,7 @@
 					}}
 					variant="ghost"
 					size="icon"
-					class="text-base-content/50 hover:text-error"
+					class="text-base-content/60 hover:text-error"
 				>
 					<X class="h-3.5 w-3.5" />
 				</Button>
@@ -498,11 +498,11 @@
 			id={panelId}
 			transition:slideOrFade={{ duration: 150 }}
 			class="flex flex-col gap-3 px-3 pt-0.5 pb-4"
-			class:opacity-50={!filter.enabled}
+			class:opacity-70={!filter.enabled}
 		>
 			{#if slot.label}
 				<!-- What the constraint calls this slot ("Lowshelf 1", "Peaking") -->
-				<span class="text-xs text-base-content/60">
+				<span class="text-xs text-base-content/80">
 					{m.eq_constraint_slot_label({ slot: slotIndex + 1, label: slot.label })}
 				</span>
 			{/if}
@@ -522,7 +522,7 @@
 					single output and there is no per-ear structure to express.
 				-->
 				<div class="flex flex-col gap-1">
-					<span class="text-xs text-base-content/60">{m.eq_channel_applies_to()}</span>
+					<span class="text-xs text-base-content/80">{m.eq_channel_applies_to()}</span>
 					<SegmentedControl
 						bind:value={
 							() => (filter.channel ?? 'BOTH') as ChannelChoice,
@@ -537,7 +537,7 @@
 				<!-- Frequency slider — hidden where the slot locks it -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
-						<span class="text-xs text-base-content/60">
+						<span class="text-xs text-base-content/80">
 							{m.equalizer_filter_list_freq()}
 						</span>
 						<label class="inline-flex items-baseline gap-1">
@@ -555,7 +555,7 @@
 								onkeydown={(e) => handleInputKeydown(e, 'freq')}
 								class="w-16 {inputBase} border border-transparent focus:border-base-content/20"
 							/>
-							<span class="text-2xs text-base-content/40 select-none">Hz</span>
+							<span class="text-2xs text-base-content/80 select-none">Hz</span>
 						</label>
 					</div>
 					<input
@@ -583,7 +583,7 @@
 				<!-- Gain slider — in the row itself for a graphic EQ -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
-						<span class="text-xs text-base-content/60">
+						<span class="text-xs text-base-content/80">
 							{m.equalizer_filter_list_gain()}
 						</span>
 						<label class="inline-flex items-baseline gap-1">
@@ -601,7 +601,7 @@
 								onkeydown={(e) => handleInputKeydown(e, 'gain')}
 								class="w-14 {inputBase} border border-transparent focus:border-base-content/20"
 							/>
-							<span class="text-2xs text-base-content/40 select-none">dB</span>
+							<span class="text-2xs text-base-content/80 select-none">dB</span>
 						</label>
 					</div>
 					<input
@@ -624,11 +624,11 @@
 				<!-- Q slider — hidden where the slot locks it -->
 				<div class="flex flex-col gap-1">
 					<div class="flex items-center justify-between">
-						<span class="text-xs text-base-content/60">
+						<span class="text-xs text-base-content/80">
 							{m.equalizer_filter_list_q()}
 						</span>
 						<label class="inline-flex items-baseline gap-1">
-							<span class="text-2xs text-base-content/40 select-none">Q</span>
+							<span class="text-2xs text-base-content/80 select-none">Q</span>
 							<input
 								type="number"
 								value={filter.q}

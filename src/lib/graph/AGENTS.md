@@ -142,6 +142,12 @@ None of these is a measured speed-up; they are shaped to avoid known costs, and 
   shift. `drag end` flushes synchronously and `resetHandle` cancels the pending frame, so the final
   position is always drawn. `updateYAxis` with a duration of 0 writes straight through after
   `interrupt()`: a zero-duration d3 transition still defers its write to the next tick.
+- **d3 tweens ask `_tweenDuration()`, not `transitionDuration`.** It is `motionDuration(transitionDuration)`
+  (`utils/motion.svelte.ts`), 0 under `prefers-reduced-motion`, read per call so the OS setting can
+  change mid-session. A CSS `transition: none` rule doesn't reach d3 (it ticks from a timer), so each
+  tween path (`updateYScale`, `updateBaseline`, `_transitionFillPaths`, `updateYAxis`) checks the
+  duration and, at 0, writes straight through instead of calling `.transition()`. A new `.transition()`
+  needs the same two lines. `transitionDuration` itself stays 300 — specs set it to 0 directly.
 - **Spectrum overlay allocates nothing per frame.** The area generator is built once (its `y0` is a
   function, so it follows `graphGeometry`) and the point tuples are overwritten in place, resized only
   when the bin mapping changes length.

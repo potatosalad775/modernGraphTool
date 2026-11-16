@@ -12,6 +12,7 @@ import {
 import GraphHandle from './GraphHandle.js';
 import GraphInspection from './GraphInspection.js';
 import { getConfigValue } from '#lib/utils/config.js';
+import { motionDuration } from '#lib/utils/motion.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { sampleFillOpacity } from '#lib/utils/sample-config.js';
@@ -135,12 +136,18 @@ class GraphEngine {
 		this.graphHandle.resetHandle();
 		this.updateYAxis();
 
-		this.curveGroup
+		const curves = this.curveGroup
 			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-sample-fill)")
-			.interrupt()
-			.transition()
-			.duration(this.transitionDuration)
-			.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
+			.interrupt();
+		const duration = this._tweenDuration();
+		if (duration > 0) {
+			curves
+				.transition()
+				.duration(duration)
+				.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
+		} else {
+			curves.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
+		}
 
 		this._transitionFillPaths(true);
 	}
@@ -153,19 +160,36 @@ class GraphEngine {
 		// Use self alias to access GraphEngine instance inside attrTween
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
-		this.curveGroup
+		const curves = this.curveGroup
 			.selectAll("path[class*='fr-graph-'][class*='-curve']:not(.fr-graph-sample-fill)")
-			.interrupt()
-			.transition()
-			.duration(animate ? this.transitionDuration : 0)
-			.attrTween('d', function (d) {
-				const path = d3.select(this as Element);
-				const oldPath = path.attr('d') ?? '';
-				const newPath = self._getCompensatedPath(d as FRDataPoint[]) ?? '';
-				return (t) => d3.interpolateString(oldPath, newPath)(t);
-			});
+			.interrupt();
+		const duration = animate ? this._tweenDuration() : 0;
+		if (duration > 0) {
+			curves
+				.transition()
+				.duration(duration)
+				.attrTween('d', function (d) {
+					const path = d3.select(this as Element);
+					const oldPath = path.attr('d') ?? '';
+					const newPath = self._getCompensatedPath(d as FRDataPoint[]) ?? '';
+					return (t) => d3.interpolateString(oldPath, newPath)(t);
+				});
+		} else {
+			// Straight through, like `updateYAxis`: a zero-length d3 transition still
+			// defers its write to the next tick.
+			curves.attr('d', (d) => this._getCompensatedPath(d as FRDataPoint[]));
+		}
 
 		this._transitionFillPaths(animate);
+	}
+
+	/**
+	 * The length d3 tweens run for: `transitionDuration`, or 0 under reduced motion
+	 * (`utils/motion.svelte.ts`). Read at each call, not cached, so the OS setting can
+	 * change while the page is open.
+	 */
+	private _tweenDuration(): number {
+		return motionDuration(this.transitionDuration);
 	}
 
 	/** Update visibility of curves */
@@ -233,6 +257,7 @@ class GraphEngine {
 		// Use self alias to access GraphEngine instance inside attrTween
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const self = this;
+		const duration = animate ? this._tweenDuration() : 0;
 		this.curveGroup
 			.selectAll<SVGPathElement, unknown>('path.fr-graph-sample-fill')
 			.each(function () {
@@ -244,7 +269,7 @@ class GraphEngine {
 				if (!obj) return;
 				const newPath = self._buildEnvelopePath(obj);
 				if (!newPath) return;
-				if (animate) {
+				if (duration > 0) {
 					const oldPath = el.attr('d') ?? '';
 					// Only use string interpolation when paths have compatible structure
 					// (same number of numeric values = same SVG command count).
@@ -253,7 +278,7 @@ class GraphEngine {
 					const newCount = (newPath.match(/-?\d+\.?\d*(e[+-]?\d+)?/gi) ?? []).length;
 					if (oldCount === newCount && oldCount > 0) {
 						el.transition()
-							.duration(self.transitionDuration)
+							.duration(duration)
 							.attrTween('d', () => (t: number) => d3.interpolateString(oldPath, newPath)(t));
 					} else {
 						el.attr('d', newPath);
@@ -436,7 +461,7 @@ class GraphEngine {
 		// A zero-length d3 transition still defers its writes to the next tick, so a
 		// duration of 0 (every handle-drag frame) writes straight through instead —
 		// after `interrupt()`, so an animation already running can't overwrite it.
-		const duration = transition ? this.transitionDuration : 0;
+		const duration = transition ? this._tweenDuration() : 0;
 		const animated = <T extends d3.BaseType, D>(
 			selection: d3.Selection<T, D, d3.BaseType, unknown>
 		) =>

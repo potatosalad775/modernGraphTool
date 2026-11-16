@@ -7,7 +7,17 @@
  * element, never `d3.select('#fr-graph')`. Transitions are driven to duration 0
  * so path attributes settle synchronously where the assertion needs them.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// The engine asks `utils/motion.svelte.ts` how long to tween; the OS setting itself is
+// not reachable from a spec, so the answer is switched here (`motion.svelte.spec.ts` covers the
+// helper against a mocked `svelte/motion`).
+const motion = vi.hoisted(() => ({ reduced: false }));
+vi.mock('#lib/utils/motion.svelte.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/motion.svelte.js')>()),
+	motionDuration: (ms: number) => (motion.reduced ? 0 : ms)
+}));
+
 import { graphEngine } from './GraphEngine.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
@@ -735,6 +745,71 @@ describe('GraphEngine', () => {
 			expect(graphEngine.getYScale()).toBe(30);
 			expect(graphEngine.getScales().yScale.domain()).toEqual([-15, 15]);
 			expect(graphStore.yScale).toBe(30);
+		});
+	});
+
+	describe('reduced motion', () => {
+		// d3 keeps a running tween on the node as `__transition`.
+		const tweening = (el: Element) =>
+			Boolean((el as Element & { __transition?: unknown }).__transition);
+
+		beforeEach(() => {
+			graphEngine.transitionDuration = 300;
+			frStore.set('p', makePhone('p'));
+			graphEngine.drawFRCurve('p');
+		});
+
+		afterEach(() => {
+			motion.reduced = false;
+		});
+
+		it('tweens the curves to a new y scale when motion is allowed', () => {
+			graphEngine.updateYScale('30');
+			expect(tweening(paths('.fr-graph-phone-curve')[0])).toBe(true);
+		});
+
+		it('writes a y-scale change straight through under reduced motion', () => {
+			motion.reduced = true;
+			const before = paths('.fr-graph-phone-curve')[0].getAttribute('d');
+
+			graphEngine.updateYScale('30');
+
+			const curve = paths('.fr-graph-phone-curve')[0];
+			expect(tweening(curve)).toBe(false);
+			expect(curve.getAttribute('d')).not.toBe(before);
+			const y = graphEngine.getScales().yScale;
+			expect(coords(curve.getAttribute('d')!)[0][1]).toBeCloseTo(y(79), 2);
+		});
+
+		it('moves the curves to a new baseline at once under reduced motion', () => {
+			motion.reduced = true;
+			frStore.set('t', makeTarget('t'));
+			graphEngine.drawFRCurve('t');
+			baseline.cycle('t');
+
+			graphEngine.updateBaseline(true);
+
+			const curve = paths('.fr-graph-phone-curve')[0];
+			expect(tweening(curve)).toBe(false);
+			// 79 dB against a 75 dB baseline sits 4 dB above zero.
+			const y = graphEngine.getScales().yScale;
+			expect(coords(curve.getAttribute('d')!)[0][1]).toBeCloseTo(y(4), 2);
+		});
+
+		it('tweens a baseline change when motion is allowed', () => {
+			frStore.set('t', makeTarget('t'));
+			graphEngine.drawFRCurve('t');
+			baseline.cycle('t');
+			graphEngine.updateBaseline(true);
+			expect(tweening(paths('.fr-graph-phone-curve')[0])).toBe(true);
+		});
+
+		it('redraws the y axis without a tween under reduced motion', () => {
+			motion.reduced = true;
+			graphEngine.updateYScale('30');
+			const lines = Array.from(svgEl.querySelectorAll('.y-grid-line'));
+			expect(lines.length).toBeGreaterThan(0);
+			expect(lines.some(tweening)).toBe(false);
 		});
 	});
 

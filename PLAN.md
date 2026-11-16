@@ -160,6 +160,26 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   Firefox or Safari, or on a squig.link host (analytics and sponsor content need extra sources,
   listed on the docs page but untested).
 
+- **2026-11-16, seventh wave (S10, N4, N11, N14, T4 scrim):** `check` / `lint` / `test` green
+  (3023 tests), `build` and `test:smoke` green.
+- S10 as built: in report-only mode the stock app tripped two kinds of sink only, Svelte's
+  `{@html}` and the `Worker` constructor, and Svelte assigns a trusted value as given. So:
+  `utils/trusted-types.ts` (policy `mgt`; `trustedHtml`, `trustedScriptUrl`) at the three
+  `{@html}` sites, the two `script.src` and the two `new Worker`; the CDN shell's loader picker
+  got its own small policy; the loader's import map is wrapped in try/catch. The runtime
+  dependencies have no sinks (grep). `require-trusted-types-for 'script'` is **not** in the
+  shipped policy: it is an opt-in line on the docs page, and `test:smoke` enforces it.
+- Checked in Chromium with the policy and Trusted Types enforced, full build: boot, share link,
+  an AutoEQ run, audio play, screenshot, share: no violations. Local CDN setup with Trusted
+  Types enforced: boots; the import map is refused as documented. Not checked: an AutoEQ run on
+  a CDN deployment under Trusted Types (the blob worker path), Device PEQ, the uniPEQ link,
+  analytics and the ranking config under enforcement.
+- N4: the AutoEQ ranges live in `utils/autoeq-ranges.ts`, read by the form and the store. N11:
+  `services/toast.ts`; the AppShell patch is gone. N14: an "Unverified" badge and a visible
+  footnote instead of 50% opacity. T4: `--color-scrim` (40% black for every scrim, so the
+  tutorial overlay is slightly lighter than its old 50% / 55%). The badge and the scrim were
+  not looked at in a built page.
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -174,7 +194,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - [x] **N3. `PopoverPanel` content is an unnamed dialog** (S)
   - Where: `atoms/PopoverPanel.svelte` (SiteSelector, TopNavBar "More")
   - Fix: an optional `label` prop forwarded as `aria-label`. Fits with O1.
-- [ ] **N4. AutoEQ hydrate does not clamp stored numbers to the field range** (S, low value)
+- [x] **N4. AutoEQ hydrate does not clamp stored numbers to the field range** (S, low value)
   - Where: `stores/settings-store.svelte.ts` (`sanitizeAutoEqOptions`). Type and pair order are
     fixed; an old out-of-range number survives until the field is edited.
 
@@ -203,7 +223,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Where: `atoms/TooltipHost.svelte`. Touch never opens one, but programmatic focus does (that
     was the drawer bug). Consider not opening on focus that is not `:focus-visible`.
 
-- [ ] **N11. Persistent-toast defaults are a patch on the shared `toast` object** (S)
+- [x] **N11. Persistent-toast defaults are a patch on the shared `toast` object** (S)
   - Where: `layout/AppShell.svelte` (module script). A toast fired before AppShell loads keeps the
     4 s default. A thin `services/toast.ts` wrapper that call sites import would be cleaner.
 - [ ] **N12. Things only a real environment can confirm**
@@ -218,7 +238,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     that `squiglink-intro.js` / `shoplinks.js` are read as data and never executed.
 - [x] **N13. The sonner close button is about 20px with a faint focus ring** (S, with A10)
 
-- [ ] **N14. Unverified sites are dimmed to 50% opacity in the site switcher** (S)
+- [x] **N14. Unverified sites are dimmed to 50% opacity in the site switcher** (S)
   - Where: `controls/SiteSelector.svelte` (`opacity-50` on a live link, with a `title` only)
   - Fix: full-strength text plus a small "unverified" label or icon with an accessible name.
 - [ ] **N15. A rating colour token** (S, optional)
@@ -552,7 +572,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     `/25` tab label; add a `@media (prefers-contrast: more)` block. Update the theme generator
     defaults and do a visual pass.
   - The numbers came from a throwaway script; recompute before and after the change.
-- [ ] **T4. Other off-token values** (S) — Switch done; the scrim token remains
+- [x] **T4. Other off-token values** (S)
   - `atoms/Switch.svelte:50-57`: unchecked thumb `bg-white` on a `bg-base-content/20` track is
     1.63:1 in light mode, and the track is 1.53:1 against base-100. Use `bg-base-100` for the
     thumb and a stronger track or a ring.
@@ -703,8 +723,7 @@ gaps; the rest is hardening.
     is the stale part.
   - Fix: correct the AGENTS note. Keep the module if HTML descriptions may return; otherwise
     consider removing `sanitizeHtml` and keeping `sanitizeUrl` / `stripHtml`.
-- [ ] **S10. Trusted Types cannot be enabled yet** (M, after S1 and S2) — now unblocked on the
-      policy side; the remaining blockers below are all in app code
+- [x] **S10. Trusted Types cannot be enabled yet** (M) — supported as an opt-in; see the log
   - Blockers: ~~the two `eval` calls~~, ~~`innerHTML` in `cdn/loader.js`~~, dynamic `script.src` in
     `services/ranking-service.svelte.ts:135-136` and `analytics-service.svelte.ts:34-36`, the
     blob-URL worker in `workers/autoeq-client.ts:17-21`, and Svelte's `{@html}`.

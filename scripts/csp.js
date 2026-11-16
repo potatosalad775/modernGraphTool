@@ -23,6 +23,14 @@ import { fileURLToPath } from 'url';
 
 export const CSP_TOKEN = '__CSP__';
 
+/**
+ * Optional extra, not part of the shipped policy: refuse plain strings at the sinks that run
+ * code. The app's own sinks go through `src/lib/utils/trusted-types.ts`, and `test:smoke`
+ * enforces this so they stay that way, but not every feature is covered by a test, so
+ * operators opt in (docs: security-headers, "Trusted Types").
+ */
+export const TRUSTED_TYPES = "require-trusted-types-for 'script'";
+
 /** jsDelivr serves every GitHub repository; only these two owners' files are let in. */
 const CDN_APP = 'https://cdn.jsdelivr.net/gh/potatosalad775/';
 const CDN_FONT = 'https://cdn.jsdelivr.net/gh/orioncactus/';

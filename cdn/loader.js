@@ -165,10 +165,17 @@
 			const hash = hashFor(assetsPrefix + path);
 			if (hash && /\.m?js$/.test(path)) integrity[assetsPrefix + path] = hash;
 		}
-		const map = document.createElement('script');
-		map.type = 'importmap';
-		map.textContent = JSON.stringify({ integrity });
-		document.head.appendChild(map);
+		// A page with a Content-Security-Policy blocks this inline tag, and one that requires
+		// Trusted Types refuses the text. Either way the app still loads: the lazily imported
+		// chunks just go unchecked, while the links below keep their hashes.
+		try {
+			const map = document.createElement('script');
+			map.type = 'importmap';
+			map.textContent = JSON.stringify({ integrity });
+			document.head.appendChild(map);
+		} catch {
+			// Nothing to do.
+		}
 	}
 	const addLink = (rel, url) => {
 		const link = document.createElement('link');

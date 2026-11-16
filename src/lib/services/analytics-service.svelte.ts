@@ -1,5 +1,6 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
+import { trustedScriptUrl } from '#lib/utils/trusted-types.js';
 import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 
 declare global {
@@ -106,7 +107,9 @@ class AnalyticsService {
 		const script = document.createElement('script');
 		script.async = true;
 		script.fetchPriority = 'low';
-		script.src = `https://www.googletagmanager.com/gtag/js?id=${this.#measurementIds[0]}`;
+		script.src = trustedScriptUrl(
+			`https://www.googletagmanager.com/gtag/js?id=${this.#measurementIds[0]}`
+		);
 		document.head.appendChild(script);
 
 		// gtag.js only acts on `arguments` objects in the data layer. An array (rest parameters)

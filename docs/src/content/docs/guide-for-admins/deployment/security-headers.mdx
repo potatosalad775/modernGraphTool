@@ -73,8 +73,21 @@ Two things in your content stop working under any policy without `'unsafe-inline
 
 Requests to data hosts are limited by scheme only (`connect-src 'self' https: wss:`), because the phone book, the cross-site index, the ranking sheet and the uniPEQ link server are all addresses you can configure.
 
+## Trusted Types (optional extra)
+
+Trusted Types makes the browser refuse plain text at the places that can run code, such as `innerHTML`, so a bug that lets a string reach one of them fails instead of running. Chrome and Edge enforce it, as do recent versions of Safari and Firefox; a browser without it ignores the directive.
+
+It is not part of the shipped policy. To switch it on, add this to the end of the `Content-Security-Policy` value:
+
+```text
+; require-trusted-types-for 'script'
+```
+
+The tool's own code is written for it and the release tests run with it enforced, but those tests do not reach every feature. A place that was missed fails with a `TrustedHTML` or `TrustedScriptURL` error in the console, and that one feature stops working. Try it on your site before leaving it on, and please report what you find. A script of your own that assigns `innerHTML`, or adds a `<script>` tag from code, needs its own Trusted Types policy.
+
+On a CDN Deployment it also stops the loader's import map, as the policy itself already does.
+
 ## Limits
 
 - Styles are allowed inline (`style-src 'unsafe-inline'`). The interface sets styles on elements directly, which no hash can cover.
 - On a CDN Deployment the policy blocks the import map the loader uses to hash-check lazily loaded files, and the console reports that once per visit. Stylesheets and the files loaded at start-up are still checked. See [What a CDN deployment trusts](./cdn.mdx#what-a-cdn-deployment-trusts).
-- Trusted Types (`require-trusted-types-for`) is not supported yet.

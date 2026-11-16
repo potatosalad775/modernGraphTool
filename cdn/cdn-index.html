@@ -141,7 +141,16 @@
 					? './loader.js'
 					: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js';
 				var s = document.createElement('script');
-				s.src = src;
+				// Under Trusted Types a script URL has to come from a policy.
+				var tt = window.trustedTypes;
+				var policy =
+					tt &&
+					tt.createPolicy('mgt-loader', {
+						createScriptURL: function (url) {
+							return url;
+						}
+					});
+				s.src = policy ? policy.createScriptURL(src) : src;
 				// A script added from script loads at low priority; everything waits on this one.
 				s.fetchPriority = 'high';
 				document.body.appendChild(s);

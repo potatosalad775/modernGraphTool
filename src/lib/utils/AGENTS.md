@@ -206,6 +206,14 @@ eligibility rule — visible phones and inserted phones only — and `averageCha
 - Index-wise averaging is safe because `FRParser.parseFRData` puts every curve on the same 1/48oct
   grid; the length clamp in `meanOf` is only there so a truncated curve can't produce NaN.
 
+## `trusted-types.ts`
+
+The app's Trusted Types policy (`mgt`): `trustedHtml` for the three `{@html}` sites, and
+`trustedScriptUrl` for a script's `src` and the `Worker` constructor (same origin, `https:` or
+`blob:` only). `createHTML` does not sanitize: its callers pass operator config or the output of
+`sanitizeHtml`, and the policy only marks that hand-over. Both return the string unchanged where the
+browser has no Trusted Types. See the Security Headers section of the root guide.
+
 ## `html-sanitizer.ts`
 
 The allowlist sanitizer for operator-authored strings — currently the `description` field in

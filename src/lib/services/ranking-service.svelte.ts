@@ -1,5 +1,6 @@
 import { browser } from '$app/env';
 import { csvToRows } from '#lib/utils/csv.js';
+import { trustedScriptUrl } from '#lib/utils/trusted-types.js';
 import {
 	adaptInlineSource,
 	adaptSquigRankingConfig,
@@ -133,7 +134,7 @@ async function loadRankingConfig(url: string): Promise<unknown> {
 
 	await new Promise<void>((resolve, reject) => {
 		const script = document.createElement('script');
-		script.src = url;
+		script.src = trustedScriptUrl(url);
 		script.async = true;
 		script.onload = () => resolve();
 		script.onerror = () => reject(new Error(`could not load ranking config: ${url}`));

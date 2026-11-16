@@ -16,6 +16,7 @@
  * The security headers that `.htaccess` ships commented out are sent as if the
  * operator had switched them on. A policy that blocks something the app needs
  * shows up as a console error, so the recommendation cannot rot unnoticed.
+ * Trusted Types is enforced on top, for the same reason.
  *
  *   node scripts/smoke-dist.js [--dir dist] [--headed]
  */
@@ -24,6 +25,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { TRUSTED_TYPES } from './csp.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -88,6 +90,10 @@ async function recommendedHeaders(root) {
 	for (const [, name, value] of htaccess.matchAll(/^#\s*Header set (\S+) "([^"]*)"$/gm)) {
 		headers[name.toLowerCase()] = value;
 	}
+	// Trusted Types is an opt-in extra for operators, but always on here: a new `innerHTML` or
+	// script-URL assignment that bypasses `utils/trusted-types.ts` then throws during the run.
+	const csp = 'content-security-policy';
+	if (headers[csp]) headers[csp] += `; ${TRUSTED_TYPES}`;
 	return headers;
 }
 

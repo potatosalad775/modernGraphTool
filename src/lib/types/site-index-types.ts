@@ -38,7 +38,7 @@ export interface SiteIndexDb {
 
 export interface SiteIndex {
 	v: number;
-	generatedAt: string;
+	generatedAt?: string;
 	sources?: {
 		aggregateIndex?: { url?: string; generatedAt?: string | null; fetchedAt?: string };
 		squigsites?: { url?: string; fetchedAt?: string };

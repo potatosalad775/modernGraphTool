@@ -46,7 +46,7 @@ class CommandHistory {
 		// Truncate the redo branch
 		this.#history = this.#history.slice(0, this.#pointer + 1);
 		const now = performance.now();
-		const top = this.#history[this.#pointer];
+		const top = this.#history.at(this.#pointer);
 		const merge =
 			top !== undefined &&
 			now - this.#touchedAt <= MERGE_WINDOW_MS &&

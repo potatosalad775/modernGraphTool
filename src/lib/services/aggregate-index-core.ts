@@ -164,9 +164,9 @@ function isAggregateIndex(data: unknown): data is AggregateIndex {
 	const doc = data as Partial<AggregateIndex> | null | undefined;
 	return (
 		Array.isArray(doc?.brands) &&
-		Array.isArray(doc?.sites) &&
-		Array.isArray(doc?.dbs) &&
-		Array.isArray(doc?.phones)
+		Array.isArray(doc.sites) &&
+		Array.isArray(doc.dbs) &&
+		Array.isArray(doc.phones)
 	);
 }
 

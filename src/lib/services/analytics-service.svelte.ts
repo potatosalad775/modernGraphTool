@@ -110,7 +110,7 @@ class AnalyticsService {
 
 		this.#containers = containers;
 		this.#measurementIds = measurementIds;
-		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string) ?? '';
+		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string | undefined) ?? '';
 		this.#logEvents = (getConfigValue('SQUIGLINK.LOG_ANALYTICS') as boolean) !== false;
 		this.#initialized = true;
 		this.available = true;
@@ -155,8 +155,10 @@ class AnalyticsService {
 	}
 
 	#load(): void {
-		window.dataLayer = window.dataLayer || [];
-		window[CONTAINER_LAYER] = window[CONTAINER_LAYER] || [];
+		// Another script on the page may have created either layer already.
+		const existing: Partial<Pick<Window, 'dataLayer' | typeof CONTAINER_LAYER>> = window;
+		window.dataLayer = existing.dataLayer || [];
+		window[CONTAINER_LAYER] = existing[CONTAINER_LAYER] || [];
 		// A consent command has to reach both layers, also when a banner of the operator's
 		// sends it; everything else stays on gtag.js's own layer.
 		window.gtag = function () {

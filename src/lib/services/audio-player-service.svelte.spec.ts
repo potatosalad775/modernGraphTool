@@ -152,7 +152,7 @@ function chainFrom(start: FakeNode): FakeNode[] {
 	while (node && !seen.has(node)) {
 		seen.add(node);
 		chain.push(node);
-		node = [...node.outputs][0];
+		node = [...node.outputs].at(0);
 	}
 	return chain;
 }

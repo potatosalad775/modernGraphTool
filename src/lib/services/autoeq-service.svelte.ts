@@ -164,7 +164,7 @@ function buildRequest(bandCount: number): AutoEqRequest {
 	// Only where the shelves' gain window differs from the peaking bands'.
 	const shelfGain = envelopeOf(profile, 'gain', ['LSC', 'HSC']);
 	const shelfLimits =
-		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain?.max)
+		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain.max)
 			? {
 					...limits,
 					minGain: Math.max(opts.gainMin, shelfGain.min),
@@ -380,7 +380,7 @@ class AutoEqService {
 			session.scope,
 			auto ? session.command : null
 		);
-		session.command = command ?? null;
+		session.command = command;
 		session.written = eqStore.filters;
 		session.inputs = inputs;
 		// Nobody runs AutoEQ wanting the graph to stay put. An auto-applied run

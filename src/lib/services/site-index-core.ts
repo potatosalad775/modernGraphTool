@@ -104,8 +104,8 @@ export async function fetchSiteIndex(urls: string[]): Promise<SiteIndex | null> 
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 			if (!res.ok) continue;
-			const data = (await res.json()) as SiteIndex;
-			if (Array.isArray(data?.sites) && Array.isArray(data?.dbs)) return data;
+			const data = (await res.json()) as SiteIndex | null;
+			if (Array.isArray(data?.sites) && Array.isArray(data.dbs)) return data;
 		} catch {
 			// Another mirror may still answer.
 		}

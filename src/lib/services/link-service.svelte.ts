@@ -111,8 +111,13 @@ class LinkService {
 		};
 	}
 
+	/** Already linked, or a device connected on this page has the EQ. */
+	#taken(): boolean {
+		return this.#link !== null || devicePeqStore.localActive;
+	}
+
 	async #open(resume: boolean): Promise<void> {
-		if (this.#link || devicePeqStore.localActive) return;
+		if (this.#taken()) return;
 		const { server } = linkConfig();
 		let client: typeof import('peq-link/client');
 		try {
@@ -123,7 +128,7 @@ class LinkService {
 			return;
 		}
 		// A device may have connected here while the client loaded.
-		if (this.#link || devicePeqStore.localActive) return;
+		if (this.#taken()) return;
 		const options: HostOptions = {
 			server,
 			version: __APP_VERSION__,

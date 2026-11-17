@@ -65,7 +65,8 @@ class DevicePeqService {
 	#installed = false;
 	#timer: ReturnType<typeof setTimeout> | undefined;
 	#running = false;
-	#again = false;
+	/** Flushes that arrived while one was running; a change means the list moved again. */
+	#queued = 0;
 	#seen: Seen | null = null;
 	#unwatchLost: () => void = () => {};
 
@@ -513,13 +514,14 @@ class DevicePeqService {
 	async #flush(): Promise<void> {
 		this.#timer = undefined;
 		if (this.#running) {
-			this.#again = true;
+			this.#queued++;
 			return;
 		}
 		this.#running = true;
 		try {
+			let seen: number;
 			do {
-				this.#again = false;
+				seen = this.#queued;
 				if (!this.autoWriting || devicePeqStore.needsReconnect || this.linkDevice) return;
 				if (devicePeqStore.isBusy) {
 					// A read, a switch or a button write is under way: try again after it.
@@ -541,7 +543,7 @@ class DevicePeqService {
 					continue;
 				}
 				if (!(await this.write(plan, true))) return;
-			} while (this.#again);
+			} while (this.#queued !== seen);
 		} finally {
 			this.#running = false;
 		}

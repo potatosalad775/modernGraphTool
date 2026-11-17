@@ -54,7 +54,7 @@ export interface AggregatePhone {
 
 export interface AggregateIndex {
 	v: number;
-	generatedAt: string;
+	generatedAt?: string;
 	phonesFormat: 'flat' | 'collapsed';
 	brands: string[];
 	sites: AggregateSite[];

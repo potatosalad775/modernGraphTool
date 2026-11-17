@@ -143,14 +143,16 @@ export function adaptInlineSource(source: RankingSourceConfig): ResolvedRankSour
 
 /** The subset of `window.RANKING_CONFIG` this tool reads. Everything is optional. */
 interface RawRankingConfig {
-	types?: Record<
-		string,
-		{
-			source?: { url?: unknown };
-			rowFilter?: { field?: unknown; values?: unknown };
-		}
+	types?: Partial<
+		Record<
+			string,
+			{
+				source?: { url?: unknown };
+				rowFilter?: { field?: unknown; values?: unknown };
+			}
+		>
 	>;
-	columns?: Array<{ source?: unknown; role?: unknown; scale?: unknown }>;
+	columns?: Array<{ source?: unknown; role?: unknown; scale?: unknown } | null>;
 	deepLink?: { template?: unknown; slugify?: unknown };
 }
 
@@ -186,7 +188,7 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 	if (!csvUrl) return null;
 
 	const columns = Array.isArray(config.columns) ? config.columns : [];
-	const byRole = (role: string): { source?: unknown; scale?: unknown } | undefined =>
+	const byRole = (role: string): { source?: unknown; scale?: unknown } | null | undefined =>
 		columns.find((column) => column?.role === role);
 	const headerOf = (role: string, fallback: string): string => {
 		const value = byRole(role)?.source;

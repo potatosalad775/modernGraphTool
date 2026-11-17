@@ -102,8 +102,9 @@ class DataProvider {
 		const curve = curveDataFromRaw(rawCache, sourceType);
 		const channels = Object.keys(curve.channels) as Channel[];
 
-		const dispSuffix =
-			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
+		// A target's files carry no suffix.
+		const first = metaData.files.at(0);
+		const dispSuffix = inputMetadata.dispSuffix ?? (first && 'suffix' in first ? first.suffix : '');
 
 		const colors = getColorForType(sourceType);
 

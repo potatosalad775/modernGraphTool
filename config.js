@@ -124,10 +124,15 @@ const CONFIG = {
 		]
 	},
 
-	// Topbar title. 'TEXT', 'HTML' and 'IMAGE' types are supported.
+	// Topbar title. 'TEXT', 'HTML' and 'IMAGE' types are supported. Do not use heading tags
+	// (<h1>–<h6>) in an HTML title: the page already has its own headings.
 	// LINK_LIST adds links next to it, and supports i18n — see docs → TOPBAR.
 	TOPBAR: {
-		TITLE: { TYPE: 'HTML', CONTENT: '<h2>modernGraphTool</h2>' },
+		TITLE: {
+			// ALT: 'modernGraphTool', // Its name as text, for an IMAGE or HTML title
+			TYPE: 'HTML',
+			CONTENT: '<span>modernGraphTool</span>'
+		},
 		LINK_LIST: [
 			{ TITLE: 'Github', URL: 'https://www.github.com' },
 			{ TITLE: 'Docs', URL: 'https://potatosalad775.github.io/modernGraphTool/docs' }
@@ -247,9 +252,10 @@ const CONFIG = {
 	// → docs: SQUIGLINK
 	// SQUIGLINK: {
 	//   ENABLED: true,
-	//   ANALYTICS_MEASUREMENT_IDS: [],   // GA4 IDs, e.g. ['G-XXXXXXX']
-	//   ANALYTICS_SITE: '',
+	//   ANALYTICS_SITE: '',              // your site's name in squig.link's statistics
+	//   ANALYTICS_MEASUREMENT_IDS: [],   // optional, your own: ['G-XXXXXXX'] or ['GTM-XXXXXXX']
 	//   ENABLE_ANALYTICS: true,
+	//   ANALYTICS_CONSENT: 'granted',    // 'denied': no analytics cookie until a visitor opts in
 	//   ENABLE_SPONSOR: true,
 	// },
 
@@ -259,6 +265,7 @@ const CONFIG = {
 	//   MAJOR_VERSION: 2,        // Auto-updates within this major version
 	//   // BASE: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn',
 	//   // BASE_PATH: '/cdn',    // Only when served from a subdirectory
+	//   // VERSION: '2.3.4',     // One exact release, no auto-update → docs: Pinning a release
 	// },
 
 	// Deprecated, still read so existing files keep working. Migrate to SAMPLES.

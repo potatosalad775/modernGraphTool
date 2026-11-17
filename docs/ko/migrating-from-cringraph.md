@@ -137,7 +137,7 @@ CrinGraph는 오랜 역사를 거쳐오면서 지금도 여러 포크가 활발�
    **CrinGraph `index.html`에서 옮기면 안 되는 항목**
 
    - `<script src="https://squig.link/squigsites.js"></script>` — v2는 squig.link 연동을 기본 제공합니다. `config.js`의 `SQUIGLINK` 섹션에서 켜세요. 크로스 사이트 검색, 스폰서 배너, 다중 GA4 분석이 모두 들어 있습니다.
-   - `<script src="assets/js/graphAnalytics.js"></script>` — v2의 분석은 `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS`(배열이라 다중 태그 지원)로 처리합니다.
+   - `<script src="assets/js/graphAnalytics.js"></script>` — v2는 squig.link의 컨테이너로 직접 보고합니다. `analyticsSite`만 `SQUIGLINK.ANALYTICS_SITE`로 옮기세요. 본인의 컨테이너나 GA4 속성은 `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS`에 넣습니다.
    - `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2는 각 곡선의 색상 샘플에 색상 선택기가 내장되어 있습니다.
    - `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` 태그 — v2에는 해당 기능이 없습니다.
    - `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool 전용으로, v2와 무관합니다.

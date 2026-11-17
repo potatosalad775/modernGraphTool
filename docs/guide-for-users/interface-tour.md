@@ -77,6 +77,8 @@ Most buttons are reachable with the keyboard:
 - **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**) undo and redo loading, removing, or modifying curves.
 - **1 / 2 / 3 / 4** jump to Device, Graph, Equalizer, or Misc on desktop.
 
+The **1–4** keys and the <kbd>\\</kbd> hold (EQ bypass) are single-key shortcuts. They stand down while a text field or a dropdown has focus, and you can turn them off with **Single-key shortcuts** in the Misc panel (useful with voice control or speech input). Shortcuts with a modifier key, such as **Ctrl+Z**, always stay on.
+
 Keyboard and screen-reader support is still being polished in places — if you find a control you can't reach or label you can't hear, that's a bug worth reporting.
 
 ---

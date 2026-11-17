@@ -4,6 +4,8 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="referrer" content="strict-origin-when-cross-origin" />
 		<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 
 		<title>modernGraphTool</title>
@@ -45,21 +47,83 @@
 
 		<!--
 			Pretendard Variable font (Korean-optimized, dynamic subset). Preloaded, then
-			swapped to a stylesheet on load: a pending stylesheet holds back every classic
+			swapped to a stylesheet on load (by the script after it): a pending stylesheet holds back every classic
 			script after it, config.js and the app boot included.
 		-->
 		<link
 			rel="preload"
 			as="style"
 			crossorigin
+			referrerpolicy="no-referrer"
+			integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j"
 			href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-			onload="
-				this.onload = null;
-				this.rel = 'stylesheet';
-			"
 		/>
+		<!--
+			Not an `onload` attribute: a Content-Security-Policy can allow a script by hash, but
+			not an inline handler. The script runs before the load event can fire. Byte-identical in
+			all three shells, like the dark-mode script below.
+		-->
+		<script>
+			(function (link) {
+				link.addEventListener('load', function () {
+					link.rel = 'stylesheet';
+				});
+			})(document.currentScript.previousElementSibling);
+		</script>
 		<!-- Plain script (NOT type="module") — sets window.GRAPHTOOL_CONFIG synchronously before SvelteKit boots -->
 		<script src="/modernGraphTool/config.js"></script>
+		<!--
+			Dark mode before first paint, so a dark-mode visitor never sees a light flash. Same
+			precedence as settings-store.svelte.ts (stored choice, then
+			INTERFACE.PREFERRED_DARK_MODE_THEME, then the OS): change them together. This script is
+			byte-identical in src/app.html, cdn/cdn-index.html and site-template/index.html so one CSP
+			script hash covers all three: edit all three or none.
+		-->
+		<script>
+			(function () {
+				var t = null;
+				try {
+					var k = ['gt-settings-theme', 'gt-theme'];
+					for (var n = 0; n < 2 && !t; n++) {
+						var v = localStorage.getItem(k[n]);
+						if (v === 'light' || v === 'dark') t = v;
+					}
+				} catch (e) {}
+				try {
+					if (!t) {
+						var i = (window.GRAPHTOOL_CONFIG || {}).INTERFACE;
+						var c = i && i.PREFERRED_DARK_MODE_THEME;
+						if (c == null) c = 'system';
+						t =
+							c === 'dark' ||
+							(c === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+								? 'dark'
+								: 'light';
+					}
+					document.documentElement.classList.toggle('dark', t === 'dark');
+				} catch (e) {}
+			})();
+		</script>
+		<!--
+			Ask for the phone book now. The app asks for it once its first chunks have loaded and
+			run; with the request already answered by then, the FR files come in before the app has
+			finished loading, not after. The app's own fetch() picks up this response: the path and
+			its fallback are the ones `_fetchBookObject` in metadata-parser.ts uses, so change them
+			together. Byte-identical in all three shells, like the scripts above.
+		-->
+		<script>
+			(function () {
+				try {
+					var p = (window.GRAPHTOOL_CONFIG || {}).PATH;
+					var l = document.createElement('link');
+					l.rel = 'preload';
+					l.as = 'fetch';
+					l.crossOrigin = 'anonymous';
+					l.href = (p && p.PHONE_BOOK) || '../../../data/phone_book.json';
+					document.head.appendChild(l);
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="stylesheet" href="/modernGraphTool/theme.css" />
 		<link href="/modernGraphTool/_app/immutable/entry/start.P62J8R5Q.js" rel="modulepreload">
 		<link href="/modernGraphTool/_app/immutable/entry/payload.DSmR2FwN.js" rel="modulepreload">
@@ -67,34 +131,39 @@
 		<link href="/modernGraphTool/_app/immutable/chunks/Ds3pb3Hq.js" rel="modulepreload">
 		<link href="/modernGraphTool/_app/immutable/chunks/CjHF14yv.js" rel="modulepreload">
 		<link href="/modernGraphTool/_app/immutable/chunks/BaenPfMX.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/entry/app.BGnMkUGv.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/BO-W6l-F.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/vuE6pPqR.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/nodes/0.C2IZFA7U.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/entry/app.DJ4-9K6A.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CkGz_hLT.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/DfU6WXfV.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/nodes/0.CUtQEcN5.js" rel="modulepreload">
 		<link href="/modernGraphTool/_app/immutable/chunks/DK3Fl9T5.js" rel="modulepreload">
 		<link href="/modernGraphTool/_app/immutable/chunks/DjVt4Ctd.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/DK8mvhMw.js" rel="modulepreload">
-		<link href="/modernGraphTool/_app/immutable/chunks/i2FHDnlb.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/DYG3sTTE.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CAZ5jFEE.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CG-Dwohc.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/chunks/CsofxEQM.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/nodes/1.GZu6cWOK.js" rel="modulepreload">
+		<link href="/modernGraphTool/_app/immutable/nodes/2.ClRYE892.js" rel="modulepreload">
 		
-		<link href="/modernGraphTool/_app/immutable/assets/AppShell.DwmFMqR5.css" rel="stylesheet">
-		<link href="/modernGraphTool/_app/immutable/assets/0.C7jmD1dk.css" rel="stylesheet">
+		<link href="/modernGraphTool/_app/immutable/assets/EqualizerPanel.CV-KWLNP.css" rel="stylesheet">
+		<link href="/modernGraphTool/_app/immutable/assets/AppShell.BwG56Rj3.css" rel="stylesheet">
+		<link href="/modernGraphTool/_app/immutable/assets/0.C7t4AUys.css" rel="stylesheet">
 	</head>
 
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_z6ozkq = {
+					__sveltekit_f7k828 = {
 						base: "/modernGraphTool",
-						version: "1794796262468",
+						version: "1794904128109",
 						assets: "/modernGraphTool"
 					};
 
 					const element = document.currentScript.parentElement;
 
 					import("/modernGraphTool/_app/immutable/entry/start.P62J8R5Q.js").then(async (kit) => {
-						kit.init(__sveltekit_z6ozkq);
-						const app = await import("/modernGraphTool/_app/immutable/entry/app.BGnMkUGv.js");
+						kit.init(__sveltekit_f7k828);
+						const app = await import("/modernGraphTool/_app/immutable/entry/app.DJ4-9K6A.js");
 						kit.start(app, element);
 					});
 				}

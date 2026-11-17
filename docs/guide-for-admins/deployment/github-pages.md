@@ -187,6 +187,10 @@ npx serve .
 
 Base-path auto-detection doesn't apply on `localhost` — it doesn't need to, since you're serving from the root there and the loader resolves an empty base path on its own.
 
+## Security headers (optional)
+
+GitHub Pages cannot send custom headers, so the template's `index.html` carries a recommended Content-Security-Policy as a commented `<meta>` tag. See [Security Headers](./security-headers.mdx#no-header-hosts) for what it does and how to switch it on.
+
 ## Troubleshooting
 
 ### The site 404s right after enabling Pages

@@ -72,8 +72,51 @@ CDN_MODE: {
 This keeps your site on v2.x.x — you'll still receive minor and patch releases within v2, but not v3. When you're ready to move up, update the number.
 
 :::note[Pinning doesn't freeze minor versions]
-`MAJOR_VERSION` only pins the major. Patches and minor releases within your pinned major (e.g. v2.1.0 → v2.2.0) still roll out automatically. If you need to pin a specific patch version, use [Pre-built Release](./prebuilt.mdx) instead.
+`MAJOR_VERSION` only pins the major. Patches and minor releases within your pinned major (e.g. v2.1.0 → v2.2.0) still roll out automatically. To stay on one exact release, see [Pinning a release](#pinning-a-release) below, or use [Pre-built Release](./prebuilt.mdx).
 :::
+
+## Pinning a release
+
+By default your site runs whatever the project's `cdn` branch publishes: that is what makes updates automatic, and it also means your visitors run code you have not looked at. If you would rather choose when to update, pin one release. A pinned site loads only files whose hashes are written in your own `index.html` and `config.js`, so nothing published later, and nothing altered on the CDN, can reach it.
+
+Each release's values are in [`pins.json`](https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/pins.json) on the `cdn` branch:
+
+```json
+{
+  "2.3.4": {
+    "commit": "<40-character commit>",
+    "loader_integrity": "sha384-…",
+    "boot_integrity": "sha384-…"
+  }
+}
+```
+
+1.  **In `index.html`, load the loader from that commit, with its hash.** Replace the last `<script>` in `<body>` (in the CDN release's `index.html` that is the short inline script that picks `loader.js`) with:
+    ```html
+    <script
+      src="https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@<commit>/loader.js"
+      integrity="<loader_integrity>"
+      crossorigin="anonymous"
+    ></script>
+    ```
+2.  **In `config.js`, point `CDN_MODE` at the same commit and release:**
+    ```javascript
+    CDN_MODE: {
+      BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@<commit>",
+      VERSION: "2.3.4",
+      BOOT_INTEGRITY: "<boot_integrity>",
+      // BASE_PATH as before
+    },
+    ```
+3.  **Reload and check** that the page starts. A wrong hash stops it with a message naming the setting.
+
+To update, copy the newer release's three values and re-upload both files. The changelog tells you what you are moving to.
+
+:::caution[A pinned site gets no fixes on its own]
+That includes security fixes. Pin only if you will come back and update it.
+:::
+
+`VERSION` works alone too: it holds the site on one release (and saves the `versions.json` request) without the hash checks. `BOOT_INTEGRITY` needs `VERSION`, and needs the page to be served over HTTPS.
 
 ## Updating the app
 
@@ -84,6 +127,10 @@ Under normal operation, nothing — updates are automatic within your pinned maj
 3. Users pick up the new major on their next page load
 
 Users who want to force a refresh in the meantime can clear their browser cache or do a hard reload.
+
+## Security headers (optional)
+
+The release's `.htaccess` and `index.html` carry a recommended Content-Security-Policy, switched off. See [Security Headers](./security-headers.mdx) for what it does and how to switch it on.
 
 ## Troubleshooting
 
@@ -133,9 +180,23 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 
 ### Overriding `VERSIONS_URL`
 
-`VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn't a recognizable jsDelivr `gh/` URL (because you're self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196).
+`VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn't a recognizable jsDelivr `gh/` URL (because you're self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js).
+
+The same file carries the current boot manifest for each major, so a visit normally needs no separate `boot.json` request. Older loaders, and sites pinned with `VERSION`, read `boot.json` itself.
 
 `boot.json` comes from jsDelivr and is purged on every release. The app chunks and CSS it lists are pinned to the commit that published them (`…@<commit>/v{version}/_app/…`), so they never go stale: jsDelivr and browsers cache them for a year, and a new release always ships under new URLs. That's also why your users don't pay for a cold jsDelivr cache on every visit — files under the moving `@cdn` branch only stay at jsDelivr's edge for 12 hours.
+
+### What a CDN deployment trusts
+
+The chain is `index.html` → `loader.js` → `versions.json` → `boot.json` → the app's scripts and stylesheets.
+
+- `loader.js` and `versions.json` are read from the `cdn` branch of the project repository, which only the release workflow writes to and which cannot be force-pushed.
+- `boot.json` may only name files in that same repository (or under your own `BASE`, for a mirror). The loader refuses a manifest that points anywhere else.
+- `boot.json` carries a `sha384` hash for every script and stylesheet of the release. The loader hands them to the browser, which refuses a file whose bytes differ. Stylesheets and the first scripts are checked in every current browser; the chunks loaded later are checked where import maps support `integrity` (Chrome and Edge 127, Safari 18, Firefox 138).
+
+So an unpinned site trusts the `cdn` branch and nothing else: jsDelivr cannot change the app's files without the browser noticing, but it does deliver `loader.js` and `boot.json` unchecked. [Pinning a release](#pinning-a-release) closes that too.
+
+A mirror that serves its files from another origin than the page must send `Access-Control-Allow-Origin` for stylesheets as well as scripts, because hash-checked files are fetched with CORS. Its `boot.json` has to name files under the mirror's own `BASE`, so build it with `MGT_CDN_BASE` set to the mirror rather than copying the project's.
 
 ### Self-hosting the CDN assets
 
@@ -170,7 +231,7 @@ The practical result:
 | `example.com/headphones/share/abc`      | `""`               | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"`                                                       |
 | `example.com/headphones/cdn-index.html` | `/headphones`      | Yes                              | (But nobody visits this URL — the install instructions tell you to rename the file.) |
 
-So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js:111-137](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L111-L137) if you want to read the exact detection rules.
+So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js) if you want to read the exact detection rules.
 
 :::tip[squig.link operators]
 Each squig.link user gets their own subdomain — `<username>.squig.link` — and has full access to the root plus any subdirectories they create. The common pattern is to run **two** modernGraphTool instances on the same subdomain:

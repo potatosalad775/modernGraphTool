@@ -1,0 +1,104 @@
+---
+title: 보안 헤더
+editUrl: true
+head: []
+template: doc
+sidebar:
+  order: 5
+  hidden: false
+  attrs: {}
+pagefind: true
+draft: false
+---
+
+모든 릴리스에는 권장 보안 헤더가 꺼진 상태로 들어 있습니다. 선택 사항이며, 켜지 않아도 도구는 그대로 동작합니다. 켜면 악의적인 측정 파일, 폰북 항목, 외부 색인이 방문자의 브라우저에서 할 수 있는 일이 줄어들고, 다른 사이트가 내 사이트를 프레임 안에 넣지 못하게 됩니다.
+
+기본값이 꺼짐인 이유는, 기본 상태의 도구에 맞춘 정책이 직접 손본 사이트에서는 무언가를 막을 수 있기 때문입니다. 켜기 전에 [직접 추가한 것에 필요한 설정](#what-your-customizations-need)을 먼저 읽어 주세요.
+
+## 권장하는 헤더
+
+| 헤더                      | 값                                                              | 하는 일                                                                   |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `Content-Security-Policy` | 릴리스마다 새로 만들어집니다 (아래 참고)                        | 도구에 속한 스크립트만 실행됩니다                                         |
+| `X-Content-Type-Options`  | `nosniff`                                                       | 데이터 파일이 스크립트로 실행되지 않습니다                                |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin`                               | 다른 사이트는 내 사이트 주소만 알 뿐, 방문자가 보던 기기는 알 수 없습니다 |
+| `Permissions-Policy`      | `hid`, `serial`, `bluetooth`는 내 사이트에만 허용, 카메라 등은 끔 | 하드웨어 EQ는 그대로 동작하고, 삽입된 프레임은 방문자의 USB 기기에 접근하지 못합니다 |
+
+Content-Security-Policy에는 페이지의 인라인 스크립트마다 해시가 하나씩 들어갑니다. 앱의 시작 스크립트는 릴리스마다 바뀌므로, 정책은 이 문서에 적혀 있지 않고 릴리스 빌드가 만들어 넣습니다.
+
+## 켜는 방법
+
+### Apache (사전 빌드 릴리스, CDN 배포)
+
+릴리스의 `.htaccess` 맨 끝에 주석 처리된 블록이 있습니다.
+
+```apacheconf
+# <IfModule mod_headers.c>
+# 	Header set X-Content-Type-Options "nosniff"
+# 	Header set Referrer-Policy "strict-origin-when-cross-origin"
+# 	Header set Permissions-Policy "…"
+# 	Header set Content-Security-Policy "…"
+# </IfModule>
+```
+
+이 여섯 줄 앞의 `# `를 지우고 파일을 올리세요. 그다음 브라우저 콘솔을 연 채로 사이트를 열어 보세요. 정책이 막은 것은 어떤 지시문 때문인지와 함께 오류로 표시됩니다.
+
+사전 빌드 릴리스에서는 **업데이트할 때마다 새 릴리스의 `.htaccess`에서 `Content-Security-Policy` 줄을 가져오고**, 직접 추가한 내용을 다시 넣어야 합니다. 이전 줄에는 새 시작 스크립트의 해시가 없어서 페이지가 빈 화면으로 남습니다. CDN 배포는 `index.html`이 릴리스마다 바뀌지 않으므로 해당하지 않습니다.
+
+### GitHub Pages, squig.link 등 헤더를 보낼 수 없는 호스트 \{#no-header-hosts\}
+
+GitHub Pages는 사용자 지정 헤더를 보낼 수 없고, squig.link는 Apache 호스트가 아니어서 `.htaccess`를 읽지 않습니다. 두 곳 모두 정책을 페이지 안에 넣어야 합니다. CDN 배포와 GitHub Pages 템플릿의 `index.html`에는 `<head>` 위쪽에 정책이 주석 처리된 `<meta>` 태그로 들어 있습니다.
+
+```html
+<!-- <meta http-equiv="Content-Security-Policy" content="…" /> -->
+```
+
+앞뒤의 `<!--`와 `-->`를 지우세요. 위치는 옮기지 마세요. 이 태그는 자신보다 뒤에 오는 내용에만 적용됩니다. `<meta>` 정책으로는 다른 사이트가 내 사이트를 프레임에 넣는 것을 막을 수 없고, 나머지 세 헤더는 이 방식으로 설정할 수 없습니다.
+
+사전 빌드 릴리스의 `index.html`에는 이 태그가 없습니다. 정책이 `.htaccess`에 들어 있기 때문입니다. 이런 호스트에서는 `<meta charset="utf-8" />` 바로 뒤에 태그를 직접 추가하세요. 릴리스의 `.htaccess`에 있는 `Content-Security-Policy` 줄의 값을 복사하되, `<meta>` 정책에 넣을 수 없는 `frame-ancestors 'self'`는 빼야 합니다. 헤더와 마찬가지로 릴리스마다 새 값으로 바꿔야 합니다.
+
+### nginx, Caddy, Cloudflare 등
+
+릴리스의 `.htaccess`에 있는 네 가지 값을 사용하는 서버의 헤더 설정에 옮겨 적으세요.
+
+## 직접 추가한 것에 필요한 설정 \{#what-your-customizations-need\}
+
+들어 있는 정책은 기본 상태의 도구에 맞춰져 있습니다. 직접 추가한 것이 있다면 정책에도 추가해야 합니다.
+
+| 이런 경우                                                    | 추가할 것                                                                  |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| squig.link에서 호스팅함 (분석은 끄지 않는 한 켜져 있음)      | `script-src`에 `https://www.googletagmanager.com`                          |
+| 본인의 Tag Manager 컨테이너(`GTM-…`)를 추가함                | 컨테이너가 불러오는 태그의 출처. 맞춤 HTML 태그는 이 정책에서 실행 불가    |
+| Cloudflare 뒤에 있고 Web Analytics가 켜져 있음               | `script-src`에 `https://static.cloudflareinsights.com`                     |
+| `RANKING.CONFIG_URL`을 설정함                                | `script-src`에 그 파일의 출처                                              |
+| `index.html`에 인라인 `<script>`를 추가하거나 수정함         | `script-src`에 그 스크립트의 해시 (콘솔 오류에 추가할 해시가 표시됩니다)   |
+| 외부 `<script src>`나 스타일시트를 추가함                    | `script-src` 또는 `style-src`에 그 출처                                    |
+| 기본 글꼴이 아닌 웹 글꼴을 사용함                            | `style-src`와 `font-src`에 그 출처                                         |
+| CDN 자산을 직접 미러링해 `CDN_MODE.BASE`로 지정함            | `script-src`, `style-src`, **그리고 `worker-src`**에 그 출처               |
+| 이미지를 `http:`로 불러옴                                    | `img-src`에 `http:`                                                        |
+| HTTP 사이트에서 네트워크 기기(WiiM, Luxsin)에 연결함         | `connect-src`에 `http:`                                                    |
+
+`'unsafe-inline'`이 없는 정책에서는 어떤 경우에도 동작하지 않는 것이 두 가지 있으며, 허용하기보다 고치는 편이 좋습니다. HTML로 작성한 `TOPBAR.TITLE`이나 `DESCRIPTION` 안의 인라인 이벤트 핸들러(`onclick="…"`)와 `javascript:` 링크입니다.
+
+위에서 `worker-src`를 강조한 데는 이유가 있습니다. AutoEQ는 워커에서 실행되는데, 브라우저는 워커가 불러오는 파일을 `script-src`가 아니라 `worker-src`로 검사합니다. 출처가 빠져 있으면 AutoEQ는 결과를 내지 않고, 콘솔에도 정책 오류가 표시되지 않습니다.
+
+데이터 호스트로 가는 요청은 프로토콜로만 제한합니다(`connect-src 'self' https: wss:`). 폰북, 사이트 간 검색 색인, 랭킹 시트, uniPEQ 링크 서버는 모두 운영자가 설정할 수 있는 주소이기 때문입니다.
+
+## Trusted Types (선택 추가 사항) \{#trusted-types-optional-extra\}
+
+Trusted Types를 켜면 브라우저가 `innerHTML`처럼 코드를 실행할 수 있는 자리에 일반 문자열이 들어가는 것을 거부합니다. 문자열이 그런 자리에 도달하게 만드는 버그가 있어도 실행되지 않고 실패합니다. Chrome과 Edge, 그리고 최신 버전의 Safari와 Firefox가 이를 적용하며, 지원하지 않는 브라우저는 이 지시문을 무시합니다.
+
+들어 있는 정책에는 포함되어 있지 않습니다. 켜려면 `Content-Security-Policy` 값 끝에 다음을 추가하세요.
+
+```text
+; require-trusted-types-for 'script'
+```
+
+도구의 코드는 이에 맞춰 작성되어 있고 릴리스 테스트도 이를 적용한 상태로 실행되지만, 그 테스트가 모든 기능을 거치지는 않습니다. 놓친 곳이 있으면 콘솔에 `TrustedHTML` 또는 `TrustedScriptURL` 오류가 표시되고 해당 기능만 동작하지 않습니다. 계속 켜 두기 전에 내 사이트에서 먼저 시험해 보고, 발견한 문제는 알려 주세요. 직접 추가한 스크립트가 `innerHTML`에 값을 넣거나 코드로 `<script>` 태그를 추가한다면 별도의 Trusted Types 정책이 필요합니다.
+
+CDN 배포에서는 정책 자체가 이미 그렇듯 로더의 임포트 맵도 막습니다.
+
+## 한계
+
+- 스타일은 인라인을 허용합니다(`style-src 'unsafe-inline'`). 인터페이스가 요소에 스타일을 직접 지정하는데, 이는 해시로 허용할 수 없습니다.
+- CDN 배포에서는 로더가 나중에 불러오는 파일의 해시를 검사하려고 넣는 임포트 맵을 이 정책이 막으며, 콘솔에 방문마다 한 번 표시됩니다. 스타일시트와 시작할 때 불러오는 파일은 그대로 검사됩니다. [CDN 배포가 신뢰하는 대상](./cdn.mdx#what-a-cdn-deployment-trusts)을 참고하세요.

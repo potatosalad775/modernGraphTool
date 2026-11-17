@@ -16,8 +16,8 @@
 	--color-graph-watermark-opacity: 0.08;
 	--color-graph-grid-major: rgba(0, 0, 0, 0.15);
 	--color-graph-grid-minor: rgba(0, 0, 0, 0.06);
-	--color-graph-axis-label: rgba(0, 0, 0, 0.6);
-	--color-graph-grid-text: rgba(0, 0, 0, 0.5);
+	--color-graph-axis-label: rgba(0, 0, 0, 0.7);
+	--color-graph-grid-text: rgba(0, 0, 0, 0.58);
 	--color-graph-baseline: rgba(0, 0, 0, 0.25);
 	--color-graph-compare: rgba(0, 0, 0, 0.55);
 
@@ -31,31 +31,46 @@
 	--color-base-100: oklch(98% 0.003 247.858);
 	--color-base-200: oklch(96% 0.007 247.896);
 	--color-base-300: oklch(92% 0.013 255.508);
-	--color-base-content: oklch(20% 0.042 265.755);
-	--color-primary: oklch(59% 0.145 163.225);
-	--color-primary-content: oklch(97% 0.021 166.113);
-	--color-secondary: oklch(60% 0.126 221.723);
-	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-base-content: oklch(17% 0.042 265.755);
+	/* Fills sit at L 52-57%: the brightest that keeps their -content at 4.5:1 (WCAG AA)
+	 * and still reads as text on base-100 / base-200. The darker 7:1 set is in the
+	 * increased-contrast block below. Warning is the exception: amber only stays amber
+	 * when light, so it carries a dark ink and `text-warning` is not readable on a light
+	 * surface. */
+	--color-primary: oklch(52% 0.111 163.225);
+	--color-primary-content: oklch(98% 0.015 166.113);
+	--color-secondary: oklch(53% 0.098 221.723);
+	--color-secondary-content: oklch(98% 0.012 200.873);
 	--color-accent: oklch(44% 0.017 285.786);
 	--color-accent-content: oklch(98% 0 0);
 	--color-neutral: oklch(44% 0.043 257.281);
 	--color-neutral-content: oklch(98% 0.003 247.858);
-	--color-info: oklch(68% 0.169 237.323);
-	--color-info-content: oklch(97% 0.013 236.62);
-	--color-success: oklch(76% 0.233 130.85);
-	--color-success-content: oklch(98% 0.031 120.757);
-	--color-warning: oklch(79% 0.184 86.047);
-	--color-warning-content: oklch(98% 0.026 102.212);
-	--color-error: oklch(64% 0.246 16.439);
-	--color-error-content: oklch(96% 0.015 12.422);
+	--color-info: oklch(53% 0.115 237.323);
+	--color-info-content: oklch(98% 0.01 236.62);
+	--color-success: oklch(52.5% 0.143 130.85);
+	--color-success-content: oklch(98% 0.02 120.757);
+	--color-warning: oklch(80% 0.16 86.047);
+	--color-warning-content: oklch(24% 0.05 80);
+	--color-error: oklch(56% 0.2 16.439);
+	--color-error-content: oklch(98% 0.008 12.422);
+
+	/* ── Overlay ───────────────────────────────────────────────────────────
+	 * The veil behind dialogs, the mobile menu and the guided tour. Carries its
+	 * own alpha: use it as `bg-scrim`, not with an opacity modifier. */
+	--color-scrim: oklch(0% 0 0 / 40%);
+
+	/* ── Rating ────────────────────────────────────────────────────────────
+	 * The rank stars in the device list. An amber dark enough to read as text
+	 * on the base surfaces (4.5:1), which `--color-warning` is not. */
+	--color-rating: oklch(53% 0.11 75);
 }
 
 .dark {
 	/* ── Graph ─────────────────────────────────────────────────────────── */
 	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
 	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
-	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.72);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.6);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
 	--color-graph-compare: rgba(255, 255, 255, 0.55);
 
@@ -63,21 +78,59 @@
 	--color-base-100: oklch(30.857% 0.023 264.149);
 	--color-base-200: oklch(28.036% 0.019 264.182);
 	--color-base-300: oklch(26.346% 0.018 262.177);
-	--color-base-content: oklch(82.901% 0.031 222.959);
+	--color-base-content: oklch(93% 0.015 222.959);
 	--color-primary: oklch(86.133% 0.141 139.549);
 	--color-primary-content: oklch(17.226% 0.028 139.549);
-	--color-secondary: oklch(73.375% 0.165 35.353);
-	--color-secondary-content: oklch(14.675% 0.033 35.353);
-	--color-accent: oklch(74.229% 0.133 311.379);
-	--color-accent-content: oklch(14.845% 0.026 311.379);
+	--color-secondary: oklch(82% 0.1 35.353);
+	--color-secondary-content: oklch(18% 0.03 35.353);
+	--color-accent: oklch(82% 0.11 311.379);
+	--color-accent-content: oklch(16% 0.026 311.379);
 	--color-neutral: oklch(24.731% 0.02 264.094);
-	--color-neutral-content: oklch(82.901% 0.031 222.959);
+	--color-neutral-content: oklch(93% 0.015 222.959);
 	--color-info: oklch(86.078% 0.142 206.182);
 	--color-info-content: oklch(17.215% 0.028 206.182);
-	--color-success: oklch(76% 0.177 163.223);
-	--color-success-content: oklch(37% 0.077 168.94);
-	--color-warning: oklch(82% 0.189 84.429);
-	--color-warning-content: oklch(41% 0.112 45.904);
-	--color-error: oklch(71% 0.194 13.428);
-	--color-error-content: oklch(27% 0.105 12.094);
+	--color-success: oklch(80% 0.17 163.223);
+	--color-success-content: oklch(19% 0.035 168.94);
+	--color-warning: oklch(82% 0.165 84.429);
+	--color-warning-content: oklch(22% 0.05 60);
+	--color-error: oklch(78% 0.13 13.428);
+	--color-error-content: oklch(20% 0.05 12.094);
+
+	/* ── Overlay ───────────────────────────────────────────────────────── */
+	--color-scrim: oklch(0% 0 0 / 40%);
+
+	/* ── Rating ────────────────────────────────────────────────────────── */
+	--color-rating: oklch(82% 0.165 84.429);
+}
+
+/* ── Increased contrast ──────────────────────────────────────────────────────
+ * Honours the OS "increase contrast" setting. Everything derived from
+ * base-content (text steps, borders, dividers, scrollbars) follows it, so
+ * pushing that one token to black / white lifts all of them at once. The light
+ * theme's fills also drop to the darker set that clears 7:1 (WCAG AAA) against
+ * their -content and as text; the dark theme's already do. */
+@media (prefers-contrast: more) {
+	:root {
+		--color-base-content: oklch(0% 0 0);
+		--color-primary: oklch(43% 0.09 163.225);
+		--color-secondary: oklch(43% 0.078 221.723);
+		--color-info: oklch(43% 0.092 237.323);
+		--color-success: oklch(43% 0.115 130.85);
+		--color-error: oklch(45% 0.175 16.439);
+		--color-rating: oklch(43% 0.105 72);
+		--color-graph-grid-major: rgba(0, 0, 0, 0.4);
+		--color-graph-grid-minor: rgba(0, 0, 0, 0.2);
+		--color-graph-axis-label: rgba(0, 0, 0, 1);
+		--color-graph-grid-text: rgba(0, 0, 0, 0.9);
+		--color-graph-baseline: rgba(0, 0, 0, 0.6);
+	}
+
+	.dark {
+		--color-base-content: oklch(100% 0 0);
+		--color-graph-grid-major: rgba(255, 255, 255, 0.4);
+		--color-graph-grid-minor: rgba(255, 255, 255, 0.2);
+		--color-graph-axis-label: rgba(255, 255, 255, 1);
+		--color-graph-grid-text: rgba(255, 255, 255, 0.9);
+		--color-graph-baseline: rgba(255, 255, 255, 0.6);
+	}
 }

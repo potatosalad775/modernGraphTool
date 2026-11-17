@@ -912,6 +912,15 @@ Shared bands only
 
 Hardware EQ slots have no channel concept. A write sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](/modernGraphTool/docs/features/equalizer/#per-channel-eq).
 
+## Network devices
+
+Pick **Network**, choose the device type, and enter the device’s address: an IP address (`192.168.1.20`, or an IPv6 address), or a `.local` name (`wiim.local`), with a `:port` if it needs one. Enter connects. Anything else is refused beside the field before a request is made: a web address with `http://` or a path, a user name, spaces, and any public hostname such as `example.com`. That check is what stops a mistyped or pasted address from sending commands to another server. Private address ranges are not enforced, so a device reached over a VPN works.
+
+Nothing is sent when you connect; the first request goes out when you press **Read** or **Write**. If the browser can’t reach the device, you get a message that says so instead of a generic failure.
+
+* **HTTPS sites can’t reach HTTP devices.** The Luxsin X9 only answers over plain HTTP, and a browser blocks that from a page served over HTTPS (mixed content). Use a deployment served over `http://` on your own network, or run the tool locally. A WiiM answers over HTTPS with its own certificate, which the browser may refuse until you open the device’s address in a tab once and accept it.
+* **Local Network Access.** Chrome and Edge 145 and later ask before a public website connects to a device on your local network. Choose **Allow**. If you chose Block, re-enable **Local network** for this site under the lock icon, in **Site settings**. Where the prompt exists, it is also what lets an HTTPS site reach an HTTP device on a private address. Other browsers don’t ask, and keep blocking mixed content.
+
 ## Browser support
 
 Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons. [Link with uniPEQ](/modernGraphTool/docs/features/unipeq-link/) still works there.
@@ -1213,7 +1222,7 @@ Each URL is tried in order and the first valid document wins, so a mirror can be
 ## Notes
 
 * The database the visitor is currently viewing is detected by URL and shown as selected. Longest path match wins, so a site hosting `/` and `/headphones/` resolves to the right one.
-* Databases that were unreachable when the index was last built stay listed but are dimmed, with a tooltip explaining that the link may not work. A site that is briefly down doesn’t vanish from navigation.
+* Databases that were unreachable when the index was last built stay listed with an “Unverified” badge, and a note under the list explains that the link may not work. A site that is briefly down doesn’t vanish from navigation.
 * Entries open in a new tab.
 
 # squig.link Integration
@@ -1222,9 +1231,27 @@ Deployments hosted on a `*.squig.link` domain get a few network-wide features on
 
 * **Shop links** — when a loaded device has an entry in the squig.link shop database, a **Buy Now** button links to the sponsor’s listing.
 * **Sponsor banner** — a sponsor dialog with content served by the squig.link network. Dismissing it hides that sponsor for a day across every squig.link site, CrinGraph-based ones included; a new sponsorship appears straight away.
-* **Analytics** — Google Analytics 4 (gtag.js), sending to several measurement IDs at once so a site can report both to squig.link and to its own property.
+* **Analytics** — usage events go to squig.link’s shared Google Tag Manager container, the one its CrinGraph sites report to, and to any GA4 property or container of your own.
 
-Each can be switched off, and the analytics IDs set, under [`SQUIGLINK`](/modernGraphTool/docs/guide-for-admins/customize-page/#squiglink) in `config.js`.
+Each can be switched off, and IDs of your own added, under [`SQUIGLINK`](/modernGraphTool/docs/guide-for-admins/customize-page/#squiglink) in `config.js`.
+
+## Analytics and consent
+
+Analytics sends the site name (`ANALYTICS_SITE`), which devices (brand, model, variant) are added to or removed from the graph, and two click events (screenshot download, shop link).
+
+They go to squig.link’s shared Tag Manager container, which needs no ID from you: it is the same container CrinGraph’s `graphAnalytics.js` loads, and it receives the events in the same shape (a device added to the graph is its `phone_displayed`). To keep statistics of your own as well, list a GA4 measurement ID (`G-…`) or a Tag Manager container (`GTM-…`) in `ANALYTICS_MEASUREMENT_IDS`; anything else is skipped with a console warning. A container receives the CrinGraph-shaped events, a GA4 ID receives `gtag` events (`phone_added`, `phone_removed`, `clicked_download`, `shoplink_click`).
+
+To switch analytics off for everyone, set `ENABLE_ANALYTICS: false`.
+
+Who is measured, and how:
+
+* **A visitor whose browser sends [Global Privacy Control](https://globalprivacycontrol.org/)** loads no analytics at all.
+* **Every other visitor** gets a **Usage statistics** switch under Settings in the Misc panel. Switching it off stops the events at once, and from the next visit nothing is loaded for them, the same as with Global Privacy Control. The answer is kept in that browser and outranks your default.
+* **Until a visitor answers**, [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent) starts from `ANALYTICS_CONSENT`. `"granted"`, the default, measures normally with the `_ga` cookies. `"denied"` sets no cookie and sends cookieless pings, which Google Analytics reports only as modelled data, until the visitor switches the setting on.
+
+The three advertising signals (`ad_storage`, `ad_user_data`, `ad_personalization`) are always denied: the tool shows no ads. The page defines the standard `gtag` function, so a consent banner of your own can call `gtag('consent', 'update', { analytics_storage: 'granted' })` and it takes effect for the containers and the GA4 IDs alike. The containers read their own data layer (`gtmDataLayer`), separate from `dataLayer`, so that an event is never counted twice.
+
+The switch is not a consent banner. Operators who collect from visitors in regions that require consent before measuring are still responsible for obtaining it; starting from `ANALYTICS_CONSENT: "denied"` is the setting meant for that case.
 
 Cross-site search and the site selector work anywhere
 
@@ -1439,8 +1466,8 @@ These drive the SVG rendering where Tailwind classes cannot be used:
   --color-graph-watermark-opacity: 0.08; /* Watermark opacity */
   --color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
   --color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
-  --color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
-  --color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
+  --color-graph-axis-label: rgba(0, 0, 0, 0.7); /* Axis labels (Hz, dB) */
+  --color-graph-grid-text: rgba(0, 0, 0, 0.58); /* Grid value labels */
   --color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
   --color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
@@ -1449,8 +1476,8 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 .dark {
   --color-graph-grid-major: rgba(255, 255, 255, 0.15);
   --color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-  --color-graph-axis-label: rgba(255, 255, 255, 0.6);
-  --color-graph-grid-text: rgba(255, 255, 255, 0.5);
+  --color-graph-axis-label: rgba(255, 255, 255, 0.72);
+  --color-graph-grid-text: rgba(255, 255, 255, 0.6);
   --color-graph-baseline: rgba(255, 255, 255, 0.25);
   --color-graph-compare: rgba(255, 255, 255, 0.55);
 }
@@ -1465,6 +1492,32 @@ The [uniPEQ Link](/modernGraphTool/docs/features/unipeq-link/) QR code has two m
 }
 ```
 
+The veil behind dialogs, the mobile menu and the guided tour has its own token. It carries its own alpha, so set the opacity in the value itself. A `theme.css` without it falls back to 40% black.
+
+```css
+:root {
+  --color-scrim: oklch(0% 0 0 / 40%); /* Overlay behind dialogs, menu and tour */
+}
+
+
+.dark {
+  --color-scrim: oklch(0% 0 0 / 40%);
+}
+```
+
+The rank stars in the device list have their own colour as well, because `--color-warning` is too light to read as text on a light surface. Keep it at 4.5:1 or more against the base surfaces. A `theme.css` without it falls back to the shipped amber.
+
+```css
+:root {
+  --color-rating: oklch(53% 0.11 75); /* Rank stars in the device list */
+}
+
+
+.dark {
+  --color-rating: oklch(82% 0.165 84.429);
+}
+```
+
 ### Base UI Variables
 
 The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:
@@ -1474,27 +1527,29 @@ The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI
   --color-base-100: oklch(98% 0.003 247.858); /* Background */
   --color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
   --color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
-  --color-base-content: oklch(20% 0.042 265.755); /* Default text */
-  --color-primary: oklch(59% 0.145 163.225); /* Primary accent */
-  --color-primary-content: oklch(97% 0.021 166.113);
-  --color-secondary: oklch(60% 0.126 221.723);
-  --color-secondary-content: oklch(98% 0.019 200.873);
+  --color-base-content: oklch(17% 0.042 265.755); /* Default text */
+  --color-primary: oklch(52% 0.111 163.225); /* Primary accent */
+  --color-primary-content: oklch(98% 0.015 166.113);
+  --color-secondary: oklch(53% 0.098 221.723);
+  --color-secondary-content: oklch(98% 0.012 200.873);
   --color-accent: oklch(44% 0.017 285.786);
   --color-accent-content: oklch(98% 0 0);
   --color-neutral: oklch(44% 0.043 257.281);
   --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(68% 0.169 237.323);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(76% 0.233 130.85);
-  --color-success-content: oklch(98% 0.031 120.757);
-  --color-warning: oklch(79% 0.184 86.047);
-  --color-warning-content: oklch(98% 0.026 102.212);
-  --color-error: oklch(64% 0.246 16.439);
-  --color-error-content: oklch(96% 0.015 12.422);
+  --color-info: oklch(53% 0.115 237.323);
+  --color-info-content: oklch(98% 0.01 236.62);
+  --color-success: oklch(52.5% 0.143 130.85);
+  --color-success-content: oklch(98% 0.02 120.757);
+  --color-warning: oklch(80% 0.16 86.047);
+  --color-warning-content: oklch(24% 0.05 80);
+  --color-error: oklch(56% 0.2 16.439);
+  --color-error-content: oklch(98% 0.008 12.422);
 }
 ```
 
 Each `--color-*` role has a matching `--color-*-content` variable that sets the foreground (text/icon) color rendered on top of it, so contrast is preserved automatically when you change the base.
+
+The shipped defaults keep every role against its `-content` at 4.5:1 or better (WCAG AA), bright enough to stay colorful, and `base-content` at 80% opacity at 7:1 or better on the base surfaces. If you change a color, check the pair again. `warning` is the one role whose light-mode value is too light to read as text on a light surface; it carries a dark `-content` instead. A `@media (prefers-contrast: more)` block at the end of the shipped `theme.css` pushes `base-content` to pure black or white, strengthens the graph lines and darkens the light theme’s roles to 7:1 (WCAG AAA) for visitors who ask their OS for more contrast; keep it if you want that behavior, and put your own darker values there if you change the roles.
 
 Color format
 
@@ -1860,6 +1915,8 @@ CDN_MODE: {
   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
   // BASE_PATH: "/headphones",
   // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
+  // VERSION: "2.3.4",
+  // BOOT_INTEGRITY: "sha384-…",
 },
 ```
 
@@ -1868,6 +1925,8 @@ Configures CDN deployment settings. **Only used when deploying with `cdn-index.h
 * `MAJOR_VERSION`: Pins the app to a specific major version (e.g., `2` means auto-update within v2.x.x).
 * `BASE`: Custom CDN base URL. Only change this if you’re hosting the CDN assets yourself (advanced use).
 * `BASE_PATH`: Deployment subpath (e.g. `"/headphones"`), with no trailing slash. **Required for any deployment not at the (sub)domain root.** For a site at `example.com/headphones/` or `username.squig.link/headphones/`, set `BASE_PATH: "/headphones"`. Only leave this unset if your site is served at the root of its (sub)domain — e.g. `example.com/` or `username.squig.link/`. Without it, share-link deep routes will 404 even though the home page loads fine. For the full explanation of why this is effectively always required, see the [CDN deployment guide](/modernGraphTool/docs/guide-for-admins/deployment/cdn/#why-base_path-is-almost-always-required).
+* `VERSION`: Pins one exact release, e.g. `"2.3.4"`. The site stops updating itself and the loader no longer asks for `versions.json`. Wins over `MAJOR_VERSION`. See [Pinning a release](/modernGraphTool/docs/guide-for-admins/deployment/cdn/#pinning-a-release).
+* `BOOT_INTEGRITY`: The `sha384-…` hash of that release’s `boot.json`; needs `VERSION`. The loader refuses to start from a `boot.json` that does not match. The value for each release is published in `pins.json`.
 * `VERSIONS_URL`: Full URL to `versions.json`. By default, the loader derives a `raw.githubusercontent.com` URL from `BASE` and fetches `versions.json` directly from GitHub — **not** through jsDelivr. This is intentional: jsDelivr’s edge cache can pin stale `versions.json` responses for hours, which delays new releases from reaching users. `versions.json` is the one file where that matters, so the loader sidesteps it. Only override `VERSIONS_URL` if you host your own fork of the `cdn` branch or serve from a non-GitHub origin.
 
 Standard Deployment
@@ -2058,7 +2117,8 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+    //ALT: "modernGraphTool",
+    TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
     { TITLE: "Home", URL: "/" },
@@ -2081,7 +2141,14 @@ Sets the title and link list for the page’s top bar.
 
     * If `TYPE` is `TEXT`, sets a text-formatted title.
     * If `TYPE` is `IMAGE`, sets an image file path.
-    * If `TYPE` is `HTML`, sets an HTML-formatted title.
+    * If `TYPE` is `HTML`, sets an HTML-formatted title. Don’t use heading tags (`<h1>`–`<h6>`) in it: the page already has its own headings, and the title sits inside the home link.
+
+  * `ALT` : Optional. The site’s name as plain text, for screen readers and the page’s hidden main heading.
+
+    * An image has no text of its own and an HTML title is markup, so set it when `TYPE` is `IMAGE` or `HTML`. A `TEXT` title already is the name, and `ALT` only backs up an empty one.
+    * With an `IMAGE` title, it becomes the image’s text alternative; the home link is announced as the site name followed by “Home”. Without it, the link is announced as “Home” alone.
+    * It accepts the same multilingual form as `LINK_LIST` (`{ default: "…", i18n: { ko: "…" } }`).
+    * Leave it out and nothing changes.
 
 * `LINK_LIST` : Sets the link list for the page’s top bar.
 
@@ -2092,7 +2159,7 @@ Sets the title and link list for the page’s top bar.
 
 Multilingual Support
 
-`LINK_LIST` supports multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.
+`LINK_LIST` and `TITLE.ALT` support multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.
 
 ### `PREFERENCE_BOUND`
 
@@ -2262,6 +2329,7 @@ SQUIGLINK: {
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
   ENABLE_ANALYTICS: true,
+  ANALYTICS_CONSENT: "granted",
   ENABLE_CROSS_SITE_SEARCH: true,
   ENABLE_SPONSOR: true,
 },
@@ -2270,10 +2338,11 @@ SQUIGLINK: {
 Configures the squig.link integration. These features are only active when hosted on `*.squig.link` domains.
 
 * `ENABLED`: Master toggle for squig.link integration.
-* `ANALYTICS_MEASUREMENT_IDS`: Array of GA4 measurement IDs, e.g., `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
-* `ANALYTICS_SITE`: Site name used for analytics attribution.
+* `ANALYTICS_MEASUREMENT_IDS`: Optional. IDs of your own to report to as well: GA4 measurement IDs (`"G-…"`) or Tag Manager containers (`"GTM-…"`). squig.link’s own container is built in, so leave this empty unless you keep statistics of your own.
+* `ANALYTICS_SITE`: The name squig.link’s statistics list your site under.
 * `LOG_ANALYTICS`: Whether to log analytics events to the browser console.
-* `ENABLE_ANALYTICS`: Master toggle for analytics tracking.
+* `ENABLE_ANALYTICS`: Master toggle for analytics, squig.link’s container included.
+* `ANALYTICS_CONSENT`: What Google’s [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent) starts from, until a visitor answers with the **Usage statistics** switch in the Misc panel. `"granted"` (the default) measures as before. `"denied"` stores no analytics cookie and sends only cookieless pings until a visitor switches it on. See [squig.link Integration](/modernGraphTool/docs/features/squiglink-integration/#analytics-and-consent).
 * `ENABLE_CROSS_SITE_SEARCH`: **Deprecated** — use `CROSS_SITE_SEARCH.ENABLED`. Still read as a fallback for configs that predate that section.
 * `ENABLE_SPONSOR`: Enables sponsor banner and shop link features.
 
@@ -2314,6 +2383,7 @@ Some items in `config.js` can be written in languages other than English.
 
   * `TARGET_MANIFEST`
   * `TOPBAR` → `LINK_LIST`
+  * `TOPBAR` → `TITLE` → `ALT` (a single text, written as `{ default: "…", i18n: { ko: "…" } }`)
   * `DESCRIPTION`
 
 ```javascript
@@ -2411,7 +2481,54 @@ This keeps your site on v2.x.x — you’ll still receive minor and patch releas
 
 Pinning doesn’t freeze minor versions
 
-`MAJOR_VERSION` only pins the major. Patches and minor releases within your pinned major (e.g. v2.1.0 → v2.2.0) still roll out automatically. If you need to pin a specific patch version, use [Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/) instead.
+`MAJOR_VERSION` only pins the major. Patches and minor releases within your pinned major (e.g. v2.1.0 → v2.2.0) still roll out automatically. To stay on one exact release, see [Pinning a release](#pinning-a-release) below, or use [Pre-built Release](/modernGraphTool/docs/guide-for-admins/deployment/prebuilt/).
+
+## Pinning a release
+
+By default your site runs whatever the project’s `cdn` branch publishes: that is what makes updates automatic, and it also means your visitors run code you have not looked at. If you would rather choose when to update, pin one release. A pinned site loads only files whose hashes are written in your own `index.html` and `config.js`, so nothing published later, and nothing altered on the CDN, can reach it.
+
+Each release’s values are in [`pins.json`](https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/pins.json) on the `cdn` branch:
+
+```json
+{
+  "2.3.4": {
+    "commit": "<40-character commit>",
+    "loader_integrity": "sha384-…",
+    "boot_integrity": "sha384-…"
+  }
+}
+```
+
+1. **In `index.html`, load the loader from that commit, with its hash.** Replace the last `<script>` in `<body>` (in the CDN release’s `index.html` that is the short inline script that picks `loader.js`) with:
+
+   ```html
+   <script
+     src="https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@<commit>/loader.js"
+     integrity="<loader_integrity>"
+     crossorigin="anonymous"
+   ></script>
+   ```
+
+2. **In `config.js`, point `CDN_MODE` at the same commit and release:**
+
+   ```javascript
+   CDN_MODE: {
+     BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@<commit>",
+     VERSION: "2.3.4",
+     BOOT_INTEGRITY: "<boot_integrity>",
+     // BASE_PATH as before
+   },
+   ```
+
+3. **Reload and check** that the page starts. A wrong hash stops it with a message naming the setting.
+
+To update, copy the newer release’s three values and re-upload both files. The changelog tells you what you are moving to.
+
+A pinned site gets no fixes on its own
+
+That includes security fixes. Pin only if you will come back and update it.
+
+`VERSION` works alone too: it holds the site on one release (and saves the `versions.json` request) without the hash checks. `BOOT_INTEGRITY` needs `VERSION`, and needs the page to be served over HTTPS.
 
 ## Updating the app
 
@@ -2422,6 +2539,10 @@ Under normal operation, nothing — updates are automatic within your pinned maj
 3. Users pick up the new major on their next page load
 
 Users who want to force a refresh in the meantime can clear their browser cache or do a hard reload.
+
+## Security headers (optional)
+
+The release’s `.htaccess` and `index.html` carry a recommended Content-Security-Policy, switched off. See [Security Headers](/modernGraphTool/docs/guide-for-admins/deployment/security-headers/) for what it does and how to switch it on.
 
 ## Troubleshooting
 
@@ -2471,9 +2592,23 @@ Users who want to force a refresh in the meantime can clear their browser cache 
 
 ### Overriding `VERSIONS_URL`
 
-`VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn’t a recognizable jsDelivr `gh/` URL (because you’re self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js:186-196](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L186-L196).
+`VERSIONS_URL` defaults to a `raw.githubusercontent.com` URL derived from `BASE`. If your `BASE` isn’t a recognizable jsDelivr `gh/` URL (because you’re self-hosting, for example), the derivation returns `null` and the loader falls back to `${BASE}/versions.json`. Override `VERSIONS_URL` explicitly when neither of those is right. The URL shape the loader expects is documented in [cdn/loader.js](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js).
+
+The same file carries the current boot manifest for each major, so a visit normally needs no separate `boot.json` request. Older loaders, and sites pinned with `VERSION`, read `boot.json` itself.
 
 `boot.json` comes from jsDelivr and is purged on every release. The app chunks and CSS it lists are pinned to the commit that published them (`…@<commit>/v{version}/_app/…`), so they never go stale: jsDelivr and browsers cache them for a year, and a new release always ships under new URLs. That’s also why your users don’t pay for a cold jsDelivr cache on every visit — files under the moving `@cdn` branch only stay at jsDelivr’s edge for 12 hours.
+
+### What a CDN deployment trusts
+
+The chain is `index.html` → `loader.js` → `versions.json` → `boot.json` → the app’s scripts and stylesheets.
+
+* `loader.js` and `versions.json` are read from the `cdn` branch of the project repository, which only the release workflow writes to and which cannot be force-pushed.
+* `boot.json` may only name files in that same repository (or under your own `BASE`, for a mirror). The loader refuses a manifest that points anywhere else.
+* `boot.json` carries a `sha384` hash for every script and stylesheet of the release. The loader hands them to the browser, which refuses a file whose bytes differ. Stylesheets and the first scripts are checked in every current browser; the chunks loaded later are checked where import maps support `integrity` (Chrome and Edge 127, Safari 18, Firefox 138).
+
+So an unpinned site trusts the `cdn` branch and nothing else: jsDelivr cannot change the app’s files without the browser noticing, but it does deliver `loader.js` and `boot.json` unchecked. [Pinning a release](#pinning-a-release) closes that too.
+
+A mirror that serves its files from another origin than the page must send `Access-Control-Allow-Origin` for stylesheets as well as scripts, because hash-checked files are fetched with CORS. Its `boot.json` has to name files under the mirror’s own `BASE`, so build it with `MGT_CDN_BASE` set to the mirror rather than copying the project’s.
 
 ### Self-hosting the CDN assets
 
@@ -2508,7 +2643,7 @@ The practical result:
 | `example.com/headphones/share/abc`      | `""`               | **No — should be `/headphones`** | Set `BASE_PATH: "/headphones"`                                                       |
 | `example.com/headphones/cdn-index.html` | `/headphones`      | Yes                              | (But nobody visits this URL — the install instructions tell you to rename the file.) |
 
-So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js:111-137](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js#L111-L137) if you want to read the exact detection rules.
+So: **if your site is not at the domain root, set `BASE_PATH`.** The typical symptom of forgetting is that the page loads fine when users visit the home URL, but any share link 404s. The relevant loader logic lives in [cdn/loader.js](https://github.com/potatosalad775/modernGraphTool/blob/main/cdn/loader.js) if you want to read the exact detection rules.
 
 squig.link operators
 
@@ -2831,6 +2966,10 @@ npx serve .
 
 Base-path auto-detection doesn’t apply on `localhost` — it doesn’t need to, since you’re serving from the root there and the loader resolves an empty base path on its own.
 
+## Security headers (optional)
+
+GitHub Pages cannot send custom headers, so the template’s `index.html` carries a recommended Content-Security-Policy as a commented `<meta>` tag. See [Security Headers](/modernGraphTool/docs/guide-for-admins/deployment/security-headers/#no-header-hosts) for what it does and how to switch it on.
+
 ## Troubleshooting
 
 ### The site 404s right after enabling Pages
@@ -2915,7 +3054,7 @@ dist/                     # (or extracted release folder)
 ├── config.js             # Application settings — YOU EDIT
 ├── theme.css             # Graph color theme — YOU EDIT
 ├── index.html            # HTML entry point — editable for metadata
-├── .htaccess             # Apache SPA fallback
+├── .htaccess             # Apache SPA fallback, caching and compression
 ├── data/
 │   ├── phones/           # Measurement data files (.txt) — YOU EDIT
 │   ├── target/           # Target curve data files (.txt) — YOU EDIT
@@ -2927,6 +3066,59 @@ dist/                     # (or extracted release folder)
 ```
 
 Files marked **YOU EDIT** are safe to customize. The `_app/` folder contains the built application and should be left alone — it’s overwritten on every release update.
+
+## Caching and compression
+
+On Apache, the bundled `.htaccess` also sets cache lifetimes and turns on compression. Every rule sits inside an `<IfModule>` guard, so a host without that module simply ignores it, and the SPA fallback is unchanged. A host that is not Apache ignores the whole file. squig.link is one: caching and compression there are squig.link’s own.
+
+* **`_app/immutable/`** is cached for a year (`public, max-age=31536000, immutable`). Its file names carry a content hash, so a new release is a new URL.
+* **`index.html`, `config.js`, `theme.css`, `_app/version.json` and `data/`** are sent with `Cache-Control: no-cache`. Browsers keep a copy but ask the server first, so an edit you upload shows up on the next load, and an unchanged file costs only a `304`.
+* **Text types** (HTML, CSS, JavaScript, JSON, SVG, WebAssembly) are compressed with Brotli and gzip when `mod_brotli` / `mod_deflate` are available.
+
+Other servers need the same three things. The paths are relative to the folder you deploy:
+
+| Path                                                                  | `Cache-Control`                       |
+| --------------------------------------------------------------------- | ------------------------------------- |
+| `_app/immutable/*`                                                    | `public, max-age=31536000, immutable` |
+| `index.html`, `config.js`, `theme.css`, `_app/version.json`, `data/*` | `no-cache`                            |
+
+For nginx, inside the `server` block of a site served from `root`:
+
+```nginx
+gzip on;
+gzip_types text/css text/plain application/javascript application/json image/svg+xml application/wasm;
+
+
+location /_app/immutable/ {
+  add_header Cache-Control "public, max-age=31536000, immutable";
+}
+location ~ ^/(index\.html|config\.js|theme\.css|_app/version\.json)$ {
+  add_header Cache-Control "no-cache";
+}
+location /data/ {
+  add_header Cache-Control "no-cache";
+}
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+On a static host with a headers file (Netlify, Cloudflare Pages), the equivalent `_headers` file is:
+
+```text
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+/index.html
+  Cache-Control: no-cache
+/config.js
+  Cache-Control: no-cache
+/theme.css
+  Cache-Control: no-cache
+/data/*
+  Cache-Control: no-cache
+```
+
+Those hosts already compress text responses. GitHub Pages sets its own short cache lifetime and cannot be changed.
 
 ## Updating the app
 
@@ -2952,6 +3144,10 @@ Don’t overwrite your data
 
 The most common update mistake is extracting the new release directly over your live deployment. This overwrites `config.js`, `data/`, etc. with the default release templates. Always back up or copy out first.
 
+## Security headers (optional)
+
+The release’s `.htaccess` also carries a recommended Content-Security-Policy and three other security headers, switched off. See [Security Headers](/modernGraphTool/docs/guide-for-admins/deployment/security-headers/) for what they do and how to switch them on. If you do, take the new `Content-Security-Policy` line from each release when you update: it is written for that release.
+
 ## Troubleshooting
 
 ### Data doesn’t appear in the device selector
@@ -2971,6 +3167,100 @@ The most common update mistake is extracting the new release directly over your 
 **Cause:** `Bounds U.txt` and `Bounds D.txt` aren’t in `data/`.
 
 **Fix:** Place both files directly in `data/` (not in a subfolder). See the [Preference Bound feature doc](/modernGraphTool/docs/features/preference-bound/) for the file format.
+
+# Security Headers
+
+Every release ships a recommended set of security headers, switched off. They are optional: the tool works without them. Switching them on limits what a malicious measurement file, phone book entry or third-party index could do in your visitors’ browsers, and stops other sites from framing yours.
+
+They are off by default because a policy that fits the stock tool can break a customized one. Read [What your customizations need](#what-your-customizations-need) before switching them on.
+
+## What is recommended
+
+| Header                    | Value                                                                    | What it does                                                                      |
+| ------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `Content-Security-Policy` | Written for each release, see below                                      | Only scripts that belong to the tool may run                                      |
+| `X-Content-Type-Options`  | `nosniff`                                                                | A data file is never run as a script                                              |
+| `Referrer-Policy`         | `strict-origin-when-cross-origin`                                        | Other sites learn your address, not which device a visitor was looking at         |
+| `Permissions-Policy`      | `hid`, `serial` and `bluetooth` for your site only; camera and so on off | Hardware EQ keeps working; an embedded frame cannot reach a visitor’s USB devices |
+
+The Content-Security-Policy lists a hash for every inline script on the page. The app’s own start-up script changes with each release, so the policy is generated by the release build rather than written here.
+
+## Switching them on
+
+### Apache (Pre-built Release, CDN Deployment)
+
+The release’s `.htaccess` ends with a commented block:
+
+```apacheconf
+# <IfModule mod_headers.c>
+#   Header set X-Content-Type-Options "nosniff"
+#   Header set Referrer-Policy "strict-origin-when-cross-origin"
+#   Header set Permissions-Policy "…"
+#   Header set Content-Security-Policy "…"
+# </IfModule>
+```
+
+Remove the `# `in front of those six lines and upload the file. Then open the site with the browser console open: anything the policy blocks is reported there as an error naming the directive.
+
+On a Pre-built Release, **take the `Content-Security-Policy` line from the new release’s `.htaccess` every time you update**, and re-apply your own additions. The old line does not know the new start-up script, and the page would stay blank. A CDN Deployment does not have this problem, because its `index.html` does not change between releases.
+
+### GitHub Pages, squig.link and other hosts without headers
+
+GitHub Pages cannot send custom headers, and squig.link is not an Apache host: it does not read `.htaccess`. On both, the policy goes in the page. The `index.html` of a CDN Deployment and of the GitHub Pages template carries it as a commented `<meta>` tag near the top of `<head>`:
+
+```html
+<!-- <meta http-equiv="Content-Security-Policy" content="…" /> -->
+```
+
+Remove the `<!--` and `-->` around it. Leave it where it is: it only governs what comes after it. A `<meta>` policy cannot stop other sites from framing yours, and the other three headers cannot be set this way at all.
+
+The `index.html` of a Pre-built Release has no such tag, because its policy is in `.htaccess`. On one of these hosts, add the tag yourself, straight after `<meta charset="utf-8" />`: copy the value of the `Content-Security-Policy` line out of the release’s `.htaccess` and leave out `frame-ancestors 'self'`, which a `<meta>` policy may not contain. Like the header, it has to be replaced with every release.
+
+### nginx, Caddy, Cloudflare and others
+
+Copy the four values out of the release’s `.htaccess` into your server’s own header configuration.
+
+## What your customizations need
+
+The shipped policy covers the stock tool. Add to it for anything of your own:
+
+| If you…                                                       | Add                                                                              |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| host on squig.link (its analytics are on unless switched off) | `https://www.googletagmanager.com` to `script-src`                               |
+| list a Tag Manager container (`GTM-…`) of your own            | the origins of the tags it loads; a Custom HTML tag cannot run under this policy |
+| are behind Cloudflare with its Web Analytics switched on      | `https://static.cloudflareinsights.com` to `script-src`                          |
+| set `RANKING.CONFIG_URL`                                      | that file’s origin to `script-src`                                               |
+| added an inline `<script>` to `index.html`, or edited one     | its hash to `script-src` (the console error prints the hash to add)              |
+| added an external `<script src>` or stylesheet                | its origin to `script-src` or `style-src`                                        |
+| use a web font other than the default                         | its origin to `style-src` and `font-src`                                         |
+| mirror the CDN assets under your own `CDN_MODE.BASE`          | that origin to `script-src`, `style-src` **and `worker-src`**                    |
+| load images over plain `http:`                                | `http:` to `img-src`                                                             |
+| connect to a network device (WiiM, Luxsin) from an HTTP site  | `http:` to `connect-src`                                                         |
+
+Two things in your content stop working under any policy without `'unsafe-inline'`, and are worth fixing rather than allowing: inline event handlers (`onclick="…"`) in an HTML `TOPBAR.TITLE` or `DESCRIPTION`, and `javascript:` links.
+
+`worker-src` deserves the emphasis above. AutoEQ runs in a worker, and the browser checks the files a worker loads against `worker-src`, not `script-src`. If the origin is missing there, AutoEQ returns no result and the console shows no policy error.
+
+Requests to data hosts are limited by scheme only (`connect-src 'self' https: wss:`), because the phone book, the cross-site index, the ranking sheet and the uniPEQ link server are all addresses you can configure.
+
+## Trusted Types (optional extra)
+
+Trusted Types makes the browser refuse plain text at the places that can run code, such as `innerHTML`, so a bug that lets a string reach one of them fails instead of running. Chrome and Edge enforce it, as do recent versions of Safari and Firefox; a browser without it ignores the directive.
+
+It is not part of the shipped policy. To switch it on, add this to the end of the `Content-Security-Policy` value:
+
+```text
+; require-trusted-types-for 'script'
+```
+
+The tool’s own code is written for it and the release tests run with it enforced, but those tests do not reach every feature. A place that was missed fails with a `TrustedHTML` or `TrustedScriptURL` error in the console, and that one feature stops working. Try it on your site before leaving it on, and please report what you find. A script of your own that assigns `innerHTML`, or adds a `<script>` tag from code, needs its own Trusted Types policy.
+
+On a CDN Deployment it also stops the loader’s import map, as the policy itself already does.
+
+## Limits
+
+* Styles are allowed inline (`style-src 'unsafe-inline'`). The interface sets styles on elements directly, which no hash can cover.
+* On a CDN Deployment the policy blocks the import map the loader uses to hash-check lazily loaded files, and the console reports that once per visit. Stylesheets and the files loaded at start-up are still checked. See [What a CDN deployment trusts](/modernGraphTool/docs/guide-for-admins/deployment/cdn/#what-a-cdn-deployment-trusts).
 
 # Managing Data
 
@@ -3602,6 +3892,35 @@ How the three build outputs are produced. If you only want to *deploy* modernGra
 
 The CDN build emits a thin `cdn-index.html` loader plus `cdn/loader.js`; set `MGT_CDN_BASE` to rewrite the `_app/` URLs.
 
+`scripts/generate-boot-manifest.js` writes `boot.json`: the entry URLs, plus an `integrity` map with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml` publishes to the `cdn` branch in three commits and never rewrites its history:
+
+1. the release’s `_app/` files, which `boot.json` then addresses by that commit;
+2. `v{version}/boot.json`, `loader.js` (minified by `scripts/minify-loader.js`; `cdn/loader.js` stays the readable source) and `versions.json`. `versions.json` maps each major to its release and, under `boot`, embeds that release’s manifest so the loader needs one request instead of two;
+3. `pins.json`, which records commit 2 and the hashes of `loader.js` and `boot.json` for operators who [pin a release](/modernGraphTool/docs/guide-for-admins/deployment/cdn/#pinning-a-release) (`scripts/write-cdn-pins.js`; the same snippet lands in the workflow run’s summary).
+
+`loader.js` reaches every unpinned CDN site the moment it is pushed, and pinned sites keep the loader they pinned, so a change to `boot.json` or `versions.json` has to stay readable by older loaders: add keys, never repurpose one.
+
+## What the first screen preloads
+
+`npm run build` and `npm run build:cdn` both run `scripts/preload-boot-chunks.js` on the built `index.html`. It adds a `<link rel="modulepreload">` for every script the first screen needs that SvelteKit’s own list leaves out, so the browser fetches them all in one round trip:
+
+* **The route nodes.** The fallback page knows no route, so SvelteKit lists only the root layout. Since SvelteKit 3 the router asks for the page node after the app chunk has loaded and run, which cost about 55 ms in the [startup benchmark](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-startup).
+* **Chunks shared with a lazy chunk.** Code used by both the app chunk and a dynamically imported one (the Equalizer panel, Hardware EQ) is split into its own chunk, which the app chunk imports statically.
+
+The script follows the static imports of the built files, so a new lazy chunk needs no change here. `boot.json` takes its preload list from the same page. After a change to what loads lazily, run `node scripts/bench-startup/waterfall.mjs` and check that no script starts only after a larger one has finished.
+
+## The recommended security headers
+
+`scripts/csp.js` builds the Content-Security-Policy that releases ship switched off. It hashes the inline scripts of the page an operator will serve and replaces the `__CSP__` token:
+
+| Build                         | Page hashed                | Written to                                    |
+| ----------------------------- | -------------------------- | --------------------------------------------- |
+| `npm run build`               | `dist/index.html`          | `dist/.htaccess`                              |
+| `npm run build:cdn`           | `cdn-index.html`           | `dist-cdn/.htaccess`, `cdn-index.html`’s meta |
+| `npm run build:site-template` | `site-template/index.html` | that page’s meta                              |
+
+`npm run test:smoke` reads the commented `Header set` lines back out of `dist/.htaccess` and sends them, so the full build’s policy is exercised on every CI run. The CDN shells’ policy is not: it needs the published app on jsDelivr. What operators have to add for their own customizations is listed on [Security Headers](/modernGraphTool/docs/guide-for-admins/deployment/security-headers/).
+
 ## The `defaults/` mechanism
 
 A Vite plugin serves `defaults/` as a fallback during development and copies its contents into `dist/` at build time — **without** overwriting files that already exist under `static/`. That is how an operator’s local customizations survive an upgrade.
@@ -3696,7 +4015,7 @@ Stores are reactive class instances in `.svelte.ts` files, not plain `.ts`. Most
 
 ## Shared components
 
-Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `Dialog`, `ScrollArea` and `Skeleton`, rather than the bare HTML element. They carry the focus-visible ring, the transition, the disabled styling and the operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as themes change.
+Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`, `Accordion`, `PopoverPanel`, `Dialog` and `ScrollArea`, rather than the bare HTML element. They carry the focus-visible ring, the transition, the disabled styling and the operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as themes change.
 
 * `Button` takes `variant` and `size` props instead of a class list. Check whether a size already covers what you need (`toolbar`, `icon`, `icon-sm`, `icon-xs`) before writing padding classes by hand. Its required `title` also becomes the `aria-label`, so keep the title and the visible text saying the same thing.
 * Anything passed to `Button` in `class` is merged with [tailwind-merge](https://github.com/dcastil/tailwind-merge), so an override beats the built-in style **without** a `!` modifier: write `class="rounded-full"`, not `class="rounded-full!"`. On a raw element, conflicting utilities tie on specificity and `!` is still needed.
@@ -4570,6 +4889,8 @@ Most buttons are reachable with the keyboard:
 * **Ctrl+Z** / **Ctrl+Shift+Z** (or **Ctrl+Y**) undo and redo loading, removing, or modifying curves.
 * **1 / 2 / 3 / 4** jump to Device, Graph, Equalizer, or Misc on desktop.
 
+The **1–4** keys and the `\` hold (EQ bypass) are single-key shortcuts. They stand down while a text field or a dropdown has focus, and you can turn them off with **Single-key shortcuts** in the Misc panel (useful with voice control or speech input). Shortcuts with a modifier key, such as **Ctrl+Z**, always stay on.
+
 Keyboard and screen-reader support is still being polished in places — if you find a control you can’t reach or label you can’t hear, that’s a bug worth reporting.
 
 ***
@@ -5212,7 +5533,7 @@ If your fork isn’t listed here, it almost certainly behaves like one of these 
    **Things that should NOT be carried over from your CrinGraph `index.html`:**
 
    * `<script src="https://squig.link/squigsites.js"></script>` — v2 has native squig.link integration. Enable it via the `SQUIGLINK` section in `config.js` instead. Cross-site search, sponsor banner, and multi-GA4 analytics are all built in.
-   * `<script src="assets/js/graphAnalytics.js"></script>` — v2 analytics are routed through `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS` (an array, so multi-tag support works out of the box).
+   * `<script src="assets/js/graphAnalytics.js"></script>` — v2 reports to squig.link’s container by itself; carry over only `analyticsSite`, as `SQUIGLINK.ANALYTICS_SITE`. A container or GA4 property of your own goes in `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS`.
    * `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2 has a built-in color picker on every curve’s color swatch.
    * `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` tags — not a v2 feature.
    * `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool-specific; not applicable to v2.

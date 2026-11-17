@@ -26,6 +26,57 @@ draft: false
 CDN 빌드는 얇은 `cdn-index.html` 로더와 `cdn/loader.js`를 생성합니다. `_app/` URL을 바꾸려면
 `MGT_CDN_BASE`를 설정하세요.
 
+`scripts/generate-boot-manifest.js`는 `boot.json`을 만듭니다. 진입 URL과 함께, `_app/` 아래 모든
+스크립트와 스타일시트의 `sha384` 해시를 담은 `integrity` 맵이 들어 있습니다. `deploy.yml`은 `cdn`
+브랜치에 세 개의 커밋으로 게시하며 히스토리를 다시 쓰지 않습니다.
+
+1. 릴리스의 `_app/` 파일. `boot.json`은 이 파일들을 해당 커밋으로 지정해 가리킵니다.
+2. `v{version}/boot.json`, `loader.js`(`scripts/minify-loader.js`로 압축한 파일. 읽기 쉬운 원본은
+   `cdn/loader.js`에 그대로 둡니다), `versions.json`. `versions.json`은 메이저별로 릴리스를
+   매핑하고, `boot` 아래에 그 릴리스의 매니페스트를 담고 있어 로더가 요청 두 번 대신 한 번만으로
+   끝납니다.
+3. `pins.json`. 2번 커밋과 `loader.js`, `boot.json`의 해시를 기록하며, [릴리스를
+   고정](../guide-for-admins/deployment/cdn.mdx#pinning-a-release)하는 운영자를 위한 것입니다
+   (`scripts/write-cdn-pins.js`. 같은 내용이 워크플로 실행 요약에도 남습니다).
+
+`loader.js`는 푸시하는 순간 고정하지 않은 모든 CDN 사이트에 전달되고, 고정한 사이트는 고정해 둔
+로더를 계속 씁니다. 그래서 `boot.json`이나 `versions.json`을 바꿀 때는 이전 로더도 읽을 수 있어야
+합니다. 키를 추가할 수는 있어도, 기존 키의 용도를 바꿔서는 안 됩니다.
+
+## 첫 화면이 미리 불러오는 것 \{#what-the-first-screen-preloads\}
+
+`npm run build`와 `npm run build:cdn`은 둘 다 빌드된 `index.html`에 `scripts/preload-boot-chunks.js`를
+실행합니다. 첫 화면에 필요하지만 SvelteKit 자체 목록에는 빠지는 스크립트마다
+`<link rel="modulepreload">`를 추가해, 브라우저가 한 번의 왕복으로 모두 받아 오게 하는 것입니다.
+
+- **라우트 노드.** 폴백 페이지는 라우트를 알지 못해서 SvelteKit은 루트 레이아웃만 나열합니다.
+  SvelteKit 3부터는 앱 청크를 불러와 실행한 뒤에야 라우터가 페이지 노드를 요청하는데, 이 지연이
+  [시작 속도 벤치마크](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-startup)에서
+  약 55 ms였습니다.
+- **지연 로드되는 청크와 공유하는 청크.** 앱 청크와 동적으로 import하는 청크(이퀄라이저 패널,
+  하드웨어 EQ)가 함께 쓰는 코드는 별도 청크로 분리되고, 앱 청크가 이를 정적으로 import합니다.
+
+이 스크립트는 빌드된 파일의 정적 import를 따라가므로, 새 지연 로드 청크가 생겨도 여기를 고칠 필요가
+없습니다. `boot.json`의 미리 불러오기 목록도 같은 페이지에서 가져옵니다. 지연 로드 대상을 바꾼 뒤에는
+`node scripts/bench-startup/waterfall.mjs`를 실행해, 더 큰 스크립트가 끝난 뒤에야 시작되는 스크립트가
+없는지 확인하세요.
+
+## 권장 보안 헤더 \{#the-recommended-security-headers\}
+
+`scripts/csp.js`는 릴리스에 꺼진 상태로 들어가는 Content-Security-Policy를 만듭니다. 운영자가 실제로
+서비스할 페이지의 인라인 스크립트를 해시해서 `__CSP__` 토큰을 채웁니다.
+
+| 빌드                          | 해시하는 페이지            | 기록되는 곳                                    |
+| ----------------------------- | -------------------------- | ---------------------------------------------- |
+| `npm run build`               | `dist/index.html`          | `dist/.htaccess`                               |
+| `npm run build:cdn`           | `cdn-index.html`           | `dist-cdn/.htaccess`, `cdn-index.html`의 meta  |
+| `npm run build:site-template` | `site-template/index.html` | 해당 페이지의 meta                             |
+
+`npm run test:smoke`는 `dist/.htaccess`에서 주석 처리된 `Header set` 줄을 읽어 실제 헤더로 보내므로,
+전체 빌드의 정책은 CI가 돌 때마다 검증됩니다. CDN 셸의 정책은 그렇지 않습니다. jsDelivr에 게시된 앱이
+있어야 확인할 수 있기 때문입니다. 운영자가 직접 추가한 것에 맞춰 무엇을 더해야 하는지는
+[보안 헤더](../guide-for-admins/deployment/security-headers.mdx)에 정리되어 있습니다.
+
 ## `defaults/` 메커니즘 \{#the-defaults-mechanism\}
 
 Vite 플러그인이 개발 중에는 `defaults/`를 폴백으로 서빙하고, 빌드 시에는 그 내용을 `dist/`로

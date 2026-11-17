@@ -85,7 +85,7 @@ route.
 
 - The database the visitor is currently viewing is detected by URL and shown as selected. Longest
   path match wins, so a site hosting `/` and `/headphones/` resolves to the right one.
-- Databases that were unreachable when the index was last built stay listed but are dimmed, with a
-  tooltip explaining that the link may not work. A site that is briefly down doesn't vanish from
-  navigation.
+- Databases that were unreachable when the index was last built stay listed with an "Unverified" badge,
+  and a note under the list explains that the link may not work. A site that is briefly down doesn't
+  vanish from navigation.
 - Entries open in a new tab.

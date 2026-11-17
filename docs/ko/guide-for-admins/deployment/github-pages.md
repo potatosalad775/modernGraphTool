@@ -187,6 +187,10 @@ npx serve .
 
 `localhost`에서는 기준 경로 자동 감지가 동작하지 않습니다. 필요하지도 않습니다. 로컬에서는 루트에서 서빙하게 되고, 로더가 알아서 빈 기준 경로로 해석하기 때문입니다.
 
+## 보안 헤더 (선택)
+
+GitHub Pages는 사용자 지정 헤더를 보낼 수 없으므로, 템플릿의 `index.html`에 권장 Content-Security-Policy가 주석 처리된 `<meta>` 태그로 들어 있습니다. 하는 일과 켜는 방법은 [보안 헤더](./security-headers.mdx#no-header-hosts)를 참고하세요.
+
 ## 문제 해결
 
 ### Pages를 켜자마자 404가 뜹니다

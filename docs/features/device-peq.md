@@ -77,6 +77,15 @@ The preamp goes to devices that take one. A device that can't lower its own leve
 Hardware EQ slots have no channel concept. A write sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](./equalizer.mdx#per-channel-eq).
 :::
 
+## Network devices
+
+Pick **Network**, choose the device type, and enter the device's address: an IP address (`192.168.1.20`, or an IPv6 address), or a `.local` name (`wiim.local`), with a `:port` if it needs one. Enter connects. Anything else is refused beside the field before a request is made: a web address with `http://` or a path, a user name, spaces, and any public hostname such as `example.com`. That check is what stops a mistyped or pasted address from sending commands to another server. Private address ranges are not enforced, so a device reached over a VPN works.
+
+Nothing is sent when you connect; the first request goes out when you press **Read** or **Write**. If the browser can't reach the device, you get a message that says so instead of a generic failure.
+
+- **HTTPS sites can't reach HTTP devices.** The Luxsin X9 only answers over plain HTTP, and a browser blocks that from a page served over HTTPS (mixed content). Use a deployment served over `http://` on your own network, or run the tool locally. A WiiM answers over HTTPS with its own certificate, which the browser may refuse until you open the device's address in a tab once and accept it.
+- **Local Network Access.** Chrome and Edge 145 and later ask before a public website connects to a device on your local network. Choose **Allow**. If you chose Block, re-enable **Local network** for this site under the lock icon, in **Site settings**. Where the prompt exists, it is also what lets an HTTPS site reach an HTTP device on a private address. Other browsers don't ask, and keep blocking mixed content.
+
 ## Browser support
 
 Hardware EQ needs a Chromium-based browser — **Chrome, Edge or Opera**. Firefox and Safari implement none of WebHID, Web Serial or Web Bluetooth, so the panel shows a compatibility notice there instead of the connect buttons. [Link with uniPEQ](./unipeq-link.mdx) still works there.

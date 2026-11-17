@@ -127,8 +127,8 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 	--color-graph-watermark-opacity: 0.08; /* Watermark opacity */
 	--color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
 	--color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
-	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
-	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
+	--color-graph-axis-label: rgba(0, 0, 0, 0.7); /* Axis labels (Hz, dB) */
+	--color-graph-grid-text: rgba(0, 0, 0, 0.58); /* Grid value labels */
 	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
 	--color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
@@ -136,8 +136,8 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 .dark {
 	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
 	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
-	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.72);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.6);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
 	--color-graph-compare: rgba(255, 255, 255, 0.55);
 }
@@ -152,6 +152,30 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 }
 ```
 
+대화 상자, 모바일 메뉴, 안내 투어 뒤에 깔리는 어두운 막에도 전용 변수가 있습니다. 투명도는 값 자체에 들어 있으므로 값에서 직접 조절하세요. 이 변수가 없는 `theme.css`에서는 40% 검정을 사용합니다.
+
+```css
+:root {
+	--color-scrim: oklch(0% 0 0 / 40%); /* 대화 상자, 메뉴, 투어 뒤의 막 */
+}
+
+.dark {
+	--color-scrim: oklch(0% 0 0 / 40%);
+}
+```
+
+기기 목록의 순위 별표에도 전용 색이 있습니다. `--color-warning`은 밝은 배경 위의 글자로 읽기에는 너무 밝기 때문입니다. 기본 배경색 대비 4.5:1 이상을 유지하세요. 이 변수가 없는 `theme.css`에서는 기본 호박색을 사용합니다.
+
+```css
+:root {
+	--color-rating: oklch(53% 0.11 75); /* 기기 목록의 순위 별표 */
+}
+
+.dark {
+	--color-rating: oklch(82% 0.165 84.429);
+}
+```
+
 ### 기본 UI 변수
 
 배경, 텍스트, 버튼, 액센트 같은 UI 크롬은 DaisyUI 스타일의 기본 팔레트로 구동됩니다. 모든 변수는 라이트(`:root`)와 다크(`.dark`) 값을 함께 가집니다.
@@ -161,27 +185,29 @@ docs 사이트에는 실시간 **[Theme Generator](/theme-generator)**가 함께
 	--color-base-100: oklch(98% 0.003 247.858); /* Background */
 	--color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
 	--color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
-	--color-base-content: oklch(20% 0.042 265.755); /* Default text */
-	--color-primary: oklch(59% 0.145 163.225); /* Primary accent */
-	--color-primary-content: oklch(97% 0.021 166.113);
-	--color-secondary: oklch(60% 0.126 221.723);
-	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-base-content: oklch(17% 0.042 265.755); /* Default text */
+	--color-primary: oklch(52% 0.111 163.225); /* Primary accent */
+	--color-primary-content: oklch(98% 0.015 166.113);
+	--color-secondary: oklch(53% 0.098 221.723);
+	--color-secondary-content: oklch(98% 0.012 200.873);
 	--color-accent: oklch(44% 0.017 285.786);
 	--color-accent-content: oklch(98% 0 0);
 	--color-neutral: oklch(44% 0.043 257.281);
 	--color-neutral-content: oklch(98% 0.003 247.858);
-	--color-info: oklch(68% 0.169 237.323);
-	--color-info-content: oklch(97% 0.013 236.62);
-	--color-success: oklch(76% 0.233 130.85);
-	--color-success-content: oklch(98% 0.031 120.757);
-	--color-warning: oklch(79% 0.184 86.047);
-	--color-warning-content: oklch(98% 0.026 102.212);
-	--color-error: oklch(64% 0.246 16.439);
-	--color-error-content: oklch(96% 0.015 12.422);
+	--color-info: oklch(53% 0.115 237.323);
+	--color-info-content: oklch(98% 0.01 236.62);
+	--color-success: oklch(52.5% 0.143 130.85);
+	--color-success-content: oklch(98% 0.02 120.757);
+	--color-warning: oklch(80% 0.16 86.047);
+	--color-warning-content: oklch(24% 0.05 80);
+	--color-error: oklch(56% 0.2 16.439);
+	--color-error-content: oklch(98% 0.008 12.422);
 }
 ```
 
 각 `--color-*` 역할에는 대응하는 `--color-*-content` 변수가 있어, 그 위에 그려질 전경(텍스트·아이콘) 색상을 정합니다. 덕분에 기본 색상을 바꿔도 대비가 자동으로 유지됩니다.
+
+기본 제공 값은 각 역할과 `-content`의 대비를 4.5:1 이상(WCAG AA)으로 유지하면서 색감이 살아 있을 만큼 밝게 잡았고, 기본 표면 위의 `base-content` 80% 불투명도 텍스트는 7:1 이상으로 유지합니다. 색을 바꿨다면 짝을 다시 확인하세요. `warning`은 라이트 모드에서 값이 너무 밝아 밝은 표면 위의 텍스트로는 읽기 어려운 유일한 역할이며, 대신 어두운 `-content`를 씁니다. 기본 `theme.css` 끝의 `@media (prefers-contrast: more)` 블록은 OS에서 대비 강화를 요청한 방문자에게 `base-content`를 완전한 검정 또는 흰색으로 바꾸고, 그래프 선을 강화하며, 라이트 테마의 역할 색을 7:1(WCAG AAA)까지 어둡게 합니다. 이 동작을 원한다면 그대로 두고, 역할 색을 바꿨다면 더 어두운 값도 그 블록에 직접 넣으세요.
 
 :::note[색상 형식]
 값은 [OKLCH 색공간](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch)을 사용합니다. 원한다면 `rgb()`, `hsl()`, hex 값을 써도 되지만, OKLCH가 팔레트 전반에 걸친 지각적 밝기를 더 예측 가능하게 만들어 줍니다.
@@ -534,6 +560,8 @@ CDN_MODE: {
   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
   // BASE_PATH: "/headphones",
   // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
+  // VERSION: "2.3.4",
+  // BOOT_INTEGRITY: "sha384-…",
 },
 ```
 
@@ -542,6 +570,8 @@ CDN 배포 관련 설정을 구성합니다. **`cdn-index.html`로 배포할 때
 - `MAJOR_VERSION` — 앱을 특정 메이저 버전에 고정합니다(예: `2`는 v2.x.x 안에서 자동 업데이트).
 - `BASE` — 커스텀 CDN 기본 URL. CDN 자산을 직접 호스팅하는 고급 사용자만 바꿉니다.
 - `BASE_PATH` — 배포 하위 경로(예: `"/headphones"`). 끝에 슬래시는 붙이지 마세요. **(서브)도메인 루트가 아닌 모든 배포에 반드시 필요합니다.** `example.com/headphones/`나 `username.squig.link/headphones/`에 사이트가 있다면 `BASE_PATH: "/headphones"`로 설정하세요. 사이트가 (서브)도메인 루트(예: `example.com/`, `username.squig.link/`)에 있을 때만 설정 없이 둡니다. 빠뜨리면 홈 페이지는 정상 로드되지만 공유 링크 딥 라우트가 모두 404가 됩니다. 거의 항상 필요한 이유는 [CDN 배포 가이드](./deployment/cdn.mdx#why-base_path-is-almost-always-required)에서 자세히 다룹니다.
+- `VERSION` — 정확히 한 릴리스에 고정합니다(예: `"2.3.4"`). 사이트가 스스로 업데이트하지 않고, 로더도 더 이상 `versions.json`을 요청하지 않습니다. `MAJOR_VERSION`보다 우선합니다. [릴리스 고정하기](./deployment/cdn.mdx#pinning-a-release)를 참고하세요.
+- `BOOT_INTEGRITY` — 그 릴리스의 `boot.json`에 대한 `sha384-…` 해시로, `VERSION`이 필요합니다. 로더는 이 해시와 일치하지 않는 `boot.json`으로는 시작하지 않습니다. 릴리스별 값은 `pins.json`에 게시됩니다.
 - `VERSIONS_URL` — `versions.json`의 전체 URL. 기본적으로 로더는 `BASE`에서 `raw.githubusercontent.com` URL을 유도해 GitHub에서 직접 `versions.json`을 가져오며, jsDelivr를 거치지 **않습니다**. 의도된 동작입니다. jsDelivr 엣지 캐시는 오래된 `versions.json` 응답을 몇 시간씩 잡아 두는 일이 있어 새 릴리스가 사용자에게 닿는 시점이 늦어집니다. `versions.json`은 이 지연이 문제가 되는 유일한 파일이라 로더가 일부러 우회합니다. `cdn` 브랜치를 자체 포크로 호스팅하거나 GitHub이 아닌 출처에서 제공하는 경우에만 `VERSIONS_URL`을 재정의하세요.
 
 :::note[표준 배포라면]
@@ -742,7 +772,8 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+    //ALT: "modernGraphTool",
+    TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
     { TITLE: "Home", URL: "/" },
@@ -761,7 +792,12 @@ TOPBAR: {
   - `CONTENT` : 제목의 내용을 설정합니다.
     - `TYPE`이 `TEXT`인 경우, 텍스트 형식의 제목을 설정합니다.
     - `TYPE`이 `IMAGE`인 경우, 이미지 파일 경로를 설정합니다.
-    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다.
+    - `TYPE`이 `HTML`인 경우, HTML 형식의 제목을 설정합니다. 제목에는 제목 태그(`<h1>`–`<h6>`)를 쓰지 마세요. 페이지에 이미 자체 제목이 있고, 이 제목은 홈 링크 안에 들어갑니다.
+  - `ALT` : 선택 사항입니다. 스크린 리더와 페이지의 숨겨진 메인 제목에 쓰이는, 사이트 이름을 나타내는 일반 텍스트입니다.
+    - 이미지에는 텍스트가 없고 HTML 제목은 마크업이므로, `TYPE`이 `IMAGE` 또는 `HTML`일 때 설정하세요. `TEXT` 제목은 그 자체가 이름이므로, `ALT`는 제목 내용이 비어 있을 때만 대신 쓰입니다.
+    - `IMAGE` 제목에서는 이미지의 대체 텍스트가 되며, 홈 링크는 사이트 이름 다음에 "홈"이 이어지는 형태로 읽힙니다. 설정하지 않으면 링크는 "홈"만 읽힙니다.
+    - `LINK_LIST`와 같은 다국어 형식(`{ default: "…", i18n: { ko: "…" } }`)을 쓸 수 있습니다.
+    - 생략하면 아무것도 달라지지 않습니다.
 - `LINK_LIST` : 페이지 상단 바의 링크 목록을 설정합니다.
   - `TITLE` 필드는 링크의 제목을 지정합니다.
   - `URL` 필드는 링크의 URL을 지정합니다.
@@ -769,7 +805,7 @@ TOPBAR: {
   - 상단 바에 다 들어가지 않는 링크는 목록의 끝에서부터 **더보기** 메뉴로 옮겨지므로, 중요한 링크를 앞쪽에 두세요.
 
 :::tip[다국어 지원]
-`LINK_LIST`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
+`LINK_LIST`와 `TITLE.ALT`는 다국어 구성을 지원합니다. 자세한 내용은 아래 [다국어 지원](#multilingual-support-configjs) 항목을 참고하세요.
 :::
 
 ### `PREFERENCE_BOUND`
@@ -923,6 +959,7 @@ SQUIGLINK: {
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
   ENABLE_ANALYTICS: true,
+  ANALYTICS_CONSENT: "granted",
   ENABLE_CROSS_SITE_SEARCH: true,
   ENABLE_SPONSOR: true,
 },
@@ -931,10 +968,11 @@ SQUIGLINK: {
 squig.link 연동을 설정합니다. `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
 
 - `ENABLED` — squig.link 연동의 마스터 토글.
-- `ANALYTICS_MEASUREMENT_IDS` — GA4 측정 ID 배열. 예: `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
-- `ANALYTICS_SITE` — 분석 이벤트에 붙일 사이트 이름.
+- `ANALYTICS_MEASUREMENT_IDS` — 선택 사항. 추가로 보고할 본인 소유의 ID: GA4 측정 ID(`"G-…"`) 또는 Tag Manager 컨테이너(`"GTM-…"`). squig.link의 컨테이너는 내장되어 있으므로, 자체 통계를 따로 보지 않는다면 비워 두세요.
+- `ANALYTICS_SITE` — squig.link 통계에 표시될 사이트 이름.
 - `LOG_ANALYTICS` — 분석 이벤트를 브라우저 콘솔에 기록할지 여부.
-- `ENABLE_ANALYTICS` — 분석 추적의 마스터 토글.
+- `ENABLE_ANALYTICS` — 분석의 마스터 토글. squig.link 컨테이너도 포함합니다.
+- `ANALYTICS_CONSENT` — 방문자가 기타 패널의 **사용 통계** 스위치로 선택하기 전까지, Google [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent)가 어떤 상태에서 시작할지 정합니다. `"granted"`(기본값)는 기존처럼 측정합니다. `"denied"`는 분석 쿠키를 저장하지 않고, 방문자가 스위치를 켜기 전까지 쿠키 없는 핑만 보냅니다. [squig.link 연동](../features/squiglink-integration.mdx#analytics-and-consent)을 참고하세요.
 - `ENABLE_CROSS_SITE_SEARCH` — **더 이상 사용하지 않습니다.** `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 해당 섹션이 없는 기존 설정 파일을 위해 대체값으로만 읽습니다.
 - `ENABLE_SPONSOR` — 스폰서 배너와 쇼핑 링크 활성화.
 
@@ -971,6 +1009,7 @@ DESCRIPTION: [
 - 다국어 구성을 지원하는 항목은 다음과 같습니다.
   - `TARGET_MANIFEST`
   - `TOPBAR` → `LINK_LIST`
+  - `TOPBAR` → `TITLE` → `ALT` (단일 텍스트이며 `{ default: "…", i18n: { ko: "…" } }` 형식으로 작성합니다)
   - `DESCRIPTION`
 
 ```javascript

@@ -89,7 +89,7 @@ there.
 ## Shared components
 
 Build UI out of the wrappers in `src/lib/components/atoms/`, such as `Button`, `Input`, `Switch`,
-`Accordion`, `PopoverPanel`, `Dialog`, `ScrollArea` and `Skeleton`, rather than the bare HTML
+`Accordion`, `PopoverPanel`, `Dialog` and `ScrollArea`, rather than the bare HTML
 element. They carry the focus-visible ring, the transition, the disabled styling and the
 operator-customizable palette. A raw `<button>` quietly opts out of all of that and drifts as
 themes change.

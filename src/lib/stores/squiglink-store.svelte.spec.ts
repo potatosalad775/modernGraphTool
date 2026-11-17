@@ -346,14 +346,34 @@ describe('SquiglinkStore (enabled)', () => {
 			expect(store.sponsorDetail).toBeNull();
 		});
 
-		it('blanks utm parameters that could change where the shop link goes', async () => {
-			for (const utm of ['@evil.test/x', '#frag', '?a=1 b', "?a='x'", '?a=<b>']) {
+		it('blanks utm parameters that are not a query string', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			for (const utm of ['@evil.test/x', '#frag', '/path?a=1', 'a=1']) {
 				const fresh = enabledStore();
 				fetchMock.mockResolvedValue(
 					jsonResponse(`let sponsorDetails = { sponsorName: 'S', utmParams: ${q(utm)} };`)
 				);
 				await fresh.fetchSponsorDetail();
 				expect(fresh.sponsorDetail?.utmParams, utm).toBe('');
+			}
+			expect(warn).toHaveBeenCalledTimes(4);
+			warn.mockRestore();
+		});
+
+		it('keeps a loosely written query string, encoding what could leave the query', async () => {
+			for (const [utm, kept] of [
+				['&sca_ref=123', '?sca_ref=123'],
+				['?ref=a b', '?ref=a%20b'],
+				["?a='x'", '?a=%27x%27'],
+				['?a=<b>#frag', '?a=%3Cb%3E%23frag'],
+				['?a=1&b=%20c', '?a=1&b=%20c']
+			]) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(
+					jsonResponse(`let sponsorDetails = { sponsorName: 'S', utmParams: ${q(utm)} };`)
+				);
+				await fresh.fetchSponsorDetail();
+				expect(fresh.sponsorDetail?.utmParams, utm).toBe(kept);
 			}
 		});
 
@@ -391,8 +411,10 @@ describe('SquiglinkStore (enabled)', () => {
 
 			await store.fetchSponsorContent();
 
-			// Boot-critical: fetched with the default priority
-			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/squiglink-intro.js');
+			// Boot-critical: fetched with the default priority, and only a timeout beside it
+			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/squiglink-intro.js', {
+				signal: expect.any(AbortSignal)
+			});
 			expect(store.sponsorContent).toEqual({
 				sponsorId: 'dunu-vitruvian',
 				heading: 'HiFiGo supports Squiglink',
@@ -537,12 +559,36 @@ describe('SquiglinkStore (enabled)', () => {
 		});
 
 		it('shows no sponsor when the id could not be a cookie name', async () => {
-			for (const id of ['', 'a;domain=evil.test', 'a b', 'a=b']) {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			for (const id of ['', 'a;domain=evil.test', 'a=b', 'a,b', 'a\nb', 'x'.repeat(65)]) {
 				const fresh = enabledStore();
 				fetchMock.mockResolvedValue(jsonResponse(introScript({ sponsorId: id })));
 				await fresh.fetchSponsorContent();
 				expect(fresh.sponsorContent, id).toBeNull();
 			}
+			expect(warn).toHaveBeenCalled();
+			warn.mockRestore();
+		});
+
+		it('keeps an id that is not a plain identifier, as the legacy cookie spells it', async () => {
+			for (const id of ['Acme Audio', 'sale#1', 'été-2026']) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(jsonResponse(introScript({ sponsorId: id })));
+				await fresh.fetchSponsorContent();
+				expect(fresh.sponsorContent?.sponsorId, id).toBe(id);
+			}
+		});
+
+		it('gives up on a sponsor script that never answers, so nothing waits on it for good', async () => {
+			fetchMock.mockImplementation(
+				(_url: string, init?: RequestInit) =>
+					new Promise((_, reject) => {
+						init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+					})
+			);
+			const fresh = enabledStore();
+			void fresh.fetchSponsorContent();
+			expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
 		});
 
 		it('does not preload a creative that failed the URL check', async () => {

@@ -16,6 +16,11 @@
 
 	let productData = $state<SponsorProductData | null>(null);
 
+	/** `utm` is '' or `?a=b` (the store's shape); a URL with a query of its own takes it with `&`. */
+	function withUtmParams(url: string, utm: string): string {
+		return utm && url.includes('?') ? `${url}&${utm.slice(1)}` : url + utm;
+	}
+
 	const shopLink = $derived.by(() => {
 		if (!squiglinkStore.isEnabled || squiglinkStore.isCurrentSiteOptedOut) return null;
 
@@ -29,7 +34,7 @@
 
 		return {
 			model: phone.identifier,
-			url: match.hfg_com + (sponsorDetail?.utmParams ?? ''),
+			url: withUtmParams(match.hfg_com, sponsorDetail?.utmParams ?? ''),
 			sponsorName: sponsorDetail?.sponsorName ?? null,
 			hfgUrl: match.hfg_com
 		};

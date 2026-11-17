@@ -15,6 +15,9 @@ const SQUIGLINK_DOMAIN = 'squig.link';
 /** One day, as in the legacy script: a dismissed sponsor comes back the next day. */
 const SPONSOR_DISMISS_SECONDS = 86400;
 
+/** How long `squiglink-intro.js` may take, headers and body, before it counts as no sponsor. */
+const SPONSOR_TIMEOUT_MS = 10000;
+
 /**
  * The legacy `squiglink-intro.js` cookie, shared on purpose: set on the `squig.link`
  * domain, one dismissal covers every squig.link site, CrinGraph and modernGraphTool alike.
@@ -51,27 +54,54 @@ function text(value: unknown): string {
 	return typeof value === 'string' ? value : '';
 }
 
-/** A sponsor id ends up in a cookie name and a URL parameter, so it stays an identifier. */
-const SPONSOR_ID = /^[A-Za-z0-9_.-]+$/;
+/**
+ * A sponsor id names a cookie, the legacy script's own, so it is kept as published and only
+ * what would end the cookie's name or start an attribute is refused. `SponsorBanner` encodes
+ * it for the URL parameter.
+ */
+// eslint-disable-next-line no-control-regex
+const SPONSOR_ID = /^[^\u0000-\u001f\u007f;=,]{1,64}$/;
 
-/** Appended to a shop URL: a query string and nothing that could move the host or add a path. */
-const UTM_PARAMS = /^\?[A-Za-z0-9_.~%=&+,:/-]*$/;
+/** What a query string carries as it is; anything else is percent-encoded. */
+const QUERY_UNSAFE = /[^A-Za-z0-9_.~%=&+,:/@!$*()-]/g;
+
+/**
+ * The affiliate parameters appended to a shop URL, as `?a=b&c=d`, or '' when they are not a
+ * query string. A leading `&` is read as `?`; `ShopLink` picks the joiner. Being a query is
+ * what keeps the host and path the shop link's own, so the rest is encoded, not refused.
+ */
+export function sanitizeUtmParams(raw: unknown): string {
+	const utm = text(raw).trim();
+	if (!utm) return '';
+	try {
+		if (!/^[?&]/.test(utm)) throw new Error('not a query string');
+		const query = utm
+			.slice(1)
+			.replace(QUERY_UNSAFE, (c) => encodeURIComponent(c).replace(/'/g, '%27'));
+		return `?${query}`;
+	} catch {
+		console.warn('[squiglink] Ignoring sponsor utmParams that are not a query string:', utm);
+		return '';
+	}
+}
 
 function sanitizeSponsorDetail(raw: unknown): SponsorDetail | null {
 	if (!isRecord(raw)) return null;
-	const utm = text(raw.utmParams);
 	return {
 		sponsorName: text(raw.sponsorName),
 		// A CSS value for CrinGraph's overlay; nothing here renders it
 		sponsorLogo: text(raw.sponsorLogo),
-		utmParams: UTM_PARAMS.test(utm) ? utm : ''
+		utmParams: sanitizeUtmParams(raw.utmParams)
 	};
 }
 
 function sanitizeSponsorContent(raw: unknown): SponsorContent | null {
 	if (!isRecord(raw)) return null;
-	const sponsorId = text(raw.sponsorId);
-	if (!SPONSOR_ID.test(sponsorId)) return null;
+	const sponsorId = text(raw.sponsorId).trim();
+	if (!SPONSOR_ID.test(sponsorId)) {
+		console.warn('[squiglink] Ignoring a sponsor whose id cannot name a cookie:', sponsorId);
+		return null;
+	}
 
 	const content: SponsorContent = {
 		sponsorId,
@@ -273,7 +303,10 @@ export class SquiglinkStore {
 
 	async #loadSponsorContent(): Promise<void> {
 		try {
-			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squiglink-intro.js`);
+			// Bounded: `sponsorBlocking` holds the version toast until this settles
+			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squiglink-intro.js`, {
+				signal: AbortSignal.timeout(SPONSOR_TIMEOUT_MS)
+			});
 			if (!res.ok) return;
 
 			// Read `let contentSponsor = [ … ];` as data; the rest of the legacy script (its

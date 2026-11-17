@@ -32,7 +32,7 @@
 
 	function buildUtmUrl(baseUrl: string, sponsorId: string): string {
 		const separator = baseUrl.includes('?') ? '&' : '?';
-		return `${baseUrl}${separator}utm_source=squiglink&utm_medium=landingpromo&utm_campaign=${sponsorId}`;
+		return `${baseUrl}${separator}utm_source=squiglink&utm_medium=landingpromo&utm_campaign=${encodeURIComponent(sponsorId)}`;
 	}
 </script>
 

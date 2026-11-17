@@ -67,8 +67,11 @@ export const frStore = new FRDataStore();
   that literal through `utils/js-literal.ts` (which rejects anything but plain data, never `eval`s),
   so no CSP needs `'unsafe-eval'`. Every value then passes a checker in the store before it reaches
   a component: URLs through `sanitizeHttpUrl` (a failure drops the field — `''` for required ones),
-  `sponsorId` limited to `[A-Za-z0-9_.-]` (it names a cookie), `utmParams` to a plain query string.
-  So `ShopLink` / `SponsorBanner` never re-check. Keep it that way when adding a field. Shop-link
+  `sponsorId` kept as published unless it could not name a cookie (`;`, `=`, `,`, control
+  characters, over 64 long), `utmParams` anything starting `?` or `&`, stored as `?…` with unsafe
+  characters percent-encoded. A dropped value is logged. So `ShopLink` / `SponsorBanner` never
+  re-check (they only encode the id for its URL parameter and pick `?` or `&` for the join).
+  `squiglink-intro.js` has a 10 s timeout: `sponsorBlocking` holds the version toast until it settles. Keep it that way when adding a field. Shop-link
   fetches are `priority: 'low'`; `squiglink-intro.js` and the creative are boot-critical and are not
 
 ## Invariants worth keeping

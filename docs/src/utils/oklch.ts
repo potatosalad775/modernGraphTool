@@ -448,11 +448,11 @@ export const DEFAULT_INPUTS: PaletteInputs = {
 	baseSaturation: DEFAULT_BASE_SATURATION,
 	baseLightnessLight: DEFAULT_BASE_LIGHTNESS_LIGHT,
 	baseLightnessDark: DEFAULT_BASE_LIGHTNESS_DARK,
-	primary: oklchToHex({ l: 0.43, c: 0.09, h: 163.225 }),
-	secondary: oklchToHex({ l: 0.43, c: 0.078, h: 221.723 }),
+	primary: oklchToHex({ l: 0.52, c: 0.111, h: 163.225 }),
+	secondary: oklchToHex({ l: 0.53, c: 0.098, h: 221.723 }),
 	accent: oklchToHex({ l: 0.44, c: 0.017, h: 285.786 }),
-	info: oklchToHex({ l: 0.43, c: 0.092, h: 237.323 }),
-	success: oklchToHex({ l: 0.43, c: 0.115, h: 130.85 }),
+	info: oklchToHex({ l: 0.53, c: 0.115, h: 237.323 }),
+	success: oklchToHex({ l: 0.525, c: 0.143, h: 130.85 }),
 	warning: oklchToHex({ l: 0.8, c: 0.16, h: 86.047 }),
-	error: oklchToHex({ l: 0.45, c: 0.175, h: 16.439 })
+	error: oklchToHex({ l: 0.56, c: 0.2, h: 16.439 })
 };

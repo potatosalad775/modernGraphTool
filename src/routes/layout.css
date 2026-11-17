@@ -81,6 +81,9 @@
 
 	/* Overlay: the dialog / menu / tour veil. Carries its own alpha, so `bg-scrim` with no modifier. */
 	--color-scrim: var(--color-scrim);
+
+	/* Rating: the rank stars, an amber that is readable as text (`text-rating`). */
+	--color-rating: var(--color-rating);
 }
 
 /* ─── Graph toolbar row ───────────────────────────────────────────────────── */
@@ -135,25 +138,28 @@
 		--color-base-200: oklch(96% 0.007 247.896);
 		--color-base-300: oklch(92% 0.013 255.508);
 		--color-base-content: oklch(17% 0.042 265.755);
-		--color-primary: oklch(43% 0.09 163.225);
+		--color-primary: oklch(52% 0.111 163.225);
 		--color-primary-content: oklch(98% 0.015 166.113);
-		--color-secondary: oklch(43% 0.078 221.723);
+		--color-secondary: oklch(53% 0.098 221.723);
 		--color-secondary-content: oklch(98% 0.012 200.873);
 		--color-accent: oklch(44% 0.017 285.786);
 		--color-accent-content: oklch(98% 0 0);
 		--color-neutral: oklch(44% 0.043 257.281);
 		--color-neutral-content: oklch(98% 0.003 247.858);
-		--color-info: oklch(43% 0.092 237.323);
+		--color-info: oklch(53% 0.115 237.323);
 		--color-info-content: oklch(98% 0.01 236.62);
-		--color-success: oklch(43% 0.115 130.85);
+		--color-success: oklch(52.5% 0.143 130.85);
 		--color-success-content: oklch(98% 0.02 120.757);
 		--color-warning: oklch(80% 0.16 86.047);
 		--color-warning-content: oklch(24% 0.05 80);
-		--color-error: oklch(45% 0.175 16.439);
+		--color-error: oklch(56% 0.2 16.439);
 		--color-error-content: oklch(98% 0.008 12.422);
 
 		/* Overlay */
 		--color-scrim: oklch(0% 0 0 / 40%);
+
+		/* Rating */
+		--color-rating: oklch(53% 0.11 75);
 
 		/* Native controls (form fields, scrollbars) follow the theme, not the OS */
 		color-scheme: light;
@@ -198,6 +204,9 @@
 
 		/* Overlay */
 		--color-scrim: oklch(0% 0 0 / 40%);
+
+		/* Rating */
+		--color-rating: oklch(82% 0.165 84.429);
 
 		color-scheme: dark;
 	}

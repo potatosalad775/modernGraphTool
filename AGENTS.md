@@ -72,7 +72,9 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
-- Target **WCAG AAA** accessibility
+- Target **WCAG AAA** accessibility. Two deliberate stops at AA: the light theme's colored fills
+  (4.5:1 by default, 7:1 under `prefers-contrast: more`: at 7:1 every color lands at the same dim
+  lightness) and pointer targets (24px, not 44px: the rows are data-dense)
 - **CI enforces this** — `.github/workflows/ci.yml`'s `quality` job runs `npm run lint` on every PR
   and push to main, then fails the build if that (or anything else in the job) leaves the working
   tree dirty. Run `npm run lint` — or `npm run format` to fix — before committing, including inside
@@ -214,6 +216,8 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
   — each with a `-content` counterpart for text-on-color
 - **Graph-only (D3 SVG where Tailwind can't reach):** `--color-graph-bg`, `-grid-major`, `-grid-minor`,
   `-axis-label`, `-grid-text`, `-baseline`, `-watermark-opacity`
+- **Rating:** `--color-rating` — the rank stars (`text-rating`). An amber dark enough to read as
+  text, which `warning` is not on a light surface
 - **Overlay:** `--color-scrim` — the veil behind dialogs, menu and tour. It carries its own alpha
   (shipped as 40% black), so it is `bg-scrim`, never `bg-scrim/50`
 

@@ -32,30 +32,37 @@
 	--color-base-200: oklch(96% 0.007 247.896);
 	--color-base-300: oklch(92% 0.013 255.508);
 	--color-base-content: oklch(17% 0.042 265.755);
-	/* Fills sit at L 43-45% so their -content clears 7:1 and the same value reads as
-	 * text on base-100. Warning is the exception: amber only stays amber when light,
-	 * so it carries a dark ink and `text-warning` is not readable on a light surface. */
-	--color-primary: oklch(43% 0.09 163.225);
+	/* Fills sit at L 52-57%: the brightest that keeps their -content at 4.5:1 (WCAG AA)
+	 * and still reads as text on base-100 / base-200. The darker 7:1 set is in the
+	 * increased-contrast block below. Warning is the exception: amber only stays amber
+	 * when light, so it carries a dark ink and `text-warning` is not readable on a light
+	 * surface. */
+	--color-primary: oklch(52% 0.111 163.225);
 	--color-primary-content: oklch(98% 0.015 166.113);
-	--color-secondary: oklch(43% 0.078 221.723);
+	--color-secondary: oklch(53% 0.098 221.723);
 	--color-secondary-content: oklch(98% 0.012 200.873);
 	--color-accent: oklch(44% 0.017 285.786);
 	--color-accent-content: oklch(98% 0 0);
 	--color-neutral: oklch(44% 0.043 257.281);
 	--color-neutral-content: oklch(98% 0.003 247.858);
-	--color-info: oklch(43% 0.092 237.323);
+	--color-info: oklch(53% 0.115 237.323);
 	--color-info-content: oklch(98% 0.01 236.62);
-	--color-success: oklch(43% 0.115 130.85);
+	--color-success: oklch(52.5% 0.143 130.85);
 	--color-success-content: oklch(98% 0.02 120.757);
 	--color-warning: oklch(80% 0.16 86.047);
 	--color-warning-content: oklch(24% 0.05 80);
-	--color-error: oklch(45% 0.175 16.439);
+	--color-error: oklch(56% 0.2 16.439);
 	--color-error-content: oklch(98% 0.008 12.422);
 
 	/* ── Overlay ───────────────────────────────────────────────────────────
 	 * The veil behind dialogs, the mobile menu and the guided tour. Carries its
 	 * own alpha: use it as `bg-scrim`, not with an opacity modifier. */
 	--color-scrim: oklch(0% 0 0 / 40%);
+
+	/* ── Rating ────────────────────────────────────────────────────────────
+	 * The rank stars in the device list. An amber dark enough to read as text
+	 * on the base surfaces (4.5:1), which `--color-warning` is not. */
+	--color-rating: oklch(53% 0.11 75);
 }
 
 .dark {
@@ -91,15 +98,26 @@
 
 	/* ── Overlay ───────────────────────────────────────────────────────── */
 	--color-scrim: oklch(0% 0 0 / 40%);
+
+	/* ── Rating ────────────────────────────────────────────────────────── */
+	--color-rating: oklch(82% 0.165 84.429);
 }
 
 /* ── Increased contrast ──────────────────────────────────────────────────────
  * Honours the OS "increase contrast" setting. Everything derived from
  * base-content (text steps, borders, dividers, scrollbars) follows it, so
- * pushing that one token to black / white lifts all of them at once. */
+ * pushing that one token to black / white lifts all of them at once. The light
+ * theme's fills also drop to the darker set that clears 7:1 (WCAG AAA) against
+ * their -content and as text; the dark theme's already do. */
 @media (prefers-contrast: more) {
 	:root {
 		--color-base-content: oklch(0% 0 0);
+		--color-primary: oklch(43% 0.09 163.225);
+		--color-secondary: oklch(43% 0.078 221.723);
+		--color-info: oklch(43% 0.092 237.323);
+		--color-success: oklch(43% 0.115 130.85);
+		--color-error: oklch(45% 0.175 16.439);
+		--color-rating: oklch(43% 0.105 72);
 		--color-graph-grid-major: rgba(0, 0, 0, 0.4);
 		--color-graph-grid-minor: rgba(0, 0, 0, 0.2);
 		--color-graph-axis-label: rgba(0, 0, 0, 1);

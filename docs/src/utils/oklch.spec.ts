@@ -155,14 +155,14 @@ describe('derived colours', () => {
 		expect(content.h).toBe(163);
 	});
 
-	it('keeps every default semantic fill at 7:1 or better against its content, both modes', () => {
+	it('keeps every default fill at 4.5:1 (light) and 7:1 (dark) or better against its content', () => {
 		for (const [role, hex] of Object.entries(DEFAULT_INPUTS)) {
 			if (typeof hex !== 'string') continue;
 			const fill = hexToOklch(hex);
 			expect(
 				contrastRatio(fill, generateContentColor(fill, 'light')),
 				`light ${role}`
-			).toBeGreaterThan(7);
+			).toBeGreaterThan(4.5);
 			const dark = generateDarkVariant(fill);
 			expect(
 				contrastRatio(dark, generateContentColor(dark, 'dark')),

@@ -157,6 +157,18 @@ The veil behind dialogs, the mobile menu and the guided tour has its own token. 
 }
 ```
 
+The rank stars in the device list have their own colour as well, because `--color-warning` is too light to read as text on a light surface. Keep it at 4.5:1 or more against the base surfaces. A `theme.css` without it falls back to the shipped amber.
+
+```css
+:root {
+	--color-rating: oklch(53% 0.11 75); /* Rank stars in the device list */
+}
+
+.dark {
+	--color-rating: oklch(82% 0.165 84.429);
+}
+```
+
 ### Base UI Variables
 
 The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:
@@ -167,28 +179,28 @@ The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI
 	--color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
 	--color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
 	--color-base-content: oklch(17% 0.042 265.755); /* Default text */
-	--color-primary: oklch(43% 0.09 163.225); /* Primary accent */
+	--color-primary: oklch(52% 0.111 163.225); /* Primary accent */
 	--color-primary-content: oklch(98% 0.015 166.113);
-	--color-secondary: oklch(43% 0.078 221.723);
+	--color-secondary: oklch(53% 0.098 221.723);
 	--color-secondary-content: oklch(98% 0.012 200.873);
 	--color-accent: oklch(44% 0.017 285.786);
 	--color-accent-content: oklch(98% 0 0);
 	--color-neutral: oklch(44% 0.043 257.281);
 	--color-neutral-content: oklch(98% 0.003 247.858);
-	--color-info: oklch(43% 0.092 237.323);
+	--color-info: oklch(53% 0.115 237.323);
 	--color-info-content: oklch(98% 0.01 236.62);
-	--color-success: oklch(43% 0.115 130.85);
+	--color-success: oklch(52.5% 0.143 130.85);
 	--color-success-content: oklch(98% 0.02 120.757);
 	--color-warning: oklch(80% 0.16 86.047);
 	--color-warning-content: oklch(24% 0.05 80);
-	--color-error: oklch(45% 0.175 16.439);
+	--color-error: oklch(56% 0.2 16.439);
 	--color-error-content: oklch(98% 0.008 12.422);
 }
 ```
 
 Each `--color-*` role has a matching `--color-*-content` variable that sets the foreground (text/icon) color rendered on top of it, so contrast is preserved automatically when you change the base.
 
-The shipped defaults keep every role against its `-content` at 7:1 or better (WCAG AAA), and `base-content` at 80% opacity at 7:1 or better on the base surfaces. If you change a color, check the pair again. `warning` is the one role whose light-mode value is too light to read as text on a light surface; it carries a dark `-content` instead. A `@media (prefers-contrast: more)` block at the end of the shipped `theme.css` pushes `base-content` to pure black or white and strengthens the graph lines for visitors who ask their OS for more contrast; keep it if you want that behavior.
+The shipped defaults keep every role against its `-content` at 4.5:1 or better (WCAG AA), bright enough to stay colorful, and `base-content` at 80% opacity at 7:1 or better on the base surfaces. If you change a color, check the pair again. `warning` is the one role whose light-mode value is too light to read as text on a light surface; it carries a dark `-content` instead. A `@media (prefers-contrast: more)` block at the end of the shipped `theme.css` pushes `base-content` to pure black or white, strengthens the graph lines and darkens the light theme's roles to 7:1 (WCAG AAA) for visitors who ask their OS for more contrast; keep it if you want that behavior, and put your own darker values there if you change the roles.
 
 :::note[Color format]
 Values use the [OKLCH color space](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch). You can still supply `rgb()`, `hsl()`, or hex values if you prefer, but OKLCH gives more predictable perceptual lightness across the palette.

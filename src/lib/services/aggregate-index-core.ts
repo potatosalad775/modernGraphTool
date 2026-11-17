@@ -180,16 +180,20 @@ function isAggregateIndex(data: unknown): data is AggregateIndex {
 export async function fetchAggregateIndex(urls: string[]): Promise<AggregateIndex | null> {
 	const attempts = urls.map((url) => {
 		const controller = new AbortController();
-		// One budget per mirror for headers and body alike, as `AbortSignal.timeout` gave.
-		const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+		const abort = () => controller.abort();
+		// This budget is for the headers. The body gets its own when the mirror is read: a
+		// mirror that answered must not be aborted while an earlier one runs out its time.
+		const headerTimer = setTimeout(abort, FETCH_TIMEOUT_MS);
 		const response = (async (): Promise<Response | null> => {
 			try {
 				return await fetch(url, { signal: controller.signal });
 			} catch {
 				return null;
+			} finally {
+				clearTimeout(headerTimer);
 			}
 		})();
-		return { controller, timer, response };
+		return { controller, abort, timer: headerTimer, response };
 	});
 
 	try {
@@ -197,6 +201,7 @@ export async function fetchAggregateIndex(urls: string[]): Promise<AggregateInde
 			try {
 				const res = await attempt.response;
 				if (res?.ok) {
+					attempt.timer = setTimeout(attempt.abort, FETCH_TIMEOUT_MS);
 					const data: unknown = await res.json();
 					if (isAggregateIndex(data)) return data;
 				}

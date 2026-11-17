@@ -386,7 +386,9 @@ One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars
 for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the
 official URL plus its GitHub Pages mirror, in preference order. Every mirror is requested at once, but
 a later one is only read (its body parsed) once every earlier one has failed or answered with an
-invalid document, and the losers are aborted — a stalled primary still costs its timeout.
+invalid document, and the losers are aborted — a stalled primary still costs its timeout. The
+timeout covers a mirror's headers, and its body again from when it is read: one shared budget from
+the start aborted a mirror that had answered the moment the stalled primary's ran out.
 Schema: https://github.com/HarutoHiroki/GraphAggregator
 
 **`buildSearchRows` returns the rows already in result order**, so a query only filters

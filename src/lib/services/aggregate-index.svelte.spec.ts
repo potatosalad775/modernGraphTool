@@ -431,9 +431,15 @@ describe('AggregateIndexService', () => {
 					'fetch',
 					vi.fn((input: string | URL | Request, init?: RequestInit) => {
 						if (String(input) !== OFFICIAL_URLS[0]) {
-							return Promise.resolve(
-								new Response(JSON.stringify(makeIndex({ generatedAt: 'mirror' })), { status: 200 })
-							);
+							const res = new Response(JSON.stringify(makeIndex({ generatedAt: 'mirror' })), {
+								status: 200
+							});
+							// As a real response: aborting the request errors a body not yet read.
+							// The mirror answered at once, so its own timeout must not do that.
+							const json = res.json.bind(res);
+							res.json = () =>
+								init?.signal?.aborted ? Promise.reject(new DOMException('', 'AbortError')) : json();
+							return Promise.resolve(res);
 						}
 						return new Promise<Response>((_, reject) => {
 							init?.signal?.addEventListener('abort', () =>

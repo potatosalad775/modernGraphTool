@@ -55,7 +55,7 @@ Files marked **YOU EDIT** are safe to customize. The `_app/` folder contains the
 
 ## Caching and compression \{#caching-and-compression\}
 
-On Apache, the bundled `.htaccess` also sets cache lifetimes and turns on compression. Every rule sits inside an `<IfModule>` guard, so a host without that module simply ignores it, and the SPA fallback is unchanged.
+On Apache, the bundled `.htaccess` also sets cache lifetimes and turns on compression. Every rule sits inside an `<IfModule>` guard, so a host without that module simply ignores it, and the SPA fallback is unchanged. A host that is not Apache ignores the whole file. squig.link is one: caching and compression there are squig.link's own.
 
 - **`_app/immutable/`** is cached for a year (`public, max-age=31536000, immutable`). Its file names carry a content hash, so a new release is a new URL.
 - **`index.html`, `config.js`, `theme.css`, `_app/version.json` and `data/`** are sent with `Cache-Control: no-cache`. Browsers keep a copy but ask the server first, so an edit you upload shows up on the next load, and an unchanged file costs only a `304`.

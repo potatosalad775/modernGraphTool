@@ -299,7 +299,12 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
       **For the release notes:** every mGT site on squig.link starts reporting on upgrade.
       Not sent yet, though squig.link's scripts send them: `shoplink_impression`,
       `welcome_sponsor_launched`, `welcome_sponsor_click`, `baseline_set`, `clicked_copyUrl`.
-    - Still untested: `deploy.yml`, the GitHub Pages `<meta>`, Apache 2.4 / 2.2, WiiM / Luxsin.
+    - **Apache checked the same day** in `httpd` containers (2.4.71 and 2.2.34) serving `dist/`:
+      the fallback, the cache headers (a year for `_app/immutable/`, `no-cache` for the shell,
+      `config.js`, `theme.css` and `data/`), brotli and gzip (gzip only on 2.2) and the four
+      security headers once uncommented. No 500 on either, nor on 2.4 with rewrite, headers,
+      setenvif, deflate and brotli all unloaded (the fallback is then simply absent).
+    - Still untested: `deploy.yml`, the GitHub Pages `<meta>`, WiiM / Luxsin.
 - [x] **N13. The sonner close button is about 20px with a faint focus ring** (S, with A10)
 
 - [x] **N14. Unverified sites are dimmed to 50% opacity in the site switcher** (S)

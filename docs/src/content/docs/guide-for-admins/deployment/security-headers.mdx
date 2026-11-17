@@ -38,15 +38,17 @@ Remove the `# ` in front of those six lines and upload the file. Then open the s
 
 On a Pre-built Release, **take the `Content-Security-Policy` line from the new release's `.htaccess` every time you update**, and re-apply your own additions. The old line does not know the new start-up script, and the page would stay blank. A CDN Deployment does not have this problem, because its `index.html` does not change between releases.
 
-### GitHub Pages and other hosts without headers \{#no-header-hosts\}
+### GitHub Pages, squig.link and other hosts without headers \{#no-header-hosts\}
 
-GitHub Pages cannot send custom headers, so `index.html` carries the policy as a commented `<meta>` tag near the top of `<head>`:
+GitHub Pages cannot send custom headers, and squig.link is not an Apache host: it does not read `.htaccess`. On both, the policy goes in the page. The `index.html` of a CDN Deployment and of the GitHub Pages template carries it as a commented `<meta>` tag near the top of `<head>`:
 
 ```html
 <!-- <meta http-equiv="Content-Security-Policy" content="…" /> -->
 ```
 
 Remove the `<!--` and `-->` around it. Leave it where it is: it only governs what comes after it. A `<meta>` policy cannot stop other sites from framing yours, and the other three headers cannot be set this way at all.
+
+The `index.html` of a Pre-built Release has no such tag, because its policy is in `.htaccess`. On one of these hosts, add the tag yourself, straight after `<meta charset="utf-8" />`: copy the value of the `Content-Security-Policy` line out of the release's `.htaccess` and leave out `frame-ancestors 'self'`, which a `<meta>` policy may not contain. Like the header, it has to be replaced with every release.
 
 ### nginx, Caddy, Cloudflare and others
 

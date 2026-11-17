@@ -55,7 +55,7 @@ dist/                     # (또는 압축을 푼 릴리스 폴더)
 
 ## 캐시와 압축 \{#caching-and-compression\}
 
-Apache에서는 함께 들어 있는 `.htaccess`가 캐시 기간과 압축도 설정합니다. 모든 규칙이 `<IfModule>` 가드 안에 있으므로 해당 모듈이 없는 호스트는 그냥 무시하며, SPA 폴백은 그대로입니다.
+Apache에서는 함께 들어 있는 `.htaccess`가 캐시 기간과 압축도 설정합니다. 모든 규칙이 `<IfModule>` 가드 안에 있으므로 해당 모듈이 없는 호스트는 그냥 무시하며, SPA 폴백은 그대로입니다. Apache가 아닌 호스트는 파일 전체를 무시합니다. squig.link가 그런 경우로, 캐시와 압축은 squig.link 쪽 설정을 따릅니다.
 
 - **`_app/immutable/`** 는 1년간 캐시됩니다(`public, max-age=31536000, immutable`). 파일 이름에 내용 해시가 들어 있어, 새 릴리스는 새 URL이 됩니다.
 - **`index.html`, `config.js`, `theme.css`, `_app/version.json`, `data/`** 는 `Cache-Control: no-cache`로 내려갑니다. 브라우저가 사본을 보관하되 매번 서버에 먼저 확인하므로, 업로드한 수정 사항이 다음 로드에 바로 반영되고 바뀌지 않은 파일은 `304` 응답만 받습니다.

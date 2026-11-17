@@ -38,15 +38,17 @@ Content-Security-Policy에는 페이지의 인라인 스크립트마다 해시�
 
 사전 빌드 릴리스에서는 **업데이트할 때마다 새 릴리스의 `.htaccess`에서 `Content-Security-Policy` 줄을 가져오고**, 직접 추가한 내용을 다시 넣어야 합니다. 이전 줄에는 새 시작 스크립트의 해시가 없어서 페이지가 빈 화면으로 남습니다. CDN 배포는 `index.html`이 릴리스마다 바뀌지 않으므로 해당하지 않습니다.
 
-### GitHub Pages 등 헤더를 보낼 수 없는 호스트 \{#no-header-hosts\}
+### GitHub Pages, squig.link 등 헤더를 보낼 수 없는 호스트 \{#no-header-hosts\}
 
-GitHub Pages는 사용자 지정 헤더를 보낼 수 없으므로, `index.html`의 `<head>` 위쪽에 정책이 주석 처리된 `<meta>` 태그로 들어 있습니다.
+GitHub Pages는 사용자 지정 헤더를 보낼 수 없고, squig.link는 Apache 호스트가 아니어서 `.htaccess`를 읽지 않습니다. 두 곳 모두 정책을 페이지 안에 넣어야 합니다. CDN 배포와 GitHub Pages 템플릿의 `index.html`에는 `<head>` 위쪽에 정책이 주석 처리된 `<meta>` 태그로 들어 있습니다.
 
 ```html
 <!-- <meta http-equiv="Content-Security-Policy" content="…" /> -->
 ```
 
 앞뒤의 `<!--`와 `-->`를 지우세요. 위치는 옮기지 마세요. 이 태그는 자신보다 뒤에 오는 내용에만 적용됩니다. `<meta>` 정책으로는 다른 사이트가 내 사이트를 프레임에 넣는 것을 막을 수 없고, 나머지 세 헤더는 이 방식으로 설정할 수 없습니다.
+
+사전 빌드 릴리스의 `index.html`에는 이 태그가 없습니다. 정책이 `.htaccess`에 들어 있기 때문입니다. 이런 호스트에서는 `<meta charset="utf-8" />` 바로 뒤에 태그를 직접 추가하세요. 릴리스의 `.htaccess`에 있는 `Content-Security-Policy` 줄의 값을 복사하되, `<meta>` 정책에 넣을 수 없는 `frame-ancestors 'self'`는 빼야 합니다. 헤더와 마찬가지로 릴리스마다 새 값으로 바꿔야 합니다.
 
 ### nginx, Caddy, Cloudflare 등
 

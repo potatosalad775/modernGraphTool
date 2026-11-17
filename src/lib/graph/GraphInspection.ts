@@ -18,10 +18,10 @@ const TRACKER_OVERHANG = 4;
  * (the offset box takes any decimal) with trailing zeros dropped. Plain ASCII
  * and numeric on purpose, like every graph label.
  */
-function yOffsetNote(yOffset: number | undefined): string {
-	const magnitude = Number(Math.abs(yOffset ?? 0).toFixed(2));
+function yOffsetNote(yOffset = 0): string {
+	const magnitude = Number(Math.abs(yOffset).toFixed(2));
 	if (!magnitude) return '';
-	return ` (${yOffset! > 0 ? '+' : '-'}${magnitude})`;
+	return ` (${yOffset > 0 ? '+' : '-'}${magnitude})`;
 }
 
 interface ValueRow {
@@ -256,7 +256,9 @@ class GraphInspection {
 		});
 		let maxTextWidth = 0;
 		deviceListData.forEach((item, i) => {
-			item.textWidth = rows[i].text.node()!.getBBox().width + rectPadding * 2;
+			const node = rows[i].text.node();
+			if (!node) throw new Error('GraphInspection: a value row has no text node');
+			item.textWidth = node.getBBox().width + rectPadding * 2;
 			if (item.textWidth > maxTextWidth) maxTextWidth = item.textWidth;
 		});
 
@@ -298,7 +300,7 @@ class GraphInspection {
 
 	/** Grow or trim the kept row nodes to `count`, returning them. */
 	private _syncRows(count: number): ValueRow[] {
-		while (this._rows.length > count) this._rows.pop()!.group.remove();
+		for (const row of this._rows.splice(count)) row.group.remove();
 		while (this._rows.length < count) {
 			const group = this.valueDisplay.append('g');
 			const backdrop = group

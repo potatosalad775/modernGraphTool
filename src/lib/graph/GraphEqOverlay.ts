@@ -14,7 +14,8 @@ import { baseline, compensateAt } from './baseline.js';
 import type { Channel, FRDataPoint, ParsedFRData } from '#lib/types/data-types.js';
 
 interface BandDatum {
-	filter: EQFilter;
+	/** Only a band with a frequency and a gain gets a node. */
+	filter: EQFilter & { freq: number; gain: number };
 	index: number;
 }
 
@@ -126,7 +127,7 @@ export class GraphEqOverlay {
 			scope === 'BOTH'
 				? indexedFiltersInScope(filters, 'BOTH')
 				: indexedEffectiveFilters(filters, scope)
-		).filter((d) => {
+		).filter((d): d is BandDatum => {
 			if (!d.filter.enabled || d.filter.freq == null || d.filter.gain == null) return false;
 			// On-curve nodes require a source phone (we need curve data for positioning)
 			if (onCurve(d.filter) && !sourceUUID) return false;
@@ -203,7 +204,7 @@ export class GraphEqOverlay {
 			(event: WheelEvent, d: BandDatum) => {
 				event.preventDefault();
 				const delta = event.deltaY > 0 ? -0.1 : 0.1;
-				const newQ = Math.max(0.1, Math.min(10, d.filter.q! + delta));
+				const newQ = Math.max(0.1, Math.min(10, (d.filter.q ?? 0) + delta));
 				eqCommands.updateBand(d.index, { q: parseFloat(newQ.toFixed(2)) });
 			},
 			{ passive: false } as EventListenerOptions
@@ -213,7 +214,7 @@ export class GraphEqOverlay {
 		const merged = entered.merge(nodes);
 
 		merged.attr('transform', (d) => {
-			const freq = Math.max(20, Math.min(20000, d.filter.freq!));
+			const freq = Math.max(20, Math.min(20000, d.filter.freq));
 			const x = xScale(freq);
 
 			if (onCurve(d.filter)) {
@@ -223,14 +224,14 @@ export class GraphEqOverlay {
 				return `translate(${x},${yScale(curveDb)})`;
 			} else {
 				// LSQ/HSQ: absolute gain positioning
-				const y = yScale(Math.max(-40, Math.min(40, d.filter.gain!)));
+				const y = yScale(Math.max(-40, Math.min(40, d.filter.gain)));
 				return `translate(${x},${y})`;
 			}
 		});
 
 		merged
 			.select<SVGCircleElement>('.eq-q-ring')
-			.attr('r', (d) => this._qToRadius(d.filter.q!))
+			.attr('r', (d) => this._qToRadius(d.filter.q ?? 0))
 			.attr('stroke', curveColor)
 			.attr('stroke-width', (d) => (d.index === this.selectedFilterIndex ? 3 : 1.5))
 			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 0.9 : 0.5));
@@ -247,7 +248,7 @@ export class GraphEqOverlay {
 			.attr('r', (d) => (d.index === this.selectedFilterIndex ? 8 : 6))
 			.attr('opacity', (d) => (d.index === this.selectedFilterIndex ? 1 : 0.9));
 
-		merged.select<SVGTextElement>('.eq-freq-label').text((d) => this._formatFreq(d.filter.freq!));
+		merged.select<SVGTextElement>('.eq-freq-label').text((d) => this._formatFreq(d.filter.freq));
 	}
 
 	setEqPanelActive(active: boolean): void {
@@ -367,9 +368,8 @@ export class GraphEqOverlay {
 		dispChannelOverride?: string[]
 	): FRDataPoint[] | null {
 		const scope = eqStore.channelScope;
-		if (scope !== 'BOTH' && channels[scope]?.data.length) {
-			return channels[scope]!.data;
-		}
+		const scoped = scope === 'BOTH' ? undefined : channels[scope];
+		if (scoped?.data.length) return scoped.data;
 
 		const dispChannels = dispChannelOverride ??
 			frStore.get(eqStore.eqCurveUUID ?? '')?.dispChannel ??
@@ -450,12 +450,12 @@ export class GraphEqOverlay {
 					const common = {
 						shiftOriginX: _event.x,
 						shiftOriginY: _event.y,
-						lockedFreq: d.filter.freq!,
-						lockedGain: d.filter.gain!,
+						lockedFreq: d.filter.freq,
+						lockedGain: d.filter.gain,
 						axisLock: null as 'h' | 'v' | null
 					};
 					if (isPK) {
-						const baseCurveDb = this._getCurveDbExcludingFilter(d.filter.freq!, d.index);
+						const baseCurveDb = this._getCurveDbExcludingFilter(d.filter.freq, d.index);
 						dragState = { isPK: true, baseCurveDb, ...common };
 					} else {
 						dragState = { isPK: false, baseCurveDb: null, ...common };
@@ -479,14 +479,14 @@ export class GraphEqOverlay {
 							dragState.shiftOriginX = event.x;
 							dragState.shiftOriginY = event.y;
 							dragState.lockedFreq = Math.max(20, Math.min(20000, xs.invert(event.x)));
-							dragState.lockedGain = d.filter.gain ?? 0;
+							dragState.lockedGain = d.filter.gain;
 						}
 					}
 
 					const isGraphic = eqConstraintsStore.isGraphic;
 					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 					// Graphic mode: frequency is pinned to the band's preset position.
-					if (isGraphic) freq = d.filter.freq!;
+					if (isGraphic) freq = d.filter.freq;
 					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
 
 					let gain: number;
@@ -502,7 +502,7 @@ export class GraphEqOverlay {
 						// Recompute baseCurveDb at new freq if frequency changed significantly
 						// (the base curve shape varies across frequency) — skipped in graphic
 						// mode since freq is frozen.
-						const origFreq = d.filter.freq!;
+						const origFreq = d.filter.freq;
 						if (!isGraphic && Math.abs(freq - origFreq) / origFreq > 0.05) {
 							const newBase = this._getCurveDbExcludingFilter(freq, d.index);
 							if (newBase !== null) {
@@ -567,7 +567,7 @@ export class GraphEqOverlay {
 
 					let freq = Math.max(20, Math.min(20000, xs.invert(event.x)));
 					if (dragState?.axisLock === 'v') freq = dragState.lockedFreq;
-					if (eqConstraintsStore.isGraphic) freq = d.filter.freq!;
+					if (eqConstraintsStore.isGraphic) freq = d.filter.freq;
 
 					let gain: number;
 

@@ -256,17 +256,59 @@ function escapeRegExp(text: string): string {
 }
 
 /**
+ * One forward pass over `script` that records the `[start, end)` ranges holding a block comment,
+ * a line comment or a string / template literal. Regex literals and `${}` nesting are not
+ * parsed: a template literal is taken to run to its closing unescaped backtick, and a quote
+ * inside a regex literal can open a string that is cut off again at the end of its line (only
+ * a template literal may span lines).
+ */
+function findNonCodeRanges(script: string): [number, number][] {
+	const ranges: [number, number][] = [];
+	let i = 0;
+	while (i < script.length) {
+		const c = script[i];
+		const start = i;
+		if (c === '/' && script[i + 1] === '/') {
+			while (i < script.length && !LINE_BREAK.test(script[i])) i++;
+		} else if (c === '/' && script[i + 1] === '*') {
+			const close = script.indexOf('*/', i + 2);
+			i = close === -1 ? script.length : close + 2;
+		} else if (c === "'" || c === '"' || c === '`') {
+			i++;
+			while (i < script.length && script[i] !== c) {
+				if (script[i] === '\\') i++;
+				else if (c !== '`' && LINE_BREAK.test(script[i])) break;
+				i++;
+			}
+			i = Math.min(i + 1, script.length);
+		} else {
+			i++;
+			continue;
+		}
+		ranges.push([start, i]);
+	}
+	return ranges;
+}
+
+/**
  * Find `let|const|var <name> = <literal>` at the start of a line in `script` and return the
- * literal's value; `undefined` when the script has no such declaration. Whatever follows the
- * literal (the legacy DOM code) is never read. Throws `JsLiteralError` when the declaration
- * is there but its value is not a pure literal.
+ * literal's value; `undefined` when the script has no real such declaration. A match inside a
+ * block comment, a `//` comment or a string / template literal is skipped. The first real
+ * match wins: if its value is not a pure literal this throws `JsLiteralError` rather than
+ * falling through to a later declaration. Whatever follows the literal (the legacy DOM code)
+ * is never read.
  */
 export function extractDeclaredLiteral(script: string, name: string): unknown {
 	const declaration = new RegExp(
 		`^[ \\t]*(?:let|const|var)[ \\t]+${escapeRegExp(name)}[ \\t]*=`,
-		'm'
+		'gm'
 	);
-	const match = declaration.exec(script);
-	if (!match) return undefined;
-	return readJsLiteral(script, match.index + match[0].length, { statement: true }).value;
+	let ranges: [number, number][] | undefined;
+	for (let match = declaration.exec(script); match; match = declaration.exec(script)) {
+		const keyword = match.index + match[0].search(/\S/);
+		ranges ??= findNonCodeRanges(script);
+		if (ranges.some(([from, to]) => keyword >= from && keyword < to)) continue;
+		return readJsLiteral(script, match.index + match[0].length, { statement: true }).value;
+	}
+	return undefined;
 }

@@ -265,6 +265,48 @@ describe('extractDeclaredLiteral', () => {
 		expect(extractDeclaredLiteral(src, 'a')).toEqual([1]);
 	});
 
+	it('skips a declaration inside a block comment and reads the live one', () => {
+		const src = '/*\nlet a = [ {old: 1} ];\n*/\nlet a = [2];';
+		expect(extractDeclaredLiteral(src, 'a')).toEqual([2]);
+	});
+
+	it('skips a declaration inside a // comment and reads the live one', () => {
+		const src = '// last month\n// let a = [1];\nlet a = [2];';
+		expect(extractDeclaredLiteral(src, 'a')).toEqual([2]);
+	});
+
+	it('skips a declaration-looking line inside a multi-line template literal', () => {
+		const src = 'const t = `\nlet a = [1];\n`;\nlet a = [2];';
+		expect(extractDeclaredLiteral(src, 'a')).toEqual([2]);
+	});
+
+	it('skips a declaration-looking line inside a multi-line string with a line continuation', () => {
+		const src = "const t = 'x\\\nlet a = [1];';\nlet a = [2];";
+		expect(extractDeclaredLiteral(src, 'a')).toEqual([2]);
+	});
+
+	it('does not let a quote inside a comment start a string', () => {
+		expect(extractDeclaredLiteral("// don't remove\nlet a = [2];", 'a')).toEqual([2]);
+		expect(extractDeclaredLiteral('/* it\'s "old" */\nlet a = [2];', 'a')).toEqual([2]);
+	});
+
+	it('honours an escaped quote inside a string', () => {
+		const src = "const t = 'it\\'s';\nlet a = [2];";
+		expect(extractDeclaredLiteral(src, 'a')).toEqual([2]);
+	});
+
+	it('returns undefined when the only declaration is commented out', () => {
+		expect(extractDeclaredLiteral('/* let a = [1]; */', 'a')).toBeUndefined();
+		expect(extractDeclaredLiteral('/*\nlet a = [1];\n*/\nfoo();', 'a')).toBeUndefined();
+		expect(extractDeclaredLiteral('// let a = [1];\nfoo();', 'a')).toBeUndefined();
+		expect(extractDeclaredLiteral('/*\nlet a = [1];', 'a')).toBeUndefined();
+	});
+
+	it('still refuses a real non-literal declaration when a valid one follows', () => {
+		const src = "/* let a = [0]; */\nlet a = fetch('x');\nlet a = [1];";
+		expect(() => extractDeclaredLiteral(src, 'a')).toThrow(JsLiteralError);
+	});
+
 	it('refuses a literal that smuggles a call in a later member', () => {
 		const src = "let a = { ok: 'fine', bad: eval('1') };";
 		expect(() => extractDeclaredLiteral(src, 'a')).toThrow(JsLiteralError);

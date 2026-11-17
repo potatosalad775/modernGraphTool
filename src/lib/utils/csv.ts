@@ -76,7 +76,7 @@ export function parseCsv(text: string): string[][] {
 /** Parse CSV text into objects keyed by trimmed header name, skipping blank rows. */
 export function csvToRows(text: string): CsvRow[] {
 	const grid = parseCsv(text);
-	const header = grid[0];
+	const header = grid.at(0);
 	if (!header) return [];
 	const keys = header.map((h) => h.trim());
 	return grid

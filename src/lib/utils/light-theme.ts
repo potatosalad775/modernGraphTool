@@ -91,15 +91,15 @@ function substitute(
 	const raw = vars.get(name);
 	if (raw === undefined || seen.has(name)) return null;
 	seen.add(name);
-	let ok = true;
+	let unresolved = 0;
 	const out = raw.replace(VAR_RE, (_, ref: string, fallback?: string) => {
 		const inner = substitute(ref, vars, new Set(seen));
 		if (inner !== null) return inner;
 		if (fallback !== undefined) return fallback.trim();
-		ok = false;
+		unresolved++;
 		return '';
 	});
-	return ok ? out : null;
+	return unresolved === 0 ? out : null;
 }
 
 /** The `--color-*` declarations of the `:root` rules in `sheets`, with `var()` resolved. */

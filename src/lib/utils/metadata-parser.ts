@@ -5,9 +5,11 @@ import type {
 	TargetMetadata,
 	TargetManifestEntry,
 	RawBrandData,
+	RawHpTFEntry,
 	RawPhoneData,
 	RawSampleSet,
 	RawVariant,
+	Unchecked,
 	PhoneFileReference,
 	PhoneFileVariant,
 	PhoneLink,
@@ -420,7 +422,7 @@ const MetadataParser = {
 	_parseVariants(
 		brandName: string,
 		baseName: string,
-		variants: RawVariant[],
+		variants: Unchecked<RawVariant>[],
 		brandDefaults: RawSampleSet | null
 	): PhoneFileVariant[] {
 		return variants
@@ -599,7 +601,10 @@ const MetadataParser = {
 		// Entries are operator-authored, so a malformed one is skipped rather than
 		// allowed to abort the whole phone book.
 		const hptfVariants: PhoneFileVariant[] = hptfEntries
-			.filter((entry) => entry && typeof entry === 'object')
+			.filter(
+				(entry): entry is RawHpTFEntry =>
+					typeof entry === 'object' && entry !== null && !Array.isArray(entry)
+			)
 			.map((entry) => {
 				const suffix = entry.suffix ?? '';
 				const files = Array.isArray(entry.files) ? entry.files : [];

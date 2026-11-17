@@ -13,7 +13,7 @@ import {
  * @param hzValue     - Target frequency for Hz normalization (ignored for Avg).
  */
 export function normalize(channelData: ChannelData, type: string, hzValue: number): ChannelData {
-	if (!channelData?.data?.length) {
+	if (!channelData.data.length) {
 		throw new Error('Cannot normalize - invalid data structure');
 	}
 	return _shiftChannel(channelData, _computeDelta(channelData, type, hzValue));
@@ -29,7 +29,7 @@ export function normalizeAgainst(
 	type: string,
 	hzValue: number
 ): ChannelData {
-	if (!channelData?.data?.length || !reference?.data?.length) {
+	if (!channelData.data.length || !reference.data.length) {
 		throw new Error('Cannot normalize - invalid data structure');
 	}
 	return _shiftChannel(channelData, _computeDelta(reference, type, hzValue));
@@ -58,7 +58,7 @@ export function normalizeChannels(
 	const delta = _computeDelta(reference, type, hzValue);
 	for (const channel of CHANNELS) {
 		const ch = rawData[channel];
-		if (ch?.data?.length) {
+		if (ch?.data.length) {
 			result[channel] = _shiftChannel(ch, delta);
 		}
 	}
@@ -74,13 +74,7 @@ function _computeDelta(data: ChannelData, type: string, hzValue: number): number
 
 function _hzDelta(data: ChannelData, targetHz: number): number {
 	const targetFreq = Math.max(20, Math.min(20000, Number(targetHz)));
-	const reference = _findNearestFrequency(data.data, targetFreq);
-
-	if (!reference) {
-		throw new Error(`No data near ${targetHz}Hz`);
-	}
-
-	return -reference[1];
+	return -_findNearestFrequency(data.data, targetFreq)[1];
 }
 
 function _avgDelta(data: ChannelData): number {
@@ -112,10 +106,10 @@ function _shiftChannel(channelData: ChannelData, delta: number): ChannelData {
  * else whichever single channel is available. Returns null if none have data.
  */
 function _offsetReference(rawData: ParsedFRData): ChannelData | null {
-	if (rawData.AVG?.data?.length) return rawData.AVG;
+	if (rawData.AVG?.data.length) return rawData.AVG;
 
-	const l = rawData.L?.data?.length ? rawData.L : null;
-	const r = rawData.R?.data?.length ? rawData.R : null;
+	const l = rawData.L?.data.length ? rawData.L : null;
+	const r = rawData.R?.data.length ? rawData.R : null;
 	if (l && r) return _meanChannel(l, r);
 	return l ?? r;
 }

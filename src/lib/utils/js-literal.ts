@@ -57,13 +57,14 @@ export function readJsLiteral(
 	options: { statement?: boolean } = {}
 ): { value: unknown; end: number } {
 	let i = from;
-	let sawLineBreak = false;
 
 	const fail = (message: string): never => {
 		throw new JsLiteralError(message, i);
 	};
 
-	function skipTrivia(): void {
+	/** Returns whether the skipped trivia held a line break. */
+	function skipTrivia(): boolean {
+		let sawLineBreak = false;
 		while (i < source.length) {
 			const c = source[i];
 			if (/\s/.test(c)) {
@@ -77,9 +78,10 @@ export function readJsLiteral(
 				if (LINE_BREAK.test(source.slice(i, close))) sawLineBreak = true;
 				i = close + 2;
 			} else {
-				return;
+				break;
 			}
 		}
+		return sawLineBreak;
 	}
 
 	function readHex(count: number): number {
@@ -105,7 +107,7 @@ export function readJsLiteral(
 				continue;
 			}
 			i++;
-			const e = source[i];
+			const e = source.at(i);
 			if (e === undefined) break;
 			if (e in SIMPLE_ESCAPES) {
 				out += SIMPLE_ESCAPES[e];
@@ -166,7 +168,7 @@ export function readJsLiteral(
 	function readValue(depth: number): unknown {
 		if (depth > MAX_DEPTH) fail('Nested too deeply');
 		skipTrivia();
-		const c = source[i];
+		const c = source.at(i);
 		if (c === '{') return readObject(depth);
 		if (c === '[') return readArray(depth);
 		if (c === "'" || c === '"') return readString();
@@ -192,7 +194,7 @@ export function readJsLiteral(
 				i++;
 				return out;
 			}
-			const c = source[i];
+			const c = source.at(i);
 			let key: string;
 			if (c === "'" || c === '"') key = readString();
 			else if (c !== undefined && IDENT_START.test(c)) key = readIdentifier();
@@ -233,10 +235,9 @@ export function readJsLiteral(
 	 * something that starts a new statement.
 	 */
 	function requireStatementEnd(): void {
-		sawLineBreak = false;
 		const literalEnd = i;
-		skipTrivia();
-		const c = source[i];
+		const sawLineBreak = skipTrivia();
+		const c = source.at(i);
 		const ends =
 			c === undefined ||
 			c === ';' ||

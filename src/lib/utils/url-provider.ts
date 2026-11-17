@@ -35,8 +35,8 @@ class URLProvider {
 			document.querySelector('meta[name="description"]')?.getAttribute('content') ||
 			'View and compare frequency response graphs';
 		this.#baseURL = window.location.href.split('?')[0];
-		this.#autoUpdateURL = (getConfigValue('URL.AUTO_UPDATE_URL') as boolean) ?? true;
-		this.#useBase62 = (getConfigValue('URL.COMPRESS_URL') as boolean) ?? false;
+		this.#autoUpdateURL = (getConfigValue('URL.AUTO_UPDATE_URL') as boolean | undefined) ?? true;
+		this.#useBase62 = (getConfigValue('URL.COMPRESS_URL') as boolean | undefined) ?? false;
 
 		this.#loadFromURL();
 	}

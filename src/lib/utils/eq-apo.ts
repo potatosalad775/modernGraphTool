@@ -25,7 +25,7 @@ import { hasPerChannelFilters } from './eq-channel.js';
  */
 
 /** Internal names differ from APO's shelf spelling. */
-const TYPE_FROM_APO: Record<string, EQFilter['type']> = {
+const TYPE_FROM_APO: Partial<Record<string, EQFilter['type']>> = {
 	PK: 'PK',
 	PEQ: 'PK',
 	LSC: 'LSQ',
@@ -122,7 +122,8 @@ function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
 		.trim()
 		.match(/^(?:(ON|OFF)\s+)?([A-Za-z]+)\s*(.*)$/i);
 	if (!head) return null;
-	const [, onOff, rawType, params] = head;
+	const [, , rawType, params] = head;
+	const onOff = head.at(1);
 	const type = TYPE_FROM_APO[rawType.toUpperCase()];
 	// An unknown filter type (APO's fixed-Q `LP`, `HP`, …) has no representation
 	// here; skipping beats importing it as a peak that reshapes the curve.

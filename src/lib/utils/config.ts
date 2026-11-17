@@ -56,7 +56,7 @@ export function uniqueBy<T>(items: T[], keyOf: (item: T) => unknown, what: strin
 export function foldTargetManifest(raw: unknown): { type: string; files: string[] }[] {
 	if (!Array.isArray(raw)) return [];
 	const byType = new Map<string, string[]>();
-	for (const group of raw as { type: string; files?: unknown }[]) {
+	for (const group of raw as ({ type: string; files?: unknown } | null | undefined)[]) {
 		if (!Array.isArray(group?.files)) continue;
 		const files = byType.get(group.type) ?? [];
 		byType.set(group.type, [...files, ...(group.files as string[])]);

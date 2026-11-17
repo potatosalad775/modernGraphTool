@@ -328,7 +328,8 @@ export class Equalizer {
 		return { source: normalizedSource, target: alignedTarget };
 	}
 
-	_interpolatePoints(freqs: number[], points: FreqPoint[]): FreqPoint[] {
+	/** A null `points` reads as flat: the AutoEQ fallback optimizes a missing source against silence. */
+	_interpolatePoints(freqs: number[], points: FreqPoint[] | null): FreqPoint[] {
 		if (!points || points.length === 0) return freqs.map((f) => [f, 0]);
 
 		const sortedPoints = [...points].sort((a, b) => a[0] - b[0]);

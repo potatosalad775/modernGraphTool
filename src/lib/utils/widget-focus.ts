@@ -22,5 +22,5 @@ export function isWidgetFocused(target: WidgetTarget | EventTarget | null): bool
 	if (el?.tagName === 'SELECT' || el?.closest?.(WIDGET_SELECTOR)) return true;
 	if (typeof document === 'undefined') return false;
 	const active = document.activeElement;
-	return !!(active && active !== target && active.closest?.(WIDGET_SELECTOR));
+	return !!(active && active !== target && active.closest(WIDGET_SELECTOR));
 }

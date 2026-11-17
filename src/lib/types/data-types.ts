@@ -234,6 +234,12 @@ export interface PhoneLink {
 	url: string;
 }
 
+/**
+ * An element of a list in `phone_book.json` before the parser has checked it. The file is
+ * hand-edited, so an element can be any JSON value, and the parser skips what it can't read.
+ */
+export type Unchecked<T> = T | string | number | boolean | null | unknown[];
+
 /** Raw phone data from phone_book.json before processing */
 export interface RawPhoneData {
 	name: string | string[];
@@ -259,11 +265,11 @@ export interface RawPhoneData {
 	 * anything else is appended. Lets one phone stay readable by CrinGraph — which
 	 * only knows `file` — while carrying sample sets here.
 	 */
-	variants?: RawVariant[];
+	variants?: Unchecked<RawVariant>[];
 	/** Legacy: number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
 	samples?: number;
 	/** Legacy: HpTF measurement sets. Each entry becomes its own variant in the selector. */
-	hptfs?: RawHpTFEntry[];
+	hptfs?: Unchecked<RawHpTFEntry>[];
 }
 
 /** Raw brand data from phone_book.json before processing */
@@ -278,7 +284,7 @@ export interface RawBrandData {
 	 * describe one specific set and are ignored at brand level.
 	 */
 	defaultSamples?: number | Pick<RawSampleSet, 'count' | 'display'>;
-	phones: (string | RawPhoneData)[];
+	phones: Unchecked<string | RawPhoneData>[];
 }
 
 /** Phone metadata from phone_book.json */

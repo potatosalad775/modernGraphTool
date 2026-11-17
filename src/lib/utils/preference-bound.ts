@@ -48,7 +48,7 @@ export interface PreferenceBoundEntry {
 export const DEFAULT_BOUND_UPPER = 'Bounds U.txt';
 export const DEFAULT_BOUND_LOWER = 'Bounds D.txt';
 
-type I18nName = string | { default: string; i18n: Record<string, string> };
+type I18nName = string | { default?: string; i18n?: Partial<Record<string, string>> };
 
 interface RawBoundEntry {
 	name?: I18nName;
@@ -79,9 +79,9 @@ export function resolvePreferenceBoundEntries(
 	config: { BOUND_LIST?: unknown; BASE_DF_TARGET_FILE?: unknown } | undefined,
 	lang: string
 ): PreferenceBoundEntry[] {
-	let raw: RawBoundEntry[] = [];
+	let raw: (RawBoundEntry | null | undefined)[] = [];
 	if (Array.isArray(config?.BOUND_LIST)) {
-		raw = config.BOUND_LIST as RawBoundEntry[];
+		raw = config.BOUND_LIST as (RawBoundEntry | null | undefined)[];
 	} else {
 		const legacy = nonEmpty(config?.BASE_DF_TARGET_FILE);
 		if (legacy) raw = [{ target: legacy }];
@@ -91,7 +91,7 @@ export function resolvePreferenceBoundEntries(
 	const seen = new Set<string>();
 	for (const item of raw) {
 		const file = nonEmpty(item?.target)?.replace(/\.txt$/, '');
-		if (!file) {
+		if (!item || !file) {
 			console.warn('PreferenceBound: skipping a BOUND_LIST entry without a target', item);
 			continue;
 		}

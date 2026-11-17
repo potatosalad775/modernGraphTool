@@ -5,7 +5,7 @@ import type { FRDataPoint } from '#lib/types/data-types.js';
  * Uses binary search + linear interpolation between adjacent points.
  */
 export function lookupFRValueAtFreq(frData: FRDataPoint[], freq: number): number | null {
-	if (!frData || frData.length === 0) return null;
+	if (frData.length === 0) return null;
 
 	// Edge cases: outside data range
 	if (freq <= frData[0][0]) return frData[0][1];

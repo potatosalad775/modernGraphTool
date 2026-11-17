@@ -65,7 +65,7 @@ export function sampleFillOpacity(): number {
  * offered when `fillOnly` was false.
  */
 export function legacyHptfDisplay(fillOnly: boolean): SampleDisplayMode[] {
-	const mode = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
+	const mode = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string | undefined) ?? 'fill+curves';
 	const modes: SampleDisplayMode[] = [];
 	if (mode !== 'none') modes.push('avg');
 	if (!fillOnly && (mode === 'curves' || mode === 'fill+curves')) modes.push('curves');

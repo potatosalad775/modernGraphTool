@@ -92,3 +92,9 @@ it fails if a checkout plus install leaves anything modified, or if CRLF ever re
 comment explaining why — notably `no-useless-assignment` is off for `*.svelte` because it misreads
 `$bindable()` prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
 tool parses arbitrary operator-authored config.
+
+In `src/`, two type-aware rules hold app code to its types. `no-unnecessary-condition` fails a guard
+the types say can never fire, so a value from outside them (operator config, fetched JSON, storage,
+a DOM read, an index that can miss) is typed `| undefined` where it enters, and its guard stays.
+`no-non-null-assertion` fails a `!`: narrow instead, or throw where absence is a bug. Specs and test
+fixtures may still use `!`.

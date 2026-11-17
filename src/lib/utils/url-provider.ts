@@ -111,7 +111,7 @@ class URLProvider {
 
 		// `parseStateParam` already narrowed the shape; these guards keep a state
 		// that arrived any other way (a spec, a future caller) from throwing.
-		if (Number.isFinite(yScale)) graphStore.yScale = yScale!;
+		if (yScale !== undefined && Number.isFinite(yScale)) graphStore.yScale = yScale;
 
 		// `mode` is hand-editable, so the baseline module validates it.
 		if (savedBaseline) baseline.restoreFromURL(savedBaseline);

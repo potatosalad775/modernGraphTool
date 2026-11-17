@@ -133,12 +133,11 @@ export function anchorAndNormalizeSamples(
 	}
 
 	for (const s of result) {
-		if (s.L && s.R) {
+		const { L, R } = s;
+		if (L && R) {
 			s.AVG = {
-				data: s.L.data.map(
-					([freq, lDb], idx) => [freq, (lDb + s.R!.data[idx][1]) / 2] as FRDataPoint
-				),
-				metadata: { ...s.L.metadata }
+				data: L.data.map(([freq, lDb], idx) => [freq, (lDb + R.data[idx][1]) / 2] as FRDataPoint),
+				metadata: { ...L.metadata }
 			};
 		}
 	}

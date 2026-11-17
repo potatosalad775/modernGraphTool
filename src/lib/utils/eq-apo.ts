@@ -1,4 +1,4 @@
-import { usesGain, type EQFilter } from './equalizer.js';
+import { usesGain, type CompleteBand, type EQFilter } from './equalizer.js';
 import type { EqChannel } from './eq-channel.js';
 import { hasPerChannelFilters } from './eq-channel.js';
 
@@ -220,9 +220,13 @@ export function parseApoFilters(text: string): EQFilter[] {
  * do.
  */
 export function formatApoFilters(filters: EQFilter[], preamp: number): string {
-	const valid = filters.filter((f) => f.freq != null && f.q != null && f.gain != null);
+	const valid = filters.filter(
+		(f): f is CompleteBand => f.freq != null && f.q != null && f.gain != null
+	);
 
-	const sections: { directive: string | null; bands: EQFilter[] }[] = hasPerChannelFilters(valid)
+	const sections: { directive: string | null; bands: CompleteBand[] }[] = hasPerChannelFilters(
+		valid
+	)
 		? [
 				{ directive: 'ALL', bands: valid.filter((f) => f.channel == null) },
 				{ directive: 'L', bands: valid.filter((f) => f.channel === 'L') },
@@ -239,9 +243,9 @@ export function formatApoFilters(filters: EQFilter[], preamp: number): string {
 			n++;
 			text +=
 				`Filter ${n}: ${f.enabled ? 'ON' : 'OFF'} ${apoTypeName(f.type)} ` +
-				`Fc ${f.freq!.toFixed(0)} Hz ` +
-				(usesGain(f.type) ? `Gain ${f.gain!.toFixed(1)} dB ` : '') +
-				`Q ${f.q!.toFixed(3)}\n`;
+				`Fc ${f.freq.toFixed(0)} Hz ` +
+				(usesGain(f.type) ? `Gain ${f.gain.toFixed(1)} dB ` : '') +
+				`Q ${f.q.toFixed(3)}\n`;
 		}
 	}
 	return text;

@@ -53,9 +53,12 @@ export function averageChannels(sources: AverageSource[]): ParsedFRData {
 	const averaged: ParsedFRData = {};
 
 	for (const ch of CHANNELS) {
-		const contributors = sources.filter((s) => s.dispChannel.includes(ch) && s.channels[ch]);
+		const contributors = sources.flatMap((s) => {
+			const channel = s.channels[ch];
+			return s.dispChannel.includes(ch) && channel ? [channel] : [];
+		});
 		if (contributors.length < 2) continue;
-		averaged[ch] = meanOf(contributors.map((s) => s.channels[ch]!));
+		averaged[ch] = meanOf(contributors);
 	}
 
 	return averaged;

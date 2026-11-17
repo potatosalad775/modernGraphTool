@@ -70,7 +70,7 @@ export function legacyHptfDisplay(fillOnly: boolean): SampleDisplayMode[] {
 	if (mode !== 'none') modes.push('avg');
 	if (!fillOnly && (mode === 'curves' || mode === 'fill+curves')) modes.push('curves');
 	if (mode === 'fill' || mode === 'fill+curves') modes.push('fill');
-	return normalizeDisplayModes(modes)!;
+	return modes;
 }
 
 /** Display set for a legacy phone-level `samples: N` declaration. */

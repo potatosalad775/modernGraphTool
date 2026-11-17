@@ -21,7 +21,7 @@ export function derivePreamp(filters: EQFilter[]): number {
 	// Every band's own centre is sampled too: a narrow boost peaks there, and
 	// a grid that straddles it under-reads the peak — by up to 0.9 dB at Q 6
 	// on the 100-point grid this used to be, which clipped by exactly that.
-	const freqs = [...PREAMP_GRID, ...enabled.map((f) => f.freq!)];
+	const freqs = [...PREAMP_GRID, ...enabled.map((f) => f.freq)];
 	const baseFR: [number, number][] = freqs.map((f) => [f, 0]);
 	const eq = new Equalizer();
 	// One global preamp, sized for the ear that needs the most headroom.

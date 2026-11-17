@@ -269,7 +269,8 @@ export function randomCurveColor(palette?: string[], opts: RandomCurveColorOptio
 			best = candidate;
 		}
 	}
-	return formatOklch(...best!);
+	if (!best) throw new Error('randomCurveColor: RANDOM_CANDIDATES must be positive');
+	return formatOklch(...best);
 }
 
 // ── nextCurveColor ─────────────────────────────────────────────────────────

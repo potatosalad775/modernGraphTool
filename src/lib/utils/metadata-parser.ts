@@ -171,6 +171,9 @@ const MetadataParser = {
 
 	/** Fetch phone_book metadata from (phone_book.json). */
 	async _fetchBookObject(): Promise<BrandMetadata[]> {
+		// The three HTML shells preload this same URL (path and fallback) from an inline script,
+		// and this plain fetch() picks that response up. Change the path there too, and keep the
+		// request a default one: other headers, credentials or a cache mode would miss the preload.
 		const phonebookPath =
 			(getConfigValue('PATH.PHONE_BOOK') as string) || '../../../data/phone_book.json';
 		const rawData: unknown = await fetch(phonebookPath).then((r) => r.json());
@@ -230,13 +233,22 @@ const MetadataParser = {
 						? this._parseLinks(phone.links, `brand "${brandName}" phone #${phoneIdx}`)
 						: undefined;
 
+				// These four go straight into the row UI, and `PATH.PHONE_BOOK` may point
+				// at a remote book — so each is checked here, dropping the field and
+				// never the entry. The links follow the `links[]` policy (`sanitizeUrl`:
+				// relative URLs stay readable, a dangerous scheme does not).
+				const reviewScore = typeof phone === 'object' ? this._parseScalar(phone.reviewScore) : null;
+				const price = typeof phone === 'object' ? this._parseScalar(phone.price) : null;
+				const reviewLink = typeof phone === 'object' ? this._parseHref(phone.reviewLink) : null;
+				const shopLink = typeof phone === 'object' ? this._parseHref(phone.shopLink) : null;
+
 				// Common properties for all phone types
 				const basePhone = {
 					brand: brandName,
-					...(typeof phone === 'object' && phone.reviewScore && { reviewScore: phone.reviewScore }),
-					...(typeof phone === 'object' && phone.reviewLink && { reviewLink: phone.reviewLink }),
-					...(typeof phone === 'object' && phone.shopLink && { shopLink: phone.shopLink }),
-					...(typeof phone === 'object' && phone.price && { price: phone.price }),
+					...(reviewScore !== null && { reviewScore }),
+					...(reviewLink && { reviewLink }),
+					...(shopLink && { shopLink }),
+					...(price !== null && { price: String(price) }),
 					...(typeof phone === 'object' && phone.description && { description: phone.description }),
 					...(links && { links })
 				};
@@ -299,6 +311,26 @@ const MetadataParser = {
 	},
 
 	/**
+	 * A display scalar (`reviewScore`, `price`): a non-empty string or a finite,
+	 * non-zero number survives, anything else (object, array, boolean, NaN, null)
+	 * is dropped. Empty / zero stay dropped, as they were when this was a plain
+	 * truthiness check.
+	 */
+	_parseScalar(raw: unknown): string | number | null {
+		if (typeof raw === 'string') return raw.trim() ? raw : null;
+		if (typeof raw === 'number') return Number.isFinite(raw) && raw !== 0 ? raw : null;
+		return null;
+	},
+
+	/**
+	 * A link target from phone_book.json, phone-level or in `links[]`. It is a JSON string,
+	 * not HTML, so entities are left alone: decoding them corrupts `?a=1&tab=2`.
+	 */
+	_parseHref(raw: unknown): string | null {
+		return typeof raw === 'string' ? sanitizeUrl(raw, { entities: false }) : null;
+	},
+
+	/**
 	 * Validate a phone's operator-authored `links` array.
 	 *
 	 * Entries are dropped individually rather than rejecting the whole list — one
@@ -325,7 +357,7 @@ const MetadataParser = {
 			}
 			const { label, url } = entry as { label?: unknown; url?: unknown };
 			const cleanLabel = typeof label === 'string' ? stripHtml(label) : '';
-			const cleanUrl = typeof url === 'string' ? sanitizeUrl(url) : null;
+			const cleanUrl = this._parseHref(url);
 			if (!cleanLabel || !cleanUrl) {
 				console.warn(
 					`[modernGraphTool] phone_book.json: ${context} link #${i} needs a "label" and a safe "url" — skipping.`

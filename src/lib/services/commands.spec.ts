@@ -263,6 +263,33 @@ describe('Commands', () => {
 			cmd.undo(store);
 			expect(store.data.get('a')!.yOffset).toBe(0);
 		});
+
+		it("mergeWith takes over the previous command's starting offset", () => {
+			store.set('a', makeFRDataObject('a', { yOffset: 2 }));
+			const first = new UpdateYOffsetCommand('a', 3);
+			first.execute(store);
+			const second = new UpdateYOffsetCommand('a', 4);
+			expect(second.mergeWith(first)).toBe(true);
+			second.execute(store);
+			second.undo(store);
+			expect(store.data.get('a')!.yOffset).toBe(2);
+			// A redo-undo round trip keeps restoring the original.
+			second.execute(store);
+			expect(store.data.get('a')!.yOffset).toBe(4);
+			second.undo(store);
+			expect(store.data.get('a')!.yOffset).toBe(2);
+		});
+
+		it('mergeWith refuses another curve and other command kinds', () => {
+			store.set('a', makeFRDataObject('a'));
+			store.set('b', makeFRDataObject('b'));
+			const onA = new UpdateYOffsetCommand('a', 1);
+			onA.execute(store);
+			expect(new UpdateYOffsetCommand('b', 1).mergeWith(onA)).toBe(false);
+			const other = new UpdateVisibilityCommand('a', true);
+			other.execute(store);
+			expect(new UpdateYOffsetCommand('a', 2).mergeWith(other)).toBe(false);
+		});
 	});
 
 	describe('UpdateSampleDisplayCommand', () => {

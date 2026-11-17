@@ -11,12 +11,17 @@
 		graphBackgroundLightness
 	} from '#lib/utils/curve-palette.js';
 	import { getConfigValue } from '#lib/utils/config.js';
+	import { parseBounded } from '#lib/utils/number-field.js';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import { Popover } from 'bits-ui';
 	import Button from '../atoms/Button.svelte';
 	import { Shuffle } from '@lucide/svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; without it the trigger keeps its generic name.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
+
+	// Upper bound for a dash tick / space, in px. A longer stroke pattern is not a dash any more.
+	const MAX_DASH = 1000;
 
 	function parseDash(dash: string): [number, number] {
 		const parts = dash.trim().split(/\s+/);
@@ -97,13 +102,41 @@
 		}
 	}
 
+	// The number fields commit on `input` for a live preview, and `bind:value` hands back `null` for
+	// an emptied box (or a lone `-`). Never write that on: clamp to the field's range, and when any
+	// field is not a number yet, leave the curve as it was and wait for the next keystroke.
+	function bounded(value: unknown, min: number, max: number): number | null {
+		return parseBounded(typeof value === 'number' ? String(value) : '', min, max);
+	}
+
 	function onLchInput(): void {
-		localHex = oklchToHex(localL, localC, localH);
-		scheduleColorUpdate(localL, localC, localH);
+		const L = bounded(localL, 0, 1);
+		const C = bounded(localC, 0, 0.4);
+		const H = bounded(localH, 0, 360);
+		if (L === null || C === null || H === null) return;
+		localHex = oklchToHex(L, C, H);
+		scheduleColorUpdate(L, C, H);
 	}
 
 	function onDashInput(): void {
-		scheduleDashUpdate(localTick, localSpace);
+		const tick = bounded(localTick, 0, MAX_DASH);
+		const space = bounded(localSpace, 0, MAX_DASH);
+		if (tick === null || space === null) return;
+		scheduleDashUpdate(tick, space);
+	}
+
+	// Leaving a field: put back what the curve actually uses (the last value that was valid) for an
+	// emptied box, and show the clamped number for one that was out of range.
+	function onLchCommit(): void {
+		localL = bounded(localL, 0, 1) ?? round2(parseOklch(item.colors.AVG)[0]);
+		localC = bounded(localC, 0, 0.4) ?? round2(parseOklch(item.colors.AVG)[1]);
+		localH = bounded(localH, 0, 360) ?? Math.round(parseOklch(item.colors.AVG)[2]);
+	}
+
+	function onDashCommit(): void {
+		const [tick, space] = parseDash(item.dash);
+		localTick = bounded(localTick, 0, MAX_DASH) ?? tick;
+		localSpace = bounded(localSpace, 0, MAX_DASH) ?? space;
 	}
 
 	function onRandom(): void {
@@ -133,7 +166,7 @@
 				{...props}
 				class="h-5 w-5 shrink-0 cursor-pointer rounded-sm border-0 transition-opacity hover:opacity-80"
 				style="background-color: {hexColor};"
-				aria-label={m.graph_color_picker_pick()}
+				aria-label={name ? m.graph_color_picker_pick_named({ name }) : m.graph_color_picker_pick()}
 			></button>
 		{/snippet}
 	</Popover.Trigger>
@@ -141,13 +174,15 @@
 	<Popover.Portal>
 		<Popover.Content
 			sideOffset={6}
-			class="z-50 w-56 rounded-lg border border-base-content/15 bg-base-200 p-3 shadow-xl"
+			collisionPadding={8}
+			class="z-50 max-h-(--bits-popover-content-available-height) w-56 overflow-y-auto rounded-lg border border-base-content/15 bg-base-200 p-3 shadow-xl"
 		>
 			<!-- Hex color input -->
 			<div class="mb-3">
 				<input
 					id="{uuid}-color-hex"
 					type="color"
+					aria-label={m.graph_color_picker_color_input()}
 					value={localHex}
 					oninput={onHexInput}
 					class="h-8 w-full cursor-pointer rounded border border-base-content/20 p-0.5"
@@ -157,7 +192,7 @@
 			<!-- OKLCH inputs -->
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-l" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-l" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_lightness()}</label
 					>
 					<input
@@ -168,11 +203,12 @@
 						step="0.01"
 						bind:value={localL}
 						oninput={onLchInput}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						onchange={onLchCommit}
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-c" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-c" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_chroma()}</label
 					>
 					<input
@@ -183,11 +219,12 @@
 						step="0.01"
 						bind:value={localC}
 						oninput={onLchInput}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						onchange={onLchCommit}
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-lch-h" class="text-xs text-base-content/60"
+					<label for="{uuid}-lch-h" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_hue()}</label
 					>
 					<input
@@ -197,7 +234,8 @@
 						max="360"
 						bind:value={localH}
 						oninput={onLchInput}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						onchange={onLchCommit}
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 			</div>
@@ -205,7 +243,7 @@
 			<!-- Dash inputs -->
 			<div class="mb-3 flex items-center gap-2">
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-dash-tick" class="text-xs text-base-content/60"
+					<label for="{uuid}-dash-tick" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_tick()}</label
 					>
 					<input
@@ -215,11 +253,12 @@
 						step="0.5"
 						bind:value={localTick}
 						oninput={onDashInput}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						onchange={onDashCommit}
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 				<div class="flex flex-col items-center gap-0.5">
-					<label for="{uuid}-dash-space" class="text-xs text-base-content/60"
+					<label for="{uuid}-dash-space" class="text-xs text-base-content/80"
 						>{m.graph_color_picker_label_space()}</label
 					>
 					<input
@@ -229,7 +268,8 @@
 						step="0.5"
 						bind:value={localSpace}
 						oninput={onDashInput}
-						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
+						onchange={onDashCommit}
+						class="w-14 rounded border border-base-content/20 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
 				</div>
 			</div>

@@ -10,7 +10,11 @@ import Base62 from './base62.js';
 import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
 import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
 import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+import { MAX_BANDS } from '#lib/workers/autoeq-request.js';
 import { curveBaseName } from './curve-name.js';
+import { sanitizeChannel } from './eq-channel.js';
+import { isFiniteNumber, parseFilter } from './eq-filter-parse.js';
+import { isRecord } from './type-guards.js';
 import { parseSampleKey, sampleKey } from './sample-key.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -98,18 +102,108 @@ export function parseShareParam(value: string | null): string[] {
 	return smartSplit(value.replace(/_/g, ' '));
 }
 
-/** Decode a `state=` value. Returns null for anything malformed. */
+/**
+ * Decode a `state=` value. Returns null for anything malformed; a state whose
+ * object is fine but some part is not comes back with that part dropped
+ * (see `sanitizeState`).
+ */
 export function parseStateParam(value: string | null): URLState | null {
 	if (!value) return null;
 	try {
-		const parsed = JSON.parse(Base62.decode(value));
+		const parsed: unknown = JSON.parse(Base62.decode(value));
 		// Base62.decode of junk can yield a bare number or string, which JSON.parse
 		// happily accepts — only an object is a usable state.
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-		return parsed as URLState;
+		if (!isRecord(parsed)) return null;
+		return sanitizeState(parsed);
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Keys that must never become a property of a state object we build: assigning
+ * `__proto__` swaps the prototype instead of creating a key.
+ */
+function isSafeKey(key: string): boolean {
+	return key !== '__proto__';
+}
+
+/** The own entries of a record, minus keys that cannot be assigned safely. */
+function safeEntries(record: Record<string, unknown>): [string, unknown][] {
+	return Object.entries(record).filter(([key]) => isSafeKey(key));
+}
+
+/**
+ * Narrow a decoded `state=` object to the shape `URLState` promises.
+ *
+ * The value is hand-editable and arrives from anyone who can send a link, so
+ * each part is checked on its own and an invalid one is skipped rather than
+ * rejecting the whole state: the rest of the page still restores. Numbers must
+ * be finite, the EQ list is read band by band with `parseFilter` and capped at
+ * `MAX_BANDS`, and a record keyed by device name is rebuilt without
+ * `__proto__`. What the current encoder writes passes through unchanged.
+ */
+export function sanitizeState(raw: Record<string, unknown>): URLState {
+	const state: URLState = {};
+
+	if (isFiniteNumber(raw.yScale)) state.yScale = raw.yScale;
+
+	const { baseline } = raw;
+	if (isRecord(baseline) && typeof baseline.key === 'string' && typeof baseline.mode === 'string') {
+		// `mode` stays a plain string: the baseline module validates it.
+		state.baseline = { key: baseline.key, mode: baseline.mode as BaselineMode };
+	}
+
+	if (isRecord(raw.yOffsets)) {
+		const yOffsets: Record<string, number> = {};
+		for (const [key, offset] of safeEntries(raw.yOffsets)) {
+			if (isFiniteNumber(offset)) yOffsets[key] = offset;
+		}
+		if (Object.keys(yOffsets).length > 0) state.yOffsets = yOffsets;
+	}
+
+	const { eq } = raw;
+	if (isRecord(eq) && Array.isArray(eq.filters)) {
+		const filters: EQFilter[] = [];
+		for (const item of eq.filters) {
+			if (filters.length >= MAX_BANDS) break;
+			// An unknown `channel` reads as a shared band rather than losing the band
+			// (it would otherwise belong to no ear and vanish from every scoped view).
+			const filter = isRecord(item)
+				? parseFilter({ ...item, channel: sanitizeChannel(item.channel) })
+				: null;
+			if (filter) filters.push(filter);
+		}
+		state.eq = { filters, preamp: isFiniteNumber(eq.preamp) ? eq.preamp : 0 };
+	}
+
+	if (isRecord(raw.sampleDisplay)) {
+		const sampleDisplay: Record<string, SampleDisplayState | SampleDisplayKey[] | string[]> = {};
+		for (const [key, entry] of safeEntries(raw.sampleDisplay)) {
+			if (Array.isArray(entry) || isRecord(entry)) {
+				sampleDisplay[key] = entry as SampleDisplayState | string[];
+			}
+		}
+		state.sampleDisplay = sampleDisplay;
+	}
+
+	if (isRecord(raw.hptfDisplay)) {
+		const hptfDisplay: NonNullable<URLState['hptfDisplay']> = {};
+		for (const [key, entry] of safeEntries(raw.hptfDisplay)) {
+			if (isRecord(entry)) hptfDisplay[key] = entry as { keys: SampleDisplayKey[]; fill: boolean };
+		}
+		state.hptfDisplay = hptfDisplay;
+	}
+
+	return state;
+}
+
+/** The well-formed `sample{n}_{ch}` keys of a hand-editable value; anything else is dropped. */
+function sampleKeysOf(value: unknown): SampleDisplayKey[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter(
+		(k): k is SampleDisplayKey => typeof k === 'string' && parseSampleKey(k) !== null
+	);
 }
 
 /**
@@ -131,6 +225,7 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 	const out: Record<string, SampleDisplayState> = {};
 
 	for (const [key, value] of Object.entries(state.sampleDisplay ?? {})) {
+		if (!isSafeKey(key)) continue;
 		if (Array.isArray(value)) {
 			const keys = value
 				.map((k) => {
@@ -140,17 +235,22 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 				})
 				.filter((k): k is SampleDisplayKey => k !== null);
 			out[key] = { keys, fill: false, avg: true };
-		} else if (value && typeof value === 'object') {
+		} else if (isRecord(value)) {
 			out[key] = {
-				keys: value.keys ?? [],
-				fill: value.fill ?? false,
-				avg: value.avg ?? true
+				keys: sampleKeysOf(value.keys),
+				fill: typeof value.fill === 'boolean' ? value.fill : false,
+				avg: typeof value.avg === 'boolean' ? value.avg : true
 			};
 		}
 	}
 
 	for (const [key, value] of Object.entries(state.hptfDisplay ?? {})) {
-		out[key] = { keys: value.keys ?? [], fill: value.fill ?? false, avg: true };
+		if (!isSafeKey(key) || !isRecord(value)) continue;
+		out[key] = {
+			keys: sampleKeysOf(value.keys),
+			fill: typeof value.fill === 'boolean' ? value.fill : false,
+			avg: true
+		};
 	}
 
 	return out;

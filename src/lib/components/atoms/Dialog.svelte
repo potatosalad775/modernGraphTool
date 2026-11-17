@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { Dialog as DialogPrimitive } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import { twMerge } from 'tailwind-merge';
+	import { dialogCardClass, dialogOverlayClass } from './dialog-shell.js';
 
 	/**
 	 * A modal with a title, an optional description and body, and a row of action buttons.
@@ -30,6 +32,9 @@
 		class?: string;
 	} = $props();
 
+	// `class` is merged over the shell, so a caller's `max-h-*` wins over its viewport cap.
+	const contentClasses = $derived(twMerge(dialogCardClass, 'gap-3', className));
+
 	function handleOpenChange(value: boolean) {
 		open = value;
 		onOpenChange?.(value);
@@ -38,17 +43,17 @@
 
 <DialogPrimitive.Root {open} onOpenChange={handleOpenChange}>
 	<DialogPrimitive.Portal>
-		<DialogPrimitive.Overlay class="fixed inset-0 z-40 bg-black/40" />
+		<DialogPrimitive.Overlay class={dialogOverlayClass} />
 		<DialogPrimitive.Content
 			interactOutsideBehavior={dismissible ? 'close' : 'ignore'}
 			escapeKeydownBehavior={dismissible ? 'close' : 'ignore'}
-			class="fixed top-1/2 left-1/2 z-50 flex w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-xl bg-base-200 p-6 shadow-2xl {className}"
+			class={contentClasses}
 		>
-			<DialogPrimitive.Title class="text-lg font-semibold text-base-content">
+			<DialogPrimitive.Title class="text-lg font-semibold text-balance text-base-content">
 				{title}
 			</DialogPrimitive.Title>
 			{#if description !== undefined}
-				<DialogPrimitive.Description class="text-sm text-base-content/70">
+				<DialogPrimitive.Description class="text-sm text-pretty text-base-content/80">
 					{description}
 				</DialogPrimitive.Description>
 			{/if}

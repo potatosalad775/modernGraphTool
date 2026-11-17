@@ -5,7 +5,7 @@
 	import type { IndexEntry } from '@potatosalad775/eqcaps-core';
 	import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 	import { Check, Settings2 } from '@lucide/svelte';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import Button from '../atoms/Button.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 
@@ -121,10 +121,10 @@
 	}
 
 	const rowClass =
-		'flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none';
+		'flex w-full cursor-pointer items-center justify-between gap-2 rounded px-2 py-1 text-left text-xs text-base-content hover:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-hidden';
 </script>
 
-<PopoverPanel bind:open contentClass="w-72 p-0!">
+<PopoverPanel bind:open label={m.eq_constraint_button()} contentClass="flex w-72 flex-col p-0!">
 	{#snippet trigger({ props })}
 		<Button
 			{...props}
@@ -138,13 +138,13 @@
 		</Button>
 	{/snippet}
 
-	<div class="flex flex-col">
-		<div class="flex flex-col gap-2 border-b border-base-content/15 p-2">
+	<div class="flex min-h-0 flex-col">
+		<div class="flex shrink-0 flex-col gap-2 border-b border-base-content/15 p-2">
 			<div class="flex flex-col">
 				<span class="text-xs font-medium text-base-content/80">
 					{m.eq_constraint_select_label()}
 				</span>
-				<span class="truncate text-xs text-base-content/60">
+				<span class="truncate text-xs text-base-content/80">
 					{eqConstraintsStore.active.label}
 				</span>
 			</div>
@@ -154,17 +154,22 @@
 				bind:value={query}
 				placeholder={m.eq_constraint_search_placeholder()}
 				aria-label={m.eq_constraint_search_placeholder()}
-				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-none placeholder:text-base-content/40 focus:ring-1 focus:ring-accent"
+				autocomplete="off"
+				autocorrect="off"
+				autocapitalize="none"
+				spellcheck={false}
+				enterkeyhint="search"
+				class="w-full rounded border border-base-content/20 bg-base-100 px-2 py-1 text-xs outline-hidden placeholder:text-base-content/60 focus:ring-1 focus:ring-accent"
 			/>
 		</div>
 
-		<div class="max-h-72 overflow-y-auto">
+		<div class="max-h-72 min-h-0 overflow-y-auto">
 			{#each groups as group (group.id)}
 				{#if group.rows.length > 0}
 					<div role="group" aria-labelledby="{group.id}-heading">
 						<div
 							id="{group.id}-heading"
-							class="px-2 py-1 text-[10px] font-semibold tracking-wider text-base-content/50 uppercase"
+							class="px-2 py-1 text-2xs font-semibold tracking-wider text-base-content/80 uppercase"
 						>
 							{group.heading}
 						</div>
@@ -193,12 +198,12 @@
 								>
 									<span class="truncate">{entryLabel(row.entry)}</span>
 									{#if pendingId === row.entry.id}
-										<span class="shrink-0 text-[10px] text-base-content/50">
+										<span class="shrink-0 text-2xs text-base-content/80">
 											{m.eq_constraint_loading()}
 										</span>
 									{:else if row.entry.status === 'draft'}
 										<span
-											class="shrink-0 rounded border border-base-content/20 px-1 text-[10px] text-base-content/50"
+											class="shrink-0 rounded border border-base-content/20 px-1 text-2xs text-base-content/80"
 											title={m.eq_constraint_draft_title()}
 										>
 											{m.eq_constraint_draft()}
@@ -211,15 +216,15 @@
 				{/if}
 			{/each}
 			{#if catalogState === 'loading'}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_catalog_loading()}
 				</div>
 			{:else if catalogState === 'failed'}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_catalog_failed()}
 				</div>
 			{:else if isEmpty}
-				<div class="px-2 py-2 text-center text-xs text-base-content/50">
+				<div class="px-2 py-2 text-center text-xs text-base-content/80">
 					{m.eq_constraint_no_results()}
 				</div>
 			{/if}

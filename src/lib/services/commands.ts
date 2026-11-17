@@ -18,6 +18,14 @@ export interface Command {
 	execute(store: FRStoreWriteAPI): void;
 	undo(store: FRStoreWriteAPI): void;
 	readonly uuid: string;
+	/**
+	 * Optional. Called by `CommandHistory.execute` *before* `execute` when the previous entry is the
+	 * top of the stack and was recorded moments ago (`MERGE_WINDOW_MS`, never across an undo or redo).
+	 * Return true to take over from `previous` — this command must then undo to where `previous`
+	 * would have — and the history replaces `previous` with this command instead of pushing a
+	 * second entry. Return false (the usual answer for another kind of command or target) to push.
+	 */
+	mergeWith?(previous: Command): boolean;
 }
 
 // ─── Add ─────────────────────────────────────────────────────────────────────
@@ -367,6 +375,8 @@ export class UpdateYOffsetCommand implements Command {
 	#uuid: string;
 	#newOffset: number;
 	#oldOffset: number | null = null;
+	/** The offset from before the burst this command took over, when `mergeWith` accepted one. */
+	#inheritedOld: number | null = null;
 
 	constructor(uuid: string, newOffset: number) {
 		this.#uuid = uuid;
@@ -376,8 +386,19 @@ export class UpdateYOffsetCommand implements Command {
 	execute(store: FRStoreWriteAPI): void {
 		const data = store.get(this.#uuid);
 		if (!data) return;
-		this.#oldOffset = data.yOffset ?? 0;
+		this.#oldOffset = this.#inheritedOld ?? data.yOffset ?? 0;
 		store.set(this.#uuid, { ...data, yOffset: this.#newOffset });
+	}
+
+	/**
+	 * A held +/- button or an arrow-key run fires one command per tick; folding them into the entry
+	 * before keeps one press-and-hold as one undo step. Same curve only.
+	 */
+	mergeWith(previous: Command): boolean {
+		if (!(previous instanceof UpdateYOffsetCommand) || previous.#uuid !== this.#uuid) return false;
+		if (previous.#oldOffset === null) return false;
+		this.#inheritedOld = previous.#oldOffset;
+		return true;
 	}
 
 	undo(store: FRStoreWriteAPI): void {

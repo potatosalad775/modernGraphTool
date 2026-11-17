@@ -61,7 +61,7 @@ import { zipTextFiles } from '#lib/utils/zip-text.js';
 import * as m from '#lib/paraglide/messages.js';
 import MetadataParser from '#lib/utils/metadata-parser.js';
 import { analyticsService } from './analytics-service.svelte.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 
 class DataProvider {
 	/**

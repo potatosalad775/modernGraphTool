@@ -1,6 +1,7 @@
 import { untrack } from 'svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
+import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
@@ -88,7 +89,15 @@ class AudioPlayerService {
 	});
 
 	// --- Reactive view-bound state ---
-	#isPlaying = $state(false);
+	// `isPlaying` lives in `audioPlaybackStore`, the single source of truth, so the boot bundle
+	// can read it without importing this engine. These private accessors keep every `#isPlaying`
+	// read and write below working unchanged.
+	get #isPlaying(): boolean {
+		return audioPlaybackStore.isPlaying;
+	}
+	set #isPlaying(value: boolean) {
+		audioPlaybackStore.isPlaying = value;
+	}
 	#audioSource = $state<AudioSource>('');
 	#filtersEnabled = $state(true);
 	#volume = $state(0.1);

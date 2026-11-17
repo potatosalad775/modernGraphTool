@@ -91,7 +91,8 @@ export const sidebar: StarlightUserConfig['sidebar'] = [
 					{ slug: 'guide-for-admins/deployment/github-pages' },
 					{ slug: 'guide-for-admins/deployment/cdn' },
 					{ slug: 'guide-for-admins/deployment/prebuilt' },
-					{ slug: 'guide-for-admins/deployment/from-source' }
+					{ slug: 'guide-for-admins/deployment/from-source' },
+					{ slug: 'guide-for-admins/deployment/security-headers' }
 				]
 			},
 			{ slug: 'guide-for-admins/preprocessing-measurement' },

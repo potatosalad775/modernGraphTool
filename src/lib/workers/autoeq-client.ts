@@ -1,5 +1,6 @@
 import type { AutoEqOutcome, AutoEqRequest } from './autoeq-request.js';
 import autoeqWorkerUrl from './autoeq.worker.ts?worker&url';
+import { trustedScriptUrl } from '#lib/utils/trusted-types.js';
 
 let worker: Worker | null = null;
 let nextId = 0;
@@ -11,14 +12,14 @@ function createModuleWorker(url: URL | string): Worker {
 		new URL(href, window.location.href).origin === window.location.origin;
 
 	if (sameOrigin) {
-		return new Worker(href, { type: 'module' });
+		return new Worker(trustedScriptUrl(href), { type: 'module' });
 	}
 
 	const shim = `import ${JSON.stringify(href)};`;
 	const blob = new Blob([shim], { type: 'text/javascript' });
 	const blobUrl = URL.createObjectURL(blob);
 	try {
-		return new Worker(blobUrl, { type: 'module' });
+		return new Worker(trustedScriptUrl(blobUrl), { type: 'module' });
 	} finally {
 		URL.revokeObjectURL(blobUrl);
 	}

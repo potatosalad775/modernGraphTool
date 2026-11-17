@@ -14,7 +14,7 @@ import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
 import GraphUploader from './GraphUploader.svelte';
 import { dataProvider } from '#lib/services/data-provider.svelte.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 
 /** Two decades of points — enough that the parser keeps them. */
@@ -229,6 +229,71 @@ describe('GraphUploader', () => {
 
 			expect(insert).not.toHaveBeenCalled();
 			expect(error.mock.calls[0][0]).toBe('Failed to load HD600');
+		});
+	});
+
+	// ── Limits ───────────────────────────────────────────────────────────────
+
+	describe('size and count limits', () => {
+		/** A file reporting more than the 5 MB cap; its `text()` must never be called. */
+		function oversized(name: string) {
+			const f = file(name);
+			Object.defineProperty(f, 'size', { value: 5 * 1024 * 1024 + 1 });
+			const read = vi.spyOn(f, 'text');
+			return { f, read };
+		}
+
+		it('rejects an oversized file by name without reading it', async () => {
+			const { f, read } = oversized('Huge.txt');
+			await upload('phone', [f]);
+
+			expect(read).not.toHaveBeenCalled();
+			expect(insert).not.toHaveBeenCalled();
+			expect(error).toHaveBeenCalledOnce();
+			expect(error.mock.calls[0][0]).toBe('Huge.txt is larger than 5 MB and was not loaded.');
+		});
+
+		it('rejects an oversized target the same way', async () => {
+			const { f, read } = oversized('Huge.txt');
+			await upload('target', [f]);
+
+			expect(read).not.toHaveBeenCalled();
+			expect(insert).not.toHaveBeenCalled();
+			expect(error).toHaveBeenCalledOnce();
+		});
+
+		it('still loads the other files in the batch', async () => {
+			const { f } = oversized('Huge.txt');
+			await upload('phone', [f, file('HD600.txt')]);
+
+			expect(insert).toHaveBeenCalledOnce();
+			expect(insert.mock.calls[0][1]).toBe('HD600');
+			expect(error).toHaveBeenCalledOnce();
+		});
+
+		it('takes none of a selection over the file limit and says why', async () => {
+			const many = Array.from({ length: 41 }, (_, i) => file(`Device ${i}.txt`));
+			await upload('phone', many);
+
+			expect(insert).not.toHaveBeenCalled();
+			expect(error).toHaveBeenCalledOnce();
+			expect(error.mock.calls[0][0]).toBe('41 files selected. Pick at most 40 at a time.');
+		});
+
+		it('applies the file limit to targets too', async () => {
+			const many = Array.from({ length: 41 }, (_, i) => file(`Target ${i}.txt`));
+			await upload('target', many);
+
+			expect(insert).not.toHaveBeenCalled();
+			expect(error).toHaveBeenCalledOnce();
+		});
+
+		it('accepts a selection exactly at the limit', async () => {
+			const many = Array.from({ length: 40 }, (_, i) => file(`Device ${i}.txt`));
+			await upload('phone', many);
+
+			expect(insert).toHaveBeenCalledTimes(40);
+			expect(error).not.toHaveBeenCalled();
 		});
 	});
 

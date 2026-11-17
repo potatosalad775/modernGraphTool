@@ -29,7 +29,7 @@
 		<span class="ceLabel">Analytics Measurement IDs</span>
 		<StringArrayEditor
 			bind:items={config.SQUIGLINK.ANALYTICS_MEASUREMENT_IDS}
-			placeholder="G-XXXXXXXXXX"
+			placeholder="G-XXXXXXXXXX or GTM-XXXXXXX"
 			addLabel="Add ID"
 		/>
 	</div>
@@ -48,4 +48,15 @@
 	{#each TOGGLES as { key, label } (key)}
 		<Checkbox bind:checked={config.SQUIGLINK[key]} {label} />
 	{/each}
+
+	<div class="ceFieldGroup">
+		<label class="ceLabel" for="{id}-consent">
+			Analytics consent default
+			<span class="ceLabelHint">until a visitor answers with the Usage statistics switch</span>
+		</label>
+		<select id="{id}-consent" class="ceSelect" bind:value={config.SQUIGLINK.ANALYTICS_CONSENT}>
+			<option value="granted">Granted (measure normally)</option>
+			<option value="denied">Denied (no cookie, cookieless pings)</option>
+		</select>
+	</div>
 </AccordionSection>

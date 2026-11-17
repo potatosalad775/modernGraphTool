@@ -66,4 +66,35 @@
 			placeholder="https://raw.githubusercontent.com/.../versions.json"
 		/>
 	</div>
+
+	<div class="ceFieldGroup">
+		<label class="ceLabel" for="{id}-version">
+			Exact version (pins one release)
+			<span class="ceLabelHint">optional — stops automatic updates, wins over Major Version</span>
+		</label>
+		<input
+			id="{id}-version"
+			type="text"
+			class="ceInput ceInputSmall"
+			bind:value={config.CDN_MODE.VERSION}
+			placeholder="2.3.4"
+		/>
+	</div>
+
+	<div class="ceFieldGroup">
+		<label class="ceLabel" for="{id}-boot-integrity">
+			Boot integrity
+			<span class="ceLabelHint">
+				optional — needs an exact version; the value comes from pins.json (see "Pinning a release"
+				in the CDN deployment guide)
+			</span>
+		</label>
+		<input
+			id="{id}-boot-integrity"
+			type="text"
+			class="ceInput"
+			bind:value={config.CDN_MODE.BOOT_INTEGRITY}
+			placeholder="sha384-…"
+		/>
+	</div>
 </AccordionSection>

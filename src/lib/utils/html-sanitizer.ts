@@ -130,12 +130,19 @@ function escapeAttr(input: string): string {
  *
  * Relative URLs, fragments and protocol-relative URLs pass through — they
  * resolve against the deployment's own origin or inherit its scheme.
+ *
+ * Pass `entities: false` for a URL that never was HTML (a JSON value): nothing
+ * decodes it on the way to the attribute, and decoding here would eat part of
+ * a query string (`?a=1&tab=2`, `&lt=`, `&amp=`).
  */
-export function sanitizeUrl(raw: string | null | undefined): string | null {
+export function sanitizeUrl(
+	raw: string | null | undefined,
+	{ entities = true }: { entities?: boolean } = {}
+): string | null {
 	if (!raw) return null;
 	// Control characters and whitespace are ignored by URL parsers, so they have
 	// to go before the scheme is read — `java\nscript:` is a working URL.
-	const cleaned = decodeEntities(String(raw))
+	const cleaned = (entities ? decodeEntities(String(raw)) : String(raw))
 		// eslint-disable-next-line no-control-regex
 		.replace(/[\u0000-\u0020\u007f]/g, '')
 		.trim();
@@ -143,6 +150,30 @@ export function sanitizeUrl(raw: string | null | undefined): string | null {
 	const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(cleaned);
 	if (!scheme) return cleaned;
 	return SAFE_SCHEMES.has(scheme[1].toLowerCase()) ? cleaned : null;
+}
+
+/**
+ * Strict counterpart of `sanitizeUrl` for URLs that leave this site: returns the
+ * trimmed URL only when it is an absolute `http(s)` URL, otherwise `null`.
+ *
+ * Use it for values taken from a remote document (aggregate / site index) where
+ * a relative URL has no meaning and `mailto:` / `tel:` are out of place. Unlike
+ * `sanitizeUrl` it does not decode entities — the input is a plain URL, not
+ * HTML, so `?a=1&tab=2` must come back untouched. Anything with whitespace or
+ * control characters inside is rejected rather than repaired.
+ */
+export function sanitizeHttpUrl(raw: unknown): string | null {
+	if (typeof raw !== 'string') return null;
+	const trimmed = raw.trim();
+	// eslint-disable-next-line no-control-regex
+	if (!trimmed || /[\u0000- \u007f]/.test(trimmed)) return null;
+	if (!/^https?:\/\//i.test(trimmed)) return null;
+	try {
+		new URL(trimmed);
+	} catch {
+		return null;
+	}
+	return trimmed;
 }
 
 interface ParsedTag {

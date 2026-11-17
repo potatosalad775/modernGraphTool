@@ -151,6 +151,131 @@ describe('parseStateParam', () => {
 	});
 });
 
+describe('parseStateParam shape validation', () => {
+	const decode = (json: string) => parseStateParam(Base62.encode(json));
+	const band = { enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 };
+
+	it('drops an eq object with no filters list instead of returning it', () => {
+		expect(decode('{"eq":{}}')!.eq).toBeUndefined();
+		expect(decode('{"eq":{"preamp":-3}}')!.eq).toBeUndefined();
+	});
+
+	it('drops an eq whose filters is not an array, keeping the rest of the state', () => {
+		const state = decode('{"yScale":80,"eq":{"filters":"x","preamp":0}}')!;
+		expect(state.eq).toBeUndefined();
+		expect(state.yScale).toBe(80);
+		expect(decode('{"eq":"x"}')!.eq).toBeUndefined();
+		expect(decode('{"eq":[1]}')!.eq).toBeUndefined();
+	});
+
+	it('caps the filter list at 32 bands and keeps the first ones', () => {
+		const filters = Array.from({ length: 100 }, (_, i) => ({ ...band, freq: 100 + i }));
+		const state = decode(JSON.stringify({ eq: { filters, preamp: -1 } }))!;
+		expect(state.eq!.filters).toHaveLength(32);
+		expect(state.eq!.filters[0].freq).toBe(100);
+		expect(state.eq!.filters[31].freq).toBe(131);
+	});
+
+	it('skips a malformed band and keeps its neighbours', () => {
+		const filters = [
+			band,
+			{ ...band, freq: 'abc' },
+			{ ...band, type: 'XX' },
+			{ ...band, enabled: 'yes' },
+			null,
+			'x',
+			{ ...band, freq: 2000 }
+		];
+		const state = decode(JSON.stringify({ eq: { filters, preamp: 0 } }))!;
+		expect(state.eq!.filters.map((f) => f.freq)).toEqual([1000, 2000]);
+	});
+
+	it('reads an unknown channel as a shared band rather than dropping it', () => {
+		const state = decode(
+			JSON.stringify({
+				eq: {
+					filters: [
+						{ ...band, channel: 'X' },
+						{ ...band, channel: 'R' }
+					]
+				}
+			})
+		)!;
+		expect(state.eq!.filters[0].channel).toBeUndefined();
+		expect(state.eq!.filters[1].channel).toBe('R');
+	});
+
+	it('ignores non-finite or non-numeric yScale, preamp and offsets', () => {
+		// NaN and Infinity serialize to null; strings and objects stay as they are.
+		const state = decode(
+			JSON.stringify({
+				yScale: 'big',
+				eq: { filters: [band], preamp: null },
+				yOffsets: { a: NaN, b: 'x', c: {}, d: Infinity, e: 4 }
+			})
+		)!;
+		expect(state.yScale).toBeUndefined();
+		expect(state.eq!.preamp).toBe(0);
+		expect(state.yOffsets).toEqual({ e: 4 });
+		expect(decode('{"yScale":null}')!.yScale).toBeUndefined();
+	});
+
+	it('drops yOffsets that is not a record', () => {
+		expect(decode('{"yOffsets":[1,2]}')!.yOffsets).toBeUndefined();
+		expect(decode('{"yOffsets":"x"}')!.yOffsets).toBeUndefined();
+		expect(decode('{"yOffsets":{"a":"x"}}')!.yOffsets).toBeUndefined();
+	});
+
+	it('never lets a __proto__ key reach the prototype, and keeps constructor as a plain key', () => {
+		const state = decode('{"yOffsets":{"__proto__":5,"constructor":3,"a":1}}')!;
+		expect(Object.getPrototypeOf(state.yOffsets)).toBe(Object.prototype);
+		expect(Object.keys(state.yOffsets!).sort()).toEqual(['a', 'constructor']);
+		expect(Object.hasOwn(state.yOffsets!, 'constructor')).toBe(true);
+		expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+
+		const display = normalizeSampleDisplay(
+			decode('{"sampleDisplay":{"__proto__":{"keys":["sample0_L"]},"a":["L1"]}}')!
+		);
+		expect(Object.keys(display)).toEqual(['a']);
+		expect(Object.getPrototypeOf(display)).toBe(Object.prototype);
+	});
+
+	it('drops a baseline that is not a { key, mode } pair', () => {
+		expect(decode('{"baseline":"x"}')!.baseline).toBeUndefined();
+		expect(decode('{"baseline":{"key":1,"mode":"withAdjustment"}}')!.baseline).toBeUndefined();
+		expect(decode('{"baseline":{"key":"A"}}')!.baseline).toBeUndefined();
+	});
+
+	it('survives garbage in the sample-display sections', () => {
+		const state = decode(
+			'{"sampleDisplay":{"a":null,"b":7,"c":{"keys":"x","fill":"y"}},"hptfDisplay":{"d":null,"e":{"keys":["bad","sample0_L"]}}}'
+		)!;
+		expect(normalizeSampleDisplay(state)).toEqual({
+			c: { keys: [], fill: false, avg: true },
+			e: { keys: ['sample0_L'], fill: false, avg: true }
+		});
+		expect(decode('{"sampleDisplay":"x","hptfDisplay":[1]}')!.sampleDisplay).toBeUndefined();
+	});
+
+	it('round-trips what the encoder writes', () => {
+		const state: URLState = {
+			yScale: 80,
+			baseline: { key: 'Phone A', mode: 'withAdjustment' },
+			yOffsets: { 'Phone A': -2.5 },
+			sampleDisplay: { 'Phone A': { keys: ['sample0_L', 'sample1_AVG'], fill: true, avg: false } },
+			eq: {
+				filters: [
+					{ enabled: true, type: 'PK', freq: 1000, q: 1.4, gain: -3 },
+					{ enabled: false, type: 'HPQ', freq: 80, q: 0.7, gain: null },
+					{ enabled: true, type: 'LSQ', freq: 100, q: 0.7, gain: 5, channel: 'L' }
+				],
+				preamp: -2
+			}
+		};
+		expect(decode(JSON.stringify(state))).toEqual(state);
+	});
+});
+
 describe('encodeShareNames', () => {
 	it('percent-encodes characters that would otherwise break the query string', () => {
 		// `encodeURI` leaves all three of these alone, which is why it could not be

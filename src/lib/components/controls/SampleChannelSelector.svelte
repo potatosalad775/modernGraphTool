@@ -19,7 +19,9 @@
 	import Button from '../atoms/Button.svelte';
 	import { ChevronDown, Ellipsis } from '@lucide/svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; set inside a list of rows, it keeps every
+	// trigger from announcing the bare channel ("L + R") with nothing to say whose it is.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
 
 	// ── Channel options derived from item data ──────────────────────────────────
 
@@ -34,6 +36,11 @@
 		const opt = options.find((o) => o.value === val);
 		return opt ? opt.label : val;
 	});
+
+	// Starts with the visible label, so voice control can still say what the button reads (WCAG 2.5.3).
+	let triggerName = $derived(
+		name ? m.selection_list_channel_samples_named({ channel: triggerLabel, name }) : undefined
+	);
 
 	// ── Sample-set state ────────────────────────────────────────────────────────
 
@@ -142,6 +149,7 @@
 			<Button
 				{...props}
 				label={triggerLabel}
+				aria-label={triggerName}
 				variant="outline"
 				size="sm"
 				class="h-7 min-w-14 justify-between gap-1 rounded-sm bg-base-200 px-2 hover:bg-base-content/10"
@@ -166,7 +174,7 @@
 				the hover readout and the EQ overlay.
 			-->
 			<fieldset class="mb-0">
-				<legend class="mb-1 px-1.5 text-xs font-medium text-base-content/60">
+				<legend class="mb-1 px-1.5 text-xs font-medium text-base-content/80">
 					{m.selection_list_channel_header()}
 				</legend>
 				<div class="flex flex-wrap gap-x-1">
@@ -192,7 +200,7 @@
 			<!-- Section 2: Sample set — one section for every kind of set -->
 			{#if sampleRows.length > 0}
 				<div class="mt-2 border-t border-base-content/8 pt-2">
-					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/60">
+					<p class="mb-1.5 px-1.5 text-xs font-medium text-base-content/80">
 						{m.selection_list_samples_header()} ({sampleRows.length})
 					</p>
 
@@ -246,7 +254,7 @@
 							/>
 						{/snippet}
 						{#if selectedRunCount > 0}
-							<span class="ml-auto shrink-0 text-base-content/60">{selectedRunCount}</span>
+							<span class="ml-auto shrink-0 text-base-content/80">{selectedRunCount}</span>
 						{/if}
 					</Button>
 

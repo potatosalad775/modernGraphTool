@@ -5,6 +5,7 @@ import AppShell from './AppShell.svelte';
 import { appStore } from '#lib/stores/app-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 import { preferenceBoundStore } from '#lib/stores/preference-bound-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { loadDefaultConfig, installWriteBudget } from './app-boot-harness.js';
@@ -57,6 +58,23 @@ describe('AppShell boot (mobile)', () => {
 		// default — the first configured bound.
 		expect(preferenceBoundStore.isEnabled).toBe(true);
 		expect(preferenceBoundStore.selectedName).toBe(preferenceBoundStore.entries[0].name);
+	}, 30000);
+
+	it('lists the graph skip link first and names the open panel', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
+		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to graph', 'Skip to controls']);
+		await expect
+			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
+			.toHaveTextContent('GRAPH');
+		// A first visit opens the welcome tour, whose dialog traps focus; the skip link is for
+		// the page behind it.
+		tutorialStore.dismiss();
+		await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+		links[0].click();
+		expect(document.activeElement?.id).toBe('app-graph-region');
 	}, 30000);
 
 	it('renders the operator defaults on a phone-sized viewport', async () => {

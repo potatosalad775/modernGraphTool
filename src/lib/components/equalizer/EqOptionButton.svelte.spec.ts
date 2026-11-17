@@ -103,6 +103,20 @@ describe('EqOptionButton', () => {
 		expect(page.getByLabelText(m.eq_constraint_search_placeholder()).elements()).toHaveLength(0);
 	});
 
+	it('names the panel and switches off text correction on the search box', async () => {
+		await open();
+
+		await expect
+			.element(page.getByRole('dialog', { name: m.eq_constraint_button() }))
+			.toBeVisible();
+		const input = search();
+		await expect.element(input).toHaveAttribute('autocomplete', 'off');
+		await expect.element(input).toHaveAttribute('autocorrect', 'off');
+		await expect.element(input).toHaveAttribute('autocapitalize', 'none');
+		await expect.element(input).toHaveAttribute('spellcheck', 'false');
+		await expect.element(input).toHaveAttribute('enterkeyhint', 'search');
+	});
+
 	it('names the active preset in the panel header', async () => {
 		eqConstraintsStore.activeId = DEVICE_PRESET.id;
 		await open();

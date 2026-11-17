@@ -86,6 +86,21 @@
 				/>
 			{/if}
 		</div>
+		<div class="ceFieldGroup">
+			<label class="ceLabel" for="{id}-title-alt">
+				Name as text
+				<span class="ceLabelHint"
+					>optional — for an image or HTML title, read by screen readers</span
+				>
+			</label>
+			<input
+				id="{id}-title-alt"
+				type="text"
+				class="ceInput"
+				bind:value={config.TOPBAR.TITLE.ALT}
+				placeholder="Site Title"
+			/>
+		</div>
 	</div>
 
 	<div class="ceFieldGroup">

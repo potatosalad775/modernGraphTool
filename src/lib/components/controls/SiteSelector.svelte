@@ -5,8 +5,11 @@
 	import { siteIndexService } from '#lib/services/site-index.svelte.js';
 	import { dbTypeLabel } from '#lib/services/aggregate-index-core.js';
 	import { getSiteSelectorConfig } from '#lib/services/site-index-core.js';
-	import { Select } from 'bits-ui';
+	import Button from '#lib/components/atoms/Button.svelte';
+	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
+	import Input from '#lib/components/atoms/Input.svelte';
 	import { ChevronDown } from '@lucide/svelte';
+	import { untrack } from 'svelte';
 
 	const config = getSiteSelectorConfig();
 
@@ -38,65 +41,261 @@
 
 	const groups = $derived(siteIndexService.groups);
 
-	const flatItems = $derived(
-		groups.flatMap((group) =>
-			group.entries.map((entry) => ({ value: entry.dbId, label: entry.siteName }))
-		)
+	const triggerLabel = $derived(siteIndexService.currentEntry?.siteName ?? m.site_selector_label());
+	// The visible text is the site name, so the accessible name has to contain it (WCAG 2.5.3).
+	const triggerAriaLabel = $derived(
+		siteIndexService.currentEntry
+			? `${m.site_selector_label()}: ${siteIndexService.currentEntry.siteName}`
+			: m.site_selector_label()
 	);
 
-	const triggerLabel = $derived(siteIndexService.currentEntry?.siteName ?? m.site_selector_label());
+	const uid = $props.id();
+	let open = $state(false);
+	let query = $state('');
+	let rootEl = $state<HTMLElement>();
+	let listEl = $state<HTMLElement>();
+
+	/** Fewer entries than this and a filter field is clutter; the arrow keys work either way. */
+	const FILTER_MIN_ENTRIES = 8;
+	const showFilter = $derived(siteIndexService.entries.length > FILTER_MIN_ENTRIES);
+
+	// Every open starts from the full list.
+	$effect(() => {
+		if (!open) query = '';
+	});
+
+	/** Case- and accent-insensitive, so "ecole" finds "École". */
+	function fold(text: string): string {
+		return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+	}
+
+	const needle = $derived(showFilter ? fold(query.trim()) : '');
+
+	const visibleGroups = $derived(
+		needle === ''
+			? groups
+			: groups
+					.map((group) => ({
+						...group,
+						entries: group.entries.filter((entry) => fold(entry.siteName).includes(needle))
+					}))
+					.filter((group) => group.entries.length > 0)
+	);
+
+	const noteId = `${uid}-unverified-note`;
+	const hasUnverified = $derived(
+		visibleGroups.some((group) => group.entries.some((entry) => !entry.verified))
+	);
+
+	const visibleCount = $derived(
+		visibleGroups.reduce((sum, group) => sum + group.entries.length, 0)
+	);
+
+	// ── Result count announcement ───────────────────────────────────────────────
+	// Same pattern as PhoneSelector: one polite live region, swapped only once typing
+	// pauses so mid-word keystrokes never reach it, and silent while no filter is active.
+	const ANNOUNCE_DELAY_MS = 600;
+	let resultAnnouncement = $state('');
+
+	$effect(() => {
+		const count = visibleCount;
+		if (needle === '') {
+			resultAnnouncement = '';
+			return;
+		}
+		const timer = setTimeout(() => {
+			resultAnnouncement =
+				count === 0 ? m.site_selector_no_results() : m.site_selector_result_count({ count });
+		}, ANNOUNCE_DELAY_MS);
+		return () => clearTimeout(timer);
+	});
+
+	// ── Focus and keyboard ──────────────────────────────────────────────────────
+
+	/** Focuses the filter as the panel opens. Not for a short list, which has no field. */
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
+
+	/** Brings the current site into view on open, unless a filter is already narrowing the list. */
+	function revealCurrent(node: HTMLElement) {
+		if (untrack(() => needle) !== '') return;
+		node.scrollIntoView({ block: 'center' });
+	}
+
+	function filterInput(): HTMLInputElement | null {
+		return rootEl?.querySelector('input') ?? null;
+	}
+
+	function links(): HTMLAnchorElement[] {
+		return listEl ? Array.from(listEl.querySelectorAll<HTMLAnchorElement>('a[href]')) : [];
+	}
+
+	/**
+	 * Arrow keys rove focus over the links; they stay plain anchors in the tab order. Only
+	 * the arrows, Home and End are intercepted: Enter and clicks are never touched, so the
+	 * native activation (and middle-click, open-in-new-tab) keeps working.
+	 */
+	function onkeydown(event: KeyboardEvent) {
+		if (event.ctrlKey || event.metaKey || event.altKey) return;
+		const target = event.target as HTMLElement;
+		const all = links();
+
+		if (target instanceof HTMLInputElement) {
+			if (event.key === 'ArrowDown' && all.length > 0) {
+				event.preventDefault();
+				all[0].focus();
+			}
+			return;
+		}
+
+		const index = target instanceof HTMLAnchorElement ? all.indexOf(target) : -1;
+		if (index === -1) return;
+
+		let next: HTMLElement | undefined;
+		switch (event.key) {
+			case 'ArrowDown':
+				next = all[Math.min(index + 1, all.length - 1)];
+				break;
+			case 'ArrowUp':
+				next = index === 0 ? (filterInput() ?? all[0]) : all[index - 1];
+				break;
+			case 'Home':
+				next = all[0];
+				break;
+			case 'End':
+				next = all[all.length - 1];
+				break;
+			default:
+				// A printable key hands focus to the field, where the character then lands.
+				if (showFilter && event.key.length === 1 && event.key !== ' ') {
+					filterInput()?.focus();
+				}
+				return;
+		}
+		event.preventDefault();
+		next?.focus();
+	}
 </script>
 
-{#if isVisible}
-	<Select.Root type="single" value={siteIndexService.currentDbId ?? ''} items={flatItems}>
-		<Select.Trigger
-			aria-label={m.site_selector_label()}
-			class="inline-flex min-w-36 items-center justify-between gap-1 rounded border
-				border-base-content/20 bg-base-200 px-2 py-1 text-sm focus:ring-1 focus:ring-accent focus:outline-none"
-		>
-			{triggerLabel}
-			<ChevronDown class="h-3 w-3 shrink-0 text-base-content/60" />
-		</Select.Trigger>
+{#snippet unverifiedBadge()}
+	<span
+		class="shrink-0 rounded border border-base-content/30 px-1 text-xs font-normal text-base-content/80"
+	>
+		{m.site_selector_unverified_badge()}
+	</span>
+{/snippet}
 
-		<Select.Content
-			side="bottom"
-			sideOffset={4}
-			class="z-50 max-h-80 overflow-y-auto rounded-lg border border-base-content/15
-				bg-base-200 p-1 shadow-xl"
-			style="min-width: 12rem;"
-		>
-			<Select.Viewport class="scroll-pt-6.5">
-				{#each groups as group (group.type)}
-					<Select.Group>
-						<Select.GroupHeading
-							class="sticky top-0 z-10 bg-base-200 px-2 py-1 text-[12px] font-semibold tracking-wider
-								text-base-content/50 uppercase"
+{#if isVisible}
+	<!--
+		A popover of plain links, not a Select: the entries navigate, so they must be real
+		anchors (Enter, announced as links, middle-click / open-in-new-tab). A Select's
+		items are `role="option"` and its keyboard activation only toggles the value, so
+		it never followed the link. The list is capped to the viewport and scrolls inside.
+	-->
+	<PopoverPanel
+		bind:open
+		side="bottom"
+		sideOffset={4}
+		label={m.site_selector_label()}
+		contentClass="flex flex-col overflow-hidden p-0 {showFilter
+			? 'w-64'
+			: 'min-w-48'} max-h-[min(20rem,var(--bits-popover-content-available-height))]"
+	>
+		{#snippet trigger({ props })}
+			<Button
+				{...props}
+				label={triggerLabel}
+				aria-label={triggerAriaLabel}
+				variant="ghost"
+				size="sm"
+				class="min-w-36 justify-between gap-1 rounded border border-base-content/20 bg-base-200 px-2
+					py-1 text-sm font-normal hover:bg-base-300"
+			>
+				<ChevronDown class="h-3 w-3 shrink-0 text-base-content/60" aria-hidden="true" />
+			</Button>
+		{/snippet}
+
+		<!-- The keydown only roves focus on the arrows; see `onkeydown`. -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div bind:this={rootEl} {onkeydown} class="flex min-h-0 flex-col">
+			{#if showFilter}
+				<div class="shrink-0 border-b border-base-content/15 p-1.5">
+					<Input
+						type="search"
+						bind:value={query}
+						aria-label={m.site_selector_filter_label()}
+						placeholder={m.site_selector_filter_label()}
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="none"
+						spellcheck={false}
+						enterkeyhint="search"
+						{@attach focusOnMount}
+					/>
+				</div>
+			{/if}
+
+			<!-- Debounced result count for screen readers; see "Result count announcement". -->
+			<p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+				{resultAnnouncement}
+			</p>
+
+			<div bind:this={listEl} class="min-h-0 scroll-pt-7 overflow-y-auto px-1.5">
+				{#each visibleGroups as group (group.type)}
+					<section aria-labelledby="{uid}-{group.type}">
+						<h3
+							id="{uid}-{group.type}"
+							class="sticky top-0 z-10 bg-base-200 p-2 text-xs font-semibold tracking-wider
+								text-base-content/80 uppercase"
 						>
 							{dbTypeLabel(group.type)}
-						</Select.GroupHeading>
-
-						{#each group.entries as entry (entry.dbId)}
-							<Select.Item value={entry.dbId} label={entry.siteName}>
-								{#snippet child({ props, selected })}
+						</h3>
+						<ul class="flex flex-col">
+							{#each group.entries as entry (entry.dbId)}
+								{@const current = entry.dbId === siteIndexService.currentDbId}
+								<li>
 									<a
-										{...props}
 										href={entry.url}
 										target="_blank"
 										rel="external noopener noreferrer"
-										title={entry.verified ? undefined : m.site_selector_unverified()}
-										class="block cursor-pointer rounded px-2 py-1 text-sm text-base-content
-											no-underline outline-none data-highlighted:bg-base-300
-											{selected ? 'font-medium text-accent' : ''}
-											{entry.verified ? '' : 'opacity-50'}"
+										aria-current={current ? 'page' : undefined}
+										aria-describedby={entry.verified ? undefined : noteId}
+										onclick={() => (open = false)}
+										{@attach current ? revealCurrent : undefined}
+										class="flex cursor-pointer items-center justify-between gap-2 rounded px-2 py-1
+											text-sm text-base-content no-underline hover:bg-base-300
+											focus-visible:bg-base-300 focus-visible:ring-1 focus-visible:ring-accent
+											focus-visible:outline-hidden
+											{current ? 'font-medium text-accent' : ''}"
 									>
 										{entry.siteName}
+										{#if !entry.verified}
+											{@render unverifiedBadge()}
+										{/if}
 									</a>
-								{/snippet}
-							</Select.Item>
-						{/each}
-					</Select.Group>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{:else}
+					<p class="px-2 py-2 text-center text-sm text-base-content/80">
+						{m.site_selector_no_results()}
+					</p>
 				{/each}
-			</Select.Viewport>
-		</Select.Content>
-	</Select.Root>
+			</div>
+
+			<!--
+				The explanation for the badge, once, in view and not in a tooltip (a `title` never
+				opens from the keyboard or by touch). Each unverified link points at it with
+				`aria-describedby`, so a screen reader reads it on focus.
+			-->
+			{#if hasUnverified}
+				<p class="shrink-0 border-t border-base-content/15 px-3 py-2 text-xs text-base-content/80">
+					{@render unverifiedBadge()}
+					<span id={noteId}>{m.site_selector_unverified()}</span>
+				</p>
+			{/if}
+		</div>
+	</PopoverPanel>
 {/if}

@@ -43,6 +43,8 @@ export interface ThemePalette {
 	graphGridText: string;
 	graphBaseline: string;
 	graphCompare: string;
+	// Overlay (fixed per mode)
+	scrim: string;
 }
 
 export interface PaletteInputs {
@@ -177,10 +179,26 @@ function clamp(min: number, val: number, max: number): number {
 	return Math.min(max, Math.max(min, val));
 }
 
+/** WCAG 2.x relative luminance of an OKLCH colour, clipped to sRGB. */
+function relativeLuminance({ l, c, h }: OklchColor): number {
+	const hRad = (h * Math.PI) / 180;
+	const [r, g, b] = oklabToLinearRgb(l, c * Math.cos(hRad), c * Math.sin(hRad));
+	const clip = (v: number) => Math.min(1, Math.max(0, v));
+	return 0.2126 * clip(r) + 0.7152 * clip(g) + 0.0722 * clip(b);
+}
+
+export function contrastRatio(a: OklchColor, b: OklchColor): number {
+	const [x, y] = [relativeLuminance(a), relativeLuminance(b)].sort((p, q) => q - p);
+	return (x + 0.05) / (y + 0.05);
+}
+
 export function generateContentColor(base: OklchColor, mode: 'light' | 'dark'): OklchColor {
 	if (mode === 'light') {
-		// Light content on medium-lightness backgrounds → very light, low chroma
-		return { l: 0.97, c: base.c * 0.15, h: base.h };
+		// Light ink on a dark fill, dark ink on a light one: whichever reads better.
+		// A fixed light ink left amber and lime fills at under 2:1.
+		const light: OklchColor = { l: 0.98, c: base.c * 0.1, h: base.h };
+		const dark: OklchColor = { l: 0.24, c: base.c * 0.3, h: base.h };
+		return contrastRatio(light, base) >= contrastRatio(dark, base) ? light : dark;
 	}
 	// Dark mode semantic colors are bright → content must be dark for contrast
 	return { l: clamp(0.15, base.l * 0.22, 0.42), c: base.c * 0.5, h: base.h };
@@ -188,7 +206,7 @@ export function generateContentColor(base: OklchColor, mode: 'light' | 'dark'): 
 
 export function generateDarkVariant(lightColor: OklchColor): OklchColor {
 	return {
-		l: clamp(0.7, 1.0 - lightColor.l + 0.25, 0.88),
+		l: clamp(0.8, 1.0 - lightColor.l + 0.25, 0.88),
 		c: lightColor.c,
 		h: lightColor.h
 	};
@@ -246,16 +264,18 @@ interface BaseColors {
  * at this role's own lightness".
  *
  * Measured against the shipped `defaults/theme.css`: at hue 248 every light
- * role sits at ~0.30 of its gamut, so they are all 1.0 and the 0.30 default
+ * surface sits at ~0.30 of its gamut, so it is 1.0 and the 0.30 default
  * reproduces the shipped theme. Dark surfaces sit near 0.13 — the same share
- * reads far stronger against a dark ground — so they carry 0.45, and dark text
- * lands between the two.
+ * reads far stronger against a dark ground — so they carry 0.45. The text
+ * colours are the odd ones out: at L 17% sRGB holds so little chroma that the
+ * shipped 0.042 is 1.2 times the share. Dark text stays at 1 — at L 93% a
+ * larger share would clamp and stop responding to the saturation slider.
  */
 const TINT_SHARE = {
 	lightSurface: 1,
-	lightContent: 1,
+	lightContent: 1.2,
 	darkSurface: 0.45,
-	darkContent: 0.88
+	darkContent: 1
 };
 
 /** Lightness steps from `base-100` down to `-200` / `-300`, per mode. */
@@ -286,13 +306,13 @@ export function generateBaseScale(
 			base100: tinted(lightL + SURFACE_STEPS.light[0], hue, s * TINT_SHARE.lightSurface),
 			base200: tinted(lightL + SURFACE_STEPS.light[1], hue, s * TINT_SHARE.lightSurface),
 			base300: tinted(lightL + SURFACE_STEPS.light[2], hue + 8, s * TINT_SHARE.lightSurface),
-			baseContent: tinted(0.2, hue + 18, s * TINT_SHARE.lightContent)
+			baseContent: tinted(0.17, hue + 18, s * TINT_SHARE.lightContent)
 		},
 		dark: {
 			base100: tinted(darkL + SURFACE_STEPS.dark[0], hue + 16, s * TINT_SHARE.darkSurface),
 			base200: tinted(darkL + SURFACE_STEPS.dark[1], hue + 16, s * TINT_SHARE.darkSurface),
 			base300: tinted(darkL + SURFACE_STEPS.dark[2], hue + 14, s * TINT_SHARE.darkSurface),
-			baseContent: tinted(0.83, hue - 25, s * TINT_SHARE.darkContent)
+			baseContent: tinted(0.93, hue - 25, s * TINT_SHARE.darkContent)
 		}
 	};
 }
@@ -327,8 +347,8 @@ const GRAPH_LIGHT = {
 	graphWatermarkOpacity: '0.08',
 	graphGridMajor: 'rgba(0, 0, 0, 0.15)',
 	graphGridMinor: 'rgba(0, 0, 0, 0.06)',
-	graphAxisLabel: 'rgba(0, 0, 0, 0.6)',
-	graphGridText: 'rgba(0, 0, 0, 0.5)',
+	graphAxisLabel: 'rgba(0, 0, 0, 0.7)',
+	graphGridText: 'rgba(0, 0, 0, 0.58)',
 	graphBaseline: 'rgba(0, 0, 0, 0.25)',
 	graphCompare: 'rgba(0, 0, 0, 0.55)'
 };
@@ -338,11 +358,16 @@ const GRAPH_DARK = {
 	graphWatermarkOpacity: '0.08',
 	graphGridMajor: 'rgba(255, 255, 255, 0.15)',
 	graphGridMinor: 'rgba(255, 255, 255, 0.06)',
-	graphAxisLabel: 'rgba(255, 255, 255, 0.6)',
-	graphGridText: 'rgba(255, 255, 255, 0.5)',
+	graphAxisLabel: 'rgba(255, 255, 255, 0.72)',
+	graphGridText: 'rgba(255, 255, 255, 0.6)',
 	graphBaseline: 'rgba(255, 255, 255, 0.25)',
 	graphCompare: 'rgba(255, 255, 255, 0.55)'
 };
+
+// ── Overlay token (fixed) ────────────────────────────────────────────────────
+
+/** The veil behind dialogs, the mobile menu and the guided tour: 40% black in both modes. */
+const SCRIM = 'oklch(0% 0 0 / 40%)';
 
 // ── Full palette generation ──────────────────────────────────────────────────
 
@@ -405,7 +430,8 @@ export function generateFullPalette(inputs: PaletteInputs): {
 			warningContent: warning.content,
 			error: error.color,
 			errorContent: error.content,
-			...graph
+			...graph,
+			scrim: SCRIM
 		};
 	}
 
@@ -422,11 +448,11 @@ export const DEFAULT_INPUTS: PaletteInputs = {
 	baseSaturation: DEFAULT_BASE_SATURATION,
 	baseLightnessLight: DEFAULT_BASE_LIGHTNESS_LIGHT,
 	baseLightnessDark: DEFAULT_BASE_LIGHTNESS_DARK,
-	primary: oklchToHex({ l: 0.59, c: 0.145, h: 163.225 }),
-	secondary: oklchToHex({ l: 0.6, c: 0.126, h: 221.723 }),
+	primary: oklchToHex({ l: 0.52, c: 0.111, h: 163.225 }),
+	secondary: oklchToHex({ l: 0.53, c: 0.098, h: 221.723 }),
 	accent: oklchToHex({ l: 0.44, c: 0.017, h: 285.786 }),
-	info: oklchToHex({ l: 0.68, c: 0.169, h: 237.323 }),
-	success: oklchToHex({ l: 0.76, c: 0.233, h: 130.85 }),
-	warning: oklchToHex({ l: 0.79, c: 0.184, h: 86.047 }),
-	error: oklchToHex({ l: 0.64, c: 0.246, h: 16.439 })
+	info: oklchToHex({ l: 0.53, c: 0.115, h: 237.323 }),
+	success: oklchToHex({ l: 0.525, c: 0.143, h: 130.85 }),
+	warning: oklchToHex({ l: 0.8, c: 0.16, h: 86.047 }),
+	error: oklchToHex({ l: 0.56, c: 0.2, h: 16.439 })
 };

@@ -46,6 +46,10 @@ export const frStore = new FRDataStore();
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound
   directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by
   `GraphContainer`/`GraphSpectrumOverlay`
+- `audio-playback-store.svelte.ts` — `isPlaying`, the audio player's playing flag, the single source of
+  truth behind `audioPlayerService.isPlaying`. Written only by the service. It exists so boot-bundle
+  code (`keyboard-shortcuts.ts`) can read the flag without importing the audio engine; keep it free
+  of imports
 - `device-peq-store.svelte.ts` — the connected EQ device (`DeviceConnection`), target preset, busy flags
 - `link-store.svelte.ts` — the uniPEQ link as the UI sees it: phase, room, uniPEQ's device and status,
   the start dialog's question. Written only by `services/link-service.svelte.ts`
@@ -57,9 +61,34 @@ export const frStore = new FRDataStore();
   Hydrated once from `AppShell.onMount`
 - `squiglink-store.svelte.ts` — squig.link domain guard, sponsor content and shop links. The site
   registry and phone-book crawl it used to own moved to `services/site-index.svelte.ts` and
-  `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`
+  `services/aggregate-index.svelte.ts` respectively — both host-agnostic; see `services/AGENTS.md`.
+  **Nothing fetched from squig.link is executed.** `squiglink-intro.js` / `shoplinks.js` are CrinGraph
+  scripts declaring `let contentSponsor = [ … ]` / `let sponsorDetails = { … }`; the store reads only
+  that literal through `utils/js-literal.ts` (which rejects anything but plain data, never `eval`s),
+  so no CSP needs `'unsafe-eval'`. Every value then passes a checker in the store before it reaches
+  a component: URLs through `sanitizeHttpUrl` (a failure drops the field — `''` for required ones),
+  `sponsorId` kept as published unless it could not name a cookie (`;`, `=`, `,`, control
+  characters, over 64 long), `utmParams` anything starting `?` or `&`, stored as `?…` with unsafe
+  characters percent-encoded. A dropped value is logged. So `ShopLink` / `SponsorBanner` never
+  re-check (they only encode the id for its URL parameter and pick `?` or `&` for the join).
+  `squiglink-intro.js` has a 10 s timeout: `sponsorBlocking` holds the version toast until it settles. Keep it that way when adding a field. Shop-link
+  fetches are `priority: 'low'`; `squiglink-intro.js` and the creative are boot-critical and are not
 
 ## Invariants worth keeping
+
+**`settings-store.svelte.ts` — the theme has one precedence rule, in two places.** Stored
+`gt-settings-theme` (or the legacy `gt-theme`), else `INTERFACE.PREFERRED_DARK_MODE_THEME`
+(`'dark'`; `'system'` = the OS, also the value when the key is absent), else light. The same rule runs as
+a tiny inline script in `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` so
+`.dark` is on `<html>` before first paint; change the store and all three scripts together. The
+three scripts are byte-identical on purpose (one CSP hash); `theme` starts from the `.dark` class
+the script left, so nothing flips on the first paint; only the Misc panel's toggle cross-fades
+(`crossFade` in `utils/motion.svelte.ts`). `followsSystem` is
+true with no stored choice and an operator default of `'system'`: the theme then tracks
+`matchMedia` `change`. There is no third UI state: `setTheme` stores nothing when the choice
+equals the OS's current theme (and the default is `'system'`), so the same toggle is the way back.
+A fixed operator default (`light` / `dark`) keeps the old always-store behaviour. The `storage`
+event keeps tabs in step.
 
 **`eq-constraints-store.svelte.ts` — constraints are eqcaps profiles; the catalog is eqcaps'.**
 Each entry (`EqConstraintPreset`) wraps an eqcaps `Profile` — per-slot types and domains, steps and
@@ -68,7 +97,9 @@ value sets, rules, preamp — and every check goes through `utils/eq-constraint.
 10-band graphic), the connected device (`setDeviceConstraint`, session-only), and a profile picked
 from the eqcaps database in `EqOptionButton` (`addCatalogProfile`, stored with its profile under
 `gt-eq-constraint-catalog` so a saved `eqcaps:` id resolves on first paint, offline, with nothing
-fetched at boot).
+fetched at boot). The stored pick is untrusted (shared origin): `restoreCatalog` runs it through
+`validateProfile` + `resolveSlot` (`isUsableProfile`) and removes the entry when it fails. The key
+stays unprefixed so existing users' picks still load.
 
 - **Don't reintroduce a bundled or config-authored device list.** One used to exist (a bundled
   `eq-constraints.json`, an `EQ` config section, a phone-name auto-match) and was removed: it went

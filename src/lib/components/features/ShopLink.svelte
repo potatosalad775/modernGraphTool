@@ -16,6 +16,11 @@
 
 	let productData = $state<SponsorProductData | null>(null);
 
+	/** `utm` is '' or `?a=b` (the store's shape); a URL with a query of its own takes it with `&`. */
+	function withUtmParams(url: string, utm: string): string {
+		return utm && url.includes('?') ? `${url}&${utm.slice(1)}` : url + utm;
+	}
+
 	const shopLink = $derived.by(() => {
 		if (!squiglinkStore.isEnabled || squiglinkStore.isCurrentSiteOptedOut) return null;
 
@@ -29,7 +34,7 @@
 
 		return {
 			model: phone.identifier,
-			url: match.hfg_com + (sponsorDetail?.utmParams ?? ''),
+			url: withUtmParams(match.hfg_com, sponsorDetail?.utmParams ?? ''),
 			sponsorName: sponsorDetail?.sponsorName ?? null,
 			hfgUrl: match.hfg_com
 		};
@@ -48,7 +53,12 @@
 
 	function handleClick() {
 		if (shopLink) {
-			analyticsService.trackGeneralEvent('shoplink_click', { model: shopLink.model });
+			analyticsService.trackGeneralEvent(
+				'shoplink_click',
+				{ model: shopLink.model },
+				// The detail squig.link's own shop-link script reports: "<sponsor>: <model>"
+				`${shopLink.sponsorName ?? ''}: ${shopLink.model}`
+			);
 		}
 	}
 </script>
@@ -60,7 +70,7 @@
 		rel="external noopener noreferrer"
 		onclick={handleClick}
 		class="flex h-(--toolbar-height) items-center gap-1.75 rounded-md bg-secondary px-2.5 py-1.5 text-xs
-			font-medium text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+			font-medium text-secondary-content transition-colors hover:bg-secondary/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden"
 	>
 		<ShoppingBag class="h-4 w-4" />
 		{m.shoplink_buy_now()}

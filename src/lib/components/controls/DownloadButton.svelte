@@ -6,7 +6,11 @@
 	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; set inside a list of rows, it keeps the
+	// trigger from announcing a bare "Download" on every one of them.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
+
+	let triggerLabel = $derived(name ? m.selection_list_download_named({ name }) : undefined);
 
 	// A plain curve has nothing to choose, so it stays one click. A sample set
 	// asks whether to take the runs too: `channels` holds only their average,
@@ -39,6 +43,7 @@
 			<Button
 				{...props}
 				title={m.selection_list_download()}
+				aria-label={triggerLabel}
 				variant="ghost"
 				size="icon"
 				activeOnOpen
@@ -60,7 +65,7 @@
 			>
 				<span
 					id="{uuid}-download-{option.runs ? 'all' : 'average'}"
-					class="text-xs text-base-content/60">{option.hint}</span
+					class="text-xs text-base-content/80">{option.hint}</span
 				>
 			</Button>
 		{/each}
@@ -68,6 +73,7 @@
 {:else}
 	<Button
 		title={m.selection_list_download()}
+		aria-label={triggerLabel}
 		onclick={() => download(false)}
 		variant="ghost"
 		size="icon"

@@ -164,6 +164,124 @@ describe('i18n-wrapped fields', () => {
 	});
 });
 
+describe('TOPBAR.TITLE.ALT', () => {
+	it('is left out of the output when empty', () => {
+		const source = formStateToConfigString(createDefaultConfig());
+		expect(parseV2Config(source).TOPBAR.TITLE).not.toHaveProperty('ALT');
+	});
+
+	it('round-trips a set value and trims it', () => {
+		const base = createDefaultConfig();
+		const original: ConfigFormState = {
+			...base,
+			TOPBAR: { ...base.TOPBAR, TITLE: { ...base.TOPBAR.TITLE, ALT: '  Acme Graphs ' } }
+		};
+		const source = formStateToConfigString(original);
+		expect(parseV2Config(source).TOPBAR.TITLE.ALT).toBe('Acme Graphs');
+		expect(roundTrip(original).TOPBAR.TITLE.ALT).toBe('Acme Graphs');
+	});
+
+	it('keeps the default text of a multilingual ALT on import', () => {
+		const state = configToFormState({
+			TOPBAR: {
+				TITLE: {
+					TYPE: 'IMAGE',
+					CONTENT: './logo.png',
+					ALT: { default: 'Acme Graphs', i18n: { ko: '에이크미 그래프' } }
+				}
+			}
+		});
+		expect(state.TOPBAR.TITLE.ALT).toBe('Acme Graphs');
+	});
+});
+
+describe('CDN_MODE.VERSION and BOOT_INTEGRITY', () => {
+	function withCdn(patch: Partial<ConfigFormState['CDN_MODE']>): ConfigFormState {
+		const base = createDefaultConfig();
+		return { ...base, CDN_MODE_ENABLED: true, CDN_MODE: { ...base.CDN_MODE, ...patch } };
+	}
+
+	it('leaves both keys out when empty', () => {
+		const cdn = parseV2Config(formStateToConfigString(withCdn({}))).CDN_MODE;
+		expect(cdn).not.toHaveProperty('VERSION');
+		expect(cdn).not.toHaveProperty('BOOT_INTEGRITY');
+	});
+
+	it('round-trips a pinned release with its hash', () => {
+		const original = withCdn({ VERSION: '2.3.4', BOOT_INTEGRITY: 'sha384-abc+/=' });
+		expect(parseV2Config(formStateToConfigString(original)).CDN_MODE).toMatchObject({
+			VERSION: '2.3.4',
+			BOOT_INTEGRITY: 'sha384-abc+/='
+		});
+		expect(roundTrip(original)).toEqual(original);
+	});
+
+	it('round-trips VERSION alone', () => {
+		const original = withCdn({ VERSION: '2.3.4' });
+		const cdn = parseV2Config(formStateToConfigString(original)).CDN_MODE;
+		expect(cdn).not.toHaveProperty('BOOT_INTEGRITY');
+		expect(roundTrip(original)).toEqual(original);
+	});
+
+	it('trims both values', () => {
+		const original = withCdn({ VERSION: ' 2.3.4 ', BOOT_INTEGRITY: ' sha384-abc ' });
+		expect(parseV2Config(formStateToConfigString(original)).CDN_MODE).toMatchObject({
+			VERSION: '2.3.4',
+			BOOT_INTEGRITY: 'sha384-abc'
+		});
+	});
+
+	it('drops BOOT_INTEGRITY when there is no VERSION, because the loader rejects it', () => {
+		const original = withCdn({ BOOT_INTEGRITY: 'sha384-abc' });
+		const cdn = parseV2Config(formStateToConfigString(original)).CDN_MODE;
+		expect(cdn).not.toHaveProperty('BOOT_INTEGRITY');
+		expect(roundTrip(original).CDN_MODE.BOOT_INTEGRITY).toBe('');
+	});
+
+	it('defaults both to empty on import when the config has none', () => {
+		const state = configToFormState({ CDN_MODE: { MAJOR_VERSION: 2 } });
+		expect(state.CDN_MODE.VERSION).toBe('');
+		expect(state.CDN_MODE.BOOT_INTEGRITY).toBe('');
+	});
+});
+
+describe('SQUIGLINK.ANALYTICS_CONSENT', () => {
+	function withConsent(value: 'granted' | 'denied'): ConfigFormState {
+		const base = createDefaultConfig();
+		return {
+			...base,
+			SQUIGLINK_ENABLED: true,
+			SQUIGLINK: { ...base.SQUIGLINK, ANALYTICS_CONSENT: value }
+		};
+	}
+
+	it('defaults to granted', () => {
+		expect(createDefaultConfig().SQUIGLINK.ANALYTICS_CONSENT).toBe('granted');
+		expect(configToFormState({ SQUIGLINK: {} }).SQUIGLINK.ANALYTICS_CONSENT).toBe('granted');
+	});
+
+	it('round-trips denied, and writes the key like its sibling keys', () => {
+		const original = withConsent('denied');
+		expect(parseV2Config(formStateToConfigString(original)).SQUIGLINK.ANALYTICS_CONSENT).toBe(
+			'denied'
+		);
+		expect(roundTrip(original)).toEqual(original);
+	});
+
+	it('round-trips granted', () => {
+		const original = withConsent('granted');
+		expect(parseV2Config(formStateToConfigString(original)).SQUIGLINK.ANALYTICS_CONSENT).toBe(
+			'granted'
+		);
+		expect(roundTrip(original)).toEqual(original);
+	});
+
+	it('falls back to granted for an unknown value', () => {
+		const state = configToFormState({ SQUIGLINK: { ANALYTICS_CONSENT: 'maybe' } });
+		expect(state.SQUIGLINK.ANALYTICS_CONSENT).toBe('granted');
+	});
+});
+
 describe('string escaping', () => {
 	// Device and target names routinely contain +, &, quotes and non-ASCII —
 	// these go through prettyPrint into a JS source file, so a missed escape is

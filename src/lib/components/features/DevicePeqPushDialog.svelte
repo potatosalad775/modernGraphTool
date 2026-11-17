@@ -70,7 +70,7 @@
 	onOpenChange={(next) => !next && onCancel?.()}
 	title={m.equalizer_device_peq_push_title({ device: deviceName })}
 	description={m.equalizer_device_peq_push_intro()}
-	class="max-h-[85vh]"
+	class="max-h-[85dvh]"
 >
 	{#if plan}
 		<ul class="flex-1 space-y-1 overflow-y-auto text-sm text-base-content/80">

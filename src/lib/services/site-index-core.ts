@@ -1,10 +1,13 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
-import { rankDbType } from './aggregate-index-core.js';
+import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
+import { isRecord } from '#lib/utils/type-guards.js';
+import { isDbRow, isSiteRow, rankDbType } from './aggregate-index-core.js';
 import type {
 	SiteIndex,
 	SiteIndexEntry,
 	SiteIndexGroup,
+	SiteIndexSite,
 	SiteSelectorConfig
 } from '#lib/types/site-index-types.js';
 
@@ -81,6 +84,7 @@ export function findCurrentDbId(index: SiteIndex, href?: string): string | null 
 	let matchedLength = -1;
 
 	for (const db of index.dbs) {
+		if (!isRecord(db) || typeof db.id !== 'string' || typeof db.url !== 'string') continue;
 		const target = splitUrl(db.url);
 		if (!target || target.host !== here.host) continue;
 		if (here.path !== target.path && !here.path.startsWith(target.path)) continue;
@@ -113,20 +117,29 @@ export async function fetchSiteIndex(urls: string[]): Promise<SiteIndex | null> 
 export function buildSiteEntries(index: SiteIndex, currentDbId: string | null): SiteIndexEntry[] {
 	// A throwaway lookup, rebuilt whenever the index reloads and never read
 	// outside this function — nothing to make reactive.
-	const sitesById = new Map(index.sites.map((site) => [site.id, site]));
+	// The document is someone else's, so each row's fields are type-checked and a
+	// bad row is skipped rather than allowed to throw.
+	const sitesById = new Map<string, SiteIndexSite>();
+	for (const site of index.sites as unknown[]) {
+		if (!isSiteRow(site)) continue;
+		sitesById.set(site.id, site as unknown as SiteIndexSite);
+	}
 	const entries: SiteIndexEntry[] = [];
 
-	for (const db of index.dbs) {
+	for (const db of index.dbs as unknown[]) {
+		if (!isDbRow(db)) continue;
 		const site = sitesById.get(db.siteId);
-		if (!site || typeof db.id !== 'string' || typeof db.type !== 'string') continue;
-		if (typeof db.url !== 'string' || !db.url) continue;
+		if (!site) continue;
+		// The URL ends up in an `href`: absolute http(s) only, else the entry goes.
+		const url = sanitizeHttpUrl(db.url);
+		if (!url) continue;
 
 		entries.push({
 			dbId: db.id,
 			siteId: site.id,
 			siteName: site.name,
 			type: db.type,
-			url: db.url,
+			url,
 			deltaReady: db.deltaReady === true,
 			// Absent means verified — only GAA-style documents carry the flag, and a
 			// plain aggregator-shaped one has already been verified by definition.

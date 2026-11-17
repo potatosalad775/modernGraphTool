@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { onMount, untrack } from 'svelte';
+	import { toast } from '#lib/services/toast.js';
+	import { flyOrFade } from '#lib/utils/motion.svelte.js';
 	import { appStore } from '#lib/stores/app-store.svelte.js';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
+	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { claimInitialLoad } from '#lib/services/initial-load.js';
 	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
@@ -25,22 +28,64 @@
 	import { menuStore } from '#lib/stores/menu-store.svelte.js';
 	import DevicePanel from '#lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '#lib/components/panels/GraphPanel.svelte';
-	import EqualizerPanel from '#lib/components/panels/EqualizerPanel.svelte';
-	import MiscPanel from '#lib/components/panels/MiscPanel.svelte';
+	import { loadEqualizerPanel, preloadEqualizerPanel } from '#lib/components/panels/lazy-panels.js';
+	import Button from '#lib/components/atoms/Button.svelte';
+	import MiscPanel, { CHANGELOG_URL } from '#lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '#lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
 	import VolumeWarningDialog from '#lib/components/features/VolumeWarningDialog.svelte';
 	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
 	import EqChannelConflictDialog from '#lib/components/equalizer/EqChannelConflictDialog.svelte';
 	import { eqChannelConflict } from '#lib/services/eq-channel-conflict.svelte.js';
-	import { Toaster, toast } from 'svelte-sonner';
+	import { Toaster } from 'svelte-sonner';
 	import TooltipHost from '#lib/components/atoms/TooltipHost.svelte';
 	import FrequencyTutorial from '../features/FrequencyTutorial.svelte';
 	import KeyboardShortcutBar from '#lib/components/controls/KeyboardShortcutBar.svelte';
-	import { checkVersionUpdate } from '#lib/utils/version-update.js';
+	import { checkVersionUpdate, type VersionUpdate } from '#lib/utils/version-update.js';
+	import { stripHtml } from '#lib/utils/html-sanitizer.js';
 	import * as m from '#lib/paraglide/messages.js';
 
-	const CHANGELOG_URL = 'https://potatosalad775.github.io/modernGraphTool/docs/changelog/';
+	// Targets of the skip links, and the regions that carry them.
+	const GRAPH_REGION_ID = 'app-graph-region';
+	const CONTROLS_REGION_ID = 'app-controls-region';
+
+	// svelte-sonner styles its close button at specificity (0,3,0) — 20px, with a faint grey
+	// box-shadow on focus — so a plain class loses and every utility here needs `!`. 24px is the
+	// WCAG 2.5.8 minimum; the focus ring comes from the accent token. Not 44px under a coarse
+	// pointer: the button sits on the toast's corner, over its content.
+	const TOAST_CLOSE_CLASS =
+		'size-6! focus-visible:ring-2! focus-visible:ring-accent! focus-visible:outline-hidden!';
+
+	// The page's `<h1>`, as plain text: the top bar's title may be HTML or an image, and an
+	// operator's markup must not be injected a second time. `TOPBAR.TITLE.ALT` is the site's name
+	// as text: it wins for an image (no text of its own) and for HTML (markup, not a clean name),
+	// but a TEXT title already is the name, so there it only backs up an empty one. Without it,
+	// an image title falls back to the app name, the same default the top bar uses.
+	const siteTitle = $derived.by(() => {
+		const fallback = 'modernGraphTool';
+		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT';
+		const rawAlt = getConfigValue('TOPBAR.TITLE.ALT');
+		const alt = typeof rawAlt === 'string' ? rawAlt.trim() : '';
+		if (type === 'IMAGE') return alt || fallback;
+		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? fallback;
+		if (type === 'HTML') return alt || stripHtml(content) || fallback;
+		return content.trim() || alt || fallback;
+	});
+
+	// The panel's name, the same strings the menu shows.
+	const panelNames = {
+		device: m.menu_item_device_label,
+		graph: m.menu_item_graph_label,
+		equalizer: m.menu_item_equalizer_label,
+		misc: m.menu_item_misc_label
+	};
+
+	// A hash link would go through SvelteKit's router and rewrite the shareable URL; moving
+	// focus is all a skip link has to do.
+	function skipTo(e: MouseEvent, id: string) {
+		e.preventDefault();
+		document.getElementById(id)?.focus();
+	}
 
 	let mainEl = $state<HTMLElement | undefined>(undefined);
 	// Default: panel on the left (matches the legacy CrinGraph / vanilla modernGraphTool layout).
@@ -52,6 +97,30 @@
 			? 'minmax(340px, 1fr) 5px minmax(400px, 65%)'
 			: 'minmax(400px, 65%) 5px minmax(340px, 1fr)'
 	);
+
+	// The "updated to vX" toast waits its turn: it sits outside a modal dialog, which makes
+	// everything beyond it inert, so one shown at boot is unreachable (and its link unusable)
+	// until the dialog is gone, and may time out before that.
+	let pendingUpdate = $state<VersionUpdate | null>(null);
+
+	const updateToastReady = $derived(
+		pendingUpdate !== null && !tutorialStore.isOpen && !squiglinkStore.sponsorBlocking
+	);
+
+	// In the component, not in a panel: panels unmount on every switch.
+	$effect(() => {
+		if (!updateToastReady) return;
+		const update = untrack(() => pendingUpdate);
+		if (!update) return;
+		pendingUpdate = null;
+		toast.message(m.version_update_toast_title({ version: update.current }), {
+			duration: 10000,
+			action: {
+				label: m.version_update_toast_changelog(),
+				onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
+			}
+		});
+	});
 
 	function disableIOSZoom() {
 		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -82,13 +151,10 @@
 		// Skipped on first visit (no stored version) and on same/downgraded versions.
 		const update = checkVersionUpdate(__APP_VERSION__);
 		if (update) {
-			toast.message(m.version_update_toast_title({ version: update.current }), {
-				duration: 10000,
-				action: {
-					label: m.version_update_toast_changelog(),
-					onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener,noreferrer')
-				}
-			});
+			// The sponsor dialog opens once its script has loaded, after this mount; the
+			// store's `sponsorBlocking` covers the wait, so make sure the load is running.
+			if (squiglinkStore.isSponsorEnabled) void squiglinkStore.fetchSponsorContent();
+			pendingUpdate = update;
 		}
 
 		// Keep the on-graph EQ curve in step with eqStore for the lifetime of the
@@ -125,7 +191,9 @@
 			appStore.isReady = true;
 		});
 
-		return () => window.removeEventListener('resize', updateMobile);
+		return () => {
+			window.removeEventListener('resize', updateMobile);
+		};
 	});
 
 	// Auto-update URL when store data changes (phones added/removed, graph state, etc.)
@@ -142,6 +210,18 @@
 		urlProvider.autoUpdate();
 	});
 
+	// The Equalizer panel is not in the boot chunk (see lazy-panels.ts). Fetch it once the
+	// first curves are in and the browser has a moment, so the first switch doesn't wait.
+	$effect(() => {
+		if (!appStore.isReady) return;
+		if (typeof requestIdleCallback === 'function') {
+			const id = requestIdleCallback(preloadEqualizerPanel, { timeout: 3000 });
+			return () => cancelIdleCallback(id);
+		}
+		const id = setTimeout(preloadEqualizerPanel, 1000);
+		return () => clearTimeout(id);
+	});
+
 	// Persist AutoEQ options to the currently-selected storage whenever they change.
 	$effect(() => {
 		if (!appStore.isReady) return;
@@ -155,13 +235,58 @@
 <!-- Bound here, not in a panel: the shortcuts fire from any panel. See keyboard-shortcuts.ts. -->
 <svelte:window onkeydown={onKeydown} onkeyup={onKeyup} onblur={onBlur} />
 
+{#snippet skipLink(id: string, label: string)}
+	<!-- Hidden until focused, then pinned top-left over the top bar. Same spot for both links:
+		only one has focus at a time. A raw anchor, not `Button`: it needs sr-only. -->
+	<a
+		href="#{id}"
+		onclick={(e: MouseEvent) => skipTo(e, id)}
+		class="sr-only rounded-md border border-base-content/40 bg-base-100 px-4 py-2 text-sm font-semibold text-base-content shadow-xl focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-100 focus:ring-2 focus:ring-accent focus:outline-hidden"
+	>
+		{label}
+	</a>
+{/snippet}
+
+{#snippet equalizerPanel()}
+	{#await loadEqualizerPanel() then { default: EqualizerPanel }}
+		<EqualizerPanel />
+	{:catch}
+		<!-- The chunk is gone (a deployment since this tab loaded) or the network is: only a
+			reload fetches the new hashed chunks, a second import() of a failed module is not retried. -->
+		<div role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+			<p class="text-sm text-base-content/70">{m.equalizer_panel_load_failed()}</p>
+			<Button label={m.equalizer_panel_reload()} onclick={() => location.reload()} />
+		</div>
+	{/await}
+{/snippet}
+
+{#snippet panelHeading()}
+	<!-- Outside the keyed panel, so the outline holds one panel heading through the transition. -->
+	<h2 class="sr-only">{panelNames[menuStore.currentPanel]()}</h2>
+{/snippet}
+
 <div class="flex h-full flex-col">
+	<!-- First focusable element. Order follows the layout: desktop with the panel on the left
+		reads controls before graph; the mobile column reads graph first. -->
+	{#if !appStore.isMobile && panelOnLeft}
+		{@render skipLink(CONTROLS_REGION_ID, m.app_shell_skip_to_controls())}
+		{@render skipLink(GRAPH_REGION_ID, m.app_shell_skip_to_graph())}
+	{:else}
+		{@render skipLink(GRAPH_REGION_ID, m.app_shell_skip_to_graph())}
+		{@render skipLink(CONTROLS_REGION_ID, m.app_shell_skip_to_controls())}
+	{/if}
+	<h1 class="sr-only">{siteTitle}</h1>
 	<TopNavBar />
 
 	{#if appStore.isMobile}
 		<main class="flex flex-1 flex-col overflow-hidden bg-base-100 text-base-content">
 			<!-- Graph at top, no flex-grow so it stays pinned to top -->
-			<section aria-label={m.app_shell_graph_label()} class="flex flex-col overflow-hidden">
+			<section
+				id={GRAPH_REGION_ID}
+				tabindex="-1"
+				aria-label={m.app_shell_graph_label()}
+				class="flex flex-col overflow-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
+			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
 				</div>
@@ -173,22 +298,25 @@
 			</section>
 			<!-- Panel area fills remaining space -->
 			<section
+				id={CONTROLS_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15"
+				class="flex min-h-0 flex-1 flex-col overflow-hidden border-base-content/15 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
+				{@render panelHeading()}
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
 							class="absolute inset-0 flex flex-col overflow-hidden"
-							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
-							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+							in:flyOrFade={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:flyOrFade={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>
 							{#if menuStore.currentPanel === 'device'}
 								<DevicePanel />
 							{:else if menuStore.currentPanel === 'graph'}
 								<GraphPanel />
 							{:else if menuStore.currentPanel === 'equalizer'}
-								<EqualizerPanel />
+								{@render equalizerPanel()}
 							{:else}
 								<MiscPanel />
 							{/if}
@@ -202,8 +330,10 @@
 	{:else}
 		{#snippet graphSection()}
 			<section
+				id={GRAPH_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_graph_label()}
-				class="flex flex-col overflow-hidden bg-base-100"
+				class="flex flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				<div class="min-h-0 overflow-hidden border-b border-base-content/15">
 					<GraphContainer />
@@ -219,23 +349,26 @@
 		{/snippet}
 		{#snippet controlsSection()}
 			<section
+				id={CONTROLS_REGION_ID}
+				tabindex="-1"
 				aria-label={m.app_shell_controls_label()}
-				class="flex min-w-85 flex-col overflow-hidden bg-base-100"
+				class="flex min-w-85 flex-col overflow-hidden bg-base-100 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset"
 			>
 				<MenuCarousel />
+				{@render panelHeading()}
 				<div class="relative min-h-0 flex-1 overflow-hidden">
 					{#key menuStore.currentPanel}
 						<div
 							class="absolute inset-0"
-							in:fly={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
-							out:fly={{ x: menuStore.slideDirection * -60, duration: 150 }}
+							in:flyOrFade={{ x: menuStore.slideDirection * 60, duration: 200, delay: 50 }}
+							out:flyOrFade={{ x: menuStore.slideDirection * -60, duration: 150 }}
 						>
 							{#if menuStore.currentPanel === 'device'}
 								<DevicePanel />
 							{:else if menuStore.currentPanel === 'graph'}
 								<GraphPanel />
 							{:else if menuStore.currentPanel === 'equalizer'}
-								<EqualizerPanel />
+								{@render equalizerPanel()}
 							{:else}
 								<MiscPanel />
 							{/if}
@@ -262,7 +395,14 @@
 	{/if}
 </div>
 
-<Toaster position="top-center" richColors closeButton theme={settingsStore.theme} />
+<Toaster
+	position="top-center"
+	richColors
+	closeButton
+	closeButtonAriaLabel={m.toast_close()}
+	theme={settingsStore.theme}
+	toastOptions={{ classes: { closeButton: TOAST_CLOSE_CLASS } }}
+/>
 <TooltipHost />
 
 <SponsorBanner />

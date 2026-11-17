@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { commandHistory } from '#lib/services/command-history.svelte.js';
 	import { menuStore } from '#lib/stores/menu-store.svelte.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 
 	let isMac = $state(false);
@@ -32,19 +33,23 @@
 		<kbd>{modKey}+{shiftKey}+Z</kbd>
 		{m.keyboard_shortcut_redo()}
 	</span>
-	<span class="inline-flex items-center gap-1.5">
-		<kbd>1</kbd>–<kbd>4</kbd>
-		{m.keyboard_shortcut_panels()}
-	</span>
+	{#if settingsStore.singleKeyShortcuts}
+		<span class="inline-flex items-center gap-1.5">
+			<kbd>1</kbd>–<kbd>4</kbd>
+			{m.keyboard_shortcut_panels()}
+		</span>
+	{/if}
 	{#if menuStore.currentPanel === 'equalizer'}
 		<span class="inline-flex items-center gap-1.5">
 			<kbd>{shiftKey}+Drag</kbd>
 			{m.keyboard_shortcut_axis_lock()}
 		</span>
-		<span class="inline-flex items-center gap-1.5">
-			<kbd>\</kbd>
-			{m.keyboard_shortcut_eq_bypass()}
-		</span>
+		{#if settingsStore.singleKeyShortcuts}
+			<span class="inline-flex items-center gap-1.5">
+				<kbd>\</kbd>
+				{m.keyboard_shortcut_eq_bypass()}
+			</span>
+		{/if}
 		<span class="inline-flex items-center gap-1.5">
 			<kbd>Del</kbd>
 			{m.keyboard_shortcut_delete_band()}

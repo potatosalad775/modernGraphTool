@@ -1,4 +1,6 @@
-import { EQ_FILTER_TYPES, type EQFilter } from '#lib/utils/equalizer.js';
+import type { EQFilter } from '#lib/utils/equalizer.js';
+import { isFiniteNumber, parseFilter } from '#lib/utils/eq-filter-parse.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import { eqStore } from './eq-store.svelte.js';
 import { frStore } from './fr-store.svelte.js';
 import { snapshotMatches } from '#lib/utils/eq-snapshot.js';
@@ -197,23 +199,6 @@ function parseBookmark(v: unknown): EqBookmark | null {
 	};
 }
 
-function parseFilter(v: unknown): EQFilter | null {
-	if (!isRecord(v)) return null;
-	const { enabled, type, freq, q, gain, channel } = v;
-	if (typeof enabled !== 'boolean') return null;
-	if (!(EQ_FILTER_TYPES as readonly unknown[]).includes(type)) return null;
-	if (![freq, q, gain].every((n) => n === null || isFiniteNumber(n))) return null;
-	if (channel !== undefined && channel !== 'L' && channel !== 'R') return null;
-	return {
-		enabled,
-		type: type as EQFilter['type'],
-		freq: freq as number | null,
-		q: q as number | null,
-		gain: gain as number | null,
-		...(channel ? { channel } : {})
-	};
-}
-
 function parseDevice(v: unknown): EqBookmarkDevice | null {
 	if (!isRecord(v) || typeof v.identifier !== 'string') return null;
 	// The UUID is dropped on purpose: it was minted by a previous page load.
@@ -221,14 +206,6 @@ function parseDevice(v: unknown): EqBookmarkDevice | null {
 		identifier: v.identifier,
 		...(typeof v.variant === 'string' && v.variant ? { variant: v.variant } : {})
 	};
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-	return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function isFiniteNumber(v: unknown): v is number {
-	return typeof v === 'number' && Number.isFinite(v);
 }
 
 export const eqBookmarkStore = new EqBookmarkStore();

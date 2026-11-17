@@ -5,6 +5,7 @@ import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { getConfigValue } from './config.js';
 import { sanitizeChannel } from './eq-channel.js';
 import { baseline } from '#lib/graph/baseline.js';
+import { MAX_BANDS } from '#lib/workers/autoeq-request.js';
 import {
 	buildQueryString,
 	normalizeSampleDisplay,
@@ -108,7 +109,9 @@ class URLProvider {
 		const { yScale, baseline: savedBaseline, yOffsets, eq } = this.#stateFromURL;
 		const sampleDisplay = normalizeSampleDisplay(this.#stateFromURL);
 
-		if (yScale != null) graphStore.yScale = yScale;
+		// `parseStateParam` already narrowed the shape; these guards keep a state
+		// that arrived any other way (a spec, a future caller) from throwing.
+		if (Number.isFinite(yScale)) graphStore.yScale = yScale!;
 
 		// `mode` is hand-editable, so the baseline module validates it.
 		if (savedBaseline) baseline.restoreFromURL(savedBaseline);
@@ -116,7 +119,8 @@ class URLProvider {
 		if (yOffsets) {
 			for (const [uuid, data] of frStore.entries) {
 				const key = shareKey(data);
-				if (key in yOffsets) {
+				// `hasOwn`, not `in`: a device named `constructor` is not an offset.
+				if (Object.hasOwn(yOffsets, key) && Number.isFinite(yOffsets[key])) {
 					// Direct store update (no command history for URL restore)
 					frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
 				}
@@ -124,7 +128,8 @@ class URLProvider {
 		}
 
 		for (const [uuid, data] of frStore.entries) {
-			const entry = sampleDisplay[shareKey(data)];
+			const key = shareKey(data);
+			const entry = Object.hasOwn(sampleDisplay, key) ? sampleDisplay[key] : undefined;
 			if (entry && data.samples) {
 				frStore.set(uuid, {
 					...data,
@@ -135,15 +140,15 @@ class URLProvider {
 			}
 		}
 
-		if (eq && eq.filters.length > 0) {
-			// `channel` comes from a hand-editable URL, so narrow it rather than
-			// trusting it — an unknown value would make a band belong to no ear
-			// and quietly vanish from every scoped view.
-			eqStore.filters = eq.filters.map((f) => {
+		if (Array.isArray(eq?.filters) && eq.filters.length > 0) {
+			// `parseStateParam` has already read each band with `parseFilter` and
+			// narrowed `channel` (an unknown value would make a band belong to no ear
+			// and quietly vanish from every scoped view); only the cap is repeated.
+			eqStore.filters = eq.filters.slice(0, MAX_BANDS).map((f) => {
 				const channel = sanitizeChannel(f.channel);
 				return channel ? { ...f, channel } : { ...f, channel: undefined };
 			});
-			eqStore.preamp = eq.preamp;
+			eqStore.preamp = Number.isFinite(eq.preamp) ? eq.preamp : 0;
 			eqStore.setEnabled(true);
 		}
 	}

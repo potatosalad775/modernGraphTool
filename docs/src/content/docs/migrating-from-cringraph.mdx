@@ -130,7 +130,7 @@ If your fork isn't listed here, it almost certainly behaves like one of these th
    **Things that should NOT be carried over from your CrinGraph `index.html`:**
 
    - `<script src="https://squig.link/squigsites.js"></script>` — v2 has native squig.link integration. Enable it via the `SQUIGLINK` section in `config.js` instead. Cross-site search, sponsor banner, and multi-GA4 analytics are all built in.
-   - `<script src="assets/js/graphAnalytics.js"></script>` — v2 analytics are routed through `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS` (an array, so multi-tag support works out of the box).
+   - `<script src="assets/js/graphAnalytics.js"></script>` — v2 reports to squig.link's container by itself; carry over only `analyticsSite`, as `SQUIGLINK.ANALYTICS_SITE`. A container or GA4 property of your own goes in `SQUIGLINK.ANALYTICS_MEASUREMENT_IDS`.
    - `<script src="assets/js/reinvented-color-wheel.min.js"></script>` + `reinvented-color-wheel.min.css` — v2 has a built-in color picker on every curve's color swatch.
    - `<audio id="pinkNoiseAudio">` / `<audio id="scarletFIRE">` tags — not a v2 feature.
    - `<script src="assets/js/90inclusion.js"></script>` — PublicGraphTool-specific; not applicable to v2.

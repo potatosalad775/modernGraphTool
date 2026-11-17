@@ -2,9 +2,35 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-filter-parse.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `channel-choice.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
+
+## `light-theme.ts` — the PNG export's palette
+
+The screenshot always exports in light mode. `.dark` is on `<html>` and custom properties inherit, so
+nothing under it can be asked for its light value, and toggling the class for a moment would start
+transitions and wake the theme observers. `resolveLightTheme` instead reads the `:root` rules'
+`--color-*` declarations from `document.styleSheets` (`theme.css` is a same-origin relative link on
+the static and the CDN build; an unreadable sheet is skipped), resolves `var()` among them, and
+`ScreenshotButton` sets the result inline on its off-screen container. Unlayered rules beat Tailwind's
+`@layer theme` `--x: var(--x)` stubs. `FALLBACK_LIGHT_THEME` (the shipped light palette) fills any
+token the sheet lacks and is the whole answer if nothing is readable. The background stays white;
+a light `--color-graph-bg` that is not transparent is painted over it.
+
+## `motion.svelte.ts` — reduced motion for JS-driven motion
+
+The `prefers-reduced-motion` CSS rule can't reach a Svelte transition (it runs through
+`element.animate()`) or a d3 tween. `flyOrFade` / `slideOrFade` are drop-in transition functions that
+swap the spatial movement for a ≤120 ms opacity fade; `motionDuration(ms)` is 0 under the setting
+(the d3 engine). All read `prefersReducedMotion` from `svelte/motion` at call time, so a changed OS
+setting applies from the next transition, and it is plain `false` in the node test project. Only
+spatial motion goes: plain opacity `fade` and colour transitions stay (the `motion` guide warns
+against zeroing everything). Use `flyOrFade`/`slideOrFade` instead of `fly`/`slide` in new code.
+
+`crossFade(change)` wraps the theme toggle in a view transition. The change runs a frame later,
+inside the transition's callback, so a caller (or a spec) must not read the result on the next
+line. Theme changes that come from the OS or another tab go straight through the store, unfaded.
 
 ## `curve-name.ts`
 
@@ -184,6 +210,15 @@ eligibility rule — visible phones and inserted phones only — and `averageCha
 - Index-wise averaging is safe because `FRParser.parseFRData` puts every curve on the same 1/48oct
   grid; the length clamp in `meanOf` is only there so a truncated curve can't produce NaN.
 
+## `trusted-types.ts`
+
+The app's Trusted Types policy (`mgt`): `trustedHtml` for the three `{@html}` sites, and
+`trustedScriptUrl` for a script's `src` and the `Worker` constructor (same origin, `https:` or
+`blob:` only; `http:` too when the page itself is http, or the policy would break an http-only
+deployment in every browser that has Trusted Types, CSP or not). `createHTML` does not sanitize: its callers pass operator config or the output of
+`sanitizeHtml`, and the policy only marks that hand-over. Both return the string unchanged where the
+browser has no Trusted Types. See the Security Headers section of the root guide.
+
 ## `html-sanitizer.ts`
 
 The allowlist sanitizer for operator-authored strings — currently the `description` field in
@@ -193,7 +228,9 @@ The allowlist sanitizer for operator-authored strings — currently the `descrip
   with their content, output always balanced
 - `stripHtml` — the same input flattened to text, for `title` attributes
 - `sanitizeUrl` — http / https / mailto / tel / relative only, after entity and control-character
-  decoding. `metadata-parser` uses it to validate a phone's `links[]`.
+  decoding. `metadata-parser` uses it for a phone's `links[]`, `reviewLink` and `shopLink`, with
+  `entities: false`: those are JSON values, and decoding entities eats `&tab=` / `&lt=` out of a
+  query string. Only a URL lifted from HTML (an `href` in `sanitizeHtml`) is decoded.
 
 Hand-rolled rather than DOMPurify-backed: it has to give identical results in the `server` (node, no
 DOM) test project and the browser, and this is a static site operators self-host.
@@ -207,6 +244,13 @@ only what touches `window`, `document`, `goto` and the stores, and delegates the
 - Share names go through `encodeURIComponent`, **not** `encodeURI` — the latter leaves `&`, `+` and
   `#` untouched, and over a thousand device names contain one of them. Reading is unaffected either
   way, since `URLSearchParams` decodes both forms identically.
+- **`state=` is untrusted input.** `parseStateParam` runs the decoded object through `sanitizeState`:
+  each part is checked on its own and an invalid one is dropped, never the whole state. Numbers must
+  be finite, EQ bands go through `parseFilter` (`eq-filter-parse.ts`, shared with the bookmark store)
+  and are capped at `MAX_BANDS`, and records keyed by device name skip `__proto__`. Lookups by
+  device name use `Object.hasOwn`, not `in` — a device called `constructor` exists. `initial-load`
+  also wraps `applyStateFromURL` in a try/catch so a state that still slips through can't stop boot.
+  Don't change what the encoder writes to suit this; the checks only narrow what is read.
 - `url-provider.ts` updates the URL with a **shallow** `goto(path, { shallow: true, replace: true })`
   (SvelteKit 3's replacement for `replaceState`) — never a full `goto()`, which would run a
   navigation. The path already carries the deployment base, so it is not passed through `resolve()`.

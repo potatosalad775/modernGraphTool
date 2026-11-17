@@ -44,7 +44,7 @@
 		{#each items as item (item.value)}
 			<Tabs.Trigger
 				value={item.value}
-				class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-xs font-medium text-base-content/60 transition-colors hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset data-[state=active]:border-accent data-[state=active]:text-base-content {expandTrigger
+				class="-mb-px cursor-pointer border-b-2 border-transparent px-3 py-1.5 text-xs font-medium text-base-content/80 transition-colors hover:text-base-content focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden focus-visible:ring-inset data-[state=active]:border-accent data-[state=active]:text-base-content {expandTrigger
 					? 'flex-1'
 					: ''}"
 			>

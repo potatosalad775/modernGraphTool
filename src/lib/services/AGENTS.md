@@ -8,13 +8,48 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
-- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton
+- `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton. A command may
+  define `mergeWith(previous)`: if the top entry was pushed or merged into within `MERGE_WINDOW_MS`
+  (400 ms) and the command returns true, the new command **replaces** that entry instead of
+  stacking (`UpdateYOffsetCommand`: a held +/- button or arrow-key run is one undo step; it
+  inherits the earlier command's starting offset). Undo, redo and `clear()` reset the window, so an
+  edit never folds into an entry the user has stepped over. This is the after-the-fact sibling of
+  `EqEditCoalescer` (which defers the push); use it where each tick must apply and record at once
 - `keyboard-shortcuts.ts` — the global shortcuts (`\` hold, undo/redo, `1`–`4` panels); `AppShell`
   only binds them on `<svelte:window>`. The `\` hold only toasts while the player plays and
   `devicePeqStore.playsEq` holds: it can't lift a device's EQ, and flipping the graph alone would
   misreport what is heard. It is not routed to the device's EQ switch — that is a hardware write
-  that affects all audio on the device
-- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments
+  that affects all audio on the device. The single-character keys (`\`, `1`–`4`) are skipped while
+  a widget that takes character keys has focus (`isWidgetFocused` in `utils/widget-focus.ts`, shared
+  with `GraphEqOverlay`) and when `settingsStore.singleKeyShortcuts` is off (WCAG 2.1.4); the
+  modifier shortcuts and the `\` release are never gated. It reads the playing flag from
+  `audioPlaybackStore`, not from the audio player service, so the audio engine stays out of the boot
+  chunk — don't re-import the service there
+- `analytics-service.svelte.ts` — usage events for squig.link deployments. **squig.link's shared
+  Tag Manager container (`SQUIGLINK_CONTAINER`) is built in**: it is what `graphAnalytics.js` loads
+  on every CrinGraph site there, and it forwards to squig.link's GA4 property. Operators add their
+  own `G-` / `GTM-` IDs in `ANALYTICS_MEASUREMENT_IDS` (`/^(G|GTM)-[A-Z0-9]+$/`: the value goes into
+  a script URL; others are skipped with a warning). Two destinations, two shapes, two data layers:
+  - **Containers get a plain object on `window.gtmDataLayer`** in the CrinGraph shape (`event`,
+    `trigger`, `site`, `phoneBrand`, `phoneModel`, `phoneVariant`, `phoneName` / `activePhones`,
+    `other`, `value`), and `phone_added` goes out as `phone_displayed`. The container's triggers
+    and variables read exactly those names — checked against the live container on 2026-11-17 —
+    so don't rename them to match our style. It has no trigger for `phone_removed`; harmless.
+  - **`G-` IDs get `gtag('event', …)` on `window.dataLayer`.** The layers are separate because a
+    container also fires on a gtag event queued on its layer: on one shared layer every name the
+    two have in common was counted twice. Only `consent` commands go to both.
+  - **A gtag command must be an `arguments` object, not a rest-parameter array**: Google's scripts
+    ignore arrays in a data layer without any error, which is how v2 shipped analytics that never
+    sent a hit.
+
+  `navigator.globalPrivacyControl === true` loads nothing; the scripts are `fetchPriority = 'low'`
+  but are still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`.
+  Consent Mode v2 defaults are queued ahead of `config` and of the container's start (ad signals
+  always denied; `analytics_storage` from the visitor's stored answer, else
+  `SQUIGLINK.ANALYTICS_CONSENT`, else granted). The Misc panel switch (`setConsent`) is shown while
+  `available`; a visitor's stored "off" loads nothing on later visits, like GPC, whereas the
+  operator's `denied` default still loads the scripts for cookieless pings
+
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by
@@ -36,6 +71,10 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   changes what plays (a hardware EQ write or switch, the audio player), once per page session.
   A device linked from uniPEQ is uniPEQ's to warn about (`status.consent`, in `LinkDialogs`)
 - `eq-channel-conflict.svelte.ts` — left/right-only bands under a restriction; see below
+- `toast.ts` — the app's `toast`, a thin wrapper over svelte-sonner that keeps `error` and `warning`
+  toasts until dismissed (a `duration` of the caller's still wins) and folds a repeat into one. **New
+  code imports `toast` from here, never from `svelte-sonner`**; only `AppShell` takes the `Toaster`
+  component from the library. Specs mock `#lib/services/toast.js`, not the library
 - `eqcaps-client.ts` — the eqcaps database client (EQ limits of devices and apps), lazily imported;
   `EQUALIZER.EQCAPS_URL` overrides its channel. Never throws: unreachable means no profiles.
 
@@ -345,8 +384,20 @@ applied per row, so a database whose only match was excluded stops meeting that 
 
 One JSON document, ~360 KB gzip, fetched lazily on the first query of ≥2 chars — so it costs nothing
 for visitors who never search. Operators can override `INDEX_URLS` to self-host; the defaults are the
-official URL plus its GitHub Pages mirror, tried in order.
+official URL plus its GitHub Pages mirror, in preference order. Every mirror is requested at once, but
+a later one is only read (its body parsed) once every earlier one has failed or answered with an
+invalid document, and the losers are aborted — a stalled primary still costs its timeout. The
+timeout covers a mirror's headers, and its body again from when it is read: one shared budget from
+the start aborted a mirror that had answered the moment the stalled primary's ran out.
 Schema: https://github.com/HarutoHiroki/GraphAggregator
+
+**`buildSearchRows` returns the rows already in result order**, so a query only filters
+(`searchRows` never sorts). Rows carry `seq` (index order) and `tie` (an id shared by rows that
+compare equal) because two things hang on the old stable sort: equal rows keep index order, and in a
+multi-group query equal rows from different databases follow the database whose first matching row
+came first — `matchEveryGroup` reorders just those runs. The comparator uses one shared
+`Intl.Collator`; the order is pinned by the `result order` spec. The index is someone else's document:
+`buildSearchRows` and `buildSiteEntries` type-check each field and skip a bad row instead of throwing.
 
 Configured via `CROSS_SITE_SEARCH` in `defaults/config.js`; `SQUIGLINK.ENABLE_CROSS_SITE_SEARCH` is
 deprecated and read only as a fallback for configs that predate the new section.
@@ -374,8 +425,10 @@ its fetch and parse used to compete with it. Host-agnostic; exports `siteIndexSe
 GAA unions GraphAggregator's index with squig.link's registry, which is the point: the aggregator
 drops any database whose phone book failed its nightly crawl, and a site that 502'd at 06:00 UTC
 disappearing from the site switcher for a day is wrong for navigation even though it's right for
-search. Union entries carry `verified: false` and render dimmed. **A missing `verified` field means
-verified**, so an aggregator-shaped document doesn't dim every row.
+search. Union entries carry `verified: false` and render at full strength with an "Unverified" badge and one visible
+explanation under the list (each such link points at it with `aria-describedby`; a `title` alone
+never reaches keyboard or touch, and half opacity fails contrast). **A missing `verified` field
+means verified**, so an aggregator-shaped document doesn't badge every row.
 
 - **`SITE_SELECTOR.ENABLED` defaults to `'auto'`**, not `true`: show the switcher only where the
   deployment is in the index or is on squig.link. An unregistered standalone site would otherwise get
@@ -432,7 +485,8 @@ own `AGENTS.md` under Contracts; changing what's read here means changing it the
 ## squig.link integration
 
 Active **only** when hosted on a `*.squig.link` domain (domain guard in `squiglink-store`). Fetches
-shop links from squig.link JSON endpoints and loads `squiglink-intro.js` for sponsor content. All UI
+shop links from squig.link JSON endpoints and reads sponsor content out of `squiglink-intro.js` as data
+(never executed — `utils/js-literal.ts`; see `stores/AGENTS.md`). All UI
 is Svelte-native — no external DOM manipulation. Toggled via the `SQUIGLINK` section in
 `defaults/config.js`.
 

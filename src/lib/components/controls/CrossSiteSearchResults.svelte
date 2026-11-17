@@ -86,7 +86,7 @@
 
 {#if showCrossSiteSection}
 	{#if crossSiteLoading && hits.results.length === 0}
-		<p class="px-3 py-3 text-center text-[12px] text-base-content/60">
+		<p class="px-3 py-3 text-center text-xs text-base-content/80">
 			{m.crosssite_search_loading()}
 		</p>
 	{/if}
@@ -94,17 +94,17 @@
 	{#if hits.results.length > 0}
 		{#each [...groupedCrossSite] as [dbId, results] (dbId)}
 			<div class="flex items-center gap-1 border-b border-base-content/10 bg-base-300 px-3 py-1.5">
-				<span class="mr-1.5 text-[12px] font-medium text-base-content">
+				<span class="mr-1.5 text-xs font-medium text-base-content">
 					{results[0].siteName}
 				</span>
 				<span
-					class="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-medium text-primary-content"
+					class="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-2xs font-medium text-primary-content"
 				>
 					{dbTypeLabel(results[0].dbType)}
 				</span>
 				{#if results[0].deltaReady}
 					<span
-						class="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-content"
+						class="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-2xs font-medium text-secondary-content"
 					>
 						Delta Ready
 					</span>
@@ -126,7 +126,7 @@
 		{/each}
 
 		{#if hits.total > hits.results.length}
-			<p class="px-3 py-2 text-center text-[11px] text-base-content/60">
+			<p class="px-3 py-2 text-center text-xs text-base-content/80">
 				{m.crosssite_search_truncated({ count: hits.results.length, total: hits.total })}
 			</p>
 		{/if}

@@ -1,5 +1,8 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
+import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
+import { extractDeclaredLiteral } from '#lib/utils/js-literal.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type {
 	ShopLinkEntry,
 	SponsorContent,
@@ -12,12 +15,127 @@ const SQUIGLINK_DOMAIN = 'squig.link';
 /** One day, as in the legacy script: a dismissed sponsor comes back the next day. */
 const SPONSOR_DISMISS_SECONDS = 86400;
 
+/** How long `squiglink-intro.js` may take, headers and body, before it counts as no sponsor. */
+const SPONSOR_TIMEOUT_MS = 10000;
+
 /**
  * The legacy `squiglink-intro.js` cookie, shared on purpose: set on the `squig.link`
  * domain, one dismissal covers every squig.link site, CrinGraph and modernGraphTool alike.
  */
 export function sponsorDismissedCookie(sponsorId: string): string {
 	return `squiglink-sponsor-${sponsorId}-closed`;
+}
+
+/**
+ * The `Set-Cookie` string for a dismissal. `SameSite=Lax` always; `Secure` only on https, so a
+ * local http `SQUIGLINK.DEBUG` run still keeps its cookie (browsers drop a `Secure` cookie
+ * set from an insecure page). `domain` is the squig.link domain, or omitted off it.
+ */
+export function sponsorDismissCookieString(
+	sponsorId: string,
+	opts: { domain: boolean; secure: boolean }
+): string {
+	return (
+		`${sponsorDismissedCookie(sponsorId)}=true` +
+		`;max-age=${SPONSOR_DISMISS_SECONDS};path=/` +
+		(opts.domain ? `;domain=${SQUIGLINK_DOMAIN}` : '') +
+		';SameSite=Lax' +
+		(opts.secure ? ';Secure' : '')
+	);
+}
+
+// ── Remote data is untrusted text ────────────────────────────────────────────
+// squig.link is trusted to host the data, not to be a source of markup or script. Every value
+// below is checked here, so `ShopLink` and `SponsorBanner` only ever see values that are safe
+// to put in an `href`, a `src` or a `fetch`. A URL that fails drops its field: required fields
+// become '' (the templates already `{#if}` on them), optional ones are omitted.
+
+function text(value: unknown): string {
+	return typeof value === 'string' ? value : '';
+}
+
+/**
+ * A sponsor id names a cookie, the legacy script's own, so it is kept as published and only
+ * what would end the cookie's name or start an attribute is refused. `SponsorBanner` encodes
+ * it for the URL parameter.
+ */
+// eslint-disable-next-line no-control-regex
+const SPONSOR_ID = /^[^\u0000-\u001f\u007f;=,]{1,64}$/;
+
+/** What a query string carries as it is; anything else is percent-encoded. */
+const QUERY_UNSAFE = /[^A-Za-z0-9_.~%=&+,:/@!$*()-]/g;
+
+/**
+ * The affiliate parameters appended to a shop URL, as `?a=b&c=d`, or '' when they are not a
+ * query string. A leading `&` is read as `?`; `ShopLink` picks the joiner. Being a query is
+ * what keeps the host and path the shop link's own, so the rest is encoded, not refused.
+ */
+export function sanitizeUtmParams(raw: unknown): string {
+	const utm = text(raw).trim();
+	if (!utm) return '';
+	try {
+		if (!/^[?&]/.test(utm)) throw new Error('not a query string');
+		const query = utm
+			.slice(1)
+			.replace(QUERY_UNSAFE, (c) => encodeURIComponent(c).replace(/'/g, '%27'));
+		return `?${query}`;
+	} catch {
+		console.warn('[squiglink] Ignoring sponsor utmParams that are not a query string:', utm);
+		return '';
+	}
+}
+
+function sanitizeSponsorDetail(raw: unknown): SponsorDetail | null {
+	if (!isRecord(raw)) return null;
+	return {
+		sponsorName: text(raw.sponsorName),
+		// A CSS value for CrinGraph's overlay; nothing here renders it
+		sponsorLogo: text(raw.sponsorLogo),
+		utmParams: sanitizeUtmParams(raw.utmParams)
+	};
+}
+
+function sanitizeSponsorContent(raw: unknown): SponsorContent | null {
+	if (!isRecord(raw)) return null;
+	const sponsorId = text(raw.sponsorId).trim();
+	if (!SPONSOR_ID.test(sponsorId)) {
+		console.warn('[squiglink] Ignoring a sponsor whose id cannot name a cookie:', sponsorId);
+		return null;
+	}
+
+	const content: SponsorContent = {
+		sponsorId,
+		heading: text(raw.heading),
+		sponsorshipName: text(raw.sponsorshipName),
+		sponsorLogo: text(raw.sponsorLogo),
+		sponsorMessage: text(raw.sponsorMessage),
+		type: text(raw.type),
+		creative: sanitizeHttpUrl(raw.creative) ?? '',
+		creativeBgColor: text(raw.creativeBgColor),
+		ctaText: text(raw.ctaText),
+		ctaLink: sanitizeHttpUrl(raw.ctaLink) ?? ''
+	};
+	const cta2Text = text(raw.cta2Text);
+	if (cta2Text) content.cta2Text = cta2Text;
+	const cta2Link = sanitizeHttpUrl(raw.cta2Link);
+	if (cta2Link) content.cta2Link = cta2Link;
+	return content;
+}
+
+function sanitizeShopLinks(raw: unknown): ShopLinkEntry[] {
+	if (!Array.isArray(raw)) return [];
+	const out: ShopLinkEntry[] = [];
+	for (const entry of raw) {
+		if (!isRecord(entry) || typeof entry.model !== 'string') continue;
+		out.push({
+			...(entry as unknown as ShopLinkEntry),
+			hfg_com: sanitizeHttpUrl(entry.hfg_com) ?? '',
+			hfg_amzus: sanitizeHttpUrl(entry.hfg_amzus) ?? '',
+			hfg_amzjp: sanitizeHttpUrl(entry.hfg_amzjp) ?? '',
+			hfg_ali: sanitizeHttpUrl(entry.hfg_ali) ?? ''
+		});
+	}
+	return out;
 }
 
 const OPT_OUT_SITES = new Set([
@@ -51,6 +169,9 @@ export class SquiglinkStore {
 	shopLinks = $state<ShopLinkEntry[]>([]);
 	sponsorDetail = $state<SponsorDetail | null>(null);
 	sponsorContent = $state<SponsorContent | null>(null);
+	/** The sponsor script has answered (with a sponsor or without one). */
+	#sponsorSettled = $state(false);
+	#sponsorDismissedNow = $state(false);
 
 	#shopLinksFetched = false;
 	#sponsorDetailFetched = false;
@@ -106,15 +227,31 @@ export class SquiglinkStore {
 		return document.cookie.split(';').some((c) => c.trim().startsWith(name));
 	}
 
+	/**
+	 * True while the landing sponsor dialog is still to come or is on screen: the sponsor
+	 * script has not answered yet, or it named a sponsor this visitor has not dismissed.
+	 * `AppShell` holds the version toast back on it — a toast shown behind a modal is
+	 * unreachable. The dismissal cookie is not reactive, so `#sponsorSettled` and
+	 * `#sponsorDismissedNow` are what make this re-evaluate.
+	 */
+	get sponsorBlocking(): boolean {
+		if (!this.isSponsorEnabled) return false;
+		if (!this.#sponsorSettled) return true;
+		const sponsor = this.sponsorContent;
+		if (!sponsor || this.#sponsorDismissedNow) return false;
+		return !this.isSponsorDismissed(sponsor.sponsorId);
+	}
+
 	dismissSponsor(): void {
+		this.#sponsorDismissedNow = true;
 		if (!this.sponsorContent) return;
 		// No domain attribute on a DEBUG host — a cookie naming another domain is rejected
 		const host = window.location.hostname;
 		const onSquiglink = host === SQUIGLINK_DOMAIN || host.endsWith('.' + SQUIGLINK_DOMAIN);
-		const domain = onSquiglink ? `;domain=${SQUIGLINK_DOMAIN}` : '';
-		document.cookie =
-			`${sponsorDismissedCookie(this.sponsorContent.sponsorId)}=true` +
-			`;max-age=${SPONSOR_DISMISS_SECONDS};path=/${domain}`;
+		document.cookie = sponsorDismissCookieString(this.sponsorContent.sponsorId, {
+			domain: onSquiglink,
+			secure: window.location.protocol === 'https:'
+		});
 	}
 
 	// ── Data fetching ────────────────────────────────────────────────────────
@@ -123,9 +260,11 @@ export class SquiglinkStore {
 		if (this.#shopLinksFetched || !this.isEnabled) return;
 
 		try {
-			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/shoplinks.json`);
+			// Low priority: the table only matters once a single device is on the graph, and
+			// these requests would otherwise compete with the first curves
+			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/shoplinks.json`, { priority: 'low' });
 			if (!res.ok) return;
-			this.shopLinks = (await res.json()) as ShopLinkEntry[];
+			this.shopLinks = sanitizeShopLinks(await res.json());
 			this.#shopLinksFetched = true;
 		} catch {
 			// Silently skip if shoplinks are unavailable
@@ -137,29 +276,16 @@ export class SquiglinkStore {
 		this.#sponsorDetailFetched = true;
 
 		try {
-			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/shoplinks.js`);
+			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/shoplinks.js`, { priority: 'low' });
 			if (!res.ok) return;
-			let text = await res.text();
 
-			// Hoist sponsorDetails onto window so it survives eval scope —
-			// the script declares it with `let` which stays local to eval.
-			text = text.replace(/\blet\s+sponsorDetails\b/, 'window.sponsorDetails');
-
-			// Execute in global scope — the script may attempt DOM manipulation
-			// targeting CrinGraph elements that don't exist in this app,
-			// so we catch and continue after extracting the data.
-			try {
-				(0, eval)(text);
-			} catch {
-				// Ignore DOM errors from legacy CrinGraph code
-			}
-
-			const data = (window as unknown as Record<string, unknown>).sponsorDetails;
-			if (data && typeof data === 'object' && !Array.isArray(data)) {
-				this.sponsorDetail = data as SponsorDetail;
-			}
+			// The script is CrinGraph code that declares `let sponsorDetails = { … };` ahead of
+			// DOM work. Only the literal is read, as data: the script itself never runs, so
+			// the page needs no `'unsafe-eval'`.
+			const data = extractDeclaredLiteral(await res.text(), 'sponsorDetails');
+			this.sponsorDetail = sanitizeSponsorDetail(data) ?? this.sponsorDetail;
 		} catch {
-			// Silently skip if sponsor script is unavailable
+			// Silently skip if the sponsor script is unavailable or not a plain literal
 		}
 	}
 
@@ -177,29 +303,21 @@ export class SquiglinkStore {
 
 	async #loadSponsorContent(): Promise<void> {
 		try {
-			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squiglink-intro.js`);
+			// Bounded: `sponsorBlocking` holds the version toast until this settles
+			const res = await fetch(`https://${SQUIGLINK_DOMAIN}/squiglink-intro.js`, {
+				signal: AbortSignal.timeout(SPONSOR_TIMEOUT_MS)
+			});
 			if (!res.ok) return;
-			let text = await res.text();
 
-			// Hoist contentSponsor onto window so it survives eval scope —
-			// the script declares it with `let` which stays local to eval.
-			text = text.replace(/\blet\s+contentSponsor\b/, 'window.contentSponsor');
-
-			// Execute in global scope — the script may attempt DOM manipulation
-			// targeting CrinGraph elements that don't exist in this app,
-			// so we catch and continue after extracting the data.
-			try {
-				(0, eval)(text);
-			} catch {
-				// Ignore DOM errors from legacy CrinGraph code
-			}
-
-			const data = (window as unknown as Record<string, unknown>).contentSponsor;
-			if (Array.isArray(data) && data.length > 0) {
-				this.sponsorContent = data[0] as SponsorContent;
+			// Read `let contentSponsor = [ … ];` as data; the rest of the legacy script (its
+			// overlay DOM code) never runs. See `sanitizeSponsorContent` for what survives.
+			const data = extractDeclaredLiteral(await res.text(), 'contentSponsor');
+			const sponsor = Array.isArray(data) ? sanitizeSponsorContent(data[0]) : null;
+			if (sponsor) {
+				this.sponsorContent = sponsor;
 				// Start the creative download now instead of when the dialog mounts —
 				// unless this sponsor was dismissed and the dialog will not open.
-				const { creative, sponsorId } = this.sponsorContent;
+				const { creative, sponsorId } = sponsor;
 				if (creative && !this.isSponsorDismissed(sponsorId)) {
 					const img = new Image();
 					img.fetchPriority = 'high';
@@ -208,14 +326,19 @@ export class SquiglinkStore {
 			}
 		} catch {
 			// Silently skip if sponsor script is unavailable
+		} finally {
+			this.#sponsorSettled = true;
 		}
 	}
 
 	async fetchSponsorProductData(hfg_com: string): Promise<SponsorProductData | null> {
 		if (!this.isEnabled) return null;
+		// The table is checked on load; this is a public method, so check the argument too
+		const url = sanitizeHttpUrl(hfg_com);
+		if (!url) return null;
 
 		try {
-			const res = await fetch(`${hfg_com}.json`);
+			const res = await fetch(`${url}.json`, { priority: 'low' });
 			if (!res.ok) return null;
 			const data = await res.json();
 			return {

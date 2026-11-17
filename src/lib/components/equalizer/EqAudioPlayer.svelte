@@ -8,7 +8,7 @@
 		type AudioSource
 	} from '#lib/services/audio-player-service.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import Button from '#lib/components/atoms/Button.svelte';
 	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
@@ -108,7 +108,7 @@
 	<!-- Who applies the EQ while a hardware device is connected: it, or this player. Never both. -->
 	{#if devicePeqStore.isConnected}
 		{#if onDevice}
-			<p class="text-xs text-base-content/70">
+			<p class="text-xs text-base-content/80">
 				{m.equalizer_player_device_eq({ device: deviceName })}
 				{#if devicePeqStore.inSync === false}
 					{m.equalizer_player_device_eq_unwritten()}
@@ -121,7 +121,7 @@
 				/>
 			</p>
 		{:else if !devicePeqStore.audioThroughDevice}
-			<p class="text-xs text-base-content/70">
+			<p class="text-xs text-base-content/80">
 				{m.equalizer_player_device_ask({ device: deviceName })}
 				<Button
 					variant="link"
@@ -135,7 +135,7 @@
 
 	<!-- Range From/To inputs (only when frequency-selection mode is active) -->
 	{#if audioRangeStore.isFrequencySelectionMode}
-		<div class="flex items-center gap-2 text-xs text-base-content/60">
+		<div class="flex items-center gap-2 text-xs text-base-content/80">
 			<label class="flex items-baseline gap-1">
 				{m.equalizer_player_sweep_from_label()}
 				<input
@@ -148,9 +148,9 @@
 						const v = parseInt((e.target as HTMLInputElement).value);
 						if (!isNaN(v)) audioRangeStore.setRange(v, audioRangeStore.toHz);
 					}}
-					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 				/>
-				<span class="text-[10px]">Hz</span>
+				<span class="text-2xs">Hz</span>
 			</label>
 			<label class="flex items-baseline gap-1">
 				{m.equalizer_player_sweep_to_label()}
@@ -164,9 +164,9 @@
 						const v = parseInt((e.target as HTMLInputElement).value);
 						if (!isNaN(v)) audioRangeStore.setRange(audioRangeStore.fromHz, v);
 					}}
-					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+					class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 				/>
-				<span class="text-[10px]">Hz</span>
+				<span class="text-2xs">Hz</span>
 			</label>
 			<div class="h-px flex-1 bg-base-content/20"></div>
 			<Button
@@ -183,10 +183,11 @@
 
 	<!-- Source select -->
 	<select
+		aria-label={m.equalizer_player_source_label()}
 		value={audioPlayerService.audioSource}
 		onchange={(e) =>
 			audioPlayerService.setAudioSource((e.target as HTMLSelectElement).value as AudioSource)}
-		class="w-full rounded border border-base-content/20 bg-base-200 px-2 py-1 text-sm"
+		class="w-full rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-sm"
 	>
 		<option value="">{m.equalizer_player_option_init()}</option>
 		<option value="white">{m.equalizer_player_option_white()}</option>
@@ -199,7 +200,7 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioPlayerService.audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-base-content/60"
+			<span class="text-xs text-base-content/80"
 				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
 					>{audioPlayerService.toneFreq} Hz</span
 				></span
@@ -209,6 +210,8 @@
 				min="0"
 				max="1000"
 				step="1"
+				aria-label={m.equalizer_player_tone_slider_label()}
+				aria-valuetext="{audioPlayerService.toneFreq} Hz"
 				value={toneSliderPos(audioPlayerService.toneFreq, bandMinHz, bandMaxHz)}
 				oninput={(e) =>
 					audioPlayerService.setToneFreq(
@@ -222,7 +225,7 @@
 	<!-- Sweep controls (only when sweep selected) -->
 	{#if audioPlayerService.audioSource === 'sweep'}
 		<div class="flex flex-col gap-2">
-			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/60">
+			<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-base-content/80">
 				<!-- In range mode the band *is* the sweep span, and the Range From/To pair
 				     above already edits it — a second pair here would carry the same labels
 				     and the same numbers. -->
@@ -239,9 +242,9 @@
 								const v = parseInt((e.target as HTMLInputElement).value);
 								if (!isNaN(v)) audioPlayerService.setSweepFromHz(v);
 							}}
-							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 						/>
-						<span class="text-[10px]">Hz</span>
+						<span class="text-2xs">Hz</span>
 					</label>
 					<label class="flex items-baseline gap-1">
 						{m.equalizer_player_sweep_to_label()}
@@ -255,9 +258,9 @@
 								const v = parseInt((e.target as HTMLInputElement).value);
 								if (!isNaN(v)) audioPlayerService.setSweepToHz(v);
 							}}
-							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+							class="w-16 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 						/>
-						<span class="text-[10px]">Hz</span>
+						<span class="text-2xs">Hz</span>
 					</label>
 				{/if}
 				<label class="flex items-baseline gap-1">
@@ -272,9 +275,9 @@
 							const v = parseFloat((e.target as HTMLInputElement).value);
 							if (!isNaN(v)) audioPlayerService.setSweepDurationSec(v);
 						}}
-						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-none"
+						class="w-12 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-right tabular-nums focus:ring-1 focus:ring-accent focus:outline-hidden"
 					/>
-					<span class="text-[10px]">s</span>
+					<span class="text-2xs">s</span>
 				</label>
 				<Switch
 					labelText={m.equalizer_player_sweep_loop_label()}
@@ -285,7 +288,7 @@
 				/>
 			</div>
 			{#if audioPlayerService.isPlaying}
-				<span class="text-xs text-base-content/60 tabular-nums">
+				<span class="text-xs text-base-content/80 tabular-nums">
 					{audioPlayerService.sweepCurrentHz} Hz
 				</span>
 			{/if}
@@ -311,13 +314,18 @@
 			onchange={onFileChange}
 		/>
 		{#if audioPlayerService.fileLoaded}
-			<div class="flex items-center gap-2 text-xs text-base-content/60">
+			<div class="flex items-center gap-2 text-xs text-base-content/80">
 				<span class="tabular-nums">{formatTime(audioPlayerService.currentTime)}</span>
 				<input
 					type="range"
 					min="0"
 					max={audioPlayerService.duration}
 					step="0.1"
+					aria-label={m.equalizer_player_seek_label()}
+					aria-valuetext={m.equalizer_player_seek_valuetext({
+						current: formatTime(audioPlayerService.currentTime),
+						total: formatTime(audioPlayerService.duration)
+					})}
 					value={audioPlayerService.currentTime}
 					oninput={(e) =>
 						audioPlayerService.seekTo(parseFloat((e.target as HTMLInputElement).value))}
@@ -366,6 +374,8 @@
 				min="0"
 				max="1"
 				step="0.01"
+				aria-label={m.equalizer_player_volume_label()}
+				aria-valuetext="{Math.round(audioPlayerService.volume * 100)}%"
 				value={audioPlayerService.volume}
 				oninput={(e) =>
 					audioPlayerService.setVolume(parseFloat((e.target as HTMLInputElement).value))}

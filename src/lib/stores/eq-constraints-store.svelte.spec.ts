@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { flushSync } from 'svelte';
 import {
 	eqConstraintsStore,
@@ -118,6 +118,53 @@ describe('eqConstraintsStore catalog picks', () => {
 		const picks = eqConstraintsStore.presets.filter((p) => p.id === `${CATALOG_PREFIX}same`);
 		expect(picks).toHaveLength(1);
 		expect(picks[0].label).toBe('Spec B');
+	});
+});
+
+describe('eqConstraintsStore stored catalog pick', () => {
+	const KEY = 'gt-eq-constraint-catalog';
+	const stored = (profile: unknown) =>
+		JSON.stringify({ id: `${CATALOG_PREFIX}x`, label: 'X', source: 'catalog', profile });
+
+	/** The constructor reads the pick back, so each case loads a fresh module. */
+	let copies = 0;
+	async function freshPresets() {
+		// A query string makes a new copy of the module, and with it a new store instance.
+		const url = `./eq-constraints-store.svelte.ts?copy=${++copies}`;
+		const fresh = (await import(
+			/* @vite-ignore */ url
+		)) as typeof import('./eq-constraints-store.svelte.js');
+		return fresh.eqConstraintsStore.presets;
+	}
+
+	afterEach(() => {
+		localStorage.removeItem(KEY);
+		// A fresh copy's constructor took over the channel-scope lock; give it back to the real store.
+		eqStore.lockChannelScopeWhile(() => !eqConstraintsStore.supportsPerChannel);
+	});
+
+	it('restores a valid profile', async () => {
+		localStorage.setItem(KEY, stored({ ...deviceProfile(), id: 'x' }));
+		expect((await freshPresets()).some((p) => p.id === `${CATALOG_PREFIX}x`)).toBe(true);
+		expect(localStorage.getItem(KEY)).not.toBeNull();
+	});
+
+	it('discards a profile eqcaps cannot use, and the stored entry with it', async () => {
+		for (const bad of [
+			{ band: {} },
+			{ ...deviceProfile(), bandCount: 'many' },
+			{ ...deviceProfile(), band: { types: 'PK' } }
+		]) {
+			localStorage.setItem(KEY, stored(bad));
+			expect((await freshPresets()).some((p) => p.source === 'catalog')).toBe(false);
+			expect(localStorage.getItem(KEY)).toBeNull();
+		}
+	});
+
+	it('discards unparsable text', async () => {
+		localStorage.setItem(KEY, '{not json');
+		expect((await freshPresets()).some((p) => p.source === 'catalog')).toBe(false);
+		expect(localStorage.getItem(KEY)).toBeNull();
 	});
 });
 

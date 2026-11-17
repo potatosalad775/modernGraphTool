@@ -1,5 +1,6 @@
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { menuStore, MENU_PANELS, type MenuPanel } from '#lib/stores/menu-store.svelte.js';
+import { preloadEqualizerPanel } from '#lib/components/panels/lazy-panels.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import MetadataParser from '#lib/utils/metadata-parser.js';
 import { urlProvider } from '#lib/utils/url-provider.js';
@@ -57,6 +58,9 @@ function applyConfigDefaults(): void {
 			menuStore.currentPanel = mapped as MenuPanel;
 		}
 	}
+	// The Equalizer panel is a chunk of its own. Opening on it, ask for it now, with the
+	// phone book, instead of a round trip after the app has mounted.
+	if (menuStore.currentPanel === 'equalizer') preloadEqualizerPanel();
 
 	// Normalization defaults
 	const normType = getConfigValue('NORMALIZATION.TYPE') as 'Hz' | 'Avg' | undefined;
@@ -95,7 +99,13 @@ async function loadInitialData(): Promise<void> {
 			})
 		);
 		// Apply URL state (yScale, baseline, yOffsets, EQ) after data is loaded
-		urlProvider.applyStateFromURL();
+		try {
+			urlProvider.applyStateFromURL();
+		} catch (err) {
+			// The state is hand-editable: a link we cannot restore must not stop the
+			// page from booting with the devices it did load.
+			console.warn('initial-load: ignoring an unreadable ?state=', err);
+		}
 	} else {
 		// Fall back to config defaults
 		const initialPhones = (getConfigValue('INITIAL_PHONES') || []) as string[];

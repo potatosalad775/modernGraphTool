@@ -1,17 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import type { DeviceConnection } from '#lib/device-peq/types.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 import { AddFRDataCommand } from './commands.js';
 import { commandHistory } from './command-history.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
-import { audioPlayerService } from './audio-player-service.svelte.js';
 import { eqCommands } from './eq-commands.js';
 import {
 	onBlur,
@@ -22,8 +23,7 @@ import {
 	type ShortcutKeyEvent
 } from './keyboard-shortcuts.js';
 
-vi.mock('svelte-sonner', async (importOriginal) => ({
-	...(await importOriginal<typeof import('svelte-sonner')>()),
+vi.mock('#lib/services/toast.js', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }
 }));
 
@@ -139,6 +139,7 @@ describe('keyboard shortcuts', () => {
 		commandHistory.clear();
 		eqCommands.flushAll();
 		menuStore.currentPanel = 'graph';
+		settingsStore.singleKeyShortcuts = true;
 	});
 
 	describe('\\ momentary override', () => {
@@ -404,17 +405,15 @@ describe('keyboard shortcuts', () => {
 		});
 
 		describe('while a device applies the EQ', () => {
-			let playing: ReturnType<typeof vi.spyOn>;
-
 			beforeEach(() => {
-				playing = vi.spyOn(audioPlayerService, 'isPlaying', 'get').mockReturnValue(true);
+				audioPlaybackStore.isPlaying = true;
 				devicePeqStore.audioPathChoice = null;
 				devicePeqStore.setDisconnected();
 				vi.mocked(toast.info).mockClear();
 			});
 
 			afterEach(() => {
-				playing.mockRestore();
+				audioPlaybackStore.isPlaying = false;
 				devicePeqStore.audioPathChoice = null;
 				devicePeqStore.setDisconnected();
 			});
@@ -458,7 +457,7 @@ describe('keyboard shortcuts', () => {
 			});
 
 			it('works as before when the player is not playing', () => {
-				playing.mockReturnValue(false);
+				audioPlaybackStore.isPlaying = false;
 				eqStore.isEnabled = true;
 				connectDevice();
 
@@ -723,6 +722,66 @@ describe('keyboard shortcuts', () => {
 
 			expect(e.preventDefault).not.toHaveBeenCalled();
 			expect(menuStore.currentPanel).toBe('graph');
+		});
+	});
+
+	describe('single-key shortcuts', () => {
+		const SELECT = { tagName: 'SELECT' };
+		const COMBOBOX = {
+			tagName: 'DIV',
+			closest: (s: string) => (s.includes('combobox') ? {} : null)
+		};
+
+		it.each([
+			['a native select', SELECT],
+			['a combobox widget', COMBOBOX]
+		])('digits and backslash stand down while %s has focus', (_name, target) => {
+			eqStore.isEnabled = true;
+
+			const digit = press('3', { target });
+			const hold = press('\\', { target });
+
+			expect(digit.preventDefault).not.toHaveBeenCalled();
+			expect(menuStore.currentPanel).toBe('graph');
+			expect(hold.preventDefault).not.toHaveBeenCalled();
+			expect(eqStore.momentaryRestore).toBeNull();
+		});
+
+		it('digits and backslash do nothing once the setting is off', () => {
+			settingsStore.singleKeyShortcuts = false;
+			eqStore.isEnabled = true;
+
+			const digit = press('3');
+			const hold = press('\\');
+
+			expect(digit.preventDefault).not.toHaveBeenCalled();
+			expect(menuStore.currentPanel).toBe('graph');
+			expect(hold.preventDefault).not.toHaveBeenCalled();
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryRestore).toBeNull();
+		});
+
+		it('undo and redo keep working with the setting off, even in a select', () => {
+			settingsStore.singleKeyShortcuts = false;
+			const undoSpy = vi.spyOn(commandHistory, 'undo');
+			const redoSpy = vi.spyOn(commandHistory, 'redo');
+
+			press('z', { ctrlKey: true, target: SELECT });
+			press('z', { ctrlKey: true, shiftKey: true, target: SELECT });
+
+			expect(undoSpy).toHaveBeenCalledOnce();
+			expect(redoSpy).toHaveBeenCalledOnce();
+		});
+
+		it('releases a running hold with the setting off', () => {
+			eqStore.isEnabled = true;
+			press('\\');
+			settingsStore.singleKeyShortcuts = false;
+
+			release('\\');
+
+			expect(eqStore.isEnabled).toBe(true);
+			expect(eqStore.momentaryOverride).toBeNull();
 		});
 	});
 

@@ -115,6 +115,77 @@ describe('PhoneSelector', () => {
 		});
 	});
 
+	describe('search field', () => {
+		it('has an accessible name and text-correction hints off', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			const input = page.getByRole('searchbox', { name: 'Search devices' });
+			await expect.element(input).toBeInTheDocument();
+			const el = input.element();
+			expect(el.getAttribute('autocomplete')).toBe('off');
+			expect(el.getAttribute('autocorrect')).toBe('off');
+			expect(el.getAttribute('autocapitalize')).toBe('none');
+			expect(el.getAttribute('spellcheck')).toBe('false');
+			expect(el.getAttribute('enterkeyhint')).toBe('search');
+		});
+	});
+
+	describe('pressed state', () => {
+		it('exposes a loaded device and a selected brand through aria-pressed', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			const phone = makePhone();
+			stubBook(phone);
+			render(PhoneSelector);
+
+			const row = page.getByRole('button', { name: /HD 600/ });
+			await expect.element(row).toHaveAttribute('aria-pressed', 'false');
+			markLoaded(phone);
+			await expect.element(row).toHaveAttribute('aria-pressed', 'true');
+
+			const brand = page.getByRole('button', { name: 'Sennheiser', exact: true });
+			await expect.element(brand).toHaveAttribute('aria-pressed', 'false');
+			await brand.click();
+			await expect.element(brand).toHaveAttribute('aria-pressed', 'true');
+		});
+	});
+
+	describe('result count announcement', () => {
+		function status(): string {
+			return document.querySelector('[role="status"]')?.textContent?.trim() ?? '';
+		}
+
+		it('says nothing until a filter is active, then speaks the count once typing settles', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			MetadataParser.phoneMetadata = [
+				{
+					brand: 'Acme',
+					phones: ['Alpha', 'Alpine'].map((name) =>
+						makePhone({ brand: 'Acme', name, identifier: `Acme ${name}` })
+					)
+				}
+			];
+			render(PhoneSelector);
+			expect(status()).toBe('');
+
+			const box = page.getByRole('searchbox');
+			await box.fill('alp');
+			// Still inside the debounce window: nothing yet.
+			expect(status()).toBe('');
+			await vi.waitFor(() => expect(status()).toBe('2 devices found'), { timeout: 3000 });
+
+			await box.fill('alpha');
+			await vi.waitFor(() => expect(status()).toBe('1 device found'), { timeout: 3000 });
+
+			await box.fill('zzz');
+			await vi.waitFor(() => expect(status()).toBe('No results.'), { timeout: 3000 });
+			expect(document.querySelector('.ps-phone-pane > p')?.textContent?.trim()).toBe('No results.');
+
+			await box.fill('');
+			await vi.waitFor(() => expect(status()).toBe(''), { timeout: 3000 });
+		});
+	});
+
 	describe('brand list', () => {
 		function stubTwoBrands(): void {
 			MetadataParser.phoneMetadata = [
@@ -159,6 +230,120 @@ describe('PhoneSelector', () => {
 		});
 	});
 
+	/**
+	 * Pins what a query lists, in which order, and which brands it keeps, against one
+	 * fixture book. It exists so the search can be made cheaper (precomputed lowercase
+	 * text, a deferred query) without changing a single result: every case here must
+	 * hold before and after.
+	 */
+	describe('search results', () => {
+		const BOOK: Record<string, string[]> = {
+			Sennheiser: ['HD 600', 'HD 650', 'HD650/HD6XX', 'IE 200 Pro'],
+			Moondrop: ['Lyrö', 'Lyro', 'Blessing 2 Pro', 'Aria'],
+			Truthear: ['Zero', 'Zero Max', 'Prodigy', 'Nozzle -6dB Bass']
+		};
+		const ALL = Object.entries(BOOK).flatMap(([brand, names]) =>
+			names.map((name) => `${brand} ${name}`)
+		);
+
+		function stubFixture(): void {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
+			MetadataParser.phoneMetadata = Object.entries(BOOK).map(([brand, names]) => ({
+				brand,
+				phones: names.map((name) => makePhone({ brand, name, identifier: `${brand} ${name}` }))
+			}));
+		}
+
+		function rows(): string[] {
+			return [...document.querySelectorAll('.ps-phone-pane > div > button')].map((b) =>
+				b.textContent!.trim()
+			);
+		}
+
+		function brands(): string[] {
+			return [...document.querySelectorAll('.ps-brand-pane > button')].map((b) =>
+				b.textContent!.trim()
+			);
+		}
+
+		/** The brands a result list implies, in book order. */
+		function brandsOf(identifiers: string[]): string[] {
+			return Object.keys(BOOK).filter((brand) =>
+				identifiers.some((id) => id.startsWith(brand + ' '))
+			);
+		}
+
+		const CASES: [query: string, expected: string[]][] = [
+			['hd 6', ['Sennheiser HD 600', 'Sennheiser HD 650']],
+			['hd6', ['Sennheiser HD650/HD6XX']],
+			['HD 600, truthear zero', ['Sennheiser HD 600', 'Truthear Zero', 'Truthear Zero Max']],
+			['lyro // lyrö', ['Moondrop Lyrö', 'Moondrop Lyro']],
+			['lyro', ['Moondrop Lyro']],
+			['pro', ['Sennheiser IE 200 Pro', 'Moondrop Blessing 2 Pro', 'Truthear Prodigy']],
+			// A group with only exclusions names no device, so it filters nothing.
+			['-pro', ALL],
+			// Whole-word exclusion: `Prodigy` is not the word `pro`.
+			['pro -pro', ['Truthear Prodigy']],
+			['moondrop -pro', ['Moondrop Lyrö', 'Moondrop Lyro', 'Moondrop Aria']],
+			[
+				'truthear -max, aria',
+				['Moondrop Aria', 'Truthear Zero', 'Truthear Prodigy', 'Truthear Nozzle -6dB Bass']
+			],
+			['zzz', []],
+			// The `-` of a name's own `-6dB` is a word start like any other.
+			['truthear -6db', ['Truthear Zero', 'Truthear Zero Max', 'Truthear Prodigy']],
+			['nozzle', ['Truthear Nozzle -6dB Bass']],
+			// A trailing comma, a half-typed `//` and stray spaces change nothing.
+			['zero,', ['Truthear Zero', 'Truthear Zero Max']],
+			['lyro /', ['Moondrop Lyro']],
+			['  HD   600  ', ['Sennheiser HD 600']]
+		];
+
+		it.each(CASES)('lists the same devices and brands for %j', async (query, expected) => {
+			stubFixture();
+			render(PhoneSelector);
+			// Start from a different list so the wait below can't pass on the initial one.
+			if (expected.length === ALL.length) await page.getByRole('searchbox').fill('zzz');
+			await page.getByRole('searchbox').fill(query);
+
+			await vi.waitFor(() => expect(rows()).toEqual(expected));
+			await vi.waitFor(() => expect(brands()).toEqual(brandsOf(expected)));
+		});
+
+		it('keeps the book order when a query is cleared again', async () => {
+			stubFixture();
+			render(PhoneSelector);
+
+			await page.getByRole('searchbox').fill('pro');
+			await vi.waitFor(() => expect(rows()).toHaveLength(3));
+			await page.getByRole('searchbox').fill('');
+			await vi.waitFor(() => expect(rows()).toEqual(ALL));
+			expect(brands()).toEqual(['Sennheiser', 'Moondrop', 'Truthear']);
+		});
+
+		it('applies a selected brand on top of the query', async () => {
+			stubFixture();
+			render(PhoneSelector);
+
+			await page.getByRole('button', { name: 'Moondrop', exact: true }).click();
+			await vi.waitFor(() => expect(rows()).toHaveLength(4));
+			await page.getByRole('searchbox').fill('pro');
+			await vi.waitFor(() => expect(rows()).toEqual(['Moondrop Blessing 2 Pro']));
+			// The brand list is not narrowed by the brand filter, only by the query.
+			expect(brands()).toEqual(['Sennheiser', 'Moondrop', 'Truthear']);
+		});
+
+		it('updates the field at once, ahead of the list', async () => {
+			stubFixture();
+			render(PhoneSelector);
+
+			const box = page.getByRole('searchbox');
+			await box.fill('zzz');
+			expect((box.element() as HTMLInputElement).value).toBe('zzz');
+			await vi.waitFor(() => expect(rows()).toEqual([]));
+		});
+	});
+
 	describe('description', () => {
 		it('renders the allowed inline HTML as markup, not as literal text', async () => {
 			stubBook(
@@ -194,8 +379,54 @@ describe('PhoneSelector', () => {
 			stubBook(makePhone({ description: 'B&K5128 unit <a href="https://x.example">here</a>' }));
 			render(PhoneSelector);
 
-			const span = document.querySelector('.ps-description');
-			expect(span?.getAttribute('title')).toBe('B&K5128 unit here');
+			// On the row button, not the description: that is click-through, so no tooltip there.
+			const button = document.querySelector('.ps-phone-pane > div > button');
+			expect(button?.getAttribute('title')).toBe('B&K5128 unit here');
+		});
+
+		// An anchor in the description is interactive content, so it can't live in the button.
+		it('keeps the description beside the row button, not inside it', async () => {
+			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
+			render(PhoneSelector);
+
+			const link = page.getByRole('link', { name: 'here' });
+			await expect.element(link).toBeInTheDocument();
+			const anchor = link.element();
+			expect(anchor.closest('button')).toBeNull();
+
+			const button = document.querySelector('.ps-phone-pane > div > button') as HTMLElement;
+			const description = anchor.closest('.ps-description') as HTMLElement;
+			expect(button.querySelector('a, .ps-description')).toBeNull();
+			expect(button.parentElement?.contains(description)).toBe(true);
+			// The button is still described by it, so a screen reader keeps the text.
+			const wrapper = description.parentElement as HTMLElement;
+			expect(button.getAttribute('aria-describedby')).toBe(wrapper.id);
+			expect(button.textContent?.trim()).toBe('Sennheiser HD 600');
+		});
+
+		it('leaves the description out of the button that is disabled while loading', async () => {
+			let release!: () => void;
+			vi.spyOn(dataProvider, 'toggleFRData').mockImplementation(
+				() => new Promise<void>((resolve) => (release = resolve))
+			);
+			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
+			render(PhoneSelector);
+
+			const row = page.getByRole('button', { name: /HD 600/ });
+			await row.click();
+			await vi.waitFor(() => expect((row.element() as HTMLButtonElement).disabled).toBe(true));
+			const link = page.getByRole('link', { name: 'here' }).element();
+			expect(link.closest('[disabled]')).toBeNull();
+			release();
+		});
+
+		it('sets no description reference on a row without a description', async () => {
+			stubBook(makePhone());
+			render(PhoneSelector);
+
+			const button = document.querySelector('.ps-phone-pane > div > button') as HTMLElement;
+			expect(button.hasAttribute('aria-describedby')).toBe(false);
+			expect(button.hasAttribute('title')).toBe(false);
 		});
 
 		it('does not toggle the device when a link inside the description is clicked', async () => {
@@ -203,7 +434,7 @@ describe('PhoneSelector', () => {
 			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
 			render(PhoneSelector);
 
-			// The anchor lives inside the row button; the guard reads event.target.
+			// The anchor sits beside the row button, so its click never reaches it.
 			const anchor = document.querySelector('.ps-description a') as HTMLAnchorElement;
 			anchor.removeAttribute('href'); // keep the test from navigating
 			anchor.click();
@@ -246,6 +477,53 @@ describe('PhoneSelector', () => {
 			anchor.click();
 
 			expect(toggle).not.toHaveBeenCalled();
+		});
+
+		// Links nested in a button are invalid and drop out of the accessibility tree.
+		it('keeps the links beside the row button, not inside it', async () => {
+			(window as ConfigWindow).GRAPHTOOL_CONFIG = { RANKING: { URL: '/ranking/#{slug}' } };
+			const phone = makePhone({
+				reviewLink: 'https://review.example/hd600',
+				shopLink: 'https://shop.example/hd600',
+				links: [{ label: 'Amazon', url: 'https://amazon.example/hd600' }],
+				reviewScore: 4
+			});
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			for (const name of ['Review', 'Shop', 'Amazon']) {
+				const link = page.getByRole('link', { name });
+				await expect.element(link).toBeInTheDocument();
+				const el = link.element();
+				expect(el.closest('button')).toBeNull();
+				expect(el.getAttribute('target')).toBe('_blank');
+				expect(el.getAttribute('rel')).toContain('noopener');
+				expect(el.getAttribute('rel')).toContain('noreferrer');
+			}
+			const rank = page.getByTitle('Rank: 4');
+			await expect.element(rank).toBeInTheDocument();
+			expect(rank.element().tagName).toBe('A');
+			expect(rank.element().closest('button')).toBeNull();
+		});
+
+		it('leaves the links out of the button that is disabled while loading', async () => {
+			let release!: () => void;
+			vi.spyOn(dataProvider, 'toggleFRData').mockImplementation(
+				() => new Promise<void>((resolve) => (release = resolve))
+			);
+			const phone = makePhone({ links: [{ label: 'Amazon', url: 'https://amazon.example' }] });
+			stubBook(phone);
+			markLoaded(phone);
+			render(PhoneSelector);
+
+			const row = page.getByRole('button', { name: /HD 600/ });
+			await row.click();
+			await vi.waitFor(() => expect((row.element() as HTMLButtonElement).disabled).toBe(true));
+			const link = page.getByRole('link', { name: 'Amazon' }).element();
+			expect(link.closest('button')).toBeNull();
+			expect(link.closest('[disabled]')).toBeNull();
+			release();
 		});
 
 		it('keeps the meta row hidden until the device is loaded', async () => {

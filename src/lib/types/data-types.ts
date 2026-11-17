@@ -427,6 +427,8 @@ export interface WatermarkConfig {
 export interface TopbarTitleConfig {
 	TYPE: 'TEXT' | 'IMAGE' | 'HTML';
 	CONTENT: string;
+	/** The site's name as text, for an IMAGE or HTML title. May be i18n-wrapped. */
+	ALT?: string | I18nConfigValue;
 }
 
 /** Topbar link configuration */

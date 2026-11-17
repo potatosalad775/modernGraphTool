@@ -194,6 +194,72 @@ describe('buildSiteEntries', () => {
 
 		expect(buildSiteEntries(broken, null)).toEqual([]);
 	});
+
+	it('drops a database whose URL is not absolute http(s), keeping the rest', () => {
+		const unsafe = [
+			'javascript:alert(1)',
+			'JaVaScRiPt:alert(1)',
+			'  javascript:alert(1)',
+			'\tjava\nscript:alert(1)',
+			'data:text/html,<script>alert(1)</script>',
+			'DATA:text/html;base64,AAAA',
+			'/relative/',
+			'mailto:a@b.c'
+		];
+		const index = makeIndex({
+			dbs: [
+				...unsafe.map((url, i) => ({
+					id: `alice:bad${i}`,
+					siteId: 'alice',
+					type: 'IEMs',
+					url
+				})),
+				{ id: 'bob:5128', siteId: 'bob', type: '5128', url: ' https://bob.squig.link/ ' }
+			]
+		});
+
+		const entries = buildSiteEntries(index, null);
+
+		expect(entries.map((entry) => entry.dbId)).toEqual(['bob:5128']);
+		expect(entries[0].url).toBe('https://bob.squig.link/');
+	});
+});
+
+describe('untrusted rows', () => {
+	const bad = (value: unknown) => value as never;
+
+	it('buildSiteEntries skips malformed sites and databases instead of throwing', () => {
+		const index = makeIndex({
+			sites: [
+				bad(null),
+				bad('x'),
+				{ id: 'alice', name: bad(4), url: 'https://alice.squig.link' },
+				{ id: 'bob', name: 'Bob', url: 'https://bob.squig.link' }
+			],
+			dbs: [
+				bad(null),
+				bad(1),
+				{ id: bad(null), siteId: 'bob', type: 'IEMs', url: 'https://bob.squig.link/a/' },
+				{ id: 'bob:nosite', siteId: bad(2), type: 'IEMs', url: 'https://bob.squig.link/b/' },
+				{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' },
+				{ id: 'bob:5128', siteId: 'bob', type: '5128', url: 'https://bob.squig.link/' }
+			]
+		});
+
+		expect(buildSiteEntries(index, null).map((entry) => entry.dbId)).toEqual(['bob:5128']);
+	});
+
+	it('findCurrentDbId ignores malformed databases', () => {
+		const index = makeIndex({
+			dbs: [
+				bad(null),
+				{ id: 'x', siteId: 'alice', type: 'IEMs', url: bad(null) },
+				{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' }
+			]
+		});
+
+		expect(findCurrentDbId(index, 'https://alice.squig.link/?share=x')).toBe('alice:iems');
+	});
 });
 
 describe('groupSiteEntries', () => {

@@ -8,8 +8,11 @@
 	300 ms is short enough to read as immediate without a toolbar row flashing tooltips as
 	the pointer crosses it, and the skip window makes the next button open with no delay.
 	Touch never opens a tooltip (bits-ui ignores touch pointers), so nothing may live only here.
+	Focus opens one only when it is `:focus-visible`: focus a script moves after a tap or a click
+	would otherwise open a tooltip nobody asked for, and one placed off-screen (on a drawer still
+	flying in) widens a phone's layout viewport.
 -->
-<Tooltip.Provider delayDuration={300} skipDelayDuration={400}>
+<Tooltip.Provider delayDuration={300} skipDelayDuration={400} ignoreNonKeyboardFocus>
 	<Tooltip.Root tether={tooltipTether}>
 		{#snippet children({ payload })}
 			<Tooltip.Portal>

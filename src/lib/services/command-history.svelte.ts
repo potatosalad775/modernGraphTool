@@ -16,11 +16,24 @@ export interface FRStoreWriteAPI {
  *   history.undo(store)              — reverse last command, returns it
  *   history.redo(store)              — re-apply next command, returns it
  */
+/**
+ * How long after the top entry was recorded (or last merged into) a new command may still fold into
+ * it, for a command with `mergeWith`. Longer than the Y-offset button's 150 ms repeat tick, so a
+ * hold stays one entry, and the same as the EQ coalescer's burst window.
+ */
+export const MERGE_WINDOW_MS = 400;
+
 class CommandHistory {
 	#history: Command[] = $state([]);
 
 	/** Index of the last executed command (-1 = empty) */
 	#pointer = $state(-1);
+
+	/**
+	 * When the top entry was pushed or last merged into. Undo, redo and clear reset it, so a new
+	 * edit never folds into an entry the user has stepped over.
+	 */
+	#touchedAt = Number.NEGATIVE_INFINITY;
 
 	/**
 	 * Bumped by every execute, undo and redo. A change to the EQ that moves it is a finished step,
@@ -32,9 +45,19 @@ class CommandHistory {
 	execute(command: Command, store: FRStoreWriteAPI): Command {
 		// Truncate the redo branch
 		this.#history = this.#history.slice(0, this.#pointer + 1);
+		const now = performance.now();
+		const top = this.#history[this.#pointer];
+		const merge =
+			top !== undefined &&
+			now - this.#touchedAt <= MERGE_WINDOW_MS &&
+			command.mergeWith?.(top) === true;
 		command.execute(store);
-		this.#history.push(command);
-		this.#pointer++;
+		if (merge) this.#history[this.#pointer] = command;
+		else {
+			this.#history.push(command);
+			this.#pointer++;
+		}
+		this.#touchedAt = now;
 		this.revision++;
 		return command;
 	}
@@ -44,6 +67,7 @@ class CommandHistory {
 		if (this.#pointer < 0) return null;
 		const command = this.#history[this.#pointer--];
 		command.undo(store);
+		this.#touchedAt = Number.NEGATIVE_INFINITY;
 		this.revision++;
 		return command;
 	}
@@ -53,6 +77,7 @@ class CommandHistory {
 		if (this.#pointer >= this.#history.length - 1) return null;
 		const command = this.#history[++this.#pointer];
 		command.execute(store);
+		this.#touchedAt = Number.NEGATIVE_INFINITY;
 		this.revision++;
 		return command;
 	}
@@ -77,6 +102,7 @@ class CommandHistory {
 	clear(): void {
 		this.#history = [];
 		this.#pointer = -1;
+		this.#touchedAt = Number.NEGATIVE_INFINITY;
 	}
 }
 

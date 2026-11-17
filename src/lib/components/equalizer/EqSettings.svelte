@@ -5,6 +5,8 @@
 	import Switch from '../atoms/Switch.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 
+	const uid = $props.id();
+
 	function handlePersistModeChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
 		settingsStore.setAutoEqPersistMode(select.value as 'session' | 'local');
@@ -19,14 +21,15 @@
 <div class="flex flex-col gap-3">
 	<!-- AutoEQ input persistence mode -->
 	<div class="flex items-center gap-2">
-		<span class="flex-1 text-xs font-medium text-base-content/80"
+		<span id="{uid}-persist" class="flex-1 text-xs font-medium text-base-content/80"
 			>{m.eq_settings_autoeq_persist_label()}</span
 		>
 		<div class="flex-1">
 			<select
+				aria-labelledby="{uid}-persist"
 				value={settingsStore.autoEqPersistMode}
 				onchange={handlePersistModeChange}
-				class="h-7 w-full rounded-md border border-base-content/20 bg-base-100 px-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-none"
+				class="h-7 w-full rounded-md border border-base-content/20 bg-base-100 pl-2 text-xs hover:cursor-pointer hover:bg-base-content/10 focus:ring-1 focus:ring-accent focus:outline-hidden"
 			>
 				<option value="session">{m.eq_settings_autoeq_persist_session()}</option>
 				<option value="local">{m.eq_settings_autoeq_persist_local()}</option>
@@ -37,7 +40,7 @@
 	<!-- Link EQ curve to original -->
 	<div class="flex items-center justify-between">
 		<div class="flex items-center">
-			<span class="flex-1 text-xs font-medium text-base-content/80"
+			<span id="{uid}-link" class="flex-1 text-xs font-medium text-base-content/80"
 				>{m.eq_settings_link_eq_normalization_label()}</span
 			>
 			<InfoPopover
@@ -48,6 +51,7 @@
 			</InfoPopover>
 		</div>
 		<Switch
+			aria-labelledby="{uid}-link"
 			labelClass="text-xs font-normal"
 			checked={settingsStore.linkEqNormalization}
 			onCheckedChange={handleLinkToggle}

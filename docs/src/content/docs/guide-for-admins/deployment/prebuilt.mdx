@@ -40,7 +40,7 @@ dist/                     # (or extracted release folder)
 ├── config.js             # Application settings — YOU EDIT
 ├── theme.css             # Graph color theme — YOU EDIT
 ├── index.html            # HTML entry point — editable for metadata
-├── .htaccess             # Apache SPA fallback
+├── .htaccess             # Apache SPA fallback, caching and compression
 ├── data/
 │   ├── phones/           # Measurement data files (.txt) — YOU EDIT
 │   ├── target/           # Target curve data files (.txt) — YOU EDIT
@@ -52,6 +52,58 @@ dist/                     # (or extracted release folder)
 ```
 
 Files marked **YOU EDIT** are safe to customize. The `_app/` folder contains the built application and should be left alone — it's overwritten on every release update.
+
+## Caching and compression \{#caching-and-compression\}
+
+On Apache, the bundled `.htaccess` also sets cache lifetimes and turns on compression. Every rule sits inside an `<IfModule>` guard, so a host without that module simply ignores it, and the SPA fallback is unchanged. A host that is not Apache ignores the whole file. squig.link is one: caching and compression there are squig.link's own.
+
+- **`_app/immutable/`** is cached for a year (`public, max-age=31536000, immutable`). Its file names carry a content hash, so a new release is a new URL.
+- **`index.html`, `config.js`, `theme.css`, `_app/version.json` and `data/`** are sent with `Cache-Control: no-cache`. Browsers keep a copy but ask the server first, so an edit you upload shows up on the next load, and an unchanged file costs only a `304`.
+- **Text types** (HTML, CSS, JavaScript, JSON, SVG, WebAssembly) are compressed with Brotli and gzip when `mod_brotli` / `mod_deflate` are available.
+
+Other servers need the same three things. The paths are relative to the folder you deploy:
+
+| Path                                                                | `Cache-Control`                       |
+| ------------------------------------------------------------------- | ------------------------------------- |
+| `_app/immutable/*`                                                  | `public, max-age=31536000, immutable` |
+| `index.html`, `config.js`, `theme.css`, `_app/version.json`, `data/*` | `no-cache`                            |
+
+For nginx, inside the `server` block of a site served from `root`:
+
+```nginx
+gzip on;
+gzip_types text/css text/plain application/javascript application/json image/svg+xml application/wasm;
+
+location /_app/immutable/ {
+  add_header Cache-Control "public, max-age=31536000, immutable";
+}
+location ~ ^/(index\.html|config\.js|theme\.css|_app/version\.json)$ {
+  add_header Cache-Control "no-cache";
+}
+location /data/ {
+  add_header Cache-Control "no-cache";
+}
+location / {
+  try_files $uri $uri/ /index.html;
+}
+```
+
+On a static host with a headers file (Netlify, Cloudflare Pages), the equivalent `_headers` file is:
+
+```text
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+/index.html
+  Cache-Control: no-cache
+/config.js
+  Cache-Control: no-cache
+/theme.css
+  Cache-Control: no-cache
+/data/*
+  Cache-Control: no-cache
+```
+
+Those hosts already compress text responses. GitHub Pages sets its own short cache lifetime and cannot be changed.
 
 ## Updating the app
 
@@ -71,6 +123,10 @@ Pre-built releases need manual updates. The safe procedure:
 :::caution[Don't overwrite your data]
 The most common update mistake is extracting the new release directly over your live deployment. This overwrites `config.js`, `data/`, etc. with the default release templates. Always back up or copy out first.
 :::
+
+## Security headers (optional)
+
+The release's `.htaccess` also carries a recommended Content-Security-Policy and three other security headers, switched off. See [Security Headers](./security-headers.mdx) for what they do and how to switch them on. If you do, take the new `Content-Security-Policy` line from each release when you update: it is written for that release.
 
 ## Troubleshooting
 

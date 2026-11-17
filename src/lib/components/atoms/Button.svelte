@@ -70,8 +70,15 @@
 		link: 'text-primary underline-offset-4 hover:underline'
 	};
 
+	// The two sizes below are under 24px, so they carry a centred, invisible 24px hit area (WCAG
+	// 2.5.8). Fixed at `size-6`, not `--target-size`: the 44px a coarse pointer gets would swallow
+	// clicks meant for neighbours in a dense row. A roomy caller opts in with
+	// `pointer-coarse:after:size-(--target-size)`, which tailwind-merge resolves against this.
+	const hitArea =
+		'relative after:absolute after:top-1/2 after:left-1/2 after:size-6 after:-translate-x-1/2 after:-translate-y-1/2';
+
 	const sizeClasses = {
-		xs: 'px-1.5 py-0.5 text-[10px]',
+		xs: `${hitArea} px-1.5 py-0.5 text-2xs`,
 		sm: 'px-2.5 py-1.5 text-xs',
 		md: 'px-4 py-2 text-sm',
 		lg: 'px-6 py-3 text-base',
@@ -81,11 +88,11 @@
 		toolbar: 'h-(--toolbar-height) gap-1.5 px-2.5 text-xs',
 		icon: 'p-2',
 		'icon-sm': 'p-1.5',
-		'icon-xs': 'p-1'
+		'icon-xs': `${hitArea} p-1`
 	};
 
 	const base =
-		'inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100';
+		'inline-flex cursor-pointer items-center justify-center rounded-md font-medium transition-colors select-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-base-100';
 
 	const activeOnOpenClasses = 'data-[state=open]:bg-accent data-[state=open]:text-accent-content';
 

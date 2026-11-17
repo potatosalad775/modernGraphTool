@@ -27,7 +27,7 @@
 	} = $props();
 </script>
 
-<PopoverPanel {side} {align}>
+<PopoverPanel {side} {align} {label} contentClass="w-5/6 max-w-xs">
 	{#snippet trigger({ props })}
 		<Button
 			{...props}
@@ -44,7 +44,7 @@
 			{/if}
 		</Button>
 	{/snippet}
-	<div class="flex max-w-xs flex-col gap-2 text-xs text-base-content">
+	<div class="flex flex-col gap-2 text-xs text-pretty text-base-content">
 		{@render children()}
 	</div>
 </PopoverPanel>

@@ -1,7 +1,9 @@
 import { browser } from '$app/env';
 import * as m from '#lib/paraglide/messages.js';
 import { getConfigValue } from '#lib/utils/config.js';
+import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
 import { matchesQueryGroup, splitQueryGroups, type QueryGroup } from '#lib/utils/search-query.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type {
 	AggregateDb,
 	AggregateIndex,
@@ -47,11 +49,21 @@ const DB_TYPE_LABELS = new Map<string, () => string>([
 
 const SQUIGLINK_ROOT_HOST = 'squig.link';
 
-/** Pre-lowered row, built once per index load and reused for every keystroke. */
+/**
+ * Pre-lowered row, built once per index load and reused for every keystroke.
+ * `buildSearchRows` returns them already in result order, so a query only filters.
+ */
 export interface SearchRow {
 	displayLower: string;
 	result: CrossSiteSearchResult;
+	/** Position in the index's own order, which breaks ties the comparator can't. */
+	seq: number;
+	/** Rows that compare equal share one id; ids rise along the sorted rows. */
+	tie: number;
 }
+
+/** The default locale's collation, which `localeCompare` would rebuild on every call. */
+const collator = new Intl.Collator();
 
 export interface CrossSiteSearchHits {
 	results: CrossSiteSearchResult[];
@@ -129,87 +141,161 @@ function isCurrentSite(site: AggregateSite): boolean {
 	return true;
 }
 
-/**
- * Orders hits by rig class, then delta-ready databases, then site and device
- * name. Shared with the squig.link phone-book fallback so both sources present
- * results identically.
- */
-export function sortCrossSiteResults(results: CrossSiteSearchResult[]): CrossSiteSearchResult[] {
-	return results.sort((a, b) => {
-		const rankDiff = rankDbType(a.dbType) - rankDbType(b.dbType);
-		if (rankDiff !== 0) return rankDiff;
-		if (a.dbType !== b.dbType) return a.dbType.localeCompare(b.dbType);
-		if (a.deltaReady !== b.deltaReady) return a.deltaReady ? -1 : 1;
-		if (a.siteName !== b.siteName) return a.siteName.localeCompare(b.siteName);
-		return a.phoneName.localeCompare(b.phoneName);
-	});
+/** Rig class, then delta-ready databases, then site and device name. */
+function compareResults(a: CrossSiteSearchResult, b: CrossSiteSearchResult): number {
+	const rankDiff = rankDbType(a.dbType) - rankDbType(b.dbType);
+	if (rankDiff !== 0) return rankDiff;
+	if (a.dbType !== b.dbType) return collator.compare(a.dbType, b.dbType);
+	if (a.deltaReady !== b.deltaReady) return a.deltaReady ? -1 : 1;
+	if (a.siteName !== b.siteName) return collator.compare(a.siteName, b.siteName);
+	return collator.compare(a.phoneName, b.phoneName);
 }
 
 /**
- * Requests every mirror at once and takes the first valid index in URL order, so
- * earlier mirrors keep their preference without a stalled primary adding its
- * timeout to the next one's.
+ * Orders hits by rig class, then delta-ready databases, then site and device
+ * name. `buildSearchRows` applies the same order once per index load; this
+ * stays for callers that hold loose results.
+ */
+export function sortCrossSiteResults(results: CrossSiteSearchResult[]): CrossSiteSearchResult[] {
+	return results.sort(compareResults);
+}
+
+function isAggregateIndex(data: unknown): data is AggregateIndex {
+	const doc = data as Partial<AggregateIndex> | null | undefined;
+	return (
+		Array.isArray(doc?.brands) &&
+		Array.isArray(doc?.sites) &&
+		Array.isArray(doc?.dbs) &&
+		Array.isArray(doc?.phones)
+	);
+}
+
+/**
+ * Requests every mirror at once and takes the first valid index in URL order: a
+ * later mirror is read only once every earlier one has failed, so the primary
+ * keeps its preference and a stalled one doesn't add its timeout to the next
+ * one's. Only the mirror that is read gets its body parsed; the rest are
+ * aborted as soon as a winner is known.
  */
 export async function fetchAggregateIndex(urls: string[]): Promise<AggregateIndex | null> {
-	const attempts = urls.map(async (url): Promise<AggregateIndex | null> => {
-		try {
-			const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-			if (!res.ok) return null;
-
-			const data = (await res.json()) as AggregateIndex;
-
-			if (
-				Array.isArray(data?.brands) &&
-				Array.isArray(data?.sites) &&
-				Array.isArray(data?.dbs) &&
-				Array.isArray(data?.phones)
-			) {
-				return data;
+	const attempts = urls.map((url) => {
+		const controller = new AbortController();
+		const abort = () => controller.abort();
+		// This budget is for the headers. The body gets its own when the mirror is read: a
+		// mirror that answered must not be aborted while an earlier one runs out its time.
+		const headerTimer = setTimeout(abort, FETCH_TIMEOUT_MS);
+		const response = (async (): Promise<Response | null> => {
+			try {
+				return await fetch(url, { signal: controller.signal });
+			} catch {
+				return null;
+			} finally {
+				clearTimeout(headerTimer);
 			}
-		} catch {
-			// Another mirror may still answer.
-		}
-		return null;
+		})();
+		return { controller, abort, timer: headerTimer, response };
 	});
 
-	for (const index of await Promise.all(attempts)) {
-		if (index) return index;
+	try {
+		for (const attempt of attempts) {
+			try {
+				const res = await attempt.response;
+				if (res?.ok) {
+					attempt.timer = setTimeout(attempt.abort, FETCH_TIMEOUT_MS);
+					const data: unknown = await res.json();
+					if (isAggregateIndex(data)) return data;
+				}
+			} catch {
+				// Another mirror may still answer.
+			}
+		}
+		return null;
+	} finally {
+		// Whatever is still in flight, or holding a timer, is not needed any more.
+		for (const attempt of attempts) {
+			clearTimeout(attempt.timer);
+			attempt.controller.abort();
+		}
 	}
-	return null;
+}
+
+/** An index `sites` row with the fields both index readers need. */
+export function isSiteRow(
+	value: unknown
+): value is Record<string, unknown> & { id: string; name: string } {
+	return isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string';
+}
+
+/** An index `dbs` row with the fields both index readers need. */
+export function isDbRow(
+	value: unknown
+): value is Record<string, unknown> & { id: string; siteId: string; type: string } {
+	return (
+		isRecord(value) &&
+		typeof value.id === 'string' &&
+		typeof value.siteId === 'string' &&
+		typeof value.type === 'string'
+	);
 }
 
 /**
  * Flattens the index into search rows, dropping databases hosted on the site the
  * visitor is already looking at. Handles both `phonesFormat` variants.
+ *
+ * The document is someone else's, so every field read is type-checked and a bad
+ * entry is skipped rather than allowed to throw. The rows come back sorted into
+ * result order, once, so a query only has to filter them.
  */
 export function buildSearchRows(index: AggregateIndex): SearchRow[] {
-	const sitesById = new Map(index.sites.map((site) => [site.id, site]));
-	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite }>();
+	const sitesById = new Map<string, AggregateSite>();
+	for (const site of index.sites as unknown[]) {
+		if (!isSiteRow(site)) continue;
+		sitesById.set(site.id, site as unknown as AggregateSite);
+	}
 
-	for (const db of index.dbs) {
+	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite; url: string }>();
+	for (const db of index.dbs as unknown[]) {
+		if (!isDbRow(db)) continue;
 		const site = sitesById.get(db.siteId);
 		if (!site || isCurrentSite(site)) continue;
-		dbsById.set(db.id, { db, site });
+		// The index is someone else's document and its URLs land in an `href`, so
+		// only an absolute http(s) URL gets through — a `javascript:` entry is
+		// dropped, along with every device it carried.
+		const url = sanitizeHttpUrl(db.url);
+		if (!url) continue;
+		dbsById.set(db.id, { db: db as unknown as AggregateDb, site, url });
 	}
 
 	const collapsed = index.phonesFormat === 'collapsed';
 	const rows: SearchRow[] = [];
 
-	for (const phone of index.phones) {
-		const brand = index.brands[phone.b];
-		if (brand === undefined) continue;
+	for (const phone of index.phones as unknown[]) {
+		if (!isRecord(phone) || typeof phone.n !== 'string') continue;
+		const brand: unknown = index.brands[phone.b as number];
+		if (typeof brand !== 'string') continue;
+
+		let measurements: unknown[];
+		if (collapsed && phone.m) {
+			if (!Array.isArray(phone.m)) continue;
+			measurements = phone.m;
+		} else {
+			measurements = [{ db: phone.db ?? '', s: phone.s }];
+		}
 
 		const displayLower = `${brand} ${phone.n}`.toLowerCase();
-		const measurements: AggregateMeasurement[] =
-			collapsed && phone.m ? phone.m : [{ db: phone.db ?? '', s: phone.s }];
 
 		for (const measurement of measurements) {
+			if (!isRecord(measurement) || typeof measurement.db !== 'string') continue;
+			const slug = (measurement as unknown as AggregateMeasurement).s;
+			if (slug != null && typeof slug !== 'string') continue;
 			const entry = dbsById.get(measurement.db);
 			if (!entry) continue;
-			const { db, site } = entry;
+			const { db, site, url } = entry;
 
 			rows.push({
 				displayLower,
+				seq: rows.length,
+				tie: 0,
 				result: {
 					siteId: site.id,
 					siteName: site.name,
@@ -218,10 +304,18 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 					deltaReady: !!db.deltaReady,
 					brand,
 					phoneName: phone.n,
-					url: buildShareUrl(db.url, measurement.s ?? deriveShareSlug(brand, phone.n))
+					url: buildShareUrl(url, slug ?? deriveShareSlug(brand, phone.n))
 				}
 			});
 		}
+	}
+
+	// Array.prototype.sort is stable, so rows that compare equal stay in index order.
+	rows.sort((a, b) => compareResults(a.result, b.result));
+	let tie = 0;
+	for (let i = 1; i < rows.length; i++) {
+		if (compareResults(rows[i - 1].result, rows[i].result) !== 0) tie++;
+		rows[i].tie = tie;
 	}
 
 	return rows;
@@ -253,29 +347,54 @@ function matchesGroup(row: SearchRow, group: QueryGroup): boolean {
  * its database matched every group — and then all of that database's matching
  * rows are kept, since the answer is the set of devices, not one of them.
  */
-function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): CrossSiteSearchResult[] {
-	const byDb = new Map<string, { matched: Set<number>; results: CrossSiteSearchResult[] }>();
+function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): SearchRow[] {
+	// `rows` is already in result order, so the candidates are too.
+	const byDb = new Map<string, { matched: Set<number>; firstSeq: number }>();
+	const candidates: SearchRow[] = [];
 
 	for (const row of rows) {
-		let entry: { matched: Set<number>; results: CrossSiteSearchResult[] } | undefined;
+		let entry: { matched: Set<number>; firstSeq: number } | undefined;
 		for (const [i, group] of groups.entries()) {
 			if (!matchesGroup(row, group)) continue;
 			if (!entry) {
 				entry = byDb.get(row.result.dbId);
 				if (!entry) {
-					entry = { matched: new Set(), results: [] };
+					entry = { matched: new Set(), firstSeq: row.seq };
 					byDb.set(row.result.dbId, entry);
 				}
 			}
 			entry.matched.add(i);
 		}
-		if (entry) entry.results.push(row.result);
+		if (entry) {
+			if (row.seq < entry.firstSeq) entry.firstSeq = row.seq;
+			candidates.push(row);
+		}
 	}
 
-	const matches: CrossSiteSearchResult[] = [];
-	for (const entry of byDb.values()) {
-		if (entry.matched.size === groups.length) matches.push(...entry.results);
+	const matches = candidates.filter(
+		(row) => byDb.get(row.result.dbId)!.matched.size === groups.length
+	);
+
+	// Rows that compare equal sit in index order, but across databases the order
+	// has always been the one whose first matching row came first. Only a run of
+	// equal rows spanning databases can differ, so only those are reordered.
+	let start = 0;
+	while (start < matches.length) {
+		let end = start + 1;
+		let spansDatabases = false;
+		while (end < matches.length && matches[end].tie === matches[start].tie) {
+			if (matches[end].result.dbId !== matches[start].result.dbId) spansDatabases = true;
+			end++;
+		}
+		if (spansDatabases) {
+			const run = matches
+				.slice(start, end)
+				.sort((a, b) => byDb.get(a.result.dbId)!.firstSeq - byDb.get(b.result.dbId)!.firstSeq);
+			for (const [offset, row] of run.entries()) matches[start + offset] = row;
+		}
+		start = end;
 	}
+
 	return matches;
 }
 
@@ -285,8 +404,11 @@ export function searchRows(rows: SearchRow[], query: string): CrossSiteSearchHit
 
 	const matches =
 		groups.length === 1
-			? rows.filter((row) => matchesGroup(row, groups[0])).map((row) => row.result)
+			? rows.filter((row) => matchesGroup(row, groups[0]))
 			: matchEveryGroup(rows, groups);
 
-	return { results: sortCrossSiteResults(matches).slice(0, MAX_RESULTS), total: matches.length };
+	return {
+		results: matches.slice(0, MAX_RESULTS).map((row) => row.result),
+		total: matches.length
+	};
 }

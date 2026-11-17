@@ -4,6 +4,7 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 	import { ExternalLink } from '@lucide/svelte';
+	import { dialogCardClass, dialogOverlayClass } from '../atoms/dialog-shell.js';
 
 	let open = $state(false);
 
@@ -31,7 +32,7 @@
 
 	function buildUtmUrl(baseUrl: string, sponsorId: string): string {
 		const separator = baseUrl.includes('?') ? '&' : '?';
-		return `${baseUrl}${separator}utm_source=squiglink&utm_medium=landingpromo&utm_campaign=${sponsorId}`;
+		return `${baseUrl}${separator}utm_source=squiglink&utm_medium=landingpromo&utm_campaign=${encodeURIComponent(sponsorId)}`;
 	}
 </script>
 
@@ -44,16 +45,13 @@
 		}}
 	>
 		<Dialog.Portal>
-			<Dialog.Overlay class="fixed inset-0 z-40 bg-black/40" />
-			<Dialog.Content
-				class="fixed top-1/2 left-1/2 z-50 flex max-h-11/12 w-11/12 max-w-md -translate-x-1/2
-					-translate-y-1/2 flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
-			>
-				<Dialog.Title class="text-lg font-semibold text-base-content">
+			<Dialog.Overlay class={dialogOverlayClass} />
+			<Dialog.Content class={dialogCardClass}>
+				<Dialog.Title class="text-lg font-semibold text-balance text-base-content">
 					{sponsor.heading}
 				</Dialog.Title>
 
-				<Dialog.Description class="mt-1 text-sm text-base-content/60">
+				<Dialog.Description class="mt-1 text-sm text-pretty text-base-content/80">
 					{sponsor.sponsorMessage}
 				</Dialog.Description>
 
@@ -78,7 +76,7 @@
 							target="_blank"
 							rel="external noopener noreferrer"
 							class="flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-content transition-colors
-								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+								hover:bg-accent/80 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-hidden"
 						>
 							<ExternalLink class="h-4 w-4" />
 							{sponsor.ctaText}
@@ -100,7 +98,7 @@
 				</div>
 
 				<Dialog.Close
-					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/60 transition-colors hover:bg-base-300 focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-none"
+					class="mt-3 -mb-2 h-12 w-full cursor-pointer rounded-lg py-1 text-center text-sm text-base-content/80 transition-colors hover:bg-base-300 hover:text-base-content focus-visible:ring-2 focus-visible:ring-base-content/80 focus-visible:outline-hidden"
 				>
 					{m.sponsor_banner_dismiss()}
 				</Dialog.Close>

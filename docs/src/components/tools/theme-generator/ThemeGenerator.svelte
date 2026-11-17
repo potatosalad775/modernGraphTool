@@ -69,6 +69,11 @@
 \t--color-warning-content: ${light.warningContent};
 \t--color-error: ${light.error};
 \t--color-error-content: ${light.errorContent};
+
+\t/* ── Overlay ───────────────────────────────────────────────────────────
+\t * The veil behind dialogs, the mobile menu and the guided tour. Carries its
+\t * own alpha: use it as \`bg-scrim\`, not with an opacity modifier. */
+\t--color-scrim: ${light.scrim};
 }
 
 .dark {
@@ -101,6 +106,32 @@
 \t--color-warning-content: ${dark.warningContent};
 \t--color-error: ${dark.error};
 \t--color-error-content: ${dark.errorContent};
+
+\t/* ── Overlay ───────────────────────────────────────────────────────── */
+\t--color-scrim: ${dark.scrim};
+}
+
+/* ── Increased contrast ──────────────────────────────────────────────────────
+ * Honours the OS "increase contrast" setting: base-content goes to black / white,
+ * and everything derived from it (text steps, borders, dividers) follows. */
+@media (prefers-contrast: more) {
+\t:root {
+\t\t--color-base-content: oklch(0% 0 0);
+\t\t--color-graph-grid-major: rgba(0, 0, 0, 0.4);
+\t\t--color-graph-grid-minor: rgba(0, 0, 0, 0.2);
+\t\t--color-graph-axis-label: rgba(0, 0, 0, 1);
+\t\t--color-graph-grid-text: rgba(0, 0, 0, 0.9);
+\t\t--color-graph-baseline: rgba(0, 0, 0, 0.6);
+\t}
+
+\t.dark {
+\t\t--color-base-content: oklch(100% 0 0);
+\t\t--color-graph-grid-major: rgba(255, 255, 255, 0.4);
+\t\t--color-graph-grid-minor: rgba(255, 255, 255, 0.2);
+\t\t--color-graph-axis-label: rgba(255, 255, 255, 1);
+\t\t--color-graph-grid-text: rgba(255, 255, 255, 0.9);
+\t\t--color-graph-baseline: rgba(255, 255, 255, 0.6);
+\t}
 }
 `;
 	};

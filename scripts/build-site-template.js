@@ -15,7 +15,7 @@
  *   defaults/assets/              → assets/        (verbatim)
  *   defaults/config.js            → config.js      (CDN_MODE stub spliced out)
  *   site-template/config-cdn-mode.js  ↑ the live CDN_MODE block spliced in
- *   site-template/index.html      → index.html     (verbatim)
+ *   site-template/index.html      → index.html     (recommended CSP filled in)
  *   site-template/README.md       → README.md      (verbatim)
  *                                 → .nojekyll      (created empty)
  *
@@ -33,6 +33,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, cpSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { writeMetaCsp } from './csp.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -90,6 +91,10 @@ writeFileSync(out('config.js'), config);
 console.log('Built config.js (defaults/config.js + live CDN_MODE)');
 
 cpSync(src('site-template', 'index.html'), out('index.html'));
+// The commented-out <meta> CSP gets its policy here: it lists a hash per inline script.
+if (!writeMetaCsp(out('index.html'))) {
+	throw new Error('site-template/index.html has no __CSP__ token for the recommended policy.');
+}
 cpSync(src('site-template', 'README.md'), out('README.md'));
 writeFileSync(out('.nojekyll'), '');
 console.log('Copied index.html, README.md; wrote .nojekyll');

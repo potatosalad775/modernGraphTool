@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as d3 from 'd3';
 import GraphInspection from './GraphInspection.js';
 import type { GraphEngine } from './GraphEngine.svelte.js';
@@ -64,10 +64,30 @@ function addPhone(uuid: string, identifier: string, db: number, extra: Partial<F
 	} as FRDataObject);
 }
 
-/** Drive a mousemove at user-space x. */
-function hoverAtX(x: number) {
+/**
+ * Frames are stepped by hand: the readout renders in an animation frame, so a
+ * test decides when one runs. `cancelled` records what was cancelled.
+ */
+let frames: { id: number; cb: FrameRequestCallback }[];
+let cancelledIds: number[];
+let nextFrameId: number;
+
+function runFrames() {
+	const due = frames;
+	frames = [];
+	for (const f of due) f.cb(performance.now());
+}
+
+/** Dispatch a mousemove at user-space x, without letting a frame run. */
+function moveToX(x: number) {
 	const rect = host.querySelector('.mouse-tracker') as SVGRectElement;
 	rect.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: 200, bubbles: true }));
+}
+
+/** Drive a mousemove at user-space x and let the frame it asked for render. */
+function hoverAtX(x: number) {
+	moveToX(x);
+	runFrames();
 }
 
 /** Drive a mousemove at the x position of `hz`. */
@@ -81,6 +101,18 @@ function labels(): string[] {
 
 describe('GraphInspection', () => {
 	beforeEach(() => {
+		frames = [];
+		cancelledIds = [];
+		nextFrameId = 1;
+		vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+			const id = nextFrameId++;
+			frames.push({ id, cb });
+			return id;
+		});
+		vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+			cancelledIds.push(id);
+			frames = frames.filter((f) => f.id !== id);
+		});
 		for (const uuid of [...frStore.entries.keys()]) frStore.delete(uuid);
 		graphStore.baselineUUID = null;
 		graphStore.baselineMode = 'off';
@@ -95,6 +127,7 @@ describe('GraphInspection', () => {
 		graphStore.baselineMode = 'off';
 		eqStore.isEnabled = false;
 		eqStore.sourcePhoneUUID = null;
+		vi.unstubAllGlobals();
 	});
 
 	describe('setup', () => {
@@ -213,7 +246,7 @@ describe('GraphInspection', () => {
 		it('tracks the cursor with the vertical line', () => {
 			hoverAt(1000);
 			const line = host.querySelector('.inspection-line') as SVGLineElement;
-			expect(Number(line.getAttribute('x1'))).toBeCloseTo(engine.xScale(1000), 0);
+			expect(Math.abs(Number(line.getAttribute('x1')) - engine.xScale(1000))).toBeLessThan(1);
 			expect(line.getAttribute('x1')).toBe(line.getAttribute('x2'));
 		});
 	});
@@ -508,6 +541,105 @@ describe('GraphInspection', () => {
 
 			const text = host.querySelector('.inspection-values g text') as SVGTextElement;
 			expect(text.getAttribute('text-anchor')).toBe('end');
+		});
+	});
+
+	describe('frame coalescing', () => {
+		beforeEach(() => {
+			inspection.setEnabled(true);
+			addPhone('a', 'Phone A', 80);
+		});
+
+		function leave() {
+			const rect = host.querySelector('.mouse-tracker') as SVGRectElement;
+			rect.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+		}
+
+		it('renders nothing until the frame runs', () => {
+			moveToX(engine.xScale(1000));
+
+			expect(frames).toHaveLength(1);
+			expect(labels()).toEqual([]);
+			expect(host.querySelector('.inspection-frequency')!.textContent).toBe('');
+		});
+
+		it('renders once for many moves in a frame, at the last position', () => {
+			const render = vi.spyOn(inspection, '_updateValueDisplays');
+
+			for (const hz of [100, 300, 700, 2000]) moveToX(engine.xScale(hz));
+
+			expect(frames).toHaveLength(1);
+			runFrames();
+
+			expect(render).toHaveBeenCalledTimes(1);
+			const line = host.querySelector('.inspection-line') as SVGLineElement;
+			expect(Math.abs(Number(line.getAttribute('x1')) - engine.xScale(2000))).toBeLessThan(1);
+			expect(labels()).toEqual(['Phone A (AVG): 79.0dB']);
+		});
+
+		it('asks for a new frame on the first move after one has rendered', () => {
+			moveToX(engine.xScale(100));
+			runFrames();
+			moveToX(engine.xScale(200));
+
+			expect(frames).toHaveLength(1);
+			runFrames();
+			const line = host.querySelector('.inspection-line') as SVGLineElement;
+			expect(Math.abs(Number(line.getAttribute('x1')) - engine.xScale(200))).toBeLessThan(1);
+		});
+
+		it('drops the pending frame on mouseleave and dims the readout', () => {
+			const render = vi.spyOn(inspection, '_updateValueDisplays');
+			moveToX(engine.xScale(1000));
+			leave();
+
+			expect(cancelledIds).toHaveLength(1);
+			expect(frames).toHaveLength(0);
+			runFrames();
+			expect(render).not.toHaveBeenCalled();
+			expect((host.querySelector('.fr-graph-inspection') as SVGGElement).style.opacity).toBe('0.7');
+		});
+
+		it('drops the pending frame when inspection is turned off', () => {
+			moveToX(engine.xScale(1000));
+			inspection.setEnabled(false);
+
+			expect(frames).toHaveLength(0);
+		});
+
+		it('keeps the row nodes between moves instead of rebuilding them', () => {
+			addPhone('b', 'Phone B', 70);
+			hoverAt(1000);
+			const before = [...host.querySelectorAll('.inspection-values g')];
+			expect(before).toHaveLength(2);
+
+			hoverAt(2000);
+			const after = [...host.querySelectorAll('.inspection-values g')];
+			expect(after).toEqual(before);
+		});
+
+		it('adds and removes rows as the item count changes', () => {
+			hoverAt(1000);
+			expect(host.querySelectorAll('.inspection-values g')).toHaveLength(1);
+
+			addPhone('b', 'Phone B', 70);
+			hoverAt(1000);
+			expect(host.querySelectorAll('.inspection-values g')).toHaveLength(2);
+
+			frStore.delete('a');
+			frStore.delete('b');
+			hoverAt(1000);
+			expect(host.querySelectorAll('.inspection-values g')).toHaveLength(0);
+		});
+
+		it('updates a kept row when its value changes', () => {
+			hoverAt(1000);
+			expect(labels()).toEqual(['Phone A (AVG): 79.0dB']);
+
+			frStore.delete('a');
+			addPhone('a', 'Phone A', 60);
+			hoverAt(1000);
+			expect(labels()).toEqual(['Phone A (AVG): 59.0dB']);
 		});
 	});
 

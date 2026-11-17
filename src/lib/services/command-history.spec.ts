@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import CommandHistory from './command-history.svelte.js';
-import type { Command } from './commands.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import CommandHistory, { MERGE_WINDOW_MS } from './command-history.svelte.js';
+import { UpdateYOffsetCommand, type Command } from './commands.js';
 import type { FRStoreWriteAPI } from './command-history.svelte.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 
@@ -18,6 +18,18 @@ function createMockStore(): FRStoreWriteAPI & { data: Map<string, FRDataObject> 
 		delete(uuid: string) {
 			data.delete(uuid);
 		}
+	};
+}
+
+function yOffsetItem(uuid: string): FRDataObject {
+	return {
+		uuid,
+		type: 'phone',
+		identifier: uuid,
+		channels: {},
+		dispChannel: ['AVG'],
+		colors: { AVG: '#000' },
+		dash: ''
 	};
 }
 
@@ -203,6 +215,108 @@ describe('CommandHistory', () => {
 			history.undo(store);
 
 			expect(history.isLatest(a)).toBe(false);
+		});
+	});
+
+	describe('merging a burst (mergeWith)', () => {
+		beforeEach(() => {
+			vi.useFakeTimers();
+			store.set('a', yOffsetItem('a'));
+			store.set('b', yOffsetItem('b'));
+		});
+		afterEach(() => vi.useRealTimers());
+
+		const offset = (uuid: string) => store.data.get(uuid)!.yOffset ?? 0;
+
+		it('folds repeat ticks inside the window into one entry', () => {
+			for (let i = 1; i <= 20; i++) {
+				history.execute(new UpdateYOffsetCommand('a', i), store);
+				vi.advanceTimersByTime(150);
+			}
+			expect(offset('a')).toBe(20);
+
+			history.undo(store);
+			expect(offset('a')).toBe(0);
+			expect(history.canUndo).toBe(false);
+
+			history.redo(store);
+			expect(offset('a')).toBe(20);
+			expect(history.canRedo).toBe(false);
+		});
+
+		it('keeps presses separated by a pause as separate entries', () => {
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+			vi.advanceTimersByTime(MERGE_WINDOW_MS + 1);
+			history.execute(new UpdateYOffsetCommand('a', 2), store);
+
+			history.undo(store);
+			expect(offset('a')).toBe(1);
+			history.undo(store);
+			expect(offset('a')).toBe(0);
+		});
+
+		it('does not merge a different curve', () => {
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+			history.execute(new UpdateYOffsetCommand('b', 1), store);
+
+			history.undo(store);
+			expect(offset('b')).toBe(0);
+			expect(offset('a')).toBe(1);
+		});
+
+		it('does not merge into a command of another kind', () => {
+			history.execute(createTestCommand('c', 'C'), store);
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+
+			history.undo(store);
+			expect(store.data.has('c')).toBe(true);
+			expect(offset('a')).toBe(0);
+		});
+
+		it('never merges across an undo', () => {
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+			history.execute(new UpdateYOffsetCommand('a', 2), store); // merged: 0 -> 2
+			history.undo(store);
+			expect(offset('a')).toBe(0);
+
+			// Immediately after the undo: a new edit starts its own entry (the redo branch is gone).
+			history.execute(new UpdateYOffsetCommand('a', 5), store);
+			expect(history.canRedo).toBe(false);
+			history.undo(store);
+			expect(offset('a')).toBe(0);
+			expect(history.canUndo).toBe(false);
+		});
+
+		it('never merges into an entry that was just redone', () => {
+			history.execute(new UpdateYOffsetCommand('a', 3), store);
+			history.undo(store);
+			history.redo(store);
+
+			history.execute(new UpdateYOffsetCommand('a', 4), store);
+			history.undo(store);
+			expect(offset('a')).toBe(3);
+			history.undo(store);
+			expect(offset('a')).toBe(0);
+		});
+
+		it('keeps the window sliding while ticks keep arriving', () => {
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+			vi.advanceTimersByTime(MERGE_WINDOW_MS - 50);
+			history.execute(new UpdateYOffsetCommand('a', 2), store);
+			vi.advanceTimersByTime(MERGE_WINDOW_MS - 50);
+			history.execute(new UpdateYOffsetCommand('a', 3), store);
+
+			history.undo(store);
+			expect(history.canUndo).toBe(false);
+			expect(offset('a')).toBe(0);
+		});
+
+		it('does not merge after clear()', () => {
+			history.execute(new UpdateYOffsetCommand('a', 1), store);
+			history.clear();
+			history.execute(new UpdateYOffsetCommand('a', 2), store);
+			history.undo(store);
+			expect(offset('a')).toBe(1);
 		});
 	});
 

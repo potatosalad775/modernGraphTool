@@ -26,6 +26,7 @@ import type {
 } from 'peq-link/client';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult } from './types.js';
 
 // ── Band lists ──────────────────────────────────────────────────────────────
@@ -180,10 +181,6 @@ export class LinkPeqDevice implements PeqDevice {
 }
 
 // ── What uniPEQ says about its device ───────────────────────────────────────
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 /** Codes that mean the profile can't be used to fit or check a band at all. */
 const BROKEN = /^(schema|domain-|bands-|band-index-|slot-incomplete|dependency-cycle|variant-)/;

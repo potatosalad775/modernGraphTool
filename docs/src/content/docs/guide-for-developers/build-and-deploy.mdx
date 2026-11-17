@@ -19,6 +19,57 @@ about how the build itself works.
 The CDN build emits a thin `cdn-index.html` loader plus `cdn/loader.js`; set `MGT_CDN_BASE` to
 rewrite the `_app/` URLs.
 
+`scripts/generate-boot-manifest.js` writes `boot.json`: the entry URLs, plus an `integrity` map
+with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml` publishes to the
+`cdn` branch in three commits and never rewrites its history:
+
+1. the release's `_app/` files, which `boot.json` then addresses by that commit;
+2. `v{version}/boot.json`, `loader.js` (minified by `scripts/minify-loader.js`; `cdn/loader.js`
+   stays the readable source) and `versions.json`. `versions.json` maps each major to its
+   release and, under `boot`, embeds that release's manifest so the loader needs one request
+   instead of two;
+3. `pins.json`, which records commit 2 and the hashes of `loader.js` and `boot.json` for operators
+   who [pin a release](../guide-for-admins/deployment/cdn.mdx#pinning-a-release)
+   (`scripts/write-cdn-pins.js`; the same snippet lands in the workflow run's summary).
+
+`loader.js` reaches every unpinned CDN site the moment it is pushed, and pinned sites keep the
+loader they pinned, so a change to `boot.json` or `versions.json` has to stay readable by older
+loaders: add keys, never repurpose one.
+
+## What the first screen preloads
+
+`npm run build` and `npm run build:cdn` both run `scripts/preload-boot-chunks.js` on the built
+`index.html`. It adds a `<link rel="modulepreload">` for every script the first screen needs that
+SvelteKit's own list leaves out, so the browser fetches them all in one round trip:
+
+- **The route nodes.** The fallback page knows no route, so SvelteKit lists only the root layout.
+  Since SvelteKit 3 the router asks for the page node after the app chunk has loaded and run, which
+  cost about 55 ms in the [startup benchmark](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-startup).
+- **Chunks shared with a lazy chunk.** Code used by both the app chunk and a dynamically imported
+  one (the Equalizer panel, Hardware EQ) is split into its own chunk, which the app chunk imports
+  statically.
+
+The script follows the static imports of the built files, so a new lazy chunk needs no change here.
+`boot.json` takes its preload list from the same page. After a change to what loads lazily, run
+`node scripts/bench-startup/waterfall.mjs` and check that no script starts only after a larger one
+has finished.
+
+## The recommended security headers
+
+`scripts/csp.js` builds the Content-Security-Policy that releases ship switched off. It hashes the
+inline scripts of the page an operator will serve and replaces the `__CSP__` token:
+
+| Build                         | Page hashed                | Written to                                     |
+| ----------------------------- | -------------------------- | ---------------------------------------------- |
+| `npm run build`               | `dist/index.html`          | `dist/.htaccess`                               |
+| `npm run build:cdn`           | `cdn-index.html`           | `dist-cdn/.htaccess`, `cdn-index.html`'s meta  |
+| `npm run build:site-template` | `site-template/index.html` | that page's meta                               |
+
+`npm run test:smoke` reads the commented `Header set` lines back out of `dist/.htaccess` and sends
+them, so the full build's policy is exercised on every CI run. The CDN shells' policy is not: it
+needs the published app on jsDelivr. What operators have to add for their own customizations is
+listed on [Security Headers](../guide-for-admins/deployment/security-headers.mdx).
+
 ## The `defaults/` mechanism
 
 A Vite plugin serves `defaults/` as a fallback during development and copies its contents into

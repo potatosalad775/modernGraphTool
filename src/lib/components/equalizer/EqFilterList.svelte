@@ -24,7 +24,7 @@
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';
@@ -210,17 +210,26 @@
 	}
 
 	let importInputEl = $state<HTMLInputElement | undefined>(undefined);
+	const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 	function openImportDialog() {
 		importInputEl?.click();
 	}
 
-	function handleImportFile(e: Event) {
-		const file = (e.target as HTMLInputElement).files?.[0];
+	async function handleImportFile(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
 		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = (ev) => {
-			const outcome = importOutcome(ev.target!.result as string);
+		try {
+			// An EQ preset is a few KB of text; anything this large is the wrong file, and
+			// reading it would hold the whole thing in memory to find no filters.
+			if (file.size > MAX_IMPORT_BYTES) {
+				toast.error(
+					m.graph_uploader_too_large({ name: file.name, size: MAX_IMPORT_BYTES / (1024 * 1024) })
+				);
+				return;
+			}
+			const outcome = importOutcome(await file.text());
 			if (outcome.kind === 'filters') {
 				const { filters, skipped } = outcome;
 				// An imported parametric file is authored without a device
@@ -243,9 +252,16 @@
 					description: m.equalizer_filter_list_import_none()
 				});
 			}
-			(e.target as HTMLInputElement).value = '';
-		};
-		reader.readAsText(file);
+		} catch (err) {
+			// The file could not be read at all (moved, permission, a dead network share).
+			console.error('EqFilterList: failed to read the EQ file', err);
+			toast.error(m.equalizer_filter_list_import(), {
+				description: m.equalizer_filter_list_import_unreadable()
+			});
+		} finally {
+			// Reset so picking the same file again fires `change`.
+			input.value = '';
+		}
 	}
 
 	/** The export file name's device part, or null with no EQ source selected. */
@@ -286,7 +302,7 @@
 
 	<!-- Header: preamp display + add/remove/sort buttons -->
 	<div class="flex items-center justify-between">
-		<span class="text-xs text-base-content/60">
+		<span class="text-xs text-base-content/80">
 			{m.equalizer_filter_list_preamp()}:
 			<span class="font-medium text-base-content">{preamp.toFixed(1)} dB</span>
 			{#if preampFixed}
@@ -366,11 +382,11 @@
 			class="flex items-center gap-2 rounded-md border border-base-content/15 bg-base-200 px-2 py-1 text-xs"
 		>
 			<div class="min-w-0 flex-1">
-				<p class="truncate text-base-content/70">
+				<p class="truncate text-base-content">
 					{m.eq_constraint_active({ label: eqConstraintsStore.active.label })}
 				</p>
 				{#if limitsSummary}
-					<p class="truncate text-base-content/50">{limitsSummary}</p>
+					<p class="truncate text-base-content/80">{limitsSummary}</p>
 				{/if}
 			</div>
 			{#if eqConstraintsStore.violationCount > 0}
@@ -387,7 +403,7 @@
 				title={m.eq_constraint_clear()}
 				variant="ghost"
 				size="icon-xs"
-				class="text-base-content/50 hover:text-base-content"
+				class="text-base-content/60 hover:text-base-content"
 				onclick={clearConstraint}
 			>
 				<X class="size-3" />
@@ -403,7 +419,7 @@
 		A fieldset, so one `disabled` stops every card while linked uniPEQ takes no edits.
 	-->
 	{#if linkStore.readOnly}
-		<p class="text-xs text-base-content/70" role="status">
+		<p class="text-xs text-base-content/80" role="status">
 			{linkStore.device ? m.link_read_only() : m.link_read_only_no_device()}
 		</p>
 	{/if}
@@ -425,7 +441,7 @@
 	</fieldset>
 
 	{#if scope !== 'BOTH' && sharedBandCount > 0}
-		<p class="text-xs text-base-content/60">
+		<p class="text-xs text-base-content/80">
 			{m.eq_channel_shared_hint({ count: sharedBandCount })}
 		</p>
 	{/if}
@@ -465,7 +481,7 @@
 	<input
 		bind:this={importInputEl}
 		type="file"
-		accept=".txt"
+		accept=".txt,.cfg,.conf,text/plain"
 		class="hidden"
 		onchange={handleImportFile}
 	/>

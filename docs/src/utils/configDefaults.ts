@@ -40,6 +40,10 @@ export interface ConfigFormState {
 		BASE: string;
 		BASE_PATH: string;
 		VERSIONS_URL: string;
+		/** Exact release (e.g. `2.3.4`); omitted from the output when empty */
+		VERSION: string;
+		/** `sha384-…` of that release's boot.json; only emitted together with VERSION */
+		BOOT_INTEGRITY: string;
 	};
 	LANGUAGE: {
 		LANGUAGE_LIST: [string, string][];
@@ -70,6 +74,8 @@ export interface ConfigFormState {
 		TITLE: {
 			TYPE: string;
 			CONTENT: string;
+			/** Optional site name as text; omitted from the output when empty */
+			ALT: string;
 		};
 		LINK_LIST: I18nArrayFormState<TopbarLinkForm>;
 	};
@@ -128,6 +134,8 @@ export interface ConfigFormState {
 		ANALYTICS_SITE: string;
 		LOG_ANALYTICS: boolean;
 		ENABLE_ANALYTICS: boolean;
+		/** Where Consent Mode starts until a visitor answers */
+		ANALYTICS_CONSENT: 'granted' | 'denied';
 		ENABLE_CROSS_SITE_SEARCH: boolean;
 		ENABLE_SPONSOR: boolean;
 	};
@@ -255,7 +263,9 @@ export function createDefaultConfig(): ConfigFormState {
 			MAJOR_VERSION: 2,
 			BASE: '',
 			BASE_PATH: '',
-			VERSIONS_URL: ''
+			VERSIONS_URL: '',
+			VERSION: '',
+			BOOT_INTEGRITY: ''
 		},
 		LANGUAGE: {
 			LANGUAGE_LIST: [
@@ -314,7 +324,8 @@ export function createDefaultConfig(): ConfigFormState {
 		TOPBAR: {
 			TITLE: {
 				TYPE: 'HTML',
-				CONTENT: '<h2>modernGraphTool</h2>'
+				CONTENT: '<span>modernGraphTool</span>',
+				ALT: ''
 			},
 			LINK_LIST: {
 				useI18n: false,
@@ -434,6 +445,7 @@ export function createDefaultConfig(): ConfigFormState {
 			ANALYTICS_SITE: '',
 			LOG_ANALYTICS: true,
 			ENABLE_ANALYTICS: true,
+			ANALYTICS_CONSENT: 'granted',
 			ENABLE_CROSS_SITE_SEARCH: true,
 			ENABLE_SPONSOR: true
 		},

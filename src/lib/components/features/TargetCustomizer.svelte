@@ -13,7 +13,8 @@
 	import Button from '../atoms/Button.svelte';
 	import { Settings2, X } from '@lucide/svelte';
 
-	let { uuid, item }: { uuid: string; item: FRDataObject } = $props();
+	// `name` is what a screen reader calls the curve; without it the buttons keep their generic names.
+	let { uuid, item, name }: { uuid: string; item: FRDataObject; name?: string } = $props();
 
 	// This component is UI only. Slider state lives in targetAdjustmentStore so it
 	// survives the panel switches that unmount GraphPanel, and so DataProvider can
@@ -102,6 +103,7 @@
 			<Button
 				{...props}
 				title={m.target_customizer_btn_view()}
+				aria-label={name ? m.target_customizer_btn_view_named({ name }) : undefined}
 				variant="outline"
 				size="icon"
 				activeOnOpen
@@ -113,7 +115,7 @@
 
 		<!-- Active filters -->
 		{#if activeFilters.length === 0}
-			<p class="text-center text-xs text-base-content/60">
+			<p class="text-center text-xs text-base-content/80">
 				{m.target_customizer_no_filters()}
 			</p>
 		{/if}
@@ -151,12 +153,15 @@
 								{value}
 								oninput={(e) =>
 									targetAdjustmentStore.setValue(uuid, def.id, parseFloat(e.currentTarget.value))}
-								class="h-1 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-base-content/20 accent-accent"
+								class="h-1 w-full min-w-0 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent"
 							/>
 						</div>
 					</div>
 					<Button
 						title={m.target_customizer_btn_remove()}
+						aria-label={name
+							? m.target_customizer_btn_remove_named({ filter: def.name, name })
+							: undefined}
 						onclick={() => targetAdjustmentStore.removeFilter(uuid, def.id)}
 						variant="ghost"
 						size="icon"
@@ -171,9 +176,10 @@
 		<div class="mt-2 flex flex-wrap items-center gap-1.5">
 			{#if inactiveFilters.length > 0}
 				<select
+					aria-label={m.target_customizer_add_filter()}
 					onchange={handleAddFilterChange}
-					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1
-						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
+					class="flex-1 rounded border border-base-content/20 bg-base-100 py-1 pl-1.5
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-hidden"
 				>
 					<option value="">{m.target_customizer_add_filter()}</option>
 					{#each inactiveFilters as def (def.id)}
@@ -184,10 +190,11 @@
 
 			{#if filterPresets.length > 0}
 				<select
+					aria-label={m.target_customizer_preset()}
 					value={adjustment.preset}
 					onchange={handlePresetChange}
-					class="flex-1 rounded border border-base-content/20 bg-base-100 px-1.5 py-1
-						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-none"
+					class="flex-1 rounded border border-base-content/20 bg-base-100 py-1 pl-1.5
+						text-sm hover:cursor-pointer hover:bg-base-content/5 focus:ring-1 focus:ring-accent focus:outline-hidden"
 				>
 					<option value="">{m.target_customizer_preset()}</option>
 					{#each filterPresets as preset (preset.name)}

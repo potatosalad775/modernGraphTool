@@ -128,7 +128,7 @@
 <div class="flex flex-col gap-2">
 	{#if waiting && room}
 		<!-- Waiting: the code, the QR code and a button that opens uniPEQ -->
-		<p class="text-xs text-base-content/70">
+		<p class="text-xs text-base-content/80">
 			{phase === 'connecting' ? m.link_connecting() : m.link_waiting()}
 		</p>
 		<div class="flex items-center gap-3">
@@ -146,14 +146,14 @@
 				<div class="size-32 shrink-0 rounded bg-base-300" aria-hidden="true"></div>
 			{/if}
 			<div class="flex min-w-0 flex-col gap-1">
-				<span class="text-xs text-base-content/60">{m.link_code_label()}</span>
+				<span class="text-xs text-base-content/80">{m.link_code_label()}</span>
 				<span class="font-mono text-lg font-semibold tracking-wider text-base-content select-all">
 					{formatRoomCode(room)}
 				</span>
 			</div>
 		</div>
 		{#if otherServer}
-			<p class="text-xs text-base-content/60">{m.link_other_server()}</p>
+			<p class="text-xs text-base-content/80">{m.link_other_server()}</p>
 		{/if}
 		<div class="flex justify-end gap-1">
 			{#if openUrl}
@@ -176,7 +176,7 @@
 		</div>
 	{:else if phase === 'approval'}
 		<!-- uniPEQ has the channel and is asking its user -->
-		<p class="text-xs text-base-content/70" role="status">{m.link_approve()}</p>
+		<p class="text-xs text-base-content/80" role="status">{m.link_approve()}</p>
 		<div class="flex gap-1">
 			{#if openUrl}
 				<Button
@@ -207,7 +207,7 @@
 					</p>
 					<!-- Hardware EQ names a device it shows in its own row, below -->
 					{#if linkStore.device?.name != undefined && !devicePeqStore.connection}
-						<p class="text-[11px] text-base-content/70">{linkStore.device.name}</p>
+						<p class="text-xs text-base-content/80">{linkStore.device.name}</p>
 					{/if}
 				</div>
 			</div>
@@ -224,7 +224,7 @@
 			<p
 				class="flex items-start gap-1 text-xs {notice?.tone === 'warning'
 					? 'text-base-content'
-					: 'text-base-content/60'}"
+					: 'text-base-content/80'}"
 				role="status"
 			>
 				{#if notice?.tone === 'warning'}
@@ -241,7 +241,7 @@
 				<span>{endedText(linkStore.ended)}</span>
 			</p>
 		{:else}
-			<p class="text-xs text-base-content/70">{m.link_start_hint()}</p>
+			<p class="text-xs text-base-content/80">{m.link_start_hint()}</p>
 		{/if}
 		{#if linkStore.failed}
 			<p class="text-xs text-base-content" role="status">{m.link_failed_start()}</p>

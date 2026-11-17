@@ -5,6 +5,7 @@ import {
 	oklchToCssString,
 	withAlpha,
 	generateContentColor,
+	contrastRatio,
 	generateDarkVariant,
 	generateBaseScale,
 	generateFullPalette,
@@ -53,7 +54,8 @@ const PALETTE_KEYS: Array<keyof ThemePalette> = [
 	'graphAxisLabel',
 	'graphGridText',
 	'graphBaseline',
-	'graphCompare'
+	'graphCompare',
+	'scrim'
 ];
 
 function expectWellFormedPalette(palette: ThemePalette, label: string) {
@@ -146,11 +148,44 @@ describe('withAlpha', () => {
 });
 
 describe('derived colours', () => {
-	it('keeps light-mode content colours light and low-chroma', () => {
-		const content = generateContentColor({ l: 0.59, c: 0.145, h: 163 }, 'light');
-		expect(content.l).toBe(0.97);
-		expect(content.c).toBeLessThan(0.145);
+	it('keeps light-mode content colours light and low-chroma on a dark fill', () => {
+		const content = generateContentColor({ l: 0.43, c: 0.09, h: 163 }, 'light');
+		expect(content.l).toBe(0.98);
+		expect(content.c).toBeLessThan(0.09);
 		expect(content.h).toBe(163);
+	});
+
+	it('keeps every default fill at 4.5:1 (light) and 7:1 (dark) or better against its content', () => {
+		for (const [role, hex] of Object.entries(DEFAULT_INPUTS)) {
+			if (typeof hex !== 'string') continue;
+			const fill = hexToOklch(hex);
+			expect(
+				contrastRatio(fill, generateContentColor(fill, 'light')),
+				`light ${role}`
+			).toBeGreaterThan(4.5);
+			const dark = generateDarkVariant(fill);
+			expect(
+				contrastRatio(dark, generateContentColor(dark, 'dark')),
+				`dark ${role}`
+			).toBeGreaterThan(7);
+		}
+	});
+
+	it('flips light-mode content to a dark ink on a light fill', () => {
+		const content = generateContentColor({ l: 0.8, c: 0.16, h: 86 }, 'light');
+		expect(content.l).toBeLessThan(0.3);
+		expect(content.h).toBe(86);
+	});
+
+	it('gives every light-mode fill at least 4.5:1 against its content', () => {
+		// 0.6 is left out on purpose: at mid lightness neither ink reaches 4.5 (even
+		// pure black and white top out at 4.58 there), so the generator does its best.
+		for (const l of [0.2, 0.35, 0.5, 0.7, 0.8, 0.9]) {
+			const fill = { l, c: 0.1, h: 120 };
+			expect(contrastRatio(fill, generateContentColor(fill, 'light')), `L=${l}`).toBeGreaterThan(
+				4.5
+			);
+		}
 	});
 
 	it('clamps dark-mode content lightness into its documented band', () => {
@@ -164,7 +199,7 @@ describe('derived colours', () => {
 	it('clamps the dark variant into its documented band and preserves hue', () => {
 		for (const l of [0, 0.25, 0.5, 0.75, 1]) {
 			const dark = generateDarkVariant({ l, c: 0.1, h: 300 });
-			expect(dark.l).toBeGreaterThanOrEqual(0.7);
+			expect(dark.l).toBeGreaterThanOrEqual(0.8);
 			expect(dark.l).toBeLessThanOrEqual(0.88);
 			expect(dark.h).toBe(300);
 			expect(dark.c).toBe(0.1);
@@ -244,7 +279,7 @@ describe('base saturation', () => {
 		expect(light.base100.c).toBeCloseTo(0.003, 2);
 		expect(light.baseContent.c).toBeCloseTo(0.042, 2);
 		expect(dark.base100.c).toBeCloseTo(0.023, 2);
-		expect(dark.baseContent.c).toBeCloseTo(0.031, 2);
+		expect(dark.baseContent.c).toBeCloseTo(0.015, 2);
 	});
 });
 
@@ -334,6 +369,12 @@ describe('generateFullPalette', () => {
 		expect(light.graphBg).toBeDefined();
 		expect(dark.graphBg).toBeDefined();
 		expect(light.graphGridMajor).not.toBe(dark.graphGridMajor);
+	});
+
+	it('emits the scrim as the shipped 40% black in both modes', () => {
+		const { light, dark } = generateFullPalette(DEFAULT_INPUTS);
+		expect(light.scrim).toBe('oklch(0% 0 0 / 40%)');
+		expect(dark.scrim).toBe('oklch(0% 0 0 / 40%)');
 	});
 });
 

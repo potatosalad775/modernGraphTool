@@ -62,6 +62,21 @@ describe('Dialog', () => {
 		expect(onOpenChange).not.toHaveBeenCalled();
 	});
 
+	it('caps its height to the viewport by default, and a caller can override the cap', async () => {
+		render(Dialog, { open: true, title: 'Tall', actions });
+		const dialog = page.getByRole('dialog', { name: 'Tall' });
+		await expect.element(dialog).toHaveClass('max-h-[calc(100dvh-2rem)]');
+		await expect.element(dialog).toHaveClass('overflow-y-auto');
+		await expect.element(dialog).toHaveClass('overscroll-contain');
+	});
+
+	it('lets the class prop replace the default height cap', async () => {
+		render(Dialog, { open: true, title: 'Short', class: 'max-h-[85vh]', actions });
+		const dialog = page.getByRole('dialog', { name: 'Short' });
+		await expect.element(dialog).toHaveClass('max-h-[85vh]');
+		await expect.element(dialog).not.toHaveClass('max-h-[calc(100dvh-2rem)]');
+	});
+
 	it('has no description element when none is given', async () => {
 		render(Dialog, { open: true, title: 'Remove bands?', actions });
 

@@ -385,6 +385,17 @@ describe('TargetCustomizer', () => {
 	// ── Add / remove / preset / reset ────────────────────────────────────────
 
 	describe('filter stack', () => {
+		it('names both pickers', async () => {
+			await open();
+
+			await expect
+				.element(page.getByRole('combobox', { name: m.target_customizer_add_filter() }))
+				.toBeInTheDocument();
+			await expect
+				.element(page.getByRole('combobox', { name: m.target_customizer_preset() }))
+				.toBeInTheDocument();
+		});
+
 		it('shows the empty note when nothing is active', async () => {
 			const item = makeTarget({ identifier: 'Harman' });
 			frStore.set(UUID, item);
@@ -419,6 +430,22 @@ describe('TargetCustomizer', () => {
 
 			expect(targetAdjustmentStore.get(UUID).activeIds).toEqual([]);
 			expect(targetAdjustmentStore.get(UUID).values.bass).toBeUndefined();
+		});
+
+		it('names the trigger and each remove button after the curve when it is given one', async () => {
+			const item = makeTarget();
+			frStore.set(UUID, item);
+			render(TargetCustomizer, { uuid: UUID, item, name: 'Harman' });
+			await page
+				.getByRole('button', { name: m.target_customizer_btn_view_named({ name: 'Harman' }) })
+				.click();
+
+			await page
+				.getByRole('button', {
+					name: m.target_customizer_btn_remove_named({ filter: 'Bass (dB)', name: 'Harman' })
+				})
+				.click();
+			expect(targetAdjustmentStore.get(UUID).activeIds).toEqual([]);
 		});
 
 		it('applies a preset from the preset picker', async () => {

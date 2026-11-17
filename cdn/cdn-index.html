@@ -27,7 +27,18 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="referrer" content="strict-origin-when-cross-origin" />
+		<!--
+			Content-Security-Policy, switched off. To switch it on, remove the comment marks around
+			the <meta> below; it must stay above every script. The release build fills in the policy,
+			including a hash for each inline script on this page, so an inline script you add or
+			edit needs its own hash. → docs: guide-for-admins/deployment/security-headers
+		-->
+		<!-- <meta http-equiv="Content-Security-Policy" content="__CSP__" /> -->
 		<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+		<!-- The loader's first request (versions.json) goes to GitHub, not jsDelivr -->
+		<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
 
 		<title>modernGraphTool</title>
 		<meta name="title" content="modernGraphTool" />
@@ -59,21 +70,80 @@
 
 		<!--
 			Pretendard Variable font (Korean-optimized, dynamic subset). Preloaded, then
-			swapped to a stylesheet on load: a pending stylesheet holds back every classic
+			swapped to a stylesheet on load (by the script after it): a pending stylesheet holds back every classic
 			script after it, config.js and the app boot included.
 		-->
 		<link
 			rel="preload"
 			as="style"
 			crossorigin
+			referrerpolicy="no-referrer"
+			integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j"
 			href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-			onload="
-				this.onload = null;
-				this.rel = 'stylesheet';
-			"
 		/>
+		<!--
+			Not an `onload` attribute: a Content-Security-Policy can allow a script by hash, but
+			not an inline handler. The script runs before the load event can fire. Byte-identical in
+			all three shells, like the dark-mode script below.
+		-->
+		<script>
+			(function (link) {
+				link.addEventListener('load', function () {
+					link.rel = 'stylesheet';
+				});
+			})(document.currentScript.previousElementSibling);
+		</script>
 		<!-- Local config and theme (your customizations) -->
 		<script src="./config.js"></script>
+		<!--
+			Dark mode before first paint, so a dark-mode visitor never sees a light flash. Same
+			precedence as settings-store.svelte.ts (stored choice, then
+			INTERFACE.PREFERRED_DARK_MODE_THEME, then the OS): change them together. This script is
+			byte-identical in src/app.html, cdn/cdn-index.html and site-template/index.html so one CSP
+			script hash covers all three: edit all three or none.
+		-->
+		<script>
+			(function () {
+				var t = null;
+				try {
+					var k = ['gt-settings-theme', 'gt-theme'];
+					for (var n = 0; n < 2 && !t; n++) {
+						var v = localStorage.getItem(k[n]);
+						if (v === 'light' || v === 'dark') t = v;
+					}
+				} catch (e) {}
+				try {
+					if (!t) {
+						var i = (window.GRAPHTOOL_CONFIG || {}).INTERFACE;
+						var c = i && i.PREFERRED_DARK_MODE_THEME;
+						if (c == null) c = 'system';
+						t =
+							c === 'dark' ||
+							(c === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+								? 'dark'
+								: 'light';
+					}
+					document.documentElement.classList.toggle('dark', t === 'dark');
+				} catch (e) {}
+			})();
+		</script>
+		<!--
+			Ask for the phone book now, so the FR files can follow as soon as the app's first
+			chunks run. See src/app.html; this script is byte-identical in all three shells.
+		-->
+		<script>
+			(function () {
+				try {
+					var p = (window.GRAPHTOOL_CONFIG || {}).PATH;
+					var l = document.createElement('link');
+					l.rel = 'preload';
+					l.as = 'fetch';
+					l.crossOrigin = 'anonymous';
+					l.href = (p && p.PHONE_BOOK) || '../../../data/phone_book.json';
+					document.head.appendChild(l);
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="stylesheet" href="./theme.css" />
 	</head>
 
@@ -88,7 +158,18 @@
 					? './loader.js'
 					: 'https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn/loader.js';
 				var s = document.createElement('script');
-				s.src = src;
+				// Under Trusted Types a script URL has to come from a policy.
+				var tt = window.trustedTypes;
+				var policy =
+					tt &&
+					tt.createPolicy('mgt-loader', {
+						createScriptURL: function (url) {
+							return url;
+						}
+					});
+				s.src = policy ? policy.createScriptURL(src) : src;
+				// A script added from script loads at low priority; everything waits on this one.
+				s.fetchPriority = 'high';
 				document.body.appendChild(s);
 			})();
 		</script>

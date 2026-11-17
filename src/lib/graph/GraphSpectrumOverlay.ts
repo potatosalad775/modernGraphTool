@@ -24,6 +24,18 @@ export class GraphSpectrumOverlay {
 
 	private static readonly MAX_MAGNITUDE = 1;
 
+	/** Preallocated per-frame points, resized only when the bin count changes. */
+	private points: [number, number][] = [];
+
+	// Monotone interpolation for smooth curves. Built once; `y0` is a function so it
+	// follows `graphGeometry` the way the per-frame generator used to.
+	private areaGenerator = d3
+		.area<[number, number]>()
+		.x((d) => d[0])
+		.y0(() => this.graphEngine.graphGeometry.yBottom)
+		.y1((d) => d[1])
+		.curve(d3.curveMonotoneX);
+
 	private clipRect!: d3.Selection<SVGRectElement, unknown, null, undefined>;
 
 	constructor(graphEngine: GraphEngine) {
@@ -154,25 +166,25 @@ export class GraphSpectrumOverlay {
 		const { yTop, yBottom } = this.graphEngine.graphGeometry;
 		const yRange = yBottom - yTop;
 
-		const points: [number, number][] = [];
+		// Reuse the point tuples: they are overwritten in place every frame, and the
+		// array is resized only when the bin mapping changes length.
+		const points = this.points;
+		if (points.length !== this.binIndices.length) {
+			points.length = this.binIndices.length;
+			for (let i = 0; i < points.length; i++) points[i] ??= [0, 0];
+		}
 		for (let i = 0; i < this.binIndices.length; i++) {
 			const magnitude = Math.min(
 				this.dataArray[this.binIndices[i]] / 255,
 				GraphSpectrumOverlay.MAX_MAGNITUDE
 			);
-			const y = yBottom - magnitude * yRange;
-			points.push([this.xCoords[i], y]);
+			const point = points[i];
+			point[0] = this.xCoords[i];
+			point[1] = yBottom - magnitude * yRange;
 		}
 
-		// Use d3 area generator with monotone interpolation for smooth curves
-		const areaGenerator = d3
-			.area<[number, number]>()
-			.x((d) => d[0])
-			.y0(yBottom)
-			.y1((d) => d[1])
-			.curve(d3.curveMonotoneX);
-
-		this.spectrumPath.attr('d', areaGenerator(points));
+		// `y0` reads the geometry per call, so the generator can outlive a resize.
+		this.spectrumPath.attr('d', this.areaGenerator(points));
 	};
 
 	private _cancelRaf(): void {

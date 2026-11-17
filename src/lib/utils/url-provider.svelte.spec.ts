@@ -527,6 +527,80 @@ describe('URLProvider', () => {
 			expect(eqStore.filters).toHaveLength(1);
 		});
 
+		describe('malformed state', () => {
+			function initRaw(json: string) {
+				setSearch(`?state=${Base62.encode(json)}`);
+				urlProvider.init();
+			}
+			const band = { enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 };
+
+			it('does not throw for `eq: {}` and leaves the EQ alone', () => {
+				initRaw('{"yScale":80,"eq":{}}');
+				expect(() => urlProvider.applyStateFromURL()).not.toThrow();
+				expect(graphStore.yScale).toBe(80);
+				expect(eqStore.filters).toEqual([]);
+				expect(eqStore.isEnabled).toBe(false);
+			});
+
+			it('does not throw when eq.filters is not a list', () => {
+				initRaw('{"eq":{"filters":"x","preamp":-3}}');
+				expect(() => urlProvider.applyStateFromURL()).not.toThrow();
+				expect(eqStore.filters).toEqual([]);
+				expect(eqStore.preamp).toBe(0);
+			});
+
+			it('applies at most 32 bands from a thousand', () => {
+				const filters = Array.from({ length: 1000 }, () => band);
+				initRaw(JSON.stringify({ eq: { filters, preamp: -1 } }));
+				urlProvider.applyStateFromURL();
+				expect(eqStore.filters).toHaveLength(32);
+				expect(eqStore.preamp).toBe(-1);
+			});
+
+			it('ignores non-numeric yScale and offsets and keeps valid bands', () => {
+				initRaw(
+					JSON.stringify({
+						yScale: 'big',
+						yOffsets: { 'Phone a': 'x', 'Phone b': 2 },
+						eq: { filters: [band, { ...band, freq: 'x' }], preamp: 'loud' }
+					})
+				);
+				frStore.set('a', makeEntry('a'));
+				frStore.set('b', makeEntry('b'));
+
+				urlProvider.applyStateFromURL();
+
+				expect(graphStore.yScale).toBe(50);
+				expect(frStore.get('a')!.yOffset).toBeUndefined();
+				expect(frStore.get('b')!.yOffset).toBe(2);
+				expect(eqStore.filters).toHaveLength(1);
+				expect(eqStore.preamp).toBe(0);
+			});
+
+			it('does not read a device named `constructor` or `__proto__` off the prototype chain', () => {
+				initRaw('{"yOffsets":{"a":1},"sampleDisplay":{"a":["L1"]}}');
+				for (const name of ['constructor', '__proto__', 'toString']) {
+					frStore.set(name, makeEntry(name, { identifier: name, samples: [{}] }));
+				}
+
+				urlProvider.applyStateFromURL();
+
+				for (const name of ['constructor', '__proto__', 'toString']) {
+					expect(frStore.get(name)!.yOffset).toBeUndefined();
+					expect(frStore.get(name)!.dispSamples).toBeUndefined();
+				}
+			});
+
+			it('still restores a device whose name is `constructor` when the link names it', () => {
+				initRaw('{"yOffsets":{"constructor":3}}');
+				frStore.set('c', makeEntry('c', { identifier: 'constructor' }));
+
+				urlProvider.applyStateFromURL();
+
+				expect(frStore.get('c')!.yOffset).toBe(3);
+			});
+		});
+
 		it('leaves the equalizer off when the shared stack was empty', () => {
 			initWith({ eq: { preamp: -2, filters: [] } });
 

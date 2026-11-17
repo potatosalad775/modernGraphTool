@@ -72,7 +72,9 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
-- Target **WCAG AAA** accessibility
+- Target **WCAG AAA** accessibility. Two deliberate stops at AA: the light theme's colored fills
+  (4.5:1 by default, 7:1 under `prefers-contrast: more`: at 7:1 every color lands at the same dim
+  lightness) and pointer targets (24px, not 44px: the rows are data-dense)
 - **CI enforces this** — `.github/workflows/ci.yml`'s `quality` job runs `npm run lint` on every PR
   and push to main, then fails the build if that (or anything else in the job) leaves the working
   tree dirty. Run `npm run lint` — or `npm run format` to fix — before committing, including inside
@@ -138,7 +140,9 @@ defaults/                # Operator-editable templates, copied to dist/ by a Vit
 └── data/                # Sample phone_book.json + FR files + targets
 messages/                # Paraglide sources: en.json, cs.json, ko.json, ru.json, uk.json
 scripts/                 # build-cdn.js, build-site-template.js, generate-boot-manifest.js,
+                         # preload-boot-chunks.js (completes index.html's modulepreloads),
                          # bench-autoeq/ (AutoEQ engine benchmarks → workers/AGENTS.md),
+                         # bench-startup/ (startup comparison with the forks → Performance below),
                          # rew-smoothing-fixture.mjs (REW reference for FRSmoother → utils/AGENTS.md)
 site-template/           # Sources for the GitHub Pages template repo
 static/                  # Project assets (local overrides; gitignored where noted)
@@ -212,6 +216,10 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
   — each with a `-content` counterpart for text-on-color
 - **Graph-only (D3 SVG where Tailwind can't reach):** `--color-graph-bg`, `-grid-major`, `-grid-minor`,
   `-axis-label`, `-grid-text`, `-baseline`, `-watermark-opacity`
+- **Rating:** `--color-rating` — the rank stars (`text-rating`). An amber dark enough to read as
+  text, which `warning` is not on a light surface
+- **Overlay:** `--color-scrim` — the veil behind dialogs, menu and tour. It carries its own alpha
+  (shipped as 40% black), so it is `bg-scrim`, never `bg-scrim/50`
 
 **UI chrome uses opacity modifiers on `base-content`**, e.g. `text-base-content/60` for secondary
 text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
@@ -221,8 +229,9 @@ Other tokens: **Typography** — Pretendard via `@theme`; text-xs (metadata), te
 text-lg (headings); weights 400 / 500 / 600. **Spacing** — Tailwind defaults; common gap-1..4,
 px-2..4, py-1..2; radius `rounded`..`rounded-xl`. **Borders** — `border-base-content/15` to `/25`.
 **Shadows** — minimal, `shadow-xl` on popovers and dialogs only. **Motion** — 0.15s
-`transition-colors` globally on interactive elements; a 0.3s cross-fade only during theme toggle via
-`html.theme-transition`; no spring physics; respect `prefers-reduced-motion`.
+`transition-colors` globally on interactive elements; a 0.3s cross-fade only during theme toggle, as
+a view transition (`crossFade` in `utils/motion.svelte.ts`); no spring physics; respect
+`prefers-reduced-motion`.
 
 Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', settingsStore.theme === 'dark')`.
 All theme.css variables switch automatically.
@@ -254,35 +263,92 @@ and each area's `AGENTS.md` for its own test traps.
 ## Performance
 
 Startup speed is judged against the CrinGraph forks, so a "faster" claim has to survive a side-by-side
-run. The harness is not checked in; rebuild it this way:
+run. The harness is [scripts/bench-startup/](scripts/bench-startup/):
 
-- One local HTTP/2 + gzip server serving every tool with identical `data/`: squiglink `lab` (branch
-  `pink-eq`, not `main`) and HarutoHiroki's `PublicGraphTool` (`squiglink-(main)`), exported with
-  `git archive`. Abort every non-localhost request — live sites on different hosts are not comparable.
-- Playwright + CDP, fresh context per run, cache disabled. Throttled = 9 Mbps / 40 ms RTT + 4× CPU;
-  run unthrottled too. Metric: navigation → the last initial curve's long `<path>` in the DOM.
+```
+node scripts/bench-startup/setup.mjs forks          # once: clones the forks, builds their sites
+npm run build && node scripts/bench-startup/setup.mjs mgt before   # on the commit to compare against
+npm run build && node scripts/bench-startup/setup.mjs mgt after    # on your change
+node scripts/bench-startup/bench.mjs --sites lab,pgt,before,after
+```
+
+- It serves every tool from one local HTTP/2 + gzip server with identical `data/`: squiglink `lab`
+  (branch `pink-eq`, not `main`) and HarutoHiroki's `PublicGraphTool` (`squiglink-(main)`). Every
+  other host fails at DNS — live sites on different hosts are not comparable.
+- Fresh context per run, cache disabled. Throttled = 9 Mbps / 40 ms + 4× CPU, then unthrottled.
+  Metric: navigation → the last initial curve's long `<path>` in the DOM.
 - 10 runs, medians, **sites interleaved run by run and always in the same session** — absolute
-  numbers drift ~50 ms between sessions on one machine.
-- One phone + one target is too little FR work to show pipeline changes; add a multi-device
-  `?share=` scenario. Pass `locale: 'en-US'` to the context, or system language detection renders
-  whatever the machine's locale is.
+  numbers drift ~50 ms between sessions on one machine, so never compare two invocations.
+- One phone + one target is too little FR work to show pipeline changes: add `--scenario share`
+  (five devices). `--big-book` serves a 1500-device phone book.
+- A fresh context is a **first visit**, which opens the welcome tour. `--returning` measures a
+  visitor who dismissed it; the two differ by more than most changes, so say which one a number is.
+- `trace.mjs` breaks a throttled startup down by main-thread event and names the script position
+  behind each forced layout; `bundle-report.mjs` says what a chunk is made of and resolves those
+  positions (both need `npx vite build --sourcemap`; rebuild without it afterwards).
+- `profile.mjs` (same source-map build) attributes main-thread time to source files, or with
+  `--components` to the Svelte component it ran inside (needs `--minify false`), and
+  `waterfall.mjs` lists each request's timing. A script that starts only after a larger one has
+  finished is a round trip a preload would remove.
 - Don't measure layout or paint in component specs — they load no Tailwind (`components/AGENTS.md`).
 
 Measured and rejected — don't retry without a new reason:
 
 - Lazy-loading panels through dynamic `import()`: the initial panel becomes an extra round trip.
+  A panel the page does not open on is a different case: the Equalizer panel is lazy
+  (`components/AGENTS.md`), which took 28 ms off a throttled startup.
+- Lazy-loading the Device and Misc panels, the Frequency Tutorial strip and the toast layer as
+  well: 13% less boot JavaScript, no change (826 against 834 ms). The curves then wait for the FR
+  files, which are requested only once the chunks `hooks.client.ts` needs have run (about 90 KB
+  gzip), and the benchmark server shares the connection equally between all streams. Preloading
+  the FR files by hand made it worth 15 ms.
+- Skipping `twMerge` for a `Button` without a `class`: its 18 ms at boot is building its class map
+  on the first call (4.6 ms unthrottled); every later call costs 0.03 ms.
 - `kit.output.bundleStrategy: 'single'`: one request instead of ~19, but ~160 ms slower throttled.
 - `content-visibility: auto` on `PhoneSelector` rows: ~110 ms _slower_ to paint a 1500-device panel
   (DOM creation is the cost, not layout), and the paint containment clips the rows' focus outline.
   List virtualization is the remaining lever.
 - Paraglide per-locale splitting: no option fits a static, runtime-switchable SPA.
+- Preloading Pretendard's subset files: they would compete with the app chunk for the connection
+  (120 KB for English alone), so the font swaps sooner and the curves draw later.
 
 Boot-critical pieces that look removable but aren't: the initial load starting in `hooks.client.ts`
-and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), and the Pretendard
-stylesheet loading as `rel="preload"` + `onload` in `src/app.html`, `cdn/cdn-index.html` and
+and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), the
+`preload-boot-chunks.js` step of `npm run build` (SvelteKit's own preload list leaves out the route
+nodes and any chunk shared with a lazy one; 54 ms measured for the nodes alone), the inline script
+in the three shells that preloads the phone book (35 ms: the app's own `fetch()` in
+`metadata-parser.ts` picks the response up, so the FR files are requested as soon as the first
+chunks run; it did nothing while the app chunk was the last thing to arrive), and the Pretendard
+stylesheet loading as `rel="preload"` and swapped in by the inline script after it (a script, not
+an `onload` attribute: a CSP can hash a script but not a handler) in `src/app.html`, `cdn/cdn-index.html` and
 `site-template/index.html`. A plain stylesheet link holds back every classic script after it —
 `config.js` and the boot script included — until jsDelivr answers. There is no `<noscript>` fallback
 because `ssr` is off, so the page is blank without JavaScript anyway.
+
+## Security Headers (CSP)
+
+The recommended headers ship **switched off**, as commented lines in `defaults/.htaccess` and a
+commented `<meta>` in the two CDN shells; `scripts/csp.js` holds the policy and fills in `__CSP__`
+at build time, because it lists a hash for every inline script of the page. `npm run test:smoke`
+serves `dist/` with them switched on, so a change that needs a new source fails there. Operator
+page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/security-headers.mdx).
+
+- **No inline event handlers, no new `eval`, no `javascript:` URLs** anywhere in the shells or the
+  app. An inline `<script>` in a shell is fine (it gets hashed), but keep the ones shared by
+  `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` byte-identical.
+- **Markup and script URLs go through `utils/trusted-types.ts`.** `{@html}` takes
+  `trustedHtml(...)`; a script's `src` and the `Worker` constructor take `trustedScriptUrl(...)`.
+  A plain string at one of those sinks throws under `require-trusted-types-for 'script'`, which
+  the smoke test enforces (operators opt in). Don't add `innerHTML`, `outerHTML`,
+  `insertAdjacentHTML` or d3's `.html()`: build nodes, or use `textContent`.
+- **A new third-party origin is a policy change.** Scripts, stylesheets and fonts are allowed by
+  origin; `fetch` targets only by scheme (`https:` / `wss:`), since operators configure those.
+  Add the origin in `scripts/csp.js`, or to the "what to add" table on the operator page when only
+  some deployments use it.
+- **`worker-src` must list every origin a worker imports from.** A module worker's imports are
+  checked against `worker-src`, not `script-src`, and a miss reports no violation: the worker just
+  fails to load and AutoEQ returns nothing. The smoke test does not run AutoEQ, so check it by hand
+  (full build and CDN build) after touching the worker or the policy.
 
 ## Built-in Features
 

@@ -9,7 +9,10 @@
 	import Button from '../atoms/Button.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
+	import { parseBounded } from '#lib/utils/number-field.js';
+	import { AUTOEQ_RANGE_FIELDS, type AutoEqRangeKey } from '#lib/utils/autoeq-ranges.js';
 
+	const uid = $props.id();
 	const opts = $derived(settingsStore.autoEqOptions);
 	const graphicBands = $derived(activeGraphicBands());
 	const isGraphicMode = $derived(graphicBands.length > 0);
@@ -57,6 +60,32 @@
 			: m.equalizer_autoeq_graphic_rejected_notice();
 	}
 
+	type RangeKey = AutoEqRangeKey;
+
+	/** Each bound's field limits and pair partner, shared with the store's hydrate clamp. */
+	const RANGE_FIELDS = AUTOEQ_RANGE_FIELDS;
+
+	/**
+	 * Commits on `change`, not per keystroke: typing `5` on the way to `500` must not set a
+	 * frequency of 5. Text that isn't a number is dropped, a number is clamped to the field and to
+	 * its partner (min never above max), and the box is then re-synced with what was stored — the
+	 * `value` attribute alone wouldn't redraw when the stored number is unchanged.
+	 */
+	function commitRange(e: Event, key: RangeKey) {
+		const input = e.currentTarget as HTMLInputElement;
+		const f = RANGE_FIELDS[key];
+		const partner = settingsStore.autoEqOptions[f.partner];
+		const isMin = key.endsWith('Min');
+		const v = parseBounded(
+			input.value,
+			isMin ? f.min : Math.max(f.min, partner),
+			isMin ? Math.min(f.max, partner) : f.max,
+			f.integer
+		);
+		if (v !== null) settingsStore.autoEqOptions[key] = v;
+		input.value = String(settingsStore.autoEqOptions[key]);
+	}
+
 	const statusText = $derived(
 		autoEqService.fellBack
 			? fallbackNotice()
@@ -66,9 +95,31 @@
 	);
 </script>
 
+{#snippet rangeBound(key: RangeKey)}
+	<span id="{uid}-{key}" class="text-xs text-base-content/80">
+		{key.endsWith('Min') ? m.equalizer_autoeq_min() : m.equalizer_autoeq_max()}
+	</span>
+	{@render rangeInput(key)}
+{/snippet}
+
+{#snippet rangeInput(key: RangeKey)}
+	{@const f = RANGE_FIELDS[key]}
+	<!-- Named by its group's legend plus its own Min / Max label: "Frequency Range Min". -->
+	<input
+		type="number"
+		aria-labelledby="{uid}-{key.slice(0, -3)}-legend {uid}-{key}"
+		value={settingsStore.autoEqOptions[key]}
+		min={f.min}
+		max={f.max}
+		step={f.step}
+		onchange={(e) => commitRange(e, key)}
+		class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-hidden"
+	/>
+{/snippet}
+
 <div class="flex flex-col gap-2 text-sm">
 	{#if isGraphicMode}
-		<p class="text-xs text-base-content/60">
+		<p class="text-xs text-base-content/80">
 			{m.equalizer_autoeq_graphic_note({ count: graphicBands.length })}
 		</p>
 	{/if}
@@ -76,7 +127,7 @@
 	<!-- Filter settings fieldset -->
 	{#if showFitMode || !isGraphicMode}
 		<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60">
+			<legend class="px-1 text-xs text-base-content/80">
 				{m.equalizer_autoeq_filter_setting()}
 			</legend>
 			{#if showFitMode}
@@ -122,99 +173,39 @@
 	{#if !isGraphicMode}
 		<!-- Frequency Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_freq_range()}</legend>
+			<legend id="{uid}-freq-legend" class="px-1 text-xs text-base-content/80"
+				>{m.equalizer_autoeq_freq_range()}</legend
+			>
 			<div class="flex items-center gap-2">
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.freqMin}
-					min="20"
-					max="20000"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.freqMin =
-							parseInt((e.target as HTMLInputElement).value) ||
-							settingsStore.autoEqOptions.freqMin)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.freqMax}
-					min="20"
-					max="20000"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.freqMax =
-							parseInt((e.target as HTMLInputElement).value) ||
-							settingsStore.autoEqOptions.freqMax)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
+				{@render rangeBound('freqMin')}
+				{@render rangeBound('freqMax')}
 			</div>
 		</fieldset>
 
 		<!-- Gain Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_gain_range()}</legend>
+			<legend id="{uid}-gain-legend" class="px-1 text-xs text-base-content/80"
+				>{m.equalizer_autoeq_gain_range()}</legend
+			>
 			<div class="flex items-center gap-2">
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.gainMin}
-					min="-40"
-					max="0"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.gainMin =
-							parseFloat((e.target as HTMLInputElement).value) ??
-							settingsStore.autoEqOptions.gainMin)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.gainMax}
-					min="0"
-					max="40"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.gainMax =
-							parseFloat((e.target as HTMLInputElement).value) ??
-							settingsStore.autoEqOptions.gainMax)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
+				{@render rangeBound('gainMin')}
+				{@render rangeBound('gainMax')}
 			</div>
 		</fieldset>
 
 		<!-- Q Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend class="px-1 text-xs text-base-content/60">{m.equalizer_autoeq_q_range()}</legend>
+			<legend id="{uid}-q-legend" class="px-1 text-xs text-base-content/80"
+				>{m.equalizer_autoeq_q_range()}</legend
+			>
 			<div class="flex items-center gap-2">
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_min()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.qMin}
-					min="0.1"
-					max="10"
-					step="0.1"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.qMin =
-							parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMin)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
-				<span class="text-xs text-base-content/60">{m.equalizer_autoeq_max()}</span>
-				<input
-					type="number"
-					value={settingsStore.autoEqOptions.qMax}
-					min="0.1"
-					max="10"
-					step="0.1"
-					oninput={(e) =>
-						(settingsStore.autoEqOptions.qMax =
-							parseFloat((e.target as HTMLInputElement).value) || settingsStore.autoEqOptions.qMax)}
-					class="flex-1 rounded border border-base-content/20 bg-base-200 px-1 py-0.5 text-xs focus:ring-1 focus:ring-accent focus:outline-none"
-				/>
+				{@render rangeBound('qMin')}
+				{@render rangeBound('qMax')}
 			</div>
 		</fieldset>
 	{/if}
 
-	<p class="text-xs text-base-content/60">{m.equalizer_autoeq_description()}</p>
+	<p class="text-xs text-base-content/80">{m.equalizer_autoeq_description()}</p>
 
 	<!--
 		One button element throughout, relabelled rather than swapped out, so
@@ -232,6 +223,7 @@
 		<Button
 			label={autoEqService.isRunning ? '...' : runLabel}
 			aria-label={runLabel}
+			aria-busy={autoEqService.isRunning}
 			onclick={() => autoEqService.run()}
 			disabled={autoEqService.isRunning || linkStore.readOnly}
 			variant="primary"
@@ -240,5 +232,11 @@
 		/>
 	</div>
 
-	<p role="status" class="text-xs text-base-content/70 empty:hidden">{statusText}</p>
+	<p
+		role="status"
+		aria-busy={autoEqService.isRunning}
+		class="text-xs text-base-content/80 empty:hidden"
+	>
+		{statusText}
+	</p>
 </div>

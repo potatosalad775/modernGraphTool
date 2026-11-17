@@ -13,6 +13,11 @@
  * already a dev dependency, and fails on a console error, an uncaught exception,
  * a failed request, or a boot that does not reach a drawn graph.
  *
+ * The security headers that `.htaccess` ships commented out are sent as if the
+ * operator had switched them on. A policy that blocks something the app needs
+ * shows up as a console error, so the recommendation cannot rot unnoticed.
+ * Trusted Types is enforced on top, for the same reason.
+ *
  *   node scripts/smoke-dist.js [--dir dist] [--headed]
  */
 import { createServer } from 'node:http';
@@ -20,6 +25,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { TRUSTED_TYPES } from './csp.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -47,6 +53,7 @@ const MIME = {
  * deployment: anything that is not a file on disk resolves to index.html.
  */
 async function serve(root) {
+	const headers = await recommendedHeaders(root);
 	const server = createServer(async (req, res) => {
 		const urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
 		// `normalize` collapses any `..` before the join, so a traversal request
@@ -62,7 +69,10 @@ async function serve(root) {
 
 		try {
 			const body = await readFile(filePath);
-			res.writeHead(200, { 'content-type': MIME[extname(filePath)] ?? 'application/octet-stream' });
+			res.writeHead(200, {
+				...headers,
+				'content-type': MIME[extname(filePath)] ?? 'application/octet-stream'
+			});
 			res.end(body);
 		} catch {
 			res.writeHead(404).end('not found');
@@ -70,7 +80,21 @@ async function serve(root) {
 	});
 
 	await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-	return { server, origin: `http://127.0.0.1:${server.address().port}` };
+	return { server, origin: `http://127.0.0.1:${server.address().port}`, headers };
+}
+
+/** The `# Header set Name "value"` lines of the shipped `.htaccess`, as real headers. */
+async function recommendedHeaders(root) {
+	const headers = {};
+	const htaccess = await readFile(join(root, '.htaccess'), 'utf-8').catch(() => '');
+	for (const [, name, value] of htaccess.matchAll(/^#\s*Header set (\S+) "([^"]*)"$/gm)) {
+		headers[name.toLowerCase()] = value;
+	}
+	// Trusted Types is an opt-in extra for operators, but always on here: a new `innerHTML` or
+	// script-URL assignment that bypasses `utils/trusted-types.ts` then throws during the run.
+	const csp = 'content-security-policy';
+	if (headers[csp]) headers[csp] += `; ${TRUSTED_TYPES}`;
+	return headers;
 }
 
 const failures = [];
@@ -89,7 +113,13 @@ async function main() {
 		process.exit(1);
 	}
 
-	const { server, origin } = await serve(DIST);
+	const { server, origin, headers } = await serve(DIST);
+	const csp = headers['content-security-policy'] ?? '';
+	check(
+		'.htaccess carries the recommended security headers',
+		/script-src [^;]*'sha256-/.test(csp) && !csp.includes('__CSP__'),
+		'no built Content-Security-Policy found — did `node scripts/csp.js dist` run?'
+	);
 	const browser = await chromium.launch({ headless: !HEADED });
 	// Pinned to English: the checks find elements by their English accessible names, and
 	// Paraglide otherwise follows the machine's language.

@@ -23,7 +23,7 @@ import {
 	eqConstraintsStore
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqCommands } from '#lib/services/eq-commands.js';
 import { eqCurve } from '#lib/services/eq-curve.svelte.js';
@@ -386,6 +386,20 @@ describe('EqHistoryAndCompare', () => {
 
 			expect(eqBookmarkStore.items[0].name).toBe('Treble tame');
 			await expect.element(button(m.eq_history_menu_title({ name: 'Treble tame' }))).toHaveFocus();
+		});
+
+		it('renames inline: the field opts out of text correction', async () => {
+			eqBookmarkStore.items = [makeBookmark()];
+			render(EqHistoryAndCompare);
+			await openBookmarks();
+
+			const field = await startRename('Bass-light v2');
+			const el = field.element();
+			expect(el.getAttribute('autocomplete')).toBe('off');
+			expect(el.getAttribute('autocorrect')).toBe('off');
+			expect(el.getAttribute('autocapitalize')).toBe('none');
+			expect(el.getAttribute('spellcheck')).toBe('false');
+			expect(el.getAttribute('enterkeyhint')).toBe('done');
 		});
 
 		it('renames inline: Escape restores the previous name', async () => {

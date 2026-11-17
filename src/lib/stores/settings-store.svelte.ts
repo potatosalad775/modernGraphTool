@@ -1,4 +1,5 @@
 import { getConfigValue } from '#lib/utils/config.js';
+import { AUTOEQ_RANGE_FIELDS } from '#lib/utils/autoeq-ranges.js';
 
 const LS_KEYS = {
 	theme: 'gt-settings-theme',
@@ -7,7 +8,8 @@ const LS_KEYS = {
 	autoEqOpts: 'gt-settings-autoeq-options',
 	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write',
 	volumeWarning: 'gt-settings-volume-warning',
-	frequencyTutorial: 'gt-settings-frequency-tutorial'
+	frequencyTutorial: 'gt-settings-frequency-tutorial',
+	singleKeyShortcuts: 'gt-settings-single-key-shortcuts'
 } as const;
 
 const LEGACY_THEME_KEY = 'gt-theme';
@@ -37,8 +39,92 @@ const DEFAULT_AUTOEQ: AutoEqOptions = {
 	exactMatch: true
 };
 
+const NUMERIC_AUTOEQ_KEYS = ['freqMin', 'freqMax', 'qMin', 'qMax', 'gainMin', 'gainMax'] as const;
+const BOOLEAN_AUTOEQ_KEYS = ['useShelfFilter', 'exactMatch'] as const;
+const AUTOEQ_PAIRS = [
+	['freqMin', 'freqMax'],
+	['qMin', 'qMax'],
+	['gainMin', 'gainMax']
+] as const;
+
+/**
+ * Folds a stored AutoEQ options blob over the defaults. A key whose stored value has the wrong
+ * type — `null` from a persisted `NaN`, a string, a non-finite number — falls back to its own
+ * default rather than overriding it, a number is clamped into its field's range (the one the
+ * AutoEQ form enforces, `AUTOEQ_RANGE_FIELDS`), and a pair stored with min above max resets both
+ * ends.
+ */
+function sanitizeAutoEqOptions(stored: unknown): AutoEqOptions {
+	const out: AutoEqOptions = { ...DEFAULT_AUTOEQ };
+	if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return out;
+	const src = stored as Record<string, unknown>;
+	for (const key of NUMERIC_AUTOEQ_KEYS) {
+		const v = src[key];
+		if (typeof v === 'number' && Number.isFinite(v)) {
+			const f = AUTOEQ_RANGE_FIELDS[key];
+			out[key] = Math.min(f.max, Math.max(f.min, f.integer ? Math.round(v) : v));
+		}
+	}
+	for (const key of BOOLEAN_AUTOEQ_KEYS) {
+		const v = src[key];
+		if (typeof v === 'boolean') out[key] = v;
+	}
+	for (const [lo, hi] of AUTOEQ_PAIRS) {
+		if (out[lo] > out[hi]) {
+			out[lo] = DEFAULT_AUTOEQ[lo];
+			out[hi] = DEFAULT_AUTOEQ[hi];
+		}
+	}
+	return out;
+}
+
+type Theme = 'light' | 'dark';
+
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+
+/** What the OS asks for right now. Light when the browser can't say. */
+function systemTheme(): Theme {
+	return window.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light';
+}
+
+/** The operator's `PREFERRED_DARK_MODE_THEME`; absent reads as `'system'`, as it always has. */
+function configuredTheme(): unknown {
+	return getConfigValue('INTERFACE.PREFERRED_DARK_MODE_THEME') ?? 'system';
+}
+
+/**
+ * The inline script in the three HTML shells has usually set `.dark` before this module runs, so
+ * start from it: the layout effect then has nothing to flip on the first paint.
+ */
+function themeFromDocument(): Theme {
+	return typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+		? 'dark'
+		: 'light';
+}
+
 class SettingsStore {
-	theme = $state<'light' | 'dark'>('light');
+	/**
+	 * Precedence, shared with the inline script in `src/app.html`, `cdn/cdn-index.html` and
+	 * `site-template/index.html` (keep them in step): the user's stored choice, else the operator's
+	 * `PREFERRED_DARK_MODE_THEME` (`'system'` = the OS), else light.
+	 */
+	theme = $state<Theme>(themeFromDocument());
+	/**
+	 * No stored choice and the operator default is `'system'`: `theme` tracks the OS and reacts to
+	 * it changing. Choosing the theme the OS has right now gives up the stored choice, so the
+	 * choice only persists while it differs from the OS and the same toggle gets back to this state.
+	 */
+	followsSystem = $state(false);
+	/** The OS's current scheme, kept live so the toggle's hint can say where a click leads. */
+	osTheme = $state<Theme>('light');
+
+	/**
+	 * Clicking the toggle now lands on the OS's own theme, which hands control back to the OS
+	 * (see `followsSystem`). Only an operator default of `'system'` has that way back.
+	 */
+	get toggleResumesSystem(): boolean {
+		return !this.followsSystem && configuredTheme() === 'system' && this.osTheme !== this.theme;
+	}
 	autoEqPersistMode = $state<AutoEqPersistMode>('session');
 	linkEqNormalization = $state(false);
 	autoEqOptions = $state<AutoEqOptions>({ ...DEFAULT_AUTOEQ });
@@ -48,30 +134,17 @@ class SettingsStore {
 	volumeWarning = $state(true);
 	/** Show the Frequency Tutorial strip under the graph. Hidden unless the operator or user opts in. */
 	frequencyTutorialVisible = $state(false);
+	/**
+	 * The shortcuts that are a bare character key (`1`–`4`, `\`; WCAG 2.1.4). Off leaves only the
+	 * modifier ones (Ctrl+Z …). On by default.
+	 */
+	singleKeyShortcuts = $state(true);
 
 	hydrate(): void {
 		if (typeof window === 'undefined') return;
 
-		let savedTheme = localStorage.getItem(LS_KEYS.theme) as 'light' | 'dark' | null;
-		if (savedTheme !== 'light' && savedTheme !== 'dark') {
-			const legacy = localStorage.getItem(LEGACY_THEME_KEY);
-			if (legacy === 'light' || legacy === 'dark') {
-				savedTheme = legacy;
-				localStorage.setItem(LS_KEYS.theme, legacy);
-				localStorage.removeItem(LEGACY_THEME_KEY);
-			}
-		}
-		if (savedTheme === 'light' || savedTheme === 'dark') {
-			this.theme = savedTheme;
-		} else {
-			const cfg = (getConfigValue('INTERFACE.PREFERRED_DARK_MODE_THEME') as string) ?? 'system';
-			if (cfg === 'dark') {
-				this.theme = 'dark';
-			} else if (cfg === 'system') {
-				this.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-			}
-		}
-		document.documentElement.classList.toggle('dark', this.theme === 'dark');
+		this.#resolveTheme();
+		this.#watchTheme();
 
 		const mode = localStorage.getItem(LS_KEYS.persistMode);
 		if (mode === 'session' || mode === 'local') this.autoEqPersistMode = mode;
@@ -81,6 +154,9 @@ class SettingsStore {
 
 		if (localStorage.getItem(LS_KEYS.devicePeqAutoWrite) === 'true') this.devicePeqAutoWrite = true;
 		if (localStorage.getItem(LS_KEYS.volumeWarning) === 'false') this.volumeWarning = false;
+		// Only an explicit 'false' turns it off; anything else stored keeps the default.
+		if (localStorage.getItem(LS_KEYS.singleKeyShortcuts) === 'false')
+			this.singleKeyShortcuts = false;
 
 		// The user's own choice wins; the operator's config only sets the first-visit default.
 		const tutorial = localStorage.getItem(LS_KEYS.frequencyTutorial);
@@ -92,18 +168,24 @@ class SettingsStore {
 		const raw = this.#activeStorage().getItem(LS_KEYS.autoEqOpts);
 		if (raw) {
 			try {
-				const parsed = JSON.parse(raw) as Partial<AutoEqOptions>;
-				this.autoEqOptions = { ...DEFAULT_AUTOEQ, ...parsed };
+				this.autoEqOptions = sanitizeAutoEqOptions(JSON.parse(raw));
 			} catch {
 				// malformed — keep defaults
 			}
 		}
 	}
 
-	setTheme(theme: 'light' | 'dark'): void {
-		this.theme = theme;
-		document.documentElement.classList.toggle('dark', theme === 'dark');
-		localStorage.setItem(LS_KEYS.theme, theme);
+	setTheme(theme: Theme): void {
+		this.#applyTheme(theme);
+		this.osTheme = systemTheme();
+		if (configuredTheme() === 'system' && theme === this.osTheme) {
+			// The OS already asks for this: store nothing and follow it from here on.
+			localStorage.removeItem(LS_KEYS.theme);
+			this.followsSystem = true;
+		} else {
+			localStorage.setItem(LS_KEYS.theme, theme);
+			this.followsSystem = false;
+		}
 	}
 
 	toggleTheme(): void {
@@ -135,6 +217,11 @@ class SettingsStore {
 		localStorage.setItem(LS_KEYS.volumeWarning, String(v));
 	}
 
+	setSingleKeyShortcuts(v: boolean): void {
+		this.singleKeyShortcuts = v;
+		localStorage.setItem(LS_KEYS.singleKeyShortcuts, String(v));
+	}
+
 	setFrequencyTutorialVisible(v: boolean): void {
 		this.frequencyTutorialVisible = v;
 		localStorage.setItem(LS_KEYS.frequencyTutorial, String(v));
@@ -143,6 +230,60 @@ class SettingsStore {
 	persistAutoEqOptions(): void {
 		if (typeof window === 'undefined') return;
 		this.#activeStorage().setItem(LS_KEYS.autoEqOpts, JSON.stringify(this.autoEqOptions));
+	}
+
+	#applyTheme(theme: Theme): void {
+		this.theme = theme;
+		document.documentElement.classList.toggle('dark', theme === 'dark');
+	}
+
+	/** The stored choice, migrating the pre-`gt-settings-*` key the first time it is seen. */
+	#storedTheme(): Theme | null {
+		const saved = localStorage.getItem(LS_KEYS.theme);
+		if (saved === 'light' || saved === 'dark') return saved;
+		const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+		if (legacy === 'light' || legacy === 'dark') {
+			localStorage.setItem(LS_KEYS.theme, legacy);
+			localStorage.removeItem(LEGACY_THEME_KEY);
+			return legacy;
+		}
+		return null;
+	}
+
+	/** Stored choice, else the operator default, else light; sets `followsSystem` to match. */
+	#resolveTheme(): void {
+		const stored = this.#storedTheme();
+		const cfg = configuredTheme();
+		this.osTheme = systemTheme();
+		this.followsSystem = stored === null && cfg === 'system';
+		this.#applyTheme(
+			stored ?? (cfg === 'dark' ? 'dark' : cfg === 'system' ? this.osTheme : 'light')
+		);
+	}
+
+	#unwatchTheme: (() => void) | null = null;
+
+	/**
+	 * Follow the OS while no choice is stored, and another tab's choice (or its reset). Installed
+	 * from `hydrate()`, once per page; a second call replaces the first rather than doubling it.
+	 */
+	#watchTheme(): void {
+		this.#unwatchTheme?.();
+		const mq = window.matchMedia?.(DARK_QUERY);
+		const onScheme = (e: MediaQueryListEvent) => {
+			this.osTheme = e.matches ? 'dark' : 'light';
+			if (this.followsSystem) this.#applyTheme(this.osTheme);
+		};
+		const onStorage = (e: StorageEvent) => {
+			// A null key is `localStorage.clear()`.
+			if (e.key === LS_KEYS.theme || e.key === null) this.#resolveTheme();
+		};
+		mq?.addEventListener?.('change', onScheme);
+		window.addEventListener('storage', onStorage);
+		this.#unwatchTheme = () => {
+			mq?.removeEventListener?.('change', onScheme);
+			window.removeEventListener('storage', onStorage);
+		};
 	}
 
 	#activeStorage(): Storage {

@@ -36,7 +36,7 @@
 		const left = targetRect.left - pad;
 		const width = targetRect.width + pad * 2;
 		const height = targetRect.height + pad * 2;
-		return `top:${top}px;left:${left}px;width:${width}px;height:${height}px;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);`;
+		return `top:${top}px;left:${left}px;width:${width}px;height:${height}px;box-shadow:0 0 0 9999px var(--color-scrim);`;
 	});
 
 	const dialogStyle = $derived.by(() => {
@@ -184,7 +184,7 @@
 		<Dialog.Overlay
 			class="fixed inset-0 z-40 transition-colors duration-300 {hasSpotlight
 				? ''
-				: 'bg-black/50 backdrop-blur-sm'}"
+				: 'bg-scrim backdrop-blur-sm'}"
 		/>
 		<!--
 			Gated on `isOpen` too: the Portal renders its children whether or not the dialog
@@ -227,19 +227,21 @@
 					{/if}
 
 					{#if step.title}
-						<Dialog.Title class="text-base font-semibold text-base-content">
+						<Dialog.Title class="text-base font-semibold text-balance text-base-content">
 							<TutorialText text={step.title()} />
 						</Dialog.Title>
 					{:else}
-						<Dialog.Title class="sr-only">Tutorial step {currentStep + 1}</Dialog.Title>
+						<Dialog.Title class="sr-only"
+							>{m.tutorial_modal_step_title({ step: currentStep + 1 })}</Dialog.Title
+						>
 					{/if}
 
-					<Dialog.Description class="mt-1 text-sm leading-relaxed text-base-content/70">
+					<Dialog.Description class="mt-1 text-sm leading-relaxed text-pretty text-base-content/80">
 						<TutorialText text={step.content()} />
 					</Dialog.Description>
 
 					{#if step.tips && showTips}
-						<div class="mt-3 space-y-1.5 text-xs leading-5 text-base-content/55">
+						<div class="mt-3 space-y-1.5 text-xs leading-5 text-pretty text-base-content/80">
 							{#each step.tips as tip, i (i)}
 								<p><TutorialText text={tip()} /></p>
 							{/each}
@@ -266,13 +268,20 @@
 				>
 					<div class="flex gap-1.5">
 						{#each steps as _, i (i)}
+							<!--
+								The button is the dot, so layout and spacing are unchanged; the 24x24 hit
+								area is an `::after` centred on it. Neighbouring areas overlap in the gaps
+								but never reach each other's centre.
+							-->
 							<button
 								type="button"
-								class="h-1.5 rounded-full transition-all {i === currentStep
+								class="relative h-1.5 rounded-full transition-all after:absolute after:top-1/2 after:left-1/2 after:size-6 after:-translate-x-1/2 after:-translate-y-1/2 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-base-200 focus-visible:outline-hidden {i ===
+								currentStep
 									? 'w-4 bg-accent'
 									: 'w-1.5 bg-base-content/20 hover:bg-base-content/35'}"
 								onclick={() => (tutorialStore.step = i)}
 								aria-label={m.tutorial_modal_go_to_step({ step: i + 1 })}
+								aria-current={i === currentStep ? 'step' : undefined}
 							></button>
 						{/each}
 					</div>
@@ -283,7 +292,7 @@
 								label={m.tutorial_modal_btn_skip()}
 								variant="ghost"
 								size="sm"
-								class="text-base-content/50 hover:text-base-content/70"
+								class="text-base-content/80 hover:text-base-content"
 								onclick={() => tutorialStore.dismiss()}
 							/>
 						{/if}

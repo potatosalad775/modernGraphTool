@@ -1,5 +1,47 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeHtml, sanitizeUrl, stripHtml } from './html-sanitizer.js';
+import { sanitizeHtml, sanitizeHttpUrl, sanitizeUrl, stripHtml } from './html-sanitizer.js';
+
+describe('sanitizeHttpUrl', () => {
+	it('keeps an absolute http(s) URL verbatim, trimming outer whitespace', () => {
+		expect(sanitizeHttpUrl('https://alice.squig.link/')).toBe('https://alice.squig.link/');
+		expect(sanitizeHttpUrl('  http://a.example/x?a=1&tab=2 ')).toBe('http://a.example/x?a=1&tab=2');
+		expect(sanitizeHttpUrl('HTTPS://A.example/')).toBe('HTTPS://A.example/');
+	});
+
+	it('rejects every other scheme, including ones sanitizeUrl allows', () => {
+		for (const raw of [
+			'javascript:alert(1)',
+			'JaVaScRiPt:alert(1)',
+			'  \tjavascript:alert(1)',
+			'java\nscript:alert(1)',
+			'java&#115;cript:alert(1)',
+			'data:text/html,<script>alert(1)</script>',
+			'DATA:text/html;base64,AAAA',
+			'mailto:a@b.c',
+			'tel:+1234',
+			'ftp://a.example/'
+		]) {
+			expect(sanitizeHttpUrl(raw), raw).toBeNull();
+		}
+	});
+
+	it('rejects relative, protocol-relative and malformed URLs', () => {
+		expect(sanitizeHttpUrl('/data/x')).toBeNull();
+		expect(sanitizeHttpUrl('//cdn.example.com/x')).toBeNull();
+		expect(sanitizeHttpUrl('#anchor')).toBeNull();
+		expect(sanitizeHttpUrl('https://')).toBeNull();
+		expect(sanitizeHttpUrl('https://a.example/ x')).toBeNull();
+	});
+
+	it('rejects empty and non-string input', () => {
+		expect(sanitizeHttpUrl('')).toBeNull();
+		expect(sanitizeHttpUrl('   ')).toBeNull();
+		expect(sanitizeHttpUrl(null)).toBeNull();
+		expect(sanitizeHttpUrl(undefined)).toBeNull();
+		expect(sanitizeHttpUrl(42)).toBeNull();
+		expect(sanitizeHttpUrl({ href: 'https://a.example' })).toBeNull();
+	});
+});
 
 describe('sanitizeUrl', () => {
 	it('keeps the safe schemes', () => {

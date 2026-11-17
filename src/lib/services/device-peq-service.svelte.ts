@@ -15,7 +15,7 @@
  * page's own auto-write stays out of the way.
  */
 import { untrack } from 'svelte';
-import { toast } from 'svelte-sonner';
+import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import { describeDeviceError, isConnectionLost } from '#lib/device-peq/errors.js';
 import { LinkPeqDevice } from '#lib/device-peq/link.js';

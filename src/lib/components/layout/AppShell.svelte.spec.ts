@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { page } from 'vitest/browser';
+import { toast } from '#lib/services/toast.js';
 import AppShell from './AppShell.svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { menuStore } from '#lib/stores/menu-store.svelte.js';
+import { tutorialStore, TOUR_STORAGE_KEYS } from '#lib/stores/tutorial-store.svelte.js';
 import { targetAdjustmentStore } from '#lib/stores/target-adjustment-store.svelte.js';
 import { commandHistory } from '#lib/services/command-history.svelte.js';
 import { loadDefaultConfig, installWriteBudget, findTarget } from './app-boot-harness.js';
@@ -92,6 +94,109 @@ describe('AppShell boot', () => {
 
 		// Boot settles instead of writing reactive state forever.
 		expect(budget.count).toBeLessThan(WRITE_BUDGET);
+	}, 30000);
+
+	it('has a site <h1>, one <h2> naming the open panel, and skip links to both regions', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		// The default title is `<span>modernGraphTool</span>` as HTML: the <h1> carries its text only.
+		await expect
+			.element(page.getByRole('heading', { level: 1 }))
+			.toHaveTextContent('modernGraphTool');
+		await expect
+			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
+			.toHaveTextContent('GRAPH');
+
+		// The heading follows the panel; the old one is not left behind.
+		menuStore.currentPanel = 'device';
+		await expect
+			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
+			.toHaveTextContent('DEVICES');
+
+		// Accordion headers (`AccordionItem`) sit one level under the panel's <h2>. The Graph
+		// panel is the one with accordions; switch back to it.
+		menuStore.currentPanel = 'graph';
+		await expect
+			.poll(() =>
+				[...document.querySelectorAll('[data-accordion-header]')].map((h) =>
+					h.getAttribute('aria-level')
+				)
+			)
+			.toSatisfy((levels: string[]) => levels.length > 0 && levels.every((l) => l === '3'));
+		menuStore.currentPanel = 'device';
+
+		// The skip links come first, and move focus onto their region.
+		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
+		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to controls', 'Skip to graph']);
+		expect(document.body.querySelector('a, button, input')).toBe(links[0]);
+		// A first visit opens the welcome tour, whose dialog traps focus; the skip links are for
+		// the page behind it.
+		tutorialStore.dismiss();
+		await expect.poll(() => document.querySelector('[role="dialog"]')).toBeNull();
+		links[1].click();
+		expect(document.activeElement?.id).toBe('app-graph-region');
+		links[0].click();
+		expect(document.activeElement?.id).toBe('app-controls-region');
+	}, 30000);
+
+	it.each([
+		['an image title', { TYPE: 'IMAGE', CONTENT: '/logo.png', ALT: 'Acme Graphs' }, 'Acme Graphs'],
+		['an HTML title', { TYPE: 'HTML', CONTENT: '<b>Raw</b>', ALT: 'Acme Graphs' }, 'Acme Graphs'],
+		['a text title', { TYPE: 'TEXT', CONTENT: 'Own Name', ALT: 'Acme Graphs' }, 'Own Name'],
+		['an image title without ALT', { TYPE: 'IMAGE', CONTENT: '/logo.png' }, 'modernGraphTool']
+	])(
+		'names the <h1> for %s',
+		async (_case, title, expected) => {
+			const cfg = window.GRAPHTOOL_CONFIG as unknown as { TOPBAR: { TITLE: unknown } };
+			cfg.TOPBAR.TITLE = title;
+			render(AppShell);
+			await expect.element(page.getByRole('heading', { level: 1 })).toHaveTextContent(expected);
+		},
+		30000
+	);
+
+	it('keeps error and warning toasts until dismissed, and folds a repeat into one', async () => {
+		render(AppShell);
+		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+
+		toast.error('Something failed');
+		toast.error('Something failed');
+		toast.warning('Something was left out');
+		toast.success('Done');
+		const active = () => toast.getActiveToasts();
+		await expect.poll(() => active().length).toBe(3);
+		const byTitle = (title: string) => active().find((t) => t.title === title)!;
+		expect(byTitle('Something failed').duration).toBe(Infinity);
+		expect(byTitle('Something was left out').duration).toBe(Infinity);
+		expect(byTitle('Done').duration).toBeUndefined();
+
+		// The close button has a name, and it dismisses.
+		const close = page.getByRole('button', { name: 'Dismiss notification' });
+		await expect.poll(() => close.elements().length).toBeGreaterThan(0);
+		await close.first().click();
+		await expect.poll(() => active().length).toBe(2);
+		toast.dismiss();
+	}, 30000);
+
+	it('holds the version toast back until the welcome tour is closed', async () => {
+		tutorialStore.dismiss();
+		localStorage.removeItem(TOUR_STORAGE_KEYS.welcome);
+		localStorage.setItem('gt-settings-app-version', '0.0.1');
+		try {
+			render(AppShell);
+			await expect.poll(() => tutorialStore.isOpen).toBe(true);
+			await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
+			const updated = () =>
+				toast.getActiveToasts().filter((t) => String(t.title).startsWith('Updated'));
+			expect(updated()).toHaveLength(0);
+
+			tutorialStore.dismiss();
+			await expect.poll(() => updated().length).toBe(1);
+		} finally {
+			toast.dismiss();
+			localStorage.removeItem('gt-settings-app-version');
+		}
 	}, 30000);
 
 	it('keeps target customizer adjustments across a panel switch', async () => {

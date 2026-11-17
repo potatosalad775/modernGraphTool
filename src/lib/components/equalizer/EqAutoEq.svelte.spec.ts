@@ -57,6 +57,12 @@ function field(name: (typeof FIELD_ORDER)[number]) {
 	return numberInputs()[FIELD_ORDER.indexOf(name)];
 }
 
+/** `fill()` fires `input` only; the blur is what commits, as leaving the field would. */
+async function fillAndCommit(name: (typeof FIELD_ORDER)[number], text: string) {
+	await page.elementLocator(field(name)).fill(text);
+	field(name).blur();
+}
+
 describe('EqAutoEq', () => {
 	let replaceFilters: ReturnType<typeof vi.spyOn>;
 
@@ -93,17 +99,17 @@ describe('EqAutoEq', () => {
 		it('writes an edited frequency bound back to the store', async () => {
 			render(EqAutoEq);
 
-			await page.elementLocator(field('freqMax')).fill('12000');
+			await fillAndCommit('freqMax', '12000');
 
 			expect(settingsStore.autoEqOptions.freqMax).toBe(12000);
 		});
 
 		it('keeps gain bounds as floats rather than truncating them', async () => {
-			// Gain parses with parseFloat while frequency uses parseInt — a copy/paste
-			// of the frequency handler here would silently round -7.5 dB to -7.
+			// Frequency rounds to whole Hz — a copy/paste of that here would
+			// silently round -7.5 dB to -8.
 			render(EqAutoEq);
 
-			await page.elementLocator(field('gainMin')).fill('-7.5');
+			await fillAndCommit('gainMin', '-7.5');
 
 			expect(settingsStore.autoEqOptions.gainMin).toBe(-7.5);
 		});
@@ -111,19 +117,70 @@ describe('EqAutoEq', () => {
 		it('keeps Q bounds as floats', async () => {
 			render(EqAutoEq);
 
-			await page.elementLocator(field('qMin')).fill('0.7');
+			await fillAndCommit('qMin', '0.7');
 
 			expect(settingsStore.autoEqOptions.qMin).toBe(0.7);
 		});
 
-		it('leaves the previous value in place when a field is cleared', async () => {
-			// An empty box parses to NaN; the `||` fallback keeps the last good value
-			// so a mid-edit blank never reaches the optimizer.
+		it('commits on change, not on every keystroke', async () => {
+			// Typing `5` on the way to `500` must not set a 5 Hz lower bound.
 			render(EqAutoEq);
 
-			await page.elementLocator(field('freqMin')).fill('');
+			await page.elementLocator(field('freqMin')).fill('5');
 
 			expect(settingsStore.autoEqOptions.freqMin).toBe(20);
+		});
+
+		it('shows the stored value again when a field is cleared or left as a lone minus', async () => {
+			// An empty or half-typed box is not a number; it must never reach the store as NaN.
+			render(EqAutoEq);
+
+			await fillAndCommit('gainMin', '');
+			expect(settingsStore.autoEqOptions.gainMin).toBe(-12);
+			expect(field('gainMin').value).toBe('-12');
+
+			// A lone `-` can't be typed through fill(), but a real box reports it as '' too.
+			field('gainMax').value = '-';
+			field('gainMax').dispatchEvent(new Event('change', { bubbles: true }));
+			expect(settingsStore.autoEqOptions.gainMax).toBe(12);
+			expect(field('gainMax').value).toBe('12');
+		});
+
+		it('clamps a committed value to the field limits', async () => {
+			render(EqAutoEq);
+
+			await fillAndCommit('freqMin', '5');
+			expect(settingsStore.autoEqOptions.freqMin).toBe(20);
+			expect(field('freqMin').value).toBe('20');
+
+			await fillAndCommit('gainMax', '99');
+			expect(settingsStore.autoEqOptions.gainMax).toBe(40);
+		});
+
+		it('keeps a minimum from passing its maximum, and the reverse', async () => {
+			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, qMin: 1, qMax: 3 };
+			render(EqAutoEq);
+
+			await fillAndCommit('qMin', '8');
+			expect(settingsStore.autoEqOptions.qMin).toBe(3);
+
+			await fillAndCommit('qMax', '0.2');
+			expect(settingsStore.autoEqOptions.qMax).toBe(3);
+		});
+
+		it('names every bound by its group and its Min / Max label', async () => {
+			render(EqAutoEq);
+
+			const groups = [
+				[m.equalizer_autoeq_freq_range(), 'freqMin', 'freqMax'],
+				[m.equalizer_autoeq_gain_range(), 'gainMin', 'gainMax'],
+				[m.equalizer_autoeq_q_range(), 'qMin', 'qMax']
+			] as const;
+			const named = (name: string) => page.getByRole('spinbutton', { name, exact: true }).element();
+			for (const [group, lo, hi] of groups) {
+				expect(named(`${group} ${m.equalizer_autoeq_min()}`)).toBe(field(lo));
+				expect(named(`${group} ${m.equalizer_autoeq_max()}`)).toBe(field(hi));
+			}
 		});
 
 		it('picks the fit mode through the store', async () => {
@@ -377,6 +434,8 @@ describe('EqAutoEq', () => {
 			await runButton().click();
 
 			await vi.waitFor(() => expect(runButton().element()).toBeDisabled());
+			expect(runButton().element()).toHaveAttribute('aria-busy', 'true');
+			expect(page.getByRole('status').element()).toHaveAttribute('aria-busy', 'true');
 			release(OUTCOME);
 		});
 	});

@@ -11,7 +11,7 @@
 <script lang="ts">
 	import { tick, type Component } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
-	import { toast } from 'svelte-sonner';
+	import { toast } from '#lib/services/toast.js';
 	import { ChartLine, Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
 	import {
 		bandSummary,
@@ -31,6 +31,7 @@
 	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { fitsProfile } from '#lib/utils/eq-constraint.js';
 	import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
+	import { isImeComposing } from '#lib/utils/ime.js';
 	import type { EqState } from '#lib/utils/eq-snapshot.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { eqCurve } from '#lib/services/eq-curve.svelte.js';
@@ -147,6 +148,7 @@
 	}
 
 	function onRenameKeydown(e: KeyboardEvent) {
+		if (isImeComposing(e)) return;
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			void endRename(true);
@@ -205,7 +207,7 @@
 {#snippet notFit(id: string)}
 	<span
 		id={id ? fitReasonId(id) : undefined}
-		class="flex items-center gap-1 text-[10px] text-base-content/70"
+		class="flex items-center gap-1 text-2xs text-base-content/80"
 	>
 		<TriangleAlert class="size-3 shrink-0" aria-hidden="true" />
 		<span class="truncate">{m.eq_history_not_fit({ constraint: constraintLabel })}</span>
@@ -257,7 +259,7 @@
 <div class="flex flex-col gap-2 text-sm">
 	<!-- A / B switcher header — works across both lists -->
 	<div class="flex items-center gap-1">
-		<span class="mr-1 text-xs text-base-content/60">{m.eq_history_compare_label()}</span>
+		<span class="mr-1 text-xs text-base-content/80">{m.eq_history_compare_label()}</span>
 		<div class="flex flex-1 gap-1">
 			<Button
 				title={aBlocked
@@ -371,11 +373,11 @@
 						size="icon-xs"
 						class={saved ? 'cursor-default hover:bg-inherit' : ''}
 					>
-						<Star class="size-3.5 {saved ? 'fill-current text-accent' : 'text-base-content/50'}" />
+						<Star class="size-3.5 {saved ? 'fill-current text-accent' : 'text-base-content/60'}" />
 					</Button>
 					<div class="flex min-w-0 flex-1 flex-col">
 						<span class="truncate text-xs text-base-content">{snap.summary}</span>
-						<span class="text-[10px] text-base-content/50 tabular-nums">
+						<span class="text-2xs text-base-content/80 tabular-nums">
 							{timeStr(snap.timestamp)}
 						</span>
 						{#if !fit}{@render notFit(snap.id)}{/if}
@@ -409,6 +411,11 @@
 							<Input
 								bind:value={renameValue}
 								aria-label={m.eq_history_rename_label()}
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="none"
+								spellcheck={false}
+								enterkeyhint="done"
 								onkeydown={onRenameKeydown}
 								onblur={() => endRename(true)}
 								{@attach focusOnMount}
@@ -416,7 +423,7 @@
 						{:else}
 							<span class="truncate text-xs text-base-content">{bookmark.name}</span>
 						{/if}
-						<span class="truncate text-[10px] text-base-content/50">
+						<span class="truncate text-2xs text-base-content/80">
 							{bookmark.device
 								? `${deviceLabel(bookmark.device)} · ${dateStr(bookmark.createdAt)}`
 								: dateStr(bookmark.createdAt)}
@@ -445,5 +452,5 @@
 {/snippet}
 
 {#snippet empty(text: string)}
-	<p class="p-3 text-center text-xs text-base-content/60">{text}</p>
+	<p class="p-3 text-center text-xs text-base-content/80">{text}</p>
 {/snippet}

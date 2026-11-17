@@ -120,8 +120,8 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 	--color-graph-watermark-opacity: 0.08; /* Watermark opacity */
 	--color-graph-grid-major: rgba(0, 0, 0, 0.15); /* Major grid lines */
 	--color-graph-grid-minor: rgba(0, 0, 0, 0.06); /* Minor grid lines */
-	--color-graph-axis-label: rgba(0, 0, 0, 0.6); /* Axis labels (Hz, dB) */
-	--color-graph-grid-text: rgba(0, 0, 0, 0.5); /* Grid value labels */
+	--color-graph-axis-label: rgba(0, 0, 0, 0.7); /* Axis labels (Hz, dB) */
+	--color-graph-grid-text: rgba(0, 0, 0, 0.58); /* Grid value labels */
 	--color-graph-baseline: rgba(0, 0, 0, 0.25); /* Baseline indicator */
 	--color-graph-compare: rgba(0, 0, 0, 0.55); /* History & Compare A/B ghost trace */
 }
@@ -129,8 +129,8 @@ These drive the SVG rendering where Tailwind classes cannot be used:
 .dark {
 	--color-graph-grid-major: rgba(255, 255, 255, 0.15);
 	--color-graph-grid-minor: rgba(255, 255, 255, 0.06);
-	--color-graph-axis-label: rgba(255, 255, 255, 0.6);
-	--color-graph-grid-text: rgba(255, 255, 255, 0.5);
+	--color-graph-axis-label: rgba(255, 255, 255, 0.72);
+	--color-graph-grid-text: rgba(255, 255, 255, 0.6);
 	--color-graph-baseline: rgba(255, 255, 255, 0.25);
 	--color-graph-compare: rgba(255, 255, 255, 0.55);
 }
@@ -145,6 +145,30 @@ The [uniPEQ Link](../features/unipeq-link.mdx) QR code has two more. They have n
 }
 ```
 
+The veil behind dialogs, the mobile menu and the guided tour has its own token. It carries its own alpha, so set the opacity in the value itself. A `theme.css` without it falls back to 40% black.
+
+```css
+:root {
+	--color-scrim: oklch(0% 0 0 / 40%); /* Overlay behind dialogs, menu and tour */
+}
+
+.dark {
+	--color-scrim: oklch(0% 0 0 / 40%);
+}
+```
+
+The rank stars in the device list have their own colour as well, because `--color-warning` is too light to read as text on a light surface. Keep it at 4.5:1 or more against the base surfaces. A `theme.css` without it falls back to the shipped amber.
+
+```css
+:root {
+	--color-rating: oklch(53% 0.11 75); /* Rank stars in the device list */
+}
+
+.dark {
+	--color-rating: oklch(82% 0.165 84.429);
+}
+```
+
 ### Base UI Variables
 
 The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI-style base palette. Every variable has a light (`:root`) and dark (`.dark`) value:
@@ -154,27 +178,29 @@ The UI chrome — backgrounds, text, buttons, accents — is driven by a DaisyUI
 	--color-base-100: oklch(98% 0.003 247.858); /* Background */
 	--color-base-200: oklch(96% 0.007 247.896); /* Elevated surface */
 	--color-base-300: oklch(92% 0.013 255.508); /* Highest surface */
-	--color-base-content: oklch(20% 0.042 265.755); /* Default text */
-	--color-primary: oklch(59% 0.145 163.225); /* Primary accent */
-	--color-primary-content: oklch(97% 0.021 166.113);
-	--color-secondary: oklch(60% 0.126 221.723);
-	--color-secondary-content: oklch(98% 0.019 200.873);
+	--color-base-content: oklch(17% 0.042 265.755); /* Default text */
+	--color-primary: oklch(52% 0.111 163.225); /* Primary accent */
+	--color-primary-content: oklch(98% 0.015 166.113);
+	--color-secondary: oklch(53% 0.098 221.723);
+	--color-secondary-content: oklch(98% 0.012 200.873);
 	--color-accent: oklch(44% 0.017 285.786);
 	--color-accent-content: oklch(98% 0 0);
 	--color-neutral: oklch(44% 0.043 257.281);
 	--color-neutral-content: oklch(98% 0.003 247.858);
-	--color-info: oklch(68% 0.169 237.323);
-	--color-info-content: oklch(97% 0.013 236.62);
-	--color-success: oklch(76% 0.233 130.85);
-	--color-success-content: oklch(98% 0.031 120.757);
-	--color-warning: oklch(79% 0.184 86.047);
-	--color-warning-content: oklch(98% 0.026 102.212);
-	--color-error: oklch(64% 0.246 16.439);
-	--color-error-content: oklch(96% 0.015 12.422);
+	--color-info: oklch(53% 0.115 237.323);
+	--color-info-content: oklch(98% 0.01 236.62);
+	--color-success: oklch(52.5% 0.143 130.85);
+	--color-success-content: oklch(98% 0.02 120.757);
+	--color-warning: oklch(80% 0.16 86.047);
+	--color-warning-content: oklch(24% 0.05 80);
+	--color-error: oklch(56% 0.2 16.439);
+	--color-error-content: oklch(98% 0.008 12.422);
 }
 ```
 
 Each `--color-*` role has a matching `--color-*-content` variable that sets the foreground (text/icon) color rendered on top of it, so contrast is preserved automatically when you change the base.
+
+The shipped defaults keep every role against its `-content` at 4.5:1 or better (WCAG AA), bright enough to stay colorful, and `base-content` at 80% opacity at 7:1 or better on the base surfaces. If you change a color, check the pair again. `warning` is the one role whose light-mode value is too light to read as text on a light surface; it carries a dark `-content` instead. A `@media (prefers-contrast: more)` block at the end of the shipped `theme.css` pushes `base-content` to pure black or white, strengthens the graph lines and darkens the light theme's roles to 7:1 (WCAG AAA) for visitors who ask their OS for more contrast; keep it if you want that behavior, and put your own darker values there if you change the roles.
 
 :::note[Color format]
 Values use the [OKLCH color space](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch). You can still supply `rgb()`, `hsl()`, or hex values if you prefer, but OKLCH gives more predictable perceptual lightness across the palette.
@@ -533,6 +559,8 @@ CDN_MODE: {
   // BASE: "https://cdn.jsdelivr.net/gh/potatosalad775/modernGraphTool@cdn",
   // BASE_PATH: "/headphones",
   // VERSIONS_URL: "https://raw.githubusercontent.com/potatosalad775/modernGraphTool/cdn/versions.json",
+  // VERSION: "2.3.4",
+  // BOOT_INTEGRITY: "sha384-…",
 },
 ```
 
@@ -541,6 +569,8 @@ Configures CDN deployment settings. **Only used when deploying with `cdn-index.h
 - `MAJOR_VERSION`: Pins the app to a specific major version (e.g., `2` means auto-update within v2.x.x).
 - `BASE`: Custom CDN base URL. Only change this if you're hosting the CDN assets yourself (advanced use).
 - `BASE_PATH`: Deployment subpath (e.g. `"/headphones"`), with no trailing slash. **Required for any deployment not at the (sub)domain root.** For a site at `example.com/headphones/` or `username.squig.link/headphones/`, set `BASE_PATH: "/headphones"`. Only leave this unset if your site is served at the root of its (sub)domain — e.g. `example.com/` or `username.squig.link/`. Without it, share-link deep routes will 404 even though the home page loads fine. For the full explanation of why this is effectively always required, see the [CDN deployment guide](./deployment/cdn.mdx#why-base_path-is-almost-always-required).
+- `VERSION`: Pins one exact release, e.g. `"2.3.4"`. The site stops updating itself and the loader no longer asks for `versions.json`. Wins over `MAJOR_VERSION`. See [Pinning a release](./deployment/cdn.mdx#pinning-a-release).
+- `BOOT_INTEGRITY`: The `sha384-…` hash of that release's `boot.json`; needs `VERSION`. The loader refuses to start from a `boot.json` that does not match. The value for each release is published in `pins.json`.
 - `VERSIONS_URL`: Full URL to `versions.json`. By default, the loader derives a `raw.githubusercontent.com` URL from `BASE` and fetches `versions.json` directly from GitHub — **not** through jsDelivr. This is intentional: jsDelivr's edge cache can pin stale `versions.json` responses for hours, which delays new releases from reaching users. `versions.json` is the one file where that matters, so the loader sidesteps it. Only override `VERSIONS_URL` if you host your own fork of the `cdn` branch or serve from a non-GitHub origin.
 
 :::note[Standard Deployment]
@@ -744,7 +774,8 @@ TOPBAR: {
   TITLE: {
     //TYPE: "TEXT", CONTENT: "modernGraphTool",
     //TYPE: "IMAGE", CONTENT: "./assets/images/sample.jpg",
-    TYPE: "HTML", CONTENT: "<h2>modernGraphTool</h2>",
+    //ALT: "modernGraphTool",
+    TYPE: "HTML", CONTENT: "<span>modernGraphTool</span>",
   },
   LINK_LIST: [
     { TITLE: "Home", URL: "/" },
@@ -763,7 +794,12 @@ Sets the title and link list for the page's top bar.
   - `CONTENT` : Sets the title content.
     - If `TYPE` is `TEXT`, sets a text-formatted title.
     - If `TYPE` is `IMAGE`, sets an image file path.
-    - If `TYPE` is `HTML`, sets an HTML-formatted title.
+    - If `TYPE` is `HTML`, sets an HTML-formatted title. Don't use heading tags (`<h1>`–`<h6>`) in it: the page already has its own headings, and the title sits inside the home link.
+  - `ALT` : Optional. The site's name as plain text, for screen readers and the page's hidden main heading.
+    - An image has no text of its own and an HTML title is markup, so set it when `TYPE` is `IMAGE` or `HTML`. A `TEXT` title already is the name, and `ALT` only backs up an empty one.
+    - With an `IMAGE` title, it becomes the image's text alternative; the home link is announced as the site name followed by "Home". Without it, the link is announced as "Home" alone.
+    - It accepts the same multilingual form as `LINK_LIST` (`{ default: "…", i18n: { ko: "…" } }`).
+    - Leave it out and nothing changes.
 - `LINK_LIST` : Sets the link list for the page's top bar.
   - The `TITLE` field specifies the link's title.
   - The `URL` field specifies the link's URL.
@@ -771,7 +807,7 @@ Sets the title and link list for the page's top bar.
   - Links that don't fit in the top bar move into a **More** menu, starting from the end of the list, so put the most important links first.
 
 :::tip[Multilingual Support]
-`LINK_LIST` supports multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.
+`LINK_LIST` and `TITLE.ALT` support multilingual configuration. See the [Multilingual Support](#multilingual-support-configjs) section below for details.
 :::
 
 ### `PREFERENCE_BOUND`
@@ -931,6 +967,7 @@ SQUIGLINK: {
   ANALYTICS_SITE: "",
   LOG_ANALYTICS: true,
   ENABLE_ANALYTICS: true,
+  ANALYTICS_CONSENT: "granted",
   ENABLE_CROSS_SITE_SEARCH: true,
   ENABLE_SPONSOR: true,
 },
@@ -939,10 +976,11 @@ SQUIGLINK: {
 Configures the squig.link integration. These features are only active when hosted on `*.squig.link` domains.
 
 - `ENABLED`: Master toggle for squig.link integration.
-- `ANALYTICS_MEASUREMENT_IDS`: Array of GA4 measurement IDs, e.g., `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
-- `ANALYTICS_SITE`: Site name used for analytics attribution.
+- `ANALYTICS_MEASUREMENT_IDS`: Optional. IDs of your own to report to as well: GA4 measurement IDs (`"G-…"`) or Tag Manager containers (`"GTM-…"`). squig.link's own container is built in, so leave this empty unless you keep statistics of your own.
+- `ANALYTICS_SITE`: The name squig.link's statistics list your site under.
 - `LOG_ANALYTICS`: Whether to log analytics events to the browser console.
-- `ENABLE_ANALYTICS`: Master toggle for analytics tracking.
+- `ENABLE_ANALYTICS`: Master toggle for analytics, squig.link's container included.
+- `ANALYTICS_CONSENT`: What Google's [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent) starts from, until a visitor answers with the **Usage statistics** switch in the Misc panel. `"granted"` (the default) measures as before. `"denied"` stores no analytics cookie and sends only cookieless pings until a visitor switches it on. See [squig.link Integration](../features/squiglink-integration.mdx#analytics-and-consent).
 - `ENABLE_CROSS_SITE_SEARCH`: **Deprecated** — use `CROSS_SITE_SEARCH.ENABLED`. Still read as a fallback for configs that predate that section.
 - `ENABLE_SPONSOR`: Enables sponsor banner and shop link features.
 
@@ -979,6 +1017,7 @@ Some items in `config.js` can be written in languages other than English.
 - The items that support multilingual configuration are:
   - `TARGET_MANIFEST`
   - `TOPBAR` → `LINK_LIST`
+  - `TOPBAR` → `TITLE` → `ALT` (a single text, written as `{ default: "…", i18n: { ko: "…" } }`)
   - `DESCRIPTION`
 
 ```javascript

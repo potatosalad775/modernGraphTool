@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { connectNetworkDevice, luxDecode, luxEncode } from './network.js';
+import {
+	MAX_RESPONSE_BYTES,
+	NetworkAccessError,
+	NetworkResponseError,
+	connectNetworkDevice,
+	luxDecode,
+	luxEncode,
+	readBoundedText
+} from './network.js';
+import { NetworkHostError } from './network-host.js';
 
 type Call = { url: string; init?: RequestInit };
 let calls: Call[];
@@ -12,11 +21,108 @@ beforeEach(() => {
 		'fetch',
 		vi.fn(async (url: string, init?: RequestInit) => {
 			calls.push({ url, init });
-			return { ok: true, status: 200, statusText: 'OK', text: async () => responses.shift() ?? '' };
+			return new Response(responses.shift() ?? '');
 		})
 	);
 });
 afterEach(() => vi.unstubAllGlobals());
+
+describe('the device address', () => {
+	it('is refused before anything is sent', async () => {
+		for (const bad of ['example.com', 'evil.example/x', 'user@10.0.0.2', 'http://10.0.0.2', '']) {
+			expect(() => connectNetworkDevice(bad, 'WiiM'), bad).toThrow(NetworkHostError);
+			expect(() => connectNetworkDevice(bad, 'LuxsinX9'), bad).toThrow(NetworkHostError);
+		}
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('keeps the port and brackets an IPv6 literal in the URL', async () => {
+		await connectNetworkDevice('[FD00::5]:8080', 'LuxsinX9').device.setEnabled(true);
+		expect(calls[0].url).toBe('http://[fd00::5]:8080/dev/info.cgi');
+	});
+
+	it('declares the local address space where the host settles it', async () => {
+		await connectNetworkDevice('192.168.0.9', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('wiim.local', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('127.0.0.1', 'LuxsinX9').device.setEnabled(true);
+		await connectNetworkDevice('100.64.1.2', 'LuxsinX9').device.setEnabled(true);
+		const space = (i: number) =>
+			(calls[i].init as { targetAddressSpace?: string }).targetAddressSpace;
+		expect([space(0), space(1), space(2), space(3)]).toEqual([
+			'local',
+			'local',
+			'loopback',
+			undefined
+		]);
+	});
+
+	it('asks again with no address space when a name was refused under the declared one', async () => {
+		// A VPN name is "public" to the browser, which aborts a request declared as local
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await connectNetworkDevice('wiim', 'LuxsinX9').device.setEnabled(true);
+		const space = (i: number) =>
+			(calls[i]?.init as { targetAddressSpace?: string } | undefined)?.targetAddressSpace;
+		// The rejected first attempt is not in `calls`; the retry is the first recorded one
+		expect(fetch).toHaveBeenCalledTimes(calls.length + 1);
+		expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ targetAddressSpace: 'local' });
+		expect(calls[0].url).toBe('http://wiim/dev/info.cgi');
+		expect(space(0)).toBeUndefined();
+	});
+
+	it('does not retry an address literal, whose space is settled', async () => {
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await expect(
+			connectNetworkDevice('192.168.0.9', 'LuxsinX9').device.setEnabled(true)
+		).rejects.toBeInstanceOf(NetworkAccessError);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('turns a failed fetch (mixed content, a denied prompt, nothing there) into one error', async () => {
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(
+			NetworkAccessError
+		);
+	});
+});
+
+describe('a device answer that is too large', () => {
+	const big = 'x'.repeat(MAX_RESPONSE_BYTES + 1);
+
+	it('is refused by its Content-Length without reading the body', async () => {
+		const cancel = vi.fn();
+		const body = new ReadableStream({ cancel });
+		const response = new Response(body, { headers: { 'Content-Length': String(big.length) } });
+		await expect(readBoundedText(response)).rejects.toBeInstanceOf(NetworkResponseError);
+		expect(cancel).toHaveBeenCalled();
+	});
+
+	it('is refused by counting bytes when no length is declared', async () => {
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				const chunk = new Uint8Array(256 * 1024);
+				for (let i = 0; i < 5; i++) controller.enqueue(chunk);
+				controller.close();
+			}
+		});
+		await expect(readBoundedText(new Response(stream))).rejects.toBeInstanceOf(
+			NetworkResponseError
+		);
+	});
+
+	it('reads an ordinary answer, multi-byte text included', async () => {
+		expect(await readBoundedText(new Response('{"name":"Ü-profile"}'))).toBe(
+			'{"name":"Ü-profile"}'
+		);
+		expect(await readBoundedText(new Response(null))).toBe('');
+	});
+
+	it('fails a device read rather than parsing it', async () => {
+		responses.push(big);
+		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(
+			NetworkResponseError
+		);
+	});
+});
 
 describe('WiiM', () => {
 	it('reads bands in eqcaps units, skipping bands that are off', async () => {

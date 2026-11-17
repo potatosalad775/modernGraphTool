@@ -9,7 +9,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
 	squiglinkStore,
 	SquiglinkStore,
-	sponsorDismissedCookie
+	sponsorDismissedCookie,
+	sponsorDismissCookieString
 } from './squiglink-store.svelte.js';
 import type { ShopLinkEntry } from '#lib/types/squiglink-types.js';
 
@@ -26,6 +27,60 @@ function makeShopLink(overrides: Partial<ShopLinkEntry> = {}): ShopLinkEntry {
 		...overrides
 	};
 }
+
+/** A JS single-quoted string literal, the way the live scripts write their values. */
+function q(value: string): string {
+	return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+}
+
+const LOGO = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E")`;
+
+/** Shaped like the live `squiglink-intro.js`: a literal, then CrinGraph DOM code. */
+function introScript(overrides: Record<string, unknown> = {}): string {
+	const fields: Record<string, unknown> = {
+		sponsorId: 'dunu-vitruvian',
+		heading: 'HiFiGo supports Squiglink',
+		sponsorshipName: 'Dunu DaVinci Vitruvian',
+		sponsorLogo: LOGO,
+		sponsorMessage: 'New! Dunu DaVinci, refined',
+		type: 'sponsorship',
+		creative: 'https://squig.link/sponsorship/hifigo/dunu-vitruvian.jpg',
+		creativeBgColor: '#120401',
+		ctaText: 'HiFiGo',
+		cta2Text: 'AliExpress',
+		ctaLink: 'https://hifigo.com/products/dunu-davinci-vitruvian',
+		cta2Link: 'https://www.aliexpress.us/item/3256813299587370.html',
+		...overrides
+	};
+	const body = Object.entries(fields)
+		.filter(([, v]) => v !== undefined)
+		.map(([k, v]) => `            ${q(k)}: ${typeof v === 'string' ? q(v) : String(v)}`)
+		.join(',\n');
+	return `let introMode = 'prod';
+
+let contentSponsor = [
+        {
+${body}
+        }
+    ];
+
+let parent = document.querySelector('body');
+document.body.appendChild(parent);
+`;
+}
+
+const DETAILS_SCRIPT = `let shoplinksMode = 'prod';
+
+let sponsorDetails = {
+    'sponsorName': 'HiFiGo',
+    'sponsorLogo': ${q(LOGO)},
+    'utmParams': '?utm_source=squiglink&utm_medium=shoplink&utm_campaign=818sale2024Q3'
+};
+
+function shopLink() {
+    document.querySelector('#fr-graph').click();
+}
+`;
 
 describe('SquiglinkStore', () => {
 	// ── findShopLink ──────────────────────────────────────────────────────
@@ -137,8 +192,69 @@ describe('SquiglinkStore (enabled)', () => {
 
 			await store.fetchShopLinks();
 
-			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/shoplinks.json');
+			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/shoplinks.json', {
+				priority: 'low'
+			});
 			expect(store.shopLinks).toEqual(links);
+		});
+
+		it('keeps the shop URLs of a healthy table as they are', async () => {
+			const links = [
+				makeShopLink({
+					model: 'HD 600',
+					hfg_com: 'https://hifigo.com/products/sennheiser-hd600',
+					hfg_amzus: 'https://www.amazon.com/dp/B00004SY4H?tag=x&th=1',
+					hfg_ali: 'http://s.click.aliexpress.com/e/_abc'
+				})
+			];
+			fetchMock.mockResolvedValue(jsonResponse(links));
+
+			await store.fetchShopLinks();
+
+			expect(store.shopLinks).toEqual(links);
+		});
+
+		it('empties a shop URL that is not http(s) and keeps the entry', async () => {
+			fetchMock.mockResolvedValue(
+				jsonResponse([
+					makeShopLink({
+						model: 'A',
+						hfg_com: 'javascript:alert(1)',
+						hfg_amzus: 'data:text/html,<script>1</script>',
+						hfg_amzjp: '//evil.test/x',
+						hfg_ali: 'https://ok.test/x'
+					}),
+					makeShopLink({ model: 'B', hfg_com: 'unavailable' }),
+					makeShopLink({ model: 'C', hfg_com: '  ' })
+				])
+			);
+
+			await store.fetchShopLinks();
+
+			const [a, b, c] = store.shopLinks;
+			expect([a.hfg_com, a.hfg_amzus, a.hfg_amzjp]).toEqual(['', '', '']);
+			expect(a.hfg_ali).toBe('https://ok.test/x');
+			expect(b.hfg_com).toBe('');
+			expect(c.hfg_com).toBe('');
+			expect(store.findShopLink('a')?.model).toBe('A');
+		});
+
+		it('drops rows that are not shop link entries', async () => {
+			fetchMock.mockResolvedValue(
+				jsonResponse([null, 'x', 7, [], { hfg_com: 'https://x.test' }, makeShopLink()])
+			);
+
+			await store.fetchShopLinks();
+
+			expect(store.shopLinks).toEqual([makeShopLink()]);
+		});
+
+		it('ignores a table that is not an array', async () => {
+			fetchMock.mockResolvedValue(jsonResponse({ model: 'x' }));
+
+			await store.fetchShopLinks();
+
+			expect(store.shopLinks).toEqual([]);
 		});
 
 		it('leaves the table empty when the endpoint fails', async () => {
@@ -169,12 +285,49 @@ describe('SquiglinkStore (enabled)', () => {
 	// ── Sponsor payloads ──────────────────────────────────────────────────
 
 	describe('fetchSponsorDetail', () => {
-		it('hoists the script-local binding onto window and keeps the object', async () => {
-			fetchMock.mockResolvedValue(jsonResponse("let sponsorDetails = { brand: 'Acme' };"));
+		it('reads the details literal of a shoplinks.js-shaped script as data', async () => {
+			fetchMock.mockResolvedValue(jsonResponse(DETAILS_SCRIPT));
 
 			await store.fetchSponsorDetail();
 
-			expect(store.getSponsorDetail()).toEqual({ brand: 'Acme' });
+			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/shoplinks.js', {
+				priority: 'low'
+			});
+			expect(store.getSponsorDetail()).toEqual({
+				sponsorName: 'HiFiGo',
+				sponsorLogo: LOGO,
+				utmParams: '?utm_source=squiglink&utm_medium=shoplink&utm_campaign=818sale2024Q3'
+			});
+		});
+
+		it('never runs the script: its trailing code is not executed', async () => {
+			const g = globalThis as unknown as Record<string, unknown>;
+			g.__ranLegacyCode = false;
+			fetchMock.mockResolvedValue(
+				jsonResponse(
+					"let sponsorDetails = { 'sponsorName': 'HiFiGo' };\nglobalThis.__ranLegacyCode = true;"
+				)
+			);
+
+			await store.fetchSponsorDetail();
+
+			expect(g.__ranLegacyCode).toBe(false);
+			expect(store.sponsorDetail?.sponsorName).toBe('HiFiGo');
+			delete g.__ranLegacyCode;
+		});
+
+		it('does not read a payload that needs code to evaluate', async () => {
+			const g = globalThis as unknown as Record<string, unknown>;
+			g.__ranLegacyCode = false;
+			fetchMock.mockResolvedValue(
+				jsonResponse('let sponsorDetails = { sponsorName: (globalThis.__ranLegacyCode = true) };')
+			);
+
+			await store.fetchSponsorDetail();
+
+			expect(g.__ranLegacyCode).toBe(false);
+			expect(store.sponsorDetail).toBeNull();
+			delete g.__ranLegacyCode;
 		});
 
 		it('ignores a payload that is not an object', async () => {
@@ -185,16 +338,53 @@ describe('SquiglinkStore (enabled)', () => {
 			expect(store.sponsorDetail).toBeNull();
 		});
 
-		it('keeps whatever was extracted before a DOM error in the legacy script', async () => {
+		it('ignores a script without the declaration', async () => {
+			fetchMock.mockResolvedValue(jsonResponse("document.querySelector('#x').click();"));
+
+			await store.fetchSponsorDetail();
+
+			expect(store.sponsorDetail).toBeNull();
+		});
+
+		it('blanks utm parameters that are not a query string', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			for (const utm of ['@evil.test/x', '#frag', '/path?a=1', 'a=1']) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(
+					jsonResponse(`let sponsorDetails = { sponsorName: 'S', utmParams: ${q(utm)} };`)
+				);
+				await fresh.fetchSponsorDetail();
+				expect(fresh.sponsorDetail?.utmParams, utm).toBe('');
+			}
+			expect(warn).toHaveBeenCalledTimes(4);
+			warn.mockRestore();
+		});
+
+		it('keeps a loosely written query string, encoding what could leave the query', async () => {
+			for (const [utm, kept] of [
+				['&sca_ref=123', '?sca_ref=123'],
+				['?ref=a b', '?ref=a%20b'],
+				["?a='x'", '?a=%27x%27'],
+				['?a=<b>#frag', '?a=%3Cb%3E%23frag'],
+				['?a=1&b=%20c', '?a=1&b=%20c']
+			]) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(
+					jsonResponse(`let sponsorDetails = { sponsorName: 'S', utmParams: ${q(utm)} };`)
+				);
+				await fresh.fetchSponsorDetail();
+				expect(fresh.sponsorDetail?.utmParams, utm).toBe(kept);
+			}
+		});
+
+		it('keeps only the known string fields', async () => {
 			fetchMock.mockResolvedValue(
-				jsonResponse(
-					"let sponsorDetails = { brand: 'Acme' }; document.querySelector('#x').click();"
-				)
+				jsonResponse("let sponsorDetails = { sponsorName: 7, extra: 'x', utmParams: ['?a=1'] };")
 			);
 
 			await store.fetchSponsorDetail();
 
-			expect(store.sponsorDetail).toEqual({ brand: 'Acme' });
+			expect(store.sponsorDetail).toEqual({ sponsorName: '', sponsorLogo: '', utmParams: '' });
 		});
 
 		it('skips a missing script', async () => {
@@ -206,7 +396,7 @@ describe('SquiglinkStore (enabled)', () => {
 		});
 
 		it('runs at most once', async () => {
-			fetchMock.mockResolvedValue(jsonResponse('let sponsorDetails = { brand: 1 };'));
+			fetchMock.mockResolvedValue(jsonResponse(DETAILS_SCRIPT));
 
 			await store.fetchSponsorDetail();
 			await store.fetchSponsorDetail();
@@ -216,18 +406,97 @@ describe('SquiglinkStore (enabled)', () => {
 	});
 
 	describe('fetchSponsorContent', () => {
+		it('reads the content literal of a squiglink-intro.js-shaped script as data', async () => {
+			fetchMock.mockResolvedValue(jsonResponse(introScript()));
+
+			await store.fetchSponsorContent();
+
+			// Boot-critical: fetched with the default priority, and only a timeout beside it
+			expect(fetchMock).toHaveBeenCalledWith('https://squig.link/squiglink-intro.js', {
+				signal: expect.any(AbortSignal)
+			});
+			expect(store.sponsorContent).toEqual({
+				sponsorId: 'dunu-vitruvian',
+				heading: 'HiFiGo supports Squiglink',
+				sponsorshipName: 'Dunu DaVinci Vitruvian',
+				sponsorLogo: LOGO,
+				sponsorMessage: 'New! Dunu DaVinci, refined',
+				type: 'sponsorship',
+				creative: 'https://squig.link/sponsorship/hifigo/dunu-vitruvian.jpg',
+				creativeBgColor: '#120401',
+				ctaText: 'HiFiGo',
+				cta2Text: 'AliExpress',
+				ctaLink: 'https://hifigo.com/products/dunu-davinci-vitruvian',
+				cta2Link: 'https://www.aliexpress.us/item/3256813299587370.html'
+			});
+		});
+
 		it('takes the first entry of the content array', async () => {
 			fetchMock.mockResolvedValue(
-				jsonResponse("let contentSponsor = [{ name: 'First' }, { name: 'Second' }];")
+				jsonResponse(
+					"let contentSponsor = [{ sponsorId: 'first' }, { sponsorId: 'second' }]; let x = 1;"
+				)
 			);
 
 			await store.fetchSponsorContent();
 
-			expect(store.sponsorContent).toEqual({ name: 'First' });
+			expect(store.sponsorContent?.sponsorId).toBe('first');
+		});
+
+		it('reads a literal with comments and trailing commas', async () => {
+			fetchMock.mockResolvedValue(
+				jsonResponse(`let contentSponsor = [
+					// current sponsorship
+					{ 'sponsorId': 'a', 'ctaLink': 'https://hifigo.com/x', /* ok */ },
+				];`)
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(store.sponsorContent?.sponsorId).toBe('a');
+			expect(store.sponsorContent?.ctaLink).toBe('https://hifigo.com/x');
+		});
+
+		it('never runs the script: its trailing code is not executed', async () => {
+			const g = globalThis as unknown as Record<string, unknown>;
+			g.__ranLegacyCode = false;
+			fetchMock.mockResolvedValue(
+				jsonResponse(introScript() + '\nglobalThis.__ranLegacyCode = true;')
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(g.__ranLegacyCode).toBe(false);
+			expect(store.sponsorContent).not.toBeNull();
+			delete g.__ranLegacyCode;
+		});
+
+		it('shows nothing for a payload that needs code to evaluate', async () => {
+			const g = globalThis as unknown as Record<string, unknown>;
+			g.__ranLegacyCode = false;
+			fetchMock.mockResolvedValue(
+				jsonResponse(
+					"let contentSponsor = [{ sponsorId: 'a', heading: (globalThis.__ranLegacyCode = true) }];"
+				)
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(g.__ranLegacyCode).toBe(false);
+			expect(store.sponsorContent).toBeNull();
+			delete g.__ranLegacyCode;
 		});
 
 		it('ignores an empty content array', async () => {
 			fetchMock.mockResolvedValue(jsonResponse('let contentSponsor = [];'));
+
+			await store.fetchSponsorContent();
+
+			expect(store.sponsorContent).toBeNull();
+		});
+
+		it('ignores a content value that is not an array', async () => {
+			fetchMock.mockResolvedValue(jsonResponse("let contentSponsor = { sponsorId: 'a' };"));
 
 			await store.fetchSponsorContent();
 
@@ -242,6 +511,105 @@ describe('SquiglinkStore (enabled)', () => {
 			expect(store.sponsorContent).toBeNull();
 		});
 
+		it('drops a link that is not http(s) and keeps the rest of the sponsor', async () => {
+			fetchMock.mockResolvedValue(
+				jsonResponse(
+					introScript({
+						ctaLink: 'javascript:alert(document.cookie)',
+						cta2Link: 'data:text/html,<script>alert(1)</script>',
+						creative: 'javascript:void(0)'
+					})
+				)
+			);
+
+			await store.fetchSponsorContent();
+
+			const sponsor = store.sponsorContent!;
+			expect(sponsor.ctaLink).toBe('');
+			expect(sponsor).not.toHaveProperty('cta2Link');
+			expect(sponsor.creative).toBe('');
+			expect(sponsor.heading).toBe('HiFiGo supports Squiglink');
+			expect(sponsor.ctaText).toBe('HiFiGo');
+		});
+
+		it.each([
+			['a relative path', '/sponsorship/x.jpg'],
+			['a protocol-relative URL', '//evil.test/x.jpg'],
+			['a vbscript URL', 'vbscript:msgbox(1)'],
+			['a URL with whitespace', 'https://a.test/ x'],
+			['mailto', 'mailto:a@b.test'],
+			['an empty string', '']
+		])('drops %s from ctaLink', async (_label, link) => {
+			fetchMock.mockResolvedValue(jsonResponse(introScript({ ctaLink: link })));
+
+			await store.fetchSponsorContent();
+
+			expect(store.sponsorContent?.ctaLink).toBe('');
+		});
+
+		it('omits optional fields the payload does not carry', async () => {
+			fetchMock.mockResolvedValue(
+				jsonResponse(introScript({ cta2Text: undefined, cta2Link: undefined }))
+			);
+
+			await store.fetchSponsorContent();
+
+			expect(store.sponsorContent).not.toHaveProperty('cta2Text');
+			expect(store.sponsorContent).not.toHaveProperty('cta2Link');
+		});
+
+		it('shows no sponsor when the id could not be a cookie name', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			for (const id of ['', 'a;domain=evil.test', 'a=b', 'a,b', 'a\nb', 'x'.repeat(65)]) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(jsonResponse(introScript({ sponsorId: id })));
+				await fresh.fetchSponsorContent();
+				expect(fresh.sponsorContent, id).toBeNull();
+			}
+			expect(warn).toHaveBeenCalled();
+			warn.mockRestore();
+		});
+
+		it('keeps an id that is not a plain identifier, as the legacy cookie spells it', async () => {
+			for (const id of ['Acme Audio', 'sale#1', 'été-2026']) {
+				const fresh = enabledStore();
+				fetchMock.mockResolvedValue(jsonResponse(introScript({ sponsorId: id })));
+				await fresh.fetchSponsorContent();
+				expect(fresh.sponsorContent?.sponsorId, id).toBe(id);
+			}
+		});
+
+		it('gives up on a sponsor script that never answers, so nothing waits on it for good', async () => {
+			fetchMock.mockImplementation(
+				(_url: string, init?: RequestInit) =>
+					new Promise((_, reject) => {
+						init?.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+					})
+			);
+			const fresh = enabledStore();
+			void fresh.fetchSponsorContent();
+			expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+		});
+
+		it('does not preload a creative that failed the URL check', async () => {
+			const images: HTMLImageElement[] = [];
+			const RealImage = window.Image;
+			vi.stubGlobal(
+				'Image',
+				class extends RealImage {
+					constructor() {
+						super();
+						images.push(this);
+					}
+				}
+			);
+			fetchMock.mockResolvedValue(jsonResponse(introScript({ creative: 'javascript:1' })));
+
+			await store.fetchSponsorContent();
+
+			expect(images).toHaveLength(0);
+		});
+
 		it('hands a second caller the in-flight load', async () => {
 			// hooks.client.ts starts the load and SponsorBanner awaits it again on
 			// mount — the second await must see the data, not return early.
@@ -250,10 +618,10 @@ describe('SquiglinkStore (enabled)', () => {
 
 			const early = store.fetchSponsorContent();
 			const onMount = store.fetchSponsorContent();
-			resolve(jsonResponse("let contentSponsor = [{ name: 'First' }];"));
+			resolve(jsonResponse(introScript({ sponsorId: 'first' })));
 			await onMount;
 
-			expect(store.sponsorContent).toEqual({ name: 'First' });
+			expect(store.sponsorContent?.sponsorId).toBe('first');
 			expect(fetchMock).toHaveBeenCalledTimes(1);
 			await early;
 		});
@@ -271,7 +639,7 @@ describe('SquiglinkStore (enabled)', () => {
 				}
 			);
 			fetchMock.mockResolvedValue(
-				jsonResponse("let contentSponsor = [{ creative: 'https://squig.link/s.jpg' }];")
+				jsonResponse(introScript({ creative: 'https://squig.link/s.jpg' }))
 			);
 
 			await store.fetchSponsorContent();
@@ -305,7 +673,7 @@ describe('SquiglinkStore (enabled)', () => {
 		});
 
 		async function loadSponsor(id: string) {
-			fetchMock.mockResolvedValue(jsonResponse(`let contentSponsor = [{ sponsorId: '${id}' }];`));
+			fetchMock.mockResolvedValue(jsonResponse(introScript({ sponsorId: id })));
 			await store.fetchSponsorContent();
 		}
 
@@ -331,6 +699,51 @@ describe('SquiglinkStore (enabled)', () => {
 			document.cookie = 'squiglink-sponsor-spring-sale-closed=;max-age=0';
 		});
 
+		it('writes the cookie with SameSite=Lax, and no Secure on an http page', async () => {
+			// The browser project serves over http://localhost, where a Secure cookie would be dropped
+			expect(window.location.protocol).toBe('http:');
+			const descriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')!;
+			const writes: string[] = [];
+			Object.defineProperty(document, 'cookie', {
+				configurable: true,
+				get: () => descriptor.get!.call(document),
+				set: (v: string) => {
+					writes.push(v);
+					descriptor.set!.call(document, v);
+				}
+			});
+			try {
+				await loadSponsor('spring-sale');
+				store.dismissSponsor();
+			} finally {
+				delete (document as { cookie?: string }).cookie;
+			}
+
+			expect(writes).toEqual([
+				'squiglink-sponsor-spring-sale-closed=true;max-age=86400;path=/;SameSite=Lax'
+			]);
+		});
+
+		describe('sponsorDismissCookieString', () => {
+			it('adds the squig.link domain, SameSite=Lax and Secure on a secure squig.link page', () => {
+				expect(sponsorDismissCookieString('spring-sale', { domain: true, secure: true })).toBe(
+					'squiglink-sponsor-spring-sale-closed=true;max-age=86400;path=/;domain=squig.link;SameSite=Lax;Secure'
+				);
+			});
+
+			it('leaves Secure off for an insecure page, so local http dev keeps the cookie', () => {
+				expect(sponsorDismissCookieString('spring-sale', { domain: false, secure: false })).toBe(
+					'squiglink-sponsor-spring-sale-closed=true;max-age=86400;path=/;SameSite=Lax'
+				);
+			});
+
+			it('keeps the legacy cookie name', () => {
+				expect(sponsorDismissCookieString('x', { domain: true, secure: true })).toMatch(
+					new RegExp(`^${sponsorDismissedCookie('x')}=true;`)
+				);
+			});
+		});
+
 		it('does not match a sponsorId that is only a prefix of the dismissed one', () => {
 			setCookie('summer-launch');
 
@@ -352,7 +765,7 @@ describe('SquiglinkStore (enabled)', () => {
 			setCookie('spring-sale');
 			fetchMock.mockResolvedValue(
 				jsonResponse(
-					"let contentSponsor = [{ sponsorId: 'spring-sale', creative: 'https://squig.link/s.jpg' }];"
+					introScript({ sponsorId: 'spring-sale', creative: 'https://squig.link/s.jpg' })
 				)
 			);
 
@@ -372,7 +785,9 @@ describe('SquiglinkStore (enabled)', () => {
 
 			const data = await store.fetchSponsorProductData('https://shop.test/product');
 
-			expect(fetchMock).toHaveBeenCalledWith('https://shop.test/product.json');
+			expect(fetchMock).toHaveBeenCalledWith('https://shop.test/product.json', {
+				priority: 'low'
+			});
 			expect(data).toEqual({ currentPrice: 100, originalPrice: 150, onSale: true });
 		});
 
@@ -388,6 +803,13 @@ describe('SquiglinkStore (enabled)', () => {
 			fetchMock.mockResolvedValue(jsonResponse(null, false, 404));
 
 			await expect(store.fetchSponsorProductData('https://shop.test/x')).resolves.toBeNull();
+		});
+
+		it('does not fetch a URL that is not http(s)', async () => {
+			for (const url of ['javascript:alert(1)', '//evil.test/p', '', 'unavailable']) {
+				await expect(store.fetchSponsorProductData(url)).resolves.toBeNull();
+			}
+			expect(fetchMock).not.toHaveBeenCalled();
 		});
 
 		it('returns null when the payload has no variants', async () => {

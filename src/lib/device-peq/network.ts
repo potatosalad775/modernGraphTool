@@ -10,8 +10,103 @@
 import type { Filter, FilterType, Profile } from '@potatosalad775/eqcaps-core';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from './types.js';
 import type { NetworkDeviceType } from './network-types.js';
+import {
+	NetworkHostError,
+	addressSpaceOf,
+	isNamedHost,
+	parseNetworkHost,
+	requireNetworkHost
+} from './network-host.js';
 
 export { NETWORK_DEVICE_TYPES, type NetworkDeviceType } from './network-types.js';
+
+/** A network request failed before any response: the browser refused it, or nothing answered. */
+export class NetworkAccessError extends Error {
+	constructor(cause: unknown) {
+		super('Network device unreachable', { cause });
+		this.name = 'NetworkAccessError';
+	}
+}
+
+/** A device's answer was larger than any real one: refused, not read to the end. */
+export class NetworkResponseError extends Error {
+	constructor(readonly limit: number) {
+		super(`Network device response over ${limit} bytes`);
+		this.name = 'NetworkResponseError';
+	}
+}
+
+/** The largest body read from a device. A real answer is a few KB; the cap stops a bogus one. */
+export const MAX_RESPONSE_BYTES = 1024 * 1024;
+
+/**
+ * The body as text, refused past `limit` bytes. `Content-Length` is checked first, so an honest
+ * oversized answer is never downloaded; the bytes are also counted while reading, since the header
+ * can be missing (chunked) or wrong. The rest of the stream is cancelled on a refusal.
+ */
+export async function readBoundedText(
+	response: Response,
+	limit = MAX_RESPONSE_BYTES
+): Promise<string> {
+	const declared = Number(response.headers.get('Content-Length'));
+	if (Number.isFinite(declared) && declared > limit) {
+		await response.body?.cancel().catch(() => {});
+		throw new NetworkResponseError(limit);
+	}
+	if (!response.body) return '';
+	const reader = response.body.getReader();
+	const decoder = new TextDecoder();
+	let received = 0;
+	let text = '';
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		received += value.byteLength;
+		if (received > limit) {
+			await reader.cancel().catch(() => {});
+			throw new NetworkResponseError(limit);
+		}
+		text += decoder.decode(value, { stream: true });
+	}
+	return text + decoder.decode();
+}
+
+/** `RequestInit` with Local Network Access's `targetAddressSpace` (Chrome and Edge 145+). */
+type LocalRequestInit = RequestInit & { targetAddressSpace?: 'local' | 'loopback' };
+
+/**
+ * Every request to a device goes through here: the host is checked again so a bad one throws
+ * before any fetch, and the URL is built in this one place. It declares the address space where
+ * the host's own text settles it, which lets a page served over HTTPS ask for the user's
+ * permission to reach an HTTP device instead of being blocked outright; browsers without Local
+ * Network Access ignore the member. A `TypeError` (mixed content, a denied permission, a refused
+ * or unreachable device: fetch doesn't say which) becomes `NetworkAccessError`.
+ */
+async function netFetch(
+	scheme: 'http' | 'https',
+	host: string,
+	path: string,
+	init?: RequestInit
+): Promise<Response> {
+	const parsed = parseNetworkHost(host);
+	if (!parsed.ok) throw new NetworkHostError(parsed.problem);
+	const targetAddressSpace = addressSpaceOf(parsed.hostname);
+	const options: LocalRequestInit = { ...init, ...(targetAddressSpace && { targetAddressSpace }) };
+	const url = `${scheme}://${parsed.host}${path}`;
+	try {
+		try {
+			return await fetch(url, options);
+		} catch (e) {
+			// A name's space is a guess (a VPN name is "public" to the browser, a hosts-file
+			// one may be this machine), and a wrong one aborts the request before it is sent.
+			// Ask again with nothing declared and let the browser classify the address.
+			if (!(e instanceof TypeError && targetAddressSpace && isNamedHost(parsed.hostname))) throw e;
+			return await fetch(url, init);
+		}
+	} catch (e) {
+		throw e instanceof TypeError ? new NetworkAccessError(e) : e;
+	}
+}
 
 function networkProfile(
 	id: string,
@@ -77,9 +172,9 @@ interface WiimBand {
 
 async function wiimCommand(ip: string, command: string, payload: object): Promise<string> {
 	const full = encodeURIComponent(`${command}:${JSON.stringify(payload)}`);
-	const response = await fetch(`https://${ip}/httpapi.asp?command=${full}`);
+	const response = await netFetch('https', ip, `/httpapi.asp?command=${full}`);
 	if (!response.ok) throw new Error(`WiiM: HTTP ${response.status} ${response.statusText}`);
-	return response.text();
+	return readBoundedText(response);
 }
 
 function wiimDevice(ip: string): PeqDevice {
@@ -170,15 +265,15 @@ interface LuxProfile {
 }
 
 async function luxGet(ip: string, action: string): Promise<Record<string, unknown>> {
-	const response = await fetch(`http://${ip}/dev/info.cgi?action=${action}`);
+	const response = await netFetch('http', ip, `/dev/info.cgi?action=${action}`);
 	if (!response.ok) throw new Error(`Luxsin: HTTP ${response.status} ${response.statusText}`);
-	return JSON.parse(luxDecode(await response.text()));
+	return JSON.parse(luxDecode(await readBoundedText(response)));
 }
 
 async function luxPost(ip: string, payload: object): Promise<void> {
 	const body = new URLSearchParams();
 	body.append('json', luxEncode(JSON.stringify(payload)));
-	const response = await fetch(`http://${ip}/dev/info.cgi`, {
+	const response = await netFetch('http', ip, '/dev/info.cgi', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 		body
@@ -243,9 +338,13 @@ function luxsinDevice(ip: string): PeqDevice {
 	};
 }
 
-/** A network device at `ip`. Nothing is sent until the first read or write. */
+/**
+ * A network device at `ip`: an IP literal or a `.local` / single-label name, with an optional
+ * port (`network-host.ts`). Throws `NetworkHostError` for anything else. Nothing is sent until the
+ * first read or write.
+ */
 export function connectNetworkDevice(ip: string, type: NetworkDeviceType): DeviceConnection {
-	const host = ip.trim();
+	const host = requireNetworkHost(ip);
 	if (type === 'WiiM') {
 		return {
 			device: wiimDevice(host),

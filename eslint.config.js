@@ -40,7 +40,15 @@ export default defineConfig(
 		extends: [ts.configs.strictTypeChecked, ts.configs.stylisticTypeChecked],
 		rules: {
 			eqeqeq: ['error', 'always', { null: 'ignore' }],
-			complexity: ['error', 15]
+			complexity: ['error', 15],
+			// A number in a template string prints as written; the preset's ban is aimed at
+			// objects and nullish values, which stay banned.
+			'@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+			// `onclick={() => store.close()}` is the idiom for a handler whose result nobody reads.
+			'@typescript-eslint/no-confusing-void-expression': [
+				'error',
+				{ ignoreArrowShorthand: true }
+			]
 		}
 	},
 	{

@@ -343,9 +343,7 @@ class GraphInspection {
 
 	destroy() {
 		this._disableMouseTracking();
-		if (this.inspectionGroup) {
-			this.inspectionGroup.remove();
-		}
+		this.inspectionGroup.remove();
 	}
 }
 

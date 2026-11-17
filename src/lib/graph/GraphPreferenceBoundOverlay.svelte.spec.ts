@@ -70,7 +70,10 @@ function pathCount(engine: FakeEngine): number {
 }
 
 function pathD(engine: FakeEngine): string {
-	return engine.curveGroup.select<SVGPathElement>('.preference-bound-area').attr('d') ?? '';
+	return (
+		engine.curveGroup.select<SVGPathElement>('.preference-bound-area').node()!.getAttribute('d') ??
+		''
+	);
 }
 
 describe('GraphPreferenceBoundOverlay', () => {

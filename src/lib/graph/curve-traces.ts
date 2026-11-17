@@ -78,14 +78,14 @@ const FALLBACK_COLOR = 'var(--color-base-content)';
  * each frequency index, so a fill over L+R reflects every run's extremes.
  */
 export function combineEnvelopes(envelopes: SampleEnvelope[]): SampleEnvelope {
-	const valid = envelopes.filter((e) => e?.upper.length && e?.lower.length);
+	const valid = envelopes.filter((e) => e.upper.length && e.lower.length);
 	if (valid.length === 0) return { upper: [], lower: [] };
 	if (valid.length === 1) return valid[0];
 	const base = valid[0];
 	const upper: FRDataPoint[] = base.upper.map(([freq], i) => {
 		let max = -Infinity;
 		for (const e of valid) {
-			const v = e.upper[i]?.[1];
+			const v = e.upper.at(i)?.[1];
 			if (v !== undefined && v > max) max = v;
 		}
 		return [freq, max] as FRDataPoint;
@@ -93,7 +93,7 @@ export function combineEnvelopes(envelopes: SampleEnvelope[]): SampleEnvelope {
 	const lower: FRDataPoint[] = base.lower.map(([freq], i) => {
 		let min = Infinity;
 		for (const e of valid) {
-			const v = e.lower[i]?.[1];
+			const v = e.lower.at(i)?.[1];
 			if (v !== undefined && v < min) min = v;
 		}
 		return [freq, min] as FRDataPoint;
@@ -120,9 +120,9 @@ export function selectEnvelope(obj: FRDataObject): SampleEnvelope {
 		pick = ['R'];
 	} else {
 		const available: ('L' | 'R')[] = [];
-		if (envelope.L?.upper.length) available.push('L');
-		if (envelope.R?.upper.length) available.push('R');
-		pick = available.length > 0 ? available : envelope.AVG?.upper.length ? ['AVG'] : [];
+		if (envelope.L.upper.length) available.push('L');
+		if (envelope.R.upper.length) available.push('R');
+		pick = available.length > 0 ? available : envelope.AVG.upper.length ? ['AVG'] : [];
 	}
 	return combineEnvelopes(pick.map((c) => envelope[c]));
 }

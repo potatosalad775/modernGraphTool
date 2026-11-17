@@ -114,8 +114,8 @@ export class GraphEqOverlay {
 		const scope = eqStore.channelScope;
 		const eqCurveObj = eqStore.eqCurveUUID ? frStore.get(eqStore.eqCurveUUID) : null;
 		const curveColor =
-			(scope !== 'BOTH' ? eqCurveObj?.colors?.[scope] : null) ??
-			eqCurveObj?.colors?.AVG ??
+			(scope !== 'BOTH' ? eqCurveObj?.colors[scope] : null) ??
+			eqCurveObj?.colors.AVG ??
 			'var(--color-primary)';
 
 		// Data join for interactive nodes. Scoped to one ear this is that ear's
@@ -296,7 +296,7 @@ export class GraphEqOverlay {
 				) {
 					e.preventDefault();
 					const idx = this.selectedFilterIndex;
-					const filter = eqStore.filters[idx];
+					const filter = eqStore.filters.at(idx);
 					if (!filter) return;
 					const multiplier = e.shiftKey ? 10 : 1;
 					const isGraphicNow = eqConstraintsStore.isGraphic;
@@ -367,7 +367,7 @@ export class GraphEqOverlay {
 		dispChannelOverride?: string[]
 	): FRDataPoint[] | null {
 		const scope = eqStore.channelScope;
-		if (scope !== 'BOTH' && channels[scope]?.data?.length) {
+		if (scope !== 'BOTH' && channels[scope]?.data.length) {
 			return channels[scope]!.data;
 		}
 
@@ -383,7 +383,7 @@ export class GraphEqOverlay {
 		}
 
 		const ch = channels[channelKey];
-		if (!ch?.data?.length) return null;
+		if (!ch?.data.length) return null;
 		return ch.data;
 	}
 
@@ -409,7 +409,7 @@ export class GraphEqOverlay {
 		const curveDb = this._getCurveDbAtFreq(freq);
 		if (curveDb === null) return null;
 
-		const filter = eqStore.filters[excludeIndex];
+		const filter = eqStore.filters.at(excludeIndex);
 		if (!filter?.enabled || !filter.freq || !filter.q || filter.gain == null) return curveDb;
 
 		const thisFilterGain = this.eq.calculateGainsFromFilter([freq], [filter])[0];
@@ -439,7 +439,7 @@ export class GraphEqOverlay {
 				)
 				.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
 					const nodeEl = d3.select(
-						(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element) ??
+						(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element | null) ??
 							_event.sourceEvent.currentTarget
 					);
 					nodeEl.style('cursor', 'grabbing').raise();
@@ -466,7 +466,7 @@ export class GraphEqOverlay {
 					const ys = this.graphEngine.baseYScale;
 
 					// Shift+Drag axis lock detection
-					const shiftHeld = !!(event.sourceEvent as MouseEvent)?.shiftKey;
+					const shiftHeld = !!(event.sourceEvent as MouseEvent).shiftKey;
 					if (dragState) {
 						if (shiftHeld && dragState.axisLock === null) {
 							const dx = Math.abs(event.x - dragState.shiftOriginX);
@@ -632,7 +632,7 @@ export class GraphEqOverlay {
 			.on('click', (event: MouseEvent) => {
 				if (!eqStore.isEnabled || !eqStore.sourcePhoneUUID || linkStore.readOnly) return;
 				// Don't fire when clicking on a node
-				if ((event.target as Element).closest?.('.eq-band-node')) return;
+				if ((event.target as Element).closest('.eq-band-node')) return;
 				const xScale = this.graphEngine.xScale;
 				const yScale = this.graphEngine.baseYScale;
 				const [mx, my] = d3.pointer(event);

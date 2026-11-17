@@ -169,8 +169,7 @@ class GraphEngine {
 				.transition()
 				.duration(duration)
 				.attrTween('d', function (d) {
-					const path = d3.select(this as Element);
-					const oldPath = path.attr('d') ?? '';
+					const oldPath = (this as Element).getAttribute('d') ?? '';
 					const newPath = self._getCompensatedPath(d as FRDataPoint[]) ?? '';
 					return (t) => d3.interpolateString(oldPath, newPath)(t);
 				});
@@ -270,7 +269,7 @@ class GraphEngine {
 				const newPath = self._buildEnvelopePath(obj);
 				if (!newPath) return;
 				if (duration > 0) {
-					const oldPath = el.attr('d') ?? '';
+					const oldPath = this.getAttribute('d') ?? '';
 					// Only use string interpolation when paths have compatible structure
 					// (same number of numeric values = same SVG command count).
 					// Mismatched structures (e.g. after smoothing change) produce garbled paths.

@@ -96,7 +96,7 @@ function hoverAt(hz: number) {
 }
 
 function labels(): string[] {
-	return [...host.querySelectorAll('.inspection-values g text')].map((n) => n.textContent ?? '');
+	return [...host.querySelectorAll('.inspection-values g text')].map((n) => n.textContent);
 }
 
 describe('GraphInspection', () => {
@@ -203,7 +203,7 @@ describe('GraphInspection', () => {
 			// pixel off, which on a log axis is a constant *relative* frequency error.
 			for (const hz of [500, 5000]) {
 				hoverAt(hz);
-				const text = host.querySelector('.inspection-frequency')!.textContent ?? '';
+				const text = host.querySelector('.inspection-frequency')!.textContent;
 				expect(text).toMatch(/^\d+Hz$/);
 				expect(Math.abs(Number(text.replace('Hz', '')) / hz - 1)).toBeLessThan(0.02);
 			}

@@ -56,7 +56,6 @@ export class GraphCompareOverlay implements CompareOverlayApi {
 	}
 
 	render(): void {
-		if (!this.graphEngine.curveGroup) return;
 		const { visible, curves } = this.state;
 		if (!visible || curves.length === 0) {
 			this._remove();
@@ -123,7 +122,7 @@ export class GraphCompareOverlay implements CompareOverlayApi {
 	}
 
 	private _remove(): void {
-		const el = this.graphEngine.curveGroup?.select('g.fr-graph-compare-ghost');
-		if (el && !el.empty()) el.remove();
+		const el = this.graphEngine.curveGroup.select('g.fr-graph-compare-ghost');
+		if (!el.empty()) el.remove();
 	}
 }

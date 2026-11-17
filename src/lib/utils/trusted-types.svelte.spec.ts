@@ -34,7 +34,14 @@ describe('trustedScriptUrl', () => {
 	});
 
 	it.each([
-		['plain http on another host', 'http://example.com/x.js'],
+		// The spec page itself is http, where there is no transport to protect
+		['plain http on another host, from an http page', 'http://example.com/x.js']
+	])('accepts %s', (_name, url) => {
+		expect(location.protocol).toBe('http:');
+		expect(String(trustedScriptUrl(url))).toBe(url);
+	});
+
+	it.each([
 		['a data URL', 'data:text/javascript,alert(1)'],
 		['a javascript URL', 'javascript:alert(1)']
 	])('refuses %s', (_name, url) => {

@@ -214,7 +214,8 @@ eligibility rule — visible phones and inserted phones only — and `averageCha
 
 The app's Trusted Types policy (`mgt`): `trustedHtml` for the three `{@html}` sites, and
 `trustedScriptUrl` for a script's `src` and the `Worker` constructor (same origin, `https:` or
-`blob:` only). `createHTML` does not sanitize: its callers pass operator config or the output of
+`blob:` only; `http:` too when the page itself is http, or the policy would break an http-only
+deployment in every browser that has Trusted Types, CSP or not). `createHTML` does not sanitize: its callers pass operator config or the output of
 `sanitizeHtml`, and the policy only marks that hand-over. Both return the string unchanged where the
 browser has no Trusted Types. See the Security Headers section of the root guide.
 
@@ -227,7 +228,9 @@ The allowlist sanitizer for operator-authored strings — currently the `descrip
   with their content, output always balanced
 - `stripHtml` — the same input flattened to text, for `title` attributes
 - `sanitizeUrl` — http / https / mailto / tel / relative only, after entity and control-character
-  decoding. `metadata-parser` uses it to validate a phone's `links[]`.
+  decoding. `metadata-parser` uses it for a phone's `links[]`, `reviewLink` and `shopLink`, with
+  `entities: false`: those are JSON values, and decoding entities eats `&tab=` / `&lt=` out of a
+  query string. Only a URL lifted from HTML (an `href` in `sanitizeHtml`) is decoded.
 
 Hand-rolled rather than DOMPurify-backed: it has to give identical results in the `server` (node, no
 DOM) test project and the browser, and this is a static site operators self-host.

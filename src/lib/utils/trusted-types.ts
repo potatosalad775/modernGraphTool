@@ -46,6 +46,9 @@ function getPolicy(): TrustedTypePolicyLike | null {
 				const url = new URL(input, document.baseURI);
 				if (url.protocol === 'https:' || url.protocol === 'blob:') return input;
 				if (url.origin === location.origin) return input;
+				// A page served over plain http has no transport to protect; refusing here
+				// would only break an http-only deployment's ranking config.
+				if (url.protocol === 'http:' && location.protocol === 'http:') return input;
 				throw new TypeError(`Refusing to load a script from ${url.protocol} ${url.host}`);
 			}
 		});
@@ -62,7 +65,10 @@ export function trustedHtml(html: string): string {
 	return (getPolicy()?.createHTML(html) ?? html) as string;
 }
 
-/** For a script's `src` and the `Worker` constructor: same origin, `https:` or `blob:` only. */
+/**
+ * For a script's `src` and the `Worker` constructor: same origin, `https:` or `blob:` only
+ * (plus `http:` when the page itself is served over http).
+ */
 export function trustedScriptUrl(url: string): string {
 	return (getPolicy()?.createScriptURL(url) ?? url) as string;
 }

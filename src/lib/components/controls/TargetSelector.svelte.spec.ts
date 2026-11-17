@@ -30,14 +30,14 @@ describe('TargetSelector preference-bound row', () => {
 
 	it('is absent when no bounds are configured', async () => {
 		preferenceBoundStore.entries = [];
-		render(TargetSelector);
+		await render(TargetSelector);
 
 		await expect.element(page.getByText('Harman', { exact: true })).toBeInTheDocument();
 		expect(page.getByText(m.pref_bound_row_label()).elements()).toHaveLength(0);
 	});
 
 	it('selects one bound at a time and deselects on a second click', async () => {
-		render(TargetSelector);
+		await render(TargetSelector);
 		await expect.element(page.getByText(m.pref_bound_row_label())).toBeInTheDocument();
 
 		await page.getByRole('button', { name: 'KEMAR DF' }).click();
@@ -77,14 +77,14 @@ describe('TargetSelector collapse', () => {
 
 	it('starts expanded when the key is absent', async () => {
 		configure(undefined);
-		render(TargetSelector);
+		await render(TargetSelector);
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'true');
 	});
 
 	it('applies a boolean to every layout', async () => {
 		configure(true);
 		appStore.isMobile = true;
-		render(TargetSelector);
+		await render(TargetSelector);
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'false');
 	});
 
@@ -92,10 +92,10 @@ describe('TargetSelector collapse', () => {
 		configure({ DESKTOP: false, MOBILE: true });
 		const desktop = await render(TargetSelector);
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'true');
-		desktop.unmount();
+		await desktop.unmount();
 
 		appStore.isMobile = true;
-		render(TargetSelector);
+		await render(TargetSelector);
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'false');
 	});
 
@@ -105,9 +105,9 @@ describe('TargetSelector collapse', () => {
 		const first = await render(TargetSelector);
 		await toggle().click();
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'true');
-		first.unmount();
+		await first.unmount();
 
-		render(TargetSelector);
+		await render(TargetSelector);
 		await expect.element(toggle()).toHaveAttribute('aria-expanded', 'true');
 	});
 });

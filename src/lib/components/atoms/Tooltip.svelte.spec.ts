@@ -15,8 +15,8 @@ const tooltip = () => page.getByRole('tooltip');
 
 describe('Tooltip', () => {
 	it('shows the title on hover in place of the native one', async () => {
-		render(TooltipHost);
-		render(Button, { title: 'Remove' });
+		await render(TooltipHost);
+		await render(Button, { title: 'Remove' });
 
 		const button = page.getByRole('button', { name: 'Remove' });
 		await expect.element(button).not.toHaveAttribute('title');
@@ -26,8 +26,8 @@ describe('Tooltip', () => {
 	});
 
 	it('shows the hint as a second line and as the accessible description', async () => {
-		render(TooltipHost);
-		render(Button, { title: 'Read', hint: 'Switch the device to this preset first.' });
+		await render(TooltipHost);
+		await render(Button, { title: 'Read', hint: 'Switch the device to this preset first.' });
 
 		const button = page.getByRole('button', { name: 'Read' });
 		await expect
@@ -44,8 +44,8 @@ describe('Tooltip', () => {
 	// Most long titles explain why a button is disabled, so a disabled button must still
 	// open one. bits-ui would refuse if the trigger itself were disabled.
 	it('opens on a disabled button', async () => {
-		render(TooltipHost);
-		render(Button, {
+		await render(TooltipHost);
+		await render(Button, {
 			title: 'Add band',
 			hint: 'The graphic preset fixes the bands.',
 			disabled: true
@@ -57,8 +57,8 @@ describe('Tooltip', () => {
 	});
 
 	it('opens on keyboard focus and closes on Escape', async () => {
-		render(TooltipHost);
-		render(Button, { title: 'Share' });
+		await render(TooltipHost);
+		await render(Button, { title: 'Share' });
 
 		await userEvent.keyboard('{Tab}');
 		await expect.element(page.getByRole('button', { name: 'Share' })).toHaveFocus();
@@ -70,9 +70,9 @@ describe('Tooltip', () => {
 
 	// A drawer or dialog moving focus after a tap must not open a tooltip nobody asked for.
 	it('stays closed for focus a script moves after a pointer press', async () => {
-		render(TooltipHost);
-		render(Button, { label: 'Elsewhere' });
-		render(Button, { title: 'Close' });
+		await render(TooltipHost);
+		await render(Button, { label: 'Elsewhere' });
+		await render(Button, { title: 'Close' });
 
 		await page.getByRole('button', { name: 'Elsewhere' }).click();
 		const close = page.getByRole('button', { name: 'Close' });
@@ -84,8 +84,8 @@ describe('Tooltip', () => {
 	});
 
 	it('shows nothing for an empty title', async () => {
-		render(TooltipHost);
-		render(Button, { title: '', 'aria-label': 'More' });
+		await render(TooltipHost);
+		await render(Button, { title: '', 'aria-label': 'More' });
 
 		await page.getByRole('button', { name: 'More' }).hover();
 		// Give the open delay time to pass before asserting absence.
@@ -95,8 +95,8 @@ describe('Tooltip', () => {
 	});
 
 	it('shows nothing on a text button: the label already says it', async () => {
-		render(TooltipHost);
-		render(Button, { label: 'Share' });
+		await render(TooltipHost);
+		await render(Button, { label: 'Share' });
 
 		await page.getByRole('button', { name: 'Share' }).hover();
 		await new Promise((r) => setTimeout(r, 500));
@@ -106,8 +106,8 @@ describe('Tooltip', () => {
 
 	// WCAG 2.5.3: voice control says what the button reads.
 	it('names a text button by its label and shows only its hint', async () => {
-		render(TooltipHost);
-		render(Button, { label: 'Average', hint: 'Average all visible curves' });
+		await render(TooltipHost);
+		await render(Button, { label: 'Average', hint: 'Average all visible curves' });
 
 		const button = page.getByRole('button', { name: 'Average' });
 		await expect.element(button).not.toHaveAttribute('aria-label');
@@ -119,8 +119,8 @@ describe('Tooltip', () => {
 	});
 
 	it('gives a switch named by aria-label its title as tooltip and description', async () => {
-		render(TooltipHost);
-		render(Switch, { 'aria-label': 'EQUALIZER', title: 'Turn the equalizer on or off' });
+		await render(TooltipHost);
+		await render(Switch, { 'aria-label': 'EQUALIZER', title: 'Turn the equalizer on or off' });
 
 		const toggle = page.getByRole('switch', { name: 'EQUALIZER' });
 		await expect.element(toggle).toHaveAccessibleDescription('Turn the equalizer on or off');
@@ -136,7 +136,7 @@ describe('Tooltip', () => {
 		document.body.append(heading);
 		onTestFinished(() => heading.remove());
 
-		render(Switch, { 'aria-labelledby': heading.id, title: 'Turn the equalizer on or off' });
+		await render(Switch, { 'aria-labelledby': heading.id, title: 'Turn the equalizer on or off' });
 
 		const toggle = page.getByRole('switch', { name: 'EQUALIZER' });
 		await expect.element(toggle).toHaveAccessibleDescription('Turn the equalizer on or off');
@@ -145,9 +145,9 @@ describe('Tooltip', () => {
 	// A popover trigger hands `Button` its own `data-state` and handlers; the tooltip's
 	// must not displace them.
 	it('leaves a popover trigger working', async () => {
-		render(TooltipHost);
+		await render(TooltipHost);
 		const body = createRawSnippet(() => ({ render: () => '<p>What this option does</p>' }));
-		render(InfoPopover, { label: 'About Thing', children: body });
+		await render(InfoPopover, { label: 'About Thing', children: body });
 
 		const trigger = page.getByRole('button', { name: 'About Thing' });
 		await trigger.hover();

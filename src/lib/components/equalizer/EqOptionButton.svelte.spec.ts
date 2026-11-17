@@ -44,7 +44,7 @@ const client = vi.hoisted(() => ({ loadIndex: vi.fn(), loadProfile: vi.fn() }));
 vi.mock('#lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
 
 async function open() {
-	render(EqOptionButton);
+	await render(EqOptionButton);
 	await page.getByRole('button', { name: m.eq_constraint_button() }).click();
 	await expect.element(page.getByLabelText(m.eq_constraint_search_placeholder())).toBeVisible();
 }
@@ -98,7 +98,7 @@ describe('EqOptionButton', () => {
 	// ── Panel contents ───────────────────────────────────────────────────────
 
 	it('keeps the panel closed until the trigger is pressed', async () => {
-		render(EqOptionButton);
+		await render(EqOptionButton);
 
 		expect(page.getByLabelText(m.eq_constraint_search_placeholder()).elements()).toHaveLength(0);
 	});
@@ -246,7 +246,7 @@ describe('EqOptionButton', () => {
 
 			// Escape closes the popover; the query is reset on close so the next
 			// open isn't silently still filtered.
-			await page.getByLabelText(m.eq_constraint_search_placeholder()).element().blur();
+			page.getByLabelText(m.eq_constraint_search_placeholder()).element().blur();
 			await page.getByRole('button', { name: m.eq_constraint_button() }).click();
 			await page.getByRole('button', { name: m.eq_constraint_button() }).click();
 

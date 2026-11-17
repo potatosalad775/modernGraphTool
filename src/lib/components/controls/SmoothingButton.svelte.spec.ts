@@ -22,7 +22,7 @@ describe('SmoothingButton', () => {
 
 	it('cycles through the fractions, then Var and Psy, and back', async () => {
 		const reSmooth = vi.spyOn(dataProvider, 'reSmoothAll').mockResolvedValue(undefined);
-		render(SmoothingButton);
+		await render(SmoothingButton);
 		await expect.poll(label).toMatch(/1\/48oct/);
 
 		const seen = [];
@@ -36,7 +36,7 @@ describe('SmoothingButton', () => {
 
 	it('shows REW labels without "oct" and names them in the description', async () => {
 		vi.spyOn(dataProvider, 'reSmoothAll').mockResolvedValue(undefined);
-		render(SmoothingButton);
+		await render(SmoothingButton);
 		for (let i = 0; i < 5; i++) await button().click();
 
 		await expect.poll(label).toMatch(/Var\s*$/);

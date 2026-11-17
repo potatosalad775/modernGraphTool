@@ -69,7 +69,7 @@ const trigger = () => page.getByRole('button', { name: 'Select a site' });
 
 /** Mounts and waits for the singleton's fetch to settle. */
 async function mount() {
-	render(SiteSelector);
+	await render(SiteSelector);
 	await siteIndexService.load();
 }
 

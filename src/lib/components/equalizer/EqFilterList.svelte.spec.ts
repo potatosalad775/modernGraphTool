@@ -73,7 +73,7 @@ describe('EqFilterList', () => {
 			// 2070 Hz sits halfway between two points of the old 100-point grid,
 			// which read this +6 dB, Q 6 peak as about +5.1 dB and let it clip.
 			eqStore.filters = [makeFilter({ freq: 2070, q: 6, gain: 6 })];
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(eqStore.preamp).toBe(-6));
 		});
@@ -90,7 +90,7 @@ describe('EqFilterList', () => {
 			// Every step of a drag lowers the preamp; one toast should say where it
 			// ended, not one per step.
 			vi.mocked(toast.info).mockClear();
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await drag([1, 2, 3, 4, 5, 6]);
 
@@ -102,7 +102,7 @@ describe('EqFilterList', () => {
 
 		it('stays quiet when a drag dips and comes back', async () => {
 			vi.mocked(toast.info).mockClear();
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await drag([3, 6, 3, 0]);
 			await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -122,7 +122,7 @@ describe('EqFilterList', () => {
 			eqHistoryStore.setB('h-b');
 			eqStore.filters = a;
 			vi.mocked(toast.info).mockClear();
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			eqCommands.applySnapshot(b, -6);
 			await vi.waitFor(() => expect(eqStore.preamp).toBe(-6));
@@ -137,7 +137,7 @@ describe('EqFilterList', () => {
 
 	describe('the master toggle', () => {
 		it('switches on when the first band is added to an empty stack', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await addButton().click();
 
@@ -147,7 +147,7 @@ describe('EqFilterList', () => {
 
 		it('stays off when a band joins a stack the user has bypassed', async () => {
 			eqStore.filters = [makeFilter()];
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await addButton().click();
 
@@ -159,7 +159,7 @@ describe('EqFilterList', () => {
 		// "the stack was empty", not "this is the first add of the session".
 		it('switches on again after the stack has been emptied', async () => {
 			eqStore.filters = [makeFilter()];
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await removeButton().click();
 			await vi.waitFor(() => expect(eqStore.filters).toHaveLength(0));
@@ -204,7 +204,7 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 1000, gain: 6 }),
 				makeFilter({ freq: 100, gain: -12, enabled: false })
 			];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			const curve = exportedCurve();
@@ -217,7 +217,7 @@ describe('EqFilterList', () => {
 
 		it('is unavailable while no shared band is on', async () => {
 			eqStore.filters = [makeFilter({ gain: 6, enabled: false })];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await expect.element(exportButton()).toBeDisabled();
 
 			eqStore.filters = [makeFilter({ gain: 6, enabled: false }), makeFilter({ gain: 3 })];
@@ -232,7 +232,7 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 100, gain: -12, channel: 'L' }),
 				makeFilter({ freq: 5000, gain: 4, channel: 'R', enabled: false })
 			];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(spread(exportedCurve())).toBeCloseTo(6, 0);
@@ -243,13 +243,13 @@ describe('EqFilterList', () => {
 
 		it('stays unavailable when every live band is per-channel', async () => {
 			eqStore.filters = [makeFilter({ gain: 6, channel: 'L' })];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await expect.element(exportButton()).toBeDisabled();
 		});
 
 		it('does not warn when there is nothing per-channel to drop', async () => {
 			eqStore.filters = [makeFilter({ gain: 6 })];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(downloadText).toHaveBeenCalledOnce();
@@ -303,7 +303,7 @@ describe('EqFilterList', () => {
 			vi.mocked(toast.warning).mockClear();
 			vi.mocked(toast.success).mockClear();
 			eqStore.filters = [makeFilter({ freq: null })];
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(toast.warning).toHaveBeenCalledOnce();
@@ -312,7 +312,7 @@ describe('EqFilterList', () => {
 		});
 
 		it('is a bare "filters.txt" with no EQ source', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(exportedName()).toBe('filters.txt');
@@ -321,7 +321,7 @@ describe('EqFilterList', () => {
 		it('names the source and its variant', async () => {
 			frStore.set('src', sourceItem({ dispSuffix: 'Suffix' }));
 			eqStore.sourcePhoneUUID = 'src';
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(exportedName()).toBe('Name Suffix filters.txt');
@@ -331,7 +331,7 @@ describe('EqFilterList', () => {
 			frStore.set('src', sourceItem({ dispSuffix: 'Suffix' }));
 			eqStore.sourcePhoneUUID = 'src';
 			eqStore.sourceSample = { index: 0, variant: 'Suffix' };
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(exportedName()).toBe('Name Suffix Center filters.txt');
@@ -341,7 +341,7 @@ describe('EqFilterList', () => {
 			frStore.set('src', sourceItem());
 			eqStore.sourcePhoneUUID = 'src';
 			eqStore.sourceSample = { index: 0, variant: '' };
-			render(EqFilterList);
+			await render(EqFilterList);
 			await exportButton().click();
 
 			expect(exportedName()).toBe('Name Center filters.txt');
@@ -365,7 +365,7 @@ describe('EqFilterList', () => {
 		});
 
 		it('says how many filters it imported, singular for one', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
 			expect(vi.mocked(toast.success).mock.calls[0][1]).toMatchObject({
@@ -387,7 +387,7 @@ describe('EqFilterList', () => {
 
 		it('switches the equalizer on', async () => {
 			expect(eqStore.isEnabled).toBe(false);
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
 
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
@@ -399,7 +399,7 @@ describe('EqFilterList', () => {
 		it('drops a limiting constraint before replacing the bands', async () => {
 			eqConstraintsStore.setActive('generic-10-band');
 			expect(eqConstraintsStore.isLimiting).toBe(true);
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
 
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
@@ -418,7 +418,7 @@ describe('EqFilterList', () => {
 			);
 			const before = eqStore.filters.map((f) => ({ ...f }));
 			commandHistory.clear();
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
 			expect(eqConstraintsStore.activeId).toBe(DEFAULT_CONSTRAINT_ID);
@@ -438,7 +438,7 @@ describe('EqFilterList', () => {
 		it('is still one undo entry with no restriction in force', async () => {
 			eqStore.filters = [makeFilter({ freq: 500 })];
 			commandHistory.clear();
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 123 Hz Gain 3.0 dB Q 1.000');
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
 
@@ -451,7 +451,7 @@ describe('EqFilterList', () => {
 
 		it('reports a file with no usable filter and leaves the EQ alone', async () => {
 			eqStore.filters = [makeFilter({ freq: 500 })];
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Preamp: -3 dB\nFilter: ON NO Fc 200 Hz');
 
 			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce());
@@ -468,7 +468,7 @@ describe('EqFilterList', () => {
 		it('reports a file that cannot be read, and still resets the input', async () => {
 			eqStore.filters = [makeFilter({ freq: 500 })];
 			vi.spyOn(console, 'error').mockImplementation(() => {});
-			render(EqFilterList);
+			await render(EqFilterList);
 			const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
 			const unreadable = new File(['x'], 'filters.txt', { type: 'text/plain' });
 			vi.spyOn(unreadable, 'text').mockRejectedValue(new DOMException('gone', 'NotFoundError'));
@@ -485,8 +485,8 @@ describe('EqFilterList', () => {
 			expect(eqStore.filters).toHaveLength(1);
 		});
 
-		it('offers the extensions EQ files travel under', () => {
-			render(EqFilterList);
+		it('offers the extensions EQ files travel under', async () => {
+			await render(EqFilterList);
 			const accept = document.querySelector<HTMLInputElement>('input[type="file"]')!.accept;
 			expect(accept.split(',')).toEqual(expect.arrayContaining(['.txt', '.cfg', '.conf']));
 		});
@@ -494,7 +494,7 @@ describe('EqFilterList', () => {
 		// A band the EQ can't model is left out; without a word, the EQ on
 		// screen would quietly differ from the file the user chose.
 		it('warns how many filter lines it had to skip', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText(
 				[
 					'Filter: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000',
@@ -511,7 +511,7 @@ describe('EqFilterList', () => {
 		});
 
 		it('does not warn when the whole file imports', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 			importText('Filter 1: ON PK Fc 100 Hz Gain 3.0 dB Q 1.000');
 
 			await vi.waitFor(() => expect(toast.success).toHaveBeenCalledOnce());
@@ -533,7 +533,7 @@ describe('EqFilterList', () => {
 		// list and decides which bucket `+` fills, and in the header it both read
 		// as part of "what am I equalizing" and wrapped that row on a phone.
 		it('renders the channel switch at the head of the list', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(scopeButton('L+R')).toBeTruthy());
 			expect(scopeButton('L+R').getAttribute('aria-checked')).toBe('true');
@@ -542,7 +542,7 @@ describe('EqFilterList', () => {
 
 		it('switches scope from the list and shows each bucket count', async () => {
 			eqStore.filters = [makeFilter({ freq: 100 }), makeFilter({ freq: 200, channel: 'R' })];
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(cardCount()).toBe(1));
 			expect(scopeButton('L+R').textContent!.trim()).toBe('L+R (1)');
@@ -561,7 +561,7 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 300, channel: 'R' })
 			];
 			eqStore.channelScope = 'L';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(cardCount()).toBe(1));
 			expect(document.querySelector<HTMLInputElement>('input[type="number"]')!.value).toBe('200');
@@ -574,14 +574,14 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 200, channel: 'L' })
 			];
 			eqStore.channelScope = 'L';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await expect.element(page.getByText(/2 shared band/)).toBeInTheDocument();
 		});
 
 		it('does not show the hint in the shared bucket', async () => {
 			eqStore.filters = [makeFilter({ freq: 100 })];
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(cardCount()).toBe(1));
 			expect(document.body.textContent).not.toMatch(/shared band/);
@@ -589,7 +589,7 @@ describe('EqFilterList', () => {
 
 		it('stamps the active scope onto a newly added band', async () => {
 			eqStore.channelScope = 'R';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await addButton().click();
 
@@ -605,7 +605,7 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 200, channel: 'R' })
 			];
 			eqStore.channelScope = 'L';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await removeButton().click();
 
@@ -621,7 +621,7 @@ describe('EqFilterList', () => {
 				makeFilter({ freq: 200, channel: 'R' })
 			];
 			eqStore.channelScope = 'R';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await vi.waitFor(() => expect(cardCount()).toBe(1));
 			const freqBox = document.querySelector<HTMLInputElement>('input[type="number"]')!;
@@ -643,7 +643,7 @@ describe('EqFilterList', () => {
 		];
 
 		it('is disabled with no bands to delete', async () => {
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await expect.element(deleteAllButton()).toBeDisabled();
 		});
@@ -653,7 +653,7 @@ describe('EqFilterList', () => {
 		it('asks first, then deletes every bucket as one undo entry', async () => {
 			eqStore.filters = mixedBands();
 			eqStore.channelScope = 'L';
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await deleteAllButton().click();
 			await expect.element(page.getByRole('dialog', { name: 'Delete all bands?' })).toBeVisible();
@@ -671,7 +671,7 @@ describe('EqFilterList', () => {
 
 		it('deletes nothing on Cancel', async () => {
 			eqStore.filters = mixedBands();
-			render(EqFilterList);
+			await render(EqFilterList);
 
 			await deleteAllButton().click();
 			await page.getByRole('button', { name: 'Cancel', exact: true }).click();

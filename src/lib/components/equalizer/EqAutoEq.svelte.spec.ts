@@ -90,14 +90,14 @@ describe('EqAutoEq', () => {
 	describe('option fields', () => {
 		it('shows the stored options as their initial values', async () => {
 			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, freqMin: 40, qMax: 4 };
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			expect(field('freqMin').value).toBe('40');
 			expect(field('qMax').value).toBe('4');
 		});
 
 		it('writes an edited frequency bound back to the store', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('freqMax', '12000');
 
@@ -107,7 +107,7 @@ describe('EqAutoEq', () => {
 		it('keeps gain bounds as floats rather than truncating them', async () => {
 			// Frequency rounds to whole Hz — a copy/paste of that here would
 			// silently round -7.5 dB to -8.
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('gainMin', '-7.5');
 
@@ -115,7 +115,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('keeps Q bounds as floats', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('qMin', '0.7');
 
@@ -124,7 +124,7 @@ describe('EqAutoEq', () => {
 
 		it('commits on change, not on every keystroke', async () => {
 			// Typing `5` on the way to `500` must not set a 5 Hz lower bound.
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await page.elementLocator(field('freqMin')).fill('5');
 
@@ -133,7 +133,7 @@ describe('EqAutoEq', () => {
 
 		it('shows the stored value again when a field is cleared or left as a lone minus', async () => {
 			// An empty or half-typed box is not a number; it must never reach the store as NaN.
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('gainMin', '');
 			expect(settingsStore.autoEqOptions.gainMin).toBe(-12);
@@ -147,7 +147,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('clamps a committed value to the field limits', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('freqMin', '5');
 			expect(settingsStore.autoEqOptions.freqMin).toBe(20);
@@ -159,7 +159,7 @@ describe('EqAutoEq', () => {
 
 		it('keeps a minimum from passing its maximum, and the reverse', async () => {
 			settingsStore.autoEqOptions = { ...DEFAULT_OPTS, qMin: 1, qMax: 3 };
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await fillAndCommit('qMin', '8');
 			expect(settingsStore.autoEqOptions.qMin).toBe(3);
@@ -169,7 +169,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('names every bound by its group and its Min / Max label', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			const groups = [
 				[m.equalizer_autoeq_freq_range(), 'freqMin', 'freqMax'],
@@ -184,7 +184,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('picks the fit mode through the store', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await page.getByRole('radio', { name: m.equalizer_autoeq_treble_safe() }).click();
 
@@ -197,7 +197,7 @@ describe('EqAutoEq', () => {
 		// A single toggle group clears its value when the pressed item is pressed
 		// again; a fit mode can't be "neither".
 		it('keeps the fit mode when the selected one is pressed again', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 			const exact = page.getByRole('radio', { name: m.equalizer_autoeq_exact_match() });
 
 			await exact.click();
@@ -207,7 +207,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('explains both fit modes and links the docs from the help popover', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await page.getByRole('button', { name: m.equalizer_autoeq_fit_help() }).click();
 
@@ -223,7 +223,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('toggles the shelf-filter switch through the store', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await page.getByRole('switch', { name: m.equalizer_autoeq_use_shelf_filter() }).click();
 
@@ -239,7 +239,7 @@ describe('EqAutoEq', () => {
 			const graphic = BUILTIN_PRESETS.find((p) => p.id === 'generic-10-band');
 			eqConstraintsStore.activeId = graphic!.id;
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			expect(numberInputs().length).toBe(0);
 		});
@@ -264,7 +264,7 @@ describe('EqAutoEq', () => {
 		it('says the fast optimizer could not load', async () => {
 			runInWorker.mockResolvedValue(UNAVAILABLE);
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -278,7 +278,7 @@ describe('EqAutoEq', () => {
 			// would be a control that lies.
 			runInWorker.mockResolvedValue(UNAVAILABLE);
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 			await expect.element(fitModeRadios()).toBeInTheDocument();
 
 			await runButton().click();
@@ -295,7 +295,7 @@ describe('EqAutoEq', () => {
 			// match is how the user gets turboEQ back, so the switch must stay.
 			runInWorker.mockResolvedValue(REJECTED);
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -309,7 +309,7 @@ describe('EqAutoEq', () => {
 			// A failed load is not cached, so a transient fetch error clears.
 			runInWorker.mockResolvedValueOnce(UNAVAILABLE);
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 			await runButton().click();
 			await expect.element(fitModeRadios()).not.toBeInTheDocument();
 
@@ -331,7 +331,7 @@ describe('EqAutoEq', () => {
 				// answer — and the panel has to say so rather than show an empty fit.
 				runInWorker.mockResolvedValue(NONE);
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 
 				await runButton().click();
 
@@ -343,7 +343,7 @@ describe('EqAutoEq', () => {
 			it('says turboEQ refused the bands when it only refused', async () => {
 				runInWorker.mockResolvedValue({ ...NONE, fallback: 'rejected' });
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 
 				await runButton().click();
 
@@ -358,7 +358,7 @@ describe('EqAutoEq', () => {
 				// fieldset would be an empty box.
 				runInWorker.mockResolvedValue(NONE);
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 
 				await runButton().click();
 
@@ -370,7 +370,7 @@ describe('EqAutoEq', () => {
 			it('drops the graphic notice once the preset is parametric again', async () => {
 				runInWorker.mockResolvedValue(NONE);
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 				await runButton().click();
 				await expect
 					.element(page.getByText(m.equalizer_autoeq_graphic_unavailable_notice()))
@@ -391,7 +391,7 @@ describe('EqAutoEq', () => {
 		// The view's whole contract with the service: a click is a run.
 		it('starts a run through the service when clicked', async () => {
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -400,7 +400,7 @@ describe('EqAutoEq', () => {
 
 		it('stays quiet when turboEQ answered', async () => {
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -414,7 +414,7 @@ describe('EqAutoEq', () => {
 			vi.spyOn(console, 'error').mockImplementation(() => {});
 			runInWorker.mockRejectedValue(new Error('worker died'));
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -429,7 +429,7 @@ describe('EqAutoEq', () => {
 				})
 			);
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await runButton().click();
 
@@ -464,7 +464,7 @@ describe('EqAutoEq', () => {
 		// Same element, relabelled — swapping it out would drop keyboard focus.
 		it('relabels Run as Recalculate once a result lands', async () => {
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 			const before = runButton().element();
 
 			await runButton().click();
@@ -474,7 +474,7 @@ describe('EqAutoEq', () => {
 		});
 
 		it('is unavailable until a device and a target are picked', async () => {
-			render(EqAutoEq);
+			await render(EqAutoEq);
 
 			await expect.element(autoSwitch()).toBeDisabled();
 		});
@@ -485,7 +485,7 @@ describe('EqAutoEq', () => {
 			seedPair();
 			const view = await render(EqAutoEq);
 			await enable();
-			view.unmount();
+			await view.unmount();
 
 			frStore.set('tgt', makeItem('tgt', 'target', curve(3)));
 
@@ -495,7 +495,7 @@ describe('EqAutoEq', () => {
 		describe('switches itself off', () => {
 			it('when the filters are edited by hand', async () => {
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 				await enable();
 
 				eqCommands.addBand({ type: 'PK', freq: 5000, gain: 2, q: 1, enabled: true });
@@ -508,7 +508,7 @@ describe('EqAutoEq', () => {
 			it('when the target is swapped for another', async () => {
 				seedPair();
 				frStore.set('tgt2', makeItem('tgt2', 'target', curve(1)));
-				render(EqAutoEq);
+				await render(EqAutoEq);
 				await enable();
 
 				eqStore.autoEqTargetUUID = 'tgt2';
@@ -522,7 +522,7 @@ describe('EqAutoEq', () => {
 
 			it('when the EQ preset changes', async () => {
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 				await enable();
 
 				eqConstraintsStore.activeId = BUILTIN_PRESETS.find(
@@ -542,7 +542,7 @@ describe('EqAutoEq', () => {
 					fallback: 'unavailable'
 				});
 				seedPair();
-				render(EqAutoEq);
+				await render(EqAutoEq);
 
 				await autoSwitch().click();
 
@@ -555,7 +555,7 @@ describe('EqAutoEq', () => {
 
 		it('says nothing when the user switches it off', async () => {
 			seedPair();
-			render(EqAutoEq);
+			await render(EqAutoEq);
 			await enable();
 
 			await autoSwitch().click();

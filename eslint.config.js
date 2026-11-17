@@ -73,7 +73,6 @@ export default defineConfig(
 		// rejection into an unhandled one, and a promise-returning callback in a void slot (an
 		// event handler, a timer) drops its rejection the same way.
 		files: ['src/**/*.ts', 'src/**/*.svelte'],
-		ignores: ['src/**/*.spec.ts'],
 		languageOptions: {
 			parserOptions: { projectService: true }
 		},

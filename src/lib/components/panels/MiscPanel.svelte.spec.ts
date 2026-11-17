@@ -49,7 +49,7 @@ describe('MiscPanel', () => {
 
 	describe('theme toggle', () => {
 		it('offers dark mode while the light theme is active', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Switch to dark mode' }))
@@ -57,7 +57,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('switches the store and the button over on click', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 			await page.getByRole('button', { name: 'Switch to dark mode' }).click();
 
 			// The toggle runs inside a view transition's callback, a frame after the click.
@@ -68,7 +68,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('toggles back to light on a second click', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 			await page.getByRole('button', { name: 'Switch to dark mode' }).click();
 			await page.getByRole('button', { name: 'Switch to light mode' }).click();
 
@@ -77,7 +77,7 @@ describe('MiscPanel', () => {
 
 		it('says so while the theme follows the system', async () => {
 			settingsStore.followsSystem = true;
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Switch to dark mode' }))
@@ -87,7 +87,7 @@ describe('MiscPanel', () => {
 		it('says a click back to the system theme resumes following it', async () => {
 			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'system' } });
 			settingsStore.theme = 'dark';
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Switch to light mode' }))
@@ -99,7 +99,7 @@ describe('MiscPanel', () => {
 
 	describe('language picker', () => {
 		it('stays hidden while i18n is off', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Switch to dark mode' }))
@@ -109,7 +109,7 @@ describe('MiscPanel', () => {
 
 		it('lists every registered locale when i18n is on', async () => {
 			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			const select = page.getByRole('combobox');
 			await expect.element(select).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe('MiscPanel', () => {
 
 		it('labels each locale with its own endonym', async () => {
 			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			const options = [...(page.getByRole('combobox').element() as HTMLSelectElement).options];
 			const ko = options.find((o) => o.value === 'ko');
@@ -127,14 +127,14 @@ describe('MiscPanel', () => {
 
 		it('names the picker for assistive tech', async () => {
 			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect.element(page.getByRole('combobox', { name: 'Language' })).toBeInTheDocument();
 		});
 
 		it('switches locale on change', async () => {
 			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
-			render(MiscPanel);
+			await render(MiscPanel);
 			await page.getByRole('combobox').selectOptions('ko');
 
 			expect(setLocale).toHaveBeenCalledWith('ko');
@@ -150,7 +150,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('is on by default and named by its label', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 			await openSettings();
 
 			const toggle = page.getByRole('switch', { name: 'Single-key shortcuts' });
@@ -158,7 +158,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('turns the shortcuts off and persists the choice', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 			await openSettings();
 			await page.getByRole('switch', { name: 'Single-key shortcuts' }).click();
 
@@ -176,7 +176,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('is absent where the deployment has no analytics', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 			await openSettings();
 
 			await expect
@@ -189,7 +189,7 @@ describe('MiscPanel', () => {
 			analyticsService.available = true;
 			analyticsService.consent = 'denied';
 			const setConsent = vi.spyOn(analyticsService, 'setConsent').mockImplementation(() => {});
-			render(MiscPanel);
+			await render(MiscPanel);
 			await openSettings();
 
 			const toggle = page.getByRole('switch', { name: 'Usage statistics' });
@@ -203,7 +203,7 @@ describe('MiscPanel', () => {
 
 	describe('description blocks', () => {
 		it('renders nothing when the config has no description', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect.element(page.getByRole('link', { name: 'GitHub' })).toBeInTheDocument();
 			expect(document.querySelectorAll('img')).toHaveLength(0);
@@ -211,14 +211,14 @@ describe('MiscPanel', () => {
 
 		it('renders a text block as a paragraph', async () => {
 			setConfig({ DESCRIPTION: [{ TYPE: 'text', CONTENT: 'Measured on a 5128 rig.' }] });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect.element(page.getByText('Measured on a 5128 rig.')).toBeInTheDocument();
 		});
 
 		it('renders an image block', async () => {
 			setConfig({ DESCRIPTION: [{ TYPE: 'IMAGE', CONTENT: './assets/banner.png' }] });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			// The image is decorative (`alt=""`), so it has no `img` role to query by.
 			await vi.waitFor(() =>
@@ -228,7 +228,7 @@ describe('MiscPanel', () => {
 
 		it('injects an html block verbatim', async () => {
 			setConfig({ DESCRIPTION: [{ TYPE: 'html', CONTENT: '<b>Bold notice</b>' }] });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			const el = page.getByText('Bold notice');
 			await expect.element(el).toBeInTheDocument();
@@ -237,7 +237,7 @@ describe('MiscPanel', () => {
 
 		it('skips a block with an unknown type', async () => {
 			setConfig({ DESCRIPTION: [{ TYPE: 'video', CONTENT: 'ignored content' }] });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			expect(page.getByText('ignored content').elements()).toHaveLength(0);
 		});
@@ -247,13 +247,13 @@ describe('MiscPanel', () => {
 
 	describe('footer', () => {
 		it('prints the build version', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect.element(page.getByText(`v${__APP_VERSION__}`)).toBeInTheDocument();
 		});
 
 		it('links to the repository and the docs', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('link', { name: 'GitHub' }))
@@ -264,7 +264,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('links to the changelog, the same page the version toast opens', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('link', { name: 'Changelog' }))
@@ -272,7 +272,7 @@ describe('MiscPanel', () => {
 		});
 
 		it('shows the donate link by default', async () => {
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			await expect
 				.element(page.getByRole('link', { name: 'Support on Ko-fi' }))
@@ -281,7 +281,7 @@ describe('MiscPanel', () => {
 
 		it('hides the donate link when the operator opts out', async () => {
 			setConfig({ INTERFACE: { HIDE_DEV_DONATE_BUTTON: true } });
-			render(MiscPanel);
+			await render(MiscPanel);
 
 			expect(page.getByRole('link', { name: 'Support on Ko-fi' }).elements()).toHaveLength(0);
 		});

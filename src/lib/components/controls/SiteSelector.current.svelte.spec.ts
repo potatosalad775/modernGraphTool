@@ -45,7 +45,7 @@ describe('SiteSelector on a listed deployment', () => {
 			SITE_SELECTOR: { ENABLED: 'auto', INDEX_URLS: ['https://index.test/i.json'] }
 		};
 
-		render(SiteSelector);
+		await render(SiteSelector);
 		await siteIndexService.load();
 
 		expect(siteIndexService.currentDbId).toBe('home:iems');
@@ -61,7 +61,7 @@ describe('SiteSelector on a listed deployment', () => {
 			SITE_SELECTOR: { ENABLED: 'auto', INDEX_URLS: ['https://index.test/i.json'] }
 		};
 
-		render(SiteSelector);
+		await render(SiteSelector);
 		await siteIndexService.load();
 
 		await page.getByRole('button', { name: 'Select a site' }).click();
@@ -83,7 +83,7 @@ describe('SiteSelector on a listed deployment', () => {
 			SITE_SELECTOR: { ENABLED: 'auto', INDEX_URLS: ['https://index.test/i.json'] }
 		};
 
-		render(SiteSelector);
+		await render(SiteSelector);
 		await siteIndexService.load();
 		await page.getByRole('button', { name: 'Select a site' }).click();
 

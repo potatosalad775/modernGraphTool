@@ -104,8 +104,8 @@ describe('EqFilterCard', () => {
 	// ── Collapsed row ────────────────────────────────────────────────────────
 
 	describe('the collapsed row', () => {
-		it('shows the filter values', () => {
-			mount(pk({ freq: 440, gain: -2.5, q: 2 }));
+		it('shows the filter values', async () => {
+			await mount(pk({ freq: 440, gain: -2.5, q: 2 }));
 
 			expect(freqBox().value).toBe('440');
 			expect(gainBox().value).toBe('-2.5');
@@ -113,7 +113,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('labels the type with its short badge', async () => {
-			mount(pk({ type: 'LSQ' }));
+			await mount(pk({ type: 'LSQ' }));
 
 			await expect
 				.element(page.getByRole('button', { name: 'LS', exact: true }))
@@ -121,7 +121,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('cycles the type on badge click', async () => {
-			mount(pk({ type: 'PK' }));
+			await mount(pk({ type: 'PK' }));
 
 			await page.getByRole('button', { name: 'PK', exact: true }).click();
 
@@ -129,7 +129,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('wraps the type cycle back to PK', async () => {
-			mount(pk({ type: 'HSQ' }));
+			await mount(pk({ type: 'HSQ' }));
 
 			await page.getByRole('button', { name: 'HS', exact: true }).click();
 
@@ -137,7 +137,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('reports the enable switch', async () => {
-			mount(pk({ enabled: true }));
+			await mount(pk({ enabled: true }));
 
 			await page.getByRole('switch').click();
 
@@ -145,7 +145,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('reports expansion and removal', async () => {
-			mount(pk(), { index: 2 });
+			await mount(pk(), { index: 2 });
 
 			await page.getByRole('button', { name: 'Expand filter 3 options' }).click();
 			await page.getByRole('button', { name: 'Remove filter 3' }).click();
@@ -159,7 +159,7 @@ describe('EqFilterCard', () => {
 
 	describe('number entry', () => {
 		it('commits an edited frequency', async () => {
-			mount();
+			await mount();
 
 			await commit(freqBox(), '440');
 
@@ -167,7 +167,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('clamps frequency to the audible band', async () => {
-			mount();
+			await mount();
 
 			await commit(freqBox(), '99999');
 
@@ -175,7 +175,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('rounds gain to a tenth of a dB', async () => {
-			mount();
+			await mount();
 
 			await commit(gainBox(), '2.46');
 
@@ -183,7 +183,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('rounds Q to two decimals', async () => {
-			mount();
+			await mount();
 
 			await commit(qBox(), '1.239');
 
@@ -191,7 +191,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('restores the previous value when the entry is not a number', async () => {
-			mount(pk({ freq: 1000 }));
+			await mount(pk({ freq: 1000 }));
 
 			await commit(freqBox(), '');
 
@@ -203,7 +203,7 @@ describe('EqFilterCard', () => {
 			// The box has to show what lands in the store — `eqCommands.updateBand`
 			// clamps again on the way in, so a laxer box would snap back visibly.
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount();
+			await mount();
 
 			await commit(gainBox(), '15');
 
@@ -212,7 +212,7 @@ describe('EqFilterCard', () => {
 
 		it('writes the clamped value back into the box', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount();
+			await mount();
 
 			await commit(freqBox(), '30');
 
@@ -223,41 +223,41 @@ describe('EqFilterCard', () => {
 	// ── Keyboard ─────────────────────────────────────────────────────────────
 
 	describe('keyboard editing', () => {
-		it('steps frequency by 1 Hz on ArrowUp', () => {
-			mount(pk({ freq: 1000 }));
+		it('steps frequency by 1 Hz on ArrowUp', async () => {
+			await mount(pk({ freq: 1000 }));
 
 			key(freqBox(), { key: 'ArrowUp' });
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ freq: 1001 });
 		});
 
-		it('steps by ten times as much with Shift', () => {
-			mount(pk({ freq: 1000 }));
+		it('steps by ten times as much with Shift', async () => {
+			await mount(pk({ freq: 1000 }));
 
 			key(freqBox(), { key: 'ArrowUp', shiftKey: true });
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ freq: 1010 });
 		});
 
-		it('steps gain by a tenth of a dB', () => {
-			mount(pk({ gain: 3 }));
+		it('steps gain by a tenth of a dB', async () => {
+			await mount(pk({ gain: 3 }));
 
 			key(gainBox(), { key: 'ArrowDown' });
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ gain: 2.9 });
 		});
 
-		it('steps Q by a hundredth', () => {
-			mount(pk({ q: 1 }));
+		it('steps Q by a hundredth', async () => {
+			await mount(pk({ q: 1 }));
 
 			key(qBox(), { key: 'ArrowUp' });
 
 			expect(handlers.onUpdate).toHaveBeenCalledWith({ q: 1.01 });
 		});
 
-		it('clamps a stepped value to the active preset', () => {
+		it('clamps a stepped value to the active preset', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk({ gain: 6 }));
+			await mount(pk({ gain: 6 }));
 
 			key(gainBox(), { key: 'ArrowUp' });
 
@@ -280,7 +280,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('discards uncommitted typing on Escape', async () => {
-			mount(pk({ freq: 1000 }));
+			await mount(pk({ freq: 1000 }));
 			freqBox().focus();
 			await page.elementLocator(freqBox()).fill('7777');
 
@@ -290,8 +290,8 @@ describe('EqFilterCard', () => {
 			expect(handlers.onUpdate).not.toHaveBeenCalled();
 		});
 
-		it('blurs the field on Enter', () => {
-			mount();
+		it('blurs the field on Enter', async () => {
+			await mount();
 			freqBox().focus();
 
 			key(freqBox(), { key: 'Enter' });
@@ -305,16 +305,16 @@ describe('EqFilterCard', () => {
 	describe('constraint feedback', () => {
 		it('flags an out-of-range field', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk({ gain: 20 }));
+			await mount(pk({ gain: 20 }));
 
 			await expect
 				.element(page.elementLocator(gainBox()))
 				.toHaveAttribute('title', "Tight doesn't accept this value. Allowed: -6 – 6 dB");
 		});
 
-		it('leaves an in-range field unflagged, but says what is allowed', () => {
+		it('leaves an in-range field unflagged, but says what is allowed', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk({ gain: 3 }));
+			await mount(pk({ gain: 3 }));
 
 			expect(gainBox().getAttribute('title')).toBe('Allowed: -6 – 6 dB');
 			expect(gainBox().hasAttribute('aria-invalid')).toBe(false);
@@ -323,7 +323,7 @@ describe('EqFilterCard', () => {
 
 		it('tells a screen reader which field is out of range, and why', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk({ gain: 20 }));
+			await mount(pk({ gain: 20 }));
 
 			const gain = page.getByRole('spinbutton', { name: 'Band 1 gain, dB' });
 			await expect.element(gain).toHaveAttribute('aria-invalid', 'true');
@@ -333,23 +333,23 @@ describe('EqFilterCard', () => {
 			expect(freqBox().hasAttribute('aria-invalid')).toBe(false);
 		});
 
-		it('describes a stepped domain with its step', () => {
+		it('describes a stepped domain with its step', async () => {
 			eqConstraintsStore.presets = [
 				parametricPreset('stepped', { gain: { min: -12, max: 12, step: 0.5 } })
 			];
 			eqConstraintsStore.activeId = 'stepped';
-			mount(pk({ gain: 3 }));
+			await mount(pk({ gain: 3 }));
 
 			expect(gainBox().getAttribute('title')).toBe('Allowed: -12 – 12 dB, step 0.5');
 			expect(gainBox().step).toBe('0.5');
 		});
 
-		it('steps along a value list one listed value at a time', () => {
+		it('steps along a value list one listed value at a time', async () => {
 			eqConstraintsStore.presets = [
 				parametricPreset('set', { freq: { values: [100, 250, 1000, 4000] } })
 			];
 			eqConstraintsStore.activeId = 'set';
-			mount(pk({ freq: 1000 }));
+			await mount(pk({ freq: 1000 }));
 
 			key(freqBox(), { key: 'ArrowUp' });
 			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ freq: 4000 });
@@ -360,7 +360,7 @@ describe('EqFilterCard', () => {
 		it('offers only the filter types the slot takes', async () => {
 			eqConstraintsStore.presets = [parametricPreset('pk-only', { types: ['PK'] })];
 			eqConstraintsStore.activeId = 'pk-only';
-			mount(pk(), { expanded: true });
+			await mount(pk(), { expanded: true });
 
 			expect(page.getByRole('radio', { name: 'High Shelf' }).elements()).toHaveLength(0);
 			const badge = page.getByRole('button', { name: 'PK', exact: true });
@@ -372,14 +372,14 @@ describe('EqFilterCard', () => {
 			// The two-band preset makes index 2 unreachable; the row stays rendered
 			// so the user can delete it, but reads as inactive.
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk(), { index: 2 });
+			await mount(pk(), { index: 2 });
 
 			await expect.element(page.getByTitle(/Past the 2-band limit of Tight/)).toBeInTheDocument();
 		});
 
-		it('leaves rows inside the cap active', () => {
+		it('leaves rows inside the cap active', async () => {
 			eqConstraintsStore.activeId = TIGHT.id;
-			mount(pk(), { index: 1 });
+			await mount(pk(), { index: 1 });
 
 			expect(page.getByTitle(/Past the/).elements()).toHaveLength(0);
 		});
@@ -392,15 +392,15 @@ describe('EqFilterCard', () => {
 			eqConstraintsStore.activeId = GRAPHIC_ID;
 		});
 
-		it('locks frequency and Q behind read-only chips', () => {
-			mount(pk({ freq: 125, q: 1.4 }));
+		it('locks frequency and Q behind read-only chips', async () => {
+			await mount(pk({ freq: 125, q: 1.4 }));
 
 			// Gain is the only number box left.
 			expect(rowInputs()).toHaveLength(1);
 		});
 
 		it('shows the fixed frequency, and gives the fixed type and Q no room', async () => {
-			mount(pk({ freq: 125, q: 1.4 }));
+			await mount(pk({ freq: 125, q: 1.4 }));
 
 			const fixed = page.getByTitle('Fixed by Generic 10-band Graphic EQ');
 			await expect.element(fixed).toHaveTextContent('125');
@@ -408,7 +408,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('puts the gain slider in the row, with no chevron to open', async () => {
-			mount(pk({ freq: 125, gain: 0 }));
+			await mount(pk({ freq: 125, gain: 0 }));
 
 			const slider = page.getByRole('slider', { name: '125 Hz · Gain (dB)' });
 			await expect.element(slider).toBeInTheDocument();
@@ -421,14 +421,14 @@ describe('EqFilterCard', () => {
 			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ gain: 3.5 });
 		});
 
-		it('hides the remove button, because bands are preset slots', () => {
-			mount(pk(), { index: 0 });
+		it('hides the remove button, because bands are preset slots', async () => {
+			await mount(pk(), { index: 0 });
 
 			expect(page.getByRole('button', { name: 'Remove filter 1' }).elements()).toHaveLength(0);
 		});
 
 		it('still allows gain edits', async () => {
-			mount(pk({ gain: 0 }));
+			await mount(pk({ gain: 0 }));
 
 			await commit(rowInputs()[0], '4');
 
@@ -439,14 +439,14 @@ describe('EqFilterCard', () => {
 	// ── Expanded panel ───────────────────────────────────────────────────────
 
 	describe('when expanded', () => {
-		it('adds the sliders and the type selector', () => {
-			mount(pk(), { expanded: true });
+		it('adds the sliders and the type selector', async () => {
+			await mount(pk(), { expanded: true });
 
 			expect(document.querySelectorAll('input[type="range"]')).toHaveLength(3);
 		});
 
 		it('sets the type from the segmented control', async () => {
-			mount(pk({ type: 'PK' }), { expanded: true });
+			await mount(pk({ type: 'PK' }), { expanded: true });
 
 			await page.getByRole('radio', { name: 'High Shelf' }).click();
 
@@ -454,7 +454,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('says which type is selected, not just colours it', async () => {
-			mount(pk({ type: 'LSQ' }), { index: 1, expanded: true });
+			await mount(pk({ type: 'LSQ' }), { index: 1, expanded: true });
 
 			const group = page.getByRole('group', { name: 'Band 2 filter type' });
 			await expect.element(group).toBeInTheDocument();
@@ -467,7 +467,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('sets the channel from the segmented control, and maps L+R back to the shared bucket', async () => {
-			mount(pk({ channel: 'L' }), { expanded: true });
+			await mount(pk({ channel: 'L' }), { expanded: true });
 
 			await expect
 				.element(page.getByRole('radio', { name: 'L', exact: true }))
@@ -480,7 +480,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('exposes the expanded state on the chevron', async () => {
-			mount(pk(), { index: 2, expanded: true });
+			await mount(pk(), { index: 2, expanded: true });
 
 			const chevron = page.getByRole('button', { name: 'Expand filter 3 options' });
 			await expect.element(chevron).toHaveAttribute('aria-expanded', 'true');
@@ -490,7 +490,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('marks the chevron collapsed while closed', async () => {
-			mount(pk());
+			await mount(pk());
 
 			const chevron = page.getByRole('button', { name: 'Expand filter 1 options' });
 			await expect.element(chevron).toHaveAttribute('aria-expanded', 'false');
@@ -498,7 +498,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('names every field and slider after its band', async () => {
-			mount(pk(), { index: 2, expanded: true });
+			await mount(pk(), { index: 2, expanded: true });
 
 			await expect.element(page.getByRole('switch', { name: 'Enable band 3' })).toBeInTheDocument();
 			expect(
@@ -510,7 +510,7 @@ describe('EqFilterCard', () => {
 		});
 
 		it('reads the real value and unit off the sliders', async () => {
-			mount(pk({ freq: 440, gain: -2.5, q: 1.4 }), { expanded: true });
+			await mount(pk({ freq: 440, gain: -2.5, q: 1.4 }), { expanded: true });
 
 			await expect
 				.element(page.getByRole('slider', { name: 'Band 1 frequency, Hz' }))
@@ -525,16 +525,16 @@ describe('EqFilterCard', () => {
 
 		it('reads the real gain off the graphic-mode row slider', async () => {
 			eqConstraintsStore.activeId = GRAPHIC_ID;
-			mount(pk({ freq: 125, gain: 3.5 }));
+			await mount(pk({ freq: 125, gain: 3.5 }));
 
 			await expect
 				.element(page.getByRole('slider', { name: '125 Hz · Gain (dB)' }))
 				.toHaveAttribute('aria-valuetext', '3.5 dB');
 		});
 
-		it('keeps only the row slider in graphic mode', () => {
+		it('keeps only the row slider in graphic mode', async () => {
 			eqConstraintsStore.activeId = GRAPHIC_ID;
-			mount(pk(), { expanded: true });
+			await mount(pk(), { expanded: true });
 
 			expect(document.querySelectorAll('input[type="range"]')).toHaveLength(1);
 		});

@@ -334,9 +334,10 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     - It gained 28 ms, not the 55 estimated. The boot JS does finish 58 ms sooner, but the
       phone book request now starts later (351 against 312) and the FR files land after
       the app chunk (495 against 427), so the data is on the critical path.
-  - Still open, in order of expected gain:
-    - Start the phone book request from the shells (rejected earlier, when the app chunk
-      was last to arrive; it no longer is).
+    - The three shells now preload the phone book from an inline script (the idea was
+      rejected earlier, when the app chunk was last to arrive). The request goes out at 214
+      instead of 351 and the FR files land with the app chunk: 853 → 818 in one session.
+  - Still open:
     - Device and Misc panels, `FrequencyTutorial`, the `Toaster`, `SponsorBanner`.
   - Not worth it: `tailwind-merge` costs 17 ms at boot but v2.2.4 paid the same;
     `eqcaps-core` is held by the constraints store; Hardware EQ and uniPEQ link are

@@ -127,6 +127,23 @@
 				} catch (e) {}
 			})();
 		</script>
+		<!--
+			Ask for the phone book now, so the FR files can follow as soon as the app's first
+			chunks run. See src/app.html; this script is byte-identical in all three shells.
+		-->
+		<script>
+			(function () {
+				try {
+					var p = (window.GRAPHTOOL_CONFIG || {}).PATH;
+					var l = document.createElement('link');
+					l.rel = 'preload';
+					l.as = 'fetch';
+					l.crossOrigin = 'anonymous';
+					l.href = (p && p.PHONE_BOOK) || '../../../data/phone_book.json';
+					document.head.appendChild(l);
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="stylesheet" href="./theme.css" />
 	</head>
 

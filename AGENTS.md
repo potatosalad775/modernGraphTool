@@ -296,17 +296,16 @@ Measured and rejected — don't retry without a new reason:
   (DOM creation is the cost, not layout), and the paint containment clips the rows' focus outline.
   List virtualization is the remaining lever.
 - Paraglide per-locale splitting: no option fits a static, runtime-switchable SPA.
-- Starting the phone book request from an inline script in the shells: no change. The book and
-  the FR files already arrive before the app chunk does. Worth another look only if that chunk
-  stops being the last thing to arrive. Since the Equalizer panel left the boot chunk it has: the
-  FR files now land about 70 ms after the app chunk, so this is open again.
 - Preloading Pretendard's subset files: they would compete with the app chunk for the connection
   (120 KB for English alone), so the font swaps sooner and the curves draw later.
 
 Boot-critical pieces that look removable but aren't: the initial load starting in `hooks.client.ts`
 and the bare `AppShell` import in `+layout.svelte` (both in `services/AGENTS.md`), the
 `preload-boot-chunks.js` step of `npm run build` (SvelteKit's own preload list leaves out the route
-nodes and any chunk shared with a lazy one; 54 ms measured for the nodes alone), and the Pretendard
+nodes and any chunk shared with a lazy one; 54 ms measured for the nodes alone), the inline script
+in the three shells that preloads the phone book (35 ms: the app's own `fetch()` in
+`metadata-parser.ts` picks the response up, so the FR files are requested as soon as the first
+chunks run; it did nothing while the app chunk was the last thing to arrive), and the Pretendard
 stylesheet loading as `rel="preload"` and swapped in by the inline script after it (a script, not
 an `onload` attribute: a CSP can hash a script but not a handler) in `src/app.html`, `cdn/cdn-index.html` and
 `site-template/index.html`. A plain stylesheet link holds back every classic script after it —

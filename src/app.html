@@ -104,6 +104,26 @@
 				} catch (e) {}
 			})();
 		</script>
+		<!--
+			Ask for the phone book now. The app asks for it once its first chunks have loaded and
+			run; with the request already answered by then, the FR files come in before the app has
+			finished loading, not after. The app's own fetch() picks up this response: the path and
+			its fallback are the ones `_fetchBookObject` in metadata-parser.ts uses, so change them
+			together. Byte-identical in all three shells, like the scripts above.
+		-->
+		<script>
+			(function () {
+				try {
+					var p = (window.GRAPHTOOL_CONFIG || {}).PATH;
+					var l = document.createElement('link');
+					l.rel = 'preload';
+					l.as = 'fetch';
+					l.crossOrigin = 'anonymous';
+					l.href = (p && p.PHONE_BOOK) || '../../../data/phone_book.json';
+					document.head.appendChild(l);
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="stylesheet" href="%sveltekit.assets%/theme.css" />
 		%sveltekit.head%
 	</head>

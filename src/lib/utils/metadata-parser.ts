@@ -171,6 +171,9 @@ const MetadataParser = {
 
 	/** Fetch phone_book metadata from (phone_book.json). */
 	async _fetchBookObject(): Promise<BrandMetadata[]> {
+		// The three HTML shells preload this same URL (path and fallback) from an inline script,
+		// and this plain fetch() picks that response up. Change the path there too, and keep the
+		// request a default one: other headers, credentials or a cache mode would miss the preload.
 		const phonebookPath =
 			(getConfigValue('PATH.PHONE_BOOK') as string) || '../../../data/phone_book.json';
 		const rawData: unknown = await fetch(phonebookPath).then((r) => r.json());

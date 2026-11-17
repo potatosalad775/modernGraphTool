@@ -29,7 +29,7 @@
 		<span class="ceLabel">Analytics Measurement IDs</span>
 		<StringArrayEditor
 			bind:items={config.SQUIGLINK.ANALYTICS_MEASUREMENT_IDS}
-			placeholder="G-XXXXXXXXXX"
+			placeholder="G-XXXXXXXXXX or GTM-XXXXXXX"
 			addLabel="Add ID"
 		/>
 	</div>

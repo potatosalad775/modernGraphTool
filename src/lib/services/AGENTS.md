@@ -25,16 +25,31 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   modifier shortcuts and the `\` release are never gated. It reads the playing flag from
   `audioPlaybackStore`, not from the audio player service, so the audio engine stays out of the boot
   chunk — don't re-import the service there
-- `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments. IDs must
-  match `/^G-[A-Z0-9]+$/` (the value goes into a script URL; others are skipped with a warning);
-  `navigator.globalPrivacyControl === true` loads nothing; the gtag script is `fetchPriority = 'low'`
-  but is still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`.
-  **`window.gtag` must push `arguments`, not a rest-parameter array**: gtag.js ignores arrays in the
-  data layer without any error, which is how v2 shipped analytics that never sent a hit. Consent
-  Mode v2 defaults are queued ahead of `config` (ad signals always denied; `analytics_storage` from
-  the visitor's stored answer, else `SQUIGLINK.ANALYTICS_CONSENT`, else granted). The Misc panel
-  switch (`setConsent`) is shown while `available`; a visitor's stored "off" loads nothing on later
-  visits, like GPC, whereas the operator's `denied` default still loads gtag.js for cookieless pings
+- `analytics-service.svelte.ts` — usage events for squig.link deployments. **squig.link's shared
+  Tag Manager container (`SQUIGLINK_CONTAINER`) is built in**: it is what `graphAnalytics.js` loads
+  on every CrinGraph site there, and it forwards to squig.link's GA4 property. Operators add their
+  own `G-` / `GTM-` IDs in `ANALYTICS_MEASUREMENT_IDS` (`/^(G|GTM)-[A-Z0-9]+$/`: the value goes into
+  a script URL; others are skipped with a warning). Two destinations, two shapes, two data layers:
+  - **Containers get a plain object on `window.gtmDataLayer`** in the CrinGraph shape (`event`,
+    `trigger`, `site`, `phoneBrand`, `phoneModel`, `phoneVariant`, `phoneName` / `activePhones`,
+    `other`, `value`), and `phone_added` goes out as `phone_displayed`. The container's triggers
+    and variables read exactly those names — checked against the live container on 2026-11-17 —
+    so don't rename them to match our style. It has no trigger for `phone_removed`; harmless.
+  - **`G-` IDs get `gtag('event', …)` on `window.dataLayer`.** The layers are separate because a
+    container also fires on a gtag event queued on its layer: on one shared layer every name the
+    two have in common was counted twice. Only `consent` commands go to both.
+  - **A gtag command must be an `arguments` object, not a rest-parameter array**: Google's scripts
+    ignore arrays in a data layer without any error, which is how v2 shipped analytics that never
+    sent a hit.
+
+  `navigator.globalPrivacyControl === true` loads nothing; the scripts are `fetchPriority = 'low'`
+  but are still injected from `initial-load.ts`'s `run()` start, before the first `phone_added`.
+  Consent Mode v2 defaults are queued ahead of `config` and of the container's start (ad signals
+  always denied; `analytics_storage` from the visitor's stored answer, else
+  `SQUIGLINK.ANALYTICS_CONSENT`, else granted). The Misc panel switch (`setConsent`) is shown while
+  `available`; a visitor's stored "off" loads nothing on later visits, like GPC, whereas the
+  operator's `denied` default still loads the scripts for cookieless pings
+
 - `data-provider.svelte.ts` — see below
 - `eq-curve.svelte.ts` — the derived EQ curve and the preamp; exports the `eqCurve` singleton, see below
 - `curve-insert.ts` — new-curve defaults (colour, dash, channels) and the raw-insert path; shared by

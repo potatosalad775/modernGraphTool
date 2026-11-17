@@ -48,7 +48,12 @@
 
 	function handleClick() {
 		if (shopLink) {
-			analyticsService.trackGeneralEvent('shoplink_click', { model: shopLink.model });
+			analyticsService.trackGeneralEvent(
+				'shoplink_click',
+				{ model: shopLink.model },
+				// The detail squig.link's own shop-link script reports: "<sponsor>: <model>"
+				`${shopLink.sponsorName ?? ''}: ${shopLink.model}`
+			);
 		}
 	}
 </script>

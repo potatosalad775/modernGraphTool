@@ -281,6 +281,25 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     a WiiM self-signed certificate (written from general knowledge, untested).
   - A squig.link host: the sponsor dialog, shop links and the version toast after it closes, now
     that `squiglink-intro.js` / `shoplinks.js` are read as data and never executed.
+  - **Checked 2026-11-17 on `silicagel.squig.link/test/`** (full build, `BASE_PATH=/test`, the
+    live config and data, the policy as a `<meta>`):
+    - Works under the policy: boot, sponsor dialog with its creative, shop link with price and
+      UTM, the version toast right after the dialog closes, AutoEQ (turboEQ wasm worker).
+    - squig.link hosting is **not Apache** (Cloudflare in front, `.htaccess` served as a plain
+      file and ignored). So the `<meta>` is the only way to switch the policy on there, and the
+      `.htaccess` bullets above still need an Apache host (a local `httpd` container will do).
+    - Cloudflare injects `static.cloudflareinsights.com/beacon.min.js` into the page; the policy
+      blocks it. Belongs in the operator page's "what to add" table.
+    - **Analytics fixed the same day.** mGT sites reported nothing to squig.link: its statistics
+      come from the shared container `GTM-N74Z5L8` (what `graphAnalytics.js` loads), which reads
+      CrinGraph-shaped data-layer objects, not `gtag` events. The container is now built in, on
+      its own data layer, and `GTM-…` IDs are accepted next to `G-…`. Seen on `/test`:
+      `phone_displayed` leaves for squig.link's GA4 property with site and device, and
+      `https://www.googletagmanager.com` in `script-src` is all the policy needs.
+      **For the release notes:** every mGT site on squig.link starts reporting on upgrade.
+      Not sent yet, though squig.link's scripts send them: `shoplink_impression`,
+      `welcome_sponsor_launched`, `welcome_sponsor_click`, `baseline_set`, `clicked_copyUrl`.
+    - Still untested: `deploy.yml`, the GitHub Pages `<meta>`, Apache 2.4 / 2.2, WiiM / Luxsin.
 - [x] **N13. The sonner close button is about 20px with a faint focus ring** (S, with A10)
 
 - [x] **N14. Unverified sites are dimmed to 50% opacity in the site switcher** (S)

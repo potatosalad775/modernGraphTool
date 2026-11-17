@@ -949,10 +949,10 @@ SQUIGLINK: {
 squig.link 연동을 설정합니다. `*.squig.link` 도메인에서 호스팅될 때만 활성화됩니다.
 
 - `ENABLED` — squig.link 연동의 마스터 토글.
-- `ANALYTICS_MEASUREMENT_IDS` — GA4 측정 ID 배열. 예: `["G-SQUIGLINK_ID", "G-YOUR_ID"]`.
-- `ANALYTICS_SITE` — 분석 이벤트에 붙일 사이트 이름.
+- `ANALYTICS_MEASUREMENT_IDS` — 선택 사항. 추가로 보고할 본인 소유의 ID: GA4 측정 ID(`"G-…"`) 또는 Tag Manager 컨테이너(`"GTM-…"`). squig.link의 컨테이너는 내장되어 있으므로, 자체 통계를 따로 보지 않는다면 비워 두세요.
+- `ANALYTICS_SITE` — squig.link 통계에 표시될 사이트 이름.
 - `LOG_ANALYTICS` — 분석 이벤트를 브라우저 콘솔에 기록할지 여부.
-- `ENABLE_ANALYTICS` — 분석 추적의 마스터 토글.
+- `ENABLE_ANALYTICS` — 분석의 마스터 토글. squig.link 컨테이너도 포함합니다.
 - `ANALYTICS_CONSENT` — 방문자가 기타 패널의 **사용 통계** 스위치로 선택하기 전까지, Google [Consent Mode](https://developers.google.com/tag-platform/security/guides/consent)가 어떤 상태에서 시작할지 정합니다. `"granted"`(기본값)는 기존처럼 측정합니다. `"denied"`는 분석 쿠키를 저장하지 않고, 방문자가 스위치를 켜기 전까지 쿠키 없는 핑만 보냅니다. [squig.link 연동](../features/squiglink-integration.mdx#analytics-and-consent)을 참고하세요.
 - `ENABLE_CROSS_SITE_SEARCH` — **더 이상 사용하지 않습니다.** `CROSS_SITE_SEARCH.ENABLED`를 사용하세요. 해당 섹션이 없는 기존 설정 파일을 위해 대체값으로만 읽습니다.
 - `ENABLE_SPONSOR` — 스폰서 배너와 쇼핑 링크 활성화.

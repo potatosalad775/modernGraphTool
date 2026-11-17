@@ -58,7 +58,9 @@ The shipped policy covers the stock tool. Add to it for anything of your own:
 
 | If you…                                                       | Add                                                                                                |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| use squig.link analytics                                      | `https://www.googletagmanager.com` to `script-src`                                                 |
+| host on squig.link (its analytics are on unless switched off) | `https://www.googletagmanager.com` to `script-src`                                                 |
+| list a Tag Manager container (`GTM-…`) of your own            | the origins of the tags it loads; a Custom HTML tag cannot run under this policy                   |
+| are behind Cloudflare with its Web Analytics switched on      | `https://static.cloudflareinsights.com` to `script-src`                                            |
 | set `RANKING.CONFIG_URL`                                      | that file's origin to `script-src`                                                                 |
 | added an inline `<script>` to `index.html`, or edited one     | its hash to `script-src` (the console error prints the hash to add)                                |
 | added an external `<script src>` or stylesheet                | its origin to `script-src` or `style-src`                                                          |

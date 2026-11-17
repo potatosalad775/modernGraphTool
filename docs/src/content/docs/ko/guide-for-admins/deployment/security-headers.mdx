@@ -58,7 +58,9 @@ GitHub Pages는 사용자 지정 헤더를 보낼 수 없으므로, `index.html`
 
 | 이런 경우                                                    | 추가할 것                                                                  |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| squig.link 분석을 사용함                                     | `script-src`에 `https://www.googletagmanager.com`                          |
+| squig.link에서 호스팅함 (분석은 끄지 않는 한 켜져 있음)      | `script-src`에 `https://www.googletagmanager.com`                          |
+| 본인의 Tag Manager 컨테이너(`GTM-…`)를 추가함                | 컨테이너가 불러오는 태그의 출처. 맞춤 HTML 태그는 이 정책에서 실행 불가    |
+| Cloudflare 뒤에 있고 Web Analytics가 켜져 있음               | `script-src`에 `https://static.cloudflareinsights.com`                     |
 | `RANKING.CONFIG_URL`을 설정함                                | `script-src`에 그 파일의 출처                                              |
 | `index.html`에 인라인 `<script>`를 추가하거나 수정함         | `script-src`에 그 스크립트의 해시 (콘솔 오류에 추가할 해시가 표시됩니다)   |
 | 외부 `<script src>`나 스타일시트를 추가함                    | `script-src` 또는 `style-src`에 그 출처                                    |

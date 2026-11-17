@@ -8,6 +8,8 @@ vi.mock('#lib/utils/config.js', () => ({
 vi.mock('#lib/stores/squiglink-store.svelte.js', () => ({ squiglinkStore: { isEnabled: true } }));
 
 const SCRIPT = 'script[src^="https://www.googletagmanager.com/gtag/js"]';
+const CONTAINER = 'script[src^="https://www.googletagmanager.com/gtm.js"]';
+const ANY_SCRIPT = 'script[src^="https://www.googletagmanager.com/"]';
 
 let copies = 0;
 
@@ -24,8 +26,9 @@ function setGpc(value: boolean | undefined) {
 
 beforeEach(() => {
 	config.values = { 'SQUIGLINK.ANALYTICS_MEASUREMENT_IDS': ['G-ABC123'] };
-	document.querySelectorAll(SCRIPT).forEach((el) => el.remove());
+	document.querySelectorAll(ANY_SCRIPT).forEach((el) => el.remove());
 	window.dataLayer = [];
+	window.gtmDataLayer = [];
 	localStorage.removeItem('gt-analytics-consent');
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 	// Never fetch the real gtag.js: a script of an unknown type is inert, but keeps its `src`
@@ -39,7 +42,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	delete (navigator as { globalPrivacyControl?: boolean }).globalPrivacyControl;
-	document.querySelectorAll(SCRIPT).forEach((el) => el.remove());
+	document.querySelectorAll(ANY_SCRIPT).forEach((el) => el.remove());
 	vi.restoreAllMocks();
 });
 
@@ -49,6 +52,30 @@ describe('analyticsService.init', () => {
 		const script = document.querySelector<HTMLScriptElement>(SCRIPT);
 		expect(script?.src).toBe('https://www.googletagmanager.com/gtag/js?id=G-ABC123');
 		expect(script?.fetchPriority).toBe('low');
+	});
+
+	it("loads squig.link's container on its own data layer, with no ID configured", async () => {
+		config.values = {};
+		const service = await freshService();
+		service.init();
+		const scripts = [...document.querySelectorAll<HTMLScriptElement>(CONTAINER)];
+		expect(scripts.map((s) => s.src)).toEqual([
+			'https://www.googletagmanager.com/gtm.js?id=GTM-N74Z5L8&l=gtmDataLayer'
+		]);
+		expect(scripts[0].fetchPriority).toBe('low');
+		expect(document.querySelector(SCRIPT)).toBeNull();
+		expect(window.gtmDataLayer[1]).toMatchObject({ event: 'gtm.js' });
+		expect(service.available).toBe(true);
+	});
+
+	it("adds an operator's container once, next to the built-in one", async () => {
+		config.values['SQUIGLINK.ANALYTICS_MEASUREMENT_IDS'] = ['GTM-N74Z5L8', 'GTM-OWN1', 'GTM-OWN1'];
+		(await freshService()).init();
+		const ids = [...document.querySelectorAll<HTMLScriptElement>(CONTAINER)].map((s) =>
+			new URL(s.src).searchParams.get('id')
+		);
+		expect(ids).toEqual(['GTM-N74Z5L8', 'GTM-OWN1']);
+		expect(console.warn).not.toHaveBeenCalled();
 	});
 
 	it('skips an invalid measurement ID with a warning and keeps the valid ones', async () => {
@@ -69,13 +96,14 @@ describe('analyticsService.init', () => {
 		expect(console.warn).toHaveBeenCalledTimes(3);
 	});
 
-	it('loads nothing when no ID is valid', async () => {
+	it('loads no gtag.js when no measurement ID is valid', async () => {
 		config.values['SQUIGLINK.ANALYTICS_MEASUREMENT_IDS'] = ['"><script>', 'UA-1'];
 		const service = await freshService();
 		service.init();
 		service.trackGeneralEvent('x');
 		expect(document.querySelector(SCRIPT)).toBeNull();
-		expect(window.dataLayer).toEqual([]);
+		expect(commands().some((c) => c[0] === 'config' || c[0] === 'event')).toBe(false);
+		expect(document.querySelectorAll(CONTAINER).length).toBe(1);
 	});
 
 	it('loads nothing for a visitor who sends Global Privacy Control', async () => {
@@ -83,8 +111,9 @@ describe('analyticsService.init', () => {
 		const service = await freshService();
 		service.init();
 		service.trackGeneralEvent('x');
-		expect(document.querySelector(SCRIPT)).toBeNull();
+		expect(document.querySelector(ANY_SCRIPT)).toBeNull();
 		expect(window.dataLayer).toEqual([]);
+		expect(window.gtmDataLayer).toEqual([]);
 	});
 
 	it('is not switched off by a Global Privacy Control of false', async () => {
@@ -94,10 +123,78 @@ describe('analyticsService.init', () => {
 	});
 });
 
-/** Every queued gtag command as a plain array. */
-function commands(): unknown[][] {
-	return window.dataLayer.map((entry) => Array.from(entry as ArrayLike<unknown>));
+/** Every gtag command queued on a layer, as a plain array. */
+function commands(layer: unknown[] = window.dataLayer): unknown[][] {
+	return layer
+		.filter((entry) => Object.prototype.toString.call(entry) === '[object Arguments]')
+		.map((entry) => Array.from(entry as ArrayLike<unknown>));
 }
+
+describe('analyticsService events', () => {
+	const pushed = () =>
+		window.gtmDataLayer.filter(
+			(e) => Object.prototype.toString.call(e) === '[object Object]'
+		) as Record<string, unknown>[];
+
+	it('sends a device to the container in the CrinGraph shape and under its name', async () => {
+		config.values['SQUIGLINK.ANALYTICS_SITE'] = 'My Site';
+		const service = await freshService();
+		service.init();
+		service.trackPhoneEvent('phone_added', { brand: 'KEFINE', model: 'Delci', variant: '(S)' });
+		expect(pushed().at(-1)).toEqual({
+			event: 'phone_displayed',
+			trigger: 'user',
+			site: 'My Site',
+			phoneBrand: 'KEFINE',
+			phoneModel: 'Delci',
+			phoneVariant: 'Delci (S)',
+			phoneName: 'KEFINE Delci',
+			value: 1
+		});
+		expect(commands().at(-1)).toEqual([
+			'event',
+			'phone_added',
+			{
+				site: 'My Site',
+				phone_brand: 'KEFINE',
+				phone_model: 'Delci',
+				phone_variant: '(S)',
+				value: 1
+			}
+		]);
+	});
+
+	it('keeps every other event name, with its detail in the container field', async () => {
+		const service = await freshService();
+		service.init();
+		service.trackGeneralEvent('shoplink_click', { model: 'Delci' }, 'HiFiGo: Delci');
+		service.trackGeneralEvent('clicked_download');
+		expect(pushed().slice(-2)).toMatchObject([
+			{ event: 'shoplink_click', other: 'HiFiGo: Delci', trigger: 'user', value: 1 },
+			{ event: 'clicked_download', other: 'null' }
+		]);
+		expect(pushed().at(-1)).toHaveProperty('activePhones');
+	});
+
+	it('keeps the two kinds of event on their own layers, so none is counted twice', async () => {
+		const service = await freshService();
+		service.init();
+		service.trackGeneralEvent('clicked_download');
+		expect(commands(window.gtmDataLayer).every((c) => c[0] === 'consent')).toBe(true);
+		expect(
+			window.dataLayer.every((e) => Object.prototype.toString.call(e) === '[object Arguments]')
+		).toBe(true);
+	});
+
+	it('sends no gtag event without a measurement ID', async () => {
+		config.values = {};
+		const service = await freshService();
+		service.init();
+		service.trackGeneralEvent('clicked_download');
+		expect(commands().some((c) => c[0] === 'event')).toBe(false);
+		expect(pushed().at(-1)).toMatchObject({ event: 'clicked_download' });
+	});
+});
 
 describe('analyticsService consent', () => {
 	it('queues commands as arguments objects, which is the only form gtag.js reads', async () => {
@@ -123,6 +220,9 @@ describe('analyticsService consent', () => {
 			}
 		]);
 		expect(queued.findIndex((c) => c[0] === 'config')).toBeGreaterThan(0);
+		// The container gets the same defaults, ahead of its start event
+		expect(commands(window.gtmDataLayer)[0]).toEqual(queued[0]);
+		expect(window.gtmDataLayer[0]).not.toHaveProperty('event');
 		expect(service.available).toBe(true);
 		expect(service.consent).toBe('granted');
 	});
@@ -148,8 +248,9 @@ describe('analyticsService consent', () => {
 		const service = await freshService();
 		service.init();
 		service.trackGeneralEvent('x');
-		expect(document.querySelector(SCRIPT)).toBeNull();
+		expect(document.querySelector(ANY_SCRIPT)).toBeNull();
 		expect(window.dataLayer).toEqual([]);
+		expect(window.gtmDataLayer).toEqual([]);
 		expect(service.available).toBe(true);
 		expect(service.consent).toBe('denied');
 
@@ -164,11 +265,12 @@ describe('analyticsService consent', () => {
 		service.init();
 		service.setConsent(false);
 		expect(commands().at(-1)).toEqual(['consent', 'update', { analytics_storage: 'denied' }]);
+		expect(commands(window.gtmDataLayer).at(-1)).toEqual(commands().at(-1));
 		expect(localStorage.getItem('gt-analytics-consent')).toBe('denied');
 
-		const before = window.dataLayer.length;
+		const before = window.dataLayer.length + window.gtmDataLayer.length;
 		service.trackGeneralEvent('x');
-		expect(window.dataLayer.length).toBe(before);
+		expect(window.dataLayer.length + window.gtmDataLayer.length).toBe(before);
 
 		service.setConsent(true);
 		service.trackGeneralEvent('x');
@@ -181,6 +283,6 @@ describe('analyticsService consent', () => {
 		service.init();
 		service.setConsent(true);
 		expect(service.available).toBe(false);
-		expect(document.querySelector(SCRIPT)).toBeNull();
+		expect(document.querySelector(ANY_SCRIPT)).toBeNull();
 	});
 });

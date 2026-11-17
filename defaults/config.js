@@ -252,8 +252,8 @@ const CONFIG = {
 	// → docs: SQUIGLINK
 	// SQUIGLINK: {
 	//   ENABLED: true,
-	//   ANALYTICS_MEASUREMENT_IDS: [],   // GA4 IDs, e.g. ['G-XXXXXXX']
-	//   ANALYTICS_SITE: '',
+	//   ANALYTICS_SITE: '',              // your site's name in squig.link's statistics
+	//   ANALYTICS_MEASUREMENT_IDS: [],   // optional, your own: ['G-XXXXXXX'] or ['GTM-XXXXXXX']
 	//   ENABLE_ANALYTICS: true,
 	//   ANALYTICS_CONSENT: 'granted',    // 'denied': no analytics cookie until a visitor opts in
 	//   ENABLE_SPONSOR: true,

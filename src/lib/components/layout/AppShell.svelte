@@ -29,6 +29,7 @@
 	import DevicePanel from '#lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '#lib/components/panels/GraphPanel.svelte';
 	import { loadEqualizerPanel, preloadEqualizerPanel } from '#lib/components/panels/lazy-panels.js';
+	import Button from '#lib/components/atoms/Button.svelte';
 	import MiscPanel, { CHANGELOG_URL } from '#lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '#lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
@@ -249,6 +250,13 @@
 {#snippet equalizerPanel()}
 	{#await loadEqualizerPanel() then { default: EqualizerPanel }}
 		<EqualizerPanel />
+	{:catch}
+		<!-- The chunk is gone (a deployment since this tab loaded) or the network is: only a
+			reload fetches the new hashed chunks, a second import() of a failed module is not retried. -->
+		<div role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+			<p class="text-sm text-base-content/70">{m.equalizer_panel_load_failed()}</p>
+			<Button label={m.equalizer_panel_reload()} onclick={() => location.reload()} />
+		</div>
 	{/await}
 {/snippet}
 

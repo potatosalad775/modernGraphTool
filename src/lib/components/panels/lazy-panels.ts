@@ -12,7 +12,10 @@
  */
 export const loadEqualizerPanel = () => import('./EqualizerPanel.svelte');
 
-/** Start the download without waiting for it. A failure is left to the panel's own load. */
+/**
+ * Start the download without waiting for it. A failure is left to the panel's own load, whose
+ * `{:catch}` in `AppShell` offers a page reload.
+ */
 export function preloadEqualizerPanel(): void {
 	loadEqualizerPanel().catch(() => {});
 }

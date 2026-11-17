@@ -53,6 +53,8 @@
 	"menu_item_graph_label": "그래프",
 	"menu_item_equalizer_label": "이퀄라이저",
 	"equalizer_toggle_title": "이퀄라이저를 켜거나 끕니다",
+	"equalizer_panel_load_failed": "이퀄라이저를 불러오지 못했습니다. 연결을 확인한 뒤 페이지를 새로고침해주세요.",
+	"equalizer_panel_reload": "새로 고침",
 	"menu_item_misc_label": "기타",
 	"layout_divider_label": "그래프 및 패널 사이즈 조절",
 	"equalizer_phone_select_option_source": "EQ 적용 기기 선택",

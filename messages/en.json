@@ -62,6 +62,8 @@
 	"menu_item_graph_label": "GRAPH",
 	"menu_item_equalizer_label": "EQUALIZER",
 	"equalizer_toggle_title": "Turn the equalizer on or off",
+	"equalizer_panel_load_failed": "Couldn't load the Equalizer. Check your connection and reload the page.",
+	"equalizer_panel_reload": "Reload",
 	"menu_item_misc_label": "MISC",
 	"layout_divider_label": "Resize graph and panel",
 	"equalizer_phone_select_option_source": "Select Device to EQ",

@@ -1036,6 +1036,21 @@ describe('MetadataParser', () => {
 			expect(phone.shopLink).toBe('/shop/hd600');
 		});
 
+		it('leaves a query string alone: a link is a JSON value, not HTML', async () => {
+			const url = 'https://shop.example/item?ref=squig&tab=reviews&lt=5&amp=1&colon=2';
+			const phone = await parsePhone({
+				name: 'HD 600',
+				file: 'HD 600',
+				reviewLink: url,
+				shopLink: url,
+				links: [{ label: 'Shop', url }]
+			});
+
+			expect(phone.reviewLink).toBe(url);
+			expect(phone.shopLink).toBe(url);
+			expect(phone.links).toEqual([{ label: 'Shop', url }]);
+		});
+
 		it('drops an unsafe reviewLink / shopLink but keeps the entry and its other fields', async () => {
 			for (const bad of [
 				'javascript:alert(1)',

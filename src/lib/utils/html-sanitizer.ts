@@ -130,12 +130,19 @@ function escapeAttr(input: string): string {
  *
  * Relative URLs, fragments and protocol-relative URLs pass through — they
  * resolve against the deployment's own origin or inherit its scheme.
+ *
+ * Pass `entities: false` for a URL that never was HTML (a JSON value): nothing
+ * decodes it on the way to the attribute, and decoding here would eat part of
+ * a query string (`?a=1&tab=2`, `&lt=`, `&amp=`).
  */
-export function sanitizeUrl(raw: string | null | undefined): string | null {
+export function sanitizeUrl(
+	raw: string | null | undefined,
+	{ entities = true }: { entities?: boolean } = {}
+): string | null {
 	if (!raw) return null;
 	// Control characters and whitespace are ignored by URL parsers, so they have
 	// to go before the scheme is read — `java\nscript:` is a working URL.
-	const cleaned = decodeEntities(String(raw))
+	const cleaned = (entities ? decodeEntities(String(raw)) : String(raw))
 		// eslint-disable-next-line no-control-regex
 		.replace(/[\u0000-\u0020\u007f]/g, '')
 		.trim();

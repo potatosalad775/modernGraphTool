@@ -322,9 +322,12 @@ const MetadataParser = {
 		return null;
 	},
 
-	/** A phone-level link target, held to the same `sanitizeUrl` policy as `links[]`. */
+	/**
+	 * A link target from phone_book.json, phone-level or in `links[]`. It is a JSON string,
+	 * not HTML, so entities are left alone: decoding them corrupts `?a=1&tab=2`.
+	 */
 	_parseHref(raw: unknown): string | null {
-		return typeof raw === 'string' ? sanitizeUrl(raw) : null;
+		return typeof raw === 'string' ? sanitizeUrl(raw, { entities: false }) : null;
 	},
 
 	/**
@@ -354,7 +357,7 @@ const MetadataParser = {
 			}
 			const { label, url } = entry as { label?: unknown; url?: unknown };
 			const cleanLabel = typeof label === 'string' ? stripHtml(label) : '';
-			const cleanUrl = typeof url === 'string' ? sanitizeUrl(url) : null;
+			const cleanUrl = this._parseHref(url);
 			if (!cleanLabel || !cleanUrl) {
 				console.warn(
 					`[modernGraphTool] phone_book.json: ${context} link #${i} needs a "label" and a safe "url" — skipping.`

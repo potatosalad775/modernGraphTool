@@ -189,7 +189,8 @@ function buildRequest(bandCount: number): AutoEqRequest {
  */
 function channelPoints(channels: ParsedFRData | undefined, scope: EqChannelScope): Points {
 	if (!channels) return [];
-	if (scope !== 'BOTH' && channels[scope]) return channels[scope]!.data as Points;
+	const scoped = scope === 'BOTH' ? undefined : channels[scope];
+	if (scoped) return scoped.data as Points;
 	return (channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? []) as Points;
 }
 

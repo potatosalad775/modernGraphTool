@@ -384,7 +384,8 @@ export const eqCommands = {
 		const pre = eqStore.filters.at(index);
 		if (!pre || pre.enabled === enabled) return;
 		coalescer.flushAll();
-		const cur = eqStore.filters[index]!;
+		const cur = eqStore.filters.at(index);
+		if (!cur) throw new Error(`toggleBandEnabled: index ${index} out of range`);
 		commandHistory.execute(new UpdateEqFilterCommand(index, { ...cur, enabled }, cur), frStore);
 	},
 

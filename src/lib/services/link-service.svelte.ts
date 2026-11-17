@@ -276,10 +276,10 @@ class LinkService {
 		const filters = fromLinkFilters(adopt.eq.filters);
 		// What the edit effect compares against, set first so the adoption isn't sent back.
 		this.#shared = toLinkFilters(filters);
-		const same =
-			adopt.burst !== undefined && this.#adopted !== null && this.#adopted.burst === adopt.burst;
+		const adopted = this.#adopted;
+		const same = adopt.burst !== undefined && adopted !== null && adopted.burst === adopt.burst;
 		const command = eqCommands.adoptLinked(filters, {
-			amend: same ? this.#adopted!.command : null,
+			amend: same ? adopted.command : null,
 			fresh: adopt.fresh
 		});
 		this.#adopted = { command, burst: adopt.burst };

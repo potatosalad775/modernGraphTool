@@ -8,7 +8,7 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
-import { isPlayableBand, type EQFilter } from '#lib/utils/equalizer.js';
+import { isPlayableBand, type CompleteBand, type EQFilter } from '#lib/utils/equalizer.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 import { MediaSessionBridge } from './media-session.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -338,13 +338,13 @@ class AudioPlayerService {
 		this.#reconnectSource();
 	}
 
-	#createBiquad(ctx: AudioContext, f: EQFilter): BiquadFilterNode {
+	#createBiquad(ctx: AudioContext, f: CompleteBand): BiquadFilterNode {
 		const node = ctx.createBiquadFilter();
 		node.type = BIQUAD_TYPE[f.type];
-		node.frequency.value = f.freq!;
+		node.frequency.value = f.freq;
 		// Web Audio reads a low or high pass's Q as resonance in dB; every other type's is linear.
-		node.Q.value = f.type === 'LPQ' || f.type === 'HPQ' ? 20 * Math.log10(f.q!) : f.q!;
-		node.gain.value = f.gain!;
+		node.Q.value = f.type === 'LPQ' || f.type === 'HPQ' ? 20 * Math.log10(f.q) : f.q;
+		node.gain.value = f.gain;
 		return node;
 	}
 
@@ -369,7 +369,7 @@ class AudioPlayerService {
 	 * An ear with no bands of its own still gets a unity `GainNode`: a merger
 	 * input left unconnected is silence, not passthrough.
 	 */
-	#buildPerChannelStage(ctx: AudioContext, input: AudioNode, filters: EQFilter[]): AudioNode {
+	#buildPerChannelStage(ctx: AudioContext, input: AudioNode, filters: CompleteBand[]): AudioNode {
 		const stereoForce = ctx.createGain();
 		stereoForce.channelCount = 2;
 		stereoForce.channelCountMode = 'explicit';
@@ -708,12 +708,10 @@ class AudioPlayerService {
 			audioSpectrumStore.analyserNode = this.#analyserNode;
 		}
 
-		this.#ensureBypassMatchNode(ctx);
-		this.#updateFilters();
-
 		// All sources route into bypassMatchNode; #updateFilters() wires the
 		// rest of the chain (filters or bypass) downstream.
-		const sourceTarget = this.#bypassMatchNode!;
+		const sourceTarget = this.#ensureBypassMatchNode(ctx);
+		this.#updateFilters();
 
 		if (this.#audioSource === 'white' || this.#audioSource === 'pink') {
 			this.#sourceNode = this.#createNoiseNode(this.#audioSource);

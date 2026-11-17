@@ -176,8 +176,9 @@ class DataProvider {
 		const item = frStore.get(uuid);
 		if (!item) return;
 		const files = encodeFRDataForDownload(item);
-		if (runs) {
-			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(item.samples![i], i)));
+		const { samples } = item;
+		if (runs && samples) {
+			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(samples[i], i)));
 		}
 		if (files.length === 0) return;
 		if (files.length === 1) {

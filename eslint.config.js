@@ -83,7 +83,22 @@ export default defineConfig(
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/no-misused-promises': 'error',
 			'@typescript-eslint/await-thenable': 'error',
-			'@typescript-eslint/no-unnecessary-condition': 'error'
+			'@typescript-eslint/no-unnecessary-condition': 'error',
+			'@typescript-eslint/no-non-null-assertion': 'error'
+		}
+	},
+	{
+		// Tests read back what they just set up, and a wrong `!` there fails the test rather
+		// than a user's page.
+		files: [
+			'src/**/*.spec.ts',
+			'src/**/*.fixtures.ts',
+			'src/**/__fixtures__/**',
+			'src/**/*-harness.ts',
+			'src/test-setup.*.ts'
+		],
+		rules: {
+			'@typescript-eslint/no-non-null-assertion': 'off'
 		}
 	},
 	{

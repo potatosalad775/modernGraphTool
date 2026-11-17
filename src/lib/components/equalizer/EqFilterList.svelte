@@ -200,8 +200,8 @@
 	function updateFilter(index: number, partial: Partial<EQFilter>) {
 		// enabled-only toggle bypasses the coalescer so it's always its own undo
 		// entry — a gain drag starting within 400 ms can't swallow the toggle.
-		if ('enabled' in partial && Object.keys(partial).length === 1) {
-			eqCommands.toggleBandEnabled(index, partial.enabled!);
+		if (partial.enabled !== undefined && Object.keys(partial).length === 1) {
+			eqCommands.toggleBandEnabled(index, partial.enabled);
 			return;
 		}
 		// Number inputs and sliders flow through the coalescer so a slider
@@ -267,8 +267,9 @@
 	/** The export file name's device part, or null with no EQ source selected. */
 	function sourceDeviceLabel(): string | null {
 		const source = eqStore.sourcePhoneUUID ? frStore.get(eqStore.sourcePhoneUUID) : null;
-		const run = source ? eqSourceRun(source, eqStore.sourceSample) : null;
-		const runLabel = run ? sampleRunLabel(run, eqStore.sourceSample!.index) : null;
+		const pick = eqStore.sourceSample;
+		const run = source ? eqSourceRun(source, pick) : null;
+		const runLabel = run && pick ? sampleRunLabel(run, pick.index) : null;
 		return eqFileLabel(source ?? null, runLabel);
 	}
 

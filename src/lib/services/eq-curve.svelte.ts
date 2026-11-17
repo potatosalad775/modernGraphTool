@@ -140,8 +140,9 @@ class EqCurve {
 		const existingUUID = eqStore.eqCurveUUID;
 		const existing = existingUUID ? frStore.get(existingUUID) : null;
 		// Name the run in the label: an EQ'd run and the EQ'd average are different curves.
-		const run = eqSourceRun(sourceData, eqStore.sourceSample);
-		const dispSuffix = run ? `(EQ · ${sampleRunLabel(run, eqStore.sourceSample!.index)})` : '(EQ)';
+		const pick = eqStore.sourceSample;
+		const run = eqSourceRun(sourceData, pick);
+		const dispSuffix = run && pick ? `(EQ · ${sampleRunLabel(run, pick.index)})` : '(EQ)';
 
 		if (existing && existingUUID) {
 			frStore.set(existingUUID, {
@@ -230,8 +231,9 @@ class EqCurve {
 	#rawSourceChannels(sourceData: FRDataObject): ParsedFRData | null {
 		const cache = sourceData._rawData;
 		if (!cache) return null;
-		if (!eqSourceRun(sourceData, eqStore.sourceSample)) return cache.channels;
-		const run = cache.samples?.[eqStore.sourceSample!.index];
+		const pick = eqStore.sourceSample;
+		if (!pick || !eqSourceRun(sourceData, pick)) return cache.channels;
+		const run = cache.samples?.[pick.index];
 		if (!run) return null;
 		// Raw runs carry no AVG — processing derives it — so derive it the same way
 		const avg = run.AVG ?? (run.L && run.R ? FRParser.computeAvgChannel(run.L, run.R) : null);
@@ -284,12 +286,11 @@ class EqCurve {
 		// Needs both ears: a phone measured as one curve has no per-ear structure
 		// to average, and there the shared-only pass above is already right.
 		// Only ever rewrites an AVG the source already had — never invents one.
-		if (perChannel && modified.AVG && modified.L && modified.R) {
+		const { L, R, AVG } = modified;
+		if (perChannel && AVG && L && R) {
 			modified.AVG = {
-				data: modified.L.data.map(
-					([freq, lDb], i) => [freq, (lDb + modified.R!.data[i][1]) / 2] as [number, number]
-				),
-				metadata: { ...modified.AVG.metadata }
+				data: L.data.map(([freq, lDb], i) => [freq, (lDb + R.data[i][1]) / 2] as [number, number]),
+				metadata: { ...AVG.metadata }
 			};
 		}
 		return modified;

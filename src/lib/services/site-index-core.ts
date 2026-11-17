@@ -168,7 +168,7 @@ export function groupSiteEntries(entries: SiteIndexEntry[]): SiteIndexGroup[] {
 		group.sort((a, b) => a.siteName.localeCompare(b.siteName) || a.url.localeCompare(b.url));
 	}
 
-	return [...byType.keys()]
-		.sort((a, b) => rankDbType(a) - rankDbType(b) || a.localeCompare(b))
-		.map((type) => ({ type, entries: byType.get(type)! }));
+	return [...byType]
+		.sort(([a], [b]) => rankDbType(a) - rankDbType(b) || a.localeCompare(b))
+		.map(([type, entries]) => ({ type, entries }));
 }

@@ -220,7 +220,7 @@ class EqHistoryStore {
 		if (withinGap) {
 			// The coalesced entry supersedes the one it replaces — carry any A/B
 			// selection over so the pick doesn't silently dangle.
-			const replacedId = last!.id;
+			const replacedId = last.id;
 			if (nextA === replacedId) nextA = entry.id;
 			if (nextB === replacedId) nextB = entry.id;
 			next = [...this.snapshots.slice(0, -1), entry];
@@ -250,13 +250,16 @@ export function summarize(filters: EQFilter[], preamp: number): string {
 
 /** The dominant band plus a count of the rest, e.g. "PK 3.2k Hz -4.0 dB +4". Empty with no bands. */
 export function bandSummary(filters: EQFilter[]): string {
-	const enabled = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
+	const enabled = filters.filter(
+		(f): f is EQFilter & { freq: number; gain: number } =>
+			f.enabled && f.freq != null && f.gain != null
+	);
 	if (!enabled.length) return '';
 
-	const dominant = enabled.reduce((a, b) => (Math.abs(b.gain!) > Math.abs(a.gain!) ? b : a));
-	const f = dominant.freq!;
+	const dominant = enabled.reduce((a, b) => (Math.abs(b.gain) > Math.abs(a.gain) ? b : a));
+	const f = dominant.freq;
 	const hz = f >= 1000 ? `${(f / 1000).toFixed(f >= 10000 ? 0 : 1)}k` : `${f}`;
-	const gain = dominant.gain!;
+	const gain = dominant.gain;
 	const gainStr = `${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`;
 	const tail = enabled.length > 1 ? ` +${enabled.length - 1}` : '';
 	return `${dominant.type} ${hz} Hz ${gainStr}${tail}`;

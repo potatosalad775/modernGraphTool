@@ -111,6 +111,9 @@ export function parseNetworkHost(input: string): ParsedNetworkHost {
  * undefined when it can't be told from the text. Declaring a space the address isn't in makes the
  * browser abort the request, so a VPN or CGNAT address (Tailscale's 100.64/10 is "public" to the
  * browser) and anything unrecognised declares nothing and takes the browser's own check.
+ *
+ * For a name the answer is the likely one, not a settled one (`isNamedHost`): a single-label
+ * or `.local` name can resolve to a VPN address or, through a hosts file, to this machine.
  */
 export function addressSpaceOf(hostname: string): 'local' | 'loopback' | undefined {
 	const name = hostname.toLowerCase();
@@ -129,6 +132,11 @@ export function addressSpaceOf(hostname: string): 'local' | 'loopback' | undefin
 		if ((first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80) return 'local';
 	}
 	return undefined;
+}
+
+/** A name, not an address literal: what it resolves to is not in its text. */
+export function isNamedHost(hostname: string): boolean {
+	return !hostname.startsWith('[') && !IPV4.test(hostname);
 }
 
 /** Thrown for an address `parseNetworkHost` refuses, before anything is sent. */

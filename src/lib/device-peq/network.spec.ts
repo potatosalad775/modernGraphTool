@@ -56,6 +56,27 @@ describe('the device address', () => {
 		]);
 	});
 
+	it('asks again with no address space when a name was refused under the declared one', async () => {
+		// A VPN name is "public" to the browser, which aborts a request declared as local
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await connectNetworkDevice('wiim', 'LuxsinX9').device.setEnabled(true);
+		const space = (i: number) =>
+			(calls[i]?.init as { targetAddressSpace?: string } | undefined)?.targetAddressSpace;
+		// The rejected first attempt is not in `calls`; the retry is the first recorded one
+		expect(fetch).toHaveBeenCalledTimes(calls.length + 1);
+		expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ targetAddressSpace: 'local' });
+		expect(calls[0].url).toBe('http://wiim/dev/info.cgi');
+		expect(space(0)).toBeUndefined();
+	});
+
+	it('does not retry an address literal, whose space is settled', async () => {
+		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
+		await expect(
+			connectNetworkDevice('192.168.0.9', 'LuxsinX9').device.setEnabled(true)
+		).rejects.toBeInstanceOf(NetworkAccessError);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
 	it('turns a failed fetch (mixed content, a denied prompt, nothing there) into one error', async () => {
 		vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'));
 		await expect(connectNetworkDevice('10.0.0.2', 'WiiM').device.pull()).rejects.toBeInstanceOf(

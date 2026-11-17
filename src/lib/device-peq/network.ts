@@ -13,6 +13,7 @@ import type { NetworkDeviceType } from './network-types.js';
 import {
 	NetworkHostError,
 	addressSpaceOf,
+	isNamedHost,
 	parseNetworkHost,
 	requireNetworkHost
 } from './network-host.js';
@@ -91,8 +92,17 @@ async function netFetch(
 	if (!parsed.ok) throw new NetworkHostError(parsed.problem);
 	const targetAddressSpace = addressSpaceOf(parsed.hostname);
 	const options: LocalRequestInit = { ...init, ...(targetAddressSpace && { targetAddressSpace }) };
+	const url = `${scheme}://${parsed.host}${path}`;
 	try {
-		return await fetch(`${scheme}://${parsed.host}${path}`, options);
+		try {
+			return await fetch(url, options);
+		} catch (e) {
+			// A name's space is a guess (a VPN name is "public" to the browser, a hosts-file
+			// one may be this machine), and a wrong one aborts the request before it is sent.
+			// Ask again with nothing declared and let the browser classify the address.
+			if (!(e instanceof TypeError && targetAddressSpace && isNamedHost(parsed.hostname))) throw e;
+			return await fetch(url, init);
+		}
 	} catch (e) {
 		throw e instanceof TypeError ? new NetworkAccessError(e) : e;
 	}

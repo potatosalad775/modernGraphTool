@@ -131,7 +131,9 @@ needs it at boot); keep it the only one.
   devices are reached over VPNs and routed subnets, and a range says nothing about ownership; the
   rule is "not a public name", not "a LAN address". For the same reason `targetAddressSpace` is
   declared only where the text settles it (`addressSpaceOf`): a VPN or CGNAT address is "public" to
-  the browser, and a wrong declaration makes it abort the request. A `TypeError` from fetch
+  the browser, and a wrong declaration makes it abort the request. A name (`wiim`, `wiim.local`) is
+  declared `local` as the likely case, and `netFetch` asks once more with nothing declared when that
+  fails, which covers a VPN name or a hosts-file one. A `TypeError` from fetch
   (mixed content, a denied Local Network Access prompt, nothing there) becomes `NetworkAccessError`,
   which `errors.ts` matches by name.
 - **A device's answer is read through `readBoundedText`** (1 MB: `Content-Length` first, then the

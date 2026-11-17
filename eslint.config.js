@@ -12,6 +12,14 @@ const svelteConfig = (await loadConfig('./', { traverse: false }))?.config;
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
+const testFiles = [
+	'src/**/*.spec.ts',
+	'src/**/*.fixtures.ts',
+	'src/**/__fixtures__/**',
+	'src/**/*-harness.ts',
+	'src/test-setup.*.ts'
+];
+
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	{
@@ -22,6 +30,32 @@ export default defineConfig(
 	},
 	js.configs.recommended,
 	ts.configs.recommended,
+	{
+		// The strict presets for production code. Violations that predate them are recorded in
+		// eslint-suppressions.json, so only new ones fail lint. They sit before the Svelte
+		// configs, which have to win for .svelte files: the presets set typescript-eslint's
+		// parser, and placed after them it replaces Svelte's and every .svelte file fails to parse.
+		files: ['src/**/*.ts', 'src/**/*.svelte'],
+		ignores: testFiles,
+		extends: [ts.configs.strictTypeChecked, ts.configs.stylisticTypeChecked],
+		rules: {
+			eqeqeq: ['error', 'always', { null: 'ignore' }],
+			complexity: ['error', 15]
+		}
+	},
+	{
+		// typescript-eslint's program cannot read `.svelte` modules, so a component's props and
+		// the types its module script exports reach these rules as `any`: every callback passed
+		// to a child component would be flagged with nothing unsafe in it.
+		files: ['src/**/*.svelte'],
+		rules: {
+			'@typescript-eslint/no-unsafe-argument': 'off',
+			'@typescript-eslint/no-unsafe-assignment': 'off',
+			'@typescript-eslint/no-unsafe-call': 'off',
+			'@typescript-eslint/no-unsafe-member-access': 'off',
+			'@typescript-eslint/no-unsafe-return': 'off'
+		}
+	},
 	svelte.configs.recommended,
 	prettier,
 	svelte.configs.prettier,
@@ -90,13 +124,7 @@ export default defineConfig(
 	{
 		// Tests read back what they just set up, and a wrong `!` there fails the test rather
 		// than a user's page.
-		files: [
-			'src/**/*.spec.ts',
-			'src/**/*.fixtures.ts',
-			'src/**/__fixtures__/**',
-			'src/**/*-harness.ts',
-			'src/test-setup.*.ts'
-		],
+		files: testFiles,
 		rules: {
 			'@typescript-eslint/no-non-null-assertion': 'off'
 		}

@@ -17,6 +17,10 @@ bun.lockb
 /docs/.astro/
 /src/lib/paraglide/
 
+# ESLint's suppressions baseline. ESLint writes it with two-space indents on every
+# --suppress-all / --prune-suppressions run, so reformatting it would dirty the tree.
+/eslint-suppressions.json
+
 # Docs content, carried over from the Docusaurus sources. Prettier reflows MDX
 # prose and reindents JSX inside it, so unignoring this rewrites ~180 files in one
 # go — worth doing deliberately, on its own, with a docs build to confirm nothing

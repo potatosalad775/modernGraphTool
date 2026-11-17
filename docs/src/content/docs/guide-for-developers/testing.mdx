@@ -98,3 +98,10 @@ the types say can never fire, so a value from outside them (operator config, fet
 a DOM read, an index that can miss) is typed `| undefined` where it enters, and its guard stays.
 `no-non-null-assertion` fails a `!`: narrow instead, or throw where absence is a bug. Specs and test
 fixtures may still use `!`.
+
+App code outside the specs is also held to typescript-eslint's `strict-type-checked` and
+`stylistic-type-checked` presets. The violations that predate them are recorded per file and rule in
+`eslint-suppressions.json`, ESLint's bulk-suppressions file, so lint fails only on a new one. That
+file must never grow: never run `eslint --suppress-all` to make a red lint pass. After fixing
+recorded violations, run `npm run lint:prune` and commit the smaller file, because `npm run lint`
+also fails on a suppression that no longer matches anything.

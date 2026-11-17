@@ -30,7 +30,8 @@ const BROKEN_PROFILE =
 function isUsableProfile(value: unknown): value is Profile {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
 	const profile = value as Profile;
-	if (typeof profile.band !== 'object' || profile.band === null) return false;
+	const band: unknown = profile.band;
+	if (typeof band !== 'object' || band === null) return false;
 	const count = profile.bandCount;
 	if (count !== null && !(Number.isInteger(count) && count >= 0)) return false;
 	try {
@@ -154,9 +155,7 @@ class EqConstraintsStore {
 	}
 
 	get active(): EqConstraintPreset {
-		return (
-			this.presets.find((p) => p.id === this.activeId) ?? this.presets[0] ?? BUILTIN_PRESETS[0]
-		);
+		return this.presets.find((p) => p.id === this.activeId) ?? this.presets[0];
 	}
 
 	/** The active eqcaps profile. */
@@ -287,7 +286,7 @@ class EqConstraintsStore {
 			if (typeof localStorage === 'undefined') return;
 			const raw = localStorage.getItem(CATALOG_LS_KEY);
 			if (!raw) return;
-			const preset = JSON.parse(raw) as EqConstraintPreset;
+			const preset = JSON.parse(raw) as EqConstraintPreset | null;
 			if (
 				typeof preset?.id === 'string' &&
 				preset.id.startsWith(CATALOG_PREFIX) &&

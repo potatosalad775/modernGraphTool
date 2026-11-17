@@ -66,7 +66,7 @@ export function parseNetworkHost(input: string): ParsedNetworkHost {
 		v6 = normalizeIpv6(match[1]);
 		if (!v6) return fail('invalid');
 		hostPart = v6;
-		portPart = match[2] ?? null;
+		portPart = match.at(2) ?? null;
 		if (portPart === '') return fail('invalid');
 	} else if (text.split(':').length > 2) {
 		// A bare IPv6 literal: a trailing group can't be told from a port, so none is accepted.

@@ -84,7 +84,7 @@ function drivable(entries: IndexEntry[], kind: Transport['kind']): IndexEntry[] 
 
 /** Matches tied at the top, the ones `matchDevice` refused to choose between. */
 function topTies(matches: DeviceMatch<IndexEntry>[]): DeviceMatch<IndexEntry>[] {
-	const top = matches[0];
+	const top = matches.at(0);
 	if (!top) return [];
 	return matches.filter((m) => m.specificity === top.specificity && m.group === top.group);
 }
@@ -297,7 +297,7 @@ async function indexEntries(): Promise<IndexEntry[]> {
 export async function connectHid(): Promise<ConnectResult> {
 	const entries = await indexEntries();
 	const transport = await requestHidDevice({ entries });
-	if (!transport || transport.kind !== 'hid') return { kind: 'cancelled' };
+	if (!transport) return { kind: 'cancelled' };
 	const identity = identityOf(transport);
 	const usb = identity.usb;
 	return identify({

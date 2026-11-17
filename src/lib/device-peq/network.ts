@@ -161,7 +161,7 @@ const WIIM_PLUGIN = { PluginUri: 'http://moddevices.com/plugins/caps/EqNp', Sour
 
 /** WiiM band modes: low shelf 0, peaking 1, high shelf 2, off -1. */
 const WIIM_MODE: Partial<Record<FilterType, number>> = { LSC: 0, PK: 1, HSC: 2 };
-const WIIM_TYPE: Record<number, FilterType> = { 0: 'LSC', 1: 'PK', 2: 'HSC' };
+const WIIM_TYPE: Partial<Record<number, FilterType>> = { 0: 'LSC', 1: 'PK', 2: 'HSC' };
 
 interface WiimBand {
 	mode: number;
@@ -183,11 +183,12 @@ function wiimDevice(ip: string): PeqDevice {
 		async pull() {
 			const text = await wiimCommand(ip, 'EQGetLV2SourceBandEx', WIIM_PLUGIN);
 			const data = JSON.parse(text) as { EQBand?: WiimBand[] };
-			const filters = (data.EQBand ?? []).map((b): Filter | null =>
-				b.mode === -1 || WIIM_TYPE[b.mode] === undefined
+			const filters = (data.EQBand ?? []).map((b): Filter | null => {
+				const type = WIIM_TYPE[b.mode];
+				return b.mode === -1 || type === undefined
 					? null
-					: { type: WIIM_TYPE[b.mode], freq: b.freq, q: b.q, gain: b.gain }
-			);
+					: { type, freq: b.freq, q: b.q, gain: b.gain };
+			});
 			return { filters };
 		},
 		async push({ filters }) {
@@ -255,7 +256,7 @@ const LUX_CODE: Partial<Record<FilterType, number>> = {
 };
 const LUX_TYPE = Object.fromEntries(
 	Object.entries(LUX_CODE).map(([type, code]) => [code, type as FilterType])
-) as Record<number, FilterType>;
+) as Partial<Record<number, FilterType>>;
 
 interface LuxProfile {
 	name?: string;

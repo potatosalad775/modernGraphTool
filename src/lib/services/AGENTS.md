@@ -22,7 +22,9 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
   that affects all audio on the device. The single-character keys (`\`, `1`–`4`) are skipped while
   a widget that takes character keys has focus (`isWidgetFocused` in `utils/widget-focus.ts`, shared
   with `GraphEqOverlay`) and when `settingsStore.singleKeyShortcuts` is off (WCAG 2.1.4); the
-  modifier shortcuts and the `\` release are never gated
+  modifier shortcuts and the `\` release are never gated. It reads the playing flag from
+  `audioPlaybackStore`, not from the audio player service, so the audio engine stays out of the boot
+  chunk — don't re-import the service there
 - `analytics-service.svelte.ts` — GA4 (multi-measurement-ID) for squig.link deployments. IDs must
   match `/^G-[A-Z0-9]+$/` (the value goes into a script URL; others are skipped with a warning);
   `navigator.globalPrivacyControl === true` loads nothing; the gtag script is `fetchPriority = 'low'`

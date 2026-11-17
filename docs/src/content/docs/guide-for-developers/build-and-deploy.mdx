@@ -36,6 +36,24 @@ with a `sha384` hash for every script and stylesheet under `_app/`. `deploy.yml`
 loader they pinned, so a change to `boot.json` or `versions.json` has to stay readable by older
 loaders: add keys, never repurpose one.
 
+## What the first screen preloads
+
+`npm run build` and `npm run build:cdn` both run `scripts/preload-boot-chunks.js` on the built
+`index.html`. It adds a `<link rel="modulepreload">` for every script the first screen needs that
+SvelteKit's own list leaves out, so the browser fetches them all in one round trip:
+
+- **The route nodes.** The fallback page knows no route, so SvelteKit lists only the root layout.
+  Since SvelteKit 3 the router asks for the page node after the app chunk has loaded and run, which
+  cost about 55 ms in the [startup benchmark](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-startup).
+- **Chunks shared with a lazy chunk.** Code used by both the app chunk and a dynamically imported
+  one (the Equalizer panel, Hardware EQ) is split into its own chunk, which the app chunk imports
+  statically.
+
+The script follows the static imports of the built files, so a new lazy chunk needs no change here.
+`boot.json` takes its preload list from the same page. After a change to what loads lazily, run
+`node scripts/bench-startup/waterfall.mjs` and check that no script starts only after a larger one
+has finished.
+
 ## The recommended security headers
 
 `scripts/csp.js` builds the Content-Security-Policy that releases ship switched off. It hashes the

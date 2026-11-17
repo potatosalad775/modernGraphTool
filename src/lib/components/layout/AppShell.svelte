@@ -28,7 +28,7 @@
 	import { menuStore } from '#lib/stores/menu-store.svelte.js';
 	import DevicePanel from '#lib/components/panels/DevicePanel.svelte';
 	import GraphPanel from '#lib/components/panels/GraphPanel.svelte';
-	import EqualizerPanel from '#lib/components/panels/EqualizerPanel.svelte';
+	import { loadEqualizerPanel, preloadEqualizerPanel } from '#lib/components/panels/lazy-panels.js';
 	import MiscPanel, { CHANGELOG_URL } from '#lib/components/panels/MiscPanel.svelte';
 	import SponsorBanner from '#lib/components/features/SponsorBanner.svelte';
 	import TutorialModal from '#lib/components/features/TutorialModal.svelte';
@@ -209,6 +209,18 @@
 		urlProvider.autoUpdate();
 	});
 
+	// The Equalizer panel is not in the boot chunk (see lazy-panels.ts). Fetch it once the
+	// first curves are in and the browser has a moment, so the first switch doesn't wait.
+	$effect(() => {
+		if (!appStore.isReady) return;
+		if (typeof requestIdleCallback === 'function') {
+			const id = requestIdleCallback(preloadEqualizerPanel, { timeout: 3000 });
+			return () => cancelIdleCallback(id);
+		}
+		const id = setTimeout(preloadEqualizerPanel, 1000);
+		return () => clearTimeout(id);
+	});
+
 	// Persist AutoEQ options to the currently-selected storage whenever they change.
 	$effect(() => {
 		if (!appStore.isReady) return;
@@ -232,6 +244,12 @@
 	>
 		{label}
 	</a>
+{/snippet}
+
+{#snippet equalizerPanel()}
+	{#await loadEqualizerPanel() then { default: EqualizerPanel }}
+		<EqualizerPanel />
+	{/await}
 {/snippet}
 
 {#snippet panelHeading()}
@@ -290,7 +308,7 @@
 							{:else if menuStore.currentPanel === 'graph'}
 								<GraphPanel />
 							{:else if menuStore.currentPanel === 'equalizer'}
-								<EqualizerPanel />
+								{@render equalizerPanel()}
 							{:else}
 								<MiscPanel />
 							{/if}
@@ -342,7 +360,7 @@
 							{:else if menuStore.currentPanel === 'graph'}
 								<GraphPanel />
 							{:else if menuStore.currentPanel === 'equalizer'}
-								<EqualizerPanel />
+								{@render equalizerPanel()}
 							{:else}
 								<MiscPanel />
 							{/if}

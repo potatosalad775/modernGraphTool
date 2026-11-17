@@ -16,6 +16,7 @@
 import { execSync } from 'child_process';
 import { readFileSync, copyFileSync, existsSync, renameSync, rmSync } from 'fs';
 import { writeHtaccessCsp, writeMetaCsp } from './csp.js';
+import { completePreloadsIn } from './preload-boot-chunks.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -64,6 +65,9 @@ try {
 	// Step 3: Move dist/ to dist-cdn/
 	if (existsSync(cdnOutDir)) rmSync(cdnOutDir, { recursive: true });
 	renameSync(distDir, cdnOutDir);
+
+	// boot.json takes its preloads from index.html, so complete that list first.
+	completePreloadsIn(cdnOutDir);
 
 	// Step 4: Generate boot.json
 	console.log('\nGenerating boot.json...');

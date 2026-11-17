@@ -1,7 +1,7 @@
 import { commandHistory } from './command-history.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
 import { eqCommands } from './eq-commands.js';
-import { audioPlayerService } from './audio-player-service.svelte.js';
+import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
@@ -125,7 +125,7 @@ export function onKeydown(e: ShortcutKeyEvent): void {
 		// graph would flip while the sound stayed the same.
 		// Only where a hold would have started: not mid-hold, and not without an EQ source.
 		const couldHold = eqStore.momentaryRestore === null && !!eqStore.sourcePhoneUUID;
-		if (couldHold && audioPlayerService.isPlaying && devicePeqStore.playsEq) {
+		if (couldHold && audioPlaybackStore.isPlaying && devicePeqStore.playsEq) {
 			e.preventDefault();
 			toast.info(m.eq_hold_on_device({ device: devicePeqStore.deviceName ?? '' }), {
 				id: 'eq-hold-on-device'

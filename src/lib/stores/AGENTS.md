@@ -46,6 +46,10 @@ export const frStore = new FRDataStore();
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound
   directly by the EQ player view) + `AnalyserNode` reference written by `audio-player-service`, read by
   `GraphContainer`/`GraphSpectrumOverlay`
+- `audio-playback-store.svelte.ts` — `isPlaying`, the audio player's playing flag, the single source of
+  truth behind `audioPlayerService.isPlaying`. Written only by the service. It exists so boot-bundle
+  code (`keyboard-shortcuts.ts`) can read the flag without importing the audio engine; keep it free
+  of imports
 - `device-peq-store.svelte.ts` — the connected EQ device (`DeviceConnection`), target preset, busy flags
 - `link-store.svelte.ts` — the uniPEQ link as the UI sees it: phase, room, uniPEQ's device and status,
   the start dialog's question. Written only by `services/link-service.svelte.ts`

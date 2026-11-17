@@ -7,6 +7,7 @@ import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
+import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { computeAbMatchDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { derivePreamp } from '#lib/utils/eq-preamp.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
@@ -861,6 +862,19 @@ describe('AudioPlayerService', () => {
 			audioPlayerService.setAudioSource('pink');
 			expect(audioPlayerService.isPlaying).toBe(false);
 			expect(audioPlayerService.audioSource).toBe('pink');
+		});
+
+		it('publishes the playing flag through audioPlaybackStore, its single source of truth', () => {
+			expect(audioPlaybackStore.isPlaying).toBe(false);
+
+			audioPlayerService.play();
+			settle();
+			expect(audioPlaybackStore.isPlaying).toBe(true);
+			expect(audioPlayerService.isPlaying).toBe(true);
+
+			audioPlayerService.pause();
+			expect(audioPlaybackStore.isPlaying).toBe(false);
+			expect(audioPlayerService.isPlaying).toBe(false);
 		});
 
 		it('starts an oscillator for tone and a buffer source for noise', () => {

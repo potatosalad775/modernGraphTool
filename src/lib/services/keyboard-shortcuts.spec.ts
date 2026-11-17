@@ -3,6 +3,7 @@ import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import type { DeviceConnection } from '#lib/device-peq/types.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore, type EQFilter } from '#lib/stores/eq-store.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
@@ -12,7 +13,6 @@ import type { FRDataObject } from '#lib/types/data-types.js';
 import { AddFRDataCommand } from './commands.js';
 import { commandHistory } from './command-history.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
-import { audioPlayerService } from './audio-player-service.svelte.js';
 import { eqCommands } from './eq-commands.js';
 import {
 	onBlur,
@@ -405,17 +405,15 @@ describe('keyboard shortcuts', () => {
 		});
 
 		describe('while a device applies the EQ', () => {
-			let playing: ReturnType<typeof vi.spyOn>;
-
 			beforeEach(() => {
-				playing = vi.spyOn(audioPlayerService, 'isPlaying', 'get').mockReturnValue(true);
+				audioPlaybackStore.isPlaying = true;
 				devicePeqStore.audioPathChoice = null;
 				devicePeqStore.setDisconnected();
 				vi.mocked(toast.info).mockClear();
 			});
 
 			afterEach(() => {
-				playing.mockRestore();
+				audioPlaybackStore.isPlaying = false;
 				devicePeqStore.audioPathChoice = null;
 				devicePeqStore.setDisconnected();
 			});
@@ -459,7 +457,7 @@ describe('keyboard shortcuts', () => {
 			});
 
 			it('works as before when the player is not playing', () => {
-				playing.mockReturnValue(false);
+				audioPlaybackStore.isPlaying = false;
 				eqStore.isEnabled = true;
 				connectDevice();
 

@@ -36,6 +36,24 @@ CDN 빌드는 얇은 `cdn-index.html` 로더와 `cdn/loader.js`를 생성합니�
 로더를 계속 씁니다. 그래서 `boot.json`이나 `versions.json`을 바꿀 때는 이전 로더도 읽을 수 있어야
 합니다. 키를 추가할 수는 있어도, 기존 키의 용도를 바꿔서는 안 됩니다.
 
+## 첫 화면이 미리 불러오는 것 \{#what-the-first-screen-preloads\}
+
+`npm run build`와 `npm run build:cdn`은 둘 다 빌드된 `index.html`에 `scripts/preload-boot-chunks.js`를
+실행합니다. 첫 화면에 필요하지만 SvelteKit 자체 목록에는 빠지는 스크립트마다
+`<link rel="modulepreload">`를 추가해, 브라우저가 한 번의 왕복으로 모두 받아 오게 하는 것입니다.
+
+- **라우트 노드.** 폴백 페이지는 라우트를 알지 못해서 SvelteKit은 루트 레이아웃만 나열합니다.
+  SvelteKit 3부터는 앱 청크를 불러와 실행한 뒤에야 라우터가 페이지 노드를 요청하는데, 이 지연이
+  [시작 속도 벤치마크](https://github.com/potatosalad775/modernGraphTool/tree/main/scripts/bench-startup)에서
+  약 55 ms였습니다.
+- **지연 로드되는 청크와 공유하는 청크.** 앱 청크와 동적으로 import하는 청크(이퀄라이저 패널,
+  하드웨어 EQ)가 함께 쓰는 코드는 별도 청크로 분리되고, 앱 청크가 이를 정적으로 import합니다.
+
+이 스크립트는 빌드된 파일의 정적 import를 따라가므로, 새 지연 로드 청크가 생겨도 여기를 고칠 필요가
+없습니다. `boot.json`의 미리 불러오기 목록도 같은 페이지에서 가져옵니다. 지연 로드 대상을 바꾼 뒤에는
+`node scripts/bench-startup/waterfall.mjs`를 실행해, 더 큰 스크립트가 끝난 뒤에야 시작되는 스크립트가
+없는지 확인하세요.
+
 ## 권장 보안 헤더 \{#the-recommended-security-headers\}
 
 `scripts/csp.js`는 릴리스에 꺼진 상태로 들어가는 Content-Security-Policy를 만듭니다. 운영자가 실제로

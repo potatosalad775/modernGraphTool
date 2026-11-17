@@ -164,6 +164,19 @@ uses the atom, and touching a raw one is a good moment to convert it.
 Panels are **torn down on every panel switch.** Anything that has to survive that belongs in a store
 or a service installed from `AppShell.onMount`, not in a panel-scoped `$effect`.
 
+**The Equalizer panel is not in the boot chunk** (`panels/lazy-panels.ts`). It is about a fifth of
+the app's JavaScript, with the bits-ui Select, DropdownMenu, Tabs and ToggleGroup only it uses and a
+third of the translated strings. `AppShell` renders it through `{#await loadEqualizerPanel()}` and
+fetches it when the browser is idle after `isReady`, so the first switch takes one frame; a
+deployment with `INITIAL_PANEL: 'equalizer'` starts the request from `initial-load.ts`.
+
+- **Nothing the boot path imports may import from `components/equalizer/`, `EqualizerPanel`,
+  `audio-player-service` or `autoeq-service`**, or that code moves back into the boot chunk
+  without any error. `keyboard-shortcuts.ts` reads `audioPlaybackStore` for this reason. After
+  touching imports around the panel, check the app chunk's size (`bundle-report.mjs`).
+- The other panels are still static. `MiscPanel` cannot move until `AppShell` stops importing
+  `CHANGELOG_URL` from its module script.
+
 ## Invariants worth keeping
 
 **`controls/PhoneSelector` — the pinned-device order is a snapshot, not a `$derived` of

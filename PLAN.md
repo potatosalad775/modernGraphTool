@@ -284,6 +284,8 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     (`body-scroll-lock.svelte.js`), and the tour's own mount is on top of that.
   - Fix: open it after the first curves are drawn (not on `isReady`, which is earlier).
     That trades a later LCP for earlier curves, so it is a maintainer call.
+  - Tried and rejected (2026-11-17): `preventScroll={false}` on the tour's `Dialog.Content`.
+    First visit 1020 → 1026, returning 906 → 905 in the same session, so the gap (about 115) does not come from the scroll lock alone; the layout is forced some other way too.
 - [ ] **N18. Startup lost about 150 ms for returning visitors since v2.2.4** (M–L)
   - Measured: 786 → 939 (v2.3.4) → 963 (this branch). The preloaded JS and CSS went from
     258 to 326 KB gzip; the app chunk alone from 160 to 220 KB gzip (559 → 795 KB raw).
@@ -294,6 +296,51 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Lever not yet tried: loading features nobody uses on the first screen (Device PEQ,
     uniPEQ link, the tour, cross-site search) on first use. This is not the rejected
     "lazy panels" change, which made the initial panel a round trip.
+  - Researched 2026-11-17 (returning visitor, throttled, one session: v2.2.4 757, this
+    branch 925). The loss has three parts:
+    - **A late route node, about 55 ms.** SvelteKit 3 awaits the root layout (and so the
+      app chunk) before it asks for the page node, `nodes/2`. Kit 2 fetched it in parallel.
+      `index.html` does not preload it, so it is a round trip after the app chunk has run.
+      Measured: adding `<link rel="modulepreload">` for `nodes/1` and `nodes/2` to
+      `index.html` gives 871. The CDN build already preloads its route nodes
+      (`generate-boot-manifest.js`); the full build and the site template do not.
+    - **Download, about 60 ms.** Boot JS went from 250 to 317 KB gzip. Pre-minify growth by
+      group: translations +71 KB, our own code about +186 KB (utils, equalizer, atoms,
+      stores, services, layout), bits-ui menu, tooltip and tabs +85 KB, SvelteKit 3 with
+      devalue +47 KB, d3 +20 KB.
+    - **Main thread, about 55 ms.** More module evaluation (+20) and more component mount
+      work (+33). Layout did not grow (63 → 61). The two forced layouts are the first
+      size binding (38, needed anyway) and the accordion's content measurement (22).
+  - What could leave the boot chunk (estimated from the module graph, not measured):
+    - Equalizer panel: about 20% of boot JS (its components, `autoeq-service`, the bits-ui
+      Select, DropdownMenu, Tabs and ToggleGroup that only it uses, and a third of all
+      translated strings). `audio-player-service` leaves too once
+      `keyboard-shortcuts.ts` stops importing it for `isPlaying`.
+    - Device and Misc panels, `FrequencyTutorial` (sole user of bits-ui ScrollArea, off by
+      default), svelte-sonner's `Toaster`, `SponsorBanner`: about 10% together.
+      `MiscPanel` first needs `CHANGELOG_URL` moved out of its module script.
+    - The tour: about 2%, but a first visit needs it at once.
+    - Together about 95 KB gzip, or 85 ms of download at the benchmark's throttle.
+    - Keep the first switch instant by importing the panels when the browser is idle after
+      the first curves, and import the right one at boot when `INITIAL_PANEL` names it.
+  - Done 2026-11-17, measured in one session (returning, throttled): v2.2.4 757, before
+    934, after 852.
+    - `scripts/preload-boot-chunks.js` completes `index.html`'s modulepreload list in the
+      full and CDN builds: the route nodes (54 of the 82 ms), and chunks the app chunk
+      shares with a lazy one, which SvelteKit's list also leaves out.
+    - The Equalizer panel loads through `panels/lazy-panels.ts`; `keyboard-shortcuts.ts`
+      reads the new `audioPlaybackStore`, so the audio player left with it. The app chunk
+      went from 760 to 388 KB raw, with 195 KB in a shared chunk that is preloaded.
+    - It gained 28 ms, not the 55 estimated. The boot JS does finish 58 ms sooner, but the
+      phone book request now starts later (351 against 312) and the FR files land after
+      the app chunk (495 against 427), so the data is on the critical path.
+  - Still open, in order of expected gain:
+    - Start the phone book request from the shells (rejected earlier, when the app chunk
+      was last to arrive; it no longer is).
+    - Device and Misc panels, `FrequencyTutorial`, the `Toaster`, `SponsorBanner`.
+  - Not worth it: `tailwind-merge` costs 17 ms at boot but v2.2.4 paid the same;
+    `eqcaps-core` is held by the constraints store; Hardware EQ and uniPEQ link are
+    already lazy.
 
 ## 1. Confirmed bugs (start here)
 

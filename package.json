@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build && node scripts/csp.js dist",
+		"build": "vite build && node scripts/preload-boot-chunks.js dist && node scripts/csp.js dist",
 		"build:cdn": "node scripts/build-cdn.js",
 		"build:site-template": "node scripts/build-site-template.js",
 		"preview": "vite preview",

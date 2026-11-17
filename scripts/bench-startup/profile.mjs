@@ -3,7 +3,12 @@
  *
  *   npx vite build --sourcemap && node scripts/bench-startup/setup.mjs mgt map
  *   node scripts/bench-startup/profile.mjs --sites map [--runs 5] [--returning] [--top 40]
- *       [--scenario default|share] [--files]
+ *       [--scenario default|share] [--files | --components]
+ *
+ * `--components` attributes each sample to the innermost Svelte component it ran inside
+ * (its own work, not its children's). It needs `npx vite build --minify false`, because
+ * minifying renames the component functions. `--inside Button` keeps only the samples of
+ * one component (same build, with `--sourcemap` to see which files they are in).
  *
  * Prints self time by package or source directory between navigation and the last curve,
  * summed over the runs and divided by their number. The site has to be built with source
@@ -30,6 +35,7 @@ const runs = Number(option('runs', '5'));
 const top = Number(option('top', '40'));
 const scenario = SCENARIOS[option('scenario', 'default')];
 const returning = flag('returning');
+const inside = option('inside', '');
 
 const tidy = (source) =>
 	String(source)
@@ -84,6 +90,18 @@ async function profile(browser, url, resolve) {
 	await context.close();
 
 	const nodes = new Map(profile.nodes.map((n) => [n.id, n]));
+	const parent = new Map();
+	for (const node of profile.nodes)
+		for (const child of node.children ?? []) parent.set(child, node.id);
+	// The innermost component a sample ran inside: compiled components keep their PascalCase
+	// name only in an unminified build.
+	const component = (id) => {
+		for (let at = id; at !== undefined; at = parent.get(at)) {
+			const { functionName, url } = nodes.get(at).callFrame;
+			if (url && /^[A-Z][A-Za-z0-9]*[a-z][A-Za-z0-9]*$/.test(functionName)) return functionName;
+		}
+		return '(outside a component)';
+	};
 	const bySource = new Map();
 	// The profile starts just before navigation; everything after the curves is cut off.
 	let clock = profile.startTime;
@@ -93,7 +111,12 @@ async function profile(browser, url, resolve) {
 		if (clock > end) return;
 		const { callFrame } = nodes.get(id);
 		let source;
-		if (!callFrame.url) source = `(${callFrame.functionName || 'native'})`;
+		if (inside && component(id) !== inside) return;
+		if (flag('components')) {
+			source = /^\((idle|program)\)$/.test(callFrame.functionName)
+				? callFrame.functionName
+				: component(id);
+		} else if (!callFrame.url) source = `(${callFrame.functionName || 'native'})`;
 		else source = resolve(callFrame.url, callFrame.lineNumber, callFrame.columnNumber);
 		bySource.set(source, (bySource.get(source) ?? 0) + (profile.timeDeltas[i + 1] ?? 0));
 	});
@@ -124,7 +147,8 @@ for (const site of sites) {
 	console.log(
 		`\n== ${site}: curves at ${at.toFixed(0)} ms, sampled script ${(sum / 1000).toFixed(0)} ms`
 	);
-	const rows = [...(flag('files') ? total : byGroup)].sort((a, b) => b[1] - a[1]);
+	const detailed = flag('files') || flag('components');
+	const rows = [...(detailed ? total : byGroup)].sort((a, b) => b[1] - a[1]);
 	for (const [name, us] of rows.slice(0, top)) {
 		console.log(`  ${(us / 1000).toFixed(1).padStart(6)} ms  ${name}`);
 	}

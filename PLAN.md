@@ -337,7 +337,19 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     - The three shells now preload the phone book from an inline script (the idea was
       rejected earlier, when the app chunk was last to arrive). The request goes out at 214
       instead of 351 and the FR files land with the app chunk: 853 → 818 in one session.
-  - Still open:
+  - Tried and set aside 2026-11-17: the Device and Misc panels, `FrequencyTutorial` and the
+    `Toaster` lazy as well (stash "lazy2", tests green). Boot JS 828 → 719 KB raw, but 826
+    against 834: the FR files then arrive last. They are requested once the chunks
+    `hooks.client.ts` needs have run, and the benchmark server shares the connection
+    equally, so those 90 KB gzip finish no sooner. A server that sends streams in request
+    order would behave differently; this harness cannot show it.
+  - Where the rest is (returning, throttled, about 820 against 757 for v2.2.4): the boot
+    JS still finishes about 55 ms later, and the main thread does about 30 ms more work.
+    By component, from `profile.mjs --components`: `Button` 69 (of which `tailwind-merge`'s
+    one-time class map 20 and attribute spreading 11), SvelteKit's boundaries 27, icons 21,
+    `AccordionItem` 20 (the forced layout), `AppShell` 19, `SelectionList` 15, `Popover` 15.
+    Effects and data processing outside any component are about 340, Svelte itself 119 of it.
+  - Previously listed as open:
     - Device and Misc panels, `FrequencyTutorial`, the `Toaster`, `SponsorBanner`.
   - Not worth it: `tailwind-merge` costs 17 ms at boot but v2.2.4 paid the same;
     `eqcaps-core` is held by the constraints store; Hardware EQ and uniPEQ link are

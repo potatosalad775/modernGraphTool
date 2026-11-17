@@ -281,7 +281,8 @@ node scripts/bench-startup/bench.mjs --sites lab,pgt,before,after
 - `trace.mjs` breaks a throttled startup down by main-thread event and names the script position
   behind each forced layout; `bundle-report.mjs` says what a chunk is made of and resolves those
   positions (both need `npx vite build --sourcemap`; rebuild without it afterwards).
-- `profile.mjs` (same source-map build) attributes main-thread time to source files, and
+- `profile.mjs` (same source-map build) attributes main-thread time to source files, or with
+  `--components` to the Svelte component it ran inside (needs `--minify false`), and
   `waterfall.mjs` lists each request's timing. A script that starts only after a larger one has
   finished is a round trip a preload would remove.
 - Don't measure layout or paint in component specs — they load no Tailwind (`components/AGENTS.md`).
@@ -291,6 +292,13 @@ Measured and rejected — don't retry without a new reason:
 - Lazy-loading panels through dynamic `import()`: the initial panel becomes an extra round trip.
   A panel the page does not open on is a different case: the Equalizer panel is lazy
   (`components/AGENTS.md`), which took 28 ms off a throttled startup.
+- Lazy-loading the Device and Misc panels, the Frequency Tutorial strip and the toast layer as
+  well: 13% less boot JavaScript, no change (826 against 834 ms). The curves then wait for the FR
+  files, which are requested only once the chunks `hooks.client.ts` needs have run (about 90 KB
+  gzip), and the benchmark server shares the connection equally between all streams. Preloading
+  the FR files by hand made it worth 15 ms.
+- Skipping `twMerge` for a `Button` without a `class`: its 18 ms at boot is building its class map
+  on the first call (4.6 ms unthrottled); every later call costs 0.03 ms.
 - `kit.output.bundleStrategy: 'single'`: one request instead of ~19, but ~160 ms slower throttled.
 - `content-visibility: auto` on `PhoneSelector` rows: ~110 ms _slower_ to paint a 1500-device panel
   (DOM creation is the cost, not layout), and the paint containment clips the rows' focus outline.

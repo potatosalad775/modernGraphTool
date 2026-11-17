@@ -19,10 +19,10 @@
 	$effect(() => {
 		if (config.ENABLED === false || !appStore.isReady) return;
 		if (typeof requestIdleCallback === 'function') {
-			const id = requestIdleCallback(() => siteIndexService.load(), { timeout: 2000 });
+			const id = requestIdleCallback(() => void siteIndexService.load(), { timeout: 2000 });
 			return () => cancelIdleCallback(id);
 		}
-		const id = setTimeout(() => siteIndexService.load(), 0);
+		const id = setTimeout(() => void siteIndexService.load(), 0);
 		return () => clearTimeout(id);
 	});
 

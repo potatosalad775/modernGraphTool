@@ -45,7 +45,7 @@
 
 	function handleLocaleChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
-		setLocale(select.value as Locale);
+		void setLocale(select.value as Locale);
 	}
 </script>
 

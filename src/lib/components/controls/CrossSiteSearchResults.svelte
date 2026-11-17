@@ -46,7 +46,7 @@
 	$effect(() => {
 		if (crossSiteEnabled && groups.length > 0 && !crossSiteLoadStarted) {
 			crossSiteLoadStarted = true;
-			loadCrossSiteData();
+			void loadCrossSiteData();
 		}
 	});
 

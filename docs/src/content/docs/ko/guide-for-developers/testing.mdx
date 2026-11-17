@@ -88,7 +88,7 @@ Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. *
 이 문제의 재발을 막습니다. 체크아웃과 설치만 했는데 무언가 수정된 상태로 남거나 CRLF가 인덱스에
 들어가면 실패합니다.
 
-`npm run lint`는 0으로 종료해야 합니다. ESLint _경고_는 빌드를 실패시키지 않습니다. 규칙 재정의는 `eslint.config.js`에 있으며 각각 이유를 주석으로
+`npm run lint`는 0으로 종료해야 하며, ESLint _경고_도 오류처럼 실패로 처리됩니다(`--max-warnings 0`). 규칙 재정의는 `eslint.config.js`에 있으며 각각 이유를 주석으로
 달아 두었습니다. 특히 `no-useless-assignment`는 `$bindable()` prop 기본값을 잘못 읽기 때문에
 `*.svelte`에서 꺼져 있고, `no-explicit-any`는 설정 마이그레이션 도구가 운영자가 작성한 임의의 설정을
 파싱하기 때문에 `docs/` 아래에서 꺼져 있습니다.

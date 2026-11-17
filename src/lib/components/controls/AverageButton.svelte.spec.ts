@@ -84,9 +84,7 @@ describe('AverageButton', () => {
 	});
 
 	it('inserts one averaged curve carrying the contributor count', async () => {
-		const insert = vi
-			.spyOn(dataProvider, 'insertRawFRData')
-			.mockImplementation(() => Promise.resolve());
+		const insert = vi.spyOn(dataProvider, 'insertRawFRData').mockReturnValue(undefined);
 		seed(makeItem('a'), makeItem('b'), makeItem('c'));
 		render(AverageButton);
 
@@ -101,9 +99,7 @@ describe('AverageButton', () => {
 	});
 
 	it('averages the visible curves and leaves the hidden one out', async () => {
-		const insert = vi
-			.spyOn(dataProvider, 'insertRawFRData')
-			.mockImplementation(() => Promise.resolve());
+		const insert = vi.spyOn(dataProvider, 'insertRawFRData').mockReturnValue(undefined);
 		// 80 and 90 average to 85; the hidden 0 dB curve would drag it to ~56.7.
 		seed(
 			makeItem('a'),

@@ -198,12 +198,12 @@ class DataProvider {
 
 	// ─── Insert raw ──────────────────────────────────────────────────────────────
 
-	async insertRawFRData(
+	insertRawFRData(
 		sourceType: FRDataType,
 		identifier: string,
 		rawData: ParsedFRData,
 		inputMetadata: FRInputMetadata = {}
-	): Promise<void> {
+	): void {
 		insertRawCurve(sourceType, identifier, rawData, inputMetadata);
 	}
 

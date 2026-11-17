@@ -187,9 +187,20 @@
 		// `isReady` is set here, not in the run: the run can finish before mount, and
 		// flipping it mid-mount fires the URL effect below while SvelteKit's router
 		// has no root component yet, so the shallow `goto` fails.
-		claimInitialLoad().then(() => {
-			appStore.isReady = true;
-		});
+		// A phone book that can't be fetched or parsed rejects the run. `isReady` then stays false,
+		// so the URL effect never rewrites a `?share=` link this load could not open.
+		claimInitialLoad().then(
+			() => {
+				appStore.isReady = true;
+			},
+			(error: unknown) => {
+				console.error(
+					'[modernGraphTool] Initial load failed. Check that PATH.PHONE_BOOK is reachable ' +
+						'and valid JSON.',
+					error
+				);
+			}
+		);
 
 		return () => {
 			window.removeEventListener('resize', updateMobile);

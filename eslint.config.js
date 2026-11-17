@@ -68,6 +68,22 @@ export default defineConfig(
 		}
 	},
 	{
+		// Type-aware rules for the app. The block above gives only Svelte files type information;
+		// this extends it to every .ts file under src/. A promise nobody awaits or catches turns a
+		// rejection into an unhandled one, and a promise-returning callback in a void slot (an
+		// event handler, a timer) drops its rejection the same way.
+		files: ['src/**/*.ts', 'src/**/*.svelte'],
+		ignores: ['src/**/*.spec.ts'],
+		languageOptions: {
+			parserOptions: { projectService: true }
+		},
+		rules: {
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/no-misused-promises': 'error',
+			'@typescript-eslint/await-thenable': 'error'
+		}
+	},
+	{
 		// The docs site's Svelte components are Astro islands, not SvelteKit routes.
 		// `resolve()` is a SvelteKit import that does not exist there, and these links
 		// are built from `import.meta.env.BASE_URL` instead.

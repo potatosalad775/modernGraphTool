@@ -252,7 +252,7 @@
 	// a ranking sheet. Here rather than in a store because this is also what
 	// revalidates a stale sheet — the panel remounts on every panel switch.
 	onMount(() => {
-		rankingService.load();
+		void rankingService.load();
 	});
 </script>
 

@@ -9,8 +9,8 @@
 
 	onMount(() => {
 		if (squiglinkStore.isEnabled) {
-			squiglinkStore.fetchSponsorDetail();
-			squiglinkStore.fetchShopLinks();
+			void squiglinkStore.fetchSponsorDetail();
+			void squiglinkStore.fetchShopLinks();
 		}
 	});
 
@@ -46,7 +46,7 @@
 			productData = null;
 			return;
 		}
-		squiglinkStore.fetchSponsorProductData(link.hfgUrl).then((data) => {
+		void squiglinkStore.fetchSponsorProductData(link.hfgUrl).then((data) => {
 			productData = data;
 		});
 	});

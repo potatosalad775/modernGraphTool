@@ -88,7 +88,7 @@ before `.gitattributes` pinned every text file to `eol=lf`, the same commit was 
 macOS and dirty on Windows. The **Working tree must be clean** step guards against that regressing:
 it fails if a checkout plus install leaves anything modified, or if CRLF ever reaches the index.
 
-`npm run lint` must exit 0. ESLint _warnings_ do not fail the build. Rule overrides live in `eslint.config.js` and each carries a
+`npm run lint` must exit 0, and an ESLint _warning_ fails it like an error (`--max-warnings 0`). Rule overrides live in `eslint.config.js` and each carries a
 comment explaining why — notably `no-useless-assignment` is off for `*.svelte` because it misreads
 `$bindable()` prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
 tool parses arbitrary operator-authored config.

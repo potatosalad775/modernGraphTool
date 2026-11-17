@@ -65,7 +65,7 @@ async function upload(which: 'phone' | 'target', files: File[]): Promise<void> {
 
 describe('GraphUploader', () => {
 	beforeEach(async () => {
-		insert = vi.spyOn(dataProvider, 'insertRawFRData').mockResolvedValue(undefined as never);
+		insert = vi.spyOn(dataProvider, 'insertRawFRData').mockReturnValue(undefined);
 		success = vi.spyOn(toast, 'success').mockImplementation(() => '' as never);
 		error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
 		vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -12,22 +12,10 @@
 
 	let { children } = $props();
 
-	let firstThemeRun = true;
+	// The shell's inline script and the store set `.dark` themselves; this keeps the class right
+	// for a `theme` assigned any other way. The cross-fade belongs to the toggle (`crossFade`).
 	$effect(() => {
-		const html = document.documentElement;
-		const dark = settingsStore.theme === 'dark';
-		// The shell's inline script and the store already agree on the first value: set it without
-		// the cross-fade, which is for the user flipping the theme, not for loading the page.
-		if (firstThemeRun) {
-			firstThemeRun = false;
-			html.classList.toggle('dark', dark);
-			return;
-		}
-		html.classList.add('theme-transition');
-		html.classList.toggle('dark', dark);
-		// Remove transition class after animation completes to avoid interfering with other transitions
-		const timer = setTimeout(() => html.classList.remove('theme-transition'), 350);
-		return () => clearTimeout(timer);
+		document.documentElement.classList.toggle('dark', settingsStore.theme === 'dark');
 	});
 </script>
 

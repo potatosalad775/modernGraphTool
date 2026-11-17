@@ -68,6 +68,21 @@ describe('Tooltip', () => {
 		await expect.element(tooltip()).not.toBeInTheDocument();
 	});
 
+	// A drawer or dialog moving focus after a tap must not open a tooltip nobody asked for.
+	it('stays closed for focus a script moves after a pointer press', async () => {
+		render(TooltipHost);
+		render(Button, { label: 'Elsewhere' });
+		render(Button, { title: 'Close' });
+
+		await page.getByRole('button', { name: 'Elsewhere' }).click();
+		const close = page.getByRole('button', { name: 'Close' });
+		(close.element() as HTMLElement).focus();
+		await expect.element(close).toHaveFocus();
+		await new Promise((r) => setTimeout(r, 500));
+
+		expect(tooltip().elements()).toHaveLength(0);
+	});
+
 	it('shows nothing for an empty title', async () => {
 		render(TooltipHost);
 		render(Button, { title: '', 'aria-label': 'More' });

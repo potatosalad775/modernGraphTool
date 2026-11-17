@@ -79,7 +79,8 @@ export const frStore = new FRDataStore();
 a tiny inline script in `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` so
 `.dark` is on `<html>` before first paint; change the store and all three scripts together. The
 three scripts are byte-identical on purpose (one CSP hash); `theme` starts from the `.dark` class
-the script left, and `+layout.svelte` skips the cross-fade on its first run. `followsSystem` is
+the script left, so nothing flips on the first paint; only the Misc panel's toggle cross-fades
+(`crossFade` in `utils/motion.svelte.ts`). `followsSystem` is
 true with no stored choice and an operator default of `'system'`: the theme then tracks
 `matchMedia` `change`. There is no third UI state: `setTheme` stores nothing when the choice
 equals the OS's current theme (and the default is `'system'`), so the same toggle is the way back.

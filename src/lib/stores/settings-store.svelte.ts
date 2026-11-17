@@ -94,7 +94,7 @@ function configuredTheme(): unknown {
 
 /**
  * The inline script in the three HTML shells has usually set `.dark` before this module runs, so
- * start from it: the layout effect then has nothing to flip and no first-paint fade to play.
+ * start from it: the layout effect then has nothing to flip on the first paint.
  */
 function themeFromDocument(): Theme {
 	return typeof document !== 'undefined' && document.documentElement.classList.contains('dark')

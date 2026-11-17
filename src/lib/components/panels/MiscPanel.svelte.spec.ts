@@ -60,10 +60,11 @@ describe('MiscPanel', () => {
 			render(MiscPanel);
 			await page.getByRole('button', { name: 'Switch to dark mode' }).click();
 
-			expect(settingsStore.theme).toBe('dark');
+			// The toggle runs inside a view transition's callback, a frame after the click.
 			await expect
 				.element(page.getByRole('button', { name: 'Switch to light mode' }))
 				.toBeInTheDocument();
+			expect(settingsStore.theme).toBe('dark');
 		});
 
 		it('toggles back to light on a second click', async () => {
@@ -71,7 +72,7 @@ describe('MiscPanel', () => {
 			await page.getByRole('button', { name: 'Switch to dark mode' }).click();
 			await page.getByRole('button', { name: 'Switch to light mode' }).click();
 
-			expect(settingsStore.theme).toBe('light');
+			await expect.poll(() => settingsStore.theme).toBe('light');
 		});
 
 		it('says so while the theme follows the system', async () => {

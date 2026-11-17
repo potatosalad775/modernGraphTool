@@ -4,7 +4,7 @@
 
 `atoms/` wraps the primitives everything else builds on: `Button`, `Input`, `Switch`, `Tooltip`,
 `Accordion` / `AccordionItem`, `PopoverPanel`, `InfoPopover`, `SegmentedControl`, `Tabs`,
-`SelectMenu`, `Dialog`, `ScrollArea`, `Skeleton`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
+`SelectMenu`, `Dialog`, `ScrollArea`. Use them rather than the bare HTML element — they carry the focus-visible ring, the `transition-colors`,
 the disabled styling and the semantic-token palette, and a raw `<button>` silently opts out of all
 four.
 
@@ -83,7 +83,9 @@ row of `actions` buttons:
 - **`dismissible={false}` ignores Escape and outside clicks**, so only an action closes it. For a
   question that must be answered (`LinkDialogs`' start choice).
 - `SponsorBanner` and `TutorialModal` stay raw bits-ui on purpose: one has a creative image and
-  link buttons laid out by hand, the other positions itself beside a spotlight.
+  link buttons laid out by hand, the other positions itself beside a spotlight. The overlay and
+  card classes live in `atoms/dialog-shell.ts`; `SponsorBanner` and the mobile drawer's overlay
+  take them from there, so don't restate them.
 
 `PopoverPanel` (and `Dialog`) cap themselves to the viewport and scroll inside, because `html` is
 `overflow: hidden` and a taller panel would be clipped with no way to reach the rest:
@@ -119,6 +121,9 @@ the browser's second or so.
   gets pointer events in Chromium (covered by `Tooltip.svelte.spec.ts`); Firefox and Safari aren't
   covered.
 - **Touch never opens one.** Nothing may live only in a tooltip — `InfoPopover` is for that.
+- **Focus opens one only when it is `:focus-visible`** (`ignoreNonKeyboardFocus` on the provider).
+  Focus moved by script after a tap or click stays quiet. After a key press it still opens, so
+  don't send initial focus to a button that is off-screen or still animating in.
 - Raw elements with a native `title` (truncated names, the `SiteSelector` rows) keep it. Native is
   right for "show the whole text", and those strings already go through Paraglide.
 
@@ -150,7 +155,7 @@ uses the atom, and touching a raw one is a good moment to convert it.
 ## Directory map
 
 - `atoms/` — Button, Input, Accordion, PopoverPanel, InfoPopover, SegmentedControl, Tabs, SelectMenu,
-  Dialog, ScrollArea, Skeleton, Switch, Tooltip / TooltipHost
+  Dialog, ScrollArea, Switch, Tooltip / TooltipHost
 - `controls/` — PhoneSelector, GraphUploader, SelectionList, ScreenshotButton, YAxisScaleButton,
   AverageButton, SampleChannelSelector, CrossSiteSearchResults, …
 - `equalizer/` — EqAudioPlayer, EqAutoEq, EqAutoEqSelect, EqFilterCard, EqFilterList, EqPhoneSelect

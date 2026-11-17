@@ -4,6 +4,7 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { squiglinkStore } from '#lib/stores/squiglink-store.svelte.js';
 	import { ExternalLink } from '@lucide/svelte';
+	import { dialogCardClass, dialogOverlayClass } from '../atoms/dialog-shell.js';
 
 	let open = $state(false);
 
@@ -44,11 +45,8 @@
 		}}
 	>
 		<Dialog.Portal>
-			<Dialog.Overlay class="fixed inset-0 z-40 bg-scrim" />
-			<Dialog.Content
-				class="fixed top-1/2 left-1/2 z-50 flex max-h-11/12 w-11/12 max-w-md -translate-x-1/2
-					-translate-y-1/2 flex-col rounded-xl bg-base-200 p-6 shadow-2xl"
-			>
+			<Dialog.Overlay class={dialogOverlayClass} />
+			<Dialog.Content class={dialogCardClass}>
 				<Dialog.Title class="text-lg font-semibold text-balance text-base-content">
 					{sponsor.heading}
 				</Dialog.Title>

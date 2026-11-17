@@ -28,6 +28,10 @@ setting applies from the next transition, and it is plain `false` in the node te
 spatial motion goes: plain opacity `fade` and colour transitions stay (the `motion` guide warns
 against zeroing everything). Use `flyOrFade`/`slideOrFade` instead of `fly`/`slide` in new code.
 
+`crossFade(change)` wraps the theme toggle in a view transition. The change runs a frame later,
+inside the transition's callback, so a caller (or a spec) must not read the result on the next
+line. Theme changes that come from the OS or another tab go straight through the store, unfaded.
+
 ## `curve-name.ts`
 
 `curveBaseName` is the only composer of identifier + suffix; `shareKey`, the EQ source picker label and download

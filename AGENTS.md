@@ -225,8 +225,9 @@ Other tokens: **Typography** — Pretendard via `@theme`; text-xs (metadata), te
 text-lg (headings); weights 400 / 500 / 600. **Spacing** — Tailwind defaults; common gap-1..4,
 px-2..4, py-1..2; radius `rounded`..`rounded-xl`. **Borders** — `border-base-content/15` to `/25`.
 **Shadows** — minimal, `shadow-xl` on popovers and dialogs only. **Motion** — 0.15s
-`transition-colors` globally on interactive elements; a 0.3s cross-fade only during theme toggle via
-`html.theme-transition`; no spring physics; respect `prefers-reduced-motion`.
+`transition-colors` globally on interactive elements; a 0.3s cross-fade only during theme toggle, as
+a view transition (`crossFade` in `utils/motion.svelte.ts`); no spring physics; respect
+`prefers-reduced-motion`.
 
 Dark mode: toggle `.dark` on `<html>` — `document.documentElement.classList.toggle('dark', settingsStore.theme === 'dark')`.
 All theme.css variables switch automatically.

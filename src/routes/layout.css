@@ -427,16 +427,11 @@ html [data-sonner-toaster] [data-sonner-toast] [data-cancel] {
 }
 
 /* ─── Theme toggle transition ────────────────────────────────────────────── */
-html.theme-transition,
-html.theme-transition *,
-html.theme-transition *::before,
-html.theme-transition *::after {
-	transition:
-		background-color 0.3s ease,
-		border-color 0.3s ease,
-		color 0.3s ease,
-		fill 0.3s ease,
-		stroke 0.3s ease !important;
+/* A view transition (`crossFade` in utils/motion.svelte.ts): two snapshots fading, not a
+   transition on every element. Only the theme toggle starts one. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 0.3s;
 }
 
 /* ─── Forced colours (Windows High Contrast and similar) ─────────────────── */

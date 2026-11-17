@@ -6,6 +6,7 @@
 <script lang="ts">
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { trustedHtml } from '#lib/utils/trusted-types.js';
+	import { crossFade } from '#lib/utils/motion.svelte.js';
 	import { BookOpen, Globe, GraduationCap, Heart, Moon, ScrollText, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 	import { tutorialStore } from '#lib/stores/tutorial-store.svelte.js';
@@ -52,7 +53,7 @@
 	<!-- Theme + Language row -->
 	<div class="flex items-center gap-2 border-b border-base-content/15 bg-base-200 px-3 py-2">
 		<Button
-			onclick={() => settingsStore.toggleTheme()}
+			onclick={() => crossFade(() => settingsStore.toggleTheme())}
 			title={settingsStore.theme === 'dark'
 				? m.misc_panel_theme_light()
 				: m.misc_panel_theme_dark()}

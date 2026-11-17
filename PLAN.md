@@ -209,6 +209,22 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   it on `appStore.isReady` (1072): `isReady` comes before the curves are drawn, so the tour
   still lands in front of them.
 
+- **2026-11-17, cleanup (N9, N10, O6, T8, stale notes):** `check` / `lint` / `test` green
+  (3022 tests), `build` and `test:smoke` green. Not committed.
+- N10: `ignoreNonKeyboardFocus` on the one tooltip provider. Focus a script moves after a key
+  press still opens a tooltip, so the drawer keeps its own initial-focus workaround.
+- O6: `atoms/dialog-shell.ts` holds the overlay and card classes for the `Dialog` atom,
+  `SponsorBanner` and the drawer's overlay. The sponsor card's cap went from 11/12 of the
+  viewport to `100dvh - 2rem`, and it now scrolls inside; not looked at on a squig.link host.
+- T8: the toggle in the Misc panel runs in a view transition (`crossFade` in
+  `utils/motion.svelte.ts`); the `theme-transition` rule and timer are gone. A theme change
+  from the OS or another tab is no longer faded. In Chromium against the built page: five
+  view-transition animations after a click, none under reduced motion, class and button name
+  correct both times. Not looked at: the spectrum overlay during the fade, Firefox, Safari.
+- The "remains" notes on F4, F6, S5, S8, P9 and A10 were stale: each was finished in a later
+  wave (checked in the code). T1's borders on background-only selected states are still not
+  a separate pass.
+
 ## Found while fixing (new items)
 
 - [x] **N1. Holding a Y-offset +/- button records one undo entry per tick** (S–M)
@@ -245,10 +261,10 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
 - [x] **N8. A description link is still nested in the device row button** (S–M)
   - Where: `controls/PhoneSelector.svelte` (the `{@html}` description inside the toggle button)
   - Fix: move the description out of the button like the link row, or strip links from it.
-- [ ] **N9. The `Skeleton` atom has no call sites** (S)
+- [x] **N9. The `Skeleton` atom has no call sites** (S) — deleted
   - Where: `atoms/Skeleton.svelte`. Now silent by default with an opt-in `status` prop. Delete it
     or keep it for later.
-- [ ] **N10. A tooltip positioned off-screen widens a phone's layout viewport** (S, latent)
+- [x] **N10. A tooltip positioned off-screen widens a phone's layout viewport** (S, latent)
   - Where: `atoms/TooltipHost.svelte`. Touch never opens one, but programmatic focus does (that
     was the drawer bug). Consider not opening on focus that is not `:focus-visible`.
 
@@ -338,7 +354,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
       rejected earlier, when the app chunk was last to arrive). The request goes out at 214
       instead of 351 and the FR files land with the app chunk: 853 → 818 in one session.
   - Tried and set aside 2026-11-17: the Device and Misc panels, `FrequencyTutorial` and the
-    `Toaster` lazy as well (stash "lazy2", tests green). Boot JS 828 → 719 KB raw, but 826
+    `Toaster` lazy as well (tests were green; the change was dropped, not kept in a stash). Boot JS 828 → 719 KB raw, but 826
     against 834: the FR files then arrive last. They are requested once the chunks
     `hooks.client.ts` needs have run, and the benchmark server shares the connection
     equally, so those 90 KB gzip finish no sooner. A server that sends streams in request
@@ -502,8 +518,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
     `tabindex="0"`, `aria-valuenow/min/max`, a name; arrow keys move it about 15px; wider hit area
     via a pseudo-element.
   - Guide: `drag`.
-- [x] **A10. Touch targets below 24px** (M) — tutorial dots done; Button `xs`, range inputs and
-      the token remain
+- [x] **A10. Touch targets below 24px** (M) — 24px done; 44px on coarse pointers is N16
   - Where: `features/TutorialModal.svelte:269-276` (6×6px dots); `atoms/Button.svelte:74, 84`
     (`xs` about 19px tall); `EqFilterCard.svelte` range inputs (`h-1`); `routes/layout.css:101`
     (the only `pointer: coarse` rule)
@@ -572,7 +587,8 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: on failure, show the URL in a selectable field, or use an `execCommand('copy')` fallback.
     Optionally swap the icon to a check on success.
   - Guide: `copy-button`.
-- [ ] **O6. Dialog shell classes are duplicated; no back-gesture dismissal** (S, optional)
+- [x] **O6. Dialog shell classes are duplicated; no back-gesture dismissal** (S, optional) —
+      classes shared; native `<dialog>` not done
   - Where: `atoms/Dialog.svelte:39-61`; `features/SponsorBanner.svelte:47-50`;
     `features/TutorialModal.svelte:184-208`
   - Fix: hoist the overlay and card classes into shared constants. A native `<dialog>` would add
@@ -600,8 +616,7 @@ Guide names in `code font` are modern-web-guidance guide ids; fetch one with
   - Fix: wrap in a `<form>` with a submit button; add `autocomplete="off" autocapitalize="none"
 spellcheck="false" enterkeyhint="go"`; keep the panel open on failure. See S4 for host
     validation.
-- [x] **F4. Search and rename fields lack text-correction hints** (S) — PhoneSelector part done;
-      `EqOptionButton` and `EqHistoryAndCompare` remain
+- [x] **F4. Search and rename fields lack text-correction hints** (S)
   - Where: `controls/PhoneSelector.svelte:244-253`; `equalizer/EqOptionButton.svelte:152-158`;
     `equalizer/EqHistoryAndCompare.svelte:409-415`
   - Fix: `autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
@@ -612,7 +627,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
     `"null 0"`.
   - Fix: skip the update when a value is not finite; clamp to the field's range.
 - [x] **F6. File imports** (S, plus M for drag-and-drop) — ~~EqAudioPlayer part~~ (claim wrong:
-      already accepts audio types and reports errors); GraphUploader and EqFilterList remain
+      already accepts audio types and reports errors); no drop target was added
   - Where: `controls/GraphUploader.svelte:38-39, 78, 100, 132, 161-176`;
     `equalizer/EqFilterList.svelte:218-249, 465-471`; `equalizer/EqAudioPlayer.svelte:306-312`
   - Problems: `FileReader` has no `onerror` in the EQ import; `accept=".txt"` excludes other
@@ -715,7 +730,7 @@ enterkeyhint="search"` on the two search inputs (`Input` passes `restProps` thro
   - Fix: `--scrollbar-thumb` at about 55% `base-content`; `scrollbar-color` once on `:root`;
     wrap the WebKit block; raise the thumb under `prefers-contrast: more`.
   - Guide: `customize-scrollbar-color-and-thickness`.
-- [ ] **T8. Theme cross-fade transitions five properties on every element** (S)
+- [x] **T8. Theme cross-fade transitions five properties on every element** (S)
   - Where: `routes/layout.css:252-262`; `routes/+layout.svelte:15-22`
   - Fix: `document.startViewTransition()` around the class toggle, with a plain toggle when the
     API is missing or reduced motion is set; delete the `theme-transition` rule and timer.
@@ -800,8 +815,7 @@ gaps; the rest is hardening.
   - Fix: accept only an IP literal or a `.local` name; pass `targetAddressSpace: 'local'`; map the
     `TypeError` to a clear message; document the HTTPS limitation in the device PEQ docs.
   - Guide: `local-network-access` (Chrome/Edge 145 only; other browsers ignore it).
-- [x] **S5. Uploads and remote JSON have no size or count limits** (S) — uploads, EQ import and
-      index rows done; `device-peq/network.ts` responses remain
+- [x] **S5. Uploads and remote JSON have no size or count limits** (S)
   - Where: `controls/GraphUploader.svelte:30-34`; `services/aggregate-index-core.ts:159`;
     `services/site-index-core.ts:103`; `device-peq/network.ts:90, 175, 201`
   - Fix: reject files over about 5 MB and more than N files; check per-row field types when
@@ -817,8 +831,8 @@ gaps; the rest is hardening.
   - Fix: `integrity="sha384-…"` and `referrerpolicy="no-referrer"` on the preload link;
     `<meta name="referrer" content="strict-origin-when-cross-origin">`. Check that jsDelivr
     serves the CORS header SRI needs.
-- [x] **S8. Shared-origin storage and the sponsor cookie** (S) — cookie flags done; the cached
-      catalog preset check and key prefixing remain
+- [x] **S8. Shared-origin storage and the sponsor cookie** (S) — keys stay unprefixed, so
+      existing users' stored picks still load
   - Where: `stores/squiglink-store.svelte.ts:115-117`;
     `stores/eq-constraints-store.svelte.ts:263-265`
   - Fix: `;Secure;SameSite=Lax` on the cookie; validate the cached catalog preset with
@@ -886,12 +900,12 @@ cold startup on one origin with cache off, so several items need an added scenar
   - Fix: record `yShift` in the handler and redraw in one `requestAnimationFrame`; skip
     `.transition()` when the duration is 0.
 - [x] **P9. Analytics and shop-link requests compete with the first curves** (S, squig.link only)
-      — shop-link fetches done; the gtag script remains (with S6)
   - Where: `services/analytics-service.svelte.ts:33-37`;
     `stores/squiglink-store.svelte.ts:126, 140`; `features/ShopLink.svelte:10-15`
   - Fix: `fetchPriority = 'low'` on the gtag script, or inject it after `appStore.isReady`;
     `{ priority: 'low' }` on the shop-link fetches. Leave `squiglink-intro.js` and the creative
     alone.
+
 - ~~**P10. Images without reserved dimensions**~~ (S) — the sponsor creative has no fixed
   ratio, and the logo and Misc images are operator files of unknown size
   - Where: `features/SponsorBanner.svelte:65-70`; `layout/TopNavBar.svelte:78`;

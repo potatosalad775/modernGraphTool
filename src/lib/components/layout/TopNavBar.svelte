@@ -6,6 +6,7 @@
 	import SiteSelector from '#lib/components/controls/SiteSelector.svelte';
 	import Button from '../atoms/Button.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
+	import { dialogOverlayClass } from '../atoms/dialog-shell.js';
 	import { Dialog } from 'bits-ui';
 	import { ChevronDown, Menu, X } from '@lucide/svelte';
 	import { fade } from 'svelte/transition';
@@ -184,7 +185,7 @@
 							{#if open}
 								<div
 									{...props}
-									class="fixed inset-0 z-40 bg-scrim"
+									class={dialogOverlayClass}
 									transition:fade={{ duration: 200 }}
 								></div>
 							{/if}

@@ -1,3 +1,4 @@
+import { tick } from 'svelte';
 import { prefersReducedMotion } from 'svelte/motion';
 import {
 	fly,
@@ -27,6 +28,23 @@ export function reducedMotion(): boolean {
 /** A duration for a tween that must not run under reduced motion: `ms`, or 0. */
 export function motionDuration(ms: number): number {
 	return reducedMotion() ? 0 : ms;
+}
+
+/**
+ * Runs a change that recolours the whole page (the theme flip) as one cross-fade of two
+ * snapshots, through the View Transitions API. `change` and the effects it triggers run
+ * inside the transition's callback, a frame later; where the API is missing or under reduced
+ * motion it runs at once with no fade. Canvas and other live drawing hold still for the fade.
+ */
+export function crossFade(change: () => void): void {
+	if (reducedMotion() || typeof document.startViewTransition !== 'function') {
+		change();
+		return;
+	}
+	document.startViewTransition(async () => {
+		change();
+		await tick();
+	});
 }
 
 /**

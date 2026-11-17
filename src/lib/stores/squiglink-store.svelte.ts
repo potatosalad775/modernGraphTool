@@ -2,6 +2,7 @@ import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
 import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
 import { extractDeclaredLiteral } from '#lib/utils/js-literal.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type {
 	ShopLinkEntry,
 	SponsorContent,
@@ -45,12 +46,6 @@ export function sponsorDismissCookieString(
 // below is checked here, so `ShopLink` and `SponsorBanner` only ever see values that are safe
 // to put in an `href`, a `src` or a `fetch`. A URL that fails drops its field: required fields
 // become '' (the templates already `{#if}` on them), optional ones are omitted.
-
-type Raw = Record<string, unknown>;
-
-function isRecord(value: unknown): value is Raw {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function text(value: unknown): string {
 	return typeof value === 'string' ? value : '';

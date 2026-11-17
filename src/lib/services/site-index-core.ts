@@ -1,7 +1,8 @@
 import { browser } from '$app/env';
 import { getConfigValue } from '#lib/utils/config.js';
 import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
-import { rankDbType } from './aggregate-index-core.js';
+import { isRecord } from '#lib/utils/type-guards.js';
+import { isDbRow, isSiteRow, rankDbType } from './aggregate-index-core.js';
 import type {
 	SiteIndex,
 	SiteIndexEntry,
@@ -40,10 +41,6 @@ export function getSiteSelectorConfig(): SiteSelectorConfig {
 		ENABLED: enabled === true || enabled === false ? enabled : 'auto',
 		INDEX_URLS: indexUrls.length > 0 ? indexUrls : DEFAULT_SITE_INDEX_URLS
 	};
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
 }
 
 /**
@@ -124,20 +121,13 @@ export function buildSiteEntries(index: SiteIndex, currentDbId: string | null): 
 	// bad row is skipped rather than allowed to throw.
 	const sitesById = new Map<string, SiteIndexSite>();
 	for (const site of index.sites as unknown[]) {
-		if (!isRecord(site) || typeof site.id !== 'string' || typeof site.name !== 'string') continue;
+		if (!isSiteRow(site)) continue;
 		sitesById.set(site.id, site as unknown as SiteIndexSite);
 	}
 	const entries: SiteIndexEntry[] = [];
 
 	for (const db of index.dbs as unknown[]) {
-		if (
-			!isRecord(db) ||
-			typeof db.id !== 'string' ||
-			typeof db.siteId !== 'string' ||
-			typeof db.type !== 'string'
-		) {
-			continue;
-		}
+		if (!isDbRow(db)) continue;
 		const site = sitesById.get(db.siteId);
 		if (!site) continue;
 		// The URL ends up in an `href`: absolute http(s) only, else the entry goes.

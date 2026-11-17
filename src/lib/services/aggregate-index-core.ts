@@ -3,6 +3,7 @@ import * as m from '#lib/paraglide/messages.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import { sanitizeHttpUrl } from '#lib/utils/html-sanitizer.js';
 import { matchesQueryGroup, splitQueryGroups, type QueryGroup } from '#lib/utils/search-query.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type {
 	AggregateDb,
 	AggregateIndex,
@@ -213,8 +214,23 @@ export async function fetchAggregateIndex(urls: string[]): Promise<AggregateInde
 	}
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+/** An index `sites` row with the fields both index readers need. */
+export function isSiteRow(
+	value: unknown
+): value is Record<string, unknown> & { id: string; name: string } {
+	return isRecord(value) && typeof value.id === 'string' && typeof value.name === 'string';
+}
+
+/** An index `dbs` row with the fields both index readers need. */
+export function isDbRow(
+	value: unknown
+): value is Record<string, unknown> & { id: string; siteId: string; type: string } {
+	return (
+		isRecord(value) &&
+		typeof value.id === 'string' &&
+		typeof value.siteId === 'string' &&
+		typeof value.type === 'string'
+	);
 }
 
 /**
@@ -228,20 +244,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 	const sitesById = new Map<string, AggregateSite>();
 	for (const site of index.sites as unknown[]) {
-		if (!isRecord(site) || typeof site.id !== 'string' || typeof site.name !== 'string') continue;
+		if (!isSiteRow(site)) continue;
 		sitesById.set(site.id, site as unknown as AggregateSite);
 	}
 
 	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite; url: string }>();
 	for (const db of index.dbs as unknown[]) {
-		if (
-			!isRecord(db) ||
-			typeof db.id !== 'string' ||
-			typeof db.siteId !== 'string' ||
-			typeof db.type !== 'string'
-		) {
-			continue;
-		}
+		if (!isDbRow(db)) continue;
 		const site = sitesById.get(db.siteId);
 		if (!site || isCurrentSite(site)) continue;
 		// The index is someone else's document and its URLs land in an `href`, so

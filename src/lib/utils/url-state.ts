@@ -13,7 +13,8 @@ import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-ty
 import { MAX_BANDS } from '#lib/workers/autoeq-request.js';
 import { curveBaseName } from './curve-name.js';
 import { sanitizeChannel } from './eq-channel.js';
-import { isFiniteNumber, isRecord, parseFilter } from './eq-filter-parse.js';
+import { isFiniteNumber, parseFilter } from './eq-filter-parse.js';
+import { isRecord } from './type-guards.js';
 import { parseSampleKey, sampleKey } from './sample-key.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────

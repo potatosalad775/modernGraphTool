@@ -1,5 +1,6 @@
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import { isFiniteNumber, isRecord, parseFilter } from '#lib/utils/eq-filter-parse.js';
+import { isFiniteNumber, parseFilter } from '#lib/utils/eq-filter-parse.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import { eqStore } from './eq-store.svelte.js';
 import { frStore } from './fr-store.svelte.js';
 import { snapshotMatches } from '#lib/utils/eq-snapshot.js';

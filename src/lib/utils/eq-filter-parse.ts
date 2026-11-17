@@ -1,13 +1,10 @@
 import { EQ_FILTER_TYPES, type EQFilter } from './equalizer.js';
+import { isRecord } from './type-guards.js';
 
 /**
  * Strict reading of an untrusted band — a saved bookmark, a share URL.
  * Pure, so the stores and `url-state.ts` share one implementation.
  */
-
-export function isRecord(v: unknown): v is Record<string, unknown> {
-	return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
 
 export function isFiniteNumber(v: unknown): v is number {
 	return typeof v === 'number' && Number.isFinite(v);

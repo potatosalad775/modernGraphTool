@@ -13,9 +13,9 @@
 	import { flyOrFade } from '#lib/utils/motion.svelte.js';
 	import { cubicOut } from 'svelte/easing';
 
-	const titleType = $derived((getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT');
+	const titleType = $derived((getConfigValue('TOPBAR.TITLE.TYPE') as string | undefined) ?? 'TEXT');
 	const titleContent = $derived(
-		(getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? 'modernGraphTool'
+		(getConfigValue('TOPBAR.TITLE.CONTENT') as string | undefined) ?? 'modernGraphTool'
 	);
 	// The site's name as text, for a title that has none of its own (an image). Optional.
 	const titleAlt = $derived.by(() => {
@@ -25,7 +25,7 @@
 	// Rows are keyed by position, not URL: two buttons to one URL is a legitimate config,
 	// and the list never reorders.
 	const linkList = $derived(
-		(getConfigValue('TOPBAR.LINK_LIST') as { URL: string; TITLE: string }[]) ?? []
+		(getConfigValue('TOPBAR.LINK_LIST') as { URL: string; TITLE: string }[] | undefined) ?? []
 	);
 
 	let sidebarOpen = $state(false);

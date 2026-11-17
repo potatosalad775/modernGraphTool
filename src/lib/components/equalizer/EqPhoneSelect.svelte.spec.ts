@@ -61,8 +61,8 @@ describe('EqPhoneSelect', () => {
 		await render(EqPhoneSelect);
 		await open();
 
-		const labels = Array.from(document.querySelectorAll('[role="option"]')).map(
-			(o) => o.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+		const labels = Array.from(document.querySelectorAll('[role="option"]')).map((o) =>
+			o.textContent.replace(/\s+/g, ' ').trim()
 		);
 		// The empty third run is left out.
 		expect(labels).toEqual([

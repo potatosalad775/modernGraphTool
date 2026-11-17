@@ -14,7 +14,7 @@
 	] as const;
 
 	function getRangeName(key: string): string {
-		const names: Record<string, () => string> = {
+		const names: Partial<Record<string, () => string>> = {
 			sub_bass: m.tutorial_freq_sub_bass_name,
 			bass: m.tutorial_freq_bass_name,
 			lower_mids: m.tutorial_freq_lower_mids_name,
@@ -26,7 +26,7 @@
 	}
 
 	function getRangeDesc(key: string): string {
-		const descs: Record<string, () => string> = {
+		const descs: Partial<Record<string, () => string>> = {
 			sub_bass: m.tutorial_freq_sub_bass_desc,
 			bass: m.tutorial_freq_bass_desc,
 			lower_mids: m.tutorial_freq_lower_mids_desc,
@@ -44,7 +44,7 @@
 	}
 
 	$effect(() => {
-		if (!graphEngine.isInitialized || !graphEngine.svg) return;
+		if (!graphEngine.isInitialized) return;
 
 		let highlight = graphEngine.svg.select<SVGRectElement>('.freq-tutorial-highlight');
 		if (highlight.empty()) {
@@ -73,7 +73,7 @@
 		}
 
 		return () => {
-			graphEngine.svg?.select('.freq-tutorial-highlight').attr('opacity', 0);
+			graphEngine.svg.select('.freq-tutorial-highlight').attr('opacity', 0);
 		};
 	});
 </script>

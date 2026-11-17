@@ -128,7 +128,7 @@ describe('AppShell boot', () => {
 
 		// The skip links come first, and move focus onto their region.
 		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
-		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to controls', 'Skip to graph']);
+		expect(links.map((a) => a.textContent.trim())).toEqual(['Skip to controls', 'Skip to graph']);
 		expect(document.body.querySelector('a, button, input')).toBe(links[0]);
 		// A first visit opens the welcome tour, whose dialog traps focus; the skip links are for
 		// the page behind it.

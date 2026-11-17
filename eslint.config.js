@@ -72,6 +72,9 @@ export default defineConfig(
 		// this extends it to every .ts file under src/. A promise nobody awaits or catches turns a
 		// rejection into an unhandled one, and a promise-returning callback in a void slot (an
 		// event handler, a timer) drops its rejection the same way.
+		// `no-unnecessary-condition` trusts the types, so data from outside them (operator config,
+		// fetched JSON, storage, DOM reads, an index that can miss) is typed `| undefined` where it
+		// enters, and the guard on it stays.
 		files: ['src/**/*.ts', 'src/**/*.svelte'],
 		languageOptions: {
 			parserOptions: { projectService: true }
@@ -79,7 +82,8 @@ export default defineConfig(
 		rules: {
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/no-misused-promises': 'error',
-			'@typescript-eslint/await-thenable': 'error'
+			'@typescript-eslint/await-thenable': 'error',
+			'@typescript-eslint/no-unnecessary-condition': 'error'
 		}
 	},
 	{

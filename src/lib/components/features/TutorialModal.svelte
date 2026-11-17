@@ -26,7 +26,7 @@
 	const step = $derived(steps[currentStep]);
 	const isFirst = $derived(currentStep === 0);
 	const isLast = $derived(currentStep === steps.length - 1);
-	const currentTarget = $derived<TutorialTarget | null>(step?.target ?? null);
+	const currentTarget = $derived<TutorialTarget | null>(step.target ?? null);
 	const hasSpotlight = $derived(currentTarget !== null && targetRect !== null);
 
 	const spotlightStyle = $derived.by(() => {

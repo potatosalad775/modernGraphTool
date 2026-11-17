@@ -5,11 +5,11 @@
 
 	// GraphInspection outlives this button — on mobile it unmounts with GraphPanel — so start
 	// from the engine's state rather than assuming off.
-	let enabled = $state(graphEngine.graphInspection?.isEnabled ?? false);
+	let enabled = $state(graphEngine.isInitialized && graphEngine.graphInspection.isEnabled);
 
 	function handleClick() {
 		enabled = !enabled;
-		graphEngine.graphInspection?.setEnabled(enabled);
+		graphEngine.graphInspection.setEnabled(enabled);
 	}
 </script>
 

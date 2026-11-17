@@ -65,7 +65,7 @@ describe('AppShell boot (mobile)', () => {
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
-		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to graph', 'Skip to controls']);
+		expect(links.map((a) => a.textContent.trim())).toEqual(['Skip to graph', 'Skip to controls']);
 		await expect
 			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
 			.toHaveTextContent('GRAPH');

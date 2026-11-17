@@ -27,9 +27,9 @@
 	// ── Config ──────────────────────────────────────────────────────────────────
 
 	const allowRemovingPhone =
-		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
+		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean | undefined) ?? true;
 	const switchPanelOnBrandClick =
-		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
+		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean | undefined) ?? true;
 	const ranking = getRankingSettings();
 	// The comma hint promises a cross-site behaviour, so only offer it where
 	// cross-site results can actually appear.

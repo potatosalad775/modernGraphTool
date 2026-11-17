@@ -31,7 +31,7 @@
 
 	async function downloadScreenshot() {
 		analyticsService.trackGeneralEvent('clicked_download');
-		const svgNode = graphEngine.svg?.node();
+		const svgNode = graphEngine.svg.node();
 		if (!svgNode) return;
 
 		const clone = svgNode.cloneNode(true) as SVGSVGElement;

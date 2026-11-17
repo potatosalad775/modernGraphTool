@@ -174,7 +174,7 @@
 				return;
 		}
 		event.preventDefault();
-		next?.focus();
+		next.focus();
 	}
 </script>
 

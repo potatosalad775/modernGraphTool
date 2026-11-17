@@ -152,7 +152,7 @@ describe('PhoneSelector', () => {
 
 	describe('result count announcement', () => {
 		function status(): string {
-			return document.querySelector('[role="status"]')?.textContent?.trim() ?? '';
+			return document.querySelector('[role="status"]')?.textContent.trim() ?? '';
 		}
 
 		it('says nothing until a filter is active, then speaks the count once typing settles', async () => {
@@ -179,7 +179,7 @@ describe('PhoneSelector', () => {
 
 			await box.fill('zzz');
 			await vi.waitFor(() => expect(status()).toBe('No results.'), { timeout: 3000 });
-			expect(document.querySelector('.ps-phone-pane > p')?.textContent?.trim()).toBe('No results.');
+			expect(document.querySelector('.ps-phone-pane > p')?.textContent.trim()).toBe('No results.');
 
 			await box.fill('');
 			await vi.waitFor(() => expect(status()).toBe(''), { timeout: 3000 });
@@ -401,7 +401,7 @@ describe('PhoneSelector', () => {
 			// The button is still described by it, so a screen reader keeps the text.
 			const wrapper = description.parentElement as HTMLElement;
 			expect(button.getAttribute('aria-describedby')).toBe(wrapper.id);
-			expect(button.textContent?.trim()).toBe('Sennheiser HD 600');
+			expect(button.textContent.trim()).toBe('Sennheiser HD 600');
 		});
 
 		it('leaves the description out of the button that is disabled while loading', async () => {
@@ -677,7 +677,7 @@ describe('PhoneSelector', () => {
 			await render(PhoneSelector);
 
 			await expect.element(page.getByTitle('Rank: 4')).toBeInTheDocument();
-			expect(page.getByTitle('Rank: 4').element().textContent?.trim()).toBe('★★★★☆');
+			expect(page.getByTitle('Rank: 4').element().textContent.trim()).toBe('★★★★☆');
 			expect(page.getByTitle('Rank: 4').element().tagName).toBe('SPAN');
 		});
 
@@ -725,7 +725,7 @@ describe('PhoneSelector', () => {
 
 			const link = page.getByTitle('Rank: S');
 			await expect.element(link).toBeInTheDocument();
-			expect(link.element().textContent?.trim()).toBe('S');
+			expect(link.element().textContent.trim()).toBe('S');
 			// The sheet spells it "HD600"; the phone book spells it "HD 600". The
 			// ranking page anchored its card with the sheet's spelling.
 			expect(link.element().getAttribute('href')).toBe('/ranking/#sennheiser-hd600');

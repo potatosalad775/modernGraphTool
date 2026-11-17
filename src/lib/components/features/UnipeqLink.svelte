@@ -222,12 +222,12 @@
 		<!-- Always rendered: a live region has to exist before its text changes -->
 		{#if notice?.text != undefined}
 			<p
-				class="flex items-start gap-1 text-xs {notice?.tone === 'warning'
+				class="flex items-start gap-1 text-xs {notice.tone === 'warning'
 					? 'text-base-content'
 					: 'text-base-content/80'}"
 				role="status"
 			>
-				{#if notice?.tone === 'warning'}
+				{#if notice.tone === 'warning'}
 					<TriangleAlert class="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
 				{/if}
 				<span>{notice.text}</span>

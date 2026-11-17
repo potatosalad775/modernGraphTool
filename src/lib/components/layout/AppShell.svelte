@@ -63,11 +63,11 @@
 	// an image title falls back to the app name, the same default the top bar uses.
 	const siteTitle = $derived.by(() => {
 		const fallback = 'modernGraphTool';
-		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT';
+		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string | undefined) ?? 'TEXT';
 		const rawAlt = getConfigValue('TOPBAR.TITLE.ALT');
 		const alt = typeof rawAlt === 'string' ? rawAlt.trim() : '';
 		if (type === 'IMAGE') return alt || fallback;
-		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? fallback;
+		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string | undefined) ?? fallback;
 		if (type === 'HTML') return alt || stripHtml(content) || fallback;
 		return content.trim() || alt || fallback;
 	});

@@ -25,8 +25,9 @@ export function sourceValue(uuid: string, run: number | null): string {
 
 /** Inverse of `sourceValue`. */
 export function parseSourceValue(value: string): { uuid: string; run: number | null } {
-	const [uuid, run] = value.split(RUN_SEPARATOR);
-	return { uuid, run: run === undefined ? null : Number(run) };
+	const parts = value.split(RUN_SEPARATOR);
+	const run = parts.at(1);
+	return { uuid: parts[0], run: run === undefined ? null : Number(run) };
 }
 
 /**

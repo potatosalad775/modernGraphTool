@@ -33,9 +33,7 @@ function select() {
 async function optionLabels(): Promise<string[]> {
 	await select().click();
 	await expect.element(page.getByRole('listbox')).toBeInTheDocument();
-	return Array.from(document.querySelectorAll('[role="option"]')).map(
-		(o) => o.textContent?.trim() ?? ''
-	);
+	return Array.from(document.querySelectorAll('[role="option"]')).map((o) => o.textContent.trim());
 }
 
 describe('EqAutoEqSelect', () => {
@@ -86,7 +84,7 @@ describe('EqAutoEqSelect', () => {
 
 			expect(await optionLabels()).toEqual(['ZZZ Target', 'AAA Phone']);
 			const headings = Array.from(document.querySelectorAll('[data-select-group-label]'));
-			expect(headings.map((h) => h.textContent?.trim())).toEqual([
+			expect(headings.map((h) => h.textContent.trim())).toEqual([
 				m.equalizer_phone_select_group_targets(),
 				m.equalizer_phone_select_group_devices()
 			]);

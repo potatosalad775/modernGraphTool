@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Tooltip } from 'bits-ui';
-	import { tooltipTether } from './tooltip-tether.js';
+	import { tooltipTether, type TooltipPayload } from './tooltip-tether.js';
 </script>
 
 <!--
@@ -14,7 +14,7 @@
 -->
 <Tooltip.Provider delayDuration={300} skipDelayDuration={400} ignoreNonKeyboardFocus>
 	<Tooltip.Root tether={tooltipTether}>
-		{#snippet children({ payload })}
+		{#snippet children({ payload }: Tooltip.RootSnippetProps<TooltipPayload>)}
 			<Tooltip.Portal>
 				<Tooltip.Content
 					role="tooltip"

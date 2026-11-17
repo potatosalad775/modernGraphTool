@@ -126,9 +126,9 @@
 		const remeasure = () => {
 			for (const [node, key] of labelNodes) queueLabelMeasure(node, key);
 		};
-		fonts?.addEventListener('loadingdone', remeasure);
+		fonts.addEventListener('loadingdone', remeasure);
 		return () => {
-			fonts?.removeEventListener('loadingdone', remeasure);
+			fonts.removeEventListener('loadingdone', remeasure);
 			cancelAnimationFrame(measureFrame);
 		};
 	});
@@ -223,7 +223,9 @@
 	/** Where the first line of the baseline-label stack sits, and which way it grows. */
 	const blAnchor = $derived.by(() => {
 		if (!graphEngine.isInitialized) return null;
-		const pos = graphEngine.labelPosition[blLabelLoc];
+		// `LOCATION` is operator config and may name no anchor.
+		const positions: Partial<typeof graphEngine.labelPosition> = graphEngine.labelPosition;
+		const pos = positions[blLabelLoc];
 		if (!pos) return null;
 		const baseY = pos.y + blOffsetDown - blOffsetUp;
 		return {
@@ -339,7 +341,7 @@
 	// Notify GraphInspection when labels change (hides labels when inspection is active)
 	$effect(() => {
 		const _labels = labelData.entries;
-		if (graphEngine.isInitialized && graphEngine.graphInspection) {
+		if (graphEngine.isInitialized) {
 			graphEngine.graphInspection.onLabelsUpdated();
 		}
 	});
@@ -366,7 +368,7 @@
 
 	$effect(() => {
 		const _isMobile = appStore.isMobile;
-		if (graphEngine.isInitialized && graphEngine.graphHandle) {
+		if (graphEngine.isInitialized) {
 			graphEngine.graphHandle.setMobile(appStore.isMobile);
 		}
 	});

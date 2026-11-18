@@ -43,10 +43,5 @@
     "complexity": {
       "count": 1
     }
-  },
-  "src/lib/utils/url-provider.ts": {
-    "complexity": {
-      "count": 2
-    }
   }
 }

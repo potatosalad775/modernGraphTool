@@ -107,7 +107,6 @@ class URLProvider {
 	applyStateFromURL(): void {
 		if (!this.#stateFromURL) return;
 		const { yScale, baseline: savedBaseline, yOffsets, eq } = this.#stateFromURL;
-		const sampleDisplay = normalizeSampleDisplay(this.#stateFromURL);
 
 		// `parseStateParam` already narrowed the shape; these guards keep a state
 		// that arrived any other way (a spec, a future caller) from throwing.
@@ -116,17 +115,32 @@ class URLProvider {
 		// `mode` is hand-editable, so the baseline module validates it.
 		if (savedBaseline) baseline.restoreFromURL(savedBaseline);
 
-		if (yOffsets) {
-			for (const [uuid, data] of frStore.entries) {
-				const key = shareKey(data);
-				// `hasOwn`, not `in`: a device named `constructor` is not an offset.
-				if (Object.hasOwn(yOffsets, key) && Number.isFinite(yOffsets[key])) {
-					// Direct store update (no command history for URL restore)
-					frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
-				}
+		if (yOffsets) this.#restoreYOffsets(yOffsets);
+		this.#restoreSampleDisplay(normalizeSampleDisplay(this.#stateFromURL));
+		if (eq) this.#restoreEq(eq);
+	}
+
+	// ── Private ──────────────────────────────────────────────────────────────
+
+	#loadFromURL(): void {
+		const urlParams = new URLSearchParams(window.location.search);
+		this.#phoneDataFromURL = parseShareParam(urlParams.get('share'));
+		this.#stateFromURL = parseStateParam(urlParams.get('state'));
+	}
+
+	// Direct store updates below: a URL restore leaves no command history.
+
+	#restoreYOffsets(yOffsets: Record<string, number>): void {
+		for (const [uuid, data] of frStore.entries) {
+			const key = shareKey(data);
+			// `hasOwn`, not `in`: a device named `constructor` is not an offset.
+			if (Object.hasOwn(yOffsets, key) && Number.isFinite(yOffsets[key])) {
+				frStore.set(uuid, { ...data, yOffset: yOffsets[key] });
 			}
 		}
+	}
 
+	#restoreSampleDisplay(sampleDisplay: Record<string, SampleDisplayState>): void {
 		for (const [uuid, data] of frStore.entries) {
 			const key = shareKey(data);
 			const entry = Object.hasOwn(sampleDisplay, key) ? sampleDisplay[key] : undefined;
@@ -139,26 +153,19 @@ class URLProvider {
 				});
 			}
 		}
-
-		if (Array.isArray(eq?.filters) && eq.filters.length > 0) {
-			// `parseStateParam` has already read each band with `parseFilter` and
-			// narrowed `channel` (an unknown value would make a band belong to no ear
-			// and quietly vanish from every scoped view); only the cap is repeated.
-			eqStore.filters = eq.filters.slice(0, MAX_BANDS).map((f) => {
-				const channel = sanitizeChannel(f.channel);
-				return channel ? { ...f, channel } : { ...f, channel: undefined };
-			});
-			eqStore.preamp = Number.isFinite(eq.preamp) ? eq.preamp : 0;
-			eqStore.setEnabled(true);
-		}
 	}
 
-	// ── Private ──────────────────────────────────────────────────────────────
-
-	#loadFromURL(): void {
-		const urlParams = new URLSearchParams(window.location.search);
-		this.#phoneDataFromURL = parseShareParam(urlParams.get('share'));
-		this.#stateFromURL = parseStateParam(urlParams.get('state'));
+	#restoreEq(eq: NonNullable<URLState['eq']>): void {
+		if (!Array.isArray(eq.filters) || eq.filters.length === 0) return;
+		// `parseStateParam` has already read each band with `parseFilter` and
+		// narrowed `channel` (an unknown value would make a band belong to no ear
+		// and quietly vanish from every scoped view); only the cap is repeated.
+		eqStore.filters = eq.filters.slice(0, MAX_BANDS).map((f) => {
+			const channel = sanitizeChannel(f.channel);
+			return channel ? { ...f, channel } : { ...f, channel: undefined };
+		});
+		eqStore.preamp = Number.isFinite(eq.preamp) ? eq.preamp : 0;
+		eqStore.setEnabled(true);
 	}
 
 	#buildURL(eq?: EQStateSnapshot): { url: string; title: string; namesCombined: string } {
@@ -169,16 +176,23 @@ class URLProvider {
 		}
 
 		let title = this.#baseTitle;
-		let url = this.#baseURL;
 		const namesCombined = activeNames.join(', ');
 
 		if (activeNames.length) title = title + ' - ' + namesCombined;
 
-		// Collect graph state from the stores; url-state decides what makes the URL.
-		const stateData: URLState = { yScale: graphStore.yScale };
-
 		const defaultYScale =
 			parseInt((getConfigValue('VISUALIZATION.DEFAULT_Y_SCALE') as string) || '50') || 50;
+
+		const url =
+			this.#baseURL +
+			buildQueryString(activeNames, this.#collectState(eq), defaultYScale, this.#useBase62);
+
+		return { url, title, namesCombined };
+	}
+
+	/** The graph state as the stores hold it; url-state decides what makes the URL. */
+	#collectState(eq?: EQStateSnapshot): URLState {
+		const stateData: URLState = { yScale: graphStore.yScale };
 
 		// A dormant baseline (its item removed) is not in effect, so it is not written.
 		const baselineUUID = baseline.uuid;
@@ -193,8 +207,17 @@ class URLProvider {
 		}
 		if (Object.keys(yOffsets).length) stateData.yOffsets = yOffsets;
 
-		// Only the current shape is written. `hptfDisplay` is read on the way in
-		// (see normalizeSampleDisplay) and never emitted again.
+		const sampleDisplay = this.#collectSampleDisplay();
+		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
+
+		if (eq && eq.filters.length > 0) stateData.eq = eq;
+
+		return stateData;
+	}
+
+	// Only the current shape is written. `hptfDisplay` is read on the way in
+	// (see normalizeSampleDisplay) and never emitted again.
+	#collectSampleDisplay(): Record<string, SampleDisplayState> {
 		const sampleDisplay: Record<string, SampleDisplayState> = {};
 		for (const [, data] of frStore.entries) {
 			if (!data.samples?.length) continue;
@@ -204,13 +227,7 @@ class URLProvider {
 				avg: data.showAvg ?? true
 			};
 		}
-		if (Object.keys(sampleDisplay).length) stateData.sampleDisplay = sampleDisplay;
-
-		if (eq && eq.filters.length > 0) stateData.eq = eq;
-
-		url += buildQueryString(activeNames, stateData, defaultYScale, this.#useBase62);
-
-		return { url, title, namesCombined };
+		return sampleDisplay;
 	}
 
 	#updateMetaTags(namesCombined: string): void {

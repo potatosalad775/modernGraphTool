@@ -29,11 +29,6 @@
       "count": 2
     }
   },
-  "src/lib/graph/curve-traces.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/services/aggregate-index-core.ts": {
     "complexity": {
       "count": 1

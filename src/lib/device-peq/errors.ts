@@ -37,20 +37,26 @@ export function describeNetworkHostProblem(
 	}
 }
 
-/** A user-facing sentence for a failed device operation. */
-export function describeDeviceError(error: unknown): string {
-	// Matched by name, like `BridgeError`, so this module doesn't pull `network.ts` into the bundle.
-	if (error instanceof Error && error.name === 'NetworkAccessError') {
-		return m.device_peq_error_network_blocked();
-	}
-	if (error instanceof Error && error.name === 'NetworkResponseError') {
-		return m.device_peq_error_bad_response();
-	}
-	if (error instanceof Error && error.name === 'NetworkHostError' && 'problem' in error) {
+/**
+ * The sentence for an error from `network.ts`, or null for any other. Matched by name, like
+ * `BridgeError`, so this module doesn't pull `network.ts` into the bundle.
+ */
+function describeNetworkError(error: unknown): string | null {
+	if (!(error instanceof Error)) return null;
+	if (error.name === 'NetworkAccessError') return m.device_peq_error_network_blocked();
+	if (error.name === 'NetworkResponseError') return m.device_peq_error_bad_response();
+	if (error.name === 'NetworkHostError' && 'problem' in error) {
 		return describeNetworkHostProblem(
 			error.problem as Parameters<typeof describeNetworkHostProblem>[0]
 		);
 	}
+	return null;
+}
+
+/** A user-facing sentence for a failed device operation. */
+export function describeDeviceError(error: unknown): string {
+	const network = describeNetworkError(error);
+	if (network !== null) return network;
 	switch (codeOf(error)) {
 		case 'timeout':
 			return m.device_peq_error_timeout();

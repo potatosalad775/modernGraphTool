@@ -14,11 +14,6 @@
       "count": 1
     }
   },
-  "src/lib/device-peq/errors.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/services/analytics-service.svelte.ts": {
     "complexity": {
       "count": 1

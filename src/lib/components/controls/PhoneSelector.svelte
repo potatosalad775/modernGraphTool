@@ -415,6 +415,7 @@
 			>
 				{#each brandListData as brand (brand)}
 					<button
+						type="button"
 						onclick={() => toggleBrand(brand)}
 						aria-pressed={selectedBrands.has(brand)}
 						class="flex w-full cursor-pointer items-center border-b border-base-content/8 px-3 py-1.5 text-left text-sm transition-colors
@@ -473,6 +474,7 @@
 						<!-- `title` carries the flattened description as the row's tooltip: the
 						     description itself is click-through, so it can't show one. -->
 						<button
+							type="button"
 							onclick={() => togglePhone(phone.identifier, isLoaded)}
 							disabled={isLoading || (isLoaded && !allowRemovingPhone)}
 							aria-pressed={isLoaded}

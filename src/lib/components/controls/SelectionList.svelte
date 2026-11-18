@@ -221,6 +221,7 @@
 										{isSelected ? 'bg-accent/10' : 'hover:bg-base-content/5'}"
 								>
 									<button
+										type="button"
 										onclick={() => handleVariantSelect(uuid, variant.suffix)}
 										aria-current={isSelected ? 'true' : undefined}
 										class="flex min-w-0 flex-1 items-start gap-2 px-2 py-1.5 text-left text-sm transition-colors
@@ -242,6 +243,7 @@
 										</span>
 									</button>
 									<button
+										type="button"
 										onclick={() => handleVariantAdd(item.identifier, variant.suffix)}
 										disabled={isLoaded}
 										title={isLoaded

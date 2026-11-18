@@ -148,9 +148,19 @@ Deliberate exceptions — these stay raw elements:
 - **Checkboxes and radios.** `Input` is a labelled text field and does not cover them; `Switch`
   covers the toggle-switch case only.
 - Anything bits-ui already owns through a `child` snippet (`Popover.Trigger`, `Combobox.Input`, …).
+- **A row in a list or menu**: the brand and device rows in `PhoneSelector`, the variant rows in
+  `SelectionList`, the preset rows in `EqOptionButton`. Its content is its accessible name, which
+  `Button`'s `title` mode would replace, and `Button` wraps every instance in a tooltip trigger,
+  1500 of them in a large phone book. The tooltip is also wrong for a dense column: it opens below
+  its button, covers the same button in the next row, and takes the click meant for it. That was
+  measured on `SelectionList`'s add-variant button, which keeps a native `title` for that reason.
+- **A control with its own shape**: the tab buttons in `MenuCarousel` (fixed width, dragged), the
+  step dots in `TutorialModal`, the colour swatch in `GraphColorPicker`.
 
-The conversion is not finished — raw `<button>` still appears in several older components. New code
-uses the atom, and touching a raw one is a good moment to convert it.
+A raw `<button>` still needs `type="button"` (lint fails without it), a visible focus style and
+a disabled style. Lint does not ban the element: 10 of the 11 raw buttons are one of the cases
+above, so a ban would be mostly exceptions. The eleventh is the inline link in `EqFilterList`,
+which fits `Button variant="link"` and shows only while uniPEQ is linked.
 
 ## Directory map
 

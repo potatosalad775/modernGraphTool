@@ -205,7 +205,9 @@ export default defineConfig(
 		// and nothing else, where this rule would need a disable comment at every site.
 		files: ['src/**/*.svelte'],
 		rules: {
-			'svelte/no-at-html-tags': 'off'
+			'svelte/no-at-html-tags': 'off',
+			// A button without a type submits the form around it. The atoms set one.
+			'svelte/button-has-type': 'error'
 		}
 	},
 	{

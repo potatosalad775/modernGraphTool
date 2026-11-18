@@ -33,6 +33,19 @@ mocking pattern in `src/lib/device-peq/`. They are kept there rather than here s
 the code moves.
 :::
 
+## Property-based tests
+
+Code that reads text anyone can send (a share link, a `phone_book.json` description) also has
+properties checked on generated input, with [fast-check](https://fast-check.dev). They live in
+`*.property.spec.ts` files, such as `src/lib/utils/untrusted-input.property.spec.ts`: a decoder
+never throws, a query decodes back to the names it was built from, and sanitizing twice changes
+nothing.
+
+The input is random, so a failure prints a `seed` and a shrunk counterexample. Reproduce it by
+passing that seed as `fc.assert(property, { seed })`, and treat it as a real bug until you have
+shown that the property is wrong. When you add a property, break the code it guards on purpose
+and confirm that it fails.
+
 ## Coverage
 
 The configuration lives in `vite.config.ts` under `test.coverage`, and two settings there are

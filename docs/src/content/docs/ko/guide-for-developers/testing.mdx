@@ -33,6 +33,18 @@ modernGraphTool은 **Vitest**와 **Playwright 브라우저 모드**를 사용합
 위치에 두고 있습니다.
 :::
 
+## 속성 기반 테스트 \{#property-based-tests\}
+
+누구나 보낼 수 있는 텍스트(공유 링크, `phone_book.json`의 설명)를 읽는 코드는
+[fast-check](https://fast-check.dev)로 생성한 입력에 대해서도 속성을 검사합니다.
+`src/lib/utils/untrusted-input.property.spec.ts` 같은 `*.property.spec.ts` 파일에 있으며, 디코더는
+예외를 던지지 않는다, 쿼리는 만들 때 쓴 이름으로 다시 디코딩된다, 두 번 정제해도 결과가 같다 등을
+확인합니다.
+
+입력이 무작위이므로 실패하면 `seed`와 축소된 반례가 출력됩니다. 그 seed를
+`fc.assert(property, { seed })`에 넘겨 재현하고, 속성이 틀렸다는 것을 보이기 전까지는 실제 버그로
+다루세요. 속성을 추가할 때는 그 속성이 지키는 코드를 일부러 망가뜨려 실패하는지 확인하세요.
+
 ## 커버리지 \{#coverage\}
 
 설정은 `vite.config.ts`의 `test.coverage` 아래에 있으며, 그중 두 항목이 핵심입니다.

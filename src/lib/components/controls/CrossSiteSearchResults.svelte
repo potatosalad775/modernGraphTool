@@ -2,57 +2,28 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { aggregateIndexService } from '#lib/services/aggregate-index.svelte.js';
-	import {
-		dbTypeLabel,
-		getCrossSiteSearchConfig,
-		parseCrossSiteGroups
-	} from '#lib/services/aggregate-index-core.js';
+	import { dbTypeLabel, type CrossSiteSearchHits } from '#lib/services/aggregate-index-core.js';
 	import type { CrossSiteSearchResult } from '#lib/types/aggregate-index-types.js';
 	import { ArrowUpRight } from '@lucide/svelte';
 
-	// ── Props ───────────────────────────────────────────────────────────────────
-
 	interface Props {
-		searchQuery: string;
-		resultCount: number;
-		isLoading: boolean;
+		/** Cross-site search is on and the query is long enough to search on. */
+		active: boolean;
+		hits: CrossSiteSearchHits;
+		loading: boolean;
 	}
 
-	let { searchQuery, resultCount = $bindable(0), isLoading = $bindable(false) }: Props = $props();
+	let { active, hits, loading }: Props = $props();
 
-	// ── Cross-site search logic ─────────────────────────────────────────────────
+	let loadStarted = false;
 
-	const config = $derived(getCrossSiteSearchConfig());
-	const crossSiteEnabled = $derived(config.ENABLED);
-
-	let crossSiteLoadStarted = false;
-	let crossSiteLoading = $state(false);
-
-	async function loadCrossSiteData(): Promise<void> {
-		crossSiteLoading = true;
-		try {
-			await aggregateIndexService.load();
-		} catch (e) {
-			console.error('Failed to load cross-site data:', e);
-		} finally {
-			crossSiteLoading = false;
-		}
-	}
-
-	/** Empty until every term of every comma-separated group is long enough to search on. */
-	const groups = $derived(parseCrossSiteGroups(searchQuery));
-
-	// Trigger cross-site data load once when enabled and the query is searchable
+	// The index is fetched once, on the first query that can be searched.
 	$effect(() => {
-		if (crossSiteEnabled && groups.length > 0 && !crossSiteLoadStarted) {
-			crossSiteLoadStarted = true;
-			void loadCrossSiteData();
-		}
-	});
-
-	const hits = $derived.by(() => {
-		if (!crossSiteEnabled || groups.length === 0) return { results: [], total: 0 };
-		return aggregateIndexService.search(searchQuery);
+		if (!active || loadStarted) return;
+		loadStarted = true;
+		aggregateIndexService.load().catch((e: unknown) => {
+			console.error('Failed to load cross-site data:', e);
+		});
 	});
 
 	const groupedCrossSite = $derived.by(() => {
@@ -71,21 +42,10 @@
 		}
 		return map;
 	});
-
-	const showCrossSiteSection = $derived(crossSiteEnabled && groups.length > 0);
-
-	// Sync bindable props with internal state
-	$effect(() => {
-		resultCount = hits.results.length;
-	});
-
-	$effect(() => {
-		isLoading = crossSiteLoading;
-	});
 </script>
 
-{#if showCrossSiteSection}
-	{#if crossSiteLoading && hits.results.length === 0}
+{#if active}
+	{#if loading && hits.results.length === 0}
 		<p class="px-3 py-3 text-center text-xs text-base-content/80">
 			{m.crosssite_search_loading()}
 		</p>

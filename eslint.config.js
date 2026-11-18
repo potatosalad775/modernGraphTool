@@ -39,12 +39,29 @@ const restrictedImports = {
 	]
 };
 
+// An effect that only copies one value into another: `$effect(() => { a = b; })`. Only a
+// write to a variable counts: `document.title = x` or `el.scrollTop = y` reaches something
+// outside the reactive graph, which is what an effect is for.
+const mirrorWrite = "AssignmentExpression[left.type='Identifier']";
+const effectCall =
+	":matches(CallExpression[callee.name='$effect'], CallExpression[callee.object.name='$effect'])";
+const mirrorMessage =
+	'This effect only mirrors a value. Use $derived, or own the value where it is computed and pass it down as a prop.';
+
 // A Tailwind palette class: a colour that does not follow the operator's theme.
 const paletteClass = String.raw`\b(bg|text|border|ring|fill|stroke|from|to|via|outline|divide)-((zinc|gray|slate|stone|neutral|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b`;
 const paletteMessage =
 	'Use a semantic token (bg-base-200, text-base-content/60, border-accent, …) so an operator theme still applies. Tokens are in defaults/theme.css.';
 
 const restrictedSyntax = [
+	{
+		selector: `${effectCall} > ArrowFunctionExpression > ${mirrorWrite}`,
+		message: mirrorMessage
+	},
+	{
+		selector: `${effectCall} > ArrowFunctionExpression > BlockStatement[body.length=1] > ExpressionStatement > ${mirrorWrite}`,
+		message: mirrorMessage
+	},
 	{
 		selector:
 			"NewExpression[callee.name='Worker']:not(:has(> CallExpression[callee.name='trustedScriptUrl']))",

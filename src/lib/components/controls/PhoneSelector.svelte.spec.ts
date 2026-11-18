@@ -758,4 +758,50 @@ describe('PhoneSelector', () => {
 			expect(document.querySelector('[title^="Rank:"]')).toBeNull();
 		});
 	});
+
+	describe('cross-site search', () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+		});
+
+		// The empty-state line belongs to the selector and the results to its child, so the
+		// selector has to know how many results there are and whether more are on the way.
+		it('holds back "No results." while the index loads, and once it has matches', async () => {
+			const index = {
+				v: 2,
+				phonesFormat: 'flat',
+				brands: ['64Audio'],
+				sites: [{ id: 'alice', name: 'Alice', url: 'https://alice.squig.link' }],
+				dbs: [
+					{ id: 'alice:iems', siteId: 'alice', type: 'IEMs', url: 'https://alice.squig.link/' }
+				],
+				phones: [{ db: 'alice:iems', b: 0, n: 'U12t', s: '64Audio_U12t' }]
+			};
+			let deliver = (): void => undefined;
+			const gate = new Promise<void>((resolve) => (deliver = resolve));
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(async () => {
+					await gate;
+					return new Response(JSON.stringify(index), { status: 200 });
+				})
+			);
+			stubBook(makePhone());
+			await render(PhoneSelector);
+			const search = page.getByRole('searchbox');
+			const noResults = page.getByText('No results.');
+
+			await search.fill('u12t');
+			await expect.element(page.getByText('Loading databases...')).toBeInTheDocument();
+			await expect.element(page.getByRole('button', { name: /HD 600/ })).not.toBeInTheDocument();
+			await expect.element(noResults).not.toBeInTheDocument();
+
+			deliver();
+			await expect.element(page.getByRole('link', { name: /64Audio U12t/ })).toBeInTheDocument();
+			await expect.element(noResults).not.toBeInTheDocument();
+
+			await search.fill('zzqq');
+			await expect.element(noResults).toBeInTheDocument();
+		});
+	});
 });

@@ -365,6 +365,19 @@ describe('AggregateIndexService', () => {
 			expect(service.status).toBe('failed');
 		});
 
+		// `status` is the panel's loading flag, so a throw must not leave it at 'loading'.
+		// `encodeURIComponent` throws on a lone surrogate, which a JSON document can carry.
+		it('reports failure when the index cannot be turned into rows, and retries', async () => {
+			const unreadable = makeIndex({ phones: [{ db: 'alice:iems', b: 0, n: 'Bad \ud800' }] });
+			stubFetch({ [OFFICIAL_URLS[0]]: unreadable });
+
+			await expect(service.load()).rejects.toThrow(URIError);
+			expect(service.status).toBe('failed');
+
+			stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
+			await expect(service.load()).resolves.toBe(true);
+		});
+
 		it('loads once for concurrent callers', async () => {
 			const fetchMock = stubFetch({ [OFFICIAL_URLS[0]]: makeIndex() });
 

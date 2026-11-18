@@ -21,7 +21,12 @@
 	import Input from '../atoms/Input.svelte';
 	import PopoverPanel from '../atoms/PopoverPanel.svelte';
 	import CrossSiteSearchResults from './CrossSiteSearchResults.svelte';
-	import { getCrossSiteSearchConfig } from '#lib/services/aggregate-index-core.js';
+	import { aggregateIndexService } from '#lib/services/aggregate-index.svelte.js';
+	import {
+		getCrossSiteSearchConfig,
+		parseCrossSiteGroups,
+		type CrossSiteSearchHits
+	} from '#lib/services/aggregate-index-core.js';
 	import { Info, Search, X } from '@lucide/svelte';
 
 	// ── Config ──────────────────────────────────────────────────────────────────
@@ -45,10 +50,18 @@
 	let showPhonePane = $state(true);
 	const loadingIds = new SvelteSet<string>();
 
-	// ── Cross-site search (delegated to CrossSiteSearchResults) ─────────────────
+	// ── Cross-site search (rendered by CrossSiteSearchResults) ──────────────────
 
-	let crossSiteResultCount = $state(0);
-	let crossSiteIsLoading = $state(false);
+	const NO_HITS: CrossSiteSearchHits = { results: [], total: 0 };
+
+	/** False until every term of every comma-separated group is long enough to search on. */
+	const crossSiteActive = $derived(
+		crossSiteEnabled && parseCrossSiteGroups(searchQuery).length > 0
+	);
+	const crossSiteHits = $derived(
+		crossSiteActive ? aggregateIndexService.search(searchQuery) : NO_HITS
+	);
+	const crossSiteIsLoading = $derived(aggregateIndexService.status === 'loading');
 
 	// ── Derived ─────────────────────────────────────────────────────────────────
 
@@ -433,7 +446,7 @@
 				class:ps-phone-hidden={!showPhonePane}
 			>
 				<!-- Empty state -->
-				{#if displayPhones.length === 0 && crossSiteResultCount === 0 && !crossSiteIsLoading}
+				{#if displayPhones.length === 0 && crossSiteHits.results.length === 0 && !crossSiteIsLoading}
 					<p class="px-3 py-6 text-center text-xs text-base-content/80">
 						{listQuery.trim() ? m.phone_selector_no_results() : m.phone_selector_no_devices()}
 					</p>
@@ -579,13 +592,13 @@
 
 				<!-- Cross-site search results -->
 				<CrossSiteSearchResults
-					{searchQuery}
-					bind:resultCount={crossSiteResultCount}
-					bind:isLoading={crossSiteIsLoading}
+					active={crossSiteActive}
+					hits={crossSiteHits}
+					loading={crossSiteIsLoading}
 				/>
 
 				<!-- Divider between cross-site and local results -->
-				{#if crossSiteResultCount > 0 && displayPhones.length > 0}
+				{#if crossSiteHits.results.length > 0 && displayPhones.length > 0}
 					<div class="mx-3 my-1 border-t border-base-content/15"></div>
 				{/if}
 			</div>

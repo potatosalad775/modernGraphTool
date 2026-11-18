@@ -96,6 +96,17 @@ describe('sanitizeHtml', () => {
 		);
 	});
 
+	// The value is HTML, so it is decoded once: a second decode would eat `&tab=` here.
+	it('decodes an anchor href once', () => {
+		expect(sanitizeHtml('<a href="https://x.test/?a=1&amp;tab=2">x</a>')).toBe(
+			'<a href="https://x.test/?a=1&amp;tab=2" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<a href="&amp;#106;avascript:alert(1)">x</a>')).toBe(
+			'<a href="&amp;#106;avascript:alert(1)" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<a href="&#106;avascript&colon;alert(1)">x</a>')).toBe('<a>x</a>');
+	});
+
 	it('keeps the inline formatting tags', () => {
 		expect(sanitizeHtml('<b>a</b> <em>b</em> <code>c</code><br><sup>d</sup>')).toBe(
 			'<b>a</b> <em>b</em> <code>c</code><br><sup>d</sup>'

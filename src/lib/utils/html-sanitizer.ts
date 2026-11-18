@@ -237,7 +237,8 @@ function buildAttrs(name: string, rawAttrs: string, allowed: readonly string[]):
 		if (!allowed.includes(attr)) continue;
 		const value = decodeEntities(unquote(match[2]));
 		if (attr === 'href') {
-			href = sanitizeUrl(value);
+			// Already decoded above: a second decode would eat `&tab=` out of a query.
+			href = sanitizeUrl(value, { entities: false });
 			continue;
 		}
 		if (!value) continue;

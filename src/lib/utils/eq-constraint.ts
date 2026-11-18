@@ -249,7 +249,7 @@ export function assignSlots(filters: EQFilter[], profile: Profile): number[] {
 			if (slots[i] === null && s != null) slots[i] = s;
 		});
 		indices.forEach((i, position) => {
-			if (slots[i] === null) slots[i] = position;
+			slots[i] ??= position;
 		});
 	}
 	return slots.map((s) => (profile.bandCount === null ? 0 : clampSlot(profile, s ?? 0)));

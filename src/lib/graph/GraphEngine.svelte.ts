@@ -482,7 +482,7 @@ class GraphEngine {
 			.attr('y', (d) => d)
 			.style('opacity', 0);
 
-		this._createYAxisElements(enterGroups, oldYScale || yScale);
+		this._createYAxisElements(enterGroups, oldYScale ?? yScale);
 
 		const allGroups = enterGroups.merge(gridGroups);
 

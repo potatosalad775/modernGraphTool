@@ -35,12 +35,8 @@ const MetadataParser = {
 
 	/** Initialize metadata parser and load data */
 	async init(): Promise<void> {
-		if (!this.phoneMetadata) {
-			this.phoneMetadata = await this._fetchBookObject();
-		}
-		if (!this.targetMetadata) {
-			this.targetMetadata = this._fetchTargetObject();
-		}
+		this.phoneMetadata ??= await this._fetchBookObject();
+		this.targetMetadata ??= this._fetchTargetObject();
 	},
 
 	/** Check if Phone object is included in phoneMetadata (phone_book.json). */
@@ -58,7 +54,7 @@ const MetadataParser = {
 						// If it's an object with fullName property
 						if (file.fullName) return file.fullName === identifier;
 						// If it's a string, construct the full name
-						const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
+						const baseName = typeof phone.name === 'string' ? phone.name : phone.name[0];
 						const fullName = `${brand.brand} ${baseName} ${file.suffix}`;
 						return fullName === identifier;
 					});

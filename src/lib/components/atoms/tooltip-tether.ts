@@ -30,6 +30,8 @@ const DROPPED = new Set([
 	'data-delay-duration'
 ]);
 
+const isHandler = (value: unknown): value is (e: Event) => void => typeof value === 'function';
+
 /**
  * Lays a trigger's props under the element's own: the element's values win, event
  * handlers run both (the element's first), and the trigger's ref attachment rides along
@@ -44,7 +46,7 @@ export function mergeTooltipProps<T extends object>(
 		if (DROPPED.has(key)) continue;
 		const ours = merged[key];
 		const theirs = trigger[key];
-		if (key.startsWith('on') && typeof ours === 'function' && typeof theirs === 'function') {
+		if (key.startsWith('on') && isHandler(ours) && isHandler(theirs)) {
 			merged[key] = (e: Event) => {
 				ours(e);
 				theirs(e);

@@ -157,8 +157,8 @@ class AnalyticsService {
 	#load(): void {
 		// Another script on the page may have created either layer already.
 		const existing: Partial<Pick<Window, 'dataLayer' | typeof CONTAINER_LAYER>> = window;
-		window.dataLayer = existing.dataLayer || [];
-		window[CONTAINER_LAYER] = existing[CONTAINER_LAYER] || [];
+		window.dataLayer = existing.dataLayer ?? [];
+		window[CONTAINER_LAYER] = existing[CONTAINER_LAYER] ?? [];
 		// A consent command has to reach both layers, also when a banner of the operator's
 		// sends it; everything else stays on gtag.js's own layer.
 		window.gtag = function () {

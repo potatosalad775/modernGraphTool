@@ -1,36 +1,6 @@
 {
-  "src/lib/components/atoms/Button.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
-  "src/lib/components/atoms/Switch.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    }
-  },
-  "src/lib/components/atoms/tooltip-tether.ts": {
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 2
-    }
-  },
-  "src/lib/components/controls/PhoneSelector.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 4
-    }
-  },
-  "src/lib/components/controls/SelectionList.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 3
-    }
-  },
   "src/lib/components/controls/SiteSelector.svelte": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/components/equalizer/EqAutoEqSelect.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
     }
   },
@@ -39,39 +9,8 @@
       "count": 1
     }
   },
-  "src/lib/components/equalizer/eq-select-groups.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 3
-    }
-  },
-  "src/lib/components/features/ShopLink.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "src/lib/components/graph/GraphContainer.svelte": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/components/graph/GraphWatermark.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 11
-    }
-  },
-  "src/lib/components/layout/AppShell.svelte": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    }
-  },
-  "src/lib/device-peq/connect.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
     }
   },
@@ -85,42 +24,12 @@
       "count": 2
     }
   },
-  "src/lib/device-peq/network.ts": {
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    }
-  },
-  "src/lib/graph/GraphEngine.svelte.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "src/lib/graph/GraphEqOverlay.ts": {
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    },
     "complexity": {
       "count": 2
     }
   },
-  "src/lib/graph/GraphHandle.ts": {
-    "@typescript-eslint/no-unsafe-argument": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    }
-  },
   "src/lib/graph/curve-traces.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    },
     "complexity": {
       "count": 1
     }
@@ -131,9 +40,6 @@
     }
   },
   "src/lib/services/analytics-service.svelte.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    },
     "complexity": {
       "count": 1
     }
@@ -148,44 +54,17 @@
       "count": 1
     }
   },
-  "src/lib/services/initial-load.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    }
-  },
   "src/lib/services/keyboard-shortcuts.ts": {
     "complexity": {
       "count": 1
     }
   },
   "src/lib/services/ranking-core.ts": {
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 4
-    },
     "complexity": {
       "count": 3
     }
   },
-  "src/lib/stores/squiglink-store.svelte.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 4
-    }
-  },
-  "src/lib/utils/curve-palette.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "src/lib/utils/data-processor.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 2
-    },
     "complexity": {
       "count": 1
     }
@@ -195,15 +74,7 @@
       "count": 1
     }
   },
-  "src/lib/utils/eq-constraint.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "src/lib/utils/equalizer.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 4
-    },
     "complexity": {
       "count": 1
     }
@@ -219,43 +90,17 @@
     }
   },
   "src/lib/utils/metadata-parser.ts": {
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 3
-    },
     "complexity": {
       "count": 3
     }
   },
   "src/lib/utils/url-provider.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 2
-    },
     "complexity": {
       "count": 2
     }
   },
   "src/lib/utils/url-state.ts": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/workers/autoeq-client.ts": {
-    "@typescript-eslint/no-unsafe-argument": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-assignment": {
-      "count": 7
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 19
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
     }
   }

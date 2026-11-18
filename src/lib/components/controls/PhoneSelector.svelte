@@ -449,7 +449,13 @@
 					{@const isPinBoundary = i === pinnedCount - 1 && pinnedCount < displayPhones.length}
 					{@const hasMeta =
 						isLoaded &&
-						!!(rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
+						!!(
+							rank != null ||
+							phone.price ||
+							phone.reviewLink ||
+							phone.shopLink ||
+							phone.links?.length
+						)}
 					{@const descId = `${uid}-desc-${i}`}
 					<!-- The row is a container, not a button: the toggle button, the description and
 					     the link row are siblings, because links nested in a button are invalid and

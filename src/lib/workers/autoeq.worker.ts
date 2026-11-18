@@ -6,7 +6,7 @@
 
 import { noop } from '#lib/utils/noop.js';
 import { loadTurboEq, runAutoEq } from './autoeq-engine.js';
-import type { AutoEqRequest } from './autoeq-request.js';
+import type { AutoEqReply, AutoEqRequest } from './autoeq-request.js';
 
 self.onmessage = async (e: MessageEvent) => {
 	const { type, id, source, target, request } = e.data as {
@@ -27,9 +27,9 @@ self.onmessage = async (e: MessageEvent) => {
 		const t0 = performance.now();
 		const outcome = await runAutoEq(source, target, request);
 		const elapsedMs = performance.now() - t0;
-		self.postMessage({ type: 'autoeq-result', id, elapsedMs, ...outcome });
+		self.postMessage({ type: 'autoeq-result', id, elapsedMs, ...outcome } satisfies AutoEqReply);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		self.postMessage({ type: 'autoeq-error', id, error: message });
+		self.postMessage({ type: 'autoeq-error', id, error: message } satisfies AutoEqReply);
 	}
 };

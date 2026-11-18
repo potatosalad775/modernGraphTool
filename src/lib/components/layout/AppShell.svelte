@@ -430,7 +430,7 @@
 <EqChannelConflictDialog />
 
 <!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
-{#if linkStore.choice || linkStore.status?.review || linkStore.status?.consent}
+{#if linkStore.choice ?? linkStore.status?.review ?? linkStore.status?.consent}
 	{#await import('#lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
 		<LinkDialogs />
 	{/await}

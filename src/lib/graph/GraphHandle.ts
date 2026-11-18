@@ -63,7 +63,7 @@ class GraphHandle {
 			.on('start', () => {
 				this.handle.attr('opacity', '1');
 			})
-			.on('drag', (event) => {
+			.on('drag', (event: d3.D3DragEvent<SVGCircleElement, unknown, unknown>) => {
 				const newY = Math.max(this.minY, Math.min(this.maxY, event.y));
 				// The handle itself follows the pointer at once; the redraw of every
 				// curve, grid line and overlay waits for the frame and reads `yShift`

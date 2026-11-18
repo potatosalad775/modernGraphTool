@@ -19,6 +19,7 @@
 import { getConfigValue } from '#lib/utils/config.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
 import type { CsvRow } from '#lib/utils/csv.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type { RankScaleEntry, RankingSourceConfig } from '#lib/types/data-types.js';
 
 /** Default sheet headers — the ones squigRanking's own templates ship with. */
@@ -198,8 +199,8 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 	const rawScale = byRole('rank')?.scale;
 	const scale = Array.isArray(rawScale)
 		? rawScale.filter(
-				(entry): entry is RankScaleEntry =>
-					typeof entry === 'object' && entry !== null && typeof entry.value === 'string'
+				(entry: unknown): entry is RankScaleEntry =>
+					isRecord(entry) && typeof entry.value === 'string'
 			)
 		: [];
 

@@ -340,7 +340,9 @@ export class SquiglinkStore {
 		try {
 			const res = await fetch(`${url}.json`, { priority: 'low' });
 			if (!res.ok) return null;
-			const data = await res.json();
+			const data = (await res.json()) as {
+				product: { variants: { price: string; compare_at_price: string }[] };
+			};
 			return {
 				currentPrice: data.product.variants[0].price,
 				originalPrice: data.product.variants[0].compare_at_price,

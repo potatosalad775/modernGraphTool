@@ -144,8 +144,9 @@
 		{@const channelOpts = channelOptions(item)}
 		{@const currentChannelVal = dispChannelToSelectValue(item.dispChannel)}
 		{@const variantFiles =
-			(!isTargetType(item) && (item.meta as { files?: PhoneFileVariant[] } | undefined)?.files) ||
-			[]}
+			(isTargetType(item)
+				? undefined
+				: (item.meta as { files?: PhoneFileVariant[] } | undefined)?.files) ?? []}
 		{@const hasVariants = variantFiles.length > 1}
 		{@const name = curveName(item)}
 

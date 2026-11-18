@@ -64,6 +64,8 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - Effects: `$effect(() => { ... })` **not** `afterUpdate`
 - Props: `let { prop } = $props()` **not** `export let prop`
 - Module-level reactive state lives in `.svelte.ts` files, not plain `.ts`.
+- A dependency an effect reads but does not use: `track(a, b)` from `#lib/utils/track.js`, not
+  `void a;` (lint rejects it).
 - For long-lived reactive subscriptions in module-level singletons, wrap effects in
   `$effect.root(() => $effect(() => ...))`. Install lazily on first interaction; never
   dispose for page-lifetime singletons. Precedent: [audio-player-service.svelte.ts](src/lib/services/audio-player-service.svelte.ts).

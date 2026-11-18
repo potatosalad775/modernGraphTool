@@ -271,7 +271,7 @@ interface LuxProfile {
 async function luxGet(ip: string, action: string): Promise<Record<string, unknown>> {
 	const response = await netFetch('http', ip, `/dev/info.cgi?action=${action}`);
 	if (!response.ok) throw new Error(`Luxsin: HTTP ${response.status} ${response.statusText}`);
-	return JSON.parse(luxDecode(await readBoundedText(response)));
+	return JSON.parse(luxDecode(await readBoundedText(response))) as Record<string, unknown>;
 }
 
 async function luxPost(ip: string, payload: object): Promise<void> {

@@ -104,4 +104,10 @@ App code outside the specs is also held to typescript-eslint's `strict-type-chec
 `eslint-suppressions.json`, ESLint's bulk-suppressions file, so lint fails only on a new one. That
 file must never grow: never run `eslint --suppress-all` to make a red lint pass. After fixing
 recorded violations, run `npm run lint:prune` and commit the smaller file, because `npm run lint`
-also fails on a suppression that no longer matches anything.
+also fails on a suppression that no longer matches anything. What is left there is the `complexity`
+rule alone: functions over its limit of 15 that have not been split yet.
+
+Two helpers in `src/lib/utils/` exist for these presets. `track(a, b)` names the reactive values an
+`$effect` depends on without otherwise using (a bare `void a;` fails `no-meaningless-void-operator`).
+`noop` fills a callback slot that needs no action, such as `.catch(noop)` on a rejection that is safe
+to ignore (an empty arrow function fails `no-empty-function`).

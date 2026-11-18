@@ -151,7 +151,7 @@ function oklabDistance(a: [number, number, number], b: [number, number, number])
 
 let _okabeItoOklch: [number, number, number][] | null = null;
 function okabeItoOklch(): [number, number, number][] {
-	if (!_okabeItoOklch) _okabeItoOklch = OKABE_ITO_HEX.map(hexToOklch);
+	_okabeItoOklch ??= OKABE_ITO_HEX.map(hexToOklch);
 	return _okabeItoOklch;
 }
 

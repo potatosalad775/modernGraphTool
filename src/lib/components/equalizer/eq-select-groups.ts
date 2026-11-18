@@ -3,7 +3,7 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
 import { curveBaseName } from '#lib/utils/curve-name.js';
 import { sampleRunLabel } from '#lib/utils/eq-source.js';
-import type { SelectMenuGroup, SelectMenuItem } from '../atoms/SelectMenu.svelte';
+import type { SelectMenuGroup, SelectMenuItem } from '../atoms/select-menu.js';
 
 const isDevice = (item: FRDataObject) => item.type === 'phone' || item.type === 'inserted-phone';
 

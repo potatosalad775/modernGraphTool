@@ -438,10 +438,10 @@ export class GraphEqOverlay {
 						(!event.ctrlKey || event.type === 'wheel') && !event.button && !linkStore.readOnly
 				)
 				.on('start', (_event: d3.D3DragEvent<SVGGElement, BandDatum, BandDatum>, d: BandDatum) => {
-					const nodeEl = d3.select(
-						(_event.sourceEvent?.target?.closest?.('.eq-band-node') as Element | null) ??
-							_event.sourceEvent.currentTarget
-					);
+					const source = _event.sourceEvent as MouseEvent | TouchEvent;
+					const node =
+						source.target instanceof Element ? source.target.closest('.eq-band-node') : null;
+					const nodeEl = d3.select(node ?? (source.currentTarget as Element));
 					nodeEl.style('cursor', 'grabbing').raise();
 					nodeEl.select('.eq-center-dot').attr('r', 9).attr('opacity', 1);
 					nodeEl.select('.eq-q-ring').attr('opacity', 0.8);

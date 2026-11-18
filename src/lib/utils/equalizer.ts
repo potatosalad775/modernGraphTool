@@ -729,10 +729,10 @@ export class Equalizer {
 	}
 
 	autoEQ(source: FreqPoint[], target: FreqPoint[], options: AutoEQOptions = {}): EQFilter[] {
-		const maxFilters = options.maxFilters || 8;
-		const freqRange = options.freqRange || this.config.AutoEQRange;
-		const qRange = options.qRange || this.config.OptimizeQRange;
-		const gainRange = options.gainRange || this.config.OptimizeGainRange;
+		const maxFilters = options.maxFilters ?? 8;
+		const freqRange = options.freqRange ?? this.config.AutoEQRange;
+		const qRange = options.qRange ?? this.config.OptimizeQRange;
+		const gainRange = options.gainRange ?? this.config.OptimizeGainRange;
 		const useShelfFilter = options.useShelfFilter !== false;
 
 		this.config.AutoEQRange = freqRange;

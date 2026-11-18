@@ -101,50 +101,45 @@ export function readJsLiteral(
 				return out;
 			}
 			if (c === '\n' || c === '\r') fail('Unterminated string');
-			if (c !== '\\') {
-				out += c;
-				i++;
-				continue;
-			}
 			i++;
-			const e = source.at(i);
-			if (e === undefined) break;
-			if (e in SIMPLE_ESCAPES) {
-				out += SIMPLE_ESCAPES[e];
-				i++;
-			} else if (e === '0' && !/\d/.test(source[i + 1] ?? '')) {
-				out += '\0';
-				i++;
-			} else if (/\d/.test(e)) {
-				fail('Octal escapes are not allowed');
-			} else if (e === 'x') {
-				i++;
-				out += String.fromCharCode(readHex(2));
-			} else if (e === 'u') {
-				i++;
-				if (source[i] === '{') {
-					const close = source.indexOf('}', i);
-					const digits = close === -1 ? '' : source.slice(i + 1, close);
-					if (!HEX.test(digits)) fail('Bad escape sequence');
-					const code = Number.parseInt(digits, 16);
-					if (code > 0x10ffff) fail('Bad escape sequence');
-					out += String.fromCodePoint(code);
-					i = close + 1;
-				} else {
-					out += String.fromCharCode(readHex(4));
-				}
-			} else if (e === '\r') {
-				// Line continuation: a backslash before a newline adds nothing
-				i += source[i + 1] === '\n' ? 2 : 1;
-			} else if (e === '\n' || e === ' ' || e === ' ') {
-				i++;
-			} else {
-				// `\'` `\"` `\\` `\/` and any other escaped character stand for themselves
-				out += e;
-				i++;
-			}
+			out += c === '\\' ? readEscape() : c;
 		}
 		return fail('Unterminated string');
+	}
+
+	/** Reads what follows a backslash in a string and returns the text it stands for. */
+	function readEscape(): string {
+		const e = source.at(i);
+		if (e === undefined) return fail('Unterminated string');
+		if (/\d/.test(e)) {
+			if (e !== '0' || /\d/.test(source[i + 1] ?? '')) fail('Octal escapes are not allowed');
+			i++;
+			return '\0';
+		}
+		i++;
+		if (e in SIMPLE_ESCAPES) return SIMPLE_ESCAPES[e];
+		if (e === 'x') return String.fromCharCode(readHex(2));
+		if (e === 'u') return readUnicodeEscape();
+		// Line continuation: a backslash before a newline adds nothing
+		if (e === '\r') {
+			if (source[i] === '\n') i++;
+			return '';
+		}
+		if (e === '\n' || e === ' ' || e === ' ') return '';
+		// `\'` `\"` `\\` `\/` and any other escaped character stand for themselves
+		return e;
+	}
+
+	/** The rest of a `\u` escape: four hex digits, or a code point in braces. */
+	function readUnicodeEscape(): string {
+		if (source[i] !== '{') return String.fromCharCode(readHex(4));
+		const close = source.indexOf('}', i);
+		const digits = close === -1 ? '' : source.slice(i + 1, close);
+		if (!HEX.test(digits)) fail('Bad escape sequence');
+		const code = Number.parseInt(digits, 16);
+		if (code > 0x10ffff) fail('Bad escape sequence');
+		i = close + 1;
+		return String.fromCodePoint(code);
 	}
 
 	function readIdentifier(): string {
@@ -174,15 +169,18 @@ export function readJsLiteral(
 		if (c === "'" || c === '"') return readString();
 		if (c === undefined) return fail('Unexpected end of input');
 		if (c === '-' || c === '+' || c === '.' || (c >= '0' && c <= '9')) return readNumber();
-		if (IDENT_START.test(c)) {
-			const word = readIdentifier();
-			if (word === 'true') return true;
-			if (word === 'false') return false;
-			if (word === 'null') return null;
-			i -= word.length;
-			return fail(`Identifier "${word}" is not a literal`);
-		}
+		if (IDENT_START.test(c)) return readKeyword();
 		return fail('Unexpected character');
+	}
+
+	/** `true`, `false` or `null`: the only identifiers that are data. */
+	function readKeyword(): boolean | null {
+		const word = readIdentifier();
+		if (word === 'true') return true;
+		if (word === 'false') return false;
+		if (word === 'null') return null;
+		i -= word.length;
+		return fail(`Identifier "${word}" is not a literal`);
 	}
 
 	function readObject(depth: number): Record<string, unknown> {
@@ -275,13 +273,7 @@ function findNonCodeRanges(script: string): [number, number][] {
 			const close = script.indexOf('*/', i + 2);
 			i = close === -1 ? script.length : close + 2;
 		} else if (c === "'" || c === '"' || c === '`') {
-			i++;
-			while (i < script.length && script[i] !== c) {
-				if (script[i] === '\\') i++;
-				else if (c !== '`' && LINE_BREAK.test(script[i])) break;
-				i++;
-			}
-			i = Math.min(i + 1, script.length);
+			i = quotedEnd(script, i);
 		} else {
 			i++;
 			continue;
@@ -289,6 +281,18 @@ function findNonCodeRanges(script: string): [number, number][] {
 		ranges.push([start, i]);
 	}
 	return ranges;
+}
+
+/** The index just past the string or template literal that opens at `open`. */
+function quotedEnd(script: string, open: number): number {
+	const quote = script[open];
+	let i = open + 1;
+	while (i < script.length && script[i] !== quote) {
+		if (script[i] === '\\') i++;
+		else if (quote !== '`' && LINE_BREAK.test(script[i])) break;
+		i++;
+	}
+	return Math.min(i + 1, script.length);
 }
 
 /**

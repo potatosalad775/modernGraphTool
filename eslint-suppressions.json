@@ -24,11 +24,6 @@
       "count": 1
     }
   },
-  "src/lib/services/audio-player-service.svelte.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/utils/data-processor.ts": {
     "complexity": {
       "count": 1

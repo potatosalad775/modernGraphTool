@@ -232,6 +232,47 @@ class AudioPlayerService {
 		return eqStore.isEnabled && this.#filtersEnabled;
 	}
 
+	/** The listening-range bandpass and its makeup stage, added at the head of the chain. */
+	#addRangeFilters(ctx: AudioContext): void {
+		// Read the bounds untracked. Entering or leaving range mode has to rebuild
+		// the chain, but a drag must not: this method runs inside the $effect
+		// installed by #installFilterEffectRoot, so tracking fromHz/toHz here would
+		// subscribe that effect to them and rebuild every node on every pointer
+		// event — exactly what #retuneRangeFilters exists to avoid.
+		const { fromHz, toHz } = untrack(() => ({
+			fromHz: audioRangeStore.fromHz,
+			toHz: audioRangeStore.toHz
+		}));
+		const hp = ctx.createBiquadFilter();
+		hp.type = 'highpass';
+		hp.frequency.value = fromHz;
+		hp.Q.value = RANGE_FILTER_Q;
+		const lp = ctx.createBiquadFilter();
+		lp.type = 'lowpass';
+		lp.frequency.value = toHz;
+		lp.Q.value = RANGE_FILTER_Q;
+		const makeup = ctx.createGain();
+		makeup.gain.value = rangeMakeupGain(fromHz, toHz);
+		this.#rangeHighpass = hp;
+		this.#rangeLowpass = lp;
+		this.#rangeMakeup = makeup;
+		this.#filterNodes.push(hp, lp, makeup);
+	}
+
+	/** Bypass path: the match stage feeds the output through whatever range filters are in. */
+	#wireBypass(match: GainNode, chainTail: AudioNode): void {
+		// A range-mode bandpass may still sit downstream even with EQ off.
+		if (this.#filterNodes.length === 0) {
+			match.connect(chainTail);
+		} else {
+			match.connect(this.#filterNodes[0]);
+			for (let i = 0; i < this.#filterNodes.length - 1; i++) {
+				this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
+			}
+			this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
+		}
+	}
+
 	#updateFilters(): void {
 		const ctx = this.#audioContext;
 		if (!ctx || !this.#gainNode) return;
@@ -258,29 +299,7 @@ class AudioPlayerService {
 		// HPF + LPF biquads to the chain so playback is gated to [fromHz, toHz],
 		// followed by a makeup stage that puts the band's center back at unity.
 		if (audioRangeStore.isFrequencySelectionMode && this.#rangeGatingApplies) {
-			// Read the bounds untracked. Entering or leaving range mode has to rebuild
-			// the chain, but a drag must not: this method runs inside the $effect
-			// installed by #installFilterEffectRoot, so tracking fromHz/toHz here would
-			// subscribe that effect to them and rebuild every node on every pointer
-			// event — exactly what #retuneRangeFilters exists to avoid.
-			const { fromHz, toHz } = untrack(() => ({
-				fromHz: audioRangeStore.fromHz,
-				toHz: audioRangeStore.toHz
-			}));
-			const hp = ctx.createBiquadFilter();
-			hp.type = 'highpass';
-			hp.frequency.value = fromHz;
-			hp.Q.value = RANGE_FILTER_Q;
-			const lp = ctx.createBiquadFilter();
-			lp.type = 'lowpass';
-			lp.frequency.value = toHz;
-			lp.Q.value = RANGE_FILTER_Q;
-			const makeup = ctx.createGain();
-			makeup.gain.value = rangeMakeupGain(fromHz, toHz);
-			this.#rangeHighpass = hp;
-			this.#rangeLowpass = lp;
-			this.#rangeMakeup = makeup;
-			this.#filterNodes.push(hp, lp, makeup);
+			this.#addRangeFilters(ctx);
 		}
 
 		// A device downstream is applying the EQ (`devicePeqStore.playsEq`): applying the list
@@ -294,16 +313,7 @@ class AudioPlayerService {
 			this.#pathTrimLinear =
 				hasEqToApply && !onDevice ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
 			this.#rampGain(match.gain, this.#pathTrimLinear * this.#abTrimLinear);
-			// A range-mode bandpass may still sit downstream even with EQ off.
-			if (this.#filterNodes.length === 0) {
-				match.connect(chainTail);
-			} else {
-				match.connect(this.#filterNodes[0]);
-				for (let i = 0; i < this.#filterNodes.length - 1; i++) {
-					this.#filterNodes[i].connect(this.#filterNodes[i + 1]);
-				}
-				this.#filterNodes[this.#filterNodes.length - 1].connect(chainTail);
-			}
+			this.#wireBypass(match, chainTail);
 			this.#reconnectSource();
 			return;
 		}

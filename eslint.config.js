@@ -39,7 +39,10 @@ const restrictedImports = {
 	]
 };
 
-// An effect that only copies one value into another: `$effect(() => { a = b; })`.
+// An effect that only copies one value into another: `$effect(() => { a = b; })`. Only a
+// write to a variable counts: `document.title = x` or `el.scrollTop = y` reaches something
+// outside the reactive graph, which is what an effect is for.
+const mirrorWrite = "AssignmentExpression[left.type='Identifier']";
 const effectCall =
 	":matches(CallExpression[callee.name='$effect'], CallExpression[callee.object.name='$effect'])";
 const mirrorMessage =
@@ -52,11 +55,11 @@ const paletteMessage =
 
 const restrictedSyntax = [
 	{
-		selector: `${effectCall} > ArrowFunctionExpression > AssignmentExpression`,
+		selector: `${effectCall} > ArrowFunctionExpression > ${mirrorWrite}`,
 		message: mirrorMessage
 	},
 	{
-		selector: `${effectCall} > ArrowFunctionExpression > BlockStatement[body.length=1] > ExpressionStatement > AssignmentExpression`,
+		selector: `${effectCall} > ArrowFunctionExpression > BlockStatement[body.length=1] > ExpressionStatement > ${mirrorWrite}`,
 		message: mirrorMessage
 	},
 	{

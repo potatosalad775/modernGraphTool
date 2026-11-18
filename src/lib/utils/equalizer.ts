@@ -128,7 +128,7 @@ export class Equalizer {
 			for (; i < fr.length - 1; ++i) {
 				const [f0, v0] = fr[i];
 				const [f1, v1] = fr[i + 1];
-				if (i == 0 && f < f0) {
+				if (i === 0 && f < f0) {
 					return [f, v0];
 				} else if (f >= f0 && f < f1) {
 					const v = v0 + ((v1 - v0) * (f - f0)) / (f1 - f0);
@@ -231,7 +231,7 @@ export class Equalizer {
 
 	_calculateGains(freqs: number[], coeffs: number[][]): number[] {
 		const n = freqs.length;
-		const gains = new Array(n).fill(0);
+		const gains = new Array<number>(n).fill(0);
 		if (coeffs.length === 0) return gains;
 
 		const wScale = (2 * Math.PI) / this.config.DefaultSampleRate;
@@ -243,8 +243,7 @@ export class Equalizer {
 
 		const inv10ln10 = 10 / Math.LN10;
 
-		for (let i = 0; i < coeffs.length; ++i) {
-			const [a0, a1, a2, b0, b1, b2] = coeffs[i];
+		for (const [a0, a1, a2, b0, b1, b2] of coeffs) {
 			const bSum = b0 + b1 + b2;
 			const aSum = a0 + a1 + a2;
 			const bSum2 = bSum * bSum;
@@ -383,7 +382,7 @@ export class Equalizer {
 			if (nextState === state) continue;
 
 			if (startIndex >= 0) {
-				if (state != 0) {
+				if (state !== 0) {
 					const start = fr[startIndex][0];
 					const end = f;
 					const center = Math.sqrt(start * end);
@@ -467,7 +466,7 @@ export class Equalizer {
 		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] = this.config.OptimizeDeltas[iteration];
 		const [begin, end, step] = dir ? [filters.length - 1, -1, -1] : [0, filters.length, 1];
 
-		for (let i = begin; i != end; i += step) {
+		for (let i = begin; i !== end; i += step) {
 			let f = filters[i];
 			const fr1 = this.applyFilters(
 				fr,

@@ -4,17 +4,9 @@
       "count": 1
     }
   },
-  "src/lib/components/atoms/ScrollArea.svelte": {
-    "@typescript-eslint/no-useless-default-assignment": {
-      "count": 1
-    }
-  },
   "src/lib/components/atoms/Switch.svelte": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
-    },
-    "eqeqeq": {
-      "count": 1
     }
   },
   "src/lib/components/atoms/tooltip-tether.ts": {
@@ -25,34 +17,15 @@
   "src/lib/components/controls/PhoneSelector.svelte": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 4
-    },
-    "@typescript-eslint/restrict-plus-operands": {
-      "count": 1
-    }
-  },
-  "src/lib/components/controls/ScreenshotButton.svelte": {
-    "@typescript-eslint/prefer-promise-reject-errors": {
-      "count": 1
     }
   },
   "src/lib/components/controls/SelectionList.svelte": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 3
     }
   },
   "src/lib/components/controls/SiteSelector.svelte": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/components/equalizer/EqAudioPlayer.svelte": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 1
-    },
-    "eqeqeq": {
       "count": 1
     }
   },
@@ -66,16 +39,6 @@
       "count": 1
     }
   },
-  "src/lib/components/equalizer/EqFilterList.svelte": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 1
-    }
-  },
-  "src/lib/components/equalizer/EqHistoryAndCompare.svelte": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 3
-    }
-  },
   "src/lib/components/equalizer/eq-select-groups.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 1
@@ -87,35 +50,12 @@
       "count": 3
     }
   },
-  "src/lib/components/features/DeviceConnect.svelte": {
-    "@typescript-eslint/no-invalid-void-type": {
-      "count": 1
-    }
-  },
-  "src/lib/components/features/LinkDialogs.svelte": {
-    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
-      "count": 1
-    }
-  },
   "src/lib/components/features/ShopLink.svelte": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
     }
   },
-  "src/lib/components/features/TargetCustomizer.svelte": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 1
-    }
-  },
-  "src/lib/components/features/UnipeqLink.svelte": {
-    "eqeqeq": {
-      "count": 2
-    }
-  },
   "src/lib/components/graph/GraphContainer.svelte": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 4
-    },
     "complexity": {
       "count": 1
     }
@@ -126,26 +66,12 @@
     }
   },
   "src/lib/components/layout/AppShell.svelte": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
     }
   },
-  "src/lib/components/panels/lazy-panels.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 1
-    }
-  },
   "src/lib/device-peq/connect.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 3
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    },
-    "@typescript-eslint/require-await": {
       "count": 1
     }
   },
@@ -154,34 +80,17 @@
       "count": 1
     }
   },
-  "src/lib/device-peq/link.ts": {
-    "@typescript-eslint/require-await": {
-      "count": 4
-    }
-  },
   "src/lib/device-peq/network-host.ts": {
     "complexity": {
       "count": 2
     }
   },
   "src/lib/device-peq/network.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 4
-    },
-    "@typescript-eslint/no-misused-spread": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 4
-    },
     "@typescript-eslint/no-unsafe-return": {
       "count": 1
     },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
-    },
-    "@typescript-eslint/require-await": {
-      "count": 3
     }
   },
   "src/lib/graph/GraphEngine.svelte.ts": {
@@ -190,9 +99,6 @@
     }
   },
   "src/lib/graph/GraphEqOverlay.ts": {
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 1
-    },
     "@typescript-eslint/no-unsafe-call": {
       "count": 1
     },
@@ -208,11 +114,6 @@
       "count": 1
     },
     "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    }
-  },
-  "src/lib/graph/GraphInspection.ts": {
-    "@typescript-eslint/unbound-method": {
       "count": 1
     }
   },
@@ -238,46 +139,13 @@
     }
   },
   "src/lib/services/audio-player-service.svelte.ts": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 11
-    },
     "complexity": {
       "count": 1
     }
   },
   "src/lib/services/autoeq-service.svelte.ts": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 2
-    },
-    "@typescript-eslint/prefer-optional-chain": {
-      "count": 1
-    },
     "complexity": {
       "count": 1
-    }
-  },
-  "src/lib/services/device-peq-service.svelte.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 6
-    },
-    "@typescript-eslint/no-invalid-void-type": {
-      "count": 3
-    },
-    "@typescript-eslint/prefer-optional-chain": {
-      "count": 1
-    },
-    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
-      "count": 5
-    }
-  },
-  "src/lib/services/eq-channel-conflict.svelte.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 1
-    }
-  },
-  "src/lib/services/eq-curve.svelte.ts": {
-    "@typescript-eslint/no-meaningless-void-operator": {
-      "count": 5
     }
   },
   "src/lib/services/initial-load.ts": {
@@ -290,15 +158,7 @@
       "count": 1
     }
   },
-  "src/lib/services/media-session.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 2
-    }
-  },
   "src/lib/services/ranking-core.ts": {
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 3
-    },
     "@typescript-eslint/no-unsafe-member-access": {
       "count": 1
     },
@@ -309,21 +169,6 @@
       "count": 3
     }
   },
-  "src/lib/services/site-index-core.ts": {
-    "@typescript-eslint/prefer-optional-chain": {
-      "count": 1
-    }
-  },
-  "src/lib/stores/device-peq-store.svelte.ts": {
-    "@typescript-eslint/prefer-optional-chain": {
-      "count": 1
-    }
-  },
-  "src/lib/stores/preference-bound-store.svelte.ts": {
-    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
-      "count": 1
-    }
-  },
   "src/lib/stores/squiglink-store.svelte.ts": {
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 3
@@ -332,29 +177,8 @@
       "count": 4
     }
   },
-  "src/lib/stores/target-adjustment-store.svelte.ts": {
-    "@typescript-eslint/no-dynamic-delete": {
-      "count": 1
-    }
-  },
-  "src/lib/types/data-types.ts": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 2
-    }
-  },
-  "src/lib/utils/base62.ts": {
-    "@typescript-eslint/prefer-for-of": {
-      "count": 2
-    }
-  },
   "src/lib/utils/curve-palette.ts": {
-    "@typescript-eslint/no-misused-spread": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-optional-chain": {
       "count": 1
     }
   },
@@ -377,56 +201,21 @@
     }
   },
   "src/lib/utils/equalizer.ts": {
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 2
-    },
-    "@typescript-eslint/prefer-for-of": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 4
     },
-    "@typescript-eslint/restrict-plus-operands": {
-      "count": 1
-    },
     "complexity": {
-      "count": 1
-    },
-    "eqeqeq": {
-      "count": 3
-    }
-  },
-  "src/lib/utils/fr-normalizer.ts": {
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 1
-    }
-  },
-  "src/lib/utils/fr-parser.ts": {
-    "@typescript-eslint/require-await": {
       "count": 1
     }
   },
   "src/lib/utils/html-sanitizer.ts": {
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 3
-    },
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/utils/ime.ts": {
-    "@typescript-eslint/no-deprecated": {
       "count": 1
     }
   },
   "src/lib/utils/js-literal.ts": {
     "complexity": {
       "count": 3
-    }
-  },
-  "src/lib/utils/light-theme.ts": {
-    "@typescript-eslint/prefer-for-of": {
-      "count": 1
     }
   },
   "src/lib/utils/metadata-parser.ts": {
@@ -436,39 +225,19 @@
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 3
     },
-    "@typescript-eslint/restrict-plus-operands": {
-      "count": 1
-    },
     "complexity": {
       "count": 3
-    }
-  },
-  "src/lib/utils/sample-config.ts": {
-    "@typescript-eslint/no-base-to-string": {
-      "count": 2
     }
   },
   "src/lib/utils/url-provider.ts": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
     },
-    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
-      "count": 1
-    },
     "complexity": {
       "count": 2
     }
   },
   "src/lib/utils/url-state.ts": {
-    "@typescript-eslint/no-deprecated": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unnecessary-type-conversion": {
-      "count": 3
-    },
-    "@typescript-eslint/prefer-for-of": {
-      "count": 1
-    },
     "complexity": {
       "count": 1
     }
@@ -487,11 +256,6 @@
       "count": 19
     },
     "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
-  "src/lib/workers/autoeq.worker.ts": {
-    "@typescript-eslint/no-empty-function": {
       "count": 1
     }
   }

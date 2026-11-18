@@ -61,7 +61,7 @@
 		settle(await devicePeqService.pick(chosenId));
 	}
 
-	function settle(result: 'unsupported' | void) {
+	function settle(result: 'unsupported' | undefined) {
 		unsupported = result === 'unsupported';
 		chosenId = devicePeqStore.choice?.candidates[0]?.id ?? '';
 	}

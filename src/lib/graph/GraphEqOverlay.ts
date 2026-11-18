@@ -466,7 +466,7 @@ export class GraphEqOverlay {
 					const ys = this.graphEngine.baseYScale;
 
 					// Shift+Drag axis lock detection
-					const shiftHeld = !!(event.sourceEvent as MouseEvent).shiftKey;
+					const shiftHeld = (event.sourceEvent as MouseEvent).shiftKey;
 					if (dragState) {
 						if (shiftHeld && dragState.axisLock === null) {
 							const dx = Math.abs(event.x - dragState.shiftOriginX);

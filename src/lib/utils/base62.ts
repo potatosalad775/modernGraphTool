@@ -5,8 +5,8 @@ const Base62 = {
 		const bytes = new TextEncoder().encode(str);
 		let value = BigInt(0);
 
-		for (let i = 0; i < bytes.length; i++) {
-			value = value * BigInt(256) + BigInt(bytes[i]);
+		for (const byte of bytes) {
+			value = value * BigInt(256) + BigInt(byte);
 		}
 
 		let result = '';
@@ -21,8 +21,8 @@ const Base62 = {
 	decode(str: string): string {
 		let value = BigInt(0);
 
-		for (let i = 0; i < str.length; i++) {
-			value = value * BigInt(62) + BigInt(this.charset.indexOf(str[i]));
+		for (const char of str) {
+			value = value * BigInt(62) + BigInt(this.charset.indexOf(char));
 		}
 
 		const bytes: number[] = [];

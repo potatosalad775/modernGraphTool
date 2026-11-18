@@ -45,14 +45,24 @@ export function defaultSampleDisplay(): SampleDisplayMode[] {
 /** Site-wide default run count for variants that declare no sample set. */
 export function defaultSampleCount(): number {
 	const configured = getConfigValue('SAMPLES.DEFAULT_COUNT');
-	const n = typeof configured === 'number' ? configured : parseInt(String(configured ?? ''), 10);
+	const n =
+		typeof configured === 'number'
+			? configured
+			: typeof configured === 'string'
+				? parseInt(configured, 10)
+				: NaN;
 	return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
 /** Opacity of the deviation fill area. `HPTF.FILL_OPACITY` is the legacy source. */
 export function sampleFillOpacity(): number {
 	const configured = getConfigValue('SAMPLES.FILL_OPACITY') ?? getConfigValue('HPTF.FILL_OPACITY');
-	const n = typeof configured === 'number' ? configured : parseFloat(String(configured ?? ''));
+	const n =
+		typeof configured === 'number'
+			? configured
+			: typeof configured === 'string'
+				? parseFloat(configured)
+				: NaN;
 	return Number.isFinite(n) ? n : 0.3;
 }
 

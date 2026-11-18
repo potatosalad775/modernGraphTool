@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { track } from '#lib/utils/track.js';
 	import { untrack, onDestroy } from 'svelte';
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import {
@@ -72,7 +73,7 @@
 	let applied = false;
 
 	$effect(() => {
-		void adjustment;
+		track(adjustment);
 		untrack(() => {
 			if (!frStore.get(uuid)?.unadjustedChannels) return;
 			if (applied) {

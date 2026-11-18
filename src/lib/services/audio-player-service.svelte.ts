@@ -1,3 +1,4 @@
+import { track } from '#lib/utils/track.js';
 import { untrack } from 'svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
@@ -641,17 +642,19 @@ class AudioPlayerService {
 				});
 			});
 			$effect(() => {
-				void eqStore.filters;
-				void eqStore.preamp;
-				// Both bypass sources — the local switch and the master toggle /
-				// `\` key — must retrigger the chain rebuild.
-				void eqStore.isEnabled;
-				void this.#filtersEnabled;
-				// A device taking over the EQ, or handing it back, rewires the chain too.
-				void devicePeqStore.playsEq;
-				void audioRangeStore.isFrequencySelectionMode;
-				// Whether the range bandpass applies at all depends on the source.
-				void this.#audioSource;
+				track(
+					eqStore.filters,
+					eqStore.preamp,
+					// Both bypass sources — the local switch and the master toggle /
+					// `\` key — must retrigger the chain rebuild.
+					eqStore.isEnabled,
+					this.#filtersEnabled,
+					// A device taking over the EQ, or handing it back, rewires the chain too.
+					devicePeqStore.playsEq,
+					audioRangeStore.isFrequencySelectionMode,
+					// Whether the range bandpass applies at all depends on the source.
+					this.#audioSource
+				);
 				this.#updateFilters();
 			});
 			// Range bounds change continuously while the user drags the graph
@@ -666,10 +669,12 @@ class AudioPlayerService {
 			// Tone and sweep are gated by moving them rather than by filtering them, so
 			// both have to follow the band when the user redraws the range on the graph.
 			$effect(() => {
-				void audioRangeStore.fromHz;
-				void audioRangeStore.toHz;
-				void audioRangeStore.isFrequencySelectionMode;
-				void this.#audioSource;
+				track(
+					audioRangeStore.fromHz,
+					audioRangeStore.toHz,
+					audioRangeStore.isFrequencySelectionMode,
+					this.#audioSource
+				);
 				this.#clampToneToRange();
 				this.#syncSweepToRange();
 			});

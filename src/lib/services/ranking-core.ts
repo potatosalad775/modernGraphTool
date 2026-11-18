@@ -226,13 +226,13 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 // ── Matching ────────────────────────────────────────────────────────────────
 
 /** Lowercased, whitespace-collapsed. */
-export function normalize(value: string | undefined | null): string {
+export function normalize(value: string | number | undefined | null): string {
 	if (!value) return '';
 	return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /** Alphanumerics only. Survives punctuation and spacing differences between the two files. */
-export function simplify(value: string | undefined | null): string {
+export function simplify(value: string | number | undefined | null): string {
 	return String(value ?? '')
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, '');

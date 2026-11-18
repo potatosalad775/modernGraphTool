@@ -87,7 +87,7 @@
 	{#if labelText}
 		<Label.Root
 			for={id}
-			class="ml-2 text-sm font-medium {restProps.disabled == true && 'opacity-50'} {labelClass}"
+			class="ml-2 text-sm font-medium {restProps.disabled === true && 'opacity-50'} {labelClass}"
 			>{labelText}</Label.Root
 		>
 	{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { track } from '#lib/utils/track.js';
 	import { onMount, untrack } from 'svelte';
 	import { toast } from '#lib/services/toast.js';
 	import { flyOrFade } from '#lib/utils/motion.svelte.js';
@@ -238,7 +239,7 @@
 		if (!appStore.isReady) return;
 		const o = settingsStore.autoEqOptions;
 		// Touch each field so the effect re-runs on any nested mutation.
-		void [o.freqMin, o.freqMax, o.qMin, o.qMax, o.gainMin, o.gainMax, o.useShelfFilter];
+		track(o.freqMin, o.freqMax, o.qMin, o.qMax, o.gainMin, o.gainMax, o.useShelfFilter);
 		settingsStore.persistAutoEqOptions();
 	});
 </script>

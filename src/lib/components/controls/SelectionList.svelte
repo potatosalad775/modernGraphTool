@@ -17,7 +17,7 @@
 	import TargetCustomizer from '#lib/components/features/TargetCustomizer.svelte';
 	import SampleChannelSelector from '#lib/components/controls/SampleChannelSelector.svelte';
 	import DownloadButton from '#lib/components/controls/DownloadButton.svelte';
-	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash2 } from '@lucide/svelte';
+	import { Check, ChevronDown, Eye, EyeOff, Minus, Plus, Trash } from '@lucide/svelte';
 	import PopoverPanel from '#lib/components/atoms/PopoverPanel.svelte';
 	import Button from '../atoms/Button.svelte';
 	import GraphUploader from './GraphUploader.svelte';
@@ -358,7 +358,7 @@
 						size="icon"
 						class="hover:bg-error/10 hover:text-error"
 					>
-						<Trash2 class="h-4 w-4" aria-hidden="true" />
+						<Trash class="h-4 w-4" aria-hidden="true" />
 					</Button>
 				</div>
 			</div>

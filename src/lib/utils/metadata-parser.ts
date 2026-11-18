@@ -59,7 +59,7 @@ const MetadataParser = {
 						if (file.fullName) return file.fullName === identifier;
 						// If it's a string, construct the full name
 						const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
-						const fullName = brand.brand + ' ' + baseName + ' ' + file.suffix;
+						const fullName = `${brand.brand} ${baseName} ${file.suffix}`;
 						return fullName === identifier;
 					});
 				})
@@ -251,7 +251,9 @@ const MetadataParser = {
 					...(reviewLink && { reviewLink }),
 					...(shopLink && { shopLink }),
 					...(price !== null && { price: String(price) }),
-					...(typeof phone === 'object' && phone.description && { description: phone.description }),
+					...(typeof phone === 'object' &&
+						typeof phone.description === 'string' &&
+						phone.description && { description: phone.description }),
 					...(links && { links })
 				};
 

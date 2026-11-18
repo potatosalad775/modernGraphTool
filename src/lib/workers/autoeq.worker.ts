@@ -4,6 +4,7 @@
  * messages across the boundary.
  */
 
+import { noop } from '#lib/utils/noop.js';
 import { loadTurboEq, runAutoEq } from './autoeq-engine.js';
 import type { AutoEqRequest } from './autoeq-request.js';
 
@@ -17,7 +18,7 @@ self.onmessage = async (e: MessageEvent) => {
 	};
 	if (type === 'prewarm') {
 		// No reply: a failed load is not cached, so the next run retries it.
-		loadTurboEq().catch(() => {});
+		loadTurboEq().catch(noop);
 		return;
 	}
 	if (type !== 'run-autoeq') return;

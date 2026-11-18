@@ -50,7 +50,8 @@ class GraphInspection {
 		this.graphEngine = graphEngine;
 		this.isEnabled = false;
 		this.mouseTracker = null;
-		this.bisector = d3.bisector<FRDataPoint, number>((d) => d[0]).left;
+		const byFrequency = d3.bisector<FRDataPoint, number>((d) => d[0]);
+		this.bisector = (array, x, lo, hi) => byFrequency.left(array, x, lo, hi);
 
 		this._setupInspectionElements();
 	}

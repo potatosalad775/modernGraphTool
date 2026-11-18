@@ -66,7 +66,7 @@ class URLProvider {
 				// which would prepend base a second time under subpath deployments
 				// like /cdn/.
 				// eslint-disable-next-line svelte/no-navigation-without-resolve
-				goto(newPath, { shallow: true, replace: true }).catch((err) =>
+				goto(newPath, { shallow: true, replace: true }).catch((err: unknown) =>
 					console.error('URLProvider: failed to update the URL', err)
 				);
 			}

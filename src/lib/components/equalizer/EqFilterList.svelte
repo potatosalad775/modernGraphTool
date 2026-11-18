@@ -30,7 +30,7 @@
 	import EqChannelSelect from './EqChannelSelect.svelte';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import EqOptionButton from './EqOptionButton.svelte';
-	import { ArrowDown01, Download, Minus, Plus, Trash2, Upload, X } from '@lucide/svelte';
+	import { ArrowDown01, Download, Minus, Plus, Trash, Upload, X } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Dialog from '../atoms/Dialog.svelte';
 	import { downloadText } from '#lib/utils/download-text.js';
@@ -367,7 +367,7 @@
 				disabled={isGraphic || linkStore.readOnly || eqStore.filters.length === 0}
 				onclick={() => (deleteAllOpen = true)}
 			>
-				<Trash2 class="size-3" />
+				<Trash class="size-3" />
 			</Button>
 			<div class="mx-1 h-6 w-px bg-base-content/20"></div>
 			<EqOptionButton />

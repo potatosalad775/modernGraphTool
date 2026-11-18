@@ -73,7 +73,7 @@ function _computeDelta(data: ChannelData, type: string, hzValue: number): number
 }
 
 function _hzDelta(data: ChannelData, targetHz: number): number {
-	const targetFreq = Math.max(20, Math.min(20000, Number(targetHz)));
+	const targetFreq = Math.max(20, Math.min(20000, targetHz));
 	return -_findNearestFrequency(data.data, targetFreq)[1];
 }
 

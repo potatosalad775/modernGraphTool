@@ -68,8 +68,7 @@ function collect(sheet: SheetLike, into: Declarations, layered: boolean, depth: 
 			collect({ cssRules: rule.cssRules }, into, true, depth + 1);
 		} else if (rule.selectorText !== undefined && rule.style && isRootSelector(rule.selectorText)) {
 			const target = layered ? into.layered : into.unlayered;
-			for (let i = 0; i < rule.style.length; i++) {
-				const name = rule.style[i];
+			for (const name of rule.style) {
 				if (!name.startsWith('--color-')) continue;
 				const value = rule.style.getPropertyValue(name).trim();
 				if (value) target.set(name, value);

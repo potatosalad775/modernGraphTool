@@ -557,7 +557,7 @@
 
 								<!-- Operator-defined extras — several shops, a manufacturer page,
 									     a measurement note. Labels come from phone_book.json as-is. -->
-								{#each phone.links ?? [] as link, i (link.url + '\0' + link.label + i)}
+								{#each phone.links ?? [] as link, i (`${link.url}\0${link.label}${i}`)}
 									<a
 										href={link.url}
 										target="_blank"

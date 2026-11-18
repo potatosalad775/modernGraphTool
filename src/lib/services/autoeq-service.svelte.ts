@@ -1,3 +1,4 @@
+import { track } from '#lib/utils/track.js';
 import { untrack } from 'svelte';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -274,7 +275,7 @@ class AutoEqService {
 
 	/** A result for the current device and target is on screen, so Run means Recalculate. */
 	get hasResult(): boolean {
-		void this.#landed;
+		track(this.#landed);
 		const session = this.#session;
 		return (
 			session?.inputs != null &&
@@ -429,8 +430,7 @@ class AutoEqService {
 				const filters = eqStore.filters;
 				let reason: AutoApplyStop | null = null;
 				if (
-					!session ||
-					eqStore.sourcePhoneUUID !== session.source ||
+					eqStore.sourcePhoneUUID !== session?.source ||
 					!sameEqSourceSample(eqStore.sourceSample, session.sample) ||
 					// A variant switch retires the fitted run; refitting would quietly
 					// move the EQ onto the average instead.
@@ -452,7 +452,7 @@ class AutoEqService {
 			// Trigger: re-run when the curves or options behind the result change.
 			// Deliberately blind to `eqStore.filters`, which every run writes.
 			$effect(() => {
-				void this.#landed;
+				track(this.#landed);
 				if (!this.autoApply) return;
 				const session = this.#session;
 				if (!session?.inputs) return;

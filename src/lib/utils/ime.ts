@@ -6,5 +6,6 @@
  * when `isComposing` is already false.
  */
 export function isImeComposing(e: KeyboardEvent): boolean {
+	// eslint-disable-next-line @typescript-eslint/no-deprecated -- Safari reports the composition only here
 	return e.isComposing || e.keyCode === 229;
 }

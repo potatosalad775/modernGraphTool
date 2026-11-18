@@ -1,3 +1,4 @@
+import { track } from '#lib/utils/track.js';
 import {
 	CHANNELS,
 	type Channel,
@@ -83,11 +84,13 @@ class EqCurve {
 				// Track the inputs; the curve math itself is untracked so its writes
 				// to frStore can't feed back into this effect.
 				const sourceUUID = eqStore.sourcePhoneUUID;
-				void eqStore.sourceSample;
-				void eqStore.isEnabled;
-				void eqStore.filters;
-				void eqStore.preamp;
-				void settingsStore.linkEqNormalization;
+				track(
+					eqStore.sourceSample,
+					eqStore.isEnabled,
+					eqStore.filters,
+					eqStore.preamp,
+					settingsStore.linkEqNormalization
+				);
 				// Re-fire when the source phone data itself changes (e.g. renormalizeAll).
 				if (sourceUUID) void frStore.get(sourceUUID);
 

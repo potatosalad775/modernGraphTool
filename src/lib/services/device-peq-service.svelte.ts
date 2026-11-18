@@ -14,6 +14,7 @@
  * list, so for it Write, Device EQ and the auto-write switch are commands to uniPEQ, and this
  * page's own auto-write stays out of the way.
  */
+import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -72,7 +73,7 @@ class DevicePeqService {
 	/** Flushes that arrived while one was running; a change means the list moved again. */
 	#queued = 0;
 	#seen: Seen | null = null;
-	#unwatchLost: () => void = () => {};
+	#unwatchLost: () => void = noop;
 
 	/** The connected device when it is uniPEQ's, reached over the link. */
 	get linkDevice(): LinkPeqDevice | null {
@@ -119,7 +120,7 @@ class DevicePeqService {
 	 * Connect a device over `kind`. `'unsupported'` when it has no profile and no protocol; a device
 	 * several profiles fit waits in `devicePeqStore.choice` for `pick`.
 	 */
-	async connect(kind: DeviceKind): Promise<'unsupported' | void> {
+	async connect(kind: DeviceKind): Promise<'unsupported' | undefined> {
 		if (linkStore.active || devicePeqStore.localActive) return;
 		devicePeqStore.isConnecting = true;
 		devicePeqStore.setStatus(null);
@@ -136,7 +137,7 @@ class DevicePeqService {
 	}
 
 	/** The profile the user picked for the device waiting in `devicePeqStore.choice`. */
-	async pick(id: string): Promise<'unsupported' | void> {
+	async pick(id: string): Promise<'unsupported' | undefined> {
 		const pending = devicePeqStore.choice;
 		if (!pending) return;
 		devicePeqStore.choice = null;
@@ -176,7 +177,7 @@ class DevicePeqService {
 		if (!conn) return;
 		// uniPEQ holds the device: it reconnects, and says so in `status`.
 		const link = this.linkDevice;
-		if (link) return link.reconnect().catch((e) => this.fail(e, 'connect'));
+		if (link) return link.reconnect().catch((e: unknown) => this.fail(e, 'connect'));
 		devicePeqStore.isConnecting = true;
 		try {
 			const again = conn.reopen ? await conn.reopen() : null;
@@ -197,12 +198,12 @@ class DevicePeqService {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
 		this.#unwatchLost();
-		this.#unwatchLost = () => {};
-		await conn.device.close().catch(() => {});
+		this.#unwatchLost = noop;
+		await conn.device.close().catch(noop);
 		devicePeqStore.setDisconnected();
 	}
 
-	async #settle(result: ConnectResult): Promise<'unsupported' | void> {
+	async #settle(result: ConnectResult): Promise<'unsupported' | undefined> {
 		if (result.kind === 'connected') await this.#connected(result.connection);
 		else if (result.kind === 'choose') devicePeqStore.choice = result;
 		else if (result.kind === 'unsupported') return 'unsupported';
@@ -212,7 +213,7 @@ class DevicePeqService {
 		const { slot, enabled } = await playing(conn);
 		devicePeqStore.setConnected(conn, slot, enabled);
 		this.#unwatchLost();
-		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? (() => {});
+		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? noop;
 		this.install();
 		// Auto-write writes without a press, so its volume warning comes now, before any edit.
 		if (this.autoWriting) {
@@ -264,7 +265,7 @@ class DevicePeqService {
 		}
 		// Disconnected meanwhile: what came back is no longer wanted.
 		if (devicePeqStore.connection !== conn) {
-			await again?.device.close().catch(() => {});
+			await again?.device.close().catch(noop);
 			return;
 		}
 		if (!again) {
@@ -292,7 +293,7 @@ class DevicePeqService {
 		const link = this.linkDevice;
 		if (link) {
 			// uniPEQ reads into the shared list, which arrives as an `eq`; `status` says it's busy.
-			await link.pull().catch((e) => this.fail(e, 'read'));
+			await link.pull().catch((e: unknown) => this.fail(e, 'read'));
 			return;
 		}
 		devicePeqStore.isReading = true;
@@ -347,12 +348,12 @@ class DevicePeqService {
 	 * comes back as `status.review`, which opens the same review dialog here as in uniPEQ.
 	 */
 	async writeLinked(): Promise<void> {
-		await this.linkDevice?.write().catch((e) => this.fail(e, 'write'));
+		await this.linkDevice?.write().catch((e: unknown) => this.fail(e, 'write'));
 	}
 
 	/** This page's answer to uniPEQ's review; either side's answer closes both dialogs. */
 	async answerReview(rev: number, accept: boolean): Promise<void> {
-		await this.linkDevice?.review(rev, accept).catch((e) => this.fail(e, 'write'));
+		await this.linkDevice?.review(rev, accept).catch((e: unknown) => this.fail(e, 'write'));
 	}
 
 	/**
@@ -376,7 +377,7 @@ class DevicePeqService {
 			const count = plan.filters.length - plan.emptySlots;
 			if (result.reconnect) {
 				// The device restarts to save. Its transport is gone; `reopen` finds it again.
-				await conn.device.close().catch(() => {});
+				await conn.device.close().catch(noop);
 				// Unless the user disconnected while it wrote.
 				if (devicePeqStore.connection === conn) {
 					devicePeqStore.needsReconnect = true;
@@ -462,7 +463,7 @@ class DevicePeqService {
 	setAutoWrite(on: boolean): void {
 		const link = this.linkDevice;
 		if (link) {
-			void link.setAutoWrite(on).catch((e) => this.fail(e, 'auto-write'));
+			void link.setAutoWrite(on).catch((e: unknown) => this.fail(e, 'auto-write'));
 			return;
 		}
 		devicePeqStore.autoStopped = false;
@@ -501,7 +502,7 @@ class DevicePeqService {
 		this.#seen = now;
 		// A new connection is a new baseline, never an edit: connecting must not write. uniPEQ writes
 		// its own device from the shared list, on the `settle` the link sends.
-		if (!before || before.conn !== now.conn || !now.conn) {
+		if (before?.conn !== now.conn || !now.conn) {
 			this.#cancelPending();
 			return;
 		}

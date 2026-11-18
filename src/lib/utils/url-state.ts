@@ -60,8 +60,7 @@ export function smartSplit(input: string): string[] {
 	let current = '';
 	let parenDepth = 0;
 
-	for (let i = 0; i < input.length; i++) {
-		const char = input[i];
+	for (const char of input) {
 		if (char === '(' || char === '[' || char === '{') {
 			parenDepth++;
 			current += char;
@@ -192,6 +191,7 @@ export function sanitizeState(raw: Record<string, unknown>): URLState {
 		for (const [key, entry] of safeEntries(raw.hptfDisplay)) {
 			if (isRecord(entry)) hptfDisplay[key] = entry as { keys: SampleDisplayKey[]; fill: boolean };
 		}
+		// eslint-disable-next-line @typescript-eslint/no-deprecated -- old share links still carry it
 		state.hptfDisplay = hptfDisplay;
 	}
 
@@ -228,10 +228,11 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 		if (!isSafeKey(key)) continue;
 		if (Array.isArray(value)) {
 			const keys = value
-				.map((k) => {
-					const match = /^([LR])(\d+)$/.exec(String(k));
+				.map((k: unknown) => {
+					if (typeof k !== 'string') return null;
+					const match = /^([LR])(\d+)$/.exec(k);
 					if (match) return sampleKey(parseInt(match[2]) - 1, match[1] as Channel);
-					return parseSampleKey(String(k)) ? (String(k) as SampleDisplayKey) : null;
+					return parseSampleKey(k) ? (k as SampleDisplayKey) : null;
 				})
 				.filter((k): k is SampleDisplayKey => k !== null);
 			out[key] = { keys, fill: false, avg: true };
@@ -244,6 +245,7 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-deprecated -- old share links still carry it
 	for (const [key, value] of Object.entries(state.hptfDisplay ?? {})) {
 		if (!isSafeKey(key) || !isRecord(value)) continue;
 		out[key] = {

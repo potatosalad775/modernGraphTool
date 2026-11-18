@@ -465,13 +465,13 @@ export interface SamplesConfig {
 	FILL_OPACITY?: number;
 }
 
-/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY`. */
+/** The `MULTI_SAMPLE` section, which `SAMPLES` superseded. */
 export interface MultiSampleConfig {
 	/** Default display mode: 'average' shows only averaged trace, 'all' shows all samples */
 	DEFAULT_DISPLAY: 'average' | 'all';
 }
 
-/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY` / `SAMPLES.FILL_OPACITY`. */
+/** The `HPTF` section, which `SAMPLES` superseded. */
 export interface HpTFConfig {
 	/** Default display mode for HpTF items */
 	DEFAULT_DISPLAY: 'fill' | 'fill+curves' | 'curves' | 'none';
@@ -499,8 +499,8 @@ export interface TraceStylingConfig {
  * `RANKING.CONFIG_URL` never writes this out by hand.
  */
 export interface RankScaleEntry {
-	/** Cell value as written in the sheet, e.g. `'S'`, `'4.5'`, `'8'`. */
-	value: string;
+	/** Cell value as written in the sheet, e.g. `'S'`, `'4.5'`, `'8'`. An operator may write a bare number. */
+	value: string | number;
 	/** Numeric worth of this step. Only used to render a star row. */
 	score?: number;
 	/** Badge background. Any CSS color; a hex value also gets a contrast-checked text color. */
@@ -598,9 +598,9 @@ export interface AppConfig {
 	TRACE_STYLING: TraceStylingConfig;
 	SAMPLES?: SamplesConfig;
 	DOWNLOAD?: DownloadConfig;
-	/** @deprecated superseded by SAMPLES */
+	/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY`. */
 	MULTI_SAMPLE?: MultiSampleConfig;
-	/** @deprecated superseded by SAMPLES */
+	/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY` / `SAMPLES.FILL_OPACITY`. */
 	HPTF?: HpTFConfig;
 	TOPBAR: TopbarConfig;
 	DESCRIPTION: DescriptionConfig[] | I18nConfigValue;

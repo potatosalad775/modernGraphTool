@@ -195,8 +195,7 @@ class TargetAdjustmentStore {
 
 	removeFilter(uuid: string, id: string): void {
 		const adj = this.get(uuid);
-		const values = { ...adj.values };
-		delete values[id];
+		const { [id]: _removed, ...values } = adj.values;
 		this.#byUuid.set(uuid, {
 			activeIds: adj.activeIds.filter((x) => x !== id),
 			values,

@@ -142,7 +142,7 @@ export function sanitizeUrl(
 	if (!raw) return null;
 	// Control characters and whitespace are ignored by URL parsers, so they have
 	// to go before the scheme is read — `java\nscript:` is a working URL.
-	const cleaned = (entities ? decodeEntities(String(raw)) : String(raw))
+	const cleaned = (entities ? decodeEntities(raw) : raw)
 		// eslint-disable-next-line no-control-regex
 		.replace(/[\u0000-\u0020\u007f]/g, '')
 		.trim();
@@ -264,7 +264,7 @@ function buildAttrs(name: string, rawAttrs: string, allowed: readonly string[]):
  */
 export function sanitizeHtml(input: string | null | undefined): string {
 	if (!input) return '';
-	const src = String(input);
+	const src = input;
 	let out = '';
 	const open: string[] = [];
 	let i = 0;

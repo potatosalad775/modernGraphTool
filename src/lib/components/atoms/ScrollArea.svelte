@@ -2,7 +2,7 @@
 	import { ScrollArea, type WithoutChild } from 'bits-ui';
 
 	type Props = WithoutChild<ScrollArea.RootProps> & {
-		orientation: 'vertical' | 'horizontal' | 'both';
+		orientation?: 'vertical' | 'horizontal' | 'both';
 		viewportClasses?: string;
 	};
 

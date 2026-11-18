@@ -7,6 +7,7 @@
 // no network transport. They stay here, behind the same `PeqDevice` shape the
 // bridge's devices have, with a profile written from what the handlers accept.
 //
+import { noop } from '#lib/utils/noop.js';
 import type { Filter, FilterType, Profile } from '@potatosalad775/eqcaps-core';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from './types.js';
 import type { NetworkDeviceType } from './network-types.js';
@@ -50,7 +51,7 @@ export async function readBoundedText(
 ): Promise<string> {
 	const declared = Number(response.headers.get('Content-Length'));
 	if (Number.isFinite(declared) && declared > limit) {
-		await response.body?.cancel().catch(() => {});
+		await response.body?.cancel().catch(noop);
 		throw new NetworkResponseError(limit);
 	}
 	if (!response.body) return '';
@@ -63,7 +64,7 @@ export async function readBoundedText(
 		if (done) break;
 		received += value.byteLength;
 		if (received > limit) {
-			await reader.cancel().catch(() => {});
+			await reader.cancel().catch(noop);
 			throw new NetworkResponseError(limit);
 		}
 		text += decoder.decode(value, { stream: true });
@@ -210,7 +211,7 @@ function wiimDevice(ip: string): PeqDevice {
 		async setEnabled(enabled) {
 			await wiimCommand(ip, enabled ? 'EQChangeSourceFX' : 'EQSourceOff', WIIM_PLUGIN);
 		},
-		async close() {}
+		close: () => Promise.resolve()
 	};
 }
 
@@ -224,7 +225,8 @@ export function luxEncode(text: string): string {
 	const bytes = new TextEncoder().encode(text);
 	let binary = '';
 	for (const b of bytes) binary += String.fromCharCode(b);
-	return [...btoa(binary)]
+	return btoa(binary)
+		.split('')
 		.map((ch) => {
 			const i = STD_ALPHABET.indexOf(ch);
 			return i === -1 ? ch : LUX_ALPHABET[i];
@@ -233,7 +235,8 @@ export function luxEncode(text: string): string {
 }
 
 export function luxDecode(encoded: string): string {
-	const base64 = [...encoded]
+	const base64 = encoded
+		.split('')
 		.map((ch) => {
 			const i = LUX_ALPHABET.indexOf(ch);
 			return i === -1 ? ch : STD_ALPHABET[i];
@@ -295,10 +298,10 @@ function luxsinDevice(ip: string): PeqDevice {
 		async pull() {
 			const { select, profile } = await state();
 			const raw = JSON.parse(profile?.filters || '[]') as {
-				type: number;
-				fc: number;
-				q: number;
-				gain: number;
+				type: unknown;
+				fc: unknown;
+				q: unknown;
+				gain: unknown;
 			}[];
 			const filters = raw.map((f): Filter | null => {
 				const type = LUX_TYPE[Number(f.type)];
@@ -335,7 +338,7 @@ function luxsinDevice(ip: string): PeqDevice {
 		async setEnabled(enabled) {
 			await luxPost(ip, { peqEnable: enabled ? 1 : 0 });
 		},
-		async close() {}
+		close: () => Promise.resolve()
 	};
 }
 

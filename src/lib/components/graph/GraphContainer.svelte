@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { track } from '#lib/utils/track.js';
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
@@ -326,7 +327,7 @@
 	$effect(() => {
 		const uuid = baseline.uuid;
 		const mode = baseline.mode;
-		void baseline.channelData;
+		track(baseline.channelData);
 		if (!graphEngine.isInitialized) return;
 		untrack(() => {
 			const previous = drawnBaseline;
@@ -428,7 +429,7 @@
 	// like it. Driven from here, not from the History panel, which unmounts.
 	$effect(() => {
 		if (!graphEngine.isInitialized || !compareOverlay) return;
-		void graphStore.yScale;
+		track(graphStore.yScale);
 		const a = eqHistoryStore.aEntry;
 		const b = eqHistoryStore.bEntry;
 		const side =
@@ -462,8 +463,7 @@
 	// the band rect repositions when From/To change from elsewhere.
 	$effect(() => {
 		const active = audioRangeStore.isFrequencySelectionMode;
-		void audioRangeStore.fromHz;
-		void audioRangeStore.toHz;
+		track(audioRangeStore.fromHz, audioRangeStore.toHz);
 		soundRangeOverlay?.setActive(active);
 		if (active) soundRangeOverlay?.render();
 	});

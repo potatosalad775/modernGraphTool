@@ -80,7 +80,13 @@ function oklchToOklab(L: number, C: number, H: number): [number, number, number]
 
 export function hexToOklch(hex: string): [number, number, number] {
 	const h = hex.replace(/^#/, '');
-	const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h;
+	const full =
+		h.length === 3
+			? h
+					.split('')
+					.map((c) => c + c)
+					.join('')
+			: h;
 	const r = srgbToLinear(parseInt(full.slice(0, 2), 16) / 255);
 	const g = srgbToLinear(parseInt(full.slice(2, 4), 16) / 255);
 	const b = srgbToLinear(parseInt(full.slice(4, 6), 16) / 255);
@@ -160,7 +166,7 @@ export function resolveCurvePalette(
 	if (!palette || palette.length === 0) return palette;
 	if (!randomize) return palette;
 	const sourceKey = palette.join('|');
-	if (_shuffledPalette && _shuffledPalette.sourceKey === sourceKey) {
+	if (_shuffledPalette?.sourceKey === sourceKey) {
 		return _shuffledPalette.shuffled;
 	}
 	const shuffled = palette.slice();

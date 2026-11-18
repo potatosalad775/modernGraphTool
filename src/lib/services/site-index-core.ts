@@ -86,7 +86,7 @@ export function findCurrentDbId(index: SiteIndex, href?: string): string | null 
 	for (const db of index.dbs) {
 		if (!isRecord(db) || typeof db.id !== 'string' || typeof db.url !== 'string') continue;
 		const target = splitUrl(db.url);
-		if (!target || target.host !== here.host) continue;
+		if (target?.host !== here.host) continue;
 		if (here.path !== target.path && !here.path.startsWith(target.path)) continue;
 
 		if (target.path.length > matchedLength) {

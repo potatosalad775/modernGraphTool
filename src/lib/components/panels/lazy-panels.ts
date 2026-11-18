@@ -10,6 +10,8 @@
  * panel the page opens on stays in the boot chunk, and a deployment that opens on the
  * Equalizer starts this request from `initial-load.ts`, alongside the phone book.
  */
+import { noop } from '#lib/utils/noop.js';
+
 export const loadEqualizerPanel = () => import('./EqualizerPanel.svelte');
 
 /**
@@ -17,5 +19,5 @@ export const loadEqualizerPanel = () => import('./EqualizerPanel.svelte');
  * `{:catch}` in `AppShell` offers a page reload.
  */
 export function preloadEqualizerPanel(): void {
-	loadEqualizerPanel().catch(() => {});
+	loadEqualizerPanel().catch(noop);
 }

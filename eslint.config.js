@@ -20,6 +20,54 @@ const testFiles = [
 	'src/test-setup.*.ts'
 ];
 
+// Project rules, as lint. Each message names the fix, because the message is what the next
+// contributor reads. A later block replaces a rule's options outright, so the blocks that add a
+// restriction for one directory spread these lists rather than restate them.
+const restrictedImports = {
+	paths: [
+		{
+			name: 'svelte/store',
+			message: 'Use runes: $state in a .svelte.ts module replaces a writable store.'
+		}
+	],
+	patterns: [
+		{
+			regex: String.raw`^\.{1,2}/(.*/)?(static|defaults)/`,
+			message:
+				'static/ and defaults/ are operator-editable. fetch() the file at runtime: an import bakes a copy into the bundle and the edit an operator makes stops taking effect.'
+		}
+	]
+};
+
+const restrictedSyntax = [
+	{
+		selector:
+			"NewExpression[callee.name='Worker']:not(:has(> CallExpression[callee.name='trustedScriptUrl']))",
+		message:
+			'Pass trustedScriptUrl(...) from #lib/utils/trusted-types.js: a plain string throws under the Trusted Types policy.'
+	},
+	{
+		selector: "SvelteMustacheTag[kind='raw'] > :not(CallExpression[callee.name='trustedHtml'])",
+		message:
+			'{@html} takes trustedHtml(...) from #lib/utils/trusted-types.js, around operator config or the output of sanitizeHtml.'
+	},
+	{
+		selector: String.raw`:matches(Literal, TemplateElement, SvelteLiteral)[value=/\b(bg|text|border|ring|fill|stroke|from|to|via|outline|divide)-((zinc|gray|slate|stone|neutral|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b/]`,
+		message:
+			'Use a semantic token (bg-base-200, text-base-content/60, border-accent, …) so an operator theme still applies. Tokens are in defaults/theme.css.'
+	}
+];
+
+/**
+ * Bans imports from the named `src/lib` directories.
+ * @param {string[]} banned
+ * @param {string} message
+ */
+const withoutLayers = (banned, message) => ({
+	...restrictedImports,
+	patterns: [...restrictedImports.patterns, { regex: `^#lib/(${banned.join('|')})/`, message }]
+});
+
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	{
@@ -133,6 +181,82 @@ export default defineConfig(
 			'@typescript-eslint/await-thenable': 'error',
 			'@typescript-eslint/no-unnecessary-condition': 'error',
 			'@typescript-eslint/no-non-null-assertion': 'error'
+		}
+	},
+	{
+		files: ['src/**/*.ts', 'src/**/*.svelte'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': ['error', restrictedImports],
+			'no-restricted-syntax': ['error', ...restrictedSyntax],
+			'no-restricted-properties': [
+				'error',
+				...['innerHTML', 'outerHTML', 'insertAdjacentHTML'].map((property) => ({
+					property,
+					message:
+						'Build nodes or set textContent: a string at an HTML sink throws under the Trusted Types policy.'
+				}))
+			],
+			'max-lines': ['error', { max: 1000, skipBlankLines: true, skipComments: true }]
+		}
+	},
+	{
+		// The restricted-syntax rule above is the precise one: it allows `{@html trustedHtml(...)}`
+		// and nothing else, where this rule would need a disable comment at every site.
+		files: ['src/**/*.svelte'],
+		rules: {
+			'svelte/no-at-html-tags': 'off'
+		}
+	},
+	{
+		files: ['src/lib/workers/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(
+					['stores', 'services', 'graph', 'components'],
+					'Worker code runs without the app: take the data as a message, since importing app state pulls the Svelte runtime into the worker chunk.'
+				)
+			]
+		}
+	},
+	{
+		files: ['src/lib/stores/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(
+					['services', 'components'],
+					'Stores sit below services and components. Move the logic into a service that writes the store.'
+				)
+			]
+		}
+	},
+	{
+		files: ['src/lib/device-peq/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(['components'], 'device-peq is UI-free. Pass what it needs as an argument.')
+			]
+		}
+	},
+	{
+		files: ['src/lib/components/panels/**/*.svelte'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				...restrictedSyntax,
+				{
+					selector:
+						":matches(CallExpression[callee.name='$effect'], CallExpression[callee.object.name='$effect'])",
+					message:
+						'A panel unmounts on every panel switch, and its effects stop with it. Put the reaction in a store, or in a service installed from AppShell.onMount.'
+				}
+			]
 		}
 	},
 	{

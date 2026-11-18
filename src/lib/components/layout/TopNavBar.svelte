@@ -83,7 +83,6 @@
 				class="-ml-2 flex items-center rounded px-2 py-1.5 text-base-content no-underline hover:bg-base-content/10"
 			>
 				{#if titleType === 'HTML'}
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html trustedHtml(titleContent)}
 				{:else if titleType === 'IMAGE'}
 					{#if titleAlt}

@@ -97,7 +97,7 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 
 		const lineGen = (pts: FRDataPoint[]) =>
 			d3
-				.line<FRDataPoint>()
+				.line()
 				.x((d) => xScale(d[0]))
 				.y((d) => computeY(d[0], d[1]))
 				.curve(d3.curveLinear)(pts) ?? '';

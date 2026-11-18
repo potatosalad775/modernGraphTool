@@ -1,6 +1,9 @@
 import { Tooltip } from 'bits-ui';
 
-export type TooltipPayload = { text: string; hint?: string };
+export interface TooltipPayload {
+	text: string;
+	hint?: string;
+}
 
 /**
  * Connects every `Tooltip` trigger to the one root `TooltipHost` mounts. A trigger costs

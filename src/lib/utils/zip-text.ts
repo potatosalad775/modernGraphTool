@@ -13,7 +13,7 @@ export async function zipTextFiles(files: { filename: string; text: string }[]):
 	for (const { filename, text } of files) {
 		entries[uniqueName(filename, entries)] = strToU8(text);
 	}
-	return new Blob([zipSync(entries) as Uint8Array<ArrayBuffer>], { type: 'application/zip' });
+	return new Blob([zipSync(entries)], { type: 'application/zip' });
 }
 
 function uniqueName(filename: string, taken: Record<string, unknown>): string {

@@ -59,7 +59,11 @@ async function playing(conn: DeviceConnection) {
 export type DeviceKind = 'hid' | 'serial' | 'ble';
 
 /** What the auto-writer last saw, to tell an edit from a reconnect or a toggle. */
-type Seen = { filters: EQFilter[]; preamp: number; conn: DeviceConnection | null };
+interface Seen {
+	filters: EQFilter[];
+	preamp: number;
+	conn: DeviceConnection | null;
+}
 
 class DevicePeqService {
 	#installed = false;
@@ -497,7 +501,10 @@ class DevicePeqService {
 		this.#seen = now;
 		// A new connection is a new baseline, never an edit: connecting must not write. uniPEQ writes
 		// its own device from the shared list, on the `settle` the link sends.
-		if (!before || before.conn !== now.conn || !now.conn) return this.#cancelPending();
+		if (!before || before.conn !== now.conn || !now.conn) {
+			this.#cancelPending();
+			return;
+		}
 		if (now.conn.connectionType === 'link') return;
 		if (before.filters === now.filters && before.preamp === now.preamp) return;
 		if (!this.autoWriting) return;

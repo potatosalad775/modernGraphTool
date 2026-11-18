@@ -29,10 +29,7 @@ export const DataProcessor = {
 		params: ProcessingParams
 	) {
 		return normalizeChannels(
-			FRSmoother.smoothChannels(
-				{ [channelKey]: data[channelKey] } as ParsedFRData,
-				params.smoothValue
-			),
+			FRSmoother.smoothChannels({ [channelKey]: data[channelKey] }, params.smoothValue),
 			params.normType,
 			params.normHz
 		)[channelKey];

@@ -27,7 +27,7 @@
 		const loc = watermarkObj.LOCATION || 'CENTER';
 		// `LOCATION` is operator config and may name no anchor.
 		const named: Partial<typeof positionData> = positionData;
-		const basePos = named[loc] || positionData['CENTER'];
+		const basePos = named[loc] || positionData.CENTER;
 		const offsetX = watermarkObj.POSITION
 			? (watermarkObj.POSITION.RIGHT ?? 0) - (watermarkObj.POSITION.LEFT ?? 0)
 			: 0;

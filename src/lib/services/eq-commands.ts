@@ -231,7 +231,7 @@ interface PendingBurst {
 }
 
 class EqEditCoalescer {
-	#pending: Map<number, PendingBurst> = new Map();
+	#pending = new Map<number, PendingBurst>();
 
 	/**
 	 * Apply a partial update directly to the store and arm a deferred commit.

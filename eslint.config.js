@@ -45,10 +45,9 @@ export default defineConfig(
 			// objects and nullish values, which stay banned.
 			'@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
 			// `onclick={() => store.close()}` is the idiom for a handler whose result nobody reads.
-			'@typescript-eslint/no-confusing-void-expression': [
-				'error',
-				{ ignoreArrowShorthand: true }
-			]
+			// Its fix is to write `!`, which `no-non-null-assertion` bans below.
+			'@typescript-eslint/non-nullable-type-assertion-style': 'off',
+			'@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }]
 		}
 	},
 	{

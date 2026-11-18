@@ -9,11 +9,6 @@
       "count": 1
     }
   },
-  "src/lib/components/atoms/SelectMenu.svelte": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 2
-    }
-  },
   "src/lib/components/atoms/Switch.svelte": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
@@ -22,22 +17,9 @@
       "count": 1
     }
   },
-  "src/lib/components/atoms/Tabs.svelte": {
-    "@typescript-eslint/non-nullable-type-assertion-style": {
-      "count": 1
-    }
-  },
   "src/lib/components/atoms/tooltip-tether.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    },
     "@typescript-eslint/no-unsafe-call": {
       "count": 2
-    }
-  },
-  "src/lib/components/controls/GraphUploader.svelte": {
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
     }
   },
   "src/lib/components/controls/PhoneSelector.svelte": {
@@ -49,9 +31,6 @@
     }
   },
   "src/lib/components/controls/ScreenshotButton.svelte": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-promise-reject-errors": {
       "count": 1
     }
@@ -83,9 +62,6 @@
     }
   },
   "src/lib/components/equalizer/EqFilterCard.svelte": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "complexity": {
       "count": 1
     }
@@ -96,9 +72,6 @@
     }
   },
   "src/lib/components/equalizer/EqHistoryAndCompare.svelte": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    },
     "@typescript-eslint/no-deprecated": {
       "count": 3
     }
@@ -134,11 +107,6 @@
       "count": 1
     }
   },
-  "src/lib/components/features/TutorialModal.svelte": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    }
-  },
   "src/lib/components/features/UnipeqLink.svelte": {
     "eqeqeq": {
       "count": 2
@@ -153,9 +121,6 @@
     }
   },
   "src/lib/components/graph/GraphWatermark.svelte": {
-    "@typescript-eslint/dot-notation": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 11
     }
@@ -166,11 +131,6 @@
     },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
-    }
-  },
-  "src/lib/components/panels/MiscPanel.svelte": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
     }
   },
   "src/lib/components/panels/lazy-panels.ts": {
@@ -195,9 +155,6 @@
     }
   },
   "src/lib/device-peq/link.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "@typescript-eslint/require-await": {
       "count": 4
     }
@@ -227,28 +184,12 @@
       "count": 3
     }
   },
-  "src/lib/device-peq/preset.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    }
-  },
-  "src/lib/graph/GraphCompareOverlay.ts": {
-    "@typescript-eslint/no-unnecessary-type-arguments": {
-      "count": 1
-    }
-  },
   "src/lib/graph/GraphEngine.svelte.ts": {
-    "@typescript-eslint/no-unnecessary-type-arguments": {
-      "count": 2
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
     }
   },
   "src/lib/graph/GraphEqOverlay.ts": {
-    "@typescript-eslint/consistent-generic-constructors": {
-      "count": 1
-    },
     "@typescript-eslint/no-unnecessary-type-conversion": {
       "count": 1
     },
@@ -275,16 +216,6 @@
       "count": 1
     }
   },
-  "src/lib/graph/GraphPreferenceBoundOverlay.ts": {
-    "@typescript-eslint/no-unnecessary-type-arguments": {
-      "count": 1
-    }
-  },
-  "src/lib/graph/GraphSpectrumOverlay.ts": {
-    "@typescript-eslint/no-unnecessary-type-arguments": {
-      "count": 1
-    }
-  },
   "src/lib/graph/curve-traces.ts": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
@@ -294,23 +225,11 @@
     }
   },
   "src/lib/services/aggregate-index-core.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unnecessary-boolean-literal-compare": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
-    },
     "complexity": {
       "count": 1
     }
   },
   "src/lib/services/analytics-service.svelte.ts": {
-    "@typescript-eslint/no-unnecessary-boolean-literal-compare": {
-      "count": 1
-    },
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
     },
@@ -319,9 +238,6 @@
     }
   },
   "src/lib/services/audio-player-service.svelte.ts": {
-    "@typescript-eslint/no-confusing-void-expression": {
-      "count": 1
-    },
     "@typescript-eslint/no-meaningless-void-operator": {
       "count": 11
     },
@@ -333,9 +249,6 @@
     "@typescript-eslint/no-meaningless-void-operator": {
       "count": 2
     },
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 2
-    },
     "@typescript-eslint/prefer-optional-chain": {
       "count": 1
     },
@@ -343,23 +256,7 @@
       "count": 1
     }
   },
-  "src/lib/services/curve-insert.ts": {
-    "@typescript-eslint/array-type": {
-      "count": 1
-    }
-  },
-  "src/lib/services/data-provider.svelte.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    }
-  },
   "src/lib/services/device-peq-service.svelte.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    },
-    "@typescript-eslint/no-confusing-void-expression": {
-      "count": 1
-    },
     "@typescript-eslint/no-empty-function": {
       "count": 6
     },
@@ -375,11 +272,6 @@
   },
   "src/lib/services/eq-channel-conflict.svelte.ts": {
     "@typescript-eslint/no-empty-function": {
-      "count": 1
-    }
-  },
-  "src/lib/services/eq-commands.ts": {
-    "@typescript-eslint/consistent-generic-constructors": {
       "count": 1
     }
   },
@@ -404,9 +296,6 @@
     }
   },
   "src/lib/services/ranking-core.ts": {
-    "@typescript-eslint/array-type": {
-      "count": 1
-    },
     "@typescript-eslint/no-unnecessary-type-conversion": {
       "count": 3
     },
@@ -435,59 +324,27 @@
       "count": 1
     }
   },
-  "src/lib/stores/settings-store.svelte.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    }
-  },
   "src/lib/stores/squiglink-store.svelte.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 3
     },
     "@typescript-eslint/no-unsafe-member-access": {
       "count": 4
-    },
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
     }
   },
   "src/lib/stores/target-adjustment-store.svelte.ts": {
     "@typescript-eslint/no-dynamic-delete": {
       "count": 1
-    },
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
     }
   },
   "src/lib/types/data-types.ts": {
-    "@typescript-eslint/array-type": {
-      "count": 2
-    },
     "@typescript-eslint/no-deprecated": {
       "count": 2
-    }
-  },
-  "src/lib/utils/autoeq-ranges.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
     }
   },
   "src/lib/utils/base62.ts": {
     "@typescript-eslint/prefer-for-of": {
       "count": 2
-    }
-  },
-  "src/lib/utils/channel-choice.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    }
-  },
-  "src/lib/utils/config.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 4
     }
   },
   "src/lib/utils/curve-palette.ts": {
@@ -499,15 +356,9 @@
     },
     "@typescript-eslint/prefer-optional-chain": {
       "count": 1
-    },
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
     }
   },
   "src/lib/utils/data-processor.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 2
     },
@@ -516,9 +367,6 @@
     }
   },
   "src/lib/utils/eq-apo.ts": {
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 8
-    },
     "complexity": {
       "count": 1
     }
@@ -562,9 +410,6 @@
     "@typescript-eslint/no-unnecessary-type-conversion": {
       "count": 3
     },
-    "@typescript-eslint/prefer-string-starts-ends-with": {
-      "count": 1
-    },
     "complexity": {
       "count": 1
     }
@@ -580,20 +425,11 @@
     }
   },
   "src/lib/utils/light-theme.ts": {
-    "@typescript-eslint/consistent-generic-constructors": {
-      "count": 1
-    },
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 2
-    },
     "@typescript-eslint/prefer-for-of": {
       "count": 1
     }
   },
   "src/lib/utils/metadata-parser.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
-      "count": 1
-    },
     "@typescript-eslint/no-unsafe-assignment": {
       "count": 1
     },
@@ -610,11 +446,6 @@
   "src/lib/utils/sample-config.ts": {
     "@typescript-eslint/no-base-to-string": {
       "count": 2
-    }
-  },
-  "src/lib/utils/sample-key.ts": {
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
     }
   },
   "src/lib/utils/url-provider.ts": {
@@ -638,20 +469,7 @@
     "@typescript-eslint/prefer-for-of": {
       "count": 1
     },
-    "@typescript-eslint/prefer-regexp-exec": {
-      "count": 1
-    },
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/lib/utils/version-update.ts": {
-    "@typescript-eslint/consistent-type-definitions": {
-      "count": 1
-    }
-  },
-  "src/lib/utils/zip-text.ts": {
-    "@typescript-eslint/no-unnecessary-type-assertion": {
       "count": 1
     }
   },

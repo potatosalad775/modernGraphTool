@@ -14,7 +14,7 @@ const LS_KEYS = {
 
 const LEGACY_THEME_KEY = 'gt-theme';
 
-export type AutoEqOptions = {
+export interface AutoEqOptions {
 	freqMin: number;
 	freqMax: number;
 	qMin: number;
@@ -24,7 +24,7 @@ export type AutoEqOptions = {
 	useShelfFilter: boolean;
 	/** Fit the curve's shape to 20 kHz rather than AutoEq's smoothed treble. */
 	exactMatch: boolean;
-};
+}
 
 export type AutoEqPersistMode = 'session' | 'local';
 

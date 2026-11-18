@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { Component } from 'svelte';
 	import { Dialog } from 'bits-ui';
 	import { fade } from 'svelte/transition';
 	import * as m from '#lib/paraglide/messages.js';
@@ -220,7 +219,7 @@
 							{#if typeof icon === 'string'}
 								{icon}
 							{:else}
-								{@const IconComponent = icon as Component}
+								{@const IconComponent = icon}
 								<IconComponent size={20} />
 							{/if}
 						</div>

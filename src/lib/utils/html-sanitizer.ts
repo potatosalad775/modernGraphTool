@@ -85,7 +85,7 @@ function decodeEntities(input: string): string {
 	return input.replace(
 		/&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);?/g,
 		(whole, body: string) => {
-			if (body[0] === '#') {
+			if (body.startsWith('#')) {
 				const code =
 					body[1] === 'x' || body[1] === 'X'
 						? Number.parseInt(body.slice(2), 16)

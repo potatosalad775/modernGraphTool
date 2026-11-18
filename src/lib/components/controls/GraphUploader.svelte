@@ -21,7 +21,7 @@
 	/** Split a filename into its device base name and an optional L/R channel marker. */
 	function parseChannelName(name: string): { base: string; channel: 'L' | 'R' | null } {
 		const stem = stripExtension(name);
-		const match = stem.match(CHANNEL_MARKER);
+		const match = CHANNEL_MARKER.exec(stem);
 		if (match) return { base: match[1].trim(), channel: match[2].toUpperCase() as 'L' | 'R' };
 		return { base: stem, channel: null };
 	}

@@ -73,8 +73,8 @@ export interface CrossSiteSearchHits {
 
 /** Resolves `CROSS_SITE_SEARCH`, falling back to the deprecated squig.link toggle. */
 export function getCrossSiteSearchConfig(): CrossSiteSearchConfig {
-	const enabled = getConfigValue('CROSS_SITE_SEARCH.ENABLED') as boolean | undefined;
-	const legacyEnabled = getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH') as boolean | undefined;
+	const enabled = getConfigValue('CROSS_SITE_SEARCH.ENABLED');
+	const legacyEnabled = getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH');
 	const urls = getConfigValue('CROSS_SITE_SEARCH.INDEX_URLS');
 
 	const indexUrls = Array.isArray(urls)
@@ -134,7 +134,7 @@ function isCurrentSite(site: AggregateSite): boolean {
 	// squig.link's root domain hosts many databases under /lab/<username>,
 	// so the hostname alone doesn't identify a site there.
 	if (siteUrl.hostname === SQUIGLINK_ROOT_HOST) {
-		const labPath = (path: string) => path.match(/^\/lab\/[^/]+/)?.[0] ?? '/';
+		const labPath = (path: string) => /^\/lab\/[^/]+/.exec(path)?.[0] ?? '/';
 		return labPath(siteUrl.pathname) === labPath(window.location.pathname);
 	}
 
@@ -349,7 +349,10 @@ function matchesGroup(row: SearchRow, group: QueryGroup): boolean {
  */
 function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): SearchRow[] {
 	// `rows` is already in result order, so the candidates are too.
-	type DbMatch = { matched: Set<number>; firstSeq: number };
+	interface DbMatch {
+		matched: Set<number>;
+		firstSeq: number;
+	}
 	const byDb = new Map<string, DbMatch>();
 	const candidates: { row: SearchRow; db: DbMatch }[] = [];
 

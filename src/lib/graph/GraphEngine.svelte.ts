@@ -211,7 +211,7 @@ class GraphEngine {
 	_getCompensatedPath(originalData: FRDataPoint[]): string | null {
 		const baselineData = this._baselineData();
 		const lineGenerator = d3
-			.line<FRDataPoint>()
+			.line()
 			.x((d) => this.xScale(d[0]))
 			.y((d) => this.yScale(compensateAt(d[1], d[0], baselineData)))
 			.curve(d3.curveMonotoneX);
@@ -240,7 +240,7 @@ class GraphEngine {
 		// Use curveMonotoneX instead of curveNatural to prevent overshoot —
 		// the envelope represents strict min/max bounds and must not extend beyond data points.
 		const lineGen = d3
-			.line<FRDataPoint>()
+			.line()
 			.x((d) => this.xScale(d[0]))
 			.y((d) => computeY(d))
 			.curve(d3.curveMonotoneX);

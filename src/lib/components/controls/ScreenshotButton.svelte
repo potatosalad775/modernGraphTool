@@ -38,11 +38,7 @@
 
 		clone.querySelectorAll('.y-scaler-handle').forEach((el) => el.remove());
 
-		await Promise.all(
-			Array.from(clone.querySelectorAll('image')).map((el) =>
-				inlineImageHref(el as SVGImageElement)
-			)
-		);
+		await Promise.all(Array.from(clone.querySelectorAll('image')).map((el) => inlineImageHref(el)));
 
 		// Get dimensions from viewBox
 		const viewBox = svgNode.getAttribute('viewBox');

@@ -249,6 +249,6 @@ export function linkConnection(link: LinkPort, device: LinkDevice): DeviceConnec
 		profile,
 		profileSource: device.profileSource,
 		profileId: device.profileId,
-		identity: (isRecord(device.identity) ? device.identity : {}) as DeviceConnection['identity']
+		identity: isRecord(device.identity) ? device.identity : {}
 	};
 }

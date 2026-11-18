@@ -229,7 +229,7 @@ export function normalizeSampleDisplay(state: URLState): Record<string, SampleDi
 		if (Array.isArray(value)) {
 			const keys = value
 				.map((k) => {
-					const match = String(k).match(/^([LR])(\d+)$/);
+					const match = /^([LR])(\d+)$/.exec(String(k));
 					if (match) return sampleKey(parseInt(match[2]) - 1, match[1] as Channel);
 					return parseSampleKey(String(k)) ? (String(k) as SampleDisplayKey) : null;
 				})

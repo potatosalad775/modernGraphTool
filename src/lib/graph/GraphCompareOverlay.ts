@@ -92,7 +92,7 @@ export class GraphCompareOverlay implements CompareOverlayApi {
 		}
 
 		const line = d3
-			.line<FRDataPoint>()
+			.line()
 			.x((d) => xScale(d[0]))
 			.y((d) => yScale(this._y(d)))
 			.curve(d3.curveMonotoneX);

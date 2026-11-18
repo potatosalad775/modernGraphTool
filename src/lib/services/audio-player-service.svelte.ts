@@ -869,7 +869,10 @@ class AudioPlayerService {
 
 	#syncMediaPosition(): void {
 		const buffer = this.#audioSource === 'file' ? this.#audioBuffer : null;
-		if (!buffer) return this.#media.setPosition(null);
+		if (!buffer) {
+			this.#media.setPosition(null);
+			return;
+		}
 		const elapsed =
 			this.#isPlaying && this.#audioContext ? this.#audioContext.currentTime - this.#startTime : 0;
 		this.#media.setPosition({ duration: buffer.duration, position: this.#pausedAt + elapsed });

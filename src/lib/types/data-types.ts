@@ -308,7 +308,7 @@ export interface PhoneMetadata {
 /** Target metadata structure */
 export interface TargetMetadata {
 	identifier: string;
-	files: Array<{ files: string }>;
+	files: { files: string }[];
 	extensionData?: unknown;
 }
 
@@ -488,7 +488,7 @@ export interface DownloadConfig {
 export interface TraceStylingConfig {
 	PHONE_TRACE_THICKNESS: number;
 	TARGET_TRACE_THICKNESS: number;
-	TARGET_TRACE_DASH: Array<{ name: string; dash: string }>;
+	TARGET_TRACE_DASH: { name: string; dash: string }[];
 }
 
 /**

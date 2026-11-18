@@ -365,9 +365,9 @@ class DataProvider {
 		const variantRawCache = this.#buildRawCache(rawData);
 		const curve = curveDataFromRaw(variantRawCache, data.type);
 		const channels = Object.keys(curve.channels) as Channel[];
-		const dispChannel = (
-			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
-		) as Channel[];
+		const dispChannel = data.dispChannel.every((ch) => channels.includes(ch))
+			? [...data.dispChannel]
+			: [channels[0]];
 
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.

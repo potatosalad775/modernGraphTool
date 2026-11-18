@@ -24,7 +24,10 @@
 	const shortcutsLabelId = `${uid}-shortcuts`;
 	const analyticsLabelId = `${uid}-analytics`;
 
-	type DescriptionItem = { TYPE: string; CONTENT: string };
+	interface DescriptionItem {
+		TYPE: string;
+		CONTENT: string;
+	}
 
 	// Languages are derived from the locales registered in project.inlang/settings.json.
 	// Labels are each language's own endonym (e.g. ko → 한국어), resolved automatically.

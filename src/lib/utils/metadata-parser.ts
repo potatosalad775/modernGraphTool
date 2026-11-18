@@ -592,7 +592,7 @@ const MetadataParser = {
 		const fileVariants: PhoneFileVariant[] = phone.file
 			? Array.isArray(phone.file)
 				? phone.file.map(buildFileVariant)
-				: [buildFileVariant((phone.file as string) || baseName, 0)]
+				: [buildFileVariant(phone.file || baseName, 0)]
 			: hptfEntries.length > 0 || !allowNameFallback
 				? []
 				: [buildFileVariant(baseName, 0)];

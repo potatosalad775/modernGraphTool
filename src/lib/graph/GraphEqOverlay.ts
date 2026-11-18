@@ -40,7 +40,7 @@ export class GraphEqOverlay {
 	private overlayGroup!: d3.Selection<SVGGElement, unknown, null, undefined>;
 	private clickRect: d3.Selection<SVGRectElement, unknown, null, undefined> | null = null;
 	private _eqPanelActive = false;
-	private _dragThrottleTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
+	private _dragThrottleTimers = new Map<number, ReturnType<typeof setTimeout>>();
 	private _keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 	private selectedFilterIndex: number | null = null;
 	private eq = new Equalizer();

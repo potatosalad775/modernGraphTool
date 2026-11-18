@@ -2,7 +2,10 @@ import * as m from '#lib/paraglide/messages.js';
 import type { Channel, FRDataObject } from '#lib/types/data-types.js';
 
 /** One radio / select choice for which channels a curve item displays. */
-export type ChannelOption = { value: string; label: string };
+export interface ChannelOption {
+	value: string;
+	label: string;
+}
 
 /** The choices an item offers: L, R, L+R when it has both, then AVG. */
 export function channelOptions(item: FRDataObject): ChannelOption[] {

@@ -152,7 +152,7 @@ interface RawRankingConfig {
 			}
 		>
 	>;
-	columns?: Array<{ source?: unknown; role?: unknown; scale?: unknown } | null>;
+	columns?: ({ source?: unknown; role?: unknown; scale?: unknown } | null)[];
 	deepLink?: { template?: unknown; slugify?: unknown };
 }
 

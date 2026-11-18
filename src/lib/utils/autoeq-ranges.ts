@@ -1,12 +1,12 @@
 export type AutoEqRangeKey = 'freqMin' | 'freqMax' | 'gainMin' | 'gainMax' | 'qMin' | 'qMax';
 
-export type AutoEqRangeField = {
+export interface AutoEqRangeField {
 	min: number;
 	max: number;
 	step?: number;
 	integer?: boolean;
 	partner: AutoEqRangeKey;
-};
+}
 
 /**
  * What each AutoEQ bound may hold, and its pair partner. The single source for the number boxes in

@@ -44,13 +44,13 @@
 	import Switch from '../atoms/Switch.svelte';
 
 	type ListTab = 'history' | 'bookmarks';
-	type MenuItem = {
+	interface MenuItem {
 		label: string;
 		icon: Component<{ class?: string }>;
 		onSelect: () => void;
 		destructive?: boolean;
 		disabled?: boolean;
-	};
+	}
 
 	// Which list is showing. Component state is enough: losing it on a panel
 	// switch just reopens History.

@@ -111,7 +111,7 @@ class AnalyticsService {
 		this.#containers = containers;
 		this.#measurementIds = measurementIds;
 		this.#siteName = (getConfigValue('SQUIGLINK.ANALYTICS_SITE') as string | undefined) ?? '';
-		this.#logEvents = (getConfigValue('SQUIGLINK.LOG_ANALYTICS') as boolean) !== false;
+		this.#logEvents = getConfigValue('SQUIGLINK.LOG_ANALYTICS') !== false;
 		this.#initialized = true;
 		this.available = true;
 

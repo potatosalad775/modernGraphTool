@@ -42,14 +42,16 @@ interface Declarations {
 }
 
 // Duck-typed on purpose: the CSSOM classes are not there under node, and the specs pass fakes.
-type RuleLike = {
+interface RuleLike {
 	selectorText?: string;
 	style?: CSSStyleDeclaration;
 	styleSheet?: SheetLike | null;
 	cssRules?: ArrayLike<RuleLike>;
 	constructor?: { name?: string };
-};
-type SheetLike = { cssRules: ArrayLike<RuleLike> };
+}
+interface SheetLike {
+	cssRules: ArrayLike<RuleLike>;
+}
 
 function collect(sheet: SheetLike, into: Declarations, layered: boolean, depth: number): void {
 	if (depth > 8) return;
@@ -86,7 +88,7 @@ const VAR_RE = /var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\)[^()]*)*))?\)/g;
 function substitute(
 	name: string,
 	vars: Map<string, string>,
-	seen: Set<string> = new Set()
+	seen = new Set<string>()
 ): string | null {
 	const raw = vars.get(name);
 	if (raw === undefined || seen.has(name)) return null;

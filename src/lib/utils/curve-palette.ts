@@ -112,7 +112,7 @@ export function formatOklch(L: number, C: number, H: number): string {
 const OKLCH_RE = /oklch\(\s*([0-9.+-]+)(%?)\s+([0-9.+-]+)\s+([0-9.+-]+)/i;
 
 export function parseOklch(color: string): [number, number, number] {
-	const m = color.match(OKLCH_RE);
+	const m = OKLCH_RE.exec(color);
 	if (m) {
 		const L = parseFloat(m[1]);
 		return [m[2] ? L / 100 : L, parseFloat(m[3]), parseFloat(m[4])];

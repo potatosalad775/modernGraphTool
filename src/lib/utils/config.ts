@@ -10,21 +10,21 @@ type I18nValue<T> = T | { default: T; i18n: Record<string, T> };
  */
 export function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
 	if (typeof value === 'object' && value !== null && 'default' in value && 'i18n' in value) {
-		const wrapper = value as { default: T; i18n: Record<string, T> };
+		const wrapper = value;
 		const localized = wrapper.i18n[lang];
 		if (localized === undefined) return wrapper.default;
 		if (Array.isArray(wrapper.default) && Array.isArray(localized)) {
 			return (localized as unknown[]).map((item, i) => {
 				const def = (wrapper.default as unknown[])[i];
 				if (typeof item === 'object' && item !== null && typeof def === 'object' && def !== null) {
-					return { ...(def as object), ...(item as object) };
+					return { ...def, ...item };
 				}
 				return item;
 			}) as T;
 		}
 		return localized;
 	}
-	return value as T;
+	return value;
 }
 
 /**

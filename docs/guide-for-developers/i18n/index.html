@@ -135,12 +135,23 @@ since. A Russian translation can therefore arrive carrying English and Korean ke
 already has elsewhere in the file. Git merges both copies without a conflict, and <code dir="auto">JSON.parse</code>
 silently keeps one of them. The tidy moves each key back to where <code dir="auto">main</code> has it, so the merge
 collapses the two into one.</p>
-<p>You don’t need a local checkout for this. Comment <code dir="auto">/tidy</code> on the PR, or run the <strong>i18n tidy</strong>
-workflow from the Actions tab with the PR number. It runs the same tidy against <code dir="auto">main</code> and pushes
-the result to the PR branch as a commit, then replies with what changed. Only the repository
-owner, members and collaborators can trigger it, and the PR must allow edits by maintainers. It
-runs nothing from the PR itself: <code dir="auto">main</code>’s script tidies a copy of the PR’s translation files. Like
-every comment-triggered workflow, it runs from the copy of the workflow file on <code dir="auto">main</code>.</p>
+<p>You rarely need to do this by hand. The <strong>i18n tidy</strong> workflow runs on every PR that changes a
+<code dir="auto">messages/*.json</code> file, and again on each push to it. It runs the same tidy against <code dir="auto">main</code> and
+pushes the result to the PR branch as a commit, then comments with what changed. When there is
+nothing to tidy it says nothing. When it cannot finish, the check fails and one comment on the PR,
+kept up to date across pushes, says why:</p>
+<ul>
+<li>A key appears twice with different values. Someone has to pick one; the comment lists each key
+and its lines.</li>
+<li>The PR doesn’t allow edits by maintainers, so the tidy can’t be pushed. The contributor ticks
+the box, or runs the tidy on their branch.</li>
+</ul>
+<p>To run it again yourself, comment <code dir="auto">/tidy</code> on the PR (repository owner, members and collaborators
+only), or start the workflow from the Actions tab with the PR number. Since the tidy commit lands
+on the PR branch, pull before you add commits to a branch of your own.</p>
+<p>It runs nothing from the PR itself: <code dir="auto">main</code>’s script tidies a copy of the PR’s translation files,
+and the workflow file is always the copy on <code dir="auto">main</code>, so a change to it takes effect only once
+merged.</p>
 <p>The workflow pushes with an <code dir="auto">I18N_TIDY_TOKEN</code> repository secret: a classic personal access token
 with the <code dir="auto">public_repo</code> scope, from an account with write access. <code dir="auto">GITHUB_TOKEN</code> cannot push to a
 fork, and a fine-grained token cannot reach a repository its owner doesn’t own, which a

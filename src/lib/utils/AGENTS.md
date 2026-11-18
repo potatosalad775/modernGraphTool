@@ -230,7 +230,8 @@ The allowlist sanitizer for operator-authored strings — currently the `descrip
 - `sanitizeUrl` — http / https / mailto / tel / relative only, after entity and control-character
   decoding. `metadata-parser` uses it for a phone's `links[]`, `reviewLink` and `shopLink`, with
   `entities: false`: those are JSON values, and decoding entities eats `&tab=` / `&lt=` out of a
-  query string. Only a URL lifted from HTML (an `href` in `sanitizeHtml`) is decoded.
+  query string. Only a URL lifted from HTML (an `href` in `sanitizeHtml`) is decoded: once, and as
+  a browser reads an attribute, so `&lt=` (no `;`, then `=`) stays a query parameter there too.
 
 Hand-rolled rather than DOMPurify-backed: it has to give identical results in the `server` (node, no
 DOM) test project and the browser, and this is a static site operators self-host.

@@ -96,6 +96,31 @@ describe('sanitizeHtml', () => {
 		);
 	});
 
+	// The value is HTML, so it is decoded once: a second decode would eat `&tab=` here.
+	it('decodes an anchor href once', () => {
+		expect(sanitizeHtml('<a href="https://x.test/?a=1&amp;tab=2">x</a>')).toBe(
+			'<a href="https://x.test/?a=1&amp;tab=2" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<a href="&amp;#106;avascript:alert(1)">x</a>')).toBe(
+			'<a href="&amp;#106;avascript:alert(1)" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<a href="&#106;avascript&colon;alert(1)">x</a>')).toBe('<a>x</a>');
+	});
+
+	// As a browser reads an attribute: no `;` and an `=` after the name means it is no reference.
+	it('keeps a query parameter that is named like an entity', () => {
+		expect(sanitizeHtml('<a href="https://x.test/?a=1&lt=2&tab=3&amp=4">x</a>')).toBe(
+			'<a href="https://x.test/?a=1&amp;lt=2&amp;tab=3&amp;amp=4" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<span title="a&lt=b &lt c">x</span>')).toBe(
+			'<span title="a&amp;lt=b &lt; c">x</span>'
+		);
+		expect(sanitizeHtml('<a href="javascript&colon=alert(1)">x</a>')).toBe(
+			'<a href="javascript&amp;colon=alert(1)" target="_blank" rel="external noopener noreferrer">x</a>'
+		);
+		expect(sanitizeHtml('<a href="javascript&#58=alert(1)">x</a>')).toBe('<a>x</a>');
+	});
+
 	it('keeps the inline formatting tags', () => {
 		expect(sanitizeHtml('<b>a</b> <em>b</em> <code>c</code><br><sup>d</sup>')).toBe(
 			'<b>a</b> <em>b</em> <code>c</code><br><sup>d</sup>'

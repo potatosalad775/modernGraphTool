@@ -81,10 +81,15 @@ const NAMED_ENTITIES: Record<string, string> = {
 	rpar: ')'
 };
 
-function decodeEntities(input: string): string {
+/**
+ * `attribute: true` reads the text as a browser reads an attribute value: a named reference
+ * with no `;` and an `=` after it is not a reference. `?a=1&lt=2` is a query, and decoding it
+ * turns the link into `?a=1<=2`. (A letter or digit after the name already fails the lookup.)
+ */
+function decodeEntities(input: string, { attribute = false } = {}): string {
 	return input.replace(
-		/&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);?/g,
-		(whole, body: string) => {
+		/&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*)(;?)/g,
+		(whole, body: string, semicolon: string, offset: number) => {
 			if (body.startsWith('#')) {
 				const code =
 					body[1] === 'x' || body[1] === 'X'
@@ -97,6 +102,7 @@ function decodeEntities(input: string): string {
 					return whole;
 				}
 			}
+			if (attribute && !semicolon && input[offset + whole.length] === '=') return whole;
 			return NAMED_ENTITIES[body.toLowerCase()] ?? whole;
 		}
 	);
@@ -235,9 +241,10 @@ function buildAttrs(name: string, rawAttrs: string, allowed: readonly string[]):
 	while ((match = ATTR_RE.exec(rawAttrs)) !== null) {
 		const attr = match[1].toLowerCase();
 		if (!allowed.includes(attr)) continue;
-		const value = decodeEntities(unquote(match[2]));
+		const value = decodeEntities(unquote(match[2]), { attribute: true });
 		if (attr === 'href') {
-			href = sanitizeUrl(value);
+			// Already decoded above: a second decode would eat `&tab=` out of a query.
+			href = sanitizeUrl(value, { entities: false });
 			continue;
 		}
 		if (!value) continue;

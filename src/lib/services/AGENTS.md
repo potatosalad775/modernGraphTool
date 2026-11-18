@@ -6,6 +6,8 @@ these outlive every panel. Precedent: `audio-player-service.svelte.ts`.
 
 ## Inventory
 
+- `url-provider.ts` — reads and writes the share URL against the stores; the pure encoding is
+  `utils/url-state.ts`, and its rules are under "URL state" in `utils/AGENTS.md`
 - `commands.ts` — Command pattern (Add/Remove/Update\*) with `execute()` / `undo()`
 - `eq-commands.ts` — EQ filter edits routed through `commandHistory`, plus `ensureEnabled()` — see below
 - `command-history.svelte.ts` — undo/redo stack; exports `commandHistory` singleton. A command may

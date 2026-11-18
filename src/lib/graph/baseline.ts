@@ -1,5 +1,5 @@
 import type { FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
-import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
+import type { BaselineMode } from '#lib/types/data-types.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { lookupFRValueAtFreq } from '#lib/utils/fr-lookup.js';

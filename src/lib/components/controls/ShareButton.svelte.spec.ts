@@ -8,7 +8,7 @@ import { render } from 'vitest-browser-svelte';
 import { page, userEvent } from 'vitest/browser';
 import { toast } from '#lib/services/toast.js';
 import ShareButton from './ShareButton.svelte';
-import { urlProvider } from '#lib/utils/url-provider.js';
+import { urlProvider } from '#lib/services/url-provider.js';
 
 const URL_TO_SHARE = 'https://example.com/?share=A+B&x=%C3%A9';
 

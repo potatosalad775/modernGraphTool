@@ -605,3 +605,6 @@ export interface AppConfig {
 	TOPBAR: TopbarConfig;
 	DESCRIPTION: DescriptionConfig[] | I18nConfigValue;
 }
+
+/** How the baseline curve is subtracted from the others. */
+export type BaselineMode = 'off' | 'withoutAdjustment' | 'withAdjustment';

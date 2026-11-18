@@ -1,4 +1,4 @@
-export type BaselineMode = 'off' | 'withoutAdjustment' | 'withAdjustment';
+import type { BaselineMode } from '#lib/types/data-types.js';
 
 class GraphStore {
 	yScale = $state(50);

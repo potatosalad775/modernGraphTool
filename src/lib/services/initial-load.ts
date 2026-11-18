@@ -3,7 +3,7 @@ import { menuStore, MENU_PANELS, type MenuPanel } from '#lib/stores/menu-store.s
 import { preloadEqualizerPanel } from '#lib/components/panels/lazy-panels.js';
 import { getConfigValue } from '#lib/utils/config.js';
 import MetadataParser from '#lib/utils/metadata-parser.js';
-import { urlProvider } from '#lib/utils/url-provider.js';
+import { urlProvider } from './url-provider.js';
 import { analyticsService } from './analytics-service.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';
 

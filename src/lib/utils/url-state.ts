@@ -7,9 +7,13 @@
  * its arguments only.
  */
 import Base62 from './base62.js';
-import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
-import type { EQFilter } from '#lib/stores/eq-store.svelte.js';
-import type { Channel, FRDataObject, SampleDisplayKey } from '#lib/types/data-types.js';
+import type { EQFilter } from './equalizer.js';
+import type {
+	BaselineMode,
+	Channel,
+	FRDataObject,
+	SampleDisplayKey
+} from '#lib/types/data-types.js';
 import { MAX_BANDS } from '#lib/workers/autoeq-request.js';
 import { curveBaseName } from './curve-name.js';
 import { sanitizeChannel } from './eq-channel.js';

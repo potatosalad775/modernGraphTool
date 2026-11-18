@@ -20,7 +20,7 @@
 	import { eqBookmarkStore } from '#lib/stores/eq-bookmark-store.svelte.js';
 	import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 	import { hasSavedLinkSession, linkConfig } from '#lib/services/link-config.js';
-	import { urlProvider } from '#lib/utils/url-provider.js';
+	import { urlProvider } from '#lib/services/url-provider.js';
 	import TopNavBar from './TopNavBar.svelte';
 	import DragDivider from './DragDivider.svelte';
 	import MenuCarousel from './MenuCarousel.svelte';

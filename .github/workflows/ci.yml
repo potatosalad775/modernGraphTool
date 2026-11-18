@@ -152,7 +152,10 @@ jobs:
       # Chromium, WebKit and Firefox, and fails on a console error, a graph that never
       # draws or an AutoEQ run that never answers. It is the only cross-engine test:
       # the component specs run in Chromium alone.
+      # WebKit pulls about 185 apt packages. A slow mirror once held this step for
+      # 24 minutes, so it fails fast and a rerun gets another runner.
       - name: Install Playwright browsers
+        timeout-minutes: 8
         run: npx playwright install --with-deps chromium webkit firefox
 
       - name: Smoke test the built output (Chromium, WebKit, Firefox)

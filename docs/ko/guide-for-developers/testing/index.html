@@ -164,12 +164,9 @@ Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. <
 그 가드는 남겨 둡니다. <code dir="auto">no-non-null-assertion</code>은 <code dir="auto">!</code>를 실패로 처리합니다. 대신 타입을 좁히거나, 값이
 없는 것이 버그라면 예외를 던지세요. 스펙과 테스트 픽스처에서는 <code dir="auto">!</code>를 계속 쓸 수 있습니다.</p>
 <p>스펙을 제외한 앱 코드에는 typescript-eslint의 <code dir="auto">strict-type-checked</code>와 <code dir="auto">stylistic-type-checked</code>
-프리셋도 적용됩니다. 프리셋 도입 전부터 있던 위반은 ESLint의 일괄 억제 파일인
-<code dir="auto">eslint-suppressions.json</code>에 파일·규칙별 개수로 기록되어 있어서, 새로 생긴 위반만 lint를 실패시킵니다.
-이 파일은 절대 늘어나면 안 됩니다. 빨간 lint를 통과시키려고 <code dir="auto">eslint --suppress-all</code>을 실행하지
-마세요. 기록된 위반을 고친 뒤에는 <code dir="auto">npm run lint:prune</code>을 실행하고 줄어든 파일을 커밋하세요. 더 이상
-아무것도 가리키지 않는 억제 항목이 남아 있어도 <code dir="auto">npm run lint</code>가 실패합니다. 지금 이 파일에 남아 있는
-것은 <code dir="auto">complexity</code> 규칙뿐입니다. 한도인 15를 넘지만 아직 나누지 않은 함수들입니다.</p>
+프리셋과, 함수당 <code dir="auto">complexity</code> 한도 15도 적용됩니다. 일괄 억제는 쓰지 않습니다. 빨간 lint를
+통과시키려고 <code dir="auto">eslint --suppress-all</code>을 실행하지 마세요. 한도를 넘는 함수는 스펙을 기준으로 삼아
+나눕니다.</p>
 <p>이 프리셋 때문에 <code dir="auto">src/lib/utils/</code>에 헬퍼 두 개가 있습니다. <code dir="auto">track(a, b)</code>는 <code dir="auto">$effect</code>가 의존하지만 달리
 쓰지는 않는 반응형 값을 명시합니다(<code dir="auto">void a;</code>만 쓰면 <code dir="auto">no-meaningless-void-operator</code>에 걸립니다).
 <code dir="auto">noop</code>은 아무 동작도 필요 없는 콜백 자리를 채웁니다. 무시해도 되는 거부에 붙이는 <code dir="auto">.catch(noop)</code>이

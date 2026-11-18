@@ -3986,7 +3986,7 @@ npm run format     # fix
 
 CI runs `npm run lint` on Linux and Windows, so a PR that is not Prettier-clean will not merge.
 
-App code under `src/` is linted with typescript-eslint’s strict type-checked presets, and a warning fails lint like an error. Violations older than the presets are recorded in `eslint-suppressions.json`, which must only shrink: after fixing some, run `npm run lint:prune` and commit the smaller file. Never add to it to make a red lint pass. The [testing guide](/modernGraphTool/docs/guide-for-developers/testing/) explains the rules that most often need a change in how you write code.
+App code under `src/` is linted with typescript-eslint’s strict type-checked presets, and a warning fails lint like an error. There is no suppressions file: fix a finding rather than recording it with `eslint --suppress-all`. The [testing guide](/modernGraphTool/docs/guide-for-developers/testing/) explains the rules that most often need a change in how you write code.
 
 ### Line endings
 
@@ -4293,7 +4293,7 @@ The Windows leg is not redundant. Git for Windows sets `core.autocrlf=true` in i
 
 In `src/`, two type-aware rules hold app code to its types. `no-unnecessary-condition` fails a guard the types say can never fire, so a value from outside them (operator config, fetched JSON, storage, a DOM read, an index that can miss) is typed `| undefined` where it enters, and its guard stays. `no-non-null-assertion` fails a `!`: narrow instead, or throw where absence is a bug. Specs and test fixtures may still use `!`.
 
-App code outside the specs is also held to typescript-eslint’s `strict-type-checked` and `stylistic-type-checked` presets. The violations that predate them are recorded per file and rule in `eslint-suppressions.json`, ESLint’s bulk-suppressions file, so lint fails only on a new one. That file must never grow: never run `eslint --suppress-all` to make a red lint pass. After fixing recorded violations, run `npm run lint:prune` and commit the smaller file, because `npm run lint` also fails on a suppression that no longer matches anything. What is left there is the `complexity` rule alone: functions over its limit of 15 that have not been split yet.
+App code outside the specs is also held to typescript-eslint’s `strict-type-checked` and `stylistic-type-checked` presets, and to a `complexity` limit of 15 per function. Nothing is suppressed in bulk: never run `eslint --suppress-all` to make a red lint pass. A function over the limit is split, with its spec as the pin.
 
 Two helpers in `src/lib/utils/` exist for these presets. `track(a, b)` names the reactive values an `$effect` depends on without otherwise using (a bare `void a;` fails `no-meaningless-void-operator`). `noop` fills a callback slot that needs no action, such as `.catch(noop)` on a rejection that is safe to ignore (an empty arrow function fails `no-empty-function`).
 

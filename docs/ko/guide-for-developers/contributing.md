@@ -52,9 +52,8 @@ CI가 Linux와 Windows에서 `npm run lint`를 실행하므로, Prettier 기준�
 않습니다.
 
 `src/` 아래의 앱 코드는 typescript-eslint의 strict type-checked 프리셋으로 검사하며, 경고도
-오류처럼 lint를 실패시킵니다. 프리셋 도입 전부터 있던 위반은 `eslint-suppressions.json`에 기록되어
-있고, 이 파일은 줄어들기만 해야 합니다. 위반을 고친 뒤에는 `npm run lint:prune`을 실행하고 줄어든
-파일을 커밋하세요. 빨간 lint를 통과시키려고 항목을 추가하지 마세요. 코드 작성 방식에 가장 자주
+오류처럼 lint를 실패시킵니다. 억제 파일은 없습니다. 위반은 `eslint --suppress-all`로 기록하지 말고
+고치세요. 코드 작성 방식에 가장 자주
 영향을 주는 규칙은 [테스트 가이드](./testing.mdx)에 설명되어 있습니다.
 
 ### 줄바꿈 \{#line-endings\}

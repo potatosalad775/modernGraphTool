@@ -107,12 +107,9 @@ Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. *
 없는 것이 버그라면 예외를 던지세요. 스펙과 테스트 픽스처에서는 `!`를 계속 쓸 수 있습니다.
 
 스펙을 제외한 앱 코드에는 typescript-eslint의 `strict-type-checked`와 `stylistic-type-checked`
-프리셋도 적용됩니다. 프리셋 도입 전부터 있던 위반은 ESLint의 일괄 억제 파일인
-`eslint-suppressions.json`에 파일·규칙별 개수로 기록되어 있어서, 새로 생긴 위반만 lint를 실패시킵니다.
-이 파일은 절대 늘어나면 안 됩니다. 빨간 lint를 통과시키려고 `eslint --suppress-all`을 실행하지
-마세요. 기록된 위반을 고친 뒤에는 `npm run lint:prune`을 실행하고 줄어든 파일을 커밋하세요. 더 이상
-아무것도 가리키지 않는 억제 항목이 남아 있어도 `npm run lint`가 실패합니다. 지금 이 파일에 남아 있는
-것은 `complexity` 규칙뿐입니다. 한도인 15를 넘지만 아직 나누지 않은 함수들입니다.
+프리셋과, 함수당 `complexity` 한도 15도 적용됩니다. 일괄 억제는 쓰지 않습니다. 빨간 lint를
+통과시키려고 `eslint --suppress-all`을 실행하지 마세요. 한도를 넘는 함수는 스펙을 기준으로 삼아
+나눕니다.
 
 이 프리셋 때문에 `src/lib/utils/`에 헬퍼 두 개가 있습니다. `track(a, b)`는 `$effect`가 의존하지만 달리
 쓰지는 않는 반응형 값을 명시합니다(`void a;`만 쓰면 `no-meaningless-void-operator`에 걸립니다).

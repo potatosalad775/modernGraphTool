@@ -164,12 +164,9 @@ a DOM read, an index that can miss) is typed <code dir="auto">| undefined</code>
 <code dir="auto">no-non-null-assertion</code> fails a <code dir="auto">!</code>: narrow instead, or throw where absence is a bug. Specs and test
 fixtures may still use <code dir="auto">!</code>.</p>
 <p>App code outside the specs is also held to typescript-eslint’s <code dir="auto">strict-type-checked</code> and
-<code dir="auto">stylistic-type-checked</code> presets. The violations that predate them are recorded per file and rule in
-<code dir="auto">eslint-suppressions.json</code>, ESLint’s bulk-suppressions file, so lint fails only on a new one. That
-file must never grow: never run <code dir="auto">eslint --suppress-all</code> to make a red lint pass. After fixing
-recorded violations, run <code dir="auto">npm run lint:prune</code> and commit the smaller file, because <code dir="auto">npm run lint</code>
-also fails on a suppression that no longer matches anything. What is left there is the <code dir="auto">complexity</code>
-rule alone: functions over its limit of 15 that have not been split yet.</p>
+<code dir="auto">stylistic-type-checked</code> presets, and to a <code dir="auto">complexity</code> limit of 15 per function. Nothing is
+suppressed in bulk: never run <code dir="auto">eslint --suppress-all</code> to make a red lint pass. A function over the
+limit is split, with its spec as the pin.</p>
 <p>Two helpers in <code dir="auto">src/lib/utils/</code> exist for these presets. <code dir="auto">track(a, b)</code> names the reactive values an
 <code dir="auto">$effect</code> depends on without otherwise using (a bare <code dir="auto">void a;</code> fails <code dir="auto">no-meaningless-void-operator</code>).
 <code dir="auto">noop</code> fills a callback slot that needs no action, such as <code dir="auto">.catch(noop)</code> on a rejection that is safe

@@ -54,9 +54,8 @@ npm run format     # fix
 CI runs `npm run lint` on Linux and Windows, so a PR that is not Prettier-clean will not merge.
 
 App code under `src/` is linted with typescript-eslint's strict type-checked presets, and a warning
-fails lint like an error. Violations older than the presets are recorded in
-`eslint-suppressions.json`, which must only shrink: after fixing some, run `npm run lint:prune` and
-commit the smaller file. Never add to it to make a red lint pass. The
+fails lint like an error. There is no suppressions file: fix a finding rather than recording it
+with `eslint --suppress-all`. The
 [testing guide](./testing.mdx) explains the rules that most often need a change
 in how you write code.
 

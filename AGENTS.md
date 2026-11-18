@@ -114,8 +114,8 @@ Always use the Runes API. Never the legacy Options API or writable stores (lint 
   Its `message` names the fix. Lint already rejects an import from `static/` or `defaults/`, a
   Tailwind palette class, an HTML sink, an untrusted `{@html}` or `Worker` URL, and an import that
   crosses a layer: `utils` and `workers` import no store, service, graph or component, `stores`
-  no service or component, and `graph`, `services` and `device-peq` no component. When you add
-  such a rule, delete the sentence it replaces.
+  and `graph` no service or component (`graph` may take `eq-commands.js`), and `services` and
+  `device-peq` no component. When you add such a rule, delete the sentence it replaces.
 - **Keep commit messages short. Default to a subject line alone.** Add a body only when the _why_
   can't be read off the diff, and cap it at one paragraph of two or three lines. Never one paragraph
   per design decision — long bodies are hard to read in VS Code's commit view and drown out

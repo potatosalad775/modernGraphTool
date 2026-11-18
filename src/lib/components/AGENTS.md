@@ -118,8 +118,8 @@ the browser's second or so.
 - **Wrap anything else with the `Tooltip` atom** and spread `mergeTooltipProps(ownProps, props)`
   onto the element. It drops the trigger's `disabled` on purpose: bits-ui won't open a disabled
   trigger, and most long titles explain why their button is disabled. A disabled `<button>` still
-  gets pointer events in Chromium (covered by `Tooltip.svelte.spec.ts`); Firefox and Safari aren't
-  covered.
+  gets pointer events in Chromium (covered by `Tooltip.svelte.spec.ts`); `npm run test:smoke` checks
+  the same in Firefox and Playwright's WebKit, which is close to Safari but not iOS.
 - **Touch never opens one.** Nothing may live only in a tooltip — `InfoPopover` is for that.
 - **Focus opens one only when it is `:focus-visible`** (`ignoreNonKeyboardFocus` on the provider).
   Focus moved by script after a tap or click stays quiet. After a key press it still opens, so

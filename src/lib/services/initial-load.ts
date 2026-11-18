@@ -77,8 +77,9 @@ function applyConfigDefaults(): void {
 async function loadInitialData(): Promise<void> {
 	const urlPhones = urlProvider.phoneDataFromURL;
 
-	if (urlPhones.length > 0) {
-		// URL share param takes priority — load phones/targets from URL
+	if (urlPhones.length > 0 || urlProvider.restoresSession) {
+		// URL share param takes priority — load phones/targets from URL. A session kept
+		// across a reload does too, even an emptied one: its EQ and Y scale still apply.
 		await Promise.all(
 			urlPhones.map(async (name) => {
 				const identifier = name.trim();

@@ -252,10 +252,14 @@ only what touches `window`, `document`, `goto` and the stores, and delegates the
   also wraps `applyStateFromURL` in a try/catch so a state that still slips through can't stop boot.
   Don't change what the encoder writes to suit this; the checks only narrow what is read.
 - **A reload the app causes goes through `urlProvider.keepAcrossReload()` first** (the locale
-  switch in `MiscPanel`: Paraglide's `setLocale` reloads). It leaves the query, EQ included, in
-  `sessionStorage`, and the next `init()` reads it once in place of `window.location.search`. The
-  address bar alone loses the EQ, and loses everything with `URL.AUTO_UPDATE_URL` off. It is not
-  written back to the bar, so that setting keeps its meaning.
+  switch in `MiscPanel`: Paraglide's `setLocale` reloads). It leaves the query, EQ included, and the
+  EQ master switch in `sessionStorage`, and the next `init()` reads them once in place of
+  `window.location.search`. The address bar alone loses the EQ, and loses everything with
+  `URL.AUTO_UPDATE_URL` off. It is not written back to the bar, so that setting keeps its meaning.
+  `restoresSession` tells `initial-load` that an empty selection is the session's own, so it loads
+  no `INITIAL_PHONES` and still applies the state. The switch stays out of `state=`: a share link
+  always switches its EQ on. Only what the share query can say is kept: an uploaded curve, the
+  open panel and the display settings still reset.
 - `url-provider.ts` updates the URL with a **shallow** `goto(path, { shallow: true, replace: true })`
   (SvelteKit 3's replacement for `replaceState`) — never a full `goto()`, which would run a
   navigation. The path already carries the deployment base, so it is not passed through `resolve()`.

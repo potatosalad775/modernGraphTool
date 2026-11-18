@@ -45,6 +45,11 @@ const effectCall =
 const mirrorMessage =
 	'This effect only mirrors a value. Use $derived, or own the value where it is computed and pass it down as a prop.';
 
+// A Tailwind palette class: a colour that does not follow the operator's theme.
+const paletteClass = String.raw`\b(bg|text|border|ring|fill|stroke|from|to|via|outline|divide)-((zinc|gray|slate|stone|neutral|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b`;
+const paletteMessage =
+	'Use a semantic token (bg-base-200, text-base-content/60, border-accent, …) so an operator theme still applies. Tokens are in defaults/theme.css.';
+
 const restrictedSyntax = [
 	{
 		selector: `${effectCall} > ArrowFunctionExpression > AssignmentExpression`,
@@ -65,21 +70,33 @@ const restrictedSyntax = [
 		message:
 			'{@html} takes trustedHtml(...) from #lib/utils/trusted-types.js, around operator config or the output of sanitizeHtml.'
 	},
+	// The class can sit in a string, in a template string, or in a `class:name` directive, and
+	// each keeps its text in a different place.
 	{
-		selector: String.raw`:matches(Literal, TemplateElement, SvelteLiteral)[value=/\b(bg|text|border|ring|fill|stroke|from|to|via|outline|divide)-((zinc|gray|slate|stone|neutral|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b/]`,
-		message:
-			'Use a semantic token (bg-base-200, text-base-content/60, border-accent, …) so an operator theme still applies. Tokens are in defaults/theme.css.'
+		selector: `:matches(Literal, SvelteLiteral)[value=/${paletteClass}/]`,
+		message: paletteMessage
+	},
+	{
+		selector: `TemplateElement[value.cooked=/${paletteClass}/]`,
+		message: paletteMessage
+	},
+	{
+		selector: `SvelteDirective[kind='Class'][key.name.name=/${paletteClass}/]`,
+		message: paletteMessage
 	}
 ];
 
 /**
- * Bans imports from the named `src/lib` directories.
+ * Bans imports from the named `src/lib` directories, by the `#lib/` alias or by a relative path.
  * @param {string[]} banned
  * @param {string} message
  */
 const withoutLayers = (banned, message) => ({
 	...restrictedImports,
-	patterns: [...restrictedImports.patterns, { regex: `^#lib/(${banned.join('|')})/`, message }]
+	patterns: [
+		...restrictedImports.patterns,
+		{ regex: String.raw`^(#lib/|(\.\./)+)(${banned.join('|')})/`, message }
+	]
 });
 
 export default defineConfig(
@@ -260,6 +277,7 @@ export default defineConfig(
 	},
 	{
 		files: ['src/lib/components/panels/**/*.svelte'],
+		ignores: testFiles,
 		rules: {
 			'no-restricted-syntax': [
 				'error',

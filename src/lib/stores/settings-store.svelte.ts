@@ -14,7 +14,7 @@ const LS_KEYS = {
 
 const LEGACY_THEME_KEY = 'gt-theme';
 
-export type AutoEqOptions = {
+export interface AutoEqOptions {
 	freqMin: number;
 	freqMax: number;
 	qMin: number;
@@ -24,7 +24,7 @@ export type AutoEqOptions = {
 	useShelfFilter: boolean;
 	/** Fit the curve's shape to 20 kHz rather than AutoEq's smoothed treble. */
 	exactMatch: boolean;
-};
+}
 
 export type AutoEqPersistMode = 'session' | 'local';
 
@@ -84,7 +84,7 @@ const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 /** What the OS asks for right now. Light when the browser can't say. */
 function systemTheme(): Theme {
-	return window.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light';
+	return window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';
 }
 
 /** The operator's `PREFERRED_DARK_MODE_THEME`; absent reads as `'system'`, as it always has. */
@@ -269,7 +269,7 @@ class SettingsStore {
 	 */
 	#watchTheme(): void {
 		this.#unwatchTheme?.();
-		const mq = window.matchMedia?.(DARK_QUERY);
+		const mq = window.matchMedia(DARK_QUERY);
 		const onScheme = (e: MediaQueryListEvent) => {
 			this.osTheme = e.matches ? 'dark' : 'light';
 			if (this.followsSystem) this.#applyTheme(this.osTheme);
@@ -278,10 +278,10 @@ class SettingsStore {
 			// A null key is `localStorage.clear()`.
 			if (e.key === LS_KEYS.theme || e.key === null) this.#resolveTheme();
 		};
-		mq?.addEventListener?.('change', onScheme);
+		mq.addEventListener('change', onScheme);
 		window.addEventListener('storage', onStorage);
 		this.#unwatchTheme = () => {
-			mq?.removeEventListener?.('change', onScheme);
+			mq.removeEventListener('change', onScheme);
 			window.removeEventListener('storage', onStorage);
 		};
 	}

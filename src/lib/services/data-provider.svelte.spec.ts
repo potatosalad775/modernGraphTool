@@ -741,7 +741,7 @@ describe('DataProvider', () => {
 		});
 
 		it('insertRawFRData gives an uploaded target its unadjustedChannels', async () => {
-			await dataProvider.insertRawFRData('target', 'My Target', makeFullChannelData());
+			dataProvider.insertRawFRData('target', 'My Target', makeFullChannelData());
 
 			const item = [...frStore.entries.values()][0];
 			expect(item.type).toBe('inserted-target');
@@ -749,7 +749,7 @@ describe('DataProvider', () => {
 		});
 
 		it('insertRawFRData gives an uploaded phone no unadjustedChannels', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
 
 			expect([...frStore.entries.values()][0].unadjustedChannels).toBeUndefined();
 		});
@@ -1353,7 +1353,7 @@ describe('DataProvider', () => {
 
 	describe('insertRawFRData', () => {
 		it('adds an entry typed `inserted-<sourceType>` with an `(Inserted)` suffix', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
 
 			expect(frStore.size).toBe(1);
 			const entry = [...frStore.entries.values()][0];
@@ -1364,7 +1364,7 @@ describe('DataProvider', () => {
 
 		it('processes the raw channels rather than storing them verbatim', async () => {
 			const raw = makeFullChannelData();
-			await dataProvider.insertRawFRData('phone', 'My Upload', raw);
+			dataProvider.insertRawFRData('phone', 'My Upload', raw);
 
 			const entry = [...frStore.entries.values()][0];
 			// Smoothing + normalization run, so the stored curve is not the input array.
@@ -1376,14 +1376,14 @@ describe('DataProvider', () => {
 
 		it('caches the untouched raw channels under `_rawData` for reSmoothAll', async () => {
 			const raw = makeFullChannelData();
-			await dataProvider.insertRawFRData('phone', 'My Upload', raw);
+			dataProvider.insertRawFRData('phone', 'My Upload', raw);
 
 			const entry = [...frStore.entries.values()][0];
 			expect(entry._rawData!.channels.AVG!.data).toEqual(raw.AVG.data);
 		});
 
 		it('honours dispChannel and dispSuffix passed in the input metadata', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(), {
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(), {
 				dispChannel: ['L', 'R'],
 				dispSuffix: '(v2)'
 			});
@@ -1394,12 +1394,12 @@ describe('DataProvider', () => {
 		});
 
 		it('assigns a solid dash for a non-target source', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
 			expect([...frStore.entries.values()][0].dash).toBe('1 0');
 		});
 
 		it('is undoable as a single command', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData());
 			expect(frStore.size).toBe(1);
 
 			commandHistory.undo(frStore);
@@ -1410,8 +1410,8 @@ describe('DataProvider', () => {
 		});
 
 		it('gives each insert its own UUID, so the same name can be inserted twice', async () => {
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(80));
-			await dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(70));
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(80));
+			dataProvider.insertRawFRData('phone', 'My Upload', makeFullChannelData(70));
 
 			const uuids = [...frStore.entries.keys()];
 			expect(uuids).toHaveLength(2);

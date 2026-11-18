@@ -49,13 +49,13 @@ describe('EqSettings', () => {
 	describe('AutoEQ persistence mode', () => {
 		it('shows the stored mode as the current value', async () => {
 			settingsStore.autoEqPersistMode = 'local';
-			render(EqSettings);
+			await render(EqSettings);
 
 			await expect.element(persistSelect()).toHaveValue('local');
 		});
 
 		it('offers both session and local', async () => {
-			render(EqSettings);
+			await render(EqSettings);
 
 			await expect
 				.element(page.getByRole('option', { name: m.eq_settings_autoeq_persist_session() }))
@@ -66,7 +66,7 @@ describe('EqSettings', () => {
 		});
 
 		it('switches the store to the picked mode', async () => {
-			render(EqSettings);
+			await render(EqSettings);
 
 			await persistSelect().selectOptions(m.eq_settings_autoeq_persist_local());
 
@@ -77,7 +77,7 @@ describe('EqSettings', () => {
 			// The migration is the whole point of the setting: picking `local`
 			// without carrying the options over would silently reset them.
 			settingsStore.autoEqOptions = { ...settingsStore.autoEqOptions, freqMax: 12345 };
-			render(EqSettings);
+			await render(EqSettings);
 
 			await persistSelect().selectOptions(m.eq_settings_autoeq_persist_local());
 
@@ -92,13 +92,13 @@ describe('EqSettings', () => {
 	describe('link EQ normalization', () => {
 		it('reflects the stored flag', async () => {
 			settingsStore.linkEqNormalization = true;
-			render(EqSettings);
+			await render(EqSettings);
 
 			await expect.element(linkSwitch()).toBeChecked();
 		});
 
 		it('sets the flag when switched on', async () => {
-			render(EqSettings);
+			await render(EqSettings);
 
 			await linkSwitch().click();
 
@@ -106,7 +106,7 @@ describe('EqSettings', () => {
 		});
 
 		it('renormalizes immediately so the graph matches the new reference', async () => {
-			render(EqSettings);
+			await render(EqSettings);
 
 			await linkSwitch().click();
 
@@ -115,7 +115,7 @@ describe('EqSettings', () => {
 
 		it('clears the flag and renormalizes again when switched back off', async () => {
 			settingsStore.linkEqNormalization = true;
-			render(EqSettings);
+			await render(EqSettings);
 
 			await linkSwitch().click();
 
@@ -124,7 +124,7 @@ describe('EqSettings', () => {
 		});
 
 		it('explains the option in a popover', async () => {
-			render(EqSettings);
+			await render(EqSettings);
 
 			await page
 				.getByRole('button', {

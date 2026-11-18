@@ -18,16 +18,15 @@ export function buildRankingUrl(
 ): string | null {
 	if (!template) return null;
 	if (!/\{[a-zA-Z]+\}/.test(template)) return template;
-	const brand = String(ctx.brand ?? '');
-	const model = String(ctx.model ?? '');
+	const { brand, model } = ctx;
 	const slug = ctx.slug ?? (brand + '-' + model).toLowerCase().replace(/\s+/g, '-');
 	const fullName = brand + ' ' + model;
-	const values: Record<string, string> = {
-		type: encodeURIComponent(ctx.type ?? ''),
+	const values: Partial<Record<string, string>> = {
+		type: encodeURIComponent(ctx.type),
 		brand: encodeURIComponent(brand),
 		model: encodeURIComponent(model),
 		slug: encodeURIComponent(slug).replace(/%2D/gi, '-'),
 		fullName: encodeURIComponent(fullName)
 	};
-	return template.replace(/\{([a-zA-Z]+)\}/g, (_, k) => (values[k] != null ? values[k] : ''));
+	return template.replace(/\{([a-zA-Z]+)\}/g, (_, k: string) => values[k] ?? '');
 }

@@ -13,12 +13,14 @@
 	// ── Config ──────────────────────────────────────────────────────────────────
 
 	const allowMultiLine =
-		(getConfigValue('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE') as boolean) ?? true;
-	const omitSuffix = (getConfigValue('INTERFACE.TARGET.OMIT_TARGET_SUFFIX') as boolean) ?? false;
+		(getConfigValue('INTERFACE.TARGET.ALLOW_MULTIPLE_LINE_PER_TYPE') as boolean | undefined) ??
+		true;
+	const omitSuffix =
+		(getConfigValue('INTERFACE.TARGET.OMIT_TARGET_SUFFIX') as boolean | undefined) ?? false;
 	// Read once at mount: following `isMobile` live would fold the list under the user mid-use
 	// whenever a resize or rotation crossed the breakpoint.
 	const collapseConfig = getConfigValue('INTERFACE.TARGET.COLLAPSE_TARGET_LIST_ON_INITIAL') as
-		TargetInterfaceConfig['COLLAPSE_TARGET_LIST_ON_INITIAL'] | undefined;
+		TargetInterfaceConfig['COLLAPSE_TARGET_LIST_ON_INITIAL'] | null | undefined;
 	const collapseOnInitial =
 		typeof collapseConfig === 'object' && collapseConfig !== null
 			? ((appStore.isMobile ? collapseConfig.MOBILE : collapseConfig.DESKTOP) ?? false)

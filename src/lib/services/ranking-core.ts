@@ -19,6 +19,7 @@
 import { getConfigValue } from '#lib/utils/config.js';
 import { getLocale } from '#lib/paraglide/runtime.js';
 import type { CsvRow } from '#lib/utils/csv.js';
+import { isRecord } from '#lib/utils/type-guards.js';
 import type { RankScaleEntry, RankingSourceConfig } from '#lib/types/data-types.js';
 
 /** Default sheet headers — the ones squigRanking's own templates ship with. */
@@ -143,14 +144,16 @@ export function adaptInlineSource(source: RankingSourceConfig): ResolvedRankSour
 
 /** The subset of `window.RANKING_CONFIG` this tool reads. Everything is optional. */
 interface RawRankingConfig {
-	types?: Record<
-		string,
-		{
-			source?: { url?: unknown };
-			rowFilter?: { field?: unknown; values?: unknown };
-		}
+	types?: Partial<
+		Record<
+			string,
+			{
+				source?: { url?: unknown };
+				rowFilter?: { field?: unknown; values?: unknown };
+			}
+		>
 	>;
-	columns?: Array<{ source?: unknown; role?: unknown; scale?: unknown }>;
+	columns?: ({ source?: unknown; role?: unknown; scale?: unknown } | null)[];
 	deepLink?: { template?: unknown; slugify?: unknown };
 }
 
@@ -186,7 +189,7 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 	if (!csvUrl) return null;
 
 	const columns = Array.isArray(config.columns) ? config.columns : [];
-	const byRole = (role: string): { source?: unknown; scale?: unknown } | undefined =>
+	const byRole = (role: string): { source?: unknown; scale?: unknown } | null | undefined =>
 		columns.find((column) => column?.role === role);
 	const headerOf = (role: string, fallback: string): string => {
 		const value = byRole(role)?.source;
@@ -196,8 +199,8 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 	const rawScale = byRole('rank')?.scale;
 	const scale = Array.isArray(rawScale)
 		? rawScale.filter(
-				(entry): entry is RankScaleEntry =>
-					typeof entry === 'object' && entry !== null && typeof entry.value === 'string'
+				(entry: unknown): entry is RankScaleEntry =>
+					isRecord(entry) && typeof entry.value === 'string'
 			)
 		: [];
 
@@ -224,13 +227,13 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 // ── Matching ────────────────────────────────────────────────────────────────
 
 /** Lowercased, whitespace-collapsed. */
-export function normalize(value: string | undefined | null): string {
+export function normalize(value: string | number | undefined | null): string {
 	if (!value) return '';
 	return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /** Alphanumerics only. Survives punctuation and spacing differences between the two files. */
-export function simplify(value: string | undefined | null): string {
+export function simplify(value: string | number | undefined | null): string {
 	return String(value ?? '')
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, '');

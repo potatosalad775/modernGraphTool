@@ -55,7 +55,7 @@ function makeIndex(overrides: Partial<AggregateIndex> = {}): AggregateIndex {
 }
 
 /** Stubs fetch so each URL either resolves to an index document or fails. */
-function stubFetch(responders: Record<string, AggregateIndex | number>) {
+function stubFetch(responders: Partial<Record<string, AggregateIndex | number>>) {
 	const fetchMock = vi.fn(async (input: string | URL | Request) => {
 		const url = String(input);
 		const responder = responders[url];

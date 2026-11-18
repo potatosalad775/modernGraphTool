@@ -24,10 +24,10 @@ export function compareVersions(a: string, b: string): number {
 	return 0;
 }
 
-export type VersionUpdate = {
+export interface VersionUpdate {
 	previous: string;
 	current: string;
-};
+}
 
 /**
  * Reads the previously-seen app version from localStorage and compares it

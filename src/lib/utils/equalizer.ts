@@ -25,7 +25,7 @@ export function usesGain(type: EQFilterType): boolean {
  * is `!= null`, not truthiness: a 0 dB band is a real filter, and a gainless type's gain is
  * always 0.
  */
-export function isPlayableBand(f: EQFilter): boolean {
+export function isPlayableBand(f: EQFilter): f is CompleteBand {
 	return f.enabled && f.freq != null && f.q != null && f.gain != null;
 }
 
@@ -49,6 +49,12 @@ export interface EQFilter {
 	 */
 	channel?: 'L' | 'R';
 }
+
+/** A band with every value filled in: a playable band, and every band AutoEQ builds. */
+export type CompleteBand = EQFilter & { freq: number; q: number; gain: number };
+
+/** A band AutoEQ's search proposes, before it is switched on. */
+type Candidate = Omit<CompleteBand, 'enabled' | 'channel'>;
 
 /**
  * Full field-wise equality. `channel` has to be in here — retargeting a band
@@ -122,7 +128,7 @@ export class Equalizer {
 			for (; i < fr.length - 1; ++i) {
 				const [f0, v0] = fr[i];
 				const [f1, v1] = fr[i + 1];
-				if (i == 0 && f < f0) {
+				if (i === 0 && f < f0) {
 					return [f, v0];
 				} else if (f >= f0 && f < f1) {
 					const v = v0 + ((v1 - v0) * (f - f0)) / (f1 - f0);
@@ -225,7 +231,7 @@ export class Equalizer {
 
 	_calculateGains(freqs: number[], coeffs: number[][]): number[] {
 		const n = freqs.length;
-		const gains = new Array(n).fill(0);
+		const gains = new Array<number>(n).fill(0);
 		if (coeffs.length === 0) return gains;
 
 		const wScale = (2 * Math.PI) / this.config.DefaultSampleRate;
@@ -237,8 +243,7 @@ export class Equalizer {
 
 		const inv10ln10 = 10 / Math.LN10;
 
-		for (let i = 0; i < coeffs.length; ++i) {
-			const [a0, a1, a2, b0, b1, b2] = coeffs[i];
+		for (const [a0, a1, a2, b0, b1, b2] of coeffs) {
 			const bSum = b0 + b1 + b2;
 			const aSum = a0 + a1 + a2;
 			const bSum2 = bSum * bSum;
@@ -328,7 +333,8 @@ export class Equalizer {
 		return { source: normalizedSource, target: alignedTarget };
 	}
 
-	_interpolatePoints(freqs: number[], points: FreqPoint[]): FreqPoint[] {
+	/** A null `points` reads as flat: the AutoEQ fallback optimizes a missing source against silence. */
+	_interpolatePoints(freqs: number[], points: FreqPoint[] | null): FreqPoint[] {
 		if (!points || points.length === 0) return freqs.map((f) => [f, 0]);
 
 		const sortedPoints = [...points].sort((a, b) => a[0] - b[0]);
@@ -360,14 +366,10 @@ export class Equalizer {
 		return freqs.map((f, i) => [f, fr[i][1] + gains[i]]);
 	}
 
-	_searchCandidates(
-		fr: FreqPoint[],
-		frTarget: FreqPoint[],
-		threshold: number
-	): Partial<EQFilter>[] {
+	_searchCandidates(fr: FreqPoint[], frTarget: FreqPoint[], threshold: number): Candidate[] {
 		let state = 0;
 		let startIndex = -1;
-		const candidates: Partial<EQFilter>[] = [];
+		const candidates: Candidate[] = [];
 		const [minFreq, maxFreq] = this.config.AutoEQRange;
 
 		for (let i = 0; i < fr.length; ++i) {
@@ -380,7 +382,7 @@ export class Equalizer {
 			if (nextState === state) continue;
 
 			if (startIndex >= 0) {
-				if (state != 0) {
+				if (state !== 0) {
 					const start = fr[startIndex][0];
 					const end = f;
 					const center = Math.sqrt(start * end);
@@ -413,15 +415,15 @@ export class Equalizer {
 		return Math.round(value * factor) / factor;
 	}
 
-	_stripFilters(filters: EQFilter[]): EQFilter[] {
+	_stripFilters(filters: CompleteBand[]): CompleteBand[] {
 		const [minQ, maxQ] = this.config.OptimizeQRange;
 		const [minGain, maxGain] = this.config.OptimizeGainRange;
 		return filters.map((f) => ({
 			enabled: f.enabled,
 			type: f.type,
-			freq: Math.floor(f.freq! - (f.freq! % this._freqUnit(f.freq!))),
-			q: Math.min(Math.max(f.q!, minQ), maxQ),
-			gain: Math.min(Math.max(f.gain!, minGain), maxGain)
+			freq: Math.floor(f.freq - (f.freq % this._freqUnit(f.freq))),
+			q: Math.min(Math.max(f.q, minQ), maxQ),
+			gain: Math.min(Math.max(f.gain, minGain), maxGain)
 		}));
 	}
 
@@ -452,10 +454,10 @@ export class Equalizer {
 	_optimize(
 		fr: FreqPoint[],
 		frTarget: FreqPoint[],
-		filters: EQFilter[],
+		filters: CompleteBand[],
 		iteration: number,
 		dir = false
-	): EQFilter[] {
+	): CompleteBand[] {
 		filters = this._stripFilters(filters);
 
 		const [minFreq, maxFreq] = this.config.AutoEQRange;
@@ -464,7 +466,7 @@ export class Equalizer {
 		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] = this.config.OptimizeDeltas[iteration];
 		const [begin, end, step] = dir ? [filters.length - 1, -1, -1] : [0, filters.length, 1];
 
-		for (let i = begin; i != end; i += step) {
+		for (let i = begin; i !== end; i += step) {
 			let f = filters[i];
 			const fr1 = this.applyFilters(
 				fr,
@@ -480,9 +482,9 @@ export class Equalizer {
 			const effectiveMaxQ = isShelfFilter ? 1.5 : maxQ;
 
 			const testNewFilter = (df: number, dq: number, dg: number): boolean => {
-				const freq = f.freq! + df * this._freqUnit(f.freq!) * stepDF;
-				const q = f.q! + dq * stepDQ;
-				const gain = f.gain! + dg * stepDG;
+				const freq = f.freq + df * this._freqUnit(f.freq) * stepDF;
+				const q = f.q + dq * stepDQ;
+				const gain = f.gain + dg * stepDG;
 				if (
 					freq < effectiveMinFreq ||
 					freq > effectiveMaxFreq ||
@@ -493,7 +495,7 @@ export class Equalizer {
 				) {
 					return false;
 				}
-				const newFilter: EQFilter = { ...f, freq, q, gain };
+				const newFilter: CompleteBand = { ...f, freq, q, gain };
 				const newFR = this.applyFilters(fr1, [newFilter]);
 				const newDistance = this._calculateDistance(newFR, frTarget);
 				if (newDistance < bestDistance) {
@@ -544,12 +546,12 @@ export class Equalizer {
 			}
 			filters[i] = bestFilter;
 		}
-		return filters.sort((a, b) => a.freq! - b.freq!);
+		return filters.sort((a, b) => a.freq - b.freq);
 	}
 
-	_analyzeShelfOpportunities(fr: FreqPoint[], frTarget: FreqPoint[]): Partial<EQFilter>[] {
+	_analyzeShelfOpportunities(fr: FreqPoint[], frTarget: FreqPoint[]): Candidate[] {
 		const [minFreq, maxFreq] = this.config.AutoEQRange;
-		const shelfFilters: Partial<EQFilter>[] = [];
+		const shelfFilters: Candidate[] = [];
 
 		const lowFreqPoints = fr.filter((p) => p[0] >= minFreq && p[0] <= 200);
 		const lowFreqTargetPoints = frTarget.filter((p) => p[0] >= minFreq && p[0] <= 200);
@@ -621,8 +623,8 @@ export class Equalizer {
 	_scoreCandidates(
 		fr: FreqPoint[],
 		frTarget: FreqPoint[],
-		candidates: Partial<EQFilter>[]
-	): (Partial<EQFilter> & { score: number })[] {
+		candidates: Candidate[]
+	): (Candidate & { score: number })[] {
 		return candidates
 			.map((c) => {
 				const newFR = this.applyFilters(fr, [c as EQFilter]);
@@ -634,15 +636,11 @@ export class Equalizer {
 			.sort((a, b) => b.score - a.score);
 	}
 
-	_optimizeShelfFilter(
-		fr: FreqPoint[],
-		frTarget: FreqPoint[],
-		filter: Partial<EQFilter>
-	): EQFilter {
+	_optimizeShelfFilter(fr: FreqPoint[], frTarget: FreqPoint[], filter: Candidate): CompleteBand {
 		const isLowShelf = filter.type === 'LSQ';
 		const [minGain, maxGain] = this.config.OptimizeGainRange;
 
-		let bestFilter: EQFilter = { enabled: true, ...filter } as EQFilter;
+		let bestFilter: CompleteBand = { enabled: true, ...filter };
 		let bestError = this._calculateWeightedError(this.applyFilters(fr, [bestFilter]), frTarget);
 
 		const freqSteps = isLowShelf
@@ -658,14 +656,14 @@ export class Equalizer {
 					const midGain = (lowGain + highGain) / 2;
 					const t1: EQFilter = {
 						enabled: true,
-						type: filter.type!,
+						type: filter.type,
 						freq,
 						q,
 						gain: midGain - 0.5
 					};
 					const t2: EQFilter = {
 						enabled: true,
-						type: filter.type!,
+						type: filter.type,
 						freq,
 						q,
 						gain: midGain + 0.5
@@ -679,9 +677,9 @@ export class Equalizer {
 						lowGain = midGain;
 					}
 				}
-				const testFilter: EQFilter = {
+				const testFilter: CompleteBand = {
 					enabled: true,
-					type: filter.type!,
+					type: filter.type,
 					freq,
 					q,
 					gain: (lowGain + highGain) / 2
@@ -699,9 +697,9 @@ export class Equalizer {
 	_iterativeBatchOptimization(
 		fr: FreqPoint[],
 		frTarget: FreqPoint[],
-		initialFilters: EQFilter[],
+		initialFilters: CompleteBand[],
 		maxFilters: number
-	): EQFilter[] {
+	): CompleteBand[] {
 		let filters = [...initialFilters];
 		let currentFR = this.applyFilters(fr, filters);
 
@@ -714,10 +712,10 @@ export class Equalizer {
 			const best = scoredCandidates[0];
 			filters.push({
 				enabled: true,
-				type: best.type!,
-				freq: best.freq!,
-				q: best.q!,
-				gain: best.gain!
+				type: best.type,
+				freq: best.freq,
+				q: best.q,
+				gain: best.gain
 			});
 
 			for (let i = 0; i < this.config.OptimizeDeltas.length; i++) {
@@ -731,10 +729,10 @@ export class Equalizer {
 	}
 
 	autoEQ(source: FreqPoint[], target: FreqPoint[], options: AutoEQOptions = {}): EQFilter[] {
-		const maxFilters = options.maxFilters || 8;
-		const freqRange = options.freqRange || this.config.AutoEQRange;
-		const qRange = options.qRange || this.config.OptimizeQRange;
-		const gainRange = options.gainRange || this.config.OptimizeGainRange;
+		const maxFilters = options.maxFilters ?? 8;
+		const freqRange = options.freqRange ?? this.config.AutoEQRange;
+		const qRange = options.qRange ?? this.config.OptimizeQRange;
+		const gainRange = options.gainRange ?? this.config.OptimizeGainRange;
 		const useShelfFilter = options.useShelfFilter !== false;
 
 		this.config.AutoEQRange = freqRange;
@@ -747,7 +745,7 @@ export class Equalizer {
 			(p) => p[0] >= freqRange[0] && p[0] <= freqRange[1]
 		);
 
-		const initialFilters: EQFilter[] = [];
+		const initialFilters: CompleteBand[] = [];
 		let remainingFilterSlots = maxFilters;
 
 		if (useShelfFilter) {
@@ -781,18 +779,18 @@ export class Equalizer {
 			.map((f) => ({
 				enabled: true,
 				type: f.type,
-				freq: this._round(f.freq!, 0),
-				q: this._round(f.q!, 2),
-				gain: this._round(f.gain!, 1)
+				freq: this._round(f.freq, 0),
+				q: this._round(f.q, 2),
+				gain: this._round(f.gain, 1)
 			}))
-			.sort((a, b) => a.freq! - b.freq!);
+			.sort((a, b) => a.freq - b.freq);
 	}
 
 	_pruneIneffectiveFilters(
 		fr: FreqPoint[],
 		frTarget: FreqPoint[],
-		filters: EQFilter[]
-	): EQFilter[] {
+		filters: CompleteBand[]
+	): CompleteBand[] {
 		const baselineError = this._calculateWeightedError(this.applyFilters(fr, filters), frTarget);
 		return filters.filter((_filter, index) => {
 			const withoutThisFilter = filters.filter((_, i) => i !== index);

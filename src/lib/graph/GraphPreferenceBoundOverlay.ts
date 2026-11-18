@@ -63,8 +63,6 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 
 	/** Redraw using stored state against the engine's current scales. */
 	render(): void {
-		if (!this.graphEngine.curveGroup) return;
-
 		const { visible, rawBoundU, rawBoundD, dfNormalized } = this.state;
 		if (!visible || !rawBoundU || !rawBoundD || !dfNormalized) {
 			this._removeBounds();
@@ -99,7 +97,7 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 
 		const lineGen = (pts: FRDataPoint[]) =>
 			d3
-				.line<FRDataPoint>()
+				.line()
 				.x((d) => xScale(d[0]))
 				.y((d) => computeY(d[0], d[1]))
 				.curve(d3.curveLinear)(pts) ?? '';
@@ -113,8 +111,6 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 	// ── D3 draw/remove ─────────────────────────────────────────────────────────
 
 	private _drawBounds(): void {
-		if (!this.graphEngine.curveGroup) return;
-
 		const pathStr = this._buildPathString();
 		if (!pathStr) {
 			this._removeBounds();
@@ -141,8 +137,8 @@ export class GraphPreferenceBoundOverlay implements PreferenceBoundOverlayApi {
 	}
 
 	private _removeBounds(): void {
-		const el = this.graphEngine.curveGroup?.select('.preference-bound-area');
-		if (el && !el.empty()) {
+		const el = this.graphEngine.curveGroup.select('.preference-bound-area');
+		if (!el.empty()) {
 			el.interrupt();
 			el.remove();
 		}

@@ -49,7 +49,7 @@ describe('AppShell boot (mobile)', () => {
 	});
 
 	it('applies the preference-bound initial-load default without the selector mounted', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		expect(appStore.isMobile).toBe(true);
@@ -61,11 +61,11 @@ describe('AppShell boot (mobile)', () => {
 	}, 30000);
 
 	it('lists the graph skip link first and names the open panel', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
-		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to graph', 'Skip to controls']);
+		expect(links.map((a) => a.textContent.trim())).toEqual(['Skip to graph', 'Skip to controls']);
 		await expect
 			.element(page.getByRole('region', { name: 'Controls' }).getByRole('heading', { level: 2 }))
 			.toHaveTextContent('GRAPH');
@@ -78,7 +78,7 @@ describe('AppShell boot (mobile)', () => {
 	}, 30000);
 
 	it('renders the operator defaults on a phone-sized viewport', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		// Polled: INITIAL_PHONES and INITIAL_TARGETS load concurrently, so the target

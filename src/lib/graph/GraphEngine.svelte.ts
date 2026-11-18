@@ -169,8 +169,7 @@ class GraphEngine {
 				.transition()
 				.duration(duration)
 				.attrTween('d', function (d) {
-					const path = d3.select(this as Element);
-					const oldPath = path.attr('d') ?? '';
+					const oldPath = (this as Element).getAttribute('d') ?? '';
 					const newPath = self._getCompensatedPath(d as FRDataPoint[]) ?? '';
 					return (t) => d3.interpolateString(oldPath, newPath)(t);
 				});
@@ -212,7 +211,7 @@ class GraphEngine {
 	_getCompensatedPath(originalData: FRDataPoint[]): string | null {
 		const baselineData = this._baselineData();
 		const lineGenerator = d3
-			.line<FRDataPoint>()
+			.line()
 			.x((d) => this.xScale(d[0]))
 			.y((d) => this.yScale(compensateAt(d[1], d[0], baselineData)))
 			.curve(d3.curveMonotoneX);
@@ -241,7 +240,7 @@ class GraphEngine {
 		// Use curveMonotoneX instead of curveNatural to prevent overshoot —
 		// the envelope represents strict min/max bounds and must not extend beyond data points.
 		const lineGen = d3
-			.line<FRDataPoint>()
+			.line()
 			.x((d) => this.xScale(d[0]))
 			.y((d) => computeY(d))
 			.curve(d3.curveMonotoneX);
@@ -270,7 +269,7 @@ class GraphEngine {
 				const newPath = self._buildEnvelopePath(obj);
 				if (!newPath) return;
 				if (duration > 0) {
-					const oldPath = el.attr('d') ?? '';
+					const oldPath = this.getAttribute('d') ?? '';
 					// Only use string interpolation when paths have compatible structure
 					// (same number of numeric values = same SVG command count).
 					// Mismatched structures (e.g. after smoothing change) produce garbled paths.
@@ -483,7 +482,7 @@ class GraphEngine {
 			.attr('y', (d) => d)
 			.style('opacity', 0);
 
-		this._createYAxisElements(enterGroups, oldYScale || yScale);
+		this._createYAxisElements(enterGroups, oldYScale ?? yScale);
 
 		const allGroups = enterGroups.merge(gridGroups);
 

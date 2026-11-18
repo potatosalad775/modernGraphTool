@@ -10,21 +10,21 @@ type I18nValue<T> = T | { default: T; i18n: Record<string, T> };
  */
 export function resolveI18nValue<T>(value: I18nValue<T>, lang: string): T {
 	if (typeof value === 'object' && value !== null && 'default' in value && 'i18n' in value) {
-		const wrapper = value as { default: T; i18n: Record<string, T> };
+		const wrapper = value;
 		const localized = wrapper.i18n[lang];
 		if (localized === undefined) return wrapper.default;
 		if (Array.isArray(wrapper.default) && Array.isArray(localized)) {
 			return (localized as unknown[]).map((item, i) => {
 				const def = (wrapper.default as unknown[])[i];
 				if (typeof item === 'object' && item !== null && typeof def === 'object' && def !== null) {
-					return { ...(def as object), ...(item as object) };
+					return { ...def, ...item };
 				}
 				return item;
 			}) as T;
 		}
 		return localized;
 	}
-	return value as T;
+	return value;
 }
 
 /**
@@ -56,7 +56,7 @@ export function uniqueBy<T>(items: T[], keyOf: (item: T) => unknown, what: strin
 export function foldTargetManifest(raw: unknown): { type: string; files: string[] }[] {
 	if (!Array.isArray(raw)) return [];
 	const byType = new Map<string, string[]>();
-	for (const group of raw as { type: string; files?: unknown }[]) {
+	for (const group of raw as ({ type: string; files?: unknown } | null | undefined)[]) {
 		if (!Array.isArray(group?.files)) continue;
 		const files = byType.get(group.type) ?? [];
 		byType.set(group.type, [...files, ...(group.files as string[])]);

@@ -120,15 +120,11 @@ describe('FRSmoother', () => {
 			const data = makeFRData(50);
 			expect(FRSmoother.smooth(data, 'invalid')).toBe(data);
 		});
-
-		it('handles null/undefined data gracefully', () => {
-			expect(FRSmoother.smooth(null as unknown as FRDataPoint[], '1/6')).toBeNull();
-		});
 	});
 
 	describe('variable smoothing', () => {
 		const at = (key: string, freq: number) =>
-			FRSmoother._variableFraction(FRSmoother.VARIABLE[key].anchors, freq);
+			FRSmoother._variableFraction(FRSmoother.VARIABLE[key]!.anchors, freq);
 
 		it('holds the documented widths outside the transitions', () => {
 			expect(at('Var', 50)).toBe(1 / 48);
@@ -149,7 +145,7 @@ describe('FRSmoother', () => {
 			const peak = grid.map(([f], i) => [f, i === mid ? 90 : 70] as FRDataPoint);
 			const psy = FRSmoother.smooth(peak, 'Psy')[mid][1];
 			const powerMean = FRSmoother._smoothVariable(peak, {
-				...FRSmoother.VARIABLE.Psy,
+				...FRSmoother.VARIABLE.Psy!,
 				power: 1
 			})[mid][1];
 			expect(psy).toBeGreaterThan(powerMean + 1);

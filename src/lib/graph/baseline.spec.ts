@@ -269,7 +269,7 @@ describe('baseline.restoreFromURL', () => {
 	});
 
 	for (const mode of ['off', 'bogus', '', 42, null, undefined]) {
-		it(`treats the mode ${JSON.stringify(mode) ?? 'undefined'} as no baseline`, () => {
+		it(`treats the mode ${mode === undefined ? 'undefined' : JSON.stringify(mode)} as no baseline`, () => {
 			baseline.cycle('a');
 			baseline.restoreFromURL({ key: 'Phone A V2', mode });
 			expect(baseline.uuid).toBeNull();

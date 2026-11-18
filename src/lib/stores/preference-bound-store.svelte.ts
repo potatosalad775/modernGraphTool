@@ -147,7 +147,7 @@ class PreferenceBoundStore {
 				if (this.selectedName !== entry.name) return;
 				this.#parsed = { name: entry.name, upper, lower, df };
 			})
-			.catch((err) => {
+			.catch((err: unknown) => {
 				console.error(`PreferenceBound: failed to load "${entry.name}"`, err);
 			})
 			.finally(() => {

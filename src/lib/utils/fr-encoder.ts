@@ -44,10 +44,13 @@ export function downloadBaseName(item: FRDataObject): string {
 export function encodeFRDataForDownload(item: FRDataObject): DownloadPayload[] {
 	const base = downloadBaseName(item);
 	const target = isTargetType(item);
-	return CHANNELS.filter((ch) => item.dispChannel.includes(ch) && item.channels[ch]).map((ch) => ({
-		filename: target ? `${base}.txt` : `${base} ${ch}.txt`,
-		text: encodeChannel(item.channels[ch]!.data)
-	}));
+	return CHANNELS.flatMap((ch) => {
+		const channel = item.channels[ch];
+		if (!item.dispChannel.includes(ch) || !channel) return [];
+		return [
+			{ filename: target ? `${base}.txt` : `${base} ${ch}.txt`, text: encodeChannel(channel.data) }
+		];
+	});
 }
 
 /**
@@ -64,9 +67,10 @@ export function encodeSampleRunsForDownload(
 	const base = downloadBaseName(item);
 	return (item.samples ?? []).flatMap((run, i) => {
 		const label = safeFileName(run.label ?? fallbackLabel(i));
-		return CHANNELS.filter((ch) => item.dispChannel.includes(ch) && run[ch]).map((ch) => ({
-			filename: `${base} - ${label} ${ch}.txt`,
-			text: encodeChannel(run[ch]!.data)
-		}));
+		return CHANNELS.flatMap((ch) => {
+			const channel = run[ch];
+			if (!item.dispChannel.includes(ch) || !channel) return [];
+			return [{ filename: `${base} - ${label} ${ch}.txt`, text: encodeChannel(channel.data) }];
+		});
 	});
 }

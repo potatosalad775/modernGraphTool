@@ -5,6 +5,7 @@
  * Only ever reached through a dynamic `import()` from `devicePeqService`, so neither the bridge nor
  * the client is in the boot bundle.
  */
+import { noop } from '#lib/utils/noop.js';
 import type { IndexEntry, Profile } from '@potatosalad775/eqcaps-core';
 import type { DeviceMatch } from '@potatosalad775/eqcaps-client';
 import {
@@ -84,7 +85,7 @@ function drivable(entries: IndexEntry[], kind: Transport['kind']): IndexEntry[] 
 
 /** Matches tied at the top, the ones `matchDevice` refused to choose between. */
 function topTies(matches: DeviceMatch<IndexEntry>[]): DeviceMatch<IndexEntry>[] {
-	const top = matches[0];
+	const top = matches.at(0);
 	if (!top) return [];
 	return matches.filter((m) => m.specificity === top.specificity && m.group === top.group);
 }
@@ -297,7 +298,7 @@ async function indexEntries(): Promise<IndexEntry[]> {
 export async function connectHid(): Promise<ConnectResult> {
 	const entries = await indexEntries();
 	const transport = await requestHidDevice({ entries });
-	if (!transport || transport.kind !== 'hid') return { kind: 'cancelled' };
+	if (!transport) return { kind: 'cancelled' };
 	const identity = identityOf(transport);
 	const usb = identity.usb;
 	return identify({
@@ -306,7 +307,7 @@ export async function connectHid(): Promise<ConnectResult> {
 		fallbackName: usb?.productName?.trim() || 'USB device',
 		vendorId: usb ? parseInt(usb.vendorId, 16) : null,
 		open: async () => transport,
-		close: () => transport.close().catch(() => {}),
+		close: () => transport.close().catch(noop),
 		pickFrom: [],
 		reopen: (r) => {
 			if (!usb?.productId || usb.productName === undefined) return undefined;
@@ -361,7 +362,7 @@ export async function connectSerial(): Promise<ConnectResult> {
 		fallbackName: 'Serial device',
 		vendorId: null,
 		open: (protocol) => choice.open(protocol),
-		close: async () => {},
+		close: () => Promise.resolve(),
 		pickFrom: drivable(entries, 'serial')
 	});
 }
@@ -377,7 +378,7 @@ export async function connectBle(): Promise<ConnectResult> {
 		fallbackName: choice.identity.bluetooth?.name ?? 'Bluetooth device',
 		vendorId: null,
 		open: (protocol) => choice.open(protocol),
-		close: async () => {},
+		close: () => Promise.resolve(),
 		pickFrom: drivable(entries, 'ble')
 	});
 }

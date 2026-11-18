@@ -114,6 +114,11 @@ export interface AutoEqOutcome {
 	fallbackReason?: string;
 }
 
+/** What the worker posts back for the run with that `id`. */
+export type AutoEqReply =
+	| ({ type: 'autoeq-result'; id: number; elapsedMs: number } & AutoEqOutcome)
+	| { type: 'autoeq-error'; id: number; error: string };
+
 /**
  * Split a row budget into turboEQ's peaking count and its two shelves.
  *

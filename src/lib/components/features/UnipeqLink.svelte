@@ -206,7 +206,7 @@
 						{linkStore.device ? m.link_linked_device() : m.link_no_device()}
 					</p>
 					<!-- Hardware EQ names a device it shows in its own row, below -->
-					{#if linkStore.device?.name != undefined && !devicePeqStore.connection}
+					{#if linkStore.device?.name != null && !devicePeqStore.connection}
 						<p class="text-xs text-base-content/80">{linkStore.device.name}</p>
 					{/if}
 				</div>
@@ -220,14 +220,14 @@
 			/>
 		</div>
 		<!-- Always rendered: a live region has to exist before its text changes -->
-		{#if notice?.text != undefined}
+		{#if notice?.text != null}
 			<p
-				class="flex items-start gap-1 text-xs {notice?.tone === 'warning'
+				class="flex items-start gap-1 text-xs {notice.tone === 'warning'
 					? 'text-base-content'
 					: 'text-base-content/80'}"
 				role="status"
 			>
-				{#if notice?.tone === 'warning'}
+				{#if notice.tone === 'warning'}
 					<TriangleAlert class="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
 				{/if}
 				<span>{notice.text}</span>

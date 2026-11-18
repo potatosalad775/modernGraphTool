@@ -17,7 +17,7 @@
 	function handleClick() {
 		currentIndex = (currentIndex + 1) % options.length;
 		graphStore.smoothValue = options[currentIndex];
-		dataProvider.reSmoothAll();
+		void dataProvider.reSmoothAll();
 	}
 </script>
 

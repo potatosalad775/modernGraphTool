@@ -12,6 +12,7 @@
  * A service rather than a component: a device can connect with the Equalizer panel closed, and
  * panels unmount on every switch.
  */
+import { noop } from '#lib/utils/noop.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import {
 	eqConstraintsStore,
@@ -56,7 +57,7 @@ class EqChannelConflict {
 			label,
 			count,
 			onRemove: () => eqCommands.applyConstraintDroppingPerChannel(id),
-			onKeep: () => {}
+			onKeep: noop
 		};
 	}
 

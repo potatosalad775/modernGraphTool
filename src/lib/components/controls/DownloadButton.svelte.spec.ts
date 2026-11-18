@@ -40,14 +40,14 @@ describe('DownloadButton', () => {
 	});
 
 	it('downloads a plain curve on click, without a menu', async () => {
-		render(DownloadButton, { uuid: 'p', item: makeItem() });
+		await render(DownloadButton, { uuid: 'p', item: makeItem() });
 		await page.getByRole('button', { name: 'Download' }).click();
 		expect(download).toHaveBeenCalledExactlyOnceWith('p', { runs: false });
 		await expect.element(page.getByRole('button', { name: 'All samples' })).not.toBeInTheDocument();
 	});
 
 	it('names the plain button after the curve when it is given one', async () => {
-		render(DownloadButton, { uuid: 'p', item: makeItem(), name: 'Brand Phone' });
+		await render(DownloadButton, { uuid: 'p', item: makeItem(), name: 'Brand Phone' });
 		await page.getByRole('button', { name: 'Download Brand Phone' }).click();
 		expect(download).toHaveBeenCalledExactlyOnceWith('p', { runs: false });
 	});
@@ -56,27 +56,27 @@ describe('DownloadButton', () => {
 		const item = makeItem({ samples: [{ L: channel(80) }, { L: channel(81) }] });
 
 		it('names the menu trigger after the curve when it is given one', async () => {
-			render(DownloadButton, { uuid: 'p', item, name: 'Brand Phone' });
+			await render(DownloadButton, { uuid: 'p', item, name: 'Brand Phone' });
 			await page.getByRole('button', { name: 'Download Brand Phone' }).click();
 			await expect.element(page.getByRole('button', { name: 'Average only' })).toBeVisible();
 		});
 
 		it('asks before downloading', async () => {
-			render(DownloadButton, { uuid: 'p', item });
+			await render(DownloadButton, { uuid: 'p', item });
 			await page.getByRole('button', { name: 'Download' }).click();
 			expect(download).not.toHaveBeenCalled();
 			await expect.element(page.getByRole('button', { name: 'Average only' })).toBeVisible();
 		});
 
 		it('"Average only" exports the average alone', async () => {
-			render(DownloadButton, { uuid: 'p', item });
+			await render(DownloadButton, { uuid: 'p', item });
 			await page.getByRole('button', { name: 'Download' }).click();
 			await page.getByRole('button', { name: 'Average only' }).click();
 			expect(download).toHaveBeenCalledExactlyOnceWith('p', { runs: false });
 		});
 
 		it('"All samples" exports the runs too, and closes the menu', async () => {
-			render(DownloadButton, { uuid: 'p', item });
+			await render(DownloadButton, { uuid: 'p', item });
 			await page.getByRole('button', { name: 'Download' }).click();
 			await page.getByRole('button', { name: 'All samples' }).click();
 			expect(download).toHaveBeenCalledExactlyOnceWith('p', { runs: true });
@@ -86,7 +86,7 @@ describe('DownloadButton', () => {
 		});
 
 		it('describes each option to assistive tech', async () => {
-			render(DownloadButton, { uuid: 'p', item });
+			await render(DownloadButton, { uuid: 'p', item });
 			await page.getByRole('button', { name: 'Download' }).click();
 			await expect
 				.element(page.getByRole('button', { name: 'All samples' }))

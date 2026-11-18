@@ -35,7 +35,7 @@ function numberField(label: string) {
 
 /** Render and open the popover. The trigger is the only button before opening. */
 async function open(item: FRDataObject) {
-	render(GraphColorPicker, { uuid: 'p', item });
+	await render(GraphColorPicker, { uuid: 'p', item });
 	await page.getByRole('button', { name: 'Pick color' }).click();
 	await expect.element(numberField('L')).toBeInTheDocument();
 }
@@ -63,7 +63,7 @@ describe('GraphColorPicker', () => {
 	// ── Trigger ──────────────────────────────────────────────────────────────
 
 	it('paints the trigger swatch with the curve colour', async () => {
-		render(GraphColorPicker, { uuid: 'p', item: makeItem() });
+		await render(GraphColorPicker, { uuid: 'p', item: makeItem() });
 		const trigger = page.getByRole('button', { name: 'Pick color' });
 		await expect.element(trigger).toBeInTheDocument();
 
@@ -74,7 +74,7 @@ describe('GraphColorPicker', () => {
 	});
 
 	it('names the trigger after the curve when it is given one', async () => {
-		render(GraphColorPicker, { uuid: 'p', item: makeItem(), name: 'Brand Phone Foam' });
+		await render(GraphColorPicker, { uuid: 'p', item: makeItem(), name: 'Brand Phone Foam' });
 		await expect
 			.element(page.getByRole('button', { name: 'Pick color for Brand Phone Foam' }))
 			.toBeInTheDocument();
@@ -305,7 +305,7 @@ describe('GraphColorPicker', () => {
 
 	it('re-seeds from the item every time it opens', async () => {
 		const item = makeItem();
-		render(GraphColorPicker, { uuid: 'p', item });
+		await render(GraphColorPicker, { uuid: 'p', item });
 
 		await page.getByRole('button', { name: 'Pick color' }).click();
 		await expect.element(numberField('H')).toBeInTheDocument();

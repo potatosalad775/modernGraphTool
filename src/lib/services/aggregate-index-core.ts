@@ -73,8 +73,8 @@ export interface CrossSiteSearchHits {
 
 /** Resolves `CROSS_SITE_SEARCH`, falling back to the deprecated squig.link toggle. */
 export function getCrossSiteSearchConfig(): CrossSiteSearchConfig {
-	const enabled = getConfigValue('CROSS_SITE_SEARCH.ENABLED') as boolean | undefined;
-	const legacyEnabled = getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH') as boolean | undefined;
+	const enabled = getConfigValue('CROSS_SITE_SEARCH.ENABLED');
+	const legacyEnabled = getConfigValue('SQUIGLINK.ENABLE_CROSS_SITE_SEARCH');
 	const urls = getConfigValue('CROSS_SITE_SEARCH.INDEX_URLS');
 
 	const indexUrls = Array.isArray(urls)
@@ -134,7 +134,7 @@ function isCurrentSite(site: AggregateSite): boolean {
 	// squig.link's root domain hosts many databases under /lab/<username>,
 	// so the hostname alone doesn't identify a site there.
 	if (siteUrl.hostname === SQUIGLINK_ROOT_HOST) {
-		const labPath = (path: string) => path.match(/^\/lab\/[^/]+/)?.[0] ?? '/';
+		const labPath = (path: string) => /^\/lab\/[^/]+/.exec(path)?.[0] ?? '/';
 		return labPath(siteUrl.pathname) === labPath(window.location.pathname);
 	}
 
@@ -164,9 +164,9 @@ function isAggregateIndex(data: unknown): data is AggregateIndex {
 	const doc = data as Partial<AggregateIndex> | null | undefined;
 	return (
 		Array.isArray(doc?.brands) &&
-		Array.isArray(doc?.sites) &&
-		Array.isArray(doc?.dbs) &&
-		Array.isArray(doc?.phones)
+		Array.isArray(doc.sites) &&
+		Array.isArray(doc.dbs) &&
+		Array.isArray(doc.phones)
 	);
 }
 
@@ -349,11 +349,15 @@ function matchesGroup(row: SearchRow, group: QueryGroup): boolean {
  */
 function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): SearchRow[] {
 	// `rows` is already in result order, so the candidates are too.
-	const byDb = new Map<string, { matched: Set<number>; firstSeq: number }>();
-	const candidates: SearchRow[] = [];
+	interface DbMatch {
+		matched: Set<number>;
+		firstSeq: number;
+	}
+	const byDb = new Map<string, DbMatch>();
+	const candidates: { row: SearchRow; db: DbMatch }[] = [];
 
 	for (const row of rows) {
-		let entry: { matched: Set<number>; firstSeq: number } | undefined;
+		let entry: DbMatch | undefined;
 		for (const [i, group] of groups.entries()) {
 			if (!matchesGroup(row, group)) continue;
 			if (!entry) {
@@ -367,13 +371,11 @@ function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): SearchRow[] {
 		}
 		if (entry) {
 			if (row.seq < entry.firstSeq) entry.firstSeq = row.seq;
-			candidates.push(row);
+			candidates.push({ row, db: entry });
 		}
 	}
 
-	const matches = candidates.filter(
-		(row) => byDb.get(row.result.dbId)!.matched.size === groups.length
-	);
+	const matches = candidates.filter(({ db }) => db.matched.size === groups.length);
 
 	// Rows that compare equal sit in index order, but across databases the order
 	// has always been the one whose first matching row came first. Only a run of
@@ -382,20 +384,18 @@ function matchEveryGroup(rows: SearchRow[], groups: QueryGroup[]): SearchRow[] {
 	while (start < matches.length) {
 		let end = start + 1;
 		let spansDatabases = false;
-		while (end < matches.length && matches[end].tie === matches[start].tie) {
-			if (matches[end].result.dbId !== matches[start].result.dbId) spansDatabases = true;
+		while (end < matches.length && matches[end].row.tie === matches[start].row.tie) {
+			if (matches[end].row.result.dbId !== matches[start].row.result.dbId) spansDatabases = true;
 			end++;
 		}
 		if (spansDatabases) {
-			const run = matches
-				.slice(start, end)
-				.sort((a, b) => byDb.get(a.result.dbId)!.firstSeq - byDb.get(b.result.dbId)!.firstSeq);
-			for (const [offset, row] of run.entries()) matches[start + offset] = row;
+			const run = matches.slice(start, end).sort((a, b) => a.db.firstSeq - b.db.firstSeq);
+			for (const [offset, match] of run.entries()) matches[start + offset] = match;
 		}
 		start = end;
 	}
 
-	return matches;
+	return matches.map(({ row }) => row);
 }
 
 export function searchRows(rows: SearchRow[], query: string): CrossSiteSearchHits {

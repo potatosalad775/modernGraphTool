@@ -37,13 +37,13 @@ describe('NormalizerInput', () => {
 
 	describe('frequency box', () => {
 		it('has an accessible name', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await expect.element(hzInput()).toHaveValue(500);
 		});
 
 		it('commits once on change, not per keystroke', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await hzInput().fill('1000');
 			expect(graphStore.normHzValue).toBe(500);
@@ -56,7 +56,7 @@ describe('NormalizerInput', () => {
 		});
 
 		it('clamps a committed value to 20-20000 Hz', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await fillAndCommit('5');
 			expect(graphStore.normHzValue).toBe(20);
@@ -67,7 +67,7 @@ describe('NormalizerInput', () => {
 		});
 
 		it('keeps the stored value when the box is emptied', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await fillAndCommit('');
 
@@ -77,7 +77,7 @@ describe('NormalizerInput', () => {
 		});
 
 		it('does not renormalize when the value did not change', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await fillAndCommit('500');
 
@@ -86,7 +86,7 @@ describe('NormalizerInput', () => {
 
 		it('is disabled in average mode', async () => {
 			graphStore.normType = 'Avg';
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await expect.element(hzInput()).toBeDisabled();
 		});
@@ -97,14 +97,14 @@ describe('NormalizerInput', () => {
 		const hz = () => page.getByRole('button', { name: m.normalizer_input_hz_btn() });
 
 		it('states the active mode, not only colours it', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await expect.element(hz()).toHaveAttribute('aria-pressed', 'true');
 			await expect.element(avg()).toHaveAttribute('aria-pressed', 'false');
 		});
 
 		it('switches mode and renormalizes', async () => {
-			render(NormalizerInput);
+			await render(NormalizerInput);
 
 			await avg().click();
 

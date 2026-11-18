@@ -8,7 +8,9 @@
  */
 import type { PeqCapabilities } from './types.js';
 
-export type PresetRequest = { slot?: number };
+export interface PresetRequest {
+	slot?: number;
+}
 
 /**
  * The request that reaches preset `slot` (null: the device has no presets, so the only one), or

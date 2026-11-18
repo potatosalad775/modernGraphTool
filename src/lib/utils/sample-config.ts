@@ -45,14 +45,24 @@ export function defaultSampleDisplay(): SampleDisplayMode[] {
 /** Site-wide default run count for variants that declare no sample set. */
 export function defaultSampleCount(): number {
 	const configured = getConfigValue('SAMPLES.DEFAULT_COUNT');
-	const n = typeof configured === 'number' ? configured : parseInt(String(configured ?? ''), 10);
+	const n =
+		typeof configured === 'number'
+			? configured
+			: typeof configured === 'string'
+				? parseInt(configured, 10)
+				: NaN;
 	return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
 /** Opacity of the deviation fill area. `HPTF.FILL_OPACITY` is the legacy source. */
 export function sampleFillOpacity(): number {
 	const configured = getConfigValue('SAMPLES.FILL_OPACITY') ?? getConfigValue('HPTF.FILL_OPACITY');
-	const n = typeof configured === 'number' ? configured : parseFloat(String(configured ?? ''));
+	const n =
+		typeof configured === 'number'
+			? configured
+			: typeof configured === 'string'
+				? parseFloat(configured)
+				: NaN;
 	return Number.isFinite(n) ? n : 0.3;
 }
 
@@ -65,12 +75,12 @@ export function sampleFillOpacity(): number {
  * offered when `fillOnly` was false.
  */
 export function legacyHptfDisplay(fillOnly: boolean): SampleDisplayMode[] {
-	const mode = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string) ?? 'fill+curves';
+	const mode = (getConfigValue('HPTF.DEFAULT_DISPLAY') as string | undefined) ?? 'fill+curves';
 	const modes: SampleDisplayMode[] = [];
 	if (mode !== 'none') modes.push('avg');
 	if (!fillOnly && (mode === 'curves' || mode === 'fill+curves')) modes.push('curves');
 	if (mode === 'fill' || mode === 'fill+curves') modes.push('fill');
-	return normalizeDisplayModes(modes)!;
+	return modes;
 }
 
 /** Display set for a legacy phone-level `samples: N` declaration. */

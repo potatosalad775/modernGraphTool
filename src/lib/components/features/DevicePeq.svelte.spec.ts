@@ -181,7 +181,7 @@ describe('DevicePeq', () => {
 	describe('browser support', () => {
 		it('leads with USB and keeps the other connections one step back', async () => {
 			stubApis('hid', 'serial', 'bluetooth');
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Connect USB device' }))
@@ -193,7 +193,7 @@ describe('DevicePeq', () => {
 
 		it('explains the connections and links to the supported devices', async () => {
 			stubApis('hid', 'serial', 'bluetooth');
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'About connection types' }).click();
 			await expect.element(page.getByText(/including Bluetooth serial ports/)).toBeInTheDocument();
@@ -205,31 +205,31 @@ describe('DevicePeq', () => {
 		it('hides the transports the browser lacks', async () => {
 			stubApis('hid');
 			hideApis('serial', 'bluetooth');
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await expect
 				.element(page.getByRole('button', { name: 'Connect USB device' }))
 				.toBeInTheDocument();
-			expect(await page.getByRole('button', { name: 'USB serial' }).all()).toHaveLength(0);
-			expect(await page.getByRole('button', { name: 'Bluetooth' }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'USB serial' }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Bluetooth' }).all()).toHaveLength(0);
 		});
 
 		it('promotes serial when there is no WebHID', async () => {
 			stubApis('serial');
 			hideApis('hid', 'bluetooth');
-			render(DevicePeq);
+			await render(DevicePeq);
 			await expect.element(page.getByRole('button', { name: 'USB serial' })).toBeInTheDocument();
-			expect(await page.getByRole('button', { name: 'Connect USB device' }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Connect USB device' }).all()).toHaveLength(0);
 		});
 
 		it('shows the incompatible-browser notice when no device API exists at all', async () => {
 			hideApis('hid', 'serial', 'bluetooth');
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await expect
 				.element(page.getByText(/does not support the necessary APIs/))
 				.toBeInTheDocument();
-			expect(await page.getByRole('button', { name: /Connect/ }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: /Connect/ }).all()).toHaveLength(0);
 			// uniPEQ reaches the device instead: the link needs none of the browser's device APIs.
 			await expect
 				.element(page.getByRole('button', { name: 'Link with uniPEQ' }))
@@ -248,7 +248,7 @@ describe('DevicePeq', () => {
 
 		it('connects, names the device and its limits, and takes its current preset', async () => {
 			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect
@@ -264,7 +264,7 @@ describe('DevicePeq', () => {
 		it('makes the device the active constraint without touching the bands', async () => {
 			eqStore.filters = [band(1000, 15)];
 			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
@@ -277,7 +277,7 @@ describe('DevicePeq', () => {
 			connect.connectSerial.mockResolvedValue(
 				connected(makeConnection({ connectionType: 'serial' }).connection)
 			);
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'USB serial' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('DevicePeq', () => {
 
 		it('clears the connecting flag when the user dismisses the chooser', async () => {
 			connect.connectHid.mockResolvedValue({ kind: 'cancelled' });
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await vi.waitFor(() => expect(devicePeqStore.isConnecting).toBe(false));
@@ -306,7 +306,7 @@ describe('DevicePeq', () => {
 				finish,
 				cancel: vi.fn(async () => {})
 			});
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await page.getByRole('combobox').selectOptions('model-b');
@@ -317,7 +317,7 @@ describe('DevicePeq', () => {
 
 		it('points an unsupported device at the database', async () => {
 			connect.connectHid.mockResolvedValue({ kind: 'unsupported', identity: {} });
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect
@@ -329,7 +329,7 @@ describe('DevicePeq', () => {
 		it('reports a failed connection instead of throwing', async () => {
 			const error = Object.assign(new Error('gone'), { name: 'BridgeError', code: 'timeout' });
 			connect.connectHid.mockRejectedValue(error);
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect
@@ -342,7 +342,7 @@ describe('DevicePeq', () => {
 			connect.connectHid.mockResolvedValue(
 				connected(makeConnection({ profileSource: 'guess', profileId: null }).connection)
 			);
-			render(DevicePeq);
+			await render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			await expect.element(page.getByText(/experimental compatible protocol/)).toBeInTheDocument();
@@ -350,10 +350,10 @@ describe('DevicePeq', () => {
 
 		it('has nothing to flag about an exact, checked profile', async () => {
 			connect.connectHid.mockResolvedValue(connected(makeConnection().connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-			expect(await page.getByRole('button', { name: PROFILE_NOTES }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: PROFILE_NOTES }).all()).toHaveLength(0);
 		});
 
 		it('offers a wrong-limits report for a draft profile', async () => {
@@ -361,7 +361,7 @@ describe('DevicePeq', () => {
 				profile: hardwareProfile('moondrop-dawn-pro', { bandCount: 6, status: 'draft' })
 			});
 			connect.connectHid.mockResolvedValue(connected(connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			const link = page.getByRole('link', { name: 'Report wrong limits' });
@@ -374,8 +374,8 @@ describe('DevicePeq', () => {
 		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
 
 		it('reveals the address form only after Network is pressed', async () => {
-			render(DevicePeq);
-			expect(await page.getByPlaceholder('Device IP').all()).toHaveLength(0);
+			await render(DevicePeq);
+			expect(page.getByPlaceholder('Device IP').all()).toHaveLength(0);
 			await page.getByRole('button', { name: 'Network' }).click();
 			await expect.element(page.getByPlaceholder('Device IP')).toBeInTheDocument();
 		});
@@ -384,7 +384,7 @@ describe('DevicePeq', () => {
 			network.connectNetworkDevice.mockReturnValue(
 				makeConnection({ connectionType: 'network', name: 'Luxsin X9' }).connection
 			);
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Network' }).click();
 			await page.getByRole('combobox', { name: 'Network device type' }).selectOptions('LuxsinX9');
@@ -400,7 +400,7 @@ describe('DevicePeq', () => {
 			network.connectNetworkDevice.mockReturnValue(
 				makeConnection({ connectionType: 'network', name: 'WiiM' }).connection
 			);
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Network' }).click();
 			const field = page.getByRole('textbox', { name: 'Device IP' });
@@ -416,7 +416,7 @@ describe('DevicePeq', () => {
 		});
 
 		it('refuses an address that is not a device, beside the field and before connecting', async () => {
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Network' }).click();
 			const field = page.getByRole('textbox', { name: 'Device IP' });
@@ -447,7 +447,7 @@ describe('DevicePeq', () => {
 			network.connectNetworkDevice.mockImplementationOnce(() => {
 				throw Object.assign(new Error('x'), { name: 'NetworkAccessError' });
 			});
-			render(DevicePeq);
+			await render(DevicePeq);
 
 			await page.getByRole('button', { name: 'Network' }).click();
 			const field = page.getByRole('textbox', { name: 'Device IP' });
@@ -472,7 +472,7 @@ describe('DevicePeq', () => {
 			const made = makeConnection({}, caps);
 			made.device.currentSlot.mockResolvedValue(current);
 			connect.connectHid.mockResolvedValue(connected(made.connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
 			return made.device;
@@ -579,7 +579,7 @@ describe('DevicePeq', () => {
 
 		it('hides Read on a write-only device and says why', async () => {
 			await mountConnected({ canRead: false });
-			expect(await page.getByRole('button', { name: 'Read from device' }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Read from device' }).all()).toHaveLength(0);
 			await page.getByRole('button', { name: PROFILE_NOTES }).click();
 			await expect
 				.element(page.getByText('This device can be written to but not read back.'))
@@ -667,7 +667,7 @@ describe('DevicePeq', () => {
 			const made = makeConnection({}, { readsEnabled: true });
 			made.device.eqEnabled.mockResolvedValue(false);
 			connect.connectHid.mockResolvedValue(connected(made.connection));
-			render(DevicePeq);
+			await render(DevicePeq);
 			await page.getByRole('button', { name: 'Connect USB device' }).click();
 			await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toHaveValue('off');
 		});
@@ -687,7 +687,7 @@ describe('DevicePeq', () => {
 
 		it('gives a device with one memory an on/off switch, not a preset picker', async () => {
 			const device = await mountConnected({ slots: [{ id: 101, name: 'Custom' }] }, 101);
-			expect(await page.getByRole('combobox').all()).toHaveLength(0);
+			expect(page.getByRole('combobox').all()).toHaveLength(0);
 			const toggle = page.getByRole('switch', { name: 'Device EQ' });
 			await expect.element(toggle).toBeChecked();
 			await toggle.click();
@@ -706,9 +706,9 @@ describe('DevicePeq', () => {
 
 		it('has no auto-write for a device that restarts after every save', async () => {
 			await mountConnected({ disconnectOnSave: true });
-			expect(
-				await page.getByRole('switch', { name: 'Write changes automatically' }).all()
-			).toHaveLength(0);
+			expect(page.getByRole('switch', { name: 'Write changes automatically' }).all()).toHaveLength(
+				0
+			);
 		});
 
 		it('says whether the device still has the list', async () => {
@@ -719,7 +719,7 @@ describe('DevicePeq', () => {
 			// The write's own message stands for "in sync": one line, not two saying the same.
 			const status = page.getByRole('status');
 			await expect.element(status).toHaveTextContent('Wrote 6 bands to the device');
-			expect(await page.getByText('The EQ shown matches the device.').all()).toHaveLength(0);
+			expect(page.getByText('The EQ shown matches the device.').all()).toHaveLength(0);
 
 			eqStore.filters = [band(1000, 3)];
 			await expect
@@ -749,7 +749,7 @@ describe('DevicePeq', () => {
 			await mountConnected();
 			devicePeqStore.autoPaused = true;
 			// Paused only matters while auto-write is on.
-			expect(await page.getByRole('button', { name: 'Review and write' }).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Review and write' }).all()).toHaveLength(0);
 			settingsStore.devicePeqAutoWrite = true;
 			await expect
 				.element(page.getByRole('status'))
@@ -781,7 +781,7 @@ describe('DevicePeq', () => {
 		}
 
 		it('offers both ways in before either is used', async () => {
-			render(DevicePeq);
+			await render(DevicePeq);
 			await expect.element(connectButton()).toBeInTheDocument();
 			await expect.element(linkButton()).toBeInTheDocument();
 		});
@@ -789,7 +789,7 @@ describe('DevicePeq', () => {
 		it('hides the link while a device connects here, and once it has', async () => {
 			let finish!: (result: ConnectResult) => void;
 			connect.connectHid.mockReturnValue(new Promise((resolve) => (finish = resolve)));
-			render(DevicePeq);
+			await render(DevicePeq);
 			await connectButton().click();
 			await expect.element(linkButton()).not.toBeInTheDocument();
 
@@ -803,7 +803,7 @@ describe('DevicePeq', () => {
 
 		it('hides connecting here while the link is active, and offers it again once it ends', async () => {
 			waitingLink();
-			render(DevicePeq);
+			await render(DevicePeq);
 			await expect.element(page.getByText('ABCD-2345')).toBeInTheDocument();
 			await expect.element(connectButton()).not.toBeInTheDocument();
 
@@ -823,12 +823,12 @@ describe('DevicePeq', () => {
 			const { connection } = makeConnection({ connectionType: 'link', name: 'Linked DAC' });
 			linkStore.device = { name: 'Linked DAC' } as typeof linkStore.device;
 			devicePeqStore.setConnected(connection, 1);
-			render(DevicePeq);
+			await render(DevicePeq);
 			await expect.element(page.getByRole('button', { name: 'Unlink' })).toBeInTheDocument();
 			await expect.element(page.getByText('Linked DAC')).toBeInTheDocument();
 			await expect.element(page.getByText('Device Setting')).toBeInTheDocument();
-			expect(await page.getByRole('button', { name: 'Disconnect' }).all()).toHaveLength(0);
-			expect(await connectButton().all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Disconnect' }).all()).toHaveLength(0);
+			expect(connectButton().all()).toHaveLength(0);
 		});
 	});
 });

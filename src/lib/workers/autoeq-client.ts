@@ -1,4 +1,4 @@
-import type { AutoEqOutcome, AutoEqRequest } from './autoeq-request.js';
+import type { AutoEqOutcome, AutoEqReply, AutoEqRequest } from './autoeq-request.js';
 import autoeqWorkerUrl from './autoeq.worker.ts?worker&url';
 import { trustedScriptUrl } from '#lib/utils/trusted-types.js';
 
@@ -26,9 +26,7 @@ function createModuleWorker(url: URL | string): Worker {
 }
 
 function getWorker(): Worker {
-	if (!worker) {
-		worker = createModuleWorker(autoeqWorkerUrl);
-	}
+	worker ??= createModuleWorker(autoeqWorkerUrl);
 	return worker;
 }
 
@@ -67,20 +65,18 @@ export function runAutoEQInWorker(
 	const id = ++nextId;
 
 	return new Promise<AutoEqOutcome>((resolve, reject) => {
-		function handler(e: MessageEvent) {
+		function handler(e: MessageEvent<AutoEqReply>) {
 			const data = e.data;
 			if (data.id !== id) return;
 			w.removeEventListener('message', handler);
 			w.removeEventListener('error', errorHandler);
 			if (data.type === 'autoeq-result') {
-				if (typeof data.elapsedMs === 'number') {
-					console.debug(
-						'[autoEQ] %s %sms%s',
-						data.engine,
-						data.elapsedMs.toFixed(1),
-						typeof data.rmse === 'number' ? ` RMSE ${data.rmse.toFixed(3)}` : ''
-					);
-				}
+				console.debug(
+					'[autoEQ] %s %sms%s',
+					data.engine,
+					data.elapsedMs.toFixed(1),
+					data.rmse === undefined ? '' : ` RMSE ${data.rmse.toFixed(3)}`
+				);
 				if (data.fallback) {
 					console.warn(
 						data.engine === 'none'
@@ -98,7 +94,7 @@ export function runAutoEQInWorker(
 					fallback: data.fallback,
 					fallbackReason: data.fallbackReason
 				});
-			} else if (data.type === 'autoeq-error') {
+			} else {
 				reject(new Error(data.error));
 			}
 		}

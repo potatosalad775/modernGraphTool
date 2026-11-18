@@ -78,17 +78,20 @@ describe('SampleChannelSelector', () => {
 
 	describe('trigger label', () => {
 		it('names the current single channel', async () => {
-			render(SampleChannelSelector, { uuid: 'p', item: makeItem({ dispChannel: ['L'] }) });
+			await render(SampleChannelSelector, { uuid: 'p', item: makeItem({ dispChannel: ['L'] }) });
 			await expect.element(page.getByRole('button').first()).toHaveTextContent('L');
 		});
 
 		it('collapses L+R into one label', async () => {
-			render(SampleChannelSelector, { uuid: 'p', item: makeItem({ dispChannel: ['L', 'R'] }) });
+			await render(SampleChannelSelector, {
+				uuid: 'p',
+				item: makeItem({ dispChannel: ['L', 'R'] })
+			});
 			await expect.element(page.getByRole('button').first()).toHaveTextContent('L + R');
 		});
 
 		it('names the trigger after the curve, led by the visible label, when given one', async () => {
-			render(SampleChannelSelector, {
+			await render(SampleChannelSelector, {
 				uuid: 'p',
 				item: makeItem({ dispChannel: ['L', 'R'] }),
 				name: 'Brand Phone'
@@ -99,7 +102,7 @@ describe('SampleChannelSelector', () => {
 		});
 
 		it('falls back to the raw value when the channel has no option', async () => {
-			render(SampleChannelSelector, {
+			await render(SampleChannelSelector, {
 				uuid: 'p',
 				item: makeItem({ channels: { AVG: channel(79) }, dispChannel: ['L'] })
 			});
@@ -114,24 +117,25 @@ describe('SampleChannelSelector', () => {
 			await open(makeItem());
 			const radios = page.getByRole('radio');
 			await expect.element(radios.first()).toBeInTheDocument();
-			expect(await radios.all()).toHaveLength(4);
+			expect(radios.all()).toHaveLength(4);
 		});
 
 		it('offers only AVG when that is the sole channel', async () => {
 			await open(makeItem({ channels: { AVG: channel(79) } }));
-			expect(await page.getByRole('radio').all()).toHaveLength(1);
+			expect(page.getByRole('radio').all()).toHaveLength(1);
 		});
 
 		it('omits the combined option when only one side exists', async () => {
 			await open(makeItem({ channels: { L: channel(80), AVG: channel(79) } }));
-			expect(await page.getByRole('radio').all()).toHaveLength(2);
+			expect(page.getByRole('radio').all()).toHaveLength(2);
 		});
 
 		it('checks the radio matching the current dispChannel', async () => {
 			await open(makeItem({ dispChannel: ['L', 'R'] }));
-			const checked = (await page.getByRole('radio').all()).map(
-				(r) => (r.element() as HTMLInputElement).checked
-			);
+			const checked = page
+				.getByRole('radio')
+				.all()
+				.map((r) => (r.element() as HTMLInputElement).checked);
 			expect(checked.filter(Boolean)).toHaveLength(1);
 		});
 
@@ -167,14 +171,14 @@ describe('SampleChannelSelector', () => {
 
 		it('is absent for an entry with no samples', async () => {
 			await open(makeItem());
-			expect(await page.getByRole('checkbox').all()).toHaveLength(0);
+			expect(page.getByRole('checkbox').all()).toHaveLength(0);
 		});
 
 		it('offers the average and fill toggles plus one box per run channel', async () => {
 			await open(withSamples());
 			await openRuns();
 			// avg + fill + (L, R, AVG) × 2 runs
-			expect(await page.getByRole('checkbox').all()).toHaveLength(8);
+			expect(page.getByRole('checkbox').all()).toHaveLength(8);
 			await expect.element(page.getByText('Fit A', { exact: true })).toBeInTheDocument();
 			await expect.element(page.getByText('Fit B', { exact: true })).toBeInTheDocument();
 		});
@@ -183,14 +187,14 @@ describe('SampleChannelSelector', () => {
 			await open(withSamples({ samples: runs(1) }));
 			await openRuns();
 			// avg + (L, R, AVG) × 1 run
-			expect(await page.getByRole('checkbox').all()).toHaveLength(4);
+			expect(page.getByRole('checkbox').all()).toHaveLength(4);
 		});
 
 		it('offers only the channels a run actually loaded', async () => {
 			await open(withSamples({ samples: [{ label: 'Fit A', L: channel(81) }] }));
 			await openRuns();
 			// avg + L only
-			expect(await page.getByRole('checkbox').all()).toHaveLength(2);
+			expect(page.getByRole('checkbox').all()).toHaveLength(2);
 		});
 
 		it('falls back to a 1-based ordinal for an unlabelled run', async () => {
@@ -201,17 +205,19 @@ describe('SampleChannelSelector', () => {
 
 		it('reflects the current average and fill state', async () => {
 			await open(withSamples({ showAvg: false, showFill: true }));
-			const checked = (await page.getByRole('checkbox').all()).map(
-				(c) => (c.element() as HTMLInputElement).checked
-			);
+			const checked = page
+				.getByRole('checkbox')
+				.all()
+				.map((c) => (c.element() as HTMLInputElement).checked);
 			expect(checked.slice(0, 2)).toEqual([false, true]);
 		});
 
 		it('checks the run keys that are currently displayed', async () => {
 			await open(withSamples({ dispSamples: ['sample0_L', 'sample1_AVG'] }));
-			const checked = (await page.getByRole('checkbox').all()).map(
-				(c) => (c.element() as HTMLInputElement).checked
-			);
+			const checked = page
+				.getByRole('checkbox')
+				.all()
+				.map((c) => (c.element() as HTMLInputElement).checked);
 			// avg, fill, then run 0 (L,R,AVG), run 1 (L,R,AVG)
 			expect(checked).toEqual([true, false, true, false, false, false, false, true]);
 		});
@@ -310,22 +316,22 @@ describe('SampleChannelSelector', () => {
 
 		it('starts collapsed, leaving only the average and fill toggles', async () => {
 			await open(withSamples());
-			expect(await page.getByRole('checkbox').all()).toHaveLength(2);
-			expect(await page.getByRole('button', { name: /^Select All L$/ }).all()).toHaveLength(0);
+			expect(page.getByRole('checkbox').all()).toHaveLength(2);
+			expect(page.getByRole('button', { name: /^Select All L$/ }).all()).toHaveLength(0);
 		});
 
 		it('starts open when the item already displays runs', async () => {
 			await open(withSamples({ dispSamples: ['sample0_L'] }));
 			// avg + fill + (L, R, AVG) × 2 runs, with no disclosure click
-			expect(await page.getByRole('checkbox').all()).toHaveLength(8);
+			expect(page.getByRole('checkbox').all()).toHaveLength(8);
 		});
 
 		it('collapses again on a second click', async () => {
 			await open(withSamples());
 			await openRuns();
-			expect(await page.getByRole('checkbox').all()).toHaveLength(8);
+			expect(page.getByRole('checkbox').all()).toHaveLength(8);
 			await openRuns();
-			expect(await page.getByRole('checkbox').all()).toHaveLength(2);
+			expect(page.getByRole('checkbox').all()).toHaveLength(2);
 		});
 
 		it('reports its state to assistive tech', async () => {
@@ -361,7 +367,7 @@ describe('SampleChannelSelector', () => {
 					dispSamples: []
 				})
 			);
-			expect(await page.getByRole('radio').all()).toHaveLength(4);
+			expect(page.getByRole('radio').all()).toHaveLength(4);
 		});
 	});
 });

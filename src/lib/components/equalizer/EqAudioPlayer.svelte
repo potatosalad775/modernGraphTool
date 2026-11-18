@@ -10,7 +10,7 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { toast } from '#lib/services/toast.js';
 	import Button from '#lib/components/atoms/Button.svelte';
-	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash2 } from '@lucide/svelte';
+	import { FileUp, Pause, Play, Square, VolumeX, Volume2, Trash } from '@lucide/svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 
@@ -176,7 +176,7 @@
 				size="icon-xs"
 				class="ml-0.5"
 			>
-				<Trash2 class="size-3.5" />
+				<Trash class="size-3.5" />
 			</Button>
 		</div>
 	{/if}
@@ -364,7 +364,7 @@
 		<div class="mx-1 h-5 w-px bg-base-content/30"></div>
 		<!-- Volume slider -->
 		<div class="flex flex-1 items-center gap-1">
-			{#if audioPlayerService.volume == 0}
+			{#if audioPlayerService.volume === 0}
 				<VolumeX class="size-3.5 text-base-content/60" />
 			{:else}
 				<Volume2 class="size-3.5" />

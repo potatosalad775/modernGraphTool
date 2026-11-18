@@ -1,4 +1,4 @@
-import { usesGain, type EQFilter } from './equalizer.js';
+import { usesGain, type CompleteBand, type EQFilter } from './equalizer.js';
 import type { EqChannel } from './eq-channel.js';
 import { hasPerChannelFilters } from './eq-channel.js';
 
@@ -25,7 +25,7 @@ import { hasPerChannelFilters } from './eq-channel.js';
  */
 
 /** Internal names differ from APO's shelf spelling. */
-const TYPE_FROM_APO: Record<string, EQFilter['type']> = {
+const TYPE_FROM_APO: Partial<Record<string, EQFilter['type']>> = {
 	PK: 'PK',
 	PEQ: 'PK',
 	LSC: 'LSQ',
@@ -117,12 +117,10 @@ const roundQ = (q: number) => Math.round(q * 1000) / 1000;
  * neither gets APO's default of 12 dB/oct (S = 1, Q = 1/√2).
  */
 function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
-	const head = body
-		.replace(/#.*$/, '')
-		.trim()
-		.match(/^(?:(ON|OFF)\s+)?([A-Za-z]+)\s*(.*)$/i);
+	const head = /^(?:(ON|OFF)\s+)?([A-Za-z]+)\s*(.*)$/i.exec(body.replace(/#.*$/, '').trim());
 	if (!head) return null;
-	const [, onOff, rawType, params] = head;
+	const [, , rawType, params] = head;
+	const onOff = head.at(1);
 	const type = TYPE_FROM_APO[rawType.toUpperCase()];
 	// An unknown filter type (APO's fixed-Q `LP`, `HP`, …) has no representation
 	// here; skipping beats importing it as a peak that reshapes the curve.
@@ -130,16 +128,16 @@ function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
 	if (!type || CORNER_SHELF.test(params)) return null;
 
 	// The gainless types (`LPQ`, `HPQ`, `BP`, `NO`, `AP`) are written without a `Gain`.
-	const fc = params.match(FC);
-	const gainMatch = params.match(GAIN);
+	const fc = FC.exec(params);
+	const gainMatch = GAIN.exec(params);
 	if (!fc || (!gainMatch && usesGain(type))) return null;
 	const freq = parseFloat(fc[1]);
 	const gain = gainMatch && usesGain(type) ? parseFloat(gainMatch[1]) : 0;
 
-	const qMatch = params.match(Q);
-	const bwMatch = params.match(BW_OCT);
+	const qMatch = Q.exec(params);
+	const bwMatch = BW_OCT.exec(params);
 	const shelf = type === 'LSQ' || type === 'HSQ';
-	const slopeMatch = shelf ? params.match(SHELF_SLOPE) : null;
+	const slopeMatch = shelf ? SHELF_SLOPE.exec(params) : null;
 	let q: number;
 	if (qMatch) q = parseFloat(qMatch[1]);
 	else if (bwMatch) q = roundQ(qFromBandwidth(parseFloat(bwMatch[1]), freq));
@@ -176,13 +174,13 @@ export function parseApoConfig(text: string): { filters: EQFilter[]; skipped: nu
 		const line = rawLine.trim();
 		if (!line) continue;
 
-		const channelMatch = line.match(/^Channel\s*:\s*([^#]*)/i);
+		const channelMatch = /^Channel\s*:\s*([^#]*)/i.exec(line);
 		if (channelMatch) {
 			channel = parseChannelDirective(channelMatch[1]);
 			continue;
 		}
 
-		const command = line.match(FILTER_COMMAND);
+		const command = FILTER_COMMAND.exec(line);
 		if (!command) continue;
 		const band = parseFilterBody(command[1]);
 		if (!band) {
@@ -219,9 +217,13 @@ export function parseApoFilters(text: string): EQFilter[] {
  * do.
  */
 export function formatApoFilters(filters: EQFilter[], preamp: number): string {
-	const valid = filters.filter((f) => f.freq != null && f.q != null && f.gain != null);
+	const valid = filters.filter(
+		(f): f is CompleteBand => f.freq != null && f.q != null && f.gain != null
+	);
 
-	const sections: { directive: string | null; bands: EQFilter[] }[] = hasPerChannelFilters(valid)
+	const sections: { directive: string | null; bands: CompleteBand[] }[] = hasPerChannelFilters(
+		valid
+	)
 		? [
 				{ directive: 'ALL', bands: valid.filter((f) => f.channel == null) },
 				{ directive: 'L', bands: valid.filter((f) => f.channel === 'L') },
@@ -238,9 +240,9 @@ export function formatApoFilters(filters: EQFilter[], preamp: number): string {
 			n++;
 			text +=
 				`Filter ${n}: ${f.enabled ? 'ON' : 'OFF'} ${apoTypeName(f.type)} ` +
-				`Fc ${f.freq!.toFixed(0)} Hz ` +
-				(usesGain(f.type) ? `Gain ${f.gain!.toFixed(1)} dB ` : '') +
-				`Q ${f.q!.toFixed(3)}\n`;
+				`Fc ${f.freq.toFixed(0)} Hz ` +
+				(usesGain(f.type) ? `Gain ${f.gain.toFixed(1)} dB ` : '') +
+				`Q ${f.q.toFixed(3)}\n`;
 		}
 	}
 	return text;

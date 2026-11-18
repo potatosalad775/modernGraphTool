@@ -35,8 +35,8 @@ class URLProvider {
 			document.querySelector('meta[name="description"]')?.getAttribute('content') ||
 			'View and compare frequency response graphs';
 		this.#baseURL = window.location.href.split('?')[0];
-		this.#autoUpdateURL = (getConfigValue('URL.AUTO_UPDATE_URL') as boolean) ?? true;
-		this.#useBase62 = (getConfigValue('URL.COMPRESS_URL') as boolean) ?? false;
+		this.#autoUpdateURL = (getConfigValue('URL.AUTO_UPDATE_URL') as boolean | undefined) ?? true;
+		this.#useBase62 = (getConfigValue('URL.COMPRESS_URL') as boolean | undefined) ?? false;
 
 		this.#loadFromURL();
 	}
@@ -66,7 +66,7 @@ class URLProvider {
 				// which would prepend base a second time under subpath deployments
 				// like /cdn/.
 				// eslint-disable-next-line svelte/no-navigation-without-resolve
-				goto(newPath, { shallow: true, replace: true }).catch((err) =>
+				goto(newPath, { shallow: true, replace: true }).catch((err: unknown) =>
 					console.error('URLProvider: failed to update the URL', err)
 				);
 			}
@@ -111,7 +111,7 @@ class URLProvider {
 
 		// `parseStateParam` already narrowed the shape; these guards keep a state
 		// that arrived any other way (a spec, a future caller) from throwing.
-		if (Number.isFinite(yScale)) graphStore.yScale = yScale!;
+		if (yScale !== undefined && Number.isFinite(yScale)) graphStore.yScale = yScale;
 
 		// `mode` is hand-editable, so the baseline module validates it.
 		if (savedBaseline) baseline.restoreFromURL(savedBaseline);

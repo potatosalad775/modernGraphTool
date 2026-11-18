@@ -17,8 +17,9 @@
 	const value = $derived.by(() => {
 		const uuid = eqStore.sourcePhoneUUID;
 		if (!uuid) return '';
-		const run = eqSourceRun(frStore.get(uuid), eqStore.sourceSample);
-		return sourceValue(uuid, run ? eqStore.sourceSample!.index : null);
+		const pick = eqStore.sourceSample;
+		const run = eqSourceRun(frStore.get(uuid), pick);
+		return sourceValue(uuid, run && pick ? pick.index : null);
 	});
 
 	function select(next: string) {

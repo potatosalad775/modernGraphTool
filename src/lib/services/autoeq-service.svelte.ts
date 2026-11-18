@@ -1,3 +1,4 @@
+import { track } from '#lib/utils/track.js';
 import { untrack } from 'svelte';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -164,7 +165,7 @@ function buildRequest(bandCount: number): AutoEqRequest {
 	// Only where the shelves' gain window differs from the peaking bands'.
 	const shelfGain = envelopeOf(profile, 'gain', ['LSC', 'HSC']);
 	const shelfLimits =
-		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain?.max)
+		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain.max)
 			? {
 					...limits,
 					minGain: Math.max(opts.gainMin, shelfGain.min),
@@ -189,8 +190,9 @@ function buildRequest(bandCount: number): AutoEqRequest {
  */
 function channelPoints(channels: ParsedFRData | undefined, scope: EqChannelScope): Points {
 	if (!channels) return [];
-	if (scope !== 'BOTH' && channels[scope]) return channels[scope]!.data as Points;
-	return (channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? []) as Points;
+	const scoped = scope === 'BOTH' ? undefined : channels[scope];
+	if (scoped) return scoped.data;
+	return channels.AVG?.data ?? channels.L?.data ?? channels.R?.data ?? [];
 }
 
 const equalizer = new Equalizer();
@@ -273,7 +275,7 @@ class AutoEqService {
 
 	/** A result for the current device and target is on screen, so Run means Recalculate. */
 	get hasResult(): boolean {
-		void this.#landed;
+		track(this.#landed);
 		const session = this.#session;
 		return (
 			session?.inputs != null &&
@@ -380,7 +382,7 @@ class AutoEqService {
 			session.scope,
 			auto ? session.command : null
 		);
-		session.command = command ?? null;
+		session.command = command;
 		session.written = eqStore.filters;
 		session.inputs = inputs;
 		// Nobody runs AutoEQ wanting the graph to stay put. An auto-applied run
@@ -428,8 +430,7 @@ class AutoEqService {
 				const filters = eqStore.filters;
 				let reason: AutoApplyStop | null = null;
 				if (
-					!session ||
-					eqStore.sourcePhoneUUID !== session.source ||
+					eqStore.sourcePhoneUUID !== session?.source ||
 					!sameEqSourceSample(eqStore.sourceSample, session.sample) ||
 					// A variant switch retires the fitted run; refitting would quietly
 					// move the EQ onto the average instead.
@@ -451,7 +452,7 @@ class AutoEqService {
 			// Trigger: re-run when the curves or options behind the result change.
 			// Deliberately blind to `eqStore.filters`, which every run writes.
 			$effect(() => {
-				void this.#landed;
+				track(this.#landed);
 				if (!this.autoApply) return;
 				const session = this.#session;
 				if (!session?.inputs) return;

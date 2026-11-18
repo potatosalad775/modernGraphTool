@@ -14,7 +14,7 @@ export function sampleKey(index: number, channel: Channel): SampleDisplayKey {
 
 /** Inverse of `sampleKey`. Null for anything that is not exactly one such key. */
 export function parseSampleKey(key: string): { index: number; channel: Channel } | null {
-	const match = key.match(/^sample(\d+)_(L|R|AVG)$/);
+	const match = /^sample(\d+)_(L|R|AVG)$/.exec(key);
 	if (!match) return null;
 	return { index: parseInt(match[1]), channel: match[2] as Channel };
 }

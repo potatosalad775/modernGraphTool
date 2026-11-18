@@ -111,8 +111,13 @@ class LinkService {
 		};
 	}
 
+	/** Already linked, or a device connected on this page has the EQ. */
+	#taken(): boolean {
+		return this.#link !== null || devicePeqStore.localActive;
+	}
+
 	async #open(resume: boolean): Promise<void> {
-		if (this.#link || devicePeqStore.localActive) return;
+		if (this.#taken()) return;
 		const { server } = linkConfig();
 		let client: typeof import('peq-link/client');
 		try {
@@ -123,7 +128,7 @@ class LinkService {
 			return;
 		}
 		// A device may have connected here while the client loaded.
-		if (this.#link || devicePeqStore.localActive) return;
+		if (this.#taken()) return;
 		const options: HostOptions = {
 			server,
 			version: __APP_VERSION__,
@@ -271,10 +276,10 @@ class LinkService {
 		const filters = fromLinkFilters(adopt.eq.filters);
 		// What the edit effect compares against, set first so the adoption isn't sent back.
 		this.#shared = toLinkFilters(filters);
-		const same =
-			adopt.burst !== undefined && this.#adopted !== null && this.#adopted.burst === adopt.burst;
+		const adopted = this.#adopted;
+		const same = adopt.burst !== undefined && adopted !== null && adopted.burst === adopt.burst;
 		const command = eqCommands.adoptLinked(filters, {
-			amend: same ? this.#adopted!.command : null,
+			amend: same ? adopted.command : null,
 			fresh: adopt.fresh
 		});
 		this.#adopted = { command, burst: adopt.burst };

@@ -5,9 +5,11 @@ import type {
 	TargetMetadata,
 	TargetManifestEntry,
 	RawBrandData,
+	RawHpTFEntry,
 	RawPhoneData,
 	RawSampleSet,
 	RawVariant,
+	Unchecked,
 	PhoneFileReference,
 	PhoneFileVariant,
 	PhoneLink,
@@ -33,12 +35,8 @@ const MetadataParser = {
 
 	/** Initialize metadata parser and load data */
 	async init(): Promise<void> {
-		if (!this.phoneMetadata) {
-			this.phoneMetadata = await this._fetchBookObject();
-		}
-		if (!this.targetMetadata) {
-			this.targetMetadata = this._fetchTargetObject();
-		}
+		this.phoneMetadata ??= await this._fetchBookObject();
+		this.targetMetadata ??= this._fetchTargetObject();
 	},
 
 	/** Check if Phone object is included in phoneMetadata (phone_book.json). */
@@ -56,8 +54,8 @@ const MetadataParser = {
 						// If it's an object with fullName property
 						if (file.fullName) return file.fullName === identifier;
 						// If it's a string, construct the full name
-						const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
-						const fullName = brand.brand + ' ' + baseName + ' ' + file.suffix;
+						const baseName = typeof phone.name === 'string' ? phone.name : phone.name[0];
+						const fullName = `${brand.brand} ${baseName} ${file.suffix}`;
 						return fullName === identifier;
 					});
 				})
@@ -249,7 +247,9 @@ const MetadataParser = {
 					...(reviewLink && { reviewLink }),
 					...(shopLink && { shopLink }),
 					...(price !== null && { price: String(price) }),
-					...(typeof phone === 'object' && phone.description && { description: phone.description }),
+					...(typeof phone === 'object' &&
+						typeof phone.description === 'string' &&
+						phone.description && { description: phone.description }),
 					...(links && { links })
 				};
 
@@ -420,7 +420,7 @@ const MetadataParser = {
 	_parseVariants(
 		brandName: string,
 		baseName: string,
-		variants: RawVariant[],
+		variants: Unchecked<RawVariant>[],
 		brandDefaults: RawSampleSet | null
 	): PhoneFileVariant[] {
 		return variants
@@ -590,7 +590,7 @@ const MetadataParser = {
 		const fileVariants: PhoneFileVariant[] = phone.file
 			? Array.isArray(phone.file)
 				? phone.file.map(buildFileVariant)
-				: [buildFileVariant((phone.file as string) || baseName, 0)]
+				: [buildFileVariant(phone.file || baseName, 0)]
 			: hptfEntries.length > 0 || !allowNameFallback
 				? []
 				: [buildFileVariant(baseName, 0)];
@@ -599,7 +599,10 @@ const MetadataParser = {
 		// Entries are operator-authored, so a malformed one is skipped rather than
 		// allowed to abort the whole phone book.
 		const hptfVariants: PhoneFileVariant[] = hptfEntries
-			.filter((entry) => entry && typeof entry === 'object')
+			.filter(
+				(entry): entry is RawHpTFEntry =>
+					typeof entry === 'object' && entry !== null && !Array.isArray(entry)
+			)
 			.map((entry) => {
 				const suffix = entry.suffix ?? '';
 				const files = Array.isArray(entry.files) ? entry.files : [];

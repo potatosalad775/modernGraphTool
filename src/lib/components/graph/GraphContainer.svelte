@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { track } from '#lib/utils/track.js';
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
@@ -126,9 +127,9 @@
 		const remeasure = () => {
 			for (const [node, key] of labelNodes) queueLabelMeasure(node, key);
 		};
-		fonts?.addEventListener('loadingdone', remeasure);
+		fonts.addEventListener('loadingdone', remeasure);
 		return () => {
-			fonts?.removeEventListener('loadingdone', remeasure);
+			fonts.removeEventListener('loadingdone', remeasure);
 			cancelAnimationFrame(measureFrame);
 		};
 	});
@@ -223,7 +224,9 @@
 	/** Where the first line of the baseline-label stack sits, and which way it grows. */
 	const blAnchor = $derived.by(() => {
 		if (!graphEngine.isInitialized) return null;
-		const pos = graphEngine.labelPosition[blLabelLoc];
+		// `LOCATION` is operator config and may name no anchor.
+		const positions: Partial<typeof graphEngine.labelPosition> = graphEngine.labelPosition;
+		const pos = positions[blLabelLoc];
 		if (!pos) return null;
 		const baseY = pos.y + blOffsetDown - blOffsetUp;
 		return {
@@ -324,7 +327,7 @@
 	$effect(() => {
 		const uuid = baseline.uuid;
 		const mode = baseline.mode;
-		void baseline.channelData;
+		track(baseline.channelData);
 		if (!graphEngine.isInitialized) return;
 		untrack(() => {
 			const previous = drawnBaseline;
@@ -339,7 +342,7 @@
 	// Notify GraphInspection when labels change (hides labels when inspection is active)
 	$effect(() => {
 		const _labels = labelData.entries;
-		if (graphEngine.isInitialized && graphEngine.graphInspection) {
+		if (graphEngine.isInitialized) {
 			graphEngine.graphInspection.onLabelsUpdated();
 		}
 	});
@@ -366,7 +369,7 @@
 
 	$effect(() => {
 		const _isMobile = appStore.isMobile;
-		if (graphEngine.isInitialized && graphEngine.graphHandle) {
+		if (graphEngine.isInitialized) {
 			graphEngine.graphHandle.setMobile(appStore.isMobile);
 		}
 	});
@@ -426,7 +429,7 @@
 	// like it. Driven from here, not from the History panel, which unmounts.
 	$effect(() => {
 		if (!graphEngine.isInitialized || !compareOverlay) return;
-		void graphStore.yScale;
+		track(graphStore.yScale);
 		const a = eqHistoryStore.aEntry;
 		const b = eqHistoryStore.bEntry;
 		const side =
@@ -460,8 +463,7 @@
 	// the band rect repositions when From/To change from elsewhere.
 	$effect(() => {
 		const active = audioRangeStore.isFrequencySelectionMode;
-		void audioRangeStore.fromHz;
-		void audioRangeStore.toHz;
+		track(audioRangeStore.fromHz, audioRangeStore.toHz);
 		soundRangeOverlay?.setActive(active);
 		if (active) soundRangeOverlay?.render();
 	});

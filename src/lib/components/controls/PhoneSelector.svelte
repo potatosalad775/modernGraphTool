@@ -27,9 +27,9 @@
 	// ── Config ──────────────────────────────────────────────────────────────────
 
 	const allowRemovingPhone =
-		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean) ?? true;
+		(getConfigValue('INTERFACE.ALLOW_REMOVING_PHONE_FROM_SELECTOR') as boolean | undefined) ?? true;
 	const switchPanelOnBrandClick =
-		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean) ?? true;
+		(getConfigValue('INTERFACE.SWITCH_PHONE_PANEL_ON_BRAND_CLICK') as boolean | undefined) ?? true;
 	const ranking = getRankingSettings();
 	// The comma hint promises a cross-site behaviour, so only offer it where
 	// cross-site results can actually appear.
@@ -252,7 +252,7 @@
 	// a ranking sheet. Here rather than in a store because this is also what
 	// revalidates a stale sheet — the panel remounts on every panel switch.
 	onMount(() => {
-		rankingService.load();
+		void rankingService.load();
 	});
 </script>
 
@@ -449,7 +449,13 @@
 					{@const isPinBoundary = i === pinnedCount - 1 && pinnedCount < displayPhones.length}
 					{@const hasMeta =
 						isLoaded &&
-						!!(rank || phone.price || phone.reviewLink || phone.shopLink || phone.links?.length)}
+						!!(
+							rank != null ||
+							phone.price ||
+							phone.reviewLink ||
+							phone.shopLink ||
+							phone.links?.length
+						)}
 					{@const descId = `${uid}-desc-${i}`}
 					<!-- The row is a container, not a button: the toggle button, the description and
 					     the link row are siblings, because links nested in a button are invalid and
@@ -557,7 +563,7 @@
 
 								<!-- Operator-defined extras — several shops, a manufacturer page,
 									     a measurement note. Labels come from phone_book.json as-is. -->
-								{#each phone.links ?? [] as link, i (link.url + '\0' + link.label + i)}
+								{#each phone.links ?? [] as link, i (`${link.url}\0${link.label}${i}`)}
 									<a
 										href={link.url}
 										target="_blank"

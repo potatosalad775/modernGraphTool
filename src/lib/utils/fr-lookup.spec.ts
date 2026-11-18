@@ -9,10 +9,6 @@ function makePoints(startFreq: number, endFreq: number, count: number, db = 80):
 }
 
 describe('lookupFRValueAtFreq', () => {
-	it('returns null for null input', () => {
-		expect(lookupFRValueAtFreq(null as unknown as FRDataPoint[], 1000)).toBeNull();
-	});
-
 	it('returns null for empty array', () => {
 		expect(lookupFRValueAtFreq([], 1000)).toBeNull();
 	});

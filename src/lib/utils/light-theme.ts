@@ -42,14 +42,16 @@ interface Declarations {
 }
 
 // Duck-typed on purpose: the CSSOM classes are not there under node, and the specs pass fakes.
-type RuleLike = {
+interface RuleLike {
 	selectorText?: string;
 	style?: CSSStyleDeclaration;
 	styleSheet?: SheetLike | null;
 	cssRules?: ArrayLike<RuleLike>;
 	constructor?: { name?: string };
-};
-type SheetLike = { cssRules: ArrayLike<RuleLike> };
+}
+interface SheetLike {
+	cssRules: ArrayLike<RuleLike>;
+}
 
 function collect(sheet: SheetLike, into: Declarations, layered: boolean, depth: number): void {
 	if (depth > 8) return;
@@ -66,8 +68,7 @@ function collect(sheet: SheetLike, into: Declarations, layered: boolean, depth: 
 			collect({ cssRules: rule.cssRules }, into, true, depth + 1);
 		} else if (rule.selectorText !== undefined && rule.style && isRootSelector(rule.selectorText)) {
 			const target = layered ? into.layered : into.unlayered;
-			for (let i = 0; i < rule.style.length; i++) {
-				const name = rule.style[i];
+			for (const name of rule.style) {
 				if (!name.startsWith('--color-')) continue;
 				const value = rule.style.getPropertyValue(name).trim();
 				if (value) target.set(name, value);
@@ -86,20 +87,20 @@ const VAR_RE = /var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*(?:\([^()]*\)[^()]*)*))?\)/g;
 function substitute(
 	name: string,
 	vars: Map<string, string>,
-	seen: Set<string> = new Set()
+	seen = new Set<string>()
 ): string | null {
 	const raw = vars.get(name);
 	if (raw === undefined || seen.has(name)) return null;
 	seen.add(name);
-	let ok = true;
+	let unresolved = 0;
 	const out = raw.replace(VAR_RE, (_, ref: string, fallback?: string) => {
 		const inner = substitute(ref, vars, new Set(seen));
 		if (inner !== null) return inner;
 		if (fallback !== undefined) return fallback.trim();
-		ok = false;
+		unresolved++;
 		return '';
 	});
-	return ok ? out : null;
+	return unresolved === 0 ? out : null;
 }
 
 /** The `--color-*` declarations of the `:root` rules in `sheets`, with `var()` resolved. */

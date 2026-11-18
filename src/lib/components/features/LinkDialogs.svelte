@@ -58,7 +58,7 @@
 
 	function answerConsent(go: boolean, quiet: boolean) {
 		consentAnswered = true;
-		void link?.consent(go, quiet).catch((e) => devicePeqService.fail(e, 'write'));
+		void link?.consent(go, quiet).catch((e: unknown) => devicePeqService.fail(e, 'write'));
 	}
 </script>
 

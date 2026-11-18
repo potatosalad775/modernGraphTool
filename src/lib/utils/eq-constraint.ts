@@ -249,7 +249,7 @@ export function assignSlots(filters: EQFilter[], profile: Profile): number[] {
 			if (slots[i] === null && s != null) slots[i] = s;
 		});
 		indices.forEach((i, position) => {
-			if (slots[i] === null) slots[i] = position;
+			slots[i] ??= position;
 		});
 	}
 	return slots.map((s) => (profile.bandCount === null ? 0 : clampSlot(profile, s ?? 0)));
@@ -375,15 +375,18 @@ const GRAPHIC_FOLD_LOG_THRESHOLD = Math.log(2); // ±1 octave
 
 function foldOntoGraphicBands(filters: EQFilter[], profile: Profile): EQFilter[] {
 	const bands = graphicBandsOf(profile);
-	const sources = filters.filter((f) => f.enabled && f.freq != null && f.gain != null);
+	const sources = filters.filter(
+		(f): f is EQFilter & { freq: number; gain: number } =>
+			f.enabled && f.freq != null && f.gain != null
+	);
 	return bands.map((band, slot): EQFilter => {
 		let bestGain = 0;
 		let bestDelta = Infinity;
 		for (const f of sources) {
-			const delta = Math.abs(Math.log(f.freq! / band.freq));
+			const delta = Math.abs(Math.log(f.freq / band.freq));
 			if (delta < bestDelta && delta < GRAPHIC_FOLD_LOG_THRESHOLD) {
 				bestDelta = delta;
-				bestGain = f.gain!;
+				bestGain = f.gain;
 			}
 		}
 		return projectFilter(

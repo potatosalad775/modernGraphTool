@@ -49,7 +49,7 @@ function makeIndex(overrides: Partial<SiteIndex> = {}): SiteIndex {
 }
 
 /** Stubs fetch so each URL either resolves to an index document or fails. */
-function stubFetch(responders: Record<string, SiteIndex | number>) {
+function stubFetch(responders: Partial<Record<string, SiteIndex | number>>) {
 	const fetchMock = vi.fn(async (input: string | URL | Request) => {
 		const url = String(input);
 		const responder = responders[url];

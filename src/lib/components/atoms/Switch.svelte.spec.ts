@@ -5,7 +5,7 @@ import Switch from './Switch.svelte';
 
 describe('Switch', () => {
 	it('flips state on click', async () => {
-		render(Switch, { labelText: 'Enable', checked: false });
+		await render(Switch, { labelText: 'Enable', checked: false });
 
 		const sw = page.getByRole('switch', { name: 'Enable' });
 		await expect.element(sw).toHaveAttribute('aria-checked', 'false');
@@ -16,7 +16,7 @@ describe('Switch', () => {
 	it.each(['accent', 'muted'] as const)(
 		'paints the %s off state from semantic tokens',
 		async (v) => {
-			render(Switch, { labelText: 'Enable', variant: v, checked: false });
+			await render(Switch, { labelText: 'Enable', variant: v, checked: false });
 
 			const root = page.getByRole('switch', { name: 'Enable' }).element();
 			const thumb = root.querySelector('[data-switch-thumb]') as HTMLElement;

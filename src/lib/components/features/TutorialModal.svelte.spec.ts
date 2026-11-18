@@ -110,7 +110,7 @@ describe('TutorialModal', () => {
 
 		it('stays shut once dismissed', async () => {
 			localStorage.setItem(STORAGE_KEY, 'true');
-			render(TutorialModal);
+			await render(TutorialModal);
 			await new Promise((resolve) => setTimeout(resolve, 300));
 
 			expect(page.getByRole('dialog').elements()).toHaveLength(0);
@@ -119,7 +119,7 @@ describe('TutorialModal', () => {
 		it('opens without a settle-in delay', async () => {
 			// On a first visit this dialog is the LCP element; any delay before it
 			// opens is added to LCP in full.
-			render(TutorialModal);
+			await render(TutorialModal);
 
 			await expect.element(page.getByRole('dialog'), { timeout: 200 }).toBeInTheDocument();
 		});
@@ -297,7 +297,7 @@ describe('TutorialModal', () => {
 			const { unmount } = await openModal();
 			await click(button(m.tutorial_modal_btn_next()));
 			await click(button(m.tutorial_modal_btn_skip()));
-			unmount();
+			await unmount();
 
 			localStorage.removeItem(STORAGE_KEY);
 			await openModal();
@@ -468,7 +468,7 @@ describe('TutorialModal', () => {
 
 		it('stays shut on another panel', async () => {
 			localStorage.setItem(STORAGE_KEY, 'true');
-			render(TutorialModal);
+			await render(TutorialModal);
 			await new Promise((resolve) => setTimeout(resolve, 300));
 
 			expect(page.getByRole('dialog').elements()).toHaveLength(0);
@@ -498,7 +498,7 @@ describe('TutorialModal', () => {
 		it('replays from step one once dismissed', async () => {
 			localStorage.setItem(STORAGE_KEY, 'true');
 			localStorage.setItem(EQ_STORAGE_KEY, 'true');
-			render(TutorialModal);
+			await render(TutorialModal);
 			tutorialStore.open('equalizer');
 
 			await expect.element(page.getByRole('dialog'), { timeout: OPEN_TIMEOUT }).toBeInTheDocument();

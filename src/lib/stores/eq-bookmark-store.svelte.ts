@@ -89,10 +89,9 @@ class EqBookmarkStore {
 	rename(id: string, name: string): void {
 		const trimmed = name.trim();
 		if (!trimmed) return;
-		let changed = false;
+		const changed = this.items.some((b) => b.id === id && b.name !== trimmed);
 		this.items = this.items.map((b) => {
 			if (b.id !== id || b.name === trimmed) return b;
-			changed = true;
 			return { ...b, name: trimmed };
 		});
 		if (changed) this.#persist();

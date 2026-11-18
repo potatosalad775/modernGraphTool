@@ -200,7 +200,7 @@ export class SquiglinkStore {
 		const host = window.location.host;
 		if (host === SQUIGLINK_DOMAIN) {
 			// Root domain — check for lab folder path
-			const pathMatch = window.location.pathname.match(/^\/lab\/([^/]+)/);
+			const pathMatch = /^\/lab\/([^/]+)/.exec(window.location.pathname);
 			return pathMatch ? pathMatch[1] : 'graph';
 		}
 		// Subdomain: "username.squig.link"
@@ -340,12 +340,14 @@ export class SquiglinkStore {
 		try {
 			const res = await fetch(`${url}.json`, { priority: 'low' });
 			if (!res.ok) return null;
-			const data = await res.json();
+			const data = (await res.json()) as {
+				product: { variants: { price: string; compare_at_price: string }[] };
+			};
 			return {
 				currentPrice: data.product.variants[0].price,
 				originalPrice: data.product.variants[0].compare_at_price,
 				onSale: data.product.variants[0].price < data.product.variants[0].compare_at_price
-			} as SponsorProductData;
+			};
 		} catch {
 			// Silently skip if shoplinks are unavailable
 			return null;

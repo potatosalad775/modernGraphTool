@@ -215,7 +215,7 @@ class DevicePeqStore {
 		this.needsReconnect = false;
 		const bypass = connection.device.capabilities.slots.find((s) => s.bypass);
 		// A device reading back its bypass preset has its EQ off, and no memory is selected.
-		const onBypass = bypass !== undefined && currentSlot === bypass.id;
+		const onBypass = currentSlot === bypass?.id;
 		const listed = this.slots.some((s) => s.id === currentSlot);
 		this.deviceSlot = currentSlot;
 		this.activeSlot = listed ? currentSlot : (this.writableSlots[0]?.id ?? null);

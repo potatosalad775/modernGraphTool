@@ -140,7 +140,7 @@ never disposed.
 - **A failed write stops auto-write for that connection only** (`devicePeqStore.autoStopped`,
   cleared by switching it back on or connecting). Don't write it to the saved setting: one dropped
   Bluetooth packet would turn it off in every later session.
-- **One write in flight, the latest list next.** Edits during a write set `#again`; `inSync` skips
+- **One write in flight, the latest list next.** Edits during a write bump `#queued`; `inSync` skips
   writes that would change nothing, which is what stops a Read from echoing back.
 - **The target preset's layout is read once** (`devicePeqStore.layout`, dropped on any preset
   change), not before every automatic write.

@@ -172,13 +172,13 @@ const FRParser = {
 		const averaged: ParsedFRData = {};
 
 		// Average L channels across samples
-		const lSamples = samples.filter((s) => s.L).map((s) => s.L!);
+		const lSamples = samples.flatMap((s) => (s.L ? [s.L] : []));
 		if (lSamples.length > 0) {
 			averaged.L = this._averageChannelData(lSamples);
 		}
 
 		// Average R channels across samples
-		const rSamples = samples.filter((s) => s.R).map((s) => s.R!);
+		const rSamples = samples.flatMap((s) => (s.R ? [s.R] : []));
 		if (rSamples.length > 0) {
 			averaged.R = this._averageChannelData(rSamples);
 		}
@@ -240,7 +240,7 @@ const FRParser = {
 
 				if (this._isValidDataPoint(freq, db)) {
 					acc.data.push([freq, db]);
-					if (weight !== null) acc.metadata.weights!.push(weight);
+					if (weight !== null) acc.metadata.weights.push(weight);
 				}
 				return acc;
 			},
@@ -251,7 +251,7 @@ const FRParser = {
 					minFreq: Infinity,
 					maxFreq: -Infinity
 				}
-			} as ChannelData
+			}
 		);
 
 		if (parsed.data.length !== 0) {

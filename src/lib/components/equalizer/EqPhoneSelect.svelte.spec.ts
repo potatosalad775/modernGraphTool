@@ -58,11 +58,11 @@ describe('EqPhoneSelect', () => {
 	it('nests the runs that have data under their device', async () => {
 		addSampleSet();
 		addPhone('other', 'Other');
-		render(EqPhoneSelect);
+		await render(EqPhoneSelect);
 		await open();
 
-		const labels = Array.from(document.querySelectorAll('[role="option"]')).map(
-			(o) => o.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+		const labels = Array.from(document.querySelectorAll('[role="option"]')).map((o) =>
+			o.textContent.replace(/\s+/g, ' ').trim()
 		);
 		// The empty third run is left out.
 		expect(labels).toEqual([
@@ -75,7 +75,7 @@ describe('EqPhoneSelect', () => {
 
 	it('names a run by its device as well', async () => {
 		addSampleSet();
-		render(EqPhoneSelect);
+		await render(EqPhoneSelect);
 		await open();
 
 		await expect.element(page.getByRole('option', { name: 'IEM Depths · Deep' })).toBeVisible();
@@ -84,7 +84,7 @@ describe('EqPhoneSelect', () => {
 	it('stores the run with the variant it was picked on', async () => {
 		addSampleSet();
 		addPhone('other', 'Other');
-		render(EqPhoneSelect);
+		await render(EqPhoneSelect);
 		await open();
 
 		await page.getByRole('option', { name: 'IEM Depths · Deep' }).click();
@@ -101,7 +101,7 @@ describe('EqPhoneSelect', () => {
 		addPhone('other', 'Other');
 		eqStore.sourcePhoneUUID = 'set';
 		eqStore.sourceSample = { index: 0, variant: 'Depths' };
-		render(EqPhoneSelect);
+		await render(EqPhoneSelect);
 		await open();
 
 		await page
@@ -118,7 +118,7 @@ describe('EqPhoneSelect', () => {
 		addPhone('other', 'Other');
 		eqStore.sourcePhoneUUID = 'set';
 		eqStore.sourceSample = { index: 1, variant: 'Repeat Runs' };
-		render(EqPhoneSelect);
+		await render(EqPhoneSelect);
 
 		await expect
 			.element(trigger())

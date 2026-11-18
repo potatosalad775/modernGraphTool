@@ -58,19 +58,19 @@ describe('AverageButton', () => {
 
 	it('is disabled with fewer than two visible phones', async () => {
 		seed(makeItem('a'));
-		render(AverageButton);
+		await render(AverageButton);
 		await expect.element(button()).toBeDisabled();
 	});
 
 	it('is enabled once two phones are visible', async () => {
 		seed(makeItem('a'), makeItem('b'));
-		render(AverageButton);
+		await render(AverageButton);
 		await expect.element(button()).toBeEnabled();
 	});
 
 	it('re-disables when a curve is hidden after render', async () => {
 		seed(makeItem('a'), makeItem('b'));
-		render(AverageButton);
+		await render(AverageButton);
 		await expect.element(button()).toBeEnabled();
 
 		frStore.set('b', makeItem('b', { hidden: true }));
@@ -79,16 +79,14 @@ describe('AverageButton', () => {
 
 	it('ignores targets when counting', async () => {
 		seed(makeItem('a'), makeItem('t', { type: 'target' }));
-		render(AverageButton);
+		await render(AverageButton);
 		await expect.element(button()).toBeDisabled();
 	});
 
 	it('inserts one averaged curve carrying the contributor count', async () => {
-		const insert = vi
-			.spyOn(dataProvider, 'insertRawFRData')
-			.mockImplementation(() => Promise.resolve());
+		const insert = vi.spyOn(dataProvider, 'insertRawFRData').mockReturnValue(undefined);
 		seed(makeItem('a'), makeItem('b'), makeItem('c'));
-		render(AverageButton);
+		await render(AverageButton);
 
 		await button().click();
 
@@ -101,9 +99,7 @@ describe('AverageButton', () => {
 	});
 
 	it('averages the visible curves and leaves the hidden one out', async () => {
-		const insert = vi
-			.spyOn(dataProvider, 'insertRawFRData')
-			.mockImplementation(() => Promise.resolve());
+		const insert = vi.spyOn(dataProvider, 'insertRawFRData').mockReturnValue(undefined);
 		// 80 and 90 average to 85; the hidden 0 dB curve would drag it to ~56.7.
 		seed(
 			makeItem('a'),
@@ -133,7 +129,7 @@ describe('AverageButton', () => {
 				}
 			})
 		);
-		render(AverageButton);
+		await render(AverageButton);
 
 		await button().click();
 

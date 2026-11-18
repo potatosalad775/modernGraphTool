@@ -226,11 +226,14 @@ Mount with `render()` from `vitest-browser-svelte` and query through `page.getBy
 - **`fill()` fires `input`, not `change`.** A field wired to `onchange` (the sweep and range Hz boxes
   in `EqAudioPlayer`, every number box in `EqFilterCard`) needs a blur afterwards to commit, the way
   leaving the field would. Fields on `oninput` (the color picker) take `fill()` alone.
-- **`render()` is async.** Most specs never await it and get away with it, but anything on the
-  returned result — `rerender`, `unmount` — is `undefined` unless you do. `rerender` is the only way
+- **`render()` is async; await it** (lint fails a floating one). It mounts synchronously and then
+  records a trace mark, so an un-awaited call still mounts but leaves that mark in flight, and
+  `rerender` / `unmount` (itself async) are only on the awaited result. `rerender` is the only way
   to test a component reacting to a changed prop, since a `.svelte.spec.ts` file is not a rune module
   (the Svelte plugin matches `*.svelte.ts`, which `*.svelte.spec.ts` is not). See the Escape-reverts
   case in `equalizer/EqFilterCard.svelte.spec.ts`.
+- **`locator.all()` is synchronous here**, unlike Playwright's: `expect(x.all()).toHaveLength(0)`
+  reads the DOM once, with no `await`. To wait for a count, use `expect.poll`.
 - **Query a `Button` by what it shows when it has a `label`, by its `title` when it has one.** A
   `title` overrides the text content, so a title that changes with state changes the name too. A
   short label is a substring of other names (`PK`, `Stop`), so pass `{ exact: true }`.

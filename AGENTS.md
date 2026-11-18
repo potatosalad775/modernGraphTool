@@ -64,6 +64,8 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 - Effects: `$effect(() => { ... })` **not** `afterUpdate`
 - Props: `let { prop } = $props()` **not** `export let prop`
 - Module-level reactive state lives in `.svelte.ts` files, not plain `.ts`.
+- A dependency an effect reads but does not use: `track(a, b)` from `#lib/utils/track.js`, not
+  `void a;` (lint rejects it).
 - For long-lived reactive subscriptions in module-level singletons, wrap effects in
   `$effect.root(() => $effect(() => ...))`. Install lazily on first interaction; never
   dispose for page-lifetime singletons. Precedent: [audio-player-service.svelte.ts](src/lib/services/audio-player-service.svelte.ts).
@@ -72,6 +74,8 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
+- App code under `src/` runs typescript-eslint's strict presets; violations older than them sit in
+  `eslint-suppressions.json`, which must only shrink. After fixing some, run `npm run lint:prune`.
 - Target **WCAG AAA** accessibility. Two deliberate stops at AA: the light theme's colored fills
   (4.5:1 by default, 7:1 under `prefers-contrast: more`: at 7:1 every color lands at the same dim
   lightness) and pointer targets (24px, not 44px: the rows are data-dense)

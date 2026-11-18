@@ -12,7 +12,7 @@
 	import { tick, type Component } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
 	import { toast } from '#lib/services/toast.js';
-	import { ChartLine, Ellipsis, Pencil, Star, Trash2, TriangleAlert } from '@lucide/svelte';
+	import { ChartLine, Ellipsis, Pencil, Star, Trash, TriangleAlert } from '@lucide/svelte';
 	import {
 		bandSummary,
 		eqHistoryStore,
@@ -44,13 +44,13 @@
 	import Switch from '../atoms/Switch.svelte';
 
 	type ListTab = 'history' | 'bookmarks';
-	type MenuItem = {
+	interface MenuItem {
 		label: string;
 		icon: Component<{ class?: string }>;
 		onSelect: () => void;
 		destructive?: boolean;
 		disabled?: boolean;
-	};
+	}
 
 	// Which list is showing. Component state is enough: losing it on a panel
 	// switch just reopens History.
@@ -306,7 +306,7 @@
 			size="icon-sm"
 			disabled={eqHistoryStore.snapshots.length === 0}
 		>
-			<Trash2 class="size-4" />
+			<Trash class="size-4" />
 		</Button>
 	</div>
 
@@ -387,7 +387,7 @@
 						addToGraphItem(snap.filters, snap.summary),
 						{
 							label: m.eq_history_menu_delete(),
-							icon: Trash2,
+							icon: Trash,
 							onSelect: () => eqHistoryStore.remove(snap.id),
 							destructive: true
 						}
@@ -440,7 +440,7 @@
 						addToGraphItem(bookmark.filters, bookmark.name),
 						{
 							label: m.eq_history_menu_delete(),
-							icon: Trash2,
+							icon: Trash,
 							onSelect: () => eqBookmarkStore.remove(bookmark.id),
 							destructive: true
 						}

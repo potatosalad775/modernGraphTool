@@ -30,7 +30,7 @@ export class GraphSpectrumOverlay {
 	// Monotone interpolation for smooth curves. Built once; `y0` is a function so it
 	// follows `graphGeometry` the way the per-frame generator used to.
 	private areaGenerator = d3
-		.area<[number, number]>()
+		.area()
 		.x((d) => d[0])
 		.y0(() => this.graphEngine.graphGeometry.yBottom)
 		.y1((d) => d[1])

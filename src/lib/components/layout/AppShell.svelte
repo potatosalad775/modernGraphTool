@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { track } from '#lib/utils/track.js';
 	import { onMount, untrack } from 'svelte';
 	import { toast } from '#lib/services/toast.js';
 	import { flyOrFade } from '#lib/utils/motion.svelte.js';
@@ -63,11 +64,11 @@
 	// an image title falls back to the app name, the same default the top bar uses.
 	const siteTitle = $derived.by(() => {
 		const fallback = 'modernGraphTool';
-		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string) ?? 'TEXT';
+		const type = (getConfigValue('TOPBAR.TITLE.TYPE') as string | undefined) ?? 'TEXT';
 		const rawAlt = getConfigValue('TOPBAR.TITLE.ALT');
 		const alt = typeof rawAlt === 'string' ? rawAlt.trim() : '';
 		if (type === 'IMAGE') return alt || fallback;
-		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string) ?? fallback;
+		const content = (getConfigValue('TOPBAR.TITLE.CONTENT') as string | undefined) ?? fallback;
 		if (type === 'HTML') return alt || stripHtml(content) || fallback;
 		return content.trim() || alt || fallback;
 	});
@@ -187,9 +188,20 @@
 		// `isReady` is set here, not in the run: the run can finish before mount, and
 		// flipping it mid-mount fires the URL effect below while SvelteKit's router
 		// has no root component yet, so the shallow `goto` fails.
-		claimInitialLoad().then(() => {
-			appStore.isReady = true;
-		});
+		// A phone book that can't be fetched or parsed rejects the run. `isReady` then stays false,
+		// so the URL effect never rewrites a `?share=` link this load could not open.
+		claimInitialLoad().then(
+			() => {
+				appStore.isReady = true;
+			},
+			(error: unknown) => {
+				console.error(
+					'[modernGraphTool] Initial load failed. Check that PATH.PHONE_BOOK is reachable ' +
+						'and valid JSON.',
+					error
+				);
+			}
+		);
 
 		return () => {
 			window.removeEventListener('resize', updateMobile);
@@ -227,7 +239,7 @@
 		if (!appStore.isReady) return;
 		const o = settingsStore.autoEqOptions;
 		// Touch each field so the effect re-runs on any nested mutation.
-		void [o.freqMin, o.freqMax, o.qMin, o.qMax, o.gainMin, o.gainMax, o.useShelfFilter];
+		track(o.freqMin, o.freqMax, o.qMin, o.qMax, o.gainMin, o.gainMax, o.useShelfFilter);
 		settingsStore.persistAutoEqOptions();
 	});
 </script>
@@ -418,7 +430,7 @@
 <EqChannelConflictDialog />
 
 <!-- The uniPEQ link's questions, which can come while the Equalizer panel is closed. -->
-{#if linkStore.choice || linkStore.status?.review || linkStore.status?.consent}
+{#if linkStore.choice ?? linkStore.status?.review ?? linkStore.status?.consent}
 	{#await import('#lib/components/features/LinkDialogs.svelte') then { default: LinkDialogs }}
 		<LinkDialogs />
 	{/await}

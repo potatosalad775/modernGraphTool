@@ -195,8 +195,7 @@ class TargetAdjustmentStore {
 
 	removeFilter(uuid: string, id: string): void {
 		const adj = this.get(uuid);
-		const values = { ...adj.values };
-		delete values[id];
+		const { [id]: _removed, ...values } = adj.values;
 		this.#byUuid.set(uuid, {
 			activeIds: adj.activeIds.filter((x) => x !== id),
 			values,
@@ -283,7 +282,7 @@ class TargetAdjustmentStore {
 				points = points.map(([f, d]) => [f, d + tilt * Math.log2(f / 1000)] as [number, number]);
 			}
 			if (eqFilters.length > 0) {
-				points = this.#eq.applyFilters(points, eqFilters) as [number, number][];
+				points = this.#eq.applyFilters(points, eqFilters);
 			}
 			out[key] = {
 				data: points,

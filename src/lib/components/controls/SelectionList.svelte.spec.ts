@@ -50,12 +50,12 @@ describe('SelectionList', () => {
 
 	it('says so when no curve is loaded', async () => {
 		frStore.clear();
-		render(SelectionList);
+		await render(SelectionList);
 		await expect.element(page.getByText('No curves loaded.')).toBeVisible();
 	});
 
 	it('names every row control after its curve', async () => {
-		render(SelectionList);
+		await render(SelectionList);
 		for (const name of ['Alpha One', 'Beta Two Foam']) {
 			await expect.element(page.getByRole('button', { name: `Remove ${name}` })).toBeVisible();
 			await expect.element(page.getByRole('button', { name: `Hide ${name}` })).toBeVisible();
@@ -81,7 +81,7 @@ describe('SelectionList', () => {
 	});
 
 	it('keeps the baseline button name constant and exposes its state with aria-pressed', async () => {
-		render(SelectionList);
+		await render(SelectionList);
 		const button = page.getByRole('button', { name: 'Set Alpha One as baseline' });
 		await expect.element(button).toHaveAttribute('aria-pressed', 'false');
 		await button.click();
@@ -95,7 +95,7 @@ describe('SelectionList', () => {
 	});
 
 	it('steps the Y offset once on Enter, not once per key repeat of a click', async () => {
-		render(SelectionList);
+		await render(SelectionList);
 		const plus = page.getByRole('button', { name: 'Increase Y offset of Alpha One' });
 		(plus.element() as HTMLElement).focus();
 		await userEvent.keyboard('{Enter}');

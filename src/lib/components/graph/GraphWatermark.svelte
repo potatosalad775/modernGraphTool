@@ -21,11 +21,13 @@
 		'Measured with IEC 60318-4 (711)';
 	const rigFontPx = 14;
 
-	const watermarkData = (getConfigValue('WATERMARK') as WatermarkObject[]) || [];
+	const watermarkData = (getConfigValue('WATERMARK') as WatermarkObject[] | undefined) ?? [];
 
 	function resolvePosition(watermarkObj: WatermarkObject) {
 		const loc = watermarkObj.LOCATION || 'CENTER';
-		const basePos = positionData[loc] || positionData['CENTER'];
+		// `LOCATION` is operator config and may name no anchor.
+		const named: Partial<typeof positionData> = positionData;
+		const basePos = named[loc] ?? positionData.CENTER;
 		const offsetX = watermarkObj.POSITION
 			? (watermarkObj.POSITION.RIGHT ?? 0) - (watermarkObj.POSITION.LEFT ?? 0)
 			: 0;

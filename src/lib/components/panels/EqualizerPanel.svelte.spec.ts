@@ -46,7 +46,7 @@ describe('EqualizerPanel master switch', () => {
 	afterEach(reset);
 
 	it('switches the equalizer on and off with no hold', async () => {
-		render(EqualizerPanel);
+		await render(EqualizerPanel);
 
 		await masterSwitch().click();
 		expect(eqStore.isEnabled).toBe(true);
@@ -58,7 +58,7 @@ describe('EqualizerPanel master switch', () => {
 	it('keeps showing the live state during a hold', async () => {
 		loadSource();
 		eqStore.isEnabled = true;
-		render(EqualizerPanel);
+		await render(EqualizerPanel);
 
 		eqStore.holdMomentary();
 
@@ -71,7 +71,7 @@ describe('EqualizerPanel master switch', () => {
 	it('leaves an audition hold running when the switch is clicked, and lands off on release', async () => {
 		loadSource();
 		eqStore.isEnabled = false;
-		render(EqualizerPanel);
+		await render(EqualizerPanel);
 
 		eqStore.holdMomentary();
 		await expect.element(masterSwitch()).toBeChecked();
@@ -88,7 +88,7 @@ describe('EqualizerPanel master switch', () => {
 	it('leaves a bypass hold running when the switch is clicked, and lands on on release', async () => {
 		loadSource();
 		eqStore.isEnabled = true;
-		render(EqualizerPanel);
+		await render(EqualizerPanel);
 
 		eqStore.holdMomentary();
 		await expect.element(masterSwitch()).not.toBeChecked();

@@ -525,7 +525,7 @@
 					<span class="text-xs text-base-content/80">{m.eq_channel_applies_to()}</span>
 					<SegmentedControl
 						bind:value={
-							() => (filter.channel ?? 'BOTH') as ChannelChoice,
+							() => filter.channel ?? 'BOTH',
 							(choice) => onUpdate({ channel: choice === 'BOTH' ? undefined : choice })
 						}
 						options={channelOptions}

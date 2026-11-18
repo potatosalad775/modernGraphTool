@@ -33,9 +33,7 @@ function select() {
 async function optionLabels(): Promise<string[]> {
 	await select().click();
 	await expect.element(page.getByRole('listbox')).toBeInTheDocument();
-	return Array.from(document.querySelectorAll('[role="option"]')).map(
-		(o) => o.textContent?.trim() ?? ''
-	);
+	return Array.from(document.querySelectorAll('[role="option"]')).map((o) => o.textContent.trim());
 }
 
 describe('EqAutoEqSelect', () => {
@@ -53,7 +51,7 @@ describe('EqAutoEqSelect', () => {
 
 	describe('options', () => {
 		it('shows the placeholder when nothing is loaded', async () => {
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			await expect.element(select()).toHaveTextContent(m.equalizer_phone_select_option_target());
 		});
@@ -61,7 +59,7 @@ describe('EqAutoEqSelect', () => {
 		it('lists phones and targets', async () => {
 			add('a', 'target', 'Harman');
 			add('b', 'phone', 'HD600');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			const labels = await optionLabels();
 			expect(labels).toContain('Harman');
@@ -74,7 +72,7 @@ describe('EqAutoEqSelect', () => {
 			add('a', 'phone', 'HD600');
 			add('eq', 'eq', 'HD600 EQ');
 			add('ins', 'inserted-eq', 'Imported EQ');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(await optionLabels()).toEqual(['HD600']);
 		});
@@ -82,11 +80,11 @@ describe('EqAutoEqSelect', () => {
 		it('puts targets ahead of phones, under group headings', async () => {
 			add('p', 'phone', 'AAA Phone');
 			add('t', 'target', 'ZZZ Target');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(await optionLabels()).toEqual(['ZZZ Target', 'AAA Phone']);
 			const headings = Array.from(document.querySelectorAll('[data-select-group-label]'));
-			expect(headings.map((h) => h.textContent?.trim())).toEqual([
+			expect(headings.map((h) => h.textContent.trim())).toEqual([
 				m.equalizer_phone_select_group_targets(),
 				m.equalizer_phone_select_group_devices()
 			]);
@@ -95,21 +93,21 @@ describe('EqAutoEqSelect', () => {
 		it('sorts alphabetically within a group', async () => {
 			add('p2', 'phone', 'Beta');
 			add('p1', 'phone', 'Alpha');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(await optionLabels()).toEqual(['Alpha', 'Beta']);
 		});
 
 		it('appends the display suffix to the label', async () => {
 			add('p', 'phone', 'HD600', '(sample 2)');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(await optionLabels()).toEqual(['HD600 (sample 2)']);
 		});
 
 		it('trims the label when there is no suffix', async () => {
 			add('p', 'phone', 'HD600');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(await optionLabels()).toEqual(['HD600']);
 		});
@@ -121,7 +119,7 @@ describe('EqAutoEqSelect', () => {
 		it('stores the picked uuid', async () => {
 			add('t', 'target', 'Harman');
 			add('t2', 'target', 'Diffuse Field');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			await select().click();
 			await page.getByRole('option', { name: 'Harman' }).click();
@@ -133,7 +131,7 @@ describe('EqAutoEqSelect', () => {
 			// An aria-label alone would replace the shown value as the accessible
 			// name, so a screen reader would never hear what is selected.
 			add('t', 'target', 'Harman');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			await expect
 				.element(select())
@@ -144,7 +142,7 @@ describe('EqAutoEqSelect', () => {
 			add('t', 'target', 'Harman');
 			add('t2', 'target', 'Diffuse Field');
 			eqStore.autoEqTargetUUID = 't2';
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			await expect.element(select()).toHaveTextContent('Diffuse Field');
 		});
@@ -156,14 +154,14 @@ describe('EqAutoEqSelect', () => {
 		it('auto-selects the only target present', async () => {
 			add('t', 'target', 'Harman');
 			add('p', 'phone', 'HD600');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(eqStore.autoEqTargetUUID).toBe('t');
 		});
 
 		it('counts an inserted target as a candidate', async () => {
 			add('t', 'inserted-target', 'Uploaded Target');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(eqStore.autoEqTargetUUID).toBe('t');
 		});
@@ -171,14 +169,14 @@ describe('EqAutoEqSelect', () => {
 		it('leaves the choice open when several targets are loaded', async () => {
 			add('t1', 'target', 'Harman');
 			add('t2', 'target', 'Diffuse Field');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(eqStore.autoEqTargetUUID).toBeNull();
 		});
 
 		it('leaves the choice open when only phones are loaded', async () => {
 			add('p', 'phone', 'HD600');
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(eqStore.autoEqTargetUUID).toBeNull();
 		});
@@ -189,7 +187,7 @@ describe('EqAutoEqSelect', () => {
 			add('t1', 'target', 'Harman');
 			add('t2', 'target', 'Diffuse Field');
 			eqStore.autoEqTargetUUID = 'gone';
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			expect(eqStore.autoEqTargetUUID).toBeNull();
 		});
@@ -198,7 +196,7 @@ describe('EqAutoEqSelect', () => {
 			add('t1', 'target', 'Harman');
 			add('t2', 'target', 'Diffuse Field');
 			eqStore.autoEqTargetUUID = 't1';
-			render(EqAutoEqSelect);
+			await render(EqAutoEqSelect);
 
 			frStore.delete('t1');
 

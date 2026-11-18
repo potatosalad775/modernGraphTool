@@ -62,7 +62,7 @@ describe('AppShell boot', () => {
 	});
 
 	it('renders the operator defaults when there is no share parameter', async () => {
-		render(AppShell);
+		await render(AppShell);
 
 		// The single most load-bearing assertion in the suite: reaching this means
 		// config.js parsed, the phone book resolved, INITIAL_PHONES/INITIAL_TARGETS
@@ -97,7 +97,7 @@ describe('AppShell boot', () => {
 	}, 30000);
 
 	it('has a site <h1>, one <h2> naming the open panel, and skip links to both regions', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		// The default title is `<span>modernGraphTool</span>` as HTML: the <h1> carries its text only.
@@ -128,7 +128,7 @@ describe('AppShell boot', () => {
 
 		// The skip links come first, and move focus onto their region.
 		const links = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="#app-"]')];
-		expect(links.map((a) => a.textContent?.trim())).toEqual(['Skip to controls', 'Skip to graph']);
+		expect(links.map((a) => a.textContent.trim())).toEqual(['Skip to controls', 'Skip to graph']);
 		expect(document.body.querySelector('a, button, input')).toBe(links[0]);
 		// A first visit opens the welcome tour, whose dialog traps focus; the skip links are for
 		// the page behind it.
@@ -150,14 +150,14 @@ describe('AppShell boot', () => {
 		async (_case, title, expected) => {
 			const cfg = window.GRAPHTOOL_CONFIG as unknown as { TOPBAR: { TITLE: unknown } };
 			cfg.TOPBAR.TITLE = title;
-			render(AppShell);
+			await render(AppShell);
 			await expect.element(page.getByRole('heading', { level: 1 })).toHaveTextContent(expected);
 		},
 		30000
 	);
 
 	it('keeps error and warning toasts until dismissed, and folds a repeat into one', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		toast.error('Something failed');
@@ -184,7 +184,7 @@ describe('AppShell boot', () => {
 		localStorage.removeItem(TOUR_STORAGE_KEYS.welcome);
 		localStorage.setItem('gt-settings-app-version', '0.0.1');
 		try {
-			render(AppShell);
+			await render(AppShell);
 			await expect.poll(() => tutorialStore.isOpen).toBe(true);
 			await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 			const updated = () =>
@@ -200,7 +200,7 @@ describe('AppShell boot', () => {
 	}, 30000);
 
 	it('keeps target customizer adjustments across a panel switch', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 
 		const uuid = findTarget(DEMO_TARGET)![0];
@@ -222,7 +222,7 @@ describe('AppShell boot', () => {
 	}, 30000);
 
 	it('syncs the on-graph EQ curve when `\\` is pressed from another panel', async () => {
-		render(AppShell);
+		await render(AppShell);
 		await expect.element(page.getByText(ADJUSTED_LABEL).first()).toBeInTheDocument();
 		// The label can render before the phone lands; see the first case.
 		await expect.poll(() => frStore.size).toBe(2);

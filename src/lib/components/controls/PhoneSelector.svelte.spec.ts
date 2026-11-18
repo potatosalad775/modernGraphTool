@@ -73,7 +73,7 @@ describe('PhoneSelector', () => {
 	describe('search tips', () => {
 		it('opens the hint popover from the header button', async () => {
 			stubBook(makePhone());
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('button', { name: 'Search tips' }).click();
 
@@ -92,7 +92,7 @@ describe('PhoneSelector', () => {
 		// must not pull focus into the input and fight the popover's focus trap.
 		it('leaves the search field unfocused when the hint is opened', async () => {
 			stubBook(makePhone());
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('button', { name: 'Search tips' }).click();
 
@@ -105,7 +105,7 @@ describe('PhoneSelector', () => {
 		// it is `shrink-0` and measurably costs the search field no width there.
 		it('shows the trigger alongside the nav toggle on a narrow container', async () => {
 			stubBook(makePhone());
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const host = document.querySelector('[style*="container-type"]') as HTMLElement;
 			host.style.width = '420px';
@@ -118,7 +118,7 @@ describe('PhoneSelector', () => {
 	describe('search field', () => {
 		it('has an accessible name and text-correction hints off', async () => {
 			stubBook(makePhone());
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const input = page.getByRole('searchbox', { name: 'Search devices' });
 			await expect.element(input).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('PhoneSelector', () => {
 			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
 			const phone = makePhone();
 			stubBook(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const row = page.getByRole('button', { name: /HD 600/ });
 			await expect.element(row).toHaveAttribute('aria-pressed', 'false');
@@ -152,7 +152,7 @@ describe('PhoneSelector', () => {
 
 	describe('result count announcement', () => {
 		function status(): string {
-			return document.querySelector('[role="status"]')?.textContent?.trim() ?? '';
+			return document.querySelector('[role="status"]')?.textContent.trim() ?? '';
 		}
 
 		it('says nothing until a filter is active, then speaks the count once typing settles', async () => {
@@ -165,7 +165,7 @@ describe('PhoneSelector', () => {
 					)
 				}
 			];
-			render(PhoneSelector);
+			await render(PhoneSelector);
 			expect(status()).toBe('');
 
 			const box = page.getByRole('searchbox');
@@ -179,7 +179,7 @@ describe('PhoneSelector', () => {
 
 			await box.fill('zzz');
 			await vi.waitFor(() => expect(status()).toBe('No results.'), { timeout: 3000 });
-			expect(document.querySelector('.ps-phone-pane > p')?.textContent?.trim()).toBe('No results.');
+			expect(document.querySelector('.ps-phone-pane > p')?.textContent.trim()).toBe('No results.');
 
 			await box.fill('');
 			await vi.waitFor(() => expect(status()).toBe(''), { timeout: 3000 });
@@ -209,7 +209,7 @@ describe('PhoneSelector', () => {
 		it('lists only brands with a device matching the search', async () => {
 			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
 			stubTwoBrands();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await vi.waitFor(() => expect(brands()).toEqual(['Acme', 'Zeta']));
 			await page.getByRole('searchbox').fill('pula');
@@ -222,7 +222,7 @@ describe('PhoneSelector', () => {
 		it('keeps a selected brand listed when none of its devices match', async () => {
 			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
 			stubTwoBrands();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('button', { name: 'Zeta', exact: true }).click();
 			await page.getByRole('searchbox').fill('pula');
@@ -301,7 +301,7 @@ describe('PhoneSelector', () => {
 
 		it.each(CASES)('lists the same devices and brands for %j', async (query, expected) => {
 			stubFixture();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 			// Start from a different list so the wait below can't pass on the initial one.
 			if (expected.length === ALL.length) await page.getByRole('searchbox').fill('zzz');
 			await page.getByRole('searchbox').fill(query);
@@ -312,7 +312,7 @@ describe('PhoneSelector', () => {
 
 		it('keeps the book order when a query is cleared again', async () => {
 			stubFixture();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('searchbox').fill('pro');
 			await vi.waitFor(() => expect(rows()).toHaveLength(3));
@@ -323,7 +323,7 @@ describe('PhoneSelector', () => {
 
 		it('applies a selected brand on top of the query', async () => {
 			stubFixture();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('button', { name: 'Moondrop', exact: true }).click();
 			await vi.waitFor(() => expect(rows()).toHaveLength(4));
@@ -335,7 +335,7 @@ describe('PhoneSelector', () => {
 
 		it('updates the field at once, ahead of the list', async () => {
 			stubFixture();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const box = page.getByRole('searchbox');
 			await box.fill('zzz');
@@ -351,7 +351,7 @@ describe('PhoneSelector', () => {
 					description: 'B&K5128 measurement is available <a href="https://x.example">here</a>'
 				})
 			);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const link = page.getByRole('link', { name: 'here' });
 			await expect.element(link).toBeInTheDocument();
@@ -368,7 +368,7 @@ describe('PhoneSelector', () => {
 					description: 'safe <script>window.__pwned = true;</script><img src=x onerror=1>text'
 				})
 			);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await expect.element(page.getByText('safe text', { exact: false })).toBeInTheDocument();
 			expect(document.querySelector('.ps-description script')).toBeNull();
@@ -377,7 +377,7 @@ describe('PhoneSelector', () => {
 
 		it('flattens the description to plain text for the tooltip', async () => {
 			stubBook(makePhone({ description: 'B&K5128 unit <a href="https://x.example">here</a>' }));
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			// On the row button, not the description: that is click-through, so no tooltip there.
 			const button = document.querySelector('.ps-phone-pane > div > button');
@@ -387,7 +387,7 @@ describe('PhoneSelector', () => {
 		// An anchor in the description is interactive content, so it can't live in the button.
 		it('keeps the description beside the row button, not inside it', async () => {
 			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const link = page.getByRole('link', { name: 'here' });
 			await expect.element(link).toBeInTheDocument();
@@ -401,7 +401,7 @@ describe('PhoneSelector', () => {
 			// The button is still described by it, so a screen reader keeps the text.
 			const wrapper = description.parentElement as HTMLElement;
 			expect(button.getAttribute('aria-describedby')).toBe(wrapper.id);
-			expect(button.textContent?.trim()).toBe('Sennheiser HD 600');
+			expect(button.textContent.trim()).toBe('Sennheiser HD 600');
 		});
 
 		it('leaves the description out of the button that is disabled while loading', async () => {
@@ -410,7 +410,7 @@ describe('PhoneSelector', () => {
 				() => new Promise<void>((resolve) => (release = resolve))
 			);
 			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const row = page.getByRole('button', { name: /HD 600/ });
 			await row.click();
@@ -422,7 +422,7 @@ describe('PhoneSelector', () => {
 
 		it('sets no description reference on a row without a description', async () => {
 			stubBook(makePhone());
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const button = document.querySelector('.ps-phone-pane > div > button') as HTMLElement;
 			expect(button.hasAttribute('aria-describedby')).toBe(false);
@@ -432,7 +432,7 @@ describe('PhoneSelector', () => {
 		it('does not toggle the device when a link inside the description is clicked', async () => {
 			const toggle = vi.spyOn(dataProvider, 'toggleFRData').mockResolvedValue(undefined);
 			stubBook(makePhone({ description: 'see <a href="https://x.example">here</a>' }));
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			// The anchor sits beside the row button, so its click never reaches it.
 			const anchor = document.querySelector('.ps-description a') as HTMLAnchorElement;
@@ -453,7 +453,7 @@ describe('PhoneSelector', () => {
 			});
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const amazon = page.getByRole('link', { name: 'Amazon' });
 			await expect.element(amazon).toHaveAttribute('href', 'https://amazon.example/hd600');
@@ -468,7 +468,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ links: [{ label: 'Amazon', url: 'https://amazon.example' }] });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const anchor = document.querySelector(
 				'a[href="https://amazon.example"]'
@@ -490,7 +490,7 @@ describe('PhoneSelector', () => {
 			});
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			for (const name of ['Review', 'Shop', 'Amazon']) {
 				const link = page.getByRole('link', { name });
@@ -515,7 +515,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ links: [{ label: 'Amazon', url: 'https://amazon.example' }] });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const row = page.getByRole('button', { name: /HD 600/ });
 			await row.click();
@@ -528,7 +528,7 @@ describe('PhoneSelector', () => {
 
 		it('keeps the meta row hidden until the device is loaded', async () => {
 			stubBook(makePhone({ links: [{ label: 'Amazon', url: 'https://amazon.example' }] }));
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			expect(document.querySelector('a[href="https://amazon.example"]')).toBeNull();
 		});
@@ -583,7 +583,7 @@ describe('PhoneSelector', () => {
 		it('floats devices loaded at mount to the top, keeping book order within each group', async () => {
 			stubBigBook();
 			load('Acme Charlie');
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await vi.waitFor(() =>
 				expect(rowOrder()).toEqual(['Acme Charlie', 'Acme Alpha', 'Acme Bravo'])
@@ -593,7 +593,7 @@ describe('PhoneSelector', () => {
 		it('marks the boundary between the pinned block and the rest', async () => {
 			stubBigBook();
 			load('Acme Charlie');
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await vi.waitFor(() => expect(rowOrder()[0]).toBe('Acme Charlie'));
 			const rows = [...document.querySelectorAll('.ps-phone-pane > div')];
@@ -607,7 +607,7 @@ describe('PhoneSelector', () => {
 			// Typing would otherwise lazy-load the real aggregate index.
 			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
 			stubBigBook();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('searchbox').fill('alpha // charlie');
 			await vi.waitFor(() => expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Charlie']));
@@ -622,7 +622,7 @@ describe('PhoneSelector', () => {
 		it("applies a group's `-word` exclusions to that group only", async () => {
 			(window as ConfigWindow).GRAPHTOOL_CONFIG = { CROSS_SITE_SEARCH: { ENABLED: false } };
 			stubBigBook();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await page.getByRole('searchbox').fill('acme -bravo');
 			await vi.waitFor(() => expect(rowOrder()).toEqual(['Acme Alpha', 'Acme Charlie']));
@@ -636,7 +636,7 @@ describe('PhoneSelector', () => {
 		it('does not reorder the list when a device is selected', async () => {
 			const toggle = vi.spyOn(dataProvider, 'toggleFRData').mockResolvedValue(undefined);
 			stubBigBook();
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await expect.element(page.getByRole('button', { name: 'Acme Bravo' })).toBeInTheDocument();
 			await page.getByRole('button', { name: 'Acme Bravo' }).click();
@@ -652,7 +652,7 @@ describe('PhoneSelector', () => {
 			vi.spyOn(dataProvider, 'toggleFRData').mockResolvedValue(undefined);
 			stubBigBook();
 			load('Acme Charlie');
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await vi.waitFor(() => expect(rowOrder()[0]).toBe('Acme Charlie'));
 			frStore.delete('pin-Acme Charlie');
@@ -674,10 +674,10 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ reviewScore: 4 });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await expect.element(page.getByTitle('Rank: 4')).toBeInTheDocument();
-			expect(page.getByTitle('Rank: 4').element().textContent?.trim()).toBe('★★★★☆');
+			expect(page.getByTitle('Rank: 4').element().textContent.trim()).toBe('★★★★☆');
 			expect(page.getByTitle('Rank: 4').element().tagName).toBe('SPAN');
 		});
 
@@ -688,7 +688,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ reviewScore: 4 });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const link = page.getByTitle('Rank: 4');
 			await expect.element(link).toBeInTheDocument();
@@ -702,7 +702,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ reviewScore: 4 });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const link = page.getByTitle('Rank: 4');
 			await expect.element(link).toBeInTheDocument();
@@ -721,11 +721,11 @@ describe('PhoneSelector', () => {
 			const phone = makePhone({ reviewScore: 4 });
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			const link = page.getByTitle('Rank: S');
 			await expect.element(link).toBeInTheDocument();
-			expect(link.element().textContent?.trim()).toBe('S');
+			expect(link.element().textContent.trim()).toBe('S');
 			// The sheet spells it "HD600"; the phone book spells it "HD 600". The
 			// ranking page anchored its card with the sheet's spelling.
 			expect(link.element().getAttribute('href')).toBe('/ranking/#sennheiser-hd600');
@@ -743,7 +743,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone();
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await expect.element(page.getByTitle('Rank: A')).toBeInTheDocument();
 		});
@@ -752,7 +752,7 @@ describe('PhoneSelector', () => {
 			const phone = makePhone();
 			stubBook(phone);
 			markLoaded(phone);
-			render(PhoneSelector);
+			await render(PhoneSelector);
 
 			await expect.element(page.getByRole('button', { name: /HD 600/ })).toBeInTheDocument();
 			expect(document.querySelector('[title^="Rank:"]')).toBeNull();

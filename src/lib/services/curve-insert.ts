@@ -54,7 +54,7 @@ export function getColorForType(sourceType: FRDataType): FRColors {
 export function getDashForType(sourceType: FRDataType, identifier: string): string {
 	if (sourceType !== 'target') return '1 0';
 	const list = getConfigValue('TRACE_STYLING.TARGET_TRACE_DASH') as
-		Array<{ name: string; dash: string }> | undefined;
+		{ name: string; dash: string }[] | undefined;
 	const match = list?.find(
 		(o) => (o.name.endsWith(' Target') ? o.name : o.name + ' Target') === identifier
 	);

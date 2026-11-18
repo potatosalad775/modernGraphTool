@@ -12,6 +12,7 @@
  * On iOS the playing element also moves the page from the "ambient" audio category to
  * "playback", so the ring/silent switch stops muting the player.
  */
+import { noop } from '#lib/utils/noop.js';
 
 export interface MediaSessionHandlers {
 	play(): void;
@@ -93,7 +94,7 @@ export class MediaSessionBridge {
 		const anchor = this.#ensureAnchor();
 		// Rejected when there is no user activation; the player still plays, just without the
 		// OS surfaces until the next gesture-driven play.
-		anchor.play().catch(() => {});
+		anchor.play().catch(noop);
 
 		const session = this.#session;
 		if (!session) return;
@@ -177,7 +178,7 @@ export class MediaSessionBridge {
 		// A new src stops the element; playing again at once keeps the `pause` listener's
 		// `anchor.paused` guard from taking it for an OS pause.
 		anchor.src = this.#anchorUrl;
-		if (wasPlaying) anchor.play().catch(() => {});
+		if (wasPlaying) anchor.play().catch(noop);
 		if (oldUrl) URL.revokeObjectURL(oldUrl);
 	}
 

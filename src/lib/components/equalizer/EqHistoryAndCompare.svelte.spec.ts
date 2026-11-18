@@ -112,21 +112,21 @@ describe('EqHistoryAndCompare', () => {
 
 	describe('with no snapshots', () => {
 		it('shows the empty placeholder instead of the list', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(page.getByText(m.eq_history_empty())).toBeInTheDocument();
 			expect(page.getByRole('listitem').elements()).toHaveLength(0);
 		});
 
 		it('disables both A/B apply buttons and labels them as unset', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(button(m.eq_history_pick_a_first())).toBeDisabled();
 			await expect.element(button(m.eq_history_pick_b_first())).toBeDisabled();
 		});
 
 		it('disables Clear', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(button(m.eq_history_clear())).toBeDisabled();
 		});
@@ -140,7 +140,7 @@ describe('EqHistoryAndCompare', () => {
 				makeSnapshot({ id: 'old', summary: 'oldest entry' }),
 				makeSnapshot({ id: 'new', summary: 'newest entry' })
 			];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(page.getByText('newest entry')).toBeInTheDocument();
 			const rows = page.getByRole('listitem').elements();
@@ -151,7 +151,7 @@ describe('EqHistoryAndCompare', () => {
 		it('prints the snapshot time in local hh:mm:ss', async () => {
 			const snap = makeSnapshot();
 			eqHistoryStore.snapshots = [snap];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect
 				.element(page.getByText(expectedTime(snap.timestamp), { exact: true }))
@@ -167,7 +167,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('sets the A side from the row button', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			// Newest first, so the first "Set as A mode" belongs to snapshot `b`.
 			await button(m.eq_history_set_a()).first().click();
 
@@ -175,14 +175,14 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('flips the row button to unset once nominated', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await button(m.eq_history_set_a()).first().click();
 
 			await expect.element(button(m.eq_history_unset_a())).toBeInTheDocument();
 		});
 
 		it('clears the selection when the nominated row is clicked again', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await button(m.eq_history_set_a()).first().click();
 			await button(m.eq_history_unset_a()).click();
 
@@ -190,7 +190,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('keeps A and B independent', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await button(m.eq_history_set_a()).first().click();
 			await button(m.eq_history_set_b()).last().click();
 
@@ -199,7 +199,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('enables the apply button for the nominated side only', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await button(m.eq_history_set_a()).first().click();
 
 			await expect.element(button(m.eq_history_apply_a_title())).toBeEnabled();
@@ -213,7 +213,7 @@ describe('EqHistoryAndCompare', () => {
 		it('sends the nominated snapshot to eqCommands', async () => {
 			const snap = makeSnapshot({ id: 'a', preamp: -4.5 });
 			eqHistoryStore.snapshots = [snap];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_set_a()).click();
 			await button(m.eq_history_apply_a_title()).click();
@@ -224,7 +224,7 @@ describe('EqHistoryAndCompare', () => {
 		it('applies the B side from the B button', async () => {
 			const snap = makeSnapshot({ id: 'a', preamp: -1 });
 			eqHistoryStore.snapshots = [snap];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_set_b()).click();
 			await button(m.eq_history_apply_b_title()).click();
@@ -237,7 +237,7 @@ describe('EqHistoryAndCompare', () => {
 			eqHistoryStore.snapshots = [snap];
 			eqStore.filters = snap.filters.map((f) => ({ ...f }));
 			eqStore.preamp = snap.preamp;
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_set_a()).click();
 			// `aActive` swaps the variant from outline to primary — the only
@@ -250,7 +250,7 @@ describe('EqHistoryAndCompare', () => {
 			eqHistoryStore.snapshots = [snap];
 			eqStore.filters = snap.filters.map((f) => ({ ...f }));
 			eqStore.preamp = snap.preamp;
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_set_a()).click();
 			eqStore.preamp = snap.preamp - 1;
@@ -263,7 +263,7 @@ describe('EqHistoryAndCompare', () => {
 
 	it('empties the log from the Clear button', async () => {
 		eqHistoryStore.snapshots = [makeSnapshot()];
-		render(EqHistoryAndCompare);
+		await render(EqHistoryAndCompare);
 
 		await button(m.eq_history_clear()).click();
 
@@ -274,7 +274,7 @@ describe('EqHistoryAndCompare', () => {
 	it('Clear leaves the bookmarks alone', async () => {
 		eqHistoryStore.snapshots = [makeSnapshot()];
 		eqBookmarkStore.items = [makeBookmark()];
-		render(EqHistoryAndCompare);
+		await render(EqHistoryAndCompare);
 
 		await button(m.eq_history_clear()).click();
 
@@ -289,7 +289,7 @@ describe('EqHistoryAndCompare', () => {
 				makeSnapshot({ id: 'keep', summary: 'keep me' }),
 				makeSnapshot({ id: 'drop', summary: 'drop me' })
 			];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_menu_title({ name: 'drop me' })).click();
 			await menuItem(m.eq_history_menu_delete()).click();
@@ -300,7 +300,7 @@ describe('EqHistoryAndCompare', () => {
 		it('bookmarks the entry from the star, named after its bands and date', async () => {
 			const snap = makeSnapshot({ filters: [makeFilter({ freq: 3200, gain: -4 })] });
 			eqHistoryStore.snapshots = [snap];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_bookmark_add()).click();
 
@@ -315,7 +315,7 @@ describe('EqHistoryAndCompare', () => {
 			const snap = makeSnapshot();
 			eqHistoryStore.snapshots = [snap];
 			eqBookmarkStore.items = [makeBookmark({ filters: snap.filters, preamp: snap.preamp })];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			const star = button(m.eq_history_bookmark_exists());
 			await expect.element(star).toHaveAttribute('aria-disabled', 'true');
@@ -331,7 +331,7 @@ describe('EqHistoryAndCompare', () => {
 				makeBookmark({ id: `bm-${i}`, preamp: i })
 			);
 			eqHistoryStore.snapshots = [makeSnapshot()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_bookmark_add()).click();
 
@@ -353,7 +353,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('counts the bookmarks in the tab label and lists them with their device', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			await expect.element(page.getByText('Bass-light v2')).toBeInTheDocument();
@@ -361,7 +361,7 @@ describe('EqHistoryAndCompare', () => {
 		});
 
 		it('shows the empty placeholder with no bookmarks', async () => {
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			await expect.element(page.getByText(m.eq_history_bookmarks_empty())).toBeInTheDocument();
@@ -377,7 +377,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('renames inline: Enter saves and focus returns to the menu button', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			const field = await startRename('Bass-light v2');
@@ -390,7 +390,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('renames inline: the field opts out of text correction', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			const field = await startRename('Bass-light v2');
@@ -404,7 +404,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('renames inline: Escape restores the previous name', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			const field = await startRename('Bass-light v2');
@@ -417,7 +417,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('deletes a bookmark from its menu', async () => {
 			eqBookmarkStore.items = [makeBookmark()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await openBookmarks();
 
 			await button(m.eq_history_menu_title({ name: 'Bass-light v2' })).click();
@@ -430,7 +430,7 @@ describe('EqHistoryAndCompare', () => {
 			const bookmark = makeBookmark();
 			eqBookmarkStore.items = [bookmark];
 			eqHistoryStore.snapshots = [makeSnapshot({ id: 'h-1' })];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_set_b()).click();
 			await openBookmarks();
@@ -452,7 +452,7 @@ describe('EqHistoryAndCompare', () => {
 		it('marks a history entry that breaks the constraint and blocks picking it', async () => {
 			activateTight();
 			eqHistoryStore.snapshots = [loud()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(page.getByText(notFit())).toBeInTheDocument();
 			const setA = button(m.eq_history_set_a());
@@ -467,7 +467,7 @@ describe('EqHistoryAndCompare', () => {
 			activateTight();
 			const three = [makeFilter(), makeFilter({ freq: 2000 }), makeFilter({ freq: 4000 })];
 			eqBookmarkStore.items = [makeBookmark({ filters: three })];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await page.getByRole('tab', { name: m.eq_history_tab_bookmarks({ count: 1 }) }).click();
 
 			await expect.element(page.getByText(notFit())).toBeInTheDocument();
@@ -476,7 +476,7 @@ describe('EqHistoryAndCompare', () => {
 		it('leaves fitting entries alone', async () => {
 			activateTight();
 			eqHistoryStore.snapshots = [makeSnapshot()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await expect.element(button(m.eq_history_set_a())).not.toHaveAttribute('aria-disabled');
 			expect(page.getByText(notFit()).elements()).toHaveLength(0);
@@ -485,7 +485,7 @@ describe('EqHistoryAndCompare', () => {
 		it('blocks applying a pick once a constraint change makes it not fit', async () => {
 			eqHistoryStore.snapshots = [loud()];
 			eqHistoryStore.setA('loud');
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await expect.element(button(m.eq_history_apply_a_title())).toBeEnabled();
 
 			activateTight();
@@ -511,7 +511,7 @@ describe('EqHistoryAndCompare', () => {
 		it('shows Match loudness only once A and B are both picked', async () => {
 			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
 			eqHistoryStore.setA('a');
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			const toggle = page.getByRole('switch', { name: m.eq_history_match_loudness() });
 
 			await expect.element(toggle).not.toBeInTheDocument();
@@ -523,7 +523,7 @@ describe('EqHistoryAndCompare', () => {
 			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
 			eqHistoryStore.setA('a');
 			eqHistoryStore.setB('b');
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			const toggle = page.getByRole('switch', { name: m.eq_history_match_loudness() });
 
 			await expect.element(toggle).toBeChecked();
@@ -535,7 +535,7 @@ describe('EqHistoryAndCompare', () => {
 			eqHistoryStore.snapshots = [makeSnapshot({ id: 'a' }), makeSnapshot({ id: 'b' })];
 			eqHistoryStore.setA('a');
 			eqHistoryStore.setB('b');
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			const toggle = page.getByRole('switch', { name: m.eq_history_show_on_graph() });
 
 			await expect.element(toggle).toBeChecked();
@@ -556,7 +556,7 @@ describe('EqHistoryAndCompare', () => {
 			eqStore.sourcePhoneUUID = 'src';
 			const snap = makeSnapshot();
 			eqHistoryStore.snapshots = [snap];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_menu_title({ name: snap.summary })).click();
 			await menuItem(m.eq_history_menu_add_to_graph()).click();
@@ -569,7 +569,7 @@ describe('EqHistoryAndCompare', () => {
 			eqStore.sourcePhoneUUID = 'src';
 			const bookmark = makeBookmark();
 			eqBookmarkStore.items = [bookmark];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 			await page.getByRole('tab', { name: m.eq_history_tab_bookmarks({ count: 1 }) }).click();
 
 			await button(m.eq_history_menu_title({ name: bookmark.name })).click();
@@ -580,7 +580,7 @@ describe('EqHistoryAndCompare', () => {
 
 		it('is unavailable with no EQ source to build the curve on', async () => {
 			eqHistoryStore.snapshots = [makeSnapshot()];
-			render(EqHistoryAndCompare);
+			await render(EqHistoryAndCompare);
 
 			await button(m.eq_history_menu_title({ name: makeSnapshot().summary })).click();
 			await expect
@@ -592,7 +592,7 @@ describe('EqHistoryAndCompare', () => {
 	// ── Help popover ─────────────────────────────────────────────────────────
 
 	it('explains the A/B workflow from the info popover', async () => {
-		render(EqHistoryAndCompare);
+		await render(EqHistoryAndCompare);
 		await button(m.info_popover_about({ topic: m.eq_history_accordion_title() })).click();
 
 		await expect.element(page.getByText(m.eq_history_help_text())).toBeInTheDocument();

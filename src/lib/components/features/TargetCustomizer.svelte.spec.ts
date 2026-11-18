@@ -108,7 +108,7 @@ describe('TargetCustomizer', () => {
 		it('renders nothing for a target the operator did not list', async () => {
 			const item = makeTarget({ identifier: 'Diffuse Field' });
 			frStore.set(UUID, item);
-			render(TargetCustomizer, { uuid: UUID, item });
+			await render(TargetCustomizer, { uuid: UUID, item });
 
 			expect(page.getByRole('button', { name: m.target_customizer_btn_view() }).elements()).toEqual(
 				[]
@@ -117,7 +117,7 @@ describe('TargetCustomizer', () => {
 
 		it('renders the trigger for a listed target', async () => {
 			frStore.set(UUID, makeTarget());
-			render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
+			await render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
 
 			await expect
 				.element(page.getByRole('button', { name: m.target_customizer_btn_view() }))
@@ -127,7 +127,7 @@ describe('TargetCustomizer', () => {
 		it('matches the config entry with or without the " Target" suffix', async () => {
 			const item = makeTarget({ identifier: 'Harman Target' });
 			frStore.set(UUID, item);
-			render(TargetCustomizer, { uuid: UUID, item });
+			await render(TargetCustomizer, { uuid: UUID, item });
 
 			await expect
 				.element(page.getByRole('button', { name: m.target_customizer_btn_view() }))
@@ -140,7 +140,7 @@ describe('TargetCustomizer', () => {
 	describe('registration', () => {
 		it('registers an adjustment record for the target', async () => {
 			frStore.set(UUID, makeTarget());
-			render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
+			await render(TargetCustomizer, { uuid: UUID, item: makeTarget() });
 
 			await vi.waitFor(() => expect(targetAdjustmentStore.has(UUID)).toBe(true));
 		});
@@ -165,7 +165,7 @@ describe('TargetCustomizer', () => {
 			const { unmount } = await open();
 			await slider('Bass').fill('5');
 
-			unmount();
+			await unmount();
 
 			expect(targetAdjustmentStore.get(UUID).values.bass).toBe(5);
 			expect(frStore.get(UUID)!.unadjustedChannels).toBeDefined();
@@ -175,7 +175,7 @@ describe('TargetCustomizer', () => {
 			const { unmount } = await open();
 			frStore.delete(UUID);
 
-			unmount();
+			await unmount();
 
 			expect(targetAdjustmentStore.has(UUID)).toBe(false);
 		});
@@ -195,7 +195,7 @@ describe('TargetCustomizer', () => {
 
 			const first = await render(TargetCustomizer, { uuid: UUID, item });
 			await vi.waitFor(() => expect(applyTargetAdjustment).toHaveBeenCalledTimes(1));
-			first.unmount();
+			await first.unmount();
 			commandHistory.clear();
 
 			await render(TargetCustomizer, { uuid: UUID, item });
@@ -319,7 +319,7 @@ describe('TargetCustomizer', () => {
 				const initial = frStore.get(UUID)!.channels;
 				await slider('Bass').fill('5');
 				await vi.waitFor(() => expect(commandHistory.canUndo).toBe(true));
-				unmount();
+				await unmount();
 
 				commandHistory.undo(frStore);
 				expect(targetAdjustmentStore.get(UUID).values.bass).toBe(2);
@@ -401,7 +401,7 @@ describe('TargetCustomizer', () => {
 			frStore.set(UUID, item);
 			targetAdjustmentStore.ensure(UUID, 'Harman');
 			targetAdjustmentStore.reset(UUID);
-			render(TargetCustomizer, { uuid: UUID, item });
+			await render(TargetCustomizer, { uuid: UUID, item });
 			await page.getByRole('button', { name: m.target_customizer_btn_view() }).click();
 
 			await expect.element(page.getByText(m.target_customizer_no_filters())).toBeInTheDocument();
@@ -435,7 +435,7 @@ describe('TargetCustomizer', () => {
 		it('names the trigger and each remove button after the curve when it is given one', async () => {
 			const item = makeTarget();
 			frStore.set(UUID, item);
-			render(TargetCustomizer, { uuid: UUID, item, name: 'Harman' });
+			await render(TargetCustomizer, { uuid: UUID, item, name: 'Harman' });
 			await page
 				.getByRole('button', { name: m.target_customizer_btn_view_named({ name: 'Harman' }) })
 				.click();

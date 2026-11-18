@@ -105,29 +105,30 @@ describe('EqAudioPlayer', () => {
 
 	describe('source selection', () => {
 		it('starts on the placeholder option with no source-specific controls', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(sourceSelect()).toHaveValue('');
-			expect(await page.getByText(/^Frequency:/).all()).toHaveLength(0);
-			expect(await page.getByRole('button', { name: 'Upload Audio' }).all()).toHaveLength(0);
+			expect(page.getByText(/^Frequency:/).all()).toHaveLength(0);
+			expect(page.getByRole('button', { name: 'Upload Audio' }).all()).toHaveLength(0);
 		});
 
 		it('offers every generator plus the file option', async () => {
-			render(EqAudioPlayer);
-			const values = (await page.getByRole('option').all()).map(
-				(o) => (o.element() as HTMLOptionElement).value
-			);
+			await render(EqAudioPlayer);
+			const values = page
+				.getByRole('option')
+				.all()
+				.map((o) => (o.element() as HTMLOptionElement).value);
 			expect(values).toEqual(['', 'white', 'pink', 'tone', 'sweep', 'file']);
 		});
 
 		it('pushes the pick into the service', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('pink');
 			expect(audioPlayerService.audioSource).toBe('pink');
 		});
 
 		it('reveals the tone slider only for the tone source', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('tone');
 
 			await expect.element(page.getByText(/^Frequency:/)).toBeInTheDocument();
@@ -135,7 +136,7 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('reveals the sweep controls only for the sweep source', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('sweep');
 
 			await expect.element(numberBox('Duration')).toBeInTheDocument();
@@ -143,7 +144,7 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('reveals the upload button only for the file source', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('file');
 
 			await expect.element(page.getByRole('button', { name: 'Upload Audio' })).toBeInTheDocument();
@@ -154,7 +155,7 @@ describe('EqAudioPlayer', () => {
 
 	describe('tone slider', () => {
 		beforeEach(async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('tone');
 		});
 
@@ -198,7 +199,7 @@ describe('EqAudioPlayer', () => {
 
 	describe('sweep controls', () => {
 		beforeEach(async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('sweep');
 		});
 
@@ -238,10 +239,10 @@ describe('EqAudioPlayer', () => {
 			audioRangeStore.setRange(500, 5000);
 
 			await expect.element(numberBox('From')).toHaveValue(500);
-			expect(await numberBox('From').all()).toHaveLength(1);
-			expect(await numberBox('To').all()).toHaveLength(1);
+			expect(numberBox('From').all()).toHaveLength(1);
+			expect(numberBox('To').all()).toHaveLength(1);
 			// The rest of the sweep controls stay.
-			expect(await numberBox('Duration').all()).toHaveLength(1);
+			expect(numberBox('Duration').all()).toHaveLength(1);
 		});
 	});
 
@@ -249,12 +250,12 @@ describe('EqAudioPlayer', () => {
 
 	describe('frequency-selection mode', () => {
 		it('hides the range inputs while the mode is off', async () => {
-			render(EqAudioPlayer);
-			expect(await numberBox('From').all()).toHaveLength(0);
+			await render(EqAudioPlayer);
+			expect(numberBox('From').all()).toHaveLength(0);
 		});
 
 		it('shows the band bounds once the mode is on', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await page.getByRole('switch', { name: 'Frequency Range' }).click();
 
 			expect(audioRangeStore.isFrequencySelectionMode).toBe(true);
@@ -264,7 +265,7 @@ describe('EqAudioPlayer', () => {
 
 		it('writes a typed band back into the store', async () => {
 			audioRangeStore.isFrequencySelectionMode = true;
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await commit(numberBox('From'), '200');
 			await commit(numberBox('To'), '6000');
@@ -276,7 +277,7 @@ describe('EqAudioPlayer', () => {
 		it('restores the full band on reset', async () => {
 			audioRangeStore.isFrequencySelectionMode = true;
 			audioRangeStore.setRange(200, 6000);
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await page.getByRole('button', { name: 'Reset Frequency Range' }).click();
 
@@ -290,19 +291,19 @@ describe('EqAudioPlayer', () => {
 	describe('toggles', () => {
 		it('disables the EQ Effect switch while the equalizer is globally off', async () => {
 			eqStore.isEnabled = false;
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(page.getByRole('switch', { name: 'EQ Effect' })).toBeDisabled();
 		});
 
 		it('turns the filter chain off from the EQ Effect switch', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await page.getByRole('switch', { name: 'EQ Effect' }).click();
 			expect(audioPlayerService.filtersEnabled).toBe(false);
 		});
 
 		it('drives the spectrum overlay flag straight from the store', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await page.getByRole('switch', { name: 'Spectrum' }).click();
 			expect(audioSpectrumStore.isEnabled).toBe(true);
 		});
@@ -351,17 +352,17 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('shows neither line with no device connected', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).toBeEnabled();
-			expect(await applyHere().all()).toHaveLength(0);
-			expect(await leaveToDevice().all()).toHaveLength(0);
-			expect(await page.getByText(/applies the EQ|applied twice/).all()).toHaveLength(0);
+			expect(applyHere().all()).toHaveLength(0);
+			expect(leaveToDevice().all()).toHaveLength(0);
+			expect(page.getByText(/applies the EQ|applied twice/).all()).toHaveLength(0);
 		});
 
 		it('turns the EQ Effect switch off and says who applies the EQ', async () => {
 			connect();
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).toBeDisabled();
 			await expect.element(eqSwitch()).not.toBeChecked();
@@ -369,13 +370,13 @@ describe('EqAudioPlayer', () => {
 				.element(page.getByText('FiiO KA17 applies the EQ, so this player leaves it off.'))
 				.toBeInTheDocument();
 			await expect.element(applyHere()).toBeInTheDocument();
-			expect(await leaveToDevice().all()).toHaveLength(0);
+			expect(leaveToDevice().all()).toHaveLength(0);
 		});
 
 		it('shows the switch off even though the player’s own flag is on', async () => {
 			audioPlayerService.setFiltersEnabled(true);
 			connect();
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).not.toBeChecked();
 			expect(audioPlayerService.filtersEnabled).toBe(true);
@@ -384,7 +385,7 @@ describe('EqAudioPlayer', () => {
 		it('says the device does not hold the latest changes yet when it is out of sync', async () => {
 			connect();
 			devicePeqStore.reportedInSync = false;
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect
 				.element(page.getByText(/It doesn't hold your latest changes yet\./))
@@ -397,15 +398,15 @@ describe('EqAudioPlayer', () => {
 		] as const)('leaves out the latest-changes note when sync is %s', async (_name, value) => {
 			connect();
 			devicePeqStore.reportedInSync = value;
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(applyHere()).toBeInTheDocument();
-			expect(await page.getByText(/latest changes/).all()).toHaveLength(0);
+			expect(page.getByText(/latest changes/).all()).toHaveLength(0);
 		});
 
 		it('hands the EQ back to this player from "Apply it here instead"', async () => {
 			connect();
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await applyHere().click();
 
@@ -417,13 +418,13 @@ describe('EqAudioPlayer', () => {
 				.element(page.getByText('Listening through FiiO KA17? Then the EQ is applied twice.'))
 				.toBeInTheDocument();
 			await expect.element(leaveToDevice()).toBeInTheDocument();
-			expect(await applyHere().all()).toHaveLength(0);
+			expect(applyHere().all()).toHaveLength(0);
 		});
 
 		it('gives the EQ to the device again from "Leave the EQ to the device"', async () => {
 			connect();
 			devicePeqStore.setAudioThroughDevice(false);
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await leaveToDevice().click();
 
@@ -431,19 +432,19 @@ describe('EqAudioPlayer', () => {
 			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: true });
 			await expect.element(eqSwitch()).toBeDisabled();
 			await expect.element(applyHere()).toBeInTheDocument();
-			expect(await leaveToDevice().all()).toHaveLength(0);
+			expect(leaveToDevice().all()).toHaveLength(0);
 		});
 
 		it('asks about a device held over the link, and leaves the switch alone', async () => {
 			connect({ connectionType: 'link' });
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).toBeEnabled();
 			await expect
 				.element(page.getByText('Listening through FiiO KA17? Then the EQ is applied twice.'))
 				.toBeInTheDocument();
 			await expect.element(leaveToDevice()).toBeInTheDocument();
-			expect(await applyHere().all()).toHaveLength(0);
+			expect(applyHere().all()).toHaveLength(0);
 
 			await leaveToDevice().click();
 			expect(devicePeqStore.playsEq).toBe(true);
@@ -452,16 +453,16 @@ describe('EqAudioPlayer', () => {
 
 		it('shows neither line, and a usable switch, while the device’s EQ is off', async () => {
 			connect({ slot: 240 });
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).toBeEnabled();
 			await expect.element(eqSwitch()).toBeChecked();
-			expect(await applyHere().all()).toHaveLength(0);
-			expect(await leaveToDevice().all()).toHaveLength(0);
+			expect(applyHere().all()).toHaveLength(0);
+			expect(leaveToDevice().all()).toHaveLength(0);
 		});
 
 		it('follows the device connecting and disconnecting while mounted', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await expect.element(eqSwitch()).toBeEnabled();
 
 			connect();
@@ -470,14 +471,14 @@ describe('EqAudioPlayer', () => {
 
 			devicePeqStore.setDisconnected();
 			await expect.element(eqSwitch()).toBeEnabled();
-			expect(await applyHere().all()).toHaveLength(0);
-			expect(await leaveToDevice().all()).toHaveLength(0);
+			expect(applyHere().all()).toHaveLength(0);
+			expect(leaveToDevice().all()).toHaveLength(0);
 		});
 
 		it('keeps the switch disabled with the equalizer off, whoever applies the EQ', async () => {
 			eqStore.isEnabled = false;
 			connect({ connectionType: 'link' });
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(eqSwitch()).toBeDisabled();
 		});
@@ -487,14 +488,14 @@ describe('EqAudioPlayer', () => {
 
 	describe('transport', () => {
 		it('keeps play and stop disabled until a source is chosen', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 
 			await expect.element(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
 			await expect.element(page.getByRole('button', { name: 'Stop', exact: true })).toBeDisabled();
 		});
 
 		it('keeps play disabled for the file source until a file is loaded', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('file');
 
 			await expect.element(page.getByRole('button', { name: 'Play', exact: true })).toBeDisabled();
@@ -504,7 +505,7 @@ describe('EqAudioPlayer', () => {
 
 		it('starts playback through the service', async () => {
 			const toggle = vi.spyOn(audioPlayerService, 'togglePlay').mockImplementation(() => {});
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('white');
 
 			await page.getByRole('button', { name: 'Play', exact: true }).click();
@@ -513,7 +514,7 @@ describe('EqAudioPlayer', () => {
 
 		it('stops playback through the service', async () => {
 			const stop = vi.spyOn(audioPlayerService, 'stop').mockImplementation(() => {});
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('white');
 
 			await page.getByRole('button', { name: 'Stop', exact: true }).click();
@@ -521,13 +522,13 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('sends the volume slider position to the service', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await volumeSlider().fill('0.25');
 			expect(audioPlayerService.volume).toBeCloseTo(0.25, 5);
 		});
 
 		it('names the source select and the volume slider, and reads the volume as a percentage', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await expect
 				.element(page.getByRole('combobox', { name: 'Audio source' }))
 				.toBeInTheDocument();
@@ -539,7 +540,7 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('names the tone slider and reads its position as Hz', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('tone');
 
 			const tone = page.getByRole('slider', { name: 'Tone frequency' });
@@ -552,7 +553,7 @@ describe('EqAudioPlayer', () => {
 			vi.spyOn(audioPlayerService, 'fileLoaded', 'get').mockReturnValue(true);
 			vi.spyOn(audioPlayerService, 'currentTime', 'get').mockReturnValue(65);
 			vi.spyOn(audioPlayerService, 'duration', 'get').mockReturnValue(200);
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('file');
 
 			await expect
@@ -561,7 +562,7 @@ describe('EqAudioPlayer', () => {
 		});
 
 		it('swaps in the muted icon at zero volume', async () => {
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await volumeSlider().fill('0');
 			expect(audioPlayerService.volume).toBe(0);
 			// lucide renders the icon name onto the svg's class list.
@@ -588,7 +589,7 @@ describe('EqAudioPlayer', () => {
 			vi.spyOn(audioPlayerService, 'loadFile').mockRejectedValue(new DOMException('bad'));
 			vi.spyOn(console, 'error').mockImplementation(() => {});
 			const error = vi.spyOn(toast, 'error');
-			render(EqAudioPlayer);
+			await render(EqAudioPlayer);
 			await sourceSelect().selectOptions('file');
 
 			const input = pick(new File(['x'], 'song.opus', { type: 'audio/ogg' }));

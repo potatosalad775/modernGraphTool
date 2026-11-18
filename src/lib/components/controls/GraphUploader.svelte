@@ -21,7 +21,7 @@
 	/** Split a filename into its device base name and an optional L/R channel marker. */
 	function parseChannelName(name: string): { base: string; channel: 'L' | 'R' | null } {
 		const stem = stripExtension(name);
-		const match = stem.match(CHANNEL_MARKER);
+		const match = CHANNEL_MARKER.exec(stem);
 		if (match) return { base: match[1].trim(), channel: match[2].toUpperCase() as 'L' | 'R' };
 		return { base: stem, channel: null };
 	}
@@ -129,7 +129,7 @@
 				}
 				// Let insertRawFRData derive dispChannel (both channels for the first phone,
 				// AVG thereafter — matching operator-hosted phones).
-				await dataProvider.insertRawFRData('phone', base, channels, { dispSuffix: 'Uploaded' });
+				dataProvider.insertRawFRData('phone', base, channels, { dispSuffix: 'Uploaded' });
 				loaded.push(base);
 			} catch (err) {
 				reportFailure(base, err);
@@ -140,7 +140,7 @@
 		for (const { base, file } of standalone) {
 			try {
 				const parsed = await parseFile(file);
-				await dataProvider.insertRawFRData(
+				dataProvider.insertRawFRData(
 					'phone',
 					base,
 					{ AVG: parsed },
@@ -169,7 +169,7 @@
 			const base = stripExtension(file.name);
 			try {
 				const parsed = await parseFile(file);
-				await dataProvider.insertRawFRData(
+				dataProvider.insertRawFRData(
 					'target',
 					base,
 					{ AVG: parsed },

@@ -29,10 +29,7 @@ export const DataProcessor = {
 		params: ProcessingParams
 	) {
 		return normalizeChannels(
-			FRSmoother.smoothChannels(
-				{ [channelKey]: data[channelKey] } as ParsedFRData,
-				params.smoothValue
-			),
+			FRSmoother.smoothChannels({ [channelKey]: data[channelKey] }, params.smoothValue),
 			params.normType,
 			params.normHz
 		)[channelKey];
@@ -104,7 +101,7 @@ export function anchorAndNormalizeSamples(
 		// averaging is safe. (Matches the assumption in DataProvider#computeEnvelope,
 		// which indexes the grid directly.)
 		const n = pooled[0].data.length;
-		const meanPoints: FRDataPoint[] = new Array(n);
+		const meanPoints = new Array<FRDataPoint>(n);
 		for (let k = 0; k < n; k++) {
 			let sum = 0;
 			for (const c of pooled) sum += c.data[k][1];
@@ -117,7 +114,7 @@ export function anchorAndNormalizeSamples(
 		const meanNorm = normalize(mean, normType, normHz);
 
 		const applyDelta = (src: ChannelData): ChannelData => {
-			const out: FRDataPoint[] = new Array(n);
+			const out = new Array<FRDataPoint>(n);
 			for (let k = 0; k < n; k++) {
 				const v = meanNorm.data[k][1] + (src.data[k][1] - mean.data[k][1]);
 				out[k] = [src.data[k][0], clampDB(v)];
@@ -133,12 +130,11 @@ export function anchorAndNormalizeSamples(
 	}
 
 	for (const s of result) {
-		if (s.L && s.R) {
+		const { L, R } = s;
+		if (L && R) {
 			s.AVG = {
-				data: s.L.data.map(
-					([freq, lDb], idx) => [freq, (lDb + s.R!.data[idx][1]) / 2] as FRDataPoint
-				),
-				metadata: { ...s.L.metadata }
+				data: L.data.map(([freq, lDb], idx) => [freq, (lDb + R.data[idx][1]) / 2] as FRDataPoint),
+				metadata: { ...L.metadata }
 			};
 		}
 	}

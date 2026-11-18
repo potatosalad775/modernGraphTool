@@ -65,12 +65,12 @@ const FRSmoother = {
 				[1000, 1 / 6]
 			]
 		}
-	} as Record<string, VariableSmoothing>,
+	} as Partial<Record<string, VariableSmoothing>>,
 
 	/** Smooth a single data array using the given smoothing value. */
 	smooth(data: FRDataPoint[], smoothValue: string): FRDataPoint[] {
 		const smoother = this._smootherFor(smoothValue);
-		if (!smoother || !data) return data;
+		if (!smoother) return data;
 		return smoother(data);
 	},
 

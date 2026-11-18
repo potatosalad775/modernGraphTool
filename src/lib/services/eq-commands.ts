@@ -28,6 +28,11 @@ import type { EqChannelScope } from '#lib/utils/eq-channel.js';
  */
 export const EQ_COMMAND_UUID = '__eq__';
 
+/** The band at `index`, or nothing when it is out of range. Not `.at()`: -1 must miss too. */
+function filterAt(index: number): EQFilter | undefined {
+	return eqStore.filters[index];
+}
+
 // ─── Update a single filter ──────────────────────────────────────────────────
 
 export class UpdateEqFilterCommand implements Command {
@@ -46,7 +51,7 @@ export class UpdateEqFilterCommand implements Command {
 	 */
 	constructor(index: number, newFilter: EQFilter, oldFilter?: EQFilter) {
 		this.#index = index;
-		const cur = oldFilter ?? eqStore.filters[index];
+		const cur = oldFilter ?? filterAt(index);
 		if (!cur) {
 			throw new Error(`UpdateEqFilterCommand: index ${index} out of range`);
 		}
@@ -99,7 +104,7 @@ export class RemoveEqFilterCommand implements Command {
 	}
 
 	execute(_store: FRStoreWriteAPI): void {
-		const target = eqStore.filters[this.#index];
+		const target = filterAt(this.#index);
 		if (!target) return;
 		this.#removed = { ...target };
 		eqStore.filters = eqStore.filters.filter((_, i) => i !== this.#index);
@@ -231,7 +236,7 @@ interface PendingBurst {
 }
 
 class EqEditCoalescer {
-	#pending: Map<number, PendingBurst> = new Map();
+	#pending = new Map<number, PendingBurst>();
 
 	/**
 	 * Apply a partial update directly to the store and arm a deferred commit.
@@ -239,7 +244,7 @@ class EqEditCoalescer {
 	 * extend the deadline and merge into a single history entry.
 	 */
 	updateBand(index: number, partial: Partial<EQFilter>): void {
-		const cur = eqStore.filters[index];
+		const cur = filterAt(index);
 		if (!cur) return;
 
 		let pending = this.#pending.get(index);
@@ -263,7 +268,7 @@ class EqEditCoalescer {
 		this.#pending.delete(index);
 		if (entry.timer) clearTimeout(entry.timer);
 
-		const final = eqStore.filters[index];
+		const final = filterAt(index);
 		if (!final) return;
 		if (eqFiltersEqual(entry.capturedOld, final)) return; // no-op burst
 
@@ -318,7 +323,7 @@ export const eqCommands = {
 	 * store hold a value the target can't take.
 	 */
 	updateBand(index: number, partial: Partial<EQFilter>): void {
-		const cur = eqStore.filters[index];
+		const cur = filterAt(index);
 		if (!cur) return;
 		const merged: EQFilter = { ...cur, ...partial };
 		const clamped = projectInPlace(eqStore.filters, index, merged);
@@ -381,10 +386,11 @@ export const eqCommands = {
 	 * concurrent gain/freq drag.
 	 */
 	toggleBandEnabled(index: number, enabled: boolean): void {
-		const pre = eqStore.filters[index];
+		const pre = filterAt(index);
 		if (!pre || pre.enabled === enabled) return;
 		coalescer.flushAll();
-		const cur = eqStore.filters[index]!;
+		const cur = filterAt(index);
+		if (!cur) throw new Error(`toggleBandEnabled: index ${index} out of range`);
 		commandHistory.execute(new UpdateEqFilterCommand(index, { ...cur, enabled }, cur), frStore);
 	},
 
@@ -512,11 +518,7 @@ export const eqCommands = {
 		const sameLength = eqStore.filters.length === filters.length;
 		const samePreamp = eqStore.preamp === preamp;
 		const sameContent =
-			sameLength &&
-			filters.every((f, i) => {
-				const c = eqStore.filters[i];
-				return !!c && eqFiltersEqual(c, f);
-			});
+			sameLength && filters.every((f, i) => eqFiltersEqual(eqStore.filters[i], f));
 		if (samePreamp && sameContent) return;
 		eqHistoryStore.suppressNext();
 		commandHistory.execute(new ApplyEqSnapshotCommand(filters, preamp), frStore);

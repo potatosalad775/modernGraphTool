@@ -5,7 +5,7 @@
  * `SQUIGLINK.DEBUG` set, which is the same escape hatch operators use to
  * develop off-domain (see `enabledStore` below).
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import {
 	squiglinkStore,
 	SquiglinkStore,
@@ -156,11 +156,13 @@ function jsonResponse(body: unknown, ok = true, status = 200) {
 
 describe('SquiglinkStore (enabled)', () => {
 	let store: SquiglinkStore;
-	let fetchMock: ReturnType<typeof vi.fn>;
+	// `fetch` as these tests stub it: a URL string in, a partial Response out.
+	type FetchStub = (url: string, init?: RequestInit) => Promise<unknown>;
+	let fetchMock: Mock<FetchStub>;
 
 	beforeEach(() => {
 		store = enabledStore();
-		fetchMock = vi.fn();
+		fetchMock = vi.fn<FetchStub>();
 		vi.stubGlobal('fetch', fetchMock);
 	});
 

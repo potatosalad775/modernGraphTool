@@ -35,7 +35,7 @@ describe('ShareButton', () => {
 	it('copies the URL, toasts, and shows a check mark without opening the field', async () => {
 		const writeText = vi.fn().mockResolvedValue(undefined);
 		setClipboard({ writeText });
-		render(ShareButton);
+		await render(ShareButton);
 		const button = page.getByRole('button', { name: 'Share' });
 		const idleIcon = button.element().innerHTML;
 
@@ -50,7 +50,7 @@ describe('ShareButton', () => {
 
 	it('puts the URL in a focused, selected, read-only field when the clipboard is missing', async () => {
 		setClipboard(undefined);
-		render(ShareButton);
+		await render(ShareButton);
 
 		await page.getByRole('button', { name: 'Share' }).click();
 
@@ -67,7 +67,7 @@ describe('ShareButton', () => {
 
 	it('does the same when writeText rejects, and Escape closes the field', async () => {
 		setClipboard({ writeText: vi.fn().mockRejectedValue(new DOMException('denied')) });
-		render(ShareButton);
+		await render(ShareButton);
 
 		await page.getByRole('button', { name: 'Share' }).click();
 		const field = page.getByRole('textbox', { name: 'Share link' });

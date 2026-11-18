@@ -80,7 +80,13 @@ function oklchToOklab(L: number, C: number, H: number): [number, number, number]
 
 export function hexToOklch(hex: string): [number, number, number] {
 	const h = hex.replace(/^#/, '');
-	const full = h.length === 3 ? [...h].map((c) => c + c).join('') : h;
+	const full =
+		h.length === 3
+			? h
+					.split('')
+					.map((c) => c + c)
+					.join('')
+			: h;
 	const r = srgbToLinear(parseInt(full.slice(0, 2), 16) / 255);
 	const g = srgbToLinear(parseInt(full.slice(2, 4), 16) / 255);
 	const b = srgbToLinear(parseInt(full.slice(4, 6), 16) / 255);
@@ -112,7 +118,7 @@ export function formatOklch(L: number, C: number, H: number): string {
 const OKLCH_RE = /oklch\(\s*([0-9.+-]+)(%?)\s+([0-9.+-]+)\s+([0-9.+-]+)/i;
 
 export function parseOklch(color: string): [number, number, number] {
-	const m = color.match(OKLCH_RE);
+	const m = OKLCH_RE.exec(color);
 	if (m) {
 		const L = parseFloat(m[1]);
 		return [m[2] ? L / 100 : L, parseFloat(m[3]), parseFloat(m[4])];
@@ -145,7 +151,7 @@ function oklabDistance(a: [number, number, number], b: [number, number, number])
 
 let _okabeItoOklch: [number, number, number][] | null = null;
 function okabeItoOklch(): [number, number, number][] {
-	if (!_okabeItoOklch) _okabeItoOklch = OKABE_ITO_HEX.map(hexToOklch);
+	_okabeItoOklch ??= OKABE_ITO_HEX.map(hexToOklch);
 	return _okabeItoOklch;
 }
 
@@ -160,7 +166,7 @@ export function resolveCurvePalette(
 	if (!palette || palette.length === 0) return palette;
 	if (!randomize) return palette;
 	const sourceKey = palette.join('|');
-	if (_shuffledPalette && _shuffledPalette.sourceKey === sourceKey) {
+	if (_shuffledPalette?.sourceKey === sourceKey) {
 		return _shuffledPalette.shuffled;
 	}
 	const shuffled = palette.slice();
@@ -269,7 +275,8 @@ export function randomCurveColor(palette?: string[], opts: RandomCurveColorOptio
 			best = candidate;
 		}
 	}
-	return formatOklch(...best!);
+	if (!best) throw new Error('randomCurveColor: RANDOM_CANDIDATES must be positive');
+	return formatOklch(...best);
 }
 
 // ── nextCurveColor ─────────────────────────────────────────────────────────

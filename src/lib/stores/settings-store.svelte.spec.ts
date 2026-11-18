@@ -286,9 +286,7 @@ describe('SettingsStore', () => {
 
 		it('follows the OS preference when the config says system', () => {
 			setConfig({ INTERFACE: { PREFERRED_DARK_MODE_THEME: 'system' } });
-			vi.spyOn(window, 'matchMedia').mockReturnValue({
-				matches: true
-			} as unknown as MediaQueryList);
+			mockSystem(true);
 
 			settingsStore.hydrate();
 			expect(settingsStore.theme).toBe('dark');

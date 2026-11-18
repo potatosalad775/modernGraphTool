@@ -102,8 +102,9 @@ class DataProvider {
 		const curve = curveDataFromRaw(rawCache, sourceType);
 		const channels = Object.keys(curve.channels) as Channel[];
 
-		const dispSuffix =
-			inputMetadata.dispSuffix ?? (metaData as PhoneMetadata).files?.[0]?.suffix ?? '';
+		// A target's files carry no suffix.
+		const first = metaData.files.at(0);
+		const dispSuffix = inputMetadata.dispSuffix ?? (first && 'suffix' in first ? first.suffix : '');
 
 		const colors = getColorForType(sourceType);
 
@@ -175,8 +176,9 @@ class DataProvider {
 		const item = frStore.get(uuid);
 		if (!item) return;
 		const files = encodeFRDataForDownload(item);
-		if (runs) {
-			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(item.samples![i], i)));
+		const { samples } = item;
+		if (runs && samples) {
+			files.push(...encodeSampleRunsForDownload(item, (i) => sampleRunLabel(samples[i], i)));
 		}
 		if (files.length === 0) return;
 		if (files.length === 1) {
@@ -198,12 +200,12 @@ class DataProvider {
 
 	// ─── Insert raw ──────────────────────────────────────────────────────────────
 
-	async insertRawFRData(
+	insertRawFRData(
 		sourceType: FRDataType,
 		identifier: string,
 		rawData: ParsedFRData,
 		inputMetadata: FRInputMetadata = {}
-	): Promise<void> {
+	): void {
 		insertRawCurve(sourceType, identifier, rawData, inputMetadata);
 	}
 
@@ -363,9 +365,9 @@ class DataProvider {
 		const variantRawCache = this.#buildRawCache(rawData);
 		const curve = curveDataFromRaw(variantRawCache, data.type);
 		const channels = Object.keys(curve.channels) as Channel[];
-		const dispChannel = (
-			data.dispChannel.every((ch) => channels.includes(ch)) ? [...data.dispChannel] : [channels[0]]
-		) as Channel[];
+		const dispChannel = data.dispChannel.every((ch) => channels.includes(ch))
+			? [...data.dispChannel]
+			: [channels[0]];
 
 		// Bundle every field the new variant touches into one command so undo/redo
 		// stays atomic — see UpdateVariantCommand doc comment.

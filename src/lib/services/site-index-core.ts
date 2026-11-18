@@ -86,7 +86,7 @@ export function findCurrentDbId(index: SiteIndex, href?: string): string | null 
 	for (const db of index.dbs) {
 		if (!isRecord(db) || typeof db.id !== 'string' || typeof db.url !== 'string') continue;
 		const target = splitUrl(db.url);
-		if (!target || target.host !== here.host) continue;
+		if (target?.host !== here.host) continue;
 		if (here.path !== target.path && !here.path.startsWith(target.path)) continue;
 
 		if (target.path.length > matchedLength) {
@@ -104,8 +104,8 @@ export async function fetchSiteIndex(urls: string[]): Promise<SiteIndex | null> 
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 			if (!res.ok) continue;
-			const data = (await res.json()) as SiteIndex;
-			if (Array.isArray(data?.sites) && Array.isArray(data?.dbs)) return data;
+			const data = (await res.json()) as SiteIndex | null;
+			if (Array.isArray(data?.sites) && Array.isArray(data.dbs)) return data;
 		} catch {
 			// Another mirror may still answer.
 		}
@@ -168,7 +168,7 @@ export function groupSiteEntries(entries: SiteIndexEntry[]): SiteIndexGroup[] {
 		group.sort((a, b) => a.siteName.localeCompare(b.siteName) || a.url.localeCompare(b.url));
 	}
 
-	return [...byType.keys()]
-		.sort((a, b) => rankDbType(a) - rankDbType(b) || a.localeCompare(b))
-		.map((type) => ({ type, entries: byType.get(type)! }));
+	return [...byType]
+		.sort(([a], [b]) => rankDbType(a) - rankDbType(b) || a.localeCompare(b))
+		.map(([type, entries]) => ({ type, entries }));
 }

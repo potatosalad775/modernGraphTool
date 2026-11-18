@@ -3,7 +3,7 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { isTargetType, type FRDataObject } from '#lib/types/data-types.js';
 import { curveBaseName } from '#lib/utils/curve-name.js';
 import { sampleRunLabel } from '#lib/utils/eq-source.js';
-import type { SelectMenuGroup, SelectMenuItem } from '../atoms/SelectMenu.svelte';
+import type { SelectMenuGroup, SelectMenuItem } from '../atoms/select-menu.js';
 
 const isDevice = (item: FRDataObject) => item.type === 'phone' || item.type === 'inserted-phone';
 
@@ -25,8 +25,9 @@ export function sourceValue(uuid: string, run: number | null): string {
 
 /** Inverse of `sourceValue`. */
 export function parseSourceValue(value: string): { uuid: string; run: number | null } {
-	const [uuid, run] = value.split(RUN_SEPARATOR);
-	return { uuid, run: run === undefined ? null : Number(run) };
+	const parts = value.split(RUN_SEPARATOR);
+	const run = parts.at(1);
+	return { uuid: parts[0], run: run === undefined ? null : Number(run) };
 }
 
 /**

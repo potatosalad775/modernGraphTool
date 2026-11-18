@@ -88,7 +88,26 @@ before `.gitattributes` pinned every text file to `eol=lf`, the same commit was 
 macOS and dirty on Windows. The **Working tree must be clean** step guards against that regressing:
 it fails if a checkout plus install leaves anything modified, or if CRLF ever reaches the index.
 
-`npm run lint` must exit 0. ESLint _warnings_ do not fail the build. Rule overrides live in `eslint.config.js` and each carries a
+`npm run lint` must exit 0, and an ESLint _warning_ fails it like an error (`--max-warnings 0`). Rule overrides live in `eslint.config.js` and each carries a
 comment explaining why — notably `no-useless-assignment` is off for `*.svelte` because it misreads
 `$bindable()` prop defaults, and `no-explicit-any` is off under `docs/` because the config migration
 tool parses arbitrary operator-authored config.
+
+In `src/`, two type-aware rules hold app code to its types. `no-unnecessary-condition` fails a guard
+the types say can never fire, so a value from outside them (operator config, fetched JSON, storage,
+a DOM read, an index that can miss) is typed `| undefined` where it enters, and its guard stays.
+`no-non-null-assertion` fails a `!`: narrow instead, or throw where absence is a bug. Specs and test
+fixtures may still use `!`.
+
+App code outside the specs is also held to typescript-eslint's `strict-type-checked` and
+`stylistic-type-checked` presets. The violations that predate them are recorded per file and rule in
+`eslint-suppressions.json`, ESLint's bulk-suppressions file, so lint fails only on a new one. That
+file must never grow: never run `eslint --suppress-all` to make a red lint pass. After fixing
+recorded violations, run `npm run lint:prune` and commit the smaller file, because `npm run lint`
+also fails on a suppression that no longer matches anything. What is left there is the `complexity`
+rule alone: functions over its limit of 15 that have not been split yet.
+
+Two helpers in `src/lib/utils/` exist for these presets. `track(a, b)` names the reactive values an
+`$effect` depends on without otherwise using (a bare `void a;` fails `no-meaningless-void-operator`).
+`noop` fills a callback slot that needs no action, such as `.catch(noop)` on a rejection that is safe
+to ignore (an empty arrow function fails `no-empty-function`).

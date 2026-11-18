@@ -234,6 +234,12 @@ export interface PhoneLink {
 	url: string;
 }
 
+/**
+ * An element of a list in `phone_book.json` before the parser has checked it. The file is
+ * hand-edited, so an element can be any JSON value, and the parser skips what it can't read.
+ */
+export type Unchecked<T> = T | string | number | boolean | null | unknown[];
+
 /** Raw phone data from phone_book.json before processing */
 export interface RawPhoneData {
 	name: string | string[];
@@ -259,11 +265,11 @@ export interface RawPhoneData {
 	 * anything else is appended. Lets one phone stay readable by CrinGraph — which
 	 * only knows `file` — while carrying sample sets here.
 	 */
-	variants?: RawVariant[];
+	variants?: Unchecked<RawVariant>[];
 	/** Legacy: number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */
 	samples?: number;
 	/** Legacy: HpTF measurement sets. Each entry becomes its own variant in the selector. */
-	hptfs?: RawHpTFEntry[];
+	hptfs?: Unchecked<RawHpTFEntry>[];
 }
 
 /** Raw brand data from phone_book.json before processing */
@@ -278,7 +284,7 @@ export interface RawBrandData {
 	 * describe one specific set and are ignored at brand level.
 	 */
 	defaultSamples?: number | Pick<RawSampleSet, 'count' | 'display'>;
-	phones: (string | RawPhoneData)[];
+	phones: Unchecked<string | RawPhoneData>[];
 }
 
 /** Phone metadata from phone_book.json */
@@ -302,7 +308,7 @@ export interface PhoneMetadata {
 /** Target metadata structure */
 export interface TargetMetadata {
 	identifier: string;
-	files: Array<{ files: string }>;
+	files: { files: string }[];
 	extensionData?: unknown;
 }
 
@@ -459,13 +465,13 @@ export interface SamplesConfig {
 	FILL_OPACITY?: number;
 }
 
-/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY`. */
+/** The `MULTI_SAMPLE` section, which `SAMPLES` superseded. */
 export interface MultiSampleConfig {
 	/** Default display mode: 'average' shows only averaged trace, 'all' shows all samples */
 	DEFAULT_DISPLAY: 'average' | 'all';
 }
 
-/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY` / `SAMPLES.FILL_OPACITY`. */
+/** The `HPTF` section, which `SAMPLES` superseded. */
 export interface HpTFConfig {
 	/** Default display mode for HpTF items */
 	DEFAULT_DISPLAY: 'fill' | 'fill+curves' | 'curves' | 'none';
@@ -482,7 +488,7 @@ export interface DownloadConfig {
 export interface TraceStylingConfig {
 	PHONE_TRACE_THICKNESS: number;
 	TARGET_TRACE_THICKNESS: number;
-	TARGET_TRACE_DASH: Array<{ name: string; dash: string }>;
+	TARGET_TRACE_DASH: { name: string; dash: string }[];
 }
 
 /**
@@ -493,8 +499,8 @@ export interface TraceStylingConfig {
  * `RANKING.CONFIG_URL` never writes this out by hand.
  */
 export interface RankScaleEntry {
-	/** Cell value as written in the sheet, e.g. `'S'`, `'4.5'`, `'8'`. */
-	value: string;
+	/** Cell value as written in the sheet, e.g. `'S'`, `'4.5'`, `'8'`. An operator may write a bare number. */
+	value: string | number;
 	/** Numeric worth of this step. Only used to render a star row. */
 	score?: number;
 	/** Badge background. Any CSS color; a hex value also gets a contrast-checked text color. */
@@ -592,9 +598,9 @@ export interface AppConfig {
 	TRACE_STYLING: TraceStylingConfig;
 	SAMPLES?: SamplesConfig;
 	DOWNLOAD?: DownloadConfig;
-	/** @deprecated superseded by SAMPLES */
+	/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY`. */
 	MULTI_SAMPLE?: MultiSampleConfig;
-	/** @deprecated superseded by SAMPLES */
+	/** @deprecated Read as a fallback for `SAMPLES.DEFAULT_DISPLAY` / `SAMPLES.FILL_OPACITY`. */
 	HPTF?: HpTFConfig;
 	TOPBAR: TopbarConfig;
 	DESCRIPTION: DescriptionConfig[] | I18nConfigValue;

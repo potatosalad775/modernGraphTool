@@ -19,7 +19,7 @@
 			const dataUrl = await new Promise<string>((resolve, reject) => {
 				const reader = new FileReader();
 				reader.onload = () => resolve(reader.result as string);
-				reader.onerror = () => reject(reader.error);
+				reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
 				reader.readAsDataURL(blob);
 			});
 			image.setAttribute('href', dataUrl);
@@ -31,18 +31,16 @@
 
 	async function downloadScreenshot() {
 		analyticsService.trackGeneralEvent('clicked_download');
-		const svgNode = graphEngine.svg?.node();
+		// `svg` is only set by `init()`, whatever its type says.
+		if (!graphEngine.isInitialized) return;
+		const svgNode = graphEngine.svg.node();
 		if (!svgNode) return;
 
 		const clone = svgNode.cloneNode(true) as SVGSVGElement;
 
 		clone.querySelectorAll('.y-scaler-handle').forEach((el) => el.remove());
 
-		await Promise.all(
-			Array.from(clone.querySelectorAll('image')).map((el) =>
-				inlineImageHref(el as SVGImageElement)
-			)
-		);
+		await Promise.all(Array.from(clone.querySelectorAll('image')).map((el) => inlineImageHref(el)));
 
 		// Get dimensions from viewBox
 		const viewBox = svgNode.getAttribute('viewBox');

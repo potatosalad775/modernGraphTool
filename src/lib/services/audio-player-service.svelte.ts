@@ -1,3 +1,4 @@
+import { track } from '#lib/utils/track.js';
 import { untrack } from 'svelte';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
@@ -8,7 +9,7 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
-import { isPlayableBand, type EQFilter } from '#lib/utils/equalizer.js';
+import { isPlayableBand, type CompleteBand, type EQFilter } from '#lib/utils/equalizer.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 import { MediaSessionBridge } from './media-session.js';
 import * as m from '#lib/paraglide/messages.js';
@@ -338,13 +339,13 @@ class AudioPlayerService {
 		this.#reconnectSource();
 	}
 
-	#createBiquad(ctx: AudioContext, f: EQFilter): BiquadFilterNode {
+	#createBiquad(ctx: AudioContext, f: CompleteBand): BiquadFilterNode {
 		const node = ctx.createBiquadFilter();
 		node.type = BIQUAD_TYPE[f.type];
-		node.frequency.value = f.freq!;
+		node.frequency.value = f.freq;
 		// Web Audio reads a low or high pass's Q as resonance in dB; every other type's is linear.
-		node.Q.value = f.type === 'LPQ' || f.type === 'HPQ' ? 20 * Math.log10(f.q!) : f.q!;
-		node.gain.value = f.gain!;
+		node.Q.value = f.type === 'LPQ' || f.type === 'HPQ' ? 20 * Math.log10(f.q) : f.q;
+		node.gain.value = f.gain;
 		return node;
 	}
 
@@ -369,7 +370,7 @@ class AudioPlayerService {
 	 * An ear with no bands of its own still gets a unity `GainNode`: a merger
 	 * input left unconnected is silence, not passthrough.
 	 */
-	#buildPerChannelStage(ctx: AudioContext, input: AudioNode, filters: EQFilter[]): AudioNode {
+	#buildPerChannelStage(ctx: AudioContext, input: AudioNode, filters: CompleteBand[]): AudioNode {
 		const stereoForce = ctx.createGain();
 		stereoForce.channelCount = 2;
 		stereoForce.channelCountMode = 'explicit';
@@ -641,17 +642,19 @@ class AudioPlayerService {
 				});
 			});
 			$effect(() => {
-				void eqStore.filters;
-				void eqStore.preamp;
-				// Both bypass sources — the local switch and the master toggle /
-				// `\` key — must retrigger the chain rebuild.
-				void eqStore.isEnabled;
-				void this.#filtersEnabled;
-				// A device taking over the EQ, or handing it back, rewires the chain too.
-				void devicePeqStore.playsEq;
-				void audioRangeStore.isFrequencySelectionMode;
-				// Whether the range bandpass applies at all depends on the source.
-				void this.#audioSource;
+				track(
+					eqStore.filters,
+					eqStore.preamp,
+					// Both bypass sources — the local switch and the master toggle /
+					// `\` key — must retrigger the chain rebuild.
+					eqStore.isEnabled,
+					this.#filtersEnabled,
+					// A device taking over the EQ, or handing it back, rewires the chain too.
+					devicePeqStore.playsEq,
+					audioRangeStore.isFrequencySelectionMode,
+					// Whether the range bandpass applies at all depends on the source.
+					this.#audioSource
+				);
 				this.#updateFilters();
 			});
 			// Range bounds change continuously while the user drags the graph
@@ -666,10 +669,12 @@ class AudioPlayerService {
 			// Tone and sweep are gated by moving them rather than by filtering them, so
 			// both have to follow the band when the user redraws the range on the graph.
 			$effect(() => {
-				void audioRangeStore.fromHz;
-				void audioRangeStore.toHz;
-				void audioRangeStore.isFrequencySelectionMode;
-				void this.#audioSource;
+				track(
+					audioRangeStore.fromHz,
+					audioRangeStore.toHz,
+					audioRangeStore.isFrequencySelectionMode,
+					this.#audioSource
+				);
 				this.#clampToneToRange();
 				this.#syncSweepToRange();
 			});
@@ -708,12 +713,10 @@ class AudioPlayerService {
 			audioSpectrumStore.analyserNode = this.#analyserNode;
 		}
 
-		this.#ensureBypassMatchNode(ctx);
-		this.#updateFilters();
-
 		// All sources route into bypassMatchNode; #updateFilters() wires the
 		// rest of the chain (filters or bypass) downstream.
-		const sourceTarget = this.#bypassMatchNode!;
+		const sourceTarget = this.#ensureBypassMatchNode(ctx);
+		this.#updateFilters();
 
 		if (this.#audioSource === 'white' || this.#audioSource === 'pink') {
 			this.#sourceNode = this.#createNoiseNode(this.#audioSource);
@@ -871,7 +874,10 @@ class AudioPlayerService {
 
 	#syncMediaPosition(): void {
 		const buffer = this.#audioSource === 'file' ? this.#audioBuffer : null;
-		if (!buffer) return this.#media.setPosition(null);
+		if (!buffer) {
+			this.#media.setPosition(null);
+			return;
+		}
 		const elapsed =
 			this.#isPlaying && this.#audioContext ? this.#audioContext.currentTime - this.#startTime : 0;
 		this.#media.setPosition({ duration: buffer.duration, position: this.#pausedAt + elapsed });

@@ -7,6 +7,7 @@
 // no network transport. They stay here, behind the same `PeqDevice` shape the
 // bridge's devices have, with a profile written from what the handlers accept.
 //
+import { noop } from '#lib/utils/noop.js';
 import type { Filter, FilterType, Profile } from '@potatosalad775/eqcaps-core';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from './types.js';
 import type { NetworkDeviceType } from './network-types.js';
@@ -50,7 +51,7 @@ export async function readBoundedText(
 ): Promise<string> {
 	const declared = Number(response.headers.get('Content-Length'));
 	if (Number.isFinite(declared) && declared > limit) {
-		await response.body?.cancel().catch(() => {});
+		await response.body?.cancel().catch(noop);
 		throw new NetworkResponseError(limit);
 	}
 	if (!response.body) return '';
@@ -63,7 +64,7 @@ export async function readBoundedText(
 		if (done) break;
 		received += value.byteLength;
 		if (received > limit) {
-			await reader.cancel().catch(() => {});
+			await reader.cancel().catch(noop);
 			throw new NetworkResponseError(limit);
 		}
 		text += decoder.decode(value, { stream: true });
@@ -161,7 +162,7 @@ const WIIM_PLUGIN = { PluginUri: 'http://moddevices.com/plugins/caps/EqNp', Sour
 
 /** WiiM band modes: low shelf 0, peaking 1, high shelf 2, off -1. */
 const WIIM_MODE: Partial<Record<FilterType, number>> = { LSC: 0, PK: 1, HSC: 2 };
-const WIIM_TYPE: Record<number, FilterType> = { 0: 'LSC', 1: 'PK', 2: 'HSC' };
+const WIIM_TYPE: Partial<Record<number, FilterType>> = { 0: 'LSC', 1: 'PK', 2: 'HSC' };
 
 interface WiimBand {
 	mode: number;
@@ -183,11 +184,12 @@ function wiimDevice(ip: string): PeqDevice {
 		async pull() {
 			const text = await wiimCommand(ip, 'EQGetLV2SourceBandEx', WIIM_PLUGIN);
 			const data = JSON.parse(text) as { EQBand?: WiimBand[] };
-			const filters = (data.EQBand ?? []).map((b): Filter | null =>
-				b.mode === -1 || WIIM_TYPE[b.mode] === undefined
+			const filters = (data.EQBand ?? []).map((b): Filter | null => {
+				const type = WIIM_TYPE[b.mode];
+				return b.mode === -1 || type === undefined
 					? null
-					: { type: WIIM_TYPE[b.mode], freq: b.freq, q: b.q, gain: b.gain }
-			);
+					: { type, freq: b.freq, q: b.q, gain: b.gain };
+			});
 			return { filters };
 		},
 		async push({ filters }) {
@@ -209,7 +211,7 @@ function wiimDevice(ip: string): PeqDevice {
 		async setEnabled(enabled) {
 			await wiimCommand(ip, enabled ? 'EQChangeSourceFX' : 'EQSourceOff', WIIM_PLUGIN);
 		},
-		async close() {}
+		close: () => Promise.resolve()
 	};
 }
 
@@ -223,7 +225,8 @@ export function luxEncode(text: string): string {
 	const bytes = new TextEncoder().encode(text);
 	let binary = '';
 	for (const b of bytes) binary += String.fromCharCode(b);
-	return [...btoa(binary)]
+	return btoa(binary)
+		.split('')
 		.map((ch) => {
 			const i = STD_ALPHABET.indexOf(ch);
 			return i === -1 ? ch : LUX_ALPHABET[i];
@@ -232,7 +235,8 @@ export function luxEncode(text: string): string {
 }
 
 export function luxDecode(encoded: string): string {
-	const base64 = [...encoded]
+	const base64 = encoded
+		.split('')
 		.map((ch) => {
 			const i = LUX_ALPHABET.indexOf(ch);
 			return i === -1 ? ch : STD_ALPHABET[i];
@@ -255,7 +259,7 @@ const LUX_CODE: Partial<Record<FilterType, number>> = {
 };
 const LUX_TYPE = Object.fromEntries(
 	Object.entries(LUX_CODE).map(([type, code]) => [code, type as FilterType])
-) as Record<number, FilterType>;
+) as Partial<Record<number, FilterType>>;
 
 interface LuxProfile {
 	name?: string;
@@ -267,7 +271,7 @@ interface LuxProfile {
 async function luxGet(ip: string, action: string): Promise<Record<string, unknown>> {
 	const response = await netFetch('http', ip, `/dev/info.cgi?action=${action}`);
 	if (!response.ok) throw new Error(`Luxsin: HTTP ${response.status} ${response.statusText}`);
-	return JSON.parse(luxDecode(await readBoundedText(response)));
+	return JSON.parse(luxDecode(await readBoundedText(response))) as Record<string, unknown>;
 }
 
 async function luxPost(ip: string, payload: object): Promise<void> {
@@ -294,10 +298,10 @@ function luxsinDevice(ip: string): PeqDevice {
 		async pull() {
 			const { select, profile } = await state();
 			const raw = JSON.parse(profile?.filters || '[]') as {
-				type: number;
-				fc: number;
-				q: number;
-				gain: number;
+				type: unknown;
+				fc: unknown;
+				q: unknown;
+				gain: unknown;
 			}[];
 			const filters = raw.map((f): Filter | null => {
 				const type = LUX_TYPE[Number(f.type)];
@@ -334,7 +338,7 @@ function luxsinDevice(ip: string): PeqDevice {
 		async setEnabled(enabled) {
 			await luxPost(ip, { peqEnable: enabled ? 1 : 0 });
 		},
-		async close() {}
+		close: () => Promise.resolve()
 	};
 }
 

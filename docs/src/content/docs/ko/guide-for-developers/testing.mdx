@@ -14,7 +14,7 @@ modernGraphTool은 **Vitest**와 **Playwright 브라우저 모드**를 사용합
 | `npm run test`          | 전체 스위트 — `client`와 `server` 두 프로젝트 모두         |
 | `npm run test:unit`     | 같은 스위트를 감시(watch) 모드로 실행                      |
 | `npm run test:coverage` | 전체 스위트 + v8 커버리지 리포트를 `coverage/`에 생성      |
-| `npm run test:smoke`    | 빌드된 `dist/`를 브라우저에서 부팅 (먼저 `build` 필요)     |
+| `npm run test:smoke`    | 빌드된 `dist/`를 세 엔진에서 부팅 (먼저 `build` 필요)      |
 
 ## 두 개의 프로젝트 \{#the-two-projects\}
 
@@ -66,27 +66,44 @@ adapter-static 설정 오류, Vite 플러그인이 복사하지 않게 된 `defa
 해석에 실패하는 워커 — 이 모두는 전체 스위트가 초록인 채로 빈 페이지를 배포하게 만듭니다.
 
 `scripts/smoke-dist.js`는 `dist/`를 실제 HTTP로 서빙하고(`.htaccess`가 제공하는 SPA 폴백 포함),
-Playwright chromium에서 부팅한 뒤 콘솔 오류, 처리되지 않은 예외, 4xx 응답, 그려지지 않는 그래프,
-곡선이 하나도 나타나지 않는 `?share=` 링크에 대해 실패합니다.
+Playwright로 Chromium, WebKit, Firefox에서 부팅한 뒤 콘솔 오류, 처리되지 않은 예외, 4xx 응답,
+그려지지 않는 그래프, 곡선이 하나도 나타나지 않는 `?share=` 링크에 대해 실패합니다. 권장 보안 헤더를
+Trusted Types까지 켠 채로 보내고, 각 엔진이 이를 실제로 적용하는지 확인합니다. AutoEQ도 실행하여
+워커가 응답하지 않거나 wasm 엔진 대신 폴백이 돌면 실패하며, 비활성 버튼의 툴팁도 열어 봅니다.
 
-확장할 때 유념할 두 가지입니다.
+Chromium 밖에서 도는 테스트는 이것뿐입니다. 컴포넌트 스펙은 Chromium에서만 실행됩니다. 나머지 두
+엔진은 `npx playwright install webkit firefox`로 한 번 설치하고, 엔진 하나만 돌리려면
+`npm run test:smoke -- --browser firefox`를 사용하세요.
 
+:::note[WebKit은 Safari가 아닙니다]
+Playwright의 WebKit은 데스크톱 Safari와 가깝지만 같지는 않으며, iOS에서만 나타나는 동작은 보여 주지
+않습니다. 여기서 통과했다고 실제 iPhone 확인을 대신할 수는 없습니다. WebHID와 Web Bluetooth는
+Chromium에만 있으므로, 하드웨어 EQ 경로는 테스트 결과와 무관하게 단일 엔진입니다.
+:::
+
+확장할 때 유념할 세 가지입니다.
+
+- **어떤 엔진에 적용할 수 없는 검사는 그 엔진에서만 건너뛰고, 건너뛰는 자리에 이유를 적습니다.**
+  현재 건너뛰는 검사는 없습니다.
 - **200 응답이 파일의 존재를 증명하지는 않습니다.** SPA 폴백은 디스크에 없는 요청에 `index.html`로
   응답하며, 실제 Apache 호스트에서도 마찬가지입니다. 그래서 애셋 검사는 상태 코드를 믿는 대신 본문을
   HTML 셸과 비교합니다.
-- 빌드 산출물이 필요하므로 `npm run build` 이후 `build` CI 잡에서 실행됩니다.
+- 별도의 `smoke` CI 잡에서 실행되며, 빌드 산출물이 필요하므로 잡이 먼저 앱을 빌드합니다. 이 잡은 세
+  엔진이 들어 있는 Playwright Docker 이미지에서 실행됩니다. 이미지 태그는 `package-lock.json`의
+  `playwright` 버전과 같아야 하며, 다르면 잡이 설정해야 할 태그를 알려 주며 실패합니다.
 
 ## 지속적 통합 \{#continuous-integration\}
 
-`.github/workflows/ci.yml`은 모든 PR과 `main`으로의 모든 푸시에서 실행됩니다. **ubuntu-latest와
-windows-latest 양쪽에서** `lint` → `check` → `test`를 돌리고, Linux에서 앱·CDN 배포본·문서 사이트를
-빌드합니다.
+`.github/workflows/ci.yml`은 모든 PR과 `main`으로의 모든 푸시에서 실행됩니다. ubuntu-latest에서
+`lint` → `check` → `test`를 돌리고, 앱 빌드, 세 브라우저 엔진에서의 스모크 테스트, CDN 배포본과 문서
+사이트 빌드를 수행합니다. CI는 운영 체제가 아니라 브라우저 엔진을 가로질러 테스트합니다.
 
-Windows 레그는 중복이 아닙니다. Git for Windows는 시스템 설정에서 `core.autocrlf=true`를 켜기
+Windows 레그는 줄바꿈 문자 때문에만 남아 있습니다. 설치와 린트, 작업 트리 검사만 하고 타입 검사와
+테스트는 실행하지 않습니다. Git for Windows는 시스템 설정에서 `core.autocrlf=true`를 켜기
 때문에, `.gitattributes`로 모든 텍스트 파일을 `eol=lf`로 고정하기 전에는 같은 커밋이 macOS에서는
-Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. **Working tree must be clean** 단계가
-이 문제의 재발을 막습니다. 체크아웃과 설치만 했는데 무언가 수정된 상태로 남거나 CRLF가 인덱스에
-들어가면 실패합니다.
+Prettier 기준으로 깨끗하고 Windows에서는 더럽게 나왔습니다. 린트 단계와 **Working tree must be clean**
+단계가 이 문제의 재발을 막습니다. 후자는 체크아웃과 설치만 했는데 무언가 수정된 상태로 남거나 CRLF가
+인덱스나 작업 트리에 들어가면 실패합니다.
 
 `npm run lint`는 0으로 종료해야 하며, ESLint _경고_도 오류처럼 실패로 처리됩니다(`--max-warnings 0`). 규칙 재정의는 `eslint.config.js`에 있으며 각각 이유를 주석으로
 달아 두었습니다. 특히 `no-useless-assignment`는 `$bindable()` prop 기본값을 잘못 읽기 때문에

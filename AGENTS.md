@@ -254,7 +254,7 @@ bits-ui provides interactive primitives; style them with semantic tokens, not li
 | `npm run check`               | `svelte-kit sync` + `svelte-check` (TypeScript + Svelte) |
 | `npm run test`                | Vitest (client + server, Playwright browser mode)        |
 | `npm run test:coverage`       | Full suite + v8 coverage report into `coverage/`         |
-| `npm run test:smoke`          | Boots the built `dist/` in a browser (run `build` first) |
+| `npm run test:smoke`          | Boots the built `dist/` in three engines (`build` first) |
 | `npm run lint`                | Prettier + ESLint                                        |
 | `npm run format`              | Auto-format code                                         |
 
@@ -334,7 +334,8 @@ because `ssr` is off, so the page is blank without JavaScript anyway.
 The recommended headers ship **switched off**, as commented lines in `defaults/.htaccess` and a
 commented `<meta>` in the two CDN shells; `scripts/csp.js` holds the policy and fills in `__CSP__`
 at build time, because it lists a hash for every inline script of the page. `npm run test:smoke`
-serves `dist/` with them switched on, so a change that needs a new source fails there. Operator
+serves `dist/` with them switched on, in Chromium, WebKit and Firefox, so a change that needs a new
+source fails there. All three enforce Trusted Types, and the test asserts it in each. Operator
 page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/security-headers.mdx).
 
 - **No inline event handlers, no new `eval`, no `javascript:` URLs** anywhere in the shells or the
@@ -351,8 +352,9 @@ page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/s
   some deployments use it.
 - **`worker-src` must list every origin a worker imports from.** A module worker's imports are
   checked against `worker-src`, not `script-src`, and a miss reports no violation: the worker just
-  fails to load and AutoEQ returns nothing. The smoke test does not run AutoEQ, so check it by hand
-  (full build and CDN build) after touching the worker or the policy.
+  fails to load and AutoEQ returns nothing. The smoke test runs AutoEQ in each engine and fails on
+  the fallback, but only against `dist/`: check the CDN build by hand after touching the worker or
+  the policy.
 
 ## Built-in Features
 

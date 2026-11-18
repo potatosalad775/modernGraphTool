@@ -2,10 +2,15 @@ name: CI
 
 # Lint, typecheck, test and build on every PR and every push to main.
 #
-# The quality job runs on Windows as well as Linux on purpose: the formatting
+# The app is tested across browser engines, not operating systems: the smoke job
+# boots the built output in Chromium, WebKit and Firefox.
+#
+# The quality job still has a Windows leg, for line endings only. The formatting
 # drift this workflow exists to prevent was invisible on macOS/Linux and only
 # showed up on a Windows checkout, because Git for Windows rewrites line endings
-# unless .gitattributes pins them. A Linux-only gate would not have caught it.
+# unless .gitattributes pins them. That leg installs, lints and checks the tree is
+# clean. It runs no typecheck and no tests: they ran the same specs in the same
+# Chromium as the Linux leg, and never caught a Windows-only defect.
 
 on:
   push:
@@ -60,12 +65,15 @@ jobs:
         run: npm run lint
 
       - name: Typecheck
+        if: matrix.os == 'ubuntu-latest'
         run: npm run check
 
       - name: Install Playwright browser
+        if: matrix.os == 'ubuntu-latest'
         run: npx playwright install --with-deps chromium-headless-shell
 
       - name: Test
+        if: matrix.os == 'ubuntu-latest'
         run: npm run test
 
       - name: Translation status (informational)
@@ -88,22 +96,21 @@ jobs:
         continue-on-error: true
         run: npm run i18n:tidy -- --check
 
-      # Coverage runs the whole suite a second time, so it is Linux-only — the
-      # Windows leg exists for the line-ending regression, which coverage cannot
-      # see. Blocking: the thresholds in vite.config.ts are a ratchet, and a PR
+      # Coverage runs the whole suite a second time. Blocking: the thresholds in vite.config.ts are a ratchet, and a PR
       # that drops below them has removed coverage that used to exist.
       - name: Coverage
         if: matrix.os == 'ubuntu-latest'
         run: npm run test:coverage
 
-      # The real cross-platform regression test: after a clean checkout, an install
-      # and a full build of generated files, nothing tracked may have changed. If
-      # .gitattributes ever stops pinning LF, this fails on Windows and nowhere else.
+      # The line-ending guard, and the reason for the Windows leg: after a clean
+      # checkout, an install and a lint (plus the tests on Linux), nothing tracked may
+      # have changed. If .gitattributes ever stops pinning LF, the lint step or this
+      # one fails on Windows and nowhere else.
       - name: Working tree must be clean
         shell: bash
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Working tree is dirty after install + lint + test."
+            echo "::error::Working tree is dirty after install + lint (+ test on Linux)."
             git status --porcelain
             git diff
             exit 1
@@ -116,6 +123,57 @@ jobs:
             git ls-files --eol | grep -E 'i/crlf|w/crlf'
             exit 1
           fi
+
+  # The unit suite never loads what `build` emits, so an adapter-static or
+  # asset-copy regression is invisible to it. This boots the real dist/ in
+  # Chromium, WebKit and Firefox, and fails on a console error, a graph that never
+  # draws or an AutoEQ run that never answers. It is the only cross-engine test:
+  # the component specs run in Chromium alone.
+  #
+  # It runs in Playwright's own image, which ships the three engines and their
+  # system libraries. `playwright install --with-deps` on the runner pulls about
+  # 185 apt packages for WebKit, and a slow mirror once held that for 24 minutes.
+  smoke:
+    name: Smoke (Chromium, WebKit, Firefox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      # The runner's own user: Firefox does not start as root with the home
+      # directory GitHub gives a container.
+      options: --user 1001
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The image holds the browser builds of one Playwright release, and the npm
+      # package only launches its own. Bump the image tag above with the package.
+      - name: Image matches the installed Playwright
+        run: |
+          installed="$(node -p "require('playwright-core/package.json').version")"
+          if ! grep -q "playwright:v${installed}-" .github/workflows/ci.yml; then
+            echo "::error::playwright ${installed} is installed, but the smoke job's image is another release. Set it to mcr.microsoft.com/playwright:v${installed}-noble in .github/workflows/ci.yml."
+            exit 1
+          fi
+
+      - name: Build app
+        run: npm run build
+
+      - name: Smoke test the built output
+        run: npm run test:smoke
 
   build:
     name: Build
@@ -139,15 +197,6 @@ jobs:
 
       - name: Build app
         run: npm run build
-
-      # The unit suite never loads what `build` emits, so an adapter-static or
-      # asset-copy regression is invisible to it. This boots the real dist/ in a
-      # browser and fails on a console error or a graph that never draws.
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Smoke test the built output
-        run: npm run test:smoke
 
       - name: Build CDN distribution
         run: npm run build:cdn

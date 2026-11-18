@@ -405,6 +405,12 @@ guide had to be rewritten. If you're unsure whether a change warrants a doc upda
 
 ## Agent skills
 
+### Verifying a change in the browser
+
+`.claude/skills/verify-mgt/` drives the dev server in Chromium the way a visitor does and keeps
+screenshots as proof: `node .claude/skills/verify-mgt/mgt.mjs run <journey.mjs>`. Its feature map
+lists the accessible names to drive each feature by. Use it after a change a user can see.
+
 ### Issue tracker
 
 GitHub Issues on `potatosalad775/modernGraphTool`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.

@@ -99,6 +99,10 @@ fails lint like an error. There is no suppressions file: fix a finding rather th
 with <code dir="auto">eslint --suppress-all</code>. The
 <a href="/modernGraphTool/docs/guide-for-developers/testing/">testing guide</a> explains the rules that most often need a change
 in how you write code.</p>
+<p>Some rules are specific to this project: no import from <code dir="auto">static/</code> or <code dir="auto">defaults/</code>, no Tailwind
+palette class such as <code dir="auto">bg-zinc-800</code>, no <code dir="auto">innerHTML</code>, and no import that crosses a layer (a store
+cannot import a service, for example). Each one’s error message says what to write instead. They
+live in <code dir="auto">eslint.config.js</code>, and a new project rule that a machine can check belongs there too.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="line-endings">Line endings</h3><a class="sl-anchor-link" href="#line-endings"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Line endings”</span></a></div>
 <p>Every text file is <strong>LF</strong>, pinned by <code dir="auto">.gitattributes</code>. That overrides <code dir="auto">core.autocrlf</code>, which the Git
 for Windows installer turns on by default, so there is nothing to configure locally. Just don’t

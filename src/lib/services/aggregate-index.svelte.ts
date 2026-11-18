@@ -31,7 +31,12 @@ export class AggregateIndexService {
 	/** Fetches and indexes the aggregate document. Resolves `true` once usable. */
 	load(): Promise<boolean> {
 		if (this.status === 'ready') return Promise.resolve(true);
-		this.#loading ??= this.#load();
+		this.#loading ??= this.#load().catch((error: unknown) => {
+			// `status` is what the panel shows as loading, so a throw must not leave it there.
+			this.status = 'failed';
+			this.#loading = null;
+			throw error;
+		});
 		return this.#loading;
 	}
 

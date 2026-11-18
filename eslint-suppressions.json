@@ -24,11 +24,6 @@
       "count": 2
     }
   },
-  "src/lib/graph/GraphEqOverlay.ts": {
-    "complexity": {
-      "count": 2
-    }
-  },
   "src/lib/services/aggregate-index-core.ts": {
     "complexity": {
       "count": 1

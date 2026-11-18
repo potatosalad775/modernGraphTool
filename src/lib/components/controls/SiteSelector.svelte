@@ -131,6 +131,22 @@
 		return listEl ? Array.from(listEl.querySelectorAll<HTMLAnchorElement>('a[href]')) : [];
 	}
 
+	/** Where `key` moves focus from link `index`, or null for a key that does not rove. */
+	function roveTarget(key: string, index: number, all: HTMLAnchorElement[]): HTMLElement | null {
+		switch (key) {
+			case 'ArrowDown':
+				return all[Math.min(index + 1, all.length - 1)];
+			case 'ArrowUp':
+				return index === 0 ? (filterInput() ?? all[0]) : all[index - 1];
+			case 'Home':
+				return all[0];
+			case 'End':
+				return all[all.length - 1];
+			default:
+				return null;
+		}
+	}
+
 	/**
 	 * Arrow keys rove focus over the links; they stay plain anchors in the tab order. Only
 	 * the arrows, Home and End are intercepted: Enter and clicks are never touched, so the
@@ -152,26 +168,13 @@
 		const index = target instanceof HTMLAnchorElement ? all.indexOf(target) : -1;
 		if (index === -1) return;
 
-		let next: HTMLElement | undefined;
-		switch (event.key) {
-			case 'ArrowDown':
-				next = all[Math.min(index + 1, all.length - 1)];
-				break;
-			case 'ArrowUp':
-				next = index === 0 ? (filterInput() ?? all[0]) : all[index - 1];
-				break;
-			case 'Home':
-				next = all[0];
-				break;
-			case 'End':
-				next = all[all.length - 1];
-				break;
-			default:
-				// A printable key hands focus to the field, where the character then lands.
-				if (showFilter && event.key.length === 1 && event.key !== ' ') {
-					filterInput()?.focus();
-				}
-				return;
+		const next = roveTarget(event.key, index, all);
+		if (!next) {
+			// A printable key hands focus to the field, where the character then lands.
+			if (showFilter && event.key.length === 1 && event.key !== ' ') {
+				filterInput()?.focus();
+			}
+			return;
 		}
 		event.preventDefault();
 		next.focus();

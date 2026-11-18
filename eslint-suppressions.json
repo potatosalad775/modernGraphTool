@@ -1,9 +1,4 @@
 {
-  "src/lib/components/controls/SiteSelector.svelte": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/components/equalizer/EqFilterCard.svelte": {
     "complexity": {
       "count": 1

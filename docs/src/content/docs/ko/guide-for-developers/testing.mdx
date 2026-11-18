@@ -88,7 +88,9 @@ Chromium에만 있으므로, 하드웨어 EQ 경로는 테스트 결과와 무�
 - **200 응답이 파일의 존재를 증명하지는 않습니다.** SPA 폴백은 디스크에 없는 요청에 `index.html`로
   응답하며, 실제 Apache 호스트에서도 마찬가지입니다. 그래서 애셋 검사는 상태 코드를 믿는 대신 본문을
   HTML 셸과 비교합니다.
-- 빌드 산출물이 필요하므로 `npm run build` 이후 `build` CI 잡에서 실행됩니다.
+- 별도의 `smoke` CI 잡에서 실행되며, 빌드 산출물이 필요하므로 잡이 먼저 앱을 빌드합니다. 이 잡은 세
+  엔진이 들어 있는 Playwright Docker 이미지에서 실행됩니다. 이미지 태그는 `package-lock.json`의
+  `playwright` 버전과 같아야 하며, 다르면 잡이 설정해야 할 태그를 알려 주며 실패합니다.
 
 ## 지속적 통합 \{#continuous-integration\}
 

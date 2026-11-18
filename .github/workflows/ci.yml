@@ -2,7 +2,7 @@ name: CI
 
 # Lint, typecheck, test and build on every PR and every push to main.
 #
-# The app is tested across browser engines, not operating systems: the build job
+# The app is tested across browser engines, not operating systems: the smoke job
 # boots the built output in Chromium, WebKit and Firefox.
 #
 # The quality job still has a Windows leg, for line endings only. The formatting
@@ -124,6 +124,57 @@ jobs:
             exit 1
           fi
 
+  # The unit suite never loads what `build` emits, so an adapter-static or
+  # asset-copy regression is invisible to it. This boots the real dist/ in
+  # Chromium, WebKit and Firefox, and fails on a console error, a graph that never
+  # draws or an AutoEQ run that never answers. It is the only cross-engine test:
+  # the component specs run in Chromium alone.
+  #
+  # It runs in Playwright's own image, which ships the three engines and their
+  # system libraries. `playwright install --with-deps` on the runner pulls about
+  # 185 apt packages for WebKit, and a slow mirror once held that for 24 minutes.
+  smoke:
+    name: Smoke (Chromium, WebKit, Firefox)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      # The runner's own user: Firefox does not start as root with the home
+      # directory GitHub gives a container.
+      options: --user 1001
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The image holds the browser builds of one Playwright release, and the npm
+      # package only launches its own. Bump the image tag above with the package.
+      - name: Image matches the installed Playwright
+        run: |
+          installed="$(node -p "require('playwright-core/package.json').version")"
+          if ! grep -q "playwright:v${installed}-" .github/workflows/ci.yml; then
+            echo "::error::playwright ${installed} is installed, but the smoke job's image is another release. Set it to mcr.microsoft.com/playwright:v${installed}-noble in .github/workflows/ci.yml."
+            exit 1
+          fi
+
+      - name: Build app
+        run: npm run build
+
+      - name: Smoke test the built output
+        run: npm run test:smoke
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -146,20 +197,6 @@ jobs:
 
       - name: Build app
         run: npm run build
-
-      # The unit suite never loads what `build` emits, so an adapter-static or
-      # asset-copy regression is invisible to it. This boots the real dist/ in
-      # Chromium, WebKit and Firefox, and fails on a console error, a graph that never
-      # draws or an AutoEQ run that never answers. It is the only cross-engine test:
-      # the component specs run in Chromium alone.
-      # WebKit pulls about 185 apt packages. A slow mirror once held this step for
-      # 24 minutes, so it fails fast and a rerun gets another runner.
-      - name: Install Playwright browsers
-        timeout-minutes: 8
-        run: npx playwright install --with-deps chromium webkit firefox
-
-      - name: Smoke test the built output (Chromium, WebKit, Firefox)
-        run: npm run test:smoke
 
       - name: Build CDN distribution
         run: npm run build:cdn

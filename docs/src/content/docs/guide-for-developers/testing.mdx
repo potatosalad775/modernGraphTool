@@ -90,7 +90,10 @@ Three things to keep in mind when extending it:
 - **A 200 does not prove a file exists.** The SPA fallback answers anything not on disk with
   `index.html`, on the real Apache host as much as here, so asset checks compare the body against the
   HTML shell rather than trusting the status.
-- It runs in the `build` CI job, after `npm run build`, because it needs the built output.
+- It runs in its own `smoke` CI job, which builds the app first because the test needs the built
+  output. The job runs in Playwright's Docker image, which ships the three engines. The image tag
+  must match the `playwright` version in `package-lock.json`, and the job fails with the tag to set
+  when it does not.
 
 ## Continuous integration
 

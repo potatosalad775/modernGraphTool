@@ -17,6 +17,30 @@ import {
 	type URLState
 } from './url-state.js';
 
+const KEPT_SESSION_KEY = 'gt-kept-session';
+
+/** What `keepAcrossReload` hands to the next load. */
+interface KeptSession {
+	/** The share query, EQ included. Empty when nothing was loaded, which is still a session. */
+	query: string;
+	/** The EQ master switch. A share link has no place for it: it always switches a restored EQ on. */
+	eqEnabled: boolean;
+}
+
+/** The session `keepAcrossReload` left for this load, removed so only one load reads it. */
+function takeKeptSession(): KeptSession | null {
+	try {
+		const stored = sessionStorage.getItem(KEPT_SESSION_KEY);
+		sessionStorage.removeItem(KEPT_SESSION_KEY);
+		if (stored === null) return null;
+		const kept = JSON.parse(stored) as Partial<KeptSession> | null;
+		if (typeof kept?.query !== 'string' || typeof kept.eqEnabled !== 'boolean') return null;
+		return { query: kept.query, eqEnabled: kept.eqEnabled };
+	} catch {
+		return null;
+	}
+}
+
 // ── URL Provider ─────────────────────────────────────────────────────────────
 
 class URLProvider {
@@ -27,6 +51,7 @@ class URLProvider {
 	#useBase62 = false;
 	#phoneDataFromURL: string[] = [];
 	#stateFromURL: URLState | null = null;
+	#keptSession: KeptSession | null = null;
 
 	/** Call once during app startup (in onMount). */
 	init(): void {
@@ -49,6 +74,14 @@ class URLProvider {
 
 	get stateFromURL(): URLState | null {
 		return this.#stateFromURL;
+	}
+
+	/**
+	 * This load continues a session `keepAcrossReload` saved. `phoneDataFromURL` is then the
+	 * whole selection, so an empty one means no curves, not the config's initial ones.
+	 */
+	get restoresSession(): boolean {
+		return this.#keptSession !== null;
 	}
 
 	// ── URL update (called reactively from $effect or on demand) ─────────────
@@ -97,6 +130,25 @@ class URLProvider {
 		return url;
 	}
 
+	/**
+	 * Call right before a reload the app itself causes (a locale switch). The next
+	 * `init()` then restores this session, not the address bar: the bar never holds
+	 * the EQ, and holds nothing at all with `URL.AUTO_UPDATE_URL` off.
+	 */
+	keepAcrossReload(): void {
+		const url = this.getCurrentURLWithEQ();
+		const queryStart = url.indexOf('?');
+		const kept: KeptSession = {
+			query: queryStart < 0 ? '' : url.slice(queryStart),
+			eqEnabled: eqStore.isEnabled
+		};
+		try {
+			sessionStorage.setItem(KEPT_SESSION_KEY, JSON.stringify(kept));
+		} catch {
+			// Storage is blocked: the reload falls back to the address bar.
+		}
+	}
+
 	toggleBase62(enable: boolean): void {
 		this.#useBase62 = enable;
 		this.updateURL();
@@ -105,8 +157,15 @@ class URLProvider {
 	// ── State restoration (called after initial data loads) ──────────────────
 
 	applyStateFromURL(): void {
-		if (!this.#stateFromURL) return;
-		const { yScale, baseline: savedBaseline, yOffsets, eq } = this.#stateFromURL;
+		if (this.#stateFromURL) this.#applyState(this.#stateFromURL);
+		// After `#restoreEq`, which switches the EQ on as a share link needs.
+		if (this.#keptSession) eqStore.setEnabled(this.#keptSession.eqEnabled);
+	}
+
+	// ── Private ──────────────────────────────────────────────────────────────
+
+	#applyState(state: URLState): void {
+		const { yScale, baseline: savedBaseline, yOffsets, eq } = state;
 
 		// `parseStateParam` already narrowed the shape; these guards keep a state
 		// that arrived any other way (a spec, a future caller) from throwing.
@@ -116,14 +175,13 @@ class URLProvider {
 		if (savedBaseline) baseline.restoreFromURL(savedBaseline);
 
 		if (yOffsets) this.#restoreYOffsets(yOffsets);
-		this.#restoreSampleDisplay(normalizeSampleDisplay(this.#stateFromURL));
+		this.#restoreSampleDisplay(normalizeSampleDisplay(state));
 		if (eq) this.#restoreEq(eq);
 	}
 
-	// ── Private ──────────────────────────────────────────────────────────────
-
 	#loadFromURL(): void {
-		const urlParams = new URLSearchParams(window.location.search);
+		this.#keptSession = takeKeptSession();
+		const urlParams = new URLSearchParams(this.#keptSession?.query ?? window.location.search);
 		this.#phoneDataFromURL = parseShareParam(urlParams.get('share'));
 		this.#stateFromURL = parseStateParam(urlParams.get('state'));
 	}

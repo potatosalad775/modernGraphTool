@@ -6,6 +6,7 @@
 <script lang="ts">
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { trustedHtml } from '#lib/utils/trusted-types.js';
+	import { urlProvider } from '#lib/utils/url-provider.js';
 	import { crossFade } from '#lib/utils/motion.svelte.js';
 	import { BookOpen, Globe, GraduationCap, Heart, Moon, ScrollText, Sun } from '@lucide/svelte';
 	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
@@ -48,6 +49,8 @@
 
 	function handleLocaleChange(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
+		// `setLocale` reloads the page.
+		urlProvider.keepAcrossReload();
 		void setLocale(select.value as Locale);
 	}
 </script>

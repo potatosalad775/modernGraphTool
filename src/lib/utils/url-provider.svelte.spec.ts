@@ -372,6 +372,98 @@ describe('URLProvider', () => {
 		});
 	});
 
+	// ── Reload hand-over ─────────────────────────────────────────────────────
+
+	describe('keepAcrossReload', () => {
+		beforeEach(() => {
+			// The address bar carries nothing, as an operator with this off asked.
+			window.GRAPHTOOL_CONFIG = {
+				URL: { AUTO_UPDATE_URL: false },
+				VISUALIZATION: { DEFAULT_Y_SCALE: '50' }
+			} as never;
+			urlProvider.init();
+		});
+
+		afterEach(() => sessionStorage.clear());
+
+		it('gives the next load the devices and the EQ', () => {
+			frStore.set('a', makeEntry('a'));
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
+			urlProvider.keepAcrossReload();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual(['Phone a']);
+			expect(urlProvider.stateFromURL?.eq?.filters).toHaveLength(1);
+			expect(window.location.search).toBe('');
+		});
+
+		it('is read by one load only', () => {
+			frStore.set('a', makeEntry('a'));
+			urlProvider.keepAcrossReload();
+			urlProvider.init();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual([]);
+		});
+
+		it('wins over a `?share=` the session has since moved on from', () => {
+			setSearch('?share=Phone_Old');
+			frStore.set('a', makeEntry('a'));
+			urlProvider.keepAcrossReload();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual(['Phone a']);
+		});
+
+		it('tells an emptied session from an ordinary visit', () => {
+			expect(urlProvider.restoresSession).toBe(false);
+			urlProvider.keepAcrossReload();
+
+			urlProvider.init();
+
+			expect(urlProvider.restoresSession).toBe(true);
+			expect(urlProvider.phoneDataFromURL).toEqual([]);
+		});
+
+		it('keeps an EQ that has no device under it', () => {
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
+			urlProvider.keepAcrossReload();
+			eqStore.filters = [];
+
+			urlProvider.init();
+			urlProvider.applyStateFromURL();
+
+			expect(eqStore.filters).toHaveLength(1);
+		});
+
+		it('leaves the equalizer off when it was off', () => {
+			frStore.set('a', makeEntry('a'));
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
+			eqStore.isEnabled = false;
+			urlProvider.keepAcrossReload();
+			eqStore.filters = [];
+
+			urlProvider.init();
+			urlProvider.applyStateFromURL();
+
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.isEnabled).toBe(false);
+		});
+
+		it('ignores an entry it cannot read', () => {
+			setSearch('?share=Phone_A');
+			sessionStorage.setItem('gt-kept-session', '{not json');
+
+			urlProvider.init();
+
+			expect(urlProvider.restoresSession).toBe(false);
+			expect(urlProvider.phoneDataFromURL).toEqual(['Phone A']);
+		});
+	});
+
 	// ── State restoration ────────────────────────────────────────────────────
 
 	describe('applyStateFromURL', () => {

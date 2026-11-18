@@ -1,7 +1,1 @@
-{
-  "src/lib/components/graph/GraphContainer.svelte": {
-    "complexity": {
-      "count": 1
-    }
-  }
-}
+{}

@@ -423,13 +423,8 @@
 		});
 	});
 
-	// History & Compare ghost: while A and B are both picked and the live EQ is one
-	// of them, the other is drawn faintly — built by the same math as the live EQ
-	// curve, in the channels that curve shows, offset and baseline-compensated
-	// like it. Driven from here, not from the History panel, which unmounts.
-	$effect(() => {
-		if (!graphEngine.isInitialized || !compareOverlay) return;
-		track(graphStore.yScale);
+	/** The A/B side to draw as a ghost, its curves, and the offset of the curve it sits beside. */
+	function compareGhost() {
 		const a = eqHistoryStore.aEntry;
 		const b = eqHistoryStore.bEntry;
 		const side =
@@ -448,12 +443,23 @@
 						built.processed[ch] ? [built.processed[ch].data] : []
 					)
 				: [];
+		return { side, curves, yOffset: liveCurve?.yOffset ?? 0 };
+	}
+
+	// History & Compare ghost: while A and B are both picked and the live EQ is one
+	// of them, the other is drawn faintly — built by the same math as the live EQ
+	// curve, in the channels that curve shows, offset and baseline-compensated
+	// like it. Driven from here, not from the History panel, which unmounts.
+	$effect(() => {
+		if (!graphEngine.isInitialized || !compareOverlay) return;
+		track(graphStore.yScale);
+		const { side, curves, yOffset } = compareGhost();
 		compareOverlay.update({
 			visible: curves.length > 0,
 			// English on purpose, like the other graph labels.
 			label: side ? `${side} (compare)` : null,
 			curves,
-			yOffset: liveCurve?.yOffset ?? 0,
+			yOffset,
 			baselineChannelData: baseline.channelData
 		});
 	});

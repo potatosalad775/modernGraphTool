@@ -2,7 +2,7 @@
 
 `config.ts`, `data-processor.ts`, `fr-parser.ts`, `fr-smoother.ts`, `fr-normalizer.ts`, `fr-lookup.ts`,
 `fr-average.ts`, `listening-range.ts`, `log-scale.ts`, `metadata-parser.ts`, `sample-config.ts`,
-`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-filter-parse.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-provider.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
+`equalizer.ts`, `eq-channel.ts`, `eq-source.ts`, `eq-filter-parse.ts`, `eq-apo.ts`, `eq-file.ts`, `eq-constraint.ts`, `eq-domain-hint.ts`, `url-state.ts`, `base62.ts`, `html-sanitizer.ts`,
 `search-query.ts`, `csv.ts`, `url-template.ts`, `preference-bound.ts`, `channel-choice.ts`, `scroll-anchor.ts` (see
 `components/AGENTS.md`).
 
@@ -239,8 +239,9 @@ DOM) test project and the browser, and this is a static site operators self-host
 ## URL state
 
 `url-state.ts` holds the **pure** share-URL encoding/decoding (`smartSplit`, `parseShareParam`,
-`parseStateParam`, `encodeShareNames`, `hasNonDefaultState`, `buildQueryString`); `URLProvider` keeps
-only what touches `window`, `document`, `goto` and the stores, and delegates the rest.
+`parseStateParam`, `encodeShareNames`, `hasNonDefaultState`, `buildQueryString`); `URLProvider`
+(`services/url-provider.ts`, since it reads the stores) keeps only what touches `window`,
+`document`, `goto` and the stores, and delegates the rest.
 
 - Share names go through `encodeURIComponent`, **not** `encodeURI` — the latter leaves `&`, `+` and
   `#` untouched, and over a thousand device names contain one of them. Reading is unaffected either

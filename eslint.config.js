@@ -76,12 +76,19 @@ const restrictedSyntax = [
  * Bans imports from the named `src/lib` directories, by the `#lib/` alias or by a relative path.
  * @param {string[]} banned
  * @param {string} message
+ * @param {string} [allowed] The one module under them that stays importable, as a regex.
  */
-const withoutLayers = (banned, message) => ({
+const withoutLayers = (banned, message, allowed) => ({
 	...restrictedImports,
 	patterns: [
 		...restrictedImports.patterns,
-		{ regex: String.raw`^(#lib/|(\.\./)+)(${banned.join('|')})/`, message }
+		{
+			regex:
+				String.raw`^(#lib/|(\.\./)+)` +
+				(allowed ? `(?!${allowed}$)` : '') +
+				`(${banned.join('|')})/`,
+			message
+		}
 	]
 });
 
@@ -258,6 +265,50 @@ export default defineConfig(
 			'no-restricted-imports': [
 				'error',
 				withoutLayers(['components'], 'device-peq is UI-free. Pass what it needs as an argument.')
+			]
+		}
+	},
+	{
+		files: ['src/lib/utils/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(
+					['stores', 'services', 'graph', 'components'],
+					'utils/ is the bottom layer: pure helpers that take their input as arguments. Code that reads a store is a service. A type both layers need lives in types/.'
+				)
+			]
+		}
+	},
+	{
+		// The EQ overlay edits bands, and every band edit goes through eqCommands so that it
+		// lands in the undo history.
+		files: ['src/lib/graph/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(
+					['services', 'components'],
+					'The graph engine draws from stores. Only eq-commands.js may be imported from services, and nothing from components.',
+					String.raw`services/eq-commands\.js`
+				)
+			]
+		}
+	},
+	{
+		// initial-load starts the Equalizer panel's download when a deployment opens on it.
+		files: ['src/lib/services/**/*.ts'],
+		ignores: testFiles,
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				withoutLayers(
+					['components'],
+					'Services sit below components. A component calls the service, or the service writes a store the component reads.',
+					String.raw`components/panels/lazy-panels\.js`
+				)
 			]
 		}
 	},

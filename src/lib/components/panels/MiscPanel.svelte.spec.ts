@@ -14,7 +14,7 @@ import { page } from 'vitest/browser';
 import MiscPanel, { CHANGELOG_URL } from './MiscPanel.svelte';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { analyticsService } from '#lib/services/analytics-service.svelte.js';
-import { urlProvider } from '#lib/utils/url-provider.js';
+import { urlProvider } from '#lib/services/url-provider.js';
 import { setLocale, locales } from '#lib/paraglide/runtime.js';
 
 vi.mock('#lib/paraglide/runtime.js', async (importOriginal) => {

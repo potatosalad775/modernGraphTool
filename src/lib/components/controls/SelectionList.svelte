@@ -5,7 +5,7 @@
 	import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import { baseline } from '#lib/graph/baseline.js';
-	import type { BaselineMode } from '#lib/stores/graph-store.svelte.js';
+	import type { BaselineMode } from '#lib/types/data-types.js';
 	import { getConfigValue } from '#lib/utils/config.js';
 	import { isTargetType, type FRDataObject, type PhoneFileVariant } from '#lib/types/data-types.js';
 	import {

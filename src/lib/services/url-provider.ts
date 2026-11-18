@@ -2,8 +2,8 @@ import { goto } from '$app/navigation';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
-import { getConfigValue } from './config.js';
-import { sanitizeChannel } from './eq-channel.js';
+import { getConfigValue } from '#lib/utils/config.js';
+import { sanitizeChannel } from '#lib/utils/eq-channel.js';
 import { baseline } from '#lib/graph/baseline.js';
 import { MAX_BANDS } from '#lib/workers/autoeq-request.js';
 import {
@@ -15,7 +15,7 @@ import {
 	type EQStateSnapshot,
 	type SampleDisplayState,
 	type URLState
-} from './url-state.js';
+} from '#lib/utils/url-state.js';
 
 const KEPT_SESSION_KEY = 'gt-kept-session';
 

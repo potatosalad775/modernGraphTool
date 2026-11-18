@@ -13,9 +13,9 @@ import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { graphEngine } from '#lib/graph/GraphEngine.svelte.js';
 import { baseline } from '#lib/graph/baseline.js';
-import Base62 from './base62.js';
+import Base62 from '#lib/utils/base62.js';
 import { urlProvider } from './url-provider.js';
-import type { URLState } from './url-state.js';
+import type { URLState } from '#lib/utils/url-state.js';
 import type { FRDataObject } from '#lib/types/data-types.js';
 
 // `goto` throws outside a mounted SvelteKit router, which no component test

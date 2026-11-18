@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '#lib/paraglide/messages.js';
 	import { toast } from '#lib/services/toast.js';
-	import { urlProvider } from '#lib/utils/url-provider.js';
+	import { urlProvider } from '#lib/services/url-provider.js';
 	import { Check, Share2 } from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Input from '../atoms/Input.svelte';

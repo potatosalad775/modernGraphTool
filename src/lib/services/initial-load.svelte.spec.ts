@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import MetadataParser from '#lib/utils/metadata-parser.js';
-import { urlProvider } from '#lib/utils/url-provider.js';
+import { urlProvider } from '#lib/services/url-provider.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { dataProvider } from './data-provider.svelte.js';

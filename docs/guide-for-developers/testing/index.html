@@ -99,7 +99,7 @@ code they cover as <code dir="auto">*.spec.ts</code>.</p>
 
 
 
-<table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code dir="auto">npm run test</code></td><td>Full suite — both the <code dir="auto">client</code> and <code dir="auto">server</code> projects</td></tr><tr><td><code dir="auto">npm run test:unit</code></td><td>Same suite in watch mode</td></tr><tr><td><code dir="auto">npm run test:coverage</code></td><td>Full suite + v8 coverage report into <code dir="auto">coverage/</code></td></tr><tr><td><code dir="auto">npm run test:smoke</code></td><td>Boots the built <code dir="auto">dist/</code> in a browser (run <code dir="auto">build</code> first)</td></tr></tbody></table>
+<table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code dir="auto">npm run test</code></td><td>Full suite — both the <code dir="auto">client</code> and <code dir="auto">server</code> projects</td></tr><tr><td><code dir="auto">npm run test:unit</code></td><td>Same suite in watch mode</td></tr><tr><td><code dir="auto">npm run test:coverage</code></td><td>Full suite + v8 coverage report into <code dir="auto">coverage/</code></td></tr><tr><td><code dir="auto">npm run test:smoke</code></td><td>Boots the built <code dir="auto">dist/</code> in three engines (<code dir="auto">build</code> first)</td></tr></tbody></table>
 <div class="sl-heading-wrapper level-h2"><h2 id="the-two-projects">The two projects</h2><a class="sl-anchor-link" href="#the-two-projects"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “The two projects”</span></a></div>
 <p>The <strong>filename decides which project runs a spec</strong>:</p>
 <ul>
@@ -137,23 +137,39 @@ An adapter-static misconfiguration, a <code dir="auto">defaults/</code> file the
 regression, or a worker that fails to resolve once bundled will all ship a blank page with the whole
 suite green.</p>
 <p><code dir="auto">scripts/smoke-dist.js</code> serves <code dir="auto">dist/</code> over real HTTP — including the SPA fallback that <code dir="auto">.htaccess</code>
-provides — boots it in Playwright chromium, and fails on a console error, an uncaught exception, a
-4xx, a graph that never draws, or a <code dir="auto">?share=</code> link that lands no curve.</p>
-<p>Two things to keep in mind when extending it:</p>
+provides — boots it in Chromium, WebKit and Firefox through Playwright, and fails on a console
+error, an uncaught exception, a 4xx, a graph that never draws, or a <code dir="auto">?share=</code> link that lands no
+curve. It sends the recommended security headers with Trusted Types on, and checks that each engine
+enforces them. It also runs AutoEQ, which fails if the worker never answers or the wasm engine fell
+back, and opens the tooltip of a disabled button.</p>
+<p>It is the only test that leaves Chromium: the component specs run in Chromium alone. Install the
+other two engines once with <code dir="auto">npx playwright install webkit firefox</code>, or run a single engine with
+<code dir="auto">npm run test:smoke -- --browser firefox</code>.</p>
+<aside aria-label="WebKit is not Safari" class="starlight-aside starlight-aside--note"><p class="starlight-aside__title" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" class="starlight-aside__icon"><path d="M12 11a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0v-4a1 1 0 0 0-1-1Zm.38-3.92a1 1 0 0 0-.76 0 1 1 0 0 0-.33.21 1.15 1.15 0 0 0-.21.33 1 1 0 0 0 .21 1.09c.097.088.209.16.33.21A1 1 0 0 0 13 8a1.05 1.05 0 0 0-.29-.71 1 1 0 0 0-.33-.21ZM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16.001A8 8 0 0 1 12 20Z"></path></svg>WebKit is not Safari</p><div class="starlight-aside__content"><p>Playwright’s WebKit is close to desktop Safari, not identical, and shows no iOS-only behavior. A
+pass there does not replace a check on a real iPhone. WebHID and Web Bluetooth exist only in
+Chromium, so the Hardware EQ paths are single-engine whatever the test says.</p></div></aside>
+<p>Three things to keep in mind when extending it:</p>
 <ul>
+<li><strong>A check that cannot apply to an engine is skipped for that engine, with the reason written next
+to the skip.</strong> None is skipped today.</li>
 <li><strong>A 200 does not prove a file exists.</strong> The SPA fallback answers anything not on disk with
 <code dir="auto">index.html</code>, on the real Apache host as much as here, so asset checks compare the body against the
 HTML shell rather than trusting the status.</li>
-<li>It runs in the <code dir="auto">build</code> CI job, after <code dir="auto">npm run build</code>, because it needs the built output.</li>
+<li>It runs in its own <code dir="auto">smoke</code> CI job, which builds the app first because the test needs the built
+output. The job runs in Playwright’s Docker image, which ships the three engines. The image tag
+must match the <code dir="auto">playwright</code> version in <code dir="auto">package-lock.json</code>, and the job fails with the tag to set
+when it does not.</li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="continuous-integration">Continuous integration</h2><a class="sl-anchor-link" href="#continuous-integration"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Continuous integration”</span></a></div>
 <p><code dir="auto">.github/workflows/ci.yml</code> runs on every PR and every push to <code dir="auto">main</code>: <code dir="auto">lint</code> → <code dir="auto">check</code> → <code dir="auto">test</code> on
-<strong>both ubuntu-latest and windows-latest</strong>, plus a build of the app, the CDN distribution and the docs
-site on Linux.</p>
-<p>The Windows leg is not redundant. Git for Windows sets <code dir="auto">core.autocrlf=true</code> in its system config, so
+ubuntu-latest, plus a build of the app, the smoke test in three browser engines, the CDN
+distribution and the docs site. CI tests across browser engines, not operating systems.</p>
+<p>A Windows leg remains for line endings only: it installs, lints and checks the tree, and runs no
+typecheck and no tests. Git for Windows sets <code dir="auto">core.autocrlf=true</code> in its system config, so
 before <code dir="auto">.gitattributes</code> pinned every text file to <code dir="auto">eol=lf</code>, the same commit was Prettier-clean on
-macOS and dirty on Windows. The <strong>Working tree must be clean</strong> step guards against that regressing:
-it fails if a checkout plus install leaves anything modified, or if CRLF ever reaches the index.</p>
+macOS and dirty on Windows. The lint step and the <strong>Working tree must be clean</strong> step guard against
+that regressing: the second fails if a checkout plus install leaves anything modified, or if CRLF
+ever reaches the index or the working tree.</p>
 <p><code dir="auto">npm run lint</code> must exit 0, and an ESLint <em>warning</em> fails it like an error (<code dir="auto">--max-warnings 0</code>). Rule overrides live in <code dir="auto">eslint.config.js</code> and each carries a
 comment explaining why — notably <code dir="auto">no-useless-assignment</code> is off for <code dir="auto">*.svelte</code> because it misreads
 <code dir="auto">$bindable()</code> prop defaults, and <code dir="auto">no-explicit-any</code> is off under <code dir="auto">docs/</code> because the config migration

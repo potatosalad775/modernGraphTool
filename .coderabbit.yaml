@@ -25,6 +25,12 @@ reviews:
     - '!**/*.png'
     - '!**/*.ico'
 
+  # CI runs the real lint. CodeRabbit's own ESLint has no `svelte-kit sync` step, so the
+  # generated `$app/tsconfig` that tsconfig.json extends is missing and every .ts file fails to parse.
+  tools:
+    eslint:
+      enabled: false
+
 knowledge_base:
   code_guidelines:
     filePatterns:

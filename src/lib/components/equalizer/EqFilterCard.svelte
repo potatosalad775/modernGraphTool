@@ -251,34 +251,37 @@
 
 	function handleInputKeydown(e: KeyboardEvent, field: 'freq' | 'gain' | 'q') {
 		if (isImeComposing(e)) return;
+		const input = e.currentTarget as HTMLInputElement;
 		if (e.key === 'Enter') {
-			(e.currentTarget as HTMLInputElement).blur();
-			return;
-		}
-		if (e.key === 'Escape') {
-			const input = e.currentTarget as HTMLInputElement;
-			// Revert to the value captured on focus — arrow-key edits call onUpdate
-			// immediately, so filter[field] may already be the incremented value.
-			const revertTo = focusSnapshot ?? filter[field] ?? null;
-			if (revertTo !== null && revertTo !== filter[field]) {
-				onUpdate({ [field]: revertTo });
-			}
-			input.value = String(revertTo ?? filter[field] ?? '');
 			input.blur();
-			return;
-		}
-		if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+		} else if (e.key === 'Escape') {
+			revertInput(input, field);
+		} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 			// Override browser's default step so we can apply a Shift multiplier and
 			// commit to the store immediately (the inputs are one-way bound).
 			e.preventDefault();
-			const multiplier = e.shiftKey ? 10 : 1;
-			const dir = e.key === 'ArrowUp' ? 1 : -1;
-			const fallback = field === 'freq' ? 1000 : field === 'gain' ? 0 : 1;
-			const current = filter[field] ?? fallback;
-			const next = clampField(field, steppedValue(field, current, dir * multiplier));
-			onUpdate({ [field]: next });
-			(e.currentTarget as HTMLInputElement).value = String(next);
+			stepInput(input, field, (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 10 : 1));
 		}
+	}
+
+	/** Escape: put back the value captured on focus, and leave the field. */
+	function revertInput(input: HTMLInputElement, field: 'freq' | 'gain' | 'q') {
+		// Revert to the value captured on focus — arrow-key edits call onUpdate
+		// immediately, so filter[field] may already be the incremented value.
+		const revertTo = focusSnapshot ?? filter[field] ?? null;
+		if (revertTo !== null && revertTo !== filter[field]) {
+			onUpdate({ [field]: revertTo });
+		}
+		input.value = String(revertTo ?? filter[field] ?? '');
+		input.blur();
+	}
+
+	function stepInput(input: HTMLInputElement, field: 'freq' | 'gain' | 'q', steps: number) {
+		const fallback = field === 'freq' ? 1000 : field === 'gain' ? 0 : 1;
+		const current = filter[field] ?? fallback;
+		const next = clampField(field, steppedValue(field, current, steps));
+		onUpdate({ [field]: next });
+		input.value = String(next);
 	}
 </script>
 

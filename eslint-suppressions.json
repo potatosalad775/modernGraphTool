@@ -54,11 +54,6 @@
       "count": 1
     }
   },
-  "src/lib/utils/metadata-parser.ts": {
-    "complexity": {
-      "count": 3
-    }
-  },
   "src/lib/utils/url-provider.ts": {
     "complexity": {
       "count": 2

@@ -459,94 +459,96 @@ export class Equalizer {
 		dir = false
 	): CompleteBand[] {
 		filters = this._stripFilters(filters);
-
-		const [minFreq, maxFreq] = this.config.AutoEQRange;
-		const [minQ, maxQ] = this.config.OptimizeQRange;
-		const [minGain, maxGain] = this.config.OptimizeGainRange;
-		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] = this.config.OptimizeDeltas[iteration];
 		const [begin, end, step] = dir ? [filters.length - 1, -1, -1] : [0, filters.length, 1];
 
 		for (let i = begin; i !== end; i += step) {
-			let f = filters[i];
-			const fr1 = this.applyFilters(
+			const others = this.applyFilters(
 				fr,
 				filters.filter((_f, fi) => fi !== i)
 			);
-			let bestFilter = f;
-			let bestDistance = this._calculateDistance(this.applyFilters(fr1, [f]), frTarget);
-
-			const isShelfFilter = f.type === 'LSQ' || f.type === 'HSQ';
-			const effectiveMinFreq = isShelfFilter ? (f.type === 'LSQ' ? 20 : 4000) : minFreq;
-			const effectiveMaxFreq = isShelfFilter ? (f.type === 'LSQ' ? 400 : 16000) : maxFreq;
-			const effectiveMinQ = isShelfFilter ? 0.3 : minQ;
-			const effectiveMaxQ = isShelfFilter ? 1.5 : maxQ;
-
-			const testNewFilter = (df: number, dq: number, dg: number): boolean => {
-				const freq = f.freq + df * this._freqUnit(f.freq) * stepDF;
-				const q = f.q + dq * stepDQ;
-				const gain = f.gain + dg * stepDG;
-				if (
-					freq < effectiveMinFreq ||
-					freq > effectiveMaxFreq ||
-					q < effectiveMinQ ||
-					q > effectiveMaxQ ||
-					gain < minGain ||
-					gain > maxGain
-				) {
-					return false;
-				}
-				const newFilter: CompleteBand = { ...f, freq, q, gain };
-				const newFR = this.applyFilters(fr1, [newFilter]);
-				const newDistance = this._calculateDistance(newFR, frTarget);
-				if (newDistance < bestDistance) {
-					bestFilter = newFilter;
-					bestDistance = newDistance;
-					return true;
-				}
-				return false;
-			};
-
-			let improved = true;
-			const maxIterations = 50;
-			let iterCount = 0;
-
-			while (improved && iterCount < maxIterations) {
-				improved = false;
-				iterCount++;
-
-				for (let df = -maxDF; df <= maxDF && !improved; df++) {
-					if (df !== 0 && testNewFilter(df, 0, 0)) {
-						f = bestFilter;
-						improved = true;
-					}
-				}
-				for (let dq = -maxDQ; dq <= maxDQ && !improved; dq++) {
-					if (dq !== 0 && testNewFilter(0, dq, 0)) {
-						f = bestFilter;
-						improved = true;
-					}
-				}
-				for (let dg = -maxDG; dg <= maxDG && !improved; dg++) {
-					if (dg !== 0 && testNewFilter(0, 0, dg)) {
-						f = bestFilter;
-						improved = true;
-					}
-				}
-			}
-
-			for (let df = -maxDF; df <= maxDF; ++df) {
-				for (let dq = maxDQ; dq >= -maxDQ; --dq) {
-					for (let dg = 0; dg <= maxDG; ++dg) {
-						if (!testNewFilter(df, dq, dg)) break;
-					}
-					for (let dg = 0; dg >= -maxDG; --dg) {
-						if (!testNewFilter(df, dq, dg)) break;
-					}
-				}
-			}
-			filters[i] = bestFilter;
+			filters[i] = this._optimizeBand(others, frTarget, filters[i], iteration);
 		}
 		return filters.sort((a, b) => a.freq - b.freq);
+	}
+
+	/** The frequency and Q a band may move within. A shelf keeps to its own end of the spectrum. */
+	_searchBounds(type: EQFilterType): { freq: [number, number]; q: [number, number] } {
+		if (type === 'LSQ') return { freq: [20, 400], q: [0.3, 1.5] };
+		if (type === 'HSQ') return { freq: [4000, 16000], q: [0.3, 1.5] };
+		return { freq: this.config.AutoEQRange, q: this.config.OptimizeQRange };
+	}
+
+	/**
+	 * Move one band toward the target, with every other band already applied to `fr`: first one
+	 * axis at a time until no single step helps, then over the whole neighbourhood of that result.
+	 */
+	_optimizeBand(
+		fr: FreqPoint[],
+		frTarget: FreqPoint[],
+		start: CompleteBand,
+		iteration: number
+	): CompleteBand {
+		const [maxDF, maxDQ, maxDG, stepDF, stepDQ, stepDG] = this.config.OptimizeDeltas[iteration];
+		const [minGain, maxGain] = this.config.OptimizeGainRange;
+		const bounds = this._searchBounds(start.type);
+		const inRange = (value: number, [min, max]: [number, number]) => value >= min && value <= max;
+
+		// Steps are measured from `origin`; `best` is the closest band found so far
+		let origin = start;
+		let best = start;
+		let bestDistance = this._calculateDistance(this.applyFilters(fr, [start]), frTarget);
+
+		const tryStep = (df: number, dq: number, dg: number): boolean => {
+			const freq = origin.freq + df * this._freqUnit(origin.freq) * stepDF;
+			const q = origin.q + dq * stepDQ;
+			const gain = origin.gain + dg * stepDG;
+			if (
+				!inRange(freq, bounds.freq) ||
+				!inRange(q, bounds.q) ||
+				!inRange(gain, [minGain, maxGain])
+			) {
+				return false;
+			}
+			const candidate: CompleteBand = { ...origin, freq, q, gain };
+			const distance = this._calculateDistance(this.applyFilters(fr, [candidate]), frTarget);
+			if (distance < bestDistance) {
+				best = candidate;
+				bestDistance = distance;
+				return true;
+			}
+			return false;
+		};
+
+		const axes: [number, (d: number) => boolean][] = [
+			[maxDF, (d) => tryStep(d, 0, 0)],
+			[maxDQ, (d) => tryStep(0, d, 0)],
+			[maxDG, (d) => tryStep(0, 0, d)]
+		];
+		/** Take the first single-axis step that improves the band, and move the origin there. */
+		const stepOnce = (): boolean => {
+			for (const [max, tryAxis] of axes) {
+				for (let d = -max; d <= max; d++) {
+					if (d !== 0 && tryAxis(d)) {
+						origin = best;
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+		for (let round = 0; round < 50 && stepOnce(); round++);
+
+		for (let df = -maxDF; df <= maxDF; ++df) {
+			for (let dq = maxDQ; dq >= -maxDQ; --dq) {
+				for (let dg = 0; dg <= maxDG; ++dg) {
+					if (!tryStep(df, dq, dg)) break;
+				}
+				for (let dg = 0; dg >= -maxDG; --dg) {
+					if (!tryStep(df, dq, dg)) break;
+				}
+			}
+		}
+		return best;
 	}
 
 	_analyzeShelfOpportunities(fr: FreqPoint[], frTarget: FreqPoint[]): Candidate[] {

@@ -60,6 +60,41 @@ export const DataProcessor = {
 };
 
 /**
+ * Normalize the mean of `pooled` and return the function that places a run on it: the
+ * normalized mean plus the run's own delta from the raw mean.
+ */
+function placeOnPooledMean(
+	pooled: ChannelData[],
+	normType: string,
+	normHz: number
+): (src: ChannelData) => ChannelData {
+	// Every run shares the same frequency grid after smoothing, so index-wise
+	// averaging is safe. (Matches the assumption in DataProvider#computeEnvelope,
+	// which indexes the grid directly.)
+	const n = pooled[0].data.length;
+	const meanPoints = new Array<FRDataPoint>(n);
+	for (let k = 0; k < n; k++) {
+		let sum = 0;
+		for (const c of pooled) sum += c.data[k][1];
+		meanPoints[k] = [pooled[0].data[k][0], sum / pooled.length];
+	}
+	const mean: ChannelData = {
+		data: meanPoints,
+		metadata: { ...pooled[0].metadata }
+	};
+	const meanNorm = normalize(mean, normType, normHz);
+
+	return (src) => {
+		const out = new Array<FRDataPoint>(n);
+		for (let k = 0; k < n; k++) {
+			const v = meanNorm.data[k][1] + (src.data[k][1] - mean.data[k][1]);
+			out[k] = [src.data[k][0], clampDB(v)];
+		}
+		return { data: out, metadata: { ...src.metadata } };
+	};
+}
+
+/**
  * Anchor a sample set to a single shared "pooled mean" computed across every
  * L and R run at each frequency, then normalize that pooled mean using the
  * user's normType/normHz. Every run value — L and R alike — is placed by
@@ -89,44 +124,15 @@ export function anchorAndNormalizeSamples(
 		if (s.R) pooled.push(s.R);
 	}
 
-	if (pooled.length < 2) {
-		// Nothing to pool against — fall back to per-curve normalization.
-		for (let i = 0; i < samples.length; i++) {
-			const s = samples[i];
-			if (s.L) result[i].L = normalize(s.L, normType, normHz);
-			if (s.R) result[i].R = normalize(s.R, normType, normHz);
-		}
-	} else {
-		// Every run shares the same frequency grid after smoothing, so index-wise
-		// averaging is safe. (Matches the assumption in DataProvider#computeEnvelope,
-		// which indexes the grid directly.)
-		const n = pooled[0].data.length;
-		const meanPoints = new Array<FRDataPoint>(n);
-		for (let k = 0; k < n; k++) {
-			let sum = 0;
-			for (const c of pooled) sum += c.data[k][1];
-			meanPoints[k] = [pooled[0].data[k][0], sum / pooled.length];
-		}
-		const mean: ChannelData = {
-			data: meanPoints,
-			metadata: { ...pooled[0].metadata }
-		};
-		const meanNorm = normalize(mean, normType, normHz);
-
-		const applyDelta = (src: ChannelData): ChannelData => {
-			const out = new Array<FRDataPoint>(n);
-			for (let k = 0; k < n; k++) {
-				const v = meanNorm.data[k][1] + (src.data[k][1] - mean.data[k][1]);
-				out[k] = [src.data[k][0], clampDB(v)];
-			}
-			return { data: out, metadata: { ...src.metadata } };
-		};
-
-		for (let i = 0; i < samples.length; i++) {
-			const s = samples[i];
-			if (s.L) result[i].L = applyDelta(s.L);
-			if (s.R) result[i].R = applyDelta(s.R);
-		}
+	// With nothing to pool against, fall back to per-curve normalization.
+	const place =
+		pooled.length < 2
+			? (src: ChannelData) => normalize(src, normType, normHz)
+			: placeOnPooledMean(pooled, normType, normHz);
+	for (let i = 0; i < samples.length; i++) {
+		const s = samples[i];
+		if (s.L) result[i].L = place(s.L);
+		if (s.R) result[i].R = place(s.R);
 	}
 
 	for (const s of result) {

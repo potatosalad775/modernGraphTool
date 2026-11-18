@@ -31,8 +31,7 @@ export default defineConfig(
 	js.configs.recommended,
 	ts.configs.recommended,
 	{
-		// The strict presets for production code. Violations that predate them are recorded in
-		// eslint-suppressions.json, so only new ones fail lint. They sit before the Svelte
+		// The strict presets for production code. They sit before the Svelte
 		// configs, which have to win for .svelte files: the presets set typescript-eslint's
 		// parser, and placed after them it replaces Svelte's and every .svelte file fails to parse.
 		files: ['src/**/*.ts', 'src/**/*.svelte'],

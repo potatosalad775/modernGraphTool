@@ -247,25 +247,7 @@ export function isDbRow(
  * result order, once, so a query only has to filter them.
  */
 export function buildSearchRows(index: AggregateIndex): SearchRow[] {
-	const sitesById = new Map<string, AggregateSite>();
-	for (const site of index.sites as unknown[]) {
-		if (!isSiteRow(site)) continue;
-		sitesById.set(site.id, site as unknown as AggregateSite);
-	}
-
-	const dbsById = new Map<string, { db: AggregateDb; site: AggregateSite; url: string }>();
-	for (const db of index.dbs as unknown[]) {
-		if (!isDbRow(db)) continue;
-		const site = sitesById.get(db.siteId);
-		if (!site || isCurrentSite(site)) continue;
-		// The index is someone else's document and its URLs land in an `href`, so
-		// only an absolute http(s) URL gets through — a `javascript:` entry is
-		// dropped, along with every device it carried.
-		const url = sanitizeHttpUrl(db.url);
-		if (!url) continue;
-		dbsById.set(db.id, { db: db as unknown as AggregateDb, site, url });
-	}
-
+	const dbsById = readDbs(index, readSites(index));
 	const collapsed = index.phonesFormat === 'collapsed';
 	const rows: SearchRow[] = [];
 
@@ -273,24 +255,15 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 		if (!isRecord(phone) || typeof phone.n !== 'string') continue;
 		const brand: unknown = index.brands[phone.b as number];
 		if (typeof brand !== 'string') continue;
-
-		let measurements: unknown[];
-		if (collapsed && phone.m) {
-			if (!Array.isArray(phone.m)) continue;
-			measurements = phone.m;
-		} else {
-			measurements = [{ db: phone.db ?? '', s: phone.s }];
-		}
+		const measurements = measurementsOf(phone, collapsed);
+		if (!measurements) continue;
 
 		const displayLower = `${brand} ${phone.n}`.toLowerCase();
 
 		for (const measurement of measurements) {
-			if (!isRecord(measurement) || typeof measurement.db !== 'string') continue;
-			const slug = (measurement as unknown as AggregateMeasurement).s;
-			if (slug != null && typeof slug !== 'string') continue;
-			const entry = dbsById.get(measurement.db);
-			if (!entry) continue;
-			const { db, site, url } = entry;
+			const located = locateMeasurement(measurement, dbsById);
+			if (!located) continue;
+			const { db, site, url, slug } = located;
 
 			rows.push({
 				displayLower,
@@ -319,6 +292,59 @@ export function buildSearchRows(index: AggregateIndex): SearchRow[] {
 	}
 
 	return rows;
+}
+
+interface DbEntry {
+	db: AggregateDb;
+	site: AggregateSite;
+	url: string;
+}
+
+function readSites(index: AggregateIndex): Map<string, AggregateSite> {
+	const sitesById = new Map<string, AggregateSite>();
+	for (const site of index.sites as unknown[]) {
+		if (!isSiteRow(site)) continue;
+		sitesById.set(site.id, site as unknown as AggregateSite);
+	}
+	return sitesById;
+}
+
+/** The databases a result may point at: on a known site other than this one, with a usable URL. */
+function readDbs(
+	index: AggregateIndex,
+	sitesById: Map<string, AggregateSite>
+): Map<string, DbEntry> {
+	const dbsById = new Map<string, DbEntry>();
+	for (const db of index.dbs as unknown[]) {
+		if (!isDbRow(db)) continue;
+		const site = sitesById.get(db.siteId);
+		if (!site || isCurrentSite(site)) continue;
+		// The index is someone else's document and its URLs land in an `href`, so
+		// only an absolute http(s) URL gets through — a `javascript:` entry is
+		// dropped, along with every device it carried.
+		const url = sanitizeHttpUrl(db.url);
+		if (!url) continue;
+		dbsById.set(db.id, { db: db as unknown as AggregateDb, site, url });
+	}
+	return dbsById;
+}
+
+/** A phone's measurements in either `phonesFormat`; null when a collapsed list is malformed. */
+function measurementsOf(phone: Record<string, unknown>, collapsed: boolean): unknown[] | null {
+	if (collapsed && phone.m) return Array.isArray(phone.m) ? (phone.m as unknown[]) : null;
+	return [{ db: phone.db ?? '', s: phone.s }];
+}
+
+/** The database a measurement belongs to and its share slug, or null for one to skip. */
+function locateMeasurement(
+	measurement: unknown,
+	dbsById: Map<string, DbEntry>
+): (DbEntry & { slug: string | null | undefined }) | null {
+	if (!isRecord(measurement) || typeof measurement.db !== 'string') return null;
+	const slug = (measurement as unknown as AggregateMeasurement).s;
+	if (slug != null && typeof slug !== 'string') return null;
+	const entry = dbsById.get(measurement.db);
+	return entry ? { ...entry, slug } : null;
 }
 
 /**

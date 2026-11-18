@@ -154,48 +154,56 @@ export function sanitizeState(raw: Record<string, unknown>): URLState {
 	}
 
 	if (isRecord(raw.yOffsets)) {
-		const yOffsets: Record<string, number> = {};
-		for (const [key, offset] of safeEntries(raw.yOffsets)) {
-			if (isFiniteNumber(offset)) yOffsets[key] = offset;
-		}
+		const yOffsets = keepEntries(raw.yOffsets, isFiniteNumber);
 		if (Object.keys(yOffsets).length > 0) state.yOffsets = yOffsets;
 	}
 
-	const { eq } = raw;
-	if (isRecord(eq) && Array.isArray(eq.filters)) {
-		const filters: EQFilter[] = [];
-		for (const item of eq.filters) {
-			if (filters.length >= MAX_BANDS) break;
-			// An unknown `channel` reads as a shared band rather than losing the band
-			// (it would otherwise belong to no ear and vanish from every scoped view).
-			const filter = isRecord(item)
-				? parseFilter({ ...item, channel: sanitizeChannel(item.channel) })
-				: null;
-			if (filter) filters.push(filter);
-		}
-		state.eq = { filters, preamp: isFiniteNumber(eq.preamp) ? eq.preamp : 0 };
-	}
+	const eq = sanitizeEq(raw.eq);
+	if (eq) state.eq = eq;
 
 	if (isRecord(raw.sampleDisplay)) {
-		const sampleDisplay: Record<string, SampleDisplayState | SampleDisplayKey[] | string[]> = {};
-		for (const [key, entry] of safeEntries(raw.sampleDisplay)) {
-			if (Array.isArray(entry) || isRecord(entry)) {
-				sampleDisplay[key] = entry as SampleDisplayState | string[];
-			}
-		}
-		state.sampleDisplay = sampleDisplay;
+		state.sampleDisplay = keepEntries(
+			raw.sampleDisplay,
+			(entry): entry is SampleDisplayState | string[] => Array.isArray(entry) || isRecord(entry)
+		);
 	}
 
 	if (isRecord(raw.hptfDisplay)) {
-		const hptfDisplay: NonNullable<URLState['hptfDisplay']> = {};
-		for (const [key, entry] of safeEntries(raw.hptfDisplay)) {
-			if (isRecord(entry)) hptfDisplay[key] = entry as { keys: SampleDisplayKey[]; fill: boolean };
-		}
 		// eslint-disable-next-line @typescript-eslint/no-deprecated -- old share links still carry it
-		state.hptfDisplay = hptfDisplay;
+		state.hptfDisplay = keepEntries(
+			raw.hptfDisplay,
+			(entry): entry is { keys: SampleDisplayKey[]; fill: boolean } => isRecord(entry)
+		);
 	}
 
 	return state;
+}
+
+/** A record keyed by device name, rebuilt from the entries that pass `keep`. */
+function keepEntries<T>(
+	record: Record<string, unknown>,
+	keep: (entry: unknown) => entry is T
+): Record<string, T> {
+	const kept: Record<string, T> = {};
+	for (const [key, entry] of safeEntries(record)) {
+		if (keep(entry)) kept[key] = entry;
+	}
+	return kept;
+}
+
+function sanitizeEq(eq: unknown): URLState['eq'] | null {
+	if (!isRecord(eq) || !Array.isArray(eq.filters)) return null;
+	const filters: EQFilter[] = [];
+	for (const item of eq.filters as unknown[]) {
+		if (filters.length >= MAX_BANDS) break;
+		// An unknown `channel` reads as a shared band rather than losing the band
+		// (it would otherwise belong to no ear and vanish from every scoped view).
+		const filter = isRecord(item)
+			? parseFilter({ ...item, channel: sanitizeChannel(item.channel) })
+			: null;
+		if (filter) filters.push(filter);
+	}
+	return { filters, preamp: isFiniteNumber(eq.preamp) ? eq.preamp : 0 };
 }
 
 /** The well-formed `sample{n}_{ch}` keys of a hand-editable value; anything else is dropped. */

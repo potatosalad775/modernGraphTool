@@ -147,46 +147,53 @@ export function selectEnvelope(obj: FRDataObject): SampleEnvelope {
  * A trace for something that has no data is simply absent.
  */
 export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null): CurveTrace[] {
-	if (isTargetType(obj)) {
-		const data = obj.channels.AVG?.data;
-		if (!data) return [];
-		return [
-			{
-				kind: 'main',
-				key: 'AVG',
-				channel: 'AVG',
-				data,
-				color: obj.colors.AVG || FALLBACK_COLOR,
-				name: curveDisplayName(obj, 'AVG'),
-				ghost: false,
-				fromRun: false,
-				runKey: null
-			}
-		];
-	}
+	if (isTargetType(obj)) return targetTraces(obj);
 
-	const traces: CurveTrace[] = [];
-	const avgColor = obj.colors.AVG || FALLBACK_COLOR;
 	const ghost = eqSource !== null && (obj.type === 'phone' || obj.type === 'inserted-phone');
 	// EQ'ing one run of a set makes that run the "before" curve, drawn in place
 	// of the average — even with the average toggled off.
 	const runSample = eqSource?.sample && eqSourceRun(obj, eqSource.sample) ? eqSource.sample : null;
 
-	if (obj.showFill && obj.envelope) {
-		const envelope = selectEnvelope(obj);
-		if (envelope.upper.length) {
-			traces.push({
-				kind: 'fill',
-				key: 'fill',
-				channel: null,
-				envelope,
-				color: avgColor,
-				name: curveBaseName(obj),
-				ghost
-			});
-		}
-	}
+	return [...fillTraces(obj, ghost), ...runTraces(obj), ...mainTraces(obj, runSample, ghost)];
+}
 
+function targetTraces(obj: FRDataObject): MainTrace[] {
+	const data = obj.channels.AVG?.data;
+	if (!data) return [];
+	return [
+		{
+			kind: 'main',
+			key: 'AVG',
+			channel: 'AVG',
+			data,
+			color: obj.colors.AVG || FALLBACK_COLOR,
+			name: curveDisplayName(obj, 'AVG'),
+			ghost: false,
+			fromRun: false,
+			runKey: null
+		}
+	];
+}
+
+function fillTraces(obj: FRDataObject, ghost: boolean): FillTrace[] {
+	if (!obj.showFill || !obj.envelope) return [];
+	const envelope = selectEnvelope(obj);
+	if (!envelope.upper.length) return [];
+	return [
+		{
+			kind: 'fill',
+			key: 'fill',
+			channel: null,
+			envelope,
+			color: obj.colors.AVG || FALLBACK_COLOR,
+			name: curveBaseName(obj),
+			ghost
+		}
+	];
+}
+
+function runTraces(obj: FRDataObject): RunTrace[] {
+	const traces: RunTrace[] = [];
 	for (const key of obj.dispSamples ?? []) {
 		const parts = sampleKeyParts(obj, key);
 		if (!parts) continue;
@@ -197,33 +204,39 @@ export function curveTraces(obj: FRDataObject, eqSource: EqSourceContext | null)
 			key,
 			channel: parts.channel,
 			data: channel.data,
-			color: obj.colors.samples?.[key] || avgColor,
+			color: obj.colors.samples?.[key] || obj.colors.AVG || FALLBACK_COLOR,
 			name: curveDisplayName(obj, parts.channel, parts.label),
 			ghost: false
 		});
 	}
+	return traces;
+}
 
-	if (obj.showAvg !== false || runSample) {
-		const mainChannels = runSample ? eqSourceChannels(obj, runSample) : obj.channels;
-		for (const channel of obj.dispChannel) {
-			const data = mainChannels[channel]?.data;
-			if (!data) continue;
-			const runKey = runSample ? sampleKey(runSample.index, channel) : null;
-			const label = runKey ? sampleKeyParts(obj, runKey)?.label : undefined;
-			traces.push({
-				kind: 'main',
-				key: channel,
-				channel,
-				data,
-				color: obj.colors[channel] || avgColor,
-				name: curveDisplayName(obj, channel, label),
-				ghost,
-				fromRun: !!runSample,
-				runKey
-			});
-		}
+function mainTraces(
+	obj: FRDataObject,
+	runSample: EqSourceSample | null,
+	ghost: boolean
+): MainTrace[] {
+	if (obj.showAvg === false && !runSample) return [];
+	const mainChannels = runSample ? eqSourceChannels(obj, runSample) : obj.channels;
+	const traces: MainTrace[] = [];
+	for (const channel of obj.dispChannel) {
+		const data = mainChannels[channel]?.data;
+		if (!data) continue;
+		const runKey = runSample ? sampleKey(runSample.index, channel) : null;
+		const label = runKey ? sampleKeyParts(obj, runKey)?.label : undefined;
+		traces.push({
+			kind: 'main',
+			key: channel,
+			channel,
+			data,
+			color: obj.colors[channel] || obj.colors.AVG || FALLBACK_COLOR,
+			name: curveDisplayName(obj, channel, label),
+			ghost,
+			fromRun: !!runSample,
+			runKey
+		});
 	}
-
 	return traces;
 }
 

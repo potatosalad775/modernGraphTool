@@ -215,90 +215,8 @@ const MetadataParser = {
 
 			const phoneEntries: PhoneMetadata[] = [];
 			b.phones.forEach((phone, phoneIdx) => {
-				// Skip phone entries that aren't a string or plain object.
-				if (
-					typeof phone !== 'string' &&
-					(typeof phone !== 'object' || phone === null || Array.isArray(phone))
-				) {
-					console.warn(
-						`[modernGraphTool] phone_book.json: brand "${brandName}" phone #${phoneIdx} is not a string or object — skipping.`
-					);
-					return;
-				}
-
-				const links =
-					typeof phone === 'object'
-						? this._parseLinks(phone.links, `brand "${brandName}" phone #${phoneIdx}`)
-						: undefined;
-
-				// These four go straight into the row UI, and `PATH.PHONE_BOOK` may point
-				// at a remote book — so each is checked here, dropping the field and
-				// never the entry. The links follow the `links[]` policy (`sanitizeUrl`:
-				// relative URLs stay readable, a dangerous scheme does not).
-				const reviewScore = typeof phone === 'object' ? this._parseScalar(phone.reviewScore) : null;
-				const price = typeof phone === 'object' ? this._parseScalar(phone.price) : null;
-				const reviewLink = typeof phone === 'object' ? this._parseHref(phone.reviewLink) : null;
-				const shopLink = typeof phone === 'object' ? this._parseHref(phone.shopLink) : null;
-
-				// Common properties for all phone types
-				const basePhone = {
-					brand: brandName,
-					...(reviewScore !== null && { reviewScore }),
-					...(reviewLink && { reviewLink }),
-					...(shopLink && { shopLink }),
-					...(price !== null && { price: String(price) }),
-					...(typeof phone === 'object' &&
-						typeof phone.description === 'string' &&
-						phone.description && { description: phone.description }),
-					...(links && { links })
-				};
-
-				// If phone is a string, it's a single phone
-				if (typeof phone === 'string') {
-					phoneEntries.push({
-						...basePhone,
-						name: phone,
-						identifier: brandName + ' ' + phone,
-						files: [
-							{
-								suffix: this._getSuffix(phone, 0),
-								fullName: (brandName + ' ' + phone + ' ' + this._getSuffix(phone, 0)).trim(),
-								files: { L: phone + ' L.txt', R: phone + ' R.txt' },
-								fileName: phone
-							}
-						]
-					});
-					return;
-				}
-
-				// If phone is an object, it has multiple phones
-				const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
-				const identifier = brandName + ' ' + baseName;
-
-				// `variants[]` composes with the terse phone-level form rather than
-				// replacing it, so one phone can declare its plain measurements the way
-				// every CrinGraph-derived tool reads them and still carry sample sets
-				// here. Both paths emit the same PhoneFileVariant[], so nothing
-				// downstream can tell which form was authored.
-				const explicit = Array.isArray(phone.variants) ? phone.variants : null;
-				const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
-				const files = this._uniqueSuffixes(
-					brandName,
-					baseName,
-					explicit
-						? this._mergeVariants(
-								legacy,
-								this._parseVariants(brandName, baseName, explicit, brandDefaults)
-							)
-						: legacy
-				);
-
-				phoneEntries.push({
-					...basePhone,
-					name: baseName,
-					identifier,
-					files
-				});
+				const entry = this._parsePhone(brandName, brandDefaults, phone, phoneIdx);
+				if (entry) phoneEntries.push(entry);
 			});
 
 			out.push({
@@ -308,6 +226,90 @@ const MetadataParser = {
 		});
 
 		return out;
+	},
+
+	/** One `phones[]` entry: a bare name or an object. Anything else is skipped with a warning. */
+	_parsePhone(
+		brandName: string,
+		brandDefaults: RawSampleSet | null,
+		phone: RawBrandData['phones'][number],
+		phoneIdx: number
+	): PhoneMetadata | null {
+		// If phone is a string, it's a single phone
+		if (typeof phone === 'string') {
+			return {
+				brand: brandName,
+				name: phone,
+				identifier: brandName + ' ' + phone,
+				files: [
+					{
+						suffix: this._getSuffix(phone, 0),
+						fullName: (brandName + ' ' + phone + ' ' + this._getSuffix(phone, 0)).trim(),
+						files: { L: phone + ' L.txt', R: phone + ' R.txt' },
+						fileName: phone
+					}
+				]
+			};
+		}
+
+		// Skip phone entries that aren't a string or plain object.
+		if (typeof phone !== 'object' || phone === null || Array.isArray(phone)) {
+			console.warn(
+				`[modernGraphTool] phone_book.json: brand "${brandName}" phone #${phoneIdx} is not a string or object — skipping.`
+			);
+			return null;
+		}
+
+		const rowFields = this._phoneRowFields(brandName, phone, phoneIdx);
+
+		// If phone is an object, it has multiple phones
+		const baseName = Array.isArray(phone.name) ? phone.name[0] : phone.name;
+		const identifier = brandName + ' ' + baseName;
+
+		// `variants[]` composes with the terse phone-level form rather than
+		// replacing it, so one phone can declare its plain measurements the way
+		// every CrinGraph-derived tool reads them and still carry sample sets
+		// here. Both paths emit the same PhoneFileVariant[], so nothing
+		// downstream can tell which form was authored.
+		const explicit = Array.isArray(phone.variants) ? phone.variants : null;
+		const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
+		const files = this._uniqueSuffixes(
+			brandName,
+			baseName,
+			explicit
+				? this._mergeVariants(
+						legacy,
+						this._parseVariants(brandName, baseName, explicit, brandDefaults)
+					)
+				: legacy
+		);
+
+		return { ...rowFields, name: baseName, identifier, files };
+	},
+
+	/** What an object phone puts on its list row, besides its name and measurements. */
+	_phoneRowFields(brandName: string, phone: RawPhoneData, phoneIdx: number) {
+		const links = this._parseLinks(phone.links, `brand "${brandName}" phone #${phoneIdx}`);
+
+		// These four go straight into the row UI, and `PATH.PHONE_BOOK` may point
+		// at a remote book — so each is checked here, dropping the field and
+		// never the entry. The links follow the `links[]` policy (`sanitizeUrl`:
+		// relative URLs stay readable, a dangerous scheme does not).
+		const reviewScore = this._parseScalar(phone.reviewScore);
+		const price = this._parseScalar(phone.price);
+		const reviewLink = this._parseHref(phone.reviewLink);
+		const shopLink = this._parseHref(phone.shopLink);
+
+		return {
+			brand: brandName,
+			...(reviewScore !== null && { reviewScore }),
+			...(reviewLink && { reviewLink }),
+			...(shopLink && { shopLink }),
+			...(price !== null && { price: String(price) }),
+			...(typeof phone.description === 'string' &&
+				phone.description && { description: phone.description }),
+			...(links && { links })
+		};
 	},
 
 	/**
@@ -425,47 +427,64 @@ const MetadataParser = {
 	): PhoneFileVariant[] {
 		return variants
 			.filter((v): v is RawVariant => typeof v === 'object' && v !== null && !Array.isArray(v))
-			.map((entry) => {
-				const suffix = (entry.suffix ?? '').trim();
-				const raw = this._normalizeSampleSet(entry.samples);
-				const { count, display } = this._resolveSampleDefaults(raw, brandDefaults);
+			.map((entry) => this._parseVariant(brandName, baseName, entry, brandDefaults));
+	},
 
-				const explicitFiles = Array.isArray(raw?.files) ? raw.files : null;
-				const fileName = entry.file ?? explicitFiles?.[0] ?? baseName;
+	_parseVariant(
+		brandName: string,
+		baseName: string,
+		entry: RawVariant,
+		brandDefaults: RawSampleSet | null
+	): PhoneFileVariant {
+		const suffix = (entry.suffix ?? '').trim();
+		const raw = this._normalizeSampleSet(entry.samples);
+		const explicitFiles = Array.isArray(raw?.files) ? raw.files : null;
+		const fileName = entry.file ?? explicitFiles?.[0] ?? baseName;
 
-				const variant: PhoneFileVariant = {
-					suffix,
-					fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
-					fileName
-				};
+		const variant: PhoneFileVariant = {
+			suffix,
+			fullName: (brandName + ' ' + baseName + ' ' + suffix).trim(),
+			fileName
+		};
 
-				// The main L/R pair only exists when the operator named a file. A set
-				// declared purely through `samples.files` has no unnumbered pair to
-				// fetch — its main curve is the average across runs.
-				if (entry.file || !explicitFiles) {
-					variant.files = { L: `${fileName} L.txt`, R: `${fileName} R.txt` };
-				}
+		// The main L/R pair only exists when the operator named a file. A set
+		// declared purely through `samples.files` has no unnumbered pair to
+		// fetch — its main curve is the average across runs.
+		if (entry.file || !explicitFiles) {
+			variant.files = { L: `${fileName} L.txt`, R: `${fileName} R.txt` };
+		}
 
-				if (explicitFiles) {
-					variant.sampleFiles = this._generateExplicitSampleFiles(explicitFiles);
-					variant.sampleLabels = raw?.labels ?? explicitFiles;
-				} else if (count > 1 || (raw?.count ?? 0) > 0) {
-					// An explicit `count` — even `1` — declares the numbered-file layout.
-					// A count of 1 arriving only from a default is just "no sample set".
-					variant.sampleFiles = this._generateSampleFiles(fileName, count);
-					if (raw?.labels) variant.sampleLabels = raw.labels;
-				}
+		this._addSampleSet(variant, raw, explicitFiles, brandDefaults);
 
-				if (variant.sampleFiles) {
-					variant.sampleDisplay = display;
-					if (raw?.description) variant.sampleDescription = raw.description;
-				}
+		const description = typeof entry.description === 'string' ? entry.description.trim() : '';
+		if (description) variant.description = description;
 
-				const description = typeof entry.description === 'string' ? entry.description.trim() : '';
-				if (description) variant.description = description;
+		return variant;
+	},
 
-				return variant;
-			});
+	/** Fill in a variant's sample-set fields, when it declares a set. */
+	_addSampleSet(
+		variant: PhoneFileVariant,
+		raw: RawSampleSet | null,
+		explicitFiles: string[] | null,
+		brandDefaults: RawSampleSet | null
+	): void {
+		const { count, display } = this._resolveSampleDefaults(raw, brandDefaults);
+
+		if (explicitFiles) {
+			variant.sampleFiles = this._generateExplicitSampleFiles(explicitFiles);
+			variant.sampleLabels = raw?.labels ?? explicitFiles;
+		} else if (count > 1 || (raw?.count ?? 0) > 0) {
+			// An explicit `count` — even `1` — declares the numbered-file layout.
+			// A count of 1 arriving only from a default is just "no sample set".
+			variant.sampleFiles = this._generateSampleFiles(variant.fileName, count);
+			if (raw?.labels) variant.sampleLabels = raw.labels;
+		}
+
+		if (variant.sampleFiles) {
+			variant.sampleDisplay = display;
+			if (raw?.description) variant.sampleDescription = raw.description;
+		}
 	},
 
 	/**
@@ -644,33 +663,38 @@ const MetadataParser = {
 		if (typeof phone === 'string') {
 			return '';
 		}
+		return Array.isArray(phone.file)
+			? this._suffixInFileList(phone, phone.file, index)
+			: this._suffixOfOneFile(phone, phone.file);
+	},
 
-		if (Array.isArray(phone.file)) {
-			// Handle array cases
-			if (Array.isArray(phone.suffix) && index !== null) {
-				// Distinguish "suffix explicitly empty" from "suffix missing".
-				// An explicit "" is a valid "no suffix" intent — don't fall back to the
-				// index (which would stringify to "0" and show up as a stray label).
-				const entry = phone.suffix[index];
-				return typeof entry === 'string' ? entry.trim() : String(index);
-			} else if (typeof phone.suffix === 'string') {
-				return phone.suffix.trim() || String(index);
-			} else if (Array.isArray(phone.prefix) && index !== null) {
-				return phone.file[index]?.replace(new RegExp(phone.prefix[index], 'i'), '').trim() || '';
-			} else if (typeof phone.prefix === 'string' && index !== null) {
-				return phone.file[index]?.replace(new RegExp(phone.prefix, 'i'), '').trim() || '';
-			} else {
-				return '';
-			}
+	/** The suffix of entry `index` when `file` is an array. */
+	_suffixInFileList(phone: RawPhoneData, files: string[], index: number | null): string {
+		if (Array.isArray(phone.suffix) && index !== null) {
+			// Distinguish "suffix explicitly empty" from "suffix missing".
+			// An explicit "" is a valid "no suffix" intent — don't fall back to the
+			// index (which would stringify to "0" and show up as a stray label).
+			const entry = phone.suffix[index];
+			return typeof entry === 'string' ? entry.trim() : String(index);
+		} else if (typeof phone.suffix === 'string') {
+			return phone.suffix.trim() || String(index);
+		} else if (Array.isArray(phone.prefix) && index !== null) {
+			return files[index]?.replace(new RegExp(phone.prefix[index], 'i'), '').trim() || '';
+		} else if (typeof phone.prefix === 'string' && index !== null) {
+			return files[index]?.replace(new RegExp(phone.prefix, 'i'), '').trim() || '';
 		} else {
-			// Handle string cases
-			if (typeof phone.suffix === 'string') {
-				return phone.suffix.trim() || phone.file?.trim() || '';
-			} else if (typeof phone.prefix === 'string' && phone.file) {
-				return phone.file.replace(new RegExp(phone.prefix, 'i'), '').trim();
-			} else {
-				return '';
-			}
+			return '';
+		}
+	},
+
+	/** The suffix when `file` is a single name, or missing. */
+	_suffixOfOneFile(phone: RawPhoneData, file: string | undefined): string {
+		if (typeof phone.suffix === 'string') {
+			return phone.suffix.trim() || file?.trim() || '';
+		} else if (typeof phone.prefix === 'string' && file) {
+			return file.replace(new RegExp(phone.prefix, 'i'), '').trim();
+		} else {
+			return '';
 		}
 	}
 };

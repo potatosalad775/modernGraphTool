@@ -256,6 +256,32 @@ function buildAttrs(name: string, rawAttrs: string, allowed: readonly string[]):
 }
 
 /**
+ * Where the comment, doctype or processing instruction that opens at `lt` ends, or null when
+ * `lt` opens none. They carry no text worth keeping, and a bogus comment can hide markup from
+ * a naive scan.
+ */
+function endOfDeclaration(src: string, lt: number): number | null {
+	if (src.startsWith('<!--', lt)) {
+		const end = src.indexOf('-->', lt + 4);
+		return end === -1 ? src.length : end + 3;
+	}
+	if (src[lt + 1] === '!' || src[lt + 1] === '?') {
+		const end = src.indexOf('>', lt);
+		return end === -1 ? src.length : end + 1;
+	}
+	return null;
+}
+
+/**
+ * The index past the close tag matching an opaque tag whose content starts at `from`.
+ * `name` came out of `matchTag`'s [a-zA-Z0-9-] scan, so it is safe to splice into a pattern.
+ */
+function endOfOpaqueContent(src: string, name: string, from: number): number {
+	const close = new RegExp(`</\\s*${name}\\b[^>]*>`, 'i').exec(src.slice(from));
+	return close ? from + close.index + close[0].length : src.length;
+}
+
+/**
  * Sanitize operator-authored HTML down to the inline allowlist above.
  *
  * Unknown tags are unwrapped (content kept), `OPAQUE_TAGS` are dropped whole,
@@ -277,16 +303,9 @@ export function sanitizeHtml(input: string | null | undefined): string {
 		}
 		out += escapeText(src.slice(i, lt));
 
-		// Comments, doctypes and processing instructions carry no text worth
-		// keeping, and a bogus comment can hide markup from a naive scan.
-		if (src.startsWith('<!--', lt)) {
-			const end = src.indexOf('-->', lt + 4);
-			i = end === -1 ? src.length : end + 3;
-			continue;
-		}
-		if (src[lt + 1] === '!' || src[lt + 1] === '?') {
-			const end = src.indexOf('>', lt);
-			i = end === -1 ? src.length : end + 1;
+		const declarationEnd = endOfDeclaration(src, lt);
+		if (declarationEnd !== null) {
+			i = declarationEnd;
 			continue;
 		}
 
@@ -299,12 +318,7 @@ export function sanitizeHtml(input: string | null | undefined): string {
 		i = tag.end;
 
 		if (OPAQUE_TAGS.has(tag.name)) {
-			if (!tag.closing) {
-				// Skip to the matching close tag. `tag.name` came out of the
-				// [a-zA-Z0-9-] scan above, so it is safe to splice into a pattern.
-				const close = new RegExp(`</\\s*${tag.name}\\b[^>]*>`, 'i').exec(src.slice(i));
-				i = close ? i + close.index + close[0].length : src.length;
-			}
+			if (!tag.closing) i = endOfOpaqueContent(src, tag.name, i);
 			continue;
 		}
 

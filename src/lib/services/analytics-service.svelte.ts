@@ -71,6 +71,21 @@ function storedConsent(): Consent | null {
 	}
 }
 
+/** The operator's IDs by destination, behind squig.link's own container. Bad ones are skipped. */
+function sortTagIds(configured: unknown): { containers: string[]; measurementIds: string[] } {
+	const containers = [SQUIGLINK_CONTAINER];
+	const measurementIds: string[] = [];
+	for (const id of Array.isArray(configured) ? (configured as unknown[]) : []) {
+		if (typeof id !== 'string' || !TAG_ID.test(id)) {
+			console.warn('[Analytics] Skipping an ID that is neither G-… nor GTM-…:', id);
+			continue;
+		}
+		const list = id.startsWith('GTM-') ? containers : measurementIds;
+		if (!list.includes(id)) list.push(id);
+	}
+	return { containers, measurementIds };
+}
+
 class AnalyticsService {
 	#initialized = false;
 	#loaded = false;
@@ -96,17 +111,9 @@ class AnalyticsService {
 		// A visitor who sends the signal loads no analytics at all: no script, no events.
 		if (privacyControlOn()) return;
 
-		const configured = getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS');
-		const containers = [SQUIGLINK_CONTAINER];
-		const measurementIds: string[] = [];
-		for (const id of Array.isArray(configured) ? configured : []) {
-			if (typeof id !== 'string' || !TAG_ID.test(id)) {
-				console.warn('[Analytics] Skipping an ID that is neither G-… nor GTM-…:', id);
-				continue;
-			}
-			const list = id.startsWith('GTM-') ? containers : measurementIds;
-			if (!list.includes(id)) list.push(id);
-		}
+		const { containers, measurementIds } = sortTagIds(
+			getConfigValue('SQUIGLINK.ANALYTICS_MEASUREMENT_IDS')
+		);
 
 		this.#containers = containers;
 		this.#measurementIds = measurementIds;

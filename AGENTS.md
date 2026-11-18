@@ -74,8 +74,8 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 
 - Tabs for indentation · single quotes · no trailing commas · 100-char line width
 - `npm run lint` (Prettier + ESLint) and `npm run format` are authoritative
-- App code under `src/` runs typescript-eslint's strict presets; violations older than them sit in
-  `eslint-suppressions.json`, which must only shrink. After fixing some, run `npm run lint:prune`.
+- App code under `src/` runs typescript-eslint's strict presets, with no suppressions file: fix a
+  finding (a function over the `complexity` limit of 15 gets split), never `eslint --suppress-all`.
 - Target **WCAG AAA** accessibility. Two deliberate stops at AA: the light theme's colored fills
   (4.5:1 by default, 7:1 under `prefers-contrast: more`: at 7:1 every color lands at the same dim
   lightness) and pointer targets (24px, not 44px: the rows are data-dense)

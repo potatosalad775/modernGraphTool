@@ -100,12 +100,9 @@ a DOM read, an index that can miss) is typed `| undefined` where it enters, and 
 fixtures may still use `!`.
 
 App code outside the specs is also held to typescript-eslint's `strict-type-checked` and
-`stylistic-type-checked` presets. The violations that predate them are recorded per file and rule in
-`eslint-suppressions.json`, ESLint's bulk-suppressions file, so lint fails only on a new one. That
-file must never grow: never run `eslint --suppress-all` to make a red lint pass. After fixing
-recorded violations, run `npm run lint:prune` and commit the smaller file, because `npm run lint`
-also fails on a suppression that no longer matches anything. What is left there is the `complexity`
-rule alone: functions over its limit of 15 that have not been split yet.
+`stylistic-type-checked` presets, and to a `complexity` limit of 15 per function. Nothing is
+suppressed in bulk: never run `eslint --suppress-all` to make a red lint pass. A function over the
+limit is split, with its spec as the pin.
 
 Two helpers in `src/lib/utils/` exist for these presets. `track(a, b)` names the reactive values an
 `$effect` depends on without otherwise using (a bare `void a;` fails `no-meaningless-void-operator`).

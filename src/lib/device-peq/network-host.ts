@@ -51,51 +51,56 @@ function parsePort(text: string): number | 'invalid' | 'port' {
 	return port >= 1 && port <= 65535 ? port : 'port';
 }
 
+/** `text` cut into its host and its port text; null when it can't be cut. */
+function splitHostPort(text: string): { host: string; port: string | null; v6: boolean } | null {
+	if (text.startsWith('[')) {
+		const match = /^\[([^\]]+)\](?::(.*))?$/.exec(text);
+		if (!match) return null;
+		const v6 = normalizeIpv6(match[1]);
+		if (!v6) return null;
+		const port = match.at(2) ?? null;
+		return port === '' ? null : { host: v6, port, v6: true };
+	}
+	if (text.split(':').length > 2) {
+		// A bare IPv6 literal: a trailing group can't be told from a port, so none is accepted.
+		const v6 = normalizeIpv6(text);
+		return v6 ? { host: v6, port: null, v6: true } : null;
+	}
+	const colon = text.indexOf(':');
+	if (colon === -1) return { host: text.toLowerCase(), port: null, v6: false };
+	return { host: text.slice(0, colon).toLowerCase(), port: text.slice(colon + 1), v6: false };
+}
+
+/** Why a host that is not an address literal is refused, or null for a name on this network. */
+function nameProblem(host: string): NetworkHostProblem | null {
+	const labels = host.split('.');
+	if (!labels.every((label) => LABEL.test(label))) return 'invalid';
+	// All digits is what a URL parser reads as a 32-bit IPv4 address (`3232235777`).
+	if (labels.length === 1) return /^\d+$/.test(host) ? 'invalid' : null;
+	if (labels.at(-1) === 'local') return null;
+	// 999.1.1.1 and 1.2.3 are mistyped addresses, not names: say "invalid", not "public".
+	return labels.every((label) => /^\d+$/.test(label)) ? 'invalid' : 'public';
+}
+
 export function parseNetworkHost(input: string): ParsedNetworkHost {
 	const text = input.trim();
 	if (!text) return fail('empty');
 	if (FORBIDDEN.test(text)) return fail('invalid');
 
-	let hostPart: string;
-	let portPart: string | null = null;
-	let v6: string | null = null;
-
-	if (text.startsWith('[')) {
-		const match = /^\[([^\]]+)\](?::(.*))?$/.exec(text);
-		if (!match) return fail('invalid');
-		v6 = normalizeIpv6(match[1]);
-		if (!v6) return fail('invalid');
-		hostPart = v6;
-		portPart = match.at(2) ?? null;
-		if (portPart === '') return fail('invalid');
-	} else if (text.split(':').length > 2) {
-		// A bare IPv6 literal: a trailing group can't be told from a port, so none is accepted.
-		v6 = normalizeIpv6(text);
-		if (!v6) return fail('invalid');
-		hostPart = v6;
-	} else {
-		const colon = text.indexOf(':');
-		hostPart = (colon === -1 ? text : text.slice(0, colon)).toLowerCase();
-		if (colon !== -1) portPart = text.slice(colon + 1);
-	}
+	const split = splitHostPort(text);
+	if (!split) return fail('invalid');
+	const hostPart = split.host;
 
 	let port: number | null = null;
-	if (portPart !== null) {
-		const parsed = parsePort(portPart);
+	if (split.port !== null) {
+		const parsed = parsePort(split.port);
 		if (typeof parsed !== 'number') return fail(parsed);
 		port = parsed;
 	}
 
-	if (!v6 && !IPV4.test(hostPart)) {
-		const labels = hostPart.split('.');
-		if (!labels.every((label) => LABEL.test(label))) return fail('invalid');
-		if (labels.length === 1) {
-			// All digits is what a URL parser reads as a 32-bit IPv4 address (`3232235777`).
-			if (/^\d+$/.test(hostPart)) return fail('invalid');
-		} else if (labels.at(-1) !== 'local') {
-			// 999.1.1.1 and 1.2.3 are mistyped addresses, not names: say "invalid", not "public".
-			return fail(labels.every((label) => /^\d+$/.test(label)) ? 'invalid' : 'public');
-		}
+	if (!split.v6 && !IPV4.test(hostPart)) {
+		const problem = nameProblem(hostPart);
+		if (problem) return fail(problem);
 	}
 
 	return {
@@ -119,18 +124,20 @@ export function addressSpaceOf(hostname: string): 'local' | 'loopback' | undefin
 	const name = hostname.toLowerCase();
 	if (name === 'localhost' || name === '[::1]') return 'loopback';
 	if (name.endsWith('.local') || (!name.includes('.') && !name.startsWith('['))) return 'local';
-	const v4 = IPV4.test(name) ? name.split('.').map(Number) : null;
-	if (v4) {
-		const [a, b] = v4;
-		if (a === 127) return 'loopback';
-		if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return 'local';
-		if (a === 169 && b === 254) return 'local';
-		return undefined;
-	}
+	if (IPV4.test(name)) return ipv4Space(name);
 	if (name.startsWith('[')) {
 		const first = parseInt(name.slice(1).split(':')[0], 16);
 		if ((first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80) return 'local';
 	}
+	return undefined;
+}
+
+/** Loopback (127/8), the private ranges and link-local (169.254/16). */
+function ipv4Space(address: string): 'local' | 'loopback' | undefined {
+	const [a, b] = address.split('.').map(Number);
+	if (a === 127) return 'loopback';
+	if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)) return 'local';
+	if (a === 169 && b === 254) return 'local';
 	return undefined;
 }
 

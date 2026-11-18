@@ -90,7 +90,7 @@ jobs:
         run: npm run i18n:tidy -- --check --duplicates-only
 
       # Key order and stale staging entries: worth a note on the PR, not a red
-      # build for a translator. The maintainer runs `npm run i18n:tidy` before merging.
+      # build for a translator. i18n-tidy.yml pushes the tidy to the PR by itself.
       - name: Translation files tidy (informational)
         if: matrix.os == 'ubuntu-latest'
         continue-on-error: true

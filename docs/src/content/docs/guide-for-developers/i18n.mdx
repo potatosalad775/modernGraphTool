@@ -84,12 +84,24 @@ already has elsewhere in the file. Git merges both copies without a conflict, an
 silently keeps one of them. The tidy moves each key back to where `main` has it, so the merge
 collapses the two into one.
 
-You don't need a local checkout for this. Comment `/tidy` on the PR, or run the **i18n tidy**
-workflow from the Actions tab with the PR number. It runs the same tidy against `main` and pushes
-the result to the PR branch as a commit, then replies with what changed. Only the repository
-owner, members and collaborators can trigger it, and the PR must allow edits by maintainers. It
-runs nothing from the PR itself: `main`'s script tidies a copy of the PR's translation files. Like
-every comment-triggered workflow, it runs from the copy of the workflow file on `main`.
+You rarely need to do this by hand. The **i18n tidy** workflow runs on every PR that changes a
+`messages/*.json` file, and again on each push to it. It runs the same tidy against `main` and
+pushes the result to the PR branch as a commit, then comments with what changed. When there is
+nothing to tidy it says nothing. When it cannot finish, the check fails and one comment on the PR,
+kept up to date across pushes, says why:
+
+- A key appears twice with different values. Someone has to pick one; the comment lists each key
+  and its lines.
+- The PR doesn't allow edits by maintainers, so the tidy can't be pushed. The contributor ticks
+  the box, or runs the tidy on their branch.
+
+To run it again yourself, comment `/tidy` on the PR (repository owner, members and collaborators
+only), or start the workflow from the Actions tab with the PR number. Since the tidy commit lands
+on the PR branch, pull before you add commits to a branch of your own.
+
+It runs nothing from the PR itself: `main`'s script tidies a copy of the PR's translation files,
+and the workflow file is always the copy on `main`, so a change to it takes effect only once
+merged.
 
 The workflow pushes with an `I18N_TIDY_TOKEN` repository secret: a classic personal access token
 with the `public_repo` scope, from an account with write access. `GITHUB_TOKEN` cannot push to a

@@ -1,9 +1,15 @@
 name: i18n tidy
 
 # Pushes an `npm run i18n:tidy` commit to a translation PR, so a Fink PR from a
-# fork behind main stops re-adding keys main already has. Trigger it with a
-# `/tidy` comment on the PR (repo owner, members and collaborators only), or
-# from the Actions tab with the PR number.
+# fork behind main stops re-adding keys main already has. It runs by itself on
+# every PR that touches messages/*.json; a `/tidy` comment on the PR (repo
+# owner, members and collaborators only) or the Actions tab with the PR number
+# runs it again by hand.
+#
+# An automatic run stays quiet when there is nothing to tidy. When the tidy
+# can't finish (a key twice with different values, or a PR that refuses
+# maintainer edits) it fails the check and keeps ONE comment up to date, so a
+# contributor pushing fixes isn't answered once per push.
 #
 # ── Required secret ──────────────────────────────────────────────────────
 # I18N_TIDY_TOKEN — a classic PAT with the `public_repo` scope, from an
@@ -13,8 +19,11 @@ name: i18n tidy
 # this workflow fails at the clone step; nothing else is affected.
 #
 # ── Why this is safe with a write token ──────────────────────────────────
-# Comment-triggered runs use this file and the scripts as they are on main;
-# a PR cannot change either. Nothing from the PR is executed: the job checks
+# `pull_request_target` and comment-triggered runs use this file and the
+# scripts as they are on main; a PR cannot change either. Never switch the
+# trigger to `pull_request`: a fork PR gets no secrets there, and a same-repo
+# one would run the PR's copy of this file with the token.
+# Nothing from the PR is executed: the job checks
 # out main, copies in only the PR's locale and staging JSON (allow-listed by
 # name, so no `.prettierrc.json` or `package.json` can steer Prettier into
 # loading a plugin), tidies it with main's script and dependencies, and
@@ -22,6 +31,10 @@ name: i18n tidy
 # name) reaches the shell through env, never through `${{ }}` in a script.
 
 on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'messages/*.json'
   issue_comment:
     types: [created]
   workflow_dispatch:
@@ -37,11 +50,12 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: i18n-tidy-${{ github.event.issue.number || inputs.pr }}
+  group: i18n-tidy-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
 
 jobs:
   tidy:
     if: >-
+      github.event_name == 'pull_request_target' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.issue.pull_request &&
        startsWith(github.event.comment.body, '/tidy') &&
@@ -51,7 +65,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      PR: ${{ github.event.issue.number || inputs.pr }}
+      PR: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
+      AUTO: ${{ github.event_name == 'pull_request_target' }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
@@ -72,12 +87,18 @@ jobs:
             echo "::error::PR #$PR is $state."
             exit 1
           fi
+          can_push=true
           if [ "$(jq -r .isCrossRepository pr.json)" = true ] &&
              [ "$(jq -r .maintainerCanModify pr.json)" != true ]; then
-            gh pr comment "$PR" --body "Can't push the tidy: this PR doesn't allow edits by maintainers. Tick **Allow edits by maintainers** in the PR sidebar, or run \`npm run i18n:tidy -- --base origin/main\` on the branch yourself."
-            exit 1
+            # An automatic run still tidies a copy, to say whether one is needed.
+            if [ "$AUTO" != true ]; then
+              gh pr comment "$PR" --body "Can't push the tidy: this PR doesn't allow edits by maintainers. Tick **Allow edits by maintainers** in the PR sidebar, or run \`npm run i18n:tidy -- --base origin/main\` on the branch yourself."
+              exit 1
+            fi
+            can_push=false
           fi
           {
+            echo "can_push=$can_push"
             echo "ref=$(jq -r .headRefName pr.json)"
             echo "sha=$(jq -r .headRefOid pr.json)"
             echo "repo=$(jq -r '.headRepositoryOwner.login + "/" + .headRepository.name' pr.json)"
@@ -104,7 +125,7 @@ jobs:
           git clone --quiet --depth 1 --branch "$HEAD_REF" -- \
             "https://x-access-token:$TOKEN@github.com/$HEAD_REPO.git" pr
           if [ "$(git -C pr rev-parse HEAD)" != "$HEAD_SHA" ]; then
-            echo "::error::The PR branch moved while this ran. Comment /tidy again."
+            echo "::error::The PR branch moved while this ran. The push that moved it starts a new run; otherwise comment /tidy."
             exit 1
           fi
 
@@ -157,16 +178,28 @@ jobs:
         if: steps.tidy.outputs.status == '0'
         env:
           HEAD_REF: ${{ steps.pr.outputs.ref }}
+          CAN_PUSH: ${{ steps.pr.outputs.can_push }}
         working-directory: pr
         run: |
+          subject='i18n: tidy translation files'
           git add -A messages
           if git diff --cached --quiet; then
             echo "pushed=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [ "$CAN_PUSH" != true ]; then
+            echo "unpushed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The push below starts the next automatic run. If the tidy ever
+          # stopped being idempotent, the two would feed each other forever.
+          if [ "$AUTO" = true ] && [ "$(git log -1 --format=%s)" = "$subject" ]; then
+            echo "::error::The tidy commit itself still needs a tidy. Not pushing another one."
+            exit 1
+          fi
           git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-              commit --quiet -m 'i18n: tidy translation files'
+              commit --quiet -m "$subject"
           git push --quiet origin "HEAD:refs/heads/$HEAD_REF"
           echo "pushed=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -176,21 +209,56 @@ jobs:
           STATUS: ${{ steps.tidy.outputs.status }}
           PUSHED: ${{ steps.push.outputs.pushed }}
           PUSH_OUTCOME: ${{ steps.push.outcome }}
+          UNPUSHED: ${{ steps.push.outputs.unpushed }}
         run: |
           # A zero-width space after @ keeps a key name from pinging anyone.
           log=$(sed 's/@/@\xe2\x80\x8b/g' tidy.log)
+          # open: the PR still needs someone to act. clean: nothing was wrong.
+          open=true
+          clean=false
           if [ "$STATUS" != 0 ]; then
             head="The tidy stopped: a key appears twice with different values, so one has to be kept by hand. Nothing was pushed."
           elif [ "$PUSH_OUTCOME" != success ]; then
             head="The tidy ran but the push failed. See the [run log]($RUN_URL)."
+          elif [ "$UNPUSHED" = true ]; then
+            head="These translation files need a tidy, and it can't be pushed here: this PR doesn't allow edits by maintainers. Tick **Allow edits by maintainers** in the PR sidebar and push again (or ask a maintainer to comment \`/tidy\`), or run \`npm run i18n:tidy -- --base origin/main\` on the branch yourself."
           elif [ -n "$PUSHED" ]; then
+            open=false
             head="Pushed $PUSHED with the tidied translation files."
           else
+            open=false
+            clean=true
             head="Nothing to tidy: the translation files are already in order."
           fi
+          # The marker finds the automatic runs' one comment again.
+          marker='<!-- i18n-tidy:auto -->'
           printf '%s\n\n<details><summary>i18n:tidy output</summary>\n\n```\n%s\n```\n\n</details>\n' \
             "$head" "$log" > body.md
-          gh pr comment "$PR" --body-file body.md
+
+          if [ "$AUTO" != true ]; then
+            gh pr comment "$PR" --body-file body.md
+            exit 0
+          fi
+
+          # An open problem goes into the one marked comment, and a later clean
+          # run closes it there. A clean run with no such comment says nothing.
+          # A pushed tidy is news, so it gets a comment of its own; the run its
+          # push starts is the clean one.
+          sticky=$(gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" |
+            head -n 1)
+          if [ "$open" = true ] || { [ "$clean" = true ] && [ -n "$sticky" ]; }; then
+            printf '\n%s\n' "$marker" >> body.md
+            if [ -n "$sticky" ]; then
+              gh api -X PATCH "repos/$GH_REPO/issues/comments/$sticky" -F body=@body.md --silent
+            else
+              gh pr comment "$PR" --body-file body.md
+            fi
+          elif [ "$clean" != true ]; then
+            gh pr comment "$PR" --body-file body.md
+          fi
+          # Red check: the PR author sees it without reading the thread.
+          if [ "$open" = true ]; then exit 1; fi
 
       - name: Report a failure before the tidy ran
         if: failure() && steps.tidy.outcome != 'success' && steps.pr.outcome != 'failure'

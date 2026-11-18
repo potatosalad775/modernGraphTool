@@ -44,11 +44,6 @@
       "count": 1
     }
   },
-  "src/lib/services/autoeq-service.svelte.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/services/keyboard-shortcuts.ts": {
     "complexity": {
       "count": 1

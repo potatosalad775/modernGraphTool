@@ -119,6 +119,23 @@ function resolveBandCount(scope: EqChannelScope, kept: KeptBand[]): number {
 	return Math.min(count, MAX_BANDS);
 }
 
+interface Range {
+	min: number;
+	max: number;
+}
+
+/** The widest range over the slots that take a peaking band, else over every slot. */
+function peakingEnvelope(field: 'freq' | 'q' | 'gain'): Range | null {
+	const profile = eqConstraintsStore.profile;
+	return envelopeOf(profile, field, ['PK']) ?? envelopeOf(profile, field);
+}
+
+/** `asked` narrowed to what the preset allows; to `fallback` where the preset has no range. */
+function intersect(asked: Range, allowed: Range | null, fallback: Range = asked): Range {
+	const within = allowed ?? fallback;
+	return { min: Math.max(asked.min, within.min), max: Math.min(asked.max, within.max) };
+}
+
 /**
  * What to ask the optimizer for, in its terms rather than the old engine's.
  *
@@ -147,16 +164,21 @@ function buildRequest(bandCount: number): AutoEqRequest {
 	// The envelope over every slot that takes a peaking band. A profile whose
 	// slots differ (a shelf-only first band, a treble-only last one) is
 	// narrowed per slot afterwards, when the result is folded onto it.
-	const freq = envelopeOf(profile, 'freq', ['PK']) ?? envelopeOf(profile, 'freq');
-	const q = envelopeOf(profile, 'q', ['PK']) ?? envelopeOf(profile, 'q');
-	const gain = envelopeOf(profile, 'gain', ['PK']) ?? envelopeOf(profile, 'gain');
+	const askedGain = { min: opts.gainMin, max: opts.gainMax };
+	const peakGain = peakingEnvelope('gain');
+	const fc = intersect({ min: opts.freqMin, max: opts.freqMax }, peakingEnvelope('freq'), {
+		min: 20,
+		max: 20000
+	});
+	const q = intersect({ min: opts.qMin, max: opts.qMax }, peakingEnvelope('q'));
+	const gain = intersect(askedGain, peakGain);
 	const limits = {
-		minFc: Math.max(opts.freqMin, freq?.min ?? 20),
-		maxFc: Math.min(opts.freqMax, freq?.max ?? 20000),
-		minQ: Math.max(opts.qMin, q?.min ?? opts.qMin),
-		maxQ: Math.min(opts.qMax, q?.max ?? opts.qMax),
-		minGain: Math.max(opts.gainMin, gain?.min ?? opts.gainMin),
-		maxGain: Math.min(opts.gainMax, gain?.max ?? opts.gainMax)
+		minFc: fc.min,
+		maxFc: fc.max,
+		minQ: q.min,
+		maxQ: q.max,
+		minGain: gain.min,
+		maxGain: gain.max
 	};
 	// A profile with nowhere to put a low and a high shelf gets none, whatever
 	// the switch says.
@@ -164,20 +186,18 @@ function buildRequest(bandCount: number): AutoEqRequest {
 	const { peaking, shelves } = planBands(bandCount, shelvesAllowed);
 	// Only where the shelves' gain window differs from the peaking bands'.
 	const shelfGain = envelopeOf(profile, 'gain', ['LSC', 'HSC']);
-	const shelfLimits =
-		shelves && shelfGain && (shelfGain.min !== gain?.min || shelfGain.max !== gain.max)
-			? {
-					...limits,
-					minGain: Math.max(opts.gainMin, shelfGain.min),
-					maxGain: Math.min(opts.gainMax, shelfGain.max)
-				}
-			: undefined;
+	const ownShelfGain =
+		shelves && shelfGain && (shelfGain.min !== peakGain?.min || shelfGain.max !== peakGain.max)
+			? intersect(askedGain, shelfGain)
+			: null;
 	return {
 		kind: 'parametric',
 		peaking,
 		shelves,
 		limits,
-		...(shelfLimits ? { shelfLimits } : {}),
+		...(ownShelfGain
+			? { shelfLimits: { ...limits, minGain: ownShelfGain.min, maxGain: ownShelfGain.max } }
+			: {}),
 		fit
 	};
 }

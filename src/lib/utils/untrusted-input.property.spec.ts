@@ -11,6 +11,7 @@ import fc from 'fast-check';
 import Base62 from './base62.js';
 import { sanitizeHtml, stripHtml } from './html-sanitizer.js';
 import {
+	BASE62_PREFIX,
 	buildQueryString,
 	parseShareParam,
 	parseStateParam,
@@ -66,6 +67,39 @@ const plainState: fc.Arbitrary<URLState> = fc.record(
 	{ requiredKeys: [] }
 );
 
+/** Any text, half of the time behind the prefix that sends it down the Base62 branch. */
+const junk = fc.string({ unit: 'binary' });
+const shareValue = fc.oneof(
+	junk,
+	junk.map((value) => BASE62_PREFIX + value)
+);
+
+const anything = fc.jsonValue();
+
+/**
+ * A record keyed by device name, `__proto__` among the keys. `Object.fromEntries` makes it an
+ * own property, as `JSON.parse` does; a plain assignment would swap the prototype instead.
+ */
+const namedRecord = fc
+	.array(fc.tuple(fc.oneof(fc.string(), fc.constant('__proto__')), anything), { maxLength: 4 })
+	.map((entries): Record<string, unknown> => Object.fromEntries(entries));
+
+/** A state someone edited by hand: the keys the decoder knows, holding anything. */
+const handEdited = fc.record(
+	{
+		yScale: anything,
+		baseline: fc.record({ key: anything, mode: anything }, { requiredKeys: [] }),
+		yOffsets: namedRecord,
+		eq: fc.record(
+			{ filters: fc.array(anything, { maxLength: 40 }), preamp: anything },
+			{ requiredKeys: [] }
+		),
+		sampleDisplay: namedRecord,
+		hptfDisplay: namedRecord
+	},
+	{ requiredKeys: [] }
+);
+
 describe('Base62', () => {
 	it('decodes what it encodes', () => {
 		fc.assert(
@@ -98,7 +132,7 @@ describe('share names', () => {
 
 	it('are read from any string without throwing, as trimmed non-empty names', () => {
 		fc.assert(
-			fc.property(fc.string({ unit: 'binary' }), (value) => {
+			fc.property(shareValue, (value) => {
 				for (const name of parseShareParam(value)) {
 					expect(name).toBe(name.trim());
 					expect(name).not.toBe('');
@@ -129,34 +163,23 @@ describe('state', () => {
 
 	it('is read from any JSON document without throwing or touching a prototype', () => {
 		fc.assert(
-			fc.property(fc.jsonValue(), (document) => {
+			fc.property(fc.oneof(anything, handEdited), (document) => {
 				const state = parseStateParam(Base62.encode(JSON.stringify(document)));
 				if (state === null) return;
 				expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
-				for (const part of [state.yOffsets, state.sampleDisplay]) {
-					if (part) expect(Object.getPrototypeOf(part)).toBe(Object.prototype);
+				for (const part of Object.values(state)) {
+					if (typeof part !== 'object') continue;
+					expect(Object.getPrototypeOf(part)).toBe(Object.prototype);
+					expect(Object.hasOwn(part, '__proto__')).toBe(false);
 				}
 			})
 		);
 	});
 
 	it('keeps only finite numbers, strings and at most 32 bands from a hand-edited state', () => {
-		const anything = fc.jsonValue();
-		const handEdited = fc.record(
-			{
-				yScale: anything,
-				baseline: fc.record({ key: anything, mode: anything }, { requiredKeys: [] }),
-				yOffsets: fc.dictionary(fc.string(), anything),
-				eq: fc.record(
-					{ filters: fc.array(anything, { maxLength: 40 }), preamp: anything },
-					{ requiredKeys: [] }
-				)
-			},
-			{ requiredKeys: [] }
-		);
 		fc.assert(
 			fc.property(handEdited, (raw) => {
-				const state = sanitizeState(raw as Record<string, unknown>);
+				const state = sanitizeState(raw);
 				if (state.yScale !== undefined) expect(Number.isFinite(state.yScale)).toBe(true);
 				if (state.baseline) {
 					expect(typeof state.baseline.key).toBe('string');
@@ -175,7 +198,7 @@ describe('state', () => {
 
 	it('is unchanged by a second sanitizeState', () => {
 		fc.assert(
-			fc.property(fc.dictionary(fc.string(), fc.jsonValue()), (raw) => {
+			fc.property(handEdited, (raw) => {
 				const once = sanitizeState(raw);
 				expect(sanitizeState(once as Record<string, unknown>)).toEqual(once);
 			})
@@ -183,11 +206,19 @@ describe('state', () => {
 	});
 });
 
+/** A link whose query holds entities, escaped once or more, and names that look like one. */
+const entityHref = fc
+	.array(fc.constantFrom('&amp;', 'amp;', '&lt=', '&tab=', '&#38;', '&', 'a=1', 'b'), {
+		maxLength: 5
+	})
+	.map((parts) => `<a href="https://x.test/?${parts.join('')}">`);
+
 /** Markup-shaped noise: tags, attributes and entities in any order, closed or not. */
 const htmlish = fc
 	.array(
 		fc.oneof(
 			fc.string({ maxLength: 6 }),
+			entityHref,
 			fc.constantFrom(
 				'<b>',
 				'</b>',

@@ -34,11 +34,6 @@
       "count": 1
     }
   },
-  "src/lib/utils/eq-apo.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/lib/utils/html-sanitizer.ts": {
     "complexity": {
       "count": 1

@@ -1,4 +1,4 @@
-import { usesGain, type CompleteBand, type EQFilter } from './equalizer.js';
+import { usesGain, type CompleteBand, type EQFilter, type EQFilterType } from './equalizer.js';
 import type { EqChannel } from './eq-channel.js';
 import { hasPerChannelFilters } from './eq-channel.js';
 
@@ -110,6 +110,17 @@ function qFromShelfSlope(slopeDb: number, gain: number): number {
 /** Three decimals, what the exporter writes — a converted Q needn't carry float noise. */
 const roundQ = (q: number) => Math.round(q * 1000) / 1000;
 
+/** A band's Q from the line's `Q`, its bandwidth or its shelf slope. Null when it gives none. */
+function parseQ(params: string, type: EQFilterType, freq: number, gain: number): number | null {
+	const qMatch = Q.exec(params);
+	if (qMatch) return parseFloat(qMatch[1]);
+	const bwMatch = BW_OCT.exec(params);
+	if (bwMatch) return roundQ(qFromBandwidth(parseFloat(bwMatch[1]), freq));
+	if (type !== 'LSQ' && type !== 'HSQ') return null;
+	const slopeMatch = SHELF_SLOPE.exec(params);
+	return roundQ(slopeMatch ? qFromShelfSlope(parseFloat(slopeMatch[1]), gain) : Math.SQRT1_2);
+}
+
 /**
  * Read the body of one `Filter` command into a band, or null when it describes
  * something we cannot represent. Bandwidth and shelf slope convert to Q
@@ -134,17 +145,8 @@ function parseFilterBody(body: string): Omit<EQFilter, 'channel'> | null {
 	const freq = parseFloat(fc[1]);
 	const gain = gainMatch && usesGain(type) ? parseFloat(gainMatch[1]) : 0;
 
-	const qMatch = Q.exec(params);
-	const bwMatch = BW_OCT.exec(params);
-	const shelf = type === 'LSQ' || type === 'HSQ';
-	const slopeMatch = shelf ? SHELF_SLOPE.exec(params) : null;
-	let q: number;
-	if (qMatch) q = parseFloat(qMatch[1]);
-	else if (bwMatch) q = roundQ(qFromBandwidth(parseFloat(bwMatch[1]), freq));
-	else if (slopeMatch) q = roundQ(qFromShelfSlope(parseFloat(slopeMatch[1]), gain));
-	else if (shelf) q = roundQ(Math.SQRT1_2);
-	else return null;
-	if (!(freq > 0) || !(q > 0) || !Number.isFinite(q)) return null;
+	const q = parseQ(params, type, freq, gain);
+	if (q === null || !(freq > 0) || !(q > 0) || !Number.isFinite(q)) return null;
 
 	return {
 		// APO's `OFF` is a real state users rely on to park a band.

@@ -149,6 +149,14 @@ PR에 <code dir="auto">main</code>의 다른 위치에 이미 있는 영어·한
 <p>다시 실행하려면 PR에 <code dir="auto">/tidy</code>라고 댓글을 달거나(저장소 소유자, 멤버, 협업자만 가능), Actions 탭에서 PR
 번호를 넣고 워크플로를 실행하세요. tidy 커밋이 PR 브랜치에 올라가므로, 자신의 브랜치라면 커밋을 더
 쌓기 전에 pull 하세요.</p>
+<p>PR이 <code dir="auto">messages/&#x3C;locale>.json</code> 대신 스테이징 파일을 고친 경우(아래의 오프라인 방식), 번역이 끝났을 때
+<code dir="auto">/apply</code>라고 댓글을 달거나 워크플로를 직접 실행할 때 <strong>apply</strong>를 체크하세요. PR이 바꾼 스테이징
+파일에 <code dir="auto">i18n:apply</code>를 실행하고, 결과를 tidy한 뒤 커밋 하나로 푸시합니다. 그러면 PR에 로케일 파일의
+실제 변경이 보이고, 병합 전에 CI가 그 결과를 확인합니다. 해당 스테이징 파일은 아직 번역되지 않은
+키만 담아 다시 쓰고, 다른 언어의 스테이징 파일은 건드리지 않습니다. 기여자가 아직 고치고 있는 파일을
+다시 쓰는 작업이라 자동으로는 실행되지 않습니다. 적용할 수 없는 항목(복수형이 아닌 키를 쓴 복수형,
+<code dir="auto">en.json</code>이 넘기지 않는 입력)이 있으면 아무것도 푸시하지 않고 댓글에 항목을 하나씩 적습니다. 그대로
+두면 번역자가 쓴 문장이 영어 원문으로 바뀌어 버리기 때문입니다.</p>
 <p>PR의 코드는 실행하지 않습니다. <code dir="auto">main</code>의 스크립트가 PR의 번역 파일 사본을 정리할 뿐입니다. 워크플로
 파일도 항상 <code dir="auto">main</code>에 있는 것이 쓰이므로, 워크플로를 고친 내용은 병합된 뒤에야 적용됩니다.</p>
 <p>워크플로는 <code dir="auto">I18N_TIDY_TOKEN</code> 저장소 시크릿으로 푸시합니다. 쓰기 권한이 있는 계정의 클래식 개인 액세스
@@ -221,7 +229,7 @@ PR이 새로 추가한 언어에 첫 스테이징 파일을 만들어 주는데,
 </ul>
 <p>형식 이름은 로케일의
 <a href="https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html">CLDR 복수 범주</a>
-(<code dir="auto">zero</code>, <code dir="auto">one</code>, <code dir="auto">two</code>, <code dir="auto">few</code>, <code dir="auto">many</code>, <code dir="auto">other</code>)이며 <code dir="auto">other</code>는 필수입니다. 각 스테이징 파일의 <code dir="auto">@@info</code>에
+(<code dir="auto">zero</code>, <code dir="auto">one</code>, <code dir="auto">two</code>, <code dir="auto">few</code>, <code dir="auto">many</code>, <code dir="auto">other</code>)이며 <code dir="auto">other</code>는 필수입니다. 객체 형식에서는 Paraglide가 쓰는 표기인 <code dir="auto">*</code>도 <code dir="auto">other</code>로 읽습니다. 각 스테이징 파일의 <code dir="auto">@@info</code>에
 해당 로케일이 쓰는 형식이 적혀 있고, 로케일에서 선택될 일이 없는 형식은 <code dir="auto">i18n:apply</code>가 경고와 함께
 버립니다. <code dir="auto">"=0": "No bands"</code> 같은 정확한 숫자는 범주보다 우선하지만 Paraglide 2.27.0 이상이 필요합니다.
 그보다 낮으면 <code dir="auto">i18n:apply</code>가 해당 키를 건너뜁니다.</p>

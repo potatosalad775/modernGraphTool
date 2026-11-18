@@ -149,6 +149,15 @@ the box, or runs the tidy on their branch.</li>
 <p>To run it again yourself, comment <code dir="auto">/tidy</code> on the PR (repository owner, members and collaborators
 only), or start the workflow from the Actions tab with the PR number. Since the tidy commit lands
 on the PR branch, pull before you add commits to a branch of your own.</p>
+<p>When a PR edits the staging files instead of <code dir="auto">messages/&#x3C;locale>.json</code> (the offline flow below),
+comment <code dir="auto">/apply</code> once the translation is finished, or tick <strong>apply</strong> when starting the workflow by
+hand. It runs <code dir="auto">i18n:apply</code> on the staging files the PR changed, tidies the result and pushes one
+commit, so the PR shows the real change to the locale files and CI checks it before the merge.
+Those staging files are written again with what is still untranslated; other languages’ staging
+files are left alone. It is never automatic, because it rewrites the file the contributor is still
+editing. If an entry can’t be applied (a plural key that isn’t a plural form, an input <code dir="auto">en.json</code>
+doesn’t pass), nothing is pushed and the comment names each one: the rewrite would otherwise
+replace the translator’s text with the English source.</p>
 <p>It runs nothing from the PR itself: <code dir="auto">main</code>’s script tidies a copy of the PR’s translation files,
 and the workflow file is always the copy on <code dir="auto">main</code>, so a change to it takes effect only once
 merged.</p>
@@ -225,7 +234,8 @@ combination, so the translator doesn’t have to.</li>
 </ul>
 <p>The forms are the locale’s
 <a href="https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html">CLDR plural categories</a>
-(<code dir="auto">zero</code>, <code dir="auto">one</code>, <code dir="auto">two</code>, <code dir="auto">few</code>, <code dir="auto">many</code>, <code dir="auto">other</code>). <code dir="auto">other</code> is required. Each staging file’s <code dir="auto">@@info</code>
+(<code dir="auto">zero</code>, <code dir="auto">one</code>, <code dir="auto">two</code>, <code dir="auto">few</code>, <code dir="auto">many</code>, <code dir="auto">other</code>). <code dir="auto">other</code> is required; in the object form <code dir="auto">*</code>, Paraglide’s own spelling of it, is read as
+<code dir="auto">other</code>. Each staging file’s <code dir="auto">@@info</code>
 lists the forms that locale uses, and <code dir="auto">i18n:apply</code> drops any form the locale never selects, with a
 warning. An exact number such as <code dir="auto">"=0": "No bands"</code> takes precedence over the categories, but
 needs Paraglide 2.27.0 or later. Below that, <code dir="auto">i18n:apply</code> skips the key.</p>

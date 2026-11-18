@@ -503,7 +503,6 @@
 									class="ps-description min-w-0 text-xs leading-snug text-base-content/80
 									{isLoaded ? 'line-clamp-3' : 'line-clamp-1 truncate'}"
 								>
-									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 									{@html trustedHtml(phone.descHtml)}
 								</div>
 							</div>

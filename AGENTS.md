@@ -57,7 +57,8 @@ Deeper contributor documentation lives in the docs site:
 
 ## Svelte 5 Runes — Required Conventions
 
-Always use the Runes API. Never the legacy Options API or writable stores:
+Always use the Runes API. Never the legacy Options API or writable stores (lint rejects a
+`svelte/store` import):
 
 - State: `let x = $state(value)` **not** `writable(value)`
 - Derived: `let y = $derived(expr)` **not** `$: y = expr`
@@ -95,10 +96,8 @@ Always use the Runes API. Never the legacy Options API or writable stores:
 ## Rules That Apply Everywhere
 
 - **Panels unmount on every panel switch.** Anything that must survive that belongs in a store or in
-  a service installed once from `AppShell.onMount` — never in a panel-scoped `$effect`.
-- **Never import from `static/` or `defaults/` as modules** — `fetch()` them at runtime. They are
-  operator-editable deployment artifacts; importing one bakes a copy into the bundle and the
-  operator's edit silently stops taking effect.
+  a service installed once from `AppShell.onMount` — never in a panel-scoped `$effect`. Lint bans
+  `$effect` in `components/panels/`; a component a panel renders unmounts with it all the same.
 - **No hardcoded palette values in components.** Everything goes through the semantic tokens (see
   CSS / Theming below), so operator themes stay coherent.
 - **Reach for the atoms** in [src/lib/components/atoms/](src/lib/components/atoms/) before a raw
@@ -111,6 +110,11 @@ Always use the Runes API. Never the legacy Options API or writable stores:
   **compose** with the dialect rather than override it — CrinGraph reads `file` and nothing else, so
   a key that suppresses `file` silently makes the entry unreadable there and forces operators to
   choose between our features and dual-hosting. Precedent: `variants[]` (`_mergeVariants`).
+- **A rule a machine can check goes in [eslint.config.js](eslint.config.js), not in this guide.**
+  Its `message` names the fix. Lint already rejects an import from `static/` or `defaults/`, a
+  Tailwind palette class, an HTML sink, an untrusted `{@html}` or `Worker` URL, and an import that
+  crosses a layer (`workers`, `stores` and `device-peq` import nothing above them). When you add
+  such a rule, delete the sentence it replaces.
 - **Keep commit messages short. Default to a subject line alone.** Add a body only when the _why_
   can't be read off the diff, and cap it at one paragraph of two or three lines. Never one paragraph
   per design decision — long bodies are hard to read in VS Code's commit view and drown out
@@ -226,8 +230,7 @@ The token system follows DaisyUI naming (OKLCH color space, light + dark variant
   (shipped as 40% black), so it is `bg-scrim`, never `bg-scrim/50`
 
 **UI chrome uses opacity modifiers on `base-content`**, e.g. `text-base-content/60` for secondary
-text, `border-base-content/15` for subtle dividers. Do not hardcode zinc/gray Tailwind classes —
-always go through the semantic tokens so operator themes stay consistent.
+text, `border-base-content/15` for subtle dividers.
 
 Other tokens: **Typography** — Pretendard via `@theme`; text-xs (metadata), text-sm (body/controls),
 text-lg (headings); weights 400 / 500 / 600. **Spacing** — Tailwind defaults; common gap-1..4,
@@ -341,11 +344,11 @@ page: [security-headers.mdx](docs/src/content/docs/guide-for-admins/deployment/s
 - **No inline event handlers, no new `eval`, no `javascript:` URLs** anywhere in the shells or the
   app. An inline `<script>` in a shell is fine (it gets hashed), but keep the ones shared by
   `src/app.html`, `cdn/cdn-index.html` and `site-template/index.html` byte-identical.
-- **Markup and script URLs go through `utils/trusted-types.ts`.** `{@html}` takes
-  `trustedHtml(...)`; a script's `src` and the `Worker` constructor take `trustedScriptUrl(...)`.
-  A plain string at one of those sinks throws under `require-trusted-types-for 'script'`, which
-  the smoke test enforces (operators opt in). Don't add `innerHTML`, `outerHTML`,
-  `insertAdjacentHTML` or d3's `.html()`: build nodes, or use `textContent`.
+- **Markup and script URLs go through `utils/trusted-types.ts`.** A plain string at one of those
+  sinks throws under `require-trusted-types-for 'script'`, which the smoke test enforces
+  (operators opt in). Lint covers `{@html}`, the `Worker` constructor and the `innerHTML` family.
+  It does not cover a script's `src`, which takes `trustedScriptUrl(...)`, or d3's `.html()`:
+  build nodes, or use `textContent`.
 - **A new third-party origin is a policy change.** Scripts, stylesheets and fonts are allowed by
   origin; `fetch` targets only by scheme (`https:` / `wss:`), since operators configure those.
   Add the origin in `scripts/csp.js`, or to the "what to add" table on the operator page when only

@@ -168,7 +168,6 @@
 					<img src={item.CONTENT} alt="" class="max-w-full rounded" />
 				{:else if item.TYPE.toUpperCase() === 'HTML'}
 					<!-- operator-supplied config content — trusted by definition -->
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html trustedHtml(item.CONTENT)}
 				{/if}
 			{/each}

@@ -372,6 +372,53 @@ describe('URLProvider', () => {
 		});
 	});
 
+	// ── Reload hand-over ─────────────────────────────────────────────────────
+
+	describe('keepAcrossReload', () => {
+		beforeEach(() => {
+			// The address bar carries nothing, as an operator with this off asked.
+			window.GRAPHTOOL_CONFIG = {
+				URL: { AUTO_UPDATE_URL: false },
+				VISUALIZATION: { DEFAULT_Y_SCALE: '50' }
+			} as never;
+			urlProvider.init();
+		});
+
+		afterEach(() => sessionStorage.clear());
+
+		it('gives the next load the devices and the EQ', () => {
+			frStore.set('a', makeEntry('a'));
+			eqStore.filters = [{ enabled: true, type: 'PK', freq: 1000, q: 1, gain: 3 }];
+			urlProvider.keepAcrossReload();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual(['Phone a']);
+			expect(urlProvider.stateFromURL?.eq?.filters).toHaveLength(1);
+			expect(window.location.search).toBe('');
+		});
+
+		it('is read by one load only', () => {
+			frStore.set('a', makeEntry('a'));
+			urlProvider.keepAcrossReload();
+			urlProvider.init();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual([]);
+		});
+
+		it('wins over a `?share=` the session has since moved on from', () => {
+			setSearch('?share=Phone_Old');
+			frStore.set('a', makeEntry('a'));
+			urlProvider.keepAcrossReload();
+
+			urlProvider.init();
+
+			expect(urlProvider.phoneDataFromURL).toEqual(['Phone a']);
+		});
+	});
+
 	// ── State restoration ────────────────────────────────────────────────────
 
 	describe('applyStateFromURL', () => {

@@ -14,6 +14,7 @@ import { page } from 'vitest/browser';
 import MiscPanel, { CHANGELOG_URL } from './MiscPanel.svelte';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { analyticsService } from '#lib/services/analytics-service.svelte.js';
+import { urlProvider } from '#lib/utils/url-provider.js';
 import { setLocale, locales } from '#lib/paraglide/runtime.js';
 
 vi.mock('#lib/paraglide/runtime.js', async (importOriginal) => {
@@ -43,6 +44,8 @@ describe('MiscPanel', () => {
 		vi.restoreAllMocks();
 		delete (window as { GRAPHTOOL_CONFIG?: unknown }).GRAPHTOOL_CONFIG;
 		document.documentElement.classList.remove('dark');
+		// A locale switch leaves the session for the reload that never comes here.
+		sessionStorage.clear();
 	});
 
 	// ── Theme ────────────────────────────────────────────────────────────────
@@ -138,6 +141,17 @@ describe('MiscPanel', () => {
 			await page.getByRole('combobox').selectOptions('ko');
 
 			expect(setLocale).toHaveBeenCalledWith('ko');
+		});
+
+		it('saves the session before the reload a locale switch causes', async () => {
+			setConfig({ LANGUAGE: { ENABLE_I18N: true } });
+			const keep = vi.spyOn(urlProvider, 'keepAcrossReload').mockImplementation(() => {});
+			await render(MiscPanel);
+			await page.getByRole('combobox').selectOptions('ko');
+
+			expect(keep.mock.invocationCallOrder[0]).toBeLessThan(
+				vi.mocked(setLocale).mock.invocationCallOrder[0]
+			);
 		});
 	});
 

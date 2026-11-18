@@ -1,1 +1,0 @@
-import"../chunks/BaenPfMX.js";import{t as e}from"../chunks/CYtE81KP.js";function t(t){e(t,{})}export{t as component};

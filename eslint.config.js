@@ -39,7 +39,21 @@ const restrictedImports = {
 	]
 };
 
+// An effect that only copies one value into another: `$effect(() => { a = b; })`.
+const effectCall =
+	":matches(CallExpression[callee.name='$effect'], CallExpression[callee.object.name='$effect'])";
+const mirrorMessage =
+	'This effect only mirrors a value. Use $derived, or own the value where it is computed and pass it down as a prop.';
+
 const restrictedSyntax = [
+	{
+		selector: `${effectCall} > ArrowFunctionExpression > AssignmentExpression`,
+		message: mirrorMessage
+	},
+	{
+		selector: `${effectCall} > ArrowFunctionExpression > BlockStatement[body.length=1] > ExpressionStatement > AssignmentExpression`,
+		message: mirrorMessage
+	},
 	{
 		selector:
 			"NewExpression[callee.name='Worker']:not(:has(> CallExpression[callee.name='trustedScriptUrl']))",

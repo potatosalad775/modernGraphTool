@@ -251,6 +251,11 @@ only what touches `window`, `document`, `goto` and the stores, and delegates the
   device name use `Object.hasOwn`, not `in` — a device called `constructor` exists. `initial-load`
   also wraps `applyStateFromURL` in a try/catch so a state that still slips through can't stop boot.
   Don't change what the encoder writes to suit this; the checks only narrow what is read.
+- **A reload the app causes goes through `urlProvider.keepAcrossReload()` first** (the locale
+  switch in `MiscPanel`: Paraglide's `setLocale` reloads). It leaves the query, EQ included, in
+  `sessionStorage`, and the next `init()` reads it once in place of `window.location.search`. The
+  address bar alone loses the EQ, and loses everything with `URL.AUTO_UPDATE_URL` off. It is not
+  written back to the bar, so that setting keeps its meaning.
 - `url-provider.ts` updates the URL with a **shallow** `goto(path, { shallow: true, replace: true })`
   (SvelteKit 3's replacement for `replaceState`) — never a full `goto()`, which would run a
   navigation. The path already carries the deployment base, so it is not passed through `resolve()`.

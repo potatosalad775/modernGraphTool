@@ -17,6 +17,19 @@ import {
 	type URLState
 } from './url-state.js';
 
+const KEPT_QUERY_KEY = 'gt-kept-query';
+
+/** The query `keepAcrossReload` left for this load, removed so only one load reads it. */
+function takeKeptQuery(): string | null {
+	try {
+		const kept = sessionStorage.getItem(KEPT_QUERY_KEY);
+		sessionStorage.removeItem(KEPT_QUERY_KEY);
+		return kept;
+	} catch {
+		return null;
+	}
+}
+
 // ── URL Provider ─────────────────────────────────────────────────────────────
 
 class URLProvider {
@@ -97,6 +110,21 @@ class URLProvider {
 		return url;
 	}
 
+	/**
+	 * Call right before a reload the app itself causes (a locale switch). The next
+	 * `init()` then restores this session, not the address bar: the bar never holds
+	 * the EQ, and holds nothing at all with `URL.AUTO_UPDATE_URL` off.
+	 */
+	keepAcrossReload(): void {
+		const url = this.getCurrentURLWithEQ();
+		const queryStart = url.indexOf('?');
+		try {
+			sessionStorage.setItem(KEPT_QUERY_KEY, queryStart < 0 ? '' : url.slice(queryStart));
+		} catch {
+			// Storage is blocked: the reload falls back to the address bar.
+		}
+	}
+
 	toggleBase62(enable: boolean): void {
 		this.#useBase62 = enable;
 		this.updateURL();
@@ -123,7 +151,7 @@ class URLProvider {
 	// ── Private ──────────────────────────────────────────────────────────────
 
 	#loadFromURL(): void {
-		const urlParams = new URLSearchParams(window.location.search);
+		const urlParams = new URLSearchParams(takeKeptQuery() ?? window.location.search);
 		this.#phoneDataFromURL = parseShareParam(urlParams.get('share'));
 		this.#stateFromURL = parseStateParam(urlParams.get('state'));
 	}

@@ -170,20 +170,8 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 	if (typeof raw !== 'object' || raw === null) return null;
 	const config = raw as RawRankingConfig;
 
-	const types = config.types ?? {};
-	const names = Object.keys(types);
-	// A single-type config needs no `RANKING.TYPE`; a multi-type one does, or a
-	// headphone deploy would happily show the earphone sheet's grades.
-	const chosen = types[type] ?? (names.length === 1 ? types[names[0]] : undefined);
-	if (!chosen) {
-		if (names.length > 1) {
-			console.warn(
-				`[modernGraphTool] RANKING.TYPE "${type}" is not one of the ranking config's types ` +
-					`(${names.join(', ')}) — ranks will fall back to phone_book.json.`
-			);
-		}
-		return null;
-	}
+	const chosen = chooseRankingType(config, type);
+	if (!chosen) return null;
 
 	const csvUrl = typeof chosen.source?.url === 'string' ? chosen.source.url.trim() : '';
 	if (!csvUrl) return null;
@@ -196,32 +184,50 @@ export function adaptSquigRankingConfig(raw: unknown, type: string): ResolvedRan
 		return typeof value === 'string' && value.trim() ? value.trim() : fallback;
 	};
 
-	const rawScale = byRole('rank')?.scale;
-	const scale = Array.isArray(rawScale)
-		? rawScale.filter(
-				(entry: unknown): entry is RankScaleEntry =>
-					isRecord(entry) && typeof entry.value === 'string'
-			)
-		: [];
-
-	const filter = chosen.rowFilter;
-
 	return {
 		csvUrl,
 		rankColumn: headerOf('rank', DEFAULT_RANK_COLUMN),
 		brandColumn: headerOf('brand', DEFAULT_BRAND_COLUMN),
 		modelColumn: headerOf('model', DEFAULT_MODEL_COLUMN),
-		scale,
-		rowFilter:
-			filter && typeof filter.field === 'string' && Array.isArray(filter.values)
-				? { field: filter.field, values: filter.values.map(String) }
-				: null,
+		scale: readScale(byRole('rank')?.scale),
+		rowFilter: readRowFilter(chosen.rowFilter),
 		deepLinkTemplate:
 			typeof config.deepLink?.template === 'string' && config.deepLink.template.trim()
 				? config.deepLink.template
 				: DEFAULT_DEEPLINK_TEMPLATE,
 		slugify: config.deepLink?.slugify === 'none' ? 'none' : 'lowercase-hyphen'
 	};
+}
+
+type RawRankingType = NonNullable<NonNullable<RawRankingConfig['types']>[string]>;
+
+/** The config's entry for `type`, or its only one. Warns when `type` names none of several. */
+function chooseRankingType(config: RawRankingConfig, type: string): RawRankingType | undefined {
+	const types = config.types ?? {};
+	const names = Object.keys(types);
+	// A single-type config needs no `RANKING.TYPE`; a multi-type one does, or a
+	// headphone deploy would happily show the earphone sheet's grades.
+	const chosen = types[type] ?? (names.length === 1 ? types[names[0]] : undefined);
+	if (!chosen && names.length > 1) {
+		console.warn(
+			`[modernGraphTool] RANKING.TYPE "${type}" is not one of the ranking config's types ` +
+				`(${names.join(', ')}) — ranks will fall back to phone_book.json.`
+		);
+	}
+	return chosen;
+}
+
+function readScale(rawScale: unknown): RankScaleEntry[] {
+	if (!Array.isArray(rawScale)) return [];
+	return rawScale.filter(
+		(entry: unknown): entry is RankScaleEntry => isRecord(entry) && typeof entry.value === 'string'
+	);
+}
+
+function readRowFilter(filter: RawRankingType['rowFilter']): ResolvedRankSource['rowFilter'] {
+	return filter && typeof filter.field === 'string' && Array.isArray(filter.values)
+		? { field: filter.field, values: filter.values.map(String) }
+		: null;
 }
 
 // ── Matching ────────────────────────────────────────────────────────────────
@@ -333,6 +339,33 @@ function findLoose(entries: RankIndexEntry[], key: string, simple: string): Rank
 	return null;
 }
 
+/** The sheet rows of one brand; in loose mode also a brand whose name contains the other. */
+function brandBucket(
+	index: RankIndex,
+	brandKey: string,
+	brandSimple: string
+): RankIndexEntry[] | null {
+	const exact = index.byBrand.get(brandKey) ?? index.byBrandSimple.get(brandSimple);
+	if (exact || index.match !== 'loose') return exact ?? null;
+	for (const [key, bucket] of index.byBrand) {
+		if (key !== '' && (key.includes(brandKey) || brandKey.includes(key))) return bucket;
+	}
+	return null;
+}
+
+function findModel(
+	index: RankIndex,
+	entries: RankIndexEntry[],
+	modelKey: string,
+	modelSimple: string
+): RankIndexEntry | null {
+	const hit =
+		entries.find((entry) => entry.modelKey === modelKey) ??
+		entries.find((entry) => modelSimple !== '' && entry.modelSimple === modelSimple);
+	if (hit || index.match !== 'loose') return hit ?? null;
+	return findLoose(entries, modelKey, modelSimple);
+}
+
 /**
  * Resolve one device to its sheet row, or `null`.
  *
@@ -356,27 +389,8 @@ export function lookupRank(
 	const cached = index.cache.get(cacheKey);
 	if (cached !== undefined) return cached;
 
-	const brandSimple = simplify(brand);
-	const modelSimple = simplify(model);
-
-	let entries = index.byBrand.get(brandKey) ?? index.byBrandSimple.get(brandSimple) ?? null;
-	if (!entries && index.match === 'loose') {
-		for (const [key, bucket] of index.byBrand) {
-			if (key !== '' && (key.includes(brandKey) || brandKey.includes(key))) {
-				entries = bucket;
-				break;
-			}
-		}
-	}
-
-	let hit: RankIndexEntry | null = null;
-	if (entries) {
-		hit =
-			entries.find((entry) => entry.modelKey === modelKey) ??
-			entries.find((entry) => modelSimple !== '' && entry.modelSimple === modelSimple) ??
-			null;
-		if (!hit && index.match === 'loose') hit = findLoose(entries, modelKey, modelSimple);
-	}
+	const entries = brandBucket(index, brandKey, simplify(brand));
+	const hit = entries ? findModel(index, entries, modelKey, simplify(model)) : null;
 
 	const resolved: ResolvedRank | null = hit
 		? {
@@ -475,6 +489,10 @@ export function resolveRankDisplay(
 
 	if (entry) return asBadge();
 	// Nothing in the scale describes this value: legacy behavior, unchanged.
-	if (numeric !== null && numeric >= 0 && numeric <= 5) return asStars();
-	return asText();
+	return isStarScore(numeric) ? asStars() : asText();
+}
+
+/** A number the star row can draw. */
+function isStarScore(numeric: number | null): boolean {
+	return numeric !== null && numeric >= 0 && numeric <= 5;
 }

@@ -9,7 +9,8 @@
 
 	function handleClick() {
 		enabled = !enabled;
-		graphEngine.graphInspection.setEnabled(enabled);
+		// The field is only set by `init()`, whatever its type says.
+		if (graphEngine.isInitialized) graphEngine.graphInspection.setEnabled(enabled);
 	}
 </script>
 

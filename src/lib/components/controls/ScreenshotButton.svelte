@@ -31,6 +31,8 @@
 
 	async function downloadScreenshot() {
 		analyticsService.trackGeneralEvent('clicked_download');
+		// `svg` is only set by `init()`, whatever its type says.
+		if (!graphEngine.isInitialized) return;
 		const svgNode = graphEngine.svg.node();
 		if (!svgNode) return;
 

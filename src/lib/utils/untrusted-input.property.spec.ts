@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import Base62 from './base62.js';
+import { EQ_FILTER_TYPES } from './equalizer.js';
 import { sanitizeHtml, stripHtml } from './html-sanitizer.js';
 import {
 	BASE62_PREFIX,
@@ -76,6 +77,29 @@ const shareValue = fc.oneof(
 
 const anything = fc.jsonValue();
 
+const bandNumber = fc.option(jsonNumber, { nil: null });
+
+/** A band `parseFilter` accepts as it is. */
+const validBand = fc.record(
+	{
+		enabled: fc.boolean(),
+		type: fc.constantFrom(...EQ_FILTER_TYPES),
+		freq: bandNumber,
+		q: bandNumber,
+		gain: bandNumber,
+		channel: fc.constantFrom('L' as const, 'R' as const)
+	},
+	{ requiredKeys: ['enabled', 'type', 'freq', 'q', 'gain'] }
+);
+
+/** A band with one field wrong, or something that is no band at all. */
+const brokenBand = fc.oneof(
+	validBand.map((band) => ({ ...band, type: 'XX' })),
+	validBand.map((band) => ({ ...band, gain: '3' })),
+	validBand.map(({ enabled, ...rest }) => ({ ...rest, enabled: String(enabled) })),
+	fc.oneof(fc.string(), jsonNumber, fc.constant(null), fc.array(anything, { maxLength: 2 }))
+);
+
 /**
  * A record keyed by device name, `__proto__` among the keys. `Object.fromEntries` makes it an
  * own property, as `JSON.parse` does; a plain assignment would swap the prototype instead.
@@ -91,7 +115,7 @@ const handEdited = fc.record(
 		baseline: fc.record({ key: anything, mode: anything }, { requiredKeys: [] }),
 		yOffsets: namedRecord,
 		eq: fc.record(
-			{ filters: fc.array(anything, { maxLength: 40 }), preamp: anything },
+			{ filters: fc.array(fc.oneof(validBand, anything), { maxLength: 40 }), preamp: anything },
 			{ requiredKeys: [] }
 		),
 		sampleDisplay: namedRecord,
@@ -145,10 +169,20 @@ describe('share names', () => {
 describe('state', () => {
 	it('round-trips what the encoder writes', () => {
 		fc.assert(
-			fc.property(plainState, (state) => {
-				const encoded = Base62.encode(JSON.stringify(state));
-				expect(parseStateParam(encoded)).toEqual(state);
-			})
+			fc.property(
+				fc.oneof(plainState, fc.constant<URLState>({ yScale: DEFAULT_Y_SCALE })),
+				(state) => {
+					const query = buildQueryString([], state, DEFAULT_Y_SCALE, true);
+					const encoded = new URLSearchParams(query).get('state');
+					// A state that says nothing beyond the default scale is left out of the URL.
+					const empty =
+						!state.baseline &&
+						!state.yOffsets &&
+						(state.yScale ?? DEFAULT_Y_SCALE) === DEFAULT_Y_SCALE;
+					if (empty) expect(encoded).toBeNull();
+					else expect(parseStateParam(encoded)).toEqual(state);
+				}
+			)
 		);
 	});
 
@@ -165,6 +199,9 @@ describe('state', () => {
 		fc.assert(
 			fc.property(fc.oneof(anything, handEdited), (document) => {
 				const state = parseStateParam(Base62.encode(JSON.stringify(document)));
+				const isObject =
+					typeof document === 'object' && document !== null && !Array.isArray(document);
+				expect(state !== null).toBe(isObject);
 				if (state === null) return;
 				expect(Object.getPrototypeOf(state)).toBe(Object.prototype);
 				for (const part of Object.values(state)) {
@@ -192,6 +229,20 @@ describe('state', () => {
 					expect(Number.isFinite(state.eq.preamp)).toBe(true);
 					expect(state.eq.filters.length).toBeLessThanOrEqual(32);
 				}
+			})
+		);
+	});
+
+	it('keeps the first 32 valid bands, in order', () => {
+		const band = fc.oneof(
+			{ weight: 5, arbitrary: validBand.map((value) => ({ value, valid: true })) },
+			{ weight: 1, arbitrary: brokenBand.map((value) => ({ value, valid: false })) }
+		);
+		fc.assert(
+			fc.property(fc.array(band, { maxLength: 64, size: 'max' }), (bands) => {
+				const state = sanitizeState({ eq: { filters: bands.map((b) => b.value) } });
+				const valid = bands.filter((b) => b.valid).map((b) => b.value);
+				expect(state.eq?.filters).toEqual(valid.slice(0, 32));
 			})
 		);
 	});
@@ -249,14 +300,76 @@ const htmlish = fc
 	)
 	.map((parts) => parts.join(''));
 
+/** Whole tokens only, so that whatever is put between two of these lands outside any tag. */
+const wellFormed = fc
+	.array(
+		fc.oneof(
+			fc.string({ maxLength: 6 }).filter((text) => !/[<&]/.test(text)),
+			fc.constantFrom(
+				'<b>',
+				'</b>',
+				'<a href="https://example.com">',
+				'</a>',
+				'<span title="t" onclick="x()">',
+				'</span>',
+				'<div>',
+				'<br>',
+				'<img src=x onerror=alert(1)>',
+				'&lt;',
+				'&amp;',
+				'>',
+				'"',
+				"'"
+			)
+		),
+		{ maxLength: 8 }
+	)
+	.map((parts) => parts.join(''));
+
+interface OutputTag {
+	name: string;
+	attrs: Map<string, string>;
+}
+
+const OUTPUT_TAG = /<\/?([a-z0-9]+)((?: [a-z]+="[^"<>]*")*)>/g;
+
+/**
+ * The tags of sanitized output, read as markup and not as text: `<span title=" onx=1">` has a
+ * `title` and no handler. Fails when a `<` or `>` is left that belongs to no such tag.
+ */
+function outputTags(output: string): OutputTag[] {
+	expect(output.replace(OUTPUT_TAG, '')).not.toMatch(/[<>]/);
+	return [...output.matchAll(OUTPUT_TAG)].map(([, name, attrs]) => ({
+		name,
+		attrs: new Map(
+			[...attrs.matchAll(/ ([a-z]+)="([^"]*)"/g)].map(([, attr, value]) => [attr, value])
+		)
+	}));
+}
+
+/** An attribute value as the browser reads it back; `escapeAttr` wrote these five. */
+function unescapeAttr(value: string): string {
+	return value
+		.replace(/&(quot|#39|lt|gt);/g, (_, name: string) =>
+			name === 'quot' ? '"' : name === '#39' ? "'" : name === 'lt' ? '<' : '>'
+		)
+		.replace(/&amp;/g, '&');
+}
+
 describe('sanitizeHtml', () => {
 	it('keeps no script, event handler or javascript: URL, whatever it is given', () => {
 		fc.assert(
 			fc.property(fc.oneof(htmlish, fc.string({ unit: 'binary' })), (input) => {
 				const output = sanitizeHtml(input);
-				expect(output).not.toMatch(/<\s*(script|svg|img|div|iframe)\b/i);
-				expect(output).not.toMatch(/<[^>]*\son\w+\s*=/i);
-				expect(output).not.toMatch(/href\s*=\s*["']?\s*javascript:/i);
+				for (const { name, attrs } of outputTags(output)) {
+					expect(name).not.toMatch(/^(script|svg|img|div|iframe)$/);
+					for (const attr of attrs.keys())
+						expect(['href', 'title', 'target', 'rel']).toContain(attr);
+					// eslint-disable-next-line no-control-regex
+					const href = unescapeAttr(attrs.get('href') ?? '').replace(/[\u0000-\u0020]/g, '');
+					const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(href)?.[1].toLowerCase();
+					if (scheme) expect(['http', 'https', 'mailto', 'tel']).toContain(scheme);
+				}
 			})
 		);
 	});
@@ -264,12 +377,11 @@ describe('sanitizeHtml', () => {
 	it('drops the content of a script, style, iframe or svg along with the tag', () => {
 		const opaque = fc.constantFrom('script', 'style', 'iframe', 'svg');
 		fc.assert(
-			fc.property(htmlish, opaque, htmlish, (before, tag, after) => {
-				// `before` must leave the marker's tag intact: no comment or opaque tag opened
-				// around it, and no unfinished `<` that would swallow it as an attribute.
-				fc.pre(!/<!--|<(script|svg)|<[^>]*$/i.test(before));
+			fc.property(wellFormed, opaque, wellFormed, (before, tag, after) => {
+				// Compared with the same text without the element, so a `SECRETBODY` that the
+				// surrounding text spells by chance is not taken for the one inside it.
 				const output = sanitizeHtml(`${before}<${tag}>SECRETBODY</${tag}>${after}`);
-				expect(output).not.toContain('SECRETBODY');
+				expect(output).toBe(sanitizeHtml(before + after));
 			})
 		);
 	});

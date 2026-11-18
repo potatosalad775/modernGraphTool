@@ -48,7 +48,7 @@ export interface SponsorContent {
 // ── Sponsor Product Data ─────────────────────────────────────────────────────
 export interface SponsorProductData {
 	currentPrice: string;
-	originalPrice: string;
+	originalPrice: string | null;
 	onSale: boolean;
 }
 

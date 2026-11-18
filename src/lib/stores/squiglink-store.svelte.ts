@@ -341,12 +341,14 @@ export class SquiglinkStore {
 			const res = await fetch(`${url}.json`, { priority: 'low' });
 			if (!res.ok) return null;
 			const data = (await res.json()) as {
-				product: { variants: { price: string; compare_at_price: string }[] };
+				product: { variants: { price: string; compare_at_price: string | null }[] };
 			};
+			const { price, compare_at_price: compareAt } = data.product.variants[0];
 			return {
-				currentPrice: data.product.variants[0].price,
-				originalPrice: data.product.variants[0].compare_at_price,
-				onSale: data.product.variants[0].price < data.product.variants[0].compare_at_price
+				currentPrice: price,
+				originalPrice: compareAt,
+				// Shopify sends decimal strings: as text, '99.00' sorts after '150.00'
+				onSale: compareAt !== null && Number(price) < Number(compareAt)
 			};
 		} catch {
 			// Silently skip if shoplinks are unavailable

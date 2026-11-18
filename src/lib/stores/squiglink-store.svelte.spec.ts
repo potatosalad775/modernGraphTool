@@ -778,23 +778,42 @@ describe('SquiglinkStore (enabled)', () => {
 	});
 
 	describe('fetchSponsorProductData', () => {
-		function shopifyPayload(price: number, compareAt: number | null) {
+		// Shopify sends prices as decimal strings, and null when there is no compare-at price
+		function shopifyPayload(price: string, compareAt: string | null) {
 			return { product: { variants: [{ price, compare_at_price: compareAt }] } };
 		}
 
 		it('reads the first variant of the Shopify payload', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload(100, 150)));
+			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload('100.00', '150.00')));
 
 			const data = await store.fetchSponsorProductData('https://shop.test/product');
 
 			expect(fetchMock).toHaveBeenCalledWith('https://shop.test/product.json', {
 				priority: 'low'
 			});
-			expect(data).toEqual({ currentPrice: 100, originalPrice: 150, onSale: true });
+			expect(data).toEqual({ currentPrice: '100.00', originalPrice: '150.00', onSale: true });
 		});
 
 		it('reports a full-price product as not on sale', async () => {
-			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload(150, 150)));
+			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload('150.00', '150.00')));
+
+			const data = await store.fetchSponsorProductData('https://shop.test/product');
+
+			expect(data!.onSale).toBe(false);
+		});
+
+		it('compares prices as numbers, not text', async () => {
+			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload('99.00', '150.00')));
+			const cheaper = await store.fetchSponsorProductData('https://shop.test/a');
+			expect(cheaper!.onSale).toBe(true);
+
+			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload('150.00', '99.00')));
+			const dearer = await store.fetchSponsorProductData('https://shop.test/b');
+			expect(dearer!.onSale).toBe(false);
+		});
+
+		it('reports a product with no compare-at price as not on sale', async () => {
+			fetchMock.mockResolvedValue(jsonResponse(shopifyPayload('99.00', null)));
 
 			const data = await store.fetchSponsorProductData('https://shop.test/product');
 

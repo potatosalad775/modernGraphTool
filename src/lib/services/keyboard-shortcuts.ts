@@ -106,69 +106,68 @@ export function redo(): void {
 }
 
 export function onKeydown(e: ShortcutKeyEvent): void {
-	const inEditable = isEditable(e.target);
+	if (isEditable(e.target)) return;
+	if (!isShortcutChord(e) && e.key === '\\') {
+		startHold(e);
+	} else if (e.metaKey || e.ctrlKey) {
+		undoOrRedo(e);
+	} else {
+		switchPanel(e);
+	}
+}
 
-	const mod = e.metaKey || e.ctrlKey;
-
-	// `\` (backslash) — press-and-hold to flip the EQ state momentarily for A/B
-	// comparison. Bidirectional: it bypasses a live EQ and auditions a disabled
-	// one, so the comparison can be started from either side. Ignored inside text
-	// inputs, and when there is no EQ source phone to compare against.
-	if (!inEditable && !isShortcutChord(e) && e.key === '\\') {
-		// A bare key: off with the setting, and not while a select or listbox has focus.
-		if (!settingsStore.singleKeyShortcuts || isWidgetFocused(e.target)) return;
-		if (e.repeat) {
-			e.preventDefault();
-			return;
-		}
-		// The device is applying the EQ to what is playing, and a hold here can't lift it: the
-		// graph would flip while the sound stayed the same.
-		// Only where a hold would have started: not mid-hold, and not without an EQ source.
-		const couldHold = eqStore.momentaryRestore === null && !!eqStore.sourcePhoneUUID;
-		if (couldHold && audioPlaybackStore.isPlaying && devicePeqStore.playsEq) {
-			e.preventDefault();
-			toast.info(m.eq_hold_on_device({ device: devicePeqStore.deviceName ?? '' }), {
-				id: 'eq-hold-on-device'
-			});
-			return;
-		}
-		if (eqStore.holdMomentary()) {
-			holdCode = e.code || null;
-			e.preventDefault();
-		}
+/**
+ * `\` (backslash) — press-and-hold to flip the EQ state momentarily for A/B
+ * comparison. Bidirectional: it bypasses a live EQ and auditions a disabled
+ * one, so the comparison can be started from either side. Ignored when there
+ * is no EQ source phone to compare against.
+ */
+function startHold(e: ShortcutKeyEvent): void {
+	// A bare key: off with the setting, and not while a select or listbox has focus.
+	if (!settingsStore.singleKeyShortcuts || isWidgetFocused(e.target)) return;
+	if (e.repeat) {
+		e.preventDefault();
 		return;
 	}
+	// The device is applying the EQ to what is playing, and a hold here can't lift it: the
+	// graph would flip while the sound stayed the same.
+	// Only where a hold would have started: not mid-hold, and not without an EQ source.
+	const couldHold = eqStore.momentaryRestore === null && !!eqStore.sourcePhoneUUID;
+	if (couldHold && audioPlaybackStore.isPlaying && devicePeqStore.playsEq) {
+		e.preventDefault();
+		toast.info(m.eq_hold_on_device({ device: devicePeqStore.deviceName ?? '' }), {
+			id: 'eq-hold-on-device'
+		});
+		return;
+	}
+	if (eqStore.holdMomentary()) {
+		holdCode = e.code || null;
+		e.preventDefault();
+	}
+}
 
-	if (inEditable) return;
-
+/** Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y. The caller checked the modifier. */
+function undoOrRedo(e: ShortcutKeyEvent): void {
 	// The browser reports `Z` with Shift or CapsLock down, so compare the letter without case and
 	// let `shiftKey` alone tell undo from redo.
 	const letter = e.key.toLowerCase();
-
-	if (mod && letter === 'z' && !e.shiftKey) {
+	if (letter === 'z' && !e.shiftKey) {
 		e.preventDefault();
 		undo();
-		return;
-	}
-
-	if (mod && ((letter === 'z' && e.shiftKey) || letter === 'y')) {
+	} else if (letter === 'z' || letter === 'y') {
 		e.preventDefault();
 		redo();
-		return;
 	}
+}
 
-	if (
-		!mod &&
-		!e.altKey &&
-		!e.shiftKey &&
-		settingsStore.singleKeyShortcuts &&
-		!isWidgetFocused(e.target)
-	) {
-		const num = parseInt(e.key);
-		if (num >= 1 && num <= 4) {
-			e.preventDefault();
-			menuStore.setPanel(PANELS[num - 1]);
-		}
+/** `1`–`4` with no modifier. A bare key, so it is gated like the hold. */
+function switchPanel(e: ShortcutKeyEvent): void {
+	if (e.altKey || e.shiftKey) return;
+	if (!settingsStore.singleKeyShortcuts || isWidgetFocused(e.target)) return;
+	const num = parseInt(e.key);
+	if (num >= 1 && num <= 4) {
+		e.preventDefault();
+		menuStore.setPanel(PANELS[num - 1]);
 	}
 }
 

@@ -11,6 +11,13 @@ name: i18n tidy
 # maintainer edits) it fails the check and keeps ONE comment up to date, so a
 # contributor pushing fixes isn't answered once per push.
 #
+# `/apply` (or the "apply" box in the Actions tab) also runs `i18n:apply`
+# first: it merges the `_missing_translations_*.json` staging files this PR
+# changed into their locale files, then writes those staging files again with
+# what is still untranslated. Never automatic: it rewrites the file the
+# contributor is still editing, so "this translation is finished" stays a
+# maintainer's call.
+#
 # ── Required secret ──────────────────────────────────────────────────────
 # I18N_TIDY_TOKEN — a classic PAT with the `public_repo` scope, from an
 # account with write access here. GITHUB_TOKEN cannot push to a fork, even
@@ -43,6 +50,10 @@ on:
         description: 'Pull request number'
         required: true
         type: number
+      apply:
+        description: 'Also merge the staging files into the locale files (i18n:apply)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -58,7 +69,8 @@ jobs:
       github.event_name == 'pull_request_target' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.issue.pull_request &&
-       startsWith(github.event.comment.body, '/tidy') &&
+       (startsWith(github.event.comment.body, '/tidy') ||
+        startsWith(github.event.comment.body, '/apply')) &&
        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'),
                 github.event.comment.author_association))
     runs-on: ubuntu-latest
@@ -67,6 +79,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       PR: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr }}
       AUTO: ${{ github.event_name == 'pull_request_target' }}
+      APPLY: ${{ startsWith(github.event.comment.body, '/apply') || inputs.apply == true }}
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
@@ -81,7 +94,7 @@ jobs:
       - name: Look up the pull request
         id: pr
         run: |
-          gh pr view "$PR" --json state,headRefName,headRefOid,headRepository,headRepositoryOwner,maintainerCanModify,isCrossRepository > pr.json
+          gh pr view "$PR" --json files,state,headRefName,headRefOid,headRepository,headRepositoryOwner,maintainerCanModify,isCrossRepository > pr.json
           state=$(jq -r .state pr.json)
           if [ "$state" != OPEN ]; then
             echo "::error::PR #$PR is $state."
@@ -159,11 +172,70 @@ jobs:
           done
 
           # HEAD is main here, so --base HEAD orders en.json like main's.
+          tidy() {
+            (cd trusted && node scripts/tidy-translations.js --base HEAD) 2>&1 | tee -a tidy.log
+            return "${PIPESTATUS[0]}"
+          }
           set +e
-          (cd trusted && node scripts/tidy-translations.js --base HEAD) 2>&1 | tee tidy.log
-          status=${PIPESTATUS[0]}
+          stage=tidy
+          tidy
+          status=$?
+          # The tidy runs first because the apply reads with JSON.parse, which
+          # would quietly pick one copy of a key that is there twice. It runs
+          # again afterwards to put what the apply wrote in main's order.
+          if [ "$APPLY" = true ] && [ "$status" = 0 ]; then
+            stage=apply
+            # The apply merges and deletes every staging file it finds, so the
+            # ones this PR didn't change wait outside while it runs. The path
+            # list is the PR's, and is only ever compared against.
+            mkdir held
+            applied=''
+            for f in trusted/messages/_missing_translations_*.json; do
+              [ -e "$f" ] || continue
+              if jq -e --arg p "messages/$(basename "$f")" \
+                'any(.files[]; .path == $p)' pr.json > /dev/null; then
+                applied+="$(basename "$f")"$'\n'
+              else
+                mv "$f" held/
+              fi
+            done
+            # --strict: a staging entry skipped for a mistake would be lost
+            # with its file, so it stops the run instead. Nothing is pushed.
+            printf '\n$ i18n:apply\n' >> tidy.log
+            (cd trusted && node scripts/apply-translations.js --strict) 2>&1 | tee -a tidy.log
+            status=${PIPESTATUS[0]}
+            if [ "$status" = 0 ]; then
+              # The second half of `npm run i18n:apply`: write the staging
+              # files again with what is still untranslated. It writes one for
+              # every locale, from this PR's en.json, so only those of the
+              # locales just applied are kept. Its output lists every missing
+              # key of every locale; that stays in this log, off the PR.
+              (cd trusted && node scripts/check-translations.js --write)
+              printf '\n$ i18n:missing\n' >> tidy.log
+              for f in trusted/messages/_missing_translations_*.json; do
+                [ -e "$f" ] || continue
+                if ! grep -qxF "$(basename "$f")" <<< "$applied"; then rm "$f"; fi
+              done
+              while IFS= read -r name; do
+                [ -n "$name" ] || continue
+                if [ -e "trusted/messages/$name" ]; then
+                  echo "$name: written again with what is still untranslated" >> tidy.log
+                else
+                  echo "$name: nothing left to translate" >> tidy.log
+                fi
+              done <<< "$applied"
+            fi
+            find held -type f -exec mv {} trusted/messages/ \;
+            if [ "$status" = 0 ]; then
+              stage=tidy
+              printf '\n$ i18n:tidy\n' >> tidy.log
+              tidy
+              status=$?
+            fi
+          fi
           set -e
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "stage=$stage" >> "$GITHUB_OUTPUT"
 
           # Write back only the files copied in above, including the ones the tidy deleted.
           for f in pr/messages/*.json; do
@@ -181,7 +253,9 @@ jobs:
           CAN_PUSH: ${{ steps.pr.outputs.can_push }}
         working-directory: pr
         run: |
-          subject='i18n: tidy translation files'
+          tidy_subject='i18n: tidy translation files'
+          subject=$tidy_subject
+          if [ "$APPLY" = true ]; then subject='i18n: apply translation staging files'; fi
           git add -A messages
           if git diff --cached --quiet; then
             echo "pushed=" >> "$GITHUB_OUTPUT"
@@ -193,7 +267,7 @@ jobs:
           fi
           # The push below starts the next automatic run. If the tidy ever
           # stopped being idempotent, the two would feed each other forever.
-          if [ "$AUTO" = true ] && [ "$(git log -1 --format=%s)" = "$subject" ]; then
+          if [ "$AUTO" = true ] && [ "$(git log -1 --format=%s)" = "$tidy_subject" ]; then
             echo "::error::The tidy commit itself still needs a tidy. Not pushing another one."
             exit 1
           fi
@@ -207,6 +281,7 @@ jobs:
         if: always() && steps.tidy.outcome == 'success'
         env:
           STATUS: ${{ steps.tidy.outputs.status }}
+          STAGE: ${{ steps.tidy.outputs.stage }}
           PUSHED: ${{ steps.push.outputs.pushed }}
           PUSH_OUTCOME: ${{ steps.push.outcome }}
           UNPUSHED: ${{ steps.push.outputs.unpushed }}
@@ -216,24 +291,34 @@ jobs:
           # open: the PR still needs someone to act. clean: nothing was wrong.
           open=true
           clean=false
-          if [ "$STATUS" != 0 ]; then
+          what=tidy
+          if [ "$APPLY" = true ]; then what=apply; fi
+          if [ "$STATUS" != 0 ] && [ "$STAGE" = apply ]; then
+            head="The apply stopped and nothing was pushed: it would have dropped a translated entry along with its staging file. The output below names each one and what is wrong with it."
+          elif [ "$STATUS" != 0 ]; then
             head="The tidy stopped: a key appears twice with different values, so one has to be kept by hand. Nothing was pushed."
           elif [ "$PUSH_OUTCOME" != success ]; then
-            head="The tidy ran but the push failed. See the [run log]($RUN_URL)."
+            head="The $what ran but the push failed. See the [run log]($RUN_URL)."
           elif [ "$UNPUSHED" = true ]; then
             head="These translation files need a tidy, and it can't be pushed here: this PR doesn't allow edits by maintainers. Tick **Allow edits by maintainers** in the PR sidebar and push again (or ask a maintainer to comment \`/tidy\`), or run \`npm run i18n:tidy -- --base origin/main\` on the branch yourself."
           elif [ -n "$PUSHED" ]; then
             open=false
             head="Pushed $PUSHED with the tidied translation files."
+            if [ "$APPLY" = true ]; then
+              head="Pushed $PUSHED: the staging files are merged into the locale files. What is still untranslated stays in the staging file, as English."
+            fi
           else
             open=false
             clean=true
             head="Nothing to tidy: the translation files are already in order."
+            if [ "$APPLY" = true ]; then
+              head="Nothing to apply: this PR has no staging file with a translation to merge, and the translation files are in order."
+            fi
           fi
           # The marker finds the automatic runs' one comment again.
           marker='<!-- i18n-tidy:auto -->'
-          printf '%s\n\n<details><summary>i18n:tidy output</summary>\n\n```\n%s\n```\n\n</details>\n' \
-            "$head" "$log" > body.md
+          printf '%s\n\n<details><summary>i18n:%s output</summary>\n\n```\n%s\n```\n\n</details>\n' \
+            "$head" "$what" "$log" > body.md
 
           if [ "$AUTO" != true ]; then
             gh pr comment "$PR" --body-file body.md
@@ -262,4 +347,4 @@ jobs:
 
       - name: Report a failure before the tidy ran
         if: failure() && steps.tidy.outcome != 'success' && steps.pr.outcome != 'failure'
-        run: gh pr comment "$PR" --body "The tidy couldn't run. See the [run log]($RUN_URL)."
+        run: gh pr comment "$PR" --body "The run couldn't start. See the [run log]($RUN_URL)."

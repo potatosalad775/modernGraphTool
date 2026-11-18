@@ -17,7 +17,7 @@
  *      "Showing {count} of {total, plural, one {# match} other {# matches}}"
  *
  * Keys are Intl.PluralRules categories (`zero one two few many other`; `other` is required and
- * becomes the catchall) or exact numbers (`=0`). The full Paraglide array form still works and is
+ * becomes the catchall; in the object form `*` is read as `other`) or exact numbers (`=0`). The full Paraglide array form still works and is
  * passed through unchanged — it is the escape hatch for ordinals, gender and the like.
  */
 
@@ -27,6 +27,7 @@ import { join } from 'path';
 export const PLURAL_CATEGORIES = ['zero', 'one', 'two', 'few', 'many', 'other'];
 const PLURAL_INPUT_KEY = 'plural';
 const DEFAULT_PLURAL_INPUT = 'count';
+const CATCHALL_KEY = '*';
 const EXACT_KEY = /^=(\d+(?:\.\d+)?)$/;
 const IDENTIFIER = /^[A-Za-z_]\w*$/;
 const PLACEHOLDER = /\{\s*([A-Za-z_]\w*)\s*\}/g;
@@ -124,8 +125,17 @@ const parseInline = (text, errors) => {
 };
 
 /** Checks one fragment's keys against the locale. Unusable keys are dropped with a warning. */
-const checkOptions = (input, options, locale, errors, warnings) => {
+const checkOptions = (input, given, locale, errors, warnings) => {
 	const allowed = new Set(pluralCategories(locale));
+	// "*" is how Paraglide's own format spells the catchall, and translators who have read a
+	// locale file write it here too. It means "other".
+	const { [CATCHALL_KEY]: catchall, ...options } = given;
+	if (catchall !== undefined) {
+		if (options.other === undefined) options.other = catchall;
+		else if (options.other !== catchall) {
+			errors.push(`"${CATCHALL_KEY}" and "other" for "${input}" mean the same; keep one`);
+		}
+	}
 	const kept = {};
 	for (const [key, text] of Object.entries(options)) {
 		if (typeof text !== 'string' || text.trim() === '') {

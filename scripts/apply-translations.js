@@ -17,6 +17,12 @@
  *   node scripts/apply-translations.js            # merge and delete the staging files
  *   node scripts/apply-translations.js --dry-run  # report what would be merged, change nothing
  *   node scripts/apply-translations.js --force    # also import values identical to en.json
+ *   node scripts/apply-translations.js --strict   # exit 1 if a translated entry was skipped
+ *
+ * --strict is for the `/apply` workflow, which pushes the result to a contributor's PR: the staging
+ * file is deleted either way, so an entry skipped for a mistake (a malformed plural, an unknown
+ * input) would take the translator's work with it. Untranslated entries and keys en.json no longer
+ * has are still skipped quietly. The caller discards the working tree on a non-zero exit.
  */
 
 import { unlinkSync } from 'fs';
@@ -35,6 +41,7 @@ import { toVariant, messageInputs, isVariant } from './i18n-plural.js';
 
 const dryRun = process.argv.includes('--dry-run');
 const force = process.argv.includes('--force');
+const strict = process.argv.includes('--strict');
 
 const base = readJson(`${BASE_LOCALE}.json`);
 const baseKeys = messageKeys(base);
@@ -49,6 +56,8 @@ if (files.length === 0) {
 }
 
 let applied = 0;
+/** Translated entries skipped for a mistake someone can fix. */
+let rejected = 0;
 
 for (const fileName of files) {
 	const locale = fileName.slice(MISSING_PREFIX.length, -'.json'.length);
@@ -78,6 +87,7 @@ for (const fileName of files) {
 			for (const e of errors) {
 				console.warn(`  ${locale}: '${key}': ${e} — skipping (stays on fallback).`);
 			}
+			rejected++;
 			continue;
 		}
 		// An input en doesn't pass would render "undefined" and break the m.key() call types.
@@ -87,6 +97,7 @@ for (const fileName of files) {
 			console.warn(
 				`  ${locale}: '${key}' uses {${extra.join('}, {')}}, which ${BASE_LOCALE}.json doesn't — skipping.`
 			);
+			rejected++;
 			continue;
 		}
 		// A staging file older than a hand-written plural would quietly flatten it back.
@@ -94,6 +105,7 @@ for (const fileName of files) {
 			console.warn(
 				`  ${locale}: '${key}' would replace a plural with a plain string — skipping (use --force to import anyway).`
 			);
+			rejected++;
 			continue;
 		}
 		if (!force && JSON.stringify(value) === JSON.stringify(base[key])) {
@@ -138,6 +150,13 @@ for (const fileName of files) {
 	unlinkSync(join(MESSAGES_DIR, fileName));
 	applied += added + updated;
 	console.log(`${locale}: added ${added}, updated ${updated} — merged and removed ${fileName}`);
+}
+
+if (strict && rejected > 0) {
+	console.error(
+		`\n${rejected} translated entry(s) were skipped, listed above. Fix them in the staging file.`
+	);
+	process.exit(1);
 }
 
 if (!dryRun && applied > 0) {

@@ -41,6 +41,8 @@ node .claude/skills/verify-mgt/mgt.mjs run .claude/skills/verify-mgt/journeys/*.
 | `--headed`  | Show the browser                                                                         |
 | `--url URL` | Drive a server that already runs, such as a built `dist/`. Never started or stopped here |
 
+`mgt.mjs` expands `*` itself, so the second line works in PowerShell and cmd too.
+
 The exit code is 0 only if every journey passed. A journey fails on a failed check, a thrown
 error, a console error, an uncaught exception, or a response with status 400 or above.
 
@@ -69,7 +71,8 @@ export default async function ({ page, boot, panel, check, shot, aria }) {
   driver pins the locale to `en-US`.
 - `boot(path, { firstVisit })` opens `origin + path`. By default the visitor is a returning one,
   with the welcome and equalizer tours already dismissed. Pass `{ firstVisit: true }` to test a
-  tour, and expect its dialog to cover the page.
+  tour, and expect its dialog to cover the page. The dismissal stays for the rest of the journey,
+  so a `firstVisit` boot has to come before any other `boot()`; the driver throws otherwise.
 - `check(name, ok, detail)` records a line and lets the journey continue. Wait for a state with a
   locator's `waitFor` or `page.waitForFunction` first, then check it. Never sleep.
 - `toolbar()` makes the graph toolbar reachable. On mobile it opens the `GRAPH` panel's
@@ -99,8 +102,8 @@ What counts as proof:
 
 The driver stops the server and the browser it started, on success and on failure, and nothing
 else. It never kills by process name. Evidence is never deleted: remove an `--out` folder
-yourself once it has been attached or reviewed. If a run was killed from outside, find its server
-with the port printed by `doctor` and stop that process only.
+yourself once it has been attached or reviewed. If a run was killed from outside, stop the server
+by the pid on the `Dev server:` line it printed when it started, and that process only.
 
 ## Maintenance
 

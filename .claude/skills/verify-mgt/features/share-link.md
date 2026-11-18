@@ -31,8 +31,9 @@ Run `node .claude/skills/verify-mgt/mgt.mjs run .claude/skills/verify-mgt/journe
 
 ## Gotchas
 
-- The dialog appears because a headless browser refuses the clipboard. In a browser that allows
-  it, the button shows a copied state and no dialog. The journey relies on the refusal.
+- The dialog appears only when the clipboard refuses. In a browser that allows it (`--headed`),
+  the button shows a copied state and no dialog. The journey removes `navigator.clipboard` before
+  it boots, as on a plain-HTTP host, so it gets the dialog in both.
 - `boot()` on the same page is a full navigation, which is what opening a link is. Do not test
   restore by reading the address bar of the first page.
 - Device names with `+`, `&` or non-ASCII characters are the historical source of bugs here.

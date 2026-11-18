@@ -14,6 +14,7 @@
  * when it is done. See SKILL.md for the journey API.
  */
 import { spawn } from 'node:child_process';
+import { globSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -41,10 +42,18 @@ function takeFlag(name) {
 	return true;
 }
 
-const givenUrl = takeOption('url');
+// `origin + path` is how every address is built, so the origin carries no trailing slash.
+const givenUrl = takeOption('url')?.replace(/\/+$/, '');
 const givenOut = takeOption('out');
 const mobile = takeFlag('mobile');
 const headed = takeFlag('headed');
+
+/** PowerShell and cmd hand over `journeys/*.mjs` as typed, so a pattern is expanded here. */
+function journeyFiles(patterns) {
+	return patterns.flatMap((pattern) =>
+		/[*?]/.test(pattern) ? globSync(pattern.replaceAll('\\', '/')).sort() : [pattern]
+	);
+}
 
 function freePort() {
 	return new Promise((done, fail) => {
@@ -115,12 +124,22 @@ async function openPage(browser) {
 	page.on('response', (res) => {
 		if (res.status() >= 400) problems.requests.push(`${res.status()} ${res.url()}`);
 	});
+	// Cross-site search reads a public index on another host. Answer it here, so a run
+	// neither depends on that host nor fails on its CORS policy for 127.0.0.1. A journey
+	// that tests cross-site search adds its own page.route, which takes precedence: the
+	// route added last answers first, and this one is added once, before the journey runs.
+	await page.route('**/aggregate-index.json', (route) =>
+		route.fulfill({
+			json: { v: 2, phonesFormat: 'flat', brands: [], sites: [], dbs: [], phones: [] }
+		})
+	);
 	return { page, problems };
 }
 
 /** What a journey receives. */
 function toolkit(page, origin, outDir, checks) {
 	let shots = 0;
+	let returning = false;
 	const file = (name, ext) => join(outDir, `${String(++shots).padStart(2, '0')}-${name}.${ext}`);
 	return {
 		page,
@@ -128,22 +147,20 @@ function toolkit(page, origin, outDir, checks) {
 		/**
 		 * Opens the app and waits until the graph has drawn. A returning visitor by default:
 		 * `firstVisit` leaves the welcome and equalizer tours to open as they do on a first visit.
+		 * The dismissal is an init script, which stays for the life of the page: `firstVisit`
+		 * therefore has to come before any returning boot.
 		 */
 		async boot(path = '/', { firstVisit = false } = {}) {
-			if (!firstVisit) {
+			if (firstVisit && returning) {
+				throw new Error('boot({ firstVisit: true }) must come before any returning boot().');
+			}
+			if (!firstVisit && !returning) {
+				returning = true;
 				await page.addInitScript(() => {
 					localStorage.setItem('gt-tutorial-dismissed', 'true');
 					localStorage.setItem('gt-tutorial-eq-dismissed', 'true');
 				});
 			}
-			// Cross-site search reads a public index on another host. Answer it here, so a run
-			// neither depends on that host nor fails on its CORS policy for 127.0.0.1. A journey
-			// that tests cross-site search adds its own page.route, which takes precedence.
-			await page.route('**/aggregate-index.json', (route) =>
-				route.fulfill({
-					json: { v: 2, phonesFormat: 'flat', brands: [], sites: [], dbs: [], phones: [] }
-				})
-			);
 			await page.goto(origin + path, { waitUntil: 'domcontentloaded' });
 			await page
 				.getByRole('img', { name: 'Frequency response graph' })
@@ -200,7 +217,12 @@ function toolkit(page, origin, outDir, checks) {
 }
 
 async function runJourney(browser, origin, outRoot, journeyPath) {
-	const mod = await import(pathToFileURL(resolve(journeyPath)).href);
+	// A file that does not load fails as its own journey: the others still run and report.
+	let loadError = null;
+	const mod = await import(pathToFileURL(resolve(journeyPath)).href).catch((err) => {
+		loadError = err;
+		return {};
+	});
 	const name = mod.name ?? basename(journeyPath).replace(/\.m?js$/, '');
 	const outDir = join(outRoot, name);
 	await mkdir(outDir, { recursive: true });
@@ -211,6 +233,7 @@ async function runJourney(browser, origin, outRoot, journeyPath) {
 	const tools = toolkit(page, origin, outDir, checks);
 	let crash = null;
 	try {
+		if (loadError) throw loadError;
 		await mod.default(tools);
 	} catch (err) {
 		crash = String(err?.stack ?? err);
@@ -269,21 +292,25 @@ async function main() {
 		console.error('Usage: mgt.mjs doctor | run <journey.mjs> ...   (see the file header)');
 		return 2;
 	}
-	if (command === 'run' && args.length === 0) {
-		console.error('run needs at least one journey file.');
+	const journeys = journeyFiles(args);
+	if (command === 'run' && journeys.length === 0) {
+		console.error('run needs at least one journey file, and none was given or matched.');
 		return 2;
 	}
 
 	const server = givenUrl ? null : await startServer();
 	const origin = givenUrl ?? server.origin;
-	const browser = await chromium.launch({ headless: !headed });
+	// The pid is what to stop if this run is killed before it can stop the server itself.
+	if (server) console.log(`Dev server: ${origin} (pid ${server.pid})`);
+	let browser;
 	try {
+		browser = await chromium.launch({ headless: !headed });
 		if (command === 'doctor') return (await doctor(browser, origin, Boolean(server))) ? 0 : 1;
 
 		const outRoot = givenOut ? resolve(givenOut) : await mkdtemp(join(tmpdir(), 'mgt-verify-'));
 		await mkdir(outRoot, { recursive: true });
 		const reports = [];
-		for (const journey of args) reports.push(await runJourney(browser, origin, outRoot, journey));
+		for (const file of journeys) reports.push(await runJourney(browser, origin, outRoot, file));
 		const failed = reports.filter((r) => !r.passed).map((r) => r.name);
 		console.log(`\nEvidence: ${outRoot}`);
 		console.log(
@@ -291,7 +318,7 @@ async function main() {
 		);
 		return failed.length ? 1 : 0;
 	} finally {
-		await browser.close();
+		await browser?.close();
 		server?.stop();
 	}
 }

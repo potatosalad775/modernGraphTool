@@ -5,6 +5,35 @@ sidebar:
   order: 11
 ---
 
+### v2.3.5
+- Feat: Equalizer의 필터 목록 위에 **모든 밴드 삭제** 버튼을 추가했습니다. 삭제 전에 확인을 거치고, 왼쪽·오른쪽 전용 밴드도 함께 지우며, 실행 취소로 되돌릴 수 있습니다. (#117)
+- Feat: Misc 패널에 **단일 키 단축키** 설정을 추가했습니다. 패널을 전환하는 <kbd>1</kbd>–<kbd>4</kbd> 키나 <kbd>\\</kbd> 누르고 있기가 입력이나 음성 제어에 방해가 되면 끌 수 있습니다. 드롭다운에 포커스가 있을 때도 이 키들은 동작하지 않습니다. 자세한 내용은 [키보드와 포커스 조작](./guide-for-users/interface-tour.mdx#키보드와-포커스-조작) 참조.
+- Feat: 키보드와 스크린 리더 지원을 전반적으로 손봤습니다. 컨트롤과 그래프로 바로 가는 건너뛰기 링크가 생겼고, 그래프와 패널 사이의 구분선을 화살표 키로 옮길 수 있으며, 각 커브의 버튼은 커브 이름과 함께 읽히고, 사이트 선택기에는 검색 입력란과 화살표 키 이동이 추가되었습니다. 애니메이션은 동작 줄이기 설정을 따르고, 페이지는 선택한 언어를 스크린 리더와 브라우저 번역에 알립니다.
+- Feat: `PREFERRED_DARK_MODE_THEME: "system"`일 때, 방문자가 직접 고르기 전까지 테마가 기기의 라이트·다크 설정을 계속 따라갑니다. 다크 모드는 페이지를 처음 그리기 전에 적용되므로, 로딩 중에 밝은 화면이 잠깐 보이지 않습니다.
+- Feat: 기본 `theme.css`의 팔레트를 대비가 더 높은 색으로 바꿨습니다. 모든 색상 역할은 `-content`와 4.5:1 이상을, 보조 텍스트는 7:1 이상을 유지하며, `prefers-contrast: more` 블록이 라이트 테마의 색을 7:1까지 올립니다. `--color-scrim`(다이얼로그, 모바일 메뉴, 투어 뒤의 가림막)과 `--color-rating`(순위 별) 토큰이 새로 생겼습니다. 기존 `theme.css`는 자신의 색을 그대로 유지하며, 새 토큰이 없어도 동작합니다. 자세한 내용은 [페이지 스타일 커스터마이징](./guide-for-admins/customize-page.mdx#customizing-page-styles-themecss) 참조.
+- Feat: `TOPBAR.TITLE.ALT`를 추가했습니다. 타이틀이 이미지나 HTML일 때 스크린 리더가 읽을 사이트 이름을 일반 텍스트로 지정합니다. 샘플 `config.js`의 타이틀은 이제 `<span>`입니다. HTML 타이틀에는 제목 태그(`<h1>`–`<h6>`)를 쓰지 마세요. 자세한 내용은 [TOPBAR 문서](./guide-for-admins/customize-page.mdx#topbar) 참조.
+- Feat: CDN 배포를 `CDN_MODE.VERSION`으로 특정 릴리스 하나에 고정할 수 있습니다. `BOOT_INTEGRITY`까지 지정하면, 직접 `index.html`과 `config.js`에 적어 둔 해시와 일치하는 파일로만 시작합니다. 고정하지 않은 사이트도 이제 릴리스의 각 스크립트와 스타일시트를 해시로 검증합니다. 자세한 내용은 [릴리스 고정하기](./guide-for-admins/deployment/cdn.mdx#pinning-a-release) 참조.
+- Feat: 모든 릴리스에 Content-Security-Policy를 포함한 권장 보안 헤더가 꺼진 상태로 들어 있습니다. `.htaccess`에는 주석 처리된 줄로, CDN 릴리스와 GitHub Pages 템플릿의 `index.html`에는 주석 처리된 `<meta>` 태그로 제공됩니다. 여기에 Trusted Types를 추가로 켤 수 있습니다. 자세한 내용은 [보안 헤더](./guide-for-admins/deployment/security-headers.mdx) 참조.
+- Feat: 함께 제공되는 `.htaccess`가 Apache에서 캐시 수명과 압축을 설정합니다. 자세한 내용은 [캐시와 압축](./guide-for-admins/deployment/prebuilt.mdx#caching-and-compression) 참조.
+- Feat: 하드웨어 EQ가 네트워크 기기에 연결하기 전에 주소(IP 주소나 `.local` 이름, 필요하면 포트)를 확인하고, Enter로 연결하며, 브라우저가 기기에 닿지 못하면 그 사실을 알려줍니다. 자세한 내용은 [네트워크 기기](./features/device-peq.mdx#network-devices) 참조.
+- Feat (squig-link): 분석 이벤트가 ID 없이도 squig.link의 공용 Tag Manager 컨테이너로 전송되며, `ANALYTICS_MEASUREMENT_IDS`에 직접 운영하는 `GTM-` 컨테이너도 넣을 수 있습니다. 방문자는 Misc 패널의 **사용 통계** 스위치로 끌 수 있고, Global Privacy Control을 보내는 브라우저에서는 분석을 불러오지 않으며, 새 `ANALYTICS_CONSENT`로 Consent Mode의 시작 상태를 정합니다. 자세한 내용은 [분석과 동의](./features/squiglink-integration.mdx#analytics-and-consent) 참조.
+- Fix (squig-link): 분석 이벤트가 제대로 전송되지 않던 문제를 수정했습니다.
+- Fix (squig-link): 쇼핑 링크의 할인 가격이 제대로 표시되지 않던 문제를 수정했습니다.
+- Fix: 업로드한 측정치를 EQ 소스로 쓸 때도 다른 소스와 마찬가지로 EQ 중에 흐리게 표시됩니다. (#115)
+- Fix: 새 EQ 커브가 소스의 Y 오프셋에서 시작하고, 오프셋이 있는 커브에서도 그래프의 밴드 핸들이 커브 위에 놓입니다. (#116)
+- Fix: 언어를 바꿔도 선택한 기기, 타겟, EQ가 유지됩니다. `URL.AUTO_UPDATE_URL`이 꺼져 있어도 마찬가지입니다. (#119)
+- Fix: Y 오프셋 버튼을 누르고 있으면 단계마다가 아니라 한 번의 실행 취소 항목으로 기록됩니다.
+- Fix: 손상된 공유 링크 때문에 페이지 로딩이 멈추지 않습니다. 읽을 수 없는 부분만 건너뜁니다.
+- Fix: `phone_book.json`의 `reviewLink`, `shopLink`, `links[]` URL에서 `&tab=`, `&lt=` 같은 쿼리 매개변수가 그대로 유지됩니다. `http(s)` 주소가 아닌 `reviewLink`와 `shopLink`는 무시합니다.
+- Fix: 기본 인덱스가 응답하지 않아도 미러가 응답하면 크로스 사이트 검색이 실패하지 않습니다. 형식이 잘못된 행은 멈추지 않고 건너뛰며, 불러오기에 실패하면 계속 로딩 중으로 남지 않고 실패로 표시합니다.
+- Fix: 접속할 수 없었던 데이터베이스는 사이트 선택기에서 흐리게 표시되는 대신 **미확인** 배지가 붙고, 목록 아래에 안내가 표시됩니다.
+- Fix: 오류 알림은 닫을 때까지 남아 있고, 같은 알림이 반복되면 하나로 표시됩니다. 화면보다 긴 다이얼로그와 팝오버는 잘리지 않고 안에서 스크롤됩니다.
+- Fix: 브라우저가 복사를 막으면 공유 버튼이 링크를 보여 주어 직접 복사할 수 있습니다.
+- Fix: 5 MB를 넘는 파일이나 한 번에 40개를 넘는 파일을 업로드하면, 읽으려 하지 않고 메시지와 함께 거부합니다.
+- Fix: IME(한국어, 일본어, 중국어) 입력을 끝내는 Enter나 Escape가 입력란까지 확정하거나 취소하지 않습니다.
+- Refactor: 다크 모드에서 찍은 스크린샷이 내장된 색 대신 `theme.css`의 라이트 색을 사용합니다.
+- Refactor: 시작 속도가 빨라졌습니다. Equalizer 패널은 필요할 때 불러오고, 조사 모드 판독기, Y축 드래그, 크로스 사이트 검색이 하는 일이 줄었습니다.
+
 ### v2.3.4
 - Feat: 하드웨어 EQ 기기를 연결해 둔 동안에는 오디오 플레이어가 EQ를 기기에 맡기므로, 기기에서 재생되는 소리에 EQ가 두 번 걸리지 않습니다. 소리가 그 기기로 재생되지 않는다면 **Apply it here instead**로 플레이어에 EQ를 다시 적용할 수 있습니다. uniPEQ로 연결한 기기도 **uniPEQ 열기**로 uniPEQ를 시작했다면 똑같이 동작합니다. QR 코드나 코드 입력으로 참여했다면 플레이어가 그 기기로 듣고 있는지 묻습니다. 자세한 내용은 [오디오 미리 듣기](./guide-for-users/equalizing.mdx#audio-preview) 참조.
 - Feat: 조사 모드 판독기가 이제 곡선의 Y 오프셋을 값 뒤에 `72.4dB (+1)`처럼 함께 표시합니다. 자세한 내용은 [조사 모드](./guide-for-users/graph-controls.mdx#조사-모드) 참조.

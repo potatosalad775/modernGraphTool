@@ -5,6 +5,35 @@ sidebar:
   order: 11
 ---
 
+### v2.3.5
+- Feat: Added a **Delete all bands** button above the Equalizer's filter list. It asks first, also removes the left- and right-only bands, and can be undone. (#117)
+- Feat: Added a **Single-key shortcuts** setting in the Misc panel. Switch it off if the <kbd>1</kbd>–<kbd>4</kbd> panel keys or the <kbd>\\</kbd> hold get in the way of typing or voice control. These keys are now also skipped while a dropdown has focus. See [Keyboard and focus](./guide-for-users/interface-tour.mdx#keyboard-and-focus).
+- Feat: Keyboard and screen reader support was reworked across the tool. There are skip links to the controls and the graph, the divider between the graph and the panel moves with the arrow keys, each curve's buttons are announced with the curve's name, and the site selector has a filter field and arrow-key navigation. Animations follow the reduced-motion setting, and the page declares the selected language to screen readers and browser translation.
+- Feat: With `PREFERRED_DARK_MODE_THEME: "system"`, the theme now keeps following the device's light or dark setting until a visitor picks one. Dark mode is applied before the page first paints, so a dark page no longer flashes light while loading.
+- Feat: The default `theme.css` has a higher-contrast palette. Every color role keeps 4.5:1 against its `-content`, secondary text keeps 7:1, and a `prefers-contrast: more` block raises the light theme's colors to 7:1. Two tokens are new: `--color-scrim` (the veil behind dialogs, the mobile menu and the tour) and `--color-rating` (rank stars). An existing `theme.css` keeps its own colors and works without the new tokens. See [Customizing Page Styles](./guide-for-admins/customize-page.mdx#customizing-page-styles-themecss).
+- Feat: Added `TOPBAR.TITLE.ALT`, the site's name as plain text, for screen readers when the title is an image or HTML. The sample `config.js` title is now a `<span>`: don't use heading tags (`<h1>`–`<h6>`) in an HTML title. See [TOPBAR documentation](./guide-for-admins/customize-page.mdx#topbar).
+- Feat: A CDN deployment can now be pinned to one exact release with `CDN_MODE.VERSION`. With `BOOT_INTEGRITY` as well, it only starts from files whose hashes are written in your own `index.html` and `config.js`. Unpinned sites now also check each script and stylesheet of a release against its hash. See [Pinning a release](./guide-for-admins/deployment/cdn.mdx#pinning-a-release).
+- Feat: Every release now ships recommended security headers, a Content-Security-Policy among them, switched off: as commented lines in `.htaccess`, and as a commented `<meta>` tag in the `index.html` of the CDN release and the GitHub Pages template. Trusted Types can be added on top. See [Security Headers](./guide-for-admins/deployment/security-headers.mdx).
+- Feat: The bundled `.htaccess` now sets cache lifetimes and compression on Apache. See [Caching and compression](./guide-for-admins/deployment/prebuilt.mdx#caching-and-compression).
+- Feat: Hardware EQ now checks a network device's address before connecting (an IP address or a `.local` name, with an optional port), connects on Enter, and tells you when the browser can't reach the device. See [Network devices](./features/device-peq.mdx#network-devices).
+- Feat (squig-link): Analytics now reports to squig.link's shared Tag Manager container with no ID needed, and `ANALYTICS_MEASUREMENT_IDS` also accepts `GTM-` containers of your own. Visitors get a **Usage statistics** switch in the Misc panel, a browser that sends Global Privacy Control loads no analytics, and the new `ANALYTICS_CONSENT` sets what Consent Mode starts from. See [Analytics and consent](./features/squiglink-integration.mdx#analytics-and-consent).
+- Fix (squig-link): Fixed an issue where analytics events aren't properly sent to Google Tag Manager.
+- Fix (squig-link): Fixed an issue where shop link's sale price weren't properly shown in certain conditions.
+- Fix: An uploaded measurement used as the EQ source is now dimmed while you equalize, like any other source. (#115)
+- Fix: A new EQ curve now starts at its source's Y-offset, and the band handles on the graph stay on the curve when it has an offset. (#116)
+- Fix: Changing the language now keeps the selected devices, targets and EQ, also with `URL.AUTO_UPDATE_URL` off. (#119)
+- Fix: Holding a Y-offset button now makes one undo step instead of one per tick.
+- Fix: A damaged share link no longer stops the page from loading. The parts that can't be read are skipped.
+- Fix: `reviewLink`, `shopLink` and `links[]` URLs in `phone_book.json` now keep query parameters such as `&tab=` and `&lt=`. A `reviewLink` or `shopLink` that isn't an `http(s)` address is ignored.
+- Fix: Cross-site search no longer fails when the main index stalls but a mirror answers. It skips malformed rows instead of stopping, and a load that fails is reported instead of loading forever.
+- Fix: Databases that were unreachable now carry an **Unverified** badge in the site selector, with a note under the list, instead of being dimmed.
+- Fix: Error notifications now stay until dismissed, and a repeated one shows once. Dialogs and popovers taller than the screen scroll inside instead of being cut off.
+- Fix: When the browser blocks copying, the share button now shows the link so you can copy it yourself.
+- Fix: Uploading now refuses a file over 5 MB, or more than 40 files at once, with a message instead of trying to read them.
+- Fix: The Enter or Escape that finishes typing with an IME (Korean, Japanese, Chinese) no longer also submits or cancels the field.
+- Refactor: A screenshot taken in dark mode now uses the light colors of your `theme.css` instead of built-in ones.
+- Refactor: Faster startup. The Equalizer panel now loads on demand, and the hover readout, Y-axis drag and cross-site search do less work.
+
 ### v2.3.4
 - Feat: While a Hardware EQ device is connected, the audio player leaves the EQ to the device, so what it plays isn't equalized twice. **Apply it here instead** takes the EQ back for the player when your sound doesn't go through that device. A device linked through uniPEQ is treated the same way if you started uniPEQ with **Open uniPEQ**. If uniPEQ joined by QR code or typed code, the player asks whether you're listening through the device. See [Audio preview](./guide-for-users/equalizing.mdx#audio-preview).
 - Feat: The hover readout now shows a curve's Y-offset after its value, such as `72.4dB (+1)`. See [Inspection mode](./guide-for-users/graph-controls.mdx#inspection-mode).

@@ -1,0 +1,1 @@
+import"../chunks/BRnd8bwL.js";import{t as e}from"../chunks/CeKm-oxi.js";function t(t){e(t,{})}export{t as component};

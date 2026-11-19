@@ -1,79 +1,16 @@
 <script lang="ts">
 	import { type ThemePalette, withAlpha } from '../../../utils/oklch';
+	import Icon from '../shared/Icon.svelte';
 
 	interface Props {
 		colorMode: 'light' | 'dark';
-		theme?: ThemePalette;
+		theme: ThemePalette;
 	}
 
-	let { colorMode, theme }: Props = $props();
+	let { colorMode, theme: t }: Props = $props();
 
-	// Default palettes matching defaults/theme.css reference values
-	const defaultLight: ThemePalette = {
-		base100: 'oklch(98% 0.003 247.858)',
-		base200: 'oklch(96% 0.007 247.896)',
-		base300: 'oklch(92% 0.013 255.508)',
-		baseContent: 'oklch(17% 0.042 265.755)',
-		primary: 'oklch(52% 0.111 163.225)',
-		primaryContent: 'oklch(98% 0.015 166.113)',
-		secondary: 'oklch(53% 0.098 221.723)',
-		secondaryContent: 'oklch(98% 0.012 200.873)',
-		accent: 'oklch(44% 0.017 285.786)',
-		accentContent: 'oklch(98% 0 0)',
-		neutral: 'oklch(44% 0.043 257.281)',
-		neutralContent: 'oklch(98% 0.003 247.858)',
-		info: 'oklch(53% 0.115 237.323)',
-		infoContent: 'oklch(98% 0.01 236.62)',
-		success: 'oklch(52.5% 0.143 130.85)',
-		successContent: 'oklch(98% 0.02 120.757)',
-		warning: 'oklch(80% 0.16 86.047)',
-		warningContent: 'oklch(24% 0.05 80)',
-		error: 'oklch(56% 0.2 16.439)',
-		errorContent: 'oklch(98% 0.008 12.422)',
-		graphBg: 'transparent',
-		graphWatermarkOpacity: '0.08',
-		graphGridMajor: 'rgba(0, 0, 0, 0.15)',
-		graphGridMinor: 'rgba(0, 0, 0, 0.06)',
-		graphAxisLabel: 'rgba(0, 0, 0, 0.7)',
-		graphGridText: 'rgba(0, 0, 0, 0.58)',
-		graphBaseline: 'rgba(0, 0, 0, 0.25)',
-		graphCompare: 'rgba(0, 0, 0, 0.55)',
-		scrim: 'oklch(0% 0 0 / 40%)'
-	};
-
-	const defaultDark: ThemePalette = {
-		base100: 'oklch(30.857% 0.023 264.149)',
-		base200: 'oklch(28.036% 0.019 264.182)',
-		base300: 'oklch(26.346% 0.018 262.177)',
-		baseContent: 'oklch(93% 0.015 222.959)',
-		primary: 'oklch(86.133% 0.141 139.549)',
-		primaryContent: 'oklch(17.226% 0.028 139.549)',
-		secondary: 'oklch(82% 0.1 35.353)',
-		secondaryContent: 'oklch(18% 0.03 35.353)',
-		accent: 'oklch(82% 0.11 311.379)',
-		accentContent: 'oklch(16% 0.026 311.379)',
-		neutral: 'oklch(24.731% 0.02 264.094)',
-		neutralContent: 'oklch(93% 0.015 222.959)',
-		info: 'oklch(86.078% 0.142 206.182)',
-		infoContent: 'oklch(17.215% 0.028 206.182)',
-		success: 'oklch(80% 0.17 163.223)',
-		successContent: 'oklch(19% 0.035 168.94)',
-		warning: 'oklch(82% 0.165 84.429)',
-		warningContent: 'oklch(22% 0.05 60)',
-		error: 'oklch(78% 0.13 13.428)',
-		errorContent: 'oklch(20% 0.05 12.094)',
-		graphBg: 'transparent',
-		graphWatermarkOpacity: '0.08',
-		graphGridMajor: 'rgba(255, 255, 255, 0.15)',
-		graphGridMinor: 'rgba(255, 255, 255, 0.06)',
-		graphAxisLabel: 'rgba(255, 255, 255, 0.72)',
-		graphGridText: 'rgba(255, 255, 255, 0.6)',
-		graphBaseline: 'rgba(255, 255, 255, 0.25)',
-		graphCompare: 'rgba(255, 255, 255, 0.55)',
-		scrim: 'oklch(0% 0 0 / 40%)'
-	};
-
-	let t = $derived(theme ?? (colorMode === 'dark' ? defaultDark : defaultLight));
+	/** Four of five, as the device list draws a 0-5 score. */
+	const stars = [true, true, true, true, false];
 
 	const toasts = [
 		{ role: 'info', text: 'Info toast sample' },
@@ -161,6 +98,11 @@
 					</div>
 					<div class="dgpPhoneSelectorObject" style="color: {t.baseContent};">
 						Fictionalear Hexa 2
+						<span class="dgpRank" style="color: {t.rating};" role="img" aria-label="Rated 4 of 5">
+							{#each stars as filled, i (i)}
+								<Icon name="star" {filled} />
+							{/each}
+						</span>
 					</div>
 				</section>
 
@@ -336,8 +278,22 @@
 	}
 
 	.dgpPhoneSelectorObject {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
 		padding: 8px 12px;
 		font-size: 12px;
+	}
+
+	.dgpRank {
+		display: flex;
+		gap: 1px;
+
+		:global(svg) {
+			width: 11px;
+			height: 11px;
+		}
 	}
 
 	.dgpPhoneSelectorObjectSelected {

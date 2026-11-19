@@ -10,13 +10,19 @@ import {
 	generateBaseScale,
 	generateFullPalette,
 	maxChromaFor,
+	randomizeInputs,
+	worstLightPairings,
 	BASE_LIGHTNESS_LIGHT_RANGE,
 	BASE_LIGHTNESS_DARK_RANGE,
 	DEFAULT_INPUTS,
 	DEFAULT_BASE_SATURATION,
-	type ThemePalette,
-	type PaletteInputs
+	ROLES,
+	WCAG_AA,
+	WCAG_AAA,
+	type OklchColor,
+	type ThemePalette
 } from './oklch';
+import { EXTREME_INPUTS } from './oklch.fixtures';
 
 /**
  * The theme generator interpolates these values straight into a theme.css that
@@ -55,7 +61,8 @@ const PALETTE_KEYS: Array<keyof ThemePalette> = [
 	'graphGridText',
 	'graphBaseline',
 	'graphCompare',
-	'scrim'
+	'scrim',
+	'rating'
 ];
 
 function expectWellFormedPalette(palette: ThemePalette, label: string) {
@@ -67,6 +74,24 @@ function expectWellFormedPalette(palette: ThemePalette, label: string) {
 		expect(value, `${label}.${key} contains NaN`).not.toMatch(/NaN/);
 		expect(value, `${label}.${key} contains undefined`).not.toMatch(/undefined/);
 	}
+}
+
+/** The palette's colours are strings, so a contrast check reads back what the file says. */
+function parseOklch(css: string): OklchColor {
+	const match = /^oklch\(([\d.]+)% ([\d.]+) ([\d.]+)\)$/.exec(css);
+	if (!match) throw new Error(`not an oklch() colour: ${css}`);
+	return { l: Number(match[1]) / 100, c: Number(match[2]), h: Number(match[3]) };
+}
+
+/** Mulberry32: a seeded `Math.random` stand-in, so a failing roll can be replayed. */
+function seededRandom(seed: number): () => number {
+	let state = seed;
+	return () => {
+		state = (state + 0x6d2b79f5) | 0;
+		let t = Math.imul(state ^ (state >>> 15), 1 | state);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
 }
 
 describe('hex ↔ OKLCH', () => {
@@ -315,46 +340,21 @@ describe('base lightness', () => {
 });
 
 describe('generateFullPalette', () => {
-	it('fills every palette key for the default inputs', () => {
-		const { light, dark } = generateFullPalette(DEFAULT_INPUTS);
+	it('fills every palette key for the default inputs, contrast palettes included', () => {
+		const { light, dark, contrast } = generateFullPalette(DEFAULT_INPUTS);
 		expectWellFormedPalette(light, 'light');
 		expectWellFormedPalette(dark, 'dark');
+		expectWellFormedPalette(contrast.light, 'contrast.light');
+		expectWellFormedPalette(contrast.dark, 'contrast.dark');
 	});
 
 	it('fills every palette key for arbitrary inputs, including extremes', () => {
-		const cases: PaletteInputs[] = [
-			{
-				baseHue: 0,
-				baseSaturation: 0,
-				baseLightnessLight: 0.99,
-				baseLightnessDark: 0.16,
-				primary: '#000000',
-				secondary: '#ffffff',
-				accent: '#000000',
-				info: '#ffffff',
-				success: '#000000',
-				warning: '#ffffff',
-				error: '#000000'
-			},
-			{
-				baseHue: 359,
-				baseSaturation: 1,
-				baseLightnessLight: 0.84,
-				baseLightnessDark: 0.46,
-				primary: '#ff0000',
-				secondary: '#00ff00',
-				accent: '#0000ff',
-				info: '#ffff00',
-				success: '#00ffff',
-				warning: '#ff00ff',
-				error: '#123456'
-			}
-		];
-
-		for (const [i, inputs] of cases.entries()) {
-			const { light, dark } = generateFullPalette(inputs);
+		for (const [i, inputs] of EXTREME_INPUTS.entries()) {
+			const { light, dark, contrast } = generateFullPalette(inputs);
 			expectWellFormedPalette(light, `case${i}.light`);
 			expectWellFormedPalette(dark, `case${i}.dark`);
+			expectWellFormedPalette(contrast.light, `case${i}.contrast.light`);
+			expectWellFormedPalette(contrast.dark, `case${i}.contrast.dark`);
 		}
 	});
 
@@ -375,6 +375,202 @@ describe('generateFullPalette', () => {
 		const { light, dark } = generateFullPalette(DEFAULT_INPUTS);
 		expect(light.scrim).toBe('oklch(0% 0 0 / 40%)');
 		expect(dark.scrim).toBe('oklch(0% 0 0 / 40%)');
+	});
+});
+
+describe('rating', () => {
+	it('darkens the warning amber to 4.5:1 on the light surfaces, near the shipped value', () => {
+		const { light } = generateFullPalette(DEFAULT_INPUTS);
+		const rating = parseOklch(light.rating);
+		for (const surface of [light.base100, light.base200]) {
+			expect(contrastRatio(rating, parseOklch(surface))).toBeGreaterThanOrEqual(WCAG_AA);
+		}
+		// Shipped: oklch(53% 0.11 75).
+		expect(Math.abs(rating.l * 100 - 53)).toBeLessThanOrEqual(2.5);
+		expect(Math.abs(rating.h - 75)).toBeLessThanOrEqual(2);
+	});
+
+	it('is the dark warning itself in dark mode, as shipped', () => {
+		const { dark } = generateFullPalette(DEFAULT_INPUTS);
+		expect(dark.rating).toBe(dark.warning);
+	});
+});
+
+describe('increased contrast', () => {
+	/** Lightness, in percent, of the light fills in the shipped increased-contrast block. */
+	const SHIPPED_L = [
+		['primary', 43],
+		['secondary', 43],
+		['info', 43],
+		['success', 43],
+		['error', 45]
+	] as const;
+
+	it('takes the default light fills to 7:1 against their content and on base-100', () => {
+		const { light, contrast } = generateFullPalette(DEFAULT_INPUTS);
+		const surface = parseOklch(light.base100);
+		for (const [role, shippedL] of SHIPPED_L) {
+			const fill = parseOklch(contrast.light[role]);
+			const content = parseOklch(contrast.light[`${role}Content`]);
+			expect(contrastRatio(fill, content), `${role} on its content`).toBeGreaterThanOrEqual(
+				WCAG_AAA
+			);
+			expect(contrastRatio(fill, surface), `${role} on base-100`).toBeGreaterThanOrEqual(WCAG_AAA);
+			expect(Math.abs(fill.l * 100 - shippedL), `${role} lightness`).toBeLessThanOrEqual(2.5);
+		}
+	});
+
+	it('takes the default rating to 7:1 on base-100 and base-200', () => {
+		const { light, contrast } = generateFullPalette(DEFAULT_INPUTS);
+		const rating = parseOklch(contrast.light.rating);
+		for (const surface of [light.base100, light.base200]) {
+			expect(contrastRatio(rating, parseOklch(surface))).toBeGreaterThanOrEqual(WCAG_AAA);
+		}
+		// Shipped: oklch(43% 0.105 72).
+		expect(Math.abs(rating.l * 100 - 43)).toBeLessThanOrEqual(2.5);
+	});
+
+	it('keeps every solved pair clear of its bar once it is rounded to 8-bit pixels', () => {
+		// The hex round trip is one renderer's rounding. A pair solved to exactly
+		// 7:1 came out of it, and out of Chrome, as low as 6.93:1.
+		const painted = (css: string) => hexToOklch(oklchToHex(parseOklch(css)));
+		const { light, contrast } = generateFullPalette(DEFAULT_INPUTS);
+		for (const surface of [light.base100, light.base200]) {
+			expect(contrastRatio(painted(light.rating), painted(surface))).toBeGreaterThanOrEqual(
+				WCAG_AA
+			);
+			expect(
+				contrastRatio(painted(contrast.light.rating), painted(surface))
+			).toBeGreaterThanOrEqual(WCAG_AAA);
+		}
+		for (const [role] of SHIPPED_L) {
+			const fill = painted(contrast.light[role]);
+			expect(
+				contrastRatio(fill, painted(contrast.light[`${role}Content`])),
+				role
+			).toBeGreaterThanOrEqual(WCAG_AAA);
+			expect(contrastRatio(fill, painted(light.base100)), role).toBeGreaterThanOrEqual(WCAG_AAA);
+		}
+	});
+
+	it('leaves a fill that already clears 7:1 as the identical string', () => {
+		// The CSS block lists a token only where the string differs, so this is what
+		// keeps accent and warning out of it, as in the shipped file.
+		const { light, dark, contrast } = generateFullPalette(DEFAULT_INPUTS);
+		expect(contrast.light.accent).toBe(light.accent);
+		expect(contrast.light.warning).toBe(light.warning);
+		for (const role of ROLES) {
+			expect(contrast.dark[role], `dark ${role}`).toBe(dark[role]);
+		}
+	});
+
+	it('pushes a light fill with a dark ink lighter, not darker', () => {
+		const inputs = { ...DEFAULT_INPUTS, warning: oklchToHex({ l: 0.68, c: 0.14, h: 86 }) };
+		const { light, contrast } = generateFullPalette(inputs);
+		const before = parseOklch(light.warning);
+		const content = parseOklch(light.warningContent);
+		expect(content.l, 'carries a dark ink').toBeLessThan(0.3);
+		expect(contrastRatio(before, content)).toBeLessThan(WCAG_AAA);
+
+		const after = parseOklch(contrast.light.warning);
+		expect(after.l).toBeGreaterThan(before.l);
+		expect(contrastRatio(after, content)).toBeGreaterThanOrEqual(WCAG_AAA);
+	});
+
+	it('sets base-content to pure black and white', () => {
+		const { contrast } = generateFullPalette(DEFAULT_INPUTS);
+		expect(contrast.light.baseContent).toBe('oklch(0% 0 0)');
+		expect(contrast.dark.baseContent).toBe('oklch(100% 0 0)');
+	});
+});
+
+describe('worstLightPairings', () => {
+	it('reports every default role at 4.5:1 or better', () => {
+		const pairings = worstLightPairings(DEFAULT_INPUTS);
+		for (const role of ROLES) {
+			expect(pairings[role].ratio, role).toBeGreaterThanOrEqual(WCAG_AA);
+		}
+	});
+
+	it('names the failing pairing for a mid-lightness fill', () => {
+		// At L 0.6 neither ink reaches 4.5:1, and the fill is no darker than the
+		// light ink, so it fails as text on the surface by even more.
+		const mid = oklchToHex({ l: 0.6, c: 0.1, h: 250 });
+		const pairings = worstLightPairings({ ...DEFAULT_INPUTS, primary: mid, warning: mid });
+		expect(pairings.primary.pairing).toBe('surface');
+		expect(pairings.primary.ratio).toBeLessThan(WCAG_AA);
+		// Warning is never text on the surface, so its own ink is what fails.
+		expect(pairings.warning.pairing).toBe('content');
+		expect(pairings.warning.ratio).toBeLessThan(WCAG_AA);
+	});
+});
+
+describe('randomizeInputs', () => {
+	const LIGHT_SURFACES = [BASE_LIGHTNESS_LIGHT_RANGE[0], 0.91, BASE_LIGHTNESS_LIGHT_RANGE[1]];
+	const random = seededRandom(0x5eed);
+	const rolls = Array.from({ length: 2000 }, (_, i) => {
+		const current = { ...DEFAULT_INPUTS, baseLightnessLight: LIGHT_SURFACES[i % 3] };
+		return { current, rolled: randomizeInputs(current, random) };
+	});
+
+	it('keeps every role at 4.5:1 on its content, and every role but warning on base-100', () => {
+		for (const [i, { rolled }] of rolls.entries()) {
+			const { light } = generateBaseScale(
+				rolled.baseHue,
+				rolled.baseSaturation,
+				rolled.baseLightnessLight,
+				rolled.baseLightnessDark
+			);
+			for (const role of ROLES) {
+				expect(rolled[role], `roll ${i} ${role}`).toMatch(/^#[0-9a-f]{6}$/);
+				const fill = hexToOklch(rolled[role]);
+				expect(
+					contrastRatio(fill, generateContentColor(fill, 'light')),
+					`roll ${i} ${role} on its content`
+				).toBeGreaterThanOrEqual(WCAG_AA);
+				if (role === 'warning') continue;
+				expect(
+					contrastRatio(fill, light.base100),
+					`roll ${i} ${role} on base-100`
+				).toBeGreaterThanOrEqual(WCAG_AA);
+			}
+		}
+	});
+
+	it('keeps warning a light amber with a dark ink', () => {
+		for (const [i, { rolled }] of rolls.entries()) {
+			const warning = hexToOklch(rolled.warning);
+			expect(warning.l, `roll ${i}`).toBeGreaterThanOrEqual(0.7);
+			expect(Math.abs(warning.h - 75), `roll ${i}`).toBeLessThanOrEqual(20);
+			expect(generateContentColor(warning, 'light').l, `roll ${i}`).toBeLessThan(0.3);
+		}
+	});
+
+	it('keeps the status roles in their hue bands', () => {
+		// Role, band centre, half the band width.
+		const bands = [
+			['info', 220, 20],
+			['success', 130, 20],
+			['error', 15, 10]
+		] as const;
+		for (const [i, { rolled }] of rolls.entries()) {
+			for (const [role, centre, half] of bands) {
+				const offset = ((hexToOklch(rolled[role]).h - centre + 540) % 360) - 180;
+				// A few degrees of slack for the 8-bit hex the roll comes back as.
+				expect(Math.abs(offset), `roll ${i} ${role}`).toBeLessThanOrEqual(half + 3);
+			}
+		}
+	});
+
+	it('rolls the base tone but keeps the surface lightness the operator set', () => {
+		for (const { current, rolled } of rolls) {
+			expect(rolled.baseLightnessLight).toBe(current.baseLightnessLight);
+			expect(rolled.baseLightnessDark).toBe(current.baseLightnessDark);
+			expect(rolled.baseHue).toBeGreaterThanOrEqual(0);
+			expect(rolled.baseHue).toBeLessThan(360);
+			expect(rolled.baseSaturation).toBeGreaterThan(0);
+			expect(rolled.baseSaturation).toBeLessThan(1);
+		}
 	});
 });
 

@@ -24,7 +24,9 @@
 		| 'copy'
 		| 'download'
 		| 'upload'
-		| 'external';
+		| 'external'
+		| 'alert'
+		| 'star';
 
 	const PATHS: Record<IconName, string> = {
 		chevron: 'M9 5l7 7-7 7',
@@ -39,7 +41,9 @@
 		copy: 'M9 9h10v10H9zM5 15V5h10',
 		download: 'M12 3v12M7 11l5 5 5-5M4 20h16',
 		upload: 'M12 17V5M7 9l5-5 5 5M4 20h16',
-		external: 'M14 4h6v6M20 4l-9 9M18 14v5H5V6h5'
+		external: 'M14 4h6v6M20 4l-9 9M18 14v5H5V6h5',
+		alert: 'M12 3.5L2.5 20h19zM12 9.5V14M12 17v.01',
+		star: 'M12 2.6l2.5 6.6 7 .3-5.5 4.4 1.9 6.8-5.9-3.9-5.9 3.9 1.9-6.8-5.5-4.4 7-.3z'
 	};
 </script>
 
@@ -48,15 +52,17 @@
 		name: IconName;
 		/** Extra classes; `ceIcon` supplies the default 1rem box. */
 		class?: string;
+		/** Fills the shape as well as stroking it: a rated star against an unrated one. */
+		filled?: boolean;
 	}
 
-	let { name, class: className = 'ceIcon' }: Props = $props();
+	let { name, class: className = 'ceIcon', filled = false }: Props = $props();
 </script>
 
 <svg
 	class={className}
 	viewBox="0 0 24 24"
-	fill="none"
+	fill={filled ? 'currentColor' : 'none'}
 	stroke="currentColor"
 	stroke-width="2"
 	stroke-linecap="round"

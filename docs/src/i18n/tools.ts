@@ -33,7 +33,12 @@ const ko: Record<string, string> = {
 	'Light Surface': '라이트 표면 밝기',
 	'Dark Surface': '다크 표면 밝기',
 	'Controls the base palette (backgrounds, text, borders). Hue and saturation tint every surface; the surface sliders set how light each mode starts. A near-white surface can only hold a faint tint, so lower Light Surface to push saturation further.':
-		'배경, 텍스트, 테두리에 쓰이는 기본 팔레트를 조정합니다. 색상과 채도는 모든 표면에 색조를 입히고, 표면 슬라이더는 각 모드의 밝기 기준을 정합니다. 흰색에 가까운 표면은 옅은 색조만 표현할 수 있으므로, 채도를 더 올리려면 라이트 표면 밝기를 낮추세요.'
+		'배경, 텍스트, 테두리에 쓰이는 기본 팔레트를 조정합니다. 색상과 채도는 모든 표면에 색조를 입히고, 표면 슬라이더는 각 모드의 밝기 기준을 정합니다. 흰색에 가까운 표면은 옅은 색조만 표현할 수 있으므로, 채도를 더 올리려면 라이트 표면 밝기를 낮추세요.',
+	'Contrast {ratio}:1': '대비 {ratio}:1',
+	'Text on this color: {ratio}:1, below 4.5:1': '이 색 위의 텍스트: {ratio}:1, 4.5:1 미만',
+	'As text on the light surface: {ratio}:1, below 4.5:1':
+		'라이트 표면 위 텍스트로 쓸 때: {ratio}:1, 4.5:1 미만',
+	'Preview increased contrast': '대비 증가 미리보기'
 };
 
 const dictionaries: Record<ToolLang, Record<string, string> | undefined> = {

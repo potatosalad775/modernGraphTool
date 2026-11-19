@@ -45,7 +45,38 @@ export interface ThemePalette {
 	graphCompare: string;
 	// Overlay (fixed per mode)
 	scrim: string;
+	// Rating: the rank stars in the device list
+	rating: string;
 }
+
+export interface GeneratedTheme {
+	light: ThemePalette;
+	dark: ThemePalette;
+	/** What each mode becomes under `prefers-contrast: more`. Full palettes, not overrides. */
+	contrast: { light: ThemePalette; dark: ThemePalette };
+}
+
+/** The seven colours an operator picks, in the order the generator lists them. */
+export const ROLES = [
+	'primary',
+	'secondary',
+	'accent',
+	'info',
+	'success',
+	'warning',
+	'error'
+] as const;
+export type Role = (typeof ROLES)[number];
+
+/**
+ * The roles the app also sets as text on the base surfaces. Warning is not one:
+ * amber only stays amber while it is light, so it carries a dark ink instead.
+ */
+const TEXT_ROLES: ReadonlySet<Role> = new Set(ROLES.filter((role) => role !== 'warning'));
+
+/** WCAG 2.x contrast for body text: AA, and the AAA that `prefers-contrast: more` aims at. */
+export const WCAG_AA = 4.5;
+export const WCAG_AAA = 7;
 
 export interface PaletteInputs {
 	baseHue: number;
@@ -168,6 +199,17 @@ export function oklchToCssString(color: OklchColor): string {
 	return `oklch(${l}% ${c} ${h})`;
 }
 
+/**
+ * The colour exactly as `oklchToCssString` writes it. Every palette colour is
+ * snapped to this before anything measures it, so a contrast the generator
+ * checked is the contrast the exported file has: three decimals of chroma move a
+ * ratio by up to 0.001, enough to land a 7:1 fill at 6.999:1.
+ */
+function asWritten({ l, c, h }: OklchColor): OklchColor {
+	const round = (value: number, digits: number) => Math.round(value * 10 ** digits) / 10 ** digits;
+	return { l: round(l, 5), c: round(c, 3), h: round(h, 3) };
+}
+
 export function withAlpha(oklchCss: string, alpha: number): string {
 	// oklch(59% 0.145 163.225) → oklch(59% 0.145 163.225 / 0.12)
 	return oklchCss.replace(')', ` / ${alpha})`);
@@ -192,12 +234,19 @@ export function contrastRatio(a: OklchColor, b: OklchColor): number {
 	return (x + 0.05) / (y + 0.05);
 }
 
+/** The two inks a light-mode fill can carry. */
+function lightModeInks(base: OklchColor): { light: OklchColor; dark: OklchColor } {
+	return {
+		light: { l: 0.98, c: base.c * 0.1, h: base.h },
+		dark: { l: 0.24, c: base.c * 0.3, h: base.h }
+	};
+}
+
 export function generateContentColor(base: OklchColor, mode: 'light' | 'dark'): OklchColor {
 	if (mode === 'light') {
 		// Light ink on a dark fill, dark ink on a light one: whichever reads better.
 		// A fixed light ink left amber and lime fills at under 2:1.
-		const light: OklchColor = { l: 0.98, c: base.c * 0.1, h: base.h };
-		const dark: OklchColor = { l: 0.24, c: base.c * 0.3, h: base.h };
+		const { light, dark } = lightModeInks(base);
 		return contrastRatio(light, base) >= contrastRatio(dark, base) ? light : dark;
 	}
 	// Dark mode semantic colors are bright → content must be dark for contrast
@@ -284,8 +333,12 @@ const SURFACE_STEPS = {
 	dark: [0, -0.03, -0.05]
 } as const;
 
+function wrapHue(h: number): number {
+	return ((h % 360) + 360) % 360;
+}
+
 function tinted(l: number, h: number, share: number): OklchColor {
-	const hue = ((h % 360) + 360) % 360;
+	const hue = wrapHue(h);
 	return { l, c: clamp(0, share, 1) * maxChromaFor(l, hue), h: hue };
 }
 
@@ -340,105 +393,377 @@ function generateNeutralContent(base: { light: BaseColors; dark: BaseColors }): 
 	};
 }
 
-// ── Graph tokens (fixed) ─────────────────────────────────────────────────────
+// ── Fixed tokens ─────────────────────────────────────────────────────────────
 
-const GRAPH_LIGHT = {
-	graphBg: 'transparent',
-	graphWatermarkOpacity: '0.08',
-	graphGridMajor: 'rgba(0, 0, 0, 0.15)',
-	graphGridMinor: 'rgba(0, 0, 0, 0.06)',
-	graphAxisLabel: 'rgba(0, 0, 0, 0.7)',
-	graphGridText: 'rgba(0, 0, 0, 0.58)',
-	graphBaseline: 'rgba(0, 0, 0, 0.25)',
-	graphCompare: 'rgba(0, 0, 0, 0.55)'
-};
+type Mode = 'light' | 'dark';
 
-const GRAPH_DARK = {
-	graphBg: 'transparent',
-	graphWatermarkOpacity: '0.08',
-	graphGridMajor: 'rgba(255, 255, 255, 0.15)',
-	graphGridMinor: 'rgba(255, 255, 255, 0.06)',
-	graphAxisLabel: 'rgba(255, 255, 255, 0.72)',
-	graphGridText: 'rgba(255, 255, 255, 0.6)',
-	graphBaseline: 'rgba(255, 255, 255, 0.25)',
-	graphCompare: 'rgba(255, 255, 255, 0.55)'
-};
-
-// ── Overlay token (fixed) ────────────────────────────────────────────────────
+type FixedTokens = Pick<
+	ThemePalette,
+	| 'graphBg'
+	| 'graphWatermarkOpacity'
+	| 'graphGridMajor'
+	| 'graphGridMinor'
+	| 'graphAxisLabel'
+	| 'graphGridText'
+	| 'graphBaseline'
+	| 'graphCompare'
+	| 'scrim'
+>;
 
 /** The veil behind dialogs, the mobile menu and the guided tour: 40% black in both modes. */
 const SCRIM = 'oklch(0% 0 0 / 40%)';
 
-// ── Full palette generation ──────────────────────────────────────────────────
+const FIXED: Record<Mode, FixedTokens> = {
+	light: {
+		graphBg: 'transparent',
+		graphWatermarkOpacity: '0.08',
+		graphGridMajor: 'rgba(0, 0, 0, 0.15)',
+		graphGridMinor: 'rgba(0, 0, 0, 0.06)',
+		graphAxisLabel: 'rgba(0, 0, 0, 0.7)',
+		graphGridText: 'rgba(0, 0, 0, 0.58)',
+		graphBaseline: 'rgba(0, 0, 0, 0.25)',
+		graphCompare: 'rgba(0, 0, 0, 0.55)',
+		scrim: SCRIM
+	},
+	dark: {
+		graphBg: 'transparent',
+		graphWatermarkOpacity: '0.08',
+		graphGridMajor: 'rgba(255, 255, 255, 0.15)',
+		graphGridMinor: 'rgba(255, 255, 255, 0.06)',
+		graphAxisLabel: 'rgba(255, 255, 255, 0.72)',
+		graphGridText: 'rgba(255, 255, 255, 0.6)',
+		graphBaseline: 'rgba(255, 255, 255, 0.25)',
+		graphCompare: 'rgba(255, 255, 255, 0.55)',
+		scrim: SCRIM
+	}
+};
 
-function semanticPair(hex: string, mode: 'light' | 'dark'): { color: string; content: string } {
-	const oklch = hexToOklch(hex);
-	const variant = mode === 'light' ? oklch : generateDarkVariant(oklch);
-	const content = generateContentColor(variant, mode);
-	return {
-		color: oklchToCssString(variant),
-		content: oklchToCssString(content)
-	};
+/**
+ * What `prefers-contrast: more` sets whatever the inputs: base-content at pure
+ * black / white, which every text step, border and divider derives from, and a
+ * heavier graph grid. The shipped `defaults/theme.css` values.
+ */
+const CONTRAST_FIXED: Record<
+	Mode,
+	Pick<
+		ThemePalette,
+		| 'baseContent'
+		| 'graphGridMajor'
+		| 'graphGridMinor'
+		| 'graphAxisLabel'
+		| 'graphGridText'
+		| 'graphBaseline'
+	>
+> = {
+	light: {
+		baseContent: 'oklch(0% 0 0)',
+		graphGridMajor: 'rgba(0, 0, 0, 0.4)',
+		graphGridMinor: 'rgba(0, 0, 0, 0.2)',
+		graphAxisLabel: 'rgba(0, 0, 0, 1)',
+		graphGridText: 'rgba(0, 0, 0, 0.9)',
+		graphBaseline: 'rgba(0, 0, 0, 0.6)'
+	},
+	dark: {
+		baseContent: 'oklch(100% 0 0)',
+		graphGridMajor: 'rgba(255, 255, 255, 0.4)',
+		graphGridMinor: 'rgba(255, 255, 255, 0.2)',
+		graphAxisLabel: 'rgba(255, 255, 255, 1)',
+		graphGridText: 'rgba(255, 255, 255, 0.9)',
+		graphBaseline: 'rgba(255, 255, 255, 0.6)'
+	}
+};
+
+// ── Contrast solver ──────────────────────────────────────────────────────────
+
+/**
+ * Moves a colour's lightness in `direction` until its ratio against every colour
+ * in `against` reaches `target`, and stops at the first lightness that does, so
+ * the colour changes no more than the target needs. It keeps its share of the
+ * sRGB gamut rather than its chroma: the gamut narrows toward black and white,
+ * and a fixed chroma would clip there and shift hue.
+ *
+ * A colour that already passes comes back as the same object, so it writes out
+ * as the same string and the contrast block leaves it out. A target out of reach
+ * returns the end of the range, black or white.
+ *
+ * The bar it solves to is `target` plus `PAINT_MARGIN`. A browser paints 8 bits
+ * per channel, and that rounding moves the ratio of the painted pixels by up to
+ * 0.07 either way (measured in Chrome: a pair solved to exactly 7:1 painted at
+ * 6.93:1 to 7.04:1). The rounding differs between renderers, so it cannot be
+ * computed here; the margin keeps the painted pair above the target instead.
+ */
+const PAINT_MARGIN = 0.1;
+
+function pushLightness(
+	color: OklchColor,
+	direction: -1 | 1,
+	against: OklchColor[],
+	target: number
+): OklchColor {
+	const bar = target + PAINT_MARGIN;
+	const passes = (candidate: OklchColor) =>
+		against.every((other) => contrastRatio(candidate, other) >= bar);
+	if (passes(color)) return color;
+
+	const ceiling = maxChromaFor(color.l, color.h);
+	const share = ceiling > 0 ? Math.min(1, color.c / ceiling) : 0;
+	const at = (l: number) => asWritten({ l, c: share * maxChromaFor(l, color.h), h: color.h });
+
+	let near = color.l;
+	let far = direction < 0 ? 0 : 1;
+	for (let i = 0; i < 24; i++) {
+		const mid = (near + far) / 2;
+		if (passes(at(mid))) far = mid;
+		else near = mid;
+	}
+	return at(far);
 }
 
-export function generateFullPalette(inputs: PaletteInputs): {
-	light: ThemePalette;
-	dark: ThemePalette;
-} {
-	const base = generateBaseScale(
+// ── Full palette generation ──────────────────────────────────────────────────
+
+/** One mode's colours as numbers, before they are written out. */
+interface ModeColors extends BaseColors {
+	neutral: OklchColor;
+	neutralContent: OklchColor;
+	fills: Record<Role, OklchColor>;
+	contents: Record<Role, OklchColor>;
+	rating: OklchColor;
+}
+
+function mapRoles<T>(derive: (role: Role) => T): Record<Role, T> {
+	return Object.fromEntries(ROLES.map((role) => [role, derive(role)])) as Record<Role, T>;
+}
+
+/**
+ * A darkened yellow reads as olive, so the rating turns toward orange as well:
+ * the shipped rating sits 11° from the shipped warning.
+ */
+const RATING_HUE_SHIFT = -11;
+
+/** The rank stars: the warning amber, darkened until it reads as text on the surfaces. */
+function lightRating(warning: OklchColor, base: BaseColors): OklchColor {
+	const seed = asWritten({ ...warning, h: wrapHue(warning.h + RATING_HUE_SHIFT) });
+	return pushLightness(seed, -1, [base.base100, base.base200], WCAG_AA);
+}
+
+function deriveColors(inputs: PaletteInputs): Record<Mode, ModeColors> {
+	const scale = generateBaseScale(
 		inputs.baseHue,
 		inputs.baseSaturation,
 		inputs.baseLightnessLight,
 		inputs.baseLightnessDark
 	);
 	const neutral = generateNeutral(inputs.baseHue, inputs.baseSaturation);
-	const neutralContent = generateNeutralContent(base);
+	const neutralContent = generateNeutralContent(scale);
 
-	function buildPalette(mode: 'light' | 'dark'): ThemePalette {
-		const b = mode === 'light' ? base.light : base.dark;
-		const n = mode === 'light' ? neutral.light : neutral.dark;
-		const nc = mode === 'light' ? neutralContent.light : neutralContent.dark;
-
-		const primary = semanticPair(inputs.primary, mode);
-		const secondary = semanticPair(inputs.secondary, mode);
-		const accent = semanticPair(inputs.accent, mode);
-		const info = semanticPair(inputs.info, mode);
-		const success = semanticPair(inputs.success, mode);
-		const warning = semanticPair(inputs.warning, mode);
-		const error = semanticPair(inputs.error, mode);
-
-		const graph = mode === 'light' ? GRAPH_LIGHT : GRAPH_DARK;
-
+	function derive(mode: Mode): ModeColors {
+		const base: BaseColors = {
+			base100: asWritten(scale[mode].base100),
+			base200: asWritten(scale[mode].base200),
+			base300: asWritten(scale[mode].base300),
+			baseContent: asWritten(scale[mode].baseContent)
+		};
+		const picked = mapRoles((role) => {
+			const color = hexToOklch(inputs[role]);
+			return mode === 'light' ? color : generateDarkVariant(color);
+		});
+		const fills = mapRoles((role) => asWritten(picked[role]));
 		return {
-			base100: oklchToCssString(b.base100),
-			base200: oklchToCssString(b.base200),
-			base300: oklchToCssString(b.base300),
-			baseContent: oklchToCssString(b.baseContent),
-			primary: primary.color,
-			primaryContent: primary.content,
-			secondary: secondary.color,
-			secondaryContent: secondary.content,
-			accent: accent.color,
-			accentContent: accent.content,
-			neutral: oklchToCssString(n),
-			neutralContent: oklchToCssString(nc),
-			info: info.color,
-			infoContent: info.content,
-			success: success.color,
-			successContent: success.content,
-			warning: warning.color,
-			warningContent: warning.content,
-			error: error.color,
-			errorContent: error.content,
-			...graph,
-			scrim: SCRIM
+			...base,
+			neutral: asWritten(neutral[mode]),
+			neutralContent: asWritten(neutralContent[mode]),
+			fills,
+			// From the unrounded fill, so a content colour writes out as it did before snapping.
+			contents: mapRoles((role) => asWritten(generateContentColor(picked[role], mode))),
+			// Dark mode keeps the warning itself, as the shipped theme does.
+			rating: mode === 'light' ? lightRating(fills.warning, base) : fills.warning
 		};
 	}
 
+	return { light: derive('light'), dark: derive('dark') };
+}
+
+/**
+ * The light fills under `prefers-contrast: more`. Each moves away from its
+ * -content until it clears 7:1 against it. A fill that darkens is also text on
+ * the light surface, so it clears 7:1 on base-100 too; a fill with a dark ink
+ * lightens instead, since it was never readable as text on a light surface.
+ */
+function contrastLight(colors: ModeColors): ModeColors {
+	const surface = colors.base100;
+	const fills = mapRoles((role) => {
+		const fill = colors.fills[role];
+		const content = colors.contents[role];
+		const direction = fill.l >= content.l ? 1 : -1;
+		const awayFromSurface = Math.sign(fill.l - surface.l) === direction;
+		return pushLightness(
+			fill,
+			direction,
+			awayFromSurface ? [content, surface] : [content],
+			WCAG_AAA
+		);
+	});
+	const rating = pushLightness(colors.rating, -1, [colors.base100, colors.base200], WCAG_AAA);
+	return { ...colors, fills, rating };
+}
+
+/**
+ * The dark fills lighten against their own -content only. Not against the
+ * surface: the Dark Surface slider reaches L 0.46, where 7:1 on it is out of reach.
+ */
+function contrastDark(colors: ModeColors): ModeColors {
+	const fills = mapRoles((role) =>
+		pushLightness(colors.fills[role], 1, [colors.contents[role]], WCAG_AAA)
+	);
+	return { ...colors, fills };
+}
+
+function toPalette(colors: ModeColors, fixed: FixedTokens): ThemePalette {
+	const css = oklchToCssString;
+	const { fills, contents } = colors;
 	return {
-		light: buildPalette('light'),
-		dark: buildPalette('dark')
+		base100: css(colors.base100),
+		base200: css(colors.base200),
+		base300: css(colors.base300),
+		baseContent: css(colors.baseContent),
+		primary: css(fills.primary),
+		primaryContent: css(contents.primary),
+		secondary: css(fills.secondary),
+		secondaryContent: css(contents.secondary),
+		accent: css(fills.accent),
+		accentContent: css(contents.accent),
+		neutral: css(colors.neutral),
+		neutralContent: css(colors.neutralContent),
+		info: css(fills.info),
+		infoContent: css(contents.info),
+		success: css(fills.success),
+		successContent: css(contents.success),
+		warning: css(fills.warning),
+		warningContent: css(contents.warning),
+		error: css(fills.error),
+		errorContent: css(contents.error),
+		rating: css(colors.rating),
+		...fixed
 	};
+}
+
+export function generateFullPalette(inputs: PaletteInputs): GeneratedTheme {
+	const { light, dark } = deriveColors(inputs);
+	return {
+		light: toPalette(light, FIXED.light),
+		dark: toPalette(dark, FIXED.dark),
+		contrast: {
+			light: { ...toPalette(contrastLight(light), FIXED.light), ...CONTRAST_FIXED.light },
+			dark: { ...toPalette(contrastDark(dark), FIXED.dark), ...CONTRAST_FIXED.dark }
+		}
+	};
+}
+
+// ── Contrast readout ─────────────────────────────────────────────────────────
+
+/** `content`: the fill behind its own -content. `surface`: the fill as text on base-100. */
+export type ContrastPairing = 'content' | 'surface';
+
+export interface PairingContrast {
+	ratio: number;
+	pairing: ContrastPairing;
+}
+
+/**
+ * Per role, the weakest light-mode pairing the app relies on: every fill carries
+ * its -content, and every role but warning is also text on base-100. Light mode,
+ * because that is where the fills sit closest to the 4.5:1 line.
+ */
+export function worstLightPairings(inputs: PaletteInputs): Record<Role, PairingContrast> {
+	const { light } = deriveColors(inputs);
+	return mapRoles((role) => {
+		const fill = light.fills[role];
+		const content: PairingContrast = {
+			ratio: contrastRatio(fill, light.contents[role]),
+			pairing: 'content'
+		};
+		if (!TEXT_ROLES.has(role)) return content;
+		const surface: PairingContrast = {
+			ratio: contrastRatio(fill, light.base100),
+			pairing: 'surface'
+		};
+		return surface.ratio < content.ratio ? surface : content;
+	});
+}
+
+// ── Randomizer ───────────────────────────────────────────────────────────────
+
+interface RandomBand {
+	/** Centre and full width of the hue band, or `null` for any hue. */
+	hue: [centre: number, width: number] | null;
+	lightness: [number, number];
+	/** Share of the sRGB gamut at the rolled hue and lightness, as in `maxChromaFor`. */
+	share: [number, number];
+}
+
+/**
+ * Where each role starts before it is pushed to contrast. A start already past
+ * 4.5:1 stays where it is, so the lightness bands straddle that line: some rolls
+ * come back darker than they need to be, which is the variety.
+ */
+const RANDOM_BANDS: Record<Role, RandomBand> = {
+	primary: { hue: null, lightness: [0.35, 0.62], share: [0.3, 1] },
+	secondary: { hue: null, lightness: [0.35, 0.62], share: [0.3, 1] },
+	accent: { hue: [280, 60], lightness: [0.38, 0.55], share: [0.04, 0.25] },
+	info: { hue: [220, 40], lightness: [0.42, 0.62], share: [0.6, 1] },
+	success: { hue: [130, 40], lightness: [0.42, 0.62], share: [0.6, 1] },
+	warning: { hue: [75, 30], lightness: [0.75, 0.88], share: [0.7, 1] },
+	error: { hue: [15, 20], lightness: [0.42, 0.62], share: [0.6, 1] }
+};
+
+/**
+ * Pushes a rolled fill until the pairings `worstLightPairings` checks hold.
+ * The text roles darken under a light ink and clear the surface as well; warning
+ * lightens away from its dark ink. The ink takes its chroma from the fill, so it
+ * shifts once the fill moves, and the second pass settles against the moved ink.
+ */
+function settle(rolled: OklchColor, role: Role, surface: OklchColor): OklchColor {
+	const text = TEXT_ROLES.has(role);
+	const against = (fill: OklchColor) => {
+		const { light, dark } = lightModeInks(fill);
+		return text ? [light, surface] : [dark];
+	};
+	const once = pushLightness(rolled, text ? -1 : 1, against(rolled), WCAG_AA);
+	return pushLightness(once, text ? -1 : 1, against(once), WCAG_AA);
+}
+
+/**
+ * Rolls the base hue, base saturation and all seven roles, keeping the surface
+ * lightness the operator set. Every role comes back at 4.5:1 or better against
+ * its light -content, and every role but warning at 4.5:1 or better as text on
+ * the base-100 the rolled base tone produces. Warning stays a light amber.
+ */
+export function randomizeInputs(
+	current: PaletteInputs,
+	random: () => number = Math.random
+): PaletteInputs {
+	const roll = ([lo, hi]: [number, number]) => lo + random() * (hi - lo);
+	const baseHue = Math.floor(random() * 360);
+	// Rolled too, or every random theme comes back on the same near-white
+	// surface. Bounded well short of 1: past ~0.7 the surfaces stop reading as
+	// chrome and start competing with the curves.
+	const baseSaturation = roll([0.1, 0.6]);
+	const surface = asWritten(
+		generateBaseScale(
+			baseHue,
+			baseSaturation,
+			current.baseLightnessLight,
+			current.baseLightnessDark
+		).light.base100
+	);
+	const roles = mapRoles((role) => {
+		const band = RANDOM_BANDS[role];
+		const h = band.hue ? wrapHue(band.hue[0] + (random() - 0.5) * band.hue[1]) : random() * 360;
+		const l = roll(band.lightness);
+		const c = roll(band.share) * maxChromaFor(l, h);
+		return oklchToHex(settle({ l, c, h }, role, surface));
+	});
+	return { ...current, baseHue, baseSaturation, ...roles };
 }
 
 // ── Default input values ─────────────────────────────────────────────────────

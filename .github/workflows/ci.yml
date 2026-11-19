@@ -133,12 +133,37 @@ jobs:
   # It runs in Playwright's own image, which ships the three engines and their
   # system libraries. `playwright install --with-deps` on the runner pulls about
   # 185 apt packages for WebKit, and a slow mirror once held that for 24 minutes.
+  #
+  # The image holds the browser builds of one Playwright release, and the npm
+  # package only launches its own. So the tag is read from the lockfile, in a job
+  # of its own because the image is pulled before the smoke job's first step.
+  playwright-version:
+    name: Playwright version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.lockfile.outputs.version }}
+
+    steps:
+      - name: Checkout the lockfile
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: package-lock.json
+          sparse-checkout-cone-mode: false
+
+      - name: Read the locked Playwright version
+        id: lockfile
+        run: |
+          version="$(jq -er '.packages["node_modules/playwright-core"].version' package-lock.json)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
   smoke:
     name: Smoke (Chromium, WebKit, Firefox)
+    needs: playwright-version
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
       # The runner's own user: Firefox does not start as root with the home
       # directory GitHub gives a container.
       options: --user 1001
@@ -158,16 +183,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # The image holds the browser builds of one Playwright release, and the npm
-      # package only launches its own. Bump the image tag above with the package.
-      - name: Image matches the installed Playwright
-        run: |
-          installed="$(node -p "require('playwright-core/package.json').version")"
-          if ! grep -q "playwright:v${installed}-" .github/workflows/ci.yml; then
-            echo "::error::playwright ${installed} is installed, but the smoke job's image is another release. Set it to mcr.microsoft.com/playwright:v${installed}-noble in .github/workflows/ci.yml."
-            exit 1
-          fi
 
       - name: Build app
         run: npm run build

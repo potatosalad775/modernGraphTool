@@ -1,8 +1,0 @@
-{
-	"equalizer_panel_load_failed": "Не удалось загрузить эквалайзер. Проверьте соединение и перезагрузите страницу.",
-	"equalizer_panel_reload": "Перезагрузить",
-	"misc_panel_analytics": "Статистика использования",
-	"misc_panel_analytics_what_hint": "Этот сайт сообщает в Google Analytics, какие устройства добавляются на график.",
-	"misc_panel_analytics_off_hint": "Отключите это, и больше ничего не будет отправляться. Со следующего визита аналитика вообще не будет загружаться.",
-	"site_selector_unverified_badge": "Ошибка проверки"
-}

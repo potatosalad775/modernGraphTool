@@ -1,8 +1,0 @@
-{
-	"equalizer_panel_load_failed": "Не вдалося завантажити еквалайзер. Перевірте з'єднання та перезавантажте сторінку.",
-	"equalizer_panel_reload": "Перезавантажити",
-	"misc_panel_analytics": "Статистика використання",
-	"misc_panel_analytics_what_hint": "Цей сайт повідомляє в Google Analytics, які пристрої додаються до графіка.",
-	"misc_panel_analytics_off_hint": "Вимкніть це, і більше нічого не надсилатиметься. З наступного візиту аналітика взагалі не завантажуватиметься.",
-	"site_selector_unverified_badge": "Помилка перевірки"
-}

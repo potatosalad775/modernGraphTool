@@ -111,9 +111,9 @@ Three things to keep in mind when extending it:
   `index.html`, on the real Apache host as much as here, so asset checks compare the body against the
   HTML shell rather than trusting the status.
 - It runs in its own `smoke` CI job, which builds the app first because the test needs the built
-  output. The job runs in Playwright's Docker image, which ships the three engines. The image tag
-  must match the `playwright` version in `package-lock.json`, and the job fails with the tag to set
-  when it does not.
+  output. The job runs in Playwright's Docker image, which ships the three engines. CI reads the
+  image tag from the `playwright` version in `package-lock.json`, so a dependency update moves the
+  image with it.
 
 ## Continuous integration
 

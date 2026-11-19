@@ -151,9 +151,9 @@ to the skip.</strong> None is skipped today.</li>
 <code dir="auto">index.html</code>, on the real Apache host as much as here, so asset checks compare the body against the
 HTML shell rather than trusting the status.</li>
 <li>It runs in its own <code dir="auto">smoke</code> CI job, which builds the app first because the test needs the built
-output. The job runs in Playwright’s Docker image, which ships the three engines. The image tag
-must match the <code dir="auto">playwright</code> version in <code dir="auto">package-lock.json</code>, and the job fails with the tag to set
-when it does not.</li>
+output. The job runs in Playwright’s Docker image, which ships the three engines. CI reads the
+image tag from the <code dir="auto">playwright</code> version in <code dir="auto">package-lock.json</code>, so a dependency update moves the
+image with it.</li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="continuous-integration">Continuous integration</h2><a class="sl-anchor-link" href="#continuous-integration"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Continuous integration”</span></a></div>
 <p><code dir="auto">.github/workflows/ci.yml</code> runs on every PR and every push to <code dir="auto">main</code>: <code dir="auto">lint</code> → <code dir="auto">check</code> → <code dir="auto">test</code> on

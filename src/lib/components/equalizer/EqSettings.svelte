@@ -21,9 +21,9 @@
 <div class="flex flex-col gap-3">
 	<!-- AutoEQ input persistence mode -->
 	<div class="flex items-center gap-2">
-		<span id="{uid}-persist" class="flex-1 text-xs font-medium text-base-content/80"
-			>{m.eq_settings_autoeq_persist_label()}</span
-		>
+		<span id="{uid}-persist" class="flex-1 text-xs font-medium text-base-content/80">
+			{m.eq_settings_autoeq_persist_label()}
+		</span>
 		<div class="flex-1">
 			<select
 				aria-labelledby="{uid}-persist"
@@ -40,9 +40,9 @@
 	<!-- Link EQ curve to original -->
 	<div class="flex items-center justify-between">
 		<div class="flex items-center">
-			<span id="{uid}-link" class="flex-1 text-xs font-medium text-base-content/80"
-				>{m.eq_settings_link_eq_normalization_label()}</span
-			>
+			<span id="{uid}-link" class="flex-1 text-xs font-medium text-base-content/80">
+				{m.eq_settings_link_eq_normalization_label()}
+			</span>
 			<InfoPopover
 				label={m.info_popover_about({ topic: m.eq_settings_link_eq_normalization_label() })}
 				class="ml-0.5"

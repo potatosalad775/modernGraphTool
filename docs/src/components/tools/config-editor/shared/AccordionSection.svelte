@@ -78,8 +78,10 @@
 						href={resolvedLearnMoreHref}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="ceSectionLearnMore">Learn more</a
+						class="ceSectionLearnMore"
 					>
+						Learn more
+					</a>
 				{/if}
 			</p>
 		{/if}

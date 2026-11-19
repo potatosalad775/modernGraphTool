@@ -65,8 +65,10 @@
 			>
 				<span
 					id="{uuid}-download-{option.runs ? 'all' : 'average'}"
-					class="text-xs text-base-content/80">{option.hint}</span
+					class="text-xs text-base-content/80"
 				>
+					{option.hint}
+				</span>
 			</Button>
 		{/each}
 	</PopoverPanel>

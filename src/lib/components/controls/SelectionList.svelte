@@ -187,23 +187,25 @@
 										<span
 											class="line-clamp-2 text-xs wrap-break-word text-base-content/80"
 											title={item.dispSuffix || undefined}
-											>{item.dispSuffix || m.selection_list_variant_default()}</span
 										>
+											{item.dispSuffix || m.selection_list_variant_default()}
+										</span>
 										<ChevronDown
 											class="mt-0.5 h-3 w-3 shrink-0 text-base-content/65 transition-transform
 											group-data-[state=open]:rotate-180"
 										/>
 									</span>
 									{#if item.adjustmentLabel}
-										<span class="truncate text-xs text-base-content/80">{item.adjustmentLabel}</span
-										>
+										<span class="truncate text-xs text-base-content/80">
+											{item.adjustmentLabel}
+										</span>
 									{/if}
 									<!-- The caption describes the set, not the fill — a single-run set
 										 drawn as `avg` or `curves` still needs it. -->
 									{#if item.samples?.length && item.sampleDescription}
-										<span class="truncate text-xs text-base-content/80"
-											>{item.sampleDescription}</span
-										>
+										<span class="truncate text-xs text-base-content/80">
+											{item.sampleDescription}
+										</span>
 									{/if}
 								</div>
 							</button>
@@ -232,13 +234,13 @@
 											aria-hidden="true"
 										/>
 										<span class="flex min-w-0 flex-col">
-											<span class="wrap-break-word"
-												>{variant.suffix || m.selection_list_variant_default()}</span
-											>
+											<span class="wrap-break-word">
+												{variant.suffix || m.selection_list_variant_default()}
+											</span>
 											{#if description}
-												<span class="text-xs font-normal wrap-break-word text-base-content/80"
-													>{description}</span
-												>
+												<span class="text-xs font-normal wrap-break-word text-base-content/80">
+													{description}
+												</span>
 											{/if}
 										</span>
 									</button>

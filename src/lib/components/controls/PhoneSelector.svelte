@@ -283,9 +283,9 @@
 			{display.text}
 		</span>
 	{:else}
-		<span class="text-xs {display.kind === 'stars' ? 'text-rating' : 'text-base-content'}"
-			>{display.text}</span
-		>
+		<span class="text-xs {display.kind === 'stars' ? 'text-rating' : 'text-base-content'}">
+			{display.text}
+		</span>
 	{/if}
 {/snippet}
 

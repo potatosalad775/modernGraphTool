@@ -161,8 +161,10 @@
 				<a
 					href="{base}/{DOCS_BASE.replace(/^\.?\//, '')}{kindOption.docAnchor}"
 					target="_blank"
-					rel="noopener noreferrer">Learn more</a
+					rel="noopener noreferrer"
 				>
+					Learn more
+				</a>
 			</p>
 		</div>
 

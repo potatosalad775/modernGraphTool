@@ -516,8 +516,9 @@
 					font-size={labelFontSize}
 					font-weight={labelFontWeight}
 					use:measureLabel={{ key: label.uuid + label.channel, text: label.text }}
-					>{label.text}</text
 				>
+					{label.text}
+				</text>
 			{/each}
 		</g>
 	{/if}
@@ -531,8 +532,10 @@
 			fill="var(--color-graph-axis-label)"
 			font-size={blFontSize}
 			font-weight={blFontWeight}
-			opacity="0.6">{baselineLabel.text}</text
+			opacity="0.6"
 		>
+			{baselineLabel.text}
+		</text>
 	{/if}
 	{#if boundLabel}
 		<text
@@ -543,7 +546,9 @@
 			fill="var(--color-graph-axis-label)"
 			font-size={blFontSize}
 			font-weight={blFontWeight}
-			opacity="0.6">{boundLabel.text}</text
+			opacity="0.6"
 		>
+			{boundLabel.text}
+		</text>
 	{/if}
 </svg>

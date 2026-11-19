@@ -32,9 +32,9 @@
 	</div>
 	<div class="ceSectionDescription">
 		A self-hosted copy of the
-		<a href="https://github.com/potatosalad775/uniPEQ_link" target="_blank" rel="noopener"
-			>uniPEQ_link</a
-		>
+		<a href="https://github.com/potatosalad775/uniPEQ_link" target="_blank" rel="noopener">
+			uniPEQ_link
+		</a>
 		Worker. It only introduces the two apps; the EQ travels directly between them. On another server,
 		the QR code and <strong>Open uniPEQ</strong> still work, but a code typed into uniPEQ won't find it,
 		and the QR code opens a web page first rather than uniPEQ itself.

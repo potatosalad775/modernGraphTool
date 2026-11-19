@@ -173,9 +173,9 @@
 	{#if !isGraphicMode}
 		<!-- Frequency Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-freq-legend" class="px-1 text-xs text-base-content/80"
-				>{m.equalizer_autoeq_freq_range()}</legend
-			>
+			<legend id="{uid}-freq-legend" class="px-1 text-xs text-base-content/80">
+				{m.equalizer_autoeq_freq_range()}
+			</legend>
 			<div class="flex items-center gap-2">
 				{@render rangeBound('freqMin')}
 				{@render rangeBound('freqMax')}
@@ -184,9 +184,9 @@
 
 		<!-- Gain Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-gain-legend" class="px-1 text-xs text-base-content/80"
-				>{m.equalizer_autoeq_gain_range()}</legend
-			>
+			<legend id="{uid}-gain-legend" class="px-1 text-xs text-base-content/80">
+				{m.equalizer_autoeq_gain_range()}
+			</legend>
 			<div class="flex items-center gap-2">
 				{@render rangeBound('gainMin')}
 				{@render rangeBound('gainMax')}
@@ -195,9 +195,9 @@
 
 		<!-- Q Range -->
 		<fieldset class="rounded border border-base-content/15 px-3 py-2">
-			<legend id="{uid}-q-legend" class="px-1 text-xs text-base-content/80"
-				>{m.equalizer_autoeq_q_range()}</legend
-			>
+			<legend id="{uid}-q-legend" class="px-1 text-xs text-base-content/80">
+				{m.equalizer_autoeq_q_range()}
+			</legend>
 			<div class="flex items-center gap-2">
 				{@render rangeBound('qMin')}
 				{@render rangeBound('qMax')}

@@ -200,11 +200,11 @@
 	<!-- Tone controls (only when tone selected) -->
 	{#if audioPlayerService.audioSource === 'tone'}
 		<div class="flex flex-col gap-1">
-			<span class="text-xs text-base-content/80"
-				>{m.equalizer_player_tone_freq_label()}<span class="font-medium"
-					>{audioPlayerService.toneFreq} Hz</span
-				></span
-			>
+			<span class="text-xs text-base-content/80">
+				{m.equalizer_player_tone_freq_label()}<span class="font-medium">
+					{audioPlayerService.toneFreq} Hz
+				</span>
+			</span>
 			<input
 				type="range"
 				min="0"

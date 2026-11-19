@@ -230,9 +230,9 @@
 							<TutorialText text={step.title()} />
 						</Dialog.Title>
 					{:else}
-						<Dialog.Title class="sr-only"
-							>{m.tutorial_modal_step_title({ step: currentStep + 1 })}</Dialog.Title
-						>
+						<Dialog.Title class="sr-only">
+							{m.tutorial_modal_step_title({ step: currentStep + 1 })}
+						</Dialog.Title>
 					{/if}
 
 					<Dialog.Description class="mt-1 text-sm leading-relaxed text-pretty text-base-content/80">

@@ -107,9 +107,9 @@
 		>
 			<div class="flex items-center justify-between p-2 pt-1">
 				<div class="flex items-center">
-					<span id={shortcutsLabelId} class="flex-1 text-xs font-medium text-base-content/80"
-						>{m.misc_panel_single_key_shortcuts()}</span
-					>
+					<span id={shortcutsLabelId} class="flex-1 text-xs font-medium text-base-content/80">
+						{m.misc_panel_single_key_shortcuts()}
+					</span>
 					<InfoPopover
 						label={m.info_popover_about({ topic: m.misc_panel_single_key_shortcuts() })}
 						class="ml-0.5"
@@ -132,9 +132,9 @@
 			{#if analyticsService.available}
 				<div class="flex items-center justify-between p-2 pt-1">
 					<div class="flex items-center">
-						<span id={analyticsLabelId} class="flex-1 text-xs font-medium text-base-content/80"
-							>{m.misc_panel_analytics()}</span
-						>
+						<span id={analyticsLabelId} class="flex-1 text-xs font-medium text-base-content/80">
+							{m.misc_panel_analytics()}
+						</span>
 						<InfoPopover
 							label={m.info_popover_about({ topic: m.misc_panel_analytics() })}
 							class="ml-0.5"

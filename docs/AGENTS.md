@@ -248,6 +248,21 @@ islands hydrate on these three routes only.
   alongside saturation: at L=0.98 there is no saturated colour to reach. `DEFAULT_BASE_SATURATION`
   (0.3) is calibrated so the untouched defaults still reproduce the shipped `defaults/theme.css`
   — changing it silently re-skins every theme an operator generates.
+- **The theme generator's export is held to `defaults/theme.css` by a spec.** `theme-css.spec.ts`
+  parses the shipped file and fails when the export declares a different set of `--color-*` names
+  in any of the four blocks, so **a token added to the shipped theme goes into the section table in
+  `src/utils/theme-css.ts` in the same change**. The generator had fallen a release behind without
+  it.
+- **The increased-contrast values are solved, not tabulated.** `generateFullPalette` returns
+  `contrast.light` / `contrast.dark` as full palettes; the export lists a `prefers-contrast: more`
+  line only where one differs from its base palette, and the preview switch renders them as they
+  are. `pushLightness` in `oklch.ts` does every lightness move: a fill moves away from its
+  `-content` to 7:1 (a light-theme fill that darkens also clears 7:1 on `base-100`), `rating` is
+  the warning input darkened to 4.5:1 on `base-100` and `base-200`, and **Random All** pushes each
+  roll to 4.5:1. Two details there look removable and are not: it solves 0.1 above the bar, because
+  8-bit pixels paint a pair solved to exactly 7:1 at 6.93:1 to 7.04:1, and it snaps every colour to
+  the decimals the CSS writes before measuring. Dark fills are solved against `-content` only: at
+  the top of the Dark Surface slider 7:1 on the surface does not exist.
 - **bits-ui supplies Collapsible, Tabs, Checkbox and Switch** (`shared/Checkbox.svelte`,
   `shared/Switch.svelte`, and `Collapsible` / `Tabs` used directly). The ported markup
   hand-rolled these as `<div role="button" tabindex="0">` with keydown listeners, because the

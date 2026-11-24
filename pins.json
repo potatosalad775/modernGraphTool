@@ -3,5 +3,10 @@
     "commit": "78fb255068872ac5afa3162f8fd472f428c28110",
     "loader_integrity": "sha384-a9ssYH18acdOhSIRSiyiTzrsAB+VFnn4Ii35p9O6cFHIXNf9wK9fP3lPwRTirYNG",
     "boot_integrity": "sha384-iuTjMLxiu50Ssj6TaO5T1+7TOd0OWehw3QxA1dF0Zh/HNgSiFB2r+0G8o+1QQVit"
+  },
+  "2.3.6": {
+    "commit": "12881ca8e5e8cd715661294d5f62b071ac1b740a",
+    "loader_integrity": "sha384-a9ssYH18acdOhSIRSiyiTzrsAB+VFnn4Ii35p9O6cFHIXNf9wK9fP3lPwRTirYNG",
+    "boot_integrity": "sha384-Ecu222IJtZuiXLGG1N2y41dPTS97+ESnovzknoEO60IWXqv4OIdlkm1mgfHEbI9u"
   }
 }

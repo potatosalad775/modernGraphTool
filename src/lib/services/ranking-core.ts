@@ -82,8 +82,10 @@ export interface ResolvedRank {
 /** How a rank should be drawn. `color` absent means "use the neutral token pair". */
 export interface RankDisplay {
 	kind: 'badge' | 'stars' | 'text';
-	/** What is drawn. */
+	/** What is drawn. For `stars` the row is drawn from `fill`; this is the rank as text. */
 	text: string;
+	/** `stars` only: the filled share of the five-star row, 0-1. */
+	fill?: number;
 	/** The rank as written, for the tooltip. */
 	title: string;
 	color?: string;
@@ -443,12 +445,16 @@ export function readableTextColor(color: string | undefined): string | undefined
 	return luminance > 0.5 ? '#111' : '#fff';
 }
 
-/** Today's star row: 0-5, halves included. */
-export function renderStars(score: number): string {
-	const clamped = Math.max(0, Math.min(5, score));
-	const full = Math.floor(clamped);
-	const half = clamped % 1 >= 0.5 ? 1 : 0;
-	return '★'.repeat(full) + (half ? '⭐' : '') + '☆'.repeat(5 - full - half);
+/**
+ * How much of the five-star row a score fills, 0-1.
+ *
+ * A fraction rather than a string of glyphs: no font has a half star, and the
+ * emoji star that used to stand in for one is drawn in the emoji font's own
+ * size and color. The row is drawn as five outlines with five filled stars
+ * clipped to this width, so 4.3 and 4.5 are both exact.
+ */
+export function starFill(score: number): number {
+	return Math.max(0, Math.min(5, score)) / 5;
 }
 
 /**
@@ -474,7 +480,7 @@ export function resolveRankDisplay(
 
 	const asText = (): RankDisplay => ({ kind: 'text', text: label, title: label });
 	const asStars = (): RankDisplay | null =>
-		numeric === null ? null : { kind: 'stars', text: renderStars(numeric), title: label };
+		numeric === null ? null : { kind: 'stars', text: label, title: label, fill: starFill(numeric) };
 	const asBadge = (): RankDisplay => ({
 		kind: 'badge',
 		text: label,

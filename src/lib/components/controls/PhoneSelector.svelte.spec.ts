@@ -677,8 +677,23 @@ describe('PhoneSelector', () => {
 			await render(PhoneSelector);
 
 			await expect.element(page.getByTitle('Rank: 4')).toBeInTheDocument();
-			expect(page.getByTitle('Rank: 4').element().textContent.trim()).toBe('★★★★☆');
 			expect(page.getByTitle('Rank: 4').element().tagName).toBe('SPAN');
+			const stars = page.getByRole('img', { name: 'Rank: 4' }).element();
+			expect(stars.lastElementChild?.getAttribute('style')).toContain('width: 80%');
+		});
+
+		// A half used to be the emoji star, which the emoji font draws larger and
+		// in its own color. The fill is a clipped width, so any fraction is exact.
+		it('fills the star row to a fractional score', async () => {
+			const phone = makePhone({ reviewScore: 4.5 });
+			stubBook(phone);
+			markLoaded(phone);
+			await render(PhoneSelector);
+
+			const stars = page.getByRole('img', { name: 'Rank: 4.5' });
+			await expect.element(stars).toBeInTheDocument();
+			expect(stars.element().textContent).not.toContain('⭐');
+			expect(stars.element().lastElementChild?.getAttribute('style')).toContain('width: 90%');
 		});
 
 		it('links the rank when RANKING.URL is configured', async () => {

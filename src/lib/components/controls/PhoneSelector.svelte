@@ -282,10 +282,25 @@
 		>
 			{display.text}
 		</span>
-	{:else}
-		<span class="text-xs {display.kind === 'stars' ? 'text-rating' : 'text-base-content'}">
-			{display.text}
+	{:else if display.kind === 'stars'}
+		<!-- Five outlines with five filled stars clipped over them, so any
+		     fraction draws exactly. The glyphs are decoration: the name is the rank. -->
+		<span
+			class="relative inline-block text-xs whitespace-nowrap text-rating"
+			role="img"
+			aria-label={m.phone_selector_item_rank({ rank: display.title })}
+		>
+			<span aria-hidden="true">☆☆☆☆☆</span>
+			<span
+				class="absolute inset-y-0 left-0 overflow-hidden"
+				style="width:{(display.fill ?? 0) * 100}%"
+				aria-hidden="true"
+			>
+				★★★★★
+			</span>
 		</span>
+	{:else}
+		<span class="text-xs text-base-content">{display.text}</span>
 	{/if}
 {/snippet}
 

@@ -6,8 +6,8 @@ import {
 	buildRankIndex,
 	lookupRank,
 	readableTextColor,
-	renderStars,
 	resolveRankDisplay,
+	starFill,
 	type ResolvedRankSource
 } from './ranking-core.js';
 
@@ -241,12 +241,13 @@ describe('readableTextColor', () => {
 	});
 });
 
-describe('renderStars', () => {
-	it('draws halves and clamps to the 0-5 row the tool has always drawn', () => {
-		expect(renderStars(4)).toBe('★★★★☆');
-		expect(renderStars(4.5)).toBe('★★★★⭐');
-		expect(renderStars(9)).toBe('★★★★★');
-		expect(renderStars(-1)).toBe('☆☆☆☆☆');
+describe('starFill', () => {
+	it('is the exact share of the five-star row, clamped to 0-5', () => {
+		expect(starFill(4)).toBe(0.8);
+		expect(starFill(4.5)).toBe(0.9);
+		expect(starFill(4.3)).toBeCloseTo(0.86);
+		expect(starFill(9)).toBe(1);
+		expect(starFill(-1)).toBe(0);
 	});
 });
 
@@ -254,7 +255,12 @@ describe('resolveRankDisplay', () => {
 	const scale = adaptSquigRankingConfig(squigConfig, 'earphone')!.scale;
 
 	it('still draws a bare 0-5 score as stars when no scale describes it', () => {
-		expect(resolveRankDisplay(4, [])).toMatchObject({ kind: 'stars', text: '★★★★☆' });
+		expect(resolveRankDisplay(4, [])).toMatchObject({ kind: 'stars', fill: 0.8 });
+	});
+
+	it('fills the star row by the exact fraction, not the nearest half', () => {
+		expect(resolveRankDisplay(4.5, [])).toMatchObject({ kind: 'stars', fill: 0.9, title: '4.5' });
+		expect(resolveRankDisplay('4.7', [])?.fill).toBeCloseTo(0.94);
 	});
 
 	it('still draws an unknown value as its own text', () => {
@@ -284,7 +290,7 @@ describe('resolveRankDisplay', () => {
 
 	it('honors an explicit display mode', () => {
 		expect(resolveRankDisplay('S', scale, 'text')).toMatchObject({ kind: 'text', text: 'S' });
-		expect(resolveRankDisplay('S', scale, 'stars')).toMatchObject({ kind: 'stars', text: '★★★★★' });
+		expect(resolveRankDisplay('S', scale, 'stars')).toMatchObject({ kind: 'stars', fill: 1 });
 		expect(resolveRankDisplay('A+', [], 'badge')).toMatchObject({
 			kind: 'badge',
 			color: undefined

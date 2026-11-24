@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { labelRows } from './curve-label-rows.js';
 import { curveTraces } from './curve-traces.js';
 import type { ChannelData, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
+import { runShade } from '#lib/utils/curve-palette.js';
 
 /**
  * How the traces an item draws read as legend rows: the fill-only collapse,
@@ -93,13 +94,12 @@ describe('labelRows', () => {
 		it('emits a row per displayed channel, then one per run, coloured by the trace', () => {
 			const obj = item({
 				dispChannel: ['L', 'R'],
-				dispSamples: ['sample1_L'],
-				colors: { L: '#ff0000', R: '#0000ff', AVG: '#00ff00', samples: { sample1_L: '#123456' } }
+				dispSamples: ['sample1_L']
 			});
 			expect(rows(obj)).toEqual([
 				{ key: 'L', text: 'Phone A (L)', color: '#ff0000' },
 				{ key: 'R', text: 'Phone A (R)', color: '#0000ff' },
-				{ key: 'sample1_L', text: 'Phone A (Front, L)', color: '#123456' }
+				{ key: 'sample1_L', text: 'Phone A (Front, L)', color: runShade('#ff0000', 1, 2) }
 			]);
 		});
 

@@ -6,6 +6,7 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import type { ChannelData, FRDataObject, FRDataPoint } from '#lib/types/data-types.js';
+import { runShade } from '#lib/utils/curve-palette.js';
 
 /**
  * The inspection overlay reads `frStore` and writes SVG. It runs in the client
@@ -349,18 +350,13 @@ describe('GraphInspection', () => {
 					{ label: 'Front', L: channel(83), R: channel(77) }
 				],
 				dispSamples: ['sample1_L'],
-				colors: {
-					L: '#ff0000',
-					R: '#0000ff',
-					AVG: '#00ff00',
-					samples: { sample1_L: '#123456' }
-				}
+				colors: { L: '#ff0000', R: '#0000ff', AVG: '#00ff00' }
 			} as Partial<FRDataObject>);
 
 			hoverAt(1000);
 			expect(labels()[1]).toBe('  Phone A (Front, L): 83.0dB');
 			expect([...host.querySelectorAll('.inspection-values g text')][1].getAttribute('fill')).toBe(
-				'#123456'
+				runShade('#ff0000', 1, 2)
 			);
 		});
 

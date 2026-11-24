@@ -1604,7 +1604,7 @@ describe('DataProvider', () => {
 			expect(restored.channels.AVG!.data).toEqual(before);
 		});
 
-		it('attaches sample data and per-run colors when the variant has samples', async () => {
+		it('attaches sample data when the variant has samples', async () => {
 			seedPhone();
 			vi.spyOn(FRParser, 'getFRDataFromMetadata').mockResolvedValue({
 				...makeFullChannelData(90),
@@ -1615,8 +1615,6 @@ describe('DataProvider', () => {
 
 			const updated = frStore.get('p')!;
 			expect(updated.samples).toHaveLength(2);
-			expect(updated.colors.samples!.sample0_L).toBe(updated.colors.L);
-			expect(updated.colors.samples!.sample1_R).toBe(updated.colors.R);
 		});
 
 		it('clears sample data when the new variant has none', async () => {

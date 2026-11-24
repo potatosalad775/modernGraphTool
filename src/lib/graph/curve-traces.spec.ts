@@ -12,6 +12,7 @@ import type {
 	FRDataPoint,
 	SampleEnvelope
 } from '#lib/types/data-types.js';
+import { runShade } from '#lib/utils/curve-palette.js';
 
 /**
  * "Which traces does this item draw?" — the one answer the engine, the labels
@@ -131,16 +132,36 @@ describe('curveTraces', () => {
 			]);
 		});
 
-		it('colours a run by its own key, else by AVG — never by its channel', () => {
+		it("colours a run with a shade of its channel's colour, by its index in the set", () => {
 			const traces = curveTraces(
 				sampleSet({
 					showAvg: false,
-					dispSamples: ['sample0_L', 'sample1_L'],
-					colors: { L: '#ff0000', AVG: '#00ff00', samples: { sample1_L: '#123456' } }
+					dispSamples: ['sample1_L', 'sample0_L', 'sample1_R']
 				}),
 				null
 			);
-			expect(traces.map((t) => t.color)).toEqual(['#00ff00', '#123456']);
+			expect(traces.map((t) => t.color)).toEqual([
+				runShade('#ff0000', 1, 2),
+				runShade('#ff0000', 0, 2),
+				runShade('#0000ff', 1, 2)
+			]);
+			expect(new Set(traces.map((t) => t.color)).size).toBe(3);
+		});
+
+		it('shades the AVG colour for a run whose channel has none of its own', () => {
+			const [trace] = curveTraces(
+				sampleSet({ showAvg: false, dispSamples: ['sample0_L'], colors: { AVG: '#00ff00' } }),
+				null
+			);
+			expect(trace.color).toBe(runShade('#00ff00', 0, 2));
+		});
+
+		it('leaves a single run in the channel colour as written', () => {
+			const [trace] = curveTraces(
+				item({ samples: [{ L: channel(81) }], showAvg: false, dispSamples: ['sample0_L'] }),
+				null
+			);
+			expect(trace.color).toBe('#ff0000');
 		});
 
 		it('labels an unlabelled run with a 1-based ordinal', () => {

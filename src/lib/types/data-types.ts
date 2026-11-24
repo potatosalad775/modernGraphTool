@@ -81,8 +81,6 @@ export interface FRColors {
 	L?: string;
 	R?: string;
 	AVG: string;
-	/** Colors for individual sample traces, keyed by SampleDisplayKey like 'sample0_L' */
-	samples?: Record<string, string>;
 }
 
 /** FR data type discriminant */

@@ -6,6 +6,7 @@ import {
 	type SampleEnvelope
 } from '#lib/types/data-types.js';
 import { curveBaseName } from '#lib/utils/curve-name.js';
+import { runShade } from '#lib/utils/curve-palette.js';
 import { eqSourceChannels, eqSourceRun, type EqSourceSample } from '#lib/utils/eq-source.js';
 import { sampleKey } from '#lib/utils/sample-key.js';
 import { curveDisplayName, sampleKeyParts } from './curve-label.js';
@@ -204,12 +205,22 @@ function runTraces(obj: FRDataObject): RunTrace[] {
 			key,
 			channel: parts.channel,
 			data: channel.data,
-			color: obj.colors.samples?.[key] || obj.colors.AVG || FALLBACK_COLOR,
+			color: runColor(obj, parts.channel, parts.index),
 			name: curveDisplayName(obj, parts.channel, parts.label),
 			ghost: false
 		});
 	}
 	return traces;
+}
+
+/**
+ * A run takes its channel's color, shaded by its position in the set so the
+ * runs can be told apart. Derived here, not stored on the item: a stored copy
+ * kept the old color when the user recolored the curve.
+ */
+function runColor(obj: FRDataObject, channel: Channel, index: number): string {
+	const base = obj.colors[channel] || obj.colors.AVG;
+	return base ? runShade(base, index, obj.samples?.length ?? 0) : FALLBACK_COLOR;
 }
 
 function mainTraces(

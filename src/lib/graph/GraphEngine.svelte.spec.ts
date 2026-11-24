@@ -388,6 +388,24 @@ describe('GraphEngine', () => {
 			expect(runs[0].getAttribute('opacity')).toBe('0.5');
 		});
 
+		it('draws the runs solid once the average is off', () => {
+			frStore.set('p', samplePhone({ showAvg: false, dispSamples: ['sample0_L', 'sample1_L'] }));
+			graphEngine.drawFRCurve('p');
+
+			const runs = paths('[sample="true"]');
+			expect(runs).toHaveLength(2);
+			expect(runs.every((p) => !p.hasAttribute('opacity'))).toBe(true);
+		});
+
+		it('keeps the runs dimmed while the item is the EQ source, average off or not', () => {
+			eqStore.isEnabled = true;
+			eqStore.sourcePhoneUUID = 'p';
+			frStore.set('p', samplePhone({ showAvg: false, dispSamples: ['sample0_L'] }));
+			graphEngine.drawFRCurve('p');
+
+			expect(paths('[sample="true"]')[0].getAttribute('opacity')).toBe('0.5');
+		});
+
 		it('skips a run key whose slot has no data on that channel', () => {
 			frStore.set(
 				'p',

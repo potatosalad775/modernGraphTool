@@ -17,10 +17,20 @@ import { frStore } from '#lib/stores/fr-store.svelte.js';
 import { graphStore } from '#lib/stores/graph-store.svelte.js';
 import { sampleFillOpacity } from '#lib/utils/sample-config.js';
 import { baseline, compensateAt } from './baseline.js';
-import { combineEnvelopes, curveTraces, selectEnvelope } from './curve-traces.js';
+import { combineEnvelopes, curveTraces, selectEnvelope, type CurveTrace } from './curve-traces.js';
 import { eqSourceContextFor } from './eq-source-context.js';
 import type { PreferenceBoundOverlayApi } from './GraphPreferenceBoundOverlay.js';
 import type { CompareOverlayApi } from './GraphCompareOverlay.js';
+
+/**
+ * Runs sit behind the item's average at half strength. With the average off they
+ * are what the item shows, so they draw solid (`null`): half strength also washes
+ * out the shades that tell them apart. As the EQ source they stay back, behind the
+ * EQ curve.
+ */
+function runTraceOpacity(traces: CurveTrace[], isEqSource: boolean): string | null {
+	return isEqSource || traces.some((t) => t.kind === 'main') ? '0.5' : null;
+}
 
 class GraphEngine {
 	// ── Property declarations ──────────────────────────────────────────────────
@@ -396,7 +406,11 @@ class GraphEngine {
 			: phoneThickness;
 		const itemClass = `fr-graph-${obj.type}-curve`;
 
-		for (const trace of curveTraces(obj, eqSourceContextFor(obj))) {
+		const eqSource = eqSourceContextFor(obj);
+		const traces = curveTraces(obj, eqSource);
+		const runOpacity = runTraceOpacity(traces, eqSource !== null);
+
+		for (const trace of traces) {
 			if (trace.kind === 'fill') {
 				const fillPath = this._envelopePath(trace.envelope);
 				if (!fillPath) continue;
@@ -436,7 +450,7 @@ class GraphEngine {
 				.attr('stroke', trace.color)
 				.attr('stroke-width', isRun ? String(baseThickness * 0.6) : mainThickness)
 				.attr('stroke-dasharray', obj.dash || (obj.type === 'target' ? '4 4' : '1 0'))
-				.attr('opacity', isRun ? '0.5' : trace.ghost ? 0.35 : null)
+				.attr('opacity', isRun ? runOpacity : trace.ghost ? 0.35 : null)
 				.attr('d', (d) => this._getCompensatedPath(d));
 		}
 	}

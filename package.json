@@ -59,11 +59,11 @@
 		"vitest-browser-svelte": "^3.1.0"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.78.0",
+		"@lucide/svelte": "^1.79.0",
 		"@potatosalad775/eqcaps-client": "^0.6.0",
 		"@potatosalad775/eqcaps-core": "^0.6.0",
 		"@potatosalad775/eqcaps-device-bridge": "^0.6.0",
-		"@potatosalad775/turboeq": "^0.3.0",
+		"@potatosalad775/turboeq": "^0.3.1",
 		"bits-ui": "^2.22.0",
 		"d3": "^7.9.2",
 		"d3-transition": "^3.0.2",

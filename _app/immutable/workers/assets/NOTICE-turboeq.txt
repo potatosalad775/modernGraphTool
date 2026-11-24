@@ -13,6 +13,12 @@ the parametric EQ optimizer and PEQ_CONFIGS (src/biquad.zig, src/configs.zig,
 src/curve.zig, src/equalize.zig, src/format.zig, src/peq.zig, src/pipeline.zig,
 src/util.zig), from AutoEq v4.1.2.
 
+Copied, unmodified: tools/parity/real/target_harman_ie_2019v2.txt and
+tools/parity/real/target_harman_oe_2018.txt, which are AutoEq v4.1.2's
+"targets/Harman in-ear 2019.csv" and "targets/Harman over-ear 2018.csv". They
+are test inputs in the source repository; neither is in the npm package or the
+wasm module.
+
 MIT License
 
 Copyright (c) 2018-2022 Jaakko Pasanen

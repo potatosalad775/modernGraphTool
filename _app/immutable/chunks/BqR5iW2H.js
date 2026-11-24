@@ -1,0 +1,1 @@
+import{i as e}from"./CwxZQQi4.js";var t=`https://link.unipeq.com`,n=`peq-link:host`;function r(){let n=e(`UNIPEQ_LINK.SERVER`);return{enabled:e(`UNIPEQ_LINK.ENABLE`)!==!1,server:typeof n==`string`&&n?n:t}}function i(){try{return sessionStorage.getItem(n)!==null}catch{return!1}}export{i as n,r,t};

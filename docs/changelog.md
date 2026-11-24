@@ -12,6 +12,12 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.6
+- Feat: The runs of a sample set are now drawn in graded shades of the curve's color, the first run darkest, instead of all in one color. Recoloring the curve recolors its runs too. They stay faint behind the average, and are drawn solid once the average is hidden. See [Sample selector](./guide-for-users/working-with-curves.mdx#sample-selector-for-devices-measured-more-than-once). (#134)
+- Feat: Hardware EQ is updated to eqcaps 0.6, which adds support for Topping devices and more.
+- Refactor: AutoEQ is updated to turboEQ 0.3.1, which is up to twice as fast and fixes a rare error that occurred during exact-match peaking-only runs.
+- Fix: A fractional `reviewScore` such as `4.3` now fills exactly that much of the five-star row. Before, it was rounded down to the nearest half star, and the half star was an emoji drawn in its own size and color. (#135)
+
 ### v2.3.5
 - Feat: Added a **Delete all bands** button above the Equalizer's filter list. It asks first, also removes the left- and right-only bands, and can be undone. (#117)
 - Feat: Added a **Single-key shortcuts** setting in the Misc panel. Switch it off if the <kbd>1</kbd>–<kbd>4</kbd> panel keys or the <kbd>\\</kbd> hold get in the way of typing or voice control. These keys are now also skipped while a dropdown has focus. See [Keyboard and focus](./guide-for-users/interface-tour.mdx#keyboard-and-focus).

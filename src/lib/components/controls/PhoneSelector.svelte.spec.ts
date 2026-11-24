@@ -804,7 +804,9 @@ describe('PhoneSelector', () => {
 			stubBook(makePhone());
 			await render(PhoneSelector);
 			const search = page.getByRole('searchbox');
-			const noResults = page.getByText('No results.');
+			// The visible empty state only: the sr-only status says the same once its
+			// debounce fires, which a slow runner reaches before the last assertion.
+			const noResults = page.getByRole('paragraph').filter({ hasText: 'No results.' });
 
 			await search.fill('u12t');
 			await expect.element(page.getByText('Loading databases...')).toBeInTheDocument();

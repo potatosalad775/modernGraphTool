@@ -91,7 +91,7 @@ Some variants are a **sample set** — the same thing measured several times, wh
 
 - **Show all-sample average** — the single averaged curve across every run.
 - **Show Deviation Fill** — a shaded band spanning the highest and lowest run at each frequency.
-- **Per-sample curves** — a collapsible list of every run by name (e.g. "Center", "Front"), each with its own **L**, **R** and **AVG** boxes so you can pull out exactly the curve you want. `Select All L` / `Select All R` / `Select All` / `Deselect All` do the obvious thing. The list starts closed unless individual runs are already on the graph, and the number beside it counts how many are drawn.
+- **Per-sample curves** — a collapsible list of every run by name (e.g. "Center", "Front"), each with its own **L**, **R** and **AVG** boxes so you can pull out exactly the curve you want. `Select All L` / `Select All R` / `Select All` / `Deselect All` do the obvious thing. The list starts closed unless individual runs are already on the graph, and the number beside it counts how many are drawn. Runs share the curve's color in graded shades, the first run darkest. They are drawn faint behind the average, and solid once the average is hidden.
 
 They compose freely: an averaged line with a variance band around it, or the band alone with no main curve, or every individual run and nothing else.
 

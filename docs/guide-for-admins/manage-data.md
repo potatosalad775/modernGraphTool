@@ -121,7 +121,7 @@ For more control, a phone can be defined as an object with the following keys:
 - `name` (String, Required): The model name of the phone to be displayed in the list.
 - `file` (String, Required): The base file name of the measurement data file (without L / R suffix and .txt extension). For example, if the files are MyPhone L.txt and MyPhone R.txt , file should be "MyPhone".
 - `suffix` (String, Optional): An optional suffix to append to the name in the selection list (e.g., "Rev.2", "(Foam Tip)"). The actual data file should reflect this suffix if it's part of the filename (e.g., MyPhone (Foam Tip) L.txt ).
-- `reviewScore` (String, Optional): A review score, e.g., "A+" or "3" (number between 0 to 5).
+- `reviewScore` (String, Optional): A review score, e.g., "A+" or "3" (number between 0 to 5). A number is drawn as a row of five stars, filled in proportion to it, so "4.5" and "4.3" both work.
 - `reviewLink` (String, Optional): A URL link to a review of the phone.
 - `shopLink` (String, Optional): A URL to a shop or purchase page.
 - `price` (String, Optional): The price of the phone (e.g., "$299", "€250"). Using a string allows for currency symbols and various formats.

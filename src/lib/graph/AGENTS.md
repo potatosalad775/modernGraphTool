@@ -89,7 +89,12 @@ baseline compensation. `listedTraces` is the order rows read in (main, then runs
   else follows the phone rule; a `dispChannel` entry with no data is skipped.
 - `eqSource` is `{ sample }` while the item is the enabled EQ source (`eqSourceContextFor` builds it
   from `eqStore`), else `null`.
-- Run colours are `colors.samples[key] || colors.AVG`, in the legend and hover too.
+- A run's colour is its channel's (`colors[channel] || colors.AVG`) put through `runShade`
+  (`utils/curve-palette.ts`): same hue, lightness stepped by the run's index in the set. Hue stays
+  free because it already separates L from R (∓10°) and one device from the next. It is derived per
+  call, never stored on the item, so recolouring a curve recolours its runs.
+- The engine draws runs at 0.5 opacity behind the item's own main trace, and solid when the item
+  draws none (average off). They stay at 0.5 while the item is the EQ source, behind the EQ curve.
 
 ## The EQ source ghost
 

@@ -7,8 +7,50 @@ import {
 	formatOklch,
 	hexToOklch,
 	oklchToHex,
-	readableLightnessBand
+	readableLightnessBand,
+	runShade
 } from './curve-palette.js';
+
+describe('runShade', () => {
+	const base = 'oklch(0.6 0.15 250)';
+	const ramp = (count: number, color = base) =>
+		Array.from({ length: count }, (_, i) => parseOklch(runShade(color, i, count)));
+
+	it('returns the base as written for a set of one run', () => {
+		expect(runShade('#0072B2', 0, 1)).toBe('#0072B2');
+	});
+
+	it('keeps the hue and steps the lightness up from the first run, around the base', () => {
+		const shades = ramp(3);
+		expect(shades.map((s) => s[2])).toEqual([250, 250, 250]);
+		expect(shades.map((s) => s[0])).toEqual([0.54, 0.6, 0.66]);
+	});
+
+	it('caps the ramp, so a large set takes smaller steps instead of a wider range', () => {
+		const shades = ramp(9).map((s) => s[0]);
+		expect(shades[0]).toBeCloseTo(0.48, 3);
+		expect(shades[8]).toBeCloseTo(0.72, 3);
+		expect(new Set(shades).size).toBe(9);
+	});
+
+	it('slides the ramp back in range for a very light or very dark base', () => {
+		expect(ramp(5, 'oklch(0.95 0.05 100)').map((s) => s[0])[4]).toBeCloseTo(0.9, 3);
+		expect(ramp(5, 'oklch(0.2 0.05 100)').map((s) => s[0])[0]).toBeCloseTo(0.35, 3);
+	});
+
+	it('lowers chroma where a shade would leave sRGB', () => {
+		const [L, C, H] = parseOklch(runShade('oklch(0.6 0.25 250)', 4, 5));
+		expect(C).toBeLessThan(0.25);
+		expect(oklchToHex(L, C, H)).toMatch(/^#[0-9a-f]{6}$/);
+	});
+
+	it('reads a hex base', () => {
+		const [L, , H] = hexToOklch('#0072B2');
+		const [shadeL, , shadeH] = parseOklch(runShade('#0072B2', 0, 2));
+		expect(shadeL).toBeCloseTo(L - 0.03, 2);
+		expect(shadeH).toBeCloseTo(H, 0);
+	});
+});
 
 describe('randomCurveColor', () => {
 	const palette = ['#0072B2', '#E69F00', '#009E73', '#CC79A7'];

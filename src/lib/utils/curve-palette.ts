@@ -215,6 +215,40 @@ function fitChroma(L: number, C: number, H: number): number {
 	return c;
 }
 
+// ── runShade ───────────────────────────────────────────────────────────────
+
+const RUN_L_STEP = 0.06;
+const RUN_L_SPAN = 0.24;
+const RUN_L_RANGE: [number, number] = [0.35, 0.9];
+const RUN_SHADE_CACHE_MAX = 512;
+const _runShades = new Map<string, string>();
+
+/**
+ * The color of run `index` in a sample set of `count` runs drawn in `base`: the
+ * same hue, on a lightness ramp centred on the base (first run darkest). Hue is
+ * left alone because it already tells L from R and one device from the next.
+ * The ramp is capped at {@link RUN_L_SPAN}, so past five runs the steps shrink
+ * instead of the ends washing out. A single run keeps `base` as written.
+ */
+export function runShade(base: string, index: number, count: number): string {
+	if (count < 2) return base;
+	const cacheKey = `${base}|${index}|${count}`;
+	const cached = _runShades.get(cacheKey);
+	if (cached) return cached;
+
+	const [L, C, H] = parseOklch(base);
+	const span = Math.min(RUN_L_SPAN, RUN_L_STEP * (count - 1));
+	const [minL, maxL] = RUN_L_RANGE;
+	// Slide the ramp back inside the range rather than squash it against one end.
+	const low = Math.max(minL, Math.min(maxL - span, L - span / 2));
+	const shadeL = low + (span * index) / (count - 1);
+	const shade = formatOklch(shadeL, fitChroma(shadeL, C, H), H);
+
+	if (_runShades.size >= RUN_SHADE_CACHE_MAX) _runShades.clear();
+	_runShades.set(cacheKey, shade);
+	return shade;
+}
+
 // ── randomCurveColor ───────────────────────────────────────────────────────
 
 export interface RandomCurveColorOptions {

@@ -122,7 +122,7 @@ class DataProvider {
 			_rawData: rawCache
 		};
 
-		Object.assign(frObject, this.#buildSampleFields(rawData, colors, curve));
+		Object.assign(frObject, this.#buildSampleFields(rawData, curve));
 
 		commandHistory.execute(new AddFRDataCommand(frObject), frStore);
 		this.syncPhoneChannels();
@@ -385,7 +385,7 @@ class DataProvider {
 		// user's per-run curve picks survive, and only where they still resolve.
 		Object.assign(
 			newFields,
-			this.#buildSampleFields(rawData, data.colors, curve, data.dispSamples ?? undefined)
+			this.#buildSampleFields(rawData, curve, data.dispSamples ?? undefined)
 		);
 
 		commandHistory.execute(new UpdateVariantCommand(uuid, newFields), frStore);
@@ -595,7 +595,6 @@ class DataProvider {
 	 */
 	#buildSampleFields(
 		rawData: FRParseResult,
-		baseColors: FRColors,
 		curve: CurveData,
 		previousDispSamples?: SampleDisplayKey[]
 	): Partial<FRDataObject> {
@@ -620,7 +619,6 @@ class DataProvider {
 
 		return {
 			samples,
-			colors: this.#addSampleColors(baseColors, samples),
 			// Computed whether or not `fill` is on: the user can turn the fill on at any
 			// time, and recomputing on toggle would mean threading the processing
 			// params through the UI.
@@ -630,18 +628,6 @@ class DataProvider {
 			dispSamples: carried?.length ? carried : display.includes('curves') ? loadedKeys : [],
 			sampleDescription: rawData._sampleDescription
 		};
-	}
-
-	/** Add per-run colors to an existing FRColors object */
-	#addSampleColors(baseColors: FRColors, samples: SampleData[]): FRColors {
-		const sampleColors: Record<string, string> = {};
-		samples.forEach((sample, i) => {
-			// Same color as the corresponding channel — rendered at reduced opacity.
-			if (sample.L) sampleColors[sampleKey(i, 'L')] = baseColors.L ?? baseColors.AVG;
-			if (sample.R) sampleColors[sampleKey(i, 'R')] = baseColors.R ?? baseColors.AVG;
-			if (sample.AVG) sampleColors[sampleKey(i, 'AVG')] = baseColors.AVG;
-		});
-		return { ...baseColors, samples: sampleColors };
 	}
 
 	/**

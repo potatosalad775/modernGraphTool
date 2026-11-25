@@ -83,9 +83,10 @@ To keep the imbalance and just fix the overall tuning, stay on **L+R** — AutoE
 average, which leaves the difference between the channels untouched.
 
 :::note[Where per-channel EQ applies]
-The graph, the audio preview and the exported filter file all carry the full per-channel EQ. **Device
-PEQ does not** — hardware EQ slots have no channel concept, so a push sends the shared bands only and
-tells you how many left/right bands it skipped.
+The graph, the audio preview and the exported filter file all carry the full per-channel EQ. **Most
+hardware EQs do not** — they have one set of bands for both ears, so a push sends the shared bands
+only and tells you how many left/right bands it skipped. A few devices hold a set per ear and take
+all of it: see [Hardware EQ](../features/device-peq.mdx#left-and-right).
 :::
 
 ## AutoEQ

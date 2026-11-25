@@ -99,9 +99,11 @@ two equalized channels — so a left-only correction visibly moves the average t
 natural imbalance. Scoped to one ear it optimizes against that ear’s measurement and replaces only
 that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you
 correct imbalance and match a target at the same time.</li>
-<li><strong>Hardware EQ is shared-only.</strong> Hardware EQ slots have no channel concept, so pushing to a device
-sends the shared bands and warns you about the left/right bands it had to skip. The graph, the
-audio preview and file export all carry the full per-channel EQ.</li>
+<li><strong>Hardware EQ is shared-only on most devices.</strong> Most hardware EQs have one set of bands for both
+ears, so pushing to a device sends the shared bands and warns you about the left/right bands it
+had to skip. A few devices hold a set per ear and take the full per-channel EQ: see
+<a href="/modernGraphTool/docs/features/device-peq/#left-and-right">Hardware EQ</a>. The graph, the audio preview and file export
+always carry it.</li>
 </ul>
 <p>See <a href="/modernGraphTool/docs/guide-for-users/equalizing/#per-channel-eq-l--r">Equalizing audio</a> for the workflow.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="eq-one-run-of-a-sample-set">EQ one run of a sample set</h2><a class="sl-anchor-link" href="#eq-one-run-of-a-sample-set"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “EQ one run of a sample set”</span></a></div>

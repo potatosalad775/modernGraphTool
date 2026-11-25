@@ -201,6 +201,11 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   as `byEar` does for a device connected here. `LinkDialogs` maps them through the list as the
   review came, kept until its `rev` changes: uniPEQ keeps a review open while its list moves
   (it plans again on the answer), so the bands in those slots now may be others.
+- **`#status` mirrors uniPEQ's device into `devicePeqStore`** on every `status`: the busy flags
+  (`busy: 'preset'` holds `isSwitching`, so no switch is offered while a delete renumbers the
+  ids) and the live preset list (`status.slots` through `setListed`, which moves nothing else).
+  `devicePeqService`'s preset edits only send their `preset-*` command; what they did arrives in
+  a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.

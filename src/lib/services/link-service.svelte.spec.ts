@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import type { Adopt, EditOp, HostOptions, LinkEq, LinkStatus } from 'peq-link/client';
+import type {
+	Adopt,
+	CommandResult,
+	EditOp,
+	HostOptions,
+	LinkEq,
+	LinkSlot,
+	LinkStatus
+} from 'peq-link/client';
 import { linkService } from './link-service.svelte.js';
+import { devicePeqService } from './device-peq-service.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
@@ -27,7 +36,7 @@ class FakeHost {
 	readonly options: HostOptions;
 	readonly edit = vi.fn();
 	readonly replaceAll = vi.fn();
-	readonly command = vi.fn(async () => ({ ok: true }));
+	readonly command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
 	readonly unlink = vi.fn(() => this.end('unlink'));
 	#listeners = new Map<string, ((value: unknown) => void)[]>();
 	#raw: ((message: unknown) => void)[] = [];
@@ -639,6 +648,97 @@ describe('linkService', () => {
 		host.eq([wire(100, 3)]);
 		flushSync();
 		expect(eqStore.channelScope).toBe('BOTH');
+	});
+
+	describe('with uniPEQ’s device keeping its presets as a list', () => {
+		/** The places the device has room for, under the data's names: four. */
+		const PLACES = [0, 1, 2, 3].map((id) => ({ id, name: `EQ ${id + 1}` }));
+		const LISTING = {
+			...DEVICE,
+			capabilities: {
+				...DEVICE.capabilities,
+				canEnable: true,
+				slots: PLACES,
+				listsSlots: true,
+				editsSlots: true
+			}
+		};
+		/** Presets as the device holds them: their ids are their places. */
+		const held = (...names: string[]) => names.map((name, id) => ({ id, name }));
+		const names = () => devicePeqStore.slots.map((s) => s.name);
+		/** uniPEQ's status with the device on preset `on` of `slots`. */
+		const listed = (on: number, slots: LinkSlot[]): LinkStatus => ({
+			...STATUS,
+			activeSlot: on,
+			deviceSlot: on,
+			slots
+		});
+
+		/** uniPEQ's status, then its device: either may come first. */
+		async function listing(status = listed(1, held('Jazz', 'Rock', 'Pop'))) {
+			await linked();
+			host.status = status;
+			host.emit('status', status);
+			host.emit('device', LISTING);
+		}
+
+		it('shows the presets uniPEQ’s status lists, under the device’s own names', async () => {
+			await listing();
+			expect(devicePeqStore.slots).toEqual(held('Jazz', 'Rock', 'Pop'));
+			expect(devicePeqStore.selection).toBe(1);
+			expect(devicePeqStore.canEditPresets).toBe(true);
+			expect(devicePeqStore.slotRoom).toBe(4);
+		});
+
+		it('takes the ids from the status after a delete moves the later ones down', async () => {
+			await listing(listed(2, held('Jazz', 'Rock', 'Pop')));
+			host.emit('status', listed(1, held('Rock', 'Pop')));
+			expect(devicePeqStore.slots).toEqual(held('Rock', 'Pop'));
+			expect(devicePeqStore.selection).toBe(1);
+		});
+
+		it('leaves out a preset it can’t read', async () => {
+			const slots = [
+				{ id: 0, name: 'Jazz' },
+				{ id: 'x', name: 'Bad' },
+				{ id: 1, name: 'Rock', writable: 'yes', bypass: false }
+			] as unknown as LinkSlot[];
+			await listing(listed(0, slots));
+			expect(devicePeqStore.slots).toEqual(held('Jazz', 'Rock'));
+		});
+
+		it('falls back to the profile’s presets, with no editing, when the status lists none', async () => {
+			await listing();
+			host.emit('status', { ...STATUS, activeSlot: 0, deviceSlot: 0 });
+			expect(names()).toEqual(['EQ 1', 'EQ 2', 'EQ 3', 'EQ 4']);
+			expect(devicePeqStore.canEditPresets).toBe(false);
+		});
+
+		it('offers no preset switch while uniPEQ edits the list', async () => {
+			await listing();
+			const status = listed(1, held('Jazz', 'Rock', 'Pop'));
+			host.emit('status', { ...status, busy: 'preset' });
+			expect(devicePeqStore.isSwitching).toBe(true);
+			host.emit('status', status);
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it('renames by command, and shows the name the status brings, before or after the answer', async () => {
+			await listing();
+			host.command.mockImplementationOnce(async () => {
+				host.emit('status', listed(1, held('Jazz', 'Metal', 'Pop')));
+				return { ok: true };
+			});
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('done');
+			expect(host.command).toHaveBeenLastCalledWith('preset-rename', { slot: 1, name: 'Metal' });
+			expect(names()).toEqual(['Jazz', 'Metal', 'Pop']);
+
+			// Answered first: the list stays as uniPEQ last said until its status.
+			expect(await devicePeqService.renamePreset(1, 'Blues')).toBe('done');
+			expect(names()).toEqual(['Jazz', 'Metal', 'Pop']);
+			host.emit('status', listed(1, held('Jazz', 'Blues', 'Pop')));
+			expect(names()).toEqual(['Jazz', 'Blues', 'Pop']);
+		});
 	});
 
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {

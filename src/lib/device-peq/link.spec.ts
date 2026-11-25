@@ -313,13 +313,17 @@ describe('what uniPEQ says about its device', () => {
 					{ id: 2, name: 'Jazz', writable: 'yes' },
 					{ id: 9, name: 'Off', bypass: true }
 				],
-				perChannel: 'yes'
+				perChannel: 'yes',
+				listsSlots: 1,
+				editsSlots: 'true'
 			},
 			3
 		);
 		expect(caps.canRead).toBe(true);
 		expect(caps.canWrite).toBe(false);
 		expect(caps.perChannel).toBe(false);
+		expect(caps.listsSlots).toBe(false);
+		expect(caps.editsSlots).toBe(false);
 		expect(caps.slots).toEqual([
 			{ id: 1, name: 'P1', writable: true },
 			{ id: 2, name: 'Jazz' },
@@ -328,7 +332,7 @@ describe('what uniPEQ says about its device', () => {
 		expect(acceptCapabilities(undefined, 3).slots).toEqual([]);
 	});
 
-	it('takes one-ear writes from protocol 1.3 on, and nothing else it added', () => {
+	it('takes one-ear writes and the preset list from protocol 1.3 on, and nothing else it added', () => {
 		const value = {
 			perChannel: true,
 			controls: [{ id: 'gain', kind: 'range' }],
@@ -339,13 +343,17 @@ describe('what uniPEQ says about its device', () => {
 		};
 		const caps = acceptCapabilities(value, 3);
 		expect(caps.perChannel).toBe(true);
+		expect(caps.listsSlots).toBe(true);
+		expect(caps.editsSlots).toBe(true);
 		expect(caps).not.toHaveProperty('controls');
 		expect(caps).not.toHaveProperty('eqs');
-		expect(caps).not.toHaveProperty('listsSlots');
-		expect(caps).not.toHaveProperty('editsSlots');
 		expect(caps).not.toHaveProperty('readsBandCount');
 		// A uniPEQ before 1.3 sends none of these: an older peer says nothing of the device.
-		expect(acceptCapabilities(value, 2).perChannel).toBe(false);
+		expect(acceptCapabilities(value, 2)).toMatchObject({
+			perChannel: false,
+			listsSlots: false,
+			editsSlots: false
+		});
 	});
 
 	it('drives a linked device’s channels apart only where uniPEQ knows protocol 1.3', () => {
@@ -405,6 +413,9 @@ describe('LinkPeqDevice', () => {
 		await device.review(7, false);
 		await device.setAutoWrite(true);
 		await device.reconnect();
+		await device.createPreset();
+		await device.renamePreset(2, 'Jazz');
+		await device.deletePreset(1);
 		expect(port.command.mock.calls).toEqual([
 			['read'],
 			['switch', { value: 'p3' }],
@@ -413,7 +424,10 @@ describe('LinkPeqDevice', () => {
 			['write'],
 			['review', { rev: 7, accept: false }],
 			['auto-write', { on: true }],
-			['reconnect']
+			['reconnect'],
+			['preset-create', {}],
+			['preset-rename', { slot: 2, name: 'Jazz' }],
+			['preset-delete', { slot: 1 }]
 		]);
 		expect(await device.currentSlot()).toBe(2);
 		expect(await device.eqEnabled()).toBe(false);

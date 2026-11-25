@@ -362,6 +362,15 @@ class DevicePeqStore {
 		this.autoPaused = false;
 	}
 
+	/**
+	 * The device's presets as another app reports them now (uniPEQ, in every `status`), or null for
+	 * the profile's. Only the list: where the device is and what Read and Write reach come with it
+	 * and are set beside it, so the target and `synced` stand.
+	 */
+	setListed(listed: readonly Slot[] | null): void {
+		this.#listed = listed;
+	}
+
 	/** Where the device is: the preset it plays, the one Read and Write reach, and its EQ switch. */
 	#place(currentSlot: number | null, enabled: boolean | null): void {
 		const bypass = this.#allSlots.find((s) => s.bypass);

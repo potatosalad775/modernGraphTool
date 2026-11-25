@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { flushSync } from 'svelte';
 import type { Control, Filter, Profile } from '@potatosalad775/eqcaps-core';
+import type { CommandResult } from 'peq-link/client';
 import { LinkPeqDevice, type LinkPort } from '#lib/device-peq/link.js';
 import { BridgeError } from '@potatosalad775/eqcaps-device-bridge';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, Slot } from '#lib/device-peq/types.js';
@@ -1991,22 +1992,6 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(devicePeqStore.canEditPresets).toBe(true);
 		});
 
-		it('is never editable on a device uniPEQ holds', async () => {
-			const link = new LinkPeqDevice(
-				{ status: null, command: vi.fn(), unlink: vi.fn() } as unknown as LinkPort,
-				{ ...CAPS, listsSlots: true, editsSlots: true, slots: PLACES }
-			);
-			await connectVia(fakeConnection(link, { connectionType: 'link' }));
-
-			expect(devicePeqStore.connection?.device).toBe(link);
-			expect(devicePeqStore.canEditPresets).toBe(false);
-			expect(devicePeqStore.slotRoom).toBeNull();
-			await devicePeqService.createPreset();
-			expect(await devicePeqService.renamePreset(101, 'Other')).toBe('failed');
-			await devicePeqService.deletePreset(101);
-			expect(devicePeqStore.statusMessage).toBeNull();
-		});
-
 		it('forgets the list when the device goes', async () => {
 			await connectListing();
 			await devicePeqService.disconnect();
@@ -2473,6 +2458,84 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(device.readControls).toHaveBeenCalledOnce();
 			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
 			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+	});
+
+	describe('on a device uniPEQ holds', () => {
+		/**
+		 * A device uniPEQ holds, on its second preset, whose `status` lists `held` (null: lists none),
+		 * as the link service mirrors it. Returns the commands sent; `answer` is uniPEQ's to each.
+		 */
+		function linked(
+			held: string[] | null = ['Jazz', 'Rock', 'Pop'],
+			answer: CommandResult = { ok: true }
+		) {
+			const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => answer);
+			const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+			const device = new LinkPeqDevice(port, {
+				...CAPS,
+				listsSlots: true,
+				editsSlots: true,
+				slots: PLACES
+			});
+			devicePeqStore.setConnected(fakeConnection(device, { connectionType: 'link' }), 1);
+			devicePeqStore.setListed(held && held.map((name, id) => ({ id, name })));
+			return command;
+		}
+
+		it('asks uniPEQ to rename, add and delete, and leaves the list to its status', async () => {
+			const command = linked();
+			// uniPEQ warns for its own device.
+			settingsStore.setVolumeWarning(true);
+
+			expect(await devicePeqService.renamePreset(1, ' Metal ')).toBe('done');
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset to “Metal”.');
+			// The device names a new preset: the name comes with the next status.
+			await devicePeqService.createPreset();
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset to “Metal”.');
+			await devicePeqService.deletePreset(2);
+			expect(devicePeqStore.statusMessage).toBe('Deleted “Pop” from the device.');
+
+			expect(command.mock.calls).toEqual([
+				['preset-rename', { slot: 1, name: 'Metal' }],
+				['preset-create', {}],
+				['preset-delete', { slot: 2 }]
+			]);
+			expect(volumeWarning.open).toBe(false);
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.selection).toBe(1);
+		});
+
+		it('says a name uniPEQ’s device can’t store where it was typed, without a failure toast', async () => {
+			linked(undefined, { ok: false, code: 'invalid-request' });
+
+			expect(await devicePeqService.renamePreset(1, 'A name far too long')).toBe('refused');
+
+			expect(devicePeqStore.statusMessage).toMatch(/can't store that name/);
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('reports any other failure the way every failure is', async () => {
+			linked(undefined, { ok: false, code: 'timeout' });
+
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('failed');
+			await devicePeqService.createPreset();
+			await devicePeqService.deletePreset(1);
+
+			expect(error).toHaveBeenCalledTimes(3);
+			expect(devicePeqStore.statusIsError).toBe(true);
+		});
+
+		it('sends nothing before uniPEQ’s status lists the presets', async () => {
+			const command = linked(null);
+
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			await devicePeqService.createPreset();
+			expect(await devicePeqService.renamePreset(1, 'Other')).toBe('failed');
+			await devicePeqService.deletePreset(1);
+
+			expect(command).not.toHaveBeenCalled();
 		});
 	});
 

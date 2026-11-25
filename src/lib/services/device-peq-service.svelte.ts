@@ -11,8 +11,8 @@
  * `linkService`).
  *
  * A device connected in uniPEQ (`connectionType: 'link'`) is written by uniPEQ from the shared
- * list, so for it Write, Device EQ and the auto-write switch are commands to uniPEQ, and this
- * page's own auto-write stays out of the way.
+ * list, so for it Write, Device EQ, the auto-write switch and the preset edits are commands to
+ * uniPEQ, and this page's own auto-write stays out of the way.
  */
 import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
@@ -595,23 +595,55 @@ class DevicePeqService {
 			devicePeqStore.setStatus(done);
 			return 'done';
 		} catch (e) {
-			const named = refused !== undefined && isInvalidRequest(e);
-			if (named) devicePeqStore.setStatus(refused, true);
-			else this.fail(e, 'preset');
+			const failed = this.#presetFailed(e, refused);
 			if (!devicePeqStore.needsReconnect) await this.#relist(conn, keep).catch(noop);
-			return named ? 'refused' : 'failed';
+			return failed;
 		} finally {
 			devicePeqStore.isSwitching = false;
 		}
 	}
 
+	/**
+	 * One edit to the preset list of a device uniPEQ holds. uniPEQ reads the list again, and where
+	 * the device is, and both arrive in `status`, before or after the answer: nothing here works
+	 * them out. `edit` says what was done where that is known without the list, else null.
+	 */
+	async #editLinked(edit: () => Promise<string | null>, refused?: string): Promise<PresetEdit> {
+		try {
+			const done = await edit();
+			if (done !== null) devicePeqStore.setStatus(done);
+			return 'done';
+		} catch (e) {
+			return this.#presetFailed(e, refused);
+		}
+	}
+
+	/** A failed edit to the preset list, said as `refused` where the device won't take the request. */
+	#presetFailed(e: unknown, refused?: string): PresetEdit {
+		const named = refused !== undefined && isInvalidRequest(e);
+		if (named) devicePeqStore.setStatus(refused, true);
+		else this.fail(e, 'preset');
+		return named ? 'refused' : 'failed';
+	}
+
 	/** Add an empty preset to the device. The device goes over to it, and so do Read and Write. */
 	async createPreset(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		const create = conn?.device.createSlot?.bind(conn.device);
 		const room = devicePeqStore.slotRoom;
-		if (!conn || !create || !devicePeqStore.canEditPresets || devicePeqStore.isBusy) return;
+		if (!conn || !devicePeqStore.canEditPresets || devicePeqStore.isBusy) return;
 		if (room !== null && devicePeqStore.slots.length >= room) return;
+		// uniPEQ names the preset, goes over to it and warns for its own device. The name arrives in
+		// its `status`, so nothing is said here.
+		const link = this.linkDevice;
+		if (link) {
+			await this.#editLinked(async () => {
+				await link.createPreset();
+				return null;
+			});
+			return;
+		}
+		const create = conn.device.createSlot?.bind(conn.device);
+		if (!create) return;
 		// An edit waiting to be auto-written belongs to the preset it was made on.
 		this.#cancelPending();
 		// The device goes over to the new preset, which is flat: as audible as a write.
@@ -637,21 +669,20 @@ class DevicePeqService {
 	 */
 	async renamePreset(id: number, name: string): Promise<PresetEdit> {
 		const conn = devicePeqStore.connection;
-		const rename = conn?.device.renameSlot?.bind(conn.device);
+		const link = this.linkDevice;
+		const rename = link ? link.renamePreset.bind(link) : conn?.device.renameSlot?.bind(conn.device);
 		const slot = devicePeqStore.slots.find((s) => s.id === id);
 		if (!conn || !rename || !slot || !devicePeqStore.canEditPresets) return 'failed';
 		if (devicePeqStore.isBusy) return 'failed';
 		const next = name.trim();
 		if (next === slot.name) return 'done';
-		return this.#editPresets(
-			conn,
-			async () => {
-				await rename(slot.id, next);
-				return m.device_presets_renamed({ name: next });
-			},
-			true,
-			m.device_presets_name_refused()
-		);
+		const edit = async () => {
+			await rename(slot.id, next);
+			return m.device_presets_renamed({ name: next });
+		};
+		const refused = m.device_presets_name_refused();
+		if (link) return this.#editLinked(edit, refused);
+		return this.#editPresets(conn, edit, true, refused);
 	}
 
 	/**
@@ -660,18 +691,25 @@ class DevicePeqService {
 	 */
 	async deletePreset(id: number): Promise<void> {
 		const conn = devicePeqStore.connection;
-		const remove = conn?.device.deleteSlot?.bind(conn.device);
+		const link = this.linkDevice;
+		const remove = link ? link.deletePreset.bind(link) : conn?.device.deleteSlot?.bind(conn.device);
 		const slot = devicePeqStore.slots.find((s) => s.id === id);
 		if (!conn || !remove || !slot || !devicePeqStore.canEditPresets) return;
 		if (devicePeqStore.isBusy || devicePeqStore.slots.length <= 1) return;
+		const edit = async () => {
+			await remove(slot.id);
+			return m.device_presets_deleted({ name: slot.name });
+		};
+		// uniPEQ warns for its own device, and reads the EQ's settings again itself.
+		if (link) {
+			await this.#editLinked(edit);
+			return;
+		}
 		// A waiting auto-write was aimed at the target's id, which the delete may move.
 		this.#cancelPending();
 		// The device may go over to another preset: as audible as a write.
 		if (volumeWarning.ask(() => void this.deletePreset(id))) return;
-		const deleted = await this.#editPresets(conn, async () => {
-			await remove(slot.id);
-			return m.device_presets_deleted({ name: slot.name });
-		});
+		const deleted = await this.#editPresets(conn, edit);
 		// On another preset now, the EQ's settings may be that one's.
 		if (deleted === 'done' && devicePeqStore.connection === conn) {
 			await this.#readEqControls(conn, true);

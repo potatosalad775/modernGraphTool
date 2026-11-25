@@ -32,7 +32,7 @@ import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { isRecord } from '#lib/utils/type-guards.js';
 import { byEar, type PlanChange } from './push-plan.js';
-import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult } from './types.js';
+import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult, Slot } from './types.js';
 
 // ── Band lists ──────────────────────────────────────────────────────────────
 
@@ -308,6 +308,24 @@ export class LinkPeqDevice implements PeqDevice {
 	setAutoWrite(on: boolean): Promise<void> {
 		return run(this.#link.command('auto-write', { on }));
 	}
+
+	/**
+	 * Adds an empty preset after the last (`editsSlots`), named by the device. uniPEQ goes over to
+	 * it, and the list arrives in `status.slots`.
+	 */
+	createPreset(): Promise<void> {
+		return run(this.#link.command('preset-create', {}));
+	}
+
+	/** Fails `invalid-request` when the device can't store `name`, which isn't shortened to fit. */
+	renamePreset(slot: number, name: string): Promise<void> {
+		return run(this.#link.command('preset-rename', { slot, name }));
+	}
+
+	/** The presets after it move down by one: every id held here is stale until the next `status`. */
+	deletePreset(slot: number): Promise<void> {
+		return run(this.#link.command('preset-delete', { slot }));
+	}
 }
 
 // ── What uniPEQ says about its device ───────────────────────────────────────
@@ -334,27 +352,35 @@ export function acceptProfile(value: unknown): Profile | null {
 }
 
 /**
+ * A list of presets from uniPEQ (`capabilities.slots`, `status.slots`), or null when it isn't a
+ * list. A malformed preset is left out; `bypass` and `writable` are kept only when true.
+ */
+export function acceptSlots(value: unknown): Slot[] | null {
+	if (!Array.isArray(value)) return null;
+	return value.flatMap((s) =>
+		isRecord(s) && Number.isInteger(s.id) && typeof s.name === 'string'
+			? [
+					{
+						id: s.id as number,
+						name: s.name,
+						...(s.bypass === true ? { bypass: true } : {}),
+						...(s.writable === true ? { writable: true } : {})
+					}
+				]
+			: []
+	);
+}
+
+/**
  * uniPEQ's capability subset, with anything missing or malformed read as "can't". Of what protocol
- * 1.3 added (`minor`) only `perChannel`: the link routes no command for the device's settings,
- * other EQs or preset list yet, so the UI for them stays off.
+ * 1.3 added (`minor`): `perChannel` and the preset list (`listsSlots`, `editsSlots`). The device's
+ * other EQs and settings aren't routed over the link yet, so the UI for them stays off.
  */
 export function acceptCapabilities(value: unknown, minor: number): PeqCapabilities {
 	const c = isRecord(value) ? value : {};
 	const flag = (key: string) => c[key] === true;
-	const slots = Array.isArray(c.slots)
-		? c.slots.flatMap((s) =>
-				isRecord(s) && Number.isInteger(s.id) && typeof s.name === 'string'
-					? [
-							{
-								id: s.id as number,
-								name: s.name,
-								...(s.bypass === true ? { bypass: true } : {}),
-								...(s.writable === true ? { writable: true } : {})
-							}
-						]
-					: []
-			)
-		: [];
+	// An older uniPEQ sends none of these, which says nothing about the device.
+	const late = (key: string) => minor >= 3 && flag(key);
 	return {
 		canRead: flag('canRead'),
 		canWrite: flag('canWrite'),
@@ -366,10 +392,13 @@ export function acceptCapabilities(value: unknown, minor: number): PeqCapabiliti
 		// uniPEQ reads the switch and says what it found in `status`.
 		readsEnabled: false,
 		canEnable: flag('canEnable'),
-		slots,
+		// For a device that keeps a list, the room it has: the list itself is `status.slots`.
+		slots: acceptSlots(c.slots) ?? [],
 		disconnectOnSave: flag('disconnectOnSave'),
 		experimental: flag('experimental'),
-		perChannel: minor >= 3 && flag('perChannel')
+		perChannel: late('perChannel'),
+		listsSlots: late('listsSlots'),
+		editsSlots: late('editsSlots')
 	};
 }
 

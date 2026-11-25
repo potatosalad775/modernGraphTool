@@ -112,8 +112,9 @@ class DevicePeqStore {
 	 */
 	reportedInSync = $state<boolean | null | undefined>(undefined);
 	/**
-	 * The user's own answer to whether this page's sound plays through a device, by device name.
-	 * Kept across a dropped connection, so the same device coming back doesn't ask again.
+	 * The user's own answer to whether this page's sound plays through a device, by the name of the
+	 * device as opened (a view of one of its EQs is named for that EQ). Kept across a dropped
+	 * connection, so the same device coming back doesn't ask again.
 	 */
 	audioPathChoice = $state.raw<{ device: string; through: boolean } | null>(null);
 
@@ -156,7 +157,7 @@ class DevicePeqStore {
 		const conn = this.connection;
 		if (!conn) return false;
 		const choice = this.audioPathChoice;
-		if (choice?.device === conn.name) return choice.through;
+		if (choice?.device === (this.opened ?? conn).name) return choice.through;
 		return conn.connectionType !== 'link' || linkStore.launchedHere;
 	}
 
@@ -169,7 +170,7 @@ class DevicePeqStore {
 	}
 
 	setAudioThroughDevice(through: boolean): void {
-		const device = this.connection?.name;
+		const device = (this.opened ?? this.connection)?.name;
 		if (device !== undefined) this.audioPathChoice = { device, through };
 	}
 
@@ -343,10 +344,12 @@ class DevicePeqStore {
 	 * The device's preset list was read again, after one was added, renamed or deleted. A rename
 	 * changes only names (`keep`): the target and whether it holds the list stand. Anything else
 	 * may have moved the device and renumbered the presets after a deleted one, so the target is the
-	 * preset the device is on now, and what it holds is unknown until a read or a write.
+	 * preset the device is on now, and what it holds is unknown until a read or a write. A list
+	 * that couldn't be read (null) is dropped, not kept with ids that may have moved: the profile's
+	 * presets stand in and the list can't be edited, as when it can't be read on connecting.
 	 */
 	relisted(
-		listed: readonly Slot[],
+		listed: readonly Slot[] | null,
 		currentSlot: number | null,
 		enabled: boolean | null,
 		keep = false

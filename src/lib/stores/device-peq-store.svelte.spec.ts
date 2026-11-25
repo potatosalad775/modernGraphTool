@@ -530,6 +530,21 @@ describe('devicePeqStore', () => {
 			expect(devicePeqStore.audioPathChoice).toEqual({ device: 'FiiO KA17', through: false });
 		});
 
+		it('keeps the answer on another of the device’s EQs, whose view has another name', () => {
+			const opened = makeConnection({ name: 'Qudelix 5K · USR EQ' });
+			devicePeqStore.setConnected(opened, 160);
+			devicePeqStore.setAudioThroughDevice(false);
+
+			const spk = { ...opened, name: 'Qudelix 5K · SPK EQ' };
+			devicePeqStore.selectEq(spk, { id: 'spk', bandCount: null }, 160, null);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioPathChoice).toEqual({
+				device: 'Qudelix 5K · USR EQ',
+				through: true
+			});
+		});
+
 		it('does not play the EQ while the device’s EQ is off', () => {
 			devicePeqStore.setConnected(makeConnection(), 240);
 			expect(devicePeqStore.eqEnabled).toBe(false);

@@ -54,9 +54,11 @@ Two things to know:
   natural imbalance. Scoped to one ear it optimizes against that ear's measurement and replaces only
   that bucket, leaving the shared bands and the other ear alone. Running it once per ear is how you
   correct imbalance and match a target at the same time.
-- **Hardware EQ is shared-only.** Hardware EQ slots have no channel concept, so pushing to a device
-  sends the shared bands and warns you about the left/right bands it had to skip. The graph, the
-  audio preview and file export all carry the full per-channel EQ.
+- **Hardware EQ is shared-only on most devices.** Most hardware EQs have one set of bands for both
+  ears, so pushing to a device sends the shared bands and warns you about the left/right bands it
+  had to skip. A few devices hold a set per ear and take the full per-channel EQ: see
+  [Hardware EQ](./device-peq.mdx#left-and-right). The graph, the audio preview and file export
+  always carry it.
 
 See [Equalizing audio](../guide-for-users/equalizing.mdx#per-channel-eq-l--r) for the workflow.
 

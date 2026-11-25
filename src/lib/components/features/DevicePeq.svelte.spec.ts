@@ -22,6 +22,7 @@ import {
 	DEVICE_CONSTRAINT_ID,
 	eqConstraintsStore
 } from '#lib/stores/eq-constraints-store.svelte.js';
+import type { Profile } from '@potatosalad775/eqcaps-core';
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
@@ -558,6 +559,25 @@ describe('DevicePeq', () => {
 			expect(device.push.mock.calls[0][0].filters[0].gain).toBe(12);
 		});
 
+		it('reviews again, writing nothing yet, when Write reaches another preset by then', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 15)];
+			eqStore.preamp = -15;
+
+			await page.getByRole('button', { name: 'Write to device' }).click();
+			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
+			// Write goes elsewhere while the review is open.
+			devicePeqStore.target(0);
+			await page.getByRole('button', { name: 'Write', exact: true }).click();
+
+			await vi.waitFor(() => expect(device.pull).toHaveBeenCalledWith({ slot: 0 }));
+			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
+			expect(device.push).not.toHaveBeenCalled();
+			await page.getByRole('button', { name: 'Write', exact: true }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.push.mock.calls[0][0].slot).toBe(0);
+		});
+
 		it('writes nothing when the review is cancelled', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [band(1000, 15)];
@@ -598,6 +618,93 @@ describe('DevicePeq', () => {
 			await control.selectOptions('Off (EQ bypassed)');
 			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
 			await expect.element(control).toHaveValue('off');
+		});
+
+		describe('the Presets row', () => {
+			const PLACES = [0, 1, 2, 3, 4].map((id) => ({ id, name: `EQ ${id + 1}` }));
+			const newButton = () => page.getByRole('button', { name: 'New', exact: true });
+
+			/**
+			 * Connects a device that answers `slots()` with its own list (`held`), unless `list` is a
+			 * failure. Device EQ is a dropdown only while it holds more than one.
+			 */
+			async function mountListing(
+				caps: Partial<PeqCapabilities>,
+				list: 'listed' | 'fails' | 'none' = 'listed',
+				held = ['Jazz', 'Rock']
+			) {
+				const made = makeConnection({}, { slots: PLACES, ...caps });
+				made.device.currentSlot.mockResolvedValue(held.length - 1);
+				const slots = vi.fn<NonNullable<PeqDevice['slots']>>(async () => {
+					if (list === 'fails') throw new Error('no answer');
+					return held.map((name, id) => ({ id, name }));
+				});
+				connect.connectHid.mockResolvedValue(
+					connected(
+						list === 'none'
+							? made.connection
+							: { ...made.connection, device: { ...made.device, slots } }
+					)
+				);
+				await render(DevicePeq);
+				await page.getByRole('button', { name: 'Connect USB device' }).click();
+				await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+				const eq = page.getByRole(held.length > 1 ? 'combobox' : 'switch', { name: 'Device EQ' });
+				await expect.element(eq).toBeInTheDocument();
+			}
+
+			it('appears under Device EQ for a device that keeps and edits its own list', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true });
+
+				await expect.element(page.getByText('Presets', { exact: true })).toBeInTheDocument();
+				await expect.element(newButton()).toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Rename', exact: true }))
+					.toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Delete', exact: true }))
+					.toBeEnabled();
+				// Device EQ lists what the device holds, not the places it has room for.
+				await expect.element(page.getByRole('option', { name: 'Rock' })).toBeInTheDocument();
+				expect(page.getByRole('option', { name: 'EQ 1' }).all()).toHaveLength(0);
+			});
+
+			it('stays with one preset left, Device EQ then a switch, so New is still there', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'listed', ['Jazz']);
+
+				await expect.element(page.getByRole('switch', { name: 'Device EQ' })).toBeChecked();
+				await expect.element(newButton()).toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Rename', exact: true }))
+					.toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Delete', exact: true }))
+					.toBeDisabled();
+			});
+
+			it('is not there for an ordinary device', async () => {
+				await mountConnected();
+				await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toBeInTheDocument();
+				expect(page.getByText('Presets', { exact: true }).all()).toHaveLength(0);
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there for a device that lists its presets but cannot edit them', async () => {
+				await mountListing({ listsSlots: true, editsSlots: false });
+				await expect.element(page.getByRole('option', { name: 'Rock' })).toBeInTheDocument();
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there when the device’s list could not be read', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'fails');
+				await expect.element(page.getByRole('option', { name: 'EQ 1' })).toBeInTheDocument();
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there for a device with no way to list its presets', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'none');
+				expect(newButton().all()).toHaveLength(0);
+			});
 		});
 
 		it('shows the switch as it was when the device refuses it', async () => {
@@ -766,6 +873,148 @@ describe('DevicePeq', () => {
 		});
 	});
 	// ── One connection at a time ─────────────────────────────────────────────
+
+	// ── A device with more than one EQ ───────────────────────────────────────
+
+	describe('a device with more than one EQ', () => {
+		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));
+
+		const SPK_SLOTS = [
+			{ id: 10, name: 'Spk A' },
+			{ id: 11, name: 'Spk B' }
+		];
+
+		/** A Qudelix-like profile: the user EQ it describes, and the headphone EQ it lists. */
+		const TWO_PROFILE: Profile = {
+			...hardwareProfile('qudelix-5k', { bandCount: 6, band: PROFILE.band }),
+			engine: 'USR EQ',
+			device: { brand: 'Qudelix', model: '5K' },
+			protocol: {
+				handler: 'qudelix-5k',
+				eqs: [
+					{
+						id: 'spk',
+						name: 'SPK EQ',
+						bandCount: 6,
+						presets: SPK_SLOTS.map(({ id, name }) => ({ id, name }))
+					}
+				]
+			}
+		};
+
+		/** Connects a device with a user EQ and a headphone EQ, the latter absent in the current mode. */
+		async function mountTwoEq({ spkAbsent = false } = {}) {
+			const spk = makeConnection({}, { slots: SPK_SLOTS }).device;
+			spk.currentSlot.mockImplementation(async () => {
+				if (spkAbsent) {
+					throw Object.assign(new Error('x'), { name: 'BridgeError', code: 'unsupported' });
+				}
+				return 10;
+			});
+			const made = makeConnection(
+				{ profile: TWO_PROFILE, name: 'Qudelix 5K · USR EQ' },
+				{ eqs: [{ id: 'spk', name: 'SPK EQ', bandCount: 6, slots: SPK_SLOTS, perChannel: false }] }
+			);
+			const device = Object.assign(made.device, { eq: vi.fn(() => spk) });
+			connect.connectHid.mockResolvedValue(connected(made.connection));
+			await render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			return { device, spk };
+		}
+
+		const eqRow = () => page.getByRole('group', { name: 'EQ', exact: true });
+
+		it('shows an EQ row naming each EQ, with the one viewed checked', async () => {
+			await mountTwoEq();
+
+			await expect.element(eqRow()).toBeInTheDocument();
+			const own = page.getByRole('radio', { name: 'USR EQ' });
+			const spk = page.getByRole('radio', { name: 'SPK EQ' });
+			await expect.element(own).toBeChecked();
+			await expect.element(spk).not.toBeChecked();
+			await expect.element(own).toBeEnabled();
+			await expect.element(spk).toBeEnabled();
+			expect(page.getByText(/Not available in the device's current mode/).all()).toHaveLength(0);
+		});
+
+		it('offers the presets of the EQ viewed under Device EQ', async () => {
+			await mountTwoEq();
+			const control = page.getByRole('combobox', { name: 'Device EQ' });
+			await expect.element(control).toHaveValue('p1');
+			await expect.element(page.getByRole('option', { name: 'Slot A' })).toBeInTheDocument();
+			expect(page.getByRole('option', { name: 'Spk A' }).all()).toHaveLength(0);
+		});
+
+		it('switches to the EQ picked, without reading it or touching the bands', async () => {
+			const { device, spk } = await mountTwoEq();
+			eqStore.filters = [band(1000, 3)];
+
+			await page.getByRole('radio', { name: 'SPK EQ' }).click();
+
+			await expect.element(page.getByRole('radio', { name: 'SPK EQ' })).toBeChecked();
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).not.toBeChecked();
+			await expect
+				.element(page.getByRole('status'))
+				.toHaveTextContent('Read and Write now use SPK EQ.');
+			// Device EQ lists that EQ's presets now.
+			await expect.element(page.getByRole('option', { name: 'Spk A' })).toBeInTheDocument();
+			await expect.element(page.getByRole('option', { name: 'Spk B' })).toBeInTheDocument();
+			expect(page.getByRole('option', { name: 'Slot A' }).all()).toHaveLength(0);
+			await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toHaveValue('p10');
+
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(device.pull).not.toHaveBeenCalled();
+			expect(spk.pull).not.toHaveBeenCalled();
+			expect(eqStore.filters).toHaveLength(1);
+			expect(eqStore.filters[0].gain).toBe(3);
+		});
+
+		it('sends Read to the EQ picked', async () => {
+			const { device, spk } = await mountTwoEq();
+			await page.getByRole('radio', { name: 'SPK EQ' }).click();
+			await expect.element(page.getByRole('radio', { name: 'SPK EQ' })).toBeChecked();
+
+			await page.getByRole('button', { name: 'Read from device' }).click();
+			await vi.waitFor(() => expect(spk.pull).toHaveBeenCalledWith({ slot: 10 }));
+			expect(device.pull).not.toHaveBeenCalled();
+		});
+
+		it('goes back to the user EQ when it is picked again', async () => {
+			await mountTwoEq();
+			await page.getByRole('radio', { name: 'SPK EQ' }).click();
+			await expect.element(page.getByRole('radio', { name: 'SPK EQ' })).toBeChecked();
+
+			await page.getByRole('radio', { name: 'USR EQ' }).click();
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
+			await expect.element(page.getByRole('option', { name: 'Slot A' })).toBeInTheDocument();
+			expect(devicePeqStore.eq).toBeUndefined();
+		});
+
+		it('holds back an EQ the device’s current mode lacks, and names it', async () => {
+			await mountTwoEq({ spkAbsent: true });
+
+			const spk = page.getByRole('radio', { name: 'SPK EQ' });
+			await expect.element(spk).toBeDisabled();
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeEnabled();
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
+			await expect
+				.element(page.getByText("Not available in the device's current mode: SPK EQ"))
+				.toBeInTheDocument();
+		});
+
+		it('shows no EQ row for a device with one EQ', async () => {
+			const made = makeConnection();
+			connect.connectHid.mockResolvedValue(connected(made.connection));
+			await render(DevicePeq);
+			await page.getByRole('button', { name: 'Connect USB device' }).click();
+			await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+			await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toBeInTheDocument();
+
+			expect(eqRow().all()).toHaveLength(0);
+			expect(page.getByRole('radio').all()).toHaveLength(0);
+		});
+	});
 
 	describe('one connection at a time', () => {
 		beforeEach(() => stubApis('hid', 'serial', 'bluetooth'));

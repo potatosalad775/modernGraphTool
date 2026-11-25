@@ -107,9 +107,11 @@ so omitting the field makes the coalescer read a real edit as a no-op burst and 
 
 ## `eq-channel-conflict.svelte.ts` — per-ear bands under a restriction
 
-Every eqcaps v1 profile is `channels: 'linked'`, so a restriction and a left/right-only band never
-stand together: the band list would claim a restriction the EQ doesn't keep. The user is asked
-(`EqChannelConflictDialog`, in AppShell) to remove the bands or keep them without the restriction.
+Nearly every restriction is one filter set for both ears, and under one of those a left/right-only
+band never stands (the exception is a connected device that drives its channels apart,
+`eqConstraintsStore.supportsPerChannel`): the band list would claim a restriction the EQ doesn't
+keep. The user is asked (`EqChannelConflictDialog`, in AppShell) to remove the bands or keep them
+without the restriction.
 Don't replace it with a warning beside the bands, or with a picker that stays open for them.
 
 - **A preset pick asks first** (`applyPreset`), so Cancel changes nothing. Remove is

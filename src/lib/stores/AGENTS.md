@@ -135,11 +135,11 @@ scope is noise. The `sourcePhoneUUID` setter resets it to `'BOTH'` when the devi
 first one is picked) — leaving it on `L` would open the next device on an empty list. It used to be
 an `EqualizerPanel` effect, which missed a device change made while another panel was open.
 It also **reads `BOTH` while `channelScopeLocked` holds** — a profile without per-ear EQ
-(`supportsPerChannel`: every eqcaps v1 profile is `channels: 'linked'`, so anything but the
-unlimited default), a predicate `eqConstraintsStore` injects. A restriction has only the shared
-bucket, so a list left on `L` showed nothing behind a disabled picker. Keep it a getter rather than
-resetting the field where a preset activates: redo and a device connecting reach that state without
-passing through the picker.
+(`supportsPerChannel`: anything but the unlimited default and a connected device that drives its
+channels apart, `device-peq/AGENTS.md`), a predicate `eqConstraintsStore` injects. A restriction
+has only the shared bucket, so a list left on `L` showed nothing behind a disabled picker. Keep it
+a getter rather than resetting the field where a preset activates: redo and a device connecting
+reach that state without passing through the picker.
 
 **`eq-store.svelte.ts` — `sourceSample` is reset by the `sourcePhoneUUID` setter, and only there.**
 A run index means nothing on another device, so changing device drops it inside the store rather

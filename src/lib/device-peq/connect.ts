@@ -7,16 +7,16 @@
  */
 import { noop } from '#lib/utils/noop.js';
 import type { IndexEntry, Profile } from '@potatosalad775/eqcaps-core';
-import type { DeviceMatch } from '@potatosalad775/eqcaps-client';
+import type { DeviceMatch, MatchResult } from '@potatosalad775/eqcaps-client';
 import {
-	analyzeCodec,
 	guessProtocol,
 	HANDLERS,
 	identityOf,
 	openDevice,
-	protocolForMatches,
+	protocolFor,
 	protocolOf,
 	transportsOf,
+	wireConstraints,
 	type DeviceIdentity,
 	type Protocol,
 	type Transport
@@ -83,28 +83,19 @@ function drivable(entries: IndexEntry[], kind: Transport['kind']): IndexEntry[] 
 	});
 }
 
-/** Matches tied at the top, the ones `matchDevice` refused to choose between. */
-function topTies(matches: DeviceMatch<IndexEntry>[]): DeviceMatch<IndexEntry>[] {
-	const top = matches.at(0);
-	if (!top) return [];
-	return matches.filter((m) => m.specificity === top.specificity && m.group === top.group);
-}
-
 /**
- * The device's firmware version, when it can decide the match: a matched profile has a firmware
- * range (the Fosi DS3's 8- and 32-band firmware share one USB identity) and the protocol the top
- * matches share reads one. Only then, since a device that doesn't answer costs the handler's
- * timeout. Null otherwise, or when the device doesn't say.
+ * The device's firmware version, when it can decide the match (`firmwareDecides`: the Fosi DS3's
+ * 8- and 32-band firmware share one USB identity) and the protocol the tied matches share reads
+ * one. Only then, since a device that doesn't answer costs the handler's timeout. Null otherwise,
+ * or when the device doesn't say.
  */
 async function readFirmware(
-	matches: DeviceMatch<IndexEntry>[],
+	{ matches, ties, firmwareDecides }: MatchResult<IndexEntry>,
 	open: (protocol: Protocol) => Promise<Transport>
 ): Promise<string | null> {
-	if (!matches.some((x) => x.entry.match?.firmware)) return null;
-	const protocols = topTies(matches).map(
-		(x) => protocolOf(x.entry) ?? protocolForMatches(matches)?.protocol
-	);
-	const protocol = protocols[0];
+	if (!firmwareDecides) return null;
+	const protocols = ties.map((x) => protocolFor({ chosen: x.entry, matches })?.protocol);
+	const protocol = protocols.at(0);
 	if (!protocol || protocols.some((p) => p?.handler !== protocol.handler)) return null;
 	try {
 		const device = openDevice(await open(protocol), protocol);
@@ -116,26 +107,26 @@ async function readFirmware(
 
 /**
  * Limits for a device with no profile: what its protocol's write frames can carry
- * (`analyzeCodec`), so a push never asks for a value the wire would refuse. The band count is the
- * protocol's own when it fixes one, else ten.
+ * (`wireConstraints`), so a push never asks for a value the wire would refuse, with the usual
+ * ranges where the wire sets none. The band count is the protocol's own when it fixes one, else
+ * ten.
  */
 export function guessedProfile(protocol: Protocol, name: string): Profile {
-	const a = analyzeCodec(protocol);
-	const bandCount = a.bands.min === a.bands.max ? a.bands.min : Math.min(10, a.bands.max);
-	const types = a.types.filter((t) => t === 'PK' || t === 'LSC' || t === 'HSC');
+	const wire = wireConstraints(protocol);
+	const types = wire.types.filter((t) => t === 'PK' || t === 'LSC' || t === 'HSC');
 	return {
 		schemaVersion: '1.0',
 		id: `guess-${protocol.handler}`,
 		kind: 'hardware',
 		device: { brand: name, model: '' },
-		bandCount: Math.max(1, bandCount),
+		bandCount: wire.bandCount,
 		band: {
 			types: types.length ? types : ['PK'],
-			freq: a.freq ?? { min: 20, max: 20000 },
-			q: a.q ?? { min: 0.1, max: 10 },
-			gain: a.gain ?? { min: -12, max: 12 }
+			freq: wire.freq ?? { min: 20, max: 20000 },
+			q: wire.q ?? { min: 0.1, max: 10 },
+			gain: wire.gain ?? { min: -12, max: 12 }
 		},
-		preamp: a.preamp ? { mode: 'manual', gain: a.preamp } : { mode: 'unknown' },
+		preamp: wire.preamp,
 		meta: { status: 'draft', sources: [] }
 	};
 }
@@ -149,9 +140,10 @@ interface Resolved {
 }
 
 /**
- * The protocol and profile for a chosen profile id, or for the best of `matches`. The protocol
- * comes from the most specific match that has one (a device profile under a group profile is
- * driven by the group's); the limits from the chosen profile itself.
+ * The protocol and profile for a chosen profile, or with none a vendor's usual protocol. The
+ * protocol is the bridge's choice (`protocolFor`: the chosen profile's own, else that of the most
+ * specific match that has one, so a device profile under a group profile is driven by the
+ * group's; else a guess from the USB vendor); the limits are the chosen profile's own.
  */
 async function resolve(
 	matches: DeviceMatch<IndexEntry>[],
@@ -159,38 +151,26 @@ async function resolve(
 	fallbackName: string,
 	vendorId: number | null
 ): Promise<Resolved | null> {
-	const client = eqcapsClient();
-	const protocol =
-		(chosen && protocolOf(chosen)) ??
-		protocolForMatches(chosen ? [{ id: chosen.id, entry: chosen }, ...matches] : matches)?.protocol;
-	if (chosen && protocol) {
-		const profile = await client.loadProfile(chosen.id);
-		if (profile) {
-			return {
-				protocol,
-				profile,
-				profileSource: chosen.group ? 'group' : 'device',
-				profileId: chosen.id,
-				name: entryLabel(chosen)
-			};
-		}
-		// Index reachable, profile not: drive it on its protocol with the protocol's own limits.
-		return {
-			protocol,
-			profile: guessedProfile(protocol, entryLabel(chosen)),
-			profileSource: 'guess',
-			profileId: null,
-			name: entryLabel(chosen)
-		};
-	}
-	const guess = vendorId !== null ? guessProtocol(vendorId) : undefined;
-	if (!guess) return null;
-	return {
-		protocol: guess,
-		profile: guessedProfile(guess, fallbackName),
+	const choice = protocolFor({ chosen, matches, usbVendorId: vendorId });
+	if (!choice) return null;
+	const { protocol } = choice;
+	const guessed = (name: string): Resolved => ({
+		protocol,
+		profile: guessedProfile(protocol, name),
 		profileSource: 'guess',
 		profileId: null,
-		name: fallbackName
+		name
+	});
+	if (!chosen || choice.source === 'guess') return guessed(fallbackName);
+	const profile = await eqcapsClient().loadProfile(chosen.id);
+	// Index reachable, profile not: drive it on its protocol with the protocol's own limits.
+	if (!profile) return guessed(entryLabel(chosen));
+	return {
+		protocol,
+		profile,
+		profileSource: chosen.group ? 'group' : 'device',
+		profileId: chosen.id,
+		name: entryLabel(chosen)
 	};
 }
 
@@ -232,12 +212,12 @@ async function identify(opts: {
 	let found = await eqcapsClient().matchDevice(opts.identity);
 	// Serial and BLE ports open on the protocol they are driven with, so only an open HID device is
 	// asked. A firmware no profile covers keeps the match without it.
-	const firmware = opts.kind === 'hid' ? await readFirmware(found.matches, opts.open) : null;
+	const firmware = opts.kind === 'hid' ? await readFirmware(found, opts.open) : null;
 	if (firmware) {
 		const again = await eqcapsClient().matchDevice({ ...opts.identity, firmware });
 		if (again.matches.length > 0) found = again;
 	}
-	const { best, matches, ambiguous } = found;
+	const { best, matches, ambiguous, ties } = found;
 
 	const finishWith = async (chosen: IndexEntry | null): Promise<ConnectResult> => {
 		const r = await resolve(matches, chosen, opts.fallbackName, opts.vendorId);
@@ -252,7 +232,7 @@ async function identify(opts: {
 		};
 	};
 
-	const offer = ambiguous ? topTies(matches).map((m) => m.entry) : best ? [] : opts.pickFrom;
+	const offer = ambiguous ? ties.map((m) => m.entry) : best ? [] : opts.pickFrom;
 	if (best) return finishWith(best.entry);
 	if (offer.length > 0 && (ambiguous || opts.vendorId === null || !guessProtocol(opts.vendorId))) {
 		return {

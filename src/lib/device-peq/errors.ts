@@ -18,6 +18,16 @@ function codeOf(error: unknown): Code | null {
 	return null;
 }
 
+/** The device has no such thing right now: an EQ its current mode lacks, a setting it doesn't have. */
+export function isUnsupported(error: unknown): boolean {
+	return codeOf(error) === 'unsupported';
+}
+
+/** The bridge refused the request as given: a preset name the device can't store, an unlisted value. */
+export function isInvalidRequest(error: unknown): boolean {
+	return codeOf(error) === 'invalid-request';
+}
+
 /** The connection is gone and has to be made again. */
 export function isConnectionLost(error: unknown): boolean {
 	return codeOf(error) === 'transport';

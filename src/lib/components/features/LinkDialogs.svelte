@@ -34,7 +34,8 @@
 			skippedChannel: 0,
 			clipRisk: review.clipRisk,
 			infeasible: review.infeasible,
-			emptySlots: 0
+			emptySlots: 0,
+			sent: 0
 		}
 	);
 	/** The review this page already answered: closed here while uniPEQ catches up. */

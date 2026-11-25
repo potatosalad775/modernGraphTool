@@ -8,15 +8,17 @@
  */
 import type { Profile } from '@potatosalad775/eqcaps-core';
 import type {
+	ControlWriteResult,
 	DeviceCapabilities,
 	DeviceIdentity,
 	PullRequest,
 	PullResult,
 	PushRequest,
-	PushResult
+	PushResult,
+	Slot
 } from '@potatosalad775/eqcaps-device-bridge';
 
-export type { PullResult, PushRequest, PushResult, DeviceIdentity };
+export type { PullResult, PushRequest, PushResult, DeviceIdentity, Slot };
 
 /** Connection type for device communication */
 export type ConnectionType = 'hid' | 'serial' | 'ble' | 'network' | 'link';
@@ -36,11 +38,22 @@ export type PeqCapabilities = Pick<
 	| 'slots'
 	| 'disconnectOnSave'
 	| 'experimental'
->;
+> &
+	// The device's own settings. Absent where there are none to drive: a network device, one in uniPEQ.
+	// Its other EQs, and whether it says how many bands it has. Absent the same way.
+	// Also whether a push takes the right channel apart from the left (`perChannel`).
+	// And whether it keeps its presets as a list of its own (`listsSlots`) that can be added to,
+	// renamed and deleted from (`editsSlots`).
+	Partial<
+		Pick<
+			DeviceCapabilities,
+			'controls' | 'eqs' | 'readsBandCount' | 'perChannel' | 'listsSlots' | 'editsSlots'
+		>
+	>;
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
- * written value in eqcaps units (Hz, dB, RBJ Q, `LSC`/`HSC`); pushes are `fit` + `complete`d
+ * written value in eqcaps units (Hz, dB, RBJ Q, `LSC`/`HSC`); pushes go through eqcaps `plan`
  * first, since the bridge never clamps or pads (`push-plan.ts`).
  */
 export interface PeqDevice {
@@ -56,6 +69,31 @@ export interface PeqDevice {
 	/** Whether the EQ is on (`readsEnabled`); null when the protocol or device doesn't say. */
 	eqEnabled(): Promise<boolean | null>;
 	setEnabled(enabled: boolean, slot?: number): Promise<void>;
+	/**
+	 * The current value of each of `capabilities.controls` by id; null for one the device doesn't
+	 * have right now (another firmware, another mode).
+	 */
+	readControls?(): Promise<Record<string, number | null>>;
+	/**
+	 * This device viewed as another of its EQs: an id of `capabilities.eqs`, or none for the EQ the
+	 * profile describes. One the device's current mode lacks answers each operation `unsupported`.
+	 */
+	eq?(id?: string): PeqDevice;
+	/**
+	 * The presets the device holds now, under the names it stores (`listsSlots`), followed by the
+	 * data's bypass preset if there is one.
+	 */
+	slots?(): Promise<readonly Slot[]>;
+	/** Adds an empty preset after the last and returns it (`editsSlots`). Refused when full. */
+	createSlot?(request?: { name?: string }): Promise<Slot>;
+	/** Renames a preset. A name the device can't store is refused, never shortened. */
+	renameSlot?(slot: number, name: string): Promise<void>;
+	/** Deletes a preset. The ones after it move down by one, and the device may switch to another. */
+	deleteSlot?(slot: number): Promise<void>;
+	/** The band count the device reports (`readsBandCount`); null when it doesn't say. */
+	bandCount?(): Promise<number | null>;
+	/** Sets one control. The bridge refuses a value the control doesn't take, and never clamps. */
+	writeControl?(id: string, value: number): Promise<ControlWriteResult>;
 	close(): Promise<void>;
 }
 

@@ -63,8 +63,8 @@
 	const qLocked = $derived(slot.locked.q);
 	const gainLocked = $derived(slot.locked.gain);
 	/**
-	 * Linked with uniPEQ, every band is a band its device plays, on both ears: no per-band on/off
-	 * and no one-ear bands, as in uniPEQ itself.
+	 * Linked with uniPEQ, every band is a band its device plays: no per-band on/off, as in uniPEQ
+	 * itself, and one-ear bands only for a device that drives its channels apart.
 	 */
 	const linked = $derived(linkStore.linked);
 	/** Pass, notch and all-pass bands have no gain: the field reads "—". */
@@ -518,11 +518,12 @@
 					class="-mx-1 mt-1 flex-wrap"
 				/>
 			{/if}
-			{#if !isGraphic && !linked}
+			{#if !isGraphic && (!linked || !eqStore.channelScopeLocked)}
 				<!--
 					Channel target — moves the band between the shared / L / R buckets.
 					Hidden in graphic mode, where the preset fixes one row per band on a
-					single output and there is no per-ear structure to express.
+					single output and there is no per-ear structure to express, and while
+					linked, unless uniPEQ's device takes one-ear bands.
 				-->
 				<div class="flex flex-col gap-1">
 					<span class="text-xs text-base-content/80">{m.eq_channel_applies_to()}</span>

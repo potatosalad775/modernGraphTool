@@ -17,6 +17,7 @@ import {
 	type Profile
 } from '@potatosalad775/eqcaps-core';
 import type {
+	Channel,
 	CommandArgs,
 	CommandName,
 	CommandResult,
@@ -108,16 +109,45 @@ function filtersEqual(a: LinkFilter, b: LinkFilter): boolean {
 }
 
 /**
- * The ops that take uniPEQ from `before` to `after`. One band changed is a `band` op, so an edit
- * to another band made in uniPEQ meanwhile survives. Anything bigger (a band added or removed,
- * AutoEQ, an import, an undo across several bands) is one `list` op: it means the whole list.
+ * The ops that take one of uniPEQ's lists from `before` to `after`, for channel `ch` or, without
+ * it, for both. One band changed is a `band` op, so an edit to another band made in uniPEQ
+ * meanwhile survives. Anything bigger (a band added or removed, AutoEQ, an import, an undo across
+ * several bands) is one `list` op: it means the whole list.
  */
-export function linkOps(before: Filter[], after: Filter[]): EditOp[] {
-	if (before.length !== after.length) return [{ op: 'list', filters: after }];
+export function linkOps(before: LinkFilter[], after: LinkFilter[], ch?: Channel): EditOp[] {
+	const to = ch ? { ch } : {};
+	if (before.length !== after.length) return [{ op: 'list', filters: after, ...to }];
 	const changed = after.flatMap((f, i) => (filtersEqual(f, before[i]) ? [] : [i]));
 	if (changed.length === 0) return [];
-	if (changed.length === 1) return [{ op: 'band', i: changed[0], filter: after[changed[0]] }];
-	return [{ op: 'list', filters: after }];
+	if (changed.length === 1) {
+		return [{ op: 'band', i: changed[0], filter: after[changed[0]], ...to }];
+	}
+	return [{ op: 'list', filters: after, ...to }];
+}
+
+/**
+ * The ops that take uniPEQ from `before` to `after`, channels included. Setting the channels apart
+ * starts the right one as a copy of the left, and joining them keeps the left's (protocol 1.3).
+ * While they stay apart, an edit that lands alike on both (a shared band) goes once, for both.
+ */
+export function linkEdit(before: LinkLists, after: LinkLists): EditOp[] {
+	if (!after.right) {
+		const ops = linkOps(before.left, after.left);
+		return before.right ? [{ op: 'channels', apart: false }, ...ops] : ops;
+	}
+	if (!before.right) {
+		return [
+			{ op: 'channels', apart: true },
+			...linkOps(before.left, after.left, 'left'),
+			...linkOps(before.left, after.right, 'right')
+		];
+	}
+	const both = linkOps(before.left, after.left);
+	if (JSON.stringify(both) === JSON.stringify(linkOps(before.right, after.right))) return both;
+	return [
+		...linkOps(before.left, after.left, 'left'),
+		...linkOps(before.right, after.right, 'right')
+	];
 }
 
 // ── The device ──────────────────────────────────────────────────────────────
@@ -242,8 +272,12 @@ export function acceptProfile(value: unknown): Profile | null {
 	return profile;
 }
 
-/** uniPEQ's capability subset, with anything missing or malformed read as "can't". */
-export function acceptCapabilities(value: unknown): PeqCapabilities {
+/**
+ * uniPEQ's capability subset, with anything missing or malformed read as "can't". Of what protocol
+ * 1.3 added (`minor`) only `perChannel`: the link routes no command for the device's settings,
+ * other EQs or preset list yet, so the UI for them stays off.
+ */
+export function acceptCapabilities(value: unknown, minor: number): PeqCapabilities {
 	const c = isRecord(value) ? value : {};
 	const flag = (key: string) => c[key] === true;
 	const slots = Array.isArray(c.slots)
@@ -273,16 +307,24 @@ export function acceptCapabilities(value: unknown): PeqCapabilities {
 		canEnable: flag('canEnable'),
 		slots,
 		disconnectOnSave: flag('disconnectOnSave'),
-		experimental: flag('experimental')
+		experimental: flag('experimental'),
+		perChannel: minor >= 3 && flag('perChannel')
 	};
 }
 
-/** uniPEQ's device as a Hardware EQ connection, or null when its profile can't be used. */
-export function linkConnection(link: LinkPort, device: LinkDevice): DeviceConnection | null {
+/**
+ * uniPEQ's device as a Hardware EQ connection, or null when its profile can't be used. `minor` is
+ * the session's (`HostLink.minor`).
+ */
+export function linkConnection(
+	link: LinkPort,
+	device: LinkDevice,
+	minor: number
+): DeviceConnection | null {
 	const profile = acceptProfile(device.profile);
 	if (!profile) return null;
 	return {
-		device: new LinkPeqDevice(link, acceptCapabilities(device.capabilities)),
+		device: new LinkPeqDevice(link, acceptCapabilities(device.capabilities, minor)),
 		connectionType: 'link',
 		name: device.name,
 		profile,

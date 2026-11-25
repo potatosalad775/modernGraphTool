@@ -2,6 +2,7 @@ import { untrack } from 'svelte';
 import { resolveSlot, validateProfile, type Profile } from '@potatosalad775/eqcaps-core';
 import type { EqConstraintPreset } from '#lib/types/eq-constraint.js';
 import { eqStore } from './eq-store.svelte.js';
+import { linkStore } from './link-store.svelte.js';
 import {
 	assignSlots,
 	conformFilters,
@@ -131,8 +132,11 @@ class EqConstraintsStore {
 		this.restoreCatalog();
 		this.activeId = this.restoreActiveOrDefault(DEFAULT_CONSTRAINT_ID);
 		// A profile without per-ear EQ keeps the band list on the shared bucket. Per-ear bands never
-		// stay under one: `eqChannelConflict` asks to remove them or lift the restriction.
-		eqStore.lockChannelScopeWhile(() => !this.supportsPerChannel);
+		// stay under one: `eqChannelConflict` asks to remove them or lift the restriction. Linked, so
+		// does uniPEQ without a device that drives its channels apart: it would take none.
+		eqStore.lockChannelScopeWhile(
+			() => !this.supportsPerChannel || (linkStore.linked && !this.#devicePerChannel)
+		);
 	}
 
 	/**

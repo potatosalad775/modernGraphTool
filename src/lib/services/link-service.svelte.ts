@@ -15,30 +15,51 @@
  * so a visitor who never links downloads neither.
  */
 import { untrack } from 'svelte';
-import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { Adopt, HostLink, HostOptions, LinkDevice, LinkEq, LinkStatus } from 'peq-link/client';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import {
-	fromLinkFilters,
+	fromLinkLists,
 	linkConnection,
+	linkEdit,
 	linkOps,
 	LinkCommandError,
 	sendLosses,
-	toLinkFilters
+	toLinkLists,
+	type LinkLists
 } from '#lib/device-peq/link.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands, type ReplaceEqFiltersCommand } from './eq-commands.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
 import { linkConfig } from './link-config.js';
 
+/** uniPEQ's `eq` as its lists: `right` while its channels are apart (protocol 1.3). */
+function listsOf(eq: LinkEq): LinkLists {
+	return { left: eq.filters, right: eq.right?.filters ?? null };
+}
+
+/**
+ * The preamp this page plays for uniPEQ's `eq`. It plays one preamp ahead of the per-ear split, so
+ * with the channels apart it is the lower of the two, which keeps the louder ear from clipping as
+ * `derivePreamp` does.
+ */
+function preampOf(eq: LinkEq): { preamp: number; auto: boolean } {
+	const right = eq.right ?? eq;
+	return { preamp: Math.min(eq.preamp, right.preamp), auto: eq.autoPreamp && right.autoPreamp };
+}
+
 class LinkService {
 	#link: HostLink | null = null;
 	#effects = false;
-	/** The list as uniPEQ has it, as far as this page knows: last adopted, or last sent. */
-	#shared: Filter[] = [];
+	/**
+	 * What uniPEQ holds, as far as this page knows: last adopted, or last sent. Also whether its
+	 * channels are apart (`right`), which this page's edits keep unless they add or remove one-ear
+	 * bands (`#apart`).
+	 */
+	#shared: LinkLists = { left: [], right: null };
 	/** uniPEQ's last list: its preamp is the link's, since this page derives its own. */
 	#remote: LinkEq | null = null;
 	/**
@@ -87,14 +108,24 @@ class LinkService {
 		if (!link) return;
 		if (keep === 'theirs') {
 			if (pending) this.#adopt(pending);
-			else this.#join();
+			else this.#join(toLinkLists(eqStore.filters, this.#remote?.right !== undefined));
 			eqCommands.ensureEnabled();
 			return;
 		}
-		// What uniPEQ can hold: switched-off bands flat, one-ear bands left out.
-		eqCommands.replaceFilters(fromLinkFilters(toLinkFilters(eqStore.filters)));
-		this.#join();
-		link.replaceAll({ filters: this.#shared, preamp: eqStore.preamp, autoPreamp: true });
+		// What uniPEQ can hold: switched-off bands flat, one-ear bands only where its device takes
+		// them, every band in the slot uniPEQ will hold it in.
+		const ears = this.#allowed(link) && hasPerChannelFilters(eqStore.filters);
+		const sent = toLinkLists(eqStore.filters, ears);
+		eqCommands.replaceFilters(fromLinkLists(sent));
+		// Without `right` the list lands on both of uniPEQ's channels, and they stay apart if they were.
+		const apart = this.#remote?.right !== undefined;
+		this.#join(sent.right || !apart ? sent : { left: sent.left, right: sent.left });
+		const preamp = { preamp: eqStore.preamp, autoPreamp: true };
+		link.replaceAll({
+			filters: sent.left,
+			...preamp,
+			...(sent.right ? { right: { filters: sent.right, ...preamp } } : {})
+		});
 	}
 
 	/** Turn uniPEQ's preamp back to Auto: a fixed one came from the device, read in uniPEQ. */
@@ -102,13 +133,29 @@ class LinkService {
 		this.#link?.edit([{ op: 'auto-preamp', on: true }], { settle: true });
 	}
 
-	/** `local` for the client: this page's list, with uniPEQ's preamp, which this page doesn't own. */
+	/**
+	 * `local` for the client: this page's list, with uniPEQ's preamp, which this page doesn't own.
+	 * Apart exactly when `#shared` is: a resync sends this whole, channels included, so any other
+	 * rule would split or join uniPEQ's channels on a reconnect.
+	 */
 	#local(): LinkEq {
-		return {
-			filters: toLinkFilters(eqStore.filters),
-			preamp: this.#remote?.preamp ?? eqStore.preamp,
-			autoPreamp: this.#remote?.autoPreamp ?? true
+		const { left, right } = toLinkLists(eqStore.filters, this.#shared.right !== null);
+		const remote = this.#remote;
+		const top = {
+			preamp: remote?.preamp ?? eqStore.preamp,
+			autoPreamp: remote?.autoPreamp ?? true
 		};
+		if (!right) return { filters: left, ...top };
+		const { preamp, autoPreamp } = remote?.right ?? top;
+		return { filters: left, ...top, right: { filters: right, preamp, autoPreamp } };
+	}
+
+	/**
+	 * uniPEQ takes one-ear bands from this page: it knows protocol 1.3 and its device drives its
+	 * channels apart. The connection is the link's, since nothing else connects while linked.
+	 */
+	#allowed(link: HostLink): boolean {
+		return link.minor >= 3 && devicePeqStore.perChannel;
 	}
 
 	/** Already linked, or a device connected on this page has the EQ. */
@@ -142,7 +189,7 @@ class LinkService {
 
 	#bind(link: HostLink): void {
 		this.#link = link;
-		this.#shared = [];
+		this.#shared = { left: [], right: null };
 		this.#remote = null;
 		eqStore.linkedPreamp = null;
 		this.#joined = false;
@@ -158,28 +205,25 @@ class LinkService {
 		linkStore.server = link.server;
 		this.#installEffects();
 
-		link.on('state', (state) => {
-			linkStore.phase = state;
-			// One list for both ears while linked: the scope picker is locked on L+R.
-			if (state === 'linked') eqStore.channelScope = 'BOTH';
-		});
+		link.on('state', (state) => (linkStore.phase = state));
 		linkStore.launch = link.launch;
 		link.on('hello', (hello) => {
 			linkStore.unipeqVersion = hello.version;
 			linkStore.launchedHere = link.launchedHere;
 		});
-		link.on('eq', (adopt) => this.#receive(adopt));
+		link.on('eq', (adopt) => this.#receive(link, adopt));
 		// After the client's own handler: an `eq` it found equal to this list emitted nothing, and
 		// is still the session's first list settled.
 		link.session.on('message', (message) => {
 			if (message.t !== 'eq' || !linkStore.linked) return;
 			this.#remote = message.eq;
-			if (!this.#joined && !linkStore.choice) this.#join();
+			if (!this.#joined && !linkStore.choice) {
+				this.#join(toLinkLists(eqStore.filters, message.eq.right !== undefined));
+			}
 			// uniPEQ's preamp, for the list as adopted. Not while this page has edits it hasn't seen:
 			// that preamp is for an older list.
 			if (this.#joined && !link.dirty) {
-				const { preamp, autoPreamp } = message.eq;
-				eqStore.linkedPreamp = { preamp, auto: autoPreamp, filters: eqStore.filters };
+				eqStore.linkedPreamp = { ...preampOf(message.eq), filters: eqStore.filters };
 			}
 		});
 		link.on('device', (device) => this.#device(link, device));
@@ -217,8 +261,8 @@ class LinkService {
 		this.#revision = revision;
 		const link = this.#link;
 		if (!link || !this.#joined) return;
-		const next = toLinkFilters(filters);
-		const ops = linkOps(this.#shared, next);
+		const next = toLinkLists(filters, this.#apart(link, filters));
+		const ops = linkEdit(this.#shared, next);
 		this.#shared = next;
 		// A command landing ends the gesture that led to it (a drag's release, a slider's last
 		// step), or is a step of its own (AutoEQ, add, undo).
@@ -245,27 +289,45 @@ class LinkService {
 		this.#burst = null;
 	}
 
+	/**
+	 * Whether uniPEQ's channels are apart once `filters` goes out. One-ear bands set them apart where
+	 * uniPEQ's device takes them, and removing the last of them joins them again if they held any.
+	 * Otherwise they stay as they are: apart with both channels alike is uniPEQ's user's choice.
+	 */
+	#apart(link: HostLink, filters: EQFilter[]): boolean {
+		const ears = hasPerChannelFilters(filters);
+		if (ears && this.#allowed(link)) return true;
+		const { left, right } = this.#shared;
+		return right !== null && (ears || linkOps(left, right).length === 0);
+	}
+
 	/** A list from uniPEQ to adopt (the client already dropped echoes of this page's own edits). */
-	#receive(adopt: Adopt): void {
+	#receive(link: HostLink, adopt: Adopt): void {
 		this.#remote = adopt.eq;
+		const lists = listsOf(adopt.eq);
+		const theirs = fromLinkLists(lists).length;
 		if (linkStore.choice) {
 			this.#pending = adopt;
-			linkStore.choice = { ...linkStore.choice, theirs: adopt.eq.filters.length };
+			linkStore.choice = { ...linkStore.choice, theirs };
 			return;
 		}
 		const ask = adopt.initial || (this.#askOnFresh && adopt.fresh);
 		if (adopt.fresh) this.#askOnFresh = false;
-		// Only the preamp differs (this page derives its own): nothing to adopt or ask about.
-		if (!linkOps(toLinkFilters(eqStore.filters), adopt.eq.filters as Filter[]).length) {
-			if (!this.#joined) this.#join();
+		// Only the preamp differs (this page derives its own), or whether uniPEQ's channels are apart
+		// with both alike: nothing to adopt or ask about.
+		const mine = toLinkLists(eqStore.filters, lists.right !== null);
+		if (!linkEdit(mine, lists).length) {
+			this.#join(mine);
 			return;
 		}
+		const allowed = this.#allowed(link);
+		const sent = toLinkLists(eqStore.filters, allowed);
 		// An empty list here takes uniPEQ's without asking: there is nothing to lose.
-		if (ask && toLinkFilters(eqStore.filters).length > 0) {
+		if (ask && (sent.left.length > 0 || !!sent.right?.length)) {
 			this.#joined = false;
 			this.#endBurst();
 			this.#pending = adopt;
-			linkStore.choice = { theirs: adopt.eq.filters.length, ...sendLosses(eqStore.filters, false) };
+			linkStore.choice = { theirs, ...sendLosses(eqStore.filters, allowed) };
 			return;
 		}
 		this.#adopt(adopt);
@@ -273,9 +335,9 @@ class LinkService {
 	}
 
 	#adopt(adopt: Adopt): void {
-		const filters = fromLinkFilters(adopt.eq.filters);
+		const filters = fromLinkLists(listsOf(adopt.eq));
 		// What the edit effect compares against, set first so the adoption isn't sent back.
-		this.#shared = toLinkFilters(filters);
+		this.#shared = toLinkLists(filters, adopt.eq.right !== undefined);
 		const adopted = this.#adopted;
 		const same = adopt.burst !== undefined && adopted !== null && adopted.burst === adopt.burst;
 		const command = eqCommands.adoptLinked(filters, {
@@ -287,8 +349,10 @@ class LinkService {
 		this.#joined = true;
 	}
 
-	#join(): void {
-		this.#shared = toLinkFilters(eqStore.filters);
+	/** This page's list is uniPEQ's (`lists`), and its edits go out from here on. */
+	#join(lists: LinkLists): void {
+		this.#shared = lists;
+		if (this.#joined) return;
 		this.#revision = commandHistory.revision;
 		this.#joined = true;
 	}
@@ -302,7 +366,7 @@ class LinkService {
 		this.#deviceKey = key;
 		// A device connected in uniPEQ mid-link reads its bands into the list: ask again then.
 		if (first && this.#joined) this.#askOnFresh = true;
-		const connection = device && linkConnection(link, device);
+		const connection = device && linkConnection(link, device, link.minor);
 		linkStore.deviceRejected = device !== null && !connection;
 		if (!connection) {
 			if (devicePeqStore.connection) devicePeqStore.setDisconnected();

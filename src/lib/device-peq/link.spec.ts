@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CommandResult, LinkStatus } from 'peq-link/client';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { describeDeviceError } from './errors.js';
+import { drivesChannelsApart } from './push-plan.js';
 import {
 	acceptCapabilities,
 	acceptProfile,
@@ -9,6 +10,7 @@ import {
 	fromLinkLists,
 	linkConnection,
 	LinkCommandError,
+	linkEdit,
 	linkOps,
 	LinkPeqDevice,
 	sendLosses,
@@ -143,6 +145,58 @@ describe('band lists', () => {
 		expect(linkOps(a, two)).toEqual([{ op: 'list', filters: two }]);
 		const shorter = a.slice(0, 2);
 		expect(linkOps(a, shorter)).toEqual([{ op: 'list', filters: shorter }]);
+		expect(linkOps(a, one, 'right')).toEqual([{ op: 'band', i: 1, filter: one[1], ch: 'right' }]);
+		expect(linkOps(a, shorter, 'left')).toEqual([{ op: 'list', filters: shorter, ch: 'left' }]);
+	});
+});
+
+describe('edits across uniPEQ’s channels', () => {
+	const a = [wire(100, 3), wire(200, 4)];
+	const b = [wire(100, 3), wire(200, 5)];
+	const ear = [wire(800, 2)];
+
+	it('edits the one list as before while the channels are joined', () => {
+		expect(linkEdit({ left: a, right: null }, { left: b, right: null })).toEqual([
+			{ op: 'band', i: 1, filter: wire(200, 5) }
+		]);
+		expect(linkEdit({ left: a, right: null }, { left: a, right: null })).toEqual([]);
+	});
+
+	it('sets the channels apart, then edits each from the left list it starts as', () => {
+		expect(linkEdit({ left: a, right: null }, { left: a, right: [...a, ...ear] })).toEqual([
+			{ op: 'channels', apart: true },
+			{ op: 'list', filters: [...a, ...ear], ch: 'right' }
+		]);
+		expect(linkEdit({ left: a, right: null }, { left: b, right: a })).toEqual([
+			{ op: 'channels', apart: true },
+			{ op: 'band', i: 1, filter: wire(200, 5), ch: 'left' }
+		]);
+	});
+
+	it('joins the channels on the left list, then edits it', () => {
+		expect(linkEdit({ left: a, right: ear }, { left: b, right: null })).toEqual([
+			{ op: 'channels', apart: false },
+			{ op: 'band', i: 1, filter: wire(200, 5) }
+		]);
+		expect(linkEdit({ left: a, right: ear }, { left: a, right: null })).toEqual([
+			{ op: 'channels', apart: false }
+		]);
+	});
+
+	it('sends an edit both channels get alike once, for both; any other per channel', () => {
+		const before = { left: [wire(100, 3), wire(300, 1)], right: [wire(100, 3), wire(900, -1)] };
+		const shared = { left: [wire(100, 6), wire(300, 1)], right: [wire(100, 6), wire(900, -1)] };
+		expect(linkEdit(before, shared)).toEqual([{ op: 'band', i: 0, filter: wire(100, 6) }]);
+		const left = { left: [wire(100, 3), wire(300, 2)], right: before.right };
+		expect(linkEdit(before, left)).toEqual([
+			{ op: 'band', i: 1, filter: wire(300, 2), ch: 'left' }
+		]);
+		const added = { left: [...before.left, ...ear], right: [...before.right, ...ear] };
+		expect(linkEdit(before, added)).toEqual([
+			{ op: 'list', filters: added.left, ch: 'left' },
+			{ op: 'list', filters: added.right, ch: 'right' }
+		]);
+		expect(linkEdit(before, before)).toEqual([]);
 	});
 });
 
@@ -158,24 +212,67 @@ describe('what uniPEQ says about its device', () => {
 	});
 
 	it('reads missing or malformed capabilities as "can\'t"', () => {
-		const caps = acceptCapabilities({
-			canRead: true,
-			canWrite: 'yes',
-			slots: [
-				{ id: 1, name: 'P1', writable: true },
-				{ id: 'x' },
-				{ id: 2, name: 'Jazz', writable: 'yes' },
-				{ id: 9, name: 'Off', bypass: true }
-			]
-		});
+		const caps = acceptCapabilities(
+			{
+				canRead: true,
+				canWrite: 'yes',
+				slots: [
+					{ id: 1, name: 'P1', writable: true },
+					{ id: 'x' },
+					{ id: 2, name: 'Jazz', writable: 'yes' },
+					{ id: 9, name: 'Off', bypass: true }
+				],
+				perChannel: 'yes'
+			},
+			3
+		);
 		expect(caps.canRead).toBe(true);
 		expect(caps.canWrite).toBe(false);
+		expect(caps.perChannel).toBe(false);
 		expect(caps.slots).toEqual([
 			{ id: 1, name: 'P1', writable: true },
 			{ id: 2, name: 'Jazz' },
 			{ id: 9, name: 'Off', bypass: true }
 		]);
-		expect(acceptCapabilities(undefined).slots).toEqual([]);
+		expect(acceptCapabilities(undefined, 3).slots).toEqual([]);
+	});
+
+	it('takes one-ear writes from protocol 1.3 on, and nothing else it added', () => {
+		const value = {
+			perChannel: true,
+			controls: [{ id: 'gain', kind: 'range' }],
+			eqs: [{ id: 'spk', label: 'SPK' }],
+			listsSlots: true,
+			editsSlots: true,
+			readsBandCount: true
+		};
+		const caps = acceptCapabilities(value, 3);
+		expect(caps.perChannel).toBe(true);
+		expect(caps).not.toHaveProperty('controls');
+		expect(caps).not.toHaveProperty('eqs');
+		expect(caps).not.toHaveProperty('listsSlots');
+		expect(caps).not.toHaveProperty('editsSlots');
+		expect(caps).not.toHaveProperty('readsBandCount');
+		// A uniPEQ before 1.3 sends none of these: an older peer says nothing of the device.
+		expect(acceptCapabilities(value, 2).perChannel).toBe(false);
+	});
+
+	it('drives a linked device’s channels apart only where uniPEQ knows protocol 1.3', () => {
+		const device = {
+			name: 'Test DAC',
+			kind: 'demo' as const,
+			profile: { ...PROFILE, channels: 'independent' },
+			profileSource: 'demo' as const,
+			profileId: null,
+			identity: null,
+			capabilities: { canRead: true, perChannel: true }
+		};
+		const apart = (minor: number) => {
+			const conn = linkConnection(fakePort(), device, minor);
+			return !!conn && drivesChannelsApart(conn.profile, conn.device.capabilities);
+		};
+		expect(apart(3)).toBe(true);
+		expect(apart(2)).toBe(false);
 	});
 
 	it('builds a link connection, or none when the profile is unusable', () => {
@@ -189,10 +286,10 @@ describe('what uniPEQ says about its device', () => {
 			identity: null,
 			capabilities: { canRead: true }
 		};
-		const conn = linkConnection(port, device);
+		const conn = linkConnection(port, device, 3);
 		expect(conn).toMatchObject({ connectionType: 'link', name: 'Test DAC', profileSource: 'demo' });
 		expect(conn?.device).toBeInstanceOf(LinkPeqDevice);
-		expect(linkConnection(port, { ...device, profile: {} })).toBeNull();
+		expect(linkConnection(port, { ...device, profile: {} }, 3)).toBeNull();
 	});
 });
 
@@ -208,7 +305,7 @@ function fakePort(status: Partial<LinkStatus> | null = null) {
 describe('LinkPeqDevice', () => {
 	it('turns each device action into uniPEQ’s command', async () => {
 		const port = fakePort({ deviceSlot: 2, eqEnabled: false });
-		const device = new LinkPeqDevice(port, acceptCapabilities({}));
+		const device = new LinkPeqDevice(port, acceptCapabilities({}, 3));
 		await device.pull();
 		await device.setEnabled(true, 3);
 		await device.setEnabled(true);
@@ -236,7 +333,7 @@ describe('LinkPeqDevice', () => {
 	it('fails with uniPEQ’s code, which reads like the bridge’s', async () => {
 		const port = fakePort();
 		port.command.mockResolvedValueOnce({ ok: false, code: 'timeout' });
-		const device = new LinkPeqDevice(port, acceptCapabilities({}));
+		const device = new LinkPeqDevice(port, acceptCapabilities({}, 3));
 		const error = await device.write().catch((e: unknown) => e);
 		expect(error).toBeInstanceOf(LinkCommandError);
 		expect(describeDeviceError(error)).toBe(describeDeviceError(new LinkCommandError('timeout')));

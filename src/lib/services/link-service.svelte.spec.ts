@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import type { Adopt, HostOptions, LinkEq, LinkStatus } from 'peq-link/client';
+import type { Adopt, EditOp, HostOptions, LinkEq, LinkStatus } from 'peq-link/client';
 import { linkService } from './link-service.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
@@ -20,6 +20,8 @@ class FakeHost {
 	room = 'ABCD2345';
 	server = 'https://link.unipeq.com';
 	status: LinkStatus | null = null;
+	/** The session's protocol minor: 3 is a uniPEQ that knows both channels. */
+	minor = 3;
 	readonly launch = 'TESTTOKEN2345678';
 	launchedHere = false;
 	readonly options: HostOptions;
@@ -55,23 +57,29 @@ class FakeHost {
 		this.emit('state', state);
 	}
 
-	/**
-	 * uniPEQ's `eq`, as the client hands it on: an `eq` event only when it differs from this
-	 * page's list, and the raw message either way.
-	 */
+	/** uniPEQ's one list for both channels. */
 	eq(
 		filters: LinkEq['filters'],
 		extra: Partial<Adopt> = {},
 		preamp: Pick<LinkEq, 'preamp' | 'autoPreamp'> = { preamp: -2, autoPreamp: true }
 	) {
-		const eq: LinkEq = { filters, ...preamp };
+		this.send({ filters, ...preamp }, extra);
+	}
+
+	/**
+	 * uniPEQ's `eq`, as the client hands it on: an `eq` event only when it differs from this
+	 * page's list (`eqEqual`, the right channel included), and the raw message either way.
+	 */
+	send(eq: LinkEq, extra: Partial<Adopt> = {}) {
 		const rev = ++this.#rev;
-		const local = this.options.local();
-		const same =
-			JSON.stringify(local.filters) === JSON.stringify(filters) &&
-			local.autoPreamp === eq.autoPreamp &&
-			local.preamp === eq.preamp;
-		if (!same) {
+		const key = ({ filters, preamp, autoPreamp, right }: LinkEq) =>
+			JSON.stringify([
+				filters,
+				preamp,
+				autoPreamp,
+				right && [right.filters, right.preamp, right.autoPreamp]
+			]);
+		if (key(eq) !== key(this.options.local())) {
 			this.emit('eq', { eq, rev, by: 'unipeq', fresh: false, initial: rev === 1, ...extra });
 		}
 		for (const listener of this.#raw) listener({ t: 'eq', rev, ack: 0, by: 'unipeq', eq });
@@ -139,17 +147,47 @@ const DEVICE = {
 	capabilities: { canRead: true, canWrite: true, slots: [] }
 };
 
-/** Starts a link and has uniPEQ approve it. */
-async function linked(): Promise<FakeHost> {
+/** A device whose EQ has a filter set per channel, which uniPEQ writes apart (protocol 1.3). */
+const STEREO = {
+	...DEVICE,
+	name: 'Stereo DAC',
+	profile: { ...DEVICE.profile, channels: 'independent' },
+	capabilities: { ...DEVICE.capabilities, perChannel: true }
+};
+
+/** Starts a link and has uniPEQ approve it, on protocol minor `minor`. */
+async function linked(minor = 3): Promise<FakeHost> {
 	await linkService.start();
+	host.minor = minor;
 	host.setState('linked');
 	return host;
+}
+
+/** uniPEQ's EQ with its channels apart. */
+function apart(
+	left: LinkEq['filters'],
+	right: LinkEq['filters'],
+	preamp: { left: number; right: number; auto?: boolean } = { left: -2, right: -2 }
+): LinkEq {
+	const autoPreamp = preamp.auto ?? true;
+	return {
+		filters: left,
+		preamp: preamp.left,
+		autoPreamp,
+		right: { filters: right, preamp: preamp.right, autoPreamp }
+	};
+}
+
+/** Every op sent to uniPEQ so far. */
+function sentOps(): EditOp[] {
+	return host.edit.mock.calls.flatMap(([ops]) => ops as EditOp[]);
 }
 
 describe('linkService', () => {
 	beforeEach(() => {
 		eqStore.filters = [];
 		eqStore.isEnabled = false;
+		eqStore.channelScope = 'BOTH';
 		commandHistory.clear();
 		frStore.entries.clear();
 		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
@@ -358,5 +396,123 @@ describe('linkService', () => {
 		eqCommands.addBand(pk(2000, 1));
 		flushSync();
 		expect(host.edit).not.toHaveBeenCalled();
+	});
+
+	describe('with uniPEQ’s device driving its channels apart', () => {
+		const left = (freq: number, gain: number): EQFilter => ({ ...pk(freq, gain), channel: 'L' });
+		const right = (freq: number, gain: number): EQFilter => ({ ...pk(freq, gain), channel: 'R' });
+
+		it('takes uniPEQ’s two lists as one-ear bands in slot order, and plays the lower preamp', async () => {
+			eqCurve.installSync();
+			await linked();
+			host.emit('device', STEREO);
+			host.send(
+				apart([wire(100, 3), wire(200, 4), wire(300, 5)], [wire(100, 3), wire(250, 4)], {
+					left: -5,
+					right: -7
+				})
+			);
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3), left(200, 4), right(250, 4), left(300, 5)]);
+			expect(eqStore.preamp).toBe(-7);
+			expect(host.edit).not.toHaveBeenCalled();
+		});
+
+		it('sends a shared band’s edit once, for both channels', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.send(apart([wire(100, 3), wire(200, 4)], [wire(100, 3), wire(250, 4)]));
+			flushSync();
+			eqCommands.updateBand(0, { gain: 6 });
+			flushSync();
+			expect(sentOps()).toEqual([{ op: 'band', i: 0, filter: wire(100, 6) }]);
+		});
+
+		it('sets the channels apart for a one-ear band, and joins them when it goes', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.eq([wire(100, 3)]);
+			flushSync();
+
+			eqCommands.addBand(left(2000, 1));
+			flushSync();
+			expect(sentOps()).toEqual([
+				{ op: 'channels', apart: true },
+				{ op: 'list', filters: [wire(100, 3), wire(2000, 1)], ch: 'left' }
+			]);
+
+			host.edit.mockClear();
+			eqCommands.removeBand(1);
+			flushSync();
+			expect(sentOps()).toEqual([
+				{ op: 'channels', apart: false },
+				{ op: 'list', filters: [wire(100, 3)] }
+			]);
+		});
+
+		it('leaves uniPEQ’s channels apart when its user set them so, both alike', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.send(apart([wire(100, 3)], [wire(100, 3)]));
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3)]);
+			eqCommands.updateBand(0, { gain: 5 });
+			flushSync();
+			expect(sentOps()).toEqual([{ op: 'band', i: 0, filter: wire(100, 5) }]);
+			expect(host.options.local().right?.filters).toEqual([wire(100, 5)]);
+		});
+
+		it('tells a resync the channels are apart exactly when uniPEQ’s are', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.eq([wire(100, 3)]);
+			flushSync();
+			expect(host.options.local()).not.toHaveProperty('right');
+
+			const eq = apart([wire(100, 3), wire(300, 2)], [wire(100, 3)], {
+				left: -4,
+				right: -6,
+				auto: false
+			});
+			host.send(eq);
+			flushSync();
+			// What uniPEQ holds, preamps included, so its echo is no change.
+			expect(host.options.local()).toEqual(eq);
+
+			eqCommands.removeBand(1);
+			flushSync();
+			expect(host.options.local()).not.toHaveProperty('right');
+		});
+
+		it('sends nothing per channel to a uniPEQ before protocol 1.3', async () => {
+			await linked(2);
+			host.emit('device', STEREO);
+			host.eq([wire(100, 3)]);
+			flushSync();
+			eqStore.channelScope = 'L';
+			expect(eqStore.channelScopeLocked).toBe(true);
+			expect(eqStore.channelScope).toBe('BOTH');
+
+			eqCommands.addBand(left(2000, 1));
+			eqCommands.updateBand(0, { gain: 5 });
+			eqCommands.flushBand(0);
+			flushSync();
+			expect(sentOps()).toEqual([{ op: 'band', i: 0, filter: wire(100, 5) }]);
+			expect(host.options.local()).toEqual({
+				filters: [wire(100, 5)],
+				preamp: -2,
+				autoPreamp: true
+			});
+		});
+	});
+
+	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {
+		await linked();
+		host.eq([wire(100, 3)]);
+		flushSync();
+		expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+		expect(eqStore.channelScopeLocked).toBe(true);
+		host.emit('device', STEREO);
+		expect(eqStore.channelScopeLocked).toBe(false);
 	});
 });

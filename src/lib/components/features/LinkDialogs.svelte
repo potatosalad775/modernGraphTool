@@ -26,11 +26,16 @@
 	const review = $derived(
 		devicePeqStore.connection?.connectionType === 'link' ? (linkStore.status?.review ?? null) : null
 	);
-	/** uniPEQ's plan in the shape the push dialog shows. */
+	const EAR = { left: 'L', right: 'R' } as const;
+	/** uniPEQ's plan in the shape the push dialog shows, each change in its channel's ear. */
 	const plan = $derived<PushPlan | null>(
 		review && {
 			filters: [],
-			changes: review.changes,
+			changes: review.changes.map((change) =>
+				change.kind === 'preamp' || !change.channel
+					? change
+					: { ...change, ear: EAR[change.channel] }
+			),
 			skippedChannel: 0,
 			clipRisk: review.clipRisk,
 			infeasible: review.infeasible,

@@ -174,9 +174,12 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   device that takes them (`#allowed`: minor ≥ 3 and `devicePeqStore.perChannel`), the edit sets
   them apart. Removing the last per-ear band joins them, but only if uniPEQ's two lists differed.
   Anything else keeps uniPEQ's mode: apart with both alike is uniPEQ's user's choice. An adoption
-  sets `#shared` first, so it never counts as an edit. `#local()` reports `right` exactly when
-  `#shared` is apart, because the client's resync sends it whole (`replaceOps`, channels op
-  included), and any other rule splits or joins uniPEQ's channels on a reconnect.
+  sets `#shared` first, so it never counts as an edit. Once joined, `#local()` reports `right`
+  exactly when `#shared` is apart, because the client's resync sends it whole (`replaceOps`,
+  channels op included), and any other rule splits or joins uniPEQ's channels on a reconnect.
+  Before the first list settles it is also apart for per-ear bands `#allowed` takes, so a list
+  equal but for them reaches the start dialog. `#receive` compares in the apart form whenever this
+  page has per-ear bands, so uniPEQ joining its channels drops them here.
 - **uniPEQ's lists convert in slot order** (`fromLinkLists`): a slot both ears hold alike is a
   shared band, any other slot its L band and its R band, in place. `toLinkLists` gives the same
   lists back, which `link.spec.ts` pins. `listFromPull` reads a device the same way but groups

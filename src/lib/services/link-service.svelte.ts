@@ -135,11 +135,15 @@ class LinkService {
 
 	/**
 	 * `local` for the client: this page's list, with uniPEQ's preamp, which this page doesn't own.
-	 * Apart exactly when `#shared` is: a resync sends this whole, channels included, so any other
-	 * rule would split or join uniPEQ's channels on a reconnect.
+	 * Once joined, apart exactly when `#shared` is: a resync sends this whole, channels included, so
+	 * any other rule would split or join uniPEQ's channels on a reconnect. Before that, also apart
+	 * for one-ear bands uniPEQ's device takes, so a list equal but for them still asks.
 	 */
 	#local(): LinkEq {
-		const { left, right } = toLinkLists(eqStore.filters, this.#shared.right !== null);
+		const link = this.#link;
+		const ears =
+			!this.#joined && !!link && this.#allowed(link) && hasPerChannelFilters(eqStore.filters);
+		const { left, right } = toLinkLists(eqStore.filters, this.#shared.right !== null || ears);
 		const remote = this.#remote;
 		const top = {
 			preamp: remote?.preamp ?? eqStore.preamp,
@@ -314,8 +318,12 @@ class LinkService {
 		const ask = adopt.initial || (this.#askOnFresh && adopt.fresh);
 		if (adopt.fresh) this.#askOnFresh = false;
 		// Only the preamp differs (this page derives its own), or whether uniPEQ's channels are apart
-		// with both alike: nothing to adopt or ask about.
-		const mine = toLinkLists(eqStore.filters, lists.right !== null);
+		// with both alike: nothing to adopt or ask about. One-ear bands here are a difference even
+		// when uniPEQ's list is joined.
+		const mine = toLinkLists(
+			eqStore.filters,
+			lists.right !== null || hasPerChannelFilters(eqStore.filters)
+		);
 		if (!linkEdit(mine, lists).length) {
 			this.#join(mine);
 			return;

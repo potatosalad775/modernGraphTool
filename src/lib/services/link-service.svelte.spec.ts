@@ -484,6 +484,44 @@ describe('linkService', () => {
 			expect(host.options.local()).not.toHaveProperty('right');
 		});
 
+		it('drops its one-ear bands when uniPEQ’s user joins the channels', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.send(apart([wire(100, 3), wire(2000, 1)], [wire(100, 3)]));
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3), left(2000, 1)]);
+
+			// Both, keeping the right channel.
+			host.eq([wire(100, 3)]);
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3)]);
+
+			eqCommands.updateBand(0, { gain: 5 });
+			flushSync();
+			expect(sentOps()).toEqual([{ op: 'band', i: 0, filter: wire(100, 5) }]);
+		});
+
+		it('asks at the start when the lists differ only by one-ear bands, and sends them apart', async () => {
+			eqStore.filters = [pk(100, 3), left(2000, 1)];
+			await linked();
+			host.emit('device', STEREO);
+			// The preamp alike too, so only the one-ear band tells the lists apart.
+			host.eq([wire(100, 3)], {}, { preamp: eqStore.preamp, autoPreamp: true });
+			flushSync();
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 0 });
+
+			linkService.choose('mine');
+			flushSync();
+			// With `right`, the client sends `channels apart: true` and a list per channel.
+			expect(host.replaceAll).toHaveBeenCalledWith({
+				filters: [wire(100, 3), wire(2000, 1)],
+				preamp: eqStore.preamp,
+				autoPreamp: true,
+				right: { filters: [wire(100, 3)], preamp: eqStore.preamp, autoPreamp: true }
+			});
+			expect(host.edit).not.toHaveBeenCalled();
+		});
+
 		it('sends nothing per channel to a uniPEQ before protocol 1.3', async () => {
 			await linked(2);
 			host.emit('device', STEREO);

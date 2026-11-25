@@ -559,6 +559,25 @@ describe('DevicePeq', () => {
 			expect(device.push.mock.calls[0][0].filters[0].gain).toBe(12);
 		});
 
+		it('reviews again, writing nothing yet, when Write reaches another preset by then', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 15)];
+			eqStore.preamp = -15;
+
+			await page.getByRole('button', { name: 'Write to device' }).click();
+			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
+			// Write goes elsewhere while the review is open.
+			devicePeqStore.target(0);
+			await page.getByRole('button', { name: 'Write', exact: true }).click();
+
+			await vi.waitFor(() => expect(device.pull).toHaveBeenCalledWith({ slot: 0 }));
+			await expect.element(page.getByText('Band 1 · Gain: 15 dB → 12 dB')).toBeInTheDocument();
+			expect(device.push).not.toHaveBeenCalled();
+			await page.getByRole('button', { name: 'Write', exact: true }).click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+			expect(device.push.mock.calls[0][0].slot).toBe(0);
+		});
+
 		it('writes nothing when the review is cancelled', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [band(1000, 15)];
@@ -605,19 +624,20 @@ describe('DevicePeq', () => {
 			const PLACES = [0, 1, 2, 3, 4].map((id) => ({ id, name: `EQ ${id + 1}` }));
 			const newButton = () => page.getByRole('button', { name: 'New', exact: true });
 
-			/** Connects a device that answers `slots()` with its own list, unless `list` is a failure. */
+			/**
+			 * Connects a device that answers `slots()` with its own list (`held`), unless `list` is a
+			 * failure. Device EQ is a dropdown only while it holds more than one.
+			 */
 			async function mountListing(
 				caps: Partial<PeqCapabilities>,
-				list: 'listed' | 'fails' | 'none' = 'listed'
+				list: 'listed' | 'fails' | 'none' = 'listed',
+				held = ['Jazz', 'Rock']
 			) {
 				const made = makeConnection({}, { slots: PLACES, ...caps });
-				made.device.currentSlot.mockResolvedValue(1);
+				made.device.currentSlot.mockResolvedValue(held.length - 1);
 				const slots = vi.fn<NonNullable<PeqDevice['slots']>>(async () => {
 					if (list === 'fails') throw new Error('no answer');
-					return [
-						{ id: 0, name: 'Jazz' },
-						{ id: 1, name: 'Rock' }
-					];
+					return held.map((name, id) => ({ id, name }));
 				});
 				connect.connectHid.mockResolvedValue(
 					connected(
@@ -629,7 +649,8 @@ describe('DevicePeq', () => {
 				await render(DevicePeq);
 				await page.getByRole('button', { name: 'Connect USB device' }).click();
 				await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
-				await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toBeInTheDocument();
+				const eq = page.getByRole(held.length > 1 ? 'combobox' : 'switch', { name: 'Device EQ' });
+				await expect.element(eq).toBeInTheDocument();
 			}
 
 			it('appears under Device EQ for a device that keeps and edits its own list', async () => {
@@ -646,6 +667,19 @@ describe('DevicePeq', () => {
 				// Device EQ lists what the device holds, not the places it has room for.
 				await expect.element(page.getByRole('option', { name: 'Rock' })).toBeInTheDocument();
 				expect(page.getByRole('option', { name: 'EQ 1' }).all()).toHaveLength(0);
+			});
+
+			it('stays with one preset left, Device EQ then a switch, so New is still there', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'listed', ['Jazz']);
+
+				await expect.element(page.getByRole('switch', { name: 'Device EQ' })).toBeChecked();
+				await expect.element(newButton()).toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Rename', exact: true }))
+					.toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Delete', exact: true }))
+					.toBeDisabled();
 			});
 
 			it('is not there for an ordinary device', async () => {

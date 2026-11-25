@@ -19,6 +19,7 @@
 		deviceSpanClass
 	} from './device-rows.js';
 	import { controlLabel } from '#lib/device-peq/control-labels.js';
+	import type { DeviceConnection } from '#lib/device-peq/types.js';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import { panelStatus } from '#lib/device-peq/panel-status.js';
 
@@ -34,6 +35,8 @@
 	// ── State ─────────────────────────────────────────────────────────────────
 
 	let pendingPlan = $state.raw<PushPlan | null>(null);
+	/** The EQ (as `connection` views it) and the preset Write reached when `pendingPlan` was made. */
+	let pendingFor: { view: DeviceConnection | null; slot: number | null } | null = null;
 	let showPushDialog = $state(false);
 
 	const uid = $props.id();
@@ -168,17 +171,29 @@
 		// uniPEQ plans the write; a review comes back as `status.review`, shown by `LinkDialogs`.
 		if (devicePeqService.linkDevice) return devicePeqService.writeLinked();
 		if (volumeWarning.ask(() => void pushToDevice())) return;
+		const target = { view: devicePeqStore.connection, slot: devicePeqStore.activeSlot };
 		const plan = await devicePeqService.prepare();
 		if (!plan) return;
 		if (needsConfirmation(plan)) {
 			pendingPlan = plan;
+			pendingFor = target;
 			showPushDialog = true;
 		} else {
 			void devicePeqService.write(plan);
 		}
 	}
 
-	const writePlan = (plan: PushPlan) => devicePeqService.write(plan);
+	/**
+	 * Write the reviewed plan, unless Write reaches another EQ or preset by now (the device's mode
+	 * dropped an EQ while the review was open): that one gets its own plan, and its own review.
+	 */
+	function writePlan(plan: PushPlan) {
+		const moved =
+			pendingFor?.view !== devicePeqStore.connection ||
+			pendingFor.slot !== devicePeqStore.activeSlot;
+		if (moved) void pushToDevice();
+		else void devicePeqService.write(plan);
+	}
 	const chooseEq = (value: string) => devicePeqService.choose(value);
 </script>
 
@@ -344,9 +359,6 @@
 								{/each}
 							</select>
 						</div>
-						{#if devicePeqStore.canEditPresets}
-							<DevicePresets />
-						{/if}
 					{:else if hasOnOff}
 						<div class={deviceRowClass}>
 							<span class="flex items-center">
@@ -372,11 +384,15 @@
 							/>
 						</div>
 					{/if}
+					<!-- Down to one preset, New is still the way to a second -->
+					{#if devicePeqStore.canEditPresets}
+						<DevicePresets />
+					{/if}
 					<!-- The device refuses a change to an EQ's setting while that EQ is off -->
 					<DeviceSettings controls={eqSettings} disabled={eqOff} />
 					<!-- The device's own, below a rule: the rows above it are the EQ's -->
 					{#if deviceSettings.length > 0}
-						{#if hasPresets || hasOnOff || eqSettings.length > 0}
+						{#if hasPresets || hasOnOff || devicePeqStore.canEditPresets || eqSettings.length > 0}
 							<hr class="{deviceSpanClass} border-base-content/15" />
 						{/if}
 						<DeviceSettings controls={deviceSettings} />

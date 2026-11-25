@@ -162,10 +162,26 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   resume. The client and `uqr` follow by `import()`. Both are in `optimizeDeps.include`: found
   late, they re-optimized and reloaded the dev page on the first Link press, dropping the room.
 - **Edits are diffed, not instrumented.** One effect compares `eqStore.filters` (as the link
-  carries it: `toLinkFilters`) with the last shared list: one changed band is a `band` op,
-  anything else a `list` op. `commandHistory.revision` moving means a command landed, so the
-  gesture settles now (a drag's release); otherwise it settles after `AUTO_WRITE_DELAY_MS` idle.
-  Every edit path is covered without touching it, the way auto-write's effect does.
+  carries it: `toLinkLists`) with the last shared lists (`linkEdit`): one changed band is a
+  `band` op, anything else a `list` op. `commandHistory.revision` moving means a command landed,
+  so the gesture settles now (a drag's release); otherwise it settles after `AUTO_WRITE_DELAY_MS`
+  idle. Every edit path is covered without touching it, the way auto-write's effect does.
+- **`#shared` (`LinkLists`) is the one owner of what uniPEQ holds and whether its channels are
+  apart** (`right !== null`, protocol 1.3). Don't add an `apart` flag beside it. While apart, an
+  edit both channels get alike (a shared band) goes once without `ch`; anything else goes per
+  channel.
+- **Only this page's own edit joins uniPEQ's channels** (`#apart`). With per-ear bands and a
+  device that takes them (`#allowed`: minor ≥ 3 and `devicePeqStore.perChannel`), the edit sets
+  them apart. Removing the last per-ear band joins them, but only if uniPEQ's two lists differed.
+  Anything else keeps uniPEQ's mode: apart with both alike is uniPEQ's user's choice. An adoption
+  sets `#shared` first, so it never counts as an edit. `#local()` reports `right` exactly when
+  `#shared` is apart, because the client's resync sends it whole (`replaceOps`, channels op
+  included), and any other rule splits or joins uniPEQ's channels on a reconnect.
+- **uniPEQ's lists convert in slot order** (`fromLinkLists`): a slot both ears hold alike is a
+  shared band, any other slot its L band and its R band, in place. `toLinkLists` gives the same
+  lists back, which `link.spec.ts` pins. `listFromPull` reads a device the same way but groups
+  shared, then L, then R. That loses the slots, so the next band op would name the wrong index
+  and every echo would differ from this page's list.
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.
@@ -175,6 +191,9 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
 - The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it,
   and every `eq` sets `eqStore.linkedPreamp`, which `eqCurve.installSync` shows and plays (a fixed
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
+  With the channels apart it is the lower of the two, Auto only if both are. uniPEQ_link's
+  design says the left's. This page plays one preamp ahead of the per-ear split, so the lower
+  one keeps the louder ear from clipping, as `derivePreamp` does.
 
 ## `data-provider.svelte.ts`
 

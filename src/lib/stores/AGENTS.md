@@ -134,9 +134,10 @@ recording it would bury real edits under navigation, and a share link reopening 
 scope is noise. The `sourcePhoneUUID` setter resets it to `'BOTH'` when the device changes (not when the
 first one is picked) — leaving it on `L` would open the next device on an empty list. It used to be
 an `EqualizerPanel` effect, which missed a device change made while another panel was open.
-It also **reads `BOTH` while `channelScopeLocked` holds** — a profile without per-ear EQ
-(`supportsPerChannel`: anything but the unlimited default and a connected device that drives its
-channels apart, `device-peq/AGENTS.md`), a predicate `eqConstraintsStore` injects. A restriction
+It also **reads `BOTH` while `channelScopeLocked` holds**, a predicate `eqConstraintsStore`
+injects: a profile without per-ear EQ (`supportsPerChannel`: anything but the unlimited default and
+a connected device that drives its channels apart, `device-peq/AGENTS.md`), or a link to a uniPEQ
+whose device doesn't drive them apart, which would take no per-ear band. A restriction
 has only the shared bucket, so a list left on `L` showed nothing behind a disabled picker. Keep it
 a getter rather than resetting the field where a preset activates: redo and a device connecting
 reach that state without passing through the picker.

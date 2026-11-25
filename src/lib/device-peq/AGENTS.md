@@ -170,8 +170,11 @@ needs it at boot); keep it the only one.
   `deviceRowClass`; don't give one its own flex layout, or put a label to the right of its switch.
 - **The same names and widgets as uniPEQ** (`control-labels.ts`, `rangeChoices`, `balanceOf`): a
   role gives the translated name, values keep the vendor's. Change them in both apps or neither.
-  The link carries no controls and no EQ list (peq-link 1.3), so a linked device shows neither:
-  uniPEQ sends the profile of the EQ it has picked, and that is the one this page sees.
+  Protocol 1.3 (peq-link 1.4) carries both, but this page shows neither yet: no command for them
+  is routed over the link, so `acceptCapabilities` keeps only `perChannel` of the keys 1.3 added.
+  uniPEQ sends the profile of the EQ it has picked, and that is the one this page sees. A linked
+  device that drives its channels apart takes per-ear bands (the link-service section of
+  `services/AGENTS.md`).
 - **A device in uniPEQ is a `'link'` connection** (`link.ts`, bound by
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
   `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to

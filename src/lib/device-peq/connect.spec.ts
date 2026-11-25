@@ -7,8 +7,20 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { IndexEntry, Profile } from '@potatosalad775/eqcaps-core';
-import type { HidTransport, StreamTransport } from '@potatosalad775/eqcaps-device-bridge';
+import { matchDevice as realMatchDevice } from '@potatosalad775/eqcaps-client';
+import type { DeviceMatch, MatchResult } from '@potatosalad775/eqcaps-client';
+import {
+	analyzeCodec,
+	guessProtocol,
+	HANDLERS,
+	wireConstraints,
+	type BridgeDevice,
+	type HidTransport,
+	type Protocol,
+	type StreamTransport
+} from '@potatosalad775/eqcaps-device-bridge';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
+import type { DeviceConnection } from './types.js';
 
 const browser = vi.hoisted(() => ({
 	requestHidDevice: vi.fn(),
@@ -27,6 +39,9 @@ const client = vi.hoisted(() => ({
 vi.mock('#lib/services/eqcaps-client.js', () => ({ eqcapsClient: () => client }));
 
 const { connectHid, connectSerial, guessedProfile } = await import('./connect.js');
+
+/** The handler a connection is driven by: connect.ts opens a real bridge device behind `PeqDevice`. */
+const handlerOf = (c: DeviceConnection) => (c.device as BridgeDevice).protocol.handler;
 
 function hid(vendorId: number, productId: number, productName: string): HidTransport {
 	return {
@@ -58,12 +73,41 @@ function entry(id: string, extra: Partial<IndexEntry> = {}): IndexEntry {
 	};
 }
 
-const match = (e: IndexEntry, specificity = 3, group = false) => ({
+const match = (e: IndexEntry, specificity = 3, group = false): DeviceMatch<IndexEntry> => ({
 	id: e.id,
 	specificity,
 	group,
 	entry: e
 });
+
+/**
+ * What the client's `matchDevice` answers for `matches`, with every field a real `MatchResult`
+ * carries, derived the way `eqcaps-client`'s `match.ts` derives them (the spec at the bottom checks
+ * that against the real function). `firmware` is the version the identity gave, if any: the client
+ * has then already dropped the profiles whose range it falls outside, so `matches` must be the ones
+ * that survive.
+ */
+function matchResult(
+	matches: DeviceMatch<IndexEntry>[],
+	firmware?: string
+): MatchResult<IndexEntry> {
+	const sorted = [...matches].sort(
+		(a, b) =>
+			b.specificity - a.specificity || Number(a.group) - Number(b.group) || a.id.localeCompare(b.id)
+	);
+	const top = sorted.at(0);
+	const ties = top
+		? sorted.filter((x) => x.specificity === top.specificity && x.group === top.group)
+		: [];
+	return {
+		matches: sorted,
+		best: top && ties.length === 1 ? top : null,
+		ambiguous: ties.length > 1,
+		ties,
+		firmwareDecides:
+			firmware === undefined && ties.some((x) => x.entry.match?.firmware !== undefined)
+	};
+}
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -82,7 +126,7 @@ describe('connectHid', () => {
 	it('drives a matched device with its profile’s protocol and limits', async () => {
 		const e = entry('crinear-protocol-micro');
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
-		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 
 		const result = await connectHid();
 		expect(result.kind).toBe('connected');
@@ -101,11 +145,7 @@ describe('connectHid', () => {
 	it('says a group match is one', async () => {
 		const e = entry('walkplay-schemeno16-devices', { group: true });
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1234, 'Dongle'));
-		client.matchDevice.mockResolvedValue({
-			best: match(e, 3, true),
-			matches: [match(e, 3, true)],
-			ambiguous: false
-		});
+		client.matchDevice.mockResolvedValue(matchResult([match(e, 3, true)]));
 		const result = await connectHid();
 		expect(result.kind === 'connected' && result.connection.profileSource).toBe('group');
 	});
@@ -114,11 +154,7 @@ describe('connectHid', () => {
 		const a = entry('model-a');
 		const b = entry('model-b');
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Twin'));
-		client.matchDevice.mockResolvedValue({
-			best: null,
-			matches: [match(a), match(b)],
-			ambiguous: true
-		});
+		client.matchDevice.mockResolvedValue(matchResult([match(a), match(b)]));
 
 		const result = await connectHid();
 		expect(result.kind).toBe('choose');
@@ -140,7 +176,7 @@ describe('connectHid', () => {
 			protocol: fosi,
 			match: { firmware: { min: '1.4.15' } }
 		});
-		const tie = { best: null, matches: [match(current), match(old)], ambiguous: true };
+		const tie = matchResult([match(current), match(old)]);
 
 		/** A DS3 that answers Fosi's firmware command (0xA6) with `version`, BCD per part. */
 		function ds3(version: number[] | null): HidTransport {
@@ -154,9 +190,7 @@ describe('connectHid', () => {
 		it('reads the firmware and connects the profile it falls in', async () => {
 			browser.requestHidDevice.mockResolvedValue(ds3([0x01, 0x06, 0x10]));
 			client.matchDevice.mockImplementation(async (identity: { firmware?: string }) =>
-				identity.firmware === '1.6.10'
-					? { best: match(current), matches: [match(current)], ambiguous: false }
-					: tie
+				identity.firmware === '1.6.10' ? matchResult([match(current)], identity.firmware) : tie
 			);
 
 			const result = await connectHid();
@@ -180,13 +214,174 @@ describe('connectHid', () => {
 			]);
 			expect(client.matchDevice).toHaveBeenCalledTimes(1);
 		});
+
+		function expectNotAsked(t: HidTransport) {
+			expect(client.matchDevice).toHaveBeenCalledTimes(1);
+			expect(t.sendReport).not.toHaveBeenCalled();
+			expect(t.sendFeatureReport).not.toHaveBeenCalled();
+			expect(t.receiveFeatureReport).not.toHaveBeenCalled();
+		}
+
+		it('doesn’t ask when a match that isn’t a tie merely has a firmware range', async () => {
+			const exact = entry('ds3-exact', { protocol: fosi });
+			const ranged = entry('ds3-ranged', {
+				protocol: fosi,
+				match: { firmware: { min: '1.4.15' } }
+			});
+			const found = matchResult([match(exact, 4), match(ranged, 3)]);
+			expect(found.firmwareDecides).toBe(false);
+			const t = ds3([0x01, 0x06, 0x10]);
+			browser.requestHidDevice.mockResolvedValue(t);
+			client.matchDevice.mockResolvedValue(found);
+
+			const result = await connectHid();
+			expect(result.kind === 'connected' && result.connection.profileId).toBe('ds3-exact');
+			expectNotAsked(t);
+		});
+
+		it('doesn’t ask when the tied profiles are driven by different handlers', async () => {
+			const fosiTwin = entry('twin-fosi', {
+				protocol: fosi,
+				match: { firmware: { min: '1.0.0' } }
+			});
+			const walkplayTwin = entry('twin-walkplay', {
+				protocol: { handler: 'walkplay-hid' },
+				match: { firmware: { max: '1.0.0' } }
+			});
+			const found = matchResult([match(fosiTwin), match(walkplayTwin)]);
+			expect(found.firmwareDecides).toBe(true);
+			const t = ds3([0x01, 0x06, 0x10]);
+			browser.requestHidDevice.mockResolvedValue(t);
+			client.matchDevice.mockResolvedValue(found);
+
+			const result = await connectHid();
+			expect(result.kind).toBe('choose');
+			if (result.kind !== 'choose') return;
+			expect(result.candidates.map((c) => c.id)).toEqual(['twin-fosi', 'twin-walkplay']);
+			expectNotAsked(t);
+		});
+
+		it('doesn’t ask when the tied profiles have no protocol to read it with', async () => {
+			const bare = entry('bare-a', { protocol: undefined, match: { firmware: { min: '1.0.0' } } });
+			const bare2 = entry('bare-b', { protocol: undefined, match: { firmware: { max: '1.0.0' } } });
+			const t = ds3([0x01, 0x06, 0x10]);
+			browser.requestHidDevice.mockResolvedValue(t);
+			client.matchDevice.mockResolvedValue(matchResult([match(bare), match(bare2)]));
+
+			expect((await connectHid()).kind).toBe('choose');
+			expectNotAsked(t);
+		});
+	});
+
+	describe('a tie', () => {
+		it('offers exactly the tied matches, not the weaker ones', async () => {
+			const a = entry('model-a');
+			const b = entry('model-b');
+			const weaker = entry('model-c');
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Twin'));
+			client.matchDevice.mockResolvedValue(matchResult([match(weaker, 2), match(b), match(a)]));
+
+			const result = await connectHid();
+			expect(result.kind).toBe('choose');
+			if (result.kind !== 'choose') return;
+			expect(result.candidates.map((c) => c.id)).toEqual(['model-a', 'model-b']);
+		});
+
+		it('offers the tied group profiles, not the device profile that matches less', async () => {
+			const g1 = entry('group-1', { group: true });
+			const g2 = entry('group-2', { group: true });
+			const device = entry('device-weaker');
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Twin'));
+			client.matchDevice.mockResolvedValue(
+				matchResult([match(device, 2), match(g1, 3, true), match(g2, 3, true)])
+			);
+
+			const result = await connectHid();
+			expect(result.kind).toBe('choose');
+			if (result.kind !== 'choose') return;
+			expect(result.candidates.map((c) => c.id)).toEqual(['group-1', 'group-2']);
+		});
+
+		it('asks even for a vendor whose protocol could be guessed', async () => {
+			const a = entry('model-a');
+			const b = entry('model-b');
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Twin'));
+			client.matchDevice.mockResolvedValue(matchResult([match(a), match(b)]));
+			expect(guessProtocol(0x3302)).toBeDefined();
+
+			expect((await connectHid()).kind).toBe('choose');
+		});
+	});
+
+	describe('which protocol drives it', () => {
+		it('drives a device with no match on its vendor’s guessed protocol, as experimental', async () => {
+			browser.requestHidDevice.mockResolvedValue(hid(0x2972, 0x1, 'Mystery FiiO '));
+			client.matchDevice.mockResolvedValue(matchResult([]));
+
+			const result = await connectHid();
+			if (result.kind !== 'connected') throw new Error('expected a connection');
+			const { connection } = result;
+			expect(handlerOf(connection)).toBe(guessProtocol(0x2972)?.handler);
+			expect(connection.device.capabilities.experimental).toBe(true);
+			expect(connection.profileSource).toBe('guess');
+			expect(connection.profileId).toBeNull();
+			expect(connection.name).toBe('Mystery FiiO');
+			expect(connection.profile.id).toBe(`guess-${guessProtocol(0x2972)?.handler}`);
+		});
+
+		it('guesses too for a match whose profile names no protocol anywhere', async () => {
+			const bare = entry('no-protocol', { protocol: undefined });
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Bare'));
+			client.matchDevice.mockResolvedValue(matchResult([match(bare)]));
+
+			const result = await connectHid();
+			if (result.kind !== 'connected') throw new Error('expected a connection');
+			expect(handlerOf(result.connection)).toBe('walkplay-hid');
+			expect(result.connection.profileSource).toBe('guess');
+			expect(result.connection.profileId).toBeNull();
+			expect(result.connection.device.capabilities.experimental).toBe(true);
+			expect(client.loadProfile).not.toHaveBeenCalled();
+		});
+
+		it('takes the protocol from the most specific match that has one, when the profile has none', async () => {
+			const chosen = entry('device-child', { protocol: undefined });
+			const near = entry('near-group', {
+				group: true,
+				protocol: { handler: 'fosi-audio-usb-hid' }
+			});
+			const far = entry('far-group', { group: true, protocol: { handler: 'ktmicro-usb-hid' } });
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Child'));
+			client.matchDevice.mockResolvedValue(
+				matchResult([match(far, 2, true), match(chosen, 4), match(near, 3, true)])
+			);
+
+			const result = await connectHid();
+			if (result.kind !== 'connected') throw new Error('expected a connection');
+			expect(handlerOf(result.connection)).toBe('fosi-audio-usb-hid');
+			expect(result.connection.profileId).toBe('device-child');
+			expect(result.connection.profileSource).toBe('device');
+		});
+
+		it('prefers the chosen profile’s own protocol over its matches’', async () => {
+			const chosen = entry('device-own', { protocol: { handler: 'walkplay-hid' } });
+			const group = entry('own-group', {
+				group: true,
+				protocol: { handler: 'fosi-audio-usb-hid' }
+			});
+			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x1, 'Own'));
+			client.matchDevice.mockResolvedValue(matchResult([match(chosen, 4), match(group, 3, true)]));
+
+			const result = await connectHid();
+			if (result.kind !== 'connected') throw new Error('expected a connection');
+			expect(handlerOf(result.connection)).toBe('walkplay-hid');
+		});
 	});
 
 	it('doesn’t ask for the firmware when no matched profile depends on it', async () => {
 		const e = entry('crinear-protocol-micro');
 		const t = hid(0x3302, 0xc20f, 'Protocol Micro');
 		browser.requestHidDevice.mockResolvedValue(t);
-		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 
 		expect((await connectHid()).kind).toBe('connected');
 		expect(t.sendReport).not.toHaveBeenCalled();
@@ -195,7 +390,7 @@ describe('connectHid', () => {
 
 	it('guesses a known vendor’s protocol, with limits from what it can carry', async () => {
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x9999, 'Mystery DSP '));
-		client.matchDevice.mockResolvedValue({ best: null, matches: [], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([]));
 
 		const result = await connectHid();
 		expect(result.kind).toBe('connected');
@@ -209,7 +404,7 @@ describe('connectHid', () => {
 	it('closes the device and reports it unsupported when nothing can drive it', async () => {
 		const t = hid(0x1234, 0x5678, 'Keyboard');
 		browser.requestHidDevice.mockResolvedValue(t);
-		client.matchDevice.mockResolvedValue({ best: null, matches: [], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([]));
 
 		const result = await connectHid();
 		expect(result.kind).toBe('unsupported');
@@ -219,7 +414,7 @@ describe('connectHid', () => {
 	it('drives the device on its protocol’s own limits when the profile can’t be fetched', async () => {
 		const e = entry('offline-profile');
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0x2, 'X'));
-		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 		client.loadProfile.mockResolvedValue(null);
 		const result = await connectHid();
 		expect(result.kind === 'connected' && result.connection.profileSource).toBe('guess');
@@ -228,7 +423,7 @@ describe('connectHid', () => {
 	it('finds the same device again without the chooser', async () => {
 		const e = entry('crinear-protocol-micro');
 		browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
-		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 		const result = await connectHid();
 		if (result.kind !== 'connected') throw new Error('expected a connection');
 
@@ -248,11 +443,7 @@ describe('connectHid', () => {
 		async function connected() {
 			const e = entry('crinear-protocol-micro');
 			browser.requestHidDevice.mockResolvedValue(hid(0x3302, 0xc20f, 'Protocol Micro'));
-			client.matchDevice.mockResolvedValue({
-				best: match(e),
-				matches: [match(e)],
-				ambiguous: false
-			});
+			client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 			const result = await connectHid();
 			if (result.kind !== 'connected') throw new Error('expected a connection');
 			return result.connection;
@@ -293,7 +484,7 @@ describe('connectHid', () => {
 		const t = hid(0x3302, 0xc20f, 'Protocol Micro');
 		t.onDisconnect = vi.fn(() => off);
 		browser.requestHidDevice.mockResolvedValue(t);
-		client.matchDevice.mockResolvedValue({ best: match(e), matches: [match(e)], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([match(e)]));
 
 		const result = await connectHid();
 		if (result.kind !== 'connected') throw new Error('expected a connection');
@@ -310,7 +501,7 @@ describe('connectSerial', () => {
 		});
 		const hidEntry = entry('hid-only');
 		client.loadIndex.mockResolvedValue({ profiles: [serialEntry, hidEntry] });
-		client.matchDevice.mockResolvedValue({ best: null, matches: [], ambiguous: false });
+		client.matchDevice.mockResolvedValue(matchResult([]));
 		const stream: StreamTransport = {
 			kind: 'serial',
 			write: vi.fn(async () => {}),
@@ -338,4 +529,65 @@ describe('guessedProfile', () => {
 		expect(p.band.types?.every((t) => ['PK', 'LSC', 'HSC'].includes(t))).toBe(true);
 		expect(p.bandCount).toBeGreaterThan(0);
 	});
+
+	describe.each(Object.keys(HANDLERS))('for %s', (handler) => {
+		const protocol = { handler } as Protocol;
+
+		it('has as many bands as the protocol’s write carries', () => {
+			const p = guessedProfile(protocol, 'Dongle');
+			const bands = analyzeCodec(protocol).bands;
+			expect(p.bandCount).toBe(wireConstraints(protocol).bandCount);
+			expect(p.bandCount).toBeGreaterThanOrEqual(bands.min);
+			expect(p.bandCount).toBeLessThanOrEqual(bands.max);
+		});
+
+		it('offers only the filter types the app can draw, and has one', () => {
+			const types = guessedProfile(protocol, 'Dongle').band.types ?? [];
+			expect(types.length).toBeGreaterThan(0);
+			expect(types.every((t) => ['PK', 'LSC', 'HSC'].includes(t))).toBe(true);
+			const wire = wireConstraints(protocol).types.filter((t) => ['PK', 'LSC', 'HSC'].includes(t));
+			expect(types).toEqual(wire.length > 0 ? wire : ['PK']);
+		});
+	});
+
+	it('keeps a protocol’s fixed band count', () => {
+		expect(guessedProfile({ handler: 'edifier-serial' }, 'Edifier').bandCount).toBe(4);
+		expect(guessedProfile({ handler: 'moondrop-edge-serial' }, 'Edge').bandCount).toBe(5);
+	});
+
+	it('is named for the device and stays a draft nobody has verified', () => {
+		const p = guessedProfile({ handler: 'walkplay-hid' }, 'Dongle');
+		expect(p.id).toBe('guess-walkplay-hid');
+		expect(p.device).toEqual({ brand: 'Dongle', model: '' });
+		expect(p.meta.status).toBe('draft');
+	});
+});
+
+describe('the match results these specs mock', () => {
+	const vendor = { vendorId: '0x152a' };
+	const usb = (productId: string) => [{ ...vendor, productId }];
+	const old = entry('ds3-8-band', {
+		match: { usb: usb('0x889b'), firmware: { max: '1.4.15' } }
+	});
+	const current = entry('ds3', { match: { usb: usb('0x889b'), firmware: { min: '1.4.15' } } });
+	const group = entry('fosi-group', { group: true, match: { usb: usb('0x889b') } });
+	const exact = entry('ds3-exact', {
+		match: { usb: [{ ...vendor, productId: '0x889b', productName: 'Fosi Audio DS3' }] }
+	});
+	const identity = { usb: { vendorId: 0x152a, productId: 0x889b, productName: 'Fosi Audio DS3' } };
+
+	it.each([
+		['a tie only the firmware settles', [old, current], undefined],
+		['the same tie once the firmware is known', [old, current], '1.6.10'],
+		['a device profile over a group one', [group, current], '1.6.10'],
+		['a tie between the group profile and the device profiles', [group, old, current], undefined],
+		['a more specific match over firmware ranges', [exact, old, current], undefined],
+		['no match', [], undefined]
+	] as [string, IndexEntry[], string | undefined][])(
+		'agrees with the client for %s',
+		(_, entries, firmware) => {
+			const real = realMatchDevice(entries, { ...identity, ...(firmware ? { firmware } : {}) });
+			expect(matchResult(real.matches, firmware)).toEqual(real);
+		}
+	);
 });

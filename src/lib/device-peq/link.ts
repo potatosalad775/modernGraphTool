@@ -13,6 +13,7 @@
 import {
 	resolveSlot,
 	validateProfile,
+	type Control,
 	type Filter,
 	type Profile
 } from '@potatosalad775/eqcaps-core';
@@ -326,6 +327,14 @@ export class LinkPeqDevice implements PeqDevice {
 	deletePreset(slot: number): Promise<void> {
 		return run(this.#link.command('preset-delete', { slot }));
 	}
+
+	/**
+	 * Sets one of `capabilities.controls`. The value arrives in `status.controls`; one that makes
+	 * the device reconnect sets `status.needsReconnect`, and uniPEQ reopens it.
+	 */
+	setControl(id: string, value: number): Promise<void> {
+		return run(this.#link.command('control', { id, value }));
+	}
 }
 
 // ── What uniPEQ says about its device ───────────────────────────────────────
@@ -371,10 +380,58 @@ export function acceptSlots(value: unknown): Slot[] | null {
 	);
 }
 
+const isString = (v: unknown): v is string => typeof v === 'string';
+const isNumber = (v: unknown): v is number => Number.isFinite(v);
+/** Absent, or `check` holds. */
+const optional = (v: unknown, check: (v: unknown) => boolean) => v === undefined || check(v);
+const listOf = (check: (v: unknown) => boolean) => (v: unknown) =>
+	Array.isArray(v) && v.every(check);
+const isOption = (v: unknown) => isRecord(v) && isNumber(v.value) && isString(v.name);
+const isRange = (v: unknown) =>
+	isRecord(v) && isNumber(v.min) && isNumber(v.max) && optional(v.step, isNumber);
+
+/** A setting's widget: a toggle, a choice with its values, a range with its bounds. */
+function hasWidget(c: Record<string, unknown>): boolean {
+	if (!optional(c.values, listOf(isOption)) || !optional(c.range, isRange)) return false;
+	if (c.kind === 'choice') return c.values !== undefined;
+	if (c.kind === 'range') return c.range !== undefined;
+	return c.kind === 'toggle';
+}
+
+/**
+ * One of uniPEQ's device settings, checked for every field this page reads: its name and widget,
+ * where it is shown (`eq`), whether it restarts the device, and which values turn the EQ off.
+ */
+function isControl(value: unknown): value is Control {
+	return (
+		isRecord(value) &&
+		isString(value.id) &&
+		isString(value.name) &&
+		hasWidget(value) &&
+		optional(value.role, isString) &&
+		optional(value.unit, isString) &&
+		optional(value.eq, (v) => v === true || isString(v)) &&
+		optional(value.reconnect, (v) => typeof v === 'boolean') &&
+		optional(value.disablesEq, listOf(isNumber))
+	);
+}
+
+/**
+ * `status.controls`: each setting by id, in the device's own numbers, or null where the device
+ * lacks it now. Anything else is left out, and the row with it.
+ */
+export function acceptControlValues(value: unknown): Record<string, number | null> {
+	if (!isRecord(value)) return {};
+	const known = (entry: [string, unknown]): entry is [string, number | null] =>
+		entry[1] === null || isNumber(entry[1]);
+	return Object.fromEntries(Object.entries(value).filter(known));
+}
+
 /**
  * uniPEQ's capability subset, with anything missing or malformed read as "can't". Of what protocol
- * 1.3 added (`minor`): `perChannel` and the preset list (`listsSlots`, `editsSlots`). The device's
- * other EQs and settings aren't routed over the link yet, so the UI for them stays off.
+ * 1.3 added (`minor`): `perChannel`, the preset list (`listsSlots`, `editsSlots`) and the device's
+ * settings (`controls`, a malformed one left out). The device's other EQs aren't routed over the
+ * link yet, so the UI for them stays off.
  */
 export function acceptCapabilities(value: unknown, minor: number): PeqCapabilities {
 	const c = isRecord(value) ? value : {};
@@ -398,7 +455,9 @@ export function acceptCapabilities(value: unknown, minor: number): PeqCapabiliti
 		experimental: flag('experimental'),
 		perChannel: late('perChannel'),
 		listsSlots: late('listsSlots'),
-		editsSlots: late('editsSlots')
+		editsSlots: late('editsSlots'),
+		// Their values are in `status.controls`.
+		controls: minor >= 3 && Array.isArray(c.controls) ? c.controls.filter(isControl) : []
 	};
 }
 

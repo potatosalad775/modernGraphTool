@@ -1131,5 +1131,35 @@ describe('DevicePeq', () => {
 			await newButton.click();
 			await vi.waitFor(() => expect(command).toHaveBeenCalledWith('preset-create', {}));
 		});
+
+		it('shows its settings as uniPEQ reads them, and sets them through uniPEQ', async () => {
+			const command = linked({
+				controls: [
+					{ id: 'feed', name: 'Crossfeed', kind: 'toggle', eq: true },
+					{
+						id: 'filter',
+						name: 'Filter',
+						kind: 'choice',
+						values: [
+							{ value: 0, name: 'Fast' },
+							{ value: 1, name: 'Slow' }
+						]
+					}
+				]
+			});
+			devicePeqStore.controlValues = { feed: 0, filter: 1 };
+			await render(DevicePeq);
+
+			const feed = page.getByRole('switch', { name: 'Crossfeed' });
+			await expect.element(feed).not.toBeChecked();
+			await expect.element(page.getByRole('combobox', { name: 'Filter' })).toHaveValue('1');
+
+			await feed.click();
+			await vi.waitFor(() =>
+				expect(command).toHaveBeenCalledWith('control', { id: 'feed', value: 1 })
+			);
+			// The row follows the device: it moves with the value uniPEQ's status reads back.
+			await expect.element(feed).not.toBeChecked();
+		});
 	});
 });

@@ -11,6 +11,7 @@ import { describeDeviceError } from './errors.js';
 import { drivesChannelsApart } from './push-plan.js';
 import {
 	acceptCapabilities,
+	acceptControlValues,
 	acceptProfile,
 	carriesEars,
 	fromLinkFilters,
@@ -332,10 +333,11 @@ describe('what uniPEQ says about its device', () => {
 		expect(acceptCapabilities(undefined, 3).slots).toEqual([]);
 	});
 
-	it('takes one-ear writes and the preset list from protocol 1.3 on, and nothing else it added', () => {
+	it('takes one-ear writes, the preset list and the settings from protocol 1.3 on, and nothing else it added', () => {
+		const gain = { id: 'gain', name: 'Gain', kind: 'range', range: { min: -12, max: 0, step: 6 } };
 		const value = {
 			perChannel: true,
-			controls: [{ id: 'gain', kind: 'range' }],
+			controls: [gain],
 			eqs: [{ id: 'spk', label: 'SPK' }],
 			listsSlots: true,
 			editsSlots: true,
@@ -345,15 +347,52 @@ describe('what uniPEQ says about its device', () => {
 		expect(caps.perChannel).toBe(true);
 		expect(caps.listsSlots).toBe(true);
 		expect(caps.editsSlots).toBe(true);
-		expect(caps).not.toHaveProperty('controls');
+		expect(caps.controls).toEqual([gain]);
 		expect(caps).not.toHaveProperty('eqs');
 		expect(caps).not.toHaveProperty('readsBandCount');
 		// A uniPEQ before 1.3 sends none of these: an older peer says nothing of the device.
 		expect(acceptCapabilities(value, 2)).toMatchObject({
 			perChannel: false,
 			listsSlots: false,
-			editsSlots: false
+			editsSlots: false,
+			controls: []
 		});
+	});
+
+	it('leaves out a setting it can’t show, and a value that is neither a number nor none', () => {
+		const shown = [
+			{ id: 'feed', name: 'Feed', kind: 'toggle', eq: true },
+			{ id: 'spk', name: 'SPK feed', kind: 'toggle', eq: 'spk', disablesEq: [1] },
+			{ id: 'filter', name: 'Filter', kind: 'choice', values: [{ value: 0, name: 'Fast' }] },
+			{
+				id: 'gain',
+				name: 'Gain',
+				kind: 'range',
+				role: 'output-gain',
+				unit: 'dB',
+				range: { min: -12, max: 0 },
+				reconnect: true
+			}
+		];
+		const malformed = [
+			null,
+			{ name: 'No id', kind: 'toggle' },
+			{ id: 'knob', name: 'Knob', kind: 'knob' },
+			{ id: 'bare', name: 'No values', kind: 'choice' },
+			{ id: 'mode', name: 'Mode', kind: 'choice', values: [{ value: '0', name: 'Fast' }] },
+			{ id: 'level', name: 'No bounds', kind: 'range', range: { min: 0 } },
+			{ id: 'bound', name: 'Bound', kind: 'toggle', eq: false },
+			{ id: 'off', name: 'Off', kind: 'toggle', disablesEq: 1 },
+			{ id: 'usb', name: 'USB', kind: 'toggle', reconnect: 'yes' }
+		];
+		expect(acceptCapabilities({ controls: [...malformed, ...shown] }, 3).controls).toEqual(shown);
+		expect(acceptCapabilities({ controls: 'gain' }, 3).controls).toEqual([]);
+
+		expect(acceptControlValues({ gain: -6, feed: null, filter: '1', spk: true })).toEqual({
+			gain: -6,
+			feed: null
+		});
+		expect(acceptControlValues(null)).toEqual({});
 	});
 
 	it('drives a linked device’s channels apart only where uniPEQ knows protocol 1.3', () => {
@@ -416,6 +455,7 @@ describe('LinkPeqDevice', () => {
 		await device.createPreset();
 		await device.renamePreset(2, 'Jazz');
 		await device.deletePreset(1);
+		await device.setControl('gain', -6);
 		expect(port.command.mock.calls).toEqual([
 			['read'],
 			['switch', { value: 'p3' }],
@@ -427,7 +467,8 @@ describe('LinkPeqDevice', () => {
 			['reconnect'],
 			['preset-create', {}],
 			['preset-rename', { slot: 2, name: 'Jazz' }],
-			['preset-delete', { slot: 1 }]
+			['preset-delete', { slot: 1 }],
+			['control', { id: 'gain', value: -6 }]
 		]);
 		expect(await device.currentSlot()).toBe(2);
 		expect(await device.eqEnabled()).toBe(false);

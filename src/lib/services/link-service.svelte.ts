@@ -23,6 +23,7 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { track } from '#lib/utils/track.js';
 import {
+	acceptControlValues,
 	acceptSlots,
 	carriesEars,
 	fromLinkLists,
@@ -425,9 +426,12 @@ class LinkService {
 		store.isWriting = status.busy === 'write';
 		// A preset edit renumbers the list: no switch is offered until the `status` after it.
 		store.isSwitching = status.busy === 'switch' || status.busy === 'preset';
+		store.isSettingControl = status.busy === 'control';
 		// The presets as they are now, for a device that keeps a list (protocol 1.3); else the
 		// profile's. `activeSlot` and `deviceSlot` are ids in it.
 		store.setListed(acceptSlots(status.slots));
+		// The device's settings as uniPEQ last read them (protocol 1.3): the rows follow these.
+		store.controlValues = acceptControlValues(status.controls);
 		store.activeSlot = status.activeSlot;
 		store.deviceSlot = status.deviceSlot;
 		store.eqEnabled = status.eqEnabled;

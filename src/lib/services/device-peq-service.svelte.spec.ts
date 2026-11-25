@@ -1277,6 +1277,70 @@ describe('devicePeqService device settings', () => {
 			expect(without.readControls).toHaveBeenCalledTimes(1);
 		});
 	});
+
+	describe('on a device uniPEQ holds', () => {
+		/**
+		 * A device uniPEQ holds, with its settings as its `status` reads them. Returns the commands
+		 * sent; `answers` are uniPEQ's, in order, then `ok`.
+		 */
+		function linked(answers: CommandResult[] = []) {
+			const command = vi.fn(
+				async (..._args: unknown[]): Promise<CommandResult> => answers.shift() ?? { ok: true }
+			);
+			const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+			const device = new LinkPeqDevice(port, { ...CAPS, controls: CONTROLS });
+			devicePeqStore.setConnected(fakeConnection(device, { connectionType: 'link' }), 101);
+			devicePeqStore.controlValues = { gain: 0, usb: 0, feed: 0 };
+			return command;
+		}
+
+		it('sends each to uniPEQ in order, and leaves the rows to its status', async () => {
+			const command = linked();
+			// uniPEQ warns for its own device.
+			settingsStore.setVolumeWarning(true);
+
+			await devicePeqService.setControls([
+				['gain', -12],
+				['feed', 1]
+			]);
+
+			expect(command.mock.calls).toEqual([
+				['control', { id: 'gain', value: -12 }],
+				['control', { id: 'feed', value: 1 }]
+			]);
+			expect(volumeWarning.open).toBe(false);
+			expect(devicePeqStore.controlValues).toEqual({ gain: 0, usb: 0, feed: 0 });
+			expect(devicePeqStore.statusMessage).toBe('Set Feed to On.');
+		});
+
+		it('stops at the first one uniPEQ refuses, and says why', async () => {
+			vi.spyOn(console, 'error').mockImplementation(() => {});
+			const error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
+			const command = linked([{ ok: true }, { ok: false, code: 'rejected' }]);
+
+			await devicePeqService.setControls([
+				['gain', -12],
+				['usb', 1],
+				['feed', 1]
+			]);
+
+			expect(command).toHaveBeenCalledTimes(2);
+			expect(error).toHaveBeenCalledOnce();
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.controlValues).toEqual({ gain: 0, usb: 0, feed: 0 });
+		});
+
+		it('leaves a device that restarts to uniPEQ, which reopens it', async () => {
+			const command = linked();
+
+			await devicePeqService.setControl('usb', 1);
+
+			expect(command).toHaveBeenCalledExactlyOnceWith('control', { id: 'usb', value: 1 });
+			expect(devicePeqStore.needsReconnect).toBe(false);
+			expect(devicePeqStore.isConnecting).toBe(false);
+			expect(devicePeqStore.statusMessage).toBe('Set USB mode to UAC 2.0.');
+		});
+	});
 });
 
 describe('devicePeqService with more than one EQ', () => {

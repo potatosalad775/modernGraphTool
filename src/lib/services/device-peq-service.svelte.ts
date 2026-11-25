@@ -11,8 +11,8 @@
  * `linkService`).
  *
  * A device connected in uniPEQ (`connectionType: 'link'`) is written by uniPEQ from the shared
- * list, so for it Write, Device EQ, the auto-write switch and the preset edits are commands to
- * uniPEQ, and this page's own auto-write stays out of the way.
+ * list, so for it Write, Device EQ, the auto-write switch, the preset edits and the device's
+ * settings are commands to uniPEQ, and this page's own auto-write stays out of the way.
  */
 import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
@@ -825,14 +825,17 @@ class DevicePeqService {
 	 */
 	async setControls(changes: readonly (readonly [id: string, value: number])[]): Promise<void> {
 		const conn = devicePeqStore.connection;
-		const device = conn?.device;
-		if (!conn || !device?.writeControl || changes.length === 0 || devicePeqStore.isBusy) return;
+		if (!conn || changes.length === 0 || devicePeqStore.isBusy) return;
+		const device = conn.device;
 		const known = device.capabilities.controls ?? [];
 		const steps = changes.flatMap(([id, value]) => {
 			const control = known.find((c) => c.id === id);
 			return control ? [{ control, value }] : [];
 		});
 		if (steps.length !== changes.length) return;
+		const link = this.linkDevice;
+		if (link) return this.#setLinked(link, steps);
+		if (!device.writeControl) return;
 		// An output gain or a headroom changes how loud the device plays, as a write does.
 		if (volumeWarning.ask(() => void this.setControls(changes))) return;
 		devicePeqStore.isSettingControl = true;
@@ -844,6 +847,27 @@ class DevicePeqService {
 		} finally {
 			devicePeqStore.isSettingControl = false;
 		}
+	}
+
+	/**
+	 * Set the settings of a device uniPEQ holds: one `control` command each, in order, up to the
+	 * first it refuses. uniPEQ warns for its own device and reopens one that restarts; the values
+	 * it reads back arrive in `status.controls`, which the rows follow.
+	 */
+	async #setLinked(link: LinkPeqDevice, steps: { control: Control; value: number }[]) {
+		try {
+			for (const { control, value } of steps) await link.setControl(control.id, value);
+		} catch (e) {
+			this.fail(e, 'control');
+			return;
+		}
+		const last = steps[steps.length - 1];
+		devicePeqStore.setStatus(
+			m.device_control_set({
+				control: controlLabel(last.control),
+				value: controlValueLabel(last.control, last.value)
+			})
+		);
 	}
 
 	async #writeControls(

@@ -741,6 +741,61 @@ describe('linkService', () => {
 		});
 	});
 
+	describe('with uniPEQ’s device having settings of its own', () => {
+		const FEED = { id: 'feed', name: 'Feed', kind: 'toggle', eq: true };
+		const GAIN = {
+			id: 'gain',
+			name: 'Gain',
+			kind: 'range',
+			role: 'output-gain',
+			unit: 'dB',
+			range: { min: -12, max: 0, step: 6 }
+		};
+		const SETTINGS = {
+			...DEVICE,
+			capabilities: { ...DEVICE.capabilities, controls: [FEED, GAIN] }
+		};
+		const ids = (controls: { id: string }[]) => controls.map((c) => c.id);
+
+		/** uniPEQ's device, then its status reading `controls`. */
+		async function withSettings(controls: Record<string, number | null>) {
+			await linked();
+			host.emit('device', SETTINGS);
+			host.status = { ...STATUS, controls };
+			host.emit('status', host.status);
+		}
+
+		it('shows the settings uniPEQ’s status reads, and none the device lacks now', async () => {
+			await withSettings({ feed: 1, gain: null });
+			expect(devicePeqStore.controlValues).toEqual({ feed: 1, gain: null });
+			expect(ids(devicePeqStore.eqControls)).toEqual(['feed']);
+			expect(devicePeqStore.deviceControls).toEqual([]);
+
+			host.emit('status', { ...STATUS, controls: { feed: 0, gain: -6 } });
+			expect(devicePeqStore.controlValues).toEqual({ feed: 0, gain: -6 });
+			expect(ids(devicePeqStore.deviceControls)).toEqual(['gain']);
+		});
+
+		it('holds them while uniPEQ changes one', async () => {
+			await withSettings({ feed: 1, gain: 0 });
+			host.emit('status', { ...STATUS, controls: { feed: 1, gain: 0 }, busy: 'control' });
+			expect(devicePeqStore.isSettingControl).toBe(true);
+			host.emit('status', { ...STATUS, controls: { feed: 1, gain: 0 } });
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it('sets one by command, and shows the value the status reads back, after the answer', async () => {
+			await withSettings({ feed: 1, gain: 0 });
+
+			await devicePeqService.setControl('gain', -6);
+			expect(host.command).toHaveBeenLastCalledWith('control', { id: 'gain', value: -6 });
+			expect(devicePeqStore.controlValues).toEqual({ feed: 1, gain: 0 });
+
+			host.emit('status', { ...STATUS, controls: { feed: 1, gain: -6 } });
+			expect(devicePeqStore.controlValues).toEqual({ feed: 1, gain: -6 });
+		});
+	});
+
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {
 		await linked();
 		host.eq([wire(100, 3)]);

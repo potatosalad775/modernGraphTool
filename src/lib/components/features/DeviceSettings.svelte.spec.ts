@@ -337,6 +337,21 @@ describe('DeviceSettings', () => {
 			await vi.waitFor(() => expect(slider.getAttribute('aria-valuetext')).toBe('25'));
 			expect(setControl).not.toHaveBeenCalled();
 		});
+
+		it('follows the device again after a drag let go where it began, which fires no change', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ });
+
+			drag(slider.element(), 40);
+			drag(slider.element(), 25);
+			// The device reads back another value, after a preset switch say.
+			devicePeqStore.controlValues = { vol: 10 };
+
+			await expect.element(slider).toHaveValue('10');
+			await expect.element(page.getByText('10', { exact: true })).toBeVisible();
+			expect(setControl).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('a pair of channel gains', () => {

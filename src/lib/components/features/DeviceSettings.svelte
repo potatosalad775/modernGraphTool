@@ -85,12 +85,13 @@
 {#snippet slider(
 	id: string,
 	label: string,
-	value: number,
-	text: string,
+	device: number,
+	text: (value: number) => string,
 	range: { min: number; max: number; step: number | 'any' },
 	write: (value: number) => Promise<void>,
 	readout = 'w-12'
 )}
+	{@const value = shown(id, device)}
 	<label class={deviceRowClass}>
 		<span class={dim}>{label}</span>
 		<span class="flex min-w-0 items-center gap-2">
@@ -101,13 +102,17 @@
 				step={range.step}
 				{value}
 				disabled={off}
-				aria-valuetext={text}
-				oninput={(e) => (held = { id, value: e.currentTarget.valueAsNumber })}
+				aria-valuetext={text(value)}
+				oninput={(e) => {
+					const next = e.currentTarget.valueAsNumber;
+					// Back on the device's value: a drag let go where it began fires no `change`.
+					held = next === device ? null : { id, value: next };
+				}}
 				onchange={() => void release(id, write)}
 				class={sliderClass}
 			/>
 			<span class="{readout} shrink-0 text-right whitespace-nowrap text-base-content tabular-nums">
-				{text}
+				{text(value)}
 			</span>
 		</span>
 	</label>
@@ -120,12 +125,11 @@
 	{#if control === balance?.right}
 		<!-- Shown with the left channel's. -->
 	{:else if balance?.left === control}
-		{@const value = shown('balance', balanceValue(balance, values))}
 		{@render slider(
 			'balance',
 			m.device_control_balance(),
-			value,
-			balanceLabel(balance, value),
+			balanceValue(balance, values),
+			(v) => balanceLabel(balance, v),
 			balance,
 			(n) => devicePeqService.setControls(balanceWrites(balance, n, values)),
 			'w-20'
@@ -180,12 +184,11 @@
 		</div>
 	{:else if control.range}
 		{@const range = control.range}
-		{@const value = shown(control.id, current(control))}
 		{@render slider(
 			control.id,
 			label,
-			value,
-			controlValueLabel(control, value),
+			current(control),
+			(v) => controlValueLabel(control, v),
 			{ min: range.min, max: range.max, step: 'step' in range ? range.step : 'any' },
 			(next) => set(control, next)
 		)}

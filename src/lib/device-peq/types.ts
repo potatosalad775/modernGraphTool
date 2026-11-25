@@ -39,7 +39,8 @@ export type PeqCapabilities = Pick<
 	| 'experimental'
 > &
 	// The device's own settings. Absent where there are none to drive: a network device, one in uniPEQ.
-	Partial<Pick<DeviceCapabilities, 'controls'>>;
+	// Its other EQs, and whether it says how many bands it has. Absent the same way.
+	Partial<Pick<DeviceCapabilities, 'controls' | 'eqs' | 'readsBandCount'>>;
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
@@ -64,6 +65,13 @@ export interface PeqDevice {
 	 * have right now (another firmware, another mode).
 	 */
 	readControls?(): Promise<Record<string, number | null>>;
+	/**
+	 * This device viewed as another of its EQs: an id of `capabilities.eqs`, or none for the EQ the
+	 * profile describes. One the device's current mode lacks answers each operation `unsupported`.
+	 */
+	eq?(id?: string): PeqDevice;
+	/** The band count the device reports (`readsBandCount`); null when it doesn't say. */
+	bandCount?(): Promise<number | null>;
 	/** Sets one control. The bridge refuses a value the control doesn't take, and never clamps. */
 	writeControl?(id: string, value: number): Promise<ControlWriteResult>;
 	close(): Promise<void>;

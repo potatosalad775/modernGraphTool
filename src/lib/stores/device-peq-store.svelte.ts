@@ -11,6 +11,7 @@ import { readRequest, writeRequest, type PresetRequest } from '#lib/device-peq/p
 import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
 import { deviceControls, eqControls } from '#lib/device-peq/controls.js';
+import { OWN_EQ, deviceEqs, type DeviceEq, type EqTarget } from '#lib/device-peq/device-eqs.js';
 import { eqDisabledBy, type Control, type Filter } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';
@@ -36,8 +37,21 @@ export interface DeviceSnapshot {
 	preamp: number;
 }
 
+/** The device as it was opened, and which of its EQs `connection` views it as. */
+interface Opened {
+	conn: DeviceConnection;
+	eq: EqTarget;
+	/** The listed EQs the device's current mode lacks. */
+	absent: readonly string[];
+}
+
 class DevicePeqStore {
+	/**
+	 * The connected device, viewed as the one of its EQs that Hardware EQ reaches: that EQ's
+	 * profile, presets and operations. For a device with one EQ, the device as it was opened.
+	 */
 	connection = $state.raw<DeviceConnection | null>(null);
+	#opened = $state.raw<Opened | null>(null);
 	isConnecting = $state(false);
 	isReading = $state(false);
 	isWriting = $state(false);
@@ -96,6 +110,22 @@ class DevicePeqStore {
 	 * Kept across a dropped connection, so the same device coming back doesn't ask again.
 	 */
 	audioPathChoice = $state.raw<{ device: string; through: boolean } | null>(null);
+
+	/** The device as it was opened, whichever of its EQs is viewed: what `reopen` and `onLost` are of. */
+	get opened(): DeviceConnection | null {
+		return this.#opened?.conn ?? null;
+	}
+
+	/** The id of the EQ `connection` views; undefined for the one the profile describes. */
+	get eq(): string | undefined {
+		return this.#opened?.eq.id;
+	}
+
+	/** The device's EQs, the profile's own first. One entry for all but a few devices. */
+	get eqs(): DeviceEq[] {
+		const opened = this.#opened;
+		return opened ? deviceEqs(opened.conn, opened.absent) : [];
+	}
 
 	get isConnected(): boolean {
 		return this.connection !== null;
@@ -165,7 +195,7 @@ class DevicePeqStore {
 
 	/** The settings of the EQ being edited (a headroom, a crossfeed), shown with Device EQ. */
 	get eqControls(): Control[] {
-		return eqControls(this.controls);
+		return eqControls(this.controls, this.eq);
 	}
 
 	/** The settings whose current value stops the device applying its EQ. */
@@ -239,14 +269,43 @@ class DevicePeqStore {
 	}
 
 	/**
+	 * `connection` is the device viewed as the EQ to reach first; `of` says which that is and how
+	 * the device was opened, where that is not `connection` itself (another band count, another EQ).
 	 * `enabled` is the device's EQ switch where it reads one (`readsEnabled`); otherwise whether the
 	 * EQ is on follows from the preset.
 	 */
 	setConnected(
 		connection: DeviceConnection,
 		currentSlot: number | null,
-		enabled: boolean | null = null
+		enabled: boolean | null = null,
+		of: Opened = { conn: connection, eq: OWN_EQ, absent: [] }
 	): void {
+		this.#opened = of;
+		this.controlValues = {};
+		this.autoStopped = false;
+		this.#view(connection, currentSlot, enabled);
+	}
+
+	/**
+	 * Reach another of the device's EQs from now on: `connection` is the device viewed as `eq`.
+	 * Everything about the EQ starts over as on connecting (its preset, its switch, whether it holds
+	 * the list); the device's own settings and the band list stay. `absent`, where the device was
+	 * asked again, replaces the EQs known to be missing.
+	 */
+	selectEq(
+		connection: DeviceConnection,
+		eq: EqTarget,
+		currentSlot: number | null,
+		enabled: boolean | null,
+		absent?: readonly string[]
+	): void {
+		const opened = this.#opened;
+		if (!opened) return;
+		this.#opened = { ...opened, eq, absent: absent ?? opened.absent };
+		this.#view(connection, currentSlot, enabled);
+	}
+
+	#view(connection: DeviceConnection, currentSlot: number | null, enabled: boolean | null): void {
 		this.connection = connection;
 		this.isConnecting = false;
 		this.needsReconnect = false;
@@ -259,10 +318,8 @@ class DevicePeqStore {
 		this.eqEnabled = enabled ?? (onBypass ? false : currentSlot !== null ? true : null);
 		this.synced = null;
 		this.layout = null;
-		this.controlValues = {};
 		this.autoPaused = false;
 		this.autoClipRisk = false;
-		this.autoStopped = false;
 		this.statusMessage = null;
 		this.statusIsError = false;
 		this.reportedInSync = undefined;
@@ -300,6 +357,7 @@ class DevicePeqStore {
 
 	setDisconnected(): void {
 		this.connection = null;
+		this.#opened = null;
 		this.isConnecting = false;
 		this.isReading = false;
 		this.isWriting = false;

@@ -34,6 +34,7 @@ file, not here.
 | `network-types.ts`  | the network device list, without the code that talks to them          |
 | `network-host.ts`   | the typed address: what a network device may be addressed by          |
 | `link.ts`           | a device connected in uniPEQ, over the uniPEQ link; list conversions  |
+| `device-eqs.ts`     | a device's EQs, and the connection viewed as one of them (`eqView`)   |
 | `controls.ts`       | the device's own settings: which EQ each belongs to, which widget     |
 | `control-labels.ts` | their translated names (apart: the store imports `controls.ts`)       |
 | `errors.ts`         | `BridgeError.code` → a user-facing sentence                           |
@@ -119,16 +120,33 @@ needs it at boot); keep it the only one.
   `null` is absent right now and gets no row.
 - **A setting bound to an EQ (`control.eq`) sits under Device EQ, the rest below the rule**
   (`eqControls` / `deviceControls`). They are read again after a preset switch and a Read
-  (`#readEqControls`): a Qudelix keeps its crossfeed with the preset. Only the profile's own EQ
-  (`eq: true`) is shown until the panel can pick another of the device's EQs, so a Qudelix's SPK EQ
-  headroom has no row yet.
+  (`#readEqControls`): a Qudelix keeps its crossfeed with the preset. On a device with several
+  EQs they are those of the EQ viewed (`devicePeqStore.eq`).
+- **A device with several EQs is reached as one of them** (eqcaps SPEC §9.2; a Qudelix's user EQ
+  and its SPK EQ). `devicePeqStore.connection` is the device **viewed as** the picked EQ
+  (`eqView`): that EQ's profile, presets and `pull` / `push` / `setEnabled`, so the constraint,
+  Device EQ, Read, Write and auto-write need no EQ id. `devicePeqStore.opened` is the device as
+  `connect.ts` returned it, and is what `reopen` and `onLost` belong to: compare against it, not
+  `connection`, where the question is "is this still the same device". For a one-EQ device the
+  two are the same object.
+- **Picking an EQ is a retarget, as picking a preset is** (`selectEq`): it reads nothing, leaves
+  the band list alone and clears `synced`. uniPEQ reads the EQ and asks about unwritten changes
+  instead, because its list is the device's document; here the list is the user's EQ for a
+  headphone and connecting never reads either. Don't port that dialog.
+- **The device is asked which EQs its mode has**, on connect and on every switch (`absentEqs`: an
+  EQ view whose `currentSlot` answers `unsupported`), and how many bands the EQ has
+  (`reportedBands`): a Qudelix in single-EQ mode has no SPK EQ and a 20- or 30-band user EQ where
+  its profile counts 10. The count goes into the view's profile, since writing fewer bands than
+  the device has leaves the rest playing. A mode changed mid-session is noticed only when an
+  operation fails `unsupported` (`#checkEq`), which falls back to the profile's own EQ.
 - **The Device Setting box is one grid** (`components/features/device-rows.ts`): Device EQ and
   every setting are subgrid rows of it, label on the left, control on the right. That is what keeps
   the controls one width whatever the labels' lengths and the row gaps equal. A new row takes
   `deviceRowClass`; don't give one its own flex layout, or put a label to the right of its switch.
 - **The same names and widgets as uniPEQ** (`control-labels.ts`, `rangeChoices`, `balanceOf`): a
   role gives the translated name, values keep the vendor's. Change them in both apps or neither.
-  The link carries no controls (peq-link 1.3), so a linked device shows none.
+  The link carries no controls and no EQ list (peq-link 1.3), so a linked device shows neither:
+  uniPEQ sends the profile of the EQ it has picked, and that is the one this page sees.
 - **A device in uniPEQ is a `'link'` connection** (`link.ts`, bound by
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
   `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to

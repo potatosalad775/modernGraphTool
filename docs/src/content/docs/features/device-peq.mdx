@@ -42,13 +42,21 @@ Some devices can only read and write the preset they're playing. While they're o
 
 While a device is connected here, the [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to it, so what the device plays isn't equalized twice.
 
+### Devices with more than one EQ
+
+A few devices have two EQs: a Qudelix 5K has its user EQ and a separate headphone EQ ("SPK EQ"), each with its own bands, presets and on/off switch. For these, an **EQ** row appears at the top of the box, and everything else follows the one you pick: the limits on the band list, **Device EQ**, **Read**, **Write** and auto-write.
+
+- Picking another EQ reads nothing and leaves your bands as they are, like picking another preset. The limits change with it (the Qudelix 5K Plus headphone EQ has 20 bands, its user EQ 10), so bands that no longer fit are marked.
+- An EQ the device doesn't have in its current mode is greyed out, and a line under the row says so. A Qudelix set to its single-EQ mode has no headphone EQ; its user EQ then has more bands, and the limits show the count the device reports.
+- If the device's mode changes while it's connected, the panel falls back to the main EQ the next time something fails for that reason, and says so.
+
 ## Device settings
 
 Some devices have settings of their own beside the EQ, and the ones modernGraphTool can drive appear in the same box as **Device EQ**: a headroom, a crossfeed, a DAC filter, an output gain, and so on. Which ones depends on the device; most dongles have none.
 
 - **A setting is applied as soon as you change it.** It isn't part of the band list: **Write to device** doesn't send it, undo doesn't revert it, and it has no effect on whether the device and the list match.
 - **Each row shows what the device reports.** If the device refuses a change, the row stays where it was and the status line says why.
-- **Settings that belong to the EQ sit right under Device EQ**, above a divider; the device's general settings are below it. A device can keep an EQ setting with each preset (a Qudelix keeps its crossfeed that way), so those rows are read again when you switch preset or read the device. Some devices refuse to change them while the EQ is off.
+- **Settings that belong to the EQ sit right under Device EQ**, above a divider; the device's general settings are below it. On a device with two EQs they are the picked EQ's: each of a Qudelix's EQs has its own headroom. A device can keep an EQ setting with each preset (a Qudelix keeps its crossfeed that way), so those rows are read again when you switch preset or read the device. Some devices refuse to change them while the EQ is off.
 - A setting that restarts the device asks first, and the panel reconnects by itself afterwards.
 - If a setting's current value stops the device applying its EQ, the row and the status line say so.
 

@@ -2,7 +2,8 @@
 	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
 	import { needsConfirmation, type PushPlan } from '#lib/device-peq/push-plan.js';
-	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+	import { devicePeqService, eqName } from '#lib/services/device-peq-service.svelte.js';
+	import SegmentedControl from '../atoms/SegmentedControl.svelte';
 	import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import { Check, CircleAlert, Info, TriangleAlert, Unplug } from '@lucide/svelte';
@@ -79,6 +80,26 @@
 		if (selection === 'off' || selection === 'other') return selection;
 		return `p${selection}`;
 	});
+
+	// ── Which of the device's EQs: only where it has more than one ────────────
+
+	const eqs = $derived(devicePeqStore.eqs);
+	// Keyed by position: the profile's own EQ has no id.
+	const eqChoices = $derived(
+		eqs.map((eq, i) => ({
+			value: String(i),
+			label: eqName(eq),
+			title: m.device_eq_target_title({ eq: eqName(eq) }),
+			disabled: !eq.present
+		}))
+	);
+	const eqChosen = $derived(String(eqs.findIndex((eq) => eq.id === devicePeqStore.eq)));
+	const eqsAbsent = $derived(
+		eqs
+			.filter((eq) => !eq.present)
+			.map(eqName)
+			.join(', ')
+	);
 
 	const readTarget = $derived(devicePeqStore.readTarget);
 	const writeTarget = $derived(devicePeqStore.writeTarget);
@@ -266,6 +287,34 @@
 					{m.equalizer_device_peq_hardware_setting()}
 				</legend>
 				<div class={deviceGridClass}>
+					{#if eqs.length > 1}
+						<div class={deviceRowClass}>
+							<span class="flex items-center">
+								{m.device_eq_target()}
+								<InfoPopover
+									label={m.info_popover_about({ topic: m.device_eq_target() })}
+									class="ml-0.5"
+								>
+									<p>{m.device_eq_target_hint()}</p>
+								</InfoPopover>
+							</span>
+							<!-- The segment follows the EQ the store reaches, not the press: a switch can fail. -->
+							<SegmentedControl
+								label={m.device_eq_target()}
+								bind:value={
+									() => eqChosen, (next) => void devicePeqService.selectEq(eqs[Number(next)]?.id)
+								}
+								options={eqChoices}
+								disabled={devicePeqStore.isBusy}
+								class="w-full"
+							/>
+						</div>
+						{#if eqsAbsent}
+							<p class="{deviceSpanClass} -mt-1 text-xs text-base-content/80">
+								{m.device_eq_target_absent({ eqs: eqsAbsent })}
+							</p>
+						{/if}
+					{/if}
 					{#if hasPresets}
 						<div class={deviceRowClass}>
 							<span class="flex items-center">

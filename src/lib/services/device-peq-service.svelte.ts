@@ -19,7 +19,8 @@ import { untrack } from 'svelte';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import { controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
-import { describeDeviceError, isConnectionLost } from '#lib/device-peq/errors.js';
+import { deviceAs, eqView, type DeviceEq, type EqTarget } from '#lib/device-peq/device-eqs.js';
+import { describeDeviceError, isConnectionLost, isUnsupported } from '#lib/device-peq/errors.js';
 import { LinkPeqDevice } from '#lib/device-peq/link.js';
 import { readRequest } from '#lib/device-peq/preset.js';
 import { needsReview, planPush, readLayout, type PushPlan } from '#lib/device-peq/push-plan.js';
@@ -32,7 +33,7 @@ import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { fromCapsFilter } from '#lib/utils/eq-constraint.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import type { Control, Filter } from '@potatosalad775/eqcaps-core';
+import { eqProfile, type Control, type Filter } from '@potatosalad775/eqcaps-core';
 import { eqCommands } from './eq-commands.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 
@@ -55,6 +56,60 @@ async function playing(conn: DeviceConnection) {
 		? await conn.device.eqEnabled().catch(() => null)
 		: null;
 	return { slot, enabled };
+}
+
+/** Whether the device's current mode has EQ `id`: one it lacks answers `unsupported`. */
+async function eqThere(conn: DeviceConnection, id: string): Promise<boolean> {
+	try {
+		await deviceAs(conn.device, id).currentSlot();
+		return true;
+	} catch (e) {
+		if (isUnsupported(e)) return false;
+		throw e;
+	}
+}
+
+/**
+ * The listed EQs the device's current mode lacks. One that fails to answer otherwise stays listed:
+ * picking it reports that failure.
+ */
+async function absentEqs(conn: DeviceConnection): Promise<string[]> {
+	const absent: string[] = [];
+	for (const { id } of conn.device.capabilities.eqs ?? []) {
+		const there = await eqThere(conn, id).catch((e: unknown) => {
+			console.warn(`Device PEQ: asking for EQ ${id} failed:`, e);
+			return true;
+		});
+		if (!there) absent.push(id);
+	}
+	return absent;
+}
+
+/**
+ * The band count the device reports for EQ `id` where it differs from the data's, else null: a
+ * Qudelix in single-EQ mode has 20 bands where its profile counts 10, and writing 10 would leave
+ * the rest playing what they held. Null too where the profile sets slots by index, which would no
+ * longer line up.
+ */
+async function reportedBands(conn: DeviceConnection, id: string | undefined) {
+	const data = eqProfile(conn.profile, id);
+	const device = deviceAs(conn.device, id);
+	if (!data || data.bands?.length) return null;
+	if (!conn.device.capabilities.readsBandCount || !device.bandCount) return null;
+	const reported = await device.bandCount().catch(() => null);
+	return reported === null || reported === data.bandCount ? null : reported;
+}
+
+/** EQ `id` of `conn` as a connect opens one: its band count as the device has it, and what it plays. */
+async function openEq(conn: DeviceConnection, id: string | undefined) {
+	const eq: EqTarget = { id, bandCount: await reportedBands(conn, id) };
+	const view = eqView(conn, eq);
+	return { eq, view, ...(await playing(view)) };
+}
+
+/** An EQ's label: the data's name, else "Main EQ" (only the profile's own can lack one). */
+export function eqName(eq: Pick<DeviceEq, 'name'> | undefined): string {
+	return eq?.name ?? m.device_eq_target_main();
 }
 
 /** What the status line says while a restarted device is awaited, once it is back, and if it isn't. */
@@ -115,6 +170,8 @@ class DevicePeqService {
 		devicePeqStore.setStatus(message, true);
 		toast.error(message, note ? { description: note } : undefined);
 		if (isConnectionLost(e) && devicePeqStore.connection) devicePeqStore.needsReconnect = true;
+		// The EQ may have gone with the device's mode, switched on the device or in its own app.
+		if (isUnsupported(e) && devicePeqStore.eq !== undefined) void this.#checkEq();
 	}
 
 	// ── Connecting ────────────────────────────────────────────────────────────
@@ -217,12 +274,19 @@ class DevicePeqService {
 		else if (result.kind === 'unsupported') return 'unsupported';
 	}
 
-	async #connected(conn: DeviceConnection): Promise<void> {
-		const { slot, enabled } = await playing(conn);
-		devicePeqStore.setConnected(conn, slot, enabled);
+	/**
+	 * `conn` is the device as it was opened. It is reached as the EQ its profile describes, or as
+	 * `eqId` where that is given and the device's mode still has it (a reopened device).
+	 */
+	async #connected(conn: DeviceConnection, eqId?: string): Promise<void> {
+		const absent = await absentEqs(conn);
+		const listed = conn.device.capabilities.eqs?.some((e) => e.id === eqId) ?? false;
+		const id = listed && eqId !== undefined && !absent.includes(eqId) ? eqId : undefined;
+		const { eq, view, slot, enabled } = await openEq(conn, id);
+		devicePeqStore.setConnected(view, slot, enabled, { conn, eq, absent });
 		this.#unwatchLost();
 		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? noop;
-		await this.#readControls(conn);
+		await this.#readControls(view);
 		this.install();
 		// Auto-write writes without a press, so its volume warning comes now, before any edit.
 		if (this.autoWriting) {
@@ -235,9 +299,11 @@ class DevicePeqService {
 	 * same preset, so the list is still in sync: connecting never reads, so nothing else would say so.
 	 */
 	async #reopened(again: DeviceConnection): Promise<void> {
-		const { synced, activeSlot } = devicePeqStore;
-		await this.#connected(again);
-		if (devicePeqStore.activeSlot === activeSlot) devicePeqStore.synced = synced;
+		const { synced, activeSlot, eq } = devicePeqStore;
+		await this.#connected(again, eq);
+		if (devicePeqStore.eq === eq && devicePeqStore.activeSlot === activeSlot) {
+			devicePeqStore.synced = synced;
+		}
 	}
 
 	/**
@@ -246,7 +312,7 @@ class DevicePeqService {
 	 * kept for its return, and it can go before the write that saved has returned.
 	 */
 	async #lost(conn: DeviceConnection): Promise<void> {
-		if (devicePeqStore.connection !== conn) return;
+		if (devicePeqStore.opened !== conn) return;
 		const saving = devicePeqStore.isWriting && conn.device.capabilities.disconnectOnSave;
 		if (devicePeqStore.needsReconnect || saving) return;
 		await this.disconnect();
@@ -467,6 +533,65 @@ class DevicePeqService {
 		} finally {
 			devicePeqStore.isSwitching = false;
 		}
+	}
+
+	// ── The device's EQs ──────────────────────────────────────────────────────
+
+	/**
+	 * Reach another of the device's EQs: Device EQ, Read, Write and the limits are that EQ's from
+	 * now on. Like picking another preset, it reads nothing and leaves the band list alone; whether
+	 * the EQ holds the list is unknown until a Read or a Write.
+	 */
+	async selectEq(id: string | undefined): Promise<void> {
+		const store = devicePeqStore;
+		if (this.linkDevice || store.isBusy || store.needsReconnect || id === store.eq) return;
+		if (!store.eqs.some((e) => e.id === id && e.present)) return;
+		await this.#openEq(id);
+	}
+
+	/**
+	 * Open EQ `id` as connecting opens one. The device is asked again which EQs its mode has: one
+	 * that has gone is shown absent, and the profile's own EQ is opened in its place.
+	 */
+	async #openEq(id: string | undefined): Promise<void> {
+		const conn = devicePeqStore.opened;
+		if (!conn) return;
+		// An edit waiting to be auto-written belongs to the EQ it was made on.
+		this.#cancelPending();
+		devicePeqStore.isSwitching = true;
+		try {
+			const absent = await absentEqs(conn);
+			const gone = id !== undefined && absent.includes(id) ? id : undefined;
+			const { eq, view, slot, enabled } = await openEq(conn, gone === undefined ? id : undefined);
+			if (devicePeqStore.opened !== conn) return;
+			devicePeqStore.selectEq(view, eq, slot, enabled, absent);
+			// The mode that brought or took an EQ did the same to its settings.
+			await this.#readControls(view);
+			const named = (of: string | undefined) => eqName(devicePeqStore.eqs.find((e) => e.id === of));
+			devicePeqStore.setStatus(
+				gone === undefined
+					? m.device_eq_status({ eq: named(eq.id) })
+					: m.device_eq_status_gone({ eq: named(gone), own: named(eq.id) })
+			);
+		} catch (e) {
+			this.fail(e, 'eq');
+		} finally {
+			devicePeqStore.isSwitching = false;
+		}
+	}
+
+	/**
+	 * An operation on a listed EQ was refused as unsupported. If the device's mode has lost that
+	 * EQ, the profile's own is opened instead; otherwise the failure stands as it was said.
+	 */
+	async #checkEq(): Promise<void> {
+		const conn = devicePeqStore.opened;
+		const id = devicePeqStore.eq;
+		if (!conn || id === undefined) return;
+		if (await eqThere(conn, id).catch(() => true)) return;
+		// Another device, or another EQ, by now: nothing to fall back from.
+		if (devicePeqStore.opened !== conn || devicePeqStore.eq !== id) return;
+		await this.#openEq(id);
 	}
 
 	// ── The device's own settings ─────────────────────────────────────────────

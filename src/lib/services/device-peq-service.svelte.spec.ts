@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { flushSync } from 'svelte';
-import type { Control } from '@potatosalad775/eqcaps-core';
+import type { Control, Profile } from '@potatosalad775/eqcaps-core';
+import { LinkPeqDevice, type LinkPort } from '#lib/device-peq/link.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import {
+	DEVICE_CONSTRAINT_ID,
+	eqConstraintsStore
+} from '#lib/stores/eq-constraints-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
@@ -908,6 +913,517 @@ describe('devicePeqService device settings', () => {
 			await devicePeqService.read();
 			expect(without.pull).toHaveBeenCalledOnce();
 			expect(without.readControls).toHaveBeenCalledTimes(1);
+		});
+	});
+});
+
+describe('devicePeqService with more than one EQ', () => {
+	const unsupported = () =>
+		Object.assign(new Error('x'), { name: 'BridgeError', code: 'unsupported' });
+
+	const GONE = "SPK EQ isn't available in the device's current mode, so this is USR EQ.";
+
+	/** The headphone EQ a Qudelix lists next to its user EQ. */
+	const SPK = {
+		id: 'spk',
+		name: 'SPK EQ',
+		bandCount: 6,
+		slots: [
+			{ id: 201, name: 'Spk A' },
+			{ id: 202, name: 'Spk B' }
+		],
+		perChannel: false
+	};
+
+	const TWO_PROFILE: Profile = {
+		...hardwareProfile('qudelix', { bandCount: 4, band: PROFILE.band }),
+		engine: 'USR EQ',
+		device: { brand: 'Qudelix', model: '5K' },
+		protocol: {
+			handler: 'qudelix-5k',
+			presets: [{ id: 101, name: 'Custom' }],
+			eqs: [{ id: 'spk', name: 'SPK EQ', bandCount: 6, presets: [{ id: 201, name: 'Spk A' }] }]
+		}
+	};
+
+	const SIX = [100, 300, 900, 2700, 5400, 10800].map((f) => band(f, 1));
+
+	const FEED: Control = { id: 'feed', name: 'Feed', kind: 'toggle', eq: true };
+	const SPK_FEED: Control = { id: 'spkfeed', name: 'Spk feed', kind: 'toggle', eq: 'spk' };
+	const OUT: Control = {
+		id: 'out',
+		name: 'Out',
+		kind: 'range',
+		role: 'output-gain',
+		unit: 'dB',
+		range: { min: -12, max: 0, step: 6 }
+	};
+
+	interface TwoEqOptions {
+		/** The band count the device reports for its own EQ, and for the headphone EQ. */
+		reported?: number;
+		spkReported?: number;
+		controls?: Control[];
+	}
+
+	/** A device with two EQs: the base, and the view `eq('spk')` hands back, with its own slots. */
+	function twoEqDevice({ reported, spkReported, controls }: TwoEqOptions = {}) {
+		const readsBandCount = reported !== undefined || spkReported !== undefined;
+		const held = { feed: 0, spkfeed: 0, out: 0 };
+		const settings = controls
+			? {
+					readControls: vi.fn<NonNullable<PeqDevice['readControls']>>(async () => ({ ...held }))
+				}
+			: {};
+		const base = {
+			...fakeDevice({ eqs: [SPK], readsBandCount, controls }),
+			...settings,
+			bandCount: vi.fn<NonNullable<PeqDevice['bandCount']>>(async () => reported ?? null),
+			eq: vi.fn<NonNullable<PeqDevice['eq']>>()
+		};
+		const spk = {
+			...fakeDevice({ slots: SPK.slots, controls }),
+			...settings,
+			// The device is one connection: closing any view closes it.
+			close: base.close,
+			bandCount: vi.fn<NonNullable<PeqDevice['bandCount']>>(async () => spkReported ?? null)
+		};
+		spk.currentSlot.mockResolvedValue(201);
+		base.eq.mockImplementation(() => spk);
+		return { base, spk };
+	}
+
+	type TwoEq = ReturnType<typeof twoEqDevice>;
+
+	function twoConnection(device: PeqDevice, extra: Partial<DeviceConnection> = {}) {
+		return fakeConnection(device, { profile: TWO_PROFILE, name: 'Qudelix 5K · USR EQ', ...extra });
+	}
+
+	/** Connects through the service, as the connect button does. */
+	async function connectTwo({ base }: TwoEq, extra: Partial<DeviceConnection> = {}) {
+		const connection = twoConnection(base, extra);
+		connectModule.connectHid.mockResolvedValue({ kind: 'connected', connection });
+		await devicePeqService.connect('hid');
+		return connection;
+	}
+
+	/** The EQ is being viewed: the store's connection is the device as that EQ. */
+	async function viewSpk(two: TwoEq, extra: Partial<DeviceConnection> = {}) {
+		const connection = await connectTwo(two, extra);
+		await devicePeqService.selectEq('spk');
+		expect(devicePeqStore.eq).toBe('spk');
+		return connection;
+	}
+
+	beforeEach(() => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		await devicePeqService.disconnect();
+		devicePeqStore.setDisconnected();
+	});
+
+	describe('on connect', () => {
+		it('lists both EQs, the profile’s own first, and starts on the own one', async () => {
+			const two = twoEqDevice();
+			const conn = await connectTwo(two);
+
+			expect(devicePeqStore.eqs).toEqual([
+				{ id: undefined, name: 'USR EQ', present: true },
+				{ id: 'spk', name: 'SPK EQ', present: true }
+			]);
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.connection).toBe(conn);
+			expect(devicePeqStore.opened).toBe(conn);
+			expect(devicePeqStore.slots.map((s) => s.id)).toEqual([101]);
+		});
+
+		it('lists one EQ for a device with a single one', async () => {
+			const device = fakeDevice();
+			connectModule.connectHid.mockResolvedValue({
+				kind: 'connected',
+				connection: fakeConnection(device)
+			});
+			await devicePeqService.connect('hid');
+			expect(devicePeqStore.eqs).toHaveLength(1);
+		});
+
+		it('lists an EQ the device’s mode lacks as not present, and keeps the others', async () => {
+			const two = twoEqDevice();
+			two.spk.currentSlot.mockRejectedValue(unsupported());
+			await connectTwo(two);
+
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, false]);
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.connection?.device).toBe(two.base);
+		});
+
+		it('keeps an EQ listed when it fails to answer for any other reason', async () => {
+			const two = twoEqDevice();
+			two.spk.currentSlot.mockRejectedValue(new Error('no answer'));
+			await connectTwo(two);
+
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, true]);
+			expect(devicePeqStore.connection).not.toBeNull();
+		});
+
+		it('makes the band count the device reports the profile’s, and the active limit', async () => {
+			const two = twoEqDevice({ reported: 20 });
+			const conn = await connectTwo(two);
+
+			expect(devicePeqStore.connection?.profile.bandCount).toBe(20);
+			expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+			expect(eqConstraintsStore.profile.bandCount).toBe(20);
+			// The connection as it was opened is what reopening and losing the device are of.
+			expect(devicePeqStore.opened).toBe(conn);
+			expect(conn.profile.bandCount).toBe(4);
+		});
+
+		it('keeps the profile as it is when the device reports the same count, or none', async () => {
+			const same = twoEqDevice({ reported: 4 });
+			const conn = await connectTwo(same);
+			expect(devicePeqStore.connection).toBe(conn);
+			await devicePeqService.disconnect();
+
+			const none = twoEqDevice();
+			const next = await connectTwo(none);
+			expect(none.base.bandCount).not.toHaveBeenCalled();
+			expect(devicePeqStore.connection).toBe(next);
+			expect(eqConstraintsStore.profile.bandCount).toBe(4);
+		});
+	});
+
+	describe('picking another EQ', () => {
+		it('reads nothing, leaves the bands, and starts that EQ over', async () => {
+			const two = twoEqDevice();
+			await connectTwo(two);
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+			const filters = eqStore.filters;
+
+			await devicePeqService.selectEq('spk');
+
+			expect(two.base.pull).not.toHaveBeenCalled();
+			expect(two.spk.pull).not.toHaveBeenCalled();
+			expect(eqStore.filters).toBe(filters);
+			expect(devicePeqStore.synced).toBeNull();
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.connection?.device).toBe(two.spk);
+			expect(devicePeqStore.opened?.device).toBe(two.base);
+			expect(devicePeqStore.statusMessage).toBe('Read and Write now use SPK EQ.');
+			expect(devicePeqStore.statusIsError).toBe(false);
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('makes that EQ’s profile the active limit, and its presets the ones offered', async () => {
+			const two = twoEqDevice();
+			await connectTwo(two);
+			expect(eqConstraintsStore.profile.bandCount).toBe(4);
+
+			await devicePeqService.selectEq('spk');
+
+			expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+			expect(eqConstraintsStore.active.label).toBe('Qudelix 5K · SPK EQ');
+			expect(eqConstraintsStore.profile.bandCount).toBe(6);
+			expect(eqConstraintsStore.profile.engine).toBe('SPK EQ');
+			expect(devicePeqStore.slots.map((s) => s.id)).toEqual([201, 202]);
+			expect(devicePeqStore.activeSlot).toBe(201);
+			expect(devicePeqStore.deviceSlot).toBe(201);
+		});
+
+		it('takes the band count the device reports for that EQ', async () => {
+			const two = twoEqDevice({ reported: 20, spkReported: 12 });
+			await connectTwo(two);
+			expect(eqConstraintsStore.profile.bandCount).toBe(20);
+
+			await devicePeqService.selectEq('spk');
+			expect(eqConstraintsStore.profile.bandCount).toBe(12);
+
+			await devicePeqService.selectEq(undefined);
+			expect(eqConstraintsStore.profile.bandCount).toBe(20);
+		});
+
+		it('goes back to the profile’s own EQ with its presets and limits', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+
+			await devicePeqService.selectEq(undefined);
+
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.connection?.device).toBe(two.base);
+			expect(devicePeqStore.slots.map((s) => s.id)).toEqual([101]);
+			expect(eqConstraintsStore.profile.bandCount).toBe(4);
+			expect(devicePeqStore.statusMessage).toBe('Read and Write now use USR EQ.');
+		});
+
+		it('sends Read to that EQ, not the device’s own', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+
+			await devicePeqService.read();
+
+			expect(two.spk.pull).toHaveBeenCalledOnce();
+			expect(two.base.pull).not.toHaveBeenCalled();
+			expect(devicePeqStore.synced).not.toBeNull();
+		});
+
+		it('sends Write to that EQ, fitted to its limits', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+			eqStore.filters = SIX;
+			flushSync();
+
+			const plan = await devicePeqService.prepare();
+			expect(plan).not.toBeNull();
+			expect(await devicePeqService.write(plan!)).toBe(true);
+
+			expect(two.spk.push).toHaveBeenCalledOnce();
+			expect(two.spk.push.mock.calls[0][0]).toMatchObject({ slot: 201 });
+			expect(two.spk.push.mock.calls[0][0].filters).toHaveLength(6);
+			expect(two.base.push).not.toHaveBeenCalled();
+		});
+
+		it('sends Device EQ to that EQ’s own switch', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+
+			await devicePeqService.choose('p202');
+			expect(two.spk.setEnabled).toHaveBeenCalledExactlyOnceWith(true, 202);
+			expect(devicePeqStore.activeSlot).toBe(202);
+
+			await devicePeqService.choose('off');
+			expect(two.spk.setEnabled).toHaveBeenLastCalledWith(false);
+			expect(devicePeqStore.eqEnabled).toBe(false);
+			expect(two.base.setEnabled).not.toHaveBeenCalled();
+		});
+
+		it('shows the settings of the EQ viewed, and the device’s own throughout', async () => {
+			const two = twoEqDevice({ controls: [OUT, FEED, SPK_FEED] });
+			await connectTwo(two);
+			expect(devicePeqStore.eqControls.map((c) => c.id)).toEqual(['feed']);
+			expect(devicePeqStore.deviceControls.map((c) => c.id)).toEqual(['out']);
+
+			await devicePeqService.selectEq('spk');
+			expect(devicePeqStore.eqControls.map((c) => c.id)).toEqual(['spkfeed']);
+			expect(devicePeqStore.deviceControls.map((c) => c.id)).toEqual(['out']);
+
+			await devicePeqService.selectEq(undefined);
+			expect(devicePeqStore.eqControls.map((c) => c.id)).toEqual(['feed']);
+		});
+
+		it('says the EQ is gone, and opens the own one, when the mode changed since the list', async () => {
+			const two = twoEqDevice();
+			await connectTwo(two);
+			two.spk.currentSlot.mockRejectedValue(unsupported());
+
+			await devicePeqService.selectEq('spk');
+
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.connection?.device).toBe(two.base);
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, false]);
+			expect(devicePeqStore.statusMessage).toBe(GONE);
+			expect(eqConstraintsStore.profile.bandCount).toBe(4);
+		});
+
+		describe('is refused', () => {
+			async function expectRefused(two: TwoEq, id: string | undefined) {
+				const asked = two.spk.currentSlot.mock.calls.length;
+				const own = two.base.currentSlot.mock.calls.length;
+				const status = devicePeqStore.statusMessage;
+				await devicePeqService.selectEq(id);
+				expect(devicePeqStore.eq).toBeUndefined();
+				expect(devicePeqStore.connection?.device).toBe(two.base);
+				expect(two.spk.currentSlot.mock.calls).toHaveLength(asked);
+				expect(two.base.currentSlot.mock.calls).toHaveLength(own);
+				expect(devicePeqStore.statusMessage).toBe(status);
+			}
+
+			it('while the device is busy', async () => {
+				const two = twoEqDevice();
+				await connectTwo(two);
+				devicePeqStore.isReading = true;
+				await expectRefused(two, 'spk');
+			});
+
+			it('while it has to be reconnected', async () => {
+				const two = twoEqDevice();
+				await connectTwo(two);
+				devicePeqStore.needsReconnect = true;
+				await expectRefused(two, 'spk');
+			});
+
+			it('for a device uniPEQ holds', async () => {
+				const link = new LinkPeqDevice(
+					{ status: null, command: vi.fn(), unlink: vi.fn() } as unknown as LinkPort,
+					{ ...CAPS, eqs: [SPK] }
+				);
+				connectModule.connectHid.mockResolvedValue({
+					kind: 'connected',
+					connection: fakeConnection(link, {
+						profile: TWO_PROFILE,
+						connectionType: 'link',
+						name: 'Qudelix 5K · USR EQ'
+					})
+				});
+				await devicePeqService.connect('hid');
+				expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, true]);
+
+				await devicePeqService.selectEq('spk');
+				expect(devicePeqStore.eq).toBeUndefined();
+				expect(devicePeqStore.connection?.device).toBe(link);
+			});
+
+			it('for the EQ already viewed', async () => {
+				const two = twoEqDevice();
+				await connectTwo(two);
+				await expectRefused(two, undefined);
+
+				await devicePeqService.selectEq('spk');
+				two.spk.currentSlot.mockClear();
+				two.base.currentSlot.mockClear();
+				const status = devicePeqStore.statusMessage;
+				await devicePeqService.selectEq('spk');
+				expect(devicePeqStore.eq).toBe('spk');
+				expect(two.spk.currentSlot).not.toHaveBeenCalled();
+				expect(devicePeqStore.statusMessage).toBe(status);
+			});
+
+			it('for an EQ the device’s mode lacks', async () => {
+				const two = twoEqDevice();
+				two.spk.currentSlot.mockRejectedValue(unsupported());
+				await connectTwo(two);
+				await expectRefused(two, 'spk');
+			});
+
+			it('for an EQ the device doesn’t list', async () => {
+				const two = twoEqDevice();
+				await connectTwo(two);
+				await expectRefused(two, 'nope');
+			});
+		});
+	});
+
+	describe('an EQ that goes while it is viewed', () => {
+		it('opens the own EQ when an operation is refused as unsupported and the EQ is gone', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+			two.spk.pull.mockRejectedValue(unsupported());
+			two.spk.currentSlot.mockRejectedValue(unsupported());
+
+			await devicePeqService.read();
+
+			await vi.waitFor(() => expect(devicePeqStore.eq).toBeUndefined());
+			await vi.waitFor(() => expect(devicePeqStore.statusMessage).toBe(GONE));
+			expect(devicePeqStore.connection?.device).toBe(two.base);
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, false]);
+			expect(devicePeqStore.statusIsError).toBe(false);
+			expect(devicePeqStore.isSwitching).toBe(false);
+			expect(eqConstraintsStore.profile.bandCount).toBe(4);
+		});
+
+		it('lets the failure stand when the EQ still answers', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+			two.spk.pull.mockRejectedValue(unsupported());
+			two.spk.currentSlot.mockClear();
+
+			await devicePeqService.read();
+
+			// It asked whether the EQ is still there, and it is.
+			await vi.waitFor(() => expect(two.spk.currentSlot).toHaveBeenCalled());
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.statusMessage).toMatch(/doesn't support/);
+		});
+
+		it('does not look for another EQ when the own one fails', async () => {
+			const two = twoEqDevice();
+			await connectTwo(two);
+			two.base.pull.mockRejectedValue(unsupported());
+			two.spk.currentSlot.mockClear();
+
+			await devicePeqService.read();
+
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(two.spk.currentSlot).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('a device reopened after a restart', () => {
+		it('comes back viewing the EQ that was viewed, still in sync', async () => {
+			const second = twoEqDevice();
+			const first = twoEqDevice();
+			const reopened = twoConnection(second.base);
+			await viewSpk(first, { reopen: vi.fn(async () => reopened) });
+			const synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+			devicePeqStore.synced = synced;
+
+			await devicePeqService.reconnect();
+
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.connection?.device).toBe(second.spk);
+			expect(devicePeqStore.opened).toBe(reopened);
+			expect(devicePeqStore.synced).toBe(synced);
+			expect(devicePeqStore.inSync).toBe(true);
+			expect(eqConstraintsStore.profile.bandCount).toBe(6);
+		});
+
+		it('comes back on the own EQ when the EQ is no longer there', async () => {
+			const second = twoEqDevice();
+			second.spk.currentSlot.mockRejectedValue(unsupported());
+			const first = twoEqDevice();
+			await viewSpk(first, { reopen: vi.fn(async () => twoConnection(second.base)) });
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+
+			await devicePeqService.reconnect();
+
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.connection?.device).toBe(second.base);
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, false]);
+			// The list is not claimed to be on an EQ it was never read from.
+			expect(devicePeqStore.synced).toBeNull();
+		});
+	});
+
+	describe('a device that goes while an EQ is viewed', () => {
+		it('is disconnected, by the listener on the connection as it was opened', async () => {
+			const two = twoEqDevice();
+			let lost = () => {};
+			const off = vi.fn();
+			const onLost = vi.fn((listener: () => void) => {
+				lost = listener;
+				return off;
+			});
+			await viewSpk(two, { onLost });
+			expect(onLost).toHaveBeenCalledOnce();
+
+			lost();
+
+			await vi.waitFor(() => expect(devicePeqStore.connection).toBeNull());
+			expect(two.base.close).toHaveBeenCalled();
+			expect(devicePeqStore.eqs).toEqual([]);
+			expect(devicePeqStore.statusMessage).toBe('The device disconnected.');
+		});
+
+		it('is left alone while it waits to be reconnected', async () => {
+			const two = twoEqDevice();
+			let lost = () => {};
+			const onLost = vi.fn((listener: () => void) => {
+				lost = listener;
+				return () => {};
+			});
+			await viewSpk(two, { onLost });
+			devicePeqStore.needsReconnect = true;
+
+			lost();
+			await Promise.resolve();
+			expect(devicePeqStore.connection).not.toBeNull();
 		});
 	});
 });

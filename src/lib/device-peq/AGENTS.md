@@ -157,13 +157,18 @@ needs it at boot); keep it the only one.
 - **Picking an EQ is a retarget, as picking a preset is** (`selectEq`): it reads nothing, leaves
   the band list alone and clears `synced`. uniPEQ reads the EQ and asks about unwritten changes
   instead, because its list is the device's document; here the list is the user's EQ for a
-  headphone and connecting never reads either. Don't port that dialog.
+  headphone and connecting never reads either. Don't port that dialog. Over the link, picking an
+  EQ is uniPEQ's `eq` command (`#selectLinked`), so uniPEQ's rule holds: it reads the EQ, sends a
+  fresh list (an undo barrier), and refuses with `unwritten` while its list holds changes the
+  device lacks. That refusal is a status line here (write or read first), not uniPEQ's dialog.
 - **The device is asked which EQs its mode has**, on connect and on every switch (`absentEqs`: an
   EQ view whose `currentSlot` answers `unsupported`), and how many bands the EQ has
   (`reportedBands`): a Qudelix in single-EQ mode has no SPK EQ and a 20- or 30-band user EQ where
   its profile counts 10. The count goes into the view's profile, since writing fewer bands than
   the device has leaves the rest playing. A mode changed mid-session is noticed only when an
-  operation fails `unsupported` (`#checkEq`), which falls back to the profile's own EQ.
+  operation fails `unsupported` (`#checkEq`), which falls back to the profile's own EQ. Never for
+  a link connection: uniPEQ falls back itself, with a new `device`, and `status.absentEqs` says
+  which EQs are missing.
 - **The Device Setting box is one grid** (`components/features/device-rows.ts`): Device EQ and
   every setting are subgrid rows of it, label on the left, control on the right. That is what keeps
   the controls one width whatever the labels' lengths and the row gaps equal. A new row takes
@@ -172,28 +177,33 @@ needs it at boot); keep it the only one.
   role gives the translated name, values keep the vendor's. Change them in both apps or neither.
 - **A device in uniPEQ is a `'link'` connection** (`link.ts`, bound by
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
-  `push` is never called: Write, Device EQ, Reconnect, the auto-write switch, the preset edits and
-  the settings are commands to uniPEQ, `devicePeqStore`'s flags (and `reportedInSync`) are
-  mirrored from its `status`, and its review shows in `DevicePeqPushDialog` through `LinkDialogs`,
-  renumbered by this page's list (`reviewChanges`). `devicePeqService`'s own auto-write skips a
-  link connection. Its Unplug button is hidden: closing it unlinks, which **Unlink** above it
-  already does.
+  `push` is never called: Write, Device EQ, Reconnect, the auto-write switch, the preset edits, the
+  settings and the EQ picked are commands to uniPEQ, `devicePeqStore`'s flags (and
+  `reportedInSync`) are mirrored from its `status`, and its review shows in `DevicePeqPushDialog`
+  through `LinkDialogs`, renumbered by this page's list (`reviewChanges`). `devicePeqService`'s own
+  auto-write skips a link connection. Its Unplug button is hidden: closing it unlinks, which
+  **Unlink** above it already does.
   **Every value comes from `status`.** This page never reads uniPEQ's device, and never works out
   from a command's answer what the device holds now: `re` and `status` arrive in either order. So
   a preset edit over the link is no `#relist`, no switch and no read, and a setting no read-back
   and no restart wait: uniPEQ does those, and the list and the values arrive in `status.slots`
   and `status.controls` on every `status`. Neither asks the volume warning: uniPEQ asks for its
-  own device. Protocol 1.3 (peq-link 1.4) also carries the device's other EQs, which this page
-  doesn't show yet: `acceptCapabilities` keeps `perChannel`, `listsSlots`, `editsSlots` and
-  `controls` of the keys 1.3 added. uniPEQ sends the profile of the EQ it has picked, and that is
-  the one this page sees, but the settings shown with Device EQ stay those of the profile's own EQ
-  (`eqControls` with no `devicePeqStore.eq`). A linked device that drives its channels apart takes
+  own device. Of the capability keys protocol 1.3 added, `acceptCapabilities` keeps `perChannel`,
+  `listsSlots`, `editsSlots` and `controls`. A linked device that drives its channels apart takes
   per-ear bands (the link-service section of `services/AGENTS.md`).
+  **uniPEQ views a device with several EQs as one of them** and sends that view alone: its
+  profile, its name ("Qudelix 5K · SPK EQ") and its id (`device.eq`, protocol 1.3), so `opened`
+  is `connection` and `devicePeqStore.eq` picks the settings shown with Device EQ. The profile of
+  any EQ but the device's own lists no others, so the EQs come from `device.eqs` (1.4,
+  `acceptEqs`) into `Opened.eqs`, and not from `capabilities.eqs`, which `acceptCapabilities`
+  drops: `deviceEqs` would build a wrong list from them. Without `device.eqs` (a uniPEQ before
+  1.4) the EQs are unknown: `devicePeqStore.eqs` holds the viewed one alone, and no EQ row shows.
   The profile arrives over the wire, so `acceptProfile` refuses one eqcaps can't use rather than
   letting `resolveSlot` throw in every band card.
   Unlike a device connected here, a link connection is not assumed to play this page's sound
   (`devicePeqStore.audioThroughDevice`, in `stores/AGENTS.md`): the player keeps applying the EQ
   until the user says otherwise, or uniPEQ was opened from this page (`linkStore.launchedHere`).
+  The user's answer is kept by the profile id, not the name, so it survives an EQ switch.
 - **Network devices stay local** until eqcaps has a network identity and transport. Their profiles
   are written in `network.ts` from what the old handlers accepted. EarFun Tune Pro and Topping were
   dropped with the old bridge (no eqcaps profile; Topping was never registered).

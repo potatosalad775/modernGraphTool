@@ -204,11 +204,19 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
 - **`#status` mirrors uniPEQ's device into `devicePeqStore`** on every `status`: the busy flags
   (`busy: 'preset'` holds `isSwitching`, so no switch is offered while a delete renumbers the
   ids; `control` holds `isSettingControl`), the live preset list (`status.slots` through
-  `setListed`, which moves nothing else) and the settings' values (`status.controls` into
+  `setListed`, which moves nothing else), the EQs the device's mode lacks (`status.absentEqs`
+  through `setAbsent`, likewise) and the settings' values (`status.controls` into
   `controlValues`). `devicePeqService`'s preset edits and settings only send their command; what
   they did arrives in a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
   Each holds its busy flag until that answer, as Device EQ does: uniPEQ's `busy` can come after a
   second press, which uniPEQ would refuse as `busy`.
+- **`#device` makes uniPEQ's device the connection, as the EQ uniPEQ views.** It passes
+  `setConnected` an `Opened` with `device.eq` (protocol 1.3), the device's EQs by name
+  (`device.eqs`, 1.4) and the last `status.absentEqs`; `devicePeqStore.eqs` reads that list, so
+  the EQs keep one owner. Picking an EQ is uniPEQ's `eq` command, and what it does arrives as
+  ever: a new `device` through `#device` (a new connection, the constraint swapped) and a `fresh`
+  list through `#receive`, an undo barrier. uniPEQ names each view for its EQ, so the audio-path
+  answer is kept by profile id (`stores/AGENTS.md`).
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.

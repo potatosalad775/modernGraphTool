@@ -70,7 +70,11 @@ once. Each app keeps its own undo history, and a change made in the other app is
   [**New**, **Rename** and **Delete**](./device-peq.mdx#adding-renaming-and-deleting-presets) act
   on uniPEQ too. So do the device's [settings](./device-peq.mdx#device-settings), each row showing
   what uniPEQ reads from the device. Like left- and right-only bands, these need a recent uniPEQ.
-  A device with more than one EQ shows only the one uniPEQ has picked.
+- A device with [more than one EQ](./device-peq.mdx#devices-with-more-than-one-eq) gets the
+  **EQ** row, and picking an EQ there switches the one uniPEQ edits. Unlike a device connected in
+  this browser, uniPEQ reads the EQ you pick into the band list. While the list has changes the
+  device doesn't have yet, it doesn't switch: **Write** them, or **Read** to drop them, first. An
+  older uniPEQ doesn't name the device's EQs, so only the one picked in uniPEQ shows.
 - While uniPEQ's device is reconnecting, the list can't be edited.
 - When you started uniPEQ with **Open uniPEQ**, it runs on this machine, so the
   [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to its device.

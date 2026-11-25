@@ -23,9 +23,11 @@ export type PlanChange =
 			field: 'type' | 'freq' | 'q' | 'gain';
 			wanted: number | string;
 			written: number | string;
+			/** The one ear it happens in, where the channels are written apart; absent: every ear. */
+			ear?: 'L' | 'R';
 	  }
 	/** The band has no slot left on the device, or the device's rules left no room for it: not sent. */
-	| { kind: 'dropped'; band: number }
+	| { kind: 'dropped'; band: number; ear?: 'L' | 'R' }
 	| { kind: 'preamp'; wanted: number; written: number };
 
 export interface PushPlan {
@@ -42,8 +44,13 @@ export interface PushPlan {
 	clipRisk: boolean;
 	/** Something can't be met at all (a cross-band rule); the result breaks it. */
 	infeasible: boolean;
-	/** Device bands nothing on screen fills: `complete` writes them flat, from `hints` if given. */
+	/**
+	 * Device bands nothing on screen fills: `complete` writes them flat, from `hints` if given. The
+	 * most of either ear, where they are written apart.
+	 */
 	emptySlots: number;
+	/** Bands of the list the write sends, each counted once however many ears it reaches. */
+	sent: number;
 }
 
 /**
@@ -130,29 +137,44 @@ export function planPush(
 		}
 	);
 	const fits = planned.channels.map((channel) => channel.fit);
-	// A shared band is planned once per ear and changes the same way in both: said once.
-	const seen = new Set<string>();
-	const changes = fits
-		.flatMap((fitted, i) => changesOf(fitted, ears[i], planned.sendsPreamp))
-		.filter((change) => {
-			const key = JSON.stringify(change);
-			return !seen.has(key) && seen.add(key);
-		});
+	const [left, right] = fits.map((fitted, i) => changesOf(fitted, ears[i], planned.sendsPreamp));
 	const boosts = fits.some((f) => f.slots.some((slot) => slot !== null && slot.gain > 0));
+	const sent = new Set(
+		fits.flatMap((f, i) =>
+			f.slotOf.flatMap((slot, k) => (slot === null ? [] : [ears[i].bandOf[k]]))
+		)
+	);
 	const { write } = planned;
 	return {
 		filters: write.filters,
 		...(write.right ? { right: write.right.filters } : {}),
 		...(write.preamp !== undefined ? { preamp: write.preamp } : {}),
-		changes,
+		changes: apart ? byEar(left, right) : left,
 		skippedChannel: apart ? 0 : filters.length - shared.length,
 		clipRisk: boosts && profile.preamp.mode !== 'auto' && !planned.sendsPreamp,
 		infeasible: fits.some((f) => !f.feasible),
 		emptySlots:
 			profile.bandCount === null
 				? 0
-				: Math.max(...fits.map((f) => f.slots.filter((slot) => slot === null).length))
+				: Math.max(...fits.map((f) => f.slots.filter((slot) => slot === null).length)),
+		sent: sent.size
 	};
+}
+
+/**
+ * The left ear's changes and the right's as one list. A shared band is planned once per ear: a
+ * change it gets in both is said once, and one it gets in a single ear names that ear.
+ */
+function byEar(left: PlanChange[], right: PlanChange[]): PlanChange[] {
+	const key = (change: PlanChange) => JSON.stringify(change);
+	const inLeft = new Set(left.map(key));
+	const inRight = new Set(right.map(key));
+	const tag = (change: PlanChange, ear: 'L' | 'R'): PlanChange =>
+		change.kind === 'preamp' ? change : { ...change, ear };
+	return [
+		...left.map((c) => (inRight.has(key(c)) ? c : tag(c, 'L'))),
+		...right.filter((c) => !inLeft.has(key(c))).map((c) => tag(c, 'R'))
+	];
 }
 
 /** One ear's wanted filters, with the number each has in the list on screen. */

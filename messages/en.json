@@ -763,6 +763,7 @@
 	"equalizer_device_peq_push_intro": "The device can't hold this EQ exactly as shown. This is what it will get:",
 	"equalizer_device_peq_push_change": "Band {band} · {field}: {wanted} → {written}",
 	"equalizer_device_peq_push_dropped": "Band {band}: no slot left on the device, not sent",
+	"equalizer_device_peq_push_ear": "{change} (only {ear})",
 	"equalizer_device_peq_push_preamp": "Preamp: {wanted} → {written}",
 	"equalizer_device_peq_push_skipped_channel": [
 		{

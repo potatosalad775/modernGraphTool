@@ -288,7 +288,7 @@ describe('planPush on a device that drives its channels apart', () => {
 			APART
 		);
 		expect(plan.changes).toEqual([
-			{ kind: 'field', band: 2, field: 'gain', wanted: 14, written: 12 }
+			{ kind: 'field', band: 2, field: 'gain', wanted: 14, written: 12, ear: 'L' }
 		]);
 		expect(plan.filters.find((f) => f.freq === 1000)?.gain).toBe(12);
 		expect(plan.right!.some((f) => f.freq === 1000)).toBe(false);
@@ -310,7 +310,7 @@ describe('planPush on a device that drives its channels apart', () => {
 		const plan = planPush([pk(100, 6), ...left], -6, TWO_EARS, APART);
 		// The shared band plus the left's five don't fit five slots: the weakest goes.
 		expect(plan.changes.filter((c) => c.kind === 'dropped')).toEqual([
-			{ kind: 'dropped', band: 2 }
+			{ kind: 'dropped', band: 2, ear: 'L' }
 		]);
 		expect(plan.filters).toHaveLength(5);
 		expect(gains(plan.filters)).toHaveLength(5);
@@ -318,6 +318,23 @@ describe('planPush on a device that drives its channels apart', () => {
 		// The right ear holds the shared band alone, with nothing lost.
 		expect(plan.right).toHaveLength(5);
 		expect(gains(plan.right!).map((f) => f.freq)).toEqual([100]);
+	});
+
+	it('names the ear a shared band is dropped on when the other still gets it', () => {
+		const left = [1, 2, 3, 4, 5].map((g, i) => pk(200 * 2 ** i, g, { channel: 'L' }));
+		const plan = planPush([pk(100, 0.5), ...left], -6, TWO_EARS, APART);
+		expect(plan.changes.filter((c) => c.kind === 'dropped')).toEqual([
+			{ kind: 'dropped', band: 1, ear: 'L' }
+		]);
+		expect(gains(plan.right!).map((f) => f.freq)).toEqual([100]);
+	});
+
+	it('counts each band of the list it sends once, whichever ears it reaches', () => {
+		const left = [1, 2, 3, 4, 5].map((g, i) => pk(200 * 2 ** i, g, { channel: 'L' }));
+		// The shared band reaches the right ear only; the left's five fill the left ear.
+		expect(planPush([pk(100, 0.5), ...left], -6, TWO_EARS, APART).sent).toBe(6);
+		expect(planPush([pk(100, 1), pk(200, 1)], -1, TWO_EARS, APART).sent).toBe(2);
+		expect(planPush([pk(1000, 3)], -3, FIVE_BAND, WRITES_PREAMP).sent).toBe(1);
 	});
 
 	it('reports the larger of the two ears’ spare slots', () => {

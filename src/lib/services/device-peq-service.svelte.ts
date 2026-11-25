@@ -471,7 +471,7 @@ class DevicePeqService {
 			const result = await conn.device.push({ ...writeOf(plan), ...request });
 			devicePeqStore.synced = snapshot;
 			devicePeqStore.autoPaused = false;
-			const count = plan.filters.length - plan.emptySlots;
+			const count = plan.sent;
 			if (result.reconnect) {
 				// The device restarts to save. Its transport is gone; `reopen` finds it again.
 				await conn.device.close().catch(noop);

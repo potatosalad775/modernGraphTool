@@ -576,6 +576,7 @@
 	"equalizer_device_peq_push_intro": "기기가 이 EQ를 화면 그대로 담을 수 없습니다. 기기에는 다음과 같이 기록됩니다.",
 	"equalizer_device_peq_push_change": "밴드 {band} · {field}: {wanted} → {written}",
 	"equalizer_device_peq_push_dropped": "밴드 {band}: 기기에 남은 슬롯이 없어 보내지 않습니다",
+	"equalizer_device_peq_push_ear": "{change} ({ear}만)",
 	"equalizer_device_peq_push_preamp": "프리앰프: {wanted} → {written}",
 	"equalizer_device_peq_push_skipped_channel": "좌·우 전용 밴드 {count}개는 보내지 않습니다. 이 기기는 양쪽에 하나의 EQ만 씁니다",
 	"equalizer_device_peq_push_clip_risk": "이 밴드들은 부스트하지만, 이 기기의 레벨은 여기서 낮출 수 없습니다. 클리핑을 피하려면 볼륨을 낮추거나 부스트를 줄이세요.",

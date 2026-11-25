@@ -606,15 +606,19 @@ class DevicePeqService {
 	/**
 	 * One edit to the preset list of a device uniPEQ holds. uniPEQ reads the list again, and where
 	 * the device is, and both arrive in `status`, before or after the answer: nothing here works
-	 * them out. `edit` says what was done where that is known without the list, else null.
+	 * them out. `edit` says what was done where that is known without the list, else null. Busy
+	 * until the answer: uniPEQ's own `busy` may come later, and it refuses a second edit meanwhile.
 	 */
 	async #editLinked(edit: () => Promise<string | null>, refused?: string): Promise<PresetEdit> {
+		devicePeqStore.isSwitching = true;
 		try {
 			const done = await edit();
 			if (done !== null) devicePeqStore.setStatus(done);
 			return 'done';
 		} catch (e) {
 			return this.#presetFailed(e, refused);
+		} finally {
+			devicePeqStore.isSwitching = false;
 		}
 	}
 
@@ -852,14 +856,18 @@ class DevicePeqService {
 	/**
 	 * Set the settings of a device uniPEQ holds: one `control` command each, in order, up to the
 	 * first it refuses. uniPEQ warns for its own device and reopens one that restarts; the values
-	 * it reads back arrive in `status.controls`, which the rows follow.
+	 * it reads back arrive in `status.controls`, which the rows follow. Busy until the last answer,
+	 * as a preset edit is.
 	 */
 	async #setLinked(link: LinkPeqDevice, steps: { control: Control; value: number }[]) {
+		devicePeqStore.isSettingControl = true;
 		try {
 			for (const { control, value } of steps) await link.setControl(control.id, value);
 		} catch (e) {
 			this.fail(e, 'control');
 			return;
+		} finally {
+			devicePeqStore.isSettingControl = false;
 		}
 		const last = steps[steps.length - 1];
 		devicePeqStore.setStatus(

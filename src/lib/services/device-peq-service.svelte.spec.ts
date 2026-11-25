@@ -1330,6 +1330,21 @@ describe('devicePeqService device settings', () => {
 			expect(devicePeqStore.controlValues).toEqual({ gain: 0, usb: 0, feed: 0 });
 		});
 
+		it('sends nothing more until uniPEQ answers, whose own busy may come later', async () => {
+			const command = linked();
+			let answer = (_: CommandResult) => {};
+			command.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+
+			const first = devicePeqService.setControl('gain', -12);
+			await devicePeqService.setControl('feed', 1);
+			expect(command).toHaveBeenCalledExactlyOnceWith('control', { id: 'gain', value: -12 });
+
+			answer({ ok: true });
+			await first;
+			await devicePeqService.setControl('feed', 1);
+			expect(command).toHaveBeenLastCalledWith('control', { id: 'feed', value: 1 });
+		});
+
 		it('leaves a device that restarts to uniPEQ, which reopens it', async () => {
 			const command = linked();
 
@@ -2568,6 +2583,23 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(volumeWarning.open).toBe(false);
 			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
 			expect(devicePeqStore.selection).toBe(1);
+		});
+
+		it('sends nothing more until uniPEQ answers, whose own busy may come later', async () => {
+			const command = linked();
+			let answer = (_: CommandResult) => {};
+			command.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+
+			const first = devicePeqService.renamePreset(1, 'Metal');
+			await devicePeqService.renamePreset(0, 'Blues');
+			await devicePeqService.createPreset();
+			await devicePeqService.deletePreset(2);
+			expect(command).toHaveBeenCalledExactlyOnceWith('preset-rename', { slot: 1, name: 'Metal' });
+
+			answer({ ok: true });
+			expect(await first).toBe('done');
+			await devicePeqService.deletePreset(2);
+			expect(command).toHaveBeenLastCalledWith('preset-delete', { slot: 2 });
 		});
 
 		it('says a name uniPEQ’s device can’t store where it was typed, without a failure toast', async () => {

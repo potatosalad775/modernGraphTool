@@ -207,6 +207,8 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   `setListed`, which moves nothing else) and the settings' values (`status.controls` into
   `controlValues`). `devicePeqService`'s preset edits and settings only send their command; what
   they did arrives in a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
+  Each holds its busy flag until that answer, as Device EQ does: uniPEQ's `busy` can come after a
+  second press, which uniPEQ would refuse as `busy`.
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.

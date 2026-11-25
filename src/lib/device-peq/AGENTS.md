@@ -28,7 +28,7 @@ file, not here.
 | File                | What it does                                                          |
 | ------------------- | --------------------------------------------------------------------- |
 | `connect.ts`        | chooser → `matchDevice` → protocol + profile → `openDevice`; `warmUp` |
-| `push-plan.ts`      | `fit` + `complete` before every write, per ear where driven apart     |
+| `push-plan.ts`      | eqcaps `plan` before every write, per ear where driven apart          |
 | `preset.ts`         | which request reaches the target preset, or none                      |
 | `network.ts`        | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts`  | the network device list, without the code that talks to them          |
@@ -47,11 +47,13 @@ needs it at boot); keep it the only one.
 
 ## Invariants
 
-- **Every write is `fit` + `complete`d first, and what `fit` changed is shown before writing**
-  (`planPush` → `needsConfirmation` → `DevicePeqPushDialog`). The bridge writes exactly what it is
-  given and refuses what the wire can't carry; it never clamps or pads. This replaced
-  `normalizeFiltersForDevice`, which moved out-of-range frequencies to 100 Hz and turned shelves
-  into flat peaks with a `console.warn`. Don't reintroduce a silent rewrite anywhere on this path.
+- **Every write goes through eqcaps `plan` first (`fit`, then `complete`), and what `fit` changed
+  is shown before writing** (`planPush` → `needsConfirmation` → `DevicePeqPushDialog`). The bridge
+  writes exactly what it is given and refuses what the wire can't carry; it never clamps or pads.
+  This replaced `normalizeFiltersForDevice`, which moved out-of-range frequencies to 100 Hz and
+  turned shelves into flat peaks with a `console.warn`. Don't reintroduce a silent rewrite anywhere
+  on this path. `planPush` keeps only what is this app's: which bands each ear wants, and the
+  review's wording of what `fit` changed.
 - **A push writes the layout on screen.** A disabled band goes out as 0 dB at its own Fc and Q,
   and eqcaps' `fit` (≥ 0.2.1) writes 0 dB bands into the slots the active ones leave, as vendor apps
   do, so a read-back matches the list. Before 0.2.1 they became `complete`'s fillers (log centre of

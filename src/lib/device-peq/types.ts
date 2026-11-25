@@ -45,7 +45,7 @@ export type PeqCapabilities = Pick<
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
- * written value in eqcaps units (Hz, dB, RBJ Q, `LSC`/`HSC`); pushes are `fit` + `complete`d
+ * written value in eqcaps units (Hz, dB, RBJ Q, `LSC`/`HSC`); pushes go through eqcaps `plan`
  * first, since the bridge never clamps or pads (`push-plan.ts`).
  */
 export interface PeqDevice {

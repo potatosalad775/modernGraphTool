@@ -2,19 +2,13 @@
  * What a push to a device will actually send, worked out before anything is sent.
  *
  * The bridge writes exactly what it is given — no clamping, padding or type conversion — so every
- * push goes through eqcaps' `fit` (the wanted bands, moved onto the device's slots and domains)
- * and `complete` (every slot filled: unused ones with what the device held there, written flat,
- * when it could be read first — `readLayout` — otherwise with neutral filters). Whatever `fit` had to
- * change is listed here, so the UI can show it before writing instead of the device quietly
- * holding a different EQ from the one on screen.
+ * push goes through eqcaps' `plan`: `fit` (the wanted bands, moved onto the device's slots and
+ * domains), then `complete` (every slot filled: unused ones with what the device held there,
+ * written flat, when it could be read first — `readLayout` — otherwise with neutral filters), for
+ * each ear written. Whatever `fit` had to change is listed here, so the UI can show it before
+ * writing instead of the device quietly holding a different EQ from the one on screen.
  */
-import {
-	complete,
-	fit,
-	type Filter,
-	type FitResult,
-	type Profile
-} from '@potatosalad775/eqcaps-core';
+import { plan, type Filter, type FitResult, type Profile } from '@potatosalad775/eqcaps-core';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { indexedEffectiveFilters } from '#lib/utils/eq-channel.js';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
@@ -103,54 +97,84 @@ export function planPush(
 	capabilities: Capabilities,
 	hints?: readonly (Filter | null)[] | Layout
 ): PushPlan {
-	const held: Layout | undefined =
+	const layout: Layout | undefined =
 		hints && 'filters' in hints ? hints : hints && { filters: hints };
-	if (!drivesChannelsApart(profile, capabilities)) {
-		const shared = filters.flatMap((filter, index) =>
-			filter.channel == null ? [{ filter, index }] : []
-		);
-		const one = planChannel(shared, preamp, profile, capabilities, held?.filters);
-		return { ...one, skippedChannel: filters.length - shared.length };
-	}
-	const left = planChannel(
-		indexedEffectiveFilters(filters, 'L'),
-		preamp,
-		profile,
-		capabilities,
-		held?.filters
+	const apart = drivesChannelsApart(profile, capabilities);
+	const shared = filters.flatMap((filter, index) =>
+		filter.channel == null ? [{ filter, index }] : []
 	);
-	const right = planChannel(
-		indexedEffectiveFilters(filters, 'R'),
-		preamp,
+	// One entry where both ears are written alike, else the left's, then the right's: as `plan`
+	// reports its channels.
+	const ears = apart
+		? [
+				wantedOf(indexedEffectiveFilters(filters, 'L')),
+				wantedOf(indexedEffectiveFilters(filters, 'R'))
+			]
+		: [wantedOf(shared)];
+	const planned = plan(
 		profile,
-		capabilities,
-		held?.right ?? held?.filters
+		{
+			filters: ears[0].filters,
+			preamp,
+			// Named even where it equals the left: a Topping only updates its left/right mode on a
+			// write that names both.
+			...(apart ? { right: { filters: ears[1].filters } } : {})
+		},
+		{
+			writesPreamp: capabilities.writesPreamp,
+			perChannel: apart,
+			held: layout && {
+				filters: layout.filters,
+				...(layout.right ? { right: { filters: layout.right } } : {})
+			}
+		}
 	);
+	const fits = planned.channels.map((channel) => channel.fit);
 	// A shared band is planned once per ear and changes the same way in both: said once.
 	const seen = new Set<string>();
-	const changes = [...left.changes, ...right.changes].filter((change) => {
-		const key = JSON.stringify(change);
-		return !seen.has(key) && seen.add(key);
-	});
+	const changes = fits
+		.flatMap((fitted, i) => changesOf(fitted, ears[i], planned.sendsPreamp))
+		.filter((change) => {
+			const key = JSON.stringify(change);
+			return !seen.has(key) && seen.add(key);
+		});
+	const boosts = fits.some((f) => f.slots.some((slot) => slot !== null && slot.gain > 0));
+	const { write } = planned;
 	return {
-		filters: left.filters,
-		right: right.filters,
-		...(left.preamp !== undefined ? { preamp: left.preamp } : {}),
+		filters: write.filters,
+		...(write.right ? { right: write.right.filters } : {}),
+		...(write.preamp !== undefined ? { preamp: write.preamp } : {}),
 		changes,
-		skippedChannel: 0,
-		clipRisk: left.clipRisk || right.clipRisk,
-		infeasible: left.infeasible || right.infeasible,
-		emptySlots: Math.max(left.emptySlots, right.emptySlots)
+		skippedChannel: apart ? 0 : filters.length - shared.length,
+		clipRisk: boosts && profile.preamp.mode !== 'auto' && !planned.sendsPreamp,
+		infeasible: fits.some((f) => !f.feasible),
+		emptySlots:
+			profile.bandCount === null
+				? 0
+				: Math.max(...fits.map((f) => f.slots.filter((slot) => slot === null).length))
 	};
 }
 
+/** One ear's wanted filters, with the number each has in the list on screen. */
+interface Wanted {
+	filters: Filter[];
+	bandOf: number[];
+}
+
+/** The complete bands among `bands`, as eqcaps takes them; a disabled one flat, to keep its slot. */
+function wantedOf(bands: { filter: EQFilter; index: number }[]): Wanted {
+	const wanted: Wanted = { filters: [], bandOf: [] };
+	for (const { filter: f, index } of bands) {
+		const c = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
+		if (!c) continue;
+		wanted.filters.push(c);
+		wanted.bandOf.push(index + 1);
+	}
+	return wanted;
+}
+
 /** What `fit` changed, as the review lists it: by the band's number in the list on screen. */
-function changesOf(
-	result: FitResult,
-	wanted: Filter[],
-	bandOf: number[],
-	preampSent: boolean
-): PlanChange[] {
+function changesOf(result: FitResult, wanted: Wanted, preampSent: boolean): PlanChange[] {
 	const changes: PlanChange[] = [];
 	const dropped = new Set<number>();
 	result.slotOf.forEach((slot, k) => {
@@ -166,57 +190,17 @@ function changesOf(
 		if (dropped.has(c.filter) || c.field === 'preamp') continue;
 		changes.push({
 			kind: 'field',
-			band: bandOf[c.filter],
+			band: wanted.bandOf[c.filter],
 			field: c.field,
 			wanted: c.wanted,
 			written: c.written
 		});
 	}
-	for (const k of [...dropped].sort((a, b) => a - b)) {
+	for (const k of [...dropped].sort((x, y) => x - y)) {
 		// A wanted band that was flat to begin with isn't a loss.
-		if (wanted[k].gain !== 0) changes.push({ kind: 'dropped', band: bandOf[k] });
+		if (wanted.filters[k].gain !== 0) changes.push({ kind: 'dropped', band: wanted.bandOf[k] });
 	}
 	return changes;
-}
-
-/** One filter set, planned: the bands of one ear, or of both where they are driven alike. */
-function planChannel(
-	bands: { filter: EQFilter; index: number }[],
-	preamp: number,
-	profile: Profile,
-	capabilities: Capabilities,
-	hints?: readonly (Filter | null)[]
-): Omit<PushPlan, 'skippedChannel' | 'right'> {
-	const wanted: Filter[] = [];
-	const bandOf: number[] = [];
-	for (const { filter: f, index } of bands) {
-		const c = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
-		if (!c) continue;
-		wanted.push(c);
-		bandOf.push(index + 1);
-	}
-
-	const mode = profile.preamp.mode;
-	const result = fit(profile, wanted, preamp);
-	const changes = changesOf(result, wanted, bandOf, sendsPreamp(mode, capabilities));
-
-	const boosts = result.slots.some((f) => f !== null && f.gain > 0);
-	return {
-		filters: complete(profile, result.slots, hints ? { hints } : {}).filters,
-		...(sendsPreamp(mode, capabilities) ? { preamp: result.preamp } : {}),
-		changes,
-		clipRisk: boosts && mode !== 'auto' && !sendsPreamp(mode, capabilities),
-		infeasible: !result.feasible,
-		emptySlots: profile.bandCount === null ? 0 : result.slots.filter((f) => f === null).length
-	};
-}
-
-/** Send a preamp when the device takes one we control and the protocol can write it. */
-function sendsPreamp(
-	mode: Profile['preamp']['mode'],
-	capabilities: Pick<PeqCapabilities, 'writesPreamp'>
-): boolean {
-	return capabilities.writesPreamp && (mode === 'manual' || mode === 'unknown');
 }
 
 /**

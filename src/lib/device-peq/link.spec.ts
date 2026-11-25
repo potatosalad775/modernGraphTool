@@ -6,12 +6,15 @@ import {
 	acceptCapabilities,
 	acceptProfile,
 	fromLinkFilters,
+	fromLinkLists,
 	linkConnection,
 	LinkCommandError,
 	linkOps,
 	LinkPeqDevice,
 	sendLosses,
 	toLinkFilters,
+	toLinkLists,
+	type LinkLists,
 	type LinkPort
 } from './link.js';
 
@@ -23,6 +26,8 @@ const pk = (freq: number, gain: number, extra: Partial<EQFilter> = {}): EQFilter
 	gain,
 	...extra
 });
+/** A peak as the link carries it. */
+const wire = (freq: number, gain: number) => ({ type: 'PK', freq, q: 1, gain });
 
 const PROFILE = {
 	schemaVersion: '1.0',
@@ -55,7 +60,65 @@ describe('band lists', () => {
 			{ type: 'PK', freq: 200, q: 1, gain: 0 },
 			{ type: 'LSC', freq: 105, q: 0.7, gain: 2 }
 		]);
-		expect(sendLosses(list)).toEqual({ flattened: 1, dropped: 2 });
+		expect(sendLosses(list, false)).toEqual({ flattened: 1, dropped: 2 });
+	});
+
+	it('sends an ear the shared bands and its own, in list order', () => {
+		const list: EQFilter[] = [
+			pk(300, 5, { channel: 'L' }),
+			pk(100, 3),
+			pk(400, 6, { channel: 'R' }),
+			pk(200, 4, { enabled: false })
+		];
+		expect(toLinkFilters(list, 'L')).toEqual([wire(300, 5), wire(100, 3), wire(200, 0)]);
+		expect(toLinkFilters(list, 'R')).toEqual([wire(100, 3), wire(400, 6), wire(200, 0)]);
+		expect(toLinkLists(list, false)).toEqual({ left: [wire(100, 3), wire(200, 0)], right: null });
+		expect(toLinkLists(list, true)).toEqual({
+			left: toLinkFilters(list, 'L'),
+			right: toLinkFilters(list, 'R')
+		});
+	});
+
+	it('counts one-ear bands as kept when uniPEQ’s device takes them', () => {
+		const list = [pk(100, 3, { channel: 'L' }), pk(200, 4, { enabled: false, channel: 'R' })];
+		expect(sendLosses(list, false)).toEqual({ flattened: 0, dropped: 2 });
+		expect(sendLosses(list, true)).toEqual({ flattened: 1, dropped: 0 });
+	});
+
+	it('reads uniPEQ’s two lists slot by slot: alike is shared, the rest each ear’s, in place', () => {
+		const lists = {
+			left: [wire(100, 3), wire(200, 4), wire(300, 5)],
+			right: [wire(100, 3), wire(250, 4)]
+		};
+		expect(fromLinkLists(lists)).toEqual([
+			pk(100, 3),
+			pk(200, 4, { channel: 'L' }),
+			pk(250, 4, { channel: 'R' }),
+			pk(300, 5, { channel: 'L' })
+		]);
+		expect(fromLinkLists({ left: lists.left, right: null })).toEqual([
+			pk(100, 3),
+			pk(200, 4),
+			pk(300, 5)
+		]);
+	});
+
+	it('gives back the lists it read, apart or not, of any lengths', () => {
+		const shelf = { type: 'LSC', freq: 105, q: 0.7, gain: 2 };
+		const pass = { type: 'HPQ', freq: 30, q: 0.7, gain: 0 };
+		const cases: LinkLists[] = [
+			{ left: [wire(100, 3), wire(200, 4)], right: null },
+			{ left: [], right: null },
+			{ left: [], right: [] },
+			{ left: [wire(100, 3)], right: [wire(100, 3)] },
+			{ left: [wire(200, 4), wire(100, 3)], right: [wire(250, 4), wire(100, 3)] },
+			{ left: [wire(100, 3), shelf], right: [pass, wire(100, 3), wire(300, -2)] },
+			{ left: [shelf, wire(200, 4), wire(300, 5), pass], right: [shelf] },
+			{ left: [], right: [wire(800, 2)] }
+		];
+		for (const lists of cases) {
+			expect(toLinkLists(fromLinkLists(lists), lists.right !== null)).toEqual(lists);
+		}
 	});
 
 	it('reads the link as app bands, dropping types it has no row for', () => {

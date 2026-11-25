@@ -5,7 +5,8 @@
  * unlinks. `push` is never called: a write is the `write` command, planned and reviewed in uniPEQ.
  *
  * Also the conversions between the app's band list and the link's: the link carries eqcaps
- * filters in slot order, one list for both ears, with no per-band on/off.
+ * filters in slot order, one list for both ears or, while uniPEQ's channels are apart, one per
+ * ear, with no per-band on/off.
  *
  * Only types come from `peq-link`, so nothing here pulls the client into the boot bundle.
  */
@@ -24,6 +25,7 @@ import type {
 	LinkDevice,
 	LinkStatus
 } from 'peq-link/client';
+import { effectiveFilters, type EqChannel } from '#lib/utils/eq-channel.js';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { isRecord } from '#lib/utils/type-guards.js';
@@ -31,18 +33,33 @@ import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult } from '.
 
 // ── Band lists ──────────────────────────────────────────────────────────────
 
+/** What uniPEQ holds, as far as this page knows. `right !== null` ⇔ uniPEQ's channels are apart. */
+export interface LinkLists {
+	left: LinkFilter[];
+	right: LinkFilter[] | null;
+}
+
 /**
- * The app's list as the link carries it: shared bands only, a disabled band flat (0 dB at its own
- * Fc and Q, as a push writes it), incomplete bands left out. A disabled pass or notch has no flat
- * form, so it is left out too. While linked the list holds none of these (per-band on/off and
- * one-ear bands are unavailable), but undo can bring back a list from before.
+ * The app's list as the link carries it: without `ear` the shared bands, with it the shared bands
+ * plus that ear's own (`effectiveFilters`), in list order. A disabled band goes flat (0 dB at its
+ * own Fc and Q, as a push writes it), incomplete bands are left out. A disabled pass or notch has
+ * no flat form, so it is left out too. While linked the list holds no disabled band (per-band
+ * on/off is unavailable), but undo can bring back a list from before.
  */
-export function toLinkFilters(filters: EQFilter[]): Filter[] {
-	return filters.flatMap((f) => {
-		if (f.channel != null || (!f.enabled && !usesGain(f.type))) return [];
+export function toLinkFilters(filters: EQFilter[], ear?: EqChannel): Filter[] {
+	const bands = ear ? effectiveFilters(filters, ear) : filters.filter((f) => f.channel == null);
+	return bands.flatMap((f) => {
+		if (!f.enabled && !usesGain(f.type)) return [];
 		const caps = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
 		return caps ? [caps] : [];
 	});
+}
+
+/** The app's list as uniPEQ holds it: one list for both ears, or each ear's while `apart`. */
+export function toLinkLists(filters: EQFilter[], apart: boolean): LinkLists {
+	return apart
+		? { left: toLinkFilters(filters, 'L'), right: toLinkFilters(filters, 'R') }
+		: { left: toLinkFilters(filters), right: null };
 }
 
 /**
@@ -53,18 +70,40 @@ export function fromLinkFilters(filters: LinkFilter[]): EQFilter[] {
 	return filters.flatMap((f) => fromCapsFilter(f as Filter) ?? []);
 }
 
-/** What "Send this EQ to uniPEQ" changes on the way: the start dialog says both counts. */
-export function sendLosses(filters: EQFilter[]): { flattened: number; dropped: number } {
+/**
+ * uniPEQ's lists as app bands, in slot order: a slot both ears hold alike is one shared band, any
+ * other slot the left ear's band and the right ear's, in its place. So `toLinkLists` gives back the
+ * same lists, and a band op names the slot uniPEQ has the band in. `listFromPull` reads a device
+ * the same way but groups the bands by ear, which loses the slots.
+ */
+export function fromLinkLists({ left, right }: LinkLists): EQFilter[] {
+	if (!right) return fromLinkFilters(left);
+	const ear = (f: LinkFilter | undefined, channel: EqChannel): EQFilter[] =>
+		f ? fromLinkFilters([f]).map((band) => ({ ...band, channel })) : [];
+	return Array.from({ length: Math.max(left.length, right.length) }, (_, i) => {
+		const [l, r] = [left.at(i), right.at(i)];
+		return l && r && filtersEqual(l, r) ? fromLinkFilters([l]) : [...ear(l, 'L'), ...ear(r, 'R')];
+	}).flat();
+}
+
+/**
+ * What "Send this EQ to uniPEQ" changes on the way: the start dialog says both counts. One-ear
+ * bands are dropped unless uniPEQ's device takes them (`keepsEars`).
+ */
+export function sendLosses(
+	filters: EQFilter[],
+	keepsEars: boolean
+): { flattened: number; dropped: number } {
 	let flattened = 0;
 	let dropped = 0;
 	for (const f of filters) {
-		if (f.channel != null || (!f.enabled && !usesGain(f.type))) dropped++;
+		if ((f.channel != null && !keepsEars) || (!f.enabled && !usesGain(f.type))) dropped++;
 		else if (!f.enabled) flattened++;
 	}
 	return { flattened, dropped };
 }
 
-function filtersEqual(a: Filter, b: Filter): boolean {
+function filtersEqual(a: LinkFilter, b: LinkFilter): boolean {
 	return a.type === b.type && a.freq === b.freq && a.q === b.q && a.gain === b.gain;
 }
 

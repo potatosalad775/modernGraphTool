@@ -265,7 +265,7 @@ class LinkService {
 			this.#joined = false;
 			this.#endBurst();
 			this.#pending = adopt;
-			linkStore.choice = { theirs: adopt.eq.filters.length, ...sendLosses(eqStore.filters) };
+			linkStore.choice = { theirs: adopt.eq.filters.length, ...sendLosses(eqStore.filters, false) };
 			return;
 		}
 		this.#adopt(adopt);

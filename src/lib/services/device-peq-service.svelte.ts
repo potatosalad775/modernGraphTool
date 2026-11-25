@@ -18,20 +18,21 @@ import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
+import { controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
 import { describeDeviceError, isConnectionLost } from '#lib/device-peq/errors.js';
 import { LinkPeqDevice } from '#lib/device-peq/link.js';
 import { readRequest } from '#lib/device-peq/preset.js';
 import { needsReview, planPush, readLayout, type PushPlan } from '#lib/device-peq/push-plan.js';
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { NetworkDeviceType } from '#lib/device-peq/network-types.js';
-import type { DeviceConnection } from '#lib/device-peq/types.js';
+import type { DeviceConnection, PeqDevice } from '#lib/device-peq/types.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { fromCapsFilter } from '#lib/utils/eq-constraint.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import type { Filter } from '@potatosalad775/eqcaps-core';
+import type { Control, Filter } from '@potatosalad775/eqcaps-core';
 import { eqCommands } from './eq-commands.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 
@@ -54,6 +55,13 @@ async function playing(conn: DeviceConnection) {
 		? await conn.device.eqEnabled().catch(() => null)
 		: null;
 	return { slot, enabled };
+}
+
+/** What the status line says while a restarted device is awaited, once it is back, and if it isn't. */
+interface RestartWords {
+	waiting: string;
+	back: string;
+	manual: string;
 }
 
 /** The transports a browser connects through its own device APIs. */
@@ -214,6 +222,7 @@ class DevicePeqService {
 		devicePeqStore.setConnected(conn, slot, enabled);
 		this.#unwatchLost();
 		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? noop;
+		await this.#readControls(conn);
 		this.install();
 		// Auto-write writes without a press, so its volume warning comes now, before any edit.
 		if (this.autoWriting) {
@@ -250,13 +259,13 @@ class DevicePeqService {
 	 * A device that restarted to save is reopened as soon as it is back. Not back in time, or no
 	 * longer granted to the site, Reconnect stays on offer.
 	 */
-	async #awaitRestart(conn: DeviceConnection, count: number): Promise<void> {
+	async #awaitRestart(conn: DeviceConnection, words: RestartWords): Promise<void> {
 		if (!conn.reopen) {
-			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+			devicePeqStore.setStatus(words.manual);
 			return;
 		}
 		devicePeqStore.isConnecting = true;
-		devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnecting());
+		devicePeqStore.setStatus(words.waiting);
 		let again: DeviceConnection | null = null;
 		try {
 			again = await conn.reopen({ timeoutMs: RESTART_WAIT_MS });
@@ -270,12 +279,12 @@ class DevicePeqService {
 		}
 		if (!again) {
 			devicePeqStore.isConnecting = false;
-			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnect());
+			devicePeqStore.setStatus(words.manual);
 			return;
 		}
 		try {
 			await this.#reopened(again);
-			devicePeqStore.setStatus(m.equalizer_device_peq_status_saved_reconnected({ count }));
+			devicePeqStore.setStatus(words.back);
 		} catch (e) {
 			this.fail(e, 'connect');
 		} finally {
@@ -310,6 +319,7 @@ class DevicePeqService {
 					m.equalizer_device_peq_read_skipped({ count: bands.length - filters.length })
 				);
 			}
+			await this.#readEqControls(conn);
 		} catch (e) {
 			this.fail(e, 'read');
 		} finally {
@@ -381,7 +391,11 @@ class DevicePeqService {
 				// Unless the user disconnected while it wrote.
 				if (devicePeqStore.connection === conn) {
 					devicePeqStore.needsReconnect = true;
-					void this.#awaitRestart(conn, count);
+					void this.#awaitRestart(conn, {
+						waiting: m.equalizer_device_peq_status_saved_reconnecting(),
+						back: m.equalizer_device_peq_status_saved_reconnected({ count }),
+						manual: m.equalizer_device_peq_status_saved_reconnect()
+					});
 				}
 			} else {
 				// Written to a listed preset while the device sits on a built-in one: switch to it,
@@ -447,11 +461,104 @@ class DevicePeqService {
 				await conn.device.setEnabled(true, slot);
 				devicePeqStore.played(slot);
 			}
+			await this.#readEqControls(conn);
 		} catch (e) {
 			this.fail(e, 'switch');
 		} finally {
 			devicePeqStore.isSwitching = false;
 		}
+	}
+
+	// ── The device's own settings ─────────────────────────────────────────────
+
+	/**
+	 * Read the device's settings into the store. A failed read is not an error: the rows don't
+	 * show (or stay as they were) and the EQ works without them.
+	 */
+	async #readControls(conn: DeviceConnection): Promise<void> {
+		const { device } = conn;
+		if (!device.readControls || !device.capabilities.controls?.length) return;
+		try {
+			const values = await device.readControls();
+			if (devicePeqStore.connection === conn) devicePeqStore.controlValues = values;
+		} catch (e) {
+			console.warn("Device PEQ: could not read the device's settings:", e);
+		}
+	}
+
+	/**
+	 * Read them again where a setting of the EQ may have moved with it: a device can keep one with
+	 * each preset (a Qudelix's crossfeed), so after a switch or a Read. Only for a device that has one.
+	 */
+	async #readEqControls(conn: DeviceConnection): Promise<void> {
+		if (conn.device.capabilities.controls?.some((c) => c.eq !== undefined)) {
+			await this.#readControls(conn);
+		}
+	}
+
+	/** Set one of the device's settings to `value`, now. */
+	setControl(id: string, value: number): Promise<void> {
+		return this.setControls([[id, value]]);
+	}
+
+	/**
+	 * Set the device's settings, in order. Written at once and no part of the band list: not an undo
+	 * step, never sent by Write, nothing to do with whether the device holds the list. The rows
+	 * show what the device reads back, so a write it refuses leaves them where they were. One that
+	 * restarts the device (`reconnect`) ends the run, and the device is reopened as after a save.
+	 */
+	async setControls(changes: readonly (readonly [id: string, value: number])[]): Promise<void> {
+		const conn = devicePeqStore.connection;
+		const device = conn?.device;
+		if (!conn || !device?.writeControl || changes.length === 0 || devicePeqStore.isBusy) return;
+		const known = device.capabilities.controls ?? [];
+		const steps = changes.flatMap(([id, value]) => {
+			const control = known.find((c) => c.id === id);
+			return control ? [{ control, value }] : [];
+		});
+		if (steps.length !== changes.length) return;
+		// An output gain or a headroom changes how loud the device plays, as a write does.
+		if (volumeWarning.ask(() => void this.setControls(changes))) return;
+		devicePeqStore.isSettingControl = true;
+		try {
+			await this.#writeControls(conn, device.writeControl.bind(device), steps);
+		} catch (e) {
+			this.fail(e, 'control');
+			if (!devicePeqStore.needsReconnect) await this.#readControls(conn);
+		} finally {
+			devicePeqStore.isSettingControl = false;
+		}
+	}
+
+	async #writeControls(
+		conn: DeviceConnection,
+		write: NonNullable<PeqDevice['writeControl']>,
+		steps: { control: Control; value: number }[]
+	): Promise<void> {
+		let last = steps[0];
+		let restarts = false;
+		for (const step of steps) {
+			last = step;
+			restarts = (await write(step.control.id, step.value)).reconnect;
+			if (restarts) break;
+		}
+		const control = controlLabel(last.control);
+		if (!restarts) {
+			// One setting can decide which others exist (a USB mode), so all of them are read again.
+			await this.#readControls(conn);
+			devicePeqStore.setStatus(
+				m.device_control_set({ control, value: controlValueLabel(last.control, last.value) })
+			);
+			return;
+		}
+		await conn.device.close().catch(noop);
+		if (devicePeqStore.connection !== conn) return;
+		devicePeqStore.needsReconnect = true;
+		void this.#awaitRestart(conn, {
+			waiting: m.device_control_restarting({ control }),
+			back: m.device_control_restarted({ control }),
+			manual: m.device_control_restart_reconnect({ control })
+		});
 	}
 
 	// ── Auto-write ────────────────────────────────────────────────────────────

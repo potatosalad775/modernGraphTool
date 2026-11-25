@@ -34,6 +34,11 @@ export interface PanelStatusInput {
 	 * and what brings it back is the EQ switch, not picking another preset.
 	 */
 	eqOff: boolean;
+	/**
+	 * The name of a device setting whose current value stops the device applying its EQ, or null.
+	 * Optional, so a caller with no settings to speak of leaves it out.
+	 */
+	eqOffBy?: string | null;
 	inSync: boolean | null;
 }
 
@@ -52,6 +57,8 @@ export function panelStatus(s: PanelStatusInput): PanelStatus | null {
 				: m.equalizer_device_peq_unreachable()
 		};
 	}
+	// What is written is held but not heard, which no line about sync would say.
+	if (s.eqOffBy) return { tone: 'warning', text: m.device_control_eq_off({ control: s.eqOffBy }) };
 	if (s.autoWriting && s.autoClipRisk) {
 		return { tone: 'warning', text: m.equalizer_device_peq_push_clip_risk() };
 	}

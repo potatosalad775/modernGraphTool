@@ -10,7 +10,8 @@ import type { ConnectResult } from '#lib/device-peq/connect.js';
 import { readRequest, writeRequest, type PresetRequest } from '#lib/device-peq/preset.js';
 import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
-import type { Filter } from '@potatosalad775/eqcaps-core';
+import { deviceControls, eqControls } from '#lib/device-peq/controls.js';
+import { eqDisabledBy, type Control, type Filter } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';
 import { eqStore } from './eq-store.svelte.js';
@@ -41,6 +42,13 @@ class DevicePeqStore {
 	isReading = $state(false);
 	isWriting = $state(false);
 	isSwitching = $state(false);
+	/** One of the device's own settings is being changed. */
+	isSettingControl = $state(false);
+	/**
+	 * The device's settings as last read, by control id; null for one it doesn't have right now.
+	 * Empty until read, and for a device with none.
+	 */
+	controlValues = $state.raw<Record<string, number | null>>({});
 	/** A connection waiting on the user to say which profile the device is. */
 	choice = $state.raw<DeviceChoice | null>(null);
 	/** The listed preset reads and writes target; null when the device lists none. */
@@ -133,7 +141,36 @@ class DevicePeqStore {
 	}
 
 	get isBusy(): boolean {
-		return this.isConnecting || this.isReading || this.isWriting || this.isSwitching;
+		return (
+			this.isConnecting ||
+			this.isReading ||
+			this.isWriting ||
+			this.isSwitching ||
+			this.isSettingControl
+		);
+	}
+
+	/** The settings the device has right now: those whose last read gave a value. */
+	get controls(): Control[] {
+		const values = this.controlValues;
+		return (this.connection?.device.capabilities.controls ?? []).filter(
+			(c) => typeof values[c.id] === 'number'
+		);
+	}
+
+	/** The device's own settings, as opposed to those of one of its EQs. */
+	get deviceControls(): Control[] {
+		return deviceControls(this.controls);
+	}
+
+	/** The settings of the EQ being edited (a headroom, a crossfeed), shown with Device EQ. */
+	get eqControls(): Control[] {
+		return eqControls(this.controls);
+	}
+
+	/** The settings whose current value stops the device applying its EQ. */
+	get eqOffBy(): Control[] {
+		return eqDisabledBy(this.controls, this.controlValues);
 	}
 
 	get deviceName(): string | null {
@@ -222,6 +259,7 @@ class DevicePeqStore {
 		this.eqEnabled = enabled ?? (onBypass ? false : currentSlot !== null ? true : null);
 		this.synced = null;
 		this.layout = null;
+		this.controlValues = {};
 		this.autoPaused = false;
 		this.autoClipRisk = false;
 		this.autoStopped = false;
@@ -266,6 +304,8 @@ class DevicePeqStore {
 		this.isReading = false;
 		this.isWriting = false;
 		this.isSwitching = false;
+		this.isSettingControl = false;
+		this.controlValues = {};
 		this.activeSlot = null;
 		this.deviceSlot = null;
 		this.eqEnabled = null;

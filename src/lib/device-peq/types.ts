@@ -8,6 +8,7 @@
  */
 import type { Profile } from '@potatosalad775/eqcaps-core';
 import type {
+	ControlWriteResult,
 	DeviceCapabilities,
 	DeviceIdentity,
 	PullRequest,
@@ -36,7 +37,9 @@ export type PeqCapabilities = Pick<
 	| 'slots'
 	| 'disconnectOnSave'
 	| 'experimental'
->;
+> &
+	// The device's own settings. Absent where there are none to drive: a network device, one in uniPEQ.
+	Partial<Pick<DeviceCapabilities, 'controls'>>;
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
@@ -56,6 +59,13 @@ export interface PeqDevice {
 	/** Whether the EQ is on (`readsEnabled`); null when the protocol or device doesn't say. */
 	eqEnabled(): Promise<boolean | null>;
 	setEnabled(enabled: boolean, slot?: number): Promise<void>;
+	/**
+	 * The current value of each of `capabilities.controls` by id; null for one the device doesn't
+	 * have right now (another firmware, another mode).
+	 */
+	readControls?(): Promise<Record<string, number | null>>;
+	/** Sets one control. The bridge refuses a value the control doesn't take, and never clamps. */
+	writeControl?(id: string, value: number): Promise<ControlWriteResult>;
 	close(): Promise<void>;
 }
 

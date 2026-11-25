@@ -64,6 +64,49 @@ describe('panelStatus', () => {
 		);
 	});
 
+	describe('a device setting that stops the EQ', () => {
+		it('warns, naming the setting', () => {
+			expect(status({ eqOffBy: 'Headroom' })).toEqual({
+				tone: 'warning',
+				text: "The device doesn't apply its EQ with this Headroom setting."
+			});
+		});
+
+		it('says nothing of it when none does', () => {
+			expect(status({ eqOffBy: null })).toBeNull();
+			expect(status({ eqOffBy: '' })).toBeNull();
+		});
+
+		it('is outranked by a failure', () => {
+			expect(status({ eqOffBy: 'Headroom', message: 'Lost it', messageIsError: true })).toEqual({
+				tone: 'error',
+				text: 'Lost it'
+			});
+		});
+
+		it('is outranked by a paused auto-write, a built-in preset and an unreachable preset', () => {
+			expect(status({ eqOffBy: 'Headroom', autoWriting: true, autoPaused: true })?.action).toBe(
+				'review'
+			);
+			expect(status({ eqOffBy: 'Headroom', builtIn: true })?.text).toMatch(/built-in preset/);
+			expect(status({ eqOffBy: 'Headroom', unreachable: true })?.text).toMatch(
+				/only read and write the preset it's using/
+			);
+		});
+
+		it('outranks the clip risk and "in sync"', () => {
+			const warned = { tone: 'warning', text: expect.stringContaining('Headroom') };
+			expect(status({ eqOffBy: 'Headroom', autoWriting: true, autoClipRisk: true })).toMatchObject(
+				warned
+			);
+			expect(status({ eqOffBy: 'Headroom', inSync: true })).toMatchObject(warned);
+			expect(status({ eqOffBy: 'Headroom', inSync: true, message: 'Wrote 6' })).toMatchObject(
+				warned
+			);
+			expect(status({ eqOffBy: 'Headroom', inSync: false })).toMatchObject(warned);
+		});
+	});
+
 	it('lets the last operation stand for "in sync", and drops it once the list moves', () => {
 		expect(status({ message: 'Wrote 6', inSync: true })).toEqual({
 			tone: 'success',

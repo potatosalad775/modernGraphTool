@@ -9,6 +9,14 @@
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
+	import DeviceSettings from './DeviceSettings.svelte';
+	import {
+		deviceGridClass,
+		deviceRowClass,
+		deviceSelectClass,
+		deviceSpanClass
+	} from './device-rows.js';
+	import { controlLabel } from '#lib/device-peq/control-labels.js';
 	import InfoPopover from '../atoms/InfoPopover.svelte';
 	import { panelStatus } from '#lib/device-peq/panel-status.js';
 
@@ -26,6 +34,7 @@
 	let pendingPlan = $state.raw<PushPlan | null>(null);
 	let showPushDialog = $state(false);
 
+	const uid = $props.id();
 	const connection = $derived(devicePeqStore.connection);
 	const caps = $derived(connection?.device.capabilities);
 
@@ -76,6 +85,10 @@
 	/** Device EQ shows a built-in preset: Write is off by design, not because of where it is. */
 	const builtIn = $derived(!!caps?.canWrite && !devicePeqStore.targetWritable);
 	const eqOff = $derived(devicePeqStore.selection === 'off');
+	/** Settings of the EQ (a headroom, a crossfeed) sit with Device EQ; the rest get their own box. */
+	const eqSettings = $derived(devicePeqStore.eqControls);
+	const deviceSettings = $derived(devicePeqStore.deviceControls);
+	const eqOffBy = $derived(devicePeqStore.eqOffBy.at(0));
 	const unreachableHint = $derived(
 		eqOff ? m.equalizer_device_peq_unreachable_off() : m.equalizer_device_peq_unreachable()
 	);
@@ -109,6 +122,7 @@
 			unreachable:
 				(!!caps?.canWrite && !builtIn && !writeTarget) || (!!caps?.canRead && !readTarget),
 			eqOff,
+			eqOffBy: eqOffBy ? controlLabel(eqOffBy) : null,
 			inSync
 		})
 	);
@@ -246,16 +260,26 @@
 				/>
 			</div>
 		{:else}
-			<!-- Device EQ: what the device plays -->
-			<fieldset class="flex flex-col gap-1.5 rounded border border-base-content/15 px-3 py-2">
+			<!-- Device EQ: what the device plays, and the device's own settings -->
+			<fieldset class="rounded border border-base-content/15 px-3 py-2">
 				<legend class="px-1 text-xs text-base-content/80">
 					{m.equalizer_device_peq_hardware_setting()}
 				</legend>
-				{#if hasPresets}
-					<div class="flex items-center gap-1">
-						<label class="flex min-w-0 flex-1 items-center gap-2 text-xs text-base-content/80">
-							<span class="shrink-0">{eqLabel}</span>
+				<div class={deviceGridClass}>
+					{#if hasPresets}
+						<div class={deviceRowClass}>
+							<span class="flex items-center">
+								<label for="{uid}-eq">{eqLabel}</label>
+								<InfoPopover label={m.info_popover_about({ topic: eqLabel })} class="ml-0.5">
+									<p>
+										{caps?.canEnable
+											? m.equalizer_device_peq_eq_hint()
+											: m.equalizer_device_peq_preset_hint()}
+									</p>
+								</InfoPopover>
+							</span>
 							<select
+								id="{uid}-eq"
 								value={eqValue}
 								disabled={devicePeqStore.isBusy}
 								onchange={(e) => {
@@ -263,43 +287,48 @@
 									// A failed switch leaves the device as it was: show that again.
 									void chooseEq(select.value).then(() => (select.value = eqValue));
 								}}
-								class="min-w-0 flex-1 rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs text-base-content disabled:opacity-60"
+								class={deviceSelectClass}
 							>
 								{#each eqOptions as option (option.value)}
 									<option value={option.value} disabled={option.disabled}>{option.label}</option>
 								{/each}
 							</select>
-						</label>
-						<InfoPopover label={m.info_popover_about({ topic: eqLabel })} class="-mr-1">
-							<p>
-								{caps?.canEnable
-									? m.equalizer_device_peq_eq_hint()
-									: m.equalizer_device_peq_preset_hint()}
-							</p>
-						</InfoPopover>
-					</div>
-				{:else if hasOnOff}
-					<Switch
-						size="sm"
-						bind:checked={
-							() => devicePeqStore.eqEnabled !== false, (on) => void chooseEq(on ? 'on' : 'off')
-						}
-						disabled={devicePeqStore.isBusy}
-						labelText={m.equalizer_device_peq_eq_label()}
-						labelClass="text-xs text-base-content/80"
-					>
-						<InfoPopover
-							label={m.info_popover_about({ topic: m.equalizer_device_peq_eq_label() })}
-							class="ml-0.5"
-						>
-							<p>
-								{devicePeqStore.eqEnabled === null
-									? m.equalizer_device_peq_eq_switch_unknown()
-									: m.equalizer_device_peq_eq_switch_hint()}
-							</p>
-						</InfoPopover>
-					</Switch>
-				{/if}
+						</div>
+					{:else if hasOnOff}
+						<div class={deviceRowClass}>
+							<span class="flex items-center">
+								<label for="{uid}-eq">{m.equalizer_device_peq_eq_label()}</label>
+								<InfoPopover
+									label={m.info_popover_about({ topic: m.equalizer_device_peq_eq_label() })}
+									class="ml-0.5"
+								>
+									<p>
+										{devicePeqStore.eqEnabled === null
+											? m.equalizer_device_peq_eq_switch_unknown()
+											: m.equalizer_device_peq_eq_switch_hint()}
+									</p>
+								</InfoPopover>
+							</span>
+							<Switch
+								id="{uid}-eq"
+								size="sm"
+								bind:checked={
+									() => devicePeqStore.eqEnabled !== false, (on) => void chooseEq(on ? 'on' : 'off')
+								}
+								disabled={devicePeqStore.isBusy}
+							/>
+						</div>
+					{/if}
+					<!-- The device refuses a change to an EQ's setting while that EQ is off -->
+					<DeviceSettings controls={eqSettings} disabled={eqOff} />
+					<!-- The device's own, below a rule: the rows above it are the EQ's -->
+					{#if deviceSettings.length > 0}
+						{#if hasPresets || hasOnOff || eqSettings.length > 0}
+							<hr class="{deviceSpanClass} border-base-content/15" />
+						{/if}
+						<DeviceSettings controls={deviceSettings} />
+					{/if}
+				</div>
 			</fieldset>
 
 			<!-- Sync: Read and Write, auto-write, and one line saying where things stand -->

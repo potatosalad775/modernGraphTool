@@ -42,6 +42,18 @@ Some devices can only read and write the preset they're playing. While they're o
 
 While a device is connected here, the [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to it, so what the device plays isn't equalized twice.
 
+## Device settings
+
+Some devices have settings of their own beside the EQ, and the ones modernGraphTool can drive appear in the same box as **Device EQ**: a headroom, a crossfeed, a DAC filter, an output gain, and so on. Which ones depends on the device; most dongles have none.
+
+- **A setting is applied as soon as you change it.** It isn't part of the band list: **Write to device** doesn't send it, undo doesn't revert it, and it has no effect on whether the device and the list match.
+- **Each row shows what the device reports.** If the device refuses a change, the row stays where it was and the status line says why.
+- **Settings that belong to the EQ sit right under Device EQ**, above a divider; the device's general settings are below it. A device can keep an EQ setting with each preset (a Qudelix keeps its crossfeed that way), so those rows are read again when you switch preset or read the device. Some devices refuse to change them while the EQ is off.
+- A setting that restarts the device asks first, and the panel reconnects by itself afterwards.
+- If a setting's current value stops the device applying its EQ, the row and the status line say so.
+
+Options keep the names the device's own app uses.
+
 ## Reading and writing
 
 - **Read from device** loads the device's EQ into the band list and turns the Equalizer on.

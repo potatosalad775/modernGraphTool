@@ -25,18 +25,20 @@ The protocols are **not here**: USB HID, serial and BLE devices are driven by
 `potatosalad775/eqcaps`). A protocol bug or a missing device is fixed there, in a handler or a data
 file, not here.
 
-| File               | What it does                                                          |
-| ------------------ | --------------------------------------------------------------------- |
-| `connect.ts`       | chooser → `matchDevice` → protocol + profile → `openDevice`; `warmUp` |
-| `push-plan.ts`     | `fit` + `complete` before every write, with the changes the UI shows  |
-| `preset.ts`        | which request reaches the target preset, or none                      |
-| `network.ts`       | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
-| `network-types.ts` | the network device list, without the code that talks to them          |
-| `network-host.ts`  | the typed address: what a network device may be addressed by          |
-| `link.ts`          | a device connected in uniPEQ, over the uniPEQ link; list conversions  |
-| `errors.ts`        | `BridgeError.code` → a user-facing sentence                           |
-| `panel-status.ts`  | the panel's single status line, picked by priority                    |
-| `types.ts`         | `PeqDevice` (a `BridgeDevice` satisfies it), `DeviceConnection`       |
+| File                | What it does                                                          |
+| ------------------- | --------------------------------------------------------------------- |
+| `connect.ts`        | chooser → `matchDevice` → protocol + profile → `openDevice`; `warmUp` |
+| `push-plan.ts`      | `fit` + `complete` before every write, with the changes the UI shows  |
+| `preset.ts`         | which request reaches the target preset, or none                      |
+| `network.ts`        | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
+| `network-types.ts`  | the network device list, without the code that talks to them          |
+| `network-host.ts`   | the typed address: what a network device may be addressed by          |
+| `link.ts`           | a device connected in uniPEQ, over the uniPEQ link; list conversions  |
+| `controls.ts`       | the device's own settings: which EQ each belongs to, which widget     |
+| `control-labels.ts` | their translated names (apart: the store imports `controls.ts`)       |
+| `errors.ts`         | `BridgeError.code` → a user-facing sentence                           |
+| `panel-status.ts`   | the panel's single status line, picked by priority                    |
+| `types.ts`          | `PeqDevice` (a `BridgeDevice` satisfies it), `DeviceConnection`       |
 
 `connect.ts`, `network.ts` and everything they import are reached through dynamic `import()`, so
 neither the bridge nor the client is in the boot bundle. `eqcaps-core` is (the constraint store
@@ -103,10 +105,30 @@ needs it at boot); keep it the only one.
   lifts its limits and stops auto-write. It's kept when it is expected to go: `needsReconnect`, or
   a write under way on a `disconnectOnSave` device, which can drop before the write returns.
 - **The connected panel has one status line**, chosen by `panelStatus` (failure › auto-write
-  paused › built-in preset › unreachable preset › clip risk › sync). Don't add another conditional `<p>` beside it:
-  the old panel stacked one per state and showed "Wrote 6 bands" next to "The device has this EQ".
+  paused › built-in preset › unreachable preset › a setting that turns the EQ off › clip risk ›
+  sync). Don't add another conditional `<p>` beside it: the old panel stacked one per state and
+  showed "Wrote 6 bands" next to "The device has this EQ".
   Fixed facts about the profile (shared, guessed, draft, experimental, write-only) go in the
   device row's popover instead, which renders only when one applies.
+- **A device's own settings are not part of the list** (eqcaps `protocol.controls`: a headroom, a
+  DAC filter). `devicePeqService.setControls` writes one at once, through `writeControl`; it is no
+  undo step, Write never sends it, and `synced` / `inSync` don't see it. The rows
+  (`DeviceSettings`) show `devicePeqStore.controlValues`, which is what the device last **read
+  back**, never the press, so a refused write leaves the row where it was. Every write is followed
+  by a full `readControls`, because one setting can decide which others exist; a control that reads
+  `null` is absent right now and gets no row.
+- **A setting bound to an EQ (`control.eq`) sits under Device EQ, the rest below the rule**
+  (`eqControls` / `deviceControls`). They are read again after a preset switch and a Read
+  (`#readEqControls`): a Qudelix keeps its crossfeed with the preset. Only the profile's own EQ
+  (`eq: true`) is shown until the panel can pick another of the device's EQs, so a Qudelix's SPK EQ
+  headroom has no row yet.
+- **The Device Setting box is one grid** (`components/features/device-rows.ts`): Device EQ and
+  every setting are subgrid rows of it, label on the left, control on the right. That is what keeps
+  the controls one width whatever the labels' lengths and the row gaps equal. A new row takes
+  `deviceRowClass`; don't give one its own flex layout, or put a label to the right of its switch.
+- **The same names and widgets as uniPEQ** (`control-labels.ts`, `rangeChoices`, `balanceOf`): a
+  role gives the translated name, values keep the vendor's. Change them in both apps or neither.
+  The link carries no controls (peq-link 1.3), so a linked device shows none.
 - **A device in uniPEQ is a `'link'` connection** (`link.ts`, bound by
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
   `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to

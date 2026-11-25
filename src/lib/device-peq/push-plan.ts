@@ -8,11 +8,18 @@
  * change is listed here, so the UI can show it before writing instead of the device quietly
  * holding a different EQ from the one on screen.
  */
-import { complete, fit, type Filter, type Profile } from '@potatosalad775/eqcaps-core';
+import {
+	complete,
+	fit,
+	type Filter,
+	type FitResult,
+	type Profile
+} from '@potatosalad775/eqcaps-core';
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import { toCapsFilter } from '#lib/utils/eq-constraint.js';
+import { indexedEffectiveFilters } from '#lib/utils/eq-channel.js';
+import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import type { PresetRequest } from './preset.js';
-import type { PeqCapabilities, PeqDevice } from './types.js';
+import type { PeqCapabilities, PeqDevice, PullResult } from './types.js';
 
 export type PlanChange =
 	| {
@@ -30,10 +37,12 @@ export type PlanChange =
 export interface PushPlan {
 	/** Exactly what to send: one written filter per device band. */
 	filters: Filter[];
+	/** The right channel's, where the device drives its channels apart; `filters` are then the left's. */
+	right?: Filter[];
 	/** Preamp to send, or undefined when the device takes none (or computes its own). */
 	preamp?: number;
 	changes: PlanChange[];
-	/** Left- or right-only bands: the device has one filter set for both ears. */
+	/** Left- or right-only bands not sent: the device has one filter set for both ears. */
 	skippedChannel: number;
 	/** The bands boost, and the device can't be told to lower its level: it may clip. */
 	clipRisk: boolean;
@@ -57,33 +66,91 @@ export function needsConfirmation(plan: PushPlan): boolean {
 	return needsReview(plan) || plan.clipRisk;
 }
 
+/** What the target preset holds now, by slot: the left channel's, and the right's where read apart. */
+export interface Layout {
+	filters: readonly (Filter | null)[];
+	right?: readonly (Filter | null)[];
+}
+
+type Capabilities = Pick<PeqCapabilities, 'writesPreamp' | 'perChannel'>;
+
+/**
+ * Whether a write drives the left and right channels apart: the profile says the EQ has a filter
+ * set per channel, and the bridge can send the right one. Then per-ear bands are written, each ear
+ * getting the shared bands plus its own; anywhere else one filter set drives both ears.
+ */
+export function drivesChannelsApart(
+	profile: Pick<Profile, 'channels'>,
+	capabilities: Pick<PeqCapabilities, 'perChannel'>
+): boolean {
+	return profile.channels === 'independent' && capabilities.perChannel === true;
+}
+
 /**
  * Plan a push of the app's filter list to a device described by `profile`.
  *
- * Only shared, complete bands are wanted: a hardware slot has no channel, so an L-only band pushed
- * as is would reach both ears, which is a different EQ from the one on screen. A disabled band is
- * sent flat (0 dB at its own Fc and Q), so it keeps its slot the way vendor apps keep theirs.
+ * Where one filter set drives both ears, only shared, complete bands are wanted: a hardware slot
+ * has no channel, so an L-only band pushed as is would reach both ears, which is a different EQ
+ * from the one on screen. Where the device drives its channels apart (`drivesChannelsApart`), each
+ * ear is planned on its own, from the shared bands plus that ear's, and both are sent, alike or
+ * not. A disabled band is sent flat (0 dB at its own Fc and Q), so it keeps its slot the way
+ * vendor apps keep theirs.
  */
 export function planPush(
 	filters: EQFilter[],
 	preamp: number,
 	profile: Profile,
-	capabilities: Pick<PeqCapabilities, 'writesPreamp'>,
-	hints?: readonly (Filter | null)[]
+	capabilities: Capabilities,
+	hints?: readonly (Filter | null)[] | Layout
 ): PushPlan {
-	const wanted: Filter[] = [];
-	const bandOf: number[] = [];
-	filters.forEach((f, i) => {
-		if (f.channel != null) return;
-		const c = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
-		if (!c) return;
-		wanted.push(c);
-		bandOf.push(i + 1);
+	const held: Layout | undefined =
+		hints && 'filters' in hints ? hints : hints && { filters: hints };
+	if (!drivesChannelsApart(profile, capabilities)) {
+		const shared = filters.flatMap((filter, index) =>
+			filter.channel == null ? [{ filter, index }] : []
+		);
+		const one = planChannel(shared, preamp, profile, capabilities, held?.filters);
+		return { ...one, skippedChannel: filters.length - shared.length };
+	}
+	const left = planChannel(
+		indexedEffectiveFilters(filters, 'L'),
+		preamp,
+		profile,
+		capabilities,
+		held?.filters
+	);
+	const right = planChannel(
+		indexedEffectiveFilters(filters, 'R'),
+		preamp,
+		profile,
+		capabilities,
+		held?.right ?? held?.filters
+	);
+	// A shared band is planned once per ear and changes the same way in both: said once.
+	const seen = new Set<string>();
+	const changes = [...left.changes, ...right.changes].filter((change) => {
+		const key = JSON.stringify(change);
+		return !seen.has(key) && seen.add(key);
 	});
-	const skippedChannel = filters.filter((f) => f.channel != null).length;
+	return {
+		filters: left.filters,
+		right: right.filters,
+		...(left.preamp !== undefined ? { preamp: left.preamp } : {}),
+		changes,
+		skippedChannel: 0,
+		clipRisk: left.clipRisk || right.clipRisk,
+		infeasible: left.infeasible || right.infeasible,
+		emptySlots: Math.max(left.emptySlots, right.emptySlots)
+	};
+}
 
-	const mode = profile.preamp.mode;
-	const result = fit(profile, wanted, preamp);
+/** What `fit` changed, as the review lists it: by the band's number in the list on screen. */
+function changesOf(
+	result: FitResult,
+	wanted: Filter[],
+	bandOf: number[],
+	preampSent: boolean
+): PlanChange[] {
 	const changes: PlanChange[] = [];
 	const dropped = new Set<number>();
 	result.slotOf.forEach((slot, k) => {
@@ -91,7 +158,7 @@ export function planPush(
 	});
 	for (const c of result.changes) {
 		if (c.filter === null) {
-			if (c.field === 'preamp' && sendsPreamp(mode, capabilities)) {
+			if (c.field === 'preamp' && preampSent) {
 				changes.push({ kind: 'preamp', wanted: Number(c.wanted), written: Number(c.written) });
 			}
 			continue;
@@ -109,13 +176,35 @@ export function planPush(
 		// A wanted band that was flat to begin with isn't a loss.
 		if (wanted[k].gain !== 0) changes.push({ kind: 'dropped', band: bandOf[k] });
 	}
+	return changes;
+}
+
+/** One filter set, planned: the bands of one ear, or of both where they are driven alike. */
+function planChannel(
+	bands: { filter: EQFilter; index: number }[],
+	preamp: number,
+	profile: Profile,
+	capabilities: Capabilities,
+	hints?: readonly (Filter | null)[]
+): Omit<PushPlan, 'skippedChannel' | 'right'> {
+	const wanted: Filter[] = [];
+	const bandOf: number[] = [];
+	for (const { filter: f, index } of bands) {
+		const c = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
+		if (!c) continue;
+		wanted.push(c);
+		bandOf.push(index + 1);
+	}
+
+	const mode = profile.preamp.mode;
+	const result = fit(profile, wanted, preamp);
+	const changes = changesOf(result, wanted, bandOf, sendsPreamp(mode, capabilities));
 
 	const boosts = result.slots.some((f) => f !== null && f.gain > 0);
 	return {
 		filters: complete(profile, result.slots, hints ? { hints } : {}).filters,
 		...(sendsPreamp(mode, capabilities) ? { preamp: result.preamp } : {}),
 		changes,
-		skippedChannel,
 		clipRisk: boosts && mode !== 'auto' && !sendsPreamp(mode, capabilities),
 		infeasible: !result.feasible,
 		emptySlots: profile.bandCount === null ? 0 : result.slots.filter((f) => f === null).length
@@ -139,12 +228,48 @@ function sendsPreamp(
 export async function readLayout(
 	device: Pick<PeqDevice, 'pull'>,
 	request: PresetRequest | null
-): Promise<(Filter | null)[] | null> {
+): Promise<Layout | null> {
 	if (!request) return null;
 	try {
-		return (await device.pull(request)).filters;
+		const held = await device.pull(request);
+		return { filters: held.filters, ...(held.right ? { right: held.right.filters } : {}) };
 	} catch (e) {
 		console.warn('Device PEQ: could not read the layout to keep, writing neutral fillers:', e);
 		return null;
 	}
+}
+
+/**
+ * The band list a read gives. Where the device returned its channels apart and they differ, a
+ * band the two hold alike in the same slot is one shared band, and the rest are the left ear's
+ * and the right ear's own; where they are equal, or one filter set drives both, every band is
+ * shared. `skipped` counts bands of a type the app has no row for.
+ */
+export function listFromPull(result: Pick<PullResult, 'filters' | 'right'>): {
+	filters: EQFilter[];
+	skipped: number;
+} {
+	const left = result.filters;
+	const right = result.right?.filters ?? left;
+	const same = (a: Filter | null | undefined, b: Filter | null | undefined) =>
+		!!a && !!b && a.type === b.type && a.freq === b.freq && a.q === b.q && a.gain === b.gain;
+	const shared: EQFilter[] = [];
+	const ears: Record<'L' | 'R', EQFilter[]> = { L: [], R: [] };
+	let skipped = 0;
+	const take = (f: Filter | null | undefined, into: EQFilter[], channel?: 'L' | 'R') => {
+		if (!f) return;
+		const band = fromCapsFilter(f);
+		if (!band) skipped++;
+		else into.push(channel ? { ...band, channel } : band);
+	};
+	for (let i = 0; i < Math.max(left.length, right.length); i++) {
+		const l = left.at(i);
+		const r = right.at(i);
+		if (same(l, r) || (!l && !r)) take(l, shared);
+		else {
+			take(l, ears.L, 'L');
+			take(r, ears.R, 'R');
+		}
+	}
+	return { filters: [...shared, ...ears.L, ...ears.R], skipped };
 }

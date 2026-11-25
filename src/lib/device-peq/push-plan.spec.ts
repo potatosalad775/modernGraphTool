@@ -1,7 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
-import { needsConfirmation, needsReview, planPush, readLayout } from './push-plan.js';
+import {
+	drivesChannelsApart,
+	listFromPull,
+	needsConfirmation,
+	needsReview,
+	planPush,
+	readLayout
+} from './push-plan.js';
 import type { Filter } from '@potatosalad775/eqcaps-core';
 import type { PeqDevice } from './types.js';
 
@@ -25,6 +32,10 @@ const FIVE_BAND = hardwareProfile('five', {
 });
 
 const WRITES_PREAMP = { writesPreamp: true };
+const APART = { writesPreamp: true, perChannel: true };
+
+/** The same device, with a filter set per channel. */
+const TWO_EARS = { ...FIVE_BAND, channels: 'independent' as const };
 
 describe('planPush', () => {
 	it('sends every device band, filling unused ones with flat filters', () => {
@@ -153,8 +164,19 @@ describe('readLayout', () => {
 
 	it('reads the preset the request reaches', async () => {
 		const d = device();
-		expect(await readLayout(d, { slot: 1 })).toEqual(HELD);
+		expect(await readLayout(d, { slot: 1 })).toEqual({ filters: HELD });
 		expect(d.pull).toHaveBeenCalledWith({ slot: 1 });
+	});
+
+	it('carries the right channel when the pull returned one', async () => {
+		const RIGHT: (Filter | null)[] = [{ type: 'PK', freq: 200, q: 1, gain: -2 }, null];
+		const d = device();
+		d.pull.mockResolvedValue({ filters: HELD, right: { filters: RIGHT } });
+		expect(await readLayout(d, { slot: 1 })).toEqual({ filters: HELD, right: RIGHT });
+	});
+
+	it('leaves the right channel out when the pull has none', async () => {
+		expect(await readLayout(device(), { slot: 1 })).not.toHaveProperty('right');
 	});
 
 	it('reads nothing when the preset can’t be reached', async () => {
@@ -169,5 +191,360 @@ describe('readLayout', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		expect(await readLayout(d, {})).toBeNull();
 		warn.mockRestore();
+	});
+});
+
+describe('drivesChannelsApart', () => {
+	const profile = (channels?: 'linked' | 'independent') => ({ channels });
+
+	it('needs a filter set per channel and a bridge that can send the right one', () => {
+		expect(drivesChannelsApart(profile('independent'), { perChannel: true })).toBe(true);
+		expect(drivesChannelsApart(profile('independent'), { perChannel: false })).toBe(false);
+		expect(drivesChannelsApart(profile('linked'), { perChannel: true })).toBe(false);
+		expect(drivesChannelsApart(profile('linked'), { perChannel: false })).toBe(false);
+	});
+
+	it('is false while the bridge does not say', () => {
+		expect(drivesChannelsApart(profile('independent'), {})).toBe(false);
+		expect(drivesChannelsApart(profile('independent'), { perChannel: undefined })).toBe(false);
+	});
+
+	it('is false for a profile that names no channels', () => {
+		expect(drivesChannelsApart(profile(), { perChannel: true })).toBe(false);
+	});
+});
+
+describe('planPush on a device that drives its channels apart', () => {
+	const gains = (filters: Filter[]) => filters.filter((f) => f.gain !== 0);
+
+	it('writes a list of shared bands to both ears alike', () => {
+		const plan = planPush([pk(1000, 3), pk(2000, -2)], -3, TWO_EARS, APART);
+		expect(plan.right).toBeDefined();
+		expect(plan.right).toEqual(plan.filters);
+		expect(plan.skippedChannel).toBe(0);
+		expect(plan.preamp).toBe(-3);
+		expect(needsConfirmation(plan)).toBe(false);
+	});
+
+	it('sends exactly the band count to each ear', () => {
+		const plan = planPush([pk(1000, 3), pk(2000, 2, { channel: 'L' })], -3, TWO_EARS, APART);
+		expect(plan.filters).toHaveLength(5);
+		expect(plan.right).toHaveLength(5);
+	});
+
+	it('writes a left-only band to the left ear alone, and a right-only one to the right', () => {
+		const plan = planPush(
+			[pk(1000, 3), pk(2000, 2, { channel: 'L' }), pk(4000, -2, { channel: 'R' })],
+			-3,
+			TWO_EARS,
+			APART
+		);
+		expect(gains(plan.filters).map((f) => [f.freq, f.gain])).toEqual([
+			[1000, 3],
+			[2000, 2]
+		]);
+		expect(gains(plan.right!).map((f) => [f.freq, f.gain])).toEqual([
+			[1000, 3],
+			[4000, -2]
+		]);
+		expect(plan.skippedChannel).toBe(0);
+		expect(needsReview(plan)).toBe(false);
+	});
+
+	it('sends a disabled per-ear band flat, in that ear only', () => {
+		const plan = planPush(
+			[pk(1000, 3), pk(2000, 2, { channel: 'R', enabled: false })],
+			-3,
+			TWO_EARS,
+			APART
+		);
+		expect(plan.right![1]).toEqual({ type: 'PK', freq: 2000, q: 1, gain: 0 });
+		expect(plan.filters.some((f) => f.freq === 2000)).toBe(false);
+		expect(plan.changes).toEqual([]);
+	});
+
+	it('lists a shared band that had to move once, not once per ear', () => {
+		const plan = planPush([pk(1000, 14)], -3, TWO_EARS, APART);
+		expect(plan.changes).toEqual([
+			{ kind: 'field', band: 1, field: 'gain', wanted: 14, written: 12 }
+		]);
+		expect(plan.filters[0].gain).toBe(12);
+		expect(plan.right![0].gain).toBe(12);
+	});
+
+	it('lists the preamp once when both ears move it', () => {
+		const plan = planPush([pk(1000, 14)], -14.5, TWO_EARS, APART);
+		expect(plan.changes.filter((c) => c.kind === 'preamp')).toEqual([
+			{ kind: 'preamp', wanted: -14.5, written: -12 }
+		]);
+		expect(plan.preamp).toBe(-12);
+	});
+
+	it('lists a one-ear band that had to move by its place in the list on screen', () => {
+		const plan = planPush(
+			[pk(500, 1), pk(1000, 14, { channel: 'L' }), pk(2000, 1, { channel: 'R' })],
+			-3,
+			TWO_EARS,
+			APART
+		);
+		expect(plan.changes).toEqual([
+			{ kind: 'field', band: 2, field: 'gain', wanted: 14, written: 12 }
+		]);
+		expect(plan.filters.find((f) => f.freq === 1000)?.gain).toBe(12);
+		expect(plan.right!.some((f) => f.freq === 1000)).toBe(false);
+		expect(needsReview(plan)).toBe(true);
+	});
+
+	it('lists the same one-ear problem on each ear separately', () => {
+		const plan = planPush(
+			[pk(1000, 14, { channel: 'L' }), pk(2000, 14, { channel: 'R' })],
+			-3,
+			TWO_EARS,
+			APART
+		);
+		expect(plan.changes.map((c) => (c.kind === 'field' ? c.band : null))).toEqual([1, 2]);
+	});
+
+	it('drops bands on the ear that has too many, and only there', () => {
+		const left = [1, 2, 3, 4, 5].map((g, i) => pk(200 * 2 ** i, g, { channel: 'L' }));
+		const plan = planPush([pk(100, 6), ...left], -6, TWO_EARS, APART);
+		// The shared band plus the left's five don't fit five slots: the weakest goes.
+		expect(plan.changes.filter((c) => c.kind === 'dropped')).toEqual([
+			{ kind: 'dropped', band: 2 }
+		]);
+		expect(plan.filters).toHaveLength(5);
+		expect(gains(plan.filters)).toHaveLength(5);
+		expect(gains(plan.filters).some((f) => f.freq === 200)).toBe(false);
+		// The right ear holds the shared band alone, with nothing lost.
+		expect(plan.right).toHaveLength(5);
+		expect(gains(plan.right!).map((f) => f.freq)).toEqual([100]);
+	});
+
+	it('reports the larger of the two ears’ spare slots', () => {
+		const leftHeavy = planPush(
+			[pk(100, 1, { channel: 'L' }), pk(200, 1, { channel: 'L' }), pk(300, 1, { channel: 'L' })],
+			0,
+			TWO_EARS,
+			APART
+		);
+		// The left has 2 slots free, the right ear all 5.
+		expect(leftHeavy.emptySlots).toBe(5);
+
+		const rightHeavy = planPush(
+			[pk(100, 1, { channel: 'L' }), pk(200, 1, { channel: 'R' }), pk(300, 1, { channel: 'R' })],
+			0,
+			TWO_EARS,
+			APART
+		);
+		// The left has 4 slots free, the right ear 3.
+		expect(rightHeavy.emptySlots).toBe(4);
+
+		const full = planPush(
+			[100, 200, 400, 800, 1600].map((f) => pk(f, 1)),
+			0,
+			TWO_EARS,
+			APART
+		);
+		expect(full.emptySlots).toBe(0);
+	});
+
+	it('warns of clipping when only one ear boosts', () => {
+		const noPreamp = { writesPreamp: false, perChannel: true };
+		const plan = planPush([pk(1000, 3, { channel: 'R' })], -3, TWO_EARS, noPreamp);
+		expect(plan.clipRisk).toBe(true);
+		expect(plan.preamp).toBeUndefined();
+		expect(planPush([pk(1000, 0)], -3, TWO_EARS, noPreamp).clipRisk).toBe(false);
+	});
+
+	it('is not infeasible while every band fits', () => {
+		expect(planPush([pk(1000, 3, { channel: 'L' })], -3, TWO_EARS, APART).infeasible).toBe(false);
+	});
+
+	describe('with the device’s layout', () => {
+		const held = (freqs: number[], q: number): Filter[] =>
+			freqs.map((freq) => ({ type: 'PK', freq, q, gain: 4 }));
+		const LEFT = held([31, 62, 125, 250, 500], 0.7);
+		const RIGHT = held([41, 82, 164, 328, 656], 0.5);
+		const shape = (filters: Filter[]) => filters.map((f) => [f.freq, f.q, f.gain]);
+
+		it('fills the right ear’s empty slots from the right’s own bands when it has them', () => {
+			const plan = planPush([pk(1000, 3)], -3, TWO_EARS, APART, { filters: LEFT, right: RIGHT });
+			expect(shape(plan.filters)).toEqual([
+				[1000, 1, 3],
+				[62, 0.7, 0],
+				[125, 0.7, 0],
+				[250, 0.7, 0],
+				[500, 0.7, 0]
+			]);
+			expect(shape(plan.right!)).toEqual([
+				[1000, 1, 3],
+				[82, 0.5, 0],
+				[164, 0.5, 0],
+				[328, 0.5, 0],
+				[656, 0.5, 0]
+			]);
+		});
+
+		it('fills the right ear from the left’s when only the left was read', () => {
+			const plan = planPush([pk(1000, 3)], -3, TWO_EARS, APART, { filters: LEFT });
+			expect(shape(plan.filters).slice(1)).toEqual([
+				[62, 0.7, 0],
+				[125, 0.7, 0],
+				[250, 0.7, 0],
+				[500, 0.7, 0]
+			]);
+			expect(plan.right).toEqual(plan.filters);
+		});
+
+		it('takes a plain list as the left’s, and gives the right ear the same', () => {
+			const plan = planPush([pk(1000, 3)], -3, TWO_EARS, APART, LEFT);
+			expect(shape(plan.filters).slice(1)).toEqual([
+				[62, 0.7, 0],
+				[125, 0.7, 0],
+				[250, 0.7, 0],
+				[500, 0.7, 0]
+			]);
+			expect(plan.right).toEqual(plan.filters);
+		});
+	});
+});
+
+describe('planPush where one filter set drives both ears', () => {
+	const mixed = [pk(1000, 3), pk(2000, 2, { channel: 'L' }), pk(4000, -2, { channel: 'R' })];
+	const written = (filters: Filter[]) => filters.filter((f) => f.gain !== 0).map((f) => f.freq);
+
+	it('sends shared bands only when the EQ has a set per channel but the bridge cannot send it', () => {
+		const plan = planPush(mixed, -3, TWO_EARS, { writesPreamp: true, perChannel: false });
+		expect(plan.right).toBeUndefined();
+		expect(plan.skippedChannel).toBe(2);
+		expect(written(plan.filters)).toEqual([1000]);
+		expect(needsReview(plan)).toBe(true);
+	});
+
+	it('sends shared bands only when the bridge could, but the EQ is linked', () => {
+		const plan = planPush(mixed, -3, FIVE_BAND, APART);
+		expect(plan.right).toBeUndefined();
+		expect(plan.skippedChannel).toBe(2);
+		expect(written(plan.filters)).toEqual([1000]);
+	});
+
+	it('takes a bridge that does not say as unable', () => {
+		const plan = planPush(mixed, -3, TWO_EARS, WRITES_PREAMP);
+		expect(plan.right).toBeUndefined();
+		expect(plan.skippedChannel).toBe(2);
+	});
+
+	it('uses a Layout’s left bands as the hints, and ignores its right', () => {
+		const left: Filter[] = [31, 62, 125, 250, 500].map((freq) => ({
+			type: 'PK',
+			freq,
+			q: 0.7,
+			gain: 4
+		}));
+		const plan = planPush([pk(1000, 3)], -3, FIVE_BAND, WRITES_PREAMP, {
+			filters: left,
+			right: left.map((f) => ({ ...f, freq: f.freq * 2 }))
+		});
+		expect(plan.filters.map((f) => f.freq)).toEqual([1000, 62, 125, 250, 500]);
+		expect(plan.right).toBeUndefined();
+	});
+});
+
+describe('listFromPull', () => {
+	const f = (freq: number, gain = 2, extra: Partial<Filter> = {}): Filter => ({
+		type: 'PK',
+		freq,
+		q: 1,
+		gain,
+		...extra
+	});
+	const band = (freq: number, gain = 2, channel?: 'L' | 'R'): EQFilter =>
+		pk(freq, gain, channel ? { channel } : {});
+
+	it('makes every band shared when one filter set came back', () => {
+		const { filters, skipped } = listFromPull({ filters: [f(100), f(200), f(300, 1)] });
+		expect(filters).toEqual([band(100), band(200), band(300, 1)]);
+		expect(skipped).toBe(0);
+	});
+
+	it('skips an empty slot', () => {
+		expect(listFromPull({ filters: [f(100), null, f(300)] }).filters).toEqual([
+			band(100),
+			band(300)
+		]);
+	});
+
+	it('makes every band shared when the right channel equals the left, slot by slot', () => {
+		const { filters } = listFromPull({
+			filters: [f(100), null, f(300)],
+			right: { filters: [f(100), null, f(300)] }
+		});
+		expect(filters).toEqual([band(100), band(300)]);
+		expect(filters.every((b) => b.channel === undefined)).toBe(true);
+	});
+
+	it('splits a differing right channel: alike slots shared, the rest per ear', () => {
+		const { filters, skipped } = listFromPull({
+			filters: [f(100), f(200), f(300)],
+			right: { filters: [f(100), f(250, -1), f(300)] }
+		});
+		expect(filters).toEqual([band(100), band(300), band(200, 2, 'L'), band(250, -1, 'R')]);
+		expect(skipped).toBe(0);
+	});
+
+	it('orders shared first, then left, then right, whatever the slot order', () => {
+		const { filters } = listFromPull({
+			filters: [f(100, 1), f(200), f(300, 3)],
+			right: { filters: [f(110, 1), f(200), f(310, 3)] }
+		});
+		expect(filters.map((b) => [b.freq, b.channel])).toEqual([
+			[200, undefined],
+			[100, 'L'],
+			[300, 'L'],
+			[110, 'R'],
+			[310, 'R']
+		]);
+	});
+
+	it('gives a band only one ear holds to that ear', () => {
+		const { filters } = listFromPull({
+			filters: [f(100), null],
+			right: { filters: [null, f(400)] }
+		});
+		expect(filters).toEqual([band(100, 2, 'L'), band(400, 2, 'R')]);
+	});
+
+	it('does not call two bands alike when any of type, frequency, Q or gain differs', () => {
+		const left = f(100);
+		for (const other of [f(100, 2, { type: 'LSC' }), f(101), f(100, 2, { q: 2 }), f(100, 3)]) {
+			const { filters } = listFromPull({ filters: [left], right: { filters: [other] } });
+			expect(filters.map((b) => b.channel)).toEqual(['L', 'R']);
+		}
+	});
+
+	it('copes with a right channel of another length', () => {
+		const { filters } = listFromPull({
+			filters: [f(100)],
+			right: { filters: [f(100), f(200)] }
+		});
+		expect(filters).toEqual([band(100), band(200, 2, 'R')]);
+	});
+
+	it('counts the bands whose type has no row, in either ear', () => {
+		const odd = f(100, 0, { type: 'x-weird' as Filter['type'] });
+		expect(listFromPull({ filters: [odd, f(200)] })).toEqual({
+			filters: [band(200)],
+			skipped: 1
+		});
+		const split = listFromPull({
+			filters: [odd, f(200)],
+			right: { filters: [f(100), f(200, 1)] }
+		});
+		expect(split.skipped).toBe(1);
+		expect(split.filters).toEqual([band(200, 2, 'L'), band(100, 2, 'R'), band(200, 1, 'R')]);
+	});
+
+	it('maps a shelf to the app’s type', () => {
+		expect(listFromPull({ filters: [f(100, 2, { type: 'LSC' })] }).filters[0].type).toBe('LSQ');
 	});
 });

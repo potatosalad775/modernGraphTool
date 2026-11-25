@@ -8,11 +8,12 @@
  */
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import { readRequest, writeRequest, type PresetRequest } from '#lib/device-peq/preset.js';
+import { drivesChannelsApart, type Layout } from '#lib/device-peq/push-plan.js';
 import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
 import { deviceControls, eqControls } from '#lib/device-peq/controls.js';
 import { OWN_EQ, deviceEqs, type DeviceEq, type EqTarget } from '#lib/device-peq/device-eqs.js';
-import { eqDisabledBy, type Control, type Filter } from '@potatosalad775/eqcaps-core';
+import { eqDisabledBy, type Control } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';
 import { eqStore } from './eq-store.svelte.js';
@@ -81,7 +82,7 @@ class DevicePeqStore {
 	 * The target preset's bands as read before a write, kept so later writes (auto-write above all)
 	 * don't read again. Null hints: the preset couldn't be read. Dropped on any preset change.
 	 */
-	layout = $state.raw<{ slot: number | null; hints: (Filter | null)[] | null } | null>(null);
+	layout = $state.raw<{ slot: number | null; hints: Layout | null } | null>(null);
 	/** Auto-write found a list the device can't hold exactly, and waits for a reviewed write. */
 	autoPaused = $state(false);
 	/** The last automatic write boosts with no way to lower the device's level. */
@@ -125,6 +126,15 @@ class DevicePeqStore {
 	get eqs(): DeviceEq[] {
 		const opened = this.#opened;
 		return opened ? deviceEqs(opened.conn, opened.absent) : [];
+	}
+
+	/**
+	 * The EQ reached holds a filter set per channel and the device writes them apart, so left- and
+	 * right-only bands are read and written as they are.
+	 */
+	get perChannel(): boolean {
+		const conn = this.connection;
+		return !!conn && drivesChannelsApart(conn.profile, conn.device.capabilities);
 	}
 
 	get isConnected(): boolean {
@@ -323,7 +333,11 @@ class DevicePeqStore {
 		this.statusMessage = null;
 		this.statusIsError = false;
 		this.reportedInSync = undefined;
-		eqConstraintsStore.setDeviceConstraint(connection.profile, connection.name);
+		eqConstraintsStore.setDeviceConstraint(
+			connection.profile,
+			connection.name,
+			drivesChannelsApart(connection.profile, connection.device.capabilities)
+		);
 	}
 
 	/** The device was switched to `slot` (undefined: EQ on, no preset named) or its EQ off. */

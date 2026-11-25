@@ -40,7 +40,8 @@ export type PeqCapabilities = Pick<
 > &
 	// The device's own settings. Absent where there are none to drive: a network device, one in uniPEQ.
 	// Its other EQs, and whether it says how many bands it has. Absent the same way.
-	Partial<Pick<DeviceCapabilities, 'controls' | 'eqs' | 'readsBandCount'>>;
+	// Also whether a push takes the right channel apart from the left (`perChannel`).
+	Partial<Pick<DeviceCapabilities, 'controls' | 'eqs' | 'readsBandCount' | 'perChannel'>>;
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a

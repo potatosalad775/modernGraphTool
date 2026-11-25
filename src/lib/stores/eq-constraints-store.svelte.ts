@@ -111,6 +111,8 @@ class EqConstraintsStore {
 	/** Active id snapshot before a device's preset took over — restored on disconnect. */
 	#preDeviceActiveId: string | null = null;
 	#installed = false;
+	/** The connected device drives its left and right channels apart, so its preset holds per-ear bands. */
+	#devicePerChannel = $state(false);
 
 	/**
 	 * The live band list read against the active profile, computed once per change and shared by
@@ -189,9 +191,11 @@ class EqConstraintsStore {
 	}
 
 	/**
-	 * Whether the active profile can hold a different band list per ear. eqcaps v1 only knows
-	 * `channels: 'linked'` — one filter set drives both ears, `independent` is reserved (SPEC §9) —
-	 * so today that is the unlimited default alone. Extend this when eqcaps ships `independent`.
+	 * Whether the active profile can hold a different band list per ear: the unlimited default, and
+	 * a connected device that drives its left and right channels apart (`setDeviceConstraint`'s
+	 * `perChannel`). Every other profile is one filter set for both ears. A catalog profile marked
+	 * `channels: 'independent'` still counts as one: nothing here writes it, and the app it stands
+	 * for may or may not expose the right channel.
 	 */
 	get supportsPerChannel(): boolean {
 		return this.presetSupportsPerChannel(this.activeId);
@@ -199,7 +203,7 @@ class EqConstraintsStore {
 
 	/** `supportsPerChannel` for preset `id`, before it is active. */
 	presetSupportsPerChannel(id: string): boolean {
-		return id === DEFAULT_CONSTRAINT_ID;
+		return id === DEFAULT_CONSTRAINT_ID || (id === DEVICE_CONSTRAINT_ID && this.#devicePerChannel);
 	}
 
 	/** Anything other than the unlimited default is limiting the filters. */
@@ -241,7 +245,8 @@ class EqConstraintsStore {
 	 * user-selected preset is remembered so disconnect can restore it. Session-scoped: never
 	 * persisted.
 	 */
-	setDeviceConstraint(profile: Profile, label = profileLabel(profile)): void {
+	setDeviceConstraint(profile: Profile, label = profileLabel(profile), perChannel = false): void {
+		this.#devicePerChannel = perChannel;
 		this.upsert({ id: DEVICE_CONSTRAINT_ID, label, source: 'device', profile });
 		if (this.activeId !== DEVICE_CONSTRAINT_ID) {
 			this.#preDeviceActiveId = this.activeId;
@@ -252,6 +257,7 @@ class EqConstraintsStore {
 	/** Remove the connected-device preset and restore the user's prior pick. */
 	clearDeviceConstraint(): void {
 		const had = this.presets.some((p) => p.id === DEVICE_CONSTRAINT_ID);
+		this.#devicePerChannel = false;
 		if (!had) return;
 		this.presets = this.presets.filter((p) => p.id !== DEVICE_CONSTRAINT_ID);
 		const restore = this.#preDeviceActiveId;

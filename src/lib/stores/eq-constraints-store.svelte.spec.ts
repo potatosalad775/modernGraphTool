@@ -226,6 +226,90 @@ describe('eqConstraintsStore channel scope lock', () => {
 	});
 });
 
+describe('eqConstraintsStore device that drives its channels apart', () => {
+	beforeEach(() => {
+		eqConstraintsStore.clearDeviceConstraint();
+		eqConstraintsStore.presets = [...BUILTIN_PRESETS];
+		eqConstraintsStore.activeId = DEFAULT_CONSTRAINT_ID;
+		eqStore.filters = [];
+		eqStore.channelScope = 'L';
+	});
+
+	afterEach(() => {
+		eqConstraintsStore.clearDeviceConstraint();
+	});
+
+	it('keeps the channel picker locked for an ordinary device, whether or not it is told so', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqConstraintsStore.presetSupportsPerChannel(DEVICE_CONSTRAINT_ID)).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+		expect(eqStore.channelScope).toBe('BOTH');
+
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device', false);
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+	});
+
+	it('unlocks the channel picker while a per-channel device is the restriction', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device', true);
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+		expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+		expect(eqConstraintsStore.presetSupportsPerChannel(DEVICE_CONSTRAINT_ID)).toBe(true);
+		expect(eqStore.channelScopeLocked).toBe(false);
+		expect(eqStore.channelScope).toBe('L');
+		// It still limits the list to what the device holds.
+		expect(eqConstraintsStore.isLimiting).toBe(true);
+		expect(eqConstraintsStore.maxBands).toBe(5);
+	});
+
+	it('does not unlock any other restriction', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device', true);
+		expect(eqConstraintsStore.presetSupportsPerChannel('generic-10-band')).toBe(false);
+		expect(eqConstraintsStore.presetSupportsPerChannel(DEFAULT_CONSTRAINT_ID)).toBe(true);
+		eqConstraintsStore.setActive('generic-10-band');
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+	});
+
+	it('locks again on disconnect, back on the restriction the user had', () => {
+		eqConstraintsStore.activeId = 'generic-10-band';
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device', true);
+		expect(eqStore.channelScopeLocked).toBe(false);
+
+		eqConstraintsStore.clearDeviceConstraint();
+		expect(eqConstraintsStore.activeId).toBe('generic-10-band');
+		expect(eqConstraintsStore.presetSupportsPerChannel(DEVICE_CONSTRAINT_ID)).toBe(false);
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+		expect(eqStore.channelScope).toBe('BOTH');
+	});
+
+	it('forgets the flag on disconnect, so an ordinary device after it stays locked', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'Device', true);
+		eqConstraintsStore.clearDeviceConstraint();
+		eqConstraintsStore.setDeviceConstraint(deviceProfile());
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		expect(eqStore.channelScopeLocked).toBe(true);
+	});
+
+	it('takes the flag of the latest connection when a device replaces another', () => {
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'A', true);
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'B');
+		expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+		eqConstraintsStore.setDeviceConstraint(deviceProfile(), 'C', true);
+		expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+		expect(eqStore.channelScopeLocked).toBe(false);
+	});
+
+	it('clearing with no device connected leaves the unlimited default unlocked', () => {
+		eqConstraintsStore.clearDeviceConstraint();
+		expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+		expect(eqStore.channelScopeLocked).toBe(false);
+	});
+});
+
 describe('eqConstraintsStore setActive', () => {
 	beforeEach(() => {
 		eqConstraintsStore.presets = [

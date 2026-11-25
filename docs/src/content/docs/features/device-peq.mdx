@@ -72,7 +72,7 @@ Options keep the names the device's own app uses.
 
 Turn on **Write changes automatically** and the device follows the band list: each change — a dragged band, an AutoEQ run, an undo, an import — is written a moment after you stop editing, even with the Equalizer panel closed. Turning it on writes the current list straight away; connecting a device with it already on writes nothing until you change something.
 
-- If a change would reach the device differently from what's on screen — a value it can't hold, a left- or right-only band — auto-write pauses and offers **Review and write**. It carries on by itself once the list fits again.
+- If a change would reach the device differently from what's on screen — a value it can't hold, a left- or right-only band on a device with one EQ for both ears — auto-write pauses and offers **Review and write**. It carries on by itself once the list fits again.
 - After switching **Device EQ** to another preset, your next change is written into that preset.
 - If a write fails, auto-write turns itself off until you switch it back on or connect again. The saved setting stays on, so one dropped connection doesn't turn it off for later visits.
 - Devices that restart after every save don't offer it.
@@ -85,9 +85,17 @@ If a device is unplugged or goes out of range, it's disconnected right away and 
 
 The preamp goes to devices that take one. A device that can't lower its own level gets a clipping warning when the bands boost.
 
-:::note[Shared bands only]
-Hardware EQ slots have no channel concept. A write sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](./equalizer.mdx#per-channel-eq).
-:::
+### Left and right
+
+Most devices have one set of bands for both ears. A write to one of those sends the **L+R** bands and tells you how many left- or right-only bands it skipped — see [Per-channel EQ](./equalizer.mdx#per-channel-eq).
+
+A few have a set per ear: the Qudelix headphone EQ ("SPK EQ") and the Topping DX5 II. While one of those is the EQ in use, the **Channel** switch above the band list stays available, and:
+
+- **Write** sends each ear its own EQ: the L+R bands plus that ear's own. A device with 20 bands per ear therefore takes 20 for the left and 20 for the right, with every L+R band counting once on each.
+- **Read** brings back both ears. Where they hold the same thing, the bands arrive as L+R bands; where they differ, a band both ears share stays L+R and the rest arrive as left-only and right-only bands.
+- The review before a write lists what changes by the band's number in your list, whichever ear it belongs to.
+
+Linked through uniPEQ, the list is still one list for both ears.
 
 ## Network devices
 

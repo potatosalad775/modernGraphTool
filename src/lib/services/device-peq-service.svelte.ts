@@ -23,7 +23,14 @@ import { deviceAs, eqView, type DeviceEq, type EqTarget } from '#lib/device-peq/
 import { describeDeviceError, isConnectionLost, isUnsupported } from '#lib/device-peq/errors.js';
 import { LinkPeqDevice } from '#lib/device-peq/link.js';
 import { readRequest } from '#lib/device-peq/preset.js';
-import { needsReview, planPush, readLayout, type PushPlan } from '#lib/device-peq/push-plan.js';
+import {
+	listFromPull,
+	needsReview,
+	planPush,
+	readLayout,
+	type Layout,
+	type PushPlan
+} from '#lib/device-peq/push-plan.js';
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { NetworkDeviceType } from '#lib/device-peq/network-types.js';
 import type { DeviceConnection, PeqDevice } from '#lib/device-peq/types.js';
@@ -31,9 +38,8 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
-import { fromCapsFilter } from '#lib/utils/eq-constraint.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import { eqProfile, type Control, type Filter } from '@potatosalad775/eqcaps-core';
+import { eqProfile, type Control } from '@potatosalad775/eqcaps-core';
 import { eqCommands } from './eq-commands.js';
 import { volumeWarning } from './volume-warning.svelte.js';
 
@@ -110,6 +116,15 @@ async function openEq(conn: DeviceConnection, id: string | undefined) {
 /** An EQ's label: the data's name, else "Main EQ" (only the profile's own can lack one). */
 export function eqName(eq: Pick<DeviceEq, 'name'> | undefined): string {
 	return eq?.name ?? m.device_eq_target_main();
+}
+
+/** `plan` as the bridge's push takes it: the right channel where it is written apart. */
+function writeOf(plan: PushPlan) {
+	return {
+		filters: plan.filters,
+		...(plan.right ? { right: { filters: plan.right } } : {}),
+		...(plan.preamp !== undefined ? { preamp: plan.preamp } : {})
+	};
 }
 
 /** What the status line says while a restarted device is awaited, once it is back, and if it isn't. */
@@ -374,17 +389,12 @@ class DevicePeqService {
 		devicePeqStore.isReading = true;
 		try {
 			const result = await conn.device.pull(request);
-			const bands = result.filters.filter((f) => f !== null);
-			const filters = bands.map(fromCapsFilter).filter((f) => f !== null);
+			const { filters, skipped } = listFromPull(result);
 			eqCommands.replaceFilters(filters);
 			eqCommands.ensureEnabled();
 			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
 			devicePeqStore.setStatus(m.equalizer_device_peq_status_read({ count: filters.length }));
-			if (filters.length < bands.length) {
-				toast.warning(
-					m.equalizer_device_peq_read_skipped({ count: bands.length - filters.length })
-				);
-			}
+			if (skipped > 0) toast.warning(m.equalizer_device_peq_read_skipped({ count: skipped }));
 			await this.#readEqControls(conn);
 		} catch (e) {
 			this.fail(e, 'read');
@@ -402,13 +412,13 @@ class DevicePeqService {
 		const conn = devicePeqStore.connection;
 		if (!conn || !devicePeqStore.writeTarget) return null;
 		const caps = conn.device.capabilities;
-		const plan = (hints?: (Filter | null)[] | null) =>
+		const plan = (hints?: Layout | null) =>
 			planPush(eqStore.filters, eqStore.preamp, conn.profile, caps, hints ?? undefined);
 		const first = plan(devicePeqStore.layout?.hints);
 		if (first.emptySlots === 0 || devicePeqStore.layout) return first;
 		const slot = devicePeqStore.activeSlot;
 		devicePeqStore.isWriting = true;
-		let hints: (Filter | null)[] | null;
+		let hints: Layout | null;
 		try {
 			hints = await readLayout(conn.device, readRequest(caps, slot, devicePeqStore.deviceSlot));
 		} finally {
@@ -443,11 +453,7 @@ class DevicePeqService {
 		const snapshot = { filters: eqStore.filters, preamp: eqStore.preamp };
 		devicePeqStore.isWriting = true;
 		try {
-			const result = await conn.device.push({
-				filters: plan.filters,
-				...(plan.preamp !== undefined ? { preamp: plan.preamp } : {}),
-				...request
-			});
+			const result = await conn.device.push({ ...writeOf(plan), ...request });
 			devicePeqStore.synced = snapshot;
 			devicePeqStore.autoPaused = false;
 			const count = plan.filters.length - plan.emptySlots;

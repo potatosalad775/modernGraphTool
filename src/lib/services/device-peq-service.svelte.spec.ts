@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { flushSync } from 'svelte';
-import type { Control, Profile } from '@potatosalad775/eqcaps-core';
+import type { Control, Filter, Profile } from '@potatosalad775/eqcaps-core';
 import { LinkPeqDevice, type LinkPort } from '#lib/device-peq/link.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
@@ -10,6 +10,7 @@ import {
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { toast } from '#lib/services/toast.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { AUTO_WRITE_DELAY_MS, devicePeqService } from './device-peq-service.svelte.js';
@@ -478,6 +479,307 @@ describe('devicePeqService volume warning', () => {
 		expect(device.setEnabled).not.toHaveBeenCalled();
 		volumeWarning.answer(true);
 		await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(false));
+	});
+});
+
+describe('devicePeqService on a device that drives its channels apart', () => {
+	const APART_PROFILE: Profile = { ...PROFILE, channels: 'independent' };
+	const f = (freq: number, gain = 1): Filter => ({ type: 'PK', freq, q: 1, gain });
+	const perEar = (freq: number, gain: number, channel: 'L' | 'R'): EQFilter => ({
+		...band(freq, gain),
+		channel
+	});
+	/** The bands a written filter list actually sets: the rest are flat fillers. */
+	const sounding = (filters: readonly Filter[] | undefined) =>
+		(filters ?? []).filter((x) => x.gain !== 0).map((x) => x.freq);
+
+	/** Connects through the service, as the connect button does. */
+	async function connectVia(connection: DeviceConnection) {
+		connectModule.connectHid.mockResolvedValue({ kind: 'connected', connection });
+		await devicePeqService.connect('hid');
+	}
+
+	/** A device whose EQ has a set per channel and whose bridge can send the right one. */
+	const apartConnection = (device: PeqDevice) => fakeConnection(device, { profile: APART_PROFILE });
+
+	let warning: MockInstance<typeof toast.warning>;
+
+	beforeEach(() => {
+		warning = vi.spyOn(toast, 'warning').mockImplementation(() => '' as never);
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		eqStore.channelScope = 'L';
+		flushSync();
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		await devicePeqService.disconnect();
+		devicePeqStore.setDisconnected();
+		eqStore.channelScope = 'BOTH';
+	});
+
+	describe('connecting', () => {
+		it('unlocks the channel scope', async () => {
+			await connectVia(apartConnection(fakeDevice({ perChannel: true })));
+			expect(devicePeqStore.perChannel).toBe(true);
+			expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+			expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+			expect(eqStore.channelScopeLocked).toBe(false);
+			expect(eqStore.channelScope).toBe('L');
+		});
+
+		it('keeps it locked for an ordinary device', async () => {
+			await connectVia(fakeConnection(fakeDevice()));
+			expect(devicePeqStore.perChannel).toBe(false);
+			expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+			expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+			expect(eqStore.channelScopeLocked).toBe(true);
+			expect(eqStore.channelScope).toBe('BOTH');
+		});
+
+		it('keeps it locked when the EQ has a set per channel but the bridge cannot send it', async () => {
+			await connectVia(apartConnection(fakeDevice({ perChannel: false })));
+			expect(devicePeqStore.perChannel).toBe(false);
+			expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+			expect(eqStore.channelScopeLocked).toBe(true);
+		});
+
+		it('keeps it locked when the bridge could but the EQ is linked', async () => {
+			await connectVia(fakeConnection(fakeDevice({ perChannel: true })));
+			expect(devicePeqStore.perChannel).toBe(false);
+			expect(eqConstraintsStore.supportsPerChannel).toBe(false);
+			expect(eqStore.channelScopeLocked).toBe(true);
+		});
+
+		it('locks nothing once the device is gone', async () => {
+			await connectVia(apartConnection(fakeDevice({ perChannel: true })));
+			await devicePeqService.disconnect();
+			expect(devicePeqStore.perChannel).toBe(false);
+			expect(eqConstraintsStore.supportsPerChannel).toBe(true);
+			expect(eqStore.channelScopeLocked).toBe(false);
+		});
+	});
+
+	describe('reading', () => {
+		const ears = (eq: EQFilter[]) => eq.map((b) => [b.freq, b.gain, b.channel]);
+
+		it('makes the bands the two ears differ in per-ear bands, beside the shared ones', async () => {
+			const device = fakeDevice({ perChannel: true });
+			device.pull.mockResolvedValue({
+				filters: [f(100), f(200, 2)],
+				right: { filters: [f(100), f(250, -3)] }
+			});
+			await connectVia(apartConnection(device));
+
+			await devicePeqService.read();
+
+			expect(ears(eqStore.filters)).toEqual([
+				[100, 1, undefined],
+				[200, 2, 'L'],
+				[250, -3, 'R']
+			]);
+			expect(devicePeqStore.synced?.filters).toBe(eqStore.filters);
+			expect(devicePeqStore.statusMessage).toMatch(/^Read 3 bands/);
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('makes every band shared when the right channel is the same as the left', async () => {
+			const device = fakeDevice({ perChannel: true });
+			device.pull.mockResolvedValue({
+				filters: [f(100), f(200, 2)],
+				right: { filters: [f(100), f(200, 2)] }
+			});
+			await connectVia(apartConnection(device));
+
+			await devicePeqService.read();
+
+			expect(ears(eqStore.filters)).toEqual([
+				[100, 1, undefined],
+				[200, 2, undefined]
+			]);
+		});
+
+		it('warns of a band whose type the app has no row for, whichever ear holds it', async () => {
+			const device = fakeDevice({ perChannel: true });
+			device.pull.mockResolvedValue({
+				filters: [f(100), { ...f(200), type: 'x-weird' as Filter['type'] }],
+				right: { filters: [f(100), f(300)] }
+			});
+			await connectVia(apartConnection(device));
+
+			await devicePeqService.read();
+
+			expect(ears(eqStore.filters)).toEqual([
+				[100, 1, undefined],
+				[300, 1, 'R']
+			]);
+			expect(warning).toHaveBeenCalledOnce();
+		});
+	});
+
+	describe('writing', () => {
+		async function writeList(device: ReturnType<typeof fakeDevice>, filters: EQFilter[]) {
+			await connectVia(apartConnection(device));
+			eqStore.filters = filters;
+			flushSync();
+			const plan = await devicePeqService.prepare();
+			expect(plan).not.toBeNull();
+			expect(await devicePeqService.write(plan!)).toBe(true);
+			expect(device.push).toHaveBeenCalledOnce();
+			return { plan: plan!, request: device.push.mock.calls[0][0] };
+		}
+
+		it('sends the right channel with a band only the right ear has', async () => {
+			const { plan, request } = await writeList(fakeDevice({ perChannel: true }), [
+				band(100, 1),
+				perEar(400, 2, 'R')
+			]);
+
+			expect(request.right).toBeDefined();
+			expect(request.filters).toHaveLength(4);
+			expect(request.right?.filters).toHaveLength(4);
+			expect(sounding(request.filters)).toEqual([100]);
+			expect(sounding(request.right?.filters)).toEqual([100, 400]);
+			expect(request.preamp).toBe(-1);
+			expect(request.slot).toBe(101);
+			expect(plan.skippedChannel).toBe(0);
+			expect(warning).not.toHaveBeenCalled();
+			expect(devicePeqStore.inSync).toBe(true);
+		});
+
+		it('sends a band only the left ear has to the left alone', async () => {
+			const { request } = await writeList(fakeDevice({ perChannel: true }), [
+				band(100, 1),
+				perEar(400, 2, 'L')
+			]);
+			expect(sounding(request.filters)).toEqual([100, 400]);
+			expect(sounding(request.right?.filters)).toEqual([100]);
+		});
+
+		it('still sends the right channel, equal to the left, for a list of shared bands', async () => {
+			const { request } = await writeList(fakeDevice({ perChannel: true }), FOUR);
+			expect(request.right).toBeDefined();
+			expect(request.right?.filters).toEqual(request.filters);
+		});
+
+		it('reads the preset once for both ears and keeps what it held in the right ear’s empty slots', async () => {
+			const device = fakeDevice({ perChannel: true });
+			device.pull.mockResolvedValue({
+				filters: [f(31), f(62), f(125), f(250)],
+				right: { filters: [f(41), f(82), f(164), f(328)] }
+			});
+			const { request } = await writeList(device, [band(1000, 3)]);
+
+			expect(device.pull).toHaveBeenCalledOnce();
+			expect(request.filters.map((x) => x.freq)).toEqual([1000, 62, 125, 250]);
+			expect(request.right?.filters.map((x) => x.freq)).toEqual([1000, 82, 164, 328]);
+			expect(devicePeqStore.layout?.hints?.right).toBeDefined();
+		});
+
+		it('sends no right channel to an ordinary device, and says its per-ear bands were left out', async () => {
+			const device = fakeDevice();
+			await connectVia(fakeConnection(device));
+			eqStore.filters = [band(100, 1), perEar(400, 2, 'R'), perEar(800, 2, 'L')];
+			flushSync();
+
+			const plan = await devicePeqService.prepare();
+			expect(plan?.skippedChannel).toBe(2);
+			expect(plan?.right).toBeUndefined();
+			expect(await devicePeqService.write(plan!)).toBe(true);
+
+			expect(device.push.mock.calls[0][0]).not.toHaveProperty('right');
+			expect(sounding(device.push.mock.calls[0][0].filters)).toEqual([100]);
+			expect(warning).toHaveBeenCalledOnce();
+		});
+
+		it('sends no right channel when the EQ has a set per channel but the bridge cannot send it', async () => {
+			const device = fakeDevice({ perChannel: false });
+			await connectVia(apartConnection(device));
+			eqStore.filters = [band(100, 1), perEar(400, 2, 'R')];
+			flushSync();
+
+			const plan = await devicePeqService.prepare();
+			expect(plan?.skippedChannel).toBe(1);
+			await devicePeqService.write(plan!);
+
+			expect(device.push.mock.calls[0][0]).not.toHaveProperty('right');
+			expect(warning).toHaveBeenCalledOnce();
+		});
+	});
+});
+
+describe('devicePeqService auto-write on a device that drives its channels apart', () => {
+	const APART_PROFILE: Profile = { ...PROFILE, channels: 'independent' };
+	const LEFT_ONE: EQFilter[] = [
+		band(100, 1),
+		band(400, 1),
+		band(1600, 1),
+		{ ...band(6400, 1), channel: 'L' }
+	];
+
+	/** Connects with auto-write on, and waits for the write that switching it on makes. */
+	async function autoWriting(caps: Partial<PeqCapabilities>, profile: Profile) {
+		const device = fakeDevice(caps);
+		devicePeqStore.setConnected(fakeConnection(device, { profile }), 101);
+		devicePeqService.install();
+		flushSync();
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+		return device;
+	}
+
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		devicePeqService.setAutoWrite(false);
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+
+	afterEach(() => {
+		devicePeqService.setAutoWrite(false);
+		devicePeqStore.setDisconnected();
+		vi.useRealTimers();
+	});
+
+	it('writes a left-only band instead of pausing for it', async () => {
+		const device = await autoWriting({ perChannel: true }, APART_PROFILE);
+
+		await edit(LEFT_ONE);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(2));
+
+		expect(devicePeqStore.autoPaused).toBe(false);
+		const request = device.push.mock.calls[1][0];
+		expect(request.filters.map((x) => x.freq)).toEqual([100, 400, 1600, 6400]);
+		expect(request.right?.filters.some((x) => x.freq === 6400 && x.gain !== 0)).toBe(false);
+		expect(request.right?.filters.filter((x) => x.gain !== 0)).toHaveLength(3);
+	});
+
+	it('still pauses for something the device cannot hold exactly', async () => {
+		const device = await autoWriting({ perChannel: true }, APART_PROFILE);
+
+		await edit([...FOUR.slice(1), { ...band(100, 15), channel: 'R' }]);
+		await vi.waitFor(() => expect(devicePeqStore.autoPaused).toBe(true));
+		expect(device.push).toHaveBeenCalledTimes(1);
+	});
+
+	it('pauses for the same list on an ordinary device, which cannot write the per-ear band', async () => {
+		const device = await autoWriting({}, PROFILE);
+
+		await edit(LEFT_ONE);
+		await vi.waitFor(() => expect(devicePeqStore.autoPaused).toBe(true));
+		expect(device.push).toHaveBeenCalledTimes(1);
+	});
+
+	it('pauses for it when the bridge cannot send a channel apart', async () => {
+		const device = await autoWriting({ perChannel: false }, APART_PROFILE);
+
+		await edit(LEFT_ONE);
+		await vi.waitFor(() => expect(devicePeqStore.autoPaused).toBe(true));
+		expect(device.push).toHaveBeenCalledTimes(1);
 	});
 });
 

@@ -28,7 +28,7 @@ file, not here.
 | File                | What it does                                                          |
 | ------------------- | --------------------------------------------------------------------- |
 | `connect.ts`        | chooser → `matchDevice` → protocol + profile → `openDevice`; `warmUp` |
-| `push-plan.ts`      | `fit` + `complete` before every write, with the changes the UI shows  |
+| `push-plan.ts`      | `fit` + `complete` before every write, per ear where driven apart     |
 | `preset.ts`         | which request reaches the target preset, or none                      |
 | `network.ts`        | WiiM and Luxsin X9 over HTTP, behind the same `PeqDevice` shape       |
 | `network-types.ts`  | the network device list, without the code that talks to them          |
@@ -59,7 +59,18 @@ needs it at boot); keep it the only one.
   (`plan.emptySlots`) take the target preset's own bands, flat: the push reads it first
   (`readLayout`) and passes it to `complete` as hints (eqcaps ≥ 0.2.2). Only when there are empty
   slots, and only a preset the device can read; a failed read falls back to neutral fillers rather
-  than blocking the write. Per-channel bands are still not sent.
+  than blocking the write.
+- **Per-ear bands go to a device that drives its channels apart, and only to one**
+  (`drivesChannelsApart`: the profile's `channels` is `independent` **and** the bridge's
+  `perChannel` is set for the EQ viewed; a Qudelix's SPK EQ, the Topping DX5 II). `planPush` then
+  plans each ear from `effectiveFilters` (shared + its own) and the push carries `right`, alike or
+  not: a Topping only updates its left/right mode on a write that names both. `listFromPull` is
+  the way back: a slot both ears hold alike is a shared band, the rest are L's and R's. Everywhere
+  else one filter set drives both ears, per-ear bands are skipped and counted (`skippedChannel`),
+  and the review says so.
+- **The same flag unlocks the Channel picker** (`setDeviceConstraint(…, perChannel)` →
+  `eqConstraintsStore.supportsPerChannel`). The constraint checks already ran per output, so
+  nothing else had to change for a per-ear list under a device's limits.
 - **Connecting never edits the filters.** `devicePeqStore.setConnected` makes the device's profile
   the active constraint, which only flags what doesn't fit; the user folds it with **Fit**. The old
   connect re-clamped the list from a panel `$effect` (and needed `untrack` to stop it looping).

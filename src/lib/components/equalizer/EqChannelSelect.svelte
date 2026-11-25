@@ -37,9 +37,10 @@
 	);
 
 	/**
-	 * Any constraint but the unlimited default drives both ears with one filter
-	 * set (eqcaps v1 profiles are all `linked`), so there is no per-ear list to
-	 * edit. The store holds the scope on L+R while this is on
+	 * Nearly every constraint drives both ears with one filter set, so there is
+	 * no per-ear list to edit; the exceptions are the unlimited default and a
+	 * connected device that drives its channels apart
+	 * (`eqConstraintsStore.supportsPerChannel`). The store holds the scope on L+R while this is on
 	 * (`channelScopeLocked`), so a list left on one ear can't strand behind a
 	 * disabled picker. Per-ear bands never stay under a restriction: see
 	 * `services/eq-channel-conflict.svelte.ts`.

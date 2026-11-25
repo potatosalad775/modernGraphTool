@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } fr
 import { flushSync } from 'svelte';
 import type { Control, Filter, Profile } from '@potatosalad775/eqcaps-core';
 import { LinkPeqDevice, type LinkPort } from '#lib/device-peq/link.js';
-import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
+import { BridgeError } from '@potatosalad775/eqcaps-device-bridge';
+import type { DeviceConnection, PeqCapabilities, PeqDevice, Slot } from '#lib/device-peq/types.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import {
 	DEVICE_CONSTRAINT_ID,
@@ -1726,6 +1727,684 @@ describe('devicePeqService with more than one EQ', () => {
 			lost();
 			await Promise.resolve();
 			expect(devicePeqStore.connection).not.toBeNull();
+		});
+	});
+});
+
+describe('devicePeqService on a device that keeps its presets as a list', () => {
+	const FEED: Control = { id: 'feed', name: 'Feed', kind: 'toggle', eq: true };
+	const SOFT: Control = { id: 'soft', name: 'Soft', kind: 'toggle' };
+	/** The places the device has room for, under the data's names: five. */
+	const PLACES: Slot[] = [0, 1, 2, 3, 4].map((id) => ({ id, name: `EQ ${id + 1}` }));
+	const names = (slots: readonly Slot[]) => slots.map((s) => s.name);
+
+	interface ListingOptions {
+		/** The presets the device holds, in order; their ids are their places. */
+		held?: string[];
+		/** The preset the device is on. */
+		on?: number;
+		/** Where a delete leaves the device, whatever it was on; by default it follows its preset. */
+		landOn?: number;
+		caps?: Partial<PeqCapabilities>;
+		/** What it holds for its settings, when it has any. */
+		controls?: Control[];
+	}
+
+	/**
+	 * A device that keeps its presets as a list: it answers `slots()` with what it holds now, and a
+	 * delete renumbers the ones after it down by one, as the Topping DX5 II does.
+	 */
+	function listingDevice({
+		held = ['Jazz', 'Rock', 'Pop'],
+		on = 0,
+		landOn,
+		caps = {},
+		controls
+	}: ListingOptions = {}) {
+		const list: Slot[] = held.map((name, id) => ({ id, name }));
+		const state = { on };
+		const settings = controls
+			? {
+					readControls: vi.fn<NonNullable<PeqDevice['readControls']>>(async () => ({
+						feed: 0,
+						soft: 0
+					})),
+					writeControl: vi.fn<NonNullable<PeqDevice['writeControl']>>(async () => ({
+						reconnect: false
+					}))
+				}
+			: {};
+		const device = {
+			...fakeDevice({ listsSlots: true, editsSlots: true, slots: PLACES, controls, ...caps }),
+			...settings,
+			slots: vi.fn<NonNullable<PeqDevice['slots']>>(async () => list.map((s) => ({ ...s }))),
+			createSlot: vi.fn<NonNullable<PeqDevice['createSlot']>>(async () => {
+				const made = { id: list.length, name: `New ${list.length + 1}` };
+				list.push(made);
+				return { ...made };
+			}),
+			renameSlot: vi.fn<NonNullable<PeqDevice['renameSlot']>>(async (id, name) => {
+				const slot = list.find((s) => s.id === id);
+				if (slot) slot.name = name;
+			}),
+			deleteSlot: vi.fn<NonNullable<PeqDevice['deleteSlot']>>(async (id) => {
+				list.splice(id, 1);
+				list.forEach((s, i) => (s.id = i));
+				if (landOn !== undefined) state.on = landOn;
+				else if (state.on > id) state.on -= 1;
+				else if (state.on === id) state.on = Math.min(id, list.length - 1);
+			})
+		};
+		device.currentSlot.mockImplementation(async () => state.on);
+		device.setEnabled.mockImplementation(async (enabled, slot) => {
+			if (enabled && slot !== undefined) state.on = slot;
+		});
+		return { device, list, state };
+	}
+
+	type Listing = ReturnType<typeof listingDevice>;
+
+	/** Connects through the service, as the connect button does. */
+	async function connectVia(connection: DeviceConnection) {
+		connectModule.connectHid.mockResolvedValue({ kind: 'connected', connection });
+		await devicePeqService.connect('hid');
+	}
+
+	async function connectListing(options: ListingOptions = {}) {
+		const listing = listingDevice(options);
+		await connectVia(fakeConnection(listing.device));
+		return listing;
+	}
+
+	/** What Device EQ shows, as a name. */
+	const shown = () => devicePeqStore.slots.find((s) => s.id === devicePeqStore.selection)?.name;
+
+	let error: MockInstance<typeof toast.error>;
+	let log: MockInstance<typeof console.error>;
+
+	beforeEach(() => {
+		error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
+		log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		await devicePeqService.disconnect();
+		devicePeqStore.setDisconnected();
+	});
+
+	describe('on connect', () => {
+		it('shows the device’s own list, not the places it has room for', async () => {
+			const { device } = await connectListing({ on: 1 });
+
+			expect(device.slots).toHaveBeenCalledOnce();
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.canEditPresets).toBe(true);
+			expect(devicePeqStore.slotRoom).toBe(5);
+			expect(devicePeqStore.selection).toBe(1);
+			expect(shown()).toBe('Rock');
+		});
+
+		it('keeps the profile’s presets for a device that does not list its own', async () => {
+			const device = {
+				...fakeDevice({ listsSlots: false, editsSlots: true, slots: PLACES }),
+				slots: vi.fn<NonNullable<PeqDevice['slots']>>(async () => [{ id: 0, name: 'Jazz' }])
+			};
+			await connectVia(fakeConnection(device));
+
+			expect(device.slots).not.toHaveBeenCalled();
+			expect(names(devicePeqStore.slots)).toEqual(names(PLACES));
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.slotRoom).toBeNull();
+		});
+
+		it('keeps the profile’s presets when the device has no way to list them', async () => {
+			const device = fakeDevice({ listsSlots: true, editsSlots: true, slots: PLACES });
+			await connectVia(fakeConnection(device));
+
+			expect(names(devicePeqStore.slots)).toEqual(names(PLACES));
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.slotRoom).toBeNull();
+		});
+
+		it('keeps the profile’s presets, and the connection, when the list cannot be read', async () => {
+			const listing = listingDevice();
+			listing.device.slots.mockRejectedValue(new Error('no answer'));
+			await connectVia(fakeConnection(listing.device));
+
+			expect(devicePeqStore.connection?.device).toBe(listing.device);
+			expect(names(devicePeqStore.slots)).toEqual(names(PLACES));
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('offers a device that lists but cannot edit no editing', async () => {
+			await connectListing({ caps: { editsSlots: false } });
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.canEditPresets).toBe(false);
+		});
+
+		it('reads the list again when another of the device’s EQs is viewed', async () => {
+			const spk = listingDevice({ held: ['Spk A', 'Spk B'] });
+			const SPK_EQ = { id: 'spk', name: 'SPK EQ', bandCount: 4, slots: PLACES, perChannel: false };
+			const base = listingDevice({ caps: { eqs: [SPK_EQ] } });
+			const device = Object.assign(base.device, {
+				eq: vi.fn<NonNullable<PeqDevice['eq']>>(() => spk.device)
+			});
+			const profile: Profile = {
+				...PROFILE,
+				protocol: {
+					handler: 'x',
+					eqs: [{ id: 'spk', name: 'SPK EQ', bandCount: 4, presets: [{ id: 0, name: 'Spk A' }] }]
+				}
+			};
+			await connectVia(fakeConnection(device, { profile }));
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+
+			await devicePeqService.selectEq('spk');
+
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(spk.device.slots).toHaveBeenCalled();
+			expect(names(devicePeqStore.slots)).toEqual(['Spk A', 'Spk B']);
+			expect(devicePeqStore.canEditPresets).toBe(true);
+		});
+
+		it('is never editable on a device uniPEQ holds', async () => {
+			const link = new LinkPeqDevice(
+				{ status: null, command: vi.fn(), unlink: vi.fn() } as unknown as LinkPort,
+				{ ...CAPS, listsSlots: true, editsSlots: true, slots: PLACES }
+			);
+			await connectVia(fakeConnection(link, { connectionType: 'link' }));
+
+			expect(devicePeqStore.connection?.device).toBe(link);
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.slotRoom).toBeNull();
+			await devicePeqService.createPreset();
+			expect(await devicePeqService.renamePreset(101, 'Other')).toBe(false);
+			await devicePeqService.deletePreset(101);
+			expect(devicePeqStore.statusMessage).toBeNull();
+		});
+
+		it('forgets the list when the device goes', async () => {
+			await connectListing();
+			await devicePeqService.disconnect();
+			expect(devicePeqStore.slots).toEqual([]);
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.slotRoom).toBeNull();
+		});
+	});
+
+	describe('createPreset', () => {
+		it('adds one, reads the list again, and goes over to it', async () => {
+			const { device } = await connectListing({ on: 1 });
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+
+			await devicePeqService.createPreset();
+
+			expect(device.createSlot).toHaveBeenCalledExactlyOnceWith();
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop', 'New 4']);
+			expect(device.setEnabled).toHaveBeenCalledExactlyOnceWith(true, 3);
+			expect(devicePeqStore.deviceSlot).toBe(3);
+			expect(devicePeqStore.activeSlot).toBe(3);
+			expect(devicePeqStore.selection).toBe(3);
+			expect(shown()).toBe('New 4');
+			expect(devicePeqStore.synced).toBeNull();
+			expect(devicePeqStore.isSwitching).toBe(false);
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('says what was added', async () => {
+			// A device that goes over to a preset it has just made leaves the target where it is
+			// already; one that stays put is moved by the switch, which drops the last message.
+			const { device, state } = await connectListing({ on: 1 });
+			device.createSlot.mockImplementation(async () => {
+				device.slots.mockResolvedValue([
+					{ id: 0, name: 'Jazz' },
+					{ id: 1, name: 'Rock' },
+					{ id: 2, name: 'Pop' },
+					{ id: 3, name: 'Fresh' }
+				]);
+				state.on = 3;
+				return { id: 3, name: 'Fresh' };
+			});
+
+			await devicePeqService.createPreset();
+
+			expect(devicePeqStore.statusMessage).toBe('Added “Fresh” to the device.');
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('still says what was added when the device stays put and the switch moves it', async () => {
+			// The switch to the new preset changes the target, which clears the line: it is said again.
+			const { device } = await connectListing({ on: 1 });
+
+			await devicePeqService.createPreset();
+
+			expect(device.setEnabled).toHaveBeenLastCalledWith(true, 3);
+			expect(devicePeqStore.statusMessage).toBe('Added “New 4” to the device.');
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('does nothing when the device has no room for another', async () => {
+			const { device } = await connectListing({ held: ['A', 'B', 'C', 'D', 'E'] });
+			expect(devicePeqStore.slots).toHaveLength(5);
+
+			await devicePeqService.createPreset();
+
+			expect(device.createSlot).not.toHaveBeenCalled();
+			expect(device.setEnabled).not.toHaveBeenCalled();
+			expect(devicePeqStore.statusMessage).toBeNull();
+		});
+
+		it('does nothing on a device whose list cannot be edited', async () => {
+			const { device } = await connectListing({ caps: { editsSlots: false } });
+			await devicePeqService.createPreset();
+			expect(device.createSlot).not.toHaveBeenCalled();
+		});
+
+		it('does nothing while another operation runs', async () => {
+			const { device } = await connectListing();
+			devicePeqStore.isReading = true;
+			await devicePeqService.createPreset();
+			expect(device.createSlot).not.toHaveBeenCalled();
+		});
+
+		it('is busy while it works', async () => {
+			const { device } = await connectListing();
+			let done = () => {};
+			const made = new Promise<Slot>((resolve) => (done = () => resolve({ id: 3, name: 'N' })));
+			device.createSlot.mockReturnValue(made);
+
+			const pending = devicePeqService.createPreset();
+			await vi.waitFor(() => expect(devicePeqStore.isSwitching).toBe(true));
+			expect(devicePeqStore.isBusy).toBe(true);
+			// A second press does not make a second preset.
+			await devicePeqService.createPreset();
+			expect(device.createSlot).toHaveBeenCalledOnce();
+
+			done();
+			await pending;
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('asks about the volume first, and goes on once answered', async () => {
+			const { device } = await connectListing();
+			settingsStore.setVolumeWarning(true);
+
+			await devicePeqService.createPreset();
+			expect(volumeWarning.open).toBe(true);
+			expect(device.createSlot).not.toHaveBeenCalled();
+
+			volumeWarning.answer(true);
+			await vi.waitFor(() => expect(device.createSlot).toHaveBeenCalledOnce());
+			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 3));
+		});
+
+		it('makes nothing on Not now', async () => {
+			const { device } = await connectListing();
+			settingsStore.setVolumeWarning(true);
+
+			await devicePeqService.createPreset();
+			volumeWarning.answer(false);
+
+			expect(device.createSlot).not.toHaveBeenCalled();
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+		});
+
+		it('reports a refusal, reads the list again, and goes nowhere', async () => {
+			const { device } = await connectListing({ on: 1 });
+			device.createSlot.mockRejectedValue(new BridgeError('rejected', 'full'));
+
+			await devicePeqService.createPreset();
+
+			expect(error).toHaveBeenCalledOnce();
+			expect(log).toHaveBeenCalled();
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.statusMessage).toMatch(/refused/);
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(device.setEnabled).not.toHaveBeenCalled();
+			expect(devicePeqStore.selection).toBe(1);
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('leaves the list alone, without reading it again, when the connection is lost', async () => {
+			const { device } = await connectListing();
+			device.createSlot.mockRejectedValue(new BridgeError('transport', 'gone'));
+
+			await devicePeqService.createPreset();
+
+			expect(devicePeqStore.needsReconnect).toBe(true);
+			expect(device.slots).toHaveBeenCalledOnce();
+		});
+	});
+
+	describe('renamePreset', () => {
+		it('renames it on the device and shows the name the device holds', async () => {
+			const { device } = await connectListing({ on: 2 });
+
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(true);
+
+			expect(device.renameSlot).toHaveBeenCalledExactlyOnceWith(1, 'Metal');
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Metal', 'Pop']);
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset to “Metal”.');
+			expect(devicePeqStore.statusIsError).toBe(false);
+			expect(devicePeqStore.isSwitching).toBe(false);
+			expect(device.setEnabled).not.toHaveBeenCalled();
+		});
+
+		it('shows a name the device shortened as the device has it', async () => {
+			const { device } = await connectListing();
+			device.renameSlot.mockImplementation(async (id, name) => {
+				device.slots.mockResolvedValue([
+					{ id: 0, name: 'Jazz' },
+					{ id: 1, name: name.slice(0, 4) },
+					{ id: 2, name: 'Pop' }
+				]);
+			});
+
+			await devicePeqService.renamePreset(1, 'Metalcore');
+
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Meta', 'Pop']);
+		});
+
+		it('keeps the target, where the device is, and whether it holds the list', async () => {
+			const { device } = await connectListing({ on: 1 });
+			devicePeqStore.target(2);
+			const synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+			const layout = { slot: 2, hints: null };
+			devicePeqStore.synced = synced;
+			devicePeqStore.layout = layout;
+			devicePeqStore.autoPaused = true;
+			// Were the device asked where it is again, it would not say preset 1.
+			device.currentSlot.mockResolvedValue(0);
+
+			await devicePeqService.renamePreset(2, 'Metal');
+
+			expect(devicePeqStore.activeSlot).toBe(2);
+			expect(devicePeqStore.deviceSlot).toBe(1);
+			expect(devicePeqStore.synced).toBe(synced);
+			expect(devicePeqStore.layout).toBe(layout);
+			expect(devicePeqStore.autoPaused).toBe(true);
+		});
+
+		it('trims what was typed', async () => {
+			const { device } = await connectListing();
+			expect(await devicePeqService.renamePreset(1, '  Metal ')).toBe(true);
+			expect(device.renameSlot).toHaveBeenCalledWith(1, 'Metal');
+		});
+
+		it('takes the name it already has as done, and asks nothing of the device', async () => {
+			const { device } = await connectListing();
+			devicePeqStore.setStatus('before');
+
+			expect(await devicePeqService.renamePreset(1, 'Rock')).toBe(true);
+			expect(await devicePeqService.renamePreset(1, ' Rock  ')).toBe(true);
+
+			expect(device.renameSlot).not.toHaveBeenCalled();
+			expect(device.slots).toHaveBeenCalledOnce();
+			expect(devicePeqStore.statusMessage).toBe('before');
+		});
+
+		it('does not ask about the volume: nothing plays differently', async () => {
+			const { device } = await connectListing();
+			settingsStore.setVolumeWarning(true);
+
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(true);
+
+			expect(volumeWarning.open).toBe(false);
+			expect(device.renameSlot).toHaveBeenCalledOnce();
+		});
+
+		it('says the device cannot store a name it refuses, without a failure toast', async () => {
+			const { device } = await connectListing({ on: 1 });
+			device.renameSlot.mockRejectedValue(new BridgeError('invalid-request', 'too long'));
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+
+			expect(await devicePeqService.renamePreset(1, 'A name far too long')).toBe(false);
+
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.statusMessage).toBe(
+				"The device can't store that name. Try a shorter one in plain letters and digits."
+			);
+			expect(error).not.toHaveBeenCalled();
+			expect(log).not.toHaveBeenCalled();
+			// Read again either way, and nothing about where the device is changed.
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.synced).not.toBeNull();
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('reports any other failure the way every device operation does', async () => {
+			const { device } = await connectListing();
+			device.renameSlot.mockRejectedValue(new BridgeError('timeout', 'no answer'));
+
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+
+			expect(error).toHaveBeenCalledOnce();
+			expect(log).toHaveBeenCalled();
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.statusMessage).toMatch(/didn't answer/);
+			expect(device.slots).toHaveBeenCalledTimes(2);
+		});
+
+		it('refuses a preset the device does not list', async () => {
+			const { device } = await connectListing();
+			expect(await devicePeqService.renamePreset(9, 'Metal')).toBe(false);
+			expect(device.renameSlot).not.toHaveBeenCalled();
+		});
+
+		it('refuses on a device whose list cannot be edited', async () => {
+			const { device } = await connectListing({ caps: { editsSlots: false } });
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(device.renameSlot).not.toHaveBeenCalled();
+		});
+
+		it('refuses with nothing connected', async () => {
+			await devicePeqService.disconnect();
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+		});
+
+		it('refuses while another operation runs', async () => {
+			const { device } = await connectListing();
+			devicePeqStore.isWriting = true;
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(device.renameSlot).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('deletePreset', () => {
+		/** Settings of a device, one of them belonging to its EQ. */
+		const withSettings = { controls: [FEED, SOFT] };
+
+		it('deletes it, and shows the device where it went', async () => {
+			const { device } = await connectListing({ on: 1, landOn: 0 });
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+
+			await devicePeqService.deletePreset(1);
+
+			expect(device.deleteSlot).toHaveBeenCalledExactlyOnceWith(1);
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Pop']);
+			expect(devicePeqStore.statusMessage).toBe('Deleted “Rock” from the device.');
+			expect(devicePeqStore.statusIsError).toBe(false);
+			// Device EQ shows wherever the device says it is, which it chose.
+			expect(devicePeqStore.deviceSlot).toBe(0);
+			expect(devicePeqStore.activeSlot).toBe(0);
+			expect(devicePeqStore.selection).toBe(0);
+			expect(shown()).toBe('Jazz');
+			expect(devicePeqStore.synced).toBeNull();
+			expect(devicePeqStore.layout).toBeNull();
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('follows the device to the preset that took its place', async () => {
+			// Pop was 2, and is 1 once Rock is gone; the device is on it still.
+			await connectListing({ on: 2 });
+			expect(shown()).toBe('Pop');
+
+			await devicePeqService.deletePreset(1);
+
+			expect(devicePeqStore.selection).toBe(1);
+			expect(shown()).toBe('Pop');
+		});
+
+		it('follows a preset renumbered by a delete of an earlier one', async () => {
+			const { device, state } = await connectListing({ on: 2 });
+
+			await devicePeqService.deletePreset(0);
+
+			expect(names(devicePeqStore.slots)).toEqual(['Rock', 'Pop']);
+			expect(state.on).toBe(1);
+			expect(device.currentSlot).toHaveBeenCalledTimes(2);
+			expect(devicePeqStore.deviceSlot).toBe(1);
+			expect(devicePeqStore.activeSlot).toBe(1);
+			expect(devicePeqStore.selection).toBe(1);
+			expect(shown()).toBe('Pop');
+		});
+
+		it('shows the preset the device moved to when it was on the one deleted', async () => {
+			await connectListing({ on: 0 });
+			expect(shown()).toBe('Jazz');
+
+			await devicePeqService.deletePreset(0);
+
+			expect(names(devicePeqStore.slots)).toEqual(['Rock', 'Pop']);
+			expect(devicePeqStore.selection).toBe(0);
+			expect(shown()).toBe('Rock');
+		});
+
+		it('does not ask the device to switch: it was told nothing', async () => {
+			const { device } = await connectListing({ on: 1 });
+			await devicePeqService.deletePreset(2);
+			expect(device.setEnabled).not.toHaveBeenCalled();
+		});
+
+		it('reads the settings of the EQ again, as the preset may be another', async () => {
+			const { device } = await connectListing({ on: 1, ...withSettings });
+			expect(device.readControls).toHaveBeenCalledOnce();
+
+			await devicePeqService.deletePreset(1);
+
+			expect(device.readControls).toHaveBeenCalledTimes(2);
+		});
+
+		it('leaves the settings be on a device that has none of an EQ', async () => {
+			const { device } = await connectListing({ on: 1, controls: [SOFT] });
+			await devicePeqService.deletePreset(1);
+			expect(device.readControls).toHaveBeenCalledOnce();
+		});
+
+		it('does nothing for the only preset', async () => {
+			const { device } = await connectListing({ held: ['Only'] });
+			await devicePeqService.deletePreset(0);
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+			expect(names(devicePeqStore.slots)).toEqual(['Only']);
+		});
+
+		it('does nothing for a preset the device does not list', async () => {
+			const { device } = await connectListing();
+			await devicePeqService.deletePreset(9);
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+		});
+
+		it('does nothing on a device whose list cannot be edited', async () => {
+			const { device } = await connectListing({ caps: { editsSlots: false } });
+			await devicePeqService.deletePreset(1);
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+		});
+
+		it('does nothing while another operation runs', async () => {
+			const { device } = await connectListing();
+			devicePeqStore.isReading = true;
+			await devicePeqService.deletePreset(1);
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+		});
+
+		it('asks about the volume first, and goes on once answered', async () => {
+			const { device } = await connectListing({ on: 1 });
+			settingsStore.setVolumeWarning(true);
+
+			await devicePeqService.deletePreset(1);
+			expect(volumeWarning.open).toBe(true);
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+
+			volumeWarning.answer(true);
+			await vi.waitFor(() => expect(device.deleteSlot).toHaveBeenCalledExactlyOnceWith(1));
+			await vi.waitFor(() => expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Pop']));
+		});
+
+		it('deletes nothing on Not now', async () => {
+			const { device } = await connectListing({ on: 1 });
+			settingsStore.setVolumeWarning(true);
+
+			await devicePeqService.deletePreset(1);
+			volumeWarning.answer(false);
+
+			expect(device.deleteSlot).not.toHaveBeenCalled();
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+		});
+
+		it('reports a refusal, reads the list again, and leaves the settings be', async () => {
+			const { device } = await connectListing({ on: 1, ...withSettings });
+			device.deleteSlot.mockRejectedValue(new BridgeError('rejected', 'no'));
+
+			await devicePeqService.deletePreset(1);
+
+			expect(error).toHaveBeenCalledOnce();
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(devicePeqStore.statusMessage).toMatch(/refused/);
+			expect(device.slots).toHaveBeenCalledTimes(2);
+			expect(device.readControls).toHaveBeenCalledOnce();
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+	});
+
+	describe('with auto-write on', () => {
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			devicePeqService.install();
+		});
+
+		afterEach(() => {
+			devicePeqService.setAutoWrite(false);
+			vi.useRealTimers();
+		});
+
+		async function listed(): Promise<Listing> {
+			const listing = await connectListing({ on: 1 });
+			devicePeqService.setAutoWrite(true);
+			await vi.waitFor(() => expect(listing.device.push).toHaveBeenCalledTimes(1));
+			return listing;
+		}
+
+		it('drops an edit still waiting when a preset is deleted', async () => {
+			const { device } = await listed();
+			eqStore.filters = [band(100, 2), ...FOUR.slice(1)];
+			flushSync();
+
+			await devicePeqService.deletePreset(0);
+			await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+
+			expect(device.push).toHaveBeenCalledTimes(1);
+		});
+
+		it('drops an edit still waiting when a preset is added', async () => {
+			const { device } = await listed();
+			eqStore.filters = [band(100, 2), ...FOUR.slice(1)];
+			flushSync();
+
+			await devicePeqService.createPreset();
+			await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+
+			expect(device.push).toHaveBeenCalledTimes(1);
 		});
 	});
 });

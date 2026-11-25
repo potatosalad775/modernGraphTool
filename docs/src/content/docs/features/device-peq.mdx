@@ -42,6 +42,16 @@ Some devices can only read and write the preset they're playing. While they're o
 
 While a device is connected here, the [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to it, so what the device plays isn't equalized twice.
 
+### Adding, renaming and deleting presets
+
+A few devices keep their presets as a list that grows and shrinks, with names stored on the device: the Topping DX5 II and DX9 Discrete. For these, **Device EQ** lists the presets the device holds right now under its own names, and a **Presets** row under it has three buttons:
+
+- **New** adds an empty preset and switches the device to it, so **Read** and **Write** use it straight away. It's unavailable once the device is full.
+- **Rename** renames the preset **Device EQ** shows. The name is stored on the device, which may only take a short one in plain letters and digits; a name it refuses is said in the dialog, and nothing is shortened to fit.
+- **Delete** removes the preset **Device EQ** shows, for good. The device may switch to another of its presets, and **Device EQ** follows it. The last preset can't be deleted.
+
+Rename and Delete are unavailable while **Device EQ** shows **Off**.
+
 ### Devices with more than one EQ
 
 A few devices have two EQs: a Qudelix 5K has its user EQ and a separate headphone EQ ("SPK EQ"), each with its own bands, presets and on/off switch. For these, an **EQ** row appears at the top of the box, and everything else follows the one you pick: the limits on the band list, **Device EQ**, **Read**, **Write** and auto-write.

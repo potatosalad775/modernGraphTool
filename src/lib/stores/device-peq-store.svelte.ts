@@ -53,6 +53,11 @@ class DevicePeqStore {
 	 */
 	connection = $state.raw<DeviceConnection | null>(null);
 	#opened = $state.raw<Opened | null>(null);
+	/**
+	 * The presets a device that keeps a list of its own holds now, under its own names, bypass
+	 * preset included. Null for every other device, whose presets are the profile's.
+	 */
+	#listed = $state.raw<readonly Slot[] | null>(null);
 	isConnecting = $state(false);
 	isReading = $state(false);
 	isWriting = $state(false);
@@ -219,7 +224,24 @@ class DevicePeqStore {
 
 	/** EQ memories to read from and write to — the bypass preset is the off switch, not one. */
 	get slots(): Slot[] {
-		return (this.connection?.device.capabilities.slots ?? []).filter((s) => !s.bypass);
+		return this.#allSlots.filter((s) => !s.bypass);
+	}
+
+	/** The device's presets as they are now, the bypass one included. */
+	get #allSlots(): readonly Slot[] {
+		return this.#listed ?? this.connection?.device.capabilities.slots ?? [];
+	}
+
+	/** Presets can be added, renamed and deleted on this device. */
+	get canEditPresets(): boolean {
+		return !!this.connection?.device.capabilities.editsSlots && this.#listed !== null;
+	}
+
+	/** How many presets the device has room for, where it keeps a list; null where they are fixed. */
+	get slotRoom(): number | null {
+		const caps = this.connection?.device.capabilities;
+		if (!caps || this.#listed === null) return null;
+		return caps.slots.filter((s) => !s.bypass).length;
 	}
 
 	/**
@@ -288,12 +310,13 @@ class DevicePeqStore {
 		connection: DeviceConnection,
 		currentSlot: number | null,
 		enabled: boolean | null = null,
-		of: Opened = { conn: connection, eq: OWN_EQ, absent: [] }
+		of: Opened = { conn: connection, eq: OWN_EQ, absent: [] },
+		listed: readonly Slot[] | null = null
 	): void {
 		this.#opened = of;
 		this.controlValues = {};
 		this.autoStopped = false;
-		this.#view(connection, currentSlot, enabled);
+		this.#view(connection, currentSlot, enabled, listed);
 	}
 
 	/**
@@ -307,25 +330,57 @@ class DevicePeqStore {
 		eq: EqTarget,
 		currentSlot: number | null,
 		enabled: boolean | null,
-		absent?: readonly string[]
+		absent?: readonly string[],
+		listed: readonly Slot[] | null = null
 	): void {
 		const opened = this.#opened;
 		if (!opened) return;
 		this.#opened = { ...opened, eq, absent: absent ?? opened.absent };
-		this.#view(connection, currentSlot, enabled);
+		this.#view(connection, currentSlot, enabled, listed);
 	}
 
-	#view(connection: DeviceConnection, currentSlot: number | null, enabled: boolean | null): void {
-		this.connection = connection;
-		this.isConnecting = false;
-		this.needsReconnect = false;
-		const bypass = connection.device.capabilities.slots.find((s) => s.bypass);
+	/**
+	 * The device's preset list was read again, after one was added, renamed or deleted. A rename
+	 * changes only names (`keep`): the target and whether it holds the list stand. Anything else
+	 * may have moved the device and renumbered the presets after a deleted one, so the target is the
+	 * preset the device is on now, and what it holds is unknown until a read or a write.
+	 */
+	relisted(
+		listed: readonly Slot[],
+		currentSlot: number | null,
+		enabled: boolean | null,
+		keep = false
+	): void {
+		this.#listed = listed;
+		if (keep) return;
+		this.#place(currentSlot, enabled);
+		this.synced = null;
+		this.layout = null;
+		this.autoPaused = false;
+	}
+
+	/** Where the device is: the preset it plays, the one Read and Write reach, and its EQ switch. */
+	#place(currentSlot: number | null, enabled: boolean | null): void {
+		const bypass = this.#allSlots.find((s) => s.bypass);
 		// A device reading back its bypass preset has its EQ off, and no memory is selected.
 		const onBypass = currentSlot === bypass?.id;
 		const listed = this.slots.some((s) => s.id === currentSlot);
 		this.deviceSlot = currentSlot;
 		this.activeSlot = listed ? currentSlot : (this.writableSlots[0]?.id ?? null);
 		this.eqEnabled = enabled ?? (onBypass ? false : currentSlot !== null ? true : null);
+	}
+
+	#view(
+		connection: DeviceConnection,
+		currentSlot: number | null,
+		enabled: boolean | null,
+		listed: readonly Slot[] | null
+	): void {
+		this.connection = connection;
+		this.#listed = listed;
+		this.isConnecting = false;
+		this.needsReconnect = false;
+		this.#place(currentSlot, enabled);
 		this.synced = null;
 		this.layout = null;
 		this.autoPaused = false;
@@ -344,7 +399,7 @@ class DevicePeqStore {
 	played(choice: number | 'off' | undefined): void {
 		if (choice === 'off') {
 			this.eqEnabled = false;
-			const bypass = this.connection?.device.capabilities.slots.find((s) => s.bypass);
+			const bypass = this.#allSlots.find((s) => s.bypass);
 			if (bypass) this.deviceSlot = bypass.id;
 			return;
 		}
@@ -372,6 +427,7 @@ class DevicePeqStore {
 	setDisconnected(): void {
 		this.connection = null;
 		this.#opened = null;
+		this.#listed = null;
 		this.isConnecting = false;
 		this.isReading = false;
 		this.isWriting = false;

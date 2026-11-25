@@ -135,6 +135,15 @@ needs it at boot); keep it the only one.
   (`eqControls` / `deviceControls`). They are read again after a preset switch and a Read
   (`#readEqControls`): a Qudelix keeps its crossfeed with the preset. On a device with several
   EQs they are those of the EQ viewed (`devicePeqStore.eq`).
+- **A device that keeps its presets as a list is asked for it** (`listsSlots`: the Topping DX5 II
+  and DX9 Discrete). `capabilities.slots` is then only the places it has room for under the
+  data's names, so `devicePeqStore.slots` reads the live list (`listPresets`, taken on connect and
+  on every EQ switch) and falls back to the profile's when that can't be read. Where the device
+  also edits the list (`editsSlots`), `DevicePresets` offers New, Rename and Delete, on the preset
+  Device EQ shows. Every edit is followed by a fresh list and `currentSlot` (`#relist`): a delete
+  renumbers the presets after it and may move the device, so nothing is worked out locally. A
+  rename keeps the target and `synced`; a create or delete makes the target the preset the device
+  is on and clears `synced`.
 - **A device with several EQs is reached as one of them** (eqcaps SPEC §9.2; a Qudelix's user EQ
   and its SPK EQ). `devicePeqStore.connection` is the device **viewed as** the picked EQ
   (`eqView`): that EQ's profile, presets and `pull` / `push` / `setEnabled`, so the constraint,

@@ -7,7 +7,7 @@ import {
 	DEVICE_CONSTRAINT_ID,
 	eqConstraintsStore
 } from './eq-constraints-store.svelte.js';
-import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js';
+import type { DeviceConnection, PeqCapabilities, Slot } from '#lib/device-peq/types.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 
 const CAPS: PeqCapabilities = {
@@ -227,6 +227,241 @@ describe('devicePeqStore', () => {
 		expect(devicePeqStore.isBusy).toBe(false);
 		devicePeqStore.isWriting = true;
 		expect(devicePeqStore.isBusy).toBe(true);
+	});
+
+	describe('a device that keeps its presets as a list', () => {
+		/** The places the device has room for, and the bypass preset of the data. */
+		const PLACES: Slot[] = [
+			{ id: 0, name: 'EQ 1' },
+			{ id: 1, name: 'EQ 2' },
+			{ id: 2, name: 'EQ 3' },
+			{ id: 3, name: 'EQ 4' },
+			{ id: 9, name: 'Off', bypass: true }
+		];
+		const OFF: Slot = { id: 9, name: 'Off', bypass: true };
+		const HELD: Slot[] = [
+			{ id: 0, name: 'Jazz' },
+			{ id: 1, name: 'Rock' },
+			{ id: 2, name: 'Pop' },
+			OFF
+		];
+		const names = (slots: readonly Slot[]) => slots.map((s) => s.name);
+
+		const listing = (caps: Partial<PeqCapabilities> = {}): DeviceConnection => {
+			const connection = makeConnection();
+			return {
+				...connection,
+				device: {
+					...connection.device,
+					capabilities: { ...CAPS, slots: PLACES, listsSlots: true, editsSlots: true, ...caps }
+				}
+			};
+		};
+
+		describe('what it shows', () => {
+			it('lists what the device holds, not the places it has room for', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+				expect(devicePeqStore.selection).toBe(1);
+			});
+
+			it('keeps the bypass preset out of the list when it comes from the live one', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				expect(devicePeqStore.slots.some((s) => s.bypass)).toBe(false);
+				expect(devicePeqStore.slots).toHaveLength(3);
+			});
+
+			it('reads a device sitting on the live list’s bypass preset as EQ off', () => {
+				devicePeqStore.setConnected(listing(), 9, null, undefined, HELD);
+				expect(devicePeqStore.eqEnabled).toBe(false);
+				expect(devicePeqStore.selection).toBe('off');
+				expect(devicePeqStore.activeSlot).toBe(0);
+			});
+
+			it('switches to the live list’s bypass preset for Off', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				devicePeqStore.played('off');
+				expect(devicePeqStore.deviceSlot).toBe(9);
+				expect(devicePeqStore.selection).toBe('off');
+			});
+
+			it('keeps the profile’s presets when no list was read', () => {
+				devicePeqStore.setConnected(listing(), 1);
+				expect(names(devicePeqStore.slots)).toEqual(['EQ 1', 'EQ 2', 'EQ 3', 'EQ 4']);
+			});
+
+			it('shows a preset the live list lacks as a built-in one', () => {
+				devicePeqStore.setConnected(listing(), 3, null, undefined, HELD);
+				expect(devicePeqStore.selection).toBe('other');
+				expect(devicePeqStore.activeSlot).toBe(0);
+			});
+
+			it('forgets the list on disconnecting and on a connection without one', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				devicePeqStore.setDisconnected();
+				expect(devicePeqStore.slots).toEqual([]);
+
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				devicePeqStore.setConnected(listing(), 1);
+				expect(names(devicePeqStore.slots)).toEqual(['EQ 1', 'EQ 2', 'EQ 3', 'EQ 4']);
+				expect(devicePeqStore.canEditPresets).toBe(false);
+			});
+
+			it('takes the list of another EQ on a switch, or none', () => {
+				const connection = listing();
+				devicePeqStore.setConnected(connection, 1, null, undefined, HELD);
+				const eq = { id: 'spk', bandCount: null };
+
+				devicePeqStore.selectEq(connection, eq, 0, null, undefined, [{ id: 0, name: 'Spk A' }]);
+				expect(names(devicePeqStore.slots)).toEqual(['Spk A']);
+				expect(devicePeqStore.canEditPresets).toBe(true);
+
+				devicePeqStore.selectEq(connection, eq, 0, null);
+				expect(names(devicePeqStore.slots)).toEqual(['EQ 1', 'EQ 2', 'EQ 3', 'EQ 4']);
+				expect(devicePeqStore.canEditPresets).toBe(false);
+			});
+		});
+
+		describe('canEditPresets', () => {
+			it('is true for a device that edits its list, once the list is read', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				expect(devicePeqStore.canEditPresets).toBe(true);
+			});
+
+			it('is false when the list could not be read', () => {
+				devicePeqStore.setConnected(listing(), 1);
+				expect(devicePeqStore.canEditPresets).toBe(false);
+			});
+
+			it('is false for a device that lists but does not edit', () => {
+				devicePeqStore.setConnected(listing({ editsSlots: false }), 1, null, undefined, HELD);
+				expect(devicePeqStore.canEditPresets).toBe(false);
+			});
+
+			it('is false for an ordinary device, and with nothing connected', () => {
+				expect(devicePeqStore.canEditPresets).toBe(false);
+				devicePeqStore.setConnected(makeConnection(), 160);
+				expect(devicePeqStore.canEditPresets).toBe(false);
+			});
+		});
+
+		describe('slotRoom', () => {
+			it('counts the places the device has room for, bypass preset not among them', () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				expect(devicePeqStore.slotRoom).toBe(4);
+			});
+
+			it('is null where the presets are the profile’s', () => {
+				expect(devicePeqStore.slotRoom).toBeNull();
+				devicePeqStore.setConnected(listing(), 1);
+				expect(devicePeqStore.slotRoom).toBeNull();
+				devicePeqStore.setConnected(makeConnection(), 160);
+				expect(devicePeqStore.slotRoom).toBeNull();
+			});
+
+			it('says when the list is full', () => {
+				const full: Slot[] = [0, 1, 2, 3].map((id) => ({ id, name: `P${id}` }));
+				devicePeqStore.setConnected(listing(), 1, null, undefined, [...full, OFF]);
+				expect(devicePeqStore.slots.length).toBe(devicePeqStore.slotRoom);
+			});
+		});
+
+		describe('relisted', () => {
+			const connect = () => {
+				devicePeqStore.setConnected(listing(), 1, null, undefined, HELD);
+				devicePeqStore.target(2);
+				devicePeqStore.synced = { filters: [], preamp: 0 };
+				devicePeqStore.layout = { slot: 2, hints: null };
+				devicePeqStore.autoPaused = true;
+				devicePeqStore.setStatus('Wrote 6 bands.');
+			};
+
+			it('puts the target on the preset the device is on, and forgets what it held', () => {
+				connect();
+				// Rock is gone: Pop is 1 now, and the device is on it.
+				devicePeqStore.relisted([HELD[0], { id: 1, name: 'Pop' }, OFF], 1, null);
+
+				expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Pop']);
+				expect(devicePeqStore.deviceSlot).toBe(1);
+				expect(devicePeqStore.activeSlot).toBe(1);
+				expect(devicePeqStore.selection).toBe(1);
+				expect(devicePeqStore.eqEnabled).toBe(true);
+				expect(devicePeqStore.synced).toBeNull();
+				expect(devicePeqStore.layout).toBeNull();
+				expect(devicePeqStore.autoPaused).toBe(false);
+			});
+
+			it('targets the first writable preset when the device is on none the list holds', () => {
+				connect();
+				devicePeqStore.relisted([HELD[0], HELD[1], OFF], 7, null);
+
+				expect(devicePeqStore.deviceSlot).toBe(7);
+				expect(devicePeqStore.activeSlot).toBe(0);
+				expect(devicePeqStore.selection).toBe('other');
+			});
+
+			it('targets the first of those marked writable', () => {
+				connect();
+				devicePeqStore.relisted(
+					[{ id: 0, name: 'Built-in' }, { id: 1, name: 'Mine', writable: true }, OFF],
+					7,
+					null
+				);
+				expect(devicePeqStore.activeSlot).toBe(1);
+			});
+
+			it('takes the device’s EQ switch, or the bypass preset, over what it was', () => {
+				connect();
+				devicePeqStore.relisted(HELD, 1, false);
+				expect(devicePeqStore.eqEnabled).toBe(false);
+				expect(devicePeqStore.selection).toBe('off');
+
+				devicePeqStore.relisted(HELD, 9, null);
+				expect(devicePeqStore.eqEnabled).toBe(false);
+				expect(devicePeqStore.activeSlot).toBe(0);
+
+				devicePeqStore.relisted(HELD, null, null);
+				expect(devicePeqStore.eqEnabled).toBeNull();
+			});
+
+			it('leaves the last message, which is the caller’s to set', () => {
+				connect();
+				devicePeqStore.relisted(HELD, 1, null);
+				expect(devicePeqStore.statusMessage).toBe('Wrote 6 bands.');
+			});
+
+			describe('keeping the target', () => {
+				it('changes only the names', () => {
+					connect();
+					const synced = devicePeqStore.synced;
+					const layout = devicePeqStore.layout;
+
+					devicePeqStore.relisted(
+						[HELD[0], HELD[1], { id: 2, name: 'Metal' }, OFF],
+						0,
+						false,
+						true
+					);
+
+					expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Metal']);
+					expect(devicePeqStore.activeSlot).toBe(2);
+					expect(devicePeqStore.deviceSlot).toBe(1);
+					expect(devicePeqStore.eqEnabled).toBe(true);
+					expect(devicePeqStore.synced).toBe(synced);
+					expect(devicePeqStore.layout).toBe(layout);
+					expect(devicePeqStore.autoPaused).toBe(true);
+					expect(devicePeqStore.statusMessage).toBe('Wrote 6 bands.');
+				});
+
+				it('still counts the list as the device’s, with its room', () => {
+					connect();
+					devicePeqStore.relisted([HELD[0], OFF], 0, null, true);
+					expect(devicePeqStore.canEditPresets).toBe(true);
+					expect(devicePeqStore.slotRoom).toBe(4);
+					expect(devicePeqStore.slots).toHaveLength(1);
+				});
+			});
+		});
 	});
 
 	describe('whether this page’s sound plays the device’s EQ', () => {

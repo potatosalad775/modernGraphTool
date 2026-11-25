@@ -20,7 +20,12 @@ import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import { controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
 import { deviceAs, eqView, type DeviceEq, type EqTarget } from '#lib/device-peq/device-eqs.js';
-import { describeDeviceError, isConnectionLost, isUnsupported } from '#lib/device-peq/errors.js';
+import {
+	describeDeviceError,
+	isConnectionLost,
+	isInvalidRequest,
+	isUnsupported
+} from '#lib/device-peq/errors.js';
 import { LinkPeqDevice } from '#lib/device-peq/link.js';
 import { readRequest } from '#lib/device-peq/preset.js';
 import {
@@ -33,7 +38,7 @@ import {
 } from '#lib/device-peq/push-plan.js';
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { NetworkDeviceType } from '#lib/device-peq/network-types.js';
-import type { DeviceConnection, PeqDevice } from '#lib/device-peq/types.js';
+import type { DeviceConnection, PeqDevice, Slot } from '#lib/device-peq/types.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
@@ -110,7 +115,17 @@ async function reportedBands(conn: DeviceConnection, id: string | undefined) {
 async function openEq(conn: DeviceConnection, id: string | undefined) {
 	const eq: EqTarget = { id, bandCount: await reportedBands(conn, id) };
 	const view = eqView(conn, eq);
-	return { eq, view, ...(await playing(view)) };
+	return { eq, view, ...(await playing(view)), listed: await listPresets(view) };
+}
+
+/**
+ * The presets a device that keeps a list holds now, under its own names; null for a device whose
+ * presets are the profile's, and when the list can't be read (the profile's then stand in).
+ */
+async function listPresets(conn: DeviceConnection): Promise<readonly Slot[] | null> {
+	const { device } = conn;
+	if (!device.capabilities.listsSlots || !device.slots) return null;
+	return device.slots().catch(() => null);
 }
 
 /** An EQ's label: the data's name, else "Main EQ" (only the profile's own can lack one). */
@@ -295,10 +310,10 @@ class DevicePeqService {
 	 */
 	async #connected(conn: DeviceConnection, eqId?: string): Promise<void> {
 		const absent = await absentEqs(conn);
-		const listed = conn.device.capabilities.eqs?.some((e) => e.id === eqId) ?? false;
-		const id = listed && eqId !== undefined && !absent.includes(eqId) ? eqId : undefined;
-		const { eq, view, slot, enabled } = await openEq(conn, id);
-		devicePeqStore.setConnected(view, slot, enabled, { conn, eq, absent });
+		const known = conn.device.capabilities.eqs?.some((e) => e.id === eqId) ?? false;
+		const id = known && eqId !== undefined && !absent.includes(eqId) ? eqId : undefined;
+		const { eq, view, slot, enabled, listed } = await openEq(conn, id);
+		devicePeqStore.setConnected(view, slot, enabled, { conn, eq, absent }, listed);
 		this.#unwatchLost();
 		this.#unwatchLost = conn.onLost?.(() => void this.#lost(conn)) ?? noop;
 		await this.#readControls(view);
@@ -541,6 +556,114 @@ class DevicePeqService {
 		}
 	}
 
+	// ── The device's own preset list ──────────────────────────────────────────
+
+	/** Read the device's presets and where it is again, after an edit to the list. */
+	async #relist(conn: DeviceConnection, keep = false): Promise<void> {
+		const slots = await listPresets(conn);
+		const { slot, enabled } = await playing(conn);
+		if (slots && devicePeqStore.connection === conn) {
+			devicePeqStore.relisted(slots, slot, enabled, keep);
+		}
+	}
+
+	/**
+	 * One edit to the device's preset list, as one operation; the list is read again whatever it
+	 * did. `refused` is what to say when the device won't take the request as given (a name it
+	 * can't store): the user's to put right, so it is said without the failure toast.
+	 */
+	async #editPresets(
+		conn: DeviceConnection,
+		edit: () => Promise<string>,
+		keep = false,
+		refused?: string
+	): Promise<boolean> {
+		devicePeqStore.isSwitching = true;
+		try {
+			const done = await edit();
+			await this.#relist(conn, keep);
+			devicePeqStore.setStatus(done);
+			return true;
+		} catch (e) {
+			if (refused !== undefined && isInvalidRequest(e)) devicePeqStore.setStatus(refused, true);
+			else this.fail(e, 'preset');
+			if (!devicePeqStore.needsReconnect) await this.#relist(conn, keep).catch(noop);
+			return false;
+		} finally {
+			devicePeqStore.isSwitching = false;
+		}
+	}
+
+	/** Add an empty preset to the device. The device goes over to it, and so do Read and Write. */
+	async createPreset(): Promise<void> {
+		const conn = devicePeqStore.connection;
+		const create = conn?.device.createSlot?.bind(conn.device);
+		const room = devicePeqStore.slotRoom;
+		if (!conn || !create || !devicePeqStore.canEditPresets || devicePeqStore.isBusy) return;
+		if (room !== null && devicePeqStore.slots.length >= room) return;
+		// An edit waiting to be auto-written belongs to the preset it was made on.
+		this.#cancelPending();
+		// The device goes over to the new preset, which is flat: as audible as a write.
+		if (volumeWarning.ask(() => void this.createPreset())) return;
+		let made: Slot | undefined;
+		const added = await this.#editPresets(conn, async () => {
+			made = await create();
+			return m.device_presets_created({ name: made.name });
+		});
+		if (!added || !made || devicePeqStore.connection !== conn) return;
+		await this.choose(`p${made.id}`);
+		// Going over to the new preset clears the line, as any change of target does: say it again,
+		// unless the switch itself failed and said so.
+		if (!devicePeqStore.statusIsError) {
+			devicePeqStore.setStatus(m.device_presets_created({ name: made.name }));
+		}
+	}
+
+	/**
+	 * Rename preset `id`; true when the device took the name. A name the device can't store is
+	 * refused as it is, not shortened to fit, and the caller says so where the name was typed.
+	 */
+	async renamePreset(id: number, name: string): Promise<boolean> {
+		const conn = devicePeqStore.connection;
+		const rename = conn?.device.renameSlot?.bind(conn.device);
+		const slot = devicePeqStore.slots.find((s) => s.id === id);
+		if (!conn || !rename || !slot || !devicePeqStore.canEditPresets) return false;
+		if (devicePeqStore.isBusy) return false;
+		const next = name.trim();
+		if (next === slot.name) return true;
+		return this.#editPresets(
+			conn,
+			async () => {
+				await rename(slot.id, next);
+				return m.device_presets_renamed({ name: next });
+			},
+			true,
+			m.device_presets_name_refused()
+		);
+	}
+
+	/**
+	 * Delete preset `id`, for good. The device may move to another of its presets, and the ones
+	 * after the deleted one are renumbered: Device EQ then shows where the device is.
+	 */
+	async deletePreset(id: number): Promise<void> {
+		const conn = devicePeqStore.connection;
+		const remove = conn?.device.deleteSlot?.bind(conn.device);
+		const slot = devicePeqStore.slots.find((s) => s.id === id);
+		if (!conn || !remove || !slot || !devicePeqStore.canEditPresets) return;
+		if (devicePeqStore.isBusy || devicePeqStore.slots.length <= 1) return;
+		// A waiting auto-write was aimed at the target's id, which the delete may move.
+		this.#cancelPending();
+		// The device may go over to another preset: as audible as a write.
+		if (volumeWarning.ask(() => void this.deletePreset(id))) return;
+		const deleted = await this.#editPresets(conn, async () => {
+			await remove(slot.id);
+			return m.device_presets_deleted({ name: slot.name });
+		});
+		// On another preset now, the EQ's settings may be that one's.
+		if (deleted && devicePeqStore.connection === conn) await this.#readEqControls(conn);
+	}
+
 	// ── The device's EQs ──────────────────────────────────────────────────────
 
 	/**
@@ -568,9 +691,12 @@ class DevicePeqService {
 		try {
 			const absent = await absentEqs(conn);
 			const gone = id !== undefined && absent.includes(id) ? id : undefined;
-			const { eq, view, slot, enabled } = await openEq(conn, gone === undefined ? id : undefined);
+			const { eq, view, slot, enabled, listed } = await openEq(
+				conn,
+				gone === undefined ? id : undefined
+			);
 			if (devicePeqStore.opened !== conn) return;
-			devicePeqStore.selectEq(view, eq, slot, enabled, absent);
+			devicePeqStore.selectEq(view, eq, slot, enabled, absent, listed);
 			// The mode that brought or took an EQ did the same to its settings.
 			await this.#readControls(view);
 			const named = (of: string | undefined) => eqName(devicePeqStore.eqs.find((e) => e.id === of));

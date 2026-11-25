@@ -14,10 +14,11 @@ import type {
 	PullRequest,
 	PullResult,
 	PushRequest,
-	PushResult
+	PushResult,
+	Slot
 } from '@potatosalad775/eqcaps-device-bridge';
 
-export type { PullResult, PushRequest, PushResult, DeviceIdentity };
+export type { PullResult, PushRequest, PushResult, DeviceIdentity, Slot };
 
 /** Connection type for device communication */
 export type ConnectionType = 'hid' | 'serial' | 'ble' | 'network' | 'link';
@@ -41,7 +42,14 @@ export type PeqCapabilities = Pick<
 	// The device's own settings. Absent where there are none to drive: a network device, one in uniPEQ.
 	// Its other EQs, and whether it says how many bands it has. Absent the same way.
 	// Also whether a push takes the right channel apart from the left (`perChannel`).
-	Partial<Pick<DeviceCapabilities, 'controls' | 'eqs' | 'readsBandCount' | 'perChannel'>>;
+	// And whether it keeps its presets as a list of its own (`listsSlots`) that can be added to,
+	// renamed and deleted from (`editsSlots`).
+	Partial<
+		Pick<
+			DeviceCapabilities,
+			'controls' | 'eqs' | 'readsBandCount' | 'perChannel' | 'listsSlots' | 'editsSlots'
+		>
+	>;
 
 /**
  * A connected device. The bridge's `BridgeDevice` satisfies this as is. Every value in and out is a
@@ -71,6 +79,17 @@ export interface PeqDevice {
 	 * profile describes. One the device's current mode lacks answers each operation `unsupported`.
 	 */
 	eq?(id?: string): PeqDevice;
+	/**
+	 * The presets the device holds now, under the names it stores (`listsSlots`), followed by the
+	 * data's bypass preset if there is one.
+	 */
+	slots?(): Promise<readonly Slot[]>;
+	/** Adds an empty preset after the last and returns it (`editsSlots`). Refused when full. */
+	createSlot?(request?: { name?: string }): Promise<Slot>;
+	/** Renames a preset. A name the device can't store is refused, never shortened. */
+	renameSlot?(slot: number, name: string): Promise<void>;
+	/** Deletes a preset. The ones after it move down by one, and the device may switch to another. */
+	deleteSlot?(slot: number): Promise<void>;
 	/** The band count the device reports (`readsBandCount`); null when it doesn't say. */
 	bandCount?(): Promise<number | null>;
 	/** Sets one control. The bridge refuses a value the control doesn't take, and never clamps. */

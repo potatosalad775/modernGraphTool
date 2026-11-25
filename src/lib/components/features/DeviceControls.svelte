@@ -10,6 +10,7 @@
 	import Button from '../atoms/Button.svelte';
 	import Switch from '../atoms/Switch.svelte';
 	import DevicePeqPushDialog from './DevicePeqPushDialog.svelte';
+	import DevicePresets from './DevicePresets.svelte';
 	import DeviceSettings from './DeviceSettings.svelte';
 	import {
 		deviceGridClass,
@@ -343,6 +344,9 @@
 								{/each}
 							</select>
 						</div>
+						{#if devicePeqStore.canEditPresets}
+							<DevicePresets />
+						{/if}
 					{:else if hasOnOff}
 						<div class={deviceRowClass}>
 							<span class="flex items-center">

@@ -601,6 +601,78 @@ describe('DevicePeq', () => {
 			await expect.element(control).toHaveValue('off');
 		});
 
+		describe('the Presets row', () => {
+			const PLACES = [0, 1, 2, 3, 4].map((id) => ({ id, name: `EQ ${id + 1}` }));
+			const newButton = () => page.getByRole('button', { name: 'New', exact: true });
+
+			/** Connects a device that answers `slots()` with its own list, unless `list` is a failure. */
+			async function mountListing(
+				caps: Partial<PeqCapabilities>,
+				list: 'listed' | 'fails' | 'none' = 'listed'
+			) {
+				const made = makeConnection({}, { slots: PLACES, ...caps });
+				made.device.currentSlot.mockResolvedValue(1);
+				const slots = vi.fn<NonNullable<PeqDevice['slots']>>(async () => {
+					if (list === 'fails') throw new Error('no answer');
+					return [
+						{ id: 0, name: 'Jazz' },
+						{ id: 1, name: 'Rock' }
+					];
+				});
+				connect.connectHid.mockResolvedValue(
+					connected(
+						list === 'none'
+							? made.connection
+							: { ...made.connection, device: { ...made.device, slots } }
+					)
+				);
+				await render(DevicePeq);
+				await page.getByRole('button', { name: 'Connect USB device' }).click();
+				await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+				await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toBeInTheDocument();
+			}
+
+			it('appears under Device EQ for a device that keeps and edits its own list', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true });
+
+				await expect.element(page.getByText('Presets', { exact: true })).toBeInTheDocument();
+				await expect.element(newButton()).toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Rename', exact: true }))
+					.toBeEnabled();
+				await expect
+					.element(page.getByRole('button', { name: 'Delete', exact: true }))
+					.toBeEnabled();
+				// Device EQ lists what the device holds, not the places it has room for.
+				await expect.element(page.getByRole('option', { name: 'Rock' })).toBeInTheDocument();
+				expect(page.getByRole('option', { name: 'EQ 1' }).all()).toHaveLength(0);
+			});
+
+			it('is not there for an ordinary device', async () => {
+				await mountConnected();
+				await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toBeInTheDocument();
+				expect(page.getByText('Presets', { exact: true }).all()).toHaveLength(0);
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there for a device that lists its presets but cannot edit them', async () => {
+				await mountListing({ listsSlots: true, editsSlots: false });
+				await expect.element(page.getByRole('option', { name: 'Rock' })).toBeInTheDocument();
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there when the device’s list could not be read', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'fails');
+				await expect.element(page.getByRole('option', { name: 'EQ 1' })).toBeInTheDocument();
+				expect(newButton().all()).toHaveLength(0);
+			});
+
+			it('is not there for a device with no way to list its presets', async () => {
+				await mountListing({ listsSlots: true, editsSlots: true }, 'none');
+				expect(newButton().all()).toHaveLength(0);
+			});
+		});
+
 		it('shows the switch as it was when the device refuses it', async () => {
 			const device = await mountConnected();
 			device.setEnabled.mockRejectedValue(new Error('nope'));

@@ -74,7 +74,7 @@ const PICK_FIRST = 'Pick one of your presets under Device EQ first.';
 
 describe('DevicePresets', () => {
 	const spyCreate = () => vi.spyOn(devicePeqService, 'createPreset').mockResolvedValue(undefined);
-	const spyRename = () => vi.spyOn(devicePeqService, 'renamePreset').mockResolvedValue(true);
+	const spyRename = () => vi.spyOn(devicePeqService, 'renamePreset').mockResolvedValue('done');
 	const spyRemove = () => vi.spyOn(devicePeqService, 'deletePreset').mockResolvedValue(undefined);
 
 	let create: ReturnType<typeof spyCreate>;
@@ -240,7 +240,7 @@ describe('DevicePresets', () => {
 		});
 
 		it('stays open and says so when the device refuses the name', async () => {
-			rename.mockResolvedValue(false);
+			rename.mockResolvedValue('refused');
 			await open();
 			await nameField().fill('A name far too long for it');
 			await confirm().click();
@@ -258,8 +258,19 @@ describe('DevicePresets', () => {
 				.toHaveAccessibleDescription(/The device can't store that name/);
 		});
 
+		it('closes without blaming the name when the rename fails for another reason', async () => {
+			rename.mockResolvedValue('failed');
+			await open();
+			await nameField().fill('Metal');
+			await confirm().click();
+
+			await vi.waitFor(() => expect(rename).toHaveBeenCalledExactlyOnceWith(1, 'Metal'));
+			await expect.element(dialog()).not.toBeInTheDocument();
+			expect(page.getByRole('alert').all()).toHaveLength(0);
+		});
+
 		it('closes on a second try the device takes, with the message gone', async () => {
-			rename.mockResolvedValueOnce(false);
+			rename.mockResolvedValueOnce('refused');
 			await open();
 			await nameField().fill('Too long');
 			await confirm().click();
@@ -304,7 +315,7 @@ describe('DevicePresets', () => {
 		});
 
 		it('starts again from the preset’s name, with no message, when opened again', async () => {
-			rename.mockResolvedValue(false);
+			rename.mockResolvedValue('refused');
 			await open();
 			await nameField().fill('Typed and refused');
 			await confirm().click();

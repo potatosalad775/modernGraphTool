@@ -39,9 +39,10 @@
 		renaming = true;
 	}
 
+	/** A failure other than the name (the connection, say) closes it: its toast says what went wrong. */
 	async function rename() {
 		if (!shown) return;
-		refused = !(await devicePeqService.renamePreset(shown.id, newName));
+		refused = (await devicePeqService.renamePreset(shown.id, newName)) === 'refused';
 		if (!refused) renaming = false;
 	}
 

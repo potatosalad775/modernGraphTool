@@ -152,6 +152,9 @@ interface RestartWords {
 /** The transports a browser connects through its own device APIs. */
 export type DeviceKind = 'hid' | 'serial' | 'ble';
 
+/** How an edit to the device's preset list went: `refused` is a name the device can't store. */
+export type PresetEdit = 'done' | 'refused' | 'failed';
+
 /** What the auto-writer last saw, to tell an edit from a reconnect or a toggle. */
 interface Seen {
 	filters: EQFilter[];
@@ -167,6 +170,8 @@ class DevicePeqService {
 	#queued = 0;
 	#seen: Seen | null = null;
 	#unwatchLost: () => void = noop;
+	/** A setting that restarts the device is being written: the device may go before it returns. */
+	#restarting = false;
 
 	/** The connected device when it is uniPEQ's, reached over the link. */
 	get linkDevice(): LinkPeqDevice | null {
@@ -338,13 +343,13 @@ class DevicePeqService {
 
 	/**
 	 * The device went on its own: disconnected now, not at the next failed operation, so its limits
-	 * stop applying and nothing tries to write to it. One that restarts to save is expected to go and
-	 * kept for its return, and it can go before the write that saved has returned.
+	 * stop applying and nothing tries to write to it. One that restarts to save, or for a setting, is
+	 * expected to go and kept for its return, and it can go before the write has returned.
 	 */
 	async #lost(conn: DeviceConnection): Promise<void> {
 		if (devicePeqStore.opened !== conn) return;
 		const saving = devicePeqStore.isWriting && conn.device.capabilities.disconnectOnSave;
-		if (devicePeqStore.needsReconnect || saving) return;
+		if (devicePeqStore.needsReconnect || saving || this.#restarting) return;
 		await this.disconnect();
 		const message = m.equalizer_device_peq_reconnect_prompt();
 		devicePeqStore.setStatus(message);
@@ -548,7 +553,7 @@ class DevicePeqService {
 				await conn.device.setEnabled(true, slot);
 				devicePeqStore.played(slot);
 			}
-			await this.#readEqControls(conn);
+			await this.#readEqControls(conn, true);
 		} catch (e) {
 			this.fail(e, 'switch');
 		} finally {
@@ -558,11 +563,15 @@ class DevicePeqService {
 
 	// ── The device's own preset list ──────────────────────────────────────────
 
-	/** Read the device's presets and where it is again, after an edit to the list. */
+	/**
+	 * Read the device's presets and where it is again, after an edit to the list. A list that can't
+	 * be read after a rename is still right but for a name; after anything else, the ids in it may
+	 * have moved, so the store drops it (`relisted`).
+	 */
 	async #relist(conn: DeviceConnection, keep = false): Promise<void> {
 		const slots = await listPresets(conn);
 		const { slot, enabled } = await playing(conn);
-		if (slots && devicePeqStore.connection === conn) {
+		if ((slots || !keep) && devicePeqStore.connection === conn) {
 			devicePeqStore.relisted(slots, slot, enabled, keep);
 		}
 	}
@@ -570,25 +579,27 @@ class DevicePeqService {
 	/**
 	 * One edit to the device's preset list, as one operation; the list is read again whatever it
 	 * did. `refused` is what to say when the device won't take the request as given (a name it
-	 * can't store): the user's to put right, so it is said without the failure toast.
+	 * can't store): the user's to put right, so it is said without the failure toast, and the
+	 * edit answers `'refused'` rather than `'failed'`.
 	 */
 	async #editPresets(
 		conn: DeviceConnection,
 		edit: () => Promise<string>,
 		keep = false,
 		refused?: string
-	): Promise<boolean> {
+	): Promise<PresetEdit> {
 		devicePeqStore.isSwitching = true;
 		try {
 			const done = await edit();
 			await this.#relist(conn, keep);
 			devicePeqStore.setStatus(done);
-			return true;
+			return 'done';
 		} catch (e) {
-			if (refused !== undefined && isInvalidRequest(e)) devicePeqStore.setStatus(refused, true);
+			const named = refused !== undefined && isInvalidRequest(e);
+			if (named) devicePeqStore.setStatus(refused, true);
 			else this.fail(e, 'preset');
 			if (!devicePeqStore.needsReconnect) await this.#relist(conn, keep).catch(noop);
-			return false;
+			return named ? 'refused' : 'failed';
 		} finally {
 			devicePeqStore.isSwitching = false;
 		}
@@ -610,7 +621,7 @@ class DevicePeqService {
 			made = await create();
 			return m.device_presets_created({ name: made.name });
 		});
-		if (!added || !made || devicePeqStore.connection !== conn) return;
+		if (added !== 'done' || !made || devicePeqStore.connection !== conn) return;
 		await this.choose(`p${made.id}`);
 		// Going over to the new preset clears the line, as any change of target does: say it again,
 		// unless the switch itself failed and said so.
@@ -620,17 +631,18 @@ class DevicePeqService {
 	}
 
 	/**
-	 * Rename preset `id`; true when the device took the name. A name the device can't store is
-	 * refused as it is, not shortened to fit, and the caller says so where the name was typed.
+	 * Rename preset `id`: `'done'` when the device took the name, `'refused'` when it can't store
+	 * it, `'failed'` for anything else (said the way every failure is). A refused name isn't
+	 * shortened to fit; the caller says so where the name was typed.
 	 */
-	async renamePreset(id: number, name: string): Promise<boolean> {
+	async renamePreset(id: number, name: string): Promise<PresetEdit> {
 		const conn = devicePeqStore.connection;
 		const rename = conn?.device.renameSlot?.bind(conn.device);
 		const slot = devicePeqStore.slots.find((s) => s.id === id);
-		if (!conn || !rename || !slot || !devicePeqStore.canEditPresets) return false;
-		if (devicePeqStore.isBusy) return false;
+		if (!conn || !rename || !slot || !devicePeqStore.canEditPresets) return 'failed';
+		if (devicePeqStore.isBusy) return 'failed';
 		const next = name.trim();
-		if (next === slot.name) return true;
+		if (next === slot.name) return 'done';
 		return this.#editPresets(
 			conn,
 			async () => {
@@ -661,7 +673,9 @@ class DevicePeqService {
 			return m.device_presets_deleted({ name: slot.name });
 		});
 		// On another preset now, the EQ's settings may be that one's.
-		if (deleted && devicePeqStore.connection === conn) await this.#readEqControls(conn);
+		if (deleted === 'done' && devicePeqStore.connection === conn) {
+			await this.#readEqControls(conn, true);
+		}
 	}
 
 	// ── The device's EQs ──────────────────────────────────────────────────────
@@ -721,36 +735,43 @@ class DevicePeqService {
 		const id = devicePeqStore.eq;
 		if (!conn || id === undefined) return;
 		if (await eqThere(conn, id).catch(() => true)) return;
-		// Another device, or another EQ, by now: nothing to fall back from.
-		if (devicePeqStore.opened !== conn || devicePeqStore.eq !== id) return;
+		// Another device, or another EQ, by now: nothing to fall back from. Another operation under
+		// way would find the EQ swapped beneath it; it fails the same way, and that asks again.
+		if (devicePeqStore.opened !== conn || devicePeqStore.eq !== id || devicePeqStore.isBusy) return;
 		await this.#openEq(id);
 	}
 
 	// ── The device's own settings ─────────────────────────────────────────────
 
 	/**
-	 * Read the device's settings into the store. A failed read is not an error: the rows don't
-	 * show (or stay as they were) and the EQ works without them.
+	 * Read the device's settings into the store; false when that failed. A failed read is not an
+	 * error: the rows don't show (or stay as they were) and the EQ works without them.
 	 */
-	async #readControls(conn: DeviceConnection): Promise<void> {
+	async #readControls(conn: DeviceConnection): Promise<boolean> {
 		const { device } = conn;
-		if (!device.readControls || !device.capabilities.controls?.length) return;
+		if (!device.readControls || !device.capabilities.controls?.length) return true;
 		try {
 			const values = await device.readControls();
 			if (devicePeqStore.connection === conn) devicePeqStore.controlValues = values;
+			return true;
 		} catch (e) {
 			console.warn("Device PEQ: could not read the device's settings:", e);
+			return false;
 		}
 	}
 
 	/**
 	 * Read them again where a setting of the EQ may have moved with it: a device can keep one with
 	 * each preset (a Qudelix's crossfeed), so after a switch or a Read. Only for a device that has one.
+	 * `moved`: the device is on another preset now, so where the read fails, the EQ's values read
+	 * before were another preset's, and their rows go rather than show them.
 	 */
-	async #readEqControls(conn: DeviceConnection): Promise<void> {
-		if (conn.device.capabilities.controls?.some((c) => c.eq !== undefined)) {
-			await this.#readControls(conn);
-		}
+	async #readEqControls(conn: DeviceConnection, moved = false): Promise<void> {
+		const ofEq = conn.device.capabilities.controls?.filter((c) => c.eq !== undefined) ?? [];
+		if (ofEq.length === 0) return;
+		if ((await this.#readControls(conn)) || !moved || devicePeqStore.connection !== conn) return;
+		const unknown = Object.fromEntries(ofEq.map((c) => [c.id, null]));
+		devicePeqStore.controlValues = { ...devicePeqStore.controlValues, ...unknown };
 	}
 
 	/** Set one of the device's settings to `value`, now. */
@@ -794,10 +815,18 @@ class DevicePeqService {
 	): Promise<void> {
 		let last = steps[0];
 		let restarts = false;
-		for (const step of steps) {
-			last = step;
-			restarts = (await write(step.control.id, step.value)).reconnect;
-			if (restarts) break;
+		try {
+			for (const step of steps) {
+				last = step;
+				// The device can go before this write returns, or while it is closed: `#lost` leaves it
+				// to `#awaitRestart` below.
+				this.#restarting = step.control.reconnect === true;
+				restarts = (await write(step.control.id, step.value)).reconnect;
+				if (restarts) break;
+			}
+			if (restarts) await conn.device.close().catch(noop);
+		} finally {
+			this.#restarting = false;
 		}
 		const control = controlLabel(last.control);
 		if (!restarts) {
@@ -808,7 +837,6 @@ class DevicePeqService {
 			);
 			return;
 		}
-		await conn.device.close().catch(noop);
 		if (devicePeqStore.connection !== conn) return;
 		devicePeqStore.needsReconnect = true;
 		void this.#awaitRestart(conn, {

@@ -1,7 +1,9 @@
 /**
- * Per-ear bands under a restriction. Every eqcaps v1 profile drives both ears with one band list,
- * so "restricted to X" and a left- or right-only band can't be on screen together: the band list
- * would claim a restriction the EQ doesn't keep. Whenever the two would meet, the user is asked to
+ * Per-ear bands under a restriction. Nearly every restriction drives both ears with one band list
+ * (the exception is a connected device that drives its channels apart,
+ * `eqConstraintsStore.supportsPerChannel`), and under one of those "restricted to X" and a left- or
+ * right-only band can't be on screen together: the band list would claim a restriction the EQ
+ * doesn't keep. Whenever the two would meet, the user is asked to
  * remove the per-ear bands or keep them and lift the restriction. Never a warning beside the bands.
  *
  * Two ways in. A preset pick asks before it takes effect (`applyPreset`), so Cancel changes
@@ -63,9 +65,9 @@ class EqChannelConflict {
 
 	/**
 	 * Watch for per-ear bands under an active restriction, from any path. Installed once from
-	 * `AppShell.onMount`, never disposed. Keep lifts the restriction: the unlimited default is the
-	 * only preset that holds per-ear bands, and for a device that means "don't restrict to it" —
-	 * its preset stays in the picker.
+	 * `AppShell.onMount`, never disposed. Keep lifts the restriction: the unlimited default holds
+	 * per-ear bands (as does a device that drives its channels apart, which never gets here), and for
+	 * a device that means "don't restrict to it" — its preset stays in the picker.
 	 */
 	install(): void {
 		if (this.#installed) return;

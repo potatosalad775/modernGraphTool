@@ -78,10 +78,11 @@ needs it at boot); keep it the only one.
   connect re-clamped the list from a panel `$effect` (and needed `untrack` to stop it looping).
   The constraint swap lives in the store so it holds however the connection ends, panel mounted
   or not.
-- **Profiles say what a device accepts; the bridge says how to talk to it.** A matched profile's
-  `protocol` (or the most specific match's, `protocolForMatches`) picks the handler. With no match,
-  `guessProtocol(vendorId)` drives a known vendor's device as experimental, with a profile built
-  from `analyzeCodec` — what the protocol's frames can carry — so a push is still always fitted.
+- **Profiles say what a device accepts; the bridge says how to talk to it.** The bridge's
+  `protocolFor` picks the handler: the chosen profile's own `protocol`, else the most specific
+  match's. With neither, it guesses from a known USB vendor, and that device is driven as
+  experimental, with a profile built from `wireConstraints` — what the protocol's frames can carry —
+  so a push is still always fitted.
 - **Ties and nameless ports ask the user.** `matchDevice` refuses to pick between equal matches,
   and a Bluetooth serial port names no device; `connect.ts` returns `kind: 'choose'` with
   candidates rather than guessing.
@@ -143,7 +144,9 @@ needs it at boot); keep it the only one.
   Device EQ shows. Every edit is followed by a fresh list and `currentSlot` (`#relist`): a delete
   renumbers the presets after it and may move the device, so nothing is worked out locally. A
   rename keeps the target and `synced`; a create or delete makes the target the preset the device
-  is on and clears `synced`.
+  is on and clears `synced`. A create or delete whose list can't be read back drops the list
+  rather than keep ids that may have moved: the profile's presets stand in, as on a connect whose
+  list read fails, and editing is off until the list is read again.
 - **A device with several EQs is reached as one of them** (eqcaps SPEC §9.2; a Qudelix's user EQ
   and its SPK EQ). `devicePeqStore.connection` is the device **viewed as** the picked EQ
   (`eqView`): that EQ's profile, presets and `pull` / `push` / `setEnabled`, so the constraint,

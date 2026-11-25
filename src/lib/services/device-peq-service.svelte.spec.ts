@@ -1071,6 +1071,47 @@ describe('devicePeqService device settings', () => {
 			);
 		});
 
+		it('takes the device going during the write, or the close after it, as the restart', async () => {
+			let lost = () => {};
+			const onLost = (listener: () => void) => {
+				lost = listener;
+				return () => {};
+			};
+			const second = settingsDevice({ gain: 0, usb: 1, feed: 0 });
+			const first = settingsDevice({ gain: 0, usb: 0, feed: 0 }, { restarts: ['usb'] });
+			first.writeControl.mockImplementation(async (id) => {
+				lost();
+				return { reconnect: id === 'usb' };
+			});
+			first.close.mockImplementation(async () => lost());
+			const reopen = vi.fn(async () => fakeConnection(second));
+			await connectVia(fakeConnection(first, { onLost, reopen }));
+
+			await devicePeqService.setControl('usb', 1);
+
+			expect(reopen).toHaveBeenCalledWith({ timeoutMs: 5000 });
+			await vi.waitFor(() => expect(devicePeqStore.connection?.device).toBe(second));
+			expect(devicePeqStore.statusMessage).not.toBe('The device disconnected.');
+		});
+
+		it('still lets a device go that is unplugged while an ordinary setting is written', async () => {
+			let lost = () => {};
+			const onLost = (listener: () => void) => {
+				lost = listener;
+				return () => {};
+			};
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			device.writeControl.mockImplementation(async () => {
+				lost();
+				return { reconnect: false };
+			});
+			await connectVia(fakeConnection(device, { onLost }));
+
+			await devicePeqService.setControl('gain', -6);
+
+			await vi.waitFor(() => expect(devicePeqStore.connection).toBeNull());
+		});
+
 		it('says it is waiting for the device while it restarts', async () => {
 			let back = (_conn: DeviceConnection | null) => {};
 			const first = settingsDevice({ gain: 0, usb: 0, feed: 0 }, { restarts: ['usb'] });
@@ -1188,6 +1229,23 @@ describe('devicePeqService device settings', () => {
 
 			expect(device.setEnabled).toHaveBeenCalledWith(true, 1);
 			expect(device.readControls).toHaveBeenCalledTimes(2);
+		});
+
+		it('drops the EQ’s values after switching preset when they can’t be read again', async () => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const device = settingsDevice({ gain: -6, usb: 0, feed: 1 }, { caps: TWO_SLOTS });
+			await connectVia(fakeConnection(device));
+			device.readControls.mockRejectedValue(new Error('no answer'));
+
+			// A Read leaves the device on the same preset: what was read there still stands.
+			await devicePeqService.read();
+			expect(devicePeqStore.controlValues).toEqual({ gain: -6, usb: 0, feed: 1 });
+
+			// Another preset may keep another value: the old one isn't shown as its.
+			await devicePeqService.choose('p1');
+			expect(devicePeqStore.controlValues).toEqual({ gain: -6, usb: 0, feed: null });
+			expect(devicePeqStore.eqControls).toEqual([]);
+			expect(devicePeqStore.deviceControls.map((c) => c.id)).toEqual(['gain', 'usb']);
 		});
 
 		it('leaves them as read after switching preset when none belongs to an EQ', async () => {
@@ -1645,6 +1703,26 @@ describe('devicePeqService with more than one EQ', () => {
 			expect(devicePeqStore.statusMessage).toMatch(/doesn't support/);
 		});
 
+		it('leaves the EQ be when another operation started while it asked', async () => {
+			const two = twoEqDevice();
+			await viewSpk(two);
+			two.spk.pull.mockRejectedValue(unsupported());
+			let gone = (_e: unknown) => {};
+			two.spk.currentSlot.mockImplementation(() => new Promise((_, reject) => (gone = reject)));
+
+			await devicePeqService.read();
+			await vi.waitFor(() => expect(two.spk.currentSlot).toHaveBeenCalled());
+			// The user writes before the device says the EQ is gone.
+			devicePeqStore.isWriting = true;
+			gone(unsupported());
+			await new Promise((r) => setTimeout(r, 0));
+
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.connection?.device).toBe(two.spk);
+			expect(devicePeqStore.isSwitching).toBe(false);
+			devicePeqStore.isWriting = false;
+		});
+
 		it('does not look for another EQ when the own one fails', async () => {
 			const two = twoEqDevice();
 			await connectTwo(two);
@@ -1924,7 +2002,7 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(devicePeqStore.canEditPresets).toBe(false);
 			expect(devicePeqStore.slotRoom).toBeNull();
 			await devicePeqService.createPreset();
-			expect(await devicePeqService.renamePreset(101, 'Other')).toBe(false);
+			expect(await devicePeqService.renamePreset(101, 'Other')).toBe('failed');
 			await devicePeqService.deletePreset(101);
 			expect(devicePeqStore.statusMessage).toBeNull();
 		});
@@ -2087,7 +2165,7 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 		it('renames it on the device and shows the name the device holds', async () => {
 			const { device } = await connectListing({ on: 2 });
 
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(true);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('done');
 
 			expect(device.renameSlot).toHaveBeenCalledExactlyOnceWith(1, 'Metal');
 			expect(device.slots).toHaveBeenCalledTimes(2);
@@ -2133,9 +2211,20 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(devicePeqStore.autoPaused).toBe(true);
 		});
 
+		it('keeps the list it had when the list can’t be read back: only a name moved', async () => {
+			const { device } = await connectListing({ on: 1 });
+			device.slots.mockRejectedValue(new Error('no answer'));
+
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('done');
+
+			expect(names(devicePeqStore.slots)).toEqual(['Jazz', 'Rock', 'Pop']);
+			expect(devicePeqStore.canEditPresets).toBe(true);
+			expect(devicePeqStore.activeSlot).toBe(1);
+		});
+
 		it('trims what was typed', async () => {
 			const { device } = await connectListing();
-			expect(await devicePeqService.renamePreset(1, '  Metal ')).toBe(true);
+			expect(await devicePeqService.renamePreset(1, '  Metal ')).toBe('done');
 			expect(device.renameSlot).toHaveBeenCalledWith(1, 'Metal');
 		});
 
@@ -2143,8 +2232,8 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			const { device } = await connectListing();
 			devicePeqStore.setStatus('before');
 
-			expect(await devicePeqService.renamePreset(1, 'Rock')).toBe(true);
-			expect(await devicePeqService.renamePreset(1, ' Rock  ')).toBe(true);
+			expect(await devicePeqService.renamePreset(1, 'Rock')).toBe('done');
+			expect(await devicePeqService.renamePreset(1, ' Rock  ')).toBe('done');
 
 			expect(device.renameSlot).not.toHaveBeenCalled();
 			expect(device.slots).toHaveBeenCalledOnce();
@@ -2155,7 +2244,7 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			const { device } = await connectListing();
 			settingsStore.setVolumeWarning(true);
 
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(true);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('done');
 
 			expect(volumeWarning.open).toBe(false);
 			expect(device.renameSlot).toHaveBeenCalledOnce();
@@ -2166,7 +2255,7 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			device.renameSlot.mockRejectedValue(new BridgeError('invalid-request', 'too long'));
 			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
 
-			expect(await devicePeqService.renamePreset(1, 'A name far too long')).toBe(false);
+			expect(await devicePeqService.renamePreset(1, 'A name far too long')).toBe('refused');
 
 			expect(devicePeqStore.statusIsError).toBe(true);
 			expect(devicePeqStore.statusMessage).toBe(
@@ -2185,7 +2274,7 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			const { device } = await connectListing();
 			device.renameSlot.mockRejectedValue(new BridgeError('timeout', 'no answer'));
 
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('failed');
 
 			expect(error).toHaveBeenCalledOnce();
 			expect(log).toHaveBeenCalled();
@@ -2196,25 +2285,25 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 
 		it('refuses a preset the device does not list', async () => {
 			const { device } = await connectListing();
-			expect(await devicePeqService.renamePreset(9, 'Metal')).toBe(false);
+			expect(await devicePeqService.renamePreset(9, 'Metal')).toBe('failed');
 			expect(device.renameSlot).not.toHaveBeenCalled();
 		});
 
 		it('refuses on a device whose list cannot be edited', async () => {
 			const { device } = await connectListing({ caps: { editsSlots: false } });
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('failed');
 			expect(device.renameSlot).not.toHaveBeenCalled();
 		});
 
 		it('refuses with nothing connected', async () => {
 			await devicePeqService.disconnect();
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('failed');
 		});
 
 		it('refuses while another operation runs', async () => {
 			const { device } = await connectListing();
 			devicePeqStore.isWriting = true;
-			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe(false);
+			expect(await devicePeqService.renamePreset(1, 'Metal')).toBe('failed');
 			expect(device.renameSlot).not.toHaveBeenCalled();
 		});
 	});
@@ -2242,6 +2331,26 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			expect(devicePeqStore.synced).toBeNull();
 			expect(devicePeqStore.layout).toBeNull();
 			expect(devicePeqStore.isSwitching).toBe(false);
+		});
+
+		it('drops the list, and what the target held, when the list can’t be read back', async () => {
+			// Pop was 2, and is 1 once Rock is gone; the old list would still call 1 Rock.
+			const { device } = await connectListing({ on: 2 });
+			devicePeqStore.synced = { filters: eqStore.filters, preamp: eqStore.preamp };
+			devicePeqStore.layout = { slot: 2, hints: null };
+			device.slots.mockRejectedValue(new Error('no answer'));
+
+			await devicePeqService.deletePreset(1);
+
+			expect(device.deleteSlot).toHaveBeenCalledExactlyOnceWith(1);
+			expect(devicePeqStore.statusMessage).toBe('Deleted “Rock” from the device.');
+			// The profile's presets stand in, as on a connect whose list can't be read.
+			expect(names(devicePeqStore.slots)).toEqual(names(PLACES));
+			expect(devicePeqStore.canEditPresets).toBe(false);
+			expect(devicePeqStore.deviceSlot).toBe(1);
+			expect(devicePeqStore.activeSlot).toBe(1);
+			expect(devicePeqStore.synced).toBeNull();
+			expect(devicePeqStore.layout).toBeNull();
 		});
 
 		it('follows the device to the preset that took its place', async () => {

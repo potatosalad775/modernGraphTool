@@ -1699,27 +1699,6 @@ describe('devicePeqService with more than one EQ', () => {
 				await expectRefused(two, 'spk');
 			});
 
-			it('for a device uniPEQ holds', async () => {
-				const link = new LinkPeqDevice(
-					{ status: null, command: vi.fn(), unlink: vi.fn() } as unknown as LinkPort,
-					{ ...CAPS, eqs: [SPK] }
-				);
-				connectModule.connectHid.mockResolvedValue({
-					kind: 'connected',
-					connection: fakeConnection(link, {
-						profile: TWO_PROFILE,
-						connectionType: 'link',
-						name: 'Qudelix 5K · USR EQ'
-					})
-				});
-				await devicePeqService.connect('hid');
-				expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, true]);
-
-				await devicePeqService.selectEq('spk');
-				expect(devicePeqStore.eq).toBeUndefined();
-				expect(devicePeqStore.connection?.device).toBe(link);
-			});
-
 			it('for the EQ already viewed', async () => {
 				const two = twoEqDevice();
 				await connectTwo(two);
@@ -1747,6 +1726,94 @@ describe('devicePeqService with more than one EQ', () => {
 				await connectTwo(two);
 				await expectRefused(two, 'nope');
 			});
+		});
+	});
+
+	describe('on a device uniPEQ holds', () => {
+		/**
+		 * A Qudelix uniPEQ holds, viewed as EQ `viewed`, with its EQs as uniPEQ names them. `answer`
+		 * is uniPEQ's to every command.
+		 */
+		function linked(viewed?: string, answer: CommandResult = { ok: true }) {
+			const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => answer);
+			const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+			const device = new LinkPeqDevice(port, CAPS);
+			const conn = twoConnection(device, { connectionType: 'link' });
+			devicePeqStore.setConnected(conn, 101, null, {
+				conn,
+				eq: { id: viewed, bandCount: null },
+				absent: [],
+				eqs: [
+					{ id: undefined, name: 'USR EQ' },
+					{ id: 'spk', name: 'SPK EQ' }
+				]
+			});
+			return { command, device };
+		}
+
+		it('asks uniPEQ to view the EQ picked, and moves nothing before its device comes', async () => {
+			const { command } = linked();
+
+			await devicePeqService.selectEq('spk');
+
+			expect(command).toHaveBeenCalledExactlyOnceWith('eq', { id: 'spk' });
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it('names the device’s own EQ as none', async () => {
+			const { command } = linked('spk');
+			await devicePeqService.selectEq(undefined);
+			expect(command).toHaveBeenCalledExactlyOnceWith('eq', { id: null });
+		});
+
+		it('says to write or read first while uniPEQ’s list has changes its device lacks', async () => {
+			const error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
+			linked(undefined, { ok: false, code: 'unwritten' });
+
+			await devicePeqService.selectEq('spk');
+
+			expect(devicePeqStore.statusMessage).toBe(
+				"The band list has changes the device doesn't have yet. Write them, or Read to drop them, before picking another EQ."
+			);
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('reports any other refusal the way every failure is', async () => {
+			const error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
+			linked(undefined, { ok: false, code: 'busy' });
+
+			await devicePeqService.selectEq('spk');
+
+			expect(error).toHaveBeenCalledOnce();
+			expect(devicePeqStore.statusIsError).toBe(true);
+		});
+
+		it('sends nothing more until uniPEQ answers', async () => {
+			const { command } = linked();
+			let answer = (_: CommandResult) => {};
+			command.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+
+			const first = devicePeqService.selectEq('spk');
+			await devicePeqService.selectEq('spk');
+			expect(command).toHaveBeenCalledOnce();
+
+			answer({ ok: true });
+			await first;
+			await devicePeqService.selectEq('spk');
+			expect(command).toHaveBeenCalledTimes(2);
+		});
+
+		it('leaves an EQ that goes to uniPEQ, and never asks the device whether it is there', async () => {
+			const { device } = linked('spk', { ok: false, code: 'unsupported' });
+			const asked = vi.spyOn(device, 'currentSlot');
+
+			await devicePeqService.read();
+
+			expect(devicePeqStore.statusIsError).toBe(true);
+			expect(asked).not.toHaveBeenCalled();
+			expect(devicePeqStore.eq).toBe('spk');
 		});
 	});
 

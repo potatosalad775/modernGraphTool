@@ -23,7 +23,9 @@ import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { track } from '#lib/utils/track.js';
 import {
+	acceptAbsentEqs,
 	acceptControlValues,
+	acceptEqs,
 	acceptSlots,
 	carriesEars,
 	fromLinkLists,
@@ -408,7 +410,14 @@ class LinkService {
 		if (!connection) {
 			if (devicePeqStore.connection) devicePeqStore.setDisconnected();
 		} else {
-			devicePeqStore.setConnected(connection, link.status?.deviceSlot ?? null);
+			// The device as uniPEQ views it, as one of its EQs (`eq`, protocol 1.3), and all of them
+			// by name (`eqs`, 1.4). A new EQ comes as a new `device`.
+			devicePeqStore.setConnected(connection, link.status?.deviceSlot ?? null, null, {
+				conn: connection,
+				eq: { id: typeof device.eq === 'string' ? device.eq : undefined, bandCount: null },
+				absent: acceptAbsentEqs(link.status?.absentEqs),
+				eqs: acceptEqs(device.eqs) ?? undefined
+			});
 			devicePeqService.install();
 			if (link.status) this.#status(link.status);
 		}
@@ -430,6 +439,8 @@ class LinkService {
 		// The presets as they are now, for a device that keeps a list (protocol 1.3); else the
 		// profile's. `activeSlot` and `deviceSlot` are ids in it.
 		store.setListed(acceptSlots(status.slots));
+		// The EQs the device's mode lacks now (protocol 1.3). uniPEQ leaves a viewed one that goes.
+		store.setAbsent(acceptAbsentEqs(status.absentEqs));
 		// The device's settings as uniPEQ last read them (protocol 1.3): the rows follow these.
 		store.controlValues = acceptControlValues(status.controls);
 		store.activeSlot = status.activeSlot;

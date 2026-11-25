@@ -25,6 +25,7 @@ import type {
 	EditOp,
 	Filter as LinkFilter,
 	LinkDevice,
+	LinkEqInfo,
 	LinkStatus,
 	PlanChange as LinkPlanChange
 } from 'peq-link/client';
@@ -32,6 +33,7 @@ import type { EqChannel } from '#lib/utils/eq-channel.js';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { isRecord } from '#lib/utils/type-guards.js';
+import type { ListedEq } from './device-eqs.js';
 import { byEar, type PlanChange } from './push-plan.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult, Slot } from './types.js';
 
@@ -335,6 +337,15 @@ export class LinkPeqDevice implements PeqDevice {
 	setControl(id: string, value: number): Promise<void> {
 		return run(this.#link.command('control', { id, value }));
 	}
+
+	/**
+	 * Views the device as another of its EQs (undefined: its own) and reads it: a new `device` and
+	 * a `fresh` list follow. Fails `unwritten` while uniPEQ's list holds changes the device never
+	 * got: they belong to the EQ being left.
+	 */
+	selectEq(id: string | undefined): Promise<void> {
+		return run(this.#link.command('eq', { id: id ?? null }));
+	}
 }
 
 // ── What uniPEQ says about its device ───────────────────────────────────────
@@ -428,10 +439,34 @@ export function acceptControlValues(value: unknown): Record<string, number | nul
 }
 
 /**
+ * `device.eqs` (protocol 1.4): the device's EQs by the data's names, its own (`id: null`) first
+ * and only there. Null when it isn't such a list, as from a uniPEQ before 1.4, which sends none:
+ * the device's EQs are then unknown, which isn't the same as one.
+ */
+export function acceptEqs(value: unknown): ListedEq[] | null {
+	const nullable = (v: unknown) => v === null || isString(v);
+	if (!listOf((e) => isRecord(e) && nullable(e.id) && nullable(e.name))(value)) return null;
+	const eqs = (value as LinkEqInfo[]).map((e) => ({
+		id: e.id ?? undefined,
+		name: e.name ?? undefined
+	}));
+	// The own EQ first, and no id twice: that holds the own one to once too.
+	const ids = eqs.map((e) => e.id);
+	const own = ids.length > 0 && ids[0] === undefined;
+	return own && new Set(ids).size === ids.length ? eqs : null;
+}
+
+/** `status.absentEqs` (protocol 1.3): the ids of the EQs the device's mode lacks now. */
+export function acceptAbsentEqs(value: unknown): string[] {
+	return Array.isArray(value) ? value.filter(isString) : [];
+}
+
+/**
  * uniPEQ's capability subset, with anything missing or malformed read as "can't". Of what protocol
  * 1.3 added (`minor`): `perChannel`, the preset list (`listsSlots`, `editsSlots`) and the device's
- * settings (`controls`, a malformed one left out). The device's other EQs aren't routed over the
- * link yet, so the UI for them stays off.
+ * settings (`controls`, a malformed one left out). Not `eqs`, the bare ids of the device's other
+ * EQs: they come named in `device.eqs` (`acceptEqs`), and the profile uniPEQ sends, the viewed
+ * EQ's, can't name them.
  */
 export function acceptCapabilities(value: unknown, minor: number): PeqCapabilities {
 	const c = isRecord(value) ? value : {};

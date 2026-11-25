@@ -23,6 +23,9 @@ export interface DeviceEq {
 	present: boolean;
 }
 
+/** One of a device's EQs as another app lists them (uniPEQ's `device.eqs`). */
+export type ListedEq = Omit<DeviceEq, 'present'>;
+
 /** The EQ the connection is viewed as. */
 export interface EqTarget {
 	/** As in `DeviceEq`. */
@@ -40,13 +43,24 @@ export const OWN_EQ: EqTarget = { id: undefined, bandCount: null };
 /**
  * The device's EQs: the profile's own first, then the ones it lists that the bridge drives, by the
  * data's names. `absent` are the ids the device's current mode lacks. One entry for a device
- * with a single EQ, which is every device but a few.
+ * with a single EQ, which is every device but a few. `listed` is the list another app reports in
+ * their place: uniPEQ sends the profile of the EQ it views, which lists the others only for the
+ * device's own EQ.
  */
-export function deviceEqs(conn: DeviceConnection, absent: readonly string[]): DeviceEq[] {
+export function deviceEqs(
+	conn: DeviceConnection,
+	absent: readonly string[],
+	listed?: readonly ListedEq[]
+): DeviceEq[] {
 	const driven = (conn.device.capabilities.eqs ?? []).map((e) => e.id);
-	return profileEqs(conn.profile)
-		.filter((eq) => eq.id === undefined || driven.includes(eq.id))
-		.map(({ id, name }) => ({ id, name, present: id === undefined || !absent.includes(id) }));
+	const eqs =
+		listed ??
+		profileEqs(conn.profile).filter((eq) => eq.id === undefined || driven.includes(eq.id));
+	return eqs.map(({ id, name }) => ({
+		id,
+		name,
+		present: id === undefined || !absent.includes(id)
+	}));
 }
 
 /** `device` viewed as EQ `id`; itself for the profile's own, or where it has no other. */

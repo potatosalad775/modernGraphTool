@@ -26,6 +26,7 @@ import type { Profile } from '@potatosalad775/eqcaps-core';
 import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
 import { linkConnection, type LinkPort } from '#lib/device-peq/link.js';
+import { OWN_EQ, type ListedEq } from '#lib/device-peq/device-eqs.js';
 import type { CommandResult } from 'peq-link/client';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
@@ -1089,9 +1090,14 @@ describe('DevicePeq', () => {
 
 		/**
 		 * uniPEQ's device as the link carries it (protocol 1.3), with its status mirrored into the
-		 * store: on its second preset of `held`. Returns the commands sent to uniPEQ.
+		 * store: on its second preset of `held`, and with the EQs `eqs` where uniPEQ names them
+		 * (1.4). Returns the commands sent to uniPEQ.
 		 */
-		function linked(capabilities: Record<string, unknown>, held = ['Jazz', 'Rock']) {
+		function linked(
+			capabilities: Record<string, unknown>,
+			held = ['Jazz', 'Rock'],
+			eqs?: ListedEq[]
+		) {
 			const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
 			const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
 			const device = {
@@ -1113,10 +1119,29 @@ describe('DevicePeq', () => {
 			if (!connection) throw new Error('the profile should be usable');
 			linkStore.phase = 'linked';
 			linkStore.device = device;
-			devicePeqStore.setConnected(connection, 1);
+			devicePeqStore.setConnected(connection, 1, null, {
+				conn: connection,
+				eq: OWN_EQ,
+				absent: [],
+				eqs
+			});
 			devicePeqStore.setListed(held.map((name, id) => ({ id, name })));
 			return command;
 		}
+
+		it('offers the EQs uniPEQ names, and picks one through uniPEQ', async () => {
+			const command = linked({}, undefined, [
+				{ id: undefined, name: 'USR EQ' },
+				{ id: 'spk', name: 'SPK EQ' }
+			]);
+			await render(DevicePeq);
+
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
+			await page.getByRole('radio', { name: 'SPK EQ' }).click();
+			await vi.waitFor(() => expect(command).toHaveBeenCalledWith('eq', { id: 'spk' }));
+			// The row follows the EQ uniPEQ views, which comes with its next device.
+			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
+		});
 
 		it('offers its own preset list, and edits it through uniPEQ', async () => {
 			const command = linked({ listsSlots: true, editsSlots: true });

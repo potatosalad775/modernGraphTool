@@ -10,8 +10,10 @@ import type { EQFilter } from '#lib/utils/equalizer.js';
 import { describeDeviceError } from './errors.js';
 import { drivesChannelsApart } from './push-plan.js';
 import {
+	acceptAbsentEqs,
 	acceptCapabilities,
 	acceptControlValues,
+	acceptEqs,
 	acceptProfile,
 	carriesEars,
 	fromLinkFilters,
@@ -395,6 +397,35 @@ describe('what uniPEQ says about its device', () => {
 		expect(acceptControlValues(null)).toEqual({});
 	});
 
+	it('names the device’s EQs, its own first and once, and knows none from anything else', () => {
+		const own = { id: null, name: 'USR EQ' };
+		expect(acceptEqs([own, { id: 'spk', name: null }])).toEqual([
+			{ id: undefined, name: 'USR EQ' },
+			{ id: 'spk', name: undefined }
+		]);
+		expect(acceptEqs([{ id: null, name: null }])).toEqual([{ id: undefined, name: undefined }]);
+
+		const malformed = [
+			// A uniPEQ before protocol 1.4 sends none.
+			undefined,
+			'spk',
+			[],
+			[{ id: 'spk', name: 'SPK EQ' }],
+			[{ id: 'spk', name: 'SPK EQ' }, own],
+			[own, { id: null, name: 'Again' }],
+			[own, { id: 'spk', name: 'SPK EQ' }, { id: 'spk', name: 'Again' }],
+			[own, { id: 7, name: 'SPK EQ' }],
+			[own, { id: 'spk', name: 5 }],
+			[own, { id: 'spk' }],
+			[own, null]
+		];
+		for (const value of malformed) expect(acceptEqs(value)).toBeNull();
+
+		expect(acceptAbsentEqs(['spk', 3, null])).toEqual(['spk']);
+		expect(acceptAbsentEqs('spk')).toEqual([]);
+		expect(acceptAbsentEqs(undefined)).toEqual([]);
+	});
+
 	it('drives a linked device’s channels apart only where uniPEQ knows protocol 1.3', () => {
 		const device = {
 			name: 'Test DAC',
@@ -456,6 +487,8 @@ describe('LinkPeqDevice', () => {
 		await device.renamePreset(2, 'Jazz');
 		await device.deletePreset(1);
 		await device.setControl('gain', -6);
+		await device.selectEq('spk');
+		await device.selectEq(undefined);
 		expect(port.command.mock.calls).toEqual([
 			['read'],
 			['switch', { value: 'p3' }],
@@ -468,7 +501,9 @@ describe('LinkPeqDevice', () => {
 			['preset-create', {}],
 			['preset-rename', { slot: 2, name: 'Jazz' }],
 			['preset-delete', { slot: 1 }],
-			['control', { id: 'gain', value: -6 }]
+			['control', { id: 'gain', value: -6 }],
+			['eq', { id: 'spk' }],
+			['eq', { id: null }]
 		]);
 		expect(await device.currentSlot()).toBe(2);
 		expect(await device.eqEnabled()).toBe(false);

@@ -796,6 +796,97 @@ describe('linkService', () => {
 		});
 	});
 
+	describe('with uniPEQ’s device having more than one EQ', () => {
+		/** A Qudelix as uniPEQ views it: its user EQ, with both EQs by name (protocol 1.4). */
+		const QUDELIX = {
+			...DEVICE,
+			name: 'Qudelix 5K · USR EQ',
+			profileId: 'qudelix-5k',
+			eq: null,
+			eqs: [
+				{ id: null, name: 'USR EQ' },
+				{ id: 'spk', name: 'SPK EQ' }
+			]
+		};
+		/** The same device after the `eq` command: uniPEQ names the view for its EQ. */
+		const SPK = { ...QUDELIX, name: 'Qudelix 5K · SPK EQ', eq: 'spk' };
+
+		beforeEach(() => (devicePeqStore.audioPathChoice = null));
+		afterEach(() => (devicePeqStore.audioPathChoice = null));
+
+		it('lists the EQs by name, with the one uniPEQ views', async () => {
+			await linked(4);
+			host.emit('device', SPK);
+			expect(devicePeqStore.eqs).toEqual([
+				{ id: undefined, name: 'USR EQ', present: true },
+				{ id: 'spk', name: 'SPK EQ', present: true }
+			]);
+			expect(devicePeqStore.eq).toBe('spk');
+		});
+
+		it('marks one absent as uniPEQ’s status says, and moves nothing else', async () => {
+			await linked(4);
+			host.emit('device', QUDELIX);
+			const connection = devicePeqStore.connection;
+			devicePeqStore.setStatus('Renamed the preset.');
+
+			host.emit('status', { ...STATUS, absentEqs: ['spk'] });
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, false]);
+			expect(devicePeqStore.connection).toBe(connection);
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset.');
+
+			host.emit('status', STATUS);
+			expect(devicePeqStore.eqs.map((e) => e.present)).toEqual([true, true]);
+		});
+
+		it('views the EQ uniPEQ picked, with its settings, from a uniPEQ that names none', async () => {
+			const feed = { id: 'feed', name: 'Feed', kind: 'toggle', eq: true };
+			const spkFeed = { id: 'spkfeed', name: 'Spk feed', kind: 'toggle', eq: 'spk' };
+			await linked(3);
+			host.emit('device', {
+				...SPK,
+				eqs: undefined,
+				capabilities: { ...DEVICE.capabilities, controls: [feed, spkFeed] }
+			});
+			host.emit('status', { ...STATUS, controls: { feed: 1, spkfeed: 0 } });
+
+			expect(devicePeqStore.eqs).toHaveLength(1);
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.eqControls.map((c) => c.id)).toEqual(['spkfeed']);
+		});
+
+		it('asks uniPEQ to view another EQ, and follows the device and fresh list it sends', async () => {
+			await linked(4);
+			host.eq([wire(100, 3)]);
+			host.emit('device', QUDELIX);
+			host.command.mockImplementationOnce(async () => {
+				host.emit('device', SPK);
+				host.eq([wire(500, 1)], { fresh: true, by: 'device' });
+				return { ok: true };
+			});
+
+			await devicePeqService.selectEq('spk');
+			flushSync();
+
+			expect(host.command).toHaveBeenCalledExactlyOnceWith('eq', { id: 'spk' });
+			expect(devicePeqStore.eq).toBe('spk');
+			expect(devicePeqStore.connection?.name).toBe('Qudelix 5K · SPK EQ');
+			expect(eqStore.filters).toEqual([pk(500, 1)]);
+			expect(commandHistory.canUndo).toBe(false);
+		});
+
+		it('keeps the answer on where this page’s sound plays when uniPEQ views another EQ', async () => {
+			await linked(4);
+			host.emit('device', QUDELIX);
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
+			devicePeqStore.setAudioThroughDevice(true);
+
+			host.emit('device', SPK);
+			expect(devicePeqStore.connection?.name).toBe('Qudelix 5K · SPK EQ');
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+		});
+	});
+
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {
 		await linked();
 		host.eq([wire(100, 3)]);

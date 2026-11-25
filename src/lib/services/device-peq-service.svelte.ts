@@ -11,8 +11,8 @@
  * `linkService`).
  *
  * A device connected in uniPEQ (`connectionType: 'link'`) is written by uniPEQ from the shared
- * list, so for it Write, Device EQ, the auto-write switch, the preset edits and the device's
- * settings are commands to uniPEQ, and this page's own auto-write stays out of the way.
+ * list, so for it Write, Device EQ, the auto-write switch, the preset edits, the device's settings
+ * and the EQ picked are commands to uniPEQ, and this page's own auto-write stays out of the way.
  */
 import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
@@ -26,7 +26,7 @@ import {
 	isInvalidRequest,
 	isUnsupported
 } from '#lib/device-peq/errors.js';
-import { LinkPeqDevice } from '#lib/device-peq/link.js';
+import { LinkCommandError, LinkPeqDevice } from '#lib/device-peq/link.js';
 import { readRequest } from '#lib/device-peq/preset.js';
 import {
 	listFromPull,
@@ -206,7 +206,10 @@ class DevicePeqService {
 		toast.error(message, note ? { description: note } : undefined);
 		if (isConnectionLost(e) && devicePeqStore.connection) devicePeqStore.needsReconnect = true;
 		// The EQ may have gone with the device's mode, switched on the device or in its own app.
-		if (isUnsupported(e) && devicePeqStore.eq !== undefined) void this.#checkEq();
+		// uniPEQ leaves one that goes by itself, and says so with a new `device`.
+		if (isUnsupported(e) && devicePeqStore.eq !== undefined && !this.linkDevice) {
+			void this.#checkEq();
+		}
 	}
 
 	// ── Connecting ────────────────────────────────────────────────────────────
@@ -725,13 +728,35 @@ class DevicePeqService {
 	/**
 	 * Reach another of the device's EQs: Device EQ, Read, Write and the limits are that EQ's from
 	 * now on. Like picking another preset, it reads nothing and leaves the band list alone; whether
-	 * the EQ holds the list is unknown until a Read or a Write.
+	 * the EQ holds the list is unknown until a Read or a Write. Over the link it is uniPEQ's to do,
+	 * and uniPEQ reads the EQ (`#selectLinked`).
 	 */
 	async selectEq(id: string | undefined): Promise<void> {
 		const store = devicePeqStore;
-		if (this.linkDevice || store.isBusy || store.needsReconnect || id === store.eq) return;
+		if (store.isBusy || store.needsReconnect || id === store.eq) return;
 		if (!store.eqs.some((e) => e.id === id && e.present)) return;
-		await this.#openEq(id);
+		const link = this.linkDevice;
+		if (link) await this.#selectLinked(link, id);
+		else await this.#openEq(id);
+	}
+
+	/**
+	 * View the device uniPEQ holds as EQ `id`. uniPEQ reads it, and the new `device` and a `fresh`
+	 * list arrive from it, before or after the answer: nothing here moves before they do. Refused
+	 * while uniPEQ's list holds changes its device never got (`unwritten`): uniPEQ asks there what
+	 * to do with them, which this page can't answer, so the user writes or reads first.
+	 */
+	async #selectLinked(link: LinkPeqDevice, id: string | undefined): Promise<void> {
+		devicePeqStore.isSwitching = true;
+		try {
+			await link.selectEq(id);
+		} catch (e) {
+			if (e instanceof LinkCommandError && e.code === 'unwritten') {
+				devicePeqStore.setStatus(m.device_eq_unwritten(), true);
+			} else this.fail(e, 'eq');
+		} finally {
+			devicePeqStore.isSwitching = false;
+		}
 	}
 
 	/**

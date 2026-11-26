@@ -1205,8 +1205,8 @@ describe('devicePeqService device settings', () => {
 	});
 
 	describe('setWhenFree', () => {
-		const later = (id: string, value: number) =>
-			devicePeqService.setWhenFree(id, value, () => devicePeqService.setControl(id, value));
+		const later = (id: string, value: number, ofEq = false) =>
+			devicePeqService.setWhenFree(id, value, () => devicePeqService.setControl(id, value), ofEq);
 
 		it('writes a setting let go during another operation once it is over, holding it meanwhile', async () => {
 			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
@@ -1247,6 +1247,30 @@ describe('devicePeqService device settings', () => {
 					['feed', 1]
 				])
 			);
+		});
+
+		it('drops a setting of the EQ once the device is on another preset, not a device setting', async () => {
+			const slots = [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			];
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 }, { caps: { slots } });
+			await connectVia(fakeConnection(device));
+			expect(devicePeqStore.deviceSlot).toBe(101);
+
+			const switching = devicePeqService.choose('p102');
+			later('feed', 1, true);
+			later('gain', -6);
+			expect(devicePeqService.heldSetting('feed')).toBe(1);
+			await switching;
+
+			expect(devicePeqStore.deviceSlot).toBe(102);
+			expect(devicePeqService.heldSetting('feed')).toBeUndefined();
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).toHaveBeenCalledOnce();
 		});
 
 		it('writes nothing it held for a connection that has gone', async () => {

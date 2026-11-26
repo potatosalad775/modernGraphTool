@@ -30,7 +30,7 @@ const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 };
 
 function formatHz(hz: number): string {
-	return hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`;
+	return hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${+hz.toFixed(1)} Hz`;
 }
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
@@ -454,12 +454,16 @@ class AudioPlayerService {
 	}
 
 	#assignToneFreq(hz: number): void {
+		const from = this.#toneFreq;
 		this.#toneFreq = hz;
 		const ctx = this.#audioContext;
-		if (!ctx || !this.#oscillatorNode || !this.#isPlaying) return;
+		if (!ctx || !this.#oscillatorNode || !this.#isPlaying || this.#audioSource !== 'tone') return;
 		const f = this.#oscillatorNode.frequency;
 		f.cancelScheduledValues(ctx.currentTime);
-		f.setTargetAtTime(hz, ctx.currentTime, TONE_GLIDE_SEC);
+		// The glide eases in Hz, not in pitch: more than an octave down it trails for a third of a
+		// second. A move that far (a click on the track, Home, End) jumps instead.
+		if (Math.abs(Math.log2(hz / from)) > 1) f.setValueAtTime(hz, ctx.currentTime);
+		else f.setTargetAtTime(hz, ctx.currentTime, TONE_GLIDE_SEC);
 	}
 
 	/** Pull the tone back inside the band after the range itself moved. */

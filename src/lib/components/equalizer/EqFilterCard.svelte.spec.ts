@@ -24,6 +24,7 @@ import {
 	DEFAULT_CONSTRAINT_ID
 } from '#lib/stores/eq-constraints-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { linkStore } from '#lib/stores/link-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { parametricPreset } from '#lib/utils/__fixtures__/eq-profiles.js';
 
@@ -537,6 +538,23 @@ describe('EqFilterCard', () => {
 			await mount(pk(), { expanded: true });
 
 			expect(document.querySelectorAll('input[type="range"]')).toHaveLength(1);
+		});
+	});
+
+	describe('linked with uniPEQ', () => {
+		afterEach(() => {
+			linkStore.reset();
+			eqConstraintsStore.clearDeviceConstraint();
+		});
+
+		it('offers one-ear bands only while uniPEQ’s device drives its channels apart', async () => {
+			linkStore.phase = 'linked';
+			await mount(pk(), { expanded: true });
+			const channel = page.getByRole('group', { name: 'Applied Channel' });
+			expect(channel.elements()).toHaveLength(0);
+
+			eqConstraintsStore.setDeviceConstraint(TIGHT.profile, 'Stereo DAC', true);
+			await expect.element(channel).toBeInTheDocument();
 		});
 	});
 });

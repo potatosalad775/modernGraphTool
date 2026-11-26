@@ -12,7 +12,13 @@ import { drivesChannelsApart, type Layout } from '#lib/device-peq/push-plan.js';
 import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
 import { deviceControls, eqControls } from '#lib/device-peq/controls.js';
-import { OWN_EQ, deviceEqs, type DeviceEq, type EqTarget } from '#lib/device-peq/device-eqs.js';
+import {
+	OWN_EQ,
+	deviceEqs,
+	type DeviceEq,
+	type EqTarget,
+	type ListedEq
+} from '#lib/device-peq/device-eqs.js';
 import { eqDisabledBy, type Control } from '@potatosalad775/eqcaps-core';
 import type { Slot } from '@potatosalad775/eqcaps-device-bridge';
 import { eqConstraintsStore } from './eq-constraints-store.svelte.js';
@@ -39,11 +45,16 @@ export interface DeviceSnapshot {
 }
 
 /** The device as it was opened, and which of its EQs `connection` views it as. */
-interface Opened {
+export interface Opened {
 	conn: DeviceConnection;
 	eq: EqTarget;
 	/** The listed EQs the device's current mode lacks. */
 	absent: readonly string[];
+	/**
+	 * The device's EQs as another app lists them: uniPEQ, which sends only the viewed EQ's profile.
+	 * Without it they are the profile's (`deviceEqs`).
+	 */
+	eqs?: readonly ListedEq[];
 }
 
 class DevicePeqStore {
@@ -112,9 +123,8 @@ class DevicePeqStore {
 	 */
 	reportedInSync = $state<boolean | null | undefined>(undefined);
 	/**
-	 * The user's own answer to whether this page's sound plays through a device, by the name of the
-	 * device as opened (a view of one of its EQs is named for that EQ). Kept across a dropped
-	 * connection, so the same device coming back doesn't ask again.
+	 * The user's own answer to whether this page's sound plays through a device, by `#audioKey`.
+	 * Kept across a dropped connection, so the same device coming back doesn't ask again.
 	 */
 	audioPathChoice = $state.raw<{ device: string; through: boolean } | null>(null);
 
@@ -131,7 +141,7 @@ class DevicePeqStore {
 	/** The device's EQs, the profile's own first. One entry for all but a few devices. */
 	get eqs(): DeviceEq[] {
 		const opened = this.#opened;
-		return opened ? deviceEqs(opened.conn, opened.absent) : [];
+		return opened ? deviceEqs(opened.conn, opened.absent, opened.eqs) : [];
 	}
 
 	/**
@@ -157,8 +167,22 @@ class DevicePeqStore {
 		const conn = this.connection;
 		if (!conn) return false;
 		const choice = this.audioPathChoice;
-		if (choice?.device === (this.opened ?? conn).name) return choice.through;
+		if (choice && choice.device === this.#audioKey) return choice.through;
 		return conn.connectionType !== 'link' || linkStore.launchedHere;
+	}
+
+	/**
+	 * Whose answer `audioPathChoice` is: the device as opened, by name (a view of one of its EQs is
+	 * named for that EQ). uniPEQ sends only the view, named for the EQ its profile is ("Qudelix 5K ·
+	 * SPK EQ"), so a linked device goes by the name without it. Not by the profile: a group's is
+	 * shared by many products.
+	 */
+	get #audioKey(): string | undefined {
+		const conn = this.opened ?? this.connection;
+		if (conn?.connectionType !== 'link') return conn?.name;
+		const engine = conn.profile.engine;
+		const suffix = engine ? ` · ${engine}` : null;
+		return suffix && conn.name.endsWith(suffix) ? conn.name.slice(0, -suffix.length) : conn.name;
 	}
 
 	/**
@@ -170,7 +194,7 @@ class DevicePeqStore {
 	}
 
 	setAudioThroughDevice(through: boolean): void {
-		const device = (this.opened ?? this.connection)?.name;
+		const device = this.#audioKey;
 		if (device !== undefined) this.audioPathChoice = { device, through };
 	}
 
@@ -360,6 +384,25 @@ class DevicePeqStore {
 		this.synced = null;
 		this.layout = null;
 		this.autoPaused = false;
+	}
+
+	/**
+	 * The device's presets as another app reports them now (uniPEQ, in every `status`), or null for
+	 * the profile's. Only the list: where the device is and what Read and Write reach come with it
+	 * and are set beside it, so the target and `synced` stand.
+	 */
+	setListed(listed: readonly Slot[] | null): void {
+		this.#listed = listed;
+	}
+
+	/**
+	 * The EQs the device's mode lacks now, as another app reports them (uniPEQ, in every `status`).
+	 * Only that: the EQ viewed and everything about it stand, since uniPEQ leaves one that goes
+	 * itself and says so with a new `device`.
+	 */
+	setAbsent(absent: readonly string[]): void {
+		const opened = this.#opened;
+		if (opened) this.#opened = { ...opened, absent };
 	}
 
 	/** Where the device is: the preset it plays, the one Read and Write reach, and its EQ switch. */

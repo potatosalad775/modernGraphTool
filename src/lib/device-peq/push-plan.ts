@@ -28,7 +28,8 @@ export type PlanChange =
 	  }
 	/** The band has no slot left on the device, or the device's rules left no room for it: not sent. */
 	| { kind: 'dropped'; band: number; ear?: 'L' | 'R' }
-	| { kind: 'preamp'; wanted: number; written: number };
+	/** `ear` only where each ear has its own preamp (uniPEQ's channels, over the link). */
+	| { kind: 'preamp'; wanted: number; written: number; ear?: 'L' | 'R' };
 
 export interface PushPlan {
 	/** Exactly what to send: one written filter per device band. */
@@ -163,14 +164,14 @@ export function planPush(
 
 /**
  * The left ear's changes and the right's as one list. A shared band is planned once per ear: a
- * change it gets in both is said once, and one it gets in a single ear names that ear.
+ * change it gets in both is said once, and one it gets in a single ear names that ear. The preamp
+ * likewise: a device connected here gets one for both ears, uniPEQ's channels each their own.
  */
-function byEar(left: PlanChange[], right: PlanChange[]): PlanChange[] {
+export function byEar(left: PlanChange[], right: PlanChange[]): PlanChange[] {
 	const key = (change: PlanChange) => JSON.stringify(change);
 	const inLeft = new Set(left.map(key));
 	const inRight = new Set(right.map(key));
-	const tag = (change: PlanChange, ear: 'L' | 'R'): PlanChange =>
-		change.kind === 'preamp' ? change : { ...change, ear };
+	const tag = (change: PlanChange, ear: 'L' | 'R'): PlanChange => ({ ...change, ear });
 	return [
 		...left.map((c) => (inRight.has(key(c)) ? c : tag(c, 'L'))),
 		...right.filter((c) => !inLeft.has(key(c))).map((c) => tag(c, 'R'))

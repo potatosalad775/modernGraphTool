@@ -6,7 +6,6 @@
 	import { filtersInScope, type EqChannelScope } from '#lib/utils/eq-channel.js';
 	import { eqSourceChannels } from '#lib/utils/eq-source.js';
 	import SegmentedControl from '../atoms/SegmentedControl.svelte';
-	import { linkStore } from '#lib/stores/link-store.svelte.js';
 
 	/**
 	 * Channel scope for the band list — shared bands, left ear, or right ear.
@@ -40,14 +39,13 @@
 	 * Nearly every constraint drives both ears with one filter set, so there is
 	 * no per-ear list to edit; the exceptions are the unlimited default and a
 	 * connected device that drives its channels apart
-	 * (`eqConstraintsStore.supportsPerChannel`). The store holds the scope on L+R while this is on
+	 * (`eqConstraintsStore.supportsPerChannel`), and while linked, only a device in uniPEQ that
+	 * drives them apart. The store holds the scope on L+R while this is on
 	 * (`channelScopeLocked`), so a list left on one ear can't strand behind a
 	 * disabled picker. Per-ear bands never stay under a restriction: see
 	 * `services/eq-channel-conflict.svelte.ts`.
 	 */
 	const locked = $derived(eqStore.channelScopeLocked);
-	/** Linked with uniPEQ, the list is one list for both ears, as a device's is. */
-	const linked = $derived(linkStore.linked);
 
 	function select(scope: EqChannelScope) {
 		eqStore.channelScope = scope;
@@ -86,6 +84,6 @@
 		{options}
 		value={eqStore.channelScope}
 		onValueChange={select}
-		disabled={locked || linked}
+		disabled={locked}
 	/>
 </div>

@@ -1,9 +1,13 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import * as m from '#lib/paraglide/messages.js';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { track } from '#lib/utils/track.js';
 	import { linkService } from '#lib/services/link-service.svelte.js';
 	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+	import { reviewChanges } from '#lib/device-peq/link.js';
 	import type { PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
 	import Dialog from '../atoms/Dialog.svelte';
@@ -26,11 +30,21 @@
 	const review = $derived(
 		devicePeqStore.connection?.connectionType === 'link' ? (linkStore.status?.review ?? null) : null
 	);
-	/** uniPEQ's plan in the shape the push dialog shows. */
+	/**
+	 * This page's band list as the review came, kept until the next review. uniPEQ numbers it by the
+	 * list it planned, and keeps it while its list moves (it plans again on the answer), so the
+	 * bands in those slots now may be others.
+	 */
+	const reviewRev = $derived(review?.rev ?? null);
+	const reviewed = $derived.by(() => {
+		track(reviewRev);
+		return untrack(() => eqStore.filters);
+	});
+	/** uniPEQ's plan in the shape the push dialog shows, numbered by this page's band list. */
 	const plan = $derived<PushPlan | null>(
 		review && {
 			filters: [],
-			changes: review.changes,
+			changes: reviewChanges(review.changes, reviewed),
 			skippedChannel: 0,
 			clipRisk: review.clipRisk,
 			infeasible: review.infeasible,

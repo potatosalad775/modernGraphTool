@@ -36,8 +36,8 @@
 
 	/** A change that restarts the device, waiting for the user to confirm it. */
 	let pending = $state.raw<{ control: Control; value: number } | null>(null);
-	/** A slider's value from the drag until the device's read-back replaces it. */
-	let held = $state.raw<{ id: string; value: number } | null>(null);
+	/** A slider's value from the drag until the device's read-back replaces it (`sent`: let go). */
+	let held = $state.raw<{ id: string; value: number; sent?: true } | null>(null);
 
 	const values = $derived(devicePeqStore.controlValues);
 	const off = $derived(disabled || devicePeqStore.isBusy);
@@ -58,12 +58,15 @@
 	async function release(id: string, write: (value: number) => Promise<void>) {
 		const value = held?.id === id ? held.value : null;
 		if (value === null) return;
-		try {
-			await write(value);
-		} finally {
-			held = null;
-		}
+		held = { id, value, sent: true };
+		await write(value);
 	}
+
+	// Held until the device is done setting it. Over the link uniPEQ can answer before the status
+	// that reads the value back, which says it is still setting one until then.
+	$effect(() => {
+		if (held?.sent && !devicePeqStore.isSettingControl) held = null;
+	});
 
 	function hint(control: Control): string | undefined {
 		if (devicePeqStore.eqOffBy.includes(control)) return m.device_control_eq_off_hint();

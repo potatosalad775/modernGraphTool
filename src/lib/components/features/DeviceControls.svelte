@@ -311,7 +311,12 @@
 									label={m.info_popover_about({ topic: m.device_eq_target() })}
 									class="ml-0.5"
 								>
-									<p>{m.device_eq_target_hint()}</p>
+									<!-- uniPEQ reads the EQ picked: its list is the device's document -->
+									<p>
+										{connection.connectionType === 'link'
+											? m.device_eq_target_hint_link()
+											: m.device_eq_target_hint()}
+									</p>
 								</InfoPopover>
 							</span>
 							<!-- The segment follows the EQ the store reaches, not the press: a switch can fail. -->

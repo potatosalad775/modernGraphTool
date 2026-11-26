@@ -1216,6 +1216,21 @@ describe('linkService', () => {
 			host.emit('status', { ...IDLE, controls: { feed: 1 } });
 			expect(devicePeqStore.statusMessage).toBe(message);
 		});
+
+		it('keeps a setting’s message when uniPEQ says it is busy with it only after answering', async () => {
+			await withQudelix();
+			await devicePeqService.setControl('feed', 1);
+			const message = devicePeqStore.statusMessage;
+			expect(message).not.toBeNull();
+
+			host.emit('status', { ...IDLE, busy: 'control', controls: { feed: 1 } });
+			host.emit('status', { ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBe(message);
+
+			// Idle again, uniPEQ's own work retires it.
+			uniPEQWrites({ ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBeNull();
+		});
 	});
 
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {

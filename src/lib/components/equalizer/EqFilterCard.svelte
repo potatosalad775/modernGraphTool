@@ -155,6 +155,19 @@
 		return current + steps * stepOf(field);
 	}
 
+	/**
+	 * The decimals a field shows. A device's grid stores binary fractions (a 1/1024 Q grid keeps
+	 * 0.707 as 0.70703125), and the store keeps them exact: the uniPEQ link compares lists as they
+	 * are, so a rounded value written back would be an edit.
+	 */
+	const SHOWN_DECIMALS = { gain: 2, q: 3 } as const;
+
+	/** `value` as the field shows it, trailing zeros dropped. Frequency as it is. */
+	function shown(field: 'freq' | 'gain' | 'q', value: number | null): string {
+		if (value == null) return '';
+		return field === 'freq' ? String(value) : String(Number(value.toFixed(SHOWN_DECIMALS[field])));
+	}
+
 	/** Tooltip for a field: what's allowed, and whether the value breaks it. */
 	function fieldTitle(field: 'freq' | 'gain' | 'q', unit: string): string {
 		const allowed = domainHint(slot[field], unit);
@@ -182,8 +195,8 @@
 	const freqValueText = $derived(
 		`${filter.freq ?? Math.round(linearToLog(freqSliderValue, freqRange.min, freqRange.max))} Hz`
 	);
-	const gainValueText = $derived(`${filter.gain ?? 0} dB`);
-	const qValueText = $derived(`${filter.q ?? 1}`);
+	const gainValueText = $derived(`${shown('gain', filter.gain ?? 0)} dB`);
+	const qValueText = $derived(shown('q', filter.q ?? 1));
 
 	// ── Validation notes ─────────────────────────────────────────────────────
 
@@ -235,9 +248,9 @@
 		if (!isNaN(val)) {
 			const clamped = clampField(field, val);
 			onUpdate({ [field]: clamped });
-			input.value = String(clamped);
+			input.value = shown(field, clamped);
 		} else {
-			input.value = String(filter[field] ?? '');
+			input.value = shown(field, filter[field]);
 		}
 	}
 
@@ -272,7 +285,7 @@
 		if (revertTo !== null && revertTo !== filter[field]) {
 			onUpdate({ [field]: revertTo });
 		}
-		input.value = String(revertTo ?? filter[field] ?? '');
+		input.value = shown(field, revertTo);
 		input.blur();
 	}
 
@@ -281,7 +294,7 @@
 		const current = filter[field] ?? fallback;
 		const next = clampField(field, steppedValue(field, current, steps));
 		onUpdate({ [field]: next });
-		input.value = String(next);
+		input.value = shown(field, next);
 	}
 </script>
 
@@ -395,12 +408,12 @@
 					class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
 					title={m.eq_constraint_locked({ label: constraintLabel })}
 				>
-					{filter.gain ?? '—'}
+					{shown('gain', filter.gain) || '—'}
 				</span>
 			{:else}
 				<input
 					type="number"
-					value={filter.gain}
+					value={shown('gain', filter.gain)}
 					min={gainRange.min}
 					max={gainRange.max}
 					step={stepOf('gain')}
@@ -427,12 +440,12 @@
 						class="w-full rounded bg-base-300 px-1 py-0.5 text-right text-xs text-base-content/80 tabular-nums"
 						title={m.eq_constraint_locked({ label: constraintLabel })}
 					>
-						{filter.q ?? '—'}
+						{shown('q', filter.q) || '—'}
 					</span>
 				{:else}
 					<input
 						type="number"
-						value={filter.q}
+						value={shown('q', filter.q)}
 						min={qRange.min}
 						max={qRange.max}
 						step={stepOf('q')}
@@ -593,7 +606,7 @@
 						<label class="inline-flex items-baseline gap-1">
 							<input
 								type="number"
-								value={filter.gain}
+								value={shown('gain', filter.gain)}
 								min={gainRange.min}
 								max={gainRange.max}
 								step={stepOf('gain')}
@@ -635,7 +648,7 @@
 							<span class="text-2xs text-base-content/80 select-none">Q</span>
 							<input
 								type="number"
-								value={filter.q}
+								value={shown('q', filter.q)}
 								min={qRange.min}
 								max={qRange.max}
 								step={stepOf('q')}

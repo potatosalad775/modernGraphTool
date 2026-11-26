@@ -181,6 +181,39 @@ describe('EqFilterList', () => {
 				await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
 				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-4.8');
 			});
+
+			// uniPEQ's rule: the bands need minus their largest boost, so a single +4.8 dB band
+			// needs -4.8 dB, and a fixed preamp above that may clip.
+			const clipWarning = () => page.getByText(/may clip/);
+
+			it('warns when a fixed preamp leaves less room than the bands boost by', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, false);
+				await render(EqFilterList);
+
+				await expect
+					.element(
+						page.getByText(
+							'The bands boost more than this preamp leaves room for, so it may clip. -4.8 dB would be enough.'
+						)
+					)
+					.toBeVisible();
+			});
+
+			it('does not warn when a fixed preamp leaves enough room', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -6, false);
+				await render(EqFilterList);
+
+				await expect.element(page.getByText('-6.0 dB')).toBeVisible();
+				expect(clipWarning().elements()).toHaveLength(0);
+			});
+
+			it('does not warn under Auto', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, true);
+				await render(EqFilterList);
+
+				await expect.element(page.getByText('-3.5 dB')).toBeVisible();
+				expect(clipWarning().elements()).toHaveLength(0);
+			});
 		});
 	});
 

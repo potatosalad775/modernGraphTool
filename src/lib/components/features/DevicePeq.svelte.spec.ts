@@ -623,6 +623,88 @@ describe('DevicePeq', () => {
 			await expect.element(control).toHaveValue('off');
 		});
 
+		describe('while the device is busy', () => {
+			const readButton = () => page.getByRole('button', { name: 'Read from device' });
+			const writeButton = () => page.getByRole('button', { name: 'Write to device' });
+
+			it('keeps focus on Read while it reads, and takes no press of Read or Write meanwhile', async () => {
+				const device = await mountConnected();
+				let finish = () => {};
+				device.pull.mockImplementation(
+					() => new Promise((resolve) => (finish = () => resolve({ filters: [] })))
+				);
+				// The label reads "Reading…" meanwhile, so the button is held by its element.
+				const read = readButton().element() as HTMLButtonElement;
+				const write = writeButton().element() as HTMLButtonElement;
+				read.focus();
+
+				await userEvent.keyboard('{Enter}');
+				await vi.waitFor(() => expect(device.pull).toHaveBeenCalledOnce());
+				await vi.waitFor(() => expect(read.getAttribute('aria-disabled')).toBe('true'));
+				expect(write.getAttribute('aria-disabled')).toBe('true');
+				expect(read.disabled).toBe(false);
+				expect(write.disabled).toBe(false);
+				expect(document.activeElement).toBe(read);
+
+				await userEvent.keyboard('{Enter}');
+				write.focus();
+				await userEvent.keyboard('{Enter}');
+				expect(device.pull).toHaveBeenCalledOnce();
+				expect(device.push).not.toHaveBeenCalled();
+
+				finish();
+				await vi.waitFor(() => expect(read.getAttribute('aria-disabled')).toBeNull());
+				expect(document.activeElement).toBe(write);
+			});
+
+			it('keeps Device EQ focusable, and puts a pick made meanwhile back', async () => {
+				const device = await mountConnected();
+				const control = page.getByRole('combobox', { name: 'Device EQ' });
+				(control.element() as HTMLElement).focus();
+
+				devicePeqStore.isReading = true;
+				await expect.element(control).toHaveAttribute('aria-disabled', 'true');
+				await expect.element(control).not.toHaveAttribute('disabled');
+				expect(document.activeElement).toBe(control.element());
+
+				// Playwright won't pick an option in an `aria-disabled` dropdown; a user still can.
+				const select = control.element() as HTMLSelectElement;
+				select.value = 'p0';
+				select.dispatchEvent(new Event('change', { bubbles: true }));
+				await expect.element(control).toHaveValue('p1');
+				expect(device.setEnabled).not.toHaveBeenCalled();
+			});
+
+			it('keeps the Device EQ switch focusable, and takes no press meanwhile', async () => {
+				const device = await mountConnected({ slots: [{ id: 101, name: 'Custom' }] }, 101);
+				const toggle = page.getByRole('switch', { name: 'Device EQ' });
+				(toggle.element() as HTMLElement).focus();
+
+				devicePeqStore.isReading = true;
+				await expect.element(toggle).toHaveAttribute('aria-disabled', 'true');
+				expect(document.activeElement).toBe(toggle.element());
+
+				await userEvent.keyboard(' ');
+				await toggle.click({ force: true });
+				await expect.element(toggle).toBeChecked();
+				expect(device.setEnabled).not.toHaveBeenCalled();
+			});
+
+			it('takes no press of Review and write meanwhile', async () => {
+				const device = await mountConnected();
+				settingsStore.devicePeqAutoWrite = true;
+				devicePeqStore.autoPaused = true;
+				const review = page.getByRole('button', { name: 'Review and write' });
+				await expect.element(review).toBeVisible();
+
+				devicePeqStore.isReading = true;
+				await expect.element(review).toHaveAttribute('aria-disabled', 'true');
+				await review.click({ force: true });
+				expect(device.push).not.toHaveBeenCalled();
+				expect(page.getByRole('dialog').all()).toHaveLength(0);
+			});
+		});
+
 		describe('the Presets row', () => {
 			const PLACES = [0, 1, 2, 3, 4].map((id) => ({ id, name: `EQ ${id + 1}` }));
 			const newButton = () => page.getByRole('button', { name: 'New', exact: true });
@@ -1033,6 +1115,25 @@ describe('DevicePeq', () => {
 			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
 			await expect.element(page.getByRole('option', { name: 'Slot A' })).toBeInTheDocument();
 			expect(devicePeqStore.eq).toBeUndefined();
+		});
+
+		it('keeps the EQ row focusable while the device is busy, and switches nothing', async () => {
+			const { spk } = await mountTwoEq();
+			spk.currentSlot.mockClear();
+			const own = page.getByRole('radio', { name: 'USR EQ' });
+			const other = page.getByRole('radio', { name: 'SPK EQ' });
+			(own.element() as HTMLElement).focus();
+
+			devicePeqStore.isReading = true;
+			await expect.element(own).toHaveAttribute('aria-disabled', 'true');
+			await expect.element(other).toHaveAttribute('aria-disabled', 'true');
+			expect(document.activeElement).toBe(own.element());
+
+			await other.click({ force: true });
+			await expect.element(own).toBeChecked();
+			await expect.element(other).not.toBeChecked();
+			expect(devicePeqStore.eq).toBeUndefined();
+			expect(spk.currentSlot).not.toHaveBeenCalled();
 		});
 
 		it('holds back an EQ the device’s current mode lacks, and names it', async () => {

@@ -2805,3 +2805,78 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 		});
 	});
 });
+
+describe('devicePeqService while another operation runs', () => {
+	beforeEach(() => {
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+	afterEach(() => devicePeqStore.setDisconnected());
+
+	it('reads nothing', async () => {
+		const device = connect();
+		devicePeqStore.isSettingControl = true;
+
+		await devicePeqService.read();
+
+		expect(device.pull).not.toHaveBeenCalled();
+		expect(eqStore.filters).toEqual(FOUR);
+	});
+
+	it('plans and writes nothing', async () => {
+		const device = connect();
+		const plan = await devicePeqService.prepare();
+		expect(plan).not.toBeNull();
+		devicePeqStore.isSwitching = true;
+
+		await expect(devicePeqService.prepare()).resolves.toBeNull();
+		await expect(devicePeqService.write(plan!)).resolves.toBe(false);
+
+		expect(device.push).not.toHaveBeenCalled();
+		expect(devicePeqStore.synced).toBeNull();
+	});
+
+	it('switches nothing', async () => {
+		const device = connect({
+			slots: [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			]
+		});
+		devicePeqStore.isReading = true;
+
+		await devicePeqService.choose('p102');
+		await devicePeqService.choose('off');
+
+		expect(device.setEnabled).not.toHaveBeenCalled();
+		expect(devicePeqStore.selection).toBe(101);
+	});
+
+	it('reopens nothing while it reconnects', async () => {
+		const reopen = vi.fn(async () => fakeConnection(fakeDevice()));
+		devicePeqStore.setConnected(fakeConnection(fakeDevice(), { reopen }), 101);
+		devicePeqStore.needsReconnect = true;
+		devicePeqStore.isConnecting = true;
+
+		await devicePeqService.reconnect();
+
+		expect(reopen).not.toHaveBeenCalled();
+	});
+
+	it('sends uniPEQ no read, write, switch or reconnect', async () => {
+		const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
+		const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+		const device = new LinkPeqDevice(port, CAPS);
+		devicePeqStore.setConnected(fakeConnection(device, { connectionType: 'link' }), 101);
+		devicePeqStore.isWriting = true;
+
+		await devicePeqService.read();
+		await devicePeqService.writeLinked();
+		await devicePeqService.choose('off');
+		await devicePeqService.reconnect();
+
+		expect(command).not.toHaveBeenCalled();
+	});
+});

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import type { Control } from '@potatosalad775/eqcaps-core';
 import { balanceOf, balanceWrites } from '#lib/device-peq/controls.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
@@ -119,6 +119,14 @@ function drag(el: Element, value: number) {
 	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 const release = (el: Element) => el.dispatchEvent(new Event('change', { bubbles: true }));
+/**
+ * What picking an option does. Playwright won't pick one in an `aria-disabled` dropdown, which a
+ * user still opens and picks from.
+ */
+function pick(el: Element, value: string) {
+	(el as HTMLSelectElement).value = value;
+	el.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
 let setControl: MockInstance<typeof devicePeqService.setControl>;
 let setControls: MockInstance<typeof devicePeqService.setControls>;
@@ -465,13 +473,20 @@ describe('DeviceSettings', () => {
 			for (const widget of widgets()) await expect.element(widget).toBeDisabled();
 		});
 
-		it('turns every widget off while a setting is being written', async () => {
+		it('keeps focus on any widget while a setting is being written, and says it is unavailable', async () => {
 			connectWith(controls, values);
 			await render(DeviceSettings, { controls });
 
-			devicePeqStore.isSettingControl = true;
-
-			for (const widget of widgets()) await expect.element(widget).toBeDisabled();
+			for (const widget of widgets()) {
+				const el = widget.element() as HTMLElement;
+				el.focus();
+				devicePeqStore.isSettingControl = true;
+				await expect.element(widget).toHaveAttribute('aria-disabled', 'true');
+				await expect.element(widget).not.toHaveAttribute('disabled');
+				expect(document.activeElement).toBe(el);
+				devicePeqStore.isSettingControl = false;
+				await expect.element(widget).not.toHaveAttribute('aria-disabled', 'true');
+			}
 		});
 
 		it('turns the balance slider off too', async () => {
@@ -479,6 +494,160 @@ describe('DeviceSettings', () => {
 			await render(DeviceSettings, { controls: [LEFT, RIGHT], disabled: true });
 
 			await expect.element(page.getByRole('slider', { name: /Balance/ })).toBeDisabled();
+		});
+	});
+
+	describe('while the device is busy', () => {
+		/**
+		 * Each write keeps the device busy until the returned `finish` lets it end, as a linked
+		 * device's answer does, and the device then reads back what it was asked for.
+		 */
+		function slowWrites() {
+			const pending: (() => void)[] = [];
+			setControl.mockImplementation((id, value) => {
+				devicePeqStore.isSettingControl = true;
+				return new Promise<void>((resolve) =>
+					pending.push(() => {
+						devicePeqStore.controlValues = { ...devicePeqStore.controlValues, [id]: value };
+						devicePeqStore.isSettingControl = false;
+						resolve();
+					})
+				);
+			});
+			return () => pending.shift()?.();
+		}
+
+		it('takes three steps of a slider’s arrow key and writes where it ends, keeping focus', async () => {
+			connectWith([VOLUME], { vol: 0 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const finish = slowWrites();
+			const slider = page.getByRole('slider', { name: /Volume/ });
+			const el = slider.element() as HTMLInputElement;
+			el.focus();
+
+			await userEvent.keyboard('{ArrowRight}{ArrowRight}{ArrowRight}');
+
+			await expect.element(slider).toHaveValue('3');
+			expect(document.activeElement).toBe(el);
+			await expect.element(slider).toHaveAttribute('aria-disabled', 'true');
+			expect(setControl).toHaveBeenCalledExactlyOnceWith('vol', 1);
+
+			finish();
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledTimes(2));
+			expect(setControl).toHaveBeenLastCalledWith('vol', 3);
+			await expect.element(slider).toHaveValue('3');
+
+			finish();
+			await expect.element(slider).not.toHaveAttribute('aria-disabled', 'true');
+			await expect.element(slider).toHaveValue('3');
+			expect(devicePeqStore.controlValues).toEqual({ vol: 3 });
+			expect(document.activeElement).toBe(el);
+			expect(setControl).toHaveBeenCalledTimes(2);
+		});
+
+		it('writes a slider let go during another operation once the device is free', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ });
+			devicePeqStore.isReading = true;
+
+			drag(slider.element(), 30);
+			release(slider.element());
+			await expect.element(slider).toHaveValue('30');
+			expect(setControl).not.toHaveBeenCalled();
+
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledExactlyOnceWith('vol', 30));
+		});
+
+		it('writes each slider let go meanwhile, not only the last one moved', async () => {
+			const controls = [VOLUME, LEFT, RIGHT];
+			connectWith(controls, { vol: 25, l: 0, r: 0 });
+			await render(DeviceSettings, { controls });
+			const volume = page.getByRole('slider', { name: /Volume/ }).element();
+			const balance = page.getByRole('slider', { name: /Balance/ }).element();
+			devicePeqStore.isReading = true;
+
+			drag(volume, 30);
+			release(volume);
+			drag(balance, -6);
+			release(balance);
+			expect(setControl).not.toHaveBeenCalled();
+			expect(setControls).not.toHaveBeenCalled();
+
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledExactlyOnceWith('vol', 30));
+			await vi.waitFor(() => expect(setControls).toHaveBeenCalledExactlyOnceWith([['r', -6]]));
+		});
+
+		it('keeps focus on a switch pressed, and writes nothing for a press meanwhile', async () => {
+			connectWith([CROSSFEED], { cf: 0 });
+			await render(DeviceSettings, { controls: [CROSSFEED] });
+			const finish = slowWrites();
+			const sw = page.getByRole('switch', { name: 'Crossfeed' });
+			(sw.element() as HTMLElement).focus();
+
+			await userEvent.keyboard(' ');
+			expect(setControl).toHaveBeenCalledExactlyOnceWith('cf', 1);
+			await expect.element(sw).toHaveAttribute('aria-disabled', 'true');
+			expect(document.activeElement).toBe(sw.element());
+
+			await userEvent.keyboard(' ');
+			await sw.click({ force: true });
+			expect(setControl).toHaveBeenCalledOnce();
+			await expect.element(sw).toHaveAttribute('aria-checked', 'false');
+
+			finish();
+			await expect.element(sw).toHaveAttribute('aria-checked', 'true');
+			expect(document.activeElement).toBe(sw.element());
+		});
+
+		it('keeps focus on a segment pressed, and writes nothing for a pick meanwhile', async () => {
+			connectWith([HEADROOM], { hr: 0 });
+			await render(DeviceSettings, { controls: [HEADROOM] });
+			const finish = slowWrites();
+			const six = page.getByRole('radio', { name: '-6', exact: true });
+			const twelve = page.getByRole('radio', { name: '-12', exact: true });
+			(six.element() as HTMLElement).focus();
+
+			await userEvent.keyboard(' ');
+			expect(setControl).toHaveBeenCalledExactlyOnceWith('hr', -6);
+			await expect.element(six).toHaveAttribute('aria-disabled', 'true');
+			expect(document.activeElement).toBe(six.element());
+
+			await twelve.click({ force: true });
+			expect(setControl).toHaveBeenCalledOnce();
+			await expect.element(page.getByRole('radio', { name: '0', exact: true })).toBeChecked();
+
+			finish();
+			await expect.element(six).toBeChecked();
+			await expect.element(twelve).not.toBeChecked();
+		});
+
+		it('puts a dropdown picked meanwhile back on what the device holds, and writes nothing', async () => {
+			connectWith([DAC], { dac: 1 });
+			await render(DeviceSettings, { controls: [DAC] });
+			const select = page.getByRole('combobox', { name: /DAC filter/ });
+			devicePeqStore.isReading = true;
+			await expect.element(select).toHaveAttribute('aria-disabled', 'true');
+
+			pick(select.element(), '2');
+
+			await vi.waitFor(() => expect((select.element() as HTMLSelectElement).value).toBe('1'));
+			expect(setControl).not.toHaveBeenCalled();
+		});
+
+		it('asks nothing for a setting that restarts the device', async () => {
+			connectWith([USB], { usb: 0 });
+			await render(DeviceSettings, { controls: [USB] });
+			const select = page.getByRole('combobox', { name: /USB mode/ });
+			devicePeqStore.isReading = true;
+			await expect.element(select).toHaveAttribute('aria-disabled', 'true');
+
+			pick(select.element(), '1');
+
+			await vi.waitFor(() => expect((select.element() as HTMLSelectElement).value).toBe('0'));
+			expect(page.getByRole('dialog').all()).toHaveLength(0);
 		});
 	});
 

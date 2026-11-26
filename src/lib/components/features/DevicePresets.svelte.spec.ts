@@ -169,16 +169,32 @@ describe('DevicePresets', () => {
 			await expect.element(newButton()).toBeEnabled();
 		});
 
-		it('turns all three off while another operation runs', async () => {
+		it('keeps all three focusable while another operation runs, and takes no press', async () => {
 			await mount();
+			const focused = newButton().element() as HTMLElement;
+			focused.focus();
 			devicePeqStore.isReading = true;
 
-			await expect.element(newButton()).toBeDisabled();
-			await expect.element(renameButton()).toBeDisabled();
-			await expect.element(deleteButton()).toBeDisabled();
+			for (const button of [newButton(), renameButton(), deleteButton()]) {
+				await expect.element(button).toHaveAttribute('aria-disabled', 'true');
+				await expect.element(button).not.toHaveAttribute('disabled');
+			}
+			expect(document.activeElement).toBe(focused);
+
+			await userEvent.keyboard('{Enter}');
+			await renameButton().click({ force: true });
+			await deleteButton().click({ force: true });
+			expect(create).not.toHaveBeenCalled();
+			expect(page.getByRole('dialog').all()).toHaveLength(0);
 
 			devicePeqStore.isReading = false;
-			await expect.element(newButton()).toBeEnabled();
+			await expect.element(newButton()).not.toHaveAttribute('aria-disabled', 'true');
+		});
+
+		it('keeps New off, not merely unavailable, when the device has no room', async () => {
+			await mount({ held: PLACES.map((p) => p.name) });
+			devicePeqStore.isReading = true;
+			await expect.element(newButton()).toBeDisabled();
 		});
 
 		it('adds a preset with New', async () => {
@@ -288,6 +304,26 @@ describe('DevicePresets', () => {
 			await open();
 			expect(page.getByRole('alert').all()).toHaveLength(0);
 			await expect.element(nameField()).toHaveAttribute('aria-invalid', 'false');
+		});
+
+		it('keeps the name field focused while the device is busy, and Enter renames nothing', async () => {
+			await open();
+			await nameField().fill('Metal');
+			const field = nameField().element();
+			expect(document.activeElement).toBe(field);
+
+			devicePeqStore.isReading = true;
+			await expect.element(confirm()).toHaveAttribute('aria-disabled', 'true');
+			expect(document.activeElement).toBe(field);
+			await userEvent.keyboard('{Enter}');
+			await confirm().click({ force: true });
+			expect(rename).not.toHaveBeenCalled();
+			await expect.element(dialog()).toBeInTheDocument();
+
+			devicePeqStore.isReading = false;
+			await expect.element(confirm()).not.toHaveAttribute('aria-disabled', 'true');
+			await confirm().click();
+			await vi.waitFor(() => expect(rename).toHaveBeenCalledExactlyOnceWith(1, 'Metal'));
 		});
 
 		it('cannot be confirmed with an empty name', async () => {

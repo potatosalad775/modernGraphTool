@@ -40,10 +40,20 @@
 		return Math.min(1000, Math.max(0, Math.round(((Math.log10(hz) - lo) / span) * 1000)));
 	}
 
+	// A whole Hz is wider than one slider step (0.69%) below about 145 Hz, so the low end keeps
+	// one decimal, shown even when it is .0 so the readout doesn't change width mid-drag.
+	const DECIMAL_BELOW_HZ = 150;
+
 	function toneSliderHz(pos: number, min: number, max: number): number {
 		const lo = Math.log10(min);
-		return Math.round(Math.pow(10, lo + (pos / 1000) * (Math.log10(max) - lo)));
+		const hz = Math.pow(10, lo + (pos / 1000) * (Math.log10(max) - lo));
+		return hz < DECIMAL_BELOW_HZ ? Math.round(hz * 10) / 10 : Math.round(hz);
 	}
+
+	const toneHzText = $derived.by(() => {
+		const hz = audioPlayerService.toneFreq;
+		return `${hz < DECIMAL_BELOW_HZ ? hz.toFixed(1) : hz} Hz`;
+	});
 
 	function formatTime(seconds: number): string {
 		const min = Math.floor(seconds / 60);
@@ -202,7 +212,7 @@
 		<div class="flex flex-col gap-1">
 			<span class="text-xs text-base-content/80">
 				{m.equalizer_player_tone_freq_label()}<span class="font-medium">
-					{audioPlayerService.toneFreq} Hz
+					{toneHzText}
 				</span>
 			</span>
 			<input
@@ -211,7 +221,7 @@
 				max="1000"
 				step="1"
 				aria-label={m.equalizer_player_tone_slider_label()}
-				aria-valuetext="{audioPlayerService.toneFreq} Hz"
+				aria-valuetext={toneHzText}
 				value={toneSliderPos(audioPlayerService.toneFreq, bandMinHz, bandMaxHz)}
 				oninput={(e) =>
 					audioPlayerService.setToneFreq(

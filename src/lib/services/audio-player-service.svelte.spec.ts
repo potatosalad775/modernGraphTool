@@ -40,6 +40,9 @@ class FakeParam {
 	exponentialRampToValueAtTime(v: number): void {
 		this.value = v;
 	}
+	setTargetAtTime(v: number): void {
+		this.value = v;
+	}
 }
 
 class FakeNode {
@@ -892,6 +895,40 @@ describe('AudioPlayerService', () => {
 			expect(osc?.frequency.value).toBe(audioPlayerService.toneFreq);
 		});
 
+		it('glides the tone up to an octave and jumps further than that', () => {
+			audioPlayerService.setAudioSource('tone');
+			audioPlayerService.setToneFreq(1000);
+			settle();
+			audioPlayerService.play();
+			settle();
+			const f = ctx.nodes.find((n) => n.kind === 'oscillator')!.frequency;
+			const cancel = vi.spyOn(f, 'cancelScheduledValues');
+			const glide = vi.spyOn(f, 'setTargetAtTime');
+			const jump = vi.spyOn(f, 'setValueAtTime');
+
+			audioPlayerService.setToneFreq(1500);
+			expect(glide).toHaveBeenCalledWith(1500, expect.any(Number), expect.any(Number));
+			expect(cancel.mock.invocationCallOrder[0]).toBeLessThan(glide.mock.invocationCallOrder[0]);
+			expect(jump).not.toHaveBeenCalled();
+
+			// A glide in Hz would trail about 0.3 s on its way down to 20 Hz.
+			audioPlayerService.setToneFreq(20);
+			expect(jump).toHaveBeenCalledWith(20, expect.any(Number));
+			expect(glide).toHaveBeenCalledTimes(1);
+		});
+
+		it('leaves a playing sweep alone when the tone frequency is set', () => {
+			audioPlayerService.setAudioSource('sweep');
+			settle();
+			audioPlayerService.play();
+			settle();
+			const f = ctx.nodes.find((n) => n.kind === 'oscillator')!.frequency;
+			const cancel = vi.spyOn(f, 'cancelScheduledValues');
+
+			audioPlayerService.setToneFreq(500);
+			expect(cancel).not.toHaveBeenCalled();
+		});
+
 		it('routes a sweep through a fade stage so the loop wraparound does not pop', () => {
 			audioPlayerService.setAudioSource('sweep');
 			settle();
@@ -1022,6 +1059,10 @@ describe('AudioPlayerService', () => {
 			audioPlayerService.setToneFreq(250);
 			settle();
 			expect(mediaSession.metadata?.title).toBe('Tone Generator · 250 Hz');
+
+			audioPlayerService.setToneFreq(39.9);
+			settle();
+			expect(mediaSession.metadata?.title).toBe('Tone Generator · 39.9 Hz');
 		});
 
 		it('gives a file a timeline and seeks from the OS scrubber', async () => {

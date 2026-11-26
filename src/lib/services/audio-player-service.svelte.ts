@@ -14,6 +14,10 @@ import { volumeWarning } from './volume-warning.svelte.js';
 import { MediaSessionBridge } from './media-session.js';
 import * as m from '#lib/paraglide/messages.js';
 
+// A new tone frequency is approached with this time constant and settles in about three of them.
+// A slow drag sends one value per pixel, and an instant jump per pixel sounds like a staircase.
+const TONE_GLIDE_SEC = 0.03;
+
 const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 	PK: 'peaking',
 	LSQ: 'lowshelf',
@@ -26,7 +30,7 @@ const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 };
 
 function formatHz(hz: number): string {
-	return hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${Math.round(hz)} Hz`;
+	return hz >= 1000 ? `${+(hz / 1000).toFixed(1)} kHz` : `${+hz.toFixed(1)} Hz`;
 }
 
 export type AudioSource = '' | 'white' | 'pink' | 'tone' | 'sweep' | 'file';
@@ -450,10 +454,16 @@ class AudioPlayerService {
 	}
 
 	#assignToneFreq(hz: number): void {
+		const from = this.#toneFreq;
 		this.#toneFreq = hz;
-		if (this.#oscillatorNode && this.#isPlaying) {
-			this.#oscillatorNode.frequency.value = hz;
-		}
+		const ctx = this.#audioContext;
+		if (!ctx || !this.#oscillatorNode || !this.#isPlaying || this.#audioSource !== 'tone') return;
+		const f = this.#oscillatorNode.frequency;
+		f.cancelScheduledValues(ctx.currentTime);
+		// The glide eases in Hz, not in pitch: more than an octave down it trails for a third of a
+		// second. A move that far (a click on the track, Home, End) jumps instead.
+		if (Math.abs(Math.log2(hz / from)) > 1) f.setValueAtTime(hz, ctx.currentTime);
+		else f.setTargetAtTime(hz, ctx.currentTime, TONE_GLIDE_SEC);
 	}
 
 	/** Pull the tone back inside the band after the range itself moved. */

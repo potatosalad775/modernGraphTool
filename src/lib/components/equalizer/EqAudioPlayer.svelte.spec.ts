@@ -182,6 +182,26 @@ describe('EqAudioPlayer', () => {
 			);
 		});
 
+		it('keeps one decimal below 150 Hz, where a whole Hz is wider than a slider step', async () => {
+			// 291/1000 of three decades above 20 Hz is 149.29 Hz, 292/1000 is 150.32 Hz.
+			await toneSlider().fill('291');
+			expect(audioPlayerService.toneFreq).toBe(149.3);
+			await toneSlider().fill('292');
+			expect(audioPlayerService.toneFreq).toBe(150);
+
+			// Rounded, each position still maps back to itself: the thumb stays where it was put.
+			for (const pos of [235, 238, 277, 291, 292]) {
+				await toneSlider().fill(String(pos));
+				await vi.waitFor(() => expect(sliderValue(toneSlider())).toBe(pos));
+			}
+		});
+
+		it('shows the decimal below 150 Hz even when it is .0', async () => {
+			audioPlayerService.setToneFreq(40);
+			await expect.element(toneSlider()).toHaveAttribute('aria-valuetext', '40.0 Hz');
+			await expect.element(page.getByText('40.0 Hz')).toBeInTheDocument();
+		});
+
 		it('remaps its travel across the selected band in frequency-selection mode', async () => {
 			audioRangeStore.isFrequencySelectionMode = true;
 			audioRangeStore.setRange(1000, 4000);

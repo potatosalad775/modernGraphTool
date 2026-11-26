@@ -86,11 +86,12 @@
 	// ones that change nothing, and drop a toast that is still owed.
 	$effect(() => () => clearTimeout(preampToastTimer));
 
+	/** Says the preamp dropped, unless it is uniPEQ's fixed one: nothing reduced that. */
 	function announcePreamp() {
 		const before = preampBeforeEdits;
 		preampBeforeEdits = null;
 		const now = eqStore.preamp;
-		if (before !== null && now < before - 0.05 && !onCompareEntry()) {
+		if (before !== null && now < before - 0.05 && !preampFixed && !onCompareEntry()) {
 			toast.info(m.eq_preamp_auto_reduced({ value: now.toFixed(1) }));
 		}
 	}

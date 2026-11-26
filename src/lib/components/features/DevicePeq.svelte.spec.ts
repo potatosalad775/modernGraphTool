@@ -633,7 +633,6 @@ describe('DevicePeq', () => {
 				device.pull.mockImplementation(
 					() => new Promise((resolve) => (finish = () => resolve({ filters: [] })))
 				);
-				// The label reads "Reading…" meanwhile, so the button is held by its element.
 				const read = readButton().element() as HTMLButtonElement;
 				const write = writeButton().element() as HTMLButtonElement;
 				read.focus();

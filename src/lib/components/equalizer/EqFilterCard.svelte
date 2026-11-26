@@ -156,13 +156,12 @@
 	}
 
 	/**
-	 * The decimals a field shows. A device's grid stores binary fractions (a 1/1024 Q grid keeps
-	 * 0.707 as 0.70703125), and the store keeps them exact: the uniPEQ link compares lists as they
-	 * are, so a rounded value written back would be an edit.
+	 * A device's grid stores binary fractions (a 1/1024 Q grid keeps 0.707 as 0.70703125), and the
+	 * store keeps them exact: the uniPEQ link compares lists as they are, so a rounded value written
+	 * back would be an edit.
 	 */
 	const SHOWN_DECIMALS = { gain: 2, q: 3 } as const;
 
-	/** `value` as the field shows it, trailing zeros dropped. Frequency as it is. */
 	function shown(field: 'freq' | 'gain' | 'q', value: number | null): string {
 		if (value == null) return '';
 		return field === 'freq' ? String(value) : String(Number(value.toFixed(SHOWN_DECIMALS[field])));

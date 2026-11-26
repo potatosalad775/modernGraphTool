@@ -11,8 +11,7 @@
 	 *
 	 * A single toggle group lets a second press on the selected item clear the
 	 * value to `''`. A segmented control always holds one, so the setter drops
-	 * the empty value and the getter keeps handing back the current one. While
-	 * `blocked` it drops every value the same way.
+	 * the empty value and the getter keeps handing back the current one.
 	 */
 	let {
 		value = $bindable(),

@@ -1131,7 +1131,6 @@ describe('linkService', () => {
 	});
 
 	describe('retiring this page’s last message once uniPEQ starts device work', () => {
-		/** A Qudelix as uniPEQ views it: two EQs by name (protocol 1.4) and a crossfeed setting. */
 		const QUDELIX = {
 			...DEVICE,
 			eq: null,

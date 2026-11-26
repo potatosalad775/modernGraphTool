@@ -41,10 +41,7 @@ function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
 }
 
-/**
- * uniPEQ's EQ arriving over the link: its bands, and its preamp, Auto or fixed. `filters` is
- * read back from the store, as the link service does: the store holds a proxy of the array.
- */
+/** `filters` is read back from the store, as the link service does: the store holds a proxy. */
 function fromUnipeq(filters: EQFilter[], preamp: number, auto: boolean) {
 	eqStore.filters = filters;
 	eqStore.linkedPreamp = { preamp, auto, filters: eqStore.filters };
@@ -146,7 +143,6 @@ describe('EqFilterList', () => {
 
 		describe('while linked with uniPEQ', () => {
 			it('stays quiet when a fixed preamp lowers it', async () => {
-				// A device EQ whose preamp is set by hand: nothing was reduced automatically.
 				fromUnipeq([makeFilter()], 0, true);
 				vi.mocked(toast.info).mockClear();
 				await render(EqFilterList);
@@ -182,8 +178,6 @@ describe('EqFilterList', () => {
 				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-4.8');
 			});
 
-			// uniPEQ's rule: the bands need minus their largest boost, so a single +4.8 dB band
-			// needs -4.8 dB, and a fixed preamp above that may clip.
 			const clipWarning = () => page.getByText(/may clip/);
 
 			it('warns when a fixed preamp leaves less room than the bands boost by', async () => {

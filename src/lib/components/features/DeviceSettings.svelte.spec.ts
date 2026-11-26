@@ -119,10 +119,7 @@ function drag(el: Element, value: number) {
 	input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 const release = (el: Element) => el.dispatchEvent(new Event('change', { bubbles: true }));
-/**
- * What picking an option does. Playwright won't pick one in an `aria-disabled` dropdown, which a
- * user still opens and picks from.
- */
+/** Playwright won't pick an option in an `aria-disabled` dropdown, which a user still can. */
 function pick(el: Element, value: string) {
 	(el as HTMLSelectElement).value = value;
 	el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -498,10 +495,6 @@ describe('DeviceSettings', () => {
 	});
 
 	describe('while the device is busy', () => {
-		/**
-		 * Each write keeps the device busy until the returned `finish` lets it end, as a linked
-		 * device's answer does, and the device then reads back what it was asked for.
-		 */
 		function slowWrites() {
 			const pending: (() => void)[] = [];
 			setControl.mockImplementation((id, value) => {

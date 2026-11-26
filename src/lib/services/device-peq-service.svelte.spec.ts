@@ -232,8 +232,6 @@ describe('devicePeqService auto-write', () => {
 		devicePeqService.setAutoWrite(true);
 		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 
-		// Three bands leave a slot empty, so the plan reads the device's layout first; a setting
-		// let go meanwhile starts as that read ends.
 		device.pull.mockImplementationOnce(async () => {
 			devicePeqStore.isSettingControl = true;
 			return { filters: [] };

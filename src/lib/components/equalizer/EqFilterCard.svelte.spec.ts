@@ -541,12 +541,8 @@ describe('EqFilterCard', () => {
 		});
 	});
 
-	// ── Values read from a device ────────────────────────────────────────────
-
 	describe('a device’s binary values', () => {
-		// A Qudelix stores Q on a 1/1024 grid and many devices gain on a 1/256 dB one, so a
-		// band read back carries every binary digit. The boxes show gain to 2 decimals and Q
-		// to 3; the store keeps the exact value, which the uniPEQ link compares exactly.
+		// A Qudelix stores Q on a 1/1024 grid and many devices gain on a 1/256 dB one.
 		const device = pk({ gain: -1.50390625, q: 0.70703125 });
 		const boxes = (name: string) =>
 			page

@@ -1042,7 +1042,6 @@ class DevicePeqService {
 			return;
 		}
 		this.#running = true;
-		// A read, a switch, a setting or a button write is under way: try again after it.
 		const retryIfBusy = () => {
 			if (!devicePeqStore.isBusy) return false;
 			this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
@@ -1068,7 +1067,6 @@ class DevicePeqService {
 					devicePeqStore.autoPaused = true;
 					continue;
 				}
-				// Reading the layout for the plan can end with another operation starting.
 				if (retryIfBusy()) return;
 				if (!(await this.write(plan, true))) return;
 			} while (this.#queued !== seen);

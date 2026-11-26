@@ -123,7 +123,7 @@
 		)
 	);
 
-	/** A press while blocked does nothing; preventing it also cancels a submit button's form. */
+	/** `preventDefault`, not a no-op: it also stops a submit button sending its form. */
 	const own = $derived(
 		blocked ? { ...restProps, onclick: (e: MouseEvent) => e.preventDefault() } : restProps
 	);

@@ -66,9 +66,7 @@
 	const preamp = $derived(eqStore.preamp);
 	/** Linked, with uniPEQ's preamp fixed rather than Auto. */
 	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);
-	/** What the bands need to stay clear of clipping: Auto's value. */
 	const neededPreamp = $derived(derivePreamp(eqStore.filters));
-	/** A fixed preamp with less headroom than the bands boost by (uniPEQ's rule). Auto can't clip. */
 	const preampClips = $derived(preampFixed && preamp > neededPreamp + 0.05);
 
 	function useAutoPreamp() {
@@ -100,7 +98,6 @@
 	// ones that change nothing, and drop a toast that is still owed.
 	$effect(() => () => clearTimeout(preampToastTimer));
 
-	/** Says the preamp dropped, unless it is uniPEQ's fixed one: nothing reduced that. */
 	function announcePreamp() {
 		const before = preampBeforeEdits;
 		preampBeforeEdits = null;

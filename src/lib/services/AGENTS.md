@@ -212,8 +212,8 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   they did arrives in a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
 - **The last message this page set goes when uniPEQ starts device work** (`status.busy` from null
   to a kind, in `#status`). uniPEQ's Read, Write and switches set none here, so a refused EQ pick's
-  error, or a setting's message shown as the in-sync line, outlived the work that followed it; a
-  failure uniPEQ still reports stays until uniPEQ clears it.
+  error, or a setting's message shown as the in-sync line, would outlive the work that follows it;
+  a failure uniPEQ still reports stays until uniPEQ clears it.
 - **For a link connection, link-service is the only writer of the five busy flags** (`#busy`). A
   flag is on while uniPEQ's last `status.busy` names it, or while a command of that kind from this
   page still awaits its answer (`COMMAND_FLAG`; `#port` wraps the `LinkPort` Hardware EQ's device

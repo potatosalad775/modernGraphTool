@@ -40,17 +40,13 @@
 
 	/** A change that restarts the device, waiting for the user to confirm it. */
 	let pending = $state.raw<{ control: Control; value: number } | null>(null);
-	/**
-	 * A slider's value, by slider, from the drag until the device's read-back replaces it. `send`:
-	 * let go, and written once the device is free (the last value let go wins). `sent`: written.
-	 */
-	const held = new SvelteMap<
-		string,
-		{ value: number; send?: (value: number) => Promise<void>; sent?: true }
-	>();
+	type Held =
+		| { phase: 'moving'; value: number }
+		| { phase: 'queued'; value: number; write: (value: number) => Promise<void> }
+		| { phase: 'sent'; value: number };
+	const held = new SvelteMap<string, Held>();
 
 	const values = $derived(devicePeqStore.controlValues);
-	/** An operation is under way: every row keeps focus, says it is unavailable and takes no change. */
 	const busy = $derived(devicePeqStore.isBusy);
 	/** A label dims with its control, but not for the moment an operation takes. */
 	const dim = $derived(disabled ? 'opacity-60' : '');
@@ -65,16 +61,17 @@
 		else await devicePeqService.setControl(control.id, value);
 	}
 
-	// What a slider was let go on is written once the device is free, one at a time: each write
-	// makes it busy. Then it is held until the device is done setting it: over the link uniPEQ can
-	// answer before the status that reads the value back, which says it is still setting one.
+	// Held until the device is done setting it: over the link uniPEQ can answer before the status
+	// that reads the value back, which says it is still setting one.
 	$effect(() => {
-		for (const [id, { value, send, sent }] of held) {
-			if (sent) {
+		for (const [id, h] of held) {
+			if (h.phase === 'sent') {
 				if (!devicePeqStore.isSettingControl) held.delete(id);
-			} else if (send && !devicePeqStore.isBusy) {
-				held.set(id, { value, sent: true });
-				untrack(() => void send(value));
+			} else if (h.phase === 'queued' && !devicePeqStore.isBusy) {
+				held.set(id, { phase: 'sent', value: h.value });
+				untrack(() => void h.write(h.value));
+				// One write at a time: the next waits until this one is done.
+				break;
 			}
 		}
 	});
@@ -120,14 +117,15 @@
 				aria-valuetext={text(value)}
 				oninput={(e) => {
 					const next = e.currentTarget.valueAsNumber;
-					// Back on the device's value with nothing under way: a drag let go where it began
-					// fires no `change`. A value let go and not yet written is written from here.
+					const was = held.get(id);
+					// A drag let go where it began fires no `change`.
 					if (next === device && !busy) held.delete(id);
-					else held.set(id, { value: next, send: held.get(id)?.send });
+					else if (was?.phase === 'queued') held.set(id, { ...was, value: next });
+					else held.set(id, { phase: 'moving', value: next });
 				}}
 				onchange={() => {
-					const moved = held.get(id);
-					if (moved) held.set(id, { value: moved.value, send: write });
+					const was = held.get(id);
+					if (was) held.set(id, { phase: 'queued', value: was.value, write });
 				}}
 				class={sliderClass}
 			/>

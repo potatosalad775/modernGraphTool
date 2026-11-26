@@ -226,6 +226,27 @@ describe('devicePeqService auto-write', () => {
 		settingsStore.setDevicePeqAutoWrite(true);
 		expect(devicePeqService.autoWriting).toBe(false);
 	});
+
+	it('writes an edit after an operation that starts while its plan reads the layout', async () => {
+		const device = connect();
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+
+		// Three bands leave a slot empty, so the plan reads the device's layout first; a setting
+		// let go meanwhile starts as that read ends.
+		device.pull.mockImplementationOnce(async () => {
+			devicePeqStore.isSettingControl = true;
+			return { filters: [] };
+		});
+		await edit(FOUR.slice(0, 3));
+		await vi.waitFor(() => expect(device.pull).toHaveBeenCalledTimes(1));
+		expect(device.push).toHaveBeenCalledTimes(1);
+
+		devicePeqStore.isSettingControl = false;
+		await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+		expect(device.push).toHaveBeenCalledTimes(2);
+		expect(devicePeqStore.inSync).toBe(true);
+	});
 });
 
 describe('devicePeqService on a device that can be on no preset', () => {

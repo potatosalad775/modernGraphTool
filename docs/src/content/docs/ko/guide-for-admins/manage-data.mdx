@@ -384,10 +384,11 @@ sample set이 표시됩니다. 항목을 하나 더 늘리는 대신 특정 이�
 싶다면, 해당 variant의 `file`을 그 이어팁의 파일 이름으로 지정하면 제자리에서
 보강됩니다.
 
-**`variants`가 `file`의 모든 측정을 가리키면 variant 선택 목록은 `variants`의 순서를
-따릅니다.** phone_book.json Editor가 내보내는 형태가 이것입니다. `variants`가 일부만
-가리키면 목록은 `file`의 순서로 시작하고, 그 파일 중 하나를 가리키는 `variants` 항목은
-제자리에서 보강하며, 나머지 항목은 뒤에 추가됩니다. 첫 번째 variant가 phone의 기본
+**`variants`가 그 밖에서 선언된 phone의 측정을 모두 가리키면 variant 선택 목록은
+`variants`의 순서를 따릅니다.** 여기서 측정은 `file`의 각 항목과 `hptfs`의 각 항목(첫
+번째 파일로 가리킴)입니다. phone_book.json Editor가 내보내는 형태가 이것입니다.
+`variants`가 일부만 가리키면 목록은 `file`, 이어서 `hptfs`의 순서로 시작하고, 그 측정
+중 하나를 가리키는 `variants` 항목은 제자리에서 보강하며, 나머지 항목은 뒤에 추가됩니다. 첫 번째 variant가 phone의 기본
 곡선이지만 squig.link 검색과 CrinGraph는 항상 `file`의 첫 번째 항목을 열므로, 그
 항목을 첫 번째 variant와 같게 맞추세요(`samples.files`로만 선언한 세트라면 세트의 첫
 번째 파일). 모든 측정을 가리키는 `variants` 목록이 `file`과 다른 측정으로 시작하면
@@ -506,7 +507,7 @@ variant도 오류 없이 로드됩니다.
 variant 2개와 `hptfs` 항목 2개가 있으면 variant 선택기에 4개 항목이 표시됩니다.
 예외는 위에서 설명한 제자리 보강뿐입니다. 이미 선언된 `file`을 가리키는 `variants`
 항목은 새 항목을 만들지 않고 그 variant를 보강합니다. (또한 `variants`가 `file`의 모든
-측정을 가리키면 그 순서도 `variants`가 정합니다.)
+측정과 모든 `hptfs` 항목을 가리키면 그 순서도 `variants`가 정합니다.)
 :::
 
 :::tip[CrinGraph와 함께 호스팅하기]

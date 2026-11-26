@@ -822,6 +822,14 @@ describe('MetadataParser', () => {
 				expect(warnSpy).toHaveBeenCalledTimes(2);
 			});
 
+			it('treats a file that is neither a string nor an array as missing', async () => {
+				const result = await parse(
+					book({ name: ['X'], file: 42, variants: [{ suffix: 'A', file: 'X A' }] })
+				);
+				expect(warnSpy.mock.calls[0][0]).toContain('without a phone-level "file"');
+				expect(result[0].phones[0].files.map((f) => f.suffix)).toContain('A');
+			});
+
 			it('does not warn when the phone has both file and variants[]', async () => {
 				await parse(
 					book({ name: ['X'], file: ['X A'], variants: [{ suffix: 'A', file: 'X A', samples: 3 }] })

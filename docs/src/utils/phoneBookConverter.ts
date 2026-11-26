@@ -333,6 +333,7 @@ function parsePhone(
 	});
 
 	const baseName = extractBaseName(p.name);
+	const where = `${brandLabel}" phone "${baseName || phoneIdx}"`;
 
 	// Anything that needs `variants[]` to say: the explicit form, or one of the
 	// two pre-unification sample forms. The phone-level keys compose with
@@ -340,7 +341,6 @@ function parsePhone(
 	const explicit = Array.isArray(p.variants) ? p.variants : [];
 	const hptfs = Array.isArray(p.hptfs) ? p.hptfs : [];
 	if (explicit.length > 0 || hptfs.length > 0 || typeof p.samples === 'number') {
-		const where = `${brandLabel}" phone "${baseName || phoneIdx}"`;
 		const legacy = [
 			...fileSuffixPairs(p).map(({ file, suffix }): VariantEntry => ({
 				suffix,
@@ -352,10 +352,14 @@ function parsePhone(
 			})),
 			...hptfs.map((raw, i) => parseHptf(raw, `${where}: hptfs[${i}]`, warnings))
 		];
-		const variants = mergeVariants(
-			legacy,
-			explicit.map((raw, i) => parseVariant(raw, `${where} variants[${i}]`, warnings)),
-			baseName
+		const variants = uniqueSuffixes(
+			mergeVariants(
+				legacy,
+				explicit.map((raw, i) => parseVariant(raw, `${where} variants[${i}]`, warnings)),
+				baseName
+			),
+			where,
+			warnings
 		);
 		return withShared({
 			id: makeId('phone'),
@@ -385,13 +389,7 @@ function parsePhone(
 
 	// file as array → variations
 	if (Array.isArray(p.file)) {
-		const files = p.file.map(String);
-		const suffixes = Array.isArray(p.suffix)
-			? p.suffix.map(String)
-			: typeof p.suffix === 'string'
-				? [p.suffix]
-				: [];
-		const rows = files.map((file, i) => ({ file, suffix: suffixes[i] ?? '' }));
+		const rows = uniqueSuffixes(fileSuffixPairs(p), where, warnings);
 		return withShared({
 			id: makeId('phone'),
 			kind: 'variations',
@@ -416,7 +414,8 @@ export function emptyVariant(): VariantEntry {
 }
 
 /**
- * Zip the phone-level `file` / `suffix` keys into one pair per variant. With no
+ * Zip the phone-level `file` / `suffix` keys into one pair per variant. A single
+ * `suffix` string applies to every file, as it does in modernGraphTool. With no
  * `suffix`, a `prefix` names each variant by what is left of its filename.
  */
 function fileSuffixPairs(p: Record<string, unknown>): Array<{ file: string; suffix: string }> {
@@ -425,16 +424,44 @@ function fileSuffixPairs(p: Record<string, unknown>): Array<{ file: string; suff
 		: typeof p.file === 'string'
 			? [p.file]
 			: [];
-	const suffixes = Array.isArray(p.suffix)
-		? p.suffix.map(String)
-		: typeof p.suffix === 'string'
-			? [p.suffix]
+	const suffix = p.suffix;
+	const suffixes = Array.isArray(suffix)
+		? suffix.map(String)
+		: typeof suffix === 'string'
+			? files.map(() => suffix)
 			: p.prefix === undefined
 				? []
 				: files.map((file, i) =>
 						stripPrefix(file, Array.isArray(p.prefix) ? p.prefix[i] : p.prefix)
 					);
 	return files.map((file, i) => ({ file, suffix: suffixes[i] ?? '' }));
+}
+
+/**
+ * Rename repeated suffixes the way `_uniqueSuffixes` in metadata-parser.ts does,
+ * so each variant keeps the name the site shows it under: the first keeps its
+ * suffix, later ones get a counter (`"2"`, `"Tip 2"`).
+ */
+function uniqueSuffixes<T extends { suffix?: string }>(
+	entries: T[],
+	where: string,
+	warnings: string[]
+): T[] {
+	const taken = new Set<string>();
+	return entries.map((entry) => {
+		const suffix = entry.suffix ?? '';
+		if (!taken.has(suffix)) {
+			taken.add(suffix);
+			return entry;
+		}
+		const suffixFor = (n: number) => (suffix ? `${suffix} ${n}` : String(n));
+		let n = 2;
+		while (taken.has(suffixFor(n))) n++;
+		const renamed = suffixFor(n);
+		taken.add(renamed);
+		warnings.push(`Brand "${where}: repeated suffix "${suffix}" renamed to "${renamed}".`);
+		return { ...entry, suffix: renamed };
+	});
 }
 
 function stripPrefix(file: string, prefix: unknown): string {

@@ -287,8 +287,10 @@ const MetadataParser = {
 
 	/** Whether a phone declares a usable phone-level `file`. */
 	_hasPhoneFile(phone: RawPhoneData): boolean {
-		const file = phone.file;
-		return Array.isArray(file) ? file.length > 0 : Boolean(file?.trim());
+		// Hand-authored, so `file` may be any JSON value despite its type.
+		const file: unknown = phone.file;
+		if (Array.isArray(file)) return file.length > 0;
+		return typeof file === 'string' && file.trim() !== '';
 	},
 
 	/** Warn when `variants[]` stands alone: squig.link search and CrinGraph read only `file`. */

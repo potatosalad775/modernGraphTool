@@ -380,6 +380,47 @@ describe('the phone-level file beside variants[]', () => {
 	});
 });
 
+describe('legacy suffixes', () => {
+	// modernGraphTool gives a single `suffix` string to every file, then renames
+	// repeats (`_uniqueSuffixes`). The editor must export the names the site shows.
+	const importPhone = (phone: Record<string, unknown>) => {
+		const { state, warnings } = parsePhoneBook(
+			JSON.stringify([{ name: 'Moondrop', phones: [phone] }])
+		);
+		return { phone: state[0].phones[0], warnings };
+	};
+
+	it('applies a suffix string to every file and numbers the repeats', () => {
+		const { phone, warnings } = importPhone({ name: ['Chu 2'], file: ['A', 'B'], suffix: 'Tip' });
+		expect(phone.variations!.rows).toEqual([
+			{ file: 'A', suffix: 'Tip' },
+			{ file: 'B', suffix: 'Tip 2' }
+		]);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0]).toContain('"Tip 2"');
+	});
+
+	it('does the same beside a phone-level sample count', () => {
+		const { phone } = importPhone({ name: ['Chu 2'], file: ['A', 'B'], suffix: 'Tip', samples: 3 });
+		expect(phone.sampleSet!.variants.map((v) => v.suffix)).toEqual(['Tip', 'Tip 2']);
+	});
+
+	it('numbers repeated empty suffixes from 2', () => {
+		const { phone } = importPhone({ name: ['Chu 2'], file: ['A', 'B', 'C'] });
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['', '2', '3']);
+	});
+
+	it('leaves distinct suffixes in an array alone', () => {
+		const { phone, warnings } = importPhone({
+			name: ['Chu 2'],
+			file: ['A', 'B'],
+			suffix: ['Foam', 'Silicone']
+		});
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['Foam', 'Silicone']);
+		expect(warnings).toEqual([]);
+	});
+});
+
 describe('the shipped defaults/data/phone_book.json', () => {
 	const shipped = readFileSync(
 		fileURLToPath(new URL('../../../defaults/data/phone_book.json', import.meta.url)),

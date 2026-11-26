@@ -386,10 +386,12 @@ CrinGraph shows the three eartip variants; modernGraphTool shows those three **p
 insertion-depth set. To give one of the eartips its own runs instead of adding a fourth
 entry, set that variant's `file` to the eartip's filename — it upgrades in place.
 
-**When `variants` names every measurement in `file`, the variant picker follows the order of
-`variants`.** This is the shape the phone_book.json Editor exports. When `variants` names only
-some of them, the list starts from `file` in its order, a `variants` entry naming one of those
-files upgrades it in place, and every other entry is appended after. The first variant is the
+**When `variants` names every measurement the phone declares outside it, the variant picker
+follows the order of `variants`.** That means each `file` entry, and each `hptfs` entry (named
+by its first file). This is the shape the phone_book.json Editor exports. When `variants` names
+only some of them, the list starts from `file` and then `hptfs` in their order, a `variants`
+entry naming one of those measurements upgrades it in place, and every other entry is appended
+after. The first variant is the
 phone's default curve, but squig.link search and CrinGraph always open the first entry of
 `file`, so keep that entry equal to the first variant (for a set declared only with
 `samples.files`, the set's first file); modernGraphTool logs a console warning when a complete
@@ -506,8 +508,8 @@ Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `
 entries on one phone are treated as **independent variants** in a single flat list — two
 `file` variants plus two `hptfs` entries produce four entries in the variant selector. The
 one exception is the in-place upgrade above: a `variants` entry naming an already-declared
-`file` refines that variant instead of adding another. (And when `variants` names every
-measurement in `file`, it also sets their order.)
+`file` refines that variant instead of adding another. (And when `variants` names every `file`
+measurement and every `hptfs` entry, it also sets their order.)
 :::
 
 :::tip[Dual-hosting with CrinGraph]

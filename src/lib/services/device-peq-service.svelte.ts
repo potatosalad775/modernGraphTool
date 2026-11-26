@@ -16,6 +16,7 @@
  */
 import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import { controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
@@ -170,6 +171,14 @@ interface Seen {
 	conn: DeviceConnection | null;
 }
 
+/** A row's setting, waiting for the device to be free (`sent`: written, not read back yet). */
+interface HeldSetting {
+	conn: DeviceConnection;
+	value: number;
+	write: () => Promise<void>;
+	sent?: true;
+}
+
 class DevicePeqService {
 	#installed = false;
 	#timer: ReturnType<typeof setTimeout> | undefined;
@@ -180,6 +189,8 @@ class DevicePeqService {
 	#unwatchLost: () => void = noop;
 	/** A setting that restarts the device is being written: the device may go before it returns. */
 	#restarting = false;
+	/** By row: here, not in the row, so a setting let go on outlives the panel (`setWhenFree`). */
+	#settings = new SvelteMap<string, HeldSetting>();
 
 	/** The connected device when it is uniPEQ's, reached over the link. */
 	get linkDevice(): LinkPeqDevice | null {
@@ -911,6 +922,36 @@ class DevicePeqService {
 	}
 
 	/**
+	 * Set a row's setting with `write` once the device is free (at once if it is), the row showing
+	 * `value` till the device has it: a slider let go while the device is busy. A newer value for
+	 * the row replaces one still waiting. Rows are written in turn, and dropped with the connection.
+	 */
+	setWhenFree(row: string, value: number, write: () => Promise<void>): void {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		this.install();
+		this.#settings.set(row, { conn, value, write });
+		this.#writeSetting();
+	}
+
+	/** What a row shows till the device has it (`setWhenFree`), if anything. */
+	heldSetting(row: string): number | undefined {
+		const held = this.#settings.get(row);
+		return held?.conn === devicePeqStore.connection ? held.value : undefined;
+	}
+
+	/** The first setting waiting, if the device is free for it. */
+	#writeSetting(): void {
+		if (devicePeqStore.isBusy || volumeWarning.open) return;
+		for (const [row, held] of this.#settings) {
+			if (held.sent || held.conn !== devicePeqStore.connection) continue;
+			this.#settings.set(row, { ...held, sent: true });
+			void held.write();
+			return;
+		}
+	}
+
+	/**
 	 * Set the settings of a device uniPEQ holds: one `control` command each, in order, up to the
 	 * first it refuses. uniPEQ warns for its own device and reopens one that restarts; the values
 	 * it reads back arrive in `status.controls`, which the rows follow. The link service holds
@@ -995,8 +1036,8 @@ class DevicePeqService {
 	}
 
 	/**
-	 * Start following the band list. Idempotent; called on connect. The root is never disposed:
-	 * like the audio player's, it lives as long as the page.
+	 * Start following the band list, and the settings waiting for the device. Idempotent; called on
+	 * connect. The root is never disposed: like the audio player's, it lives as long as the page.
 	 */
 	install(): void {
 		if (this.#installed) return;
@@ -1009,6 +1050,24 @@ class DevicePeqService {
 					conn: devicePeqStore.connection
 				};
 				untrack(() => this.#changed(seen));
+			});
+			// One written stays till the device is done setting it (over the link uniPEQ can answer
+			// before the status that reads it back) or the volume warning it asked is answered.
+			$effect(() => {
+				const conn = devicePeqStore.connection;
+				let due = false;
+				for (const [row, held] of this.#settings) {
+					if (held.conn !== conn) this.#settings.delete(row);
+					else if (!held.sent) due = true;
+					else if (!devicePeqStore.isSettingControl && !volumeWarning.open) {
+						this.#settings.delete(row);
+					}
+				}
+				// After the task that freed the device: Write's layout read, or a new preset, frees it
+				// for a moment before the step that follows, which a setting written then would refuse.
+				if (due && !devicePeqStore.isBusy && !volumeWarning.open) {
+					setTimeout(() => this.#writeSetting());
+				}
 			});
 		});
 	}

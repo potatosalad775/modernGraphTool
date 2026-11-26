@@ -6,12 +6,12 @@
 	press. One that restarts the device asks first. A gain per channel is one balance slider, in the
 	left channel's place. The caller brings the list (the EQ's settings, or the device's) and says
 	when it is `disabled`. While the device is busy the rows keep focus and take no change, but a
-	slider still moves, and the value it is let go on is written once the device is free. The same
-	mapping as uniPEQ's, so a device looks the same in both.
+	slider still moves, and the value it is let go on is written once the device is free (by the
+	service, so a panel switch doesn't drop it). The same mapping as uniPEQ's, so a device looks the
+	same in both.
 -->
 <script lang="ts">
 	import type { Control } from '@potatosalad775/eqcaps-core';
-	import { untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { balanceLabel, controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
 	import {
@@ -40,11 +40,8 @@
 
 	/** A change that restarts the device, waiting for the user to confirm it. */
 	let pending = $state.raw<{ control: Control; value: number } | null>(null);
-	type Held =
-		| { phase: 'moving'; value: number }
-		| { phase: 'queued'; value: number; write: (value: number) => Promise<void> }
-		| { phase: 'sent'; value: number };
-	const held = new SvelteMap<string, Held>();
+	/** A slider's value while it is dragged; once let go, the service holds it till it is written. */
+	const moving = new SvelteMap<string, number>();
 
 	const values = $derived(devicePeqStore.controlValues);
 	const busy = $derived(devicePeqStore.isBusy);
@@ -53,7 +50,9 @@
 	const balance = $derived(balanceOf(controls));
 
 	const current = (c: Control) => values[c.id] ?? 0;
-	const shown = (id: string, value: number) => held.get(id)?.value ?? value;
+	/** Where a slider rests: on a value let go that the device doesn't have yet, else the device's. */
+	const settled = (id: string, device: number) => devicePeqService.heldSetting(id) ?? device;
+	const shown = (id: string, device: number) => moving.get(id) ?? settled(id, device);
 
 	async function set(control: Control, value: number) {
 		if (busy || value === values[control.id]) return;
@@ -61,20 +60,20 @@
 		else await devicePeqService.setControl(control.id, value);
 	}
 
-	// Held until the device is done setting it: over the link uniPEQ can answer before the status
-	// that reads the value back, which says it is still setting one.
-	$effect(() => {
-		for (const [id, h] of held) {
-			if (h.phase === 'sent') {
-				if (!devicePeqStore.isSettingControl) held.delete(id);
-			} else if (h.phase === 'queued' && !devicePeqStore.isBusy) {
-				held.set(id, { phase: 'sent', value: h.value });
-				untrack(() => void h.write(h.value));
-				// One write at a time: the next waits until this one is done.
-				break;
+	/** Write `value` once the device is free, now if it is. */
+	function setWhenFree(control: Control, value: number) {
+		devicePeqService.setWhenFree(control.id, value, async () => {
+			if (devicePeqStore.controlValues[control.id] !== value) {
+				await devicePeqService.setControl(control.id, value);
 			}
-		}
-	});
+		});
+	}
+
+	/** A slider let go on `value`. One that restarts the device asks first. */
+	function release(control: Control, value: number) {
+		if (control.reconnect) pending = { control, value };
+		else setWhenFree(control, value);
+	}
 
 	function hint(control: Control): string | undefined {
 		if (devicePeqStore.eqOffBy.includes(control)) return m.device_control_eq_off_hint();
@@ -85,7 +84,7 @@
 	function confirm() {
 		const change = pending;
 		pending = null;
-		if (change) void devicePeqService.setControl(change.control.id, change.value);
+		if (change) setWhenFree(change.control, change.value);
 	}
 
 	const uid = $props.id();
@@ -99,7 +98,7 @@
 	device: number,
 	text: (value: number) => string,
 	range: { min: number; max: number; step: number | 'any' },
-	write: (value: number) => Promise<void>,
+	write: (value: number) => void,
 	readout = 'w-12'
 )}
 	{@const value = shown(id, device)}
@@ -117,15 +116,14 @@
 				aria-valuetext={text(value)}
 				oninput={(e) => {
 					const next = e.currentTarget.valueAsNumber;
-					const was = held.get(id);
-					// A drag let go where it began fires no `change`.
-					if (next === device && !busy) held.delete(id);
-					else if (was?.phase === 'queued') held.set(id, { ...was, value: next });
-					else held.set(id, { phase: 'moving', value: next });
+					// A drag let go where it began fires no `change`: back there, nothing moves.
+					if (next === settled(id, device)) moving.delete(id);
+					else moving.set(id, next);
 				}}
 				onchange={() => {
-					const was = held.get(id);
-					if (was) held.set(id, { phase: 'queued', value: was.value, write });
+					const next = moving.get(id);
+					moving.delete(id);
+					if (next !== undefined) write(next);
 				}}
 				class={sliderClass}
 			/>
@@ -149,7 +147,10 @@
 			balanceValue(balance, values),
 			(v) => balanceLabel(balance, v),
 			balance,
-			(n) => devicePeqService.setControls(balanceWrites(balance, n, values)),
+			(n) =>
+				devicePeqService.setWhenFree('balance', n, () =>
+					devicePeqService.setControls(balanceWrites(balance, n, devicePeqStore.controlValues))
+				),
 			'w-20'
 		)}
 	{:else if control.kind === 'toggle'}
@@ -211,7 +212,7 @@
 			current(control),
 			(v) => controlValueLabel(control, v),
 			{ min: range.min, max: range.max, step: 'step' in range ? range.step : 'any' },
-			(next) => set(control, next)
+			(next) => release(control, next)
 		)}
 	{/if}
 	{#if note}

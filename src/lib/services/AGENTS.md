@@ -208,8 +208,13 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   through `setAbsent`, likewise) and the settings' values (`status.controls` into
   `controlValues`). `devicePeqService`'s preset edits and settings only send their command; what
   they did arrives in a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
-  Each holds its busy flag until that answer, as Device EQ does: uniPEQ's `busy` can come after a
-  second press, which uniPEQ would refuse as `busy`.
+- **For a link connection, link-service is the only writer of the five busy flags** (`#busy`). A
+  flag is on while uniPEQ's last `status.busy` names it, or while a command of that kind from this
+  page still awaits its answer (`COMMAND_FLAG`; `#port` wraps the `LinkPort` Hardware EQ's device
+  sends through, and counts per session). `devicePeqService`'s link paths don't set them. uniPEQ
+  reports `busy: null` partway through some commands (an `eq` that first writes a pending edit, a
+  create then a rename), and its `busy` can come after a second press: either way the panel
+  re-enabled, and uniPEQ refused the press as `busy`.
 - **`#device` makes uniPEQ's device the connection, as the EQ uniPEQ views.** It passes
   `setConnected` an `Opened` with `device.eq` (protocol 1.3), the device's EQs by name
   (`device.eqs`, 1.4) and the last `status.absentEqs`; `devicePeqStore.eqs` reads that list, so

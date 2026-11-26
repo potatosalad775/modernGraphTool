@@ -15,7 +15,15 @@
  * so a visitor who never links downloads neither.
  */
 import { untrack } from 'svelte';
-import type { Adopt, HostLink, HostOptions, LinkDevice, LinkEq, LinkStatus } from 'peq-link/client';
+import type {
+	Adopt,
+	CommandName,
+	HostLink,
+	HostOptions,
+	LinkDevice,
+	LinkEq,
+	LinkStatus
+} from 'peq-link/client';
 import { linkStore } from '#lib/stores/link-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
 import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
@@ -35,7 +43,8 @@ import {
 	LinkCommandError,
 	sendLosses,
 	toLinkLists,
-	type LinkLists
+	type LinkLists,
+	type LinkPort
 } from '#lib/device-peq/link.js';
 import { commandHistory } from './command-history.svelte.js';
 import { eqCommands, type ReplaceEqFiltersCommand } from './eq-commands.js';
@@ -56,6 +65,43 @@ function preampOf(eq: LinkEq): { preamp: number; auto: boolean } {
 	const right = eq.right ?? eq;
 	return { preamp: Math.min(eq.preamp, right.preamp), auto: eq.autoPreamp && right.autoPreamp };
 }
+
+/** Hardware EQ's busy flags: for a link connection, only `#busy` writes them. */
+const BUSY_FLAGS = [
+	'isConnecting',
+	'isReading',
+	'isWriting',
+	'isSwitching',
+	'isSettingControl'
+] as const;
+type BusyFlag = (typeof BUSY_FLAGS)[number];
+
+/** The flag uniPEQ's `status.busy` holds. A preset edit renumbers the list: no switch meanwhile. */
+const STATUS_FLAG: Record<NonNullable<LinkStatus['busy']>, BusyFlag> = {
+	connect: 'isConnecting',
+	read: 'isReading',
+	write: 'isWriting',
+	switch: 'isSwitching',
+	preset: 'isSwitching',
+	control: 'isSettingControl'
+};
+
+/** The flag a command of this page's holds until uniPEQ answers it. */
+const COMMAND_FLAG: Record<CommandName, BusyFlag | null> = {
+	read: 'isReading',
+	write: 'isWriting',
+	review: 'isWriting',
+	switch: 'isSwitching',
+	eq: 'isSwitching',
+	'preset-create': 'isSwitching',
+	'preset-rename': 'isSwitching',
+	'preset-delete': 'isSwitching',
+	control: 'isSettingControl',
+	reconnect: 'isConnecting',
+	fit: null,
+	'auto-write': null,
+	consent: null
+};
 
 class LinkService {
 	#link: HostLink | null = null;
@@ -89,6 +135,12 @@ class LinkService {
 	/** The `device` last mirrored, so a resent snapshot doesn't reconnect Hardware EQ. */
 	#deviceKey: string | null = null;
 	#failureKey: string | null = null;
+	/**
+	 * This session's commands still awaiting uniPEQ's answer, by the flag each holds. uniPEQ's
+	 * `busy` alone won't do: it goes `null` partway through some (an `eq` that first writes a
+	 * pending edit, a create then a rename), and refuses a second press meanwhile.
+	 */
+	#awaiting = new Map<BusyFlag, number>();
 
 	/** Rejoin this tab's session after a reload: uniPEQ keeps its approval. From `AppShell.onMount`. */
 	resume(): Promise<void> {
@@ -208,6 +260,7 @@ class LinkService {
 		this.#adopted = null;
 		this.#deviceKey = null;
 		this.#failureKey = null;
+		this.#awaiting = new Map();
 		this.#endBurst();
 		linkStore.reset();
 		linkStore.phase = link.state;
@@ -242,6 +295,7 @@ class LinkService {
 		link.on('ended', (ended) => {
 			if (this.#link !== link) return;
 			this.#link = null;
+			this.#awaiting = new Map();
 			this.#endBurst();
 			this.#joined = false;
 			this.#pending = null;
@@ -405,7 +459,7 @@ class LinkService {
 		this.#deviceKey = key;
 		// A device connected in uniPEQ mid-link reads its bands into the list: ask again then.
 		if (first && this.#joined) this.#askOnFresh = true;
-		const connection = device && linkConnection(link, device, link.minor);
+		const connection = device && linkConnection(this.#port(link), device, link.minor);
 		linkStore.deviceRejected = device !== null && !connection;
 		if (!connection) {
 			if (devicePeqStore.connection) devicePeqStore.setDisconnected();
@@ -420,9 +474,51 @@ class LinkService {
 			});
 			devicePeqService.install();
 			if (link.status) this.#status(link.status);
+			// A new view can arrive mid-command (an `eq`), and connecting clears the flags.
+			else this.#busy();
 		}
 		// Whether Send keeps one-ear bands depends on the device: an open start dialog says so anew.
 		if (linkStore.choice) this.#ask(link, linkStore.choice.theirs);
+	}
+
+	/**
+	 * `link` as Hardware EQ's device reaches it: every command it sends holds its flag until
+	 * uniPEQ answers, which `HostLink.command` always does (`timeout`, `not-linked` at the end).
+	 */
+	#port(link: HostLink): LinkPort {
+		return {
+			get status() {
+				return link.status;
+			},
+			command: async (name, ...args) => {
+				const flag = COMMAND_FLAG[name];
+				const awaiting = this.#awaiting;
+				const count = (by: number) => {
+					if (flag) awaiting.set(flag, (awaiting.get(flag) ?? 0) + by);
+					if (awaiting === this.#awaiting) this.#busy();
+				};
+				count(1);
+				try {
+					return await link.command(name, ...args);
+				} finally {
+					count(-1);
+				}
+			},
+			unlink: () => link.unlink()
+		};
+	}
+
+	/**
+	 * Hardware EQ's busy flags for a link connection, written here alone: each is on while uniPEQ's
+	 * last `status.busy` names it or a command of this page's that holds it awaits its answer.
+	 */
+	#busy(): void {
+		if (devicePeqStore.connection?.connectionType !== 'link') return;
+		const busy = linkStore.status?.busy;
+		const named = busy ? STATUS_FLAG[busy] : null;
+		for (const flag of BUSY_FLAGS) {
+			devicePeqStore[flag] = flag === named || (this.#awaiting.get(flag) ?? 0) > 0;
+		}
 	}
 
 	/** uniPEQ's status, into the flags Hardware EQ's panel and status line read. */
@@ -430,12 +526,7 @@ class LinkService {
 		linkStore.status = status;
 		if (devicePeqStore.connection?.connectionType !== 'link') return;
 		const store = devicePeqStore;
-		store.isConnecting = status.busy === 'connect';
-		store.isReading = status.busy === 'read';
-		store.isWriting = status.busy === 'write';
-		// A preset edit renumbers the list: no switch is offered until the `status` after it.
-		store.isSwitching = status.busy === 'switch' || status.busy === 'preset';
-		store.isSettingControl = status.busy === 'control';
+		this.#busy();
 		// The presets as they are now, for a device that keeps a list (protocol 1.3); else the
 		// profile's. `activeSlot` and `deviceSlot` are ids in it.
 		store.setListed(acceptSlots(status.slots));

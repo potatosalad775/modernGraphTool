@@ -544,10 +544,19 @@ class DevicePeqService {
 			if (slot !== undefined) devicePeqStore.target(slot);
 			return;
 		}
-		// Another preset, or the EQ on or off, changes what plays as much as a write does. Over the
-		// link uniPEQ warns for its own device.
-		if (!this.linkDevice && volumeWarning.ask(() => void this.choose(value))) return;
+		// Over the link uniPEQ warns for its own device, and the link service holds `isSwitching`.
+		if (this.linkDevice) return this.#switch(conn, value, slot);
+		// Another preset, or the EQ on or off, changes what plays as much as a write does.
+		if (volumeWarning.ask(() => void this.choose(value))) return;
 		devicePeqStore.isSwitching = true;
+		try {
+			await this.#switch(conn, value, slot);
+		} finally {
+			devicePeqStore.isSwitching = false;
+		}
+	}
+
+	async #switch(conn: DeviceConnection, value: string, slot: number | undefined): Promise<void> {
 		try {
 			if (value === 'off') {
 				await conn.device.setEnabled(false);
@@ -559,8 +568,6 @@ class DevicePeqService {
 			await this.#readEqControls(conn, true);
 		} catch (e) {
 			this.fail(e, 'switch');
-		} finally {
-			devicePeqStore.isSwitching = false;
 		}
 	}
 
@@ -609,19 +616,16 @@ class DevicePeqService {
 	/**
 	 * One edit to the preset list of a device uniPEQ holds. uniPEQ reads the list again, and where
 	 * the device is, and both arrive in `status`, before or after the answer: nothing here works
-	 * them out. `edit` says what was done where that is known without the list, else null. Busy
-	 * until the answer: uniPEQ's own `busy` may come later, and it refuses a second edit meanwhile.
+	 * them out. `edit` says what was done where that is known without the list, else null. The
+	 * link service holds `isSwitching` until the answer.
 	 */
 	async #editLinked(edit: () => Promise<string | null>, refused?: string): Promise<PresetEdit> {
-		devicePeqStore.isSwitching = true;
 		try {
 			const done = await edit();
 			if (done !== null) devicePeqStore.setStatus(done);
 			return 'done';
 		} catch (e) {
 			return this.#presetFailed(e, refused);
-		} finally {
-			devicePeqStore.isSwitching = false;
 		}
 	}
 
@@ -747,15 +751,12 @@ class DevicePeqService {
 	 * to do with them, which this page can't answer, so the user writes or reads first.
 	 */
 	async #selectLinked(link: LinkPeqDevice, id: string | undefined): Promise<void> {
-		devicePeqStore.isSwitching = true;
 		try {
 			await link.selectEq(id);
 		} catch (e) {
 			if (e instanceof LinkCommandError && e.code === 'unwritten') {
 				devicePeqStore.setStatus(m.device_eq_unwritten(), true);
 			} else this.fail(e, 'eq');
-		} finally {
-			devicePeqStore.isSwitching = false;
 		}
 	}
 
@@ -881,18 +882,15 @@ class DevicePeqService {
 	/**
 	 * Set the settings of a device uniPEQ holds: one `control` command each, in order, up to the
 	 * first it refuses. uniPEQ warns for its own device and reopens one that restarts; the values
-	 * it reads back arrive in `status.controls`, which the rows follow. Busy until the last answer,
-	 * as a preset edit is.
+	 * it reads back arrive in `status.controls`, which the rows follow. The link service holds
+	 * `isSettingControl` while each awaits its answer.
 	 */
 	async #setLinked(link: LinkPeqDevice, steps: { control: Control; value: number }[]) {
-		devicePeqStore.isSettingControl = true;
 		try {
 			for (const { control, value } of steps) await link.setControl(control.id, value);
 		} catch (e) {
 			this.fail(e, 'control');
 			return;
-		} finally {
-			devicePeqStore.isSettingControl = false;
 		}
 		const last = steps[steps.length - 1];
 		devicePeqStore.setStatus(

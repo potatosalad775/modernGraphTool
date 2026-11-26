@@ -927,7 +927,36 @@ describe('linkService', () => {
 			for (const kind of [...busy, null]) host.emit('status', { ...ON_1, busy: kind });
 		}
 
-		it.fails('a preset create: uniPEQ names it after a busy: null', async () => {
+		it('follows uniPEQ’s busy alone while this page awaits nothing: its own Read and Write', async () => {
+			await withPresets();
+			host.emit('status', { ...ON_1, busy: 'read' });
+			expect(devicePeqStore.isReading).toBe(true);
+			host.emit('status', { ...ON_1, busy: 'write' });
+			expect(devicePeqStore.isReading).toBe(false);
+			expect(devicePeqStore.isWriting).toBe(true);
+			host.emit('status', ON_1);
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it('sends no other preset edit before uniPEQ answers one, whose own busy may come later', async () => {
+			await withPresets();
+			const answer = host.hold();
+			const first = devicePeqService.renamePreset(1, 'Metal');
+			await devicePeqService.renamePreset(0, 'Blues');
+			await devicePeqService.createPreset();
+			await devicePeqService.deletePreset(2);
+			expect(host.command).toHaveBeenCalledExactlyOnceWith('preset-rename', {
+				slot: 1,
+				name: 'Metal'
+			});
+
+			answer();
+			expect(await first).toBe('done');
+			await devicePeqService.deletePreset(2);
+			expect(host.command).toHaveBeenLastCalledWith('preset-delete', { slot: 2 });
+		});
+
+		it('a preset create: uniPEQ names it after a busy: null', async () => {
 			await withPresets();
 			const answer = host.hold();
 			const first = devicePeqService.createPreset();
@@ -941,7 +970,7 @@ describe('linkService', () => {
 			expect(devicePeqStore.isBusy).toBe(false);
 		});
 
-		it.fails('an EQ pick: uniPEQ writes a pending edit first, then switches', async () => {
+		it('an EQ pick: uniPEQ writes a pending edit first, then switches', async () => {
 			await linked(4);
 			host.emit('device', {
 				...DEVICE,
@@ -963,7 +992,7 @@ describe('linkService', () => {
 			expect(devicePeqStore.isBusy).toBe(false);
 		});
 
-		it.fails('a setting', async () => {
+		it('a setting', async () => {
 			await withPresets();
 			const answer = host.hold();
 			const first = devicePeqService.setControl('feed', 1);
@@ -977,7 +1006,7 @@ describe('linkService', () => {
 			expect(devicePeqStore.isBusy).toBe(false);
 		});
 
-		it.fails('a Device EQ pick, which the panel disables while busy', async () => {
+		it('a Device EQ pick, which the panel disables while busy', async () => {
 			await withPresets();
 			const answer = host.hold();
 			const first = devicePeqService.choose('p2');

@@ -179,9 +179,10 @@ needs it at boot); keep it the only one.
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
   `push` is never called: Write, Device EQ, Reconnect, the auto-write switch, the preset edits, the
   settings and the EQ picked are commands to uniPEQ, `devicePeqStore`'s flags (and
-  `reportedInSync`) are mirrored from its `status`, and its review shows in `DevicePeqPushDialog`
-  through `LinkDialogs`, renumbered by this page's list (`reviewChanges`). `devicePeqService`'s own
-  auto-write skips a link connection. Its Unplug button is hidden: closing it unlinks, which
+  `reportedInSync`) are mirrored from its `status` (the busy flags also from this page's commands
+  awaiting an answer: `services/AGENTS.md`), and its review shows in `DevicePeqPushDialog`
+  through `LinkDialogs`, renumbered by this page's list (`reviewChanges`). `devicePeqService`'s
+  own auto-write skips a link connection. Its Unplug button is hidden: closing it unlinks, which
   **Unlink** above it already does.
   **Every value comes from `status`.** This page never reads uniPEQ's device, and never works out
   from a command's answer what the device holds now: `re` and `status` arrive in either order. So

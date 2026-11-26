@@ -30,6 +30,7 @@ import { eqConstraintsStore } from '#lib/stores/eq-constraints-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { track } from '#lib/utils/track.js';
+import type { DeviceConnection } from '#lib/device-peq/types.js';
 import {
 	acceptAbsentEqs,
 	acceptControlValues,
@@ -461,24 +462,27 @@ class LinkService {
 		if (first && this.#joined) this.#askOnFresh = true;
 		const connection = device && linkConnection(this.#port(link), device, link.minor);
 		linkStore.deviceRejected = device !== null && !connection;
-		if (!connection) {
-			if (devicePeqStore.connection) devicePeqStore.setDisconnected();
-		} else {
-			// The device as uniPEQ views it, as one of its EQs (`eq`, protocol 1.3), and all of them
-			// by name (`eqs`, 1.4). A new EQ comes as a new `device`.
-			devicePeqStore.setConnected(connection, link.status?.deviceSlot ?? null, null, {
-				conn: connection,
-				eq: { id: typeof device.eq === 'string' ? device.eq : undefined, bandCount: null },
-				absent: acceptAbsentEqs(link.status?.absentEqs),
-				eqs: acceptEqs(device.eqs) ?? undefined
-			});
-			devicePeqService.install();
-			if (link.status) this.#status(link.status);
-			// A new view can arrive mid-command (an `eq`), and connecting clears the flags.
-			else this.#busy();
-		}
+		if (connection) this.#connect(link, device, connection);
+		else if (devicePeqStore.connection) devicePeqStore.setDisconnected();
 		// Whether Send keeps one-ear bands depends on the device: an open start dialog says so anew.
 		if (linkStore.choice) this.#ask(link, linkStore.choice.theirs);
+	}
+
+	/**
+	 * `connection` into Hardware EQ: the device as uniPEQ views it, as one of its EQs (`eq`,
+	 * protocol 1.3), and all of them by name (`eqs`, 1.4). A new EQ comes as a new `device`.
+	 */
+	#connect(link: HostLink, device: LinkDevice, connection: DeviceConnection): void {
+		devicePeqStore.setConnected(connection, link.status?.deviceSlot ?? null, null, {
+			conn: connection,
+			eq: { id: typeof device.eq === 'string' ? device.eq : undefined, bandCount: null },
+			absent: acceptAbsentEqs(link.status?.absentEqs),
+			eqs: acceptEqs(device.eqs) ?? undefined
+		});
+		devicePeqService.install();
+		if (link.status) this.#status(link.status);
+		// A new view can arrive mid-command (an `eq`), and connecting clears the flags.
+		else this.#busy();
 	}
 
 	/**

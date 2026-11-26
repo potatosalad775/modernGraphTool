@@ -75,6 +75,8 @@
 			},
 			{
 				"name": ["Sample Sets"],
+				"file": ["Combo Variant 1", "Multi Sample"],
+				"suffix": ["Stock", "Repeat Runs"],
 				"variants": [
 					{ "suffix": "Stock", "file": "Combo Variant 1" },
 					{

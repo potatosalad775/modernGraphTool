@@ -3552,6 +3552,8 @@ Sample sets are declared per variant, inside a `variants` array:
 ```json
 {
   "name": ["HD 600"],
+  "file": ["HD600 Stock", "HD600 Mod", "HD600 Leather"],
+  "suffix": ["Stock", "Modded", "Leather Pad"],
   "variants": [
     { "suffix": "Stock", "file": "HD600 Stock" },
 
@@ -3607,9 +3609,11 @@ A variant’s own `description` and its `samples.description` don’t merge. The
 
 variants composes with `file`
 
-`variants` does **not** replace the phone-level `file` / `suffix` / `prefix` / `samples` / `hptfs` keys — the two combine into one variant list. An entry whose `file` names a measurement the phone already declared **upgrades that variant in place**, keeping its position (so the phone’s default curve doesn’t move); every other entry is **appended** after. Declaring the same variant in both places lists it once, not twice.
+`variants` does **not** replace the phone-level `file` / `suffix` / `prefix` / `samples` / `hptfs` keys — the two combine into one variant list. An entry whose `file` names a measurement the phone already declared **upgrades that variant in place**. When `variants` names only some of the phone’s measurements, the upgraded entry keeps its position (so the phone’s default curve doesn’t move) and every other entry is **appended** after; when it names all of them, it sets the order (see the end of this note). Declaring the same variant in both places lists it once, not twice.
 
-This is what lets one entry serve both tools. CrinGraph reads `file` and nothing else, so a phone whose measurements live only in `variants` is invisible to it. Keep the plain measurements in `file` / `suffix` and layer the sample sets on top:
+This is what lets one entry serve both tools. CrinGraph reads `file` and nothing else, so a phone whose measurements live only in `variants` is invisible to it. Keep the plain measurements in `file` / `suffix` and layer the sample sets on top.
+
+**Every phone keeps a phone-level `file`, even when its measurements are described in `variants`.** CrinGraph reads `file`, and so does squig.link’s cross-site search when it builds its device list and share links from your `phone_book.json`. A phone without one is missing from squig.link search, and so is every phone listed after it in the same file (modernGraphTool logs a console warning for it). When a variant has its own `file`, repeat it (and its `suffix`) at the phone level. A set declared only with `samples.files` can stay out of `file`, unless it is the phone’s first variant or the phone would then have no `file` at all: in those cases use the set’s first file.
 
 ```json
 {
@@ -3630,6 +3634,23 @@ This is what lets one entry serve both tools. CrinGraph reads `file` and nothing
 ```
 
 CrinGraph shows the three eartip variants; modernGraphTool shows those three **plus** the insertion-depth set. To give one of the eartips its own runs instead of adding a fourth entry, set that variant’s `file` to the eartip’s filename — it upgrades in place.
+
+**When `variants` names every measurement the phone declares outside it, the variant picker follows the order of `variants`.** That means each `file` entry, and each `hptfs` entry (named by its first file). This is the shape the phone_book.json Editor exports. When `variants` names only some of them, the list starts from `file` and then `hptfs` in their order, a `variants` entry naming one of those measurements upgrades it in place, and every other entry is appended after. The first variant is the phone’s default curve, but squig.link search and CrinGraph always open the first entry of `file`, so keep that entry equal to the first variant (for a set declared only with `samples.files`, the set’s first file); modernGraphTool logs a console warning when a complete `variants` list starts with a different measurement. For example, to put a set declared only with `samples.files` first, list its first file and suffix first in `file` and the set first in `variants`:
+
+```json
+{
+  "name": ["HD600"],
+  "file": ["HD600 Pad Center", "HD600 Stock"],
+  "suffix": ["Pad Positions", "Stock"],
+  "variants": [
+    {
+      "suffix": "Pad Positions",
+      "samples": { "files": ["HD600 Pad Center", "HD600 Pad Front", "HD600 Pad Back"] }
+    },
+    { "file": "HD600 Stock", "suffix": "Stock", "samples": 3 }
+  ]
+}
+```
 
 Unnumbered fallback
 
@@ -3675,6 +3696,8 @@ Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fil
 ```json
 {
   "name": ["HpTF Multi Pad"],
+  "file": "Leather Center",
+  "suffix": "Leather Pad",
   "variants": [
     {
       "suffix": "Leather Pad",
@@ -3691,20 +3714,20 @@ Becomes a `variants` entry with `samples.files` and a `display` of `["avg", "fil
 
 Convert automatically
 
-You don’t have to do this by hand. Load your existing `phone_book.json` into the [**phone_book.json Editor**](/modernGraphTool/docs/phone-book-editor/) and export it again — import reads every legacy form, and export always writes canonical `variants[]`. It converts the whole file in one pass, `hptfs[]` entries included.
+You don’t have to do this by hand. Load your existing `phone_book.json` into the [**phone_book.json Editor**](/modernGraphTool/docs/phone-book-editor/) and export it again — import reads every legacy form, and export writes `variants[]` together with the phone-level `file` (and `suffix`), so the converted file stays readable by CrinGraph and squig.link. It converts the whole file in one pass, `hptfs[]` entries included.
 
 The matching `MULTI_SAMPLE` and `HPTF` sections in `config.js` are deprecated alongside it; see [`SAMPLES`](/modernGraphTool/docs/guide-for-admins/customize-page/#samples) for the replacement keys.
 
 Combining forms
 
-Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `variants` entries on one phone are treated as **independent variants** in a single flat list — two `file` variants plus two `hptfs` entries produce four entries in the variant selector. The one exception is the in-place upgrade above: a `variants` entry naming an already-declared `file` refines that variant instead of adding another.
+Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `variants` entries on one phone are treated as **independent variants** in a single flat list — two `file` variants plus two `hptfs` entries produce four entries in the variant selector. The one exception is the in-place upgrade above: a `variants` entry naming an already-declared `file` refines that variant instead of adding another. (And when `variants` names every `file` measurement and every `hptfs` entry, it also sets their order.)
 
 Dual-hosting with CrinGraph
 
 Both halves of a shared deployment work out:
 
 * **Measurement folder** — labels, fills and per-run display are additive metadata over numbered files. A database using `count` keeps the exact `{file} L{n}.txt` layout a CrinGraph `num_samples` site expects, so one folder serves both tools.
-* **`phone_book.json`** — keep every plain measurement in `file` / `suffix`, since that is all CrinGraph reads, and add `variants` alongside it for the sample sets. CrinGraph ignores the keys it doesn’t know; modernGraphTool composes the two.
+* **`phone_book.json`** — keep every plain measurement in `file` / `suffix`, since that is all CrinGraph and squig.link search read, and add `variants` alongside it for the sample sets. CrinGraph ignores the keys it doesn’t know; modernGraphTool composes the two.
 
 ## How to Add/Modify Measurement Data
 

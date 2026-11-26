@@ -1074,6 +1074,8 @@ data/
 ```json
 {
   "name": ["HD 600"],
+  "file": ["HD600 Stock", "HD600 Mod", "HD600 Leather"],
+  "suffix": ["Stock", "Modded", "Leather Pad"],
   "variants": [
     { "suffix": "Stock", "file": "HD600 Stock" },
 
@@ -1128,6 +1130,8 @@ data/
 ```json
 {
   "name": ["HpTF Multi Pad"],
+  "file": "Leather Center",
+  "suffix": "Leather Pad",
   "variants": [
     {
       "suffix": "Leather Pad",

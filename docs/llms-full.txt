@@ -899,7 +899,7 @@ Rename and Delete are unavailable while **Device EQ** shows **Off**.
 
 A few devices have two EQs: a Qudelix 5K has its user EQ and a separate headphone EQ (“SPK EQ”), each with its own bands, presets and on/off switch. For these, an **EQ** row appears at the top of the box, and everything else follows the one you pick: the limits on the band list, **Device EQ**, **Read**, **Write** and auto-write.
 
-* Picking another EQ reads nothing and leaves your bands as they are, like picking another preset. The limits change with it (the Qudelix 5K Plus headphone EQ has 20 bands, its user EQ 10), so bands that no longer fit are marked.
+* Picking another EQ reads nothing and leaves your bands as they are, like picking another preset (over the [uniPEQ link](/modernGraphTool/docs/features/unipeq-link/), uniPEQ reads it into the band list instead). The limits change with it (the Qudelix 5K Plus headphone EQ has 20 bands, its user EQ 10), so bands that no longer fit are marked.
 * An EQ the device doesn’t have in its current mode is greyed out, and a line under the row says so. A Qudelix set to its single-EQ mode has no headphone EQ; its user EQ then has more bands, and the limits show the count the device reports.
 * If the device’s mode changes while it’s connected, the panel falls back to the main EQ the next time something fails for that reason, and says so.
 
@@ -948,7 +948,7 @@ A few have a set per ear: the Qudelix headphone EQ (“SPK EQ”) and the Toppin
 * **Read** brings back both ears. Where they hold the same thing, the bands arrive as L+R bands; where they differ, a band both ears share stays L+R and the rest arrive as left-only and right-only bands.
 * The review before a write lists what changes by the band’s number in your list, whichever ear it belongs to. A change that reaches only one ear — an L+R band with no room left on one side, say — names that ear.
 
-Linked through uniPEQ, the list is still one list for both ears.
+Linked through uniPEQ, one of these devices in uniPEQ works the same way, with a uniPEQ recent enough to carry both ears: see [uniPEQ Link](/modernGraphTool/docs/features/unipeq-link/#while-linked).
 
 ## Network devices
 
@@ -1349,14 +1349,16 @@ No device at hand? uniPEQ’s **demo device** lets you try the link without one.
 * **On a computer**, press **Open uniPEQ**. uniPEQ on the web opens in a new tab and joins. Keep this tab open while you’re linked.
 * **Anywhere else**, type the code in uniPEQ’s **Link with modernGraphTool**.
 
-uniPEQ then asks whether to link with this site, by its address. Nothing reaches the device until you say yes there. If the two apps hold different EQs, this page asks which one to keep: **Use uniPEQ’s EQ**, or **Send this EQ to uniPEQ**. Sending turns switched-off bands into 0 dB bands and leaves left- or right-only bands out, and the question says how many of each. An empty band list here takes uniPEQ’s without asking.
+uniPEQ then asks whether to link with this site, by its address. Nothing reaches the device until you say yes there. If the two apps hold different EQs, this page asks which one to keep: **Use uniPEQ’s EQ**, or **Send this EQ to uniPEQ**. Sending turns switched-off bands into 0 dB bands and leaves left- or right-only bands out unless uniPEQ’s device takes them (see below), and the question says how many of each. An empty band list here takes uniPEQ’s without asking.
 
 ## While linked
 
 There is one band list, and both apps edit it live. uniPEQ holds it and writes the device; this page shows each change it makes, and the last change wins when both apps edit the same band at once. Each app keeps its own undo history, and a change made in the other app is one step in it.
 
-* The list is one list for both ears, as a device’s is: the channel picker stays on **L+R**, and bands have no on/off switch.
+* Bands have no on/off switch. The list is one list for both ears, as most devices’ is, and the channel picker stays on **L+R**. A device in uniPEQ with a set of bands per ear (see [Left and right](/modernGraphTool/docs/features/device-peq/#left-and-right)) is the exception: the picker offers **L** and **R** too, and uniPEQ holds the two ears apart while the list has left- or right-only bands. Removing the last of them joins the ears again. This needs a uniPEQ recent enough to carry both ears; with an older one the picker stays on **L+R**. Left- or right-only bands that come back where uniPEQ can’t take them, through undo for instance, bring back the question above.
 * uniPEQ’s device shows in [Hardware EQ](/modernGraphTool/docs/features/device-peq/) as the connected device, with its limits as the active [EQ constraint](/modernGraphTool/docs/features/equalizer/#eq-constraints). **Read**, **Write**, **Device EQ** and **Auto-write** there act on uniPEQ, and a write uniPEQ can’t make exactly asks for review in both apps; either app’s answer closes both.
+* A device that keeps its presets as a list shows them under its own names, and [**New**, **Rename** and **Delete**](/modernGraphTool/docs/features/device-peq/#adding-renaming-and-deleting-presets) act on uniPEQ too. So do the device’s [settings](/modernGraphTool/docs/features/device-peq/#device-settings), each row showing what uniPEQ reads from the device. Like left- and right-only bands, these need a recent uniPEQ.
+* A device with [more than one EQ](/modernGraphTool/docs/features/device-peq/#devices-with-more-than-one-eq) gets the **EQ** row, and picking an EQ there switches the one uniPEQ edits. Unlike a device connected in this browser, uniPEQ reads the EQ you pick into the band list. While the list has changes the device doesn’t have yet, it doesn’t switch: **Write** them, or **Read** to drop them, first. An older uniPEQ doesn’t name the device’s EQs, so only the one picked in uniPEQ shows.
 * While uniPEQ’s device is reconnecting, the list can’t be edited.
 * When you started uniPEQ with **Open uniPEQ**, it runs on this machine, so the [audio player](/modernGraphTool/docs/guide-for-users/equalizing/#audio-preview) leaves the EQ to its device. **Apply it here instead** under the player’s switches takes it back, for a device this browser’s sound doesn’t play through.
 * When uniPEQ joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ. If this browser’s sound plays through the linked device, choose **Leave the EQ to the device** there, or the EQ is applied twice.

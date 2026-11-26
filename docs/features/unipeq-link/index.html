@@ -94,19 +94,33 @@ this tab open while you’re linked.</li>
 <p>uniPEQ then asks whether to link with this site, by its address. Nothing reaches the device until
 you say yes there. If the two apps hold different EQs, this page asks which one to keep:
 <strong>Use uniPEQ’s EQ</strong>, or <strong>Send this EQ to uniPEQ</strong>. Sending turns switched-off bands into 0 dB
-bands and leaves left- or right-only bands out, and the question says how many of each. An empty
-band list here takes uniPEQ’s without asking.</p>
+bands and leaves left- or right-only bands out unless uniPEQ’s device takes them (see below), and
+the question says how many of each. An empty band list here takes uniPEQ’s without asking.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="while-linked">While linked</h2><a class="sl-anchor-link" href="#while-linked"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “While linked”</span></a></div>
 <p>There is one band list, and both apps edit it live. uniPEQ holds it and writes the device; this
 page shows each change it makes, and the last change wins when both apps edit the same band at
 once. Each app keeps its own undo history, and a change made in the other app is one step in it.</p>
 <ul>
-<li>The list is one list for both ears, as a device’s is: the channel picker stays on <strong>L+R</strong>, and
-bands have no on/off switch.</li>
+<li>Bands have no on/off switch. The list is one list for both ears, as most devices’ is, and the
+channel picker stays on <strong>L+R</strong>. A device in uniPEQ with a set of bands per ear (see
+<a href="/modernGraphTool/docs/features/device-peq/#left-and-right">Left and right</a>) is the exception: the picker offers <strong>L</strong> and
+<strong>R</strong> too, and uniPEQ holds the two ears apart while the list has left- or right-only bands.
+Removing the last of them joins the ears again. This needs a uniPEQ recent enough to carry both
+ears; with an older one the picker stays on <strong>L+R</strong>. Left- or right-only bands that come back
+where uniPEQ can’t take them, through undo for instance, bring back the question above.</li>
 <li>uniPEQ’s device shows in <a href="/modernGraphTool/docs/features/device-peq/">Hardware EQ</a> as the connected device, with its
 limits as the active <a href="/modernGraphTool/docs/features/equalizer/#eq-constraints">EQ constraint</a>. <strong>Read</strong>, <strong>Write</strong>,
 <strong>Device EQ</strong> and <strong>Auto-write</strong> there act on uniPEQ, and a write uniPEQ can’t make exactly asks
 for review in both apps; either app’s answer closes both.</li>
+<li>A device that keeps its presets as a list shows them under its own names, and
+<a href="/modernGraphTool/docs/features/device-peq/#adding-renaming-and-deleting-presets"><strong>New</strong>, <strong>Rename</strong> and <strong>Delete</strong></a> act
+on uniPEQ too. So do the device’s <a href="/modernGraphTool/docs/features/device-peq/#device-settings">settings</a>, each row showing
+what uniPEQ reads from the device. Like left- and right-only bands, these need a recent uniPEQ.</li>
+<li>A device with <a href="/modernGraphTool/docs/features/device-peq/#devices-with-more-than-one-eq">more than one EQ</a> gets the
+<strong>EQ</strong> row, and picking an EQ there switches the one uniPEQ edits. Unlike a device connected in
+this browser, uniPEQ reads the EQ you pick into the band list. While the list has changes the
+device doesn’t have yet, it doesn’t switch: <strong>Write</strong> them, or <strong>Read</strong> to drop them, first. An
+older uniPEQ doesn’t name the device’s EQs, so only the one picked in uniPEQ shows.</li>
 <li>While uniPEQ’s device is reconnecting, the list can’t be edited.</li>
 <li>When you started uniPEQ with <strong>Open uniPEQ</strong>, it runs on this machine, so the
 <a href="/modernGraphTool/docs/guide-for-users/equalizing/#audio-preview">audio player</a> leaves the EQ to its device.

@@ -54,8 +54,8 @@ No device at hand? uniPEQ's **demo device** lets you try the link without one.
 uniPEQ then asks whether to link with this site, by its address. Nothing reaches the device until
 you say yes there. If the two apps hold different EQs, this page asks which one to keep:
 **Use uniPEQ's EQ**, or **Send this EQ to uniPEQ**. Sending turns switched-off bands into 0 dB
-bands and leaves left- or right-only bands out, and the question says how many of each. An empty
-band list here takes uniPEQ's without asking.
+bands and leaves left- or right-only bands out unless uniPEQ's device takes them (see below), and
+the question says how many of each. An empty band list here takes uniPEQ's without asking.
 
 ## While linked
 
@@ -63,12 +63,26 @@ There is one band list, and both apps edit it live. uniPEQ holds it and writes t
 page shows each change it makes, and the last change wins when both apps edit the same band at
 once. Each app keeps its own undo history, and a change made in the other app is one step in it.
 
-- The list is one list for both ears, as a device's is: the channel picker stays on **L+R**, and
-  bands have no on/off switch.
+- Bands have no on/off switch. The list is one list for both ears, as most devices' is, and the
+  channel picker stays on **L+R**. A device in uniPEQ with a set of bands per ear (see
+  [Left and right](./device-peq.mdx#left-and-right)) is the exception: the picker offers **L** and
+  **R** too, and uniPEQ holds the two ears apart while the list has left- or right-only bands.
+  Removing the last of them joins the ears again. This needs a uniPEQ recent enough to carry both
+  ears; with an older one the picker stays on **L+R**. Left- or right-only bands that come back
+  where uniPEQ can't take them, through undo for instance, bring back the question above.
 - uniPEQ's device shows in [Hardware EQ](./device-peq.mdx) as the connected device, with its
   limits as the active [EQ constraint](./equalizer.mdx#eq-constraints). **Read**, **Write**,
   **Device EQ** and **Auto-write** there act on uniPEQ, and a write uniPEQ can't make exactly asks
   for review in both apps; either app's answer closes both.
+- A device that keeps its presets as a list shows them under its own names, and
+  [**New**, **Rename** and **Delete**](./device-peq.mdx#adding-renaming-and-deleting-presets) act
+  on uniPEQ too. So do the device's [settings](./device-peq.mdx#device-settings), each row showing
+  what uniPEQ reads from the device. Like left- and right-only bands, these need a recent uniPEQ.
+- A device with [more than one EQ](./device-peq.mdx#devices-with-more-than-one-eq) gets the
+  **EQ** row, and picking an EQ there switches the one uniPEQ edits. Unlike a device connected in
+  this browser, uniPEQ reads the EQ you pick into the band list. While the list has changes the
+  device doesn't have yet, it doesn't switch: **Write** them, or **Read** to drop them, first. An
+  older uniPEQ doesn't name the device's EQs, so only the one picked in uniPEQ shows.
 - While uniPEQ's device is reconnecting, the list can't be edited.
 - When you started uniPEQ with **Open uniPEQ**, it runs on this machine, so the
   [audio player](../guide-for-users/equalizing.mdx#audio-preview) leaves the EQ to its device.

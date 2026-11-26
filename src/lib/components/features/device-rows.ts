@@ -17,4 +17,4 @@ export const deviceRowClass =
 export const deviceSpanClass = 'col-span-2';
 
 export const deviceSelectClass =
-	'w-full min-w-0 rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs text-base-content disabled:opacity-60';
+	'w-full min-w-0 rounded border border-base-content/20 bg-base-200 py-1 pl-2 text-xs text-base-content disabled:opacity-60 aria-disabled:opacity-60';

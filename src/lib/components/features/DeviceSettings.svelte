@@ -5,10 +5,14 @@
 	changes it, and its row shows what the device holds: the value follows the read-back, not the
 	press. One that restarts the device asks first. A gain per channel is one balance slider, in the
 	left channel's place. The caller brings the list (the EQ's settings, or the device's) and says
-	when it is `disabled`. The same mapping as uniPEQ's, so a device looks the same in both.
+	when it is `disabled`. While the device is busy the rows keep focus and take no change, but a
+	slider still moves, and the value it is let go on is written once the device is free. The same
+	mapping as uniPEQ's, so a device looks the same in both.
 -->
 <script lang="ts">
 	import type { Control } from '@potatosalad775/eqcaps-core';
+	import { untrack } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { balanceLabel, controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
 	import {
 		balanceOf,
@@ -36,36 +40,43 @@
 
 	/** A change that restarts the device, waiting for the user to confirm it. */
 	let pending = $state.raw<{ control: Control; value: number } | null>(null);
-	/** A slider's value from the drag until the device's read-back replaces it (`sent`: let go). */
-	let held = $state.raw<{ id: string; value: number; sent?: true } | null>(null);
+	/**
+	 * A slider's value, by slider, from the drag until the device's read-back replaces it. `send`:
+	 * let go, and written once the device is free (the last value let go wins). `sent`: written.
+	 */
+	const held = new SvelteMap<
+		string,
+		{ value: number; send?: (value: number) => Promise<void>; sent?: true }
+	>();
 
 	const values = $derived(devicePeqStore.controlValues);
-	const off = $derived(disabled || devicePeqStore.isBusy);
+	/** An operation is under way: every row keeps focus, says it is unavailable and takes no change. */
+	const busy = $derived(devicePeqStore.isBusy);
 	/** A label dims with its control, but not for the moment an operation takes. */
 	const dim = $derived(disabled ? 'opacity-60' : '');
 	const balance = $derived(balanceOf(controls));
 
 	const current = (c: Control) => values[c.id] ?? 0;
-	const shown = (id: string, value: number) => (held?.id === id ? held.value : value);
+	const shown = (id: string, value: number) => held.get(id)?.value ?? value;
 
 	async function set(control: Control, value: number) {
-		if (value === values[control.id]) return;
+		if (busy || value === values[control.id]) return;
 		if (control.reconnect) pending = { control, value };
 		else await devicePeqService.setControl(control.id, value);
 	}
 
-	/** Write what the slider was let go on; the row then follows the device again. */
-	async function release(id: string, write: (value: number) => Promise<void>) {
-		const value = held?.id === id ? held.value : null;
-		if (value === null) return;
-		held = { id, value, sent: true };
-		await write(value);
-	}
-
-	// Held until the device is done setting it. Over the link uniPEQ can answer before the status
-	// that reads the value back, which says it is still setting one until then.
+	// What a slider was let go on is written once the device is free, one at a time: each write
+	// makes it busy. Then it is held until the device is done setting it: over the link uniPEQ can
+	// answer before the status that reads the value back, which says it is still setting one.
 	$effect(() => {
-		if (held?.sent && !devicePeqStore.isSettingControl) held = null;
+		for (const [id, { value, send, sent }] of held) {
+			if (sent) {
+				if (!devicePeqStore.isSettingControl) held.delete(id);
+			} else if (send && !devicePeqStore.isBusy) {
+				held.set(id, { value, sent: true });
+				untrack(() => void send(value));
+			}
+		}
 	});
 
 	function hint(control: Control): string | undefined {
@@ -82,7 +93,7 @@
 
 	const uid = $props.id();
 	const sliderClass =
-		'h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent disabled:cursor-not-allowed disabled:opacity-60';
+		'h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-base-content/50 accent-accent disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:opacity-60';
 </script>
 
 {#snippet slider(
@@ -104,14 +115,20 @@
 				max={range.max}
 				step={range.step}
 				{value}
-				disabled={off}
+				{disabled}
+				aria-disabled={busy || undefined}
 				aria-valuetext={text(value)}
 				oninput={(e) => {
 					const next = e.currentTarget.valueAsNumber;
-					// Back on the device's value: a drag let go where it began fires no `change`.
-					held = next === device ? null : { id, value: next };
+					// Back on the device's value with nothing under way: a drag let go where it began
+					// fires no `change`. A value let go and not yet written is written from here.
+					if (next === device && !busy) held.delete(id);
+					else held.set(id, { value: next, send: held.get(id)?.send });
 				}}
-				onchange={() => void release(id, write)}
+				onchange={() => {
+					const moved = held.get(id);
+					if (moved) held.set(id, { value: moved.value, send: write });
+				}}
 				class={sliderClass}
 			/>
 			<span class="{readout} shrink-0 text-right whitespace-nowrap text-base-content tabular-nums">
@@ -145,7 +162,8 @@
 				id="{uid}-{control.id}"
 				size="sm"
 				bind:checked={() => current(control) === 1, (on) => void set(control, on ? 1 : 0)}
-				disabled={off}
+				{disabled}
+				blocked={busy}
 			/>
 		</div>
 	{:else if control.kind === 'choice'}
@@ -153,7 +171,8 @@
 			<span class={dim}>{label}</span>
 			<select
 				value={String(current(control))}
-				disabled={off}
+				{disabled}
+				aria-disabled={busy || undefined}
 				onchange={(e) => {
 					const select = e.currentTarget;
 					// A refused change leaves the device as it was: show that again.
@@ -181,7 +200,8 @@
 					label: String(v),
 					title: controlValueLabel(control, v)
 				}))}
-				disabled={off}
+				{disabled}
+				blocked={busy}
 				class="w-full"
 			/>
 		</div>

@@ -285,7 +285,7 @@ class DevicePeqService {
 	/** Find a device again after it dropped the connection, or restarted to save. */
 	async reconnect(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		if (!conn || devicePeqStore.isBusy) return;
 		// uniPEQ holds the device: it reconnects, and says so in `status`.
 		const link = this.linkDevice;
 		if (link) return link.reconnect().catch((e: unknown) => this.fail(e, 'connect'));
@@ -409,7 +409,7 @@ class DevicePeqService {
 	/** Replace the band list with what Device EQ shows. */
 	async read(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		if (!conn || !devicePeqStore.readTarget) return;
+		if (!conn || !devicePeqStore.readTarget || devicePeqStore.isBusy) return;
 		const link = this.linkDevice;
 		if (link) {
 			// uniPEQ reads into the shared list, which arrives as an `eq`; `status` says it's busy.
@@ -456,7 +456,7 @@ class DevicePeqService {
 	 */
 	async prepare(): Promise<PushPlan | null> {
 		const conn = devicePeqStore.connection;
-		if (!conn || !devicePeqStore.writeTarget) return null;
+		if (!conn || !devicePeqStore.writeTarget || devicePeqStore.isBusy) return null;
 		const caps = conn.device.capabilities;
 		const plan = (hints?: Layout | null) =>
 			planPush(eqStore.filters, eqStore.preamp, conn.profile, caps, hints ?? undefined);
@@ -480,6 +480,7 @@ class DevicePeqService {
 	 * comes back as `status.review`, which opens the same review dialog here as in uniPEQ.
 	 */
 	async writeLinked(): Promise<void> {
+		if (devicePeqStore.isBusy) return;
 		await this.linkDevice?.write().catch((e: unknown) => this.fail(e, 'write'));
 	}
 
@@ -495,7 +496,7 @@ class DevicePeqService {
 	async write(plan: PushPlan, auto = false): Promise<boolean> {
 		const conn = devicePeqStore.connection;
 		const request = devicePeqStore.writeTarget;
-		if (!conn || !request) return false;
+		if (!conn || !request || devicePeqStore.isBusy) return false;
 		const snapshot = { filters: eqStore.filters, preamp: eqStore.preamp };
 		devicePeqStore.isWriting = true;
 		try {
@@ -558,7 +559,7 @@ class DevicePeqService {
 	async choose(value: string): Promise<void> {
 		const conn = devicePeqStore.connection;
 		// Device EQ offers the EQ on no preset only while the device holds one.
-		if (!conn || (value === 'unsaved' && !devicePeqStore.unsaved)) return;
+		if (!conn || devicePeqStore.isBusy || (value === 'unsaved' && !devicePeqStore.unsaved)) return;
 		// An edit waiting to be auto-written belongs to the preset it was made on.
 		this.#cancelPending();
 		const slot = value.startsWith('p')

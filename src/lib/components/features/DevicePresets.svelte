@@ -78,7 +78,8 @@
 			variant="outline"
 			size="xs"
 			class="flex-1"
-			disabled={busy || full}
+			disabled={full}
+			blocked={busy}
 			onclick={() => void devicePeqService.createPreset()}
 		/>
 		<Button
@@ -87,7 +88,8 @@
 			variant="outline"
 			size="xs"
 			class="flex-1"
-			disabled={busy || !shown}
+			disabled={!shown}
+			blocked={busy}
 			onclick={startRename}
 		/>
 		<Button
@@ -96,7 +98,8 @@
 			variant="outline"
 			size="xs"
 			class="flex-1"
-			disabled={busy || !shown || count <= 1}
+			disabled={!shown || count <= 1}
+			blocked={busy}
 			onclick={() => (deleting = true)}
 		/>
 	</span>
@@ -122,7 +125,7 @@
 			aria-invalid={refused}
 			aria-describedby={refused ? 'device-preset-rename-refused' : undefined}
 			maxlength={64}
-			disabled={busy}
+			readonly={busy}
 		/>
 		{#if refused}
 			<p id="device-preset-rename-refused" role="alert" class="text-sm text-base-content">
@@ -137,7 +140,8 @@
 			variant="primary"
 			type="submit"
 			form="device-preset-rename"
-			disabled={busy || newName.trim() === ''}
+			disabled={newName.trim() === ''}
+			blocked={busy}
 		/>
 	{/snippet}
 </Dialog>

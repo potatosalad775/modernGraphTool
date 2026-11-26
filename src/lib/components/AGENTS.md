@@ -48,6 +48,13 @@ four.
   can pin its name with an explicit `aria-label`.
 - Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
   `aria-controls` and `disabled` work as written.
+- **`blocked` is for a moment, `disabled` for can't-here.** `Button`, `SegmentedControl` and
+  `Switch` take `blocked` for a passing state (Hardware EQ while the device is busy):
+  `aria-disabled`, the dimmed look, and a press does nothing (a submit button's form isn't sent),
+  but focus stays. A focused control that turns `disabled` drops focus to `<body>`, so a keyboard
+  user's next keys go nowhere. A native `<select>` or slider takes `aria-disabled` itself (the
+  Hardware EQ rows). In specs, Playwright's `click()`, `selectOptions` and `toBeEnabled()` treat
+  `aria-disabled` as disabled: assert the attribute and focus, and force a press on a blocked control.
 
 `SegmentedControl` is the one-of-N picker (the EQ channel scope, the AutoEQ fit mode):
 

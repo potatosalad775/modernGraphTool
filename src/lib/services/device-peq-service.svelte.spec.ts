@@ -2609,8 +2609,9 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 			// The device names a new preset: the name comes with the next status.
 			await devicePeqService.createPreset();
 			expect(devicePeqStore.statusMessage).toBe('Renamed the preset to “Metal”.');
+			// uniPEQ may still be asking its volume warning: what it deleted comes with the status.
 			await devicePeqService.deletePreset(2);
-			expect(devicePeqStore.statusMessage).toBe('Deleted “Pop” from the device.');
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset to “Metal”.');
 
 			expect(command.mock.calls).toEqual([
 				['preset-rename', { slot: 1, name: 'Metal' }],

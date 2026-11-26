@@ -773,6 +773,15 @@ describe('linkService', () => {
 				error.mockRestore();
 			}
 		});
+
+		it('says nothing of a delete uniPEQ answers: it may still be asking its volume warning', async () => {
+			await listing();
+			devicePeqStore.setStatus(null);
+			await devicePeqService.deletePreset(2);
+			expect(host.command).toHaveBeenLastCalledWith('preset-delete', { slot: 2 });
+			expect(devicePeqStore.statusMessage).toBeNull();
+			expect(names()).toEqual(['Jazz', 'Rock', 'Pop']);
+		});
 	});
 
 	describe('with uniPEQ’s device having settings of its own', () => {

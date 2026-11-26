@@ -711,9 +711,13 @@ class DevicePeqService {
 			await remove(slot.id);
 			return m.device_presets_deleted({ name: slot.name });
 		};
-		// uniPEQ warns for its own device, and reads the EQ's settings again itself.
+		// uniPEQ warns for its own device, and answers before it deletes anything while it asks: what
+		// it did arrives in `status.slots`, so nothing is said here. It reads the settings again too.
 		if (link) {
-			await this.#editLinked(edit);
+			await this.#editLinked(async () => {
+				await remove(slot.id);
+				return null;
+			});
 			return;
 		}
 		// A waiting auto-write was aimed at the target's id, which the delete may move.

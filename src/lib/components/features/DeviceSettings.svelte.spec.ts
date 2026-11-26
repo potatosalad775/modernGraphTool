@@ -326,6 +326,26 @@ describe('DeviceSettings', () => {
 			await expect.element(slider).toHaveValue('25');
 		});
 
+		it('holds the value let go while the device is still setting it, as uniPEQ’s status says past its answer', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ });
+			setControl.mockImplementationOnce(async () => {
+				devicePeqStore.isSettingControl = true;
+			});
+
+			drag(slider.element(), 40);
+			release(slider.element());
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledOnce());
+			await expect.element(slider).toHaveValue('40');
+
+			devicePeqStore.controlValues = { vol: 40 };
+			devicePeqStore.isSettingControl = false;
+			await expect.element(slider).toHaveValue('40');
+			devicePeqStore.controlValues = { vol: 30 };
+			await expect.element(slider).toHaveValue('30');
+		});
+
 		it('writes nothing for a change event with no drag, or a drag back to where it was', async () => {
 			connectWith([VOLUME], { vol: 25 });
 			await render(DeviceSettings, { controls: [VOLUME] });

@@ -1042,16 +1042,18 @@ class DevicePeqService {
 			return;
 		}
 		this.#running = true;
+		// A read, a switch, a setting or a button write is under way: try again after it.
+		const retryIfBusy = () => {
+			if (!devicePeqStore.isBusy) return false;
+			this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
+			return true;
+		};
 		try {
 			let seen: number;
 			do {
 				seen = this.#queued;
 				if (!this.autoWriting || devicePeqStore.needsReconnect || this.linkDevice) return;
-				if (devicePeqStore.isBusy) {
-					// A read, a switch or a button write is under way: try again after it.
-					this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
-					return;
-				}
+				if (retryIfBusy()) return;
 				if (devicePeqStore.inSync === true) {
 					devicePeqStore.autoPaused = false;
 					continue;
@@ -1066,6 +1068,8 @@ class DevicePeqService {
 					devicePeqStore.autoPaused = true;
 					continue;
 				}
+				// Reading the layout for the plan can end with another operation starting.
+				if (retryIfBusy()) return;
 				if (!(await this.write(plan, true))) return;
 			} while (this.#queued !== seen);
 		} finally {

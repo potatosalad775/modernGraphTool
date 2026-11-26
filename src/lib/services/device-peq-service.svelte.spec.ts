@@ -226,6 +226,52 @@ describe('devicePeqService auto-write', () => {
 		settingsStore.setDevicePeqAutoWrite(true);
 		expect(devicePeqService.autoWriting).toBe(false);
 	});
+
+	it('writes an edit after an operation that starts while its plan reads the layout', async () => {
+		const device = connect();
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+
+		device.pull.mockImplementationOnce(async () => {
+			devicePeqStore.isSettingControl = true;
+			return { filters: [] };
+		});
+		await edit(FOUR.slice(0, 3));
+		await vi.waitFor(() => expect(device.pull).toHaveBeenCalledTimes(1));
+		expect(device.push).toHaveBeenCalledTimes(1);
+
+		devicePeqStore.isSettingControl = false;
+		await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+		expect(device.push).toHaveBeenCalledTimes(2);
+		expect(devicePeqStore.inSync).toBe(true);
+	});
+
+	it('writes nothing to the preset picked next, for an edit made while its plan read the layout', async () => {
+		const device = connect({
+			slots: [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			]
+		});
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+
+		device.pull.mockImplementationOnce(async () => {
+			eqStore.filters = FOUR.slice(0, 2);
+			flushSync();
+			devicePeqStore.isSettingControl = true;
+			return { filters: [] };
+		});
+		await edit(FOUR.slice(0, 3));
+		await vi.waitFor(() => expect(device.pull).toHaveBeenCalledTimes(1));
+		await vi.advanceTimersByTimeAsync(0);
+		devicePeqStore.isSettingControl = false;
+
+		await devicePeqService.choose('p102');
+		await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+
+		expect(device.push).toHaveBeenCalledTimes(1);
+	});
 });
 
 describe('devicePeqService on a device that can be on no preset', () => {
@@ -1155,6 +1201,111 @@ describe('devicePeqService device settings', () => {
 
 			volumeWarning.answer(true);
 			await vi.waitFor(() => expect(device.writeControl).toHaveBeenCalledWith('gain', -6));
+		});
+	});
+
+	describe('setWhenFree', () => {
+		const later = (id: string, value: number, ofEq = false) =>
+			devicePeqService.setWhenFree(id, value, () => devicePeqService.setControl(id, value), ofEq);
+
+		it('writes a setting let go during another operation once it is over, holding it meanwhile', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			devicePeqStore.isReading = true;
+
+			later('gain', -6);
+			expect(devicePeqService.heldSetting('gain')).toBe(-6);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).not.toHaveBeenCalled();
+
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
+			await vi.waitFor(() => expect(devicePeqService.heldSetting('gain')).toBeUndefined());
+			expect(devicePeqStore.controlValues.gain).toBe(-6);
+		});
+
+		it('writes the next one only once the volume warning the last one asked is answered', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			settingsStore.setVolumeWarning(true);
+			devicePeqStore.isReading = true;
+
+			later('gain', -6);
+			later('feed', 1);
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() => expect(volumeWarning.open).toBe(true));
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).not.toHaveBeenCalled();
+			expect(devicePeqService.heldSetting('gain')).toBe(-6);
+
+			volumeWarning.answer(true);
+			await vi.waitFor(() =>
+				expect(device.writeControl.mock.calls).toEqual([
+					['gain', -6],
+					['feed', 1]
+				])
+			);
+		});
+
+		it('drops a setting of the EQ once the device is on another preset, not a device setting', async () => {
+			const slots = [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			];
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 }, { caps: { slots } });
+			await connectVia(fakeConnection(device));
+			expect(devicePeqStore.deviceSlot).toBe(101);
+
+			const switching = devicePeqService.choose('p102');
+			later('feed', 1, true);
+			later('gain', -6);
+			expect(devicePeqService.heldSetting('feed')).toBe(1);
+			await switching;
+
+			expect(devicePeqStore.deviceSlot).toBe(102);
+			expect(devicePeqService.heldSetting('feed')).toBeUndefined();
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).toHaveBeenCalledOnce();
+		});
+
+		it('writes nothing it held for a connection that has gone', async () => {
+			const first = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(first));
+			devicePeqStore.isReading = true;
+			later('gain', -6);
+
+			await devicePeqService.disconnect();
+			const second = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(second));
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			expect(devicePeqService.heldSetting('gain')).toBeUndefined();
+			expect(first.writeControl).not.toHaveBeenCalled();
+			expect(second.writeControl).not.toHaveBeenCalled();
+		});
+
+		it('waits for the write that follows the layout Write reads, rather than refusing it', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			eqStore.filters = FOUR.slice(0, 3);
+			device.pull.mockImplementationOnce(async () => {
+				later('gain', -6);
+				return { filters: [] };
+			});
+
+			const plan = await devicePeqService.prepare();
+			expect(device.pull).toHaveBeenCalledOnce();
+			await expect(devicePeqService.write(plan!)).resolves.toBe(true);
+
+			expect(device.push).toHaveBeenCalledOnce();
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
 		});
 	});
 
@@ -2803,5 +2954,80 @@ describe('devicePeqService on a device that keeps its presets as a list', () => 
 
 			expect(device.push).toHaveBeenCalledTimes(1);
 		});
+	});
+});
+
+describe('devicePeqService while another operation runs', () => {
+	beforeEach(() => {
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+	afterEach(() => devicePeqStore.setDisconnected());
+
+	it('reads nothing', async () => {
+		const device = connect();
+		devicePeqStore.isSettingControl = true;
+
+		await devicePeqService.read();
+
+		expect(device.pull).not.toHaveBeenCalled();
+		expect(eqStore.filters).toEqual(FOUR);
+	});
+
+	it('plans and writes nothing', async () => {
+		const device = connect();
+		const plan = await devicePeqService.prepare();
+		expect(plan).not.toBeNull();
+		devicePeqStore.isSwitching = true;
+
+		await expect(devicePeqService.prepare()).resolves.toBeNull();
+		await expect(devicePeqService.write(plan!)).resolves.toBe(false);
+
+		expect(device.push).not.toHaveBeenCalled();
+		expect(devicePeqStore.synced).toBeNull();
+	});
+
+	it('switches nothing', async () => {
+		const device = connect({
+			slots: [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			]
+		});
+		devicePeqStore.isReading = true;
+
+		await devicePeqService.choose('p102');
+		await devicePeqService.choose('off');
+
+		expect(device.setEnabled).not.toHaveBeenCalled();
+		expect(devicePeqStore.selection).toBe(101);
+	});
+
+	it('reopens nothing while it reconnects', async () => {
+		const reopen = vi.fn(async () => fakeConnection(fakeDevice()));
+		devicePeqStore.setConnected(fakeConnection(fakeDevice(), { reopen }), 101);
+		devicePeqStore.needsReconnect = true;
+		devicePeqStore.isConnecting = true;
+
+		await devicePeqService.reconnect();
+
+		expect(reopen).not.toHaveBeenCalled();
+	});
+
+	it('sends uniPEQ no read, write, switch or reconnect', async () => {
+		const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
+		const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+		const device = new LinkPeqDevice(port, CAPS);
+		devicePeqStore.setConnected(fakeConnection(device, { connectionType: 'link' }), 101);
+		devicePeqStore.isWriting = true;
+
+		await devicePeqService.read();
+		await devicePeqService.writeLinked();
+		await devicePeqService.choose('off');
+		await devicePeqService.reconnect();
+
+		expect(command).not.toHaveBeenCalled();
 	});
 });

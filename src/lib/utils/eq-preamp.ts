@@ -1,6 +1,6 @@
 import type { Domain, Profile } from '@potatosalad775/eqcaps-core';
 import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
-import { effectiveFilters } from './eq-channel.js';
+import { effectiveFilters, type EqChannel } from './eq-channel.js';
 
 /** 1/48 octave, 20 Hz to 20 kHz: where the preamp looks for the largest boost. */
 const PREAMP_GRID = Array.from({ length: 480 }, (_, i) => 20 * Math.pow(1000, i / 479));
@@ -14,8 +14,9 @@ const PREAMP_GRID = Array.from({ length: 480 }, (_, i) => 20 * Math.pow(1000, i 
  * than the source at any frequency. The peak rounds up to 0.1 dB, so the
  * rounding never gives back headroom. Both are uniPEQ's rule too, so a linked
  * list shows the same preamp on both sides (uniPEQ src/lib/eq/eq-preamp.ts).
+ * `ear` asks for that ear's alone.
  */
-export function derivePreamp(filters: EQFilter[]): number {
+export function derivePreamp(filters: EQFilter[], ear?: EqChannel): number {
 	const enabled = filters.filter(isPlayableBand);
 	if (!enabled.length) return 0;
 	// Every band's own centre is sampled too: a narrow boost peaks there, and
@@ -28,7 +29,7 @@ export function derivePreamp(filters: EQFilter[]): number {
 	// Taking the worst case is what keeps the louder channel from clipping;
 	// with no per-channel bands both sides compute the same number, so this
 	// is the old value exactly.
-	const perEar = (['L', 'R'] as const).map((ch) =>
+	const perEar = (ear ? [ear] : (['L', 'R'] as const)).map((ch) =>
 		eq.calculatePreamp(baseFR, effectiveFilters(enabled, ch))
 	);
 	const peak = Math.max(0, -Math.min(...perEar));

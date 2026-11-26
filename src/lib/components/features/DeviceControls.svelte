@@ -298,7 +298,7 @@
 					variant="primary"
 					size="xs"
 					class="shrink-0"
-					disabled={devicePeqStore.isConnecting}
+					blocked={devicePeqStore.isBusy}
 					onclick={() => devicePeqService.reconnect()}
 				/>
 			</div>
@@ -332,7 +332,7 @@
 									() => eqChosen, (next) => void devicePeqService.selectEq(eqs[Number(next)]?.id)
 								}
 								options={eqChoices}
-								disabled={devicePeqStore.isBusy}
+								blocked={devicePeqStore.isBusy}
 								class="w-full"
 							/>
 						</div>
@@ -357,7 +357,7 @@
 							<select
 								id="{uid}-eq"
 								value={eqValue}
-								disabled={devicePeqStore.isBusy}
+								aria-disabled={devicePeqStore.isBusy || undefined}
 								onchange={(e) => {
 									const select = e.currentTarget;
 									// A failed switch leaves the device as it was: show that again.
@@ -391,7 +391,7 @@
 								bind:checked={
 									() => devicePeqStore.eqEnabled !== false, (on) => void chooseEq(on ? 'on' : 'off')
 								}
-								disabled={devicePeqStore.isBusy}
+								blocked={devicePeqStore.isBusy}
 							/>
 						</div>
 					{/if}
@@ -422,7 +422,8 @@
 						variant="outline"
 						size="sm"
 						class="flex-1"
-						disabled={devicePeqStore.isBusy || !readTarget}
+						disabled={!readTarget}
+						blocked={devicePeqStore.isBusy}
 						onclick={pullFromDevice}
 					/>
 				{/if}
@@ -439,7 +440,8 @@
 						variant="primary"
 						size="sm"
 						class="flex-1"
-						disabled={devicePeqStore.isBusy || !writeTarget}
+						disabled={!writeTarget}
+						blocked={devicePeqStore.isBusy}
 						onclick={pushToDevice}
 					/>
 				{/if}
@@ -486,7 +488,7 @@
 						variant="outline"
 						size="xs"
 						class="shrink-0"
-						disabled={devicePeqStore.isBusy}
+						blocked={devicePeqStore.isBusy}
 						onclick={pushToDevice}
 					/>
 				{/if}
@@ -499,5 +501,6 @@
 	bind:open={showPushDialog}
 	plan={pendingPlan}
 	deviceName={connection?.name ?? ''}
+	blocked={devicePeqStore.isBusy}
 	onConfirm={() => pendingPlan && writePlan(pendingPlan)}
 />

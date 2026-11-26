@@ -25,6 +25,12 @@
 		 * all want the accent treatment rather than the muted default below.
 		 */
 		activeOnOpen?: boolean;
+		/**
+		 * Unusable for a moment (an operation under way); `disabled` is for unusable here at all.
+		 * Sets `aria-disabled`, looks disabled and ignores a press, but keeps focus, which a
+		 * `disabled` button drops to the page.
+		 */
+		blocked?: boolean;
 	} & (
 			| {
 					/**
@@ -49,6 +55,7 @@
 		variant = 'primary',
 		size = 'md',
 		activeOnOpen = false,
+		blocked = false,
 		label,
 		title,
 		icon,
@@ -109,10 +116,16 @@
 			sizeClasses[size],
 			variantClasses[variant],
 			activeOnOpen && activeOnOpenClasses,
+			blocked && 'cursor-not-allowed opacity-50',
 			// bits-ui types `class` as Svelte's `ClassValue`, which admits objects and
 			// arrays; every call site passes a plain string, and twMerge wants one.
 			restProps.class as string | undefined
 		)
+	);
+
+	/** `preventDefault`, not a no-op: it also stops a submit button sending its form. */
+	const own = $derived(
+		blocked ? { ...restProps, onclick: (e: MouseEvent) => e.preventDefault() } : restProps
 	);
 </script>
 
@@ -124,8 +137,9 @@
 <Tooltip text={label === undefined ? title : hint} hint={label === undefined ? hint : undefined}>
 	{#snippet trigger({ props })}
 		<Button.Root
-			{...mergeTooltipProps(restProps, props)}
+			{...mergeTooltipProps(own, props)}
 			class={className}
+			aria-disabled={blocked || restProps['aria-disabled']}
 			aria-label={restProps['aria-label'] || title}
 			aria-describedby={hint ? hintId : restProps['aria-describedby']}
 		>

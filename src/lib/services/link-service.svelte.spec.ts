@@ -1130,6 +1130,109 @@ describe('linkService', () => {
 		});
 	});
 
+	describe('retiring this page’s last message once uniPEQ starts device work', () => {
+		const QUDELIX = {
+			...DEVICE,
+			eq: null,
+			eqs: [
+				{ id: null, name: 'USR EQ' },
+				{ id: 'spk', name: 'SPK EQ' }
+			],
+			capabilities: {
+				...DEVICE.capabilities,
+				controls: [{ id: 'feed', name: 'Crossfeed', kind: 'toggle' }]
+			}
+		};
+		const IDLE: LinkStatus = { ...STATUS, controls: { feed: 0 } };
+
+		async function withQudelix() {
+			await linked(4);
+			host.status = IDLE;
+			host.emit('status', IDLE);
+			host.emit('device', QUDELIX);
+		}
+
+		/** uniPEQ writing its device, as the Qudelix showed it: busy, in sync, idle. */
+		function uniPEQWrites(status = IDLE) {
+			host.emit('status', { ...status, busy: 'write', inSync: false });
+			host.emit('status', { ...status, busy: 'write', inSync: true });
+			host.emit('status', { ...status, busy: null, inSync: true });
+		}
+
+		it('drops a refused EQ pick’s error once a Write here gets the device the list', async () => {
+			await withQudelix();
+			host.command.mockResolvedValueOnce({ ok: false, code: 'unwritten' });
+			await devicePeqService.selectEq('spk');
+			expect(devicePeqStore.statusMessage).toBe(m.device_eq_unwritten());
+			expect(devicePeqStore.statusIsError).toBe(true);
+
+			host.command.mockImplementationOnce(async () => {
+				uniPEQWrites();
+				return { ok: true };
+			});
+			await devicePeqService.writeLinked();
+			expect(devicePeqStore.statusMessage).toBeNull();
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('retires a setting’s message when uniPEQ writes an edit made there', async () => {
+			await withQudelix();
+			await devicePeqService.setControl('feed', 1);
+			expect(devicePeqStore.statusMessage).not.toBeNull();
+
+			uniPEQWrites({ ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBeNull();
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('keeps a failure uniPEQ still reports past new work, until uniPEQ clears it', async () => {
+			await withQudelix();
+			const failed = { ...IDLE, failure: { op: 'write', code: 'timeout' } };
+			host.emit('status', failed);
+			const message = devicePeqStore.statusMessage;
+			expect(message).not.toBeNull();
+			expect(devicePeqStore.statusIsError).toBe(true);
+
+			host.emit('status', { ...failed, busy: 'write' });
+			expect(devicePeqStore.statusMessage).toBe(message);
+			expect(devicePeqStore.statusIsError).toBe(true);
+
+			host.emit('status', IDLE);
+			expect(devicePeqStore.statusMessage).toBeNull();
+			expect(devicePeqStore.statusIsError).toBe(false);
+		});
+
+		it('keeps a message set while uniPEQ works on, through the rest of that work', async () => {
+			await withQudelix();
+			const answer = host.hold();
+			const first = devicePeqService.setControl('feed', 1);
+			host.emit('status', { ...IDLE, busy: 'control' });
+			answer();
+			await first;
+			const message = devicePeqStore.statusMessage;
+			expect(message).not.toBeNull();
+
+			host.emit('status', { ...IDLE, busy: 'read' });
+			host.emit('status', { ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBe(message);
+		});
+
+		it('keeps a setting’s message when uniPEQ says it is busy with it only after answering', async () => {
+			await withQudelix();
+			await devicePeqService.setControl('feed', 1);
+			const message = devicePeqStore.statusMessage;
+			expect(message).not.toBeNull();
+
+			host.emit('status', { ...IDLE, busy: 'control', controls: { feed: 1 } });
+			host.emit('status', { ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBe(message);
+
+			// Idle again, uniPEQ's own work retires it.
+			uniPEQWrites({ ...IDLE, controls: { feed: 1 } });
+			expect(devicePeqStore.statusMessage).toBeNull();
+		});
+	});
+
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {
 		await linked();
 		host.eq([wire(100, 3)]);

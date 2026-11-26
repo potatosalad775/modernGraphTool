@@ -826,6 +826,7 @@
 	"link_start_title": "Which EQ should the link use?",
 	"link_preamp_fixed": "fixed in uniPEQ",
 	"link_preamp_use_auto": "Use Auto",
+	"link_preamp_clips": "This preamp may clip: the bands need {needed} dB or lower.",
 	"volume_warning_title": "Lower the volume first",
 	"volume_warning_body": "Changing a device's EQ or starting playback can cause a pop, a dropout or a sudden jump in loudness. Pause playback or turn the volume down before you go on.",
 	"volume_warning_body_unipeq": "uniPEQ is about to change the EQ on {device}. A write can cause a pop, a dropout or a sudden jump in loudness, so pause playback or turn the volume down while you adjust the EQ.",

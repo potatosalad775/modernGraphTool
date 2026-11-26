@@ -150,6 +150,13 @@ never disposed.
   writes that would change nothing, which is what stops a Read from echoing back.
 - **The target preset's layout is read once** (`devicePeqStore.layout`, dropped on any preset
   change), not before every automatic write.
+- **A slider let go while the device is busy waits here, not in its row** (`setWhenFree`, shown
+  through `heldSetting`), so a panel switch or `needsReconnect` unmounting `DeviceSettings` can't
+  drop it. Rows go in turn, each after the last one's write and its volume warning, and a new
+  connection drops them. So does another preset (`deviceSlot`) for a setting of the EQ, which the
+  device keeps with each one: written then, it would land on that one. The write waits for a timer
+  after the device frees up: Write's layout read and a new preset free it for a moment before their
+  next step, which would refuse.
 
 ## `link-service.svelte.ts` — the uniPEQ link
 
@@ -210,6 +217,11 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   through `setAbsent`, likewise) and the settings' values (`status.controls` into
   `controlValues`). `devicePeqService`'s preset edits and settings only send their command; what
   they did arrives in a `status`, before or after the command's answer (`device-peq/AGENTS.md`).
+- **The last message this page set goes when uniPEQ starts device work** (`status.busy` from null
+  to a kind, in `#status`). uniPEQ's Read, Write and switches set none here, so a refused EQ pick's
+  error, or a setting's message shown as the in-sync line, would outlive the work that follows it;
+  a failure uniPEQ still reports stays until uniPEQ clears it. Work uniPEQ reports after answering
+  this page's command for it keeps that command's message (`#answered`, until uniPEQ is idle).
 - **For a link connection, link-service is the only writer of the five busy flags** (`#busy`). A
   flag is on while uniPEQ's last `status.busy` names it, or while a command of that kind from this
   page still awaits its answer (`COMMAND_FLAG`; `#port` wraps the `LinkPort` Hardware EQ's device
@@ -237,7 +249,8 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
   With the channels apart it is the lower of the two, Auto only if both are, as uniPEQ_link's
   design also says: this page plays one preamp ahead of the per-ear split, so the lower one
-  keeps the louder ear from clipping, as `derivePreamp` does.
+  keeps the louder ear from clipping, as `derivePreamp` does. uniPEQ's device plays each
+  channel's own, so `linkedPreamp.fixed` keeps them for `EqFilterList`'s clip warning.
 
 ## `data-provider.svelte.ts`
 

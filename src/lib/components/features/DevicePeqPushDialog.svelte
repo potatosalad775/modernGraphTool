@@ -13,12 +13,15 @@
 		open = $bindable(false),
 		plan,
 		deviceName,
+		blocked = false,
 		onConfirm,
 		onCancel
 	}: {
 		open?: boolean;
 		plan: PushPlan | null;
 		deviceName: string;
+		/** The device is busy for a moment: Write waits, as the panel's own does. */
+		blocked?: boolean;
 		onConfirm: () => void;
 		/** Closed without writing: Cancel, Escape or a click outside. uniPEQ's review needs the no. */
 		onCancel?: () => void;
@@ -111,6 +114,7 @@
 			label={m.equalizer_device_peq_push_confirm()}
 			variant="primary"
 			size="sm"
+			{blocked}
 			onclick={confirm}
 		/>
 	{/snippet}

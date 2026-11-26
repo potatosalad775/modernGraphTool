@@ -48,6 +48,13 @@ four.
   can pin its name with an explicit `aria-label`.
 - Everything else passes through to bits-ui's `Button.Root`, so `onclick`, `aria-expanded`,
   `aria-controls` and `disabled` work as written.
+- **`blocked` is for a moment, `disabled` for can't-here.** `Button`, `SegmentedControl` and
+  `Switch` take `blocked` for a passing state (Hardware EQ while the device is busy):
+  `aria-disabled`, the dimmed look, and a press does nothing (a submit button's form isn't sent),
+  but focus stays. A focused control that turns `disabled` drops focus to `<body>`, so a keyboard
+  user's next keys go nowhere. A native `<select>` or slider takes `aria-disabled` itself (the
+  Hardware EQ rows). In specs, Playwright's `click()`, `selectOptions` and `toBeEnabled()` treat
+  `aria-disabled` as disabled: assert the attribute and focus, and force a press on a blocked control.
 
 `SegmentedControl` is the one-of-N picker (the EQ channel scope, the AutoEQ fit mode):
 
@@ -202,7 +209,9 @@ the sort track `loadedIds` live looks like a simplification and re-sorts rows ou
 cursor mid-click; keeping a stale pin on a device the user just unloaded is the deliberate trade.
 
 **The preamp samples every band's own centre** (`utils/eq-preamp.ts`, written to `eqStore` by
-`eqCurve.installSync`; `EqFilterList` only shows it and toasts a reduction). It is minus
+`eqCurve.installSync`; `EqFilterList` shows it, toasts a reduction, and while linked warns where a
+channel uniPEQ plays at a fixed preamp has too little room for that channel's bands, toasting
+nothing then). It is minus
 the largest boost the enabled filters apply, read on a 1/48-octave grid _plus_ each band's `freq`. A narrow
 boost peaks at its centre, and a grid that straddles it under-reads the peak: the 100-point grid
 this replaced missed up to 0.9 dB at Q 6, and the output clipped by exactly that. AutoEQ leaves the

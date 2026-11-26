@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import SegmentedControl from './SegmentedControl.svelte';
 
 const OPTIONS = [
@@ -61,5 +61,34 @@ describe('SegmentedControl', () => {
 
 		await expect.element(page.getByRole('radio', { name: 'Alpha' })).toBeChecked();
 		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	it('stays focusable while blocked, says it is unavailable, and keeps its value on a press', async () => {
+		const onValueChange = vi.fn();
+		await render(SegmentedControl, {
+			value: 'a',
+			options: OPTIONS,
+			label: 'Pick',
+			onValueChange,
+			blocked: true
+		});
+		const alpha = page.getByRole('radio', { name: 'Alpha' });
+		const beta = page.getByRole('radio', { name: 'Beta' });
+		await expect.element(beta).not.toHaveAttribute('disabled');
+		await expect.element(beta).toHaveAttribute('aria-disabled', 'true');
+		await expect.element(alpha).toHaveAttribute('aria-disabled', 'true');
+
+		await beta.click({ force: true });
+		await userEvent.keyboard(' ');
+
+		expect(document.activeElement).toBe(beta.element());
+		await expect.element(alpha).toBeChecked();
+		await expect.element(beta).not.toBeChecked();
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	it('keeps an option held back disabled while the control is blocked', async () => {
+		await render(SegmentedControl, { value: 'a', options: OPTIONS, label: 'Pick', blocked: true });
+		await expect.element(page.getByRole('radio', { name: 'Gamma' })).toBeDisabled();
 	});
 });

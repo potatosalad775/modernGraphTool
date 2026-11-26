@@ -16,6 +16,7 @@
  */
 import { noop } from '#lib/utils/noop.js';
 import { untrack } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 import { toast } from '#lib/services/toast.js';
 import * as m from '#lib/paraglide/messages.js';
 import { controlLabel, controlValueLabel } from '#lib/device-peq/control-labels.js';
@@ -31,6 +32,7 @@ import {
 	currentSlotOf,
 	readRequest,
 	tellsUnsaved,
+	type CurrentSlot,
 	type PresetRequest
 } from '#lib/device-peq/preset.js';
 import {
@@ -170,6 +172,16 @@ interface Seen {
 	conn: DeviceConnection | null;
 }
 
+/** A row's setting, waiting for the device to be free (`sent`: written, not read back yet). */
+interface HeldSetting {
+	conn: DeviceConnection;
+	/** For a setting of the EQ, which the device keeps with each preset: the one it was let go on. */
+	slot?: CurrentSlot;
+	value: number;
+	write: () => Promise<void>;
+	sent?: true;
+}
+
 class DevicePeqService {
 	#installed = false;
 	#timer: ReturnType<typeof setTimeout> | undefined;
@@ -180,6 +192,8 @@ class DevicePeqService {
 	#unwatchLost: () => void = noop;
 	/** A setting that restarts the device is being written: the device may go before it returns. */
 	#restarting = false;
+	/** By row: here, not in the row, so a setting let go on outlives the panel (`setWhenFree`). */
+	#settings = new SvelteMap<string, HeldSetting>();
 
 	/** The connected device when it is uniPEQ's, reached over the link. */
 	get linkDevice(): LinkPeqDevice | null {
@@ -285,7 +299,7 @@ class DevicePeqService {
 	/** Find a device again after it dropped the connection, or restarted to save. */
 	async reconnect(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		if (!conn || devicePeqStore.isBusy) return;
 		// uniPEQ holds the device: it reconnects, and says so in `status`.
 		const link = this.linkDevice;
 		if (link) return link.reconnect().catch((e: unknown) => this.fail(e, 'connect'));
@@ -409,7 +423,7 @@ class DevicePeqService {
 	/** Replace the band list with what Device EQ shows. */
 	async read(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		if (!conn || !devicePeqStore.readTarget) return;
+		if (!conn || !devicePeqStore.readTarget || devicePeqStore.isBusy) return;
 		const link = this.linkDevice;
 		if (link) {
 			// uniPEQ reads into the shared list, which arrives as an `eq`; `status` says it's busy.
@@ -456,7 +470,7 @@ class DevicePeqService {
 	 */
 	async prepare(): Promise<PushPlan | null> {
 		const conn = devicePeqStore.connection;
-		if (!conn || !devicePeqStore.writeTarget) return null;
+		if (!conn || !devicePeqStore.writeTarget || devicePeqStore.isBusy) return null;
 		const caps = conn.device.capabilities;
 		const plan = (hints?: Layout | null) =>
 			planPush(eqStore.filters, eqStore.preamp, conn.profile, caps, hints ?? undefined);
@@ -480,6 +494,7 @@ class DevicePeqService {
 	 * comes back as `status.review`, which opens the same review dialog here as in uniPEQ.
 	 */
 	async writeLinked(): Promise<void> {
+		if (devicePeqStore.isBusy) return;
 		await this.linkDevice?.write().catch((e: unknown) => this.fail(e, 'write'));
 	}
 
@@ -495,7 +510,7 @@ class DevicePeqService {
 	async write(plan: PushPlan, auto = false): Promise<boolean> {
 		const conn = devicePeqStore.connection;
 		const request = devicePeqStore.writeTarget;
-		if (!conn || !request) return false;
+		if (!conn || !request || devicePeqStore.isBusy) return false;
 		const snapshot = { filters: eqStore.filters, preamp: eqStore.preamp };
 		devicePeqStore.isWriting = true;
 		try {
@@ -558,7 +573,7 @@ class DevicePeqService {
 	async choose(value: string): Promise<void> {
 		const conn = devicePeqStore.connection;
 		// Device EQ offers the EQ on no preset only while the device holds one.
-		if (!conn || (value === 'unsaved' && !devicePeqStore.unsaved)) return;
+		if (!conn || devicePeqStore.isBusy || (value === 'unsaved' && !devicePeqStore.unsaved)) return;
 		// An edit waiting to be auto-written belongs to the preset it was made on.
 		this.#cancelPending();
 		const slot = value.startsWith('p')
@@ -910,6 +925,44 @@ class DevicePeqService {
 	}
 
 	/**
+	 * Set a row's setting with `write` once the device is free (at once if it is), the row showing
+	 * `value` till the device has it: a slider let go while the device is busy. A newer value for
+	 * the row replaces one still waiting. Rows are written in turn, and dropped with the connection;
+	 * one `ofEq` (kept with each preset) also once the device is on another preset.
+	 */
+	setWhenFree(row: string, value: number, write: () => Promise<void>, ofEq = false): void {
+		const conn = devicePeqStore.connection;
+		if (!conn) return;
+		this.install();
+		const preset = ofEq ? { slot: devicePeqStore.deviceSlot } : {};
+		this.#settings.set(row, { conn, ...preset, value, write });
+		this.#writeSetting();
+	}
+
+	/** What a row shows till the device has it (`setWhenFree`), if anything. */
+	heldSetting(row: string): number | undefined {
+		const held = this.#settings.get(row);
+		return held && this.#stillFor(held) ? held.value : undefined;
+	}
+
+	/** Whether `held` is still for the device as it is: its connection, and its preset if it has one. */
+	#stillFor(held: HeldSetting): boolean {
+		const { connection, deviceSlot } = devicePeqStore;
+		return held.conn === connection && (held.slot === undefined || held.slot === deviceSlot);
+	}
+
+	/** The first setting waiting, if the device is free for it. */
+	#writeSetting(): void {
+		if (devicePeqStore.isBusy || volumeWarning.open) return;
+		for (const [row, held] of this.#settings) {
+			if (held.sent || !this.#stillFor(held)) continue;
+			this.#settings.set(row, { ...held, sent: true });
+			void held.write();
+			return;
+		}
+	}
+
+	/**
 	 * Set the settings of a device uniPEQ holds: one `control` command each, in order, up to the
 	 * first it refuses. uniPEQ warns for its own device and reopens one that restarts; the values
 	 * it reads back arrive in `status.controls`, which the rows follow. The link service holds
@@ -994,8 +1047,8 @@ class DevicePeqService {
 	}
 
 	/**
-	 * Start following the band list. Idempotent; called on connect. The root is never disposed:
-	 * like the audio player's, it lives as long as the page.
+	 * Start following the band list, and the settings waiting for the device. Idempotent; called on
+	 * connect. The root is never disposed: like the audio player's, it lives as long as the page.
 	 */
 	install(): void {
 		if (this.#installed) return;
@@ -1008,6 +1061,23 @@ class DevicePeqService {
 					conn: devicePeqStore.connection
 				};
 				untrack(() => this.#changed(seen));
+			});
+			// One written stays till the device is done setting it (over the link uniPEQ can answer
+			// before the status that reads it back) or the volume warning it asked is answered.
+			$effect(() => {
+				let due = false;
+				for (const [row, held] of this.#settings) {
+					if (!this.#stillFor(held)) this.#settings.delete(row);
+					else if (!held.sent) due = true;
+					else if (!devicePeqStore.isSettingControl && !volumeWarning.open) {
+						this.#settings.delete(row);
+					}
+				}
+				// After the task that freed the device: Write's layout read, or a new preset, frees it
+				// for a moment before the step that follows, which a setting written then would refuse.
+				if (due && !devicePeqStore.isBusy && !volumeWarning.open) {
+					setTimeout(() => this.#writeSetting());
+				}
 			});
 		});
 	}
@@ -1041,16 +1111,19 @@ class DevicePeqService {
 			return;
 		}
 		this.#running = true;
+		const retryIfBusy = () => {
+			if (!devicePeqStore.isBusy) return false;
+			// An edit made meanwhile armed one: one timer, or `#cancelPending` misses the other.
+			this.#cancelPending();
+			this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
+			return true;
+		};
 		try {
 			let seen: number;
 			do {
 				seen = this.#queued;
 				if (!this.autoWriting || devicePeqStore.needsReconnect || this.linkDevice) return;
-				if (devicePeqStore.isBusy) {
-					// A read, a switch or a button write is under way: try again after it.
-					this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
-					return;
-				}
+				if (retryIfBusy()) return;
 				if (devicePeqStore.inSync === true) {
 					devicePeqStore.autoPaused = false;
 					continue;
@@ -1065,6 +1138,7 @@ class DevicePeqService {
 					devicePeqStore.autoPaused = true;
 					continue;
 				}
+				if (retryIfBusy()) return;
 				if (!(await this.write(plan, true))) return;
 			} while (this.#queued !== seen);
 		} finally {

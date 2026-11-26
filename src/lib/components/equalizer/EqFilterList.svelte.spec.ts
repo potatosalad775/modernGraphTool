@@ -41,6 +41,13 @@ function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
 }
 
+/** `filters` is read back from the store, as the link service does: the store holds a proxy. */
+function fromUnipeq(filters: EQFilter[], preamp: number, auto: boolean) {
+	const fixed = auto ? null : preamp;
+	eqStore.filters = filters;
+	eqStore.linkedPreamp = { preamp, auto, filters: eqStore.filters, fixed: { L: fixed, R: fixed } };
+}
+
 const addButton = () => page.getByRole('button', { name: 'Add band' });
 const removeButton = () => page.getByRole('button', { name: 'Remove band' });
 
@@ -64,6 +71,7 @@ describe('EqFilterList', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 		eqStore.filters = [];
+		eqStore.linkedPreamp = null;
 		eqStore.isEnabled = false;
 		eqStore.channelScope = 'BOTH';
 	});
@@ -132,6 +140,110 @@ describe('EqFilterList', () => {
 			eqHistoryStore.snapshots = [];
 			eqHistoryStore.setA(null);
 			eqHistoryStore.setB(null);
+		});
+
+		describe('while linked with uniPEQ', () => {
+			it('stays quiet when a fixed preamp lowers it', async () => {
+				fromUnipeq([makeFilter()], 0, true);
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq([makeFilter({ gain: 2 })], -3.5, false);
+				await vi.waitFor(() => expect(eqStore.preamp).toBe(-3.5));
+				await new Promise((resolve) => setTimeout(resolve, 1200));
+
+				expect(toast.info).not.toHaveBeenCalled();
+			});
+
+			it('announces Auto lowering it after a boost', async () => {
+				fromUnipeq([makeFilter()], 0, true);
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq([makeFilter({ gain: 3.5 })], -3.5, true);
+
+				await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
+				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-3.5');
+			});
+
+			it('announces Auto replacing a fixed preamp with a lower one', async () => {
+				const bands = [makeFilter({ gain: 4.8 })];
+				fromUnipeq(bands, -3.5, false);
+				await vi.waitFor(() => expect(eqStore.preamp).toBe(-3.5));
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq(bands, -4.8, true);
+
+				await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
+				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-4.8');
+			});
+
+			const clipWarning = () => page.getByText(/may clip/);
+
+			it('warns when a fixed preamp leaves less room than the bands boost by', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, false);
+				await render(EqFilterList);
+
+				await expect
+					.element(page.getByText('This preamp may clip: the bands need -4.8 dB or lower.'))
+					.toBeVisible();
+			});
+
+			it('does not warn when a fixed preamp leaves enough room', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -6, false);
+				await render(EqFilterList);
+
+				await expect.element(page.getByText('-6.0 dB')).toBeVisible();
+				expect(clipWarning().elements()).toHaveLength(0);
+			});
+
+			it('does not warn under Auto', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, true);
+				await render(EqFilterList);
+
+				await expect.element(page.getByText('-3.5 dB')).toBeVisible();
+				expect(clipWarning().elements()).toHaveLength(0);
+			});
+
+			it('warns for a channel apart whose own bands need more room than its fixed preamp', async () => {
+				// Left fixed at -1 dB under a +4 dB boost; right on Auto at -6 dB for its +6 dB.
+				eqStore.filters = [
+					makeFilter({ gain: 4, channel: 'L' }),
+					makeFilter({ gain: 6, channel: 'R' })
+				];
+				eqStore.linkedPreamp = {
+					preamp: -6,
+					auto: false,
+					filters: eqStore.filters,
+					fixed: { L: -1, R: null }
+				};
+				await render(EqFilterList);
+
+				await expect
+					.element(page.getByText('This preamp may clip: the bands need -4.0 dB or lower.'))
+					.toBeVisible();
+			});
+
+			it('says what to lower a preamp that boosts to, over bands that only cut', async () => {
+				fromUnipeq([makeFilter({ gain: -3 })], 2, false);
+				await render(EqFilterList);
+
+				await expect
+					.element(page.getByText('This preamp may clip: the bands need 0.0 dB or lower.'))
+					.toBeVisible();
+			});
+
+			it('keeps the warning’s live region in place before it has anything to say', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -6, false);
+				await render(EqFilterList);
+				const before = page.getByRole('status').elements();
+
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, false);
+
+				await expect.element(clipWarning()).toBeVisible();
+				expect(before).toContain(clipWarning().element().closest('[role="status"]'));
+			});
 		});
 	});
 

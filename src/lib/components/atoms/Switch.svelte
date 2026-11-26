@@ -14,6 +14,8 @@
 		size = 'md',
 		variant = 'accent',
 		title,
+		blocked = false,
+		onCheckedChange,
 		...restProps
 	}: WithoutChildrenOrChild<Switch.RootProps> & {
 		labelText?: string | undefined;
@@ -26,6 +28,11 @@
 		 * `aria-labelledby` already names the switch. With none, it becomes the name instead.
 		 */
 		title?: string;
+		/**
+		 * Unusable for a moment (an operation under way): `aria-disabled`, looks disabled and
+		 * ignores a press, but keeps focus, which `disabled` would drop to the page.
+		 */
+		blocked?: boolean;
 	} = $props();
 
 	const descriptionId = $props.id();
@@ -65,13 +72,22 @@
 	<Tooltip text={title}>
 		{#snippet trigger({ props })}
 			<Switch.Root
-				bind:checked
+				bind:checked={
+					() => checked,
+					(next) => {
+						if (!blocked) checked = next;
+					}
+				}
+				onCheckedChange={(next) => {
+					if (!blocked) onCheckedChange?.(next);
+				}}
 				bind:ref
 				{id}
-				class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:shadow-inner {sizeClasses[
+				class="peer inline-flex shrink-0 cursor-pointer items-center rounded-full px-0.75 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=unchecked]:shadow-inner {sizeClasses[
 					size
 				]} {variantRootClasses[variant]} {restProps.class}"
 				{...mergeTooltipProps(restProps, props)}
+				aria-disabled={blocked || restProps['aria-disabled']}
 				aria-label={labelText ? restProps['aria-label'] : (restProps['aria-label'] ?? title)}
 				aria-describedby={describes ? descriptionId : restProps['aria-describedby']}
 			>

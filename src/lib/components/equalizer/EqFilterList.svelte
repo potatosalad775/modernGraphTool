@@ -24,13 +24,23 @@
 	import { eqHistoryStore } from '#lib/stores/eq-history-store.svelte.js';
 	import { eqCommands } from '#lib/services/eq-commands.js';
 	import { limitsSummaryOf } from '#lib/utils/eq-domain-hint.js';
+	import { derivePreamp } from '#lib/utils/eq-preamp.js';
 	import { toast } from '#lib/services/toast.js';
 	import * as m from '#lib/paraglide/messages.js';
 	import EqFilterCard from './EqFilterCard.svelte';
 	import EqChannelSelect from './EqChannelSelect.svelte';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import EqOptionButton from './EqOptionButton.svelte';
-	import { ArrowDown01, Download, Minus, Plus, Trash, Upload, X } from '@lucide/svelte';
+	import {
+		ArrowDown01,
+		Download,
+		Minus,
+		Plus,
+		Trash,
+		TriangleAlert,
+		Upload,
+		X
+	} from '@lucide/svelte';
 	import Button from '../atoms/Button.svelte';
 	import Dialog from '../atoms/Dialog.svelte';
 	import { downloadText } from '#lib/utils/download-text.js';
@@ -56,6 +66,22 @@
 	const preamp = $derived(eqStore.preamp);
 	/** Linked, with uniPEQ's preamp fixed rather than Auto. */
 	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);
+	/**
+	 * The preamp the bands need where a channel uniPEQ's device plays at a fixed preamp has less
+	 * room than its own bands boost by, else null. Per channel: with them apart, the lower preamp
+	 * this page plays can hide the other ear's.
+	 */
+	const neededPreamp = $derived.by(() => {
+		const fixed = eqStore.linkedPreamp?.fixed;
+		if (!fixed) return null;
+		const short = (['L', 'R'] as const).flatMap((ch) => {
+			const at = fixed[ch];
+			if (at === null) return [];
+			const needs = derivePreamp(eqStore.filters, ch);
+			return at > needs + 0.05 ? [needs] : [];
+		});
+		return short.length > 0 ? Math.min(...short) : null;
+	});
 
 	function useAutoPreamp() {
 		void import('#lib/services/link-service.svelte.js').then((mod) => mod.linkService.autoPreamp());
@@ -90,7 +116,7 @@
 		const before = preampBeforeEdits;
 		preampBeforeEdits = null;
 		const now = eqStore.preamp;
-		if (before !== null && now < before - 0.05 && !onCompareEntry()) {
+		if (before !== null && now < before - 0.05 && !preampFixed && !onCompareEntry()) {
 			toast.info(m.eq_preamp_auto_reduced({ value: now.toFixed(1) }));
 		}
 	}
@@ -373,6 +399,16 @@
 			<EqOptionButton />
 		</div>
 	</div>
+	<!-- Always rendered: a live region has to exist before its text changes. Hidden while empty. -->
+	<p
+		class={neededPreamp === null ? 'sr-only' : 'flex items-start gap-1 text-xs text-base-content'}
+		role="status"
+	>
+		{#if neededPreamp !== null}
+			<TriangleAlert class="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
+			<span>{m.link_preamp_clips({ needed: neededPreamp.toFixed(1) })}</span>
+		{/if}
+	</p>
 
 	<!--
 		Active constraint — always visible while one limits the list, so filters

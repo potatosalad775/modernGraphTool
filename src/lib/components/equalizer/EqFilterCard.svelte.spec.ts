@@ -541,6 +541,95 @@ describe('EqFilterCard', () => {
 		});
 	});
 
+	describe('a device’s binary values', () => {
+		// A Qudelix stores Q on a 1/1024 grid and many devices gain on a 1/256 dB one.
+		const device = pk({ gain: -1.50390625, q: 0.70703125 });
+		const boxes = (name: string) =>
+			page
+				.getByRole('spinbutton', { name })
+				.elements()
+				.map((el) => (el as HTMLInputElement).value);
+
+		it('shows gain to two decimals and Q to three, in every box and slider', async () => {
+			await mount(device, { expanded: true });
+
+			expect(boxes('Band 1 gain, dB')).toEqual(['-1.5', '-1.5']);
+			expect(boxes('Band 1 Q')).toEqual(['0.707', '0.707']);
+			await expect
+				.element(page.getByRole('slider', { name: 'Band 1 gain, dB' }))
+				.toHaveAttribute('aria-valuetext', '-1.5 dB');
+			await expect
+				.element(page.getByRole('slider', { name: 'Band 1 Q' }))
+				.toHaveAttribute('aria-valuetext', '0.707');
+		});
+
+		it('keeps the digits a short value has', async () => {
+			await mount(pk({ gain: 2.25, q: 0.707 }));
+
+			expect(gainBox().value).toBe('2.25');
+			expect(qBox().value).toBe('0.707');
+		});
+
+		it('shows a fixed Q to three decimals', async () => {
+			eqConstraintsStore.presets = [parametricPreset('fixed-q', { q: { value: 1.4140625 } })];
+			eqConstraintsStore.activeId = 'fixed-q';
+			await mount(pk({ q: 1.4140625 }));
+
+			await expect.element(page.getByTitle('Fixed by fixed-q')).toHaveTextContent('1.414');
+		});
+
+		it('writes nothing back when a box is entered and left untouched', async () => {
+			await mount(device);
+
+			qBox().focus();
+			qBox().blur();
+			key(gainBox(), { key: 'Enter' });
+
+			expect(handlers.onUpdate).not.toHaveBeenCalled();
+			expect(qBox().value).toBe('0.707');
+			expect(gainBox().value).toBe('-1.5');
+		});
+
+		it('commits what the user types', async () => {
+			await mount(device);
+
+			await commit(qBox(), '1.5');
+
+			expect(handlers.onUpdate).toHaveBeenCalledWith({ q: 1.5 });
+			expect(qBox().value).toBe('1.5');
+		});
+
+		it('shows the value a device grid lands on, rounded', async () => {
+			eqConstraintsStore.presets = [
+				parametricPreset('grid', { q: { min: 0.1, max: 10, step: 1 / 1024 } })
+			];
+			eqConstraintsStore.activeId = 'grid';
+			const { rerender } = await mount(pk({ q: 1 }));
+
+			await commit(qBox(), '0.71');
+			const landed = handlers.onUpdate.mock.lastCall?.[0].q ?? NaN;
+			expect(Number.isInteger(landed * 1024)).toBe(true);
+			expect(landed).not.toBe(0.71);
+			expect(qBox().value).toBe('0.71');
+
+			await rerender({ filter: pk({ q: landed }), index: 0, expanded: false, ...handlers });
+			key(qBox(), { key: 'ArrowUp' });
+			expect(qBox().value).toBe('0.72');
+		});
+
+		it('reverts to the exact value on Escape, and shows it rounded', async () => {
+			const { rerender } = await mount(device);
+			qBox().focus();
+			key(qBox(), { key: 'ArrowUp' });
+			await rerender({ filter: { ...device, q: 0.72 }, index: 0, expanded: false, ...handlers });
+
+			key(qBox(), { key: 'Escape' });
+
+			expect(handlers.onUpdate).toHaveBeenLastCalledWith({ q: 0.70703125 });
+			expect(qBox().value).toBe('0.707');
+		});
+	});
+
 	describe('linked with uniPEQ', () => {
 		afterEach(() => {
 			linkStore.reset();

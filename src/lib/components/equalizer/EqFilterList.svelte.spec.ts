@@ -41,6 +41,15 @@ function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 	return { enabled: true, type: 'PK', freq: 1000, q: 1.0, gain: 0, ...overrides };
 }
 
+/**
+ * uniPEQ's EQ arriving over the link: its bands, and its preamp, Auto or fixed. `filters` is
+ * read back from the store, as the link service does: the store holds a proxy of the array.
+ */
+function fromUnipeq(filters: EQFilter[], preamp: number, auto: boolean) {
+	eqStore.filters = filters;
+	eqStore.linkedPreamp = { preamp, auto, filters: eqStore.filters };
+}
+
 const addButton = () => page.getByRole('button', { name: 'Add band' });
 const removeButton = () => page.getByRole('button', { name: 'Remove band' });
 
@@ -64,6 +73,7 @@ describe('EqFilterList', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 		eqStore.filters = [];
+		eqStore.linkedPreamp = null;
 		eqStore.isEnabled = false;
 		eqStore.channelScope = 'BOTH';
 	});
@@ -132,6 +142,45 @@ describe('EqFilterList', () => {
 			eqHistoryStore.snapshots = [];
 			eqHistoryStore.setA(null);
 			eqHistoryStore.setB(null);
+		});
+
+		describe('while linked with uniPEQ', () => {
+			it('stays quiet when a fixed preamp lowers it', async () => {
+				// A device EQ whose preamp is set by hand: nothing was reduced automatically.
+				fromUnipeq([makeFilter()], 0, true);
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq([makeFilter({ gain: 2 })], -3.5, false);
+				await vi.waitFor(() => expect(eqStore.preamp).toBe(-3.5));
+				await new Promise((resolve) => setTimeout(resolve, 1200));
+
+				expect(toast.info).not.toHaveBeenCalled();
+			});
+
+			it('announces Auto lowering it after a boost', async () => {
+				fromUnipeq([makeFilter()], 0, true);
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq([makeFilter({ gain: 3.5 })], -3.5, true);
+
+				await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
+				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-3.5');
+			});
+
+			it('announces Auto replacing a fixed preamp with a lower one', async () => {
+				const bands = [makeFilter({ gain: 4.8 })];
+				fromUnipeq(bands, -3.5, false);
+				await vi.waitFor(() => expect(eqStore.preamp).toBe(-3.5));
+				vi.mocked(toast.info).mockClear();
+				await render(EqFilterList);
+
+				fromUnipeq(bands, -4.8, true);
+
+				await vi.waitFor(() => expect(toast.info).toHaveBeenCalledOnce(), { timeout: 2000 });
+				expect(vi.mocked(toast.info).mock.calls[0][0]).toContain('-4.8');
+			});
 		});
 	});
 

@@ -371,13 +371,25 @@ export function acceptProfile(value: unknown): Profile | null {
 	return profile;
 }
 
+/** `items` with only the first of each `key`: the rows that show them are keyed by it. */
+function firstOfEach<T>(items: T[], key: (item: T) => unknown): T[] {
+	const seen = new Set<unknown>();
+	return items.filter((item) => {
+		const k = key(item);
+		if (seen.has(k)) return false;
+		seen.add(k);
+		return true;
+	});
+}
+
 /**
  * A list of presets from uniPEQ (`capabilities.slots`, `status.slots`), or null when it isn't a
- * list. A malformed preset is left out; `bypass` and `writable` are kept only when true.
+ * list. A malformed preset is left out, and so is one whose id came before; `bypass` and
+ * `writable` are kept only when true.
  */
 export function acceptSlots(value: unknown): Slot[] | null {
 	if (!Array.isArray(value)) return null;
-	return value.flatMap((s) =>
+	const slots = value.flatMap((s) =>
 		isRecord(s) && Number.isInteger(s.id) && typeof s.name === 'string'
 			? [
 					{
@@ -389,6 +401,7 @@ export function acceptSlots(value: unknown): Slot[] | null {
 				]
 			: []
 	);
+	return firstOfEach(slots, (s) => s.id);
 }
 
 const isString = (v: unknown): v is string => typeof v === 'string';
@@ -400,10 +413,16 @@ const listOf = (check: (v: unknown) => boolean) => (v: unknown) =>
 const isOption = (v: unknown) => isRecord(v) && isNumber(v.value) && isString(v.name);
 const isRange = (v: unknown) =>
 	isRecord(v) && isNumber(v.min) && isNumber(v.max) && optional(v.step, isNumber);
+/** A choice's values, none twice. */
+const isOptions = (v: unknown) => {
+	if (!listOf(isOption)(v)) return false;
+	const values = (v as { value: number }[]).map((o) => o.value);
+	return new Set(values).size === values.length;
+};
 
 /** A setting's widget: a toggle, a choice with its values, a range with its bounds. */
 function hasWidget(c: Record<string, unknown>): boolean {
-	if (!optional(c.values, listOf(isOption)) || !optional(c.range, isRange)) return false;
+	if (!optional(c.values, isOptions) || !optional(c.range, isRange)) return false;
 	if (c.kind === 'choice') return c.values !== undefined;
 	if (c.kind === 'range') return c.range !== undefined;
 	return c.kind === 'toggle';
@@ -491,8 +510,11 @@ export function acceptCapabilities(value: unknown, minor: number): PeqCapabiliti
 		perChannel: late('perChannel'),
 		listsSlots: late('listsSlots'),
 		editsSlots: late('editsSlots'),
-		// Their values are in `status.controls`.
-		controls: minor >= 3 && Array.isArray(c.controls) ? c.controls.filter(isControl) : []
+		// Their values are in `status.controls`, by id.
+		controls:
+			minor >= 3 && Array.isArray(c.controls)
+				? firstOfEach(c.controls.filter(isControl), (control) => control.id)
+				: []
 	};
 }
 

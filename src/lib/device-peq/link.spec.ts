@@ -314,7 +314,9 @@ describe('what uniPEQ says about its device', () => {
 					{ id: 1, name: 'P1', writable: true },
 					{ id: 'x' },
 					{ id: 2, name: 'Jazz', writable: 'yes' },
-					{ id: 9, name: 'Off', bypass: true }
+					{ id: 9, name: 'Off', bypass: true },
+					// The rows are keyed by id: the first of each stands.
+					{ id: 2, name: 'Rock' }
 				],
 				perChannel: 'yes',
 				listsSlots: 1,
@@ -385,9 +387,22 @@ describe('what uniPEQ says about its device', () => {
 			{ id: 'level', name: 'No bounds', kind: 'range', range: { min: 0 } },
 			{ id: 'bound', name: 'Bound', kind: 'toggle', eq: false },
 			{ id: 'off', name: 'Off', kind: 'toggle', disablesEq: 1 },
-			{ id: 'usb', name: 'USB', kind: 'toggle', reconnect: 'yes' }
+			{ id: 'usb', name: 'USB', kind: 'toggle', reconnect: 'yes' },
+			{
+				id: 'twice',
+				name: 'Twice',
+				kind: 'choice',
+				values: [
+					{ value: 0, name: 'Fast' },
+					{ value: 0, name: 'Slow' }
+				]
+			}
 		];
-		expect(acceptCapabilities({ controls: [...malformed, ...shown] }, 3).controls).toEqual(shown);
+		// The rows are keyed by id: the first of each stands.
+		const repeated = { id: 'feed', name: 'Feed again', kind: 'toggle' };
+		expect(
+			acceptCapabilities({ controls: [...malformed, ...shown, repeated] }, 3).controls
+		).toEqual(shown);
 		expect(acceptCapabilities({ controls: 'gain' }, 3).controls).toEqual([]);
 
 		expect(acceptControlValues({ gain: -6, feed: null, filter: '1', spk: true })).toEqual({

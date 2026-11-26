@@ -62,11 +62,12 @@
 
 	/** Write `value` once the device is free, now if it is. */
 	function setWhenFree(control: Control, value: number) {
-		devicePeqService.setWhenFree(control.id, value, async () => {
+		const write = async () => {
 			if (devicePeqStore.controlValues[control.id] !== value) {
 				await devicePeqService.setControl(control.id, value);
 			}
-		});
+		};
+		devicePeqService.setWhenFree(control.id, value, write, control.eq !== undefined);
 	}
 
 	/** A slider let go on `value`. One that restarts the device asks first. */
@@ -148,8 +149,12 @@
 			(v) => balanceLabel(balance, v),
 			balance,
 			(n) =>
-				devicePeqService.setWhenFree('balance', n, () =>
-					devicePeqService.setControls(balanceWrites(balance, n, devicePeqStore.controlValues))
+				devicePeqService.setWhenFree(
+					'balance',
+					n,
+					() =>
+						devicePeqService.setControls(balanceWrites(balance, n, devicePeqStore.controlValues)),
+					balance.left.eq !== undefined
 				),
 			'w-20'
 		)}

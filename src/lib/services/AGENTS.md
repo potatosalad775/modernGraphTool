@@ -153,8 +153,10 @@ never disposed.
 - **A slider let go while the device is busy waits here, not in its row** (`setWhenFree`, shown
   through `heldSetting`), so a panel switch or `needsReconnect` unmounting `DeviceSettings` can't
   drop it. Rows go in turn, each after the last one's write and its volume warning, and a new
-  connection drops them. The write waits for a timer after the device frees up: Write's layout
-  read and a new preset free it for a moment before their next step, which would refuse.
+  connection drops them. So does another preset (`deviceSlot`) for a setting of the EQ, which the
+  device keeps with each one: written then, it would land on that one. The write waits for a timer
+  after the device frees up: Write's layout read and a new preset free it for a moment before their
+  next step, which would refuse.
 
 ## `link-service.svelte.ts` — the uniPEQ link
 

@@ -32,6 +32,7 @@ import {
 	currentSlotOf,
 	readRequest,
 	tellsUnsaved,
+	type CurrentSlot,
 	type PresetRequest
 } from '#lib/device-peq/preset.js';
 import {
@@ -174,6 +175,8 @@ interface Seen {
 /** A row's setting, waiting for the device to be free (`sent`: written, not read back yet). */
 interface HeldSetting {
 	conn: DeviceConnection;
+	/** For a setting of the EQ, which the device keeps with each preset: the one it was let go on. */
+	slot?: CurrentSlot;
 	value: number;
 	write: () => Promise<void>;
 	sent?: true;
@@ -924,27 +927,35 @@ class DevicePeqService {
 	/**
 	 * Set a row's setting with `write` once the device is free (at once if it is), the row showing
 	 * `value` till the device has it: a slider let go while the device is busy. A newer value for
-	 * the row replaces one still waiting. Rows are written in turn, and dropped with the connection.
+	 * the row replaces one still waiting. Rows are written in turn, and dropped with the connection;
+	 * one `ofEq` (kept with each preset) also once the device is on another preset.
 	 */
-	setWhenFree(row: string, value: number, write: () => Promise<void>): void {
+	setWhenFree(row: string, value: number, write: () => Promise<void>, ofEq = false): void {
 		const conn = devicePeqStore.connection;
 		if (!conn) return;
 		this.install();
-		this.#settings.set(row, { conn, value, write });
+		const preset = ofEq ? { slot: devicePeqStore.deviceSlot } : {};
+		this.#settings.set(row, { conn, ...preset, value, write });
 		this.#writeSetting();
 	}
 
 	/** What a row shows till the device has it (`setWhenFree`), if anything. */
 	heldSetting(row: string): number | undefined {
 		const held = this.#settings.get(row);
-		return held?.conn === devicePeqStore.connection ? held.value : undefined;
+		return held && this.#stillFor(held) ? held.value : undefined;
+	}
+
+	/** Whether `held` is still for the device as it is: its connection, and its preset if it has one. */
+	#stillFor(held: HeldSetting): boolean {
+		const { connection, deviceSlot } = devicePeqStore;
+		return held.conn === connection && (held.slot === undefined || held.slot === deviceSlot);
 	}
 
 	/** The first setting waiting, if the device is free for it. */
 	#writeSetting(): void {
 		if (devicePeqStore.isBusy || volumeWarning.open) return;
 		for (const [row, held] of this.#settings) {
-			if (held.sent || held.conn !== devicePeqStore.connection) continue;
+			if (held.sent || !this.#stillFor(held)) continue;
 			this.#settings.set(row, { ...held, sent: true });
 			void held.write();
 			return;
@@ -1054,10 +1065,9 @@ class DevicePeqService {
 			// One written stays till the device is done setting it (over the link uniPEQ can answer
 			// before the status that reads it back) or the volume warning it asked is answered.
 			$effect(() => {
-				const conn = devicePeqStore.connection;
 				let due = false;
 				for (const [row, held] of this.#settings) {
-					if (held.conn !== conn) this.#settings.delete(row);
+					if (!this.#stillFor(held)) this.#settings.delete(row);
 					else if (!held.sent) due = true;
 					else if (!devicePeqStore.isSettingControl && !volumeWarning.open) {
 						this.#settings.delete(row);

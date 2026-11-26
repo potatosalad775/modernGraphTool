@@ -198,7 +198,9 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   echo would differ from this page's list.
 - **uniPEQ's review numbers each channel's bands by that channel's list.** `reviewChanges`
   renumbers them by this page's (`linkSlots` back) and says a change both channels carry once,
-  as `byEar` does for a device connected here.
+  as `byEar` does for a device connected here. `LinkDialogs` maps them through the list as the
+  review came, kept until its `rev` changes: uniPEQ keeps a review open while its list moves
+  (it plans again on the answer), so the bands in those slots now may be others.
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.

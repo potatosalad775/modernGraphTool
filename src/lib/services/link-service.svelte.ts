@@ -342,8 +342,10 @@ class LinkService {
 			return;
 		}
 		const sent = toLinkLists(eqStore.filters, this.#allowed(link));
-		// An empty list here takes uniPEQ's without asking: there is nothing to lose.
-		if (ask && (sent.left.length > 0 || !!sent.right?.length)) {
+		// An empty list here takes uniPEQ's without asking: there is nothing to lose. Not one of
+		// one-ear bands alone that Send would leave out: taking uniPEQ's loses them just the same.
+		const holds = sent.left.length > 0 || !!sent.right?.length || carriesEars(eqStore.filters);
+		if (ask && holds) {
 			this.#joined = false;
 			this.#endBurst();
 			this.#pending = adopt;

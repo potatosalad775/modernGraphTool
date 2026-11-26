@@ -601,6 +601,15 @@ describe('linkService', () => {
 			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
 		});
 
+		it('asks at the start when this list holds nothing else, which Send would leave empty', async () => {
+			eqStore.filters = [left(400, 3)];
+			await linked();
+			host.eq([wire(100, 3)]);
+			flushSync();
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
+			expect(eqStore.filters).toEqual([left(400, 3)]);
+		});
+
 		it('asks again when an undo brings them back, rather than hiding them', async () => {
 			eqStore.filters = [pk(200, 1), left(400, 3)];
 			await linked();

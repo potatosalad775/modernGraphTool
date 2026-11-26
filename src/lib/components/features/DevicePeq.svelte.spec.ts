@@ -581,6 +581,24 @@ describe('DevicePeq', () => {
 			expect(device.push.mock.calls[0][0].slot).toBe(0);
 		});
 
+		it('holds the review’s Write while the device is busy, then writes', async () => {
+			const device = await mountConnected();
+			eqStore.filters = [band(1000, 15)];
+			await page.getByRole('button', { name: 'Write to device' }).click();
+			const write = page.getByRole('button', { name: 'Write', exact: true });
+			await expect.element(write).toBeInTheDocument();
+
+			devicePeqStore.isSettingControl = true;
+			await expect.element(write).toHaveAttribute('aria-disabled', 'true');
+			await write.click({ force: true });
+			await expect.element(write).toBeInTheDocument();
+			expect(device.push).not.toHaveBeenCalled();
+
+			devicePeqStore.isSettingControl = false;
+			await write.click();
+			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+		});
+
 		it('writes nothing when the review is cancelled', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [band(1000, 15)];
@@ -598,6 +616,17 @@ describe('DevicePeq', () => {
 			await page.getByRole('button', { name: 'Write to device' }).click();
 			await expect.element(page.getByRole('button', { name: 'Reconnect' })).toBeInTheDocument();
 			expect(device.close).toHaveBeenCalled();
+		});
+
+		it('says Reconnect is unavailable while the device is busy, as it is then', async () => {
+			await mountConnected();
+			devicePeqStore.needsReconnect = true;
+			const reconnect = page.getByRole('button', { name: 'Reconnect' });
+			await expect.element(reconnect).not.toHaveAttribute('aria-disabled', 'true');
+
+			devicePeqStore.isSettingControl = true;
+			await expect.element(reconnect).toHaveAttribute('aria-disabled', 'true');
+			devicePeqStore.isSettingControl = false;
 		});
 
 		it('hides Read on a write-only device and says why', async () => {

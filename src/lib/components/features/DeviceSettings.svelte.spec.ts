@@ -573,6 +573,56 @@ describe('DeviceSettings', () => {
 			await vi.waitFor(() => expect(setControls).toHaveBeenCalledExactlyOnceWith([['r', -6]]));
 		});
 
+		it('follows the device again after a drag meanwhile let go where it began', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ });
+			devicePeqStore.isReading = true;
+
+			drag(slider.element(), 30);
+			drag(slider.element(), 25);
+			devicePeqStore.isReading = false;
+			devicePeqStore.controlValues = { vol: 40 };
+
+			await expect.element(slider).toHaveValue('40');
+			await expect.element(slider).toHaveAttribute('aria-valuetext', '40');
+			expect(setControl).not.toHaveBeenCalled();
+		});
+
+		it('writes a slider let go meanwhile though its row is gone by then, as on a panel switch', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			const { unmount } = await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ }).element();
+			devicePeqStore.isReading = true;
+
+			drag(slider, 30);
+			release(slider);
+			await unmount();
+			devicePeqStore.isReading = false;
+
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledExactlyOnceWith('vol', 30));
+		});
+
+		it('writes nothing of a drag not let go yet, though an earlier one waits', async () => {
+			connectWith([VOLUME], { vol: 25 });
+			await render(DeviceSettings, { controls: [VOLUME] });
+			const slider = page.getByRole('slider', { name: /Volume/ }).element();
+			devicePeqStore.isReading = true;
+
+			drag(slider, 30);
+			release(slider);
+			drag(slider, 38);
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() => expect(setControl).toHaveBeenCalledExactlyOnceWith('vol', 30));
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(setControl).not.toHaveBeenCalledWith('vol', 38);
+
+			drag(slider, 45);
+			release(slider);
+			await vi.waitFor(() => expect(setControl).toHaveBeenLastCalledWith('vol', 45));
+			expect(setControl).toHaveBeenCalledTimes(2);
+		});
+
 		it('keeps focus on a switch pressed, and writes nothing for a press meanwhile', async () => {
 			connectWith([CROSSFEED], { cf: 0 });
 			await render(DeviceSettings, { controls: [CROSSFEED] });

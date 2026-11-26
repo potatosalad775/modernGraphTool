@@ -1204,6 +1204,87 @@ describe('devicePeqService device settings', () => {
 		});
 	});
 
+	describe('setWhenFree', () => {
+		const later = (id: string, value: number) =>
+			devicePeqService.setWhenFree(id, value, () => devicePeqService.setControl(id, value));
+
+		it('writes a setting let go during another operation once it is over, holding it meanwhile', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			devicePeqStore.isReading = true;
+
+			later('gain', -6);
+			expect(devicePeqService.heldSetting('gain')).toBe(-6);
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).not.toHaveBeenCalled();
+
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
+			await vi.waitFor(() => expect(devicePeqService.heldSetting('gain')).toBeUndefined());
+			expect(devicePeqStore.controlValues.gain).toBe(-6);
+		});
+
+		it('writes the next one only once the volume warning the last one asked is answered', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			settingsStore.setVolumeWarning(true);
+			devicePeqStore.isReading = true;
+
+			later('gain', -6);
+			later('feed', 1);
+			devicePeqStore.isReading = false;
+			await vi.waitFor(() => expect(volumeWarning.open).toBe(true));
+			await new Promise((resolve) => setTimeout(resolve, 10));
+			expect(device.writeControl).not.toHaveBeenCalled();
+			expect(devicePeqService.heldSetting('gain')).toBe(-6);
+
+			volumeWarning.answer(true);
+			await vi.waitFor(() =>
+				expect(device.writeControl.mock.calls).toEqual([
+					['gain', -6],
+					['feed', 1]
+				])
+			);
+		});
+
+		it('writes nothing it held for a connection that has gone', async () => {
+			const first = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(first));
+			devicePeqStore.isReading = true;
+			later('gain', -6);
+
+			await devicePeqService.disconnect();
+			const second = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(second));
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			expect(devicePeqService.heldSetting('gain')).toBeUndefined();
+			expect(first.writeControl).not.toHaveBeenCalled();
+			expect(second.writeControl).not.toHaveBeenCalled();
+		});
+
+		it('waits for the write that follows the layout Write reads, rather than refusing it', async () => {
+			const device = settingsDevice({ gain: 0, usb: 0, feed: 0 });
+			await connectVia(fakeConnection(device));
+			eqStore.filters = FOUR.slice(0, 3);
+			device.pull.mockImplementationOnce(async () => {
+				later('gain', -6);
+				return { filters: [] };
+			});
+
+			const plan = await devicePeqService.prepare();
+			expect(device.pull).toHaveBeenCalledOnce();
+			await expect(devicePeqService.write(plan!)).resolves.toBe(true);
+
+			expect(device.push).toHaveBeenCalledOnce();
+			await vi.waitFor(() =>
+				expect(device.writeControl).toHaveBeenCalledExactlyOnceWith('gain', -6)
+			);
+		});
+	});
+
 	describe('a setting that restarts the device', () => {
 		it('closes it and reopens it by itself, reading the settings again', async () => {
 			const second = settingsDevice({ gain: 0, usb: 1, feed: 0 });

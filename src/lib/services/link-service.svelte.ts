@@ -142,6 +142,8 @@ class LinkService {
 	 * pending edit, a create then a rename), and refuses a second press meanwhile.
 	 */
 	#awaiting = new Map<BusyFlag, number>();
+	/** The flags of this session's commands uniPEQ answered as done since it last reported idle. */
+	#answered = new Set<BusyFlag>();
 
 	/** Rejoin this tab's session after a reload: uniPEQ keeps its approval. From `AppShell.onMount`. */
 	resume(): Promise<void> {
@@ -262,6 +264,7 @@ class LinkService {
 		this.#deviceKey = null;
 		this.#failureKey = null;
 		this.#awaiting = new Map();
+		this.#answered = new Set();
 		this.#endBurst();
 		linkStore.reset();
 		linkStore.phase = link.state;
@@ -503,7 +506,9 @@ class LinkService {
 				};
 				count(1);
 				try {
-					return await link.command(name, ...args);
+					const result = await link.command(name, ...args);
+					if (flag && result.ok && awaiting === this.#awaiting) this.#answered.add(flag);
+					return result;
 				} finally {
 					count(-1);
 				}
@@ -527,7 +532,8 @@ class LinkService {
 
 	/** uniPEQ's status, into the flags Hardware EQ's panel and status line read. */
 	#status(status: LinkStatus): void {
-		const starts = !!status.busy && !linkStore.status?.busy;
+		const work = status.busy ? STATUS_FLAG[status.busy] : null;
+		const starts = work !== null && !linkStore.status?.busy;
 		linkStore.status = status;
 		if (devicePeqStore.connection?.connectionType !== 'link') return;
 		const store = devicePeqStore;
@@ -548,10 +554,16 @@ class LinkService {
 		store.autoStopped = status.auto.stopped;
 		store.reportedInSync = status.inSync;
 		// uniPEQ's device work sets no message here, so the last one this page set goes when uniPEQ
-		// starts some, or it would stand for that work. A failure uniPEQ still reports stays until
-		// uniPEQ clears it.
-		if (starts && this.#failureKey === null) store.setStatus(null);
-		const failure = status.failure;
+		// starts some, or it would stand for that work. Not for work it reports after answering this
+		// page's command for it (`re` and `status` come in either order): that answer said it. A
+		// failure uniPEQ still reports stays until uniPEQ clears it.
+		if (starts && !this.#answered.has(work) && this.#failureKey === null) store.setStatus(null);
+		if (work === null) this.#answered.clear();
+		this.#failure(status.failure);
+	}
+
+	/** uniPEQ's failure, said once; the error it said goes once uniPEQ reports none. */
+	#failure(failure: LinkStatus['failure']): void {
 		const key = failure && `${failure.op}:${failure.code}`;
 		if (key === this.#failureKey) return;
 		this.#failureKey = key;
@@ -559,7 +571,7 @@ class LinkService {
 		// it from the command's answer (`#presetFailed`), and uniPEQ's own Rename in uniPEQ.
 		if (key === 'preset:invalid-request') return;
 		if (failure) devicePeqService.fail(new LinkCommandError(failure.code), failure.op);
-		else if (store.statusIsError) store.setStatus(null);
+		else if (devicePeqStore.statusIsError) devicePeqStore.setStatus(null);
 	}
 }
 

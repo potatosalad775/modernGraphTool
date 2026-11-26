@@ -272,19 +272,71 @@ const MetadataParser = {
 		// here. Both paths emit the same PhoneFileVariant[], so nothing
 		// downstream can tell which form was authored.
 		const explicit = Array.isArray(phone.variants) ? phone.variants : null;
+		this._warnMissingFile(brandName, baseName, phone);
+		this._warnInvalidPrefix(brandName, baseName, phone);
 		const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
-		const files = this._uniqueSuffixes(
-			brandName,
-			baseName,
-			explicit
-				? this._mergeVariants(
-						legacy,
-						this._parseVariants(brandName, baseName, explicit, brandDefaults)
-					)
-				: legacy
-		);
+		let merged = legacy;
+		if (explicit) {
+			const parsed = this._parseVariants(brandName, baseName, explicit, brandDefaults);
+			merged = this._mergeVariants(legacy, parsed);
+			this._warnSplitDefault(brandName, baseName, phone, merged);
+		}
+		const files = this._uniqueSuffixes(brandName, baseName, merged);
 
 		return { ...rowFields, name: baseName, identifier, files };
+	},
+
+	/** Whether a phone declares a usable phone-level `file`. */
+	_hasPhoneFile(phone: RawPhoneData): boolean {
+		// Hand-authored, so `file` may be any JSON value despite its type.
+		const file: unknown = phone.file;
+		if (Array.isArray(file)) return file.length > 0;
+		return typeof file === 'string' && file.trim() !== '';
+	},
+
+	/** Warn about an object phone without `file`: squig.link search reads nothing else. */
+	_warnMissingFile(brandName: string, baseName: string, phone: RawPhoneData) {
+		if (this._hasPhoneFile(phone)) return;
+		console.warn(
+			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" is listed without a phone-level "file" — squig.link search reads only "file", so add one (the first variant's file, or a set's first run) to keep this phone and the ones after it listed there.`
+		);
+	},
+
+	/** Warn about a `prefix` that is not a valid regular expression: it names no variant. */
+	_warnInvalidPrefix(brandName: string, baseName: string, phone: RawPhoneData) {
+		const patterns: unknown[] = Array.isArray(phone.prefix) ? phone.prefix : [phone.prefix];
+		const invalid = patterns.find(
+			(p): p is string => typeof p === 'string' && !this._isValidPattern(p)
+		);
+		if (invalid === undefined) return;
+		console.warn(
+			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" has a "prefix" that is not a valid regular expression ("${invalid}") — its variants get no suffix from it.`
+		);
+	},
+
+	_isValidPattern(pattern: string): boolean {
+		try {
+			RegExp(pattern, 'i');
+			return true;
+		} catch {
+			return false;
+		}
+	},
+
+	/** Warn when the default curve is not the one squig.link search and CrinGraph open. */
+	_warnSplitDefault(
+		brandName: string,
+		baseName: string,
+		phone: RawPhoneData,
+		merged: PhoneFileVariant[]
+	) {
+		if (!this._hasPhoneFile(phone) || merged.length === 0) return;
+		const first = Array.isArray(phone.file) ? phone.file[0] : phone.file;
+		const shown = merged[0].fileName;
+		if (shown === first) return;
+		console.warn(
+			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" opens on "${shown}", the first of its "variants", but squig.link search and CrinGraph open "${first}", the first "file" — put "${shown}" first in "file" (and its suffix first in "suffix") to make them agree.`
+		);
 	},
 
 	/** What an object phone puts on its list row, besides its name and measurements. */
@@ -492,12 +544,16 @@ const MetadataParser = {
 	 * `file`/`suffix`/`prefix`/`samples`/`hptfs` form.
 	 *
 	 * Matching is by `fileName`. An entry naming a measurement the phone already
-	 * declared **replaces it in place**, so enriching a variant with a sample set
-	 * never moves it — `files[0]` stays the phone's default curve, which
+	 * declared **replaces it in place**, so in a partial listing (see below)
+	 * enriching a variant with a sample set never moves it — `files[0]` stays the phone's default curve, which
 	 * `fr-parser` loads when no suffix is requested and `searchFRInfoWithFullName`
 	 * reports as `dispSuffix`. Anything else appends after the legacy entries,
 	 * matching how `hptfs[]` — the key `variants[]` supersedes — has always
 	 * combined with `file[]`.
+	 *
+	 * That order is for a partial listing, where `variants[]` says nothing about
+	 * the entries it leaves out. Once it names every legacy entry it is a full
+	 * order the operator wrote, and the list follows it as written.
 	 *
 	 * Only legacy entries are matched, and each at most once. Explicit entries
 	 * never replace each other: two sample sets drawn from the same first file
@@ -522,7 +578,7 @@ const MetadataParser = {
 				merged[at] = variant;
 			}
 		});
-		return merged;
+		return claimed.size === legacy.length ? explicit : merged;
 	},
 
 	/**
@@ -606,10 +662,11 @@ const MetadataParser = {
 		// `getFRDataFromMetadata` would have no `files[0]` to load. A phone whose
 		// only measurements are `hptfs[]` or `variants[]` entries keeps an empty
 		// file list, so the fallback doesn't add a phantom variant beside them.
-		const fileVariants: PhoneFileVariant[] = phone.file
-			? Array.isArray(phone.file)
-				? phone.file.map(buildFileVariant)
-				: [buildFileVariant(phone.file || baseName, 0)]
+		// `file` is hand-authored, so an entry that is not a string is skipped, keeping
+		// the others' indices for their suffixes.
+		const files: unknown[] = Array.isArray(phone.file) ? phone.file : [phone.file];
+		const fileVariants: PhoneFileVariant[] = this._hasPhoneFile(phone)
+			? files.flatMap((file, i) => (typeof file === 'string' ? [buildFileVariant(file, i)] : []))
 			: hptfEntries.length > 0 || !allowNameFallback
 				? []
 				: [buildFileVariant(baseName, 0)];
@@ -679,9 +736,9 @@ const MetadataParser = {
 		} else if (typeof phone.suffix === 'string') {
 			return phone.suffix.trim() || String(index);
 		} else if (Array.isArray(phone.prefix) && index !== null) {
-			return files[index]?.replace(new RegExp(phone.prefix[index], 'i'), '').trim() || '';
+			return this._stripPrefix(files[index], phone.prefix[index]);
 		} else if (typeof phone.prefix === 'string' && index !== null) {
-			return files[index]?.replace(new RegExp(phone.prefix, 'i'), '').trim() || '';
+			return this._stripPrefix(files[index], phone.prefix);
 		} else {
 			return '';
 		}
@@ -692,8 +749,21 @@ const MetadataParser = {
 		if (typeof phone.suffix === 'string') {
 			return phone.suffix.trim() || file?.trim() || '';
 		} else if (typeof phone.prefix === 'string' && file) {
-			return file.replace(new RegExp(phone.prefix, 'i'), '').trim();
+			return this._stripPrefix(file, phone.prefix);
 		} else {
+			return '';
+		}
+	},
+
+	/**
+	 * `file` without the operator's `prefix` pattern. An invalid pattern strips
+	 * everything (`_warnInvalidPrefix` reports it) rather than throwing, which
+	 * would stop the whole phone book from loading.
+	 */
+	_stripPrefix(file: string | undefined, pattern: string | undefined): string {
+		try {
+			return file?.replace(new RegExp(pattern ?? '', 'i'), '').trim() ?? '';
+		} catch {
 			return '';
 		}
 	}

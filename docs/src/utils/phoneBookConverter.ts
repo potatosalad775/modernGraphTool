@@ -8,7 +8,10 @@
  *
  * Import is permissive: it accepts `brand` as the brand key (legacy docs), and
  * the two pre-unification sample forms — phone-level `samples: N` and `hptfs[]`.
- * Export is canonical: always writes `name`, and always `variants[]`.
+ * Export is canonical: always writes `name`, and a sample-set phone as
+ * `variants[]` plus a phone-level `file` / `suffix` naming its first variant and
+ * its plain measurements (`fileMirror`), because CrinGraph and squig.link's search
+ * read only `file`.
  */
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -331,95 +334,43 @@ function parsePhone(
 	});
 
 	const baseName = extractBaseName(p.name);
-
-	// `variants[]` — the explicit form. Each entry is one variant, optionally
-	// carrying its own sample set.
-	if (Array.isArray(p.variants) && p.variants.length > 0) {
-		// modernGraphTool composes these with `variants[]` rather than ignoring them,
-		// but this editor has no phone kind that holds both, so all five are dropped
-		// on export. Say so plainly — silently discarding them costs the operator
-		// both the variants themselves and the entry's CrinGraph compatibility.
-		const shadowed = (['file', 'suffix', 'prefix', 'samples', 'hptfs'] as const).filter(
-			(key) => p[key] !== undefined
+	const where = `${brandLabel}" phone "${baseName || phoneIdx}"`;
+	const badPrefix = [p.prefix].flat().find((x) => typeof x === 'string' && !isValidPattern(x));
+	if (badPrefix !== undefined) {
+		warnings.push(
+			`Brand "${where}: "prefix" ${JSON.stringify(badPrefix)} is not a valid regular expression, so it names no variant.`
 		);
-		if (shadowed.length > 0) {
-			const list = shadowed.map((key) => `"${key}"`).join('/');
-			const plural = shadowed.length > 1;
-			warnings.push(
-				`Brand "${brandLabel}" phone "${baseName || phoneIdx}": the phone-level ${list} ${
-					plural ? 'keys are' : 'key is'
-				} loaded by modernGraphTool alongside "variants", but this editor cannot represent ${
-					plural ? 'them' : 'it'
-				} yet and will drop ${
-					plural ? 'them' : 'it'
-				} on export — removing those variants and this entry's CrinGraph compatibility. Edit this phone by hand instead.`
-			);
-		}
-		const variants = p.variants.map((raw, entryIdx) =>
-			parseVariant(
-				raw,
-				`${brandLabel}" phone "${baseName || phoneIdx}" variants[${entryIdx}]`,
-				warnings
-			)
-		);
-		return withShared({
-			id: makeId('phone'),
-			kind: 'sampleSet',
-			sampleSet: { name: baseName, variants }
-		});
 	}
 
-	// Legacy `hptfs[]` — one variance set per entry. Unlike the old editor, the
-	// phone's own file/suffix variants survive: `variants[]` is a flat list, so
-	// both can be represented at once.
-	if (Array.isArray(p.hptfs) && p.hptfs.length > 0) {
-		const fileVariants = fileSuffixPairs(p).map(({ file, suffix }): VariantEntry => ({
-			suffix,
-			file,
-			count: typeof p.samples === 'number' ? p.samples : 0,
-			rows: [],
-			labels: [],
-			display: ['avg']
-		}));
-		const hptfVariants: VariantEntry[] = p.hptfs.map((raw, entryIdx) => {
-			if (typeof raw !== 'object' || raw == null || Array.isArray(raw)) {
-				warnings.push(
-					`Brand "${brandLabel}" phone "${baseName || phoneIdx}": hptfs[${entryIdx}] is not an object, coerced to empty.`
-				);
-				return { file: '', count: 0, rows: [], labels: [], display: ['avg', 'fill'] };
-			}
-			const h = raw as Record<string, unknown>;
-			const files = Array.isArray(h.files) ? h.files.map(String) : [];
-			const labels = Array.isArray(h.labels) ? h.labels.map(String) : files;
-			const fillOnly = typeof h.fillOnly === 'boolean' ? h.fillOnly : true;
-			return {
-				suffix: typeof h.suffix === 'string' ? h.suffix : undefined,
-				file: '',
-				count: 0,
-				rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
+	// Anything that needs `variants[]` to say: the explicit form, or one of the
+	// two pre-unification sample forms. The phone-level keys compose with
+	// `variants[]` here exactly as they do in modernGraphTool.
+	const explicit = Array.isArray(p.variants) ? p.variants : [];
+	const hptfs = Array.isArray(p.hptfs) ? p.hptfs : [];
+	if (explicit.length > 0 || hptfs.length > 0 || typeof p.samples === 'number') {
+		// modernGraphTool names a phone without `file` after itself, unless
+		// `hptfs` or `variants` (malformed entries included) declares something.
+		const nameFallback = hptfs.length === 0 && !Array.isArray(p.variants);
+		const legacy = [
+			...fileSuffixPairs(p, baseName, nameFallback).map(({ file, suffix }): VariantEntry => ({
+				suffix,
+				file,
+				count: typeof p.samples === 'number' ? p.samples : 0,
+				rows: [],
 				labels: [],
-				// `fillOnly` meant "no per-run curve toggles", nothing more.
-				display: (fillOnly ? ['avg', 'fill'] : ['avg', 'curves', 'fill']) as SampleDisplayMode[],
-				sampleDescription: typeof h.description === 'string' ? h.description : undefined
-			};
-		});
-		return withShared({
-			id: makeId('phone'),
-			kind: 'sampleSet',
-			sampleSet: { name: baseName, variants: [...fileVariants, ...hptfVariants] }
-		});
-	}
-
-	// Legacy phone-level `samples: N` — the same run count on every file variant.
-	if (typeof p.samples === 'number') {
-		const variants = fileSuffixPairs(p).map(({ file, suffix }): VariantEntry => ({
-			suffix,
-			file,
-			count: p.samples as number,
-			rows: [],
-			labels: [],
-			display: ['avg']
-		}));
+				display: ['avg']
+			})),
+			...objectEntries(hptfs, `${where}: hptfs`, warnings).map(parseHptf)
+		];
+		const variants = uniqueSuffixes(
+			mergeVariants(
+				legacy,
+				objectEntries(explicit, `${where}: variants`, warnings).map(parseVariant),
+				baseName
+			),
+			where,
+			warnings
+		);
 		return withShared({
 			id: makeId('phone'),
 			kind: 'sampleSet',
@@ -427,13 +378,12 @@ function parsePhone(
 		});
 	}
 
-	// prefix → prefix variations
-	if (p.prefix !== undefined) {
-		const prefixStr = Array.isArray(p.prefix)
-			? String(p.prefix[0] ?? '')
-			: typeof p.prefix === 'string'
-				? p.prefix
-				: '';
+	// prefix → prefix variations, when modernGraphTool names the variants by it:
+	// a suffix string, or a suffix array beside a file array, wins over a prefix,
+	// and a prefix array (one pattern per file) goes to the variations kind below.
+	const readsSuffix =
+		typeof p.suffix === 'string' || (Array.isArray(p.suffix) && Array.isArray(p.file));
+	if (typeof p.prefix === 'string' && !readsSuffix) {
 		const files = Array.isArray(p.file)
 			? p.file.map(String)
 			: typeof p.file === 'string'
@@ -442,19 +392,13 @@ function parsePhone(
 		return withShared({
 			id: makeId('phone'),
 			kind: 'prefix',
-			prefix: { name: baseName, prefix: prefixStr, files }
+			prefix: { name: baseName, prefix: p.prefix, files }
 		});
 	}
 
 	// file as array → variations
 	if (Array.isArray(p.file)) {
-		const files = p.file.map(String);
-		const suffixes = Array.isArray(p.suffix)
-			? p.suffix.map(String)
-			: typeof p.suffix === 'string'
-				? [p.suffix]
-				: [];
-		const rows = files.map((file, i) => ({ file, suffix: suffixes[i] ?? '' }));
+		const rows = uniqueSuffixes(fileSuffixPairs(p, baseName, true), where, warnings);
 		return withShared({
 			id: makeId('phone'),
 			kind: 'variations',
@@ -478,30 +422,197 @@ export function emptyVariant(): VariantEntry {
 	return { suffix: '', file: '', count: 0, rows: [], labels: [], display: ['avg'] };
 }
 
-/** Zip the phone-level `file` / `suffix` keys into one pair per variant. */
-function fileSuffixPairs(p: Record<string, unknown>): Array<{ file: string; suffix: string }> {
-	const files = Array.isArray(p.file)
-		? p.file.map(String)
-		: typeof p.file === 'string'
-			? [p.file]
-			: [];
-	const suffixes = Array.isArray(p.suffix)
-		? p.suffix.map(String)
-		: typeof p.suffix === 'string'
-			? [p.suffix]
-			: [];
-	return files.map((file, i) => ({ file, suffix: suffixes[i] ?? '' }));
+/**
+ * The phone-level variants `_parseLegacyVariants` in metadata-parser.ts builds from
+ * `file`: one per string entry, or, with no file and `nameFallback` set, one named
+ * after the phone.
+ */
+function fileSuffixPairs(
+	p: Record<string, unknown>,
+	baseName: string,
+	nameFallback: boolean
+): Array<{ file: string; suffix: string }> {
+	if (!hasPhoneFile(p.file)) {
+		return nameFallback ? [{ file: baseName, suffix: legacySuffix(p, 0) }] : [];
+	}
+	const files: unknown[] = Array.isArray(p.file) ? p.file : [p.file];
+	return files.flatMap((file, i) =>
+		typeof file === 'string' ? [{ file, suffix: legacySuffix(p, i) }] : []
+	);
+}
+
+/** `_hasPhoneFile` in metadata-parser.ts. */
+function hasPhoneFile(file: unknown): boolean {
+	return Array.isArray(file) ? file.length > 0 : typeof file === 'string' && file.trim() !== '';
+}
+
+/**
+ * The suffix modernGraphTool gives phone-level variant `i` (`_getSuffix` in
+ * metadata-parser.ts), so an import keeps the names the site shows.
+ */
+function legacySuffix(p: Record<string, unknown>, i: number): string {
+	const { file, suffix, prefix } = p;
+	if (Array.isArray(file)) {
+		if (Array.isArray(suffix)) {
+			const entry: unknown = suffix[i];
+			return typeof entry === 'string' ? entry.trim() : String(i);
+		}
+		if (typeof suffix === 'string') return suffix.trim() || String(i);
+		if (Array.isArray(prefix)) return stripPrefix(file[i], prefix[i]);
+		return typeof prefix === 'string' ? stripPrefix(file[i], prefix) : '';
+	}
+	const one = typeof file === 'string' ? file : undefined;
+	if (typeof suffix === 'string') return suffix.trim() || one?.trim() || '';
+	return typeof prefix === 'string' && one ? stripPrefix(one, prefix) : '';
+}
+
+/** The object entries of a list: modernGraphTool skips the rest, and so does the editor. */
+function objectEntries(
+	list: unknown[],
+	where: string,
+	warnings: string[]
+): Record<string, unknown>[] {
+	return list.filter((raw, i): raw is Record<string, unknown> => {
+		const isObject = typeof raw === 'object' && raw != null && !Array.isArray(raw);
+		if (!isObject) warnings.push(`Brand "${where}[${i}] is not an object, dropped.`);
+		return isObject;
+	});
+}
+
+/**
+ * Rename repeated suffixes the way `_uniqueSuffixes` in metadata-parser.ts does,
+ * so each variant keeps the name the site shows it under: the first keeps its
+ * suffix, later ones get a counter (`"2"`, `"Tip 2"`).
+ */
+function uniqueSuffixes<T extends { suffix?: string }>(
+	entries: T[],
+	where: string,
+	warnings: string[]
+): T[] {
+	const taken = new Set<string>();
+	return entries.map((entry) => {
+		const suffix = entry.suffix ?? '';
+		if (!taken.has(suffix)) {
+			taken.add(suffix);
+			return entry;
+		}
+		const suffixFor = (n: number) => (suffix ? `${suffix} ${n}` : String(n));
+		let n = 2;
+		while (taken.has(suffixFor(n))) n++;
+		const renamed = suffixFor(n);
+		taken.add(renamed);
+		warnings.push(`Brand "${where}: repeated suffix "${suffix}" renamed to "${renamed}".`);
+		return { ...entry, suffix: renamed };
+	});
+}
+
+/** `file` without a `prefix` pattern; "" for an invalid one, as in modernGraphTool. */
+function stripPrefix(file: unknown, prefix: unknown): string {
+	if (typeof file !== 'string') return '';
+	try {
+		return file.replace(new RegExp(typeof prefix === 'string' ? prefix : '', 'i'), '').trim();
+	} catch {
+		return '';
+	}
+}
+
+function isValidPattern(pattern: string): boolean {
+	try {
+		RegExp(pattern, 'i');
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/** One legacy `hptfs[]` entry, as the variance set it declared. */
+function parseHptf(h: Record<string, unknown>): VariantEntry {
+	const files = Array.isArray(h.files) ? h.files.map(String) : [];
+	const labels = Array.isArray(h.labels) ? h.labels.map(String) : files;
+	const fillOnly = typeof h.fillOnly === 'boolean' ? h.fillOnly : true;
+	return {
+		suffix: typeof h.suffix === 'string' ? h.suffix : undefined,
+		file: '',
+		count: 0,
+		rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
+		labels: [],
+		// `fillOnly` meant "no per-run curve toggles", nothing more.
+		display: fillOnly ? ['avg', 'fill'] : ['avg', 'curves', 'fill'],
+		sampleDescription: typeof h.description === 'string' ? h.description : undefined
+	};
+}
+
+/** The runs a variant exports: a blank row has nothing to load, so it is left out. */
+function exportedRows(variant: VariantEntry): VariantEntry['rows'] {
+	return variant.rows.filter((row) => row.file.trim() !== '');
+}
+
+/**
+ * The filename modernGraphTool matches the exported variant by: its own, else its
+ * first run's, else the phone's name. A blank `file` is not exported, so it
+ * falls through, as it does there.
+ */
+function variantFileName(variant: VariantEntry, baseName: string): string {
+	return variant.file || exportedRows(variant)[0]?.file || baseName;
+}
+
+/**
+ * Fold `variants[]` into the phone-level variants the way `_mergeVariants` in
+ * metadata-parser.ts does: an entry naming an already-declared file replaces
+ * that variant in place (each at most once), anything else is appended. Once
+ * `variants[]` names every phone-level variant, its own order is used instead.
+ */
+function mergeVariants(
+	legacy: VariantEntry[],
+	explicit: VariantEntry[],
+	baseName: string
+): VariantEntry[] {
+	const merged = [...legacy];
+	const claimed = new Set<number>();
+	for (const variant of explicit) {
+		const name = variantFileName(variant, baseName);
+		const at = legacy.findIndex(
+			(existing, i) => !claimed.has(i) && variantFileName(existing, baseName) === name
+		);
+		if (at === -1) {
+			merged.push(variant);
+		} else {
+			claimed.add(at);
+			merged[at] = variant;
+		}
+	}
+	return claimed.size === legacy.length ? explicit : merged;
+}
+
+/**
+ * The phone-level `file` / `suffix` written beside `variants[]`. CrinGraph and
+ * squig.link's search read `file` and nothing else: a phone without one is
+ * missing there, and squig.link stops listing the rest of the book at it.
+ *
+ * It names the first variant (a set that is only a list of runs by its first run),
+ * so `file[0]` is the same default curve everywhere, then each later variant with
+ * a file of its own, and each filename once: a repeat would be a second entry for
+ * one measurement there. `variants[]` still names every mirrored entry, which is
+ * when modernGraphTool follows its order.
+ */
+function fileMirror(variants: VariantEntry[], baseName: string): Record<string, unknown> {
+	const files: string[] = [];
+	const suffixes: string[] = [];
+	variants.forEach((variant, i) => {
+		const file = variantFileName(variant, baseName);
+		if ((i > 0 && !variant.file) || files.includes(file)) return;
+		files.push(file);
+		suffixes.push(variant.suffix ?? '');
+	});
+	if (files.length === 1) {
+		return { file: files[0], ...(suffixes[0] && { suffix: suffixes[0] }) };
+	}
+	return { file: files, ...(suffixes.some(Boolean) && { suffix: suffixes }) };
 }
 
 const VALID_MODES: SampleDisplayMode[] = ['avg', 'curves', 'fill'];
 
-function parseVariant(raw: unknown, where: string, warnings: string[]): VariantEntry {
-	if (typeof raw !== 'object' || raw == null || Array.isArray(raw)) {
-		warnings.push(`Brand "${where}: not an object, coerced to empty.`);
-		return emptyVariant();
-	}
-	const v = raw as Record<string, unknown>;
-
+function parseVariant(v: Record<string, unknown>): VariantEntry {
 	// A bare number is shorthand for `{ count: n }` — normalize at the boundary
 	// so only one shape flows through the editor.
 	const set: Record<string, unknown> =
@@ -518,7 +629,8 @@ function parseVariant(raw: unknown, where: string, warnings: string[]): VariantE
 		: ['avg' as SampleDisplayMode];
 
 	return {
-		suffix: typeof v.suffix === 'string' ? v.suffix : '',
+		// Trimmed as modernGraphTool trims it, before `uniqueSuffixes` numbers repeats.
+		suffix: typeof v.suffix === 'string' ? v.suffix.trim() : '',
 		file: typeof v.file === 'string' ? v.file : '',
 		count: typeof set.count === 'number' ? set.count : 0,
 		rows: files.map((file, i) => ({ file, label: labels[i] ?? file })),
@@ -541,11 +653,12 @@ function serializeVariant(entry: VariantEntry): Record<string, unknown> {
 	if (entry.file) out.file = entry.file;
 	if (entry.description) out.description = entry.description;
 
-	const hasRows = entry.rows.length > 0;
+	const rows = exportedRows(entry);
+	const hasRows = rows.length > 0;
 	const hasCount = !hasRows && entry.count > 0;
 	if (!hasRows && !hasCount) return out;
 
-	const rowsLabelled = entry.rows.some((r) => r.label && r.label !== r.file);
+	const rowsLabelled = rows.some((r) => r.label && r.label !== r.file);
 	const countLabelled = entry.labels.some((l) => l);
 	const defaultDisplay = entry.display.length === 1 && entry.display[0] === 'avg';
 
@@ -556,8 +669,8 @@ function serializeVariant(entry: VariantEntry): Record<string, unknown> {
 
 	const set: Record<string, unknown> = {};
 	if (hasRows) {
-		set.files = entry.rows.map((r) => r.file);
-		if (rowsLabelled) set.labels = entry.rows.map((r) => r.label);
+		set.files = rows.map((r) => r.file);
+		if (rowsLabelled) set.labels = rows.map((r) => r.label);
 	} else {
 		set.count = entry.count;
 		if (countLabelled) set.labels = entry.labels;
@@ -618,6 +731,7 @@ function serializePhone(phone: PhoneState): unknown {
 		case 'sampleSet': {
 			const set = phone.sampleSet!;
 			obj.name = [set.name];
+			Object.assign(obj, fileMirror(set.variants, set.name));
 			obj.variants = set.variants.map(serializeVariant);
 			break;
 		}

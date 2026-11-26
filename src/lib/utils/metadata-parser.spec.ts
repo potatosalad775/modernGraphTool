@@ -795,6 +795,147 @@ describe('MetadataParser', () => {
 			expect(files[0].sampleFiles).toBeUndefined();
 		});
 
+		describe('an object phone without a phone-level file', () => {
+			let warnSpy: ReturnType<typeof vi.spyOn>;
+			const book = (phone: Record<string, unknown>) => [{ name: 'Demo', phones: [phone] }];
+
+			beforeEach(() => {
+				warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			});
+
+			afterEach(() => {
+				warnSpy.mockRestore();
+			});
+
+			it('warns once, naming the phone, and still loads it', async () => {
+				const result = await parse(book({ name: ['X'], variants: [{ suffix: 'A', file: 'X A' }] }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('"Demo X"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"file"');
+				expect(result[0].phones[0].files.map((f) => f.suffix)).toEqual(['A']);
+			});
+
+			it('warns for an empty file string or array too', async () => {
+				const variants = [{ suffix: 'A', file: 'X A' }];
+				await parse(book({ name: ['X'], file: '', variants }));
+				await parse(book({ name: ['X'], file: [], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(2);
+			});
+
+			it('treats a file that is neither a string nor an array, or is blank, as missing', async () => {
+				for (const file of [42, '   ']) {
+					const result = await parse(
+						book({ name: ['X'], file, variants: [{ suffix: 'A', file: 'X A' }] })
+					);
+					expect(result[0].phones[0].files.map((f) => f.fileName)).toEqual(['X A']);
+				}
+				expect(warnSpy).toHaveBeenCalledTimes(2);
+				expect(warnSpy.mock.calls[0][0]).toContain('without a phone-level "file"');
+			});
+
+			it('skips a file[] entry that is not a string, keeping the suffixes aligned', async () => {
+				const result = await parse(
+					book({ name: ['X'], file: ['X A', 42, 'X C'], suffix: ['A', 'B', 'C'] })
+				);
+				expect(result[0].phones[0].files.map((f) => [f.suffix, f.fileName])).toEqual([
+					['A', 'X A'],
+					['C', 'X C']
+				]);
+			});
+
+			it('warns for any object phone without one, hptfs-only or name-only', async () => {
+				await parse(book({ name: ['X'], hptfs: [{ suffix: 'Pads', files: ['P1', 'P2'] }] }));
+				await parse(book({ name: 'X', reviewScore: 4 }));
+				expect(warnSpy).toHaveBeenCalledTimes(2);
+			});
+
+			it('does not warn when the phone has both file and variants[]', async () => {
+				await parse(
+					book({ name: ['X'], file: ['X A'], variants: [{ suffix: 'A', file: 'X A', samples: 3 }] })
+				);
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			it('does not warn for a phone with only file', async () => {
+				await parse(book({ name: ['X'], file: ['X A'], suffix: ['A'] }));
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			// The phone_book.json Editor exports this mirror (`fileMirror` in
+			// docs/src/utils/phoneBookConverter.ts) and relies on it being a no-op here.
+			it('parses a mirrored phone exactly like the same phone without the mirror', async () => {
+				const variants = [
+					{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+					{ suffix: 'Stock', file: 'X' },
+					{ suffix: 'Runs', file: 'X', samples: 3 },
+					{ suffix: 'More Pads', samples: { files: ['Pad A', 'Pad C'] } }
+				];
+				const bare = await parse(book({ name: ['X'], variants }));
+				const mirrored = await parse(
+					book({ name: ['X'], file: ['Pad A', 'X'], suffix: ['Pads', 'Stock'], variants })
+				);
+				expect(mirrored[0].phones[0].files).toEqual(bare[0].phones[0].files);
+			});
+		});
+
+		describe('the order of variants[] against file', () => {
+			let warnSpy: ReturnType<typeof vi.spyOn>;
+			const book = (phone: Record<string, unknown>) => [{ name: 'Demo', phones: [phone] }];
+			const variants = [
+				{ suffix: 'Pads', samples: { files: ['Pad 1', 'Pad 2'] } },
+				{ suffix: 'A', file: 'X A' },
+				{ suffix: 'B', file: 'X B' }
+			];
+			const order = (result: Awaited<ReturnType<typeof parse>>) =>
+				result[0].phones[0].files.map((f) => f.suffix);
+
+			beforeEach(() => {
+				warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			});
+
+			afterEach(() => {
+				warnSpy.mockRestore();
+			});
+
+			it('follows variants[] once it names every file', async () => {
+				const result = await parse(book({ name: ['X'], file: ['X B', 'X A'], variants }));
+				expect(order(result)).toEqual(['Pads', 'A', 'B']);
+			});
+
+			it('keeps the file order while variants[] leaves a file out', async () => {
+				const result = await parse(
+					book({
+						name: ['X'],
+						file: ['X A', 'X B'],
+						suffix: ['A', 'B'],
+						variants: variants.slice(0, 2)
+					})
+				);
+				expect(order(result)).toEqual(['A', 'B', 'Pads']);
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			it('warns when the default curve is not the first file', async () => {
+				await parse(book({ name: ['X'], file: ['X A', 'X B'], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('"Demo X"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"Pad 1"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"X A"');
+			});
+
+			it('does not warn once file starts with the first variant', async () => {
+				const result = await parse(book({ name: ['X'], file: ['Pad 1', 'X A', 'X B'], variants }));
+				expect(warnSpy).not.toHaveBeenCalled();
+				expect(order(result)).toEqual(['Pads', 'A', 'B']);
+			});
+
+			it('leaves a phone without a file to the missing-file warning', async () => {
+				await parse(book({ name: ['X'], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('without a phone-level "file"');
+			});
+		});
+
 		it('normalizes legacy phone-level samples to the same shape as variants[]', async () => {
 			const legacy = await parse([
 				{ name: 'Demo', phones: [{ name: ['X'], file: ['X A'], suffix: ['A'], samples: 3 }] }
@@ -924,6 +1065,24 @@ describe('MetadataParser', () => {
 
 			expect(result).toHaveLength(1);
 			expect(result[0].brand).toBe('Sennheiser');
+		});
+
+		it('loads the book past a prefix that is not a valid regular expression', async () => {
+			mockFetch([
+				{
+					name: 'Moondrop',
+					phones: [{ name: ['Chu 2'], file: ['Chu (2 Foam'], prefix: 'Chu (2' }, 'Aria']
+				}
+			]);
+
+			const result = await MetadataParser._fetchBookObject();
+
+			expect(result[0].phones.map((p) => p.identifier)).toEqual([
+				'Moondrop Chu 2',
+				'Moondrop Aria'
+			]);
+			expect(result[0].phones[0].files[0].suffix).toBe('');
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"Chu (2"'));
 		});
 
 		it('skips invalid phone entries within a brand and keeps the rest', async () => {

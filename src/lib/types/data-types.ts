@@ -260,8 +260,9 @@ export interface RawPhoneData {
 	 * Explicit per-variant declarations. These **compose** with the CrinGraph-dialect
 	 * `file` / `suffix` / `prefix` / `samples` / `hptfs` keys rather than replacing
 	 * them: an entry naming an already-declared file upgrades that variant in place,
-	 * anything else is appended. Lets one phone stay readable by CrinGraph — which
-	 * only knows `file` — while carrying sample sets here.
+	 * anything else is appended. Once the entries name every declared file, the
+	 * list follows their order instead. Lets one phone stay readable by CrinGraph —
+	 * which only knows `file` — while carrying sample sets here.
 	 */
 	variants?: Unchecked<RawVariant>[];
 	/** Legacy: number of measurement samples (e.g. 3 for L1/L2/L3/R1/R2/R3 files) */

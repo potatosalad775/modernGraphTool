@@ -286,42 +286,240 @@ describe('brand suffix', () => {
 	});
 });
 
-describe('CrinGraph compatibility warnings', () => {
-	// AGENTS.md: a modernGraphTool-only key must compose with the CrinGraph
-	// dialect rather than override it. The editor cannot represent a phone that
-	// carries both `variants[]` and a phone-level `file`, so it must say so
-	// loudly rather than drop the compatibility silently.
-	it('warns when variants[] shadows phone-level keys', () => {
+describe('the phone-level file beside variants[]', () => {
+	// CrinGraph and squig.link's search read `file` and nothing else, so every
+	// sample-set phone is exported with one. modernGraphTool upgrades a mirrored
+	// variant in place, so the mirror must not reorder or duplicate anything.
+	const emit = (variants: unknown[], extra: Record<string, unknown> = {}) => {
 		const source = JSON.stringify([
-			{
-				name: 'Moondrop',
-				phones: [
-					{
-						name: ['Chu 2'],
-						file: 'Chu 2',
-						suffix: 'Stock',
-						variants: [{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]
-					}
-				]
-			}
+			{ name: 'Moondrop', phones: [{ name: ['Chu 2'], ...extra, variants }] }
 		]);
-		const { warnings } = parsePhoneBook(source);
-		expect(warnings).toHaveLength(1);
-		expect(warnings[0]).toContain('"file"');
-		expect(warnings[0]).toContain('"suffix"');
-		expect(warnings[0]).toContain('CrinGraph');
+		const { state, warnings } = parsePhoneBook(source);
+		return { phone: JSON.parse(serializePhoneBook(state))[0].phones[0], state, warnings };
+	};
+
+	it('writes a single variant as a string', () => {
+		const { phone } = emit([{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]);
+		expect(phone.file).toBe('Chu 2 leather');
+		expect(phone.suffix).toBe('Leather');
+		expect(phone.variants).toEqual([{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]);
 	});
 
-	it('stays silent when variants[] carries no shadowed keys', () => {
-		const source = JSON.stringify([
-			{
-				name: 'Moondrop',
-				phones: [
-					{ name: ['Chu 2'], variants: [{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }] }
-				]
-			}
+	it('writes several variants as aligned arrays', () => {
+		const { phone } = emit([
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }
 		]);
-		expect(parsePhoneBook(source).warnings).toEqual([]);
+		expect(phone.file).toEqual(['Chu 2', 'Chu 2 leather']);
+		expect(phone.suffix).toEqual(['Stock', 'Leather']);
+	});
+
+	it('names the first run of a set that is only a list of runs', () => {
+		const { phone } = emit([{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } }]);
+		expect(phone.file).toBe('Pad A');
+		expect(phone.variants[0].file).toBeUndefined();
+	});
+
+	it('mirrors a run-only set only as the first variant', () => {
+		const runs = { suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } };
+		const plain = { suffix: 'Stock', file: 'Chu 2' };
+		expect(emit([plain, runs]).phone.file).toBe('Chu 2');
+		expect(emit([runs, plain]).phone.file).toEqual(['Pad A', 'Chu 2']);
+	});
+
+	it('writes each filename once', () => {
+		const { phone } = emit([
+			{ suffix: 'Pads', samples: { files: ['Chu 2', 'Pad B'] } },
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'Runs', file: 'Chu 2', samples: 3 },
+			{ suffix: 'More Pads', samples: { files: ['Chu 2', 'Pad C'] } }
+		]);
+		expect(phone.file).toBe('Chu 2');
+		expect(phone.suffix).toBe('Pads');
+		expect(phone.variants).toHaveLength(4);
+	});
+
+	it('drops blank runs, so a set never exports a file named after the phone', () => {
+		const blank = { file: '', label: '' };
+		const { phone } = emit([{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } }]);
+		const state: PhoneBookState = [
+			brandWith([
+				{
+					id: 'p1',
+					kind: 'sampleSet',
+					sampleSet: {
+						name: 'Chu 2',
+						variants: [
+							{
+								suffix: 'Pads',
+								file: '',
+								count: 3,
+								rows: [blank, { file: 'Pad A', label: '' }, { file: 'Pad B', label: '' }],
+								labels: [],
+								display: ['avg']
+							}
+						]
+					}
+				}
+			])
+		];
+		expect(JSON.parse(serializePhoneBook(state))[0].phones[0]).toEqual(phone);
+	});
+
+	it('reads its own export back unchanged', () => {
+		const { state } = emit([
+			{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'More Pads', samples: { files: ['Pad A', 'Pad C'] } }
+		]);
+		expect(state[0].phones[0].sampleSet!.variants.map((v) => v.suffix)).toEqual([
+			'Pads',
+			'Stock',
+			'More Pads'
+		]);
+		expectRoundTrip(state);
+	});
+
+	it('composes phone-level keys with variants[] instead of dropping them', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Repeat Runs', file: 'Chu 2', samples: 3 },
+				{ suffix: 'Leather', file: 'Chu 2 L' }
+			],
+			{ file: ['Chu 2 foam', 'Chu 2'], suffix: ['Foam', 'Stock'] }
+		);
+		expect(warnings).toEqual([]);
+		expect(phone.file).toEqual(['Chu 2 foam', 'Chu 2', 'Chu 2 L']);
+		expect(phone.suffix).toEqual(['Foam', 'Repeat Runs', 'Leather']);
+		expect(phone.variants).toHaveLength(3);
+	});
+
+	it('follows variants[] once it names every file, and exports file in that order', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+				{ suffix: 'Stock', file: 'Chu 2' }
+			],
+			{ file: 'Chu 2', suffix: 'Stock' }
+		);
+		expect(warnings).toEqual([]);
+		expect(phone.file).toEqual(['Pad A', 'Chu 2']);
+		expect(phone.suffix).toEqual(['Pads', 'Stock']);
+		expect(phone.variants.map((v: { suffix: string }) => v.suffix)).toEqual(['Pads', 'Stock']);
+	});
+
+	it('names prefix variants by what is left of the filename', () => {
+		const { phone } = emit([{ suffix: 'Depth', samples: { files: ['Chu 2 7k', 'Chu 2 9k'] } }], {
+			file: ['Chu 2 Stock', 'Chu 2 SpinFit'],
+			prefix: 'Chu 2'
+		});
+		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit']);
+		expect(phone.suffix).toEqual(['Stock', 'SpinFit']);
+		expect(phone.prefix).toBeUndefined();
+	});
+
+	it('drops entries of variants[] and hptfs[] that are not objects', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Pads', samples: { files: ['P1', 'P2'] } },
+				{ file: 'A', samples: 3 }
+			],
+			{ file: ['A'], suffix: ['Main'], hptfs: ['bad'] }
+		);
+		expect(warnings).toEqual([expect.stringContaining('hptfs[0] is not an object, dropped')]);
+		expect(phone.file).toEqual(['P1', 'A']);
+		expect(phone.variants).toEqual([
+			{ suffix: 'Pads', samples: { files: ['P1', 'P2'] } },
+			{ file: 'A', samples: 3 }
+		]);
+
+		const kept = emit([null, { suffix: 'Pads', samples: { files: ['P1'] } }], {
+			file: ['X'],
+			suffix: ['Main']
+		});
+		expect(kept.phone.suffix).toBe('Main');
+		expect(kept.phone.variants.map((v: { suffix: string }) => v.suffix)).toEqual(['Main', 'Pads']);
+	});
+
+	it('keeps the runs of a phone with samples and no file, named after the phone', () => {
+		const source = JSON.stringify([
+			{ name: 'Moondrop', phones: [{ name: ['Chu 2'], samples: 3 }] }
+		]);
+		const phone = JSON.parse(serializePhoneBook(parsePhoneBook(source).state))[0].phones[0];
+		expect(phone.file).toBe('Chu 2');
+		expect(phone.variants).toEqual([{ file: 'Chu 2', samples: 3 }]);
+	});
+});
+
+describe('legacy suffixes', () => {
+	// modernGraphTool gives a single `suffix` string to every file, then renames
+	// repeats (`_uniqueSuffixes`). The editor must export the names the site shows.
+	const importPhone = (phone: Record<string, unknown>) => {
+		const { state, warnings } = parsePhoneBook(
+			JSON.stringify([{ name: 'Moondrop', phones: [phone] }])
+		);
+		return { phone: state[0].phones[0], warnings };
+	};
+
+	it('applies a suffix string to every file and numbers the repeats', () => {
+		const { phone, warnings } = importPhone({ name: ['Chu 2'], file: ['A', 'B'], suffix: 'Tip' });
+		expect(phone.variations!.rows).toEqual([
+			{ file: 'A', suffix: 'Tip' },
+			{ file: 'B', suffix: 'Tip 2' }
+		]);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0]).toContain('"Tip 2"');
+	});
+
+	it('does the same beside a phone-level sample count', () => {
+		const { phone } = importPhone({ name: ['Chu 2'], file: ['A', 'B'], suffix: 'Tip', samples: 3 });
+		expect(phone.sampleSet!.variants.map((v) => v.suffix)).toEqual(['Tip', 'Tip 2']);
+	});
+
+	it('numbers repeated empty suffixes from 2', () => {
+		const { phone } = importPhone({ name: ['Chu 2'], file: ['A', 'B', 'C'] });
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['', '2', '3']);
+	});
+
+	it('leaves distinct suffixes in an array alone', () => {
+		const { phone, warnings } = importPhone({
+			name: ['Chu 2'],
+			file: ['A', 'B'],
+			suffix: ['Foam', 'Silicone']
+		});
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['Foam', 'Silicone']);
+		expect(warnings).toEqual([]);
+	});
+
+	// `_getSuffix` in metadata-parser.ts, rule by rule.
+	it('names each variant exactly as modernGraphTool does', () => {
+		const rows = (phone: Record<string, unknown>) =>
+			importPhone({ name: ['Chu 2'], file: ['A', 'B'], ...phone }).phone.variations!.rows.map(
+				(r) => r.suffix
+			);
+		expect(rows({ suffix: ' Tip ' })).toEqual(['Tip', 'Tip 2']);
+		expect(rows({ file: ['A', 'B', 'C'], suffix: '' })).toEqual(['0', '1', '2']);
+		expect(rows({ suffix: ['Foam'] })).toEqual(['Foam', '1']);
+		expect(rows({ prefix: ['Chu '] })).toEqual(['A', 'B']);
+
+		const single = importPhone({ name: ['Chu 2'], file: 'A', suffix: ['Stock'], samples: 3 });
+		expect(single.phone.sampleSet!.variants.map((v) => v.suffix)).toEqual(['']);
+	});
+
+	it('keeps a suffix that wins over a prefix', () => {
+		const { phone } = importPhone({
+			name: ['P'],
+			file: ['P Foam', 'P Tip'],
+			suffix: ['Foam Tips', 'Silicone'],
+			prefix: 'P'
+		});
+		expect(phone.kind).toBe('variations');
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['Foam Tips', 'Silicone']);
+	});
+
+	it('warns about a prefix that is not a valid regular expression', () => {
+		const { warnings } = importPhone({ name: ['Chu 2'], file: ['Chu (2 Foam'], prefix: 'Chu (2' });
+		expect(warnings).toEqual([expect.stringContaining('not a valid regular expression')]);
 	});
 });
 
@@ -337,52 +535,42 @@ describe('the shipped defaults/data/phone_book.json', () => {
 	});
 
 	it('is re-exportable once imported', () => {
-		// Idempotent from the second pass on — the only loss happens on first import,
-		// pinned by the "Dual Hosted" test below.
 		const { state } = parsePhoneBook(shipped);
 		expectRoundTrip(state);
 	});
 
-	/**
-	 * KNOWN GAP, pinned deliberately.
-	 *
-	 * The shipped sample's "Dual Hosted" entry is the project's own demonstration of
-	 * the rule in AGENTS.md — a modernGraphTool-only key must compose with the
-	 * CrinGraph dialect rather than override it. It carries phone-level `file` (which
-	 * is all CrinGraph reads) *and* `variants[]` (which modernGraphTool composes on
-	 * top). The editor has no phone kind holding both, so importing it drops `file`
-	 * and `suffix`, and re-exporting publishes an entry CrinGraph cannot read at all.
-	 *
-	 * The parser warns rather than failing silently, which is the right call. These
-	 * assertions exist so that a rewrite cannot quietly widen the loss — and so that
-	 * implementing a combined phone kind trips this test and forces it updated.
-	 */
-	describe('"Dual Hosted" — the entry the editor cannot represent', () => {
-		it('warns exactly once, naming the shadowed keys and the consequence', () => {
-			const { warnings } = parsePhoneBook(shipped);
-			expect(warnings).toHaveLength(1);
-			expect(warnings[0]).toContain('Dual Hosted');
-			expect(warnings[0]).toContain('"file"');
-			expect(warnings[0]).toContain('"suffix"');
-			expect(warnings[0]).toContain('CrinGraph');
-		});
+	it('imports without warnings', () => {
+		expect(parsePhoneBook(shipped).warnings).toEqual([]);
+	});
 
-		it('drops phone-level file/suffix on re-export, losing CrinGraph readability', () => {
-			const { state } = parsePhoneBook(shipped);
-			const emitted = JSON.parse(serializePhoneBook(state)) as any[];
-			const entry = emitted
+	it('exports every object phone with a phone-level file', () => {
+		const emitted = JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)) as any[];
+		const objects = emitted.flatMap((b) => b.phones ?? []).filter((p) => typeof p === 'object');
+		expect(objects.filter((p) => !p.file || p.file.length === 0)).toEqual([]);
+	});
+
+	// The sample's own demonstration of both schemas on one entry. Its run-only set
+	// is appended as a fourth variant and stays out of `file`.
+	it('keeps the order of "Dual Hosted" on re-export', () => {
+		const find = (book: any[]) =>
+			book
 				.flatMap((b) => b.phones ?? [])
 				.find((p: any) => Array.isArray(p?.name) && p.name[0] === 'Dual Hosted');
+		const before = find(JSON.parse(shipped));
+		const after = find(JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)));
 
-			expect(entry).toBeDefined();
-			expect(entry.variants).toHaveLength(2);
-			// The loss: CrinGraph reads `file` and nothing else.
-			expect(entry.file).toBeUndefined();
-			expect(entry.suffix).toBeUndefined();
-			// Everything the editor *can* model still survives.
-			expect(entry.price).toBe('$100');
-			expect(entry.description).toContain('CrinGraph');
-		});
+		expect(after.file).toEqual(before.file);
+		expect(after.suffix).toEqual(before.suffix);
+		expect(after.variants).toHaveLength(4);
+		expect(after.price).toBe('$100');
+	});
+
+	it('exports no filename twice within a phone', () => {
+		const emitted = JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)) as any[];
+		for (const phone of emitted.flatMap((b) => b.phones ?? [])) {
+			if (!Array.isArray(phone?.file)) continue;
+			expect(new Set(phone.file).size, phone.name[0]).toBe(phone.file.length);
+		}
 	});
 });
 

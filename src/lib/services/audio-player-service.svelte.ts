@@ -14,6 +14,10 @@ import { volumeWarning } from './volume-warning.svelte.js';
 import { MediaSessionBridge } from './media-session.js';
 import * as m from '#lib/paraglide/messages.js';
 
+// A new tone frequency is approached with this time constant and settles in about three of them.
+// A slow drag sends one value per pixel, and an instant jump per pixel sounds like a staircase.
+const TONE_GLIDE_SEC = 0.03;
+
 const BIQUAD_TYPE: Record<EQFilter['type'], BiquadFilterType> = {
 	PK: 'peaking',
 	LSQ: 'lowshelf',
@@ -451,9 +455,11 @@ class AudioPlayerService {
 
 	#assignToneFreq(hz: number): void {
 		this.#toneFreq = hz;
-		if (this.#oscillatorNode && this.#isPlaying) {
-			this.#oscillatorNode.frequency.value = hz;
-		}
+		const ctx = this.#audioContext;
+		if (!ctx || !this.#oscillatorNode || !this.#isPlaying) return;
+		const f = this.#oscillatorNode.frequency;
+		f.cancelScheduledValues(ctx.currentTime);
+		f.setTargetAtTime(hz, ctx.currentTime, TONE_GLIDE_SEC);
 	}
 
 	/** Pull the tone back inside the band after the range itself moved. */

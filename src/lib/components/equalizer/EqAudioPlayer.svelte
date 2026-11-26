@@ -42,7 +42,9 @@
 
 	function toneSliderHz(pos: number, min: number, max: number): number {
 		const lo = Math.log10(min);
-		return Math.round(Math.pow(10, lo + (pos / 1000) * (Math.log10(max) - lo)));
+		const hz = Math.pow(10, lo + (pos / 1000) * (Math.log10(max) - lo));
+		// Whole Hz is a 5% step at 20 Hz, so the low end keeps one decimal.
+		return hz < 100 ? Math.round(hz * 10) / 10 : Math.round(hz);
 	}
 
 	function formatTime(seconds: number): string {

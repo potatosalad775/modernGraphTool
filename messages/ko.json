@@ -630,6 +630,7 @@
 	"link_start_title": "어느 EQ를 사용할까요?",
 	"link_preamp_fixed": "uniPEQ에서 고정됨",
 	"link_preamp_use_auto": "자동 조정",
+	"link_preamp_clips": "밴드의 부스트에 비해 프리앰프 여유가 부족해 클리핑이 생길 수 있습니다. {needed} dB면 충분합니다.",
 	"volume_warning_title": "먼저 볼륨을 낮추세요",
 	"volume_warning_body": "기기의 EQ를 바꾸거나 재생을 시작하면 팝 노이즈, 소리 끊김, 갑작스러운 음량 변화가 생길 수 있습니다. 계속하기 전에 재생을 멈추거나 볼륨을 낮추세요.",
 	"volume_warning_body_unipeq": "uniPEQ가 {device}의 EQ를 바꾸려고 합니다. 이때 팝 노이즈, 소리 끊김, 갑작스러운 음량 변화가 생길 수 있으니 EQ를 조정하는 동안에는 재생을 멈추거나 볼륨을 낮추세요.",

@@ -1044,6 +1044,8 @@ class DevicePeqService {
 		this.#running = true;
 		const retryIfBusy = () => {
 			if (!devicePeqStore.isBusy) return false;
+			// An edit made meanwhile armed one: one timer, or `#cancelPending` misses the other.
+			this.#cancelPending();
 			this.#timer = setTimeout(() => void this.#flush(), AUTO_WRITE_DELAY_MS);
 			return true;
 		};

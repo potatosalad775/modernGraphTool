@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { flushSync } from 'svelte';
 import type { Control, Filter, Profile } from '@potatosalad775/eqcaps-core';
-import type { CommandResult } from 'peq-link/client';
+import type { CommandResult, LinkStatus } from 'peq-link/client';
 import { LinkPeqDevice, type LinkPort } from '#lib/device-peq/link.js';
 import { BridgeError } from '@potatosalad775/eqcaps-device-bridge';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, Slot } from '#lib/device-peq/types.js';
@@ -225,6 +225,114 @@ describe('devicePeqService auto-write', () => {
 		connect({ disconnectOnSave: true });
 		settingsStore.setDevicePeqAutoWrite(true);
 		expect(devicePeqService.autoWriting).toBe(false);
+	});
+});
+
+describe('devicePeqService on a device that can be on no preset', () => {
+	/** A Qudelix: Flat, then its user presets. After any edit it is on none, and says so. */
+	const QUDELIX: Partial<PeqCapabilities> = {
+		readsSlot: false,
+		writesSlot: true,
+		readsEnabled: true,
+		slots: [
+			{ id: 0, name: 'Flat' },
+			{ id: 22, name: 'Custom #1', writable: true },
+			{ id: 23, name: 'Custom #2', writable: true }
+		]
+	};
+
+	/** Connects through the service a device of `caps` on preset `slot` (null: none it names). */
+	async function connectOn(slot: number | null, enabled = true, caps = QUDELIX) {
+		const device = fakeDevice(caps);
+		device.currentSlot.mockResolvedValue(slot);
+		device.eqEnabled.mockResolvedValue(enabled);
+		connectModule.connectHid.mockResolvedValue({
+			kind: 'connected',
+			connection: fakeConnection(device)
+		});
+		await devicePeqService.connect('hid');
+		return device;
+	}
+
+	beforeEach(() => {
+		devicePeqStore.setDisconnected();
+		eqStore.filters = FOUR;
+		eqStore.preamp = -1;
+		flushSync();
+	});
+
+	afterEach(async () => {
+		await devicePeqService.disconnect();
+		devicePeqStore.setDisconnected();
+	});
+
+	it('shows Unsaved EQ, and writes the EQ it plays rather than save over a preset', async () => {
+		const device = await connectOn(null);
+		expect(devicePeqStore.selection).toBe('unsaved');
+
+		const plan = await devicePeqService.prepare();
+		if (!plan) throw new Error('the device should be writable');
+		expect(await devicePeqService.write(plan)).toBe(true);
+		expect(device.push).toHaveBeenCalledOnce();
+		expect(device.push.mock.calls[0][0].slot).toBeUndefined();
+	});
+
+	it('asks where the device is before a Read, and reads the EQ it plays once it is on none', async () => {
+		const device = await connectOn(22);
+		expect(devicePeqStore.selection).toBe(22);
+		// The device's own app edits its EQ: it leaves Custom #1 for no preset.
+		device.currentSlot.mockClear();
+		device.currentSlot.mockResolvedValue(null);
+
+		await devicePeqService.read();
+
+		expect(device.currentSlot.mock.invocationCallOrder[0]).toBeLessThan(
+			device.pull.mock.invocationCallOrder[0]
+		);
+		expect(device.pull).toHaveBeenCalledWith({});
+		expect(devicePeqStore.selection).toBe('unsaved');
+		expect(devicePeqStore.writeTarget).toEqual({});
+	});
+
+	it('asks no other device where it is before a Read', async () => {
+		const device = await connectOn(101, true, {});
+		device.currentSlot.mockClear();
+		await devicePeqService.read();
+		expect(device.pull).toHaveBeenCalledOnce();
+		expect(device.currentSlot).not.toHaveBeenCalled();
+	});
+
+	it('turns the EQ back on as it was, loading no preset over it', async () => {
+		const device = await connectOn(null, false);
+		expect(devicePeqStore.selection).toBe('off');
+
+		await devicePeqService.choose('unsaved');
+
+		expect(device.setEnabled).toHaveBeenCalledWith(true, undefined);
+		expect(devicePeqStore.selection).toBe('unsaved');
+	});
+
+	it('has no EQ on no preset to go back to once the device is on one', async () => {
+		const device = await connectOn(22);
+		await devicePeqService.choose('unsaved');
+		expect(device.setEnabled).not.toHaveBeenCalled();
+		expect(devicePeqStore.selection).toBe(22);
+	});
+
+	it('goes back to it through uniPEQ, and only while uniPEQ’s device is on no preset', async () => {
+		const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
+		const port = { status: {} as Partial<LinkStatus>, command, unlink: vi.fn() };
+		const device = new LinkPeqDevice(port as unknown as LinkPort, { ...CAPS, ...QUDELIX });
+		const conn = fakeConnection(device, { connectionType: 'link' });
+		devicePeqStore.setConnected(conn, 22, true);
+		await devicePeqService.choose('unsaved');
+		expect(command).not.toHaveBeenCalled();
+
+		// As the link service mirrors a status with `unsaved`, the EQ off.
+		port.status = { unsaved: true, eqEnabled: false };
+		devicePeqStore.setConnected(conn, 'unsaved', false);
+		await devicePeqService.choose('unsaved');
+		expect(command.mock.calls).toEqual([['switch', { value: 'unsaved' }]]);
 	});
 });
 

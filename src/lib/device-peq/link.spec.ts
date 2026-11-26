@@ -526,6 +526,17 @@ describe('LinkPeqDevice', () => {
 		expect(port.unlink).toHaveBeenCalledOnce();
 	});
 
+	it('turns uniPEQ’s device on as it was while it is on no preset', async () => {
+		const port = fakePort({ deviceSlot: null, unsaved: true });
+		const device = new LinkPeqDevice(port, acceptCapabilities({}, 3));
+		await device.setEnabled(true);
+		await device.setEnabled(true, 3);
+		expect(port.command.mock.calls).toEqual([
+			['switch', { value: 'unsaved' }],
+			['switch', { value: 'p3' }]
+		]);
+	});
+
 	it('fails with uniPEQ’s code, which reads like the bridge’s', async () => {
 		const port = fakePort();
 		port.command.mockResolvedValueOnce({ ok: false, code: 'timeout' });

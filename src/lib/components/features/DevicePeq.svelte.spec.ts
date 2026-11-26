@@ -27,7 +27,7 @@ import type { ConnectResult } from '#lib/device-peq/connect.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice } from '#lib/device-peq/types.js';
 import { linkConnection, type LinkPort } from '#lib/device-peq/link.js';
 import { OWN_EQ, type ListedEq } from '#lib/device-peq/device-eqs.js';
-import type { CommandResult } from 'peq-link/client';
+import type { CommandResult, LinkStatus } from 'peq-link/client';
 import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
 import { volumeWarning } from '#lib/services/volume-warning.svelte.js';
@@ -782,6 +782,47 @@ describe('DevicePeq', () => {
 			await expect.element(page.getByRole('combobox', { name: 'Device EQ' })).toHaveValue('off');
 		});
 
+		describe('a device on no preset', () => {
+			/** A Qudelix after any edit: on none of its presets, with an EQ switch of its own. */
+			async function mountUnsaved(enabled: boolean) {
+				const made = makeConnection(
+					{},
+					{
+						readsSlot: false,
+						readsEnabled: true,
+						slots: [
+							{ id: 0, name: 'Flat' },
+							{ id: 22, name: 'Custom #1', writable: true },
+							{ id: 23, name: 'Custom #2', writable: true }
+						]
+					}
+				);
+				made.device.currentSlot.mockResolvedValue(null);
+				made.device.eqEnabled.mockResolvedValue(enabled);
+				connect.connectHid.mockResolvedValue(connected(made.connection));
+				await render(DevicePeq);
+				await page.getByRole('button', { name: 'Connect USB device' }).click();
+				await expect.element(page.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
+				return made.device;
+			}
+
+			it('shows Unsaved EQ, which can’t be picked while it plays', async () => {
+				await mountUnsaved(true);
+				const control = page.getByRole('combobox', { name: 'Device EQ' });
+				await expect.element(control).toHaveValue('unsaved');
+				await expect.element(page.getByRole('option', { name: 'Unsaved EQ' })).toBeDisabled();
+			});
+
+			it('turns the EQ back on as it was from Off', async () => {
+				const device = await mountUnsaved(false);
+				const control = page.getByRole('combobox', { name: 'Device EQ' });
+				await expect.element(control).toHaveValue('off');
+				await control.selectOptions('Unsaved EQ');
+				await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, undefined));
+				await expect.element(control).toHaveValue('unsaved');
+			});
+		});
+
 		it('writes a device on a built-in preset to its first memory, and switches to it', async () => {
 			const device = await mountConnected({}, 5);
 			const control = page.getByRole('combobox', { name: 'Device EQ' });
@@ -1091,15 +1132,16 @@ describe('DevicePeq', () => {
 		/**
 		 * uniPEQ's device as the link carries it (protocol 1.3), with its status mirrored into the
 		 * store: on its second preset of `held`, and with the EQs `eqs` where uniPEQ names them
-		 * (1.4). Returns the commands sent to uniPEQ.
+		 * (1.4), and the `status` its device reads. Returns the commands sent to uniPEQ.
 		 */
 		function linked(
 			capabilities: Record<string, unknown>,
 			held = ['Jazz', 'Rock'],
-			eqs?: ListedEq[]
+			eqs?: ListedEq[],
+			status: Partial<LinkStatus> | null = null
 		) {
 			const command = vi.fn(async (..._args: unknown[]): Promise<CommandResult> => ({ ok: true }));
-			const port = { status: null, command, unlink: vi.fn() } as unknown as LinkPort;
+			const port = { status, command, unlink: vi.fn() } as unknown as LinkPort;
 			const device = {
 				name: 'Linked DAC',
 				kind: 'demo' as const,
@@ -1141,6 +1183,22 @@ describe('DevicePeq', () => {
 			await vi.waitFor(() => expect(command).toHaveBeenCalledWith('eq', { id: 'spk' }));
 			// The row follows the EQ uniPEQ views, which comes with its next device.
 			await expect.element(page.getByRole('radio', { name: 'USR EQ' })).toBeChecked();
+		});
+
+		it('offers its EQ on no preset with the EQ off, and turns it back on through uniPEQ', async () => {
+			const command = linked({}, undefined, undefined, { deviceSlot: null, unsaved: true });
+			// As the link service mirrors a status with `unsaved`.
+			devicePeqStore.activeSlot = null;
+			devicePeqStore.deviceSlot = 'unsaved';
+			devicePeqStore.eqEnabled = true;
+			await render(DevicePeq);
+			const unsaved = page.getByRole('option', { name: 'Unsaved EQ' });
+			await expect.element(unsaved).toBeDisabled();
+
+			devicePeqStore.eqEnabled = false;
+			await expect.element(unsaved).toBeEnabled();
+			await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('Unsaved EQ');
+			await vi.waitFor(() => expect(command).toHaveBeenCalledWith('switch', { value: 'unsaved' }));
 		});
 
 		it('offers its own preset list, and edits it through uniPEQ', async () => {

@@ -365,6 +365,24 @@ describe('linkService', () => {
 		expect(linkStore.device).toBeNull();
 	});
 
+	it('shows uniPEQ’s device on no preset as Unsaved EQ, which Read and Write reach', async () => {
+		await linked();
+		const presets = [
+			{ id: 0, name: 'A' },
+			{ id: 1, name: 'B' }
+		];
+		host.status = { ...STATUS, unsaved: true };
+		host.emit('device', {
+			...DEVICE,
+			capabilities: { ...DEVICE.capabilities, canEnable: true, slots: presets }
+		});
+		expect(devicePeqStore.selection).toBe('unsaved');
+		expect(devicePeqStore.readTarget).toEqual({});
+
+		host.emit('status', { ...STATUS, activeSlot: 1, deviceSlot: 1 });
+		expect(devicePeqStore.selection).toBe(1);
+	});
+
 	it('doesn’t start while a device is connected or connecting here', async () => {
 		devicePeqStore.connection = { connectionType: 'hid', name: 'Local DAC' } as DeviceConnection;
 		await linkService.start();

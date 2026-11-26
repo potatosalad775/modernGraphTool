@@ -66,6 +66,13 @@ class FakeHost {
 		this.emit('state', state);
 	}
 
+	/** Leaves the next command unanswered until the returned `answer`, as uniPEQ while it works. */
+	hold(): (result?: CommandResult) => void {
+		let answer = (_: CommandResult) => {};
+		this.command.mockImplementationOnce(() => new Promise((resolve) => (answer = resolve)));
+		return (result = { ok: true }) => answer(result);
+	}
+
 	/** uniPEQ's one list for both channels. */
 	eq(
 		filters: LinkEq['filters'],
@@ -884,6 +891,104 @@ describe('linkService', () => {
 			host.emit('device', SPK);
 			expect(devicePeqStore.connection?.name).toBe('Qudelix 5K · SPK EQ');
 			expect(devicePeqStore.audioThroughDevice).toBe(true);
+		});
+	});
+
+	describe('holding Hardware EQ busy until uniPEQ answers', () => {
+		/** A device with presets uniPEQ lists and edits, on preset 1 of three. */
+		const PRESETS = {
+			...DEVICE,
+			capabilities: {
+				...DEVICE.capabilities,
+				canEnable: true,
+				slots: [0, 1, 2, 3].map((id) => ({ id, name: `EQ ${id + 1}` })),
+				listsSlots: true,
+				editsSlots: true,
+				controls: [{ id: 'feed', name: 'Feed', kind: 'toggle' }]
+			}
+		};
+		const ON_1: LinkStatus = {
+			...STATUS,
+			activeSlot: 1,
+			deviceSlot: 1,
+			slots: ['Jazz', 'Rock', 'Pop'].map((name, id) => ({ id, name })),
+			controls: { feed: 0 }
+		};
+
+		async function withPresets() {
+			await linked();
+			host.status = ON_1;
+			host.emit('status', ON_1);
+			host.emit('device', PRESETS);
+		}
+
+		/** uniPEQ's status running through `busy`, then `null` while it still works on the command. */
+		function busyThenIdle(...busy: LinkStatus['busy'][]) {
+			for (const kind of [...busy, null]) host.emit('status', { ...ON_1, busy: kind });
+		}
+
+		it.fails('a preset create: uniPEQ names it after a busy: null', async () => {
+			await withPresets();
+			const answer = host.hold();
+			const first = devicePeqService.createPreset();
+			busyThenIdle('preset');
+			expect(devicePeqStore.isSwitching).toBe(true);
+			await devicePeqService.createPreset();
+			expect(host.command).toHaveBeenCalledOnce();
+
+			answer();
+			await first;
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it.fails('an EQ pick: uniPEQ writes a pending edit first, then switches', async () => {
+			await linked(4);
+			host.emit('device', {
+				...DEVICE,
+				eq: null,
+				eqs: [
+					{ id: null, name: 'USR EQ' },
+					{ id: 'spk', name: 'SPK EQ' }
+				]
+			});
+			const answer = host.hold();
+			const first = devicePeqService.selectEq('spk');
+			busyThenIdle('write');
+			expect(devicePeqStore.isSwitching).toBe(true);
+			await devicePeqService.selectEq('spk');
+			expect(host.command).toHaveBeenCalledOnce();
+
+			answer();
+			await first;
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it.fails('a setting', async () => {
+			await withPresets();
+			const answer = host.hold();
+			const first = devicePeqService.setControl('feed', 1);
+			busyThenIdle('control');
+			expect(devicePeqStore.isSettingControl).toBe(true);
+			await devicePeqService.setControl('feed', 1);
+			expect(host.command).toHaveBeenCalledOnce();
+
+			answer();
+			await first;
+			expect(devicePeqStore.isBusy).toBe(false);
+		});
+
+		it.fails('a Device EQ pick, which the panel disables while busy', async () => {
+			await withPresets();
+			const answer = host.hold();
+			const first = devicePeqService.choose('p2');
+			busyThenIdle('switch');
+			expect(host.command).toHaveBeenCalledExactlyOnceWith('switch', { value: 'p2' });
+			expect(devicePeqStore.isSwitching).toBe(true);
+			expect(devicePeqStore.isBusy).toBe(true);
+
+			answer();
+			await first;
+			expect(devicePeqStore.isBusy).toBe(false);
 		});
 	});
 

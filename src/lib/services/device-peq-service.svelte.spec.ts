@@ -245,6 +245,33 @@ describe('devicePeqService auto-write', () => {
 		expect(device.push).toHaveBeenCalledTimes(2);
 		expect(devicePeqStore.inSync).toBe(true);
 	});
+
+	it('writes nothing to the preset picked next, for an edit made while its plan read the layout', async () => {
+		const device = connect({
+			slots: [
+				{ id: 101, name: 'Custom' },
+				{ id: 102, name: 'Other' }
+			]
+		});
+		devicePeqService.setAutoWrite(true);
+		await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
+
+		device.pull.mockImplementationOnce(async () => {
+			eqStore.filters = FOUR.slice(0, 2);
+			flushSync();
+			devicePeqStore.isSettingControl = true;
+			return { filters: [] };
+		});
+		await edit(FOUR.slice(0, 3));
+		await vi.waitFor(() => expect(device.pull).toHaveBeenCalledTimes(1));
+		await vi.advanceTimersByTimeAsync(0);
+		devicePeqStore.isSettingControl = false;
+
+		await devicePeqService.choose('p102');
+		await vi.advanceTimersByTimeAsync(AUTO_WRITE_DELAY_MS * 2);
+
+		expect(device.push).toHaveBeenCalledTimes(1);
+	});
 });
 
 describe('devicePeqService on a device that can be on no preset', () => {

@@ -527,6 +527,7 @@ class LinkService {
 
 	/** uniPEQ's status, into the flags Hardware EQ's panel and status line read. */
 	#status(status: LinkStatus): void {
+		const starts = !!status.busy && !linkStore.status?.busy;
 		linkStore.status = status;
 		if (devicePeqStore.connection?.connectionType !== 'link') return;
 		const store = devicePeqStore;
@@ -546,6 +547,10 @@ class LinkService {
 		store.autoClipRisk = status.auto.clipRisk;
 		store.autoStopped = status.auto.stopped;
 		store.reportedInSync = status.inSync;
+		// uniPEQ's device work sets no message here, so the last one this page set goes when uniPEQ
+		// starts some, or it would stand for that work. A failure uniPEQ still reports stays until
+		// uniPEQ clears it.
+		if (starts && this.#failureKey === null) store.setStatus(null);
 		const failure = status.failure;
 		const key = failure && `${failure.op}:${failure.code}`;
 		if (key === this.#failureKey) return;

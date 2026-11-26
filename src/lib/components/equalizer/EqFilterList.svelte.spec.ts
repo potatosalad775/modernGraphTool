@@ -43,8 +43,9 @@ function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
 
 /** `filters` is read back from the store, as the link service does: the store holds a proxy. */
 function fromUnipeq(filters: EQFilter[], preamp: number, auto: boolean) {
+	const fixed = auto ? null : preamp;
 	eqStore.filters = filters;
-	eqStore.linkedPreamp = { preamp, auto, filters: eqStore.filters };
+	eqStore.linkedPreamp = { preamp, auto, filters: eqStore.filters, fixed: { L: fixed, R: fixed } };
 }
 
 const addButton = () => page.getByRole('button', { name: 'Add band' });
@@ -185,11 +186,7 @@ describe('EqFilterList', () => {
 				await render(EqFilterList);
 
 				await expect
-					.element(
-						page.getByText(
-							'The bands boost more than this preamp leaves room for, so it may clip. -4.8 dB would be enough.'
-						)
-					)
+					.element(page.getByText('This preamp may clip: the bands need -4.8 dB or lower.'))
 					.toBeVisible();
 			});
 
@@ -207,6 +204,45 @@ describe('EqFilterList', () => {
 
 				await expect.element(page.getByText('-3.5 dB')).toBeVisible();
 				expect(clipWarning().elements()).toHaveLength(0);
+			});
+
+			it('warns for a channel apart whose own bands need more room than its fixed preamp', async () => {
+				// Left fixed at -1 dB under a +4 dB boost; right on Auto at -6 dB for its +6 dB.
+				eqStore.filters = [
+					makeFilter({ gain: 4, channel: 'L' }),
+					makeFilter({ gain: 6, channel: 'R' })
+				];
+				eqStore.linkedPreamp = {
+					preamp: -6,
+					auto: false,
+					filters: eqStore.filters,
+					fixed: { L: -1, R: null }
+				};
+				await render(EqFilterList);
+
+				await expect
+					.element(page.getByText('This preamp may clip: the bands need -4.0 dB or lower.'))
+					.toBeVisible();
+			});
+
+			it('says what to lower a preamp that boosts to, over bands that only cut', async () => {
+				fromUnipeq([makeFilter({ gain: -3 })], 2, false);
+				await render(EqFilterList);
+
+				await expect
+					.element(page.getByText('This preamp may clip: the bands need 0.0 dB or lower.'))
+					.toBeVisible();
+			});
+
+			it('keeps the warning’s live region in place before it has anything to say', async () => {
+				fromUnipeq([makeFilter({ gain: 4.8 })], -6, false);
+				await render(EqFilterList);
+				const before = page.getByRole('status').elements();
+
+				fromUnipeq([makeFilter({ gain: 4.8 })], -3.5, false);
+
+				await expect.element(clipWarning()).toBeVisible();
+				expect(before).toContain(clipWarning().element().closest('[role="status"]'));
 			});
 		});
 	});

@@ -938,6 +938,25 @@ describe('linkService', () => {
 			expect(devicePeqStore.isBusy).toBe(false);
 		});
 
+		it('stays busy past uniPEQ’s answer while its status still says so', async () => {
+			await withPresets();
+			const presses = [
+				[() => devicePeqService.renamePreset(1, 'Metal'), 'preset', 'isSwitching'],
+				[() => devicePeqService.choose('p2'), 'switch', 'isSwitching'],
+				[() => devicePeqService.setControl('feed', 1), 'control', 'isSettingControl']
+			] as const;
+			for (const [press, busy, flag] of presses) {
+				const answer = host.hold();
+				const first = press();
+				host.emit('status', { ...ON_1, busy });
+				answer();
+				await first;
+				expect(devicePeqStore[flag]).toBe(true);
+				host.emit('status', ON_1);
+				expect(devicePeqStore.isBusy).toBe(false);
+			}
+		});
+
 		it('sends no other preset edit before uniPEQ answers one, whose own busy may come later', async () => {
 			await withPresets();
 			const answer = host.hold();

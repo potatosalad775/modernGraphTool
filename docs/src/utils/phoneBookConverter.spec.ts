@@ -290,7 +290,7 @@ describe('the phone-level file beside variants[]', () => {
 	// CrinGraph and squig.link's search read `file` and nothing else, so every
 	// sample-set phone is exported with one. modernGraphTool upgrades a mirrored
 	// variant in place, so the mirror must not reorder or duplicate anything.
-	const emit = (variants: Record<string, unknown>[], extra: Record<string, unknown> = {}) => {
+	const emit = (variants: unknown[], extra: Record<string, unknown> = {}) => {
 		const source = JSON.stringify([
 			{ name: 'Moondrop', phones: [{ name: ['Chu 2'], ...extra, variants }] }
 		]);
@@ -320,11 +320,50 @@ describe('the phone-level file beside variants[]', () => {
 		expect(phone.variants[0].file).toBeUndefined();
 	});
 
-	it('mirrors a run-only set wherever it sits', () => {
+	it('mirrors a run-only set only as the first variant', () => {
 		const runs = { suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } };
 		const plain = { suffix: 'Stock', file: 'Chu 2' };
-		expect(emit([plain, runs]).phone.file).toEqual(['Chu 2', 'Pad A']);
+		expect(emit([plain, runs]).phone.file).toBe('Chu 2');
 		expect(emit([runs, plain]).phone.file).toEqual(['Pad A', 'Chu 2']);
+	});
+
+	it('writes each filename once', () => {
+		const { phone } = emit([
+			{ suffix: 'Pads', samples: { files: ['Chu 2', 'Pad B'] } },
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'Runs', file: 'Chu 2', samples: 3 },
+			{ suffix: 'More Pads', samples: { files: ['Chu 2', 'Pad C'] } }
+		]);
+		expect(phone.file).toBe('Chu 2');
+		expect(phone.suffix).toBe('Pads');
+		expect(phone.variants).toHaveLength(4);
+	});
+
+	it('drops blank runs, so a set never exports a file named after the phone', () => {
+		const blank = { file: '', label: '' };
+		const { phone } = emit([{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } }]);
+		const state: PhoneBookState = [
+			brandWith([
+				{
+					id: 'p1',
+					kind: 'sampleSet',
+					sampleSet: {
+						name: 'Chu 2',
+						variants: [
+							{
+								suffix: 'Pads',
+								file: '',
+								count: 3,
+								rows: [blank, { file: 'Pad A', label: '' }, { file: 'Pad B', label: '' }],
+								labels: [],
+								display: ['avg']
+							}
+						]
+					}
+				}
+			])
+		];
+		expect(JSON.parse(serializePhoneBook(state))[0].phones[0]).toEqual(phone);
 	});
 
 	it('reads its own export back unchanged', () => {
@@ -374,9 +413,41 @@ describe('the phone-level file beside variants[]', () => {
 			file: ['Chu 2 Stock', 'Chu 2 SpinFit'],
 			prefix: 'Chu 2'
 		});
-		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit', 'Chu 2 7k']);
-		expect(phone.suffix).toEqual(['Stock', 'SpinFit', 'Depth']);
+		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit']);
+		expect(phone.suffix).toEqual(['Stock', 'SpinFit']);
 		expect(phone.prefix).toBeUndefined();
+	});
+
+	it('drops entries of variants[] and hptfs[] that are not objects', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Pads', samples: { files: ['P1', 'P2'] } },
+				{ file: 'A', samples: 3 }
+			],
+			{ file: ['A'], suffix: ['Main'], hptfs: ['bad'] }
+		);
+		expect(warnings).toEqual([expect.stringContaining('hptfs[0] is not an object, dropped')]);
+		expect(phone.file).toEqual(['P1', 'A']);
+		expect(phone.variants).toEqual([
+			{ suffix: 'Pads', samples: { files: ['P1', 'P2'] } },
+			{ file: 'A', samples: 3 }
+		]);
+
+		const kept = emit([null, { suffix: 'Pads', samples: { files: ['P1'] } }], {
+			file: ['X'],
+			suffix: ['Main']
+		});
+		expect(kept.phone.suffix).toBe('Main');
+		expect(kept.phone.variants.map((v: { suffix: string }) => v.suffix)).toEqual(['Main', 'Pads']);
+	});
+
+	it('keeps the runs of a phone with samples and no file, named after the phone', () => {
+		const source = JSON.stringify([
+			{ name: 'Moondrop', phones: [{ name: ['Chu 2'], samples: 3 }] }
+		]);
+		const phone = JSON.parse(serializePhoneBook(parsePhoneBook(source).state))[0].phones[0];
+		expect(phone.file).toBe('Chu 2');
+		expect(phone.variants).toEqual([{ file: 'Chu 2', samples: 3 }]);
 	});
 });
 
@@ -419,6 +490,37 @@ describe('legacy suffixes', () => {
 		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['Foam', 'Silicone']);
 		expect(warnings).toEqual([]);
 	});
+
+	// `_getSuffix` in metadata-parser.ts, rule by rule.
+	it('names each variant exactly as modernGraphTool does', () => {
+		const rows = (phone: Record<string, unknown>) =>
+			importPhone({ name: ['Chu 2'], file: ['A', 'B'], ...phone }).phone.variations!.rows.map(
+				(r) => r.suffix
+			);
+		expect(rows({ suffix: ' Tip ' })).toEqual(['Tip', 'Tip 2']);
+		expect(rows({ file: ['A', 'B', 'C'], suffix: '' })).toEqual(['0', '1', '2']);
+		expect(rows({ suffix: ['Foam'] })).toEqual(['Foam', '1']);
+		expect(rows({ prefix: ['Chu '] })).toEqual(['A', 'B']);
+
+		const single = importPhone({ name: ['Chu 2'], file: 'A', suffix: ['Stock'], samples: 3 });
+		expect(single.phone.sampleSet!.variants.map((v) => v.suffix)).toEqual(['']);
+	});
+
+	it('keeps a suffix that wins over a prefix', () => {
+		const { phone } = importPhone({
+			name: ['P'],
+			file: ['P Foam', 'P Tip'],
+			suffix: ['Foam Tips', 'Silicone'],
+			prefix: 'P'
+		});
+		expect(phone.kind).toBe('variations');
+		expect(phone.variations!.rows.map((r) => r.suffix)).toEqual(['Foam Tips', 'Silicone']);
+	});
+
+	it('warns about a prefix that is not a valid regular expression', () => {
+		const { warnings } = importPhone({ name: ['Chu 2'], file: ['Chu (2 Foam'], prefix: 'Chu (2' });
+		expect(warnings).toEqual([expect.stringContaining('not a valid regular expression')]);
+	});
 });
 
 describe('the shipped defaults/data/phone_book.json', () => {
@@ -448,7 +550,7 @@ describe('the shipped defaults/data/phone_book.json', () => {
 	});
 
 	// The sample's own demonstration of both schemas on one entry. Its run-only set
-	// is appended as a fourth variant, and the export names that one in `file` too.
+	// is appended as a fourth variant and stays out of `file`.
 	it('keeps the order of "Dual Hosted" on re-export', () => {
 		const find = (book: any[]) =>
 			book
@@ -457,10 +559,18 @@ describe('the shipped defaults/data/phone_book.json', () => {
 		const before = find(JSON.parse(shipped));
 		const after = find(JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)));
 
-		expect(after.file).toEqual([...before.file, 'HpTF Demo Center']);
-		expect(after.suffix).toEqual([...before.suffix, 'Pad Positions']);
+		expect(after.file).toEqual(before.file);
+		expect(after.suffix).toEqual(before.suffix);
 		expect(after.variants).toHaveLength(4);
 		expect(after.price).toBe('$100');
+	});
+
+	it('exports no filename twice within a phone', () => {
+		const emitted = JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)) as any[];
+		for (const phone of emitted.flatMap((b) => b.phones ?? [])) {
+			if (!Array.isArray(phone?.file)) continue;
+			expect(new Set(phone.file).size, phone.name[0]).toBe(phone.file.length);
+		}
 	});
 });
 

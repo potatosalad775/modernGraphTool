@@ -550,6 +550,9 @@ class LinkService {
 		const key = failure && `${failure.op}:${failure.code}`;
 		if (key === this.#failureKey) return;
 		this.#failureKey = key;
+		// A name the device can't store is said where it was typed, quietly: this page's Rename says
+		// it from the command's answer (`#presetFailed`), and uniPEQ's own Rename in uniPEQ.
+		if (key === 'preset:invalid-request') return;
 		if (failure) devicePeqService.fail(new LinkCommandError(failure.code), failure.op);
 		else if (store.statusIsError) store.setStatus(null);
 	}

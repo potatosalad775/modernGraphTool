@@ -20,6 +20,8 @@ import { commandHistory } from './command-history.svelte.js';
 import { eqCommands } from './eq-commands.js';
 import { eqCurve } from './eq-curve.svelte.js';
 import { frStore } from '#lib/stores/fr-store.svelte.js';
+import * as m from '#lib/paraglide/messages.js';
+import { toast } from './toast.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import type { DeviceConnection } from '#lib/device-peq/types.js';
 
@@ -745,6 +747,31 @@ describe('linkService', () => {
 			expect(names()).toEqual(['Jazz', 'Metal', 'Pop']);
 			host.emit('status', listed(1, held('Jazz', 'Blues', 'Pop')));
 			expect(names()).toEqual(['Jazz', 'Blues', 'Pop']);
+		});
+
+		it('says a name the device can’t store once, quietly, before or after the status', async () => {
+			await listing();
+			const status = listed(1, held('Jazz', 'Rock', 'Pop'));
+			// uniPEQ's Rename says it in its status too.
+			const refusal = { ...status, failure: { op: 'preset', code: 'invalid-request' } };
+			const error = vi.spyOn(toast, 'error').mockImplementation(() => '' as never);
+			try {
+				host.command.mockImplementationOnce(async () => {
+					host.emit('status', refusal);
+					return { ok: false, code: 'invalid-request' };
+				});
+				expect(await devicePeqService.renamePreset(1, 'Far too long')).toBe('refused');
+				expect(devicePeqStore.statusMessage).toBe(m.device_presets_name_refused());
+
+				host.emit('status', status);
+				host.command.mockResolvedValueOnce({ ok: false, code: 'invalid-request' });
+				expect(await devicePeqService.renamePreset(1, 'Far too long')).toBe('refused');
+				host.emit('status', refusal);
+				expect(devicePeqStore.statusMessage).toBe(m.device_presets_name_refused());
+				expect(error).not.toHaveBeenCalled();
+			} finally {
+				error.mockRestore();
+			}
 		});
 	});
 

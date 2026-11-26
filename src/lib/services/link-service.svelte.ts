@@ -539,7 +539,7 @@ class LinkService {
 		// The device's settings as uniPEQ last read them (protocol 1.3): the rows follow these.
 		store.controlValues = acceptControlValues(status.controls);
 		store.activeSlot = status.activeSlot;
-		store.deviceSlot = status.deviceSlot;
+		store.deviceSlot = status.unsaved ? 'unsaved' : status.deviceSlot;
 		store.eqEnabled = status.eqEnabled;
 		store.needsReconnect = status.needsReconnect;
 		store.autoPaused = status.auto.paused;

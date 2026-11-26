@@ -7,7 +7,12 @@
  * don't fit are flagged, and the user fits them when they choose to.
  */
 import type { ConnectResult } from '#lib/device-peq/connect.js';
-import { readRequest, writeRequest, type PresetRequest } from '#lib/device-peq/preset.js';
+import {
+	readRequest,
+	writeRequest,
+	type CurrentSlot,
+	type PresetRequest
+} from '#lib/device-peq/preset.js';
 import { drivesChannelsApart, type Layout } from '#lib/device-peq/push-plan.js';
 import type { DeviceCandidate, DeviceConnection } from '#lib/device-peq/types.js';
 import { eqFiltersEqual, type EQFilter } from '#lib/utils/equalizer.js';
@@ -27,9 +32,10 @@ import { linkStore } from './link-store.svelte.js';
 
 /**
  * What the Device EQ control shows: a listed preset (by id), the EQ off, a preset the device is
- * on that isn't listed (a built-in one), or null when the device can't say.
+ * on that isn't listed (a built-in one), no preset (`unsaved`: its EQ changed since a preset was
+ * loaded), or null when the device can't say.
  */
-export type DeviceEqSelection = number | 'off' | 'other' | null;
+export type DeviceEqSelection = number | 'off' | 'other' | 'unsaved' | null;
 
 /** The device's identity fit several profiles, or none: the user says which it is. */
 export interface DeviceChoice {
@@ -82,14 +88,18 @@ class DevicePeqStore {
 	controlValues = $state.raw<Record<string, number | null>>({});
 	/** A connection waiting on the user to say which profile the device is. */
 	choice = $state.raw<DeviceChoice | null>(null);
-	/** The listed preset reads and writes target; null when the device lists none. */
+	/**
+	 * The listed preset reads and writes target; null for none, the EQ where the device is: on a
+	 * device that lists no presets, or one on none of them (`deviceSlot` `'unsaved'`), where naming
+	 * one would save into a memory the user never picked.
+	 */
 	activeSlot = $state<number | null>(null);
 	/**
 	 * The preset the device is on, as it last reported or was told: may be unlisted (a built-in
-	 * preset) or the bypass preset. Null when unknown. Protocols that only read and write the
-	 * current preset can reach `activeSlot` only while this equals it.
+	 * preset), the bypass preset, or none (`'unsaved'`). Null when unknown. Protocols that only read
+	 * and write the current preset can reach `activeSlot` only while this equals it.
 	 */
-	deviceSlot = $state<number | null>(null);
+	deviceSlot = $state<CurrentSlot>(null);
 	/** Whether the device's EQ is on, when known. */
 	eqEnabled = $state<boolean | null>(null);
 	/** What the device held after the last read or write, to tell whether the list has moved on. */
@@ -317,12 +327,35 @@ class DevicePeqStore {
 		);
 	}
 
+	/**
+	 * The device is on no stored preset, and reads and writes reach its EQ there. Not while a preset
+	 * is the target: they reach that preset then, not where the device is.
+	 */
+	get unsaved(): boolean {
+		return this.deviceSlot === 'unsaved' && this.activeSlot === null;
+	}
+
 	get selection(): DeviceEqSelection {
 		if (this.eqEnabled === false) return 'off';
+		if (this.unsaved) return 'unsaved';
 		const d = this.deviceSlot;
-		if (d !== null && this.slots.length > 0 && !this.slots.some((s) => s.id === d)) return 'other';
+		if (typeof d === 'number' && this.slots.length > 0 && !this.#lists(d)) return 'other';
 		if (this.eqEnabled === null && this.connection?.device.capabilities.canEnable) return null;
 		return this.activeSlot;
+	}
+
+	#lists(slot: CurrentSlot): slot is number {
+		return this.slots.some((s) => s.id === slot);
+	}
+
+	/**
+	 * What reads and writes target on a device that is on `current`: that preset where it is listed;
+	 * none on no preset, so they reach the EQ where it is; else (a built-in preset, the bypass one,
+	 * or unknown) the first writable one, or none on a device that lists none.
+	 */
+	#targetOf(current: CurrentSlot): number | null {
+		if (current === 'unsaved') return null;
+		return this.#lists(current) ? current : (this.writableSlots[0]?.id ?? null);
 	}
 
 	/**
@@ -333,7 +366,7 @@ class DevicePeqStore {
 	 */
 	setConnected(
 		connection: DeviceConnection,
-		currentSlot: number | null,
+		currentSlot: CurrentSlot,
 		enabled: boolean | null = null,
 		of: Opened = { conn: connection, eq: OWN_EQ, absent: [] },
 		listed: readonly Slot[] | null = null
@@ -353,7 +386,7 @@ class DevicePeqStore {
 	selectEq(
 		connection: DeviceConnection,
 		eq: EqTarget,
-		currentSlot: number | null,
+		currentSlot: CurrentSlot,
 		enabled: boolean | null,
 		absent?: readonly string[],
 		listed: readonly Slot[] | null = null
@@ -374,7 +407,7 @@ class DevicePeqStore {
 	 */
 	relisted(
 		listed: readonly Slot[] | null,
-		currentSlot: number | null,
+		currentSlot: CurrentSlot,
 		enabled: boolean | null,
 		keep = false
 	): void {
@@ -406,19 +439,18 @@ class DevicePeqStore {
 	}
 
 	/** Where the device is: the preset it plays, the one Read and Write reach, and its EQ switch. */
-	#place(currentSlot: number | null, enabled: boolean | null): void {
+	#place(currentSlot: CurrentSlot, enabled: boolean | null): void {
 		const bypass = this.#allSlots.find((s) => s.bypass);
 		// A device reading back its bypass preset has its EQ off, and no memory is selected.
 		const onBypass = currentSlot === bypass?.id;
-		const listed = this.slots.some((s) => s.id === currentSlot);
 		this.deviceSlot = currentSlot;
-		this.activeSlot = listed ? currentSlot : (this.writableSlots[0]?.id ?? null);
+		this.activeSlot = this.#targetOf(currentSlot);
 		this.eqEnabled = enabled ?? (onBypass ? false : currentSlot !== null ? true : null);
 	}
 
 	#view(
 		connection: DeviceConnection,
-		currentSlot: number | null,
+		currentSlot: CurrentSlot,
 		enabled: boolean | null,
 		listed: readonly Slot[] | null
 	): void {
@@ -458,10 +490,24 @@ class DevicePeqStore {
 	}
 
 	/**
-	 * Read and write `slot` from now on. What the device held there is no longer known, and the last
-	 * read or write's message ("Wrote 6 bands") was about another preset.
+	 * The device said where it is when asked again (before a Read): it may have moved since, its own
+	 * app's edit leaving its preset for none. The target follows it there, as a switch would;
+	 * unknown leaves things as they were.
 	 */
-	target(slot: number): void {
+	reported(current: CurrentSlot, enabled: boolean | null): void {
+		if (enabled !== null) this.eqEnabled = enabled;
+		if (current === null || current === this.deviceSlot) return;
+		this.deviceSlot = current;
+		this.layout = null;
+		this.target(this.#targetOf(current));
+	}
+
+	/**
+	 * Read and write `slot` from now on (null: no preset, the EQ where the device is). What the
+	 * device held there is no longer known, and the last read or write's message ("Wrote 6 bands")
+	 * was about another preset.
+	 */
+	target(slot: number | null): void {
 		if (this.activeSlot === slot) return;
 		this.activeSlot = slot;
 		this.synced = null;

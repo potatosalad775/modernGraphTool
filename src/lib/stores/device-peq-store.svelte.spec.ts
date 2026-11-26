@@ -130,6 +130,55 @@ describe('devicePeqStore', () => {
 		});
 	});
 
+	describe('a device on no preset', () => {
+		/** A Qudelix: Flat, then its user presets. After any edit it is on none, and says so. */
+		const qudelix = () => {
+			const connection = makeConnection();
+			const capabilities: PeqCapabilities = {
+				...CAPS,
+				readsSlot: false,
+				writesSlot: true,
+				readsEnabled: true,
+				slots: [
+					{ id: 0, name: 'Flat' },
+					{ id: 22, name: 'Custom #1', writable: true },
+					{ id: 23, name: 'Custom #2', writable: true }
+				]
+			};
+			return { ...connection, device: { ...connection.device, capabilities } };
+		};
+
+		it('shows Unsaved EQ, and reads and writes the EQ it plays, not a preset', () => {
+			devicePeqStore.setConnected(qudelix(), 'unsaved', true);
+			expect(devicePeqStore.selection).toBe('unsaved');
+			expect(devicePeqStore.activeSlot).toBeNull();
+			expect(devicePeqStore.readTarget).toEqual({});
+			expect(devicePeqStore.writeTarget).toEqual({});
+		});
+
+		it('follows the device off its preset when it reports none, and back', () => {
+			devicePeqStore.setConnected(qudelix(), 22, true);
+			devicePeqStore.synced = { filters: [], preamp: 0 };
+
+			devicePeqStore.reported('unsaved', true);
+			expect(devicePeqStore.selection).toBe('unsaved');
+			expect(devicePeqStore.writeTarget).toEqual({});
+			// What the device holds now is no longer what was last read or written.
+			expect(devicePeqStore.inSync).toBeNull();
+
+			devicePeqStore.reported(23, true);
+			expect(devicePeqStore.selection).toBe(23);
+			expect(devicePeqStore.writeTarget).toEqual({ slot: 23 });
+		});
+
+		it('leaves things as they were when the device can’t say where it is', () => {
+			devicePeqStore.setConnected(qudelix(), 22, true);
+			devicePeqStore.reported(null, null);
+			expect(devicePeqStore.selection).toBe(22);
+			expect(devicePeqStore.writeTarget).toEqual({ slot: 22 });
+		});
+	});
+
 	describe('built-in presets', () => {
 		const marked = (): DeviceConnection => {
 			const connection = makeConnection();

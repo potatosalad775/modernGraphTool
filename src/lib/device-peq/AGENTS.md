@@ -112,6 +112,12 @@ needs it at boot); keep it the only one.
   `writesSlot` act on whatever the device is on, so `devicePeqStore.deviceSlot` (reported on
   connect, updated on every switch) must equal the target; otherwise the button is disabled
   rather than reading the wrong memory or writing over a built-in or bypass preset.
+  A device can also be on **no** preset: a Qudelix after any edit, its own app's included.
+  Where its null `currentSlot` can only mean that (`tellsUnsaved`), `deviceSlot` is `'unsaved'`,
+  Device EQ shows Unsaved EQ, and the target is null, so Read and Write reach the EQ it plays
+  rather than save over its first preset. It is asked again before every Read, since its own app
+  can move it at any time. Over the link, `status.unsaved` says it, and the `switch` back is
+  `unsaved`.
 - **A device that restarts to save is reopened by itself** (`#awaitRestart`, `RESTART_WAIT_MS`);
   Reconnect is only what's left if it doesn't come back. Every reopened connection carries `reopen`
   again, or the second save would strand it. `#reopened` keeps `synced` while the device is on the

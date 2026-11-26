@@ -235,9 +235,9 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   preamp to report, and uniPEQ works out the right's Auto from its own bands; `#receive` finds
   that echo equal), and every `eq` sets `eqStore.linkedPreamp`, which `eqCurve.installSync` shows and plays (a fixed
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
-  With the channels apart it is the lower of the two, Auto only if both are. uniPEQ_link's
-  design says the left's. This page plays one preamp ahead of the per-ear split, so the lower
-  one keeps the louder ear from clipping, as `derivePreamp` does.
+  With the channels apart it is the lower of the two, Auto only if both are, as uniPEQ_link's
+  design also says: this page plays one preamp ahead of the per-ear split, so the lower one
+  keeps the louder ear from clipping, as `derivePreamp` does.
 
 ## `data-provider.svelte.ts`
 

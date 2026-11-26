@@ -2,8 +2,10 @@
 	import * as m from '#lib/paraglide/messages.js';
 	import { linkStore } from '#lib/stores/link-store.svelte.js';
 	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+	import { eqStore } from '#lib/stores/eq-store.svelte.js';
 	import { linkService } from '#lib/services/link-service.svelte.js';
 	import { devicePeqService } from '#lib/services/device-peq-service.svelte.js';
+	import { reviewChanges } from '#lib/device-peq/link.js';
 	import type { PushPlan } from '#lib/device-peq/push-plan.js';
 	import Button from '../atoms/Button.svelte';
 	import Dialog from '../atoms/Dialog.svelte';
@@ -26,16 +28,11 @@
 	const review = $derived(
 		devicePeqStore.connection?.connectionType === 'link' ? (linkStore.status?.review ?? null) : null
 	);
-	const EAR = { left: 'L', right: 'R' } as const;
-	/** uniPEQ's plan in the shape the push dialog shows, each change in its channel's ear. */
+	/** uniPEQ's plan in the shape the push dialog shows, numbered by this page's band list. */
 	const plan = $derived<PushPlan | null>(
 		review && {
 			filters: [],
-			changes: review.changes.map((change) =>
-				change.kind === 'preamp' || !change.channel
-					? change
-					: { ...change, ear: EAR[change.channel] }
-			),
+			changes: reviewChanges(review.changes, eqStore.filters),
 			skippedChannel: 0,
 			clipRisk: review.clipRisk,
 			infeasible: review.infeasible,

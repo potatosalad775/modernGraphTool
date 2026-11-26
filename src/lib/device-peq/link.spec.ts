@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { CommandResult, LinkStatus } from 'peq-link/client';
+import type {
+	Channel,
+	CommandResult,
+	PlanChange as LinkPlanChange,
+	LinkStatus
+} from 'peq-link/client';
+import { EQ_CHANNEL_SCOPES, filtersInScope } from '#lib/utils/eq-channel.js';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { describeDeviceError } from './errors.js';
 import { drivesChannelsApart } from './push-plan.js';
 import {
 	acceptCapabilities,
 	acceptProfile,
+	carriesEars,
 	fromLinkFilters,
 	fromLinkLists,
 	linkConnection,
@@ -13,6 +20,7 @@ import {
 	linkEdit,
 	linkOps,
 	LinkPeqDevice,
+	reviewChanges,
 	sendLosses,
 	toLinkFilters,
 	toLinkLists,
@@ -65,20 +73,51 @@ describe('band lists', () => {
 		expect(sendLosses(list, false)).toEqual({ flattened: 1, dropped: 2 });
 	});
 
-	it('sends an ear the shared bands and its own, in list order', () => {
+	it('sends an ear the shared bands and its own, each shared band in one slot in both', () => {
 		const list: EQFilter[] = [
 			pk(300, 5, { channel: 'L' }),
 			pk(100, 3),
 			pk(400, 6, { channel: 'R' }),
 			pk(200, 4, { enabled: false })
 		];
-		expect(toLinkFilters(list, 'L')).toEqual([wire(300, 5), wire(100, 3), wire(200, 0)]);
-		expect(toLinkFilters(list, 'R')).toEqual([wire(100, 3), wire(400, 6), wire(200, 0)]);
-		expect(toLinkLists(list, false)).toEqual({ left: [wire(100, 3), wire(200, 0)], right: null });
+		// The L band waits for an R band to share a slot with, so 100 Hz is slot 0 in both.
 		expect(toLinkLists(list, true)).toEqual({
-			left: toLinkFilters(list, 'L'),
-			right: toLinkFilters(list, 'R')
+			left: [wire(100, 3), wire(300, 5), wire(200, 0)],
+			right: [wire(100, 3), wire(400, 6), wire(200, 0)]
 		});
+		expect(toLinkLists(list, false)).toEqual({ left: [wire(100, 3), wire(200, 0)], right: null });
+	});
+
+	it('keeps every band in its bucket through uniPEQ and back', () => {
+		const L = (freq: number, gain: number) => pk(freq, gain, { channel: 'L' });
+		const R = (freq: number, gain: number) => pk(freq, gain, { channel: 'R' });
+		const buckets = (list: EQFilter[]) => EQ_CHANNEL_SCOPES.map((s) => filtersInScope(list, s));
+		const cases: EQFilter[][] = [
+			[pk(100, 3), L(200, 4), pk(300, 5)],
+			[L(200, 4), pk(100, 3), R(250, 1), R(260, 2), pk(300, 5), L(210, -1)],
+			[pk(100, 3), L(200, 4), L(210, 1), R(250, 2), pk(300, 5), R(260, 3), R(270, 4)],
+			[R(250, 2), R(260, 3), pk(100, 3)]
+		];
+		for (const list of cases) {
+			const lists = toLinkLists(list, true);
+			const back = fromLinkLists(lists);
+			expect(buckets(back)).toEqual(buckets(list));
+			expect(toLinkLists(back, true)).toEqual(lists);
+		}
+	});
+
+	it('counts only one-ear bands the link carries as setting the ears apart', () => {
+		const blank: EQFilter = {
+			enabled: true,
+			type: 'PK',
+			freq: null,
+			q: null,
+			gain: null,
+			channel: 'L'
+		};
+		const notch: EQFilter = { enabled: false, type: 'NO', freq: 500, q: 4, gain: 0, channel: 'R' };
+		expect(carriesEars([pk(100, 3), blank, notch])).toBe(false);
+		expect(carriesEars([pk(100, 3), pk(200, 4, { channel: 'L', enabled: false })])).toBe(true);
 	});
 
 	it('counts one-ear bands as kept when uniPEQ’s device takes them', () => {
@@ -197,6 +236,58 @@ describe('edits across uniPEQ’s channels', () => {
 			{ op: 'list', filters: added.right, ch: 'right' }
 		]);
 		expect(linkEdit(before, before)).toEqual([]);
+	});
+});
+
+describe('uniPEQ’s write review', () => {
+	const gain = (band: number, extra: { channel?: Channel; ear?: 'L' | 'R' } = {}) => ({
+		kind: 'field' as const,
+		band,
+		field: 'gain' as const,
+		wanted: 5,
+		written: 4.5,
+		...extra
+	});
+	const preamp = (wanted: number, extra: { channel?: Channel; ear?: 'L' | 'R' } = {}) => ({
+		kind: 'preamp' as const,
+		wanted,
+		written: -5,
+		...extra
+	});
+
+	it('numbers each channel’s bands as this list does, and says a change both carry once', () => {
+		// uniPEQ's left [A, B, C] and right [A, D, C].
+		const list = [
+			pk(100, 3),
+			pk(200, 4, { channel: 'L' }),
+			pk(250, 4, { channel: 'R' }),
+			pk(300, 5)
+		];
+		const changes: LinkPlanChange[] = [
+			gain(1, { channel: 'left' }),
+			{ kind: 'dropped', band: 2, channel: 'left' },
+			preamp(-6, { channel: 'left' }),
+			gain(1, { channel: 'right' }),
+			gain(3, { channel: 'right' }),
+			preamp(-7, { channel: 'right' })
+		];
+		expect(reviewChanges(changes, list)).toEqual([
+			gain(1),
+			{ kind: 'dropped', band: 2, ear: 'L' },
+			preamp(-6, { ear: 'L' }),
+			gain(4, { ear: 'R' }),
+			preamp(-7, { ear: 'R' })
+		]);
+		const alike = [preamp(-6, { channel: 'left' }), preamp(-6, { channel: 'right' })];
+		expect(reviewChanges(alike, list)).toEqual([preamp(-6)]);
+	});
+
+	it('numbers past the bands the link leaves out while the channels are joined', () => {
+		const blank: EQFilter = { enabled: true, type: 'PK', freq: null, q: null, gain: null };
+		expect(reviewChanges([gain(2), preamp(-6)], [blank, pk(100, 3), pk(200, 4)])).toEqual([
+			gain(3),
+			preamp(-6)
+		]);
 	});
 });
 

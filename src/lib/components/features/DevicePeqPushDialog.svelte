@@ -38,21 +38,20 @@
 	}
 
 	function describe(c: PlanChange): string {
-		if (c.kind === 'preamp') {
-			return m.equalizer_device_peq_push_preamp({
-				wanted: show(c.wanted, ' dB'),
-				written: show(c.written, ' dB')
-			});
-		}
 		const change =
-			c.kind === 'dropped'
-				? m.equalizer_device_peq_push_dropped({ band: c.band })
-				: m.equalizer_device_peq_push_change({
-						band: c.band,
-						field: FIELD_LABEL[c.field](),
-						wanted: show(c.wanted, UNIT[c.field]),
-						written: show(c.written, UNIT[c.field])
-					});
+			c.kind === 'preamp'
+				? m.equalizer_device_peq_push_preamp({
+						wanted: show(c.wanted, ' dB'),
+						written: show(c.written, ' dB')
+					})
+				: c.kind === 'dropped'
+					? m.equalizer_device_peq_push_dropped({ band: c.band })
+					: m.equalizer_device_peq_push_change({
+							band: c.band,
+							field: FIELD_LABEL[c.field](),
+							wanted: show(c.wanted, UNIT[c.field]),
+							written: show(c.written, UNIT[c.field])
+						});
 		if (!c.ear) return change;
 		const ear = c.ear === 'L' ? m.eq_channel_left() : m.eq_channel_right();
 		return m.equalizer_device_peq_push_ear({ change, ear });

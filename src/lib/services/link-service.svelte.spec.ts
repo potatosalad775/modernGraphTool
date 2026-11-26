@@ -522,6 +522,52 @@ describe('linkService', () => {
 			expect(host.edit).not.toHaveBeenCalled();
 		});
 
+		it('keeps a shared band added after a one-ear band shared through uniPEQ’s echo', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.send(apart([wire(100, 3), wire(300, 2)], [wire(100, 3)]));
+			flushSync();
+			eqCommands.addBand(pk(2000, 1));
+			flushSync();
+			// Both lists hold the new band in slot 1, where uniPEQ reads it back as one band.
+			expect(sentOps()).toEqual([
+				{ op: 'list', filters: [wire(100, 3), wire(2000, 1), wire(300, 2)], ch: 'left' },
+				{ op: 'list', filters: [wire(100, 3), wire(2000, 1)], ch: 'right' }
+			]);
+
+			// uniPEQ snaps it to its device and echoes both lists.
+			host.send(
+				apart([wire(100, 3), wire(2000, 1.5), wire(300, 2)], [wire(100, 3), wire(2000, 1.5)])
+			);
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3), pk(2000, 1.5), left(300, 2)]);
+		});
+
+		it('keeps uniPEQ’s channels joined for an empty one-ear band, added and removed', async () => {
+			await linked();
+			host.emit('device', STEREO);
+			host.eq([wire(100, 3)]);
+			flushSync();
+			eqCommands.addBand({ ...pk(0, 0), freq: null, q: null, gain: null, channel: 'L' });
+			flushSync();
+			eqCommands.removeBand(1);
+			flushSync();
+			expect(sentOps()).toEqual([]);
+			expect(host.options.local()).not.toHaveProperty('right');
+		});
+
+		it('says again what Send leaves out when uniPEQ’s device changes under the start dialog', async () => {
+			eqStore.filters = [pk(200, 1), left(400, 3)];
+			await linked();
+			host.eq([wire(100, 3)]);
+			flushSync();
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
+			host.emit('device', STEREO);
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 0 });
+			host.emit('device', null);
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
+		});
+
 		it('sends nothing per channel to a uniPEQ before protocol 1.3', async () => {
 			await linked(2);
 			host.emit('device', STEREO);
@@ -542,6 +588,48 @@ describe('linkService', () => {
 				autoPreamp: true
 			});
 		});
+	});
+
+	describe('with one-ear bands and no device in uniPEQ to take them', () => {
+		const left = (freq: number, gain: number): EQFilter => ({ ...pk(freq, gain), channel: 'L' });
+
+		it('asks at the start even when the shared bands are uniPEQ’s', async () => {
+			eqStore.filters = [pk(100, 3), left(400, 3)];
+			await linked();
+			host.eq([wire(100, 3)], {}, { preamp: eqStore.preamp, autoPreamp: true });
+			flushSync();
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
+		});
+
+		it('asks again when an undo brings them back, rather than hiding them', async () => {
+			eqStore.filters = [pk(200, 1), left(400, 3)];
+			await linked();
+			host.eq([wire(100, 3)]);
+			linkService.choose('theirs');
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3)]);
+
+			commandHistory.undo(frStore);
+			flushSync();
+			expect(linkStore.choice).toEqual({ theirs: 1, flattened: 0, dropped: 1 });
+			expect(host.edit).not.toHaveBeenCalled();
+
+			linkService.choose('theirs');
+			flushSync();
+			expect(eqStore.filters).toEqual([pk(100, 3)]);
+			expect(host.edit).not.toHaveBeenCalled();
+			expect(host.replaceAll).not.toHaveBeenCalled();
+		});
+	});
+
+	it('opens the band list on L+R once the first list settles', async () => {
+		eqStore.channelScope = 'R';
+		await linked();
+		host.emit('device', STEREO);
+		expect(eqStore.channelScope).toBe('R');
+		host.eq([wire(100, 3)]);
+		flushSync();
+		expect(eqStore.channelScope).toBe('BOTH');
 	});
 
 	it('keeps the channel picker on both ears while uniPEQ has no device to drive them apart', async () => {

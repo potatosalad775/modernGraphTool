@@ -24,12 +24,14 @@ import type {
 	EditOp,
 	Filter as LinkFilter,
 	LinkDevice,
-	LinkStatus
+	LinkStatus,
+	PlanChange as LinkPlanChange
 } from 'peq-link/client';
-import { effectiveFilters, type EqChannel } from '#lib/utils/eq-channel.js';
+import type { EqChannel } from '#lib/utils/eq-channel.js';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
 import { usesGain, type EQFilter } from '#lib/utils/equalizer.js';
 import { isRecord } from '#lib/utils/type-guards.js';
+import { byEar, type PlanChange } from './push-plan.js';
 import type { DeviceConnection, PeqCapabilities, PeqDevice, PullResult } from './types.js';
 
 // ── Band lists ──────────────────────────────────────────────────────────────
@@ -41,26 +43,63 @@ export interface LinkLists {
 }
 
 /**
- * The app's list as the link carries it: without `ear` the shared bands, with it the shared bands
- * plus that ear's own (`effectiveFilters`), in list order. A disabled band goes flat (0 dB at its
- * own Fc and Q, as a push writes it), incomplete bands are left out. A disabled pass or notch has
- * no flat form, so it is left out too. While linked the list holds no disabled band (per-band
- * on/off is unavailable), but undo can bring back a list from before.
+ * A band as the link carries it, or null. A disabled band goes flat (0 dB at its own Fc and Q, as
+ * a push writes it), incomplete bands are left out. A disabled pass or notch has no flat form, so
+ * it is left out too. While linked the list holds no disabled band (per-band on/off is
+ * unavailable), but undo can bring back a list from before.
  */
-export function toLinkFilters(filters: EQFilter[], ear?: EqChannel): Filter[] {
-	const bands = ear ? effectiveFilters(filters, ear) : filters.filter((f) => f.channel == null);
-	return bands.flatMap((f) => {
-		if (!f.enabled && !usesGain(f.type)) return [];
-		const caps = toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
-		return caps ? [caps] : [];
-	});
+function linkFilter(f: EQFilter): Filter | null {
+	if (!f.enabled && !usesGain(f.type)) return null;
+	return toCapsFilter(f.enabled ? f : { ...f, gain: 0 });
+}
+
+/** The app's shared bands as the link carries them (`linkFilter`), in list order. */
+export function toLinkFilters(filters: EQFilter[]): Filter[] {
+	return filters.flatMap((f) => (f.channel == null ? (linkFilter(f) ?? []) : []));
+}
+
+/**
+ * Which band uniPEQ holds in each slot, by its index in `filters`: of the one list, or of each
+ * ear's while `apart`. An ear's list is the shared bands plus its own, and a shared band takes the
+ * same slot in both, since `fromLinkLists` keeps a band shared only there: a one-ear band waits
+ * until the other ear has one to pair it with, and those still waiting go last.
+ */
+export function linkSlots(
+	filters: EQFilter[],
+	apart: boolean
+): { left: number[]; right: number[] | null } {
+	const carried = filters.flatMap((f, i) => (linkFilter(f) ? [i] : []));
+	if (!apart) return { left: carried.filter((i) => filters[i].channel == null), right: null };
+	const left: number[] = [];
+	const right: number[] = [];
+	const waiting: Record<EqChannel, number[]> = { L: [], R: [] };
+	for (const i of carried) {
+		const ear = filters[i].channel;
+		if (ear) {
+			waiting[ear].push(i);
+			continue;
+		}
+		const paired = Math.min(waiting.L.length, waiting.R.length);
+		left.push(...waiting.L.splice(0, paired), i);
+		right.push(...waiting.R.splice(0, paired), i);
+	}
+	return { left: [...left, ...waiting.L], right: [...right, ...waiting.R] };
 }
 
 /** The app's list as uniPEQ holds it: one list for both ears, or each ear's while `apart`. */
 export function toLinkLists(filters: EQFilter[], apart: boolean): LinkLists {
-	return apart
-		? { left: toLinkFilters(filters, 'L'), right: toLinkFilters(filters, 'R') }
-		: { left: toLinkFilters(filters), right: null };
+	const caps = filters.map(linkFilter);
+	const at = (slots: number[]) => slots.flatMap((i) => caps[i] ?? []);
+	const { left, right } = linkSlots(filters, apart);
+	return { left: at(left), right: right && at(right) };
+}
+
+/**
+ * Whether the list holds one-ear bands the link carries. An incomplete one (just added) or a
+ * switched-off pass or notch doesn't count: the link carries neither, so nothing would go apart.
+ */
+export function carriesEars(filters: EQFilter[]): boolean {
+	return filters.some((f) => f.channel != null && linkFilter(f) !== null);
 }
 
 /**
@@ -102,6 +141,28 @@ export function sendLosses(
 		else if (!f.enabled) flattened++;
 	}
 	return { flattened, dropped };
+}
+
+/**
+ * uniPEQ's write review as this page's review dialog shows it. uniPEQ numbers a band by its place
+ * in that channel's own list, and names the channel of every change while it writes them apart.
+ * Here a band has its number in this page's list (`linkSlots` back), and a change both channels
+ * carry is said once, as `planPush` says it for a device connected here.
+ */
+export function reviewChanges(changes: LinkPlanChange[], filters: EQFilter[]): PlanChange[] {
+	const apart = changes.some((c) => c.channel);
+	const slots = linkSlots(filters, apart);
+	const ours = (c: LinkPlanChange, ch: Channel): PlanChange => {
+		if (c.kind === 'preamp') return { kind: 'preamp', wanted: c.wanted, written: c.written };
+		// A slot this page no longer has (its list moved since): uniPEQ's own number.
+		const index = (ch === 'right' ? slots.right : slots.left)?.[c.band - 1];
+		const band = index === undefined ? c.band : index + 1;
+		if (c.kind === 'dropped') return { kind: 'dropped', band };
+		return { kind: 'field', band, field: c.field, wanted: c.wanted, written: c.written };
+	};
+	if (!apart) return changes.map((c) => ours(c, 'left'));
+	const of = (ch: Channel) => changes.filter((c) => c.channel === ch).map((c) => ours(c, ch));
+	return byEar(of('left'), of('right'));
 }
 
 function filtersEqual(a: LinkFilter, b: LinkFilter): boolean {

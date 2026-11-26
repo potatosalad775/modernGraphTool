@@ -170,29 +170,45 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   apart** (`right !== null`, protocol 1.3). Don't add an `apart` flag beside it. While apart, an
   edit both channels get alike (a shared band) goes once without `ch`; anything else goes per
   channel.
-- **Only this page's own edit joins uniPEQ's channels** (`#apart`). With per-ear bands and a
-  device that takes them (`#allowed`: minor ≥ 3 and `devicePeqStore.perChannel`), the edit sets
-  them apart. Removing the last per-ear band joins them, but only if uniPEQ's two lists differed.
-  Anything else keeps uniPEQ's mode: apart with both alike is uniPEQ's user's choice. An adoption
-  sets `#shared` first, so it never counts as an edit. Once joined, `#local()` reports `right`
-  exactly when `#shared` is apart, because the client's resync sends it whole (`replaceOps`,
-  channels op included), and any other rule splits or joins uniPEQ's channels on a reconnect.
-  Before the first list settles it is also apart for per-ear bands `#allowed` takes, so a list
-  equal but for them reaches the start dialog. `#receive` compares in the apart form whenever this
-  page has per-ear bands, so uniPEQ joining its channels drops them here.
+- **Only this page's own edit joins uniPEQ's channels** (`#apart`). With per-ear bands the link
+  carries (`carriesEars`: an empty one just added doesn't count, or it would split them with
+  nothing to send) and a device that takes them (`#allowed`: minor ≥ 3 and
+  `devicePeqStore.perChannel`), the edit sets them apart. Removing the last per-ear band joins
+  them, but only if uniPEQ's two lists differed. Anything else keeps uniPEQ's mode: apart with
+  both alike is uniPEQ's user's choice. An adoption sets `#shared` first, so it never counts as an
+  edit. Once joined, `#local()` reports `right` exactly when `#shared` is apart, because the
+  client's resync sends it whole (`replaceOps`, channels op included), and any other rule splits
+  or joins uniPEQ's channels on a reconnect. Before the first list settles it is also apart for
+  any per-ear bands, so a list equal but for them reaches the start dialog. `#receive` compares
+  in the apart form whenever this page has per-ear bands, so uniPEQ joining its channels drops
+  them here.
+- **Per-ear bands never sit unsent behind the locked picker.** Joined, an edit that brings back
+  some the link can't carry (an undo past the start choice) leaves the list unjoined and asks the
+  start dialog again, its Use uniPEQ's EQ taking `#shared`. Under a restriction that holds none,
+  `eqChannelConflict` asks instead, and its Keep re-runs the check (the edit effect tracks
+  `supportsPerChannel`). The dialog's counts are worked out again whenever it is updated,
+  `#device` included: what Send keeps depends on uniPEQ's device.
 - **uniPEQ's lists convert in slot order** (`fromLinkLists`): a slot both ears hold alike is a
   shared band, any other slot its L band and its R band, in place. `toLinkLists` gives the same
-  lists back, which `link.spec.ts` pins. `listFromPull` reads a device the same way but groups
-  shared, then L, then R. That loses the slots, so the next band op would name the wrong index
-  and every echo would differ from this page's list.
+  lists back, which `link.spec.ts` pins. The other way, it puts each shared band in one slot in
+  both ears' lists (`linkSlots`): a per-ear band waits for one of the other ear's to pair with,
+  and those left go last. In list order, a shared band after an L band would come back from
+  uniPEQ as an L and an R copy. `listFromPull` reads a device the same way but groups shared,
+  then L, then R. That loses the slots, so the next band op would name the wrong index and every
+  echo would differ from this page's list.
+- **uniPEQ's review numbers each channel's bands by that channel's list.** `reviewChanges`
+  renumbers them by this page's (`linkSlots` back) and says a change both channels carry once,
+  as `byEar` does for a device connected here.
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.
 - **Nothing goes out before the first list is settled** (`#joined`): adopted, found equal (the
   raw `eq` listener, since the client emits nothing for an equal list), or answered in the start
   dialog. The dialog compares bands only: the preamp is uniPEQ's either way.
-- The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it,
-  and every `eq` sets `eqStore.linkedPreamp`, which `eqCurve.installSync` shows and plays (a fixed
+- The preamp is uniPEQ's: `local()` reports uniPEQ's preamp fields, so they never differ on it
+  (bar the first echo after this page sets the channels apart: until then it has no right
+  preamp to report, and uniPEQ works out the right's Auto from its own bands; `#receive` finds
+  that echo equal), and every `eq` sets `eqStore.linkedPreamp`, which `eqCurve.installSync` shows and plays (a fixed
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
   With the channels apart it is the lower of the two, Auto only if both are. uniPEQ_link's
   design says the left's. This page plays one preamp ahead of the per-ear split, so the lower

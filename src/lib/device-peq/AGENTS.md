@@ -179,7 +179,8 @@ needs it at boot); keep it the only one.
   `services/link-service.svelte.ts`). uniPEQ holds the shared list and writes its device, so
   `push` is never called: Write, Device EQ, Reconnect and the auto-write switch are commands to
   uniPEQ, `devicePeqStore`'s flags (and `reportedInSync`) are mirrored from its `status`, and its
-  review shows in `DevicePeqPushDialog` through `LinkDialogs`. `devicePeqService`'s own auto-write
+  review shows in `DevicePeqPushDialog` through `LinkDialogs`, renumbered by this page's list
+  (`reviewChanges`). `devicePeqService`'s own auto-write
   skips a link connection. Its Unplug button is hidden: closing it unlinks, which **Unlink** above
   it already does.
   The profile arrives over the wire, so `acceptProfile` refuses one eqcaps can't use rather than

@@ -272,6 +272,8 @@ Variation 파일들이 같은 접두사를 공유하지만 뒷부분이 명확�
 ```json
 {
 	"name": ["HD 600"],
+	"file": ["HD600 Stock", "HD600 Mod", "HD600 Leather"],
+	"suffix": ["Stock", "Modded", "Leather Pad"],
 	"variants": [
 		{ "suffix": "Stock", "file": "HD600 Stock" },
 
@@ -347,6 +349,14 @@ variant를 양쪽에 선언해도 목록에는 한 번만 나타납니다.
 덕분에 하나의 항목으로 두 도구를 모두 지원할 수 있습니다. CrinGraph는 `file`만 읽기
 때문에, 측정이 `variants`에만 선언된 phone은 CrinGraph에서 보이지 않습니다. 일반
 측정은 `file` / `suffix`에 두고 그 위에 sample set을 얹으세요.
+
+**모든 phone은 측정을 `variants`로 설명하더라도 phone 레벨 `file`을 유지해야 합니다.**
+CrinGraph가 `file`을 읽고, squig.link의 사이트 간 검색도 `phone_book.json`에서 기기 목록과
+공유 링크를 만들 때 `file`을 읽습니다. `file`이 없는 phone은 squig.link 검색에서 빠지고,
+같은 파일에서 그 뒤에 나열된 phone도 모두 빠집니다(modernGraphTool은 이런 phone에 대해
+콘솔 경고를 남깁니다). variant에 자체 `file`이 있으면 그 값(과 `suffix`)을 phone 레벨에도
+적습니다. `samples.files`로만 선언한 세트는 적지 않아도 되지만, 그러면 phone에 `file`이
+하나도 남지 않는 경우에는 세트의 첫 번째 파일을 쓰세요.
 
 ```json
 {
@@ -434,6 +444,8 @@ variant도 오류 없이 로드됩니다.
 ```json
 {
 	"name": ["HpTF Multi Pad"],
+	"file": "Leather Center",
+	"suffix": "Leather Pad",
 	"variants": [
 		{
 			"suffix": "Leather Pad",
@@ -451,8 +463,9 @@ variant도 오류 없이 로드됩니다.
 :::tip[자동으로 변환하기]
 직접 손으로 고칠 필요는 없습니다. 기존 `phone_book.json`을
 [**phone_book.json 편집기**](/phone-book-editor)에 불러온 뒤 다시 내보내면 됩니다.
-불러오기는 모든 이전 형식을 읽고, 내보내기는 항상 표준 형식인 `variants[]`로
-작성합니다. `hptfs[]` 항목을 포함해 파일 전체가 한 번에 변환됩니다.
+불러오기는 모든 이전 형식을 읽고, 내보내기는 `variants[]`와 함께 phone 레벨 `file`(과
+`suffix`)도 작성하므로 변환된 파일은 CrinGraph와 squig.link에서도 계속 읽힙니다.
+`hptfs[]` 항목을 포함해 파일 전체가 한 번에 변환됩니다.
 :::
 
 `config.js`의 `MULTI_SAMPLE`, `HPTF` 섹션도 함께 사용 중단되었습니다. 대체 키는
@@ -473,7 +486,7 @@ variant 2개와 `hptfs` 항목 2개가 있으면 variant 선택기에 4개 항�
   메타데이터입니다. `count`를 쓰는 데이터베이스는 CrinGraph의 `num_samples` 사이트가
   기대하는 `{file} L{n}.txt` 배치를 그대로 유지하므로 폴더 하나로 두 도구를 모두
   서비스할 수 있습니다.
-- **`phone_book.json`** — CrinGraph가 읽는 것은 `file`뿐이므로 일반 측정은 모두
+- **`phone_book.json`** — CrinGraph와 squig.link 검색이 읽는 것은 `file`뿐이므로 일반 측정은 모두
   `file` / `suffix`에 두고, sample set은 그 옆에 `variants`로 추가하세요. CrinGraph는
   모르는 키를 무시하고, modernGraphTool은 둘을 합쳐서 보여줍니다.
 

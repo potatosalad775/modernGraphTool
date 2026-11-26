@@ -272,6 +272,7 @@ const MetadataParser = {
 		// here. Both paths emit the same PhoneFileVariant[], so nothing
 		// downstream can tell which form was authored.
 		const explicit = Array.isArray(phone.variants) ? phone.variants : null;
+		this._warnVariantsWithoutFile(brandName, baseName, phone);
 		const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
 		const files = this._uniqueSuffixes(
 			brandName,
@@ -285,6 +286,17 @@ const MetadataParser = {
 		);
 
 		return { ...rowFields, name: baseName, identifier, files };
+	},
+
+	/** Warn when `variants[]` stands alone: squig.link search and CrinGraph read only `file`. */
+	_warnVariantsWithoutFile(brandName: string, baseName: string, phone: RawPhoneData) {
+		if (!Array.isArray(phone.variants) || phone.variants.length === 0) return;
+		const file = phone.file;
+		const hasFile = Array.isArray(file) ? file.length > 0 : Boolean(file?.trim());
+		if (hasFile) return;
+		console.warn(
+			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" declares "variants" without a phone-level "file" — squig.link search and CrinGraph read only "file", so add one (the first variant's file) to keep this phone listed there.`
+		);
 	},
 
 	/** What an object phone puts on its list row, besides its name and measurements. */

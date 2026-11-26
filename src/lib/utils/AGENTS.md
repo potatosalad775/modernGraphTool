@@ -287,6 +287,11 @@ for this, with parallel state, fetch, process and render paths; they are now one
   compatibility: `variants[]` is mGT's own key, so a phone declared only there is invisible to
   CrinGraph. `hptfs[]` — which `variants[]` supersedes — has always been additive with `file[]`, so
   precedence also made the advertised `hptfs[]` → `variants[]` conversion silently reorder selectors.
+- **A phone with `variants[]` still needs a phone-level `file`.** squig.link's search
+  (`squigsites.js`) reads `phone.file` out of every listed site's book with no guard: a phone
+  without one throws there, which drops it and every phone after it in that book. The parser warns
+  (`_warnVariantsWithoutFile`), and the phone_book.json Editor exports the mirror (`fileMirror` in
+  `docs/src/utils/phoneBookConverter.ts`), which the in-place merge above makes a no-op here.
 - **Suffixes are unique per phone** (`_uniqueSuffixes`, after the merge). The suffix addresses a
   variant — `fr-parser` loads by it and `SelectionList` keys its picker rows on it — so a repeat
   (`file[]` with no `suffix`/`prefix` leaves every entry at `""`) crashed the picker. Later repeats

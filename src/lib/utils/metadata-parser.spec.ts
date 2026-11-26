@@ -795,6 +795,67 @@ describe('MetadataParser', () => {
 			expect(files[0].sampleFiles).toBeUndefined();
 		});
 
+		describe('variants[] without a phone-level file', () => {
+			let warnSpy: ReturnType<typeof vi.spyOn>;
+			const book = (phone: Record<string, unknown>) => [{ name: 'Demo', phones: [phone] }];
+
+			beforeEach(() => {
+				warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			});
+
+			afterEach(() => {
+				warnSpy.mockRestore();
+			});
+
+			it('warns once, naming the phone, and still loads it', async () => {
+				const result = await parse(book({ name: ['X'], variants: [{ suffix: 'A', file: 'X A' }] }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('"Demo X"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"file"');
+				expect(result[0].phones[0].files.map((f) => f.suffix)).toEqual(['A']);
+			});
+
+			it('warns for an empty file string or array too', async () => {
+				const variants = [{ suffix: 'A', file: 'X A' }];
+				await parse(book({ name: ['X'], file: '', variants }));
+				await parse(book({ name: ['X'], file: [], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(2);
+			});
+
+			it('does not warn when the phone has both file and variants[]', async () => {
+				await parse(
+					book({ name: ['X'], file: ['X A'], variants: [{ suffix: 'A', file: 'X A', samples: 3 }] })
+				);
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			it('does not warn for a phone with only file', async () => {
+				await parse(book({ name: ['X'], file: ['X A'], suffix: ['A'] }));
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			// The phone_book.json Editor exports this mirror (`fileMirror` in
+			// docs/src/utils/phoneBookConverter.ts) and relies on it being a no-op here.
+			it('parses a mirrored phone exactly like the same phone without the mirror', async () => {
+				const variants = [
+					{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+					{ suffix: 'Stock', file: 'X' },
+					{ suffix: 'Runs', file: 'X', samples: 3 },
+					{ suffix: 'More Pads', samples: { files: ['Pad A', 'Pad C'] } }
+				];
+				const bare = await parse(book({ name: ['X'], variants }));
+				const mirrored = await parse(
+					book({
+						name: ['X'],
+						file: ['Pad A', 'X', 'X'],
+						suffix: ['Pads', 'Stock', 'Runs'],
+						variants
+					})
+				);
+				expect(mirrored[0].phones[0].files).toEqual(bare[0].phones[0].files);
+			});
+		});
+
 		it('normalizes legacy phone-level samples to the same shape as variants[]', async () => {
 			const legacy = await parse([
 				{ name: 'Demo', phones: [{ name: ['X'], file: ['X A'], suffix: ['A'], samples: 3 }] }

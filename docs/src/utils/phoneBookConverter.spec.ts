@@ -286,42 +286,84 @@ describe('brand suffix', () => {
 	});
 });
 
-describe('CrinGraph compatibility warnings', () => {
-	// AGENTS.md: a modernGraphTool-only key must compose with the CrinGraph
-	// dialect rather than override it. The editor cannot represent a phone that
-	// carries both `variants[]` and a phone-level `file`, so it must say so
-	// loudly rather than drop the compatibility silently.
-	it('warns when variants[] shadows phone-level keys', () => {
+describe('the phone-level file beside variants[]', () => {
+	// CrinGraph and squig.link's search read `file` and nothing else, so every
+	// sample-set phone is exported with one. modernGraphTool upgrades a mirrored
+	// variant in place, so the mirror must not reorder or duplicate anything.
+	const emit = (variants: Record<string, unknown>[], extra: Record<string, unknown> = {}) => {
 		const source = JSON.stringify([
-			{
-				name: 'Moondrop',
-				phones: [
-					{
-						name: ['Chu 2'],
-						file: 'Chu 2',
-						suffix: 'Stock',
-						variants: [{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]
-					}
-				]
-			}
+			{ name: 'Moondrop', phones: [{ name: ['Chu 2'], ...extra, variants }] }
 		]);
-		const { warnings } = parsePhoneBook(source);
-		expect(warnings).toHaveLength(1);
-		expect(warnings[0]).toContain('"file"');
-		expect(warnings[0]).toContain('"suffix"');
-		expect(warnings[0]).toContain('CrinGraph');
+		const { state, warnings } = parsePhoneBook(source);
+		return { phone: JSON.parse(serializePhoneBook(state))[0].phones[0], state, warnings };
+	};
+
+	it('writes a single variant as a string', () => {
+		const { phone } = emit([{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]);
+		expect(phone.file).toBe('Chu 2 leather');
+		expect(phone.suffix).toBe('Leather');
+		expect(phone.variants).toEqual([{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }]);
 	});
 
-	it('stays silent when variants[] carries no shadowed keys', () => {
-		const source = JSON.stringify([
-			{
-				name: 'Moondrop',
-				phones: [
-					{ name: ['Chu 2'], variants: [{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }] }
-				]
-			}
+	it('writes several variants as aligned arrays', () => {
+		const { phone } = emit([
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'Leather', file: 'Chu 2 leather', samples: 3 }
 		]);
-		expect(parsePhoneBook(source).warnings).toEqual([]);
+		expect(phone.file).toEqual(['Chu 2', 'Chu 2 leather']);
+		expect(phone.suffix).toEqual(['Stock', 'Leather']);
+	});
+
+	it('names the first run of a set that is only a list of runs', () => {
+		const { phone } = emit([{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } }]);
+		expect(phone.file).toBe('Pad A');
+		expect(phone.variants[0].file).toBeUndefined();
+	});
+
+	it('leaves a trailing run-only set out, and mirrors one that sits before a file', () => {
+		const runs = { suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } };
+		const plain = { suffix: 'Stock', file: 'Chu 2' };
+		expect(emit([plain, runs]).phone.file).toBe('Chu 2');
+		// Unmirrored variants are appended, so skipping this one would move it last.
+		expect(emit([runs, plain]).phone.file).toEqual(['Pad A', 'Chu 2']);
+	});
+
+	it('reads its own export back unchanged', () => {
+		const { state } = emit([
+			{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+			{ suffix: 'Stock', file: 'Chu 2' },
+			{ suffix: 'More Pads', samples: { files: ['Pad A', 'Pad C'] } }
+		]);
+		expect(state[0].phones[0].sampleSet!.variants.map((v) => v.suffix)).toEqual([
+			'Pads',
+			'Stock',
+			'More Pads'
+		]);
+		expectRoundTrip(state);
+	});
+
+	it('composes phone-level keys with variants[] instead of dropping them', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Repeat Runs', file: 'Chu 2', samples: 3 },
+				{ suffix: 'Leather', file: 'Chu 2 L' }
+			],
+			{ file: ['Chu 2 foam', 'Chu 2'], suffix: ['Foam', 'Stock'] }
+		);
+		expect(warnings).toEqual([]);
+		expect(phone.file).toEqual(['Chu 2 foam', 'Chu 2', 'Chu 2 L']);
+		expect(phone.suffix).toEqual(['Foam', 'Repeat Runs', 'Leather']);
+		expect(phone.variants).toHaveLength(3);
+	});
+
+	it('names prefix variants by what is left of the filename', () => {
+		const { phone } = emit([{ suffix: 'Depth', samples: { files: ['Chu 2 7k', 'Chu 2 9k'] } }], {
+			file: ['Chu 2 Stock', 'Chu 2 SpinFit'],
+			prefix: 'Chu 2'
+		});
+		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit']);
+		expect(phone.suffix).toEqual(['Stock', 'SpinFit']);
+		expect(phone.prefix).toBeUndefined();
 	});
 });
 
@@ -337,52 +379,34 @@ describe('the shipped defaults/data/phone_book.json', () => {
 	});
 
 	it('is re-exportable once imported', () => {
-		// Idempotent from the second pass on — the only loss happens on first import,
-		// pinned by the "Dual Hosted" test below.
 		const { state } = parsePhoneBook(shipped);
 		expectRoundTrip(state);
 	});
 
-	/**
-	 * KNOWN GAP, pinned deliberately.
-	 *
-	 * The shipped sample's "Dual Hosted" entry is the project's own demonstration of
-	 * the rule in AGENTS.md — a modernGraphTool-only key must compose with the
-	 * CrinGraph dialect rather than override it. It carries phone-level `file` (which
-	 * is all CrinGraph reads) *and* `variants[]` (which modernGraphTool composes on
-	 * top). The editor has no phone kind holding both, so importing it drops `file`
-	 * and `suffix`, and re-exporting publishes an entry CrinGraph cannot read at all.
-	 *
-	 * The parser warns rather than failing silently, which is the right call. These
-	 * assertions exist so that a rewrite cannot quietly widen the loss — and so that
-	 * implementing a combined phone kind trips this test and forces it updated.
-	 */
-	describe('"Dual Hosted" — the entry the editor cannot represent', () => {
-		it('warns exactly once, naming the shadowed keys and the consequence', () => {
-			const { warnings } = parsePhoneBook(shipped);
-			expect(warnings).toHaveLength(1);
-			expect(warnings[0]).toContain('Dual Hosted');
-			expect(warnings[0]).toContain('"file"');
-			expect(warnings[0]).toContain('"suffix"');
-			expect(warnings[0]).toContain('CrinGraph');
-		});
+	it('imports without warnings', () => {
+		expect(parsePhoneBook(shipped).warnings).toEqual([]);
+	});
 
-		it('drops phone-level file/suffix on re-export, losing CrinGraph readability', () => {
-			const { state } = parsePhoneBook(shipped);
-			const emitted = JSON.parse(serializePhoneBook(state)) as any[];
-			const entry = emitted
+	it('exports every object phone with a phone-level file', () => {
+		const emitted = JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)) as any[];
+		const objects = emitted.flatMap((b) => b.phones ?? []).filter((p) => typeof p === 'object');
+		expect(objects.filter((p) => !p.file || p.file.length === 0)).toEqual([]);
+	});
+
+	// The sample's own demonstration of both schemas on one entry: CrinGraph reads
+	// the three `file` variants, modernGraphTool adds the run-only set as a fourth.
+	it('keeps the CrinGraph view of "Dual Hosted" on re-export', () => {
+		const find = (book: any[]) =>
+			book
 				.flatMap((b) => b.phones ?? [])
 				.find((p: any) => Array.isArray(p?.name) && p.name[0] === 'Dual Hosted');
+		const before = find(JSON.parse(shipped));
+		const after = find(JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)));
 
-			expect(entry).toBeDefined();
-			expect(entry.variants).toHaveLength(2);
-			// The loss: CrinGraph reads `file` and nothing else.
-			expect(entry.file).toBeUndefined();
-			expect(entry.suffix).toBeUndefined();
-			// Everything the editor *can* model still survives.
-			expect(entry.price).toBe('$100');
-			expect(entry.description).toContain('CrinGraph');
-		});
+		expect(after.file).toEqual(before.file);
+		expect(after.suffix).toEqual(before.suffix);
+		expect(after.variants).toHaveLength(4);
+		expect(after.price).toBe('$100');
 	});
 });
 

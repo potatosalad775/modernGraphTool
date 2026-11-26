@@ -27,7 +27,12 @@ import {
 	isUnsupported
 } from '#lib/device-peq/errors.js';
 import { LinkCommandError, LinkPeqDevice } from '#lib/device-peq/link.js';
-import { readRequest } from '#lib/device-peq/preset.js';
+import {
+	currentSlotOf,
+	readRequest,
+	tellsUnsaved,
+	type PresetRequest
+} from '#lib/device-peq/preset.js';
 import {
 	listFromPull,
 	needsReview,
@@ -58,14 +63,17 @@ export const AUTO_WRITE_DELAY_MS = 700;
 const RESTART_WAIT_MS = 5000;
 
 /**
- * The preset the device plays and, where its EQ switch is its own state, whether that is on. A
- * failed read is unknown rather than an error: the connection works without it.
+ * The preset the device plays (`'unsaved'` for none) and, where its EQ switch is its own state,
+ * whether that is on. A failed read is unknown rather than an error: the connection works without
+ * it. Only an answer can say the device is on no preset.
  */
 async function playing(conn: DeviceConnection) {
-	const slot = await conn.device.currentSlot().catch(() => null);
-	const enabled = conn.device.capabilities.readsEnabled
-		? await conn.device.eqEnabled().catch(() => null)
-		: null;
+	const caps = conn.device.capabilities;
+	const slot = await conn.device.currentSlot().then(
+		(answer) => currentSlotOf(caps, answer),
+		() => null
+	);
+	const enabled = caps.readsEnabled ? await conn.device.eqEnabled().catch(() => null) : null;
 	return { slot, enabled };
 }
 
@@ -401,8 +409,7 @@ class DevicePeqService {
 	/** Replace the band list with what Device EQ shows. */
 	async read(): Promise<void> {
 		const conn = devicePeqStore.connection;
-		const request = devicePeqStore.readTarget;
-		if (!conn || !request) return;
+		if (!conn || !devicePeqStore.readTarget) return;
 		const link = this.linkDevice;
 		if (link) {
 			// uniPEQ reads into the shared list, which arrives as an `eq`; `status` says it's busy.
@@ -411,6 +418,8 @@ class DevicePeqService {
 		}
 		devicePeqStore.isReading = true;
 		try {
+			const request = await this.#readTargetNow(conn);
+			if (!request) return;
 			const result = await conn.device.pull(request);
 			const { filters, skipped } = listFromPull(result);
 			eqCommands.replaceFilters(filters);
@@ -424,6 +433,20 @@ class DevicePeqService {
 		} finally {
 			devicePeqStore.isReading = false;
 		}
+	}
+
+	/**
+	 * How Read reaches what Device EQ shows now. A device whose EQ can be on no preset leaves its
+	 * preset on any edit, its own app's included, so it is asked first and Device EQ follows it.
+	 * Null where that is out of reach, or the device went meanwhile.
+	 */
+	async #readTargetNow(conn: DeviceConnection): Promise<PresetRequest | null> {
+		if (tellsUnsaved(conn.device.capabilities)) {
+			const now = await playing(conn);
+			if (devicePeqStore.connection !== conn) return null;
+			devicePeqStore.reported(now.slot, now.enabled);
+		}
+		return devicePeqStore.readTarget;
 	}
 
 	/**
@@ -528,10 +551,14 @@ class DevicePeqService {
 		}
 	}
 
-	/** Switch the device to what Device EQ picked: `p<id>` for a preset, `on`, or `off`. */
+	/**
+	 * Switch the device to what Device EQ picked: `p<id>` for a preset, `on`, `unsaved` (on, with
+	 * the EQ it holds on no preset: none is loaded over it), or `off`.
+	 */
 	async choose(value: string): Promise<void> {
 		const conn = devicePeqStore.connection;
-		if (!conn) return;
+		// Device EQ offers the EQ on no preset only while the device holds one.
+		if (!conn || (value === 'unsaved' && !devicePeqStore.unsaved)) return;
 		// An edit waiting to be auto-written belongs to the preset it was made on.
 		this.#cancelPending();
 		const slot = value.startsWith('p')

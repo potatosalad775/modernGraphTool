@@ -685,6 +685,7 @@
 	"equalizer_device_peq_eq_off": "Off (EQ bypassed)",
 	"equalizer_device_peq_eq_other": "A built-in preset",
 	"equalizer_device_peq_eq_unknown": "Unknown",
+	"equalizer_device_peq_eq_unsaved": "Unsaved EQ",
 	"equalizer_device_peq_preset_hint": "Pick the preset to read and write. Picking one here doesn't change the preset the device plays.",
 	"equalizer_device_peq_unreachable": "This device can only read and write the preset it's using. Switch the device to the preset you want first.",
 	"equalizer_device_peq_unreachable_off": "The device's EQ is off. Turn it on first.",

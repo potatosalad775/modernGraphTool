@@ -275,7 +275,9 @@ export class LinkPeqDevice implements PeqDevice {
 	}
 
 	async setEnabled(enabled: boolean, slot?: number): Promise<void> {
-		const value = !enabled ? 'off' : slot !== undefined ? `p${slot}` : 'on';
+		// On no preset, `on` makes uniPEQ load its first preset over the edit.
+		const on = this.#link.status?.unsaved ? 'unsaved' : 'on';
+		const value = !enabled ? 'off' : slot !== undefined ? `p${slot}` : on;
 		await run(this.#link.command('switch', { value }));
 	}
 

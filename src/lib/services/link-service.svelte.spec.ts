@@ -782,6 +782,25 @@ describe('linkService', () => {
 			expect(devicePeqStore.statusMessage).toBeNull();
 			expect(names()).toEqual(['Jazz', 'Rock', 'Pop']);
 		});
+
+		it('leaves where the device is to the status after a Device EQ pick', async () => {
+			await listing();
+			devicePeqStore.setStatus('Renamed the preset.');
+			// uniPEQ answers while its volume warning is up, its device still on preset 1.
+			host.command.mockImplementationOnce(async () => {
+				host.emit('status', { ...listed(1, held('Jazz', 'Rock', 'Pop')), consent: true });
+				return { ok: true };
+			});
+			await devicePeqService.choose('p2');
+			expect(host.command).toHaveBeenLastCalledWith('switch', { value: 'p2' });
+			expect(devicePeqStore.deviceSlot).toBe(1);
+			expect(devicePeqStore.activeSlot).toBe(1);
+			expect(devicePeqStore.statusMessage).toBe('Renamed the preset.');
+
+			host.emit('status', listed(2, held('Jazz', 'Rock', 'Pop')));
+			expect(devicePeqStore.deviceSlot).toBe(2);
+			expect(devicePeqStore.activeSlot).toBe(2);
+		});
 	});
 
 	describe('with uniPEQ’s device having settings of its own', () => {

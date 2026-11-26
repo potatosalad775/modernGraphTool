@@ -558,13 +558,12 @@ class DevicePeqService {
 
 	async #switch(conn: DeviceConnection, value: string, slot: number | undefined): Promise<void> {
 		try {
-			if (value === 'off') {
-				await conn.device.setEnabled(false);
-				devicePeqStore.played('off');
-			} else {
-				await conn.device.setEnabled(true, slot);
-				devicePeqStore.played(slot);
-			}
+			if (value === 'off') await conn.device.setEnabled(false);
+			else await conn.device.setEnabled(true, slot);
+			// uniPEQ answers while its volume warning is still up: where the device is arrives in
+			// `status`, which the link service mirrors.
+			if (this.linkDevice) return;
+			devicePeqStore.played(value === 'off' ? 'off' : slot);
 			await this.#readEqControls(conn, true);
 		} catch (e) {
 			this.fail(e, 'switch');

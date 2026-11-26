@@ -40,6 +40,9 @@ class FakeParam {
 	exponentialRampToValueAtTime(v: number): void {
 		this.value = v;
 	}
+	setTargetAtTime(v: number): void {
+		this.value = v;
+	}
 }
 
 class FakeNode {
@@ -890,6 +893,20 @@ describe('AudioPlayerService', () => {
 			expect(osc?.started).toBe(true);
 			expect(osc?.type).toBe('sine');
 			expect(osc?.frequency.value).toBe(audioPlayerService.toneFreq);
+		});
+
+		it('glides the tone to a new frequency instead of jumping', () => {
+			audioPlayerService.setAudioSource('tone');
+			settle();
+			audioPlayerService.play();
+			settle();
+			const osc = ctx.nodes.find((n) => n.kind === 'oscillator')!;
+			const glide = vi.spyOn(osc.frequency, 'setTargetAtTime');
+
+			audioPlayerService.setToneFreq(250);
+
+			expect(glide).toHaveBeenCalledWith(250, expect.any(Number), expect.any(Number));
+			expect(osc.frequency.value).toBe(250);
 		});
 
 		it('routes a sweep through a fade stage so the loop wraparound does not pop', () => {

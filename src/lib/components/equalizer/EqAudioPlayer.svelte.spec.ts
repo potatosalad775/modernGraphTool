@@ -182,6 +182,16 @@ describe('EqAudioPlayer', () => {
 			);
 		});
 
+		it('keeps one decimal below 100 Hz and whole Hz from there up', async () => {
+			// 100/1000 of three decades above 20 Hz is 39.905 Hz.
+			await toneSlider().fill('100');
+			expect(audioPlayerService.toneFreq).toBe(39.9);
+
+			// 750/1000 is 3556.56 Hz.
+			await toneSlider().fill('750');
+			expect(audioPlayerService.toneFreq).toBe(3557);
+		});
+
 		it('remaps its travel across the selected band in frequency-selection mode', async () => {
 			audioRangeStore.isFrequencySelectionMode = true;
 			audioRangeStore.setRange(1000, 4000);

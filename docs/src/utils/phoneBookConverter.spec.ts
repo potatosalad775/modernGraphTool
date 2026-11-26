@@ -320,11 +320,10 @@ describe('the phone-level file beside variants[]', () => {
 		expect(phone.variants[0].file).toBeUndefined();
 	});
 
-	it('leaves a trailing run-only set out, and mirrors one that sits before a file', () => {
+	it('mirrors a run-only set wherever it sits', () => {
 		const runs = { suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } };
 		const plain = { suffix: 'Stock', file: 'Chu 2' };
-		expect(emit([plain, runs]).phone.file).toBe('Chu 2');
-		// Unmirrored variants are appended, so skipping this one would move it last.
+		expect(emit([plain, runs]).phone.file).toEqual(['Chu 2', 'Pad A']);
 		expect(emit([runs, plain]).phone.file).toEqual(['Pad A', 'Chu 2']);
 	});
 
@@ -356,13 +355,27 @@ describe('the phone-level file beside variants[]', () => {
 		expect(phone.variants).toHaveLength(3);
 	});
 
+	it('follows variants[] once it names every file, and exports file in that order', () => {
+		const { phone, warnings } = emit(
+			[
+				{ suffix: 'Pads', samples: { files: ['Pad A', 'Pad B'] } },
+				{ suffix: 'Stock', file: 'Chu 2' }
+			],
+			{ file: 'Chu 2', suffix: 'Stock' }
+		);
+		expect(warnings).toEqual([]);
+		expect(phone.file).toEqual(['Pad A', 'Chu 2']);
+		expect(phone.suffix).toEqual(['Pads', 'Stock']);
+		expect(phone.variants.map((v: { suffix: string }) => v.suffix)).toEqual(['Pads', 'Stock']);
+	});
+
 	it('names prefix variants by what is left of the filename', () => {
 		const { phone } = emit([{ suffix: 'Depth', samples: { files: ['Chu 2 7k', 'Chu 2 9k'] } }], {
 			file: ['Chu 2 Stock', 'Chu 2 SpinFit'],
 			prefix: 'Chu 2'
 		});
-		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit']);
-		expect(phone.suffix).toEqual(['Stock', 'SpinFit']);
+		expect(phone.file).toEqual(['Chu 2 Stock', 'Chu 2 SpinFit', 'Chu 2 7k']);
+		expect(phone.suffix).toEqual(['Stock', 'SpinFit', 'Depth']);
 		expect(phone.prefix).toBeUndefined();
 	});
 });
@@ -393,9 +406,9 @@ describe('the shipped defaults/data/phone_book.json', () => {
 		expect(objects.filter((p) => !p.file || p.file.length === 0)).toEqual([]);
 	});
 
-	// The sample's own demonstration of both schemas on one entry: CrinGraph reads
-	// the three `file` variants, modernGraphTool adds the run-only set as a fourth.
-	it('keeps the CrinGraph view of "Dual Hosted" on re-export', () => {
+	// The sample's own demonstration of both schemas on one entry. Its run-only set
+	// is appended as a fourth variant, and the export names that one in `file` too.
+	it('keeps the order of "Dual Hosted" on re-export', () => {
 		const find = (book: any[]) =>
 			book
 				.flatMap((b) => b.phones ?? [])
@@ -403,8 +416,8 @@ describe('the shipped defaults/data/phone_book.json', () => {
 		const before = find(JSON.parse(shipped));
 		const after = find(JSON.parse(serializePhoneBook(parsePhoneBook(shipped).state)));
 
-		expect(after.file).toEqual(before.file);
-		expect(after.suffix).toEqual(before.suffix);
+		expect(after.file).toEqual([...before.file, 'HpTF Demo Center']);
+		expect(after.suffix).toEqual([...before.suffix, 'Pad Positions']);
 		expect(after.variants).toHaveLength(4);
 		expect(after.price).toBe('$100');
 	});

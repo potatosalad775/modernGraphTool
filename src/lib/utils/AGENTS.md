@@ -292,6 +292,11 @@ for this, with parallel state, fetch, process and render paths; they are now one
   without one throws there, which drops it and every phone after it in that book. The parser warns
   (`_warnVariantsWithoutFile`), and the phone_book.json Editor exports the mirror (`fileMirror` in
   `docs/src/utils/phoneBookConverter.ts`), which the in-place merge above makes a no-op here.
+- **A `variants[]` that names every legacy entry sets the order itself** (`_mergeVariants` returns
+  it as written); the in-place rule above is for a partial listing, which has no order for the
+  entries it leaves out. Position 0 can then differ from `file[0]`, which is what squig.link and
+  CrinGraph open, so `_warnSplitDefault` says so. The editor's mirror lists every variant in
+  `variants[]` order, so its exports never split.
 - **Suffixes are unique per phone** (`_uniqueSuffixes`, after the merge). The suffix addresses a
   variant — `fr-parser` loads by it and `SelectionList` keys its picker rows on it — so a repeat
   (`file[]` with no `suffix`/`prefix` leaves every entry at `""`) crashed the picker. Later repeats

@@ -856,6 +856,64 @@ describe('MetadataParser', () => {
 			});
 		});
 
+		describe('the order of variants[] against file', () => {
+			let warnSpy: ReturnType<typeof vi.spyOn>;
+			const book = (phone: Record<string, unknown>) => [{ name: 'Demo', phones: [phone] }];
+			const variants = [
+				{ suffix: 'Pads', samples: { files: ['Pad 1', 'Pad 2'] } },
+				{ suffix: 'A', file: 'X A' },
+				{ suffix: 'B', file: 'X B' }
+			];
+			const order = (result: Awaited<ReturnType<typeof parse>>) =>
+				result[0].phones[0].files.map((f) => f.suffix);
+
+			beforeEach(() => {
+				warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			});
+
+			afterEach(() => {
+				warnSpy.mockRestore();
+			});
+
+			it('follows variants[] once it names every file', async () => {
+				const result = await parse(book({ name: ['X'], file: ['X B', 'X A'], variants }));
+				expect(order(result)).toEqual(['Pads', 'A', 'B']);
+			});
+
+			it('keeps the file order while variants[] leaves a file out', async () => {
+				const result = await parse(
+					book({
+						name: ['X'],
+						file: ['X A', 'X B'],
+						suffix: ['A', 'B'],
+						variants: variants.slice(0, 2)
+					})
+				);
+				expect(order(result)).toEqual(['A', 'B', 'Pads']);
+				expect(warnSpy).not.toHaveBeenCalled();
+			});
+
+			it('warns when the default curve is not the first file', async () => {
+				await parse(book({ name: ['X'], file: ['X A', 'X B'], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('"Demo X"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"Pad 1"');
+				expect(warnSpy.mock.calls[0][0]).toContain('"X A"');
+			});
+
+			it('does not warn once file starts with the first variant', async () => {
+				const result = await parse(book({ name: ['X'], file: ['Pad 1', 'X A', 'X B'], variants }));
+				expect(warnSpy).not.toHaveBeenCalled();
+				expect(order(result)).toEqual(['Pads', 'A', 'B']);
+			});
+
+			it('leaves a phone without a file to the missing-file warning', async () => {
+				await parse(book({ name: ['X'], variants }));
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(warnSpy.mock.calls[0][0]).toContain('without a phone-level "file"');
+			});
+		});
+
 		it('normalizes legacy phone-level samples to the same shape as variants[]', async () => {
 			const legacy = await parse([
 				{ name: 'Demo', phones: [{ name: ['X'], file: ['X A'], suffix: ['A'], samples: 3 }] }

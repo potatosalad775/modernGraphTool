@@ -345,9 +345,11 @@ labels, fills and per-run curves all work with either.
 :::note[variants composes with `file`]
 `variants` does **not** replace the phone-level `file` / `suffix` / `prefix` / `samples` /
 `hptfs` keys — the two combine into one variant list. An entry whose `file` names a
-measurement the phone already declared **upgrades that variant in place**, keeping its
-position (so the phone's default curve doesn't move); every other entry is **appended**
-after. Declaring the same variant in both places lists it once, not twice.
+measurement the phone already declared **upgrades that variant in place**. When `variants`
+names only some of the phone's measurements, the upgraded entry keeps its position (so the
+phone's default curve doesn't move) and every other entry is **appended** after; when it names
+all of them, it sets the order (see the end of this note). Declaring the same variant in both
+places lists it once, not twice.
 
 This is what lets one entry serve both tools. CrinGraph reads `file` and nothing else, so a
 phone whose measurements live only in `variants` is invisible to it. Keep the plain
@@ -359,8 +361,8 @@ builds its device list and share links from your `phone_book.json`. A phone with
 missing from squig.link search, and so is every phone listed after it in the same file
 (modernGraphTool logs a console warning for it). When a variant has its own `file`, repeat it
 (and its `suffix`) at the phone level. A set declared only with `samples.files` can stay
-out, unless the phone would then have no `file` at all: in that case use the set's first
-file.
+out of `file`, unless it is the phone's first variant or the phone would then have no `file`
+at all: in those cases use the set's first file.
 
 ```json
 {
@@ -383,6 +385,32 @@ file.
 CrinGraph shows the three eartip variants; modernGraphTool shows those three **plus** the
 insertion-depth set. To give one of the eartips its own runs instead of adding a fourth
 entry, set that variant's `file` to the eartip's filename — it upgrades in place.
+
+**When `variants` names every measurement in `file`, the variant picker follows the order of
+`variants`.** This is the shape the phone_book.json Editor exports. When `variants` names only
+some of them, the list starts from `file` in its order, a `variants` entry naming one of those
+files upgrades it in place, and every other entry is appended after. The first variant is the
+phone's default curve, but squig.link search and CrinGraph always open the first entry of
+`file`, so keep that entry equal to the first variant (for a set declared only with
+`samples.files`, the set's first file); modernGraphTool logs a console warning when a complete
+`variants` list starts with a different measurement. For example, to put a set declared only
+with `samples.files` first, list its first file and suffix first in `file` and the set first in
+`variants`:
+
+```json
+{
+	"name": ["HD600"],
+	"file": ["HD600 Pad Center", "HD600 Stock"],
+	"suffix": ["Pad Positions", "Stock"],
+	"variants": [
+		{
+			"suffix": "Pad Positions",
+			"samples": { "files": ["HD600 Pad Center", "HD600 Pad Front", "HD600 Pad Back"] }
+		},
+		{ "file": "HD600 Stock", "suffix": "Stock", "samples": 3 }
+	]
+}
+```
 :::
 
 :::tip[Unnumbered fallback]
@@ -478,7 +506,8 @@ Regular `file` / `suffix` variants, phone-level `samples`, `hptfs` entries and `
 entries on one phone are treated as **independent variants** in a single flat list — two
 `file` variants plus two `hptfs` entries produce four entries in the variant selector. The
 one exception is the in-place upgrade above: a `variants` entry naming an already-declared
-`file` refines that variant instead of adding another.
+`file` refines that variant instead of adding another. (And when `variants` names every
+measurement in `file`, it also sets their order.)
 :::
 
 :::tip[Dual-hosting with CrinGraph]

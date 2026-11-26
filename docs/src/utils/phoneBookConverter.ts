@@ -476,7 +476,8 @@ function variantFileName(variant: VariantEntry, baseName: string): string {
 /**
  * Fold `variants[]` into the phone-level variants the way `_mergeVariants` in
  * metadata-parser.ts does: an entry naming an already-declared file replaces
- * that variant in place (each at most once), anything else is appended.
+ * that variant in place (each at most once), anything else is appended. Once
+ * `variants[]` names every phone-level variant, its own order is used instead.
  */
 function mergeVariants(
 	legacy: VariantEntry[],
@@ -497,7 +498,7 @@ function mergeVariants(
 			merged[at] = variant;
 		}
 	}
-	return merged;
+	return claimed.size === legacy.length ? explicit : merged;
 }
 
 /**
@@ -505,16 +506,13 @@ function mergeVariants(
  * squig.link's search read `file` and nothing else: a phone without one is
  * missing there, and squig.link stops listing the rest of the book at it.
  *
- * modernGraphTool upgrades a mirrored variant in place and appends the others,
- * so the mirror covers every variant up to the last one with a main L/R pair,
- * and at least the first. A trailing set that is only a list of runs stays out:
- * it would show up in CrinGraph as a variant holding a single run.
+ * Every variant is mirrored in order, a set that is only a list of runs by its
+ * first run. `variants[]` then names every `file`, which is when modernGraphTool
+ * follows its order, and `file[0]` is the same default curve everywhere.
  */
 function fileMirror(variants: VariantEntry[], baseName: string): Record<string, unknown> {
-	const lastPair = variants.reduce((last, v, i) => (!v.file && v.rows.length > 0 ? last : i), -1);
-	const mirrored = variants.slice(0, Math.max(1, lastPair + 1));
-	const files = mirrored.map((v) => variantFileName(v, baseName));
-	const suffixes = mirrored.map((v) => v.suffix ?? '');
+	const files = variants.map((v) => variantFileName(v, baseName));
+	const suffixes = variants.map((v) => v.suffix ?? '');
 	if (files.length === 1) {
 		return { file: files[0], ...(suffixes[0] && { suffix: suffixes[0] }) };
 	}

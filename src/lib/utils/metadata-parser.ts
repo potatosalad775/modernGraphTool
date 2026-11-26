@@ -274,28 +274,45 @@ const MetadataParser = {
 		const explicit = Array.isArray(phone.variants) ? phone.variants : null;
 		this._warnVariantsWithoutFile(brandName, baseName, phone);
 		const legacy = this._parseLegacyVariants(brandName, baseName, phone, explicit === null);
-		const files = this._uniqueSuffixes(
-			brandName,
-			baseName,
-			explicit
-				? this._mergeVariants(
-						legacy,
-						this._parseVariants(brandName, baseName, explicit, brandDefaults)
-					)
-				: legacy
-		);
+		let merged = legacy;
+		if (explicit) {
+			const parsed = this._parseVariants(brandName, baseName, explicit, brandDefaults);
+			merged = this._mergeVariants(legacy, parsed);
+			this._warnSplitDefault(brandName, baseName, phone, merged);
+		}
+		const files = this._uniqueSuffixes(brandName, baseName, merged);
 
 		return { ...rowFields, name: baseName, identifier, files };
+	},
+
+	/** Whether a phone declares a usable phone-level `file`. */
+	_hasPhoneFile(phone: RawPhoneData): boolean {
+		const file = phone.file;
+		return Array.isArray(file) ? file.length > 0 : Boolean(file?.trim());
 	},
 
 	/** Warn when `variants[]` stands alone: squig.link search and CrinGraph read only `file`. */
 	_warnVariantsWithoutFile(brandName: string, baseName: string, phone: RawPhoneData) {
 		if (!Array.isArray(phone.variants) || phone.variants.length === 0) return;
-		const file = phone.file;
-		const hasFile = Array.isArray(file) ? file.length > 0 : Boolean(file?.trim());
-		if (hasFile) return;
+		if (this._hasPhoneFile(phone)) return;
 		console.warn(
 			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" declares "variants" without a phone-level "file" — squig.link search and CrinGraph read only "file", so add one (the first variant's file) to keep this phone listed there.`
+		);
+	},
+
+	/** Warn when the default curve is not the one squig.link search and CrinGraph open. */
+	_warnSplitDefault(
+		brandName: string,
+		baseName: string,
+		phone: RawPhoneData,
+		merged: PhoneFileVariant[]
+	) {
+		if (!this._hasPhoneFile(phone) || merged.length === 0) return;
+		const first = Array.isArray(phone.file) ? phone.file[0] : phone.file;
+		const shown = merged[0].fileName;
+		if (shown === first) return;
+		console.warn(
+			`[modernGraphTool] phone_book.json: "${brandName} ${baseName}" opens on "${shown}", the first of its "variants", but squig.link search and CrinGraph open "${first}", the first "file" — put "${shown}" first in "file" (and its suffix first in "suffix") to make them agree.`
 		);
 	},
 
@@ -511,6 +528,10 @@ const MetadataParser = {
 	 * matching how `hptfs[]` — the key `variants[]` supersedes — has always
 	 * combined with `file[]`.
 	 *
+	 * That order is for a partial listing, where `variants[]` says nothing about
+	 * the entries it leaves out. Once it names every legacy entry it is a full
+	 * order the operator wrote, and the list follows it as written.
+	 *
 	 * Only legacy entries are matched, and each at most once. Explicit entries
 	 * never replace each other: two sample sets drawn from the same first file
 	 * share a `fileName`, and both belong in the selector.
@@ -534,7 +555,7 @@ const MetadataParser = {
 				merged[at] = variant;
 			}
 		});
-		return merged;
+		return claimed.size === legacy.length ? explicit : merged;
 	},
 
 	/**

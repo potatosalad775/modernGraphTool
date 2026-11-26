@@ -298,7 +298,7 @@
 					variant="primary"
 					size="xs"
 					class="shrink-0"
-					blocked={devicePeqStore.isConnecting}
+					blocked={devicePeqStore.isBusy}
 					onclick={() => devicePeqService.reconnect()}
 				/>
 			</div>
@@ -501,5 +501,6 @@
 	bind:open={showPushDialog}
 	plan={pendingPlan}
 	deviceName={connection?.name ?? ''}
+	blocked={devicePeqStore.isBusy}
 	onConfirm={() => pendingPlan && writePlan(pendingPlan)}
 />

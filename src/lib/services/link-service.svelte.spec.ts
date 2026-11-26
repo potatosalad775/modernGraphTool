@@ -863,6 +863,7 @@ describe('linkService', () => {
 		const QUDELIX = {
 			...DEVICE,
 			name: 'Qudelix 5K · USR EQ',
+			profile: { ...DEVICE.profile, engine: 'USR EQ' },
 			profileId: 'qudelix-5k',
 			eq: null,
 			eqs: [
@@ -871,7 +872,12 @@ describe('linkService', () => {
 			]
 		};
 		/** The same device after the `eq` command: uniPEQ names the view for its EQ. */
-		const SPK = { ...QUDELIX, name: 'Qudelix 5K · SPK EQ', eq: 'spk' };
+		const SPK = {
+			...QUDELIX,
+			name: 'Qudelix 5K · SPK EQ',
+			profile: { ...DEVICE.profile, engine: 'SPK EQ' },
+			eq: 'spk'
+		};
 
 		beforeEach(() => (devicePeqStore.audioPathChoice = null));
 		afterEach(() => (devicePeqStore.audioPathChoice = null));
@@ -946,6 +952,17 @@ describe('linkService', () => {
 			host.emit('device', SPK);
 			expect(devicePeqStore.connection?.name).toBe('Qudelix 5K · SPK EQ');
 			expect(devicePeqStore.audioThroughDevice).toBe(true);
+		});
+
+		it('asks again for another device under a profile many products share', async () => {
+			const dongle = { ...DEVICE, name: 'Dongle A', profileSource: 'group', profileId: 'walkplay' };
+			await linked(4);
+			host.emit('device', dongle);
+			devicePeqStore.setAudioThroughDevice(true);
+			expect(devicePeqStore.audioThroughDevice).toBe(true);
+
+			host.emit('device', { ...dongle, name: 'Dongle B' });
+			expect(devicePeqStore.audioThroughDevice).toBe(false);
 		});
 	});
 

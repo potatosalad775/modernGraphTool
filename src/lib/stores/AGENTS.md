@@ -218,9 +218,11 @@ exception is `linkStore.launchedHere`: uniPEQ echoed the launch token (protocol 
 "Open uniPEQ" link carries, so it runs on this machine and the guess is true. The QR code and the
 typed code never carry the token; don't add it to them. The
 choice is keyed by device name and deliberately survives `setDisconnected()`, so the same device
-reconnecting doesn't ask again; it is session-only. A link connection's is keyed by its profile id
-instead: uniPEQ names each view of a device for its EQ, so the name changes on every EQ switch. It lives in the store, not in `EqAudioPlayer`,
-because that view unmounts with its panel and the player service reads it with the panel gone.
+reconnecting doesn't ask again; it is session-only. A link connection's name loses its last
+` · <engine>` first: uniPEQ names each view of a device for its EQ, so the whole name changes on
+every EQ switch. Not the profile id: a group profile's is shared by many products. It lives in
+the store, not in `EqAudioPlayer`, because that view unmounts with its panel and the player
+service reads it with the panel gone.
 
 ## Boot-time writes
 

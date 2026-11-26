@@ -173,13 +173,16 @@ class DevicePeqStore {
 
 	/**
 	 * Whose answer `audioPathChoice` is: the device as opened, by name (a view of one of its EQs is
-	 * named for that EQ). uniPEQ sends only the view, named so ("Qudelix 5K · SPK EQ"), so a linked
-	 * device goes by its profile, which all its views share.
+	 * named for that EQ). uniPEQ sends only the view, named for the EQ its profile is ("Qudelix 5K ·
+	 * SPK EQ"), so a linked device goes by the name without it. Not by the profile: a group's is
+	 * shared by many products.
 	 */
 	get #audioKey(): string | undefined {
 		const conn = this.opened ?? this.connection;
 		if (conn?.connectionType !== 'link') return conn?.name;
-		return conn.profileId ?? conn.name;
+		const engine = conn.profile.engine;
+		const suffix = engine ? ` · ${engine}` : null;
+		return suffix && conn.name.endsWith(suffix) ? conn.name.slice(0, -suffix.length) : conn.name;
 	}
 
 	/**

@@ -223,7 +223,7 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   the EQs keep one owner. Picking an EQ is uniPEQ's `eq` command, and what it does arrives as
   ever: a new `device` through `#device` (a new connection, the constraint swapped) and a `fresh`
   list through `#receive`, an undo barrier. uniPEQ names each view for its EQ, so the audio-path
-  answer is kept by profile id (`stores/AGENTS.md`).
+  answer is kept by the name without it (`stores/AGENTS.md`).
 - **An adoption is never sent back.** `#adopt` sets the shared list and the seen revision before
   `eqCommands.adoptLinked` writes the store. `adoptLinked` doesn't conform onto the constraint:
   a fold that came out different from uniPEQ's projection would go straight back as an edit.

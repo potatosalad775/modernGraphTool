@@ -74,9 +74,13 @@ class EqChannelConflict {
 		this.#installed = true;
 		$effect.root(() => {
 			$effect(() => {
-				if (this.question || eqConstraintsStore.supportsPerChannel) return;
 				const count = perChannelCount();
-				if (count === 0) return;
+				const holds = count === 0 || eqConstraintsStore.supportsPerChannel;
+				const asked = this.question;
+				// Asked after the fact and moot by now: uniPEQ sends another EQ of its device first and
+				// that EQ's list after it, which has no per-ear bands.
+				if (asked && asked.kind !== 'preset' && holds) this.question = null;
+				if (asked || holds) return;
 				const active = eqConstraintsStore.active;
 				this.question = {
 					kind: active.source === 'device' ? 'device' : 'restriction',

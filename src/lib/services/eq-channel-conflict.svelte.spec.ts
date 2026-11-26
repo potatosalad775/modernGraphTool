@@ -110,6 +110,23 @@ describe('eqChannelConflict', () => {
 		expect(eqChannelConflict.question).toBeNull();
 	});
 
+	it('closes the question once the per-ear bands are gone, as uniPEQ’s next list takes them', () => {
+		eqConstraintsStore.setDeviceConstraint(device, 'Spec Device');
+		flushSync();
+		expect(eqChannelConflict.question).toMatchObject({ kind: 'device', count: 1 });
+
+		eqStore.filters = [shared];
+		flushSync();
+		expect(eqChannelConflict.question).toBeNull();
+		expect(eqConstraintsStore.activeId).toBe(DEVICE_CONSTRAINT_ID);
+	});
+
+	it('keeps a preset pick’s question open: the restriction it asks about isn’t on yet', () => {
+		eqChannelConflict.applyPreset(GRAPHIC);
+		flushSync();
+		expect(eqChannelConflict.question).toMatchObject({ kind: 'preset', count: 1 });
+	});
+
 	it('catches per-ear bands coming back under a restriction, as an undo would', () => {
 		eqStore.filters = [shared];
 		eqChannelConflict.applyPreset(GRAPHIC);

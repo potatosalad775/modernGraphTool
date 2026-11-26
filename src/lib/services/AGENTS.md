@@ -121,6 +121,8 @@ Don't replace it with a warning beside the bands, or with a picker that stays op
   connecting, an undo past an edit made before the pick, a `?share=` link opening on a saved
   restriction. Keep there means the unlimited default; for a device, "don't restrict to it" (its
   preset stays in the picker, and the push review already lists per-ear bands as not sent).
+  Such a question closes by itself once moot (no per-ear bands, or a restriction that holds them):
+  uniPEQ sends another EQ's `device` before that EQ's list, which brings no per-ear bands.
 - An import needs no question: `EqFilterList` drops back to unlimited before importing, through
   `eqCommands.importFilters`. The drop is part of the import's undo entry (`ApplyConstraintCommand`
   given the file's bands), so one undo brings back the old bands _and_ the restriction and one redo

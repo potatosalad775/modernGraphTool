@@ -66,8 +66,22 @@
 	const preamp = $derived(eqStore.preamp);
 	/** Linked, with uniPEQ's preamp fixed rather than Auto. */
 	const preampFixed = $derived(eqStore.linkedPreamp?.auto === false);
-	const neededPreamp = $derived(derivePreamp(eqStore.filters));
-	const preampClips = $derived(preampFixed && preamp > neededPreamp + 0.05);
+	/**
+	 * The preamp the bands need where a channel uniPEQ's device plays at a fixed preamp has less
+	 * room than its own bands boost by, else null. Per channel: with them apart, the lower preamp
+	 * this page plays can hide the other ear's.
+	 */
+	const neededPreamp = $derived.by(() => {
+		const fixed = eqStore.linkedPreamp?.fixed;
+		if (!fixed) return null;
+		const short = (['L', 'R'] as const).flatMap((ch) => {
+			const at = fixed[ch];
+			if (at === null) return [];
+			const needs = derivePreamp(eqStore.filters, ch);
+			return at > needs + 0.05 ? [needs] : [];
+		});
+		return short.length > 0 ? Math.min(...short) : null;
+	});
 
 	function useAutoPreamp() {
 		void import('#lib/services/link-service.svelte.js').then((mod) => mod.linkService.autoPreamp());
@@ -385,12 +399,16 @@
 			<EqOptionButton />
 		</div>
 	</div>
-	{#if preampClips}
-		<p class="flex items-start gap-1 text-xs text-base-content" role="status">
+	<!-- Always rendered: a live region has to exist before its text changes. Hidden while empty. -->
+	<p
+		class={neededPreamp === null ? 'sr-only' : 'flex items-start gap-1 text-xs text-base-content'}
+		role="status"
+	>
+		{#if neededPreamp !== null}
 			<TriangleAlert class="mt-px size-3.5 shrink-0 text-warning" aria-hidden="true" />
 			<span>{m.link_preamp_clips({ needed: neededPreamp.toFixed(1) })}</span>
-		</p>
-	{/if}
+		{/if}
+	</p>
 
 	<!--
 		Active constraint — always visible while one limits the list, so filters

@@ -60,11 +60,18 @@ function listsOf(eq: LinkEq): LinkLists {
 /**
  * The preamp this page plays for uniPEQ's `eq`. It plays one preamp ahead of the per-ear split, so
  * with the channels apart it is the lower of the two, which keeps the louder ear from clipping as
- * `derivePreamp` does.
+ * `derivePreamp` does. `fixed` is what uniPEQ's device plays on each channel, where not Auto.
  */
-function preampOf(eq: LinkEq): { preamp: number; auto: boolean } {
+function preampOf(eq: LinkEq) {
 	const right = eq.right ?? eq;
-	return { preamp: Math.min(eq.preamp, right.preamp), auto: eq.autoPreamp && right.autoPreamp };
+	return {
+		preamp: Math.min(eq.preamp, right.preamp),
+		auto: eq.autoPreamp && right.autoPreamp,
+		fixed: {
+			L: eq.autoPreamp ? null : eq.preamp,
+			R: right.autoPreamp ? null : right.preamp
+		}
+	};
 }
 
 /** Hardware EQ's busy flags: for a link connection, only `#busy` writes them. */

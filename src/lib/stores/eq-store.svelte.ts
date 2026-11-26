@@ -1,6 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { EQFilter } from '#lib/utils/equalizer.js';
-import type { EqChannelScope } from '#lib/utils/eq-channel.js';
+import type { EqChannel, EqChannelScope } from '#lib/utils/eq-channel.js';
 import type { EqSourceSample } from '#lib/utils/eq-source.js';
 import type { ParsedFRData } from '#lib/types/data-types.js';
 
@@ -14,7 +14,13 @@ class EQStore {
 	 * `filters` is the list it came with. A fixed one holds whatever the bands do; under Auto, an
 	 * edit since then derives its own until uniPEQ's echo. Null when not linked.
 	 */
-	linkedPreamp = $state.raw<{ preamp: number; auto: boolean; filters: EQFilter[] } | null>(null);
+	linkedPreamp = $state.raw<{
+		preamp: number;
+		auto: boolean;
+		filters: EQFilter[];
+		/** Each channel's preamp where uniPEQ's device plays it fixed, null under Auto. */
+		fixed: Record<EqChannel, number | null>;
+	} | null>(null);
 	isEnabled = $state(false);
 	/**
 	 * Which bucket the EQ panel is editing — the shared bands (`BOTH`) or one

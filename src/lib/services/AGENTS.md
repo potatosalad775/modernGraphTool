@@ -247,7 +247,8 @@ them here**, and a protocol change lands in uniPEQ_link first, gets a tag, then 
   one whatever the bands; Auto's for the list it came with, until a local edit derives its own).
   With the channels apart it is the lower of the two, Auto only if both are, as uniPEQ_link's
   design also says: this page plays one preamp ahead of the per-ear split, so the lower one
-  keeps the louder ear from clipping, as `derivePreamp` does.
+  keeps the louder ear from clipping, as `derivePreamp` does. uniPEQ's device plays each
+  channel's own, so `linkedPreamp.fixed` keeps them for `EqFilterList`'s clip warning.
 
 ## `data-provider.svelte.ts`
 

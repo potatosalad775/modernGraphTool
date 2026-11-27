@@ -44,8 +44,8 @@
 		() => value,
 		(next) => {
 			if (blocked || !next || next === value) return;
-			value = next as T;
-			onValueChange?.(next as T);
+			value = next;
+			onValueChange?.(next);
 		}
 	}
 	{disabled}

@@ -1,0 +1,1 @@
+import{s as e}from"./DTgKWQtQ.js";var t=()=>`L`,n=((n={},r={})=>{let i=r.locale??e();return i===`cs`?t(n):i===`ko`?`L`:i===`ru`||i===`uk`?`Л`:`L`}),r=()=>`R`,i=((t={},n={})=>{let i=n.locale??e();return i===`cs`?r(t):i===`ko`?`R`:i===`ru`||i===`uk`?`П`:`R`});export{n,i as t};

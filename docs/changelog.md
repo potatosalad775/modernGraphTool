@@ -12,6 +12,10 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.8
+- Fix: AutoEQ's **Gain Range** now limits each band on its own, as in CrinGraph. Before, its maximum also capped the boost of the whole EQ. In **Exact match**, bands can now stack past the range where a curve falls far below the target, usually a treble that rolls off, so some fits boost more and get a lower preamp. **Treble-safe** aims for at most 6 dB of boost across the whole EQ, AutoEq's own limit, whatever the range says. Graphic EQ presets follow the same rules. If a fit gets too quiet, lower the range's maximum or switch to Treble-safe. See [Fit mode](./features/equalizer.mdx#fit-mode).
+- Fix: Hardware EQ now also warns that a device may clip when its preamp can't go as low as the bands' boost needs. Before, it warned only for devices that take no preamp at all.
+
 ### v2.3.7
 - Feat: Hardware EQ now shows a device's own settings next to **Device EQ**: headroom, crossfeed, DAC filter, output gain, USB mode and more, depending on the device. A setting applies as soon as you change it. If a setting restarts the device, the panel asks first and reconnects afterwards. See [Device settings](./features/device-peq.mdx#device-settings).
 - Feat: A device with more than one EQ, such as the Qudelix 5K with its user EQ and headphone EQ ("SPK EQ"), gets an **EQ** row. It picks the EQ that **Device EQ**, **Read**, **Write**, auto-write and the band list's limits use. See [Devices with more than one EQ](./features/device-peq.mdx#devices-with-more-than-one-eq).

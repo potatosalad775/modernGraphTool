@@ -15,7 +15,7 @@ Every filter is held to the `limits` run.mjs wrote into the curves file, the sam
 other engine got: peaking bands to its Q and gain and to its frequency range capped at 10 kHz,
 where AutoEq's own default stops. The shelves are free to move, as modernGraphTool runs
 turboEQ's: in that frequency range, inside AutoEq's shelf Q window of 0.4 to 0.7. The largest
-boost is capped at the top of the gain window, as modernGraphTool caps turboEQ's.
+boost keeps AutoEq's own 6 dB cap, as modernGraphTool's treble-safe mode does.
 
 Two engines. `upstream` keeps the preset's `min_std = 0.008` early stopping. `upstream-converged`
 drops that rule, which is how turboEQ runs; the gap between them is what the early stop costs,
@@ -72,7 +72,7 @@ def fit(raw, target, total, converged, limits):
     f, db = np.array(raw, dtype=float).T
     fr = FrequencyResponse(name='curve', frequency=f, raw=db)
     t0 = time.perf_counter()
-    fr.process(target=target.copy(), min_mean_error=True, fs=FS, max_gain=max(0, limits['maxGain']))
+    fr.process(target=target.copy(), min_mean_error=True, fs=FS)
     peqs = fr.optimize_parametric_eq(config(total, converged, limits), FS)
     ms = (time.perf_counter() - t0) * 1000
     filters = [

@@ -535,7 +535,7 @@
 		"one": "{count} left/right-only band not sent: the device has one EQ for both ears",
 		"other": "{count} left/right-only bands not sent: the device has one EQ for both ears"
 	},
-	"equalizer_device_peq_push_clip_risk": "These bands boost, and this device's level can't be lowered from here. Turn the volume down or reduce the boost to avoid clipping.",
+	"equalizer_device_peq_push_clip_risk": "These bands boost more than this device's level can be lowered from here. Turn the volume down or reduce the boost to avoid clipping.",
 	"equalizer_device_peq_push_infeasible": "Some bands still break one of the device's rules (band order or spacing), so it may reject them.",
 	"equalizer_device_peq_push_cancel": "Cancel",
 	"equalizer_device_peq_push_confirm": "Write",

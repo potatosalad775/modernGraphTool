@@ -11,7 +11,8 @@
 //   because AutoEq deliberately stops fitting the shape above 10 kHz.
 // - **Deviation** is the RMS difference between an engine's EQ curve and upstream AutoEq's for
 //   the same measurement, mean removed, 20 Hz–20 kHz — how far from "what AutoEq would give".
-// - **Boost** is the EQ curve's largest positive gain, which is what the preamp gives back.
+// - **Boost** is the EQ curve's largest positive gain, which is what the preamp gives back. Its
+//   tail matters as much as its median: one curve needing −20 dB is a page that plays quietly.
 
 import { register } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -93,15 +94,19 @@ const engines = [
 ];
 const refs = ['upstream', 'upstream-converged'].filter((e) => engines.includes(e));
 
+/** One Markdown table row: every cell a column, so header, separator and rows agree. */
+const row = (cells) => `| ${cells.join(' | ')} |`;
+
 console.log(`${curves.length} measurements\n`);
 for (const bands of bandCounts) {
 	console.log(`### ${bands} bands\n`);
-	console.log(
-		'| Engine | p50 | p90 | max | Exact count | Error 20k p50 | p90 | Error 10k p50 | ' +
-			refs.map((r) => `Dev. ${r} p50 | p90`).join(' | ') +
-			' | Boost p50 |'
-	);
-	console.log('|' + ' --- |'.repeat(9 + refs.length * 2));
+	const header = [
+		...['Engine', 'p50', 'p90', 'max', 'Exact count', 'Error 20k p50', 'p90', 'Error 10k p50'],
+		...refs.flatMap((r) => [`Dev. ${r} p50`, 'p90']),
+		...['Boost p50', 'p90', 'max']
+	];
+	console.log(row(header));
+	console.log(row(header.map(() => '---')));
 	for (const engine of engines) {
 		const rows = records.filter((r) => r.engine === engine && r.bands === bands);
 		if (rows.length === 0) continue;
@@ -123,13 +128,24 @@ for (const bands of bandCounts) {
 		}
 		const times = rows.map((r) => r.ms);
 		const exact = rows.filter((r) => r.filters.length === bands).length / rows.length;
-		const devCells = refs.map((ref) =>
-			engine === ref ? '— | —' : `${db(median(dev[ref]))} | ${db(quantile(dev[ref], 0.9))}`
+		const devCells = refs.flatMap((ref) =>
+			engine === ref ? ['—', '—'] : [db(median(dev[ref])), db(quantile(dev[ref], 0.9))]
 		);
 		console.log(
-			`| ${engine} | ${ms(median(times))} | ${ms(quantile(times, 0.9))} | ${ms(Math.max(...times))} | ` +
-				`${(exact * 100).toFixed(0)}% | ${db(median(err20))} | ${db(quantile(err20, 0.9))} | ` +
-				`${db(median(err10))} | ${devCells.join(' | ')} | ${db(median(boost))} |`
+			row([
+				engine,
+				ms(median(times)),
+				ms(quantile(times, 0.9)),
+				ms(Math.max(...times)),
+				`${(exact * 100).toFixed(0)}%`,
+				db(median(err20)),
+				db(quantile(err20, 0.9)),
+				db(median(err10)),
+				...devCells,
+				db(median(boost)),
+				db(quantile(boost, 0.9)),
+				db(Math.max(...boost))
+			])
 		);
 	}
 	console.log();

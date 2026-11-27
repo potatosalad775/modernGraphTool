@@ -58,6 +58,8 @@ describe('planPush', () => {
 		});
 		expect(plan.changes).toContainEqual({ kind: 'preamp', wanted: -14.5, written: -12 });
 		expect(needsConfirmation(plan)).toBe(true);
+		// The band written boosts 12 dB, which the -12 dB written covers.
+		expect(plan.clipRisk).toBe(false);
 	});
 
 	it('maps shelves to the device’s codes and reports a type the slot refuses', () => {
@@ -117,6 +119,19 @@ describe('planPush', () => {
 		// Shown before a button write, but not a reason for auto-write to pause.
 		expect(needsConfirmation(plan)).toBe(true);
 		expect(needsReview(plan)).toBe(false);
+	});
+
+	it('warns of clipping where the bands need more headroom than the preamp reaches', () => {
+		// Two overlapping +12 peaks boost about 22 dB; the preamp stops at -12, and Auto's is held
+		// there (`headroomPreamp`), so the plan itself sees nothing to change.
+		const stacked = [pk(10000, 12, { q: 0.7 }), pk(12000, 12, { q: 0.7 })];
+		const plan = planPush(stacked, -12, FIVE_BAND, WRITES_PREAMP);
+		expect(plan.preamp).toBe(-12);
+		expect(plan.clipRisk).toBe(true);
+		expect(needsReview(plan)).toBe(false);
+
+		const right = stacked.map((f) => ({ ...f, channel: 'R' as const }));
+		expect(planPush(right, -12, TWO_EARS, APART).clipRisk).toBe(true);
 	});
 
 	it('trusts a device that sets its own headroom', () => {

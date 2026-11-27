@@ -312,12 +312,12 @@ describe('runAutoEq', () => {
 		expect(autoeq.filters.every((f) => f.freq! <= 10000)).toBe(true);
 	});
 
-	it('caps boost at the user ceiling in either mode, at 6 dB without one', async () => {
-		// AutoEq clips the correction's largest boost at 6 dB unless told
-		// otherwise; the gain range's maximum is the user telling it otherwise.
-		// The preamp is minus the largest boost, so it reads the cap back out —
-		// give or take the half decibel by which bands overshoot a clipped
-		// correction.
+	it('holds each band to the gain range, and only treble-safe caps the whole EQ', async () => {
+		// A dip wider than one band. The range's maximum bounds each band, as in
+		// CrinGraph, so exact match stacks two 3 dB bands to fill it. Treble-safe
+		// keeps AutoEq's own 6 dB cap on the correction, whatever the range says.
+		// The preamp is minus the largest boost, so it reads that cap back out —
+		// give or take the half decibel by which bands overshoot a clipped one.
 		const DIP = curve((f) => -10 * Math.exp(-Math.pow(Math.log2(f / 2000), 2) / 0.5));
 		const fit = (maxGain: number | undefined, mode: 'exact' | 'autoeq') =>
 			runAutoEq(
@@ -327,11 +327,43 @@ describe('runAutoEq', () => {
 				{ loadEngine }
 			);
 
-		for (const mode of ['exact', 'autoeq'] as const) {
-			expect((await fit(12, mode)).preamp!).toBeLessThan(-7);
-			expect((await fit(3, mode)).preamp!).toBeGreaterThanOrEqual(-3.5);
-			expect((await fit(undefined, mode)).preamp!).toBeGreaterThanOrEqual(-6.5);
+		const stacked = await fit(3, 'exact');
+		expect(stacked.filters.every((f) => f.gain! <= 3)).toBe(true);
+		expect(stacked.preamp!).toBeLessThan(-4.5);
+		expect((await fit(12, 'exact')).preamp!).toBeLessThan(-7);
+
+		expect((await fit(3, 'autoeq')).filters.every((f) => f.gain! <= 3)).toBe(true);
+		for (const maxGain of [12, undefined]) {
+			expect((await fit(maxGain, 'autoeq')).preamp!).toBeGreaterThanOrEqual(-6.5);
 		}
+	});
+
+	it('holds a graphic EQ to the same rule, its gain range being each slider’s travel', async () => {
+		// A dip deeper than a slider goes and wider than one. Exact match stacks the sliders past
+		// their travel; treble-safe aims at AutoEq's 6 dB whatever the sliders allow, and its
+		// octave-wide bands land about a decibel over that aim.
+		const WIDE_DIP = curve((f) => -30 * Math.exp(-Math.pow(Math.log2(f / 2000), 2) / 3));
+		const sliders = [31.25, 62.5, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+		const fit = (max: number, mode: 'exact' | 'autoeq') =>
+			runAutoEq(
+				WIDE_DIP,
+				FLAT,
+				{
+					kind: 'graphic',
+					bands: sliders.map((freq) => ({ freq, q: 1.41 })),
+					gain: { min: -12, max },
+					fit: mode
+				},
+				{ loadEngine }
+			);
+
+		for (const mode of ['exact', 'autoeq'] as const) {
+			expect((await fit(3, mode)).filters.every((f) => f.gain! <= 3)).toBe(true);
+		}
+		const exact = await fit(12, 'exact');
+		expect(exact.filters.every((f) => f.gain! <= 12)).toBe(true);
+		expect(exact.preamp!).toBeLessThan(-13);
+		expect((await fit(12, 'autoeq')).preamp!).toBeGreaterThanOrEqual(-8);
 	});
 
 	it('reports the fit error and a preamp that is never positive', async () => {

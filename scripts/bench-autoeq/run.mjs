@@ -12,11 +12,11 @@
 // every one of those would weigh on the medians. `--every N` keeps every Nth of those.
 //
 // **This compares algorithms, not tools' defaults.** Every engine gets the same per-band Q and
-// gain window and the same range to place bands in; the AutoEq-family engines, whose limit on
-// boost is for the whole EQ, get the gain window's top as that limit. What can't be made equal
-// is structural and stays: CrinGraph has no shelves, the TypeScript optimizer places its own,
-// and treble-safe places no band above 10 kHz, because it scores only the level up there. The constraints are written into the
-// `.curves.json` beside the output, which is where upstream.py reads them from.
+// gain window and the same range to place bands in. What can't be made equal is structural and
+// stays: CrinGraph has no shelves, the TypeScript optimizer places its own, treble-safe places no
+// band above 10 kHz, because it scores only the level up there, and treble-safe and AutoEq cap
+// the whole EQ's boost at AutoEq's 6 dB, as the panel runs treble-safe. The constraints are
+// written into the `.curves.json` beside the output, which is where upstream.py reads them from.
 //
 // Each engine's curves are prepared the way its own app prepares them:
 //

@@ -241,7 +241,9 @@ Shelf에 쓰면 전체 기울기 외에는 아무것도 보정하지 못하기 �
 0.4–0.7 사이로 유지하는데, 그보다 가파른 셸프는 솟아오르는 모양이 생겨 피킹 밴드가 더 잘하는 일이 되기
 때문입니다.</p>
 <p>그래픽 EQ 프리셋에서도 동작합니다. 주파수와 Q는 프리셋의 밴드를 그대로 쓰고 게인만 최적화하므로, 모든
-밴드가 정확히 각 슬라이더 위에 놓입니다.</p>
+밴드가 정확히 각 슬라이더 위에 놓입니다. 각 슬라이더는 프리셋의 게인 범위 안에 머물고, EQ 전체는
+<a href="#fit-mode">맞춤 방식</a>에 따라 제한됩니다. 이때는 패널에 낮출 게인 범위가 없으므로, 그래픽 EQ의 부스트를
+줄이려면 고음 보존을 쓰세요.</p>
 <p>모듈을 불러오지 못하면 기존 JavaScript 최적화 엔진이 대신 계산하고, AutoEQ 패널에 그 사실을 알립니다.
 더 느리고 결과도 덜 정확하며 요청보다 적은 밴드를 돌려줄 때도 있지만, 로딩이 실패해도 AutoEQ는 계속
 동작합니다. 이 엔진은 완전 일치와 같은 한 가지 방식으로만 계산하므로, turboEQ를 다시 불러올 때까지 맞춤
@@ -249,8 +251,8 @@ Shelf에 쓰면 전체 기울기 외에는 아무것도 보정하지 못하기 �
 필터를 바꾸지 않고 그 이유를 알립니다.</p>
 <p>turboEQ가 정상적으로 불러와졌더라도 특정 요청을 거부할 수 있습니다. 예를 들어 고음 보존 방식은 10kHz
 이상에 밴드를 두지 않으므로, 주파수 범위가 전부 10kHz 이상이면 계산할 수 없습니다. 이때도 기존 엔진이
-대신 계산하고 패널은 설정이 원인이라고 알립니다. 맞춤 방식 선택은 그대로 남아 있으므로 완전 일치로
-바꿀 수 있습니다.</p>
+자신의 한 가지 방식으로 대신 계산하므로, 고음 보존의 6dB 제한은 그 결과에 적용되지 않습니다. 패널은
+설정이 원인이라고 알리고, 맞춤 방식 선택은 그대로 남아 있으므로 완전 일치로 바꿀 수 있습니다.</p>
 <div class="sl-heading-wrapper level-h3"><h3 id="fit-mode">맞춤 방식</h3><a class="sl-anchor-link" href="#fit-mode"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>섹션 제목: “맞춤 방식”</span></a></div>
 <p><strong>완전 일치</strong>는 기본으로 활성화된 옵션으로, 그래프에 보이는 모양 그대로, 20kHz까지의 곡선 전체를 맞춥니다. 밴드는
 주파수 범위 안 어디에나 놓일 수 있습니다. 곡선에 필요하면 설정한 Q 범위 안에서 좁고 깊은 밴드도 씁니다.</p>
@@ -258,6 +260,11 @@ Shelf에 쓰면 전체 기울기 외에는 아무것도 보정하지 못하기 �
 10 kHz 이상은 전체 레벨만 평가하며, 10 kHz 위에는 밴드를 두지 않습니다. 고음역 측정값은 착용 상태나 측정 장비에 따라
 크게 달라지므로, 믿을 수 있는 부분만 보정하는 방식입니다. 고음역 측정을 신뢰하기 어렵거나, 단순히 그래프에 일치하는 값을
 찾기보다는 실제 음악 감상에 적합한 EQ 값을 원할 때 선택하세요.</p>
-<p>두 방식 모두 게인 범위의 최댓값이 각 밴드뿐 아니라 EQ 전체의 가장 큰 부스트를 제한합니다. 프리앰프는
-자동으로 따라가므로, 부스트가 커지면 클리핑 대신 음량이 줄어듭니다. 음량을 유지하고 싶다면 최댓값을
-낮추세요.</p></div><footer class="sl-flex" data-astro-cid-ddtxxk7k><div class="meta sl-flex" data-astro-cid-ddtxxk7k><a href="https://github.com/potatosalad775/modernGraphTool/tree/main/docs/src/content/docs/ko/features/equalizer.mdx" class="sl-flex print:hidden" data-astro-cid-qlekgd3o><svg data-astro-cid-qlekgd3o="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;" data-astro-cid-hkc32dio><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>페이지 편집</a></div><div class="pagination-links print:hidden" dir="ltr" data-astro-cid-b5raizh3><a href="/modernGraphTool/docs/ko/features/frequency-tutorial/" rel="prev" data-astro-cid-b5raizh3><svg data-astro-cid-b5raizh3="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;" data-astro-cid-hkc32dio><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span data-astro-cid-b5raizh3>이전 페이지<br data-astro-cid-b5raizh3><span class="link-title" data-astro-cid-b5raizh3>Frequency Tutorial</span></span></a><a href="/modernGraphTool/docs/ko/features/device-peq/" rel="next" data-astro-cid-b5raizh3><svg data-astro-cid-b5raizh3="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;" data-astro-cid-hkc32dio><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span data-astro-cid-b5raizh3>다음 페이지<br data-astro-cid-b5raizh3><span class="link-title" data-astro-cid-b5raizh3>하드웨어 EQ</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>
+<p>게인 범위는 CrinGraph와 마찬가지로 각 밴드를 하나씩 제한합니다. 완전 일치에서는 이것이 유일한 제한이므로,
+곡선이 타겟보다 크게 낮은 곳(대개 고음이 떨어지는 구간)에서는 밴드를 겹쳐 범위보다 크게 부스트할 수
+있습니다. 고음 보존은 여기에 더해 EQ 전체의 부스트를 AutoEq 본래의 6dB로 제한합니다. 이 제한은 결과가
+아니라 맞춤이 목표로 삼는 보정 곡선에 적용되므로, 맞춘 EQ는 1~2dB 정도 넘을 수 있습니다. 어느 쪽이든
+프리앰프는 자동으로 따라가므로, 부스트가 커지면 클리핑 대신 음량이 줄어듭니다. 다만
+<a href="/modernGraphTool/docs/ko/features/device-peq/">하드웨어 EQ</a> 기기는 자체 프리앰프가 허용하는 만큼만 레벨을 낮추고, 프리앰프를 받지
+않는 기기는 전혀 낮추지 못합니다. 밴드가 그보다 더 필요하면 하드웨어 EQ가 클리핑될 수 있다고 경고합니다.
+음량이 너무 줄어든다면 게인 범위의 최댓값을 낮추거나 고음 보존으로 바꾸세요.</p></div><footer class="sl-flex" data-astro-cid-ddtxxk7k><div class="meta sl-flex" data-astro-cid-ddtxxk7k><a href="https://github.com/potatosalad775/modernGraphTool/tree/main/docs/src/content/docs/ko/features/equalizer.mdx" class="sl-flex print:hidden" data-astro-cid-qlekgd3o><svg data-astro-cid-qlekgd3o="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;" data-astro-cid-hkc32dio><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>페이지 편집</a></div><div class="pagination-links print:hidden" dir="ltr" data-astro-cid-b5raizh3><a href="/modernGraphTool/docs/ko/features/frequency-tutorial/" rel="prev" data-astro-cid-b5raizh3><svg data-astro-cid-b5raizh3="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;" data-astro-cid-hkc32dio><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span data-astro-cid-b5raizh3>이전 페이지<br data-astro-cid-b5raizh3><span class="link-title" data-astro-cid-b5raizh3>Frequency Tutorial</span></span></a><a href="/modernGraphTool/docs/ko/features/device-peq/" rel="next" data-astro-cid-b5raizh3><svg data-astro-cid-b5raizh3="true" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;" data-astro-cid-hkc32dio><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span data-astro-cid-b5raizh3>다음 페이지<br data-astro-cid-b5raizh3><span class="link-title" data-astro-cid-b5raizh3>하드웨어 EQ</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>

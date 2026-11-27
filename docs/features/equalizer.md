@@ -242,9 +242,15 @@ only its overall level above 10 kHz and places no band above 10 kHz. Treble meas
 on a fit, seating, and physical characteristic of every rig, so this corrects only what a measurement can be trusted for. 
 Choose it when you don't trust your treble data, or when the EQ is for listening rather than for matching the exact graph.
 
-In either mode, the gain range's maximum caps the largest boost the whole EQ may apply, not only
-each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping.
-Lower the maximum if you would rather keep the level up.
+The gain range limits each band on its own, as in CrinGraph. In exact match that is the only
+limit, so where the curve falls far below the target, usually a treble that rolls off, the fit can
+stack bands and boost past the range. Treble-safe also keeps AutoEq's own limit of 6 dB on the
+whole EQ's boost. That limit applies to the correction the fit aims for, not to the result, so the
+fitted EQ can land a decibel or two past it. Either way the preamp follows automatically, so a
+bigger boost costs loudness rather than clipping. A [Hardware EQ](./device-peq.mdx) device lowers
+its level only as far as its own preamp goes, or not at all if it takes none. When the bands need
+more, Hardware EQ warns that the device may clip. If the boost costs too much, lower the gain
+range's maximum or switch to treble-safe.
 
 The frequency, Q and gain ranges are **bounds the fit works within**, exactly as you set them, not
 a clamp applied to the result afterwards: narrowing them changes what the optimizer looks for rather
@@ -257,7 +263,9 @@ frequency and Q as well as their gain. Shelf Q stays between 0.4 and 0.7, since 
 overshoots into a bump that a peaking band does better.
 
 Graphic-EQ presets fit too. Frequency and Q come from the preset's own bands and only gain is
-optimized, so every band lands exactly on its slider.
+optimized, so every band lands exactly on its slider. Each slider stays within the preset's gain
+range, and the fit mode limits the whole EQ as above. The panel has no gain range to lower here, so
+treble-safe is the way to keep a graphic EQ's boost down.
 
 If the module cannot load for any reason, the older JavaScript optimizer answers instead, and the
 AutoEQ panel says so. It is slower and fits less well, and it sometimes returns fewer bands than 
@@ -268,5 +276,6 @@ says why.
 
 turboEQ can also turn down a particular request while loading fine — Treble-safe with a frequency
 range entirely above 10 kHz, for example, since that mode places no band there. The older optimizer
-answers that request too, and the panel says the settings were the problem; the fit mode stays, so
-you can switch to Exact match.
+answers that request too, in its one way to fit, so treble-safe's 6 dB limit doesn't apply to the
+result. The panel says the settings were the problem; the fit mode stays, so you can switch to
+Exact match.

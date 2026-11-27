@@ -8,10 +8,18 @@
  * each ear written. Whatever `fit` had to change is listed here, so the UI can show it before
  * writing instead of the device quietly holding a different EQ from the one on screen.
  */
-import { plan, type Filter, type FitResult, type Profile } from '@potatosalad775/eqcaps-core';
+import {
+	plan,
+	type Filter,
+	type FitResult,
+	type Plan,
+	type PlanWrite,
+	type Profile
+} from '@potatosalad775/eqcaps-core';
 import type { EQFilter } from '#lib/utils/equalizer.js';
 import { indexedEffectiveFilters } from '#lib/utils/eq-channel.js';
 import { fromCapsFilter, toCapsFilter } from '#lib/utils/eq-constraint.js';
+import { derivePreamp } from '#lib/utils/eq-preamp.js';
 import type { PresetRequest } from './preset.js';
 import type { PeqCapabilities, PeqDevice, PullResult } from './types.js';
 
@@ -41,7 +49,11 @@ export interface PushPlan {
 	changes: PlanChange[];
 	/** Left- or right-only bands not sent: the device has one filter set for both ears. */
 	skippedChannel: number;
-	/** The bands boost, and the device can't be told to lower its level: it may clip. */
+	/**
+	 * The bands boost more than the device's level can be lowered: it takes no preamp from here, or
+	 * the one it takes stops above what the written bands need (Auto's preamp is held at the
+	 * device's lowest, `headroomPreamp`). It may clip.
+	 */
 	clipRisk: boolean;
 	/** Something can't be met at all (a cross-band rule); the result breaks it. */
 	infeasible: boolean;
@@ -139,7 +151,6 @@ export function planPush(
 	);
 	const fits = planned.channels.map((channel) => channel.fit);
 	const [left, right] = fits.map((fitted, i) => changesOf(fitted, ears[i], planned.sendsPreamp));
-	const boosts = fits.some((f) => f.slots.some((slot) => slot !== null && slot.gain > 0));
 	const sent = new Set(
 		fits.flatMap((f, i) =>
 			f.slotOf.flatMap((slot, k) => (slot === null ? [] : [ears[i].bandOf[k]]))
@@ -152,7 +163,7 @@ export function planPush(
 		...(write.preamp !== undefined ? { preamp: write.preamp } : {}),
 		changes: apart ? byEar(left, right) : left,
 		skippedChannel: apart ? 0 : filters.length - shared.length,
-		clipRisk: boosts && profile.preamp.mode !== 'auto' && !planned.sendsPreamp,
+		clipRisk: clipsOn(planned, profile),
 		infeasible: fits.some((f) => !f.feasible),
 		emptySlots:
 			profile.bandCount === null
@@ -160,6 +171,31 @@ export function planPush(
 				: Math.max(...fits.map((f) => f.slots.filter((slot) => slot === null).length)),
 		sent: sent.size
 	};
+}
+
+/** `PushPlan.clipRisk` for what `plan` will write. A device on `auto` makes its own room. */
+function clipsOn(planned: Plan, profile: Profile): boolean {
+	const boosts = planned.channels.some(({ fit }) =>
+		fit.slots.some((slot) => slot !== null && slot.gain > 0)
+	);
+	if (!boosts || profile.preamp.mode === 'auto') return false;
+	return !planned.sendsPreamp || shortOf(planned.write);
+}
+
+/**
+ * Whether a channel's preamp is above the one its written bands need: the device's range stops
+ * short of the boost. What is written, not what was wanted, since `fit` may have cut a band's
+ * gain. 0.05 dB of slack, as `derivePreamp` rounds to 0.1.
+ */
+function shortOf(write: PlanWrite): boolean {
+	const short = (filters: Filter[], preamp: number | undefined) =>
+		preamp !== undefined &&
+		preamp > derivePreamp(filters.flatMap((f) => fromCapsFilter(f) ?? [])) + 0.05;
+	const { right } = write;
+	return (
+		short(write.filters, write.preamp) ||
+		(right !== undefined && short(right.filters, right.preamp ?? write.preamp))
+	);
 }
 
 /**

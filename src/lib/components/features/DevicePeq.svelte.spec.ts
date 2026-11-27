@@ -542,7 +542,7 @@ describe('DevicePeq', () => {
 		it('reads nothing before writing a list that fills every band', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-			eqStore.preamp = -1;
+			eqStore.preamp = -2;
 			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			expect(device.pull).not.toHaveBeenCalled();
@@ -834,7 +834,7 @@ describe('DevicePeq', () => {
 		it('only reads and writes the preset the device plays, where it can’t name one', async () => {
 			const device = await mountConnected({ readsSlot: false, writesSlot: false });
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-			eqStore.preamp = -1;
+			eqStore.preamp = -2;
 			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.push).toHaveBeenCalledTimes(1));
 			expect(device.push.mock.calls[0][0].slot).toBeUndefined();
@@ -857,7 +857,7 @@ describe('DevicePeq', () => {
 			it('won’t write a built-in preset, and says so, but still reads it', async () => {
 				const device = await mountConnected({ slots: MARKED }, 0);
 				eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-				eqStore.preamp = -1;
+				eqStore.preamp = -2;
 
 				const write = page.getByRole('button', { name: 'Write to device' });
 				await expect.element(write).toBeDisabled();
@@ -874,7 +874,7 @@ describe('DevicePeq', () => {
 			it('writes once a writable preset is picked', async () => {
 				const device = await mountConnected({ slots: MARKED }, 0);
 				eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-				eqStore.preamp = -1;
+				eqStore.preamp = -2;
 
 				await page.getByRole('combobox', { name: 'Device EQ' }).selectOptions('USER1');
 				await page.getByRole('button', { name: 'Write to device' }).click();
@@ -938,7 +938,7 @@ describe('DevicePeq', () => {
 			const control = page.getByRole('combobox', { name: 'Device EQ' });
 			await expect.element(control).toHaveValue('other');
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-			eqStore.preamp = -1;
+			eqStore.preamp = -2;
 
 			await page.getByRole('button', { name: 'Write to device' }).click();
 			await vi.waitFor(() => expect(device.setEnabled).toHaveBeenCalledWith(true, 0));
@@ -975,7 +975,7 @@ describe('DevicePeq', () => {
 		it('says whether the device still has the list', async () => {
 			await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-			eqStore.preamp = -1;
+			eqStore.preamp = -2;
 			await page.getByRole('button', { name: 'Write to device' }).click();
 			// The write's own message stands for "in sync": one line, not two saying the same.
 			const status = page.getByRole('status');
@@ -991,7 +991,7 @@ describe('DevicePeq', () => {
 		it('puts a failure above the sync state until the next operation', async () => {
 			const device = await mountConnected();
 			eqStore.filters = [100, 200, 400, 800, 1600, 3200].map((f) => band(f, 1));
-			eqStore.preamp = -1;
+			eqStore.preamp = -2;
 			device.push.mockRejectedValueOnce(
 				Object.assign(new Error('gone'), { name: 'BridgeError', code: 'timeout' })
 			);

@@ -582,7 +582,7 @@
 	"equalizer_device_peq_push_ear": "{change} ({ear}만)",
 	"equalizer_device_peq_push_preamp": "프리앰프: {wanted} → {written}",
 	"equalizer_device_peq_push_skipped_channel": "좌·우 전용 밴드 {count}개는 보내지 않습니다. 이 기기는 양쪽에 하나의 EQ만 씁니다",
-	"equalizer_device_peq_push_clip_risk": "이 밴드들은 부스트하지만, 이 기기의 레벨은 여기서 낮출 수 없습니다. 클리핑을 피하려면 볼륨을 낮추거나 부스트를 줄이세요.",
+	"equalizer_device_peq_push_clip_risk": "강조된 밴드만큼 해당 기기의 출력을 낮출 수 없습니다. 클리핑을 피하려면 강조를 낮추거나 볼륨을 줄이세요.",
 	"equalizer_device_peq_push_infeasible": "일부 밴드가 기기의 규칙(밴드 순서나 간격)을 여전히 어기고 있어 기기가 거부할 수 있습니다.",
 	"equalizer_device_peq_push_cancel": "취소",
 	"equalizer_device_peq_push_confirm": "쓰기",

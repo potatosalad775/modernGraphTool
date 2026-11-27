@@ -6,7 +6,7 @@
  * quantized frequency grid, no perceptual stage. turboEQ is a Zig port of the
  * original AutoEq — gradient-based joint optimization of every parameter at
  * once, behind a perceptual stage that smooths, protects narrow dips, limits
- * slope to 18 dB/oct and caps the correction's largest boost.
+ * slope to 18 dB/oct and caps the correction's largest boost at 6 dB.
  *
  * turboEQ runs two orders of magnitude faster, and from eight bands up it fits
  * closer; the numbers are in the docs' autoeq-benchmarks page. It is also the
@@ -67,27 +67,21 @@ const TYPE_OF = { peaking: 'PK', low_shelf: 'LSQ', high_shelf: 'HSQ' } as const;
 /**
  * The run options a request adds beyond its banks.
  *
- * **The boost cap is the user's gain ceiling, in both fit modes.** AutoEq caps
- * the correction curve's largest boost at 6 dB unless told otherwise, which
- * would make the gain range's maximum a number the fit silently ignores. It
- * was also most of what separated turboEQ from the CrinGraph-lineage engine,
- * whose only boost limit was that same ceiling: on the bundled sample set,
- * exact mode trailed the old engine against the raw target until the cap
- * moved, and beat it on seven of eight once it did. With no ceiling given,
- * AutoEq's stays.
+ * **The gain range bounds each band, never the whole EQ.** That is what it
+ * means next to the frequency and Q ranges, in CrinGraph and in the fallback.
+ * turboEQ's `maxGain` is a different limit: it clips the correction curve the
+ * fit aims at, so the bands together boost no more than that. It used to be
+ * the gain range's maximum, which made one field both a per-band bound and a
+ * cap on the preamp.
  *
- * The boost this allows is headroom the preamp has to give back. `EqFilterList`
- * derives it from whatever filters are in the store, so a fit needs to do
- * nothing about it here.
+ * Exact match has no whole-EQ cap, like CrinGraph. Treble-safe keeps AutoEq's
+ * own 6 dB, part of the caution it exists for. The boost either one leaves is
+ * headroom the preamp gives back, and `eqCurve` derives that from whatever
+ * filters are in the store.
  */
 function runOptions(request: AutoEqRequest): TurboEQRunOptions {
-	const ceiling = request.kind === 'graphic' ? request.gain?.max : request.limits?.maxGain;
-	return {
-		fit: fitMode(request),
-		...(typeof ceiling === 'number' && Number.isFinite(ceiling)
-			? { maxGain: Math.max(0, ceiling) }
-			: {})
-	};
+	const fit = fitMode(request);
+	return fit === 'exact' ? { fit, maxGain: Infinity } : { fit };
 }
 
 let enginePromise: Promise<TurboEQClass> | null = null;

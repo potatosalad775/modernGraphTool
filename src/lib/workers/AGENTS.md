@@ -84,16 +84,25 @@ treble: on six of nine curves it placed no band above 10 kHz, and 8-band error w
 
 A free level — scoring the residual after removing its mean, since the preamp absorbs a constant —
 was tried in turboEQ and removed. The two shelves together can then lift the whole curve at no cost,
-so the fit drifted past the user's boost ceiling (5.4 dB against a 3 dB cap) for a 0.02 dB gain.
+so the fit drifted past its boost cap (5.4 dB against 3 dB) for a 0.02 dB gain.
 
-**The boost cap is the user's gain ceiling in both modes** (`maxGain` in `runOptions`). Otherwise
-the gain range's maximum is a number the fit silently ignores past 6 dB. It is also what closes the
-gap to the TypeScript engine, whose only boost limit was that ceiling: on the bundled sample set,
-scored against the raw target from 20 Hz to 20 kHz, exact mode under AutoEq's 6 dB cap still
-trailed it; with the cap at the user's 12 dB it beat it on seven of eight (e.g. 2.69 → 1.81 dB,
-2.02 → 1.51 dB). The headroom this costs is `EqFilterList`'s business — it derives the preamp from
-whatever filters are in the store — so nothing here touches the preamp, and the reply's `preamp`
-is diagnostic only.
+**The gain range bounds each band, never the whole EQ** (`runOptions`). turboEQ's run-level
+`maxGain` is another limit: it clips the correction the fit aims at, so the bands together boost
+about that much at most (1–3 dB over: it clips the aim, not the result). It used to be the gain
+range's maximum in both modes, which made one field both a per-band bound and a preamp cap — not
+what it means beside the frequency and Q ranges, in CrinGraph or in the fallback.
+
+- **Exact match passes `maxGain: Infinity`**: no whole-EQ cap, as in CrinGraph. AutoEq's 6 dB was
+  most of what kept exact mode behind the TypeScript engine. The cost, measured at the app's
+  default ranges over 178 IEMs at 8 bands: median error and boost unchanged, p90 error 2.06 →
+  1.88 dB, but the largest boost 13 → 22 dB. About 5% of IEMs, those whose treble rolls off,
+  stack a +12 high shelf on a +12 peak at 11–19 kHz; one took two identical +12 peaks. That was
+  weighed and accepted. Don't fix it with a hidden cap: a total limit would be a visible field.
+- **Treble-safe leaves `maxGain` out**, so AutoEq's own 6 dB stands, part of the caution the mode
+  is for: boost p90 8.2 → 6.2 dB and max 12.4 → 7.2, for 0.02–0.04 dB of error.
+
+The headroom either leaves is `eqCurve`'s business — it derives the preamp from whatever filters
+are in the store — so nothing here touches the preamp, and the reply's `preamp` is diagnostic only.
 
 **Q and gain are the user's, as given, in both modes** (`bounds: 'as-given'`). turboEQ's helpers
 narrow a host's range to AutoEq's defaults otherwise, which turned the UI's Q 0.1–10 into 0.18–6 and
@@ -183,11 +192,11 @@ unit with a wiggle at 1 kHz gets a different level from each.
 
 ## Open items
 
-- **At five bands the TypeScript engine still fits IEMs closer** (1.16 against 1.27 dB, level
-  removed), and nearly all of it is level: held to AutoEq's alignment it scores 1.74, while
+- **At five bands the TypeScript engine still fits IEMs closer** (1.17 against 1.27 dB, level
+  removed), and nearly all of it is level: held to AutoEq's alignment it scores 1.73, while
   turboEQ, which fits at a fixed level, stays at 1.27. What is left is turboEQ settling in a local
   minimum from AutoEq's `init()` layout: its own objective rates the TypeScript answer better on
-  48 of 176 curves at five bands, 16 at eight, one at ten. Multiple starts, or a greedy seed,
+  47 of 178 curves at five bands, 10 at eight, none at ten. Multiple starts, or a greedy seed,
   belong in turboEQ.
 
 - **`EqConstraintPreset` is still hand-written.** The fit no longer depends on it — `planBands`

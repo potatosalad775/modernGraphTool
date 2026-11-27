@@ -234,9 +234,12 @@ only its overall level above 10 kHz and places no band above 10 kHz. Treble meas
 on a fit, seating, and physical characteristic of every rig, so this corrects only what a measurement can be trusted for. 
 Choose it when you don't trust your treble data, or when the EQ is for listening rather than for matching the exact graph.
 
-In either mode, the gain range's maximum caps the largest boost the whole EQ may apply, not only
-each band. The preamp follows automatically, so a bigger boost costs loudness rather than clipping.
-Lower the maximum if you would rather keep the level up.
+The gain range limits each band on its own, as in CrinGraph. In exact match that is the only
+limit, so where the curve falls far below the target, usually a treble that rolls off, the fit can
+stack bands and boost past the range. Treble-safe also keeps AutoEq's own limit of 6 dB on the
+largest boost of the whole EQ. Either way the preamp follows automatically, so a bigger boost costs
+loudness rather than clipping. If it costs too much, lower the gain range's maximum or switch to
+treble-safe.
 
 The frequency, Q and gain ranges are **bounds the fit works within**, exactly as you set them, not
 a clamp applied to the result afterwards: narrowing them changes what the optimizer looks for rather

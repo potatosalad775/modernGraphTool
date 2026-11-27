@@ -48,9 +48,11 @@ export interface LossBand {
  *   placed above 10 kHz — because bands up there, scored on the mean alone,
  *   cancel each other at extreme gains.
  *
- * In both, the user's Q and gain windows are taken as given, the shelves are
- * free to move, and the correction's largest boost is capped at the gain
- * range's maximum — AutoEq's own 6 dB only when no maximum is given.
+ * In both, the user's Q and gain windows are taken as given and bound each
+ * band on its own, and the shelves are free to move. Only `'autoeq'` limits
+ * the whole EQ: it clips the correction it aims for at AutoEq's 6 dB boost,
+ * whatever the gain range says, and the bands may land a little past that.
+ * `'exact'` has no whole-EQ limit.
  */
 export type FitMode = 'exact' | 'autoeq';
 

@@ -338,6 +338,34 @@ describe('runAutoEq', () => {
 		}
 	});
 
+	it('holds a graphic EQ to the same rule, its gain range being each slider’s travel', async () => {
+		// A dip deeper than a slider goes and wider than one. Exact match stacks the sliders past
+		// their travel; treble-safe aims at AutoEq's 6 dB whatever the sliders allow, and its
+		// octave-wide bands land about a decibel over that aim.
+		const WIDE_DIP = curve((f) => -30 * Math.exp(-Math.pow(Math.log2(f / 2000), 2) / 3));
+		const sliders = [31.25, 62.5, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+		const fit = (max: number, mode: 'exact' | 'autoeq') =>
+			runAutoEq(
+				WIDE_DIP,
+				FLAT,
+				{
+					kind: 'graphic',
+					bands: sliders.map((freq) => ({ freq, q: 1.41 })),
+					gain: { min: -12, max },
+					fit: mode
+				},
+				{ loadEngine }
+			);
+
+		for (const mode of ['exact', 'autoeq'] as const) {
+			expect((await fit(3, mode)).filters.every((f) => f.gain! <= 3)).toBe(true);
+		}
+		const exact = await fit(12, 'exact');
+		expect(exact.filters.every((f) => f.gain! <= 12)).toBe(true);
+		expect(exact.preamp!).toBeLessThan(-13);
+		expect((await fit(12, 'autoeq')).preamp!).toBeGreaterThanOrEqual(-8);
+	});
+
 	it('reports the fit error and a preamp that is never positive', async () => {
 		const outcome = await runAutoEq(
 			BUMPED,

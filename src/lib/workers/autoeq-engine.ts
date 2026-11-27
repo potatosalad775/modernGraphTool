@@ -6,7 +6,7 @@
  * quantized frequency grid, no perceptual stage. turboEQ is a Zig port of the
  * original AutoEq — gradient-based joint optimization of every parameter at
  * once, behind a perceptual stage that smooths, protects narrow dips, limits
- * slope to 18 dB/oct and caps the correction's largest boost at 6 dB.
+ * slope to 18 dB/oct and clips the correction it aims for at a 6 dB boost.
  *
  * turboEQ runs two orders of magnitude faster, and from eight bands up it fits
  * closer; the numbers are in the docs' autoeq-benchmarks page. It is also the
@@ -70,14 +70,15 @@ const TYPE_OF = { peaking: 'PK', low_shelf: 'LSQ', high_shelf: 'HSQ' } as const;
  * **The gain range bounds each band, never the whole EQ.** That is what it
  * means next to the frequency and Q ranges, in CrinGraph and in the fallback.
  * turboEQ's `maxGain` is a different limit: it clips the correction curve the
- * fit aims at, so the bands together boost no more than that. It used to be
- * the gain range's maximum, which made one field both a per-band bound and a
- * cap on the preamp.
+ * fit aims at, not the result, so the bands together land near that boost and
+ * can go a decibel or two past it. It used to be the gain range's maximum,
+ * which made one field both a per-band bound and a cap on the preamp.
  *
- * Exact match has no whole-EQ cap, like CrinGraph. Treble-safe keeps AutoEq's
- * own 6 dB, part of the caution it exists for. The boost either one leaves is
- * headroom the preamp gives back, and `eqCurve` derives that from whatever
- * filters are in the store.
+ * Exact match has no whole-EQ limit, like CrinGraph. Treble-safe keeps AutoEq's
+ * own 6 dB aim, part of the caution it exists for. Both hold for a graphic
+ * bank too, whose gain range is each slider's travel. The boost either one
+ * leaves is headroom the preamp gives back, and `eqCurve` derives that from
+ * whatever filters are in the store.
  */
 function runOptions(request: AutoEqRequest): TurboEQRunOptions {
 	const fit = fitMode(request);

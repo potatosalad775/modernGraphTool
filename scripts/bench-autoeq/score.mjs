@@ -94,15 +94,19 @@ const engines = [
 ];
 const refs = ['upstream', 'upstream-converged'].filter((e) => engines.includes(e));
 
+/** One Markdown table row: every cell a column, so header, separator and rows agree. */
+const row = (cells) => `| ${cells.join(' | ')} |`;
+
 console.log(`${curves.length} measurements\n`);
 for (const bands of bandCounts) {
 	console.log(`### ${bands} bands\n`);
-	console.log(
-		'| Engine | p50 | p90 | max | Exact count | Error 20k p50 | p90 | Error 10k p50 | ' +
-			refs.map((r) => `Dev. ${r} p50 | p90`).join(' | ') +
-			' | Boost p50 | p90 | max |'
-	);
-	console.log('|' + ' --- |'.repeat(11 + refs.length * 2));
+	const header = [
+		...['Engine', 'p50', 'p90', 'max', 'Exact count', 'Error 20k p50', 'p90', 'Error 10k p50'],
+		...refs.flatMap((r) => [`Dev. ${r} p50`, 'p90']),
+		...['Boost p50', 'p90', 'max']
+	];
+	console.log(row(header));
+	console.log(row(header.map(() => '---')));
 	for (const engine of engines) {
 		const rows = records.filter((r) => r.engine === engine && r.bands === bands);
 		if (rows.length === 0) continue;
@@ -124,14 +128,24 @@ for (const bands of bandCounts) {
 		}
 		const times = rows.map((r) => r.ms);
 		const exact = rows.filter((r) => r.filters.length === bands).length / rows.length;
-		const devCells = refs.map((ref) =>
-			engine === ref ? '— | —' : `${db(median(dev[ref]))} | ${db(quantile(dev[ref], 0.9))}`
+		const devCells = refs.flatMap((ref) =>
+			engine === ref ? ['—', '—'] : [db(median(dev[ref])), db(quantile(dev[ref], 0.9))]
 		);
 		console.log(
-			`| ${engine} | ${ms(median(times))} | ${ms(quantile(times, 0.9))} | ${ms(Math.max(...times))} | ` +
-				`${(exact * 100).toFixed(0)}% | ${db(median(err20))} | ${db(quantile(err20, 0.9))} | ` +
-				`${db(median(err10))} | ${devCells.join(' | ')} | ` +
-				`${db(median(boost))} | ${db(quantile(boost, 0.9))} | ${db(Math.max(...boost))} |`
+			row([
+				engine,
+				ms(median(times)),
+				ms(quantile(times, 0.9)),
+				ms(Math.max(...times)),
+				`${(exact * 100).toFixed(0)}%`,
+				db(median(err20)),
+				db(quantile(err20, 0.9)),
+				db(median(err10)),
+				...devCells,
+				db(median(boost)),
+				db(quantile(boost, 0.9)),
+				db(Math.max(...boost))
+			])
 		);
 	}
 	console.log();

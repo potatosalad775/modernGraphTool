@@ -45,6 +45,16 @@ export function filterGainRange(def: TargetFilterDef): GainRange {
 	};
 }
 
+/**
+ * A gain as the readout and the curve label print it: one decimal, or two for a filter whose step
+ * is finer than 0.1, so two neighbouring slider positions never read the same.
+ */
+export function formatGain(def: TargetFilterDef, value: number): string {
+	const { step } = filterGainRange(def);
+	const tenths = step * 10;
+	return value.toFixed(Math.abs(tenths - Math.round(tenths)) < 1e-9 ? 1 : 2);
+}
+
 export interface TargetFilterPreset {
 	name: string;
 	filter: Record<string, number>;
@@ -342,7 +352,7 @@ class TargetAdjustmentStore {
 			const shortName = paren >= 0 ? def.name.slice(0, paren) : def.name;
 			const unit = def.type === 'TILT' ? 'dB/oct' : 'dB';
 			const sign = v > 0 ? '+' : '';
-			parts.push(`${shortName}: ${sign}${v.toFixed(1)}${unit}`);
+			parts.push(`${shortName}: ${sign}${formatGain(def, v)}${unit}`);
 		}
 		return parts.length > 0 ? `(${parts.join(', ')})` : null;
 	}

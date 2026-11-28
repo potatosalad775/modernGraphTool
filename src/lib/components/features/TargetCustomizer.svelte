@@ -4,7 +4,8 @@
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import {
 		targetAdjustmentStore,
-		filterGainRange
+		filterGainRange,
+		formatGain
 	} from '#lib/stores/target-adjustment-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import type { FRDataObject } from '#lib/types/data-types.js';
@@ -135,8 +136,8 @@
 									</InfoPopover>
 								{/if}
 							</div>
-							<span class="w-8 text-right text-xs tabular-nums">
-								{value.toFixed(1)}
+							<span class="min-w-8 text-right text-xs tabular-nums">
+								{formatGain(def, value)}
 							</span>
 						</div>
 						<div>

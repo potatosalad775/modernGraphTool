@@ -40,7 +40,7 @@ export const frStore = new FRDataStore();
 - `app-store.svelte.ts` — isMobile, isReady, `targetListOpen` (the user's session-only toggle of
   `TargetSelector`'s accordion, which unmounts with its panel; `null` defers to the config default)
 - `settings-store.svelte.ts` — user preferences: theme, AutoEQ options (with `session` / `local` persistence mode),
-  `linkEqNormalization` flag, `frequencyTutorialVisible` (the strip `AppShell` renders under the graph;
+  `linkEqNormalization` flag, `listeningHeadroom` (the audio player's fixed headroom), `frequencyTutorialVisible` (the strip `AppShell` renders under the graph;
   the toolbar button lives in `GraphPanel` on mobile and unmounts with it, so the flag can't). Persists through `gt-settings-*` localStorage keys (and `sessionStorage` for
   AutoEQ options when that mode is active). Hydrated once from `AppShell.onMount` via `settingsStore.hydrate()`.
 - `audio-spectrum-store.svelte.ts` — live spectrum overlay toggle (`isEnabled`, sole source of truth — bound

@@ -9,7 +9,8 @@ const LS_KEYS = {
 	devicePeqAutoWrite: 'gt-settings-device-peq-auto-write',
 	volumeWarning: 'gt-settings-volume-warning',
 	frequencyTutorial: 'gt-settings-frequency-tutorial',
-	singleKeyShortcuts: 'gt-settings-single-key-shortcuts'
+	singleKeyShortcuts: 'gt-settings-single-key-shortcuts',
+	listeningHeadroom: 'gt-settings-listening-headroom'
 } as const;
 
 const LEGACY_THEME_KEY = 'gt-theme';
@@ -139,6 +140,11 @@ class SettingsStore {
 	 * modifier ones (Ctrl+Z …). On by default.
 	 */
 	singleKeyShortcuts = $state(true);
+	/**
+	 * The audio player plays at a fixed preamp (`listeningPreamp`) rather than the derived one, so
+	 * editing a band doesn't move the level of everything else. Off by default: it is up to 12 dB quieter.
+	 */
+	listeningHeadroom = $state(false);
 
 	hydrate(): void {
 		if (typeof window === 'undefined') return;
@@ -157,6 +163,8 @@ class SettingsStore {
 		// Only an explicit 'false' turns it off; anything else stored keeps the default.
 		if (localStorage.getItem(LS_KEYS.singleKeyShortcuts) === 'false')
 			this.singleKeyShortcuts = false;
+
+		if (localStorage.getItem(LS_KEYS.listeningHeadroom) === 'true') this.listeningHeadroom = true;
 
 		// The user's own choice wins; the operator's config only sets the first-visit default.
 		const tutorial = localStorage.getItem(LS_KEYS.frequencyTutorial);
@@ -220,6 +228,11 @@ class SettingsStore {
 	setSingleKeyShortcuts(v: boolean): void {
 		this.singleKeyShortcuts = v;
 		localStorage.setItem(LS_KEYS.singleKeyShortcuts, String(v));
+	}
+
+	setListeningHeadroom(v: boolean): void {
+		this.listeningHeadroom = v;
+		localStorage.setItem(LS_KEYS.listeningHeadroom, String(v));
 	}
 
 	setFrequencyTutorialVisible(v: boolean): void {

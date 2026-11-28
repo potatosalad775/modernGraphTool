@@ -1,6 +1,6 @@
 import { Equalizer, isPlayableBand, type EQFilter } from './equalizer.js';
 import { effectiveFilters } from './eq-channel.js';
-import { derivePreamp } from './eq-preamp.js';
+import { derivePreamp, listeningPreamp } from './eq-preamp.js';
 import { filtersMatch, type EqState } from './eq-snapshot.js';
 
 /**
@@ -166,10 +166,18 @@ function stereoLevelDb(filters: EQFilter[], preampDb: number): number {
  * not the preamp stored with it: the preamp is recomputed the moment a
  * snapshot is applied, so the stored one can be stale. The live side uses the
  * preamp actually playing. Never positive — only ever turns down, so it can't
- * clip.
+ * clip. `fixedHeadroom` is the player's listening mode (`listeningPreamp`):
+ * each side then plays at that preamp, so that is what it is measured with.
  */
-export function computeAbMatchDb(current: EqState, a: EQFilter[], b: EQFilter[]): number {
-	const target = Math.min(stereoLevelDb(a, derivePreamp(a)), stereoLevelDb(b, derivePreamp(b)));
+export function computeAbMatchDb(
+	current: EqState,
+	a: EQFilter[],
+	b: EQFilter[],
+	fixedHeadroom = false
+): number {
+	const level = (filters: EQFilter[]) =>
+		stereoLevelDb(filters, listeningPreamp(derivePreamp(filters), fixedHeadroom));
+	const target = Math.min(level(a), level(b));
 	return Math.min(0, target - stereoLevelDb(current.filters, current.preamp));
 }
 
@@ -183,9 +191,10 @@ export function abLoudnessTrimDb(opts: {
 	a: EqState | null;
 	b: EqState | null;
 	live: EqState;
+	fixedHeadroom?: boolean;
 }): number {
 	const { enabled, a, b, live } = opts;
 	if (!enabled || !a || !b) return 0;
 	if (!filtersMatch(a, live.filters) && !filtersMatch(b, live.filters)) return 0;
-	return computeAbMatchDb(live, a.filters, b.filters);
+	return computeAbMatchDb(live, a.filters, b.filters, opts.fixedHeadroom);
 }

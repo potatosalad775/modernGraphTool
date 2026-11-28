@@ -370,6 +370,16 @@ Outlives the `EqAudioPlayer` view so audio survives panel switches. Subscribes t
   down. It has to reach the bypass path too: a flat side has nothing to apply and plays through it.
   Its own effect ramps the gain, so a history commit never rebuilds the chain. It is ours alone —
   Device PEQ and the uniPEQ link never see it.
+- **Fixed headroom** (`settingsStore.listeningHeadroom`, `listeningPreamp` in `utils/eq-preamp.ts`)
+  plays `min(eqStore.preamp, -12)`, so the level holds still while bands are edited (#148). It never
+  writes `eqStore.preamp`: the shown, exported and pushed preamp stays derived. **Every level here
+  reads `#preampDb`, not `eqStore.preamp`** — the preamp node, `hasEqToApply`, the bypass-match trim
+  and both sides of the A/B trim — or a bypass or an A/B switch jumps by the difference. A flat EQ
+  therefore plays at -12 dB too, so adding the first band doesn't drop the level. A device applying
+  the EQ applies its own preamp, so the mode is off there (`#fixedHeadroom`, which the A/B trim reads
+  too) and the switch is disabled. The level therefore jumps by up to 12 dB when a device takes the
+  EQ over or hands it back; the user guide says so. The analyser sits after the preamp, as it always
+  has, so the spectrum overlay draws lower with the mode on.
 - **The splitter/merger stage is built only when a band is pinned to one ear.** Shared bands run
   before the split as one serial chain — a `BiquadFilterNode` processes every channel it is handed —
   so an ordinary EQ keeps exactly the graph it always had. Two things in `#buildPerChannelStage` are

@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { Profile } from '@potatosalad775/eqcaps-core';
-import { derivePreamp, headroomPreamp } from './eq-preamp.js';
+import {
+	derivePreamp,
+	headroomPreamp,
+	listeningPreamp,
+	LISTENING_HEADROOM_DB
+} from './eq-preamp.js';
 import { Equalizer, type EQFilter } from './equalizer.js';
 
 function makeFilter(overrides: Partial<EQFilter> = {}): EQFilter {
@@ -60,6 +65,23 @@ describe('derivePreamp', () => {
 
 		expect(derivePreamp([shared, rightOnly])).toBe(rightEar);
 		expect(rightEar).toBeLessThan(derivePreamp([shared]));
+	});
+});
+
+describe('listeningPreamp', () => {
+	it('is the derived preamp with fixed headroom off', () => {
+		expect(listeningPreamp(-3.4, false)).toBe(-3.4);
+		expect(listeningPreamp(0, false)).toBe(0);
+	});
+
+	it('holds one level for every EQ that fits in the headroom, a flat one included', () => {
+		for (const derived of [0, -0.1, -6, -LISTENING_HEADROOM_DB]) {
+			expect(listeningPreamp(derived, true)).toBe(-LISTENING_HEADROOM_DB);
+		}
+	});
+
+	it('follows an EQ that needs more, so it still cannot clip', () => {
+		expect(listeningPreamp(-15.2, true)).toBe(-15.2);
 	});
 });
 

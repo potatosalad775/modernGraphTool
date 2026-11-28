@@ -37,6 +37,18 @@ export function derivePreamp(filters: EQFilter[], ear?: EqChannel): number {
 	return -Math.ceil(peak * 10 - 1e-6) / 10 || 0;
 }
 
+/** The room the audio player's fixed headroom leaves for boosts, in dB. */
+export const LISTENING_HEADROOM_DB = 12;
+
+/**
+ * The preamp the audio player plays: `preamp` itself, or with fixed headroom a constant
+ * -{@link LISTENING_HEADROOM_DB} dB, so the level stays put while bands are edited. A floor, not
+ * an override: an EQ that boosts further still gets the preamp it needs, so neither mode clips.
+ */
+export function listeningPreamp(preamp: number, fixedHeadroom: boolean): number {
+	return fixedHeadroom ? Math.min(preamp, -LISTENING_HEADROOM_DB) : preamp;
+}
+
 /** The preamp range where the profile gives none (`unknown`): cut only, as `derivePreamp` is. */
 const UNKNOWN_RANGE: Domain = { min: -20, max: 0, step: 0.1 };
 

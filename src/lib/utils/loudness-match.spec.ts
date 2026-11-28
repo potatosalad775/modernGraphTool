@@ -146,6 +146,18 @@ describe('computeAbMatchDb / abLoudnessTrimDb', () => {
 		expect(abLoudnessTrimDb({ ...on, live: live([band(7.5)]) })).toBe(0);
 	});
 
+	it('measures both sides at the fixed listening preamp when the player plays them there', () => {
+		// At one shared preamp the big boost is the louder side, the reverse of the derived case.
+		const fixed = (filters: EQFilter[]) => ({ filters, preamp: -12 });
+		expect(computeAbMatchDb(fixed(B), A, B, true)).toBe(0);
+		expect(computeAbMatchDb(fixed(A), A, B, true)).toBeCloseTo(
+			computeBypassMatchDb(B, -12) - computeBypassMatchDb(A, -12),
+			6
+		);
+		const on = { enabled: true, a: live(A), b: live(B), live: fixed(A), fixedHeadroom: true };
+		expect(abLoudnessTrimDb(on)).toBeLessThan(0);
+	});
+
 	it('matches the live side by its filters even when its stored preamp is stale', () => {
 		const b = { filters: B, preamp: -99 };
 		expect(abLoudnessTrimDb({ enabled: true, a: live(A), b, live: live(B) })).toBeLessThan(0);

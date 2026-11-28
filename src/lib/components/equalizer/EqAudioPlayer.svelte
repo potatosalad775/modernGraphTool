@@ -3,6 +3,8 @@
 	import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 	import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 	import { eqStore } from '#lib/stores/eq-store.svelte.js';
+	import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+	import { LISTENING_HEADROOM_DB } from '#lib/utils/eq-preamp.js';
 	import {
 		audioPlayerService,
 		type AudioSource
@@ -92,6 +94,25 @@
 			checked={audioPlayerService.filtersEnabled && !onDevice}
 			onCheckedChange={(checked) => audioPlayerService.setFiltersEnabled(checked)}
 		/>
+		<!-- A device applying the EQ applies its own preamp too, so there is none here to fix. -->
+		<Switch
+			title={onDevice
+				? m.equalizer_player_filter_toggle_on_device({ device: deviceName })
+				: m.equalizer_player_headroom_title()}
+			labelText={m.equalizer_player_headroom_toggle()}
+			labelClass="text-xs"
+			size="sm"
+			disabled={onDevice}
+			checked={settingsStore.listeningHeadroom && !onDevice}
+			onCheckedChange={(checked) => settingsStore.setListeningHeadroom(checked)}
+		>
+			<InfoPopover
+				label={m.info_popover_about({ topic: m.equalizer_player_headroom_toggle() })}
+				class="-mr-1 ml-0.5"
+			>
+				<p>{m.equalizer_player_headroom_hint({ db: LISTENING_HEADROOM_DB })}</p>
+			</InfoPopover>
+		</Switch>
 		<Switch
 			title={m.equalizer_player_spectrum_toggle_title()}
 			labelText={m.equalizer_player_spectrum_toggle()}

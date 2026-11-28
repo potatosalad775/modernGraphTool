@@ -6,6 +6,8 @@ import { audioPlaybackStore } from '#lib/stores/audio-playback-store.svelte.js';
 import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
+import { listeningPreamp } from '#lib/utils/eq-preamp.js';
 import { abLoudnessTrimDb, computeBypassMatchLinear } from '#lib/utils/loudness-match.js';
 import { rangeMakeupGain, clampToBand, RANGE_FILTER_Q } from '#lib/utils/listening-range.js';
 import { hasPerChannelFilters } from '#lib/utils/eq-channel.js';
@@ -236,6 +238,15 @@ class AudioPlayerService {
 		return eqStore.isEnabled && this.#filtersEnabled;
 	}
 
+	/**
+	 * The preamp this player plays: the derived one, or the fixed listening headroom
+	 * (`settingsStore.listeningHeadroom`). Everything that sets or matches a level reads this,
+	 * never `eqStore.preamp`, or a bypass or an A/B switch would jump by the difference.
+	 */
+	get #preampDb(): number {
+		return listeningPreamp(eqStore.preamp, settingsStore.listeningHeadroom);
+	}
+
 	/** The listening-range bandpass and its makeup stage, added at the head of the chain. */
 	#addRangeFilters(ctx: AudioContext): void {
 		// Read the bounds untracked. Entering or leaving range mode has to rebuild
@@ -296,7 +307,8 @@ class AudioPlayerService {
 		const filters = eqStore.filters.filter(isPlayableBand);
 		// A preamp with no filters is still something to apply — same rule the on-screen
 		// EQ curve uses — and the bypass path has to match its level.
-		const hasEqToApply = filters.length > 0 || eqStore.preamp !== 0;
+		const preampDb = this.#preampDb;
+		const hasEqToApply = filters.length > 0 || preampDb !== 0;
 		const chainTail = this.#analyserNode ?? this.#gainNode;
 
 		// Listening-range bandpass — when frequency-selection mode is on, prepend
@@ -315,7 +327,7 @@ class AudioPlayerService {
 			// apply the K-weighted bypass-match trim so listening A/B doesn't
 			// change level.
 			this.#pathTrimLinear =
-				hasEqToApply && !onDevice ? computeBypassMatchLinear(eqStore.filters, eqStore.preamp) : 1;
+				hasEqToApply && !onDevice ? computeBypassMatchLinear(eqStore.filters, preampDb) : 1;
 			this.#rampGain(match.gain, this.#pathTrimLinear * this.#abTrimLinear);
 			this.#wireBypass(match, chainTail);
 			this.#reconnectSource();
@@ -329,7 +341,7 @@ class AudioPlayerService {
 
 		// Preamp node
 		const preampNode = ctx.createGain();
-		preampNode.gain.value = Math.pow(10, eqStore.preamp / 20);
+		preampNode.gain.value = Math.pow(10, preampDb / 20);
 		this.#filterNodes.push(preampNode);
 
 		// Shared bands run before the split — a BiquadFilterNode processes every
@@ -653,7 +665,8 @@ class AudioPlayerService {
 					enabled: eqHistoryStore.matchLoudness,
 					a: eqHistoryStore.aEntry,
 					b: eqHistoryStore.bEntry,
-					live: { filters: eqStore.filters, preamp: eqStore.preamp }
+					live: { filters: eqStore.filters, preamp: this.#preampDb },
+					fixedHeadroom: settingsStore.listeningHeadroom
 				});
 				this.#abTrimLinear = Math.pow(10, db / 20);
 				untrack(() => {
@@ -665,6 +678,7 @@ class AudioPlayerService {
 				track(
 					eqStore.filters,
 					eqStore.preamp,
+					settingsStore.listeningHeadroom,
 					// Both bypass sources — the local switch and the master toggle /
 					// `\` key — must retrigger the chain rebuild.
 					eqStore.isEnabled,

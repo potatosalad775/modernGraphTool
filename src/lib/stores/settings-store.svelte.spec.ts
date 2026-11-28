@@ -8,6 +8,7 @@ const KEY_LINK_NORM = 'gt-settings-link-eq-normalization';
 const KEY_AUTOEQ = 'gt-settings-autoeq-options';
 const KEY_FREQ_TUTORIAL = 'gt-settings-frequency-tutorial';
 const KEY_SINGLE_KEY = 'gt-settings-single-key-shortcuts';
+const KEY_HEADROOM = 'gt-settings-listening-headroom';
 
 const DEFAULT_AUTOEQ = {
 	freqMin: 20,
@@ -32,6 +33,7 @@ function resetStore() {
 	settingsStore.autoEqOptions = { ...DEFAULT_AUTOEQ };
 	settingsStore.frequencyTutorialVisible = false;
 	settingsStore.singleKeyShortcuts = true;
+	settingsStore.listeningHeadroom = false;
 	document.documentElement.classList.remove('dark');
 }
 
@@ -480,6 +482,22 @@ describe('SettingsStore', () => {
 				settingsStore.hydrate();
 				expect(settingsStore.singleKeyShortcuts).toBe(true);
 			}
+		});
+	});
+
+	describe('listeningHeadroom', () => {
+		it('is off by default and after a hydrate with nothing stored', () => {
+			settingsStore.hydrate();
+			expect(settingsStore.listeningHeadroom).toBe(false);
+		});
+
+		it('persists the choice and restores an explicit on', () => {
+			settingsStore.setListeningHeadroom(true);
+			expect(localStorage.getItem(KEY_HEADROOM)).toBe('true');
+
+			settingsStore.listeningHeadroom = false;
+			settingsStore.hydrate();
+			expect(settingsStore.listeningHeadroom).toBe(true);
 		});
 	});
 });

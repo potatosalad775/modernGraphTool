@@ -646,6 +646,109 @@ describe('AudioPlayerService', () => {
 		});
 	});
 
+	// ── Fixed listening headroom ─────────────────────────────────────────────
+
+	describe('fixed listening headroom', () => {
+		const FIXED = Math.pow(10, -12 / 20);
+		/** The preamp stage: the first node after the match stage on the EQ path. */
+		const preampGain = () => downstreamOfMatch()[0].gain.value;
+
+		beforeEach(() => {
+			settingsStore.listeningHeadroom = true;
+		});
+
+		afterEach(() => {
+			settingsStore.listeningHeadroom = false;
+			eqHistoryStore.clear();
+		});
+
+		it('plays every EQ that fits at the same preamp, whatever the derived one is', () => {
+			setFilters(FILTERS, -6.1);
+			settle();
+			audioPlayerService.play();
+			settle();
+			expect(preampGain()).toBeCloseTo(FIXED, 6);
+
+			setFilters(FILTERS, -2);
+			settle();
+			expect(preampGain()).toBeCloseTo(FIXED, 6);
+		});
+
+		it('follows an EQ that needs more than the headroom', () => {
+			setFilters(FILTERS, -15);
+			settle();
+			audioPlayerService.play();
+			settle();
+			expect(preampGain()).toBeCloseTo(Math.pow(10, -15 / 20), 6);
+		});
+
+		it('plays a flat EQ at the fixed level too, so the first band does not drop it', () => {
+			setFilters([], 0);
+			settle();
+			audioPlayerService.play();
+			settle();
+			expect(preampGain()).toBeCloseTo(FIXED, 6);
+
+			eqStore.isEnabled = false;
+			settle();
+			expect(bypassMatchNode().gain.value).toBeCloseTo(FIXED, 6);
+		});
+
+		it('matches the bypass to the preamp that plays, not the derived one', () => {
+			setFilters(FILTERS, -6.1);
+			settle();
+			audioPlayerService.play();
+			settle();
+			eqStore.isEnabled = false;
+			settle();
+
+			const expected = computeBypassMatchLinear(eqStore.filters, -12);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(expected, 6);
+			expect(expected).not.toBeCloseTo(computeBypassMatchLinear(eqStore.filters, -6.1), 3);
+		});
+
+		it('switches mid-playback', () => {
+			setFilters(FILTERS, -6);
+			settle();
+			audioPlayerService.play();
+			settle();
+			settingsStore.listeningHeadroom = false;
+			settle();
+			expect(preampGain()).toBeCloseTo(Math.pow(10, -6 / 20), 6);
+		});
+
+		it('measures a loudness-matched A/B at the fixed preamp', () => {
+			// At one shared preamp the bigger boost is the louder side and gets the trim.
+			const A = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 8 }];
+			const B = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 2 }];
+			const snap = (id: string, filters: typeof FILTERS) =>
+				({
+					id,
+					timestamp: 0,
+					filters: structuredClone(filters),
+					preamp: 0,
+					summary: id
+				}) as EqSnapshot;
+			eqHistoryStore.matchLoudness = true;
+			eqHistoryStore.snapshots = [snap('h-a', A), snap('h-b', B)];
+			eqHistoryStore.aSnapshotId = 'h-a';
+			eqHistoryStore.bSnapshotId = 'h-b';
+			setFilters(A, derivePreamp(A as EQFilter[]));
+			settle();
+			audioPlayerService.play();
+			settle();
+
+			const db = computeAbMatchDb(
+				{ filters: A as EQFilter[], preamp: -12 },
+				A as EQFilter[],
+				B as EQFilter[],
+				true
+			);
+			expect(db).toBeLessThan(0);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(Math.pow(10, db / 20), 6);
+		});
+	});
+
 	// ── Listening-range gating ───────────────────────────────────────────────
 
 	describe('listening-range gating applies to broadband sources only', () => {

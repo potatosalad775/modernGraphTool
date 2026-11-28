@@ -17,6 +17,7 @@ import { audioPlayerService } from '#lib/services/audio-player-service.svelte.js
 import { audioRangeStore } from '#lib/stores/audio-range-store.svelte.js';
 import { audioSpectrumStore } from '#lib/stores/audio-spectrum-store.svelte.js';
 import { eqStore } from '#lib/stores/eq-store.svelte.js';
+import { settingsStore } from '#lib/stores/settings-store.svelte.js';
 import { devicePeqStore } from '#lib/stores/device-peq-store.svelte.js';
 import type { DeviceConnection, PeqCapabilities } from '#lib/device-peq/types.js';
 import { hardwareProfile } from '#lib/utils/__fixtures__/eq-profiles.js';
@@ -263,6 +264,25 @@ describe('EqAudioPlayer', () => {
 			expect(numberBox('To').all()).toHaveLength(1);
 			// The rest of the sweep controls stay.
 			expect(numberBox('Duration').all()).toHaveLength(1);
+		});
+	});
+
+	// ── Fixed headroom ───────────────────────────────────────────────────────
+
+	describe('fixed headroom', () => {
+		afterEach(() => {
+			settingsStore.setListeningHeadroom(false);
+		});
+
+		it('is off until switched on, and keeps the choice', async () => {
+			await render(EqAudioPlayer);
+			const toggle = page.getByRole('switch', { name: 'Fixed Headroom' });
+			await expect.element(toggle).not.toBeChecked();
+
+			await toggle.click();
+			expect(settingsStore.listeningHeadroom).toBe(true);
+			expect(localStorage.getItem('gt-settings-listening-headroom')).toBe('true');
+			await expect.element(toggle).toBeChecked();
 		});
 	});
 

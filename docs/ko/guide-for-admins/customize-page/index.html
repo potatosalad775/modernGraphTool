@@ -603,6 +603,14 @@
 <li><code dir="auto">type</code> — 필터 타입. <code dir="auto">TILT</code>, <code dir="auto">LSQ</code>(Low Shelf), <code dir="auto">HSQ</code>(High Shelf), <code dir="auto">PK</code>(Peaking) 중 하나</li>
 <li><code dir="auto">freq</code> — 중심·코너 주파수 (Hz)</li>
 <li><code dir="auto">q</code> — Q값 (대역폭)</li>
+<li><code dir="auto">description</code> — 선택 사항. 슬라이더 옆 정보 버튼을 누르면 표시되는 설명</li>
+<li><code dir="auto">min</code>, <code dir="auto">max</code>, <code dir="auto">step</code> — 선택 사항. 슬라이더의 최솟값·최댓값·간격 (dB, <code dir="auto">TILT</code>는 dB/oct). 생략한 항목은 기본값을 따릅니다: -20 ~ 20, 0.5 간격 (<code dir="auto">TILT</code>는 -2 ~ 2, 0.1 간격). 작은 보정용 필터 예: <code dir="auto">{ id: "hrtf", name: "HRTF", type: "PK", freq: 8000, q: 2, min: -3, max: 3, step: 0.1 }</code>. 범위는 슬라이더에만 적용되므로 <code dir="auto">FILTER_PRESET</code>과 <code dir="auto">INITIAL_TARGET_FILTERS</code>의 값은 이 범위 안으로 맞추세요.
+<ul>
+<li>범위는 0을 포함해야 합니다. 0은 필터가 아무 작용도 하지 않는 값이자 새로 추가한 필터의 시작값입니다: <code dir="auto">min</code>은 0 이하, <code dir="auto">max</code>는 0 이상.</li>
+<li><code dir="auto">step</code>은 0.001 이상, <code dir="auto">max - min</code> 이하여야 하고 <code dir="auto">min</code>과 <code dir="auto">max</code>를 모두 나누어떨어지게 해야 슬라이더가 0과 양 끝에 놓일 수 있습니다. <code dir="auto">step</code>을 생략하면 기본값이 범위에 맞을 때는 기본값을, 아니면 0.1, 0.01, 0.001 중 맞는 값을 씁니다.</li>
+<li>이 규칙에 어긋나는 항목은 무시되고 기본값이 쓰이며, 브라우저 콘솔에 해당 필터 이름과 함께 경고가 표시됩니다.</li>
+</ul>
+</li>
 </ul>
 </li>
 <li><code dir="auto">FILTER_PRESET</code> — 드롭다운에서 고를 수 있는 필터 프리셋 구성.

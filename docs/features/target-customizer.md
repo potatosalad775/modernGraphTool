@@ -32,6 +32,6 @@ The default set is **Tilt**, **Bass** (`LSQ`, 105 Hz), **Treble** (`HSQ`, 2.5 kH
 All of it is set under [`TARGET_CUSTOMIZER`](../guide-for-admins/customize-page.mdx#target_customizer) in `config.js`:
 
 - **Which targets are customizable.** Only targets listed in `CUSTOMIZABLE_TARGETS` get the sliders, so reference targets can stay locked.
-- **The filters.** `FILTERS` defines the sliders. Setting it **replaces** the default set rather than extending it.
+- **The filters.** `FILTERS` defines the sliders. Setting it **replaces** the default set rather than extending it. Each filter can set its own slider range (`min`, `max`, `step`) in place of the default ±20 dB, for a filter that should only move a few dB.
 - **The presets.** `FILTER_PRESET` maps preset names to slider values.
 - **Initial adjustments.** `INITIAL_TARGET_FILTERS` applies slider values to a target as soon as it loads, so a deployment can ship its preferred variant of a target by default.

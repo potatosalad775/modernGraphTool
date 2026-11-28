@@ -609,6 +609,14 @@ sample sets — convert those entries to <code dir="auto">variants[]</code> with
 <li><code dir="auto">type</code> — Filter type: <code dir="auto">TILT</code>, <code dir="auto">LSQ</code> (Low Shelf), <code dir="auto">HSQ</code> (High Shelf), or <code dir="auto">PK</code> (Peaking).</li>
 <li><code dir="auto">freq</code> — Center/corner frequency in Hz.</li>
 <li><code dir="auto">q</code> — Q factor (bandwidth).</li>
+<li><code dir="auto">description</code> — Optional. Text shown behind an info button next to the slider.</li>
+<li><code dir="auto">min</code>, <code dir="auto">max</code>, <code dir="auto">step</code> — Optional. The slider’s limits and step, in dB (dB/oct for <code dir="auto">TILT</code>). Each one left out keeps the default: -20 to 20 in steps of 0.5, or -2 to 2 in steps of 0.1 for <code dir="auto">TILT</code>. For a filter meant for small corrections: <code dir="auto">{ id: "hrtf", name: "HRTF", type: "PK", freq: 8000, q: 2, min: -3, max: 3, step: 0.1 }</code>. The limits apply to the slider only, so keep the values in <code dir="auto">FILTER_PRESET</code> and <code dir="auto">INITIAL_TARGET_FILTERS</code> inside them.
+<ul>
+<li>The range has to include 0, where a filter does nothing and where a newly added one starts: <code dir="auto">min</code> at or below 0, <code dir="auto">max</code> at or above it.</li>
+<li><code dir="auto">step</code> has to be at least 0.001, no larger than <code dir="auto">max - min</code>, and divide both <code dir="auto">min</code> and <code dir="auto">max</code> evenly, so the slider can sit on 0 and reach both ends. With <code dir="auto">step</code> left out, the default is used when it fits the limits, otherwise 0.1, 0.01 or 0.001.</li>
+<li>A key that breaks these rules is ignored in favour of the default, with a warning in the browser console that names the filter.</li>
+</ul>
+</li>
 </ul>
 </li>
 <li><code dir="auto">FILTER_PRESET</code>: Preset filter configurations selectable from a dropdown.

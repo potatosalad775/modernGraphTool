@@ -32,6 +32,6 @@ Target Customizer를 쓰면 방문자가 Tilt, 저음, 고음, Ear Gain 같은 �
 모두 `config.js`의 [`TARGET_CUSTOMIZER`](../guide-for-admins/customize-page.mdx#target_customizer)에서 설정합니다.
 
 - **커스터마이징할 수 있는 타겟.** `CUSTOMIZABLE_TARGETS`에 적은 타겟에만 슬라이더가 붙으므로, 기준 타겟은 잠가 둘 수 있습니다.
-- **필터.** `FILTERS`가 슬라이더를 정의합니다. 이 값을 설정하면 기본 구성에 추가되는 것이 아니라 **대체**됩니다.
+- **필터.** `FILTERS`가 슬라이더를 정의합니다. 이 값을 설정하면 기본 구성에 추가되는 것이 아니라 **대체**됩니다. 몇 dB만 움직여야 하는 필터라면 기본 ±20 dB 대신 필터마다 슬라이더 범위(`min`, `max`, `step`)를 지정할 수 있습니다.
 - **프리셋.** `FILTER_PRESET`은 프리셋 이름과 슬라이더 값을 연결합니다.
 - **초기 조정값.** `INITIAL_TARGET_FILTERS`는 타겟을 불러오자마자 슬라이더 값을 적용하므로, 운영자가 선호하는 타겟 변형을 기본으로 보여 줄 수 있습니다.

@@ -5,7 +5,7 @@
 	import {
 		targetAdjustmentStore,
 		filterGainRange,
-		formatGain
+		formatFilterGain
 	} from '#lib/stores/target-adjustment-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import type { FRDataObject } from '#lib/types/data-types.js';
@@ -137,7 +137,7 @@
 								{/if}
 							</div>
 							<span class="min-w-8 text-right text-xs tabular-nums">
-								{formatGain(def, value)}
+								{formatFilterGain(def, value)}
 							</span>
 						</div>
 						<div>

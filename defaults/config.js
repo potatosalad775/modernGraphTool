@@ -89,7 +89,8 @@ const CONFIG = {
 		//     type: 'PK', freq: 3000, q: 2, description: 'Based on Harman 2025 MoA Research.' },
 		// ],
 		// A filter may narrow its slider with min / max / step (default -20 to 20 dB
-		// in 0.5 steps): { id: 'hrtf', ..., min: -3, max: 3, step: 0.1 }
+		// in 0.5 steps; the range has to include 0):
+		// { id: 'hrtf', ..., min: -3, max: 3, step: 0.1 }
 		INITIAL_TARGET_FILTERS: [
 			{ name: 'KEMAR DF (KB006x)', filter: { tilt: -0.8, bass: 6 } },
 			{ name: 'ISO 11904-2 DF', filter: { tilt: -0.8, bass: 6 } }

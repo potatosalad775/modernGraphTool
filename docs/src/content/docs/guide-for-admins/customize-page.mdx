@@ -881,6 +881,9 @@ Setting `FILTERS` discards the four built-in filters entirely. If you are adding
   - `q` — Q factor (bandwidth).
   - `description` — Optional. Text shown behind an info button next to the slider.
   - `min`, `max`, `step` — Optional. The slider's limits and step, in dB (dB/oct for `TILT`). Each one left out keeps the default: -20 to 20 in steps of 0.5, or -2 to 2 in steps of 0.1 for `TILT`. For a filter meant for small corrections: `{ id: "hrtf", name: "HRTF", type: "PK", freq: 8000, q: 2, min: -3, max: 3, step: 0.1 }`. The limits apply to the slider only, so keep the values in `FILTER_PRESET` and `INITIAL_TARGET_FILTERS` inside them.
+    - The range has to include 0, where a filter does nothing and where a newly added one starts: `min` at or below 0, `max` at or above it.
+    - `step` has to be at least 0.001, no larger than `max - min`, and divide both `min` and `max` evenly, so the slider can sit on 0 and reach both ends. With `step` left out, the default is used when it fits the limits, otherwise 0.1, 0.01 or 0.001.
+    - A key that breaks these rules is ignored in favour of the default, with a warning in the browser console that names the filter.
 - `FILTER_PRESET`: Preset filter configurations selectable from a dropdown.
   - `name` — Preset display name.
   - `filter` — Object mapping filter IDs to gain values.

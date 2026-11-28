@@ -12,6 +12,9 @@ pagefind: true
 draft: false
 ---
 
+### v2.3.9
+- Feat: The audio player has a **Fixed Headroom** switch. With it on, the player plays 12 dB below full level instead of following the automatic preamp, so changing one band no longer changes the volume of everything else. An EQ that boosts more than 12 dB still plays at the lower preamp it needs. It is off by default and affects the player only. See [Fixed headroom](./guide-for-users/equalizing.mdx#fixed-headroom). (#148)
+
 ### v2.3.8
 - Fix: AutoEQ's **Gain Range** now limits each band on its own, as in CrinGraph. Before, its maximum also capped the boost of the whole EQ. In **Exact match**, bands can now stack past the range where a curve falls far below the target, usually a treble that rolls off, so some fits boost more and get a lower preamp. **Treble-safe** aims for at most 6 dB of boost across the whole EQ, AutoEq's own limit, whatever the range says. Graphic EQ presets follow the same rules. If a fit gets too quiet, lower the range's maximum or switch to Treble-safe. See [Fit mode](./features/equalizer.mdx#fit-mode).
 - Fix: Hardware EQ now also warns that a device may clip when its preamp can't go as low as the bands' boost needs. Before, it warned only for devices that take no preamp at all.

@@ -4669,6 +4669,17 @@ When a [Hardware EQ](/modernGraphTool/docs/features/device-peq/) device is conne
 
 A device linked through [uniPEQ](/modernGraphTool/docs/features/unipeq-link/) is treated the same way when you started uniPEQ with **Open uniPEQ**, since it then runs on this machine. Joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ and asks whether you’re listening through it. Choose **Leave the EQ to the device** if you are. The answer is remembered for that device until you reload the page.
 
+### Fixed headroom
+
+The preamp follows your bands: raise one band’s boost and the preamp drops, so everything else gets quieter. That is right for the exported EQ, but it makes it hard to judge a small change by ear. Turn on **Fixed Headroom** in the player and it plays 12 dB below full level instead, whatever the automatic preamp is, so a band you change is the only thing that changes. A flat EQ and the **EQ Effect** switch’s bypass play at that level too.
+
+* It is quieter than before, by up to 12 dB: the difference between 12 dB and the automatic preamp. Turn your volume up as needed. Leave it off if your source can’t make up the difference.
+* An EQ that boosts more than 12 dB still gets the lower preamp it needs, so the player doesn’t clip in either mode.
+* Only the player is affected. The preamp in the band list, in an exported file and written to a device stays automatic.
+* The switch is unavailable while a device applies the EQ (above), since the device then applies its own preamp. The level changes by up to 12 dB when a device takes the EQ over or hands it back, so lower your volume before you switch.
+* The **Spectrum** overlay shows what the player plays, so it draws lower with the switch on.
+* Your choice is remembered in this browser.
+
 ## Hardware EQ — push EQ to a device
 
 Some USB DACs, Bluetooth adapters, and even a few headphones have **onboard parametric EQ slots** that apply EQ in hardware instead of in software. The **Hardware EQ** section lets modernGraphTool talk directly to those devices — over USB, Bluetooth or your local network — and push your filter list into the device’s own EQ memory, or pull the device’s current EQ into the filter list. Unplug your computer and the EQ stays loaded.
@@ -5790,6 +5801,10 @@ Full explanation and worked examples: [Why `BASE_PATH` is almost always required
 Everything that isn’t the app bundle itself (data, config, theme, Preference Bound files) is identical between the two options. You can switch back and forth by swapping your `index.html` file and optionally adding or removing the `CDN_MODE` section from `config.js`. There’s no lock-in.
 
 # modernGraphTool v2 Changelog
+
+### v2.3.9
+
+* Feat: The audio player has a **Fixed Headroom** switch. With it on, the player plays 12 dB below full level instead of following the automatic preamp, so changing one band no longer changes the volume of everything else. An EQ that boosts more than 12 dB still plays at the lower preamp it needs. It is off by default and affects the player only. See [Fixed headroom](/modernGraphTool/docs/guide-for-users/equalizing/#fixed-headroom). (#148)
 
 ### v2.3.8
 

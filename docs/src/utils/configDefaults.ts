@@ -178,6 +178,9 @@ export interface FilterForm {
 	freq: number;
 	q: number;
 	description?: string;
+	min?: number;
+	max?: number;
+	step?: number;
 }
 
 /** `name`, `upper` and `lower` are optional in config.js; `''` means "use the default". */

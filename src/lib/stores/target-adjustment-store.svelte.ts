@@ -11,6 +11,125 @@ export interface TargetFilterDef {
 	freq: number;
 	q: number;
 	description?: string;
+	/**
+	 * Slider limits and step, in the filter's own unit. Each falls back to the type's default, and
+	 * `filterGainRange` says what it accepts.
+	 */
+	min?: number;
+	max?: number;
+	step?: number;
+}
+
+export interface GainRange {
+	min: number;
+	max: number;
+	step: number;
+}
+
+const TILT_RANGE: GainRange = { min: -2, max: 2, step: 0.1 };
+const GAIN_RANGE: GainRange = { min: -20, max: 20, step: 0.5 };
+
+/** The finest step a slider takes, and so the most decimals a gain is printed with (three). */
+const FINEST_STEP = 0.001;
+const MAX_DECIMALS = 3;
+
+/** Steps tried, in order, when a filter sets none or sets one its limits cannot take. */
+const FALLBACK_STEPS = [0.1, 0.01, FINEST_STEP];
+
+/** Called with what was wrong in a filter's range, once per fault. */
+type RangeReport = (problem: string) => void;
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** Whether `value` is a whole number of `step`s, within float noise. */
+function isMultipleOf(value: number, step: number): boolean {
+	const count = value / step;
+	return Math.abs(count - Math.round(count)) < 1e-6;
+}
+
+/**
+ * Whether a range input with this step can sit on 0 and on both limits. It counts its positions
+ * from `min`, so `min` and `max` both have to be a whole number of steps away from 0.
+ */
+function stepFits(step: number, min: number, max: number): boolean {
+	return (
+		step >= FINEST_STEP && step <= max - min && isMultipleOf(min, step) && isMultipleOf(max, step)
+	);
+}
+
+/**
+ * The limits a filter asks for, each checked on its own so one bad key does not cost the other.
+ * 0 is "this filter does nothing" and where a newly added filter starts, so it has to stay inside
+ * the range: `min` may not be above it, `max` not below it.
+ */
+function resolveLimits(
+	def: TargetFilterDef,
+	base: GainRange,
+	report?: RangeReport
+): { min: number; max: number } {
+	let { min, max } = base;
+	if (def.min !== undefined) {
+		if (isFiniteNumber(def.min) && def.min <= 0) min = def.min;
+		else report?.(`min has to be a number at or below 0, using ${base.min}`);
+	}
+	if (def.max !== undefined) {
+		if (isFiniteNumber(def.max) && def.max >= 0) max = def.max;
+		else report?.(`max has to be a number at or above 0, using ${base.max}`);
+	}
+	if (min === max) {
+		report?.(`min and max are both 0, using ${base.min} to ${base.max}`);
+		return { min: base.min, max: base.max };
+	}
+	return { min, max };
+}
+
+/**
+ * The slider range of a filter: the operator's `min` / `max` / `step` over the type's default.
+ *
+ * Whatever config.js holds, the result is a slider that moves, can sit on 0 and reaches both of
+ * its limits. A key that would break that is dropped for the default (`report` hears why), and a
+ * step that does not fit the limits gives way to the type's own, then to 0.1, 0.01 and 0.001.
+ */
+export function filterGainRange(def: TargetFilterDef, report?: RangeReport): GainRange {
+	const base = def.type === 'TILT' ? TILT_RANGE : GAIN_RANGE;
+	const { min, max } = resolveLimits(def, base, report);
+
+	if (def.step !== undefined) {
+		if (isFiniteNumber(def.step) && stepFits(def.step, min, max)) {
+			return { min, max, step: def.step };
+		}
+		report?.(
+			`step has to be at least ${FINEST_STEP}, no larger than max - min, and divide both ` +
+				'min and max evenly, using the nearest default'
+		);
+	}
+	const step = [base.step, ...FALLBACK_STEPS].find((candidate) => stepFits(candidate, min, max));
+	if (step === undefined) {
+		report?.(`min and max are finer than ${FINEST_STEP}, using ${base.min} to ${base.max}`);
+		return base;
+	}
+	return { min, max, step };
+}
+
+/** How many decimals `value` needs to print exactly, up to `MAX_DECIMALS`. */
+function decimalsOf(value: number): number {
+	for (let decimals = 0; decimals < MAX_DECIMALS; decimals++) {
+		if (isMultipleOf(value, 10 ** -decimals)) return decimals;
+	}
+	return MAX_DECIMALS;
+}
+
+/**
+ * A filter's gain as the readout and the curve label print it: one decimal, or as many as the
+ * filter's step or the value itself needs (a preset can sit off the slider's grid), so two
+ * neighbouring slider positions never read the same. Not `formatGain` in `utils/log-scale.ts`,
+ * which signs the number and takes no filter.
+ */
+export function formatFilterGain(def: TargetFilterDef, value: number): string {
+	const { step } = filterGainRange(def);
+	return value.toFixed(Math.max(1, decimalsOf(step), decimalsOf(value)));
 }
 
 export interface TargetFilterPreset {
@@ -111,6 +230,14 @@ class TargetAdjustmentStore {
 			(def) => def.id,
 			'TARGET_CUSTOMIZER.FILTERS id'
 		);
+		// Say once, here, what a filter's range had wrong: `filterGainRange` runs on every render.
+		for (const def of this.#availableFilters) {
+			filterGainRange(def, (problem) => {
+				console.warn(
+					`[modernGraphTool] config.js: TARGET_CUSTOMIZER.FILTERS "${def.id}": ${problem}`
+				);
+			});
+		}
 		this.#filterPresets = uniqueBy(
 			cfg?.FILTER_PRESET ?? DEFAULT_FILTER_PRESETS,
 			(preset) => preset.name,
@@ -310,7 +437,7 @@ class TargetAdjustmentStore {
 			const shortName = paren >= 0 ? def.name.slice(0, paren) : def.name;
 			const unit = def.type === 'TILT' ? 'dB/oct' : 'dB';
 			const sign = v > 0 ? '+' : '';
-			parts.push(`${shortName}: ${sign}${v.toFixed(1)}${unit}`);
+			parts.push(`${shortName}: ${sign}${formatFilterGain(def, v)}${unit}`);
 		}
 		return parts.length > 0 ? `(${parts.join(', ')})` : null;
 	}

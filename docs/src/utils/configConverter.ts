@@ -1059,7 +1059,10 @@ export function configToFormState(raw: Record<string, any>): ConfigFormState {
 					type: f.type ?? 'PK',
 					freq: f.freq ?? 0,
 					q: f.q ?? 0,
-					...(f.description ? { description: f.description } : {})
+					...(f.description ? { description: f.description } : {}),
+					...(typeof f.min === 'number' ? { min: f.min } : {}),
+					...(typeof f.max === 'number' ? { max: f.max } : {}),
+					...(typeof f.step === 'number' ? { step: f.step } : {})
 				})
 			),
 			FILTER_PRESET: (

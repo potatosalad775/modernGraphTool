@@ -36,6 +36,8 @@ describe('the config store is transparent to the converters', () => {
 		c.LANGUAGE.LANGUAGE_LIST.push(['ja', '日本語']); // nested tuple array
 		c.TARGET_CUSTOMIZER_ENABLED = true; // optional-section toggle
 		c.TARGET_CUSTOMIZER.FILTERS[0].description = 'added'; // optional key added
+		c.TARGET_CUSTOMIZER.FILTERS[1].min = -3; // optional number, kept when 0 or negative
+		c.TARGET_CUSTOMIZER.FILTERS[1].max = 0;
 		c.TARGET_CUSTOMIZER.FILTER_PRESET[0].filter.bass = 9.5; // Record<string, number>
 		c.WATERMARK.splice(0, 1); // array removal
 
@@ -45,6 +47,7 @@ describe('the config store is transparent to the converters', () => {
 		expect(back.INITIAL_PHONES).toEqual(['Moondrop Aria 2']);
 		expect(back.LANGUAGE.LANGUAGE_LIST).toContainEqual(['ja', '日本語']);
 		expect(back.TARGET_CUSTOMIZER.FILTERS[0].description).toBe('added');
+		expect(back.TARGET_CUSTOMIZER.FILTERS[1]).toMatchObject({ min: -3, max: 0 });
 		expect(back.TARGET_CUSTOMIZER.FILTER_PRESET[0].filter.bass).toBe(9.5);
 		expect(back.WATERMARK).toEqual([]);
 	});

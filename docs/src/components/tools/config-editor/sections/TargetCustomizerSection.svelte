@@ -3,6 +3,11 @@
 	import { configEditor } from '../config-store.svelte';
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import StringArrayEditor from '../shared/StringArrayEditor.svelte';
+	import {
+		filterRangeProblem,
+		isGainOutsideRange,
+		resolveFilterRange
+	} from '../../../../utils/filterRange';
 
 	const FILTER_TYPES = ['TILT', 'LSQ', 'HSQ', 'PK'];
 
@@ -21,6 +26,15 @@
 			filters[index].description = value;
 		} else {
 			delete filters[index].description;
+		}
+	}
+
+	/** `min` / `max` / `step` are optional too: blank means "the type's default", so drop the key. */
+	function setRange(index: number, key: 'min' | 'max' | 'step', raw: string) {
+		if (raw === '') {
+			delete filters[index][key];
+		} else {
+			filters[index][key] = Number(raw);
 		}
 	}
 
@@ -43,6 +57,7 @@
 {#snippet filterGainEditor(filterObj: Record<string, number>, scope: string)}
 	<div class="ceCardGrid">
 		{#each filters as f (f.id)}
+			{@const limits = resolveFilterRange(f).range}
 			<div style="display: flex; align-items: center; gap: 0.375rem;">
 				<label style="font-size: 0.75rem; min-width: 40px;" for="{scope}-gain-{f.id}">
 					{f.name || f.id}
@@ -54,12 +69,23 @@
 					value={filterObj[f.id] ?? ''}
 					oninput={(e) => setGain(filterObj, f.id, e.currentTarget.value)}
 					placeholder="0"
-					step={f.type === 'TILT' ? 0.1 : 0.5}
+					min={limits.min}
+					max={limits.max}
+					step={limits.step}
 					style="width: 80px;"
 				/>
 			</div>
 		{/each}
 	</div>
+	{#each filters as f (f.id)}
+		{#if isGainOutsideRange(f, filterObj[f.id])}
+			{@const limits = resolveFilterRange(f).range}
+			<p class="ceWarnings">
+				{f.name || f.id}: {filterObj[f.id]} is outside this filter's slider ({limits.min} to {limits.max}).
+				The curve still gets it, but the slider cannot show it.
+			</p>
+		{/if}
+	{/each}
 {/snippet}
 
 <AccordionSection
@@ -145,7 +171,33 @@
 							step="0.001"
 						/>
 					</div>
+					{#each ['min', 'max', 'step'] as const as key (key)}
+						<div class="ceFieldGroup">
+							<label class="ceLabel" for="{id}-f{i}-{key}">
+								{key === 'step' ? 'Step' : key === 'min' ? 'Min gain' : 'Max gain'}
+								<span class="ceLabelHint">optional</span>
+							</label>
+							<input
+								id="{id}-f{i}-{key}"
+								type="number"
+								class="ceInput ceInputSmall"
+								value={f[key] ?? ''}
+								oninput={(e) => setRange(i, key, e.currentTarget.value)}
+								placeholder={key === 'step'
+									? f.type === 'TILT'
+										? '0.1'
+										: '0.5'
+									: `${key === 'min' ? '-' : ''}${f.type === 'TILT' ? 2 : 20}`}
+								step="any"
+							/>
+						</div>
+					{/each}
 				</div>
+				{#if filterRangeProblem(f)}
+					<p class="ceWarnings">
+						{filterRangeProblem(f)} The app ignores a setting like this and uses its default.
+					</p>
+				{/if}
 				<div class="ceFieldGroup">
 					<label class="ceLabel" for="{id}-f{i}-desc">
 						Description

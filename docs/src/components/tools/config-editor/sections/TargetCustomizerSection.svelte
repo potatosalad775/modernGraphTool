@@ -4,9 +4,9 @@
 	import AccordionSection from '../shared/AccordionSection.svelte';
 	import StringArrayEditor from '../shared/StringArrayEditor.svelte';
 	import {
-		filterGainLimits,
 		filterRangeProblem,
-		isGainOutsideRange
+		isGainOutsideRange,
+		resolveFilterRange
 	} from '../../../../utils/filterRange';
 
 	const FILTER_TYPES = ['TILT', 'LSQ', 'HSQ', 'PK'];
@@ -57,7 +57,7 @@
 {#snippet filterGainEditor(filterObj: Record<string, number>, scope: string)}
 	<div class="ceCardGrid">
 		{#each filters as f (f.id)}
-			{@const limits = filterGainLimits(f)}
+			{@const limits = resolveFilterRange(f).range}
 			<div style="display: flex; align-items: center; gap: 0.375rem;">
 				<label style="font-size: 0.75rem; min-width: 40px;" for="{scope}-gain-{f.id}">
 					{f.name || f.id}
@@ -79,7 +79,7 @@
 	</div>
 	{#each filters as f (f.id)}
 		{#if isGainOutsideRange(f, filterObj[f.id])}
-			{@const limits = filterGainLimits(f)}
+			{@const limits = resolveFilterRange(f).range}
 			<p class="ceWarnings">
 				{f.name || f.id}: {filterObj[f.id]} is outside this filter's slider ({limits.min} to {limits.max}).
 				The curve still gets it, but the slider cannot show it.

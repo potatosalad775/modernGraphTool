@@ -111,6 +111,8 @@
 				class="-mr-1 ml-0.5"
 			>
 				<p>{m.equalizer_player_headroom_hint({ db: LISTENING_HEADROOM_DB })}</p>
+				<p>{m.equalizer_player_headroom_hint_limit({ db: LISTENING_HEADROOM_DB })}</p>
+				<p>{m.equalizer_player_headroom_hint_scope()}</p>
 			</InfoPopover>
 		</Switch>
 		<Switch

@@ -116,18 +116,20 @@ iOS, the media notification on Android, and the media overlay and media keys on 
 can pause or resume it from there, or with your headphones' play/pause button. On iPhone and iPad
 it also plays with the silent switch on.
 
+When a [Hardware EQ](../features/device-peq.mdx) device is connected in this browser, the player leaves the EQ to it: the device already applies the list to whatever it plays, and applying it here too would play it twice. The player's **EQ Effect** switch turns off, and a line under the switches names the device. **Apply it here instead** takes the EQ back for the player, for when your sound doesn't go through that device. If the device doesn't hold your latest edits yet, the line says so, and what you hear is what the device holds. Holding <kbd>\\</kbd> can't lift the device's EQ, so while the player plays it only shows a message; use **Device EQ** to hear the sound without it.
+
+A device linked through [uniPEQ](../features/unipeq-link.mdx) is treated the same way when you started uniPEQ with **Open uniPEQ**, since it then runs on this machine. Joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ and asks whether you're listening through it. Choose **Leave the EQ to the device** if you are. The answer is remembered for that device until you reload the page.
+
 ### Fixed headroom \{#fixed-headroom\}
 
 The preamp follows your bands: raise one band's boost and the preamp drops, so everything else gets quieter. That is right for the exported EQ, but it makes it hard to judge a small change by ear. Turn on **Fixed Headroom** in the player and it plays 12 dB below full level instead, whatever the automatic preamp is, so a band you change is the only thing that changes. A flat EQ and the **EQ Effect** switch's bypass play at that level too.
 
-- It is 12 dB quieter than before, so turn your volume up. Leave it off if your source can't make up the difference.
+- It is quieter than before, by up to 12 dB: the difference between 12 dB and the automatic preamp. Turn your volume up as needed. Leave it off if your source can't make up the difference.
 - An EQ that boosts more than 12 dB still gets the lower preamp it needs, so the player doesn't clip in either mode.
 - Only the player is affected. The preamp in the band list, in an exported file and written to a device stays automatic.
-- The switch is unavailable while a device applies the EQ (below), since the device then applies its own preamp. Your choice is remembered in this browser.
-
-When a [Hardware EQ](../features/device-peq.mdx) device is connected in this browser, the player leaves the EQ to it: the device already applies the list to whatever it plays, and applying it here too would play it twice. The player's **EQ Effect** switch turns off, and a line under the switches names the device. **Apply it here instead** takes the EQ back for the player, for when your sound doesn't go through that device. If the device doesn't hold your latest edits yet, the line says so, and what you hear is what the device holds. Holding <kbd>\\</kbd> can't lift the device's EQ, so while the player plays it only shows a message; use **Device EQ** to hear the sound without it.
-
-A device linked through [uniPEQ](../features/unipeq-link.mdx) is treated the same way when you started uniPEQ with **Open uniPEQ**, since it then runs on this machine. Joined by QR code or typed code, it may be on another machine, so the player keeps applying the EQ and asks whether you're listening through it. Choose **Leave the EQ to the device** if you are. The answer is remembered for that device until you reload the page.
+- The switch is unavailable while a device applies the EQ (above), since the device then applies its own preamp. The level changes by up to 12 dB when a device takes the EQ over or hands it back, so lower your volume before you switch.
+- The **Spectrum** overlay shows what the player plays, so it draws lower with the switch on.
+- Your choice is remembered in this browser.
 
 ## Hardware EQ — push EQ to a device \{#device-peq\}
 

@@ -418,6 +418,36 @@ describe('AudioPlayerService', () => {
 			settle();
 		});
 
+		it('measures a loudness-matched A/B at the derived preamps, whatever fixed headroom says', () => {
+			// The device plays each side at its own derived preamp, so the mild boost is the
+			// louder side. Measured at the fixed preamp, the trim would land on the other one.
+			const A = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 8 }];
+			const B = [{ enabled: true, type: 'LSQ', freq: 105, q: 0.7, gain: 2 }];
+			const snap = (id: string, filters: typeof FILTERS) =>
+				({ id, timestamp: 0, filters, preamp: 0, summary: id }) as EqSnapshot;
+			settingsStore.listeningHeadroom = true;
+			eqHistoryStore.matchLoudness = true;
+			eqHistoryStore.snapshots = [snap('h-a', A), snap('h-b', B)];
+			eqHistoryStore.aSnapshotId = 'h-a';
+			eqHistoryStore.bSnapshotId = 'h-b';
+			const preamp = derivePreamp(B as EQFilter[]);
+			setFilters(B, preamp);
+			connectDevice();
+			audioPlayerService.play();
+			settle();
+
+			const db = computeAbMatchDb(
+				{ filters: B as EQFilter[], preamp },
+				A as EQFilter[],
+				B as EQFilter[]
+			);
+			expect(db).toBeLessThan(0);
+			expect(bypassMatchNode().gain.value).toBeCloseTo(Math.pow(10, db / 20), 6);
+
+			settingsStore.listeningHeadroom = false;
+			eqHistoryStore.clear();
+		});
+
 		it('builds no EQ nodes and no preamp, even with a non-flat EQ', () => {
 			setFilters(FILTERS, -6);
 			connectDevice();

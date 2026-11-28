@@ -142,7 +142,7 @@ class SettingsStore {
 	singleKeyShortcuts = $state(true);
 	/**
 	 * The audio player plays at a fixed preamp (`listeningPreamp`) rather than the derived one, so
-	 * editing a band doesn't move the level of everything else. Off by default: it is 12 dB quieter.
+	 * editing a band doesn't move the level of everything else. Off by default: it is up to 12 dB quieter.
 	 */
 	listeningHeadroom = $state(false);
 

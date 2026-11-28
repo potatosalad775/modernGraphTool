@@ -244,7 +244,12 @@ class AudioPlayerService {
 	 * never `eqStore.preamp`, or a bypass or an A/B switch would jump by the difference.
 	 */
 	get #preampDb(): number {
-		return listeningPreamp(eqStore.preamp, settingsStore.listeningHeadroom);
+		return listeningPreamp(eqStore.preamp, this.#fixedHeadroom);
+	}
+
+	/** Off while a device applies the EQ: it plays its own derived preamp, not ours. */
+	get #fixedHeadroom(): boolean {
+		return settingsStore.listeningHeadroom && !devicePeqStore.playsEq;
 	}
 
 	/** The listening-range bandpass and its makeup stage, added at the head of the chain. */
@@ -666,7 +671,7 @@ class AudioPlayerService {
 					a: eqHistoryStore.aEntry,
 					b: eqHistoryStore.bEntry,
 					live: { filters: eqStore.filters, preamp: this.#preampDb },
-					fixedHeadroom: settingsStore.listeningHeadroom
+					fixedHeadroom: this.#fixedHeadroom
 				});
 				this.#abTrimLinear = Math.pow(10, db / 20);
 				untrack(() => {

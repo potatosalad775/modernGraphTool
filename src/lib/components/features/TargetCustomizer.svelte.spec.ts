@@ -35,7 +35,8 @@ window.GRAPHTOOL_CONFIG = {
 				q: 0.707,
 				description: 'Low shelf at 105 Hz'
 			},
-			{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 }
+			{ id: 'treble', name: 'Treble (dB)', type: 'HSQ', freq: 2500, q: 0.42 },
+			{ id: 'hrtf', name: 'HRTF (dB)', type: 'PK', freq: 8000, q: 2, min: -3, max: 3, step: 0.1 }
 		],
 		FILTER_PRESET: [{ name: 'Bassy', filter: { bass: 4, treble: 0 } }],
 		INITIAL_TARGET_FILTERS: [{ name: 'Harman', filter: { bass: 2 } }]
@@ -370,6 +371,14 @@ describe('TargetCustomizer', () => {
 
 			const el = slider('Bass').element() as HTMLInputElement;
 			expect([el.min, el.max, el.step]).toEqual(['-20', '20', '0.5']);
+		});
+
+		it('gives a filter the range its definition sets', async () => {
+			await open();
+			await page.getByRole('combobox').first().selectOptions('hrtf');
+
+			const el = slider('HRTF').element() as HTMLInputElement;
+			expect([el.min, el.max, el.step]).toEqual(['-3', '3', '0.1']);
 		});
 
 		it('explains a filter that carries a description', async () => {

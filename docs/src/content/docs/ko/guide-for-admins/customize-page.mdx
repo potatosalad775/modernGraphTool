@@ -864,6 +864,8 @@ TARGET_CUSTOMIZER: {
   - `type` — 필터 타입. `TILT`, `LSQ`(Low Shelf), `HSQ`(High Shelf), `PK`(Peaking) 중 하나
   - `freq` — 중심·코너 주파수 (Hz)
   - `q` — Q값 (대역폭)
+  - `description` — 선택 사항. 슬라이더 옆 정보 버튼을 누르면 표시되는 설명
+  - `min`, `max`, `step` — 선택 사항. 슬라이더의 최솟값·최댓값·간격 (dB, `TILT`는 dB/oct). 생략한 항목은 기본값을 따릅니다: -20 ~ 20, 0.5 간격 (`TILT`는 -2 ~ 2, 0.1 간격). 작은 보정용 필터 예: `{ id: "hrtf", name: "HRTF", type: "PK", freq: 8000, q: 2, min: -3, max: 3, step: 0.1 }`. 범위는 슬라이더에만 적용되므로 `FILTER_PRESET`과 `INITIAL_TARGET_FILTERS`의 값은 이 범위 안으로 맞추세요.
 - `FILTER_PRESET` — 드롭다운에서 고를 수 있는 필터 프리셋 구성.
   - `name` — 프리셋 표시 이름
   - `filter` — 필터 ID와 게인 값을 매핑한 객체

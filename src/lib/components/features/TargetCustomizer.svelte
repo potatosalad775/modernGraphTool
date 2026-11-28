@@ -4,7 +4,7 @@
 	import { frStore } from '#lib/stores/fr-store.svelte.js';
 	import {
 		targetAdjustmentStore,
-		type TargetFilterDef
+		filterGainRange
 	} from '#lib/stores/target-adjustment-store.svelte.js';
 	import { dataProvider } from '#lib/services/data-provider.svelte.js';
 	import type { FRDataObject } from '#lib/types/data-types.js';
@@ -32,11 +32,6 @@
 	const inactiveFilters = $derived(
 		availableFilters.filter((f) => !adjustment.activeIds.includes(f.id))
 	);
-
-	function getGainRange(def: TargetFilterDef): { min: number; max: number; step: number } {
-		if (def.type === 'TILT') return { min: -2, max: 2, step: 0.1 };
-		return { min: -20, max: 20, step: 0.5 };
-	}
 
 	// ── One-time registration ─────────────────────────────────────────────────
 	// Seeds the slider stack from INITIAL_TARGET_FILTERS (no-op if this UUID already
@@ -123,7 +118,7 @@
 
 		<div class="grid gap-1.5" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
 			{#each activeFilters as def (def.id)}
-				{@const range = getGainRange(def)}
+				{@const range = filterGainRange(def)}
 				{@const value = adjustment.values[def.id] ?? 0}
 				<div
 					class="flex items-center gap-1.5 rounded border border-base-content/15 bg-base-100 p-1.5 pb-2"

@@ -24,6 +24,15 @@
 		}
 	}
 
+	/** `min` / `max` / `step` are optional too: blank means "the type's default", so drop the key. */
+	function setRange(index: number, key: 'min' | 'max' | 'step', raw: string) {
+		if (raw === '') {
+			delete filters[index][key];
+		} else {
+			filters[index][key] = Number(raw);
+		}
+	}
+
 	/** Gain of `''` means "this preset does not touch this filter", so drop the key. */
 	function setGain(filterObj: Record<string, number>, filterId: string, raw: string) {
 		if (raw === '') {
@@ -145,6 +154,27 @@
 							step="0.001"
 						/>
 					</div>
+					{#each ['min', 'max', 'step'] as const as key (key)}
+						<div class="ceFieldGroup">
+							<label class="ceLabel" for="{id}-f{i}-{key}">
+								{key === 'step' ? 'Step' : key === 'min' ? 'Min gain' : 'Max gain'}
+								<span class="ceLabelHint">optional</span>
+							</label>
+							<input
+								id="{id}-f{i}-{key}"
+								type="number"
+								class="ceInput ceInputSmall"
+								value={f[key] ?? ''}
+								oninput={(e) => setRange(i, key, e.currentTarget.value)}
+								placeholder={key === 'step'
+									? f.type === 'TILT'
+										? '0.1'
+										: '0.5'
+									: `${key === 'min' ? '-' : ''}${f.type === 'TILT' ? 2 : 20}`}
+								step="0.1"
+							/>
+						</div>
+					{/each}
 				</div>
 				<div class="ceFieldGroup">
 					<label class="ceLabel" for="{id}-f{i}-desc">

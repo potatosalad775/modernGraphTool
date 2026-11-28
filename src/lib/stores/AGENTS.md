@@ -201,6 +201,8 @@ previous selection never draws under the new one.
 **`target-adjustment-store.svelte.ts` — the state lives here, not in the component.**
 Target Customizer slider stacks keyed by FR-data UUID, plus the `TARGET_CUSTOMIZER` config (filters,
 presets, `INITIAL_TARGET_FILTERS`) and the tilt/shelf math (`adjustedChannels`, `label`).
+`filterGainRange(def)` is the one place a slider's limits come from: a filter's optional `min` / `max` /
+`step` over the type's default. The limits bind the slider, not preset or initial values.
 `TargetCustomizer.svelte` is UI only: it registers the record (`ensure`) and drops it when the item
 is gone. Keeping the state here is what lets `DataProvider.applyTargetAdjustment()` rebuild a target
 with no component mounted — `GraphPanel` is torn down on every panel switch. What the sliders apply

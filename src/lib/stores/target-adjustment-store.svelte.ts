@@ -11,6 +11,38 @@ export interface TargetFilterDef {
 	freq: number;
 	q: number;
 	description?: string;
+	/** Slider limits and step, in the filter's own unit. Each falls back to the type's default. */
+	min?: number;
+	max?: number;
+	step?: number;
+}
+
+export interface GainRange {
+	min: number;
+	max: number;
+	step: number;
+}
+
+const TILT_RANGE: GainRange = { min: -2, max: 2, step: 0.1 };
+const GAIN_RANGE: GainRange = { min: -20, max: 20, step: 0.5 };
+
+/**
+ * The slider range of a filter: the operator's `min` / `max` / `step` over the type's default.
+ * A value that is no finite number, a step of zero or less, or limits that leave no room
+ * (`min >= max`) fall back to the default, so a typo in config.js cannot freeze a slider.
+ */
+export function filterGainRange(def: TargetFilterDef): GainRange {
+	const base = def.type === 'TILT' ? TILT_RANGE : GAIN_RANGE;
+	const finite = (value: unknown, fallback: number) =>
+		typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+	const min = finite(def.min, base.min);
+	const max = finite(def.max, base.max);
+	const step = finite(def.step, base.step);
+	return {
+		min: min < max ? min : base.min,
+		max: min < max ? max : base.max,
+		step: step > 0 ? step : base.step
+	};
 }
 
 export interface TargetFilterPreset {
